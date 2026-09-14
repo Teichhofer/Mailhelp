@@ -32,6 +32,16 @@ UIDVALIDITY und UID persistiert und nach einem Neustart fortgesetzt. SIGINT und
 SIGTERM fordern ein kontrolliertes Ende an; Netzwerkclients und die
 Einzelinstanz-Sperre werden auch bei Fehlern geschlossen.
 
+Telegram-Updates werden an der Eingangsgrenze durch geschlossene Pydantic-
+Schemata validiert. Der atomar gespeicherte Offset verhindert nach einem Neustart
+die erneute Verarbeitung bereits behandelter Updates. Aktionen enthalten immer
+Vorschlags-ID, Version und Aktion; nur der konfigurierte Nutzer im konfigurierten
+Chat darf sie auslösen. Jede angezeigte Version wird vor ihren Schaltflächen
+gespeichert. `Bestätigen`, `Ändern` und `Verwerfen` werden getrennt behandelt,
+während veraltete oder fehlerhafte Schaltflächen keinen Zustand verändern.
+Antworten auf Rückfragen erzeugen eine neue, erneut zu bestätigende Version.
+Lange Vorschläge tragen in jedem Teil Mail-ID, Vorschlags-ID und Teilnummer.
+
 ## Docker
 
 ```sh

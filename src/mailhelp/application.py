@@ -15,7 +15,7 @@ from .logging import JsonlLogger
 from .openrouter import OpenRouterClient
 from .orchestrator import Orchestrator
 from .storage import JsonStore
-from .telegram import TelegramClient
+from .telegram import TelegramClient, TelegramDialogController
 
 
 @dataclass
@@ -31,6 +31,7 @@ class Application:
     calendar: HttpWriter
     orchestrator: Orchestrator
     stop_event: Event
+    dialog: TelegramDialogController | None = None
 
     def stop(self) -> None:
         self.stop_event.set()
@@ -59,6 +60,12 @@ class Application:
                 self.store.save(f"imap-{_safe_name(folder)}", {"uidvalidity": self.imap.last_uidvalidity, "uid": uid})
 
     def _poll_telegram(self) -> None:
+        if self.dialog is not None:
+            try:
+                self.dialog.poll_once()
+            except Exception as exc:
+                self.logger.event("ERROR", "telegram", "poll_failed", error=str(exc))
+            return
         state = self.store.load("telegram-offset", {"offset": 0})
         try:
             updates = self.telegram.poll(state["offset"])
@@ -103,5 +110,6 @@ def build_application(settings: Settings, secrets: Secrets, topics: list[Topic],
         calendar = HttpWriter("google_calendar", secrets.google_access_token.get_secret_value(), settings.targets["google_calendar"])
         stack.callback(calendar.close)
         analyzer = Analyzer(openrouter, prompts, settings.retries["validation"])
-        orchestrator = Orchestrator(analyzer, store, telegram, settings.telegram["chat_id"], topics, settings.limits["max_mail_bytes"])
-        yield Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar, orchestrator, orchestrator.stop_event)
+        dialog = TelegramDialogController(store, telegram, settings.telegram["user_id"], settings.telegram["chat_id"], logger)
+        orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram["chat_id"], topics, settings.limits["max_mail_bytes"])
+        yield Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar, orchestrator, orchestrator.stop_event, dialog)
