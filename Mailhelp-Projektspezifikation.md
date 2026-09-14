@@ -51,6 +51,20 @@ Fehler in einer Mail dürfen die Verarbeitung anderer Mails nicht dauerhaft bloc
 
 ## 4. IMAP und Inhaltsaufbereitung
 
+Die MIME-Aufbereitung begrenzt konfigurierbar die rohe Mailgröße, Teilezahl,
+dekodierte Textmenge, HTML-Zeichen, HTML-Tags und Verschachtelungstiefe sowie die
+endgültige JSON-Nutzlast für das LLM. Bei Überschreitung entsteht ein sichtbarer,
+inhaltlich neutraler Fehlerzustand. Aktive und eingebettete HTML-Inhalte
+(`script`, `style`, `noscript`, `object`, `embed`, `iframe`, SVG und Canvas) sowie
+Anhänge werden ausgelassen; externe Ressourcen werden nie geladen. Unicode wird
+normalisiert und problematische Steuerzeichen werden entfernt, Zeilenumbrüche
+bleiben erhalten.
+
+Header und Text werden dem LLM ausschließlich als getrennte Datenfelder und nie
+als Prompt-Anweisungen übergeben. Metadaten über ausgelassene Anhänge und eine
+Reply-/Signaturkürzung bleiben in Zusammenfassungsdaten, Zustand und Logging
+verfügbar.
+
 - Server, Port, Verbindungsmodus, Ordner und Abrufintervall sind konfigurierbar. Zugangsdaten stehen ausschließlich in der Geheimnisdatei beziehungsweise in Laufzeit-Umgebungsvariablen.
 - Der Lesestatus dient nicht als Verarbeitungsmarker. Mailhelp verändert die Originalnachrichten und ihren Lesestatus nicht absichtlich.
 - Vorgeschlagener Erststart: Verarbeitung ab einem einmalig gespeicherten Startzeitpunkt. Ein konfigurierbares Startdatum ermöglicht einen historischen Import.

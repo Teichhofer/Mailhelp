@@ -24,8 +24,8 @@ class Notifier(Protocol):
 
 
 class Orchestrator:
-    def __init__(self, analyzer: Analyzer, store: JsonStore, notifier: Notifier, chat_id: int, topics: list[Topic], max_mail_bytes: int, logger: EventLogger | None = None, clock: Any = time.time):
-        self.analyzer, self.store, self.notifier, self.chat_id, self.topics, self.max_bytes = analyzer, store, notifier, chat_id, topics, max_mail_bytes
+    def __init__(self, analyzer: Analyzer, store: JsonStore, notifier: Notifier, chat_id: int, topics: list[Topic], max_mail_bytes: int, logger: EventLogger | None = None, clock: Any = time.time, mime_limits: object | None = None):
+        self.analyzer, self.store, self.notifier, self.chat_id, self.topics, self.max_bytes = analyzer, store, notifier, chat_id, topics, mime_limits or max_mail_bytes
         self.stop_event = Event()
         self.logger = logger or NullLogger()
         self.clock = clock
@@ -61,7 +61,8 @@ class Orchestrator:
                 state.mail["internal_id"] = internal_id
                 state.steps.preparation = "completed"
                 self._save(name, state)
-                self.logger.event("INFO", "orchestrator", "preparation_completed", mail_id=state.id)
+                self.logger.event("INFO", "orchestrator", "preparation_completed", mail_id=state.id,
+                                  preparation_metadata=state.mail["metadata"])
             assert state.mail is not None
             if state.steps.relevance == "pending":
                 call, relevance = self.analyzer.relevance(state.mail, self.topics)
@@ -77,7 +78,7 @@ class Orchestrator:
                 state.steps.notification = "skipped"
             elif state.relevance.decision == "unclear":
                 if state.steps.notification == "pending":
-                    self.notifier.send(self.chat_id, f"Unklare Relevanz: {state.mail['subject']}")
+                    self.notifier.send(self.chat_id, f"Unklare Relevanz: {state.mail['headers']['subject']}")
                     state.steps.notification = "completed"
                     state.awaiting_relevance = True
                     self._save(name, state)
@@ -101,7 +102,7 @@ class Orchestrator:
                                       proposal_ids=[item.id for item in state.proposals])
                 if state.steps.notification == "pending":
                     assert state.summary is not None
-                    self.notifier.send(self.chat_id, f"{state.mail['subject']}\n" + " ".join(state.summary.sentences))
+                    self.notifier.send(self.chat_id, f"{state.mail['headers']['subject']}\n" + " ".join(state.summary.sentences))
                     for proposal in state.proposals:
                         self.notifier.send_proposal(proposal)
                         self.logger.event("INFO", "orchestrator", "proposal_notified", mail_id=state.id, proposal_id=proposal.id)
