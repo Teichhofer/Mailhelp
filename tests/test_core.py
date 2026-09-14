@@ -1,0 +1,109 @@
+from __future__ import annotations
+import json, os, sys
+from datetime import datetime, timezone, timedelta
+from email.message import EmailMessage
+from pathlib import Path
+import httpx, pytest
+from pydantic import ValidationError
+
+from mailhelp import __version__
+from mailhelp.analysis import Analyzer
+from mailhelp.cli import main
+from mailhelp.config import PromptConfig, PromptStep, Topic, _deep_merge, _yaml, load_all
+from mailhelp.imap import FetchedMail, ImapReader
+from mailhelp.integrations import HttpWriter, execute_confirmed
+from mailhelp.logging import JsonlLogger, redact
+from mailhelp.mime import prepare
+from mailhelp.models import Actions, Proposal, ProposalKind, ProposalStatus, Relevance, Summary
+from mailhelp.openrouter import OpenRouterClient, RateLimitExceeded
+from mailhelp.orchestrator import Orchestrator
+from mailhelp.storage import AlreadyRunning, CorruptState, JsonStore
+from mailhelp.telegram import Decision, TelegramClient, apply_decision, split_message
+
+
+def prompt_config(model="model"):
+    return PromptConfig(defaults={"model": model, "parameters": {"nested": {"a": 1}, "temperature": .2}}, prompts={x: PromptStep(system_prompt=x, parameters={"nested": {"b": 2}}) for x in ("relevance", "summary", "actions")})
+
+
+def proposal(**kw):
+    base = dict(id="p1", version=1, kind="task", title="Tun", evidence="Mail sagt es")
+    base.update(kw); return Proposal.model_validate(base)
+
+
+def test_models_and_config(tmp_path, monkeypatch, capsys):
+    assert __version__ == "0.1.0"
+    assert Relevance(decision="relevant", reason="x").topic_ids == []
+    assert len(Summary(sentences=["a", "b"]).sentences) == 2
+    assert Actions().proposals == []
+    start = datetime.now(timezone.utc)
+    Proposal(id="e", version=1, kind="event", title="x", evidence="y", start=start, end=start + timedelta(hours=1))
+    with pytest.raises(ValidationError): Proposal(id="e", version=1, kind="event", title="x", evidence="y")
+    with pytest.raises(ValidationError): Proposal(id="e", version=1, kind="event", title="x", evidence="y", start=start, end=start)
+    assert _deep_merge({"x": {"a": 1}, "z": 1}, {"x": {"b": 2}, "z": 2}) == {"x": {"a": 1, "b": 2}, "z": 2}
+    cfg = prompt_config(); model, params, prompt = cfg.resolved("summary")
+    assert (model, prompt, params["nested"]) == ("model", "summary", {"a": 1, "b": 2})
+    bad = prompt_config("<placeholder>")
+    with pytest.raises(ValueError, match="nicht eingerichtet"): bad.resolved("summary")
+    bad.defaults["parameters"]["model"] = "evil"
+    bad.defaults["model"] = "ok"
+    with pytest.raises(ValueError, match="Reservierte"): bad.resolved("summary")
+    with pytest.raises(ValidationError): PromptConfig(defaults={}, prompts={"summary": PromptStep(system_prompt="x")})
+    (tmp_path / "bad.yaml").write_text("- x", encoding="utf8")
+    with pytest.raises(ValueError): _yaml(tmp_path / "bad.yaml")
+    for name in ("config.yaml", "prompts.yaml", "topics.yaml"):
+        (tmp_path / name).write_text((Path(name)).read_text(encoding="utf8"), encoding="utf8")
+    env = {x: "secret" for x in ["IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN", "TODOIST_TOKEN", "GOOGLE_ACCESS_TOKEN"]}
+    settings, secrets, topics, prompts, fingerprint = load_all(tmp_path, env)
+    assert settings.test_mode and secrets.imap_password.get_secret_value() == "secret" and topics[0].enabled and len(fingerprint) == 64
+    with pytest.raises(ValueError, match="Fehlende"): load_all(tmp_path, {})
+    (tmp_path / "topics.yaml").write_text("topics: []", encoding="utf8")
+    with pytest.raises(ValueError, match="mindestens"): load_all(tmp_path, env)
+    monkeypatch.setattr(sys, "argv", ["mailhelp", "--config-directory", str(Path.cwd()), "--check"]); monkeypatch.setattr(os, "environ", env)
+    assert main() == 0; assert "gültig" in capsys.readouterr().out
+    monkeypatch.setattr(sys, "argv", ["mailhelp", "--config-directory", str(Path.cwd())]); assert main() == 0
+
+
+def test_mime():
+    msg = EmailMessage(); msg["From"]="A <a@example.test>"; msg["Subject"]="Hallo"; msg["Message-ID"]="<1>"; msg.set_content("Inhalt\n-- \nSignatur"); msg.add_alternative("<b>HTML</b>", subtype="html"); msg.add_attachment(b"x", maintype="application", subtype="octet-stream", filename="x.bin")
+    value = prepare(msg.as_bytes(), 10000); assert value["text"] == "Inhalt" and value["attachments"] == 1
+    html = EmailMessage(); html.set_content("<p>Nur <b>HTML</b></p>", subtype="html"); assert prepare(html.as_bytes(), 1000)["text"] == "Nur HTML"
+    with pytest.raises(ValueError): prepare(b"x" * 5, 2)
+
+
+class FakeImap:
+    def __init__(self, *args, **kwargs): self.mode="ok"; self.logged=False
+    def login(self, *args): self.logged=True
+    def select(self, folder, readonly): return (("NO", []) if folder == "bad" else ("OK", []))
+    def response(self, key): return ((None, []) if self.mode == "validity" else ("UIDVALIDITY", [b"7"]))
+    def uid(self, action, *args):
+        if self.mode == "search": return "NO", []
+        if action == "search": return "OK", [b"4"]
+        if self.mode == "fetch": return "NO", []
+        return "OK", [(b"header", b"raw")]
+    def logout(self): self.logged=False
+
+
+def test_imap():
+    reader=ImapReader("h", 1, "u", "p", factory=FakeImap); assert reader.fetch_since("INBOX")[0].raw == b"raw"
+    with pytest.raises(RuntimeError): reader.fetch_since("bad")
+    reader.connection.mode="validity"
+    with pytest.raises(RuntimeError): reader.fetch_since("INBOX")
+    reader.connection.mode="search"
+    with pytest.raises(RuntimeError): reader.fetch_since("INBOX")
+    reader.connection.mode="fetch"
+    with pytest.raises(RuntimeError): reader.fetch_since("INBOX")
+    reader.close(); assert not reader.connection.logged
+
+
+def test_storage_and_logging(tmp_path):
+    store=JsonStore(tmp_path/"data")
+    with store:
+        store.save("x", {"umlaut":"ä"}); assert store.load("x") == {"umlaut":"ä"}; assert store.load("missing", 4)==4
+        with pytest.raises(AlreadyRunning): JsonStore(tmp_path/"data").__enter__()
+    assert not (tmp_path/"data/.lock").exists()
+    (tmp_path/"data/x.json").write_text("{", encoding="utf8")
+    with pytest.raises(CorruptState): store.load("x")
+    assert redact({"token":"abc", "nested":["Bearer xyz", 2]}) == {"token":"***", "nested":["Bearer ***", 2]}
+    logger=JsonlLogger(tmp_path/"logs"); logger.event("INFO","test","ok", password="bad"); logger.llm_event("request", request={"mail":"private"}, response="private")
+    logger2=JsonlLogger(tmp_path/"logs2", True, True); logger2.llm_event("response", request="a", response="b")
+    assert "bad" not in logger.app.read_text() and "private" not in logger.llm.read_text() and '"response": "b"' in logger2.llm.read_text()

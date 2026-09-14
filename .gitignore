@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Mailhelp runtime files
+.env
+data/
+logs/
