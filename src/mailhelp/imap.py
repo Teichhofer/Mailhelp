@@ -41,6 +41,20 @@ class ImapReader:
         self.logger.event("INFO", "imap", "request_completed", folder=folder, count=len(result), duration_ms=round((time.perf_counter()-started)*1000, 3))
         return result
 
+    def fetch_uid(self, folder: str, uid: int, expected_uidvalidity: int) -> FetchedMail:
+        """Load one known message without setting ``\\Seen``."""
+        status, _data = self.connection.select(folder, readonly=True)
+        if status != "OK": raise RuntimeError(f"IMAP-Ordner nicht lesbar: {folder}")
+        status, validity = self.connection.response("UIDVALIDITY")
+        if status != "UIDVALIDITY" or not validity: raise RuntimeError("IMAP lieferte keine UIDVALIDITY")
+        uidvalidity = int(validity[0]); self.last_uidvalidity = uidvalidity
+        if uidvalidity != expected_uidvalidity:
+            raise RuntimeError(f"IMAP-UIDVALIDITY hat sich geändert: {folder}")
+        status, body = self.connection.uid("fetch", str(uid).encode(), "(BODY.PEEK[])")
+        if status != "OK" or not body or not isinstance(body[0], tuple):
+            raise RuntimeError(f"IMAP-Abruf fehlgeschlagen: UID {uid}")
+        return FetchedMail(folder, uidvalidity, uid, body[0][1])
+
     def _fetch_since(self, folder: str, after_uid: int, expected_uidvalidity: int | None) -> list[FetchedMail]:
         status, data = self.connection.select(folder, readonly=True)
         if status != "OK": raise RuntimeError(f"IMAP-Ordner nicht lesbar: {folder}")

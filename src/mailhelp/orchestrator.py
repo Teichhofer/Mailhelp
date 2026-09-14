@@ -4,7 +4,9 @@ from __future__ import annotations
 import hashlib
 import time
 import traceback
+from dataclasses import dataclass
 from datetime import datetime, timezone
+from enum import StrEnum
 from threading import Event
 from typing import Any, Protocol
 
@@ -23,6 +25,27 @@ class Notifier(Protocol):
     def send_proposal(self, proposal: Any) -> None: ...
 
 
+class ProcessingOutcome(StrEnum):
+    """Extern sichtbares Ergebnis eines Verarbeitungsversuchs."""
+
+    COMPLETED = "completed"
+    WAITING = "waiting"
+    FAILED = "failed"
+
+
+@dataclass(frozen=True)
+class ProcessingResult:
+    outcome: ProcessingOutcome
+    state: dict[str, Any]
+
+    def __getitem__(self, key: str) -> Any:
+        """Keep state inspection concise while making the outcome explicit."""
+        return self.state[key]
+
+    def __contains__(self, key: object) -> bool:
+        return key in self.state
+
+
 class Orchestrator:
     def __init__(self, analyzer: Analyzer, store: JsonStore, notifier: Notifier, chat_id: int, topics: list[Topic], max_mail_bytes: int, logger: EventLogger | None = None, clock: Any = time.time, mime_limits: object | None = None):
         self.analyzer, self.store, self.notifier, self.chat_id, self.topics, self.max_bytes = analyzer, store, notifier, chat_id, topics, mime_limits or max_mail_bytes
@@ -37,7 +60,7 @@ class Orchestrator:
         self.logger.event("DEBUG", "orchestrator", "state_persisted", mail_id=state.id,
                           state=state.steps.model_dump(mode="json"))
 
-    def process(self, fetched: FetchedMail) -> dict[str, Any]:
+    def process(self, fetched: FetchedMail) -> ProcessingResult:
         identity = f"{fetched.folder}:{fetched.uidvalidity}:{fetched.uid}"
         internal_id = hashlib.sha256(identity.encode()).hexdigest()[:24]
         started = time.perf_counter()
@@ -50,11 +73,11 @@ class Orchestrator:
         )
         if state.deferred_until is not None and state.deferred_until.timestamp() > self.clock():
             self.logger.event("INFO", "orchestrator", "processing_deferred", mail_id=state.id, deferred_until=state.deferred_until)
-            return state.model_dump(mode="json")
+            return ProcessingResult(ProcessingOutcome.WAITING, state.model_dump(mode="json"))
         state.deferred_until = None
         if state.steps.completion == "completed":
             self.logger.event("DEBUG", "orchestrator", "processing_already_completed", mail_id=state.id)
-            return state.model_dump(mode="json")
+            return ProcessingResult(ProcessingOutcome.COMPLETED, state.model_dump(mode="json"))
         try:
             if state.steps.preparation == "pending":
                 state.mail = prepare(fetched.raw, self.max_bytes)
@@ -83,7 +106,7 @@ class Orchestrator:
                     state.awaiting_relevance = True
                     self._save(name, state)
                     self.logger.event("INFO", "orchestrator", "notification_completed", mail_id=state.id)
-                return state.model_dump(mode="json")
+                return ProcessingResult(ProcessingOutcome.WAITING, state.model_dump(mode="json"))
             else:
                 if state.steps.summary == "pending":
                     call, summary = self.analyzer.summary(state.mail)
@@ -121,12 +144,16 @@ class Orchestrator:
             self.notifier.send(self.chat_id, message)
             self.logger.event("WARNING", "orchestrator", "llm_rate_limited", mail_id=state.id, next_allowed_at=state.deferred_until.isoformat(),
                               duration_ms=round((time.perf_counter() - started) * 1000, 3), error=exc, stacktrace=traceback.format_exc())
+            outcome = ProcessingOutcome.WAITING
         except Exception as exc:
             state.error = {"type": type(exc).__name__, "message": str(exc)}
             self._save(name, state)
             self.logger.event("ERROR", "orchestrator", "processing_failed", mail_id=state.id, error=exc,
                               duration_ms=round((time.perf_counter() - started) * 1000, 3), stacktrace=traceback.format_exc())
-        return state.model_dump(mode="json")
+            outcome = ProcessingOutcome.FAILED
+        else:
+            outcome = ProcessingOutcome.COMPLETED
+        return ProcessingResult(outcome, state.model_dump(mode="json"))
 
     def run(self, poll: Any, interval: float, wait: Any = None) -> None:
         waiter = wait or self.stop_event.wait

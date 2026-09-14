@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 from pathlib import Path
+from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 import pytest
 
 from mailhelp.application import Application, _safe_name, build_application
 from mailhelp.config import Secrets, Settings, Topic
 from mailhelp.imap import FetchedMail
+from mailhelp.models import MailState
 from test_core import prompt_config
 
 
@@ -14,6 +16,10 @@ class Store:
     def __init__(self, values=None): self.values=values or {}; self.saved=[]
     def load(self, name, default=None): return self.values.get(name, default)
     def save(self, name, value): self.saved.append((name,value)); self.values[name]=value
+    def names(self, prefix=""): return sorted(name for name in self.values if name.startswith(prefix))
+    def load_model(self, name, model, default=None):
+        value=self.values.get(name)
+        return default if value is None else model.model_validate(value)
 
 
 class Log:
@@ -22,11 +28,14 @@ class Log:
 
 
 class Imap:
-    def __init__(self, outcomes): self.outcomes=iter(outcomes); self.last_uidvalidity=None; self.calls=[]
+    def __init__(self, outcomes): self.outcomes=iter(outcomes); self.last_uidvalidity=None; self.calls=[]; self.uid_calls=[]
     def fetch_since(self,*args):
         self.calls.append(args); value=next(self.outcomes)
         if isinstance(value,Exception): raise value
         self.last_uidvalidity=value[0]; return value[1]
+    def fetch_uid(self,*args):
+        self.uid_calls.append(args)
+        return FetchedMail(args[0],args[2],args[1],b"Subject: resumed\n\nBody")
 
 
 class Telegram:
@@ -62,8 +71,18 @@ def test_polling_errors_resume_and_stop(tmp_path):
     service=app(tmp_path,Imap([(7,[mail1,mail2])]),Telegram([{"update_id":8},{"update_id":10}]),Orch(fail=True),store=store)
     service._poll_imap(); service._poll_telegram()
     assert service.imap.calls==[("INBOX",3,7)] and service.orchestrator.seen==[4,5]
-    assert store.values["imap-"+_safe_name("INBOX")]["uid"]==5 and store.values["telegram-offset"]["offset"]==11
+    assert store.values["imap-"+_safe_name("INBOX")]["uid"]==3 and store.values["telegram-offset"]["offset"]==11
     assert any(e[0][2]=="mail_failed" for e in service.logger.events)
+
+    class FirstFails(Orch):
+        def process(self, mail):
+            self.seen.append(mail.uid)
+            if mail.uid == 4: raise RuntimeError("mail")
+    mixed_store=Store({"imap-"+_safe_name("INBOX"):{"uidvalidity":7,"uid":3}})
+    mixed=app(tmp_path,Imap([(7,[mail1,mail2])]),Telegram([]),FirstFails(),store=mixed_store)
+    mixed._poll_imap()
+    assert mixed.orchestrator.seen==[4,5]
+    assert mixed_store.values["imap-"+_safe_name("INBOX")]["uid"]==3
 
     failing=app(tmp_path,Imap([RuntimeError("imap"),(9,[]),(10,[])]),Telegram(RuntimeError("tg")),Orch(),folders=("bad","new","none"))
     failing._poll_imap(); failing._poll_telegram()
@@ -98,6 +117,29 @@ def test_empty_checkpoint_and_run_paths(tmp_path):
     dialog_app=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch()); dialog_app.dialog=Dialog(); dialog_app._poll_telegram(); assert dialog_app.dialog.calls==1
     failed_dialog=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch()); failed_dialog.dialog=Dialog(RuntimeError("dialog")); failed_dialog._poll_telegram()
     assert failed_dialog.logger.events[0][0][2]=="poll_failed"
+
+
+def test_resume_due_pending_states_and_isolate_failures(tmp_path):
+    class LegacyStore:
+        def load(self,name,default=None): return default
+        def save(self,name,value): pass
+    legacy=app(tmp_path,Imap([]),Telegram([]),Orch(),store=LegacyStore())
+    legacy._resume_pending()
+    due=MailState(id="a"*24,imap={"folder":"INBOX","uidvalidity":7,"uid":4})
+    future=MailState(id="b"*24,imap={"folder":"INBOX","uidvalidity":7,"uid":5},deferred_until=datetime.now(timezone.utc)+timedelta(hours=1))
+    completed=MailState(id="c"*24,imap={"folder":"INBOX","uidvalidity":7,"uid":6})
+    completed.steps.completion="completed"
+    store=Store({"mail-a":due.model_dump(mode="json"),"mail-b":future.model_dump(mode="json"),"mail-c":completed.model_dump(mode="json"),"mail-missing":None})
+    imap=Imap([]); orch=Orch(); service=app(tmp_path,imap,Telegram([]),orch,store=store)
+    service._resume_pending()
+    assert imap.uid_calls==[("INBOX",4,7)] and orch.seen==[4]
+
+    class BrokenImap(Imap):
+        def fetch_uid(self,*args): raise RuntimeError("gone")
+    broken=app(tmp_path,BrokenImap([]),Telegram([]),Orch(),store=Store({"mail-a":due.model_dump(mode="json")}))
+    broken._resume_pending()
+    assert broken.logger.events[0][0][2]=="resume_failed"
+    broken.stop_event.set(); broken._resume_pending()
 
 
 def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch):
