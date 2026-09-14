@@ -1,6 +1,6 @@
 """Idempotente Adapter für Todoist und Google Kalender."""
 from __future__ import annotations
-from typing import Any, Protocol
+from typing import Any, Callable, Protocol
 import httpx
 from .models import Proposal, ProposalKind, ProposalStatus
 
@@ -10,16 +10,31 @@ class ExternalWriter(Protocol):
     def create(self, proposal: Proposal, key: str) -> dict[str, Any]: ...
 
 
-def execute_confirmed(proposal: Proposal, writer: ExternalWriter, test_mode: bool = False) -> tuple[Proposal, dict[str, Any]]:
+def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Callable[[Proposal], None], test_mode: bool = False) -> tuple[Proposal, dict[str, Any]]:
     if proposal.status != ProposalStatus.CONFIRMED or proposal.open_questions: raise ValueError("Schreiben erfordert vollständige, bestätigte Vorschlagsversion")
-    if test_mode: return proposal.model_copy(update={"status": ProposalStatus.CREATED}), {"simulation": True}
+    if test_mode:
+        persist(proposal)
+        return proposal, {"simulation": True}
     key = f"mailhelp:{proposal.id}:v{proposal.version}"
     found = writer.reconcile(key)
-    if found is not None: return proposal.model_copy(update={"status": ProposalStatus.CREATED}), found
+    if found is not None:
+        created = proposal.model_copy(update={"status": ProposalStatus.CREATED})
+        persist(created)
+        return created, found
     writing = proposal.model_copy(update={"status": ProposalStatus.WRITING})
+    persist(writing)
     try: result = writer.create(writing, key)
-    except (httpx.TimeoutException, httpx.TransportError): return writing.model_copy(update={"status": ProposalStatus.UNCERTAIN}), {}
-    return writing.model_copy(update={"status": ProposalStatus.CREATED}), result
+    except (httpx.TimeoutException, httpx.TransportError):
+        uncertain = writing.model_copy(update={"status": ProposalStatus.UNCERTAIN})
+        persist(uncertain)
+        return uncertain, {}
+    except httpx.HTTPStatusError:
+        failed = writing.model_copy(update={"status": ProposalStatus.FAILED})
+        persist(failed)
+        return failed, {}
+    created = writing.model_copy(update={"status": ProposalStatus.CREATED})
+    persist(created)
+    return created, result
 
 
 class HttpWriter:

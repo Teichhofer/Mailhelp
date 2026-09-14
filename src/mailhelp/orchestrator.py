@@ -28,7 +28,7 @@ class Orchestrator:
         if existing and existing.get("completed"): return existing
         state: dict[str, Any] = existing or {"schema_version": 1, "id": internal_id, "imap": {"folder": fetched.folder, "uidvalidity": fetched.uidvalidity, "uid": fetched.uid}, "completed": False}
         try:
-            mail = prepare(fetched.raw, self.max_bytes); state["mail"] = mail; self.store.save(f"mail-{internal_id}", state)
+            mail = prepare(fetched.raw, self.max_bytes); mail["internal_id"] = internal_id; state["mail"] = mail; self.store.save(f"mail-{internal_id}", state)
             call, relevance = self.analyzer.relevance(mail, self.topics); state["relevance"] = relevance.model_dump(); state.setdefault("llm_call_ids", []).append(call)
             if relevance.decision == "irrelevant": state["completed"] = True
             elif relevance.decision == "unclear": self.notifier.send(self.chat_id, f"Unklare Relevanz: {mail['subject']}"); state["awaiting_relevance"] = True
@@ -47,4 +47,3 @@ class Orchestrator:
                 if self.stop_event.is_set(): break
                 self.process(mail)
             waiter(interval)
-

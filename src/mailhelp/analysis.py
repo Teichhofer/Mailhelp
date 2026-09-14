@@ -21,7 +21,14 @@ class Analyzer:
             except ValidationError as exc: error = str(exc)
         raise ValueError(f"Ungültige LLM-Ausgabe für {step}: {error}")
 
-    def relevance(self, mail: dict[str, Any], topics: list[Topic]) -> tuple[str, Relevance]: return self._run("relevance", Relevance, mail, {"topics": [x.model_dump() for x in topics if x.enabled]})
+    def relevance(self, mail: dict[str, Any], topics: list[Topic]) -> tuple[str, Relevance]:
+        enabled = [topic for topic in topics if topic.enabled]
+        call_id, result = self._run("relevance", Relevance, mail, {"topics": [topic.model_dump() for topic in enabled]})
+        unknown = set(result.topic_ids) - {topic.id for topic in enabled}
+        if unknown:
+            raise ValueError(f"LLM lieferte unbekannte Themen-IDs: {sorted(unknown)}")
+        if result.decision == "relevant" and not result.topic_ids:
+            raise ValueError("Eine relevante Nachricht benötigt mindestens ein Thema")
+        return call_id, result
     def summary(self, mail: dict[str, Any]) -> tuple[str, Summary]: return self._run("summary", Summary, mail)
     def actions(self, mail: dict[str, Any]) -> tuple[str, Actions]: return self._run("actions", Actions, mail)
-
