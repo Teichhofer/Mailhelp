@@ -205,6 +205,24 @@ Eine Maildatei enthält mindestens:
 - Schreibversuche, externe IDs und etwaige unklare Ergebnisse.
 - Verwendete Konfigurations-/Prompt-Fingerprints und LLM-Aufruf-IDs.
 
+Die Verarbeitungsschritte `preparation`, `relevance`, `summary`,
+`action_detection`, `notification` und `completion` verwenden jeweils ausschließlich
+die schema-validierten Zustände `pending`, `completed` und `skipped`. Jeder erfolgreiche
+Schritt wird unmittelbar atomar persistiert. Ein Neustart führt nur `pending`-Schritte
+erneut aus. Bei irrelevanten Mails werden Zusammenfassung, Aktionserkennung und
+Benachrichtigung ausdrücklich übersprungen. Bei unklarer Relevanz bleibt der Abschluss
+offen; relevante Mails gelten erst nach Zusammenfassung, Aktionserkennung und
+Benachrichtigung als abgeschlossen.
+
+Vorschläge werden unabhängig vom Abschluss der Mail sowohl als unveränderliche
+Version als auch als aktueller Stand gespeichert. Der Telegram-Dialog stößt einen
+Schreibvorgang ausschließlich nach einer passenden, aktuellen Versionsbestätigung an.
+Nach Neustarts werden `confirmed`, `writing` und `uncertain` wiederaufgenommen. Vor
+jedem erneuten Versuch wird der versionsbezogene Idempotenzschlüssel abgeglichen;
+ein beim Absturz in `writing` verbliebener Vorgang wird ohne eindeutigen Fund zunächst
+`uncertain`. Ergebnisstatus, externe ID und verfügbarer Link werden gespeichert und
+zusammen mit Fehlern, unklaren Ergebnissen und Testmodus-Simulationen gemeldet.
+
 Vorgeschlagene Vorschlagszustände sind `needs_clarification`, `pending_confirmation`, `confirmed`, `writing`, `created`, `rejected`, `failed` und `uncertain`. Zustandsübergänge werden zentral geprüft; nur ein bestätigter, vollständiger Vorschlag darf in `writing` wechseln.
 
 Dateiänderungen erfolgen über temporäre Dateien und atomaren Austausch mit geeigneter Zugriffssperre. V1 erlaubt nur eine aktive Mailhelp-Instanz je Datenverzeichnis. Beschädigte JSON-Dateien werden isoliert und gemeldet, nicht stillschweigend durch leere Dateien ersetzt. Manuelles Bearbeiten ist nur bei gestoppter Anwendung vorgesehen; beim nächsten Start erfolgt eine Validierung.

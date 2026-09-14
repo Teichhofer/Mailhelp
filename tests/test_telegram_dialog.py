@@ -44,9 +44,18 @@ class Logger:
     def event(self, *args, **fields): self.events.append((args,fields))
 
 
-def controller(store, updates=()):
+def controller(store, updates=(), writers=None, test_mode=False):
     transport=Telegram(updates); log=Logger()
-    return TelegramDialogController(store,transport,1,2,log),transport,log
+    return TelegramDialogController(store,transport,1,2,log,writers,test_mode),transport,log
+
+
+class Writer:
+    def __init__(self, found=None, error=None): self.found=found; self.error=error; self.created=0; self.reconciled=0
+    def reconcile(self,key): self.reconciled+=1; return self.found
+    def create(self,p,key):
+        self.created+=1
+        if self.error: raise self.error
+        return {"id":"external-1","url":"https://example.test/item"}
 
 
 def test_strict_schemas_and_decisions():
@@ -140,3 +149,44 @@ def test_telegram_client_validation_and_callback():
     invalid=TelegramClient("secret",1,httpx.MockTransport(lambda r:httpx.Response(200,json={"result":{}},request=r)))
     with pytest.raises(ValueError): invalid.poll(0)
     invalid.close()
+
+
+def test_confirmation_executes_and_reports_all_results(tmp_path):
+    cases=[
+        (Writer(),False,"created","Erstellt"),
+        (Writer(error=httpx.ReadTimeout("timeout")),False,"uncertain","Unklarer"),
+        (Writer(error=httpx.HTTPStatusError("bad",request=httpx.Request("POST","https://x"),response=httpx.Response(400))),False,"failed","fehlgeschlagen"),
+        (Writer(),True,"confirmed","Testmodus"),
+    ]
+    for index,(writer,test_mode,status,text) in enumerate(cases):
+        with JsonStore(tmp_path/str(index)) as store:
+            c,t,_=controller(store,[callback(1,"proposal:p1:1:confirm")],{"todoist":writer},test_mode)
+            c.persist(proposal()); c.poll_once()
+            saved=store.load("proposal-p1")
+            assert saved["status"]==status and text in t.sent[-1][1]
+            if status=="created": assert saved["external_id"]=="external-1" and saved["external_link"]=="https://example.test/item"
+
+
+def test_restart_reconciles_before_retry_and_duplicate_update_is_safe(tmp_path):
+    with JsonStore(tmp_path) as store:
+        first=Writer(error=httpx.ReadTimeout("timeout"))
+        c,t,_=controller(store,[callback(1,"proposal:p1:1:confirm")],{"todoist":first})
+        c.persist(proposal()); c.poll_once()
+        assert first.created==1 and store.load("proposal-p1")["status"]=="uncertain"
+        recovered=Writer(found={"id":"external-existing","html_url":"https://example.test/existing"})
+        restarted,t2,_=controller(store,[callback(1,"proposal:p1:1:confirm")],{"todoist":recovered})
+        restarted.poll_once()
+        assert recovered.reconciled==1 and recovered.created==0
+        assert store.load("proposal-p1")["external_id"]=="external-existing"
+        assert t2.polls==[2]
+
+    with JsonStore(tmp_path/"writing") as store:
+        c,t,_=controller(store,(),{"todoist":Writer()})
+        c.persist(proposal(status="writing")); c.poll_once()
+        assert store.load("proposal-p1")["status"]=="uncertain"
+
+    class MinimalStore:
+        def __init__(self): self.values={}
+        def load(self,name,default=None): return self.values.get(name,default)
+        def save(self,name,value): self.values[name]=value
+    minimal=MinimalStore(); c,_,_=controller(minimal); c.poll_once()

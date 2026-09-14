@@ -11,16 +11,21 @@ class ExternalWriter(Protocol):
 
 
 def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Callable[[Proposal], None], test_mode: bool = False) -> tuple[Proposal, dict[str, Any]]:
-    if proposal.status != ProposalStatus.CONFIRMED or proposal.open_questions: raise ValueError("Schreiben erfordert vollständige, bestätigte Vorschlagsversion")
+    if proposal.status not in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN} or proposal.open_questions: raise ValueError("Schreiben erfordert vollständige, bestätigte Vorschlagsversion")
     if test_mode:
         persist(proposal)
         return proposal, {"simulation": True}
     key = f"mailhelp:{proposal.id}:v{proposal.version}"
     found = writer.reconcile(key)
     if found is not None:
-        created = proposal.model_copy(update={"status": ProposalStatus.CREATED})
+        created = _with_external_result(proposal, found)
         persist(created)
         return created, found
+    # A restart while an API request was in flight must never blindly repeat it.
+    if proposal.status == ProposalStatus.WRITING:
+        uncertain = proposal.model_copy(update={"status": ProposalStatus.UNCERTAIN})
+        persist(uncertain)
+        return uncertain, {}
     writing = proposal.model_copy(update={"status": ProposalStatus.WRITING})
     persist(writing)
     try: result = writer.create(writing, key)
@@ -32,9 +37,19 @@ def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Calla
         failed = writing.model_copy(update={"status": ProposalStatus.FAILED})
         persist(failed)
         return failed, {}
-    created = writing.model_copy(update={"status": ProposalStatus.CREATED})
+    created = _with_external_result(writing, result)
     persist(created)
     return created, result
+
+
+def _with_external_result(proposal: Proposal, result: dict[str, Any]) -> Proposal:
+    external_id = result.get("id")
+    link = result.get("url") or result.get("html_url") or result.get("htmlLink")
+    return proposal.model_copy(update={
+        "status": ProposalStatus.CREATED,
+        "external_id": str(external_id) if external_id is not None else None,
+        "external_link": str(link) if link is not None else None,
+    })
 
 
 class HttpWriter:
