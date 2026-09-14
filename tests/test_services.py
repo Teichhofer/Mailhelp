@@ -11,6 +11,7 @@ from mailhelp.models import ProposalStatus
 from mailhelp.openrouter import OpenRouterClient, RateLimitExceeded
 from mailhelp.adapter import RetryableError
 from mailhelp.orchestrator import MailState, Orchestrator
+from mailhelp.orchestrator import ProcessingOutcome
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import Decision, DecisionAction, TelegramClient, apply_decision, split_message
 from test_core import prompt_config, proposal
@@ -131,15 +132,17 @@ def test_orchestrator(tmp_path):
         class PlainNotify:
             def __init__(self): self.messages=[]
             def send(self,c,t): self.messages.append(t)
-        n=PlainNotify(); o=Orchestrator(AnalyzerStub("relevant"),store,n,1,[topic],1000); state=o.process(mail); assert state["steps"]["completion"]=="completed" and n.messages; assert o.process(mail)==state
+        n=PlainNotify(); o=Orchestrator(AnalyzerStub("relevant"),store,n,1,[topic],1000); state=o.process(mail); assert state.outcome is ProcessingOutcome.COMPLETED and state["steps"]["completion"]=="completed" and n.messages; assert o.process(mail)==state
     with JsonStore(tmp_path/"b") as store:
         state=Orchestrator(AnalyzerStub("irrelevant"),store,Notify(),1,[topic],1000).process(mail)
         assert state["steps"]=={"preparation":"completed","relevance":"completed","summary":"skipped","action_detection":"skipped","notification":"skipped","completion":"completed"}
     with JsonStore(tmp_path/"c") as store:
         o=Orchestrator(AnalyzerStub("unclear"),store,Notify(),1,[topic],1000)
-        state=o.process(mail); assert state["awaiting_relevance"] and state["steps"]["completion"]=="pending"
+        state=o.process(mail); assert state.outcome is ProcessingOutcome.WAITING and state["awaiting_relevance"] and state["steps"]["completion"]=="pending"
         assert o.process(mail)==state
-    with JsonStore(tmp_path/"d") as store: assert "error" in Orchestrator(AnalyzerStub("relevant"),store,Notify(),1,[topic],1).process(mail)
+    with JsonStore(tmp_path/"d") as store:
+        failed=Orchestrator(AnalyzerStub("relevant"),store,Notify(),1,[topic],1).process(mail)
+        assert failed.outcome is ProcessingOutcome.FAILED and "error" in failed
     with JsonStore(tmp_path/"e") as store:
         o=Orchestrator(AnalyzerStub("irrelevant"),store,Notify(),1,[topic],1000); count=[]
         def poll(): count.append(1); o.stop(); return [mail]
@@ -202,6 +205,7 @@ def test_orchestrator_defers_rate_limit_and_reports(tmp_path):
         topic=Topic(id="x",name="x",enabled=True,description="x")
         mail=FetchedMail("INBOX",1,20,b"Subject: Limit\n\nBody")
         state=Orchestrator(Limited(),store,notify,1,[topic],1000,log).process(mail)
+        assert state.outcome is ProcessingOutcome.WAITING
         assert state["deferred_until"].startswith("1970-01-01T00:02:00")
         assert "LLM-Limit" in notify.messages[0] and any(item[0][2] == "llm_rate_limited" for item in log.events)
         second=Orchestrator(Limited(),store,notify,1,[topic],1000,log,lambda:100)

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 from threading import Event
 from typing import Iterator
@@ -12,7 +13,7 @@ from .config import PromptConfig, Secrets, Settings, Topic
 from .imap import ImapReader
 from .integrations import HttpWriter
 from .logging import JsonlLogger
-from .models import ImapCheckpoint, TelegramOffset
+from .models import ImapCheckpoint, MailState, TelegramOffset
 from .openrouter import OpenRouterClient
 from .orchestrator import Orchestrator
 from .storage import JsonStore
@@ -40,6 +41,7 @@ class Application:
         self.orchestrator.stop()
 
     def _poll_imap(self) -> None:
+        self._resume_pending()
         for folder in self.settings.imap.folders:
             if self.stop_event.is_set():
                 break
@@ -50,6 +52,7 @@ class Application:
             except Exception as exc:
                 self.logger.event("ERROR", "imap", "poll_failed", folder=folder, error=str(exc))
                 continue
+            checkpoint_reachable = True
             for mail in mails:
                 if self.stop_event.is_set():
                     break
@@ -57,10 +60,32 @@ class Application:
                     self.orchestrator.process(mail)
                 except Exception as exc:
                     self.logger.event("ERROR", "orchestrator", "mail_failed", folder=folder, uid=mail.uid, error=str(exc))
-                self.store.save(f"imap-{_safe_name(folder)}", ImapCheckpoint(uidvalidity=mail.uidvalidity, uid=mail.uid).model_dump())
+                    checkpoint_reachable = False
+                    continue
+                if checkpoint_reachable:
+                    self.store.save(f"imap-{_safe_name(folder)}", ImapCheckpoint(uidvalidity=mail.uidvalidity, uid=mail.uid).model_dump())
             if not mails and self.imap.last_uidvalidity is not None:
                 uid = checkpoint.get("uid", 0) if checkpoint.get("uidvalidity") == self.imap.last_uidvalidity else 0
                 self.store.save(f"imap-{_safe_name(folder)}", ImapCheckpoint(uidvalidity=self.imap.last_uidvalidity, uid=uid).model_dump())
+
+    def _resume_pending(self) -> None:
+        """Resume due durable mail states, independently of IMAP checkpoints."""
+        if not hasattr(self.store, "names"):
+            return
+        now = datetime.now(timezone.utc)
+        for name in self.store.names("mail-"):
+            if self.stop_event.is_set():
+                break
+            try:
+                state = self.store.load_model(name, MailState)
+                if state is None or state.steps.completion != "pending":
+                    continue
+                if state.deferred_until is not None and state.deferred_until > now:
+                    continue
+                mail = self.imap.fetch_uid(state.imap.folder, state.imap.uid, state.imap.uidvalidity)
+                self.orchestrator.process(mail)
+            except Exception as exc:
+                self.logger.event("ERROR", "orchestrator", "resume_failed", state_name=name, error=str(exc))
 
     def _poll_telegram(self) -> None:
         if self.dialog is not None:

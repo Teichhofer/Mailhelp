@@ -51,6 +51,12 @@ UIDVALIDITY und UID persistiert und nach einem Neustart fortgesetzt. SIGINT und
 SIGTERM fordern ein kontrolliertes Ende an; Netzwerkclients und die
 Einzelinstanz-Sperre werden auch bei Fehlern geschlossen.
 
+Noch nicht abgeschlossene `mail-*.json`-Zustände bleiben unabhängig vom
+IMAP-Abrufstand erreichbar. Beim Start und vor jedem regulären IMAP-Poll werden
+fällige Zustände per gezieltem, schreibfreiem `BODY.PEEK[]`-Abruf fortgesetzt;
+`deferred_until` verschiebt diesen Versuch. Das Verarbeitungsergebnis unterscheidet
+explizit zwischen `completed`, `waiting` und `failed`.
+
 Telegram-Updates werden an der Eingangsgrenze durch geschlossene Pydantic-
 Schemata validiert. Der atomar gespeicherte Offset verhindert nach einem Neustart
 die erneute Verarbeitung bereits behandelter Updates. Aktionen enthalten immer

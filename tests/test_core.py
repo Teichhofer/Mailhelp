@@ -114,6 +114,15 @@ class FakeImap:
 def test_imap():
     reader=ImapReader("h", 1, "u", "p", factory=FakeImap); assert reader.fetch_since("INBOX")[0].raw == b"raw"
     assert reader.fetch_since("INBOX", 3, 7)[0].uid == 4
+    assert reader.fetch_uid("INBOX",4,7).raw == b"raw"
+    with pytest.raises(RuntimeError): reader.fetch_uid("bad",4,7)
+    reader.connection.mode="validity"
+    with pytest.raises(RuntimeError): reader.fetch_uid("INBOX",4,7)
+    reader.connection.mode="ok"
+    with pytest.raises(RuntimeError,match="UIDVALIDITY"): reader.fetch_uid("INBOX",4,8)
+    reader.connection.mode="fetch"
+    with pytest.raises(RuntimeError): reader.fetch_uid("INBOX",4,7)
+    reader.connection.mode="ok"
     with pytest.raises(RuntimeError): reader.fetch_since("bad")
     reader.connection.mode="validity"
     with pytest.raises(RuntimeError): reader.fetch_since("INBOX")
