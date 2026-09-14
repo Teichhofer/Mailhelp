@@ -14,6 +14,12 @@ targets:
   google_calendar: primary
 limits:
   max_mail_bytes: 1000000
+  max_mime_parts: 100
+  max_decoded_text_bytes: 1000000
+  max_html_characters: 1000000
+  max_html_tags: 20000
+  max_html_depth: 100
+  max_llm_payload_bytes: 500000
   llm_calls_per_minute: 10
 retries:
   validation: 1

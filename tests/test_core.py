@@ -93,7 +93,7 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
 
 def test_mime():
     msg = EmailMessage(); msg["From"]="A <a@example.test>"; msg["Subject"]="Hallo"; msg["Message-ID"]="<1>"; msg.set_content("Inhalt\n-- \nSignatur"); msg.add_alternative("<b>HTML</b>", subtype="html"); msg.add_attachment(b"x", maintype="application", subtype="octet-stream", filename="x.bin")
-    value = prepare(msg.as_bytes(), 10000); assert value["text"] == "Inhalt" and value["attachments"] == 1
+    value = prepare(msg.as_bytes(), 10000); assert value["text"] == "Inhalt" and value["metadata"]["attachments_omitted"] == 1
     html = EmailMessage(); html.set_content("<p>Nur <b>HTML</b></p>", subtype="html"); assert prepare(html.as_bytes(), 1000)["text"] == "Nur HTML"
     with pytest.raises(ValueError): prepare(b"x" * 5, 2)
 
