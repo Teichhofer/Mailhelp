@@ -9,6 +9,7 @@ from mailhelp.application import Application, _safe_name, build_application
 from mailhelp.config import Secrets, Settings, Topic
 from mailhelp.imap import FetchedMail
 from mailhelp.models import MailState
+from mailhelp.orchestrator import ProcessingOutcome, ProcessingResult
 from test_core import prompt_config
 
 
@@ -53,6 +54,7 @@ class Orch:
         self.seen.append(mail.uid)
         if self._stop: self._stop.set()
         if self.fail: raise RuntimeError("mail")
+        return ProcessingResult(ProcessingOutcome.COMPLETED, {})
 
 
 def settings(tmp_path, folders=("INBOX",)):
@@ -78,11 +80,24 @@ def test_polling_errors_resume_and_stop(tmp_path):
         def process(self, mail):
             self.seen.append(mail.uid)
             if mail.uid == 4: raise RuntimeError("mail")
+            return ProcessingResult(ProcessingOutcome.COMPLETED,{})
     mixed_store=Store({"imap-"+_safe_name("INBOX"):{"uidvalidity":7,"uid":3}})
     mixed=app(tmp_path,Imap([(7,[mail1,mail2])]),Telegram([]),FirstFails(),store=mixed_store)
     mixed._poll_imap()
     assert mixed.orchestrator.seen==[4,5]
     assert mixed_store.values["imap-"+_safe_name("INBOX")]["uid"]==3
+
+    class FirstReturnsFailure(Orch):
+        def process(self, mail):
+            self.seen.append(mail.uid)
+            outcome=ProcessingOutcome.FAILED if mail.uid==4 else ProcessingOutcome.COMPLETED
+            return ProcessingResult(outcome,{"error":{"type":"RuntimeError","message":"mail"}} if mail.uid==4 else {})
+    durable_store=Store({"imap-"+_safe_name("INBOX"):{"uidvalidity":7,"uid":3}})
+    durable=app(tmp_path,Imap([(7,[mail1,mail2])]),Telegram([]),FirstReturnsFailure(),store=durable_store)
+    results=durable._poll_imap()
+    assert [result.outcome for result in results]==[ProcessingOutcome.FAILED,ProcessingOutcome.COMPLETED]
+    assert durable_store.values["imap-"+_safe_name("INBOX")]["uid"]==5
+    assert any(e[0][2]=="mail_failed" and e[1]["uid"]==4 for e in durable.logger.events)
 
     failing=app(tmp_path,Imap([RuntimeError("imap"),(9,[]),(10,[])]),Telegram(RuntimeError("tg")),Orch(),folders=("bad","new","none"))
     failing._poll_imap(); failing._poll_telegram()
@@ -124,15 +139,22 @@ def test_resume_due_pending_states_and_isolate_failures(tmp_path):
         def load(self,name,default=None): return default
         def save(self,name,value): pass
     legacy=app(tmp_path,Imap([]),Telegram([]),Orch(),store=LegacyStore())
-    legacy._resume_pending()
+    assert legacy._resume_pending()==[]
     due=MailState(id="a"*24,imap={"folder":"INBOX","uidvalidity":7,"uid":4})
     future=MailState(id="b"*24,imap={"folder":"INBOX","uidvalidity":7,"uid":5},deferred_until=datetime.now(timezone.utc)+timedelta(hours=1))
     completed=MailState(id="c"*24,imap={"folder":"INBOX","uidvalidity":7,"uid":6})
     completed.steps.completion="completed"
     store=Store({"mail-a":due.model_dump(mode="json"),"mail-b":future.model_dump(mode="json"),"mail-c":completed.model_dump(mode="json"),"mail-missing":None})
     imap=Imap([]); orch=Orch(); service=app(tmp_path,imap,Telegram([]),orch,store=store)
-    service._resume_pending()
+    results=service._resume_pending()
     assert imap.uid_calls==[("INBOX",4,7)] and orch.seen==[4]
+    assert results[0].outcome is ProcessingOutcome.COMPLETED
+
+    failed_orch=Orch()
+    failed_orch.process=lambda mail: ProcessingResult(ProcessingOutcome.FAILED,{"error":{"type":"RuntimeError","message":"resume"}})
+    failed_service=app(tmp_path,Imap([]),Telegram([]),failed_orch,store=Store({"mail-a":due.model_dump(mode="json")}))
+    assert failed_service._resume_pending()[0].outcome is ProcessingOutcome.FAILED
+    assert failed_service.logger.events[0][0][2]=="resume_failed"
 
     class BrokenImap(Imap):
         def fetch_uid(self,*args): raise RuntimeError("gone")

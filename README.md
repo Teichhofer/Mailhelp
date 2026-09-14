@@ -55,7 +55,12 @@ Noch nicht abgeschlossene `mail-*.json`-Zustände bleiben unabhängig vom
 IMAP-Abrufstand erreichbar. Beim Start und vor jedem regulären IMAP-Poll werden
 fällige Zustände per gezieltem, schreibfreiem `BODY.PEEK[]`-Abruf fortgesetzt;
 `deferred_until` verschiebt diesen Versuch. Das Verarbeitungsergebnis unterscheidet
-explizit zwischen `completed`, `waiting` und `failed`.
+explizit zwischen `completed`, `waiting` und `failed`. Auch bewusst wartende und
+fehlgeschlagene Versuche besitzen bereits einen dauerhaften Mailzustand, sodass
+der IMAP-Abrufstand weiterlaufen und spätere UIDs verarbeiten kann; ein unerwartet
+abgebrochener Versuch ohne garantiert gespeicherten Zustand hält den Abrufstand
+dagegen fest. Polling- und Wiederaufnahme-Durchläufe geben ihre Einzelergebnisse
+an den Aufrufer zurück.
 
 Telegram-Updates werden an der Eingangsgrenze durch geschlossene Pydantic-
 Schemata validiert. Der atomar gespeicherte Offset verhindert nach einem Neustart

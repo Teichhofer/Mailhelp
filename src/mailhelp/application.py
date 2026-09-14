@@ -15,7 +15,7 @@ from .integrations import HttpWriter
 from .logging import JsonlLogger
 from .models import ImapCheckpoint, MailState, TelegramOffset
 from .openrouter import OpenRouterClient
-from .orchestrator import Orchestrator
+from .orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
 from .storage import JsonStore
 from .telegram import TelegramClient, TelegramDialogController
 from .adapter import RetryPolicy
@@ -40,8 +40,9 @@ class Application:
         self.stop_event.set()
         self.orchestrator.stop()
 
-    def _poll_imap(self) -> None:
-        self._resume_pending()
+    def _poll_imap(self) -> list[ProcessingResult]:
+        """Resume durable work and process new mail, returning every outcome."""
+        results = self._resume_pending()
         for folder in self.settings.imap.folders:
             if self.stop_event.is_set():
                 break
@@ -57,21 +58,30 @@ class Application:
                 if self.stop_event.is_set():
                     break
                 try:
-                    self.orchestrator.process(mail)
+                    result = self.orchestrator.process(mail)
                 except Exception as exc:
                     self.logger.event("ERROR", "orchestrator", "mail_failed", folder=folder, uid=mail.uid, error=str(exc))
                     checkpoint_reachable = False
                     continue
+                results.append(result)
+                # Every regular result has a durable mail state, including failed
+                # and deliberately waiting work.  It is therefore safe to move the
+                # discovery checkpoint and let _resume_pending own unfinished work.
                 if checkpoint_reachable:
                     self.store.save(f"imap-{_safe_name(folder)}", ImapCheckpoint(uidvalidity=mail.uidvalidity, uid=mail.uid).model_dump())
+                if result.outcome is ProcessingOutcome.FAILED:
+                    self.logger.event("ERROR", "orchestrator", "mail_failed", folder=folder, uid=mail.uid,
+                                      error=result.state.get("error"))
             if not mails and self.imap.last_uidvalidity is not None:
                 uid = checkpoint.get("uid", 0) if checkpoint.get("uidvalidity") == self.imap.last_uidvalidity else 0
                 self.store.save(f"imap-{_safe_name(folder)}", ImapCheckpoint(uidvalidity=self.imap.last_uidvalidity, uid=uid).model_dump())
+        return results
 
-    def _resume_pending(self) -> None:
+    def _resume_pending(self) -> list[ProcessingResult]:
         """Resume due durable mail states, independently of IMAP checkpoints."""
+        results: list[ProcessingResult] = []
         if not hasattr(self.store, "names"):
-            return
+            return results
         now = datetime.now(timezone.utc)
         for name in self.store.names("mail-"):
             if self.stop_event.is_set():
@@ -83,9 +93,14 @@ class Application:
                 if state.deferred_until is not None and state.deferred_until > now:
                     continue
                 mail = self.imap.fetch_uid(state.imap.folder, state.imap.uid, state.imap.uidvalidity)
-                self.orchestrator.process(mail)
+                result = self.orchestrator.process(mail)
+                results.append(result)
+                if result.outcome is ProcessingOutcome.FAILED:
+                    self.logger.event("ERROR", "orchestrator", "resume_failed", state_name=name,
+                                      error=result.state.get("error"))
             except Exception as exc:
                 self.logger.event("ERROR", "orchestrator", "resume_failed", state_name=name, error=str(exc))
+        return results
 
     def _poll_telegram(self) -> None:
         if self.dialog is not None:
