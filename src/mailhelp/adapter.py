@@ -37,12 +37,16 @@ class RetryPolicy:
     wait: Callable[[float], bool]
     clock: Callable[[], float] = time
 
-    def run(self, operation: Callable[[], T]) -> T:
+    def run(self, operation: Callable[[], T], on_attempt: Callable[[int], None] | None = None, on_error: Callable[[int, Exception], None] | None = None) -> T:
         attempt = 0
         while True:
+            if on_attempt is not None:
+                on_attempt(attempt + 1)
             try:
                 return operation()
             except (httpx.TransportError, httpx.HTTPStatusError, imaplib.IMAP4.abort, TimeoutError, OSError) as exc:
+                if on_error is not None:
+                    on_error(attempt + 1, exc)
                 delay = self._delay(exc, attempt)
                 if delay is None or attempt == self.retries:
                     if self._retryable(exc):

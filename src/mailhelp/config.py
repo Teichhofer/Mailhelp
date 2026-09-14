@@ -73,12 +73,21 @@ class LoggingSettings(ConfigModel):
     level: str
     include_llm_requests: bool = False
     include_llm_responses: bool = False
+    module_levels: dict[str, str] = Field(default_factory=dict)
 
     @field_validator("level")
     @classmethod
     def valid_level(cls, value: str) -> str:
         if value not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
             raise ValueError("erlaubt sind DEBUG, INFO, WARNING, ERROR und CRITICAL")
+        return value
+
+    @field_validator("module_levels")
+    @classmethod
+    def valid_module_levels(cls, value: dict[str, str]) -> dict[str, str]:
+        allowed = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
+        if any(not module.strip() or level not in allowed for module, level in value.items()):
+            raise ValueError("Modulnamen müssen nicht leer sein und Log-Level gültig sein")
         return value
 
     @field_validator("directory", mode="before")

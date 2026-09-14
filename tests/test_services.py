@@ -203,7 +203,7 @@ def test_orchestrator_defers_rate_limit_and_reports(tmp_path):
         mail=FetchedMail("INBOX",1,20,b"Subject: Limit\n\nBody")
         state=Orchestrator(Limited(),store,notify,1,[topic],1000,log).process(mail)
         assert state["deferred_until"].startswith("1970-01-01T00:02:00")
-        assert "LLM-Limit" in notify.messages[0] and log.events[0][0][2]=="llm_rate_limited"
+        assert "LLM-Limit" in notify.messages[0] and any(item[0][2] == "llm_rate_limited" for item in log.events)
         second=Orchestrator(Limited(),store,notify,1,[topic],1000,log,lambda:100)
         assert second.process(mail)["deferred_until"] == state["deferred_until"]
     with JsonStore(tmp_path/"limited-no-log") as store:

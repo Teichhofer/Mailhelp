@@ -11,6 +11,8 @@ from .models import Proposal, ProposalStatus, TelegramDialogState, TelegramOffse
 from .integrations import ExternalWriter, execute_confirmed
 from .adapter import RetryPolicy, uncertain_write
 from .storage import JsonStore
+from .logging import EventLogger, NullLogger
+import time, traceback, uuid
 
 
 class TelegramModel(BaseModel):
@@ -145,21 +147,33 @@ def numbered_message_parts(mail_id: str, proposal_id: str, text: str, limit: int
 
 
 class TelegramClient:
-    def __init__(self, token: str, timeout: float, transport: httpx.BaseTransport | None = None, poll_timeout: int = 30, policy: RetryPolicy | None = None):
+    def __init__(self, token: str, timeout: float, transport: httpx.BaseTransport | None = None, poll_timeout: int = 30, policy: RetryPolicy | None = None, logger: EventLogger | None = None):
         self.poll_timeout = poll_timeout
         self.client = httpx.Client(base_url=f"https://api.telegram.org/bot{token}", timeout=timeout, transport=transport)
         self.policy = policy or RetryPolicy(0, 0, 0, lambda _delay: False)
+        self.logger = logger or NullLogger()
 
     def poll(self, offset: int, timeout: int | None = None) -> list[dict[str, Any]]:
+        call_id, started = str(uuid.uuid4()), time.perf_counter()
+        self.logger.event("INFO", "telegram", "poll_started", call_id=call_id, offset=offset)
         def request() -> httpx.Response:
             response = self.client.get("/getUpdates", params={"offset": offset, "timeout": self.poll_timeout if timeout is None else timeout})
             response.raise_for_status(); return response
-        response = self.policy.run(request)
+        try:
+            response = self.policy.run(request, lambda attempt: self.logger.event("DEBUG", "telegram", "poll_attempt", call_id=call_id, attempt=attempt),
+                                       lambda attempt, exc: self.logger.event("WARNING", "telegram", "poll_retry", call_id=call_id, attempt=attempt, error=exc))
+        except Exception as exc:
+            self.logger.event("ERROR", "telegram", "poll_failed", call_id=call_id, error=exc, stacktrace=traceback.format_exc(), duration_ms=round((time.perf_counter()-started)*1000, 3))
+            raise
         try: parsed = TelegramUpdatesResponse.model_validate(response.json())
         except (ValueError, ValidationError) as exc: raise ValueError(f"Telegram getUpdates: ungültige Antwort am Schlüsselpfad {_validation_path(exc)}") from exc
-        return [item.model_dump(by_alias=True) for item in parsed.result]
+        result = [item.model_dump(by_alias=True) for item in parsed.result]
+        self.logger.event("INFO", "telegram", "poll_completed", call_id=call_id, count=len(result), status=response.status_code, duration_ms=round((time.perf_counter()-started)*1000, 3))
+        return result
 
     def send(self, chat_id: int, text: str, reply_markup: dict[str, Any] | None = None) -> None:
+        call_id = str(uuid.uuid4())
+        self.logger.event("INFO", "telegram", "send_started", call_id=call_id)
         parts = split_message(text)
         for index, part in enumerate(parts):
             payload: dict[str, Any] = {"chat_id": chat_id, "text": part}
@@ -169,6 +183,7 @@ class TelegramClient:
                 response = self.client.post("/sendMessage", json=payload); response.raise_for_status(); return response
             response = uncertain_write(request)
             self._validate_write(response, "sendMessage")
+        self.logger.event("INFO", "telegram", "send_completed", call_id=call_id, parts=len(parts))
 
     def answer_callback(self, callback_id: str, text: str) -> None:
         def request() -> httpx.Response:
