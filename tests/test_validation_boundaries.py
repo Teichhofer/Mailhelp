@@ -25,8 +25,8 @@ def valid_settings(tmp_path: Path) -> dict:
         "telegram": {"user_id": 1, "chat_id": -2},
         "targets": {"todoist_project": "inbox", "google_calendar": "primary"},
         "limits": {"max_mail_bytes": 1024, "llm_calls_per_minute": 1},
-        "retries": {"network": 0, "validation": 0},
-        "timeouts": {"openrouter_seconds": 1.0, "telegram_seconds": 1.0, "telegram_poll_seconds": 1, "integration_seconds": 1.0},
+        "retries": {"validation": 0},
+        "timeouts": {**{name: {"timeout_seconds": 1.0, "retries": 0, "initial_backoff_seconds": 0.0, "max_backoff_seconds": 1.0} for name in ("imap", "telegram", "openrouter", "todoist", "google_calendar")}, "telegram_poll_seconds": 1},
         "logging": {"directory": str(tmp_path / "logs"), "level": "INFO", "include_llm_requests": False, "include_llm_responses": False},
     }
 

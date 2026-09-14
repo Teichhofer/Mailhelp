@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import hashlib
+import time
+from datetime import datetime, timezone
 from threading import Event
 from typing import Any, Protocol
 
@@ -11,6 +13,7 @@ from .imap import FetchedMail
 from .mime import prepare
 from .models import MailState, Proposal
 from .storage import JsonStore
+from .openrouter import RateLimitExceeded
 
 
 class Notifier(Protocol):
@@ -19,9 +22,11 @@ class Notifier(Protocol):
 
 
 class Orchestrator:
-    def __init__(self, analyzer: Analyzer, store: JsonStore, notifier: Notifier, chat_id: int, topics: list[Topic], max_mail_bytes: int):
+    def __init__(self, analyzer: Analyzer, store: JsonStore, notifier: Notifier, chat_id: int, topics: list[Topic], max_mail_bytes: int, logger: Any = None, clock: Any = time.time):
         self.analyzer, self.store, self.notifier, self.chat_id, self.topics, self.max_bytes = analyzer, store, notifier, chat_id, topics, max_mail_bytes
         self.stop_event = Event()
+        self.logger = logger
+        self.clock = clock
 
     def stop(self) -> None: self.stop_event.set()
 
@@ -37,6 +42,9 @@ class Orchestrator:
             id=internal_id,
             imap={"folder": fetched.folder, "uidvalidity": fetched.uidvalidity, "uid": fetched.uid},
         )
+        if state.deferred_until is not None and state.deferred_until.timestamp() > self.clock():
+            return state.model_dump(mode="json")
+        state.deferred_until = None
         if state.steps.completion == "completed":
             return state.model_dump(mode="json")
         try:
@@ -87,6 +95,14 @@ class Orchestrator:
             state.steps.completion = "completed"
             state.error = None
             self._save(name, state)
+        except RateLimitExceeded as exc:
+            state.deferred_until = datetime.fromtimestamp(exc.next_allowed_at, timezone.utc)
+            state.error = {"type": type(exc).__name__, "message": str(exc)}
+            self._save(name, state)
+            message = f"LLM-Limit erreicht; Mail bis {state.deferred_until.isoformat()} zurueckgestellt."
+            self.notifier.send(self.chat_id, message)
+            if self.logger is not None:
+                self.logger.event("WARNING", "orchestrator", "llm_rate_limited", mail_id=state.id, next_allowed_at=state.deferred_until.isoformat())
         except Exception as exc:
             state.error = {"type": type(exc).__name__, "message": str(exc)}
             self._save(name, state)
