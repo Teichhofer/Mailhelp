@@ -12,6 +12,7 @@ from .storage import JsonStore
 
 class Notifier(Protocol):
     def send(self, chat_id: int, text: str) -> None: ...
+    def send_proposal(self, proposal: Any) -> None: ...
 
 
 class Orchestrator:
@@ -35,7 +36,12 @@ class Orchestrator:
             else:
                 call, summary = self.analyzer.summary(mail); state["summary"] = summary.model_dump(); state["llm_call_ids"].append(call)
                 call, actions = self.analyzer.actions(mail); state["proposals"] = [x.model_dump(mode="json") for x in actions.proposals]; state["llm_call_ids"].append(call)
-                self.notifier.send(self.chat_id, f"{mail['subject']}\n" + " ".join(summary.sentences)); state["completed"] = True
+                self.notifier.send(self.chat_id, f"{mail['subject']}\n" + " ".join(summary.sentences))
+                send_proposal = getattr(self.notifier, "send_proposal", None)
+                if send_proposal is not None:
+                    for proposal in actions.proposals:
+                        send_proposal(proposal)
+                state["completed"] = True
         except Exception as exc:
             state["error"] = {"type": type(exc).__name__, "message": str(exc)}
         self.store.save(f"mail-{internal_id}", state); return state

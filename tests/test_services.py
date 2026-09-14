@@ -11,7 +11,7 @@ from mailhelp.models import ProposalStatus
 from mailhelp.openrouter import OpenRouterClient, RateLimitExceeded
 from mailhelp.orchestrator import Orchestrator
 from mailhelp.storage import JsonStore
-from mailhelp.telegram import Decision, TelegramClient, apply_decision, split_message
+from mailhelp.telegram import Decision, DecisionAction, TelegramClient, apply_decision, split_message
 from test_core import prompt_config, proposal
 
 
@@ -49,14 +49,14 @@ def test_analyzer():
 
 
 def test_telegram():
-    p=proposal(); assert apply_decision(p,Decision("p1",1,"confirm"),1,2,1,2).status == ProposalStatus.CONFIRMED
-    assert apply_decision(p,Decision("p1",1,"reject"),1,2,1,2).status == ProposalStatus.REJECTED
-    assert apply_decision(p,Decision("p1",1,"edit"),1,2,1,2).status == ProposalStatus.NEEDS_CLARIFICATION
-    with pytest.raises(PermissionError): apply_decision(p,Decision("p1",1,"confirm"),9,2,1,2)
-    with pytest.raises(ValueError, match="Veraltete"): apply_decision(p,Decision("p1",2,"confirm"),1,2,1,2)
-    with pytest.raises(ValueError, match="Offene"): apply_decision(proposal(open_questions=["wann?"]),Decision("p1",1,"confirm"),1,2,1,2)
-    with pytest.raises(ValueError, match="Unbekannte"): apply_decision(p,Decision("p1",1,"xx"),1,2,1,2)
-    assert apply_decision(proposal(status="created"),Decision("p1",1,"confirm"),1,2,1,2).status == ProposalStatus.CREATED
+    p=proposal(); assert apply_decision(p,Decision(proposal_id="p1",version=1,action=DecisionAction.CONFIRM),1,2,1,2).status == ProposalStatus.CONFIRMED
+    assert apply_decision(p,Decision(proposal_id="p1",version=1,action=DecisionAction.REJECT),1,2,1,2).status == ProposalStatus.REJECTED
+    assert apply_decision(p,Decision(proposal_id="p1",version=1,action=DecisionAction.EDIT),1,2,1,2).status == ProposalStatus.NEEDS_CLARIFICATION
+    with pytest.raises(PermissionError): apply_decision(p,Decision(proposal_id="p1",version=1,action=DecisionAction.CONFIRM),9,2,1,2)
+    with pytest.raises(ValueError, match="Veraltete"): apply_decision(p,Decision(proposal_id="p1",version=2,action=DecisionAction.CONFIRM),1,2,1,2)
+    with pytest.raises(ValueError, match="Offene"): apply_decision(proposal(open_questions=["wann?"]),Decision(proposal_id="p1",version=1,action=DecisionAction.CONFIRM),1,2,1,2)
+    with pytest.raises(ValueError): Decision(proposal_id="p1",version=1,action="xx")
+    assert apply_decision(proposal(status="created"),Decision(proposal_id="p1",version=1,action=DecisionAction.CONFIRM),1,2,1,2).status == ProposalStatus.CREATED
     assert split_message("abc",2)==["ab","c"] and split_message("")==[""]
     with pytest.raises(ValueError): split_message("x",0)
     requests=[]
@@ -113,12 +113,16 @@ class AnalyzerStub:
 class Notify:
     def __init__(self): self.messages=[]
     def send(self,c,t): self.messages.append(t)
+    def send_proposal(self,p): self.messages.append(p.id)
 
 
 def test_orchestrator(tmp_path):
     raw=b"Subject: Test\n\nBody"; mail=FetchedMail("INBOX",1,2,raw); topic=Topic(id="x",name="x",enabled=True,description="x")
     with JsonStore(tmp_path/"a") as store:
-        n=Notify(); o=Orchestrator(AnalyzerStub("relevant"),store,n,1,[topic],1000); state=o.process(mail); assert state["completed"] and n.messages; assert o.process(mail)==state
+        class PlainNotify:
+            def __init__(self): self.messages=[]
+            def send(self,c,t): self.messages.append(t)
+        n=PlainNotify(); o=Orchestrator(AnalyzerStub("relevant"),store,n,1,[topic],1000); state=o.process(mail); assert state["completed"] and n.messages; assert o.process(mail)==state
     with JsonStore(tmp_path/"b") as store: assert Orchestrator(AnalyzerStub("irrelevant"),store,Notify(),1,[topic],1000).process(mail)["completed"]
     with JsonStore(tmp_path/"c") as store: assert Orchestrator(AnalyzerStub("unclear"),store,Notify(),1,[topic],1000).process(mail)["awaiting_relevance"]
     with JsonStore(tmp_path/"d") as store: assert "error" in Orchestrator(AnalyzerStub("relevant"),store,Notify(),1,[topic],1).process(mail)
@@ -130,3 +134,11 @@ def test_orchestrator(tmp_path):
         o=Orchestrator(AnalyzerStub("irrelevant"),store,Notify(),1,[topic],1000); waits=[]
         def wait(x): waits.append(x); o.stop()
         o.run(lambda: [mail],2,wait); assert waits==[2]
+
+    class ProposalAnalyzer(AnalyzerStub):
+        def actions(self,m):
+            from mailhelp.models import Actions
+            return "a",Actions(proposals=[proposal()])
+    with JsonStore(tmp_path/"g") as store:
+        notify=Notify(); Orchestrator(ProposalAnalyzer("relevant"),store,notify,1,[topic],1000).process(mail)
+        assert "p1" in notify.messages

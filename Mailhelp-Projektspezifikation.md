@@ -149,14 +149,25 @@ Unverbindliche Vorschläge, bereits erledigte Aufgaben sowie Änderungen und Abs
 ## 8. Telegram-Interaktion und externe Einträge
 
 - Telegram verwendet Long Polling; ein öffentlicher Webhook ist nicht vorgesehen.
+- Telegram-Updates, Nachrichten und Callback-Queries werden vor jeder Verwendung
+  mit geschlossenen Schemata geprüft. Unbekannte oder unvollständige Nutzdaten
+  werden sichtbar abgewiesen, aber weder als Rohdaten noch als Validierungsinhalt
+  protokolliert. Der Offset wird nach jedem identifizierbaren Update atomar
+  gespeichert; ältere oder doppelte Updates werden nach Neustarts ignoriert.
 - Nur konfigurierte Nutzer- und Chat-IDs dürfen Nachrichten erhalten und Aktionen auslösen.
 - Jeder Vorschlag bietet `Bestätigen`, `Ändern` und `Verwerfen`.
 - Eine Änderung wird einem konkreten Vorschlag zugeordnet. Sind mehrere Vorschläge offen, darf Freitext nicht willkürlich zugeordnet werden.
 - Änderungen können über das LLM interpretiert werden. Der korrigierte Vorschlag muss erneut angezeigt und ausdrücklich bestätigt werden.
 - Bestätigungen gelten nur für die angezeigte Vorschlagsversion. Veraltete Buttons dürfen keine neuere Fassung freigeben.
+- Jede Vorschlagsversion wird vor dem Senden ihrer versionsgebundenen Schaltflächen
+  separat und als aktuelle Version gespeichert. Antworten auf autorisierte
+  Rückfragen erzeugen eine neue Version; erst eine vollständige Version erhält
+  wieder eine wirksame Bestätigungsschaltfläche.
 - Offene Fragen müssen vor dem Schreiben beantwortet sein. Eine allgemeine Zustimmung zu einer Zusammenfassung gilt nicht als Freigabe aller Vorschläge.
 - Offene Bestätigungen werden dauerhaft gespeichert und bleiben nach Neustarts nutzbar. Es erfolgt keine automatische Bestätigung durch Zeitablauf.
 - Lange Telegram-Ausgaben werden geordnet aufgeteilt und bleiben eindeutig zuordenbar.
+- Jeder Teil einer langen Vorschlagsausgabe nennt Mail-ID, Vorschlags-ID sowie die
+  fortlaufende Nummer und Gesamtzahl der Teile.
 
 Nach erfolgreichem Speichern werden die externe ID und, sofern verfügbar, ein Link hinterlegt und zurückgemeldet. Fehler werden verständlich gemeldet, ohne Geheimnisse offenzulegen.
 

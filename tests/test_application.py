@@ -90,6 +90,15 @@ def test_empty_checkpoint_and_run_paths(tmp_path):
     complete._poll_telegram=lambda: complete.stop_event.set()
     complete.run()
 
+    class Dialog:
+        def __init__(self, error=None): self.calls=0; self.error=error
+        def poll_once(self):
+            self.calls += 1
+            if self.error: raise self.error
+    dialog_app=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch()); dialog_app.dialog=Dialog(); dialog_app._poll_telegram(); assert dialog_app.dialog.calls==1
+    failed_dialog=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch()); failed_dialog.dialog=Dialog(RuntimeError("dialog")); failed_dialog._poll_telegram()
+    assert failed_dialog.logger.events[0][0][2]=="poll_failed"
+
 
 def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch):
     closed=[]
