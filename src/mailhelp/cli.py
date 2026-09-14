@@ -2,6 +2,7 @@
 from __future__ import annotations
 import argparse, signal
 from pathlib import Path
+from .application import build_application
 from .config import load_all
 
 
@@ -9,9 +10,11 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Mailhelp E-Mail-Assistent")
     parser.add_argument("--config-directory", type=Path, default=Path("."))
     parser.add_argument("--check", action="store_true", help="Konfiguration validieren und beenden")
-    args = parser.parse_args(); load_all(args.config_directory)
+    args = parser.parse_args(); settings, secrets, topics, prompts, _ = load_all(args.config_directory)
     if args.check: print("Konfiguration ist gültig."); return 0
-    print("Konfiguration ist gültig; für den Dienstbetrieb Adapter in der Deployment-Konfiguration starten.")
-    signal.signal(signal.SIGTERM, lambda *_: None)
+    with build_application(settings, secrets, topics, prompts) as application:
+        def stop(_signum: int, _frame: object) -> None: application.stop()
+        signal.signal(signal.SIGINT, stop)
+        signal.signal(signal.SIGTERM, stop)
+        application.run()
     return 0
-
