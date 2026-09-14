@@ -44,6 +44,8 @@ def test_analyzer():
     analyzer=Analyzer(client,prompt_config(),1); topic=Topic(id="x",name="X",enabled=True,description="D")
     assert analyzer.relevance({},[topic])[1].decision == "relevant"; assert analyzer.summary({})[1].sentences == ["a","b"]; assert analyzer.actions({})[1].proposals == []
     with pytest.raises(ValueError): Analyzer(FakeCompleter([{},{}]),prompt_config(),1).summary({})
+    with pytest.raises(ValueError, match="unbekannte"): Analyzer(FakeCompleter([{"decision":"relevant","topic_ids":["bad"],"reason":"x"}]),prompt_config()).relevance({}, [topic])
+    with pytest.raises(ValueError, match="mindestens"): Analyzer(FakeCompleter([{"decision":"relevant","topic_ids":[],"reason":"x"}]),prompt_config()).relevance({}, [topic])
 
 
 def test_telegram():
@@ -73,11 +75,16 @@ class Writer:
 
 def test_integrations():
     p=proposal(status="confirmed")
-    with pytest.raises(ValueError): execute_confirmed(proposal(),Writer())
-    assert execute_confirmed(p,Writer(),True)[1]["simulation"]
-    assert execute_confirmed(p,Writer({"id":"old"}))[1]["id"]=="old"
-    assert execute_confirmed(p,Writer())[0].status == ProposalStatus.CREATED
-    assert execute_confirmed(p,Writer(error=httpx.ReadTimeout("x")))[0].status == ProposalStatus.UNCERTAIN
+    saved=[]
+    with pytest.raises(ValueError): execute_confirmed(proposal(),Writer(),saved.append)
+    assert execute_confirmed(p,Writer(),saved.append,True)[1]["simulation"]
+    assert saved[-1].status == ProposalStatus.CONFIRMED
+    assert execute_confirmed(p,Writer({"id":"old"}),saved.append)[1]["id"]=="old"
+    assert execute_confirmed(p,Writer(),saved.append)[0].status == ProposalStatus.CREATED
+    assert execute_confirmed(p,Writer(error=httpx.ReadTimeout("x")),saved.append)[0].status == ProposalStatus.UNCERTAIN
+    response=httpx.Response(400, request=httpx.Request("POST", "https://example.test"))
+    assert execute_confirmed(p,Writer(error=httpx.HTTPStatusError("bad", request=response.request, response=response)),saved.append)[0].status == ProposalStatus.FAILED
+    assert ProposalStatus.WRITING in [item.status for item in saved]
     with pytest.raises(ValueError): HttpWriter("bad","x","x")
     seen=[]
     def handler(req): seen.append(req); return httpx.Response(200,json=({"id":"x"} if req.method=="POST" else []),request=req)

@@ -5,6 +5,8 @@ Python-Assistent zur LLM-basierten Auswertung von IMAP-Mails über OpenRouter. T
 ## Installation (Windows 11 und Linux)
 
 Voraussetzung ist exakt Python **3.12.x**; `.python-version` legt für Versionsmanager 3.12.10 fest und `pyproject.toml` verhindert versehentliche Installation unter einer anderen Minor-Version.
+Direkte und transitive Laufzeit-/Testabhängigkeiten sind in `requirements.lock`
+festgeschrieben; das Container-Image installiert genau diese Versionen.
 
 ```powershell
 py -3.12 -m venv .venv
@@ -19,9 +21,10 @@ Unter Linux werden die letzten beiden Befehle mit `.venv/bin/python` und `cp` au
 * IMAP wird im Nur-Lese-Modus mit `BODY.PEEK[]` gelesen; UIDVALIDITY und UID bilden die technische Identität.
 * Der JSON-Zustand wird atomar ersetzt und durch eine Einzelinstanz-Sperre geschützt. Beschädigte Dateien werden als `.corrupt` isoliert.
 * LLM-Antworten werden strikt gegen feste Pydantic-Schemata validiert. Reservierte OpenRouter-Felder können nicht über YAML überschrieben werden.
-* Unklare externe Schreibresultate werden als `uncertain` angehalten. Vor einem neuen Versuch suchen die Adapter nach dem versionsbezogenen Idempotenzschlüssel.
-* Im `test_mode` findet kein externer Schreibzugriff statt; Ergebnisse tragen `simulation: true`.
+* Externe Aktionen verlangen eine Persistenzfunktion: `writing` wird vor dem API-Aufruf dauerhaft gespeichert. Unklare Resultate werden als `uncertain` angehalten; vor einem neuen Versuch suchen die Adapter nach dem versionsbezogenen Idempotenzschlüssel.
+* Im `test_mode` findet kein externer Schreibzugriff statt; Ergebnisse tragen `simulation: true` und der Vorschlag bleibt `confirmed`, statt einen echten Eintrag vorzutäuschen.
 * JSONL-Anwendungs- und LLM-Logs sind getrennt. Rohprompts und Rohantworten sind unabhängig und standardmäßig ausgeschaltet; Geheimnisfelder werden maskiert.
+* `.env` unterstützt einfache `NAME=WERT`-Zeilen und einfache/doppelte Anführungszeichen, aber bewusst keine Shell-Erweiterung. Prozessvariablen überschreiben gleichnamige Werte aus der Datei.
 
 Derzeit stellt der CLI-Einstieg die vollständige Konfigurationsprüfung bereit. Die austauschbaren Adapter und der `Orchestrator` sind für die Einbindung in einen Dienstprozess ausgelegt.
 

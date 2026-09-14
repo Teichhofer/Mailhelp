@@ -9,7 +9,7 @@ from pydantic import ValidationError
 from mailhelp import __version__
 from mailhelp.analysis import Analyzer
 from mailhelp.cli import main
-from mailhelp.config import PromptConfig, PromptStep, Topic, _deep_merge, _yaml, load_all
+from mailhelp.config import PromptConfig, PromptStep, Topic, _deep_merge, _dotenv, _yaml, load_all
 from mailhelp.imap import FetchedMail, ImapReader
 from mailhelp.integrations import HttpWriter, execute_confirmed
 from mailhelp.logging import JsonlLogger, redact
@@ -26,7 +26,7 @@ def prompt_config(model="model"):
 
 
 def proposal(**kw):
-    base = dict(id="p1", version=1, kind="task", title="Tun", evidence="Mail sagt es")
+    base = dict(id="p1", version=1, kind="task", title="Tun", evidence="Mail sagt es", source_mail_id="mail1", target="inbox")
     base.update(kw); return Proposal.model_validate(base)
 
 
@@ -35,10 +35,14 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
     assert Relevance(decision="relevant", reason="x").topic_ids == []
     assert len(Summary(sentences=["a", "b"]).sentences) == 2
     assert Actions().proposals == []
+    with pytest.raises(ValidationError): Relevance(decision="irrelevant", reason="x", topic_ids=["x"])
+    with pytest.raises(ValidationError): Relevance(decision="relevant", reason="x", topic_ids=["x", "x"])
     start = datetime.now(timezone.utc)
-    Proposal(id="e", version=1, kind="event", title="x", evidence="y", start=start, end=start + timedelta(hours=1))
+    proposal(id="e", kind="event", start=start, end=start + timedelta(hours=1))
+    with pytest.raises(ValidationError): proposal(kind="event")
     with pytest.raises(ValidationError): Proposal(id="e", version=1, kind="event", title="x", evidence="y")
-    with pytest.raises(ValidationError): Proposal(id="e", version=1, kind="event", title="x", evidence="y", start=start, end=start)
+    with pytest.raises(ValidationError): proposal(kind="event", start=start, end=start)
+    with pytest.raises(ValidationError): proposal(start=start)
     assert _deep_merge({"x": {"a": 1}, "z": 1}, {"x": {"b": 2}, "z": 2}) == {"x": {"a": 1, "b": 2}, "z": 2}
     cfg = prompt_config(); model, params, prompt = cfg.resolved("summary")
     assert (model, prompt, params["nested"]) == ("model", "summary", {"a": 1, "b": 2})
@@ -50,12 +54,24 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
     with pytest.raises(ValidationError): PromptConfig(defaults={}, prompts={"summary": PromptStep(system_prompt="x")})
     (tmp_path / "bad.yaml").write_text("- x", encoding="utf8")
     with pytest.raises(ValueError): _yaml(tmp_path / "bad.yaml")
+    assert _dotenv(tmp_path / "missing.env") == {}
+    env_file = tmp_path / ".env"
+    env_file.write_text("# comment\n\nIMAP_USERNAME='file-user'\nIMAP_PASSWORD=file-pass\n", encoding="utf8")
+    assert _dotenv(env_file)["IMAP_USERNAME"] == "file-user"
+    env_file.write_text("BROKEN\n", encoding="utf8")
+    with pytest.raises(ValueError, match="Zeile 1"): _dotenv(env_file)
+    env_file.write_text("bad-key=x\n", encoding="utf8")
+    with pytest.raises(ValueError, match="Schlüssel"): _dotenv(env_file)
+    env_file.unlink()
     for name in ("config.yaml", "prompts.yaml", "topics.yaml"):
         (tmp_path / name).write_text((Path(name)).read_text(encoding="utf8"), encoding="utf8")
     env = {x: "secret" for x in ["IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN", "TODOIST_TOKEN", "GOOGLE_ACCESS_TOKEN"]}
     settings, secrets, topics, prompts, fingerprint = load_all(tmp_path, env)
     assert settings.test_mode and secrets.imap_password.get_secret_value() == "secret" and topics[0].enabled and len(fingerprint) == 64
     with pytest.raises(ValueError, match="Fehlende"): load_all(tmp_path, {})
+    (tmp_path / ".env").write_text("\n".join(f"{key}=from-file" for key in env), encoding="utf8")
+    assert load_all(tmp_path, {"IMAP_USERNAME": "runtime"})[1].imap_username == "runtime"
+    (tmp_path / ".env").unlink()
     (tmp_path / "topics.yaml").write_text("topics: []", encoding="utf8")
     with pytest.raises(ValueError, match="mindestens"): load_all(tmp_path, env)
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--config-directory", str(Path.cwd()), "--check"]); monkeypatch.setattr(os, "environ", env)
@@ -99,6 +115,8 @@ def test_storage_and_logging(tmp_path):
     store=JsonStore(tmp_path/"data")
     with store:
         store.save("x", {"umlaut":"ä"}); assert store.load("x") == {"umlaut":"ä"}; assert store.load("missing", 4)==4
+        with pytest.raises(ValueError): store.load("../outside")
+        with pytest.raises(ValueError): store.save("bad/name", {})
         with pytest.raises(AlreadyRunning): JsonStore(tmp_path/"data").__enter__()
     assert not (tmp_path/"data/.lock").exists()
     (tmp_path/"data/x.json").write_text("{", encoding="utf8")
@@ -107,3 +125,9 @@ def test_storage_and_logging(tmp_path):
     logger=JsonlLogger(tmp_path/"logs"); logger.event("INFO","test","ok", password="bad"); logger.llm_event("request", request={"mail":"private"}, response="private")
     logger2=JsonlLogger(tmp_path/"logs2", True, True); logger2.llm_event("response", request="a", response="b")
     assert "bad" not in logger.app.read_text() and "private" not in logger.llm.read_text() and '"response": "b"' in logger2.llm.read_text()
+
+
+def test_storage_windows_directory_sync(tmp_path, monkeypatch):
+    store = JsonStore(tmp_path)
+    monkeypatch.setattr("mailhelp.storage.os.name", "nt")
+    store.save("windows", {"ok": True})

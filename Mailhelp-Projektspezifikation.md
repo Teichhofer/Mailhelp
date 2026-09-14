@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Version: 1.1 · Stand: 14. September 2026 · Status: Implementierungsgrundlage.
+Version: 1.2 · Stand: 14. September 2026 · Status: Implementierungsgrundlage.
 
 ## 1. Projektziel
 
@@ -156,6 +156,11 @@ Nach erfolgreichem Speichern werden die externe ID und, sofern verfügbar, ein L
 
 Jeder Schreibvorgang wird vor dem API-Aufruf dauerhaft registriert. Bei Zeitüberschreitung oder Absturz nach einem möglicherweise erfolgreichen Aufruf wird zuerst versucht, das Ergebnis abzugleichen. Solange der Erfolg nicht feststellbar ist, bleibt der Vorgang im Zustand `uncertain`; es erfolgt kein blindes erneutes Anlegen. Die konkrete Abgleichsstrategie ist je Dienst zu implementieren und zu testen.
 
+Die Integrationsgrenze verlangt dafür eine Persistenzfunktion. Sie speichert `writing`
+vor dem Netzwerkaufruf und danach `created`, `failed` oder `uncertain`. Im Testmodus
+bleibt der Vorschlag `confirmed`; nur das Rückgabeobjekt kennzeichnet die Simulation,
+damit diese nicht mit einem echten externen Eintrag verwechselt werden kann.
+
 ## 9. Konfigurations- und Geheimnisdateien
 
 | Datei | Inhalt |
@@ -186,6 +191,10 @@ Eine Maildatei enthält mindestens:
 Vorgeschlagene Vorschlagszustände sind `needs_clarification`, `pending_confirmation`, `confirmed`, `writing`, `created`, `rejected`, `failed` und `uncertain`. Zustandsübergänge werden zentral geprüft; nur ein bestätigter, vollständiger Vorschlag darf in `writing` wechseln.
 
 Dateiänderungen erfolgen über temporäre Dateien und atomaren Austausch mit geeigneter Zugriffssperre. V1 erlaubt nur eine aktive Mailhelp-Instanz je Datenverzeichnis. Beschädigte JSON-Dateien werden isoliert und gemeldet, nicht stillschweigend durch leere Dateien ersetzt. Manuelles Bearbeiten ist nur bei gestoppter Anwendung vorgesehen; beim nächsten Start erfolgt eine Validierung.
+
+Zustandsnamen sind auf ASCII-Buchstaben, Ziffern, Bindestrich und Unterstrich
+beschränkt. Nach dem atomaren Austausch wird unter POSIX auch der Verzeichniseintrag
+synchronisiert; unter Windows stellt der atomare Austausch die Plattformgrenze dar.
 
 Aufbewahrung und Löschung von Mailtexten sowie Debug-Inhalten sind konfigurierbar. Minimale Identitäts- und Aktionsinformationen werden getrennt davon für die Duplikatprüfung aufbewahrt. Eine Bereinigung darf offene Vorgänge nicht zerstören. Backup und Wiederherstellung des Datenverzeichnisses werden dokumentiert.
 

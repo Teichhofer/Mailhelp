@@ -1,6 +1,6 @@
 """Laden und Validieren von Konfiguration und Geheimnissen."""
 from __future__ import annotations
-import hashlib, json, os
+import hashlib, json, os, re
 from pathlib import Path
 from typing import Any
 import yaml
@@ -37,15 +37,15 @@ class Topic(BaseModel):
     name: str
     enabled: bool
     description: str
-    examples: list[str] = []
-    exclusions: list[str] = []
+    examples: list[str] = Field(default_factory=list)
+    exclusions: list[str] = Field(default_factory=list)
 
 
 class PromptStep(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     system_prompt: str = Field(min_length=1)
     model: str | None = None
-    parameters: dict[str, Any] = {}
+    parameters: dict[str, Any] = Field(default_factory=dict)
 
 
 class PromptConfig(BaseModel):
@@ -86,8 +86,29 @@ def _yaml(path: Path) -> Any:
     return value
 
 
+def _dotenv(path: Path) -> dict[str, str]:
+    """Read the deliberately small, non-expanding KEY=VALUE .env format."""
+    if not path.exists():
+        return {}
+    result: dict[str, str] = {}
+    for number, original in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        line = original.strip()
+        if not line or line.startswith("#"):
+            continue
+        if "=" not in line:
+            raise ValueError(f"{path}: ungültige Zeile {number}")
+        key, value = line.split("=", 1)
+        key, value = key.strip(), value.strip()
+        if not re.fullmatch(r"[A-Z][A-Z0-9_]*", key):
+            raise ValueError(f"{path}: ungültiger Schlüssel in Zeile {number}")
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
+            value = value[1:-1]
+        result[key] = value
+    return result
+
+
 def load_all(directory: Path, environ: dict[str, str] | None = None) -> tuple[Settings, Secrets, list[Topic], PromptConfig, str]:
-    env = os.environ if environ is None else environ
+    env = {**_dotenv(directory / ".env"), **(os.environ if environ is None else environ)}
     settings = Settings.model_validate(_yaml(directory / "config.yaml"))
     prompts = PromptConfig.model_validate(_yaml(directory / "prompts.yaml"))
     topics = [Topic.model_validate(x) for x in _yaml(directory / "topics.yaml").get("topics", [])]

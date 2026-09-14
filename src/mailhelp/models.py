@@ -16,6 +16,14 @@ class Relevance(StrictModel):
     topic_ids: list[str] = Field(default_factory=list)
     reason: str = Field(min_length=1, max_length=1000)
 
+    @model_validator(mode="after")
+    def consistent_topics(self) -> "Relevance":
+        if self.decision == "irrelevant" and self.topic_ids:
+            raise ValueError("Irrelevante Nachrichten dürfen keine Themen enthalten")
+        if len(self.topic_ids) != len(set(self.topic_ids)):
+            raise ValueError("Themen-IDs dürfen nicht doppelt vorkommen")
+        return self
+
 
 class Summary(StrictModel):
     sentences: list[str] = Field(min_length=2, max_length=4)
@@ -45,12 +53,14 @@ class Proposal(StrictModel):
     title: str = Field(min_length=1, max_length=500)
     description: str = Field(default="", max_length=4000)
     evidence: str = Field(min_length=1, max_length=2000)
+    source_mail_id: str = Field(min_length=1, max_length=64)
     open_questions: list[str] = Field(default_factory=list)
     due: datetime | None = None
     start: datetime | None = None
     end: datetime | None = None
     all_day: bool = False
     location: str | None = Field(default=None, max_length=1000)
+    target: str = Field(min_length=1, max_length=500)
     status: ProposalStatus = ProposalStatus.PENDING_CONFIRMATION
 
     @model_validator(mode="after")
@@ -59,6 +69,8 @@ class Proposal(StrictModel):
             raise ValueError("Ein vollständiger Termin benötigt Beginn und Ende")
         if self.end is not None and self.start is not None and self.end <= self.start:
             raise ValueError("Terminende muss nach dem Beginn liegen")
+        if self.kind == ProposalKind.TASK and (self.start is not None or self.end is not None or self.all_day):
+            raise ValueError("Aufgaben dürfen keine Kalenderzeit enthalten")
         return self
 
 
