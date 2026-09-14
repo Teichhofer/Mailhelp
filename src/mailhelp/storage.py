@@ -4,6 +4,7 @@ import json, os
 import re
 from pathlib import Path
 from typing import Any
+from pydantic import BaseModel, ValidationError
 
 
 class CorruptState(RuntimeError): pass
@@ -32,6 +33,20 @@ class JsonStore:
         except (OSError, json.JSONDecodeError) as exc:
             quarantine = path.with_suffix(".corrupt"); os.replace(path, quarantine)
             raise CorruptState(f"Beschädigter Zustand isoliert: {quarantine.name}") from exc
+
+    def load_model(self, name: str, model: type[BaseModel], default: BaseModel | None = None) -> BaseModel | None:
+        """Load and validate a state object, quarantining invalid schemas too."""
+        value = self.load(name, None)
+        if value is None:
+            return default
+        try:
+            return model.model_validate(value)
+        except ValidationError as exc:
+            path = self.directory / f"{name}.json"
+            quarantine = path.with_suffix(".invalid")
+            os.replace(path, quarantine)
+            locations = [".".join(str(part) for part in error["loc"]) or "<root>" for error in exc.errors(include_input=False)]
+            raise CorruptState(f"Schemawidriger Zustand isoliert: {quarantine.name}; Schlüsselpfad: {', '.join(locations)}") from exc
 
     def save(self, name: str, value: Any) -> None:
         self._validate_name(name)

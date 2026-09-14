@@ -20,7 +20,7 @@ def mock_response(status=200, data=None):
 
 
 def test_openrouter(monkeypatch):
-    data={"choices":[{"message":{"content":json.dumps({"decision":"irrelevant","reason":"x"})}}]}
+    data={"id":"completion-1","choices":[{"message":{"content":json.dumps({"decision":"irrelevant","reason":"x"})}}]}
     client=OpenRouterClient("secret", 1, 0, 1, httpx.MockTransport(mock_response(data=data)))
     call, result=client.complete("m", {}, "s", {"x":1}); assert call and result["decision"] == "irrelevant"
     with pytest.raises(RateLimitExceeded): client.complete("m", {}, "s", {})
@@ -60,7 +60,10 @@ def test_telegram():
     assert split_message("abc",2)==["ab","c"] and split_message("")==[""]
     with pytest.raises(ValueError): split_message("x",0)
     requests=[]
-    def handler(req): requests.append(req); return httpx.Response(200,json={"result":[{"update_id":1}]},request=req)
+    def handler(req):
+        requests.append(req)
+        data={"ok":True,"result":[{"update_id":1,"message":{"message_id":1,"from":{"id":1},"chat":{"id":2},"text":"x"}}]} if req.url.path.endswith("getUpdates") else {"ok":True,"result":{"message_id":1}}
+        return httpx.Response(200,json=data,request=req)
     c=TelegramClient("secret",1,httpx.MockTransport(handler)); assert c.poll(1)[0]["update_id"]==1; c.send(2,"x"*4001); assert len(requests)==3; c.close()
 
 

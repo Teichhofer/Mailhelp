@@ -18,6 +18,11 @@ limits:
 retries:
   network: 2
   validation: 1
+timeouts:
+  openrouter_seconds: 30
+  telegram_seconds: 35
+  telegram_poll_seconds: 30
+  integration_seconds: 30
 logging:
   directory: logs
   level: INFO

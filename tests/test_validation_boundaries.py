@@ -1,0 +1,137 @@
+from __future__ import annotations
+
+import copy
+import json
+from pathlib import Path
+
+import httpx
+import pytest
+from pydantic import ValidationError
+
+from mailhelp.config import Settings, _validated_file
+from mailhelp.integrations import HttpWriter, _with_external_result
+from mailhelp.models import ImapCheckpoint, MailState, Proposal, TelegramDialogState, TelegramOffset
+from mailhelp.openrouter import OpenRouterClient, _path
+from mailhelp.storage import CorruptState, JsonStore
+from mailhelp.telegram import TelegramClient, TelegramUpdatesResponse, TelegramWriteResponse, _validation_path
+from test_core import proposal
+
+
+def valid_settings(tmp_path: Path) -> dict:
+    return {
+        "timezone": "UTC", "poll_interval_seconds": 5, "test_mode": False,
+        "data_directory": str(tmp_path / "data"),
+        "imap": {"host": "example.test", "port": 993, "folders": ["INBOX"]},
+        "telegram": {"user_id": 1, "chat_id": -2},
+        "targets": {"todoist_project": "inbox", "google_calendar": "primary"},
+        "limits": {"max_mail_bytes": 1024, "llm_calls_per_minute": 1},
+        "retries": {"network": 0, "validation": 0},
+        "timeouts": {"openrouter_seconds": 1.0, "telegram_seconds": 1.0, "telegram_poll_seconds": 1, "integration_seconds": 1.0},
+        "logging": {"directory": str(tmp_path / "logs"), "level": "INFO", "include_llm_requests": False, "include_llm_responses": False},
+    }
+
+
+def test_settings_reject_missing_extra_types_ranges_and_semantics(tmp_path):
+    base = valid_settings(tmp_path)
+    assert Settings.model_validate(base).timezone == "UTC"
+    mutations = [
+        lambda x: x.pop("imap"),
+        lambda x: x.update(extra=True),
+        lambda x: x["imap"].update(extra=True),
+        lambda x: x["imap"].update(port="993"),
+        lambda x: x["imap"].update(port=0),
+        lambda x: x["imap"].update(port=65536),
+        lambda x: x["imap"].update(folders=[]),
+        lambda x: x["imap"].update(folders=["INBOX", "INBOX"]),
+        lambda x: x["imap"].update(folders=[""]),
+        lambda x: x["imap"].update(folders=["bad\0name"]),
+        lambda x: x.update(timezone="Moon/Base"),
+        lambda x: x.update(poll_interval_seconds=4),
+        lambda x: x.update(poll_interval_seconds=86401),
+        lambda x: x["limits"].update(max_mail_bytes=100_000_001),
+        lambda x: x["limits"].update(llm_calls_per_minute=0),
+        lambda x: x["limits"].update(llm_calls_per_minute=601),
+        lambda x: x["retries"].update(network=-1),
+        lambda x: x["retries"].update(validation=11),
+        lambda x: x["timeouts"].update(openrouter_seconds=0.5),
+        lambda x: x["timeouts"].update(telegram_seconds=301.0),
+        lambda x: x["timeouts"].update(telegram_poll_seconds=51),
+        lambda x: x["timeouts"].update(integration_seconds="30"),
+        lambda x: x["logging"].update(level="TRACE"),
+        lambda x: x.update(data_directory="../secret"),
+        lambda x: x.update(data_directory="bad\0path"),
+        lambda x: x.update(data_directory=123),
+        lambda x: x["logging"].update(directory=123),
+        lambda x: x["telegram"].update(user_id=0),
+        lambda x: x["targets"].update(todoist_project=""),
+    ]
+    for mutate in mutations:
+        candidate = copy.deepcopy(base); mutate(candidate)
+        with pytest.raises(ValidationError): Settings.model_validate(candidate)
+    with pytest.raises(ValueError, match=r"config.yaml.*imap.port") as error:
+        bad=copy.deepcopy(base); bad["imap"]["port"]=0; _validated_file(Path("config.yaml"), Settings, bad)
+    assert "secret" not in str(error.value)
+
+
+def test_versioned_state_models_and_schema_quarantine(tmp_path):
+    assert ImapCheckpoint(uidvalidity=1, uid=2).schema_version == 1
+    assert TelegramOffset(offset=2).schema_version == 1
+    assert TelegramDialogState().proposal_id is None
+    with pytest.raises(ValidationError): TelegramDialogState(proposal_id="p")
+    with pytest.raises(ValidationError): TelegramDialogState(version=1)
+    with JsonStore(tmp_path) as store:
+        store.save("mail-bad", {"schema_version": 2, "id": "secret-content", "imap": {}, "steps": {}})
+        with pytest.raises(CorruptState, match=r"mail-bad.invalid.*id") as error:
+            store.load_model("mail-bad", MailState)
+        assert "secret-content" not in str(error.value) and (tmp_path / "mail-bad.invalid").exists()
+        assert store.load_model("missing", TelegramOffset, TelegramOffset()).offset == 0
+
+
+def test_openrouter_corrupt_responses_are_named_and_sanitized():
+    assert _path(ValueError()) == "<json>"
+    cases = [
+        ({"choices": []}, "id"),
+        ({"id": "x", "choices": []}, "choices"),
+        ({"id": "x", "choices": [{"message": {"content": "[1]"}}]}, "content"),
+        ({"id": "x", "choices": [{"message": {"content": "private-not-json"}}]}, "<json>"),
+    ]
+    for data, path in cases:
+        transport=httpx.MockTransport(lambda request, data=data: httpx.Response(200,json=data,request=request))
+        client=OpenRouterClient("top-secret",1,0,10,transport)
+        with pytest.raises(ValueError, match="OpenRouter") as error: client.complete("m",{},"s",{})
+        assert "top-secret" not in str(error.value)
+        client.close()
+
+
+def test_telegram_response_models_and_write_validation():
+    assert _validation_path(ValueError()) == "<json>"
+    with pytest.raises(ValidationError): TelegramUpdatesResponse.model_validate({"ok":False,"result":[]})
+    with pytest.raises(ValidationError): TelegramWriteResponse.model_validate({"ok":False,"result":True})
+    for operation in ("send", "answer"):
+        client=TelegramClient("top-secret",1,httpx.MockTransport(lambda request: httpx.Response(200,json={"ok":True},request=request)))
+        with pytest.raises(ValueError, match="Telegram") as error:
+            client.send(1,"x") if operation == "send" else client.answer_callback("c","x")
+        assert "top-secret" not in str(error.value)
+        client.close()
+
+
+def test_integration_response_boundaries_and_required_ids():
+    with pytest.raises(ValueError, match="id"): _with_external_result(proposal(status="writing"), {})
+    cases = [
+        ("todoist", "GET", {}),
+        ("todoist", "POST", {"description":"no id"}),
+        ("google_calendar", "GET", {"wrong": []}),
+        ("google_calendar", "POST", {"htmlLink":"https://private.invalid"}),
+    ]
+    for service, method, data in cases:
+        def handler(request, data=data): return httpx.Response(200,json=data,request=request)
+        writer=HttpWriter(service,"top-secret","target",transport=httpx.MockTransport(handler))
+        with pytest.raises(ValueError) as error:
+            if method == "GET": writer.reconcile("key")
+            elif service == "todoist": writer.create(proposal(status="confirmed"),"key")
+            else:
+                from datetime import datetime, timedelta, timezone
+                now=datetime.now(timezone.utc)
+                writer.create(proposal(kind="event",start=now,end=now+timedelta(hours=1),status="confirmed"),"key")
+        assert service.split("_")[0].lower() in str(error.value).lower() and "top-secret" not in str(error.value)
+        writer.close()

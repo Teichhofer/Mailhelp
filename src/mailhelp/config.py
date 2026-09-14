@@ -3,22 +3,108 @@ from __future__ import annotations
 import hashlib, json, os, re
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, model_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError, field_validator, model_validator
 
 
-class Settings(BaseModel):
-    model_config = ConfigDict(extra="forbid")
+class ConfigModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+
+
+class ImapSettings(ConfigModel):
+    host: str = Field(min_length=1, max_length=253)
+    port: int = Field(ge=1, le=65535)
+    folders: list[str] = Field(min_length=1, max_length=100)
+
+    @field_validator("folders")
+    @classmethod
+    def valid_folders(cls, folders: list[str]) -> list[str]:
+        if any(not folder.strip() or "\x00" in folder for folder in folders):
+            raise ValueError("Ordnernamen dürfen nicht leer sein oder NUL enthalten")
+        if len(folders) != len(set(folders)):
+            raise ValueError("Ordnernamen dürfen nicht doppelt vorkommen")
+        return folders
+
+
+class TelegramSettings(ConfigModel):
+    user_id: int = Field(gt=0)
+    chat_id: int
+
+
+class TargetSettings(ConfigModel):
+    todoist_project: str = Field(min_length=1, max_length=500)
+    google_calendar: str = Field(min_length=1, max_length=500)
+
+
+class LimitSettings(ConfigModel):
+    max_mail_bytes: int = Field(ge=1024, le=100_000_000)
+    llm_calls_per_minute: int = Field(ge=1, le=600)
+
+
+class RetrySettings(ConfigModel):
+    network: int = Field(ge=0, le=10)
+    validation: int = Field(ge=0, le=10)
+
+
+class TimeoutSettings(ConfigModel):
+    openrouter_seconds: float = Field(ge=1, le=300)
+    telegram_seconds: float = Field(ge=1, le=300)
+    telegram_poll_seconds: int = Field(ge=1, le=50)
+    integration_seconds: float = Field(ge=1, le=300)
+
+
+class LoggingSettings(ConfigModel):
+    directory: Path
+    level: str
+    include_llm_requests: bool = False
+    include_llm_responses: bool = False
+
+    @field_validator("level")
+    @classmethod
+    def valid_level(cls, value: str) -> str:
+        if value not in {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}:
+            raise ValueError("erlaubt sind DEBUG, INFO, WARNING, ERROR und CRITICAL")
+        return value
+
+    @field_validator("directory", mode="before")
+    @classmethod
+    def valid_directory(cls, value: object) -> Path:
+        if not isinstance(value, (str, Path)): raise ValueError("Pfad muss eine Zeichenkette sein")
+        return _valid_path(Path(value))
+
+
+class Settings(ConfigModel):
     timezone: str
-    poll_interval_seconds: int = Field(ge=5)
+    poll_interval_seconds: int = Field(ge=5, le=86400)
     test_mode: bool = False
     data_directory: Path
-    imap: dict[str, Any]
-    telegram: dict[str, int]
-    targets: dict[str, str]
-    limits: dict[str, int]
-    retries: dict[str, int]
-    logging: dict[str, Any]
+    imap: ImapSettings
+    telegram: TelegramSettings
+    targets: TargetSettings
+    limits: LimitSettings
+    retries: RetrySettings
+    timeouts: TimeoutSettings
+    logging: LoggingSettings
+
+    @field_validator("timezone")
+    @classmethod
+    def valid_timezone(cls, value: str) -> str:
+        try: ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError) as exc: raise ValueError("unbekannte IANA-Zeitzone") from exc
+        return value
+
+    @field_validator("data_directory", mode="before")
+    @classmethod
+    def valid_data_directory(cls, value: object) -> Path:
+        if not isinstance(value, (str, Path)): raise ValueError("Pfad muss eine Zeichenkette sein")
+        return _valid_path(Path(value))
+
+
+def _valid_path(value: Path) -> Path:
+    if not str(value).strip() or "\x00" in str(value) or ".." in value.parts:
+        raise ValueError("Pfad muss sicher und nicht leer sein")
+    return value
 
 
 class Secrets(BaseModel):
@@ -109,9 +195,9 @@ def _dotenv(path: Path) -> dict[str, str]:
 
 def load_all(directory: Path, environ: dict[str, str] | None = None) -> tuple[Settings, Secrets, list[Topic], PromptConfig, str]:
     env = {**_dotenv(directory / ".env"), **(os.environ if environ is None else environ)}
-    settings = Settings.model_validate(_yaml(directory / "config.yaml"))
-    prompts = PromptConfig.model_validate(_yaml(directory / "prompts.yaml"))
-    topics = [Topic.model_validate(x) for x in _yaml(directory / "topics.yaml").get("topics", [])]
+    settings = _validated_file(directory / "config.yaml", Settings, _yaml(directory / "config.yaml"))
+    prompts = _validated_file(directory / "prompts.yaml", PromptConfig, _yaml(directory / "prompts.yaml"))
+    topics = [_validated_file(directory / "topics.yaml", Topic, value, f"topics.{index}") for index, value in enumerate(_yaml(directory / "topics.yaml").get("topics", []))]
     if not any(topic.enabled for topic in topics):
         raise ValueError("topics.yaml: mindestens ein Thema muss aktiviert sein")
     names = ["IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN", "TODOIST_TOKEN", "GOOGLE_ACCESS_TOKEN"]
@@ -121,3 +207,13 @@ def load_all(directory: Path, environ: dict[str, str] | None = None) -> tuple[Se
     secrets = Secrets.model_validate({name.lower(): env[name] for name in names})
     fingerprint = hashlib.sha256(json.dumps([settings.model_dump(mode="json"), prompts.model_dump(), [x.model_dump() for x in topics]], sort_keys=True).encode()).hexdigest()
     return settings, secrets, topics, prompts, fingerprint
+
+
+def _validated_file(path: Path, model: type[BaseModel], value: Any, prefix: str = "") -> Any:
+    try: return model.model_validate(value)
+    except ValidationError as exc:
+        locations = []
+        for error in exc.errors(include_input=False):
+            location = ".".join(str(part) for part in error["loc"]) or "<root>"
+            locations.append(f"{prefix}.{location}" if prefix else location)
+        raise ValueError(f"{path}: ungültige Schlüsselpfade: {', '.join(locations)}") from exc
