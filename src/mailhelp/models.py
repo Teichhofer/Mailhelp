@@ -131,3 +131,4 @@ class MailState(StrictModel):
     llm_call_ids: list[str] = Field(default_factory=list)
     awaiting_relevance: bool = False
     error: dict[str, str] | None = None
+    deferred_until: datetime | None = None

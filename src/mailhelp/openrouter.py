@@ -1,13 +1,19 @@
 """Begrenzter OpenRouter-Client mit Timeouts, Wiederholung und Rate-Limit."""
 from __future__ import annotations
 import json, time, uuid
-from collections import deque
+from datetime import datetime, timezone
 from typing import Any, Callable
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 
-class RateLimitExceeded(RuntimeError): pass
+from .adapter import RetryPolicy
+
+
+class RateLimitExceeded(RuntimeError):
+    def __init__(self, next_allowed_at: float):
+        self.next_allowed_at = next_allowed_at
+        super().__init__(f"OpenRouter-Aufruflimit erreicht; naechster Aufruf {datetime.fromtimestamp(next_allowed_at, timezone.utc).isoformat()}")
 
 
 class OpenRouterMessage(BaseModel):
@@ -27,31 +33,32 @@ class OpenRouterResponse(BaseModel):
 
 
 class OpenRouterClient:
-    def __init__(self, key: str, timeout: float, retries: int, calls_per_minute: int, transport: httpx.BaseTransport | None = None, sleep: Callable[[float], None] = time.sleep):
-        self.key, self.retries, self.limit, self.sleep = key, retries, calls_per_minute, sleep
+    def __init__(self, key: str, timeout: float, retries: int, calls_per_minute: int, transport: httpx.BaseTransport | None = None, sleep: Callable[[float], None] = time.sleep, *, initial_backoff: float = 1, max_backoff: float = 8, clock: Callable[[], float] = time.time, load_calls: Callable[[], list[float]] | None = None, save_calls: Callable[[list[float]], None] | None = None, stopped: Callable[[float], bool] | None = None):
+        self.calls: list[float] = []
+        self.key, self.limit, self.clock = key, calls_per_minute, clock
+        self.load_calls = load_calls or (lambda: self.calls)
+        self.save_calls = save_calls or (lambda calls: self.calls.__setitem__(slice(None), calls))
         self.client = httpx.Client(base_url="https://openrouter.ai/api/v1", timeout=timeout, transport=transport)
-        self.calls: deque[float] = deque()
+        wait = stopped or (lambda delay: (sleep(delay), False)[1])
+        self.policy = RetryPolicy(retries, initial_backoff, max_backoff, wait, clock)
 
     def complete(self, model: str, parameters: dict[str, Any], system: str, payload: dict[str, Any]) -> tuple[str, dict[str, Any]]:
-        now = time.monotonic()
-        while self.calls and now - self.calls[0] >= 60: self.calls.popleft()
-        if len(self.calls) >= self.limit: raise RateLimitExceeded("OpenRouter-Aufruflimit erreicht")
-        self.calls.append(now); call_id = str(uuid.uuid4())
+        now = self.clock()
+        calls = sorted(value for value in self.load_calls() if isinstance(value, (int, float)) and now - value < 60)
+        if len(calls) >= self.limit: raise RateLimitExceeded(calls[0] + 60)
+        calls.append(now); self.save_calls(calls); call_id = str(uuid.uuid4())
         request = {**parameters, "model": model, "messages": [{"role": "system", "content": system}, {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}], "response_format": {"type": "json_object"}}
-        attempt = 0
-        while True:
-            try:
-                response = self.client.post("/chat/completions", headers={"Authorization": f"Bearer {self.key}"}, json=request)
-                response.raise_for_status()
-                try: data = OpenRouterResponse.model_validate(response.json())
-                except (ValueError, ValidationError) as exc: raise ValueError(f"OpenRouter chat/completions: ungültige Antwort am Schlüsselpfad {_path(exc)}") from exc
-                try: content = json.loads(data.choices[0].message.content)
-                except json.JSONDecodeError as exc: raise ValueError("OpenRouter chat/completions: ungültige Antwort am Schlüsselpfad choices.0.message.content") from exc
-                if not isinstance(content, dict): raise ValueError("OpenRouter chat/completions: Schlüsselpfad choices.0.message.content muss ein JSON-Objekt sein")
-                return call_id, content
-            except (httpx.TransportError, httpx.HTTPStatusError, ValueError, json.JSONDecodeError):
-                if attempt == self.retries: raise
-                self.sleep(2 ** attempt); attempt += 1
+        def invoke() -> httpx.Response:
+            response = self.client.post("/chat/completions", headers={"Authorization": f"Bearer {self.key}", "X-Request-Id": call_id}, json=request)
+            response.raise_for_status()
+            return response
+        response = self.policy.run(invoke)
+        try: data = OpenRouterResponse.model_validate(response.json())
+        except (ValueError, ValidationError) as exc: raise ValueError(f"OpenRouter chat/completions: ungültige Antwort am Schlüsselpfad {_path(exc)}") from exc
+        try: content = json.loads(data.choices[0].message.content)
+        except json.JSONDecodeError as exc: raise ValueError("OpenRouter chat/completions: ungültige Antwort am Schlüsselpfad choices.0.message.content") from exc
+        if not isinstance(content, dict): raise ValueError("OpenRouter chat/completions: Schlüsselpfad choices.0.message.content muss ein JSON-Objekt sein")
+        return call_id, content
     def close(self) -> None: self.client.close()
 
 

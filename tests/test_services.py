@@ -9,6 +9,7 @@ from mailhelp.imap import FetchedMail
 from mailhelp.integrations import HttpWriter, execute_confirmed
 from mailhelp.models import ProposalStatus
 from mailhelp.openrouter import OpenRouterClient, RateLimitExceeded
+from mailhelp.adapter import RetryableError
 from mailhelp.orchestrator import MailState, Orchestrator
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import Decision, DecisionAction, TelegramClient, apply_decision, split_message
@@ -31,7 +32,7 @@ def test_openrouter(monkeypatch):
         if len(attempts) == 1: raise httpx.ConnectError("x", request=request)
         return httpx.Response(500, request=request)
     client=OpenRouterClient("x",1,1,10,httpx.MockTransport(flaky), sleep=lambda x: attempts.append(x))
-    with pytest.raises(httpx.HTTPStatusError): client.complete("m", {}, "s", {})
+    with pytest.raises(RetryableError): client.complete("m", {}, "s", {})
 
 
 class FakeCompleter:
@@ -188,3 +189,22 @@ def test_orchestrator_resumes_each_persisted_analysis_step(tmp_path):
     with JsonStore(tmp_path/"invalid") as store:
         store.save("mail-"+"a"*24,{"schema_version":2,"id":"bad","imap":{},"steps":{}})
         with pytest.raises(Exception): MailState.model_validate(store.load("mail-"+"a"*24))
+
+def test_orchestrator_defers_rate_limit_and_reports(tmp_path):
+    class Limited:
+        def relevance(self, mail, topics):
+            raise RateLimitExceeded(120.0)
+    class Log:
+        def __init__(self): self.events=[]
+        def event(self,*args,**kwargs): self.events.append((args,kwargs))
+    with JsonStore(tmp_path/"limited") as store:
+        notify=Notify(); log=Log()
+        topic=Topic(id="x",name="x",enabled=True,description="x")
+        mail=FetchedMail("INBOX",1,20,b"Subject: Limit\n\nBody")
+        state=Orchestrator(Limited(),store,notify,1,[topic],1000,log).process(mail)
+        assert state["deferred_until"].startswith("1970-01-01T00:02:00")
+        assert "LLM-Limit" in notify.messages[0] and log.events[0][0][2]=="llm_rate_limited"
+        second=Orchestrator(Limited(),store,notify,1,[topic],1000,log,lambda:100)
+        assert second.process(mail)["deferred_until"] == state["deferred_until"]
+    with JsonStore(tmp_path/"limited-no-log") as store:
+        Orchestrator(Limited(),store,Notify(),1,[topic],1000).process(mail)

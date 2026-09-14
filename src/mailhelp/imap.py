@@ -3,6 +3,7 @@ from __future__ import annotations
 import imaplib
 from dataclasses import dataclass
 from typing import Callable
+from .adapter import RetryPolicy
 
 
 @dataclass(frozen=True)
@@ -14,7 +15,8 @@ class FetchedMail:
 
 
 class ImapReader:
-    def __init__(self, host: str, port: int, username: str, password: str, timeout: float = 30, factory: Callable[..., imaplib.IMAP4] = imaplib.IMAP4_SSL):
+    def __init__(self, host: str, port: int, username: str, password: str, timeout: float = 30, factory: Callable[..., imaplib.IMAP4] = imaplib.IMAP4_SSL, policy: RetryPolicy | None = None):
+        self.policy = policy or RetryPolicy(0, 0, 0, lambda _delay: False)
         self.connection = factory(host, port, timeout=timeout)
         self.last_uidvalidity: int | None = None
         try:
@@ -24,6 +26,9 @@ class ImapReader:
             raise
 
     def fetch_since(self, folder: str, after_uid: int = 0, expected_uidvalidity: int | None = None) -> list[FetchedMail]:
+        return self.policy.run(lambda: self._fetch_since(folder, after_uid, expected_uidvalidity))
+
+    def _fetch_since(self, folder: str, after_uid: int, expected_uidvalidity: int | None) -> list[FetchedMail]:
         status, data = self.connection.select(folder, readonly=True)
         if status != "OK": raise RuntimeError(f"IMAP-Ordner nicht lesbar: {folder}")
         status, validity = self.connection.response("UIDVALIDITY")

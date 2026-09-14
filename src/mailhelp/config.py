@@ -42,16 +42,30 @@ class LimitSettings(ConfigModel):
     llm_calls_per_minute: int = Field(ge=1, le=600)
 
 
+class AdapterPolicySettings(ConfigModel):
+    timeout_seconds: float = Field(ge=1, le=300)
+    retries: int = Field(ge=0, le=10)
+    initial_backoff_seconds: float = Field(ge=0, le=30)
+    max_backoff_seconds: float = Field(ge=0, le=60)
+
+    @model_validator(mode="after")
+    def valid_backoff(self) -> "AdapterPolicySettings":
+        if self.max_backoff_seconds < self.initial_backoff_seconds:
+            raise ValueError("max_backoff_seconds muss mindestens initial_backoff_seconds sein")
+        return self
+
+
 class RetrySettings(ConfigModel):
-    network: int = Field(ge=0, le=10)
     validation: int = Field(ge=0, le=10)
 
 
 class TimeoutSettings(ConfigModel):
-    openrouter_seconds: float = Field(ge=1, le=300)
-    telegram_seconds: float = Field(ge=1, le=300)
+    imap: AdapterPolicySettings
+    telegram: AdapterPolicySettings
+    openrouter: AdapterPolicySettings
+    todoist: AdapterPolicySettings
+    google_calendar: AdapterPolicySettings
     telegram_poll_seconds: int = Field(ge=1, le=50)
-    integration_seconds: float = Field(ge=1, le=300)
 
 
 class LoggingSettings(ConfigModel):

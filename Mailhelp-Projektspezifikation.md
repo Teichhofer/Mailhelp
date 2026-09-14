@@ -192,7 +192,7 @@ Zugangsdaten können im Container alternativ als Umgebungsvariablen bereitgestel
 
 Alle Dateien werden beim Start geprüft. Fehlermeldungen nennen betroffene Datei und Schlüssel, niemals geheime Werte. `.env`, Zustandsdaten und Logs werden aus Git und Docker-Build-Kontext ausgeschlossen. Eine private Beispieldatei mit echten Zugangsdaten gehört nicht ins Projekt.
 
-Die Bereiche `imap`, `telegram`, `targets`, `limits`, `retries`, `timeouts` und `logging` besitzen geschlossene Modelle. Ports (1–65535), Polling (5–86400 Sekunden), Adaptertimeouts (1–300 Sekunden), Telegram-Long-Polling (1–50 Sekunden), Mailgröße (1.024–100.000.000 Bytes), LLM-Rate (1–600/min) und Wiederholungen (0–10) sind begrenzt. Zeitzonen müssen IANA-Namen sein; Ordner sind eindeutig und nicht leer, Pfade sicher, Log-Level sind `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`.
+Die Bereiche `imap`, `telegram`, `targets`, `limits`, `retries`, `timeouts` und `logging` besitzen geschlossene Modelle. IMAP, Telegram, OpenRouter, Todoist und Google Calendar konfigurieren Timeout, Retry-Anzahl, initialen Backoff und Backoff-Obergrenze getrennt. Ports (1–65535), Polling (5–86400 Sekunden), Adaptertimeouts (1–300 Sekunden), Telegram-Long-Polling (1–50 Sekunden), Mailgröße (1.024–100.000.000 Bytes), LLM-Rate (1–600/min), Wiederholungen (0–10) und Backoff (0–60 Sekunden) sind begrenzt. Zeitzonen müssen IANA-Namen sein; Ordner sind eindeutig und nicht leer, Pfade sicher, Log-Level sind `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`.
 
 ## 10. JSON-Zustand und Neustartverhalten
 
@@ -376,7 +376,7 @@ Vor produktiver Nutzung sind IMAP-Server und Ordner, Google-Zielkalender, Todois
 
 Die jeweils aktuellen Authentifizierungsabläufe, API-Details und unterstützten OpenRouter-Parameter sind zu Beginn der Implementierung anhand offizieller Dokumentation zu prüfen. Dieses Dokument legt Anforderungen fest und behauptet keine bereits geprüfte Kompatibilität bestimmter Modell-/Parameterkombinationen.
 
-Die Projektinitialisierung 0.1.0 legt Python 3.12 (Referenzversion 3.12.10), ein Abrufintervall von 60 Sekunden, zwei Netzwerk-Wiederholungen, eine Validierungswiederholung, 30 Sekunden als Adapter-Standardtimeout, zehn LLM-Aufrufe pro Minute und 1.000.000 Bytes als maximales Mail-Limit fest. Konfigurierbare Werte stehen in `config.yaml`; Adaptertimeouter werden beim Aufbau aus diesen Einstellungen übergeben. Ein vollständiger Termin benötigt Beginn und Ende. Damit wird eine fehlende Endzeit nicht stillschweigend erfunden.
+Die Projektinitialisierung 0.1.0 legt Python 3.12 (Referenzversion 3.12.10), ein Abrufintervall von 60 Sekunden, je Adapter zwei Netzwerk-Wiederholungen, eine Validierungswiederholung, getrennte Adaptertimeouts, zehn LLM-Aufrufe pro Minute und 1.000.000 Bytes als maximales Mail-Limit fest. Wiederholt werden nur Transportfehler und die HTTP-Statuscodes 408, 425, 429, 500, 502, 503 und 504; `Retry-After`, exponentieller Backoff und dessen Obergrenze begrenzen die Wartezeit. Externe Schreibaktionen folgen Persistieren, Schreiben, bei unklarem Resultat `uncertain` und Abgleich vor einem neuen Versuch. Das persistierte LLM-Zeitfenster übersteht Neustarts; der Orchestrator persistiert den nächsten zulässigen Zeitpunkt und meldet die Zurückstellung über Telegram und strukturiertes Log. Ein vollständiger Termin benötigt Beginn und Ende. Damit wird eine fehlende Endzeit nicht stillschweigend erfunden.
 
 ## 16. GitHub-Kurzbeschreibung
 

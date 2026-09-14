@@ -17,6 +17,7 @@ from .openrouter import OpenRouterClient
 from .orchestrator import Orchestrator
 from .storage import JsonStore
 from .telegram import TelegramClient, TelegramDialogController
+from .adapter import RetryPolicy
 
 
 @dataclass
@@ -101,20 +102,27 @@ def build_application(settings: Settings, secrets: Secrets, topics: list[Topic],
             log_dir = base_directory / log_dir
         store = stack.enter_context(JsonStore(data))
         logger = JsonlLogger(log_dir, settings.logging.include_llm_requests, settings.logging.include_llm_responses)
-        imap = ImapReader(settings.imap.host, settings.imap.port, secrets.imap_username, secrets.imap_password.get_secret_value())
+        stop_event = Event()
+        def policy(name: str) -> RetryPolicy:
+            item = getattr(settings.timeouts, name)
+            return RetryPolicy(item.retries, item.initial_backoff_seconds, item.max_backoff_seconds, stop_event.wait)
+        imap_cfg = settings.timeouts.imap
+        imap = ImapReader(settings.imap.host, settings.imap.port, secrets.imap_username, secrets.imap_password.get_secret_value(), imap_cfg.timeout_seconds, policy=policy("imap"))
         stack.callback(imap.close)
-        openrouter = OpenRouterClient(secrets.openrouter_api_key.get_secret_value(), settings.timeouts.openrouter_seconds, settings.retries.network, settings.limits.llm_calls_per_minute)
+        llm_cfg = settings.timeouts.openrouter
+        openrouter = OpenRouterClient(secrets.openrouter_api_key.get_secret_value(), llm_cfg.timeout_seconds, llm_cfg.retries, settings.limits.llm_calls_per_minute, initial_backoff=llm_cfg.initial_backoff_seconds, max_backoff=llm_cfg.max_backoff_seconds, load_calls=lambda: store.load("llm-budget", {}).get("calls", []), save_calls=lambda calls: store.save("llm-budget", {"calls": calls}))
         stack.callback(openrouter.close)
-        telegram = TelegramClient(secrets.telegram_bot_token.get_secret_value(), settings.timeouts.telegram_seconds, poll_timeout=settings.timeouts.telegram_poll_seconds)
+        telegram = TelegramClient(secrets.telegram_bot_token.get_secret_value(), settings.timeouts.telegram.timeout_seconds, poll_timeout=settings.timeouts.telegram_poll_seconds, policy=policy("telegram"))
         stack.callback(telegram.close)
-        todoist = HttpWriter("todoist", secrets.todoist_token.get_secret_value(), settings.targets.todoist_project, settings.timeouts.integration_seconds)
+        todoist = HttpWriter("todoist", secrets.todoist_token.get_secret_value(), settings.targets.todoist_project, settings.timeouts.todoist.timeout_seconds, policy=policy("todoist"))
         stack.callback(todoist.close)
-        calendar = HttpWriter("google_calendar", secrets.google_access_token.get_secret_value(), settings.targets.google_calendar, settings.timeouts.integration_seconds)
+        calendar = HttpWriter("google_calendar", secrets.google_access_token.get_secret_value(), settings.targets.google_calendar, settings.timeouts.google_calendar.timeout_seconds, policy=policy("google_calendar"))
         stack.callback(calendar.close)
         analyzer = Analyzer(openrouter, prompts, settings.retries.validation)
         dialog = TelegramDialogController(
             store, telegram, settings.telegram.user_id, settings.telegram.chat_id, logger,
             {"todoist": todoist, "google_calendar": calendar}, settings.test_mode,
         )
-        orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics, settings.limits.max_mail_bytes)
-        yield Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar, orchestrator, orchestrator.stop_event, dialog)
+        orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics, settings.limits.max_mail_bytes, logger)
+        orchestrator.stop_event = stop_event
+        yield Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar, orchestrator, stop_event, dialog)

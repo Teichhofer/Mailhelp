@@ -9,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_valida
 
 from .models import Proposal, ProposalStatus, TelegramDialogState, TelegramOffset
 from .integrations import ExternalWriter, execute_confirmed
+from .adapter import RetryPolicy, uncertain_write
 from .storage import JsonStore
 
 
@@ -144,13 +145,16 @@ def numbered_message_parts(mail_id: str, proposal_id: str, text: str, limit: int
 
 
 class TelegramClient:
-    def __init__(self, token: str, timeout: float, transport: httpx.BaseTransport | None = None, poll_timeout: int = 30):
+    def __init__(self, token: str, timeout: float, transport: httpx.BaseTransport | None = None, poll_timeout: int = 30, policy: RetryPolicy | None = None):
         self.poll_timeout = poll_timeout
         self.client = httpx.Client(base_url=f"https://api.telegram.org/bot{token}", timeout=timeout, transport=transport)
+        self.policy = policy or RetryPolicy(0, 0, 0, lambda _delay: False)
 
     def poll(self, offset: int, timeout: int | None = None) -> list[dict[str, Any]]:
-        response = self.client.get("/getUpdates", params={"offset": offset, "timeout": self.poll_timeout if timeout is None else timeout})
-        response.raise_for_status()
+        def request() -> httpx.Response:
+            response = self.client.get("/getUpdates", params={"offset": offset, "timeout": self.poll_timeout if timeout is None else timeout})
+            response.raise_for_status(); return response
+        response = self.policy.run(request)
         try: parsed = TelegramUpdatesResponse.model_validate(response.json())
         except (ValueError, ValidationError) as exc: raise ValueError(f"Telegram getUpdates: ungültige Antwort am Schlüsselpfad {_validation_path(exc)}") from exc
         return [item.model_dump(by_alias=True) for item in parsed.result]
@@ -161,13 +165,15 @@ class TelegramClient:
             payload: dict[str, Any] = {"chat_id": chat_id, "text": part}
             if reply_markup is not None and index == len(parts) - 1:
                 payload["reply_markup"] = reply_markup
-            response = self.client.post("/sendMessage", json=payload)
-            response.raise_for_status()
+            def request() -> httpx.Response:
+                response = self.client.post("/sendMessage", json=payload); response.raise_for_status(); return response
+            response = uncertain_write(request)
             self._validate_write(response, "sendMessage")
 
     def answer_callback(self, callback_id: str, text: str) -> None:
-        response = self.client.post("/answerCallbackQuery", json={"callback_query_id": callback_id, "text": text})
-        response.raise_for_status()
+        def request() -> httpx.Response:
+            response = self.client.post("/answerCallbackQuery", json={"callback_query_id": callback_id, "text": text}); response.raise_for_status(); return response
+        response = uncertain_write(request)
         self._validate_write(response, "answerCallbackQuery")
 
     @staticmethod
