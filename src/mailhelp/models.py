@@ -3,12 +3,35 @@ from __future__ import annotations
 
 from datetime import datetime
 from enum import StrEnum
-from typing import Literal
+from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+
+class ImapCheckpoint(StrictModel):
+    schema_version: Literal[1] = 1
+    uidvalidity: int | None = Field(default=None, ge=1)
+    uid: int = Field(default=0, ge=0)
+
+
+class TelegramOffset(StrictModel):
+    schema_version: Literal[1] = 1
+    offset: int = Field(default=0, ge=0)
+
+
+class TelegramDialogState(StrictModel):
+    schema_version: Literal[1] = 1
+    proposal_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{1,64}$")
+    version: int | None = Field(default=None, ge=1)
+
+    @model_validator(mode="after")
+    def complete_reference(self) -> "TelegramDialogState":
+        if (self.proposal_id is None) != (self.version is None):
+            raise ValueError("proposal_id und version müssen gemeinsam gesetzt sein")
+        return self
 
 
 class Relevance(StrictModel):
@@ -47,6 +70,7 @@ class ProposalStatus(StrEnum):
 
 
 class Proposal(StrictModel):
+    schema_version: Literal[1] = 1
     id: str = Field(pattern=r"^[a-zA-Z0-9_-]{1,64}$")
     version: int = Field(ge=1)
     kind: ProposalKind
@@ -78,3 +102,32 @@ class Proposal(StrictModel):
 
 class Actions(StrictModel):
     proposals: list[Proposal] = Field(default_factory=list, max_length=20)
+
+
+class ProcessingSteps(StrictModel):
+    preparation: Literal["pending", "completed", "skipped"] = "pending"
+    relevance: Literal["pending", "completed", "skipped"] = "pending"
+    summary: Literal["pending", "completed", "skipped"] = "pending"
+    action_detection: Literal["pending", "completed", "skipped"] = "pending"
+    notification: Literal["pending", "completed", "skipped"] = "pending"
+    completion: Literal["pending", "completed", "skipped"] = "pending"
+
+
+class MailImapIdentity(StrictModel):
+    folder: str = Field(min_length=1)
+    uidvalidity: int = Field(ge=1)
+    uid: int = Field(ge=1)
+
+
+class MailState(StrictModel):
+    schema_version: Literal[2] = 2
+    id: str = Field(pattern=r"^[a-f0-9]{24}$")
+    imap: MailImapIdentity
+    steps: ProcessingSteps = Field(default_factory=ProcessingSteps)
+    mail: dict[str, Any] | None = None
+    relevance: Relevance | None = None
+    summary: Summary | None = None
+    proposals: list[Proposal] = Field(default_factory=list)
+    llm_call_ids: list[str] = Field(default_factory=list)
+    awaiting_relevance: bool = False
+    error: dict[str, str] | None = None

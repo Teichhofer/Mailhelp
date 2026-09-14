@@ -7,7 +7,7 @@ from typing import Any, Protocol
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
-from .models import Proposal, ProposalStatus
+from .models import Proposal, ProposalStatus, TelegramDialogState, TelegramOffset
 from .integrations import ExternalWriter, execute_confirmed
 from .storage import JsonStore
 
@@ -49,6 +49,30 @@ class TelegramUpdate(TelegramModel):
     def exactly_one_payload(self) -> "TelegramUpdate":
         if (self.message is None) == (self.callback_query is None):
             raise ValueError("Update muss genau eine Nachricht oder Callback-Query enthalten")
+        return self
+
+
+class TelegramUpdatesResponse(TelegramModel):
+    ok: bool
+    result: list[TelegramUpdate]
+
+    @model_validator(mode="after")
+    def successful(self) -> "TelegramUpdatesResponse":
+        if not self.ok: raise ValueError("Telegram meldet keinen Erfolg")
+        return self
+
+
+class TelegramWriteResult(TelegramModel):
+    message_id: int | None = None
+
+
+class TelegramWriteResponse(TelegramModel):
+    ok: bool
+    result: TelegramWriteResult | bool
+
+    @model_validator(mode="after")
+    def successful(self) -> "TelegramWriteResponse":
+        if not self.ok: raise ValueError("Telegram meldet keinen Erfolg")
         return self
 
 
@@ -120,16 +144,16 @@ def numbered_message_parts(mail_id: str, proposal_id: str, text: str, limit: int
 
 
 class TelegramClient:
-    def __init__(self, token: str, timeout: float, transport: httpx.BaseTransport | None = None):
+    def __init__(self, token: str, timeout: float, transport: httpx.BaseTransport | None = None, poll_timeout: int = 30):
+        self.poll_timeout = poll_timeout
         self.client = httpx.Client(base_url=f"https://api.telegram.org/bot{token}", timeout=timeout, transport=transport)
 
-    def poll(self, offset: int, timeout: int = 30) -> list[dict[str, Any]]:
-        response = self.client.get("/getUpdates", params={"offset": offset, "timeout": timeout})
+    def poll(self, offset: int, timeout: int | None = None) -> list[dict[str, Any]]:
+        response = self.client.get("/getUpdates", params={"offset": offset, "timeout": self.poll_timeout if timeout is None else timeout})
         response.raise_for_status()
-        result = response.json().get("result")
-        if not isinstance(result, list):
-            raise ValueError("Telegram-Antwort enthält keine Update-Liste")
-        return result
+        try: parsed = TelegramUpdatesResponse.model_validate(response.json())
+        except (ValueError, ValidationError) as exc: raise ValueError(f"Telegram getUpdates: ungültige Antwort am Schlüsselpfad {_validation_path(exc)}") from exc
+        return [item.model_dump(by_alias=True) for item in parsed.result]
 
     def send(self, chat_id: int, text: str, reply_markup: dict[str, Any] | None = None) -> None:
         parts = split_message(text)
@@ -139,10 +163,17 @@ class TelegramClient:
                 payload["reply_markup"] = reply_markup
             response = self.client.post("/sendMessage", json=payload)
             response.raise_for_status()
+            self._validate_write(response, "sendMessage")
 
     def answer_callback(self, callback_id: str, text: str) -> None:
         response = self.client.post("/answerCallbackQuery", json={"callback_query_id": callback_id, "text": text})
         response.raise_for_status()
+        self._validate_write(response, "answerCallbackQuery")
+
+    @staticmethod
+    def _validate_write(response: httpx.Response, operation: str) -> None:
+        try: TelegramWriteResponse.model_validate(response.json())
+        except (ValueError, ValidationError) as exc: raise ValueError(f"Telegram {operation}: ungültige Antwort am Schlüsselpfad {_validation_path(exc)}") from exc
 
     def close(self) -> None:
         self.client.close()
@@ -201,7 +232,9 @@ class TelegramDialogController:
 
     def poll_once(self) -> None:
         self._resume_writes()
-        offset = self.store.load("telegram-offset", {"offset": 0})["offset"]
+        offset_state = self.store.load_model("telegram-offset", TelegramOffset, TelegramOffset())
+        assert isinstance(offset_state, TelegramOffset)
+        offset = offset_state.offset
         for raw in self.telegram.poll(offset):
             raw_id = raw.get("update_id") if isinstance(raw, dict) else None
             if not isinstance(raw_id, int) or isinstance(raw_id, bool) or raw_id < offset:
@@ -215,7 +248,7 @@ class TelegramDialogController:
                 self.telegram.send(self.chat_id, "Telegram-Eingabe ist syntaktisch ungültig und wurde verworfen.")
             finally:
                 offset = raw_id + 1
-                self.store.save("telegram-offset", {"offset": offset})
+                self.store.save("telegram-offset", TelegramOffset(offset=offset).model_dump())
 
     def _handle(self, update: TelegramUpdate) -> None:
         if update.callback_query is not None:
@@ -241,18 +274,18 @@ class TelegramDialogController:
         return (user_id, chat_id) == (self.user_id, self.chat_id)
 
     def _decide(self, callback_id: str, decision: Decision) -> None:
-        value = self.store.load(self._proposal_name(decision.proposal_id))
-        if value is None:
+        proposal = self.store.load_model(self._proposal_name(decision.proposal_id), Proposal)
+        if proposal is None:
             self.telegram.answer_callback(callback_id, "Vorschlag wurde nicht gefunden.")
             return
-        proposal = Proposal.model_validate(value)
+        assert isinstance(proposal, Proposal)
         if proposal.version != decision.version or proposal.status not in {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}:
             self.telegram.answer_callback(callback_id, "Diese Schaltfläche ist veraltet; der Status blieb unverändert.")
             return
         if decision.action == DecisionAction.EDIT:
             changed = proposal.model_copy(update={"status": ProposalStatus.NEEDS_CLARIFICATION})
             self.persist(changed)
-            self.store.save("telegram-dialog", {"proposal_id": proposal.id, "version": proposal.version})
+            self.store.save("telegram-dialog", TelegramDialogState(proposal_id=proposal.id, version=proposal.version).model_dump())
             prompt = proposal.open_questions[0] if proposal.open_questions else "Welche Änderung soll übernommen werden?"
             self.telegram.answer_callback(callback_id, "Änderung ausgewählt.")
             self.telegram.send(self.chat_id, prompt)
@@ -294,23 +327,24 @@ class TelegramDialogController:
         for name in names("proposal-"):
             if "-v" in name:
                 continue
-            proposal = Proposal.model_validate(self.store.load(name))
+            proposal = self.store.load_model(name, Proposal)
+            assert isinstance(proposal, Proposal)
             if proposal.status in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN}:
                 self._execute(proposal)
 
     def _answer(self, answer: str) -> None:
-        dialog = self.store.load("telegram-dialog")
-        if not dialog:
+        dialog = self.store.load_model("telegram-dialog", TelegramDialogState)
+        if dialog is None or dialog.proposal_id is None:
             self.telegram.send(self.chat_id, "Keine offene Rückfrage. Bitte zuerst „Ändern“ wählen.")
             return
-        value = self.store.load(self._proposal_name(dialog["proposal_id"]))
-        if value is None:
-            self.store.save("telegram-dialog", {})
+        proposal = self.store.load_model(self._proposal_name(dialog.proposal_id), Proposal)
+        if proposal is None:
+            self.store.save("telegram-dialog", TelegramDialogState().model_dump())
             self.telegram.send(self.chat_id, "Der zugehörige Vorschlag wurde nicht gefunden.")
             return
-        proposal = Proposal.model_validate(value)
-        if proposal.version != dialog["version"] or proposal.status != ProposalStatus.NEEDS_CLARIFICATION:
-            self.store.save("telegram-dialog", {})
+        assert isinstance(proposal, Proposal)
+        if proposal.version != dialog.version or proposal.status != ProposalStatus.NEEDS_CLARIFICATION:
+            self.store.save("telegram-dialog", TelegramDialogState().model_dump())
             self.telegram.send(self.chat_id, "Die Rückfrage ist veraltet; es wurde nichts geändert.")
             return
         remaining = proposal.open_questions[1:]
@@ -324,5 +358,11 @@ class TelegramDialogController:
             "open_questions": remaining,
             "status": ProposalStatus.NEEDS_CLARIFICATION if remaining else ProposalStatus.PENDING_CONFIRMATION,
         }})
-        self.store.save("telegram-dialog", {})
+        self.store.save("telegram-dialog", TelegramDialogState().model_dump())
         self.send_proposal(revised)
+
+
+def _validation_path(exc: Exception) -> str:
+    if isinstance(exc, ValidationError):
+        return ", ".join(".".join(str(part) for part in item["loc"]) or "<root>" for item in exc.errors(include_input=False))
+    return "<json>"

@@ -12,6 +12,7 @@ from .config import PromptConfig, Secrets, Settings, Topic
 from .imap import ImapReader
 from .integrations import HttpWriter
 from .logging import JsonlLogger
+from .models import ImapCheckpoint, TelegramOffset
 from .openrouter import OpenRouterClient
 from .orchestrator import Orchestrator
 from .storage import JsonStore
@@ -38,10 +39,11 @@ class Application:
         self.orchestrator.stop()
 
     def _poll_imap(self) -> None:
-        for folder in self.settings.imap["folders"]:
+        for folder in self.settings.imap.folders:
             if self.stop_event.is_set():
                 break
-            checkpoint = self.store.load(f"imap-{_safe_name(folder)}", {})
+            checkpoint_model = self.store.load_model(f"imap-{_safe_name(folder)}", ImapCheckpoint, ImapCheckpoint()) if hasattr(self.store, "load_model") else ImapCheckpoint.model_validate(self.store.load(f"imap-{_safe_name(folder)}", {}))
+            checkpoint = checkpoint_model.model_dump(exclude={"schema_version"})
             try:
                 mails = self.imap.fetch_since(folder, checkpoint.get("uid", 0), checkpoint.get("uidvalidity"))
             except Exception as exc:
@@ -54,10 +56,10 @@ class Application:
                     self.orchestrator.process(mail)
                 except Exception as exc:
                     self.logger.event("ERROR", "orchestrator", "mail_failed", folder=folder, uid=mail.uid, error=str(exc))
-                self.store.save(f"imap-{_safe_name(folder)}", {"uidvalidity": mail.uidvalidity, "uid": mail.uid})
+                self.store.save(f"imap-{_safe_name(folder)}", ImapCheckpoint(uidvalidity=mail.uidvalidity, uid=mail.uid).model_dump())
             if not mails and self.imap.last_uidvalidity is not None:
                 uid = checkpoint.get("uid", 0) if checkpoint.get("uidvalidity") == self.imap.last_uidvalidity else 0
-                self.store.save(f"imap-{_safe_name(folder)}", {"uidvalidity": self.imap.last_uidvalidity, "uid": uid})
+                self.store.save(f"imap-{_safe_name(folder)}", ImapCheckpoint(uidvalidity=self.imap.last_uidvalidity, uid=uid).model_dump())
 
     def _poll_telegram(self) -> None:
         if self.dialog is not None:
@@ -66,15 +68,15 @@ class Application:
             except Exception as exc:
                 self.logger.event("ERROR", "telegram", "poll_failed", error=str(exc))
             return
-        state = self.store.load("telegram-offset", {"offset": 0})
+        state_model = self.store.load_model("telegram-offset", TelegramOffset, TelegramOffset()) if hasattr(self.store, "load_model") else TelegramOffset.model_validate(self.store.load("telegram-offset", {}))
         try:
-            updates = self.telegram.poll(state["offset"])
+            updates = self.telegram.poll(state_model.offset)
         except Exception as exc:
             self.logger.event("ERROR", "telegram", "poll_failed", error=str(exc))
             return
         for update in updates:
             offset = int(update["update_id"]) + 1
-            self.store.save("telegram-offset", {"offset": offset})
+            self.store.save("telegram-offset", TelegramOffset(offset=offset).model_dump())
             self.logger.event("INFO", "telegram", "update_received", update_id=update["update_id"])
 
     def run(self) -> None:
@@ -94,25 +96,25 @@ def build_application(settings: Settings, secrets: Secrets, topics: list[Topic],
     """Construct adapters and close every successfully constructed resource."""
     with ExitStack() as stack:
         data = settings.data_directory if settings.data_directory.is_absolute() else base_directory / settings.data_directory
-        log_dir = Path(settings.logging["directory"])
+        log_dir = settings.logging.directory
         if not log_dir.is_absolute():
             log_dir = base_directory / log_dir
         store = stack.enter_context(JsonStore(data))
-        logger = JsonlLogger(log_dir, settings.logging.get("include_llm_requests", False), settings.logging.get("include_llm_responses", False))
-        imap = ImapReader(settings.imap["host"], settings.imap["port"], secrets.imap_username, secrets.imap_password.get_secret_value())
+        logger = JsonlLogger(log_dir, settings.logging.include_llm_requests, settings.logging.include_llm_responses)
+        imap = ImapReader(settings.imap.host, settings.imap.port, secrets.imap_username, secrets.imap_password.get_secret_value())
         stack.callback(imap.close)
-        openrouter = OpenRouterClient(secrets.openrouter_api_key.get_secret_value(), 30, settings.retries["network"], settings.limits["llm_calls_per_minute"])
+        openrouter = OpenRouterClient(secrets.openrouter_api_key.get_secret_value(), settings.timeouts.openrouter_seconds, settings.retries.network, settings.limits.llm_calls_per_minute)
         stack.callback(openrouter.close)
-        telegram = TelegramClient(secrets.telegram_bot_token.get_secret_value(), 35)
+        telegram = TelegramClient(secrets.telegram_bot_token.get_secret_value(), settings.timeouts.telegram_seconds, poll_timeout=settings.timeouts.telegram_poll_seconds)
         stack.callback(telegram.close)
-        todoist = HttpWriter("todoist", secrets.todoist_token.get_secret_value(), settings.targets["todoist_project"])
+        todoist = HttpWriter("todoist", secrets.todoist_token.get_secret_value(), settings.targets.todoist_project, settings.timeouts.integration_seconds)
         stack.callback(todoist.close)
-        calendar = HttpWriter("google_calendar", secrets.google_access_token.get_secret_value(), settings.targets["google_calendar"])
+        calendar = HttpWriter("google_calendar", secrets.google_access_token.get_secret_value(), settings.targets.google_calendar, settings.timeouts.integration_seconds)
         stack.callback(calendar.close)
-        analyzer = Analyzer(openrouter, prompts, settings.retries["validation"])
+        analyzer = Analyzer(openrouter, prompts, settings.retries.validation)
         dialog = TelegramDialogController(
-            store, telegram, settings.telegram["user_id"], settings.telegram["chat_id"], logger,
+            store, telegram, settings.telegram.user_id, settings.telegram.chat_id, logger,
             {"todoist": todoist, "google_calendar": calendar}, settings.test_mode,
         )
-        orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram["chat_id"], topics, settings.limits["max_mail_bytes"])
+        orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics, settings.limits.max_mail_bytes)
         yield Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar, orchestrator, orchestrator.stop_event, dialog)

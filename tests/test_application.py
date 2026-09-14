@@ -47,7 +47,7 @@ class Orch:
 
 
 def settings(tmp_path, folders=("INBOX",)):
-    return Settings(timezone="UTC",poll_interval_seconds=5,test_mode=True,data_directory=tmp_path/"data",imap={"host":"h","port":993,"folders":list(folders)},telegram={"user_id":1,"chat_id":2},targets={"todoist_project":"p","google_calendar":"c"},limits={"max_mail_bytes":100,"llm_calls_per_minute":2},retries={"network":0,"validation":0},logging={"directory":str(tmp_path/"logs")})
+    return Settings(timezone="UTC",poll_interval_seconds=5,test_mode=True,data_directory=tmp_path/"data",imap={"host":"h","port":993,"folders":list(folders)},telegram={"user_id":1,"chat_id":2},targets={"todoist_project":"p","google_calendar":"c"},limits={"max_mail_bytes":1024,"llm_calls_per_minute":2},retries={"network":0,"validation":0},timeouts={"openrouter_seconds":30.0,"telegram_seconds":35.0,"telegram_poll_seconds":30,"integration_seconds":30.0},logging={"directory":str(tmp_path/"logs"),"level":"INFO"})
 
 
 def app(tmp_path, imap, telegram, orch, folders=("INBOX",), store=None):
@@ -62,14 +62,14 @@ def test_polling_errors_resume_and_stop(tmp_path):
     service=app(tmp_path,Imap([(7,[mail1,mail2])]),Telegram([{"update_id":8},{"update_id":10}]),Orch(fail=True),store=store)
     service._poll_imap(); service._poll_telegram()
     assert service.imap.calls==[("INBOX",3,7)] and service.orchestrator.seen==[4,5]
-    assert store.values["imap-"+_safe_name("INBOX")]["uid"]==5 and store.values["telegram-offset"]=={"offset":11}
+    assert store.values["imap-"+_safe_name("INBOX")]["uid"]==5 and store.values["telegram-offset"]["offset"]==11
     assert any(e[0][2]=="mail_failed" for e in service.logger.events)
 
     failing=app(tmp_path,Imap([RuntimeError("imap"),(9,[]),(10,[])]),Telegram(RuntimeError("tg")),Orch(),folders=("bad","new","none"))
     failing._poll_imap(); failing._poll_telegram()
     assert len(failing.logger.events)==2
-    assert failing.store.values["imap-"+_safe_name("new")]=={"uidvalidity":9,"uid":0}
-    assert failing.store.values["imap-"+_safe_name("none")]=={"uidvalidity":10,"uid":0}
+    assert failing.store.values["imap-"+_safe_name("new")]["uidvalidity"]==9
+    assert failing.store.values["imap-"+_safe_name("none")]["uidvalidity"]==10
 
     stopped=app(tmp_path,Imap([(1,[mail1,mail2])]),Telegram([]),Orch(stop=True),folders=("INBOX","Other"))
     stopped._poll_imap(); assert stopped.orchestrator.seen==[4]
@@ -120,7 +120,7 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch):
         assert made.todoist and (tmp_path/"data/.lock").exists()
     assert len(closed)==5 and not (tmp_path/"data/.lock").exists()
 
-    cfg.data_directory=Path("relative"); cfg.logging["directory"]="relative-logs"
+    cfg.data_directory=Path("relative"); cfg.logging.directory=Path("relative-logs")
     class BrokenTelegram(Resource):
         def __init__(self,*args,**kwargs): raise RuntimeError("build")
     monkeypatch.setattr("mailhelp.application.TelegramClient",BrokenTelegram)

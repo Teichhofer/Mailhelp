@@ -192,9 +192,13 @@ Zugangsdaten können im Container alternativ als Umgebungsvariablen bereitgestel
 
 Alle Dateien werden beim Start geprüft. Fehlermeldungen nennen betroffene Datei und Schlüssel, niemals geheime Werte. `.env`, Zustandsdaten und Logs werden aus Git und Docker-Build-Kontext ausgeschlossen. Eine private Beispieldatei mit echten Zugangsdaten gehört nicht ins Projekt.
 
+Die Bereiche `imap`, `telegram`, `targets`, `limits`, `retries`, `timeouts` und `logging` besitzen geschlossene Modelle. Ports (1–65535), Polling (5–86400 Sekunden), Adaptertimeouts (1–300 Sekunden), Telegram-Long-Polling (1–50 Sekunden), Mailgröße (1.024–100.000.000 Bytes), LLM-Rate (1–600/min) und Wiederholungen (0–10) sind begrenzt. Zeitzonen müssen IANA-Namen sein; Ordner sind eindeutig und nicht leer, Pfade sicher, Log-Level sind `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`.
+
 ## 10. JSON-Zustand und Neustartverhalten
 
 Der Zustand wird als eingerücktes UTF-8-JSON in einem gemeinsamen Datenverzeichnis gespeichert. Pro Mail existiert eine Datei. Weitere JSON-Dateien speichern Abrufpositionen und nötige Betriebsinformationen. Dateinamen verwenden interne IDs statt Betreff oder Absender.
+
+Maildateien tragen Schemaversion 2; Abrufpositionen, Telegram-Offset/-Dialog und Vorschläge Schemaversion 1. Jede Datei wird vor fachlicher Verwendung validiert. Syntaktisch defekte Dateien werden nach `.corrupt`, schemawidrige nach `.invalid` verschoben und sichtbar mit Dateiname und Schlüsselpfad gemeldet, ohne Inhalte preiszugeben.
 
 Eine Maildatei enthält mindestens:
 
@@ -304,6 +308,8 @@ Unter Windows 11 läuft Mailhelp lokal in einer dokumentierten Python-Umgebung. 
 Zum Lieferumfang gehören `Dockerfile`, `compose.yaml`, eine Installationsanleitung und Konfigurationsbeispiele. Konfigurationsdateien werden eingebunden; das Datenverzeichnis und auf Wunsch Logs liegen auf persistenten Volumes. Geheimnisse werden nicht ins Image eingebaut. Ein sauberer Shutdown beendet begonnene Schritte kontrolliert beziehungsweise hinterlässt wiederaufnehmbare Zustände.
 
 Timeouts und begrenzte Wiederholungsversuche mit zunehmenden Abständen gelten je Integration. Ein konfigurierbares LLM-Aufruflimit pro Zeitraum begrenzt automatische Anfragen. Bei Ausschöpfung werden Arbeiten zurückgestellt und sichtbar gemeldet. Numerische Standardwerte werden vor Implementierungsabschluss festgelegt.
+
+Nach erfolgreichem HTTP-Status validieren integrationsspezifische Antwortmodelle OpenRouter, Telegram, Todoist und Google Calendar auf JSON-Struktur, Pflichtfelder und erwartete IDs. Diagnosen nennen Integration und Schlüsselpfad, nie Tokens, Authorization-Header oder vollständige nicht freigeschaltete Inhalte.
 
 Ein Testmodus führt Auswertung und Telegram-Dialog aus, verhindert aber alle Schreibzugriffe auf Google Kalender und Todoist. Simulierte Erfolge sind deutlich als Simulation markiert und werden nicht als echte externe Einträge gespeichert. Test- und Produktivzustand werden getrennt gehalten. Der Testmodus ist kein Offline-Modus: LLM- und Telegram-Aufrufe können weiterhin stattfinden.
 

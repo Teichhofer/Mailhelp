@@ -118,7 +118,7 @@ def test_invalid_unauthorized_missing_and_stale_dialogs(tmp_path):
     with JsonStore(tmp_path) as store:
         bad=[{"not":"an update"}, {"update_id":1,"message":{"private":"do not log"}}, message(2,user=9), message(3,chat=9), callback(4,"bad"), callback(5,"proposal:missing:1:confirm"), callback(6,"proposal:p1:1:confirm",user=9)]
         c,t,log=controller(store,bad); c.poll_once()
-        assert store.load("telegram-offset")=={"offset":7}
+        assert store.load("telegram-offset")["offset"]==7
         assert any("syntaktisch" in item[1] for item in t.sent)
         assert any("Nicht autorisierte" in text for _,text in t.answered)
         assert "private" not in repr(log.events)
@@ -140,13 +140,13 @@ def test_telegram_client_validation_and_callback():
     requests=[]
     def handler(request):
         requests.append(request)
-        data={"result":[]} if request.url.path.endswith("getUpdates") else {}
+        data={"ok":True,"result":[]} if request.url.path.endswith("getUpdates") else {"ok":True,"result":True}
         return httpx.Response(200,json=data,request=request)
     client=TelegramClient("secret",1,httpx.MockTransport(handler))
     assert client.poll(0)==[]
     client.send(2,"x",{"inline_keyboard":[]}); client.answer_callback("c","ok"); client.close()
     assert len(requests)==3
-    invalid=TelegramClient("secret",1,httpx.MockTransport(lambda r:httpx.Response(200,json={"result":{}},request=r)))
+    invalid=TelegramClient("secret",1,httpx.MockTransport(lambda r:httpx.Response(200,json={"ok":True,"result":{}},request=r)))
     with pytest.raises(ValueError): invalid.poll(0)
     invalid.close()
 
@@ -189,4 +189,7 @@ def test_restart_reconciles_before_retry_and_duplicate_update_is_safe(tmp_path):
         def __init__(self): self.values={}
         def load(self,name,default=None): return self.values.get(name,default)
         def save(self,name,value): self.values[name]=value
+        def load_model(self,name,model,default=None):
+            value=self.load(name)
+            return default if value is None else model.model_validate(value)
     minimal=MinimalStore(); c,_,_=controller(minimal); c.poll_once()
