@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Version: 1.0 · Stand: 14. September 2026 · Status: Grundlage für die Implementierung, keine bereits implementierte Software.
+Version: 1.1 · Stand: 14. September 2026 · Status: Implementierungsgrundlage.
 
 ## 1. Projektziel
 
@@ -325,6 +325,8 @@ Folgender Inhalt ist bei der Projektinitialisierung in `AGENTS.md` im Repository
 Vor produktiver Nutzung sind IMAP-Server und Ordner, Google-Zielkalender, Todoist-Zielprojekt, Telegram-Nutzer und Chat, konkrete Themen, OpenRouter-Modelle, Nutzerzeitzone, Abrufintervall, Limits und Aufbewahrungsfristen einzutragen. Sie ändern den vereinbarten Projektumfang nicht.
 
 Die jeweils aktuellen Authentifizierungsabläufe, API-Details und unterstützten OpenRouter-Parameter sind zu Beginn der Implementierung anhand offizieller Dokumentation zu prüfen. Dieses Dokument legt Anforderungen fest und behauptet keine bereits geprüfte Kompatibilität bestimmter Modell-/Parameterkombinationen.
+
+Die Projektinitialisierung 0.1.0 legt Python 3.12 (Referenzversion 3.12.10), ein Abrufintervall von 60 Sekunden, zwei Netzwerk-Wiederholungen, eine Validierungswiederholung, 30 Sekunden als Adapter-Standardtimeout, zehn LLM-Aufrufe pro Minute und 1.000.000 Bytes als maximales Mail-Limit fest. Konfigurierbare Werte stehen in `config.yaml`; Adaptertimeouter werden beim Aufbau aus diesen Einstellungen übergeben. Ein vollständiger Termin benötigt Beginn und Ende. Damit wird eine fehlende Endzeit nicht stillschweigend erfunden.
 
 ## 16. GitHub-Kurzbeschreibung
 

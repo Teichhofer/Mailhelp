@@ -1,0 +1,26 @@
+timezone: Europe/Berlin
+poll_interval_seconds: 60
+test_mode: true
+data_directory: data/test
+imap:
+  host: imap.example.invalid
+  port: 993
+  folders: [INBOX]
+telegram:
+  user_id: 123456
+  chat_id: 123456
+targets:
+  todoist_project: inbox
+  google_calendar: primary
+limits:
+  max_mail_bytes: 1000000
+  llm_calls_per_minute: 10
+retries:
+  network: 2
+  validation: 1
+logging:
+  directory: logs
+  level: INFO
+  include_llm_requests: false
+  include_llm_responses: false
+

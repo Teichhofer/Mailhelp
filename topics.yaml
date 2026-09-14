@@ -1,0 +1,8 @@
+topics:
+  - id: wohnung
+    name: Wohnung
+    enabled: true
+    description: Nachrichten zum eigenen Mietverhältnis und zur Hausverwaltung.
+    examples: [Betriebskostenabrechnung, Wartungstermin]
+    exclusions: [Immobilienwerbung]
+
