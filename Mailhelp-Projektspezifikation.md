@@ -260,40 +260,13 @@ Vollständige Anfragen einschließlich Prompt und Mailinhalt sowie vollständige
 logging:
   directory: logs
   level: INFO
-  console:
-    enabled: true
-    format: text
-  file:
-    enabled: true
-    filename: application.jsonl
-    rotation:
-      max_size_mb: 20
-      backup_count: 10
-    retention_days: 14
-  modules:
-    imap: INFO
-    relevance: DEBUG
-    summary: INFO
-    actions: DEBUG
+  module_levels:
     openrouter: DEBUG
-    telegram: INFO
-    google_calendar: INFO
-    todoist: INFO
-    storage: INFO
-  llm:
-    enabled: true
-    directory: llm
-    filename: requests.jsonl
-    level: DEBUG
-    include_requests: false
-    include_responses: false
-    rotation:
-      max_size_mb: 20
-      backup_count: 10
-    retention_days: 7
+  include_llm_requests: false
+  include_llm_responses: false
 ```
 
-Die Zahlen sind Startvorschläge. `llm.directory` wird relativ zum allgemeinen Logverzeichnis aufgelöst. Das LLM-Log hat einen eigenen Level und Filter; allgemeine Modulfilter dürfen es nicht unbeabsichtigt abschalten. Rotation und Aufbewahrung begrenzen gemeinsam den Speicherbedarf.
+Einträge unterhalb des globalen beziehungsweise modulbezogenen effektiven Levels werden nicht geschrieben. Das LLM-Log liegt unterhalb des allgemeinen Logverzeichnisses in `llm/requests.jsonl`; sein Modulname ist `openrouter` und damit gilt dessen effektives Level.
 
 Passwörter, API-Schlüssel, Tokens und Authentifizierungsheader werden unabhängig vom Level ausgeschlossen oder maskiert. Auch Fehlerantworten externer Dienste werden vor dem Loggen bereinigt. JSON-Zustandsdateien und JSONL-Logs bleiben getrennt: JSONL enthält ein eigenständiges JSON-Objekt pro Zeile.
 

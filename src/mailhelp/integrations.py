@@ -1,10 +1,12 @@
 """Idempotente Adapter für Todoist und Google Kalender."""
 from __future__ import annotations
 from typing import Any, Callable, Protocol
+import time, traceback
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from .models import Proposal, ProposalKind, ProposalStatus
 from .adapter import PermanentError, RetryPolicy, UncertainWriteError, uncertain_write
+from .logging import EventLogger, NullLogger
 
 
 class IntegrationModel(BaseModel):
@@ -76,13 +78,15 @@ def _with_external_result(proposal: Proposal, result: dict[str, Any]) -> Proposa
 
 
 class HttpWriter:
-    def __init__(self, service: str, token: str, target: str, timeout: float = 30, transport: httpx.BaseTransport | None = None, policy: RetryPolicy | None = None):
+    def __init__(self, service: str, token: str, target: str, timeout: float = 30, transport: httpx.BaseTransport | None = None, policy: RetryPolicy | None = None, logger: EventLogger | None = None):
         if service not in {"todoist", "google_calendar"}: raise ValueError("Unbekannter Dienst")
         base = "https://api.todoist.com/rest/v2" if service == "todoist" else "https://www.googleapis.com/calendar/v3"
         self.service, self.target, self.client = service, target, httpx.Client(base_url=base, headers={"Authorization": f"Bearer {token}"}, timeout=timeout, transport=transport)
         self.policy = policy or RetryPolicy(0, 0, 0, lambda _delay: False)
+        self.logger = logger or NullLogger()
 
     def reconcile(self, key: str) -> dict[str, Any] | None:
+        self.logger.event("INFO", self.service, "reconcile_started", call_id=key)
         if self.service == "todoist":
             response = self.policy.run(lambda: self._get("/tasks", {"project_id": self.target}))
             items = self._validate_list(response, TodoistTaskResponse, "Todoist tasks")
@@ -94,6 +98,7 @@ class HttpWriter:
         return items[0].model_dump() if items else None
 
     def create(self, proposal: Proposal, key: str) -> dict[str, Any]:
+        self.logger.event("INFO", self.service, "create_started", call_id=key, mail_id=proposal.source_mail_id, proposal_id=proposal.id)
         if self.service == "todoist":
             if proposal.kind != ProposalKind.TASK: raise ValueError("Todoist akzeptiert nur Aufgaben")
             url, body = "/tasks", {"content": proposal.title, "description": f"{proposal.description}\n\n[{key}]".strip(), "project_id": self.target}
@@ -101,10 +106,18 @@ class HttpWriter:
         else:
             if proposal.kind != ProposalKind.EVENT: raise ValueError("Kalender akzeptiert nur Termine")
             url, body = f"/calendars/{self.target}/events", {"summary": proposal.title, "description": proposal.description, "start": {"dateTime": proposal.start.isoformat()}, "end": {"dateTime": proposal.end.isoformat()}, "extendedProperties": {"private": {"mailhelp_key": key}}}
-        response = uncertain_write(lambda: self._post(url, body, key))
+        started = time.perf_counter()
+        try:
+            response = uncertain_write(lambda: self._post(url, body, key))
+        except Exception as exc:
+            self.logger.event("ERROR", self.service, "create_failed", call_id=key, mail_id=proposal.source_mail_id,
+                              proposal_id=proposal.id, error=exc, stacktrace=traceback.format_exc(), duration_ms=round((time.perf_counter()-started)*1000, 3))
+            raise
         model = TodoistTaskResponse if self.service == "todoist" else CalendarEventResponse
         try: result = model.model_validate(response.json())
         except (ValueError, ValidationError) as exc: raise ValueError(f"{self.service}: ungültige Antwort am Schlüsselpfad {_path(exc)}") from exc
+        self.logger.event("INFO", self.service, "create_completed", call_id=key, mail_id=proposal.source_mail_id,
+                          proposal_id=proposal.id, duration_ms=round((time.perf_counter()-started)*1000, 3), status=response.status_code)
         return result.model_dump()
 
     @staticmethod
@@ -118,9 +131,11 @@ class HttpWriter:
     def close(self) -> None: self.client.close()
 
     def _get(self, url: str, params: dict[str, Any]) -> httpx.Response:
+        self.logger.event("DEBUG", self.service, "http_request", method="GET", url=url)
         response = self.client.get(url, params=params); response.raise_for_status(); return response
 
     def _post(self, url: str, body: dict[str, Any], key: str) -> httpx.Response:
+        self.logger.event("DEBUG", self.service, "http_request", method="POST", url=url, call_id=key)
         response = self.client.post(url, json=body, headers={"X-Request-Id": key}); response.raise_for_status(); return response
 
 

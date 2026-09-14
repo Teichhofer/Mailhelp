@@ -27,5 +27,7 @@ timeouts:
 logging:
   directory: logs
   level: INFO
+  module_levels:
+    openrouter: INFO
   include_llm_requests: false
   include_llm_responses: false
