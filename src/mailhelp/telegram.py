@@ -8,6 +8,7 @@ import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from .models import Proposal, ProposalStatus
+from .integrations import ExternalWriter, execute_confirmed
 from .storage import JsonStore
 
 
@@ -160,8 +161,9 @@ class EventLogger(Protocol):
 class TelegramDialogController:
     """Validate updates, persist offsets, and enforce version-bound decisions."""
 
-    def __init__(self, store: JsonStore, telegram: TelegramTransport, user_id: int, chat_id: int, logger: EventLogger):
+    def __init__(self, store: JsonStore, telegram: TelegramTransport, user_id: int, chat_id: int, logger: EventLogger, writers: dict[str, ExternalWriter] | None = None, test_mode: bool = False):
         self.store, self.telegram, self.user_id, self.chat_id, self.logger = store, telegram, user_id, chat_id, logger
+        self.writers, self.test_mode = writers or {}, test_mode
 
     @staticmethod
     def _proposal_name(proposal_id: str) -> str:
@@ -198,6 +200,7 @@ class TelegramDialogController:
         self.telegram.send(self.chat_id, parts[-1], {"inline_keyboard": buttons})
 
     def poll_once(self) -> None:
+        self._resume_writes()
         offset = self.store.load("telegram-offset", {"offset": 0})["offset"]
         for raw in self.telegram.poll(offset):
             raw_id = raw.get("update_id") if isinstance(raw, dict) else None
@@ -261,6 +264,39 @@ class TelegramDialogController:
         self.persist(changed)
         response = "Vorschlag bestätigt." if changed.status == ProposalStatus.CONFIRMED else "Vorschlag verworfen."
         self.telegram.answer_callback(callback_id, response)
+        if changed.status == ProposalStatus.CONFIRMED:
+            self._execute(changed)
+
+    def _writer(self, proposal: Proposal) -> ExternalWriter | None:
+        return self.writers.get("todoist" if proposal.kind.value == "task" else "google_calendar")
+
+    def _execute(self, proposal: Proposal) -> None:
+        writer = self._writer(proposal)
+        if writer is None:
+            return
+        changed, result = execute_confirmed(proposal, writer, self.persist, self.test_mode)
+        if result.get("simulation"):
+            text = f"Testmodus: „{proposal.title}“ wurde nur simuliert."
+        elif changed.status == ProposalStatus.CREATED:
+            details = f" (ID: {changed.external_id})" if changed.external_id else ""
+            link = f" {changed.external_link}" if changed.external_link else ""
+            text = f"Erstellt: „{proposal.title}“{details}.{link}"
+        elif changed.status == ProposalStatus.UNCERTAIN:
+            text = f"Unklarer Schreiberfolg bei „{proposal.title}“; vor einem neuen Versuch wird abgeglichen."
+        else:
+            text = f"Erstellen von „{proposal.title}“ fehlgeschlagen."
+        self.telegram.send(self.chat_id, text)
+
+    def _resume_writes(self) -> None:
+        names = getattr(self.store, "names", None)
+        if names is None:
+            return
+        for name in names("proposal-"):
+            if "-v" in name:
+                continue
+            proposal = Proposal.model_validate(self.store.load(name))
+            if proposal.status in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN}:
+                self._execute(proposal)
 
     def _answer(self, answer: str) -> None:
         dialog = self.store.load("telegram-dialog")

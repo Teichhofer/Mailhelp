@@ -9,7 +9,7 @@ from mailhelp.imap import FetchedMail
 from mailhelp.integrations import HttpWriter, execute_confirmed
 from mailhelp.models import ProposalStatus
 from mailhelp.openrouter import OpenRouterClient, RateLimitExceeded
-from mailhelp.orchestrator import Orchestrator
+from mailhelp.orchestrator import MailState, Orchestrator
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import Decision, DecisionAction, TelegramClient, apply_decision, split_message
 from test_core import prompt_config, proposal
@@ -82,6 +82,11 @@ def test_integrations():
     assert execute_confirmed(p,Writer({"id":"old"}),saved.append)[1]["id"]=="old"
     assert execute_confirmed(p,Writer(),saved.append)[0].status == ProposalStatus.CREATED
     assert execute_confirmed(p,Writer(error=httpx.ReadTimeout("x")),saved.append)[0].status == ProposalStatus.UNCERTAIN
+    writing=proposal(status="writing")
+    assert execute_confirmed(writing,Writer(),saved.append)[0].status == ProposalStatus.UNCERTAIN
+    assert execute_confirmed(writing,Writer({"id":"late","htmlLink":"https://event"}),saved.append)[0].external_link == "https://event"
+    uncertain=proposal(status="uncertain")
+    assert execute_confirmed(uncertain,Writer(),saved.append)[0].status == ProposalStatus.CREATED
     response=httpx.Response(400, request=httpx.Request("POST", "https://example.test"))
     assert execute_confirmed(p,Writer(error=httpx.HTTPStatusError("bad", request=response.request, response=response)),saved.append)[0].status == ProposalStatus.FAILED
     assert ProposalStatus.WRITING in [item.status for item in saved]
@@ -122,9 +127,14 @@ def test_orchestrator(tmp_path):
         class PlainNotify:
             def __init__(self): self.messages=[]
             def send(self,c,t): self.messages.append(t)
-        n=PlainNotify(); o=Orchestrator(AnalyzerStub("relevant"),store,n,1,[topic],1000); state=o.process(mail); assert state["completed"] and n.messages; assert o.process(mail)==state
-    with JsonStore(tmp_path/"b") as store: assert Orchestrator(AnalyzerStub("irrelevant"),store,Notify(),1,[topic],1000).process(mail)["completed"]
-    with JsonStore(tmp_path/"c") as store: assert Orchestrator(AnalyzerStub("unclear"),store,Notify(),1,[topic],1000).process(mail)["awaiting_relevance"]
+        n=PlainNotify(); o=Orchestrator(AnalyzerStub("relevant"),store,n,1,[topic],1000); state=o.process(mail); assert state["steps"]["completion"]=="completed" and n.messages; assert o.process(mail)==state
+    with JsonStore(tmp_path/"b") as store:
+        state=Orchestrator(AnalyzerStub("irrelevant"),store,Notify(),1,[topic],1000).process(mail)
+        assert state["steps"]=={"preparation":"completed","relevance":"completed","summary":"skipped","action_detection":"skipped","notification":"skipped","completion":"completed"}
+    with JsonStore(tmp_path/"c") as store:
+        o=Orchestrator(AnalyzerStub("unclear"),store,Notify(),1,[topic],1000)
+        state=o.process(mail); assert state["awaiting_relevance"] and state["steps"]["completion"]=="pending"
+        assert o.process(mail)==state
     with JsonStore(tmp_path/"d") as store: assert "error" in Orchestrator(AnalyzerStub("relevant"),store,Notify(),1,[topic],1).process(mail)
     with JsonStore(tmp_path/"e") as store:
         o=Orchestrator(AnalyzerStub("irrelevant"),store,Notify(),1,[topic],1000); count=[]
@@ -142,3 +152,36 @@ def test_orchestrator(tmp_path):
     with JsonStore(tmp_path/"g") as store:
         notify=Notify(); Orchestrator(ProposalAnalyzer("relevant"),store,notify,1,[topic],1000).process(mail)
         assert "p1" in notify.messages
+    with JsonStore(tmp_path/"multiple") as store:
+        analyzer=AnalyzerStub("irrelevant"); orchestrator=Orchestrator(analyzer,store,Notify(),1,[topic],1000)
+        first=orchestrator.process(mail)
+        second=orchestrator.process(FetchedMail("INBOX",1,3,b"Subject: Other\n\nBody"))
+        assert first["id"] != second["id"] and all(item["steps"]["completion"]=="completed" for item in (first,second))
+
+
+def test_orchestrator_resumes_each_persisted_analysis_step(tmp_path):
+    raw=b"Subject: Restart\n\nBody"; mail=FetchedMail("INBOX",1,9,raw); topic=Topic(id="x",name="x",enabled=True,description="x")
+    class CountingAnalyzer(AnalyzerStub):
+        def __init__(self): super().__init__("relevant"); self.calls=[]
+        def relevance(self,m,t): self.calls.append("relevance"); return super().relevance(m,t)
+        def summary(self,m): self.calls.append("summary"); return super().summary(m)
+        def actions(self,m): self.calls.append("actions"); return super().actions(m)
+    class InterruptingStore:
+        def __init__(self, delegate, fail_at): self.delegate=delegate; self.fail_at=fail_at; self.count=0
+        def load(self,*args): return self.delegate.load(*args)
+        def save(self,*args):
+            self.count += 1
+            if self.count >= self.fail_at: raise RuntimeError("power loss")
+            self.delegate.save(*args)
+    for fail_at, repeated in ((2,"relevance"),(3,"summary"),(4,"actions"),(5,None),(6,None)):
+        with JsonStore(tmp_path/str(fail_at)) as disk:
+            first=CountingAnalyzer()
+            with pytest.raises(RuntimeError,match="power loss"):
+                Orchestrator(first,InterruptingStore(disk,fail_at),Notify(),1,[topic],1000).process(mail)
+            second=CountingAnalyzer(); result=Orchestrator(second,disk,Notify(),1,[topic],1000).process(mail)
+            assert result["steps"]["completion"]=="completed"
+            assert second.calls == ([repeated] + [x for x in ("summary","actions") if (repeated=="relevance" or repeated=="summary" and x=="actions")] if repeated else [])
+
+    with JsonStore(tmp_path/"invalid") as store:
+        store.save("mail-"+"a"*24,{"schema_version":2,"id":"bad","imap":{},"steps":{}})
+        with pytest.raises(Exception): MailState.model_validate(store.load("mail-"+"a"*24))

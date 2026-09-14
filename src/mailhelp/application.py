@@ -110,6 +110,9 @@ def build_application(settings: Settings, secrets: Secrets, topics: list[Topic],
         calendar = HttpWriter("google_calendar", secrets.google_access_token.get_secret_value(), settings.targets["google_calendar"])
         stack.callback(calendar.close)
         analyzer = Analyzer(openrouter, prompts, settings.retries["validation"])
-        dialog = TelegramDialogController(store, telegram, settings.telegram["user_id"], settings.telegram["chat_id"], logger)
+        dialog = TelegramDialogController(
+            store, telegram, settings.telegram["user_id"], settings.telegram["chat_id"], logger,
+            {"todoist": todoist, "google_calendar": calendar}, settings.test_mode,
+        )
         orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram["chat_id"], topics, settings.limits["max_mail_bytes"])
         yield Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar, orchestrator, orchestrator.stop_event, dialog)

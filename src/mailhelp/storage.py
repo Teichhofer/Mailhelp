@@ -46,6 +46,10 @@ class JsonStore:
             try: os.fsync(descriptor)
             finally: os.close(descriptor)
 
+    def names(self, prefix: str = "") -> list[str]:
+        """Return stable state names without exposing temporary/corrupt files."""
+        return sorted(path.stem for path in self.directory.glob(f"{prefix}*.json") if path.is_file())
+
     @staticmethod
     def _validate_name(name: str) -> None:
         if not re.fullmatch(r"[A-Za-z0-9_-]+", name):

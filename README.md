@@ -22,6 +22,15 @@ Unter Linux werden die letzten beiden Befehle mit `.venv/bin/python` und `cp` au
 * Der JSON-Zustand wird atomar ersetzt und durch eine Einzelinstanz-Sperre geschützt. Beschädigte Dateien werden als `.corrupt` isoliert.
 * LLM-Antworten werden strikt gegen feste Pydantic-Schemata validiert. Reservierte OpenRouter-Felder können nicht über YAML überschrieben werden.
 * Externe Aktionen verlangen eine Persistenzfunktion: `writing` wird vor dem API-Aufruf dauerhaft gespeichert. Unklare Resultate werden als `uncertain` angehalten; vor einem neuen Versuch suchen die Adapter nach dem versionsbezogenen Idempotenzschlüssel.
+* Jede Mail besitzt die schema-validierten Schritte `preparation`, `relevance`,
+  `summary`, `action_detection`, `notification` und `completion`. Nach jedem Schritt
+  wird atomar gespeichert; nach einem Neustart laufen ausschließlich ausstehende
+  Schritte. Relevante Mails erreichen `completion` erst nach Analyse und Telegram-
+  Benachrichtigung, während nicht benötigte Schritte ausdrücklich `skipped` sind.
+* Vorschläge werden zusätzlich zur Maildatei versionsweise und als aktueller Stand
+  gespeichert. Bestätigte Schreibvorgänge werden nach Neustarts wiederaufgenommen;
+  externe ID und Link sowie `created`, `failed`, `uncertain` oder eine Testmodus-
+  Simulation werden im konfigurierten Telegram-Chat sichtbar gemeldet.
 * Im `test_mode` findet kein externer Schreibzugriff statt; Ergebnisse tragen `simulation: true` und der Vorschlag bleibt `confirmed`, statt einen echten Eintrag vorzutäuschen.
 * JSONL-Anwendungs- und LLM-Logs sind getrennt. Rohprompts und Rohantworten sind unabhängig und standardmäßig ausgeschaltet; Geheimnisfelder werden maskiert.
 * `.env` unterstützt einfache `NAME=WERT`-Zeilen und einfache/doppelte Anführungszeichen, aber bewusst keine Shell-Erweiterung. Prozessvariablen überschreiben gleichnamige Werte aus der Datei.
