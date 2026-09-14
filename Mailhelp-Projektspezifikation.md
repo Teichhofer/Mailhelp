@@ -1,5 +1,11 @@
 # Mailhelp – Projektspezifikation
 
+Der produktive CLI-Pfad startet IMAP- und Telegram-Polling. Pro IMAP-Ordner
+werden UIDVALIDITY und die zuletzt abgeschlossene UID atomar gespeichert; eine
+geänderte UIDVALIDITY beginnt den Ordner erneut bei UID 1. SIGINT und SIGTERM
+setzen dasselbe Stop-Ereignis. Beim Verlassen werden IMAP, alle HTTP-Clients und
+die Datensperre garantiert freigegeben.
+
 Version: 1.2 · Stand: 14. September 2026 · Status: Implementierungsgrundlage.
 
 ## 1. Projektziel

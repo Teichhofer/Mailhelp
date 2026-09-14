@@ -1,5 +1,6 @@
 from __future__ import annotations
-import json, os, sys
+import json, os, signal, sys
+from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
 from email.message import EmailMessage
 from pathlib import Path
@@ -76,7 +77,18 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
     with pytest.raises(ValueError, match="mindestens"): load_all(tmp_path, env)
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--config-directory", str(Path.cwd()), "--check"]); monkeypatch.setattr(os, "environ", env)
     assert main() == 0; assert "gültig" in capsys.readouterr().out
-    monkeypatch.setattr(sys, "argv", ["mailhelp", "--config-directory", str(Path.cwd())]); assert main() == 0
+    class App:
+        def __init__(self): self.stopped=False
+        def stop(self): self.stopped=True
+        def run(self):
+            signal_handlers[signal.SIGINT](signal.SIGINT, None)
+            signal_handlers[signal.SIGTERM](signal.SIGTERM, None)
+    app=App(); signal_handlers={}
+    @contextmanager
+    def builder(*args): yield app
+    monkeypatch.setattr("mailhelp.cli.build_application", builder)
+    monkeypatch.setattr("mailhelp.cli.signal.signal", lambda signum, handler: signal_handlers.__setitem__(signum, handler))
+    monkeypatch.setattr(sys, "argv", ["mailhelp", "--config-directory", str(Path.cwd())]); assert main() == 0 and app.stopped
 
 
 def test_mime():
@@ -101,6 +113,7 @@ class FakeImap:
 
 def test_imap():
     reader=ImapReader("h", 1, "u", "p", factory=FakeImap); assert reader.fetch_since("INBOX")[0].raw == b"raw"
+    assert reader.fetch_since("INBOX", 3, 7)[0].uid == 4
     with pytest.raises(RuntimeError): reader.fetch_since("bad")
     reader.connection.mode="validity"
     with pytest.raises(RuntimeError): reader.fetch_since("INBOX")
@@ -109,6 +122,12 @@ def test_imap():
     reader.connection.mode="fetch"
     with pytest.raises(RuntimeError): reader.fetch_since("INBOX")
     reader.close(); assert not reader.connection.logged
+
+    class BadLogin(FakeImap):
+        def login(self, *args): raise RuntimeError("login")
+    failed=BadLogin()
+    with pytest.raises(RuntimeError, match="login"): ImapReader("h",1,"u","p",factory=lambda *a,**k: failed)
+    assert not failed.logged
 
 
 def test_storage_and_logging(tmp_path):

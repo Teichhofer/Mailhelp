@@ -26,7 +26,11 @@ Unter Linux werden die letzten beiden Befehle mit `.venv/bin/python` und `cp` au
 * JSONL-Anwendungs- und LLM-Logs sind getrennt. Rohprompts und Rohantworten sind unabhängig und standardmäßig ausgeschaltet; Geheimnisfelder werden maskiert.
 * `.env` unterstützt einfache `NAME=WERT`-Zeilen und einfache/doppelte Anführungszeichen, aber bewusst keine Shell-Erweiterung. Prozessvariablen überschreiben gleichnamige Werte aus der Datei.
 
-Derzeit stellt der CLI-Einstieg die vollständige Konfigurationsprüfung bereit. Die austauschbaren Adapter und der `Orchestrator` sind für die Einbindung in einen Dienstprozess ausgelegt.
+Ohne `--check` startet der CLI-Einstieg den Dienst. Er liest alle konfigurierten
+IMAP-Ordner und Telegram per Long-Polling. Abrufstände werden pro Ordner mit
+UIDVALIDITY und UID persistiert und nach einem Neustart fortgesetzt. SIGINT und
+SIGTERM fordern ein kontrolliertes Ende an; Netzwerkclients und die
+Einzelinstanz-Sperre werden auch bei Fehlern geschlossen.
 
 ## Docker
 
@@ -36,7 +40,13 @@ docker compose build
 docker compose run --rm mailhelp
 ```
 
+Der Container startet standardmäßig den Dienst. Für eine reine Prüfung kann
+`docker compose run --rm mailhelp --check --config-directory /config` verwendet
+werden.
+
 Konfiguration wird schreibgeschützt eingebunden, Daten und Logs bleiben in getrennten persistenten Host-Verzeichnissen. `.env`, Zustand und Logs gelangen dank `.dockerignore` nicht in den Build-Kontext.
+Relative Daten- und Logpfade aus `config.yaml` beziehen sich auf das aktuelle
+Arbeitsverzeichnis (im Container `/app`).
 
 ## Zustand sichern
 
