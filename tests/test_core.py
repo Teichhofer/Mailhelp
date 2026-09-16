@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from mailhelp import __version__
 from mailhelp.analysis import Analyzer
 from mailhelp.cli import main
-from mailhelp.config import PromptConfig, PromptStep, Topic, _deep_merge, _dotenv, _yaml, load_all
+from mailhelp.config import PromptConfig, PromptStep, Topic, TopicsConfig, _deep_merge, _dotenv, _yaml, load_all
 from mailhelp.imap import FetchedMail, ImapReader, account_id
 from mailhelp.integrations import HttpWriter, execute_confirmed
 from mailhelp.logging import JsonlLogger, redact
@@ -74,7 +74,19 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
     assert load_all(tmp_path, {"IMAP_USERNAME": "runtime"})[1].imap_username == "runtime"
     (tmp_path / ".env").unlink()
     (tmp_path / "topics.yaml").write_text("topics: []", encoding="utf8")
-    with pytest.raises(ValueError, match="mindestens"): load_all(tmp_path, env)
+    with pytest.raises(ValueError, match="topics"): load_all(tmp_path, env)
+    with pytest.raises(ValidationError, match="Themen-IDs"):
+        TopicsConfig(topics=[
+            Topic(id="doppelt", name="A", enabled=True, description="A"),
+            Topic(id="doppelt", name="B", enabled=False, description="B"),
+        ])
+    with pytest.raises(ValidationError, match="aktiviert"):
+        TopicsConfig(topics=[Topic(id="aus", name="Aus", enabled=False, description="Aus")])
+    (tmp_path / "topics.yaml").write_text(
+        "topics:\n  - {id: thema, name: Thema, enabled: true, description: Test}\nunbekannt: true\n",
+        encoding="utf8",
+    )
+    with pytest.raises(ValueError, match="unbekannt"): load_all(tmp_path, env)
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--config-directory", str(Path.cwd()), "--check"]); monkeypatch.setattr(os, "environ", env)
     assert main() == 0; assert "gültig" in capsys.readouterr().out
     class App:
