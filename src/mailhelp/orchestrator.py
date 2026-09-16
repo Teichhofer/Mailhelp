@@ -10,11 +10,13 @@ from enum import StrEnum
 from threading import Event
 from typing import Any, Protocol
 
-from .analysis import Analyzer
+from .analysis import Analyzer, LlmSchemaValidationExceeded
+from .adapter import PermanentError
 from .config import Topic
 from .imap import FetchedMail
-from .mime import prepare
-from .models import MailState, Proposal, Relevance, RelevanceDialog, RelevanceDialogStatus
+from .mime import MimeLimitExceeded, prepare
+from .models import (MailState, ProcessingError, ProcessingErrorCode, ProcessingStage,
+                     Proposal, Relevance, RelevanceDialog, RelevanceDialogStatus)
 from .storage import JsonStore
 from .openrouter import RateLimitExceeded
 from .logging import EventLogger, NullLogger
@@ -61,6 +63,23 @@ class Orchestrator:
         self.logger.event("DEBUG", "orchestrator", "state_persisted", mail_id=state.id,
                           state=state.steps.model_dump(mode="json"))
 
+    def _failure(self, name: str, state: MailState, code: ProcessingErrorCode,
+                 stage: ProcessingStage, text: str, retryable: bool | None = None) -> None:
+        """Mark before sending, and retain a matching generation across restarts."""
+        now = datetime.now(timezone.utc)
+        previous = state.error
+        if previous is None or previous.code != code or previous.stage != stage:
+            state.error = ProcessingError(code=code, stage=stage, occurred_at=now, retryable=retryable)
+        if state.error.notification_marked_at is not None:
+            self._save(name, state)
+            return
+        state.error.notification_marked_at = now
+        self._save(name, state)
+        self.notifier.send(
+            self.chat_id,
+            f"Mail-ID {state.id} · Stufe {stage.value}: {text}",
+        )
+
     def resolve_relevance(self, mail_id: str, version: int, decision: str, telegram_offset: int) -> MailState:
         name = f"mail-{mail_id}"
         state = self.store.load_model(name, MailState)
@@ -103,6 +122,7 @@ class Orchestrator:
         if state.steps.completion == "completed":
             self.logger.event("DEBUG", "orchestrator", "processing_already_completed", mail_id=state.id)
             return ProcessingResult(ProcessingOutcome.COMPLETED, state.model_dump(mode="json"))
+        stage = ProcessingStage.PREPARATION
         try:
             if state.steps.preparation == "pending":
                 state.mail = prepare(fetched.raw, self.max_bytes)
@@ -112,6 +132,7 @@ class Orchestrator:
                 self.logger.event("INFO", "orchestrator", "preparation_completed", mail_id=state.id,
                                   preparation_metadata=state.mail["metadata"])
             assert state.mail is not None
+            stage = ProcessingStage.RELEVANCE
             if state.steps.relevance == "pending":
                 call, relevance = self.analyzer.relevance(state.mail, self.topics)
                 state.relevance = relevance
@@ -135,6 +156,7 @@ class Orchestrator:
                     self.logger.event("INFO", "orchestrator", "notification_completed", mail_id=state.id)
                 return ProcessingResult(ProcessingOutcome.WAITING, state.model_dump(mode="json"))
             else:
+                stage = ProcessingStage.SUMMARY
                 if state.steps.summary == "pending":
                     call, summary = self.analyzer.summary(state.mail)
                     state.summary = summary
@@ -142,6 +164,7 @@ class Orchestrator:
                     state.steps.summary = "completed"
                     self._save(name, state)
                     self.logger.event("INFO", "orchestrator", "summary_completed", mail_id=state.id, call_id=call)
+                stage = ProcessingStage.ACTION_DETECTION
                 if state.steps.action_detection == "pending":
                     call, actions = self.analyzer.actions(state.mail)
                     state.proposals = actions.proposals
@@ -150,6 +173,7 @@ class Orchestrator:
                     self._save(name, state)
                     self.logger.event("INFO", "orchestrator", "actions_completed", mail_id=state.id, call_id=call,
                                       proposal_ids=[item.id for item in state.proposals])
+                stage = ProcessingStage.NOTIFICATION
                 if state.steps.notification == "pending":
                     assert state.summary is not None
                     self.notifier.send(self.chat_id, f"{state.mail['headers']['subject']}\n" + " ".join(state.summary.sentences))
@@ -158,6 +182,7 @@ class Orchestrator:
                         self.logger.event("INFO", "orchestrator", "proposal_notified", mail_id=state.id, proposal_id=proposal.id)
                     state.steps.notification = "completed"
                     self._save(name, state)
+            stage = ProcessingStage.COMPLETION
             state.steps.completion = "completed"
             state.error = None
             self._save(name, state)
@@ -165,17 +190,33 @@ class Orchestrator:
                               duration_ms=round((time.perf_counter() - started) * 1000, 3))
         except RateLimitExceeded as exc:
             state.deferred_until = datetime.fromtimestamp(exc.next_allowed_at, timezone.utc)
-            state.error = {"type": type(exc).__name__, "message": str(exc)}
-            self._save(name, state)
-            message = f"LLM-Limit erreicht; Mail bis {state.deferred_until.isoformat()} zurueckgestellt."
-            self.notifier.send(self.chat_id, message)
+            self._failure(name, state, ProcessingErrorCode.LLM_RATE_LIMITED, stage,
+                          f"LLM-Limit erreicht. Automatischer neuer Versuch nach {state.deferred_until.isoformat()}.", True)
             self.logger.event("WARNING", "orchestrator", "llm_rate_limited", mail_id=state.id, next_allowed_at=state.deferred_until.isoformat(),
                               duration_ms=round((time.perf_counter() - started) * 1000, 3), error=exc, stacktrace=traceback.format_exc())
             outcome = ProcessingOutcome.WAITING
+        except MimeLimitExceeded as exc:
+            self._failure(name, state, ProcessingErrorCode.MIME_LIMIT_EXCEEDED, stage,
+                          "Die Nachricht überschreitet ein Sicherheitslimit. Bitte Anhänge oder Nachrichtengröße reduzieren.", False)
+            self.logger.event("WARNING", "orchestrator", "mime_limit_exceeded", mail_id=state.id, stage=stage.value,
+                              error=exc, stacktrace=traceback.format_exc())
+            outcome = ProcessingOutcome.FAILED
+        except LlmSchemaValidationExceeded as exc:
+            self._failure(name, state, ProcessingErrorCode.LLM_SCHEMA_VALIDATION_EXHAUSTED, stage,
+                          "Die automatische Auswertung war nicht zuverlässig. Bitte die Nachricht manuell prüfen.", True)
+            self.logger.event("ERROR", "orchestrator", "llm_schema_validation_exhausted", mail_id=state.id, stage=stage.value,
+                              error=exc, stacktrace=traceback.format_exc())
+            outcome = ProcessingOutcome.FAILED
+        except PermanentError as exc:
+            self._failure(name, state, ProcessingErrorCode.PERMANENT_ADAPTER_ERROR, stage,
+                          "Ein externer Dienst hat die Anfrage dauerhaft abgelehnt. Bitte dessen Konfiguration prüfen.", False)
+            self.logger.event("ERROR", "orchestrator", "permanent_adapter_error", mail_id=state.id, stage=stage.value,
+                              error=exc, stacktrace=traceback.format_exc())
+            outcome = ProcessingOutcome.FAILED
         except Exception as exc:
-            state.error = {"type": type(exc).__name__, "message": str(exc)}
-            self._save(name, state)
-            self.logger.event("ERROR", "orchestrator", "processing_failed", mail_id=state.id, error=exc,
+            self._failure(name, state, ProcessingErrorCode.INTERNAL_ERROR, stage,
+                          "Ein interner Fehler ist aufgetreten. Bitte Protokoll und Konfiguration prüfen.")
+            self.logger.event("ERROR", "orchestrator", "processing_failed", mail_id=state.id, stage=stage.value, error=exc,
                               duration_ms=round((time.perf_counter() - started) * 1000, 3), stacktrace=traceback.format_exc())
             outcome = ProcessingOutcome.FAILED
         else:

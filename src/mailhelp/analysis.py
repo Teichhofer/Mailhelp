@@ -6,6 +6,16 @@ from .config import PromptConfig, Topic
 from .models import Actions, Relevance, Summary
 
 T = TypeVar("T", bound=BaseModel)
+
+
+class LlmSchemaValidationExceeded(ValueError):
+    """Die begrenzten Schema-Validierungsversuche sind ausgeschöpft."""
+
+    def __init__(self, step: str):
+        self.step = step
+        super().__init__(f"LLM-Schemavalidierung für {step} ausgeschöpft")
+
+
 class Completer(Protocol):
     def complete(self, model: str, parameters: dict[str, Any], system: str, payload: dict[str, Any]) -> tuple[str, dict[str, Any]]: ...
 
@@ -15,11 +25,14 @@ class Analyzer:
 
     def _run(self, step: str, schema: type[T], mail: dict[str, Any], extra: dict[str, Any] | None = None) -> tuple[str, T]:
         model, params, prompt = self.prompts.resolved(step); error = None
+        validation_error: ValidationError | None = None
         for _ in range(self.retries + 1):
             call_id, raw = self.client.complete(model, params, prompt, {"mail": mail, **(extra or {}), "previous_validation_error": error})
             try: return call_id, schema.model_validate(raw)
-            except ValidationError as exc: error = str(exc)
-        raise ValueError(f"Ungültige LLM-Ausgabe für {step}: {error}")
+            except ValidationError as exc:
+                validation_error = exc
+                error = str(exc)
+        raise LlmSchemaValidationExceeded(step) from validation_error
 
     def relevance(self, mail: dict[str, Any], topics: list[Topic]) -> tuple[str, Relevance]:
         enabled = [topic for topic in topics if topic.enabled]

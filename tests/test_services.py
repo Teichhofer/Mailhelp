@@ -3,13 +3,13 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 import httpx, pytest
-from mailhelp.analysis import Analyzer
+from mailhelp.analysis import Analyzer, LlmSchemaValidationExceeded
 from mailhelp.config import Topic
 from mailhelp.imap import FetchedMail
 from mailhelp.integrations import HttpWriter, execute_confirmed
 from mailhelp.models import ProposalStatus, RelevanceDialog
 from mailhelp.openrouter import OpenRouterClient, RateLimitExceeded
-from mailhelp.adapter import RetryableError
+from mailhelp.adapter import PermanentError, RetryableError
 from mailhelp.orchestrator import MailState, Orchestrator
 from mailhelp.orchestrator import ProcessingOutcome
 from mailhelp.storage import JsonStore
@@ -245,3 +245,29 @@ def test_orchestrator_defers_rate_limit_and_reports(tmp_path):
         assert second.process(mail)["deferred_until"] == state["deferred_until"]
     with JsonStore(tmp_path/"limited-no-log") as store:
         Orchestrator(Limited(),store,Notify(),1,[topic],1000).process(mail)
+
+
+@pytest.mark.parametrize(("failure", "code", "retryable"), [
+    (LlmSchemaValidationExceeded("relevance"), "llm_schema_validation_exhausted", True),
+    (PermanentError("password=not-for-telegram"), "permanent_adapter_error", False),
+    (RuntimeError("Subject: secret; token=not-for-state"), "internal_error", None),
+])
+def test_safe_failures_are_structured_and_notified_once_after_restart(tmp_path, failure, code, retryable):
+    class Failing:
+        def relevance(self, mail, topics):
+            raise failure
+    topic=Topic(id="x",name="x",enabled=True,description="x")
+    mail=FetchedMail("INBOX",1,41,b"Subject: Classified\n\nPrivate body")
+    notify=Notify()
+    with JsonStore(tmp_path/code) as store:
+        first=Orchestrator(Failing(),store,notify,1,[topic],1000).process(mail)
+        second=Orchestrator(Failing(),store,notify,1,[topic],1000).process(mail)
+        assert first.outcome is second.outcome is ProcessingOutcome.FAILED
+        assert first["error"]["code"] == code
+        assert first["error"]["stage"] == "relevance"
+        assert first["error"]["retryable"] is retryable
+        assert first["error"]["occurred_at"] == second["error"]["occurred_at"]
+        assert len(notify.messages) == 1
+        message=notify.messages[0]
+        assert first["id"] in message and "relevance" in message
+        assert "Classified" not in message and "Private body" not in message and "not-for" not in message

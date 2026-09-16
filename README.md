@@ -51,6 +51,11 @@ UIDVALIDITY und UID persistiert und nach einem Neustart fortgesetzt. SIGINT und
 SIGTERM fordern ein kontrolliertes Ende an; Netzwerkclients und die
 Einzelinstanz-Sperre werden auch bei Fehlern geschlossen.
 
+Fehler werden im Mail-Zustand ausschließlich mit sicherem Fehlercode, betroffener
+Verarbeitungsstufe, Zeitstempel und optionaler Wiederholbarkeit gespeichert. Eine vor
+dem Telegram-Versand persistierte Markierung verhindert doppelte Fehlermeldungen nach
+einem Neustart; technische Details und Stacktraces erscheinen nur redigiert im JSONL-Log.
+
 Noch nicht abgeschlossene `mail-*.json`-Zustände bleiben unabhängig vom
 IMAP-Abrufstand erreichbar. Beim Start und vor jedem regulären IMAP-Poll werden
 fällige Zustände per gezieltem, schreibfreiem `BODY.PEEK[]`-Abruf fortgesetzt;
