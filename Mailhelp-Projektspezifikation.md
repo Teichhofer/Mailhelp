@@ -77,6 +77,9 @@ verfügbar.
 ## 5. Themenbereiche
 
 Alle Themenbereiche stehen in `topics.yaml`. Ein Bereich hat eine stabile ID, einen Namen, einen Aktivierungsschalter, eine Beschreibung sowie optionale Beispiele und Ausschlusskriterien. Eine E-Mail kann mehreren Bereichen zugeordnet werden.
+Die Datei besitzt ein geschlossenes Wurzelschema und erlaubt dort ausschließlich
+`topics`. Die Liste ist nicht leer, ihre stabilen IDs sind eindeutig und mindestens
+ein Thema ist aktiviert.
 
 ```yaml
 topics:

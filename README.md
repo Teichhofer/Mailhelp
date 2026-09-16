@@ -17,6 +17,9 @@ Copy-Item .env.example .env
 Unter Linux werden die letzten beiden Befehle mit `.venv/bin/python` und `cp` ausgeführt. `config.yaml`, `prompts.yaml` und `topics.yaml` anpassen; echte Geheimnisse ausschließlich in `.env` oder der Prozessumgebung setzen. Laufzeitvariablen haben Vorrang. Danach validiert `mailhelp --check` alle Dateien, ohne Netzwerkzugriff.
 
 `config.yaml` besitzt geschlossene Modelle für IMAP, Telegram, Ziele, Limits, Wiederholungen, Timeouts und Logging. IMAP, Telegram, OpenRouter, Todoist und Google Calendar haben jeweils eigene Werte für Timeout, Retry-Anzahl sowie initialen und maximalen Backoff. Validiert werden insbesondere Port, Polling, Adaptertimeouts, Mailgröße, LLM-Rate, Wiederholungszahlen, IANA-Zeitzone, eindeutige nichtleere Ordner, sichere Pfade und die Log-Level `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Unbekannte Schlüssel und falsche Typen werden abgelehnt.
+Auch die Wurzel von `topics.yaml` ist geschlossen: Sie enthält ausschließlich die
+Liste `topics`; diese muss mindestens ein aktiviertes Thema besitzen und alle
+stabilen Themen-IDs müssen eindeutig sein.
 
 Für `imap.connection_mode` sind ausschließlich `ssl` (TLS ab dem ersten Byte,
 typischerweise Port 993), `starttls` (zunächst IMAP, dann zwingendes STARTTLS,

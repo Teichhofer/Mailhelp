@@ -173,6 +173,21 @@ class Topic(BaseModel):
     exclusions: list[str] = Field(default_factory=list)
 
 
+class TopicsConfig(ConfigModel):
+    """Geschlossene Wurzel der Themendatei mit eindeutigen stabilen IDs."""
+
+    topics: list[Topic] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def unique_enabled_topics(self) -> "TopicsConfig":
+        identifiers = [topic.id for topic in self.topics]
+        if len(identifiers) != len(set(identifiers)):
+            raise ValueError("Themen-IDs dürfen nicht doppelt vorkommen")
+        if not any(topic.enabled for topic in self.topics):
+            raise ValueError("mindestens ein Thema muss aktiviert sein")
+        return self
+
+
 class PromptStep(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     system_prompt: str = Field(min_length=1)
@@ -243,9 +258,7 @@ def load_all(directory: Path, environ: dict[str, str] | None = None) -> tuple[Se
     env = {**_dotenv(directory / ".env"), **(os.environ if environ is None else environ)}
     settings = _validated_file(directory / "config.yaml", Settings, _yaml(directory / "config.yaml"))
     prompts = _validated_file(directory / "prompts.yaml", PromptConfig, _yaml(directory / "prompts.yaml"))
-    topics = [_validated_file(directory / "topics.yaml", Topic, value, f"topics.{index}") for index, value in enumerate(_yaml(directory / "topics.yaml").get("topics", []))]
-    if not any(topic.enabled for topic in topics):
-        raise ValueError("topics.yaml: mindestens ein Thema muss aktiviert sein")
+    topics = _validated_file(directory / "topics.yaml", TopicsConfig, _yaml(directory / "topics.yaml")).topics
     names = ["IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN", "TODOIST_TOKEN", "GOOGLE_ACCESS_TOKEN"]
     missing = [name for name in names if not env.get(name)]
     if missing:
