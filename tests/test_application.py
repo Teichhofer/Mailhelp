@@ -177,7 +177,10 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
     class FakeOpen(Resource): pass
     class FakeTelegram(Resource):
         def send(self,*args): pass
-    class FakeWriter(Resource): pass
+    class FakeWriter(Resource):
+        calls=[]
+        def __init__(self,*args,**kwargs):
+            type(self).calls.append((args,kwargs))
     monkeypatch.setattr("mailhelp.application.ImapReader",FakeImap)
     monkeypatch.setattr("mailhelp.application.OpenRouterClient",FakeOpen)
     monkeypatch.setattr("mailhelp.application.TelegramClient",FakeTelegram)
@@ -191,6 +194,7 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
         assert made.orchestrator.config_fingerprint == "f"*64
         assert FakeImap.kwargs["starttls"] is starttls
         assert FakeImap.kwargs["factory"].__name__ == ("IMAP4_SSL" if mode=="ssl" else "IMAP4")
+        assert FakeWriter.calls[-1][1]["calendar_timezone"] == "UTC"
     assert len(closed)==5 and not (tmp_path/"data/test/.lock").exists()
 
     cfg.data_directory=Path("relative"); cfg.logging.directory=Path("relative-logs")

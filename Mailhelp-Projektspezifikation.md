@@ -158,6 +158,8 @@ Jeder Vorschlag enthält eine eigene ID, den Typ, einen Titel, eine Beschreibung
 
 Eine Aufgabe kann ohne Fälligkeit angelegt werden. Für Termine müssen alle zum Speichern benötigten Angaben geklärt sein. Fehlende Endzeiten dürfen nicht ohne sichtbare Regel oder Rückfrage erfunden werden. Eine Aufgabenfrist erzeugt nicht automatisch einen Kalendertermin.
 
+Zeitgebundene Termine enthalten für Beginn und Ende vollständige ISO-8601-Datums-/Zeitwerte mit eindeutigem UTC-Offset. Der Google-Calendar-Adapter übergibt dazu die in `config.yaml` konfigurierte IANA-Zeitzone als `timeZone`; er leitet weder einen Offset noch eine Zeitzone stillschweigend aus der Laufzeitumgebung ab. Ganztägige Termine enthalten dagegen ausschließlich Kalenderdaten ohne Uhrzeit. Ihr Enddatum ist gemäß Google-Calendar-Semantik exklusiv: Ein eintägiger Termin am 10. Mai verwendet beispielsweise `start.date = 2026-05-10` und `end.date = 2026-05-11`. Gemischte Datums- und Zeitformen, naive Zeitwerte sowie ein Ende vor oder gleich dem Beginn werden bereits an der Vorschlagsgrenze abgewiesen.
+
 Unverbindliche Vorschläge, bereits erledigte Aufgaben sowie Änderungen und Absagen sind als solche zu erkennen. Änderungen oder Absagen werden in V1 gemeldet und nicht als gewöhnlicher neuer Termin automatisch weiterverarbeitet. Wiederkehrende oder anderweitig nicht unterstützte Terminformen werden zur manuellen Bearbeitung gekennzeichnet.
 
 ## 8. Telegram-Interaktion und externe Einträge

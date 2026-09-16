@@ -190,7 +190,7 @@ def build_application(settings: Settings, secrets: Secrets, topics: list[Topic],
         stack.callback(telegram.close)
         todoist = HttpWriter("todoist", secrets.todoist_token.get_secret_value(), settings.targets.todoist_project, settings.timeouts.todoist.timeout_seconds, policy=policy("todoist"), logger=logger)
         stack.callback(todoist.close)
-        calendar = HttpWriter("google_calendar", secrets.google_access_token.get_secret_value(), settings.targets.google_calendar, settings.timeouts.google_calendar.timeout_seconds, policy=policy("google_calendar"), logger=logger)
+        calendar = HttpWriter("google_calendar", secrets.google_access_token.get_secret_value(), settings.targets.google_calendar, settings.timeouts.google_calendar.timeout_seconds, policy=policy("google_calendar"), logger=logger, calendar_timezone=settings.timezone)
         stack.callback(calendar.close)
         analyzer = Analyzer(openrouter, prompts, settings.retries.validation)
         dialog = TelegramDialogController(
