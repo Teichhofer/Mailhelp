@@ -7,7 +7,7 @@ from mailhelp.analysis import Analyzer
 from mailhelp.config import Topic
 from mailhelp.imap import FetchedMail
 from mailhelp.integrations import HttpWriter, execute_confirmed
-from mailhelp.models import ProposalStatus
+from mailhelp.models import ProposalStatus, RelevanceDialog
 from mailhelp.openrouter import OpenRouterClient, RateLimitExceeded
 from mailhelp.adapter import RetryableError
 from mailhelp.orchestrator import MailState, Orchestrator
@@ -124,6 +124,7 @@ class Notify:
     def __init__(self): self.messages=[]
     def send(self,c,t): self.messages.append(t)
     def send_proposal(self,p): self.messages.append(p.id)
+    def send_relevance(self,d): self.messages.append(d.mail_id)
 
 
 def test_orchestrator(tmp_path):
@@ -164,6 +165,32 @@ def test_orchestrator(tmp_path):
         first=orchestrator.process(mail)
         second=orchestrator.process(FetchedMail("INBOX",1,3,b"Subject: Other\n\nBody"))
         assert first["id"] != second["id"] and all(item["steps"]["completion"]=="completed" for item in (first,second))
+
+
+def test_orchestrator_resolves_versioned_relevance_both_ways(tmp_path):
+    topic=Topic(id="x",name="x",enabled=True,description="x")
+    for uid,decision in ((31,"irrelevant"),(32,"relevant")):
+        with JsonStore(tmp_path/decision) as store:
+            notify=Notify(); orchestrator=Orchestrator(AnalyzerStub("unclear"),store,notify,1,[topic],1000)
+            waiting=orchestrator.process(FetchedMail("INBOX",1,uid,b"Subject: Private\n\nSecret"))
+            mail_id=waiting["id"]
+            assert notify.messages == [mail_id]
+            with pytest.raises(ValueError,match="nicht gefunden"): orchestrator.resolve_relevance("f"*24,1,decision,10)
+            with pytest.raises(ValueError,match="veraltet"): orchestrator.resolve_relevance(mail_id,2,decision,10)
+            with pytest.raises(ValueError,match="Ungültige"): orchestrator.resolve_relevance(mail_id,1,"maybe",10)
+            resolved=orchestrator.resolve_relevance(mail_id,1,decision,10)
+            assert resolved.relevance_dialog.telegram_offset==10
+            with pytest.raises(ValueError,match="bereits"): orchestrator.resolve_relevance(mail_id,1,decision,11)
+            if decision == "irrelevant":
+                assert resolved.steps.model_dump()=={"preparation":"completed","relevance":"completed","summary":"skipped","action_detection":"skipped","notification":"skipped","completion":"completed"}
+            else:
+                completed=orchestrator.resume_mail(resolved)
+                assert completed.outcome is ProcessingOutcome.COMPLETED
+                assert completed["steps"]["summary"]==completed["steps"]["action_detection"]=="completed"
+
+
+def test_relevance_dialog_schema_consistency():
+    with pytest.raises(Exception): RelevanceDialog(mail_id="a"*24,decision="relevant")
 
 
 def test_orchestrator_resumes_each_persisted_analysis_step(tmp_path):

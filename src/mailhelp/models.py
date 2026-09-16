@@ -48,6 +48,29 @@ class Relevance(StrictModel):
         return self
 
 
+class RelevanceDialogStatus(StrEnum):
+    OPEN = "open"
+    DECIDED = "decided"
+
+
+class RelevanceDialog(StrictModel):
+    schema_version: Literal[1] = 1
+    mail_id: str = Field(pattern=r"^[a-f0-9]{24}$")
+    version: int = Field(default=1, ge=1)
+    status: RelevanceDialogStatus = RelevanceDialogStatus.OPEN
+    decision: Literal["relevant", "irrelevant"] | None = None
+    telegram_offset: int | None = Field(default=None, ge=1)
+
+    @model_validator(mode="after")
+    def consistent_decision(self) -> "RelevanceDialog":
+        decided = self.status == RelevanceDialogStatus.DECIDED
+        has_complete_decision = self.decision is not None and self.telegram_offset is not None
+        has_partial_decision = (self.decision is None) != (self.telegram_offset is None)
+        if has_partial_decision or decided != has_complete_decision:
+            raise ValueError("Entscheidung und Telegram-Offset müssen gemeinsam gesetzt sein")
+        return self
+
+
 class Summary(StrictModel):
     sentences: list[str] = Field(min_length=2, max_length=4)
     deadlines: list[str] = Field(default_factory=list)
@@ -120,7 +143,7 @@ class MailImapIdentity(StrictModel):
 
 
 class MailState(StrictModel):
-    schema_version: Literal[2] = 2
+    schema_version: Literal[3] = 3
     id: str = Field(pattern=r"^[a-f0-9]{24}$")
     imap: MailImapIdentity
     steps: ProcessingSteps = Field(default_factory=ProcessingSteps)
@@ -130,5 +153,6 @@ class MailState(StrictModel):
     proposals: list[Proposal] = Field(default_factory=list)
     llm_call_ids: list[str] = Field(default_factory=list)
     awaiting_relevance: bool = False
+    relevance_dialog: RelevanceDialog | None = None
     error: dict[str, str] | None = None
     deferred_until: datetime | None = None
