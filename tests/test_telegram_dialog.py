@@ -16,6 +16,8 @@ from mailhelp.telegram import (
     TelegramUpdate,
     numbered_message_parts,
 )
+from mailhelp.application import _state_directory
+from mailhelp.config import Settings
 
 
 def proposal(**changes):
@@ -115,6 +117,37 @@ def test_persist_before_buttons_and_authorized_flow(tmp_path):
         # A replay with a fresh update id still cannot mutate the terminal state.
         t2.updates=[callback(5,"proposal:p1:1:reject")]; c2.poll_once()
         assert store.load("proposal-p1")["status"]=="confirmed" and "veraltet" in t2.answered[-1][1]
+
+
+def test_identical_proposals_have_isolated_confirmation_and_external_results(tmp_path):
+    common=dict(timezone="UTC",poll_interval_seconds=5,data_directory=tmp_path/"state",
+                imap={"host":"h","port":993,"folders":["INBOX"]},telegram={"user_id":1,"chat_id":2},
+                targets={"todoist_project":"p","google_calendar":"c"},limits={"max_mail_bytes":1024,"llm_calls_per_minute":2},
+                retries={"validation":0},timeouts={**{name:{"timeout_seconds":30,"retries":0,"initial_backoff_seconds":0,"max_backoff_seconds":1} for name in ("imap","telegram","openrouter","todoist","google_calendar")},"telegram_poll_seconds":30},
+                logging={"directory":str(tmp_path/"logs"),"level":"INFO"})
+    test_settings=Settings(test_mode=True,**common)
+    production_settings=Settings(test_mode=False,**common)
+    with JsonStore(_state_directory(test_settings,tmp_path)) as test_store:
+        test_dialog,_,_=controller(test_store,[callback(1,"proposal:p1:1:confirm")],{"todoist":Writer()},True)
+        test_dialog.persist(proposal()); test_dialog.poll_once()
+        assert test_store.load("proposal-p1")["status"]=="confirmed"
+        assert test_store.load("proposal-p1").get("external_id") is None
+        assert test_store.load("telegram-offset")["offset"]==2
+
+    writer=Writer()
+    with JsonStore(_state_directory(production_settings,tmp_path)) as production_store:
+        assert production_store.load("proposal-p1") is None
+        assert production_store.load("telegram-offset") is None
+        production_dialog,_,_=controller(production_store,[callback(7,"proposal:p1:1:confirm")],{"todoist":writer})
+        production_dialog.persist(proposal()); production_dialog.poll_once()
+        assert production_store.load("proposal-p1")["external_id"]=="external-1"
+        assert production_store.load("telegram-offset")["offset"]==8
+        assert writer.created==1
+
+    with JsonStore(_state_directory(test_settings,tmp_path)) as test_store:
+        assert test_store.load("proposal-p1")["status"]=="confirmed"
+        assert test_store.load("proposal-p1").get("external_id") is None
+        assert test_store.load("telegram-offset")["offset"]==2
 
 
 def test_edit_question_answer_new_version_then_reject(tmp_path):

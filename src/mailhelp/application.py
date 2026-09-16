@@ -154,11 +154,17 @@ def _checkpoint_name(account: str, folder: str) -> str:
     return f"imap-{account}-{_safe_name(folder)}"
 
 
+def _state_directory(settings: Settings, base_directory: Path) -> Path:
+    """Return the fully isolated state namespace for the selected mode."""
+    root = settings.data_directory if settings.data_directory.is_absolute() else base_directory / settings.data_directory
+    return root / ("test" if settings.test_mode else "production")
+
+
 @contextmanager
 def build_application(settings: Settings, secrets: Secrets, topics: list[Topic], prompts: PromptConfig, fingerprint: str, base_directory: Path = Path(".")) -> Iterator[Application]:
     """Construct adapters and close every successfully constructed resource."""
     with ExitStack() as stack:
-        data = settings.data_directory if settings.data_directory.is_absolute() else base_directory / settings.data_directory
+        data = _state_directory(settings, base_directory)
         log_dir = settings.logging.directory
         if not log_dir.is_absolute():
             log_dir = base_directory / log_dir

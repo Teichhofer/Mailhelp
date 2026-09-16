@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 import pytest
 
-from mailhelp.application import Application, _checkpoint_name, _safe_name, build_application
+from mailhelp.application import Application, _checkpoint_name, _safe_name, _state_directory, build_application
 from mailhelp.config import Secrets, Settings, Topic
 from mailhelp.imap import FetchedMail
 from mailhelp.models import MailState
@@ -186,12 +186,12 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
     sec=Secrets(imap_username="u",imap_password="p",openrouter_api_key="o",telegram_bot_token="t",todoist_token="d",google_access_token="g")
     topic=[Topic(id="x",name="x",enabled=True,description="x")]
     with build_application(cfg,sec,topic,prompt_config(),"f"*64,base_directory=tmp_path) as made:
-        assert made.todoist and (tmp_path/"data/.lock").exists()
+        assert made.todoist and (tmp_path/"data/test/.lock").exists()
         assert made.dialog.relevance_handler is made.orchestrator
         assert made.orchestrator.config_fingerprint == "f"*64
         assert FakeImap.kwargs["starttls"] is starttls
         assert FakeImap.kwargs["factory"].__name__ == ("IMAP4_SSL" if mode=="ssl" else "IMAP4")
-    assert len(closed)==5 and not (tmp_path/"data/.lock").exists()
+    assert len(closed)==5 and not (tmp_path/"data/test/.lock").exists()
 
     cfg.data_directory=Path("relative"); cfg.logging.directory=Path("relative-logs")
     class BrokenTelegram(Resource):
@@ -199,7 +199,31 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
     monkeypatch.setattr("mailhelp.application.TelegramClient",BrokenTelegram)
     with pytest.raises(RuntimeError,match="build"):
         with build_application(cfg,sec,topic,prompt_config(),"f"*64,base_directory=tmp_path): pass
-    assert not (tmp_path/"relative/.lock").exists()
+    assert not (tmp_path/"relative/test/.lock").exists()
+
+
+def test_state_directory_separates_every_durable_state_and_lock(tmp_path):
+    test_settings=settings(tmp_path)
+    production_settings=settings(tmp_path)
+    production_settings.test_mode=False
+    assert _state_directory(test_settings,tmp_path)==tmp_path/"data/test"
+    assert _state_directory(production_settings,tmp_path)==tmp_path/"data/production"
+
+    state_names=(
+        _checkpoint_name("0"*24,"INBOX"), "mail-same", "telegram-offset",
+        "telegram-dialog", "proposal-same", "proposal-same-v1", "llm-budget",
+    )
+    from mailhelp.storage import JsonStore
+    with JsonStore(_state_directory(test_settings,tmp_path)) as test_store:
+        with JsonStore(_state_directory(production_settings,tmp_path)) as production_store:
+            for name in state_names:
+                test_store.save(name,{"mode":"test"})
+                production_store.save(name,{"mode":"production"})
+            assert (test_store.directory/".lock").exists()
+            assert (production_store.directory/".lock").exists()
+            assert test_store.names()==production_store.names()
+            assert all(test_store.load(name)=={"mode":"test"} for name in state_names)
+            assert all(production_store.load(name)=={"mode":"production"} for name in state_names)
 
 
 def test_historical_start_is_persisted_account_scoped_and_uidvalidity_logged(tmp_path):
