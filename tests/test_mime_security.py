@@ -69,6 +69,12 @@ def test_every_size_and_complexity_limit():
     assert_limit(mail_bytes("hello"), "max_llm_payload_bytes", max_llm_payload_bytes=5)
 
 
+def test_limit_exception_only_exposes_the_configured_limit():
+    error = MimeLimitExceeded("max_mail_bytes")
+    assert error.limit == "max_mail_bytes"
+    assert str(error) == "E-Mail-Verarbeitung abgebrochen: konfigurierte Grenze 'max_mail_bytes' überschritten"
+
+
 def test_html_self_closing_and_raw_string_payload_paths():
     assert prepare(mail_bytes("a<hr/><custom/>b", "html"), limits())["text"] == "ab"
     message = EmailMessage(); message.set_payload("direct")

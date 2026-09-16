@@ -136,6 +136,33 @@ class ProcessingSteps(StrictModel):
     completion: Literal["pending", "completed", "skipped"] = "pending"
 
 
+class ProcessingStage(StrEnum):
+    PREPARATION = "preparation"
+    RELEVANCE = "relevance"
+    SUMMARY = "summary"
+    ACTION_DETECTION = "action_detection"
+    NOTIFICATION = "notification"
+    COMPLETION = "completion"
+
+
+class ProcessingErrorCode(StrEnum):
+    MIME_LIMIT_EXCEEDED = "mime_limit_exceeded"
+    LLM_SCHEMA_VALIDATION_EXHAUSTED = "llm_schema_validation_exhausted"
+    PERMANENT_ADAPTER_ERROR = "permanent_adapter_error"
+    LLM_RATE_LIMITED = "llm_rate_limited"
+    INTERNAL_ERROR = "internal_error"
+
+
+class ProcessingError(StrictModel):
+    """Persistierbarer Fehler ohne Inhalte oder technische Ausnahmeinformationen."""
+
+    code: ProcessingErrorCode
+    stage: ProcessingStage
+    occurred_at: datetime
+    retryable: bool | None = None
+    notification_marked_at: datetime | None = None
+
+
 class MailImapIdentity(StrictModel):
     folder: str = Field(min_length=1)
     uidvalidity: int = Field(ge=1)
@@ -154,7 +181,7 @@ class MailState(StrictModel):
     llm_call_ids: list[str] = Field(default_factory=list)
     awaiting_relevance: bool = False
     relevance_dialog: RelevanceDialog | None = None
-    error: dict[str, str] | None = None
+    error: ProcessingError | None = None
     deferred_until: datetime | None = None
 
     @model_validator(mode="after")

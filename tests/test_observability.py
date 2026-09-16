@@ -45,6 +45,17 @@ def test_levels_jsonl_and_recursive_redaction(tmp_path):
     assert redact(None) is None and redact({"items": {"a", "b"}})["items"]
 
 
+def test_failure_details_and_stacktraces_are_redacted_in_structured_log(tmp_path):
+    logger = JsonlLogger(tmp_path, secrets={"mail body marker"})
+    logger.event("ERROR", "orchestrator", "processing_failed",
+                 error=RuntimeError("password=bad mail body marker"),
+                 stacktrace="Traceback: token=raw mail body marker")
+    record = json.loads(logger.app.read_text(encoding="utf-8"))
+    serialized = json.dumps(record)
+    assert record["event"] == "processing_failed"
+    assert "bad" not in serialized and "raw" not in serialized and "mail body marker" not in serialized
+
+
 def test_logging_settings_module_level_validation():
     base = {"directory": "logs", "level": "INFO"}
     assert LoggingSettings.model_validate({**base, "module_levels": {"imap": "ERROR"}}).module_levels["imap"] == "ERROR"
