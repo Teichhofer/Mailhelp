@@ -20,6 +20,7 @@ from .orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
 from .storage import JsonStore
 from .telegram import TelegramClient, TelegramDialogController
 from .adapter import RetryPolicy
+from .retention import RetentionService
 
 
 @dataclass
@@ -140,6 +141,12 @@ class Application:
 
     def run(self) -> None:
         while not self.stop_event.is_set():
+            try:
+                RetentionService(self.store, self.settings.retention, self.logger).run()
+            except Exception:
+                # No state content is included in this operational event.
+                self.logger.event("ERROR", "retention", "cleanup_failed",
+                                  processed_at=datetime.now(timezone.utc).isoformat(), failure_count=1)
             self._poll_imap()
             if not self.stop_event.is_set():
                 self._poll_telegram()

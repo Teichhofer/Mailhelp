@@ -2,7 +2,7 @@
 from __future__ import annotations
 import hashlib, json, os, re
 from pathlib import Path
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 from datetime import datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import yaml
@@ -120,6 +120,20 @@ class LoggingSettings(ConfigModel):
         return _valid_path(Path(value))
 
 
+RetentionPeriod = Annotated[int, Field(ge=1, le=3650)] | Literal["disabled", "unlimited"]
+
+
+class RetentionSettings(ConfigModel):
+    """Fristen für Inhalte abgeschlossener Vorgänge.
+
+    Eine Zahl bezeichnet volle Tage, ``disabled`` entfernt den jeweiligen Inhalt
+    beim nächsten Lauf sofort und ``unlimited`` schaltet dessen Bereinigung aus.
+    """
+
+    full_mail_days: RetentionPeriod = 30
+    debug_llm_days: RetentionPeriod = "disabled"
+
+
 class Settings(ConfigModel):
     timezone: str
     poll_interval_seconds: int = Field(ge=5, le=86400)
@@ -132,6 +146,7 @@ class Settings(ConfigModel):
     retries: RetrySettings
     timeouts: TimeoutSettings
     logging: LoggingSettings
+    retention: RetentionSettings = Field(default_factory=RetentionSettings)
 
     @field_validator("timezone")
     @classmethod
