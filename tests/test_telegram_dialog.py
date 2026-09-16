@@ -54,7 +54,7 @@ def test_write_attempt_references_are_linked_to_mail(tmp_path):
     mail_id="a"*24
     with JsonStore(tmp_path/"references") as store:
         state=MailState(id=mail_id,config_fingerprint="f"*64,
-                        imap={"folder":"INBOX","uidvalidity":1,"uid":1})
+                        imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":1,"uid":1})
         store.save("mail-"+mail_id,state.model_dump(mode="json"))
         dialog,_,_=controller(store)
         task=proposal(source_mail_id=mail_id,status="writing")
@@ -229,7 +229,7 @@ class RelevanceHandler:
 
 
 def relevance_state(mail_id, version=1):
-    return MailState(id=mail_id,config_fingerprint="0"*64,imap={"folder":"INBOX","uidvalidity":1,"uid":1},awaiting_relevance=True,relevance_dialog=RelevanceDialog(mail_id=mail_id,version=version))
+    return MailState(id=mail_id,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":1,"uid":1},awaiting_relevance=True,relevance_dialog=RelevanceDialog(mail_id=mail_id,version=version))
 
 
 def test_relevance_dialog_authorization_stale_restart_and_duplicate(tmp_path):

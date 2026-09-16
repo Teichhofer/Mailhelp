@@ -206,11 +206,11 @@ def test_orchestrator_resolves_versioned_relevance_both_ways(tmp_path):
 def test_relevance_dialog_schema_consistency():
     with pytest.raises(Exception): RelevanceDialog(mail_id="a"*24,decision="relevant")
     with pytest.raises(Exception,match="gehört nicht"):
-        MailState(id="a"*24,config_fingerprint="0"*64,imap={"folder":"INBOX","uidvalidity":1,"uid":1},awaiting_relevance=True,relevance_dialog=RelevanceDialog(mail_id="b"*24))
+        MailState(id="a"*24,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":1,"uid":1},awaiting_relevance=True,relevance_dialog=RelevanceDialog(mail_id="b"*24))
     with pytest.raises(Exception,match="benötigt"):
-        MailState(id="a"*24,config_fingerprint="0"*64,imap={"folder":"INBOX","uidvalidity":1,"uid":1},awaiting_relevance=True)
+        MailState(id="a"*24,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":1,"uid":1},awaiting_relevance=True)
     with pytest.raises(Exception,match="widersprechen"):
-        MailState(id="a"*24,config_fingerprint="0"*64,imap={"folder":"INBOX","uidvalidity":1,"uid":1},relevance_dialog=RelevanceDialog(mail_id="a"*24))
+        MailState(id="a"*24,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":1,"uid":1},relevance_dialog=RelevanceDialog(mail_id="a"*24))
 
 
 def test_orchestrator_resumes_each_persisted_analysis_step(tmp_path):

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from contextlib import ExitStack, contextmanager
+import imaplib
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -46,13 +47,28 @@ class Application:
         for folder in self.settings.imap.folders:
             if self.stop_event.is_set():
                 break
-            checkpoint_model = self.store.load_model(f"imap-{_safe_name(folder)}", ImapCheckpoint, ImapCheckpoint()) if hasattr(self.store, "load_model") else ImapCheckpoint.model_validate(self.store.load(f"imap-{_safe_name(folder)}", {}))
+            checkpoint_name = _checkpoint_name(self.imap.account_id, folder)
+            checkpoint_model = self.store.load_model(checkpoint_name, ImapCheckpoint, ImapCheckpoint()) if hasattr(self.store, "load_model") else ImapCheckpoint.model_validate(self.store.load(checkpoint_name, {}))
             checkpoint = checkpoint_model.model_dump(exclude={"schema_version"})
             try:
+                if checkpoint["start_uid"] is None:
+                    if self.settings.imap.historical_start is not None:
+                        start_uid = self.imap.determine_start_uid(folder, self.settings.imap.historical_start)
+                        initial_uidvalidity = self.imap.last_uidvalidity
+                    else:
+                        start_uid = checkpoint["uid"]
+                        initial_uidvalidity = checkpoint["uidvalidity"]
+                    checkpoint_model = ImapCheckpoint(uidvalidity=initial_uidvalidity, uid=start_uid, start_uid=start_uid)
+                    self.store.save(checkpoint_name, checkpoint_model.model_dump())
+                    checkpoint = checkpoint_model.model_dump(exclude={"schema_version"})
                 mails = self.imap.fetch_since(folder, checkpoint.get("uid", 0), checkpoint.get("uidvalidity"))
             except Exception as exc:
                 self.logger.event("ERROR", "imap", "poll_failed", folder=folder, error=str(exc))
                 continue
+            if (checkpoint.get("uidvalidity") is not None and self.imap.last_uidvalidity is not None
+                    and checkpoint.get("uidvalidity") != self.imap.last_uidvalidity):
+                self.logger.event("WARNING", "imap", "uidvalidity_changed", account_id=self.imap.account_id, folder=folder,
+                                  previous_uidvalidity=checkpoint.get("uidvalidity"), uidvalidity=self.imap.last_uidvalidity)
             checkpoint_reachable = True
             for mail in mails:
                 if self.stop_event.is_set():
@@ -68,13 +84,13 @@ class Application:
                 # and deliberately waiting work.  It is therefore safe to move the
                 # discovery checkpoint and let _resume_pending own unfinished work.
                 if checkpoint_reachable:
-                    self.store.save(f"imap-{_safe_name(folder)}", ImapCheckpoint(uidvalidity=mail.uidvalidity, uid=mail.uid).model_dump())
+                    self.store.save(checkpoint_name, ImapCheckpoint(uidvalidity=mail.uidvalidity, uid=mail.uid, start_uid=checkpoint["start_uid"]).model_dump())
                 if result.outcome is ProcessingOutcome.FAILED:
                     self.logger.event("ERROR", "orchestrator", "mail_failed", folder=folder, uid=mail.uid,
                                       error=result.state.get("error"))
             if not mails and self.imap.last_uidvalidity is not None:
                 uid = checkpoint.get("uid", 0) if checkpoint.get("uidvalidity") == self.imap.last_uidvalidity else 0
-                self.store.save(f"imap-{_safe_name(folder)}", ImapCheckpoint(uidvalidity=self.imap.last_uidvalidity, uid=uid).model_dump())
+                self.store.save(checkpoint_name, ImapCheckpoint(uidvalidity=self.imap.last_uidvalidity, uid=uid, start_uid=checkpoint["start_uid"]).model_dump())
         return results
 
     def _resume_pending(self) -> list[ProcessingResult]:
@@ -91,6 +107,8 @@ class Application:
                 if state is None or state.steps.completion != "pending":
                     continue
                 if state.deferred_until is not None and state.deferred_until > now:
+                    continue
+                if state.imap.account_id != self.imap.account_id:
                     continue
                 mail = self.imap.fetch_uid(state.imap.folder, state.imap.uid, state.imap.uidvalidity)
                 result = self.orchestrator.process(mail)
@@ -132,6 +150,10 @@ def _safe_name(folder: str) -> str:
     return folder.encode("utf-8").hex()
 
 
+def _checkpoint_name(account: str, folder: str) -> str:
+    return f"imap-{account}-{_safe_name(folder)}"
+
+
 @contextmanager
 def build_application(settings: Settings, secrets: Secrets, topics: list[Topic], prompts: PromptConfig, fingerprint: str, base_directory: Path = Path(".")) -> Iterator[Application]:
     """Construct adapters and close every successfully constructed resource."""
@@ -152,7 +174,8 @@ def build_application(settings: Settings, secrets: Secrets, topics: list[Topic],
             item = getattr(settings.timeouts, name)
             return RetryPolicy(item.retries, item.initial_backoff_seconds, item.max_backoff_seconds, stop_event.wait)
         imap_cfg = settings.timeouts.imap
-        imap = ImapReader(settings.imap.host, settings.imap.port, secrets.imap_username, secrets.imap_password.get_secret_value(), imap_cfg.timeout_seconds, policy=policy("imap"), logger=logger)
+        factory = imaplib.IMAP4_SSL if settings.imap.connection_mode == "ssl" else imaplib.IMAP4
+        imap = ImapReader(settings.imap.host, settings.imap.port, secrets.imap_username, secrets.imap_password.get_secret_value(), imap_cfg.timeout_seconds, factory=factory, policy=policy("imap"), logger=logger, starttls=settings.imap.connection_mode == "starttls")
         stack.callback(imap.close)
         llm_cfg = settings.timeouts.openrouter
         openrouter = OpenRouterClient(secrets.openrouter_api_key.get_secret_value(), llm_cfg.timeout_seconds, llm_cfg.retries, settings.limits.llm_calls_per_minute, initial_backoff=llm_cfg.initial_backoff_seconds, max_backoff=llm_cfg.max_backoff_seconds, load_calls=lambda: store.load("llm-budget", {}).get("calls", []), save_calls=lambda calls: store.save("llm-budget", {"calls": calls}), logger=logger)

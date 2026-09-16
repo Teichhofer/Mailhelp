@@ -15,6 +15,7 @@ class ImapCheckpoint(StrictModel):
     schema_version: Literal[1] = 1
     uidvalidity: int | None = Field(default=None, ge=1)
     uid: int = Field(default=0, ge=0)
+    start_uid: int | None = Field(default=None, ge=0)
 
 
 class TelegramOffset(StrictModel):
@@ -182,6 +183,7 @@ class WriteAttemptReference(StrictModel):
 
 
 class MailImapIdentity(StrictModel):
+    account_id: str = Field(pattern=r"^[a-f0-9]{24}$")
     folder: str = Field(min_length=1)
     uidvalidity: int = Field(ge=1)
     uid: int = Field(ge=1)

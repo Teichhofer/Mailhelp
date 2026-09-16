@@ -11,7 +11,7 @@ from mailhelp import __version__
 from mailhelp.analysis import Analyzer
 from mailhelp.cli import main
 from mailhelp.config import PromptConfig, PromptStep, Topic, _deep_merge, _dotenv, _yaml, load_all
-from mailhelp.imap import FetchedMail, ImapReader
+from mailhelp.imap import FetchedMail, ImapReader, account_id
 from mailhelp.integrations import HttpWriter, execute_confirmed
 from mailhelp.logging import JsonlLogger, redact
 from mailhelp.mime import prepare
@@ -137,6 +137,55 @@ def test_imap():
     failed=BadLogin()
     with pytest.raises(RuntimeError, match="login"): ImapReader("h",1,"u","p",factory=lambda *a,**k: failed)
     assert not failed.logged
+
+
+def test_imap_connection_and_exact_historical_boundary():
+    class BoundaryImap(FakeImap):
+        def __init__(self, dates=(b'2',)):
+            super().__init__(); self.dates=dates; self.tls=False; self.commands=[]
+        def starttls(self): self.tls=True; return "OK", []
+        def uid(self, action, *args):
+            self.commands.append((action,args))
+            if action=="search" and args[-1]=="ALL": return "OK", [b"1 2 9"]
+            if action=="search": return "OK", [b" ".join(self.dates)]
+            if args[-1]=="(INTERNALDATE)":
+                stamp=b'01-Jan-2025 22:59:00 -0500' if args[0]==b"2" else b'02-Jan-2025 04:01:00 +0000'
+                return "OK", [(b'2 (INTERNALDATE "'+stamp+b'")', b"")]
+            return super().uid(action,*args)
+    connection=BoundaryImap((b"2",b"3"))
+    reader=ImapReader(" Example.COM. ",143," User ","p",factory=lambda *a,**k: connection,starttls=True)
+    assert connection.tls and reader.determine_start_uid("INBOX",datetime(2025,1,2,4,0,tzinfo=timezone.utc))==2
+    assert account_id("example.com",143,"user")==reader.account_id
+    assert all(command[1][-1] != "(BODY[])" for command in connection.commands)
+
+    no_match=BoundaryImap(())
+    other=ImapReader("h",143,"u","p",factory=lambda *a,**k:no_match)
+    assert other.determine_start_uid("INBOX",datetime(2025,1,2,tzinfo=timezone.utc))==9
+    no_match.uid=lambda *args: ("NO",[])
+    with pytest.raises(RuntimeError): other.determine_start_uid("INBOX",datetime.now(timezone.utc))
+
+    bad_tls=BoundaryImap(); bad_tls.starttls=lambda: ("NO",[])
+    with pytest.raises(RuntimeError,match="STARTTLS"): ImapReader("h",143,"u","p",factory=lambda *a,**k:bad_tls,starttls=True)
+
+    broken=BoundaryImap()
+    broken.select=lambda *_a,**_k: ("NO",[])
+    with pytest.raises(RuntimeError,match="nicht lesbar"): ImapReader("h",143,"u","p",factory=lambda *a,**k:broken).determine_start_uid("bad",datetime.now(timezone.utc))
+    no_validity=BoundaryImap(); no_validity.mode="validity"
+    with pytest.raises(RuntimeError,match="UIDVALIDITY"): ImapReader("h",143,"u","p",factory=lambda *a,**k:no_validity).determine_start_uid("INBOX",datetime.now(timezone.utc))
+
+    for response in (("NO",[]), ("OK",[b"bad"]), ("OK",[(b"bad",b"")]), ("OK",[(b'2 (INTERNALDATE "bad")',b"")])):
+        malformed=BoundaryImap()
+        original=malformed.uid
+        malformed.uid=lambda action,*args,response=response: response if action=="fetch" else original(action,*args)
+        with pytest.raises(RuntimeError,match="INTERNALDATE"): ImapReader("h",143,"u","p",factory=lambda *a,**k:malformed).determine_start_uid("INBOX",datetime.now(timezone.utc))
+
+    empty=BoundaryImap(())
+    empty.uid=lambda action,*args: ("OK",[b""])
+    assert ImapReader("h",143,"u","p",factory=lambda *a,**k:empty).determine_start_uid("INBOX",datetime.now(timezone.utc))==0
+    all_failure=BoundaryImap(())
+    all_failure.uid=lambda action,*args: ("NO",[]) if args[-1]=="ALL" else ("OK",[b""])
+    with pytest.raises(RuntimeError,match="IMAP-Suche fehlgeschlagen"):
+        ImapReader("h",143,"u","p",factory=lambda *a,**k:all_failure).determine_start_uid("INBOX",datetime.now(timezone.utc))
 
 
 def test_storage_and_logging(tmp_path):
