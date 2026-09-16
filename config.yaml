@@ -1,7 +1,8 @@
 timezone: Europe/Berlin
 poll_interval_seconds: 60
 test_mode: true
-data_directory: data/test
+# Mailhelp ergänzt je nach test_mode automatisch /test oder /production.
+data_directory: data
 imap:
   host: imap.example.invalid
   port: 993
