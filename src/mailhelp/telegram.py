@@ -15,6 +15,7 @@ from .integrations import ExternalWriter, execute_confirmed
 from .adapter import RetryPolicy, uncertain_write
 from .storage import JsonStore
 from .logging import EventLogger, NullLogger
+from .analysis import validate_revision_successor
 import time, traceback, uuid
 
 
@@ -253,6 +254,10 @@ class TelegramTransport(Protocol):
     def answer_callback(self, callback_id: str, text: str) -> None: ...
 
 
+class ProposalRevisionService(Protocol):
+    def revise_proposal(self, proposal: Proposal, question: str, authorized_answer: str) -> tuple[str, Proposal]: ...
+
+
 class EventLogger(Protocol):
     def event(self, level: str, module: str, event: str, **fields: Any) -> None: ...
 
@@ -260,10 +265,11 @@ class EventLogger(Protocol):
 class TelegramDialogController:
     """Validate updates, persist offsets, and enforce version-bound decisions."""
 
-    def __init__(self, store: JsonStore, telegram: TelegramTransport, user_id: int, chat_id: int, logger: EventLogger, writers: dict[str, ExternalWriter] | None = None, test_mode: bool = False, configured_timezone: str = "UTC"):
+    def __init__(self, store: JsonStore, telegram: TelegramTransport, user_id: int, chat_id: int, logger: EventLogger, writers: dict[str, ExternalWriter] | None = None, test_mode: bool = False, configured_timezone: str = "UTC", revision_service: ProposalRevisionService | None = None):
         self.store, self.telegram, self.user_id, self.chat_id, self.logger = store, telegram, user_id, chat_id, logger
         self.writers, self.test_mode = writers or {}, test_mode
         self.configured_timezone = configured_timezone
+        self.revision_service = revision_service
         self.relevance_handler: Any = None
 
     def send_relevance(self, dialog: RelevanceDialog) -> None:
@@ -283,7 +289,9 @@ class TelegramDialogController:
 
     def persist(self, proposal: Proposal) -> None:
         value = proposal.model_dump(mode="json")
-        self.store.save(self._version_name(proposal.id, proposal.version), value)
+        version_name = self._version_name(proposal.id, proposal.version)
+        if self.store.load(version_name) is None:
+            self.store.save(version_name, value)
         self.store.save(self._proposal_name(proposal.id), value)
         if proposal.status in {ProposalStatus.WRITING, ProposalStatus.CREATED,
                                ProposalStatus.FAILED, ProposalStatus.UNCERTAIN}:
@@ -518,19 +526,19 @@ class TelegramDialogController:
             self.store.save("telegram-dialog", TelegramDialogState().model_dump())
             self.telegram.send(self.chat_id, "Die Rückfrage ist veraltet; es wurde nichts geändert.")
             return
-        remaining = proposal.open_questions[1:]
-        description = f"{proposal.description}\nAntwort: {answer}".strip()
-        if len(description) > 4000:
-            self.telegram.send(self.chat_id, "Die Antwort ist zu lang und wurde nicht übernommen.")
+        question = proposal.open_questions[0] if proposal.open_questions else "Welche Änderung soll übernommen werden?"
+        if self.revision_service is None:
+            self.telegram.send(self.chat_id, "Die Überarbeitung ist derzeit nicht verfügbar; der Vorschlag blieb unverändert.")
             return
-        revised = Proposal.model_validate({**proposal.model_dump(), **{
-            "version": proposal.version + 1,
-            "description": description,
-            "open_questions": remaining,
-            "status": ProposalStatus.NEEDS_CLARIFICATION if remaining else ProposalStatus.PENDING_CONFIRMATION,
-        }})
-        self.store.save("telegram-dialog", TelegramDialogState().model_dump())
+        try:
+            _, candidate = self.revision_service.revise_proposal(proposal, question, answer)
+            revised = validate_revision_successor(proposal, candidate)
+        except (ValueError, ValidationError):
+            self.telegram.send(self.chat_id, "Die Antwort konnte nicht widerspruchsfrei übernommen werden; der Vorschlag und die Rückfrage blieben unverändert.")
+            return
+        # send_proposal persists the immutable version before exposing it.
         self.send_proposal(revised)
+        self.store.save("telegram-dialog", TelegramDialogState().model_dump())
 
 
 def _validation_path(exc: Exception) -> str:
