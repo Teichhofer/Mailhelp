@@ -2,7 +2,8 @@
 from __future__ import annotations
 import hashlib, json, os, re
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
+from datetime import datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError, field_validator, model_validator
@@ -16,6 +17,22 @@ class ImapSettings(ConfigModel):
     host: str = Field(min_length=1, max_length=253)
     port: int = Field(ge=1, le=65535)
     folders: list[str] = Field(min_length=1, max_length=100)
+    connection_mode: Literal["ssl", "starttls", "plain"] = "ssl"
+    historical_start: datetime | None = None
+
+    @field_validator("historical_start", mode="before")
+    @classmethod
+    def valid_historical_start(cls, value: object) -> datetime | None:
+        if isinstance(value, str):
+            try:
+                value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            except ValueError as exc:
+                raise ValueError("historical_start muss ISO 8601 entsprechen") from exc
+        if value is not None and not isinstance(value, datetime):
+            raise ValueError("historical_start muss ein Zeitpunkt oder null sein")
+        if value is not None and value.tzinfo is None:
+            raise ValueError("historical_start muss einen UTC-Offset enthalten")
+        return value
 
     @field_validator("folders")
     @classmethod

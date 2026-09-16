@@ -18,6 +18,19 @@ Unter Linux werden die letzten beiden Befehle mit `.venv/bin/python` und `cp` au
 
 `config.yaml` besitzt geschlossene Modelle für IMAP, Telegram, Ziele, Limits, Wiederholungen, Timeouts und Logging. IMAP, Telegram, OpenRouter, Todoist und Google Calendar haben jeweils eigene Werte für Timeout, Retry-Anzahl sowie initialen und maximalen Backoff. Validiert werden insbesondere Port, Polling, Adaptertimeouts, Mailgröße, LLM-Rate, Wiederholungszahlen, IANA-Zeitzone, eindeutige nichtleere Ordner, sichere Pfade und die Log-Level `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Unbekannte Schlüssel und falsche Typen werden abgelehnt.
 
+Für `imap.connection_mode` sind ausschließlich `ssl` (TLS ab dem ersten Byte,
+typischerweise Port 993), `starttls` (zunächst IMAP, dann zwingendes STARTTLS,
+typischerweise Port 143) und `plain` (unverschlüsselt) erlaubt. `plain` ist nur für
+gezielt abgesicherte lokale Netze gedacht. Die Auswahl wirkt unter Windows und im
+Linux-Docker-Container identisch und benötigt keine betriebssystemspezifischen
+Schalter. `imap.historical_start` ist entweder `null` (bestehendes Verhalten: alle
+verfügbaren UIDs) oder ein ISO-8601-Zeitpunkt **mit explizitem UTC-Offset**, etwa
+`2025-01-15T08:30:00+01:00`. Der Server wird ausschließlich mit Nur-Lese-`SELECT`,
+`UID SEARCH` und `UID FETCH INTERNALDATE` abgefragt. Die sekundengenaue Grenze wird
+in UTC verglichen und ihr ermittelter UID-Ausgangspunkt sofort je Konto und Ordner
+persistiert; ein Neustart deutet den Zeitpunkt daher nicht anhand einer geänderten
+Windows-/Container-Zeitzone oder eines inzwischen gewachsenen Postfachs neu aus.
+
 Das globale `logging.level` kann über `logging.module_levels` je Modul überschrieben
 werden. Strukturierte Anwendungs- und LLM-Ereignisse werden getrennt als JSONL
 geschrieben; Rohprompt und Rohantwort bleiben standardmäßig aus und werden nur durch
@@ -28,7 +41,7 @@ Nur Transportfehler sowie HTTP 408, 425, 429, 500, 502, 503 und 504 werden bei l
 
 ## Betrieb und Sicherheit
 
-* IMAP wird im Nur-Lese-Modus mit `BODY.PEEK[]` gelesen; UIDVALIDITY und UID bilden die technische Identität.
+* IMAP wird im Nur-Lese-Modus mit `BODY.PEEK[]` gelesen; die nicht geheime Konto-ID, Ordner, UIDVALIDITY und UID bilden die technische Identität. Die Konto-ID ist ein gekürzter SHA-256-Hash aus normalisiertem Server, Port und Benutzernamen und trennt auch gleichnamige Ordner verschiedener Konten.
 * Der JSON-Zustand wird atomar ersetzt und durch eine Einzelinstanz-Sperre geschützt. Syntaktisch beschädigte Dateien werden als `.corrupt`, schemawidrige Dateien als `.invalid` isoliert; Meldungen nennen Datei und Schlüsselpfad, nicht den Inhalt. Mailzustände (Schema 3), Abrufpositionen, Telegram-Dialoge und Vorschläge (Schema 1) werden vor jeder Verwendung validiert.
 * OpenRouter-, Telegram-, Todoist- und Google-Calendar-Antworten werden nach HTTP-Erfolg strikt auf JSON-Struktur, Pflichtfelder und IDs geprüft. LLM-Antworten werden strikt gegen feste Pydantic-Schemata validiert. Reservierte OpenRouter-Felder können nicht über YAML überschrieben werden.
 * Externe Aktionen verlangen eine Persistenzfunktion: `writing` wird vor dem API-Aufruf dauerhaft gespeichert. Unklare Resultate werden als `uncertain` angehalten; vor einem neuen Versuch suchen die Adapter nach dem versionsbezogenen Idempotenzschlüssel.
@@ -47,7 +60,7 @@ Nur Transportfehler sowie HTTP 408, 425, 429, 500, 502, 503 und 504 werden bei l
 
 Ohne `--check` startet der CLI-Einstieg den Dienst. Er liest alle konfigurierten
 IMAP-Ordner und Telegram per Long-Polling. Abrufstände werden pro Ordner mit
-UIDVALIDITY und UID persistiert und nach einem Neustart fortgesetzt. SIGINT und
+Konto-ID, UIDVALIDITY, UID und einmaligem Start-UID persistiert und nach einem Neustart fortgesetzt. Ein UIDVALIDITY-Wechsel erscheint als eigenes strukturiertes Ereignis `uidvalidity_changed`. SIGINT und
 SIGTERM fordern ein kontrolliertes Ende an; Netzwerkclients und die
 Einzelinstanz-Sperre werden auch bei Fehlern geschlossen.
 

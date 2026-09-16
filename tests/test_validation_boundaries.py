@@ -36,7 +36,7 @@ def valid_settings(tmp_path: Path) -> dict:
 def test_mail_state_v4_metadata_is_closed_and_round_trips(tmp_path):
     now = datetime.now(timezone.utc)
     state = MailState(
-        id="a" * 24, imap={"folder": "INBOX", "uidvalidity": 1, "uid": 2},
+        id="a" * 24, imap={"account_id":"0"*24,"folder": "INBOX", "uidvalidity": 1, "uid": 2},
         created_at=now, updated_at=now, config_fingerprint="f" * 64,
         validation_errors=[ValidationIssue(stage="relevance", code="invalid_shape", path=["decision"], occurred_at=now)],
         write_attempts=[WriteAttemptReference(proposal_id="p1", proposal_version=2, service="todoist",
@@ -61,6 +61,9 @@ def test_mail_state_v4_metadata_is_closed_and_round_trips(tmp_path):
 def test_settings_reject_missing_extra_types_ranges_and_semantics(tmp_path):
     base = valid_settings(tmp_path)
     assert Settings.model_validate(base).timezone == "UTC"
+    for mode in ("ssl", "starttls", "plain"):
+        configured=copy.deepcopy(base); configured["imap"].update(connection_mode=mode, historical_start="2025-01-02T03:04:05+01:00")
+        assert Settings.model_validate(configured).imap.connection_mode == mode
     mutations = [
         lambda x: x.pop("imap"),
         lambda x: x.update(extra=True),
@@ -72,6 +75,10 @@ def test_settings_reject_missing_extra_types_ranges_and_semantics(tmp_path):
         lambda x: x["imap"].update(folders=["INBOX", "INBOX"]),
         lambda x: x["imap"].update(folders=[""]),
         lambda x: x["imap"].update(folders=["bad\0name"]),
+        lambda x: x["imap"].update(connection_mode="tls"),
+        lambda x: x["imap"].update(historical_start="2025-01-02T03:04:05"),
+        lambda x: x["imap"].update(historical_start="not-a-date"),
+        lambda x: x["imap"].update(historical_start=123),
         lambda x: x.update(timezone="Moon/Base"),
         lambda x: x.update(poll_interval_seconds=4),
         lambda x: x.update(poll_interval_seconds=86401),

@@ -65,9 +65,9 @@ als Prompt-Anweisungen übergeben. Metadaten über ausgelassene Anhänge und ein
 Reply-/Signaturkürzung bleiben in Zusammenfassungsdaten, Zustand und Logging
 verfügbar.
 
-- Server, Port, Verbindungsmodus, Ordner und Abrufintervall sind konfigurierbar. Zugangsdaten stehen ausschließlich in der Geheimnisdatei beziehungsweise in Laufzeit-Umgebungsvariablen.
+- Server, Port, Verbindungsmodus, Ordner und Abrufintervall sind konfigurierbar. Der geschlossene Verbindungsmodus erlaubt genau `ssl` (implizites TLS, üblich Port 993), `starttls` (IMAP mit anschließend zwingendem TLS-Upgrade, üblich Port 143) und `plain` (unverschlüsselt, nur für anderweitig abgesicherte lokale Netze). Zugangsdaten stehen ausschließlich in der Geheimnisdatei beziehungsweise in Laufzeit-Umgebungsvariablen.
 - Der Lesestatus dient nicht als Verarbeitungsmarker. Mailhelp verändert die Originalnachrichten und ihren Lesestatus nicht absichtlich.
-- Vorgeschlagener Erststart: Verarbeitung ab einem einmalig gespeicherten Startzeitpunkt. Ein konfigurierbares Startdatum ermöglicht einen historischen Import.
+- `historical_start` ist optional (`null`) oder ein zeitzonenbehafteter ISO-8601-Zeitpunkt mit explizitem Offset. Seine absolute UTC-Grenze wird über schreibfreie `UID SEARCH`-/`UID FETCH INTERNALDATE`-Abfragen sekundengenau aufgelöst. Der resultierende Start-UID wird vor der Verarbeitung konto- und ordnerbezogen gespeichert und nach Neustarts nicht neu interpretiert.
 - Die Nachrichtenzuordnung verwendet Konto, Ordner, UIDVALIDITY und UID als technische Identität. Message-ID und Inhaltsmerkmale dienen bei Bedarf als zusätzliche Hinweise zur Duplikatprüfung. Ein UIDVALIDITY-Wechsel wird gesondert behandelt und protokolliert.
 - Plaintext und HTML werden berücksichtigt. HTML wird in Text überführt; entfernte Bilder und verlinkte Inhalte werden nicht automatisch nachgeladen.
 - Signaturen und zitierte Verläufe werden nach Möglichkeit abgegrenzt. Hinweise auf Unsicherheit oder unvollständige Inhalte bleiben erhalten.
@@ -206,7 +206,7 @@ Zugangsdaten können im Container alternativ als Umgebungsvariablen bereitgestel
 
 Alle Dateien werden beim Start geprüft. Fehlermeldungen nennen betroffene Datei und Schlüssel, niemals geheime Werte. `.env`, Zustandsdaten und Logs werden aus Git und Docker-Build-Kontext ausgeschlossen. Eine private Beispieldatei mit echten Zugangsdaten gehört nicht ins Projekt.
 
-Die Bereiche `imap`, `telegram`, `targets`, `limits`, `retries`, `timeouts` und `logging` besitzen geschlossene Modelle. IMAP, Telegram, OpenRouter, Todoist und Google Calendar konfigurieren Timeout, Retry-Anzahl, initialen Backoff und Backoff-Obergrenze getrennt. Ports (1–65535), Polling (5–86400 Sekunden), Adaptertimeouts (1–300 Sekunden), Telegram-Long-Polling (1–50 Sekunden), Mailgröße (1.024–100.000.000 Bytes), LLM-Rate (1–600/min), Wiederholungen (0–10) und Backoff (0–60 Sekunden) sind begrenzt. Zeitzonen müssen IANA-Namen sein; Ordner sind eindeutig und nicht leer, Pfade sicher, Log-Level sind `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`.
+Die Bereiche `imap`, `telegram`, `targets`, `limits`, `retries`, `timeouts` und `logging` besitzen geschlossene Modelle. `imap.connection_mode` akzeptiert ausschließlich `ssl`, `starttls` und `plain`; `imap.historical_start` akzeptiert ausschließlich `null` oder einen ISO-8601-Zeitpunkt mit Offset. IMAP, Telegram, OpenRouter, Todoist und Google Calendar konfigurieren Timeout, Retry-Anzahl, initialen Backoff und Backoff-Obergrenze getrennt. Ports (1–65535), Polling (5–86400 Sekunden), Adaptertimeouts (1–300 Sekunden), Telegram-Long-Polling (1–50 Sekunden), Mailgröße (1.024–100.000.000 Bytes), LLM-Rate (1–600/min), Wiederholungen (0–10) und Backoff (0–60 Sekunden) sind begrenzt. Zeitzonen müssen IANA-Namen sein; Ordner sind eindeutig und nicht leer, Pfade sicher, Log-Level sind `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Dieselbe Transportauswahl und UTC-Auswertung gilt unter Windows 11 und im Linux-Docker-Container; die Host-Zeitzone beeinflusst die Grenze nicht.
 
 ## 10. JSON-Zustand und Neustartverhalten
 
@@ -218,7 +218,7 @@ Die Änderung von Version 3 auf 4 ist bewusst inkompatibel und besitzt keine aut
 
 Eine Maildatei enthält mindestens:
 
-- Schemaversion, interne ID und technische IMAP-Identität.
+- Schemaversion, interne ID und technische IMAP-Identität aus nicht geheimer Konto-ID, Ordner, UIDVALIDITY und UID. Konto-ID, Checkpoint-Dateiname und interne Mail-ID trennen Konten auch bei identischen Ordnern und UIDs.
 - Zeitstempel, Mailmetadaten und Verarbeitungsschritte mit Status.
 - Relevanzergebnis, Themen, Zusammenfassung und Validierungsfehler.
 - Vorschläge mit ID, Versionsnummer, Inhalt, offenen Fragen und Bestätigungsstatus.

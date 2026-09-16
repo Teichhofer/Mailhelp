@@ -105,10 +105,10 @@ class Orchestrator:
         return state
 
     def resume_mail(self, state: MailState) -> ProcessingResult:
-        return self.process(FetchedMail(state.imap.folder, state.imap.uidvalidity, state.imap.uid, b""))
+        return self.process(FetchedMail(state.imap.folder, state.imap.uidvalidity, state.imap.uid, b"", state.imap.account_id))
 
     def process(self, fetched: FetchedMail) -> ProcessingResult:
-        identity = f"{fetched.folder}:{fetched.uidvalidity}:{fetched.uid}"
+        identity = f"{fetched.account_id}:{fetched.folder}:{fetched.uidvalidity}:{fetched.uid}"
         internal_id = hashlib.sha256(identity.encode()).hexdigest()[:24]
         started = time.perf_counter()
         self.logger.event("INFO", "orchestrator", "processing_started", mail_id=internal_id)
@@ -116,7 +116,7 @@ class Orchestrator:
         existing = self.store.load_model(name, MailState) if hasattr(self.store, "load_model") else self.store.load(name)
         state = existing if isinstance(existing, MailState) else MailState.model_validate(existing) if existing is not None else MailState(
             id=internal_id,
-            imap={"folder": fetched.folder, "uidvalidity": fetched.uidvalidity, "uid": fetched.uid},
+            imap={"account_id": fetched.account_id, "folder": fetched.folder, "uidvalidity": fetched.uidvalidity, "uid": fetched.uid},
             config_fingerprint=self.config_fingerprint,
         )
         if state.steps.completion != "completed" and state.config_fingerprint != self.config_fingerprint:

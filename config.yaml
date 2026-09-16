@@ -5,6 +5,8 @@ data_directory: data/test
 imap:
   host: imap.example.invalid
   port: 993
+  connection_mode: ssl
+  historical_start: null
   folders: [INBOX]
 telegram:
   user_id: 123456
