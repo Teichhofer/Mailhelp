@@ -23,7 +23,7 @@ from mailhelp.telegram import Decision, TelegramClient, apply_decision, split_me
 
 
 def prompt_config(model="model"):
-    return PromptConfig(defaults={"model": model, "parameters": {"nested": {"a": 1}, "temperature": .2}}, prompts={x: PromptStep(system_prompt=x, parameters={"nested": {"b": 2}}) for x in ("relevance", "summary", "actions")})
+    return PromptConfig(defaults={"model": model, "parameters": {"nested": {"a": 1}, "temperature": .2}}, prompts={x: PromptStep(system_prompt=x, parameters={"nested": {"b": 2}}) for x in ("relevance", "summary", "actions", "proposal_revision")})
 
 
 def proposal(**kw):

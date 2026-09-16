@@ -385,3 +385,14 @@ Die Projektinitialisierung 0.1.0 legt Python 3.12 (Referenzversion 3.12.10), ein
 ## 16. GitHub-Kurzbeschreibung
 
 Mailhelp ist ein Python-Assistent, der IMAP-Mails per LLM über OpenRouter filtert und zusammenfasst. Telegram liefert Zusammenfassungen und fragt Aufgaben sowie Termine ab, bevor sie nach Bestätigung in Todoist und Google Kalender eingetragen werden. Lokal und für Docker auf Linux ausgelegt.
+
+## 17. Strukturierte Überarbeitung von Vorschlägen
+
+Antworten auf Telegram-Rückfragen werden durch einen eigenen, fest schematisierten
+LLM-Schritt verarbeitet. Der validierte bisherige Vorschlag, die konkrete Frage und
+die autorisierte Antwort werden als getrennte Felder übergeben. Das Ergebnis muss
+eine vollständige `Proposal`-Folgeversion mit unveränderter Vorschlags-ID und
+Ursprungsmail sowie exakt um eins erhöhter Version sein. Jede Version wird vor der
+Anzeige separat persistiert; fehlerhafte Ergebnisse lassen Vorschlag und Dialog
+unverändert. Eine Folgeversion darf erst ohne offene Fragen und nach vollständiger
+typabhängiger Validierung zur ausdrücklichen Bestätigung angeboten werden.

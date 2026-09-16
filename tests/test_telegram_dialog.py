@@ -48,9 +48,25 @@ class Logger:
     def event(self, *args, **fields): self.events.append((args,fields))
 
 
-def controller(store, updates=(), writers=None, test_mode=False):
+class RevisionService:
+    def __init__(self): self.calls=[]
+    def revise_proposal(self, item, question, answer):
+        self.calls.append((item,question,answer))
+        remaining=item.open_questions[1:]
+        return "revision-call", Proposal.model_validate({**item.model_dump(),
+            "version":item.version+1, "description":answer,
+            "open_questions":remaining,
+            "status":"needs_clarification" if remaining else "pending_confirmation"})
+
+
+class FailingRevisionService:
+    def revise_proposal(self, item, question, answer): raise ValueError("contradiction")
+
+
+def controller(store, updates=(), writers=None, test_mode=False, revision_service=None):
     transport=Telegram(updates); log=Logger()
-    return TelegramDialogController(store,transport,1,2,log,writers,test_mode),transport,log
+    service=revision_service if revision_service is not None else RevisionService()
+    return TelegramDialogController(store,transport,1,2,log,writers,test_mode,"UTC",service),transport,log
 
 
 def test_write_attempt_references_are_linked_to_mail(tmp_path):
@@ -215,10 +231,23 @@ def test_invalid_unauthorized_missing_and_stale_dialogs(tmp_path):
         t.updates=[message(8)]; c.poll_once(); assert "nicht gefunden" in t.sent[-1][1]
         t.updates=[message(9)]; c.poll_once(); assert "Keine offene" in t.sent[-1][1]
 
+        c.revision_service=FailingRevisionService()
         c.persist(proposal(version=2, description="x"*3995, status="needs_clarification"))
         store.save("telegram-dialog",{"proposal_id":"p1","version":2})
         t.updates=[message(10,"zu lang")]; c.poll_once()
-        assert "zu lang" in t.sent[-1][1] and store.load("telegram-dialog")["version"]==2
+        assert "widerspruchsfrei" in t.sent[-1][1] and store.load("telegram-dialog")["version"]==2
+
+
+def test_revision_unavailable_preserves_dialog(tmp_path):
+    with JsonStore(tmp_path) as store:
+        transport=Telegram([message(1,"Neuer Titel")]); log=Logger()
+        c=TelegramDialogController(store,transport,1,2,log)
+        c.persist(proposal(status="needs_clarification"))
+        store.save("telegram-dialog",{"proposal_id":"p1","version":1})
+        c.poll_once()
+        assert "nicht verfügbar" in transport.sent[-1][1]
+        assert store.load("proposal-p1")["version"]==1
+        assert store.load("telegram-dialog")["proposal_id"]=="p1"
 
 
 def test_telegram_client_validation_and_callback():

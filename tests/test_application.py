@@ -191,6 +191,7 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
     with build_application(cfg,sec,topic,prompt_config(),"f"*64,base_directory=tmp_path) as made:
         assert made.todoist and (tmp_path/"data/test/.lock").exists()
         assert made.dialog.relevance_handler is made.orchestrator
+        assert made.dialog.revision_service is made.analyzer
         assert made.orchestrator.config_fingerprint == "f"*64
         assert FakeImap.kwargs["starttls"] is starttls
         assert FakeImap.kwargs["factory"].__name__ == ("IMAP4_SSL" if mode=="ssl" else "IMAP4")

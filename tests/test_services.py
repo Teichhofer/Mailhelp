@@ -50,6 +50,51 @@ def test_analyzer():
     with pytest.raises(ValueError, match="mindestens"): Analyzer(FakeCompleter([{"decision":"relevant","topic_ids":[],"reason":"x"}]),prompt_config()).relevance({}, [topic])
 
 
+def test_analyzer_revises_proposal_with_separate_inputs_and_retries():
+    original=proposal(open_questions=["Welcher Titel?"])
+    valid={**original.model_dump(mode="json"),"version":2,"title":"Neu",
+           "open_questions":[],"status":"pending_confirmation"}
+    client=FakeCompleter([{**valid,"id":"other"},valid])
+    call,revised=Analyzer(client,prompt_config(),1).revise_proposal(original,"Welcher Titel?","Neu")
+    assert call=="2" and revised.title=="Neu" and original.title=="Tun"
+    assert client.calls==2
+
+    failures=[
+        {**valid,"source_mail_id":"other"}, {**valid,"version":3},
+        {**valid,"status":"needs_clarification"}, {**valid,"title":""},
+    ]
+    for invalid in failures:
+        with pytest.raises(LlmSchemaValidationExceeded):
+            Analyzer(FakeCompleter([invalid,invalid]),prompt_config()).revise_proposal(original,"q","a")
+    pending_question={**valid,"open_questions":["Noch offen?"],"status":"needs_clarification"}
+    assert Analyzer(FakeCompleter([pending_question]),prompt_config()).revise_proposal(original,"q","a")[1].open_questions
+
+    class CapturingCompleter:
+        def __init__(self): self.payload=None
+        def complete(self, model, parameters, system, payload):
+            self.payload=payload; return "call",valid
+    capturing=CapturingCompleter()
+    Analyzer(capturing,prompt_config()).revise_proposal(original,"Konkrete Frage","Autorisierte Antwort")
+    assert capturing.payload["validated_proposal"]["id"]=="p1"
+    assert capturing.payload["question"]=="Konkrete Frage"
+    assert capturing.payload["authorized_answer"]=="Autorisierte Antwort"
+
+
+@pytest.mark.parametrize("original, changes, expected", [
+    (proposal(open_questions=["Welche Frist?"]),
+     {"due":"2026-10-01T17:00:00+02:00"}, "2026-10-01T17:00:00+02:00"),
+    (proposal(kind="event",open_questions=["Wann?"],start=None,end=None),
+     {"start":"2026-10-02T09:00:00+02:00","end":"2026-10-02T10:00:00+02:00"},
+     "2026-10-02T09:00:00+02:00"),
+])
+def test_analyzer_revision_validates_task_deadlines_and_event_times(original, changes, expected):
+    raw={**original.model_dump(mode="json"),**changes,"version":2,
+         "open_questions":[],"status":"pending_confirmation"}
+    revised=Analyzer(FakeCompleter([raw]),prompt_config()).revise_proposal(original,"Wann?","Antwort")[1]
+    value=revised.due if revised.kind.value=="task" else revised.start
+    assert value.isoformat()==expected
+
+
 def test_telegram():
     p=proposal(); assert apply_decision(p,Decision(proposal_id="p1",version=1,action=DecisionAction.CONFIRM),1,2,1,2).status == ProposalStatus.CONFIRMED
     assert apply_decision(p,Decision(proposal_id="p1",version=1,action=DecisionAction.REJECT),1,2,1,2).status == ProposalStatus.REJECTED
