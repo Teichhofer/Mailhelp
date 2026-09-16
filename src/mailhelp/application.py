@@ -12,7 +12,7 @@ from typing import Iterator
 from .analysis import Analyzer
 from .config import PromptConfig, Secrets, Settings, Topic
 from .imap import ImapReader
-from .integrations import HttpWriter
+from .integrations import GoogleOAuthTokenProvider, HttpWriter
 from .logging import JsonlLogger
 from .models import ImapCheckpoint, MailState, TelegramOffset
 from .openrouter import OpenRouterClient
@@ -171,7 +171,8 @@ def build_application(settings: Settings, secrets: Secrets, topics: list[Topic],
         store = stack.enter_context(JsonStore(data))
         known_secrets = tuple(value.get_secret_value() for value in (
             secrets.imap_password, secrets.openrouter_api_key, secrets.telegram_bot_token,
-            secrets.todoist_token, secrets.google_access_token,
+            secrets.todoist_token, secrets.google_oauth_client_id, secrets.google_oauth_client_secret,
+            secrets.google_oauth_refresh_token,
         ))
         logger = JsonlLogger(log_dir, settings.logging.include_llm_requests, settings.logging.include_llm_responses,
                              settings.logging.level, settings.logging.module_levels, known_secrets)
@@ -190,7 +191,13 @@ def build_application(settings: Settings, secrets: Secrets, topics: list[Topic],
         stack.callback(telegram.close)
         todoist = HttpWriter("todoist", secrets.todoist_token.get_secret_value(), settings.targets.todoist_project, settings.timeouts.todoist.timeout_seconds, policy=policy("todoist"), logger=logger)
         stack.callback(todoist.close)
-        calendar = HttpWriter("google_calendar", secrets.google_access_token.get_secret_value(), settings.targets.google_calendar, settings.timeouts.google_calendar.timeout_seconds, policy=policy("google_calendar"), logger=logger, calendar_timezone=settings.timezone)
+        oauth = GoogleOAuthTokenProvider(
+            secrets.google_oauth_client_id.get_secret_value(), secrets.google_oauth_client_secret.get_secret_value(),
+            secrets.google_oauth_refresh_token.get_secret_value(), settings.timeouts.google_calendar.timeout_seconds,
+            logger=logger,
+        )
+        stack.callback(oauth.close)
+        calendar = HttpWriter("google_calendar", oauth, settings.targets.google_calendar, settings.timeouts.google_calendar.timeout_seconds, policy=policy("google_calendar"), logger=logger, calendar_timezone=settings.timezone)
         stack.callback(calendar.close)
         analyzer = Analyzer(openrouter, prompts, settings.retries.validation)
         dialog = TelegramDialogController(

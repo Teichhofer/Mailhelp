@@ -396,3 +396,10 @@ Ursprungsmail sowie exakt um eins erhöhter Version sein. Jede Version wird vor 
 Anzeige separat persistiert; fehlerhafte Ergebnisse lassen Vorschlag und Dialog
 unverändert. Eine Folgeversion darf erst ohne offene Fragen und nach vollständiger
 typabhängiger Validierung zur ausdrücklichen Bestätigung angeboten werden.
+# OAuth-Authentifizierung für Google Calendar
+
+Google Calendar wird über einen OAuth-2.0-Refresh-Token authentifiziert. Client-ID,
+Client-Secret und Refresh-Token sind reine Laufzeitgeheimnisse; kurzlebige
+Access-Tokens werden ausschließlich im Speicher gehalten und vor Ablauf erneuert.
+Ein HTTP-401-Ergebnis ist ein dauerhafter Authentifizierungsfehler und darf bei
+einem Kalender-Schreibzugriff keine automatische Wiederholung auslösen.

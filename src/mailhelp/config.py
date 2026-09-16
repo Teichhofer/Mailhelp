@@ -160,7 +160,9 @@ class Secrets(BaseModel):
     openrouter_api_key: SecretStr
     telegram_bot_token: SecretStr
     todoist_token: SecretStr
-    google_access_token: SecretStr
+    google_oauth_client_id: SecretStr
+    google_oauth_client_secret: SecretStr
+    google_oauth_refresh_token: SecretStr
 
 
 class Topic(BaseModel):
@@ -259,7 +261,8 @@ def load_all(directory: Path, environ: dict[str, str] | None = None) -> tuple[Se
     settings = _validated_file(directory / "config.yaml", Settings, _yaml(directory / "config.yaml"))
     prompts = _validated_file(directory / "prompts.yaml", PromptConfig, _yaml(directory / "prompts.yaml"))
     topics = _validated_file(directory / "topics.yaml", TopicsConfig, _yaml(directory / "topics.yaml")).topics
-    names = ["IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN", "TODOIST_TOKEN", "GOOGLE_ACCESS_TOKEN"]
+    names = ["IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN", "TODOIST_TOKEN",
+             "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"]
     missing = [name for name in names if not env.get(name)]
     if missing:
         raise ValueError("Fehlende Geheimnisse: " + ", ".join(missing))
