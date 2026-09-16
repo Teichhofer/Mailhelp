@@ -80,6 +80,14 @@ geschrieben; Rohprompt und Rohantwort bleiben standardmäßig aus und werden nur
 `include_llm_requests` beziehungsweise `include_llm_responses` unabhängig aktiviert.
 Alle Logfelder durchlaufen eine rekursive Geheimnisbereinigung.
 
+Unter `retention` steuern `full_mail_days` und `debug_llm_days` getrennt die
+Aufbewahrung vollständiger Maildaten beziehungsweise abgeleiteter Debug-/LLM-Daten
+(Relevanzbegründung, Zusammenfassung, LLM-Aufruf-IDs und Validierungsdiagnosen).
+Erlaubt sind `1` bis `3650` volle Tage, `disabled` für die sofortige Minimierung
+beim nächsten Bereinigungslauf und `unlimited` für unbegrenzte Aufbewahrung.
+Die Frist läuft ab `updated_at`; die Bereinigung läuft einmal pro Polling-Zyklus
+und ist bei Wiederholung wirkungsgleich.
+
 Nur Transportfehler sowie HTTP 408, 425, 429, 500, 502, 503 und 504 werden bei lesenden beziehungsweise idempotenten Zugriffen begrenzt wiederholt. `Retry-After` wird bis zur konfigurierten Backoff-Obergrenze berücksichtigt. Schreibzugriffe werden vorab persistiert und bei Transportfehlern oder vorübergehenden HTTP-Antworten als unklar behandelt. Ein unklarer Schreibzugriff wird bei Neustarts nur abgeglichen und niemals automatisch erneut geschrieben; dafür wäre eine ausdrückliche Betreiberentscheidung erforderlich. Das OpenRouter-Minutenbudget wird im Datenverzeichnis persistiert, bleibt deshalb über Neustarts erhalten und stellt betroffene Mails bis zum nächsten zulässigen Zeitpunkt zurück.
 
 ## Betrieb und Sicherheit
@@ -104,6 +112,14 @@ Nur Transportfehler sowie HTTP 408, 425, 429, 500, 502, 503 und 504 werden bei l
   eines unverändert unklaren Ergebnisses wird dauerhaft markiert und nicht bei jedem
   Neustart erneut gesendet.
 * `data_directory` bezeichnet das gemeinsame Stammverzeichnis. Mailhelp verwendet darunter automatisch `test/` bei `test_mode: true` und `production/` bei `test_mode: false`. Beide Namensräume besitzen eine eigene `.lock`-Datei und enthalten jeweils sämtliche IMAP-Checkpoints, Mailzustände, Telegram-Offsets und -Dialoge, Vorschläge, externe Ergebniszustände sowie das persistierte LLM-Zeitfenster. Identische IDs können deshalb nicht zwischen Test- und Produktivbetrieb kollidieren.
+* Die Inhaltsbereinigung arbeitet ausschließlich im ausgewählten Namensraum und
+  an abgeschlossenen Vorgängen. Offene Relevanzdialoge, Rückfragen und
+  Bestätigungen sowie `confirmed`, `writing` oder `uncertain` werden geschützt.
+  Bei bereinigten Abschlüssen bleiben IMAP-Identität, Zeitpunkte, Schritte,
+  Vorschlagsversionen, externe IDs/Links und Schreibreferenzen samt
+  Idempotenzschlüsseln erhalten. Ein Restore kann so weiterhin Ergebnisse
+  zuordnen und Duplikate verhindern; entfernte Inhalte sind nicht
+  wiederherstellbar. Logs nennen nur Mail-ID, Laufzeitpunkt und Zähler.
 * Im `test_mode` findet kein externer Schreibzugriff statt; Ergebnisse tragen `simulation: true` und der Vorschlag bleibt `confirmed`, statt einen echten Eintrag vorzutäuschen.
 * JSONL-Anwendungs- und LLM-Logs sind getrennt. Rohprompts und Rohantworten sind unabhängig und standardmäßig ausgeschaltet; Geheimnisfelder werden maskiert.
 * `.env` unterstützt einfache `NAME=WERT`-Zeilen und einfache/doppelte Anführungszeichen, aber bewusst keine Shell-Erweiterung. Prozessvariablen überschreiben gleichnamige Werte aus der Datei.

@@ -8,6 +8,26 @@ die Datensperre garantiert freigegeben.
 
 Version: 1.2 · Stand: 14. September 2026 · Status: Implementierungsgrundlage.
 
+## Aufbewahrung und Datenminimierung
+
+`Settings.retention` ist ein geschlossenes Modell. `full_mail_days` gilt für den
+vollständigen Mailinhalt; `debug_llm_days` für Relevanz-/Zusammenfassungsinhalte,
+LLM-Aufruf-IDs und Validierungsdiagnosen. Beide akzeptieren ausschließlich ganze
+`1..3650` Tage, `disabled` (beim nächsten Lauf sofort entfernen) oder `unlimited`
+(keine automatische Entfernung). Maßgeblich ist `updated_at`.
+
+Der Dienst verändert nur Zustände mit `steps.completion == completed`. Ein offener
+Relevanzdialog, eine offene Rückfrage oder Bestätigung und jeder Vorschlag in
+`confirmed`, `writing` oder `uncertain` sperrt den gesamten Vorgang. Test und
+Produktion werden in ihren getrennten Verzeichnissen bereinigt. Nach Ablauf bleiben
+Mail-/IMAP-Identität, Konfigurationsfingerabdruck, Zeitpunkte und Schritte,
+Vorschlagsversionen, Schreibreferenzen/Idempotenzschlüssel sowie externe IDs und
+Links erhalten. Neustart oder Restore kann damit externe Aktionen weiter abgleichen
+und erneut entdeckte Mails als verarbeitet erkennen; entfernte Inhalte sind
+absichtlich nicht rekonstruierbar. Der vor jedem Polling-Zyklus ausgeführte Lauf ist
+idempotent und protokolliert nur IDs, Zeitpunkte und Zähler. Fehler werden ohne
+Inhalte lediglich als Fehlerzähler protokolliert und stoppen Polling nicht.
+
 ## 1. Projektziel
 
 Mailhelp ist eine persönliche, in Python entwickelte Anwendung, die ein IMAP-Postfach überwacht. Ein über OpenRouter angesprochenes LLM prüft neue E-Mails auf ihre Zugehörigkeit zu konfigurierten Themenbereichen, fasst relevante Nachrichten zusammen und erkennt Aufgaben sowie Termine. Die Kommunikation mit dem Nutzer erfolgt über Telegram.

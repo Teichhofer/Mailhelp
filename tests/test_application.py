@@ -125,6 +125,20 @@ def test_empty_checkpoint_and_run_paths(tmp_path):
     complete._poll_telegram=lambda: complete.stop_event.set()
     complete.run()
 
+    import mailhelp.application as application_module
+    original = application_module.RetentionService
+    class BrokenRetention:
+        def __init__(self, *args): pass
+        def run(self): raise RuntimeError("private detail")
+    application_module.RetentionService = BrokenRetention
+    failed_cleanup=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch())
+    failed_cleanup._poll_imap=lambda: failed_cleanup.stop_event.set()
+    failed_cleanup.run()
+    application_module.RetentionService = original
+    assert failed_cleanup.logger.events[0][0][2]=="cleanup_failed"
+    assert failed_cleanup.logger.events[0][1]["failure_count"]==1
+    assert datetime.fromisoformat(failed_cleanup.logger.events[0][1]["processed_at"]).tzinfo is not None
+
     class Dialog:
         def __init__(self, error=None): self.calls=0; self.error=error
         def poll_once(self):
