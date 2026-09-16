@@ -1,13 +1,16 @@
 """Strict Telegram trust boundary and restart-safe proposal dialogs."""
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Any, Protocol
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
-from .models import MailState, Proposal, ProposalStatus, RelevanceDialog, RelevanceDialogStatus, TelegramDialogState, TelegramOffset
+from .models import (MailState, Proposal, ProposalStatus, RelevanceDialog,
+                     RelevanceDialogStatus, TelegramDialogState, TelegramOffset,
+                     WriteAttemptReference)
 from .integrations import ExternalWriter, execute_confirmed
 from .adapter import RetryPolicy, uncertain_write
 from .storage import JsonStore
@@ -253,6 +256,22 @@ class TelegramDialogController:
         value = proposal.model_dump(mode="json")
         self.store.save(self._version_name(proposal.id, proposal.version), value)
         self.store.save(self._proposal_name(proposal.id), value)
+        if proposal.status in {ProposalStatus.WRITING, ProposalStatus.CREATED,
+                               ProposalStatus.FAILED, ProposalStatus.UNCERTAIN}:
+            mail_name = f"mail-{proposal.source_mail_id}"
+            state = self.store.load_model(mail_name, MailState) if hasattr(self.store, "load_model") else None
+            if isinstance(state, MailState):
+                service = "todoist" if proposal.kind.value == "task" else "google_calendar"
+                reference = WriteAttemptReference(
+                    proposal_id=proposal.id, proposal_version=proposal.version, service=service,
+                    idempotency_key=f"mailhelp:{proposal.id}:v{proposal.version}",
+                )
+                state.write_attempts = [item for item in state.write_attempts
+                                        if (item.proposal_id, item.proposal_version, item.service) !=
+                                        (reference.proposal_id, reference.proposal_version, reference.service)]
+                state.write_attempts.append(reference)
+                state.updated_at = datetime.now(timezone.utc)
+                self.store.save(mail_name, state.model_dump(mode="json"))
 
     def send(self, chat_id: int, text: str) -> None:
         if chat_id != self.chat_id:

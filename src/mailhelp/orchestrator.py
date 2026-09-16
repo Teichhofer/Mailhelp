@@ -16,7 +16,8 @@ from .config import Topic
 from .imap import FetchedMail
 from .mime import MimeLimitExceeded, prepare
 from .models import (MailState, ProcessingError, ProcessingErrorCode, ProcessingStage,
-                     Proposal, Relevance, RelevanceDialog, RelevanceDialogStatus)
+                     Proposal, Relevance, RelevanceDialog, RelevanceDialogStatus,
+                     ValidationIssue)
 from .storage import JsonStore
 from .openrouter import RateLimitExceeded
 from .logging import EventLogger, NullLogger
@@ -50,15 +51,17 @@ class ProcessingResult:
 
 
 class Orchestrator:
-    def __init__(self, analyzer: Analyzer, store: JsonStore, notifier: Notifier, chat_id: int, topics: list[Topic], max_mail_bytes: int, logger: EventLogger | None = None, clock: Any = time.time, mime_limits: object | None = None):
+    def __init__(self, analyzer: Analyzer, store: JsonStore, notifier: Notifier, chat_id: int, topics: list[Topic], max_mail_bytes: int, logger: EventLogger | None = None, clock: Any = time.time, mime_limits: object | None = None, config_fingerprint: str = "0" * 64):
         self.analyzer, self.store, self.notifier, self.chat_id, self.topics, self.max_bytes = analyzer, store, notifier, chat_id, topics, mime_limits or max_mail_bytes
         self.stop_event = Event()
         self.logger = logger or NullLogger()
         self.clock = clock
+        self.config_fingerprint = config_fingerprint
 
     def stop(self) -> None: self.stop_event.set()
 
     def _save(self, name: str, state: MailState) -> None:
+        state.updated_at = datetime.now(timezone.utc)
         self.store.save(name, state.model_dump(mode="json"))
         self.logger.event("DEBUG", "orchestrator", "state_persisted", mail_id=state.id,
                           state=state.steps.model_dump(mode="json"))
@@ -114,7 +117,12 @@ class Orchestrator:
         state = existing if isinstance(existing, MailState) else MailState.model_validate(existing) if existing is not None else MailState(
             id=internal_id,
             imap={"folder": fetched.folder, "uidvalidity": fetched.uidvalidity, "uid": fetched.uid},
+            config_fingerprint=self.config_fingerprint,
         )
+        if state.steps.completion != "completed" and state.config_fingerprint != self.config_fingerprint:
+            self.logger.event("WARNING", "orchestrator", "configuration_changed", mail_id=state.id,
+                              state_fingerprint=state.config_fingerprint, active_fingerprint=self.config_fingerprint)
+            return ProcessingResult(ProcessingOutcome.WAITING, state.model_dump(mode="json"))
         if state.deferred_until is not None and state.deferred_until.timestamp() > self.clock():
             self.logger.event("INFO", "orchestrator", "processing_deferred", mail_id=state.id, deferred_until=state.deferred_until)
             return ProcessingResult(ProcessingOutcome.WAITING, state.model_dump(mode="json"))
@@ -202,6 +210,9 @@ class Orchestrator:
                               error=exc, stacktrace=traceback.format_exc())
             outcome = ProcessingOutcome.FAILED
         except LlmSchemaValidationExceeded as exc:
+            state.validation_errors.append(ValidationIssue(
+                stage=stage, code="llm_schema_validation_exhausted", occurred_at=datetime.now(timezone.utc)
+            ))
             self._failure(name, state, ProcessingErrorCode.LLM_SCHEMA_VALIDATION_EXHAUSTED, stage,
                           "Die automatische Auswertung war nicht zuverlässig. Bitte die Nachricht manuell prüfen.", True)
             self.logger.event("ERROR", "orchestrator", "llm_schema_validation_exhausted", mail_id=state.id, stage=stage.value,

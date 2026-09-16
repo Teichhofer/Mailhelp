@@ -140,9 +140,9 @@ def test_resume_due_pending_states_and_isolate_failures(tmp_path):
         def save(self,name,value): pass
     legacy=app(tmp_path,Imap([]),Telegram([]),Orch(),store=LegacyStore())
     assert legacy._resume_pending()==[]
-    due=MailState(id="a"*24,imap={"folder":"INBOX","uidvalidity":7,"uid":4})
-    future=MailState(id="b"*24,imap={"folder":"INBOX","uidvalidity":7,"uid":5},deferred_until=datetime.now(timezone.utc)+timedelta(hours=1))
-    completed=MailState(id="c"*24,imap={"folder":"INBOX","uidvalidity":7,"uid":6})
+    due=MailState(id="a"*24,config_fingerprint="0"*64,imap={"folder":"INBOX","uidvalidity":7,"uid":4})
+    future=MailState(id="b"*24,config_fingerprint="0"*64,imap={"folder":"INBOX","uidvalidity":7,"uid":5},deferred_until=datetime.now(timezone.utc)+timedelta(hours=1))
+    completed=MailState(id="c"*24,config_fingerprint="0"*64,imap={"folder":"INBOX","uidvalidity":7,"uid":6})
     completed.steps.completion="completed"
     store=Store({"mail-a":due.model_dump(mode="json"),"mail-b":future.model_dump(mode="json"),"mail-c":completed.model_dump(mode="json"),"mail-missing":None})
     imap=Imap([]); orch=Orch(); service=app(tmp_path,imap,Telegram([]),orch,store=store)
@@ -180,9 +180,10 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch):
     monkeypatch.setattr("mailhelp.application.HttpWriter",FakeWriter)
     cfg=settings(tmp_path); sec=Secrets(imap_username="u",imap_password="p",openrouter_api_key="o",telegram_bot_token="t",todoist_token="d",google_access_token="g")
     topic=[Topic(id="x",name="x",enabled=True,description="x")]
-    with build_application(cfg,sec,topic,prompt_config(),tmp_path) as made:
+    with build_application(cfg,sec,topic,prompt_config(),"f"*64,base_directory=tmp_path) as made:
         assert made.todoist and (tmp_path/"data/.lock").exists()
         assert made.dialog.relevance_handler is made.orchestrator
+        assert made.orchestrator.config_fingerprint == "f"*64
     assert len(closed)==5 and not (tmp_path/"data/.lock").exists()
 
     cfg.data_directory=Path("relative"); cfg.logging.directory=Path("relative-logs")
@@ -190,5 +191,5 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch):
         def __init__(self,*args,**kwargs): raise RuntimeError("build")
     monkeypatch.setattr("mailhelp.application.TelegramClient",BrokenTelegram)
     with pytest.raises(RuntimeError,match="build"):
-        with build_application(cfg,sec,topic,prompt_config(),tmp_path): pass
+        with build_application(cfg,sec,topic,prompt_config(),"f"*64,base_directory=tmp_path): pass
     assert not (tmp_path/"relative/.lock").exists()

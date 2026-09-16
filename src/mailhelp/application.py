@@ -133,7 +133,7 @@ def _safe_name(folder: str) -> str:
 
 
 @contextmanager
-def build_application(settings: Settings, secrets: Secrets, topics: list[Topic], prompts: PromptConfig, base_directory: Path = Path(".")) -> Iterator[Application]:
+def build_application(settings: Settings, secrets: Secrets, topics: list[Topic], prompts: PromptConfig, fingerprint: str, base_directory: Path = Path(".")) -> Iterator[Application]:
     """Construct adapters and close every successfully constructed resource."""
     with ExitStack() as stack:
         data = settings.data_directory if settings.data_directory.is_absolute() else base_directory / settings.data_directory
@@ -168,7 +168,7 @@ def build_application(settings: Settings, secrets: Secrets, topics: list[Topic],
             store, telegram, settings.telegram.user_id, settings.telegram.chat_id, logger,
             {"todoist": todoist, "google_calendar": calendar}, settings.test_mode,
         )
-        orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics, settings.limits.max_mail_bytes, logger, mime_limits=settings.limits)
+        orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics, settings.limits.max_mail_bytes, logger, mime_limits=settings.limits, config_fingerprint=fingerprint)
         dialog.relevance_handler = orchestrator
         orchestrator.stop_event = stop_event
         yield Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar, orchestrator, stop_event, dialog)

@@ -167,6 +167,20 @@ def test_orchestrator(tmp_path):
         assert first["id"] != second["id"] and all(item["steps"]["completion"]=="completed" for item in (first,second))
 
 
+def test_orchestrator_pins_fingerprint_across_restart(tmp_path):
+    topic=Topic(id="x",name="x",enabled=True,description="x")
+    mail=FetchedMail("INBOX",1,77,b"Subject: Restart\n\nBody")
+    with JsonStore(tmp_path/"fingerprint") as store:
+        first=Orchestrator(AnalyzerStub("unclear"),store,Notify(),1,[topic],1000,
+                           config_fingerprint="a"*64).process(mail)
+        changed=Orchestrator(AnalyzerStub("irrelevant"),store,Notify(),1,[topic],1000,
+                             config_fingerprint="b"*64).process(mail)
+        persisted=store.load_model("mail-"+first["id"],MailState)
+        assert changed.outcome is ProcessingOutcome.WAITING
+        assert changed["config_fingerprint"] == persisted.config_fingerprint == "a"*64
+        assert changed["updated_at"] == first["updated_at"]
+
+
 def test_orchestrator_resolves_versioned_relevance_both_ways(tmp_path):
     topic=Topic(id="x",name="x",enabled=True,description="x")
     for uid,decision in ((31,"irrelevant"),(32,"relevant")):
@@ -192,11 +206,11 @@ def test_orchestrator_resolves_versioned_relevance_both_ways(tmp_path):
 def test_relevance_dialog_schema_consistency():
     with pytest.raises(Exception): RelevanceDialog(mail_id="a"*24,decision="relevant")
     with pytest.raises(Exception,match="gehört nicht"):
-        MailState(id="a"*24,imap={"folder":"INBOX","uidvalidity":1,"uid":1},awaiting_relevance=True,relevance_dialog=RelevanceDialog(mail_id="b"*24))
+        MailState(id="a"*24,config_fingerprint="0"*64,imap={"folder":"INBOX","uidvalidity":1,"uid":1},awaiting_relevance=True,relevance_dialog=RelevanceDialog(mail_id="b"*24))
     with pytest.raises(Exception,match="benötigt"):
-        MailState(id="a"*24,imap={"folder":"INBOX","uidvalidity":1,"uid":1},awaiting_relevance=True)
+        MailState(id="a"*24,config_fingerprint="0"*64,imap={"folder":"INBOX","uidvalidity":1,"uid":1},awaiting_relevance=True)
     with pytest.raises(Exception,match="widersprechen"):
-        MailState(id="a"*24,imap={"folder":"INBOX","uidvalidity":1,"uid":1},relevance_dialog=RelevanceDialog(mail_id="a"*24))
+        MailState(id="a"*24,config_fingerprint="0"*64,imap={"folder":"INBOX","uidvalidity":1,"uid":1},relevance_dialog=RelevanceDialog(mail_id="a"*24))
 
 
 def test_orchestrator_resumes_each_persisted_analysis_step(tmp_path):
@@ -223,7 +237,7 @@ def test_orchestrator_resumes_each_persisted_analysis_step(tmp_path):
             assert second.calls == ([repeated] + [x for x in ("summary","actions") if (repeated=="relevance" or repeated=="summary" and x=="actions")] if repeated else [])
 
     with JsonStore(tmp_path/"invalid") as store:
-        store.save("mail-"+"a"*24,{"schema_version":2,"id":"bad","imap":{},"steps":{}})
+        store.save("mail-"+"a"*24,{"schema_version":3,"id":"bad","imap":{},"steps":{}})
         with pytest.raises(Exception): MailState.model_validate(store.load("mail-"+"a"*24))
 
 def test_orchestrator_defers_rate_limit_and_reports(tmp_path):

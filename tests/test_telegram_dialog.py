@@ -50,6 +50,25 @@ def controller(store, updates=(), writers=None, test_mode=False):
     return TelegramDialogController(store,transport,1,2,log,writers,test_mode),transport,log
 
 
+def test_write_attempt_references_are_linked_to_mail(tmp_path):
+    mail_id="a"*24
+    with JsonStore(tmp_path/"references") as store:
+        state=MailState(id=mail_id,config_fingerprint="f"*64,
+                        imap={"folder":"INBOX","uidvalidity":1,"uid":1})
+        store.save("mail-"+mail_id,state.model_dump(mode="json"))
+        dialog,_,_=controller(store)
+        task=proposal(source_mail_id=mail_id,status="writing")
+        dialog.persist(task)
+        dialog.persist(task)
+        dialog.persist(proposal(id="event",kind="event",source_mail_id=mail_id,status="uncertain",
+                                start="2026-01-01T10:00:00Z",end="2026-01-01T11:00:00Z"))
+        loaded=store.load_model("mail-"+mail_id,MailState)
+        assert [(item.proposal_id,item.service,item.idempotency_key) for item in loaded.write_attempts] == [
+            ("p1","todoist","mailhelp:p1:v1"),
+            ("event","google_calendar","mailhelp:event:v1"),
+        ]
+
+
 class Writer:
     def __init__(self, found=None, error=None): self.found=found; self.error=error; self.created=0; self.reconciled=0
     def reconcile(self,key): self.reconciled+=1; return self.found
@@ -210,7 +229,7 @@ class RelevanceHandler:
 
 
 def relevance_state(mail_id, version=1):
-    return MailState(id=mail_id,imap={"folder":"INBOX","uidvalidity":1,"uid":1},awaiting_relevance=True,relevance_dialog=RelevanceDialog(mail_id=mail_id,version=version))
+    return MailState(id=mail_id,config_fingerprint="0"*64,imap={"folder":"INBOX","uidvalidity":1,"uid":1},awaiting_relevance=True,relevance_dialog=RelevanceDialog(mail_id=mail_id,version=version))
 
 
 def test_relevance_dialog_authorization_stale_restart_and_duplicate(tmp_path):

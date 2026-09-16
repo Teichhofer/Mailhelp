@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
@@ -10,7 +11,8 @@ from pydantic import ValidationError
 
 from mailhelp.config import Settings, _validated_file
 from mailhelp.integrations import HttpWriter, _with_external_result
-from mailhelp.models import ImapCheckpoint, MailState, Proposal, TelegramDialogState, TelegramOffset
+from mailhelp.models import (ImapCheckpoint, MailState, Proposal, TelegramDialogState,
+                             TelegramOffset, ValidationIssue, WriteAttemptReference)
 from mailhelp.openrouter import OpenRouterClient, _path
 from mailhelp.storage import CorruptState, JsonStore
 from mailhelp.telegram import TelegramClient, TelegramUpdatesResponse, TelegramWriteResponse, _validation_path
@@ -29,6 +31,31 @@ def valid_settings(tmp_path: Path) -> dict:
         "timeouts": {**{name: {"timeout_seconds": 1.0, "retries": 0, "initial_backoff_seconds": 0.0, "max_backoff_seconds": 1.0} for name in ("imap", "telegram", "openrouter", "todoist", "google_calendar")}, "telegram_poll_seconds": 1},
         "logging": {"directory": str(tmp_path / "logs"), "level": "INFO", "include_llm_requests": False, "include_llm_responses": False},
     }
+
+
+def test_mail_state_v4_metadata_is_closed_and_round_trips(tmp_path):
+    now = datetime.now(timezone.utc)
+    state = MailState(
+        id="a" * 24, imap={"folder": "INBOX", "uidvalidity": 1, "uid": 2},
+        created_at=now, updated_at=now, config_fingerprint="f" * 64,
+        validation_errors=[ValidationIssue(stage="relevance", code="invalid_shape", path=["decision"], occurred_at=now)],
+        write_attempts=[WriteAttemptReference(proposal_id="p1", proposal_version=2, service="todoist",
+                                              idempotency_key="mailhelp:p1:v2")],
+    )
+    with JsonStore(tmp_path / "states") as store:
+        store.save("mail-a", state.model_dump(mode="json"))
+        loaded = store.load_model("mail-a", MailState)
+    assert loaded == state and loaded.schema_version == 4
+    value = state.model_dump(mode="json")
+    with pytest.raises(ValidationError):
+        MailState.model_validate({**value, "unknown": True})
+    with pytest.raises(ValidationError, match="doppelt"):
+        MailState.model_validate({**value, "write_attempts": [
+            state.write_attempts[0].model_dump(), state.write_attempts[0].model_dump()]})
+    with pytest.raises(ValidationError, match="Zeitzone"):
+        MailState.model_validate({**value, "created_at": now.replace(tzinfo=None)})
+    with pytest.raises(ValidationError, match="vor created_at"):
+        MailState.model_validate({**value, "updated_at": "2000-01-01T00:00:00Z"})
 
 
 def test_settings_reject_missing_extra_types_ranges_and_semantics(tmp_path):
@@ -80,7 +107,7 @@ def test_versioned_state_models_and_schema_quarantine(tmp_path):
     with pytest.raises(ValidationError): TelegramDialogState(proposal_id="p")
     with pytest.raises(ValidationError): TelegramDialogState(version=1)
     with JsonStore(tmp_path) as store:
-        store.save("mail-bad", {"schema_version": 2, "id": "secret-content", "imap": {}, "steps": {}})
+        store.save("mail-bad", {"schema_version": 3, "id": "secret-content", "imap": {}, "steps": {}})
         with pytest.raises(CorruptState, match=r"mail-bad.invalid.*id") as error:
             store.load_model("mail-bad", MailState)
         assert "secret-content" not in str(error.value) and (tmp_path / "mail-bad.invalid").exists()
