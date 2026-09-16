@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import copy
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 import httpx
@@ -159,7 +159,8 @@ def test_integration_response_boundaries_and_required_ids():
     ]
     for service, method, data in cases:
         def handler(request, data=data): return httpx.Response(200,json=data,request=request)
-        writer=HttpWriter(service,"top-secret","target",transport=httpx.MockTransport(handler))
+        writer=HttpWriter(service,"top-secret","target",transport=httpx.MockTransport(handler),
+                          calendar_timezone="UTC" if service == "google_calendar" else None)
         with pytest.raises(ValueError) as error:
             if method == "GET": writer.reconcile("key")
             elif service == "todoist": writer.create(proposal(status="confirmed"),"key")
@@ -169,3 +170,29 @@ def test_integration_response_boundaries_and_required_ids():
                 writer.create(proposal(kind="event",start=now,end=now+timedelta(hours=1),status="confirmed"),"key")
         assert service.split("_")[0].lower() in str(error.value).lower() and "top-secret" not in str(error.value)
         writer.close()
+
+
+def test_event_boundary_rejects_incomplete_contradictory_and_naive_values():
+    aware=datetime(2026,5,10,10,tzinfo=timezone(timedelta(hours=2)))
+    # An explicitly incomplete proposal may retain a missing endpoint for a
+    # visible clarification, but it cannot contain an unsafe or mixed value.
+    assert proposal(kind="event",open_questions=["Wann endet es?"],start=aware).end is None
+    invalid = [
+        {"kind":"event","start":aware},
+        {"kind":"event","start":aware.replace(tzinfo=None),"end":aware.replace(tzinfo=None)+timedelta(hours=1)},
+        {"kind":"event","start":date(2026,5,10),"end":date(2026,5,11)},
+        {"kind":"event","all_day":True,"start":aware,"end":aware+timedelta(days=1)},
+        {"kind":"event","all_day":True,"start":date(2026,5,10),"end":date(2026,5,10)},
+        {"kind":"event","all_day":True,"start":date(2026,5,11),"end":date(2026,5,10)},
+    ]
+    for values in invalid:
+        with pytest.raises(ValidationError): proposal(**values)
+    complete=proposal(kind="event",all_day=True,start=date(2026,5,10),end=date(2026,5,11))
+    assert type(complete.start) is date and type(complete.end) is date
+
+
+def test_calendar_writer_requires_valid_configured_iana_timezone():
+    with pytest.raises(ValueError,match="konfigurierte IANA"):
+        HttpWriter("google_calendar","x","primary")
+    with pytest.raises(ValueError,match="Unbekannte IANA"):
+        HttpWriter("google_calendar","x","primary",calendar_timezone="Moon/Base")

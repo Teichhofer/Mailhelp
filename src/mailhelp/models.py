@@ -1,7 +1,7 @@
 """Vertrauensgrenze und feste Schemata der Fachlogik."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from enum import StrEnum
 from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -104,8 +104,8 @@ class Proposal(StrictModel):
     source_mail_id: str = Field(min_length=1, max_length=64)
     open_questions: list[str] = Field(default_factory=list)
     due: datetime | None = None
-    start: datetime | None = None
-    end: datetime | None = None
+    start: date | datetime | None = None
+    end: date | datetime | None = None
     all_day: bool = False
     location: str | None = Field(default=None, max_length=1000)
     target: str = Field(min_length=1, max_length=500)
@@ -115,12 +115,23 @@ class Proposal(StrictModel):
 
     @model_validator(mode="after")
     def complete_event(self) -> "Proposal":
-        if self.kind == ProposalKind.EVENT and not self.open_questions and (self.start is None or self.end is None):
-            raise ValueError("Ein vollständiger Termin benötigt Beginn und Ende")
-        if self.end is not None and self.start is not None and self.end <= self.start:
-            raise ValueError("Terminende muss nach dem Beginn liegen")
         if self.kind == ProposalKind.TASK and (self.start is not None or self.end is not None or self.all_day):
             raise ValueError("Aufgaben dürfen keine Kalenderzeit enthalten")
+        if self.kind != ProposalKind.EVENT:
+            return self
+        if not self.open_questions and (self.start is None or self.end is None):
+            raise ValueError("Ein vollständiger Termin benötigt Beginn und Ende")
+        values = (self.start, self.end)
+        if self.all_day:
+            if any(isinstance(value, datetime) for value in values if value is not None):
+                raise ValueError("Ganztägige Termine benötigen reine Datumswerte")
+        else:
+            if any(not isinstance(value, datetime) for value in values if value is not None):
+                raise ValueError("Zeitgebundene Termine benötigen Datums- und Zeitwerte")
+            if any(value.tzinfo is None or value.utcoffset() is None for value in values if isinstance(value, datetime)):
+                raise ValueError("Zeitgebundene Termine benötigen einen eindeutigen UTC-Offset")
+        if self.end is not None and self.start is not None and self.end <= self.start:
+            raise ValueError("Terminende muss nach dem Beginn liegen")
         return self
 
 

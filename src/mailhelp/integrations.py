@@ -2,6 +2,7 @@
 from __future__ import annotations
 from typing import Any, Callable, Protocol
 import time, traceback
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from .models import Proposal, ProposalKind, ProposalStatus
@@ -78,10 +79,14 @@ def _with_external_result(proposal: Proposal, result: dict[str, Any]) -> Proposa
 
 
 class HttpWriter:
-    def __init__(self, service: str, token: str, target: str, timeout: float = 30, transport: httpx.BaseTransport | None = None, policy: RetryPolicy | None = None, logger: EventLogger | None = None):
+    def __init__(self, service: str, token: str, target: str, timeout: float = 30, transport: httpx.BaseTransport | None = None, policy: RetryPolicy | None = None, logger: EventLogger | None = None, calendar_timezone: str | None = None):
         if service not in {"todoist", "google_calendar"}: raise ValueError("Unbekannter Dienst")
+        if service == "google_calendar":
+            if calendar_timezone is None: raise ValueError("Google Kalender benötigt die konfigurierte IANA-Zeitzone")
+            try: ZoneInfo(calendar_timezone)
+            except (ZoneInfoNotFoundError, ValueError) as exc: raise ValueError("Unbekannte IANA-Zeitzone für Google Kalender") from exc
         base = "https://api.todoist.com/rest/v2" if service == "todoist" else "https://www.googleapis.com/calendar/v3"
-        self.service, self.target, self.client = service, target, httpx.Client(base_url=base, headers={"Authorization": f"Bearer {token}"}, timeout=timeout, transport=transport)
+        self.service, self.target, self.calendar_timezone, self.client = service, target, calendar_timezone, httpx.Client(base_url=base, headers={"Authorization": f"Bearer {token}"}, timeout=timeout, transport=transport)
         self.policy = policy or RetryPolicy(0, 0, 0, lambda _delay: False)
         self.logger = logger or NullLogger()
 
@@ -105,7 +110,7 @@ class HttpWriter:
             if proposal.due: body["due_datetime"] = proposal.due.isoformat()
         else:
             if proposal.kind != ProposalKind.EVENT: raise ValueError("Kalender akzeptiert nur Termine")
-            url, body = f"/calendars/{self.target}/events", {"summary": proposal.title, "description": proposal.description, "start": {"dateTime": proposal.start.isoformat()}, "end": {"dateTime": proposal.end.isoformat()}, "extendedProperties": {"private": {"mailhelp_key": key}}}
+            url, body = f"/calendars/{self.target}/events", self._calendar_event_body(proposal, key)
         started = time.perf_counter()
         try:
             response = uncertain_write(lambda: self._post(url, body, key))
@@ -119,6 +124,26 @@ class HttpWriter:
         self.logger.event("INFO", self.service, "create_completed", call_id=key, mail_id=proposal.source_mail_id,
                           proposal_id=proposal.id, duration_ms=round((time.perf_counter()-started)*1000, 3), status=response.status_code)
         return result.model_dump()
+
+    def _calendar_event_body(self, proposal: Proposal, key: str) -> dict[str, Any]:
+        # Revalidate at the external trust boundary; model_copy() can otherwise
+        # construct an inconsistent proposal without running model validators.
+        validated = Proposal.model_validate(proposal.model_dump())
+        interval = self._all_day_interval(validated) if validated.all_day else self._timed_interval(validated)
+        return {"summary": validated.title, "description": validated.description, **interval,
+                "extendedProperties": {"private": {"mailhelp_key": key}}}
+
+    @staticmethod
+    def _all_day_interval(proposal: Proposal) -> dict[str, Any]:
+        # Google interprets end.date as exclusive: a one-day event therefore
+        # has end equal to the calendar day after start.
+        return {"start": {"date": proposal.start.isoformat()}, "end": {"date": proposal.end.isoformat()}}
+
+    def _timed_interval(self, proposal: Proposal) -> dict[str, Any]:
+        return {
+            "start": {"dateTime": proposal.start.isoformat(), "timeZone": self.calendar_timezone},
+            "end": {"dateTime": proposal.end.isoformat(), "timeZone": self.calendar_timezone},
+        }
 
     @staticmethod
     def _validate_list(response: httpx.Response, model: type[IntegrationModel], operation: str) -> list[IntegrationModel]:

@@ -1,6 +1,6 @@
 from __future__ import annotations
 import json
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 import httpx, pytest
 from mailhelp.analysis import Analyzer, LlmSchemaValidationExceeded
@@ -104,9 +104,25 @@ def test_integrations():
     with pytest.raises(ValueError): HttpWriter("todoist","x","p",transport=httpx.MockTransport(handler)).create(proposal(kind="event",start=now,end=now.replace(year=now.year+1)),"k")
     event=proposal(kind="event",start=now,end=now.replace(year=now.year+1),status="confirmed")
     def cal_handler(req): return httpx.Response(200,json=({"id":"x"} if req.method=="POST" else {"items":[]}),request=req)
-    cal=HttpWriter("google_calendar","x","primary",transport=httpx.MockTransport(cal_handler)); assert cal.reconcile("k") is None; cal.create(event,"k"); cal.close()
-    foundcal=HttpWriter("google_calendar","x","p",transport=httpx.MockTransport(mock_response(data={"items":[{"id":"e"}]}))); assert foundcal.reconcile("k")["id"]=="e"
-    with pytest.raises(ValueError): HttpWriter("google_calendar","x","p",transport=httpx.MockTransport(handler)).create(p,"k")
+    cal=HttpWriter("google_calendar","x","primary",transport=httpx.MockTransport(cal_handler),calendar_timezone="UTC"); assert cal.reconcile("k") is None; cal.create(event,"k"); cal.close()
+    foundcal=HttpWriter("google_calendar","x","p",transport=httpx.MockTransport(mock_response(data={"items":[{"id":"e"}]})),calendar_timezone="UTC"); assert foundcal.reconcile("k")["id"]=="e"
+    with pytest.raises(ValueError): HttpWriter("google_calendar","x","p",transport=httpx.MockTransport(handler),calendar_timezone="UTC").create(p,"k")
+
+
+def test_calendar_payloads_separate_timed_and_all_day_intervals():
+    payloads=[]
+    def handler(request):
+        payloads.append(json.loads(request.content))
+        return httpx.Response(200,json={"id":"event"},request=request)
+    writer=HttpWriter("google_calendar","x","primary",transport=httpx.MockTransport(handler),calendar_timezone="Europe/Berlin")
+    writer.create(proposal(kind="event",status="confirmed",start="2026-05-10T10:00:00+02:00",end="2026-05-10T11:00:00+02:00"),"timed")
+    writer.create(proposal(kind="event",status="confirmed",all_day=True,start=date(2026,5,10),end=date(2026,5,11)),"all-day")
+    assert payloads[0]["start"] == {"dateTime":"2026-05-10T10:00:00+02:00","timeZone":"Europe/Berlin"}
+    assert payloads[0]["end"] == {"dateTime":"2026-05-10T11:00:00+02:00","timeZone":"Europe/Berlin"}
+    assert payloads[1]["start"] == {"date":"2026-05-10"}
+    assert payloads[1]["end"] == {"date":"2026-05-11"}  # exclusive
+    assert "date" not in payloads[0]["start"] and "dateTime" not in payloads[1]["start"]
+    writer.close()
 
 
 class AnalyzerStub:

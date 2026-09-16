@@ -1,3 +1,5 @@
+# IANA-Zeitzone für zeitgebundene Google-Calendar-Termine; Zeitwerte selbst
+# müssen zusätzlich einen eindeutigen UTC-Offset enthalten.
 timezone: Europe/Berlin
 poll_interval_seconds: 60
 test_mode: true
