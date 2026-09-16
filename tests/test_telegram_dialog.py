@@ -204,12 +204,13 @@ class RelevanceHandler:
         if dialog is None or dialog.version != version or dialog.status.value != "open":
             raise ValueError("Die Relevanzfrage ist veraltet oder bereits beantwortet")
         state.relevance_dialog=dialog.model_copy(update={"status":RelevanceDialogStatus.DECIDED,"decision":decision,"telegram_offset":offset})
+        state.awaiting_relevance=False
         self.store.save("mail-"+mail_id,state.model_dump(mode="json")); return state
     def resume_mail(self,state): self.resumed.append(state.id)
 
 
 def relevance_state(mail_id, version=1):
-    return MailState(id=mail_id,imap={"folder":"INBOX","uidvalidity":1,"uid":1},relevance_dialog=RelevanceDialog(mail_id=mail_id,version=version))
+    return MailState(id=mail_id,imap={"folder":"INBOX","uidvalidity":1,"uid":1},awaiting_relevance=True,relevance_dialog=RelevanceDialog(mail_id=mail_id,version=version))
 
 
 def test_relevance_dialog_authorization_stale_restart_and_duplicate(tmp_path):
@@ -224,7 +225,7 @@ def test_relevance_dialog_authorization_stale_restart_and_duplicate(tmp_path):
         assert "Nicht autorisierte" in t.answered[0][1] and "veraltet" in t.answered[1][1]
         assert handler.resumed==[mail_id] and store.load("mail-"+mail_id)["relevance_dialog"]["telegram_offset"]==4
         restarted,t2,_=controller(store,[callback(3,f"relevance:{mail_id}:1:irrelevant")]); restarted.relevance_handler=handler
-        restarted.poll_once(); assert t2.polls==[4] and not t2.answered
+        restarted.poll_once(); assert t2.polls==[4] and "bereits verarbeitet" in t2.answered[-1][1]
         t2.updates=[callback(4,f"relevance:{mail_id}:1:irrelevant")]; restarted.poll_once()
         assert "bereits beantwortet" in t2.answered[-1][1]
 
@@ -235,7 +236,7 @@ def test_relevance_free_text_requires_unique_open_dialog(tmp_path):
         for mail_id in ids: store.save("mail-"+mail_id,relevance_state(mail_id).model_dump(mode="json"))
         c,t,_=controller(store,[message(1,"relevant")]); c.relevance_handler=RelevanceHandler(store); c.poll_once()
         assert "nicht eindeutig" in t.sent[-1][1]
-        state=store.load_model("mail-"+ids[1],MailState); state.relevance_dialog=None
+        state=store.load_model("mail-"+ids[1],MailState); state.relevance_dialog=None; state.awaiting_relevance=False
         store.save("mail-"+ids[1],state.model_dump(mode="json"))
         t.updates=[message(2,"irrelevant")]; c.poll_once()
         assert store.load("mail-"+ids[0])["relevance_dialog"]["decision"]=="irrelevant"
@@ -249,3 +250,21 @@ def test_invalid_relevance_callbacks_and_unavailable_handler(tmp_path):
         c.poll_once()
         assert "syntaktisch" in t.answered[0][1] and "nicht verfügbar" in t.answered[1][1]
         assert "nicht verfügbar" in t.sent[-1][1]
+
+
+def test_duplicate_free_text_is_visible_only_to_authorized_chat(tmp_path):
+    mail_id="a"*24
+    with JsonStore(tmp_path) as store:
+        state=relevance_state(mail_id)
+        state.relevance_dialog=state.relevance_dialog.model_copy(update={"status":RelevanceDialogStatus.DECIDED,"decision":"relevant","telegram_offset":3})
+        state.awaiting_relevance=False
+        store.save("mail-"+mail_id,state.model_dump(mode="json"))
+        c,t,_=controller(store,[message(2,"relevant"),message(2,"relevant",user=9)])
+        c.poll_once()
+        assert t.polls==[3]
+        assert [text for _,text,_ in t.sent]==["Diese Relevanzantwort wurde bereits verarbeitet."]
+
+        # Even a replay is schema-validated before any raw Telegram fields are used.
+        t.updates=[{"update_id":2,"message":{"private":"not trusted"}}]
+        c.poll_once()
+        assert [text for _,text,_ in t.sent]==["Diese Relevanzantwort wurde bereits verarbeitet."]
