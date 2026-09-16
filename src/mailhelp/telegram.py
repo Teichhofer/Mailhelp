@@ -445,10 +445,14 @@ class TelegramDialogController:
             link = f" {changed.external_link}" if changed.external_link else ""
             text = f"Erstellt: „{proposal.title}“{details}.{link}"
         elif changed.status == ProposalStatus.UNCERTAIN:
-            text = f"Unklarer Schreiberfolg bei „{proposal.title}“; vor einem neuen Versuch wird abgeglichen."
+            if changed.uncertain_notified:
+                return
+            text = f"Unklarer Schreiberfolg bei „{proposal.title}“; wird weiter abgeglichen und nicht automatisch wiederholt."
         else:
             text = f"Erstellen von „{proposal.title}“ fehlgeschlagen."
         self.telegram.send(self.chat_id, text)
+        if changed.status == ProposalStatus.UNCERTAIN:
+            self.persist(changed.model_copy(update={"uncertain_notified": True}))
 
     def _resume_writes(self) -> None:
         names = getattr(self.store, "names", None)

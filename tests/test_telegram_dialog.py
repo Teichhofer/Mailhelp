@@ -234,9 +234,11 @@ def test_restart_reconciles_before_retry_and_duplicate_update_is_safe(tmp_path):
         assert t2.polls==[2]
 
     with JsonStore(tmp_path/"writing") as store:
-        c,t,_=controller(store,(),{"todoist":Writer()})
+        interrupted=Writer()
+        c,t,_=controller(store,(),{"todoist":interrupted})
         c.persist(proposal(status="writing")); c.poll_once()
         assert store.load("proposal-p1")["status"]=="uncertain"
+        assert interrupted.reconciled == 1 and interrupted.created == 0
 
     class MinimalStore:
         def __init__(self): self.values={}
@@ -246,6 +248,35 @@ def test_restart_reconciles_before_retry_and_duplicate_update_is_safe(tmp_path):
             value=self.load(name)
             return default if value is None else model.model_validate(value)
     minimal=MinimalStore(); c,_,_=controller(minimal); c.poll_once()
+
+
+def test_uncertain_write_is_only_reconciled_across_restarts(tmp_path):
+    with JsonStore(tmp_path) as store:
+        failed=Writer(error=httpx.ConnectError("lost"))
+        initial,telegram,_=controller(
+            store,[callback(1,"proposal:p1:1:confirm")],{"todoist":failed})
+        initial.persist(proposal()); initial.poll_once()
+        assert failed.created == 1
+        assert store.load("proposal-p1")["status"] == "uncertain"
+        assert store.load("proposal-p1")["uncertain_notified"] is True
+        assert len([text for _,text,_ in telegram.sent if "Unklarer" in text]) == 1
+
+        unresolved=Writer()
+        for _ in range(3):
+            restarted,messages,_=controller(store,(),{"todoist":unresolved})
+            restarted.poll_once()
+            assert not messages.sent
+        assert unresolved.reconciled == 3
+        assert unresolved.created == 0
+        assert store.load("proposal-p1")["status"] == "uncertain"
+
+        unresolved.found={"id":"eventual","url":"https://example.test/eventual"}
+        recovered,messages,_=controller(store,(),{"todoist":unresolved})
+        recovered.poll_once()
+        assert unresolved.reconciled == 4
+        assert unresolved.created == 0
+        assert store.load("proposal-p1")["status"] == "created"
+        assert "Erstellt" in messages.sent[-1][1]
 
 
 class RelevanceHandler:

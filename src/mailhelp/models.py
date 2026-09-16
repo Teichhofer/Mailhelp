@@ -112,6 +112,7 @@ class Proposal(StrictModel):
     status: ProposalStatus = ProposalStatus.PENDING_CONFIRMATION
     external_id: str | None = Field(default=None, max_length=500)
     external_link: str | None = Field(default=None, max_length=2000)
+    uncertain_notified: bool = False
 
     @model_validator(mode="after")
     def complete_event(self) -> "Proposal":

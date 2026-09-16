@@ -88,10 +88,15 @@ def test_integrations():
     assert execute_confirmed(p,Writer(),saved.append)[0].status == ProposalStatus.CREATED
     assert execute_confirmed(p,Writer(error=httpx.ReadTimeout("x")),saved.append)[0].status == ProposalStatus.UNCERTAIN
     writing=proposal(status="writing")
-    assert execute_confirmed(writing,Writer(),saved.append)[0].status == ProposalStatus.UNCERTAIN
+    interrupted_writer=Writer()
+    assert execute_confirmed(writing,interrupted_writer,saved.append)[0].status == ProposalStatus.UNCERTAIN
+    assert interrupted_writer.created == 0
     assert execute_confirmed(writing,Writer({"id":"late","htmlLink":"https://event"}),saved.append)[0].external_link == "https://event"
     uncertain=proposal(status="uncertain")
-    assert execute_confirmed(uncertain,Writer(),saved.append)[0].status == ProposalStatus.CREATED
+    uncertain_writer=Writer()
+    assert execute_confirmed(uncertain,uncertain_writer,saved.append)[0].status == ProposalStatus.UNCERTAIN
+    assert uncertain_writer.created == 0
+    assert execute_confirmed(uncertain,Writer({"id":"late"}),saved.append)[0].status == ProposalStatus.CREATED
     response=httpx.Response(400, request=httpx.Request("POST", "https://example.test"))
     assert execute_confirmed(p,Writer(error=httpx.HTTPStatusError("bad", request=response.request, response=response)),saved.append)[0].status == ProposalStatus.FAILED
     assert ProposalStatus.WRITING in [item.status for item in saved]
