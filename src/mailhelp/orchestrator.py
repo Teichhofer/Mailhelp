@@ -14,7 +14,7 @@ from .analysis import Analyzer
 from .config import Topic
 from .imap import FetchedMail
 from .mime import prepare
-from .models import MailState, Proposal
+from .models import MailState, Proposal, Relevance, RelevanceDialog, RelevanceDialogStatus
 from .storage import JsonStore
 from .openrouter import RateLimitExceeded
 from .logging import EventLogger, NullLogger
@@ -23,6 +23,7 @@ from .logging import EventLogger, NullLogger
 class Notifier(Protocol):
     def send(self, chat_id: int, text: str) -> None: ...
     def send_proposal(self, proposal: Any) -> None: ...
+    def send_relevance(self, dialog: RelevanceDialog) -> None: ...
 
 
 class ProcessingOutcome(StrEnum):
@@ -59,6 +60,30 @@ class Orchestrator:
         self.store.save(name, state.model_dump(mode="json"))
         self.logger.event("DEBUG", "orchestrator", "state_persisted", mail_id=state.id,
                           state=state.steps.model_dump(mode="json"))
+
+    def resolve_relevance(self, mail_id: str, version: int, decision: str, telegram_offset: int) -> MailState:
+        name = f"mail-{mail_id}"
+        state = self.store.load_model(name, MailState)
+        if not isinstance(state, MailState) or state.relevance_dialog is None:
+            raise ValueError("Relevanzfrage wurde nicht gefunden")
+        dialog = state.relevance_dialog
+        if dialog.mail_id != mail_id or dialog.version != version or dialog.status != RelevanceDialogStatus.OPEN:
+            raise ValueError("Die Relevanzfrage ist veraltet oder bereits beantwortet")
+        if decision not in {"relevant", "irrelevant"}:
+            raise ValueError("Ungültige Relevanzentscheidung")
+        state.relevance = Relevance(decision=decision, reason="Telegram-Entscheidung")
+        state.awaiting_relevance = False
+        state.relevance_dialog = dialog.model_copy(update={"status": RelevanceDialogStatus.DECIDED, "decision": decision, "telegram_offset": telegram_offset})
+        if decision == "irrelevant":
+            state.steps.summary = state.steps.action_detection = state.steps.notification = "skipped"
+            state.steps.completion = "completed"
+        else:
+            state.steps.notification = "pending"
+        self._save(name, state)
+        return state
+
+    def resume_mail(self, state: MailState) -> ProcessingResult:
+        return self.process(FetchedMail(state.imap.folder, state.imap.uidvalidity, state.imap.uid, b""))
 
     def process(self, fetched: FetchedMail) -> ProcessingResult:
         identity = f"{fetched.folder}:{fetched.uidvalidity}:{fetched.uid}"
@@ -101,9 +126,11 @@ class Orchestrator:
                 state.steps.notification = "skipped"
             elif state.relevance.decision == "unclear":
                 if state.steps.notification == "pending":
-                    self.notifier.send(self.chat_id, f"Unklare Relevanz: {state.mail['headers']['subject']}")
-                    state.steps.notification = "completed"
+                    state.relevance_dialog = RelevanceDialog(mail_id=state.id)
                     state.awaiting_relevance = True
+                    self._save(name, state)
+                    self.notifier.send_relevance(state.relevance_dialog)
+                    state.steps.notification = "completed"
                     self._save(name, state)
                     self.logger.event("INFO", "orchestrator", "notification_completed", mail_id=state.id)
                 return ProcessingResult(ProcessingOutcome.WAITING, state.model_dump(mode="json"))

@@ -182,6 +182,7 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch):
     topic=[Topic(id="x",name="x",enabled=True,description="x")]
     with build_application(cfg,sec,topic,prompt_config(),tmp_path) as made:
         assert made.todoist and (tmp_path/"data/.lock").exists()
+        assert made.dialog.relevance_handler is made.orchestrator
     assert len(closed)==5 and not (tmp_path/"data/.lock").exists()
 
     cfg.data_directory=Path("relative"); cfg.logging.directory=Path("relative-logs")

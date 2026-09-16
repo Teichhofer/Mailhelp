@@ -29,7 +29,7 @@ Nur Transportfehler sowie HTTP 408, 425, 429, 500, 502, 503 und 504 werden bei l
 ## Betrieb und Sicherheit
 
 * IMAP wird im Nur-Lese-Modus mit `BODY.PEEK[]` gelesen; UIDVALIDITY und UID bilden die technische Identität.
-* Der JSON-Zustand wird atomar ersetzt und durch eine Einzelinstanz-Sperre geschützt. Syntaktisch beschädigte Dateien werden als `.corrupt`, schemawidrige Dateien als `.invalid` isoliert; Meldungen nennen Datei und Schlüsselpfad, nicht den Inhalt. Mailzustände (Schema 2), Abrufpositionen, Telegram-Dialoge und Vorschläge (Schema 1) werden vor jeder Verwendung validiert.
+* Der JSON-Zustand wird atomar ersetzt und durch eine Einzelinstanz-Sperre geschützt. Syntaktisch beschädigte Dateien werden als `.corrupt`, schemawidrige Dateien als `.invalid` isoliert; Meldungen nennen Datei und Schlüsselpfad, nicht den Inhalt. Mailzustände (Schema 3), Abrufpositionen, Telegram-Dialoge und Vorschläge (Schema 1) werden vor jeder Verwendung validiert.
 * OpenRouter-, Telegram-, Todoist- und Google-Calendar-Antworten werden nach HTTP-Erfolg strikt auf JSON-Struktur, Pflichtfelder und IDs geprüft. LLM-Antworten werden strikt gegen feste Pydantic-Schemata validiert. Reservierte OpenRouter-Felder können nicht über YAML überschrieben werden.
 * Externe Aktionen verlangen eine Persistenzfunktion: `writing` wird vor dem API-Aufruf dauerhaft gespeichert. Unklare Resultate werden als `uncertain` angehalten; vor einem neuen Versuch suchen die Adapter nach dem versionsbezogenen Idempotenzschlüssel.
 * Jede Mail besitzt die schema-validierten Schritte `preparation`, `relevance`,
@@ -71,6 +71,15 @@ gespeichert. `Bestätigen`, `Ändern` und `Verwerfen` werden getrennt behandelt,
 während veraltete oder fehlerhafte Schaltflächen keinen Zustand verändern.
 Antworten auf Rückfragen erzeugen eine neue, erneut zu bestätigende Version.
 Lange Vorschläge tragen in jedem Teil Mail-ID, Vorschlags-ID und Teilnummer.
+Unklare Relevanz wird vor dem Senden als schema-versionierter Dialog direkt im
+Mailzustand gespeichert. Die Telegram-Auswahl enthält nur stabile interne Mail-ID,
+Dialogversion und `relevant` beziehungsweise `irrelevant`; Mailtext wird nicht in
+Callback-Daten übernommen. Entscheidung und verarbeiteter Telegram-Offset stehen
+atomar im selben Mailzustand. Freitext wird nur bei genau einem offenen
+Relevanzdialog zugeordnet, veraltete und doppelte Antworten werden sichtbar
+abgelehnt. `relevant` setzt die Verarbeitung bei Zusammenfassung und
+Aktionserkennung fort; `irrelevant` markiert diese Schritte und die Benachrichtigung
+als `skipped` sowie den Abschluss als `completed`.
 
 ## Docker
 

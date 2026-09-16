@@ -7,7 +7,7 @@ from typing import Any, Protocol
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
-from .models import Proposal, ProposalStatus, TelegramDialogState, TelegramOffset
+from .models import MailState, Proposal, ProposalStatus, RelevanceDialog, RelevanceDialogStatus, TelegramDialogState, TelegramOffset
 from .integrations import ExternalWriter, execute_confirmed
 from .adapter import RetryPolicy, uncertain_write
 from .storage import JsonStore
@@ -83,6 +83,22 @@ class DecisionAction(StrEnum):
     CONFIRM = "confirm"
     EDIT = "edit"
     REJECT = "reject"
+
+
+class RelevanceDecision(TelegramModel):
+    mail_id: str = Field(pattern=r"^[a-f0-9]{24}$")
+    version: int = Field(ge=1)
+    decision: str = Field(pattern=r"^(relevant|irrelevant)$")
+
+    def encode(self) -> str:
+        return f"relevance:{self.mail_id}:{self.version}:{self.decision}"
+
+    @classmethod
+    def parse(cls, value: str) -> "RelevanceDecision":
+        parts = value.split(":")
+        if len(parts) != 4 or parts[0] != "relevance" or not parts[2].isascii() or not parts[2].isdigit():
+            raise ValueError("Ungültige Relevanzentscheidung")
+        return cls(mail_id=parts[1], version=int(parts[2]), decision=parts[3])
 
 
 class Decision(TelegramModel):
@@ -216,6 +232,14 @@ class TelegramDialogController:
     def __init__(self, store: JsonStore, telegram: TelegramTransport, user_id: int, chat_id: int, logger: EventLogger, writers: dict[str, ExternalWriter] | None = None, test_mode: bool = False):
         self.store, self.telegram, self.user_id, self.chat_id, self.logger = store, telegram, user_id, chat_id, logger
         self.writers, self.test_mode = writers or {}, test_mode
+        self.relevance_handler: Any = None
+
+    def send_relevance(self, dialog: RelevanceDialog) -> None:
+        buttons = [[
+            {"text": "Relevant", "callback_data": RelevanceDecision(mail_id=dialog.mail_id, version=dialog.version, decision="relevant").encode()},
+            {"text": "Irrelevant", "callback_data": RelevanceDecision(mail_id=dialog.mail_id, version=dialog.version, decision="irrelevant").encode()},
+        ]]
+        self.telegram.send(self.chat_id, f"Relevanz für Mail {dialog.mail_id} auswählen:", {"inline_keyboard": buttons})
 
     @staticmethod
     def _proposal_name(proposal_id: str) -> str:
@@ -255,7 +279,7 @@ class TelegramDialogController:
         self._resume_writes()
         offset_state = self.store.load_model("telegram-offset", TelegramOffset, TelegramOffset())
         assert isinstance(offset_state, TelegramOffset)
-        offset = offset_state.offset
+        offset = max(offset_state.offset, self._durable_dialog_offset())
         for raw in self.telegram.poll(offset):
             raw_id = raw.get("update_id") if isinstance(raw, dict) else None
             if not isinstance(raw_id, int) or isinstance(raw_id, bool) or raw_id < offset:
@@ -277,6 +301,14 @@ class TelegramDialogController:
             if not self._authorized(callback.sender.id, callback.message.chat.id):
                 self.telegram.answer_callback(callback.id, "Nicht autorisierte Aktion.")
                 return
+            if callback.data.startswith("relevance:"):
+                try:
+                    relevance = RelevanceDecision.parse(callback.data)
+                except (ValueError, ValidationError):
+                    self.telegram.answer_callback(callback.id, "Relevanzantwort ist syntaktisch ungültig.")
+                    return
+                self._decide_relevance(callback.id, relevance, update.update_id + 1)
+                return
             try:
                 decision = Decision.parse(callback.data)
             except (ValueError, ValidationError):
@@ -289,7 +321,49 @@ class TelegramDialogController:
         if not self._authorized(message.sender.id, message.chat.id):
             self.logger.event("WARNING", "telegram", "unauthorized_update", update_id=update.update_id)
             return
+        normalized = message.text.strip().lower()
+        if normalized in {"relevant", "irrelevant"}:
+            dialogs = self._open_relevance_dialogs()
+            if len(dialogs) != 1:
+                self.telegram.send(self.chat_id, "Freitext ist nicht eindeutig zuordenbar; bitte die Schaltfläche der gewünschten Mail verwenden.")
+                return
+            dialog = dialogs[0]
+            self._decide_relevance(None, RelevanceDecision(mail_id=dialog.mail_id, version=dialog.version, decision=normalized), update.update_id + 1)
+            return
         self._answer(message.text)
+
+    def _all_relevance_dialogs(self) -> list[RelevanceDialog]:
+        result = []
+        for name in self.store.names("mail-") if hasattr(self.store, "names") else []:
+            state = self.store.load_model(name, MailState)
+            if isinstance(state, MailState) and state.relevance_dialog is not None:
+                result.append(state.relevance_dialog)
+        return result
+
+    def _open_relevance_dialogs(self) -> list[RelevanceDialog]:
+        return [item for item in self._all_relevance_dialogs() if item.status == RelevanceDialogStatus.OPEN]
+
+    def _durable_dialog_offset(self) -> int:
+        return max((item.telegram_offset or 0 for item in self._all_relevance_dialogs()), default=0)
+
+    def _decide_relevance(self, callback_id: str | None, decision: RelevanceDecision, offset: int) -> None:
+        try:
+            if self.relevance_handler is None:
+                raise ValueError("Relevanzverarbeitung ist nicht verfügbar")
+            state = self.relevance_handler.resolve_relevance(decision.mail_id, decision.version, decision.decision, offset)
+        except ValueError as exc:
+            if callback_id is None:
+                self.telegram.send(self.chat_id, str(exc))
+            else:
+                self.telegram.answer_callback(callback_id, str(exc))
+            return
+        text = f"Mail als {decision.decision} eingestuft."
+        if callback_id is None:
+            self.telegram.send(self.chat_id, text)
+        else:
+            self.telegram.answer_callback(callback_id, text)
+        if decision.decision == "relevant":
+            self.relevance_handler.resume_mail(state)
 
     def _authorized(self, user_id: int, chat_id: int) -> bool:
         return (user_id, chat_id) == (self.user_id, self.chat_id)

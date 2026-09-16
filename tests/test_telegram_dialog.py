@@ -4,7 +4,8 @@ import httpx
 import pytest
 from pydantic import ValidationError
 
-from mailhelp.models import Proposal, ProposalStatus
+from mailhelp.models import MailState, Proposal, ProposalStatus, RelevanceDialog, RelevanceDialogStatus
+from mailhelp.orchestrator import Orchestrator
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import (
     Decision,
@@ -193,3 +194,58 @@ def test_restart_reconciles_before_retry_and_duplicate_update_is_safe(tmp_path):
             value=self.load(name)
             return default if value is None else model.model_validate(value)
     minimal=MinimalStore(); c,_,_=controller(minimal); c.poll_once()
+
+
+class RelevanceHandler:
+    def __init__(self, store): self.store=store; self.resumed=[]
+    def resolve_relevance(self, mail_id, version, decision, offset):
+        state=self.store.load_model("mail-"+mail_id,MailState)
+        dialog=state.relevance_dialog
+        if dialog is None or dialog.version != version or dialog.status.value != "open":
+            raise ValueError("Die Relevanzfrage ist veraltet oder bereits beantwortet")
+        state.relevance_dialog=dialog.model_copy(update={"status":RelevanceDialogStatus.DECIDED,"decision":decision,"telegram_offset":offset})
+        self.store.save("mail-"+mail_id,state.model_dump(mode="json")); return state
+    def resume_mail(self,state): self.resumed.append(state.id)
+
+
+def relevance_state(mail_id, version=1):
+    return MailState(id=mail_id,imap={"folder":"INBOX","uidvalidity":1,"uid":1},relevance_dialog=RelevanceDialog(mail_id=mail_id,version=version))
+
+
+def test_relevance_dialog_authorization_stale_restart_and_duplicate(tmp_path):
+    mail_id="a"*24
+    with JsonStore(tmp_path) as store:
+        store.save("mail-"+mail_id,relevance_state(mail_id).model_dump(mode="json"))
+        updates=[callback(1,f"relevance:{mail_id}:1:relevant",user=9),callback(2,f"relevance:{mail_id}:2:relevant"),callback(3,f"relevance:{mail_id}:1:relevant")]
+        c,t,_=controller(store,updates); handler=RelevanceHandler(store); c.relevance_handler=handler
+        c.send_relevance(RelevanceDialog(mail_id=mail_id))
+        assert mail_id in t.sent[-1][1] and "relevant" in t.sent[-1][2]["inline_keyboard"][0][0]["callback_data"]
+        c.poll_once()
+        assert "Nicht autorisierte" in t.answered[0][1] and "veraltet" in t.answered[1][1]
+        assert handler.resumed==[mail_id] and store.load("mail-"+mail_id)["relevance_dialog"]["telegram_offset"]==4
+        restarted,t2,_=controller(store,[callback(3,f"relevance:{mail_id}:1:irrelevant")]); restarted.relevance_handler=handler
+        restarted.poll_once(); assert t2.polls==[4] and not t2.answered
+        t2.updates=[callback(4,f"relevance:{mail_id}:1:irrelevant")]; restarted.poll_once()
+        assert "bereits beantwortet" in t2.answered[-1][1]
+
+
+def test_relevance_free_text_requires_unique_open_dialog(tmp_path):
+    ids=["a"*24,"b"*24]
+    with JsonStore(tmp_path) as store:
+        for mail_id in ids: store.save("mail-"+mail_id,relevance_state(mail_id).model_dump(mode="json"))
+        c,t,_=controller(store,[message(1,"relevant")]); c.relevance_handler=RelevanceHandler(store); c.poll_once()
+        assert "nicht eindeutig" in t.sent[-1][1]
+        state=store.load_model("mail-"+ids[1],MailState); state.relevance_dialog=None
+        store.save("mail-"+ids[1],state.model_dump(mode="json"))
+        t.updates=[message(2,"irrelevant")]; c.poll_once()
+        assert store.load("mail-"+ids[0])["relevance_dialog"]["decision"]=="irrelevant"
+
+
+def test_invalid_relevance_callbacks_and_unavailable_handler(tmp_path):
+    mail_id="a"*24
+    with JsonStore(tmp_path) as store:
+        store.save("mail-"+mail_id,relevance_state(mail_id).model_dump(mode="json"))
+        c,t,_=controller(store,[callback(1,"relevance:bad"),callback(2,f"relevance:{mail_id}:1:relevant"),message(3,"irrelevant")])
+        c.poll_once()
+        assert "syntaktisch" in t.answered[0][1] and "nicht verfügbar" in t.answered[1][1]
+        assert "nicht verfügbar" in t.sent[-1][1]
