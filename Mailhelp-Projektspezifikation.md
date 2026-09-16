@@ -244,11 +244,17 @@ Der beim ersten Anlegen gespeicherte Fingerprint umfasst `config.yaml`, `prompts
 Vorschläge werden unabhängig vom Abschluss der Mail sowohl als unveränderliche
 Version als auch als aktueller Stand gespeichert. Der Telegram-Dialog stößt einen
 Schreibvorgang ausschließlich nach einer passenden, aktuellen Versionsbestätigung an.
-Nach Neustarts werden `confirmed`, `writing` und `uncertain` wiederaufgenommen. Vor
-jedem erneuten Versuch wird der versionsbezogene Idempotenzschlüssel abgeglichen;
-ein beim Absturz in `writing` verbliebener Vorgang wird ohne eindeutigen Fund zunächst
-`uncertain`. Ergebnisstatus, externe ID und verfügbarer Link werden gespeichert und
-zusammen mit Fehlern, unklaren Ergebnissen und Testmodus-Simulationen gemeldet.
+Nach Neustarts werden `confirmed`, `writing` und `uncertain` wiederaufgenommen. Nur
+`confirmed` darf nach einem ergebnislosen Vorab-Abgleich in `writing` wechseln und den
+ersten Schreibaufruf auslösen. Ein beim Absturz in `writing` verbliebener Vorgang wird
+nach einem ergebnislosen Abgleich `uncertain`. Ein bereits `uncertain`er Vorgang wird
+weiter abgeglichen, aber niemals automatisch erneut geschrieben: Nur ein späterer
+externer Treffer führt zu `created`; ein erneuter Schreibversuch erfordert eine
+ausdrücklich modellierte manuelle Betreiberentscheidung. Ergebnisstatus, externe ID
+und verfügbarer Link werden gespeichert und zusammen mit Fehlern, unklaren Ergebnissen
+und Testmodus-Simulationen gemeldet. Eine dauerhafte Zustandsmarkierung verhindert,
+dass ein unverändert unklarer Vorgang bei jedem Neustart dieselbe Telegram-Meldung
+erzeugt.
 
 Vorgeschlagene Vorschlagszustände sind `needs_clarification`, `pending_confirmation`, `confirmed`, `writing`, `created`, `rejected`, `failed` und `uncertain`. Zustandsübergänge werden zentral geprüft; nur ein bestätigter, vollständiger Vorschlag darf in `writing` wechseln.
 

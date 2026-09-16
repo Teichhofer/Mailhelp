@@ -45,11 +45,16 @@ def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Calla
         created = _with_external_result(proposal, found)
         persist(created)
         return created, found
-    # A restart while an API request was in flight must never blindly repeat it.
-    if proposal.status == ProposalStatus.WRITING:
+    # A request which may already have reached the external service must never
+    # be repeated automatically.  Later reconciliations may still prove that
+    # it succeeded.
+    if proposal.status in {ProposalStatus.WRITING, ProposalStatus.UNCERTAIN}:
         uncertain = proposal.model_copy(update={"status": ProposalStatus.UNCERTAIN})
         persist(uncertain)
         return uncertain, {}
+    # Only this transition is allowed to initiate a new external write.  A
+    # future operator retry therefore needs its own explicit state transition
+    # back to CONFIRMED rather than falling through from UNCERTAIN.
     writing = proposal.model_copy(update={"status": ProposalStatus.WRITING})
     persist(writing)
     try: result = writer.create(writing, key)

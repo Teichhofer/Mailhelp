@@ -40,14 +40,14 @@ geschrieben; Rohprompt und Rohantwort bleiben standardmäßig aus und werden nur
 `include_llm_requests` beziehungsweise `include_llm_responses` unabhängig aktiviert.
 Alle Logfelder durchlaufen eine rekursive Geheimnisbereinigung.
 
-Nur Transportfehler sowie HTTP 408, 425, 429, 500, 502, 503 und 504 werden bei lesenden beziehungsweise idempotenten Zugriffen begrenzt wiederholt. `Retry-After` wird bis zur konfigurierten Backoff-Obergrenze berücksichtigt. Schreibzugriffe werden vorab persistiert und bei Transportfehlern oder vorübergehenden HTTP-Antworten als unklar behandelt; vor einem erneuten Schreiben erfolgt ein Abgleich. Das OpenRouter-Minutenbudget wird im Datenverzeichnis persistiert, bleibt deshalb über Neustarts erhalten und stellt betroffene Mails bis zum nächsten zulässigen Zeitpunkt zurück.
+Nur Transportfehler sowie HTTP 408, 425, 429, 500, 502, 503 und 504 werden bei lesenden beziehungsweise idempotenten Zugriffen begrenzt wiederholt. `Retry-After` wird bis zur konfigurierten Backoff-Obergrenze berücksichtigt. Schreibzugriffe werden vorab persistiert und bei Transportfehlern oder vorübergehenden HTTP-Antworten als unklar behandelt. Ein unklarer Schreibzugriff wird bei Neustarts nur abgeglichen und niemals automatisch erneut geschrieben; dafür wäre eine ausdrückliche Betreiberentscheidung erforderlich. Das OpenRouter-Minutenbudget wird im Datenverzeichnis persistiert, bleibt deshalb über Neustarts erhalten und stellt betroffene Mails bis zum nächsten zulässigen Zeitpunkt zurück.
 
 ## Betrieb und Sicherheit
 
 * IMAP wird im Nur-Lese-Modus mit `BODY.PEEK[]` gelesen; die nicht geheime Konto-ID, Ordner, UIDVALIDITY und UID bilden die technische Identität. Die Konto-ID ist ein gekürzter SHA-256-Hash aus normalisiertem Server, Port und Benutzernamen und trennt auch gleichnamige Ordner verschiedener Konten.
 * Der JSON-Zustand wird atomar ersetzt und durch eine Einzelinstanz-Sperre geschützt. Syntaktisch beschädigte Dateien werden als `.corrupt`, schemawidrige Dateien als `.invalid` isoliert; Meldungen nennen Datei und Schlüsselpfad, nicht den Inhalt. Mailzustände (Schema 3), Abrufpositionen, Telegram-Dialoge und Vorschläge (Schema 1) werden vor jeder Verwendung validiert.
 * OpenRouter-, Telegram-, Todoist- und Google-Calendar-Antworten werden nach HTTP-Erfolg strikt auf JSON-Struktur, Pflichtfelder und IDs geprüft. LLM-Antworten werden strikt gegen feste Pydantic-Schemata validiert. Reservierte OpenRouter-Felder können nicht über YAML überschrieben werden.
-* Externe Aktionen verlangen eine Persistenzfunktion: `writing` wird vor dem API-Aufruf dauerhaft gespeichert. Unklare Resultate werden als `uncertain` angehalten; vor einem neuen Versuch suchen die Adapter nach dem versionsbezogenen Idempotenzschlüssel.
+* Externe Aktionen verlangen eine Persistenzfunktion: `writing` wird vor dem API-Aufruf dauerhaft gespeichert. Unklare Resultate werden als `uncertain` angehalten und nur abgeglichen. Ausschließlich ein externer Treffer überführt sie in `created`; ein neuer Schreibversuch setzt eine ausdrücklich modellierte manuelle Betreiberentscheidung voraus.
 * Jede Mail besitzt die schema-validierten Schritte `preparation`, `relevance`,
   `summary`, `action_detection`, `notification` und `completion`. Nach jedem Schritt
   wird atomar gespeichert; nach einem Neustart laufen ausschließlich ausstehende
@@ -56,7 +56,9 @@ Nur Transportfehler sowie HTTP 408, 425, 429, 500, 502, 503 und 504 werden bei l
 * Vorschläge werden zusätzlich zur Maildatei versionsweise und als aktueller Stand
   gespeichert. Bestätigte Schreibvorgänge werden nach Neustarts wiederaufgenommen;
   externe ID und Link sowie `created`, `failed`, `uncertain` oder eine Testmodus-
-  Simulation werden im konfigurierten Telegram-Chat sichtbar gemeldet.
+  Simulation werden im konfigurierten Telegram-Chat sichtbar gemeldet. Die Meldung
+  eines unverändert unklaren Ergebnisses wird dauerhaft markiert und nicht bei jedem
+  Neustart erneut gesendet.
 * `data_directory` bezeichnet das gemeinsame Stammverzeichnis. Mailhelp verwendet darunter automatisch `test/` bei `test_mode: true` und `production/` bei `test_mode: false`. Beide Namensräume besitzen eine eigene `.lock`-Datei und enthalten jeweils sämtliche IMAP-Checkpoints, Mailzustände, Telegram-Offsets und -Dialoge, Vorschläge, externe Ergebniszustände sowie das persistierte LLM-Zeitfenster. Identische IDs können deshalb nicht zwischen Test- und Produktivbetrieb kollidieren.
 * Im `test_mode` findet kein externer Schreibzugriff statt; Ergebnisse tragen `simulation: true` und der Vorschlag bleibt `confirmed`, statt einen echten Eintrag vorzutäuschen.
 * JSONL-Anwendungs- und LLM-Logs sind getrennt. Rohprompts und Rohantworten sind unabhängig und standardmäßig ausgeschaltet; Geheimnisfelder werden maskiert.
