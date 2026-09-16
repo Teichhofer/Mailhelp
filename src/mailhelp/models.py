@@ -156,3 +156,17 @@ class MailState(StrictModel):
     relevance_dialog: RelevanceDialog | None = None
     error: dict[str, str] | None = None
     deferred_until: datetime | None = None
+
+    @model_validator(mode="after")
+    def consistent_relevance_dialog(self) -> "MailState":
+        """Keep a dialog bound to this mail and its explicit waiting state."""
+        if self.relevance_dialog is None:
+            if self.awaiting_relevance:
+                raise ValueError("Wartende Relevanz benötigt einen Dialog")
+            return self
+        if self.relevance_dialog.mail_id != self.id:
+            raise ValueError("Relevanzdialog gehört nicht zu dieser Mail")
+        is_open = self.relevance_dialog.status == RelevanceDialogStatus.OPEN
+        if self.awaiting_relevance != is_open:
+            raise ValueError("Dialogstatus und wartender Relevanzzustand widersprechen sich")
+        return self

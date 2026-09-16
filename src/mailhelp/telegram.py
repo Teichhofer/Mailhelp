@@ -284,6 +284,8 @@ class TelegramDialogController:
             raw_id = raw.get("update_id") if isinstance(raw, dict) else None
             if not isinstance(raw_id, int) or isinstance(raw_id, bool) or raw_id < offset:
                 self.logger.event("WARNING", "telegram", "invalid_update")
+                if isinstance(raw_id, int) and not isinstance(raw_id, bool) and raw_id < offset:
+                    self._reject_duplicate_relevance(raw)
                 continue
             try:
                 update = TelegramUpdate.model_validate(raw)
@@ -294,6 +296,20 @@ class TelegramDialogController:
             finally:
                 offset = raw_id + 1
                 self.store.save("telegram-offset", TelegramOffset(offset=offset).model_dump())
+
+    def _reject_duplicate_relevance(self, raw: dict[str, Any]) -> None:
+        """Make a replayed relevance answer visible without trusting raw fields."""
+        try:
+            update = TelegramUpdate.model_validate(raw)
+        except ValidationError:
+            return
+        callback = update.callback_query
+        if callback is not None and callback.data.startswith("relevance:") and self._authorized(callback.sender.id, callback.message.chat.id):
+            self.telegram.answer_callback(callback.id, "Diese Relevanzantwort wurde bereits verarbeitet.")
+            return
+        message = update.message
+        if message is not None and message.text.strip().lower() in {"relevant", "irrelevant"} and self._authorized(message.sender.id, message.chat.id):
+            self.telegram.send(self.chat_id, "Diese Relevanzantwort wurde bereits verarbeitet.")
 
     def _handle(self, update: TelegramUpdate) -> None:
         if update.callback_query is not None:

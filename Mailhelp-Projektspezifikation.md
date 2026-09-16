@@ -212,7 +212,7 @@ Die Bereiche `imap`, `telegram`, `targets`, `limits`, `retries`, `timeouts` und 
 
 Der Zustand wird als eingerücktes UTF-8-JSON in einem gemeinsamen Datenverzeichnis gespeichert. Pro Mail existiert eine Datei. Weitere JSON-Dateien speichern Abrufpositionen und nötige Betriebsinformationen. Dateinamen verwenden interne IDs statt Betreff oder Absender.
 
-Maildateien tragen Schemaversion 2; Abrufpositionen, Telegram-Offset/-Dialog und Vorschläge Schemaversion 1. Jede Datei wird vor fachlicher Verwendung validiert. Syntaktisch defekte Dateien werden nach `.corrupt`, schemawidrige nach `.invalid` verschoben und sichtbar mit Dateiname und Schlüsselpfad gemeldet, ohne Inhalte preiszugeben.
+Maildateien tragen Schemaversion 3; Abrufpositionen, Telegram-Offset/-Dialog und Vorschläge Schemaversion 1. Ein offener Relevanzdialog ist über die stabile interne Mail-ID genau seiner Mail zugeordnet; sein Dialogstatus muss zum wartenden Mailzustand passen. Jede Datei wird vor fachlicher Verwendung validiert. Syntaktisch defekte Dateien werden nach `.corrupt`, schemawidrige nach `.invalid` verschoben und sichtbar mit Dateiname und Schlüsselpfad gemeldet, ohne Inhalte preiszugeben.
 
 Eine Maildatei enthält mindestens:
 
