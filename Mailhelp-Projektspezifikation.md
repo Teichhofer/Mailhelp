@@ -212,7 +212,9 @@ Die Bereiche `imap`, `telegram`, `targets`, `limits`, `retries`, `timeouts` und 
 
 Der Zustand wird als eingerücktes UTF-8-JSON in einem gemeinsamen Datenverzeichnis gespeichert. Pro Mail existiert eine Datei. Weitere JSON-Dateien speichern Abrufpositionen und nötige Betriebsinformationen. Dateinamen verwenden interne IDs statt Betreff oder Absender.
 
-Maildateien tragen Schemaversion 3; Abrufpositionen, Telegram-Offset/-Dialog und Vorschläge Schemaversion 1. Ein offener Relevanzdialog ist über die stabile interne Mail-ID genau seiner Mail zugeordnet; sein Dialogstatus muss zum wartenden Mailzustand passen. Jede Datei wird vor fachlicher Verwendung validiert. Syntaktisch defekte Dateien werden nach `.corrupt`, schemawidrige nach `.invalid` verschoben und sichtbar mit Dateiname und Schlüsselpfad gemeldet, ohne Inhalte preiszugeben.
+Maildateien tragen Schemaversion 4; Abrufpositionen, Telegram-Offset/-Dialog und Vorschläge Schemaversion 1. Version 4 ergänzt verpflichtend `created_at`, `updated_at` (jeweils zeitzonenbehaftetes ISO 8601), den 64-stelligen SHA-256-`config_fingerprint` sowie die geschlossenen Listen `validation_errors` und `write_attempts`. Ein Validierungsfehler enthält Stufe, maschinenlesbaren Code, Schlüsselpfad und Zeitpunkt, aber keinen nicht vertrauenswürdigen Inhalt. Eine Schreibreferenz enthält Vorschlags-ID und -Version, Zieldienst und Idempotenzschlüssel; sie verweist nachvollziehbar auf die separat persistierte Vorschlagsversion. Ein offener Relevanzdialog ist über die stabile interne Mail-ID genau seiner Mail zugeordnet; sein Dialogstatus muss zum wartenden Mailzustand passen. Jede Datei wird vor fachlicher Verwendung validiert. Syntaktisch defekte Dateien werden nach `.corrupt`, schemawidrige nach `.invalid` verschoben und sichtbar mit Dateiname und Schlüsselpfad gemeldet, ohne Inhalte preiszugeben.
+
+Die Änderung von Version 3 auf 4 ist bewusst inkompatibel und besitzt keine automatische Migration: Die fehlenden historischen Zeitpunkte, Fingerprints und Schreibreferenzen können nicht zuverlässig rekonstruiert werden. Eine Datei der Version 3 wird deshalb wie jeder alte oder schemawidrige Zustand nach `.invalid` isoliert. Für eine erneute Verarbeitung muss der Betreiber die isolierte Datei sichern, den zugehörigen IMAP-Abrufpunkt kontrolliert zurücksetzen und die Mail unter Version 4 neu einlesen; alternativ kann die Arbeit mit der vorherigen Programmversion abgeschlossen werden.
 
 Eine Maildatei enthält mindestens:
 
@@ -231,6 +233,8 @@ erneut aus. Bei irrelevanten Mails werden Zusammenfassung, Aktionserkennung und
 Benachrichtigung ausdrücklich übersprungen. Bei unklarer Relevanz bleibt der Abschluss
 offen; relevante Mails gelten erst nach Zusammenfassung, Aktionserkennung und
 Benachrichtigung als abgeschlossen.
+
+Der beim ersten Anlegen gespeicherte Fingerprint umfasst `config.yaml`, `prompts.yaml` und `topics.yaml` (keine Geheimnisse). Er wird bei jedem Neustart mit dem aktiven Fingerprint verglichen und niemals stillschweigend ersetzt. Eine noch nicht abgeschlossene Mail mit abweichendem Fingerprint bleibt im Zustand `pending`, wird mit Ergebnis `waiting` übersprungen und erzeugt das strukturierte Ereignis `configuration_changed`; damit werden keine Ergebnisse verschiedener Konfigurationen vermischt. Sie kann nur mit der ursprünglichen Konfiguration fortgesetzt werden oder nach der oben beschriebenen, bewussten Neuverarbeitung neu beginnen. Bereits abgeschlossene Mails bleiben unverändert und dienen weiter der Duplikatvermeidung.
 
 Vorschläge werden unabhängig vom Abschluss der Mail sowohl als unveränderliche
 Version als auch als aktueller Stand gespeichert. Der Telegram-Dialog stößt einen

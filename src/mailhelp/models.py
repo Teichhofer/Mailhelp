@@ -1,7 +1,7 @@
 """Vertrauensgrenze und feste Schemata der Fachlogik."""
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import StrEnum
 from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -163,6 +163,24 @@ class ProcessingError(StrictModel):
     notification_marked_at: datetime | None = None
 
 
+class ValidationIssue(StrictModel):
+    """Content-free, durable description of a rejected validation boundary."""
+
+    stage: ProcessingStage
+    code: str = Field(min_length=1, max_length=100, pattern=r"^[a-z0-9_]+$")
+    path: list[str | int] = Field(default_factory=list, max_length=20)
+    occurred_at: datetime
+
+
+class WriteAttemptReference(StrictModel):
+    """Stable reference from a mail to a separately persisted write generation."""
+
+    proposal_id: str = Field(pattern=r"^[a-zA-Z0-9_-]{1,64}$")
+    proposal_version: int = Field(ge=1)
+    service: Literal["todoist", "google_calendar"]
+    idempotency_key: str = Field(min_length=1, max_length=200)
+
+
 class MailImapIdentity(StrictModel):
     folder: str = Field(min_length=1)
     uidvalidity: int = Field(ge=1)
@@ -170,15 +188,20 @@ class MailImapIdentity(StrictModel):
 
 
 class MailState(StrictModel):
-    schema_version: Literal[3] = 3
+    schema_version: Literal[4] = 4
     id: str = Field(pattern=r"^[a-f0-9]{24}$")
     imap: MailImapIdentity
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    config_fingerprint: str = Field(pattern=r"^[a-f0-9]{64}$")
     steps: ProcessingSteps = Field(default_factory=ProcessingSteps)
     mail: dict[str, Any] | None = None
     relevance: Relevance | None = None
     summary: Summary | None = None
     proposals: list[Proposal] = Field(default_factory=list)
     llm_call_ids: list[str] = Field(default_factory=list)
+    validation_errors: list[ValidationIssue] = Field(default_factory=list)
+    write_attempts: list[WriteAttemptReference] = Field(default_factory=list)
     awaiting_relevance: bool = False
     relevance_dialog: RelevanceDialog | None = None
     error: ProcessingError | None = None
@@ -187,6 +210,13 @@ class MailState(StrictModel):
     @model_validator(mode="after")
     def consistent_relevance_dialog(self) -> "MailState":
         """Keep a dialog bound to this mail and its explicit waiting state."""
+        if self.created_at.tzinfo is None or self.updated_at.tzinfo is None:
+            raise ValueError("Zeitstempel müssen eine Zeitzone enthalten")
+        if self.updated_at < self.created_at:
+            raise ValueError("updated_at darf nicht vor created_at liegen")
+        write_keys = [(item.proposal_id, item.proposal_version, item.service) for item in self.write_attempts]
+        if len(write_keys) != len(set(write_keys)):
+            raise ValueError("Schreibversuche dürfen nicht doppelt referenziert werden")
         if self.relevance_dialog is None:
             if self.awaiting_relevance:
                 raise ValueError("Wartende Relevanz benötigt einen Dialog")
