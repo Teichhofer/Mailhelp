@@ -174,7 +174,9 @@ Unverbindliche Vorschläge, bereits erledigte Aufgaben sowie Änderungen und Abs
   protokolliert. Der Offset wird nach jedem identifizierbaren Update atomar
   gespeichert; ältere oder doppelte Updates werden nach Neustarts ignoriert.
 - Nur konfigurierte Nutzer- und Chat-IDs dürfen Nachrichten erhalten und Aktionen auslösen.
-- Jeder Vorschlag bietet `Bestätigen`, `Ändern` und `Verwerfen`.
+- Vollständige Vorschläge bieten `Bestätigen`, `Ändern` und `Verwerfen`.
+  Vorschläge mit offenen Fragen bieten dagegen ausschließlich `Klären` und
+  `Verwerfen`; erst eine vollständige neue Version erhält eine Bestätigung.
 - Eine Änderung wird einem konkreten Vorschlag zugeordnet. Sind mehrere Vorschläge offen, darf Freitext nicht willkürlich zugeordnet werden.
 - Änderungen können über das LLM interpretiert werden. Der korrigierte Vorschlag muss erneut angezeigt und ausdrücklich bestätigt werden.
 - Bestätigungen gelten nur für die angezeigte Vorschlagsversion. Veraltete Buttons dürfen keine neuere Fassung freigeben.

@@ -94,7 +94,12 @@ Chat darf sie auslösen. Jede angezeigte Version wird vor ihren Schaltflächen
 gespeichert. `Bestätigen`, `Ändern` und `Verwerfen` werden getrennt behandelt,
 während veraltete oder fehlerhafte Schaltflächen keinen Zustand verändern.
 Antworten auf Rückfragen erzeugen eine neue, erneut zu bestätigende Version.
-Lange Vorschläge tragen in jedem Teil Mail-ID, Vorschlags-ID und Teilnummer.
+Die Zusammenfassung nennt Absender, Betreff, zugeordnete Themen, zwei bis vier
+Zusammenfassungssätze, wichtige Fristen und den erkannten Handlungsbedarf. Jeder
+Vorschlag zeigt vor den Schaltflächen alle entscheidungsrelevanten Felder in einer
+festen Reihenfolge; Termine nennen dabei auch die konfigurierte Zeitzone. Lange
+Vorschläge tragen in jedem Teil Mail-ID, Vorschlags-ID und Teilnummer. Solange
+offene Fragen bestehen, werden nur Klären und Verwerfen angeboten.
 Unklare Relevanz wird vor dem Senden als schema-versionierter Dialog direkt im
 Mailzustand gespeichert. Die Telegram-Auswahl enthält nur stabile interne Mail-ID,
 Dialogversion und `relevant` beziehungsweise `irrelevant`; Mailtext wird nicht in

@@ -60,6 +60,25 @@ class Orchestrator:
 
     def stop(self) -> None: self.stop_event.set()
 
+    def _notification_text(self, state: MailState) -> str:
+        """Format only sanitized headers and schema-validated analysis results."""
+        assert state.mail is not None and state.relevance is not None and state.summary is not None
+        headers = state.mail["headers"]
+        topic_names = {topic.id: topic.name for topic in self.topics}
+        topics = ", ".join(topic_names[topic_id] for topic_id in state.relevance.topic_ids) or "Keine"
+        deadlines = "\n".join(f"- {deadline}" for deadline in state.summary.deadlines) or "Keine"
+        sentences = "\n".join(f"- {sentence}" for sentence in state.summary.sentences)
+        action = (f"Ja – {len(state.proposals)} Vorschlag/Vorschläge zur Prüfung."
+                  if state.proposals else "Nein – kein Vorschlag erkannt.")
+        return "\n".join([
+            f"Absender: {headers['from'] or '—'}",
+            f"Betreff: {headers['subject'] or '—'}",
+            f"Themen: {topics}",
+            f"Zusammenfassung:\n{sentences}",
+            f"Wichtige Fristen:\n{deadlines}",
+            f"Handlungsbedarf: {action}",
+        ])
+
     def _save(self, name: str, state: MailState) -> None:
         state.updated_at = datetime.now(timezone.utc)
         self.store.save(name, state.model_dump(mode="json"))
@@ -184,7 +203,7 @@ class Orchestrator:
                 stage = ProcessingStage.NOTIFICATION
                 if state.steps.notification == "pending":
                     assert state.summary is not None
-                    self.notifier.send(self.chat_id, f"{state.mail['headers']['subject']}\n" + " ".join(state.summary.sentences))
+                    self.notifier.send(self.chat_id, self._notification_text(state))
                     for proposal in state.proposals:
                         self.notifier.send_proposal(proposal)
                         self.logger.event("INFO", "orchestrator", "proposal_notified", mail_id=state.id, proposal_id=proposal.id)
