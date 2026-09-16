@@ -148,6 +148,30 @@ class Notify:
     def send_relevance(self,d): self.messages.append(d.mail_id)
 
 
+def test_orchestrator_complete_notification_uses_validated_values(tmp_path):
+    class CompleteAnalyzer(AnalyzerStub):
+        def relevance(self, mail, topics):
+            from mailhelp.models import Relevance
+            return "r", Relevance(decision="relevant", topic_ids=["billing"], reason="yes")
+        def summary(self, mail):
+            from mailhelp.models import Summary
+            return "s", Summary(sentences=["Satz eins.", "Satz zwei."], deadlines=["31.12.2026"])
+        def actions(self, mail):
+            from mailhelp.models import Actions
+            return "a", Actions(proposals=[proposal(source_mail_id="a" * 24)])
+    topic=Topic(id="billing",name="Abrechnung",enabled=True,description="x")
+    raw=b"From: Alice <alice@example.test>\nSubject: Rechnung\n\nBody"
+    notify=Notify()
+    with JsonStore(tmp_path) as store:
+        Orchestrator(CompleteAnalyzer("relevant"),store,notify,1,[topic],1000).process(FetchedMail("INBOX",1,91,raw))
+    summary=notify.messages[0]
+    assert all(value in summary for value in [
+        "Absender: Alice <alice@example.test>", "Betreff: Rechnung", "Themen: Abrechnung",
+        "- Satz eins.", "- Satz zwei.", "Wichtige Fristen:\n- 31.12.2026",
+        "Handlungsbedarf: Ja – 1 Vorschlag/Vorschläge zur Prüfung.",
+    ])
+
+
 def test_orchestrator(tmp_path):
     raw=b"Subject: Test\n\nBody"; mail=FetchedMail("INBOX",1,2,raw); topic=Topic(id="x",name="x",enabled=True,description="x")
     with JsonStore(tmp_path/"a") as store:

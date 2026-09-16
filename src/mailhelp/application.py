@@ -196,6 +196,7 @@ def build_application(settings: Settings, secrets: Secrets, topics: list[Topic],
         dialog = TelegramDialogController(
             store, telegram, settings.telegram.user_id, settings.telegram.chat_id, logger,
             {"todoist": todoist, "google_calendar": calendar}, settings.test_mode,
+            settings.timezone,
         )
         orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics, settings.limits.max_mail_bytes, logger, mime_limits=settings.limits, config_fingerprint=fingerprint)
         dialog.relevance_handler = orchestrator

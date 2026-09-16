@@ -8,7 +8,7 @@ from typing import Any, Protocol
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
-from .models import (MailState, Proposal, ProposalStatus, RelevanceDialog,
+from .models import (MailState, Proposal, ProposalKind, ProposalStatus, RelevanceDialog,
                      RelevanceDialogStatus, TelegramDialogState, TelegramOffset,
                      WriteAttemptReference)
 from .integrations import ExternalWriter, execute_confirmed
@@ -165,6 +165,34 @@ def numbered_message_parts(mail_id: str, proposal_id: str, text: str, limit: int
     return [f"[Mail {mail_id} · Vorschlag {proposal_id} · Teil {index}/{count}]\n{part}" for index, part in enumerate(chunks, 1)]
 
 
+def format_proposal(proposal: Proposal, configured_timezone: str) -> str:
+    """Render every decision-relevant field in one stable, human-readable order."""
+    missing = "—"
+    questions = "\n".join(f"- {question}" for question in proposal.open_questions)
+    questions_display = f"\n{questions}" if questions else " Keine"
+    lines = [
+        f"Vorschlagsversion: {proposal.version}",
+        f"Typ: {'Aufgabe' if proposal.kind == ProposalKind.TASK else 'Termin'}",
+        f"Titel: {proposal.title}",
+        f"Beschreibung: {proposal.description or missing}",
+        f"Belegstelle: {proposal.evidence}",
+        f"Ursprungsmail: {proposal.source_mail_id}",
+        f"Offene Fragen:{questions_display}",
+        f"Ziel: {proposal.target}",
+    ]
+    if proposal.kind == ProposalKind.TASK:
+        lines.append(f"Fälligkeit: {proposal.due.isoformat() if proposal.due else missing}")
+    else:
+        lines.extend([
+            f"Beginn: {proposal.start.isoformat() if proposal.start else missing}",
+            f"Ende: {proposal.end.isoformat() if proposal.end else missing}",
+            f"Ganztägig: {'Ja' if proposal.all_day else 'Nein'}",
+            f"Konfigurierte Zeitzone: {configured_timezone}",
+            f"Ort: {proposal.location or missing}",
+        ])
+    return "\n".join(lines)
+
+
 class TelegramClient:
     def __init__(self, token: str, timeout: float, transport: httpx.BaseTransport | None = None, poll_timeout: int = 30, policy: RetryPolicy | None = None, logger: EventLogger | None = None):
         self.poll_timeout = poll_timeout
@@ -232,9 +260,10 @@ class EventLogger(Protocol):
 class TelegramDialogController:
     """Validate updates, persist offsets, and enforce version-bound decisions."""
 
-    def __init__(self, store: JsonStore, telegram: TelegramTransport, user_id: int, chat_id: int, logger: EventLogger, writers: dict[str, ExternalWriter] | None = None, test_mode: bool = False):
+    def __init__(self, store: JsonStore, telegram: TelegramTransport, user_id: int, chat_id: int, logger: EventLogger, writers: dict[str, ExternalWriter] | None = None, test_mode: bool = False, configured_timezone: str = "UTC"):
         self.store, self.telegram, self.user_id, self.chat_id, self.logger = store, telegram, user_id, chat_id, logger
         self.writers, self.test_mode = writers or {}, test_mode
+        self.configured_timezone = configured_timezone
         self.relevance_handler: Any = None
 
     def send_relevance(self, dialog: RelevanceDialog) -> None:
@@ -283,15 +312,21 @@ class TelegramDialogController:
         if proposal.open_questions and proposal.status == ProposalStatus.PENDING_CONFIRMATION:
             proposal = proposal.model_copy(update={"status": ProposalStatus.NEEDS_CLARIFICATION})
         self.persist(proposal)
-        text = f"{proposal.title}\n{proposal.description}".rstrip()
+        text = format_proposal(proposal, self.configured_timezone)
         parts = numbered_message_parts(proposal.source_mail_id, proposal.id, text)
         for part in parts[:-1]:
             self.telegram.send(self.chat_id, part)
-        buttons = [[
-            {"text": "Bestätigen", "callback_data": Decision(proposal_id=proposal.id, version=proposal.version, action=DecisionAction.CONFIRM).encode()},
-            {"text": "Ändern", "callback_data": Decision(proposal_id=proposal.id, version=proposal.version, action=DecisionAction.EDIT).encode()},
-            {"text": "Verwerfen", "callback_data": Decision(proposal_id=proposal.id, version=proposal.version, action=DecisionAction.REJECT).encode()},
-        ]]
+        if proposal.open_questions:
+            buttons = [[
+                {"text": "Klären", "callback_data": Decision(proposal_id=proposal.id, version=proposal.version, action=DecisionAction.EDIT).encode()},
+                {"text": "Verwerfen", "callback_data": Decision(proposal_id=proposal.id, version=proposal.version, action=DecisionAction.REJECT).encode()},
+            ]]
+        else:
+            buttons = [[
+                {"text": "Bestätigen", "callback_data": Decision(proposal_id=proposal.id, version=proposal.version, action=DecisionAction.CONFIRM).encode()},
+                {"text": "Ändern", "callback_data": Decision(proposal_id=proposal.id, version=proposal.version, action=DecisionAction.EDIT).encode()},
+                {"text": "Verwerfen", "callback_data": Decision(proposal_id=proposal.id, version=proposal.version, action=DecisionAction.REJECT).encode()},
+            ]]
         self.telegram.send(self.chat_id, parts[-1], {"inline_keyboard": buttons})
 
     def poll_once(self) -> None:
@@ -420,10 +455,12 @@ class TelegramDialogController:
             self.telegram.answer_callback(callback_id, "Änderung ausgewählt.")
             self.telegram.send(self.chat_id, prompt)
             return
-        if proposal.status != ProposalStatus.PENDING_CONFIRMATION:
+        if decision.action == DecisionAction.CONFIRM and proposal.status != ProposalStatus.PENDING_CONFIRMATION:
             self.telegram.answer_callback(callback_id, "Zuerst müssen die offenen Fragen beantwortet werden.")
             return
-        changed = apply_decision(proposal, decision, self.user_id, self.chat_id, self.user_id, self.chat_id)
+        changed = (proposal.model_copy(update={"status": ProposalStatus.REJECTED})
+                   if decision.action == DecisionAction.REJECT else
+                   apply_decision(proposal, decision, self.user_id, self.chat_id, self.user_id, self.chat_id))
         self.persist(changed)
         response = "Vorschlag bestätigt." if changed.status == ProposalStatus.CONFIRMED else "Vorschlag verworfen."
         self.telegram.answer_callback(callback_id, response)

@@ -15,6 +15,7 @@ from mailhelp.telegram import (
     TelegramMessage,
     TelegramUpdate,
     numbered_message_parts,
+    format_proposal,
 )
 from mailhelp.application import _state_directory
 from mailhelp.config import Settings
@@ -72,10 +73,10 @@ def test_write_attempt_references_are_linked_to_mail(tmp_path):
 
 
 class Writer:
-    def __init__(self, found=None, error=None): self.found=found; self.error=error; self.created=0; self.reconciled=0
+    def __init__(self, found=None, error=None): self.found=found; self.error=error; self.created=0; self.reconciled=0; self.versions=[]
     def reconcile(self,key): self.reconciled+=1; return self.found
     def create(self,p,key):
-        self.created+=1
+        self.created+=1; self.versions.append(p.version)
         if self.error: raise self.error
         return {"id":"external-1","url":"https://example.test/item"}
 
@@ -98,6 +99,22 @@ def test_numbered_parts():
     with pytest.raises(ValueError): numbered_message_parts("m","p","x",31)
 
 
+@pytest.mark.parametrize(("item", "expected"), [
+    (proposal(description="", due=None), ["Typ: Aufgabe", "Beschreibung: —", "Fälligkeit: —"]),
+    (proposal(kind="event", start="2026-05-10T10:00:00+02:00", end="2026-05-10T11:00:00+02:00", location="Raum 1"),
+     ["Typ: Termin", "Beginn: 2026-05-10T10:00:00+02:00", "Ganztägig: Nein", "Konfigurierte Zeitzone: Europe/Berlin", "Ort: Raum 1"]),
+    (proposal(kind="event", all_day=True, start="2026-05-10", end="2026-05-11", location=None),
+     ["Ende: 2026-05-11", "Ganztägig: Ja", "Ort: —"]),
+])
+def test_central_proposal_formatting_for_tasks_and_events(item, expected):
+    text = format_proposal(item, "Europe/Berlin")
+    assert all(value in text for value in expected)
+    assert [line.split(":", 1)[0] for line in text.splitlines() if not line.startswith("-")] [:8] == [
+        "Vorschlagsversion", "Typ", "Titel", "Beschreibung", "Belegstelle",
+        "Ursprungsmail", "Offene Fragen", "Ziel",
+    ]
+
+
 def test_persist_before_buttons_and_authorized_flow(tmp_path):
     with JsonStore(tmp_path) as store:
         c,t,_=controller(store)
@@ -117,6 +134,19 @@ def test_persist_before_buttons_and_authorized_flow(tmp_path):
         # A replay with a fresh update id still cannot mutate the terminal state.
         t2.updates=[callback(5,"proposal:p1:1:reject")]; c2.poll_once()
         assert store.load("proposal-p1")["status"]=="confirmed" and "veraltet" in t2.answered[-1][1]
+
+
+def test_only_exactly_displayed_version_is_written(tmp_path):
+    writer=Writer()
+    with JsonStore(tmp_path) as store:
+        c,t,_=controller(store, writers={"todoist":writer})
+        c.send_proposal(proposal(version=1))
+        c.send_proposal(proposal(version=2, title="Neue Fassung"))
+        t.updates=[callback(1,"proposal:p1:1:confirm"),callback(2,"proposal:p1:2:confirm")]
+        c.poll_once()
+        assert "veraltet" in t.answered[0][1]
+        assert writer.versions == [2]
+        assert store.load("proposal-p1-v2")["title"] == "Neue Fassung"
 
 
 def test_identical_proposals_have_isolated_confirmation_and_external_results(tmp_path):
@@ -155,6 +185,8 @@ def test_edit_question_answer_new_version_then_reject(tmp_path):
         c,t,_=controller(store)
         c.send_proposal(proposal(open_questions=["Wann?", "Wo?"]))
         assert store.load("proposal-p1")["status"]=="needs_clarification"
+        labels=[button["text"] for button in t.sent[-1][2]["inline_keyboard"][0]]
+        assert labels == ["Klären", "Verwerfen"] and "Bestätigen" not in labels
         t.updates=[callback(1,"proposal:p1:1:confirm"), callback(2,"proposal:p1:1:edit")]
         c.poll_once()
         assert "Zuerst" in t.answered[0][1] and store.load("telegram-dialog")["proposal_id"]=="p1"
