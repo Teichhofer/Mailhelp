@@ -16,6 +16,46 @@ Copy-Item .env.example .env
 
 Unter Linux werden die letzten beiden Befehle mit `.venv/bin/python` und `cp` ausgeführt. `config.yaml`, `prompts.yaml` und `topics.yaml` anpassen; echte Geheimnisse ausschließlich in `.env` oder der Prozessumgebung setzen. Laufzeitvariablen haben Vorrang. Danach validiert `mailhelp --check` alle Dateien, ohne Netzwerkzugriff.
 
+### Google Calendar OAuth einrichten
+
+Mailhelp verwendet den OAuth-2.0-Refresh-Token-Ablauf; ein manuell erzeugtes,
+langfristiges Access-Token wird nicht unterstützt. Die Einrichtung ist für Windows
+11 und Docker identisch:
+
+1. In einem Google-Cloud-Projekt die **Google Calendar API** aktivieren, den
+   OAuth-Zustimmungsbildschirm konfigurieren und bei einer Anwendung im Testmodus
+   das eigene Google-Konto als Testnutzer eintragen.
+2. Einen OAuth-Client vom Typ **Desktop-App** anlegen. Bei einem stattdessen als
+   Webanwendung angelegten Client muss eine lokale Loopback-URI (beispielsweise
+   `http://127.0.0.1:8080/`) exakt als autorisierte Redirect-URI eingetragen sein.
+3. Im Browser eine Autorisierungsanfrage mit dieser Client-ID, der exakt passenden
+   Redirect-URI, `response_type=code`,
+   `scope=https://www.googleapis.com/auth/calendar.events`,
+   `access_type=offline` und `prompt=consent` öffnen. Nach Zustimmung den nur
+   kurzfristig gültigen Code aus dem lokalen Redirect entnehmen. `offline` und
+   `consent` sind erforderlich, damit Google beim erstmaligen Tausch einen
+   Refresh-Token liefert.
+4. Den Code einmalig per HTTPS am Google-Endpunkt
+   `https://oauth2.googleapis.com/token` gegen Tokens tauschen (`grant_type` ist
+   `authorization_code`; außerdem Code, Client-ID, Client-Secret und dieselbe
+   Redirect-URI senden). Den zurückgegebenen Refresh-Token sicher übernehmen;
+   Antwort und Befehlszeile nicht in Shell-Verlauf, Tickets oder Logs kopieren.
+5. `.env.example` nach `.env` kopieren und `GOOGLE_OAUTH_CLIENT_ID`,
+   `GOOGLE_OAUTH_CLIENT_SECRET` und `GOOGLE_OAUTH_REFRESH_TOKEN` dort befüllen.
+   `config.yaml` enthält weiterhin nur die nicht geheime Kalender-ID unter
+   `targets.google_calendar`. Die Berechtigung `calendar.events` erlaubt Mailhelp,
+   Ereignisse in den für das Konto zugänglichen Kalendern zu lesen und zu ändern;
+   weitergehende Calendar-Berechtigungen sind nicht erforderlich.
+
+Unter Windows sollte `.env` nur für das eigene Benutzerkonto lesbar sein. Für
+Docker Compose wird sie über `env_file` zur Laufzeit übergeben und weder ins Image
+kopiert noch in ein Volume mit den JSON-Zuständen gelegt. In produktiven
+Umgebungen können die drei Werte stattdessen als Prozessumgebungsvariablen aus
+einem Secret-Store injiziert werden. Access-Tokens existieren nur im Speicher,
+werden mit Sicherheitsabstand erneuert und landen weder in JSON-Zustand noch Logs.
+Nach Widerruf oder Rotation muss lediglich der Refresh-Token ersetzt und der
+Prozess beziehungsweise Container neu gestartet werden.
+
 `config.yaml` besitzt geschlossene Modelle für IMAP, Telegram, Ziele, Limits, Wiederholungen, Timeouts und Logging. IMAP, Telegram, OpenRouter, Todoist und Google Calendar haben jeweils eigene Werte für Timeout, Retry-Anzahl sowie initialen und maximalen Backoff. Validiert werden insbesondere Port, Polling, Adaptertimeouts, Mailgröße, LLM-Rate, Wiederholungszahlen, IANA-Zeitzone, eindeutige nichtleere Ordner, sichere Pfade und die Log-Level `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Unbekannte Schlüssel und falsche Typen werden abgelehnt.
 Auch die Wurzel von `topics.yaml` ist geschlossen: Sie enthält ausschließlich die
 Liste `topics`; diese muss mindestens ein aktiviertes Thema besitzen und alle
@@ -47,6 +87,10 @@ Nur Transportfehler sowie HTTP 408, 425, 429, 500, 502, 503 und 504 werden bei l
 * IMAP wird im Nur-Lese-Modus mit `BODY.PEEK[]` gelesen; die nicht geheime Konto-ID, Ordner, UIDVALIDITY und UID bilden die technische Identität. Die Konto-ID ist ein gekürzter SHA-256-Hash aus normalisiertem Server, Port und Benutzernamen und trennt auch gleichnamige Ordner verschiedener Konten.
 * Der JSON-Zustand wird atomar ersetzt und durch eine Einzelinstanz-Sperre geschützt. Syntaktisch beschädigte Dateien werden als `.corrupt`, schemawidrige Dateien als `.invalid` isoliert; Meldungen nennen Datei und Schlüsselpfad, nicht den Inhalt. Mailzustände (Schema 3), Abrufpositionen, Telegram-Dialoge und Vorschläge (Schema 1) werden vor jeder Verwendung validiert.
 * OpenRouter-, Telegram-, Todoist- und Google-Calendar-Antworten werden nach HTTP-Erfolg strikt auf JSON-Struktur, Pflichtfelder und IDs geprüft. LLM-Antworten werden strikt gegen feste Pydantic-Schemata validiert. Reservierte OpenRouter-Felder können nicht über YAML überschrieben werden.
+* Google-Calendar-Access-Tokens werden aus den drei ausschließlich zur Laufzeit
+  übergebenen OAuth-Geheimnissen bezogen und frühzeitig erneuert. HTTP 401 ist ein
+  eindeutiger Authentifizierungsfehler, kein unklares Schreibergebnis; der
+  betroffene Schreibzugriff wird deshalb nicht mit einem neuen Token wiederholt.
 * Externe Aktionen verlangen eine Persistenzfunktion: `writing` wird vor dem API-Aufruf dauerhaft gespeichert. Unklare Resultate werden als `uncertain` angehalten und nur abgeglichen. Ausschließlich ein externer Treffer überführt sie in `created`; ein neuer Schreibversuch setzt eine ausdrücklich modellierte manuelle Betreiberentscheidung voraus.
 * Jede Mail besitzt die schema-validierten Schritte `preparation`, `relevance`,
   `summary`, `action_detection`, `notification` und `completion`. Nach jedem Schritt
