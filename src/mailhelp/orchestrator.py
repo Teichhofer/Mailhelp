@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 import hashlib
+import json
+import re
 import time
 import traceback
 from dataclasses import dataclass
@@ -15,7 +17,7 @@ from .adapter import PermanentError
 from .config import TargetSettings, Topic
 from .imap import FetchedMail
 from .mime import MimeLimitExceeded, prepare
-from .models import (MailState, ProcessingError, ProcessingErrorCode, ProcessingStage,
+from .models import (DuplicateDecision, DuplicateIndex, DuplicateIndexEntry, MailState, ProcessingError, ProcessingErrorCode, ProcessingStage,
                      Proposal, Relevance, RelevanceDialog, RelevanceDialogStatus,
                      ValidationIssue)
 from .storage import JsonStore
@@ -88,6 +90,83 @@ class Orchestrator:
         return result
 
     def stop(self) -> None: self.stop_event.set()
+
+    @staticmethod
+    def _duplicate_identity(mail: dict[str, Any]) -> tuple[list[str], str, int]:
+        """Derive bounded identifiers and a one-way digest, never stored content."""
+        values = mail.get("message_ids", [mail["headers"].get("message_id", "")])
+        normalized: list[str] = []
+        for value in values:
+            compact = re.sub(r"\s+", "", str(value)).casefold()
+            if len(compact) <= 998 and re.fullmatch(r"<[^<>@\s]+@[^<>@\s]+>", compact) and compact not in normalized:
+                normalized.append(compact)
+        stable = {
+            "from": str(mail["headers"].get("from", "")).casefold(),
+            "subject": str(mail["headers"].get("subject", "")).casefold(),
+            "date": str(mail["headers"].get("date", "")),
+            "text": str(mail.get("text", "")),
+        }
+        digest = hashlib.sha256(json.dumps(stable, ensure_ascii=False, sort_keys=True,
+                                           separators=(",", ":")).encode()).hexdigest()
+        return normalized, digest, len(values)
+
+    def _load_model(self, name: str, model: type[Any], default: Any = None) -> Any:
+        if hasattr(self.store, "load_model"):
+            return self.store.load_model(name, model, default)
+        value = self.store.load(name, None)
+        return default if value is None else model.model_validate(value)
+
+    def _check_duplicate(self, name: str, state: MailState) -> bool:
+        """Persist a conservative decision before any LLM call; return whether to skip."""
+        assert state.mail is not None
+        message_ids, fingerprint, message_id_headers = self._duplicate_identity(state.mail)
+        index = self._load_model("duplicate-index", DuplicateIndex, DuplicateIndex())
+        assert isinstance(index, DuplicateIndex)
+        others = [entry for entry in index.entries
+                  if entry.mail_id != state.id and entry.imap.account_id == state.imap.account_id]
+        matching_ids = [entry for entry in others if set(entry.message_ids) & set(message_ids)]
+        matching_fingerprints = [entry for entry in others if entry.content_fingerprint == fingerprint]
+
+        if state.duplicate is None:
+            candidate: DuplicateIndexEntry | None = None
+            reason = "no_match"
+            outcome = "new"
+            if message_id_headers != 1 or len(message_ids) != 1:
+                candidate = (matching_ids or matching_fingerprints or [None])[0]
+                if candidate is not None:
+                    outcome = "ambiguous"
+                reason = "multiple_message_ids" if message_id_headers > 1 else "missing_message_id"
+            elif matching_ids:
+                candidate = matching_ids[0]
+                completed = []
+                for entry in matching_ids:
+                    previous = self._load_model(f"mail-{entry.mail_id}", MailState)
+                    completed.append(isinstance(previous, MailState) and previous.steps.completion == "completed")
+                if all(entry.content_fingerprint == fingerprint for entry in matching_ids) and all(completed):
+                    outcome, reason = "duplicate", "same_message"
+                elif not all(completed):
+                    outcome, reason = "ambiguous", "candidate_incomplete"
+                else:
+                    outcome, reason = "ambiguous", "message_id_reused"
+            elif matching_fingerprints:
+                candidate = matching_fingerprints[0]
+                outcome, reason = "ambiguous", "fingerprint_collision"
+            state.duplicate = DuplicateDecision(outcome=outcome, reason=reason,
+                                                previous_mail_id=candidate.mail_id if candidate else None)
+            if outcome == "duplicate":
+                state.steps.relevance = state.steps.summary = state.steps.action_detection = "skipped"
+                state.steps.notification = "skipped"
+                state.steps.completion = "completed"
+            self._save(name, state)
+            self.logger.event("INFO", "orchestrator", "duplicate_checked", mail_id=state.id,
+                              outcome=outcome, reason=reason,
+                              previous_mail_id=candidate.mail_id if candidate else None)
+
+        entry = DuplicateIndexEntry(mail_id=state.id, imap=state.imap, message_ids=message_ids,
+                                    content_fingerprint=fingerprint)
+        index.entries = [item for item in index.entries if item.mail_id != state.id] + [entry]
+        self.store.save("duplicate-index", index.model_dump(mode="json"))
+        return state.duplicate.outcome == "duplicate"
 
     def _notification_text(self, state: MailState) -> str:
         """Format only sanitized headers and schema-validated analysis results."""
@@ -188,6 +267,10 @@ class Orchestrator:
                 self.logger.event("INFO", "orchestrator", "preparation_completed", mail_id=state.id,
                                   preparation_metadata=state.mail["metadata"])
             assert state.mail is not None
+            if self._check_duplicate(name, state):
+                self.logger.event("INFO", "orchestrator", "duplicate_skipped", mail_id=state.id,
+                                  previous_mail_id=state.duplicate.previous_mail_id)
+                return ProcessingResult(ProcessingOutcome.COMPLETED, state.model_dump(mode="json"))
             stage = ProcessingStage.RELEVANCE
             if state.steps.relevance == "pending":
                 call, relevance = self.analyzer.relevance(state.mail, self.topics)

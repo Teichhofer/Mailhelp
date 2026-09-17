@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from mailhelp.config import RetentionSettings
-from mailhelp.models import MailState, Proposal, ProposalKind, ProposalStatus, RelevanceDialog, Summary
+from mailhelp.models import DuplicateIndex, DuplicateIndexEntry, MailState, Proposal, ProposalKind, ProposalStatus, RelevanceDialog, Summary
 from mailhelp.retention import RetentionService
 from mailhelp.storage import JsonStore
 
@@ -85,10 +85,15 @@ def test_pending_and_open_relevance_are_protected_and_unlimited_is_explicit(tmp_
         assert RetentionService(store, RetentionSettings(), Log(), lambda: NOW).run().protected == 2
         terminal = state("e" * 24)
         store.save("mail-terminal", terminal.model_dump(mode="json"))
+        duplicate_index = DuplicateIndex(entries=[DuplicateIndexEntry(
+            mail_id=terminal.id, imap=terminal.imap, message_ids=["<x@example.test>"],
+            content_fingerprint="f" * 64)])
+        store.save("duplicate-index", duplicate_index.model_dump(mode="json"))
         result = RetentionService(store, RetentionSettings(full_mail_days="unlimited", debug_llm_days="unlimited"), Log(), lambda: NOW).run()
         assert result.mail_scrubbed == result.debug_scrubbed == 0
         mail_only = RetentionService(store, RetentionSettings(full_mail_days="disabled", debug_llm_days="unlimited"), Log(), lambda: NOW).run()
         assert mail_only.mail_scrubbed == 1 and mail_only.debug_scrubbed == 0
+        assert store.load_model("duplicate-index", DuplicateIndex) == duplicate_index
 
 
 def test_retention_boundaries_missing_state_and_clock_validation():
