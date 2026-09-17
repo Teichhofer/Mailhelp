@@ -44,6 +44,11 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
     with pytest.raises(ValidationError): Proposal(id="e", version=1, kind="event", title="x", evidence="y")
     with pytest.raises(ValidationError): proposal(kind="event", start=start, end=start)
     with pytest.raises(ValidationError): proposal(start=start)
+    with pytest.raises(ValidationError, match="externes Ergebnis"):
+        proposal(status="simulated", external_id="invented")
+    with pytest.raises(ValidationError, match="gemeldet"):
+        proposal(simulation_notified=True)
+    assert proposal(status="simulated", simulation_notified=True).external_id is None
     assert _deep_merge({"x": {"a": 1}, "z": 1}, {"x": {"b": 2}, "z": 2}) == {"x": {"a": 1, "b": 2}, "z": 2}
     cfg = prompt_config(); model, params, prompt = cfg.resolved("summary")
     assert (model, prompt, params["nested"]) == ("model", "summary", {"a": 1, "b": 2})

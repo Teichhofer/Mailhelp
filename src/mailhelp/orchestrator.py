@@ -80,9 +80,13 @@ class Orchestrator:
                 f"{state.id}\0{proposal.id}".encode()
             ).hexdigest()[:16]
             update: dict[str, Any] = {"id": internal_id, "source_mail_id": state.id, "target": target}
-            if proposal.kind.value == "event" and state.mail is not None and state.mail.get("date_context_status") != "valid":
+            has_context_dependent_date = (proposal.kind.value == "event" or
+                                          (proposal.kind.value == "task" and proposal.due is not None))
+            if has_context_dependent_date and state.mail is not None and state.mail.get("date_context_status") != "valid":
                 questions = list(proposal.open_questions)
-                question = "Welcher Datumskontext soll für den Termin verwendet werden?"
+                question = ("Welcher Datumskontext soll für die Aufgabenfrist verwendet werden?"
+                            if proposal.kind.value == "task"
+                            else "Welcher Datumskontext soll für den Termin verwendet werden?")
                 if question not in questions:
                     questions.append(question)
                 update.update(open_questions=questions, status="needs_clarification")
