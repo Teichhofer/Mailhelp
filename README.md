@@ -119,7 +119,8 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
 ## Betrieb und Sicherheit
 
 * IMAP wird im Nur-Lese-Modus mit einem gemeinsamen `BODY.PEEK[] INTERNALDATE`-Abruf gelesen; die nicht geheime Konto-ID, Ordner, UIDVALIDITY und UID bilden die technische Identität. `INTERNALDATE` wird strikt als zeitzonenbehafteter Empfangszeitpunkt geparst. Die Konto-ID ist ein gekürzter SHA-256-Hash aus normalisiertem Server, Port und Benutzernamen und trennt auch gleichnamige Ordner verschiedener Konten.
-* Die Analyse erhält vier getrennte Datumsinformationen: den unveränderten, bereinigten `Date`-Header (`date_header_original`), seine nur bei explizitem Offset verfügbare Parseform (`date_header_parsed`), `imap_received_at` sowie die konfigurierte IANA-`user_timezone`. `date_context_status` kennzeichnet fehlende, ungültige, naive und um mehr als sieben Tage vom Empfang abweichende Angaben. Ein solcher Kontext erzwingt bei Terminen eine offene Rückfrage und verhindert damit die Bestätigung und Speicherung.
+* Die Analyse erhält vier getrennte Datumsinformationen: den unveränderten, bereinigten `Date`-Header (`date_header_original`), seine nur bei explizitem Offset verfügbare Parseform (`date_header_parsed`), `imap_received_at` sowie die konfigurierte IANA-`user_timezone`. `date_context_status` kennzeichnet fehlende, ungültige, naive und um mehr als sieben Tage vom Empfang abweichende Angaben. Ein solcher Kontext erzwingt bei Terminen und Aufgaben mit Frist eine offene Rückfrage und verhindert damit die Bestätigung und Speicherung; Aufgaben ohne Frist bleiben davon unberührt.
+* `Proposal.due` ist eine streng validierte Union: `YYYY-MM-DD` bezeichnet ein reines Fälligkeitsdatum und wird unverändert als Todoist-`due_date` übertragen. Ein Fälligkeitszeitpunkt enthält Datum und Uhrzeit samt explizitem UTC-Offset (zum Beispiel `2026-10-01T17:00:00+02:00`) und wird als `due_datetime` übertragen. Naive Zeitpunkte werden abgelehnt und reine Daten niemals stillschweigend in Mitternacht umgewandelt.
 * Der JSON-Zustand wird atomar ersetzt und durch eine Einzelinstanz-Sperre geschützt. Syntaktisch beschädigte Dateien werden als `.corrupt`, schemawidrige Dateien als `.invalid` isoliert; Meldungen nennen Datei und Schlüsselpfad, nicht den Inhalt. Mailzustände (Schema 6), Abrufpositionen, Telegram-Dialoge und Duplikatindex (Schema 1) sowie Vorschläge (Schema 2) werden vor jeder Verwendung validiert.
 * OpenRouter-, Telegram-, Todoist- und Google-Calendar-Antworten werden nach HTTP-Erfolg strikt auf JSON-Struktur, Pflichtfelder und IDs geprüft. LLM-Antworten werden strikt gegen feste Pydantic-Schemata validiert. Reservierte OpenRouter-Felder können nicht über YAML überschrieben werden.
 * Bei Terminen bleiben der physische Ort und ein optionaler, ausschließlich per HTTP/HTTPS erlaubter Videolink getrennte Vorschlagsfelder und werden vor der Bestätigung beide in Telegram angezeigt. Google Calendar erhält den Ort im Feld `location`; der Videolink wird als Abschnitt `[Mailhelp-Videolink]` in `description` geschrieben. Mailhelp erzeugt dabei ausdrücklich keine Google-Meet-Konferenz und sendet kein `conferenceData`.
@@ -136,10 +137,15 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
 * Jeder Vorschlag trägt die streng validierten Felder `responsibility` (`user`, `other`, `unclear`), `certainty` (`certain`, `uncertain`, `contradictory`) und `classification` (`new`, `non_binding`, `already_completed`, `change`, `cancellation`, `recurring`, `unsupported`). Ausschließlich `new` + `user` + `certain` ist bestätigbar und extern anlegbar. Alle anderen Einordnungen erscheinen als manuell zu prüfende Information; offene Zuständigkeit, Unsicherheit und Widerspruch erzwingen `needs_clarification`.
 * Vorschläge werden zusätzlich zur Maildatei versionsweise und als aktueller Stand
   gespeichert. Bestätigte Schreibvorgänge werden nach Neustarts wiederaufgenommen;
-  externe ID und Link sowie `created`, `failed`, `uncertain` oder eine Testmodus-
-  Simulation werden im konfigurierten Telegram-Chat sichtbar gemeldet. Die Meldung
-  eines unverändert unklaren Ergebnisses wird dauerhaft markiert und nicht bei jedem
-  Neustart erneut gesendet.
+  externe ID und Link sowie `created`, `failed` oder `uncertain` werden im
+  konfigurierten Telegram-Chat sichtbar gemeldet. Im Testmodus wird stattdessen vor
+  der Meldung der Abschlusszustand `simulated` ohne externe ID oder Link atomar
+  gespeichert. `simulation_notified` hält anschließend dauerhaft fest, dass die
+  eindeutig als Simulation bezeichnete Meldung versandt wurde. Mehrfach-Polls und
+  Neustarts führen deshalb weder die Simulation erneut aus noch melden sie erneut;
+  ein zwischen Speichern und Meldung erfolgter Abbruch kann die noch ungemeldete
+  Simulation dagegen sicher zu Ende melden. Entsprechend wird auch die Meldung eines
+  unverändert unklaren Ergebnisses dauerhaft markiert.
 * `data_directory` bezeichnet das gemeinsame Stammverzeichnis. Mailhelp verwendet darunter automatisch `test/` bei `test_mode: true` und `production/` bei `test_mode: false`. Beide Namensräume besitzen eine eigene `.lock`-Datei und enthalten jeweils sämtliche IMAP-Checkpoints, Mailzustände, Telegram-Offsets und -Dialoge, Vorschläge, externe Ergebniszustände sowie das persistierte LLM-Zeitfenster. Identische IDs können deshalb nicht zwischen Test- und Produktivbetrieb kollidieren.
 * Ein schema-validierter `duplicate-index.json` hält ausschließlich technische
   IMAP-Identitäten, normalisierte Message-IDs, interne Mail-IDs und SHA-256-

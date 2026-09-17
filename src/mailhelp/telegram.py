@@ -506,6 +506,8 @@ class TelegramDialogController:
     def _execute(self, proposal: Proposal) -> None:
         if not proposal_is_writable(proposal):
             return
+        if proposal.status == ProposalStatus.SIMULATED and proposal.simulation_notified:
+            return
         writer = self._writer(proposal)
         if writer is None:
             return
@@ -525,6 +527,8 @@ class TelegramDialogController:
         self.telegram.send(self.chat_id, text)
         if changed.status == ProposalStatus.UNCERTAIN:
             self.persist(changed.model_copy(update={"uncertain_notified": True}))
+        elif changed.status == ProposalStatus.SIMULATED:
+            self.persist(changed.model_copy(update={"simulation_notified": True}))
 
     def _resume_writes(self) -> None:
         names = getattr(self.store, "names", None)
@@ -535,7 +539,8 @@ class TelegramDialogController:
                 continue
             proposal = self.store.load_model(name, Proposal)
             assert isinstance(proposal, Proposal)
-            if proposal.status in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN}:
+            if proposal.status in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING,
+                                   ProposalStatus.UNCERTAIN, ProposalStatus.SIMULATED}:
                 self._execute(proposal)
 
     def _answer(self, answer: str) -> None:
