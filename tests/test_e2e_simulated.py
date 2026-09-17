@@ -52,12 +52,13 @@ class FakeTelegram:
         self.sent = []
         self.answers = []
         self.updates = []
+        self.polls = []
 
     def send(self, chat_id, text, reply_markup=None):
         self.sent.append((chat_id, text, reply_markup))
 
     def poll(self, offset):
-        assert offset == 0
+        self.polls.append(offset)
         return self.updates
 
     def answer_callback(self, callback_id, text):
@@ -134,3 +135,33 @@ def test_imap_llm_telegram_confirmation_to_fake_writers(tmp_path):
         assert all(store.load_model(f"proposal-{item[0].source_mail_id}-{item[0].id}", Proposal).status == "created"
                    for item in (todoist.created[0], calendar.created[0]))
         assert store.load("telegram-offset")["offset"] == 2
+
+
+def test_test_mode_end_to_end_never_calls_writer_and_survives_restart(tmp_path):
+    telegram = FakeTelegram()
+    writer = FakeWriter("forbidden")
+    item = Proposal.model_validate({
+        "id": "task", "version": 1, "kind": "task", "responsibility": "user",
+        "certainty": "certain", "classification": "new", "title": "Nur testen",
+        "evidence": "synthetisch", "source_mail_id": "a" * 24, "target": "inbox",
+    })
+    decision = f"proposal:{item.source_mail_id}:{item.id}:{item.version}:confirm"
+    with JsonStore(tmp_path / "test") as store:
+        dialog = TelegramDialogController(
+            store, telegram, 42, 99, NullLogger(), {"todoist": writer}, True,
+        )
+        dialog.persist(item)
+        telegram.updates = [callback_update(0, decision), callback_update(1, decision)]
+        dialog.poll_once()
+        dialog.poll_once()
+        assert writer.created == []
+        assert store.load(f"proposal-{item.source_mail_id}-{item.id}")["status"] == "simulated"
+        assert sum("simuliert" in text for _, text, _ in telegram.sent) == 1
+
+        restarted_transport = FakeTelegram()
+        restarted = TelegramDialogController(
+            store, restarted_transport, 42, 99, NullLogger(), {"todoist": writer}, True,
+        )
+        restarted.poll_once()
+        assert restarted_transport.polls == [2]
+        assert restarted_transport.sent == [] and writer.created == []

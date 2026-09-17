@@ -180,7 +180,7 @@ Jeder Vorschlag enthält eine eigene ID, den Typ, einen Titel, eine Beschreibung
 | Zuständigkeit beziehungsweise Unsicherheit | Ganztägig oder mit Uhrzeit |
 | Beleg aus der Mail | Ort oder Videolink, falls vorhanden |
 
-Eine Aufgabe kann ohne Fälligkeit angelegt werden. Für Termine müssen alle zum Speichern benötigten Angaben geklärt sein. Fehlende Endzeiten dürfen nicht ohne sichtbare Regel oder Rückfrage erfunden werden. Eine Aufgabenfrist erzeugt nicht automatisch einen Kalendertermin.
+Eine Aufgabe kann ohne Fälligkeit angelegt werden. Ihre Frist ist entweder ein reines ISO-8601-Datum (`YYYY-MM-DD`) oder ein ISO-8601-Zeitpunkt mit explizitem UTC-Offset; naive Zeitpunkte sind unzulässig. Der Todoist-Adapter überträgt diese Formen getrennt als `due_date` beziehungsweise `due_datetime`, ohne ein reines Datum in Mitternacht umzuwandeln. Für Termine müssen alle zum Speichern benötigten Angaben geklärt sein. Fehlende Endzeiten dürfen nicht ohne sichtbare Regel oder Rückfrage erfunden werden. Eine Aufgabenfrist erzeugt nicht automatisch einen Kalendertermin. Ist der Mail-Datumskontext fehlend, naiv, ungültig oder widersprüchlich, bleibt ein Termin oder eine Aufgabe mit Frist bis zur konkreten Rückfrage unbestätigbar; eine Aufgabe ohne Frist bleibt davon unberührt.
 
 Zeitgebundene Termine enthalten für Beginn und Ende vollständige ISO-8601-Datums-/Zeitwerte mit eindeutigem UTC-Offset. Der Google-Calendar-Adapter übergibt dazu die in `config.yaml` konfigurierte IANA-Zeitzone als `timeZone`; er leitet weder einen Offset noch eine Zeitzone stillschweigend aus der Laufzeitumgebung ab. Ganztägige Termine enthalten dagegen ausschließlich Kalenderdaten ohne Uhrzeit. Ihr Enddatum ist gemäß Google-Calendar-Semantik exklusiv: Ein eintägiger Termin am 10. Mai verwendet beispielsweise `start.date = 2026-05-10` und `end.date = 2026-05-11`. Gemischte Datums- und Zeitformen, naive Zeitwerte sowie ein Ende vor oder gleich dem Beginn werden bereits an der Vorschlagsgrenze abgewiesen.
 
@@ -228,8 +228,9 @@ Jeder Schreibvorgang wird vor dem API-Aufruf dauerhaft registriert. Bei Zeitübe
 
 Die Integrationsgrenze verlangt dafür eine Persistenzfunktion. Sie speichert `writing`
 vor dem Netzwerkaufruf und danach `created`, `failed` oder `uncertain`. Im Testmodus
-bleibt der Vorschlag `confirmed`; nur das Rückgabeobjekt kennzeichnet die Simulation,
-damit diese nicht mit einem echten externen Eintrag verwechselt werden kann.
+speichert sie stattdessen vor der Erfolgsmeldung den eigenen Abschlusszustand
+`simulated`. Dieser Zustand verbietet externe ID und externen Link strikt und kann
+deshalb niemals als echte externe Erstellung interpretiert werden.
 
 ## 9. Konfigurations- und Geheimnisdateien
 
@@ -286,11 +287,15 @@ weiter abgeglichen, aber niemals automatisch erneut geschrieben: Nur ein später
 externer Treffer führt zu `created`; ein erneuter Schreibversuch erfordert eine
 ausdrücklich modellierte manuelle Betreiberentscheidung. Ergebnisstatus, externe ID
 und verfügbarer Link werden gespeichert und zusammen mit Fehlern, unklaren Ergebnissen
-und Testmodus-Simulationen gemeldet. Eine dauerhafte Zustandsmarkierung verhindert,
-dass ein unverändert unklarer Vorgang bei jedem Neustart dieselbe Telegram-Meldung
-erzeugt.
+und Testmodus-Simulationen gemeldet. `simulated` ist bereits ein dauerhafter Abschluss
+und wird daher nicht erneut ausgeführt. Die separate Markierung
+`simulation_notified` wird erst nach der eindeutig als Simulation bezeichneten
+Telegram-Meldung gespeichert: Eine beim Neustart noch ungemeldete Simulation wird
+einmal gemeldet, eine bereits gemeldete bei Polls und Neustarts übersprungen. Dieselbe
+Art dauerhafter Zustandsmarkierung verhindert, dass ein unverändert unklarer Vorgang
+bei jedem Neustart dieselbe Telegram-Meldung erzeugt.
 
-Vorgeschlagene Vorschlagszustände sind `needs_clarification`, `pending_confirmation`, `confirmed`, `writing`, `created`, `rejected`, `failed` und `uncertain`. Zustandsübergänge werden zentral geprüft; nur ein bestätigter, vollständiger Vorschlag darf in `writing` wechseln.
+Vorgeschlagene Vorschlagszustände sind `needs_clarification`, `pending_confirmation`, `confirmed`, `writing`, `created`, `simulated`, `rejected`, `failed` und `uncertain`. Zustandsübergänge werden zentral geprüft; nur ein bestätigter, vollständiger Vorschlag darf in `writing` wechseln.
 
 Dateiänderungen erfolgen über temporäre Dateien und atomaren Austausch mit geeigneter Zugriffssperre. V1 erlaubt nur eine aktive Mailhelp-Instanz je Datenverzeichnis. Beschädigte JSON-Dateien werden isoliert und gemeldet, nicht stillschweigend durch leere Dateien ersetzt. Manuelles Bearbeiten ist nur bei gestoppter Anwendung vorgesehen; beim nächsten Start erfolgt eine Validierung.
 

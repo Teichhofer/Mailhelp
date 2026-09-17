@@ -128,7 +128,8 @@ def test_integrations():
     saved=[]
     with pytest.raises(ValueError): execute_confirmed(proposal(),Writer(),saved.append)
     assert execute_confirmed(p,Writer(),saved.append,True)[1]["simulation"]
-    assert saved[-1].status == ProposalStatus.CONFIRMED
+    assert saved[-1].status == ProposalStatus.SIMULATED
+    assert execute_confirmed(saved[-1], Writer(), saved.append, True)[0] == saved[-1]
     assert execute_confirmed(p,Writer({"id":"old"}),saved.append)[1]["id"]=="old"
     assert execute_confirmed(p,Writer(),saved.append)[0].status == ProposalStatus.CREATED
     assert execute_confirmed(p,Writer(error=httpx.ReadTimeout("x")),saved.append)[0].status == ProposalStatus.UNCERTAIN
@@ -157,6 +158,19 @@ def test_integrations():
     cal=HttpWriter("google_calendar","x","primary",transport=httpx.MockTransport(cal_handler),calendar_timezone="UTC"); assert cal.reconcile("k") is None; cal.create(event,"k"); cal.close()
     foundcal=HttpWriter("google_calendar","x","p",transport=httpx.MockTransport(mock_response(data={"items":[{"id":"e"}]})),calendar_timezone="UTC"); assert foundcal.reconcile("k")["id"]=="e"
     with pytest.raises(ValueError): HttpWriter("google_calendar","x","p",transport=httpx.MockTransport(handler),calendar_timezone="UTC").create(p,"k")
+
+
+def test_todoist_uses_distinct_date_and_datetime_deadlines():
+    payloads=[]
+    def handler(request):
+        payloads.append(json.loads(request.content))
+        return httpx.Response(200,json={"id":"task"},request=request)
+    writer=HttpWriter("todoist","x","p",transport=httpx.MockTransport(handler))
+    writer.create(proposal(status="confirmed", due="2026-10-01"), "date")
+    writer.create(proposal(status="confirmed", due="2026-10-01T17:00:00+02:00"), "instant")
+    assert payloads[0]["due_date"] == "2026-10-01" and "due_datetime" not in payloads[0]
+    assert payloads[1]["due_datetime"] == "2026-10-01T17:00:00+02:00" and "due_date" not in payloads[1]
+    writer.close()
 
 
 def test_calendar_payloads_separate_timed_and_all_day_intervals():
