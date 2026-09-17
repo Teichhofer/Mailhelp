@@ -165,13 +165,32 @@ def test_calendar_payloads_separate_timed_and_all_day_intervals():
         payloads.append(json.loads(request.content))
         return httpx.Response(200,json={"id":"event"},request=request)
     writer=HttpWriter("google_calendar","x","primary",transport=httpx.MockTransport(handler),calendar_timezone="Europe/Berlin")
-    writer.create(proposal(kind="event",status="confirmed",start="2026-05-10T10:00:00+02:00",end="2026-05-10T11:00:00+02:00"),"timed")
+    writer.create(proposal(kind="event",status="confirmed",start="2026-05-10T10:00:00+02:00",end="2026-05-10T11:00:00+02:00",
+                           description="Agenda",location="Raum 1",video_link="https://video.example.test/meeting/42"),"timed")
     writer.create(proposal(kind="event",status="confirmed",all_day=True,start=date(2026,5,10),end=date(2026,5,11)),"all-day")
-    assert payloads[0]["start"] == {"dateTime":"2026-05-10T10:00:00+02:00","timeZone":"Europe/Berlin"}
-    assert payloads[0]["end"] == {"dateTime":"2026-05-10T11:00:00+02:00","timeZone":"Europe/Berlin"}
+    assert payloads[0] == {
+        "summary":"Tun", "description":"Agenda\n\n[Mailhelp-Videolink]\nhttps://video.example.test/meeting/42",
+        "start":{"dateTime":"2026-05-10T10:00:00+02:00","timeZone":"Europe/Berlin"},
+        "end":{"dateTime":"2026-05-10T11:00:00+02:00","timeZone":"Europe/Berlin"},
+        "location":"Raum 1", "extendedProperties":{"private":{"mailhelp_key":"timed"}},
+    }
     assert payloads[1]["start"] == {"date":"2026-05-10"}
     assert payloads[1]["end"] == {"date":"2026-05-11"}  # exclusive
+    assert payloads[1]["description"] == "" and "location" not in payloads[1]
+    assert "conferenceData" not in payloads[0]
     assert "date" not in payloads[0]["start"] and "dateTime" not in payloads[1]["start"]
+    writer.close()
+
+
+def test_calendar_payload_maps_video_link_with_empty_description():
+    payloads=[]
+    def handler(request):
+        payloads.append(json.loads(request.content))
+        return httpx.Response(200,json={"id":"event"},request=request)
+    writer=HttpWriter("google_calendar","x","primary",transport=httpx.MockTransport(handler),calendar_timezone="UTC")
+    writer.create(proposal(kind="event",status="confirmed",start="2026-05-10T10:00:00+00:00",
+                           end="2026-05-10T11:00:00+00:00",video_link="http://video.example.test/room"),"key")
+    assert payloads[0]["description"] == "[Mailhelp-Videolink]\nhttp://video.example.test/room"
     writer.close()
 
 

@@ -120,10 +120,10 @@ def test_numbered_parts():
 
 @pytest.mark.parametrize(("item", "expected"), [
     (proposal(description="", due=None), ["Typ: Aufgabe", "Beschreibung: —", "Fälligkeit: —"]),
-    (proposal(kind="event", start="2026-05-10T10:00:00+02:00", end="2026-05-10T11:00:00+02:00", location="Raum 1"),
-     ["Typ: Termin", "Beginn: 2026-05-10T10:00:00+02:00", "Ganztägig: Nein", "Konfigurierte Zeitzone: Europe/Berlin", "Ort: Raum 1"]),
+    (proposal(kind="event", start="2026-05-10T10:00:00+02:00", end="2026-05-10T11:00:00+02:00", location="Raum 1", video_link="https://video.example.test/abc"),
+     ["Typ: Termin", "Beginn: 2026-05-10T10:00:00+02:00", "Ganztägig: Nein", "Konfigurierte Zeitzone: Europe/Berlin", "Ort: Raum 1", "Videolink: https://video.example.test/abc"]),
     (proposal(kind="event", all_day=True, start="2026-05-10", end="2026-05-11", location=None),
-     ["Ende: 2026-05-11", "Ganztägig: Ja", "Ort: —"]),
+     ["Ende: 2026-05-11", "Ganztägig: Ja", "Ort: —", "Videolink: —"]),
 ])
 def test_central_proposal_formatting_for_tasks_and_events(item, expected):
     text = format_proposal(item, "Europe/Berlin")
