@@ -93,7 +93,7 @@ Nur Transportfehler sowie HTTP 408, 425, 429, 500, 502, 503 und 504 werden bei l
 ## Betrieb und Sicherheit
 
 * IMAP wird im Nur-Lese-Modus mit `BODY.PEEK[]` gelesen; die nicht geheime Konto-ID, Ordner, UIDVALIDITY und UID bilden die technische Identität. Die Konto-ID ist ein gekürzter SHA-256-Hash aus normalisiertem Server, Port und Benutzernamen und trennt auch gleichnamige Ordner verschiedener Konten.
-* Der JSON-Zustand wird atomar ersetzt und durch eine Einzelinstanz-Sperre geschützt. Syntaktisch beschädigte Dateien werden als `.corrupt`, schemawidrige Dateien als `.invalid` isoliert; Meldungen nennen Datei und Schlüsselpfad, nicht den Inhalt. Mailzustände (Schema 3), Abrufpositionen, Telegram-Dialoge und Vorschläge (Schema 1) werden vor jeder Verwendung validiert.
+* Der JSON-Zustand wird atomar ersetzt und durch eine Einzelinstanz-Sperre geschützt. Syntaktisch beschädigte Dateien werden als `.corrupt`, schemawidrige Dateien als `.invalid` isoliert; Meldungen nennen Datei und Schlüsselpfad, nicht den Inhalt. Mailzustände (Schema 4), Abrufpositionen, Telegram-Dialoge und Vorschläge (Schema 1) werden vor jeder Verwendung validiert.
 * OpenRouter-, Telegram-, Todoist- und Google-Calendar-Antworten werden nach HTTP-Erfolg strikt auf JSON-Struktur, Pflichtfelder und IDs geprüft. LLM-Antworten werden strikt gegen feste Pydantic-Schemata validiert. Reservierte OpenRouter-Felder können nicht über YAML überschrieben werden.
 * Google-Calendar-Access-Tokens werden aus den drei ausschließlich zur Laufzeit
   übergebenen OAuth-Geheimnissen bezogen und frühzeitig erneuert. HTTP 401 ist ein
@@ -123,6 +123,38 @@ Nur Transportfehler sowie HTTP 408, 425, 429, 500, 502, 503 und 504 werden bei l
 * Im `test_mode` findet kein externer Schreibzugriff statt; Ergebnisse tragen `simulation: true` und der Vorschlag bleibt `confirmed`, statt einen echten Eintrag vorzutäuschen.
 * JSONL-Anwendungs- und LLM-Logs sind getrennt. Rohprompts und Rohantworten sind unabhängig und standardmäßig ausgeschaltet; Geheimnisfelder werden maskiert.
 * `.env` unterstützt einfache `NAME=WERT`-Zeilen und einfache/doppelte Anführungszeichen, aber bewusst keine Shell-Erweiterung. Prozessvariablen überschreiben gleichnamige Werte aus der Datei.
+
+### Mailzustände aus Schema 3 kontrolliert erneut verarbeiten
+
+Mailzustands-Schema 4 ist gegenüber Schema 3 bewusst inkompatibel. **Es findet
+keine automatische Migration statt.** Beim Laden wird eine Datei mit Schema 3
+als schemawidrig erkannt und neben den Zustandsdateien mit der Endung `.invalid`
+isoliert. Mailhelp rekonstruiert insbesondere die in Schema 4 erforderlichen
+Zeitpunkte, Konfigurations-Fingerprints und Schreibreferenzen nicht, weil dies
+bereits ausgeführte Aktionen fälschlich wiederholen könnte.
+
+Betreiber führen eine erneute Verarbeitung deshalb ausschließlich kontrolliert
+durch:
+
+1. Mailhelp stoppen und eine vollständige Sicherung des betroffenen
+   Modusverzeichnisses (`data/test/` oder `data/production/`) einschließlich der
+   `.invalid`-Datei und der IMAP-Checkpoints erstellen.
+2. Anhand von Konto, Ordner, UIDVALIDITY und UID der gesicherten Datei die
+   Ursprungsmail sowie den zugehörigen IMAP-Checkpoint eindeutig bestimmen und
+   prüfen, ob bereits Todoist-Aufgaben oder Kalendertermine erzeugt wurden.
+3. Den Checkpoint für genau dieses Konto und diesen Ordner bei gestopptem Dienst
+   bewusst auf eine UID vor der betroffenen Mail zurücksetzen. Die
+   `.invalid`-Datei als Nachweis gesichert lassen und nicht in Schema 4
+   umetikettieren oder manuell mit erfundenen Pflichtfeldern ergänzen.
+4. Mailhelp mit der aktuellen Version starten, die Mail neu als Schema 4 einlesen
+   lassen und alle neu vorgeschlagenen Schreibaktionen erneut über Telegram
+   prüfen und versionsbezogen bestätigen. Anschließend kontrollieren, dass der
+   Checkpoint wieder vorgerückt ist und keine doppelte externe Aktion entstand.
+
+Wenn diese Prüfung oder ein sicherer Checkpoint-Rücklauf nicht möglich ist, darf
+die Datei nicht erneut verarbeitet werden. Stattdessen kann der Vorgang mit der
+vorherigen, Schema 3 unterstützenden Programmversion in einer gesicherten
+Umgebung abgeschlossen werden.
 
 Ohne `--check` startet der CLI-Einstieg den Dienst. Er liest alle konfigurierten
 IMAP-Ordner und Telegram per Long-Polling. Abrufstände werden pro Ordner mit
