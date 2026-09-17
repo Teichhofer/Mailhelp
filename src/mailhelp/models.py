@@ -129,7 +129,10 @@ class Proposal(StrictModel):
     evidence: str = Field(min_length=1, max_length=2000)
     source_mail_id: str = Field(min_length=1, max_length=64)
     open_questions: list[str] = Field(default_factory=list)
-    due: datetime | None = None
+    # A date-only deadline and an instant are deliberately represented by the
+    # same, strictly checked union.  Keeping ``date`` in the model prevents a
+    # deadline such as ``2026-10-01`` from silently becoming midnight.
+    due: date | datetime | None = None
     start: date | datetime | None = None
     end: date | datetime | None = None
     all_day: bool = False
@@ -148,6 +151,11 @@ class Proposal(StrictModel):
             self.status = ProposalStatus.NEEDS_CLARIFICATION
         if self.kind == ProposalKind.TASK and (self.start is not None or self.end is not None or self.all_day):
             raise ValueError("Aufgaben dürfen keine Kalenderzeit enthalten")
+        if self.kind == ProposalKind.TASK and isinstance(self.due, datetime) and (
+                self.due.tzinfo is None or self.due.utcoffset() is None):
+            raise ValueError("Zeitgebundene Aufgabenfristen benötigen einen eindeutigen UTC-Offset")
+        if self.kind == ProposalKind.EVENT and self.due is not None:
+            raise ValueError("Termine dürfen keine Aufgabenfrist enthalten")
         if self.kind != ProposalKind.EVENT:
             return self
         if not self.open_questions and (self.start is None or self.end is None):

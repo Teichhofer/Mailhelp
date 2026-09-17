@@ -223,6 +223,21 @@ def test_event_boundary_rejects_incomplete_contradictory_and_naive_values():
     assert type(complete.start) is date and type(complete.end) is date
 
 
+def test_task_deadline_boundary_preserves_dates_and_rejects_unsafe_combinations():
+    date_only = proposal(due="2026-10-01")
+    instant = proposal(due="2026-10-01T17:00:00+02:00")
+    assert type(date_only.due) is date
+    assert isinstance(instant.due, datetime) and instant.due.utcoffset() == timedelta(hours=2)
+    for values in (
+        {"due":"2026-10-01T17:00:00"},
+        {"start":"2026-10-01T17:00:00+02:00"},
+        {"kind":"event", "due":"2026-10-01", "start":"2026-10-01T17:00:00+02:00",
+         "end":"2026-10-01T18:00:00+02:00"},
+    ):
+        with pytest.raises(ValidationError):
+            proposal(**values)
+
+
 def test_proposal_video_link_accepts_only_bounded_http_urls():
     assert str(proposal(video_link="https://video.example.test/room").video_link) == "https://video.example.test/room"
     assert proposal(video_link=None).video_link is None

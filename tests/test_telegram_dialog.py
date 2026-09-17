@@ -168,6 +168,19 @@ def test_only_exactly_displayed_version_is_written(tmp_path):
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v2")["title"] == "Neue Fassung"
 
 
+def test_deadline_clarification_blocks_every_external_request(tmp_path):
+    writer=Writer()
+    with JsonStore(tmp_path) as store:
+        c,t,_=controller(store, writers={"todoist":writer})
+        item=proposal(due="2026-10-01", status="needs_clarification",
+                      open_questions=["Welcher Datumskontext soll verwendet werden?"])
+        c.send_proposal(item)
+        t.updates=[callback(1,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm")]
+        c.poll_once()
+        assert writer.reconciled == 0 and writer.created == 0
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"] == "needs_clarification"
+
+
 def test_identical_proposals_have_isolated_confirmation_and_external_results(tmp_path):
     common=dict(timezone="UTC",poll_interval_seconds=5,data_directory=tmp_path/"state",
                 imap={"host":"h","port":993,"folders":["INBOX"]},telegram={"user_id":1,"chat_id":2},
