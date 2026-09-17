@@ -80,8 +80,8 @@ class RetentionService:
                 state.llm_call_ids = []
                 state.validation_errors = []
                 debug_scrubbed += 1
-            # Identity, proposal versions/results and write/idempotency references
-            # deliberately remain in the schema-valid durable record.
+            # Identity, duplicate decision, the separate duplicate index, proposal
+            # versions/results and write/idempotency references deliberately remain.
             self.store.save(name, state.model_dump(mode="json"))
             self.logger.event("INFO", "retention", "state_scrubbed", mail_id=state.id,
                               processed_at=now.isoformat(), mail_count=int(mail_changed),

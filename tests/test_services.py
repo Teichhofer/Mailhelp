@@ -343,7 +343,7 @@ def test_orchestrator_resumes_each_persisted_analysis_step(tmp_path):
             self.count += 1
             if self.count >= self.fail_at: raise RuntimeError("power loss")
             self.delegate.save(*args)
-    for fail_at, repeated in ((2,"relevance"),(3,"summary"),(4,"actions"),(5,None),(6,None)):
+    for fail_at, repeated in ((2,"relevance"),(3,"relevance"),(4,"relevance"),(5,"summary"),(6,"actions"),(7,None),(8,None)):
         with JsonStore(tmp_path/str(fail_at)) as disk:
             first=CountingAnalyzer()
             with pytest.raises(RuntimeError,match="power loss"):

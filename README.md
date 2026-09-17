@@ -120,7 +120,7 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
 
 * IMAP wird im Nur-Lese-Modus mit einem gemeinsamen `BODY.PEEK[] INTERNALDATE`-Abruf gelesen; die nicht geheime Konto-ID, Ordner, UIDVALIDITY und UID bilden die technische Identität. `INTERNALDATE` wird strikt als zeitzonenbehafteter Empfangszeitpunkt geparst. Die Konto-ID ist ein gekürzter SHA-256-Hash aus normalisiertem Server, Port und Benutzernamen und trennt auch gleichnamige Ordner verschiedener Konten.
 * Die Analyse erhält vier getrennte Datumsinformationen: den unveränderten, bereinigten `Date`-Header (`date_header_original`), seine nur bei explizitem Offset verfügbare Parseform (`date_header_parsed`), `imap_received_at` sowie die konfigurierte IANA-`user_timezone`. `date_context_status` kennzeichnet fehlende, ungültige, naive und um mehr als sieben Tage vom Empfang abweichende Angaben. Ein solcher Kontext erzwingt bei Terminen eine offene Rückfrage und verhindert damit die Bestätigung und Speicherung.
-* Der JSON-Zustand wird atomar ersetzt und durch eine Einzelinstanz-Sperre geschützt. Syntaktisch beschädigte Dateien werden als `.corrupt`, schemawidrige Dateien als `.invalid` isoliert; Meldungen nennen Datei und Schlüsselpfad, nicht den Inhalt. Mailzustände (Schema 5), Abrufpositionen und Telegram-Dialoge (Schema 1) sowie Vorschläge (Schema 2) werden vor jeder Verwendung validiert.
+* Der JSON-Zustand wird atomar ersetzt und durch eine Einzelinstanz-Sperre geschützt. Syntaktisch beschädigte Dateien werden als `.corrupt`, schemawidrige Dateien als `.invalid` isoliert; Meldungen nennen Datei und Schlüsselpfad, nicht den Inhalt. Mailzustände (Schema 6), Abrufpositionen, Telegram-Dialoge und Duplikatindex (Schema 1) sowie Vorschläge (Schema 2) werden vor jeder Verwendung validiert.
 * OpenRouter-, Telegram-, Todoist- und Google-Calendar-Antworten werden nach HTTP-Erfolg strikt auf JSON-Struktur, Pflichtfelder und IDs geprüft. LLM-Antworten werden strikt gegen feste Pydantic-Schemata validiert. Reservierte OpenRouter-Felder können nicht über YAML überschrieben werden.
 * Google-Calendar-Access-Tokens werden aus den drei ausschließlich zur Laufzeit
   übergebenen OAuth-Geheimnissen bezogen und frühzeitig erneuert. HTTP 401 ist ein
@@ -140,6 +140,13 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
   eines unverändert unklaren Ergebnisses wird dauerhaft markiert und nicht bei jedem
   Neustart erneut gesendet.
 * `data_directory` bezeichnet das gemeinsame Stammverzeichnis. Mailhelp verwendet darunter automatisch `test/` bei `test_mode: true` und `production/` bei `test_mode: false`. Beide Namensräume besitzen eine eigene `.lock`-Datei und enthalten jeweils sämtliche IMAP-Checkpoints, Mailzustände, Telegram-Offsets und -Dialoge, Vorschläge, externe Ergebniszustände sowie das persistierte LLM-Zeitfenster. Identische IDs können deshalb nicht zwischen Test- und Produktivbetrieb kollidieren.
+* Ein schema-validierter `duplicate-index.json` hält ausschließlich technische
+  IMAP-Identitäten, normalisierte Message-IDs, interne Mail-IDs und SHA-256-
+  Inhaltsfingerprints aus stabilen Absender-, Betreff-, Datums- und Textmerkmalen.
+  Gleiche einzelne Message-ID plus gleicher Fingerprint wird vor einem LLM-Aufruf
+  übersprungen. Fehlende/mehrfache Message-IDs, wiederverwendete IDs, noch offene
+  Kandidaten und reine Fingerprinttreffer werden als `ambiguous` gespeichert und
+  weiterhin verarbeitet. Das Ereignis enthält nur Entscheidung und interne IDs.
 * Die Inhaltsbereinigung arbeitet ausschließlich im ausgewählten Namensraum und
   an abgeschlossenen Vorgängen. Offene Relevanzdialoge, Rückfragen und
   Bestätigungen sowie `confirmed`, `writing` oder `uncertain` werden geschützt.
@@ -154,10 +161,10 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
 
 ### Mailzustände aus Schema 3 kontrolliert erneut verarbeiten
 
-Mailzustands-Schema 5 ist gegenüber älteren Schemata bewusst inkompatibel. **Es findet
+Mailzustands-Schema 6 ist gegenüber älteren Schemata bewusst inkompatibel. **Es findet
 keine automatische Migration statt.** Beim Laden wird eine Datei mit Schema 3
 als schemawidrig erkannt und neben den Zustandsdateien mit der Endung `.invalid`
-isoliert. Mailhelp rekonstruiert insbesondere die in Schema 5 erforderlichen
+isoliert. Mailhelp rekonstruiert insbesondere die in Schema 6 erforderlichen
 Zeitpunkte, Konfigurations-Fingerprints und Schreibreferenzen nicht, weil dies
 bereits ausgeführte Aktionen fälschlich wiederholen könnte.
 
@@ -172,9 +179,9 @@ durch:
    prüfen, ob bereits Todoist-Aufgaben oder Kalendertermine erzeugt wurden.
 3. Den Checkpoint für genau dieses Konto und diesen Ordner bei gestopptem Dienst
    bewusst auf eine UID vor der betroffenen Mail zurücksetzen. Die
-   `.invalid`-Datei als Nachweis gesichert lassen und nicht in Schema 5
+   `.invalid`-Datei als Nachweis gesichert lassen und nicht in Schema 6
    umetikettieren oder manuell mit erfundenen Pflichtfeldern ergänzen.
-4. Mailhelp mit der aktuellen Version starten, die Mail neu als Schema 5 einlesen
+4. Mailhelp mit der aktuellen Version starten, die Mail neu als Schema 6 einlesen
    lassen und alle neu vorgeschlagenen Schreibaktionen erneut über Telegram
    prüfen und versionsbezogen bestätigen. Anschließend kontrollieren, dass der
    Checkpoint wieder vorgerückt ist und keine doppelte externe Aktion entstand.

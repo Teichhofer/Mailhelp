@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timezone
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
@@ -231,8 +231,51 @@ class MailImapIdentity(StrictModel):
     uid: int = Field(ge=1)
 
 
+class DuplicateIndexEntry(StrictModel):
+    """Minimal, content-free identity material retained for duplicate checks."""
+
+    mail_id: str = Field(pattern=r"^[a-f0-9]{24}$")
+    imap: MailImapIdentity
+    message_ids: list[Annotated[str, Field(
+        max_length=998, pattern=r"^<[^<>@\s]+@[^<>@\s]+>$"
+    )]] = Field(default_factory=list, max_length=20)
+    content_fingerprint: str = Field(pattern=r"^[a-f0-9]{64}$")
+
+    @model_validator(mode="after")
+    def unique_message_ids(self) -> "DuplicateIndexEntry":
+        if len(self.message_ids) != len(set(self.message_ids)):
+            raise ValueError("Normalisierte Message-IDs dürfen nicht doppelt vorkommen")
+        return self
+
+
+class DuplicateIndex(StrictModel):
+    schema_version: Literal[1] = 1
+    entries: list[DuplicateIndexEntry] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def unique_technical_identity(self) -> "DuplicateIndex":
+        identities = [(entry.imap.account_id, entry.imap.folder, entry.imap.uidvalidity, entry.imap.uid)
+                      for entry in self.entries]
+        if len(identities) != len(set(identities)):
+            raise ValueError("Technische IMAP-Identitäten dürfen nicht doppelt vorkommen")
+        return self
+
+
+class DuplicateDecision(StrictModel):
+    outcome: Literal["new", "duplicate", "ambiguous"]
+    reason: Literal["no_match", "same_message", "missing_message_id", "multiple_message_ids",
+                    "message_id_reused", "fingerprint_collision", "candidate_incomplete"]
+    previous_mail_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{24}$")
+
+    @model_validator(mode="after")
+    def reference_matches_outcome(self) -> "DuplicateDecision":
+        if (self.outcome == "new") == (self.previous_mail_id is not None):
+            raise ValueError("Nur Treffer benötigen einen früheren Mailbezug")
+        return self
+
+
 class MailState(StrictModel):
-    schema_version: Literal[5] = 5
+    schema_version: Literal[6] = 6
     id: str = Field(pattern=r"^[a-f0-9]{24}$")
     imap: MailImapIdentity
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -250,6 +293,7 @@ class MailState(StrictModel):
     relevance_dialog: RelevanceDialog | None = None
     error: ProcessingError | None = None
     deferred_until: datetime | None = None
+    duplicate: DuplicateDecision | None = None
 
     @model_validator(mode="after")
     def consistent_relevance_dialog(self) -> "MailState":

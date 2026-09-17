@@ -173,6 +173,9 @@ def prepare(raw: bytes, limits: int | MimeLimits | object,
         "metadata": {"attachments_omitted": attachments, "text_shortened": shortened},
         **_date_context(message, received, user_timezone),
     }
+    # Preserve all occurrences for conservative duplicate handling.  They are
+    # untrusted input and are normalized only at the duplicate-index boundary.
+    result["message_ids"] = [_clean(str(value)) for value in message.get_all("Message-ID", [])]
     if len(json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) > configured.max_llm_payload_bytes:
         raise MimeLimitExceeded("max_llm_payload_bytes")
     return result

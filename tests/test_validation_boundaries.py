@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from mailhelp.config import Settings, _validated_file
 from mailhelp.integrations import HttpWriter, _with_external_result
-from mailhelp.models import (ImapCheckpoint, MailState, Proposal, TelegramDialogState,
+from mailhelp.models import (DuplicateDecision, DuplicateIndex, DuplicateIndexEntry, ImapCheckpoint, MailState, Proposal, TelegramDialogState,
                              TelegramOffset, ValidationIssue, WriteAttemptReference)
 from mailhelp.openrouter import OpenRouterClient, _path
 from mailhelp.storage import CorruptState, JsonStore
@@ -33,7 +33,7 @@ def valid_settings(tmp_path: Path) -> dict:
     }
 
 
-def test_mail_state_v5_metadata_is_closed_and_round_trips(tmp_path):
+def test_mail_state_v6_metadata_is_closed_and_round_trips(tmp_path):
     now = datetime.now(timezone.utc)
     state = MailState(
         id="a" * 24, imap={"account_id":"0"*24,"folder": "INBOX", "uidvalidity": 1, "uid": 2},
@@ -45,7 +45,7 @@ def test_mail_state_v5_metadata_is_closed_and_round_trips(tmp_path):
     with JsonStore(tmp_path / "states") as store:
         store.save("mail-a", state.model_dump(mode="json"))
         loaded = store.load_model("mail-a", MailState)
-    assert loaded == state and loaded.schema_version == 5
+    assert loaded == state and loaded.schema_version == 6
     value = state.model_dump(mode="json")
     with pytest.raises(ValidationError):
         MailState.model_validate({**value, "unknown": True})
@@ -114,6 +114,21 @@ def test_settings_reject_missing_extra_types_ranges_and_semantics(tmp_path):
 def test_versioned_state_models_and_schema_quarantine(tmp_path):
     assert ImapCheckpoint(uidvalidity=1, uid=2).schema_version == 1
     assert TelegramOffset(offset=2).schema_version == 1
+    identity = {"account_id": "0" * 24, "folder": "INBOX", "uidvalidity": 1, "uid": 2}
+    entry = DuplicateIndexEntry(mail_id="a" * 24, imap=identity,
+                                message_ids=["<one@example.test>"], content_fingerprint="f" * 64)
+    assert DuplicateIndex(entries=[entry]).schema_version == 1
+    with pytest.raises(ValidationError, match="doppelt"):
+        DuplicateIndex(entries=[entry, entry.model_copy(update={"mail_id": "b" * 24})])
+    with pytest.raises(ValidationError, match="doppelt"):
+        DuplicateIndexEntry(mail_id="a" * 24, imap=identity,
+                            message_ids=["<one@example.test>", "<one@example.test>"], content_fingerprint="f" * 64)
+    with pytest.raises(ValidationError):
+        DuplicateIndexEntry(mail_id="a" * 24, imap=identity,
+                            message_ids=["not-normalized"], content_fingerprint="f" * 64)
+    assert DuplicateDecision(outcome="new", reason="no_match").previous_mail_id is None
+    with pytest.raises(ValidationError, match="Mailbezug"):
+        DuplicateDecision(outcome="duplicate", reason="same_message")
     assert TelegramDialogState().proposal_id is None
     with pytest.raises(ValidationError): TelegramDialogState(proposal_id="p")
     with pytest.raises(ValidationError): TelegramDialogState(version=1)
