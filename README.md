@@ -268,3 +268,44 @@ python -m pytest
 ```
 
 Die Standardkonfiguration erzwingt ohne Rundung 100 % Zeilen- **und** Branch-Abdeckung für `src/mailhelp`.
+
+### Reproduzierbare Qualitätsprüfungen
+
+Alle folgenden Standardläufe sind offline, verwenden nur synthetische Daten und
+benötigen keine Geheimnisse:
+
+```sh
+# Gesamtsuite: 100 % Zeilen- und Branch-Abdeckung des eigenen Anwendungscodes
+python -m pytest --cov=mailhelp --cov-branch --cov-fail-under=100
+
+# Versionierter deutscher Qualitätskorpus mit simuliertem OpenRouter-Adapter
+python -m pytest tests/test_quality_corpus.py --cov=mailhelp --cov-branch --cov-fail-under=100
+
+# Simulierter Ablauf IMAP → LLM → Telegram-Bestätigung → Todoist/Calendar
+python -m pytest tests/test_e2e_simulated.py --cov=mailhelp --cov-branch --cov-fail-under=100
+
+# CLI- und POSIX-/Windows-Pfadvarianten
+python -m pytest tests/test_cli_paths.py --cov=mailhelp --cov-branch --cov-fail-under=100
+
+# Lokaler Container-Smoke-Test (entspricht dem separaten CI-Job)
+docker build --tag mailhelp:smoke .
+docker run --rm --env-file .env \
+  -v "$PWD/config.yaml:/config/config.yaml:ro" \
+  -v "$PWD/prompts.yaml:/config/prompts.yaml:ro" \
+  -v "$PWD/topics.yaml:/config/topics.yaml:ro" \
+  mailhelp:smoke --check --config-directory /config
+```
+
+Die fokussierten Pytest-Befehle behalten die produktweit verbindlichen Optionen
+`--cov-branch --cov-fail-under=100` bei. Weil ein fokussierter Test naturgemäß nicht
+den gesamten Anwendungscode ausführt, kann er allein an der globalen
+100-%-Schwelle scheitern; das fachliche Ergebnis steht dann dennoch im Testbericht,
+während die Gesamtsuite der maßgebliche Coverage-Gate ist.
+
+Eine Bewertung mit einem realen Modell ist bewusst **nicht Teil dieser Suite** und
+wird derzeit auch nicht als optionales Skript angeboten. Dadurch gibt es keinen
+versehentlichen Netzwerkzugriff und keine implizite Verwendung eines
+`OPENROUTER_API_KEY`. Soll eine solche Integration später ergänzt werden, muss sie
+über einen ausdrücklich benannten Opt-in-Schalter aktiviert werden, außerhalb des
+Standard-Pytest-Laufs liegen und als Erfolgskriterium dieselben vollständigen
+strukturierten Erwartungen aus `tests/fixtures/mail_corpus_v1/corpus.json` erfüllen.
