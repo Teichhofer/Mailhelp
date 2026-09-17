@@ -181,8 +181,20 @@ def build_application(settings: Settings, secrets: Secrets, topics: list[Topic],
             secrets.todoist_token, secrets.google_oauth_client_id, secrets.google_oauth_client_secret,
             secrets.google_oauth_refresh_token,
         ))
-        logger = JsonlLogger(log_dir, settings.logging.include_llm_requests, settings.logging.include_llm_responses,
-                             settings.logging.level, settings.logging.module_levels, known_secrets)
+        log = settings.logging
+        logger = JsonlLogger(
+            log_dir, log.llm.include_requests, log.llm.include_responses,
+            log.file.level, log.modules, known_secrets,
+            file_enabled=log.file.enabled, file_name=log.file.filename,
+            file_format=log.file.format, file_max_bytes=log.file.max_bytes,
+            file_backup_count=log.file.backup_count, file_retention_days=log.file.retention_days,
+            console_enabled=log.console.enabled, console_level=log.console.level,
+            console_format=log.console.format,
+            llm_enabled=log.llm.enabled, llm_level=log.llm.level,
+            llm_name=log.llm.filename, llm_format=log.llm.format,
+            llm_max_bytes=log.llm.max_bytes, llm_backup_count=log.llm.backup_count,
+            llm_retention_days=log.llm.retention_days,
+        )
         stop_event = Event()
         def policy(name: str) -> RetryPolicy:
             item = getattr(settings.timeouts, name)

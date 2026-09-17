@@ -173,7 +173,7 @@ def test_identical_proposals_have_isolated_confirmation_and_external_results(tmp
                 imap={"host":"h","port":993,"folders":["INBOX"]},telegram={"user_id":1,"chat_id":2},
                 targets={"todoist_project":"p","google_calendar":"c"},limits={"max_mail_bytes":1024,"llm_calls_per_minute":2},
                 retries={"validation":0},timeouts={**{name:{"timeout_seconds":30,"retries":0,"initial_backoff_seconds":0,"max_backoff_seconds":1} for name in ("imap","telegram","openrouter","todoist","google_calendar")},"telegram_poll_seconds":30},
-                logging={"directory":str(tmp_path/"logs"),"level":"INFO"})
+                logging={"directory":str(tmp_path/"logs"),"console":{"enabled":False},"file":{"filename":"application.jsonl","max_bytes":10000,"backup_count":1,"retention_days":30},"llm":{"filename":"llm/requests.jsonl","max_bytes":10000,"backup_count":1,"retention_days":30}})
     test_settings=Settings(test_mode=True,**common)
     production_settings=Settings(test_mode=False,**common)
     with JsonStore(_state_directory(test_settings,tmp_path)) as test_store:

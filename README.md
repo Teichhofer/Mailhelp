@@ -74,11 +74,17 @@ in UTC verglichen und ihr ermittelter UID-Ausgangspunkt sofort je Konto und Ordn
 persistiert; ein Neustart deutet den Zeitpunkt daher nicht anhand einer geänderten
 Windows-/Container-Zeitzone oder eines inzwischen gewachsenen Postfachs neu aus.
 
-Das globale `logging.level` kann über `logging.module_levels` je Modul überschrieben
-werden. Strukturierte Anwendungs- und LLM-Ereignisse werden getrennt als JSONL
-geschrieben; Rohprompt und Rohantwort bleiben standardmäßig aus und werden nur durch
-`include_llm_requests` beziehungsweise `include_llm_responses` unabhängig aktiviert.
-Alle Logfelder durchlaufen eine rekursive Geheimnisbereinigung.
+`logging.console`, `logging.file` und `logging.llm` besitzen eigene Aktivierungs- und
+Level-Schalter; `logging.modules` überschreibt das Datei-Grundlevel für einzelne
+Anwendungsmodule. Dateiname, Format (`text` oder `jsonl`), maximale Dateigröße,
+Backup-Anzahl und Aufbewahrung in Tagen sind konfigurierbar. Das LLM-Log filtert
+unabhängig von `logging.modules.openrouter`. Rohprompt und Rohantwort bleiben
+standardmäßig aus und werden nur durch `logging.llm.include_requests` beziehungsweise
+`include_responses` aktiviert; sie werden niemals auf die Konsole gespiegelt. Alle
+Logfelder, einschließlich Fehler und Stacktraces, durchlaufen die rekursive
+Geheimnisbereinigung. Alte aktive Logs und nummerierte Rotationen werden beim Start
+und vor Schreibzugriffen ausschließlich innerhalb ihres konfigurierten Verzeichnisses
+entfernt.
 
 Unter `retention` steuern `full_mail_days` und `debug_llm_days` getrennt die
 Aufbewahrung vollständiger Maildaten beziehungsweise abgeleiteter Debug-/LLM-Daten

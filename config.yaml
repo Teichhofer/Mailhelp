@@ -45,8 +45,27 @@ timeouts:
   telegram_poll_seconds: 30
 logging:
   directory: logs
-  level: INFO
-  module_levels:
+  console:
+    enabled: true
+    level: INFO
+    format: text
+  file:
+    enabled: true
+    level: INFO
+    format: jsonl
+    filename: application.jsonl
+    max_bytes: 10000000
+    backup_count: 5
+    retention_days: 30
+  modules:
     openrouter: INFO
-  include_llm_requests: false
-  include_llm_responses: false
+  llm:
+    enabled: true
+    level: INFO
+    format: jsonl
+    filename: llm/requests.jsonl
+    max_bytes: 10000000
+    backup_count: 5
+    retention_days: 30
+    include_requests: false
+    include_responses: false

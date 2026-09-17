@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import json
+import os
+from io import StringIO
+from time import time
 
 import httpx
 import pytest
@@ -57,10 +60,72 @@ def test_failure_details_and_stacktraces_are_redacted_in_structured_log(tmp_path
 
 
 def test_logging_settings_module_level_validation():
-    base = {"directory": "logs", "level": "INFO"}
-    assert LoggingSettings.model_validate({**base, "module_levels": {"imap": "ERROR"}}).module_levels["imap"] == "ERROR"
+    base = {"directory": "logs", "console": {},
+            "file": {"filename": "application.jsonl", "max_bytes": 100, "backup_count": 1, "retention_days": 1},
+            "llm": {"filename": "llm/requests.jsonl", "max_bytes": 100, "backup_count": 1, "retention_days": 1}}
+    assert LoggingSettings.model_validate({**base, "modules": {"imap": "ERROR"}}).modules["imap"] == "ERROR"
     for bad in ({"": "INFO"}, {"imap": "TRACE"}):
-        with pytest.raises(Exception): LoggingSettings.model_validate({**base, "module_levels": bad})
+        with pytest.raises(Exception): LoggingSettings.model_validate({**base, "modules": bad})
+    for field, value in (("filename", "../bad"), ("filename", "/absolute"), ("max_bytes", 0),
+                         ("filename", 4), ("backup_count", -1), ("retention_days", 0)):
+        candidate = json.loads(json.dumps(base))
+        candidate["file"][field] = value
+        with pytest.raises(Exception): LoggingSettings.model_validate(candidate)
+
+
+def test_independent_targets_levels_console_and_module_inheritance(tmp_path):
+    console = StringIO()
+    logger = JsonlLogger(
+        tmp_path, True, True, "WARNING", {"quiet": "ERROR", "openrouter": "CRITICAL"},
+        {"synthetic-secret"}, console_enabled=True, console_level="DEBUG", console=console,
+        llm_level="DEBUG",
+    )
+    for level in ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"):
+        logger.event(level, "inherited", level.lower(), value="synthetic-secret")
+    logger.event("WARNING", "quiet", "filtered")
+    logger.event("ERROR", "quiet.child", "module-visible")
+    logger.event("INFO", "inherited", "console-only")
+    logger.llm_event("llm-debug", request="raw synthetic-secret", response="raw", level="DEBUG")
+    app = [json.loads(row) for row in logger.app.read_text().splitlines()]
+    llm = json.loads(logger.llm.read_text())
+    assert [row["event"] for row in app] == ["warning", "error", "critical", "module-visible"]
+    assert llm["event"] == "llm-debug"  # independent of the openrouter CRITICAL filter
+    output = console.getvalue()
+    assert "module-visible" in output and "console-only" in output and "llm-debug" not in output
+    assert "synthetic-secret" not in output and "raw" not in output
+
+    disabled = JsonlLogger(tmp_path / "disabled", file_enabled=False, console_enabled=False, llm_enabled=False)
+    disabled.event("CRITICAL", "x", "no-file")
+    disabled.llm_event("no-llm")
+    assert not disabled.app.exists() and not disabled.llm.exists()
+    with pytest.raises(ValueError, match="Logformat"):
+        JsonlLogger(tmp_path / "bad-format", file_format="xml")
+    with pytest.raises(ValueError, match="Loggröße"):
+        JsonlLogger(tmp_path / "bad-size", llm_retention_days=0)
+
+
+def test_rotation_backup_limit_retention_and_restart(tmp_path):
+    options = dict(file_max_bytes=180, file_backup_count=2, file_retention_days=1,
+                   llm_max_bytes=180, llm_backup_count=1, llm_retention_days=1)
+    logger = JsonlLogger(tmp_path, **options)
+    for number in range(8):
+        logger.event("INFO", "test", "rotating", number=number, padding="x" * 80)
+    assert logger.app.exists() and logger.app.with_name("application.jsonl.1").exists()
+    assert logger.app.with_name("application.jsonl.2").exists()
+    assert not logger.app.with_name("application.jsonl.3").exists()
+
+    stale = logger.llm.with_name("requests.jsonl.1")
+    stale.parent.mkdir(parents=True, exist_ok=True)
+    stale.write_text("old")
+    old = time() - 3 * 86400
+    os.utime(stale, (old, old))
+    JsonlLogger(tmp_path, **options)  # restart performs bounded cleanup
+    assert not stale.exists()
+
+    no_backups = JsonlLogger(tmp_path / "none", file_max_bytes=1, file_backup_count=0)
+    no_backups.event("INFO", "test", "first")
+    no_backups.event("INFO", "test", "second")
+    assert no_backups.app.exists() and not no_backups.app.with_name("application.jsonl.1").exists()
 
 
 def test_openrouter_correlated_response_raw_switch_and_error(tmp_path):
