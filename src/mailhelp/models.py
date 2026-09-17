@@ -111,6 +111,7 @@ class ProposalStatus(StrEnum):
     CONFIRMED = "confirmed"
     WRITING = "writing"
     CREATED = "created"
+    SIMULATED = "simulated"
     REJECTED = "rejected"
     FAILED = "failed"
     UNCERTAIN = "uncertain"
@@ -140,6 +141,7 @@ class Proposal(StrictModel):
     external_id: str | None = Field(default=None, max_length=500)
     external_link: str | None = Field(default=None, max_length=2000)
     uncertain_notified: bool = False
+    simulation_notified: bool = False
 
     @model_validator(mode="after")
     def complete_event(self) -> "Proposal":
@@ -148,6 +150,10 @@ class Proposal(StrictModel):
             self.status = ProposalStatus.NEEDS_CLARIFICATION
         if self.kind == ProposalKind.TASK and (self.start is not None or self.end is not None or self.all_day):
             raise ValueError("Aufgaben dürfen keine Kalenderzeit enthalten")
+        if self.status == ProposalStatus.SIMULATED and (self.external_id is not None or self.external_link is not None):
+            raise ValueError("Simulationen dürfen kein externes Ergebnis enthalten")
+        if self.simulation_notified and self.status != ProposalStatus.SIMULATED:
+            raise ValueError("Nur abgeschlossene Simulationen dürfen als gemeldet markiert sein")
         if self.kind != ProposalKind.EVENT:
             return self
         if not self.open_questions and (self.start is None or self.end is None):

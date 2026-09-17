@@ -18,10 +18,13 @@ NOW = datetime(2026, 9, 16, tzinfo=timezone.utc)
 
 
 def state(identifier, age=31, status=ProposalStatus.CREATED):
+    simulated = status == ProposalStatus.SIMULATED
     proposal = Proposal(id="p" + identifier[0], version=2, kind=ProposalKind.TASK, responsibility="user", certainty="certain", classification="new",
                         title="Termin", evidence="Quelle", source_mail_id=identifier,
-                        target="inbox", status=status, external_id="external-1",
-                        external_link="https://example.invalid/1")
+                        target="inbox", status=status,
+                        external_id=None if simulated else "external-1",
+                        external_link=None if simulated else "https://example.invalid/1",
+                        simulation_notified=simulated)
     item = MailState(
         id=identifier, config_fingerprint="0" * 64,
         imap={"account_id": "1" * 24, "folder": "INBOX", "uidvalidity": 7, "uid": 9},
@@ -94,6 +97,21 @@ def test_pending_and_open_relevance_are_protected_and_unlimited_is_explicit(tmp_
         mail_only = RetentionService(store, RetentionSettings(full_mail_days="disabled", debug_llm_days="unlimited"), Log(), lambda: NOW).run()
         assert mail_only.mail_scrubbed == 1 and mail_only.debug_scrubbed == 0
         assert store.load_model("duplicate-index", DuplicateIndex) == duplicate_index
+
+
+def test_completed_simulation_is_terminal_but_retained_as_action_result(tmp_path):
+    simulated = state("f" * 24, status=ProposalStatus.SIMULATED)
+    with JsonStore(tmp_path) as store:
+        store.save("mail-simulated", simulated.model_dump(mode="json"))
+        result = RetentionService(
+            store, RetentionSettings(full_mail_days="disabled", debug_llm_days="disabled"),
+            Log(), lambda: NOW,
+        ).run()
+        kept = store.load_model("mail-simulated", MailState)
+        assert result.protected == 0 and result.mail_scrubbed == 1
+        assert kept.proposals[0].status == ProposalStatus.SIMULATED
+        assert kept.proposals[0].simulation_notified
+        assert kept.proposals[0].external_id is None
 
 
 def test_retention_boundaries_missing_state_and_clock_validation():

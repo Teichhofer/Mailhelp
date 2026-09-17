@@ -228,8 +228,9 @@ Jeder Schreibvorgang wird vor dem API-Aufruf dauerhaft registriert. Bei Zeitübe
 
 Die Integrationsgrenze verlangt dafür eine Persistenzfunktion. Sie speichert `writing`
 vor dem Netzwerkaufruf und danach `created`, `failed` oder `uncertain`. Im Testmodus
-bleibt der Vorschlag `confirmed`; nur das Rückgabeobjekt kennzeichnet die Simulation,
-damit diese nicht mit einem echten externen Eintrag verwechselt werden kann.
+speichert sie stattdessen vor der Erfolgsmeldung den eigenen Abschlusszustand
+`simulated`. Dieser Zustand verbietet externe ID und externen Link strikt und kann
+deshalb niemals als echte externe Erstellung interpretiert werden.
 
 ## 9. Konfigurations- und Geheimnisdateien
 
@@ -286,11 +287,15 @@ weiter abgeglichen, aber niemals automatisch erneut geschrieben: Nur ein später
 externer Treffer führt zu `created`; ein erneuter Schreibversuch erfordert eine
 ausdrücklich modellierte manuelle Betreiberentscheidung. Ergebnisstatus, externe ID
 und verfügbarer Link werden gespeichert und zusammen mit Fehlern, unklaren Ergebnissen
-und Testmodus-Simulationen gemeldet. Eine dauerhafte Zustandsmarkierung verhindert,
-dass ein unverändert unklarer Vorgang bei jedem Neustart dieselbe Telegram-Meldung
-erzeugt.
+und Testmodus-Simulationen gemeldet. `simulated` ist bereits ein dauerhafter Abschluss
+und wird daher nicht erneut ausgeführt. Die separate Markierung
+`simulation_notified` wird erst nach der eindeutig als Simulation bezeichneten
+Telegram-Meldung gespeichert: Eine beim Neustart noch ungemeldete Simulation wird
+einmal gemeldet, eine bereits gemeldete bei Polls und Neustarts übersprungen. Dieselbe
+Art dauerhafter Zustandsmarkierung verhindert, dass ein unverändert unklarer Vorgang
+bei jedem Neustart dieselbe Telegram-Meldung erzeugt.
 
-Vorgeschlagene Vorschlagszustände sind `needs_clarification`, `pending_confirmation`, `confirmed`, `writing`, `created`, `rejected`, `failed` und `uncertain`. Zustandsübergänge werden zentral geprüft; nur ein bestätigter, vollständiger Vorschlag darf in `writing` wechseln.
+Vorgeschlagene Vorschlagszustände sind `needs_clarification`, `pending_confirmation`, `confirmed`, `writing`, `created`, `simulated`, `rejected`, `failed` und `uncertain`. Zustandsübergänge werden zentral geprüft; nur ein bestätigter, vollständiger Vorschlag darf in `writing` wechseln.
 
 Dateiänderungen erfolgen über temporäre Dateien und atomaren Austausch mit geeigneter Zugriffssperre. V1 erlaubt nur eine aktive Mailhelp-Instanz je Datenverzeichnis. Beschädigte JSON-Dateien werden isoliert und gemeldet, nicht stillschweigend durch leere Dateien ersetzt. Manuelles Bearbeiten ist nur bei gestoppter Anwendung vorgesehen; beim nächsten Start erfolgt eine Validierung.
 
