@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 from enum import StrEnum
 from typing import Annotated, Any, Literal
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, model_validator
 
 
 class StrictModel(BaseModel):
@@ -134,6 +134,7 @@ class Proposal(StrictModel):
     end: date | datetime | None = None
     all_day: bool = False
     location: str | None = Field(default=None, max_length=1000)
+    video_link: AnyHttpUrl | None = Field(default=None, max_length=2000)
     target: str = Field(min_length=1, max_length=500)
     status: ProposalStatus = ProposalStatus.PENDING_CONFIRMATION
     external_id: str | None = Field(default=None, max_length=500)

@@ -223,6 +223,14 @@ def test_event_boundary_rejects_incomplete_contradictory_and_naive_values():
     assert type(complete.start) is date and type(complete.end) is date
 
 
+def test_proposal_video_link_accepts_only_bounded_http_urls():
+    assert str(proposal(video_link="https://video.example.test/room").video_link) == "https://video.example.test/room"
+    assert proposal(video_link=None).video_link is None
+    for invalid in ("ftp://video.example.test/room", "not-a-url", "https://example.test/" + "x" * 2000):
+        with pytest.raises(ValidationError):
+            proposal(video_link=invalid)
+
+
 def test_calendar_writer_requires_valid_configured_iana_timezone():
     with pytest.raises(ValueError,match="konfigurierte IANA"):
         HttpWriter("google_calendar","x","primary")

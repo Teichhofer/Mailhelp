@@ -203,6 +203,7 @@ def format_proposal(proposal: Proposal, configured_timezone: str) -> str:
             f"Ganztägig: {'Ja' if proposal.all_day else 'Nein'}",
             f"Konfigurierte Zeitzone: {configured_timezone}",
             f"Ort: {proposal.location or missing}",
+            f"Videolink: {proposal.video_link or missing}",
         ])
     return "\n".join(lines)
 

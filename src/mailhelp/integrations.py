@@ -206,8 +206,15 @@ class HttpWriter:
         # construct an inconsistent proposal without running model validators.
         validated = Proposal.model_validate(proposal.model_dump())
         interval = self._all_day_interval(validated) if validated.all_day else self._timed_interval(validated)
-        return {"summary": validated.title, "description": validated.description, **interval,
+        description = validated.description
+        if validated.video_link is not None:
+            video_section = f"[Mailhelp-Videolink]\n{validated.video_link}"
+            description = f"{description}\n\n{video_section}" if description else video_section
+        body = {"summary": validated.title, "description": description, **interval,
                 "extendedProperties": {"private": {"mailhelp_key": key}}}
+        if validated.location is not None:
+            body["location"] = validated.location
+        return body
 
     @staticmethod
     def _all_day_interval(proposal: Proposal) -> dict[str, Any]:
