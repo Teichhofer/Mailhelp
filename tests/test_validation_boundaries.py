@@ -29,7 +29,7 @@ def valid_settings(tmp_path: Path) -> dict:
         "limits": {"max_mail_bytes": 1024, "llm_calls_per_minute": 1},
         "retries": {"validation": 0},
         "timeouts": {**{name: {"timeout_seconds": 1.0, "retries": 0, "initial_backoff_seconds": 0.0, "max_backoff_seconds": 1.0} for name in ("imap", "telegram", "openrouter", "todoist", "google_calendar")}, "telegram_poll_seconds": 1},
-        "logging": {"directory": str(tmp_path / "logs"), "level": "INFO", "include_llm_requests": False, "include_llm_responses": False},
+        "logging": {"directory": str(tmp_path / "logs"), "console": {"enabled": False}, "file": {"filename": "application.jsonl", "max_bytes": 10000, "backup_count": 1, "retention_days": 30}, "llm": {"filename": "llm/requests.jsonl", "max_bytes": 10000, "backup_count": 1, "retention_days": 30}},
     }
 
 
@@ -95,7 +95,7 @@ def test_settings_reject_missing_extra_types_ranges_and_semantics(tmp_path):
         lambda x: x["timeouts"].update(telegram_seconds=301.0),
         lambda x: x["timeouts"].update(telegram_poll_seconds=51),
         lambda x: x["timeouts"].update(integration_seconds="30"),
-        lambda x: x["logging"].update(level="TRACE"),
+        lambda x: x["logging"]["file"].update(level="TRACE"),
         lambda x: x.update(data_directory="../secret"),
         lambda x: x.update(data_directory="bad\0path"),
         lambda x: x.update(data_directory=123),

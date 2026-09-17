@@ -320,14 +320,32 @@ Vollständige Anfragen einschließlich Prompt und Mailinhalt sowie vollständige
 ```yaml
 logging:
   directory: logs
-  level: INFO
-  module_levels:
+  console: {enabled: true, level: INFO, format: text}
+  file:
+    {enabled: true, level: INFO, format: jsonl, filename: application.jsonl,
+     max_bytes: 10000000, backup_count: 5, retention_days: 30}
+  modules:
     openrouter: DEBUG
-  include_llm_requests: false
-  include_llm_responses: false
+  llm:
+    {enabled: true, level: INFO, format: jsonl, filename: llm/requests.jsonl,
+     max_bytes: 10000000, backup_count: 5, retention_days: 30,
+     include_requests: false, include_responses: false}
 ```
 
-Einträge unterhalb des globalen beziehungsweise modulbezogenen effektiven Levels werden nicht geschrieben. Das LLM-Log liegt unterhalb des allgemeinen Logverzeichnisses in `llm/requests.jsonl`; sein Modulname ist `openrouter` und damit gilt dessen effektives Level.
+Konsole, Anwendungsdatei und LLM-Datei können unabhängig aktiviert werden. Für das
+Anwendungslog erben nicht genannte Module `file.level`; `modules` kann diesen Wert je
+Modul überschreiben. Das eigene `llm.level` ist davon vollständig unabhängig, sodass
+insbesondere `modules.openrouter` das LLM-Log nicht abschaltet. Die Konsole besitzt
+ihr eigenes Level und erhält ausschließlich bereinigte Anwendungsereignisse, niemals
+Rohprompts oder Rohantworten.
+
+Dateiziele unterstützen `text` und zeilenweises `jsonl`, sichere relative Dateinamen,
+eine positive maximale Größe, null oder mehr nummerierte Backups und eine positive
+Aufbewahrungsfrist von höchstens 3650 Tagen. Vor einem überschreitenden Schreibzugriff
+wird größenbasiert rotiert und die älteste Generation an der Backup-Grenze gelöscht.
+Beim Start und vor weiteren Schreibzugriffen werden ausschließlich die konfigurierte
+Datei und ihre nummerierten, regulären (nicht symbolisch verknüpften) Rotationen nach
+Alter bereinigt.
 
 Passwörter, API-Schlüssel, Tokens und Authentifizierungsheader werden unabhängig vom Level ausgeschlossen oder maskiert. Auch Fehlerantworten externer Dienste werden vor dem Loggen bereinigt. JSON-Zustandsdateien und JSONL-Logs bleiben getrennt: JSONL enthält ein eigenständiges JSON-Objekt pro Zeile.
 
