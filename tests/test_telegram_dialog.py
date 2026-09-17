@@ -22,7 +22,7 @@ from mailhelp.config import Settings
 
 
 def proposal(**changes):
-    data = {"id": "p1", "version": 1, "kind": "task", "title": "Aufgabe", "description": "Text", "evidence": "Beleg", "source_mail_id": "m1", "target": "inbox"}
+    data = {"id": "p1", "version": 1, "kind": "task", "title": "Aufgabe", "description": "Text", "evidence": "Beleg", "source_mail_id": "aaaaaaaaaaaaaaaaaaaaaaaa", "target": "inbox"}
     data.update(changes)
     return Proposal.model_validate(data)
 
@@ -83,8 +83,8 @@ def test_write_attempt_references_are_linked_to_mail(tmp_path):
                                 start="2026-01-01T10:00:00Z",end="2026-01-01T11:00:00Z"))
         loaded=store.load_model("mail-"+mail_id,MailState)
         assert [(item.proposal_id,item.service,item.idempotency_key) for item in loaded.write_attempts] == [
-            ("p1","todoist","mailhelp:p1:v1"),
-            ("event","google_calendar","mailhelp:event:v1"),
+            ("p1","todoist",f"mailhelp:{mail_id}:p1:v1"),
+            ("event","google_calendar",f"mailhelp:{mail_id}:event:v1"),
         ]
 
 
@@ -98,13 +98,13 @@ class Writer:
 
 
 def test_strict_schemas_and_decisions():
-    parsed=Decision.parse("proposal:p1:3:confirm")
-    assert parsed.encode()=="proposal:p1:3:confirm"
-    for bad in ("x", "proposal:p1:x:confirm", "proposal:p1:٣:confirm", "proposal:p1:1:bad"):
+    parsed=Decision.parse("proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:3:confirm")
+    assert parsed.encode()=="proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:3:confirm"
+    for bad in ("x", "proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:x:confirm", "proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:٣:confirm", "proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:bad"):
         with pytest.raises((ValueError,ValidationError)): Decision.parse(bad)
     transport=TelegramMessage.model_validate({"message_id":1,"from":{"id":1,"first_name":"Ada","is_bot":False},"chat":{"id":2,"type":"private"},"date":1_789_000_000,"text":"x","unknown":True})
     assert transport.model_dump(by_alias=True)=={"message_id":1,"from":{"id":1},"chat":{"id":2},"text":"x"}
-    callback_model=TelegramCallbackQuery.model_validate({**callback(1,"proposal:p1:1:confirm")["callback_query"],"unknown":1})
+    callback_model=TelegramCallbackQuery.model_validate({**callback(1,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm")["callback_query"],"unknown":1})
     assert "unknown" not in callback_model.model_dump() and callback_model.sender.id == 1
     with pytest.raises(ValidationError): Decision.model_validate({"proposal_id":"p1","version":1,"action":"confirm","unknown":True})
     with pytest.raises(ValidationError): TelegramUpdate(update_id=1)
@@ -139,20 +139,20 @@ def test_persist_before_buttons_and_authorized_flow(tmp_path):
         c,t,_=controller(store)
         p=proposal(title="t"*500, description="x"*4000)
         c.send_proposal(p)
-        assert store.load("proposal-p1-v1")["version"]==1
-        assert len(t.sent)>=2 and t.sent[-1][2]["inline_keyboard"][0][0]["callback_data"]=="proposal:p1:1:confirm"
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")["version"]==1
+        assert len(t.sent)>=2 and t.sent[-1][2]["inline_keyboard"][0][0]["callback_data"]=="proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm"
         c.send(2,"ok")
         with pytest.raises(PermissionError): c.send(3,"x")
 
-        t.updates=[callback(4,"proposal:p1:1:confirm")]
+        t.updates=[callback(4,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm")]
         c.poll_once()
-        assert store.load("proposal-p1")["status"]=="confirmed" and "bestätigt" in t.answered[-1][1]
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="confirmed" and "bestätigt" in t.answered[-1][1]
         # Duplicate update is ignored by the persisted offset after restart.
         c2,t2,_=controller(store,t.updates); c2.poll_once()
         assert t2.polls==[5] and not t2.answered
         # A replay with a fresh update id still cannot mutate the terminal state.
-        t2.updates=[callback(5,"proposal:p1:1:reject")]; c2.poll_once()
-        assert store.load("proposal-p1")["status"]=="confirmed" and "veraltet" in t2.answered[-1][1]
+        t2.updates=[callback(5,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:reject")]; c2.poll_once()
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="confirmed" and "veraltet" in t2.answered[-1][1]
 
 
 def test_only_exactly_displayed_version_is_written(tmp_path):
@@ -161,11 +161,11 @@ def test_only_exactly_displayed_version_is_written(tmp_path):
         c,t,_=controller(store, writers={"todoist":writer})
         c.send_proposal(proposal(version=1))
         c.send_proposal(proposal(version=2, title="Neue Fassung"))
-        t.updates=[callback(1,"proposal:p1:1:confirm"),callback(2,"proposal:p1:2:confirm")]
+        t.updates=[callback(1,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm"),callback(2,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:2:confirm")]
         c.poll_once()
         assert "veraltet" in t.answered[0][1]
         assert writer.versions == [2]
-        assert store.load("proposal-p1-v2")["title"] == "Neue Fassung"
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v2")["title"] == "Neue Fassung"
 
 
 def test_identical_proposals_have_isolated_confirmation_and_external_results(tmp_path):
@@ -177,50 +177,76 @@ def test_identical_proposals_have_isolated_confirmation_and_external_results(tmp
     test_settings=Settings(test_mode=True,**common)
     production_settings=Settings(test_mode=False,**common)
     with JsonStore(_state_directory(test_settings,tmp_path)) as test_store:
-        test_dialog,_,_=controller(test_store,[callback(1,"proposal:p1:1:confirm")],{"todoist":Writer()},True)
+        test_dialog,_,_=controller(test_store,[callback(1,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm")],{"todoist":Writer()},True)
         test_dialog.persist(proposal()); test_dialog.poll_once()
-        assert test_store.load("proposal-p1")["status"]=="confirmed"
-        assert test_store.load("proposal-p1").get("external_id") is None
+        assert test_store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="confirmed"
+        assert test_store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1").get("external_id") is None
         assert test_store.load("telegram-offset")["offset"]==2
 
     writer=Writer()
     with JsonStore(_state_directory(production_settings,tmp_path)) as production_store:
-        assert production_store.load("proposal-p1") is None
+        assert production_store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1") is None
         assert production_store.load("telegram-offset") is None
-        production_dialog,_,_=controller(production_store,[callback(7,"proposal:p1:1:confirm")],{"todoist":writer})
+        production_dialog,_,_=controller(production_store,[callback(7,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm")],{"todoist":writer})
         production_dialog.persist(proposal()); production_dialog.poll_once()
-        assert production_store.load("proposal-p1")["external_id"]=="external-1"
+        assert production_store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["external_id"]=="external-1"
         assert production_store.load("telegram-offset")["offset"]==8
         assert writer.created==1
 
     with JsonStore(_state_directory(test_settings,tmp_path)) as test_store:
-        assert test_store.load("proposal-p1")["status"]=="confirmed"
-        assert test_store.load("proposal-p1").get("external_id") is None
+        assert test_store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="confirmed"
+        assert test_store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1").get("external_id") is None
         assert test_store.load("telegram-offset")["offset"]==2
 
+
+def test_same_llm_id_from_two_mails_survives_restart_and_writes_separately(tmp_path):
+    first_mail, second_mail = "a" * 24, "b" * 24
+    first_writer, second_writer = Writer(), Writer()
+    with JsonStore(tmp_path) as store:
+        c,t,_=controller(store, writers={"todoist":first_writer})
+        c.persist(proposal(source_mail_id=first_mail))
+        c.persist(proposal(source_mail_id=second_mail))
+        assert store.load(f"proposal-{first_mail}-p1")["source_mail_id"] == first_mail
+        assert store.load(f"proposal-{second_mail}-p1")["source_mail_id"] == second_mail
+        t.updates=[callback(1,f"proposal:{first_mail}:p1:1:confirm")]
+        c.poll_once()
+        assert first_writer.created == 1
+
+        restarted,t2,_=controller(store,[callback(2,f"proposal:{second_mail}:p1:1:confirm")],
+                                  {"todoist":second_writer})
+        restarted.poll_once()
+        assert second_writer.created == 1
+        assert store.load(f"proposal-{first_mail}-p1")["external_id"] == "external-1"
+        assert store.load(f"proposal-{second_mail}-p1")["external_id"] == "external-1"
+
+        # A fresh Telegram update cannot execute the already-created first proposal again.
+        t2.updates=[callback(3,f"proposal:{first_mail}:p1:1:confirm")]
+        restarted.poll_once()
+        assert first_writer.created == 1 and second_writer.created == 1
+        assert "veraltet" in t2.answered[-1][1]
 
 def test_edit_question_answer_new_version_then_reject(tmp_path):
     with JsonStore(tmp_path) as store:
         c,t,_=controller(store)
         c.send_proposal(proposal(open_questions=["Wann?", "Wo?"]))
-        assert store.load("proposal-p1")["status"]=="needs_clarification"
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="needs_clarification"
         labels=[button["text"] for button in t.sent[-1][2]["inline_keyboard"][0]]
         assert labels == ["Klären", "Verwerfen"] and "Bestätigen" not in labels
-        t.updates=[callback(1,"proposal:p1:1:confirm"), callback(2,"proposal:p1:1:edit")]
+        t.updates=[callback(1,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm"), callback(2,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:edit")]
         c.poll_once()
         assert "Zuerst" in t.answered[0][1] and store.load("telegram-dialog")["proposal_id"]=="p1"
         t.updates=[message(3,"Morgen")]; c.poll_once()
-        assert store.load("proposal-p1-v2")["open_questions"]==["Wo?"]
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v2")["open_questions"]==["Wo?"]
         # Select edit and answer the remaining question, producing a confirmable v3.
-        t.updates=[callback(4,"proposal:p1:2:edit"),message(5,"Berlin")]; c.poll_once()
-        assert store.load("proposal-p1")["version"]==3 and store.load("proposal-p1")["status"]=="pending_confirmation"
-        t.updates=[callback(6,"proposal:p1:3:reject")]; c.poll_once()
-        assert store.load("proposal-p1")["status"]=="rejected" and "verworfen" in t.answered[-1][1]
+        t.updates=[callback(4,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:2:edit"),message(5,"Berlin")]; c.poll_once()
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["version"]==3 and store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="pending_confirmation"
+        t.updates=[callback(6,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:3:reject")]; c.poll_once()
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="rejected" and "verworfen" in t.answered[-1][1]
 
 
 def test_invalid_unauthorized_missing_and_stale_dialogs(tmp_path):
     with JsonStore(tmp_path) as store:
-        bad=[{"not":"an update"}, {"update_id":1,"message":{"private":"do not log"}}, message(2,user=9), message(3,chat=9), callback(4,"bad"), callback(5,"proposal:missing:1:confirm"), callback(6,"proposal:p1:1:confirm",user=9)]
+        bad=[{"not":"an update"}, {"update_id":1,"message":{"private":"do not log"}}, message(2,user=9), message(3,chat=9), callback(4,"bad"), callback(5,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:missing:1:confirm"), callback(6,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm",user=9)]
         c,t,log=controller(store,bad); c.poll_once()
         assert store.load("telegram-offset")["offset"]==7
         assert any("syntaktisch" in item[1] for item in t.sent)
@@ -228,15 +254,15 @@ def test_invalid_unauthorized_missing_and_stale_dialogs(tmp_path):
         assert "private" not in repr(log.events)
 
         c.persist(proposal(version=2))
-        store.save("telegram-dialog",{"proposal_id":"p1","version":1})
+        store.save("telegram-dialog",{"mail_id":"a"*24,"proposal_id":"p1","version":1})
         t.updates=[message(7)]; c.poll_once(); assert "veraltet" in t.sent[-1][1]
-        store.save("telegram-dialog",{"proposal_id":"gone","version":1})
+        store.save("telegram-dialog",{"mail_id":"a"*24,"proposal_id":"gone","version":1})
         t.updates=[message(8)]; c.poll_once(); assert "nicht gefunden" in t.sent[-1][1]
         t.updates=[message(9)]; c.poll_once(); assert "Keine offene" in t.sent[-1][1]
 
         c.revision_service=FailingRevisionService()
         c.persist(proposal(version=2, description="x"*3995, status="needs_clarification"))
-        store.save("telegram-dialog",{"proposal_id":"p1","version":2})
+        store.save("telegram-dialog",{"mail_id":"a"*24,"proposal_id":"p1","version":2})
         t.updates=[message(10,"zu lang")]; c.poll_once()
         assert "widerspruchsfrei" in t.sent[-1][1] and store.load("telegram-dialog")["version"]==2
 
@@ -246,10 +272,10 @@ def test_revision_unavailable_preserves_dialog(tmp_path):
         transport=Telegram([message(1,"Neuer Titel")]); log=Logger()
         c=TelegramDialogController(store,transport,1,2,log)
         c.persist(proposal(status="needs_clarification"))
-        store.save("telegram-dialog",{"proposal_id":"p1","version":1})
+        store.save("telegram-dialog",{"mail_id":"a"*24,"proposal_id":"p1","version":1})
         c.poll_once()
         assert "nicht verfügbar" in transport.sent[-1][1]
-        assert store.load("proposal-p1")["version"]==1
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["version"]==1
         assert store.load("telegram-dialog")["proposal_id"]=="p1"
 
 
@@ -277,9 +303,9 @@ def test_confirmation_executes_and_reports_all_results(tmp_path):
     ]
     for index,(writer,test_mode,status,text) in enumerate(cases):
         with JsonStore(tmp_path/str(index)) as store:
-            c,t,_=controller(store,[callback(1,"proposal:p1:1:confirm")],{"todoist":writer},test_mode)
+            c,t,_=controller(store,[callback(1,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm")],{"todoist":writer},test_mode)
             c.persist(proposal()); c.poll_once()
-            saved=store.load("proposal-p1")
+            saved=store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")
             assert saved["status"]==status and text in t.sent[-1][1]
             if status=="created": assert saved["external_id"]=="external-1" and saved["external_link"]=="https://example.test/item"
 
@@ -287,21 +313,21 @@ def test_confirmation_executes_and_reports_all_results(tmp_path):
 def test_restart_reconciles_before_retry_and_duplicate_update_is_safe(tmp_path):
     with JsonStore(tmp_path) as store:
         first=Writer(error=httpx.ReadTimeout("timeout"))
-        c,t,_=controller(store,[callback(1,"proposal:p1:1:confirm")],{"todoist":first})
+        c,t,_=controller(store,[callback(1,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm")],{"todoist":first})
         c.persist(proposal()); c.poll_once()
-        assert first.created==1 and store.load("proposal-p1")["status"]=="uncertain"
+        assert first.created==1 and store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="uncertain"
         recovered=Writer(found={"id":"external-existing","html_url":"https://example.test/existing"})
-        restarted,t2,_=controller(store,[callback(1,"proposal:p1:1:confirm")],{"todoist":recovered})
+        restarted,t2,_=controller(store,[callback(1,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm")],{"todoist":recovered})
         restarted.poll_once()
         assert recovered.reconciled==1 and recovered.created==0
-        assert store.load("proposal-p1")["external_id"]=="external-existing"
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["external_id"]=="external-existing"
         assert t2.polls==[2]
 
     with JsonStore(tmp_path/"writing") as store:
         interrupted=Writer()
         c,t,_=controller(store,(),{"todoist":interrupted})
         c.persist(proposal(status="writing")); c.poll_once()
-        assert store.load("proposal-p1")["status"]=="uncertain"
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="uncertain"
         assert interrupted.reconciled == 1 and interrupted.created == 0
 
     class MinimalStore:
@@ -318,11 +344,11 @@ def test_uncertain_write_is_only_reconciled_across_restarts(tmp_path):
     with JsonStore(tmp_path) as store:
         failed=Writer(error=httpx.ConnectError("lost"))
         initial,telegram,_=controller(
-            store,[callback(1,"proposal:p1:1:confirm")],{"todoist":failed})
+            store,[callback(1,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm")],{"todoist":failed})
         initial.persist(proposal()); initial.poll_once()
         assert failed.created == 1
-        assert store.load("proposal-p1")["status"] == "uncertain"
-        assert store.load("proposal-p1")["uncertain_notified"] is True
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"] == "uncertain"
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["uncertain_notified"] is True
         assert len([text for _,text,_ in telegram.sent if "Unklarer" in text]) == 1
 
         unresolved=Writer()
@@ -332,14 +358,14 @@ def test_uncertain_write_is_only_reconciled_across_restarts(tmp_path):
             assert not messages.sent
         assert unresolved.reconciled == 3
         assert unresolved.created == 0
-        assert store.load("proposal-p1")["status"] == "uncertain"
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"] == "uncertain"
 
         unresolved.found={"id":"eventual","url":"https://example.test/eventual"}
         recovered,messages,_=controller(store,(),{"todoist":unresolved})
         recovered.poll_once()
         assert unresolved.reconciled == 4
         assert unresolved.created == 0
-        assert store.load("proposal-p1")["status"] == "created"
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"] == "created"
         assert "Erstellt" in messages.sent[-1][1]
 
 

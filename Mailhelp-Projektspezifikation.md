@@ -169,7 +169,7 @@ Die Anwendung validiert jedes Ergebnis gegen feste Datenschemata. Fehlerhafte Er
 
 Eine Telegram-Zusammenfassung enthält Absender, Betreff, Themenbereich, zwei bis vier zusammenfassende Sätze sowie wichtige Fristen und Handlungsbedarf. Ohne erkannte Aufgabe oder Termin ist keine Bestätigung nötig.
 
-Jeder Vorschlag enthält eine eigene ID, den Typ, einen Titel, eine Beschreibung, eine belegende Textstelle, offene Fragen und den Bezug zur Ursprungsmail.
+Jeder Vorschlag enthält eine eigene ID, den Typ, einen Titel, eine Beschreibung, eine belegende Textstelle, offene Fragen und den Bezug zur Ursprungsmail. An der Anwendungsgrenze wird `source_mail_id` zwingend mit der internen Mail-ID verglichen; doppelte vom LLM gelieferte IDs in einer Antwort werden abgewiesen. Aus Mail-ID und gelieferter ID erzeugt die Anwendung anschließend eine stabile interne Vorschlags-ID. Das Ziel stammt ausschließlich aus `targets` in `config.yaml`; ein vom LLM geliefertes Ziel wird weder angezeigt noch für Schreibzugriffe verwendet.
 
 | Aufgabe | Termin |
 | --- | --- |
@@ -204,6 +204,9 @@ Unverbindliche Vorschläge, bereits erledigte Aufgaben sowie Änderungen und Abs
 - Eine Änderung wird einem konkreten Vorschlag zugeordnet. Sind mehrere Vorschläge offen, darf Freitext nicht willkürlich zugeordnet werden.
 - Änderungen können über das LLM interpretiert werden. Der korrigierte Vorschlag muss erneut angezeigt und ausdrücklich bestätigt werden.
 - Bestätigungen gelten nur für die angezeigte Vorschlagsversion. Veraltete Buttons dürfen keine neuere Fassung freigeben.
+- Aktueller und versionierter Vorschlagszustand, Callback, Rückfragedialog,
+  Schreibreferenz und externer Idempotenzschlüssel verwenden gemeinsam Mail-ID,
+  interne Vorschlags-ID und (wo versionsbezogen) Version als Identität.
 - Jede Vorschlagsversion wird vor dem Senden ihrer versionsgebundenen Schaltflächen
   separat und als aktuelle Version gespeichert. Antworten auf autorisierte
   Rückfragen erzeugen eine neue Version; erst eine vollständige Version erhält

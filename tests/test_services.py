@@ -4,7 +4,7 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 import httpx, pytest
 from mailhelp.analysis import Analyzer, LlmSchemaValidationExceeded
-from mailhelp.config import Topic
+from mailhelp.config import TargetSettings, Topic
 from mailhelp.imap import FetchedMail
 from mailhelp.integrations import HttpWriter, execute_confirmed
 from mailhelp.models import ProposalStatus, RelevanceDialog
@@ -96,14 +96,14 @@ def test_analyzer_revision_validates_task_deadlines_and_event_times(original, ch
 
 
 def test_telegram():
-    p=proposal(); assert apply_decision(p,Decision(proposal_id="p1",version=1,action=DecisionAction.CONFIRM),1,2,1,2).status == ProposalStatus.CONFIRMED
-    assert apply_decision(p,Decision(proposal_id="p1",version=1,action=DecisionAction.REJECT),1,2,1,2).status == ProposalStatus.REJECTED
-    assert apply_decision(p,Decision(proposal_id="p1",version=1,action=DecisionAction.EDIT),1,2,1,2).status == ProposalStatus.NEEDS_CLARIFICATION
-    with pytest.raises(PermissionError): apply_decision(p,Decision(proposal_id="p1",version=1,action=DecisionAction.CONFIRM),9,2,1,2)
-    with pytest.raises(ValueError, match="Veraltete"): apply_decision(p,Decision(proposal_id="p1",version=2,action=DecisionAction.CONFIRM),1,2,1,2)
-    with pytest.raises(ValueError, match="Offene"): apply_decision(proposal(open_questions=["wann?"]),Decision(proposal_id="p1",version=1,action=DecisionAction.CONFIRM),1,2,1,2)
-    with pytest.raises(ValueError): Decision(proposal_id="p1",version=1,action="xx")
-    assert apply_decision(proposal(status="created"),Decision(proposal_id="p1",version=1,action=DecisionAction.CONFIRM),1,2,1,2).status == ProposalStatus.CREATED
+    p=proposal(); assert apply_decision(p,Decision(mail_id="a"*24,proposal_id="p1",version=1,action=DecisionAction.CONFIRM),1,2,1,2).status == ProposalStatus.CONFIRMED
+    assert apply_decision(p,Decision(mail_id="a"*24,proposal_id="p1",version=1,action=DecisionAction.REJECT),1,2,1,2).status == ProposalStatus.REJECTED
+    assert apply_decision(p,Decision(mail_id="a"*24,proposal_id="p1",version=1,action=DecisionAction.EDIT),1,2,1,2).status == ProposalStatus.NEEDS_CLARIFICATION
+    with pytest.raises(PermissionError): apply_decision(p,Decision(mail_id="a"*24,proposal_id="p1",version=1,action=DecisionAction.CONFIRM),9,2,1,2)
+    with pytest.raises(ValueError, match="Veraltete"): apply_decision(p,Decision(mail_id="a"*24,proposal_id="p1",version=2,action=DecisionAction.CONFIRM),1,2,1,2)
+    with pytest.raises(ValueError, match="Offene"): apply_decision(proposal(open_questions=["wann?"]),Decision(mail_id="a"*24,proposal_id="p1",version=1,action=DecisionAction.CONFIRM),1,2,1,2)
+    with pytest.raises(ValueError): Decision(mail_id="a"*24,proposal_id="p1",version=1,action="xx")
+    assert apply_decision(proposal(status="created"),Decision(mail_id="a"*24,proposal_id="p1",version=1,action=DecisionAction.CONFIRM),1,2,1,2).status == ProposalStatus.CREATED
     assert split_message("abc",2)==["ab","c"] and split_message("")==[""]
     with pytest.raises(ValueError): split_message("x",0)
     requests=[]
@@ -203,18 +203,43 @@ def test_orchestrator_complete_notification_uses_validated_values(tmp_path):
             return "s", Summary(sentences=["Satz eins.", "Satz zwei."], deadlines=["31.12.2026"])
         def actions(self, mail):
             from mailhelp.models import Actions
-            return "a", Actions(proposals=[proposal(source_mail_id="a" * 24)])
+            return "a", Actions(proposals=[proposal(source_mail_id=mail["internal_id"])])
     topic=Topic(id="billing",name="Abrechnung",enabled=True,description="x")
     raw=b"From: Alice <alice@example.test>\nSubject: Rechnung\n\nBody"
     notify=Notify()
     with JsonStore(tmp_path) as store:
-        Orchestrator(CompleteAnalyzer("relevant"),store,notify,1,[topic],1000).process(FetchedMail("INBOX",1,91,raw))
+        Orchestrator(CompleteAnalyzer("relevant"),store,notify,1,[topic],1000,
+                     targets=TargetSettings(todoist_project="inbox",google_calendar="primary")).process(FetchedMail("INBOX",1,91,raw))
     summary=notify.messages[0]
     assert all(value in summary for value in [
         "Absender: Alice <alice@example.test>", "Betreff: Rechnung", "Themen: Abrechnung",
         "- Satz eins.", "- Satz zwei.", "Wichtige Fristen:\n- 31.12.2026",
         "Handlungsbedarf: Ja – 1 Vorschlag/Vorschläge zur Prüfung.",
     ])
+
+
+def test_proposal_boundary_rejects_llm_identity_and_sets_internal_routing(tmp_path):
+    topic=Topic(id="x",name="x",enabled=True,description="x")
+    targets=TargetSettings(todoist_project="trusted-project", google_calendar="trusted-calendar")
+    with JsonStore(tmp_path) as store:
+        orchestrator=Orchestrator(AnalyzerStub("relevant"),store,Notify(),1,[topic],1000,targets=targets)
+        state=MailState(id="a"*24,config_fingerprint="0"*64,
+                        imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":1,"uid":1})
+        task=proposal(id="same",source_mail_id=state.id,target="attacker")
+        event=proposal(id="event",kind="event",source_mail_id=state.id,target="attacker",
+                       start="2026-01-01T10:00:00Z",end="2026-01-01T11:00:00Z")
+        normalized=orchestrator._normalize_proposals(state,[task,event])
+        assert [item.target for item in normalized] == ["trusted-project","trusted-calendar"]
+        assert normalized[0].id.startswith("p_") and normalized[0].id != task.id
+        other=state.model_copy(update={"id":"b"*24})
+        assert orchestrator._normalize_proposals(other,[task.model_copy(update={"source_mail_id":other.id})])[0].id != normalized[0].id
+        with pytest.raises(ValueError,match="doppelte"):
+            orchestrator._normalize_proposals(state,[task,task])
+        with pytest.raises(ValueError,match="gehört nicht"):
+            orchestrator._normalize_proposals(state,[task.model_copy(update={"source_mail_id":"b"*24})])
+        without_targets=Orchestrator(AnalyzerStub("relevant"),store,Notify(),1,[topic],1000)
+        with pytest.raises(ValueError,match="ziele fehlen"):
+            without_targets._normalize_proposals(state,[task])
 
 
 def test_orchestrator(tmp_path):
@@ -246,10 +271,11 @@ def test_orchestrator(tmp_path):
     class ProposalAnalyzer(AnalyzerStub):
         def actions(self,m):
             from mailhelp.models import Actions
-            return "a",Actions(proposals=[proposal()])
+            return "a",Actions(proposals=[proposal(source_mail_id=m["internal_id"])])
     with JsonStore(tmp_path/"g") as store:
-        notify=Notify(); Orchestrator(ProposalAnalyzer("relevant"),store,notify,1,[topic],1000).process(mail)
-        assert "p1" in notify.messages
+        notify=Notify(); Orchestrator(ProposalAnalyzer("relevant"),store,notify,1,[topic],1000,
+                                      targets=TargetSettings(todoist_project="inbox",google_calendar="primary")).process(mail)
+        assert any(message.startswith("p_") for message in notify.messages)
     with JsonStore(tmp_path/"multiple") as store:
         analyzer=AnalyzerStub("irrelevant"); orchestrator=Orchestrator(analyzer,store,Notify(),1,[topic],1000)
         first=orchestrator.process(mail)

@@ -95,7 +95,7 @@ def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Calla
     if test_mode:
         persist(proposal)
         return proposal, {"simulation": True}
-    key = f"mailhelp:{proposal.id}:v{proposal.version}"
+    key = f"mailhelp:{proposal.source_mail_id}:{proposal.id}:v{proposal.version}"
     found = writer.reconcile(key)
     if found is not None:
         created = _with_external_result(proposal, found)

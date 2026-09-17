@@ -29,7 +29,7 @@ def state(identifier, age=31, status=ProposalStatus.CREATED):
         mail={"text": "very private"}, relevance={"decision": "relevant", "topic_ids": ["x"], "reason": "private"},
         summary=Summary(sentences=["private one", "private two"]), proposals=[proposal],
         llm_call_ids=["call-secret"], validation_errors=[],
-        write_attempts=[{"proposal_id": proposal.id, "proposal_version": 2,
+        write_attempts=[{"mail_id": identifier, "proposal_id": proposal.id, "proposal_version": 2,
                          "service": "todoist", "idempotency_key": "stable-key"}],
     )
     item.steps.completion = "completed"

@@ -27,7 +27,7 @@ def prompt_config(model="model"):
 
 
 def proposal(**kw):
-    base = dict(id="p1", version=1, kind="task", title="Tun", evidence="Mail sagt es", source_mail_id="mail1", target="inbox")
+    base = dict(id="p1", version=1, kind="task", title="Tun", evidence="Mail sagt es", source_mail_id="a"*24, target="inbox")
     base.update(kw); return Proposal.model_validate(base)
 
 
