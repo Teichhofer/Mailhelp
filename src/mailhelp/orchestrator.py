@@ -12,7 +12,7 @@ from typing import Any, Protocol
 
 from .analysis import Analyzer, LlmSchemaValidationExceeded
 from .adapter import PermanentError
-from .config import Topic
+from .config import TargetSettings, Topic
 from .imap import FetchedMail
 from .mime import MimeLimitExceeded, prepare
 from .models import (MailState, ProcessingError, ProcessingErrorCode, ProcessingStage,
@@ -51,12 +51,35 @@ class ProcessingResult:
 
 
 class Orchestrator:
-    def __init__(self, analyzer: Analyzer, store: JsonStore, notifier: Notifier, chat_id: int, topics: list[Topic], max_mail_bytes: int, logger: EventLogger | None = None, clock: Any = time.time, mime_limits: object | None = None, config_fingerprint: str = "0" * 64):
+    def __init__(self, analyzer: Analyzer, store: JsonStore, notifier: Notifier, chat_id: int, topics: list[Topic], max_mail_bytes: int, logger: EventLogger | None = None, clock: Any = time.time, mime_limits: object | None = None, config_fingerprint: str = "0" * 64, targets: TargetSettings | None = None):
         self.analyzer, self.store, self.notifier, self.chat_id, self.topics, self.max_bytes = analyzer, store, notifier, chat_id, topics, mime_limits or max_mail_bytes
         self.stop_event = Event()
         self.logger = logger or NullLogger()
         self.clock = clock
         self.config_fingerprint = config_fingerprint
+        self.targets = targets
+
+    def _normalize_proposals(self, state: MailState, proposals: list[Proposal]) -> list[Proposal]:
+        """Replace all LLM-controlled identity/routing fields at the trust boundary."""
+        supplied = [proposal.id for proposal in proposals]
+        if len(supplied) != len(set(supplied)):
+            raise ValueError("LLM lieferte doppelte Vorschlags-IDs")
+        if proposals and self.targets is None:
+            raise ValueError("Konfigurierte Vorschlagsziele fehlen")
+        result = []
+        for proposal in proposals:
+            if proposal.source_mail_id != state.id:
+                raise ValueError("LLM-Vorschlag gehört nicht zur verarbeiteten Mail")
+            assert self.targets is not None
+            target = (self.targets.todoist_project if proposal.kind.value == "task"
+                      else self.targets.google_calendar)
+            internal_id = "p_" + hashlib.sha256(
+                f"{state.id}\0{proposal.id}".encode()
+            ).hexdigest()[:16]
+            result.append(proposal.model_copy(update={
+                "id": internal_id, "source_mail_id": state.id, "target": target,
+            }))
+        return result
 
     def stop(self) -> None: self.stop_event.set()
 
@@ -194,7 +217,7 @@ class Orchestrator:
                 stage = ProcessingStage.ACTION_DETECTION
                 if state.steps.action_detection == "pending":
                     call, actions = self.analyzer.actions(state.mail)
-                    state.proposals = actions.proposals
+                    state.proposals = self._normalize_proposals(state, actions.proposals)
                     state.llm_call_ids.append(call)
                     state.steps.action_detection = "completed"
                     self._save(name, state)

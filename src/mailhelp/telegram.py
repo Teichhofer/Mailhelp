@@ -112,19 +112,20 @@ class RelevanceDecision(InternalTelegramModel):
 
 
 class Decision(InternalTelegramModel):
+    mail_id: str = Field(pattern=r"^[a-f0-9]{24}$")
     proposal_id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,32}$")
     version: int = Field(ge=1)
     action: DecisionAction
 
     def encode(self) -> str:
-        return f"proposal:{self.proposal_id}:{self.version}:{self.action.value}"
+        return f"proposal:{self.mail_id}:{self.proposal_id}:{self.version}:{self.action.value}"
 
     @classmethod
     def parse(cls, value: str) -> "Decision":
         parts = value.split(":")
-        if len(parts) != 4 or parts[0] != "proposal" or not parts[2].isascii() or not parts[2].isdigit():
+        if len(parts) != 5 or parts[0] != "proposal" or not parts[3].isascii() or not parts[3].isdigit():
             raise ValueError("Ungültige Aktion")
-        return cls(proposal_id=parts[1], version=int(parts[2]), action=DecisionAction(parts[3]))
+        return cls(mail_id=parts[1], proposal_id=parts[2], version=int(parts[3]), action=DecisionAction(parts[4]))
 
 
 def apply_decision(
@@ -137,7 +138,7 @@ def apply_decision(
 ) -> Proposal:
     if (user_id, chat_id) != (allowed_user, allowed_chat):
         raise PermissionError("Nicht autorisierte Telegram-Anfrage")
-    if decision.proposal_id != proposal.id or decision.version != proposal.version:
+    if (decision.mail_id, decision.proposal_id, decision.version) != (proposal.source_mail_id, proposal.id, proposal.version):
         raise ValueError("Veraltete oder unpassende Bestätigung")
     if proposal.status != ProposalStatus.PENDING_CONFIRMATION:
         return proposal
@@ -286,19 +287,19 @@ class TelegramDialogController:
         self.telegram.send(self.chat_id, f"Relevanz für Mail {dialog.mail_id} auswählen:", {"inline_keyboard": buttons})
 
     @staticmethod
-    def _proposal_name(proposal_id: str) -> str:
-        return f"proposal-{proposal_id}"
+    def _proposal_name(mail_id: str, proposal_id: str) -> str:
+        return f"proposal-{mail_id}-{proposal_id}"
 
     @staticmethod
-    def _version_name(proposal_id: str, version: int) -> str:
-        return f"proposal-{proposal_id}-v{version}"
+    def _version_name(mail_id: str, proposal_id: str, version: int) -> str:
+        return f"proposal-{mail_id}-{proposal_id}-v{version}"
 
     def persist(self, proposal: Proposal) -> None:
         value = proposal.model_dump(mode="json")
-        version_name = self._version_name(proposal.id, proposal.version)
+        version_name = self._version_name(proposal.source_mail_id, proposal.id, proposal.version)
         if self.store.load(version_name) is None:
             self.store.save(version_name, value)
-        self.store.save(self._proposal_name(proposal.id), value)
+        self.store.save(self._proposal_name(proposal.source_mail_id, proposal.id), value)
         if proposal.status in {ProposalStatus.WRITING, ProposalStatus.CREATED,
                                ProposalStatus.FAILED, ProposalStatus.UNCERTAIN}:
             mail_name = f"mail-{proposal.source_mail_id}"
@@ -306,8 +307,9 @@ class TelegramDialogController:
             if isinstance(state, MailState):
                 service = "todoist" if proposal.kind.value == "task" else "google_calendar"
                 reference = WriteAttemptReference(
+                    mail_id=proposal.source_mail_id,
                     proposal_id=proposal.id, proposal_version=proposal.version, service=service,
-                    idempotency_key=f"mailhelp:{proposal.id}:v{proposal.version}",
+                    idempotency_key=f"mailhelp:{proposal.source_mail_id}:{proposal.id}:v{proposal.version}",
                 )
                 state.write_attempts = [item for item in state.write_attempts
                                         if (item.proposal_id, item.proposal_version, item.service) !=
@@ -332,14 +334,14 @@ class TelegramDialogController:
             self.telegram.send(self.chat_id, part)
         if proposal.open_questions:
             buttons = [[
-                {"text": "Klären", "callback_data": Decision(proposal_id=proposal.id, version=proposal.version, action=DecisionAction.EDIT).encode()},
-                {"text": "Verwerfen", "callback_data": Decision(proposal_id=proposal.id, version=proposal.version, action=DecisionAction.REJECT).encode()},
+                {"text": "Klären", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.EDIT).encode()},
+                {"text": "Verwerfen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.REJECT).encode()},
             ]]
         else:
             buttons = [[
-                {"text": "Bestätigen", "callback_data": Decision(proposal_id=proposal.id, version=proposal.version, action=DecisionAction.CONFIRM).encode()},
-                {"text": "Ändern", "callback_data": Decision(proposal_id=proposal.id, version=proposal.version, action=DecisionAction.EDIT).encode()},
-                {"text": "Verwerfen", "callback_data": Decision(proposal_id=proposal.id, version=proposal.version, action=DecisionAction.REJECT).encode()},
+                {"text": "Bestätigen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.CONFIRM).encode()},
+                {"text": "Ändern", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.EDIT).encode()},
+                {"text": "Verwerfen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.REJECT).encode()},
             ]]
         self.telegram.send(self.chat_id, parts[-1], {"inline_keyboard": buttons})
 
@@ -453,7 +455,7 @@ class TelegramDialogController:
         return (user_id, chat_id) == (self.user_id, self.chat_id)
 
     def _decide(self, callback_id: str, decision: Decision) -> None:
-        proposal = self.store.load_model(self._proposal_name(decision.proposal_id), Proposal)
+        proposal = self.store.load_model(self._proposal_name(decision.mail_id, decision.proposal_id), Proposal)
         if proposal is None:
             self.telegram.answer_callback(callback_id, "Vorschlag wurde nicht gefunden.")
             return
@@ -464,7 +466,7 @@ class TelegramDialogController:
         if decision.action == DecisionAction.EDIT:
             changed = proposal.model_copy(update={"status": ProposalStatus.NEEDS_CLARIFICATION})
             self.persist(changed)
-            self.store.save("telegram-dialog", TelegramDialogState(proposal_id=proposal.id, version=proposal.version).model_dump())
+            self.store.save("telegram-dialog", TelegramDialogState(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version).model_dump())
             prompt = proposal.open_questions[0] if proposal.open_questions else "Welche Änderung soll übernommen werden?"
             self.telegram.answer_callback(callback_id, "Änderung ausgewählt.")
             self.telegram.send(self.chat_id, prompt)
@@ -522,7 +524,8 @@ class TelegramDialogController:
         if dialog is None or dialog.proposal_id is None:
             self.telegram.send(self.chat_id, "Keine offene Rückfrage. Bitte zuerst „Ändern“ wählen.")
             return
-        proposal = self.store.load_model(self._proposal_name(dialog.proposal_id), Proposal)
+        assert dialog.mail_id is not None
+        proposal = self.store.load_model(self._proposal_name(dialog.mail_id, dialog.proposal_id), Proposal)
         if proposal is None:
             self.store.save("telegram-dialog", TelegramDialogState().model_dump())
             self.telegram.send(self.chat_id, "Der zugehörige Vorschlag wurde nicht gefunden.")

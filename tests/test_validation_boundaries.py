@@ -39,8 +39,8 @@ def test_mail_state_v4_metadata_is_closed_and_round_trips(tmp_path):
         id="a" * 24, imap={"account_id":"0"*24,"folder": "INBOX", "uidvalidity": 1, "uid": 2},
         created_at=now, updated_at=now, config_fingerprint="f" * 64,
         validation_errors=[ValidationIssue(stage="relevance", code="invalid_shape", path=["decision"], occurred_at=now)],
-        write_attempts=[WriteAttemptReference(proposal_id="p1", proposal_version=2, service="todoist",
-                                              idempotency_key="mailhelp:p1:v2")],
+        write_attempts=[WriteAttemptReference(mail_id="a" * 24, proposal_id="p1", proposal_version=2, service="todoist",
+                                              idempotency_key="mailhelp:aaaaaaaaaaaaaaaaaaaaaaaa:p1:v2")],
     )
     with JsonStore(tmp_path / "states") as store:
         store.save("mail-a", state.model_dump(mode="json"))
@@ -56,6 +56,10 @@ def test_mail_state_v4_metadata_is_closed_and_round_trips(tmp_path):
         MailState.model_validate({**value, "created_at": now.replace(tzinfo=None)})
     with pytest.raises(ValidationError, match="vor created_at"):
         MailState.model_validate({**value, "updated_at": "2000-01-01T00:00:00Z"})
+    with pytest.raises(ValidationError, match="zur Mail"):
+        MailState.model_validate({**value, "write_attempts": [{
+            **state.write_attempts[0].model_dump(), "mail_id": "b" * 24,
+        }]})
 
 
 def test_settings_reject_missing_extra_types_ranges_and_semantics(tmp_path):

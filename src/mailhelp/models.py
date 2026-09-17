@@ -25,13 +25,14 @@ class TelegramOffset(StrictModel):
 
 class TelegramDialogState(StrictModel):
     schema_version: Literal[1] = 1
+    mail_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{24}$")
     proposal_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{1,64}$")
     version: int | None = Field(default=None, ge=1)
 
     @model_validator(mode="after")
     def complete_reference(self) -> "TelegramDialogState":
-        if (self.proposal_id is None) != (self.version is None):
-            raise ValueError("proposal_id und version müssen gemeinsam gesetzt sein")
+        if len({self.mail_id is None, self.proposal_id is None, self.version is None}) != 1:
+            raise ValueError("mail_id, proposal_id und version müssen gemeinsam gesetzt sein")
         return self
 
 
@@ -188,6 +189,7 @@ class ValidationIssue(StrictModel):
 class WriteAttemptReference(StrictModel):
     """Stable reference from a mail to a separately persisted write generation."""
 
+    mail_id: str = Field(pattern=r"^[a-f0-9]{24}$")
     proposal_id: str = Field(pattern=r"^[a-zA-Z0-9_-]{1,64}$")
     proposal_version: int = Field(ge=1)
     service: Literal["todoist", "google_calendar"]
@@ -231,6 +233,8 @@ class MailState(StrictModel):
         write_keys = [(item.proposal_id, item.proposal_version, item.service) for item in self.write_attempts]
         if len(write_keys) != len(set(write_keys)):
             raise ValueError("Schreibversuche dürfen nicht doppelt referenziert werden")
+        if any(item.mail_id != self.id for item in self.write_attempts):
+            raise ValueError("Schreibversuche müssen zur Mail gehören")
         if self.relevance_dialog is None:
             if self.awaiting_relevance:
                 raise ValueError("Wartende Relevanz benötigt einen Dialog")

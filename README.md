@@ -90,6 +90,26 @@ und ist bei Wiederholung wirkungsgleich.
 
 Nur Transportfehler sowie HTTP 408, 425, 429, 500, 502, 503 und 504 werden bei lesenden beziehungsweise idempotenten Zugriffen begrenzt wiederholt. `Retry-After` wird bis zur konfigurierten Backoff-Obergrenze berücksichtigt. Schreibzugriffe werden vorab persistiert und bei Transportfehlern oder vorübergehenden HTTP-Antworten als unklar behandelt. Ein unklarer Schreibzugriff wird bei Neustarts nur abgeglichen und niemals automatisch erneut geschrieben; dafür wäre eine ausdrückliche Betreiberentscheidung erforderlich. Das OpenRouter-Minutenbudget wird im Datenverzeichnis persistiert, bleibt deshalb über Neustarts erhalten und stellt betroffene Mails bis zum nächsten zulässigen Zeitpunkt zurück.
 
+### Migration älterer Vorschlagszustände
+
+Vorschläge werden nun unter `proposal-<mail-id>-<proposal-id>.json` (und versioniert
+mit `-v<version>`) gespeichert. Callback, Rückfragedialog und Idempotenzschlüssel
+enthalten ebenfalls Mail-ID, Vorschlags-ID und Version. Alte `proposal-<id>.json`,
+`proposal-<id>-v<version>.json`, alte `telegram-dialog.json`-Referenzen und
+Schreibreferenzen ohne `mail_id` dürfen deshalb **nicht automatisch übernommen
+oder bestätigt** werden.
+
+Für eine sichere Umstellung: Mailhelp stoppen, das Datenverzeichnis sichern und
+alle bereits abgeschlossenen externen Schreibvorgänge anhand Todoist beziehungsweise
+Google Kalender abgleichen. Danach alte Vorschlagsdateien und einen alten
+`telegram-dialog.json` in ein schreibgeschütztes Archiv außerhalb des aktiven
+Zustandsverzeichnisses verschieben. Betroffene, noch nicht ausgeführte Mails werden
+anschließend aus ihrer unveränderten Quelle neu eingelesen und erhalten neue interne
+Vorschlags-IDs; sie müssen in Telegram erneut in der angezeigten Version bestätigt
+werden. Einen Status `writing` oder `uncertain` niemals in `confirmed` umschreiben:
+erst den alten Idempotenzschlüssel extern abgleichen, damit kein doppelter Eintrag
+entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
+
 ## Betrieb und Sicherheit
 
 * IMAP wird im Nur-Lese-Modus mit `BODY.PEEK[]` gelesen; die nicht geheime Konto-ID, Ordner, UIDVALIDITY und UID bilden die technische Identität. Die Konto-ID ist ein gekürzter SHA-256-Hash aus normalisiertem Server, Port und Benutzernamen und trennt auch gleichnamige Ordner verschiedener Konten.
