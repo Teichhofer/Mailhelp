@@ -119,7 +119,7 @@ class FakeImap:
         if self.mode == "search": return "NO", []
         if action == "search": return "OK", [b"4"]
         if self.mode == "fetch": return "NO", []
-        return "OK", [(b"header", b"raw")]
+        return "OK", [(b'4 (INTERNALDATE "17-Sep-2026 10:11:12 +0200")', b"raw")]
     def logout(self): self.logged=False
 
 

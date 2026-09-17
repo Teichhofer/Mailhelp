@@ -18,6 +18,25 @@ class FetchedMail:
     uid: int
     raw: bytes
     account_id: str = "0" * 24
+    received_at: datetime = datetime.min.replace(tzinfo=timezone.utc)
+
+
+def _fetched_mail(folder: str, uidvalidity: int, uid: int, data: object,
+                  mailbox: str) -> FetchedMail:
+    """Validate the deliberately combined FETCH response without trusting its shape."""
+    if not isinstance(data, list):
+        raise RuntimeError(f"IMAP-Abruf fehlgeschlagen: UID {uid}")
+    item = next((part for part in data if isinstance(part, tuple) and len(part) >= 2), None)
+    if item is None or not isinstance(item[0], bytes) or not isinstance(item[1], bytes):
+        raise RuntimeError(f"IMAP-Abruf fehlgeschlagen: UID {uid}")
+    match = re.search(rb'\bINTERNALDATE\s+"([^"]+)"', item[0], re.IGNORECASE)
+    if match is None:
+        raise RuntimeError(f"IMAP lieferte kein gültiges INTERNALDATE: UID {uid}")
+    try:
+        received_at = datetime.strptime(match.group(1).decode("ascii"), "%d-%b-%Y %H:%M:%S %z")
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise RuntimeError(f"IMAP lieferte kein gültiges INTERNALDATE: UID {uid}") from exc
+    return FetchedMail(folder, uidvalidity, uid, item[1], mailbox, received_at)
 
 
 def account_id(host: str, port: int, username: str) -> str:
@@ -65,10 +84,10 @@ class ImapReader:
         uidvalidity = int(validity[0]); self.last_uidvalidity = uidvalidity
         if uidvalidity != expected_uidvalidity:
             raise RuntimeError(f"IMAP-UIDVALIDITY hat sich geändert: {folder}")
-        status, body = self.connection.uid("fetch", str(uid).encode(), "(BODY.PEEK[])")
-        if status != "OK" or not body or not isinstance(body[0], tuple):
+        status, body = self.connection.uid("fetch", str(uid).encode(), "(BODY.PEEK[] INTERNALDATE)")
+        if status != "OK":
             raise RuntimeError(f"IMAP-Abruf fehlgeschlagen: UID {uid}")
-        return FetchedMail(folder, uidvalidity, uid, body[0][1], self.account_id)
+        return _fetched_mail(folder, uidvalidity, uid, body, self.account_id)
 
     def determine_start_uid(self, folder: str, start: datetime) -> int:
         """Resolve an absolute historical boundary once, without changing flags."""
@@ -113,9 +132,9 @@ class ImapReader:
         if status != "OK": raise RuntimeError("IMAP-Suche fehlgeschlagen")
         result = []
         for token in matches[0].split():
-            uid = int(token); status, body = self.connection.uid("fetch", token, "(BODY.PEEK[])")
-            if status != "OK" or not body or not isinstance(body[0], tuple): raise RuntimeError(f"IMAP-Abruf fehlgeschlagen: UID {uid}")
-            result.append(FetchedMail(folder, uidvalidity, uid, body[0][1], self.account_id))
+            uid = int(token); status, body = self.connection.uid("fetch", token, "(BODY.PEEK[] INTERNALDATE)")
+            if status != "OK": raise RuntimeError(f"IMAP-Abruf fehlgeschlagen: UID {uid}")
+            result.append(_fetched_mail(folder, uidvalidity, uid, body, self.account_id))
         return result
 
     def close(self) -> None:

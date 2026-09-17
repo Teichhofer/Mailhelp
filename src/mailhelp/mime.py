@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from email import policy
 from email.message import Message
 from email.parser import BytesParser
+from email.utils import parsedate_to_datetime
+from datetime import datetime, timezone
 from html.parser import HTMLParser
 import json
 import re
@@ -111,12 +113,38 @@ def _limits(value: int | MimeLimits | object) -> MimeLimits:
     return MimeLimits(**{name: getattr(value, name) for name in MimeLimits.__dataclass_fields__})
 
 
-def prepare(raw: bytes, limits: int | MimeLimits | object) -> dict[str, object]:
+def _date_context(message: Message, received_at: datetime, user_timezone: str) -> dict[str, object]:
+    """Keep the untrusted source value separate from a conservative interpretation."""
+    original = _clean(str(message.get("Date", "")))
+    parsed: datetime | None = None
+    status = "missing"
+    if original:
+        try:
+            candidate = parsedate_to_datetime(original)
+        except (TypeError, ValueError, OverflowError):
+            status = "invalid"
+        else:
+            if candidate.tzinfo is None or candidate.utcoffset() is None:
+                status = "naive"
+            else:
+                parsed, status = candidate, "valid"
+                if abs((candidate.astimezone(timezone.utc) - received_at.astimezone(timezone.utc)).total_seconds()) > 7 * 86400:
+                    status = "conflicting"
+    return {"date_header_original": original, "date_header_parsed": parsed.isoformat() if parsed else None,
+            "imap_received_at": received_at.isoformat(), "user_timezone": user_timezone,
+            "date_context_status": status}
+
+
+def prepare(raw: bytes, limits: int | MimeLimits | object,
+            received_at: datetime | None = None, user_timezone: str = "UTC") -> dict[str, object]:
     """Return distinct untrusted header/text fields plus non-sensitive preparation metadata."""
     configured = _limits(limits)
     if len(raw) > configured.max_mail_bytes:
         raise MimeLimitExceeded("max_mail_bytes")
     message = BytesParser(policy=policy.default).parsebytes(raw)
+    received = received_at or datetime.min.replace(tzinfo=timezone.utc)
+    if received.tzinfo is None or received.utcoffset() is None:
+        raise ValueError("IMAP-Empfangszeitpunkt muss zeitzonenbehaftet sein")
     leaves = [part for part in message.walk() if not part.is_multipart()]
     if len(leaves) > configured.max_mime_parts:
         raise MimeLimitExceeded("max_mime_parts")
@@ -143,6 +171,7 @@ def prepare(raw: bytes, limits: int | MimeLimits | object) -> dict[str, object]:
             ("from", "From"), ("subject", "Subject"), ("date", "Date"), ("message_id", "Message-ID"))},
         "text": text,
         "metadata": {"attachments_omitted": attachments, "text_shortened": shortened},
+        **_date_context(message, received, user_timezone),
     }
     if len(json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) > configured.max_llm_payload_bytes:
         raise MimeLimitExceeded("max_llm_payload_bytes")

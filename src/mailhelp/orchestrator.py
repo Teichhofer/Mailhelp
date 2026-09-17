@@ -51,13 +51,14 @@ class ProcessingResult:
 
 
 class Orchestrator:
-    def __init__(self, analyzer: Analyzer, store: JsonStore, notifier: Notifier, chat_id: int, topics: list[Topic], max_mail_bytes: int, logger: EventLogger | None = None, clock: Any = time.time, mime_limits: object | None = None, config_fingerprint: str = "0" * 64, targets: TargetSettings | None = None):
+    def __init__(self, analyzer: Analyzer, store: JsonStore, notifier: Notifier, chat_id: int, topics: list[Topic], max_mail_bytes: int, logger: EventLogger | None = None, clock: Any = time.time, mime_limits: object | None = None, config_fingerprint: str = "0" * 64, targets: TargetSettings | None = None, user_timezone: str = "UTC"):
         self.analyzer, self.store, self.notifier, self.chat_id, self.topics, self.max_bytes = analyzer, store, notifier, chat_id, topics, mime_limits or max_mail_bytes
         self.stop_event = Event()
         self.logger = logger or NullLogger()
         self.clock = clock
         self.config_fingerprint = config_fingerprint
         self.targets = targets
+        self.user_timezone = user_timezone
 
     def _normalize_proposals(self, state: MailState, proposals: list[Proposal]) -> list[Proposal]:
         """Replace all LLM-controlled identity/routing fields at the trust boundary."""
@@ -76,9 +77,14 @@ class Orchestrator:
             internal_id = "p_" + hashlib.sha256(
                 f"{state.id}\0{proposal.id}".encode()
             ).hexdigest()[:16]
-            result.append(proposal.model_copy(update={
-                "id": internal_id, "source_mail_id": state.id, "target": target,
-            }))
+            update: dict[str, Any] = {"id": internal_id, "source_mail_id": state.id, "target": target}
+            if proposal.kind.value == "event" and state.mail is not None and state.mail.get("date_context_status") != "valid":
+                questions = list(proposal.open_questions)
+                question = "Welcher Datumskontext soll für den Termin verwendet werden?"
+                if question not in questions:
+                    questions.append(question)
+                update.update(open_questions=questions, status="needs_clarification")
+            result.append(proposal.model_copy(update=update))
         return result
 
     def stop(self) -> None: self.stop_event.set()
@@ -175,7 +181,7 @@ class Orchestrator:
         stage = ProcessingStage.PREPARATION
         try:
             if state.steps.preparation == "pending":
-                state.mail = prepare(fetched.raw, self.max_bytes)
+                state.mail = prepare(fetched.raw, self.max_bytes, fetched.received_at, self.user_timezone)
                 state.mail["internal_id"] = internal_id
                 state.steps.preparation = "completed"
                 self._save(name, state)
