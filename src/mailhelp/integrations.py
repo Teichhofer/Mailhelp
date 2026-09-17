@@ -1,5 +1,6 @@
 """Idempotente Adapter für Todoist und Google Kalender."""
 from __future__ import annotations
+from datetime import datetime
 from typing import Any, Callable, Protocol
 import time, traceback
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -101,10 +102,17 @@ def proposal_is_writable(proposal: Proposal) -> bool:
 def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Callable[[Proposal], None], test_mode: bool = False) -> tuple[Proposal, dict[str, Any]]:
     if not proposal_is_writable(proposal):
         raise ValueError("Nur neue, sichere und eigene Vorschläge dürfen extern angelegt werden")
+    if proposal.status == ProposalStatus.SIMULATED:
+        return proposal, {"simulation": True}
     if proposal.status not in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN} or proposal.open_questions: raise ValueError("Schreiben erfordert vollständige, bestätigte Vorschlagsversion")
     if test_mode:
-        persist(proposal)
-        return proposal, {"simulation": True}
+        simulated = proposal.model_copy(update={
+            "status": ProposalStatus.SIMULATED,
+            "external_id": None,
+            "external_link": None,
+        })
+        persist(simulated)
+        return simulated, {"simulation": True}
     key = f"mailhelp:{proposal.source_mail_id}:{proposal.id}:v{proposal.version}"
     found = writer.reconcile(key)
     if found is not None:
@@ -183,7 +191,10 @@ class HttpWriter:
         if self.service == "todoist":
             if proposal.kind != ProposalKind.TASK: raise ValueError("Todoist akzeptiert nur Aufgaben")
             url, body = "/tasks", {"content": proposal.title, "description": f"{proposal.description}\n\n[{key}]".strip(), "project_id": self.target}
-            if proposal.due: body["due_datetime"] = proposal.due.isoformat()
+            if isinstance(proposal.due, datetime):
+                body["due_datetime"] = proposal.due.isoformat()
+            elif proposal.due is not None:
+                body["due_date"] = proposal.due.isoformat()
         else:
             if proposal.kind != ProposalKind.EVENT: raise ValueError("Kalender akzeptiert nur Termine")
             url, body = f"/calendars/{self.target}/events", self._calendar_event_body(proposal, key)
