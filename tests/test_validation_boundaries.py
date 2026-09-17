@@ -33,7 +33,7 @@ def valid_settings(tmp_path: Path) -> dict:
     }
 
 
-def test_mail_state_v4_metadata_is_closed_and_round_trips(tmp_path):
+def test_mail_state_v5_metadata_is_closed_and_round_trips(tmp_path):
     now = datetime.now(timezone.utc)
     state = MailState(
         id="a" * 24, imap={"account_id":"0"*24,"folder": "INBOX", "uidvalidity": 1, "uid": 2},
@@ -45,7 +45,7 @@ def test_mail_state_v4_metadata_is_closed_and_round_trips(tmp_path):
     with JsonStore(tmp_path / "states") as store:
         store.save("mail-a", state.model_dump(mode="json"))
         loaded = store.load_model("mail-a", MailState)
-    assert loaded == state and loaded.schema_version == 4
+    assert loaded == state and loaded.schema_version == 5
     value = state.model_dump(mode="json")
     with pytest.raises(ValidationError):
         MailState.model_validate({**value, "unknown": True})

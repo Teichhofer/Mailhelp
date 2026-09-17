@@ -401,3 +401,13 @@ def test_safe_failures_are_structured_and_notified_once_after_restart(tmp_path, 
         message=notify.messages[0]
         assert first["id"] in message and "relevance" in message
         assert "Classified" not in message and "Private body" not in message and "not-for" not in message
+
+
+def test_http_writer_rejects_non_writable_proposal_before_request():
+    requests = []
+    transport = httpx.MockTransport(lambda request: requests.append(request) or httpx.Response(500, request=request))
+    writer = HttpWriter("todoist", "token", "project", transport=transport)
+    with pytest.raises(ValueError, match="nicht extern"):
+        writer.create(proposal(classification="unsupported"), "key")
+    assert requests == []
+    writer.close()

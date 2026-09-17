@@ -5,7 +5,8 @@ import time, traceback
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
-from .models import Proposal, ProposalKind, ProposalStatus
+from .models import (Proposal, ProposalCertainty, ProposalClassification, ProposalKind,
+                     ProposalResponsibility, ProposalStatus)
 from .adapter import PermanentError, RetryPolicy, UncertainWriteError, uncertain_write
 from .logging import EventLogger, NullLogger
 
@@ -90,7 +91,16 @@ class AccessTokenProvider(Protocol):
     def invalidate(self) -> None: ...
 
 
+def proposal_is_writable(proposal: Proposal) -> bool:
+    """Return whether the proposal may be confirmed and externally created."""
+    return (proposal.classification == ProposalClassification.NEW and
+            proposal.responsibility == ProposalResponsibility.USER and
+            proposal.certainty == ProposalCertainty.CERTAIN)
+
+
 def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Callable[[Proposal], None], test_mode: bool = False) -> tuple[Proposal, dict[str, Any]]:
+    if not proposal_is_writable(proposal):
+        raise ValueError("Nur neue, sichere und eigene Vorschläge dürfen extern angelegt werden")
     if proposal.status not in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN} or proposal.open_questions: raise ValueError("Schreiben erfordert vollständige, bestätigte Vorschlagsversion")
     if test_mode:
         persist(proposal)
@@ -167,6 +177,8 @@ class HttpWriter:
         return items[0].model_dump() if items else None
 
     def create(self, proposal: Proposal, key: str) -> dict[str, Any]:
+        if not proposal_is_writable(proposal):
+            raise ValueError("Dieser Vorschlag darf nicht extern angelegt werden")
         self.logger.event("INFO", self.service, "create_started", call_id=key, mail_id=proposal.source_mail_id, proposal_id=proposal.id)
         if self.service == "todoist":
             if proposal.kind != ProposalKind.TASK: raise ValueError("Todoist akzeptiert nur Aufgaben")
