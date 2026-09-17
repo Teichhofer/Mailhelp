@@ -139,8 +139,21 @@ def test_openrouter_corrupt_responses_are_named_and_sanitized():
 
 def test_telegram_response_models_and_write_validation():
     assert _validation_path(ValueError()) == "<json>"
+    real_update={"ok":True,"result":[{"update_id":7,"irrelevant_update_field":"ignored",
+        "message":{"message_id":11,"from":{"id":1,"is_bot":False,"first_name":"Ada","language_code":"de"},
+                   "chat":{"id":-2,"type":"private","first_name":"Ada"},"date":1_789_000_000,
+                   "text":"Antwort","entities":[{"type":"bold","offset":0,"length":1}]}}],
+        "response_metadata":"ignored"}
+    parsed=TelegramUpdatesResponse.model_validate(real_update)
+    assert parsed.result[0].message.sender.id == 1
+    assert parsed.model_dump(by_alias=True) == {"ok":True,"result":[{"update_id":7,"message":{
+        "message_id":11,"from":{"id":1},"chat":{"id":-2},"text":"Antwort"},"callback_query":None}]}
+    assert TelegramWriteResponse.model_validate({"ok":True,"result":{"message_id":12,"date":1_789_000_001,
+        "chat":{"id":-2,"type":"private"},"text":"Gesendet"},"extra":"ignored"}).result.message_id == 12
+    assert TelegramWriteResponse.model_validate({"ok":True,"result":True,"description":"answered"}).result is True
     with pytest.raises(ValidationError): TelegramUpdatesResponse.model_validate({"ok":False,"result":[]})
     with pytest.raises(ValidationError): TelegramWriteResponse.model_validate({"ok":False,"result":True})
+    with pytest.raises(ValidationError): TelegramUpdatesResponse.model_validate({"ok":True,"result":[{"update_id":1,"message":{"message_id":1,"from":{"id":"1"},"chat":{"id":2},"text":"x"}}]})
     for operation in ("send", "answer"):
         client=TelegramClient("top-secret",1,httpx.MockTransport(lambda request: httpx.Response(200,json={"ok":True},request=request)))
         with pytest.raises(ValueError, match="Telegram") as error:

@@ -178,8 +178,12 @@ abgebrochener Versuch ohne garantiert gespeicherten Zustand hält den Abrufstand
 dagegen fest. Polling- und Wiederaufnahme-Durchläufe geben ihre Einzelergebnisse
 an den Aufrufer zurück.
 
-Telegram-Updates werden an der Eingangsgrenze durch geschlossene Pydantic-
-Schemata validiert. Der atomar gespeicherte Offset verhindert nach einem Neustart
+Telegram-Transportantworten werden an der Eingangsgrenze durch Pydantic-Schemata
+validiert: Die von Mailhelp verwendeten Pflichtfelder bleiben streng typisiert,
+während zusätzliche Telegram-Felder ignoriert und insbesondere nicht in interne
+Zustände übernommen werden. Die internen Modelle für Vorschlags- und
+Relevanzentscheidungen bleiben dagegen geschlossen und lehnen unbekannte Felder
+ab. Der atomar gespeicherte Offset verhindert nach einem Neustart
 die erneute Verarbeitung bereits behandelter Updates. Aktionen enthalten immer
 Vorschlags-ID, Version und Aktion; nur der konfigurierte Nutzer im konfigurierten
 Chat darf sie auslösen. Jede angezeigte Version wird vor ihren Schaltflächen

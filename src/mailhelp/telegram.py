@@ -19,35 +19,41 @@ from .analysis import validate_revision_successor
 import time, traceback, uuid
 
 
-class TelegramModel(BaseModel):
-    """Telegram fields used by Mailhelp; everything else is rejected."""
+class TelegramTransportModel(BaseModel):
+    """Validated Telegram fields used by Mailhelp; API additions are discarded."""
+
+    model_config = ConfigDict(extra="ignore", strict=True, populate_by_name=True)
+
+
+class InternalTelegramModel(BaseModel):
+    """Closed model for decisions that can affect Mailhelp's persisted state."""
 
     model_config = ConfigDict(extra="forbid", strict=True, populate_by_name=True)
 
 
-class TelegramUser(TelegramModel):
+class TelegramUser(TelegramTransportModel):
     id: int
 
 
-class TelegramChat(TelegramModel):
+class TelegramChat(TelegramTransportModel):
     id: int
 
 
-class TelegramMessage(TelegramModel):
+class TelegramMessage(TelegramTransportModel):
     message_id: int
     sender: TelegramUser = Field(alias="from")
     chat: TelegramChat
     text: str = Field(min_length=1, max_length=4096)
 
 
-class TelegramCallbackQuery(TelegramModel):
+class TelegramCallbackQuery(TelegramTransportModel):
     id: str = Field(min_length=1, max_length=128)
     sender: TelegramUser = Field(alias="from")
     message: TelegramMessage
     data: str = Field(min_length=1, max_length=64)
 
 
-class TelegramUpdate(TelegramModel):
+class TelegramUpdate(TelegramTransportModel):
     update_id: int = Field(ge=0)
     message: TelegramMessage | None = None
     callback_query: TelegramCallbackQuery | None = None
@@ -59,7 +65,7 @@ class TelegramUpdate(TelegramModel):
         return self
 
 
-class TelegramUpdatesResponse(TelegramModel):
+class TelegramUpdatesResponse(TelegramTransportModel):
     ok: bool
     result: list[TelegramUpdate]
 
@@ -69,11 +75,11 @@ class TelegramUpdatesResponse(TelegramModel):
         return self
 
 
-class TelegramWriteResult(TelegramModel):
+class TelegramWriteResult(TelegramTransportModel):
     message_id: int | None = None
 
 
-class TelegramWriteResponse(TelegramModel):
+class TelegramWriteResponse(TelegramTransportModel):
     ok: bool
     result: TelegramWriteResult | bool
 
@@ -89,7 +95,7 @@ class DecisionAction(StrEnum):
     REJECT = "reject"
 
 
-class RelevanceDecision(TelegramModel):
+class RelevanceDecision(InternalTelegramModel):
     mail_id: str = Field(pattern=r"^[a-f0-9]{24}$")
     version: int = Field(ge=1)
     decision: str = Field(pattern=r"^(relevant|irrelevant)$")
@@ -105,7 +111,7 @@ class RelevanceDecision(TelegramModel):
         return cls(mail_id=parts[1], version=int(parts[2]), decision=parts[3])
 
 
-class Decision(TelegramModel):
+class Decision(InternalTelegramModel):
     proposal_id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,32}$")
     version: int = Field(ge=1)
     action: DecisionAction

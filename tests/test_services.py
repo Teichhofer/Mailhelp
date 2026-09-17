@@ -109,7 +109,7 @@ def test_telegram():
     requests=[]
     def handler(req):
         requests.append(req)
-        data={"ok":True,"result":[{"update_id":1,"message":{"message_id":1,"from":{"id":1},"chat":{"id":2},"text":"x"}}]} if req.url.path.endswith("getUpdates") else {"ok":True,"result":{"message_id":1}}
+        data={"ok":True,"result":[{"update_id":1,"message":{"message_id":1,"from":{"id":1,"is_bot":False,"first_name":"Ada"},"chat":{"id":2,"type":"private"},"date":1_789_000_000,"text":"x","forward_origin":{"type":"user"}},"unused":True}]} if req.url.path.endswith("getUpdates") else {"ok":True,"result":{"message_id":1,"from":{"id":99,"is_bot":True,"first_name":"Mailhelp"},"chat":{"id":2,"type":"private"},"date":1_789_000_001,"text":"x","unused":True}}
         return httpx.Response(200,json=data,request=req)
     c=TelegramClient("secret",1,httpx.MockTransport(handler)); assert c.poll(1)[0]["update_id"]==1; c.send(2,"x"*4001); assert len(requests)==3; c.close()
 
