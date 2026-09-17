@@ -1,5 +1,6 @@
 """Idempotente Adapter für Todoist und Google Kalender."""
 from __future__ import annotations
+from datetime import datetime
 from typing import Any, Callable, Protocol
 import time, traceback
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -183,7 +184,10 @@ class HttpWriter:
         if self.service == "todoist":
             if proposal.kind != ProposalKind.TASK: raise ValueError("Todoist akzeptiert nur Aufgaben")
             url, body = "/tasks", {"content": proposal.title, "description": f"{proposal.description}\n\n[{key}]".strip(), "project_id": self.target}
-            if proposal.due: body["due_datetime"] = proposal.due.isoformat()
+            if isinstance(proposal.due, datetime):
+                body["due_datetime"] = proposal.due.isoformat()
+            elif proposal.due is not None:
+                body["due_date"] = proposal.due.isoformat()
         else:
             if proposal.kind != ProposalKind.EVENT: raise ValueError("Kalender akzeptiert nur Termine")
             url, body = f"/calendars/{self.target}/events", self._calendar_event_body(proposal, key)

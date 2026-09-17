@@ -159,6 +159,19 @@ def test_integrations():
     with pytest.raises(ValueError): HttpWriter("google_calendar","x","p",transport=httpx.MockTransport(handler),calendar_timezone="UTC").create(p,"k")
 
 
+def test_todoist_uses_distinct_date_and_datetime_deadlines():
+    payloads=[]
+    def handler(request):
+        payloads.append(json.loads(request.content))
+        return httpx.Response(200,json={"id":"task"},request=request)
+    writer=HttpWriter("todoist","x","p",transport=httpx.MockTransport(handler))
+    writer.create(proposal(status="confirmed", due="2026-10-01"), "date")
+    writer.create(proposal(status="confirmed", due="2026-10-01T17:00:00+02:00"), "instant")
+    assert payloads[0]["due_date"] == "2026-10-01" and "due_datetime" not in payloads[0]
+    assert payloads[1]["due_datetime"] == "2026-10-01T17:00:00+02:00" and "due_date" not in payloads[1]
+    writer.close()
+
+
 def test_calendar_payloads_separate_timed_and_all_day_intervals():
     payloads=[]
     def handler(request):
