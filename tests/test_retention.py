@@ -18,7 +18,7 @@ NOW = datetime(2026, 9, 16, tzinfo=timezone.utc)
 
 
 def state(identifier, age=31, status=ProposalStatus.CREATED):
-    proposal = Proposal(id="p" + identifier[0], version=2, kind=ProposalKind.TASK,
+    proposal = Proposal(id="p" + identifier[0], version=2, kind=ProposalKind.TASK, responsibility="user", certainty="certain", classification="new",
                         title="Termin", evidence="Quelle", source_mail_id=identifier,
                         target="inbox", status=status, external_id="external-1",
                         external_link="https://example.invalid/1")

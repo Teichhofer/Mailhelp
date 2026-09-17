@@ -8,7 +8,7 @@ from mailhelp.models import MailState, Proposal, ProposalStatus, RelevanceDialog
 from mailhelp.orchestrator import Orchestrator
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import (
-    Decision,
+    Decision, DecisionAction,
     TelegramCallbackQuery,
     TelegramClient,
     TelegramDialogController,
@@ -22,7 +22,7 @@ from mailhelp.config import Settings
 
 
 def proposal(**changes):
-    data = {"id": "p1", "version": 1, "kind": "task", "title": "Aufgabe", "description": "Text", "evidence": "Beleg", "source_mail_id": "aaaaaaaaaaaaaaaaaaaaaaaa", "target": "inbox"}
+    data = {"id": "p1", "version": 1, "kind": "task", "responsibility": "user", "certainty": "certain", "classification": "new", "title": "Aufgabe", "description": "Text", "evidence": "Beleg", "source_mail_id": "aaaaaaaaaaaaaaaaaaaaaaaa", "target": "inbox"}
     data.update(changes)
     return Proposal.model_validate(data)
 
@@ -129,8 +129,8 @@ def test_central_proposal_formatting_for_tasks_and_events(item, expected):
     text = format_proposal(item, "Europe/Berlin")
     assert all(value in text for value in expected)
     assert [line.split(":", 1)[0] for line in text.splitlines() if not line.startswith("-")] [:8] == [
-        "Vorschlagsversion", "Typ", "Titel", "Beschreibung", "Belegstelle",
-        "Ursprungsmail", "Offene Fragen", "Ziel",
+        "Vorschlagsversion", "Typ", "Zuständigkeit", "Sicherheit", "Einordnung",
+        "Extern anlegbar", "Titel", "Beschreibung",
     ]
 
 
@@ -441,3 +441,56 @@ def test_duplicate_free_text_is_visible_only_to_authorized_chat(tmp_path):
         t.updates=[{"update_id":2,"message":{"private":"not trusted"}}]
         c.poll_once()
         assert [text for _,text,_ in t.sent]==["Diese Relevanzantwort wurde bereits verarbeitet."]
+
+@pytest.mark.parametrize("classification", [
+    "non_binding", "already_completed", "change", "cancellation", "recurring", "unsupported",
+])
+def test_non_creatable_classifications_stay_manual_after_telegram_interaction(tmp_path, classification):
+    writer = Writer()
+    with JsonStore(tmp_path / classification) as store:
+        dialog, transport, _ = controller(store, writers={"todoist": writer})
+        item = proposal(classification=classification)
+        dialog.send_proposal(item)
+        markup = transport.sent[-1][2]["inline_keyboard"]
+        assert [button["text"] for button in markup[0]] == ["Manuell prüfen", "Verwerfen"]
+        assert "Extern anlegbar: Nein – manuell prüfen" in transport.sent[-1][1]
+        transport.updates = [callback(1, Decision(mail_id=item.source_mail_id, proposal_id=item.id,
+                                                   version=item.version, action=DecisionAction.CONFIRM).encode())]
+        dialog.poll_once()
+        assert writer.created == 0 and writer.reconciled == 0
+        assert "manuellen Prüfung" in transport.answered[-1][1]
+        dialog._execute(item.model_copy(update={"status": ProposalStatus.CONFIRMED}))
+        assert writer.created == 0 and writer.reconciled == 0
+
+
+@pytest.mark.parametrize(("changes", "expected_status"), [
+    ({"responsibility": "other"}, ProposalStatus.PENDING_CONFIRMATION),
+    ({"responsibility": "unclear"}, ProposalStatus.NEEDS_CLARIFICATION),
+    ({"certainty": "uncertain"}, ProposalStatus.NEEDS_CLARIFICATION),
+    ({"certainty": "contradictory"}, ProposalStatus.NEEDS_CLARIFICATION),
+])
+def test_responsibility_and_uncertainty_are_not_writable(changes, expected_status):
+    item = proposal(**changes)
+    assert item.status == expected_status
+    writer = Writer()
+    with pytest.raises(ValueError, match="neue, sichere und eigene"):
+        from mailhelp.integrations import execute_confirmed
+        execute_confirmed(item.model_copy(update={"status": ProposalStatus.CONFIRMED}), writer, lambda _: None)
+    assert writer.created == 0 and writer.reconciled == 0
+    decision = Decision(mail_id=item.source_mail_id, proposal_id=item.id, version=item.version, action=DecisionAction.CONFIRM)
+    if expected_status == ProposalStatus.PENDING_CONFIRMATION:
+        with pytest.raises(ValueError, match="manuellen Prüfung"):
+            from mailhelp.telegram import apply_decision
+            apply_decision(item, decision, 1, 2, 1, 2)
+
+
+def test_classification_fields_are_required_and_closed():
+    raw = proposal().model_dump()
+    for field in ("responsibility", "certainty", "classification"):
+        missing = {**raw}
+        missing.pop(field)
+        with pytest.raises(ValidationError):
+            Proposal.model_validate(missing)
+    for field in ("responsibility", "certainty", "classification"):
+        with pytest.raises(ValidationError):
+            Proposal.model_validate({**raw, field: "invalid"})

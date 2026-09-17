@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_valida
 from .models import (MailState, Proposal, ProposalKind, ProposalStatus, RelevanceDialog,
                      RelevanceDialogStatus, TelegramDialogState, TelegramOffset,
                      WriteAttemptReference)
-from .integrations import ExternalWriter, execute_confirmed
+from .integrations import ExternalWriter, execute_confirmed, proposal_is_writable
 from .adapter import RetryPolicy, uncertain_write
 from .storage import JsonStore
 from .logging import EventLogger, NullLogger
@@ -143,6 +143,8 @@ def apply_decision(
     if proposal.status != ProposalStatus.PENDING_CONFIRMATION:
         return proposal
     if decision.action == DecisionAction.CONFIRM:
+        if not proposal_is_writable(proposal):
+            raise ValueError("Dieser Vorschlag ist nur zur manuellen Prüfung bestimmt")
         if proposal.open_questions:
             raise ValueError("Offene Fragen verhindern die Bestätigung")
         return proposal.model_copy(update={"status": ProposalStatus.CONFIRMED})
@@ -181,6 +183,10 @@ def format_proposal(proposal: Proposal, configured_timezone: str) -> str:
     lines = [
         f"Vorschlagsversion: {proposal.version}",
         f"Typ: {'Aufgabe' if proposal.kind == ProposalKind.TASK else 'Termin'}",
+        f"Zuständigkeit: {proposal.responsibility.value}",
+        f"Sicherheit: {proposal.certainty.value}",
+        f"Einordnung: {proposal.classification.value}",
+        f"Extern anlegbar: {'Ja' if proposal_is_writable(proposal) else 'Nein – manuell prüfen'}",
         f"Titel: {proposal.title}",
         f"Beschreibung: {proposal.description or missing}",
         f"Belegstelle: {proposal.evidence}",
@@ -325,14 +331,21 @@ class TelegramDialogController:
 
     def send_proposal(self, proposal: Proposal) -> None:
         """Persist first, then expose controls for precisely that immutable version."""
-        if proposal.open_questions and proposal.status == ProposalStatus.PENDING_CONFIRMATION:
+        if ((proposal.open_questions or proposal.responsibility.value == "unclear" or
+             proposal.certainty.value != "certain") and
+                proposal.status == ProposalStatus.PENDING_CONFIRMATION):
             proposal = proposal.model_copy(update={"status": ProposalStatus.NEEDS_CLARIFICATION})
         self.persist(proposal)
         text = format_proposal(proposal, self.configured_timezone)
         parts = numbered_message_parts(proposal.source_mail_id, proposal.id, text)
         for part in parts[:-1]:
             self.telegram.send(self.chat_id, part)
-        if proposal.open_questions:
+        if not proposal_is_writable(proposal):
+            buttons = [[
+                {"text": "Manuell prüfen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.EDIT).encode()},
+                {"text": "Verwerfen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.REJECT).encode()},
+            ]]
+        elif proposal.open_questions:
             buttons = [[
                 {"text": "Klären", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.EDIT).encode()},
                 {"text": "Verwerfen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.REJECT).encode()},
@@ -474,6 +487,9 @@ class TelegramDialogController:
         if decision.action == DecisionAction.CONFIRM and proposal.status != ProposalStatus.PENDING_CONFIRMATION:
             self.telegram.answer_callback(callback_id, "Zuerst müssen die offenen Fragen beantwortet werden.")
             return
+        if decision.action == DecisionAction.CONFIRM and not proposal_is_writable(proposal):
+            self.telegram.answer_callback(callback_id, "Dieser Fall ist nur zur manuellen Prüfung bestimmt und wird nicht angelegt.")
+            return
         changed = (proposal.model_copy(update={"status": ProposalStatus.REJECTED})
                    if decision.action == DecisionAction.REJECT else
                    apply_decision(proposal, decision, self.user_id, self.chat_id, self.user_id, self.chat_id))
@@ -487,6 +503,8 @@ class TelegramDialogController:
         return self.writers.get("todoist" if proposal.kind.value == "task" else "google_calendar")
 
     def _execute(self, proposal: Proposal) -> None:
+        if not proposal_is_writable(proposal):
+            return
         writer = self._writer(proposal)
         if writer is None:
             return

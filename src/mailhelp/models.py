@@ -83,6 +83,28 @@ class ProposalKind(StrEnum):
     EVENT = "event"
 
 
+class ProposalResponsibility(StrEnum):
+    USER = "user"
+    OTHER = "other"
+    UNCLEAR = "unclear"
+
+
+class ProposalCertainty(StrEnum):
+    CERTAIN = "certain"
+    UNCERTAIN = "uncertain"
+    CONTRADICTORY = "contradictory"
+
+
+class ProposalClassification(StrEnum):
+    NEW = "new"
+    NON_BINDING = "non_binding"
+    ALREADY_COMPLETED = "already_completed"
+    CHANGE = "change"
+    CANCELLATION = "cancellation"
+    RECURRING = "recurring"
+    UNSUPPORTED = "unsupported"
+
+
 class ProposalStatus(StrEnum):
     NEEDS_CLARIFICATION = "needs_clarification"
     PENDING_CONFIRMATION = "pending_confirmation"
@@ -95,10 +117,13 @@ class ProposalStatus(StrEnum):
 
 
 class Proposal(StrictModel):
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
     id: str = Field(pattern=r"^[a-zA-Z0-9_-]{1,64}$")
     version: int = Field(ge=1)
     kind: ProposalKind
+    responsibility: ProposalResponsibility
+    certainty: ProposalCertainty
+    classification: ProposalClassification
     title: str = Field(min_length=1, max_length=500)
     description: str = Field(default="", max_length=4000)
     evidence: str = Field(min_length=1, max_length=2000)
@@ -117,6 +142,9 @@ class Proposal(StrictModel):
 
     @model_validator(mode="after")
     def complete_event(self) -> "Proposal":
+        if (self.responsibility == ProposalResponsibility.UNCLEAR or
+                self.certainty != ProposalCertainty.CERTAIN):
+            self.status = ProposalStatus.NEEDS_CLARIFICATION
         if self.kind == ProposalKind.TASK and (self.start is not None or self.end is not None or self.all_day):
             raise ValueError("Aufgaben dürfen keine Kalenderzeit enthalten")
         if self.kind != ProposalKind.EVENT:
@@ -204,7 +232,7 @@ class MailImapIdentity(StrictModel):
 
 
 class MailState(StrictModel):
-    schema_version: Literal[4] = 4
+    schema_version: Literal[5] = 5
     id: str = Field(pattern=r"^[a-f0-9]{24}$")
     imap: MailImapIdentity
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

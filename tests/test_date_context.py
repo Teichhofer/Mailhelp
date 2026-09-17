@@ -69,7 +69,7 @@ def test_unsafe_context_forces_event_clarification():
                       imap={"account_id":"0" * 24, "folder":"INBOX", "uidvalidity":1, "uid":1},
                       mail={"date_context_status":"conflicting"})
     start = datetime(2026, 1, 1, 10, tzinfo=timezone.utc)
-    event = Proposal(id="e", version=1, kind="event", title="x", evidence="x",
+    event = Proposal(id="e", version=1, kind="event", responsibility="user", certainty="certain", classification="new", title="x", evidence="x",
                      source_mail_id=state.id, target="untrusted", start=start, end=start + timedelta(hours=1))
     normalized = orchestrator._normalize_proposals(state, [event])[0]
     assert normalized.status == ProposalStatus.NEEDS_CLARIFICATION
