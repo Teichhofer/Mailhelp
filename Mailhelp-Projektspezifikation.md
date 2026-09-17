@@ -188,11 +188,15 @@ Unverbindliche Vorschläge, bereits erledigte Aufgaben sowie Änderungen und Abs
 ## 8. Telegram-Interaktion und externe Einträge
 
 - Telegram verwendet Long Polling; ein öffentlicher Webhook ist nicht vorgesehen.
-- Telegram-Updates, Nachrichten und Callback-Queries werden vor jeder Verwendung
-  mit geschlossenen Schemata geprüft. Unbekannte oder unvollständige Nutzdaten
-  werden sichtbar abgewiesen, aber weder als Rohdaten noch als Validierungsinhalt
-  protokolliert. Der Offset wird nach jedem identifizierbaren Update atomar
-  gespeichert; ältere oder doppelte Updates werden nach Neustarts ignoriert.
+- Telegram-Updates, Nachrichten, Callback-Queries und Schreibantworten werden vor
+  jeder Verwendung mit Transport-Schemata geprüft. Von Mailhelp verwendete
+  Pflichtfelder sind streng typisiert; zusätzliche Telegram-eigene Felder werden
+  akzeptiert, verworfen und nicht in interne Zustände übernommen. Unvollständige
+  oder falsch typisierte Pflichtfelder werden sichtbar abgewiesen, aber weder als
+  Rohdaten noch als Validierungsinhalt protokolliert. Interne Vorschlags- und
+  Relevanzentscheidungen bleiben geschlossene Schemata. Der Offset wird nach jedem
+  identifizierbaren Update atomar gespeichert; ältere oder doppelte Updates werden
+  nach Neustarts ignoriert.
 - Nur konfigurierte Nutzer- und Chat-IDs dürfen Nachrichten erhalten und Aktionen auslösen.
 - Vollständige Vorschläge bieten `Bestätigen`, `Ändern` und `Verwerfen`.
   Vorschläge mit offenen Fragen bieten dagegen ausschließlich `Klären` und

@@ -32,7 +32,7 @@ def message(update_id, text="Antwort", user=1, chat=2):
 
 
 def callback(update_id, data, user=1, chat=2):
-    return {"update_id": update_id, "callback_query": {"id": f"c{update_id}", "from": {"id": user}, "message": {"message_id": 1, "from": {"id": 1}, "chat": {"id": chat}, "text": "buttons"}, "data": data}}
+    return {"update_id": update_id, "callback_query": {"id": f"c{update_id}", "from": {"id": user, "is_bot": False, "first_name": "Ada"}, "chat_instance": "irrelevant", "message": {"message_id": 1, "from": {"id": 99, "is_bot": True, "first_name": "Mailhelp"}, "chat": {"id": chat, "type": "private"}, "date": 1_789_000_000, "text": "buttons", "reply_markup": {"inline_keyboard": []}}, "data": data}}
 
 
 class Telegram:
@@ -102,8 +102,11 @@ def test_strict_schemas_and_decisions():
     assert parsed.encode()=="proposal:p1:3:confirm"
     for bad in ("x", "proposal:p1:x:confirm", "proposal:p1:٣:confirm", "proposal:p1:1:bad"):
         with pytest.raises((ValueError,ValidationError)): Decision.parse(bad)
-    with pytest.raises(ValidationError): TelegramMessage.model_validate({"message_id":1,"from":{"id":1},"chat":{"id":2},"text":"x","unknown":True})
-    with pytest.raises(ValidationError): TelegramCallbackQuery.model_validate({"id":"c","from":{"id":1},"message":message(1)["message"],"data":"x","unknown":1})
+    transport=TelegramMessage.model_validate({"message_id":1,"from":{"id":1,"first_name":"Ada","is_bot":False},"chat":{"id":2,"type":"private"},"date":1_789_000_000,"text":"x","unknown":True})
+    assert transport.model_dump(by_alias=True)=={"message_id":1,"from":{"id":1},"chat":{"id":2},"text":"x"}
+    callback_model=TelegramCallbackQuery.model_validate({**callback(1,"proposal:p1:1:confirm")["callback_query"],"unknown":1})
+    assert "unknown" not in callback_model.model_dump() and callback_model.sender.id == 1
+    with pytest.raises(ValidationError): Decision.model_validate({"proposal_id":"p1","version":1,"action":"confirm","unknown":True})
     with pytest.raises(ValidationError): TelegramUpdate(update_id=1)
     with pytest.raises(ValidationError): TelegramUpdate.model_validate({**message(1),"callback_query":callback(1,"x")["callback_query"]})
 
