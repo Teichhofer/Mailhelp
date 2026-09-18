@@ -113,7 +113,8 @@ def test_todoist_access_errors_reach_cli_without_secrets(
             return results
 
     @contextmanager
-    def builder(*_args):
+    def builder(*_args, **kwargs):
+        assert kwargs == {"access_diagnostics": True}
         yield App()
 
     monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], None, "fingerprint"))
@@ -169,7 +170,8 @@ def test_cli_access_check_prints_summary_and_never_runs(monkeypatch, capsys, res
         def run(self, **_kwargs): raise AssertionError("mail processing must not start")
 
     @contextmanager
-    def builder(*_args):
+    def builder(*_args, **kwargs):
+        assert kwargs == {"access_diagnostics": True}
         yield App()
 
     monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], None, "fingerprint"))
