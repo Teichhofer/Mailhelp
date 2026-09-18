@@ -8,7 +8,7 @@ import pytest
 
 from mailhelp.application import Application
 from mailhelp.imap import ImapReader
-from mailhelp.integrations import HttpWriter
+from mailhelp.integrations import GoogleOAuthTokenProvider, HttpWriter
 from mailhelp.logging import JsonlLogger
 from mailhelp.openrouter import OpenRouterClient
 from mailhelp.telegram import TelegramClient, TelegramBotResponse
@@ -158,6 +158,35 @@ def test_application_access_check_runs_every_check_after_errors():
     }
     assert imap.calls == [(["INBOX"],)]
     assert all(item.calls == [()] for item in (openrouter, telegram, todoist, calendar))
+
+
+def test_application_distinguishes_oauth_failure_without_logging_response_secrets(tmp_path):
+    response_secret = "untrusted-issued-token"
+    logger = JsonlLogger(tmp_path, secrets=("client-secret", "refresh-secret"))
+    provider = GoogleOAuthTokenProvider(
+        "client", "client-secret", "refresh-secret", logger=logger,
+        transport=response_transport({
+            "access_token": response_secret, "expires_in": 100, "token_type": "MAC",
+        }),
+    )
+    calendar = HttpWriter(
+        "google_calendar", provider, "target", logger=logger,
+        transport=response_transport({}), calendar_timezone="UTC",
+    )
+    application = SimpleNamespace(
+        settings=SimpleNamespace(imap=SimpleNamespace(folders=["INBOX"])),
+        logger=logger, imap=Check(), openrouter=Check(), telegram=Check(),
+        todoist=Check(), calendar=calendar,
+    )
+
+    results = Application.check_access(application)
+
+    assert results["Google Calendar"].startswith("Google OAuth: Token-Abruf abgelehnt")
+    logs = (tmp_path / "application.jsonl").read_text(encoding="utf-8")
+    assert response_secret not in logs
+    assert "client-secret" not in logs and "refresh-secret" not in logs
+    calendar.close()
+    provider.close()
 
 
 @pytest.mark.parametrize("results, expected, status", [

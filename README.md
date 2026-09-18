@@ -25,6 +25,15 @@ Telegram-Updates, führt keinen LLM-Auftrag aus und erzeugt weder Aufgaben noch
 Termine. Für jeden Dienst erscheint `OK` oder `FEHLER`; sobald mindestens eine
 Prüfung fehlschlägt, endet der Prozess mit Status 1. Im Container kann derselbe
 Test mit `docker compose run --rm mailhelp --check-access` ausgeführt werden.
+Die Google-Diagnose trennt den OAuth-Token-Abruf klar vom anschließenden Zugriff
+auf den Zielkalender: Ein erfolgreicher Abruf bestätigt, dass Client und
+Refresh-Token vom Token-Endpunkt akzeptiert wurden. Eine Kalenderantwort mit 401
+bedeutet, dass der ausgestellte Access-Token am Calendar-Endpunkt abgelehnt wurde;
+403 bedeutet, dass der Token bezogen, der Aufruf aber verweigert wurde (bekannte
+strukturierte Fehlercodes unterscheiden fehlende Berechtigung und deaktivierte
+API); 404 bedeutet, dass der Zielkalender nicht existiert oder für das Konto nicht
+sichtbar ist. Unbekannte oder ungültige Fehlerkörper werden nur als allgemeine
+Verweigerung kategorisiert und niemals ausgegeben.
 Für diesen Diagnosebefehl aktiviert Mailhelp unabhängig von der Logging-Konfiguration
 das Datei- und Konsolenlogging auf `DEBUG`. Beginn, Erfolg und Fehler jeder einzelnen
 Prüfung werden protokolliert; Fehler enthalten einen bereinigten Stacktrace. Die
