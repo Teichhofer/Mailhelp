@@ -233,11 +233,37 @@ def test_imap_connection_and_exact_historical_boundary():
     no_validity=BoundaryImap(); no_validity.mode="validity"
     with pytest.raises(RuntimeError,match="UIDVALIDITY"): ImapReader("h",143,"u","p",factory=lambda *a,**k:no_validity).determine_start_uid("INBOX",datetime.now(timezone.utc))
 
-    for response in (("NO",[]), ("OK",[b"bad"]), ("OK",[(b"bad",b"")]), ("OK",[(b'2 (INTERNALDATE "bad")',b"")])):
+    valid_responses = (
+        [b'2 (INTERNALDATE "02-Jan-2025 04:01:00 +0000")'],
+        [(b'2 (INTERNALDATE "02-Jan-2025 04:01:00 +0000")', b"")],
+        [b")", (), (7, b"ignored"),
+         (b'2 (internaldate "02-Jan-2025 04:01:00 +0000")', b""), b")"],
+    )
+    for response in valid_responses:
+        direct=BoundaryImap()
+        original=direct.uid
+        direct.uid=lambda action,*args,response=response: ("OK",response) if action=="fetch" else original(action,*args)
+        assert ImapReader("h",143,"u","p",factory=lambda *a,**k:direct).determine_start_uid("INBOX",datetime(2025,1,2,4,0,tzinfo=timezone.utc)) == 1
+
+    for rejected_status in ("NO", "BAD"):
+        rejected=BoundaryImap()
+        original=rejected.uid
+        rejected.uid=lambda action,*args,status=rejected_status: (status,[]) if action=="fetch" else original(action,*args)
+        with pytest.raises(RuntimeError,match=f"abgelehnt: {rejected_status}"):
+            ImapReader("h",143,"u","p",factory=lambda *a,**k:rejected).determine_start_uid("INBOX",datetime.now(timezone.utc))
+
+    for response in (None, [], [b")"], [b"bad"], [(b"bad",b"")]):
         malformed=BoundaryImap()
         original=malformed.uid
-        malformed.uid=lambda action,*args,response=response: response if action=="fetch" else original(action,*args)
-        with pytest.raises(RuntimeError,match="INTERNALDATE"): ImapReader("h",143,"u","p",factory=lambda *a,**k:malformed).determine_start_uid("INBOX",datetime.now(timezone.utc))
+        malformed.uid=lambda action,*args,response=response: ("OK",response) if action=="fetch" else original(action,*args)
+        with pytest.raises(RuntimeError,match="leer oder strukturell unbrauchbar"):
+            ImapReader("h",143,"u","p",factory=lambda *a,**k:malformed).determine_start_uid("INBOX",datetime.now(timezone.utc))
+
+    invalid=BoundaryImap()
+    original=invalid.uid
+    invalid.uid=lambda action,*args: ("OK",[(b'2 (INTERNALDATE "bad")',b"")]) if action=="fetch" else original(action,*args)
+    with pytest.raises(RuntimeError,match="ungültigen INTERNALDATE-Datumswert"):
+        ImapReader("h",143,"u","p",factory=lambda *a,**k:invalid).determine_start_uid("INBOX",datetime.now(timezone.utc))
 
     empty=BoundaryImap(())
     empty.uid=lambda action,*args: ("OK",[b""])
