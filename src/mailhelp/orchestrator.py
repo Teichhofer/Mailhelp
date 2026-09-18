@@ -161,6 +161,7 @@ class Orchestrator:
                                                 previous_mail_id=candidate.mail_id if candidate else None)
             if outcome == "duplicate":
                 state.steps.relevance = state.steps.summary = state.steps.action_detection = "skipped"
+                state.steps.action_router = state.steps.task_extraction = state.steps.event_extraction = "skipped"
                 state.steps.summary_notification = state.steps.proposal_notification = "skipped"
                 state.steps.completion = "completed"
             self._save(name, state)
@@ -228,6 +229,7 @@ class Orchestrator:
         state.relevance_dialog = dialog.model_copy(update={"status": RelevanceDialogStatus.DECIDED, "decision": decision, "telegram_offset": telegram_offset})
         if decision == "irrelevant":
             state.steps.summary = state.steps.action_detection = "skipped"
+            state.steps.action_router = state.steps.task_extraction = state.steps.event_extraction = "skipped"
             state.steps.summary_notification = state.steps.proposal_notification = "skipped"
             state.steps.completion = "completed"
         else:
@@ -287,6 +289,7 @@ class Orchestrator:
             if state.relevance.decision == "irrelevant":
                 state.steps.summary = "skipped"
                 state.steps.action_detection = "skipped"
+                state.steps.action_router = state.steps.task_extraction = state.steps.event_extraction = "skipped"
                 state.steps.summary_notification = state.steps.proposal_notification = "skipped"
             elif state.relevance.decision == "unclear":
                 if state.steps.summary_notification == "pending":
@@ -324,19 +327,47 @@ class Orchestrator:
                     self._save(name, state)
                 stage = ProcessingStage.ACTION_DETECTION
                 if state.steps.action_detection in {"pending", "failed"}:
-                    if state.action_route is None:
+                    if state.steps.action_router in {"pending", "failed"}:
+                        stage = ProcessingStage.ACTION_ROUTER
                         call, route = self.analyzer.action_route(state.mail)
                         state.action_route = route
                         state.llm_call_ids.append(call)
+                        state.steps.action_router = "completed"
+                        self._save(name, state)
                     else:
+                        assert state.action_route is not None
                         route = state.action_route
-                    if route.action_state not in {"none", "unclear"}:
-                        call, actions = self.analyzer.actions(state.mail)
-                        state.proposals = self._normalize_proposals(state, actions.proposals)
+                    wants_tasks = route.action_state in {"task", "task_and_event"}
+                    wants_events = route.action_state in {"event", "task_and_event"}
+                    if wants_tasks and state.steps.task_extraction in {"pending", "failed"}:
+                        stage = ProcessingStage.TASK_EXTRACTION
+                        call, extraction = self.analyzer.extract_tasks(state.mail)
+                        if len(extraction.tasks) != route.task_count:
+                            raise ValueError("Router- und Aufgabenanzahl widersprechen sich")
+                        state.task_extraction = extraction
                         state.llm_call_ids.append(call)
+                        state.steps.task_extraction = "completed"
+                        self._save(name, state)
+                    elif not wants_tasks:
+                        state.steps.task_extraction = "skipped"
+                    if wants_events and state.steps.event_extraction in {"pending", "failed"}:
+                        stage = ProcessingStage.EVENT_EXTRACTION
+                        call, extraction = self.analyzer.extract_events(state.mail)
+                        if len(extraction.events) != route.event_count:
+                            raise ValueError("Router- und Terminanzahl widersprechen sich")
+                        state.event_extraction = extraction
+                        state.llm_call_ids.append(call)
+                        state.steps.event_extraction = "completed"
+                        self._save(name, state)
+                    elif not wants_events:
+                        state.steps.event_extraction = "skipped"
+                    # Raw facts are deliberately not automatically confirmable.
+                    # A later, separately validated normalization stage may turn
+                    # them into proposals.
+                    state.proposals = []
                     state.steps.action_detection = "completed"
                     self._save(name, state)
-                    self.logger.event("INFO", "orchestrator", "actions_completed", mail_id=state.id, call_id=call,
+                    self.logger.event("INFO", "orchestrator", "actions_completed", mail_id=state.id,
                                       action_state=route.action_state,
                                       proposal_ids=[item.id for item in state.proposals])
                 stage = ProcessingStage.PROPOSAL_NOTIFICATION
@@ -349,9 +380,6 @@ class Orchestrator:
                             "Mögliche Aufgabe oder möglicher Termin benötigt fachliche Klärung: "
                             + state.action_route.reason,
                         )
-                    for proposal in state.proposals:
-                        self.notifier.send_proposal(proposal)
-                        self.logger.event("INFO", "orchestrator", "proposal_notified", mail_id=state.id, proposal_id=proposal.id)
                     state.steps.proposal_notification = "completed"
                     self._save(name, state)
             stage = ProcessingStage.COMPLETION
@@ -413,8 +441,16 @@ class Orchestrator:
     def _failure_outcome(self, name: str, state: MailState,
                          stage: ProcessingStage) -> ProcessingOutcome:
         """Complete the mail while retaining a retryable action-only failure."""
-        if stage != ProcessingStage.ACTION_DETECTION:
+        action_stages = {ProcessingStage.ACTION_ROUTER, ProcessingStage.TASK_EXTRACTION,
+                         ProcessingStage.EVENT_EXTRACTION}
+        if stage not in action_stages:
             return ProcessingOutcome.FAILED
+        step_name = {
+            ProcessingStage.ACTION_ROUTER: "action_router",
+            ProcessingStage.TASK_EXTRACTION: "task_extraction",
+            ProcessingStage.EVENT_EXTRACTION: "event_extraction",
+        }[stage]
+        setattr(state.steps, step_name, "failed")
         state.steps.action_detection = "failed"
         state.steps.proposal_notification = "pending"
         state.steps.completion = "completed"
