@@ -306,22 +306,33 @@ class TelegramDialogController:
         version_name = self._version_name(proposal.source_mail_id, proposal.id, proposal.version)
         if self.store.load(version_name) is None:
             self.store.save(version_name, value)
+        # The current proposal is the recovery record: publish it before the
+        # denormalized mail state.  If the process stops between these two
+        # atomic file replacements, startup can copy this record into the mail
+        # state without losing the newer status or external result.
         self.store.save(self._proposal_name(proposal.source_mail_id, proposal.id), value)
-        if proposal.status in {ProposalStatus.WRITING, ProposalStatus.CREATED,
-                               ProposalStatus.FAILED, ProposalStatus.UNCERTAIN}:
-            mail_name = f"mail-{proposal.source_mail_id}"
-            state = self.store.load_model(mail_name, MailState) if hasattr(self.store, "load_model") else None
-            if isinstance(state, MailState):
+        mail_name = f"mail-{proposal.source_mail_id}"
+        state = self.store.load_model(mail_name, MailState) if hasattr(self.store, "load_model") else None
+        if isinstance(state, MailState):
+            proposals = [proposal if item.id == proposal.id else item
+                         for item in state.proposals]
+            changed = proposals != state.proposals
+            state.proposals = proposals
+            if proposal.status in {ProposalStatus.WRITING, ProposalStatus.CREATED,
+                                   ProposalStatus.FAILED, ProposalStatus.UNCERTAIN}:
                 service = "todoist" if proposal.kind.value == "task" else "google_calendar"
                 reference = WriteAttemptReference(
                     mail_id=proposal.source_mail_id,
                     proposal_id=proposal.id, proposal_version=proposal.version, service=service,
                     idempotency_key=f"mailhelp:{proposal.source_mail_id}:{proposal.id}:v{proposal.version}",
                 )
-                state.write_attempts = [item for item in state.write_attempts
-                                        if (item.proposal_id, item.proposal_version, item.service) !=
-                                        (reference.proposal_id, reference.proposal_version, reference.service)]
-                state.write_attempts.append(reference)
+                attempts = [item for item in state.write_attempts
+                            if (item.proposal_id, item.proposal_version, item.service) !=
+                            (reference.proposal_id, reference.proposal_version, reference.service)]
+                attempts.append(reference)
+                changed = changed or attempts != state.write_attempts
+                state.write_attempts = attempts
+            if changed:
                 state.updated_at = datetime.now(timezone.utc)
                 self.store.save(mail_name, state.model_dump(mode="json"))
 
@@ -539,6 +550,9 @@ class TelegramDialogController:
                 continue
             proposal = self.store.load_model(name, Proposal)
             assert isinstance(proposal, Proposal)
+            # Also repairs a crash after the authoritative proposal file was
+            # replaced but before its embedding MailState was replaced.
+            self.persist(proposal)
             if proposal.status in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING,
                                    ProposalStatus.UNCERTAIN, ProposalStatus.SIMULATED}:
                 self._execute(proposal)

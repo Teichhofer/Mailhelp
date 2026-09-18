@@ -88,6 +88,68 @@ def test_write_attempt_references_are_linked_to_mail(tmp_path):
         ]
 
 
+@pytest.mark.parametrize(("status", "has_attempt"), [
+    (ProposalStatus.REJECTED, False),
+    (ProposalStatus.CREATED, True),
+    (ProposalStatus.SIMULATED, False),
+    (ProposalStatus.FAILED, True),
+    (ProposalStatus.UNCERTAIN, True),
+])
+def test_persist_synchronizes_every_terminal_result_with_mail_state(tmp_path, status, has_attempt):
+    mail_id = "a" * 24
+    original = proposal(source_mail_id=mail_id)
+    state = MailState(
+        id=mail_id, config_fingerprint="f" * 64,
+        imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":1,"uid":1},
+        proposals=[original], created_at="2026-01-01T00:00:00Z",
+        updated_at="2026-01-01T00:00:00Z",
+    )
+    changes = {"version": 2, "status": status}
+    if status == ProposalStatus.CREATED:
+        changes.update(external_id="external-1", external_link="https://example.test/item")
+    current = original.model_copy(update=changes)
+    with JsonStore(tmp_path / status.value) as store:
+        store.save("mail-" + mail_id, state.model_dump(mode="json"))
+        dialog,_,_=controller(store)
+        dialog.persist(current)
+        dialog.persist(current)
+        loaded=store.load_model("mail-" + mail_id, MailState)
+        assert loaded.proposals[0] == current
+        assert loaded.updated_at > state.updated_at
+        assert len(loaded.write_attempts) == int(has_attempt)
+        if status == ProposalStatus.CREATED:
+            assert loaded.proposals[0].external_id == "external-1"
+            assert loaded.proposals[0].external_link == "https://example.test/item"
+
+
+def test_persist_order_and_restart_repair_use_current_proposal(tmp_path):
+    class RecordingStore(JsonStore):
+        def __init__(self, directory): super().__init__(directory); self.saved=[]
+        def save(self, name, value): self.saved.append(name); super().save(name, value)
+
+    mail_id="a"*24
+    initial=proposal(source_mail_id=mail_id)
+    with RecordingStore(tmp_path) as store:
+        state=MailState(id=mail_id,config_fingerprint="f"*64,
+                        imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":1,"uid":1},
+                        proposals=[initial])
+        store.save("mail-"+mail_id,state.model_dump(mode="json")); store.saved.clear()
+        created=initial.model_copy(update={"status":ProposalStatus.CREATED,
+                                           "external_id":"external-1",
+                                           "external_link":"https://example.test/item"})
+        dialog,_,_=controller(store); dialog.persist(created)
+        assert store.saved == [f"proposal-{mail_id}-p1-v1", f"proposal-{mail_id}-p1", f"mail-{mail_id}"]
+
+        # Simulate a crash between the second and third writes by restoring a
+        # stale embedding.  Startup repairs it from the current proposal file.
+        store.save("mail-"+mail_id,state.model_dump(mode="json"))
+        restarted,_,_=controller(store); restarted.poll_once()
+        repaired=store.load_model("mail-"+mail_id,MailState).proposals[0]
+        assert repaired.status == ProposalStatus.CREATED
+        assert repaired.external_id == "external-1"
+        assert repaired.external_link == "https://example.test/item"
+
+
 class Writer:
     def __init__(self, found=None, error=None): self.found=found; self.error=error; self.created=0; self.reconciled=0; self.versions=[]
     def reconcile(self,key): self.reconciled+=1; return self.found
