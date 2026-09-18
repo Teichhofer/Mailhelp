@@ -163,7 +163,12 @@ class Application:
                     checkpoint_model = ImapCheckpoint(uidvalidity=initial_uidvalidity, uid=start_uid, start_uid=start_uid)
                     self.store.save(checkpoint_name, checkpoint_model.model_dump())
                     checkpoint = checkpoint_model.model_dump(exclude={"schema_version"})
-                mails = self.imap.fetch_since(folder, checkpoint.get("uid", 0), checkpoint.get("uidvalidity"))
+                mails = self.imap.fetch_since(
+                    folder,
+                    checkpoint.get("uid", 0),
+                    checkpoint.get("uidvalidity"),
+                    budget.remaining if budget is not None else None,
+                )
             except Exception as exc:
                 self.logger.event("ERROR", "imap", "poll_failed", folder=folder, error=str(exc))
                 continue

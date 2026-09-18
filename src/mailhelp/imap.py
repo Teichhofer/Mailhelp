@@ -70,11 +70,13 @@ class ImapReader:
             if status != "OK":
                 raise RuntimeError(f"IMAP-Ordner nicht lesbar: {folder}")
 
-    def fetch_since(self, folder: str, after_uid: int = 0, expected_uidvalidity: int | None = None) -> list[FetchedMail]:
+    def fetch_since(self, folder: str, after_uid: int = 0,
+                    expected_uidvalidity: int | None = None,
+                    max_count: int | None = None) -> list[FetchedMail]:
         started = time.perf_counter()
         self.logger.event("INFO", "imap", "request_started", folder=folder, after_uid=after_uid)
         try:
-            result = self.policy.run(lambda: self._fetch_since(folder, after_uid, expected_uidvalidity),
+            result = self.policy.run(lambda: self._fetch_since(folder, after_uid, expected_uidvalidity, max_count),
                                      lambda attempt: self.logger.event("DEBUG", "imap", "request_attempt", folder=folder, attempt=attempt),
                                      lambda attempt, exc: self.logger.event("WARNING", "imap", "request_retry", folder=folder, attempt=attempt, error=exc))
         except Exception as exc:
@@ -128,7 +130,9 @@ class ImapReader:
         all_uids = all_matches[0].split() if all_matches else []
         return int(all_uids[-1]) if all_uids else 0
 
-    def _fetch_since(self, folder: str, after_uid: int, expected_uidvalidity: int | None) -> list[FetchedMail]:
+    def _fetch_since(self, folder: str, after_uid: int,
+                     expected_uidvalidity: int | None,
+                     max_count: int | None) -> list[FetchedMail]:
         status, data = self.connection.select(folder, readonly=True)
         if status != "OK": raise RuntimeError(f"IMAP-Ordner nicht lesbar: {folder}")
         status, validity = self.connection.response("UIDVALIDITY")
@@ -139,7 +143,8 @@ class ImapReader:
         status, matches = self.connection.uid("search", None, f"UID {after_uid + 1}:*")
         if status != "OK": raise RuntimeError("IMAP-Suche fehlgeschlagen")
         tokens = matches[0].split() if matches else []
-        selected = tokens[:self.batch_size]
+        fetch_count = self.batch_size if max_count is None else min(self.batch_size, max_count)
+        selected = tokens[:fetch_count]
         self.logger.event("INFO", "imap", "messages_discovered", folder=folder,
                           available_count=len(tokens), batch_count=len(selected))
         result = []
