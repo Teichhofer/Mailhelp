@@ -210,7 +210,8 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
 * Bei Terminen bleiben der physische Ort und ein optionaler, ausschließlich per HTTP/HTTPS erlaubter Videolink getrennte Vorschlagsfelder und werden vor der Bestätigung beide in Telegram angezeigt. Die iCalendar-Datei enthält Ort, Beschreibung und Videolink; zeitgebundene Werte werden eindeutig in UTC serialisiert, ganztägige Enddaten bleiben exklusiv.
 * Externe Aktionen verlangen eine Persistenzfunktion: `writing` wird vor dem API-Aufruf dauerhaft gespeichert. Unklare Resultate werden als `uncertain` angehalten und nur abgeglichen. Ausschließlich ein externer Treffer überführt sie in `created`; ein neuer Schreibversuch setzt eine ausdrücklich modellierte manuelle Betreiberentscheidung voraus.
 * Jede Mail besitzt die schema-validierten Schritte `preparation`, `relevance`,
-  `summary`, `summary_notification`, `action_detection`, `proposal_notification`
+  `summary`, `summary_notification`, `action_detection`, `action_router`,
+  `task_extraction`, `event_extraction`, `normalization`, `proposal_building`, `proposal_notification`
   und `completion`. Nach jedem Schritt
   wird atomar gespeichert; nach einem Neustart laufen ausschließlich ausstehende
   Schritte. Relevante Mails speichern und versenden die Summary vor der
@@ -253,12 +254,10 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
 
 ### Alte Mailzustände kontrolliert verarbeiten
 
-Mailzustands-Schema 9 migriert Schema 6 und 7 ausdrücklich, indem der früher gemeinsame
+Mailzustands-Schema 9 migriert Schema 6, 7 und 8 ausdrücklich, indem der früher gemeinsame
 Benachrichtigungsstatus konservativ auf Summary- und Vorschlagsversand abgebildet
-und die getrennten Extraktions-Teilstatus ergänzt werden. Schema 8 wird um die
-begrenzten Anzeigeheader ergänzt; vorhandene vorbereitete Header werden übernommen,
-andernfalls wird `—` verwendet. Die Datei wird sofort atomar als Schema 9 gespeichert.
-Schema 9 bleibt gegenüber
+die getrennten Extraktions-Teilstatus ergänzt und vorhandene Vorschläge mit versionierten Versandmarkern übernommen werden; die Datei wird sofort
+atomar als Schema 9 gespeichert. Schema 9 bleibt gegenüber
 Schema 3 bewusst inkompatibel. **Für Schema 3 findet keine automatische Migration
 statt.** Beim Laden wird eine solche Datei
 als schemawidrig erkannt und neben den Zustandsdateien mit der Endung `.invalid`

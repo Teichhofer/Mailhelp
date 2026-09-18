@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from mailhelp.config import Settings, _validated_file
 from mailhelp.integrations import HttpWriter, _with_external_result
-from mailhelp.models import (DuplicateDecision, DuplicateIndex, DuplicateIndexEntry, ImapCheckpoint, MailState, Proposal, TelegramDialogState,
+from mailhelp.models import (DuplicateDecision, DuplicateIndex, DuplicateIndexEntry, ImapCheckpoint, MailState, Proposal, ProposalNotification, TelegramDialogState,
                              TelegramOffset, ValidationIssue, WriteAttemptReference)
 from mailhelp.openrouter import InvalidJson, OpenRouterClient, ProviderResponseInvalid, _path
 from mailhelp.storage import CorruptState, JsonStore
@@ -33,7 +33,7 @@ def valid_settings(tmp_path: Path) -> dict:
     }
 
 
-def test_mail_state_v8_metadata_is_closed_and_round_trips(tmp_path):
+def test_mail_state_v9_metadata_is_closed_and_round_trips(tmp_path):
     now = datetime.now(timezone.utc)
     state = MailState(
         id="a" * 24, imap={"account_id":"0"*24,"folder": "INBOX", "uidvalidity": 1, "uid": 2},
@@ -69,7 +69,6 @@ def test_mail_state_v6_is_explicitly_migrated(tmp_path):
         persisted = store.load("mail-a")
     assert migrated.steps.summary_notification == "completed"
     assert migrated.steps.proposal_notification == "completed"
-    assert migrated.display_headers.sender == "—" and migrated.display_headers.subject == "—"
     assert persisted["schema_version"] == 9 and "notification" not in persisted["steps"]
     value = state.model_dump(mode="json")
     with pytest.raises(ValidationError):
@@ -85,6 +84,38 @@ def test_mail_state_v6_is_explicitly_migrated(tmp_path):
         MailState.model_validate({**value, "write_attempts": [{
             **state.write_attempts[0].model_dump(), "mail_id": "b" * 24,
         }]})
+
+
+def test_mail_state_v8_migrates_pipeline_and_validates_notification_keys(tmp_path):
+    item = proposal(source_mail_id="a" * 24)
+    state = MailState(
+        id="a" * 24, config_fingerprint="f" * 64,
+        imap={"account_id": "0" * 24, "folder": "INBOX", "uidvalidity": 1, "uid": 2},
+        proposals=[item],
+    )
+    old = state.model_dump(mode="json")
+    old["schema_version"] = 8
+    old["steps"].pop("normalization")
+    old["steps"].pop("proposal_building")
+    old.pop("normalized_proposals")
+    old.pop("proposal_notifications")
+    old["steps"]["action_detection"] = "completed"
+    old["steps"]["proposal_notification"] = "sending"
+    with JsonStore(tmp_path / "v8") as store:
+        store.save("mail-a", old)
+        migrated = store.load_model("mail-a", MailState)
+    assert migrated.steps.normalization == migrated.steps.proposal_building == "completed"
+    assert migrated.normalized_proposals == [item]
+    assert migrated.proposal_notifications == [ProposalNotification(
+        proposal_id=item.id, proposal_version=item.version, status="sending")]
+
+    value = state.model_dump(mode="json")
+    duplicate = ProposalNotification(proposal_id=item.id, proposal_version=item.version)
+    with pytest.raises(ValidationError, match="doppelt"):
+        MailState.model_validate({**value, "proposal_notifications": [duplicate, duplicate]})
+    with pytest.raises(ValidationError, match="Vorschlagsversion"):
+        MailState.model_validate({**value, "proposal_notifications": [
+            ProposalNotification(proposal_id="missing", proposal_version=1)]})
 
 
 def test_settings_reject_missing_extra_types_ranges_and_semantics(tmp_path):

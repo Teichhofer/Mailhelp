@@ -94,11 +94,22 @@ class JsonStore:
             value.update(task_extraction=None, event_extraction=None)
             value["schema_version"] = 8
         if mail_state and value.get("schema_version") == 8:
-            headers = value.get("mail", {}).get("headers", {}) if value.get("mail") else {}
-            value["display_headers"] = {
-                "sender": headers.get("from") or "—",
-                "subject": headers.get("subject") or "—",
-            }
+            action_status = value["steps"].get("action_detection", "pending")
+            default = "skipped" if action_status == "skipped" else "pending"
+            value["steps"].update(normalization=default, proposal_building=default)
+            # Schema 8 did not distinguish the two deterministic boundaries.
+            # Completed action results are safe to adopt without another LLM call.
+            if action_status == "completed":
+                value["steps"].update(normalization="completed", proposal_building="completed")
+            value["normalized_proposals"] = value.get("proposals", [])
+            notification_status = value["steps"].get("proposal_notification", "pending")
+            per_proposal = ("completed" if notification_status == "completed" else
+                            "sending" if notification_status == "sending" else "pending")
+            value["proposal_notifications"] = [
+                {"proposal_id": proposal["id"], "proposal_version": proposal["version"],
+                 "status": per_proposal}
+                for proposal in value.get("proposals", [])
+            ]
             value["schema_version"] = 9
         try:
             result = model.model_validate(value)

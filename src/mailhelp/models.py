@@ -273,6 +273,8 @@ class ProcessingSteps(StrictModel):
     action_router: Literal["pending", "completed", "failed", "skipped"] = "pending"
     task_extraction: Literal["pending", "completed", "failed", "skipped"] = "pending"
     event_extraction: Literal["pending", "completed", "failed", "skipped"] = "pending"
+    normalization: Literal["pending", "completed", "failed", "skipped"] = "pending"
+    proposal_building: Literal["pending", "completed", "failed", "skipped"] = "pending"
     proposal_notification: Literal["pending", "sending", "completed", "skipped"] = "pending"
     completion: Literal["pending", "completed", "skipped"] = "pending"
 
@@ -286,6 +288,8 @@ class ProcessingStage(StrEnum):
     ACTION_ROUTER = "action_router"
     TASK_EXTRACTION = "task_extraction"
     EVENT_EXTRACTION = "event_extraction"
+    NORMALIZATION = "normalization"
+    PROPOSAL_BUILDING = "proposal_building"
     PROPOSAL_NOTIFICATION = "proposal_notification"
     COMPLETION = "completion"
 
@@ -380,11 +384,12 @@ class DuplicateDecision(StrictModel):
         return self
 
 
-class DisplayHeaders(StrictModel):
-    """Persisted, bounded values for Telegram only; never an analysed mail."""
+class ProposalNotification(StrictModel):
+    """Durable Telegram delivery state for one immutable proposal version."""
 
-    sender: str = Field(default="—", min_length=1, max_length=10_000)
-    subject: str = Field(default="—", min_length=1, max_length=10_000)
+    proposal_id: str = Field(pattern=r"^[a-zA-Z0-9_-]{1,64}$")
+    proposal_version: int = Field(ge=1)
+    status: Literal["pending", "sending", "completed"] = "pending"
 
 
 class MailState(StrictModel):
@@ -402,7 +407,9 @@ class MailState(StrictModel):
     action_route: ActionRoute | None = None
     task_extraction: TaskExtraction | None = None
     event_extraction: EventExtraction | None = None
+    normalized_proposals: list[Proposal] = Field(default_factory=list)
     proposals: list[Proposal] = Field(default_factory=list)
+    proposal_notifications: list[ProposalNotification] = Field(default_factory=list)
     llm_call_ids: list[str] = Field(default_factory=list)
     validation_errors: list[ValidationIssue] = Field(default_factory=list)
     write_attempts: list[WriteAttemptReference] = Field(default_factory=list)
@@ -424,6 +431,13 @@ class MailState(StrictModel):
             raise ValueError("Schreibversuche dürfen nicht doppelt referenziert werden")
         if any(item.mail_id != self.id for item in self.write_attempts):
             raise ValueError("Schreibversuche müssen zur Mail gehören")
+        notification_keys = [(item.proposal_id, item.proposal_version)
+                             for item in self.proposal_notifications]
+        if len(notification_keys) != len(set(notification_keys)):
+            raise ValueError("Vorschlagsmeldungen dürfen nicht doppelt vorkommen")
+        proposal_keys = {(item.id, item.version) for item in self.proposals}
+        if any(key not in proposal_keys for key in notification_keys):
+            raise ValueError("Vorschlagsmeldungen müssen zu einer Vorschlagsversion gehören")
         if self.relevance_dialog is None:
             if self.awaiting_relevance:
                 raise ValueError("Wartende Relevanz benötigt einen Dialog")
