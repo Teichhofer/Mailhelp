@@ -44,6 +44,16 @@ class OpenRouterClient:
         wait = stopped or (lambda delay: (sleep(delay), False)[1])
         self.policy = RetryPolicy(retries, initial_backoff, max_backoff, wait, clock)
 
+    def check_access(self) -> None:
+        """Validate the API key using a read-only endpoint without an LLM call."""
+        response = self.policy.run(lambda: self.client.get(
+            "/auth/key", headers={"Authorization": f"Bearer {self.key}"},
+        ))
+        response.raise_for_status()
+        value = response.json()
+        if not isinstance(value, dict) or not isinstance(value.get("data"), dict):
+            raise ValueError("OpenRouter auth/key: ungültige Antwort am Schlüsselpfad data")
+
     def complete(self, model: str, parameters: dict[str, Any], system: str, payload: dict[str, Any]) -> tuple[str, dict[str, Any]]:
         now = self.clock()
         calls = sorted(value for value in self.load_calls() if isinstance(value, (int, float)) and now - value < 60)

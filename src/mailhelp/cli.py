@@ -18,12 +18,21 @@ def main() -> int:
     parser.add_argument("--config-directory", type=Path, default=Path("."))
     parser.add_argument("--check", action="store_true", help="Konfiguration validieren und beenden")
     parser.add_argument(
+        "--check-access", action="store_true",
+        help="Zugangsdaten und Zielzugriffe nur lesend prüfen und beenden",
+    )
+    parser.add_argument(
         "--max-mails", type=_positive_int, metavar="ANZAHL",
         help="höchstens ANZAHL Mails in einem einzelnen Abrufdurchlauf bearbeiten und beenden",
     )
     args = parser.parse_args(); settings, secrets, topics, prompts, fingerprint = load_all(args.config_directory)
     if args.check: print("Konfiguration ist gültig."); return 0
     with build_application(settings, secrets, topics, prompts, fingerprint) as application:
+        if args.check_access:
+            results = application.check_access()
+            for name, error in results.items():
+                print(f"{'OK' if error is None else 'FEHLER'}: {name}" + (f" – {error}" if error else ""))
+            return 1 if any(error is not None for error in results.values()) else 0
         def stop(_signum: int, _frame: object) -> None: application.stop()
         signal.signal(signal.SIGINT, stop)
         signal.signal(signal.SIGTERM, stop)

@@ -48,6 +48,25 @@ class Application:
     stop_event: Event
     dialog: TelegramDialogController | None = None
 
+    def check_access(self) -> dict[str, str | None]:
+        """Check every external credential and target without processing mail."""
+        checks = (
+            ("IMAP", lambda: self.imap.check_access(self.settings.imap.folders)),
+            ("OpenRouter", self.openrouter.check_access),
+            ("Telegram", self.telegram.check_access),
+            ("Todoist", self.todoist.check_access),
+            ("Google Calendar", self.calendar.check_access),
+        )
+        results: dict[str, str | None] = {}
+        for name, check in checks:
+            try:
+                check()
+            except Exception as exc:
+                results[name] = str(exc) or type(exc).__name__
+            else:
+                results[name] = None
+        return results
+
     def stop(self) -> None:
         self.stop_event.set()
         self.orchestrator.stop()
