@@ -213,9 +213,10 @@ def test_run_sends_aggregate_summary_on_normal_and_exceptional_exit(tmp_path):
         ProcessingResult(ProcessingOutcome.COMPLETED,{}),
         ProcessingResult(ProcessingOutcome.WAITING,{}),
         ProcessingResult(ProcessingOutcome.FAILED,{}),
+        ProcessingResult(ProcessingOutcome.COMPLETED_WITH_ACTION_ERROR,{}),
     ]
     service.run(max_mails=3)
-    assert service.telegram.sent == [(2, "Mailhelp-Lauf beendet.\nBearbeitet: 3\nErfolgreich abgeschlossen: 1\nWarten auf Eingabe oder Wiederholung: 1\nFehlgeschlagen: 1\nHinweis: --max-mails fragt Telegram nur einmal ab.\nSpäter eingehende Antworten werden beim nächsten Start verarbeitet.")]
+    assert service.telegram.sent == [(2, "Mailhelp-Lauf beendet.\nBearbeitet: 4\nErfolgreich abgeschlossen: 1\nWarten auf Eingabe oder Wiederholung: 1\nFehlgeschlagen: 1\nAbgeschlossen mit Aktionsfehler: 1\nHinweis: --max-mails fragt Telegram nur einmal ab.\nSpäter eingehende Antworten werden beim nächsten Start verarbeitet.")]
     assert service.logger.events[-1][0][2] == "run_summary_sent"
     assert service.logger.events[-1][1] == {"completed":1,"waiting":1,"failed":1}
 
@@ -236,7 +237,8 @@ def test_run_summary_does_not_add_bounded_hint_without_waiting_work():
     summary = _RunSummary(completed=1)
     assert summary.message(bounded=True) == (
         "Mailhelp-Lauf beendet.\nBearbeitet: 1\nErfolgreich abgeschlossen: 1\n"
-        "Warten auf Eingabe oder Wiederholung: 0\nFehlgeschlagen: 0"
+        "Warten auf Eingabe oder Wiederholung: 0\nFehlgeschlagen: 0\n"
+        "Abgeschlossen mit Aktionsfehler: 0"
     )
 
 

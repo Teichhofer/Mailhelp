@@ -76,14 +76,26 @@ class JsonStore:
         value = self.load(name, None)
         if value is None:
             return default
+        # Schema 6 used one notification flag after both LLM stages.  Migrate it
+        # explicitly so an old completed flag can never be mistaken for the new,
+        # earlier summary delivery without recording the conversion on disk.
+        migrated = model.__name__ == "MailState" and value.get("schema_version") == 6
+        if migrated:
+            old_notification = value["steps"].pop("notification", "pending")
+            value["steps"]["summary_notification"] = old_notification
+            value["steps"]["proposal_notification"] = old_notification
+            value["schema_version"] = 7
         try:
-            return model.model_validate(value)
+            result = model.model_validate(value)
         except ValidationError as exc:
             path = self.directory / f"{name}.json"
             quarantine = path.with_suffix(".invalid")
             os.replace(path, quarantine)
             locations = [".".join(str(part) for part in error["loc"]) or "<root>" for error in exc.errors(include_input=False)]
             raise CorruptState(f"Schemawidriger Zustand isoliert: {quarantine.name}; Schlüsselpfad: {', '.join(locations)}") from exc
+        if migrated:
+            self.save(name, result.model_dump(mode="json"))
+        return result
 
     def save(self, name: str, value: Any) -> None:
         self._validate_name(name)

@@ -33,7 +33,7 @@ def valid_settings(tmp_path: Path) -> dict:
     }
 
 
-def test_mail_state_v6_metadata_is_closed_and_round_trips(tmp_path):
+def test_mail_state_v7_metadata_is_closed_and_round_trips(tmp_path):
     now = datetime.now(timezone.utc)
     state = MailState(
         id="a" * 24, imap={"account_id":"0"*24,"folder": "INBOX", "uidvalidity": 1, "uid": 2},
@@ -45,7 +45,31 @@ def test_mail_state_v6_metadata_is_closed_and_round_trips(tmp_path):
     with JsonStore(tmp_path / "states") as store:
         store.save("mail-a", state.model_dump(mode="json"))
         loaded = store.load_model("mail-a", MailState)
-    assert loaded == state and loaded.schema_version == 6
+    assert loaded == state and loaded.schema_version == 7
+
+
+def test_mail_state_v6_is_explicitly_migrated(tmp_path):
+    now = datetime.now(timezone.utc)
+    state = MailState(
+        id="a" * 24, config_fingerprint="f" * 64,
+        imap={"account_id": "0" * 24, "folder": "INBOX", "uidvalidity": 1, "uid": 2},
+        write_attempts=[WriteAttemptReference(
+            mail_id="a" * 24, proposal_id="p1", proposal_version=2, service="todoist",
+            idempotency_key="mailhelp:aaaaaaaaaaaaaaaaaaaaaaaa:p1:v2",
+        )],
+    )
+    old = state.model_dump(mode="json")
+    old["schema_version"] = 6
+    old["steps"]["notification"] = "completed"
+    del old["steps"]["summary_notification"]
+    del old["steps"]["proposal_notification"]
+    with JsonStore(tmp_path / "states") as store:
+        store.save("mail-a", old)
+        migrated = store.load_model("mail-a", MailState)
+        persisted = store.load("mail-a")
+    assert migrated.steps.summary_notification == "completed"
+    assert migrated.steps.proposal_notification == "completed"
+    assert persisted["schema_version"] == 7 and "notification" not in persisted["steps"]
     value = state.model_dump(mode="json")
     with pytest.raises(ValidationError):
         MailState.model_validate({**value, "unknown": True})
