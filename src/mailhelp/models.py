@@ -371,6 +371,13 @@ class DuplicateIndex(StrictModel):
         return self
 
 
+class DisplayHeaders(StrictModel):
+    """Sanitized, bounded headers retained for user-facing notifications."""
+
+    sender: str = Field(max_length=500)
+    subject: str = Field(max_length=500)
+
+
 class DuplicateDecision(StrictModel):
     outcome: Literal["new", "duplicate", "ambiguous"]
     reason: Literal["no_match", "same_message", "missing_message_id", "multiple_message_ids",
