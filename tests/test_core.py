@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from mailhelp import __version__
 from mailhelp.analysis import Analyzer
 from mailhelp.cli import main
-from mailhelp.config import PromptConfig, PromptStep, Topic, TopicsConfig, _deep_merge, _dotenv, _yaml, load_all
+from mailhelp.config import LlmRoute, PromptConfig, PromptStep, Topic, TopicsConfig, _deep_merge, _dotenv, _yaml, load_all
 from mailhelp.imap import FetchedMail, ImapReader, UIDValidityChanged, account_id
 from mailhelp.integrations import HttpWriter, execute_confirmed
 from mailhelp.logging import JsonlLogger, redact
@@ -25,6 +25,27 @@ from mailhelp.telegram import Decision, TelegramClient, apply_decision, split_me
 
 def prompt_config(model="model"):
     return PromptConfig(defaults={"model": model, "parameters": {"nested": {"a": 1}, "temperature": .2}}, prompts={x: PromptStep(system_prompt=x, parameters={"nested": {"b": 2}}) for x in ("relevance", "summary", "action_router", "task_extraction", "event_extraction", "proposal_revision")})
+
+
+def test_strict_ordered_llm_route_configuration():
+    primary = LlmRoute(provider="openrouter", model="primary", parameters={"temperature": .1},
+                       provider_preferences={"order": ["provider-a"]})
+    fallback = LlmRoute(provider="openrouter", model="fallback")
+    cfg = prompt_config()
+    cfg.prompts["summary"] = PromptStep(system_prompt="summary", routes=[primary, fallback])
+    routes, prompt, retries = cfg.resolved_routes("summary")
+    assert ([route.model for route in routes], prompt, retries) == (["primary", "fallback"], "summary", 1)
+    for routes in ([], [primary, primary]):
+        with pytest.raises(ValidationError):
+            PromptStep(system_prompt="x", routes=routes)
+    for route in (
+        {"provider": "unknown", "model": "m"},
+        {"provider": "openrouter", "model": ""},
+        {"provider": "openrouter", "model": "m", "parameters": {"messages": []}},
+        {"provider": "openrouter", "model": "m", "provider_preferences": {"free_form": True}},
+    ):
+        with pytest.raises(ValidationError):
+            LlmRoute.model_validate(route)
 
 
 def proposal(**kw):

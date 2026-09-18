@@ -9,7 +9,8 @@ import httpx
 import pytest
 
 from mailhelp.analysis import Analyzer
-from mailhelp.config import LoggingSettings, PromptConfig, PromptStep
+from mailhelp.config import LlmRoute, LoggingSettings, PromptConfig, PromptStep
+from mailhelp.openrouter import ProviderResponseInvalid
 from mailhelp.integrations import HttpWriter
 from mailhelp.logging import JsonlLogger, NullLogger, redact
 from mailhelp.openrouter import OpenRouterClient
@@ -233,3 +234,26 @@ def test_network_adapter_failure_events():
     writer.close()
     failed = capture.events[-1]
     assert failed[2] == "create_failed" and failed[3]["proposal_id"] == "p1"
+
+
+def test_routing_retry_fallback_and_shared_correlation_with_unique_attempts():
+    class RoutedClient:
+        def __init__(self): self.calls=[]
+        def complete(self, model, parameters, system, payload, **metadata):
+            self.calls.append((model, metadata))
+            if len(self.calls) < 3:
+                raise ProviderResponseInvalid("choice_missing")
+            return f"attempt-{len(self.calls)}", {"sentences":["One.", "Two."], "deadlines":[]}
+    steps = ("relevance", "summary", "action_router", "task_extraction",
+             "event_extraction", "proposal_revision")
+    prompts = PromptConfig(defaults={}, prompts={name: PromptStep(
+        system_prompt=name,
+        routes=[LlmRoute(provider="openrouter", model="primary"),
+                LlmRoute(provider="openrouter", model="fallback")],
+        provider_retries=1,
+    ) for name in steps})
+    client = RoutedClient()
+    call_id, result = Analyzer(client, prompts).summary({"text":"synthetic"})
+    assert call_id == "attempt-3" and result.sentences == ["One.", "Two."]
+    assert [call[0] for call in client.calls] == ["primary", "primary", "fallback"]
+    assert len({call[1]["correlation_id"] for call in client.calls}) == 1

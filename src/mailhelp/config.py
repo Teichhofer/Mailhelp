@@ -253,6 +253,69 @@ class PromptStep(BaseModel):
     system_prompt: str = Field(min_length=1)
     model: str | None = None
     parameters: dict[str, Any] = Field(default_factory=dict)
+    routes: list["LlmRoute"] | None = None
+    provider_retries: int = Field(default=1, ge=0, le=10)
+
+    @model_validator(mode="after")
+    def valid_routes(self) -> "PromptStep":
+        if self.routes is not None:
+            if not self.routes:
+                raise ValueError("routes darf nicht leer sein")
+            identities = [(route.provider, route.model,
+                           tuple(route.provider_preferences.order))
+                          for route in self.routes]
+            if len(identities) != len(set(identities)):
+                raise ValueError("LLM-Routen dürfen nicht doppelt vorkommen")
+        return self
+
+
+OPENROUTER_PARAMETER_KEYS = {
+    "temperature", "max_tokens", "top_p", "top_k", "frequency_penalty",
+    "presence_penalty", "repetition_penalty", "seed", "stop", "logit_bias",
+    "min_p", "top_a",
+}
+
+
+class OpenRouterProviderPreferences(ConfigModel):
+    """The closed subset of OpenRouter provider routing that Mailhelp accepts."""
+
+    order: list[str] = Field(default_factory=list)
+    allow_fallbacks: bool = True
+    require_parameters: bool = False
+    data_collection: Literal["allow", "deny"] | None = None
+    sort: Literal["price", "throughput", "latency"] | None = None
+    ignore: list[str] = Field(default_factory=list)
+
+    @field_validator("order", "ignore")
+    @classmethod
+    def provider_names(cls, value: list[str]) -> list[str]:
+        if any(not item.strip() for item in value) or len(value) != len(set(value)):
+            raise ValueError("Providernamen müssen nicht leer und eindeutig sein")
+        return value
+
+
+class LlmRoute(ConfigModel):
+    provider: Literal["openrouter"]
+    model: str = Field(min_length=1)
+    parameters: dict[str, Any] = Field(default_factory=dict)
+    provider_preferences: OpenRouterProviderPreferences = Field(
+        default_factory=OpenRouterProviderPreferences
+    )
+
+    @field_validator("model")
+    @classmethod
+    def configured_model(cls, value: str) -> str:
+        if value.startswith("<"):
+            raise ValueError("Modell ist nicht eingerichtet")
+        return value
+
+    @field_validator("parameters")
+    @classmethod
+    def safe_parameters(cls, value: dict[str, Any]) -> dict[str, Any]:
+        unknown = set(value) - OPENROUTER_PARAMETER_KEYS
+        if unknown:
+            raise ValueError(f"Unbekannte oder reservierte Request-Schlüssel: {sorted(unknown)}")
+        return value
 
 
 class PromptConfig(BaseModel):
@@ -266,6 +329,10 @@ class PromptConfig(BaseModel):
                     "event_extraction", "proposal_revision"}
         if set(self.prompts) != required:
             raise ValueError("prompts muss genau relevance, summary, action_router, task_extraction, event_extraction und proposal_revision enthalten")
+        default_model = self.defaults.get("model")
+        for name, step in self.prompts.items():
+            if step.routes is None and not step.model and not default_model:
+                raise ValueError(f"prompts.{name} benötigt ein Primärmodell")
         return self
 
     def resolved(self, step: str) -> tuple[str, dict[str, Any], str]:
@@ -278,6 +345,18 @@ class PromptConfig(BaseModel):
         if forbidden:
             raise ValueError(f"Reservierte OpenRouter-Parameter: {sorted(forbidden)}")
         return model, parameters, item.system_prompt
+
+    def resolved_routes(self, step: str) -> tuple[list[LlmRoute], str, int]:
+        """Return an ordered, validated strategy (primary route first)."""
+        item = self.prompts[step]
+        if item.routes is not None:
+            return item.routes, item.system_prompt, item.provider_retries
+        model, parameters, prompt = self.resolved(step)
+        unknown = set(parameters) - OPENROUTER_PARAMETER_KEYS
+        if unknown:
+            raise ValueError(f"Unbekannte oder reservierte Request-Schlüssel: {sorted(unknown)}")
+        return [LlmRoute(provider="openrouter", model=model,
+                         parameters=parameters)], prompt, item.provider_retries
 
 
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
