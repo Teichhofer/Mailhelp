@@ -24,6 +24,9 @@ class SimulatedOpenRouter:
             return "r", {"decision": "relevant", "topic_ids": ["arbeit"], "reason": "Aufgabe und Termin"}
         if system == "summary":
             return "s", {"sentences": ["Eine Aufgabe ist fällig.", "Ein Termin wurde vereinbart."], "deadlines": ["30. September"]}
+        if system == "action_router":
+            return "ar", {"action_state": "task_and_event", "task_count": 1,
+                          "event_count": 1, "reason": "Aufgabe und Termin erkannt."}
         return "a", {"proposals": [
             {"id": "task", "version": 1, "kind": "task", "responsibility": "user", "certainty": "certain", "classification": "new", "title": "Unterlagen senden", "evidence": "Bitte senden", "source_mail_id": mail_id, "due": "2026-09-30T17:00:00+02:00", "target": "untrusted"},
             {"id": "event", "version": 1, "kind": "event", "responsibility": "user", "certainty": "certain", "classification": "new", "title": "Besprechung", "evidence": "8. Oktober von 09:00 bis 10:00", "source_mail_id": mail_id, "start": "2026-10-08T09:00:00+02:00", "end": "2026-10-08T10:00:00+02:00", "target": "untrusted"},
@@ -105,7 +108,7 @@ def callback_update(update_id, callback_data):
 
 def test_imap_llm_telegram_confirmation_to_fake_writers(tmp_path):
     prompts = PromptConfig(defaults={"model": "fake", "parameters": {}}, prompts={
-        step: PromptStep(system_prompt=step) for step in ("relevance", "summary", "actions", "proposal_revision")})
+        step: PromptStep(system_prompt=step) for step in ("relevance", "summary", "action_router", "action_extractor", "proposal_revision")})
     analyzer = Analyzer(SimulatedOpenRouter(), prompts)
     telegram = FakeTelegram()
     todoist, calendar = FakeWriter("todoist"), FakeWriter("calendar")
@@ -140,13 +143,13 @@ def test_imap_llm_telegram_confirmation_to_fake_writers(tmp_path):
 def test_synthetic_council_mail_keeps_summary_when_action_detection_fails(tmp_path):
     class CouncilRouter(SimulatedOpenRouter):
         def complete(self, model, parameters, system, payload):
-            if system == "actions":
-                raise LlmSchemaValidationExceeded("actions")
+            if system == "action_router":
+                raise LlmSchemaValidationExceeded("action_router")
             return super().complete(model, parameters, system, payload)
 
     prompts = PromptConfig(defaults={"model": "fake", "parameters": {}}, prompts={
         step: PromptStep(system_prompt=step)
-        for step in ("relevance", "summary", "actions", "proposal_revision")
+        for step in ("relevance", "summary", "action_router", "action_extractor", "proposal_revision")
     })
     telegram = FakeTelegram()
     message = EmailMessage()

@@ -91,6 +91,33 @@ class Summary(StrictModel):
     deadlines: list[str] = Field(default_factory=list)
 
 
+class ActionRoute(StrictModel):
+    """Bounded action classification before detailed extraction.
+
+    For ``unclear`` the counters are merely the number of possible task/event
+    candidates seen by the router.  They may independently be zero; no action
+    is extracted until the ambiguity has been resolved by a person.
+    """
+
+    action_state: Literal["none", "task", "event", "task_and_event", "unclear"]
+    task_count: int = Field(ge=0, le=20)
+    event_count: int = Field(ge=0, le=20)
+    reason: str = Field(min_length=1, max_length=1000)
+
+    @model_validator(mode="after")
+    def consistent_counts(self) -> "ActionRoute":
+        expected = {
+            "none": self.task_count == 0 and self.event_count == 0,
+            "task": self.task_count > 0 and self.event_count == 0,
+            "event": self.task_count == 0 and self.event_count > 0,
+            "task_and_event": self.task_count > 0 and self.event_count > 0,
+            "unclear": True,
+        }
+        if not expected[self.action_state]:
+            raise ValueError("Aktionszustand und Zähler widersprechen sich")
+        return self
+
+
 class ProposalKind(StrEnum):
     TASK = "task"
     EVENT = "event"
@@ -318,6 +345,7 @@ class MailState(StrictModel):
     mail: dict[str, Any] | None = None
     relevance: Relevance | None = None
     summary: Summary | None = None
+    action_route: ActionRoute | None = None
     proposals: list[Proposal] = Field(default_factory=list)
     llm_call_ids: list[str] = Field(default_factory=list)
     validation_errors: list[ValidationIssue] = Field(default_factory=list)

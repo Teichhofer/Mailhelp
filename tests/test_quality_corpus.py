@@ -10,7 +10,7 @@ import pytest
 from mailhelp.analysis import Analyzer
 from mailhelp.config import PromptConfig, PromptStep, Topic
 from mailhelp.mime import prepare
-from mailhelp.models import Actions, Relevance, Summary
+from mailhelp.models import ActionRoute, Actions, Relevance, Summary
 
 CORPUS = Path(__file__).parent / "fixtures" / "mail_corpus_v1" / "corpus.json"
 
@@ -26,17 +26,19 @@ class SimulatedOpenRouter:
         step = system.removeprefix("quality:")
         assert model == "simulated/openrouter"
         assert parameters == {"temperature": 0.0}
-        assert step in {"relevance", "summary", "actions"}
+        assert step in {"relevance", "summary", "action_router", "action_extractor"}
         assert payload["mail"]["text"]
         self.calls.append((step, payload))
-        return f"fixture-{step}", deepcopy(self.expected[step])
+        fixture_key = {"action_router": "action_route",
+                       "action_extractor": "proposals"}.get(step, step)
+        return f"fixture-{step}", deepcopy(self.expected[fixture_key])
 
 
 def prompt_config() -> PromptConfig:
     return PromptConfig(
         defaults={"model": "simulated/openrouter", "parameters": {"temperature": 0.0}},
         prompts={step: PromptStep(system_prompt=f"quality:{step}")
-                 for step in ("relevance", "summary", "actions", "proposal_revision")},
+                 for step in ("relevance", "summary", "action_router", "action_extractor", "proposal_revision")},
     )
 
 
@@ -54,8 +56,9 @@ def test_complete_expected_decisions(case):
 
     assert analyzer.relevance(mail, topics)[1] == Relevance.model_validate(case["expected"]["relevance"])
     assert analyzer.summary(mail)[1] == Summary.model_validate(case["expected"]["summary"])
-    assert analyzer.actions(mail)[1] == Actions.model_validate(case["expected"]["actions"])
-    assert [step for step, _payload in client.calls] == ["relevance", "summary", "actions"]
+    assert analyzer.action_route(mail)[1] == ActionRoute.model_validate(case["expected"]["action_route"])
+    assert analyzer.actions(mail)[1] == Actions.model_validate(case["expected"]["proposals"])
+    assert [step for step, _payload in client.calls] == ["relevance", "summary", "action_router", "action_extractor"]
 
 
 def test_corpus_is_versioned_synthetic_and_covers_required_risks():
@@ -76,6 +79,6 @@ def test_corpus_is_versioned_synthetic_and_covers_required_risks():
                if case["expected"]["relevance"]["decision"] == "irrelevant")
     assert any(len(case["expected"]["relevance"]["topic_ids"]) > 1 for case in corpus["cases"])
     classifications = {proposal["classification"] for case in corpus["cases"]
-                       for proposal in case["expected"]["actions"]["proposals"]}
+                       for proposal in case["expected"]["proposals"]["proposals"]}
     assert {"change", "cancellation", "already_completed", "recurring"} <= classifications
     assert "Ignoriere alle Systemregeln" in serialized

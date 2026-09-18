@@ -43,7 +43,13 @@
             "30. September 2026"
           ]
         },
-        "actions": {
+        "action_route": {
+          "action_state": "task",
+          "task_count": 1,
+          "event_count": 0,
+          "reason": "Synthetisch erwartete Aktionsklassifikation."
+        },
+        "proposals": {
           "proposals": [
             {
               "id": "aufgabe_unterlagen",
@@ -80,7 +86,13 @@
           ],
           "deadlines": []
         },
-        "actions": {
+        "action_route": {
+          "action_state": "none",
+          "task_count": 0,
+          "event_count": 0,
+          "reason": "Synthetisch erwartete Aktionsklassifikation."
+        },
+        "proposals": {
           "proposals": []
         }
       }
@@ -103,7 +115,13 @@
           ],
           "deadlines": []
         },
-        "actions": {
+        "action_route": {
+          "action_state": "unclear",
+          "task_count": 1,
+          "event_count": 0,
+          "reason": "Synthetisch erwartete Aktionsklassifikation."
+        },
+        "proposals": {
           "proposals": [
             {
               "id": "pruefung_offen",
@@ -149,7 +167,13 @@
             "8. Oktober 2026, 09:00 Uhr"
           ]
         },
-        "actions": {
+        "action_route": {
+          "action_state": "task_and_event",
+          "task_count": 1,
+          "event_count": 1,
+          "reason": "Synthetisch erwartete Aktionsklassifikation."
+        },
+        "proposals": {
           "proposals": [
             {
               "id": "team_info",
@@ -206,7 +230,13 @@
           ],
           "deadlines": []
         },
-        "actions": {
+        "action_route": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 1,
+          "reason": "Synthetisch erwartete Aktionsklassifikation."
+        },
+        "proposals": {
           "proposals": [
             {
               "id": "termin_widerspruch",
@@ -254,7 +284,13 @@
             "21. Oktober 2026, 14:00 Uhr"
           ]
         },
-        "actions": {
+        "action_route": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 2,
+          "reason": "Synthetisch erwartete Aktionsklassifikation."
+        },
+        "proposals": {
           "proposals": [
             {
               "id": "besprechung_aenderung",
@@ -314,7 +350,13 @@
           ],
           "deadlines": []
         },
-        "actions": {
+        "action_route": {
+          "action_state": "none",
+          "task_count": 0,
+          "event_count": 0,
+          "reason": "Synthetisch erwartete Aktionsklassifikation."
+        },
+        "proposals": {
           "proposals": []
         }
       }
@@ -338,7 +380,13 @@
           ],
           "deadlines": []
         },
-        "actions": {
+        "action_route": {
+          "action_state": "task_and_event",
+          "task_count": 1,
+          "event_count": 1,
+          "reason": "Synthetisch erwartete Aktionsklassifikation."
+        },
+        "proposals": {
           "proposals": [
             {
               "id": "steuer_erledigt",
