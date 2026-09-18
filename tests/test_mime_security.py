@@ -89,6 +89,30 @@ def test_every_size_and_complexity_limit():
     assert_limit(mail_bytes("hello"), "max_llm_payload_bytes", max_llm_payload_bytes=5)
 
 
+def test_oversized_attachment_is_omitted_before_mail_size_limit():
+    message = EmailMessage()
+    message["From"] = "sender@example.test"
+    message["Subject"] = "large attachment"
+    message.set_content("process this body")
+    message.add_attachment(b"x" * 10_000, maintype="application", subtype="octet-stream",
+                           filename="large.bin")
+
+    result = prepare(message.as_bytes(), limits(max_mail_bytes=1_000))
+
+    assert result["text"] == "process this body"
+    assert result["metadata"] == {"attachments_omitted": 1, "text_shortened": False}
+
+
+def test_non_multipart_binary_message_is_omitted_as_attachment():
+    message = EmailMessage()
+    message.set_content(b"binary", maintype="application", subtype="octet-stream")
+
+    result = prepare(message.as_bytes(), limits())
+
+    assert result["text"] == ""
+    assert result["metadata"] == {"attachments_omitted": 1, "text_shortened": False}
+
+
 def test_limit_exception_only_exposes_the_configured_limit():
     error = MimeLimitExceeded("max_mail_bytes")
     assert error.limit == "max_mail_bytes"

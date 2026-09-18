@@ -174,40 +174,51 @@ def _date_context(message: Message, received_at: datetime, user_timezone: str) -
             "date_context_status": status}
 
 
+def _omit_attachments(part: Message) -> int:
+    """Remove attachment subtrees and return their number."""
+    payload = part.get_payload()
+    if not part.is_multipart():
+        return 0
+    assert isinstance(payload, list)
+    retained: list[Message] = []
+    attachments = 0
+    for child in payload:
+        is_attachment = (
+            child.get_content_disposition() == "attachment"
+            or child.get_filename() is not None
+            or (not child.is_multipart() and child.get_content_type() not in {"text/plain", "text/html"})
+        )
+        if is_attachment:
+            attachments += 1
+        else:
+            attachments += _omit_attachments(child)
+            retained.append(child)
+    part.set_payload(retained)
+    return attachments
+
+
 def prepare(raw: bytes, limits: int | MimeLimits | object,
             received_at: datetime | None = None, user_timezone: str = "UTC") -> dict[str, object]:
     """Return distinct untrusted header/text fields plus non-sensitive preparation metadata."""
     configured = _limits(limits)
-    if len(raw) > configured.max_mail_bytes:
-        raise MimeLimitExceeded("max_mail_bytes")
     message = BytesParser(policy=policy.default).parsebytes(raw)
+    attachments = _omit_attachments(message)
+    # Large transfer-encoded attachments must not prevent processing the mail
+    # body.  For an oversized raw message, enforce the limit again after all
+    # attachment subtrees have been removed.
+    if (len(raw) > configured.max_mail_bytes
+            and len(message.as_bytes(policy=policy.default)) > configured.max_mail_bytes):
+        raise MimeLimitExceeded("max_mail_bytes")
     received = received_at or datetime.min.replace(tzinfo=timezone.utc)
     if received.tzinfo is None or received.utcoffset() is None:
         raise ValueError("IMAP-Empfangszeitpunkt muss zeitzonenbehaftet sein")
     leaves = [part for part in message.walk() if not part.is_multipart()]
     if len(leaves) > configured.max_mime_parts:
         raise MimeLimitExceeded("max_mime_parts")
-    attachments = 0
     decoded_bytes = 0
     plain: list[str] = []
     html: list[str] = []
-    omitted_parts: set[int] = set()
-    for part in message.walk():
-        if id(part) in omitted_parts:
-            continue
-        # A filename is an attachment signal even when Content-Disposition is
-        # missing or says ``inline``.  When the attachment is itself a MIME
-        # message, exclude its complete subtree rather than accidentally
-        # treating the enclosed text/plain part as the mail body.
-        if part is not message and (
-            part.get_content_disposition() == "attachment" or part.get_filename() is not None
-        ):
-            attachments += 1
-            omitted_parts.update(id(descendant) for descendant in part.walk())
-
     for part in leaves:
-        if id(part) in omitted_parts:
-            continue
         content_type = part.get_content_type()
         if content_type not in {"text/plain", "text/html"}:
             attachments += 1
