@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 import pytest
 
-from mailhelp.application import Application, _MailBudget, _add_uid, _checkpoint_name, _safe_name, _state_directory, build_application, build_logger
+from mailhelp.application import Application, _MailBudget, _RunSummary, _add_uid, _checkpoint_name, _safe_name, _state_directory, build_application, build_logger
 from mailhelp.config import Secrets, Settings, Topic
 from mailhelp.imap import FetchedMail, UIDValidityChanged
 from mailhelp.models import MailState
@@ -215,7 +215,7 @@ def test_run_sends_aggregate_summary_on_normal_and_exceptional_exit(tmp_path):
         ProcessingResult(ProcessingOutcome.FAILED,{}),
     ]
     service.run(max_mails=3)
-    assert service.telegram.sent == [(2, "Mailhelp-Lauf beendet.\nBearbeitet: 3\nErfolgreich abgeschlossen: 1\nWarten auf Eingabe oder Wiederholung: 1\nFehlgeschlagen: 1")]
+    assert service.telegram.sent == [(2, "Mailhelp-Lauf beendet.\nBearbeitet: 3\nErfolgreich abgeschlossen: 1\nWarten auf Eingabe oder Wiederholung: 1\nFehlgeschlagen: 1\nHinweis: --max-mails fragt Telegram nur einmal ab.\nSpäter eingehende Antworten werden beim nächsten Start verarbeitet.")]
     assert service.logger.events[-1][0][2] == "run_summary_sent"
     assert service.logger.events[-1][1] == {"completed":1,"waiting":1,"failed":1}
 
@@ -230,6 +230,14 @@ def test_run_sends_aggregate_summary_on_normal_and_exceptional_exit(tmp_path):
     send_failure.telegram.send=lambda *_args: (_ for _ in ()).throw(RuntimeError("telegram"))
     send_failure.run()
     assert send_failure.logger.events[-1][0][2] == "run_summary_failed"
+
+
+def test_run_summary_does_not_add_bounded_hint_without_waiting_work():
+    summary = _RunSummary(completed=1)
+    assert summary.message(bounded=True) == (
+        "Mailhelp-Lauf beendet.\nBearbeitet: 1\nErfolgreich abgeschlossen: 1\n"
+        "Warten auf Eingabe oder Wiederholung: 0\nFehlgeschlagen: 0"
+    )
 
 
 def test_bounded_run_limits_resumed_and_new_mail_then_exits(tmp_path):
