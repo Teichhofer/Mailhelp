@@ -20,7 +20,8 @@ from .models import ImapCheckpoint, MailState, TelegramOffset
 from .openrouter import OpenRouterClient
 from .orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
 from .storage import JsonStore
-from .telegram import TelegramClient, TelegramDialogController
+from .telegram import (TelegramChatNotFoundError, TelegramClient,
+                       TelegramDialogController)
 from .adapter import RetryPolicy
 from .retention import RetentionService
 
@@ -119,7 +120,23 @@ class Application:
             f"Test – Datum: {now:%d.%m.%Y}, Uhrzeit: {now:%H:%M:%S} "
             f"({self.settings.timezone})"
         )
-        self.telegram.send(self.settings.telegram.chat_id, message)
+        try:
+            self.telegram.send(self.settings.telegram.chat_id, message)
+        except TelegramChatNotFoundError as exc:
+            chats = self.telegram.started_chats(self.settings.telegram.user_id)
+            configured = self.settings.telegram.chat_id
+            if chats:
+                found = ", ".join(str(chat_id) for chat_id in chats)
+                raise TelegramChatNotFoundError(
+                    f"{exc}. Für die konfigurierte telegram.user_id wurde /start "
+                    f"in Chat {found} empfangen; konfiguriert ist telegram.chat_id "
+                    f"{configured}. Bitte telegram.chat_id entsprechend korrigieren."
+                ) from exc
+            raise TelegramChatNotFoundError(
+                f"{exc}. Von der konfigurierten telegram.user_id wurde kein /start "
+                "bei diesem Bot empfangen. Bitte prüfen, ob /start an genau den Bot "
+                "aus TELEGRAM_BOT_TOKEN gesendet wurde und telegram.user_id stimmt."
+            ) from exc
 
     def stop(self) -> None:
         self.stop_event.set()

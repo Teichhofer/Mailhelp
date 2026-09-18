@@ -11,7 +11,8 @@ from mailhelp.imap import ImapReader
 from mailhelp.integrations import GoogleOAuthTokenProvider, HttpWriter
 from mailhelp.logging import JsonlLogger
 from mailhelp.openrouter import OpenRouterClient
-from mailhelp.telegram import TelegramClient, TelegramBotResponse
+from mailhelp.telegram import (TelegramBotResponse, TelegramChatNotFoundError,
+                               TelegramClient)
 from mailhelp.cli import main
 
 
@@ -191,6 +192,34 @@ def test_application_reports_telegram_test_message_failure_and_skips_send_if_bot
 
         assert results["Telegram"] == expected_error
         assert [(chat_id,) for chat_id, _message in telegram.sent] == expected_sent
+
+
+def test_application_explains_chat_id_mismatch_from_start_update():
+    class MissingChat(Check):
+        def __init__(self, chats):
+            super().__init__(send_error=TelegramChatNotFoundError("chat missing"))
+            self.chats = chats
+
+        def started_chats(self, user_id):
+            assert user_id == 42
+            return self.chats
+
+    for chats, expected in (
+        ([-100123], "Chat -100123 empfangen; konfiguriert ist telegram.chat_id 7"),
+        ([], "kein /start bei diesem Bot empfangen"),
+    ):
+        application = SimpleNamespace(
+            settings=SimpleNamespace(
+                imap=SimpleNamespace(folders=["INBOX"]),
+                telegram=SimpleNamespace(user_id=42, chat_id=7), timezone="UTC",
+            ),
+            imap=Check(), openrouter=Check(), telegram=MissingChat(chats),
+            todoist=Check(), calendar=Check(),
+        )
+
+        result = Application.check_access(application)["Telegram"]
+
+        assert expected in result
 
 
 def test_application_distinguishes_oauth_failure_without_logging_response_secrets(tmp_path):
