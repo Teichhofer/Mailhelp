@@ -273,6 +273,10 @@ ausgeführt oder Aufgaben beziehungsweise Termine geschrieben. Alle Prüfergebni
 werden ausgegeben; ein
 Teilfehler verhindert die übrigen Prüfungen nicht und führt abschließend zu einem
 von null verschiedenen Prozessstatus.
+Ein Telegram-`chat not found` wird als konkrete Einrichtungsdiagnose ausgegeben:
+Bot zuerst per `/start` im Zielchat aktivieren, numerische Chat-ID prüfen und bei
+Gruppen die Mitgliedschaft des Bots sicherstellen. Bot-ID, Nutzername und
+Telefonnummer werden nicht als Ersatz für die Chat-ID behandelt.
 
 Die Google-Zugriffsdiagnose unterscheidet zwei Vertrauensgrenzen. Ein erfolgreicher
 OAuth-Token-Abruf hält fest, dass Client und Refresh-Token vom Google-Token-Endpunkt
