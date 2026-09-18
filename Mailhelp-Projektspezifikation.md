@@ -233,6 +233,26 @@ Eine Aufgabe kann ohne Fälligkeit angelegt werden. Ihre Frist ist entweder ein 
 
 Zeitgebundene Termine enthalten für Beginn und Ende vollständige ISO-8601-Datums-/Zeitwerte mit eindeutigem UTC-Offset. Die iCalendar-Datei normalisiert diese Zeitpunkte eindeutig nach UTC; sie leitet weder einen Offset noch eine Zeitzone stillschweigend aus der Laufzeitumgebung ab. Ganztägige Termine enthalten dagegen ausschließlich Kalenderdaten ohne Uhrzeit. Ihr Enddatum ist gemäß iCalendar-Semantik exklusiv: Ein eintägiger Termin am 10. Mai verwendet beispielsweise `DTSTART;VALUE=DATE:20260510` und `DTEND;VALUE=DATE:20260511`. Gemischte Datums- und Zeitformen, naive Zeitwerte sowie ein Ende vor oder gleich dem Beginn werden bereits an der Vorschlagsgrenze abgewiesen.
 
+Die deterministische Aktionsnormalisierung unterstützt ausschließlich die Datumsformen
+`YYYY-MM-DD` und `DD.MM.YYYY` sowie die 24-Stunden-Zeitformen `HH:MM` und
+`HH:MM:SS`. Andere Schreibweisen und relative Angaben wie „nächsten Freitag“
+bleiben zusammen mit einem stabilen Klärungsgrund als Rohangabe erhalten. Ein Datum
+ohne Uhrzeit wird als ganztägiges Intervall vom genannten Tag bis zum exklusiven
+Folgetag dargestellt. Eine Uhrzeit wird nur bei vorhandenem Datum, Beginn, Ende und
+eindeutiger IANA-Nutzerzeitzone normalisiert; nicht existente oder doppelte Ortszeiten
+an DST-Übergängen erfordern eine Rückfrage. Es werden weder eine Standarduhrzeit,
+eine Dauer noch ein UTC-Offset erfunden.
+
+Der vorbereitete Mail-Datumskontext darf nur mit Status `valid`, zwei
+offsetbehafteten Zeitstempeln mit höchstens sieben Tagen Abstand und einer bekannten
+IANA-`user_timezone` verwendet werden. `date_header_parsed` dient dabei nur als
+Referenzzeitpunkt, `imap_received_at` der Plausibilitätskontrolle und
+`user_timezone` der Lokalisierung ausdrücklich extrahierter Uhrzeiten. Relative
+Sprache wird auch mit gültigem Kontext nicht automatisch aufgelöst. Fehlender,
+ungültiger, naiver oder widersprüchlicher Kontext erzeugt einen strukturierten
+Klärungsgrund. Zeitliche Auflösung und Zuständigkeit bleiben getrennt: Insbesondere
+ist ein korrekt aufgelöster Termin mit `responsibility=unclear` nicht bestätigbar.
+
 Ein ausdrücklich in der Mail genannter physischer Ort wird getrennt von einem Videolink in `location` beziehungsweise `video_link` übernommen; fehlende Werte bleiben `null` und dürfen nicht erfunden werden. `video_link` akzeptiert ausschließlich längenbegrenzte HTTP-/HTTPS-URLs. Vor einer Bestätigung zeigt Telegram beide Felder sichtbar an. In der iCalendar-Datei wird `location` als `LOCATION` abgebildet. Ein vorhandener Videolink wird am Ende von `DESCRIPTION` klar als Videolink ergänzt. Die Datei erzeugt keine Konferenz; sie lässt sich nach dem Telegram-Versand auf iOS durch Antippen in einen vom Nutzer gewählten Kalender übernehmen.
 
 Die geschlossenen Felder `responsibility` (`user`, `other`, `unclear`), `certainty` (`certain`, `uncertain`, `contradictory`) und `classification` (`new`, `non_binding`, `already_completed`, `change`, `cancellation`, `recurring`, `unsupported`) sind verpflichtend. Nur `new` + `user` + `certain` ist bestätigbar und extern schreibbar. Alle übrigen Kombinationen werden verständlich als manuell zu prüfen angezeigt. `unclear`, `uncertain` und `contradictory` erzwingen `needs_clarification`.
