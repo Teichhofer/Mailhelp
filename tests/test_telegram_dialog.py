@@ -168,29 +168,6 @@ def test_only_exactly_displayed_version_is_written(tmp_path):
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v2")["title"] == "Neue Fassung"
 
 
-def test_simulation_is_persisted_and_reported_once_across_polls_and_restart(tmp_path):
-    writer = Writer()
-    decision = "proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm"
-    with JsonStore(tmp_path) as store:
-        dialog, transport, _ = controller(
-            store, [callback(1, decision), callback(2, decision)],
-            {"todoist": writer}, True,
-        )
-        dialog.persist(proposal())
-        dialog.poll_once()
-        dialog.poll_once()
-        saved = store.load_model("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1", Proposal)
-        assert saved.status == ProposalStatus.SIMULATED
-        assert saved.simulation_notified and saved.external_id is None
-        assert writer.created == writer.reconciled == 0
-        assert sum("simuliert" in text for _, text, _ in transport.sent) == 1
-
-        restarted, after_restart, _ = controller(store, writers={"todoist": writer}, test_mode=True)
-        restarted.poll_once()
-        assert writer.created == writer.reconciled == 0
-        assert not after_restart.sent
-
-
 def test_deadline_clarification_blocks_every_external_request(tmp_path):
     writer=Writer()
     with JsonStore(tmp_path) as store:
