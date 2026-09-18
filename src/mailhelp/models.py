@@ -111,6 +111,7 @@ class ProposalStatus(StrEnum):
     CONFIRMED = "confirmed"
     WRITING = "writing"
     CREATED = "created"
+    SIMULATED = "simulated"
     REJECTED = "rejected"
     FAILED = "failed"
     UNCERTAIN = "uncertain"
@@ -143,6 +144,7 @@ class Proposal(StrictModel):
     external_id: str | None = Field(default=None, max_length=500)
     external_link: str | None = Field(default=None, max_length=2000)
     uncertain_notified: bool = False
+    simulation_notified: bool = False
 
     @model_validator(mode="after")
     def complete_event(self) -> "Proposal":

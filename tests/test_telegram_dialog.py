@@ -192,7 +192,7 @@ def test_identical_proposals_have_isolated_confirmation_and_external_results(tmp
     with JsonStore(_state_directory(test_settings,tmp_path)) as test_store:
         test_dialog,_,_=controller(test_store,[callback(1,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm")],{"todoist":Writer()},True)
         test_dialog.persist(proposal()); test_dialog.poll_once()
-        assert test_store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="confirmed"
+        assert test_store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="simulated"
         assert test_store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1").get("external_id") is None
         assert test_store.load("telegram-offset")["offset"]==2
 
@@ -207,7 +207,7 @@ def test_identical_proposals_have_isolated_confirmation_and_external_results(tmp
         assert writer.created==1
 
     with JsonStore(_state_directory(test_settings,tmp_path)) as test_store:
-        assert test_store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="confirmed"
+        assert test_store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="simulated"
         assert test_store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1").get("external_id") is None
         assert test_store.load("telegram-offset")["offset"]==2
 
@@ -312,7 +312,7 @@ def test_confirmation_executes_and_reports_all_results(tmp_path):
         (Writer(),False,"created","Erstellt"),
         (Writer(error=httpx.ReadTimeout("timeout")),False,"uncertain","Unklarer"),
         (Writer(error=httpx.HTTPStatusError("bad",request=httpx.Request("POST","https://x"),response=httpx.Response(400))),False,"failed","fehlgeschlagen"),
-        (Writer(),True,"confirmed","Testmodus"),
+        (Writer(),True,"simulated","Testmodus"),
     ]
     for index,(writer,test_mode,status,text) in enumerate(cases):
         with JsonStore(tmp_path/str(index)) as store:

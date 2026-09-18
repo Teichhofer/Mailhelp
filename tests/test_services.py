@@ -128,7 +128,8 @@ def test_integrations():
     saved=[]
     with pytest.raises(ValueError): execute_confirmed(proposal(),Writer(),saved.append)
     assert execute_confirmed(p,Writer(),saved.append,True)[1]["simulation"]
-    assert saved[-1].status == ProposalStatus.CONFIRMED
+    assert saved[-1].status == ProposalStatus.SIMULATED
+    assert execute_confirmed(saved[-1], Writer(), saved.append, True)[0] == saved[-1]
     assert execute_confirmed(p,Writer({"id":"old"}),saved.append)[1]["id"]=="old"
     assert execute_confirmed(p,Writer(),saved.append)[0].status == ProposalStatus.CREATED
     assert execute_confirmed(p,Writer(error=httpx.ReadTimeout("x")),saved.append)[0].status == ProposalStatus.UNCERTAIN
