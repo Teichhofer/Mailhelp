@@ -121,6 +121,11 @@ Logfelder, einschließlich Fehler und Stacktraces, durchlaufen die rekursive
 Geheimnisbereinigung. Alte aktive Logs und nummerierte Rotationen werden beim Start
 und vor Schreibzugriffen ausschließlich innerhalb ihres konfigurierten Verzeichnisses
 entfernt.
+Nach erfolgreichem Laden der Konfiguration schreibt jeder Programmstart das
+Ereignis `application_started` einschließlich der wirksamen CLI-Parameter
+(`config_directory`, `check`, `check_access` und `max_mails`) in das Anwendungslog.
+Dabei werden ausschließlich die geparsten, bekannten Optionen und keine rohe
+Befehlszeile oder Umgebungsvariablen protokolliert.
 
 Unter `retention` steuern `full_mail_days` und `debug_llm_days` getrennt die
 Aufbewahrung vollständiger Maildaten beziehungsweise abgeleiteter Debug-/LLM-Daten

@@ -2,7 +2,7 @@
 from __future__ import annotations
 import argparse, signal
 from pathlib import Path
-from .application import build_application
+from .application import build_application, build_logger
 from .config import load_all
 
 
@@ -26,11 +26,15 @@ def main() -> int:
         help="höchstens ANZAHL Mails in einem einzelnen Abrufdurchlauf bearbeiten und beenden",
     )
     args = parser.parse_args(); settings, secrets, topics, prompts, fingerprint = load_all(args.config_directory)
+    logger = build_logger(settings, secrets)
+    logger.event("INFO", "application", "application_started", parameters={
+        "config_directory": str(args.config_directory),
+        "check": args.check,
+        "check_access": args.check_access,
+        "max_mails": args.max_mails,
+    })
     if args.check: print("Konfiguration ist gültig."); return 0
-    build_options = {"access_diagnostics": True} if args.check_access else {}
-    with build_application(
-        settings, secrets, topics, prompts, fingerprint, **build_options,
-    ) as application:
+    with build_application(settings, secrets, topics, prompts, fingerprint, logger=logger) as application:
         if args.check_access:
             results = application.check_access()
             for name, error in results.items():

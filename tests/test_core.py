@@ -93,6 +93,7 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
     )
     with pytest.raises(ValueError, match="unbekannt"): load_all(tmp_path, env)
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--config-directory", str(Path.cwd()), "--check"]); monkeypatch.setattr(os, "environ", env)
+    monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args: type("Logger", (), {"event": lambda *_args, **_kwargs: None})())
     assert main() == 0; assert "gültig" in capsys.readouterr().out
     class App:
         def __init__(self): self.stopped=False
@@ -103,7 +104,7 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
             signal_handlers[signal.SIGTERM](signal.SIGTERM, None)
     app=App(); signal_handlers={}
     @contextmanager
-    def builder(*args): yield app
+    def builder(*args, **kwargs): yield app
     monkeypatch.setattr("mailhelp.cli.build_application", builder)
     monkeypatch.setattr("mailhelp.cli.signal.signal", lambda signum, handler: signal_handlers.__setitem__(signum, handler))
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--config-directory", str(Path.cwd())]); assert main() == 0 and app.stopped
