@@ -100,6 +100,40 @@ und ist bei Wiederholung wirkungsgleich.
 
 Nur Transportfehler sowie HTTP 408, 425, 429, 500, 502, 503 und 504 werden bei lesenden beziehungsweise idempotenten Zugriffen begrenzt wiederholt. `Retry-After` wird bis zur konfigurierten Backoff-Obergrenze berücksichtigt. Schreibzugriffe werden vorab persistiert und bei Transportfehlern oder vorübergehenden HTTP-Antworten als unklar behandelt. Ein unklarer Schreibzugriff wird bei Neustarts nur abgeglichen und niemals automatisch erneut geschrieben; dafür wäre eine ausdrückliche Betreiberentscheidung erforderlich. Das OpenRouter-Minutenbudget wird im Datenverzeichnis persistiert, bleibt deshalb über Neustarts erhalten und stellt betroffene Mails bis zum nächsten zulässigen Zeitpunkt zurück.
 
+### Fehlerdiagnose im Testlauf
+
+* `openrouter` / `retry_failed` mit HTTP `401 Unauthorized` bedeutet, dass
+  OpenRouter den Wert von `OPENROUTER_API_KEY` abgelehnt hat. Der Schlüssel muss
+  in der `.env` im verwendeten Konfigurationsverzeichnis oder in der Umgebung des
+  tatsächlich gestarteten Prozesses beziehungsweise Containers korrigiert und der
+  Dienst danach neu gestartet werden. `mailhelp --check` prüft nur, ob das
+  Geheimnis vorhanden ist; der Befehl führt bewusst keinen Netzwerkaufruf aus und
+  kann daher weder Gültigkeit noch Guthaben des Schlüssels bestätigen. Ein 401 ist
+  nicht wiederholbar, weshalb trotz des allgemeinen Ereignisnamens nur
+  `attempt: 1` erscheint. `Permanente Adapterantwort` ist die zusammengefasste
+  Folge dieses Authentifizierungsfehlers, nicht ein zusätzlicher Telegram-Fehler.
+* `mime_limit_exceeded` mit `max_mail_bytes` bedeutet, dass die vollständige
+  rohe MIME-Nachricht größer als `limits.max_mail_bytes` ist. Dabei zählen auch
+  Header, HTML, Anhänge und deren Transferkodierung. Den Wert nur dann in
+  `config.yaml` erhöhen, wenn diese Nachrichten bewusst verarbeitet werden sollen;
+  die zusätzlichen MIME-, Text-, HTML- und LLM-Nutzlastgrenzen bleiben weiterhin
+  wirksam. Alternativ müssen Nachricht oder Anhänge vor der Verarbeitung verkleinert
+  werden.
+* `cleanup_completed` mit einem hohen `protected_count` ist in einem solchen Lauf
+  erwartbar: Nicht abgeschlossene oder fehlgeschlagene Zustände werden von der
+  Aufbewahrungsbereinigung geschützt. `mail_count: 0` sagt deshalb nicht aus, dass
+  keine Nachrichten gefunden wurden, sondern dass in diesem Lauf keine
+  vollständigen Mailinhalte minimiert wurden.
+* `telegram` / `send_started` direkt nach einem Verarbeitungsfehler ist die
+  beabsichtigte einmalige Fehlerbenachrichtigung. Erst ein nachfolgendes
+  `send_failed` oder `poll_failed` weist auf ein Telegram-Problem hin.
+
+Vor Änderungen oder einer Bereinigung den Dienst stoppen und das vollständige
+`data`-Verzeichnis sichern. Zustandsdateien nicht einzeln löschen: Abrufstände,
+Fehlermarkierungen und Idempotenzinformationen gehören zusammen. Für einen bewusst
+frischen Testlauf darf nach der Sicherung ausschließlich der gesamte isolierte
+`data/test`-Zustand entfernt werden; `data/production` bleibt unberührt.
+
 ### Migration älterer Vorschlagszustände
 
 Vorschläge werden nun unter `proposal-<mail-id>-<proposal-id>.json` (und versioniert
