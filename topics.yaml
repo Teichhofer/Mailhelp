@@ -6,3 +6,23 @@ topics:
     examples: [Betriebskostenabrechnung, Wartungstermin]
     exclusions: [Immobilienwerbung]
 
+  - id: gemeinderat
+    name: Gemeinderat
+    enabled: true
+    description: Nachrichten zur Arbeit des Gemeinderats, seinen Sitzungen und kommunalpolitischen Themen.
+    examples: [Sitzungseinladung, Tagesordnung, Beschlussvorlage]
+    exclusions: [Allgemeine Parteienwerbung ohne Bezug zum Gemeinderat]
+
+  - id: landfrauen
+    name: Landfrauen
+    enabled: true
+    description: Nachrichten zum Landfrauenverein, seinen Veranstaltungen und Vereinsaktivitäten.
+    examples: [Veranstaltungseinladung, Vereinsversammlung, Kursangebot]
+    exclusions: [Allgemeine Werbung ohne Bezug zum Landfrauenverein]
+
+  - id: auslaenderbehoerde
+    name: Ausländerbehörde
+    enabled: true
+    description: Nachrichten der Ausländerbehörde zu Aufenthalt, Einbürgerung und behördlichen Terminen.
+    examples: [Terminbestätigung, Aufenthaltstitel, Unterlagenanforderung]
+    exclusions: [Allgemeine Reise- und Tourismuswerbung]
