@@ -324,17 +324,31 @@ class Orchestrator:
                     self._save(name, state)
                 stage = ProcessingStage.ACTION_DETECTION
                 if state.steps.action_detection in {"pending", "failed"}:
-                    call, actions = self.analyzer.actions(state.mail)
-                    state.proposals = self._normalize_proposals(state, actions.proposals)
-                    state.llm_call_ids.append(call)
+                    if state.action_route is None:
+                        call, route = self.analyzer.action_route(state.mail)
+                        state.action_route = route
+                        state.llm_call_ids.append(call)
+                    else:
+                        route = state.action_route
+                    if route.action_state not in {"none", "unclear"}:
+                        call, actions = self.analyzer.actions(state.mail)
+                        state.proposals = self._normalize_proposals(state, actions.proposals)
+                        state.llm_call_ids.append(call)
                     state.steps.action_detection = "completed"
                     self._save(name, state)
                     self.logger.event("INFO", "orchestrator", "actions_completed", mail_id=state.id, call_id=call,
+                                      action_state=route.action_state,
                                       proposal_ids=[item.id for item in state.proposals])
                 stage = ProcessingStage.PROPOSAL_NOTIFICATION
                 if state.steps.proposal_notification == "pending":
                     state.steps.proposal_notification = "sending"
                     self._save(name, state)
+                    if state.action_route is not None and state.action_route.action_state == "unclear":
+                        self.notifier.send(
+                            self.chat_id,
+                            "Mögliche Aufgabe oder möglicher Termin benötigt fachliche Klärung: "
+                            + state.action_route.reason,
+                        )
                     for proposal in state.proposals:
                         self.notifier.send_proposal(proposal)
                         self.logger.event("INFO", "orchestrator", "proposal_notified", mail_id=state.id, proposal_id=proposal.id)
