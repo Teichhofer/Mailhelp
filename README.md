@@ -197,12 +197,13 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
 * IMAP wird im Nur-Lese-Modus mit einem gemeinsamen `BODY.PEEK[] INTERNALDATE`-Abruf gelesen; die nicht geheime Konto-ID, Ordner, UIDVALIDITY und UID bilden die technische Identität. `INTERNALDATE` wird strikt als zeitzonenbehafteter Empfangszeitpunkt geparst. Die Konto-ID ist ein gekürzter SHA-256-Hash aus normalisiertem Server, Port und Benutzernamen und trennt auch gleichnamige Ordner verschiedener Konten.
 * Die Analyse erhält vier getrennte Datumsinformationen: den unveränderten, bereinigten `Date`-Header (`date_header_original`), seine nur bei explizitem Offset verfügbare Parseform (`date_header_parsed`), `imap_received_at` sowie die konfigurierte IANA-`user_timezone`. `date_context_status` kennzeichnet fehlende, ungültige, naive und um mehr als sieben Tage vom Empfang abweichende Angaben. Ein solcher Kontext erzwingt bei Terminen und Aufgaben mit Frist eine offene Rückfrage und verhindert damit die Bestätigung und Speicherung; Aufgaben ohne Frist bleiben davon unberührt.
 * `Proposal.due` ist eine streng validierte Union: `YYYY-MM-DD` bezeichnet ein reines Fälligkeitsdatum und wird unverändert als Todoist-`due_date` übertragen. Ein Fälligkeitszeitpunkt enthält Datum und Uhrzeit samt explizitem UTC-Offset (zum Beispiel `2026-10-01T17:00:00+02:00`) und wird als `due_datetime` übertragen. Naive Zeitpunkte werden abgelehnt und reine Daten niemals stillschweigend in Mitternacht umgewandelt.
-* Der JSON-Zustand wird atomar ersetzt und durch eine betriebssystemseitige, an den laufenden Prozess gebundene Einzelinstanz-Sperre geschützt. Die `.lock`-Datei bleibt nach dem Schließen als Diagnoseinformation erhalten; ausschließlich die vom Betriebssystem gehaltene Sperre entscheidet, ob eine Instanz aktiv ist. Syntaktisch beschädigte Dateien werden als `.corrupt`, schemawidrige Dateien als `.invalid` isoliert; Meldungen nennen Datei und Schlüsselpfad, nicht den Inhalt. Mailzustände (Schema 8), Abrufpositionen, Telegram-Dialoge und Duplikatindex (Schema 1) sowie Vorschläge (Schema 2) werden vor jeder Verwendung validiert.
+* Der JSON-Zustand wird atomar ersetzt und durch eine betriebssystemseitige, an den laufenden Prozess gebundene Einzelinstanz-Sperre geschützt. Die `.lock`-Datei bleibt nach dem Schließen als Diagnoseinformation erhalten; ausschließlich die vom Betriebssystem gehaltene Sperre entscheidet, ob eine Instanz aktiv ist. Syntaktisch beschädigte Dateien werden als `.corrupt`, schemawidrige Dateien als `.invalid` isoliert; Meldungen nennen Datei und Schlüsselpfad, nicht den Inhalt. Mailzustände (Schema 9), Abrufpositionen, Telegram-Dialoge und Duplikatindex (Schema 1) sowie Vorschläge (Schema 2) werden vor jeder Verwendung validiert.
 * OpenRouter-, Telegram- und Todoist-Antworten werden nach HTTP-Erfolg strikt auf JSON-Struktur, Pflichtfelder und IDs geprüft. Bei OpenRouter werden eine ungültige Provider-Hülle (`provider_response_invalid` samt inhaltsfreiem Grund), ungültige JSON-Syntax (`invalid_json`) und ein Verstoß gegen das stufenspezifische Pydantic-Schema (`schema_validation_failed`) getrennt behandelt und jeweils unabhängig begrenzt wiederholt. Provider-Retries senden den unveränderten fachlichen Payload, JSON-Reparaturen nur einen JSON-Formathinweis und ausschließlich Schema-Reparaturen die konkrete vorherige Validierungsabweichung. Die flache Steuerung begrenzt die Gesamtzahl auf einen Erstaufruf plus die drei konfigurierten Retry-Zahlen. Providerfehler werden nicht als Schemafehler in `validation_errors` gespeichert. Reservierte OpenRouter-Felder können nicht über YAML überschrieben werden.
 * Bei Terminen bleiben der physische Ort und ein optionaler, ausschließlich per HTTP/HTTPS erlaubter Videolink getrennte Vorschlagsfelder und werden vor der Bestätigung beide in Telegram angezeigt. Die iCalendar-Datei enthält Ort, Beschreibung und Videolink; zeitgebundene Werte werden eindeutig in UTC serialisiert, ganztägige Enddaten bleiben exklusiv.
 * Externe Aktionen verlangen eine Persistenzfunktion: `writing` wird vor dem API-Aufruf dauerhaft gespeichert. Unklare Resultate werden als `uncertain` angehalten und nur abgeglichen. Ausschließlich ein externer Treffer überführt sie in `created`; ein neuer Schreibversuch setzt eine ausdrücklich modellierte manuelle Betreiberentscheidung voraus.
 * Jede Mail besitzt die schema-validierten Schritte `preparation`, `relevance`,
-  `summary`, `summary_notification`, `action_detection`, `proposal_notification`
+  `summary`, `summary_notification`, `action_detection`, `action_router`,
+  `task_extraction`, `event_extraction`, `normalization`, `proposal_building`, `proposal_notification`
   und `completion`. Nach jedem Schritt
   wird atomar gespeichert; nach einem Neustart laufen ausschließlich ausstehende
   Schritte. Relevante Mails speichern und versenden die Summary vor der
@@ -245,10 +246,10 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
 
 ### Alte Mailzustände kontrolliert verarbeiten
 
-Mailzustands-Schema 8 migriert Schema 6 und 7 ausdrücklich, indem der früher gemeinsame
+Mailzustands-Schema 9 migriert Schema 6, 7 und 8 ausdrücklich, indem der früher gemeinsame
 Benachrichtigungsstatus konservativ auf Summary- und Vorschlagsversand abgebildet
-und die getrennten Extraktions-Teilstatus ergänzt werden; die Datei wird sofort
-atomar als Schema 8 gespeichert. Schema 8 bleibt gegenüber
+die getrennten Extraktions-Teilstatus ergänzt und vorhandene Vorschläge mit versionierten Versandmarkern übernommen werden; die Datei wird sofort
+atomar als Schema 9 gespeichert. Schema 9 bleibt gegenüber
 Schema 3 bewusst inkompatibel. **Für Schema 3 findet keine automatische Migration
 statt.** Beim Laden wird eine solche Datei
 als schemawidrig erkannt und neben den Zustandsdateien mit der Endung `.invalid`
@@ -267,9 +268,9 @@ durch:
    prüfen, ob bereits Todoist-Aufgaben oder Kalendertermine erzeugt wurden.
 3. Den Checkpoint für genau dieses Konto und diesen Ordner bei gestopptem Dienst
    bewusst auf eine UID vor der betroffenen Mail zurücksetzen. Die
-   `.invalid`-Datei als Nachweis gesichert lassen und nicht in Schema 8
+   `.invalid`-Datei als Nachweis gesichert lassen und nicht in Schema 9
    umetikettieren oder manuell mit erfundenen Pflichtfeldern ergänzen.
-4. Mailhelp mit der aktuellen Version starten, die Mail neu als Schema 8 einlesen
+4. Mailhelp mit der aktuellen Version starten, die Mail neu als Schema 9 einlesen
    lassen und alle neu vorgeschlagenen Schreibaktionen erneut über Telegram
    prüfen und versionsbezogen bestätigen. Anschließend kontrollieren, dass der
    Checkpoint wieder vorgerückt ist und keine doppelte externe Aktion entstand.

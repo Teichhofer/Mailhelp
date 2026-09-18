@@ -22,7 +22,7 @@ from .imap import FetchedMail
 from .mime import MimeLimitExceeded, prepare
 from .models import (DuplicateDecision, DuplicateIndex, DuplicateIndexEntry, MailState, ProcessingError, ProcessingErrorCode, ProcessingStage,
                      Proposal, Relevance, RelevanceDialog, RelevanceDialogStatus,
-                     ValidationIssue)
+                     ProposalNotification, ValidationIssue)
 from .storage import JsonStore
 from .openrouter import RateLimitExceeded
 from .logging import EventLogger, NullLogger
@@ -149,6 +149,7 @@ class Orchestrator:
             if outcome == "duplicate":
                 state.steps.relevance = state.steps.summary = state.steps.action_detection = "skipped"
                 state.steps.action_router = state.steps.task_extraction = state.steps.event_extraction = "skipped"
+                state.steps.normalization = state.steps.proposal_building = "skipped"
                 state.steps.summary_notification = state.steps.proposal_notification = "skipped"
                 state.steps.completion = "completed"
             self._save(name, state)
@@ -217,6 +218,7 @@ class Orchestrator:
         if decision == "irrelevant":
             state.steps.summary = state.steps.action_detection = "skipped"
             state.steps.action_router = state.steps.task_extraction = state.steps.event_extraction = "skipped"
+            state.steps.normalization = state.steps.proposal_building = "skipped"
             state.steps.summary_notification = state.steps.proposal_notification = "skipped"
             state.steps.completion = "completed"
         else:
@@ -277,6 +279,7 @@ class Orchestrator:
                 state.steps.summary = "skipped"
                 state.steps.action_detection = "skipped"
                 state.steps.action_router = state.steps.task_extraction = state.steps.event_extraction = "skipped"
+                state.steps.normalization = state.steps.proposal_building = "skipped"
                 state.steps.summary_notification = state.steps.proposal_notification = "skipped"
             elif state.relevance.decision == "unclear":
                 if state.steps.summary_notification == "pending":
@@ -337,6 +340,7 @@ class Orchestrator:
                         self._save(name, state)
                     elif not wants_tasks:
                         state.steps.task_extraction = "skipped"
+                        self._save(name, state)
                     if wants_events and state.steps.event_extraction in {"pending", "failed"}:
                         stage = ProcessingStage.EVENT_EXTRACTION
                         call, extraction = self.analyzer.extract_events(state.mail)
@@ -348,24 +352,47 @@ class Orchestrator:
                         self._save(name, state)
                     elif not wants_events:
                         state.steps.event_extraction = "skipped"
-                    state.proposals = self._build_proposals(state) if (wants_tasks or wants_events) else []
+                        self._save(name, state)
+                    stage = ProcessingStage.NORMALIZATION
+                    if state.steps.normalization in {"pending", "failed"}:
+                        state.normalized_proposals = self._build_proposals(state) if (wants_tasks or wants_events) else []
+                        state.steps.normalization = "completed"
+                        self._save(name, state)
+                    stage = ProcessingStage.PROPOSAL_BUILDING
+                    if state.steps.proposal_building in {"pending", "failed"}:
+                        state.proposals = [Proposal.model_validate(item.model_dump(mode="json"))
+                                           for item in state.normalized_proposals]
+                        state.proposal_notifications = [ProposalNotification(
+                            proposal_id=item.id, proposal_version=item.version)
+                            for item in state.proposals]
+                        state.steps.proposal_building = "completed"
+                        self._save(name, state)
                     state.steps.action_detection = "completed"
                     self._save(name, state)
                     self.logger.event("INFO", "orchestrator", "actions_completed", mail_id=state.id,
                                       action_state=route.action_state,
                                       proposal_ids=[item.id for item in state.proposals])
                 stage = ProcessingStage.PROPOSAL_NOTIFICATION
-                if state.steps.proposal_notification == "pending":
-                    state.steps.proposal_notification = "sending"
-                    self._save(name, state)
-                    if state.action_route is not None and state.action_route.action_state == "unclear":
+                if state.steps.proposal_notification in {"pending", "sending"}:
+                    first_attempt = state.steps.proposal_notification == "pending"
+                    if first_attempt:
+                        state.steps.proposal_notification = "sending"
+                        self._save(name, state)
+                    if (first_attempt and state.action_route is not None
+                            and state.action_route.action_state == "unclear"):
                         self.notifier.send(
                             self.chat_id,
                             "Mögliche Aufgabe oder möglicher Termin benötigt fachliche Klärung: "
                             + state.action_route.reason,
                         )
-                    for proposal in state.proposals:
+                    for proposal, notification in zip(state.proposals, state.proposal_notifications, strict=True):
+                        if notification.status != "pending":
+                            continue
+                        notification.status = "sending"
+                        self._save(name, state)
                         self.notifier.send_proposal(proposal)
+                        notification.status = "completed"
+                        self._save(name, state)
                     state.steps.proposal_notification = "completed"
                     self._save(name, state)
             stage = ProcessingStage.COMPLETION
@@ -428,13 +455,16 @@ class Orchestrator:
                          stage: ProcessingStage) -> ProcessingOutcome:
         """Complete the mail while retaining a retryable action-only failure."""
         action_stages = {ProcessingStage.ACTION_ROUTER, ProcessingStage.TASK_EXTRACTION,
-                         ProcessingStage.EVENT_EXTRACTION}
+                         ProcessingStage.EVENT_EXTRACTION, ProcessingStage.NORMALIZATION,
+                         ProcessingStage.PROPOSAL_BUILDING}
         if stage not in action_stages:
             return ProcessingOutcome.FAILED
         step_name = {
             ProcessingStage.ACTION_ROUTER: "action_router",
             ProcessingStage.TASK_EXTRACTION: "task_extraction",
             ProcessingStage.EVENT_EXTRACTION: "event_extraction",
+            ProcessingStage.NORMALIZATION: "normalization",
+            ProcessingStage.PROPOSAL_BUILDING: "proposal_building",
         }[stage]
         setattr(state.steps, step_name, "failed")
         state.steps.action_detection = "failed"

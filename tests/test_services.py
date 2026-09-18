@@ -572,7 +572,7 @@ def test_orchestrator(tmp_path):
         n=PlainNotify(); o=Orchestrator(AnalyzerStub("relevant"),store,n,1,[topic],1000); state=o.process(mail); assert state.outcome is ProcessingOutcome.COMPLETED and state["steps"]["completion"]=="completed" and n.messages; assert o.process(mail)==state
     with JsonStore(tmp_path/"b") as store:
         state=Orchestrator(AnalyzerStub("irrelevant"),store,Notify(),1,[topic],1000).process(mail)
-        assert state["steps"]=={"preparation":"completed","relevance":"completed","summary":"skipped","summary_notification":"skipped","action_detection":"skipped","action_router":"skipped","task_extraction":"skipped","event_extraction":"skipped","proposal_notification":"skipped","completion":"completed"}
+        assert state["steps"]=={"preparation":"completed","relevance":"completed","summary":"skipped","summary_notification":"skipped","action_detection":"skipped","action_router":"skipped","task_extraction":"skipped","event_extraction":"skipped","normalization":"skipped","proposal_building":"skipped","proposal_notification":"skipped","completion":"completed"}
     with JsonStore(tmp_path/"c") as store:
         o=Orchestrator(AnalyzerStub("unclear"),store,Notify(),1,[topic],1000)
         state=o.process(mail); assert state.outcome is ProcessingOutcome.WAITING and state["awaiting_relevance"] and state["steps"]["completion"]=="pending"
@@ -639,7 +639,7 @@ def test_orchestrator_resolves_versioned_relevance_both_ways(tmp_path):
             assert resolved.relevance_dialog.telegram_offset==10
             with pytest.raises(ValueError,match="bereits"): orchestrator.resolve_relevance(mail_id,1,decision,11)
             if decision == "irrelevant":
-                assert resolved.steps.model_dump()=={"preparation":"completed","relevance":"completed","summary":"skipped","summary_notification":"skipped","action_detection":"skipped","action_router":"skipped","task_extraction":"skipped","event_extraction":"skipped","proposal_notification":"skipped","completion":"completed"}
+                assert resolved.steps.model_dump()=={"preparation":"completed","relevance":"completed","summary":"skipped","summary_notification":"skipped","action_detection":"skipped","action_router":"skipped","task_extraction":"skipped","event_extraction":"skipped","normalization":"skipped","proposal_building":"skipped","proposal_notification":"skipped","completion":"completed"}
             else:
                 completed=orchestrator.resume_mail(resolved)
                 assert completed.outcome is ProcessingOutcome.COMPLETED
@@ -678,15 +678,20 @@ def test_orchestrator_resumes_each_persisted_analysis_step(tmp_path):
             self.count += 1
             if self.count >= self.fail_at: raise RuntimeError("power loss")
             self.delegate.save(*args)
-    for fail_at, repeated in ((2,"relevance"),(3,"relevance"),(4,"relevance"),(5,"summary"),(6,"actions"),(7,"actions"),(8,"actions"),(9,None),(10,None)):
+    # Every durable boundary, including normalization, proposal construction and
+    # both sides of the per-version Telegram delivery marker, is interrupted.
+    for fail_at in range(2, 19):
         with JsonStore(tmp_path/str(fail_at)) as disk:
             first=CountingAnalyzer()
+            notify = Notify()
             with pytest.raises(RuntimeError,match="power loss"):
-                Orchestrator(first,InterruptingStore(disk,fail_at),Notify(),1,[topic],1000).process(mail)
-            second=CountingAnalyzer(); result=Orchestrator(second,disk,Notify(),1,[topic],1000).process(mail)
+                Orchestrator(first,InterruptingStore(disk,fail_at),notify,1,[topic],1000).process(mail)
+            second=CountingAnalyzer(); result=Orchestrator(second,disk,notify,1,[topic],1000).process(mail)
             assert result["steps"]["completion"]=="completed"
             assert second.calls == [step for step in ("relevance", "summary", "actions") if step in second.calls]
             assert len(second.calls) == len(set(second.calls))
+            assert notify.messages.count(result["proposals"][0]["id"]) == 1
+            assert result["proposal_notifications"][0]["status"] in {"sending", "completed"}
 
     with JsonStore(tmp_path/"invalid") as store:
         store.save("mail-"+"a"*24,{"schema_version":3,"id":"bad","imap":{},"steps":{}})
@@ -750,6 +755,56 @@ def test_gemeinderat_action_failure_preserves_summary_and_retries_only_actions(t
         assert len([message for message in notify.messages if "Zusammenfassung:" in message]) == 1
         assert len([message for message in notify.messages if "Stufe event_extraction:" in message]) == 1
         assert resumed["error"] is None
+
+
+def test_task_and_event_partial_success_resumes_only_failed_event(tmp_path):
+    class BothAnalyzer(AnalyzerStub):
+        def __init__(self):
+            super().__init__("relevant")
+            self.calls = []
+            self.fail_event = True
+        def relevance(self, mail, topics):
+            self.calls.append("relevance-call")
+            return super().relevance(mail, topics)
+        def summary(self, mail):
+            self.calls.append("summary-call")
+            return super().summary(mail)
+        def action_route(self, mail):
+            self.calls.append("router-call")
+            return "router-id", ActionRoute(action_state="task_and_event", task_count=1,
+                                             event_count=1, reason="Beides")
+        def extract_tasks(self, mail):
+            self.calls.append("task-call")
+            return super().extract_tasks(mail)
+        def extract_events(self, mail):
+            self.calls.append("event-call")
+            if self.fail_event:
+                raise LlmSchemaValidationExceeded("event_extraction")
+            from mailhelp.models import EventExtraction, ExtractedEvent
+            return "event-id", EventExtraction(events=[ExtractedEvent(
+                title="Termin", evidence="Termin", responsibility="other",
+                certainty="certain", classification="new")])
+
+    analyzer, notify = BothAnalyzer(), Notify()
+    fetched = FetchedMail("INBOX", 1, 193, b"Subject: Beides\n\nAufgabe und Termin")
+    topic = Topic(id="x", name="x", enabled=True, description="x")
+    with JsonStore(tmp_path / "both") as store:
+        orchestrator = Orchestrator(analyzer, store, notify, 1, [topic], 1000)
+        partial = orchestrator.process(fetched)
+        stable_ids = list(partial["llm_call_ids"])
+        assert partial["steps"]["task_extraction"] == "completed"
+        assert partial["steps"]["event_extraction"] == "failed"
+        assert stable_ids == ["r", "s", "router-id", "t"]
+        analyzer.fail_event = False
+        resumed = orchestrator.process(fetched)
+    assert analyzer.calls == ["relevance-call", "summary-call", "router-call", "task-call",
+                              "event-call", "event-call"]
+    assert resumed["llm_call_ids"][:4] == stable_ids
+    assert resumed["llm_call_ids"] == stable_ids + ["event-id"]
+    assert resumed["steps"]["normalization"] == "completed"
+    assert resumed["steps"]["proposal_building"] == "completed"
+    assert resumed["steps"]["summary_notification"] == "completed"
+    assert len([message for message in notify.messages if "Zusammenfassung:" in message]) == 1
 
 
 @pytest.mark.parametrize(("kind", "expected_stage"), [
