@@ -172,6 +172,12 @@ class HttpWriter:
         self.policy = policy or RetryPolicy(0, 0, 0, lambda _delay: False)
         self.logger = logger or NullLogger()
 
+    def check_access(self) -> None:
+        """Verify access to the configured target using only a GET request."""
+        url = (f"/projects/{self.target}" if self.service == "todoist"
+               else f"/calendars/{self.target}")
+        self.policy.run(lambda: self._get(url, {}))
+
     def reconcile(self, key: str) -> dict[str, Any] | None:
         self.logger.event("INFO", self.service, "reconcile_started", call_id=key)
         if self.service == "todoist":

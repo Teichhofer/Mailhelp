@@ -63,6 +63,13 @@ class ImapReader:
             self.connection.logout()
             raise
 
+    def check_access(self, folders: list[str]) -> None:
+        """Verify read-only access without searching for or fetching messages."""
+        for folder in folders:
+            status, _ = self.connection.select(folder, readonly=True)
+            if status != "OK":
+                raise RuntimeError(f"IMAP-Ordner nicht lesbar: {folder}")
+
     def fetch_since(self, folder: str, after_uid: int = 0, expected_uidvalidity: int | None = None) -> list[FetchedMail]:
         started = time.perf_counter()
         self.logger.event("INFO", "imap", "request_started", folder=folder, after_uid=after_uid)

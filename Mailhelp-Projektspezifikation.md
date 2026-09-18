@@ -252,6 +252,15 @@ Zugangsdaten können im Container alternativ als Umgebungsvariablen bereitgestel
 
 Alle Dateien werden beim Start geprüft. Fehlermeldungen nennen betroffene Datei und Schlüssel, niemals geheime Werte. `.env`, Zustandsdaten und Logs werden aus Git und Docker-Build-Kontext ausgeschlossen. Eine private Beispieldatei mit echten Zugangsdaten gehört nicht ins Projekt.
 
+Der gesonderte Start mit `--check-access` prüft alle konfigurierten externen
+Zugänge ausschließlich über lesende beziehungsweise authentifizierende
+Operationen: IMAP-Ordnerauswahl im Nur-Lese-Modus, OpenRouter-Schlüsselstatus,
+Telegram `getMe`, Todoist-Zielprojekt und Google-Zielkalender. Dabei werden weder
+Mails gesucht oder geladen noch Telegram-Updates gelesen, LLM-Aufträge ausgeführt
+oder externe Einträge geschrieben. Alle Prüfergebnisse werden ausgegeben; ein
+Teilfehler verhindert die übrigen Prüfungen nicht und führt abschließend zu einem
+von null verschiedenen Prozessstatus.
+
 Die Bereiche `imap`, `telegram`, `targets`, `limits`, `retries`, `timeouts` und `logging` besitzen geschlossene Modelle. `imap.connection_mode` akzeptiert ausschließlich `ssl`, `starttls` und `plain`; `imap.historical_start` akzeptiert ausschließlich `null` oder einen ISO-8601-Zeitpunkt mit Offset. IMAP, Telegram, OpenRouter, Todoist und Google Calendar konfigurieren Timeout, Retry-Anzahl, initialen Backoff und Backoff-Obergrenze getrennt. Ports (1–65535), Polling (5–86400 Sekunden), Adaptertimeouts (1–300 Sekunden), Telegram-Long-Polling (1–50 Sekunden), Mailgröße (1.024–100.000.000 Bytes), LLM-Rate (1–600/min), Wiederholungen (0–10) und Backoff (0–60 Sekunden) sind begrenzt. Zeitzonen müssen IANA-Namen sein; Ordner sind eindeutig und nicht leer, Pfade sicher, Log-Level sind `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Dieselbe Transportauswahl und UTC-Auswertung gilt unter Windows 11 und im Linux-Docker-Container; die Host-Zeitzone beeinflusst die Grenze nicht.
 
 ## 10. JSON-Zustand und Neustartverhalten

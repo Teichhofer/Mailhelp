@@ -89,6 +89,23 @@ class TelegramWriteResponse(TelegramTransportModel):
         return self
 
 
+class TelegramBot(TelegramTransportModel):
+    id: int
+    is_bot: bool
+    username: str | None = None
+
+
+class TelegramBotResponse(TelegramTransportModel):
+    ok: bool
+    result: TelegramBot
+
+    @model_validator(mode="after")
+    def successful(self) -> "TelegramBotResponse":
+        if not self.ok or not self.result.is_bot:
+            raise ValueError("Telegram meldet keinen gültigen Bot")
+        return self
+
+
 class DecisionAction(StrEnum):
     CONFIRM = "confirm"
     EDIT = "edit"
@@ -214,6 +231,17 @@ class TelegramClient:
         self.client = httpx.Client(base_url=f"https://api.telegram.org/bot{token}", timeout=timeout, transport=transport)
         self.policy = policy or RetryPolicy(0, 0, 0, lambda _delay: False)
         self.logger = logger or NullLogger()
+
+    def check_access(self) -> None:
+        """Validate the bot token without reading updates or sending a message."""
+        response = self.policy.run(lambda: self.client.get("/getMe"))
+        response.raise_for_status()
+        try:
+            TelegramBotResponse.model_validate(response.json())
+        except (ValueError, ValidationError) as exc:
+            raise ValueError(
+                f"Telegram getMe: ungültige Antwort am Schlüsselpfad {_validation_path(exc)}"
+            ) from exc
 
     def poll(self, offset: int, timeout: int | None = None) -> list[dict[str, Any]]:
         call_id, started = str(uuid.uuid4()), time.perf_counter()
