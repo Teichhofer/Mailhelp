@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from contextlib import ExitStack, contextmanager
 import imaplib
+import traceback
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,7 +14,7 @@ from .analysis import Analyzer
 from .config import PromptConfig, Secrets, Settings, Topic
 from .imap import ImapReader
 from .integrations import GoogleOAuthTokenProvider, HttpWriter
-from .logging import JsonlLogger
+from .logging import JsonlLogger, NullLogger
 from .models import ImapCheckpoint, MailState, TelegramOffset
 from .openrouter import OpenRouterClient
 from .orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
@@ -58,10 +59,16 @@ class Application:
             ("Google Calendar", self.calendar.check_access),
         )
         results: dict[str, str | None] = {}
+        logger = getattr(self, "logger", NullLogger())
         for name, check in checks:
+            logger.event("DEBUG", "access_check", "check_started", service=name)
             try:
                 check()
             except Exception as exc:
+                logger.event(
+                    "ERROR", "access_check", "check_failed", service=name,
+                    error=exc, stacktrace=traceback.format_exc(),
+                )
                 # Adapter diagnostics are already safe, service-specific user
                 # messages.  Preserve them verbatim for the CLI rather than
                 # replacing them with a generic access-check failure.
@@ -69,6 +76,7 @@ class Application:
                 results[name] = message if message else type(exc).__name__
             else:
                 results[name] = None
+                logger.event("DEBUG", "access_check", "check_completed", service=name)
         return results
 
     def stop(self) -> None:
@@ -208,7 +216,7 @@ def _state_directory(settings: Settings, base_directory: Path) -> Path:
 
 
 @contextmanager
-def build_application(settings: Settings, secrets: Secrets, topics: list[Topic], prompts: PromptConfig, fingerprint: str, base_directory: Path = Path(".")) -> Iterator[Application]:
+def build_application(settings: Settings, secrets: Secrets, topics: list[Topic], prompts: PromptConfig, fingerprint: str, base_directory: Path = Path("."), *, access_diagnostics: bool = False) -> Iterator[Application]:
     """Construct adapters and close every successfully constructed resource."""
     with ExitStack() as stack:
         data = _state_directory(settings, base_directory)
@@ -225,11 +233,13 @@ def build_application(settings: Settings, secrets: Secrets, topics: list[Topic],
         log = settings.logging
         logger = JsonlLogger(
             log_dir, log.llm.include_requests, log.llm.include_responses,
-            log.file.level, log.modules, known_secrets,
-            file_enabled=log.file.enabled, file_name=log.file.filename,
+            "DEBUG" if access_diagnostics else log.file.level,
+            {} if access_diagnostics else log.modules, known_secrets,
+            file_enabled=access_diagnostics or log.file.enabled, file_name=log.file.filename,
             file_format=log.file.format, file_max_bytes=log.file.max_bytes,
             file_backup_count=log.file.backup_count, file_retention_days=log.file.retention_days,
-            console_enabled=log.console.enabled, console_level=log.console.level,
+            console_enabled=access_diagnostics or log.console.enabled,
+            console_level="DEBUG" if access_diagnostics else log.console.level,
             console_format=log.console.format,
             llm_enabled=log.llm.enabled, llm_level=log.llm.level,
             llm_name=log.llm.filename, llm_format=log.llm.format,

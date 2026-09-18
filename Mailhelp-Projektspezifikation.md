@@ -270,6 +270,12 @@ oder externe Einträge geschrieben. Alle Prüfergebnisse werden ausgegeben; ein
 Teilfehler verhindert die übrigen Prüfungen nicht und führt abschließend zu einem
 von null verschiedenen Prozessstatus.
 
+Für `--check-access` werden Datei- und Konsolenlogging grundsätzlich und unabhängig
+von den konfigurierten Aktivierungs- und Modulfiltern auf das maximale Level `DEBUG`
+gesetzt. Start, Erfolg sowie Fehler jeder Dienstprüfung werden einschließlich eines
+geheimnisbereinigten Stacktraces protokolliert. Die Ausgabe darf weiterhin keine
+Zugangsdaten oder vollständigen Antwortinhalte enthalten.
+
 `targets.todoist_project` enthält eine echte Todoist-Projekt-ID; Projektname, URL
 oder Alias sind hier nicht zulässig. Eine Todoist-Antwort mit HTTP 401 wird als
 Authentifizierungsfehler (abgelehntes Token), HTTP 403 als Berechtigungsfehler für

@@ -27,7 +27,10 @@ def main() -> int:
     )
     args = parser.parse_args(); settings, secrets, topics, prompts, fingerprint = load_all(args.config_directory)
     if args.check: print("Konfiguration ist gültig."); return 0
-    with build_application(settings, secrets, topics, prompts, fingerprint) as application:
+    build_options = {"access_diagnostics": True} if args.check_access else {}
+    with build_application(
+        settings, secrets, topics, prompts, fingerprint, **build_options,
+    ) as application:
         if args.check_access:
             results = application.check_access()
             for name, error in results.items():
