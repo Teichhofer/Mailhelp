@@ -29,6 +29,12 @@ class RetryInterrupted(RetryableError):
     """Der kontrollierte Shutdown hat einen Backoff abgebrochen."""
 
 
+def _error_message(default: str, exc: Exception) -> str:
+    """Add only an adapter-provided, explicitly safe diagnostic."""
+    detail = getattr(exc, "safe_detail", None)
+    return f"{default}: {detail}" if isinstance(detail, str) and detail else default
+
+
 @dataclass(frozen=True)
 class RetryPolicy:
     retries: int
@@ -50,8 +56,8 @@ class RetryPolicy:
                 delay = self._delay(exc, attempt)
                 if delay is None or attempt == self.retries:
                     if self._retryable(exc):
-                        raise RetryableError("Wiederholbare Anfrage ist ausgeschoepft") from exc
-                    raise PermanentError("Permanente Adapterantwort") from exc
+                        raise RetryableError(_error_message("Wiederholbare Anfrage ist ausgeschoepft", exc)) from exc
+                    raise PermanentError(_error_message("Permanente Adapterantwort", exc)) from exc
                 if self.wait(delay):
                     raise RetryInterrupted("Shutdown waehrend Adapter-Backoff") from exc
                 attempt += 1
@@ -86,7 +92,7 @@ def uncertain_write(operation: Callable[[], T]) -> T:
         return operation()
     except httpx.HTTPStatusError as exc:
         if exc.response.status_code not in RETRYABLE_STATUS:
-            raise PermanentError("Permanente Adapterantwort") from exc
-        raise UncertainWriteError("Unklarer externer Schreiberfolg") from exc
+            raise PermanentError(_error_message("Permanente Adapterantwort", exc)) from exc
+        raise UncertainWriteError(_error_message("Unklarer externer Schreiberfolg", exc)) from exc
     except httpx.TransportError as exc:
         raise UncertainWriteError("Unklarer externer Schreiberfolg") from exc

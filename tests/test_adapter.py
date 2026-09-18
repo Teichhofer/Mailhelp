@@ -52,6 +52,9 @@ def test_uncertain_write_classification():
     with pytest.raises(UncertainWriteError): uncertain_write(lambda: (_ for _ in ()).throw(httpx.ReadTimeout("x")))
     with pytest.raises(UncertainWriteError): uncertain_write(lambda: (_ for _ in ()).throw(status(500)))
     with pytest.raises(PermanentError): uncertain_write(lambda: (_ for _ in ()).throw(status(401)))
+    detailed=status(401); detailed.safe_detail="Telegram sendMessage: Bad Request: chat not found"
+    with pytest.raises(PermanentError, match="Telegram sendMessage: Bad Request: chat not found"):
+        uncertain_write(lambda: (_ for _ in ()).throw(detailed))
     assert uncertain_write(lambda: 4)==4
 
 

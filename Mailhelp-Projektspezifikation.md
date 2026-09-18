@@ -427,7 +427,7 @@ Zum Lieferumfang gehören `Dockerfile`, `compose.yaml`, eine Installationsanleit
 
 Timeouts und begrenzte Wiederholungsversuche mit zunehmenden Abständen gelten je Integration. Ein konfigurierbares LLM-Aufruflimit pro Zeitraum begrenzt automatische Anfragen. Bei Ausschöpfung werden Arbeiten zurückgestellt und sichtbar gemeldet. Numerische Standardwerte werden vor Implementierungsabschluss festgelegt.
 
-Nach erfolgreichem HTTP-Status validieren integrationsspezifische Antwortmodelle OpenRouter, Telegram und Todoist auf JSON-Struktur, Pflichtfelder und erwartete IDs. Diagnosen nennen Integration und Schlüsselpfad, nie Tokens, Authorization-Header oder vollständige nicht freigeschaltete Inhalte.
+Nach erfolgreichem HTTP-Status validieren integrationsspezifische Antwortmodelle OpenRouter, Telegram und Todoist auf JSON-Struktur, Pflichtfelder und erwartete IDs. Telegram-Fehlerdiagnosen übernehmen das dokumentierte menschenlesbare `description`-Feld vollständig, ohne den übrigen Antwortkörper oder den Bot-Token offenzulegen. Sonstige Diagnosen nennen Integration und Schlüsselpfad, nie Tokens, Authorization-Header oder vollständige nicht freigeschaltete Inhalte.
 
 Ein Testmodus führt Auswertung und Telegram-Dialog aus, verhindert aber Todoist-Schreibzugriffe und den Versand von Kalenderdateien. Simulierte Erfolge sind deutlich als Simulation markiert und werden nicht als echte externe Einträge gespeichert. Test- und Produktivzustand werden getrennt gehalten. Der Testmodus ist kein Offline-Modus: LLM- und Telegram-Aufrufe können weiterhin stattfinden.
 

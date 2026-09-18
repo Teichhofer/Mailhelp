@@ -279,9 +279,11 @@ an den Aufrufer zurück.
 Telegram-Transportantworten werden an der Eingangsgrenze durch Pydantic-Schemata
 validiert: Die von Mailhelp verwendeten Pflichtfelder bleiben streng typisiert,
 während zusätzliche Telegram-Felder ignoriert und insbesondere nicht in interne
-Zustände übernommen werden. Die internen Modelle für Vorschlags- und
-Relevanzentscheidungen bleiben dagegen geschlossen und lehnen unbekannte Felder
-ab. Der atomar gespeicherte Offset verhindert nach einem Neustart
+Zustände übernommen werden. Bei Telegram-API-Fehlern wird
+das dokumentierte `description`-Feld vollständig in die Fehlermeldung übernommen;
+Antwortkörper und Bot-Token werden dabei nicht ausgegeben. Die internen Modelle für
+Vorschlags- und Relevanzentscheidungen bleiben dagegen geschlossen und lehnen
+unbekannte Felder ab. Der atomar gespeicherte Offset verhindert nach einem Neustart
 die erneute Verarbeitung bereits behandelter Updates. Aktionen enthalten immer
 Vorschlags-ID, Version und Aktion; nur der konfigurierte Nutzer im konfigurierten
 Chat darf sie auslösen. Jede angezeigte Version wird vor ihren Schaltflächen
