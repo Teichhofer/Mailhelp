@@ -186,7 +186,7 @@ def test_telegram_response_models_and_write_validation():
 def test_integration_response_boundaries_and_required_ids():
     with pytest.raises(ValueError, match="id"): _with_external_result(proposal(status="writing"), {})
     cases = [
-        ("todoist", "GET", {}),
+        ("todoist", "GET", {"results": []}),
         ("todoist", "POST", {"description":"no id"}),
         ("google_calendar", "GET", {"wrong": []}),
         ("google_calendar", "POST", {"htmlLink":"https://private.invalid"}),
@@ -204,6 +204,12 @@ def test_integration_response_boundaries_and_required_ids():
                 writer.create(proposal(kind="event",start=now,end=now+timedelta(hours=1),status="confirmed"),"key")
         assert service.split("_")[0].lower() in str(error.value).lower() and "top-secret" not in str(error.value)
         writer.close()
+    writer=HttpWriter("todoist","top-secret","target",transport=httpx.MockTransport(
+        lambda request: httpx.Response(200,content=b"not-json",request=request)))
+    with pytest.raises(ValueError, match="Todoist tasks.*<json>") as error:
+        writer.reconcile("key")
+    assert "top-secret" not in str(error.value)
+    writer.close()
 
 
 def test_event_boundary_rejects_incomplete_contradictory_and_naive_values():

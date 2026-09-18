@@ -65,7 +65,7 @@ def test_adapter_access_checks_are_read_only_and_validate_responses():
 
 def test_target_access_checks_only_issue_get_requests():
     for service, target, expected in (
-        ("todoist", "project", "/rest/v2/projects/project"),
+        ("todoist", "project", "/api/v1/projects/project"),
         ("google_calendar", "calendar", "/calendar/v3/calendars/calendar"),
     ):
         seen = []
@@ -170,7 +170,8 @@ def test_cli_access_check_prints_summary_and_never_runs(monkeypatch, capsys, res
         def run(self, **_kwargs): raise AssertionError("mail processing must not start")
 
     @contextmanager
-    def builder(*_args, **_kwargs):
+    def builder(*_args, **kwargs):
+        assert kwargs == {"access_diagnostics": True}
         yield App()
 
     monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], None, "fingerprint"))

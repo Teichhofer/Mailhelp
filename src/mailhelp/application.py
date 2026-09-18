@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from contextlib import ExitStack, contextmanager
 import imaplib
+import traceback
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -13,7 +14,7 @@ from .analysis import Analyzer
 from .config import PromptConfig, Secrets, Settings, Topic
 from .imap import ImapReader
 from .integrations import GoogleOAuthTokenProvider, HttpWriter
-from .logging import JsonlLogger
+from .logging import JsonlLogger, NullLogger
 from .models import ImapCheckpoint, MailState, TelegramOffset
 from .openrouter import OpenRouterClient
 from .orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
@@ -58,10 +59,16 @@ class Application:
             ("Google Calendar", self.calendar.check_access),
         )
         results: dict[str, str | None] = {}
+        logger = getattr(self, "logger", NullLogger())
         for name, check in checks:
+            logger.event("DEBUG", "access_check", "check_started", service=name)
             try:
                 check()
             except Exception as exc:
+                logger.event(
+                    "ERROR", "access_check", "check_failed", service=name,
+                    error=exc, stacktrace=traceback.format_exc(),
+                )
                 # Adapter diagnostics are already safe, service-specific user
                 # messages.  Preserve them verbatim for the CLI rather than
                 # replacing them with a generic access-check failure.
@@ -69,6 +76,7 @@ class Application:
                 results[name] = message if message else type(exc).__name__
             else:
                 results[name] = None
+                logger.event("DEBUG", "access_check", "check_completed", service=name)
         return results
 
     def stop(self) -> None:
@@ -235,7 +243,7 @@ def build_logger(settings: Settings, secrets: Secrets, base_directory: Path = Pa
 
 
 @contextmanager
-def build_application(settings: Settings, secrets: Secrets, topics: list[Topic], prompts: PromptConfig, fingerprint: str, base_directory: Path = Path("."), logger: JsonlLogger | None = None) -> Iterator[Application]:
+def build_application(settings: Settings, secrets: Secrets, topics: list[Topic], prompts: PromptConfig, fingerprint: str, base_directory: Path = Path("."), *, access_diagnostics: bool = False) -> Iterator[Application]:
     """Construct adapters and close every successfully constructed resource."""
     with ExitStack() as stack:
         data = _state_directory(settings, base_directory)
