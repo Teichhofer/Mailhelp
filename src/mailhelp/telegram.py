@@ -12,7 +12,7 @@ from .models import (MailState, Proposal, ProposalKind, ProposalStatus, Relevanc
                      RelevanceDialogStatus, TelegramDialogState, TelegramOffset,
                      WriteAttemptReference)
 from .integrations import ExternalWriter, execute_confirmed, proposal_is_writable
-from .adapter import RetryPolicy, uncertain_write
+from .adapter import PermanentError, RetryPolicy, uncertain_write
 from .storage import JsonStore
 from .logging import EventLogger, NullLogger
 from .analysis import validate_revision_successor
@@ -235,7 +235,8 @@ class TelegramClient:
     def check_access(self) -> None:
         """Validate the bot token without reading updates."""
         response = self.policy.run(lambda: self.client.get("/getMe"))
-        response.raise_for_status()
+        self._raise_for_status(response, "getMe")
+        self._raise_api_error(response, "getMe")
         try:
             TelegramBotResponse.model_validate(response.json())
         except (ValueError, ValidationError) as exc:
@@ -248,13 +249,14 @@ class TelegramClient:
         self.logger.event("INFO", "telegram", "poll_started", call_id=call_id, offset=offset)
         def request() -> httpx.Response:
             response = self.client.get("/getUpdates", params={"offset": offset, "timeout": self.poll_timeout if timeout is None else timeout})
-            response.raise_for_status(); return response
+            self._raise_for_status(response, "getUpdates"); return response
         try:
             response = self.policy.run(request, lambda attempt: self.logger.event("DEBUG", "telegram", "poll_attempt", call_id=call_id, attempt=attempt),
                                        lambda attempt, exc: self.logger.event("WARNING", "telegram", "poll_retry", call_id=call_id, attempt=attempt, error=exc))
         except Exception as exc:
             self.logger.event("ERROR", "telegram", "poll_failed", call_id=call_id, error=exc, stacktrace=traceback.format_exc(), duration_ms=round((time.perf_counter()-started)*1000, 3))
             raise
+        self._raise_api_error(response, "getUpdates")
         try: parsed = TelegramUpdatesResponse.model_validate(response.json())
         except (ValueError, ValidationError) as exc: raise ValueError(f"Telegram getUpdates: ungültige Antwort am Schlüsselpfad {_validation_path(exc)}") from exc
         result = [item.model_dump(by_alias=True) for item in parsed.result]
@@ -270,7 +272,7 @@ class TelegramClient:
             if reply_markup is not None and index == len(parts) - 1:
                 payload["reply_markup"] = reply_markup
             def request() -> httpx.Response:
-                response = self.client.post("/sendMessage", json=payload); response.raise_for_status(); return response
+                response = self.client.post("/sendMessage", json=payload); self._raise_for_status(response, "sendMessage"); return response
             response = uncertain_write(request)
             self._validate_write(response, "sendMessage")
         self.logger.event("INFO", "telegram", "send_completed", call_id=call_id, parts=len(parts))
@@ -292,7 +294,7 @@ class TelegramClient:
                 "/sendDocument", data=data,
                 files={"document": (filename, content, "text/calendar; charset=utf-8")},
             )
-            response.raise_for_status()
+            self._raise_for_status(response, "sendDocument")
             return response
 
         response = uncertain_write(request)
@@ -302,14 +304,50 @@ class TelegramClient:
 
     def answer_callback(self, callback_id: str, text: str) -> None:
         def request() -> httpx.Response:
-            response = self.client.post("/answerCallbackQuery", json={"callback_query_id": callback_id, "text": text}); response.raise_for_status(); return response
+            response = self.client.post("/answerCallbackQuery", json={"callback_query_id": callback_id, "text": text}); self._raise_for_status(response, "answerCallbackQuery"); return response
         response = uncertain_write(request)
         self._validate_write(response, "answerCallbackQuery")
 
     @staticmethod
     def _validate_write(response: httpx.Response, operation: str) -> None:
+        TelegramClient._raise_api_error(response, operation)
         try: TelegramWriteResponse.model_validate(response.json())
         except (ValueError, ValidationError) as exc: raise ValueError(f"Telegram {operation}: ungültige Antwort am Schlüsselpfad {_validation_path(exc)}") from exc
+
+    @staticmethod
+    def _description(response: httpx.Response) -> str | None:
+        """Read only Telegram's documented human-readable error field."""
+        try:
+            payload = response.json()
+        except ValueError:
+            return None
+        if not isinstance(payload, dict):
+            return None
+        description = payload.get("description")
+        return description if isinstance(description, str) and description else None
+
+    @staticmethod
+    def _raise_for_status(response: httpx.Response, operation: str) -> None:
+        try:
+            response.raise_for_status()
+        except httpx.HTTPStatusError as exc:
+            description = TelegramClient._description(response)
+            if description is not None:
+                # Retry code consumes this explicit safe field instead of rendering
+                # the exception URL, because that URL contains the bot token.
+                exc.safe_detail = f"Telegram {operation}: {description}"
+            raise
+
+    @staticmethod
+    def _raise_api_error(response: httpx.Response, operation: str) -> None:
+        try:
+            payload = response.json()
+        except ValueError:
+            return
+        if isinstance(payload, dict) and payload.get("ok") is False:
+            description = TelegramClient._description(response)
+            if description is not None:
+                raise PermanentError(f"Permanente Adapterantwort: Telegram {operation}: {description}")
 
     def close(self) -> None:
         self.client.close()

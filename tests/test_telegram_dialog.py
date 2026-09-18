@@ -4,6 +4,7 @@ import httpx
 import pytest
 from pydantic import ValidationError
 
+from mailhelp.adapter import PermanentError, UncertainWriteError
 from mailhelp.models import MailState, Proposal, ProposalStatus, RelevanceDialog, RelevanceDialogStatus
 from mailhelp.orchestrator import Orchestrator
 from mailhelp.storage import JsonStore
@@ -367,6 +368,49 @@ def test_telegram_client_validation_and_callback():
     invalid=TelegramClient("secret",1,httpx.MockTransport(lambda r:httpx.Response(200,json={"ok":True,"result":{}},request=r)))
     with pytest.raises(ValueError): invalid.poll(0)
     invalid.close()
+
+
+def test_telegram_client_preserves_documented_api_error_description():
+    def rejected(request):
+        return httpx.Response(400,json={"ok":False,"error_code":400,"description":"Bad Request: chat not found"},request=request)
+    client=TelegramClient("top-secret",1,httpx.MockTransport(rejected))
+    with pytest.raises(PermanentError) as error:
+        client.send(2,"x")
+    assert str(error.value) == "Permanente Adapterantwort: Telegram sendMessage: Bad Request: chat not found"
+    assert "top-secret" not in str(error.value)
+    client.close()
+
+
+def test_telegram_client_preserves_retryable_and_http_success_api_errors():
+    responses=iter([
+        (500,{"ok":False,"description":"Internal Server Error: try later"}),
+        (200,{"ok":False,"error_code":400,"description":"Bad Request: message is too long"}),
+    ])
+    def rejected(request):
+        status_code,payload=next(responses)
+        return httpx.Response(status_code,json=payload,request=request)
+    client=TelegramClient("secret",1,httpx.MockTransport(rejected))
+    with pytest.raises(UncertainWriteError,match="Telegram sendMessage: Internal Server Error: try later"):
+        client.send(2,"x")
+    with pytest.raises(PermanentError,match="Telegram sendMessage: Bad Request: message is too long"):
+        client.send(2,"x")
+    client.close()
+
+
+def test_telegram_error_description_boundary_rejects_unusable_fields():
+    request=httpx.Request("POST","https://example.test")
+    invalid_json=httpx.Response(400,content=b"not-json",request=request)
+    list_json=httpx.Response(400,json=["description"],request=request)
+    wrong_description=httpx.Response(400,json={"ok":False,"description":42},request=request)
+    assert TelegramClient._description(invalid_json) is None
+    assert TelegramClient._description(list_json) is None
+    assert TelegramClient._description(wrong_description) is None
+    with pytest.raises(httpx.HTTPStatusError) as error:
+        TelegramClient._raise_for_status(wrong_description,"sendMessage")
+    assert not hasattr(error.value,"safe_detail")
+    TelegramClient._raise_api_error(invalid_json,"sendMessage")
+    TelegramClient._raise_api_error(list_json,"sendMessage")
+    TelegramClient._raise_api_error(wrong_description,"sendMessage")
 
 
 def test_telegram_client_sends_calendar_document_and_validates_filename():
