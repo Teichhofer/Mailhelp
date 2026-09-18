@@ -62,7 +62,11 @@ class Application:
             try:
                 check()
             except Exception as exc:
-                results[name] = str(exc) or type(exc).__name__
+                # Adapter diagnostics are already safe, service-specific user
+                # messages.  Preserve them verbatim for the CLI rather than
+                # replacing them with a generic access-check failure.
+                message = str(exc)
+                results[name] = message if message else type(exc).__name__
             else:
                 results[name] = None
         return results
