@@ -380,8 +380,15 @@ class DuplicateDecision(StrictModel):
         return self
 
 
+class DisplayHeaders(StrictModel):
+    """Persisted, bounded values for Telegram only; never an analysed mail."""
+
+    sender: str = Field(default="—", min_length=1, max_length=10_000)
+    subject: str = Field(default="—", min_length=1, max_length=10_000)
+
+
 class MailState(StrictModel):
-    schema_version: Literal[8] = 8
+    schema_version: Literal[9] = 9
     id: str = Field(pattern=r"^[a-f0-9]{24}$")
     imap: MailImapIdentity
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -389,6 +396,7 @@ class MailState(StrictModel):
     config_fingerprint: str = Field(pattern=r"^[a-f0-9]{64}$")
     steps: ProcessingSteps = Field(default_factory=ProcessingSteps)
     mail: dict[str, Any] | None = None
+    display_headers: DisplayHeaders | None = None
     relevance: Relevance | None = None
     summary: Summary | None = None
     action_route: ActionRoute | None = None

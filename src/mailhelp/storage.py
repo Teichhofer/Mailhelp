@@ -80,7 +80,7 @@ class JsonStore:
         # explicitly so an old completed flag can never be mistaken for the new,
         # earlier summary delivery without recording the conversion on disk.
         mail_state = model.__name__ == "MailState"
-        migrated = mail_state and value.get("schema_version") in {6, 7}
+        migrated = mail_state and value.get("schema_version") in {6, 7, 8}
         if mail_state and value.get("schema_version") == 6:
             old_notification = value["steps"].pop("notification", "pending")
             value["steps"]["summary_notification"] = old_notification
@@ -93,6 +93,13 @@ class JsonStore:
                                   event_extraction=default)
             value.update(task_extraction=None, event_extraction=None)
             value["schema_version"] = 8
+        if mail_state and value.get("schema_version") == 8:
+            headers = value.get("mail", {}).get("headers", {}) if value.get("mail") else {}
+            value["display_headers"] = {
+                "sender": headers.get("from") or "—",
+                "subject": headers.get("subject") or "—",
+            }
+            value["schema_version"] = 9
         try:
             result = model.model_validate(value)
         except ValidationError as exc:

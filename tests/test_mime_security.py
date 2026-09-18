@@ -2,7 +2,8 @@ from email.message import EmailMessage
 
 import pytest
 
-from mailhelp.mime import MimeLimitExceeded, MimeLimits, _clean, _decode, prepare
+from mailhelp.mime import (MimeLimitExceeded, MimeLimits, _clean, _decode,
+                           extract_display_headers, prepare)
 
 
 def limits(**changes):
@@ -103,3 +104,41 @@ def test_html_self_closing_and_raw_string_payload_paths():
         def get_payload(self, decode=False): return None if decode else self.value
     assert _decode(Undecodable("fallback")) == "fallback"
     assert _decode(Undecodable([])) == ""
+
+
+def test_bounded_display_headers_decode_and_normalize_to_single_lines():
+    raw = (b"From: =?utf-8?q?Gr=C3=BC=C3=9Fe?= <sender@example.test>\r\n"
+           b"Subject: first\r\n\tsecond\x00\r\nDate: ignored\r\n\r\nbody")
+    assert extract_display_headers(raw, limits()) == {
+        "from": "Grüße <sender@example.test>", "subject": "first second"
+    }
+
+
+@pytest.mark.parametrize(("raw", "expected"), [
+    (b"Date: today\r\n\r\nbody", {"from": "—", "subject": "—"}),
+    (b"From: a@example.test\r\nSubject: one\r\nSubject: injected\r\n\r\nbody",
+     {"from": "a@example.test", "subject": "—"}),
+    (b"From: a@example.test\r\nSubject: incomplete", {"from": "—", "subject": "—"}),
+])
+def test_display_headers_missing_duplicated_or_incomplete_are_unavailable(raw, expected):
+    assert extract_display_headers(raw, limits()) == expected
+
+
+def test_display_headers_reject_overlong_fields_and_header_blocks():
+    raw = b"From: sender@example.test\r\nSubject: abcdef\r\n\r\nbody"
+    assert extract_display_headers(raw, limits(max_display_header_characters=5)) == {
+        "from": "—", "subject": "—"
+    }
+    assert extract_display_headers(raw, limits(max_header_bytes=20)) == {
+        "from": "—", "subject": "—"
+    }
+    assert extract_display_headers(b"X" * 19 + b"\n\nbody", limits(max_header_bytes=20)) == {
+        "from": "—", "subject": "—"
+    }
+
+
+def test_display_header_injection_controls_cannot_create_telegram_lines():
+    raw = b"From: safe@example.test\r\nSubject: hello\x01world\r\n\tcontinued\r\n\r\nbody"
+    displayed = extract_display_headers(raw, limits())
+    assert displayed == {"from": "safe@example.test", "subject": "helloworld continued"}
+    assert all("\n" not in value and "\r" not in value for value in displayed.values())

@@ -34,6 +34,9 @@ targets:
   google_calendar: "primary"
 limits:
   max_mail_bytes: 1000000
+  # Ausschließlich für die vorgezogene, unvollständige Telegram-Headeranzeige.
+  max_header_bytes: 64000
+  max_display_header_characters: 500
   max_mime_parts: 100
   max_decoded_text_bytes: 1000000
   max_html_characters: 1000000

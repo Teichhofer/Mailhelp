@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from email import policy
 from email.message import Message
 from email.parser import BytesParser
+from email.parser import BytesHeaderParser
 from email.utils import parsedate_to_datetime
 from datetime import datetime, timezone
 from html.parser import HTMLParser
@@ -16,6 +17,8 @@ import unicodedata
 @dataclass(frozen=True)
 class MimeLimits:
     max_mail_bytes: int
+    max_header_bytes: int = 64_000
+    max_display_header_characters: int = 500
     max_mime_parts: int = 100
     max_decoded_text_bytes: int = 1_000_000
     max_html_characters: int = 1_000_000
@@ -30,6 +33,42 @@ class MimeLimitExceeded(ValueError):
     def __init__(self, limit: str) -> None:
         self.limit = limit
         super().__init__(f"E-Mail-Verarbeitung abgebrochen: konfigurierte Grenze '{limit}' überschritten")
+
+
+def extract_display_headers(raw: bytes, limits: int | MimeLimits | object) -> dict[str, str]:
+    """Read only a complete, bounded header block for safe failure displays.
+
+    This deliberately has no full-message fallback.  If the header/body separator
+    is outside the inspected prefix, both values are unavailable.
+    """
+    configured = _limits(limits)
+    prefix = raw[:configured.max_header_bytes + 1]
+    matches = [(prefix.find(separator), separator) for separator in (b"\r\n\r\n", b"\n\n")]
+    matches = [(position, separator) for position, separator in matches if position >= 0]
+    if not matches:
+        return {"from": "—", "subject": "—"}
+    position, separator = min(matches, key=lambda item: item[0])
+    end = position + len(separator)
+    if end > configured.max_header_bytes:
+        return {"from": "—", "subject": "—"}
+    message = BytesHeaderParser(policy=policy.default).parsebytes(prefix[:end])
+
+    def display(name: str) -> str:
+        values = message.get_all(name, [])
+        if len(values) != 1:
+            return "—"
+        value = _clean_display(str(values[0]))
+        return value if value and len(value) <= configured.max_display_header_characters else "—"
+
+    return {"from": display("From"), "subject": display("Subject")}
+
+
+def _clean_display(value: str) -> str:
+    """Normalize an untrusted header into one Telegram-safe display line."""
+    value = unicodedata.normalize("NFKC", value)
+    value = "".join(" " if char in "\r\n\t" else char for char in value)
+    value = "".join(char for char in value if unicodedata.category(char) not in {"Cc", "Cf", "Cs"})
+    return re.sub(r"\s+", " ", value).strip()
 
 
 class _TextHTML(HTMLParser):

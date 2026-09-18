@@ -19,8 +19,8 @@ from .config import TargetSettings, Topic
 from .action_normalization import MailDateContext
 from .proposal_builder import ProposalBuilder
 from .imap import FetchedMail
-from .mime import MimeLimitExceeded, prepare
-from .models import (DuplicateDecision, DuplicateIndex, DuplicateIndexEntry, MailState, ProcessingError, ProcessingErrorCode, ProcessingStage,
+from .mime import MimeLimitExceeded, extract_display_headers, prepare
+from .models import (DisplayHeaders, DuplicateDecision, DuplicateIndex, DuplicateIndexEntry, MailState, ProcessingError, ProcessingErrorCode, ProcessingStage,
                      Proposal, Relevance, RelevanceDialog, RelevanceDialogStatus,
                      ValidationIssue)
 from .storage import JsonStore
@@ -191,7 +191,10 @@ class Orchestrator:
             return
         state.error.notification_marked_at = now
         self._save(name, state)
-        headers = state.mail.get("headers", {}) if state.mail is not None else {}
+        headers = state.mail.get("headers", {}) if state.mail is not None else {
+            "from": state.display_headers.sender if state.display_headers else "—",
+            "subject": state.display_headers.subject if state.display_headers else "—",
+        }
         self.notifier.send(
             self.chat_id,
             "\n".join([
@@ -253,6 +256,10 @@ class Orchestrator:
         stage = ProcessingStage.PREPARATION
         try:
             if state.steps.preparation == "pending":
+                if state.display_headers is None:
+                    display = extract_display_headers(fetched.raw, self.max_bytes)
+                    state.display_headers = DisplayHeaders(sender=display["from"], subject=display["subject"])
+                    self._save(name, state)
                 state.mail = prepare(fetched.raw, self.max_bytes, fetched.received_at, self.user_timezone)
                 state.mail["internal_id"] = internal_id
                 state.steps.preparation = "completed"
@@ -335,7 +342,7 @@ class Orchestrator:
                         state.llm_call_ids.append(call)
                         state.steps.task_extraction = "completed"
                         self._save(name, state)
-                    elif not wants_tasks:
+                    if not wants_tasks:
                         state.steps.task_extraction = "skipped"
                     if wants_events and state.steps.event_extraction in {"pending", "failed"}:
                         stage = ProcessingStage.EVENT_EXTRACTION
@@ -385,7 +392,7 @@ class Orchestrator:
             self._failure(name, state, ProcessingErrorCode.MIME_LIMIT_EXCEEDED, stage,
                           "Die Nachricht überschreitet ein Sicherheitslimit. Bitte Anhänge oder Nachrichtengröße reduzieren.", False)
             self.logger.event("WARNING", "orchestrator", "mime_limit_exceeded", mail_id=state.id, stage=stage.value,
-                              error=exc, stacktrace=traceback.format_exc())
+                              limit=exc.limit, error=exc, stacktrace=traceback.format_exc())
             outcome = ProcessingOutcome.FAILED
         except LlmProviderResponseInvalid as exc:
             self._failure(name, state, ProcessingErrorCode.PROVIDER_RESPONSE_INVALID, stage,

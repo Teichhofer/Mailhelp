@@ -57,6 +57,8 @@ class TargetSettings(ConfigModel):
 
 class LimitSettings(ConfigModel):
     max_mail_bytes: int = Field(ge=1024, le=100_000_000)
+    max_header_bytes: int = Field(default=64_000, ge=256, le=1_000_000)
+    max_display_header_characters: int = Field(default=500, ge=1, le=10_000)
     max_mime_parts: int = Field(default=100, ge=1, le=10_000)
     max_decoded_text_bytes: int = Field(default=1_000_000, ge=1, le=100_000_000)
     max_html_characters: int = Field(default=1_000_000, ge=1, le=100_000_000)

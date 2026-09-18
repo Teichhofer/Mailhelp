@@ -45,7 +45,7 @@ def test_mail_state_v8_metadata_is_closed_and_round_trips(tmp_path):
     with JsonStore(tmp_path / "states") as store:
         store.save("mail-a", state.model_dump(mode="json"))
         loaded = store.load_model("mail-a", MailState)
-    assert loaded == state and loaded.schema_version == 8
+    assert loaded == state and loaded.schema_version == 9
 
 
 def test_mail_state_v6_is_explicitly_migrated(tmp_path):
@@ -69,7 +69,8 @@ def test_mail_state_v6_is_explicitly_migrated(tmp_path):
         persisted = store.load("mail-a")
     assert migrated.steps.summary_notification == "completed"
     assert migrated.steps.proposal_notification == "completed"
-    assert persisted["schema_version"] == 8 and "notification" not in persisted["steps"]
+    assert migrated.display_headers.sender == "—" and migrated.display_headers.subject == "—"
+    assert persisted["schema_version"] == 9 and "notification" not in persisted["steps"]
     value = state.model_dump(mode="json")
     with pytest.raises(ValidationError):
         MailState.model_validate({**value, "unknown": True})
