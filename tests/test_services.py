@@ -428,8 +428,14 @@ def test_orchestrator(tmp_path):
         state=o.process(mail); assert state.outcome is ProcessingOutcome.WAITING and state["awaiting_relevance"] and state["steps"]["completion"]=="pending"
         assert o.process(mail)==state
     with JsonStore(tmp_path/"d") as store:
-        failed=Orchestrator(AnalyzerStub("relevant"),store,Notify(),1,[topic],1).process(mail)
+        notify=Notify()
+        failed=Orchestrator(AnalyzerStub("relevant"),store,notify,1,[topic],1).process(mail)
         assert failed.outcome is ProcessingOutcome.FAILED and "error" in failed
+        assert notify.messages == [
+            "Absender: —\nBetreff: —\nStufe preparation: "
+            "Die Nachricht überschreitet ein Sicherheitslimit. Bitte Anhänge oder Nachrichtengröße reduzieren."
+        ]
+        assert failed["id"] not in notify.messages[0]
     with JsonStore(tmp_path/"e") as store:
         o=Orchestrator(AnalyzerStub("irrelevant"),store,Notify(),1,[topic],1000); count=[]
         def poll(): count.append(1); o.stop(); return [mail]
@@ -558,7 +564,7 @@ def test_safe_failures_are_structured_and_notified_once_after_restart(tmp_path, 
         def relevance(self, mail, topics):
             raise failure
     topic=Topic(id="x",name="x",enabled=True,description="x")
-    mail=FetchedMail("INBOX",1,41,b"Subject: Classified\n\nPrivate body")
+    mail=FetchedMail("INBOX",1,41,b"From: sender@example.test\nSubject: Classified\n\nPrivate body")
     notify=Notify()
     with JsonStore(tmp_path/code) as store:
         first=Orchestrator(Failing(),store,notify,1,[topic],1000).process(mail)
@@ -570,8 +576,10 @@ def test_safe_failures_are_structured_and_notified_once_after_restart(tmp_path, 
         assert first["error"]["occurred_at"] == second["error"]["occurred_at"]
         assert len(notify.messages) == 1
         message=notify.messages[0]
-        assert first["id"] in message and "relevance" in message
-        assert "Classified" not in message and "Private body" not in message and "not-for" not in message
+        assert "Absender: sender@example.test" in message
+        assert "Betreff: Classified" in message and "relevance" in message
+        assert first["id"] not in message
+        assert "Private body" not in message and "not-for" not in message
 
 
 def test_http_writer_rejects_non_writable_proposal_before_request():
