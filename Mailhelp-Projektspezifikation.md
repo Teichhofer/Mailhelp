@@ -152,7 +152,7 @@ zeigt eine verständliche Konfigurationsmeldung.
 
 ## 6. LLM-Anbindung und Prompt-Konfiguration
 
-Alle LLM-Aufrufe erfolgen über OpenRouter. Die Anwendung stellt drei getrennte Auswertungsschritte bereit: `relevance`, `summary` und `actions`. Jeder Schritt erhält einen eigenen Prompt und kann ein anderes Modell sowie andere Anfrageparameter verwenden.
+Alle LLM-Aufrufe erfolgen über OpenRouter. Die Anwendung stellt drei getrennte Auswertungsschritte bereit: `relevance`, `summary` und `actions`. Jeder Schritt erhält einen eigenen Prompt und kann ein anderes Modell sowie andere Anfrageparameter verwenden. Eine syntaktisch ungültige oder leere Modellausgabe in einer erfolgreichen OpenRouter-Antwort gilt wie eine Schemaabweichung: Die Anwendung fordert innerhalb des konfigurierten Validierungsbudgets eine korrigierte Ausgabe an und meldet erst nach dessen Ausschöpfung einen Fehler der LLM-Schemavalidierung statt eines internen Fehlers.
 
 Die einzige Prompt-Datei ist `prompts.yaml`. Sie enthält globale Standardwerte, die eigentlichen Prompts und die pro Schritt abweichenden Modelle und Parameter. Themen stehen ausschließlich in `topics.yaml`, Geheimnisse ausschließlich außerhalb dieser Dateien.
 

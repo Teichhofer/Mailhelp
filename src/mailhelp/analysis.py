@@ -4,6 +4,7 @@ from typing import Any, Protocol, TypeVar
 from pydantic import BaseModel, ValidationError
 from .config import PromptConfig, Topic
 from .models import Actions, Proposal, ProposalStatus, Relevance, Summary
+from .openrouter import OpenRouterResponseError
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -41,9 +42,14 @@ class Analyzer:
 
     def _run(self, step: str, schema: type[T], mail: dict[str, Any], extra: dict[str, Any] | None = None) -> tuple[str, T]:
         model, params, prompt = self.prompts.resolved(step); error = None
-        validation_error: ValidationError | None = None
+        validation_error: ValidationError | OpenRouterResponseError | None = None
         for _ in range(self.retries + 1):
-            call_id, raw = self.client.complete(model, params, prompt, {"mail": mail, **(extra or {}), "previous_validation_error": error})
+            try:
+                call_id, raw = self.client.complete(model, params, prompt, {"mail": mail, **(extra or {}), "previous_validation_error": error})
+            except OpenRouterResponseError as exc:
+                validation_error = exc
+                error = str(exc)
+                continue
             try: return call_id, schema.model_validate(raw)
             except ValidationError as exc:
                 validation_error = exc
@@ -73,9 +79,14 @@ class Analyzer:
             "authorized_answer": authorized_answer,
         }
         for _ in range(self.retries + 1):
-            call_id, raw = self.client.complete(
-                model, params, prompt, {**payload, "previous_validation_error": error}
-            )
+            try:
+                call_id, raw = self.client.complete(
+                    model, params, prompt, {**payload, "previous_validation_error": error}
+                )
+            except OpenRouterResponseError as exc:
+                validation_error = exc
+                error = str(exc)
+                continue
             try:
                 revised = validate_revision_successor(proposal, raw)
                 return call_id, revised
