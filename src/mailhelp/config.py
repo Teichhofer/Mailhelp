@@ -19,6 +19,7 @@ class ImapSettings(ConfigModel):
     folders: list[str] = Field(min_length=1, max_length=100)
     connection_mode: Literal["ssl", "starttls", "plain"] = "ssl"
     historical_start: datetime | None = None
+    batch_size: int = Field(default=25, ge=1, le=1000)
 
     @field_validator("historical_start", mode="before")
     @classmethod

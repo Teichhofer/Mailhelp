@@ -148,6 +148,10 @@ class Proposal(StrictModel):
 
     @model_validator(mode="after")
     def complete_event(self) -> "Proposal":
+        if self.status == ProposalStatus.SIMULATED and (self.external_id is not None or self.external_link is not None):
+            raise ValueError("Ein simulierter Vorschlag darf kein externes Ergebnis enthalten")
+        if self.simulation_notified and self.status != ProposalStatus.SIMULATED:
+            raise ValueError("Eine Simulation darf nur im simulierten Zustand als gemeldet markiert werden")
         if (self.responsibility == ProposalResponsibility.UNCLEAR or
                 self.certainty != ProposalCertainty.CERTAIN):
             self.status = ProposalStatus.NEEDS_CLARIFICATION

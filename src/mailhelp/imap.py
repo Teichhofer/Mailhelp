@@ -46,9 +46,10 @@ def account_id(host: str, port: int, username: str) -> str:
 
 
 class ImapReader:
-    def __init__(self, host: str, port: int, username: str, password: str, timeout: float = 30, factory: Callable[..., imaplib.IMAP4] = imaplib.IMAP4_SSL, policy: RetryPolicy | None = None, logger: EventLogger | None = None, starttls: bool = False):
+    def __init__(self, host: str, port: int, username: str, password: str, timeout: float = 30, factory: Callable[..., imaplib.IMAP4] = imaplib.IMAP4_SSL, policy: RetryPolicy | None = None, logger: EventLogger | None = None, starttls: bool = False, batch_size: int = 25):
         self.policy = policy or RetryPolicy(0, 0, 0, lambda _delay: False)
         self.logger = logger or NullLogger()
+        self.batch_size = batch_size
         self.connection = factory(host, port, timeout=timeout)
         self.account_id = account_id(host, port, username)
         self.last_uidvalidity: int | None = None
@@ -130,11 +131,17 @@ class ImapReader:
             after_uid = 0
         status, matches = self.connection.uid("search", None, f"UID {after_uid + 1}:*")
         if status != "OK": raise RuntimeError("IMAP-Suche fehlgeschlagen")
+        tokens = matches[0].split() if matches else []
+        selected = tokens[:self.batch_size]
+        self.logger.event("INFO", "imap", "messages_discovered", folder=folder,
+                          available_count=len(tokens), batch_count=len(selected))
         result = []
-        for token in matches[0].split():
+        for token in selected:
             uid = int(token); status, body = self.connection.uid("fetch", token, "(BODY.PEEK[] INTERNALDATE)")
             if status != "OK": raise RuntimeError(f"IMAP-Abruf fehlgeschlagen: UID {uid}")
             result.append(_fetched_mail(folder, uidvalidity, uid, body, self.account_id))
+            self.logger.event("INFO", "imap", "message_fetched", folder=folder, uid=uid,
+                              batch_index=len(result), batch_count=len(selected))
         return result
 
     def close(self) -> None:

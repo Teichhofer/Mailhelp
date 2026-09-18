@@ -73,6 +73,10 @@ verfügbaren UIDs) oder ein ISO-8601-Zeitpunkt **mit explizitem UTC-Offset**, et
 in UTC verglichen und ihr ermittelter UID-Ausgangspunkt sofort je Konto und Ordner
 persistiert; ein Neustart deutet den Zeitpunkt daher nicht anhand einer geänderten
 Windows-/Container-Zeitzone oder eines inzwischen gewachsenen Postfachs neu aus.
+Mit `imap.batch_size` (Standard `25`, erlaubt `1..1000`) lädt Mailhelp pro
+Polling-Zyklus nur eine begrenzte Zahl von Nachrichten. Die Ereignisse
+`messages_discovered` und `message_fetched` zeigen Anzahl und Fortschritt, sodass
+insbesondere der erste Abruf eines großen Postfachs nicht mehr still erscheint.
 
 `logging.console`, `logging.file` und `logging.llm` besitzen eigene Aktivierungs- und
 Level-Schalter; `logging.modules` überschreibt das Datei-Grundlevel für einzelne

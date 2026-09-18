@@ -83,6 +83,8 @@ def test_settings_reject_missing_extra_types_ranges_and_semantics(tmp_path):
         lambda x: x["imap"].update(historical_start="2025-01-02T03:04:05"),
         lambda x: x["imap"].update(historical_start="not-a-date"),
         lambda x: x["imap"].update(historical_start=123),
+        lambda x: x["imap"].update(batch_size=0),
+        lambda x: x["imap"].update(batch_size=1001),
         lambda x: x.update(timezone="Moon/Base"),
         lambda x: x.update(poll_interval_seconds=4),
         lambda x: x.update(poll_interval_seconds=86401),
