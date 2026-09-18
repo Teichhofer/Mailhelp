@@ -376,7 +376,11 @@ def test_telegram_client_preserves_documented_api_error_description():
     client=TelegramClient("top-secret",1,httpx.MockTransport(rejected))
     with pytest.raises(PermanentError) as error:
         client.send(2,"x")
-    assert str(error.value) == "Permanente Adapterantwort: Telegram sendMessage: Bad Request: chat not found"
+    assert str(error.value) == (
+        "Permanente Adapterantwort: Telegram sendMessage: Chat nicht erreichbar. "
+        "Bitte den Bot im Zielchat zuerst mit /start starten, die numerische "
+        "telegram.chat_id prüfen und bei Gruppen sicherstellen, dass der Bot Mitglied ist"
+    )
     assert "top-secret" not in str(error.value)
     client.close()
 
@@ -385,6 +389,7 @@ def test_telegram_client_preserves_retryable_and_http_success_api_errors():
     responses=iter([
         (500,{"ok":False,"description":"Internal Server Error: try later"}),
         (200,{"ok":False,"error_code":400,"description":"Bad Request: message is too long"}),
+        (200,{"ok":False,"error_code":400,"description":"Bad Request: chat not found"}),
     ])
     def rejected(request):
         status_code,payload=next(responses)
@@ -393,6 +398,8 @@ def test_telegram_client_preserves_retryable_and_http_success_api_errors():
     with pytest.raises(UncertainWriteError,match="Telegram sendMessage: Internal Server Error: try later"):
         client.send(2,"x")
     with pytest.raises(PermanentError,match="Telegram sendMessage: Bad Request: message is too long"):
+        client.send(2,"x")
+    with pytest.raises(PermanentError, match="Chat nicht erreichbar"):
         client.send(2,"x")
     client.close()
 

@@ -31,6 +31,11 @@ Für diesen Diagnosebefehl aktiviert Mailhelp unabhängig von der Logging-Konfig
 das Datei- und Konsolenlogging auf `DEBUG`. Beginn, Erfolg und Fehler jeder einzelnen
 Prüfung werden protokolliert; Fehler enthalten einen bereinigten Stacktrace. Die
 Geheimnisbereinigung bleibt dabei uneingeschränkt aktiv.
+Meldet die Telegram-Prüfung `Chat nicht erreichbar`, muss der konfigurierte Bot
+im Zielchat zunächst mit `/start` gestartet werden. Anschließend ist zu prüfen,
+dass `telegram.chat_id` die numerische ID dieses Chats enthält; bei Gruppen muss
+der Bot außerdem Mitglied sein. Die Bot-ID aus `getMe`, ein Nutzername oder eine
+Telefonnummer sind keine Chat-ID.
 `targets.todoist_project` erwartet dabei die echte Todoist-Projekt-ID, nicht den
 Projektnamen, eine URL oder einen Alias. Bei Todoist bedeutet HTTP 401, dass das
 Token abgelehnt wurde (Authentifizierungsfehler), HTTP 403, dass dem Token die

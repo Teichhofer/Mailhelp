@@ -226,6 +226,12 @@ def format_proposal(proposal: Proposal, configured_timezone: str) -> str:
 
 
 class TelegramClient:
+    _CHAT_NOT_FOUND_HELP = (
+        "Telegram {operation}: Chat nicht erreichbar. Bitte den Bot im Zielchat "
+        "zuerst mit /start starten, die numerische telegram.chat_id prüfen und "
+        "bei Gruppen sicherstellen, dass der Bot Mitglied ist"
+    )
+
     def __init__(self, token: str, timeout: float, transport: httpx.BaseTransport | None = None, poll_timeout: int = 30, policy: RetryPolicy | None = None, logger: EventLogger | None = None):
         self.poll_timeout = poll_timeout
         self.client = httpx.Client(base_url=f"https://api.telegram.org/bot{token}", timeout=timeout, transport=transport)
@@ -327,15 +333,25 @@ class TelegramClient:
         return description if isinstance(description, str) and description else None
 
     @staticmethod
+    def _error_detail(response: httpx.Response, operation: str) -> str | None:
+        """Turn Telegram's safe description into an actionable diagnostic."""
+        description = TelegramClient._description(response)
+        if description is None:
+            return None
+        if description.casefold() == "bad request: chat not found":
+            return TelegramClient._CHAT_NOT_FOUND_HELP.format(operation=operation)
+        return f"Telegram {operation}: {description}"
+
+    @staticmethod
     def _raise_for_status(response: httpx.Response, operation: str) -> None:
         try:
             response.raise_for_status()
         except httpx.HTTPStatusError as exc:
-            description = TelegramClient._description(response)
-            if description is not None:
+            detail = TelegramClient._error_detail(response, operation)
+            if detail is not None:
                 # Retry code consumes this explicit safe field instead of rendering
                 # the exception URL, because that URL contains the bot token.
-                exc.safe_detail = f"Telegram {operation}: {description}"
+                exc.safe_detail = detail
             raise
 
     @staticmethod
@@ -345,9 +361,9 @@ class TelegramClient:
         except ValueError:
             return
         if isinstance(payload, dict) and payload.get("ok") is False:
-            description = TelegramClient._description(response)
-            if description is not None:
-                raise PermanentError(f"Permanente Adapterantwort: Telegram {operation}: {description}")
+            detail = TelegramClient._error_detail(response, operation)
+            if detail is not None:
+                raise PermanentError(f"Permanente Adapterantwort: {detail}")
 
     def close(self) -> None:
         self.client.close()
