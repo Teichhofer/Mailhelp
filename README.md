@@ -343,9 +343,12 @@ festen Reihenfolge; Termine nennen dabei auch die konfigurierte Zeitzone. Lange
 Vorschläge tragen in jedem Teil Mail-ID, Vorschlags-ID und Teilnummer. Solange
 offene Fragen bestehen, werden nur Klären und Verwerfen angeboten.
 Unklare Relevanz wird vor dem Senden als schema-versionierter Dialog direkt im
-Mailzustand gespeichert. Die Telegram-Auswahl enthält nur stabile interne Mail-ID,
-Dialogversion und `relevant` beziehungsweise `irrelevant`; Mailtext wird nicht in
-Callback-Daten übernommen. Entscheidung und verarbeiteter Telegram-Offset stehen
+Mailzustand gespeichert. Die sichtbare Rückfrage nennt Absender und Betreff, aber
+keine interne Mail-ID. Erst nach der Auswahl `Relevant` werden Zusammenfassung und
+Aktionserkennung erzeugt und die kompakte Mailnachricht versendet. Die unsichtbaren
+Callback-Daten enthalten ausschließlich die stabile interne Mail-ID, Dialogversion
+und `relevant` beziehungsweise `irrelevant`; Mailtext wird nicht in Callback-Daten
+übernommen. Entscheidung und verarbeiteter Telegram-Offset stehen
 atomar im selben Mailzustand. Freitext wird nur bei genau einem offenen
 Relevanzdialog zugeordnet, veraltete und doppelte Antworten werden sichtbar
 abgelehnt. `relevant` setzt die Verarbeitung bei Zusammenfassung und

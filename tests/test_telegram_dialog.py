@@ -576,8 +576,15 @@ def test_relevance_dialog_authorization_stale_restart_and_duplicate(tmp_path):
         store.save("mail-"+mail_id,relevance_state(mail_id).model_dump(mode="json"))
         updates=[callback(1,f"relevance:{mail_id}:1:relevant",user=9),callback(2,f"relevance:{mail_id}:2:relevant"),callback(3,f"relevance:{mail_id}:1:relevant")]
         c,t,_=controller(store,updates); handler=RelevanceHandler(store); c.relevance_handler=handler
-        c.send_relevance(RelevanceDialog(mail_id=mail_id))
-        assert mail_id in t.sent[-1][1] and "relevant" in t.sent[-1][2]["inline_keyboard"][0][0]["callback_data"]
+        c.send_relevance(RelevanceDialog(mail_id=mail_id), "Alice <alice@example.test>", "Rechnung")
+        visible=t.sent[-1][1]
+        callbacks=t.sent[-1][2]["inline_keyboard"][0]
+        assert visible == "Absender: Alice <alice@example.test>\nBetreff: Rechnung\nRelevanz bitte bestätigen:"
+        assert mail_id not in visible
+        assert [button["callback_data"] for button in callbacks] == [
+            f"relevance:{mail_id}:1:relevant",
+            f"relevance:{mail_id}:1:irrelevant",
+        ]
         c.poll_once()
         assert "Nicht autorisierte" in t.answered[0][1] and "veraltet" in t.answered[1][1]
         assert handler.resumed==[mail_id] and store.load("mail-"+mail_id)["relevance_dialog"]["telegram_offset"]==4
@@ -585,6 +592,19 @@ def test_relevance_dialog_authorization_stale_restart_and_duplicate(tmp_path):
         restarted.poll_once(); assert t2.polls==[4] and "bereits verarbeitet" in t2.answered[-1][1]
         t2.updates=[callback(4,f"relevance:{mail_id}:1:irrelevant")]; restarted.poll_once()
         assert "bereits beantwortet" in t2.answered[-1][1]
+
+
+def test_relevance_dialog_displays_missing_headers_without_exposing_mail_id(tmp_path):
+    mail_id="b"*24
+    with JsonStore(tmp_path) as store:
+        c,t,_=controller(store)
+        c.send_relevance(RelevanceDialog(mail_id=mail_id,version=3), "—", "—")
+        assert t.sent[-1][1] == "Absender: —\nBetreff: —\nRelevanz bitte bestätigen:"
+        assert mail_id not in t.sent[-1][1]
+        assert [button["callback_data"] for button in t.sent[-1][2]["inline_keyboard"][0]] == [
+            f"relevance:{mail_id}:3:relevant",
+            f"relevance:{mail_id}:3:irrelevant",
+        ]
 
 
 def test_relevance_free_text_requires_unique_open_dialog(tmp_path):

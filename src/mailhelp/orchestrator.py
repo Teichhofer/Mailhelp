@@ -28,7 +28,7 @@ from .logging import EventLogger, NullLogger
 class Notifier(Protocol):
     def send(self, chat_id: int, text: str) -> None: ...
     def send_proposal(self, proposal: Any) -> None: ...
-    def send_relevance(self, dialog: RelevanceDialog) -> None: ...
+    def send_relevance(self, dialog: RelevanceDialog, sender: str, subject: str) -> None: ...
 
 
 class ProcessingOutcome(StrEnum):
@@ -290,7 +290,12 @@ class Orchestrator:
                     state.relevance_dialog = RelevanceDialog(mail_id=state.id)
                     state.awaiting_relevance = True
                     self._save(name, state)
-                    self.notifier.send_relevance(state.relevance_dialog)
+                    headers = state.mail["headers"]
+                    self.notifier.send_relevance(
+                        state.relevance_dialog,
+                        headers["from"] or "—",
+                        headers["subject"] or "—",
+                    )
                     state.steps.notification = "completed"
                     self._save(name, state)
                     self.logger.event("INFO", "orchestrator", "notification_completed", mail_id=state.id)
