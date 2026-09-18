@@ -25,6 +25,12 @@ Telegram-Updates, führt keinen LLM-Auftrag aus und erzeugt weder Aufgaben noch
 Termine. Für jeden Dienst erscheint `OK` oder `FEHLER`; sobald mindestens eine
 Prüfung fehlschlägt, endet der Prozess mit Status 1. Im Container kann derselbe
 Test mit `docker compose run --rm mailhelp --check-access` ausgeführt werden.
+`targets.todoist_project` erwartet dabei die echte Todoist-Projekt-ID, nicht den
+Projektnamen, eine URL oder einen Alias. Bei Todoist bedeutet HTTP 401, dass das
+Token abgelehnt wurde (Authentifizierungsfehler), HTTP 403, dass dem Token die
+Berechtigung für das Zielprojekt fehlt, und HTTP 404, dass das konfigurierte
+Zielprojekt nicht erreichbar ist. Diese Diagnosen geben weder Token oder
+Authorization-Header noch vollständige Antwortinhalte aus.
 
 ### Google Calendar OAuth einrichten
 

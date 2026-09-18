@@ -9,6 +9,7 @@ import pytest
 from mailhelp.application import Application
 from mailhelp.imap import ImapReader
 from mailhelp.integrations import HttpWriter
+from mailhelp.logging import JsonlLogger
 from mailhelp.openrouter import OpenRouterClient
 from mailhelp.telegram import TelegramClient, TelegramBotResponse
 from mailhelp.cli import main
@@ -74,6 +75,57 @@ def test_target_access_checks_only_issue_get_requests():
         writer.check_access()
         assert seen[0].method == "GET" and seen[0].url.path == expected
         writer.close()
+
+
+@pytest.mark.parametrize("status, message", [
+    (401, "Todoist: Authentifizierungsfehler (Token wurde abgelehnt)"),
+    (403, "Todoist: Berechtigungsfehler für das Zielprojekt"),
+    (404, "Todoist: Zielprojekt nicht erreichbar"),
+])
+def test_todoist_access_errors_reach_cli_without_secrets(
+        tmp_path, monkeypatch, capsys, status, message):
+    token = "todoist-token-must-stay-secret"
+    response_secret = f"complete-response-secret-{status}"
+    seen = []
+    logger = JsonlLogger(tmp_path, secrets=(token, response_secret))
+    writer = HttpWriter(
+        "todoist", token, "real-project-id", 1,
+        transport=response_transport(
+            {"error": response_secret, "authorization": f"Bearer {token}"},
+            status=status,
+            seen=seen,
+        ),
+        logger=logger,
+    )
+    application = SimpleNamespace(
+        settings=SimpleNamespace(imap=SimpleNamespace(folders=["INBOX"])),
+        imap=Check(), openrouter=Check(), telegram=Check(), todoist=writer,
+        calendar=Check(),
+    )
+
+    results = Application.check_access(application)
+
+    assert results["Todoist"] == message
+    assert seen[0].headers["authorization"] == f"Bearer {token}"
+
+    class App:
+        def check_access(self):
+            return results
+
+    @contextmanager
+    def builder(*_args):
+        yield App()
+
+    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], None, "fingerprint"))
+    monkeypatch.setattr("mailhelp.cli.build_application", builder)
+    monkeypatch.setattr(sys, "argv", ["mailhelp", "--check-access"])
+    assert main() == 1
+    output = capsys.readouterr().out
+    logs = (tmp_path / "application.jsonl").read_text(encoding="utf-8")
+    assert f"FEHLER: Todoist – {message}" in output
+    assert all(secret not in output and secret not in logs for secret in (token, response_secret))
+    assert "Authorization" not in output and "Authorization" not in logs
+    writer.close()
 
 
 class Check:

@@ -277,6 +277,20 @@ class HttpWriter:
                 self._token_provider.invalidate()
             self.logger.event("ERROR", self.service, "authentication_failed", status=401)
             raise AuthenticationError("Google-Calendar-Autorisierung verweigert")
+        if self.service == "todoist":
+            message = {
+                401: "Todoist: Authentifizierungsfehler (Token wurde abgelehnt)",
+                403: "Todoist: Berechtigungsfehler für das Zielprojekt",
+                404: "Todoist: Zielprojekt nicht erreichbar",
+            }.get(response.status_code)
+            if message is not None:
+                # Deliberately log only the classification and status.  The
+                # response and request headers are untrusted and may contain
+                # credentials or provider-supplied confidential content.
+                event = "authentication_failed" if response.status_code == 401 else "target_access_failed"
+                self.logger.event("ERROR", self.service, event, status=response.status_code)
+                error = AuthenticationError if response.status_code == 401 else PermanentError
+                raise error(message)
         response.raise_for_status()
 
 
