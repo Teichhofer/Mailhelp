@@ -1,8 +1,10 @@
 # Mailhelp – Projektspezifikation
 
 Der produktive CLI-Pfad startet IMAP- und Telegram-Polling. Pro IMAP-Ordner
-werden UIDVALIDITY und die zuletzt abgeschlossene UID atomar gespeichert; eine
-geänderte UIDVALIDITY beginnt den Ordner erneut bei UID 1. SIGINT und SIGTERM
+werden UIDVALIDITY und die zuletzt abgeschlossene UID atomar gespeichert; bei
+geänderter UIDVALIDITY wird eine konfigurierte absolute historische Grenze in
+der neuen UID-Generation vor jedem Nachrichteninhaltsabruf erneut ermittelt und
+zusammen mit ihr gespeichert (ohne Grenze beginnt der Ordner bei UID 1). SIGINT und SIGTERM
 setzen dasselbe Stop-Ereignis. Beim Verlassen werden IMAP, alle HTTP-Clients und
 die Datensperre garantiert freigegeben.
 
@@ -101,7 +103,7 @@ verfügbar.
 
 - Server, Port, Verbindungsmodus, Ordner und Abrufintervall sind konfigurierbar. Der geschlossene Verbindungsmodus erlaubt genau `ssl` (implizites TLS, üblich Port 993), `starttls` (IMAP mit anschließend zwingendem TLS-Upgrade, üblich Port 143) und `plain` (unverschlüsselt, nur für anderweitig abgesicherte lokale Netze). Zugangsdaten stehen ausschließlich in der Geheimnisdatei beziehungsweise in Laufzeit-Umgebungsvariablen.
 - Der Lesestatus dient nicht als Verarbeitungsmarker. Mailhelp verändert die Originalnachrichten und ihren Lesestatus nicht absichtlich.
-- `historical_start` ist optional (`null`) oder ein zeitzonenbehafteter ISO-8601-Zeitpunkt mit explizitem Offset. Seine absolute UTC-Grenze wird über schreibfreie `UID SEARCH`-/`UID FETCH INTERNALDATE`-Abfragen sekundengenau aufgelöst. Der resultierende Start-UID wird vor der Verarbeitung konto- und ordnerbezogen gespeichert und nach Neustarts nicht neu interpretiert.
+- `historical_start` ist optional (`null`) oder ein zeitzonenbehafteter ISO-8601-Zeitpunkt mit explizitem Offset. Seine absolute UTC-Grenze wird über schreibfreie `UID SEARCH`-/`UID FETCH INTERNALDATE`-Abfragen sekundengenau aufgelöst. Der resultierende Start-UID wird vor der Verarbeitung konto- und ordnerbezogen zusammen mit der UIDVALIDITY gespeichert und nach Neustarts derselben UID-Generation nicht neu interpretiert. Bei einem UIDVALIDITY-Wechsel wird die Grenze vor einem `BODY.PEEK[]`-Abruf in der neuen Generation erneut aufgelöst.
 - Die ausgelieferte Konfiguration setzt `historical_start` auf `2026-09-15T00:00:00+02:00` (15. September 2026, 00:00 Uhr in `Europe/Berlin`); Nachrichten mit einem früheren IMAP-Empfangszeitpunkt gehören damit beim erstmaligen Aufbau des Abrufpunkts nicht zum zu verarbeitenden Bestand.
 - `batch_size` begrenzt den Abruf pro Polling-Zyklus auf `1..1000` Nachrichten (Standard `25`). Bei einem begrenzten Einmallauf reduziert das nach Wiederaufnahmen verbleibende `--max-mails`-Budget bereits die Zahl vollständig abgerufener Nachrichten. Nach der Suche werden die gefundene und ausgewählte Anzahl sowie nach jedem schreibfreien Nachrichtenabruf der Fortschritt ohne Mailinhalt protokolliert; der persistierte UID-Checkpoint setzt den nächsten Zyklus fort.
 - Reguläre und gezielte Abrufe laden `BODY.PEEK[]` und `INTERNALDATE` atomar und schreibfrei. Der Empfangszeitpunkt muss robust parsebar und zeitzonenbehaftet sein. Für die Analyse bleiben ursprünglicher `Date`-Header, sicher geparster Header-Zeitpunkt, IMAP-Empfangszeitpunkt und Nutzerzeitzone getrennt. Fehlende, ungültige, offsetlose oder um mehr als sieben Tage widersprüchliche Header-Zeitpunkte erzwingen bei Kalenderterminen eine offene Klärungsfrage; eine unmittelbar speicherbare Fassung ist ausgeschlossen.
