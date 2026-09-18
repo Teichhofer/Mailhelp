@@ -29,6 +29,10 @@ def prompt_config(model="model"):
 
 def proposal(**kw):
     base = dict(id="p1", version=1, kind="task", responsibility="user", certainty="certain", classification="new", title="Tun", evidence="Mail sagt es", source_mail_id="a"*24, target="inbox")
+    if "status" not in kw and (kw.get("open_questions") or kw.get("responsibility") not in {None, "user"}
+                               or kw.get("certainty") not in {None, "certain"}
+                               or kw.get("classification") not in {None, "new"}):
+        base["status"] = "needs_clarification"
     base.update(kw); return Proposal.model_validate(base)
 
 

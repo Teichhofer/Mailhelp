@@ -30,6 +30,8 @@ telegram:
 targets:
   # Echte Todoist-Projekt-ID (nicht Projektname, URL oder Alias).
   todoist_project: "6hX5f7MxfC4Qmcrv"
+  # Echte Google-Calendar-ID (häufig die Kalenderadresse).
+  google_calendar: "primary"
 limits:
   max_mail_bytes: 1000000
   max_mime_parts: 100

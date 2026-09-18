@@ -16,6 +16,8 @@ from .analysis import (Analyzer, LlmInvalidJson, LlmProviderResponseInvalid,
                        LlmSchemaValidationExceeded)
 from .adapter import PermanentError
 from .config import TargetSettings, Topic
+from .action_normalization import MailDateContext
+from .proposal_builder import ProposalBuilder
 from .imap import FetchedMail
 from .mime import MimeLimitExceeded, prepare
 from .models import (DuplicateDecision, DuplicateIndex, DuplicateIndexEntry, MailState, ProcessingError, ProcessingErrorCode, ProcessingStage,
@@ -61,39 +63,24 @@ class Orchestrator:
         self.logger = logger or NullLogger()
         self.clock = clock
         self.config_fingerprint = config_fingerprint
-        self.targets = targets
+        # Normal application construction always supplies validated settings;
+        # these defaults retain the small dependency-injected test surface.
+        self.targets = targets or TargetSettings(todoist_project="inbox", google_calendar="primary")
         self.user_timezone = user_timezone
 
-    def _normalize_proposals(self, state: MailState, proposals: list[Proposal]) -> list[Proposal]:
-        """Replace all LLM-controlled identity/routing fields at the trust boundary."""
-        supplied = [proposal.id for proposal in proposals]
-        if len(supplied) != len(set(supplied)):
-            raise ValueError("LLM lieferte doppelte Vorschlags-IDs")
-        if proposals and self.targets is None:
-            raise ValueError("Konfigurierte Vorschlagsziele fehlen")
-        result = []
-        for proposal in proposals:
-            if proposal.source_mail_id != state.id:
-                raise ValueError("LLM-Vorschlag gehört nicht zur verarbeiteten Mail")
-            assert self.targets is not None
-            target = (self.targets.todoist_project if proposal.kind.value == "task"
-                      else self.targets.google_calendar)
-            internal_id = "p_" + hashlib.sha256(
-                f"{state.id}\0{proposal.id}".encode()
-            ).hexdigest()[:16]
-            update: dict[str, Any] = {"id": internal_id, "source_mail_id": state.id, "target": target}
-            has_context_dependent_date = (proposal.kind.value == "event" or
-                                          (proposal.kind.value == "task" and proposal.due is not None))
-            if has_context_dependent_date and state.mail is not None and state.mail.get("date_context_status") != "valid":
-                questions = list(proposal.open_questions)
-                question = ("Welcher Datumskontext soll für die Aufgabenfrist verwendet werden?"
-                            if proposal.kind.value == "task"
-                            else "Welcher Datumskontext soll für den Termin verwendet werden?")
-                if question not in questions:
-                    questions.append(question)
-                update.update(open_questions=questions, status="needs_clarification")
-            result.append(proposal.model_copy(update=update))
-        return result
+    def _build_proposals(self, state: MailState) -> list[Proposal]:
+        """Cross from untrusted extracted facts into application-owned proposals."""
+        assert state.mail is not None
+        context = MailDateContext(
+            date_context_status=str(state.mail.get("date_context_status", "missing")),
+            date_header_parsed=state.mail.get("date_header_parsed"),
+            imap_received_at=state.mail.get("imap_received_at"),
+            user_timezone=state.mail.get("user_timezone") or self.user_timezone,
+        )
+        return ProposalBuilder(state.id, self.targets, context).build(
+            state.task_extraction.tasks if state.task_extraction else [],
+            state.event_extraction.events if state.event_extraction else [],
+        )
 
     def stop(self) -> None: self.stop_event.set()
 
@@ -361,10 +348,7 @@ class Orchestrator:
                         self._save(name, state)
                     elif not wants_events:
                         state.steps.event_extraction = "skipped"
-                    # Raw facts are deliberately not automatically confirmable.
-                    # A later, separately validated normalization stage may turn
-                    # them into proposals.
-                    state.proposals = []
+                    state.proposals = self._build_proposals(state) if (wants_tasks or wants_events) else []
                     state.steps.action_detection = "completed"
                     self._save(name, state)
                     self.logger.event("INFO", "orchestrator", "actions_completed", mail_id=state.id,
@@ -380,6 +364,8 @@ class Orchestrator:
                             "Mögliche Aufgabe oder möglicher Termin benötigt fachliche Klärung: "
                             + state.action_route.reason,
                         )
+                    for proposal in state.proposals:
+                        self.notifier.send_proposal(proposal)
                     state.steps.proposal_notification = "completed"
                     self._save(name, state)
             stage = ProcessingStage.COMPLETION

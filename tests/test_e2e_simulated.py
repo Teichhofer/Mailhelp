@@ -134,7 +134,8 @@ def test_imap_llm_persists_separate_raw_extractions(tmp_path):
         state = results[0].state
         assert state["task_extraction"]["tasks"][0]["due_text"] == "30. September"
         assert state["event_extraction"]["events"][0]["time_text"] == "09:00"
-        assert state["proposals"] == []
+        assert len(state["proposals"]) == 2
+        assert all(item["status"] == "needs_clarification" for item in state["proposals"])
         assert todoist.created == calendar.created == []
 
 

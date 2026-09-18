@@ -3,6 +3,7 @@ import json
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 import httpx, pytest
+from pydantic import ValidationError
 import yaml
 from mailhelp.analysis import (Analyzer, LlmInvalidJson, LlmProviderResponseInvalid,
                                JSON_REPAIR_INSTRUCTION, LlmSchemaValidationExceeded,
@@ -10,7 +11,7 @@ from mailhelp.analysis import (Analyzer, LlmInvalidJson, LlmProviderResponseInva
 from mailhelp.config import TargetSettings, Topic
 from mailhelp.imap import FetchedMail
 from mailhelp.integrations import CalendarFileWriter, HttpWriter, calendar_file, execute_confirmed
-from mailhelp.models import ActionRoute, ProposalStatus, RelevanceDialog
+from mailhelp.models import ActionRoute, Proposal, ProposalStatus, RelevanceDialog
 from mailhelp.openrouter import (InvalidJson, OpenRouterClient, ProviderResponseInvalid,
                                  RateLimitExceeded)
 from mailhelp.adapter import PermanentError, RetryableError
@@ -303,7 +304,8 @@ def test_telegram():
     assert apply_decision(p,Decision(mail_id="a"*24,proposal_id="p1",version=1,action=DecisionAction.EDIT),1,2,1,2).status == ProposalStatus.NEEDS_CLARIFICATION
     with pytest.raises(PermissionError): apply_decision(p,Decision(mail_id="a"*24,proposal_id="p1",version=1,action=DecisionAction.CONFIRM),9,2,1,2)
     with pytest.raises(ValueError, match="Veraltete"): apply_decision(p,Decision(mail_id="a"*24,proposal_id="p1",version=2,action=DecisionAction.CONFIRM),1,2,1,2)
-    with pytest.raises(ValueError, match="Offene"): apply_decision(proposal(open_questions=["wann?"]),Decision(mail_id="a"*24,proposal_id="p1",version=1,action=DecisionAction.CONFIRM),1,2,1,2)
+    with pytest.raises(ValidationError, match="vollständige neue"): Proposal.model_validate({
+        **proposal().model_dump(mode="json"), "open_questions": ["wann?"]})
     with pytest.raises(ValueError): Decision(mail_id="a"*24,proposal_id="p1",version=1,action="xx")
     assert apply_decision(proposal(status="created"),Decision(mail_id="a"*24,proposal_id="p1",version=1,action=DecisionAction.CONFIRM),1,2,1,2).status == ProposalStatus.CREATED
     assert split_message("abc",2)==["ab","c"] and split_message("")==[""]
@@ -541,28 +543,23 @@ def test_orchestrator_skips_extractor_for_none_and_business_clarification(tmp_pa
         assert "fachliche Klärung" in notify.messages[-1]
 
 
-def test_proposal_boundary_rejects_llm_identity_and_sets_internal_routing(tmp_path):
+def test_proposal_boundary_builds_internal_identity_and_routing(tmp_path):
     topic=Topic(id="x",name="x",enabled=True,description="x")
     targets=TargetSettings(todoist_project="trusted-project", google_calendar="trusted-calendar")
     with JsonStore(tmp_path) as store:
         orchestrator=Orchestrator(AnalyzerStub("relevant"),store,Notify(),1,[topic],1000,targets=targets)
         state=MailState(id="a"*24,config_fingerprint="0"*64,
                         imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":1,"uid":1})
-        task=proposal(id="same",source_mail_id=state.id,target="attacker")
-        event=proposal(id="event",kind="event",source_mail_id=state.id,target="attacker",
-                       start="2026-01-01T10:00:00Z",end="2026-01-01T11:00:00Z")
-        normalized=orchestrator._normalize_proposals(state,[task,event])
+        from mailhelp.models import ExtractedTask, ExtractedEvent, TaskExtraction, EventExtraction
+        state.mail = {"date_context_status":"valid", "date_header_parsed":"2026-01-01T08:00:00Z",
+                      "imap_received_at":"2026-01-01T08:00:00Z", "user_timezone":"UTC"}
+        state.task_extraction = TaskExtraction(tasks=[ExtractedTask(title="t", description="", evidence="e",
+            responsibility="user", certainty="certain", classification="new")])
+        state.event_extraction = EventExtraction(events=[ExtractedEvent(title="e", evidence="e", date_text="2026-01-01",
+            responsibility="user", certainty="certain", classification="new")])
+        normalized=orchestrator._build_proposals(state)
         assert [item.target for item in normalized] == ["trusted-project","trusted-calendar"]
-        assert normalized[0].id.startswith("p_") and normalized[0].id != task.id
-        other=state.model_copy(update={"id":"b"*24})
-        assert orchestrator._normalize_proposals(other,[task.model_copy(update={"source_mail_id":other.id})])[0].id != normalized[0].id
-        with pytest.raises(ValueError,match="doppelte"):
-            orchestrator._normalize_proposals(state,[task,task])
-        with pytest.raises(ValueError,match="gehört nicht"):
-            orchestrator._normalize_proposals(state,[task.model_copy(update={"source_mail_id":"b"*24})])
-        without_targets=Orchestrator(AnalyzerStub("relevant"),store,Notify(),1,[topic],1000)
-        with pytest.raises(ValueError,match="ziele fehlen"):
-            without_targets._normalize_proposals(state,[task])
+        assert all(item.id.startswith("p_") for item in normalized)
 
 
 def test_orchestrator(tmp_path):
@@ -571,6 +568,7 @@ def test_orchestrator(tmp_path):
         class PlainNotify:
             def __init__(self): self.messages=[]
             def send(self,c,t): self.messages.append(t)
+            def send_proposal(self,p): self.messages.append(p.id)
         n=PlainNotify(); o=Orchestrator(AnalyzerStub("relevant"),store,n,1,[topic],1000); state=o.process(mail); assert state.outcome is ProcessingOutcome.COMPLETED and state["steps"]["completion"]=="completed" and n.messages; assert o.process(mail)==state
     with JsonStore(tmp_path/"b") as store:
         state=Orchestrator(AnalyzerStub("irrelevant"),store,Notify(),1,[topic],1000).process(mail)
@@ -604,7 +602,7 @@ def test_orchestrator(tmp_path):
     with JsonStore(tmp_path/"g") as store:
         notify=Notify(); Orchestrator(ProposalAnalyzer("relevant"),store,notify,1,[topic],1000,
                                       targets=TargetSettings(todoist_project="inbox",google_calendar="primary")).process(mail)
-        assert not any(message.startswith("p_") for message in notify.messages)
+        assert any(message.startswith("p_") for message in notify.messages)
     with JsonStore(tmp_path/"multiple") as store:
         analyzer=AnalyzerStub("irrelevant"); orchestrator=Orchestrator(analyzer,store,Notify(),1,[topic],1000)
         first=orchestrator.process(mail)
