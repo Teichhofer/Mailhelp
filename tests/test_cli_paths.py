@@ -42,7 +42,8 @@ def test_cli_forwards_mail_limit_and_rejects_non_positive_values(monkeypatch):
     application = App()
     logger = CaptureLogger()
     @contextmanager
-    def builder(*_args, **_kwargs):
+    def builder(*_args, **kwargs):
+        assert kwargs == {"access_diagnostics": False, "logger": logger}
         yield application
     monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], None, "fingerprint"))
     monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args: logger)

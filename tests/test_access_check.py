@@ -171,11 +171,12 @@ def test_cli_access_check_prints_summary_and_never_runs(monkeypatch, capsys, res
 
     @contextmanager
     def builder(*_args, **kwargs):
-        assert kwargs == {"access_diagnostics": True}
+        assert kwargs == {"access_diagnostics": True, "logger": logger}
         yield App()
 
+    logger = type("Logger", (), {"event": lambda *_args, **_kwargs: None})()
     monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], None, "fingerprint"))
-    monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args: type("Logger", (), {"event": lambda *_args, **_kwargs: None})())
+    monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args: logger)
     monkeypatch.setattr("mailhelp.cli.build_application", builder)
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--check-access"])
     assert main() == status
