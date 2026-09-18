@@ -27,7 +27,7 @@ telegram:
   chat_id: 123456
 targets:
   # Echte Todoist-Projekt-ID (nicht Projektname, URL oder Alias).
-  todoist_project: "1234567890"
+  todoist_project: "6hX5f7MxfC4Qmcrv"
   google_calendar: primary
 limits:
   max_mail_bytes: 1000000
