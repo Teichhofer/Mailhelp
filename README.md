@@ -333,7 +333,12 @@ während veraltete oder fehlerhafte Schaltflächen keinen Zustand verändern.
 Antworten auf Rückfragen erzeugen eine neue, erneut zu bestätigende Version.
 Die kompakte Mailnachricht nennt ohne interne Mail-ID zuerst den Absender, direkt
 darunter den Betreff und danach zwei bis vier Zusammenfassungssätze. Jeder
-Vorschlag zeigt vor den Schaltflächen alle entscheidungsrelevanten Felder in einer
+Zusammenfassungsaufruf verlangt ausschließlich ein JSON-Objekt mit den beiden
+Feldern `sentences` (zwei bis vier deutsche Sätze) und `deadlines` (immer eine
+Liste, gegebenenfalls leer); Markdown, Begleittext und weitere Felder sind nicht
+zulässig. Mailinhalte bleiben dabei ausdrücklich nicht vertrauenswürdige Daten.
+Jeder Vorschlag zeigt vor den Schaltflächen alle entscheidungsrelevanten Felder in
+einer
 festen Reihenfolge; Termine nennen dabei auch die konfigurierte Zeitzone. Lange
 Vorschläge tragen in jedem Teil Mail-ID, Vorschlags-ID und Teilnummer. Solange
 offene Fragen bestehen, werden nur Klären und Verwerfen angeboten.
