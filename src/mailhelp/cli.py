@@ -34,7 +34,10 @@ def main() -> int:
         "max_mails": args.max_mails,
     })
     if args.check: print("Konfiguration ist gültig."); return 0
-    with build_application(settings, secrets, topics, prompts, fingerprint, logger=logger) as application:
+    with build_application(
+        settings, secrets, topics, prompts, fingerprint,
+        access_diagnostics=args.check_access, logger=logger,
+    ) as application:
         if args.check_access:
             results = application.check_access()
             for name, error in results.items():

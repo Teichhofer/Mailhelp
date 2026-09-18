@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 import pytest
 
-from mailhelp.application import Application, _MailBudget, _checkpoint_name, _safe_name, _state_directory, build_application
+from mailhelp.application import Application, _MailBudget, _checkpoint_name, _safe_name, _state_directory, build_application, build_logger
 from mailhelp.config import Secrets, Settings, Topic
 from mailhelp.imap import FetchedMail
 from mailhelp.models import MailState
@@ -236,9 +236,11 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
     sec=Secrets(imap_username="u",imap_password="p",openrouter_api_key="o",telegram_bot_token="t",todoist_token="d",todoist_client_id="ti",todoist_client_secret="ts",google_oauth_client_id="i",google_oauth_client_secret="s",google_oauth_refresh_token="r")
     topic=[Topic(id="x",name="x",enabled=True,description="x")]
     diagnostics = mode == "ssl"
+    supplied_logger = build_logger(cfg, sec, tmp_path) if mode == "starttls" else None
     with build_application(
         cfg, sec, topic, prompt_config(), "f" * 64,
         base_directory=tmp_path, access_diagnostics=diagnostics,
+        logger=supplied_logger,
     ) as made:
         assert made.todoist and (tmp_path/"data/test/.lock").exists()
         assert made.dialog.relevance_handler is made.orchestrator
@@ -253,6 +255,8 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
         assert made.logger.level == ("DEBUG" if diagnostics else "CRITICAL")
         assert made.logger.console_level == ("DEBUG" if diagnostics else "ERROR")
         assert made.logger.module_levels == ({} if diagnostics else {"access_check": "CRITICAL"})
+        if supplied_logger is not None:
+            assert made.logger is supplied_logger
     assert len(closed)==5 and (tmp_path/"data/test/.lock").exists()
 
     cfg.data_directory=Path("relative"); cfg.logging.directory=Path("relative-logs")
