@@ -28,14 +28,17 @@ jobs:
           IMAP_PASSWORD: synthetic-password
           OPENROUTER_API_KEY: synthetic-openrouter-key
           TELEGRAM_BOT_TOKEN: synthetic-telegram-token
-          TODOIST_TOKEN: synthetic-todoist-token
+          TODOIST_CLIENT_ID: synthetic-todoist-client
+          TODOIST_CLIENT_SECRET: synthetic-todoist-secret
+          TODOIST_REFRESH_TOKEN: synthetic-todoist-refresh
           GOOGLE_OAUTH_CLIENT_ID: synthetic-google-client
           GOOGLE_OAUTH_CLIENT_SECRET: synthetic-google-secret
           GOOGLE_OAUTH_REFRESH_TOKEN: synthetic-google-refresh
         run: >-
           docker run --rm
           -e IMAP_USERNAME -e IMAP_PASSWORD -e OPENROUTER_API_KEY
-          -e TELEGRAM_BOT_TOKEN -e TODOIST_TOKEN -e GOOGLE_OAUTH_CLIENT_ID
+          -e TELEGRAM_BOT_TOKEN -e TODOIST_CLIENT_ID -e TODOIST_CLIENT_SECRET
+          -e TODOIST_REFRESH_TOKEN -e GOOGLE_OAUTH_CLIENT_ID
           -e GOOGLE_OAUTH_CLIENT_SECRET -e GOOGLE_OAUTH_REFRESH_TOKEN
           -v "$PWD/config.yaml:/config/config.yaml:ro"
           -v "$PWD/prompts.yaml:/config/prompts.yaml:ro"
