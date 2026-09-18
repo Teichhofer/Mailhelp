@@ -22,15 +22,24 @@ class CaptureLogger:
 ])
 def test_cli_forwards_posix_and_windows_path_spellings(monkeypatch, capsys, spelling):
     captured = []
+    logger_arguments = []
     logger = CaptureLogger()
     monkeypatch.setattr("mailhelp.cli.load_all", lambda directory: captured.append(directory) or (None, None, [], None, "fingerprint"))
-    monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args: logger)
-    monkeypatch.setattr(sys, "argv", ["mailhelp", "--config-directory", spelling, "--check"])
+    monkeypatch.setattr(
+        "mailhelp.cli.build_logger",
+        lambda *_args, **kwargs: logger_arguments.append(kwargs) or logger,
+    )
+    log_directory = str(Path("writable") / "logs")
+    monkeypatch.setattr(sys, "argv", [
+        "mailhelp", "--config-directory", spelling, "--log-directory", log_directory, "--check",
+    ])
     assert main() == 0
     assert captured == [Path(spelling)]
+    assert logger_arguments == [{"log_directory": Path(log_directory)}]
     assert capsys.readouterr().out == "Konfiguration ist gültig.\n"
     assert logger.events == [("INFO", "application", "application_started", {"parameters": {
-        "config_directory": spelling, "check": True, "check_access": False, "max_mails": None,
+        "config_directory": spelling, "log_directory": log_directory,
+        "check": True, "check_access": False, "max_mails": None,
     }})]
 
 
@@ -46,7 +55,7 @@ def test_cli_forwards_mail_limit_and_rejects_non_positive_values(monkeypatch):
         assert kwargs == {"access_diagnostics": False, "logger": logger}
         yield application
     monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], None, "fingerprint"))
-    monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args: logger)
+    monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args, **_kwargs: logger)
     monkeypatch.setattr("mailhelp.cli.build_application", builder)
     monkeypatch.setattr("mailhelp.cli.signal.signal", lambda *_args: None)
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--max-mails", "10"])
@@ -54,7 +63,8 @@ def test_cli_forwards_mail_limit_and_rejects_non_positive_values(monkeypatch):
     assert main() == 0
     assert application.limit == 10
     assert logger.events[-1][3]["parameters"] == {
-        "config_directory": ".", "check": False, "check_access": False, "max_mails": 10,
+        "config_directory": ".", "log_directory": None,
+        "check": False, "check_access": False, "max_mails": 10,
     }
     assert _positive_int("1") == 1
     with pytest.raises(Exception, match="mindestens 1"):

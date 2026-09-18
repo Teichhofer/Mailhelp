@@ -109,7 +109,7 @@ und vor Schreibzugriffen ausschließlich innerhalb ihres konfigurierten Verzeich
 entfernt.
 Nach erfolgreichem Laden der Konfiguration schreibt jeder Programmstart das
 Ereignis `application_started` einschließlich der wirksamen CLI-Parameter
-(`config_directory`, `check`, `check_access` und `max_mails`) in das Anwendungslog.
+(`config_directory`, `log_directory`, `check`, `check_access` und `max_mails`) in das Anwendungslog.
 Dabei werden ausschließlich die geparsten, bekannten Optionen und keine rohe
 Befehlszeile oder Umgebungsvariablen protokolliert.
 
@@ -350,6 +350,11 @@ möglich.
 Konfiguration wird schreibgeschützt eingebunden, Daten und Logs bleiben in getrennten persistenten Host-Verzeichnissen. `.env`, Zustand und Logs gelangen dank `.dockerignore` nicht in den Build-Kontext.
 Relative Daten- und Logpfade aus `config.yaml` beziehen sich auf das aktuelle
 Arbeitsverzeichnis (im Container `/app`).
+Mit `--log-directory PFAD` lässt sich das konfigurierte Logverzeichnis pro Aufruf
+überschreiben. Das ist insbesondere bei schreibgeschütztem Arbeitsverzeichnis
+nötig; der CI-Container schreibt bei der Konfigurationsprüfung nach
+`/tmp/mailhelp/logs`. Im Dauerbetrieb sollte stattdessen ein beschreibbares,
+persistent eingebundenes Verzeichnis verwendet werden.
 
 ## Zustand sichern
 
@@ -387,7 +392,8 @@ docker run --rm --env-file .env \
   -v "$PWD/config.yaml:/config/config.yaml:ro" \
   -v "$PWD/prompts.yaml:/config/prompts.yaml:ro" \
   -v "$PWD/topics.yaml:/config/topics.yaml:ro" \
-  mailhelp:smoke --check --config-directory /config
+  mailhelp:smoke --check --config-directory /config \
+  --log-directory /tmp/mailhelp/logs
 ```
 
 Die fokussierten Pytest-Befehle behalten die produktweit verbindlichen Optionen
