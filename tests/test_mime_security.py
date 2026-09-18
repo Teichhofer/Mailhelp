@@ -34,6 +34,25 @@ def test_nested_alternative_prefers_plain_and_omits_non_text_parts():
     assert result["metadata"] == {"attachments_omitted": 2, "text_shortened": True}
 
 
+def test_text_and_message_attachments_are_completely_omitted():
+    root = EmailMessage(); root.set_content("visible body")
+
+    # Some senders omit Content-Disposition or label attachments as inline.
+    # A filename must still prevent textual attachment content reaching the LLM.
+    named_text = EmailMessage(); named_text.set_content("named attachment secret")
+    named_text.set_param("name", "notes.txt", header="Content-Type")
+    root.make_mixed(); root.attach(named_text)
+
+    forwarded = EmailMessage(); forwarded["Subject"] = "attached message"
+    forwarded.set_content("forwarded message secret")
+    root.add_attachment(forwarded)
+
+    result = prepare(root.as_bytes(), limits())
+
+    assert result["text"] == "visible body"
+    assert result["metadata"] == {"attachments_omitted": 2, "text_shortened": False}
+
+
 def test_charset_bad_transfer_encoding_unicode_and_controls():
     raw = b"Content-Type: text/plain; charset=iso-8859-1\r\nContent-Transfer-Encoding: base64\r\n\r\nR3L832U=%%%"
     assert "Grüße" in prepare(raw, limits())["text"]
