@@ -451,7 +451,12 @@ def build_application(
         todoist = HttpWriter("todoist", secrets.todoist_token.get_secret_value(), settings.targets.todoist_project, settings.timeouts.todoist.timeout_seconds, policy=policy("todoist"), logger=logger)
         stack.callback(todoist.close)
         calendar = CalendarFileWriter(telegram, settings.telegram.chat_id, logger)
-        analyzer = Analyzer(openrouter, prompts, settings.retries.validation)
+        analyzer = Analyzer(
+            openrouter, prompts,
+            provider_retries=settings.retries.provider_retry,
+            json_repair_retries=settings.retries.json_repair,
+            schema_repair_retries=settings.retries.schema_repair,
+        )
         dialog = TelegramDialogController(
             store, telegram, settings.telegram.user_id, settings.telegram.chat_id, logger,
             {"todoist": todoist, "google_calendar": calendar}, settings.test_mode,

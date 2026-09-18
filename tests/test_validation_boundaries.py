@@ -27,7 +27,7 @@ def valid_settings(tmp_path: Path) -> dict:
         "telegram": {"user_id": 1, "chat_id": -2},
         "targets": {"todoist_project": "inbox", "google_calendar": "primary"},
         "limits": {"max_mail_bytes": 1024, "llm_calls_per_minute": 1},
-        "retries": {"validation": 0},
+        "retries": {"provider_retry": 0, "json_repair": 0, "schema_repair": 0},
         "timeouts": {**{name: {"timeout_seconds": 1.0, "retries": 0, "initial_backoff_seconds": 0.0, "max_backoff_seconds": 1.0} for name in ("imap", "telegram", "openrouter", "todoist", "google_calendar")}, "telegram_poll_seconds": 1},
         "logging": {"directory": str(tmp_path / "logs"), "console": {"enabled": False}, "file": {"filename": "application.jsonl", "max_bytes": 10000, "backup_count": 1, "retention_days": 30}, "llm": {"filename": "llm/requests.jsonl", "max_bytes": 10000, "backup_count": 1, "retention_days": 30}},
     }
@@ -92,7 +92,7 @@ def test_settings_reject_missing_extra_types_ranges_and_semantics(tmp_path):
         lambda x: x["limits"].update(llm_calls_per_minute=0),
         lambda x: x["limits"].update(llm_calls_per_minute=601),
         lambda x: x["retries"].update(network=-1),
-        lambda x: x["retries"].update(validation=11),
+        lambda x: x["retries"].update(provider_retry=11),
         lambda x: x["timeouts"].update(openrouter_seconds=0.5),
         lambda x: x["timeouts"].update(telegram_seconds=301.0),
         lambda x: x["timeouts"].update(telegram_poll_seconds=51),

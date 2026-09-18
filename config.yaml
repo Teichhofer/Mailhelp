@@ -40,7 +40,9 @@ limits:
   max_llm_payload_bytes: 500000
   llm_calls_per_minute: 10
 retries:
-  validation: 1
+  provider_retry: 1
+  json_repair: 1
+  schema_repair: 1
 timeouts:
   imap: {timeout_seconds: 30, retries: 2, initial_backoff_seconds: 1, max_backoff_seconds: 8}
   telegram: {timeout_seconds: 35, retries: 2, initial_backoff_seconds: 1, max_backoff_seconds: 8}

@@ -5,7 +5,8 @@ from pathlib import Path
 import httpx, pytest
 import yaml
 from mailhelp.analysis import (Analyzer, LlmInvalidJson, LlmProviderResponseInvalid,
-                               LlmSchemaValidationExceeded, LlmSchemaValidationFailed)
+                               JSON_REPAIR_INSTRUCTION, LlmSchemaValidationExceeded,
+                               LlmSchemaValidationFailed)
 from mailhelp.config import TargetSettings, Topic
 from mailhelp.imap import FetchedMail
 from mailhelp.integrations import CalendarFileWriter, HttpWriter, calendar_file, execute_confirmed
@@ -42,6 +43,85 @@ def test_openrouter(monkeypatch):
 class FakeCompleter:
     def __init__(self, values): self.values=iter(values); self.calls=0
     def complete(self, *args): self.calls+=1; return str(self.calls), next(self.values)
+
+
+class RetrySequence:
+    """Synthetic provider recording every logical provider invocation."""
+    def __init__(self, values):
+        self.values=iter(values); self.payloads=[]; self.call_ids=[]
+
+    def complete(self, _model, _parameters, _system, payload):
+        self.payloads.append(payload)
+        call_id=f"provider-call-{len(self.payloads)}"
+        self.call_ids.append(call_id)
+        value=next(self.values)
+        if isinstance(value, Exception):
+            raise value
+        return call_id,value
+
+
+@pytest.mark.parametrize(("failure", "repair_key"), [
+    (ProviderResponseInvalid("message_content_null"), None),
+    (InvalidJson(), "json_repair_instruction"),
+    ({}, "previous_validation_error"),
+])
+def test_analyzer_classifies_retry_payloads_and_call_attempts(failure, repair_key):
+    valid={"sentences":["Eins.","Zwei."],"deadlines":[]}
+    client=RetrySequence([failure,valid])
+    call_id,result=Analyzer(client,prompt_config()).summary({"subject":"synthetic"})
+
+    assert call_id=="provider-call-2" and result.sentences==["Eins.","Zwei."]
+    assert client.call_ids==["provider-call-1","provider-call-2"]
+    assert len(client.payloads)==2
+    assert client.payloads[0]=={"mail":{"subject":"synthetic"}}
+    if repair_key is None:
+        assert client.payloads[1]==client.payloads[0]
+    else:
+        assert repair_key in client.payloads[1]
+    assert ("previous_validation_error" in client.payloads[1]) == (
+        repair_key == "previous_validation_error"
+    )
+    if repair_key == "json_repair_instruction":
+        assert client.payloads[1][repair_key]==JSON_REPAIR_INSTRUCTION
+        assert "Pydantic" not in client.payloads[1][repair_key]
+    if repair_key == "previous_validation_error":
+        assert "sentences" in client.payloads[1][repair_key]
+
+
+@pytest.mark.parametrize(("failure", "error_type", "limit_name"), [
+    (ProviderResponseInvalid("message_missing"), LlmProviderResponseInvalid, "provider_retries"),
+    (InvalidJson(), LlmInvalidJson, "json_repair_retries"),
+    ({}, LlmSchemaValidationFailed, "schema_repair_retries"),
+])
+def test_analyzer_exhausts_each_retry_category_independently(failure, error_type, limit_name):
+    values=[failure,failure]
+    client=RetrySequence(values)
+    limits={"provider_retries":0,"json_repair_retries":0,"schema_repair_retries":0}
+    limits[limit_name]=1
+    with pytest.raises(error_type):
+        Analyzer(client,prompt_config(),**limits).summary({})
+    assert client.call_ids==["provider-call-1","provider-call-2"]
+
+
+def test_analyzer_flat_retry_budget_and_diagnostic_is_not_leaked():
+    valid={"sentences":["Eins.","Zwei."],"deadlines":[]}
+    client=RetrySequence([{},ProviderResponseInvalid("choice_missing"),InvalidJson(),valid])
+    call_id,_=Analyzer(client,prompt_config(),provider_retries=1,
+                       json_repair_retries=1,schema_repair_retries=1).summary({})
+    assert call_id=="provider-call-4"
+    assert "previous_validation_error" in client.payloads[1]
+    assert client.payloads[2]=={"mail":{}}
+    assert client.payloads[3]["json_repair_instruction"]==JSON_REPAIR_INSTRUCTION
+    assert all("previous_validation_error" not in payload for payload in client.payloads[2:])
+
+
+@pytest.mark.parametrize("kwargs", [
+    {"validation_retries":-1}, {"provider_retries":-1},
+    {"json_repair_retries":-1}, {"schema_repair_retries":-1},
+])
+def test_analyzer_rejects_negative_retry_limits(kwargs):
+    with pytest.raises(ValueError,match="nicht negativ"):
+        Analyzer(RetrySequence([]),prompt_config(),**kwargs)
 
 
 def test_analyzer():
