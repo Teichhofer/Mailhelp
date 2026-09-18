@@ -74,8 +74,8 @@ Die nachfolgenden Betriebsdetails konkretisieren den vereinbarten Kern als vorge
 3. Es prüft konfigurierte IMAP-Ordner im eingestellten Intervall auf neue Nachrichten.
 4. Es speichert eine stabile interne Mail-ID und bereitet den Text für die Auswertung auf.
 5. Das LLM prüft die Relevanz anhand der aktivierten Themenbereiche.
-6. Irrelevante Nachrichten werden als verarbeitet markiert und erzeugen keine Telegram-Nachricht. Bei unklarer Relevanz erfolgt eine Rückfrage mit minimalem Kontext.
-7. Für relevante Nachrichten erstellt das LLM eine Zusammenfassung und prüft auf Aufgaben und Termine.
+6. Irrelevante Nachrichten werden als verarbeitet markiert und erzeugen keine Telegram-Nachricht. Bei unklarer Relevanz zeigt eine Rückfrage den aufbereiteten Absender und Betreff, jedoch keine interne Mail-ID. Diese bleibt zusammen mit der Dialogversion ausschließlich in den Callback-Daten zur technischen Zuordnung.
+7. Für relevante Nachrichten erstellt das LLM eine Zusammenfassung und prüft auf Aufgaben und Termine. Nach einer unklaren Einstufung geschieht dies erst nach der Auswahl `Relevant`; bei Auswahl `Irrelevant` wird keine Zusammenfassung erzeugt.
 8. Mailhelp validiert die strukturierten Ergebnisse und sendet die Zusammenfassung über Telegram.
 9. Erkannte Aufgaben und Termine werden als einzelne Vorschläge zur Prüfung angeboten.
 10. Bestätigte, vollständige Vorschläge werden im vorgesehenen Dienst gespeichert. Erfolg oder Fehler wird per Telegram zurückgemeldet.

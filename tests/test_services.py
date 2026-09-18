@@ -382,7 +382,7 @@ class Notify:
     def __init__(self): self.messages=[]
     def send(self,c,t): self.messages.append(t)
     def send_proposal(self,p): self.messages.append(p.id)
-    def send_relevance(self,d): self.messages.append(d.mail_id)
+    def send_relevance(self,d,sender,subject): self.messages.append((d.mail_id,sender,subject))
 
 
 def test_orchestrator_complete_notification_uses_validated_values(tmp_path):
@@ -503,9 +503,9 @@ def test_orchestrator_resolves_versioned_relevance_both_ways(tmp_path):
     for uid,decision in ((31,"irrelevant"),(32,"relevant")):
         with JsonStore(tmp_path/decision) as store:
             notify=Notify(); orchestrator=Orchestrator(AnalyzerStub("unclear"),store,notify,1,[topic],1000)
-            waiting=orchestrator.process(FetchedMail("INBOX",1,uid,b"Subject: Private\n\nSecret"))
+            waiting=orchestrator.process(FetchedMail("INBOX",1,uid,b"From: Alice <alice@example.test>\nSubject: Private\n\nSecret"))
             mail_id=waiting["id"]
-            assert notify.messages == [mail_id]
+            assert notify.messages == [(mail_id,"Alice <alice@example.test>","Private")]
             with pytest.raises(ValueError,match="nicht gefunden"): orchestrator.resolve_relevance("f"*24,1,decision,10)
             with pytest.raises(ValueError,match="veraltet"): orchestrator.resolve_relevance(mail_id,2,decision,10)
             with pytest.raises(ValueError,match="Ungültige"): orchestrator.resolve_relevance(mail_id,1,"maybe",10)
@@ -518,6 +518,14 @@ def test_orchestrator_resolves_versioned_relevance_both_ways(tmp_path):
                 completed=orchestrator.resume_mail(resolved)
                 assert completed.outcome is ProcessingOutcome.COMPLETED
                 assert completed["steps"]["summary"]==completed["steps"]["action_detection"]=="completed"
+                assert notify.messages[1] == "\n".join([
+                    "Absender: Alice <alice@example.test>",
+                    "Betreff: Private",
+                    "Zusammenfassung:",
+                    "- eins",
+                    "- zwei",
+                ])
+                assert len(notify.messages) == 2
 
 
 def test_relevance_dialog_schema_consistency():

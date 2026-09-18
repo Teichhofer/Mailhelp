@@ -429,12 +429,17 @@ class TelegramDialogController:
         self.revision_service = revision_service
         self.relevance_handler: Any = None
 
-    def send_relevance(self, dialog: RelevanceDialog) -> None:
+    def send_relevance(self, dialog: RelevanceDialog, sender: str, subject: str) -> None:
         buttons = [[
             {"text": "Relevant", "callback_data": RelevanceDecision(mail_id=dialog.mail_id, version=dialog.version, decision="relevant").encode()},
             {"text": "Irrelevant", "callback_data": RelevanceDecision(mail_id=dialog.mail_id, version=dialog.version, decision="irrelevant").encode()},
         ]]
-        self.telegram.send(self.chat_id, f"Relevanz für Mail {dialog.mail_id} auswählen:", {"inline_keyboard": buttons})
+        text = "\n".join([
+            f"Absender: {sender}",
+            f"Betreff: {subject}",
+            "Relevanz bitte bestätigen:",
+        ])
+        self.telegram.send(self.chat_id, text, {"inline_keyboard": buttons})
 
     @staticmethod
     def _proposal_name(mail_id: str, proposal_id: str) -> str:
