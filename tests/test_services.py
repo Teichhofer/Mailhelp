@@ -9,7 +9,7 @@ from mailhelp.config import TargetSettings, Topic
 from mailhelp.imap import FetchedMail
 from mailhelp.integrations import CalendarFileWriter, HttpWriter, calendar_file, execute_confirmed
 from mailhelp.models import ProposalStatus, RelevanceDialog
-from mailhelp.openrouter import OpenRouterClient, RateLimitExceeded
+from mailhelp.openrouter import OpenRouterClient, OpenRouterResponseError, RateLimitExceeded
 from mailhelp.adapter import PermanentError, RetryableError
 from mailhelp.orchestrator import MailState, Orchestrator
 from mailhelp.orchestrator import ProcessingOutcome
@@ -51,6 +51,30 @@ def test_analyzer():
     with pytest.raises(ValueError, match="mindestens"): Analyzer(FakeCompleter([{"decision":"relevant","topic_ids":[],"reason":"x"}]),prompt_config()).relevance({}, [topic])
 
 
+def test_analyzer_retries_malformed_openrouter_output_as_schema_validation():
+    class MalformedThenValid:
+        def __init__(self): self.payloads=[]
+        def complete(self, *args):
+            self.payloads.append(args[-1])
+            if len(self.payloads) == 1:
+                raise OpenRouterResponseError("OpenRouter chat/completions: ungültige Antwort")
+            return "second", {"sentences":["Sicher zusammengefasst.", "Ohne erfundene Angaben."]}
+
+    client=MalformedThenValid()
+    call, summary=Analyzer(client,prompt_config(),1).summary({"subject":"synthetisch"})
+    assert call == "second" and len(summary.sentences) == 2
+    assert client.payloads[0]["previous_validation_error"] is None
+    assert client.payloads[1]["previous_validation_error"] == "OpenRouter chat/completions: ungültige Antwort"
+
+    class AlwaysMalformed:
+        def complete(self, *args):
+            raise OpenRouterResponseError("OpenRouter chat/completions: ungültige Antwort")
+
+    with pytest.raises(LlmSchemaValidationExceeded) as error:
+        Analyzer(AlwaysMalformed(),prompt_config(),1).summary({})
+    assert isinstance(error.value.__cause__, OpenRouterResponseError)
+
+
 @pytest.mark.parametrize("result", [
     {"decision":"relevant","topic_ids":["x"],"reason":"Thema passt."},
     {"decision":"irrelevant","topic_ids":[],"reason":"Kein Thema passt."},
@@ -88,6 +112,17 @@ def test_analyzer_revises_proposal_with_separate_inputs_and_retries():
     call,revised=Analyzer(client,prompt_config(),1).revise_proposal(original,"Welcher Titel?","Neu")
     assert call=="2" and revised.title=="Neu" and original.title=="Tun"
     assert client.calls==2
+
+    class MalformedThenValid:
+        def __init__(self): self.payloads=[]
+        def complete(self, *args):
+            self.payloads.append(args[-1])
+            if len(self.payloads) == 1:
+                raise OpenRouterResponseError("OpenRouter chat/completions: ungültige Antwort")
+            return "recovered", valid
+    malformed=MalformedThenValid()
+    assert Analyzer(malformed,prompt_config(),1).revise_proposal(original,"q","a")[0] == "recovered"
+    assert malformed.payloads[1]["previous_validation_error"] == "OpenRouter chat/completions: ungültige Antwort"
 
     failures=[
         {**valid,"source_mail_id":"other"}, {**valid,"version":3},

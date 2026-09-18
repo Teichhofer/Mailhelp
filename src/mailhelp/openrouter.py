@@ -17,6 +17,10 @@ class RateLimitExceeded(RuntimeError):
         super().__init__(f"OpenRouter-Aufruflimit erreicht; naechster Aufruf {datetime.fromtimestamp(next_allowed_at, timezone.utc).isoformat()}")
 
 
+class OpenRouterResponseError(ValueError):
+    """OpenRouter returned a successful HTTP response without usable JSON output."""
+
+
 class OpenRouterMessage(BaseModel):
     model_config = ConfigDict(extra="ignore", strict=True)
     content: str = Field(min_length=1)
@@ -80,10 +84,10 @@ class OpenRouterClient:
             response = self.policy.run(invoke, begin, failed_attempt)
             raw = response.json()
             try: data = OpenRouterResponse.model_validate(raw)
-            except (ValueError, ValidationError) as exc: raise ValueError(f"OpenRouter chat/completions: ungültige Antwort am Schlüsselpfad {_path(exc)}") from exc
+            except (ValueError, ValidationError) as exc: raise OpenRouterResponseError(f"OpenRouter chat/completions: ungültige Antwort am Schlüsselpfad {_path(exc)}") from exc
             try: content = json.loads(data.choices[0].message.content)
-            except json.JSONDecodeError as exc: raise ValueError("OpenRouter chat/completions: ungültige Antwort am Schlüsselpfad choices.0.message.content") from exc
-            if not isinstance(content, dict): raise ValueError("OpenRouter chat/completions: Schlüsselpfad choices.0.message.content muss ein JSON-Objekt sein")
+            except json.JSONDecodeError as exc: raise OpenRouterResponseError("OpenRouter chat/completions: ungültige Antwort am Schlüsselpfad choices.0.message.content") from exc
+            if not isinstance(content, dict): raise OpenRouterResponseError("OpenRouter chat/completions: Schlüsselpfad choices.0.message.content muss ein JSON-Objekt sein")
             self.logger.llm_event("response_received", response=raw, call_id=call_id, model=model, parameters=parameters,
                                   prompt_fingerprint=fingerprint, duration_ms=round((time.perf_counter() - started) * 1000, 3),
                                   status=response.status_code, attempt=attempt, token_usage=raw.get("usage"),
