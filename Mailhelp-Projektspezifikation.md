@@ -12,6 +12,10 @@ Der optionale CLI-Parameter `--max-mails N` führt genau einen Abrufdurchlauf au
 bearbeitet dabei ordnerübergreifend höchstens `N` Mails einschließlich fälliger
 Wiederaufnahmen, pollt Telegram einmal und beendet den Prozess. `N` ist eine
 positive Ganzzahl; nicht ausgeschöpftes Kontingent löst keinen weiteren Abruf aus.
+Bleibt dabei Arbeit auf Eingabe stehen, erklärt die abschließende
+Telegram-Zusammenfassung, dass nach dem einmaligen Abruf eingehende Antworten
+erst beim nächsten Start verarbeitet werden; der unbegrenzte Dauerbetrieb hat
+dieses begrenzte Antwortfenster nicht.
 Noch nicht abgeschlossene Zustände mit abweichendem Konfigurationsfingerprint
 werden bereits beim Laden erkannt, weder per IMAP abgerufen noch fortgesetzt und
 verbrauchen dieses Verarbeitungskontingent nicht. Ein separates, ebenfalls auf

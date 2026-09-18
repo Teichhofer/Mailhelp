@@ -88,15 +88,21 @@ class _RunSummary:
         self.waiting = counts[ProcessingOutcome.WAITING]
         self.failed = counts[ProcessingOutcome.FAILED]
 
-    def message(self) -> str:
+    def message(self, *, bounded: bool = False) -> str:
         total = self.completed + self.waiting + self.failed
-        return "\n".join((
+        lines = [
             "Mailhelp-Lauf beendet.",
             f"Bearbeitet: {total}",
             f"Erfolgreich abgeschlossen: {self.completed}",
             f"Warten auf Eingabe oder Wiederholung: {self.waiting}",
             f"Fehlgeschlagen: {self.failed}",
-        ))
+        ]
+        if bounded and self.waiting:
+            lines.extend((
+                "Hinweis: --max-mails fragt Telegram nur einmal ab.",
+                "Später eingehende Antworten werden beim nächsten Start verarbeitet.",
+            ))
+        return "\n".join(lines)
 
 
 @dataclass
@@ -345,7 +351,10 @@ class Application:
                 self.stop_event.wait(self.settings.poll_interval_seconds)
         finally:
             try:
-                self.telegram.send(self.settings.telegram.chat_id, summary.message())
+                self.telegram.send(
+                    self.settings.telegram.chat_id,
+                    summary.message(bounded=max_mails is not None),
+                )
             except Exception as exc:
                 self.logger.event("ERROR", "telegram", "run_summary_failed", error=str(exc))
             else:

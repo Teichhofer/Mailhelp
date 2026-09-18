@@ -293,6 +293,10 @@ Neustart fortzusetzender Mails), fragt anschließend einmal Telegram ab und
 beendet sich. Nicht verbrauchtes Kontingent führt nicht zu einem weiteren Poll;
 `--max-mails` muss mindestens `1` sein. Bereits bestätigte externe Schreibaktionen
 behalten auch in diesem Modus ihre normalen Sicherheits- und Abgleichsregeln.
+Wenn Arbeit auf Eingabe wartet, weist die abschließende Telegram-Zusammenfassung
+darauf hin, dass erst nach diesem einmaligen Abruf eingehende Antworten beim
+nächsten Start verarbeitet werden. Für laufende Dialoge ohne dieses begrenzte
+Antwortfenster ist der Dauerbetrieb ohne `--max-mails` vorgesehen.
 Offene Bestandszustände mit einem anderen Konfigurationsfingerprint werden ohne
 IMAP-Abruf und ohne Fortsetzung als blockiert gemeldet. Sie verbrauchen das
 Verarbeitungskontingent nicht; pro Lauf werden zusätzlich höchstens
