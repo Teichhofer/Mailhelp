@@ -10,6 +10,12 @@ Der optionale CLI-Parameter `--max-mails N` führt genau einen Abrufdurchlauf au
 bearbeitet dabei ordnerübergreifend höchstens `N` Mails einschließlich fälliger
 Wiederaufnahmen, pollt Telegram einmal und beendet den Prozess. `N` ist eine
 positive Ganzzahl; nicht ausgeschöpftes Kontingent löst keinen weiteren Abruf aus.
+Noch nicht abgeschlossene Zustände mit abweichendem Konfigurationsfingerprint
+werden bereits beim Laden erkannt, weder per IMAP abgerufen noch fortgesetzt und
+verbrauchen dieses Verarbeitungskontingent nicht. Ein separates, ebenfalls auf
+`N` begrenztes Kontingent beschränkt ihr Scannen und Melden pro Lauf.
+Ohne `--max-mails` liegt diese separate Obergrenze bei 1.000 blockierten
+Zuständen je Abrufdurchlauf.
 
 Version: 1.2 · Stand: 18. September 2026 · Status: Implementierungsgrundlage.
 

@@ -278,6 +278,13 @@ Neustart fortzusetzender Mails), fragt anschließend einmal Telegram ab und
 beendet sich. Nicht verbrauchtes Kontingent führt nicht zu einem weiteren Poll;
 `--max-mails` muss mindestens `1` sein. Bereits bestätigte externe Schreibaktionen
 behalten auch in diesem Modus ihre normalen Sicherheits- und Abgleichsregeln.
+Offene Bestandszustände mit einem anderen Konfigurationsfingerprint werden ohne
+IMAP-Abruf und ohne Fortsetzung als blockiert gemeldet. Sie verbrauchen das
+Verarbeitungskontingent nicht; pro Lauf werden zusätzlich höchstens
+`--max-mails` solcher Zustände gescannt und gemeldet, damit ein großer alter
+Bestand weder neue Mails verdrängt noch den Lauf unbegrenzt verlängert.
+Im dauerhaften Betrieb ohne `--max-mails` endet dieser zusätzliche Scan nach
+1.000 blockierten Zuständen je Abrufdurchlauf.
 
 Fehler werden im Mail-Zustand ausschließlich mit sicherem Fehlercode, betroffener
 Verarbeitungsstufe, Zeitstempel und optionaler Wiederholbarkeit gespeichert. Eine vor
