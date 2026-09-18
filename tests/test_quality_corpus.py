@@ -67,6 +67,13 @@ def test_corpus_is_versioned_synthetic_and_covers_required_risks():
     assert {case["expected"]["relevance"]["decision"] for case in corpus["cases"]} == {
         "relevant", "irrelevant", "unclear"
     }
+    assert all(set(case["expected"]["relevance"]) == {"decision", "topic_ids", "reason"}
+               for case in corpus["cases"])
+    assert all(isinstance(case["expected"]["relevance"]["topic_ids"], list)
+               for case in corpus["cases"])
+    assert all(not case["expected"]["relevance"]["topic_ids"]
+               for case in corpus["cases"]
+               if case["expected"]["relevance"]["decision"] == "irrelevant")
     assert any(len(case["expected"]["relevance"]["topic_ids"]) > 1 for case in corpus["cases"])
     classifications = {proposal["classification"] for case in corpus["cases"]
                        for proposal in case["expected"]["actions"]["proposals"]}
