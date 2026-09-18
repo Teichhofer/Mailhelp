@@ -37,10 +37,11 @@ Authorization-Header noch vollständige Antwortinhalte aus.
 Die Todoist-Anwendungsdaten werden ausschließlich über die `.env` oder gleichnamige
 Prozessumgebungsvariablen eingelesen. Nach dem Kopieren von `.env.example` sind dort
 `TODOIST_CLIENT_ID` und `TODOIST_CLIENT_SECRET` mit der Client-ID beziehungsweise
-dem Client-Schlüssel der Todoist-Anwendung zu befüllen. Das für die REST-API als
-Bearer-Token verwendete `TODOIST_TOKEN` wird ebenfalls dort gespeichert; Client-ID
-und Client-Schlüssel ersetzen dieses Zugriffstoken nicht. Keiner dieser Werte
-gehört in `config.yaml`, Zustandsdateien oder Logs.
+dem Client-Schlüssel der Todoist-Anwendung zu befüllen. Nach der einmaligen
+Autorisierung der Anwendung wird außerdem der dabei ausgegebene
+`TODOIST_REFRESH_TOKEN` eingetragen. Mailhelp erzeugt daraus kurzlebige
+OAuth-Zugriffstokens und verwendet keinen persönlichen Todoist-API-Schlüssel mehr.
+Keiner dieser Werte gehört in `config.yaml`, Zustandsdateien oder Logs.
 
 ### Google Calendar OAuth einrichten
 
