@@ -233,7 +233,7 @@ class TelegramClient:
         self.logger = logger or NullLogger()
 
     def check_access(self) -> None:
-        """Validate the bot token without reading updates or sending a message."""
+        """Validate the bot token without reading updates."""
         response = self.policy.run(lambda: self.client.get("/getMe"))
         response.raise_for_status()
         try:

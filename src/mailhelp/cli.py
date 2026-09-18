@@ -19,7 +19,7 @@ def main() -> int:
     parser.add_argument("--check", action="store_true", help="Konfiguration validieren und beenden")
     parser.add_argument(
         "--check-access", action="store_true",
-        help="Zugangsdaten und Zielzugriffe nur lesend prüfen und beenden",
+        help="Zugänge prüfen, Telegram-Testnachricht senden und beenden",
     )
     parser.add_argument(
         "--max-mails", type=_positive_int, metavar="ANZAHL",

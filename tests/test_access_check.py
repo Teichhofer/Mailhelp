@@ -130,14 +130,21 @@ def test_todoist_access_errors_reach_cli_without_secrets(
 
 
 class Check:
-    def __init__(self, error=None):
+    def __init__(self, error=None, send_error=None):
         self.error = error
+        self.send_error = send_error
         self.calls = []
+        self.sent = []
 
     def check_access(self, *args):
         self.calls.append(args)
         if self.error is not None:
             raise self.error
+
+    def send(self, chat_id, text):
+        self.sent.append((chat_id, text))
+        if self.send_error is not None:
+            raise self.send_error
 
 
 def test_application_access_check_runs_every_check_after_errors():
@@ -145,11 +152,13 @@ def test_application_access_check_runs_every_check_after_errors():
     openrouter = Check(ValueError("bad key"))
     telegram, todoist, calendar = Check(), Check(), Check()
     application = SimpleNamespace(
-        settings=SimpleNamespace(imap=SimpleNamespace(folders=["INBOX"])),
+        settings=SimpleNamespace(
+            imap=SimpleNamespace(folders=["INBOX"]),
+            telegram=SimpleNamespace(chat_id=12345), timezone="Europe/Berlin",
+        ),
         imap=imap, openrouter=openrouter, telegram=telegram,
         todoist=todoist, calendar=calendar,
     )
-
     results = Application.check_access(application)
 
     assert results == {
@@ -158,6 +167,30 @@ def test_application_access_check_runs_every_check_after_errors():
     }
     assert imap.calls == [(["INBOX"],)]
     assert all(item.calls == [()] for item in (openrouter, telegram, todoist, calendar))
+    assert len(telegram.sent) == 1
+    chat_id, message = telegram.sent[0]
+    assert chat_id == 12345
+    assert message.startswith("Test – Datum: ")
+    assert ", Uhrzeit: " in message and message.endswith(" (Europe/Berlin)")
+
+
+def test_application_reports_telegram_test_message_failure_and_skips_send_if_bot_is_invalid():
+    for telegram, expected_sent, expected_error in (
+        (Check(RuntimeError("bot invalid")), [], "bot invalid"),
+        (Check(send_error=RuntimeError("chat denied")), [(7,)], "chat denied"),
+    ):
+        application = SimpleNamespace(
+            settings=SimpleNamespace(
+                imap=SimpleNamespace(folders=["INBOX"]),
+                telegram=SimpleNamespace(chat_id=7), timezone="UTC",
+            ),
+            imap=Check(), openrouter=Check(), telegram=telegram,
+            todoist=Check(), calendar=Check(),
+        )
+        results = Application.check_access(application)
+
+        assert results["Telegram"] == expected_error
+        assert [(chat_id,) for chat_id, _message in telegram.sent] == expected_sent
 
 
 def test_application_distinguishes_oauth_failure_without_logging_response_secrets(tmp_path):

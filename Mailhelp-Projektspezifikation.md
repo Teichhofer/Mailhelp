@@ -263,11 +263,14 @@ gelesen, damit auch nach einem Neustart keine doppelte Aufgabe entsteht.
 Alle Dateien werden beim Start geprüft. Fehlermeldungen nennen betroffene Datei und Schlüssel, niemals geheime Werte. `.env`, Zustandsdaten und Logs werden aus Git und Docker-Build-Kontext ausgeschlossen. Eine private Beispieldatei mit echten Zugangsdaten gehört nicht ins Projekt.
 
 Der gesonderte Start mit `--check-access` prüft alle konfigurierten externen
-Zugänge ausschließlich über lesende beziehungsweise authentifizierende
-Operationen: IMAP-Ordnerauswahl im Nur-Lese-Modus, OpenRouter-Schlüsselstatus,
-Telegram `getMe`, Todoist-Zielprojekt und Google-Zielkalender. Dabei werden weder
-Mails gesucht oder geladen noch Telegram-Updates gelesen, LLM-Aufträge ausgeführt
-oder externe Einträge geschrieben. Alle Prüfergebnisse werden ausgegeben; ein
+Zugänge: IMAP-Ordnerauswahl im Nur-Lese-Modus, OpenRouter-Schlüsselstatus,
+Telegram `getMe`, Todoist-Zielprojekt und Google-Zielkalender. Nach erfolgreicher
+Bot-Prüfung sendet er eine Telegram-Testnachricht mit `Test`, Datum, Uhrzeit und
+konfigurierter Zeitzone an den konfigurierten Chat. Abgesehen von dieser Nachricht
+bleiben die Diagnoseoperationen lesend beziehungsweise authentifizierend. Es werden
+weder Mails gesucht oder geladen noch Telegram-Updates gelesen, LLM-Aufträge
+ausgeführt oder Aufgaben beziehungsweise Termine geschrieben. Alle Prüfergebnisse
+werden ausgegeben; ein
 Teilfehler verhindert die übrigen Prüfungen nicht und führt abschließend zu einem
 von null verschiedenen Prozessstatus.
 
