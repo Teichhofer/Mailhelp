@@ -84,12 +84,11 @@ verfügbaren UIDs) oder ein ISO-8601-Zeitpunkt **mit explizitem UTC-Offset**, et
 `2025-01-15T08:30:00+01:00`. Der Server wird ausschließlich mit Nur-Lese-`SELECT`,
 `UID SEARCH` und `UID FETCH INTERNALDATE` abgefragt. Die sekundengenaue Grenze wird
 in UTC verglichen und ihr ermittelter UID-Ausgangspunkt sofort je Konto und Ordner
-persistiert; ein Neustart deutet den Zeitpunkt daher nicht anhand einer geänderten
-Windows-/Container-Zeitzone oder eines inzwischen gewachsenen Postfachs neu aus.
-Die Metadaten-Auswertung akzeptiert dabei die von `imaplib` gelieferten direkten
-Bytes-Elemente ebenso wie das erste Bytes-Element eines Antwort-Tupels, überspringt
-strukturelle Abschlussfragmente und erkennt `INTERNALDATE` unabhängig von der
-Groß-/Kleinschreibung.
+persistiert; ein Neustart deutet den Zeitpunkt daher innerhalb derselben
+UIDVALIDITY nicht anhand einer geänderten Windows-/Container-Zeitzone oder eines
+inzwischen gewachsenen Postfachs neu aus. Nach einem UIDVALIDITY-Wechsel wird die
+absolute Grenze dagegen mit `INTERNALDATE` in der neuen UID-Generation erneut
+ermittelt und zusammen mit ihr gespeichert, bevor ein `BODY.PEEK[]` erfolgt.
 Die mitgelieferte `config.yaml` setzt diese Grenze auf den 15. September 2026 um
 00:00 Uhr in `Europe/Berlin` (`2026-09-15T00:00:00+02:00`), sodass ältere
 Nachrichten beim erstmaligen Aufbau des Abrufpunkts nicht verarbeitet werden.

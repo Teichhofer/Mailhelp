@@ -21,6 +21,15 @@ class FetchedMail:
     received_at: datetime = datetime.min.replace(tzinfo=timezone.utc)
 
 
+class UIDValidityChanged(RuntimeError):
+    """Report a new UID generation before any message body is fetched."""
+
+    def __init__(self, folder: str, previous: int, current: int):
+        super().__init__(f"IMAP-UIDVALIDITY hat sich geändert: {folder}")
+        self.previous = previous
+        self.current = current
+
+
 def _fetched_mail(folder: str, uidvalidity: int, uid: int, data: object,
                   mailbox: str) -> FetchedMail:
     """Validate the deliberately combined FETCH response without trusting its shape."""
@@ -150,9 +159,10 @@ class ImapReader:
         status, validity = self.connection.response("UIDVALIDITY")
         if status != "UIDVALIDITY" or not validity: raise RuntimeError("IMAP lieferte keine UIDVALIDITY")
         uidvalidity = int(validity[0]); self.last_uidvalidity = uidvalidity
-        if expected_uidvalidity != uidvalidity:
-            after_uid = 0
-            completed_uid_ranges = ()
+        if expected_uidvalidity is not None and expected_uidvalidity != uidvalidity:
+            # Do not search or fetch in a UID generation whose durable boundary
+            # has not been resolved yet.  In particular, BODY.PEEK must not run.
+            raise UIDValidityChanged(folder, expected_uidvalidity, uidvalidity)
         status, matches = self.connection.uid("search", None, f"UID {after_uid + 1}:*")
         if status != "OK": raise RuntimeError("IMAP-Suche fehlgeschlagen")
         tokens = matches[0].split() if matches else []

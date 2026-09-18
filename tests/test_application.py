@@ -7,7 +7,7 @@ import pytest
 
 from mailhelp.application import Application, _MailBudget, _add_uid, _checkpoint_name, _safe_name, _state_directory, build_application, build_logger
 from mailhelp.config import Secrets, Settings, Topic
-from mailhelp.imap import FetchedMail
+from mailhelp.imap import FetchedMail, UIDValidityChanged
 from mailhelp.models import MailState
 from mailhelp.orchestrator import ProcessingOutcome, ProcessingResult
 from test_core import prompt_config
@@ -33,7 +33,10 @@ class Imap:
     def fetch_since(self,*args):
         self.calls.append(args); value=next(self.outcomes)
         if isinstance(value,Exception): raise value
-        self.last_uidvalidity=value[0]; return value[1]
+        self.last_uidvalidity=value[0]
+        if args[2] is not None and value[0] != args[2]:
+            raise UIDValidityChanged(args[0], args[2], value[0])
+        return value[1]
     def fetch_uid(self,*args):
         self.uid_calls.append(args)
         return FetchedMail(args[0],args[2],args[1],b"Subject: resumed\n\nBody")
@@ -439,23 +442,27 @@ def test_historical_start_is_persisted_account_scoped_and_uidvalidity_logged(tmp
     cfg=settings(tmp_path); cfg.imap.historical_start=boundary
     fake=Imap([(8,[])]); fake.account_id="1"*24
     fake.determine_calls=[]
-    fake.determine_start_uid=lambda folder,start: fake.determine_calls.append((folder,start)) or 41
+    def initial_boundary(folder, start):
+        fake.determine_calls.append((folder,start)); fake.last_uidvalidity=8; return 41
+    fake.determine_start_uid=initial_boundary
     store=Store(); service=Application(cfg,store,Log(),fake,object(),object(),Telegram([]),object(),object(),Orch(),__import__('threading').Event())
     service._poll_imap()
     key=_checkpoint_name("1"*24,"INBOX")
     assert fake.determine_calls==[("INBOX",boundary)]
-    assert fake.calls==[("INBOX",41,None,None,())] and store.values[key]["start_uid"]==41
+    assert fake.calls==[("INBOX",41,8,None,())] and store.values[key]["start_uid"]==41
 
-    restarted=Imap([(9,[]),(9,[])]); restarted.account_id="1"*24
-    restarted.determine_start_uid=lambda *_: 42
+    before_boundary=FetchedMail("INBOX",9,1,b"must-not-be-delivered")
+    restarted=Imap([(9,[before_boundary]),(9,[])]); restarted.account_id="1"*24
+    restarted.determine_start_uid=lambda *_: setattr(restarted,"last_uidvalidity",9) or 42
     again=Application(cfg,store,Log(),restarted,object(),object(),Telegram([]),object(),object(),Orch(),__import__('threading').Event())
     again._poll_imap()
     assert restarted.calls==[("INBOX",41,8,None,()),("INBOX",42,9,None,())]
+    assert again.orchestrator.seen==[]
     assert store.values[key]["start_uid"]==42
     assert any(event[0][2]=="uidvalidity_changed" for event in again.logger.events)
 
     changed=Imap([(3,[])]); changed.account_id="2"*24
-    changed.determine_start_uid=lambda *_: 7
+    changed.determine_start_uid=lambda *_: setattr(changed,"last_uidvalidity",3) or 7
     other=Application(cfg,store,Log(),changed,object(),object(),Telegram([]),object(),object(),Orch(),__import__('threading').Event())
     other._poll_imap()
     assert _checkpoint_name("2"*24,"INBOX") in store.values
@@ -470,6 +477,12 @@ def test_historical_start_is_persisted_account_scoped_and_uidvalidity_logged(tmp
     failed=Application(cfg,store,Log(),broken,object(),object(),Telegram([]),object(),object(),Orch(),__import__('threading').Event())
     failed._poll_imap()
     assert failed.logger.events[-1][0][2]=="poll_failed"
+
+    drifting=Imap([(10,[])]); drifting.account_id="1"*24
+    drifting.determine_start_uid=lambda *_: setattr(drifting,"last_uidvalidity",11) or 5
+    drifted=Application(cfg,store,Log(),drifting,object(),object(),Telegram([]),object(),object(),Orch(),__import__('threading').Event())
+    drifted._poll_imap()
+    assert len(drifting.calls)==1 and "während der Grenzermittlung" in drifted.logger.events[-1][1]["error"]
 
     foreign=MailState(id="f"*24,config_fingerprint="0"*64,imap={"account_id":"9"*24,"folder":"INBOX","uidvalidity":1,"uid":1})
     other.store.values["mail-foreign"]=foreign.model_dump(mode="json")

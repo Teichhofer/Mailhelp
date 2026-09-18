@@ -11,7 +11,7 @@ from mailhelp import __version__
 from mailhelp.analysis import Analyzer
 from mailhelp.cli import main
 from mailhelp.config import PromptConfig, PromptStep, Topic, TopicsConfig, _deep_merge, _dotenv, _yaml, load_all
-from mailhelp.imap import FetchedMail, ImapReader, account_id
+from mailhelp.imap import FetchedMail, ImapReader, UIDValidityChanged, account_id
 from mailhelp.integrations import HttpWriter, execute_confirmed
 from mailhelp.logging import JsonlLogger, redact
 from mailhelp.mime import prepare
@@ -190,13 +190,20 @@ def test_imap_fetch_is_batched_and_reports_progress():
 
 def test_imap_newest_first_skips_completed_ranges_and_resets_on_uidvalidity():
     class BacklogImap(FakeImap):
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs); self.commands=[]
         def uid(self, action, *args):
+            self.commands.append((action,args))
             if action == "search": return "OK", [b"4 5 6"]
             uid=args[0]
             return "OK", [(uid+b' (INTERNALDATE "17-Sep-2026 10:11:12 +0200")',b"raw")]
     reader=ImapReader("h",1,"u","p",factory=BacklogImap,batch_size=3)
     assert [m.uid for m in reader.fetch_since("INBOX",3,7,completed_uid_ranges=((5,6),))]==[4]
-    assert [m.uid for m in reader.fetch_since("INBOX",3,8,completed_uid_ranges=((4,6),))]==[6,5,4]
+    command_count=len(reader.connection.commands)
+    with pytest.raises(UIDValidityChanged) as changed:
+        reader.fetch_since("INBOX",3,8,completed_uid_ranges=((4,6),))
+    assert (changed.value.previous, changed.value.current)==(8,7)
+    assert len(reader.connection.commands)==command_count
 
 
 def test_imap_connection_and_exact_historical_boundary():
@@ -209,7 +216,9 @@ def test_imap_connection_and_exact_historical_boundary():
             if action=="search" and args[-1]=="ALL": return "OK", [b"1 2 9"]
             if action=="search": return "OK", [b" ".join(self.dates)]
             if args[-1]=="(INTERNALDATE)":
-                stamp=b'01-Jan-2025 22:59:00 -0500' if args[0]==b"2" else b'02-Jan-2025 04:01:00 +0000'
+                stamp=(b'01-Jan-2025 22:59:00 -0500' if args[0]==b"2" else
+                       b'02-Jan-2025 04:00:00 +0000' if args[0]==b"4" else
+                       b'02-Jan-2025 04:01:00 +0000')
                 return "OK", [(b'2 (INTERNALDATE "'+stamp+b'")', b"")]
             return super().uid(action,*args)
     connection=BoundaryImap((b"2",b"3"))
@@ -217,6 +226,10 @@ def test_imap_connection_and_exact_historical_boundary():
     assert connection.tls and reader.determine_start_uid("INBOX",datetime(2025,1,2,4,0,tzinfo=timezone.utc))==2
     assert account_id("example.com",143,"user")==reader.account_id
     assert all(command[1][-1] != "(BODY[])" for command in connection.commands)
+
+    exact=BoundaryImap((b"4",))
+    assert ImapReader("h",143,"u","p",factory=lambda *a,**k:exact).determine_start_uid(
+        "INBOX",datetime(2025,1,2,4,0,tzinfo=timezone.utc))==3
 
     no_match=BoundaryImap(())
     other=ImapReader("h",143,"u","p",factory=lambda *a,**k:no_match)
