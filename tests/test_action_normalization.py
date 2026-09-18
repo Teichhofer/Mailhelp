@@ -1,0 +1,144 @@
+from datetime import date, datetime, timedelta
+
+import pytest
+
+from mailhelp.action_normalization import (
+    MailDateContext,
+    NormalizationReason,
+    TemporalValue,
+    normalize_event,
+    normalize_task_due,
+)
+from mailhelp.models import ExtractedEvent, ExtractedTask
+
+
+def context(**changes):
+    values = {
+        "date_context_status": "valid",
+        "date_header_parsed": "2026-09-18T12:00:00+02:00",
+        "imap_received_at": "2026-09-18T10:01:00+00:00",
+        "user_timezone": "Europe/Berlin",
+    }
+    values.update(changes)
+    return MailDateContext(**values)
+
+
+def event(**changes):
+    values = {
+        "title": "Sitzung", "description": None, "evidence": "synthetischer Beleg",
+        "date_text": "22.09.2026", "time_text": None, "end_time_text": None,
+        "location": None, "video_link": None, "responsibility": "user",
+        "certainty": "certain", "classification": "new",
+    }
+    values.update(changes)
+    return ExtractedEvent(**values)
+
+
+def task(**changes):
+    values = {"title": "Aufgabe", "description": "", "evidence": "Beleg",
+              "responsibility": "user", "certainty": "certain", "classification": "new",
+              "due_text": "2026-09-22"}
+    values.update(changes)
+    return ExtractedTask(**values)
+
+
+def test_gemeinderat_is_one_exclusive_all_day_interval_and_responsibility_stays_separate():
+    result = normalize_event(event(responsibility="unclear"), context())
+    assert result.value == TemporalValue(date(2026, 9, 22), date(2026, 9, 23), True)
+    assert result.reason is None and result.raw_value == "22.09.2026" and result.question is None
+    assert result.resolved is True
+    assert result.confirmation_ready is False
+    assert normalize_event(event(), context()).confirmation_ready is True
+
+
+@pytest.mark.parametrize(("raw", "expected_start", "expected_end"), [
+    ("2024-02-29", date(2024, 2, 29), date(2024, 3, 1)),
+    ("31.12.2026", date(2026, 12, 31), date(2027, 1, 1)),
+])
+def test_supported_dates_cover_leap_year_and_year_boundary(raw, expected_start, expected_end):
+    result = normalize_event(event(date_text=raw), context())
+    assert result.value == TemporalValue(expected_start, expected_end, True)
+
+
+@pytest.mark.parametrize(("raw", "reason"), [
+    (None, NormalizationReason.MISSING_DATE),
+    ("nächsten Freitag", NormalizationReason.UNSUPPORTED_DATE),
+    ("2023-02-29", NormalizationReason.INVALID_DATE),
+    ("31.04.2026", NormalizationReason.INVALID_DATE),
+])
+def test_missing_relative_and_invalid_dates_have_stable_reasons(raw, reason):
+    result = normalize_event(event(date_text=raw), context())
+    assert result.value is None and result.reason == reason and result.question
+    assert result.raw_value == raw and not result.resolved and not result.confirmation_ready
+
+
+@pytest.mark.parametrize(("changes", "reason"), [
+    ({"time_text": "10:00"}, NormalizationReason.MISSING_END_TIME),
+    ({"end_time_text": "11:00"}, NormalizationReason.MISSING_TIME),
+    ({"time_text": "10 Uhr", "end_time_text": "11:00"}, NormalizationReason.UNSUPPORTED_TIME),
+    ({"time_text": "25:00", "end_time_text": "11:00"}, NormalizationReason.INVALID_TIME),
+    ({"time_text": "10:00", "end_time_text": "11 Uhr"}, NormalizationReason.UNSUPPORTED_TIME),
+    ({"time_text": "10:00", "end_time_text": "25:00"}, NormalizationReason.INVALID_TIME),
+    ({"time_text": "11:00", "end_time_text": "10:00"}, NormalizationReason.END_NOT_AFTER_START),
+])
+def test_incomplete_invalid_and_reversed_times_are_not_invented(changes, reason):
+    result = normalize_event(event(**changes), context())
+    assert result.reason == reason and result.value is None and result.question
+
+
+def test_unambiguous_clock_times_use_configured_zone_and_seconds_are_supported():
+    result = normalize_event(event(date_text="2026-07-01", time_text="10:15:30",
+                                   end_time_text="11:16:31"), context())
+    assert isinstance(result.value, TemporalValue)
+    assert result.value.start == datetime.fromisoformat("2026-07-01T10:15:30+02:00")
+    assert result.value.end == datetime.fromisoformat("2026-07-01T11:16:31+02:00")
+    assert result.value.all_day is False
+
+
+@pytest.mark.parametrize(("day", "clock", "reason"), [
+    ("2026-03-29", "02:30", NormalizationReason.NONEXISTENT_LOCAL_TIME),
+    ("2026-10-25", "02:30", NormalizationReason.AMBIGUOUS_LOCAL_TIME),
+])
+def test_dst_transition_times_require_clarification(day, clock, reason):
+    result = normalize_event(event(date_text=day, time_text=clock, end_time_text="04:00"), context())
+    assert result.reason == reason
+
+
+def test_dst_problem_in_end_time_is_also_detected():
+    result = normalize_event(event(date_text="2026-10-25", time_text="01:30", end_time_text="02:30"), context())
+    assert result.reason == NormalizationReason.AMBIGUOUS_LOCAL_TIME
+
+
+@pytest.mark.parametrize(("changes", "reason"), [
+    ({"date_context_status": "missing"}, NormalizationReason.INVALID_CONTEXT),
+    ({"date_context_status": "conflicting"}, NormalizationReason.CONFLICTING_CONTEXT),
+    ({"date_header_parsed": None}, NormalizationReason.INVALID_CONTEXT),
+    ({"date_header_parsed": "not-iso"}, NormalizationReason.INVALID_CONTEXT),
+    ({"date_header_parsed": "2026-09-18T12:00:00"}, NormalizationReason.INVALID_CONTEXT),
+    ({"imap_received_at": None}, NormalizationReason.INVALID_CONTEXT),
+    ({"imap_received_at": "invalid"}, NormalizationReason.INVALID_CONTEXT),
+    ({"imap_received_at": "2026-09-18T10:00:00"}, NormalizationReason.INVALID_CONTEXT),
+    ({"imap_received_at": "2026-10-18T10:00:00+00:00"}, NormalizationReason.CONFLICTING_CONTEXT),
+    ({"user_timezone": None}, NormalizationReason.MISSING_TIMEZONE),
+    ({"user_timezone": "Not/AZone"}, NormalizationReason.UNKNOWN_TIMEZONE),
+    ({"user_timezone": "\0"}, NormalizationReason.UNKNOWN_TIMEZONE),
+])
+def test_bad_or_contradictory_context_has_a_specific_result(changes, reason):
+    result = normalize_event(event(), context(**changes))
+    assert result.reason == reason and result.value is None
+
+
+def test_task_due_supports_date_only_and_retains_unresolved_raw_input():
+    resolved = normalize_task_due(task(), context())
+    assert resolved.value == date(2026, 9, 22) and resolved.confirmation_ready
+    missing = normalize_task_due(task(due_text=None), context())
+    relative = normalize_task_due(task(due_text="morgen"), context())
+    assert missing.reason == NormalizationReason.MISSING_DATE
+    assert relative.reason == NormalizationReason.UNSUPPORTED_DATE and relative.raw_value == "morgen"
+
+
+def test_task_due_checks_mail_context_and_does_not_override_responsibility():
+    invalid = normalize_task_due(task(), context(date_context_status="invalid"))
+    unclear = normalize_task_due(task(responsibility="unclear"), context())
+    assert invalid.reason == NormalizationReason.INVALID_CONTEXT
+    assert unclear.value == date(2026, 9, 22) and not unclear.confirmation_ready
