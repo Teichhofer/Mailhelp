@@ -255,6 +255,9 @@ Todoist-Client-ID und -Client-Schlüssel werden als `TODOIST_CLIENT_ID` und
 geladen. Für authentifizierte REST-Aufrufe bleibt zusätzlich `TODOIST_TOKEN` als
 Bearer-Token erforderlich. Alle drei Werte werden als Geheimnisse behandelt und
 bei fehlender oder leerer Angabe bereits beim Start abgelehnt.
+Todoist-Aufrufe verwenden die aktuelle API unter `/api/v1`. Listen von Aufgaben
+werden cursorbasiert bis zum Fund der Idempotenzkennung oder bis zum Listenende
+gelesen, damit auch nach einem Neustart keine doppelte Aufgabe entsteht.
 
 Alle Dateien werden beim Start geprüft. Fehlermeldungen nennen betroffene Datei und Schlüssel, niemals geheime Werte. `.env`, Zustandsdaten und Logs werden aus Git und Docker-Build-Kontext ausgeschlossen. Eine private Beispieldatei mit echten Zugangsdaten gehört nicht ins Projekt.
 

@@ -65,7 +65,7 @@ def test_adapter_access_checks_are_read_only_and_validate_responses():
 
 def test_target_access_checks_only_issue_get_requests():
     for service, target, expected in (
-        ("todoist", "project", "/rest/v2/projects/project"),
+        ("todoist", "project", "/api/v1/projects/project"),
         ("google_calendar", "calendar", "/calendar/v3/calendars/calendar"),
     ):
         seen = []

@@ -31,6 +31,8 @@ Token abgelehnt wurde (Authentifizierungsfehler), HTTP 403, dass dem Token die
 Berechtigung für das Zielprojekt fehlt, und HTTP 404, dass das konfigurierte
 Zielprojekt nicht erreichbar ist. Diese Diagnosen geben weder Token oder
 Authorization-Header noch vollständige Antwortinhalte aus.
+Mailhelp verwendet dafür die aktuelle Todoist-API unter `/api/v1`; der frühere
+REST-v2-Endpunkt wird von Todoist nicht mehr verwendet.
 
 ### Todoist-Zugangsdaten einrichten
 
