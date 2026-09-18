@@ -152,10 +152,25 @@ def prepare(raw: bytes, limits: int | MimeLimits | object,
     decoded_bytes = 0
     plain: list[str] = []
     html: list[str] = []
+    omitted_parts: set[int] = set()
+    for part in message.walk():
+        if id(part) in omitted_parts:
+            continue
+        # A filename is an attachment signal even when Content-Disposition is
+        # missing or says ``inline``.  When the attachment is itself a MIME
+        # message, exclude its complete subtree rather than accidentally
+        # treating the enclosed text/plain part as the mail body.
+        if part is not message and (
+            part.get_content_disposition() == "attachment" or part.get_filename() is not None
+        ):
+            attachments += 1
+            omitted_parts.update(id(descendant) for descendant in part.walk())
+
     for part in leaves:
-        disposition = part.get_content_disposition()
+        if id(part) in omitted_parts:
+            continue
         content_type = part.get_content_type()
-        if disposition == "attachment" or content_type not in {"text/plain", "text/html"}:
+        if content_type not in {"text/plain", "text/html"}:
             attachments += 1
             continue
         body = _body(part, configured)

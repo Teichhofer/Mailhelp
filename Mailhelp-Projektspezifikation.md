@@ -88,9 +88,11 @@ dekodierte Textmenge, HTML-Zeichen, HTML-Tags und Verschachtelungstiefe sowie di
 endgültige JSON-Nutzlast für das LLM. Bei Überschreitung entsteht ein sichtbarer,
 inhaltlich neutraler Fehlerzustand. Aktive und eingebettete HTML-Inhalte
 (`script`, `style`, `noscript`, `object`, `embed`, `iframe`, SVG und Canvas) sowie
-Anhänge werden ausgelassen; externe Ressourcen werden nie geladen. Unicode wird
-normalisiert und problematische Steuerzeichen werden entfernt, Zeilenumbrüche
-bleiben erhalten.
+Anhänge werden einschließlich ihres vollständigen MIME-Unterbaums ausgelassen;
+auch Textteile mit Dateinamen gelten unabhängig von einer fehlenden oder als
+`inline` gesetzten Content-Disposition als Anhang. Externe Ressourcen werden nie
+geladen. Unicode wird normalisiert und problematische Steuerzeichen werden
+entfernt, Zeilenumbrüche bleiben erhalten.
 
 Header und Text werden dem LLM ausschließlich als getrennte Datenfelder und nie
 als Prompt-Anweisungen übergeben. Metadaten über ausgelassene Anhänge und eine
