@@ -125,14 +125,24 @@ class ImapReader:
         candidates = matches[0].split() if matches else []
         for token in candidates:
             status, data = self.connection.uid("fetch", token, "(INTERNALDATE)")
-            if status != "OK" or not data or not isinstance(data[0], tuple):
-                raise RuntimeError("IMAP-INTERNALDATE-Abruf fehlgeschlagen")
-            match = re.search(rb'INTERNALDATE "([^"]+)"', data[0][0])
-            if match is None: raise RuntimeError("IMAP lieferte ungültiges INTERNALDATE")
+            if status != "OK":
+                raise RuntimeError(f"IMAP-INTERNALDATE-Abruf abgelehnt: {status}")
+            metadata = []
+            for part in data or []:
+                candidate = part[0] if isinstance(part, tuple) and part else part
+                if isinstance(candidate, bytes) and candidate.strip() != b")":
+                    metadata.append(candidate)
+            match = next((found for item in metadata
+                          if (found := re.search(
+                              rb'\bINTERNALDATE\s+"([^"]*)"', item,
+                              re.IGNORECASE)) is not None), None)
+            if match is None:
+                raise RuntimeError(
+                    "IMAP-INTERNALDATE-Antwort leer oder strukturell unbrauchbar")
             try:
                 instant = datetime.strptime(match.group(1).decode("ascii"), "%d-%b-%Y %H:%M:%S %z")
             except (UnicodeDecodeError, ValueError) as exc:
-                raise RuntimeError("IMAP lieferte ungültiges INTERNALDATE") from exc
+                raise RuntimeError("IMAP lieferte ungültigen INTERNALDATE-Datumswert") from exc
             if instant >= utc_start:
                 return max(0, int(token) - 1)
         status, all_matches = self.connection.uid("search", None, "ALL")
