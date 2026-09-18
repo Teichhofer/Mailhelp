@@ -16,6 +16,10 @@ def _positive_int(value: str) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Mailhelp E-Mail-Assistent")
     parser.add_argument("--config-directory", type=Path, default=Path("."))
+    parser.add_argument(
+        "--log-directory", type=Path,
+        help="Logverzeichnis aus config.yaml für diesen Aufruf überschreiben",
+    )
     parser.add_argument("--check", action="store_true", help="Konfiguration validieren und beenden")
     parser.add_argument(
         "--check-access", action="store_true",
@@ -26,9 +30,10 @@ def main() -> int:
         help="höchstens ANZAHL Mails in einem einzelnen Abrufdurchlauf bearbeiten und beenden",
     )
     args = parser.parse_args(); settings, secrets, topics, prompts, fingerprint = load_all(args.config_directory)
-    logger = build_logger(settings, secrets)
+    logger = build_logger(settings, secrets, log_directory=args.log_directory)
     logger.event("INFO", "application", "application_started", parameters={
         "config_directory": str(args.config_directory),
+        "log_directory": str(args.log_directory) if args.log_directory is not None else None,
         "check": args.check,
         "check_access": args.check_access,
         "max_mails": args.max_mails,

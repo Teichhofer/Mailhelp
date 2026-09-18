@@ -327,6 +327,8 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
     topic=[Topic(id="x",name="x",enabled=True,description="x")]
     diagnostics = mode == "ssl"
     supplied_logger = build_logger(cfg, sec, tmp_path) if mode == "starttls" else None
+    overridden_logger = build_logger(cfg, sec, tmp_path, log_directory=tmp_path / "override-logs")
+    assert overridden_logger.app == tmp_path / "override-logs/application.jsonl"
     with build_application(
         cfg, sec, topic, prompt_config(), "f" * 64,
         base_directory=tmp_path, access_diagnostics=diagnostics,

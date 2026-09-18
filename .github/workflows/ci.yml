@@ -44,3 +44,4 @@ jobs:
           -v "$PWD/prompts.yaml:/config/prompts.yaml:ro"
           -v "$PWD/topics.yaml:/config/topics.yaml:ro"
           mailhelp:ci --check --config-directory /config
+          --log-directory /tmp/mailhelp/logs

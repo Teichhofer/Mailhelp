@@ -325,9 +325,10 @@ def build_logger(
     base_directory: Path = Path("."),
     *,
     access_diagnostics: bool = False,
+    log_directory: Path | None = None,
 ) -> JsonlLogger:
     """Construct the configured logger with every known secret redacted."""
-    log_dir = settings.logging.directory
+    log_dir = log_directory if log_directory is not None else settings.logging.directory
     if not log_dir.is_absolute():
         log_dir = base_directory / log_dir
     known_secrets = tuple(value.get_secret_value() for value in (
