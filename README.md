@@ -20,9 +20,11 @@ Mit `mailhelp --check-access` lässt sich anschließend ein reiner Zugriffstest
 starten. Er prüft nacheinander die Anmeldung bei IMAP und den Nur-Lese-Zugriff auf
 alle konfigurierten Ordner, den OpenRouter-Key über dessen authentifizierten Status, den
 Telegram-Bot über `getMe` sowie den Zugriff auf das konfigurierte Todoist-Projekt
-und den Google-Kalender. Der Test ruft keine Mails ab, liest keine
-Telegram-Updates, führt keinen LLM-Auftrag aus und erzeugt weder Aufgaben noch
-Termine. Für jeden Dienst erscheint `OK` oder `FEHLER`; sobald mindestens eine
+und den Google-Kalender. Nach erfolgreichem `getMe` sendet die Telegram-Prüfung
+eine Nachricht mit `Test`, Datum, Uhrzeit und konfigurierter Zeitzone an den
+konfigurierten Chat. Der Test ruft keine Mails ab, liest keine Telegram-Updates,
+führt keinen LLM-Auftrag aus und erzeugt weder Aufgaben noch Termine. Für jeden
+Dienst erscheint `OK` oder `FEHLER`; sobald mindestens eine
 Prüfung fehlschlägt, endet der Prozess mit Status 1. Im Container kann derselbe
 Test mit `docker compose run --rm mailhelp --check-access` ausgeführt werden.
 Die Google-Diagnose trennt den OAuth-Token-Abruf klar vom anschließenden Zugriff

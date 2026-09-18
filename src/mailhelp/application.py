@@ -9,6 +9,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from threading import Event
 from typing import Iterator
+from zoneinfo import ZoneInfo
 
 from .analysis import Analyzer
 from .config import PromptConfig, Secrets, Settings, Topic
@@ -85,7 +86,7 @@ class Application:
         checks = (
             ("IMAP", lambda: self.imap.check_access(self.settings.imap.folders)),
             ("OpenRouter", self.openrouter.check_access),
-            ("Telegram", self.telegram.check_access),
+            ("Telegram", lambda: Application._check_telegram_access(self)),
             ("Todoist", self.todoist.check_access),
             ("Google Calendar", self.calendar.check_access),
         )
@@ -109,6 +110,16 @@ class Application:
                 results[name] = None
                 logger.event("DEBUG", "access_check", "check_completed", service=name)
         return results
+
+    def _check_telegram_access(self) -> None:
+        """Validate the bot and visibly prove access to the configured chat."""
+        self.telegram.check_access()
+        now = datetime.now(ZoneInfo(self.settings.timezone))
+        message = (
+            f"Test – Datum: {now:%d.%m.%Y}, Uhrzeit: {now:%H:%M:%S} "
+            f"({self.settings.timezone})"
+        )
+        self.telegram.send(self.settings.telegram.chat_id, message)
 
     def stop(self) -> None:
         self.stop_event.set()
