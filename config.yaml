@@ -43,7 +43,7 @@ limits:
   max_html_tags: 20000
   max_html_depth: 100
   max_llm_payload_bytes: 500000
-  llm_calls_per_minute: 10
+  llm_calls_per_minute: 100
 retries:
   provider_retry: 1
   json_repair: 1
