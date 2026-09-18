@@ -51,14 +51,21 @@ class Application:
 
     def check_access(self) -> dict[str, str | None]:
         """Check every external credential and target without processing mail."""
+        results: dict[str, str | None] = {}
+
+        def calendar_access() -> None:
+            if results.get("Google OAuth") is not None:
+                raise RuntimeError("Google Calendar: nicht geprüft, weil Google OAuth fehlgeschlagen ist")
+            self.calendar.check_access()
+
         checks = (
             ("IMAP", lambda: self.imap.check_access(self.settings.imap.folders)),
             ("OpenRouter", self.openrouter.check_access),
             ("Telegram", self.telegram.check_access),
             ("Todoist", self.todoist.check_access),
-            ("Google Calendar", self.calendar.check_access),
+            ("Google OAuth", self.calendar.check_authentication),
+            ("Google Calendar", calendar_access),
         )
-        results: dict[str, str | None] = {}
         logger = getattr(self, "logger", NullLogger())
         for name, check in checks:
             logger.event("DEBUG", "access_check", "check_started", service=name)
@@ -215,7 +222,8 @@ def _state_directory(settings: Settings, base_directory: Path) -> Path:
     return root / ("test" if settings.test_mode else "production")
 
 
-def build_logger(settings: Settings, secrets: Secrets, base_directory: Path = Path(".")) -> JsonlLogger:
+def build_logger(settings: Settings, secrets: Secrets, base_directory: Path = Path("."),
+                 access_diagnostics: bool = False) -> JsonlLogger:
     """Construct the configured logger with every known secret redacted."""
     log_dir = settings.logging.directory
     if not log_dir.is_absolute():
@@ -229,11 +237,13 @@ def build_logger(settings: Settings, secrets: Secrets, base_directory: Path = Pa
     log = settings.logging
     return JsonlLogger(
         log_dir, log.llm.include_requests, log.llm.include_responses,
-        log.file.level, log.modules, known_secrets,
-        file_enabled=log.file.enabled, file_name=log.file.filename,
+        "DEBUG" if access_diagnostics else log.file.level,
+        {} if access_diagnostics else log.modules, known_secrets,
+        file_enabled=True if access_diagnostics else log.file.enabled, file_name=log.file.filename,
         file_format=log.file.format, file_max_bytes=log.file.max_bytes,
         file_backup_count=log.file.backup_count, file_retention_days=log.file.retention_days,
-        console_enabled=log.console.enabled, console_level=log.console.level,
+        console_enabled=True if access_diagnostics else log.console.enabled,
+        console_level="DEBUG" if access_diagnostics else log.console.level,
         console_format=log.console.format,
         llm_enabled=log.llm.enabled, llm_level=log.llm.level,
         llm_name=log.llm.filename, llm_format=log.llm.format,
@@ -243,12 +253,15 @@ def build_logger(settings: Settings, secrets: Secrets, base_directory: Path = Pa
 
 
 @contextmanager
-def build_application(settings: Settings, secrets: Secrets, topics: list[Topic], prompts: PromptConfig, fingerprint: str, base_directory: Path = Path("."), *, access_diagnostics: bool = False) -> Iterator[Application]:
+def build_application(settings: Settings, secrets: Secrets, topics: list[Topic], prompts: PromptConfig,
+                      fingerprint: str, base_directory: Path = Path("."), *,
+                      access_diagnostics: bool = False, logger: JsonlLogger | None = None) -> Iterator[Application]:
     """Construct adapters and close every successfully constructed resource."""
     with ExitStack() as stack:
         data = _state_directory(settings, base_directory)
         store = stack.enter_context(JsonStore(data))
-        logger = logger or build_logger(settings, secrets, base_directory)
+        logger = (build_logger(settings, secrets, base_directory, access_diagnostics=True)
+                  if access_diagnostics else logger or build_logger(settings, secrets, base_directory))
         stop_event = Event()
         def policy(name: str) -> RetryPolicy:
             item = getattr(settings.timeouts, name)

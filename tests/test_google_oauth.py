@@ -27,6 +27,7 @@ def test_first_token_cached_regular_refresh_expiry_and_restart():
     arguments = dict(client_id="client", client_secret="secret", refresh_token="refresh", transport=httpx.MockTransport(issue), clock=lambda: now[0])
     provider = GoogleOAuthTokenProvider(**arguments)
     assert provider.access_token() == provider.access_token() == "short-1"
+    assert provider.credentials_accepted is True
     assert len(requests) == 1 and b"grant_type=refresh_token" in requests[0].content
     now[0] = 161
     assert provider.access_token() == "short-2"  # within the safety margin

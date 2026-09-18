@@ -35,6 +35,14 @@ Token abgelehnt wurde (Authentifizierungsfehler), HTTP 403, dass dem Token die
 Berechtigung für das Zielprojekt fehlt, und HTTP 404, dass das konfigurierte
 Zielprojekt nicht erreichbar ist. Diese Diagnosen geben weder Token oder
 Authorization-Header noch vollständige Antwortinhalte aus.
+Google wird in zwei Diagnosekategorien ausgewiesen: **Google OAuth** bestätigt, ob
+Client und Refresh-Token vom Token-Endpunkt akzeptiert wurden; **Google Calendar**
+prüft danach den Zielkalender. Dort bedeutet HTTP 401, dass der ausgestellte
+Access-Token abgelehnt wurde, HTTP 403 eine verweigerte Kalenderoperation (mit
+sicherer Unterscheidung zwischen fehlender Berechtigung, deaktivierter API und
+anderen Ursachen anhand erlaubter strukturierter Fehlercodes) und HTTP 404, dass
+der Kalender nicht existiert oder für das authentifizierte Konto unsichtbar ist.
+Unbekannte oder ungültige Antwortkörper werden nie in Diagnose oder Log ausgegeben.
 Mailhelp verwendet dafür die aktuelle Todoist-API unter `/api/v1`; der frühere
 REST-v2-Endpunkt wird von Todoist nicht mehr verwendet.
 

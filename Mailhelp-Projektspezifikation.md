@@ -283,6 +283,16 @@ das Zielprojekt und HTTP 404 als nicht erreichbares Zielprojekt ausgegeben. Die
 dienstbezogene Meldung wird unverändert an die CLI weitergereicht und enthält
 weder Token oder Authorization-Header noch vollständige Antwortinhalte.
 
+Die Google-Diagnose trennt **Google OAuth** (Akzeptanz von Client und Refresh-Token
+durch den Token-Endpunkt) von **Google Calendar** (Zugriff auf den Zielkalender).
+Calendar-HTTP-401 bezeichnet einen dort abgelehnten ausgestellten Access-Token,
+HTTP 403 einen trotz erfolgreichem Token-Abruf verweigerten Aufruf und HTTP 404
+einen nicht vorhandenen oder für das authentifizierte Konto unsichtbaren Kalender.
+Bei HTTP 403 dürfen ausschließlich erlaubte strukturierte Google-Fehlergründe
+zwischen fehlender Berechtigung, deaktivierter API und anderen Ursachen
+unterscheiden. Ungültige, unbekannte oder sonstige Antwortinhalte werden weder
+übernommen noch protokolliert.
+
 Die Bereiche `imap`, `telegram`, `targets`, `limits`, `retries`, `timeouts` und `logging` besitzen geschlossene Modelle. `imap.connection_mode` akzeptiert ausschließlich `ssl`, `starttls` und `plain`; `imap.historical_start` akzeptiert ausschließlich `null` oder einen ISO-8601-Zeitpunkt mit Offset. IMAP, Telegram, OpenRouter, Todoist und Google Calendar konfigurieren Timeout, Retry-Anzahl, initialen Backoff und Backoff-Obergrenze getrennt. Ports (1–65535), Polling (5–86400 Sekunden), Adaptertimeouts (1–300 Sekunden), Telegram-Long-Polling (1–50 Sekunden), Mailgröße (1.024–100.000.000 Bytes), LLM-Rate (1–600/min), Wiederholungen (0–10) und Backoff (0–60 Sekunden) sind begrenzt. Zeitzonen müssen IANA-Namen sein; Ordner sind eindeutig und nicht leer, Pfade sicher, Log-Level sind `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Dieselbe Transportauswahl und UTC-Auswertung gilt unter Windows 11 und im Linux-Docker-Container; die Host-Zeitzone beeinflusst die Grenze nicht.
 
 ## 10. JSON-Zustand und Neustartverhalten

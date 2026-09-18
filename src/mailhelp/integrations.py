@@ -16,6 +16,18 @@ class AuthenticationError(PermanentError):
     """Anmeldedaten wurden dauerhaft abgelehnt; ein Schreibzugriff ist nicht unklar."""
 
 
+class OAuthTokenAccessError(AuthenticationError):
+    """Der Google-Token-Endpunkt hat keine verwendbare Autorisierung geliefert."""
+
+
+class CalendarAccessError(PermanentError):
+    """Der Google-Calendar-Endpunkt hat den Zielzugriff abgelehnt."""
+
+
+class CalendarTokenRejectedError(AuthenticationError, CalendarAccessError):
+    """Ein ausgestellter Access-Token wurde vom Calendar-Endpunkt abgelehnt."""
+
+
 class IntegrationModel(BaseModel):
     model_config = ConfigDict(extra="ignore", strict=True)
 
@@ -36,6 +48,7 @@ class GoogleOAuthTokenProvider:
         self._clock, self._margin = clock, refresh_margin_seconds
         self._token: str | None = None
         self._expires_at = 0.0
+        self.credentials_accepted = False
         self._client = httpx.Client(base_url="https://oauth2.googleapis.com", timeout=timeout, transport=transport)
         self._logger = logger or NullLogger()
 
@@ -55,8 +68,11 @@ class GoogleOAuthTokenProvider:
         except (httpx.HTTPStatusError, ValueError, ValidationError) as exc:
             self._logger.event("ERROR", "google_oauth", "token_refresh_denied",
                                status=exc.response.status_code if isinstance(exc, httpx.HTTPStatusError) else None)
-            raise AuthenticationError("Google-OAuth-Autorisierung verweigert") from exc
+            raise OAuthTokenAccessError("Google OAuth: Token-Abruf wurde verweigert") from exc
         self._token, self._expires_at = value.access_token, self._clock() + value.expires_in
+        self.credentials_accepted = True
+        # This records only the verified outcome, never any submitted credential.
+        self._logger.event("INFO", "google_oauth", "token_credentials_accepted")
         self._logger.event("INFO", "google_oauth", "token_refresh_completed", expires_in=value.expires_in)
         return self._token
 
@@ -183,6 +199,12 @@ class HttpWriter:
                else f"/calendars/{self.target}")
         self.policy.run(lambda: self._get(url, {}))
 
+    def check_authentication(self) -> None:
+        """Obtain the Google token separately from the target-calendar check."""
+        if self.service != "google_calendar" or self._token_provider is None:
+            return
+        self._token_provider.access_token()
+
     def reconcile(self, key: str) -> dict[str, Any] | None:
         self.logger.event("INFO", self.service, "reconcile_started", call_id=key)
         if self.service == "todoist":
@@ -283,7 +305,23 @@ class HttpWriter:
             if self._token_provider is not None:
                 self._token_provider.invalidate()
             self.logger.event("ERROR", self.service, "authentication_failed", status=401)
-            raise AuthenticationError("Google-Calendar-Autorisierung verweigert")
+            raise CalendarTokenRejectedError(
+                "Google Calendar: ausgestellter Access-Token wurde vom Calendar-Endpunkt abgelehnt"
+            )
+        if self.service == "google_calendar" and response.status_code in {403, 404}:
+            reason = self._google_error_reason(response) if response.status_code == 403 else None
+            if response.status_code == 404:
+                message = ("Google Calendar: Zielkalender existiert nicht oder ist für das "
+                           "authentifizierte Konto nicht sichtbar")
+            elif reason in {"insufficientPermissions", "forbidden"}:
+                message = "Google Calendar: OAuth-Token bezogen, aber Berechtigung für den Kalender fehlt"
+            elif reason in {"accessNotConfigured", "serviceDisabled"}:
+                message = "Google Calendar: OAuth-Token bezogen, aber Google Calendar API ist deaktiviert"
+            else:
+                message = "Google Calendar: OAuth-Token bezogen, aber Calendar-Aufruf wurde verweigert (andere Ursache)"
+            self.logger.event("ERROR", self.service, "target_access_failed",
+                              status=response.status_code, reason=reason)
+            raise CalendarAccessError(message)
         if self.service == "todoist":
             message = {
                 401: "Todoist: Authentifizierungsfehler (Token wurde abgelehnt)",
@@ -299,6 +337,24 @@ class HttpWriter:
                 error = AuthenticationError if response.status_code == 401 else PermanentError
                 raise error(message)
         response.raise_for_status()
+
+    @staticmethod
+    def _google_error_reason(response: httpx.Response) -> str | None:
+        """Return only an allow-listed structured reason from an untrusted body."""
+        try:
+            body = response.json()
+        except ValueError:
+            return None
+        if not isinstance(body, dict) or not isinstance(body.get("error"), dict):
+            return None
+        errors = body["error"].get("errors")
+        if not isinstance(errors, list):
+            return None
+        allowed = {"insufficientPermissions", "forbidden", "accessNotConfigured", "serviceDisabled"}
+        for item in errors:
+            if isinstance(item, dict) and item.get("reason") in allowed:
+                return item["reason"]
+        return None
 
 
 def _path(exc: Exception) -> str:
