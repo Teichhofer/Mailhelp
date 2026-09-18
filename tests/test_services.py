@@ -4,12 +4,14 @@ from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 import httpx, pytest
 import yaml
-from mailhelp.analysis import Analyzer, LlmSchemaValidationExceeded
+from mailhelp.analysis import (Analyzer, LlmInvalidJson, LlmProviderResponseInvalid,
+                               LlmSchemaValidationExceeded, LlmSchemaValidationFailed)
 from mailhelp.config import TargetSettings, Topic
 from mailhelp.imap import FetchedMail
 from mailhelp.integrations import CalendarFileWriter, HttpWriter, calendar_file, execute_confirmed
 from mailhelp.models import ProposalStatus, RelevanceDialog
-from mailhelp.openrouter import OpenRouterClient, OpenRouterResponseError, RateLimitExceeded
+from mailhelp.openrouter import (InvalidJson, OpenRouterClient, ProviderResponseInvalid,
+                                 RateLimitExceeded)
 from mailhelp.adapter import PermanentError, RetryableError
 from mailhelp.orchestrator import MailState, Orchestrator
 from mailhelp.orchestrator import ProcessingOutcome
@@ -51,28 +53,18 @@ def test_analyzer():
     with pytest.raises(ValueError, match="mindestens"): Analyzer(FakeCompleter([{"decision":"relevant","topic_ids":[],"reason":"x"}]),prompt_config()).relevance({}, [topic])
 
 
-def test_analyzer_retries_malformed_openrouter_output_as_schema_validation():
-    class MalformedThenValid:
-        def __init__(self): self.payloads=[]
+@pytest.mark.parametrize(("provider_error", "analysis_error"), [
+    (ProviderResponseInvalid("message_content_null"), LlmProviderResponseInvalid),
+    (InvalidJson(), LlmInvalidJson),
+])
+def test_analyzer_separates_provider_and_json_failures(provider_error, analysis_error):
+    class Malformed:
         def complete(self, *args):
-            self.payloads.append(args[-1])
-            if len(self.payloads) == 1:
-                raise OpenRouterResponseError("OpenRouter chat/completions: ungültige Antwort")
-            return "second", {"sentences":["Sicher zusammengefasst.", "Ohne erfundene Angaben."]}
-
-    client=MalformedThenValid()
-    call, summary=Analyzer(client,prompt_config(),1).summary({"subject":"synthetisch"})
-    assert call == "second" and len(summary.sentences) == 2
-    assert client.payloads[0]["previous_validation_error"] is None
-    assert client.payloads[1]["previous_validation_error"] == "OpenRouter chat/completions: ungültige Antwort"
-
-    class AlwaysMalformed:
-        def complete(self, *args):
-            raise OpenRouterResponseError("OpenRouter chat/completions: ungültige Antwort")
-
-    with pytest.raises(LlmSchemaValidationExceeded) as error:
-        Analyzer(AlwaysMalformed(),prompt_config(),1).summary({})
-    assert isinstance(error.value.__cause__, OpenRouterResponseError)
+            raise provider_error
+    with pytest.raises(analysis_error) as error:
+        Analyzer(Malformed(),prompt_config(),1).summary({})
+    assert error.value.step == "summary"
+    assert isinstance(error.value.__cause__, type(provider_error))
 
 
 @pytest.mark.parametrize("result", [
@@ -152,23 +144,22 @@ def test_analyzer_revises_proposal_with_separate_inputs_and_retries():
     assert call=="2" and revised.title=="Neu" and original.title=="Tun"
     assert client.calls==2
 
-    class MalformedThenValid:
-        def __init__(self): self.payloads=[]
-        def complete(self, *args):
-            self.payloads.append(args[-1])
-            if len(self.payloads) == 1:
-                raise OpenRouterResponseError("OpenRouter chat/completions: ungültige Antwort")
-            return "recovered", valid
-    malformed=MalformedThenValid()
-    assert Analyzer(malformed,prompt_config(),1).revise_proposal(original,"q","a")[0] == "recovered"
-    assert malformed.payloads[1]["previous_validation_error"] == "OpenRouter chat/completions: ungültige Antwort"
+    class Malformed:
+        def __init__(self, error): self.error=error
+        def complete(self, *args): raise self.error
+    with pytest.raises(LlmProviderResponseInvalid) as provider_error:
+        Analyzer(Malformed(ProviderResponseInvalid("message_missing")),prompt_config(),1).revise_proposal(original,"q","a")
+    assert provider_error.value.step == "proposal_revision"
+    with pytest.raises(LlmInvalidJson) as json_error:
+        Analyzer(Malformed(InvalidJson()),prompt_config(),1).revise_proposal(original,"q","a")
+    assert json_error.value.step == "proposal_revision"
 
     failures=[
         {**valid,"source_mail_id":"other"}, {**valid,"version":3},
         {**valid,"status":"needs_clarification"}, {**valid,"title":""},
     ]
     for invalid in failures:
-        with pytest.raises(LlmSchemaValidationExceeded):
+        with pytest.raises(LlmSchemaValidationFailed):
             Analyzer(FakeCompleter([invalid,invalid]),prompt_config()).revise_proposal(original,"q","a")
     pending_question={**valid,"open_questions":["Noch offen?"],"status":"needs_clarification"}
     assert Analyzer(FakeCompleter([pending_question]),prompt_config()).revise_proposal(original,"q","a")[1].open_questions
@@ -587,7 +578,9 @@ def test_orchestrator_defers_rate_limit_and_reports(tmp_path):
 
 
 @pytest.mark.parametrize(("failure", "code", "retryable"), [
-    (LlmSchemaValidationExceeded("relevance"), "llm_schema_validation_exhausted", True),
+    (LlmSchemaValidationExceeded("relevance"), "schema_validation_failed", True),
+    (LlmProviderResponseInvalid("relevance", "message_content_null"), "provider_response_invalid", True),
+    (LlmInvalidJson("summary"), "invalid_json", True),
     (PermanentError("password=not-for-telegram"), "permanent_adapter_error", False),
     (RuntimeError("Subject: secret; token=not-for-state"), "internal_error", None),
 ])
@@ -605,6 +598,10 @@ def test_safe_failures_are_structured_and_notified_once_after_restart(tmp_path, 
         assert first["error"]["code"] == code
         assert first["error"]["stage"] == "relevance"
         assert first["error"]["retryable"] is retryable
+        if code == "provider_response_invalid":
+            assert first["validation_errors"] == []
+            assert first["error"]["code"] not in {
+                "schema_validation_failed", "llm_schema_validation_exhausted"}
         assert first["error"]["occurred_at"] == second["error"]["occurred_at"]
         assert len(notify.messages) == 1
         message=notify.messages[0]

@@ -13,7 +13,7 @@ from mailhelp.config import Settings, _validated_file
 from mailhelp.integrations import HttpWriter, _with_external_result
 from mailhelp.models import (DuplicateDecision, DuplicateIndex, DuplicateIndexEntry, ImapCheckpoint, MailState, Proposal, TelegramDialogState,
                              TelegramOffset, ValidationIssue, WriteAttemptReference)
-from mailhelp.openrouter import OpenRouterClient, _path
+from mailhelp.openrouter import InvalidJson, OpenRouterClient, ProviderResponseInvalid, _path
 from mailhelp.storage import CorruptState, JsonStore
 from mailhelp.telegram import TelegramClient, TelegramUpdatesResponse, TelegramWriteResponse, _validation_path
 from test_core import proposal
@@ -148,18 +148,44 @@ def test_versioned_state_models_and_schema_quarantine(tmp_path):
 
 def test_openrouter_corrupt_responses_are_named_and_sanitized():
     assert _path(ValueError()) == "<json>"
+    with pytest.raises(ValidationError) as validation_error:
+        TelegramOffset.model_validate({"offset": "bad"})
+    assert _path(validation_error.value) == "offset"
     cases = [
-        ({"choices": []}, "id"),
-        ({"id": "x", "choices": []}, "choices"),
-        ({"id": "x", "choices": [{"message": {"content": "[1]"}}]}, "content"),
-        ({"id": "x", "choices": [{"message": {"content": "private-not-json"}}]}, "<json>"),
+        ([], "invalid_provider_envelope"),
+        ({"id":"x"}, "choices_missing"),
+        ({"id": "x", "choices": []}, "choice_missing"),
+        ({"id":"x", "choices":[{}]}, "message_missing"),
+        ({"id":"x", "choices":[{"message":{"content":None}}]}, "message_content_null"),
+        ({"id":"x", "choices":[{"message":{"content":"  "}}]}, "message_content_empty"),
+        ({"id":"x", "choices":"bad"}, "invalid_provider_envelope"),
+        ({"id":"x", "choices":[{"message":{"content":3}}]}, "invalid_provider_envelope"),
+        ({"id":"x", "choices":[{"message":{}}]}, "invalid_provider_envelope"),
+        ({"id":"x", "choices":[3]}, "invalid_provider_envelope"),
+        ({"choices":[{"message":{"content":"{}"}}]}, "invalid_provider_envelope"),
     ]
-    for data, path in cases:
+    for data, reason in cases:
         transport=httpx.MockTransport(lambda request, data=data: httpx.Response(200,json=data,request=request))
         client=OpenRouterClient("top-secret",1,0,10,transport)
-        with pytest.raises(ValueError, match="OpenRouter") as error: client.complete("m",{},"s",{})
+        with pytest.raises(ProviderResponseInvalid) as error: client.complete("m",{},"s",{})
+        assert error.value.reason == reason
         assert "top-secret" not in str(error.value)
         client.close()
+
+    transport=httpx.MockTransport(lambda request: httpx.Response(200,text="not-provider-json",request=request))
+    with pytest.raises(ProviderResponseInvalid) as error:
+        OpenRouterClient("secret",1,0,10,transport).complete("m",{},"s",{})
+    assert error.value.reason == "invalid_provider_envelope"
+    data={"id":"x","choices":[{"message":{"content":"private-not-json"}}]}
+    transport=httpx.MockTransport(lambda request: httpx.Response(200,json=data,request=request))
+    with pytest.raises(InvalidJson) as error:
+        OpenRouterClient("secret",1,0,10,transport).complete("m",{},"s",{})
+    assert "private-not-json" not in str(error.value)
+
+    # JSON syntax is the client's boundary; shape belongs to the Analyzer schema.
+    data={"id":"x","choices":[{"message":{"content":"[1]"}}]}
+    transport=httpx.MockTransport(lambda request: httpx.Response(200,json=data,request=request))
+    assert OpenRouterClient("secret",1,0,10,transport).complete("m",{},"s",{})[1] == [1]
 
 
 def test_telegram_response_models_and_write_validation():

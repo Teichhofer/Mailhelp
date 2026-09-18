@@ -21,6 +21,21 @@ class OpenRouterResponseError(ValueError):
     """OpenRouter returned a successful HTTP response without usable JSON output."""
 
 
+class ProviderResponseInvalid(OpenRouterResponseError):
+    """The provider envelope is incomplete or structurally invalid."""
+
+    def __init__(self, reason: str):
+        self.reason = reason
+        super().__init__(f"OpenRouter chat/completions: provider_response_invalid ({reason})")
+
+
+class InvalidJson(OpenRouterResponseError):
+    """The provider supplied content, but it is not syntactically valid JSON."""
+
+    def __init__(self):
+        super().__init__("OpenRouter chat/completions: invalid_json")
+
+
 class OpenRouterMessage(BaseModel):
     model_config = ConfigDict(extra="ignore", strict=True)
     content: str = Field(min_length=1)
@@ -58,7 +73,7 @@ class OpenRouterClient:
         if not isinstance(value, dict) or not isinstance(value.get("data"), dict):
             raise ValueError("OpenRouter auth/key: ungültige Antwort am Schlüsselpfad data")
 
-    def complete(self, model: str, parameters: dict[str, Any], system: str, payload: dict[str, Any]) -> tuple[str, dict[str, Any]]:
+    def complete(self, model: str, parameters: dict[str, Any], system: str, payload: dict[str, Any]) -> tuple[str, Any]:
         now = self.clock()
         calls = sorted(value for value in self.load_calls() if isinstance(value, (int, float)) and now - value < 60)
         if len(calls) >= self.limit: raise RateLimitExceeded(calls[0] + 60)
@@ -82,12 +97,17 @@ class OpenRouterClient:
             return response
         try:
             response = self.policy.run(invoke, begin, failed_attempt)
-            raw = response.json()
+            try:
+                raw = response.json()
+            except (ValueError, json.JSONDecodeError) as exc:
+                raise ProviderResponseInvalid("invalid_provider_envelope") from exc
+            reason = _provider_error_reason(raw)
+            if reason is not None:
+                raise ProviderResponseInvalid(reason)
             try: data = OpenRouterResponse.model_validate(raw)
-            except (ValueError, ValidationError) as exc: raise OpenRouterResponseError(f"OpenRouter chat/completions: ungültige Antwort am Schlüsselpfad {_path(exc)}") from exc
+            except (ValueError, ValidationError) as exc: raise ProviderResponseInvalid("invalid_provider_envelope") from exc
             try: content = json.loads(data.choices[0].message.content)
-            except json.JSONDecodeError as exc: raise OpenRouterResponseError("OpenRouter chat/completions: ungültige Antwort am Schlüsselpfad choices.0.message.content") from exc
-            if not isinstance(content, dict): raise OpenRouterResponseError("OpenRouter chat/completions: Schlüsselpfad choices.0.message.content muss ein JSON-Objekt sein")
+            except json.JSONDecodeError as exc: raise InvalidJson() from exc
             self.logger.llm_event("response_received", response=raw, call_id=call_id, model=model, parameters=parameters,
                                   prompt_fingerprint=fingerprint, duration_ms=round((time.perf_counter() - started) * 1000, 3),
                                   status=response.status_code, attempt=attempt, token_usage=raw.get("usage"),
@@ -106,6 +126,35 @@ def _path(exc: Exception) -> str:
     if isinstance(exc, ValidationError):
         return ", ".join(".".join(str(value) for value in item["loc"]) or "<root>" for item in exc.errors(include_input=False))
     return "<json>"
+
+
+def _provider_error_reason(raw: Any) -> str | None:
+    """Return a content-free, stable reason for a malformed provider envelope."""
+    if not isinstance(raw, dict):
+        return "invalid_provider_envelope"
+    if "choices" not in raw:
+        return "choices_missing"
+    choices = raw["choices"]
+    if not isinstance(choices, list):
+        return "invalid_provider_envelope"
+    if not choices:
+        return "choice_missing"
+    choice = choices[0]
+    if not isinstance(choice, dict):
+        return "invalid_provider_envelope"
+    if "message" not in choice:
+        return "message_missing"
+    message = choice["message"]
+    if not isinstance(message, dict) or "content" not in message:
+        return "invalid_provider_envelope"
+    content = message["content"]
+    if content is None:
+        return "message_content_null"
+    if isinstance(content, str) and not content.strip():
+        return "message_content_empty"
+    if not isinstance(content, str):
+        return "invalid_provider_envelope"
+    return None
 
 
 def _correlation(payload: dict[str, Any]) -> dict[str, Any]:

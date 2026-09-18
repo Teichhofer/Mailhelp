@@ -15,7 +15,8 @@ from mailhelp.imap import FetchedMail, ImapReader, UIDValidityChanged, account_i
 from mailhelp.integrations import HttpWriter, execute_confirmed
 from mailhelp.logging import JsonlLogger, redact
 from mailhelp.mime import prepare
-from mailhelp.models import Actions, Proposal, ProposalKind, ProposalStatus, Relevance, Summary
+from mailhelp.models import (Actions, ProcessingErrorCode, Proposal, ProposalKind,
+                             ProposalStatus, Relevance, Summary)
 from mailhelp.openrouter import OpenRouterClient, RateLimitExceeded
 from mailhelp.orchestrator import Orchestrator
 from mailhelp.storage import AlreadyRunning, CorruptState, JsonStore
@@ -33,6 +34,10 @@ def proposal(**kw):
 
 def test_models_and_config(tmp_path, monkeypatch, capsys):
     assert __version__ == "0.1.0"
+    assert {ProcessingErrorCode.PROVIDER_RESPONSE_INVALID.value,
+            ProcessingErrorCode.INVALID_JSON.value,
+            ProcessingErrorCode.SCHEMA_VALIDATION_FAILED.value} == {
+                "provider_response_invalid", "invalid_json", "schema_validation_failed"}
     assert Relevance(decision="relevant", reason="x").topic_ids == []
     assert len(Summary(sentences=["a", "b"]).sentences) == 2
     assert Actions().proposals == []
