@@ -43,7 +43,7 @@ def test_openrouter(monkeypatch):
 
 class FakeCompleter:
     def __init__(self, values): self.values=iter(values); self.calls=0
-    def complete(self, *args): self.calls+=1; return str(self.calls), next(self.values)
+    def complete(self, *args, **kwargs): self.calls+=1; return str(self.calls), next(self.values)
 
 
 class RetrySequence:
@@ -51,7 +51,7 @@ class RetrySequence:
     def __init__(self, values):
         self.values=iter(values); self.payloads=[]; self.call_ids=[]
 
-    def complete(self, _model, _parameters, _system, payload):
+    def complete(self, _model, _parameters, _system, payload, **_metadata):
         self.payloads.append(payload)
         call_id=f"provider-call-{len(self.payloads)}"
         self.call_ids.append(call_id)
@@ -165,7 +165,7 @@ def test_action_router_rejects_inconsistent_counts_and_unknown_fields(raw):
 ])
 def test_analyzer_separates_provider_and_json_failures(provider_error, analysis_error):
     class Malformed:
-        def complete(self, *args):
+        def complete(self, *args, **kwargs):
             raise provider_error
     with pytest.raises(analysis_error) as error:
         Analyzer(Malformed(),prompt_config(),1).summary({})
@@ -254,7 +254,7 @@ def test_analyzer_revises_proposal_with_separate_inputs_and_retries():
 
     class Malformed:
         def __init__(self, error): self.error=error
-        def complete(self, *args): raise self.error
+        def complete(self, *args, **kwargs): raise self.error
     with pytest.raises(LlmProviderResponseInvalid) as provider_error:
         Analyzer(Malformed(ProviderResponseInvalid("message_missing")),prompt_config(),1).revise_proposal(original,"q","a")
     assert provider_error.value.step == "proposal_revision"
@@ -274,7 +274,7 @@ def test_analyzer_revises_proposal_with_separate_inputs_and_retries():
 
     class CapturingCompleter:
         def __init__(self): self.payload=None
-        def complete(self, model, parameters, system, payload):
+        def complete(self, model, parameters, system, payload, **_metadata):
             self.payload=payload; return "call",valid
     capturing=CapturingCompleter()
     Analyzer(capturing,prompt_config()).revise_proposal(original,"Konkrete Frage","Autorisierte Antwort")

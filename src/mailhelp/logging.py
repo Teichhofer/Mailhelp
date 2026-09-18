@@ -203,6 +203,15 @@ class JsonlLogger:
         level = _validate_level(context.pop("level", "INFO"))
         if not self.llm_enabled or LEVELS[level] < LEVELS[self.llm_level]:
             return
+        # Callers may only place full prompt/model content in the two explicit
+        # channels.  This also protects against accidentally smuggling it through
+        # generic context while both opt-in switches are disabled.
+        if not self.include_requests:
+            for key in ("request", "prompt", "messages", "system", "payload"):
+                context.pop(key, None)
+        if not self.include_responses:
+            for key in ("response", "content", "completion"):
+                context.pop(key, None)
         if request is not None and self.include_requests:
             context["request"] = request
         if response is not None and self.include_responses:

@@ -18,7 +18,7 @@ from mailhelp.telegram import TelegramDialogController
 
 
 class SimulatedOpenRouter:
-    def complete(self, _model, _parameters, system, payload):
+    def complete(self, _model, _parameters, system, payload, **_metadata):
         if system == "relevance":
             return "r", {"decision": "relevant", "topic_ids": ["arbeit"], "reason": "Aufgabe und Termin"}
         if system == "summary":
@@ -141,10 +141,10 @@ def test_imap_llm_persists_separate_raw_extractions(tmp_path):
 
 def test_synthetic_council_mail_keeps_summary_when_action_detection_fails(tmp_path):
     class CouncilRouter(SimulatedOpenRouter):
-        def complete(self, model, parameters, system, payload):
+        def complete(self, model, parameters, system, payload, **metadata):
             if system == "action_router":
                 raise LlmSchemaValidationExceeded("action_router")
-            return super().complete(model, parameters, system, payload)
+            return super().complete(model, parameters, system, payload, **metadata)
 
     prompts = PromptConfig(defaults={"model": "fake", "parameters": {}}, prompts={
         step: PromptStep(system_prompt=step)

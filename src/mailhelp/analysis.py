@@ -44,7 +44,7 @@ class LlmSchemaValidationFailed(LlmSchemaValidationExceeded):
 
 
 class Completer(Protocol):
-    def complete(self, model: str, parameters: dict[str, Any], system: str, payload: dict[str, Any]) -> tuple[str, Any]: ...
+    def complete(self, model: str, parameters: dict[str, Any], system: str, payload: dict[str, Any], *, stage: str, retry_type: str, retry_number: int) -> tuple[str, Any]: ...
 
 
 def validate_revision_successor(previous: Proposal, candidate: Any) -> Proposal:
@@ -99,7 +99,12 @@ class Analyzer:
             elif repair == "schema_repair":
                 request_payload["previous_validation_error"] = str(validation_error)
             try:
-                call_id, raw = self.client.complete(model, params, prompt, request_payload)
+                retry_type = repair or "initial"
+                retry_number = 0 if repair is None else used[repair]
+                call_id, raw = self.client.complete(
+                    model, params, prompt, request_payload, stage=step,
+                    retry_type=retry_type, retry_number=retry_number,
+                )
             except ProviderResponseInvalid as exc:
                 if used["provider_retry"] >= limits["provider_retry"]:
                     raise LlmProviderResponseInvalid(step, exc.reason) from exc
@@ -113,13 +118,28 @@ class Analyzer:
                 repair = "json_repair"
                 continue
             try:
-                return call_id, validator(raw)
+                result = validator(raw)
             except (ValidationError, ValueError) as exc:
+                self._record_schema_result(call_id, step, model, False,
+                                           retry_type, retry_number)
                 validation_error = exc
                 if used["schema_repair"] >= limits["schema_repair"]:
                     raise LlmSchemaValidationFailed(step) from exc
                 used["schema_repair"] += 1
                 repair = "schema_repair"
+            else:
+                self._record_schema_result(call_id, step, model, True,
+                                           retry_type, retry_number)
+                return call_id, result
+
+    def _record_schema_result(self, call_id: str, stage: str, model: str,
+                              success: bool, retry_type: str,
+                              retry_number: int) -> None:
+        """Complete observability only after the untrusted output was validated."""
+        recorder = getattr(self.client, "record_schema_validation", None)
+        if callable(recorder):
+            recorder(call_id=call_id, stage=stage, model=model, success=success,
+                     retry_type=retry_type, retry_number=retry_number)
 
     def _run(self, step: str, schema: type[T], mail: dict[str, Any],
              extra: dict[str, Any] | None = None) -> tuple[str, T]:
