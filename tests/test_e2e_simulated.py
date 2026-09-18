@@ -6,7 +6,7 @@ from email.message import EmailMessage
 from pathlib import Path
 from threading import Event
 
-from mailhelp.analysis import Analyzer
+from mailhelp.analysis import Analyzer, LlmSchemaValidationExceeded
 from mailhelp.application import Application
 from mailhelp.config import PromptConfig, PromptStep, TargetSettings, Topic
 from mailhelp.imap import FetchedMail
@@ -135,6 +135,35 @@ def test_imap_llm_telegram_confirmation_to_fake_writers(tmp_path):
         assert all(store.load_model(f"proposal-{item[0].source_mail_id}-{item[0].id}", Proposal).status == "created"
                    for item in (todoist.created[0], calendar.created[0]))
         assert store.load("telegram-offset")["offset"] == 2
+
+
+def test_synthetic_council_mail_keeps_summary_when_action_detection_fails(tmp_path):
+    class CouncilRouter(SimulatedOpenRouter):
+        def complete(self, model, parameters, system, payload):
+            if system == "actions":
+                raise LlmSchemaValidationExceeded("actions")
+            return super().complete(model, parameters, system, payload)
+
+    prompts = PromptConfig(defaults={"model": "fake", "parameters": {}}, prompts={
+        step: PromptStep(system_prompt=step)
+        for step in ("relevance", "summary", "actions", "proposal_revision")
+    })
+    telegram = FakeTelegram()
+    message = EmailMessage()
+    message["From"] = "Gemeinderat <rat@example.test>"
+    message["Subject"] = "Synthetische Gemeinderatssitzung"
+    message.set_content("Die Sitzung findet statt; die Aktionsanalyse ist absichtlich defekt.")
+    fetched = FetchedMail("INBOX", 7, 2, message.as_bytes(), "1" * 24)
+    with JsonStore(tmp_path / "council") as store:
+        result = Orchestrator(
+            Analyzer(CouncilRouter(), prompts), store, telegram, 99,
+            [Topic(id="arbeit", name="Arbeit", enabled=True, description="Beruf")], 100_000,
+        ).process(fetched)
+    assert result.outcome is ProcessingOutcome.COMPLETED_WITH_ACTION_ERROR
+    assert result["steps"]["summary_notification"] == "completed"
+    assert result["steps"]["action_detection"] == "failed"
+    assert "Zusammenfassung:" in telegram.sent[0][1]
+    assert "Stufe action_detection:" in telegram.sent[1][1]
 
 
 def test_test_mode_end_to_end_never_calls_writer_and_survives_restart(tmp_path):

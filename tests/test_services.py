@@ -517,7 +517,7 @@ def test_orchestrator(tmp_path):
         n=PlainNotify(); o=Orchestrator(AnalyzerStub("relevant"),store,n,1,[topic],1000); state=o.process(mail); assert state.outcome is ProcessingOutcome.COMPLETED and state["steps"]["completion"]=="completed" and n.messages; assert o.process(mail)==state
     with JsonStore(tmp_path/"b") as store:
         state=Orchestrator(AnalyzerStub("irrelevant"),store,Notify(),1,[topic],1000).process(mail)
-        assert state["steps"]=={"preparation":"completed","relevance":"completed","summary":"skipped","action_detection":"skipped","notification":"skipped","completion":"completed"}
+        assert state["steps"]=={"preparation":"completed","relevance":"completed","summary":"skipped","summary_notification":"skipped","action_detection":"skipped","proposal_notification":"skipped","completion":"completed"}
     with JsonStore(tmp_path/"c") as store:
         o=Orchestrator(AnalyzerStub("unclear"),store,Notify(),1,[topic],1000)
         state=o.process(mail); assert state.outcome is ProcessingOutcome.WAITING and state["awaiting_relevance"] and state["steps"]["completion"]=="pending"
@@ -584,7 +584,7 @@ def test_orchestrator_resolves_versioned_relevance_both_ways(tmp_path):
             assert resolved.relevance_dialog.telegram_offset==10
             with pytest.raises(ValueError,match="bereits"): orchestrator.resolve_relevance(mail_id,1,decision,11)
             if decision == "irrelevant":
-                assert resolved.steps.model_dump()=={"preparation":"completed","relevance":"completed","summary":"skipped","action_detection":"skipped","notification":"skipped","completion":"completed"}
+                assert resolved.steps.model_dump()=={"preparation":"completed","relevance":"completed","summary":"skipped","summary_notification":"skipped","action_detection":"skipped","proposal_notification":"skipped","completion":"completed"}
             else:
                 completed=orchestrator.resume_mail(resolved)
                 assert completed.outcome is ProcessingOutcome.COMPLETED
@@ -623,7 +623,7 @@ def test_orchestrator_resumes_each_persisted_analysis_step(tmp_path):
             self.count += 1
             if self.count >= self.fail_at: raise RuntimeError("power loss")
             self.delegate.save(*args)
-    for fail_at, repeated in ((2,"relevance"),(3,"relevance"),(4,"relevance"),(5,"summary"),(6,"actions"),(7,None),(8,None)):
+    for fail_at, repeated in ((2,"relevance"),(3,"relevance"),(4,"relevance"),(5,"summary"),(6,"actions"),(7,"actions"),(8,"actions"),(9,None),(10,None)):
         with JsonStore(tmp_path/str(fail_at)) as disk:
             first=CountingAnalyzer()
             with pytest.raises(RuntimeError,match="power loss"):
@@ -635,6 +635,49 @@ def test_orchestrator_resumes_each_persisted_analysis_step(tmp_path):
     with JsonStore(tmp_path/"invalid") as store:
         store.save("mail-"+"a"*24,{"schema_version":3,"id":"bad","imap":{},"steps":{}})
         with pytest.raises(Exception): MailState.model_validate(store.load("mail-"+"a"*24))
+
+
+def test_gemeinderat_action_failure_preserves_summary_and_retries_only_actions(tmp_path):
+    class CouncilAnalyzer(AnalyzerStub):
+        def __init__(self):
+            super().__init__("relevant")
+            self.calls = []
+            self.fail_actions = True
+        def relevance(self, mail, topics):
+            self.calls.append("relevance")
+            return super().relevance(mail, topics)
+        def summary(self, mail):
+            self.calls.append("summary")
+            return super().summary(mail)
+        def actions(self, mail):
+            self.calls.append("actions")
+            if self.fail_actions:
+                raise LlmSchemaValidationExceeded("actions")
+            return super().actions(mail)
+
+    raw = (b"From: Gemeinderat <rat@example.test>\nSubject: Sitzung\n\n"
+           b"Synthetische Einladung zur Gemeinderatssitzung")
+    mail = FetchedMail("INBOX", 1, 92, raw)
+    topic = Topic(id="kommune", name="Kommune", enabled=True, description="Gemeinderat")
+    analyzer, notify = CouncilAnalyzer(), Notify()
+    with JsonStore(tmp_path / "gemeinderat") as store:
+        orchestrator = Orchestrator(analyzer, store, notify, 1, [topic], 1000)
+        partial = orchestrator.process(mail)
+        assert partial.outcome is ProcessingOutcome.COMPLETED_WITH_ACTION_ERROR
+        assert partial["steps"]["summary"] == "completed"
+        assert partial["steps"]["summary_notification"] == "completed"
+        assert partial["steps"]["action_detection"] == "failed"
+        assert partial["steps"]["completion"] == "completed"
+        assert "Zusammenfassung:" in notify.messages[0]
+        assert "Stufe action_detection:" in notify.messages[1]
+
+        analyzer.fail_actions = False
+        resumed = orchestrator.resume_mail(store.load_model("mail-" + partial["id"], MailState))
+        assert resumed.outcome is ProcessingOutcome.COMPLETED
+        assert analyzer.calls == ["relevance", "summary", "actions", "actions"]
+        assert len([message for message in notify.messages if "Zusammenfassung:" in message]) == 1
+        assert len([message for message in notify.messages if "Stufe action_detection:" in message]) == 1
+        assert resumed["error"] is None
 
 def test_orchestrator_defers_rate_limit_and_reports(tmp_path):
     class Limited:

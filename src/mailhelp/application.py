@@ -75,27 +75,31 @@ class _RunSummary:
     completed: int = 0
     waiting: int = 0
     failed: int = 0
+    action_failed: int = 0
 
     def add(self, results: list[ProcessingResult]) -> None:
         counts = {
             ProcessingOutcome.COMPLETED: self.completed,
             ProcessingOutcome.WAITING: self.waiting,
             ProcessingOutcome.FAILED: self.failed,
+            ProcessingOutcome.COMPLETED_WITH_ACTION_ERROR: self.action_failed,
         }
         for result in results:
             counts[result.outcome] += 1
         self.completed = counts[ProcessingOutcome.COMPLETED]
         self.waiting = counts[ProcessingOutcome.WAITING]
         self.failed = counts[ProcessingOutcome.FAILED]
+        self.action_failed = counts[ProcessingOutcome.COMPLETED_WITH_ACTION_ERROR]
 
     def message(self, *, bounded: bool = False) -> str:
-        total = self.completed + self.waiting + self.failed
+        total = self.completed + self.waiting + self.failed + self.action_failed
         lines = [
             "Mailhelp-Lauf beendet.",
             f"Bearbeitet: {total}",
             f"Erfolgreich abgeschlossen: {self.completed}",
             f"Warten auf Eingabe oder Wiederholung: {self.waiting}",
             f"Fehlgeschlagen: {self.failed}",
+            f"Abgeschlossen mit Aktionsfehler: {self.action_failed}",
         ]
         if bounded and self.waiting:
             lines.extend((
@@ -285,7 +289,8 @@ class Application:
                 break
             try:
                 state = self.store.load_model(name, MailState)
-                if state is None or state.steps.completion != "pending":
+                if state is None or (state.steps.completion != "pending" and
+                                     state.steps.action_detection != "failed"):
                     continue
                 if state.imap.account_id != self.imap.account_id:
                     continue

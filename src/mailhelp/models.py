@@ -201,8 +201,9 @@ class ProcessingSteps(StrictModel):
     preparation: Literal["pending", "completed", "skipped"] = "pending"
     relevance: Literal["pending", "completed", "skipped"] = "pending"
     summary: Literal["pending", "completed", "skipped"] = "pending"
-    action_detection: Literal["pending", "completed", "skipped"] = "pending"
-    notification: Literal["pending", "completed", "skipped"] = "pending"
+    summary_notification: Literal["pending", "sending", "completed", "skipped"] = "pending"
+    action_detection: Literal["pending", "completed", "failed", "skipped"] = "pending"
+    proposal_notification: Literal["pending", "sending", "completed", "skipped"] = "pending"
     completion: Literal["pending", "completed", "skipped"] = "pending"
 
 
@@ -210,8 +211,9 @@ class ProcessingStage(StrEnum):
     PREPARATION = "preparation"
     RELEVANCE = "relevance"
     SUMMARY = "summary"
+    SUMMARY_NOTIFICATION = "summary_notification"
     ACTION_DETECTION = "action_detection"
-    NOTIFICATION = "notification"
+    PROPOSAL_NOTIFICATION = "proposal_notification"
     COMPLETION = "completion"
 
 
@@ -306,7 +308,7 @@ class DuplicateDecision(StrictModel):
 
 
 class MailState(StrictModel):
-    schema_version: Literal[6] = 6
+    schema_version: Literal[7] = 7
     id: str = Field(pattern=r"^[a-f0-9]{24}$")
     imap: MailImapIdentity
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

@@ -36,6 +36,7 @@ class ProcessingOutcome(StrEnum):
     """Extern sichtbares Ergebnis eines Verarbeitungsversuchs."""
 
     COMPLETED = "completed"
+    COMPLETED_WITH_ACTION_ERROR = "completed_with_action_error"
     WAITING = "waiting"
     FAILED = "failed"
 
@@ -160,7 +161,7 @@ class Orchestrator:
                                                 previous_mail_id=candidate.mail_id if candidate else None)
             if outcome == "duplicate":
                 state.steps.relevance = state.steps.summary = state.steps.action_detection = "skipped"
-                state.steps.notification = "skipped"
+                state.steps.summary_notification = state.steps.proposal_notification = "skipped"
                 state.steps.completion = "completed"
             self._save(name, state)
             self.logger.event("INFO", "orchestrator", "duplicate_checked", mail_id=state.id,
@@ -226,10 +227,11 @@ class Orchestrator:
         state.awaiting_relevance = False
         state.relevance_dialog = dialog.model_copy(update={"status": RelevanceDialogStatus.DECIDED, "decision": decision, "telegram_offset": telegram_offset})
         if decision == "irrelevant":
-            state.steps.summary = state.steps.action_detection = state.steps.notification = "skipped"
+            state.steps.summary = state.steps.action_detection = "skipped"
+            state.steps.summary_notification = state.steps.proposal_notification = "skipped"
             state.steps.completion = "completed"
         else:
-            state.steps.notification = "pending"
+            state.steps.summary_notification = "pending"
         self._save(name, state)
         return state
 
@@ -256,7 +258,7 @@ class Orchestrator:
             self.logger.event("INFO", "orchestrator", "processing_deferred", mail_id=state.id, deferred_until=state.deferred_until)
             return ProcessingResult(ProcessingOutcome.WAITING, state.model_dump(mode="json"))
         state.deferred_until = None
-        if state.steps.completion == "completed":
+        if state.steps.completion == "completed" and state.steps.action_detection != "failed":
             self.logger.event("DEBUG", "orchestrator", "processing_already_completed", mail_id=state.id)
             return ProcessingResult(ProcessingOutcome.COMPLETED, state.model_dump(mode="json"))
         stage = ProcessingStage.PREPARATION
@@ -285,9 +287,9 @@ class Orchestrator:
             if state.relevance.decision == "irrelevant":
                 state.steps.summary = "skipped"
                 state.steps.action_detection = "skipped"
-                state.steps.notification = "skipped"
+                state.steps.summary_notification = state.steps.proposal_notification = "skipped"
             elif state.relevance.decision == "unclear":
-                if state.steps.notification == "pending":
+                if state.steps.summary_notification == "pending":
                     state.relevance_dialog = RelevanceDialog(mail_id=state.id)
                     state.awaiting_relevance = True
                     self._save(name, state)
@@ -297,7 +299,8 @@ class Orchestrator:
                         headers["from"] or "—",
                         headers["subject"] or "—",
                     )
-                    state.steps.notification = "completed"
+                    state.steps.summary_notification = "completed"
+                    state.steps.proposal_notification = "skipped"
                     self._save(name, state)
                     self.logger.event("INFO", "orchestrator", "notification_completed", mail_id=state.id)
                 return ProcessingResult(ProcessingOutcome.WAITING, state.model_dump(mode="json"))
@@ -310,8 +313,17 @@ class Orchestrator:
                     state.steps.summary = "completed"
                     self._save(name, state)
                     self.logger.event("INFO", "orchestrator", "summary_completed", mail_id=state.id, call_id=call)
+                stage = ProcessingStage.SUMMARY_NOTIFICATION
+                if state.steps.summary_notification == "pending":
+                    # ``sending`` is a durable uncertainty marker.  A crash after
+                    # Telegram accepted the call must not cause an automatic duplicate.
+                    state.steps.summary_notification = "sending"
+                    self._save(name, state)
+                    self.notifier.send(self.chat_id, self._notification_text(state))
+                    state.steps.summary_notification = "completed"
+                    self._save(name, state)
                 stage = ProcessingStage.ACTION_DETECTION
-                if state.steps.action_detection == "pending":
+                if state.steps.action_detection in {"pending", "failed"}:
                     call, actions = self.analyzer.actions(state.mail)
                     state.proposals = self._normalize_proposals(state, actions.proposals)
                     state.llm_call_ids.append(call)
@@ -319,14 +331,14 @@ class Orchestrator:
                     self._save(name, state)
                     self.logger.event("INFO", "orchestrator", "actions_completed", mail_id=state.id, call_id=call,
                                       proposal_ids=[item.id for item in state.proposals])
-                stage = ProcessingStage.NOTIFICATION
-                if state.steps.notification == "pending":
-                    assert state.summary is not None
-                    self.notifier.send(self.chat_id, self._notification_text(state))
+                stage = ProcessingStage.PROPOSAL_NOTIFICATION
+                if state.steps.proposal_notification == "pending":
+                    state.steps.proposal_notification = "sending"
+                    self._save(name, state)
                     for proposal in state.proposals:
                         self.notifier.send_proposal(proposal)
                         self.logger.event("INFO", "orchestrator", "proposal_notified", mail_id=state.id, proposal_id=proposal.id)
-                    state.steps.notification = "completed"
+                    state.steps.proposal_notification = "completed"
                     self._save(name, state)
             stage = ProcessingStage.COMPLETION
             state.steps.completion = "completed"
@@ -352,13 +364,13 @@ class Orchestrator:
                           "Der LLM-Anbieter hat keine verwendbare Antwort geliefert.", True)
             self.logger.event("ERROR", "orchestrator", "provider_response_invalid", mail_id=state.id,
                               stage=stage.value, reason=exc.reason, error=exc, stacktrace=traceback.format_exc())
-            outcome = ProcessingOutcome.FAILED
+            outcome = self._failure_outcome(name, state, stage)
         except LlmInvalidJson as exc:
             self._failure(name, state, ProcessingErrorCode.INVALID_JSON, stage,
                           "Die LLM-Antwort enthielt kein gültiges JSON.", True)
             self.logger.event("ERROR", "orchestrator", "invalid_json", mail_id=state.id, stage=stage.value,
                               error=exc, stacktrace=traceback.format_exc())
-            outcome = ProcessingOutcome.FAILED
+            outcome = self._failure_outcome(name, state, stage)
         except LlmSchemaValidationExceeded as exc:
             state.validation_errors.append(ValidationIssue(
                 stage=stage, code="schema_validation_failed", occurred_at=datetime.now(timezone.utc)
@@ -367,22 +379,33 @@ class Orchestrator:
                           "Die automatische Auswertung war nicht zuverlässig. Bitte die Nachricht manuell prüfen.", True)
             self.logger.event("ERROR", "orchestrator", "schema_validation_failed", mail_id=state.id, stage=stage.value,
                               error=exc, stacktrace=traceback.format_exc())
-            outcome = ProcessingOutcome.FAILED
+            outcome = self._failure_outcome(name, state, stage)
         except PermanentError as exc:
             self._failure(name, state, ProcessingErrorCode.PERMANENT_ADAPTER_ERROR, stage,
                           "Ein externer Dienst hat die Anfrage dauerhaft abgelehnt. Bitte dessen Konfiguration prüfen.", False)
             self.logger.event("ERROR", "orchestrator", "permanent_adapter_error", mail_id=state.id, stage=stage.value,
                               error=exc, stacktrace=traceback.format_exc())
-            outcome = ProcessingOutcome.FAILED
+            outcome = self._failure_outcome(name, state, stage)
         except Exception as exc:
             self._failure(name, state, ProcessingErrorCode.INTERNAL_ERROR, stage,
                           "Ein interner Fehler ist aufgetreten. Bitte Protokoll und Konfiguration prüfen.")
             self.logger.event("ERROR", "orchestrator", "processing_failed", mail_id=state.id, stage=stage.value, error=exc,
                               duration_ms=round((time.perf_counter() - started) * 1000, 3), stacktrace=traceback.format_exc())
-            outcome = ProcessingOutcome.FAILED
+            outcome = self._failure_outcome(name, state, stage)
         else:
             outcome = ProcessingOutcome.COMPLETED
         return ProcessingResult(outcome, state.model_dump(mode="json"))
+
+    def _failure_outcome(self, name: str, state: MailState,
+                         stage: ProcessingStage) -> ProcessingOutcome:
+        """Complete the mail while retaining a retryable action-only failure."""
+        if stage != ProcessingStage.ACTION_DETECTION:
+            return ProcessingOutcome.FAILED
+        state.steps.action_detection = "failed"
+        state.steps.proposal_notification = "pending"
+        state.steps.completion = "completed"
+        self._save(name, state)
+        return ProcessingOutcome.COMPLETED_WITH_ACTION_ERROR
 
     def run(self, poll: Any, interval: float, wait: Any = None) -> None:
         waiter = wait or self.stop_event.wait
