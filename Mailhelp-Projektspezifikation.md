@@ -89,10 +89,12 @@ Fehler in einer Mail dürfen die Verarbeitung anderer Mails nicht dauerhaft bloc
 
 ## 4. IMAP und Inhaltsaufbereitung
 
-Die MIME-Aufbereitung begrenzt konfigurierbar die rohe Mailgröße, Teilezahl,
+Die MIME-Aufbereitung begrenzt konfigurierbar die Mailgröße ohne Anhänge, Teilezahl,
 dekodierte Textmenge, HTML-Zeichen, HTML-Tags und Verschachtelungstiefe sowie die
-endgültige JSON-Nutzlast für das LLM. Bei Überschreitung entsteht ein sichtbarer,
-inhaltlich neutraler Fehlerzustand. Aktive und eingebettete HTML-Inhalte
+endgültige JSON-Nutzlast für das LLM. Überschreitet die rohe Nachricht die
+Mailgrößengrenze, werden zunächst alle erkannten Anhänge entfernt und nur die
+verbleibende Nachricht gegen die Grenze geprüft. Bei Überschreitung entsteht ein
+sichtbarer, inhaltlich neutraler Fehlerzustand. Aktive und eingebettete HTML-Inhalte
 (`script`, `style`, `noscript`, `object`, `embed`, `iframe`, SVG und Canvas) sowie
 Anhänge werden einschließlich ihres vollständigen MIME-Unterbaums ausgelassen;
 auch Textteile mit Dateinamen gelten unabhängig von einer fehlenden oder als

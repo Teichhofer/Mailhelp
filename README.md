@@ -144,13 +144,14 @@ Nur Transportfehler sowie HTTP 408, 425, 429, 500, 502, 503 und 504 werden bei l
   nicht wiederholbar, weshalb trotz des allgemeinen Ereignisnamens nur
   `attempt: 1` erscheint. `Permanente Adapterantwort` ist die zusammengefasste
   Folge dieses Authentifizierungsfehlers, nicht ein zusätzlicher Telegram-Fehler.
-* `mime_limit_exceeded` mit `max_mail_bytes` bedeutet, dass die vollständige
-  rohe MIME-Nachricht größer als `limits.max_mail_bytes` ist. Dabei zählen auch
-  Header, HTML, Anhänge und deren Transferkodierung. Den Wert nur dann in
+* `mime_limit_exceeded` mit `max_mail_bytes` bedeutet, dass die MIME-Nachricht
+  nach dem Entfernen erkannter Anhänge größer als `limits.max_mail_bytes` ist.
+  Große Anhänge und deren Transferkodierung verhindern die Verarbeitung des
+  verbleibenden Mailtexts nicht. Den Wert nur dann in
   `config.yaml` erhöhen, wenn diese Nachrichten bewusst verarbeitet werden sollen;
   die zusätzlichen MIME-, Text-, HTML- und LLM-Nutzlastgrenzen bleiben weiterhin
-  wirksam. Alternativ müssen Nachricht oder Anhänge vor der Verarbeitung verkleinert
-  werden.
+  wirksam. Alternativ muss der eigentliche Nachrichtentext vor der Verarbeitung
+  verkleinert werden.
   Vor der vollständigen MIME-Aufbereitung liest Mailhelp ausschließlich den bis
   `limits.max_header_bytes` begrenzten, vollständig abgeschlossenen Headerblock,
   um `From` und `Subject` sicher in der Telegram-Fehlermeldung anzuzeigen. Diese
