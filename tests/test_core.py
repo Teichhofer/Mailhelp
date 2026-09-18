@@ -97,7 +97,8 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
     class App:
         def __init__(self): self.stopped=False
         def stop(self): self.stopped=True
-        def run(self):
+        def run(self, max_mails=None):
+            assert max_mails is None
             signal_handlers[signal.SIGINT](signal.SIGINT, None)
             signal_handlers[signal.SIGTERM](signal.SIGTERM, None)
     app=App(); signal_handlers={}

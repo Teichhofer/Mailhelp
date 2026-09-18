@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 import pytest
 
-from mailhelp.application import Application, _checkpoint_name, _safe_name, _state_directory, build_application
+from mailhelp.application import Application, _MailBudget, _checkpoint_name, _safe_name, _state_directory, build_application
 from mailhelp.config import Secrets, Settings, Topic
 from mailhelp.imap import FetchedMail
 from mailhelp.models import MailState
@@ -119,9 +119,9 @@ def test_empty_checkpoint_and_run_paths(tmp_path):
     assert none.store.saved[0][1]["start_uid"] == 0
     none.stop_event.set(); none.run()
     running=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch())
-    running._poll_imap=lambda: running.stop_event.set(); running.run()
+    running._poll_imap=lambda _limit=None: running.stop_event.set(); running.run()
     complete=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch())
-    complete._poll_imap=lambda: None
+    complete._poll_imap=lambda _limit=None: None
     complete._poll_telegram=lambda: complete.stop_event.set()
     complete.run()
 
@@ -132,7 +132,7 @@ def test_empty_checkpoint_and_run_paths(tmp_path):
         def run(self): raise RuntimeError("private detail")
     application_module.RetentionService = BrokenRetention
     failed_cleanup=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch())
-    failed_cleanup._poll_imap=lambda: failed_cleanup.stop_event.set()
+    failed_cleanup._poll_imap=lambda _limit=None: failed_cleanup.stop_event.set()
     failed_cleanup.run()
     application_module.RetentionService = original
     assert failed_cleanup.logger.events[0][0][2]=="cleanup_failed"
@@ -147,6 +147,34 @@ def test_empty_checkpoint_and_run_paths(tmp_path):
     dialog_app=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch()); dialog_app.dialog=Dialog(); dialog_app._poll_telegram(); assert dialog_app.dialog.calls==1
     failed_dialog=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch()); failed_dialog.dialog=Dialog(RuntimeError("dialog")); failed_dialog._poll_telegram()
     assert failed_dialog.logger.events[0][0][2]=="poll_failed"
+
+
+def test_bounded_run_limits_resumed_and_new_mail_then_exits(tmp_path):
+    pending=MailState(id="a"*24,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":7,"uid":2})
+    key=_checkpoint_name("0"*24,"INBOX")
+    store=Store({"mail-a":pending.model_dump(mode="json"),key:{"uidvalidity":7,"uid":2,"start_uid":2}})
+    mail3=FetchedMail("INBOX",7,3,b"x")
+    mail4=FetchedMail("INBOX",7,4,b"x")
+    service=app(tmp_path,Imap([(7,[mail3,mail4])]),Telegram([]),Orch(),store=store)
+
+    service.run(max_mails=2)
+
+    assert service.orchestrator.seen == [2,3]
+    assert service.imap.calls == [("INBOX",2,7)]
+    assert service.telegram.offsets == [0]
+    assert store.values[key]["uid"] == 3
+    assert not service.stop_event.is_set()
+
+
+def test_mail_budget_and_limit_consumed_by_resume_before_folder_poll(tmp_path):
+    budget=_MailBudget(1)
+    assert budget.take() is None
+    assert budget.remaining == 0
+
+    pending=MailState(id="a"*24,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":7,"uid":2})
+    service=app(tmp_path,Imap([]),Telegram([]),Orch(),store=Store({"mail-a":pending.model_dump(mode="json")}))
+    assert len(service._poll_imap(max_mails=1)) == 1
+    assert service.imap.calls == []
 
 
 def test_resume_due_pending_states_and_isolate_failures(tmp_path):

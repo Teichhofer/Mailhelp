@@ -24,6 +24,16 @@ from .retention import RetentionService
 
 
 @dataclass
+class _MailBudget:
+    """Shared per-run budget covering resumed and newly discovered mail."""
+
+    remaining: int
+
+    def take(self) -> None:
+        self.remaining -= 1
+
+
+@dataclass
 class Application:
     settings: Settings
     store: JsonStore
@@ -42,11 +52,12 @@ class Application:
         self.stop_event.set()
         self.orchestrator.stop()
 
-    def _poll_imap(self) -> list[ProcessingResult]:
+    def _poll_imap(self, max_mails: int | None = None) -> list[ProcessingResult]:
         """Resume durable work and process new mail, returning every outcome."""
-        results = self._resume_pending()
+        budget = _MailBudget(max_mails) if max_mails is not None else None
+        results = self._resume_pending(budget)
         for folder in self.settings.imap.folders:
-            if self.stop_event.is_set():
+            if self.stop_event.is_set() or (budget is not None and budget.remaining == 0):
                 break
             checkpoint_name = _checkpoint_name(self.imap.account_id, folder)
             checkpoint_model = self.store.load_model(checkpoint_name, ImapCheckpoint, ImapCheckpoint()) if hasattr(self.store, "load_model") else ImapCheckpoint.model_validate(self.store.load(checkpoint_name, {}))
@@ -72,8 +83,10 @@ class Application:
                                   previous_uidvalidity=checkpoint.get("uidvalidity"), uidvalidity=self.imap.last_uidvalidity)
             checkpoint_reachable = True
             for mail in mails:
-                if self.stop_event.is_set():
+                if self.stop_event.is_set() or (budget is not None and budget.remaining == 0):
                     break
+                if budget is not None:
+                    budget.take()
                 try:
                     result = self.orchestrator.process(mail)
                 except Exception as exc:
@@ -94,14 +107,14 @@ class Application:
                 self.store.save(checkpoint_name, ImapCheckpoint(uidvalidity=self.imap.last_uidvalidity, uid=uid, start_uid=checkpoint["start_uid"]).model_dump())
         return results
 
-    def _resume_pending(self) -> list[ProcessingResult]:
+    def _resume_pending(self, budget: _MailBudget | None = None) -> list[ProcessingResult]:
         """Resume due durable mail states, independently of IMAP checkpoints."""
         results: list[ProcessingResult] = []
         if not hasattr(self.store, "names"):
             return results
         now = datetime.now(timezone.utc)
         for name in self.store.names("mail-"):
-            if self.stop_event.is_set():
+            if self.stop_event.is_set() or (budget is not None and budget.remaining == 0):
                 break
             try:
                 state = self.store.load_model(name, MailState)
@@ -111,6 +124,8 @@ class Application:
                     continue
                 if state.imap.account_id != self.imap.account_id:
                     continue
+                if budget is not None:
+                    budget.take()
                 mail = self.imap.fetch_uid(state.imap.folder, state.imap.uid, state.imap.uidvalidity)
                 result = self.orchestrator.process(mail)
                 results.append(result)
@@ -139,7 +154,7 @@ class Application:
             self.store.save("telegram-offset", TelegramOffset(offset=offset).model_dump())
             self.logger.event("INFO", "telegram", "update_received", update_id=update["update_id"])
 
-    def run(self) -> None:
+    def run(self, max_mails: int | None = None) -> None:
         while not self.stop_event.is_set():
             try:
                 RetentionService(self.store, self.settings.retention, self.logger).run()
@@ -147,9 +162,11 @@ class Application:
                 # No state content is included in this operational event.
                 self.logger.event("ERROR", "retention", "cleanup_failed",
                                   processed_at=datetime.now(timezone.utc).isoformat(), failure_count=1)
-            self._poll_imap()
+            self._poll_imap(max_mails)
             if not self.stop_event.is_set():
                 self._poll_telegram()
+            if max_mails is not None:
+                break
             self.stop_event.wait(self.settings.poll_interval_seconds)
 
 

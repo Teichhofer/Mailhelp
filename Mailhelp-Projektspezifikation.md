@@ -6,7 +6,12 @@ geänderte UIDVALIDITY beginnt den Ordner erneut bei UID 1. SIGINT und SIGTERM
 setzen dasselbe Stop-Ereignis. Beim Verlassen werden IMAP, alle HTTP-Clients und
 die Datensperre garantiert freigegeben.
 
-Version: 1.2 · Stand: 14. September 2026 · Status: Implementierungsgrundlage.
+Der optionale CLI-Parameter `--max-mails N` führt genau einen Abrufdurchlauf aus,
+bearbeitet dabei ordnerübergreifend höchstens `N` Mails einschließlich fälliger
+Wiederaufnahmen, pollt Telegram einmal und beendet den Prozess. `N` ist eine
+positive Ganzzahl; nicht ausgeschöpftes Kontingent löst keinen weiteren Abruf aus.
+
+Version: 1.2 · Stand: 18. September 2026 · Status: Implementierungsgrundlage.
 
 ## Aufbewahrung und Datenminimierung
 

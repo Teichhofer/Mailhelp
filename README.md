@@ -208,6 +208,13 @@ Konto-ID, UIDVALIDITY, UID und einmaligem Start-UID persistiert und nach einem N
 SIGTERM fordern ein kontrolliertes Ende an; Netzwerkclients und die
 Einzelinstanz-Sperre werden auch bei Fehlern geschlossen.
 
+Für einen begrenzten Testlauf verarbeitet `mailhelp --max-mails 10` in genau
+einem Abrufdurchlauf höchstens zehn Mails (einschließlich fälliger, nach einem
+Neustart fortzusetzender Mails), fragt anschließend einmal Telegram ab und
+beendet sich. Nicht verbrauchtes Kontingent führt nicht zu einem weiteren Poll;
+`--max-mails` muss mindestens `1` sein. Bereits bestätigte externe Schreibaktionen
+behalten auch in diesem Modus ihre normalen Sicherheits- und Abgleichsregeln.
+
 Fehler werden im Mail-Zustand ausschließlich mit sicherem Fehlercode, betroffener
 Verarbeitungsstufe, Zeitstempel und optionaler Wiederholbarkeit gespeichert. Eine vor
 dem Telegram-Versand persistierte Markierung verhindert doppelte Fehlermeldungen nach
@@ -263,6 +270,9 @@ docker compose run --rm mailhelp
 Der Container startet standardmäßig den Dienst. Für eine reine Prüfung kann
 `docker compose run --rm mailhelp --check --config-directory /config` verwendet
 werden.
+Ein begrenzter Testlauf ist beispielsweise mit
+`docker compose run --rm mailhelp --max-mails 10 --config-directory /config`
+möglich.
 
 Konfiguration wird schreibgeschützt eingebunden, Daten und Logs bleiben in getrennten persistenten Host-Verzeichnissen. `.env`, Zustand und Logs gelangen dank `.dockerignore` nicht in den Build-Kontext.
 Relative Daten- und Logpfade aus `config.yaml` beziehen sich auf das aktuelle
