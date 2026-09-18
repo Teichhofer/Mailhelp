@@ -218,6 +218,9 @@ class ProcessingStage(StrEnum):
 class ProcessingErrorCode(StrEnum):
     MIME_LIMIT_EXCEEDED = "mime_limit_exceeded"
     LLM_SCHEMA_VALIDATION_EXHAUSTED = "llm_schema_validation_exhausted"
+    PROVIDER_RESPONSE_INVALID = "provider_response_invalid"
+    INVALID_JSON = "invalid_json"
+    SCHEMA_VALIDATION_FAILED = "schema_validation_failed"
     PERMANENT_ADAPTER_ERROR = "permanent_adapter_error"
     LLM_RATE_LIMITED = "llm_rate_limited"
     INTERNAL_ERROR = "internal_error"

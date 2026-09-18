@@ -5,7 +5,13 @@ import pytest
 
 from mailhelp.adapter import PermanentError, RetryableError, RetryInterrupted, RetryPolicy, UncertainWriteError, uncertain_write
 from mailhelp.config import AdapterPolicySettings
-from mailhelp.openrouter import OpenRouterClient, RateLimitExceeded
+from mailhelp.openrouter import OpenRouterClient, ProviderResponseInvalid, RateLimitExceeded
+
+
+def test_provider_response_error_exposes_only_machine_readable_reason():
+    error = ProviderResponseInvalid("message_content_null")
+    assert error.reason == "message_content_null"
+    assert "mail body" not in str(error)
 
 
 def status(code, headers=None):

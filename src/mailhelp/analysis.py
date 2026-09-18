@@ -4,7 +4,7 @@ from typing import Any, Protocol, TypeVar
 from pydantic import BaseModel, ValidationError
 from .config import PromptConfig, Topic
 from .models import Actions, Proposal, ProposalStatus, Relevance, Summary
-from .openrouter import OpenRouterResponseError
+from .openrouter import InvalidJson, ProviderResponseInvalid
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -17,8 +17,24 @@ class LlmSchemaValidationExceeded(ValueError):
         super().__init__(f"LLM-Schemavalidierung für {step} ausgeschöpft")
 
 
+class LlmProviderResponseInvalid(ValueError):
+    def __init__(self, step: str, reason: str):
+        self.step, self.reason = step, reason
+        super().__init__(f"Ungültige Provider-Antwort für {step}: {reason}")
+
+
+class LlmInvalidJson(ValueError):
+    def __init__(self, step: str):
+        self.step = step
+        super().__init__(f"Ungültiges JSON für {step}")
+
+
+class LlmSchemaValidationFailed(LlmSchemaValidationExceeded):
+    """Stage-specific final failure after schema validation retries."""
+
+
 class Completer(Protocol):
-    def complete(self, model: str, parameters: dict[str, Any], system: str, payload: dict[str, Any]) -> tuple[str, dict[str, Any]]: ...
+    def complete(self, model: str, parameters: dict[str, Any], system: str, payload: dict[str, Any]) -> tuple[str, Any]: ...
 
 
 def validate_revision_successor(previous: Proposal, candidate: Any) -> Proposal:
@@ -42,19 +58,19 @@ class Analyzer:
 
     def _run(self, step: str, schema: type[T], mail: dict[str, Any], extra: dict[str, Any] | None = None) -> tuple[str, T]:
         model, params, prompt = self.prompts.resolved(step); error = None
-        validation_error: ValidationError | OpenRouterResponseError | None = None
+        validation_error: ValidationError | None = None
         for _ in range(self.retries + 1):
             try:
                 call_id, raw = self.client.complete(model, params, prompt, {"mail": mail, **(extra or {}), "previous_validation_error": error})
-            except OpenRouterResponseError as exc:
-                validation_error = exc
-                error = str(exc)
-                continue
+            except ProviderResponseInvalid as exc:
+                raise LlmProviderResponseInvalid(step, exc.reason) from exc
+            except InvalidJson as exc:
+                raise LlmInvalidJson(step) from exc
             try: return call_id, schema.model_validate(raw)
             except ValidationError as exc:
                 validation_error = exc
                 error = str(exc)
-        raise LlmSchemaValidationExceeded(step) from validation_error
+        raise LlmSchemaValidationFailed(step) from validation_error
 
     def relevance(self, mail: dict[str, Any], topics: list[Topic]) -> tuple[str, Relevance]:
         enabled = [topic for topic in topics if topic.enabled]
@@ -83,14 +99,14 @@ class Analyzer:
                 call_id, raw = self.client.complete(
                     model, params, prompt, {**payload, "previous_validation_error": error}
                 )
-            except OpenRouterResponseError as exc:
-                validation_error = exc
-                error = str(exc)
-                continue
+            except ProviderResponseInvalid as exc:
+                raise LlmProviderResponseInvalid("proposal_revision", exc.reason) from exc
+            except InvalidJson as exc:
+                raise LlmInvalidJson("proposal_revision") from exc
             try:
                 revised = validate_revision_successor(proposal, raw)
                 return call_id, revised
             except (ValidationError, ValueError) as exc:
                 validation_error = exc
                 error = str(exc)
-        raise LlmSchemaValidationExceeded("proposal_revision") from validation_error
+        raise LlmSchemaValidationFailed("proposal_revision") from validation_error

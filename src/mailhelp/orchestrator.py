@@ -12,7 +12,8 @@ from enum import StrEnum
 from threading import Event
 from typing import Any, Protocol
 
-from .analysis import Analyzer, LlmSchemaValidationExceeded
+from .analysis import (Analyzer, LlmInvalidJson, LlmProviderResponseInvalid,
+                       LlmSchemaValidationExceeded)
 from .adapter import PermanentError
 from .config import TargetSettings, Topic
 from .imap import FetchedMail
@@ -346,13 +347,25 @@ class Orchestrator:
             self.logger.event("WARNING", "orchestrator", "mime_limit_exceeded", mail_id=state.id, stage=stage.value,
                               error=exc, stacktrace=traceback.format_exc())
             outcome = ProcessingOutcome.FAILED
+        except LlmProviderResponseInvalid as exc:
+            self._failure(name, state, ProcessingErrorCode.PROVIDER_RESPONSE_INVALID, stage,
+                          "Der LLM-Anbieter hat keine verwendbare Antwort geliefert.", True)
+            self.logger.event("ERROR", "orchestrator", "provider_response_invalid", mail_id=state.id,
+                              stage=stage.value, reason=exc.reason, error=exc, stacktrace=traceback.format_exc())
+            outcome = ProcessingOutcome.FAILED
+        except LlmInvalidJson as exc:
+            self._failure(name, state, ProcessingErrorCode.INVALID_JSON, stage,
+                          "Die LLM-Antwort enthielt kein gültiges JSON.", True)
+            self.logger.event("ERROR", "orchestrator", "invalid_json", mail_id=state.id, stage=stage.value,
+                              error=exc, stacktrace=traceback.format_exc())
+            outcome = ProcessingOutcome.FAILED
         except LlmSchemaValidationExceeded as exc:
             state.validation_errors.append(ValidationIssue(
-                stage=stage, code="llm_schema_validation_exhausted", occurred_at=datetime.now(timezone.utc)
+                stage=stage, code="schema_validation_failed", occurred_at=datetime.now(timezone.utc)
             ))
-            self._failure(name, state, ProcessingErrorCode.LLM_SCHEMA_VALIDATION_EXHAUSTED, stage,
+            self._failure(name, state, ProcessingErrorCode.SCHEMA_VALIDATION_FAILED, stage,
                           "Die automatische Auswertung war nicht zuverlässig. Bitte die Nachricht manuell prüfen.", True)
-            self.logger.event("ERROR", "orchestrator", "llm_schema_validation_exhausted", mail_id=state.id, stage=stage.value,
+            self.logger.event("ERROR", "orchestrator", "schema_validation_failed", mail_id=state.id, stage=stage.value,
                               error=exc, stacktrace=traceback.format_exc())
             outcome = ProcessingOutcome.FAILED
         except PermanentError as exc:
