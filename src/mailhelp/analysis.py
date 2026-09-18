@@ -7,7 +7,8 @@ from typing import Any, Protocol, TypeVar
 from pydantic import BaseModel, ValidationError
 
 from .config import PromptConfig, Topic
-from .models import ActionRoute, Actions, Proposal, ProposalStatus, Relevance, Summary
+from .models import (ActionRoute, EventExtraction, Proposal,
+                     ProposalStatus, Relevance, Summary, TaskExtraction)
 from .openrouter import InvalidJson, ProviderResponseInvalid
 
 T = TypeVar("T", bound=BaseModel)
@@ -144,8 +145,11 @@ class Analyzer:
     def action_route(self, mail: dict[str, Any]) -> tuple[str, ActionRoute]:
         return self._run("action_router", ActionRoute, mail)
 
-    def actions(self, mail: dict[str, Any]) -> tuple[str, Actions]:
-        return self._run("action_extractor", Actions, mail)
+    def extract_tasks(self, mail: dict[str, Any]) -> tuple[str, TaskExtraction]:
+        return self._run("task_extraction", TaskExtraction, mail)
+
+    def extract_events(self, mail: dict[str, Any]) -> tuple[str, EventExtraction]:
+        return self._run("event_extraction", EventExtraction, mail)
 
     def revise_proposal(self, proposal: Proposal, question: str,
                         authorized_answer: str) -> tuple[str, Proposal]:

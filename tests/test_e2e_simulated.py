@@ -19,7 +19,6 @@ from mailhelp.telegram import TelegramDialogController
 
 class SimulatedOpenRouter:
     def complete(self, _model, _parameters, system, payload):
-        mail_id = payload["mail"]["internal_id"]
         if system == "relevance":
             return "r", {"decision": "relevant", "topic_ids": ["arbeit"], "reason": "Aufgabe und Termin"}
         if system == "summary":
@@ -27,10 +26,15 @@ class SimulatedOpenRouter:
         if system == "action_router":
             return "ar", {"action_state": "task_and_event", "task_count": 1,
                           "event_count": 1, "reason": "Aufgabe und Termin erkannt."}
-        return "a", {"proposals": [
-            {"id": "task", "version": 1, "kind": "task", "responsibility": "user", "certainty": "certain", "classification": "new", "title": "Unterlagen senden", "evidence": "Bitte senden", "source_mail_id": mail_id, "due": "2026-09-30T17:00:00+02:00", "target": "untrusted"},
-            {"id": "event", "version": 1, "kind": "event", "responsibility": "user", "certainty": "certain", "classification": "new", "title": "Besprechung", "evidence": "8. Oktober von 09:00 bis 10:00", "source_mail_id": mail_id, "start": "2026-10-08T09:00:00+02:00", "end": "2026-10-08T10:00:00+02:00", "target": "untrusted"},
-        ]}
+        if system == "task_extraction":
+            return "t", {"schema_version": 1, "tasks": [{"title": "Unterlagen senden",
+                "description": "", "evidence": "Bitte senden", "responsibility": "user",
+                "certainty": "certain", "classification": "new", "due_text": "30. September"}]}
+        return "e", {"schema_version": 1, "events": [{"title": "Besprechung",
+            "description": None, "evidence": "8. Oktober von 09:00 bis 10:00",
+            "date_text": "8. Oktober", "time_text": "09:00", "end_time_text": "10:00",
+            "location": None, "video_link": None, "responsibility": "user",
+            "certainty": "certain", "classification": "new"}]}
 
 
 class FakeImap:
@@ -106,9 +110,9 @@ def callback_update(update_id, callback_data):
             "data": callback_data}}
 
 
-def test_imap_llm_telegram_confirmation_to_fake_writers(tmp_path):
+def test_imap_llm_persists_separate_raw_extractions(tmp_path):
     prompts = PromptConfig(defaults={"model": "fake", "parameters": {}}, prompts={
-        step: PromptStep(system_prompt=step) for step in ("relevance", "summary", "action_router", "action_extractor", "proposal_revision")})
+        step: PromptStep(system_prompt=step) for step in ("relevance", "summary", "action_router", "task_extraction", "event_extraction", "proposal_revision")})
     analyzer = Analyzer(SimulatedOpenRouter(), prompts)
     telegram = FakeTelegram()
     todoist, calendar = FakeWriter("todoist"), FakeWriter("calendar")
@@ -127,17 +131,11 @@ def test_imap_llm_telegram_confirmation_to_fake_writers(tmp_path):
 
         results = app._poll_imap()
         assert [result.outcome for result in results] == [ProcessingOutcome.COMPLETED]
-        callbacks = [row[2]["inline_keyboard"][0][0]["callback_data"] for row in telegram.sent if row[2]]
-        assert len(callbacks) == 2 and all(value.endswith(":confirm") for value in callbacks)
-        telegram.updates = [callback_update(index, value) for index, value in enumerate(callbacks)]
-        app._poll_telegram()
-
-        assert len(todoist.created) == len(calendar.created) == 1
-        assert todoist.created[0][0].target == "project"
-        assert calendar.created[0][0].target == "calendar"
-        assert all(store.load_model(f"proposal-{item[0].source_mail_id}-{item[0].id}", Proposal).status == "created"
-                   for item in (todoist.created[0], calendar.created[0]))
-        assert store.load("telegram-offset")["offset"] == 2
+        state = results[0].state
+        assert state["task_extraction"]["tasks"][0]["due_text"] == "30. September"
+        assert state["event_extraction"]["events"][0]["time_text"] == "09:00"
+        assert state["proposals"] == []
+        assert todoist.created == calendar.created == []
 
 
 def test_synthetic_council_mail_keeps_summary_when_action_detection_fails(tmp_path):
@@ -149,7 +147,7 @@ def test_synthetic_council_mail_keeps_summary_when_action_detection_fails(tmp_pa
 
     prompts = PromptConfig(defaults={"model": "fake", "parameters": {}}, prompts={
         step: PromptStep(system_prompt=step)
-        for step in ("relevance", "summary", "action_router", "action_extractor", "proposal_revision")
+        for step in ("relevance", "summary", "action_router", "task_extraction", "event_extraction", "proposal_revision")
     })
     telegram = FakeTelegram()
     message = EmailMessage()
@@ -166,7 +164,7 @@ def test_synthetic_council_mail_keeps_summary_when_action_detection_fails(tmp_pa
     assert result["steps"]["summary_notification"] == "completed"
     assert result["steps"]["action_detection"] == "failed"
     assert "Zusammenfassung:" in telegram.sent[0][1]
-    assert "Stufe action_detection:" in telegram.sent[1][1]
+    assert "Stufe action_router:" in telegram.sent[1][1]
 
 
 def test_test_mode_end_to_end_never_calls_writer_and_survives_restart(tmp_path):
