@@ -19,6 +19,10 @@ from .analysis import validate_revision_successor
 import time, traceback, uuid
 
 
+class TelegramChatNotFoundError(PermanentError):
+    """The configured Telegram chat cannot be addressed by this bot."""
+
+
 class TelegramTransportModel(BaseModel):
     """Validated Telegram fields used by Mailhelp; API additions are discarded."""
 
@@ -250,6 +254,31 @@ class TelegramClient:
                 f"Telegram getMe: ungültige Antwort am Schlüsselpfad {_validation_path(exc)}"
             ) from exc
 
+    def started_chats(self, user_id: int) -> list[int]:
+        """Return chats in which the configured user most recently sent /start.
+
+        This is used only after an access check failed.  Filtering locally by the
+        configured user prevents diagnostics from disclosing unrelated bot users.
+        """
+        response = self.policy.run(lambda: self.client.get(
+            "/getUpdates", params={"timeout": 0, "allowed_updates": '["message"]'},
+        ))
+        self._raise_for_status(response, "getUpdates")
+        self._raise_api_error(response, "getUpdates")
+        try:
+            parsed = TelegramUpdatesResponse.model_validate(response.json())
+        except (ValueError, ValidationError) as exc:
+            raise ValueError(
+                f"Telegram getUpdates: ungültige Antwort am Schlüsselpfad {_validation_path(exc)}"
+            ) from exc
+        return sorted({
+            update.message.chat.id
+            for update in parsed.result
+            if update.message is not None
+            and update.message.sender.id == user_id
+            and update.message.text.partition("@")[0] == "/start"
+        })
+
     def poll(self, offset: int, timeout: int | None = None) -> list[dict[str, Any]]:
         call_id, started = str(uuid.uuid4()), time.perf_counter()
         self.logger.event("INFO", "telegram", "poll_started", call_id=call_id, offset=offset)
@@ -352,6 +381,10 @@ class TelegramClient:
                 # Retry code consumes this explicit safe field instead of rendering
                 # the exception URL, because that URL contains the bot token.
                 exc.safe_detail = detail
+                if detail == TelegramClient._CHAT_NOT_FOUND_HELP.format(operation=operation):
+                    raise TelegramChatNotFoundError(
+                        f"Permanente Adapterantwort: {detail}"
+                    ) from exc
             raise
 
     @staticmethod
@@ -363,6 +396,10 @@ class TelegramClient:
         if isinstance(payload, dict) and payload.get("ok") is False:
             detail = TelegramClient._error_detail(response, operation)
             if detail is not None:
+                if detail == TelegramClient._CHAT_NOT_FOUND_HELP.format(operation=operation):
+                    raise TelegramChatNotFoundError(
+                        f"Permanente Adapterantwort: {detail}"
+                    )
                 raise PermanentError(f"Permanente Adapterantwort: {detail}")
 
     def close(self) -> None:

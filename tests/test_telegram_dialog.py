@@ -11,6 +11,7 @@ from mailhelp.storage import JsonStore
 from mailhelp.telegram import (
     Decision, DecisionAction,
     TelegramCallbackQuery,
+    TelegramChatNotFoundError,
     TelegramClient,
     TelegramDialogController,
     TelegramMessage,
@@ -383,6 +384,46 @@ def test_telegram_client_preserves_documented_api_error_description():
     )
     assert "top-secret" not in str(error.value)
     client.close()
+
+
+def test_telegram_client_finds_only_configured_users_start_chats():
+    payload = {"ok": True, "result": [
+        {"update_id": 1, "message": {"message_id": 1, "from": {"id": 42},
+         "chat": {"id": 42}, "text": "/start"}},
+        {"update_id": 2, "message": {"message_id": 2, "from": {"id": 42},
+         "chat": {"id": -100}, "text": "/start@mailhelp_bot"}},
+        {"update_id": 3, "message": {"message_id": 3, "from": {"id": 7},
+         "chat": {"id": 7}, "text": "/start"}},
+        {"update_id": 4, "message": {"message_id": 4, "from": {"id": 42},
+         "chat": {"id": 42}, "text": "hello"}},
+    ]}
+    seen = []
+    def handler(request):
+        seen.append(request)
+        return httpx.Response(200, json=payload, request=request)
+    client = TelegramClient("secret", 1, httpx.MockTransport(handler))
+
+    assert client.started_chats(42) == [-100, 42]
+    assert seen[0].url.params["timeout"] == "0"
+    assert seen[0].url.params["allowed_updates"] == '["message"]'
+    client.close()
+
+
+def test_telegram_started_chat_diagnostic_validates_api_response():
+    for status, payload, error in (
+        (200, {"wrong": True}, ValueError),
+        (200, {"ok": False, "result": []}, ValueError),
+        (400, {"ok": False, "description": "Bad Request: chat not found"},
+         TelegramChatNotFoundError),
+    ):
+        client = TelegramClient(
+            "secret", 1,
+            httpx.MockTransport(lambda request, s=status, p=payload:
+                                httpx.Response(s, json=p, request=request)),
+        )
+        with pytest.raises(error):
+            client.started_chats(42)
+        client.close()
 
 
 def test_telegram_client_preserves_retryable_and_http_success_api_errors():
