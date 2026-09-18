@@ -78,17 +78,25 @@ class OpenRouterClient:
 
     def complete(self, model: str, parameters: dict[str, Any], system: str,
                  payload: dict[str, Any], *, stage: str = "unknown",
-                 retry_type: str = "initial", retry_number: int = 0) -> tuple[str, Any]:
+                 retry_type: str = "initial", retry_number: int = 0,
+                 provider_preferences: dict[str, Any] | None = None,
+                 correlation_id: str | None = None,
+                 attempt_id: str | None = None) -> tuple[str, Any]:
         now = self.clock()
         calls = sorted(value for value in self.load_calls() if isinstance(value, (int, float)) and now - value < 60)
         if len(calls) >= self.limit: raise RateLimitExceeded(calls[0] + 60)
-        calls.append(now); self.save_calls(calls); call_id = str(uuid.uuid4())
+        calls.append(now); self.save_calls(calls)
+        correlation_id = correlation_id or str(uuid.uuid4())
+        call_id = attempt_id or str(uuid.uuid4())
         request = {**parameters, "model": model, "messages": [{"role": "system", "content": system}, {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}], "response_format": {"type": "json_object"}}
+        if provider_preferences is not None:
+            request["provider"] = provider_preferences
         started = time.perf_counter()
         fingerprint = hashlib.sha256(json.dumps(request["messages"], ensure_ascii=False, sort_keys=True).encode()).hexdigest()
         correlation = _correlation(payload)
         attempt = 0
         metadata = dict(stage=stage, model=model, provider=None, call_id=call_id,
+                        correlation_id=correlation_id, attempt_id=call_id,
                         http_status=None, finish_reason=None, content_present=False,
                         content_length=0, json_parse_success=False,
                         schema_validation_success=None, retry_type=retry_type,

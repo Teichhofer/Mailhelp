@@ -172,7 +172,20 @@ zeigt eine verständliche Konfigurationsmeldung.
 
 Alle LLM-Aufrufe erfolgen über OpenRouter. Die Anwendung stellt die getrennten Auswertungsschritte `relevance`, `summary`, `action_router`, `task_extraction` und `event_extraction` bereit. Der Router klassifiziert zunächst nur Art und Anzahl möglicher Aktionen; die getrennten Task- und Event-Extraktoren laufen gemäß der Routingmatrix einzeln oder gemeinsam. Bei `none` endet die Aktionsanalyse ohne Vorschlag. `unclear` ist ein fachlicher Klärungsfall ohne Extraktion und kein Provider- oder Schemafehler. Seine Zähler beschreiben lediglich mögliche Kandidaten und dürfen unabhängig voneinander null sein. Jeder Schritt erhält einen eigenen Prompt und kann ein anderes Modell sowie andere Anfrageparameter verwenden. Eine syntaktisch ungültige oder leere Modellausgabe in einer erfolgreichen OpenRouter-Antwort gilt wie eine Schemaabweichung: Die Anwendung fordert innerhalb des konfigurierten Validierungsbudgets eine korrigierte Ausgabe an und meldet erst nach dessen Ausschöpfung einen Fehler der LLM-Schemavalidierung statt eines internen Fehlers.
 
-Die einzige Prompt-Datei ist `prompts.yaml`. Sie enthält globale Standardwerte, die eigentlichen Prompts und die pro Schritt abweichenden Modelle und Parameter. Themen stehen ausschließlich in `topics.yaml`, Geheimnisse ausschließlich außerhalb dieser Dateien.
+Die einzige Prompt-Datei ist `prompts.yaml`. Sie enthält die eigentlichen Prompts
+und für jede Stufe eine geordnete Routingstrategie aus Primärroute und optionalen
+Fallbackrouten samt Modellen, OpenRouter-Providerpräferenzen, Anfrageparametern
+und Anzahl der Wiederholungen derselben Route. Themen stehen ausschließlich in
+`topics.yaml`, Geheimnisse ausschließlich außerhalb dieser Dateien. Eine
+Fallbackroute wird nur nach einem technischen beziehungsweise retrybaren
+Providerfehler betreten. JSON- und Schemareparaturen verbrauchen ausschließlich
+ihre getrennten Reparaturbudgets und lösen keinen Providerwechsel aus.
+
+Ein logischer Auswertungsschritt besitzt eine gemeinsame `correlation_id`. Jeder
+tatsächliche LLM-Aufruf, einschließlich Retry und Fallback, erhält eine neue
+`attempt_id`; diese ist zugleich die persistierte `call_id`. Strukturierte
+LLM-Logs führen alle drei Felder konsistent, sodass die Einzelantwort referenziert
+und die gesamte Routenkette korreliert werden kann.
 
 Beispiel der vorgesehenen Struktur; Modellnamen sind Platzhalter und müssen vor dem Start ersetzt werden:
 

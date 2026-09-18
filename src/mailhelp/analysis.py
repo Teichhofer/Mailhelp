@@ -3,10 +3,12 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from typing import Any, Protocol, TypeVar
+import uuid
 
 from pydantic import BaseModel, ValidationError
 
-from .config import PromptConfig, Topic
+from .adapter import RetryableError
+from .config import LlmRoute, PromptConfig, Topic
 from .models import (ActionRoute, EventExtraction, Proposal,
                      ProposalStatus, Relevance, Summary, TaskExtraction)
 from .openrouter import InvalidJson, ProviderResponseInvalid
@@ -44,7 +46,7 @@ class LlmSchemaValidationFailed(LlmSchemaValidationExceeded):
 
 
 class Completer(Protocol):
-    def complete(self, model: str, parameters: dict[str, Any], system: str, payload: dict[str, Any], *, stage: str, retry_type: str, retry_number: int) -> tuple[str, Any]: ...
+    def complete(self, model: str, parameters: dict[str, Any], system: str, payload: dict[str, Any], **metadata: Any) -> tuple[str, Any]: ...
 
 
 def validate_revision_successor(previous: Proposal, candidate: Any) -> Proposal:
@@ -78,21 +80,28 @@ class Analyzer:
         if validation_retries < 0 or any(value is not None and value < 0 for value in limits):
             raise ValueError("Retry-Anzahlen dürfen nicht negativ sein")
         self.client, self.prompts = client, prompts
-        self.provider_retries = validation_retries if provider_retries is None else provider_retries
+        self.provider_retries = provider_retries
         self.json_repair_retries = validation_retries if json_repair_retries is None else json_repair_retries
         self.schema_repair_retries = validation_retries if schema_repair_retries is None else schema_repair_retries
 
     def _classified_run(self, step: str, payload: dict[str, Any],
                         validator: Callable[[Any], T]) -> tuple[str, T]:
         """Run one flat, classified retry state machine."""
-        model, params, prompt = self.prompts.resolved(step)
+        routes, prompt, configured_provider_retries = self.prompts.resolved_routes(step)
+        same_route_retries = (configured_provider_retries if self.provider_retries is None
+                              else self.provider_retries)
         used = {"provider_retry": 0, "json_repair": 0, "schema_repair": 0}
-        limits = {"provider_retry": self.provider_retries,
-                  "json_repair": self.json_repair_retries,
+        limits = {"json_repair": self.json_repair_retries,
                   "schema_repair": self.schema_repair_retries}
         repair: str | None = None
         validation_error: Exception | None = None
+        route_index = 0
+        route_failures = 0
+        # One correlation groups the logical stage; every network call receives
+        # its own attempt/call ID, which is the persistent call reference.
+        correlation_id = str(uuid.uuid4())
         while True:
+            route: LlmRoute = routes[route_index]
             request_payload = dict(payload)
             if repair == "json_repair":
                 request_payload["json_repair_instruction"] = JSON_REPAIR_INSTRUCTION
@@ -102,13 +111,22 @@ class Analyzer:
                 retry_type = repair or "initial"
                 retry_number = 0 if repair is None else used[repair]
                 call_id, raw = self.client.complete(
-                    model, params, prompt, request_payload, stage=step,
+                    route.model, route.parameters, prompt, request_payload, stage=step,
                     retry_type=retry_type, retry_number=retry_number,
+                    provider_preferences=route.provider_preferences.model_dump(exclude_none=True),
+                    correlation_id=correlation_id,
                 )
-            except ProviderResponseInvalid as exc:
-                if used["provider_retry"] >= limits["provider_retry"]:
-                    raise LlmProviderResponseInvalid(step, exc.reason) from exc
-                used["provider_retry"] += 1
+            except (ProviderResponseInvalid, RetryableError) as exc:
+                if route_failures < same_route_retries:
+                    route_failures += 1
+                    used["provider_retry"] += 1
+                    repair = "provider_retry"
+                    continue
+                if route_index + 1 >= len(routes):
+                    reason = exc.reason if isinstance(exc, ProviderResponseInvalid) else "technical_error"
+                    raise LlmProviderResponseInvalid(step, reason) from exc
+                route_index += 1
+                route_failures = 0
                 repair = "provider_retry"
                 continue
             except InvalidJson as exc:
@@ -120,7 +138,7 @@ class Analyzer:
             try:
                 result = validator(raw)
             except (ValidationError, ValueError) as exc:
-                self._record_schema_result(call_id, step, model, False,
+                self._record_schema_result(call_id, step, route.model, False,
                                            retry_type, retry_number)
                 validation_error = exc
                 if used["schema_repair"] >= limits["schema_repair"]:
@@ -128,7 +146,7 @@ class Analyzer:
                 used["schema_repair"] += 1
                 repair = "schema_repair"
             else:
-                self._record_schema_result(call_id, step, model, True,
+                self._record_schema_result(call_id, step, route.model, True,
                                            retry_type, retry_number)
                 return call_id, result
 

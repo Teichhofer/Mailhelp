@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 import imaplib
+import json
 import httpx
 import pytest
 
@@ -78,3 +79,15 @@ def test_llm_budget_survives_client_restart():
     assert error.value.next_allowed_at==160
     now[0]=160
     OpenRouterClient(**arguments).complete("m",{},"s",{})
+
+
+def test_openrouter_provider_preferences_use_closed_request_object():
+    captured = {}
+    def handler(request):
+        captured.update(json.loads(request.content))
+        return httpx.Response(200, json={"id":"x", "choices":[{"message":{"content":"{}"}}]}, request=request)
+    client = OpenRouterClient("x", 1, 0, 1, httpx.MockTransport(handler))
+    client.complete("model", {"temperature": 0}, "system", {},
+                    provider_preferences={"order": ["provider-a"], "allow_fallbacks": False})
+    client.close()
+    assert captured["provider"] == {"order": ["provider-a"], "allow_fallbacks": False}
