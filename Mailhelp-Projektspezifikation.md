@@ -196,7 +196,7 @@ Globale Parameter werden zuerst geladen und anschließend durch explizite Werte 
 
 Das LLM erhält getrennt vom Systemprompt die aufbereitete E-Mail, nötige Metadaten und gegebenenfalls Themenbereiche. Zur Datumsinterpretation werden Maildatum, Empfangsdatum und konfigurierte Nutzerzeitzone übergeben. Widersprüchliche Angaben führen zu Rückfragen.
 
-Die Anwendung validiert jedes Ergebnis gegen feste Datenschemata. Fehlerhafte Ergebnisse führen zu einem begrenzten Wiederholungsversuch oder einem sichtbaren Fehlerzustand, niemals unmittelbar zu externen Schreibaktionen. Es gibt keinen stillschweigenden Modellwechsel.
+Die Anwendung validiert jedes Ergebnis gegen feste Datenschemata. Fehlerhafte Ergebnisse führen zu einem begrenzten Wiederholungsversuch oder einem sichtbaren Fehlerzustand, niemals unmittelbar zu externen Schreibaktionen. Per Telegram versendete Fehlermeldungen nennen Absender und Betreff statt der internen Mail-ID; konnten die Mailkopfzeilen noch nicht sicher aufbereitet werden, werden beide Angaben mit einem Gedankenstrich gekennzeichnet. Es gibt keinen stillschweigenden Modellwechsel.
 
 ## 7. Zusammenfassungen, Aufgaben und Termine
 

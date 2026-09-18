@@ -201,9 +201,14 @@ class Orchestrator:
             return
         state.error.notification_marked_at = now
         self._save(name, state)
+        headers = state.mail.get("headers", {}) if state.mail is not None else {}
         self.notifier.send(
             self.chat_id,
-            f"Mail-ID {state.id} · Stufe {stage.value}: {text}",
+            "\n".join([
+                f"Absender: {headers.get('from') or '—'}",
+                f"Betreff: {headers.get('subject') or '—'}",
+                f"Stufe {stage.value}: {text}",
+            ]),
         )
 
     def resolve_relevance(self, mail_id: str, version: int, decision: str, telegram_offset: int) -> MailState:
