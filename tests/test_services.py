@@ -6,7 +6,7 @@ import httpx, pytest
 from mailhelp.analysis import Analyzer, LlmSchemaValidationExceeded
 from mailhelp.config import TargetSettings, Topic
 from mailhelp.imap import FetchedMail
-from mailhelp.integrations import HttpWriter, execute_confirmed
+from mailhelp.integrations import CalendarFileWriter, HttpWriter, calendar_file, execute_confirmed
 from mailhelp.models import ProposalStatus, RelevanceDialog
 from mailhelp.openrouter import OpenRouterClient, RateLimitExceeded
 from mailhelp.adapter import PermanentError, RetryableError
@@ -221,6 +221,46 @@ def test_calendar_payload_maps_video_link_with_empty_description():
                            end="2026-05-10T11:00:00+00:00",video_link="http://video.example.test/room"),"key")
     assert payloads[0]["description"] == "[Mailhelp-Videolink]\nhttp://video.example.test/room"
     writer.close()
+
+
+def test_calendar_file_writer_sends_ios_importable_attachment():
+    class Sender:
+        def __init__(self): self.documents=[]
+        def send_document(self, chat_id, filename, content, caption=None):
+            self.documents.append((chat_id,filename,content,caption))
+
+    sender=Sender(); writer=CalendarFileWriter(sender,99)
+    item=proposal(kind="event",status="confirmed",start="2026-05-10T10:00:00+02:00",
+                  end="2026-05-10T11:00:00+02:00",title="Planung, München " + "ä"*40,
+                  description="Zeile 1\nZeile 2; Abstimmung",location="Raum 1",
+                  video_link="https://video.example.test/meeting")
+    assert writer.check_access() is None and writer.reconcile("stable-key") is None
+    result=writer.create(item,"stable-key")
+    chat,filename,content,caption=sender.documents[0]
+    decoded=content.decode("utf-8")
+    assert chat == 99 and filename.startswith("termin-") and filename.endswith(".ics")
+    assert result["id"].startswith("calendar-file:") and "antippen" in caption
+    assert decoded.startswith("BEGIN:VCALENDAR\r\nVERSION:2.0\r\n")
+    assert "DTSTART:20260510T080000Z" in decoded and "DTEND:20260510T090000Z" in decoded
+    unfolded=decoded.replace("\r\n ", "")
+    assert "DESCRIPTION:Zeile 1\\nZeile 2\\; Abstimmung\\n\\nVideolink: https://" in unfolded
+    assert "LOCATION:Raum 1" in decoded and "\r\n " in decoded
+    assert all(len(line.encode("utf-8")) <= 75 for line in decoded.split("\r\n") if line)
+    with pytest.raises(ValueError,match="anlegbare Termine"):
+        writer.create(proposal(status="confirmed"),"task")
+    with pytest.raises(ValueError,match="anlegbare Termine"):
+        writer.create(item.model_copy(update={"responsibility":"other"}),"other")
+
+
+def test_all_day_calendar_file_and_validation():
+    item=proposal(kind="event",status="confirmed",all_day=True,start=date(2026,5,10),end=date(2026,5,11),
+                  description="",location=None)
+    decoded=calendar_file(item,"all-day").decode()
+    assert "DTSTART;VALUE=DATE:20260510" in decoded
+    assert "DTEND;VALUE=DATE:20260511" in decoded
+    assert "DESCRIPTION" not in decoded and "LOCATION" not in decoded
+    with pytest.raises(ValueError,match="vollständigen Termin"):
+        calendar_file(proposal(),"task")
 
 
 class AnalyzerStub:

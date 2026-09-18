@@ -1,6 +1,6 @@
 # Mailhelp
 
-Python-Assistent zur LLM-basierten Auswertung von IMAP-Mails über OpenRouter. Telegram zeigt Zusammenfassungen und versionsgebundene Einzelvorschläge; erst eine ausdrückliche Bestätigung erlaubt einen Todoist- oder Kalender-Schreibzugriff.
+Python-Assistent zur LLM-basierten Auswertung von IMAP-Mails über OpenRouter. Telegram zeigt Zusammenfassungen und versionsgebundene Einzelvorschläge; erst eine ausdrückliche Bestätigung erlaubt einen Todoist-Schreibzugriff oder den Versand einer Kalenderdatei.
 
 ## Installation (Windows 11 und Linux)
 
@@ -19,23 +19,14 @@ Unter Linux werden die letzten beiden Befehle mit `.venv/bin/python` und `cp` au
 Mit `mailhelp --check-access` lässt sich anschließend ein reiner Zugriffstest
 starten. Er prüft nacheinander die Anmeldung bei IMAP und den Nur-Lese-Zugriff auf
 alle konfigurierten Ordner, den OpenRouter-Key über dessen authentifizierten Status, den
-Telegram-Bot über `getMe` sowie den Zugriff auf das konfigurierte Todoist-Projekt
-und den Google-Kalender. Nach erfolgreichem `getMe` sendet die Telegram-Prüfung
+Telegram-Bot über `getMe` sowie den Zugriff auf das konfigurierte Todoist-Projekt.
+Die Kalenderdatei benötigt keinen Google-Zugang. Nach erfolgreichem `getMe` sendet die Telegram-Prüfung
 eine Nachricht mit `Test`, Datum, Uhrzeit und konfigurierter Zeitzone an den
 konfigurierten Chat. Der Test ruft keine Mails ab, liest keine Telegram-Updates,
 führt keinen LLM-Auftrag aus und erzeugt weder Aufgaben noch Termine. Für jeden
 Dienst erscheint `OK` oder `FEHLER`; sobald mindestens eine
 Prüfung fehlschlägt, endet der Prozess mit Status 1. Im Container kann derselbe
 Test mit `docker compose run --rm mailhelp --check-access` ausgeführt werden.
-Die Google-Diagnose trennt den OAuth-Token-Abruf klar vom anschließenden Zugriff
-auf den Zielkalender: Ein erfolgreicher Abruf bestätigt, dass Client und
-Refresh-Token vom Token-Endpunkt akzeptiert wurden. Eine Kalenderantwort mit 401
-bedeutet, dass der ausgestellte Access-Token am Calendar-Endpunkt abgelehnt wurde;
-403 bedeutet, dass der Token bezogen, der Aufruf aber verweigert wurde (bekannte
-strukturierte Fehlercodes unterscheiden fehlende Berechtigung und deaktivierte
-API); 404 bedeutet, dass der Zielkalender nicht existiert oder für das Konto nicht
-sichtbar ist. Unbekannte oder ungültige Fehlerkörper werden nur als allgemeine
-Verweigerung kategorisiert und niemals ausgegeben.
 Für diesen Diagnosebefehl aktiviert Mailhelp unabhängig von der Logging-Konfiguration
 das Datei- und Konsolenlogging auf `DEBUG`. Beginn, Erfolg und Fehler jeder einzelnen
 Prüfung werden protokolliert; Fehler enthalten einen bereinigten Stacktrace. Die
@@ -59,47 +50,17 @@ Bearer-Token verwendete `TODOIST_TOKEN` wird ebenfalls dort gespeichert; Client-
 und Client-Schlüssel ersetzen dieses Zugriffstoken nicht. Keiner dieser Werte
 gehört in `config.yaml`, Zustandsdateien oder Logs.
 
-### Google Calendar OAuth einrichten
+### Kalendertermine auf iOS übernehmen
 
-Mailhelp verwendet den OAuth-2.0-Refresh-Token-Ablauf; ein manuell erzeugtes,
-langfristiges Access-Token wird nicht unterstützt. Die Einrichtung ist für Windows
-11 und Docker identisch:
+Nach der versionsbezogenen Telegram-Bestätigung erzeugt Mailhelp eine UTF-8-
+`*.ics`-Datei und sendet sie als Telegram-Dokument. Ein Antippen auf iOS öffnet
+die Kalenderübernahme; Mailhelp greift weder lesend noch schreibend auf Google
+Calendar zu. Ort, Beschreibung, Videolink, ganztägige Intervalle und Zeitpunkte
+werden in der Datei abgebildet. Ein möglicherweise erfolgreicher, aber technisch
+unklarer Dokumentversand wird nicht automatisch wiederholt, um Duplikate zu
+vermeiden. Google-OAuth-Geheimnisse und eine Zielkalender-ID sind nicht nötig.
 
-1. In einem Google-Cloud-Projekt die **Google Calendar API** aktivieren, den
-   OAuth-Zustimmungsbildschirm konfigurieren und bei einer Anwendung im Testmodus
-   das eigene Google-Konto als Testnutzer eintragen.
-2. Einen OAuth-Client vom Typ **Desktop-App** anlegen. Bei einem stattdessen als
-   Webanwendung angelegten Client muss eine lokale Loopback-URI (beispielsweise
-   `http://127.0.0.1:8080/`) exakt als autorisierte Redirect-URI eingetragen sein.
-3. Im Browser eine Autorisierungsanfrage mit dieser Client-ID, der exakt passenden
-   Redirect-URI, `response_type=code`,
-   `scope=https://www.googleapis.com/auth/calendar.events`,
-   `access_type=offline` und `prompt=consent` öffnen. Nach Zustimmung den nur
-   kurzfristig gültigen Code aus dem lokalen Redirect entnehmen. `offline` und
-   `consent` sind erforderlich, damit Google beim erstmaligen Tausch einen
-   Refresh-Token liefert.
-4. Den Code einmalig per HTTPS am Google-Endpunkt
-   `https://oauth2.googleapis.com/token` gegen Tokens tauschen (`grant_type` ist
-   `authorization_code`; außerdem Code, Client-ID, Client-Secret und dieselbe
-   Redirect-URI senden). Den zurückgegebenen Refresh-Token sicher übernehmen;
-   Antwort und Befehlszeile nicht in Shell-Verlauf, Tickets oder Logs kopieren.
-5. `.env.example` nach `.env` kopieren und `GOOGLE_OAUTH_CLIENT_ID`,
-   `GOOGLE_OAUTH_CLIENT_SECRET` und `GOOGLE_OAUTH_REFRESH_TOKEN` dort befüllen.
-   `config.yaml` enthält weiterhin nur die nicht geheime Kalender-ID unter
-   `targets.google_calendar`. Die Berechtigung `calendar.events` erlaubt Mailhelp,
-   Ereignisse in den für das Konto zugänglichen Kalendern zu lesen und zu ändern;
-   weitergehende Calendar-Berechtigungen sind nicht erforderlich.
-
-Unter Windows sollte `.env` nur für das eigene Benutzerkonto lesbar sein. Für
-Docker Compose wird sie über `env_file` zur Laufzeit übergeben und weder ins Image
-kopiert noch in ein Volume mit den JSON-Zuständen gelegt. In produktiven
-Umgebungen können die drei Werte stattdessen als Prozessumgebungsvariablen aus
-einem Secret-Store injiziert werden. Access-Tokens existieren nur im Speicher,
-werden mit Sicherheitsabstand erneuert und landen weder in JSON-Zustand noch Logs.
-Nach Widerruf oder Rotation muss lediglich der Refresh-Token ersetzt und der
-Prozess beziehungsweise Container neu gestartet werden.
-
-`config.yaml` besitzt geschlossene Modelle für IMAP, Telegram, Ziele, Limits, Wiederholungen, Timeouts und Logging. IMAP, Telegram, OpenRouter, Todoist und Google Calendar haben jeweils eigene Werte für Timeout, Retry-Anzahl sowie initialen und maximalen Backoff. Validiert werden insbesondere Port, Polling, Adaptertimeouts, Mailgröße, LLM-Rate, Wiederholungszahlen, IANA-Zeitzone, eindeutige nichtleere Ordner, sichere Pfade und die Log-Level `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Unbekannte Schlüssel und falsche Typen werden abgelehnt.
+`config.yaml` besitzt geschlossene Modelle für IMAP, Telegram, Ziele, Limits, Wiederholungen, Timeouts und Logging. IMAP, Telegram, OpenRouter und Todoist haben jeweils eigene Werte für Timeout, Retry-Anzahl sowie initialen und maximalen Backoff. Validiert werden insbesondere Port, Polling, Adaptertimeouts, Mailgröße, LLM-Rate, Wiederholungszahlen, IANA-Zeitzone, eindeutige nichtleere Ordner, sichere Pfade und die Log-Level `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Unbekannte Schlüssel und falsche Typen werden abgelehnt.
 Auch die Wurzel von `topics.yaml` ist geschlossen: Sie enthält ausschließlich die
 Liste `topics`; diese muss mindestens ein aktiviertes Thema besitzen und alle
 stabilen Themen-IDs müssen eindeutig sein.
@@ -194,8 +155,7 @@ Schreibreferenzen ohne `mail_id` dürfen deshalb **nicht automatisch übernommen
 oder bestätigt** werden.
 
 Für eine sichere Umstellung: Mailhelp stoppen, das Datenverzeichnis sichern und
-alle bereits abgeschlossenen externen Schreibvorgänge anhand Todoist beziehungsweise
-Google Kalender abgleichen. Danach alte Vorschlagsdateien und einen alten
+alle bereits abgeschlossenen externen Schreibvorgänge anhand Todoist abgleichen und bereits versendete Kalenderdateien manuell prüfen. Danach alte Vorschlagsdateien und einen alten
 `telegram-dialog.json` in ein schreibgeschütztes Archiv außerhalb des aktiven
 Zustandsverzeichnisses verschieben. Betroffene, noch nicht ausgeführte Mails werden
 anschließend aus ihrer unveränderten Quelle neu eingelesen und erhalten neue interne
@@ -210,12 +170,8 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
 * Die Analyse erhält vier getrennte Datumsinformationen: den unveränderten, bereinigten `Date`-Header (`date_header_original`), seine nur bei explizitem Offset verfügbare Parseform (`date_header_parsed`), `imap_received_at` sowie die konfigurierte IANA-`user_timezone`. `date_context_status` kennzeichnet fehlende, ungültige, naive und um mehr als sieben Tage vom Empfang abweichende Angaben. Ein solcher Kontext erzwingt bei Terminen und Aufgaben mit Frist eine offene Rückfrage und verhindert damit die Bestätigung und Speicherung; Aufgaben ohne Frist bleiben davon unberührt.
 * `Proposal.due` ist eine streng validierte Union: `YYYY-MM-DD` bezeichnet ein reines Fälligkeitsdatum und wird unverändert als Todoist-`due_date` übertragen. Ein Fälligkeitszeitpunkt enthält Datum und Uhrzeit samt explizitem UTC-Offset (zum Beispiel `2026-10-01T17:00:00+02:00`) und wird als `due_datetime` übertragen. Naive Zeitpunkte werden abgelehnt und reine Daten niemals stillschweigend in Mitternacht umgewandelt.
 * Der JSON-Zustand wird atomar ersetzt und durch eine betriebssystemseitige, an den laufenden Prozess gebundene Einzelinstanz-Sperre geschützt. Die `.lock`-Datei bleibt nach dem Schließen als Diagnoseinformation erhalten; ausschließlich die vom Betriebssystem gehaltene Sperre entscheidet, ob eine Instanz aktiv ist. Syntaktisch beschädigte Dateien werden als `.corrupt`, schemawidrige Dateien als `.invalid` isoliert; Meldungen nennen Datei und Schlüsselpfad, nicht den Inhalt. Mailzustände (Schema 6), Abrufpositionen, Telegram-Dialoge und Duplikatindex (Schema 1) sowie Vorschläge (Schema 2) werden vor jeder Verwendung validiert.
-* OpenRouter-, Telegram-, Todoist- und Google-Calendar-Antworten werden nach HTTP-Erfolg strikt auf JSON-Struktur, Pflichtfelder und IDs geprüft. LLM-Antworten werden strikt gegen feste Pydantic-Schemata validiert. Reservierte OpenRouter-Felder können nicht über YAML überschrieben werden.
-* Bei Terminen bleiben der physische Ort und ein optionaler, ausschließlich per HTTP/HTTPS erlaubter Videolink getrennte Vorschlagsfelder und werden vor der Bestätigung beide in Telegram angezeigt. Google Calendar erhält den Ort im Feld `location`; der Videolink wird als Abschnitt `[Mailhelp-Videolink]` in `description` geschrieben. Mailhelp erzeugt dabei ausdrücklich keine Google-Meet-Konferenz und sendet kein `conferenceData`.
-* Google-Calendar-Access-Tokens werden aus den drei ausschließlich zur Laufzeit
-  übergebenen OAuth-Geheimnissen bezogen und frühzeitig erneuert. HTTP 401 ist ein
-  eindeutiger Authentifizierungsfehler, kein unklares Schreibergebnis; der
-  betroffene Schreibzugriff wird deshalb nicht mit einem neuen Token wiederholt.
+* OpenRouter-, Telegram- und Todoist-Antworten werden nach HTTP-Erfolg strikt auf JSON-Struktur, Pflichtfelder und IDs geprüft. LLM-Antworten werden strikt gegen feste Pydantic-Schemata validiert. Reservierte OpenRouter-Felder können nicht über YAML überschrieben werden.
+* Bei Terminen bleiben der physische Ort und ein optionaler, ausschließlich per HTTP/HTTPS erlaubter Videolink getrennte Vorschlagsfelder und werden vor der Bestätigung beide in Telegram angezeigt. Die iCalendar-Datei enthält Ort, Beschreibung und Videolink; zeitgebundene Werte werden eindeutig in UTC serialisiert, ganztägige Enddaten bleiben exklusiv.
 * Externe Aktionen verlangen eine Persistenzfunktion: `writing` wird vor dem API-Aufruf dauerhaft gespeichert. Unklare Resultate werden als `uncertain` angehalten und nur abgeglichen. Ausschließlich ein externer Treffer überführt sie in `created`; ein neuer Schreibversuch setzt eine ausdrücklich modellierte manuelle Betreiberentscheidung voraus.
 * Jede Mail besitzt die schema-validierten Schritte `preparation`, `relevance`,
   `summary`, `action_detection`, `notification` und `completion`. Nach jedem Schritt

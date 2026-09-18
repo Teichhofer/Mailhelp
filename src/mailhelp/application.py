@@ -14,7 +14,7 @@ from zoneinfo import ZoneInfo
 from .analysis import Analyzer
 from .config import PromptConfig, Secrets, Settings, Topic
 from .imap import ImapReader
-from .integrations import GoogleOAuthTokenProvider, HttpWriter
+from .integrations import CalendarFileWriter, HttpWriter
 from .logging import JsonlLogger, NullLogger
 from .models import ImapCheckpoint, MailState, TelegramOffset
 from .openrouter import OpenRouterClient
@@ -76,7 +76,7 @@ class Application:
     analyzer: Analyzer
     telegram: TelegramClient
     todoist: HttpWriter
-    calendar: HttpWriter
+    calendar: CalendarFileWriter
     orchestrator: Orchestrator
     stop_event: Event
     dialog: TelegramDialogController | None = None
@@ -88,7 +88,7 @@ class Application:
             ("OpenRouter", self.openrouter.check_access),
             ("Telegram", lambda: Application._check_telegram_access(self)),
             ("Todoist", self.todoist.check_access),
-            ("Google Calendar", self.calendar.check_access),
+            ("Kalenderdatei", self.calendar.check_access),
         )
         results: dict[str, str | None] = {}
         logger = getattr(self, "logger", NullLogger())
@@ -284,7 +284,7 @@ def build_logger(
         secrets.todoist_token, secrets.todoist_client_id, secrets.todoist_client_secret,
         secrets.google_oauth_client_id, secrets.google_oauth_client_secret,
         secrets.google_oauth_refresh_token,
-    ))
+    ) if value is not None)
     log = settings.logging
     return JsonlLogger(
         log_dir, log.llm.include_requests, log.llm.include_responses,
@@ -340,14 +340,7 @@ def build_application(
         stack.callback(telegram.close)
         todoist = HttpWriter("todoist", secrets.todoist_token.get_secret_value(), settings.targets.todoist_project, settings.timeouts.todoist.timeout_seconds, policy=policy("todoist"), logger=logger)
         stack.callback(todoist.close)
-        oauth = GoogleOAuthTokenProvider(
-            secrets.google_oauth_client_id.get_secret_value(), secrets.google_oauth_client_secret.get_secret_value(),
-            secrets.google_oauth_refresh_token.get_secret_value(), settings.timeouts.google_calendar.timeout_seconds,
-            logger=logger,
-        )
-        stack.callback(oauth.close)
-        calendar = HttpWriter("google_calendar", oauth, settings.targets.google_calendar, settings.timeouts.google_calendar.timeout_seconds, policy=policy("google_calendar"), logger=logger, calendar_timezone=settings.timezone)
-        stack.callback(calendar.close)
+        calendar = CalendarFileWriter(telegram, settings.telegram.chat_id, logger)
         analyzer = Analyzer(openrouter, prompts, settings.retries.validation)
         dialog = TelegramDialogController(
             store, telegram, settings.telegram.user_id, settings.telegram.chat_id, logger,

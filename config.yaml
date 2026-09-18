@@ -1,4 +1,4 @@
-# IANA-Nutzerzeitzone für Analyse und Google Calendar. Sie wird zusammen mit
+# IANA-Nutzerzeitzone für Analyse und Kalenderdateien. Sie wird zusammen mit
 # ursprünglichem/geprüftem Date-Header und IMAP-INTERNALDATE an das LLM gegeben;
 # Zeitwerte selbst müssen zusätzlich einen eindeutigen UTC-Offset enthalten.
 timezone: Europe/Berlin
@@ -28,7 +28,6 @@ telegram:
 targets:
   # Echte Todoist-Projekt-ID (nicht Projektname, URL oder Alias).
   todoist_project: "6hX5f7MxfC4Qmcrv"
-  google_calendar: primary
 limits:
   max_mail_bytes: 1000000
   max_mime_parts: 100
@@ -45,7 +44,6 @@ timeouts:
   telegram: {timeout_seconds: 35, retries: 2, initial_backoff_seconds: 1, max_backoff_seconds: 8}
   openrouter: {timeout_seconds: 30, retries: 2, initial_backoff_seconds: 1, max_backoff_seconds: 8}
   todoist: {timeout_seconds: 30, retries: 2, initial_backoff_seconds: 1, max_backoff_seconds: 8}
-  google_calendar: {timeout_seconds: 30, retries: 2, initial_backoff_seconds: 1, max_backoff_seconds: 8}
   telegram_poll_seconds: 30
 logging:
   directory: logs

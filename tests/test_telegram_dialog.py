@@ -369,6 +369,23 @@ def test_telegram_client_validation_and_callback():
     invalid.close()
 
 
+def test_telegram_client_sends_calendar_document_and_validates_filename():
+    requests=[]
+    def handler(request):
+        requests.append(request)
+        return httpx.Response(200,json={"ok":True,"result":{"message_id":7}},request=request)
+    client=TelegramClient("secret",1,httpx.MockTransport(handler))
+    client.send_document(2,"termin.ics",b"BEGIN:VCALENDAR\r\n",caption="Import")
+    client.send_document(2,"termin-ohne-text.ics",b"BEGIN:VCALENDAR\r\n")
+    assert requests[0].url.path.endswith("/sendDocument")
+    assert b'text/calendar' in requests[0].content and b'termin.ics' in requests[0].content
+    with pytest.raises(ValueError,match="Dateiname"):
+        client.send_document(2,"../termin.ics",b"x")
+    with pytest.raises(ValueError,match="Dateiname"):
+        client.send_document(2,"",b"x")
+    client.close()
+
+
 def test_confirmation_executes_and_reports_all_results(tmp_path):
     cases=[
         (Writer(),False,"created","Erstellt"),
