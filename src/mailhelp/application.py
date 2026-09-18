@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 
 from .analysis import Analyzer
 from .config import PromptConfig, Secrets, Settings, Topic
-from .imap import ImapReader
+from .imap import ImapReader, UIDValidityChanged
 from .integrations import CalendarFileWriter, HttpWriter
 from .logging import JsonlLogger, NullLogger
 from .models import ImapCheckpoint, MailState, TelegramOffset
@@ -200,34 +200,45 @@ class Application:
                 # high-water mark.  Import that already completed prefix once.
                 if not ranges and checkpoint["uid"] > checkpoint["start_uid"]:
                     ranges = [(checkpoint["start_uid"] + 1, checkpoint["uid"])]
-                mails = self.imap.fetch_since(
-                    folder,
-                    checkpoint["start_uid"],
-                    checkpoint.get("uidvalidity"),
-                    budget.remaining if budget is not None else None,
-                    tuple(ranges),
-                )
+                try:
+                    mails = self.imap.fetch_since(
+                        folder, checkpoint["start_uid"], checkpoint.get("uidvalidity"),
+                        budget.remaining, tuple(ranges),
+                    )
+                except UIDValidityChanged as changed:
+                    self.logger.event(
+                        "WARNING", "imap", "uidvalidity_changed",
+                        account_id=self.imap.account_id, folder=folder,
+                        previous_uidvalidity=changed.previous,
+                        uidvalidity=changed.current,
+                    )
+                    if self.settings.imap.historical_start is not None:
+                        start_uid = self.imap.determine_start_uid(
+                            folder, self.settings.imap.historical_start
+                        )
+                        # Guard against a second generation change while the
+                        # absolute boundary was being resolved.
+                        if self.imap.last_uidvalidity != changed.current:
+                            raise RuntimeError(
+                                f"IMAP-UIDVALIDITY änderte sich während der Grenzermittlung: {folder}"
+                            )
+                    else:
+                        start_uid = 0
+                    checkpoint = ImapCheckpoint(
+                        uidvalidity=changed.current, uid=start_uid, start_uid=start_uid
+                    ).model_dump(exclude={"schema_version"})
+                    ranges = []
+                    # Persist generation and its matching boundary atomically
+                    # before message content from that generation is requested.
+                    self.store.save(
+                        checkpoint_name, ImapCheckpoint(**checkpoint).model_dump()
+                    )
+                    mails = self.imap.fetch_since(
+                        folder, start_uid, changed.current, budget.remaining, ()
+                    )
             except Exception as exc:
                 self.logger.event("ERROR", "imap", "poll_failed", folder=folder, error=str(exc))
                 continue
-            if (checkpoint.get("uidvalidity") is not None and self.imap.last_uidvalidity is not None
-                    and checkpoint.get("uidvalidity") != self.imap.last_uidvalidity):
-                self.logger.event("WARNING", "imap", "uidvalidity_changed", account_id=self.imap.account_id, folder=folder,
-                                  previous_uidvalidity=checkpoint.get("uidvalidity"), uidvalidity=self.imap.last_uidvalidity)
-                if self.settings.imap.historical_start is not None:
-                    try:
-                        start_uid = self.imap.determine_start_uid(folder, self.settings.imap.historical_start)
-                        mails = self.imap.fetch_since(folder, start_uid, self.imap.last_uidvalidity,
-                                                      budget.remaining, ())
-                    except Exception as exc:
-                        self.logger.event("ERROR", "imap", "poll_failed", folder=folder, error=str(exc))
-                        continue
-                else:
-                    start_uid = 0
-                checkpoint = ImapCheckpoint(uidvalidity=self.imap.last_uidvalidity,
-                                            uid=start_uid, start_uid=start_uid).model_dump(exclude={"schema_version"})
-                ranges = []
-                self.store.save(checkpoint_name, ImapCheckpoint(**checkpoint).model_dump())
             for mail in mails:
                 if self.stop_event.is_set() or budget.remaining == 0:
                     break
