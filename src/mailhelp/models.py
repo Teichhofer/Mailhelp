@@ -118,6 +118,44 @@ class ActionRoute(StrictModel):
         return self
 
 
+class ExtractedTask(StrictModel):
+    """Unnormalised task facts copied from an untrusted message."""
+
+    title: str = Field(min_length=1, max_length=500)
+    description: str = Field(max_length=4000)
+    evidence: str = Field(min_length=1, max_length=2000)
+    responsibility: Literal["user", "other", "unclear"]
+    certainty: Literal["certain", "uncertain", "contradictory"]
+    classification: Literal["new", "non_binding", "already_completed", "change", "cancellation", "recurring", "unsupported"]
+    due_text: str | None = Field(default=None, min_length=1, max_length=500)
+
+
+class TaskExtraction(StrictModel):
+    schema_version: Literal[1] = 1
+    tasks: list[ExtractedTask] = Field(default_factory=list, max_length=20)
+
+
+class ExtractedEvent(StrictModel):
+    """Unnormalised event facts; missing facts remain explicitly absent."""
+
+    title: str = Field(min_length=1, max_length=500)
+    description: str | None = Field(default=None, max_length=4000)
+    evidence: str = Field(min_length=1, max_length=2000)
+    date_text: str | None = Field(default=None, min_length=1, max_length=500)
+    time_text: str | None = Field(default=None, min_length=1, max_length=500)
+    end_time_text: str | None = Field(default=None, min_length=1, max_length=500)
+    location: str | None = Field(default=None, min_length=1, max_length=1000)
+    video_link: AnyHttpUrl | None = Field(default=None, max_length=2000)
+    responsibility: Literal["user", "other", "unclear"]
+    certainty: Literal["certain", "uncertain", "contradictory"]
+    classification: Literal["new", "non_binding", "already_completed", "change", "cancellation", "recurring", "unsupported"]
+
+
+class EventExtraction(StrictModel):
+    schema_version: Literal[1] = 1
+    events: list[ExtractedEvent] = Field(default_factory=list, max_length=20)
+
+
 class ProposalKind(StrEnum):
     TASK = "task"
     EVENT = "event"
@@ -230,6 +268,9 @@ class ProcessingSteps(StrictModel):
     summary: Literal["pending", "completed", "skipped"] = "pending"
     summary_notification: Literal["pending", "sending", "completed", "skipped"] = "pending"
     action_detection: Literal["pending", "completed", "failed", "skipped"] = "pending"
+    action_router: Literal["pending", "completed", "failed", "skipped"] = "pending"
+    task_extraction: Literal["pending", "completed", "failed", "skipped"] = "pending"
+    event_extraction: Literal["pending", "completed", "failed", "skipped"] = "pending"
     proposal_notification: Literal["pending", "sending", "completed", "skipped"] = "pending"
     completion: Literal["pending", "completed", "skipped"] = "pending"
 
@@ -240,6 +281,9 @@ class ProcessingStage(StrEnum):
     SUMMARY = "summary"
     SUMMARY_NOTIFICATION = "summary_notification"
     ACTION_DETECTION = "action_detection"
+    ACTION_ROUTER = "action_router"
+    TASK_EXTRACTION = "task_extraction"
+    EVENT_EXTRACTION = "event_extraction"
     PROPOSAL_NOTIFICATION = "proposal_notification"
     COMPLETION = "completion"
 
@@ -335,7 +379,7 @@ class DuplicateDecision(StrictModel):
 
 
 class MailState(StrictModel):
-    schema_version: Literal[7] = 7
+    schema_version: Literal[8] = 8
     id: str = Field(pattern=r"^[a-f0-9]{24}$")
     imap: MailImapIdentity
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -346,6 +390,8 @@ class MailState(StrictModel):
     relevance: Relevance | None = None
     summary: Summary | None = None
     action_route: ActionRoute | None = None
+    task_extraction: TaskExtraction | None = None
+    event_extraction: EventExtraction | None = None
     proposals: list[Proposal] = Field(default_factory=list)
     llm_call_ids: list[str] = Field(default_factory=list)
     validation_errors: list[ValidationIssue] = Field(default_factory=list)

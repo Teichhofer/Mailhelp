@@ -79,12 +79,20 @@ class JsonStore:
         # Schema 6 used one notification flag after both LLM stages.  Migrate it
         # explicitly so an old completed flag can never be mistaken for the new,
         # earlier summary delivery without recording the conversion on disk.
-        migrated = model.__name__ == "MailState" and value.get("schema_version") == 6
-        if migrated:
+        mail_state = model.__name__ == "MailState"
+        migrated = mail_state and value.get("schema_version") in {6, 7}
+        if mail_state and value.get("schema_version") == 6:
             old_notification = value["steps"].pop("notification", "pending")
             value["steps"]["summary_notification"] = old_notification
             value["steps"]["proposal_notification"] = old_notification
             value["schema_version"] = 7
+        if mail_state and value.get("schema_version") == 7:
+            action_status = value["steps"].get("action_detection", "pending")
+            default = "skipped" if action_status == "skipped" else "pending"
+            value["steps"].update(action_router=default, task_extraction=default,
+                                  event_extraction=default)
+            value.update(task_extraction=None, event_extraction=None)
+            value["schema_version"] = 8
         try:
             result = model.model_validate(value)
         except ValidationError as exc:

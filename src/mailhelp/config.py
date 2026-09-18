@@ -260,9 +260,10 @@ class PromptConfig(BaseModel):
 
     @model_validator(mode="after")
     def required_steps(self) -> "PromptConfig":
-        required = {"relevance", "summary", "action_router", "action_extractor", "proposal_revision"}
+        required = {"relevance", "summary", "action_router", "task_extraction",
+                    "event_extraction", "proposal_revision"}
         if set(self.prompts) != required:
-            raise ValueError("prompts muss genau relevance, summary, action_router, action_extractor und proposal_revision enthalten")
+            raise ValueError("prompts muss genau relevance, summary, action_router, task_extraction, event_extraction und proposal_revision enthalten")
         return self
 
     def resolved(self, step: str) -> tuple[str, dict[str, Any], str]:
