@@ -90,7 +90,10 @@ Die mitgelieferte `config.yaml` setzt diese Grenze auf den 15. September 2026 um
 00:00 Uhr in `Europe/Berlin` (`2026-09-15T00:00:00+02:00`), sodass ältere
 Nachrichten beim erstmaligen Aufbau des Abrufpunkts nicht verarbeitet werden.
 Mit `imap.batch_size` (Standard `25`, erlaubt `1..1000`) lädt Mailhelp pro
-Polling-Zyklus nur eine begrenzte Zahl von Nachrichten. Die Ereignisse
+Ordner und Polling-Zyklus nur eine begrenzte Zahl von Nachrichten. Der Abruf
+arbeitet fest **neueste zuerst mit dauerhaftem Backlog**: Noch offene UIDs werden
+absteigend gewählt, und neu eingetroffene höhere UIDs haben beim nächsten Poll
+Vorrang, ohne dass ältere Lücken verloren gehen. Die Ereignisse
 `messages_discovered` und `message_fetched` zeigen Anzahl und Fortschritt, sodass
 insbesondere der erste Abruf eines großen Postfachs nicht mehr still erscheint.
 Bei einem einmaligen Lauf mit `--max-mails N` wird auch der IMAP-Abruf auf das nach
@@ -266,7 +269,13 @@ Umgebung abgeschlossen werden.
 
 Ohne `--check` startet der CLI-Einstieg den Dienst. Er liest alle konfigurierten
 IMAP-Ordner und Telegram per Long-Polling. Abrufstände werden pro Ordner mit
-Konto-ID, UIDVALIDITY, UID und einmaligem Start-UID persistiert und nach einem Neustart fortgesetzt. Ein UIDVALIDITY-Wechsel erscheint als eigenes strukturiertes Ereignis `uidvalidity_changed`. SIGINT und
+Konto-ID, UIDVALIDITY, einmaligem Start-UID, informativer höchster UID und
+normalisierten Bereichen der bereits dauerhaft übernommenen UIDs persistiert.
+Deshalb kann eine hohe neue UID eine ältere offene UID nicht überspringen; nach
+einem Neustart werden sowohl Backlog als auch Lücken fortgesetzt. Ein
+UIDVALIDITY-Wechsel verwirft nur die Bereiche des betroffenen Ordners und löst
+eine konfigurierte historische Zeitgrenze in der neuen UID-Namenswelt erneut
+auf. Er erscheint als eigenes strukturiertes Ereignis `uidvalidity_changed`. SIGINT und
 SIGTERM fordern ein kontrolliertes Ende an; Netzwerkclients und die
 Einzelinstanz-Sperre werden auch bei Fehlern geschlossen. Unmittelbar vor dem
 Beenden sendet der Bot in den konfigurierten Telegram-Chat eine Laufzusammenfassung
