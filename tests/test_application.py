@@ -40,11 +40,12 @@ class Imap:
 
 
 class Telegram:
-    def __init__(self, value): self.value=value; self.offsets=[]
+    def __init__(self, value): self.value=value; self.offsets=[]; self.sent=[]
     def poll(self, offset):
         self.offsets.append(offset)
         if isinstance(self.value,Exception): raise self.value
         return self.value
+    def send(self, chat_id, text): self.sent.append((chat_id,text))
 
 
 class Orch:
@@ -119,9 +120,9 @@ def test_empty_checkpoint_and_run_paths(tmp_path):
     assert none.store.saved[0][1]["start_uid"] == 0
     none.stop_event.set(); none.run()
     running=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch())
-    running._poll_imap=lambda _limit=None: running.stop_event.set(); running.run()
+    running._poll_imap=lambda _limit=None: (running.stop_event.set(), [])[1]; running.run()
     complete=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch())
-    complete._poll_imap=lambda _limit=None: None
+    complete._poll_imap=lambda _limit=None: []
     complete._poll_telegram=lambda: complete.stop_event.set()
     complete.run()
 
@@ -132,7 +133,7 @@ def test_empty_checkpoint_and_run_paths(tmp_path):
         def run(self): raise RuntimeError("private detail")
     application_module.RetentionService = BrokenRetention
     failed_cleanup=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch())
-    failed_cleanup._poll_imap=lambda _limit=None: failed_cleanup.stop_event.set()
+    failed_cleanup._poll_imap=lambda _limit=None: (failed_cleanup.stop_event.set(), [])[1]
     failed_cleanup.run()
     application_module.RetentionService = original
     assert failed_cleanup.logger.events[0][0][2]=="cleanup_failed"
@@ -147,6 +148,31 @@ def test_empty_checkpoint_and_run_paths(tmp_path):
     dialog_app=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch()); dialog_app.dialog=Dialog(); dialog_app._poll_telegram(); assert dialog_app.dialog.calls==1
     failed_dialog=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch()); failed_dialog.dialog=Dialog(RuntimeError("dialog")); failed_dialog._poll_telegram()
     assert failed_dialog.logger.events[0][0][2]=="poll_failed"
+
+
+def test_run_sends_aggregate_summary_on_normal_and_exceptional_exit(tmp_path):
+    service=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch())
+    service._poll_imap=lambda _limit=None: [
+        ProcessingResult(ProcessingOutcome.COMPLETED,{}),
+        ProcessingResult(ProcessingOutcome.WAITING,{}),
+        ProcessingResult(ProcessingOutcome.FAILED,{}),
+    ]
+    service.run(max_mails=3)
+    assert service.telegram.sent == [(2, "Mailhelp-Lauf beendet.\nBearbeitet: 3\nErfolgreich abgeschlossen: 1\nWarten auf Eingabe oder Wiederholung: 1\nFehlgeschlagen: 1")]
+    assert service.logger.events[-1][0][2] == "run_summary_sent"
+    assert service.logger.events[-1][1] == {"completed":1,"waiting":1,"failed":1}
+
+    broken=app(tmp_path,Imap([]),Telegram([]),Orch())
+    broken._poll_imap=lambda _limit=None: (_ for _ in ()).throw(RuntimeError("poll"))
+    with pytest.raises(RuntimeError, match="poll"):
+        broken.run()
+    assert broken.telegram.sent[0][1].startswith("Mailhelp-Lauf beendet.\nBearbeitet: 0")
+
+    send_failure=app(tmp_path,Imap([]),Telegram([]),Orch())
+    send_failure.stop_event.set()
+    send_failure.telegram.send=lambda *_args: (_ for _ in ()).throw(RuntimeError("telegram"))
+    send_failure.run()
+    assert send_failure.logger.events[-1][0][2] == "run_summary_failed"
 
 
 def test_bounded_run_limits_resumed_and_new_mail_then_exits(tmp_path):
