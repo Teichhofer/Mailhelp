@@ -499,6 +499,14 @@ Usernachricht, während `response_received` die komplette Modellantwort enthält
 Inhalte werden weiterhin rekursiv geheimnisbereinigt und können durch `false` getrennt
 deaktiviert werden.
 
+Unabhängig von diesen Inhaltsschaltern besitzt jeder protokollierte LLM-Versuch eine
+vertrauenswürdig vom Analyzer gesetzte Stufe sowie Modell, gemeldeten Backend-Provider,
+Call-ID, HTTP-Status, Finish-Reason, Inhaltsvorhandensein und -länge, JSON- und
+Schemaergebnis, Retry-Typ und Retry-Nummer. Fehlende Provider-Metadaten werden als
+`null` behandelt. Das Schemaergebnis entsteht erst nach der stufenspezifischen
+Analyzer-Validierung in einem abschließenden Ereignis. Standardlogs enthalten weder
+vollständige Prompts und Mailinhalte noch Authorization-Header oder API-Schlüssel.
+
 Dateiziele unterstützen `text` und zeilenweises `jsonl`, sichere relative Dateinamen,
 eine positive maximale Größe, null oder mehr nummerierte Backups und eine positive
 Aufbewahrungsfrist von höchstens 3650 Tagen. Vor einem überschreitenden Schreibzugriff

@@ -22,7 +22,7 @@ class SimulatedOpenRouter:
         self.expected = expected
         self.calls: list[tuple[str, dict[str, object]]] = []
 
-    def complete(self, model, parameters, system, payload):
+    def complete(self, model, parameters, system, payload, **_metadata):
         step = system.removeprefix("quality:")
         assert model == "simulated/openrouter"
         assert parameters == {"temperature": 0.0}

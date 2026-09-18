@@ -44,12 +44,14 @@ class OpenRouterMessage(BaseModel):
 class OpenRouterChoice(BaseModel):
     model_config = ConfigDict(extra="ignore", strict=True)
     message: OpenRouterMessage
+    finish_reason: str | None = None
 
 
 class OpenRouterResponse(BaseModel):
     model_config = ConfigDict(extra="ignore", strict=True)
     id: str = Field(min_length=1)
     choices: list[OpenRouterChoice] = Field(min_length=1)
+    provider: str | None = None
 
 
 class OpenRouterClient:
@@ -60,6 +62,7 @@ class OpenRouterClient:
         self.save_calls = save_calls or (lambda calls: self.calls.__setitem__(slice(None), calls))
         self.client = httpx.Client(base_url="https://openrouter.ai/api/v1", timeout=timeout, transport=transport)
         self.logger = logger or NullLogger()
+        self._observations: dict[str, dict[str, Any]] = {}
         wait = stopped or (lambda delay: (sleep(delay), False)[1])
         self.policy = RetryPolicy(retries, initial_backoff, max_backoff, wait, clock)
 
@@ -73,7 +76,9 @@ class OpenRouterClient:
         if not isinstance(value, dict) or not isinstance(value.get("data"), dict):
             raise ValueError("OpenRouter auth/key: ungültige Antwort am Schlüsselpfad data")
 
-    def complete(self, model: str, parameters: dict[str, Any], system: str, payload: dict[str, Any]) -> tuple[str, Any]:
+    def complete(self, model: str, parameters: dict[str, Any], system: str,
+                 payload: dict[str, Any], *, stage: str = "unknown",
+                 retry_type: str = "initial", retry_number: int = 0) -> tuple[str, Any]:
         now = self.clock()
         calls = sorted(value for value in self.load_calls() if isinstance(value, (int, float)) and now - value < 60)
         if len(calls) >= self.limit: raise RateLimitExceeded(calls[0] + 60)
@@ -83,14 +88,21 @@ class OpenRouterClient:
         fingerprint = hashlib.sha256(json.dumps(request["messages"], ensure_ascii=False, sort_keys=True).encode()).hexdigest()
         correlation = _correlation(payload)
         attempt = 0
+        metadata = dict(stage=stage, model=model, provider=None, call_id=call_id,
+                        http_status=None, finish_reason=None, content_present=False,
+                        content_length=0, json_parse_success=False,
+                        schema_validation_success=None, retry_type=retry_type,
+                        retry_number=retry_number)
         def begin(number: int) -> None:
             nonlocal attempt
             attempt = number
-            self.logger.llm_event("request_started", request=request, call_id=call_id, model=model,
-                                  parameters=parameters, prompt_fingerprint=fingerprint, attempt=number, status="started", **correlation)
+            self.logger.llm_event("request_started", request=request,
+                                  parameters=parameters, prompt_fingerprint=fingerprint, attempt=number,
+                                  status="started", **metadata, **correlation)
         def failed_attempt(number: int, exc: Exception) -> None:
-            self.logger.event("WARNING", "openrouter", "retry_failed", call_id=call_id, attempt=number,
-                              error=exc, status=getattr(getattr(exc, "response", None), "status_code", None), **correlation)
+            self.logger.event("WARNING", "openrouter", "retry_failed", attempt=number,
+                              error=exc, status=getattr(getattr(exc, "response", None), "status_code", None),
+                              **metadata, **correlation)
         def invoke() -> httpx.Response:
             response = self.client.post("/chat/completions", headers={"Authorization": f"Bearer {self.key}", "X-Request-Id": call_id}, json=request)
             response.raise_for_status()
@@ -100,25 +112,61 @@ class OpenRouterClient:
             try:
                 raw = response.json()
             except (ValueError, json.JSONDecodeError) as exc:
+                metadata["http_status"] = response.status_code
+                self._log_attempt("provider_response_invalid", metadata,
+                                  reason="invalid_provider_envelope", retryable=True,
+                                  **correlation)
                 raise ProviderResponseInvalid("invalid_provider_envelope") from exc
+            metadata.update(http_status=response.status_code,
+                            provider=raw.get("provider") if isinstance(raw, dict) and isinstance(raw.get("provider"), str) else None)
             reason = _provider_error_reason(raw)
             if reason is not None:
+                choice = raw.get("choices", [{}])[0] if isinstance(raw, dict) and isinstance(raw.get("choices"), list) and raw.get("choices") else {}
+                if isinstance(choice, dict):
+                    metadata["finish_reason"] = choice.get("finish_reason") if isinstance(choice.get("finish_reason"), str) else None
+                self._log_attempt("provider_response_invalid", metadata,
+                                  reason=reason, retryable=True, **correlation)
                 raise ProviderResponseInvalid(reason)
             try: data = OpenRouterResponse.model_validate(raw)
-            except (ValueError, ValidationError) as exc: raise ProviderResponseInvalid("invalid_provider_envelope") from exc
-            try: content = json.loads(data.choices[0].message.content)
-            except json.JSONDecodeError as exc: raise InvalidJson() from exc
-            self.logger.llm_event("response_received", response=raw, call_id=call_id, model=model, parameters=parameters,
+            except (ValueError, ValidationError) as exc:
+                self._log_attempt("provider_response_invalid", metadata,
+                                  reason="invalid_provider_envelope", retryable=True,
+                                  **correlation)
+                raise ProviderResponseInvalid("invalid_provider_envelope") from exc
+            text = data.choices[0].message.content
+            metadata.update(provider=data.provider, finish_reason=data.choices[0].finish_reason,
+                            content_present=True, content_length=len(text))
+            try: content = json.loads(text)
+            except json.JSONDecodeError as exc:
+                self._log_attempt("invalid_json", metadata, **correlation)
+                raise InvalidJson() from exc
+            metadata["json_parse_success"] = True
+            self._observations[call_id] = metadata
+            self.logger.llm_event("response_received", response=raw, parameters=parameters,
                                   prompt_fingerprint=fingerprint, duration_ms=round((time.perf_counter() - started) * 1000, 3),
                                   status=response.status_code, attempt=attempt, token_usage=raw.get("usage"),
-                                  reported_cost=raw.get("cost", raw.get("usage", {}).get("cost") if isinstance(raw.get("usage"), dict) else None), **correlation)
+                                  reported_cost=raw.get("cost", raw.get("usage", {}).get("cost") if isinstance(raw.get("usage"), dict) else None),
+                                  **metadata, **correlation)
             return call_id, content
         except Exception as exc:
-            self.logger.llm_event("request_failed", call_id=call_id, model=model, parameters=parameters,
-                                  prompt_fingerprint=fingerprint, duration_ms=round((time.perf_counter() - started) * 1000, 3),
-                                  status=getattr(getattr(exc, "response", None), "status_code", "error"), attempt=attempt,
-                                  error=exc, stacktrace=traceback.format_exc(), **correlation)
+            if not isinstance(exc, (ProviderResponseInvalid, InvalidJson)):
+                metadata["http_status"] = getattr(getattr(exc, "response", None), "status_code", None)
+                self.logger.llm_event("request_failed", parameters=parameters,
+                                      prompt_fingerprint=fingerprint, duration_ms=round((time.perf_counter() - started) * 1000, 3),
+                                      status=getattr(getattr(exc, "response", None), "status_code", "error"), attempt=attempt,
+                                      error=exc, stacktrace=traceback.format_exc(), **metadata, **correlation)
             raise
+
+    def _log_attempt(self, event: str, metadata: dict[str, Any], **context: Any) -> None:
+        self.logger.llm_event(event, **metadata, **context)
+
+    def record_schema_validation(self, *, call_id: str, stage: str, model: str,
+                                 success: bool, retry_type: str,
+                                 retry_number: int) -> None:
+        metadata = self._observations.pop(call_id)
+        metadata["schema_validation_success"] = success
+        self._log_attempt("schema_validation_succeeded" if success else "schema_validation_failed",
+                          metadata)
     def close(self) -> None: self.client.close()
 
 

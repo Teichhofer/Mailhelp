@@ -8,7 +8,8 @@ from time import time
 import httpx
 import pytest
 
-from mailhelp.config import LoggingSettings
+from mailhelp.analysis import Analyzer
+from mailhelp.config import LoggingSettings, PromptConfig, PromptStep
 from mailhelp.integrations import HttpWriter
 from mailhelp.logging import JsonlLogger, NullLogger, redact
 from mailhelp.openrouter import OpenRouterClient
@@ -150,6 +151,73 @@ def test_openrouter_correlated_response_raw_switch_and_error(tmp_path):
     failing.close()
     assert [event[2] for event in capture.events] == ["request_started", "retry_failed", "request_failed"]
     assert capture.events[-1][3]["attempt"] == 1 and "Traceback" in capture.events[-1][3]["stacktrace"]
+
+
+def test_llm_attempt_observability_covers_all_repairs_and_safe_default_logs(tmp_path):
+    responses = iter([
+        {"id": "null", "provider": "backend-a", "choices": [{"finish_reason": "error", "message": {"content": None}}]},
+        {"id": "json", "provider": "backend-b", "choices": [{"finish_reason": "stop", "message": {"content": "mail body marker"}}]},
+        {"id": "schema", "provider": "backend-c", "choices": [{"finish_reason": "length", "message": {"content": "{}"}}]},
+        {"id": "ok", "choices": [{"finish_reason": "stop", "message": {"content": '{"sentences":["Synthetic one.","Synthetic two."],"deadlines":[]}'}}]},
+    ])
+
+    def handler(request):
+        assert request.headers["Authorization"] == "Bearer api-key-marker"
+        return httpx.Response(200, json=next(responses), request=request)
+
+    logger = JsonlLogger(tmp_path, include_llm_requests=False,
+                         include_llm_responses=False, secrets={"api-key-marker"})
+    client = OpenRouterClient("api-key-marker", 1, 0, 20,
+                              httpx.MockTransport(handler), logger=logger)
+    prompt_names = ("relevance", "summary", "action_router", "task_extraction",
+                    "event_extraction", "proposal_revision")
+    prompts = PromptConfig(defaults={"model": "model-x", "parameters": {}}, prompts={
+        name: PromptStep(system_prompt=("full prompt marker" if name == "summary" else name))
+        for name in prompt_names
+    })
+    _, result = Analyzer(client, prompts, provider_retries=1,
+                         json_repair_retries=1,
+                         schema_repair_retries=1).summary({"text": "mail body marker"})
+    client.close()
+    assert result.sentences == ["Synthetic one.", "Synthetic two."]
+
+    rows = [json.loads(line) for line in logger.llm.read_text().splitlines()]
+    terminal = [row for row in rows if row["event"] in {
+        "provider_response_invalid", "invalid_json",
+        "schema_validation_failed", "schema_validation_succeeded",
+    }]
+    assert [row["event"] for row in terminal] == [
+        "provider_response_invalid", "invalid_json", "schema_validation_failed",
+        "schema_validation_succeeded",
+    ]
+    assert [(row["retry_type"], row["retry_number"]) for row in terminal] == [
+        ("initial", 0), ("provider_retry", 1), ("json_repair", 1),
+        ("schema_repair", 1),
+    ]
+    required = {"stage", "model", "provider", "call_id", "http_status",
+                "finish_reason", "content_present", "content_length",
+                "json_parse_success", "schema_validation_success", "retry_type",
+                "retry_number"}
+    assert all(required <= row.keys() and row["stage"] == "summary" for row in terminal)
+    assert terminal[0]["reason"] == "message_content_null"
+    assert terminal[0]["retryable"] is True and terminal[0]["provider"] == "backend-a"
+    assert terminal[1]["provider"] == "backend-b" and terminal[1]["json_parse_success"] is False
+    assert terminal[2]["provider"] == "backend-c" and terminal[2]["finish_reason"] == "length"
+    assert terminal[3]["provider"] is None  # missing documented provider metadata is not a content error
+    serialized = logger.llm.read_text()
+    for secret in ("api-key-marker", "full prompt marker", "mail body marker", "Synthetic one"):
+        assert secret not in serialized
+
+
+def test_llm_logger_drops_content_aliases_without_explicit_opt_in(tmp_path):
+    logger = JsonlLogger(tmp_path, include_llm_requests=False,
+                         include_llm_responses=False)
+    logger.llm_event("safe", request="prompt", response="answer",
+                     prompt="prompt-alias", content="answer-alias",
+                     content_length=12, content_present=True)
+    row = json.loads(logger.llm.read_text())
+    assert row["content_length"] == 12 and row["content_present"] is True
+    assert not ({"request", "response", "prompt", "content"} & row.keys())
 
 
 def test_network_adapter_failure_events():
