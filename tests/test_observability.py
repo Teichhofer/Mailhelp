@@ -138,7 +138,11 @@ def test_openrouter_correlated_response_raw_switch_and_error(tmp_path):
     assert [row["event"] for row in rows] == ["request_started", "response_received"]
     assert all(row["call_id"] == call_id and row["mail_id"] == "mail" and row["proposal_id"] == "proposal" for row in rows)
     assert rows[1]["token_usage"]["total_tokens"] == 4 and rows[1]["reported_cost"] == .2
-    assert "request" in rows[0] and "response" in rows[1]
+    assert rows[0]["request"]["messages"] == [
+        {"role": "system", "content": "system"},
+        {"role": "user", "content": '{"internal_id": "mail", "proposal_id": "proposal"}'},
+    ]
+    assert rows[1]["response"] == good
 
     capture = Capture()
     failing = OpenRouterClient("secret", 1, 0, 10, httpx.MockTransport(lambda request: httpx.Response(400, text="token=leak", request=request)), logger=capture)

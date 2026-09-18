@@ -385,7 +385,7 @@ logging:
   llm:
     {enabled: true, level: INFO, format: jsonl, filename: llm/requests.jsonl,
      max_bytes: 10000000, backup_count: 5, retention_days: 30,
-     include_requests: false, include_responses: false}
+     include_requests: true, include_responses: true}
 ```
 
 Konsole, Anwendungsdatei und LLM-Datei können unabhängig aktiviert werden. Für das
@@ -394,6 +394,12 @@ Modul überschreiben. Das eigene `llm.level` ist davon vollständig unabhängig,
 insbesondere `modules.openrouter` das LLM-Log nicht abschaltet. Die Konsole besitzt
 ihr eigenes Level und erhält ausschließlich bereinigte Anwendungsereignisse, niemals
 Rohprompts oder Rohantworten.
+
+Die ausgelieferte Beispielkonfiguration aktiviert beide Inhaltsschalter ausdrücklich.
+Dadurch enthält `request_started` die komplette OpenRouter-Anfrage mit Systemprompt und
+Usernachricht, während `response_received` die komplette Modellantwort enthält. Beide
+Inhalte werden weiterhin rekursiv geheimnisbereinigt und können durch `false` getrennt
+deaktiviert werden.
 
 Dateiziele unterstützen `text` und zeilenweises `jsonl`, sichere relative Dateinamen,
 eine positive maximale Größe, null oder mehr nummerierte Backups und eine positive

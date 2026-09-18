@@ -123,9 +123,11 @@ insbesondere der erste Abruf eines großen Postfachs nicht mehr still erscheint.
 Level-Schalter; `logging.modules` überschreibt das Datei-Grundlevel für einzelne
 Anwendungsmodule. Dateiname, Format (`text` oder `jsonl`), maximale Dateigröße,
 Backup-Anzahl und Aufbewahrung in Tagen sind konfigurierbar. Das LLM-Log filtert
-unabhängig von `logging.modules.openrouter`. Rohprompt und Rohantwort bleiben
-standardmäßig aus und werden nur durch `logging.llm.include_requests` beziehungsweise
-`include_responses` aktiviert; sie werden niemals auf die Konsole gespiegelt. Alle
+unabhängig von `logging.modules.openrouter`. Die mitgelieferte `config.yaml` aktiviert
+`logging.llm.include_requests` und `include_responses` ausdrücklich: Das LLM-Log enthält
+damit die vollständige Anfrage einschließlich Systemprompt und Usernachricht sowie die
+vollständige Modellantwort. Wer diese Inhalte nicht protokollieren möchte, setzt beide
+Schalter auf `false`; sie werden niemals auf die Konsole gespiegelt. Alle
 Logfelder, einschließlich Fehler und Stacktraces, durchlaufen die rekursive
 Geheimnisbereinigung. Alte aktive Logs und nummerierte Rotationen werden beim Start
 und vor Schreibzugriffen ausschließlich innerhalb ihres konfigurierten Verzeichnisses
@@ -247,7 +249,7 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
   zuordnen und Duplikate verhindern; entfernte Inhalte sind nicht
   wiederherstellbar. Logs nennen nur Mail-ID, Laufzeitpunkt und Zähler.
 * Im `test_mode` findet kein externer Schreibzugriff statt; Ergebnisse tragen `simulation: true` und der Vorschlag bleibt `confirmed`, statt einen echten Eintrag vorzutäuschen.
-* JSONL-Anwendungs- und LLM-Logs sind getrennt. Rohprompts und Rohantworten sind unabhängig und standardmäßig ausgeschaltet; Geheimnisfelder werden maskiert.
+* JSONL-Anwendungs- und LLM-Logs sind getrennt. Die Beispielkonfiguration protokolliert vollständige LLM-Anfragen und -Antworten; beide Inhaltsarten lassen sich unabhängig abschalten und Geheimnisfelder werden stets maskiert.
 * `.env` unterstützt einfache `NAME=WERT`-Zeilen und einfache/doppelte Anführungszeichen, aber bewusst keine Shell-Erweiterung. Prozessvariablen überschreiben gleichnamige Werte aus der Datei.
 
 ### Mailzustände aus Schema 3 kontrolliert erneut verarbeiten
