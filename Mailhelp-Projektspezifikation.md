@@ -346,7 +346,7 @@ logs/
     requests.jsonl
 ```
 
-Das Anwendungslog enthält Verarbeitungsschritte, Statuswechsel, externe Aufrufe, Wiederholungen, Laufzeiten sowie Fehler mit Kontext und Stacktrace. Jeder Eintrag trägt Zeitstempel, Level, Modul und Ereignis; sofern zuordenbar außerdem Mail-ID, Vorschlags-ID und Aufruf-ID.
+Das Anwendungslog enthält Verarbeitungsschritte, Statuswechsel, externe Aufrufe, Wiederholungen, Laufzeiten sowie Fehler mit Kontext und Stacktrace. Jeder Eintrag trägt Zeitstempel, Level, Modul und Ereignis; sofern zuordenbar außerdem Mail-ID, Vorschlags-ID und Aufruf-ID. Nach erfolgreicher Konfigurationsprüfung erzeugt jeder Aufruf ein Ereignis `application_started` mit den geparsten CLI-Parametern `config_directory`, `check`, `check_access` und `max_mails`; rohe Befehlszeilen und Umgebungsvariablen werden nicht übernommen.
 
 Das separate LLM-Log erfasst Anfragebeginn, Antwort oder Fehler als getrennte Ereignisse mit derselben Aufruf-ID. Es enthält Auswertungsschritt, Modell, Anfrageparameter, Prompt-Fingerprint, Dauer, Status, Wiederholung sowie Tokenverbrauch und Kosten, sofern vom Dienst verfügbar.
 

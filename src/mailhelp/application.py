@@ -207,35 +207,40 @@ def _state_directory(settings: Settings, base_directory: Path) -> Path:
     return root / ("test" if settings.test_mode else "production")
 
 
+def build_logger(settings: Settings, secrets: Secrets, base_directory: Path = Path(".")) -> JsonlLogger:
+    """Construct the configured logger with every known secret redacted."""
+    log_dir = settings.logging.directory
+    if not log_dir.is_absolute():
+        log_dir = base_directory / log_dir
+    known_secrets = tuple(value.get_secret_value() for value in (
+        secrets.imap_password, secrets.openrouter_api_key, secrets.telegram_bot_token,
+        secrets.todoist_token, secrets.todoist_client_id, secrets.todoist_client_secret,
+        secrets.google_oauth_client_id, secrets.google_oauth_client_secret,
+        secrets.google_oauth_refresh_token,
+    ))
+    log = settings.logging
+    return JsonlLogger(
+        log_dir, log.llm.include_requests, log.llm.include_responses,
+        log.file.level, log.modules, known_secrets,
+        file_enabled=log.file.enabled, file_name=log.file.filename,
+        file_format=log.file.format, file_max_bytes=log.file.max_bytes,
+        file_backup_count=log.file.backup_count, file_retention_days=log.file.retention_days,
+        console_enabled=log.console.enabled, console_level=log.console.level,
+        console_format=log.console.format,
+        llm_enabled=log.llm.enabled, llm_level=log.llm.level,
+        llm_name=log.llm.filename, llm_format=log.llm.format,
+        llm_max_bytes=log.llm.max_bytes, llm_backup_count=log.llm.backup_count,
+        llm_retention_days=log.llm.retention_days,
+    )
+
+
 @contextmanager
-def build_application(settings: Settings, secrets: Secrets, topics: list[Topic], prompts: PromptConfig, fingerprint: str, base_directory: Path = Path(".")) -> Iterator[Application]:
+def build_application(settings: Settings, secrets: Secrets, topics: list[Topic], prompts: PromptConfig, fingerprint: str, base_directory: Path = Path("."), logger: JsonlLogger | None = None) -> Iterator[Application]:
     """Construct adapters and close every successfully constructed resource."""
     with ExitStack() as stack:
         data = _state_directory(settings, base_directory)
-        log_dir = settings.logging.directory
-        if not log_dir.is_absolute():
-            log_dir = base_directory / log_dir
         store = stack.enter_context(JsonStore(data))
-        known_secrets = tuple(value.get_secret_value() for value in (
-            secrets.imap_password, secrets.openrouter_api_key, secrets.telegram_bot_token,
-            secrets.todoist_token, secrets.todoist_client_id, secrets.todoist_client_secret,
-            secrets.google_oauth_client_id, secrets.google_oauth_client_secret,
-            secrets.google_oauth_refresh_token,
-        ))
-        log = settings.logging
-        logger = JsonlLogger(
-            log_dir, log.llm.include_requests, log.llm.include_responses,
-            log.file.level, log.modules, known_secrets,
-            file_enabled=log.file.enabled, file_name=log.file.filename,
-            file_format=log.file.format, file_max_bytes=log.file.max_bytes,
-            file_backup_count=log.file.backup_count, file_retention_days=log.file.retention_days,
-            console_enabled=log.console.enabled, console_level=log.console.level,
-            console_format=log.console.format,
-            llm_enabled=log.llm.enabled, llm_level=log.llm.level,
-            llm_name=log.llm.filename, llm_format=log.llm.format,
-            llm_max_bytes=log.llm.max_bytes, llm_backup_count=log.llm.backup_count,
-            llm_retention_days=log.llm.retention_days,
-        )
+        logger = logger or build_logger(settings, secrets, base_directory)
         stop_event = Event()
         def policy(name: str) -> RetryPolicy:
             item = getattr(settings.timeouts, name)
