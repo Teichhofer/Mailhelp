@@ -73,7 +73,7 @@ def test_polling_errors_resume_and_stop(tmp_path):
     store=Store({_checkpoint_name("0"*24, "INBOX"):{"uidvalidity":7,"uid":3},"telegram-offset":{"offset":8}})
     service=app(tmp_path,Imap([(7,[mail1,mail2])]),Telegram([{"update_id":8},{"update_id":10}]),Orch(fail=True),store=store)
     service._poll_imap(); service._poll_telegram()
-    assert service.imap.calls==[("INBOX",3,7)] and service.orchestrator.seen==[4,5]
+    assert service.imap.calls==[("INBOX",3,7,None)] and service.orchestrator.seen==[4,5]
     assert store.values[_checkpoint_name("0"*24, "INBOX")]["uid"]==3 and store.values["telegram-offset"]["offset"]==11
     assert any(e[0][2]=="mail_failed" for e in service.logger.events)
 
@@ -109,6 +109,10 @@ def test_polling_errors_resume_and_stop(tmp_path):
     stopped=app(tmp_path,Imap([(1,[mail1,mail2])]),Telegram([]),Orch(stop=True),folders=("INBOX","Other"))
     stopped._poll_imap(); assert stopped.orchestrator.seen==[4]
     stopped.stop(); assert stopped.stop_event.is_set() and stopped.orchestrator.stop_called
+
+    limited=app(tmp_path,Imap([(7,[mail1])]),Telegram([]),Orch(),store=store)
+    limited._poll_imap(max_mails=1)
+    assert limited.imap.calls == [("INBOX",3,7,1)]
 
 
 def test_empty_checkpoint_and_run_paths(tmp_path):
@@ -186,7 +190,7 @@ def test_bounded_run_limits_resumed_and_new_mail_then_exits(tmp_path):
     service.run(max_mails=2)
 
     assert service.orchestrator.seen == [2,3]
-    assert service.imap.calls == [("INBOX",2,7)]
+    assert service.imap.calls == [("INBOX",2,7,1)]
     assert service.telegram.offsets == [0]
     assert store.values[key]["uid"] == 3
     assert not service.stop_event.is_set()
@@ -332,13 +336,13 @@ def test_historical_start_is_persisted_account_scoped_and_uidvalidity_logged(tmp
     service._poll_imap()
     key=_checkpoint_name("1"*24,"INBOX")
     assert fake.determine_calls==[("INBOX",boundary)]
-    assert fake.calls==[("INBOX",41,None)] and store.values[key]["start_uid"]==41
+    assert fake.calls==[("INBOX",41,None,None)] and store.values[key]["start_uid"]==41
 
     restarted=Imap([(9,[])]); restarted.account_id="1"*24
     restarted.determine_start_uid=lambda *_: pytest.fail("persisted boundary was reinterpreted")
     again=Application(cfg,store,Log(),restarted,object(),object(),Telegram([]),object(),object(),Orch(),__import__('threading').Event())
     again._poll_imap()
-    assert restarted.calls==[("INBOX",0,8)]
+    assert restarted.calls==[("INBOX",0,8,None)]
     assert any(event[0][2]=="uidvalidity_changed" for event in again.logger.events)
 
     changed=Imap([(3,[])]); changed.account_id="2"*24

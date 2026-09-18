@@ -90,6 +90,9 @@ Mit `imap.batch_size` (Standard `25`, erlaubt `1..1000`) lädt Mailhelp pro
 Polling-Zyklus nur eine begrenzte Zahl von Nachrichten. Die Ereignisse
 `messages_discovered` und `message_fetched` zeigen Anzahl und Fortschritt, sodass
 insbesondere der erste Abruf eines großen Postfachs nicht mehr still erscheint.
+Bei einem einmaligen Lauf mit `--max-mails N` wird auch der IMAP-Abruf auf das nach
+Wiederaufnahmen noch verbleibende Budget begrenzt. So werden keine vollständigen
+Nachrichten geladen, die der aktuelle Lauf anschließend gar nicht verarbeitet.
 
 `logging.console`, `logging.file` und `logging.llm` besitzen eigene Aktivierungs- und
 Level-Schalter; `logging.modules` überschreibt das Datei-Grundlevel für einzelne
@@ -139,6 +142,13 @@ Nur Transportfehler sowie HTTP 408, 425, 429, 500, 502, 503 und 504 werden bei l
   die zusätzlichen MIME-, Text-, HTML- und LLM-Nutzlastgrenzen bleiben weiterhin
   wirksam. Alternativ müssen Nachricht oder Anhänge vor der Verarbeitung verkleinert
   werden.
+* Wiederholte `configuration_changed`-Ereignisse sind eine absichtliche
+  Schutzsperre: Offene Zustände wurden mit einer anderen Kombination aus
+  `config.yaml`, `prompts.yaml` und `topics.yaml` erzeugt. Nicht durch Löschen
+  einzelner Zustandsdateien umgehen, sondern entweder die ursprüngliche
+  Konfiguration wiederherstellen oder nach Sicherung des gesamten
+  Zustandsverzeichnisses eine bewusste Neuverarbeitung beginnen. Die beiden
+  Fingerprints im Ereignis erlauben dabei die eindeutige Zuordnung.
 * `cleanup_completed` mit einem hohen `protected_count` ist in einem solchen Lauf
   erwartbar: Nicht abgeschlossene oder fehlgeschlagene Zustände werden von der
   Aufbewahrungsbereinigung geschützt. `mail_count: 0` sagt deshalb nicht aus, dass
