@@ -49,7 +49,7 @@ class Telegram:
 
 
 class Orch:
-    def __init__(self, fail=False, stop=None): self.fail=fail; self.stop_event=SimpleNamespace(set=lambda:None); self.stop_called=False; self.seen=[]; self._stop=stop
+    def __init__(self, fail=False, stop=None, config_fingerprint="0"*64): self.fail=fail; self.stop_event=SimpleNamespace(set=lambda:None); self.stop_called=False; self.seen=[]; self._stop=stop; self.config_fingerprint=config_fingerprint
     def stop(self): self.stop_called=True
     def process(self, mail):
         self.seen.append(mail.uid)
@@ -196,11 +196,67 @@ def test_mail_budget_and_limit_consumed_by_resume_before_folder_poll(tmp_path):
     budget=_MailBudget(1)
     assert budget.take() is None
     assert budget.remaining == 0
+    explicit_blocked_budget=_MailBudget(1,2)
+    explicit_blocked_budget.take_blocked()
+    assert explicit_blocked_budget.blocked_remaining == 1
 
     pending=MailState(id="a"*24,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":7,"uid":2})
     service=app(tmp_path,Imap([]),Telegram([]),Orch(),store=Store({"mail-a":pending.model_dump(mode="json")}))
     assert len(service._poll_imap(max_mails=1)) == 1
     assert service.imap.calls == []
+
+
+def test_fingerprint_blocked_backlog_has_separate_limit_and_does_not_starve_new_mail(tmp_path):
+    active="a"*64
+    blocked={
+        f"mail-blocked-{number}": MailState(
+            id=f"{number:024x}", config_fingerprint="b"*64,
+            imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":7,"uid":number},
+        ).model_dump(mode="json")
+        for number in range(1, 5)
+    }
+    key=_checkpoint_name("0"*24,"INBOX")
+    store=Store({**blocked,key:{"uidvalidity":7,"uid":4,"start_uid":1}})
+    new=[FetchedMail("INBOX",7,5,b"x"),FetchedMail("INBOX",7,6,b"x")]
+    service=app(tmp_path,Imap([(7,new)]),Telegram([]),Orch(config_fingerprint=active),store=store)
+
+    results=service._poll_imap(max_mails=2)
+
+    assert [result.outcome for result in results] == [
+        ProcessingOutcome.WAITING, ProcessingOutcome.WAITING,
+        ProcessingOutcome.COMPLETED, ProcessingOutcome.COMPLETED,
+    ]
+    assert service.imap.uid_calls == []
+    assert service.orchestrator.seen == [5,6]
+    assert store.values[key]["uid"] == 6
+    assert len([event for event in service.logger.events
+                if event[0][2] == "configuration_changed"]) == 2
+
+    restarted=app(tmp_path,Imap([(7,[])]),Telegram([]),Orch(config_fingerprint=active),store=store)
+    restarted_results=restarted._poll_imap(max_mails=2)
+    assert len(restarted_results) == 2
+    assert restarted.imap.uid_calls == []
+    assert restarted.orchestrator.seen == []
+
+
+def test_resume_mixes_matching_and_blocked_fingerprints_without_resuming_blocked(tmp_path):
+    active="a"*64
+    states={}
+    for suffix, uid, fingerprint in (("a",1,active),("b",2,"b"*64),("c",3,active)):
+        states[f"mail-{suffix}"]=MailState(
+            id=suffix*24, config_fingerprint=fingerprint,
+            imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":7,"uid":uid},
+        ).model_dump(mode="json")
+    service=app(tmp_path,Imap([]),Telegram([]),Orch(config_fingerprint=active),store=Store(states))
+
+    results=service._resume_pending(_MailBudget(2))
+
+    assert [result.outcome for result in results] == [
+        ProcessingOutcome.COMPLETED, ProcessingOutcome.WAITING,
+        ProcessingOutcome.COMPLETED,
+    ]
+    assert service.imap.uid_calls == [("INBOX",1,7),("INBOX",3,7)]
+    assert service.orchestrator.seen == [1,3]
 
 
 def test_resume_due_pending_states_and_isolate_failures(tmp_path):

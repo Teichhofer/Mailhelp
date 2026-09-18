@@ -25,15 +25,31 @@ from .telegram import (TelegramChatNotFoundError, TelegramClient,
 from .adapter import RetryPolicy
 from .retention import RetentionService
 
+_BLOCKED_STATE_SCAN_LIMIT = 1000
+
 
 @dataclass
 class _MailBudget:
-    """Shared per-run budget covering resumed and newly discovered mail."""
+    """Independent per-run budgets for actionable and blocked mail states."""
 
-    remaining: int
+    remaining: int | None
+    blocked_remaining: int | None = None
+
+    def __post_init__(self) -> None:
+        # A bounded run may report at most as many configuration-blocked states
+        # as it can actually process.  Keeping this counter separate prevents a
+        # stale backlog from starving newly arrived mail.
+        if self.blocked_remaining is None:
+            self.blocked_remaining = (self.remaining if self.remaining is not None
+                                      else _BLOCKED_STATE_SCAN_LIMIT)
 
     def take(self) -> None:
+        assert self.remaining is not None
         self.remaining -= 1
+
+    def take_blocked(self) -> None:
+        assert self.blocked_remaining is not None
+        self.blocked_remaining -= 1
 
 
 @dataclass
@@ -144,10 +160,10 @@ class Application:
 
     def _poll_imap(self, max_mails: int | None = None) -> list[ProcessingResult]:
         """Resume durable work and process new mail, returning every outcome."""
-        budget = _MailBudget(max_mails) if max_mails is not None else None
+        budget = _MailBudget(max_mails)
         results = self._resume_pending(budget)
         for folder in self.settings.imap.folders:
-            if self.stop_event.is_set() or (budget is not None and budget.remaining == 0):
+            if self.stop_event.is_set() or budget.remaining == 0:
                 break
             checkpoint_name = _checkpoint_name(self.imap.account_id, folder)
             checkpoint_model = self.store.load_model(checkpoint_name, ImapCheckpoint, ImapCheckpoint()) if hasattr(self.store, "load_model") else ImapCheckpoint.model_validate(self.store.load(checkpoint_name, {}))
@@ -173,9 +189,9 @@ class Application:
                                   previous_uidvalidity=checkpoint.get("uidvalidity"), uidvalidity=self.imap.last_uidvalidity)
             checkpoint_reachable = True
             for mail in mails:
-                if self.stop_event.is_set() or (budget is not None and budget.remaining == 0):
+                if self.stop_event.is_set() or budget.remaining == 0:
                     break
-                if budget is not None:
+                if budget.remaining is not None:
                     budget.take()
                 try:
                     result = self.orchestrator.process(mail)
@@ -202,19 +218,32 @@ class Application:
         results: list[ProcessingResult] = []
         if not hasattr(self.store, "names"):
             return results
+        budget = budget or _MailBudget(None)
         now = datetime.now(timezone.utc)
         for name in self.store.names("mail-"):
-            if self.stop_event.is_set() or (budget is not None and budget.remaining == 0):
+            if self.stop_event.is_set() or budget.remaining == 0:
                 break
             try:
                 state = self.store.load_model(name, MailState)
                 if state is None or state.steps.completion != "pending":
                     continue
-                if state.deferred_until is not None and state.deferred_until > now:
-                    continue
                 if state.imap.account_id != self.imap.account_id:
                     continue
-                if budget is not None:
+                if state.config_fingerprint != self.orchestrator.config_fingerprint:
+                    if budget.blocked_remaining == 0:
+                        break
+                    budget.take_blocked()
+                    self.logger.event(
+                        "WARNING", "orchestrator", "configuration_changed",
+                        mail_id=state.id,
+                    )
+                    results.append(ProcessingResult(
+                        ProcessingOutcome.WAITING, state.model_dump(mode="json")
+                    ))
+                    continue
+                if state.deferred_until is not None and state.deferred_until > now:
+                    continue
+                if budget.remaining is not None:
                     budget.take()
                 mail = self.imap.fetch_uid(state.imap.folder, state.imap.uid, state.imap.uidvalidity)
                 result = self.orchestrator.process(mail)
