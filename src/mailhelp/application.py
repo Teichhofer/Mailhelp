@@ -12,7 +12,7 @@ from typing import Iterator
 from .analysis import Analyzer
 from .config import PromptConfig, Secrets, Settings, Topic
 from .imap import ImapReader
-from .integrations import GoogleOAuthTokenProvider, HttpWriter, TodoistOAuthTokenProvider
+from .integrations import GoogleOAuthTokenProvider, HttpWriter
 from .logging import JsonlLogger
 from .models import ImapCheckpoint, MailState, TelegramOffset
 from .openrouter import OpenRouterClient
@@ -218,7 +218,7 @@ def build_application(settings: Settings, secrets: Secrets, topics: list[Topic],
         store = stack.enter_context(JsonStore(data))
         known_secrets = tuple(value.get_secret_value() for value in (
             secrets.imap_password, secrets.openrouter_api_key, secrets.telegram_bot_token,
-            secrets.todoist_client_id, secrets.todoist_client_secret, secrets.todoist_refresh_token,
+            secrets.todoist_token, secrets.todoist_client_id, secrets.todoist_client_secret,
             secrets.google_oauth_client_id, secrets.google_oauth_client_secret,
             secrets.google_oauth_refresh_token,
         ))
@@ -249,11 +249,7 @@ def build_application(settings: Settings, secrets: Secrets, topics: list[Topic],
         stack.callback(openrouter.close)
         telegram = TelegramClient(secrets.telegram_bot_token.get_secret_value(), settings.timeouts.telegram.timeout_seconds, poll_timeout=settings.timeouts.telegram_poll_seconds, policy=policy("telegram"), logger=logger)
         stack.callback(telegram.close)
-        todoist_oauth = TodoistOAuthTokenProvider(
-            secrets.todoist_client_id.get_secret_value(), secrets.todoist_client_secret.get_secret_value(),
-            secrets.todoist_refresh_token.get_secret_value(), settings.timeouts.todoist.timeout_seconds, logger=logger)
-        stack.callback(todoist_oauth.close)
-        todoist = HttpWriter("todoist", todoist_oauth, settings.targets.todoist_project, settings.timeouts.todoist.timeout_seconds, policy=policy("todoist"), logger=logger)
+        todoist = HttpWriter("todoist", secrets.todoist_token.get_secret_value(), settings.targets.todoist_project, settings.timeouts.todoist.timeout_seconds, policy=policy("todoist"), logger=logger)
         stack.callback(todoist.close)
         oauth = GoogleOAuthTokenProvider(
             secrets.google_oauth_client_id.get_secret_value(), secrets.google_oauth_client_secret.get_secret_value(),

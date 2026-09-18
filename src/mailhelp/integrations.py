@@ -26,10 +26,6 @@ class OAuthTokenResponse(IntegrationModel):
     token_type: str
 
 
-class TodoistOAuthTokenResponse(OAuthTokenResponse):
-    refresh_token: str = Field(min_length=1)
-
-
 class GoogleOAuthTokenProvider:
     """Hält kurzlebige Google-Tokens ausschließlich im Arbeitsspeicher."""
 
@@ -62,48 +58,6 @@ class GoogleOAuthTokenProvider:
             raise AuthenticationError("Google-OAuth-Autorisierung verweigert") from exc
         self._token, self._expires_at = value.access_token, self._clock() + value.expires_in
         self._logger.event("INFO", "google_oauth", "token_refresh_completed", expires_in=value.expires_in)
-        return self._token
-
-    def invalidate(self) -> None:
-        self._token, self._expires_at = None, 0.0
-
-    def close(self) -> None:
-        self._client.close()
-
-
-class TodoistOAuthTokenProvider:
-    """Erzeugt Todoist-Zugriffstokens mit den OAuth-Anwendungsdaten."""
-
-    def __init__(self, client_id: str, client_secret: str, refresh_token: str, timeout: float = 30,
-                 transport: httpx.BaseTransport | None = None, clock: Callable[[], float] = time.time,
-                 refresh_margin_seconds: float = 60, logger: EventLogger | None = None):
-        self._client_id, self._client_secret, self._refresh_token = client_id, client_secret, refresh_token
-        self._clock, self._margin = clock, refresh_margin_seconds
-        self._token: str | None = None
-        self._expires_at = 0.0
-        self._client = httpx.Client(base_url="https://api.todoist.com", timeout=timeout, transport=transport)
-        self._logger = logger or NullLogger()
-
-    def access_token(self) -> str:
-        if self._token is not None and self._clock() < self._expires_at - self._margin:
-            return self._token
-        self._logger.event("INFO", "todoist_oauth", "token_refresh_started")
-        try:
-            response = self._client.post("/oauth/access_token", data={
-                "client_id": self._client_id, "client_secret": self._client_secret,
-                "refresh_token": self._refresh_token, "grant_type": "refresh_token",
-            })
-            response.raise_for_status()
-            value = TodoistOAuthTokenResponse.model_validate(response.json())
-            if value.token_type.lower() != "bearer":
-                raise ValueError("unerwarteter Token-Typ")
-        except (httpx.HTTPStatusError, ValueError, ValidationError) as exc:
-            self._logger.event("ERROR", "todoist_oauth", "token_refresh_denied",
-                               status=exc.response.status_code if isinstance(exc, httpx.HTTPStatusError) else None)
-            raise AuthenticationError("Todoist-OAuth-Autorisierung verweigert") from exc
-        self._token, self._refresh_token = value.access_token, value.refresh_token
-        self._expires_at = self._clock() + value.expires_in
-        self._logger.event("INFO", "todoist_oauth", "token_refresh_completed", expires_in=value.expires_in)
         return self._token
 
     def invalidate(self) -> None:
@@ -212,7 +166,7 @@ class HttpWriter:
             except (ZoneInfoNotFoundError, ValueError) as exc: raise ValueError("Unbekannte IANA-Zeitzone für Google Kalender") from exc
         base = "https://api.todoist.com/rest/v2" if service == "todoist" else "https://www.googleapis.com/calendar/v3"
         self.service, self.target, self.calendar_timezone = service, target, calendar_timezone
-        self._token_provider = token if not isinstance(token, str) else None
+        self._token_provider = token if service == "google_calendar" and not isinstance(token, str) else None
         self._static_token = token if isinstance(token, str) else None
         self.client = httpx.Client(base_url=base, timeout=timeout, transport=transport)
         self.policy = policy or RetryPolicy(0, 0, 0, lambda _delay: False)
@@ -318,12 +272,11 @@ class HttpWriter:
         return {"Authorization": f"Bearer {token}"}
 
     def _raise_for_status(self, response: httpx.Response) -> None:
-        if response.status_code == 401 and (self.service == "google_calendar" or self._token_provider is not None):
+        if response.status_code == 401 and self.service == "google_calendar":
             if self._token_provider is not None:
                 self._token_provider.invalidate()
             self.logger.event("ERROR", self.service, "authentication_failed", status=401)
-            name = "Google-Calendar" if self.service == "google_calendar" else "Todoist"
-            raise AuthenticationError(f"{name}-Autorisierung verweigert")
+            raise AuthenticationError("Google-Calendar-Autorisierung verweigert")
         if self.service == "todoist":
             message = {
                 401: "Todoist: Authentifizierungsfehler (Token wurde abgelehnt)",

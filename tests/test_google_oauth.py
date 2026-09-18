@@ -3,8 +3,7 @@ import json
 import httpx
 import pytest
 
-from mailhelp.integrations import (AuthenticationError, GoogleOAuthTokenProvider, HttpWriter,
-                                   TodoistOAuthTokenProvider, execute_confirmed)
+from mailhelp.integrations import AuthenticationError, GoogleOAuthTokenProvider, HttpWriter, execute_confirmed
 from mailhelp.logging import JsonlLogger
 from test_core import proposal
 
@@ -40,45 +39,6 @@ def test_first_token_cached_regular_refresh_expiry_and_restart():
     restarted = GoogleOAuthTokenProvider(**arguments)
     assert restarted.access_token() == "short-5"  # no token survives a restart
     restarted.close()
-
-
-def test_todoist_uses_client_credentials_and_rotates_refresh_token():
-    now = [100.0]
-    requests = []
-
-    def issue(request):
-        requests.append(request)
-        number = len(requests)
-        return httpx.Response(200, json={"access_token": f"access-{number}", "expires_in": 120,
-                                         "token_type": "Bearer", "refresh_token": f"refresh-{number}"},
-                              request=request)
-
-    provider = TodoistOAuthTokenProvider("client-id", "client-secret", "initial-refresh",
-                                         transport=httpx.MockTransport(issue), clock=lambda: now[0])
-    assert provider.access_token() == provider.access_token() == "access-1"
-    first = requests[0].content
-    assert all(value in first for value in (b"client_id=client-id", b"client_secret=client-secret",
-                                             b"refresh_token=initial-refresh"))
-    now[0] = 161
-    assert provider.access_token() == "access-2"
-    assert b"refresh_token=refresh-1" in requests[1].content
-    provider.invalidate()
-    assert provider.access_token() == "access-3"
-    provider.close()
-
-
-@pytest.mark.parametrize("response", [
-    (401, {"error": "invalid_client"}),
-    (200, {"access_token": "x", "expires_in": 10, "token_type": "MAC", "refresh_token": "r"}),
-    (200, {"access_token": "", "expires_in": 0, "token_type": "Bearer", "refresh_token": ""}),
-])
-def test_todoist_oauth_rejects_invalid_token_responses(response):
-    status, body = response
-    provider = TodoistOAuthTokenProvider("client", "secret", "refresh", transport=httpx.MockTransport(
-        lambda request: httpx.Response(status, json=body, request=request)))
-    with pytest.raises(AuthenticationError, match="Todoist-OAuth"):
-        provider.access_token()
-    provider.close()
 
 
 @pytest.mark.parametrize("response", [
