@@ -1,5 +1,5 @@
 from __future__ import annotations
-import json, os, signal, sys
+import errno, json, os, signal, subprocess, sys
 from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
 from email.message import EmailMessage
@@ -212,7 +212,7 @@ def test_storage_and_logging(tmp_path):
         with pytest.raises(ValueError): store.load("../outside")
         with pytest.raises(ValueError): store.save("bad/name", {})
         with pytest.raises(AlreadyRunning): JsonStore(tmp_path/"data").__enter__()
-    assert not (tmp_path/"data/.lock").exists()
+    assert (tmp_path/"data/.lock").exists()
     (tmp_path/"data/x.json").write_text("{", encoding="utf8")
     with pytest.raises(CorruptState): store.load("x")
     assert redact({"token":"abc", "nested":["Bearer xyz", 2]}) == {"token":"***", "nested":["Bearer ***", 2]}
@@ -225,3 +225,68 @@ def test_storage_windows_directory_sync(tmp_path, monkeypatch):
     store = JsonStore(tmp_path)
     monkeypatch.setattr("mailhelp.storage.os.name", "nt")
     store.save("windows", {"ok": True})
+
+
+def test_storage_stale_file_process_exit_and_mode_isolation(tmp_path):
+    stale = tmp_path / "stale"
+    stale.mkdir()
+    (stale / ".lock").write_text('{"pid": 1}', encoding="ascii")
+    with JsonStore(stale):
+        assert json.loads((stale / ".lock").read_text(encoding="ascii"))["pid"] == os.getpid()
+
+    root = tmp_path / "modes"
+    with JsonStore(root / "test"):
+        with JsonStore(root / "production"):
+            with pytest.raises(AlreadyRunning):
+                JsonStore(root / "test").__enter__()
+
+    crashed = tmp_path / "crashed"
+    code = (
+        "import sys,time\n"
+        "from pathlib import Path\n"
+        "from mailhelp.storage import JsonStore\n"
+        "JsonStore(Path(sys.argv[1])).__enter__()\n"
+        "print('locked', flush=True)\n"
+        "time.sleep(60)\n"
+    )
+    process = subprocess.Popen(
+        [sys.executable, "-c", code, str(crashed)],
+        stdout=subprocess.PIPE,
+        text=True,
+    )
+    assert process.stdout is not None and process.stdout.readline().strip() == "locked"
+    with pytest.raises(AlreadyRunning):
+        JsonStore(crashed).__enter__()
+    process.kill()
+    process.wait(timeout=10)
+    with JsonStore(crashed):
+        pass
+
+
+def test_storage_lock_platform_and_failure_paths(tmp_path, monkeypatch):
+    import types
+
+    platform_name = os.name
+    descriptor = os.open(tmp_path / "windows-lock", os.O_CREAT | os.O_RDWR, 0o600)
+    calls = []
+    fake_msvcrt = types.SimpleNamespace(LK_NBLCK=7, locking=lambda *args: calls.append(args))
+    monkeypatch.setitem(sys.modules, "msvcrt", fake_msvcrt)
+    monkeypatch.setattr("mailhelp.storage.os.name", "nt")
+    JsonStore._acquire_lock(descriptor)
+    JsonStore._acquire_lock(descriptor)
+    os.close(descriptor)
+    assert calls == [(descriptor, 7, 1), (descriptor, 7, 1)]
+
+    monkeypatch.setattr("mailhelp.storage.os.name", platform_name)
+    store = JsonStore(tmp_path / "failure")
+    monkeypatch.setattr(store, "_acquire_lock", lambda _descriptor: (_ for _ in ()).throw(OSError(errno.EIO, "disk")))
+    with pytest.raises(OSError, match="disk"):
+        store.__enter__()
+
+    metadata_store = JsonStore(tmp_path / "metadata-failure")
+    monkeypatch.setattr(metadata_store, "_acquire_lock", JsonStore._acquire_lock)
+    monkeypatch.setattr("mailhelp.storage.os.fsync", lambda _descriptor: (_ for _ in ()).throw(OSError("sync")))
+    with pytest.raises(OSError, match="sync"):
+        metadata_store.__enter__()
+    assert metadata_store.lock is None
+    metadata_store.__exit__()

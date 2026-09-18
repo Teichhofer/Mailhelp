@@ -210,7 +210,7 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
         assert FakeImap.kwargs["starttls"] is starttls
         assert FakeImap.kwargs["factory"].__name__ == ("IMAP4_SSL" if mode=="ssl" else "IMAP4")
         assert FakeWriter.calls[-1][1]["calendar_timezone"] == "UTC"
-    assert len(closed)==5 and not (tmp_path/"data/test/.lock").exists()
+    assert len(closed)==5 and (tmp_path/"data/test/.lock").exists()
 
     cfg.data_directory=Path("relative"); cfg.logging.directory=Path("relative-logs")
     class BrokenTelegram(Resource):
@@ -218,7 +218,7 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
     monkeypatch.setattr("mailhelp.application.TelegramClient",BrokenTelegram)
     with pytest.raises(RuntimeError,match="build"):
         with build_application(cfg,sec,topic,prompt_config(),"f"*64,base_directory=tmp_path): pass
-    assert not (tmp_path/"relative/test/.lock").exists()
+    assert (tmp_path/"relative/test/.lock").exists()
 
 
 def test_state_directory_separates_every_durable_state_and_lock(tmp_path):

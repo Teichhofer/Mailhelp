@@ -1,5 +1,6 @@
 """Atomare, menschenlesbare JSON-Ablage mit Einzelinstanz-Sperre."""
 from __future__ import annotations
+import errno
 import json, os
 import re
 from pathlib import Path
@@ -16,13 +17,49 @@ class JsonStore:
 
     def __enter__(self) -> "JsonStore":
         self.directory.mkdir(parents=True, exist_ok=True); path = self.directory / ".lock"
-        try: self.lock = os.open(path, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-        except FileExistsError as exc: raise AlreadyRunning(f"Datenverzeichnis wird bereits verwendet: {self.directory}") from exc
-        os.write(self.lock, str(os.getpid()).encode()); return self
+        descriptor = os.open(path, os.O_CREAT | os.O_RDWR, 0o600)
+        try:
+            self._acquire_lock(descriptor)
+        except OSError as exc:
+            os.close(descriptor)
+            if exc.errno in (errno.EACCES, errno.EAGAIN, errno.EDEADLK):
+                raise AlreadyRunning(f"Datenverzeichnis wird bereits verwendet: {self.directory}") from exc
+            raise
+        self.lock = descriptor
+        # This is diagnostic information only.  The kernel-held lock above, not
+        # the PID stored here, determines whether another instance is running.
+        try:
+            metadata = json.dumps({"pid": os.getpid()}).encode("ascii")
+            os.lseek(descriptor, 0, os.SEEK_SET)
+            os.write(descriptor, metadata)
+            os.ftruncate(descriptor, len(metadata))
+            os.fsync(descriptor)
+        except BaseException:
+            os.close(descriptor)
+            self.lock = None
+            raise
+        return self
 
     def __exit__(self, *_: object) -> None:
-        if self.lock is not None: os.close(self.lock); self.lock = None
-        (self.directory / ".lock").unlink(missing_ok=True)
+        if self.lock is not None:
+            os.close(self.lock)
+            self.lock = None
+
+    @staticmethod
+    def _acquire_lock(descriptor: int) -> None:
+        """Acquire a process-bound, non-blocking lock on an open lock file."""
+        if os.name == "nt":
+            import msvcrt
+
+            # Windows byte-range locks require a byte to exist in the file.
+            if os.fstat(descriptor).st_size == 0:
+                os.write(descriptor, b"\0")
+            os.lseek(descriptor, 0, os.SEEK_SET)
+            msvcrt.locking(descriptor, msvcrt.LK_NBLCK, 1)
+        else:
+            import fcntl
+
+            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
 
     def load(self, name: str, default: Any = None) -> Any:
         self._validate_name(name)
