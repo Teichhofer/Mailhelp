@@ -275,6 +275,31 @@ class TelegramClient:
             self._validate_write(response, "sendMessage")
         self.logger.event("INFO", "telegram", "send_completed", call_id=call_id, parts=len(parts))
 
+    def send_document(self, chat_id: int, filename: str, content: bytes,
+                      caption: str | None = None) -> None:
+        """Send a generated file without ever placing its contents in a log."""
+        if not filename or any(character in filename for character in ("/", "\\", "\x00")):
+            raise ValueError("Telegram-Dateiname ist ungültig")
+        call_id = str(uuid.uuid4())
+        self.logger.event("INFO", "telegram", "document_send_started", call_id=call_id,
+                          filename=filename, size=len(content))
+
+        def request() -> httpx.Response:
+            data: dict[str, Any] = {"chat_id": str(chat_id)}
+            if caption is not None:
+                data["caption"] = caption
+            response = self.client.post(
+                "/sendDocument", data=data,
+                files={"document": (filename, content, "text/calendar; charset=utf-8")},
+            )
+            response.raise_for_status()
+            return response
+
+        response = uncertain_write(request)
+        self._validate_write(response, "sendDocument")
+        self.logger.event("INFO", "telegram", "document_send_completed", call_id=call_id,
+                          filename=filename, size=len(content))
+
     def answer_callback(self, callback_id: str, text: str) -> None:
         def request() -> httpx.Response:
             response = self.client.post("/answerCallbackQuery", json={"callback_query_id": callback_id, "text": text}); response.raise_for_status(); return response
@@ -294,7 +319,6 @@ class TelegramTransport(Protocol):
     def poll(self, offset: int) -> list[dict[str, Any]]: ...
     def send(self, chat_id: int, text: str, reply_markup: dict[str, Any] | None = None) -> None: ...
     def answer_callback(self, callback_id: str, text: str) -> None: ...
-
 
 class ProposalRevisionService(Protocol):
     def revise_proposal(self, proposal: Proposal, question: str, authorized_answer: str) -> tuple[str, Proposal]: ...

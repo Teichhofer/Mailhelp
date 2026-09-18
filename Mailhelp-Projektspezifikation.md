@@ -37,7 +37,7 @@ Inhalte lediglich als Fehlerzähler protokolliert und stoppen Polling nicht.
 
 Mailhelp ist eine persönliche, in Python entwickelte Anwendung, die ein IMAP-Postfach überwacht. Ein über OpenRouter angesprochenes LLM prüft neue E-Mails auf ihre Zugehörigkeit zu konfigurierten Themenbereichen, fasst relevante Nachrichten zusammen und erkennt Aufgaben sowie Termine. Die Kommunikation mit dem Nutzer erfolgt über Telegram.
 
-Aufgaben werden in Todoist und Termine in Google Kalender eingetragen – ausschließlich nach ausdrücklicher Bestätigung des jeweiligen Vorschlags über Telegram. Die Bestätigungspflicht wird im Anwendungscode durchgesetzt und kann weder durch Prompts noch durch Mailinhalte aufgehoben werden.
+Aufgaben werden in Todoist angelegt und Termine als iCalendar-Datei per Telegram versendet – ausschließlich nach ausdrücklicher Bestätigung des jeweiligen Vorschlags über Telegram. Die Bestätigungspflicht wird im Anwendungscode durchgesetzt und kann weder durch Prompts noch durch Mailinhalte aufgehoben werden.
 
 Die Entwicklung und erste Nutzung erfolgen lokal unter Windows 11. Der spätere Dauerbetrieb erfolgt auf Linux in einem Docker-Container. Beide Betriebsarten verwenden dieselbe Programmlogik.
 
@@ -45,7 +45,7 @@ Die Entwicklung und erste Nutzung erfolgen lokal unter Windows 11. Der spätere 
 
 Verbindlicher Kernumfang:
 
-- Ein Nutzer, ein IMAP-Postfach, ein Zielkalender in Google Kalender und ein Standardprojekt in Todoist.
+- Ein Nutzer, ein IMAP-Postfach, ein Telegram-Chat und ein Standardprojekt in Todoist.
 - LLM-basierte Relevanzprüfung, Zusammenfassung und Aufgaben-/Terminerkennung über OpenRouter.
 - Separate, editierbare YAML-Dateien für Anwendung, Prompts und Themenbereiche.
 - Eine separate Geheimnisdatei für Zugangsdaten.
@@ -189,9 +189,9 @@ Jeder Vorschlag enthält eine eigene ID, den Typ, einen Titel, eine Beschreibung
 
 Eine Aufgabe kann ohne Fälligkeit angelegt werden. Ihre Frist ist entweder ein reines ISO-8601-Datum (`YYYY-MM-DD`) oder ein ISO-8601-Zeitpunkt mit explizitem UTC-Offset; naive Zeitpunkte sind unzulässig. Der Todoist-Adapter überträgt diese Formen getrennt als `due_date` beziehungsweise `due_datetime`, ohne ein reines Datum in Mitternacht umzuwandeln. Für Termine müssen alle zum Speichern benötigten Angaben geklärt sein. Fehlende Endzeiten dürfen nicht ohne sichtbare Regel oder Rückfrage erfunden werden. Eine Aufgabenfrist erzeugt nicht automatisch einen Kalendertermin. Ist der Mail-Datumskontext fehlend, naiv, ungültig oder widersprüchlich, bleibt ein Termin oder eine Aufgabe mit Frist bis zur konkreten Rückfrage unbestätigbar; eine Aufgabe ohne Frist bleibt davon unberührt.
 
-Zeitgebundene Termine enthalten für Beginn und Ende vollständige ISO-8601-Datums-/Zeitwerte mit eindeutigem UTC-Offset. Der Google-Calendar-Adapter übergibt dazu die in `config.yaml` konfigurierte IANA-Zeitzone als `timeZone`; er leitet weder einen Offset noch eine Zeitzone stillschweigend aus der Laufzeitumgebung ab. Ganztägige Termine enthalten dagegen ausschließlich Kalenderdaten ohne Uhrzeit. Ihr Enddatum ist gemäß Google-Calendar-Semantik exklusiv: Ein eintägiger Termin am 10. Mai verwendet beispielsweise `start.date = 2026-05-10` und `end.date = 2026-05-11`. Gemischte Datums- und Zeitformen, naive Zeitwerte sowie ein Ende vor oder gleich dem Beginn werden bereits an der Vorschlagsgrenze abgewiesen.
+Zeitgebundene Termine enthalten für Beginn und Ende vollständige ISO-8601-Datums-/Zeitwerte mit eindeutigem UTC-Offset. Die iCalendar-Datei normalisiert diese Zeitpunkte eindeutig nach UTC; sie leitet weder einen Offset noch eine Zeitzone stillschweigend aus der Laufzeitumgebung ab. Ganztägige Termine enthalten dagegen ausschließlich Kalenderdaten ohne Uhrzeit. Ihr Enddatum ist gemäß iCalendar-Semantik exklusiv: Ein eintägiger Termin am 10. Mai verwendet beispielsweise `DTSTART;VALUE=DATE:20260510` und `DTEND;VALUE=DATE:20260511`. Gemischte Datums- und Zeitformen, naive Zeitwerte sowie ein Ende vor oder gleich dem Beginn werden bereits an der Vorschlagsgrenze abgewiesen.
 
-Ein ausdrücklich in der Mail genannter physischer Ort wird getrennt von einem Videolink in `location` beziehungsweise `video_link` übernommen; fehlende Werte bleiben `null` und dürfen nicht erfunden werden. `video_link` akzeptiert ausschließlich längenbegrenzte HTTP-/HTTPS-URLs. Vor einer Bestätigung zeigt Telegram beide Felder sichtbar an. Beim Schreiben nach Google Calendar wird `location` auf das gleichnamige Ereignisfeld abgebildet. Ein vorhandener Videolink wird am Ende von `description` in einem klar markierten Abschnitt `[Mailhelp-Videolink]` abgelegt. Diese Abbildung erzeugt keine Google-Meet-Konferenz und überträgt kein `conferenceData`; eine Konferenzerzeugung müsste separat implementiert und bestätigt werden.
+Ein ausdrücklich in der Mail genannter physischer Ort wird getrennt von einem Videolink in `location` beziehungsweise `video_link` übernommen; fehlende Werte bleiben `null` und dürfen nicht erfunden werden. `video_link` akzeptiert ausschließlich längenbegrenzte HTTP-/HTTPS-URLs. Vor einer Bestätigung zeigt Telegram beide Felder sichtbar an. In der iCalendar-Datei wird `location` als `LOCATION` abgebildet. Ein vorhandener Videolink wird am Ende von `DESCRIPTION` klar als Videolink ergänzt. Die Datei erzeugt keine Konferenz; sie lässt sich nach dem Telegram-Versand auf iOS durch Antippen in einen vom Nutzer gewählten Kalender übernehmen.
 
 Die geschlossenen Felder `responsibility` (`user`, `other`, `unclear`), `certainty` (`certain`, `uncertain`, `contradictory`) und `classification` (`new`, `non_binding`, `already_completed`, `change`, `cancellation`, `recurring`, `unsupported`) sind verpflichtend. Nur `new` + `user` + `certain` ist bestätigbar und extern schreibbar. Alle übrigen Kombinationen werden verständlich als manuell zu prüfen angezeigt. `unclear`, `uncertain` und `contradictory` erzwingen `needs_clarification`.
 
@@ -299,7 +299,7 @@ das Zielprojekt und HTTP 404 als nicht erreichbares Zielprojekt ausgegeben. Die
 dienstbezogene Meldung wird unverändert an die CLI weitergereicht und enthält
 weder Token oder Authorization-Header noch vollständige Antwortinhalte.
 
-Die Bereiche `imap`, `telegram`, `targets`, `limits`, `retries`, `timeouts` und `logging` besitzen geschlossene Modelle. `imap.connection_mode` akzeptiert ausschließlich `ssl`, `starttls` und `plain`; `imap.historical_start` akzeptiert ausschließlich `null` oder einen ISO-8601-Zeitpunkt mit Offset. IMAP, Telegram, OpenRouter, Todoist und Google Calendar konfigurieren Timeout, Retry-Anzahl, initialen Backoff und Backoff-Obergrenze getrennt. Ports (1–65535), Polling (5–86400 Sekunden), Adaptertimeouts (1–300 Sekunden), Telegram-Long-Polling (1–50 Sekunden), Mailgröße (1.024–100.000.000 Bytes), LLM-Rate (1–600/min), Wiederholungen (0–10) und Backoff (0–60 Sekunden) sind begrenzt. Zeitzonen müssen IANA-Namen sein; Ordner sind eindeutig und nicht leer, Pfade sicher, Log-Level sind `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Dieselbe Transportauswahl und UTC-Auswertung gilt unter Windows 11 und im Linux-Docker-Container; die Host-Zeitzone beeinflusst die Grenze nicht.
+Die Bereiche `imap`, `telegram`, `targets`, `limits`, `retries`, `timeouts` und `logging` besitzen geschlossene Modelle. `imap.connection_mode` akzeptiert ausschließlich `ssl`, `starttls` und `plain`; `imap.historical_start` akzeptiert ausschließlich `null` oder einen ISO-8601-Zeitpunkt mit Offset. IMAP, Telegram, OpenRouter und Todoist konfigurieren Timeout, Retry-Anzahl, initialen Backoff und Backoff-Obergrenze getrennt. Die Kalenderdatei wird über den bereits konfigurierten Telegram-Transport versendet. Ports (1–65535), Polling (5–86400 Sekunden), Adaptertimeouts (1–300 Sekunden), Telegram-Long-Polling (1–50 Sekunden), Mailgröße (1.024–100.000.000 Bytes), LLM-Rate (1–600/min), Wiederholungen (0–10) und Backoff (0–60 Sekunden) sind begrenzt. Zeitzonen müssen IANA-Namen sein; Ordner sind eindeutig und nicht leer, Pfade sicher, Log-Level sind `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Dieselbe Transportauswahl und UTC-Auswertung gilt unter Windows 11 und im Linux-Docker-Container; die Host-Zeitzone beeinflusst die Grenze nicht.
 
 ## 10. JSON-Zustand und Neustartverhalten
 
@@ -417,7 +417,7 @@ Passwörter, API-Schlüssel, Tokens und Authentifizierungsheader werden unabhän
 
 ## 12. Architektur und Betrieb
 
-Vorgesehene Python-Module: Konfigurationsverwaltung, IMAP-Abruf, Mailaufbereitung, OpenRouter-Client, Relevanzprüfung, Zusammenfassung, Aktionserkennung, Telegram-Dialog, Google-Kalender-Adapter, Todoist-Adapter, JSON-Speicherung, Ablaufsteuerung und Logging.
+Vorgesehene Python-Module: Konfigurationsverwaltung, IMAP-Abruf, Mailaufbereitung, OpenRouter-Client, Relevanzprüfung, Zusammenfassung, Aktionserkennung, Telegram-Dialog, iCalendar-Dateierzeugung, Todoist-Adapter, JSON-Speicherung, Ablaufsteuerung und Logging.
 
 Fachlogik wird von Netzwerkzugriffen, Dateisystemzugriffen und Dialogtransport getrennt. Externe Adapter werden für Tests austauschbar ausgelegt. Das LLM erhält keine eigenständigen Schreibwerkzeuge und keine Zugangsdaten.
 
@@ -427,9 +427,9 @@ Zum Lieferumfang gehören `Dockerfile`, `compose.yaml`, eine Installationsanleit
 
 Timeouts und begrenzte Wiederholungsversuche mit zunehmenden Abständen gelten je Integration. Ein konfigurierbares LLM-Aufruflimit pro Zeitraum begrenzt automatische Anfragen. Bei Ausschöpfung werden Arbeiten zurückgestellt und sichtbar gemeldet. Numerische Standardwerte werden vor Implementierungsabschluss festgelegt.
 
-Nach erfolgreichem HTTP-Status validieren integrationsspezifische Antwortmodelle OpenRouter, Telegram, Todoist und Google Calendar auf JSON-Struktur, Pflichtfelder und erwartete IDs. Diagnosen nennen Integration und Schlüsselpfad, nie Tokens, Authorization-Header oder vollständige nicht freigeschaltete Inhalte.
+Nach erfolgreichem HTTP-Status validieren integrationsspezifische Antwortmodelle OpenRouter, Telegram und Todoist auf JSON-Struktur, Pflichtfelder und erwartete IDs. Diagnosen nennen Integration und Schlüsselpfad, nie Tokens, Authorization-Header oder vollständige nicht freigeschaltete Inhalte.
 
-Ein Testmodus führt Auswertung und Telegram-Dialog aus, verhindert aber alle Schreibzugriffe auf Google Kalender und Todoist. Simulierte Erfolge sind deutlich als Simulation markiert und werden nicht als echte externe Einträge gespeichert. Test- und Produktivzustand werden getrennt gehalten. Der Testmodus ist kein Offline-Modus: LLM- und Telegram-Aufrufe können weiterhin stattfinden.
+Ein Testmodus führt Auswertung und Telegram-Dialog aus, verhindert aber Todoist-Schreibzugriffe und den Versand von Kalenderdateien. Simulierte Erfolge sind deutlich als Simulation markiert und werden nicht als echte externe Einträge gespeichert. Test- und Produktivzustand werden getrennt gehalten. Der Testmodus ist kein Offline-Modus: LLM- und Telegram-Aufrufe können weiterhin stattfinden.
 
 ## 13. Tests und verbindliche Entwicklungsregeln
 
@@ -460,7 +460,7 @@ Folgender Inhalt ist bei der Projektinitialisierung in `AGENTS.md` im Repository
   Anwendungseinstellungen in config.yaml und Geheimnisse außerhalb des Codes.
 - Verwende lesbare JSON-Dateien für den Zustand und separate JSONL-Logs.
 - Erzwinge ausdrückliche, versionsbezogene Telegram-Bestätigung vor jedem
-  Schreibzugriff auf Google Kalender oder Todoist.
+  Todoist-Schreibzugriff oder Versand einer Kalenderdatei.
 - Behandle Mailinhalte und LLM-Ausgaben als nicht vertrauenswürdige Eingaben.
 - Verhindere doppelte Aktionen; gleiche unklare Schreibresultate vor Wiederholung ab.
 - Protokolliere keine Zugangsdaten. Vollständige LLM-Inhalte sind explizit zuschaltbar.
@@ -480,17 +480,17 @@ Folgender Inhalt ist bei der Projektinitialisierung in `AGENTS.md` im Repository
 3. Eine relevante Testmail erzeugt eine passende Zusammenfassung; eine irrelevante keine Benachrichtigung; eine unklare eine Rückfrage.
 4. Prompts, Modelle, Parameter und Themen sind ohne Codeänderung austauschbar.
 5. Aufgaben und Termine sind einzeln prüfbar. Fehlende erforderliche Angaben verhindern das Speichern.
-6. Vor einer gültigen Bestätigung gibt es keinen Schreibzugriff auf Kalender oder Aufgabenliste.
-7. Eine bestätigte Aufgabe landet im konfigurierten Todoist-Projekt; ein bestätigter Termin im konfigurierten Google-Kalender.
+6. Vor einer gültigen Bestätigung gibt es weder einen Todoist-Schreibzugriff noch den Versand einer Kalenderdatei.
+7. Eine bestätigte Aufgabe landet im konfigurierten Todoist-Projekt; für einen bestätigten Termin wird eine iCalendar-Datei per Telegram versendet, die auf iOS durch Antippen übernommen werden kann.
 8. Mehrfachbestätigungen und Wiederanlauf erzeugen keine unkontrollierten Duplikate. Unklare externe Ergebnisse werden sichtbar angehalten und abgeglichen.
 9. Offene Bestätigungen und Verarbeitungszustände überstehen Neustarts.
 10. LLM-Aufrufe sind im separaten Log über Aufruf- und Mail-ID nachvollziehbar. Geheimnisse erscheinen auch bei Fehlern nicht in Logs.
-11. Der Testmodus verhindert alle Kalender-/Todoist-Schreibzugriffe und meldet Simulationen eindeutig.
+11. Der Testmodus verhindert alle Kalenderdatei-/Todoist-Aktionen und meldet Simulationen eindeutig.
 12. Die automatisierte Testsuite erfüllt 100 % Zeilen- und Branch-Abdeckung des eigenen Anwendungscodes; die Regeln stehen in AGENTS.md.
 
 ## 15. Noch zu belegende Einrichtungswerte
 
-Vor produktiver Nutzung sind IMAP-Server und Ordner, Google-Zielkalender, Todoist-Zielprojekt, Telegram-Nutzer und Chat, konkrete Themen, OpenRouter-Modelle, Nutzerzeitzone, Abrufintervall, Limits und Aufbewahrungsfristen einzutragen. Sie ändern den vereinbarten Projektumfang nicht.
+Vor produktiver Nutzung sind IMAP-Server und Ordner, Todoist-Zielprojekt, Telegram-Nutzer und Chat, konkrete Themen, OpenRouter-Modelle, Nutzerzeitzone, Abrufintervall, Limits und Aufbewahrungsfristen einzutragen. Sie ändern den vereinbarten Projektumfang nicht.
 
 Die jeweils aktuellen Authentifizierungsabläufe, API-Details und unterstützten OpenRouter-Parameter sind zu Beginn der Implementierung anhand offizieller Dokumentation zu prüfen. Dieses Dokument legt Anforderungen fest und behauptet keine bereits geprüfte Kompatibilität bestimmter Modell-/Parameterkombinationen.
 
@@ -498,7 +498,7 @@ Die Projektinitialisierung 0.1.0 legt Python 3.12 (Referenzversion 3.12.10), ein
 
 ## 16. GitHub-Kurzbeschreibung
 
-Mailhelp ist ein Python-Assistent, der IMAP-Mails per LLM über OpenRouter filtert und zusammenfasst. Telegram liefert Zusammenfassungen und fragt Aufgaben sowie Termine ab, bevor sie nach Bestätigung in Todoist und Google Kalender eingetragen werden. Lokal und für Docker auf Linux ausgelegt.
+Mailhelp ist ein Python-Assistent, der IMAP-Mails per LLM über OpenRouter filtert und zusammenfasst. Telegram liefert Zusammenfassungen und fragt Aufgaben sowie Termine ab, bevor Aufgaben nach Bestätigung in Todoist angelegt und Termine als iCalendar-Datei über Telegram bereitgestellt werden. Lokal und für Docker auf Linux ausgelegt.
 
 ## 17. Strukturierte Überarbeitung von Vorschlägen
 
@@ -510,10 +510,11 @@ Ursprungsmail sowie exakt um eins erhöhter Version sein. Jede Version wird vor 
 Anzeige separat persistiert; fehlerhafte Ergebnisse lassen Vorschlag und Dialog
 unverändert. Eine Folgeversion darf erst ohne offene Fragen und nach vollständiger
 typabhängiger Validierung zur ausdrücklichen Bestätigung angeboten werden.
-# OAuth-Authentifizierung für Google Calendar
+# Kalenderdateien statt Google-Calendar-Zugriff
 
-Google Calendar wird über einen OAuth-2.0-Refresh-Token authentifiziert. Client-ID,
-Client-Secret und Refresh-Token sind reine Laufzeitgeheimnisse; kurzlebige
-Access-Tokens werden ausschließlich im Speicher gehalten und vor Ablauf erneuert.
-Ein HTTP-401-Ergebnis ist ein dauerhafter Authentifizierungsfehler und darf bei
-einem Kalender-Schreibzugriff keine automatische Wiederholung auslösen.
+Für bestätigte Termine erzeugt Mailhelp RFC-5545-kompatible `*.ics`-Dateien und
+versendet sie als Telegram-Dokument. Auf iOS kann der Termin durch Antippen in
+den gewünschten Kalender übernommen werden. Es werden keine Google-Zugangsdaten
+benötigt und keine Calendar-API aufgerufen. Der Versand verwendet einen stabilen
+Dateinamen und eine stabile UID; ein unklares Telegram-Schreibergebnis wird als
+`uncertain` angehalten und nicht automatisch wiederholt.

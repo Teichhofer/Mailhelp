@@ -249,10 +249,14 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
         calls=[]
         def __init__(self,*args,**kwargs):
             type(self).calls.append((args,kwargs))
+    class FakeCalendar(Resource):
+        calls=[]
+        def __init__(self,*args,**kwargs): type(self).calls.append((args,kwargs))
     monkeypatch.setattr("mailhelp.application.ImapReader",FakeImap)
     monkeypatch.setattr("mailhelp.application.OpenRouterClient",FakeOpen)
     monkeypatch.setattr("mailhelp.application.TelegramClient",FakeTelegram)
     monkeypatch.setattr("mailhelp.application.HttpWriter",FakeWriter)
+    monkeypatch.setattr("mailhelp.application.CalendarFileWriter",FakeCalendar)
     cfg=settings(tmp_path); cfg.imap.connection_mode=mode
     cfg.logging.file.enabled = False
     cfg.logging.file.level = "CRITICAL"
@@ -275,7 +279,7 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
         assert FakeImap.kwargs["starttls"] is starttls
         assert FakeImap.kwargs["batch_size"] == 25
         assert FakeImap.kwargs["factory"].__name__ == ("IMAP4_SSL" if mode=="ssl" else "IMAP4")
-        assert FakeWriter.calls[-1][1]["calendar_timezone"] == "UTC"
+        assert FakeCalendar.calls[-1][0][1] == cfg.telegram.chat_id
         assert made.logger.file_enabled is diagnostics
         assert made.logger.console_enabled is diagnostics
         assert made.logger.level == ("DEBUG" if diagnostics else "CRITICAL")
@@ -283,7 +287,7 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
         assert made.logger.module_levels == ({} if diagnostics else {"access_check": "CRITICAL"})
         if supplied_logger is not None:
             assert made.logger is supplied_logger
-    assert len(closed)==5 and (tmp_path/"data/test/.lock").exists()
+    assert len(closed)==4 and (tmp_path/"data/test/.lock").exists()
 
     cfg.data_directory=Path("relative"); cfg.logging.directory=Path("relative-logs")
     class BrokenTelegram(Resource):
