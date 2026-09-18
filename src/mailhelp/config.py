@@ -80,7 +80,9 @@ class AdapterPolicySettings(ConfigModel):
 
 
 class RetrySettings(ConfigModel):
-    validation: int = Field(ge=0, le=10)
+    provider_retry: int = Field(ge=0, le=10)
+    json_repair: int = Field(ge=0, le=10)
+    schema_repair: int = Field(ge=0, le=10)
 
 
 class TimeoutSettings(ConfigModel):
