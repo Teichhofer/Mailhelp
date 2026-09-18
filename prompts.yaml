@@ -15,7 +15,7 @@ prompts:
       - "decision": exakt "relevant", "irrelevant" oder "unclear";
       - "topic_ids": immer eine JSON-Liste, die nur IDs aus den übergebenen
         Themen enthalten darf und keine ID doppelt enthält;
-      - "reason": eine nicht leere Begründung mit höchstens 280 Zeichen.
+      - "reason": eine nicht leere Begründung mit höchstens 1000 Zeichen.
 
       Bei "irrelevant" muss "topic_ids" die leere Liste [] sein. Die Felder
       "not_relevant", "assigned_topics", "assigned_topic_ids" und "topic_id"
