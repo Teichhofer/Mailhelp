@@ -23,8 +23,8 @@ imap:
   batch_size: 25
   folders: [INBOX]
 telegram:
-  user_id: 123456
-  chat_id: 123456
+  user_id: 1009258347
+  chat_id: 1009258347
 targets:
   # Echte Todoist-Projekt-ID (nicht Projektname, URL oder Alias).
   todoist_project: "6hX5f7MxfC4Qmcrv"
