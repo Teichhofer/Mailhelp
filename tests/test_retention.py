@@ -99,19 +99,29 @@ def test_pending_and_open_relevance_are_protected_and_unlimited_is_explicit(tmp_
         assert store.load_model("duplicate-index", DuplicateIndex) == duplicate_index
 
 
-def test_completed_simulation_is_terminal_but_retained_as_action_result(tmp_path):
-    simulated = state("f" * 24, status=ProposalStatus.SIMULATED)
-    with JsonStore(tmp_path) as store:
-        store.save("mail-simulated", simulated.model_dump(mode="json"))
+@pytest.mark.parametrize("status", [
+    ProposalStatus.REJECTED,
+    ProposalStatus.CREATED,
+    ProposalStatus.SIMULATED,
+    ProposalStatus.FAILED,
+])
+def test_completed_proposal_is_terminal_but_retained_as_action_result(tmp_path, status):
+    completed = state("f" * 24, status=status)
+    with JsonStore(tmp_path / status.value) as store:
+        store.save("mail-completed", completed.model_dump(mode="json"))
         result = RetentionService(
             store, RetentionSettings(full_mail_days="disabled", debug_llm_days="disabled"),
             Log(), lambda: NOW,
         ).run()
-        kept = store.load_model("mail-simulated", MailState)
+        kept = store.load_model("mail-completed", MailState)
         assert result.protected == 0 and result.mail_scrubbed == 1
-        assert kept.proposals[0].status == ProposalStatus.SIMULATED
-        assert kept.proposals[0].simulation_notified
-        assert kept.proposals[0].external_id is None
+        assert kept.proposals[0].status == status
+        if status == ProposalStatus.SIMULATED:
+            assert kept.proposals[0].simulation_notified
+            assert kept.proposals[0].external_id is None
+        else:
+            assert kept.proposals[0].external_id == "external-1"
+            assert kept.proposals[0].external_link == "https://example.invalid/1"
 
 
 def test_retention_boundaries_missing_state_and_clock_validation():
