@@ -26,6 +26,16 @@ Termine. Für jeden Dienst erscheint `OK` oder `FEHLER`; sobald mindestens eine
 Prüfung fehlschlägt, endet der Prozess mit Status 1. Im Container kann derselbe
 Test mit `docker compose run --rm mailhelp --check-access` ausgeführt werden.
 
+### Todoist-Zugangsdaten einrichten
+
+Die Todoist-Anwendungsdaten werden ausschließlich über die `.env` oder gleichnamige
+Prozessumgebungsvariablen eingelesen. Nach dem Kopieren von `.env.example` sind dort
+`TODOIST_CLIENT_ID` und `TODOIST_CLIENT_SECRET` mit der Client-ID beziehungsweise
+dem Client-Schlüssel der Todoist-Anwendung zu befüllen. Das für die REST-API als
+Bearer-Token verwendete `TODOIST_TOKEN` wird ebenfalls dort gespeichert; Client-ID
+und Client-Schlüssel ersetzen dieses Zugriffstoken nicht. Keiner dieser Werte
+gehört in `config.yaml`, Zustandsdateien oder Logs.
+
 ### Google Calendar OAuth einrichten
 
 Mailhelp verwendet den OAuth-2.0-Refresh-Token-Ablauf; ein manuell erzeugtes,
