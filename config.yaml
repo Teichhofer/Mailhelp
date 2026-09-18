@@ -19,7 +19,7 @@ imap:
   connection_mode: ssl
   # Nachrichten mit einem IMAP-Empfangszeitpunkt vor dieser Grenze werden beim
   # erstmaligen Aufbau des Abrufpunkts nicht verarbeitet (15.09.2026, Berlin).
-  historical_start: "2026-09-15T00:00:00+02:00"
+  historical_start: "2026-08-15T00:00:00+02:00"
   # Pro Polling-Zyklus werden höchstens so viele Nachrichten geladen und direkt
   # verarbeitet. Das verhindert lange stille Erstabrufe großer Postfächer.
   batch_size: 25
