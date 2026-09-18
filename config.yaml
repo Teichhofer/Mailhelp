@@ -71,5 +71,7 @@ logging:
     max_bytes: 10000000
     backup_count: 5
     retention_days: 30
-    include_requests: false
-    include_responses: false
+    # Bewusste Opt-in-Konfiguration: vollständige System-/User-Prompts und
+    # Modellnachrichten werden (nach Geheimnisbereinigung) ins LLM-Log geschrieben.
+    include_requests: true
+    include_responses: true

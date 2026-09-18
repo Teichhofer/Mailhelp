@@ -74,6 +74,8 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
     env = {x: "secret" for x in ["IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN", "TODOIST_TOKEN", "TODOIST_CLIENT_ID", "TODOIST_CLIENT_SECRET", "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"]}
     settings, secrets, topics, prompts, fingerprint = load_all(tmp_path, env)
     assert settings.test_mode and secrets.imap_password.get_secret_value() == "secret" and topics[0].enabled and len(fingerprint) == 64
+    assert settings.logging.llm.include_requests is True
+    assert settings.logging.llm.include_responses is True
     with pytest.raises(ValueError, match="Fehlende"): load_all(tmp_path, {})
     (tmp_path / ".env").write_text("\n".join(f"{key}=from-file" for key in env), encoding="utf8")
     assert load_all(tmp_path, {"IMAP_USERNAME": "runtime"})[1].imap_username == "runtime"
