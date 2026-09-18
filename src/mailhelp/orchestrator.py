@@ -173,22 +173,14 @@ class Orchestrator:
         return state.duplicate.outcome == "duplicate"
 
     def _notification_text(self, state: MailState) -> str:
-        """Format only sanitized headers and schema-validated analysis results."""
+        """Format the compact mail notification from validated display values."""
         assert state.mail is not None and state.relevance is not None and state.summary is not None
         headers = state.mail["headers"]
-        topic_names = {topic.id: topic.name for topic in self.topics}
-        topics = ", ".join(topic_names[topic_id] for topic_id in state.relevance.topic_ids) or "Keine"
-        deadlines = "\n".join(f"- {deadline}" for deadline in state.summary.deadlines) or "Keine"
         sentences = "\n".join(f"- {sentence}" for sentence in state.summary.sentences)
-        action = (f"Ja – {len(state.proposals)} Vorschlag/Vorschläge zur Prüfung."
-                  if state.proposals else "Nein – kein Vorschlag erkannt.")
         return "\n".join([
             f"Absender: {headers['from'] or '—'}",
             f"Betreff: {headers['subject'] or '—'}",
-            f"Themen: {topics}",
             f"Zusammenfassung:\n{sentences}",
-            f"Wichtige Fristen:\n{deadlines}",
-            f"Handlungsbedarf: {action}",
         ])
 
     def _save(self, name: str, state: MailState) -> None:

@@ -316,8 +316,8 @@ Chat darf sie auslösen. Jede angezeigte Version wird vor ihren Schaltflächen
 gespeichert. `Bestätigen`, `Ändern` und `Verwerfen` werden getrennt behandelt,
 während veraltete oder fehlerhafte Schaltflächen keinen Zustand verändern.
 Antworten auf Rückfragen erzeugen eine neue, erneut zu bestätigende Version.
-Die Zusammenfassung nennt Absender, Betreff, zugeordnete Themen, zwei bis vier
-Zusammenfassungssätze, wichtige Fristen und den erkannten Handlungsbedarf. Jeder
+Die kompakte Mailnachricht nennt ohne interne Mail-ID zuerst den Absender, direkt
+darunter den Betreff und danach zwei bis vier Zusammenfassungssätze. Jeder
 Vorschlag zeigt vor den Schaltflächen alle entscheidungsrelevanten Felder in einer
 festen Reihenfolge; Termine nennen dabei auch die konfigurierte Zeitzone. Lange
 Vorschläge tragen in jedem Teil Mail-ID, Vorschlags-ID und Teilnummer. Solange
