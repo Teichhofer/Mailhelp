@@ -14,7 +14,7 @@ retention:
   full_mail_days: 30
   debug_llm_days: disabled
 imap:
-  host: imap.example.invalid
+  host: imap.web.de
   port: 993
   connection_mode: ssl
   historical_start: null
