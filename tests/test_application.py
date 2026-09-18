@@ -5,7 +5,7 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 import pytest
 
-from mailhelp.application import Application, _MailBudget, _checkpoint_name, _safe_name, _state_directory, build_application, build_logger
+from mailhelp.application import Application, _MailBudget, _add_uid, _checkpoint_name, _safe_name, _state_directory, build_application, build_logger
 from mailhelp.config import Secrets, Settings, Topic
 from mailhelp.imap import FetchedMail
 from mailhelp.models import MailState
@@ -73,7 +73,7 @@ def test_polling_errors_resume_and_stop(tmp_path):
     store=Store({_checkpoint_name("0"*24, "INBOX"):{"uidvalidity":7,"uid":3},"telegram-offset":{"offset":8}})
     service=app(tmp_path,Imap([(7,[mail1,mail2])]),Telegram([{"update_id":8},{"update_id":10}]),Orch(fail=True),store=store)
     service._poll_imap(); service._poll_telegram()
-    assert service.imap.calls==[("INBOX",3,7,None)] and service.orchestrator.seen==[4,5]
+    assert service.imap.calls==[("INBOX",3,7,None,())] and service.orchestrator.seen==[4,5]
     assert store.values[_checkpoint_name("0"*24, "INBOX")]["uid"]==3 and store.values["telegram-offset"]["offset"]==11
     assert any(e[0][2]=="mail_failed" for e in service.logger.events)
 
@@ -86,7 +86,8 @@ def test_polling_errors_resume_and_stop(tmp_path):
     mixed=app(tmp_path,Imap([(7,[mail1,mail2])]),Telegram([]),FirstFails(),store=mixed_store)
     mixed._poll_imap()
     assert mixed.orchestrator.seen==[4,5]
-    assert mixed_store.values[_checkpoint_name("0"*24, "INBOX")]["uid"]==3
+    assert mixed_store.values[_checkpoint_name("0"*24, "INBOX")]["uid"]==5
+    assert mixed_store.values[_checkpoint_name("0"*24, "INBOX")]["completed_uid_ranges"]==[(5,5)]
 
     class FirstReturnsFailure(Orch):
         def process(self, mail):
@@ -112,7 +113,7 @@ def test_polling_errors_resume_and_stop(tmp_path):
 
     limited=app(tmp_path,Imap([(7,[mail1])]),Telegram([]),Orch(),store=store)
     limited._poll_imap(max_mails=1)
-    assert limited.imap.calls == [("INBOX",3,7,1)]
+    assert limited.imap.calls == [("INBOX",3,7,1,())]
 
 
 def test_empty_checkpoint_and_run_paths(tmp_path):
@@ -154,6 +155,55 @@ def test_empty_checkpoint_and_run_paths(tmp_path):
     assert failed_dialog.logger.events[0][0][2]=="poll_failed"
 
 
+def test_newest_first_backlog_arrivals_restart_failure_and_folders(tmp_path):
+    """Ranges preserve holes while new mail is prioritized across short batches."""
+    class BacklogImap:
+        account_id="0"*24
+        last_uidvalidity=None
+        def __init__(self):
+            self.available={"INBOX":[4,5,6],"Archive":[2]}; self.calls=[]
+        def fetch_since(self,folder,start,expected,maximum,ranges):
+            self.calls.append((folder,start,expected,maximum,ranges))
+            self.last_uidvalidity=7
+            remaining=[uid for uid in reversed(self.available[folder])
+                       if uid>start and not any(a<=uid<=b for a,b in ranges)]
+            count=min(2,maximum) if maximum is not None else 2
+            return [FetchedMail(folder,7,uid,b"x") for uid in remaining[:count]]
+        def fetch_uid(self,*_args): raise AssertionError("no pending state")
+    class FailFiveOnce(Orch):
+        def __init__(self): super().__init__(); self.failed=False
+        def process(self,mail):
+            self.seen.append(mail.uid)
+            if mail.uid==5 and not self.failed:
+                self.failed=True; raise RuntimeError("synthetic")
+            return ProcessingResult(ProcessingOutcome.COMPLETED,{})
+
+    reader=BacklogImap(); store=Store(); folders=("INBOX","Archive")
+    first=app(tmp_path,reader,Telegram([]),FailFiveOnce(),folders=folders,store=store)
+    first._poll_imap(max_mails=2)
+    key=_checkpoint_name(reader.account_id,"INBOX")
+    assert first.orchestrator.seen==[6,5]
+    assert store.values[key]["completed_uid_ranges"]==[(6,6)]
+
+    # UID 7 arrives while UID 5 and 4 are still in the durable backlog.  A new
+    # Application instance proves that the JSON checkpoint alone is sufficient.
+    reader.available["INBOX"].append(7)
+    restarted=app(tmp_path,reader,Telegram([]),Orch(),folders=folders,store=store)
+    restarted._poll_imap(max_mails=2)
+    assert restarted.orchestrator.seen==[7,5]
+    assert store.values[key]["completed_uid_ranges"]==[(5,7)]
+    restarted._poll_imap(max_mails=2)
+    assert restarted.orchestrator.seen==[7,5,4,2]
+    assert store.values[key]["completed_uid_ranges"]==[(4,7)]
+    assert store.values[_checkpoint_name(reader.account_id,"Archive")]["completed_uid_ranges"]==[(2,2)]
+
+
+def test_uid_range_normalization_paths():
+    assert _add_uid([(1,1),(4,4)],3)==[(1,1),(3,4)]
+    assert _add_uid([(1,2),(4,5)],3)==[(1,5)]
+    assert _add_uid([(3,4)],1)==[(1,1),(3,4)]
+
+
 def test_run_sends_aggregate_summary_on_normal_and_exceptional_exit(tmp_path):
     service=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch())
     service._poll_imap=lambda _limit=None: [
@@ -190,7 +240,7 @@ def test_bounded_run_limits_resumed_and_new_mail_then_exits(tmp_path):
     service.run(max_mails=2)
 
     assert service.orchestrator.seen == [2,3]
-    assert service.imap.calls == [("INBOX",2,7,1)]
+    assert service.imap.calls == [("INBOX",2,7,1,())]
     assert service.telegram.offsets == [0]
     assert store.values[key]["uid"] == 3
     assert not service.stop_event.is_set()
@@ -394,13 +444,14 @@ def test_historical_start_is_persisted_account_scoped_and_uidvalidity_logged(tmp
     service._poll_imap()
     key=_checkpoint_name("1"*24,"INBOX")
     assert fake.determine_calls==[("INBOX",boundary)]
-    assert fake.calls==[("INBOX",41,None,None)] and store.values[key]["start_uid"]==41
+    assert fake.calls==[("INBOX",41,None,None,())] and store.values[key]["start_uid"]==41
 
-    restarted=Imap([(9,[])]); restarted.account_id="1"*24
-    restarted.determine_start_uid=lambda *_: pytest.fail("persisted boundary was reinterpreted")
+    restarted=Imap([(9,[]),(9,[])]); restarted.account_id="1"*24
+    restarted.determine_start_uid=lambda *_: 42
     again=Application(cfg,store,Log(),restarted,object(),object(),Telegram([]),object(),object(),Orch(),__import__('threading').Event())
     again._poll_imap()
-    assert restarted.calls==[("INBOX",0,8,None)]
+    assert restarted.calls==[("INBOX",41,8,None,()),("INBOX",42,9,None,())]
+    assert store.values[key]["start_uid"]==42
     assert any(event[0][2]=="uidvalidity_changed" for event in again.logger.events)
 
     changed=Imap([(3,[])]); changed.account_id="2"*24
@@ -408,6 +459,17 @@ def test_historical_start_is_persisted_account_scoped_and_uidvalidity_logged(tmp
     other=Application(cfg,store,Log(),changed,object(),object(),Telegram([]),object(),object(),Orch(),__import__('threading').Event())
     other._poll_imap()
     assert _checkpoint_name("2"*24,"INBOX") in store.values
+
+    no_history_store=Store({_checkpoint_name("0"*24,"INBOX"):{"uidvalidity":1,"uid":9,"start_uid":0}})
+    no_history=app(tmp_path,Imap([(2,[])]),Telegram([]),Orch(),store=no_history_store)
+    no_history._poll_imap()
+    assert no_history_store.values[_checkpoint_name("0"*24,"INBOX")]["uid"]==0
+
+    broken=Imap([(10,[]) ]); broken.account_id="1"*24
+    broken.determine_start_uid=lambda *_: (_ for _ in ()).throw(RuntimeError("boundary"))
+    failed=Application(cfg,store,Log(),broken,object(),object(),Telegram([]),object(),object(),Orch(),__import__('threading').Event())
+    failed._poll_imap()
+    assert failed.logger.events[-1][0][2]=="poll_failed"
 
     foreign=MailState(id="f"*24,config_fingerprint="0"*64,imap={"account_id":"9"*24,"folder":"INBOX","uidvalidity":1,"uid":1})
     other.store.values["mail-foreign"]=foreign.model_dump(mode="json")

@@ -28,6 +28,22 @@ from .retention import RetentionService
 _BLOCKED_STATE_SCAN_LIMIT = 1000
 
 
+def _add_uid(ranges: list[tuple[int, int]], uid: int) -> list[tuple[int, int]]:
+    """Return normalized completed UID ranges after adding one UID."""
+    result: list[tuple[int, int]] = []
+    start = end = uid
+    for current_start, current_end in ranges:
+        if current_end + 1 < start:
+            result.append((current_start, current_end))
+        elif end + 1 < current_start:
+            result.append((start, end))
+            start, end = current_start, current_end
+        else:
+            start, end = min(start, current_start), max(end, current_end)
+    result.append((start, end))
+    return result
+
+
 @dataclass
 class _MailBudget:
     """Independent per-run budgets for actionable and blocked mail states."""
@@ -179,11 +195,17 @@ class Application:
                     checkpoint_model = ImapCheckpoint(uidvalidity=initial_uidvalidity, uid=start_uid, start_uid=start_uid)
                     self.store.save(checkpoint_name, checkpoint_model.model_dump())
                     checkpoint = checkpoint_model.model_dump(exclude={"schema_version"})
+                ranges = checkpoint["completed_uid_ranges"]
+                # Checkpoints written before range tracking used one ascending
+                # high-water mark.  Import that already completed prefix once.
+                if not ranges and checkpoint["uid"] > checkpoint["start_uid"]:
+                    ranges = [(checkpoint["start_uid"] + 1, checkpoint["uid"])]
                 mails = self.imap.fetch_since(
                     folder,
-                    checkpoint.get("uid", 0),
+                    checkpoint["start_uid"],
                     checkpoint.get("uidvalidity"),
                     budget.remaining if budget is not None else None,
+                    tuple(ranges),
                 )
             except Exception as exc:
                 self.logger.event("ERROR", "imap", "poll_failed", folder=folder, error=str(exc))
@@ -192,7 +214,20 @@ class Application:
                     and checkpoint.get("uidvalidity") != self.imap.last_uidvalidity):
                 self.logger.event("WARNING", "imap", "uidvalidity_changed", account_id=self.imap.account_id, folder=folder,
                                   previous_uidvalidity=checkpoint.get("uidvalidity"), uidvalidity=self.imap.last_uidvalidity)
-            checkpoint_reachable = True
+                if self.settings.imap.historical_start is not None:
+                    try:
+                        start_uid = self.imap.determine_start_uid(folder, self.settings.imap.historical_start)
+                        mails = self.imap.fetch_since(folder, start_uid, self.imap.last_uidvalidity,
+                                                      budget.remaining, ())
+                    except Exception as exc:
+                        self.logger.event("ERROR", "imap", "poll_failed", folder=folder, error=str(exc))
+                        continue
+                else:
+                    start_uid = 0
+                checkpoint = ImapCheckpoint(uidvalidity=self.imap.last_uidvalidity,
+                                            uid=start_uid, start_uid=start_uid).model_dump(exclude={"schema_version"})
+                ranges = []
+                self.store.save(checkpoint_name, ImapCheckpoint(**checkpoint).model_dump())
             for mail in mails:
                 if self.stop_event.is_set() or budget.remaining == 0:
                     break
@@ -202,20 +237,23 @@ class Application:
                     result = self.orchestrator.process(mail)
                 except Exception as exc:
                     self.logger.event("ERROR", "orchestrator", "mail_failed", folder=folder, uid=mail.uid, error=str(exc))
-                    checkpoint_reachable = False
                     continue
                 results.append(result)
                 # Every regular result has a durable mail state, including failed
                 # and deliberately waiting work.  It is therefore safe to move the
                 # discovery checkpoint and let _resume_pending own unfinished work.
-                if checkpoint_reachable:
-                    self.store.save(checkpoint_name, ImapCheckpoint(uidvalidity=mail.uidvalidity, uid=mail.uid, start_uid=checkpoint["start_uid"]).model_dump())
+                ranges = _add_uid(ranges, mail.uid)
+                checkpoint["uid"] = max(checkpoint["uid"], mail.uid)
+                checkpoint["uidvalidity"] = mail.uidvalidity
+                checkpoint["completed_uid_ranges"] = ranges
+                self.store.save(checkpoint_name, ImapCheckpoint(**checkpoint).model_dump())
                 if result.outcome is ProcessingOutcome.FAILED:
                     self.logger.event("ERROR", "orchestrator", "mail_failed", folder=folder, uid=mail.uid,
                                       error=result.state.get("error"))
             if not mails and self.imap.last_uidvalidity is not None:
-                uid = checkpoint.get("uid", 0) if checkpoint.get("uidvalidity") == self.imap.last_uidvalidity else 0
-                self.store.save(checkpoint_name, ImapCheckpoint(uidvalidity=self.imap.last_uidvalidity, uid=uid, start_uid=checkpoint["start_uid"]).model_dump())
+                if checkpoint["uidvalidity"] is None:
+                    checkpoint["uidvalidity"] = self.imap.last_uidvalidity
+                self.store.save(checkpoint_name, ImapCheckpoint(**checkpoint).model_dump())
         return results
 
     def _resume_pending(self, budget: _MailBudget | None = None) -> list[ProcessingResult]:

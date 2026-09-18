@@ -174,18 +174,29 @@ def test_imap_fetch_is_batched_and_reports_progress():
 
     logger=Logger()
     reader=ImapReader("h",1,"u","p",factory=ManyImap,logger=logger,batch_size=2)
-    assert [mail.uid for mail in reader.fetch_since("INBOX")] == [4,5]
+    assert [mail.uid for mail in reader.fetch_since("INBOX")] == [6,5]
     progress=[event for event in logger.events if event[2] in {"messages_discovered","message_fetched"}]
     assert progress[0] == ("INFO","imap","messages_discovered",{"folder":"INBOX","available_count":3,"batch_count":2})
-    assert progress[1][2:] == ("message_fetched",{"folder":"INBOX","uid":4,"batch_index":1,"batch_count":2})
+    assert progress[1][2:] == ("message_fetched",{"folder":"INBOX","uid":6,"batch_index":1,"batch_count":2})
     assert progress[2][2:] == ("message_fetched",{"folder":"INBOX","uid":5,"batch_index":2,"batch_count":2})
 
-    assert [mail.uid for mail in reader.fetch_since("INBOX", max_count=1)] == [4]
+    assert [mail.uid for mail in reader.fetch_since("INBOX", max_count=1)] == [6]
     limited=[event for event in logger.events if event[2] == "messages_discovered"][-1]
     assert limited[3] == {"folder":"INBOX","available_count":3,"batch_count":1}
 
     reader.connection.uid=lambda *_args: ("OK", [])
     assert reader.fetch_since("INBOX") == []
+
+
+def test_imap_newest_first_skips_completed_ranges_and_resets_on_uidvalidity():
+    class BacklogImap(FakeImap):
+        def uid(self, action, *args):
+            if action == "search": return "OK", [b"4 5 6"]
+            uid=args[0]
+            return "OK", [(uid+b' (INTERNALDATE "17-Sep-2026 10:11:12 +0200")',b"raw")]
+    reader=ImapReader("h",1,"u","p",factory=BacklogImap,batch_size=3)
+    assert [m.uid for m in reader.fetch_since("INBOX",3,7,completed_uid_ranges=((5,6),))]==[4]
+    assert [m.uid for m in reader.fetch_since("INBOX",3,8,completed_uid_ranges=((4,6),))]==[6,5,4]
 
 
 def test_imap_connection_and_exact_historical_boundary():

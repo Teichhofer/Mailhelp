@@ -14,8 +14,21 @@ class StrictModel(BaseModel):
 class ImapCheckpoint(StrictModel):
     schema_version: Literal[1] = 1
     uidvalidity: int | None = Field(default=None, ge=1)
+    # ``uid`` remains as a human-friendly high-water mark and for backwards
+    # compatibility.  Correctness is provided by the completed ranges: a high
+    # UID must never imply that lower UIDs have also been handled.
     uid: int = Field(default=0, ge=0)
     start_uid: int | None = Field(default=None, ge=0)
+    completed_uid_ranges: list[tuple[int, int]] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def valid_completed_uid_ranges(self) -> "ImapCheckpoint":
+        previous_end = self.start_uid or 0
+        for start, end in self.completed_uid_ranges:
+            if start > end or start <= previous_end:
+                raise ValueError("UID-Bereiche müssen geordnet, getrennt und oberhalb der Start-UID liegen")
+            previous_end = end
+        return self
 
 
 class TelegramOffset(StrictModel):

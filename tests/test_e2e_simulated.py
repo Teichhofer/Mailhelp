@@ -38,7 +38,7 @@ class FakeImap:
         self.fetched = fetched
         self.calls = []
 
-    def fetch_since(self, folder, uid, uidvalidity, max_count=None):
+    def fetch_since(self, folder, uid, uidvalidity, max_count=None, completed_uid_ranges=()):
         self.calls.append((folder, uid, uidvalidity))
         value, self.fetched = self.fetched, []
         return value

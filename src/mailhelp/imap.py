@@ -72,11 +72,12 @@ class ImapReader:
 
     def fetch_since(self, folder: str, after_uid: int = 0,
                     expected_uidvalidity: int | None = None,
-                    max_count: int | None = None) -> list[FetchedMail]:
+                    max_count: int | None = None,
+                    completed_uid_ranges: tuple[tuple[int, int], ...] = ()) -> list[FetchedMail]:
         started = time.perf_counter()
         self.logger.event("INFO", "imap", "request_started", folder=folder, after_uid=after_uid)
         try:
-            result = self.policy.run(lambda: self._fetch_since(folder, after_uid, expected_uidvalidity, max_count),
+            result = self.policy.run(lambda: self._fetch_since(folder, after_uid, expected_uidvalidity, max_count, completed_uid_ranges),
                                      lambda attempt: self.logger.event("DEBUG", "imap", "request_attempt", folder=folder, attempt=attempt),
                                      lambda attempt, exc: self.logger.event("WARNING", "imap", "request_retry", folder=folder, attempt=attempt, error=exc))
         except Exception as exc:
@@ -132,7 +133,8 @@ class ImapReader:
 
     def _fetch_since(self, folder: str, after_uid: int,
                      expected_uidvalidity: int | None,
-                     max_count: int | None) -> list[FetchedMail]:
+                     max_count: int | None,
+                     completed_uid_ranges: tuple[tuple[int, int], ...] = ()) -> list[FetchedMail]:
         status, data = self.connection.select(folder, readonly=True)
         if status != "OK": raise RuntimeError(f"IMAP-Ordner nicht lesbar: {folder}")
         status, validity = self.connection.response("UIDVALIDITY")
@@ -140,13 +142,17 @@ class ImapReader:
         uidvalidity = int(validity[0]); self.last_uidvalidity = uidvalidity
         if expected_uidvalidity != uidvalidity:
             after_uid = 0
+            completed_uid_ranges = ()
         status, matches = self.connection.uid("search", None, f"UID {after_uid + 1}:*")
         if status != "OK": raise RuntimeError("IMAP-Suche fehlgeschlagen")
         tokens = matches[0].split() if matches else []
+        def completed(uid: int) -> bool:
+            return any(start <= uid <= end for start, end in completed_uid_ranges)
+        available = [token for token in reversed(tokens) if not completed(int(token))]
         fetch_count = self.batch_size if max_count is None else min(self.batch_size, max_count)
-        selected = tokens[:fetch_count]
+        selected = available[:fetch_count]
         self.logger.event("INFO", "imap", "messages_discovered", folder=folder,
-                          available_count=len(tokens), batch_count=len(selected))
+                          available_count=len(available), batch_count=len(selected))
         result = []
         for token in selected:
             uid = int(token); status, body = self.connection.uid("fetch", token, "(BODY.PEEK[] INTERNALDATE)")

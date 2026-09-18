@@ -115,6 +115,10 @@ def test_settings_reject_missing_extra_types_ranges_and_semantics(tmp_path):
 
 def test_versioned_state_models_and_schema_quarantine(tmp_path):
     assert ImapCheckpoint(uidvalidity=1, uid=2).schema_version == 1
+    with pytest.raises(ValidationError, match="UID-Bereiche"):
+        ImapCheckpoint(start_uid=2, completed_uid_ranges=[(2,3)])
+    with pytest.raises(ValidationError, match="UID-Bereiche"):
+        ImapCheckpoint(completed_uid_ranges=[(4,3)])
     assert TelegramOffset(offset=2).schema_version == 1
     identity = {"account_id": "0" * 24, "folder": "INBOX", "uidvalidity": 1, "uid": 2}
     entry = DuplicateIndexEntry(mail_id="a" * 24, imap=identity,
