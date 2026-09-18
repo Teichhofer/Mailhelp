@@ -100,6 +100,20 @@ auch Textteile mit Dateinamen gelten unabhängig von einer fehlenden oder als
 geladen. Unicode wird normalisiert und problematische Steuerzeichen werden
 entfernt, Zeilenumbrüche bleiben erhalten.
 
+Unmittelbar vor dieser vollständigen Aufbereitung wird für Telegram eine eigene,
+streng begrenzte Anzeigeextraktion ausgeführt. Sie betrachtet höchstens
+`limits.max_header_bytes` bis zur ersten Leerzeile und liest daraus ausschließlich
+`From` und `Subject`; es gibt keinen Rückfall auf das Parsen der gesamten Nachricht.
+Nur je ein vorhandener, vollständig dekodierter und auf
+`limits.max_display_header_characters` begrenzter Feldwert wird nach Entfernung
+von Steuerzeichen und Zusammenfassung aller Zeilenumbrüche einzeilig gespeichert.
+Andernfalls wird `—` gespeichert. Diese schema-validierten `display_headers`
+werden vor der MIME-Aufbereitung im Mailzustand persistiert, sind weder eine
+erfolgreich vorbereitete Mail noch LLM-Eingabe und stehen deshalb auch bei einem
+MIME-Grenzfehler und nach Neustart für genau eine Fehlerbenachrichtigung bereit.
+Mailzustandsschema 9 ergänzt dieses Feld; die Migration von Schema 8 übernimmt
+vorhandene vorbereitete Werte für Absender und Betreff, sonst `—`.
+
 Header und Text werden dem LLM ausschließlich als getrennte Datenfelder und nie
 als Prompt-Anweisungen übergeben. Metadaten über ausgelassene Anhänge und eine
 Reply-/Signaturkürzung bleiben in Zusammenfassungsdaten, Zustand und Logging

@@ -3,6 +3,7 @@ import json
 from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 import httpx, pytest
+from email.message import EmailMessage
 from pydantic import ValidationError
 import yaml
 from mailhelp.analysis import (Analyzer, LlmInvalidJson, LlmProviderResponseInvalid,
@@ -11,6 +12,7 @@ from mailhelp.analysis import (Analyzer, LlmInvalidJson, LlmProviderResponseInva
 from mailhelp.config import TargetSettings, Topic
 from mailhelp.imap import FetchedMail
 from mailhelp.integrations import CalendarFileWriter, HttpWriter, calendar_file, execute_confirmed
+from mailhelp.mime import MimeLimits
 from mailhelp.models import ActionRoute, Proposal, ProposalStatus, RelevanceDialog
 from mailhelp.openrouter import (InvalidJson, OpenRouterClient, ProviderResponseInvalid,
                                  RateLimitExceeded)
@@ -579,13 +581,17 @@ def test_orchestrator(tmp_path):
         assert o.process(mail)==state
     with JsonStore(tmp_path/"d") as store:
         notify=Notify()
-        failed=Orchestrator(AnalyzerStub("relevant"),store,notify,1,[topic],1).process(mail)
+        oversized = FetchedMail("INBOX", 1, 2,
+            b"From: safe@example.test\nSubject: Safe subject\n\n" + b"x" * 2_000)
+        failed=Orchestrator(AnalyzerStub("relevant"),store,notify,1,[topic],1).process(oversized)
         assert failed.outcome is ProcessingOutcome.FAILED and "error" in failed
         assert notify.messages == [
-            "Absender: —\nBetreff: —\nStufe preparation: "
+            "Absender: safe@example.test\nBetreff: Safe subject\nStufe preparation: "
             "Die Nachricht überschreitet ein Sicherheitslimit. Bitte Anhänge oder Nachrichtengröße reduzieren."
         ]
         assert failed["id"] not in notify.messages[0]
+        assert failed["mail"] is None and failed["display_headers"] == {
+            "sender": "safe@example.test", "subject": "Safe subject"}
     with JsonStore(tmp_path/"e") as store:
         o=Orchestrator(AnalyzerStub("irrelevant"),store,Notify(),1,[topic],1000); count=[]
         def poll(): count.append(1); o.stop(); return [mail]
@@ -916,6 +922,49 @@ def test_safe_failures_are_structured_and_notified_once_after_restart(tmp_path, 
         assert "Betreff: Classified" in message and "relevance" in message
         assert first["id"] not in message
         assert "Private body" not in message and "not-for" not in message
+
+
+@pytest.mark.parametrize("limit_name", ["max_mime_parts", "max_decoded_text_bytes"])
+def test_mime_limit_uses_persisted_display_headers_once_after_restart(tmp_path, limit_name):
+    message = EmailMessage()
+    message["From"] = "bounded@example.test"
+    message["Subject"] = "Visible safely"
+    if limit_name == "max_mime_parts":
+        message.make_mixed()
+        for text in ("one", "two"):
+            part = EmailMessage(); part.set_content(text); message.attach(part)
+    else:
+        message.set_content("decoded text is too long")
+    limits = MimeLimits(
+        max_mail_bytes=100_000,
+        max_mime_parts=1 if limit_name == "max_mime_parts" else 20,
+        max_decoded_text_bytes=4 if limit_name == "max_decoded_text_bytes" else 10_000,
+    )
+    fetched = FetchedMail("INBOX", 1, 99, message.as_bytes())
+    topic = Topic(id="x", name="x", enabled=True, description="x")
+    notify = Notify()
+    class Log:
+        def __init__(self): self.events = []
+        def event(self, *args, **kwargs): self.events.append((args, kwargs))
+    log = Log()
+    directory = tmp_path / limit_name
+    with JsonStore(directory) as store:
+        first = Orchestrator(AnalyzerStub("irrelevant"), store, notify, 1, [topic],
+                             100_000, logger=log, mime_limits=limits).process(fetched)
+        assert first.outcome is ProcessingOutcome.FAILED
+        assert first["mail"] is None
+        assert first["display_headers"] == {
+            "sender": "bounded@example.test", "subject": "Visible safely"}
+    with JsonStore(directory) as store:
+        second = Orchestrator(AnalyzerStub("irrelevant"), store, notify, 1, [topic],
+                              100_000, logger=log, mime_limits=limits).process(fetched)
+    assert second["error"]["occurred_at"] == first["error"]["occurred_at"]
+    assert notify.messages == [
+        "Absender: bounded@example.test\nBetreff: Visible safely\nStufe preparation: "
+        "Die Nachricht überschreitet ein Sicherheitslimit. Bitte Anhänge oder Nachrichtengröße reduzieren."
+    ]
+    exceeded = [kwargs for args, kwargs in log.events if args[2] == "mime_limit_exceeded"]
+    assert [event["limit"] for event in exceeded] == [limit_name, limit_name]
 
 
 def test_http_writer_rejects_non_writable_proposal_before_request():

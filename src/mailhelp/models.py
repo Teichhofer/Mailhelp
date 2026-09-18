@@ -401,6 +401,7 @@ class MailState(StrictModel):
     config_fingerprint: str = Field(pattern=r"^[a-f0-9]{64}$")
     steps: ProcessingSteps = Field(default_factory=ProcessingSteps)
     mail: dict[str, Any] | None = None
+    display_headers: DisplayHeaders | None = None
     relevance: Relevance | None = None
     summary: Summary | None = None
     action_route: ActionRoute | None = None

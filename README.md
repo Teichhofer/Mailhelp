@@ -151,6 +151,14 @@ Nur Transportfehler sowie HTTP 408, 425, 429, 500, 502, 503 und 504 werden bei l
   die zusätzlichen MIME-, Text-, HTML- und LLM-Nutzlastgrenzen bleiben weiterhin
   wirksam. Alternativ müssen Nachricht oder Anhänge vor der Verarbeitung verkleinert
   werden.
+  Vor der vollständigen MIME-Aufbereitung liest Mailhelp ausschließlich den bis
+  `limits.max_header_bytes` begrenzten, vollständig abgeschlossenen Headerblock,
+  um `From` und `Subject` sicher in der Telegram-Fehlermeldung anzuzeigen. Diese
+  eingeschränkte Headeranzeige ist **keine** erfolgreiche oder vollständige
+  MIME-Verarbeitung und gelangt nicht an das LLM; fehlende, abgeschnittene oder
+  überlange Werte erscheinen als `—`. Das Ereignis `mime_limit_exceeded` enthält
+  weiterhin im Feld `limit` die konkret überschrittene Grenze, etwa
+  `max_mime_parts` oder `max_decoded_text_bytes`.
 * Wiederholte `configuration_changed`-Ereignisse sind eine absichtliche
   Schutzsperre: Offene Zustände wurden mit einer anderen Kombination aus
   `config.yaml`, `prompts.yaml` und `topics.yaml` erzeugt. Nicht durch Löschen
