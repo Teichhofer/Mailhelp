@@ -25,6 +25,10 @@ from mailhelp.config import Settings
 
 def proposal(**changes):
     data = {"id": "p1", "version": 1, "kind": "task", "responsibility": "user", "certainty": "certain", "classification": "new", "title": "Aufgabe", "description": "Text", "evidence": "Beleg", "source_mail_id": "aaaaaaaaaaaaaaaaaaaaaaaa", "target": "inbox"}
+    if "status" not in changes and (changes.get("open_questions") or changes.get("responsibility") not in {None, "user"}
+                                    or changes.get("certainty") not in {None, "certain"}
+                                    or changes.get("classification") not in {None, "new"}):
+        data["status"] = "needs_clarification"
     data.update(changes)
     return Proposal.model_validate(data)
 
@@ -662,13 +666,13 @@ def test_non_creatable_classifications_stay_manual_after_telegram_interaction(tm
                                                    version=item.version, action=DecisionAction.CONFIRM).encode())]
         dialog.poll_once()
         assert writer.created == 0 and writer.reconciled == 0
-        assert "manuellen Prüfung" in transport.answered[-1][1]
+        assert "offenen Fragen" in transport.answered[-1][1]
         dialog._execute(item.model_copy(update={"status": ProposalStatus.CONFIRMED}))
         assert writer.created == 0 and writer.reconciled == 0
 
 
 @pytest.mark.parametrize(("changes", "expected_status"), [
-    ({"responsibility": "other"}, ProposalStatus.PENDING_CONFIRMATION),
+    ({"responsibility": "other"}, ProposalStatus.NEEDS_CLARIFICATION),
     ({"responsibility": "unclear"}, ProposalStatus.NEEDS_CLARIFICATION),
     ({"certainty": "uncertain"}, ProposalStatus.NEEDS_CLARIFICATION),
     ({"certainty": "contradictory"}, ProposalStatus.NEEDS_CLARIFICATION),

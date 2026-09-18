@@ -416,6 +416,17 @@ bei jedem Neustart dieselbe Telegram-Meldung erzeugt.
 
 Vorgeschlagene Vorschlagszustände sind `needs_clarification`, `pending_confirmation`, `confirmed`, `writing`, `created`, `simulated`, `rejected`, `failed` und `uncertain`. Zustandsübergänge werden zentral geprüft; nur ein bestätigter, vollständiger Vorschlag darf in `writing` wechseln.
 
+Neue Vorschläge entstehen ausschließlich im deterministischen Proposal-Builder aus
+schema-validierten Rohdaten. Er setzt Schema-/Versionsnummer, Mailbezug, konfiguriertes
+Todoist- beziehungsweise Kalenderziel und leere externe Ergebnisse selbst. Die interne
+ID ist ein stabiler Fingerprint aus Mail-ID, Art und Evidenz/Sachdaten; identische
+Extraktionen innerhalb einer Mail werden zusammengeführt. Nur Klassifikation `new`,
+Zuständigkeit `user`, Sicherheit `certain`, vollständige Pflichtangaben und keine offene
+Frage ergeben `pending_confirmation`. Fehlende oder nicht normalisierbare Zeitangaben,
+unklare Zuständigkeit, Unsicherheit, Widersprüche und alle nicht direkt ausführbaren
+Klassifikationen ergeben nachvollziehbare offene Fragen und `needs_clarification`.
+Pydantic validiert diese Konsistenz, statt den Status beim Laden verdeckt zu ändern.
+
 Dateiänderungen erfolgen über temporäre Dateien und atomaren Austausch mit geeigneter Zugriffssperre. V1 erlaubt nur eine aktive Mailhelp-Instanz je Datenverzeichnis. Beschädigte JSON-Dateien werden isoliert und gemeldet, nicht stillschweigend durch leere Dateien ersetzt. Manuelles Bearbeiten ist nur bei gestoppter Anwendung vorgesehen; beim nächsten Start erfolgt eine Validierung.
 
 Zustandsnamen sind auf ASCII-Buchstaben, Ziffern, Bindestrich und Unterstrich

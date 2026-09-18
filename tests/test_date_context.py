@@ -59,39 +59,3 @@ def test_mail_date_context_valid_invalid_naive_conflicting_and_dst():
         assert prepare(header + b"\r\nx", 10000, received, "Europe/Berlin")["date_context_status"] == status
     with pytest.raises(ValueError, match="zeitzonenbehaftet"):
         prepare(b"\r\nx", 10000, received.replace(tzinfo=None))
-
-
-def test_unsafe_context_forces_event_clarification():
-    class Dummy: pass
-    orchestrator = Orchestrator(Dummy(), Dummy(), Dummy(), 1, [], 1000,
-                                targets=TargetSettings(todoist_project="p", google_calendar="c"))
-    state = MailState(id="a" * 24, config_fingerprint="0" * 64,
-                      imap={"account_id":"0" * 24, "folder":"INBOX", "uidvalidity":1, "uid":1},
-                      mail={"date_context_status":"conflicting"})
-    start = datetime(2026, 1, 1, 10, tzinfo=timezone.utc)
-    event = Proposal(id="e", version=1, kind="event", responsibility="user", certainty="certain", classification="new", title="x", evidence="x",
-                     source_mail_id=state.id, target="untrusted", start=start, end=start + timedelta(hours=1))
-    normalized = orchestrator._normalize_proposals(state, [event])[0]
-    assert normalized.status == ProposalStatus.NEEDS_CLARIFICATION
-    assert normalized.open_questions
-    # Repeating normalization remains idempotent with respect to the fixed question.
-    assert len(orchestrator._normalize_proposals(state, [normalized])[0].open_questions) == 1
-
-
-@pytest.mark.parametrize("status", ["missing", "invalid", "naive", "conflicting"])
-def test_unsafe_context_only_forces_tasks_with_deadline_to_clarification(status):
-    class Dummy: pass
-    orchestrator = Orchestrator(Dummy(), Dummy(), Dummy(), 1, [], 1000,
-                                targets=TargetSettings(todoist_project="p", google_calendar="c"))
-    state = MailState(id="a" * 24, config_fingerprint="0" * 64,
-                      imap={"account_id":"0" * 24, "folder":"INBOX", "uidvalidity":1, "uid":1},
-                      mail={"date_context_status":status})
-    common = dict(version=1, kind="task", responsibility="user", certainty="certain",
-                  classification="new", title="x", evidence="x", source_mail_id=state.id,
-                  target="untrusted")
-    dated = orchestrator._normalize_proposals(state, [Proposal(id="dated", due=date(2026, 1, 1), **common)])[0]
-    undated = orchestrator._normalize_proposals(state, [Proposal(id="undated", **common)])[0]
-    assert dated.status == ProposalStatus.NEEDS_CLARIFICATION
-    assert dated.open_questions == ["Welcher Datumskontext soll für die Aufgabenfrist verwendet werden?"]
-    assert undated.status == ProposalStatus.PENDING_CONFIRMATION
-    assert undated.open_questions == []

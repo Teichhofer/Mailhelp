@@ -164,10 +164,6 @@ def apply_decision(
     if proposal.status != ProposalStatus.PENDING_CONFIRMATION:
         return proposal
     if decision.action == DecisionAction.CONFIRM:
-        if not proposal_is_writable(proposal):
-            raise ValueError("Dieser Vorschlag ist nur zur manuellen Prüfung bestimmt")
-        if proposal.open_questions:
-            raise ValueError("Offene Fragen verhindern die Bestätigung")
         return proposal.model_copy(update={"status": ProposalStatus.CONFIRMED})
     if decision.action == DecisionAction.REJECT:
         return proposal.model_copy(update={"status": ProposalStatus.REJECTED})
@@ -491,10 +487,6 @@ class TelegramDialogController:
 
     def send_proposal(self, proposal: Proposal) -> None:
         """Persist first, then expose controls for precisely that immutable version."""
-        if ((proposal.open_questions or proposal.responsibility.value == "unclear" or
-             proposal.certainty.value != "certain") and
-                proposal.status == ProposalStatus.PENDING_CONFIRMATION):
-            proposal = proposal.model_copy(update={"status": ProposalStatus.NEEDS_CLARIFICATION})
         self.persist(proposal)
         text = format_proposal(proposal, self.configured_timezone)
         parts = numbered_message_parts(proposal.source_mail_id, proposal.id, text)
@@ -646,9 +638,6 @@ class TelegramDialogController:
             return
         if decision.action == DecisionAction.CONFIRM and proposal.status != ProposalStatus.PENDING_CONFIRMATION:
             self.telegram.answer_callback(callback_id, "Zuerst müssen die offenen Fragen beantwortet werden.")
-            return
-        if decision.action == DecisionAction.CONFIRM and not proposal_is_writable(proposal):
-            self.telegram.answer_callback(callback_id, "Dieser Fall ist nur zur manuellen Prüfung bestimmt und wird nicht angelegt.")
             return
         changed = (proposal.model_copy(update={"status": ProposalStatus.REJECTED})
                    if decision.action == DecisionAction.REJECT else

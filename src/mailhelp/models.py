@@ -225,14 +225,16 @@ class Proposal(StrictModel):
     simulation_notified: bool = False
 
     @model_validator(mode="after")
-    def complete_event(self) -> "Proposal":
+    def validate_consistency(self) -> "Proposal":
         if self.status == ProposalStatus.SIMULATED and (self.external_id is not None or self.external_link is not None):
             raise ValueError("Ein simulierter Vorschlag darf kein externes Ergebnis enthalten")
         if self.simulation_notified and self.status != ProposalStatus.SIMULATED:
             raise ValueError("Eine Simulation darf nur im simulierten Zustand als gemeldet markiert werden")
-        if (self.responsibility == ProposalResponsibility.UNCLEAR or
-                self.certainty != ProposalCertainty.CERTAIN):
-            self.status = ProposalStatus.NEEDS_CLARIFICATION
+        ready = (self.classification == ProposalClassification.NEW and
+                 self.responsibility == ProposalResponsibility.USER and
+                 self.certainty == ProposalCertainty.CERTAIN and not self.open_questions)
+        if self.status == ProposalStatus.PENDING_CONFIRMATION and not ready:
+            raise ValueError("Nur vollständige neue Vorschläge dürfen bestätigt werden")
         if self.kind == ProposalKind.TASK and (self.start is not None or self.end is not None or self.all_day):
             raise ValueError("Aufgaben dürfen keine Kalenderzeit enthalten")
         if self.kind == ProposalKind.TASK and isinstance(self.due, datetime) and (
