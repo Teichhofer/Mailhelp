@@ -3,7 +3,9 @@ import json
 import httpx
 import pytest
 
-from mailhelp.integrations import AuthenticationError, GoogleOAuthTokenProvider, HttpWriter, execute_confirmed
+from mailhelp.integrations import (AuthenticationError, CalendarAccessError,
+                                   GoogleOAuthTokenProvider, HttpWriter,
+                                   OAuthTokenError, execute_confirmed)
 from mailhelp.logging import JsonlLogger
 from test_core import proposal
 
@@ -52,7 +54,7 @@ def test_authorization_is_permanently_denied_and_logs_are_redacted(tmp_path, res
     logger = JsonlLogger(tmp_path, secrets=values)
     transport = httpx.MockTransport(lambda request: httpx.Response(status, json=body, request=request))
     provider = GoogleOAuthTokenProvider(*values[:3], transport=transport, logger=logger)
-    with pytest.raises(AuthenticationError, match="verweigert"):
+    with pytest.raises(OAuthTokenError, match="Token-Abruf abgelehnt"):
         provider.access_token()
     provider.close()
     content = (tmp_path / "application.jsonl").read_text(encoding="utf-8")
@@ -94,3 +96,69 @@ def test_calendar_401_is_authentication_failure_without_second_write():
     with pytest.raises(AuthenticationError):
         legacy.reconcile("key")
     legacy.close()
+
+
+def test_successful_oauth_token_then_calendar_access_records_acceptance():
+    token_log, calendar_log, seen = Log(), Log(), []
+    provider = GoogleOAuthTokenProvider(
+        "client", "secret", "refresh", logger=token_log,
+        transport=httpx.MockTransport(lambda request: httpx.Response(
+            200, json={"access_token": "issued", "expires_in": 3600,
+                       "token_type": "Bearer"}, request=request)),
+    )
+
+    def calendar(request):
+        seen.append(request)
+        return httpx.Response(200, json={}, request=request)
+
+    writer = HttpWriter("google_calendar", provider, "primary", logger=calendar_log,
+                        transport=httpx.MockTransport(calendar), calendar_timezone="UTC")
+    writer.check_access()
+    assert seen[0].headers["authorization"] == "Bearer issued"
+    assert token_log.events[-1][0][2] == "token_credentials_accepted"
+    writer.close()
+    provider.close()
+
+
+@pytest.mark.parametrize("status, body, expected", [
+    (401, {"error": {"message": "issued secret"}}, "Access-Token wurde"),
+    (403, {"error": {"errors": [{"reason": "insufficientPermissions"}]}}, "Berechtigung"),
+    (403, {"error": {"errors": [{"reason": "forbidden"}]}}, "Berechtigung"),
+    (403, {"error": {"errors": [{"reason": "accessNotConfigured"}]}}, "API ist deaktiviert"),
+    (403, {"error": {"errors": [{"reason": "serviceDisabled"}]}}, "API ist deaktiviert"),
+    (403, {"error": {"errors": [{"reason": "apiDisabled"}]}}, "API ist deaktiviert"),
+    (403, {"error": {"errors": [{"reason": "unknown-secret"}]}}, "Aufruf wurde verweigert"),
+    (403, ["invalid"], "Aufruf wurde verweigert"),
+    (403, {"error": "invalid"}, "Aufruf wurde verweigert"),
+    (403, {"error": {"errors": "invalid"}}, "Aufruf wurde verweigert"),
+    (403, {"error": {"errors": ["invalid"]}}, "Aufruf wurde verweigert"),
+    (404, {"error": "calendar-secret"}, "existiert nicht"),
+])
+def test_calendar_access_diagnostics_use_only_safe_categories(status, body, expected):
+    log = Log()
+    writer = HttpWriter(
+        "google_calendar", "issued-secret", "target",
+        transport=httpx.MockTransport(lambda request: httpx.Response(
+            status, json=body, request=request)), calendar_timezone="UTC", logger=log,
+    )
+    error = AuthenticationError if status == 401 else CalendarAccessError
+    with pytest.raises(error, match=expected) as caught:
+        writer.check_access()
+    message = str(caught.value)
+    assert "issued-secret" not in message and "unknown-secret" not in message
+    assert log.events[-1][1]["reason"] != "unknown-secret"
+    writer.close()
+
+
+def test_invalid_google_error_json_is_never_exposed():
+    secret = "body-secret"
+    writer = HttpWriter(
+        "google_calendar", "token", "target",
+        transport=httpx.MockTransport(lambda request: httpx.Response(
+            403, content=b"not-json-body-secret", request=request)),
+        calendar_timezone="UTC",
+    )
+    with pytest.raises(CalendarAccessError) as caught:
+        writer.check_access()
+    assert secret not in str(caught.value)
+    writer.close()

@@ -270,6 +270,18 @@ oder externe Einträge geschrieben. Alle Prüfergebnisse werden ausgegeben; ein
 Teilfehler verhindert die übrigen Prüfungen nicht und führt abschließend zu einem
 von null verschiedenen Prozessstatus.
 
+Die Google-Zugriffsdiagnose unterscheidet zwei Vertrauensgrenzen. Ein erfolgreicher
+OAuth-Token-Abruf hält fest, dass Client und Refresh-Token vom Google-Token-Endpunkt
+akzeptiert wurden; eine Ablehnung wird als OAuth-Fehler gemeldet. Erst danach wird
+der Zielkalender geprüft. Dort steht HTTP 401 für einen vom Calendar-Endpunkt
+abgelehnten ausgestellten Access-Token, HTTP 403 für einen bezogenen Token mit
+verweigertem Calendar-Aufruf und HTTP 404 für einen nicht existierenden oder für
+das authentifizierte Konto unsichtbaren Zielkalender. Bei 403 dürfen ausschließlich
+erlaubte strukturierte Google-`reason`-Werte fehlende Berechtigung, deaktivierte API
+oder eine sonstige Ursache unterscheiden. Ungültige und unbekannte Antwortkörper
+gelten als nicht vertrauenswürdig; Antwortinhalt, Tokens, Client-Secret und
+Authorization-Header erscheinen weder in Diagnose noch Log.
+
 Für `--check-access` werden Datei- und Konsolenlogging grundsätzlich und unabhängig
 von den konfigurierten Aktivierungs- und Modulfiltern auf das maximale Level `DEBUG`
 gesetzt. Start, Erfolg sowie Fehler jeder Dienstprüfung werden einschließlich eines
