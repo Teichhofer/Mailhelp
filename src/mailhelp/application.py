@@ -35,6 +35,37 @@ class _MailBudget:
 
 
 @dataclass
+class _RunSummary:
+    """Outcome counters for the lifetime of one application run."""
+
+    completed: int = 0
+    waiting: int = 0
+    failed: int = 0
+
+    def add(self, results: list[ProcessingResult]) -> None:
+        counts = {
+            ProcessingOutcome.COMPLETED: self.completed,
+            ProcessingOutcome.WAITING: self.waiting,
+            ProcessingOutcome.FAILED: self.failed,
+        }
+        for result in results:
+            counts[result.outcome] += 1
+        self.completed = counts[ProcessingOutcome.COMPLETED]
+        self.waiting = counts[ProcessingOutcome.WAITING]
+        self.failed = counts[ProcessingOutcome.FAILED]
+
+    def message(self) -> str:
+        total = self.completed + self.waiting + self.failed
+        return "\n".join((
+            "Mailhelp-Lauf beendet.",
+            f"Bearbeitet: {total}",
+            f"Erfolgreich abgeschlossen: {self.completed}",
+            f"Warten auf Eingabe oder Wiederholung: {self.waiting}",
+            f"Fehlgeschlagen: {self.failed}",
+        ))
+
+
+@dataclass
 class Application:
     settings: Settings
     store: JsonStore
@@ -186,19 +217,30 @@ class Application:
             self.logger.event("INFO", "telegram", "update_received", update_id=update["update_id"])
 
     def run(self, max_mails: int | None = None) -> None:
-        while not self.stop_event.is_set():
+        summary = _RunSummary()
+        try:
+            while not self.stop_event.is_set():
+                try:
+                    RetentionService(self.store, self.settings.retention, self.logger).run()
+                except Exception:
+                    # No state content is included in this operational event.
+                    self.logger.event("ERROR", "retention", "cleanup_failed",
+                                      processed_at=datetime.now(timezone.utc).isoformat(), failure_count=1)
+                summary.add(self._poll_imap(max_mails))
+                if not self.stop_event.is_set():
+                    self._poll_telegram()
+                if max_mails is not None:
+                    break
+                self.stop_event.wait(self.settings.poll_interval_seconds)
+        finally:
             try:
-                RetentionService(self.store, self.settings.retention, self.logger).run()
-            except Exception:
-                # No state content is included in this operational event.
-                self.logger.event("ERROR", "retention", "cleanup_failed",
-                                  processed_at=datetime.now(timezone.utc).isoformat(), failure_count=1)
-            self._poll_imap(max_mails)
-            if not self.stop_event.is_set():
-                self._poll_telegram()
-            if max_mails is not None:
-                break
-            self.stop_event.wait(self.settings.poll_interval_seconds)
+                self.telegram.send(self.settings.telegram.chat_id, summary.message())
+            except Exception as exc:
+                self.logger.event("ERROR", "telegram", "run_summary_failed", error=str(exc))
+            else:
+                self.logger.event("INFO", "telegram", "run_summary_sent",
+                                  completed=summary.completed, waiting=summary.waiting,
+                                  failed=summary.failed)
 
 
 def _safe_name(folder: str) -> str:

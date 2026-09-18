@@ -71,6 +71,7 @@ Die nachfolgenden Betriebsdetails konkretisieren den vereinbarten Kern als vorge
 8. Mailhelp validiert die strukturierten Ergebnisse und sendet die Zusammenfassung über Telegram.
 9. Erkannte Aufgaben und Termine werden als einzelne Vorschläge zur Prüfung angeboten.
 10. Bestätigte, vollständige Vorschläge werden im vorgesehenen Dienst gespeichert. Erfolg oder Fehler wird per Telegram zurückgemeldet.
+11. Vor dem Beenden sendet Mailhelp eine Zusammenfassung des gesamten aktuellen Laufs mit der Zahl der bearbeiteten, erfolgreich abgeschlossenen, wartenden und fehlgeschlagenen Verarbeitungsversuche. Dies gilt auch bei einem kontrollierten Signalabbruch oder einem unerwarteten Laufzeitfehler; ein Fehler beim Versand wird protokolliert und verdeckt den ursprünglichen Fehler nicht.
 
 Fehler in einer Mail dürfen die Verarbeitung anderer Mails nicht dauerhaft blockieren. Eine Mail wird erst dann als vollständig verarbeitet markiert, wenn die vorgesehenen Schritte erfolgreich abgeschlossen oder ausdrücklich übersprungen wurden. Offene Vorschläge können darüber hinaus bestehen bleiben.
 

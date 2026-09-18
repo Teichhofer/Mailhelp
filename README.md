@@ -286,7 +286,12 @@ Ohne `--check` startet der CLI-Einstieg den Dienst. Er liest alle konfigurierten
 IMAP-Ordner und Telegram per Long-Polling. Abrufstände werden pro Ordner mit
 Konto-ID, UIDVALIDITY, UID und einmaligem Start-UID persistiert und nach einem Neustart fortgesetzt. Ein UIDVALIDITY-Wechsel erscheint als eigenes strukturiertes Ereignis `uidvalidity_changed`. SIGINT und
 SIGTERM fordern ein kontrolliertes Ende an; Netzwerkclients und die
-Einzelinstanz-Sperre werden auch bei Fehlern geschlossen.
+Einzelinstanz-Sperre werden auch bei Fehlern geschlossen. Unmittelbar vor dem
+Beenden sendet der Bot in den konfigurierten Telegram-Chat eine Laufzusammenfassung
+mit der Gesamtzahl der bearbeiteten sowie der erfolgreich abgeschlossenen,
+wartenden und fehlgeschlagenen Verarbeitungsversuche. Die Zusammenfassung wird
+auch bei einem Laufzeitfehler versucht; ein Versandfehler wird protokolliert und
+verdeckt einen bereits aufgetretenen Fehler nicht.
 
 Für einen begrenzten Testlauf verarbeitet `mailhelp --max-mails 10` in genau
 einem Abrufdurchlauf höchstens zehn Mails (einschließlich fälliger, nach einem
