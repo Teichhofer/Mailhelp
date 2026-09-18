@@ -208,6 +208,7 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
         assert made.dialog.revision_service is made.analyzer
         assert made.orchestrator.config_fingerprint == "f"*64
         assert FakeImap.kwargs["starttls"] is starttls
+        assert FakeImap.kwargs["batch_size"] == 25
         assert FakeImap.kwargs["factory"].__name__ == ("IMAP4_SSL" if mode=="ssl" else "IMAP4")
         assert FakeWriter.calls[-1][1]["calendar_timezone"] == "UTC"
     assert len(closed)==5 and not (tmp_path/"data/test/.lock").exists()

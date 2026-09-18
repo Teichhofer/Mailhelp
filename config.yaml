@@ -18,6 +18,9 @@ imap:
   port: 993
   connection_mode: ssl
   historical_start: null
+  # Pro Polling-Zyklus werden höchstens so viele Nachrichten geladen und direkt
+  # verarbeitet. Das verhindert lange stille Erstabrufe großer Postfächer.
+  batch_size: 25
   folders: [INBOX]
 telegram:
   user_id: 123456

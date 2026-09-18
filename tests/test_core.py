@@ -156,6 +156,30 @@ def test_imap():
     assert not failed.logged
 
 
+def test_imap_fetch_is_batched_and_reports_progress():
+    class ManyImap(FakeImap):
+        def uid(self, action, *args):
+            if action == "search":
+                return "OK", [b"4 5 6"]
+            uid = args[0]
+            return "OK", [(uid + b' (INTERNALDATE "17-Sep-2026 10:11:12 +0200")', b"raw")]
+
+    class Logger:
+        def __init__(self): self.events=[]
+        def event(self, level, module, event, **fields): self.events.append((level,module,event,fields))
+
+    logger=Logger()
+    reader=ImapReader("h",1,"u","p",factory=ManyImap,logger=logger,batch_size=2)
+    assert [mail.uid for mail in reader.fetch_since("INBOX")] == [4,5]
+    progress=[event for event in logger.events if event[2] in {"messages_discovered","message_fetched"}]
+    assert progress[0] == ("INFO","imap","messages_discovered",{"folder":"INBOX","available_count":3,"batch_count":2})
+    assert progress[1][2:] == ("message_fetched",{"folder":"INBOX","uid":4,"batch_index":1,"batch_count":2})
+    assert progress[2][2:] == ("message_fetched",{"folder":"INBOX","uid":5,"batch_index":2,"batch_count":2})
+
+    reader.connection.uid=lambda *_args: ("OK", [])
+    assert reader.fetch_since("INBOX") == []
+
+
 def test_imap_connection_and_exact_historical_boundary():
     class BoundaryImap(FakeImap):
         def __init__(self, dates=(b'2',)):
