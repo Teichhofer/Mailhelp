@@ -329,11 +329,14 @@ def test_orchestrator_complete_notification_uses_validated_values(tmp_path):
         Orchestrator(CompleteAnalyzer("relevant"),store,notify,1,[topic],1000,
                      targets=TargetSettings(todoist_project="inbox",google_calendar="primary")).process(FetchedMail("INBOX",1,91,raw))
     summary=notify.messages[0]
-    assert all(value in summary for value in [
-        "Absender: Alice <alice@example.test>", "Betreff: Rechnung", "Themen: Abrechnung",
-        "- Satz eins.", "- Satz zwei.", "Wichtige Fristen:\n- 31.12.2026",
-        "Handlungsbedarf: Ja – 1 Vorschlag/Vorschläge zur Prüfung.",
+    assert summary == "\n".join([
+        "Absender: Alice <alice@example.test>",
+        "Betreff: Rechnung",
+        "Zusammenfassung:",
+        "- Satz eins.",
+        "- Satz zwei.",
     ])
+    assert "Mail-ID" not in summary
 
 
 def test_proposal_boundary_rejects_llm_identity_and_sets_internal_routing(tmp_path):

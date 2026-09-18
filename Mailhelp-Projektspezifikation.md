@@ -195,7 +195,7 @@ Die Anwendung validiert jedes Ergebnis gegen feste Datenschemata. Fehlerhafte Er
 
 ## 7. Zusammenfassungen, Aufgaben und Termine
 
-Eine Telegram-Zusammenfassung enthält Absender, Betreff, Themenbereich, zwei bis vier zusammenfassende Sätze sowie wichtige Fristen und Handlungsbedarf. Ohne erkannte Aufgabe oder Termin ist keine Bestätigung nötig.
+Eine Telegram-Zusammenfassung enthält keine interne Mail-ID. Sie zeigt zuerst den Absender, direkt darunter den Betreff und danach zwei bis vier zusammenfassende Sätze. Erkannte Aufgaben und Termine werden weiterhin in getrennten, einzeln zu bestätigenden Vorschlagsnachrichten angezeigt. Ohne erkannte Aufgabe oder Termin ist keine Bestätigung nötig.
 
 Jeder Vorschlag enthält eine eigene ID, den Typ, einen Titel, eine Beschreibung, eine belegende Textstelle, offene Fragen und den Bezug zur Ursprungsmail. An der Anwendungsgrenze wird `source_mail_id` zwingend mit der internen Mail-ID verglichen; doppelte vom LLM gelieferte IDs in einer Antwort werden abgewiesen. Aus Mail-ID und gelieferter ID erzeugt die Anwendung anschließend eine stabile interne Vorschlags-ID. Das Ziel stammt ausschließlich aus `targets` in `config.yaml`; ein vom LLM geliefertes Ziel wird weder angezeigt noch für Schreibzugriffe verwendet.
 
