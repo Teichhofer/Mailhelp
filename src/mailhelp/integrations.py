@@ -73,6 +73,11 @@ class TodoistTaskResponse(IntegrationModel):
     url: str | None = None
 
 
+class TodoistTaskListResponse(IntegrationModel):
+    results: list[TodoistTaskResponse]
+    next_cursor: str | None
+
+
 class CalendarEventResponse(IntegrationModel):
     id: str = Field(min_length=1)
     htmlLink: str | None = None
@@ -164,7 +169,7 @@ class HttpWriter:
             if calendar_timezone is None: raise ValueError("Google Kalender benötigt die konfigurierte IANA-Zeitzone")
             try: ZoneInfo(calendar_timezone)
             except (ZoneInfoNotFoundError, ValueError) as exc: raise ValueError("Unbekannte IANA-Zeitzone für Google Kalender") from exc
-        base = "https://api.todoist.com/rest/v2" if service == "todoist" else "https://www.googleapis.com/calendar/v3"
+        base = "https://api.todoist.com/api/v1" if service == "todoist" else "https://www.googleapis.com/calendar/v3"
         self.service, self.target, self.calendar_timezone = service, target, calendar_timezone
         self._token_provider = token if service == "google_calendar" and not isinstance(token, str) else None
         self._static_token = token if isinstance(token, str) else None
@@ -181,10 +186,20 @@ class HttpWriter:
     def reconcile(self, key: str) -> dict[str, Any] | None:
         self.logger.event("INFO", self.service, "reconcile_started", call_id=key)
         if self.service == "todoist":
-            response = self.policy.run(lambda: self._get("/tasks", {"project_id": self.target}))
-            items = self._validate_list(response, TodoistTaskResponse, "Todoist tasks")
-            found = next((item for item in items if key in item.description), None)
-            return found.model_dump() if found else None
+            cursor = None
+            while True:
+                params = {"project_id": self.target}
+                if cursor is not None:
+                    params["cursor"] = cursor
+                response = self.policy.run(lambda: self._get("/tasks", params))
+                try: page = TodoistTaskListResponse.model_validate(response.json())
+                except (ValueError, ValidationError) as exc: raise ValueError(f"Todoist tasks: ungültige Antwort am Schlüsselpfad {_path(exc)}") from exc
+                found = next((item for item in page.results if key in item.description), None)
+                if found is not None:
+                    return found.model_dump()
+                cursor = page.next_cursor
+                if cursor is None:
+                    return None
         response = self.policy.run(lambda: self._get(f"/calendars/{self.target}/events", {"privateExtendedProperty": f"mailhelp_key={key}"}))
         try: items = CalendarListResponse.model_validate(response.json()).items
         except (ValueError, ValidationError) as exc: raise ValueError(f"Google Calendar events: ungültige Antwort am Schlüsselpfad {_path(exc)}") from exc
@@ -244,14 +259,6 @@ class HttpWriter:
             "start": {"dateTime": proposal.start.isoformat(), "timeZone": self.calendar_timezone},
             "end": {"dateTime": proposal.end.isoformat(), "timeZone": self.calendar_timezone},
         }
-
-    @staticmethod
-    def _validate_list(response: httpx.Response, model: type[IntegrationModel], operation: str) -> list[IntegrationModel]:
-        try:
-            value = response.json()
-            if not isinstance(value, list): raise ValueError("Antwort ist keine Liste")
-            return [model.model_validate(item) for item in value]
-        except (ValueError, ValidationError) as exc: raise ValueError(f"{operation}: ungültige Antwort am Schlüsselpfad {_path(exc)}") from exc
 
     def close(self) -> None: self.client.close()
 

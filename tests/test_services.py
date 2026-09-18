@@ -148,9 +148,9 @@ def test_integrations():
     assert ProposalStatus.WRITING in [item.status for item in saved]
     with pytest.raises(ValueError): HttpWriter("bad","x","x")
     seen=[]
-    def handler(req): seen.append(req); return httpx.Response(200,json=({"id":"x"} if req.method=="POST" else []),request=req)
+    def handler(req): seen.append(req); return httpx.Response(200,json=({"id":"x"} if req.method=="POST" else {"results":[],"next_cursor":None}),request=req)
     todo=HttpWriter("todoist","x","p",transport=httpx.MockTransport(handler)); assert todo.reconcile("x") is None; todo.create(proposal(status="confirmed", due=datetime.now(timezone.utc)),"key"); todo.close()
-    found=HttpWriter("todoist","x","p",transport=httpx.MockTransport(mock_response(data=[{"description":"key", "id":"old"}]))); assert found.reconcile("key")["id"]=="old"
+    found=HttpWriter("todoist","x","p",transport=httpx.MockTransport(mock_response(data={"results":[{"description":"key", "id":"old"}],"next_cursor":None}))); assert found.reconcile("key")["id"]=="old"
     now=datetime.now(timezone.utc)
     with pytest.raises(ValueError): HttpWriter("todoist","x","p",transport=httpx.MockTransport(handler)).create(proposal(kind="event",start=now,end=now.replace(year=now.year+1)),"k")
     event=proposal(kind="event",start=now,end=now.replace(year=now.year+1),status="confirmed")
@@ -170,6 +170,21 @@ def test_todoist_uses_distinct_date_and_datetime_deadlines():
     writer.create(proposal(status="confirmed", due="2026-10-01T17:00:00+02:00"), "instant")
     assert payloads[0]["due_date"] == "2026-10-01" and "due_datetime" not in payloads[0]
     assert payloads[1]["due_datetime"] == "2026-10-01T17:00:00+02:00" and "due_date" not in payloads[1]
+    writer.close()
+
+
+def test_todoist_reconciliation_follows_v1_cursors():
+    requests=[]
+    def handler(request):
+        requests.append(request)
+        data = ({"results": [{"id": "unrelated", "description": "other"}], "next_cursor": "next-page"}
+                if "cursor" not in request.url.params else
+                {"results": [{"id": "existing", "description": "contains stable-key"}], "next_cursor": None})
+        return httpx.Response(200, json=data, request=request)
+    writer=HttpWriter("todoist","x","project",transport=httpx.MockTransport(handler))
+    assert writer.reconcile("stable-key")["id"] == "existing"
+    assert dict(requests[0].url.params) == {"project_id":"project"}
+    assert dict(requests[1].url.params) == {"project_id":"project","cursor":"next-page"}
     writer.close()
 
 
