@@ -218,7 +218,8 @@ def build_application(settings: Settings, secrets: Secrets, topics: list[Topic],
         store = stack.enter_context(JsonStore(data))
         known_secrets = tuple(value.get_secret_value() for value in (
             secrets.imap_password, secrets.openrouter_api_key, secrets.telegram_bot_token,
-            secrets.todoist_token, secrets.google_oauth_client_id, secrets.google_oauth_client_secret,
+            secrets.todoist_token, secrets.todoist_client_id, secrets.todoist_client_secret,
+            secrets.google_oauth_client_id, secrets.google_oauth_client_secret,
             secrets.google_oauth_refresh_token,
         ))
         log = settings.logging

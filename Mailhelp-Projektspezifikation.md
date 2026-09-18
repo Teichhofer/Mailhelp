@@ -245,10 +245,16 @@ deshalb niemals als echte externe Erstellung interpretiert werden.
 | `config.yaml` | Abruf, Ordner, Zeitzone, Ziele, Telegram-Freigaben, Pfade, Limits, Wiederholungen und Logging |
 | `prompts.yaml` | Prompts, Modelle, globale und schrittspezifische OpenRouter-Parameter |
 | `topics.yaml` | Themenbereiche und Relevanzkriterien |
-| `.env` | IMAP-Zugangsdaten, OpenRouter-Key, Telegram-Bot-Token, Google-OAuth-Zugangsdaten und Todoist-Token |
+| `.env` | IMAP-Zugangsdaten, OpenRouter-Key, Telegram-Bot-Token, Google-OAuth-Zugangsdaten sowie Todoist-Token, -Client-ID und -Client-Schlüssel |
 | `.env.example` | Erforderliche Variablennamen ohne geheime Werte |
 
 Zugangsdaten können im Container alternativ als Umgebungsvariablen bereitgestellt werden; explizite Laufzeitvariablen haben Vorrang vor `.env`. Die erstmalige Google-Autorisierung und Erneuerung abgelaufener Berechtigungen benötigen einen dokumentierten Einrichtungsablauf.
+
+Todoist-Client-ID und -Client-Schlüssel werden als `TODOIST_CLIENT_ID` und
+`TODOIST_CLIENT_SECRET` ausschließlich aus `.env` oder der Prozessumgebung
+geladen. Für authentifizierte REST-Aufrufe bleibt zusätzlich `TODOIST_TOKEN` als
+Bearer-Token erforderlich. Alle drei Werte werden als Geheimnisse behandelt und
+bei fehlender oder leerer Angabe bereits beim Start abgelehnt.
 
 Alle Dateien werden beim Start geprüft. Fehlermeldungen nennen betroffene Datei und Schlüssel, niemals geheime Werte. `.env`, Zustandsdaten und Logs werden aus Git und Docker-Build-Kontext ausgeschlossen. Eine private Beispieldatei mit echten Zugangsdaten gehört nicht ins Projekt.
 

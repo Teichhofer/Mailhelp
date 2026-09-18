@@ -32,6 +32,16 @@ Berechtigung für das Zielprojekt fehlt, und HTTP 404, dass das konfigurierte
 Zielprojekt nicht erreichbar ist. Diese Diagnosen geben weder Token oder
 Authorization-Header noch vollständige Antwortinhalte aus.
 
+### Todoist-Zugangsdaten einrichten
+
+Die Todoist-Anwendungsdaten werden ausschließlich über die `.env` oder gleichnamige
+Prozessumgebungsvariablen eingelesen. Nach dem Kopieren von `.env.example` sind dort
+`TODOIST_CLIENT_ID` und `TODOIST_CLIENT_SECRET` mit der Client-ID beziehungsweise
+dem Client-Schlüssel der Todoist-Anwendung zu befüllen. Das für die REST-API als
+Bearer-Token verwendete `TODOIST_TOKEN` wird ebenfalls dort gespeichert; Client-ID
+und Client-Schlüssel ersetzen dieses Zugriffstoken nicht. Keiner dieser Werte
+gehört in `config.yaml`, Zustandsdateien oder Logs.
+
 ### Google Calendar OAuth einrichten
 
 Mailhelp verwendet den OAuth-2.0-Refresh-Token-Ablauf; ein manuell erzeugtes,
