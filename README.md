@@ -340,6 +340,21 @@ Bestand weder neue Mails verdrängt noch den Lauf unbegrenzt verlängert.
 Im dauerhaften Betrieb ohne `--max-mails` endet dieser zusätzliche Scan nach
 1.000 blockierten Zuständen je Abrufdurchlauf.
 
+### Alle Laufzeitdaten löschen
+
+`mailhelp --clear` löscht die vollständigen Zustände der Test- und
+Produktionsnamensräume sowie sämtliche Dateien im konfigurierten Logverzeichnis.
+Der Dienst muss dafür beendet sein; eine noch aktive Instanz verhindert das
+Löschen über ihre Datensperre. Da auch Checkpoints, offene Bestätigungen,
+Duplikatschutz und externe Ergebnisreferenzen unwiderruflich verloren gehen,
+verlangt der Befehl im Terminal die exakte Eingabe `ALLE DATEN LOESCHEN`.
+Ein leerer oder abweichender Text bricht ohne Änderung mit Status 1 ab.
+
+Für einen bewusst nicht interaktiven Aufruf steht `mailhelp --clear --yes` zur
+Verfügung. `--yes` ist ohne `--clear` unzulässig. `--log-directory PFAD`
+überschreibt auch beim Löschen das konfigurierte Logverzeichnis. Konfiguration,
+Prompts, Themen und Geheimnisse werden nicht gelöscht.
+
 ### Interaktiver Lernmodus
 
 `mailhelp --learn 20` ruft bis zu 20 der neuesten Mails schreibfrei mit

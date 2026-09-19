@@ -35,6 +35,14 @@ eindeutige stabile ID und werden nach vollständiger Konfigurationsvalidierung
 atomar in `topics.yaml` ergänzt. Der Lernmodus kommuniziert nicht über Telegram
 und führt keine externen Schreibaktionen aus.
 
+Der administrative Einmalbefehl `--clear` entfernt nach einer exakten,
+interaktiven Sicherheitsbestätigung beide Zustandsnamensräume (`test` und
+`production`) und den vollständigen Inhalt des wirksamen Logverzeichnisses.
+Eine gehaltene Zustandsperre bricht den Vorgang ab. `--clear --yes` erlaubt den
+bewusst nicht interaktiven Einsatz; `--yes` ist ohne `--clear` ungültig. Ein mit
+`--log-directory` gesetzter Pfad ist auch für diesen Befehl wirksam. YAML-Dateien
+und Geheimnisse gehören nicht zu den gelöschten Laufzeitdaten.
+
 Version: 1.3 · Stand: 19. September 2026 · Status: Implementierungsgrundlage.
 
 ## Aufbewahrung und Datenminimierung
@@ -538,7 +546,7 @@ logs/
     requests.jsonl
 ```
 
-Das Anwendungslog enthält Verarbeitungsschritte, Statuswechsel, externe Aufrufe, Wiederholungen, Laufzeiten sowie Fehler mit Kontext und Stacktrace. Jeder Eintrag trägt Zeitstempel, Level, Modul und Ereignis; sofern zuordenbar außerdem Mail-ID, Vorschlags-ID und Aufruf-ID. Nach erfolgreicher Konfigurationsprüfung erzeugt jeder Aufruf ein Ereignis `application_started` mit den geparsten CLI-Parametern `config_directory`, `log_directory`, `check`, `check_access` und `max_mails`; rohe Befehlszeilen und Umgebungsvariablen werden nicht übernommen.
+Das Anwendungslog enthält Verarbeitungsschritte, Statuswechsel, externe Aufrufe, Wiederholungen, Laufzeiten sowie Fehler mit Kontext und Stacktrace. Jeder Eintrag trägt Zeitstempel, Level, Modul und Ereignis; sofern zuordenbar außerdem Mail-ID, Vorschlags-ID und Aufruf-ID. Nach erfolgreicher Konfigurationsprüfung erzeugt jeder reguläre Aufruf ein Ereignis `application_started` mit den geparsten CLI-Parametern `config_directory`, `log_directory`, `check`, `check_access`, `max_mails`, `learn` und `clear`; rohe Befehlszeilen und Umgebungsvariablen werden nicht übernommen. Der Löschbefehl erzeugt bewusst kein neues Log, das unmittelbar wieder gelöscht werden müsste.
 
 Das separate LLM-Log erfasst Anfragebeginn, Antwort oder Fehler als getrennte Ereignisse mit derselben Aufruf-ID. Es enthält Auswertungsschritt, Modell, Anfrageparameter, Prompt-Fingerprint, Dauer, Status, Wiederholung sowie Tokenverbrauch und Kosten, sofern vom Dienst verfügbar.
 
