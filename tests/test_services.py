@@ -209,7 +209,7 @@ def test_summary_prompt_defines_closed_json_output_format():
     for field in ("sentences", "deadlines"):
         assert f'"{field}"' in prompt
     assert "syntaktisch gültigen JSON-Objekt" in prompt
-    assert "mindestens zwei und höchstens vier" in prompt
+    assert "mindestens einem und höchstens zwei" in prompt
     assert "wenn keine genannt sind, []" in prompt
     assert "Gib beide Felder immer aus" in prompt
     assert "keine weiteren Felder" in prompt
@@ -219,7 +219,10 @@ def test_summary_prompt_defines_closed_json_output_format():
     assert '"deadlines":[]' in prompt
     assert "zentralen W-Fragen" in prompt
     assert "wer informiert, ankündigt, bittet oder etwas tun soll" in prompt
-    assert "wichtigsten Aussagen, Entscheidungen oder Änderungen" in prompt
+    assert "kurz, sachlich, abstrakt" in prompt
+    assert "gemeinsamen Oberbegriff" in prompt
+    assert "einen zweiten Satz nur" in prompt
+    assert "Vermeide Aufzählungen" in prompt
     assert "Wiederhole nicht nur den Betreff" in prompt
     assert "keine inhaltsarmen Aussagen" in prompt
     assert "sofern dies nicht aus der Mail hervorgeht" in prompt

@@ -87,7 +87,7 @@ class RelevanceDialog(StrictModel):
 
 
 class Summary(StrictModel):
-    sentences: list[str] = Field(min_length=2, max_length=4)
+    sentences: list[str] = Field(min_length=1, max_length=2)
     deadlines: list[str] = Field(default_factory=list)
 
 
