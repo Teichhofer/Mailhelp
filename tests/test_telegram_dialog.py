@@ -25,6 +25,7 @@ from mailhelp.telegram import (
 )
 from mailhelp.application import _state_directory
 from mailhelp.config import Settings
+from mailhelp.integrations import CalendarFileWriter
 
 
 def proposal(**changes):
@@ -47,10 +48,12 @@ def callback(update_id, data, user=1, chat=2):
 
 class Telegram:
     def __init__(self, updates=()):
-        self.updates = list(updates); self.polls=[]; self.sent=[]; self.answered=[]
+        self.updates = list(updates); self.polls=[]; self.sent=[]; self.answered=[]; self.documents=[]
     def poll(self, offset): self.polls.append(offset); return self.updates
     def send(self, chat, text, reply_markup=None): self.sent.append((chat,text,reply_markup))
     def answer_callback(self, callback_id, text): self.answered.append((callback_id,text))
+    def send_document(self, chat_id, filename, content, caption=None):
+        self.documents.append((chat_id, filename, content, caption))
 
 
 class Logger:
@@ -289,6 +292,8 @@ def test_callback_data_byte_validation_and_legacy_limit():
      [DecisionAction.EDIT, DecisionAction.REJECT]),
     ({"classification": "unsupported"}, ["Manuell prüfen", "Verwerfen"],
      [DecisionAction.EDIT, DecisionAction.REJECT]),
+    ({"kind": "event", "start": "2026-05-10T10:00:00+02:00", "end": "2026-05-10T11:00:00+02:00"},
+     ["Anlegen", "Verwerfen"], [DecisionAction.CONFIRM, DecisionAction.REJECT]),
 ])
 def test_all_proposal_buttons_use_short_exactly_bound_tokens(tmp_path, changes, labels, actions):
     item = proposal(id="P_" * 16, version=123456789, **changes)
@@ -354,6 +359,26 @@ def test_persist_before_buttons_and_authorized_flow(tmp_path):
         # A replay with a fresh update id still cannot mutate the terminal state.
         t2.updates=[callback(5,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:reject")]; c2.poll_once()
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="confirmed" and "veraltet" in t2.answered[-1][1]
+
+
+def test_anlegen_creates_calendar_file_and_sends_it_via_telegram(tmp_path):
+    item = proposal(kind="event", start="2026-05-10T10:00:00+02:00",
+                    end="2026-05-10T11:00:00+02:00", title="Planung")
+    with JsonStore(tmp_path) as store:
+        dialog, transport, _ = controller(store)
+        dialog.writers["google_calendar"] = CalendarFileWriter(transport, 2)
+        dialog.send_proposal(item)
+        callback_data = transport.sent[-1][2]["inline_keyboard"][0][0]["callback_data"]
+        transport.updates = [callback(1, callback_data)]
+
+        dialog.poll_once()
+
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"] == "created"
+        assert len(transport.documents) == 1
+        chat_id, filename, content, caption = transport.documents[0]
+        assert chat_id == 2 and filename.endswith(".ics")
+        assert content.startswith(b"BEGIN:VCALENDAR\r\n")
+        assert "Planung" in caption
 
 
 def test_proposal_notification_uses_persisted_sender_and_subject(tmp_path):

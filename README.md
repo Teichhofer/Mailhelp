@@ -372,8 +372,10 @@ Token ein. Vor jedem Telegram-Aufruf prüft Mailhelp jedes `callback_data` auf d
 zulässigen 1 bis 64 UTF-8-Bytes. Alte, eindeutig validierbare Vorschlagscallbacks
 werden innerhalb derselben Bytegrenze weiterhin angenommen. Nur der konfigurierte
 Nutzer im konfigurierten Chat darf eine Aktion auslösen. Jede angezeigte Version
-wird vor ihren Schaltflächen gespeichert. `Bestätigen`, `Ändern` und `Verwerfen`
-werden getrennt behandelt,
+wird vor ihren Schaltflächen gespeichert. Aufgabenvorschläge bieten `Bestätigen`,
+`Ändern` und `Verwerfen`; vollständige Terminvorschläge bieten ausschließlich
+`Anlegen` und `Verwerfen`. `Anlegen` erzeugt die iCalendar-Datei und sendet sie als
+Telegram-Dokument. Die Aktionen werden getrennt behandelt,
 während veraltete oder fehlerhafte Schaltflächen keinen Zustand verändern.
 Antworten auf Rückfragen erzeugen eine neue, erneut zu bestätigende Version.
 Telegram wird ausschließlich für Nachrichten und Callback-Aktionen abgefragt;
