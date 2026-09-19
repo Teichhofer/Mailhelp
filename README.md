@@ -419,7 +419,10 @@ darunter den Betreff und danach zwei bis vier Zusammenfassungssätze. Jeder
 Zusammenfassungsaufruf verlangt ausschließlich ein JSON-Objekt mit den beiden
 Feldern `sentences` (zwei bis vier deutsche Sätze) und `deadlines` (immer eine
 Liste, gegebenenfalls leer); Markdown, Begleittext und weitere Felder sind nicht
-zulässig. Mailinhalte bleiben dabei ausdrücklich nicht vertrauenswürdige Daten.
+zulässig. Die Sätze geben Anlass, Kernaussagen und relevante Folgen konkret
+wieder, benennen wichtige Akteure und vermeiden bloße Betreff-Paraphrasen sowie
+unbelegte Aussagen zum Handlungsbedarf. Mailinhalte bleiben dabei ausdrücklich
+nicht vertrauenswürdige Daten.
 Jeder Vorschlag nennt in jedem Nachrichtenteil den Absender und Betreff der
 Ursprungsmail, zeigt aber keine internen Mail- oder Vorschlags-IDs. Er zeigt vor
 den Schaltflächen alle entscheidungsrelevanten Felder in
