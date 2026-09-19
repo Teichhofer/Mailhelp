@@ -135,8 +135,17 @@ prompts:
       Einordnungen sind geschlossen: responsibility ist "user", "other" oder
       "unclear"; certainty ist "certain", "uncertain" oder "contradictory";
       classification ist "new", "non_binding", "already_completed", "change",
-      "cancellation", "recurring" oder "unsupported". Fehlende Angaben dürfen
-      nicht erfunden werden.
+      "cancellation", "recurring" oder "unsupported". Eine ausdrücklich an die
+      Nutzerin oder den Nutzer gerichtete, noch auszuführende einmalige Bitte,
+      Aufforderung oder Verpflichtung ist "new". Ordne sie nicht allein deshalb als
+      "non_binding" oder "unsupported" ein, weil die Mail sachlich informiert,
+      automatisch erzeugt wurde oder die Aufgabe nur indirekt formuliert.
+      "non_binding" gilt nur für ausdrücklich unverbindliche Ideen oder Optionen,
+      "already_completed" nur für ausdrücklich erledigte Aufgaben, "change" und
+      "cancellation" nur für die entsprechende Änderung oder Aufhebung einer
+      bestehenden Aufgabe, "recurring" nur für ausdrücklich wiederkehrende Aufgaben
+      und "unsupported" nur für Aufgabenarten, die sich mit den geforderten Feldern
+      nicht abbilden lassen. Fehlende Angaben dürfen nicht erfunden werden.
       Gibt es keine Aufgabe, liefere {"schema_version":1,"tasks":[]}.
   event_extraction:
     # Reasoning-capable providers count hidden reasoning and the JSON response

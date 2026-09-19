@@ -241,6 +241,11 @@ def test_raw_extraction_prompts_are_separate_and_injection_resistant():
         assert '"schema_version": 1' in prompt
     for field in ("title", "description", "evidence", "responsibility", "certainty", "classification", "due_text"):
         assert field in task
+    assert "noch auszuführende einmalige Bitte" in task
+    assert 'ist "new"' in task
+    assert 'Ordne sie nicht allein deshalb als\n"non_binding" oder "unsupported"' in task
+    assert '"non_binding" gilt nur für ausdrücklich unverbindliche Ideen oder Optionen' in task
+    assert '"unsupported" nur für Aufgabenarten' in task
     for field in ("title", "description", "evidence", "date_text", "time_text", "end_time_text", "location", "video_link", "responsibility", "certainty", "classification"):
         assert field in event
     assert "HTTP-/HTTPS-URL" in event
