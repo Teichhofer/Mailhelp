@@ -40,20 +40,23 @@ prompts:
   summary:
     parameters: {temperature: 0.0}
     system_prompt: |
-      Fasse die separat übergebene Mail sachlich, konkret und eigenständig
-      verständlich auf Deutsch zusammen. Priorisiere den eigentlichen Anlass,
-      die wichtigsten Aussagen, Entscheidungen oder Änderungen sowie deren
-      Folgen für die empfangende Person. Nenne ausdrücklich genannte Personen,
-      Organisationen, Orte, Vorhaben und Zahlen, wenn sie zum Verständnis oder
-      zur Unterscheidung wichtig sind. Erhalte dabei die Perspektive der Mail:
-      Schreibe klar, wer informiert, ankündigt, bittet oder etwas tun soll.
+      Fasse die separat übergebene Mail kurz, sachlich, abstrakt und eigenständig
+      verständlich auf Deutsch zusammen. Verdichte zusammengehörige Einzelheiten
+      zu ihrem gemeinsamen Oberbegriff und priorisiere nur Anlass, Kernaussage
+      sowie eine für die empfangende Person wesentliche Folge oder Handlung.
+      Nenne Namen, einzelne Tagesordnungspunkte, Anlagen und sonstige Details nur,
+      wenn sie für das Verständnis, eine Entscheidung oder eine Handlung
+      unverzichtbar sind. Erhalte dabei die Perspektive der Mail: Schreibe klar,
+      wer informiert, ankündigt, bittet oder etwas tun soll.
 
       Formuliere präzise statt allgemein: Wiederhole nicht nur den Betreff und
       verwende keine inhaltsarmen Aussagen wie "Die Mail informiert über ein
       Thema", "Es gibt Neuigkeiten" oder "Die Angaben werden geprüft". Behaupte
       weder, dass keine Antwort oder Handlung erforderlich sei, noch dass eine
       erforderlich sei, sofern dies nicht aus der Mail hervorgeht. Trenne
-      mehrere wesentliche Sachverhalte sinnvoll auf die verfügbaren Sätze auf.
+      mehrere wesentliche Sachverhalte möglichst in einem Satz zusammen. Nutze
+      einen zweiten Satz nur für eine davon klar getrennte wesentliche Folge oder
+      Handlung. Vermeide Aufzählungen von Unterpunkten und Nebeninformationen.
       Erwähne Anhänge nur, wenn die Mail auf deren Inhalt oder Bedeutung Bezug
       nimmt; behaupte nichts über einen nicht übergebenen Anhang.
 
@@ -66,7 +69,7 @@ prompts:
       Verwende weder Markdown noch Codeblöcke, Kommentare oder einleitenden
       beziehungsweise nachfolgenden Text. Das Objekt muss genau diese beiden
       Felder enthalten:
-      - "sentences": eine JSON-Liste aus mindestens zwei und höchstens vier
+      - "sentences": eine JSON-Liste aus mindestens einem und höchstens zwei
         nicht leeren deutschen Zusammenfassungssätzen. Die Sätze sollen
         zusammen die zentralen W-Fragen beantworten: wer kommuniziert was, aus
         welchem Anlass und mit welcher relevanten Folge;
@@ -77,10 +80,10 @@ prompts:
       keine weiteren Felder. Jeder Listeneintrag muss ein JSON-String sein.
 
       Gültiges Beispiel ohne Frist:
-      {"sentences":["Bürgermeisterin Jana Beispiel kündigt die Sanierung der Stadtbibliothek ab Oktober an.","Während der Bauzeit zieht die Ausleihe in das Bürgerhaus um."],"deadlines":[]}
+      {"sentences":["Die Stadt kündigt die Sanierung der Bibliothek und deren vorübergehenden Umzug an."],"deadlines":[]}
 
       Gültiges Beispiel mit Frist:
-      {"sentences":["Die Projektunterlagen sollen eingereicht werden.","Die Nachricht bittet um fristgerechte Zusendung."],"deadlines":["30. September 2026"]}
+      {"sentences":["Die Projektleitung bittet um fristgerechte Einreichung der Unterlagen."],"deadlines":["30. September 2026"]}
 
       Ungültig sind insbesondere leerer Text, Fließtext außerhalb des
       JSON-Objekts, ```json-Codeblöcke, einfache Anführungszeichen, fehlende

@@ -66,7 +66,10 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
             ProcessingErrorCode.SCHEMA_VALIDATION_FAILED.value} == {
                 "provider_response_invalid", "invalid_json", "schema_validation_failed"}
     assert Relevance(decision="relevant", reason="x").topic_ids == []
+    assert len(Summary(sentences=["a"]).sentences) == 1
     assert len(Summary(sentences=["a", "b"]).sentences) == 2
+    with pytest.raises(ValidationError):
+        Summary(sentences=["a", "b", "c"])
     assert Actions().proposals == []
     with pytest.raises(ValidationError): Relevance(decision="irrelevant", reason="x", topic_ids=["x"])
     with pytest.raises(ValidationError): Relevance(decision="relevant", reason="x", topic_ids=["x", "x"])

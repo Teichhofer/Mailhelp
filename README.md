@@ -415,13 +415,15 @@ Ereignisse unter `telegram.dialog` dokumentieren Update-Art, Verarbeitungsphase,
 Dialogreferenz und Ablehnungs- oder Fehlergrund, ohne Nachrichtentext oder
 Callback-Inhalt zu protokollieren.
 Die kompakte Mailnachricht nennt ohne interne Mail-ID zuerst den Absender, direkt
-darunter den Betreff und danach zwei bis vier Zusammenfassungssätze. Jeder
+darunter den Betreff und danach einen oder höchstens zwei Zusammenfassungssätze. Jeder
 Zusammenfassungsaufruf verlangt ausschließlich ein JSON-Objekt mit den beiden
-Feldern `sentences` (zwei bis vier deutsche Sätze) und `deadlines` (immer eine
+Feldern `sentences` (ein bis zwei deutsche Sätze) und `deadlines` (immer eine
 Liste, gegebenenfalls leer); Markdown, Begleittext und weitere Felder sind nicht
-zulässig. Die Sätze geben Anlass, Kernaussagen und relevante Folgen konkret
-wieder, benennen wichtige Akteure und vermeiden bloße Betreff-Paraphrasen sowie
-unbelegte Aussagen zum Handlungsbedarf. Mailinhalte bleiben dabei ausdrücklich
+zulässig. Die Sätze verdichten zusammengehörige Einzelheiten zu Oberbegriffen und
+geben nur Anlass, Kernaussage sowie wesentliche Folgen oder Handlungen wieder.
+Namen, Unterpunkte, Anlagen und andere Details erscheinen nur, wenn sie dafür
+unverzichtbar sind; bloße Betreff-Paraphrasen und unbelegte Aussagen zum
+Handlungsbedarf bleiben ausgeschlossen. Mailinhalte bleiben dabei ausdrücklich
 nicht vertrauenswürdige Daten.
 Jeder Vorschlag nennt in jedem Nachrichtenteil den Absender und Betreff der
 Ursprungsmail, zeigt aber keine internen Mail- oder Vorschlags-IDs. Er zeigt vor
