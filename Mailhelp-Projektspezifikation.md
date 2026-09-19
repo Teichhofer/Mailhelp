@@ -215,6 +215,9 @@ das Provider-/Routenbudget, ungültiges JSON nur das JSON-Reparaturbudget und
 Schemaabweichungen nur das Schema-Reparaturbudget. Die flache Zustandsmaschine ist
 auf einen Erstaufruf plus die drei getrennten Budgets begrenzt; eine Reparatur
 beginnt keine verschachtelte neue Retryserie.
+Ist der Nachrichteninhalt `null` und zugleich `finish_reason=length`, lautet der
+inhaltsfreie Diagnosegrund `output_token_limit`; ein sonstiger `null`-Inhalt bleibt
+als `message_content_null` unterscheidbar.
 
 Die einzige Prompt-Datei ist `prompts.yaml`. Sie enthält die eigentlichen Prompts
 und für jede Stufe eine geordnete Routingstrategie aus Primärroute und optionalen

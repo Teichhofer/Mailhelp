@@ -213,6 +213,7 @@ def test_openrouter_corrupt_responses_are_named_and_sanitized():
         ({"id": "x", "choices": []}, "choice_missing"),
         ({"id":"x", "choices":[{}]}, "message_missing"),
         ({"id":"x", "choices":[{"message":{"content":None}}]}, "message_content_null"),
+        ({"id":"x", "choices":[{"finish_reason":"length", "message":{"content":None}}]}, "output_token_limit"),
         ({"id":"x", "choices":[{"message":{"content":"  "}}]}, "message_content_empty"),
         ({"id":"x", "choices":"bad"}, "invalid_provider_envelope"),
         ({"id":"x", "choices":[{"message":{"content":3}}]}, "invalid_provider_envelope"),

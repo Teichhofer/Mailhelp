@@ -205,6 +205,8 @@ def _provider_error_reason(raw: Any) -> str | None:
         return "invalid_provider_envelope"
     content = message["content"]
     if content is None:
+        if choice.get("finish_reason") == "length":
+            return "output_token_limit"
         return "message_content_null"
     if isinstance(content, str) and not content.strip():
         return "message_content_empty"
