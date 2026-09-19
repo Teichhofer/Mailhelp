@@ -478,6 +478,12 @@ Webmail-Anmeldung keinen IMAP-Zugang bestätigt, Punkte und Bindestriche unverä
 übertragen werden und Prozessvariablen die `.env`-Datei überschreiben. Sie verweist
 postfachbezogen auf die primäre vollständige E-Mail-Adresse statt eines Alias, ein
 gegebenenfalls separates App-Passwort und die anbieterseitige IMAP-Freischaltung.
+Als ausdrücklich angeforderte Ausnahme gibt
+`--check-access --show-imap-credentials` den nach Anwendung der Vorrangregeln
+tatsächlich an IMAP übergebenen Benutzernamen und das Passwort JSON-quotiert im
+Terminal aus. Der Zusatzschalter ist ohne `--check-access` unzulässig. Die Ausgabe
+wird nicht protokolliert; wegen der bewussten Offenlegung darf sie nur in einer
+privaten Terminalsitzung verwendet werden.
 Ein Telegram-`chat not found` wird als konkrete Einrichtungsdiagnose ausgegeben:
 Bot zuerst per `/start` im Zielchat aktivieren, numerische Chat-ID prüfen und bei
 Gruppen die Mitgliedschaft des Bots sicherstellen. Bot-ID, Nutzername und

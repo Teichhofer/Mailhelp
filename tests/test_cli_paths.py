@@ -77,7 +77,8 @@ def test_cli_forwards_posix_and_windows_path_spellings(monkeypatch, capsys, spel
     assert capsys.readouterr().out == "Konfiguration ist gültig.\n"
     assert logger.events == [("INFO", "application", "application_started", {"parameters": {
         "config_directory": spelling, "log_directory": log_directory,
-        "check": True, "check_access": False, "max_mails": None, "learn": None,
+        "check": True, "check_access": False, "show_imap_credentials": False,
+        "max_mails": None, "learn": None,
         "clear": False,
     }})]
 
@@ -103,7 +104,8 @@ def test_cli_forwards_mail_limit_and_rejects_non_positive_values(monkeypatch):
     assert application.limit == 10
     assert logger.events[-1][3]["parameters"] == {
         "config_directory": str(Path.cwd()), "log_directory": None,
-        "check": False, "check_access": False, "max_mails": 10, "learn": None,
+        "check": False, "check_access": False, "show_imap_credentials": False,
+        "max_mails": 10, "learn": None,
         "clear": False,
     }
     assert _positive_int("1") == 1
