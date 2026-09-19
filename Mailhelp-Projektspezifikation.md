@@ -349,7 +349,10 @@ Unverbindliche Vorschläge, bereits erledigte Aufgaben sowie Änderungen und Abs
   Rohdaten noch als Validierungsinhalt protokolliert. Interne Vorschlags- und
   Relevanzentscheidungen bleiben geschlossene Schemata. Der Offset wird nach jedem
   identifizierbaren Update atomar gespeichert; ältere oder doppelte Updates werden
-  nach Neustarts ignoriert.
+  nach Neustarts ignoriert. Ist ausschließlich die Telegram-Bestätigung einer
+  Callback-Query bereits abgelaufen, bleibt die fachliche Verarbeitung wirksam und
+  der Offset wird fortgeschrieben; andere technische Antwortfehler verhindern die
+  Quittierung weiterhin.
 - Nur konfigurierte Nutzer- und Chat-IDs dürfen Nachrichten erhalten und Aktionen auslösen.
 - Vollständige Aufgabenvorschläge bieten `Bestätigen`, `Ändern` und `Verwerfen`.
   Vollständige Terminvorschläge bieten ausschließlich `Anlegen` und `Verwerfen`;

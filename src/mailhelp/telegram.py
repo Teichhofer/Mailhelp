@@ -287,6 +287,9 @@ class TelegramClient:
         "zuerst mit /start starten, die numerische telegram.chat_id prüfen und "
         "bei Gruppen sicherstellen, dass der Bot Mitglied ist"
     )
+    _EXPIRED_CALLBACK_DESCRIPTION = (
+        "bad request: query is too old and response timeout expired or query id is invalid"
+    )
 
     def __init__(self, token: str, timeout: float, transport: httpx.BaseTransport | None = None, poll_timeout: int = 30, policy: RetryPolicy | None = None, logger: EventLogger | None = None):
         self.poll_timeout = poll_timeout
@@ -399,9 +402,24 @@ class TelegramClient:
 
     def answer_callback(self, callback_id: str, text: str) -> None:
         def request() -> httpx.Response:
-            response = self.client.post("/answerCallbackQuery", json={"callback_query_id": callback_id, "text": text}); self._raise_for_status(response, "answerCallbackQuery"); return response
+            response = self.client.post("/answerCallbackQuery", json={"callback_query_id": callback_id, "text": text})
+            if not self._is_expired_callback(response):
+                self._raise_for_status(response, "answerCallbackQuery")
+            return response
         response = uncertain_write(request)
+        if self._is_expired_callback(response):
+            # Telegram callback acknowledgements have a short lifetime.  The
+            # update itself is still final and must be checkpointed; otherwise
+            # this obsolete query is returned forever and blocks newer input.
+            self.logger.event("WARNING", "telegram", "callback_acknowledgement_expired")
+            return
         self._validate_write(response, "answerCallbackQuery")
+
+    @staticmethod
+    def _is_expired_callback(response: httpx.Response) -> bool:
+        description = TelegramClient._description(response)
+        return (response.status_code == 400 and description is not None
+                and description.casefold() == TelegramClient._EXPIRED_CALLBACK_DESCRIPTION)
 
     @staticmethod
     def _validate_write(response: httpx.Response, operation: str) -> None:
