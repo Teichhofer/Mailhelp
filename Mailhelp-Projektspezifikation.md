@@ -473,10 +473,11 @@ Verbindungsaufbau oder die Anmeldung eines beim Anwendungsaufbau initialisierten
 Adapters (insbesondere IMAP) scheitert. Ein Teilfehler führt abschließend zu einem
 von null verschiedenen Prozessstatus.
 Eine vom IMAP-Server abgelehnte Anmeldung wird ohne Wiedergabe von Benutzername,
-Passwort oder Serverantwort diagnostiziert. Die Meldung stellt klar, dass Punkte
-und Bindestriche im unverändert übertragenen Benutzernamen unterstützt werden, und
-verweist auf vollständige E-Mail-Adresse, Passwort beziehungsweise App-Passwort
-und die anbieterseitige IMAP-Freischaltung als zu prüfende Einstellungen.
+Passwort oder Serverantwort diagnostiziert. Die Meldung stellt klar, dass eine
+Webmail-Anmeldung keinen IMAP-Zugang bestätigt, Punkte und Bindestriche unverändert
+übertragen werden und Prozessvariablen die `.env`-Datei überschreiben. Sie verweist
+postfachbezogen auf die primäre vollständige E-Mail-Adresse statt eines Alias, ein
+gegebenenfalls separates App-Passwort und die anbieterseitige IMAP-Freischaltung.
 Ein Telegram-`chat not found` wird als konkrete Einrichtungsdiagnose ausgegeben:
 Bot zuerst per `/start` im Zielchat aktivieren, numerische Chat-ID prüfen und bei
 Gruppen die Mitgliedschaft des Bots sicherstellen. Bot-ID, Nutzername und

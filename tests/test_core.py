@@ -249,9 +249,13 @@ def test_imap():
             self.credentials = args
             raise imaplib.IMAP4.error(b"authentication failed")
     rejected = RejectedLogin()
-    with pytest.raises(RuntimeError, match="Punkte und Bindestriche") as error:
+    with pytest.raises(RuntimeError, match="Webmail-Anmeldung bestätigt den IMAP-Zugang nicht") as error:
         ImapReader("h", 1, "S.H.-Teichhof@example.test", "secret",
                    factory=lambda *a, **k: rejected)
+    assert "primäre vollständige E-Mail-Adresse statt eines Alias" in str(error.value)
+    assert "Prozessvariablen IMAP_USERNAME/IMAP_PASSWORD überschreiben" in str(error.value)
+    assert "S.H.-Teichhof@example.test" not in str(error.value)
+    assert "secret" not in str(error.value)
     assert rejected.credentials == ("S.H.-Teichhof@example.test", "secret")
     assert not rejected.logged
     assert error.value.__suppress_context__

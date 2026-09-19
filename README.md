@@ -30,10 +30,29 @@ Test mit `docker compose run --rm mailhelp --check-access` ausgeführt werden.
 Auch wenn bereits die Verbindung oder Anmeldung bei IMAP fehlschlägt, werden die
 übrigen Dienste geprüft und anschließend alle Einzelergebnisse ausgegeben.
 Punkte und Bindestriche im IMAP-Benutzernamen werden unverändert an den Server
-übergeben und sind für sich genommen kein Anmeldehindernis. Bei
-`IMAP-Anmeldung abgelehnt` sind insbesondere die vom Anbieter verlangte Form des
-Benutzernamens (häufig die vollständige E-Mail-Adresse), das Passwort oder
-App-Passwort sowie eine gegebenenfalls nötige IMAP-Freischaltung zu prüfen.
+übergeben und sind für sich genommen kein Anmeldehindernis. Eine erfolgreiche
+Webmail-Anmeldung beweist nicht, dass IMAP für dasselbe Postfach freigeschaltet ist
+oder dass der IMAP-Server dieselbe Anmeldekennung akzeptiert. Bei
+`IMAP-Anmeldung vom Server abgelehnt` sind deshalb **für das betroffene Postfach**
+insbesondere die primäre vollständige E-Mail-Adresse statt eines Alias, ein
+möglicherweise separates App-Passwort sowie eine postfachbezogene
+IMAP-Freischaltung zu prüfen. Funktioniert ein anderes Postfach beim selben
+Anbieter, bestätigt das lediglich Host, Port und Verbindungsmodus; die Ablehnung
+bleibt postfach- beziehungsweise zugangsdatenbezogen.
+
+Unter PowerShell sollte außerdem geprüft werden, ob eine ältere Prozessvariable
+den gerade in `.env` eingetragenen Wert überschreibt:
+
+```powershell
+Test-Path Env:IMAP_USERNAME
+Test-Path Env:IMAP_PASSWORD
+Remove-Item Env:IMAP_USERNAME, Env:IMAP_PASSWORD -ErrorAction SilentlyContinue
+```
+
+Die beiden `Test-Path`-Befehle zeigen nur an, ob ein Override existiert, und geben
+keine Zugangsdaten aus. Nach `Remove-Item` liest ein neuer Mailhelp-Aufruf die Werte
+aus `.env`. Sollen Prozessvariablen absichtlich verwendet werden, müssen sie im
+selben PowerShell-Prozess auf die gewünschten Werte gesetzt sein.
 Für diesen Diagnosebefehl aktiviert Mailhelp unabhängig von der Logging-Konfiguration
 das Datei- und Konsolenlogging auf `DEBUG`. Beginn, Erfolg und Fehler jeder einzelnen
 Prüfung werden protokolliert; Fehler enthalten einen bereinigten Stacktrace. Die
