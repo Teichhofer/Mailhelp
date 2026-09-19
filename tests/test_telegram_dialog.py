@@ -613,6 +613,51 @@ def test_telegram_client_validation_and_callback():
     invalid.close()
 
 
+def test_expired_callback_acknowledgement_does_not_block_update_checkpoint(tmp_path):
+    item = proposal()
+    decision = Decision(mail_id=item.source_mail_id, proposal_id=item.id, version=1,
+                        action=DecisionAction.REJECT)
+    events = Logger()
+
+    def handler(request):
+        if request.url.path.endswith("getUpdates"):
+            return httpx.Response(200, json={"ok": True, "result": [
+                callback(7, decision.encode())
+            ]}, request=request)
+        return httpx.Response(400, json={
+            "ok": False,
+            "error_code": 400,
+            "description": (
+                "Bad Request: query is too old and response timeout expired "
+                "or query ID is invalid"
+            ),
+        }, request=request)
+
+    client = TelegramClient("secret", 1, httpx.MockTransport(handler), logger=events)
+    with JsonStore(tmp_path) as store:
+        dialog = TelegramDialogController(store, client, 1, 2, events)
+        dialog.persist(item)
+        dialog.poll_once()
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"] == "rejected"
+        assert store.load("telegram-offset")["offset"] == 8
+        assert any(entry[0][2] == "callback_acknowledgement_expired"
+                   for entry in events.events)
+    client.close()
+
+
+def test_only_exact_expired_callback_error_is_ignored():
+    def rejected(request):
+        return httpx.Response(400, json={
+            "ok": False, "error_code": 400,
+            "description": "Bad Request: query ID is invalid",
+        }, request=request)
+
+    client = TelegramClient("secret", 1, httpx.MockTransport(rejected))
+    with pytest.raises(PermanentError, match="query ID is invalid"):
+        client.answer_callback("c", "ok")
+    client.close()
+
+
 def test_started_chats_ignores_unrelated_update_kind():
     payload = {"ok": True, "result": [
         {"update_id": 1, "my_chat_member": {"status": "member"}},
