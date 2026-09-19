@@ -74,11 +74,18 @@ class TelegramUpdate(TelegramTransportModel):
 
 class TelegramUpdatesResponse(TelegramTransportModel):
     ok: bool
-    result: list[TelegramUpdate]
+    # Telegram may return update kinds this application does not subscribe to
+    # (in particular updates queued before allowed_updates was changed).  Keep
+    # the envelope strict, but validate each update independently in the dialog
+    # controller so one unrelated update cannot block every later reply.
+    result: list[TelegramUpdate | dict[str, Any]]
 
     @model_validator(mode="after")
     def successful(self) -> "TelegramUpdatesResponse":
         if not self.ok: raise ValueError("Telegram meldet keinen Erfolg")
+        if any(isinstance(item, dict) and ({"message", "callback_query"} & item.keys())
+               for item in self.result):
+            raise ValueError("Telegram-Update mit unterstütztem Typ ist ungültig")
         return self
 
 
@@ -316,19 +323,25 @@ class TelegramClient:
             raise ValueError(
                 f"Telegram getUpdates: ungültige Antwort am Schlüsselpfad {_validation_path(exc)}"
             ) from exc
-        return sorted({
-            update.message.chat.id
-            for update in parsed.result
-            if update.message is not None
-            and update.message.sender.id == user_id
-            and update.message.text.partition("@")[0] == "/start"
-        })
+        chats = set()
+        for item in parsed.result:
+            if not isinstance(item, TelegramUpdate):
+                continue
+            if (item.message is not None
+                    and item.message.sender.id == user_id
+                    and item.message.text.partition("@")[0] == "/start"):
+                chats.add(item.message.chat.id)
+        return sorted(chats)
 
     def poll(self, offset: int, timeout: int | None = None) -> list[dict[str, Any]]:
         call_id, started = str(uuid.uuid4()), time.perf_counter()
         self.logger.event("INFO", "telegram", "poll_started", call_id=call_id, offset=offset)
         def request() -> httpx.Response:
-            response = self.client.get("/getUpdates", params={"offset": offset, "timeout": self.poll_timeout if timeout is None else timeout})
+            response = self.client.get("/getUpdates", params={
+                "offset": offset,
+                "timeout": self.poll_timeout if timeout is None else timeout,
+                "allowed_updates": '["message","callback_query"]',
+            })
             self._raise_for_status(response, "getUpdates"); return response
         try:
             response = self.policy.run(request, lambda attempt: self.logger.event("DEBUG", "telegram", "poll_attempt", call_id=call_id, attempt=attempt),
@@ -339,7 +352,8 @@ class TelegramClient:
         self._raise_api_error(response, "getUpdates")
         try: parsed = TelegramUpdatesResponse.model_validate(response.json())
         except (ValueError, ValidationError) as exc: raise ValueError(f"Telegram getUpdates: ungültige Antwort am Schlüsselpfad {_validation_path(exc)}") from exc
-        result = [item.model_dump(by_alias=True) for item in parsed.result]
+        result = [item.model_dump(by_alias=True) if isinstance(item, TelegramUpdate) else item
+                  for item in parsed.result]
         self.logger.event("INFO", "telegram", "poll_completed", call_id=call_id, count=len(result), status=response.status_code, duration_ms=round((time.perf_counter()-started)*1000, 3))
         return result
 
@@ -614,22 +628,41 @@ class TelegramDialogController:
         offset_state = self.store.load_model("telegram-offset", TelegramOffset, TelegramOffset())
         assert isinstance(offset_state, TelegramOffset)
         offset = max(offset_state.offset, self._durable_dialog_offset())
-        for raw in self.telegram.poll(offset):
+        updates = self.telegram.poll(offset)
+        self.logger.event("DEBUG", "telegram.dialog", "updates_received",
+                          offset=offset, count=len(updates))
+        for raw in updates:
             raw_id = raw.get("update_id") if isinstance(raw, dict) else None
             if not isinstance(raw_id, int) or isinstance(raw_id, bool) or raw_id < offset:
-                self.logger.event("WARNING", "telegram", "invalid_update")
+                self.logger.event("WARNING", "telegram.dialog", "invalid_update",
+                                  update_id=raw_id if isinstance(raw_id, int) and not isinstance(raw_id, bool) else None,
+                                  reason="missing_or_stale_update_id")
                 if isinstance(raw_id, int) and not isinstance(raw_id, bool) and raw_id < offset:
                     self._reject_duplicate_relevance(raw)
                 continue
             try:
                 update = TelegramUpdate.model_validate(raw)
+                update_kind = "callback_query" if update.callback_query is not None else "message"
+                self.logger.event("INFO", "telegram.dialog", "update_processing",
+                                  update_id=raw_id, update_kind=update_kind)
                 self._handle(update)
-            except ValidationError:
-                self.logger.event("WARNING", "telegram", "invalid_update", update_id=raw_id)
+            except ValidationError as exc:
+                self.logger.event("WARNING", "telegram.dialog", "invalid_update",
+                                  update_id=raw_id, reason="schema_validation",
+                                  validation_path=_validation_path(exc))
                 self.telegram.send(self.chat_id, "Telegram-Eingabe ist syntaktisch ungültig und wurde verworfen.")
-            finally:
-                offset = raw_id + 1
-                self.store.save("telegram-offset", TelegramOffset(offset=offset).model_dump())
+            except Exception as exc:
+                # Do not acknowledge an update that failed operationally.  It
+                # remains queued and can be retried after a transient provider,
+                # network, or persistence problem has recovered.
+                self.logger.event("ERROR", "telegram.dialog", "update_processing_failed",
+                                  update_id=raw_id, error=exc,
+                                  stacktrace=traceback.format_exc())
+                raise
+            offset = raw_id + 1
+            self.store.save("telegram-offset", TelegramOffset(offset=offset).model_dump())
+            self.logger.event("INFO", "telegram.dialog", "update_processed",
+                              update_id=raw_id, next_offset=offset)
 
     def _reject_duplicate_relevance(self, raw: dict[str, Any]) -> None:
         """Make a replayed relevance answer visible without trusting raw fields."""
@@ -649,6 +682,9 @@ class TelegramDialogController:
         if update.callback_query is not None:
             callback = update.callback_query
             if not self._authorized(callback.sender.id, callback.message.chat.id):
+                self.logger.event("WARNING", "telegram.dialog", "unauthorized_update",
+                                  update_id=update.update_id, update_kind="callback_query",
+                                  user_id=callback.sender.id, chat_id=callback.message.chat.id)
                 self.telegram.answer_callback(callback.id, "Nicht autorisierte Aktion.")
                 return
             if callback.data.startswith("relevance:"):
@@ -669,7 +705,9 @@ class TelegramDialogController:
         message = update.message
         assert message is not None
         if not self._authorized(message.sender.id, message.chat.id):
-            self.logger.event("WARNING", "telegram", "unauthorized_update", update_id=update.update_id)
+            self.logger.event("WARNING", "telegram.dialog", "unauthorized_update",
+                              update_id=update.update_id, update_kind="message",
+                              user_id=message.sender.id, chat_id=message.chat.id)
             return
         normalized = message.text.strip().lower()
         if normalized in {"relevant", "irrelevant"}:
@@ -815,32 +853,50 @@ class TelegramDialogController:
     def _answer(self, answer: str) -> None:
         dialog = self.store.load_model("telegram-dialog", TelegramDialogState)
         if dialog is None or dialog.proposal_id is None:
+            self.logger.event("INFO", "telegram.dialog", "answer_rejected",
+                              reason="no_open_dialog")
             self.telegram.send(self.chat_id, "Keine offene Rückfrage. Bitte zuerst „Ändern“ wählen.")
             return
         assert dialog.mail_id is not None
         proposal = self.store.load_model(self._proposal_name(dialog.mail_id, dialog.proposal_id), Proposal)
         if proposal is None:
+            self.logger.event("WARNING", "telegram.dialog", "answer_rejected",
+                              reason="proposal_missing", mail_id=dialog.mail_id,
+                              proposal_id=dialog.proposal_id, version=dialog.version)
             self.store.save("telegram-dialog", TelegramDialogState().model_dump())
             self.telegram.send(self.chat_id, "Der zugehörige Vorschlag wurde nicht gefunden.")
             return
         assert isinstance(proposal, Proposal)
         if proposal.version != dialog.version or proposal.status != ProposalStatus.NEEDS_CLARIFICATION:
+            self.logger.event("WARNING", "telegram.dialog", "answer_rejected",
+                              reason="stale_dialog", mail_id=dialog.mail_id,
+                              proposal_id=dialog.proposal_id, dialog_version=dialog.version,
+                              proposal_version=proposal.version, proposal_status=proposal.status.value)
             self.store.save("telegram-dialog", TelegramDialogState().model_dump())
             self.telegram.send(self.chat_id, "Die Rückfrage ist veraltet; es wurde nichts geändert.")
             return
         question = proposal.open_questions[0] if proposal.open_questions else "Welche Änderung soll übernommen werden?"
         if self.revision_service is None:
+            self.logger.event("ERROR", "telegram.dialog", "answer_revision_unavailable",
+                              mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
+                              version=dialog.version)
             self.telegram.send(self.chat_id, "Die Überarbeitung ist derzeit nicht verfügbar; der Vorschlag blieb unverändert.")
             return
         try:
             _, candidate = self.revision_service.revise_proposal(proposal, question, answer)
             revised = validate_revision_successor(proposal, candidate)
-        except (ValueError, ValidationError):
+        except (ValueError, ValidationError) as exc:
+            self.logger.event("WARNING", "telegram.dialog", "answer_revision_rejected",
+                              mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
+                              version=dialog.version, error=exc)
             self.telegram.send(self.chat_id, "Die Antwort konnte nicht widerspruchsfrei übernommen werden; der Vorschlag und die Rückfrage blieben unverändert.")
             return
         # send_proposal persists the immutable version before exposing it.
         self.send_proposal(revised)
         self.store.save("telegram-dialog", TelegramDialogState().model_dump())
+        self.logger.event("INFO", "telegram.dialog", "answer_revision_completed",
+                          mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
+                          previous_version=dialog.version, new_version=revised.version)
 
 
 def _validation_path(exc: Exception) -> str:
