@@ -265,8 +265,10 @@ def test_learning_stages_have_reasoning_output_budgets():
     config=yaml.safe_load(Path("prompts.yaml").read_text(encoding="utf-8"))
 
     default = config["defaults"]["parameters"]["max_tokens"]
+    relevance = config["prompts"]["relevance"]["parameters"]["max_tokens"]
     classification = config["prompts"]["learning_classification"]["parameters"]["max_tokens"]
     abstraction = config["prompts"]["learning_abstraction"]["parameters"]["max_tokens"]
+    assert relevance > default
     assert classification > default
     assert abstraction > classification
 

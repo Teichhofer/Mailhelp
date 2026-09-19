@@ -223,9 +223,10 @@ Ist der Nachrichteninhalt `null` und zugleich `finish_reason=length`, lautet der
 inhaltsfreie Diagnosegrund `output_token_limit`; ein sonstiger `null`-Inhalt bleibt
 als `message_content_null` unterscheidbar.
 Reasoning-intensive Schritte überschreiben ihr Ausgabelimit in `prompts.yaml`.
-Dies gilt insbesondere für beide Lernschritte; die abschließende Abstraktion
-erhält wegen der gemeinsamen Verarbeitung aller Einzelklassifikationen und bis zu
-50 auszugebender Kategorien ein höheres Budget als die Einzelklassifikation.
+Dies gilt für die Relevanzprüfung und beide Lernschritte; die abschließende
+Abstraktion erhält wegen der gemeinsamen Verarbeitung aller Einzelklassifikationen
+und bis zu 50 auszugebender Kategorien ein höheres Budget als die
+Einzelklassifikation.
 
 Die einzige Prompt-Datei ist `prompts.yaml`. Sie enthält die eigentlichen Prompts
 und für jede Stufe eine geordnete Routingstrategie aus Primärroute und optionalen
@@ -421,7 +422,7 @@ deshalb niemals als echte externe Erstellung interpretiert werden.
 | Datei | Inhalt |
 | --- | --- |
 | `config.yaml` | Abruf, Ordner, Zeitzone, Ziele, Telegram-Freigaben, Pfade, Limits, Wiederholungen und Logging |
-| `prompts.yaml` | Prompts, Modelle, globale und schrittspezifische OpenRouter-Parameter; die Terminextraktion besitzt ein höheres Ausgabelimit, damit Reasoning-Token nicht vor Ausgabe des JSON-Ergebnisses das globale Limit ausschöpfen |
+| `prompts.yaml` | Prompts, Modelle, globale und schrittspezifische OpenRouter-Parameter; Relevanzprüfung, Terminextraktion und Lernschritte besitzen höhere Ausgabelimits, damit Reasoning-Token nicht vor Ausgabe des JSON-Ergebnisses das globale Limit ausschöpfen |
 | `topics.yaml` | Themenbereiche und Relevanzkriterien |
 | `irrelevant_topics.yaml` | Im Lernmodus ausgeschlossene Themenbereiche |
 | `.env` | IMAP-Zugangsdaten, OpenRouter-Key, Telegram-Bot-Token, Google-OAuth-Zugangsdaten sowie Todoist-Token, -Client-ID und -Client-Schlüssel |

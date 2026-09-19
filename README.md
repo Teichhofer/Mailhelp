@@ -379,12 +379,12 @@ zuordenbare Mails werden übersprungen. Nur Mails, die zu keiner der beiden List
 gehören, werden ohne vorgegebene Themenliste durch den in `prompts.yaml` konfigurierten Schritt
 `learning_classification` klassifiziert. Ein einzelner weiterer Aufruf über
 `learning_abstraction` fasst die Ergebnisse zu allgemeineren Themen zusammen.
-Für Einzelklassifikation und Abstraktion überschreibt `prompts.yaml` das globale
-Ausgabelimit mit größeren Budgets, damit Reasoning-Provider ihre interne
-Verarbeitung und das abschließende JSON nicht vorzeitig bei
-`finish_reason=length` abbrechen. Die Abstraktion erhält das größte Budget, weil
-sie alle Einzelklassifikationen gemeinsam verarbeitet und bis zu 50 Kategorien
-ausgeben kann.
+Für die vorgeschaltete Relevanzprüfung sowie für Einzelklassifikation und
+Abstraktion überschreibt `prompts.yaml` das globale Ausgabelimit mit größeren
+Budgets, damit Reasoning-Provider ihre interne Verarbeitung und das abschließende
+JSON nicht vorzeitig bei `finish_reason=length` abbrechen. Die Abstraktion erhält
+das größte Budget, weil sie alle Einzelklassifikationen gemeinsam verarbeitet und
+bis zu 50 Kategorien ausgeben kann.
 Antwortet ein Provider dennoch mit syntaktisch ungültigem JSON, wird der
 begrenzte Reparaturversuch zusätzlich durch eine Systemanweisung erzwungen;
 die Anweisung im Nutzdatenobjekt allein könnte sonst als nicht vertrauenswürdiger
