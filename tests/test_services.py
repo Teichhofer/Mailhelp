@@ -545,6 +545,43 @@ def test_orchestrator_skips_extractor_for_none_and_business_clarification(tmp_pa
         assert "fachliche Klärung" in notify.messages[-1]
 
 
+def test_orchestrator_sends_event_candidate_even_when_route_is_unclear(tmp_path):
+    class UnclearEventAnalyzer(AnalyzerStub):
+        def action_route(self, mail):
+            return "ar", ActionRoute(action_state="unclear", task_count=0, event_count=1,
+                                     reason="Der Termin ist erkannt, die Einladung ist unklar.")
+
+        def extract_events(self, mail):
+            from mailhelp.models import EventExtraction, ExtractedEvent
+            return "e", EventExtraction(events=[ExtractedEvent(
+                title="Gemeinderatssitzung", evidence="Sitzung am 22.09.2026",
+                date_text="22.09.2026", responsibility="unclear",
+                certainty="certain", classification="new")])
+
+        def extract_tasks(self, mail):
+            raise AssertionError("Ohne Aufgabenkandidat darf keine Aufgabenextraktion laufen")
+
+    notify = Notify()
+    topic = Topic(id="kommune", name="Kommune", enabled=True,
+                  description="Gemeinderat")
+    raw = (b"Date: Fri, 18 Sep 2026 17:24:41 +0000\n"
+           b"Subject: GR-Sitzung am 22.09.2026\n\nWeitere Tagesordnungspunkte")
+    with JsonStore(tmp_path / "unclear-event") as store:
+        result = Orchestrator(UnclearEventAnalyzer("relevant"), store, notify, 1,
+                              [topic], 1000, user_timezone="Europe/Berlin").process(
+                                  FetchedMail("INBOX", 1, 94, raw))
+
+    assert result.outcome is ProcessingOutcome.COMPLETED
+    assert result["steps"]["task_extraction"] == "skipped"
+    assert result["steps"]["event_extraction"] == "completed"
+    assert result["event_extraction"]["events"][0]["title"] == "Gemeinderatssitzung"
+    assert len(result["proposals"]) == 1
+    assert result["proposals"][0]["kind"] == "event"
+    assert result["proposals"][0]["status"] == "needs_clarification"
+    assert "fachliche Klärung" in notify.messages[1]
+    assert notify.messages[2] == result["proposals"][0]["id"]
+
+
 def test_proposal_boundary_builds_internal_identity_and_routing(tmp_path):
     topic=Topic(id="x",name="x",enabled=True,description="x")
     targets=TargetSettings(todoist_project="trusted-project", google_calendar="trusted-calendar")

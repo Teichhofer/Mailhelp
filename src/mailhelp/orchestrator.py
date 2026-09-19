@@ -335,7 +335,12 @@ class Orchestrator:
                         assert state.action_route is not None
                         route = state.action_route
                     wants_tasks = route.action_state in {"task", "task_and_event"}
-                    wants_events = route.action_state in {"event", "task_and_event"}
+                    # An event candidate must not disappear merely because the
+                    # router is unsure whether the message is an invitation.  The
+                    # extractor and proposal boundary preserve that uncertainty,
+                    # while Telegram still receives the detected appointment.
+                    wants_events = (route.action_state in {"event", "task_and_event"}
+                                    or route.event_count > 0)
                     if wants_tasks and state.steps.task_extraction in {"pending", "failed"}:
                         stage = ProcessingStage.TASK_EXTRACTION
                         call, extraction = self.analyzer.extract_tasks(state.mail)
