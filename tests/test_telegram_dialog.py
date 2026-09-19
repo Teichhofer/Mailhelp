@@ -6,7 +6,8 @@ from unittest.mock import patch
 from pydantic import ValidationError
 
 from mailhelp.adapter import PermanentError, UncertainWriteError
-from mailhelp.models import MailState, Proposal, ProposalStatus, RelevanceDialog, RelevanceDialogStatus
+from mailhelp.models import (ActionLedger, ActionLedgerEntry, MailState, Proposal,
+                             ProposalStatus, RelevanceDialog, RelevanceDialogStatus)
 from mailhelp.orchestrator import Orchestrator
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import (
@@ -147,7 +148,8 @@ def test_persist_order_and_restart_repair_use_current_proposal(tmp_path):
                                            "external_id":"external-1",
                                            "external_link":"https://example.test/item"})
         dialog,_,_=controller(store); dialog.persist(created)
-        assert store.saved == [f"proposal-{mail_id}-p1-v1", f"proposal-{mail_id}-p1", f"mail-{mail_id}"]
+        assert store.saved == [f"proposal-{mail_id}-p1-v1", f"proposal-{mail_id}-p1",
+                               f"mail-{mail_id}", "action-ledger"]
 
         # Simulate a crash between the second and third writes by restoring a
         # stale embedding.  Startup repairs it from the current proposal file.
@@ -157,6 +159,55 @@ def test_persist_order_and_restart_repair_use_current_proposal(tmp_path):
         assert repaired.status == ProposalStatus.CREATED
         assert repaired.external_id == "external-1"
         assert repaired.external_link == "https://example.test/item"
+
+
+def test_created_action_is_booked_and_duplicate_needs_second_confirmation(tmp_path):
+    first_mail, second_mail = "a" * 24, "b" * 24
+    with JsonStore(tmp_path) as store:
+        writer = Writer()
+        dialog, telegram, _ = controller(store, writers={"todoist": writer})
+        already_created = proposal(source_mail_id=first_mail, status="created",
+                                   external_id="old-external")
+        dialog.persist(already_created)
+        dialog.persist(already_created)  # bookkeeping is idempotent
+        candidate = proposal(source_mail_id=second_mail)
+        dialog.persist(candidate)
+
+        normal = Decision(mail_id=second_mail, proposal_id="p1", version=1,
+                          action=DecisionAction.CONFIRM)
+        dialog._decide("first", normal)
+        assert writer.created == 0
+        assert "erneute Freigabe" in telegram.answered[-1][1]
+        assert "Bereits angelegt" in telegram.sent[-1][1]
+        markup = telegram.sent[-1][2]
+        repeat = Decision.parse(markup["inline_keyboard"][0][0]["callback_data"], store)
+        assert repeat.action == DecisionAction.CONFIRM_DUPLICATE
+
+        dialog._decide("second", repeat)
+        assert writer.created == 1
+        assert store.load("proposal-" + second_mail + "-p1")["status"] == "created"
+        ledger = store.load_model("action-ledger", ActionLedger)
+        assert len(ledger.entries) == 2
+        assert {item.external_id for item in ledger.entries} == {"old-external", "external-1"}
+
+
+def test_duplicate_override_is_rejected_when_ledger_no_longer_matches(tmp_path):
+    with JsonStore(tmp_path) as store:
+        dialog, telegram, _ = controller(store, writers={"todoist": Writer()})
+        item = proposal()
+        dialog.persist(item)
+        decision = Decision(mail_id=item.source_mail_id, proposal_id=item.id, version=1,
+                            action=DecisionAction.CONFIRM_DUPLICATE)
+        dialog._decide("stale", decision)
+        assert "veraltet" in telegram.answered[-1][1]
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"] == "pending_confirmation"
+
+
+def test_action_ledger_rejects_duplicate_proposal_version():
+    entry = ActionLedgerEntry(action_key="0" * 64, mail_id="a" * 24, proposal_id="p1",
+                              proposal_version=1, kind="task", title="Aufgabe", target="inbox")
+    with pytest.raises(ValidationError, match="doppelt verbucht"):
+        ActionLedger(entries=[entry, entry])
 
 
 class Writer:
@@ -369,12 +420,16 @@ def test_same_llm_id_from_two_mails_survives_restart_and_writes_separately(tmp_p
         restarted,t2,_=controller(store,[callback(2,f"proposal:{second_mail}:p1:1:confirm")],
                                   {"todoist":second_writer})
         restarted.poll_once()
+        assert second_writer.created == 0
+        repeat_data = t2.sent[-1][2]["inline_keyboard"][0][0]["callback_data"]
+        t2.updates = [callback(3, repeat_data)]
+        restarted.poll_once()
         assert second_writer.created == 1
         assert store.load(f"proposal-{first_mail}-p1")["external_id"] == "external-1"
         assert store.load(f"proposal-{second_mail}-p1")["external_id"] == "external-1"
 
         # A fresh Telegram update cannot execute the already-created first proposal again.
-        t2.updates=[callback(3,f"proposal:{first_mail}:p1:1:confirm")]
+        t2.updates=[callback(4,f"proposal:{first_mail}:p1:1:confirm")]
         restarted.poll_once()
         assert first_writer.created == 1 and second_writer.created == 1
         assert "veraltet" in t2.answered[-1][1]

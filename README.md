@@ -244,6 +244,11 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
   ein zwischen Speichern und Meldung erfolgter Abbruch kann die noch ungemeldete
   Simulation dagegen sicher zu Ende melden. Entsprechend wird auch die Meldung eines
   unverändert unklaren Ergebnisses dauerhaft markiert.
+* Erfolgreich angelegte Termine und Aufgaben werden zusätzlich im validierten,
+  menschenlesbaren `action-ledger.json` verbucht. Erkennt Mailhelp bei einer späteren
+  Bestätigung dieselbe fachliche Aktion, bleibt der Vorschlag zunächst offen und
+  Telegram verlangt über eine eigene versionsgebundene Schaltfläche eine zweite,
+  ausdrückliche Freigabe. Ohne diese Freigabe erfolgt kein erneuter Schreibzugriff.
 * `data_directory` bezeichnet das gemeinsame Stammverzeichnis. Mailhelp verwendet darunter automatisch `test/` bei `test_mode: true` und `production/` bei `test_mode: false`. Beide Namensräume besitzen eine eigene `.lock`-Datei und enthalten jeweils sämtliche IMAP-Checkpoints, Mailzustände, Telegram-Offsets und -Dialoge, Vorschläge, externe Ergebniszustände sowie das persistierte LLM-Zeitfenster. Identische IDs können deshalb nicht zwischen Test- und Produktivbetrieb kollidieren.
 * Ein schema-validierter `duplicate-index.json` hält ausschließlich technische
   IMAP-Identitäten, normalisierte Message-IDs, interne Mail-IDs und SHA-256-

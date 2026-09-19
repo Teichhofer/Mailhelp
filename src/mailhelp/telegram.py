@@ -1,15 +1,17 @@
 """Strict Telegram trust boundary and restart-safe proposal dialogs."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from enum import StrEnum
+import hashlib
+import json
 import secrets
 from typing import Any, Protocol
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
-from .models import (MailState, Proposal, ProposalKind, ProposalStatus, RelevanceDialog,
+from .models import (ActionLedger, ActionLedgerEntry, MailState, Proposal, ProposalKind, ProposalStatus, RelevanceDialog,
                      RelevanceDialogStatus, TelegramDialogState, TelegramOffset,
                      WriteAttemptReference)
 from .integrations import ExternalWriter, execute_confirmed, proposal_is_writable
@@ -113,6 +115,7 @@ class TelegramBotResponse(TelegramTransportModel):
 
 class DecisionAction(StrEnum):
     CONFIRM = "confirm"
+    CONFIRM_DUPLICATE = "confirm_duplicate"
     EDIT = "edit"
     REJECT = "reject"
 
@@ -527,6 +530,49 @@ class TelegramDialogController:
             if changed:
                 state.updated_at = datetime.now(timezone.utc)
                 self.store.save(mail_name, state.model_dump(mode="json"))
+        if proposal.status == ProposalStatus.CREATED:
+            self._book_created(proposal)
+
+    @staticmethod
+    def _action_key(proposal: Proposal) -> str:
+        """Identify the externally visible action independently of its source mail."""
+        def encoded(value: date | datetime | None) -> str | None:
+            return value.isoformat() if value is not None else None
+
+        identity = {
+            "kind": proposal.kind.value, "title": proposal.title.strip().casefold(),
+            "description": proposal.description.strip().casefold(), "target": proposal.target,
+            "due": encoded(proposal.due), "start": encoded(proposal.start),
+            "end": encoded(proposal.end), "all_day": proposal.all_day,
+            "location": (proposal.location or "").strip().casefold(),
+            "video_link": str(proposal.video_link) if proposal.video_link is not None else None,
+        }
+        return hashlib.sha256(json.dumps(identity, ensure_ascii=False, sort_keys=True,
+                                         separators=(",", ":")).encode()).hexdigest()
+
+    def _book_created(self, proposal: Proposal) -> None:
+        ledger = self.store.load_model("action-ledger", ActionLedger, ActionLedger())
+        assert isinstance(ledger, ActionLedger)
+        reference = (proposal.source_mail_id, proposal.id, proposal.version)
+        if any((item.mail_id, item.proposal_id, item.proposal_version) == reference
+               for item in ledger.entries):
+            return
+        ledger.entries.append(ActionLedgerEntry(
+            action_key=self._action_key(proposal), mail_id=proposal.source_mail_id,
+            proposal_id=proposal.id, proposal_version=proposal.version,
+            kind=proposal.kind, title=proposal.title, target=proposal.target,
+            external_id=proposal.external_id, external_link=proposal.external_link,
+        ))
+        self.store.save("action-ledger", ledger.model_dump(mode="json"))
+
+    def _prior_actions(self, proposal: Proposal) -> list[ActionLedgerEntry]:
+        ledger = self.store.load_model("action-ledger", ActionLedger, ActionLedger())
+        assert isinstance(ledger, ActionLedger)
+        current = (proposal.source_mail_id, proposal.id, proposal.version)
+        key = self._action_key(proposal)
+        return [item for item in ledger.entries
+                if item.action_key == key
+                and (item.mail_id, item.proposal_id, item.proposal_version) != current]
 
     def send(self, chat_id: int, text: str) -> None:
         if chat_id != self.chat_id:
@@ -686,12 +732,31 @@ class TelegramDialogController:
             self.telegram.answer_callback(callback_id, "Änderung ausgewählt.")
             self.telegram.send(self.chat_id, prompt)
             return
-        if decision.action == DecisionAction.CONFIRM and proposal.status != ProposalStatus.PENDING_CONFIRMATION:
+        if decision.action in {DecisionAction.CONFIRM, DecisionAction.CONFIRM_DUPLICATE} and proposal.status != ProposalStatus.PENDING_CONFIRMATION:
             self.telegram.answer_callback(callback_id, "Zuerst müssen die offenen Fragen beantwortet werden.")
+            return
+        duplicates = self._prior_actions(proposal) if decision.action in {
+            DecisionAction.CONFIRM, DecisionAction.CONFIRM_DUPLICATE} else []
+        if decision.action == DecisionAction.CONFIRM and duplicates:
+            previous = duplicates[-1]
+            self.telegram.answer_callback(callback_id, "Diese Aktion wurde bereits angelegt; erneute Freigabe erforderlich.")
+            duplicate_decision = decision.model_copy(update={"action": DecisionAction.CONFIRM_DUPLICATE})
+            self.telegram.send(self.chat_id, "\n".join([
+                f"Bereits angelegt: {'Aufgabe' if previous.kind == ProposalKind.TASK else 'Termin'} „{previous.title}“.",
+                f"Frühere Quelle: Mail {previous.mail_id}, Vorschlag {previous.proposal_id}, Version {previous.proposal_version}.",
+                "Soll die Aktion wirklich ein zweites Mal angelegt bzw. versendet werden?",
+            ]), {"inline_keyboard": [[
+                {"text": "Erneut anlegen", "callback_data": duplicate_decision.encode(self.store)},
+                {"text": "Nicht erneut", "callback_data": decision.model_copy(update={"action": DecisionAction.REJECT}).encode(self.store)},
+            ]]})
+            return
+        if decision.action == DecisionAction.CONFIRM_DUPLICATE and not duplicates:
+            self.telegram.answer_callback(callback_id, "Die Doppelanlage-Bestätigung ist veraltet; es wurde nichts angelegt.")
             return
         changed = (proposal.model_copy(update={"status": ProposalStatus.REJECTED})
                    if decision.action == DecisionAction.REJECT else
-                   apply_decision(proposal, decision, self.user_id, self.chat_id, self.user_id, self.chat_id))
+                   apply_decision(proposal, decision.model_copy(update={"action": DecisionAction.CONFIRM}),
+                                  self.user_id, self.chat_id, self.user_id, self.chat_id))
         self.persist(changed)
         response = "Vorschlag bestätigt." if changed.status == ProposalStatus.CONFIRMED else "Vorschlag verworfen."
         self.telegram.answer_callback(callback_id, response)

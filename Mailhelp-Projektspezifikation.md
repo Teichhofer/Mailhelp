@@ -351,6 +351,14 @@ Nach erfolgreichem Speichern werden die externe ID und, sofern verfügbar, ein L
 
 Jeder Schreibvorgang wird vor dem API-Aufruf dauerhaft registriert. Bei Zeitüberschreitung oder Absturz nach einem möglicherweise erfolgreichen Aufruf wird zuerst versucht, das Ergebnis abzugleichen. Solange der Erfolg nicht feststellbar ist, bleibt der Vorgang im Zustand `uncertain`; es erfolgt kein blindes erneutes Anlegen. Die konkrete Abgleichsstrategie ist je Dienst zu implementieren und zu testen.
 
+Erfolgreich angelegte Aufgaben und Termine werden dienstübergreifend in einem
+schema-validierten Aktionsbuch mit Quellmail, Vorschlagsversion, Ziel und externer
+Referenz festgehalten. Stimmt eine neue Aktion in ihren extern sichtbaren Fachdaten
+mit einem Eintrag überein, reicht die normale Vorschlagsbestätigung nicht aus:
+Telegram zeigt den früheren Eintrag an und verlangt eine zweite, ausdrücklich als
+Doppelanlage bezeichnete, versionsgebundene Bestätigung. Erst diese darf den
+erneuten Schreibzugriff auslösen.
+
 Die Integrationsgrenze verlangt dafür eine Persistenzfunktion. Sie speichert `writing`
 vor dem Netzwerkaufruf und danach `created`, `failed` oder `uncertain`. Im Testmodus
 speichert sie stattdessen vor der Erfolgsmeldung den eigenen Abschlusszustand

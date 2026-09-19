@@ -195,6 +195,35 @@ class ProposalStatus(StrEnum):
     UNCERTAIN = "uncertain"
 
 
+class ActionLedgerEntry(StrictModel):
+    """Human-readable record of an action successfully created externally."""
+
+    action_key: str = Field(pattern=r"^[a-f0-9]{64}$")
+    mail_id: str = Field(pattern=r"^[a-f0-9]{24}$")
+    proposal_id: str = Field(pattern=r"^[a-zA-Z0-9_-]{1,64}$")
+    proposal_version: int = Field(ge=1)
+    kind: ProposalKind
+    title: str = Field(min_length=1, max_length=500)
+    target: str = Field(min_length=1, max_length=500)
+    external_id: str | None = Field(default=None, max_length=500)
+    external_link: str | None = Field(default=None, max_length=2000)
+    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+
+
+class ActionLedger(StrictModel):
+    """Durable, validated bookkeeping for completed calendar/task writes."""
+
+    schema_version: Literal[1] = 1
+    entries: list[ActionLedgerEntry] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def unique_proposal_versions(self) -> "ActionLedger":
+        keys = [(item.mail_id, item.proposal_id, item.proposal_version) for item in self.entries]
+        if len(keys) != len(set(keys)):
+            raise ValueError("Angelegte Aktionen dürfen nicht doppelt verbucht werden")
+        return self
+
+
 class Proposal(StrictModel):
     schema_version: Literal[2] = 2
     id: str = Field(pattern=r"^[a-zA-Z0-9_-]{1,64}$")
