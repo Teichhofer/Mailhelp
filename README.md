@@ -340,6 +340,19 @@ Bestand weder neue Mails verdrängt noch den Lauf unbegrenzt verlängert.
 Im dauerhaften Betrieb ohne `--max-mails` endet dieser zusätzliche Scan nach
 1.000 blockierten Zuständen je Abrufdurchlauf.
 
+### Interaktiver Lernmodus
+
+`mailhelp --learn 20` ruft bis zu 20 der neuesten Mails schreibfrei mit
+`BODY.PEEK[]` aus den konfigurierten Ordnern ab. Jede Mail wird zunächst ohne
+vorgegebene Themenliste durch den in `prompts.yaml` konfigurierten Schritt
+`learning_classification` klassifiziert. Ein einzelner weiterer Aufruf über
+`learning_abstraction` fasst die Ergebnisse zu allgemeineren Themen zusammen.
+Anschließend zeigt das Programm jede vorgeschlagene Kategorie ausschließlich im
+Terminal an und verlangt dort eine Antwort mit `j` oder `n`. Nur bestätigte
+Kategorien werden aktiviert und atomar in `topics.yaml` ergänzt; IMAP-Checkpoints
+und Telegram werden in diesem Modus nicht verwendet. `--learn` muss mindestens
+`1` sein.
+
 Fehler werden im Mail-Zustand ausschließlich mit sicherem Fehlercode, betroffener
 Verarbeitungsstufe, Zeitstempel und optionaler Wiederholbarkeit gespeichert. Eine vor
 dem Telegram-Versand persistierte Markierung verhindert doppelte Fehlermeldungen nach

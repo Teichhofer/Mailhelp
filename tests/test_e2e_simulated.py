@@ -112,7 +112,7 @@ def callback_update(update_id, callback_data):
 
 def test_imap_llm_persists_separate_raw_extractions(tmp_path):
     prompts = PromptConfig(defaults={"model": "fake", "parameters": {}}, prompts={
-        step: PromptStep(system_prompt=step) for step in ("relevance", "summary", "action_router", "task_extraction", "event_extraction", "proposal_revision")})
+        step: PromptStep(system_prompt=step) for step in ("relevance", "summary", "action_router", "task_extraction", "event_extraction", "proposal_revision", "learning_classification", "learning_abstraction")})
     analyzer = Analyzer(SimulatedOpenRouter(), prompts)
     telegram = FakeTelegram()
     todoist, calendar = FakeWriter("todoist"), FakeWriter("calendar")
@@ -148,7 +148,7 @@ def test_synthetic_council_mail_keeps_summary_when_action_detection_fails(tmp_pa
 
     prompts = PromptConfig(defaults={"model": "fake", "parameters": {}}, prompts={
         step: PromptStep(system_prompt=step)
-        for step in ("relevance", "summary", "action_router", "task_extraction", "event_extraction", "proposal_revision")
+        for step in ("relevance", "summary", "action_router", "task_extraction", "event_extraction", "proposal_revision", "learning_classification", "learning_abstraction")
     })
     telegram = FakeTelegram()
     message = EmailMessage()

@@ -9,8 +9,9 @@ from pydantic import BaseModel, ValidationError
 
 from .adapter import RetryableError
 from .config import LlmRoute, PromptConfig, Topic
-from .models import (ActionRoute, EventExtraction, Proposal,
-                     ProposalStatus, Relevance, Summary, TaskExtraction)
+from .models import (AbstractCategories, ActionRoute, EventExtraction,
+                     MailClassification, Proposal, ProposalStatus, Relevance,
+                     Summary, TaskExtraction)
 from .openrouter import InvalidJson, ProviderResponseInvalid
 
 T = TypeVar("T", bound=BaseModel)
@@ -200,4 +201,18 @@ class Analyzer:
         return self._classified_run(
             "proposal_revision", payload,
             lambda raw: validate_revision_successor(proposal, raw),
+        )
+
+    def classify_for_learning(self, mail: dict[str, Any]) -> tuple[str, MailClassification]:
+        """Freely classify one untrusted mail without using configured topics."""
+        return self._run("learning_classification", MailClassification, mail)
+
+    def abstract_learned_categories(
+        self, categories: list[MailClassification]
+    ) -> tuple[str, AbstractCategories]:
+        """Consolidate per-mail suggestions into broader topic candidates."""
+        return self._classified_run(
+            "learning_abstraction",
+            {"classifications": [item.model_dump() for item in categories]},
+            AbstractCategories.model_validate,
         )
