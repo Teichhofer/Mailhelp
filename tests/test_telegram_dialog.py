@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import httpx
 import pytest
+from unittest.mock import patch
 from pydantic import ValidationError
 
 from mailhelp.adapter import PermanentError, UncertainWriteError
@@ -18,6 +19,8 @@ from mailhelp.telegram import (
     TelegramUpdate,
     numbered_message_parts,
     format_proposal,
+    validate_callback_data,
+    validate_callback_markup,
 )
 from mailhelp.application import _state_directory
 from mailhelp.config import Settings
@@ -179,6 +182,74 @@ def test_strict_schemas_and_decisions():
     with pytest.raises(ValidationError): TelegramUpdate.model_validate({**message(1),"callback_query":callback(1,"x")["callback_query"]})
 
 
+def test_durable_callback_tokens_bound_every_field_and_survive_restart(tmp_path):
+    item = Decision(mail_id="a" * 24, proposal_id="Z_" * 16, version=123456789,
+                    action=DecisionAction.CONFIRM)
+    with JsonStore(tmp_path) as store:
+        encoded = item.encode(store)
+        assert len(encoded.encode("utf-8")) <= 64
+        assert Decision.parse(encoded, store) == item
+    with JsonStore(tmp_path) as restarted:
+        assert Decision.parse(encoded, restarted) == item
+        for bad in ("decision:" + "0" * 32, encoded[:-1] + "g", "decision:short"):
+            with pytest.raises((ValueError, ValidationError)):
+                Decision.parse(bad, restarted)
+        with pytest.raises(ValueError, match="Unbekannter"):
+            Decision.parse(encoded)
+
+
+def test_callback_token_collision_and_invalid_persisted_record(tmp_path):
+    item = Decision(mail_id="a" * 24, proposal_id="p1", version=12,
+                    action=DecisionAction.EDIT)
+    with JsonStore(tmp_path) as store:
+        store.save("telegram-callback-" + "1" * 32, item.model_dump(mode="json"))
+        with patch("mailhelp.telegram.secrets.token_hex", side_effect=["1" * 32, "2" * 32]):
+            value = item.encode(store)
+        assert value == "decision:" + "2" * 32
+        for token, record in (("3" * 32, ["broken"]),
+                              ("4" * 32, {"action": 1})):
+            store.save("telegram-callback-" + token, record)
+            with pytest.raises(ValueError, match="Callback-Datensatz"):
+                Decision.parse("decision:" + token, store)
+
+
+def test_callback_data_byte_validation_and_legacy_limit():
+    validate_callback_markup(None)
+    validate_callback_markup({"inline_keyboard": [[{"text": "URL"}]]})
+    validate_callback_data("x" * 64)
+    for value in ("", "x" * 65, "ü" * 33):
+        with pytest.raises(ValueError, match="1 bis 64 UTF-8-Bytes"):
+            validate_callback_data(value)
+    with pytest.raises(ValueError, match="Zeichenkette"):
+        validate_callback_markup({"inline_keyboard": [[{"callback_data": 1}]]})
+    too_long_legacy = "proposal:" + "a" * 24 + ":" + "p" * 32 + ":12:confirm"
+    with pytest.raises(ValueError, match="UTF-8-Bytes"):
+        Decision.parse(too_long_legacy)
+
+
+@pytest.mark.parametrize(("changes", "labels", "actions"), [
+    ({}, ["Bestätigen", "Ändern", "Verwerfen"],
+     [DecisionAction.CONFIRM, DecisionAction.EDIT, DecisionAction.REJECT]),
+    ({"open_questions": ["Bitte klären"]}, ["Klären", "Verwerfen"],
+     [DecisionAction.EDIT, DecisionAction.REJECT]),
+    ({"classification": "unsupported"}, ["Manuell prüfen", "Verwerfen"],
+     [DecisionAction.EDIT, DecisionAction.REJECT]),
+])
+def test_all_proposal_buttons_use_short_exactly_bound_tokens(tmp_path, changes, labels, actions):
+    item = proposal(id="P_" * 16, version=123456789, **changes)
+    with JsonStore(tmp_path) as store:
+        dialog, transport, _ = controller(store)
+        dialog.send_proposal(item)
+        buttons = transport.sent[-1][2]["inline_keyboard"][0]
+        assert [button["text"] for button in buttons] == labels
+        for button, action in zip(buttons, actions, strict=True):
+            value = button["callback_data"]
+            assert 1 <= len(value.encode("utf-8")) <= 64
+            assert Decision.parse(value, store) == Decision(
+                mail_id=item.source_mail_id, proposal_id=item.id,
+                version=item.version, action=action)
+
+
 def test_numbered_parts():
     parts=numbered_message_parts("mail","proposal","x"*150,64)
     assert len(parts)>1 and all(f"Teil {i}/{len(parts)}" in part for i,part in enumerate(parts,1))
@@ -208,7 +279,9 @@ def test_persist_before_buttons_and_authorized_flow(tmp_path):
         p=proposal(title="t"*500, description="x"*4000)
         c.send_proposal(p)
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")["version"]==1
-        assert len(t.sent)>=2 and t.sent[-1][2]["inline_keyboard"][0][0]["callback_data"]=="proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm"
+        value=t.sent[-1][2]["inline_keyboard"][0][0]["callback_data"]
+        assert len(t.sent)>=2 and value.startswith("decision:") and len(value.encode("utf-8")) <= 64
+        assert Decision.parse(value, store) == Decision(mail_id="a"*24, proposal_id="p1", version=1, action=DecisionAction.CONFIRM)
         c.send(2,"ok")
         with pytest.raises(PermissionError): c.send(3,"x")
 

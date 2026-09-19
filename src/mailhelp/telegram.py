@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from enum import StrEnum
+import secrets
 from typing import Any, Protocol
 
 import httpx
@@ -138,15 +139,60 @@ class Decision(InternalTelegramModel):
     version: int = Field(ge=1)
     action: DecisionAction
 
-    def encode(self) -> str:
-        return f"proposal:{self.mail_id}:{self.proposal_id}:{self.version}:{self.action.value}"
+    def encode(self, store: JsonStore | None = None) -> str:
+        """Encode a decision, preferably as an opaque, durable callback token.
+
+        The store-less form is retained solely for short, already-issued legacy
+        callbacks and deliberately refuses values Telegram could not transport.
+        """
+        if store is None:
+            value = f"proposal:{self.mail_id}:{self.proposal_id}:{self.version}:{self.action.value}"
+            validate_callback_data(value)
+            return value
+        while True:
+            token = secrets.token_hex(16)
+            name = f"telegram-callback-{token}"
+            if store.load(name) is None:
+                store.save(name, self.model_dump(mode="json"))
+                return f"decision:{token}"
 
     @classmethod
-    def parse(cls, value: str) -> "Decision":
+    def parse(cls, value: str, store: JsonStore | None = None) -> "Decision":
+        validate_callback_data(value)
+        if value.startswith("decision:"):
+            token = value.removeprefix("decision:")
+            if len(token) != 32 or any(character not in "0123456789abcdef" for character in token):
+                raise ValueError("Ungültiger Callback-Token")
+            record = store.load(f"telegram-callback-{token}") if store is not None else None
+            if record is None:
+                raise ValueError("Unbekannter Callback-Token")
+            if (not isinstance(record, dict) or
+                    not isinstance(record.get("action"), str)):
+                raise ValueError("Ungültiger Callback-Datensatz")
+            return cls.model_validate({**record, "action": DecisionAction(record["action"])})
         parts = value.split(":")
         if len(parts) != 5 or parts[0] != "proposal" or not parts[3].isascii() or not parts[3].isdigit():
             raise ValueError("Ungültige Aktion")
         return cls(mail_id=parts[1], proposal_id=parts[2], version=int(parts[3]), action=DecisionAction(parts[4]))
+
+
+def validate_callback_data(value: str) -> None:
+    """Enforce Telegram's documented callback_data UTF-8 byte boundary locally."""
+    size = len(value.encode("utf-8"))
+    if not 1 <= size <= 64:
+        raise ValueError(f"Telegram callback_data muss 1 bis 64 UTF-8-Bytes lang sein (ist {size})")
+
+
+def validate_callback_markup(reply_markup: dict[str, Any] | None) -> None:
+    if reply_markup is None:
+        return
+    for row in reply_markup.get("inline_keyboard", []):
+        for button in row:
+            if "callback_data" in button:
+                value = button["callback_data"]
+                if not isinstance(value, str):
+                    raise ValueError("Telegram callback_data muss eine Zeichenkette sein")
+                validate_callback_data(value)
 
 
 def apply_decision(
@@ -295,6 +341,7 @@ class TelegramClient:
         return result
 
     def send(self, chat_id: int, text: str, reply_markup: dict[str, Any] | None = None) -> None:
+        validate_callback_markup(reply_markup)
         call_id = str(uuid.uuid4())
         self.logger.event("INFO", "telegram", "send_started", call_id=call_id)
         parts = split_message(text)
@@ -435,6 +482,7 @@ class TelegramDialogController:
             f"Betreff: {subject}",
             "Relevanz bitte bestätigen:",
         ])
+        validate_callback_markup({"inline_keyboard": buttons})
         self.telegram.send(self.chat_id, text, {"inline_keyboard": buttons})
 
     @staticmethod
@@ -494,21 +542,23 @@ class TelegramDialogController:
             self.telegram.send(self.chat_id, part)
         if not proposal_is_writable(proposal):
             buttons = [[
-                {"text": "Manuell prüfen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.EDIT).encode()},
-                {"text": "Verwerfen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.REJECT).encode()},
+                {"text": "Manuell prüfen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.EDIT).encode(self.store)},
+                {"text": "Verwerfen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.REJECT).encode(self.store)},
             ]]
         elif proposal.open_questions:
             buttons = [[
-                {"text": "Klären", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.EDIT).encode()},
-                {"text": "Verwerfen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.REJECT).encode()},
+                {"text": "Klären", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.EDIT).encode(self.store)},
+                {"text": "Verwerfen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.REJECT).encode(self.store)},
             ]]
         else:
             buttons = [[
-                {"text": "Bestätigen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.CONFIRM).encode()},
-                {"text": "Ändern", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.EDIT).encode()},
-                {"text": "Verwerfen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.REJECT).encode()},
+                {"text": "Bestätigen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.CONFIRM).encode(self.store)},
+                {"text": "Ändern", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.EDIT).encode(self.store)},
+                {"text": "Verwerfen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.REJECT).encode(self.store)},
             ]]
-        self.telegram.send(self.chat_id, parts[-1], {"inline_keyboard": buttons})
+        markup = {"inline_keyboard": buttons}
+        validate_callback_markup(markup)
+        self.telegram.send(self.chat_id, parts[-1], markup)
 
     def poll_once(self) -> None:
         self._resume_writes()
@@ -561,7 +611,7 @@ class TelegramDialogController:
                 self._decide_relevance(callback.id, relevance, update.update_id + 1)
                 return
             try:
-                decision = Decision.parse(callback.data)
+                decision = Decision.parse(callback.data, self.store)
             except (ValueError, ValidationError):
                 self.telegram.answer_callback(callback.id, "Aktion ist syntaktisch ungültig.")
                 return
