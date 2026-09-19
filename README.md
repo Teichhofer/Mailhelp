@@ -359,10 +359,16 @@ das dokumentierte `description`-Feld vollständig in die Fehlermeldung übernomm
 Antwortkörper und Bot-Token werden dabei nicht ausgegeben. Die internen Modelle für
 Vorschlags- und Relevanzentscheidungen bleiben dagegen geschlossen und lehnen
 unbekannte Felder ab. Der atomar gespeicherte Offset verhindert nach einem Neustart
-die erneute Verarbeitung bereits behandelter Updates. Aktionen enthalten immer
-Vorschlags-ID, Version und Aktion; nur der konfigurierte Nutzer im konfigurierten
-Chat darf sie auslösen. Jede angezeigte Version wird vor ihren Schaltflächen
-gespeichert. `Bestätigen`, `Ändern` und `Verwerfen` werden getrennt behandelt,
+die erneute Verarbeitung bereits behandelter Updates. Vorschlagsaktionen verwenden
+einen kryptografisch zufälligen, kurzen Callback-Token. Seine atomar gespeicherte
+Zuordnung enthält ausschließlich Mail-ID, Vorschlags-ID, Version und Aktion und
+bleibt nach einem Neustart auflösbar; insbesondere fließen keine LLM-Inhalte in den
+Token ein. Vor jedem Telegram-Aufruf prüft Mailhelp jedes `callback_data` auf die
+zulässigen 1 bis 64 UTF-8-Bytes. Alte, eindeutig validierbare Vorschlagscallbacks
+werden innerhalb derselben Bytegrenze weiterhin angenommen. Nur der konfigurierte
+Nutzer im konfigurierten Chat darf eine Aktion auslösen. Jede angezeigte Version
+wird vor ihren Schaltflächen gespeichert. `Bestätigen`, `Ändern` und `Verwerfen`
+werden getrennt behandelt,
 während veraltete oder fehlerhafte Schaltflächen keinen Zustand verändern.
 Antworten auf Rückfragen erzeugen eine neue, erneut zu bestätigende Version.
 Die kompakte Mailnachricht nennt ohne interne Mail-ID zuerst den Absender, direkt
