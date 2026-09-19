@@ -66,3 +66,60 @@ topics:
   - Behauptete Empfehlung durch eine bekannte TV-Sendung
   - Betreff mit absichtlichen Tippfehlern und Seriennummern
   exclusions: []
+- id: service-mitteilungen-fristen
+  name: Service-Mitteilungen & Fristen
+  enabled: true
+  description: Benachrichtigungen eines Abodienstes rund um die Erstellung, den Druck
+    und das Erscheinen persönlicher Magazinausgaben, einschließlich Erinnerungen an
+    Einreichungsfristen für Inhalte.
+  examples:
+  - Nur noch wenige Tage bis zur Einreichungsfrist
+  - Die nächste Ausgabe erscheint in Kürze
+  - Inhalte rechtzeitig hochladen, damit sie berücksichtigt werden
+  exclusions: []
+- id: werbung-produktmarketing
+  name: Werbung & Produktmarketing
+  enabled: true
+  description: Werbliche Botschaften, die Produktmerkmale, Markenwerte und emotionale
+    Nutzenversprechen des Anbieters hervorheben.
+  examples:
+  - Geteilte Erinnerungen auf Papier
+  - Fotos im Großformat, mit Liebe gemacht
+  - Das Magazin, das die Familie verbindet
+  exclusions: []
+- id: kundenanfragen-und-produktberatung
+  name: Kundenanfragen und Produktberatung
+  enabled: true
+  description: Antworten auf Kundenanfragen, technische Beratung zu Farb- und Holzprodukten
+    sowie Zusendung von Ticket-Gutscheincodes im Geschäftskontakt.
+  examples:
+  - Produktfrage aus dem Shop-Kontaktformular zur Bearbeitung
+  - Gutscheincodes zum Abruf von Eintrittskarten für eine Veranstaltung
+  exclusions: []
+- id: tierzucht-und-futtermitteldaten
+  name: Tierzucht- und Futtermitteldaten
+  enabled: true
+  description: Systemmitteilungen zur Verarbeitung von Besamungs- und Tierdaten inklusive
+    Fehlerprotokollen sowie Änderungen von Futtermittel-Lieferberechtigungen.
+  examples:
+  - Verarbeitungsprotokoll mit nicht angenommenen Tierdatensätzen
+  - Änderung der Lieferberechtigung eines Futtermittellieferanten
+  exclusions: []
+- id: politische-kommunikation-und-gedenkveranstaltungen
+  name: Politische Kommunikation und Gedenkveranstaltungen
+  enabled: true
+  description: Einladungen zu Fest- und Gedenkveranstaltungen sowie Rundmails und
+    Newsletter aus dem Umfeld von Abgeordneten.
+  examples:
+  - Einladung zu einem Empfang anlässlich eines nationalen Gedenktags
+  - Rundmail eines Abgeordneten mit Rückblick und Anmeldelink
+  exclusions: []
+- id: automatische-system-und-statusbenachrichtigungen
+  name: Automatische System- und Statusbenachrichtigungen
+  enabled: true
+  description: Systemgenerierte Benachrichtigungen ohne bestimmten Fachinhalt, etwa
+    Lesebestätigungen oder generische Statusmails.
+  examples:
+  - Lesebestätigung für eine zuvor gesendete Nachricht
+  - Automatische Statusmail mit No-Reply-Absender
+  exclusions: []
