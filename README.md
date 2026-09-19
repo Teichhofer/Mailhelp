@@ -14,7 +14,7 @@ py -3.12 -m venv .venv
 Copy-Item .env.example .env
 ```
 
-Unter Linux werden die letzten beiden Befehle mit `.venv/bin/python` und `cp` ausgeführt. `config.yaml`, `prompts.yaml`, `topics.yaml` und `irrelevant_topics.yaml` anpassen; echte Geheimnisse ausschließlich in `.env` oder der Prozessumgebung setzen. Laufzeitvariablen haben Vorrang. Danach validiert `mailhelp --check` alle Dateien, ohne Netzwerkzugriff.
+Unter Linux werden die letzten beiden Befehle mit `.venv/bin/python` und `cp` ausgeführt. `config.yaml`, `prompts.yaml`, `topics.yaml` und `irrelevant_topics.yaml` anpassen; echte Geheimnisse ausschließlich in `.env` oder der Prozessumgebung setzen. Laufzeitvariablen haben Vorrang. Danach validiert `mailhelp --check` alle Dateien, ohne Netzwerkzugriff. Ohne `--config-directory` verwendet Mailhelp ein vollständiges Konfigurationsset im aktuellen Arbeitsverzeichnis. Fehlt dort eine der vier Dateien, wird bei einer editierbaren Installation zusätzlich die Wurzel des Checkouts geprüft. Ein ausdrücklich angegebenes Konfigurationsverzeichnis wird nie ersetzt.
 
 Mit `mailhelp --check-access` lässt sich anschließend ein reiner Zugriffstest
 starten. Er prüft nacheinander die Anmeldung bei IMAP und den Nur-Lese-Zugriff auf

@@ -427,6 +427,12 @@ deshalb niemals als echte externe Erstellung interpretiert werden.
 | `.env` | IMAP-Zugangsdaten, OpenRouter-Key, Telegram-Bot-Token, Google-OAuth-Zugangsdaten sowie Todoist-Token, -Client-ID und -Client-Schlüssel |
 | `.env.example` | Erforderliche Variablennamen ohne geheime Werte |
 
+Ohne explizites `--config-directory` wird ein vollständiger Satz der vier
+Konfigurationsdateien zuerst im aktuellen Arbeitsverzeichnis gesucht. Bei einer
+editierbaren lokalen Installation dient die Checkout-Wurzel als Rückfall, wenn der
+Prozess aus einem anderen Verzeichnis gestartet wurde; explizite Pfade bleiben
+unverändert verbindlich.
+
 Zugangsdaten können im Container alternativ als Umgebungsvariablen bereitgestellt werden; explizite Laufzeitvariablen haben Vorrang vor `.env`. Die erstmalige Google-Autorisierung und Erneuerung abgelaufener Berechtigungen benötigen einen dokumentierten Einrichtungsablauf.
 
 Todoist-Client-ID und -Client-Schlüssel werden als `TODOIST_CLIENT_ID` und
