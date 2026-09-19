@@ -373,8 +373,9 @@ Prompts, Themen und Geheimnisse werden nicht gelöscht.
 ### Interaktiver Lernmodus
 
 `mailhelp --learn 20` ruft bis zu 20 der neuesten Mails schreibfrei mit
-`BODY.PEEK[]` aus den konfigurierten Ordnern ab. Jede Mail wird zuerst gegen die
-aktivierten Einträge in `topics.yaml` und `irrelevant_topics.yaml` geprüft. Bereits
+`BODY.PEEK[]` aus den konfigurierten Ordnern ab. Jede Mail wird zuerst in einer
+gemeinsamen LLM-Anfrage gegen die aktivierten Einträge aus `topics.yaml` und
+`irrelevant_topics.yaml` geprüft. Bereits
 zuordenbare Mails werden übersprungen. Nur Mails, die zu keiner der beiden Listen
 gehören, werden ohne vorgegebene Themenliste durch den in `prompts.yaml` konfigurierten Schritt
 `learning_classification` klassifiziert. Ein einzelner weiterer Aufruf über
