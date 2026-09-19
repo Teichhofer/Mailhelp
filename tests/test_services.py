@@ -51,10 +51,11 @@ class FakeCompleter:
 class RetrySequence:
     """Synthetic provider recording every logical provider invocation."""
     def __init__(self, values):
-        self.values=iter(values); self.payloads=[]; self.call_ids=[]
+        self.values=iter(values); self.payloads=[]; self.systems=[]; self.call_ids=[]
 
-    def complete(self, _model, _parameters, _system, payload, **_metadata):
+    def complete(self, _model, _parameters, system, payload, **_metadata):
         self.payloads.append(payload)
+        self.systems.append(system)
         call_id=f"provider-call-{len(self.payloads)}"
         self.call_ids.append(call_id)
         value=next(self.values)
@@ -86,7 +87,10 @@ def test_analyzer_classifies_retry_payloads_and_call_attempts(failure, repair_ke
     )
     if repair_key == "json_repair_instruction":
         assert client.payloads[1][repair_key]==JSON_REPAIR_INSTRUCTION
+        assert client.systems[1].endswith(JSON_REPAIR_INSTRUCTION)
         assert "Pydantic" not in client.payloads[1][repair_key]
+    else:
+        assert JSON_REPAIR_INSTRUCTION not in client.systems[1]
     if repair_key == "previous_validation_error":
         assert "sentences" in client.payloads[1][repair_key]
 
