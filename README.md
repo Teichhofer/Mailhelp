@@ -378,7 +378,10 @@ gemeinsamen LLM-Anfrage gegen die aktivierten Einträge aus `topics.yaml` und
 `irrelevant_topics.yaml` geprüft. Bereits
 zuordenbare Mails werden übersprungen. Nur Mails, die zu keiner der beiden Listen
 gehören, werden ohne vorgegebene Themenliste durch den in `prompts.yaml` konfigurierten Schritt
-`learning_classification` klassifiziert. Ein einzelner weiterer Aufruf über
+`learning_classification` klassifiziert. Die unabhängigen Relevanzprüfungen und
+Einzelklassifikationen dieser ersten Stufe laufen mit der in `config.yaml` unter
+`learning.parallel_llm_calls` eingestellten maximalen Parallelität. Die Reihenfolge
+der Ergebnisse bleibt dabei stabil. Ein einzelner weiterer Aufruf über
 `learning_abstraction` fasst die Ergebnisse zu allgemeineren Themen zusammen.
 Für die vorgeschaltete Relevanzprüfung sowie für Einzelklassifikation und
 Abstraktion überschreibt `prompts.yaml` das globale Ausgabelimit mit größeren

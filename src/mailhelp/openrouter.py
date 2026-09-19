@@ -1,6 +1,7 @@
 """Begrenzter OpenRouter-Client mit Timeouts, Wiederholung und Rate-Limit."""
 from __future__ import annotations
 import hashlib, json, time, traceback, uuid
+from threading import Lock
 from datetime import datetime, timezone
 from typing import Any, Callable
 import httpx
@@ -63,6 +64,7 @@ class OpenRouterClient:
         self.client = httpx.Client(base_url="https://openrouter.ai/api/v1", timeout=timeout, transport=transport)
         self.logger = logger or NullLogger()
         self._observations: dict[str, dict[str, Any]] = {}
+        self._state_lock = Lock()
         wait = stopped or (lambda delay: (sleep(delay), False)[1])
         self.policy = RetryPolicy(retries, initial_backoff, max_backoff, wait, clock)
 
@@ -82,10 +84,13 @@ class OpenRouterClient:
                  provider_preferences: dict[str, Any] | None = None,
                  correlation_id: str | None = None,
                  attempt_id: str | None = None) -> tuple[str, Any]:
-        now = self.clock()
-        calls = sorted(value for value in self.load_calls() if isinstance(value, (int, float)) and now - value < 60)
-        if len(calls) >= self.limit: raise RateLimitExceeded(calls[0] + 60)
-        calls.append(now); self.save_calls(calls)
+        with self._state_lock:
+            now = self.clock()
+            calls = sorted(value for value in self.load_calls() if isinstance(value, (int, float)) and now - value < 60)
+            if len(calls) >= self.limit:
+                raise RateLimitExceeded(calls[0] + 60)
+            calls.append(now)
+            self.save_calls(calls)
         correlation_id = correlation_id or str(uuid.uuid4())
         call_id = attempt_id or str(uuid.uuid4())
         request = {**parameters, "model": model, "messages": [{"role": "system", "content": system}, {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}], "response_format": {"type": "json_object"}}
@@ -149,7 +154,8 @@ class OpenRouterClient:
                 self._log_attempt("invalid_json", metadata, **correlation)
                 raise InvalidJson() from exc
             metadata["json_parse_success"] = True
-            self._observations[call_id] = metadata
+            with self._state_lock:
+                self._observations[call_id] = metadata
             self.logger.llm_event("response_received", response=raw, parameters=parameters,
                                   prompt_fingerprint=fingerprint, duration_ms=round((time.perf_counter() - started) * 1000, 3),
                                   status=response.status_code, attempt=attempt, token_usage=raw.get("usage"),
@@ -171,7 +177,8 @@ class OpenRouterClient:
     def record_schema_validation(self, *, call_id: str, stage: str, model: str,
                                  success: bool, retry_type: str,
                                  retry_number: int) -> None:
-        metadata = self._observations.pop(call_id)
+        with self._state_lock:
+            metadata = self._observations.pop(call_id)
         metadata["schema_validation_success"] = success
         self._log_attempt("schema_validation_succeeded" if success else "schema_validation_failed",
                           metadata)
