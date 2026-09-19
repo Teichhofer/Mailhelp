@@ -244,6 +244,11 @@ def test_raw_extraction_prompts_are_separate_and_injection_resistant():
     for field in ("title", "description", "evidence", "date_text", "time_text", "end_time_text", "location", "video_link", "responsibility", "certainty", "classification"):
         assert field in event
     assert "HTTP-/HTTPS-URL" in event
+    assert "einmaliger künftiger Termin oder eine Einladung dazu ist" in event
+    assert '"new"' in event
+    assert 'nicht allein deshalb als "non_binding" oder "unsupported"' in event
+    assert '"unsupported" nur für' in event
+    assert "Terminarten, die sich mit den geforderten Feldern nicht abbilden lassen" in event
     assert prompts["event_extraction"]["parameters"]["max_tokens"] > config["defaults"]["parameters"]["max_tokens"]
 
 

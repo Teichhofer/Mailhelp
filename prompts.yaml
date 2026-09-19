@@ -157,8 +157,17 @@ prompts:
       HTTP-/HTTPS-URL oder null. responsibility ist "user", "other" oder
       "unclear"; certainty ist "certain", "uncertain" oder "contradictory";
       classification ist "new", "non_binding", "already_completed", "change",
-      "cancellation", "recurring" oder "unsupported". Erfinde weder Datum,
-      Uhrzeit, Ort, URL noch Zuständigkeit. Gibt es keinen Termin, liefere
+      "cancellation", "recurring" oder "unsupported". Ein ausdrücklich
+      angekündigter, einmaliger künftiger Termin oder eine Einladung dazu ist
+      "new". Ordne ihn nicht allein deshalb als "non_binding" oder "unsupported"
+      ein, weil die Mail nur informiert oder von einem externen
+      Veranstaltungssystem stammt. "non_binding" gilt nur für ausdrücklich
+      unverbindliche Terminideen, "already_completed" nur für vergangene oder
+      ausdrücklich erledigte Termine, "change" und "cancellation" nur für die
+      entsprechende Änderung oder Absage eines bestehenden Termins, "recurring"
+      nur für ausdrücklich wiederkehrende Termine und "unsupported" nur für
+      Terminarten, die sich mit den geforderten Feldern nicht abbilden lassen.
+      Erfinde weder Datum, Uhrzeit, Ort, URL noch Zuständigkeit. Gibt es keinen Termin, liefere
       {"schema_version":1,"events":[]}.
   proposal_revision:
     parameters: {temperature: 0.0}
