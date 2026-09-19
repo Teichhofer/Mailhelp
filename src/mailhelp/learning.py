@@ -94,11 +94,10 @@ class LearningMode:
         mails = self._fetch(count)
         self.output(f"{len(mails)} von {count} angeforderten Mails wurden abgerufen.")
         classifications: list[MailClassification] = []
+        known_topics = [*self.topics, *self.irrelevant_topics]
         for mail in mails:
             payload = prepare(mail.raw, self.limits, mail.received_at, self.timezone)
-            known_relevant = self._known(payload, self.topics)
-            known_irrelevant = self._known(payload, self.irrelevant_topics)
-            if known_relevant or known_irrelevant:
+            if self._known(payload, known_topics):
                 continue
             _call_id, classification = self.analyzer.classify_for_learning(payload)
             classifications.append(classification)

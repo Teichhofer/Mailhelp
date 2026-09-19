@@ -40,8 +40,9 @@ class Analyzer:
 
     def relevance(self, mail, topics):
         self.relevance_topics.append((mail, topics))
-        decision = next(self.relevance_decisions, "irrelevant")
-        topic_ids = [topics[0].id] if decision == "relevant" else []
+        result = next(self.relevance_decisions, "irrelevant")
+        decision = result if result in {"irrelevant", "unclear"} else "relevant"
+        topic_ids = [result] if decision == "relevant" else []
         return "relevance", Relevance(decision=decision, topic_ids=topic_ids, reason="test")
 
     def classify_for_learning(self, mail):
@@ -114,12 +115,12 @@ def test_learning_skips_mails_matching_relevant_or_irrelevant_topics(tmp_path):
     mails = [FetchedMail("INBOX", 1, uid, raw_mail(str(uid))) for uid in (1, 2, 3)]
     analyzer = Analyzer(
         [LearnedCategory(name="Neu", description="Neu")],
-        # Mail 1 matches the relevant list. Mail 2 misses it but matches the
-        # irrelevant list. Mail 3 misses both and is freely classified.
-        ["relevant", "irrelevant", "irrelevant", "relevant", "irrelevant", "irrelevant"],
+        # Mail 1 matches the relevant list, mail 2 the irrelevant list, and
+        # mail 3 misses the combined list and is freely classified.
+        ["known-relevant", "known-irrelevant", "irrelevant"],
     )
-    relevant = topic("relevant")
-    irrelevant = topic("irrelevant")
+    relevant = topic("known-relevant")
+    irrelevant = topic("known-irrelevant")
     mode = LearningMode(
         Imap([mails]), analyzer, ["INBOX"], 1000, [relevant], tmp_path / "topics.yaml",
         [irrelevant], tmp_path / "irrelevant_topics.yaml",
@@ -127,9 +128,11 @@ def test_learning_skips_mails_matching_relevant_or_irrelevant_topics(tmp_path):
     )
 
     assert mode.run(3) == 1
-    assert len(analyzer.relevance_topics) == 6
-    assert [topics[0].id for _mail, topics in analyzer.relevance_topics] == [
-        "relevant", "irrelevant", "relevant", "irrelevant", "relevant", "irrelevant",
+    assert len(analyzer.relevance_topics) == 3
+    assert [[topic.id for topic in topics] for _mail, topics in analyzer.relevance_topics] == [
+        ["known-relevant", "known-irrelevant"],
+        ["known-relevant", "known-irrelevant"],
+        ["known-relevant", "known-irrelevant"],
     ]
     assert len(analyzer.mails) == 1
 
