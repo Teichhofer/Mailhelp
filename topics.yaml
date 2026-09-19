@@ -135,15 +135,6 @@ topics:
   - Schadenmitteilung mit Schadennummer und PDF im Anhang
   - Hinweis, einen fehlenden Anhang zu melden
   exclusions: []
-- id: veranstaltungs-und-marketing-einladungen
-  name: Veranstaltungs- und Marketing-Einladungen
-  enabled: true
-  description: Werbe-Newsletter und Einladungen zu (virtuellen) Veranstaltungen mit
-    Programm, Anmeldelinks und Abmeldeoption.
-  examples:
-  - Einladung zu einer virtuellen Messe mit Anmeldelink
-  - Newsletter-Ankündigung eines bevorstehenden Events
-  exclusions: []
 - id: agrar-veranstaltungen
   name: Agrar-Veranstaltungen
   enabled: true
