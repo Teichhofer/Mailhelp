@@ -137,9 +137,11 @@ absteigend gewählt, und neu eingetroffene höhere UIDs haben beim nächsten Pol
 Vorrang, ohne dass ältere Lücken verloren gehen. Die Ereignisse
 `messages_discovered` und `message_fetched` zeigen Anzahl und Fortschritt, sodass
 insbesondere der erste Abruf eines großen Postfachs nicht mehr still erscheint.
-Bei einem einmaligen Lauf mit `--max-mails N` wird auch der IMAP-Abruf auf das nach
-Wiederaufnahmen noch verbleibende Budget begrenzt. So werden keine vollständigen
-Nachrichten geladen, die der aktuelle Lauf anschließend gar nicht verarbeitet.
+Bei einem einmaligen Lauf mit `--max-mails N` ersetzt das nach Wiederaufnahmen
+noch verbleibende Budget für diesen Abruf `imap.batch_size`. Damit kann ein
+begrenzter Testlauf ausdrücklich auch mehr als die regulären 25 Nachrichten
+verarbeiten; zugleich werden keine vollständigen Nachrichten geladen, die der
+aktuelle Lauf anschließend gar nicht verarbeitet.
 
 `logging.console`, `logging.file` und `logging.llm` besitzen eigene Aktivierungs- und
 Level-Schalter; `logging.modules` überschreibt das Datei-Grundlevel für einzelne
@@ -370,8 +372,9 @@ wartenden und fehlgeschlagenen Verarbeitungsversuche. Die Zusammenfassung wird
 auch bei einem Laufzeitfehler versucht; ein Versandfehler wird protokolliert und
 verdeckt einen bereits aufgetretenen Fehler nicht.
 
-Für einen begrenzten Testlauf verarbeitet `mailhelp --max-mails 10` in genau
-einem Abrufdurchlauf höchstens zehn Mails (einschließlich fälliger, nach einem
+Für einen begrenzten Testlauf verarbeitet beispielsweise `mailhelp --max-mails 50`
+in genau einem Abrufdurchlauf höchstens 50 Mails, auch wenn `imap.batch_size` auf
+dem Standardwert 25 steht (einschließlich fälliger, nach einem
 Neustart fortzusetzender Mails), fragt anschließend einmal Telegram ab und
 beendet sich. Nicht verbrauchtes Kontingent führt nicht zu einem weiteren Poll;
 `--max-mails` muss mindestens `1` sein. Bereits bestätigte externe Schreibaktionen

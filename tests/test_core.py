@@ -286,6 +286,10 @@ def test_imap_fetch_is_batched_and_reports_progress():
     limited=[event for event in logger.events if event[2] == "messages_discovered"][-1]
     assert limited[3] == {"folder":"INBOX","available_count":3,"batch_count":1}
 
+    assert [mail.uid for mail in reader.fetch_since("INBOX", max_count=3)] == [6,5,4]
+    expanded=[event for event in logger.events if event[2] == "messages_discovered"][-1]
+    assert expanded[3] == {"folder":"INBOX","available_count":3,"batch_count":3}
+
     reader.connection.uid=lambda *_args: ("OK", [])
     assert reader.fetch_since("INBOX") == []
 
