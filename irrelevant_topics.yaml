@@ -123,3 +123,12 @@ topics:
   - Lesebestätigung für eine zuvor gesendete Nachricht
   - Automatische Statusmail mit No-Reply-Absender
   exclusions: []
+- id: social-media-benachrichtigung
+  name: Social-Media-Benachrichtigung
+  enabled: true
+  description: Automatisch generierte E-Mail einer sozialen Plattform über Aktivitäten
+    im eigenen Netzwerk, z. B. Beiträge, Interaktionen oder Weitermeldungen.
+  examples:
+  - Ein Kontakt hat einen neuen Beitrag veröffentlicht
+  - Jemand hat deinen Beitrag geteilt
+  exclusions: []
