@@ -143,6 +143,7 @@ def main() -> int:
                 settings.limits, topics, args.config_directory / "topics.yaml",
                 irrelevant_topics, args.config_directory / "irrelevant_topics.yaml",
                 timezone=settings.timezone,
+                parallel_llm_calls=settings.learning.parallel_llm_calls,
             ).run(args.learn)
             return 0
         def stop(_signum: int, _frame: object) -> None: application.stop()

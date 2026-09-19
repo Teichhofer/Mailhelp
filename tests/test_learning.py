@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from email.message import EmailMessage
+from threading import Barrier, Lock
 
 import pytest
 import yaml
@@ -147,6 +148,30 @@ def test_learning_does_not_call_relevance_for_disabled_or_empty_sets(tmp_path):
     )
     assert mode.run(1) == 0
     assert analyzer.relevance_topics == []
+
+
+def test_learning_parallelizes_first_stage_and_preserves_result_order(tmp_path):
+    mails = [FetchedMail("INBOX", 1, uid, raw_mail(str(uid))) for uid in (1, 2)]
+    barrier = Barrier(2)
+    lock = Lock()
+
+    class ParallelAnalyzer(Analyzer):
+        def classify_for_learning(self, mail):
+            barrier.wait(timeout=2)
+            with lock:
+                self.mails.append(mail)
+            return "call", MailClassification(categories=[LearnedCategory(
+                name=mail["headers"]["subject"], description="Beschreibung")])
+
+    analyzer = ParallelAnalyzer([])
+    mode = LearningMode(
+        Imap([mails]), analyzer, ["INBOX"], 1000, [], tmp_path / "topics.yaml",
+        [], tmp_path / "irrelevant_topics.yaml", parallel_llm_calls=2,
+        output_fn=lambda _line: None,
+    )
+
+    assert mode.run(2) == 0
+    assert [item.categories[0].name for item in analyzer.abstract_inputs[0]] == ["1", "2"]
 
 
 def test_topic_ids_collision_fallback_and_atomic_cleanup(tmp_path, monkeypatch):
