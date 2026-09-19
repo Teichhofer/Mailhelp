@@ -6,7 +6,10 @@ import sys
 
 import pytest
 
-from mailhelp.cli import CLEAR_CONFIRMATION, _positive_int, clear_runtime_data, main
+from mailhelp.cli import (
+    CLEAR_CONFIRMATION, _default_config_directory, _positive_int,
+    clear_runtime_data, main,
+)
 
 
 class CaptureLogger:
@@ -15,6 +18,40 @@ class CaptureLogger:
 
     def event(self, level, module, event, **context):
         self.events.append((level, module, event, context))
+
+
+def test_default_config_directory_prefers_complete_working_directory(monkeypatch, tmp_path):
+    for name in ("config.yaml", "prompts.yaml", "topics.yaml", "irrelevant_topics.yaml"):
+        (tmp_path / name).touch()
+    monkeypatch.chdir(tmp_path)
+
+    assert _default_config_directory() == tmp_path
+
+
+def test_default_config_directory_falls_back_to_editable_checkout(monkeypatch, tmp_path):
+    working_directory = tmp_path / "working"
+    checkout = tmp_path / "checkout"
+    package = checkout / "src" / "mailhelp"
+    working_directory.mkdir()
+    package.mkdir(parents=True)
+    for name in ("config.yaml", "prompts.yaml", "topics.yaml", "irrelevant_topics.yaml"):
+        (checkout / name).touch()
+    monkeypatch.chdir(working_directory)
+    monkeypatch.setattr("mailhelp.cli.__file__", str(package / "cli.py"))
+
+    assert _default_config_directory() == checkout
+
+
+def test_default_config_directory_keeps_cwd_when_no_complete_candidate(monkeypatch, tmp_path):
+    working_directory = tmp_path / "working"
+    package = tmp_path / "installed" / "mailhelp"
+    working_directory.mkdir()
+    package.mkdir(parents=True)
+    (working_directory / "config.yaml").touch()
+    monkeypatch.chdir(working_directory)
+    monkeypatch.setattr("mailhelp.cli.__file__", str(package / "cli.py"))
+
+    assert _default_config_directory() == working_directory
 
 
 @pytest.mark.parametrize("spelling", [
@@ -65,7 +102,7 @@ def test_cli_forwards_mail_limit_and_rejects_non_positive_values(monkeypatch):
     assert main() == 0
     assert application.limit == 10
     assert logger.events[-1][3]["parameters"] == {
-        "config_directory": ".", "log_directory": None,
+        "config_directory": str(Path.cwd()), "log_directory": None,
         "check": False, "check_access": False, "max_mails": 10, "learn": None,
         "clear": False,
     }

@@ -10,6 +10,19 @@ from .storage import JsonStore
 
 
 CLEAR_CONFIRMATION = "ALLE DATEN LOESCHEN"
+CONFIGURATION_FILES = ("config.yaml", "prompts.yaml", "topics.yaml", "irrelevant_topics.yaml")
+
+
+def _default_config_directory() -> Path:
+    """Prefer a complete configuration in cwd, then an editable checkout root."""
+    working_directory = Path.cwd()
+    if all((working_directory / name).is_file() for name in CONFIGURATION_FILES):
+        return working_directory
+
+    checkout_directory = Path(__file__).resolve().parents[2]
+    if all((checkout_directory / name).is_file() for name in CONFIGURATION_FILES):
+        return checkout_directory
+    return working_directory
 
 
 def _positive_int(value: str) -> int:
@@ -59,7 +72,11 @@ def clear_runtime_data(settings: Settings, log_directory: Path | None = None) ->
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Mailhelp E-Mail-Assistent")
-    parser.add_argument("--config-directory", type=Path, default=Path("."))
+    parser.add_argument(
+        "--config-directory", type=Path, default=_default_config_directory(),
+        help=("Verzeichnis mit config.yaml, prompts.yaml, topics.yaml und "
+              "irrelevant_topics.yaml"),
+    )
     parser.add_argument(
         "--log-directory", type=Path,
         help="Logverzeichnis aus config.yaml für diesen Aufruf überschreiben",
