@@ -382,13 +382,13 @@ gehören, werden ohne vorgegebene Themenliste durch den in `prompts.yaml` konfig
 Einzelklassifikationen dieser ersten Stufe laufen mit der in `config.yaml` unter
 `learning.parallel_llm_calls` eingestellten maximalen Parallelität. Die Reihenfolge
 der Ergebnisse bleibt dabei stabil. Ein einzelner weiterer Aufruf über
-`learning_abstraction` fasst die Ergebnisse zu allgemeineren Themen zusammen.
-Für die vorgeschaltete Relevanzprüfung sowie für Einzelklassifikation und
+`learning_abstraction` fasst die Ergebnisse zu höchstens 20 allgemeineren Themen
+zusammen. Kurze Beschreibungen und höchstens zwei Beispiele je Thema begrenzen die
+JSON-Ausgabe. Für die vorgeschaltete Relevanzprüfung sowie für Einzelklassifikation und
 Abstraktion überschreibt `prompts.yaml` das globale Ausgabelimit mit größeren
 Budgets, damit Reasoning-Provider ihre interne Verarbeitung und das abschließende
 JSON nicht vorzeitig bei `finish_reason=length` abbrechen. Die Abstraktion erhält
-das größte Budget, weil sie alle Einzelklassifikationen gemeinsam verarbeitet und
-bis zu 50 Kategorien ausgeben kann.
+mit 16.000 Tokens das größte Budget.
 Antwortet ein Provider dennoch mit syntaktisch ungültigem JSON, wird der
 begrenzte Reparaturversuch zusätzlich durch eine Systemanweisung erzwungen;
 die Anweisung im Nutzdatenobjekt allein könnte sonst als nicht vertrauenswürdiger

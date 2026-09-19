@@ -271,6 +271,12 @@ def test_learning_stages_have_reasoning_output_budgets():
     assert relevance > default
     assert classification > default
     assert abstraction > classification
+    assert abstraction == 16_000
+
+    prompt = config["prompts"]["learning_abstraction"]["system_prompt"]
+    assert "höchstens 20 Kategorien" in prompt
+    assert "höchstens einem kurzen Satz" in prompt
+    assert "ein oder zwei kurze" in prompt
 
 
 def test_action_router_prompt_is_narrow_and_injection_resistant():

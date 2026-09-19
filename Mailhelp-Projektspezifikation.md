@@ -230,8 +230,9 @@ als `message_content_null` unterscheidbar.
 Reasoning-intensive Schritte überschreiben ihr Ausgabelimit in `prompts.yaml`.
 Dies gilt für die Relevanzprüfung und beide Lernschritte; die abschließende
 Abstraktion erhält wegen der gemeinsamen Verarbeitung aller Einzelklassifikationen
-und bis zu 50 auszugebender Kategorien ein höheres Budget als die
-Einzelklassifikation.
+ein Ausgabelimit von 16.000 Tokens. Sie liefert höchstens 20 Kategorien mit jeweils
+einer kurzen Beschreibung und ein bis zwei kurzen synthetischen Beispielen, damit
+die strukturierte Antwort auch bei großen Lernläufen innerhalb dieses Limits endet.
 
 Die einzige Prompt-Datei ist `prompts.yaml`. Sie enthält die eigentlichen Prompts
 und für jede Stufe eine geordnete Routingstrategie aus Primärroute und optionalen
