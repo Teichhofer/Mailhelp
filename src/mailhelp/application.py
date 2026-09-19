@@ -271,6 +271,12 @@ class Application:
                 if result.outcome is ProcessingOutcome.FAILED:
                     self.logger.event("ERROR", "orchestrator", "mail_failed", folder=folder, uid=mail.uid,
                                       error=result.state.get("error"))
+                # A proposal is a synchronous user-decision boundary. Do not
+                # start another mail after exposing its Telegram controls.
+                if self.dialog is not None and self.dialog.awaiting_decision():
+                    break
+            if self.dialog is not None and self.dialog.awaiting_decision():
+                break
             if not mails and self.imap.last_uidvalidity is not None:
                 if checkpoint["uidvalidity"] is None:
                     checkpoint["uidvalidity"] = self.imap.last_uidvalidity
@@ -348,10 +354,16 @@ class Application:
                     # No state content is included in this operational event.
                     self.logger.event("ERROR", "retention", "cleanup_failed",
                                       processed_at=datetime.now(timezone.utc).isoformat(), failure_count=1)
-                summary.add(self._poll_imap(max_mails))
-                if not self.stop_event.is_set():
-                    self._poll_telegram()
-                if max_mails is not None:
+                # Resolve an existing decision before reading more mail. While
+                # it remains open, Telegram is the only polled external source.
+                self._poll_telegram()
+                waiting_for_answer = (self.dialog is not None
+                                      and self.dialog.awaiting_decision())
+                if not waiting_for_answer and not self.stop_event.is_set():
+                    summary.add(self._poll_imap(max_mails))
+                    waiting_for_answer = (self.dialog is not None
+                                          and self.dialog.awaiting_decision())
+                if max_mails is not None and not waiting_for_answer:
                     break
                 self.stop_event.wait(self.settings.poll_interval_seconds)
         finally:

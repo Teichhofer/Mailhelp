@@ -626,6 +626,27 @@ class TelegramDialogController:
         validate_callback_markup(markup)
         self.telegram.send(self.chat_id, parts[-1], markup)
 
+    def awaiting_decision(self) -> bool:
+        """Return whether processing must wait for an explicit Telegram answer.
+
+        Only authoritative proposal records are inspected; immutable version
+        snapshots must not keep the application paused after a decision.
+        """
+        if self._open_relevance_dialogs():
+            return True
+        names = getattr(self.store, "names", None)
+        if names is None:
+            return False
+        for name in names("proposal-"):
+            if "-v" in name:
+                continue
+            proposal = self.store.load_model(name, Proposal)
+            if isinstance(proposal, Proposal) and proposal.status in {
+                    ProposalStatus.PENDING_CONFIRMATION,
+                    ProposalStatus.NEEDS_CLARIFICATION}:
+                return True
+        return False
+
     def poll_once(self) -> None:
         self._resume_writes()
         offset_state = self.store.load_model("telegram-offset", TelegramOffset, TelegramOffset())
