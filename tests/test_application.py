@@ -158,6 +158,76 @@ def test_empty_checkpoint_and_run_paths(tmp_path):
     assert failed_dialog.logger.events[0][0][2]=="poll_failed"
 
 
+def test_run_continuously_long_polls_open_dialog_without_imap_interval(tmp_path):
+    class ControlledStop:
+        def __init__(self): self.stopped=False; self.waits=[]
+        def is_set(self): return self.stopped
+        def set(self): self.stopped=True
+        def wait(self, seconds): self.waits.append(seconds); self.stopped=True; return True
+    class Dialog:
+        def __init__(self, stop): self.stop=stop; self.polls=0
+        def poll_once(self):
+            self.polls += 1
+            if self.polls == 2: self.stop.set()
+        def awaiting_decision(self): return True
+
+    service=app(tmp_path,Imap([]),Telegram([]),Orch())
+    stop=ControlledStop(); service.stop_event=stop; service.dialog=Dialog(stop)
+    service._poll_imap=lambda _limit=None: (_ for _ in ()).throw(AssertionError("IMAP must pause"))
+    service.run()
+
+    assert service.dialog.polls == 2
+    assert stop.waits == []
+
+
+def test_run_keeps_imap_interval_without_open_dialog(tmp_path):
+    class ControlledStop:
+        def __init__(self): self.stopped=False; self.waits=[]
+        def is_set(self): return self.stopped
+        def set(self): self.stopped=True
+        def wait(self, seconds): self.waits.append(seconds); self.stopped=True; return True
+
+    service=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch())
+    stop=ControlledStop(); service.stop_event=stop
+    service.run()
+
+    assert service.imap.calls == [("INBOX",0,None,None,())]
+    assert stop.waits == [service.settings.poll_interval_seconds]
+
+
+def test_telegram_poll_failure_backs_off_and_shutdown_interrupts_it(tmp_path):
+    class ControlledStop:
+        def __init__(self): self.stopped=False; self.waits=[]
+        def is_set(self): return self.stopped
+        def set(self): self.stopped=True
+        def wait(self, seconds): self.waits.append(seconds); self.stopped=True; return True
+    class FailingDialog:
+        def __init__(self): self.polls=0
+        def poll_once(self): self.polls += 1; raise RuntimeError("network")
+        def awaiting_decision(self): return True
+
+    service=app(tmp_path,Imap([]),Telegram([]),Orch())
+    stop=ControlledStop(); service.stop_event=stop; service.dialog=FailingDialog()
+    service.run()
+
+    assert service.dialog.polls == 1
+    assert stop.waits == [5.0]
+    assert stop.is_set()
+
+
+def test_shutdown_requested_during_long_poll_stops_before_retry(tmp_path):
+    class Dialog:
+        def __init__(self, stop): self.stop=stop; self.polls=0
+        def poll_once(self): self.polls += 1; self.stop.set()
+        def awaiting_decision(self): return True
+
+    service=app(tmp_path,Imap([]),Telegram([]),Orch())
+    service.dialog=Dialog(service.stop_event)
+    service.run()
+
+    assert service.dialog.polls == 1
+
+
 def test_newest_first_backlog_arrivals_restart_failure_and_folders(tmp_path):
     """Ranges preserve holes while new mail is prioritized across short batches."""
     class BacklogImap:

@@ -226,6 +226,38 @@ class Writer:
         return {"id":"external-1","url":"https://example.test/item"}
 
 
+def test_create_callback_is_answered_after_confirmation_persist_and_before_write(tmp_path):
+    events=[]
+    class OrderedStore(JsonStore):
+        def save(self, name, value):
+            super().save(name, value)
+            if name == "proposal-aaaaaaaaaaaaaaaaaaaaaaaa-event" and value["status"] == "confirmed":
+                events.append("confirmation persisted")
+    class OrderedTelegram(Telegram):
+        def answer_callback(self, callback_id, text):
+            events.append("callback answered")
+            super().answer_callback(callback_id, text)
+    class SlowWriter(Writer):
+        def create(self, item, key):
+            assert events == ["confirmation persisted", "callback answered"]
+            events.append("external write")
+            return super().create(item, key)
+
+    with OrderedStore(tmp_path) as store:
+        transport=OrderedTelegram()
+        dialog=TelegramDialogController(store,transport,1,2,Logger(),
+                                        {"google_calendar":SlowWriter()},False,"UTC",
+                                        RevisionService())
+        item=proposal(id="event",kind="event",status="pending_confirmation",
+                      start="2026-01-01T10:00:00Z",end="2026-01-01T11:00:00Z")
+        dialog.persist(item)
+        dialog._decide("callback",Decision(mail_id=item.source_mail_id,
+                       proposal_id=item.id,version=item.version,
+                       action=DecisionAction.CONFIRM))
+
+    assert events[:3] == ["confirmation persisted", "callback answered", "external write"]
+
+
 def test_strict_schemas_and_decisions():
     parsed=Decision.parse("proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:3:confirm")
     assert parsed.encode()=="proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:3:confirm"

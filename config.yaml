@@ -2,6 +2,8 @@
 # ursprünglichem/geprüftem Date-Header und IMAP-INTERNALDATE an das LLM gegeben;
 # Zeitwerte selbst müssen zusätzlich einen eindeutigen UTC-Offset enthalten.
 timezone: Europe/Berlin
+# Intervall zwischen regulären IMAP-Zyklen. Offene Telegram-Dialoge werden
+# stattdessen ohne Zusatzpause fortlaufend per Long-Polling bedient.
 poll_interval_seconds: 60
 test_mode: true
 # Im Testmodus bleiben Todoist-Schreibzugriffe simuliert; bestätigte Kalenderdateien
