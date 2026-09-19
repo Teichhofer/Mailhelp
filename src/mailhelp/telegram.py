@@ -225,20 +225,21 @@ def split_message(text: str, limit: int = 4000) -> list[str]:
     return [text[index:index + limit] for index in range(0, len(text), limit)] or [""]
 
 
-def numbered_message_parts(mail_id: str, proposal_id: str, text: str, limit: int = 4000) -> list[str]:
-    """Split text while putting a stable identity and ordering on every part."""
-    if not mail_id or not proposal_id:
-        raise ValueError("Mail- und Vorschlags-ID werden benötigt")
+def numbered_message_parts(sender: str, subject: str, text: str, limit: int = 4000) -> list[str]:
+    """Split text while repeating its human-readable mail context on every part."""
+    if not sender or not subject:
+        raise ValueError("Absender und Betreff werden benötigt")
     if limit < 32:
         raise ValueError("limit ist zu klein für eine sichere Zuordnung")
     count = 1
     while True:
-        prefix = f"[Mail {mail_id} · Vorschlag {proposal_id} · Teil {count}/{count}]\n"
+        prefix = f"[Absender: {sender} · Teil {count}/{count}]\nBetreff: {subject}\n"
         chunks = split_message(text, limit - len(prefix))
         if len(chunks) == count:
             break
         count = len(chunks)
-    return [f"[Mail {mail_id} · Vorschlag {proposal_id} · Teil {index}/{count}]\n{part}" for index, part in enumerate(chunks, 1)]
+    return [f"[Absender: {sender} · Teil {index}/{count}]\nBetreff: {subject}\n{part}"
+            for index, part in enumerate(chunks, 1)]
 
 
 def format_proposal(proposal: Proposal, configured_timezone: str) -> str:
@@ -256,7 +257,6 @@ def format_proposal(proposal: Proposal, configured_timezone: str) -> str:
         f"Titel: {proposal.title}",
         f"Beschreibung: {proposal.description or missing}",
         f"Belegstelle: {proposal.evidence}",
-        f"Ursprungsmail: {proposal.source_mail_id}",
         f"Offene Fragen:{questions_display}",
         f"Ziel: {proposal.target}",
     ]
@@ -583,7 +583,10 @@ class TelegramDialogController:
         """Persist first, then expose controls for precisely that immutable version."""
         self.persist(proposal)
         text = format_proposal(proposal, self.configured_timezone)
-        parts = numbered_message_parts(proposal.source_mail_id, proposal.id, text)
+        mail = self.store.load_model(f"mail-{proposal.source_mail_id}", MailState)
+        sender = mail.display_headers.sender if isinstance(mail, MailState) and mail.display_headers else "—"
+        subject = mail.display_headers.subject if isinstance(mail, MailState) and mail.display_headers else "—"
+        parts = numbered_message_parts(sender, subject, text)
         for part in parts[:-1]:
             self.telegram.send(self.chat_id, part)
         if not proposal_is_writable(proposal):
