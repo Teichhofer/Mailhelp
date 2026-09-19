@@ -310,6 +310,40 @@ def test_all_proposal_buttons_use_short_exactly_bound_tokens(tmp_path, changes, 
                 version=item.version, action=action)
 
 
+def test_pending_event_pauses_until_anlegen_or_verwerfen(tmp_path):
+    item = proposal(kind="event", start="2026-05-10T10:00:00+02:00",
+                    end="2026-05-10T11:00:00+02:00")
+    with JsonStore(tmp_path) as store:
+        dialog, transport, _ = controller(store)
+        dialog.send_proposal(item)
+
+        assert dialog.awaiting_decision()
+        buttons = transport.sent[-1][2]["inline_keyboard"][0]
+        assert [button["text"] for button in buttons] == ["Anlegen", "Verwerfen"]
+
+        transport.updates = [callback(1, buttons[1]["callback_data"])]
+        dialog.poll_once()
+        assert not dialog.awaiting_decision()
+
+
+def test_awaiting_decision_ignores_version_snapshots_and_supports_legacy_store(tmp_path):
+    with JsonStore(tmp_path) as store:
+        dialog, _, _ = controller(store)
+        item = proposal()
+        store.save(dialog._version_name(item.source_mail_id, item.id, item.version),
+                   item.model_dump(mode="json"))
+        assert not dialog.awaiting_decision()
+
+    class LegacyStore:
+        pass
+
+    dialog, _, _ = controller(LegacyStore())
+    dialog._open_relevance_dialogs = lambda: []
+    assert not dialog.awaiting_decision()
+    dialog._open_relevance_dialogs = lambda: [object()]
+    assert dialog.awaiting_decision()
+
+
 def test_numbered_parts():
     parts=numbered_message_parts("sender@example.test","Ein Betreff","x"*150,100)
     assert len(parts)>1 and all(

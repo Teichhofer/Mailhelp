@@ -356,6 +356,9 @@ Unverbindliche Vorschläge, bereits erledigte Aufgaben sowie Änderungen und Abs
   `Anlegen` erzeugt die iCalendar-Datei und versendet sie per Telegram.
   Vorschläge mit offenen Fragen bieten dagegen ausschließlich `Klären` und
   `Verwerfen`; erst eine vollständige neue Version erhält eine Bestätigung.
+- Solange eine Relevanz- oder Vorschlagsentscheidung offen ist, pausiert die
+  weitere Mailverarbeitung. Mailhelp fragt in dieser Zeit ausschließlich
+  Telegram ab und setzt den Ablauf erst nach der Antwort fort.
 - Eine Änderung wird einem konkreten Vorschlag zugeordnet. Sind mehrere Vorschläge offen, darf Freitext nicht willkürlich zugeordnet werden.
 - Änderungen können über das LLM interpretiert werden. Der korrigierte Vorschlag muss erneut angezeigt und ausdrücklich bestätigt werden.
 - Bestätigungen gelten nur für die angezeigte Vorschlagsversion. Veraltete Buttons dürfen keine neuere Fassung freigeben.
