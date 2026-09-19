@@ -1,0 +1,53 @@
+topics:
+- id: wohnung
+  name: Wohnung
+  enabled: true
+  description: Nachrichten zum eigenen Mietverhältnis und zur Hausverwaltung.
+  examples:
+  - Betriebskostenabrechnung
+  - Wartungstermin
+  exclusions:
+  - Immobilienwerbung
+- id: gemeinderat
+  name: Gemeinderat
+  enabled: true
+  description: Nachrichten zur Arbeit des Gemeinderats, seinen Sitzungen und kommunalpolitischen
+    Themen.
+  examples:
+  - Sitzungseinladung
+  - Tagesordnung
+  - Beschlussvorlage
+  exclusions:
+  - Allgemeine Parteienwerbung ohne Bezug zum Gemeinderat
+- id: landfrauen
+  name: Landfrauen
+  enabled: true
+  description: Nachrichten zum Landfrauenverein, seinen Veranstaltungen und Vereinsaktivitäten.
+  examples:
+  - Veranstaltungseinladung
+  - Vereinsversammlung
+  - Kursangebot
+  exclusions:
+  - Allgemeine Werbung ohne Bezug zum Landfrauenverein
+- id: auslaenderbehoerde
+  name: Ausländerbehörde
+  enabled: true
+  description: Nachrichten der Ausländerbehörde zu Aufenthalt, Einbürgerung und behördlichen
+    Terminen.
+  examples:
+  - Terminbestätigung
+  - Aufenthaltstitel
+  - Unterlagenanforderung
+  exclusions:
+  - Allgemeine Reise- und Tourismuswerbung
+- id: kommunalverwaltung-und-sitzungsinformationen
+  name: Kommunalverwaltung und Sitzungsinformationen
+  enabled: true
+  description: Informationsmails der Gemeindeverwaltung zu Ratsvorlagen und Tagesordnungspunkten,
+    Personalentscheidungen sowie Befragungen zu kommunalen Einrichtungen.
+  examples:
+  - Neu eingestellte Sitzungsvorlagen im Ratsinformationssystem
+  - Zusätzliche Tagesordnungspunkte für Gemeinderatssitzung
+  - Bewerbervorstellung für eine Leitungsstelle
+  - Elternbefragung zu städtischen Kindertageseinrichtungen
+  exclusions: []

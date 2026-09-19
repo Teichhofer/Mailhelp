@@ -1,6 +1,7 @@
 """Laden und Validieren von Konfiguration und Geheimnissen."""
 from __future__ import annotations
 import hashlib, json, os, re
+from importlib.resources import files
 from pathlib import Path
 from typing import Annotated, Any, Literal
 from datetime import datetime
@@ -407,10 +408,30 @@ def _dotenv(path: Path) -> dict[str, str]:
     return result
 
 
+DEFAULT_TOPIC_FILES = ("topics.yaml", "irrelevant_topics.yaml")
+
+
+def _create_missing_topic_files(directory: Path) -> None:
+    """Restore distributed topic files without replacing user configuration."""
+    defaults = files("mailhelp").joinpath("defaults")
+    for name in DEFAULT_TOPIC_FILES:
+        path = directory / name
+        if path.exists():
+            continue
+        content = defaults.joinpath(name).read_text(encoding="utf-8")
+        try:
+            with path.open("x", encoding="utf-8", newline="\n") as stream:
+                stream.write(content)
+        except FileExistsError:
+            # A concurrently starting process already restored the file.
+            pass
+
+
 def load_all(directory: Path, environ: dict[str, str] | None = None) -> tuple[Settings, Secrets, list[Topic], list[Topic], PromptConfig, str]:
     env = {**_dotenv(directory / ".env"), **(os.environ if environ is None else environ)}
     settings = _validated_file(directory / "config.yaml", Settings, _yaml(directory / "config.yaml"))
     prompts = _validated_file(directory / "prompts.yaml", PromptConfig, _yaml(directory / "prompts.yaml"))
+    _create_missing_topic_files(directory)
     topics = _validated_file(directory / "topics.yaml", TopicsConfig, _yaml(directory / "topics.yaml")).topics
     irrelevant_topics = _validated_file(
         directory / "irrelevant_topics.yaml", IrrelevantTopicsConfig,

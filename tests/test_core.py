@@ -162,6 +162,37 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--config-directory", str(Path.cwd())]); assert main() == 0 and app.stopped
 
 
+def test_load_all_restores_only_missing_distributed_topic_files(tmp_path, monkeypatch):
+    for name in ("config.yaml", "prompts.yaml"):
+        (tmp_path / name).write_text(Path(name).read_text(encoding="utf-8"), encoding="utf-8")
+    custom_irrelevant = "topics:\n- id: custom\n  name: Custom\n  enabled: false\n  description: Custom\n"
+    (tmp_path / "irrelevant_topics.yaml").write_text(custom_irrelevant, encoding="utf-8")
+    env = {name: "secret" for name in (
+        "IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN",
+        "TODOIST_TOKEN", "TODOIST_CLIENT_ID", "TODOIST_CLIENT_SECRET",
+        "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN",
+    )}
+
+    _, _, topics, irrelevant_topics, _, _ = load_all(tmp_path, env)
+
+    assert topics
+    assert irrelevant_topics[0].id == "custom"
+    assert (tmp_path / "irrelevant_topics.yaml").read_text(encoding="utf-8") == custom_irrelevant
+
+    # Exercise the harmless race where another process creates the missing file
+    # after the existence check but before exclusive creation.
+    (tmp_path / "topics.yaml").unlink()
+    original_open = Path.open
+
+    def racing_open(path, mode="r", *args, **kwargs):
+        if path == tmp_path / "topics.yaml" and mode == "x":
+            path.write_text(Path("topics.yaml").read_text(encoding="utf-8"), encoding="utf-8")
+        return original_open(path, mode, *args, **kwargs)
+    monkeypatch.setattr(Path, "open", racing_open)
+
+    assert load_all(tmp_path, env)[2]
+
+
 def test_mime():
     msg = EmailMessage(); msg["From"]="A <a@example.test>"; msg["Subject"]="Hallo"; msg["Message-ID"]="<1>"; msg.set_content("Inhalt\n-- \nSignatur"); msg.add_alternative("<b>HTML</b>", subtype="html"); msg.add_attachment(b"x", maintype="application", subtype="octet-stream", filename="x.bin")
     value = prepare(msg.as_bytes(), 10000); assert value["text"] == "Inhalt" and value["metadata"]["attachments_omitted"] == 1
