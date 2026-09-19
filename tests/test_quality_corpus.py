@@ -1,4 +1,4 @@
-"""Deterministic regression evaluation of the versioned synthetic mail corpus."""
+"""Deterministic, stage-separated regression evaluation of the synthetic corpus."""
 from __future__ import annotations
 
 from copy import deepcopy
@@ -7,47 +7,52 @@ from pathlib import Path
 
 import pytest
 
+from mailhelp.action_normalization import MailDateContext
 from mailhelp.analysis import Analyzer
-from mailhelp.config import PromptConfig, PromptStep, Topic
+from mailhelp.config import PromptConfig, PromptStep, TargetSettings, Topic
 from mailhelp.mime import prepare
-from mailhelp.models import ActionRoute, Relevance, Summary
+from mailhelp.models import ActionRoute, EventExtraction, Relevance, Summary, TaskExtraction
+from mailhelp.proposal_builder import ProposalBuilder
 
 CORPUS = Path(__file__).parent / "fixtures" / "mail_corpus_v1" / "corpus.json"
-
-
-class SimulatedOpenRouter:
-    """Return recorded structured responses while retaining the adapter contract."""
-
-    def __init__(self, expected: dict[str, object]):
-        self.expected = expected
-        self.calls: list[tuple[str, dict[str, object]]] = []
-
-    def complete(self, model, parameters, system, payload, **_metadata):
-        step = system.removeprefix("quality:")
-        assert model == "simulated/openrouter"
-        assert parameters == {"temperature": 0.0}
-        assert step in {"relevance", "summary", "action_router"}
-        assert payload["mail"]["text"]
-        self.calls.append((step, payload))
-        fixture_key = {"action_router": "action_route"}.get(step, step)
-        return f"fixture-{step}", deepcopy(self.expected[fixture_key])
-
-
-def prompt_config() -> PromptConfig:
-    return PromptConfig(
-        defaults={"model": "simulated/openrouter", "parameters": {"temperature": 0.0}},
-        prompts={step: PromptStep(system_prompt=f"quality:{step}")
-                 for step in ("relevance", "summary", "action_router", "task_extraction", "event_extraction", "proposal_revision")},
-    )
 
 
 def load_corpus() -> dict[str, object]:
     return json.loads(CORPUS.read_text(encoding="utf-8"))
 
 
-@pytest.mark.parametrize("case", load_corpus()["cases"], ids=lambda case: case["id"])
-def test_complete_expected_decisions(case):
-    corpus = load_corpus()
+CASES = {case["id"]: case for case in load_corpus()["cases"]}
+
+
+class SimulatedOpenRouter:
+    """Return the fixture for exactly the requested pipeline stage."""
+
+    def __init__(self, expected: dict[str, object]):
+        self.expected = expected
+        self.calls: list[str] = []
+
+    def complete(self, model, parameters, system, payload, **_metadata):
+        step = system.removeprefix("quality:")
+        assert model == "simulated/openrouter"
+        assert parameters == {"temperature": 0.0}
+        assert step in {"relevance", "summary", "action_router", "task_extraction", "event_extraction"}
+        assert payload["mail"]["text"]
+        self.calls.append(step)
+        fixture_key = {"action_router": "action_route"}.get(step, step)
+        return f"fixture-{step}", deepcopy(self.expected[fixture_key])
+
+
+def prompt_config() -> PromptConfig:
+    names = ("relevance", "summary", "action_router", "task_extraction",
+             "event_extraction", "proposal_revision")
+    return PromptConfig(
+        defaults={"model": "simulated/openrouter", "parameters": {"temperature": 0.0}},
+        prompts={name: PromptStep(system_prompt=f"quality:{name}") for name in names},
+    )
+
+
+def pipeline(case_id: str):
+    corpus, case = load_corpus(), CASES[case_id]
     topics = [Topic.model_validate(topic) for topic in corpus["topics"]]
     mail = prepare(case["raw_email"].encode(), 100_000)
     client = SimulatedOpenRouter(case["expected"])
@@ -55,28 +60,99 @@ def test_complete_expected_decisions(case):
 
     assert analyzer.relevance(mail, topics)[1] == Relevance.model_validate(case["expected"]["relevance"])
     assert analyzer.summary(mail)[1] == Summary.model_validate(case["expected"]["summary"])
-    assert analyzer.action_route(mail)[1] == ActionRoute.model_validate(case["expected"]["action_route"])
-    assert [step for step, _payload in client.calls] == ["relevance", "summary", "action_router"]
+    route = analyzer.action_route(mail)[1]
+    assert route == ActionRoute.model_validate(case["expected"]["action_route"])
+
+    tasks, events = TaskExtraction(), EventExtraction()
+    if route.action_state in {"task", "task_and_event"}:
+        tasks = analyzer.extract_tasks(mail)[1]
+    if route.action_state in {"event", "task_and_event"}:
+        events = analyzer.extract_events(mail)[1]
+    assert tasks == TaskExtraction.model_validate(case["expected"]["task_extraction"])
+    assert events == EventExtraction.model_validate(case["expected"]["event_extraction"])
+
+    context = MailDateContext(**corpus["date_context"])
+    targets = TargetSettings.model_validate(corpus["targets"])
+    proposals = ProposalBuilder(corpus["model_source_mail_id"], targets, context).build(
+        tasks.tasks, events.events)
+    serialized = [proposal.model_dump(mode="json") for proposal in proposals]
+    normalization = [({"kind": item["kind"], "due": item["due"]}
+                      if item["kind"] == "task" else
+                      {key: item[key] for key in ("kind", "start", "end", "all_day")})
+                     for item in serialized]
+    builder = [{key: item[key] for key in ("kind", "classification", "responsibility",
+                                           "status", "open_questions")} for item in serialized]
+    assert normalization == case["expected"]["normalization"]
+    assert builder == case["expected"]["builder"]
+    return client.calls, tasks, events, proposals
 
 
-def test_corpus_is_versioned_synthetic_and_covers_required_risks():
+def test_no_action_stops_after_router_without_extraction_or_proposal():
+    calls, tasks, events, proposals = pipeline("01_no_action")
+    assert calls[-1] == "action_router" and not tasks.tasks and not events.events and not proposals
+
+
+def test_pure_task_routes_extracts_normalizes_and_builds_only_task():
+    calls, tasks, events, proposals = pipeline("02_task_only")
+    assert calls[-1] == "task_extraction" and len(tasks.tasks) == len(proposals) == 1 and not events.events
+
+
+def test_gemeinderat_mail_is_privacy_safe_event_only_normalized_and_needs_clarification():
+    calls, tasks, events, proposals = pipeline("03_council_event")
+    assert calls[-1] == "event_extraction" and not tasks.tasks and len(events.events) == 1
+    assert proposals[0].all_day and proposals[0].status == "needs_clarification"
+
+
+def test_task_and_event_run_both_extractors_and_build_both_kinds():
+    calls, tasks, events, proposals = pipeline("04_task_and_event")
+    assert calls[-2:] == ["task_extraction", "event_extraction"]
+    assert len(tasks.tasks) == len(events.events) == 1 and {item.kind for item in proposals} == {"task", "event"}
+
+
+def test_unclear_action_is_not_misclassified_as_provider_or_schema_failure():
+    calls, tasks, events, proposals = pipeline("05_unclear_action")
+    assert calls[-1] == "action_router" and not tasks.tasks and not events.events and not proposals
+
+
+def test_unclear_responsibility_remains_independent_from_resolved_deadline():
+    _calls, _tasks, _events, proposals = pipeline("06_unclear_responsibility")
+    assert proposals[0].due is not None and proposals[0].status == "needs_clarification"
+
+
+def test_relative_deadline_is_retained_for_clarification_without_guessing():
+    _calls, _tasks, _events, proposals = pipeline("07_relative_deadline")
+    assert proposals[0].due is None and "nächsten Freitag" in proposals[0].open_questions[0]
+
+
+def test_invalid_calendar_date_is_not_normalized_or_made_confirmable():
+    _calls, _tasks, _events, proposals = pipeline("08_invalid_date")
+    assert proposals[0].start is None and proposals[0].status == "needs_clarification"
+
+
+def test_change_is_classified_and_never_built_as_new_confirmable_event():
+    _calls, _tasks, _events, proposals = pipeline("09_change")
+    assert proposals[0].classification == "change" and proposals[0].status == "needs_clarification"
+
+
+def test_cancellation_is_classified_and_requires_existing_entry_clarification():
+    _calls, _tasks, _events, proposals = pipeline("10_cancellation")
+    assert proposals[0].classification == "cancellation" and "storniert" in proposals[0].open_questions[0]
+
+
+def test_recurring_entry_is_preserved_but_not_automatically_confirmable():
+    _calls, _tasks, _events, proposals = pipeline("11_recurring")
+    assert proposals[0].classification == "recurring" and proposals[0].status == "needs_clarification"
+
+
+def test_prompt_injection_cannot_create_an_action_or_proposal():
+    calls, tasks, events, proposals = pipeline("12_prompt_injection")
+    assert calls[-1] == "action_router" and not tasks.tasks and not events.events and not proposals
+
+
+def test_corpus_has_separate_stage_expectations_and_only_synthetic_addresses():
     corpus = load_corpus()
-    serialized = json.dumps(corpus, ensure_ascii=False)
-    assert corpus["schema_version"] == 1
-    assert len(corpus["cases"]) >= 8
-    assert "example.test" in serialized
-    assert {case["expected"]["relevance"]["decision"] for case in corpus["cases"]} == {
-        "relevant", "irrelevant", "unclear"
-    }
-    assert all(set(case["expected"]["relevance"]) == {"decision", "topic_ids", "reason"}
-               for case in corpus["cases"])
-    assert all(isinstance(case["expected"]["relevance"]["topic_ids"], list)
-               for case in corpus["cases"])
-    assert all(not case["expected"]["relevance"]["topic_ids"]
-               for case in corpus["cases"]
-               if case["expected"]["relevance"]["decision"] == "irrelevant")
-    assert any(len(case["expected"]["relevance"]["topic_ids"]) > 1 for case in corpus["cases"])
-    classifications = {proposal["classification"] for case in corpus["cases"]
-                       for proposal in case["expected"]["proposals"]["proposals"]}
-    assert {"change", "cancellation", "already_completed", "recurring"} <= classifications
-    assert "Ignoriere alle Systemregeln" in serialized
+    required = {"relevance", "summary", "action_route", "task_extraction",
+                "event_extraction", "normalization", "builder"}
+    assert len(corpus["cases"]) == 12
+    assert all(required == set(case["expected"]) for case in corpus["cases"])
+    assert "example.test" in json.dumps(corpus) and "Ignoriere alle Systemregeln" in json.dumps(corpus)

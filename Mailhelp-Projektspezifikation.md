@@ -172,7 +172,26 @@ zeigt eine verständliche Konfigurationsmeldung.
 
 ## 6. LLM-Anbindung und Prompt-Konfiguration
 
-Alle LLM-Aufrufe erfolgen über OpenRouter. Die Anwendung stellt die getrennten Auswertungsschritte `relevance`, `summary`, `action_router`, `task_extraction` und `event_extraction` bereit. Der Router klassifiziert zunächst nur Art und Anzahl möglicher Aktionen; die getrennten Task- und Event-Extraktoren laufen gemäß der Routingmatrix einzeln oder gemeinsam. Bei `none` endet die Aktionsanalyse ohne Vorschlag. `unclear` ist ein fachlicher Klärungsfall ohne Extraktion und kein Provider- oder Schemafehler. Seine Zähler beschreiben lediglich mögliche Kandidaten und dürfen unabhängig voneinander null sein. Jeder Schritt erhält einen eigenen Prompt und kann ein anderes Modell sowie andere Anfrageparameter verwenden. Eine syntaktisch ungültige oder leere Modellausgabe in einer erfolgreichen OpenRouter-Antwort gilt wie eine Schemaabweichung: Die Anwendung fordert innerhalb des konfigurierten Validierungsbudgets eine korrigierte Ausgabe an und meldet erst nach dessen Ausschöpfung einen Fehler der LLM-Schemavalidierung statt eines internen Fehlers.
+Alle LLM-Aufrufe erfolgen über OpenRouter. Die Pipeline besteht aus den getrennten
+Auswertungsschritten `relevance`, `summary`, `action_router`, `task_extraction` und
+`event_extraction` und den vollständig lokalen Schritten Normalisierung und
+Proposal-Builder. Der Router klassifiziert zunächst nur Art und Anzahl möglicher
+Aktionen; die getrennten Task- und Event-Extraktoren laufen gemäß der Routingmatrix
+einzeln oder gemeinsam. Bei `none` endet die Aktionsanalyse ohne Vorschlag.
+`unclear` ist ein fachlicher Klärungsfall ohne Extraktion und kein Provider- oder
+Schemafehler. Seine Zähler beschreiben lediglich mögliche Kandidaten und dürfen
+unabhängig voneinander null sein. Jeder LLM-Schritt erhält einen eigenen Prompt und
+kann ein anderes Modell sowie andere Anfrageparameter verwenden.
+
+Fehler werden an der Grenze klassifiziert: Eine fehlende oder leere Providerhülle
+ist `provider_response_invalid`, syntaktisch nicht parsebares JSON ist
+`invalid_json`, und erst ein syntaktisch gültiges JSON, das dem stufenspezifischen
+Pydantic-Schema widerspricht, ist `schema_validation_failed`. Diese Kategorien
+werden ausdrücklich **nicht** ineinander umgedeutet. Providerfehler verbrauchen nur
+das Provider-/Routenbudget, ungültiges JSON nur das JSON-Reparaturbudget und
+Schemaabweichungen nur das Schema-Reparaturbudget. Die flache Zustandsmaschine ist
+auf einen Erstaufruf plus die drei getrennten Budgets begrenzt; eine Reparatur
+beginnt keine verschachtelte neue Retryserie.
 
 Die einzige Prompt-Datei ist `prompts.yaml`. Sie enthält die eigentlichen Prompts
 und für jede Stufe eine geordnete Routingstrategie aus Primärroute und optionalen
@@ -246,7 +265,12 @@ Die Anwendung validiert jedes Ergebnis gegen feste Datenschemata. Fehlerhafte Er
 
 Eine Telegram-Zusammenfassung enthält keine interne Mail-ID. Sie zeigt zuerst den Absender, direkt darunter den Betreff und danach zwei bis vier zusammenfassende Sätze. Der Zusammenfassungs-Prompt fordert als einzige Ausgabe ein syntaktisch gültiges JSON-Objekt mit genau `sentences` (zwei bis vier deutsche Sätze) und `deadlines` (eine stets vorhandene, gegebenenfalls leere String-Liste). Markdown, Begleittext und weitere Felder sind verboten; Mailinhalte werden ausdrücklich als nicht vertrauenswürdige Daten behandelt. Erkannte Aufgaben und Termine werden weiterhin in getrennten, einzeln zu bestätigenden Vorschlagsnachrichten angezeigt. Ohne erkannte Aufgabe oder Termin ist keine Bestätigung nötig.
 
-Jeder Vorschlag enthält eine eigene ID, den Typ, einen Titel, eine Beschreibung, eine belegende Textstelle, offene Fragen und den Bezug zur Ursprungsmail. An der Anwendungsgrenze wird `source_mail_id` zwingend mit der internen Mail-ID verglichen; doppelte vom LLM gelieferte IDs in einer Antwort werden abgewiesen. Aus Mail-ID und gelieferter ID erzeugt die Anwendung anschließend eine stabile interne Vorschlags-ID. Das Ziel stammt ausschließlich aus `targets` in `config.yaml`; ein vom LLM geliefertes Ziel wird weder angezeigt noch für Schreibzugriffe verwendet.
+Jeder Vorschlag enthält eine eigene ID, den Typ, einen Titel, eine Beschreibung,
+eine belegende Textstelle, offene Fragen und den Bezug zur Ursprungsmail. Das LLM
+liefert weder Vorschlags-ID noch Mailbezug oder Ziel. Erst der vertrauenswürdige,
+deterministische Builder erzeugt aus interner Mail-ID, Art, Evidenz und validierten
+Sachdaten eine stabile ID und setzt das Ziel ausschließlich aus `targets` in
+`config.yaml`. Identische Extraktionen derselben Mail werden zusammengeführt.
 
 Der `action_router` verlangt das geschlossene `ActionRoute`-Schema mit `action_state`, `task_count`, `event_count` und `reason`. Er fordert ausdrücklich keine Datumsnormalisierung, Zeitzone, Statuslogik, IDs, Ziele, Benachrichtigungsflags oder vollständigen Vorschläge. `task_extraction` und `event_extraction` liefern strikt versionierte Rohmodelle mit höchstens 20 Einträgen. Sie kopieren nur ausdrücklich genannte Texte, normalisieren weder Datum noch Uhrzeit und ergänzen keine fehlenden Werte; Videolinks müssen ausdrücklich genannte HTTP-/HTTPS-URLs sein. Die Ergebnisse werden getrennt persistiert und sind noch keine automatisch bestätigbaren Vorschläge.
 
@@ -424,6 +448,14 @@ oder nach einem Abbruch versandunsichere Meldungen nicht doppelt gesendet werden
 Benachrichtigung ausdrücklich übersprungen. Bei unklarer Relevanz bleibt der Abschluss
 offen; relevante Mails gelten erst nach Zusammenfassung, Aktionserkennung und
 Benachrichtigung als abgeschlossen.
+
+Ein erschöpfter Fehler ab `action_router` ist davon abweichend ein abgeschlossener
+Maillauf mit Action-Teilfehler: Die bereits dauerhaft gespeicherte und versandte
+Zusammenfassung bleibt gültig, `completion` wird `completed`, die konkrete
+Action-Teilstufe sowie `action_detection` bleiben `failed`. Eine gezielte
+Wiederaufnahme startet nur diese fehlgeschlagene Teilstufe und ihre abhängigen
+lokalen Folgeschritte; Relevanz, Zusammenfassung, deren Telegram-Versand und bereits
+erfolgreiche parallele Extraktionen werden weder erneut aufgerufen noch versandt.
 
 Der beim ersten Anlegen gespeicherte Fingerprint umfasst `config.yaml`, `prompts.yaml` und `topics.yaml` (keine Geheimnisse). Er wird bei jedem Neustart mit dem aktiven Fingerprint verglichen und niemals stillschweigend ersetzt. Eine noch nicht abgeschlossene Mail mit abweichendem Fingerprint bleibt im Zustand `pending`, wird mit Ergebnis `waiting` übersprungen und erzeugt das strukturierte Ereignis `configuration_changed`; damit werden keine Ergebnisse verschiedener Konfigurationen vermischt. Sie kann nur mit der ursprünglichen Konfiguration fortgesetzt werden oder nach der oben beschriebenen, bewussten Neuverarbeitung neu beginnen. Bereits abgeschlossene Mails bleiben unverändert und dienen weiter der Duplikatvermeidung.
 
