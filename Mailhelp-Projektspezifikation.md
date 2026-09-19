@@ -344,8 +344,9 @@ Unverbindliche Vorschläge, bereits erledigte Aufgaben sowie Änderungen und Abs
 - Offene Fragen müssen vor dem Schreiben beantwortet sein. Eine allgemeine Zustimmung zu einer Zusammenfassung gilt nicht als Freigabe aller Vorschläge.
 - Offene Bestätigungen werden dauerhaft gespeichert und bleiben nach Neustarts nutzbar. Es erfolgt keine automatische Bestätigung durch Zeitablauf.
 - Lange Telegram-Ausgaben werden geordnet aufgeteilt und bleiben eindeutig zuordenbar.
-- Jeder Teil einer langen Vorschlagsausgabe nennt Mail-ID, Vorschlags-ID sowie die
-  fortlaufende Nummer und Gesamtzahl der Teile.
+- Jeder Teil einer langen Vorschlagsausgabe nennt den Absender und Betreff der
+  Ursprungsmail sowie die fortlaufende Nummer und Gesamtzahl der Teile. Interne
+  Mail- und Vorschlags-IDs werden in der sichtbaren Nachricht nicht angezeigt.
 
 Nach erfolgreichem Speichern werden die externe ID und, sofern verfügbar, ein Link hinterlegt und zurückgemeldet. Fehler werden verständlich gemeldet, ohne Geheimnisse offenzulegen.
 

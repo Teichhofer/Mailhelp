@@ -302,9 +302,12 @@ def test_all_proposal_buttons_use_short_exactly_bound_tokens(tmp_path, changes, 
 
 
 def test_numbered_parts():
-    parts=numbered_message_parts("mail","proposal","x"*150,64)
-    assert len(parts)>1 and all(f"Teil {i}/{len(parts)}" in part for i,part in enumerate(parts,1))
+    parts=numbered_message_parts("sender@example.test","Ein Betreff","x"*150,100)
+    assert len(parts)>1 and all(
+        f"[Absender: sender@example.test · Teil {i}/{len(parts)}]\nBetreff: Ein Betreff\n" in part
+        for i,part in enumerate(parts,1))
     with pytest.raises(ValueError): numbered_message_parts("","p","x")
+    with pytest.raises(ValueError): numbered_message_parts("m","","x")
     with pytest.raises(ValueError): numbered_message_parts("m","p","x",31)
 
 
@@ -330,6 +333,8 @@ def test_persist_before_buttons_and_authorized_flow(tmp_path):
         p=proposal(title="t"*500, description="x"*4000)
         c.send_proposal(p)
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")["version"]==1
+        assert all("[Absender: — · Teil " in message for _, message, _ in t.sent)
+        assert "Vorschlag p1" not in t.sent[-1][1] and "Ursprungsmail:" not in t.sent[-1][1]
         value=t.sent[-1][2]["inline_keyboard"][0][0]["callback_data"]
         assert len(t.sent)>=2 and value.startswith("decision:") and len(value.encode("utf-8")) <= 64
         assert Decision.parse(value, store) == Decision(mail_id="a"*24, proposal_id="p1", version=1, action=DecisionAction.CONFIRM)
@@ -345,6 +350,22 @@ def test_persist_before_buttons_and_authorized_flow(tmp_path):
         # A replay with a fresh update id still cannot mutate the terminal state.
         t2.updates=[callback(5,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:reject")]; c2.poll_once()
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="confirmed" and "veraltet" in t2.answered[-1][1]
+
+
+def test_proposal_notification_uses_persisted_sender_and_subject(tmp_path):
+    mail_id = "a" * 24
+    with JsonStore(tmp_path) as store:
+        state = MailState(
+            id=mail_id, config_fingerprint="f" * 64,
+            imap={"account_id": "0" * 24, "folder": "INBOX", "uidvalidity": 1, "uid": 1},
+            display_headers={"sender": "Ada <ada@example.test>", "subject": "Besprechung"},
+        )
+        store.save("mail-" + mail_id, state.model_dump(mode="json"))
+        dialog, transport, _ = controller(store)
+        dialog.send_proposal(proposal(source_mail_id=mail_id))
+        text = transport.sent[-1][1]
+        assert text.startswith("[Absender: Ada <ada@example.test> · Teil 1/1]\nBetreff: Besprechung\n")
+        assert mail_id not in text and "Vorschlag p1" not in text
 
 
 def test_only_exactly_displayed_version_is_written(tmp_path):
