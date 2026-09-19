@@ -261,10 +261,14 @@ def test_raw_extraction_prompts_are_separate_and_injection_resistant():
     assert prompts["event_extraction"]["parameters"]["max_tokens"] > config["defaults"]["parameters"]["max_tokens"]
 
 
-def test_learning_classification_has_reasoning_output_budget():
+def test_learning_stages_have_reasoning_output_budgets():
     config=yaml.safe_load(Path("prompts.yaml").read_text(encoding="utf-8"))
 
-    assert config["prompts"]["learning_classification"]["parameters"]["max_tokens"] > config["defaults"]["parameters"]["max_tokens"]
+    default = config["defaults"]["parameters"]["max_tokens"]
+    classification = config["prompts"]["learning_classification"]["parameters"]["max_tokens"]
+    abstraction = config["prompts"]["learning_abstraction"]["parameters"]["max_tokens"]
+    assert classification > default
+    assert abstraction > classification
 
 
 def test_action_router_prompt_is_narrow_and_injection_resistant():

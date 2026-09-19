@@ -218,6 +218,10 @@ beginnt keine verschachtelte neue Retryserie.
 Ist der Nachrichteninhalt `null` und zugleich `finish_reason=length`, lautet der
 inhaltsfreie Diagnosegrund `output_token_limit`; ein sonstiger `null`-Inhalt bleibt
 als `message_content_null` unterscheidbar.
+Reasoning-intensive Schritte überschreiben ihr Ausgabelimit in `prompts.yaml`.
+Dies gilt insbesondere für beide Lernschritte; die abschließende Abstraktion
+erhält wegen der gemeinsamen Verarbeitung aller Einzelklassifikationen und bis zu
+50 auszugebender Kategorien ein höheres Budget als die Einzelklassifikation.
 
 Die einzige Prompt-Datei ist `prompts.yaml`. Sie enthält die eigentlichen Prompts
 und für jede Stufe eine geordnete Routingstrategie aus Primärroute und optionalen
