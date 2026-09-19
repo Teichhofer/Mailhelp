@@ -1,1 +1,68 @@
-topics: []
+topics:
+- id: bestell-und-versandbestatigungen-online-handel
+  name: Bestell- und Versandbestätigungen (Online-Handel)
+  enabled: true
+  description: Automatisch generierte Transaktionsmails von Online-Marktplätzen und
+    Shops zu abgeschlossenen Käufen, mit Bestell- und Artikeldetails, Verkäuferangaben,
+    Lieferstatus sowie Service-Links zu Kontoeinstellungen.
+  examples:
+  - Bestellbestätigung mit Bestellnummer und Gesamtbetrag
+  - Hinweis, dass das Paket zugestellt wurde
+  - Voraussichtlicher Lieferzeitraum für eine Bestellung
+  exclusions: []
+- id: ruckgabe-widerruf-und-kauferschutz
+  name: Rückgabe, Widerruf und Käuferschutz
+  enabled: true
+  description: Informationen zu Widerrufsfristen, Rückgabe- und Umtauschprozessen,
+    Rückerstattungen sowie Käuferschutzleistungen, Bewertungsaufrufen rund um einen
+    getätigten Kauf.
+  examples:
+  - Widerruf innerhalb der Frist ohne Angabe von Gründen
+  - Rücksendeetikett für eine Rückgabe anfordern
+  - Kauf ist durch Käuferschutz abgesichert
+  exclusions: []
+- id: werbe-newsletter
+  name: Werbe-Newsletter
+  enabled: true
+  description: Marketingmails von Händlern mit Produktvorstellungen, saisonalen Kampagnen,
+    Rabatt- und Verkaufsaktionen, individuellen Anfertigungen, Shop-Service-Hinweisen
+    sowie rechtlichen Verweisen; Themenbereiche umfassen z. B. Wohnaccessoires, Bekleidung,
+    Schuhe oder Mineralien.
+  examples:
+  - Saisonaler Produktnewsletter eines Onlineshops
+  - Rabattaktion mit Mindestbestellwert für versandkostenfreie Lieferung
+  - Vorstellung neuer Produkte mit Kauf-Links
+  exclusions: []
+- id: tierarztliche-korrespondenz
+  name: Tierärztliche Korrespondenz
+  enabled: true
+  description: Nachrichten von Tierarztpraxen oder tiermedizinischen Einrichtungen
+    an Tierhalter, typischerweise zu Terminen, Impferinnerungen, Behandlungen oder
+    Rechnungen, oft mit standardmäßigem Vertraulichkeits-Disclaimer.
+  examples:
+  - Terminbestätigung der Tierklinik
+  - Erinnerung an den Impftermin
+  - Rechnung für die letzte Behandlung
+  exclusions: []
+- id: nachricht-ohne-textinhalt
+  name: Nachricht ohne Textinhalt
+  enabled: true
+  description: E-Mails mit leerem Betreff und leerem Nachrichtentext, die nur aus
+    Grußformel, Signaturblock und Disclaimer bestehen; der eigentliche Inhalt liegt
+    vermutlich in Anhängen wie Rechnungen, Befunden oder Bescheinigungen.
+  examples:
+  - Mail nur mit Grußformel und Signaturblock
+  - Inhalt ausschließlich als PDF-Anhang
+  - Nachricht ohne Betreff, lediglich Disclaimer im Body
+  exclusions: []
+- id: spam-und-phishing
+  name: Spam und Phishing
+  enabled: true
+  description: Unaufgeforderte Massenwerbung und verdächtige Nachrichten mit unrealistischen
+    Versprechen, erfundenen Promi- oder TV-Referenzen, nicht zusammenpassenden Vorlagen
+    und Absendern sowie Betreff-Manipulationen zur Umgehung von Spamfiltern.
+  examples:
+  - Werbung mit unrealistischen Abnehmversprechen
+  - Behauptete Empfehlung durch eine bekannte TV-Sendung
+  - Betreff mit absichtlichen Tippfehlern und Seriennummern
+  exclusions: []
