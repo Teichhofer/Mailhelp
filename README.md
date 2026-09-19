@@ -376,6 +376,14 @@ wird vor ihren Schaltflächen gespeichert. `Bestätigen`, `Ändern` und `Verwerf
 werden getrennt behandelt,
 während veraltete oder fehlerhafte Schaltflächen keinen Zustand verändern.
 Antworten auf Rückfragen erzeugen eine neue, erneut zu bestätigende Version.
+Telegram wird ausschließlich für Nachrichten und Callback-Aktionen abgefragt;
+bereits wartende, nicht unterstützte Update-Arten werden einzeln verworfen und
+blockieren nachfolgende Antworten nicht. Ein technisch fehlgeschlagener
+Antwortversuch wird nicht durch Fortschreiben des Telegram-Offsets quittiert und
+kann beim nächsten Poll erneut verarbeitet werden. Inhaltsfreie strukturierte
+Ereignisse unter `telegram.dialog` dokumentieren Update-Art, Verarbeitungsphase,
+Dialogreferenz und Ablehnungs- oder Fehlergrund, ohne Nachrichtentext oder
+Callback-Inhalt zu protokollieren.
 Die kompakte Mailnachricht nennt ohne interne Mail-ID zuerst den Absender, direkt
 darunter den Betreff und danach zwei bis vier Zusammenfassungssätze. Jeder
 Zusammenfassungsaufruf verlangt ausschließlich ein JSON-Objekt mit den beiden

@@ -671,6 +671,11 @@ Ursprungsmail sowie exakt um eins erhöhter Version sein. Jede Version wird vor 
 Anzeige separat persistiert; fehlerhafte Ergebnisse lassen Vorschlag und Dialog
 unverändert. Eine Folgeversion darf erst ohne offene Fragen und nach vollständiger
 typabhängiger Validierung zur ausdrücklichen Bestätigung angeboten werden.
+Der Telegram-Abruf fordert nur Nachrichten und Callback-Aktionen an. Andere, bereits
+wartende Update-Arten werden einzeln verworfen, damit sie spätere Antworten nicht
+blockieren. Bei einem technischen Verarbeitungsfehler bleibt der Offset vor dem
+betroffenen Update stehen; Update-Art, Verarbeitungsphase, Dialogreferenz und sicherer
+Fehlergrund werden ohne Nachrichten- oder Callback-Inhalt strukturiert protokolliert.
 # Kalenderdateien statt Google-Calendar-Zugriff
 
 Für bestätigte Termine erzeugt Mailhelp RFC-5545-kompatible `*.ics`-Dateien und

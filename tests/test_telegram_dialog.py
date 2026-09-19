@@ -73,6 +73,10 @@ class FailingRevisionService:
     def revise_proposal(self, item, question, answer): raise ValueError("contradiction")
 
 
+class OperationallyFailingRevisionService:
+    def revise_proposal(self, item, question, answer): raise RuntimeError("provider unavailable")
+
+
 def controller(store, updates=(), writers=None, test_mode=False, revision_service=None):
     transport=Telegram(updates); log=Logger()
     service=revision_service if revision_service is not None else RevisionService()
@@ -509,6 +513,31 @@ def test_revision_unavailable_preserves_dialog(tmp_path):
         assert store.load("telegram-dialog")["proposal_id"]=="p1"
 
 
+def test_operational_reply_failure_is_logged_and_not_acknowledged(tmp_path):
+    with JsonStore(tmp_path) as store:
+        c,t,log=controller(store, [message(4, "Neuer Titel")],
+                           revision_service=OperationallyFailingRevisionService())
+        c.persist(proposal(status="needs_clarification"))
+        store.save("telegram-dialog", {"mail_id":"a"*24,"proposal_id":"p1","version":1})
+        with pytest.raises(RuntimeError, match="provider unavailable"):
+            c.poll_once()
+        assert store.load("telegram-offset") is None
+        assert store.load("telegram-dialog")["proposal_id"] == "p1"
+        event = next(item for item in log.events if item[0][2] == "update_processing_failed")
+        assert event[1]["update_id"] == 4
+        assert "provider unavailable" in str(event[1]["error"])
+
+
+def test_unrelated_telegram_update_does_not_block_following_reply(tmp_path):
+    unrelated = {"update_id": 1, "my_chat_member": {"private": "not logged"}}
+    with JsonStore(tmp_path) as store:
+        c,t,log=controller(store, [unrelated, message(2)])
+        c.poll_once()
+        assert store.load("telegram-offset")["offset"] == 3
+        assert "Keine offene" in t.sent[-1][1]
+        assert "private" not in repr(log.events)
+
+
 def test_telegram_client_validation_and_callback():
     requests=[]
     def handler(request):
@@ -519,9 +548,21 @@ def test_telegram_client_validation_and_callback():
     assert client.poll(0)==[]
     client.send(2,"x",{"inline_keyboard":[]}); client.answer_callback("c","ok"); client.close()
     assert len(requests)==3
+    assert requests[0].url.params["allowed_updates"] == '["message","callback_query"]'
     invalid=TelegramClient("secret",1,httpx.MockTransport(lambda r:httpx.Response(200,json={"ok":True,"result":{}},request=r)))
     with pytest.raises(ValueError): invalid.poll(0)
     invalid.close()
+
+
+def test_started_chats_ignores_unrelated_update_kind():
+    payload = {"ok": True, "result": [
+        {"update_id": 1, "my_chat_member": {"status": "member"}},
+        message(2, "/start", user=1, chat=7),
+    ]}
+    client = TelegramClient("secret", 1, httpx.MockTransport(
+        lambda request: httpx.Response(200, json=payload, request=request)))
+    assert client.started_chats(1) == [7]
+    client.close()
 
 
 def test_telegram_client_preserves_documented_api_error_description():
