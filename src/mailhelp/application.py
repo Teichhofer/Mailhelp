@@ -26,6 +26,7 @@ from .adapter import RetryPolicy
 from .retention import RetentionService
 
 _BLOCKED_STATE_SCAN_LIMIT = 1000
+_TELEGRAM_ERROR_BACKOFF_SECONDS = 5.0
 
 
 def _add_uid(ranges: list[tuple[int, int]], uid: int) -> list[tuple[int, int]]:
@@ -326,23 +327,26 @@ class Application:
                 self.logger.event("ERROR", "orchestrator", "resume_failed", state_name=name, error=str(exc))
         return results
 
-    def _poll_telegram(self) -> None:
+    def _poll_telegram(self) -> bool:
+        """Poll Telegram once and report whether the request completed normally."""
         if self.dialog is not None:
             try:
                 self.dialog.poll_once()
             except Exception as exc:
                 self.logger.event("ERROR", "telegram", "poll_failed", error=str(exc))
-            return
+                return False
+            return True
         state_model = self.store.load_model("telegram-offset", TelegramOffset, TelegramOffset()) if hasattr(self.store, "load_model") else TelegramOffset.model_validate(self.store.load("telegram-offset", {}))
         try:
             updates = self.telegram.poll(state_model.offset)
         except Exception as exc:
             self.logger.event("ERROR", "telegram", "poll_failed", error=str(exc))
-            return
+            return False
         for update in updates:
             offset = int(update["update_id"]) + 1
             self.store.save("telegram-offset", TelegramOffset(offset=offset).model_dump())
             self.logger.event("INFO", "telegram", "update_received", update_id=update["update_id"])
+        return True
 
     def run(self, max_mails: int | None = None) -> None:
         summary = _RunSummary()
@@ -356,7 +360,7 @@ class Application:
                                       processed_at=datetime.now(timezone.utc).isoformat(), failure_count=1)
                 # Resolve an existing decision before reading more mail. While
                 # it remains open, Telegram is the only polled external source.
-                self._poll_telegram()
+                telegram_poll_succeeded = self._poll_telegram()
                 waiting_for_answer = (self.dialog is not None
                                       and self.dialog.awaiting_decision())
                 if not waiting_for_answer and not self.stop_event.is_set():
@@ -365,7 +369,14 @@ class Application:
                                           and self.dialog.awaiting_decision())
                 if max_mails is not None and not waiting_for_answer:
                     break
-                self.stop_event.wait(self.settings.poll_interval_seconds)
+                if waiting_for_answer and telegram_poll_succeeded:
+                    # getUpdates already held this request for the configured
+                    # server-side timeout. Start the next long poll directly.
+                    continue
+                delay = (min(self.settings.poll_interval_seconds,
+                             _TELEGRAM_ERROR_BACKOFF_SECONDS)
+                         if waiting_for_answer else self.settings.poll_interval_seconds)
+                self.stop_event.wait(delay)
         finally:
             try:
                 self.telegram.send(

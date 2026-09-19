@@ -95,7 +95,7 @@ Die nachfolgenden Betriebsdetails konkretisieren den vereinbarten Kern als vorge
 
 1. Mailhelp lädt und validiert Konfiguration, Prompts, Themenbereiche und benötigte Zugangsdaten.
 2. Es lädt den bisherigen Zustand und setzt unterbrochene Arbeit kontrolliert fort.
-3. Es prüft konfigurierte IMAP-Ordner im eingestellten Intervall auf neue Nachrichten.
+3. Es prüft konfigurierte IMAP-Ordner im eingestellten Intervall auf neue Nachrichten. Dieses allgemeine Intervall gilt für reguläre IMAP-Zyklen. Während eine Telegram-Entscheidung offen ist, folgt auf jeden abgeschlossenen `getUpdates`-Long-Poll ohne zusätzliche Intervallpause unmittelbar der nächste; der konfigurierte Server-Timeout begrenzt die Abfragerate. Telegram-Fehler führen zu einem begrenzten, durch Shutdown unterbrechbaren Backoff.
 4. Es speichert eine stabile interne Mail-ID und bereitet den Text für die Auswertung auf.
 5. Das LLM prüft die Relevanz anhand der aktivierten Themenbereiche.
 6. Irrelevante Nachrichten werden als verarbeitet markiert und erzeugen keine Telegram-Nachricht. Bei unklarer Relevanz zeigt eine Rückfrage den aufbereiteten Absender und Betreff, jedoch keine interne Mail-ID. Diese bleibt zusammen mit der Dialogversion ausschließlich in den Callback-Daten zur technischen Zuordnung.
