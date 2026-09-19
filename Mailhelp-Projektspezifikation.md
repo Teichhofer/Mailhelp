@@ -10,8 +10,10 @@ die Datensperre garantiert freigegeben.
 
 Der optionale CLI-Parameter `--max-mails N` führt genau einen Abrufdurchlauf aus,
 bearbeitet dabei ordnerübergreifend höchstens `N` Mails einschließlich fälliger
-Wiederaufnahmen, pollt Telegram einmal und beendet den Prozess. `N` ist eine
-positive Ganzzahl; nicht ausgeschöpftes Kontingent löst keinen weiteren Abruf aus.
+Wiederaufnahmen, pollt Telegram einmal und beendet den Prozess. Das verbleibende
+Kontingent ersetzt bei diesem Abruf die reguläre IMAP-Batchgröße, sodass `N` auch
+größer als deren Standardwert 25 sein kann. `N` ist eine positive Ganzzahl; nicht
+ausgeschöpftes Kontingent löst keinen weiteren Abruf aus.
 Bleibt dabei Arbeit auf Eingabe stehen, erklärt die abschließende
 Telegram-Zusammenfassung, dass nach dem einmaligen Abruf eingehende Antworten
 erst beim nächsten Start verarbeitet werden; der unbegrenzte Dauerbetrieb hat
@@ -158,7 +160,7 @@ verfügbar.
 - Der Lesestatus dient nicht als Verarbeitungsmarker. Mailhelp verändert die Originalnachrichten und ihren Lesestatus nicht absichtlich.
 - `historical_start` ist optional (`null`) oder ein zeitzonenbehafteter ISO-8601-Zeitpunkt mit explizitem Offset. Seine absolute UTC-Grenze wird über schreibfreie `UID SEARCH`-/`UID FETCH INTERNALDATE`-Abfragen sekundengenau aufgelöst. Der resultierende Start-UID wird vor der Verarbeitung konto- und ordnerbezogen zusammen mit der UIDVALIDITY gespeichert und nach Neustarts derselben UID-Generation nicht neu interpretiert. Bei einem UIDVALIDITY-Wechsel wird die Grenze vor einem `BODY.PEEK[]`-Abruf in der neuen Generation erneut aufgelöst.
 - Die ausgelieferte Konfiguration setzt `historical_start` auf `2026-09-15T00:00:00+02:00` (15. September 2026, 00:00 Uhr in `Europe/Berlin`); Nachrichten mit einem früheren IMAP-Empfangszeitpunkt gehören damit beim erstmaligen Aufbau des Abrufpunkts nicht zum zu verarbeitenden Bestand.
-- `batch_size` begrenzt den Abruf pro Polling-Zyklus auf `1..1000` Nachrichten (Standard `25`). Bei einem begrenzten Einmallauf reduziert das nach Wiederaufnahmen verbleibende `--max-mails`-Budget bereits die Zahl vollständig abgerufener Nachrichten. Nach der Suche werden die gefundene und ausgewählte Anzahl sowie nach jedem schreibfreien Nachrichtenabruf der Fortschritt ohne Mailinhalt protokolliert; der persistierte UID-Checkpoint setzt den nächsten Zyklus fort.
+- `batch_size` begrenzt den Abruf pro regulärem Polling-Zyklus auf `1..1000` Nachrichten (Standard `25`). Bei einem begrenzten Einmallauf ersetzt das nach Wiederaufnahmen verbleibende `--max-mails`-Budget diese Batchgröße; dadurch kann der Testlauf mehr als 25 Mails bearbeiten und lädt dennoch keine Nachrichten über sein Restbudget hinaus. Nach der Suche werden die gefundene und ausgewählte Anzahl sowie nach jedem schreibfreien Nachrichtenabruf der Fortschritt ohne Mailinhalt protokolliert; der persistierte UID-Checkpoint setzt den nächsten Zyklus fort.
 - Reguläre und gezielte Abrufe laden `BODY.PEEK[]` und `INTERNALDATE` atomar und schreibfrei. Der Empfangszeitpunkt muss robust parsebar und zeitzonenbehaftet sein. Für die Analyse bleiben ursprünglicher `Date`-Header, sicher geparster Header-Zeitpunkt, IMAP-Empfangszeitpunkt und Nutzerzeitzone getrennt. Fehlende, ungültige, offsetlose oder um mehr als sieben Tage widersprüchliche Header-Zeitpunkte erzwingen bei Kalenderterminen eine offene Klärungsfrage; eine unmittelbar speicherbare Fassung ist ausgeschlossen.
 - Die Nachrichtenzuordnung verwendet Konto, Ordner, UIDVALIDITY und UID als technische Identität. Message-ID und Inhaltsmerkmale dienen bei Bedarf als zusätzliche Hinweise zur Duplikatprüfung. Ein UIDVALIDITY-Wechsel wird gesondert behandelt und protokolliert.
 - Plaintext und HTML werden berücksichtigt. HTML wird in Text überführt; entfernte Bilder und verlinkte Inhalte werden nicht automatisch nachgeladen.

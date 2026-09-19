@@ -181,7 +181,10 @@ class ImapReader:
         def completed(uid: int) -> bool:
             return any(start <= uid <= end for start, end in completed_uid_ranges)
         available = [token for token in reversed(tokens) if not completed(int(token))]
-        fetch_count = self.batch_size if max_count is None else min(self.batch_size, max_count)
+        # ``max_count`` is the explicit budget of a bounded one-off run.  It
+        # deliberately replaces the regular polling batch size so operators
+        # can use ``--max-mails`` to test more than one normal batch at once.
+        fetch_count = self.batch_size if max_count is None else max_count
         selected = available[:fetch_count]
         self.logger.event("INFO", "imap", "messages_discovered", folder=folder,
                           available_count=len(available), batch_count=len(selected))
