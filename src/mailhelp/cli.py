@@ -1,6 +1,6 @@
 """Kommandozeileneinstieg und kontrollierter Signal-Shutdown."""
 from __future__ import annotations
-import argparse, signal, shutil
+import argparse, json, signal, shutil
 from contextlib import ExitStack
 from pathlib import Path
 from .application import build_application, build_logger
@@ -87,6 +87,11 @@ def main() -> int:
         help="Zugänge prüfen, Telegram-Testnachricht senden und beenden",
     )
     parser.add_argument(
+        "--show-imap-credentials", action="store_true",
+        help=("bei --check-access den tatsächlich verwendeten IMAP-Benutzernamen "
+              "und das Passwort im Terminal ausgeben"),
+    )
+    parser.add_argument(
         "--max-mails", type=_positive_int, metavar="ANZAHL",
         help="höchstens ANZAHL Mails in einem einzelnen Abrufdurchlauf bearbeiten und beenden",
     )
@@ -105,6 +110,8 @@ def main() -> int:
     args = parser.parse_args(); settings, secrets, topics, irrelevant_topics, prompts, fingerprint = load_all(args.config_directory)
     if args.yes and not args.clear:
         parser.error("--yes ist nur zusammen mit --clear zulässig")
+    if args.show_imap_credentials and not args.check_access:
+        parser.error("--show-imap-credentials ist nur zusammen mit --check-access zulässig")
     if args.clear:
         if not args.yes:
             answer = input(
@@ -123,11 +130,18 @@ def main() -> int:
         "log_directory": str(args.log_directory) if args.log_directory is not None else None,
         "check": args.check,
         "check_access": args.check_access,
+        "show_imap_credentials": args.show_imap_credentials,
         "max_mails": args.max_mails,
         "learn": args.learn,
         "clear": args.clear,
     })
     if args.check: print("Konfiguration ist gültig."); return 0
+    if args.show_imap_credentials:
+        # JSON quoting makes control characters visible instead of allowing a
+        # secret loaded from the environment to manipulate the terminal.
+        print("ACHTUNG: IMAP-Zugangsdaten werden nur in diesem Terminal ausgegeben.")
+        print(f"IMAP-Benutzername: {json.dumps(secrets.imap_username, ensure_ascii=False)}")
+        print(f"IMAP-Passwort: {json.dumps(secrets.imap_password.get_secret_value(), ensure_ascii=False)}")
     with build_application(
         settings, secrets, topics, prompts, fingerprint,
         access_diagnostics=args.check_access, logger=logger,

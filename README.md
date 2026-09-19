@@ -29,6 +29,13 @@ Prüfung fehlschlägt, endet der Prozess mit Status 1. Im Container kann derselb
 Test mit `docker compose run --rm mailhelp --check-access` ausgeführt werden.
 Auch wenn bereits die Verbindung oder Anmeldung bei IMAP fehlschlägt, werden die
 übrigen Dienste geprüft und anschließend alle Einzelergebnisse ausgegeben.
+Zur gezielten Fehlersuche zeigt
+`mailhelp --check-access --show-imap-credentials` den nach Auswertung von `.env`
+und Prozessumgebung tatsächlich an IMAP übergebenen Benutzernamen und das Passwort
+einmalig im Terminal an. Die Werte werden JSON-quotiert, damit auch Leer- und
+Steuerzeichen erkennbar sind, und niemals in die Logs geschrieben. Dieser Schalter
+legt das Passwort im Terminal offen und darf deshalb nur bewusst in einer privaten
+Sitzung verwendet werden; ohne `--check-access` wird er abgelehnt.
 Punkte und Bindestriche im IMAP-Benutzernamen werden unverändert an den Server
 übergeben und sind für sich genommen kein Anmeldehindernis. Eine erfolgreiche
 Webmail-Anmeldung beweist nicht, dass IMAP für dasselbe Postfach freigeschaltet ist

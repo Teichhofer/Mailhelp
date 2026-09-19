@@ -5,6 +5,7 @@ import sys
 
 import httpx
 import pytest
+from pydantic import SecretStr
 
 from mailhelp.application import Application
 from mailhelp.imap import ImapReader
@@ -272,3 +273,46 @@ def test_cli_access_check_prints_summary_and_never_runs(monkeypatch, capsys, res
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--check-access"])
     assert main() == status
     assert capsys.readouterr().out == expected
+
+
+def test_cli_access_check_can_explicitly_show_exact_imap_credentials(monkeypatch, capsys):
+    username = "user.name@example.test"
+    password = "line one\nline two\tä"
+    secrets = SimpleNamespace(
+        imap_username=username, imap_password=SecretStr(password),
+    )
+    logger = type("Logger", (), {"event": lambda *_args, **_kwargs: None})()
+
+    class App:
+        def check_access(self): return {"IMAP": None}
+
+    @contextmanager
+    def builder(*_args, **_kwargs):
+        yield App()
+
+    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (
+        None, secrets, [], [], None, "fingerprint"))
+    monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args, **_kwargs: logger)
+    monkeypatch.setattr("mailhelp.cli.build_application", builder)
+    monkeypatch.setattr(sys, "argv", [
+        "mailhelp", "--check-access", "--show-imap-credentials",
+    ])
+
+    assert main() == 0
+    assert capsys.readouterr().out == (
+        "ACHTUNG: IMAP-Zugangsdaten werden nur in diesem Terminal ausgegeben.\n"
+        'IMAP-Benutzername: "user.name@example.test"\n'
+        'IMAP-Passwort: "line one\\nline two\\tä"\n'
+        "OK: IMAP\n"
+    )
+
+
+def test_show_imap_credentials_requires_access_check(monkeypatch):
+    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (
+        None, None, [], [], None, "fingerprint"))
+    monkeypatch.setattr(sys, "argv", ["mailhelp", "--show-imap-credentials"])
+
+    with pytest.raises(SystemExit) as error:
+        main()
+
+    assert error.value.code == 2
