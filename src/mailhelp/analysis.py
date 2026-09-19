@@ -104,15 +104,20 @@ class Analyzer:
         while True:
             route: LlmRoute = routes[route_index]
             request_payload = dict(payload)
+            request_prompt = prompt
             if repair == "json_repair":
                 request_payload["json_repair_instruction"] = JSON_REPAIR_INSTRUCTION
+                # A repair instruction in the JSON payload alone can be mistaken for
+                # untrusted mail data.  Keep it there for an explicit audit trail, but
+                # also add the authoritative instruction to the system message.
+                request_prompt = f"{prompt}\n\n{JSON_REPAIR_INSTRUCTION}"
             elif repair == "schema_repair":
                 request_payload["previous_validation_error"] = str(validation_error)
             try:
                 retry_type = repair or "initial"
                 retry_number = 0 if repair is None else used[repair]
                 call_id, raw = self.client.complete(
-                    route.model, route.parameters, prompt, request_payload, stage=step,
+                    route.model, route.parameters, request_prompt, request_payload, stage=step,
                     retry_type=retry_type, retry_number=retry_number,
                     provider_preferences=route.provider_preferences.model_dump(exclude_none=True),
                     correlation_id=correlation_id,

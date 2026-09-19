@@ -379,6 +379,10 @@ Für die Einzelklassifikation überschreibt `prompts.yaml` das globale
 Ausgabelimit mit einem größeren Budget, damit Reasoning-Provider ihre interne
 Verarbeitung und das abschließende JSON nicht vorzeitig bei
 `finish_reason=length` abbrechen.
+Antwortet ein Provider dennoch mit syntaktisch ungültigem JSON, wird der
+begrenzte Reparaturversuch zusätzlich durch eine Systemanweisung erzwungen;
+die Anweisung im Nutzdatenobjekt allein könnte sonst als nicht vertrauenswürdiger
+Mailinhalt behandelt und ignoriert werden.
 Anschließend zeigt das Programm jede vorgeschlagene Kategorie ausschließlich im
 Terminal an und verlangt dort eine Antwort mit `j` oder `n`. Nur bestätigte
 Kategorien werden aktiviert und atomar in `topics.yaml` ergänzt; IMAP-Checkpoints
