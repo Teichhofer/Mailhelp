@@ -240,9 +240,11 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
 * Vorschläge werden zusätzlich zur Maildatei versionsweise und als aktueller Stand
   gespeichert. Bestätigte Schreibvorgänge werden nach Neustarts wiederaufgenommen;
   externe ID und Link sowie `created`, `failed` oder `uncertain` werden im
-  konfigurierten Telegram-Chat sichtbar gemeldet. Im Testmodus wird stattdessen vor
-  der Meldung der Abschlusszustand `simulated` ohne externe ID oder Link atomar
-  gespeichert. `simulation_notified` hält anschließend dauerhaft fest, dass die
+  konfigurierten Telegram-Chat sichtbar gemeldet. Aufgaben werden im Testmodus
+  stattdessen vor der Meldung mit dem Abschlusszustand `simulated` ohne externe ID
+  oder Link atomar gespeichert. Kalenderdateien werden auch im Testmodus tatsächlich
+  erzeugt, per Telegram versendet und als `created` gespeichert. `simulation_notified`
+  hält anschließend dauerhaft fest, dass die
   eindeutig als Simulation bezeichnete Meldung versandt wurde. Mehrfach-Polls und
   Neustarts führen deshalb weder die Simulation erneut aus noch melden sie erneut;
   ein zwischen Speichern und Meldung erfolgter Abbruch kann die noch ungemeldete
@@ -269,7 +271,7 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
   Idempotenzschlüsseln erhalten. Ein Restore kann so weiterhin Ergebnisse
   zuordnen und Duplikate verhindern; entfernte Inhalte sind nicht
   wiederherstellbar. Logs nennen nur Mail-ID, Laufzeitpunkt und Zähler.
-* Im `test_mode` findet kein externer Schreibzugriff statt; Ergebnisse tragen `simulation: true` und der Vorschlag bleibt `confirmed`, statt einen echten Eintrag vorzutäuschen.
+* Im `test_mode` findet kein Todoist-Schreibzugriff statt; Aufgaben werden als Simulation abgeschlossen. Bestätigte Termine erzeugen dagegen wie im Produktivmodus eine echte iCalendar-Datei und versenden sie über Telegram.
 * JSONL-Anwendungs- und LLM-Logs sind getrennt. Die Beispielkonfiguration protokolliert vollständige LLM-Anfragen und -Antworten; beide Inhaltsarten lassen sich unabhängig abschalten und Geheimnisfelder werden stets maskiert.
 * `.env` unterstützt einfache `NAME=WERT`-Zeilen und einfache/doppelte Anführungszeichen, aber bewusst keine Shell-Erweiterung. Prozessvariablen überschreiben gleichnamige Werte aus der Datei.
 

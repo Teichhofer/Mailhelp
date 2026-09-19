@@ -395,11 +395,11 @@ def test_persist_before_buttons_and_authorized_flow(tmp_path):
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="confirmed" and "veraltet" in t2.answered[-1][1]
 
 
-def test_anlegen_creates_calendar_file_and_sends_it_via_telegram(tmp_path):
+def test_test_mode_creates_calendar_file_and_sends_it_via_telegram(tmp_path):
     item = proposal(kind="event", start="2026-05-10T10:00:00+02:00",
                     end="2026-05-10T11:00:00+02:00", title="Planung")
     with JsonStore(tmp_path) as store:
-        dialog, transport, _ = controller(store)
+        dialog, transport, _ = controller(store, test_mode=True)
         dialog.writers["google_calendar"] = CalendarFileWriter(transport, 2)
         dialog.send_proposal(item)
         callback_data = transport.sent[-1][2]["inline_keyboard"][0][0]["callback_data"]
@@ -412,7 +412,9 @@ def test_anlegen_creates_calendar_file_and_sends_it_via_telegram(tmp_path):
         chat_id, filename, content, caption = transport.documents[0]
         assert chat_id == 2 and filename.endswith(".ics")
         assert content.startswith(b"BEGIN:VCALENDAR\r\n")
+        assert b"SUMMARY:Planung\r\n" in content
         assert "Planung" in caption
+        assert "Erstellt" in transport.sent[-1][1]
 
 
 def test_proposal_notification_uses_persisted_sender_and_subject(tmp_path):

@@ -4,6 +4,8 @@
 timezone: Europe/Berlin
 poll_interval_seconds: 60
 test_mode: true
+# Im Testmodus bleiben Todoist-Schreibzugriffe simuliert; bestätigte Kalenderdateien
+# werden dennoch tatsächlich erzeugt und über Telegram versendet.
 # Mailhelp ergänzt je nach test_mode automatisch /test oder /production.
 data_directory: data
 # Aufbewahrung gilt ausschließlich für sicher abgeschlossene Vorgänge. Ganze

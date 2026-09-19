@@ -397,9 +397,9 @@ Doppelanlage bezeichnete, versionsgebundene Bestätigung. Erst diese darf den
 erneuten Schreibzugriff auslösen.
 
 Die Integrationsgrenze verlangt dafür eine Persistenzfunktion. Sie speichert `writing`
-vor dem Netzwerkaufruf und danach `created`, `failed` oder `uncertain`. Im Testmodus
-speichert sie stattdessen vor der Erfolgsmeldung den eigenen Abschlusszustand
-`simulated`. Dieser Zustand verbietet externe ID und externen Link strikt und kann
+vor dem Netzwerkaufruf und danach `created`, `failed` oder `uncertain`. Für
+Todoist-Aufgaben speichert sie im Testmodus stattdessen vor der Erfolgsmeldung den
+eigenen Abschlusszustand `simulated`. Dieser Zustand verbietet externe ID und externen Link strikt und kann
 deshalb niemals als echte externe Erstellung interpretiert werden.
 
 ## 9. Konfigurations- und Geheimnisdateien
@@ -626,7 +626,7 @@ Timeouts und begrenzte Wiederholungsversuche mit zunehmenden Abständen gelten j
 
 Nach erfolgreichem HTTP-Status validieren integrationsspezifische Antwortmodelle OpenRouter, Telegram und Todoist auf JSON-Struktur, Pflichtfelder und erwartete IDs. Telegram-Fehlerdiagnosen übernehmen das dokumentierte menschenlesbare `description`-Feld vollständig, ohne den übrigen Antwortkörper oder den Bot-Token offenzulegen. Sonstige Diagnosen nennen Integration und Schlüsselpfad, nie Tokens, Authorization-Header oder vollständige nicht freigeschaltete Inhalte.
 
-Ein Testmodus führt Auswertung und Telegram-Dialog aus, verhindert aber Todoist-Schreibzugriffe und den Versand von Kalenderdateien. Simulierte Erfolge sind deutlich als Simulation markiert und werden nicht als echte externe Einträge gespeichert. Test- und Produktivzustand werden getrennt gehalten. Der Testmodus ist kein Offline-Modus: LLM- und Telegram-Aufrufe können weiterhin stattfinden.
+Ein Testmodus führt Auswertung und Telegram-Dialog aus und verhindert Todoist-Schreibzugriffe. Todoist-Erfolge sind deutlich als Simulation markiert und werden nicht als echte externe Einträge gespeichert. Bestätigte Termine erzeugen und versenden dagegen auch im Testmodus ihre echte Kalenderdatei über Telegram und werden als `created` gespeichert. Test- und Produktivzustand werden getrennt gehalten. Der Testmodus ist kein Offline-Modus: LLM- und Telegram-Aufrufe finden weiterhin statt.
 
 ## 13. Tests und verbindliche Entwicklungsregeln
 
@@ -638,7 +638,7 @@ Pflichtfälle umfassen:
 - Aufgaben und Termine ohne, mit fehlenden oder mit widersprüchlichen Angaben.
 - Fehlerhafte LLM-Ausgaben, Timeouts, abgelehnte Parameter und ausgeschöpfte Wiederholungen.
 - Bestätigen, Ändern, Verwerfen, veraltete Buttons und unberechtigte Telegram-Nutzer.
-- Kein externer Eintrag ohne Bestätigung; kein echter Eintrag im Testmodus.
+- Kein externer Eintrag und keine Kalenderdatei ohne Bestätigung; kein echter Todoist-Eintrag im Testmodus.
 - Mehrfachklicks, Neustarts und Abbruch während eines externen Schreibzugriffs.
 - Beschädigte JSON-Dateien, konkurrierender Start und Schreibfehler.
 - Maskierung von Geheimnissen, Modulfilter, getrennte LLM-Logs und Rotation.
@@ -682,7 +682,7 @@ Folgender Inhalt ist bei der Projektinitialisierung in `AGENTS.md` im Repository
 8. Mehrfachbestätigungen und Wiederanlauf erzeugen keine unkontrollierten Duplikate. Unklare externe Ergebnisse werden sichtbar angehalten und abgeglichen.
 9. Offene Bestätigungen und Verarbeitungszustände überstehen Neustarts.
 10. LLM-Aufrufe sind im separaten Log über Aufruf- und Mail-ID nachvollziehbar. Geheimnisse erscheinen auch bei Fehlern nicht in Logs.
-11. Der Testmodus verhindert alle Kalenderdatei-/Todoist-Aktionen und meldet Simulationen eindeutig.
+11. Der Testmodus verhindert Todoist-Aktionen und meldet sie eindeutig als Simulation; bestätigte Kalenderdateien werden tatsächlich erzeugt und per Telegram versendet.
 12. Die automatisierte Testsuite erfüllt 100 % Zeilen- und Branch-Abdeckung des eigenen Anwendungscodes; die Regeln stehen in AGENTS.md.
 
 ## 15. Noch zu belegende Einrichtungswerte
