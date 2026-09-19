@@ -431,7 +431,9 @@ Ohne explizites `--config-directory` wird ein vollständiger Satz der vier
 Konfigurationsdateien zuerst im aktuellen Arbeitsverzeichnis gesucht. Bei einer
 editierbaren lokalen Installation dient die Checkout-Wurzel als Rückfall, wenn der
 Prozess aus einem anderen Verzeichnis gestartet wurde; explizite Pfade bleiben
-unverändert verbindlich.
+unverändert verbindlich. Fehlende `topics.yaml` und `irrelevant_topics.yaml` werden
+nach erfolgreichem Laden von `config.yaml` und `prompts.yaml` aus den mitgelieferten
+Vorlagen angelegt, ohne vorhandene Dateien zu überschreiben.
 
 Zugangsdaten können im Container alternativ als Umgebungsvariablen bereitgestellt werden; explizite Laufzeitvariablen haben Vorrang vor `.env`. Die erstmalige Google-Autorisierung und Erneuerung abgelaufener Berechtigungen benötigen einen dokumentierten Einrichtungsablauf.
 
