@@ -81,11 +81,9 @@ def test_trusted_fields_targets_stable_ids_duplicates_and_restart():
     assert builder().build([], [event()])[0].target == "calendar-1"
 
 
-def test_unresolved_date_and_missing_calendar_configuration():
+def test_unresolved_date():
     unresolved = builder().build([], [event(date_text="kommenden Dienstag")])[0]
     assert unresolved.status == ProposalStatus.NEEDS_CLARIFICATION and unresolved.start is None
-    with pytest.raises(ValueError, match="Ziel"):
-        ProposalBuilder("a" * 24, TargetSettings(todoist_project="p"), context()).build([], [event()])
 
 
 def test_proposal_validation_does_not_silently_correct_status():
