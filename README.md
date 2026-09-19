@@ -383,6 +383,12 @@ Einzelklassifikationen dieser ersten Stufe laufen mit der in `config.yaml` unter
 `learning.parallel_llm_calls` eingestellten maximalen Parallelität. Die Reihenfolge
 der Ergebnisse bleibt dabei stabil. Ein einzelner weiterer Aufruf über
 `learning_abstraction` fasst die Ergebnisse zu allgemeineren Themen zusammen.
+Scheitert die Auswertung einer einzelnen Mail, wird nur diese Mail übersprungen;
+die übrigen Ergebnisse werden weiterverarbeitet. Scheitert die abschließende
+Verdichtung trotz ihrer konfigurierten Wiederholungen, bietet der Lernmodus die
+bereits validierten Kategorien der erfolgreichen Einzelklassifikationen zur
+Entscheidung an, statt den gesamten Lauf abzubrechen. Fehlerdetails werden dabei
+nicht ins Terminal übernommen.
 Für die vorgeschaltete Relevanzprüfung sowie für Einzelklassifikation und
 Abstraktion überschreibt `prompts.yaml` das globale Ausgabelimit mit größeren
 Budgets, damit Reasoning-Provider ihre interne Verarbeitung und das abschließende

@@ -11,7 +11,7 @@ from mailhelp.config import Topic
 from mailhelp.imap import FetchedMail
 from mailhelp.learning import LearningMode, _safe_terminal, _topic_id, save_topics
 from mailhelp.models import AbstractCategories, LearnedCategory, MailClassification, Relevance
-from mailhelp.analysis import Analyzer as RealAnalyzer
+from mailhelp.analysis import Analyzer as RealAnalyzer, LlmProviderResponseInvalid
 
 
 def raw_mail(subject: str) -> bytes:
@@ -172,6 +172,53 @@ def test_learning_parallelizes_first_stage_and_preserves_result_order(tmp_path):
 
     assert mode.run(2) == 0
     assert [item.categories[0].name for item in analyzer.abstract_inputs[0]] == ["1", "2"]
+
+
+def test_learning_skips_failed_mail_and_keeps_successful_results(tmp_path):
+    mails = [FetchedMail("INBOX", 1, uid, raw_mail(str(uid))) for uid in (1, 2)]
+
+    class PartlyFailingAnalyzer(Analyzer):
+        def classify_for_learning(self, mail):
+            if mail["headers"]["subject"] == "1":
+                raise RuntimeError("must not be displayed")
+            return super().classify_for_learning(mail)
+
+    analyzer = PartlyFailingAnalyzer([
+        LearnedCategory(name="Erfolg", description="Beschreibung")
+    ])
+    output = []
+    mode = LearningMode(
+        Imap([mails]), analyzer, ["INBOX"], 1000, [], tmp_path / "topics.yaml",
+        [], tmp_path / "irrelevant_topics.yaml", input_fn=lambda _prompt: "ja",
+        output_fn=output.append,
+    )
+
+    assert mode.run(2) == 1
+    assert len(analyzer.abstract_inputs[0]) == 1
+    assert any("1 Mail(s)" in line for line in output)
+    assert all("must not be displayed" not in line for line in output)
+
+
+def test_learning_uses_individual_categories_when_abstraction_fails(tmp_path):
+    mail = FetchedMail("INBOX", 1, 1, raw_mail("neu"))
+
+    class AbstractionFailure(Analyzer):
+        def abstract_learned_categories(self, classifications):
+            raise LlmProviderResponseInvalid("learning_abstraction", "output_token_limit")
+
+    analyzer = AbstractionFailure([])
+    output = []
+    mode = LearningMode(
+        Imap([[mail]]), analyzer, ["INBOX"], 1000, [], tmp_path / "topics.yaml",
+        [], tmp_path / "irrelevant_topics.yaml", input_fn=lambda _prompt: "ja",
+        output_fn=output.append,
+    )
+
+    assert mode.run(1) == 1
+    saved = yaml.safe_load((tmp_path / "topics.yaml").read_text(encoding="utf-8"))
+    assert saved["topics"][0]["id"] == "einzel"
+    assert any("Einzelklassifikationen" in line for line in output)
+    assert all("output_token_limit" not in line for line in output)
 
 
 def test_topic_ids_collision_fallback_and_atomic_cleanup(tmp_path, monkeypatch):
