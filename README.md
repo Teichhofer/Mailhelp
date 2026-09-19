@@ -29,6 +29,11 @@ Prüfung fehlschlägt, endet der Prozess mit Status 1. Im Container kann derselb
 Test mit `docker compose run --rm mailhelp --check-access` ausgeführt werden.
 Auch wenn bereits die Verbindung oder Anmeldung bei IMAP fehlschlägt, werden die
 übrigen Dienste geprüft und anschließend alle Einzelergebnisse ausgegeben.
+Punkte und Bindestriche im IMAP-Benutzernamen werden unverändert an den Server
+übergeben und sind für sich genommen kein Anmeldehindernis. Bei
+`IMAP-Anmeldung abgelehnt` sind insbesondere die vom Anbieter verlangte Form des
+Benutzernamens (häufig die vollständige E-Mail-Adresse), das Passwort oder
+App-Passwort sowie eine gegebenenfalls nötige IMAP-Freischaltung zu prüfen.
 Für diesen Diagnosebefehl aktiviert Mailhelp unabhängig von der Logging-Konfiguration
 das Datei- und Konsolenlogging auf `DEBUG`. Beginn, Erfolg und Fehler jeder einzelnen
 Prüfung werden protokolliert; Fehler enthalten einen bereinigten Stacktrace. Die
