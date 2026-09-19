@@ -216,7 +216,9 @@ def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Calla
     if proposal.status == ProposalStatus.SIMULATED:
         return proposal, {"simulation": True}
     if proposal.status not in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN} or proposal.open_questions: raise ValueError("Schreiben erfordert vollständige, bestätigte Vorschlagsversion")
-    if test_mode:
+    # Test mode suppresses writes to Todoist, but calendar attachments are the
+    # actual user-facing result and are deliberately generated and delivered.
+    if test_mode and proposal.kind == ProposalKind.TASK:
         simulated = proposal.model_copy(update={
             "status": ProposalStatus.SIMULATED,
             "external_id": None,
