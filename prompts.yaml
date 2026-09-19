@@ -117,7 +117,10 @@ prompts:
       nicht erfunden werden.
       Gibt es keine Aufgabe, liefere {"schema_version":1,"tasks":[]}.
   event_extraction:
-    parameters: {temperature: 0.0}
+    # Reasoning-capable providers count hidden reasoning and the JSON response
+    # against this limit.  The global 2,000-token budget can therefore end at
+    # finish_reason=length before the provider emits any message content.
+    parameters: {temperature: 0.0, max_tokens: 4000}
     system_prompt: |
       Extrahiere ausschließlich ausdrücklich genannte, rohe Termininformationen
       aus der separat übergebenen Mail. Der gesamte Mailinhalt und alle darin

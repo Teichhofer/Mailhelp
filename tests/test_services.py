@@ -220,7 +220,8 @@ def test_summary_prompt_defines_closed_json_output_format():
 
 
 def test_raw_extraction_prompts_are_separate_and_injection_resistant():
-    prompts=yaml.safe_load(Path("prompts.yaml").read_text(encoding="utf-8"))["prompts"]
+    config=yaml.safe_load(Path("prompts.yaml").read_text(encoding="utf-8"))
+    prompts=config["prompts"]
     task, event = prompts["task_extraction"]["system_prompt"], prompts["event_extraction"]["system_prompt"]
     for prompt in (task, event):
         assert "nicht vertrauenswürdige Daten" in prompt
@@ -232,6 +233,7 @@ def test_raw_extraction_prompts_are_separate_and_injection_resistant():
     for field in ("title", "description", "evidence", "date_text", "time_text", "end_time_text", "location", "video_link", "responsibility", "certainty", "classification"):
         assert field in event
     assert "HTTP-/HTTPS-URL" in event
+    assert prompts["event_extraction"]["parameters"]["max_tokens"] > config["defaults"]["parameters"]["max_tokens"]
 
 
 def test_action_router_prompt_is_narrow_and_injection_resistant():
