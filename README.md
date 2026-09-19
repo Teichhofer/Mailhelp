@@ -1,6 +1,6 @@
 # Mailhelp
 
-Python-Assistent zur LLM-basierten Auswertung von IMAP-Mails über OpenRouter. Telegram zeigt Zusammenfassungen und versionsgebundene Einzelvorschläge; erst eine ausdrückliche Bestätigung erlaubt einen Todoist-Schreibzugriff oder den Versand einer Kalenderdatei.
+Python-Assistent zur LLM-basierten Auswertung von IMAP-Mails über OpenRouter. Telegram zeigt Zusammenfassungen und versionsgebundene Einzelvorschläge; erst eine ausdrückliche Bestätigung erlaubt einen Schreibzugriff auf Todoist oder Google Kalender.
 
 ## Installation (Windows 11 und Linux)
 
@@ -20,7 +20,7 @@ Mit `mailhelp --check-access` lässt sich anschließend ein reiner Zugriffstest
 starten. Er prüft nacheinander die Anmeldung bei IMAP und den Nur-Lese-Zugriff auf
 alle konfigurierten Ordner, den OpenRouter-Key über dessen authentifizierten Status, den
 Telegram-Bot über `getMe` sowie den Zugriff auf das konfigurierte Todoist-Projekt.
-Die Kalenderdatei benötigt keinen Google-Zugang. Nach erfolgreichem `getMe` sendet die Telegram-Prüfung
+Der Zugriffstest prüft außerdem OAuth-Anmeldung und Nur-Lese-Zugriff auf den konfigurierten Google Kalender. Nach erfolgreichem `getMe` sendet die Telegram-Prüfung
 eine Nachricht mit `Test`, Datum, Uhrzeit und konfigurierter Zeitzone an den
 konfigurierten Chat. Der Test ruft keine Mails ab, liest keine Telegram-Updates,
 führt keinen LLM-Auftrag aus und erzeugt weder Aufgaben noch Termine. Für jeden
@@ -59,17 +59,20 @@ Bearer-Token verwendete `TODOIST_TOKEN` wird ebenfalls dort gespeichert; Client-
 und Client-Schlüssel ersetzen dieses Zugriffstoken nicht. Keiner dieser Werte
 gehört in `config.yaml`, Zustandsdateien oder Logs.
 
-### Kalendertermine auf iOS übernehmen
+### Google Kalender einrichten
 
-Nach der versionsbezogenen Telegram-Bestätigung erzeugt Mailhelp eine UTF-8-
-`*.ics`-Datei und sendet sie als Telegram-Dokument. Ein Antippen auf iOS öffnet
-die Kalenderübernahme; Mailhelp greift weder lesend noch schreibend auf Google
-Calendar zu. Ort, Beschreibung, Videolink, ganztägige Intervalle und Zeitpunkte
-werden in der Datei abgebildet. Ein möglicherweise erfolgreicher, aber technisch
-unklarer Dokumentversand wird nicht automatisch wiederholt, um Duplikate zu
-vermeiden. Google-OAuth-Geheimnisse und eine Zielkalender-ID sind nicht nötig.
+Nach der versionsbezogenen Telegram-Bestätigung legt Mailhelp den Termin direkt im
+unter `targets.google_calendar` konfigurierten Google Kalender an. Dafür müssen
+`GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` und
+`GOOGLE_OAUTH_REFRESH_TOKEN` ausschließlich in `.env` oder als Prozessvariablen
+vorliegen. Der Refresh-Token benötigt Schreibzugriff auf Google Calendar. Ort,
+Beschreibung, Videolink, ganztägige Intervalle und Zeitpunkte werden über die
+Calendar API übertragen. Ein privater Idempotenzschlüssel erlaubt den Abgleich vor
+dem Schreiben und nach unklaren Resultaten; ein unklarer Schreibzugriff wird nicht
+automatisch wiederholt. Auch im Testmodus wird ein ausdrücklich bestätigter Termin
+real angelegt, während Todoist-Aufgaben simuliert bleiben.
 
-`config.yaml` besitzt geschlossene Modelle für IMAP, Telegram, Ziele, Limits, Wiederholungen, Timeouts und Logging. `poll_interval_seconds` steuert den Abstand zwischen regulären IMAP-Zyklen. Solange eine Telegram-Entscheidung offen ist, wird dagegen nach jedem beendeten `getUpdates`-Long-Poll unmittelbar der nächste Long-Poll gestartet; dessen Server-Timeout begrenzt die Abfragerate. Fehlgeschlagene Telegram-Polls erhalten einen begrenzten, durch Shutdown unterbrechbaren Backoff. Die LLM-Wiederholungen für ungültige Providerantworten, JSON-Reparatur und Schema-Reparatur sind getrennt begrenzt. IMAP, Telegram, OpenRouter und Todoist haben jeweils eigene Werte für Timeout, Retry-Anzahl sowie initialen und maximalen Backoff. Validiert werden insbesondere Port, Polling, Adaptertimeouts, Mailgröße, LLM-Rate, Wiederholungszahlen, IANA-Zeitzone, eindeutige nichtleere Ordner, sichere Pfade und die Log-Level `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Unbekannte Schlüssel und falsche Typen werden abgelehnt.
+`config.yaml` besitzt geschlossene Modelle für IMAP, Telegram, Ziele, Limits, Wiederholungen, Timeouts und Logging. `poll_interval_seconds` steuert den Abstand zwischen regulären IMAP-Zyklen. Solange eine Telegram-Entscheidung offen ist, wird dagegen nach jedem beendeten `getUpdates`-Long-Poll unmittelbar der nächste Long-Poll gestartet; dessen Server-Timeout begrenzt die Abfragerate. Fehlgeschlagene Telegram-Polls erhalten einen begrenzten, durch Shutdown unterbrechbaren Backoff. Die LLM-Wiederholungen für ungültige Providerantworten, JSON-Reparatur und Schema-Reparatur sind getrennt begrenzt. IMAP, Telegram, OpenRouter, Todoist und Google Kalender haben jeweils eigene Werte für Timeout, Retry-Anzahl sowie initialen und maximalen Backoff. Validiert werden insbesondere Port, Polling, Adaptertimeouts, Mailgröße, LLM-Rate, Wiederholungszahlen, IANA-Zeitzone, eindeutige nichtleere Ordner, sichere Pfade und die Log-Level `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Unbekannte Schlüssel und falsche Typen werden abgelehnt.
 Auch die Wurzel von `topics.yaml` ist geschlossen: Sie enthält ausschließlich die
 Liste `topics`; diese muss mindestens ein aktiviertes Thema besitzen und alle
 stabilen Themen-IDs müssen eindeutig sein.
@@ -192,7 +195,7 @@ Schreibreferenzen ohne `mail_id` dürfen deshalb **nicht automatisch übernommen
 oder bestätigt** werden.
 
 Für eine sichere Umstellung: Mailhelp stoppen, das Datenverzeichnis sichern und
-alle bereits abgeschlossenen externen Schreibvorgänge anhand Todoist abgleichen und bereits versendete Kalenderdateien manuell prüfen. Danach alte Vorschlagsdateien und einen alten
+alle bereits abgeschlossenen externen Schreibvorgänge anhand Todoist abgleichen und bereits angelegte Google-Kalendertermine anhand ihres Idempotenzschlüssels prüfen. Danach alte Vorschlagsdateien und einen alten
 `telegram-dialog.json` in ein schreibgeschütztes Archiv außerhalb des aktiven
 Zustandsverzeichnisses verschieben. Betroffene, noch nicht ausgeführte Mails werden
 anschließend aus ihrer unveränderten Quelle neu eingelesen und erhalten neue interne
@@ -207,14 +210,14 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
 * Die Analyse erhält vier getrennte Datumsinformationen: den unveränderten, bereinigten `Date`-Header (`date_header_original`), seine nur bei explizitem Offset verfügbare Parseform (`date_header_parsed`), `imap_received_at` sowie die konfigurierte IANA-`user_timezone`. `date_context_status` kennzeichnet fehlende, ungültige, naive und um mehr als sieben Tage vom Empfang abweichende Angaben. Ein solcher Kontext erzwingt bei Terminen und Aufgaben mit Frist eine offene Rückfrage und verhindert damit die Bestätigung und Speicherung; Aufgaben ohne Frist bleiben davon unberührt.
 * `Proposal.due` ist eine streng validierte Union: `YYYY-MM-DD` bezeichnet ein reines Fälligkeitsdatum und wird unverändert als Todoist-`due_date` übertragen. Ein Fälligkeitszeitpunkt enthält Datum und Uhrzeit samt explizitem UTC-Offset (zum Beispiel `2026-10-01T17:00:00+02:00`) und wird als `due_datetime` übertragen. Naive Zeitpunkte werden abgelehnt und reine Daten niemals stillschweigend in Mitternacht umgewandelt.
 * Der JSON-Zustand wird atomar ersetzt und durch eine betriebssystemseitige, an den laufenden Prozess gebundene Einzelinstanz-Sperre geschützt. Die `.lock`-Datei bleibt nach dem Schließen als Diagnoseinformation erhalten; ausschließlich die vom Betriebssystem gehaltene Sperre entscheidet, ob eine Instanz aktiv ist. Syntaktisch beschädigte Dateien werden als `.corrupt`, schemawidrige Dateien als `.invalid` isoliert; Meldungen nennen Datei und Schlüsselpfad, nicht den Inhalt. Mailzustände (Schema 9), Abrufpositionen, Telegram-Dialoge und Duplikatindex (Schema 1) sowie Vorschläge (Schema 2) werden vor jeder Verwendung validiert.
-* OpenRouter-, Telegram- und Todoist-Antworten werden nach HTTP-Erfolg strikt auf JSON-Struktur, Pflichtfelder und IDs geprüft. Bei OpenRouter werden eine ungültige Provider-Hülle (`provider_response_invalid` samt inhaltsfreiem Grund), ungültige JSON-Syntax (`invalid_json`) und ein Verstoß gegen das stufenspezifische Pydantic-Schema (`schema_validation_failed`) getrennt behandelt und jeweils unabhängig begrenzt wiederholt. Provider-Retries senden den unveränderten fachlichen Payload, JSON-Reparaturen nur einen JSON-Formathinweis und ausschließlich Schema-Reparaturen die konkrete vorherige Validierungsabweichung. Die flache Steuerung begrenzt die Gesamtzahl auf einen Erstaufruf plus die drei konfigurierten Retry-Zahlen. Providerfehler werden nicht als Schemafehler in `validation_errors` gespeichert. Reservierte OpenRouter-Felder können nicht über YAML überschrieben werden.
+* OpenRouter-, Telegram-, Todoist- und Google-Calendar-Antworten werden nach HTTP-Erfolg strikt auf JSON-Struktur, Pflichtfelder und IDs geprüft. Bei OpenRouter werden eine ungültige Provider-Hülle (`provider_response_invalid` samt inhaltsfreiem Grund), ungültige JSON-Syntax (`invalid_json`) und ein Verstoß gegen das stufenspezifische Pydantic-Schema (`schema_validation_failed`) getrennt behandelt und jeweils unabhängig begrenzt wiederholt. Provider-Retries senden den unveränderten fachlichen Payload, JSON-Reparaturen nur einen JSON-Formathinweis und ausschließlich Schema-Reparaturen die konkrete vorherige Validierungsabweichung. Die flache Steuerung begrenzt die Gesamtzahl auf einen Erstaufruf plus die drei konfigurierten Retry-Zahlen. Providerfehler werden nicht als Schemafehler in `validation_errors` gespeichert. Reservierte OpenRouter-Felder können nicht über YAML überschrieben werden.
 * Jeder LLM-Versuch trägt die vom Analyzer fest vorgegebene Stufe, Modell,
   OpenRouter-Backend-Provider (bei fehlender Metadatenangabe `null`), Call-ID,
   HTTP-Status, Finish-Reason, ausschließlich Länge und Vorhandensein des Inhalts,
   JSON-/Schemaergebnis sowie Retry-Typ und -Nummer. Das Schemaergebnis wird erst
   nach der Analyzer-Validierung als eigenes Abschlussereignis protokolliert;
   `content: null`, ungültiges JSON und Schemafehler bleiben getrennte Ereignisse.
-* Bei Terminen bleiben der physische Ort und ein optionaler, ausschließlich per HTTP/HTTPS erlaubter Videolink getrennte Vorschlagsfelder und werden vor der Bestätigung beide in Telegram angezeigt. Die iCalendar-Datei enthält Ort, Beschreibung und Videolink; zeitgebundene Werte werden eindeutig in UTC serialisiert, ganztägige Enddaten bleiben exklusiv.
+* Bei Terminen bleiben der physische Ort und ein optionaler, ausschließlich per HTTP/HTTPS erlaubter Videolink getrennte Vorschlagsfelder und werden vor der Bestätigung beide in Telegram angezeigt. Google Calendar erhält Ort, Beschreibung und Videolink; zeitgebundene Werte behalten ihren eindeutigen Offset und ganztägige Enddaten bleiben exklusiv.
 * Externe Aktionen verlangen eine Persistenzfunktion: `writing` wird vor dem API-Aufruf dauerhaft gespeichert. Unklare Resultate werden als `uncertain` angehalten und nur abgeglichen. Ausschließlich ein externer Treffer überführt sie in `created`; ein neuer Schreibversuch setzt eine ausdrücklich modellierte manuelle Betreiberentscheidung voraus.
 * Jede Mail besitzt die schema-validierten Schritte `preparation`, `relevance`,
   `summary`, `summary_notification`, `action_detection`, `action_router`,
@@ -246,8 +249,8 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
   externe ID und Link sowie `created`, `failed` oder `uncertain` werden im
   konfigurierten Telegram-Chat sichtbar gemeldet. Aufgaben werden im Testmodus
   stattdessen vor der Meldung mit dem Abschlusszustand `simulated` ohne externe ID
-  oder Link atomar gespeichert. Kalenderdateien werden auch im Testmodus tatsächlich
-  erzeugt, per Telegram versendet und als `created` gespeichert. `simulation_notified`
+  oder Link atomar gespeichert. Google-Kalendertermine werden auch im Testmodus tatsächlich
+  angelegt und als `created` gespeichert. `simulation_notified`
   hält anschließend dauerhaft fest, dass die
   eindeutig als Simulation bezeichnete Meldung versandt wurde. Mehrfach-Polls und
   Neustarts führen deshalb weder die Simulation erneut aus noch melden sie erneut;
@@ -275,7 +278,7 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
   Idempotenzschlüsseln erhalten. Ein Restore kann so weiterhin Ergebnisse
   zuordnen und Duplikate verhindern; entfernte Inhalte sind nicht
   wiederherstellbar. Logs nennen nur Mail-ID, Laufzeitpunkt und Zähler.
-* Im `test_mode` findet kein Todoist-Schreibzugriff statt; Aufgaben werden als Simulation abgeschlossen. Bestätigte Termine erzeugen dagegen wie im Produktivmodus eine echte iCalendar-Datei und versenden sie über Telegram.
+* Im `test_mode` findet kein Todoist-Schreibzugriff statt; Aufgaben werden als Simulation abgeschlossen. Bestätigte Termine werden dagegen wie im Produktivmodus tatsächlich über die Google Calendar API angelegt.
 * JSONL-Anwendungs- und LLM-Logs sind getrennt. Die Beispielkonfiguration protokolliert vollständige LLM-Anfragen und -Antworten; beide Inhaltsarten lassen sich unabhängig abschalten und Geheimnisfelder werden stets maskiert.
 * `.env` unterstützt einfache `NAME=WERT`-Zeilen und einfache/doppelte Anführungszeichen, aber bewusst keine Shell-Erweiterung. Prozessvariablen überschreiben gleichnamige Werte aus der Datei.
 
@@ -416,8 +419,7 @@ werden innerhalb derselben Bytegrenze weiterhin angenommen. Nur der konfiguriert
 Nutzer im konfigurierten Chat darf eine Aktion auslösen. Jede angezeigte Version
 wird vor ihren Schaltflächen gespeichert. Aufgabenvorschläge bieten `Bestätigen`,
 `Ändern` und `Verwerfen`; vollständige Terminvorschläge bieten ausschließlich
-`Anlegen` und `Verwerfen`. `Anlegen` erzeugt die iCalendar-Datei und sendet sie als
-Telegram-Dokument. Die Aktionen werden getrennt behandelt,
+`Anlegen` und `Verwerfen`. `Anlegen` schreibt den Termin über die Google Calendar API in den konfigurierten Zielkalender. Die Aktionen werden getrennt behandelt,
 während veraltete oder fehlerhafte Schaltflächen keinen Zustand verändern.
 Antworten auf Rückfragen erzeugen eine neue, erneut zu bestätigende Version.
 Telegram wird ausschließlich für Nachrichten und Callback-Aktionen abgefragt;

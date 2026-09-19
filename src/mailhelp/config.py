@@ -52,7 +52,7 @@ class TelegramSettings(ConfigModel):
 
 class TargetSettings(ConfigModel):
     todoist_project: str = Field(min_length=1, max_length=500)
-    google_calendar: str | None = Field(default=None, min_length=1, max_length=500)
+    google_calendar: str = Field(min_length=1, max_length=500)
 
 
 class LimitSettings(ConfigModel):
@@ -92,7 +92,7 @@ class TimeoutSettings(ConfigModel):
     telegram: AdapterPolicySettings
     openrouter: AdapterPolicySettings
     todoist: AdapterPolicySettings
-    google_calendar: AdapterPolicySettings | None = None
+    google_calendar: AdapterPolicySettings
     telegram_poll_seconds: int = Field(ge=1, le=50)
 
 
@@ -216,11 +216,9 @@ class Secrets(BaseModel):
     todoist_token: SecretStr
     todoist_client_id: SecretStr
     todoist_client_secret: SecretStr
-    # Accepted temporarily so existing .env files remain valid; calendar files
-    # do not read or require these legacy Google credentials.
-    google_oauth_client_id: SecretStr | None = None
-    google_oauth_client_secret: SecretStr | None = None
-    google_oauth_refresh_token: SecretStr | None = None
+    google_oauth_client_id: SecretStr
+    google_oauth_client_secret: SecretStr
+    google_oauth_refresh_token: SecretStr
 
 
 class Topic(BaseModel):
@@ -402,13 +400,12 @@ def load_all(directory: Path, environ: dict[str, str] | None = None) -> tuple[Se
     prompts = _validated_file(directory / "prompts.yaml", PromptConfig, _yaml(directory / "prompts.yaml"))
     topics = _validated_file(directory / "topics.yaml", TopicsConfig, _yaml(directory / "topics.yaml")).topics
     names = ["IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN", "TODOIST_TOKEN",
-             "TODOIST_CLIENT_ID", "TODOIST_CLIENT_SECRET"]
+             "TODOIST_CLIENT_ID", "TODOIST_CLIENT_SECRET", "GOOGLE_OAUTH_CLIENT_ID",
+             "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"]
     missing = [name for name in names if not env.get(name)]
     if missing:
         raise ValueError("Fehlende Geheimnisse: " + ", ".join(missing))
-    optional = ("GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN")
     values = {name.lower(): env[name] for name in names}
-    values.update({name.lower(): env[name] for name in optional if env.get(name)})
     secrets = Secrets.model_validate(values)
     fingerprint = hashlib.sha256(json.dumps([settings.model_dump(mode="json"), prompts.model_dump(), [x.model_dump() for x in topics]], sort_keys=True).encode()).hexdigest()
     return settings, secrets, topics, prompts, fingerprint

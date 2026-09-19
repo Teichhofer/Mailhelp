@@ -14,7 +14,7 @@ from zoneinfo import ZoneInfo
 from .analysis import Analyzer
 from .config import PromptConfig, Secrets, Settings, Topic
 from .imap import ImapReader, UIDValidityChanged
-from .integrations import CalendarFileWriter, HttpWriter
+from .integrations import GoogleOAuthTokenProvider, HttpWriter
 from .logging import JsonlLogger, NullLogger
 from .models import ImapCheckpoint, MailState, TelegramOffset
 from .openrouter import OpenRouterClient
@@ -120,7 +120,7 @@ class Application:
     analyzer: Analyzer
     telegram: TelegramClient
     todoist: HttpWriter
-    calendar: CalendarFileWriter
+    calendar: HttpWriter
     orchestrator: Orchestrator
     stop_event: Event
     dialog: TelegramDialogController | None = None
@@ -132,7 +132,7 @@ class Application:
             ("OpenRouter", self.openrouter.check_access),
             ("Telegram", lambda: Application._check_telegram_access(self)),
             ("Todoist", self.todoist.check_access),
-            ("Kalenderdatei", self.calendar.check_access),
+            ("Google Kalender", self.calendar.check_access),
         )
         results: dict[str, str | None] = {}
         logger = getattr(self, "logger", NullLogger())
@@ -478,7 +478,21 @@ def build_application(
         stack.callback(telegram.close)
         todoist = HttpWriter("todoist", secrets.todoist_token.get_secret_value(), settings.targets.todoist_project, settings.timeouts.todoist.timeout_seconds, policy=policy("todoist"), logger=logger)
         stack.callback(todoist.close)
-        calendar = CalendarFileWriter(telegram, settings.telegram.chat_id, logger)
+        google_cfg = settings.timeouts.google_calendar
+        oauth = GoogleOAuthTokenProvider(
+            secrets.google_oauth_client_id.get_secret_value(),
+            secrets.google_oauth_client_secret.get_secret_value(),
+            secrets.google_oauth_refresh_token.get_secret_value(),
+            google_cfg.timeout_seconds,
+            logger=logger,
+        )
+        stack.callback(oauth.close)
+        calendar = HttpWriter(
+            "google_calendar", oauth, settings.targets.google_calendar,
+            google_cfg.timeout_seconds, policy=policy("google_calendar"), logger=logger,
+            calendar_timezone=settings.timezone,
+        )
+        stack.callback(calendar.close)
         analyzer = Analyzer(
             openrouter, prompts,
             provider_retries=settings.retries.provider_retry,

@@ -1,4 +1,4 @@
-# IANA-Nutzerzeitzone für Analyse und Kalenderdateien. Sie wird zusammen mit
+# IANA-Nutzerzeitzone für Analyse und Google-Kalendertermine. Sie wird zusammen mit
 # ursprünglichem/geprüftem Date-Header und IMAP-INTERNALDATE an das LLM gegeben;
 # Zeitwerte selbst müssen zusätzlich einen eindeutigen UTC-Offset enthalten.
 timezone: Europe/Berlin
@@ -6,8 +6,8 @@ timezone: Europe/Berlin
 # stattdessen ohne Zusatzpause fortlaufend per Long-Polling bedient.
 poll_interval_seconds: 60
 test_mode: true
-# Im Testmodus bleiben Todoist-Schreibzugriffe simuliert; bestätigte Kalenderdateien
-# werden dennoch tatsächlich erzeugt und über Telegram versendet.
+# Im Testmodus bleiben Todoist-Schreibzugriffe simuliert; ausdrücklich bestätigte
+# Termine werden dennoch tatsächlich in Google Kalender angelegt.
 # Mailhelp ergänzt je nach test_mode automatisch /test oder /production.
 data_directory: data
 # Aufbewahrung gilt ausschließlich für sicher abgeschlossene Vorgänge. Ganze
@@ -57,6 +57,7 @@ timeouts:
   telegram: {timeout_seconds: 35, retries: 2, initial_backoff_seconds: 1, max_backoff_seconds: 8}
   openrouter: {timeout_seconds: 30, retries: 2, initial_backoff_seconds: 1, max_backoff_seconds: 8}
   todoist: {timeout_seconds: 30, retries: 2, initial_backoff_seconds: 1, max_backoff_seconds: 8}
+  google_calendar: {timeout_seconds: 30, retries: 2, initial_backoff_seconds: 1, max_backoff_seconds: 8}
   telegram_poll_seconds: 30
 logging:
   directory: logs

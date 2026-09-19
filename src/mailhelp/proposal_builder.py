@@ -92,8 +92,6 @@ class ProposalBuilder:
                     values.update(start=temporal.value.start, end=temporal.value.end,
                                   all_day=temporal.value.all_day)
             target = self.targets.todoist_project if kind == "task" else self.targets.google_calendar
-            if target is None:
-                raise ValueError("Konfiguriertes Ziel für Termine fehlt")
             status = (ProposalStatus.PENDING_CONFIRMATION
                       if item.classification == "new" and item.responsibility == "user"
                       and item.certainty == "certain" and not questions
