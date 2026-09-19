@@ -25,7 +25,7 @@ def test_cli_forwards_posix_and_windows_path_spellings(monkeypatch, capsys, spel
     captured = []
     logger_arguments = []
     logger = CaptureLogger()
-    monkeypatch.setattr("mailhelp.cli.load_all", lambda directory: captured.append(directory) or (None, None, [], None, "fingerprint"))
+    monkeypatch.setattr("mailhelp.cli.load_all", lambda directory: captured.append(directory) or (None, None, [], [], None, "fingerprint"))
     monkeypatch.setattr(
         "mailhelp.cli.build_logger",
         lambda *_args, **kwargs: logger_arguments.append(kwargs) or logger,
@@ -56,7 +56,7 @@ def test_cli_forwards_mail_limit_and_rejects_non_positive_values(monkeypatch):
     def builder(*_args, **kwargs):
         assert kwargs == {"access_diagnostics": False, "logger": logger}
         yield application
-    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], None, "fingerprint"))
+    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], [], None, "fingerprint"))
     monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args, **_kwargs: logger)
     monkeypatch.setattr("mailhelp.cli.build_application", builder)
     monkeypatch.setattr("mailhelp.cli.signal.signal", lambda *_args: None)
@@ -92,7 +92,7 @@ def test_cli_runs_terminal_learning_mode(monkeypatch):
             captured.append(count)
 
     monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (
-        settings, object(), ["topic"], object(), "fingerprint"))
+        settings, object(), ["topic"], ["irrelevant"], object(), "fingerprint"))
     monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args, **_kwargs: logger)
     monkeypatch.setattr("mailhelp.cli.build_application", builder)
     monkeypatch.setattr("mailhelp.cli.LearningMode", Learning)
@@ -100,7 +100,8 @@ def test_cli_runs_terminal_learning_mode(monkeypatch):
 
     assert main() == 0
     assert captured == [(('imap', 'analyzer', ['INBOX'], 'limits', ['topic'],
-                           Path('cfg/topics.yaml')), {'timezone': 'Europe/Berlin'}), 3]
+                           Path('cfg/topics.yaml'), ['irrelevant'],
+                           Path('cfg/irrelevant_topics.yaml')), {'timezone': 'Europe/Berlin'}), 3]
 
 
 def test_clear_removes_both_state_namespaces_and_logs(tmp_path):
@@ -153,7 +154,7 @@ def test_clear_requires_exact_confirmation(monkeypatch, capsys, tmp_path, answer
     marker.write_text("{}", encoding="utf-8")
     called = []
     monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (
-        settings, object(), [], object(), "fingerprint"))
+        settings, object(), [], [], object(), "fingerprint"))
     monkeypatch.setattr("builtins.input", lambda prompt: called.append(prompt) or answer)
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--clear"])
 
@@ -173,7 +174,7 @@ def test_clear_yes_is_noninteractive_and_override_selects_logs(monkeypatch, caps
         logging=SimpleNamespace(directory=configured_logs),
     )
     monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (
-        settings, object(), [], object(), "fingerprint"))
+        settings, object(), [], [], object(), "fingerprint"))
     monkeypatch.setattr("builtins.input", lambda _prompt: pytest.fail("unexpected prompt"))
     monkeypatch.setattr(sys, "argv", [
         "mailhelp", "--clear", "--yes", "--log-directory", str(override_logs),
@@ -187,7 +188,7 @@ def test_clear_yes_is_noninteractive_and_override_selects_logs(monkeypatch, caps
 
 def test_yes_without_clear_is_rejected(monkeypatch):
     monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (
-        None, None, [], None, "fingerprint"))
+        None, None, [], [], None, "fingerprint"))
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--yes"])
     with pytest.raises(SystemExit) as error:
         main()

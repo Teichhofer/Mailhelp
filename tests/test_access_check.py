@@ -117,7 +117,7 @@ def test_todoist_access_errors_reach_cli_without_secrets(
     def builder(*_args, **_kwargs):
         yield App()
 
-    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], None, "fingerprint"))
+    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], [], None, "fingerprint"))
     monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args, **_kwargs: type("Logger", (), {"event": lambda *_args, **_kwargs: None})())
     monkeypatch.setattr("mailhelp.cli.build_application", builder)
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--check-access"])
@@ -266,7 +266,7 @@ def test_cli_access_check_prints_summary_and_never_runs(monkeypatch, capsys, res
         yield App()
 
     logger = type("Logger", (), {"event": lambda *_args, **_kwargs: None})()
-    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], None, "fingerprint"))
+    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], [], None, "fingerprint"))
     monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args, **_kwargs: logger)
     monkeypatch.setattr("mailhelp.cli.build_application", builder)
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--check-access"])
