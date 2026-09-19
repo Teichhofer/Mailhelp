@@ -71,10 +71,14 @@ class ImapReader:
                 self.connection.login(username, password)
             except imaplib.IMAP4.error:
                 raise RuntimeError(
-                    "IMAP-Anmeldung abgelehnt. Punkte und Bindestriche im "
-                    "Benutzernamen werden unverändert unterstützt; vollständige "
-                    "E-Mail-Adresse, Passwort beziehungsweise App-Passwort und "
-                    "IMAP-Freischaltung beim Anbieter prüfen"
+                    "IMAP-Anmeldung vom Server abgelehnt. Die erfolgreiche "
+                    "Webmail-Anmeldung bestätigt den IMAP-Zugang nicht. Für genau "
+                    "dieses Postfach die verlangte Anmeldekennung (oft die primäre "
+                    "vollständige E-Mail-Adresse statt eines Alias), ein eventuell "
+                    "separates App-Passwort und die postfachbezogene IMAP-Freischaltung "
+                    "prüfen. Punkte und Bindestriche werden unverändert übertragen. "
+                    "Außerdem beachten: Bereits gesetzte Prozessvariablen "
+                    "IMAP_USERNAME/IMAP_PASSWORD überschreiben die .env-Datei"
                 ) from None
         except BaseException:
             self.connection.logout()
