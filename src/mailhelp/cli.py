@@ -4,6 +4,7 @@ import argparse, signal
 from pathlib import Path
 from .application import build_application, build_logger
 from .config import load_all
+from .learning import LearningMode
 
 
 def _positive_int(value: str) -> int:
@@ -29,6 +30,10 @@ def main() -> int:
         "--max-mails", type=_positive_int, metavar="ANZAHL",
         help="höchstens ANZAHL Mails in einem einzelnen Abrufdurchlauf bearbeiten und beenden",
     )
+    parser.add_argument(
+        "--learn", type=_positive_int, metavar="ANZAHL",
+        help="ANZAHL Mails frei klassifizieren und Themen interaktiv im Terminal lernen",
+    )
     args = parser.parse_args(); settings, secrets, topics, prompts, fingerprint = load_all(args.config_directory)
     logger = build_logger(settings, secrets, log_directory=args.log_directory)
     logger.event("INFO", "application", "application_started", parameters={
@@ -37,6 +42,7 @@ def main() -> int:
         "check": args.check,
         "check_access": args.check_access,
         "max_mails": args.max_mails,
+        "learn": args.learn,
     })
     if args.check: print("Konfiguration ist gültig."); return 0
     with build_application(
@@ -48,6 +54,13 @@ def main() -> int:
             for name, error in results.items():
                 print(f"{'OK' if error is None else 'FEHLER'}: {name}" + (f" – {error}" if error else ""))
             return 1 if any(error is not None for error in results.values()) else 0
+        if args.learn is not None:
+            LearningMode(
+                application.imap, application.analyzer, settings.imap.folders,
+                settings.limits, topics, args.config_directory / "topics.yaml",
+                timezone=settings.timezone,
+            ).run(args.learn)
+            return 0
         def stop(_signum: int, _frame: object) -> None: application.stop()
         signal.signal(signal.SIGINT, stop)
         signal.signal(signal.SIGTERM, stop)

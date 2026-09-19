@@ -23,7 +23,19 @@ verbrauchen dieses Verarbeitungskontingent nicht. Ein separates, ebenfalls auf
 Ohne `--max-mails` liegt diese separate Obergrenze bei 1.000 blockierten
 Zuständen je Abrufdurchlauf.
 
-Version: 1.2 · Stand: 18. September 2026 · Status: Implementierungsgrundlage.
+Der Lernmodus `--learn N` ist ein separater, interaktiver Einmallauf. Er liest
+bis zu `N` neueste Nachrichten aus den konfigurierten IMAP-Ordnern ausschließlich
+mit `BODY.PEEK[]`, ohne Verarbeitungscheckpoints zu verändern. Ein konfigurierter
+LLM-Schritt klassifiziert jede Mail frei; genau ein nachgelagerter LLM-Schritt
+verdichtet sämtliche Klassifikationen zu abstrakteren Kategorien. Mailtexte und
+LLM-Ausgaben bleiben nicht vertrauenswürdig und alle Ausgaben werden schematisch
+validiert. Für jede abstrakte Kategorie fragt der Prozess ausschließlich im
+Terminal nach einer Ja-/Nein-Entscheidung. Bestätigte Kategorien erhalten eine
+eindeutige stabile ID und werden nach vollständiger Konfigurationsvalidierung
+atomar in `topics.yaml` ergänzt. Der Lernmodus kommuniziert nicht über Telegram
+und führt keine externen Schreibaktionen aus.
+
+Version: 1.3 · Stand: 19. September 2026 · Status: Implementierungsgrundlage.
 
 ## Aufbewahrung und Datenminimierung
 

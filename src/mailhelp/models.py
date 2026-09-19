@@ -91,6 +91,22 @@ class Summary(StrictModel):
     deadlines: list[str] = Field(default_factory=list)
 
 
+class LearnedCategory(StrictModel):
+    """One deliberately non-authoritative category proposed by an LLM."""
+
+    name: str = Field(min_length=1, max_length=200)
+    description: str = Field(min_length=1, max_length=1000)
+    examples: list[str] = Field(default_factory=list, max_length=20)
+
+
+class MailClassification(StrictModel):
+    categories: list[LearnedCategory] = Field(min_length=1, max_length=20)
+
+
+class AbstractCategories(StrictModel):
+    categories: list[LearnedCategory] = Field(default_factory=list, max_length=50)
+
+
 class ActionRoute(StrictModel):
     """Bounded action classification before detailed extraction.
 
