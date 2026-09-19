@@ -337,6 +337,12 @@ Ein ausdrücklich in der Mail genannter physischer Ort wird getrennt von einem V
 Die geschlossenen Felder `responsibility` (`user`, `other`, `unclear`), `certainty` (`certain`, `uncertain`, `contradictory`) und `classification` (`new`, `non_binding`, `already_completed`, `change`, `cancellation`, `recurring`, `unsupported`) sind verpflichtend. Nur `new` + `user` + `certain` ist bestätigbar und extern schreibbar. Alle übrigen Kombinationen werden verständlich als manuell zu prüfen angezeigt. `unclear`, `uncertain` und `contradictory` erzwingen `needs_clarification`.
 
 Unverbindliche Vorschläge, bereits erledigte Aufgaben sowie Änderungen und Absagen sind als solche zu erkennen. Änderungen oder Absagen werden in V1 gemeldet und nicht als gewöhnlicher neuer Termin automatisch weiterverarbeitet. Wiederkehrende oder anderweitig nicht unterstützte Terminformen werden zur manuellen Bearbeitung gekennzeichnet.
+Eine ausdrücklich an die Nutzerin oder den Nutzer gerichtete, noch auszuführende
+einmalige Bitte, Aufforderung oder Verpflichtung gilt als `new`. Eine sachliche,
+automatisch erzeugte oder indirekte Formulierung macht eine solche Aufgabe weder
+`non_binding` noch `unsupported`; diese Einordnungen setzen ausdrückliche
+Unverbindlichkeit beziehungsweise eine mit dem Aufgabenmodell nicht abbildbare
+Aufgabenart voraus.
 Ein ausdrücklich angekündigter, einmaliger künftiger Termin oder eine Einladung
 dazu gilt dagegen als `new`. Eine reine Ankündigung oder der Versand durch ein
 externes Veranstaltungssystem macht einen solchen Termin weder `non_binding` noch
