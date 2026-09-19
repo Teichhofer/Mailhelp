@@ -87,6 +87,10 @@ prompts:
       "unclear", wenn aus der Mail nicht sicher hervorgeht, ob eine Aufgabe oder
       ein Termin vorliegt. Gib keine weiteren Felder und keinen Begleittext aus.
 
+      Ein ausdrücklich genannter Termin ist auch dann ein Termin, wenn die Mail
+      nur informiert und weder Einladung noch Terminanfrage enthält. Verwende in
+      diesem Fall "event" (oder bei zusätzlicher Aufgabe "task_and_event").
+
       Klassifiziere nur Art und Anzahl. Normalisiere keine Datumsangaben und
       liefere weder Zeitzone, Statuslogik, IDs, Ziele, Notification-Flags noch
       vollständige Vorschläge oder Proposals.

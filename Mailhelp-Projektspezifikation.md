@@ -178,9 +178,12 @@ Auswertungsschritten `relevance`, `summary`, `action_router`, `task_extraction` 
 Proposal-Builder. Der Router klassifiziert zunächst nur Art und Anzahl möglicher
 Aktionen; die getrennten Task- und Event-Extraktoren laufen gemäß der Routingmatrix
 einzeln oder gemeinsam. Bei `none` endet die Aktionsanalyse ohne Vorschlag.
-`unclear` ist ein fachlicher Klärungsfall ohne Extraktion und kein Provider- oder
-Schemafehler. Seine Zähler beschreiben lediglich mögliche Kandidaten und dürfen
-unabhängig voneinander null sein. Jeder LLM-Schritt erhält einen eigenen Prompt und
+`unclear` ist ein fachlicher Klärungsfall und kein Provider- oder Schemafehler.
+Seine Zähler beschreiben mögliche Kandidaten und dürfen unabhängig voneinander null
+sein. Erkannte Terminkandidaten (`event_count > 0`) werden auch bei `unclear`
+extrahiert und als Telegram-Vorschlag versandt; die fachliche Unsicherheit bleibt
+im Vorschlag erhalten. Damit gehen ausdrücklich genannte Termine auch aus rein
+informativen Mails nicht verloren. Jeder LLM-Schritt erhält einen eigenen Prompt und
 kann ein anderes Modell sowie andere Anfrageparameter verwenden.
 
 Fehler werden an der Grenze klassifiziert: Eine fehlende oder leere Providerhülle
