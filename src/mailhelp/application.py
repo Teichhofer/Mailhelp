@@ -29,6 +29,16 @@ _BLOCKED_STATE_SCAN_LIMIT = 1000
 _TELEGRAM_ERROR_BACKOFF_SECONDS = 5.0
 
 
+class _FailedAccessAdapter:
+    """Expose an adapter construction failure to the aggregated access check."""
+
+    def __init__(self, error: Exception):
+        self.error = error
+
+    def check_access(self, *_args: object) -> None:
+        raise self.error
+
+
 def _add_uid(ranges: list[tuple[int, int]], uid: int) -> list[tuple[int, int]]:
     """Return normalized completed UID ranges after adding one UID."""
     result: list[tuple[int, int]] = []
@@ -469,8 +479,17 @@ def build_application(
             return RetryPolicy(item.retries, item.initial_backoff_seconds, item.max_backoff_seconds, stop_event.wait)
         imap_cfg = settings.timeouts.imap
         factory = imaplib.IMAP4_SSL if settings.imap.connection_mode == "ssl" else imaplib.IMAP4
-        imap = ImapReader(settings.imap.host, settings.imap.port, secrets.imap_username, secrets.imap_password.get_secret_value(), imap_cfg.timeout_seconds, factory=factory, policy=policy("imap"), logger=logger, starttls=settings.imap.connection_mode == "starttls", batch_size=settings.imap.batch_size)
-        stack.callback(imap.close)
+        try:
+            imap = ImapReader(settings.imap.host, settings.imap.port, secrets.imap_username, secrets.imap_password.get_secret_value(), imap_cfg.timeout_seconds, factory=factory, policy=policy("imap"), logger=logger, starttls=settings.imap.connection_mode == "starttls", batch_size=settings.imap.batch_size)
+        except Exception as exc:
+            if not access_diagnostics:
+                raise
+            # IMAP connects and authenticates in its constructor, unlike the
+            # HTTP adapters. Preserve that failure as one diagnostic result so
+            # constructing the application cannot prevent the other checks.
+            imap = _FailedAccessAdapter(exc)
+        else:
+            stack.callback(imap.close)
         llm_cfg = settings.timeouts.openrouter
         openrouter = OpenRouterClient(secrets.openrouter_api_key.get_secret_value(), llm_cfg.timeout_seconds, llm_cfg.retries, settings.limits.llm_calls_per_minute, initial_backoff=llm_cfg.initial_backoff_seconds, max_backoff=llm_cfg.max_backoff_seconds, load_calls=lambda: store.load("llm-budget", {}).get("calls", []), save_calls=lambda calls: store.save("llm-budget", {"calls": calls}), logger=logger)
         stack.callback(openrouter.close)

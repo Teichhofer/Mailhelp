@@ -27,6 +27,8 @@ führt keinen LLM-Auftrag aus und erzeugt weder Aufgaben noch Termine. Für jede
 Dienst erscheint `OK` oder `FEHLER`; sobald mindestens eine
 Prüfung fehlschlägt, endet der Prozess mit Status 1. Im Container kann derselbe
 Test mit `docker compose run --rm mailhelp --check-access` ausgeführt werden.
+Auch wenn bereits die Verbindung oder Anmeldung bei IMAP fehlschlägt, werden die
+übrigen Dienste geprüft und anschließend alle Einzelergebnisse ausgegeben.
 Für diesen Diagnosebefehl aktiviert Mailhelp unabhängig von der Logging-Konfiguration
 das Datei- und Konsolenlogging auf `DEBUG`. Beginn, Erfolg und Fehler jeder einzelnen
 Prüfung werden protokolliert; Fehler enthalten einen bereinigten Stacktrace. Die
