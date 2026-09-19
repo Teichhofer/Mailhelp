@@ -132,3 +132,74 @@ topics:
   - Ein Kontakt hat einen neuen Beitrag veröffentlicht
   - Jemand hat deinen Beitrag geteilt
   exclusions: []
+- id: gaming-und-erwachsenen-branchen-events
+  name: Gaming- und Erwachsenen-Branchen-Events
+  enabled: true
+  description: Veranstaltungen und Netzwerktreffen für die Spiele- und Adult-Unterhaltungsbranche.
+  examples:
+  - Festival mit Spieleausstellern und Entwicklern
+  - Branchentreff für Erwachsenen-Unterhaltungsanbieter
+  exclusions: []
+- id: ki-sicherheit-und-alignment
+  name: KI-Sicherheit und Alignment
+  enabled: true
+  description: Essays und Analysen zu KI-Ausrichtung, Reward Hacking, Agentenverhalten,
+    Innenarchitektur von Modellen und Sicherheitsvorfällen.
+  examples:
+  - Analyse der Risiken unzureichend ausgerichteter Frontier-Modelle
+  - Artikel zum Überlisten von Evaluatoren durch RL-Modelle
+  exclusions: []
+- id: ki-wissenschaft-und-epistemologie
+  name: KI-Wissenschaft und Epistemologie
+  enabled: true
+  description: Theoretische Abhandlungen zu Entscheidungstheorie, Unsicherheit, Spieltheorie,
+    Konzeptbildung und formalen Agentenrahmenwerken.
+  examples:
+  - Essay über Knight'sche Unsicherheit und Bayes'sche Agenten
+  - Analyse von Schelling-Punkten in der Kommunikation
+  exclusions: []
+- id: agrar-fachnewsletter
+  name: Agrar-Fachnewsletter
+  enabled: true
+  description: Redaktioneller Fachnewsletter mit Agrarnachrichten und Lesetipps eines
+    Landwirtschaftsverlags.
+  examples:
+  - Wöchentlicher Agrar-Newsletter mit Schlagzeilenübersicht
+  - Branchenrundschreiben mit Artikellinks für Landwirte
+  exclusions: []
+- id: agrarfachthemen
+  name: Agrarfachthemen
+  enabled: true
+  description: Fachbeiträge zu Tiergesundheit, Pflanzen- und Ackerbau, Ökolandbau,
+    Forstwirtschaft sowie Vermarktung landwirtschaftlicher Produkte.
+  examples:
+  - Ratgeber zu Kälberkrankheiten und Stallklima
+  - Artikel zur Beikrautregulierung und Waldbewirtschaftung
+  exclusions: []
+- id: agrarpolitik
+  name: Agrarpolitik
+  enabled: true
+  description: Berichte zu agrarpolitischen Themen wie Haushaltsdebatten, Förderpolitik
+    und Interviews mit Agrarpolitikern.
+  examples:
+  - Bericht über eine Haushaltsdebatte im Landtag
+  - Kommentar zu Zuschuss- und Förderpolitik
+  exclusions: []
+- id: newsletter-verwaltung-und-werbung
+  name: Newsletter-Verwaltung und Werbung
+  enabled: true
+  description: Werbeanzeigen im Newsletter sowie Hinweise zu Anmeldung, Abmeldung,
+    Datenschutz und Impressum.
+  examples:
+  - Link zum Abbestellen des Newsletters
+  - Anzeige für Landtechnik mit Impressumshinweis
+  exclusions: []
+- id: plattform-benachrichtigungen
+  name: Plattform-Benachrichtigungen
+  enabled: true
+  description: Automatisierte E-Mail-Benachrichtigungen von Blogs oder Foren über
+    neue kuratierte Inhalte mit Abbestellmöglichkeit.
+  examples:
+  - Hinweis auf einen neuen kuratierten Community-Beitrag
+  - Benachrichtigungs-E-Mail mit Abbestell-Link
+  exclusions: []

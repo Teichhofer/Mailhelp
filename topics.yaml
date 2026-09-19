@@ -1,11 +1,13 @@
 topics:
-- id: wohnung
-  name: Wohnung
+- id: vlf
+  name: VLF
   enabled: true
-  description: Nachrichten zum eigenen Mietverhältnis und zur Hausverwaltung.
+  description: alles das mit dem VLF, dem Verband für Ländliche Fachbildung zu tun hat
   examples:
-  - Betriebskostenabrechnung
-  - Wartungstermin
+  - Infirmationen
+  - Termine
+  - Ankündigungen
+  - Anfragen
   exclusions:
   - Immobilienwerbung
 - id: gemeinderat
@@ -132,4 +134,22 @@ topics:
   examples:
   - Schadenmitteilung mit Schadennummer und PDF im Anhang
   - Hinweis, einen fehlenden Anhang zu melden
+  exclusions: []
+- id: veranstaltungs-und-marketing-einladungen
+  name: Veranstaltungs- und Marketing-Einladungen
+  enabled: true
+  description: Werbe-Newsletter und Einladungen zu (virtuellen) Veranstaltungen mit
+    Programm, Anmeldelinks und Abmeldeoption.
+  examples:
+  - Einladung zu einer virtuellen Messe mit Anmeldelink
+  - Newsletter-Ankündigung eines bevorstehenden Events
+  exclusions: []
+- id: agrar-veranstaltungen
+  name: Agrar-Veranstaltungen
+  enabled: true
+  description: Ankündigungen von Feldtagen, Thementagen und Fachveranstaltungen für
+    die Land- und Forstwirtschaft.
+  examples:
+  - Einladung zu einem Feldtag auf einem Betrieb
+  - Ankündigung von Forst-Thementagen
   exclusions: []
