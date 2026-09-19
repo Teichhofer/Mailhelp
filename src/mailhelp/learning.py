@@ -6,6 +6,7 @@ import re
 import tempfile
 import unicodedata
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import yaml
@@ -69,12 +70,13 @@ class LearningMode:
                  irrelevant_topics: list[Topic], irrelevant_topics_path: Path,
                  *, input_fn: Callable[[str], str] = input,
                  output_fn: Callable[[str], None] = print,
-                 timezone: str = "UTC"):
+                 timezone: str = "UTC", parallel_llm_calls: int = 4):
         self.imap, self.analyzer, self.folders = imap, analyzer, folders
         self.limits, self.topics, self.topics_path = limits, topics, topics_path
         self.irrelevant_topics = irrelevant_topics
         self.irrelevant_topics_path = irrelevant_topics_path
         self.input, self.output, self.timezone = input_fn, output_fn, timezone
+        self.parallel_llm_calls = parallel_llm_calls
 
     def _fetch(self, count: int) -> list[FetchedMail]:
         mails: list[FetchedMail] = []
@@ -93,15 +95,20 @@ class LearningMode:
     def run(self, count: int) -> int:
         mails = self._fetch(count)
         self.output(f"{len(mails)} von {count} angeforderten Mails wurden abgerufen.")
-        classifications: list[MailClassification] = []
-        for mail in mails:
+        known_topics = [*self.topics, *self.irrelevant_topics]
+
+        def classify(mail: FetchedMail) -> MailClassification | None:
             payload = prepare(mail.raw, self.limits, mail.received_at, self.timezone)
-            known_relevant = self._known(payload, self.topics)
-            known_irrelevant = self._known(payload, self.irrelevant_topics)
-            if known_relevant or known_irrelevant:
-                continue
+            if self._known(payload, known_topics):
+                return None
             _call_id, classification = self.analyzer.classify_for_learning(payload)
-            classifications.append(classification)
+            return classification
+
+        # Each mail forms an independent first-stage pipeline. ``map`` preserves
+        # mailbox order while relevance checks and classifications run concurrently.
+        with ThreadPoolExecutor(max_workers=self.parallel_llm_calls) as executor:
+            classifications = [result for result in executor.map(classify, mails)
+                               if result is not None]
         if not classifications:
             self.output("Keine unbekannten Mails zum Lernen gefunden; Themendateien wurden nicht geändert.")
             return 0

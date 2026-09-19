@@ -17,6 +17,10 @@ data_directory: data
 retention:
   full_mail_days: 30
   debug_llm_days: disabled
+# Maximale Zahl gleichzeitiger Relevanzprüfungen und Einzelklassifikationen im
+# Lernmodus. Die abschließende Abstraktion bleibt ein einzelner serieller Aufruf.
+learning:
+  parallel_llm_calls: 4
 imap:
   host: imap.web.de
   port: 993

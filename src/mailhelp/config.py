@@ -174,6 +174,12 @@ class RetentionSettings(ConfigModel):
     debug_llm_days: RetentionPeriod = "disabled"
 
 
+class LearningSettings(ConfigModel):
+    """Concurrency controls for the interactive learning workflow."""
+
+    parallel_llm_calls: int = Field(default=4, ge=1, le=100)
+
+
 class Settings(ConfigModel):
     timezone: str
     poll_interval_seconds: int = Field(ge=5, le=86400)
@@ -187,6 +193,7 @@ class Settings(ConfigModel):
     timeouts: TimeoutSettings
     logging: LoggingSettings
     retention: RetentionSettings = Field(default_factory=RetentionSettings)
+    learning: LearningSettings = Field(default_factory=LearningSettings)
 
     @field_validator("timezone")
     @classmethod

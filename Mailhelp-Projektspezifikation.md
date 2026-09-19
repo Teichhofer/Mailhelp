@@ -26,10 +26,15 @@ Zuständen je Abrufdurchlauf.
 Der Lernmodus `--learn N` ist ein separater, interaktiver Einmallauf. Er liest
 bis zu `N` neueste Nachrichten aus den konfigurierten IMAP-Ordnern ausschließlich
 mit `BODY.PEEK[]`, ohne Verarbeitungscheckpoints zu verändern. Die Nachrichten
-werden zuerst gegen die relevanten Themen aus `topics.yaml` und die irrelevanten
-Themen aus `irrelevant_topics.yaml` geprüft. Nur Nachrichten ohne Zuordnung in
+werden mit einer gemeinsamen LLM-Anfrage gegen die relevanten Themen aus
+`topics.yaml` und die irrelevanten Themen aus `irrelevant_topics.yaml` geprüft.
+Nur Nachrichten ohne Zuordnung in
 beiden Dateien gelangen in die freie Klassifikation. Ein konfigurierter
-LLM-Schritt klassifiziert jede Mail frei; genau ein nachgelagerter LLM-Schritt
+LLM-Schritt klassifiziert jede Mail frei. Die je Nachricht unabhängigen
+Relevanzprüfungen und freien Klassifikationen bilden die erste Stufe und werden
+bis zur in `config.yaml` konfigurierten Obergrenze parallel ausgeführt; ihre
+Ergebnisreihenfolge entspricht weiterhin der Reihenfolge der abgerufenen Mails.
+Genau ein nachgelagerter LLM-Schritt
 verdichtet sämtliche Klassifikationen zu abstrakteren Kategorien. Mailtexte und
 LLM-Ausgaben bleiben nicht vertrauenswürdig und alle Ausgaben werden schematisch
 validiert. Für jede abstrakte Kategorie fragt der Prozess ausschließlich im

@@ -114,7 +114,8 @@ def test_cli_forwards_mail_limit_and_rejects_non_positive_values(monkeypatch):
 def test_cli_runs_terminal_learning_mode(monkeypatch):
     application = SimpleNamespace(imap="imap", analyzer="analyzer")
     settings = SimpleNamespace(
-        imap=SimpleNamespace(folders=["INBOX"]), limits="limits", timezone="Europe/Berlin")
+        imap=SimpleNamespace(folders=["INBOX"]), limits="limits", timezone="Europe/Berlin",
+        learning=SimpleNamespace(parallel_llm_calls=7))
     logger = CaptureLogger()
     captured = []
 
@@ -138,7 +139,8 @@ def test_cli_runs_terminal_learning_mode(monkeypatch):
     assert main() == 0
     assert captured == [(('imap', 'analyzer', ['INBOX'], 'limits', ['topic'],
                            Path('cfg/topics.yaml'), ['irrelevant'],
-                           Path('cfg/irrelevant_topics.yaml')), {'timezone': 'Europe/Berlin'}), 3]
+                           Path('cfg/irrelevant_topics.yaml')),
+                          {'timezone': 'Europe/Berlin', 'parallel_llm_calls': 7}), 3]
 
 
 def test_clear_removes_both_state_namespaces_and_logs(tmp_path):
