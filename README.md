@@ -233,6 +233,10 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
   Beim Wiederaufnehmen werden weder Relevanz und Zusammenfassung noch eine bereits
   versandte Zusammenfassung oder eine erfolgreiche Schwester-Extraktion wiederholt.
 * Jeder Vorschlag trägt die streng validierten Felder `responsibility` (`user`, `other`, `unclear`), `certainty` (`certain`, `uncertain`, `contradictory`) und `classification` (`new`, `non_binding`, `already_completed`, `change`, `cancellation`, `recurring`, `unsupported`). Ausschließlich `new` + `user` + `certain` ist bestätigbar und extern anlegbar. Alle anderen Einordnungen erscheinen als manuell zu prüfende Information; offene Zuständigkeit, Unsicherheit und Widerspruch erzwingen `needs_clarification`.
+  Ein ausdrücklich angekündigter, einmaliger künftiger Termin oder eine
+  Einladung dazu wird als `new` klassifiziert. Der reine Informationscharakter
+  oder der Versand durch ein externes Veranstaltungssystem macht den Termin
+  nicht `non_binding` oder `unsupported`.
 * Vorschläge werden zusätzlich zur Maildatei versionsweise und als aktueller Stand
   gespeichert. Bestätigte Schreibvorgänge werden nach Neustarts wiederaufgenommen;
   externe ID und Link sowie `created`, `failed` oder `uncertain` werden im
