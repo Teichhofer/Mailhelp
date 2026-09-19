@@ -468,7 +468,9 @@ bleiben die Diagnoseoperationen lesend beziehungsweise authentifizierend. Es wer
 weder Mails gesucht oder geladen noch Telegram-Updates gelesen, LLM-Aufträge
 ausgeführt oder Aufgaben beziehungsweise Termine geschrieben. Alle Prüfergebnisse
 werden ausgegeben; ein
-Teilfehler verhindert die übrigen Prüfungen nicht und führt abschließend zu einem
+Teilfehler verhindert die übrigen Prüfungen nicht. Das gilt auch, wenn bereits der
+Verbindungsaufbau oder die Anmeldung eines beim Anwendungsaufbau initialisierten
+Adapters (insbesondere IMAP) scheitert. Ein Teilfehler führt abschließend zu einem
 von null verschiedenen Prozessstatus.
 Ein Telegram-`chat not found` wird als konkrete Einrichtungsdiagnose ausgegeben:
 Bot zuerst per `/start` im Zielchat aktivieren, numerische Chat-ID prüfen und bei

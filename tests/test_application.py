@@ -432,6 +432,7 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
     class Resource:
         def __init__(self,*args,**kwargs): pass
         def close(self): closed.append(type(self).__name__)
+        def check_access(self,*args): pass
     class FakeImap(Resource):
         kwargs={}
         def __init__(self,*args,**kwargs): type(self).kwargs=kwargs
@@ -488,7 +489,28 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
             assert made.logger is supplied_logger
     assert len(closed)==6 and (tmp_path/"data/test/.lock").exists()
 
+    closed.clear()
+    class BrokenImap(Resource):
+        def __init__(self,*args,**kwargs): raise RuntimeError("authentication failed")
+    monkeypatch.setattr("mailhelp.application.ImapReader",BrokenImap)
+    with build_application(
+        cfg, sec, topic, prompt_config(), "f" * 64,
+        base_directory=tmp_path, access_diagnostics=True,
+    ) as made:
+        assert made.check_access() == {
+            "IMAP": "authentication failed", "OpenRouter": None,
+            "Telegram": None, "Todoist": None, "Google Kalender": None,
+        }
+    assert len(closed) == 5
+    with pytest.raises(RuntimeError, match="authentication failed"):
+        with build_application(
+            cfg, sec, topic, prompt_config(), "f" * 64,
+            base_directory=tmp_path,
+        ):
+            pass
+
     cfg.data_directory=Path("relative"); cfg.logging.directory=Path("relative-logs")
+    monkeypatch.setattr("mailhelp.application.ImapReader",FakeImap)
     class BrokenTelegram(Resource):
         def __init__(self,*args,**kwargs): raise RuntimeError("build")
     monkeypatch.setattr("mailhelp.application.TelegramClient",BrokenTelegram)
