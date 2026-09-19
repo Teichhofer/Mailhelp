@@ -37,7 +37,11 @@ Ergebnisreihenfolge entspricht weiterhin der Reihenfolge der abgerufenen Mails.
 Genau ein nachgelagerter LLM-Schritt
 verdichtet sämtliche Klassifikationen zu abstrakteren Kategorien. Mailtexte und
 LLM-Ausgaben bleiben nicht vertrauenswürdig und alle Ausgaben werden schematisch
-validiert. Für jede abstrakte Kategorie fragt der Prozess ausschließlich im
+validiert. Ein Fehler in der Verarbeitung einer einzelnen Mail überspringt nur
+diese Mail. Falls die nachgelagerte Verdichtung fehlschlägt, verwendet der Prozess
+ersatzweise die bereits validierten Kategorien der erfolgreichen
+Einzelklassifikationen und setzt den Lernlauf fort. Für jede resultierende
+Kategorie fragt der Prozess ausschließlich im
 Terminal nach einer Ja-/Nein-Entscheidung. Bestätigte Kategorien erhalten eine
 eindeutige stabile ID und werden nach vollständiger Konfigurationsvalidierung
 atomar in `topics.yaml` ergänzt; abgelehnte Kategorien werden atomar in
