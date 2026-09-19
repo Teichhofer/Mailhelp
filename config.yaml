@@ -20,7 +20,7 @@ retention:
 # Maximale Zahl gleichzeitiger Relevanzprüfungen und Einzelklassifikationen im
 # Lernmodus. Die abschließende Abstraktion bleibt ein einzelner serieller Aufruf.
 learning:
-  parallel_llm_calls: 4
+  parallel_llm_calls: 10
 imap:
   host: imap.web.de
   port: 993

@@ -97,25 +97,47 @@ class LearningMode:
         self.output(f"{len(mails)} von {count} angeforderten Mails wurden abgerufen.")
         known_topics = [*self.topics, *self.irrelevant_topics]
 
-        def classify(mail: FetchedMail) -> MailClassification | None:
-            payload = prepare(mail.raw, self.limits, mail.received_at, self.timezone)
-            if self._known(payload, known_topics):
-                return None
-            _call_id, classification = self.analyzer.classify_for_learning(payload)
-            return classification
+        def classify(mail: FetchedMail) -> tuple[MailClassification | None, bool]:
+            try:
+                payload = prepare(mail.raw, self.limits, mail.received_at, self.timezone)
+                if self._known(payload, known_topics):
+                    return None, False
+                _call_id, classification = self.analyzer.classify_for_learning(payload)
+                return classification, False
+            except Exception:
+                # A malformed mail or an exhausted provider retry budget belongs to
+                # this independent item. Do not discard successful sibling results.
+                # Exception text may contain untrusted data and is not printed.
+                return None, True
 
         # Each mail forms an independent first-stage pipeline. ``map`` preserves
         # mailbox order while relevance checks and classifications run concurrently.
         with ThreadPoolExecutor(max_workers=self.parallel_llm_calls) as executor:
-            classifications = [result for result in executor.map(classify, mails)
-                               if result is not None]
+            results = list(executor.map(classify, mails))
+        classifications = [classification for classification, _failed in results
+                           if classification is not None]
+        failures = sum(failed for _classification, failed in results)
+        if failures:
+            self.output(
+                f"{failures} Mail(s) konnten nicht ausgewertet werden und wurden übersprungen."
+            )
         if not classifications:
             self.output("Keine unbekannten Mails zum Lernen gefunden; Themendateien wurden nicht geändert.")
             return 0
-        _call_id, abstracted = self.analyzer.abstract_learned_categories(classifications)
+        try:
+            _call_id, abstracted = self.analyzer.abstract_learned_categories(classifications)
+            categories = abstracted.categories
+        except Exception:
+            # Abstraction is an optimization, not a reason to lose all successful
+            # per-mail work. The fallback values were already schema-validated.
+            self.output(
+                "Die Verdichtung der Kategorien ist fehlgeschlagen; "
+                "die Einzelklassifikationen werden stattdessen verwendet."
+            )
+            categories = [category for item in classifications for category in item.categories]
         accepted: list[LearnedCategory] = []
         rejected: list[LearnedCategory] = []
-        for category in abstracted.categories:
+        for category in categories:
             self.output(f"\nKategorie: {_safe_terminal(category.name)}")
             self.output(f"Beschreibung: {_safe_terminal(category.description)}")
             while True:
