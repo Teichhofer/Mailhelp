@@ -372,6 +372,10 @@ Prompts, Themen und Geheimnisse werden nicht gelöscht.
 vorgegebene Themenliste durch den in `prompts.yaml` konfigurierten Schritt
 `learning_classification` klassifiziert. Ein einzelner weiterer Aufruf über
 `learning_abstraction` fasst die Ergebnisse zu allgemeineren Themen zusammen.
+Für die Einzelklassifikation überschreibt `prompts.yaml` das globale
+Ausgabelimit mit einem größeren Budget, damit Reasoning-Provider ihre interne
+Verarbeitung und das abschließende JSON nicht vorzeitig bei
+`finish_reason=length` abbrechen.
 Anschließend zeigt das Programm jede vorgeschlagene Kategorie ausschließlich im
 Terminal an und verlangt dort eine Antwort mit `j` oder `n`. Nur bestätigte
 Kategorien werden aktiviert und atomar in `topics.yaml` ergänzt; IMAP-Checkpoints
