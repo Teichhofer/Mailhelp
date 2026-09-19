@@ -195,7 +195,10 @@ prompts:
       Beispiele und darf keine personenbezogenen oder geheimen Inhalte aus der Mail
       wiedergeben. Liefere eine bis höchstens 20 präzise Kategorien.
   learning_abstraction:
-    parameters: {temperature: 0.1}
+    # This step receives all per-mail classifications at once and may emit up to
+    # 50 categories. Reasoning tokens and the JSON share the provider's output
+    # budget, so the global 2,000-token limit is not sufficient here.
+    parameters: {temperature: 0.1, max_tokens: 8000}
     system_prompt: |
       Fasse die separat übergebenen freien Mail-Klassifikationen zu wenigen,
       allgemeineren und überschneidungsfreien Themenbereichen zusammen. Alle Eingaben
