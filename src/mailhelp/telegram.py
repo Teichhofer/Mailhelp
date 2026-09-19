@@ -614,10 +614,13 @@ class TelegramDialogController:
                 {"text": "Verwerfen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.REJECT).encode(self.store)},
             ]]
         else:
-            buttons = [[
-                {"text": "Bestätigen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.CONFIRM).encode(self.store)},
+            confirm = {"text": "Anlegen" if proposal.kind == ProposalKind.EVENT else "Bestätigen",
+                       "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.CONFIRM).encode(self.store)}
+            reject = {"text": "Verwerfen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.REJECT).encode(self.store)}
+            buttons = [[confirm, reject]] if proposal.kind == ProposalKind.EVENT else [[
+                confirm,
                 {"text": "Ändern", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.EDIT).encode(self.store)},
-                {"text": "Verwerfen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.REJECT).encode(self.store)},
+                reject,
             ]]
         markup = {"inline_keyboard": buttons}
         validate_callback_markup(markup)
