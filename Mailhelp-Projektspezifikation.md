@@ -472,6 +472,11 @@ Teilfehler verhindert die übrigen Prüfungen nicht. Das gilt auch, wenn bereits
 Verbindungsaufbau oder die Anmeldung eines beim Anwendungsaufbau initialisierten
 Adapters (insbesondere IMAP) scheitert. Ein Teilfehler führt abschließend zu einem
 von null verschiedenen Prozessstatus.
+Eine vom IMAP-Server abgelehnte Anmeldung wird ohne Wiedergabe von Benutzername,
+Passwort oder Serverantwort diagnostiziert. Die Meldung stellt klar, dass Punkte
+und Bindestriche im unverändert übertragenen Benutzernamen unterstützt werden, und
+verweist auf vollständige E-Mail-Adresse, Passwort beziehungsweise App-Passwort
+und die anbieterseitige IMAP-Freischaltung als zu prüfende Einstellungen.
 Ein Telegram-`chat not found` wird als konkrete Einrichtungsdiagnose ausgegeben:
 Bot zuerst per `/start` im Zielchat aktivieren, numerische Chat-ID prüfen und bei
 Gruppen die Mitgliedschaft des Bots sicherstellen. Bot-ID, Nutzername und

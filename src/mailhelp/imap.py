@@ -67,7 +67,15 @@ class ImapReader:
                 status, _ = self.connection.starttls()
                 if status != "OK":
                     raise RuntimeError("IMAP STARTTLS fehlgeschlagen")
-            self.connection.login(username, password)
+            try:
+                self.connection.login(username, password)
+            except imaplib.IMAP4.error:
+                raise RuntimeError(
+                    "IMAP-Anmeldung abgelehnt. Punkte und Bindestriche im "
+                    "Benutzernamen werden unverändert unterstützt; vollständige "
+                    "E-Mail-Adresse, Passwort beziehungsweise App-Passwort und "
+                    "IMAP-Freischaltung beim Anbieter prüfen"
+                ) from None
         except BaseException:
             self.connection.logout()
             raise

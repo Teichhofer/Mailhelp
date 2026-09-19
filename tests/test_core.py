@@ -1,5 +1,5 @@
 from __future__ import annotations
-import errno, json, os, signal, subprocess, sys
+import errno, imaplib, json, os, signal, subprocess, sys
 from contextlib import contextmanager
 from datetime import datetime, timezone, timedelta
 from email.message import EmailMessage
@@ -117,7 +117,8 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
     env = {x: "secret" for x in ["IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN", "TODOIST_TOKEN", "TODOIST_CLIENT_ID", "TODOIST_CLIENT_SECRET", "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"]}
     settings, secrets, topics, irrelevant_topics, prompts, fingerprint = load_all(tmp_path, env)
     assert settings.test_mode and secrets.imap_password.get_secret_value() == "secret" and topics[0].enabled and len(fingerprint) == 64
-    assert irrelevant_topics == []
+    assert irrelevant_topics
+    assert len({topic.id for topic in irrelevant_topics}) == len(irrelevant_topics)
     assert settings.logging.llm.include_requests is True
     assert settings.logging.llm.include_responses is True
     with pytest.raises(ValueError, match="Fehlende"): load_all(tmp_path, {})
@@ -239,6 +240,19 @@ def test_imap():
     failed=BadLogin()
     with pytest.raises(RuntimeError, match="login"): ImapReader("h",1,"u","p",factory=lambda *a,**k: failed)
     assert not failed.logged
+
+    class RejectedLogin(BadLogin):
+        def login(self, *args):
+            self.credentials = args
+            raise imaplib.IMAP4.error(b"authentication failed")
+    rejected = RejectedLogin()
+    with pytest.raises(RuntimeError, match="Punkte und Bindestriche") as error:
+        ImapReader("h", 1, "S.H.-Teichhof@example.test", "secret",
+                   factory=lambda *a, **k: rejected)
+    assert rejected.credentials == ("S.H.-Teichhof@example.test", "secret")
+    assert not rejected.logged
+    assert error.value.__suppress_context__
+    assert isinstance(error.value.__context__, imaplib.IMAP4.error)
 
 
 def test_imap_fetch_is_batched_and_reports_progress():
