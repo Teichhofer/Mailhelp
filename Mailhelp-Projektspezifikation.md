@@ -370,7 +370,7 @@ deshalb niemals als echte externe Erstellung interpretiert werden.
 | Datei | Inhalt |
 | --- | --- |
 | `config.yaml` | Abruf, Ordner, Zeitzone, Ziele, Telegram-Freigaben, Pfade, Limits, Wiederholungen und Logging |
-| `prompts.yaml` | Prompts, Modelle, globale und schrittspezifische OpenRouter-Parameter |
+| `prompts.yaml` | Prompts, Modelle, globale und schrittspezifische OpenRouter-Parameter; die Terminextraktion besitzt ein höheres Ausgabelimit, damit Reasoning-Token nicht vor Ausgabe des JSON-Ergebnisses das globale Limit ausschöpfen |
 | `topics.yaml` | Themenbereiche und Relevanzkriterien |
 | `.env` | IMAP-Zugangsdaten, OpenRouter-Key, Telegram-Bot-Token, Google-OAuth-Zugangsdaten sowie Todoist-Token, -Client-ID und -Client-Schlüssel |
 | `.env.example` | Erforderliche Variablennamen ohne geheime Werte |
