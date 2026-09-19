@@ -257,6 +257,12 @@ def test_raw_extraction_prompts_are_separate_and_injection_resistant():
     assert prompts["event_extraction"]["parameters"]["max_tokens"] > config["defaults"]["parameters"]["max_tokens"]
 
 
+def test_learning_classification_has_reasoning_output_budget():
+    config=yaml.safe_load(Path("prompts.yaml").read_text(encoding="utf-8"))
+
+    assert config["prompts"]["learning_classification"]["parameters"]["max_tokens"] > config["defaults"]["parameters"]["max_tokens"]
+
+
 def test_action_router_prompt_is_narrow_and_injection_resistant():
     prompt=yaml.safe_load(Path("prompts.yaml").read_text(encoding="utf-8"))["prompts"]["action_router"]["system_prompt"]
     for field in ("action_state", "task_count", "event_count", "reason"):
