@@ -227,6 +227,11 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
   Versand werden dabei nicht wiederholt. Versand wird vor dem Telegram-Aufruf als
   `sending` markiert, damit ein Abbruch danach keinen unkontrollierten Doppelversand
   auslöst. Nicht benötigte Schritte sind ausdrücklich `skipped`.
+  **Abgeschlossen mit Action-Fehler** bedeutet daher nicht, dass alle Aktionen
+  verarbeitet wurden: Die Mail und ihre Zusammenfassung sind abgeschlossen, die
+  betroffene Action-Teilstufe bleibt jedoch `failed` und gezielt wiederaufnehmbar.
+  Beim Wiederaufnehmen werden weder Relevanz und Zusammenfassung noch eine bereits
+  versandte Zusammenfassung oder eine erfolgreiche Schwester-Extraktion wiederholt.
 * Jeder Vorschlag trägt die streng validierten Felder `responsibility` (`user`, `other`, `unclear`), `certainty` (`certain`, `uncertain`, `contradictory`) und `classification` (`new`, `non_binding`, `already_completed`, `change`, `cancellation`, `recurring`, `unsupported`). Ausschließlich `new` + `user` + `certain` ist bestätigbar und extern anlegbar. Alle anderen Einordnungen erscheinen als manuell zu prüfende Information; offene Zuständigkeit, Unsicherheit und Widerspruch erzwingen `needs_clarification`.
 * Vorschläge werden zusätzlich zur Maildatei versionsweise und als aktueller Stand
   gespeichert. Bestätigte Schreibvorgänge werden nach Neustarts wiederaufgenommen;
@@ -437,6 +442,9 @@ python -m pytest tests/test_e2e_simulated.py --cov=mailhelp --cov-branch --cov-f
 
 # CLI- und POSIX-/Windows-Pfadvarianten
 python -m pytest tests/test_cli_paths.py --cov=mailhelp --cov-branch --cov-fail-under=100
+
+# Windows PowerShell (dieselbe Suite und Coverage-Grenze)
+py -3.12 -m pytest --cov=mailhelp --cov-branch --cov-fail-under=100
 
 # Lokaler Container-Smoke-Test (entspricht dem separaten CI-Job)
 docker build --tag mailhelp:smoke .

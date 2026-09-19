@@ -676,7 +676,8 @@ def test_orchestrator_resumes_each_persisted_analysis_step(tmp_path):
         def __init__(self): super().__init__("relevant"); self.calls=[]
         def relevance(self,m,t): self.calls.append("relevance"); return super().relevance(m,t)
         def summary(self,m): self.calls.append("summary"); return super().summary(m)
-        def extract_tasks(self,m): self.calls.append("actions"); return super().extract_tasks(m)
+        def action_route(self,m): self.calls.append("action_router"); return super().action_route(m)
+        def extract_tasks(self,m): self.calls.append("task_extraction"); return super().extract_tasks(m)
     class InterruptingStore:
         def __init__(self, delegate, fail_at): self.delegate=delegate; self.fail_at=fail_at; self.count=0
         def load(self,*args): return self.delegate.load(*args)
@@ -694,7 +695,7 @@ def test_orchestrator_resumes_each_persisted_analysis_step(tmp_path):
                 Orchestrator(first,InterruptingStore(disk,fail_at),notify,1,[topic],1000).process(mail)
             second=CountingAnalyzer(); result=Orchestrator(second,disk,notify,1,[topic],1000).process(mail)
             assert result["steps"]["completion"]=="completed"
-            assert second.calls == [step for step in ("relevance", "summary", "actions") if step in second.calls]
+            assert second.calls == [step for step in ("relevance", "summary", "action_router", "task_extraction") if step in second.calls]
             assert len(second.calls) == len(set(second.calls))
             assert notify.messages.count(result["proposals"][0]["id"]) == 1
             assert result["proposal_notifications"][0]["status"] in {"sending", "completed"}

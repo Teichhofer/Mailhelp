@@ -24,7 +24,7 @@ from mailhelp.telegram import Decision, TelegramClient, apply_decision, split_me
 
 
 def prompt_config(model="model"):
-    return PromptConfig(defaults={"model": model, "parameters": {"nested": {"a": 1}, "temperature": .2}}, prompts={x: PromptStep(system_prompt=x, parameters={"nested": {"b": 2}}) for x in ("relevance", "summary", "action_router", "task_extraction", "event_extraction", "proposal_revision")})
+    return PromptConfig(defaults={"model": model, "parameters": {"temperature": .2}}, prompts={x: PromptStep(system_prompt=x, parameters={"max_tokens": 200}) for x in ("relevance", "summary", "action_router", "task_extraction", "event_extraction", "proposal_revision")})
 
 
 def test_strict_ordered_llm_route_configuration():
@@ -43,6 +43,8 @@ def test_strict_ordered_llm_route_configuration():
         {"provider": "openrouter", "model": ""},
         {"provider": "openrouter", "model": "m", "parameters": {"messages": []}},
         {"provider": "openrouter", "model": "m", "provider_preferences": {"free_form": True}},
+        {"provider": "openrouter", "model": "m", "provider_preferences": {"order": ["x", "x"]}},
+        {"provider": "openrouter", "model": "<anbieter/modell>"},
     ):
         with pytest.raises(ValidationError):
             LlmRoute.model_validate(route)
@@ -81,13 +83,21 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
     assert proposal(status="simulated", simulation_notified=True).external_id is None
     assert _deep_merge({"x": {"a": 1}, "z": 1}, {"x": {"b": 2}, "z": 2}) == {"x": {"a": 1, "b": 2}, "z": 2}
     cfg = prompt_config(); model, params, prompt = cfg.resolved("summary")
-    assert (model, prompt, params["nested"]) == ("model", "summary", {"a": 1, "b": 2})
+    assert (model, prompt, params) == ("model", "summary", {"temperature": .2, "max_tokens": 200})
     bad = prompt_config("<placeholder>")
     with pytest.raises(ValueError, match="nicht eingerichtet"): bad.resolved("summary")
     bad.defaults["parameters"]["model"] = "evil"
     bad.defaults["model"] = "ok"
     with pytest.raises(ValueError, match="Reservierte"): bad.resolved("summary")
     with pytest.raises(ValidationError): PromptConfig(defaults={}, prompts={"summary": PromptStep(system_prompt="x")})
+    names = ("relevance", "summary", "action_router", "task_extraction",
+             "event_extraction", "proposal_revision")
+    with pytest.raises(ValidationError, match="Primärmodell"):
+        PromptConfig(defaults={}, prompts={name: PromptStep(system_prompt=name) for name in names})
+    invalid_parameters = prompt_config()
+    invalid_parameters.defaults["parameters"]["nested"] = {"unsupported": True}
+    with pytest.raises(ValueError, match="Unbekannte"):
+        invalid_parameters.resolved_routes("summary")
     (tmp_path / "bad.yaml").write_text("- x", encoding="utf8")
     with pytest.raises(ValueError): _yaml(tmp_path / "bad.yaml")
     assert _dotenv(tmp_path / "missing.env") == {}
