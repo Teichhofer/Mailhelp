@@ -9,5 +9,6 @@ services:
       - ./config.yaml:/config/config.yaml:ro
       - ./prompts.yaml:/config/prompts.yaml:ro
       - ./topics.yaml:/config/topics.yaml:ro
+      - ./irrelevant_topics.yaml:/config/irrelevant_topics.yaml:ro
       - ./data:/app/data
       - ./logs:/app/logs

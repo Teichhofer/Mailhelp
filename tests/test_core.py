@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from mailhelp import __version__
 from mailhelp.analysis import Analyzer
 from mailhelp.cli import main
-from mailhelp.config import LlmRoute, PromptConfig, PromptStep, Topic, TopicsConfig, _deep_merge, _dotenv, _yaml, load_all
+from mailhelp.config import IrrelevantTopicsConfig, LlmRoute, PromptConfig, PromptStep, Topic, TopicsConfig, _deep_merge, _dotenv, _yaml, load_all
 from mailhelp.imap import FetchedMail, ImapReader, UIDValidityChanged, account_id
 from mailhelp.integrations import HttpWriter, execute_confirmed
 from mailhelp.logging import JsonlLogger, redact
@@ -112,11 +112,12 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
     env_file.write_text("bad-key=x\n", encoding="utf8")
     with pytest.raises(ValueError, match="Schlüssel"): _dotenv(env_file)
     env_file.unlink()
-    for name in ("config.yaml", "prompts.yaml", "topics.yaml"):
+    for name in ("config.yaml", "prompts.yaml", "topics.yaml", "irrelevant_topics.yaml"):
         (tmp_path / name).write_text((Path(name)).read_text(encoding="utf8"), encoding="utf8")
     env = {x: "secret" for x in ["IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN", "TODOIST_TOKEN", "TODOIST_CLIENT_ID", "TODOIST_CLIENT_SECRET", "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"]}
-    settings, secrets, topics, prompts, fingerprint = load_all(tmp_path, env)
+    settings, secrets, topics, irrelevant_topics, prompts, fingerprint = load_all(tmp_path, env)
     assert settings.test_mode and secrets.imap_password.get_secret_value() == "secret" and topics[0].enabled and len(fingerprint) == 64
+    assert irrelevant_topics == []
     assert settings.logging.llm.include_requests is True
     assert settings.logging.llm.include_responses is True
     with pytest.raises(ValueError, match="Fehlende"): load_all(tmp_path, {})
@@ -132,6 +133,12 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
         ])
     with pytest.raises(ValidationError, match="aktiviert"):
         TopicsConfig(topics=[Topic(id="aus", name="Aus", enabled=False, description="Aus")])
+    IrrelevantTopicsConfig(topics=[])
+    with pytest.raises(ValidationError, match="Themen-IDs"):
+        IrrelevantTopicsConfig(topics=[
+            Topic(id="doppelt", name="A", enabled=True, description="A"),
+            Topic(id="doppelt", name="B", enabled=False, description="B"),
+        ])
     (tmp_path / "topics.yaml").write_text(
         "topics:\n  - {id: thema, name: Thema, enabled: true, description: Test}\nunbekannt: true\n",
         encoding="utf8",

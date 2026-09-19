@@ -25,14 +25,18 @@ Zuständen je Abrufdurchlauf.
 
 Der Lernmodus `--learn N` ist ein separater, interaktiver Einmallauf. Er liest
 bis zu `N` neueste Nachrichten aus den konfigurierten IMAP-Ordnern ausschließlich
-mit `BODY.PEEK[]`, ohne Verarbeitungscheckpoints zu verändern. Ein konfigurierter
+mit `BODY.PEEK[]`, ohne Verarbeitungscheckpoints zu verändern. Die Nachrichten
+werden zuerst gegen die relevanten Themen aus `topics.yaml` und die irrelevanten
+Themen aus `irrelevant_topics.yaml` geprüft. Nur Nachrichten ohne Zuordnung in
+beiden Dateien gelangen in die freie Klassifikation. Ein konfigurierter
 LLM-Schritt klassifiziert jede Mail frei; genau ein nachgelagerter LLM-Schritt
 verdichtet sämtliche Klassifikationen zu abstrakteren Kategorien. Mailtexte und
 LLM-Ausgaben bleiben nicht vertrauenswürdig und alle Ausgaben werden schematisch
 validiert. Für jede abstrakte Kategorie fragt der Prozess ausschließlich im
 Terminal nach einer Ja-/Nein-Entscheidung. Bestätigte Kategorien erhalten eine
 eindeutige stabile ID und werden nach vollständiger Konfigurationsvalidierung
-atomar in `topics.yaml` ergänzt. Der Lernmodus kommuniziert nicht über Telegram
+atomar in `topics.yaml` ergänzt; abgelehnte Kategorien werden atomar in
+`irrelevant_topics.yaml` ergänzt. Der Lernmodus kommuniziert nicht über Telegram
 und führt keine externen Schreibaktionen aus.
 
 Der administrative Einmalbefehl `--clear` entfernt nach einer exakten,
@@ -419,6 +423,7 @@ deshalb niemals als echte externe Erstellung interpretiert werden.
 | `config.yaml` | Abruf, Ordner, Zeitzone, Ziele, Telegram-Freigaben, Pfade, Limits, Wiederholungen und Logging |
 | `prompts.yaml` | Prompts, Modelle, globale und schrittspezifische OpenRouter-Parameter; die Terminextraktion besitzt ein höheres Ausgabelimit, damit Reasoning-Token nicht vor Ausgabe des JSON-Ergebnisses das globale Limit ausschöpfen |
 | `topics.yaml` | Themenbereiche und Relevanzkriterien |
+| `irrelevant_topics.yaml` | Im Lernmodus ausgeschlossene Themenbereiche |
 | `.env` | IMAP-Zugangsdaten, OpenRouter-Key, Telegram-Bot-Token, Google-OAuth-Zugangsdaten sowie Todoist-Token, -Client-ID und -Client-Schlüssel |
 | `.env.example` | Erforderliche Variablennamen ohne geheime Werte |
 

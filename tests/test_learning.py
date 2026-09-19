@@ -9,7 +9,7 @@ import yaml
 from mailhelp.config import Topic
 from mailhelp.imap import FetchedMail
 from mailhelp.learning import LearningMode, _safe_terminal, _topic_id, save_topics
-from mailhelp.models import AbstractCategories, LearnedCategory, MailClassification
+from mailhelp.models import AbstractCategories, LearnedCategory, MailClassification, Relevance
 from mailhelp.analysis import Analyzer as RealAnalyzer
 
 
@@ -31,10 +31,18 @@ class Imap:
 
 
 class Analyzer:
-    def __init__(self, categories):
+    def __init__(self, categories, relevance_decisions=None):
         self.categories = categories
         self.mails = []
         self.abstract_inputs = []
+        self.relevance_decisions = iter(relevance_decisions or [])
+        self.relevance_topics = []
+
+    def relevance(self, mail, topics):
+        self.relevance_topics.append((mail, topics))
+        decision = next(self.relevance_decisions, "irrelevant")
+        topic_ids = [topics[0].id] if decision == "relevant" else []
+        return "relevance", Relevance(decision=decision, topic_ids=topic_ids, reason="test")
 
     def classify_for_learning(self, mail):
         self.mails.append(mail)
@@ -63,8 +71,10 @@ def test_learning_fetches_batches_prompts_and_saves_only_accepted(tmp_path):
     answers = iter(["vielleicht", "ja", "n"])
     output = []
     path = tmp_path / "topics.yaml"
+    irrelevant_path = tmp_path / "irrelevant_topics.yaml"
     path.write_text("topics: []\n", encoding="utf-8")
     mode = LearningMode(imap, analyzer, ["INBOX"], 10000, [topic()], path,
+                        [], irrelevant_path,
                         input_fn=lambda _prompt: next(answers), output_fn=output.append)
 
     assert mode.run(2) == 1
@@ -73,15 +83,19 @@ def test_learning_fetches_batches_prompts_and_saves_only_accepted(tmp_path):
     assert len(analyzer.mails) == 2 and len(analyzer.abstract_inputs) == 1
     saved = yaml.safe_load(path.read_text(encoding="utf-8"))["topics"]
     assert [item["id"] for item in saved] == ["bestand", "amter-fristen"]
+    irrelevant = yaml.safe_load(irrelevant_path.read_text(encoding="utf-8"))["topics"]
+    assert [item["id"] for item in irrelevant] == ["werbung"]
     assert any("Bitte mit j" in line for line in output)
     assert all("\x1b" not in line for line in output)
 
 
 def test_learning_empty_mailbox_and_all_rejected_do_not_write(tmp_path):
     path = tmp_path / "topics.yaml"
+    irrelevant_path = tmp_path / "irrelevant_topics.yaml"
     path.write_text("original", encoding="utf-8")
     output = []
     empty = LearningMode(Imap([[]]), Analyzer([]), ["INBOX"], 1000, [topic()], path,
+                         [], irrelevant_path,
                          output_fn=output.append)
     assert empty.run(1) == 0
     assert path.read_text() == "original"
@@ -89,9 +103,47 @@ def test_learning_empty_mailbox_and_all_rejected_do_not_write(tmp_path):
     analyzer = Analyzer([LearnedCategory(name="Nein", description="Nein")])
     rejected = LearningMode(Imap([[FetchedMail("INBOX", 1, 1, raw_mail("x"))]]),
                             analyzer, ["INBOX"], 1000, [topic()], path,
+                            [], irrelevant_path,
                             input_fn=lambda _prompt: "no", output_fn=output.append)
     assert rejected.run(1) == 0
     assert path.read_text() == "original"
+    assert yaml.safe_load(irrelevant_path.read_text(encoding="utf-8"))["topics"][0]["id"] == "nein"
+
+
+def test_learning_skips_mails_matching_relevant_or_irrelevant_topics(tmp_path):
+    mails = [FetchedMail("INBOX", 1, uid, raw_mail(str(uid))) for uid in (1, 2, 3)]
+    analyzer = Analyzer(
+        [LearnedCategory(name="Neu", description="Neu")],
+        # Mail 1 matches the relevant list. Mail 2 misses it but matches the
+        # irrelevant list. Mail 3 misses both and is freely classified.
+        ["relevant", "irrelevant", "irrelevant", "relevant", "irrelevant", "irrelevant"],
+    )
+    relevant = topic("relevant")
+    irrelevant = topic("irrelevant")
+    mode = LearningMode(
+        Imap([mails]), analyzer, ["INBOX"], 1000, [relevant], tmp_path / "topics.yaml",
+        [irrelevant], tmp_path / "irrelevant_topics.yaml",
+        input_fn=lambda _prompt: "ja", output_fn=lambda _line: None,
+    )
+
+    assert mode.run(3) == 1
+    assert len(analyzer.relevance_topics) == 6
+    assert [topics[0].id for _mail, topics in analyzer.relevance_topics] == [
+        "relevant", "irrelevant", "relevant", "irrelevant", "relevant", "irrelevant",
+    ]
+    assert len(analyzer.mails) == 1
+
+
+def test_learning_does_not_call_relevance_for_disabled_or_empty_sets(tmp_path):
+    mail = FetchedMail("INBOX", 1, 1, raw_mail("neu"))
+    analyzer = Analyzer([])
+    disabled = Topic(id="aus", name="Aus", enabled=False, description="Aus")
+    mode = LearningMode(
+        Imap([[mail]]), analyzer, ["INBOX"], 1000, [], tmp_path / "topics.yaml",
+        [disabled], tmp_path / "irrelevant_topics.yaml", output_fn=lambda _line: None,
+    )
+    assert mode.run(1) == 0
+    assert analyzer.relevance_topics == []
 
 
 def test_topic_ids_collision_fallback_and_atomic_cleanup(tmp_path, monkeypatch):

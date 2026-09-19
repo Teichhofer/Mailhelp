@@ -246,6 +246,19 @@ class TopicsConfig(ConfigModel):
         return self
 
 
+class IrrelevantTopicsConfig(ConfigModel):
+    """Closed topic file used to recognize categories excluded from learning."""
+
+    topics: list[Topic] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def unique_topic_ids(self) -> "IrrelevantTopicsConfig":
+        identifiers = [topic.id for topic in self.topics]
+        if len(identifiers) != len(set(identifiers)):
+            raise ValueError("Themen-IDs dürfen nicht doppelt vorkommen")
+        return self
+
+
 class PromptStep(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     system_prompt: str = Field(min_length=1)
@@ -394,11 +407,15 @@ def _dotenv(path: Path) -> dict[str, str]:
     return result
 
 
-def load_all(directory: Path, environ: dict[str, str] | None = None) -> tuple[Settings, Secrets, list[Topic], PromptConfig, str]:
+def load_all(directory: Path, environ: dict[str, str] | None = None) -> tuple[Settings, Secrets, list[Topic], list[Topic], PromptConfig, str]:
     env = {**_dotenv(directory / ".env"), **(os.environ if environ is None else environ)}
     settings = _validated_file(directory / "config.yaml", Settings, _yaml(directory / "config.yaml"))
     prompts = _validated_file(directory / "prompts.yaml", PromptConfig, _yaml(directory / "prompts.yaml"))
     topics = _validated_file(directory / "topics.yaml", TopicsConfig, _yaml(directory / "topics.yaml")).topics
+    irrelevant_topics = _validated_file(
+        directory / "irrelevant_topics.yaml", IrrelevantTopicsConfig,
+        _yaml(directory / "irrelevant_topics.yaml"),
+    ).topics
     names = ["IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN", "TODOIST_TOKEN",
              "TODOIST_CLIENT_ID", "TODOIST_CLIENT_SECRET", "GOOGLE_OAUTH_CLIENT_ID",
              "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"]
@@ -408,7 +425,7 @@ def load_all(directory: Path, environ: dict[str, str] | None = None) -> tuple[Se
     values = {name.lower(): env[name] for name in names}
     secrets = Secrets.model_validate(values)
     fingerprint = hashlib.sha256(json.dumps([settings.model_dump(mode="json"), prompts.model_dump(), [x.model_dump() for x in topics]], sort_keys=True).encode()).hexdigest()
-    return settings, secrets, topics, prompts, fingerprint
+    return settings, secrets, topics, irrelevant_topics, prompts, fingerprint
 
 
 def _validated_file(path: Path, model: type[BaseModel], value: Any, prefix: str = "") -> Any:

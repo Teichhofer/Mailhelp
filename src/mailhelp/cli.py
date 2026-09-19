@@ -85,7 +85,7 @@ def main() -> int:
         "--yes", action="store_true",
         help="Bestätigungsabfrage für --clear überspringen",
     )
-    args = parser.parse_args(); settings, secrets, topics, prompts, fingerprint = load_all(args.config_directory)
+    args = parser.parse_args(); settings, secrets, topics, irrelevant_topics, prompts, fingerprint = load_all(args.config_directory)
     if args.yes and not args.clear:
         parser.error("--yes ist nur zusammen mit --clear zulässig")
     if args.clear:
@@ -124,6 +124,7 @@ def main() -> int:
             LearningMode(
                 application.imap, application.analyzer, settings.imap.folders,
                 settings.limits, topics, args.config_directory / "topics.yaml",
+                irrelevant_topics, args.config_directory / "irrelevant_topics.yaml",
                 timezone=settings.timezone,
             ).run(args.learn)
             return 0

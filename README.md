@@ -14,7 +14,7 @@ py -3.12 -m venv .venv
 Copy-Item .env.example .env
 ```
 
-Unter Linux werden die letzten beiden Befehle mit `.venv/bin/python` und `cp` ausgeführt. `config.yaml`, `prompts.yaml` und `topics.yaml` anpassen; echte Geheimnisse ausschließlich in `.env` oder der Prozessumgebung setzen. Laufzeitvariablen haben Vorrang. Danach validiert `mailhelp --check` alle Dateien, ohne Netzwerkzugriff.
+Unter Linux werden die letzten beiden Befehle mit `.venv/bin/python` und `cp` ausgeführt. `config.yaml`, `prompts.yaml`, `topics.yaml` und `irrelevant_topics.yaml` anpassen; echte Geheimnisse ausschließlich in `.env` oder der Prozessumgebung setzen. Laufzeitvariablen haben Vorrang. Danach validiert `mailhelp --check` alle Dateien, ohne Netzwerkzugriff.
 
 Mit `mailhelp --check-access` lässt sich anschließend ein reiner Zugriffstest
 starten. Er prüft nacheinander die Anmeldung bei IMAP und den Nur-Lese-Zugriff auf
@@ -76,6 +76,8 @@ real angelegt, während Todoist-Aufgaben simuliert bleiben.
 Auch die Wurzel von `topics.yaml` ist geschlossen: Sie enthält ausschließlich die
 Liste `topics`; diese muss mindestens ein aktiviertes Thema besitzen und alle
 stabilen Themen-IDs müssen eindeutig sein.
+`irrelevant_topics.yaml` hat dasselbe geschlossene Format und eindeutige IDs, darf
+aber anfangs eine leere Themenliste enthalten.
 
 Für `imap.connection_mode` sind ausschließlich `ssl` (TLS ab dem ersten Byte,
 typischerweise Port 993), `starttls` (zunächst IMAP, dann zwingendes STARTTLS,
@@ -371,8 +373,10 @@ Prompts, Themen und Geheimnisse werden nicht gelöscht.
 ### Interaktiver Lernmodus
 
 `mailhelp --learn 20` ruft bis zu 20 der neuesten Mails schreibfrei mit
-`BODY.PEEK[]` aus den konfigurierten Ordnern ab. Jede Mail wird zunächst ohne
-vorgegebene Themenliste durch den in `prompts.yaml` konfigurierten Schritt
+`BODY.PEEK[]` aus den konfigurierten Ordnern ab. Jede Mail wird zuerst gegen die
+aktivierten Einträge in `topics.yaml` und `irrelevant_topics.yaml` geprüft. Bereits
+zuordenbare Mails werden übersprungen. Nur Mails, die zu keiner der beiden Listen
+gehören, werden ohne vorgegebene Themenliste durch den in `prompts.yaml` konfigurierten Schritt
 `learning_classification` klassifiziert. Ein einzelner weiterer Aufruf über
 `learning_abstraction` fasst die Ergebnisse zu allgemeineren Themen zusammen.
 Für Einzelklassifikation und Abstraktion überschreibt `prompts.yaml` das globale
@@ -386,8 +390,9 @@ begrenzte Reparaturversuch zusätzlich durch eine Systemanweisung erzwungen;
 die Anweisung im Nutzdatenobjekt allein könnte sonst als nicht vertrauenswürdiger
 Mailinhalt behandelt und ignoriert werden.
 Anschließend zeigt das Programm jede vorgeschlagene Kategorie ausschließlich im
-Terminal an und verlangt dort eine Antwort mit `j` oder `n`. Nur bestätigte
-Kategorien werden aktiviert und atomar in `topics.yaml` ergänzt; IMAP-Checkpoints
+Terminal an und verlangt dort eine Antwort mit `j` oder `n`. Bestätigte
+Kategorien werden aktiviert und atomar in `topics.yaml`, abgelehnte Kategorien
+atomar in `irrelevant_topics.yaml` ergänzt; IMAP-Checkpoints
 und Telegram werden in diesem Modus nicht verwendet. `--learn` muss mindestens
 `1` sein.
 
