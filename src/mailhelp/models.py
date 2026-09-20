@@ -494,7 +494,9 @@ def _required_revision_questions(proposal: Proposal) -> list[str]:
     """Derive invariant clarification questions from the revised business facts."""
     questions: list[str] = []
     if proposal.kind == ProposalKind.EVENT:
-        if proposal.start is None:
+        known_start = (proposal.known_temporal_facts.start
+                       if proposal.known_temporal_facts is not None else None)
+        if proposal.start is None and known_start is None:
             questions.append("Wann beginnt der Termin?")
         if proposal.end is None:
             questions.append("Wann endet der Termin?")
@@ -522,6 +524,29 @@ def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta) ->
     if delta.answered_question not in previous.open_questions:
         raise ValueError("Die beantwortete Frage ist im Vorschlag nicht offen")
     changes = delta.changes.model_dump(exclude_unset=True)
+    resolved_day = (previous.temporal_fact.normalized_date
+                    if previous.temporal_fact is not None else None)
+    known = previous.known_temporal_facts
+    if known is not None and known.date is not None:
+        resolved_day = known.date
+    for field in ("due", "start", "end"):
+        value = changes.get(field)
+        value_day = value.date() if isinstance(value, datetime) else value
+        if resolved_day is not None and value is not None and value_day != resolved_day:
+            raise ValueError(
+                f"{field} widerspricht dem validierten Datum {resolved_day.isoformat()}")
+
+    # Incomplete event intervals retain their application-owned facts separately.
+    # This avoids mixing a half interval with ``known_temporal_facts`` while still
+    # allowing the next question to ask only for the missing end.
+    if known is not None:
+        start = changes.get("start", known.start)
+        end = changes.get("end")
+        if start is not None and end is not None:
+            changes.update(start=start, end=end, known_temporal_facts=None)
+        elif "start" in changes:
+            changes.pop("start")
+            changes["known_temporal_facts"] = known.model_copy(update={"start": start})
     remaining = list(previous.open_questions)
     remaining.remove(delta.answered_question)
     provisional = previous.model_copy(update=changes)

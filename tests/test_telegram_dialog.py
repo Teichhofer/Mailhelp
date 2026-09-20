@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 import httpx
 import pytest
 from unittest.mock import patch
@@ -26,6 +27,7 @@ from mailhelp.telegram import (
     TelegramUpdate,
     numbered_message_parts,
     format_proposal,
+    deterministic_temporal_revision,
     validate_callback_data,
     validate_callback_markup,
 )
@@ -112,6 +114,80 @@ class UnusableAnswerService(RevisionService):
         self.calls.append(("interpret", item, question, answer))
         return "interpret-call", type("Interpretation", (), {
             "usable": False, "normalized_answer": None, "reason": "Datum fehlt"})()
+
+
+def test_deterministic_start_revision_uses_validated_day_without_llm(tmp_path):
+    class Normalized(RevisionService):
+        def interpret_telegram_answer(self, item, question, answer):
+            return "interpret", type("Interpretation", (), {
+                "usable": True, "normalized_answer": "21.10.2026 um 12 Uhr",
+                "reason": "eindeutig"})()
+        def revise_proposal(self, item, question, answer):
+            raise AssertionError("Für die eindeutige Zeit darf kein Revisions-LLM laufen")
+
+    with JsonStore(tmp_path) as store:
+        item = proposal(kind="event", status="needs_clarification",
+                        open_questions=["Wann beginnt der Termin?"],
+                        known_temporal_facts={"date": "2026-10-21"},
+                        temporal_fact={"raw_text": "21.10.26",
+                                       "normalized_date": "2026-10-21",
+                                       "year_source": "telegram", "status": "resolved"})
+        c, transport, log = controller(store, revision_service=Normalized())
+        c.configured_timezone = "Europe/Berlin"
+        c.persist(item)
+        store.save("telegram-dialog", TelegramDialogState(
+            mail_id=item.source_mail_id, proposal_id=item.id,
+            version=1).model_dump(mode="json"))
+        c._answer("21.10.26 12 Uhr")
+        saved = store.load_model("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1", Proposal)
+        assert saved.version == 2
+        assert saved.known_temporal_facts.start.isoformat() == "2026-10-21T12:00:00+02:00"
+        assert saved.open_questions == ["Wann endet der Termin?"]
+        assert "verzögert" not in transport.sent[-1][1]
+        applied = next(event for event in log.events
+                       if event[0][2] == "proposal_revision_delta_applied")
+        assert applied[1]["previous_version"] == 1
+        assert applied[1]["new_version"] == 2
+
+
+def test_deterministic_temporal_revision_rejects_wrong_day_and_dst_edges():
+    item = proposal(kind="event", status="needs_clarification",
+                    open_questions=["Wann beginnt der Termin?"],
+                    known_temporal_facts={"date": "2026-10-21"})
+    with pytest.raises(ContradictoryRevision, match="Termindatum"):
+        deterministic_temporal_revision(
+            item, item.open_questions[0], "21.10.2110 um 12 Uhr", "Europe/Berlin")
+    assert deterministic_temporal_revision(
+        proposal(open_questions=["Titel?"]), "Titel?", "21.10.2026 um 12 Uhr", "UTC") is None
+    assert deterministic_temporal_revision(
+        item, item.open_questions[0], "morgen mittag", "UTC") is None
+    ambiguous = item.model_copy(update={
+        "known_temporal_facts": item.known_temporal_facts.model_copy(
+            update={"date": date(2026, 10, 25)})})
+    with pytest.raises(ContradictoryRevision, match="Zeitumstellung"):
+        deterministic_temporal_revision(
+            ambiguous, ambiguous.open_questions[0], "25.10.2026 um 02:30 Uhr",
+            "Europe/Berlin")
+    nonexistent = item.model_copy(update={
+        "known_temporal_facts": item.known_temporal_facts.model_copy(
+            update={"date": date(2026, 3, 29)})})
+    with pytest.raises(ContradictoryRevision, match="Zeitumstellung"):
+        deterministic_temporal_revision(
+            nonexistent, nonexistent.open_questions[0], "29.03.2026 um 02:30 Uhr",
+            "Europe/Berlin")
+
+
+def test_validation_failure_log_contains_safe_structured_details(tmp_path):
+    with JsonStore(tmp_path) as store:
+        c, _, log = controller(store)
+        with pytest.raises(ValidationError) as caught:
+            Proposal.model_validate({})
+        c._log_revision_failure("a" * 24, "p1", 1, caught.value,
+                                ProposalRevisionStatus.RETRY_REQUIRED)
+        fields = log.events[-1][1]
+        assert fields["validation_errors"][0]["location"] == ["id"]
+        assert fields["validation_errors"][0]["type"] == "missing"
+        assert "input" not in repr(fields["validation_errors"])
 
 
 class InterpretationErrorService(RevisionService):

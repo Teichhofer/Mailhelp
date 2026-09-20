@@ -92,7 +92,11 @@ def validate_revision_successor(previous: Proposal, candidate: Any) -> Proposal:
     if known is not None and revised.all_day:
         raise ContradictoryRevision("Ein bekanntes Datum ohne Ganztagsevidenz darf nicht ganztägig werden")
     if known is not None and revised.known_temporal_facts is not None and revised.known_temporal_facts != known:
-        raise ContradictoryRevision("Bekannte Zeitfakten dürfen nicht verändert werden")
+        enriched_start = (known.start is None
+                          and revised.known_temporal_facts.date == known.date
+                          and revised.known_temporal_facts.start is not None)
+        if not enriched_start:
+            raise ContradictoryRevision("Bekannte Zeitfakten dürfen nicht verändert werden")
     if known is not None and revised.known_temporal_facts is None:
         complete_timed = (isinstance(revised.start, datetime)
                           and isinstance(revised.end, datetime))
@@ -300,12 +304,13 @@ class Analyzer:
             validate_delta, schema=ProposalRevisionDelta,
             token_retry_payload=retry_payload,
         )
+        revised = apply_proposal_revision(proposal, delta)
         recorder = getattr(self.client, "logger", None)
         if recorder is not None:
             recorder.event("INFO", "analysis", "proposal_revision_delta_applied",
                            proposal_id=proposal.id, previous_version=proposal.version,
                            new_version=proposal.version + 1)
-        return call_id, apply_proposal_revision(proposal, delta)
+        return call_id, revised
 
     @staticmethod
     def _revision_fields(proposal: Proposal, question: str) -> list[str]:

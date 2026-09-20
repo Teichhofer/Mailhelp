@@ -664,6 +664,10 @@ strukturierten Erwartungen aus `tests/fixtures/mail_corpus_v1/corpus.json` erfü
 Proposal-Überarbeitungen verwenden ein geschlossenes, minimales Delta statt eines
 erneut vom Modell erzeugten Gesamt-Proposals. IDs, Version, Status, unveränderte
 Felder und offene Fragen bleiben unter Kontrolle der Anwendung. Nach einem
+eindeutigen, bereits validierten Datum-und-Uhrzeit-Ergebnis baut Mailhelp den
+Zeitpunkt direkt aus dem bekannten Datum und der konfigurierten IANA-Zeitzone; ein
+zweiter LLM-Aufruf ist dafür nicht erforderlich. Abweichende Modelldaten werden vor
+dem Anwenden abgewiesen. Nach einem
 `output_token_limit` wird eine kürzere, feldreduzierte Route verwendet. Scheitern
 alle technischen Versuche, speichert Mailhelp die normalisierte Antwort als
 `retry_required` und setzt sie nach einem Neustart fort, ohne erneut zu fragen.

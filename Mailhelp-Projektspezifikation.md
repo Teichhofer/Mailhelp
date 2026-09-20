@@ -405,6 +405,12 @@ es wird ausschließlich nach dem Ende gefragt. Beginn, Ende und Dauer werden nic
 erfunden. Dieselben Invarianten gelten für Telegram-Revisionen: Ein LLM-Nachfolger
 darf bekannte Fakten weder verwerfen noch ein Datum ohne Ganztagsevidenz in einen
 Ganztagstermin umdeuten.
+Enthält die bereits validierte Telegram-Antwort zu einer Beginn- oder Endfrage ein
+eindeutiges Datum und eine eindeutige Uhrzeit, setzt Mailhelp den Zeitpunkt mit dem
+validierten `normalized_date` und der konfigurierten IANA-Zeitzone deterministisch
+zusammen. Dafür erfolgt kein weiterer LLM-Revisionsaufruf. Abweichende Kalenderdaten
+werden vor dem Anwenden des Deltas fachlich abgewiesen; nicht existente oder doppelte
+DST-Ortszeiten bleiben klärungsbedürftig.
 
 Unverbindliche Vorschläge, bereits erledigte Aufgaben sowie Änderungen und Absagen sind als solche zu erkennen. Änderungen oder Absagen werden in V1 gemeldet und nicht als gewöhnlicher neuer Termin automatisch weiterverarbeitet. Wiederkehrende oder anderweitig nicht unterstützte Terminformen werden zur manuellen Bearbeitung gekennzeichnet.
 Eine ausdrücklich an die Nutzerin oder den Nutzer gerichtete, noch auszuführende
@@ -457,7 +463,9 @@ aktive Dialog die dauerhafte Konsumgrenze. Ein späterer Revisionsfehler ändert
 `proposal_revision_status=retry_required`; weder ein Neustart noch eine neue Nachricht
 darf die gespeicherte Antwort erneut als Benutzereingabe interpretieren. Inhaltsfreie
 Logereignisse nennen Fehlerklasse, versionsgebundene Proposal-Referenz und
-Revisionsstatus. Ein erfolgreicher HTTP-200-Telegram-Versand bleibt ein eigener
+Revisionsstatus. Bei Pydantic-Validierungsfehlern werden zusätzlich ausschließlich
+Feldpfad, Fehlertyp und Fehlermeldung protokolliert, niemals Eingabewerte. Ein
+erfolgreicher HTTP-200-Telegram-Versand bleibt ein eigener
 Transporterfolg und wird keinem danach auftretenden Revisionsfehler zugerechnet.
 
 - Telegram verwendet Long Polling; ein öffentlicher Webhook ist nicht vorgesehen.
