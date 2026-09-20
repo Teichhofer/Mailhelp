@@ -7,7 +7,7 @@ import sys
 import pytest
 
 from mailhelp.cli import (
-    CLEAR_CONFIRMATION, _default_config_directory, _positive_int,
+    CLEAR_CONFIRMATION, _SignalShutdown, _default_config_directory, _positive_int,
     clear_runtime_data, main,
 )
 
@@ -86,6 +86,7 @@ def test_cli_forwards_posix_and_windows_path_spellings(monkeypatch, capsys, spel
 def test_cli_forwards_mail_limit_and_rejects_non_positive_values(monkeypatch):
     class App:
         def __init__(self): self.limit = None
+        def stop(self): pass
         def run(self, max_mails=None): self.limit = max_mails
 
     application = App()
@@ -143,6 +144,47 @@ def test_cli_runs_terminal_learning_mode(monkeypatch):
                            Path('cfg/topics.yaml'), ['irrelevant'],
                            Path('cfg/irrelevant_topics.yaml')),
                           {'timezone': 'Europe/Berlin', 'parallel_llm_calls': 7}), 3]
+
+
+def test_signal_shutdown_interrupts_one_shot_modes_and_stops_service():
+    shutdown = _SignalShutdown()
+    with pytest.raises(KeyboardInterrupt):
+        shutdown(2, None)
+
+    stopped = []
+    shutdown.stop = lambda: stopped.append(True)
+    shutdown(2, None)
+    assert stopped == [True]
+
+
+def test_ctrl_c_exits_cleanly_in_learning_mode(monkeypatch, capsys):
+    settings = SimpleNamespace(
+        imap=SimpleNamespace(folders=["INBOX"]), limits="limits", timezone="UTC",
+        learning=SimpleNamespace(parallel_llm_calls=1),
+    )
+    logger = CaptureLogger()
+
+    @contextmanager
+    def builder(*_args, **_kwargs):
+        yield SimpleNamespace(imap="imap", analyzer="analyzer")
+
+    class InterruptedLearning:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        def run(self, _count):
+            raise KeyboardInterrupt
+
+    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (
+        settings, object(), [], [], object(), "fingerprint"))
+    monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args, **_kwargs: logger)
+    monkeypatch.setattr("mailhelp.cli.build_application", builder)
+    monkeypatch.setattr("mailhelp.cli.LearningMode", InterruptedLearning)
+    monkeypatch.setattr("mailhelp.cli.signal.signal", lambda *_args: None)
+    monkeypatch.setattr(sys, "argv", ["mailhelp", "--learn", "1"])
+
+    assert main() == 130
+    assert capsys.readouterr().out == "\nBeenden angefordert.\n"
 
 
 def test_clear_removes_both_state_namespaces_and_logs(tmp_path):
