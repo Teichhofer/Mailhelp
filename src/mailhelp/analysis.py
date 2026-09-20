@@ -11,7 +11,7 @@ from pydantic import BaseModel, ValidationError
 from .adapter import RetryableError
 from .config import LlmRoute, PromptConfig, Topic
 from .models import (AbstractCategories, ActionRoute, EventExtraction,
-                     MailClassification, Proposal, ProposalRevisionChanges, ProposalRevisionDelta, Relevance,
+                     MailClassification, Proposal, ProposalRevisionChanges, ProposalRevisionDelta, ProposalStatus, Relevance,
                      Summary, TaskExtraction, TelegramAnswerInterpretation,
                      TelegramClarification, apply_proposal_revision)
 from .openrouter import InvalidJson, ProviderResponseInvalid
@@ -83,7 +83,7 @@ def validate_revision_successor(previous: Proposal, candidate: Any) -> Proposal:
     """Compatibility boundary for services returning an already built successor."""
     revised = Proposal.model_validate(candidate)
     if revised.id != previous.id:
-        raise ContradictoryRevision("Die Vorschlags-ID darf nicht geändert werden")
+        raise ContradictoryRevision("Die Revisionsidentität (Vorschlags-ID) darf nicht geändert werden")
     if revised.source_mail_id != previous.source_mail_id:
         raise ContradictoryRevision("Die Ursprungsmail darf nicht geändert werden")
     if revised.version != previous.version + 1:
@@ -271,6 +271,10 @@ class Analyzer:
         allowed = self._revision_fields(proposal, question)
         context = {name: value for name, value in proposal.model_dump(mode="json").items()
                    if name in allowed}
+        # The application-owned temporal fact is read-only context.  In
+        # particular, a resolved ISO date must not be degraded back to raw text.
+        if proposal.temporal_fact is not None:
+            context["temporal_fact"] = proposal.temporal_fact.model_dump(mode="json")
         payload = {
             "proposal_fields": context,
             "question": question,
@@ -338,7 +342,10 @@ class Analyzer:
                                   authorized_answer: str) -> tuple[str, TelegramAnswerInterpretation]:
         """Compare an untrusted reply with the requested fact and normalize it."""
         return self._classified_run("telegram_answer_interpretation", {
-            "validated_proposal": proposal.model_dump(mode="json"),
+            "proposal_fields": {key: value for key, value in proposal.model_dump(mode="json").items()
+                                if key in self._revision_fields(proposal, question)},
+            "temporal_fact": (proposal.temporal_fact.model_dump(mode="json")
+                              if proposal.temporal_fact else None),
             "question": question,
             "authorized_answer": authorized_answer,
         }, TelegramAnswerInterpretation.model_validate)

@@ -349,9 +349,9 @@ Schema-Reparaturversuchs steht ein eigenes Ausgabelimit von 4.000 Tokens bereit;
 die intern erzeugte Validierungsdiagnose wird dabei im Systemkontext als
 verbindliche Reparaturanweisung gekennzeichnet.
 
-Die deterministische Aktionsnormalisierung unterstützt ausschließlich die Datumsformen
-`YYYY-MM-DD` und `DD.MM.YYYY` sowie die 24-Stunden-Zeitformen `HH:MM` und
-`HH:MM:SS`. Andere Schreibweisen und relative Angaben wie „nächsten Freitag“
+Die deterministische Aktionsnormalisierung unterstützt die Datumsformen
+`YYYY-MM-DD`, `DD.MM.YYYY` und deutsche Tages-/Monatsangaben ohne Jahr sowie die
+24-Stunden-Zeitformen `HH:MM` und `HH:MM:SS`. Andere Schreibweisen und relative Angaben wie „nächsten Freitag“
 bleiben zusammen mit einem stabilen Klärungsgrund als Rohangabe erhalten. Ein Datum
 ohne Uhrzeit wird als ganztägiges Intervall vom genannten Tag bis zum exklusiven
 Folgetag dargestellt. Eine Uhrzeit wird nur bei vorhandenem Datum, Beginn, Ende und
@@ -368,6 +368,18 @@ Sprache wird auch mit gültigem Kontext nicht automatisch aufgelöst. Fehlender,
 ungültiger, naiver oder widersprüchlicher Kontext erzeugt einen strukturierten
 Klärungsgrund. Zeitliche Auflösung und Zuständigkeit bleiben getrennt: Insbesondere
 ist ein korrekt aufgelöster Termin mit `responsibility=unclear` nicht bestätigbar.
+
+Unmittelbar nach der Roh-Extraktion wird an der Proposal-Vertrauensgrenze ein
+strukturierter `temporal_fact` erzeugt. Er trennt den unveränderten `raw_text`, das
+optionale `normalized_date`, `year_source` (`explicit_mail`, `mail_context`,
+`telegram`, `unknown`) und `status` (`resolved`, `unresolved`, `conflicting`). Die
+frei formulierte Zusammenfassung ist keine Faktenquelle. Bei einem fehlenden Jahr
+darf allein ein validierter, widerspruchsfreier Mailkontext das lokale Jahr liefern;
+ein bereits vergangener Monat/Tag wird dem unmittelbar folgenden Jahr zugeordnet.
+Ein explizites vierstelliges Mailjahr hat Vorrang. Widersprechen sich explizite
+Jahresangaben, bleibt der Termin unbestätigbar. Proposal, Telegram-Antwortauslegung
+und Revision reichen den strukturierten Fakt weiter; ein aufgelöstes ISO-Datum darf
+später nicht wieder auf den Rohwert reduziert werden.
 
 Ein ausdrücklich in der Mail genannter physischer Ort wird getrennt von einem Videolink in `location` beziehungsweise `video_link` übernommen; fehlende Werte bleiben `null` und dürfen nicht erfunden werden. `video_link` akzeptiert ausschließlich längenbegrenzte HTTP-/HTTPS-URLs. Vor einer Bestätigung zeigt Telegram beide Felder sichtbar an. Google Calendar erhält `location` als Ort. Ein vorhandener Videolink wird in der Beschreibung klar gekennzeichnet; Mailhelp erzeugt keine Konferenz.
 

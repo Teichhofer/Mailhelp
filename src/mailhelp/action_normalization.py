@@ -23,7 +23,7 @@ from enum import StrEnum
 import re
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from .models import ExtractedEvent, ExtractedTask, TimeRequirement
+from .models import ExtractedEvent, ExtractedTask, TemporalFact, TimeRequirement
 
 
 class NormalizationReason(StrEnum):
@@ -69,6 +69,7 @@ class NormalizationResult:
     responsibility: str
     known_date: date | None = None
     known_start: datetime | None = None
+    temporal_fact: TemporalFact | None = None
 
     @property
     def resolved(self) -> bool:
@@ -82,6 +83,9 @@ class NormalizationResult:
 
 _DATE_ISO = re.compile(r"\d{4}-\d{2}-\d{2}\Z")
 _DATE_DE = re.compile(r"\d{2}\.\d{2}\.\d{4}\Z")
+_DATE_YEARLESS = re.compile(
+    r"(?i)(\d{1,2})\.?\s+(januar|februar|märz|maerz|april|mai|juni|juli|august|"
+    r"september|oktober|november|dezember)\Z")
 _TIME = re.compile(r"\d{2}:\d{2}(?::\d{2})?\Z")
 
 
@@ -90,16 +94,54 @@ def _failure(reason: NormalizationReason, raw: str | None, responsibility: str,
     return NormalizationResult(None, reason, raw, question, responsibility)
 
 
-def _parse_date(raw: str | None, responsibility: str) -> date | NormalizationResult:
+_MONTHS = {name: number for number, names in enumerate(((), ("januar",), ("februar",),
+    ("märz", "maerz"), ("april",), ("mai",), ("juni",), ("juli",), ("august",),
+    ("september",), ("oktober",), ("november",), ("dezember",))) for name in names}
+
+
+def _parse_date(raw: str | None, responsibility: str, context: MailDateContext | None = None,
+                evidence: str = "") -> tuple[date, TemporalFact] | NormalizationResult:
     if raw is None:
         return _failure(NormalizationReason.MISSING_DATE, raw, responsibility,
                         "Welches Datum ist gemeint?")
     fmt = "%Y-%m-%d" if _DATE_ISO.fullmatch(raw) else "%d.%m.%Y" if _DATE_DE.fullmatch(raw) else None
     if fmt is None:
+        match = _DATE_YEARLESS.fullmatch(raw.strip())
+        if match is not None and context is not None:
+            checked = _context_zone(context, responsibility)
+            if isinstance(checked, NormalizationResult):
+                return replace(checked, raw_value=raw,
+                               temporal_fact=TemporalFact(raw_text=raw, status="unresolved"))
+            header = _aware_timestamp(context.date_header_parsed)
+            assert header is not None
+            local_day = header.astimezone(checked).date()
+            years = set(re.findall(r"(?<!\d)(?:19|20)\d{2}(?!\d)", evidence))
+            if len(years) > 1:
+                return replace(_failure(NormalizationReason.CONFLICTING_CONTEXT, raw, responsibility,
+                               "Welche der widersprüchlichen Jahreszahlen gilt?"),
+                               temporal_fact=TemporalFact(raw_text=raw, status="conflicting"))
+            year = int(next(iter(years))) if years else local_day.year
+            source = "explicit_mail" if years else "mail_context"
+            try:
+                candidate = date(year, _MONTHS[match.group(2).casefold()], int(match.group(1)))
+                if not years and candidate < local_day:
+                    candidate = candidate.replace(year=year + 1)
+            except ValueError:
+                return _failure(NormalizationReason.INVALID_DATE, raw, responsibility,
+                                "Bitte ein gültiges Kalenderdatum angeben.")
+            return candidate, TemporalFact(raw_text=raw, normalized_date=candidate,
+                                           year_source=source, status="resolved")
         return _failure(NormalizationReason.UNSUPPORTED_DATE, raw, responsibility,
                         f"Welches konkrete Datum ist mit „{raw}“ gemeint?")
     try:
-        return datetime.strptime(raw, fmt).date()
+        parsed = datetime.strptime(raw, fmt).date()
+        years = set(re.findall(r"(?<!\d)(?:19|20)\d{2}(?!\d)", f"{raw} {evidence}"))
+        if len(years) > 1:
+            return replace(_failure(NormalizationReason.CONFLICTING_CONTEXT, raw, responsibility,
+                           "Welche der widersprüchlichen Jahreszahlen gilt?"),
+                           temporal_fact=TemporalFact(raw_text=raw, status="conflicting"))
+        return parsed, TemporalFact(raw_text=raw, normalized_date=parsed,
+                                    year_source="explicit_mail", status="resolved")
     except ValueError:
         return _failure(NormalizationReason.INVALID_DATE, raw, responsibility,
                         "Bitte ein gültiges Kalenderdatum angeben.")
@@ -170,18 +212,26 @@ def _localize(day: date, clock: time, zone: ZoneInfo, responsibility: str) -> da
 def normalize_event(event: ExtractedEvent, context: MailDateContext) -> NormalizationResult:
     """Normalize an event without making a responsibility decision."""
     responsibility = event.responsibility
-    day = _parse_date(event.date_text, responsibility)
-    if isinstance(day, NormalizationResult):
-        return day
+    parsed_day = _parse_date(event.date_text, responsibility, context, event.evidence)
+    if isinstance(parsed_day, NormalizationResult):
+        if parsed_day.temporal_fact is None:
+            return replace(parsed_day, temporal_fact=TemporalFact(
+                raw_text=event.date_text,
+                status=("conflicting" if parsed_day.reason == NormalizationReason.CONFLICTING_CONTEXT
+                        else "unresolved")))
+        return parsed_day
+    day, fact = parsed_day
     if event.time_requirement == TimeRequirement.ALL_DAY:
         if event.time_text is not None or event.end_time_text is not None:
-            return _failure(NormalizationReason.INVALID_TIME, event.time_text or event.end_time_text,
-                            responsibility, "Ein ausdrücklich ganztägiger Termin darf keine Uhrzeit enthalten.")
+            return replace(_failure(NormalizationReason.INVALID_TIME,
+                           event.time_text or event.end_time_text, responsibility,
+                           "Ein ausdrücklich ganztägiger Termin darf keine Uhrzeit enthalten."),
+                           temporal_fact=fact)
         checked = _context_zone(context, responsibility)
         if isinstance(checked, NormalizationResult):
-            return checked
+            return replace(checked, temporal_fact=fact)
         return NormalizationResult(TemporalValue(day, day + timedelta(days=1), True), None,
-                                   event.date_text, None, responsibility)
+                                   event.date_text, None, responsibility, temporal_fact=fact)
     if event.time_text is None:
         if event.end_time_text is not None:
             result = _failure(NormalizationReason.MISSING_TIME, event.end_time_text, responsibility,
@@ -189,33 +239,34 @@ def normalize_event(event: ExtractedEvent, context: MailDateContext) -> Normaliz
         else:
             result = _failure(NormalizationReason.MISSING_TIME, event.date_text, responsibility,
                               "Wann beginnt der Termin?")
-        return replace(result, known_date=day)
+        return replace(result, known_date=day, temporal_fact=fact)
     zone = _context_zone(context, responsibility)
     if isinstance(zone, NormalizationResult):
-        return zone
+        return replace(zone, temporal_fact=fact)
     start_clock = _parse_time(event.time_text, responsibility)
     if isinstance(start_clock, NormalizationResult):
-        return start_clock
+        return replace(start_clock, temporal_fact=fact)
     start = _localize(day, start_clock, zone, responsibility)
     if isinstance(start, NormalizationResult):
-        return start
+        return replace(start, temporal_fact=fact)
     if event.end_time_text is None:
         result = _failure(NormalizationReason.MISSING_END_TIME, event.time_text, responsibility,
                           "Wann endet der Termin?")
-        return replace(result, known_date=day, known_start=start)
+        return replace(result, known_date=day, known_start=start, temporal_fact=fact)
     end_clock = _parse_time(event.end_time_text, responsibility)
     if isinstance(end_clock, NormalizationResult):
-        return end_clock
+        return replace(end_clock, temporal_fact=fact)
     end = _localize(day, end_clock, zone, responsibility)
     if isinstance(end, NormalizationResult):
-        return end
+        return replace(end, temporal_fact=fact)
     if end <= start:
-        return _failure(NormalizationReason.END_NOT_AFTER_START,
-                        f"{event.time_text}–{event.end_time_text}", responsibility,
-                        "Liegt das Ende an einem anderen Tag oder ist eine Uhrzeit falsch?")
+        return replace(_failure(NormalizationReason.END_NOT_AFTER_START,
+                       f"{event.time_text}–{event.end_time_text}", responsibility,
+                       "Liegt das Ende an einem anderen Tag oder ist eine Uhrzeit falsch?"),
+                       temporal_fact=fact)
     return NormalizationResult(TemporalValue(start, end, False), None,
                                f"{event.date_text} {event.time_text}–{event.end_time_text}", None,
-                               responsibility)
+                               responsibility, temporal_fact=fact)
 
 
 def normalize_task_due(task: ExtractedTask, context: MailDateContext) -> NormalizationResult:
@@ -224,10 +275,12 @@ def normalize_task_due(task: ExtractedTask, context: MailDateContext) -> Normali
     if task.due_text is None:
         return _failure(NormalizationReason.MISSING_DATE, None, responsibility,
                         "Soll die Aufgabe eine Fälligkeit haben?")
-    parsed = _parse_date(task.due_text, responsibility)
+    parsed = _parse_date(task.due_text, responsibility, context, task.evidence)
     if isinstance(parsed, NormalizationResult):
         return parsed
+    parsed, fact = parsed
     checked = _context_zone(context, responsibility)
     if isinstance(checked, NormalizationResult):
-        return checked
-    return NormalizationResult(parsed, None, task.due_text, None, responsibility)
+        return replace(checked, temporal_fact=fact)
+    return NormalizationResult(parsed, None, task.due_text, None, responsibility,
+                               temporal_fact=fact)

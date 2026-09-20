@@ -898,12 +898,14 @@ def test_clarification_recovery_edge_paths(tmp_path):
         c._revise_answered(answered.model_copy(update={"version":2}))
 
         c.revision_service=RevisionService()
+        original_handle = c._handle
         c._handle=lambda update: (_ for _ in ()).throw(RuntimeError("persistence"))
         t.updates=[message(7)]
         with pytest.raises(RuntimeError, match="persistence"):
             c.poll_once()
 
         c.revision_service = RevisionService()
+        c._handle = original_handle
         c.poll_once()
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["version"] == 2
         assert store.load("telegram-dialog")["retry_required"] is False
@@ -920,11 +922,17 @@ def test_revision_resume_handles_stale_unavailable_and_repeated_failure(tmp_path
         c.poll_once()
         assert any(item[0][2] == "answer_revision_resume_failed" for item in log.events)
 
+        c.revision_service=RevisionService()
+        c.poll_once()
+        assert store.load("telegram-dialog")["retry_required"] is False
+        assert any(item[0][2] == "answer_revision_resumed" for item in log.events)
+
         c.revision_service=None
+        store.save("telegram-dialog",{**base,"version":2})
         c.poll_once()
         assert store.load("telegram-dialog")["retry_required"] is True
 
-        store.save("telegram-dialog",{**base,"version":2})
+        store.save("telegram-dialog",{**base,"version":3})
         c.poll_once()
         assert store.load("telegram-dialog")["retry_required"] is False
     with pytest.raises(Exception, match="Revisions-Retry"):

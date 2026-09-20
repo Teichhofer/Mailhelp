@@ -95,6 +95,8 @@ class ProposalBuilder:
                     temporal.known_date is not None or temporal.known_start is not None):
                 values["known_temporal_facts"] = KnownTemporalFacts(
                     date=temporal.known_date, start=temporal.known_start)
+            if temporal is not None:
+                values["temporal_fact"] = temporal.temporal_fact
             target = self.targets.todoist_project if kind == "task" else self.targets.google_calendar
             status = (ProposalStatus.PENDING_CONFIRMATION
                       if item.classification == "new" and item.responsibility == "user"
