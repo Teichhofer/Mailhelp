@@ -6,7 +6,7 @@ from pydantic import ValidationError
 from mailhelp.action_normalization import MailDateContext
 from mailhelp.config import TargetSettings
 from mailhelp.models import (ExtractedEvent, ExtractedTask, KnownTemporalFacts, Proposal,
-                             ProposalStatus)
+                             ProposalStatus, TemporalFact)
 from mailhelp.proposal_builder import ProposalBuilder
 
 
@@ -89,6 +89,22 @@ def test_trusted_fields_targets_stable_ids_duplicates_and_restart():
 def test_unresolved_date():
     unresolved = builder().build([], [event(date_text="kommenden Dienstag")])[0]
     assert unresolved.status == ProposalStatus.NEEDS_CLARIFICATION and unresolved.start is None
+
+
+def test_structured_context_date_survives_proposal_boundary():
+    proposal = builder().build([], [event(date_text="21. Oktober",
+                                         evidence="Treffen am 21. Oktober")])[0]
+    assert proposal.start == date(2026, 10, 21)
+    assert proposal.temporal_fact.raw_text == "21. Oktober"
+    assert proposal.temporal_fact.normalized_date == date(2026, 10, 21)
+    assert proposal.temporal_fact.year_source == "mail_context"
+
+
+def test_temporal_fact_rejects_inconsistent_resolution_and_source():
+    with pytest.raises(ValidationError, match="aufgelöster Zeitfakt"):
+        TemporalFact(raw_text="21. Oktober", normalized_date="2026-10-21", status="unresolved")
+    with pytest.raises(ValidationError, match="Jahresherkunft"):
+        TemporalFact(raw_text="21. Oktober", year_source="mail_context", status="unresolved")
 
 
 def test_date_without_time_is_conservative_and_retained():

@@ -689,6 +689,9 @@ class TelegramDialogController:
     def poll_once(self) -> None:
         self._resume_writes()
         self._resume_revisions()
+        # Continue supporting the compact legacy retry marker while durable
+        # clarification records are rolled out.
+        self._resume_revision()
         offset_state = self.store.load_model("telegram-offset", TelegramOffset, TelegramOffset())
         assert isinstance(offset_state, TelegramOffset)
         offset = max(offset_state.offset, self._durable_dialog_offset())

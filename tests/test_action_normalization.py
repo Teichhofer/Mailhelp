@@ -153,3 +153,40 @@ def test_task_due_checks_mail_context_and_does_not_override_responsibility():
     unclear = normalize_task_due(task(responsibility="unclear"), context())
     assert invalid.reason == NormalizationReason.INVALID_CONTEXT
     assert unclear.value == date(2026, 9, 22) and not unclear.confirmation_ready
+
+
+def test_yearless_german_date_uses_only_validated_context_and_records_source():
+    result = normalize_event(event(date_text="21. Oktober"), context())
+    assert result.value == TemporalValue(date(2026, 10, 21), date(2026, 10, 22), True)
+    assert result.temporal_fact.model_dump(mode="json") == {
+        "raw_text": "21. Oktober", "normalized_date": "2026-10-21",
+        "year_source": "mail_context", "status": "resolved",
+    }
+
+
+def test_yearless_date_rolls_forward_but_conflict_and_unknown_context_never_guess():
+    rollover = normalize_event(event(date_text="2. Januar"), context(
+        date_header_parsed="2026-12-30T12:00:00+01:00",
+        imap_received_at="2026-12-30T11:01:00+00:00"))
+    assert rollover.value.start == date(2027, 1, 2)
+    conflicting = normalize_event(event(date_text="21. Oktober",
+        evidence="21. Oktober 2026; an anderer Stelle 2027"), context())
+    assert conflicting.reason == NormalizationReason.CONFLICTING_CONTEXT
+    assert conflicting.temporal_fact.status == "conflicting"
+    unknown = normalize_event(event(date_text="21. Oktober"), context(date_context_status="missing"))
+    assert unknown.value is None and unknown.temporal_fact.status == "unresolved"
+
+
+def test_explicit_four_digit_year_wins_over_context_year():
+    result = normalize_event(event(date_text="2028-10-21",
+                                   evidence="Termin am 21. Oktober 2028"), context())
+    assert result.value.start == date(2028, 10, 21)
+    assert result.temporal_fact.year_source == "explicit_mail"
+
+
+def test_invalid_yearless_day_and_conflicting_explicit_years_are_rejected():
+    invalid = normalize_event(event(date_text="31. Februar"), context())
+    assert invalid.reason == NormalizationReason.INVALID_DATE
+    conflict = normalize_event(event(date_text="21.10.2026",
+                                     evidence="2026 widerspricht 2027"), context())
+    assert conflict.reason == NormalizationReason.CONFLICTING_CONTEXT

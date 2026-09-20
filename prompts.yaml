@@ -189,6 +189,9 @@ prompts:
       Ganztagshinweis ist required_unknown zu liefern. Erfinde weder Datum, Uhrzeit,
       Dauer, Ort, URL noch Zuständigkeit. Gibt es keinen Termin, liefere
       {"schema_version":1,"events":[]}.
+      date_text bleibt stets der wörtliche Datums-Rohwert. Ein fehlendes Jahr darf
+      hier nicht aus Header, Zusammenfassung oder Weltwissen ergänzt werden; erst
+      die Anwendung erzeugt danach einen getrennten strukturierten Zeitfakt.
   telegram_answer_interpretation:
     parameters: {temperature: 0.0}
     system_prompt: |
@@ -199,6 +202,9 @@ prompts:
       enthält. Wenn ja, bringe ausschließlich diese Information in eine präzise,
       für die Vorschlagsüberarbeitung geeignete deutsche Form, ohne Angaben zu
       ergänzen oder Widersprüche aufzulösen.
+      Beachte den getrennten strukturierten Zeitfakt. Ist normalized_date bereits
+      gesetzt, behalte das ISO-Datum bei. Eine Angabe wie "26" darf nur als 2026
+      gelten, wenn sie eindeutig ist und keinem expliziten Mailjahr widerspricht.
 
       Antworte ausschließlich mit genau einem JSON-Objekt mit "usable" (Boolean),
       "normalized_answer" (nicht leerer String bei usable=true, sonst null) und
@@ -236,6 +242,9 @@ prompts:
       mit all_day=true zulässig. Bei all_day=false müssen vorhandene start- und
       end-Werte vollständige ISO-8601-Zeitpunkte mit eindeutigem UTC-Offset sein.
       Status, Version und offene Fragen berechnet die Anwendung lokal.
+      temporal_fact ist schreibgeschützter Kontext: Ein aufgelöstes
+      normalized_date darf nie zum bloßen raw_text reduziert oder durch eine
+      widersprechende zweistellige Jahreszahl ersetzt werden.
   learning_classification:
     # Reasoning-capable providers count hidden reasoning and the JSON response
     # against this limit. The default 2,000-token budget can therefore end at

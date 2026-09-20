@@ -95,6 +95,14 @@ def test_revision_keeps_known_date_and_start_and_never_infers_all_day():
             **original.model_dump(mode="json"), "version": 2,
             "known_temporal_facts": {"date": "2026-10-21",
                                       "start": "2026-10-21T09:00:00+02:00"}})
+    task = proposal(open_questions=["Datum?"])
+    successor = {**task.model_dump(mode="json"), "version": 2,
+                 "open_questions": [], "status": "pending_confirmation"}
+    for changed, message in (({"source_mail_id": "b" * 24}, "Ursprungsmail"),
+                             ({"version": 3}, "exakt um eins"),
+                             ({"status": "needs_clarification"}, "offenen Fragen")):
+        with pytest.raises(ContradictoryRevision, match=message):
+            validate_revision_successor(task, {**successor, **changed})
 
 
 @pytest.mark.parametrize(("failure", "repair_key"), [
@@ -384,7 +392,7 @@ def test_telegram_answer_interpretation_and_clarification_use_separate_fields():
         original, "Welches Datum?", "am ersten Oktober")
     assert interpreted.normalized_answer == "1. Oktober 2026"
     assert interpreting.payloads[0] == {
-        "validated_proposal": original.model_dump(mode="json"),
+        "proposal_fields": {"due": None}, "temporal_fact": None,
         "question": "Welches Datum?", "authorized_answer": "am ersten Oktober",
     }
 
@@ -451,6 +459,16 @@ def test_revision_token_limit_uses_reduced_route_and_can_exhaust():
     Analyzer(logged,cfg).revise_proposal(original,"Titel?","Neu")
     assert logged.logger.events[0][0][2] == "proposal_revision_delta_applied"
 
+
+def test_revision_payload_carries_resolved_temporal_fact_read_only():
+    base = proposal(open_questions=["Welches Datum?"]).model_dump()
+    original = Proposal.model_validate({**base, "temporal_fact": {
+        "raw_text": "21. Oktober", "normalized_date": "2026-10-21",
+        "year_source": "mail_context", "status": "resolved"}})
+    client = RetrySequence([{"answered_question": "Welches Datum?",
+                             "changes": {"due": "2026-10-21"}}])
+    Analyzer(client, prompt_config()).revise_proposal(original, "Welches Datum?", "21.10.26")
+    assert client.payloads[0]["proposal_fields"]["temporal_fact"]["normalized_date"] == "2026-10-21"
 
 @pytest.mark.parametrize(("kind","question","expected"), [
     ("task","Ist die Person zuständig?",["responsibility"]),

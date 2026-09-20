@@ -228,6 +228,40 @@ class TimeRequirement(StrEnum):
     REQUIRED_UNKNOWN = "required_unknown"
 
 
+class TemporalResolutionStatus(StrEnum):
+    """Application-owned resolution state for an extracted date expression."""
+
+    RESOLVED = "resolved"
+    UNRESOLVED = "unresolved"
+    CONFLICTING = "conflicting"
+
+
+class YearSource(StrEnum):
+    """Why a normalized date has the year that it has."""
+
+    EXPLICIT_MAIL = "explicit_mail"
+    MAIL_CONTEXT = "mail_context"
+    TELEGRAM = "telegram"
+    UNKNOWN = "unknown"
+
+
+class TemporalFact(StrictModel):
+    """Structured date fact created at the raw-extraction trust boundary."""
+
+    raw_text: str | None = Field(default=None, max_length=500)
+    normalized_date: CalendarDate | None = None
+    year_source: YearSource = YearSource.UNKNOWN
+    status: TemporalResolutionStatus
+
+    @model_validator(mode="after")
+    def consistent_resolution(self) -> "TemporalFact":
+        if (self.status == TemporalResolutionStatus.RESOLVED) != (self.normalized_date is not None):
+            raise ValueError("Nur ein aufgelöster Zeitfakt darf ein normalisiertes Datum enthalten")
+        if self.normalized_date is None and self.year_source != YearSource.UNKNOWN:
+            raise ValueError("Ein ungelöster Zeitfakt darf keine Jahresherkunft behaupten")
+        return self
+
+
 class ExtractedEvent(StrictModel):
     """Unnormalised event facts; missing facts remain explicitly absent."""
 
@@ -356,6 +390,7 @@ class Proposal(StrictModel):
     end: date | datetime | None = None
     all_day: bool = False
     known_temporal_facts: KnownTemporalFacts | None = None
+    temporal_fact: TemporalFact | None = None
     location: str | None = Field(default=None, max_length=1000)
     video_link: AnyHttpUrl | None = Field(default=None, max_length=2000)
     target: str = Field(min_length=1, max_length=500)
