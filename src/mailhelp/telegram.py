@@ -490,6 +490,8 @@ class TelegramTransport(Protocol):
     def answer_callback(self, callback_id: str, text: str) -> None: ...
 
 class ProposalRevisionService(Protocol):
+    def interpret_telegram_answer(self, proposal: Proposal, question: str, authorized_answer: str) -> tuple[str, Any]: ...
+    def clarify_telegram_answer(self, question: str, authorized_answer: str, reason: str) -> tuple[str, Any]: ...
     def revise_proposal(self, proposal: Proposal, question: str, authorized_answer: str) -> tuple[str, Proposal]: ...
 
 
@@ -925,7 +927,18 @@ class TelegramDialogController:
             self.telegram.send(self.chat_id, "Die Überarbeitung ist derzeit nicht verfügbar; der Vorschlag blieb unverändert.")
             return
         try:
-            _, candidate = self.revision_service.revise_proposal(proposal, question, answer)
+            _, interpretation = self.revision_service.interpret_telegram_answer(
+                proposal, question, answer)
+            if not interpretation.usable:
+                _, clarification = self.revision_service.clarify_telegram_answer(
+                    question, answer, interpretation.reason)
+                self.logger.event("INFO", "telegram.dialog", "answer_clarification_requested",
+                                  mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
+                                  version=dialog.version)
+                self.telegram.send(self.chat_id, clarification.message)
+                return
+            _, candidate = self.revision_service.revise_proposal(
+                proposal, question, interpretation.normalized_answer)
             revised = validate_revision_successor(proposal, candidate)
         except (ValueError, ValidationError) as exc:
             self.logger.event("WARNING", "telegram.dialog", "answer_revision_rejected",
