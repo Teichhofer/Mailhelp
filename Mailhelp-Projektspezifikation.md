@@ -6,7 +6,10 @@ geänderter UIDVALIDITY wird eine konfigurierte absolute historische Grenze in
 der neuen UID-Generation vor jedem Nachrichteninhaltsabruf erneut ermittelt und
 zusammen mit ihr gespeichert (ohne Grenze beginnt der Ordner bei UID 1). SIGINT und SIGTERM
 setzen dasselbe Stop-Ereignis. Beim Verlassen werden IMAP, alle HTTP-Clients und
-die Datensperre garantiert freigegeben.
+die Datensperre garantiert freigegeben. Ist die IMAP-TLS- oder Socket-Verbindung
+zu diesem Zeitpunkt bereits abgebrochen, bleibt das abschließende `LOGOUT`
+bestmöglich: Der Transportfehler wird protokolliert, erzeugt aber keinen
+nachträglichen Laufzeitfehler und verdeckt auch keinen ursprünglichen Fehler.
 In den Einmalmodi `--check`, `--check-access`, `--learn` und `--clear` bricht
 SIGINT die laufende Operation kontrolliert ohne Python-Traceback ab; der
 Prozess meldet den signalbedingten Abbruch mit Exit-Code 130.
