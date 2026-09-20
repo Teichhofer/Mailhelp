@@ -514,6 +514,170 @@ class EventLogger(Protocol):
     def event(self, level: str, module: str, event: str, **fields: Any) -> None: ...
 
 
+class ProposalPersistence(Protocol):
+    """Narrow state boundary used by dialog components."""
+
+    def persist(self, proposal: Proposal) -> None: ...
+    def send_proposal(self, proposal: Proposal) -> None: ...
+
+
+class UpdateValidation(Protocol):
+    def authorized(self, user_id: int, chat_id: int) -> bool: ...
+    def decision(self, value: str) -> Decision: ...
+    def relevance_decision(self, value: str) -> RelevanceDecision: ...
+
+
+class RelevanceDialogs(Protocol):
+    def open(self) -> list[RelevanceDialog]: ...
+    def durable_offset(self) -> int: ...
+    def decide(self, decision: RelevanceDecision, offset: int, notify: bool) -> str | None: ...
+
+
+class WriteExecution(Protocol):
+    def execute(self, proposal: Proposal) -> None: ...
+    def resume(self) -> None: ...
+
+
+class ProposalRevisions(Protocol):
+    def answer(self, answer: str) -> None: ...
+    def resume(self) -> None: ...
+
+
+class ActionLedgerPort(Protocol):
+    def book_created(self, proposal: Proposal) -> None: ...
+    def prior_actions(self, proposal: Proposal) -> list[ActionLedgerEntry]: ...
+
+
+class AuthorizedUpdateValidator:
+    """Validate Telegram identities and decode untrusted callback payloads."""
+
+    def __init__(self, store: JsonStore, user_id: int, chat_id: int):
+        self.store, self.user_id, self.chat_id = store, user_id, chat_id
+
+    def authorized(self, user_id: int, chat_id: int) -> bool:
+        return (user_id, chat_id) == (self.user_id, self.chat_id)
+
+    def decision(self, value: str) -> Decision:
+        return Decision.parse(value, self.store)
+
+    @staticmethod
+    def relevance_decision(value: str) -> RelevanceDecision:
+        return RelevanceDecision.parse(value)
+
+
+class RelevanceDialogProcessor:
+    """Own relevance lookup, replay offsets, and relevance resolution."""
+
+    def __init__(self, store: JsonStore, telegram: TelegramTransport, chat_id: int):
+        self.store, self.telegram, self.chat_id = store, telegram, chat_id
+        self.handler: Any = None
+
+    def all(self) -> list[RelevanceDialog]:
+        result = []
+        for name in self.store.names("mail-") if hasattr(self.store, "names") else []:
+            state = self.store.load_model(name, MailState)
+            if isinstance(state, MailState) and state.relevance_dialog is not None:
+                result.append(state.relevance_dialog)
+        return result
+
+    def open(self) -> list[RelevanceDialog]:
+        return [item for item in self.all() if item.status == RelevanceDialogStatus.OPEN]
+
+    def durable_offset(self) -> int:
+        return max((item.telegram_offset or 0 for item in self.all()), default=0)
+
+    def decide(self, decision: RelevanceDecision, offset: int, notify: bool = False) -> str | None:
+        try:
+            if self.handler is None:
+                raise ValueError("Relevanzverarbeitung ist nicht verfügbar")
+            state = self.handler.resolve_relevance(
+                decision.mail_id, decision.version, decision.decision, offset)
+        except ValueError as exc:
+            if notify:
+                self.telegram.send(self.chat_id, str(exc))
+                return None
+            raise
+        if decision.decision == "relevant":
+            self.handler.resume_mail(state)
+        text = f"✅ E-Mail wurde als {decision.decision} eingestuft."
+        if notify:
+            self.telegram.send(self.chat_id, text)
+            return None
+        return text
+
+
+class ActionLedgerService:
+    """Record externally created actions and detect semantic duplicates."""
+
+    def __init__(self, store: JsonStore):
+        self.store = store
+
+    @staticmethod
+    def action_key(proposal: Proposal) -> str:
+        def encoded(value: date | datetime | None) -> str | None:
+            return value.isoformat() if value is not None else None
+        identity = {
+            "kind": proposal.kind.value, "title": proposal.title.strip().casefold(),
+            "description": proposal.description.strip().casefold(), "target": proposal.target,
+            "due": encoded(proposal.due), "start": encoded(proposal.start),
+            "end": encoded(proposal.end), "all_day": proposal.all_day,
+            "location": (proposal.location or "").strip().casefold(),
+            "video_link": str(proposal.video_link) if proposal.video_link is not None else None,
+        }
+        return hashlib.sha256(json.dumps(identity, ensure_ascii=False, sort_keys=True,
+                                         separators=(",", ":")).encode()).hexdigest()
+
+    def book_created(self, proposal: Proposal) -> None:
+        ledger = self.store.load_model("action-ledger", ActionLedger, ActionLedger())
+        assert isinstance(ledger, ActionLedger)
+        reference = (proposal.source_mail_id, proposal.id, proposal.version)
+        if any((item.mail_id, item.proposal_id, item.proposal_version) == reference
+               for item in ledger.entries):
+            return
+        ledger.entries.append(ActionLedgerEntry(
+            action_key=self.action_key(proposal), mail_id=proposal.source_mail_id,
+            proposal_id=proposal.id, proposal_version=proposal.version,
+            kind=proposal.kind, title=proposal.title, target=proposal.target,
+            external_id=proposal.external_id, external_link=proposal.external_link,
+        ))
+        self.store.save("action-ledger", ledger.model_dump(mode="json"))
+
+    def prior_actions(self, proposal: Proposal) -> list[ActionLedgerEntry]:
+        ledger = self.store.load_model("action-ledger", ActionLedger, ActionLedger())
+        assert isinstance(ledger, ActionLedger)
+        current = (proposal.source_mail_id, proposal.id, proposal.version)
+        key = self.action_key(proposal)
+        return [item for item in ledger.entries if item.action_key == key and
+                (item.mail_id, item.proposal_id, item.proposal_version) != current]
+
+
+class ConfirmedWriteExecutor:
+    """Execute and resume writes, but only for persisted confirmed proposals."""
+
+    def __init__(self, owner: "TelegramDialogController"):
+        self.owner = owner
+
+    def execute(self, proposal: Proposal) -> None:
+        self.owner._execute_confirmed(proposal)
+
+    def resume(self) -> None:
+        self.owner._resume_confirmed_writes()
+
+
+class ProposalRevisionProcessor:
+    """Own answers, durable revisions, and restart recovery."""
+
+    def __init__(self, owner: "TelegramDialogController"):
+        self.owner = owner
+
+    def answer(self, answer: str) -> None:
+        self.owner._process_answer(answer)
+
+    def resume(self) -> None:
+        self.owner._resume_durable_revisions()
+        self.owner._resume_legacy_revision()
+
+
 class TelegramDialogController:
     """Validate updates, persist offsets, and enforce version-bound decisions."""
 
@@ -522,7 +686,19 @@ class TelegramDialogController:
         self.writers, self.test_mode = writers or {}, test_mode
         self.configured_timezone = configured_timezone
         self.revision_service = revision_service
-        self.relevance_handler: Any = None
+        self.validator: UpdateValidation = AuthorizedUpdateValidator(store, user_id, chat_id)
+        self.relevance = RelevanceDialogProcessor(store, telegram, chat_id)
+        self.ledger: ActionLedgerPort = ActionLedgerService(store)
+        self.write_executor: WriteExecution = ConfirmedWriteExecutor(self)
+        self.revisions: ProposalRevisions = ProposalRevisionProcessor(self)
+
+    @property
+    def relevance_handler(self) -> Any:
+        return self.relevance.handler
+
+    @relevance_handler.setter
+    def relevance_handler(self, value: Any) -> None:
+        self.relevance.handler = value
 
     def send_relevance(self, dialog: RelevanceDialog, sender: str, subject: str) -> None:
         buttons = [[
@@ -589,43 +765,13 @@ class TelegramDialogController:
     @staticmethod
     def _action_key(proposal: Proposal) -> str:
         """Identify the externally visible action independently of its source mail."""
-        def encoded(value: date | datetime | None) -> str | None:
-            return value.isoformat() if value is not None else None
-
-        identity = {
-            "kind": proposal.kind.value, "title": proposal.title.strip().casefold(),
-            "description": proposal.description.strip().casefold(), "target": proposal.target,
-            "due": encoded(proposal.due), "start": encoded(proposal.start),
-            "end": encoded(proposal.end), "all_day": proposal.all_day,
-            "location": (proposal.location or "").strip().casefold(),
-            "video_link": str(proposal.video_link) if proposal.video_link is not None else None,
-        }
-        return hashlib.sha256(json.dumps(identity, ensure_ascii=False, sort_keys=True,
-                                         separators=(",", ":")).encode()).hexdigest()
+        return ActionLedgerService.action_key(proposal)
 
     def _book_created(self, proposal: Proposal) -> None:
-        ledger = self.store.load_model("action-ledger", ActionLedger, ActionLedger())
-        assert isinstance(ledger, ActionLedger)
-        reference = (proposal.source_mail_id, proposal.id, proposal.version)
-        if any((item.mail_id, item.proposal_id, item.proposal_version) == reference
-               for item in ledger.entries):
-            return
-        ledger.entries.append(ActionLedgerEntry(
-            action_key=self._action_key(proposal), mail_id=proposal.source_mail_id,
-            proposal_id=proposal.id, proposal_version=proposal.version,
-            kind=proposal.kind, title=proposal.title, target=proposal.target,
-            external_id=proposal.external_id, external_link=proposal.external_link,
-        ))
-        self.store.save("action-ledger", ledger.model_dump(mode="json"))
+        self.ledger.book_created(proposal)
 
     def _prior_actions(self, proposal: Proposal) -> list[ActionLedgerEntry]:
-        ledger = self.store.load_model("action-ledger", ActionLedger, ActionLedger())
-        assert isinstance(ledger, ActionLedger)
-        current = (proposal.source_mail_id, proposal.id, proposal.version)
-        key = self._action_key(proposal)
-        return [item for item in ledger.entries
-                if item.action_key == key
-                and (item.mail_id, item.proposal_id, item.proposal_version) != current]
+        return self.ledger.prior_actions(proposal)
 
     def send(self, chat_id: int, text: str) -> None:
         if chat_id != self.chat_id:
@@ -687,11 +833,8 @@ class TelegramDialogController:
         return False
 
     def poll_once(self) -> None:
-        self._resume_writes()
-        self._resume_revisions()
-        # Continue supporting the compact legacy retry marker while durable
-        # clarification records are rolled out.
-        self._resume_revision()
+        self.write_executor.resume()
+        self.revisions.resume()
         offset_state = self.store.load_model("telegram-offset", TelegramOffset, TelegramOffset())
         assert isinstance(offset_state, TelegramOffset)
         offset = max(offset_state.offset, self._durable_dialog_offset())
@@ -760,14 +903,14 @@ class TelegramDialogController:
             try:
                 if callback.data.startswith("relevance:"):
                     try:
-                        relevance = RelevanceDecision.parse(callback.data)
+                        relevance = self.validator.relevance_decision(callback.data)
                     except (ValueError, ValidationError):
                         self.telegram.send(self.chat_id, "❌ Relevanzantwort ist syntaktisch ungültig; bitte erneut versuchen.")
                         return
                     confirmation = self._decide_relevance(relevance, update.update_id + 1)
                 else:
                     try:
-                        decision = Decision.parse(callback.data, self.store)
+                        decision = self.validator.decision(callback.data)
                     except (ValueError, ValidationError):
                         self.telegram.send(self.chat_id, "❌ Aktion ist syntaktisch ungültig; bitte erneut versuchen.")
                         return
@@ -801,39 +944,19 @@ class TelegramDialogController:
         self._answer(message.text)
 
     def _all_relevance_dialogs(self) -> list[RelevanceDialog]:
-        result = []
-        for name in self.store.names("mail-") if hasattr(self.store, "names") else []:
-            state = self.store.load_model(name, MailState)
-            if isinstance(state, MailState) and state.relevance_dialog is not None:
-                result.append(state.relevance_dialog)
-        return result
+        return self.relevance.all()
 
     def _open_relevance_dialogs(self) -> list[RelevanceDialog]:
-        return [item for item in self._all_relevance_dialogs() if item.status == RelevanceDialogStatus.OPEN]
+        return self.relevance.open()
 
     def _durable_dialog_offset(self) -> int:
-        return max((item.telegram_offset or 0 for item in self._all_relevance_dialogs()), default=0)
+        return self.relevance.durable_offset()
 
     def _decide_relevance(self, decision: RelevanceDecision, offset: int, notify: bool = False) -> str | None:
-        try:
-            if self.relevance_handler is None:
-                raise ValueError("Relevanzverarbeitung ist nicht verfügbar")
-            state = self.relevance_handler.resolve_relevance(decision.mail_id, decision.version, decision.decision, offset)
-        except ValueError as exc:
-            if notify:
-                self.telegram.send(self.chat_id, str(exc))
-                return None
-            raise
-        if decision.decision == "relevant":
-            self.relevance_handler.resume_mail(state)
-        text = f"✅ E-Mail wurde als {decision.decision} eingestuft."
-        if notify:
-            self.telegram.send(self.chat_id, text)
-            return None
-        return text
+        return self.relevance.decide(decision, offset, notify)
 
     def _authorized(self, user_id: int, chat_id: int) -> bool:
-        return (user_id, chat_id) == (self.user_id, self.chat_id)
+        return self.validator.authorized(user_id, chat_id)
 
     def _decide(self, decision: Decision) -> str:
         proposal = self.store.load_model(self._proposal_name(decision.mail_id, decision.proposal_id), Proposal)
@@ -881,6 +1004,10 @@ class TelegramDialogController:
         return self.writers.get("todoist" if proposal.kind.value == "task" else "google_calendar")
 
     def _execute(self, proposal: Proposal) -> None:
+        """Compatibility entry point; execution is owned by the write component."""
+        self.write_executor.execute(proposal)
+
+    def _execute_confirmed(self, proposal: Proposal) -> None:
         if not proposal_is_writable(proposal):
             return
         if proposal.status == ProposalStatus.SIMULATED and proposal.simulation_notified:
@@ -908,6 +1035,10 @@ class TelegramDialogController:
             self.persist(changed.model_copy(update={"simulation_notified": True}))
 
     def _resume_writes(self) -> None:
+        """Compatibility entry point for callers predating component extraction."""
+        self.write_executor.resume()
+
+    def _resume_confirmed_writes(self) -> None:
         names = getattr(self.store, "names", None)
         if names is None:
             return
@@ -921,9 +1052,13 @@ class TelegramDialogController:
             self.persist(proposal)
             if proposal.status in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING,
                                    ProposalStatus.UNCERTAIN, ProposalStatus.SIMULATED}:
-                self._execute(proposal)
+                self.write_executor.execute(proposal)
 
     def _answer(self, answer: str) -> None:
+        """Compatibility entry point; revisions are owned by their component."""
+        self.revisions.answer(answer)
+
+    def _process_answer(self, answer: str) -> None:
         dialog = self.store.load_model("telegram-dialog", TelegramDialogState)
         if dialog is None or dialog.proposal_id is None:
             self.logger.event("INFO", "telegram.dialog", "answer_rejected",
@@ -1068,6 +1203,9 @@ class TelegramDialogController:
         )
 
     def _resume_revisions(self) -> None:
+        self._resume_durable_revisions()
+
+    def _resume_durable_revisions(self) -> None:
         if self.revision_service is None or not hasattr(self.store, "names"):
             return
         for name in self.store.names("clarification-"):
@@ -1078,6 +1216,9 @@ class TelegramDialogController:
                 self._revise_answered(state)
 
     def _resume_revision(self) -> None:
+        self._resume_legacy_revision()
+
+    def _resume_legacy_revision(self) -> None:
         """Resume a durable normalized answer without asking the person again."""
         dialog = self.store.load_model("telegram-dialog", TelegramDialogState)
         if not isinstance(dialog, TelegramDialogState) or not dialog.retry_required:
