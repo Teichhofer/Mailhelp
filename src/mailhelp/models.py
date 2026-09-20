@@ -4,6 +4,7 @@ from __future__ import annotations
 from datetime import date, datetime, timezone
 from enum import StrEnum
 from typing import Annotated, Any, Literal
+import re
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, model_validator
 
 CalendarDate = date
@@ -36,6 +37,31 @@ class ImapCheckpoint(StrictModel):
 class TelegramOffset(StrictModel):
     schema_version: Literal[1] = 1
     offset: int = Field(default=0, ge=0)
+
+
+class IrrelevantSenders(StrictModel):
+    """Durable, human-readable sender prefilter learned from rejected topics."""
+
+    schema_version: Literal[1] = 1
+    addresses: list[str] = Field(default_factory=list)
+    domains: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def valid_entries(self) -> "IrrelevantSenders":
+        address_pattern = re.compile(r"^[^@\s<>]+@[^@\s<>]+$")
+        domain_pattern = re.compile(
+            r"^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+"
+            r"[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$"
+        )
+        if (self.addresses != sorted(set(self.addresses))
+                or any(address != address.casefold() or not address_pattern.fullmatch(address)
+                       for address in self.addresses)):
+            raise ValueError("Absenderadressen müssen gültig, kleingeschrieben und eindeutig sein")
+        if (self.domains != sorted(set(self.domains))
+                or any(domain != domain.casefold() or not domain_pattern.fullmatch(domain)
+                       for domain in self.domains)):
+            raise ValueError("Absenderdomains müssen gültig, kleingeschrieben und eindeutig sein")
+        return self
 
 
 class TelegramDialogState(StrictModel):

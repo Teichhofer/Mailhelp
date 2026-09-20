@@ -456,6 +456,16 @@ atomar in `irrelevant_topics.yaml` ergänzt; IMAP-Checkpoints
 und Telegram werden in diesem Modus nicht verwendet. `--learn` muss mindestens
 `1` sein.
 
+Zusätzlich führt Mailhelp im jeweiligen Zustandsnamensraum die lesbare Datei
+`irrelevant-senders.json`. Ihre `addresses` werden im Lernlauf automatisch um die
+Absender von Nachrichten ergänzt, die einer abgelehnten Kategorie zugeordnet
+wurden. Unter `domains` können vollständige Absenderdomains ohne `@` eingetragen
+werden, etwa `newsletter.example`. Exakte Adressen und Domains werden bereits vor
+der inhaltlichen LLM-Relevanzprüfung verglichen; passende Nachrichten gelten ohne
+Übermittlung ihres Inhalts an das LLM als irrelevant. Alle Einträge sind
+kleingeschrieben, sortiert und eindeutig. Da die Datei Zustand ist, wird sie von
+`--clear` gemeinsam mit den übrigen Zustandsdaten entfernt.
+
 Fehler werden im Mail-Zustand ausschließlich mit sicherem Fehlercode, betroffener
 Verarbeitungsstufe, Zeitstempel und optionaler Wiederholbarkeit gespeichert. Eine vor
 dem Telegram-Versand persistierte Markierung verhindert doppelte Fehlermeldungen nach

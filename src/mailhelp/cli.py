@@ -181,6 +181,7 @@ def _main() -> int:
                 application.imap, application.analyzer, settings.imap.folders,
                 settings.limits, topics, args.config_directory / "topics.yaml",
                 irrelevant_topics, args.config_directory / "irrelevant_topics.yaml",
+                application.store,
                 timezone=settings.timezone,
                 parallel_llm_calls=settings.learning.parallel_llm_calls,
             ).run(args.learn)
