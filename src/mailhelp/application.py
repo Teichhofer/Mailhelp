@@ -199,6 +199,9 @@ class Application:
         """Resume durable work and process new mail, returning every outcome."""
         budget = _MailBudget(max_mails)
         results = self._resume_pending(budget)
+        if getattr(self.settings.imap, "global_newest_first", False):
+            results.extend(self._poll_imap_global(budget))
+            return results
         for folder in self.settings.imap.folders:
             if self.stop_event.is_set() or budget.remaining == 0:
                 break
@@ -292,6 +295,117 @@ class Application:
                 if checkpoint["uidvalidity"] is None:
                     checkpoint["uidvalidity"] = self.imap.last_uidvalidity
                 self.store.save(checkpoint_name, ImapCheckpoint(**checkpoint).model_dump())
+        return results
+
+    def _poll_imap_global(self, budget: _MailBudget) -> list[ProcessingResult]:
+        """Process one mailbox-wide batch ordered by IMAP receive time."""
+        contexts: dict[str, tuple[str, dict[str, object], list[tuple[int, int]]]] = {}
+        candidates = []
+        for folder in self.settings.imap.folders:
+            if self.stop_event.is_set() or budget.remaining == 0:
+                break
+            checkpoint_name = _checkpoint_name(self.imap.account_id, folder)
+            checkpoint_model = (self.store.load_model(
+                checkpoint_name, ImapCheckpoint, ImapCheckpoint()
+            ) if hasattr(self.store, "load_model") else ImapCheckpoint.model_validate(
+                self.store.load(checkpoint_name, {})
+            ))
+            checkpoint = checkpoint_model.model_dump(exclude={"schema_version"})
+            try:
+                if checkpoint["start_uid"] is None:
+                    if self.settings.imap.historical_start is not None:
+                        start_uid = self.imap.determine_start_uid(
+                            folder, self.settings.imap.historical_start
+                        )
+                        initial_uidvalidity = self.imap.last_uidvalidity
+                    else:
+                        start_uid = checkpoint["uid"]
+                        initial_uidvalidity = checkpoint["uidvalidity"]
+                    checkpoint_model = ImapCheckpoint(
+                        uidvalidity=initial_uidvalidity, uid=start_uid, start_uid=start_uid
+                    )
+                    self.store.save(checkpoint_name, checkpoint_model.model_dump())
+                    checkpoint = checkpoint_model.model_dump(exclude={"schema_version"})
+                ranges = checkpoint["completed_uid_ranges"]
+                if not ranges and checkpoint["uid"] > checkpoint["start_uid"]:
+                    ranges = [(checkpoint["start_uid"] + 1, checkpoint["uid"])]
+                try:
+                    discovered = self.imap.discover_since(
+                        folder, checkpoint["start_uid"], checkpoint.get("uidvalidity"),
+                        tuple(ranges),
+                    )
+                except UIDValidityChanged as changed:
+                    self.logger.event(
+                        "WARNING", "imap", "uidvalidity_changed",
+                        account_id=self.imap.account_id, folder=folder,
+                        previous_uidvalidity=changed.previous, uidvalidity=changed.current,
+                    )
+                    if self.settings.imap.historical_start is not None:
+                        start_uid = self.imap.determine_start_uid(
+                            folder, self.settings.imap.historical_start
+                        )
+                        if self.imap.last_uidvalidity != changed.current:
+                            raise RuntimeError(
+                                f"IMAP-UIDVALIDITY änderte sich während der Grenzermittlung: {folder}"
+                            )
+                    else:
+                        start_uid = 0
+                    checkpoint = ImapCheckpoint(
+                        uidvalidity=changed.current, uid=start_uid, start_uid=start_uid
+                    ).model_dump(exclude={"schema_version"})
+                    ranges = []
+                    self.store.save(
+                        checkpoint_name, ImapCheckpoint(**checkpoint).model_dump()
+                    )
+                    discovered = self.imap.discover_since(
+                        folder, start_uid, changed.current, ()
+                    )
+            except Exception as exc:
+                self.logger.event("ERROR", "imap", "poll_failed", folder=folder, error=str(exc))
+                continue
+            contexts[folder] = (checkpoint_name, checkpoint, ranges)
+            candidates.extend(discovered)
+            if not discovered and self.imap.last_uidvalidity is not None:
+                if checkpoint["uidvalidity"] is None:
+                    checkpoint["uidvalidity"] = self.imap.last_uidvalidity
+                self.store.save(
+                    checkpoint_name, ImapCheckpoint(**checkpoint).model_dump()
+                )
+
+        candidates.sort(key=lambda item: item.received_at, reverse=True)
+        limit = budget.remaining if budget.remaining is not None else self.settings.imap.batch_size
+        results: list[ProcessingResult] = []
+        for candidate in candidates[:limit]:
+            if self.stop_event.is_set() or budget.remaining == 0:
+                break
+            checkpoint_name, checkpoint, ranges = contexts[candidate.folder]
+            if budget.remaining is not None:
+                budget.take()
+            try:
+                mail = self.imap.fetch_uid(
+                    candidate.folder, candidate.uid, candidate.uidvalidity
+                )
+                result = self.orchestrator.process(mail)
+            except Exception as exc:
+                self.logger.event(
+                    "ERROR", "orchestrator", "mail_failed",
+                    folder=candidate.folder, uid=candidate.uid, error=str(exc),
+                )
+                continue
+            results.append(result)
+            ranges = _add_uid(ranges, candidate.uid)
+            checkpoint["uid"] = max(checkpoint["uid"], candidate.uid)
+            checkpoint["uidvalidity"] = candidate.uidvalidity
+            checkpoint["completed_uid_ranges"] = ranges
+            contexts[candidate.folder] = (checkpoint_name, checkpoint, ranges)
+            self.store.save(checkpoint_name, ImapCheckpoint(**checkpoint).model_dump())
+            if result.outcome is ProcessingOutcome.FAILED:
+                self.logger.event(
+                    "ERROR", "orchestrator", "mail_failed", folder=candidate.folder,
+                    uid=candidate.uid, error=result.state.get("error"),
+                )
+            if self.dialog is not None and self.dialog.awaiting_decision():
+                break
         return results
 
     def _resume_pending(self, budget: _MailBudget | None = None) -> list[ProcessingResult]:

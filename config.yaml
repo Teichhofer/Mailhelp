@@ -31,6 +31,9 @@ imap:
   # Pro Polling-Zyklus werden höchstens so viele Nachrichten geladen und direkt
   # verarbeitet. Das verhindert lange stille Erstabrufe großer Postfächer.
   batch_size: 25
+  # true führt die konfigurierten Ordner zu einer gemeinsamen, anhand von
+  # IMAP-INTERNALDATE absteigend sortierten Warteschlange zusammen.
+  global_newest_first: true
   folders: [INBOX]
 telegram:
   user_id: 1009258347

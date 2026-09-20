@@ -7,7 +7,7 @@ import pytest
 
 from mailhelp.application import Application, _MailBudget, _RunSummary, _add_uid, _checkpoint_name, _safe_name, _state_directory, build_application, build_logger
 from mailhelp.config import Secrets, Settings, Topic
-from mailhelp.imap import FetchedMail, UIDValidityChanged
+from mailhelp.imap import FetchedMail, MailCandidate, UIDValidityChanged
 from mailhelp.models import MailState
 from mailhelp.orchestrator import ProcessingOutcome, ProcessingResult
 from test_core import prompt_config
@@ -61,14 +61,168 @@ class Orch:
         return ProcessingResult(ProcessingOutcome.COMPLETED, {})
 
 
-def settings(tmp_path, folders=("INBOX",)):
-    return Settings(timezone="UTC",poll_interval_seconds=5,test_mode=True,data_directory=tmp_path/"data",imap={"host":"h","port":993,"folders":list(folders)},telegram={"user_id":1,"chat_id":2},targets={"todoist_project":"p","google_calendar":"c"},limits={"max_mail_bytes":1024,"llm_calls_per_minute":2},retries={"provider_retry":0,"json_repair":0,"schema_repair":0},timeouts={**{name:{"timeout_seconds":30.0,"retries":0,"initial_backoff_seconds":0.0,"max_backoff_seconds":1.0} for name in ("imap","telegram","openrouter","todoist","google_calendar")},"telegram_poll_seconds":30},logging={"directory":str(tmp_path/"logs"),"console":{"enabled":False},"file":{"filename":"application.jsonl","max_bytes":10000,"backup_count":1,"retention_days":30},"llm":{"filename":"llm/requests.jsonl","max_bytes":10000,"backup_count":1,"retention_days":30}})
+def settings(tmp_path, folders=("INBOX",), global_newest_first=False):
+    return Settings(timezone="UTC",poll_interval_seconds=5,test_mode=True,data_directory=tmp_path/"data",imap={"host":"h","port":993,"folders":list(folders),"global_newest_first":global_newest_first},telegram={"user_id":1,"chat_id":2},targets={"todoist_project":"p","google_calendar":"c"},limits={"max_mail_bytes":1024,"llm_calls_per_minute":2},retries={"provider_retry":0,"json_repair":0,"schema_repair":0},timeouts={**{name:{"timeout_seconds":30.0,"retries":0,"initial_backoff_seconds":0.0,"max_backoff_seconds":1.0} for name in ("imap","telegram","openrouter","todoist","google_calendar")},"telegram_poll_seconds":30},logging={"directory":str(tmp_path/"logs"),"console":{"enabled":False},"file":{"filename":"application.jsonl","max_bytes":10000,"backup_count":1,"retention_days":30},"llm":{"filename":"llm/requests.jsonl","max_bytes":10000,"backup_count":1,"retention_days":30}})
 
 
-def app(tmp_path, imap, telegram, orch, folders=("INBOX",), store=None):
+def app(tmp_path, imap, telegram, orch, folders=("INBOX",), store=None,
+        global_newest_first=False):
     from threading import Event
     event=Event(); orch._stop=event if orch._stop else None
-    return Application(settings(tmp_path,folders),store or Store(),Log(),imap,object(),object(),telegram,object(),object(),orch,event)
+    return Application(settings(tmp_path,folders,global_newest_first),store or Store(),Log(),imap,object(),object(),telegram,object(),object(),orch,event)
+
+
+def test_global_mailbox_order_and_max_mail_budget(tmp_path):
+    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+
+    class GlobalImap:
+        account_id = "0" * 24
+        last_uidvalidity = None
+        def __init__(self): self.fetches = []
+        def discover_since(self, folder, start, expected, ranges):
+            self.last_uidvalidity = 7
+            offsets = {"INBOX": [(1, 1)], "Archive": [(2, 3), (3, 2)]}[folder]
+            return [MailCandidate(folder, 7, uid, self.account_id,
+                                  stamp + timedelta(hours=hour))
+                    for uid, hour in offsets]
+        def fetch_uid(self, folder, uid, validity):
+            self.fetches.append((folder, uid, validity))
+            return FetchedMail(folder, validity, uid, b"x", self.account_id, stamp)
+
+    imap = GlobalImap()
+    service = app(tmp_path, imap, Telegram([]), Orch(), folders=("INBOX", "Archive"),
+                  global_newest_first=True)
+    results = service._poll_imap(max_mails=2)
+
+    assert len(results) == 2
+    assert imap.fetches == [("Archive", 2, 7), ("Archive", 3, 7)]
+    assert service.orchestrator.seen == [2, 3]
+    assert service.store.values[_checkpoint_name(imap.account_id, "Archive")][
+        "completed_uid_ranges"
+    ] == [(2, 3)]
+
+
+def test_global_mailbox_checkpoint_failures_restarts_and_dialog(tmp_path):
+    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    key = _checkpoint_name("0" * 24, "INBOX")
+
+    class GlobalImap:
+        account_id = "0" * 24
+        last_uidvalidity = 7
+        def __init__(self, discoveries):
+            self.discoveries = iter(discoveries); self.fetch_error = False
+        def discover_since(self, *args):
+            value = next(self.discoveries)
+            if isinstance(value, Exception): raise value
+            return value
+        def fetch_uid(self, folder, uid, validity):
+            if self.fetch_error: raise RuntimeError("fetch")
+            return FetchedMail(folder, validity, uid, b"x", self.account_id, stamp)
+        def determine_start_uid(self, _folder, _start):
+            return 4
+
+    candidate = MailCandidate("INBOX", 7, 5, "0" * 24, stamp)
+    legacy_store = Store({key: {"uidvalidity": 7, "uid": 3, "start_uid": 0}})
+    empty = app(tmp_path, GlobalImap([[]]), Telegram([]), Orch(), store=legacy_store,
+                global_newest_first=True)
+    empty._poll_imap()
+    assert legacy_store.values[key]["completed_uid_ranges"] == []
+
+    fresh_store = Store()
+    fresh = app(tmp_path, GlobalImap([[]]), Telegram([]), Orch(), store=fresh_store,
+                global_newest_first=True)
+    fresh._poll_imap()
+    assert fresh_store.values[key]["uidvalidity"] == 7
+
+    failed_imap = GlobalImap([RuntimeError("discovery")])
+    failed = app(tmp_path, failed_imap, Telegram([]), Orch(),
+                 global_newest_first=True)
+    assert failed._poll_imap() == []
+    assert failed.logger.events[-1][0][2] == "poll_failed"
+
+    fetch_imap = GlobalImap([[candidate]])
+    fetch_imap.fetch_error = True
+    fetch_failed = app(tmp_path, fetch_imap, Telegram([]), Orch(),
+                       global_newest_first=True)
+    assert fetch_failed._poll_imap() == []
+    assert fetch_failed.logger.events[-1][0][2] == "mail_failed"
+
+    class FailedOrch(Orch):
+        def process(self, mail):
+            self.seen.append(mail.uid)
+            return ProcessingResult(ProcessingOutcome.FAILED, {"error": "failed"})
+
+    outcome = app(tmp_path, GlobalImap([[candidate]]), Telegram([]), FailedOrch(),
+                  global_newest_first=True)
+    assert outcome._poll_imap()[0].outcome is ProcessingOutcome.FAILED
+    assert outcome.logger.events[-1][1]["error"] == "failed"
+
+    class Dialog:
+        def awaiting_decision(self): return True
+
+    dialog = app(tmp_path, GlobalImap([[candidate]]), Telegram([]), Orch(),
+                 global_newest_first=True)
+    dialog.dialog = Dialog()
+    assert len(dialog._poll_imap()) == 1
+
+    stopped = app(tmp_path, GlobalImap([]), Telegram([]), Orch(),
+                  global_newest_first=True)
+    stopped.stop_event.set()
+    assert stopped._poll_imap() == []
+
+    interrupted = app(tmp_path, GlobalImap([[candidate]]), Telegram([]), Orch(),
+                      global_newest_first=True)
+    original_discover = interrupted.imap.discover_since
+    def discover_and_stop(*args):
+        result = original_discover(*args)
+        interrupted.stop_event.set()
+        return result
+    interrupted.imap.discover_since = discover_and_stop
+    assert interrupted._poll_imap() == []
+
+
+def test_global_mailbox_uidvalidity_and_historical_boundary(tmp_path):
+    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    boundary = stamp - timedelta(days=1)
+    key = _checkpoint_name("0" * 24, "INBOX")
+
+    class ChangingImap:
+        account_id = "0" * 24
+        last_uidvalidity = 7
+        def __init__(self, drift=False): self.calls = 0; self.drift = drift
+        def determine_start_uid(self, _folder, _start):
+            self.last_uidvalidity = 9 if self.drift else (8 if self.calls else 7)
+            return 4
+        def discover_since(self, folder, start, expected, ranges):
+            self.calls += 1
+            if self.calls == 1 and expected == 7:
+                raise UIDValidityChanged(folder, 7, 8)
+            return [MailCandidate(folder, 8, 5, self.account_id, stamp)]
+        def fetch_uid(self, folder, uid, validity):
+            return FetchedMail(folder, validity, uid, b"x", self.account_id, stamp)
+
+    configured = settings(tmp_path, global_newest_first=True)
+    configured.imap.historical_start = boundary
+    imap = ChangingImap()
+    service = Application(configured, Store(), Log(), imap, object(), object(),
+                          Telegram([]), object(), object(), Orch(), __import__('threading').Event())
+    assert len(service._poll_imap()) == 1
+    assert service.store.values[key]["uidvalidity"] == 8
+    assert any(event[0][2] == "uidvalidity_changed" for event in service.logger.events)
+
+    drifting = ChangingImap(drift=True)
+    drift_store = Store({key: {"uidvalidity": 7, "uid": 4, "start_uid": 4}})
+    drifted = Application(configured, drift_store, Log(), drifting, object(), object(),
+                          Telegram([]), object(), object(), Orch(), __import__('threading').Event())
+    assert drifted._poll_imap() == []
+    assert "während der Grenzermittlung" in drifted.logger.events[-1][1]["error"]
+
+    no_history = settings(tmp_path, global_newest_first=True)
+    changed = ChangingImap()
+    changed_store = Store({key: {"uidvalidity": 7, "uid": 4, "start_uid": 4}})
+    reset = Application(no_history, changed_store, Log(), changed, object(), object(),
+                        Telegram([]), object(), object(), Orch(), __import__('threading').Event())
+    assert len(reset._poll_imap()) == 1
 
 
 def test_polling_errors_resume_and_stop(tmp_path):

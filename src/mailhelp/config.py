@@ -21,6 +21,7 @@ class ImapSettings(ConfigModel):
     connection_mode: Literal["ssl", "starttls", "plain"] = "ssl"
     historical_start: datetime | None = None
     batch_size: int = Field(default=25, ge=1, le=1000)
+    global_newest_first: bool = False
 
     @field_validator("historical_start", mode="before")
     @classmethod

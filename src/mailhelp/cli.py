@@ -184,6 +184,7 @@ def _main() -> int:
                 application.store,
                 timezone=settings.timezone,
                 parallel_llm_calls=settings.learning.parallel_llm_calls,
+                global_newest_first=getattr(settings.imap, "global_newest_first", False),
             ).run(args.learn)
             return 0
         shutdown.stop = application.stop

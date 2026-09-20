@@ -73,7 +73,8 @@ class LearningMode:
                  store: JsonStore | None = None,
                  *, input_fn: Callable[[str], str] = input,
                  output_fn: Callable[[str], None] = print,
-                 timezone: str = "UTC", parallel_llm_calls: int = 4):
+                 timezone: str = "UTC", parallel_llm_calls: int = 4,
+                 global_newest_first: bool = False):
         self.imap, self.analyzer, self.folders = imap, analyzer, folders
         self.limits, self.topics, self.topics_path = limits, topics, topics_path
         self.irrelevant_topics = irrelevant_topics
@@ -81,8 +82,16 @@ class LearningMode:
         self.store = store
         self.input, self.output, self.timezone = input_fn, output_fn, timezone
         self.parallel_llm_calls = parallel_llm_calls
+        self.global_newest_first = global_newest_first
 
     def _fetch(self, count: int) -> list[FetchedMail]:
+        if self.global_newest_first:
+            candidates = [candidate for folder in self.folders
+                          for candidate in self.imap.discover_since(folder)]
+            candidates.sort(key=lambda item: item.received_at, reverse=True)
+            return [self.imap.fetch_uid(candidate.folder, candidate.uid,
+                                        candidate.uidvalidity)
+                    for candidate in candidates[:count]]
         mails: list[FetchedMail] = []
         for folder in self.folders:
             ranges: list[tuple[int, int]] = []
