@@ -182,7 +182,12 @@ prompts:
       entsprechende Änderung oder Absage eines bestehenden Termins, "recurring"
       nur für ausdrücklich wiederkehrende Termine und "unsupported" nur für
       Terminarten, die sich mit den geforderten Feldern nicht abbilden lassen.
-      Erfinde weder Datum, Uhrzeit, Ort, URL noch Zuständigkeit. Gibt es keinen Termin, liefere
+      Setze time_requirement ausschließlich anhand expliziter Mail-Evidenz auf
+      "all_day" (ausdrücklich ganztägig), "timed" (eine Uhrzeit ist ausdrücklich
+      genannt oder erforderlich) oder "required_unknown" (Zeitsemantik unklar).
+      Ein Datum ohne Uhrzeit ist niemals automatisch ganztägig; ohne ausdrücklichen
+      Ganztagshinweis ist required_unknown zu liefern. Erfinde weder Datum, Uhrzeit,
+      Dauer, Ort, URL noch Zuständigkeit. Gibt es keinen Termin, liefere
       {"schema_version":1,"events":[]}.
   telegram_answer_interpretation:
     parameters: {temperature: 0.0}

@@ -275,6 +275,13 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
   Beim Wiederaufnehmen werden weder Relevanz und Zusammenfassung noch eine bereits
   versandte Zusammenfassung oder eine erfolgreiche Schwester-Extraktion wiederholt.
 * Jeder Vorschlag trägt die streng validierten Felder `responsibility` (`user`, `other`, `unclear`), `certainty` (`certain`, `uncertain`, `contradictory`) und `classification` (`new`, `non_binding`, `already_completed`, `change`, `cancellation`, `recurring`, `unsupported`). Ausschließlich `new` + `user` + `certain` ist bestätigbar und extern anlegbar. Alle anderen Einordnungen erscheinen als manuell zu prüfende Information; offene Zuständigkeit, Unsicherheit und Widerspruch erzwingen `needs_clarification`.
+* Termine tragen zusätzlich `time_requirement`: Nur explizite Mail-Evidenz darf
+  `all_day` setzen; `timed` bezeichnet einen zeitgebundenen Termin und
+  `required_unknown` die konservative Wahl bei unklarer Zeitsemantik. Ein bekanntes
+  Datum ohne Uhrzeit wird in `known_temporal_facts` bewahrt und löst eine konkrete
+  Frage nach dem Beginn aus, statt stillschweigend einen Ganztagstermin zu erzeugen.
+  Ein bekannter Beginn löst nur noch die Frage nach dem Ende aus; Uhrzeit, Ende und
+  Dauer werden niemals ergänzt.
   Eine an die Nutzerin oder den Nutzer gerichtete, noch auszuführende einmalige
   Bitte, Aufforderung oder Verpflichtung wird als `new` klassifiziert. Eine
   sachliche, automatisch erzeugte oder indirekte Formulierung macht die Aufgabe

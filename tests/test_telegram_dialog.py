@@ -9,7 +9,7 @@ from mailhelp.adapter import PermanentError, UncertainWriteError
 from mailhelp.analysis import (ContradictoryRevision, LlmInvalidJson,
                                LlmProviderResponseInvalid,
                                LlmSchemaValidationFailed,
-                               LlmTokenLimitExceeded)
+                               LlmTokenLimitExceeded, validate_revision_successor)
 from mailhelp.models import (ActionLedger, ActionLedgerEntry, AnswerStatus, MailState, Proposal,
                              ProposalClarificationState, ProposalRevisionStatus, ProposalStatus,
                              QuestionStatus, RelevanceDialog, RelevanceDialogStatus,
@@ -85,6 +85,18 @@ class RevisionService:
             "version":item.version+1, "description":answer,
             "open_questions":remaining,
             "status":"needs_clarification" if remaining else "pending_confirmation"})
+
+
+def test_telegram_date_only_successor_cannot_become_all_day():
+    original = proposal(kind="event", status="needs_clarification",
+                        open_questions=["Wann beginnt der Termin?"],
+                        known_temporal_facts={"date": "2026-10-21"})
+    candidate = {**original.model_dump(mode="json"), "version": 2,
+                 "known_temporal_facts": None, "all_day": True,
+                 "start": "2026-10-21", "end": "2026-10-22",
+                 "open_questions": [], "status": "pending_confirmation"}
+    with pytest.raises(ContradictoryRevision, match="Ganztagsevidenz"):
+        validate_revision_successor(original, candidate)
 
 
 class FailingRevisionService(RevisionService):

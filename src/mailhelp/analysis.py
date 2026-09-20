@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from datetime import datetime
 from typing import Any, Protocol, TypeVar
 import uuid
 
@@ -87,6 +88,18 @@ def validate_revision_successor(previous: Proposal, candidate: Any) -> Proposal:
         raise ContradictoryRevision("Die Ursprungsmail darf nicht geändert werden")
     if revised.version != previous.version + 1:
         raise ContradictoryRevision("Die Vorschlagsversion muss exakt um eins erhöht werden")
+    known = previous.known_temporal_facts
+    if known is not None and revised.all_day:
+        raise ContradictoryRevision("Ein bekanntes Datum ohne Ganztagsevidenz darf nicht ganztägig werden")
+    if known is not None and revised.known_temporal_facts is not None and revised.known_temporal_facts != known:
+        raise ContradictoryRevision("Bekannte Zeitfakten dürfen nicht verändert werden")
+    if known is not None and revised.known_temporal_facts is None:
+        complete_timed = (isinstance(revised.start, datetime)
+                          and isinstance(revised.end, datetime))
+        if not complete_timed or (known.date is not None and revised.start.date() != known.date):
+            raise ContradictoryRevision("Bekannte Zeitfakten dürfen nicht verloren gehen")
+        if known.start is not None and revised.start != known.start:
+            raise ContradictoryRevision("Eine bekannte Beginnzeit darf nicht verändert werden")
     expected = (ProposalStatus.NEEDS_CLARIFICATION if revised.open_questions
                 else ProposalStatus.PENDING_CONFIRMATION)
     if revised.status != expected:

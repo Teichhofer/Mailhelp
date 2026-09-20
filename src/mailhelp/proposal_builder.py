@@ -7,7 +7,7 @@ import json
 from .action_normalization import MailDateContext, TemporalValue, normalize_event, normalize_task_due
 from .config import TargetSettings
 from .models import (ExtractedEvent, ExtractedTask, Proposal, ProposalClassification,
-                     ProposalResponsibility, ProposalStatus)
+                     KnownTemporalFacts, ProposalResponsibility, ProposalStatus)
 
 
 _RESPONSIBILITY_QUESTION = "Ist die Nutzerin oder der Nutzer für diesen Eintrag zuständig?"
@@ -91,6 +91,10 @@ class ProposalBuilder:
                     assert isinstance(temporal.value, TemporalValue)
                     values.update(start=temporal.value.start, end=temporal.value.end,
                                   all_day=temporal.value.all_day)
+            elif kind == "event" and temporal is not None and (
+                    temporal.known_date is not None or temporal.known_start is not None):
+                values["known_temporal_facts"] = KnownTemporalFacts(
+                    date=temporal.known_date, start=temporal.known_start)
             target = self.targets.todoist_project if kind == "task" else self.targets.google_calendar
             status = (ProposalStatus.PENDING_CONFIRMATION
                       if item.classification == "new" and item.responsibility == "user"

@@ -6,7 +6,7 @@ import httpx, pytest
 from email.message import EmailMessage
 from pydantic import ValidationError
 import yaml
-from mailhelp.analysis import (Analyzer, LlmInvalidJson, LlmProviderResponseInvalid,
+from mailhelp.analysis import (Analyzer, ContradictoryRevision, LlmInvalidJson, LlmProviderResponseInvalid,
                                JSON_REPAIR_INSTRUCTION, SCHEMA_REPAIR_INSTRUCTION,
                                LlmSchemaValidationExceeded,
                                LlmSchemaValidationFailed, validate_revision_successor)
@@ -65,6 +65,36 @@ class RetrySequence:
         if isinstance(value, Exception):
             raise value
         return call_id,value
+
+
+def test_revision_keeps_known_date_and_start_and_never_infers_all_day():
+    original = proposal(kind="event", status="needs_clarification",
+                        open_questions=["Wann endet der Termin?"],
+                        known_temporal_facts={"date": "2026-10-21",
+                                              "start": "2026-10-21T10:00:00+02:00"})
+    base = {**original.model_dump(mode="json"), "version": 2,
+            "open_questions": [], "status": "pending_confirmation",
+            "known_temporal_facts": None}
+    valid = validate_revision_successor(original, {
+        **base, "start": "2026-10-21T10:00:00+02:00",
+        "end": "2026-10-21T11:00:00+02:00"})
+    assert valid.start.isoformat() == "2026-10-21T10:00:00+02:00"
+    for change in (
+        {"all_day": True, "start": "2026-10-21", "end": "2026-10-22"},
+        {"start": "2026-10-22T10:00:00+02:00", "end": "2026-10-22T11:00:00+02:00"},
+        {"start": "2026-10-21T09:00:00+02:00", "end": "2026-10-21T11:00:00+02:00"},
+    ):
+        with pytest.raises(ContradictoryRevision):
+            validate_revision_successor(original, {**base, **change})
+    with pytest.raises(ContradictoryRevision, match="nicht verloren"):
+        validate_revision_successor(original, {**base, "start": None, "end": None,
+                                                "open_questions": ["Wann endet der Termin?"],
+                                                "status": "needs_clarification"})
+    with pytest.raises(ContradictoryRevision, match="nicht verändert"):
+        validate_revision_successor(original, {
+            **original.model_dump(mode="json"), "version": 2,
+            "known_temporal_facts": {"date": "2026-10-21",
+                                      "start": "2026-10-21T09:00:00+02:00"}})
 
 
 @pytest.mark.parametrize(("failure", "repair_key"), [
@@ -254,7 +284,7 @@ def test_raw_extraction_prompts_are_separate_and_injection_resistant():
     assert 'Ordne sie nicht allein deshalb als\n"non_binding" oder "unsupported"' in task
     assert '"non_binding" gilt nur für ausdrücklich unverbindliche Ideen oder Optionen' in task
     assert '"unsupported" nur für Aufgabenarten' in task
-    for field in ("title", "description", "evidence", "date_text", "time_text", "end_time_text", "location", "video_link", "responsibility", "certainty", "classification"):
+    for field in ("title", "description", "evidence", "date_text", "time_text", "end_time_text", "time_requirement", "location", "video_link", "responsibility", "certainty", "classification"):
         assert field in event
     assert "HTTP-/HTTPS-URL" in event
     assert "einmaliger künftiger Termin oder eine Einladung dazu ist" in event
@@ -262,6 +292,7 @@ def test_raw_extraction_prompts_are_separate_and_injection_resistant():
     assert 'nicht allein deshalb als "non_binding" oder "unsupported"' in event
     assert '"unsupported" nur für' in event
     assert "Terminarten, die sich mit den geforderten Feldern nicht abbilden lassen" in event
+    assert "Datum ohne Uhrzeit ist niemals automatisch ganztägig" in event
     for stage in ("action_router", "task_extraction", "event_extraction"):
         assert prompts[stage]["parameters"]["max_tokens"] == 10_000
 
