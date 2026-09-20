@@ -488,6 +488,17 @@ die Überarbeitung benötigte Form normalisiert. Erst danach erzeugen sie eine n
 erneut zu bestätigende Version. Ist die Antwort nicht eindeutig nutzbar, erzeugt
 ein zweiter, getrennt schematisierter LLM-Aufruf eine konkrete Rückfrage; Vorschlag
 und Dialog bleiben dabei unverändert.
+Eine nutzbare Antwort wird nicht als Telegram-Freitext, sondern als normalisierter
+Wert in einem eigenen, versionsgebundenen Klärungszustand (Schema 2) gespeichert.
+Dieser unterscheidet `question_status`, `answer_status` und
+`proposal_revision_status`. Die konkrete Frage gilt mit diesem atomaren Schreiben
+dauerhaft als beantwortet; erst danach wird der aktive Telegram-Dialog geschlossen
+und die Revision aufgerufen. Provider-, Tokenlimit-, JSON- oder Schemafehler ändern
+nur den Revisionsstatus in `retry_required`. Beim nächsten Lauf wird die Revision
+aus der gespeicherten normalisierten Antwort wiederaufgenommen, ohne erneut nach
+einer Telegram-Antwort zu fragen. Auch ein Absturz zwischen Antwortpersistenz und
+Revision verliert die Antwort daher nicht; spätere Nachrichten wie „Ok“ können
+nicht mehr der alten Frage zugeordnet werden.
 Telegram wird ausschließlich für Nachrichten und Callback-Aktionen abgefragt;
 bereits wartende, nicht unterstützte Update-Arten werden einzeln verworfen und
 blockieren nachfolgende Antworten nicht. Ein technisch fehlgeschlagener
