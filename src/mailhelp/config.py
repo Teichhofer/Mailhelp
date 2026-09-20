@@ -274,6 +274,7 @@ class PromptStep(BaseModel):
     parameters: dict[str, Any] = Field(default_factory=dict)
     routes: list["LlmRoute"] | None = None
     provider_retries: int = Field(default=1, ge=0, le=10)
+    output_token_retry: "OutputTokenRetry | None" = None
 
     @model_validator(mode="after")
     def valid_routes(self) -> "PromptStep":
@@ -320,6 +321,7 @@ class LlmRoute(ConfigModel):
     provider_preferences: OpenRouterProviderPreferences = Field(
         default_factory=OpenRouterProviderPreferences
     )
+    supports_json_schema: bool = True
 
     @field_validator("model")
     @classmethod
@@ -336,6 +338,20 @@ class LlmRoute(ConfigModel):
             raise ValueError(f"Unbekannte oder reservierte Request-Schlüssel: {sorted(unknown)}")
         return value
 
+
+class OutputTokenRetry(ConfigModel):
+    """A deliberately smaller, stage-specific request after truncated output."""
+    system_prompt: str = Field(min_length=1)
+    parameters: dict[str, Any] = Field(default_factory=dict)
+    change_fields: list[str] = Field(min_length=1)
+
+    @field_validator("parameters")
+    @classmethod
+    def safe_parameters(cls, value: dict[str, Any]) -> dict[str, Any]:
+        unknown = set(value) - OPENROUTER_PARAMETER_KEYS
+        if unknown:
+            raise ValueError(f"Unbekannte Retry-Parameter: {sorted(unknown)}")
+        return value
 
 class PromptConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)

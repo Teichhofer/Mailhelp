@@ -43,11 +43,17 @@ class TelegramDialogState(StrictModel):
     mail_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{24}$")
     proposal_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{1,64}$")
     version: int | None = Field(default=None, ge=1)
+    retry_required: bool = False
+    question: str | None = Field(default=None, min_length=1, max_length=4000)
+    normalized_answer: str | None = Field(default=None, min_length=1, max_length=4000)
 
     @model_validator(mode="after")
     def complete_reference(self) -> "TelegramDialogState":
         if len({self.mail_id is None, self.proposal_id is None, self.version is None}) != 1:
             raise ValueError("mail_id, proposal_id und version müssen gemeinsam gesetzt sein")
+        retry_values = self.question is not None and self.normalized_answer is not None
+        if self.retry_required != retry_values or (self.retry_required and self.mail_id is None):
+            raise ValueError("Ein Revisions-Retry benötigt Referenz, Frage und normalisierte Antwort")
         return self
 
 
@@ -397,6 +403,77 @@ class Proposal(StrictModel):
         if self.end is not None and self.start is not None and self.end <= self.start:
             raise ValueError("Terminende muss nach dem Beginn liegen")
         return self
+
+
+class ProposalRevisionChanges(StrictModel):
+    """Closed set of business fields which an LLM may change in a revision."""
+
+    responsibility: ProposalResponsibility | None = None
+    certainty: ProposalCertainty | None = None
+    classification: ProposalClassification | None = None
+    title: str | None = Field(default=None, min_length=1, max_length=500)
+    description: str | None = Field(default=None, max_length=4000)
+    due: date | datetime | None = None
+    start: date | datetime | None = None
+    end: date | datetime | None = None
+    all_day: bool | None = None
+    location: str | None = Field(default=None, max_length=1000)
+    video_link: AnyHttpUrl | None = Field(default=None, max_length=2000)
+    target: str | None = Field(default=None, min_length=1, max_length=500)
+
+
+class ProposalRevisionDelta(StrictModel):
+    """Minimal LLM output: the answered question and explicitly changed fields."""
+
+    answered_question: str = Field(min_length=1, max_length=4000)
+    changes: ProposalRevisionChanges
+
+
+def _required_revision_questions(proposal: Proposal) -> list[str]:
+    """Derive invariant clarification questions from the revised business facts."""
+    questions: list[str] = []
+    if proposal.kind == ProposalKind.EVENT:
+        if proposal.start is None:
+            questions.append("Wann beginnt der Termin?")
+        if proposal.end is None:
+            questions.append("Wann endet der Termin?")
+    if proposal.responsibility != ProposalResponsibility.USER:
+        questions.append("Ist die Nutzerin oder der Nutzer für diesen Eintrag zuständig?")
+    if proposal.certainty == ProposalCertainty.UNCERTAIN:
+        questions.append("Ist die extrahierte Information sicher belegt?")
+    elif proposal.certainty == ProposalCertainty.CONTRADICTORY:
+        questions.append("Wie soll der Widerspruch in den Angaben aufgelöst werden?")
+    classification = {
+        ProposalClassification.NON_BINDING: "Soll der nicht bindende Hinweis dennoch als neuer Eintrag angelegt werden?",
+        ProposalClassification.ALREADY_COMPLETED: "Der Eintrag ist bereits abgeschlossen und nicht direkt ausführbar.",
+        ProposalClassification.CHANGE: "Welcher bestehende Eintrag soll geändert werden?",
+        ProposalClassification.CANCELLATION: "Welcher bestehende Eintrag soll storniert werden?",
+        ProposalClassification.RECURRING: "Wiederkehrende Einträge werden nicht automatisch angelegt.",
+        ProposalClassification.UNSUPPORTED: "Diese Art von Eintrag wird nicht unterstützt.",
+    }.get(proposal.classification)
+    if classification:
+        questions.append(classification)
+    return questions
+
+
+def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta) -> Proposal:
+    """Apply a validated delta locally; identity, lifecycle and version stay authoritative."""
+    if delta.answered_question not in previous.open_questions:
+        raise ValueError("Die beantwortete Frage ist im Vorschlag nicht offen")
+    changes = delta.changes.model_dump(exclude_unset=True)
+    remaining = list(previous.open_questions)
+    remaining.remove(delta.answered_question)
+    provisional = previous.model_copy(update=changes)
+    for question in _required_revision_questions(provisional):
+        if question not in remaining:
+            remaining.append(question)
+    changes.update(
+        version=previous.version + 1,
+        open_questions=remaining,
+        status=(ProposalStatus.NEEDS_CLARIFICATION if remaining
+                else ProposalStatus.PENDING_CONFIRMATION),
+    )
+    return Proposal.model_validate(previous.model_copy(update=changes).model_dump())
 
 
 class Actions(StrictModel):

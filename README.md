@@ -639,3 +639,12 @@ versehentlichen Netzwerkzugriff und keine implizite Verwendung eines
 über einen ausdrücklich benannten Opt-in-Schalter aktiviert werden, außerhalb des
 Standard-Pytest-Laufs liegen und als Erfolgskriterium dieselben vollständigen
 strukturierten Erwartungen aus `tests/fixtures/mail_corpus_v1/corpus.json` erfüllen.
+
+### Sichere Proposal-Revision
+
+Proposal-Überarbeitungen verwenden ein geschlossenes, minimales Delta statt eines
+erneut vom Modell erzeugten Gesamt-Proposals. IDs, Version, Status, unveränderte
+Felder und offene Fragen bleiben unter Kontrolle der Anwendung. Nach einem
+`output_token_limit` wird eine kürzere, feldreduzierte Route verwendet. Scheitern
+alle technischen Versuche, speichert Mailhelp die normalisierte Antwort als
+`retry_required` und setzt sie nach einem Neustart fort, ohne erneut zu fragen.
