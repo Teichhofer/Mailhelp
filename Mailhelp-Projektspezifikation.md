@@ -407,6 +407,26 @@ Revision lässt die Frage deshalb beantwortet, und ein späteres „Ok“ wird n
 Antwort auf diese alte Frage interpretiert. Bereits veröffentlichte Nachfolgeversionen
 schließen einen nach einem Absturz noch ausstehenden Klärungszustand idempotent ab.
 
+Revisionsfehler werden an einer ausdrücklichen Grenze in drei Kategorien getrennt:
+`IncompleteUserAnswer` bezeichnet allein eine fachlich validierte, aber unvollständige
+Benutzereingabe, `ContradictoryRevision` einen fachlich widersprüchlichen Nachfolger
+und `TechnicalRevisionError` technische Provider-, Transport-, Tokenlimit-, JSON-
+und Schemafehler (einschließlich erschöpfter Retries). Nur die erste Kategorie darf
+eine konkrete Sachfrage auslösen. Technische Fehler erzeugen höchstens einen neutralen
+Verzögerungshinweis und niemals dieselbe Sachfrage erneut. Die Entscheidung erfolgt
+nicht über einen gemeinsamen `ValueError`-Catch.
+
+Ein Telegram-Update gilt als konsumiert, sobald seine autorisierte Nachricht
+syntaktisch verarbeitet wurde; der Offset wird auch nach einem intern behandelten
+technischen Interpretationsfehler fortgeschrieben. Sobald eine semantisch gültige
+Antwort persistiert ist, sind außerdem `question_status=answered` und der geschlossene
+aktive Dialog die dauerhafte Konsumgrenze. Ein späterer Revisionsfehler ändert nur
+`proposal_revision_status=retry_required`; weder ein Neustart noch eine neue Nachricht
+darf die gespeicherte Antwort erneut als Benutzereingabe interpretieren. Inhaltsfreie
+Logereignisse nennen Fehlerklasse, versionsgebundene Proposal-Referenz und
+Revisionsstatus. Ein erfolgreicher HTTP-200-Telegram-Versand bleibt ein eigener
+Transporterfolg und wird keinem danach auftretenden Revisionsfehler zugerechnet.
+
 - Telegram verwendet Long Polling; ein öffentlicher Webhook ist nicht vorgesehen.
 - Telegram-Updates, Nachrichten, Callback-Queries und Schreibantworten werden vor
   jeder Verwendung mit Transport-Schemata geprüft. Von Mailhelp verwendete

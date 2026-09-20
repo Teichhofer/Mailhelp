@@ -15,10 +15,12 @@ from .models import (ActionLedger, ActionLedgerEntry, AnswerStatus, MailState, P
                      RelevanceDialogStatus, TelegramDialogState, TelegramOffset,
                      WriteAttemptReference)
 from .integrations import ExternalWriter, execute_confirmed, proposal_is_writable
-from .adapter import PermanentError, RetryPolicy, uncertain_write
+from .adapter import PermanentError, RetryableError, RetryPolicy, uncertain_write
 from .storage import JsonStore
 from .logging import EventLogger, NullLogger
-from .analysis import validate_revision_successor
+from .analysis import (ContradictoryRevision, IncompleteUserAnswer, LlmInvalidJson,
+                       LlmProviderResponseInvalid, LlmSchemaValidationFailed,
+                       TechnicalRevisionError, validate_revision_successor)
 import time, traceback, uuid
 
 
@@ -960,6 +962,7 @@ class TelegramDialogController:
             _, interpretation = self.revision_service.interpret_telegram_answer(
                 proposal, question, answer)
             if not interpretation.usable:
+                incomplete = IncompleteUserAnswer(interpretation.reason)
                 clarification = ProposalClarificationState(
                     mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
                     version=dialog.version, question=question,
@@ -970,14 +973,33 @@ class TelegramDialogController:
                     question, answer, interpretation.reason)
                 self.logger.event("INFO", "telegram.dialog", "answer_clarification_requested",
                                   mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
-                                  version=dialog.version)
+                                  version=dialog.version,
+                                  error_class=type(incomplete).__name__,
+                                  proposal_reference=f"{dialog.mail_id}:{dialog.proposal_id}:v{dialog.version}",
+                                  revision_status=ProposalRevisionStatus.PENDING.value)
                 self.telegram.send(self.chat_id, clarification.message)
                 return
-        except (ValueError, ValidationError) as exc:
-            self.logger.event("WARNING", "telegram.dialog", "answer_revision_rejected",
-                              mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
-                              version=dialog.version, error=exc)
-            self.telegram.send(self.chat_id, "Die Antwort konnte nicht widerspruchsfrei übernommen werden; der Vorschlag und die Rückfrage blieben unverändert.")
+        except (LlmProviderResponseInvalid, LlmInvalidJson,
+                LlmSchemaValidationFailed, RetryableError,
+                TechnicalRevisionError, ValidationError, httpx.TransportError) as exc:
+            pending = ProposalClarificationState(
+                mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
+                version=dialog.version, question=question)
+            self.store.save(clarification_name, pending.model_dump(mode="json"))
+            self._log_revision_failure(dialog.mail_id, dialog.proposal_id,
+                                       dialog.version, exc,
+                                       ProposalRevisionStatus.PENDING)
+            self.telegram.send(self.chat_id, "Die interne Verarbeitung ist verzögert. Die Antwort wurde noch nicht fachlich bewertet.")
+            return
+        except ContradictoryRevision as exc:
+            pending = ProposalClarificationState(
+                mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
+                version=dialog.version, question=question)
+            self.store.save(clarification_name, pending.model_dump(mode="json"))
+            self._log_revision_failure(dialog.mail_id, dialog.proposal_id,
+                                       dialog.version, exc,
+                                       ProposalRevisionStatus.PENDING)
+            self.telegram.send(self.chat_id, "Die Antwort widerspricht dem bestehenden Vorschlag; es wurde nichts geändert.")
             return
         # The validated value is the recovery record.  It must reach disk before
         # removing the active user question or making another fallible LLM call.
@@ -1009,14 +1031,18 @@ class TelegramDialogController:
                 original, state.question, state.normalized_answer)
             revised = validate_revision_successor(original, candidate)
         except Exception as exc:
-            self.logger.event("WARNING", "telegram.dialog", "answer_revision_rejected",
-                              mail_id=state.mail_id, proposal_id=state.proposal_id,
-                              version=state.version, error=exc)
+            classified = (exc if isinstance(exc, (
+                ContradictoryRevision, TechnicalRevisionError, RetryableError,
+                ValidationError, httpx.TransportError))
+                          else TechnicalRevisionError(type(exc).__name__))
+            self._log_revision_failure(state.mail_id, state.proposal_id,
+                                       state.version, classified,
+                                       ProposalRevisionStatus.RETRY_REQUIRED)
             # The question and validated answer deliberately remain untouched.
             self.store.save(name, state.model_copy(update={
                 "proposal_revision_status": ProposalRevisionStatus.RETRY_REQUIRED,
             }).model_dump(mode="json"))
-            self.telegram.send(self.chat_id, "Die gespeicherte Antwort konnte noch nicht übernommen werden; die Revision wird beim nächsten Lauf erneut versucht.")
+            self.telegram.send(self.chat_id, "Die interne Verarbeitung der gespeicherten Antwort ist verzögert.")
             return
         self.send_proposal(revised)
         self.store.save(name, state.model_copy(update={
@@ -1025,6 +1051,18 @@ class TelegramDialogController:
         self.logger.event("INFO", "telegram.dialog", "answer_revision_completed",
                           mail_id=state.mail_id, proposal_id=state.proposal_id,
                           previous_version=state.version, new_version=revised.version)
+
+    def _log_revision_failure(self, mail_id: str, proposal_id: str, version: int,
+                              exc: Exception,
+                              status: ProposalRevisionStatus) -> None:
+        """Log a revision failure without answer, question, or exception text."""
+        self.logger.event(
+            "WARNING", "telegram.dialog", "answer_revision_failed",
+            mail_id=mail_id, proposal_id=proposal_id, version=version,
+            error_class=type(exc).__name__,
+            proposal_reference=f"{mail_id}:{proposal_id}:v{version}",
+            revision_status=status.value,
+        )
 
     def _resume_revisions(self) -> None:
         if self.revision_service is None or not hasattr(self.store, "names"):

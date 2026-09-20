@@ -499,11 +499,22 @@ aus der gespeicherten normalisierten Antwort wiederaufgenommen, ohne erneut nach
 einer Telegram-Antwort zu fragen. Auch ein Absturz zwischen Antwortpersistenz und
 Revision verliert die Antwort daher nicht; spätere Nachrichten wie „Ok“ können
 nicht mehr der alten Frage zugeordnet werden.
+Die Fehlergrenze unterscheidet dabei ausdrücklich unvollständige Benutzereingaben,
+fachlich widersprüchliche Revisionen und technische Revisionsfehler. Nur eine als
+unvollständig validierte Eingabe erhält eine konkrete fachliche Rückfrage. Provider-,
+Transport-, Retry-, Tokenlimit-, JSON- und Schemafehler erhalten höchstens einen
+neutralen Verzögerungshinweis; ein gemeinsamer `ValueError` dient nicht als
+fachliche Entscheidungsgrenze. Das strukturierte, inhaltsfreie Ereignis nennt
+Fehlerklasse, versionsgebundene Proposal-Referenz und Revisionsstatus.
+Ein autorisiertes, syntaktisch verarbeitetes Telegram-Update wird durch Fortschreiben
+des Offsets konsumiert. Ist seine semantisch gültige normalisierte Antwort bereits
+persistiert, bleibt sie auch bei einem späteren technischen Revisionsfehler beantwortet
+und wird nach Neustart aus dem Zustand wiederholt; die Chatnachricht wird nie nochmals
+als neue Antwort ausgewertet. Ein vorausgehender erfolgreicher Telegram-HTTP-Aufruf
+bleibt dabei ein separater Erfolg und wird nicht als Revisionsfehler protokolliert.
 Telegram wird ausschließlich für Nachrichten und Callback-Aktionen abgefragt;
 bereits wartende, nicht unterstützte Update-Arten werden einzeln verworfen und
-blockieren nachfolgende Antworten nicht. Ein technisch fehlgeschlagener
-Antwortversuch wird nicht durch Fortschreiben des Telegram-Offsets quittiert und
-kann beim nächsten Poll erneut verarbeitet werden. Meldet Telegram dagegen, dass
+blockieren nachfolgende Antworten nicht. Meldet Telegram dagegen, dass
 nur die kurzlebige Callback-Bestätigung bereits abgelaufen ist, gilt das fachlich
 verarbeitete Update als abgeschlossen: Der Offset wird fortgeschrieben, damit die
 alte Callback-Query nicht dauerhaft alle neueren Antworten blockiert. Inhaltsfreie
