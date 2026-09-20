@@ -49,10 +49,11 @@ def callback(update_id, data, user=1, chat=2):
 
 class Telegram:
     def __init__(self, updates=()):
-        self.updates = list(updates); self.polls=[]; self.sent=[]; self.answered=[]; self.documents=[]
+        self.updates = list(updates); self.polls=[]; self.sent=[]; self.answered=[]; self.documents=[]; self.removed=[]
     def poll(self, offset): self.polls.append(offset); return self.updates
     def send(self, chat, text, reply_markup=None): self.sent.append((chat,text,reply_markup))
     def answer_callback(self, callback_id, text): self.answered.append((callback_id,text))
+    def remove_inline_keyboard(self, chat_id, message_id): self.removed.append((chat_id,message_id))
     def send_document(self, chat_id, filename, content, caption=None):
         self.documents.append((chat_id, filename, content, caption))
 
@@ -198,15 +199,14 @@ def test_created_action_is_booked_and_duplicate_needs_second_confirmation(tmp_pa
 
         normal = Decision(mail_id=second_mail, proposal_id="p1", version=1,
                           action=DecisionAction.CONFIRM)
-        dialog._decide("first", normal)
+        assert "Doppelanlage" in dialog._decide(normal)
         assert writer.created == 0
-        assert "erneute Freigabe" in telegram.answered[-1][1]
         assert "Bereits angelegt" in telegram.sent[-1][1]
         markup = telegram.sent[-1][2]
         repeat = Decision.parse(markup["inline_keyboard"][0][0]["callback_data"], store)
         assert repeat.action == DecisionAction.CONFIRM_DUPLICATE
 
-        dialog._decide("second", repeat)
+        assert "bestätigt" in dialog._decide(repeat)
         assert writer.created == 1
         assert store.load("proposal-" + second_mail + "-p1")["status"] == "created"
         ledger = store.load_model("action-ledger", ActionLedger)
@@ -221,8 +221,8 @@ def test_duplicate_override_is_rejected_when_ledger_no_longer_matches(tmp_path):
         dialog.persist(item)
         decision = Decision(mail_id=item.source_mail_id, proposal_id=item.id, version=1,
                             action=DecisionAction.CONFIRM_DUPLICATE)
-        dialog._decide("stale", decision)
-        assert "veraltet" in telegram.answered[-1][1]
+        with pytest.raises(ValueError, match="veraltet"):
+            dialog._decide(decision)
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"] == "pending_confirmation"
 
 
@@ -242,36 +242,32 @@ class Writer:
         return {"id":"external-1","url":"https://example.test/item"}
 
 
-def test_create_callback_is_answered_after_confirmation_persist_and_before_write(tmp_path):
+def test_direct_decision_persists_confirmation_before_write(tmp_path):
     events=[]
     class OrderedStore(JsonStore):
         def save(self, name, value):
             super().save(name, value)
             if name == "proposal-aaaaaaaaaaaaaaaaaaaaaaaa-event" and value["status"] == "confirmed":
                 events.append("confirmation persisted")
-    class OrderedTelegram(Telegram):
-        def answer_callback(self, callback_id, text):
-            events.append("callback answered")
-            super().answer_callback(callback_id, text)
     class SlowWriter(Writer):
         def create(self, item, key):
-            assert events == ["confirmation persisted", "callback answered"]
+            assert events == ["confirmation persisted"]
             events.append("external write")
             return super().create(item, key)
 
     with OrderedStore(tmp_path) as store:
-        transport=OrderedTelegram()
+        transport=Telegram()
         dialog=TelegramDialogController(store,transport,1,2,Logger(),
                                         {"google_calendar":SlowWriter()},False,"UTC",
                                         RevisionService())
         item=proposal(id="event",kind="event",status="pending_confirmation",
                       start="2026-01-01T10:00:00Z",end="2026-01-01T11:00:00Z")
         dialog.persist(item)
-        dialog._decide("callback",Decision(mail_id=item.source_mail_id,
+        dialog._decide(Decision(mail_id=item.source_mail_id,
                        proposal_id=item.id,version=item.version,
                        action=DecisionAction.CONFIRM))
 
-    assert events[:3] == ["confirmation persisted", "callback answered", "external write"]
+    assert events[:2] == ["confirmation persisted", "external write"]
 
 
 def test_strict_schemas_and_decisions():
@@ -434,13 +430,15 @@ def test_persist_before_buttons_and_authorized_flow(tmp_path):
 
         t.updates=[callback(4,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm")]
         c.poll_once()
-        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="confirmed" and "bestätigt" in t.answered[-1][1]
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="confirmed"
+        assert "bestätigt" in t.sent[-1][1] and t.removed == [(2, 1)]
         # Duplicate update is ignored by the persisted offset after restart.
         c2,t2,_=controller(store,t.updates); c2.poll_once()
         assert t2.polls==[5] and not t2.answered
         # A replay with a fresh update id still cannot mutate the terminal state.
         t2.updates=[callback(5,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:reject")]; c2.poll_once()
-        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="confirmed" and "veraltet" in t2.answered[-1][1]
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="confirmed"
+        assert "konnte nicht verarbeitet" in t2.sent[-1][1]
 
 
 def test_test_mode_creates_calendar_file_and_sends_it_via_telegram(tmp_path):
@@ -462,7 +460,8 @@ def test_test_mode_creates_calendar_file_and_sends_it_via_telegram(tmp_path):
         assert content.startswith(b"BEGIN:VCALENDAR\r\n")
         assert b"SUMMARY:Planung\r\n" in content
         assert "Planung" in caption
-        assert "Erstellt" in transport.sent[-1][1]
+        assert any("Erstellt" in text for _, text, _ in transport.sent)
+        assert transport.sent[-1][1] == "✅ Vorschlag wurde bestätigt."
 
 
 def test_proposal_notification_uses_persisted_sender_and_subject(tmp_path):
@@ -489,7 +488,7 @@ def test_only_exactly_displayed_version_is_written(tmp_path):
         c.send_proposal(proposal(version=2, title="Neue Fassung"))
         t.updates=[callback(1,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm"),callback(2,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:2:confirm")]
         c.poll_once()
-        assert "veraltet" in t.answered[0][1]
+        assert any("konnte nicht verarbeitet" in text for _, text, _ in t.sent)
         assert writer.versions == [2]
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v2")["title"] == "Neue Fassung"
 
@@ -555,7 +554,8 @@ def test_same_llm_id_from_two_mails_survives_restart_and_writes_separately(tmp_p
                                   {"todoist":second_writer})
         restarted.poll_once()
         assert second_writer.created == 0
-        repeat_data = t2.sent[-1][2]["inline_keyboard"][0][0]["callback_data"]
+        repeat_message = next(message for message in t2.sent if message[2] is not None)
+        repeat_data = repeat_message[2]["inline_keyboard"][0][0]["callback_data"]
         t2.updates = [callback(3, repeat_data)]
         restarted.poll_once()
         assert second_writer.created == 1
@@ -566,7 +566,7 @@ def test_same_llm_id_from_two_mails_survives_restart_and_writes_separately(tmp_p
         t2.updates=[callback(4,f"proposal:{first_mail}:p1:1:confirm")]
         restarted.poll_once()
         assert first_writer.created == 1 and second_writer.created == 1
-        assert "veraltet" in t2.answered[-1][1]
+        assert "konnte nicht verarbeitet" in t2.sent[-1][1]
 
 def test_edit_question_answer_new_version_then_reject(tmp_path):
     with JsonStore(tmp_path) as store:
@@ -577,14 +577,16 @@ def test_edit_question_answer_new_version_then_reject(tmp_path):
         assert labels == ["Klären", "Verwerfen"] and "Bestätigen" not in labels
         t.updates=[callback(1,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm"), callback(2,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:edit")]
         c.poll_once()
-        assert "Zuerst" in t.answered[0][1] and store.load("telegram-dialog")["proposal_id"]=="p1"
+        assert any("konnte nicht verarbeitet" in text for _, text, _ in t.sent)
+        assert store.load("telegram-dialog")["proposal_id"]=="p1"
         t.updates=[message(3,"Morgen")]; c.poll_once()
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v2")["open_questions"]==["Wo?"]
         # Select edit and answer the remaining question, producing a confirmable v3.
         t.updates=[callback(4,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:2:edit"),message(5,"Berlin")]; c.poll_once()
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["version"]==3 and store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="pending_confirmation"
         t.updates=[callback(6,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:3:reject")]; c.poll_once()
-        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="rejected" and "verworfen" in t.answered[-1][1]
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="rejected"
+        assert "verworfen" in t.sent[-1][1]
 
 
 def test_invalid_unauthorized_missing_and_stale_dialogs(tmp_path):
@@ -593,7 +595,7 @@ def test_invalid_unauthorized_missing_and_stale_dialogs(tmp_path):
         c,t,log=controller(store,bad); c.poll_once()
         assert store.load("telegram-offset")["offset"]==7
         assert any("syntaktisch" in item[1] for item in t.sent)
-        assert any("Nicht autorisierte" in text for _,text in t.answered)
+        assert any("Nicht autorisierte" in text for _,text,_ in t.sent)
         assert "private" not in repr(log.events)
 
         c.persist(proposal(version=2))
@@ -670,8 +672,11 @@ def test_telegram_client_validation_and_callback():
         return httpx.Response(200,json=data,request=request)
     client=TelegramClient("secret",1,httpx.MockTransport(handler))
     assert client.poll(0)==[]
-    client.send(2,"x",{"inline_keyboard":[]}); client.answer_callback("c","ok"); client.close()
-    assert len(requests)==3
+    client.send(2,"x",{"inline_keyboard":[]}); client.answer_callback("c","ok")
+    client.remove_inline_keyboard(2, 7); client.close()
+    assert len(requests)==4
+    assert requests[-1].url.path.endswith("editMessageReplyMarkup")
+    assert requests[-1].read() == b'{"chat_id":2,"message_id":7,"reply_markup":{"inline_keyboard":[]}}'
     assert requests[0].url.params["allowed_updates"] == '["message","callback_query"]'
     invalid=TelegramClient("secret",1,httpx.MockTransport(lambda r:httpx.Response(200,json={"ok":True,"result":{}},request=r)))
     with pytest.raises(ValueError): invalid.poll(0)
@@ -689,6 +694,8 @@ def test_expired_callback_acknowledgement_does_not_block_update_checkpoint(tmp_p
             return httpx.Response(200, json={"ok": True, "result": [
                 callback(7, decision.encode())
             ]}, request=request)
+        if request.url.path.endswith("editMessageReplyMarkup") or request.url.path.endswith("sendMessage"):
+            return httpx.Response(200, json={"ok": True, "result": True}, request=request)
         return httpx.Response(400, json={
             "ok": False,
             "error_code": 400,
@@ -853,7 +860,8 @@ def test_confirmation_executes_and_reports_all_results(tmp_path):
             c,t,_=controller(store,[callback(1,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm")],{"todoist":writer},test_mode)
             c.persist(proposal()); c.poll_once()
             saved=store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")
-            assert saved["status"]==status and text in t.sent[-1][1]
+            assert saved["status"]==status
+            assert any(text in message for _,message,_ in t.sent)
             if status=="created": assert saved["external_id"]=="external-1" and saved["external_link"]=="https://example.test/item"
 
 
@@ -949,12 +957,14 @@ def test_relevance_dialog_authorization_stale_restart_and_duplicate(tmp_path):
             f"relevance:{mail_id}:1:irrelevant",
         ]
         c.poll_once()
-        assert "Nicht autorisierte" in t.answered[0][1] and "veraltet" in t.answered[1][1]
+        assert all(text == "Aktion wird verarbeitet …" for _, text in t.answered[:3])
+        assert any("Nicht autorisierte" in text for _, text, _ in t.sent)
+        assert any("konnte nicht verarbeitet" in text for _, text, _ in t.sent)
         assert handler.resumed==[mail_id] and store.load("mail-"+mail_id)["relevance_dialog"]["telegram_offset"]==4
         restarted,t2,_=controller(store,[callback(3,f"relevance:{mail_id}:1:irrelevant")]); restarted.relevance_handler=handler
         restarted.poll_once(); assert t2.polls==[4] and "bereits verarbeitet" in t2.answered[-1][1]
         t2.updates=[callback(4,f"relevance:{mail_id}:1:irrelevant")]; restarted.poll_once()
-        assert "bereits beantwortet" in t2.answered[-1][1]
+        assert "konnte nicht verarbeitet" in t2.sent[-1][1]
 
 
 def test_relevance_dialog_displays_missing_headers_without_exposing_mail_id(tmp_path):
@@ -988,7 +998,8 @@ def test_invalid_relevance_callbacks_and_unavailable_handler(tmp_path):
         store.save("mail-"+mail_id,relevance_state(mail_id).model_dump(mode="json"))
         c,t,_=controller(store,[callback(1,"relevance:bad"),callback(2,f"relevance:{mail_id}:1:relevant"),message(3,"irrelevant")])
         c.poll_once()
-        assert "syntaktisch" in t.answered[0][1] and "nicht verfügbar" in t.answered[1][1]
+        assert all(text == "Aktion wird verarbeitet …" for _, text in t.answered)
+        assert any("syntaktisch" in text for _, text, _ in t.sent)
         assert "nicht verfügbar" in t.sent[-1][1]
 
 
@@ -1025,7 +1036,8 @@ def test_non_creatable_classifications_stay_manual_after_telegram_interaction(tm
                                                    version=item.version, action=DecisionAction.CONFIRM).encode())]
         dialog.poll_once()
         assert writer.created == 0 and writer.reconciled == 0
-        assert "offenen Fragen" in transport.answered[-1][1]
+        assert transport.answered[-1][1] == "Aktion wird verarbeitet …"
+        assert "konnte nicht verarbeitet" in transport.sent[-1][1]
         dialog._execute(item.model_copy(update={"status": ProposalStatus.CONFIRMED}))
         assert writer.created == 0 and writer.reconciled == 0
 

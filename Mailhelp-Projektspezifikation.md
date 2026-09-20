@@ -404,6 +404,12 @@ beziehungsweise eine mit dem Terminmodell nicht abbildbare Terminart voraus.
 - Eine Änderung wird einem konkreten Vorschlag zugeordnet. Sind mehrere Vorschläge offen, darf Freitext nicht willkürlich zugeordnet werden.
 - Änderungen können über das LLM interpretiert werden. Der korrigierte Vorschlag muss erneut angezeigt und ausdrücklich bestätigt werden.
 - Bestätigungen gelten nur für die angezeigte Vorschlagsversion. Veraltete Buttons dürfen keine neuere Fassung freigeben.
+- Jede Callback-Query wird vor der fachlichen Verarbeitung sofort gegenüber
+  Telegram bestätigt. Nach erfolgreicher Annahme entfernt Mailhelp über
+  `editMessageReplyMarkup` die vollständige Inline-Tastatur der ursprünglichen
+  Nachricht und sendet eine kurze, aktionsbezogene Bestätigungsnachricht. Bei
+  einem Verarbeitungsfehler bleibt die Tastatur für einen erneuten Versuch
+  erhalten und eine kurze Fehlermeldung wird als neue Chatnachricht gesendet.
 - Aktueller und versionierter Vorschlagszustand, Callback, Rückfragedialog,
   Schreibreferenz und externer Idempotenzschlüssel verwenden gemeinsam Mail-ID,
   interne Vorschlags-ID und (wo versionsbezogen) Version als Identität.

@@ -476,6 +476,12 @@ wird vor ihren Schaltflächen gespeichert. Aufgabenvorschläge bieten `Bestätig
 `Ändern` und `Verwerfen`; vollständige Terminvorschläge bieten ausschließlich
 `Anlegen` und `Verwerfen`. `Anlegen` schreibt den Termin über die Google Calendar API in den konfigurierten Zielkalender. Die Aktionen werden getrennt behandelt,
 während veraltete oder fehlerhafte Schaltflächen keinen Zustand verändern.
+Callback-Klicks werden sofort bei Telegram quittiert. Erst nach erfolgreicher
+fachlicher Annahme entfernt Mailhelp zentral die gesamte Inline-Tastatur der
+ursprünglichen Nachricht mit `editMessageReplyMarkup` und sendet anschließend
+eine kurze Bestätigung der gewählten Aktion in den Chat. Bei einem Fehler wird
+stattdessen eine kurze Fehlermeldung gesendet; die Schaltflächen bleiben für
+einen erneuten Versuch erhalten.
 Antworten auf Rückfragen werden zuerst in einem eigenen LLM-Schritt mit der
 konkret erfragten Information verglichen und bei eindeutiger Zuordnung in die für
 die Überarbeitung benötigte Form normalisiert. Erst danach erzeugen sie eine neue,
