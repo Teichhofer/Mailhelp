@@ -330,6 +330,29 @@ def test_analyzer_revises_proposal_with_separate_inputs_and_retries():
     assert capturing.payload["authorized_answer"]=="Autorisierte Antwort"
 
 
+def test_telegram_answer_interpretation_and_clarification_use_separate_fields():
+    original = proposal(open_questions=["Welches Datum?"])
+    interpreting = RetrySequence([{
+        "usable": True, "normalized_answer": "1. Oktober 2026", "reason": "Datum erkannt"
+    }])
+    _, interpreted = Analyzer(interpreting, prompt_config()).interpret_telegram_answer(
+        original, "Welches Datum?", "am ersten Oktober")
+    assert interpreted.normalized_answer == "1. Oktober 2026"
+    assert interpreting.payloads[0] == {
+        "validated_proposal": original.model_dump(mode="json"),
+        "question": "Welches Datum?", "authorized_answer": "am ersten Oktober",
+    }
+
+    clarifying = RetrySequence([{"message": "Bitte nenne das Datum im Format TT.MM.JJJJ."}])
+    _, clarification = Analyzer(clarifying, prompt_config()).clarify_telegram_answer(
+        "Welches Datum?", "irgendwann", "kein eindeutiges Datum")
+    assert clarification.message.startswith("Bitte nenne")
+    assert clarifying.payloads[0] == {
+        "question": "Welches Datum?", "authorized_answer": "irgendwann",
+        "interpretation_reason": "kein eindeutiges Datum",
+    }
+
+
 @pytest.mark.parametrize("original, changes, expected", [
     (proposal(open_questions=["Welche Frist?"]),
      {"due":"2026-10-01T17:00:00+02:00"}, "2026-10-01T17:00:00+02:00"),

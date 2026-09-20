@@ -11,7 +11,8 @@ from .adapter import RetryableError
 from .config import LlmRoute, PromptConfig, Topic
 from .models import (AbstractCategories, ActionRoute, EventExtraction,
                      MailClassification, Proposal, ProposalStatus, Relevance,
-                     Summary, TaskExtraction)
+                     Summary, TaskExtraction, TelegramAnswerInterpretation,
+                     TelegramClarification)
 from .openrouter import InvalidJson, ProviderResponseInvalid
 
 T = TypeVar("T", bound=BaseModel)
@@ -207,6 +208,24 @@ class Analyzer:
             "proposal_revision", payload,
             lambda raw: validate_revision_successor(proposal, raw),
         )
+
+    def interpret_telegram_answer(self, proposal: Proposal, question: str,
+                                  authorized_answer: str) -> tuple[str, TelegramAnswerInterpretation]:
+        """Compare an untrusted reply with the requested fact and normalize it."""
+        return self._classified_run("telegram_answer_interpretation", {
+            "validated_proposal": proposal.model_dump(mode="json"),
+            "question": question,
+            "authorized_answer": authorized_answer,
+        }, TelegramAnswerInterpretation.model_validate)
+
+    def clarify_telegram_answer(self, question: str, authorized_answer: str,
+                                reason: str) -> tuple[str, TelegramClarification]:
+        """Generate a concrete follow-up without changing the proposal."""
+        return self._classified_run("telegram_answer_clarification", {
+            "question": question,
+            "authorized_answer": authorized_answer,
+            "interpretation_reason": reason,
+        }, TelegramClarification.model_validate)
 
     def classify_for_learning(self, mail: dict[str, Any]) -> tuple[str, MailClassification]:
         """Freely classify one untrusted mail without using configured topics."""

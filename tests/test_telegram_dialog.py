@@ -7,7 +7,8 @@ from pydantic import ValidationError
 
 from mailhelp.adapter import PermanentError, UncertainWriteError
 from mailhelp.models import (ActionLedger, ActionLedgerEntry, MailState, Proposal,
-                             ProposalStatus, RelevanceDialog, RelevanceDialogStatus)
+                             ProposalStatus, RelevanceDialog, RelevanceDialogStatus,
+                             TelegramDialogState)
 from mailhelp.orchestrator import Orchestrator
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import (
@@ -63,6 +64,14 @@ class Logger:
 
 class RevisionService:
     def __init__(self): self.calls=[]
+    def interpret_telegram_answer(self, item, question, answer):
+        self.calls.append(("interpret", item, question, answer))
+        return "interpret-call", type("Interpretation", (), {
+            "usable": True, "normalized_answer": answer, "reason": "passt"})()
+    def clarify_telegram_answer(self, question, answer, reason):
+        self.calls.append(("clarify", question, answer, reason))
+        return "clarify-call", type("Clarification", (), {
+            "message": f"Bitte konkreter beantworten: {question}"})()
     def revise_proposal(self, item, question, answer):
         self.calls.append((item,question,answer))
         remaining=item.open_questions[1:]
@@ -72,12 +81,19 @@ class RevisionService:
             "status":"needs_clarification" if remaining else "pending_confirmation"})
 
 
-class FailingRevisionService:
+class FailingRevisionService(RevisionService):
     def revise_proposal(self, item, question, answer): raise ValueError("contradiction")
 
 
-class OperationallyFailingRevisionService:
+class OperationallyFailingRevisionService(RevisionService):
     def revise_proposal(self, item, question, answer): raise RuntimeError("provider unavailable")
+
+
+class UnusableAnswerService(RevisionService):
+    def interpret_telegram_answer(self, item, question, answer):
+        self.calls.append(("interpret", item, question, answer))
+        return "interpret-call", type("Interpretation", (), {
+            "usable": False, "normalized_answer": None, "reason": "Datum fehlt"})()
 
 
 def controller(store, updates=(), writers=None, test_mode=False, revision_service=None):
@@ -592,6 +608,21 @@ def test_invalid_unauthorized_missing_and_stale_dialogs(tmp_path):
         store.save("telegram-dialog",{"mail_id":"a"*24,"proposal_id":"p1","version":2})
         t.updates=[message(10,"zu lang")]; c.poll_once()
         assert "widerspruchsfrei" in t.sent[-1][1] and store.load("telegram-dialog")["version"]==2
+
+
+def test_unusable_answer_gets_llm_generated_concrete_follow_up(tmp_path):
+    service = UnusableAnswerService()
+    with JsonStore(tmp_path) as store:
+        current = proposal(version=2, open_questions=["Welches Datum?"])
+        c,t,_ = controller(store, revision_service=service)
+        c.persist(current)
+        store.save("telegram-dialog", TelegramDialogState(
+            mail_id=current.source_mail_id, proposal_id=current.id, version=2).model_dump())
+        c._answer("irgendwann")
+        assert t.sent[-1][1] == "Bitte konkreter beantworten: Welches Datum?"
+        assert [call[0] for call in service.calls] == ["interpret", "clarify"]
+        assert store.load("telegram-dialog")["version"] == 2
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["version"] == 2
 
 
 def test_revision_unavailable_preserves_dialog(tmp_path):

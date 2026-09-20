@@ -474,7 +474,12 @@ wird vor ihren Schaltflächen gespeichert. Aufgabenvorschläge bieten `Bestätig
 `Ändern` und `Verwerfen`; vollständige Terminvorschläge bieten ausschließlich
 `Anlegen` und `Verwerfen`. `Anlegen` schreibt den Termin über die Google Calendar API in den konfigurierten Zielkalender. Die Aktionen werden getrennt behandelt,
 während veraltete oder fehlerhafte Schaltflächen keinen Zustand verändern.
-Antworten auf Rückfragen erzeugen eine neue, erneut zu bestätigende Version.
+Antworten auf Rückfragen werden zuerst in einem eigenen LLM-Schritt mit der
+konkret erfragten Information verglichen und bei eindeutiger Zuordnung in die für
+die Überarbeitung benötigte Form normalisiert. Erst danach erzeugen sie eine neue,
+erneut zu bestätigende Version. Ist die Antwort nicht eindeutig nutzbar, erzeugt
+ein zweiter, getrennt schematisierter LLM-Aufruf eine konkrete Rückfrage; Vorschlag
+und Dialog bleiben dabei unverändert.
 Telegram wird ausschließlich für Nachrichten und Callback-Aktionen abgefragt;
 bereits wartende, nicht unterstützte Update-Arten werden einzeln verworfen und
 blockieren nachfolgende Antworten nicht. Ein technisch fehlgeschlagener

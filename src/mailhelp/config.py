@@ -345,7 +345,8 @@ class PromptConfig(BaseModel):
     @model_validator(mode="after")
     def required_steps(self) -> "PromptConfig":
         required = {"relevance", "summary", "action_router", "task_extraction",
-                    "event_extraction", "proposal_revision", "learning_classification",
+                    "event_extraction", "telegram_answer_interpretation",
+                    "telegram_answer_clarification", "proposal_revision", "learning_classification",
                     "learning_abstraction"}
         if set(self.prompts) != required:
             raise ValueError("prompts enthält nicht genau die erforderlichen Schritte")

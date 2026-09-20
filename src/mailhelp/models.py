@@ -91,6 +91,26 @@ class Summary(StrictModel):
     deadlines: list[str] = Field(default_factory=list)
 
 
+class TelegramAnswerInterpretation(StrictModel):
+    """Bounded result of comparing a Telegram reply with its open question."""
+
+    usable: bool
+    normalized_answer: str | None = Field(default=None, min_length=1, max_length=4000)
+    reason: str = Field(min_length=1, max_length=1000)
+
+    @model_validator(mode="after")
+    def answer_matches_decision(self) -> "TelegramAnswerInterpretation":
+        if self.usable != (self.normalized_answer is not None):
+            raise ValueError("Nur eine verwendbare Antwort darf einen normalisierten Wert enthalten")
+        return self
+
+
+class TelegramClarification(StrictModel):
+    """Safe, concrete follow-up rendered for an insufficient Telegram reply."""
+
+    message: str = Field(min_length=1, max_length=4000)
+
+
 class LearnedCategory(StrictModel):
     """One deliberately non-authoritative category proposed by an LLM."""
 

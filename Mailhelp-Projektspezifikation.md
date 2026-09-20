@@ -752,9 +752,14 @@ Mailhelp ist ein Python-Assistent, der IMAP-Mails per LLM über OpenRouter filte
 
 ## 17. Strukturierte Überarbeitung von Vorschlägen
 
-Antworten auf Telegram-Rückfragen werden durch einen eigenen, fest schematisierten
-LLM-Schritt verarbeitet. Der validierte bisherige Vorschlag, die konkrete Frage und
-die autorisierte Antwort werden als getrennte Felder übergeben. Das Ergebnis muss
+Antworten auf Telegram-Rückfragen werden zunächst durch einen eigenen, fest
+schematisierten LLM-Schritt mit der tatsächlich erfragten Information verglichen
+und in ein für die Überarbeitung geeignetes Format normalisiert. Der validierte
+bisherige Vorschlag, die konkrete Frage und die autorisierte Antwort werden dabei
+als getrennte Felder übergeben. Ist keine eindeutige Normalisierung möglich,
+formuliert ein zweiter LLM-Schritt eine konkrete Rückfrage, die genau die fehlende
+Information und das benötigte Format benennt; Vorschlag und Dialog bleiben
+unverändert. Bei erfolgreicher Normalisierung muss das Überarbeitungsergebnis
 eine vollständige `Proposal`-Folgeversion mit unveränderter Vorschlags-ID und
 Ursprungsmail sowie exakt um eins erhöhter Version sein. Jede Version wird vor der
 Anzeige separat persistiert; fehlerhafte Ergebnisse lassen Vorschlag und Dialog
