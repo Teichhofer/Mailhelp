@@ -470,6 +470,39 @@ def test_revision_payload_carries_resolved_temporal_fact_read_only():
     Analyzer(client, prompt_config()).revise_proposal(original, "Welches Datum?", "21.10.26")
     assert client.payloads[0]["proposal_fields"]["temporal_fact"]["normalized_date"] == "2026-10-21"
 
+
+def test_revision_rejects_change_away_from_resolved_temporal_fact():
+    base = proposal(open_questions=["Welches Datum?"]).model_dump()
+    original = Proposal.model_validate({**base, "temporal_fact": {
+        "raw_text": "21. Oktober", "normalized_date": "2026-10-21",
+        "year_source": "mail_context", "status": "resolved"}})
+    with pytest.raises(ValueError, match="validierten Datum 2026-10-21"):
+        apply_proposal_revision(original, ProposalRevisionDelta(
+            answered_question="Welches Datum?", changes={"due": "2110-10-21"}))
+
+
+def test_partial_event_revision_promotes_start_to_known_fact():
+    original = proposal(kind="event", status="needs_clarification",
+                        open_questions=["Wann beginnt der Termin?"],
+                        known_temporal_facts={"date": "2026-10-21"})
+    revised = apply_proposal_revision(original, ProposalRevisionDelta(
+        answered_question="Wann beginnt der Termin?",
+        changes={"start": "2026-10-21T12:00:00+02:00"}))
+    assert revised.start is None
+    assert revised.known_temporal_facts.start.isoformat() == "2026-10-21T12:00:00+02:00"
+    assert revised.open_questions == ["Wann endet der Termin?"]
+    completed = apply_proposal_revision(revised, ProposalRevisionDelta(
+        answered_question="Wann endet der Termin?",
+        changes={"end": "2026-10-21T13:00:00+02:00"}))
+    assert completed.known_temporal_facts is None
+    assert completed.start.isoformat() == "2026-10-21T12:00:00+02:00"
+    assert completed.end.isoformat() == "2026-10-21T13:00:00+02:00"
+    unchanged = apply_proposal_revision(
+        original.model_copy(update={"open_questions": ["Welcher Titel?"]}),
+        ProposalRevisionDelta(answered_question="Welcher Titel?",
+                              changes={"title": "Neuer Titel"}))
+    assert unchanged.known_temporal_facts == original.known_temporal_facts
+
 @pytest.mark.parametrize(("kind","question","expected"), [
     ("task","Ist die Person zuständig?",["responsibility"]),
     ("task","Ist das sicher belegt?",["certainty"]),

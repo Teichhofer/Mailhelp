@@ -1,17 +1,19 @@
 """Strict Telegram trust boundary and restart-safe proposal dialogs."""
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime, time as clock_time, timezone
 from enum import StrEnum
 import hashlib
 import json
 import secrets
+import re
 from typing import Any, Protocol
+from zoneinfo import ZoneInfo
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
-from .models import (ActionLedger, ActionLedgerEntry, AnswerStatus, MailState, Proposal, ProposalClarificationState, ProposalKind, ProposalRevisionStatus, ProposalStatus, QuestionStatus, RelevanceDialog,
+from .models import (ActionLedger, ActionLedgerEntry, AnswerStatus, MailState, Proposal, ProposalClarificationState, ProposalKind, ProposalRevisionDelta, ProposalRevisionStatus, ProposalStatus, QuestionStatus, RelevanceDialog,
                      RelevanceDialogStatus, TelegramDialogState, TelegramOffset,
                      WriteAttemptReference)
 from .integrations import ExternalWriter, execute_confirmed, proposal_is_writable
@@ -21,7 +23,46 @@ from .logging import EventLogger, NullLogger
 from .analysis import (ContradictoryRevision, IncompleteUserAnswer, LlmInvalidJson,
                        LlmProviderResponseInvalid, LlmSchemaValidationFailed,
                        TechnicalRevisionError, validate_revision_successor)
+from .models import apply_proposal_revision
 import time, traceback, uuid
+
+
+_NORMALIZED_DATE_TIME = re.compile(
+    r"\s*(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(?:um\s+)?(\d{1,2})(?::(\d{2}))?\s*Uhr\s*",
+    re.IGNORECASE,
+)
+
+
+def deterministic_temporal_revision(proposal: Proposal, question: str,
+                                    normalized_answer: str,
+                                    configured_timezone: str) -> Proposal | None:
+    """Build an unambiguous clock-time revision without another LLM call."""
+    if proposal.kind != ProposalKind.EVENT or not any(
+            word in question.casefold() for word in ("beginn", "ende", "uhrzeit")):
+        return None
+    match = _NORMALIZED_DATE_TIME.fullmatch(normalized_answer)
+    if match is None:
+        return None
+    day = date(int(match[3]), int(match[2]), int(match[1]))
+    expected = (proposal.known_temporal_facts.date
+                if proposal.known_temporal_facts is not None
+                else proposal.temporal_fact.normalized_date
+                if proposal.temporal_fact is not None else None)
+    if expected is None or day != expected:
+        raise ContradictoryRevision("Die Antwort widerspricht dem validierten Termindatum")
+    naive = datetime.combine(day, clock_time(int(match[4]), int(match[5] or 0)))
+    zone = ZoneInfo(configured_timezone)
+    candidates = []
+    for fold in (0, 1):
+        candidate = naive.replace(tzinfo=zone, fold=fold)
+        if candidate.astimezone(timezone.utc).astimezone(zone).replace(tzinfo=None) == naive:
+            if not candidates or candidate.utcoffset() != candidates[0].utcoffset():
+                candidates.append(candidate)
+    if len(candidates) != 1:
+        raise ContradictoryRevision("Die Ortszeit ist wegen der Zeitumstellung nicht eindeutig")
+    field = "end" if "ende" in question.casefold() else "start"
+    return apply_proposal_revision(proposal, ProposalRevisionDelta(
+        answered_question=question, changes={field: candidates[0]}))
 
 
 class TelegramChatNotFoundError(PermanentError):
@@ -1165,8 +1206,13 @@ class TelegramDialogController:
         if not isinstance(original, Proposal) or self.revision_service is None:
             return
         try:
-            _, candidate = self.revision_service.revise_proposal(
-                original, state.question, state.normalized_answer)
+            candidate = deterministic_temporal_revision(
+                original, state.question, state.normalized_answer,
+                self.configured_timezone)
+            deterministic = candidate is not None
+            if candidate is None:
+                _, candidate = self.revision_service.revise_proposal(
+                    original, state.question, state.normalized_answer)
             revised = validate_revision_successor(original, candidate)
         except Exception as exc:
             classified = (exc if isinstance(exc, (
@@ -1182,6 +1228,11 @@ class TelegramDialogController:
             }).model_dump(mode="json"))
             self.telegram.send(self.chat_id, "Die interne Verarbeitung der gespeicherten Antwort ist verzögert.")
             return
+        if deterministic:
+            self.logger.event("INFO", "analysis", "proposal_revision_delta_applied",
+                              proposal_id=original.id,
+                              previous_version=original.version,
+                              new_version=revised.version)
         self.send_proposal(revised)
         self.store.save(name, state.model_copy(update={
             "proposal_revision_status": ProposalRevisionStatus.COMPLETED,
@@ -1193,13 +1244,22 @@ class TelegramDialogController:
     def _log_revision_failure(self, mail_id: str, proposal_id: str, version: int,
                               exc: Exception,
                               status: ProposalRevisionStatus) -> None:
-        """Log a revision failure without answer, question, or exception text."""
+        """Log a revision failure without untrusted answer or question content."""
+        fields: dict[str, Any] = {}
+        if isinstance(exc, ValidationError):
+            fields["validation_errors"] = [
+                {"location": [str(part) for part in error["loc"]],
+                 "type": error["type"], "message": error["msg"]}
+                for error in exc.errors(include_url=False, include_context=False,
+                                        include_input=False)
+            ]
         self.logger.event(
             "WARNING", "telegram.dialog", "answer_revision_failed",
             mail_id=mail_id, proposal_id=proposal_id, version=version,
             error_class=type(exc).__name__,
             proposal_reference=f"{mail_id}:{proposal_id}:v{version}",
             revision_status=status.value,
+            **fields,
         )
 
     def _resume_revisions(self) -> None:
