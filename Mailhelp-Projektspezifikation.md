@@ -373,6 +373,18 @@ Ein ausdrücklich in der Mail genannter physischer Ort wird getrennt von einem V
 
 Die geschlossenen Felder `responsibility` (`user`, `other`, `unclear`), `certainty` (`certain`, `uncertain`, `contradictory`) und `classification` (`new`, `non_binding`, `already_completed`, `change`, `cancellation`, `recurring`, `unsupported`) sind verpflichtend. Nur `new` + `user` + `certain` ist bestätigbar und extern schreibbar. Alle übrigen Kombinationen werden verständlich als manuell zu prüfen angezeigt. `unclear`, `uncertain` und `contradictory` erzwingen `needs_clarification`.
 
+Die Extraktion eines Termins klassifiziert die Zeitsemantik geschlossen als
+`all_day`, `timed` oder `required_unknown`. `all_day` verlangt einen ausdrücklichen
+Ganztagshinweis in der Mail; ein bloßes Datum ist keine solche Evidenz und führt zu
+`required_unknown`. Nur `all_day` wird als exklusives Datumsintervall vom Datum bis
+zum Folgetag normalisiert. Bei `timed` und `required_unknown` bleibt ein bekanntes
+Datum strikt typisiert in `known_temporal_facts` erhalten und es wird ausschließlich
+nach dem Beginn gefragt. Ist der Beginn bekannt, bleibt auch dieser Fakt erhalten und
+es wird ausschließlich nach dem Ende gefragt. Beginn, Ende und Dauer werden nicht
+erfunden. Dieselben Invarianten gelten für Telegram-Revisionen: Ein LLM-Nachfolger
+darf bekannte Fakten weder verwerfen noch ein Datum ohne Ganztagsevidenz in einen
+Ganztagstermin umdeuten.
+
 Unverbindliche Vorschläge, bereits erledigte Aufgaben sowie Änderungen und Absagen sind als solche zu erkennen. Änderungen oder Absagen werden in V1 gemeldet und nicht als gewöhnlicher neuer Termin automatisch weiterverarbeitet. Wiederkehrende oder anderweitig nicht unterstützte Terminformen werden zur manuellen Bearbeitung gekennzeichnet.
 Eine ausdrücklich an die Nutzerin oder den Nutzer gerichtete, noch auszuführende
 einmalige Bitte, Aufforderung oder Verpflichtung gilt als `new`. Eine sachliche,

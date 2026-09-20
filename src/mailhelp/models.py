@@ -6,6 +6,8 @@ from enum import StrEnum
 from typing import Annotated, Any, Literal
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, model_validator
 
+CalendarDate = date
+
 
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -212,6 +214,14 @@ class TaskExtraction(StrictModel):
     tasks: list[ExtractedTask] = Field(default_factory=list, max_length=20)
 
 
+class TimeRequirement(StrEnum):
+    """Explicit mail evidence about whether an event needs clock times."""
+
+    ALL_DAY = "all_day"
+    TIMED = "timed"
+    REQUIRED_UNKNOWN = "required_unknown"
+
+
 class ExtractedEvent(StrictModel):
     """Unnormalised event facts; missing facts remain explicitly absent."""
 
@@ -221,6 +231,7 @@ class ExtractedEvent(StrictModel):
     date_text: str | None = Field(default=None, min_length=1, max_length=500)
     time_text: str | None = Field(default=None, min_length=1, max_length=500)
     end_time_text: str | None = Field(default=None, min_length=1, max_length=500)
+    time_requirement: TimeRequirement = TimeRequirement.REQUIRED_UNKNOWN
     location: str | None = Field(default=None, min_length=1, max_length=1000)
     video_link: AnyHttpUrl | None = Field(default=None, max_length=2000)
     responsibility: Literal["user", "other", "unclear"]
@@ -272,6 +283,23 @@ class ProposalStatus(StrEnum):
     UNCERTAIN = "uncertain"
 
 
+class KnownTemporalFacts(StrictModel):
+    """Valid temporal facts retained while an event interval is incomplete."""
+
+    date: CalendarDate | None = None
+    start: datetime | None = None
+
+    @model_validator(mode="after")
+    def validate_facts(self) -> "KnownTemporalFacts":
+        if self.start is not None and (self.start.tzinfo is None or self.start.utcoffset() is None):
+            raise ValueError("Eine bekannte Beginnzeit benötigt einen eindeutigen UTC-Offset")
+        if self.date is None and self.start is None:
+            raise ValueError("Mindestens ein bekannter Zeitfakt ist erforderlich")
+        if self.date is not None and self.start is not None and self.start.date() != self.date:
+            raise ValueError("Bekanntes Datum und bekannte Beginnzeit müssen zusammenpassen")
+        return self
+
+
 class ActionLedgerEntry(StrictModel):
     """Human-readable record of an action successfully created externally."""
 
@@ -321,6 +349,7 @@ class Proposal(StrictModel):
     start: date | datetime | None = None
     end: date | datetime | None = None
     all_day: bool = False
+    known_temporal_facts: KnownTemporalFacts | None = None
     location: str | None = Field(default=None, max_length=1000)
     video_link: AnyHttpUrl | None = Field(default=None, max_length=2000)
     target: str = Field(min_length=1, max_length=500)
@@ -348,10 +377,14 @@ class Proposal(StrictModel):
             raise ValueError("Zeitgebundene Aufgabenfristen benötigen einen eindeutigen UTC-Offset")
         if self.kind == ProposalKind.EVENT and self.due is not None:
             raise ValueError("Termine dürfen keine Aufgabenfrist enthalten")
+        if self.kind != ProposalKind.EVENT and self.known_temporal_facts is not None:
+            raise ValueError("Nur Termine dürfen bekannte Zeitfakten enthalten")
         if self.kind != ProposalKind.EVENT:
             return self
         if not self.open_questions and (self.start is None or self.end is None):
             raise ValueError("Ein vollständiger Termin benötigt Beginn und Ende")
+        if self.known_temporal_facts is not None and (self.start is not None or self.end is not None):
+            raise ValueError("Unvollständige Zeitfakten dürfen nicht mit Terminintervallen gemischt werden")
         values = (self.start, self.end)
         if self.all_day:
             if any(isinstance(value, datetime) for value in values if value is not None):

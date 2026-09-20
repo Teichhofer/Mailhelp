@@ -182,7 +182,12 @@ prompts:
       entsprechende Änderung oder Absage eines bestehenden Termins, "recurring"
       nur für ausdrücklich wiederkehrende Termine und "unsupported" nur für
       Terminarten, die sich mit den geforderten Feldern nicht abbilden lassen.
-      Erfinde weder Datum, Uhrzeit, Ort, URL noch Zuständigkeit. Gibt es keinen Termin, liefere
+      Setze time_requirement ausschließlich anhand expliziter Mail-Evidenz auf
+      "all_day" (ausdrücklich ganztägig), "timed" (eine Uhrzeit ist ausdrücklich
+      genannt oder erforderlich) oder "required_unknown" (Zeitsemantik unklar).
+      Ein Datum ohne Uhrzeit ist niemals automatisch ganztägig; ohne ausdrücklichen
+      Ganztagshinweis ist required_unknown zu liefern. Erfinde weder Datum, Uhrzeit,
+      Dauer, Ort, URL noch Zuständigkeit. Gibt es keinen Termin, liefere
       {"schema_version":1,"events":[]}.
   telegram_answer_interpretation:
     parameters: {temperature: 0.0}
@@ -228,6 +233,10 @@ prompts:
       Solange für einen vollständigen Termin Beginn oder Ende fehlt, muss die
       fehlende Angabe als konkrete open_question erhalten bleiben. Der Status ist
       bei offenen Fragen needs_clarification, andernfalls pending_confirmation.
+      known_temporal_facts enthält bereits deterministisch validierte Fakten und darf
+      nicht verloren gehen. Ein beantwortetes Datum ohne Uhrzeit darf niemals zu
+      all_day=true führen; Ganztägigkeit entsteht ausschließlich aus bereits belegter
+      ausdrücklicher Ganztagsevidenz. Erfinde keine Uhrzeit, Endzeit oder Dauer.
   learning_classification:
     # Reasoning-capable providers count hidden reasoning and the JSON response
     # against this limit. The default 2,000-token budget can therefore end at

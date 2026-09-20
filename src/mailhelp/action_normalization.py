@@ -17,13 +17,13 @@ an action that may be offered for confirmation.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from datetime import date, datetime, time, timedelta, timezone
 from enum import StrEnum
 import re
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from .models import ExtractedEvent, ExtractedTask
+from .models import ExtractedEvent, ExtractedTask, TimeRequirement
 
 
 class NormalizationReason(StrEnum):
@@ -67,6 +67,8 @@ class NormalizationResult:
     raw_value: str | None
     question: str | None
     responsibility: str
+    known_date: date | None = None
+    known_start: datetime | None = None
 
     @property
     def resolved(self) -> bool:
@@ -171,27 +173,39 @@ def normalize_event(event: ExtractedEvent, context: MailDateContext) -> Normaliz
     day = _parse_date(event.date_text, responsibility)
     if isinstance(day, NormalizationResult):
         return day
+    if event.time_requirement == TimeRequirement.ALL_DAY:
+        if event.time_text is not None or event.end_time_text is not None:
+            return _failure(NormalizationReason.INVALID_TIME, event.time_text or event.end_time_text,
+                            responsibility, "Ein ausdrücklich ganztägiger Termin darf keine Uhrzeit enthalten.")
+        checked = _context_zone(context, responsibility)
+        if isinstance(checked, NormalizationResult):
+            return checked
+        return NormalizationResult(TemporalValue(day, day + timedelta(days=1), True), None,
+                                   event.date_text, None, responsibility)
+    if event.time_text is None:
+        if event.end_time_text is not None:
+            result = _failure(NormalizationReason.MISSING_TIME, event.end_time_text, responsibility,
+                              "Wann beginnt der Termin?")
+        else:
+            result = _failure(NormalizationReason.MISSING_TIME, event.date_text, responsibility,
+                              "Wann beginnt der Termin?")
+        return replace(result, known_date=day)
     zone = _context_zone(context, responsibility)
     if isinstance(zone, NormalizationResult):
         return zone
-    if event.time_text is None:
-        if event.end_time_text is not None:
-            return _failure(NormalizationReason.MISSING_TIME, event.end_time_text, responsibility,
-                            "Welche Beginnzeit gehört zur Endzeit?")
-        return NormalizationResult(TemporalValue(day, day + timedelta(days=1), True), None,
-                                   event.date_text, None, responsibility)
-    if event.end_time_text is None:
-        return _failure(NormalizationReason.MISSING_END_TIME, event.time_text, responsibility,
-                        "Wann endet der Termin?")
     start_clock = _parse_time(event.time_text, responsibility)
     if isinstance(start_clock, NormalizationResult):
         return start_clock
-    end_clock = _parse_time(event.end_time_text, responsibility)
-    if isinstance(end_clock, NormalizationResult):
-        return end_clock
     start = _localize(day, start_clock, zone, responsibility)
     if isinstance(start, NormalizationResult):
         return start
+    if event.end_time_text is None:
+        result = _failure(NormalizationReason.MISSING_END_TIME, event.time_text, responsibility,
+                          "Wann endet der Termin?")
+        return replace(result, known_date=day, known_start=start)
+    end_clock = _parse_time(event.end_time_text, responsibility)
+    if isinstance(end_clock, NormalizationResult):
+        return end_clock
     end = _localize(day, end_clock, zone, responsibility)
     if isinstance(end, NormalizationResult):
         return end

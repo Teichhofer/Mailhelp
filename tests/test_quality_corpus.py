@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+from datetime import date
 import json
 from pathlib import Path
 
@@ -100,7 +101,8 @@ def test_pure_task_routes_extracts_normalizes_and_builds_only_task():
 def test_gemeinderat_mail_is_privacy_safe_event_only_normalized_and_needs_clarification():
     calls, tasks, events, proposals = pipeline("03_council_event")
     assert calls[-1] == "event_extraction" and not tasks.tasks and len(events.events) == 1
-    assert proposals[0].all_day and proposals[0].status == "needs_clarification"
+    assert not proposals[0].all_day and proposals[0].status == "needs_clarification"
+    assert proposals[0].known_temporal_facts.date == date(2026, 9, 22)
 
 
 def test_task_and_event_run_both_extractors_and_build_both_kinds():
@@ -136,7 +138,8 @@ def test_change_is_classified_and_never_built_as_new_confirmable_event():
 
 def test_cancellation_is_classified_and_requires_existing_entry_clarification():
     _calls, _tasks, _events, proposals = pipeline("10_cancellation")
-    assert proposals[0].classification == "cancellation" and "storniert" in proposals[0].open_questions[0]
+    assert proposals[0].classification == "cancellation"
+    assert any("storniert" in question for question in proposals[0].open_questions)
 
 
 def test_recurring_entry_is_preserved_but_not_automatically_confirmable():

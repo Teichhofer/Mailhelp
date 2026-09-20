@@ -5,7 +5,8 @@ from pydantic import ValidationError
 
 from mailhelp.action_normalization import MailDateContext
 from mailhelp.config import TargetSettings
-from mailhelp.models import ExtractedEvent, ExtractedTask, Proposal, ProposalStatus
+from mailhelp.models import (ExtractedEvent, ExtractedTask, KnownTemporalFacts, Proposal,
+                             ProposalStatus)
 from mailhelp.proposal_builder import ProposalBuilder
 
 
@@ -26,6 +27,7 @@ def task(**changes):
 def event(**changes):
     values = dict(title="Gemeinderat", description=None, evidence="Gemeinderat am 22.09.2026",
                   date_text="22.09.2026", time_text=None, end_time_text=None, location=None,
+                  time_requirement="all_day",
                   video_link=None, responsibility="user", certainty="certain", classification="new")
     values.update(changes)
     return ExtractedEvent(**values)
@@ -51,10 +53,13 @@ def test_complete_status_rule_all_combinations(responsibility, certainty, classi
 
 
 def test_missing_event_time_and_gemeinderat_responsibility_are_explicit():
-    missing = builder().build([], [event(time_text="10:00", end_time_text=None)])[0]
+    missing = builder().build([], [event(time_text="10:00", end_time_text=None,
+                                         time_requirement="timed")])[0]
     assert missing.start is None and missing.end is None
     assert missing.status == ProposalStatus.NEEDS_CLARIFICATION
     assert "Wann endet" in missing.open_questions[0]
+    assert missing.known_temporal_facts.date == date(2026, 9, 22)
+    assert missing.known_temporal_facts.start.isoformat() == "2026-09-22T10:00:00+02:00"
 
     council = builder().build([], [event(responsibility="unclear")])[0]
     assert (council.start, council.end, council.all_day) == (
@@ -86,11 +91,35 @@ def test_unresolved_date():
     assert unresolved.status == ProposalStatus.NEEDS_CLARIFICATION and unresolved.start is None
 
 
+def test_date_without_time_is_conservative_and_retained():
+    proposal = builder().build([], [event(time_requirement="required_unknown")])[0]
+    assert proposal.start is None and proposal.end is None and proposal.all_day is False
+    assert proposal.known_temporal_facts.date == date(2026, 9, 22)
+    assert proposal.open_questions == ["Wann beginnt der Termin?"]
+
+
 def test_proposal_validation_does_not_silently_correct_status():
     common = dict(id="p", version=1, kind="task", responsibility="unclear", certainty="certain",
                   classification="new", title="x", evidence="x", source_mail_id="a" * 24, target="p")
     with pytest.raises(ValidationError, match="vollständige neue"):
         Proposal(status="pending_confirmation", **common)
+
+
+def test_known_temporal_facts_are_strict_and_event_only():
+    with pytest.raises(ValidationError, match="Offset"):
+        KnownTemporalFacts(start="2026-09-22T10:00:00")
+    with pytest.raises(ValidationError, match="Mindestens"):
+        KnownTemporalFacts()
+    with pytest.raises(ValidationError, match="zusammenpassen"):
+        KnownTemporalFacts(date="2026-09-22", start="2026-09-23T10:00:00+02:00")
+    with pytest.raises(ValidationError, match="Nur Termine"):
+        proposal = builder().build([task()], [])[0]
+        Proposal.model_validate({**proposal.model_dump(),
+                                 "known_temporal_facts": {"date": "2026-09-22"}})
+    incomplete = builder().build([], [event(time_requirement="required_unknown")])[0]
+    with pytest.raises(ValidationError, match="nicht mit Terminintervallen"):
+        Proposal.model_validate({**incomplete.model_dump(),
+                                 "start": "2026-09-22T10:00:00+02:00"})
 
 
 def test_identity_collision_is_rehashed_and_a_second_collision_rejected(monkeypatch):

@@ -27,6 +27,7 @@ def event(**changes):
     values = {
         "title": "Sitzung", "description": None, "evidence": "synthetischer Beleg",
         "date_text": "22.09.2026", "time_text": None, "end_time_text": None,
+        "time_requirement": "all_day",
         "location": None, "video_link": None, "responsibility": "user",
         "certainty": "certain", "classification": "new",
     }
@@ -82,17 +83,25 @@ def test_missing_relative_and_invalid_dates_have_stable_reasons(raw, reason):
     ({"time_text": "11:00", "end_time_text": "10:00"}, NormalizationReason.END_NOT_AFTER_START),
 ])
 def test_incomplete_invalid_and_reversed_times_are_not_invented(changes, reason):
-    result = normalize_event(event(**changes), context())
+    result = normalize_event(event(time_requirement="timed", **changes), context())
     assert result.reason == reason and result.value is None and result.question
 
 
 def test_unambiguous_clock_times_use_configured_zone_and_seconds_are_supported():
     result = normalize_event(event(date_text="2026-07-01", time_text="10:15:30",
-                                   end_time_text="11:16:31"), context())
+                                   end_time_text="11:16:31", time_requirement="timed"), context())
     assert isinstance(result.value, TemporalValue)
     assert result.value.start == datetime.fromisoformat("2026-07-01T10:15:30+02:00")
     assert result.value.end == datetime.fromisoformat("2026-07-01T11:16:31+02:00")
     assert result.value.all_day is False
+
+
+def test_all_day_rejects_clock_evidence_and_timed_context_is_validated():
+    conflict = normalize_event(event(time_text="10:00"), context())
+    assert conflict.reason == NormalizationReason.INVALID_TIME
+    invalid_context = normalize_event(event(time_requirement="timed", time_text="10:00"),
+                                      context(date_context_status="invalid"))
+    assert invalid_context.reason == NormalizationReason.INVALID_CONTEXT
 
 
 @pytest.mark.parametrize(("day", "clock", "reason"), [
@@ -100,12 +109,14 @@ def test_unambiguous_clock_times_use_configured_zone_and_seconds_are_supported()
     ("2026-10-25", "02:30", NormalizationReason.AMBIGUOUS_LOCAL_TIME),
 ])
 def test_dst_transition_times_require_clarification(day, clock, reason):
-    result = normalize_event(event(date_text=day, time_text=clock, end_time_text="04:00"), context())
+    result = normalize_event(event(date_text=day, time_text=clock, end_time_text="04:00",
+                                   time_requirement="timed"), context())
     assert result.reason == reason
 
 
 def test_dst_problem_in_end_time_is_also_detected():
-    result = normalize_event(event(date_text="2026-10-25", time_text="01:30", end_time_text="02:30"), context())
+    result = normalize_event(event(date_text="2026-10-25", time_text="01:30", end_time_text="02:30",
+                                   time_requirement="timed"), context())
     assert result.reason == NormalizationReason.AMBIGUOUS_LOCAL_TIME
 
 
