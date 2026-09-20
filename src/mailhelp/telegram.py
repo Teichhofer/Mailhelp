@@ -682,6 +682,7 @@ class TelegramDialogController:
 
     def poll_once(self) -> None:
         self._resume_writes()
+        self._resume_revision()
         offset_state = self.store.load_model("telegram-offset", TelegramOffset, TelegramOffset())
         assert isinstance(offset_state, TelegramOffset)
         offset = max(offset_state.offset, self._durable_dialog_offset())
@@ -956,19 +957,64 @@ class TelegramDialogController:
                                   version=dialog.version)
                 self.telegram.send(self.chat_id, clarification.message)
                 return
+            assert interpretation.normalized_answer is not None
+            self.store.save("telegram-dialog", dialog.model_copy(update={
+                "retry_required": True, "question": question,
+                "normalized_answer": interpretation.normalized_answer,
+            }).model_dump())
             _, candidate = self.revision_service.revise_proposal(
                 proposal, question, interpretation.normalized_answer)
             revised = validate_revision_successor(proposal, candidate)
         except (ValueError, ValidationError) as exc:
+            # A semantic rejection is final for this attempt, not a technical
+            # retry. Restore the open dialog without retaining the answer.
+            self.store.save("telegram-dialog", dialog.model_dump())
             self.logger.event("WARNING", "telegram.dialog", "answer_revision_rejected",
                               mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
                               version=dialog.version, error=exc)
             self.telegram.send(self.chat_id, "Die Antwort konnte nicht widerspruchsfrei übernommen werden; der Vorschlag und die Rückfrage blieben unverändert.")
             return
+        except Exception as exc:
+            durable = self.store.load_model("telegram-dialog", TelegramDialogState)
+            if not isinstance(durable, TelegramDialogState) or not durable.retry_required:
+                raise
+            self.logger.event("ERROR", "telegram.dialog", "answer_revision_retry_required",
+                              mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
+                              version=dialog.version, error=exc)
+            return
         # send_proposal persists the immutable version before exposing it.
         self.send_proposal(revised)
         self.store.save("telegram-dialog", TelegramDialogState().model_dump())
         self.logger.event("INFO", "telegram.dialog", "answer_revision_completed",
+                          mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
+                          previous_version=dialog.version, new_version=revised.version)
+
+    def _resume_revision(self) -> None:
+        """Resume a durable normalized answer without asking the person again."""
+        dialog = self.store.load_model("telegram-dialog", TelegramDialogState)
+        if not isinstance(dialog, TelegramDialogState) or not dialog.retry_required:
+            return
+        assert dialog.mail_id and dialog.proposal_id and dialog.version
+        assert dialog.question and dialog.normalized_answer
+        proposal = self.store.load_model(
+            self._proposal_name(dialog.mail_id, dialog.proposal_id), Proposal)
+        if not isinstance(proposal, Proposal) or proposal.version != dialog.version:
+            self.store.save("telegram-dialog", TelegramDialogState().model_dump())
+            return
+        if self.revision_service is None:
+            return
+        try:
+            _, revised = self.revision_service.revise_proposal(
+                proposal, dialog.question, dialog.normalized_answer)
+            revised = validate_revision_successor(proposal, revised)
+        except Exception as exc:
+            self.logger.event("WARNING", "telegram.dialog", "answer_revision_resume_failed",
+                              mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
+                              version=dialog.version, error=exc)
+            return
+        self.send_proposal(revised)
+        self.store.save("telegram-dialog", TelegramDialogState().model_dump())
+        self.logger.event("INFO", "telegram.dialog", "answer_revision_resumed",
                           mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
                           previous_version=dialog.version, new_version=revised.version)
 
