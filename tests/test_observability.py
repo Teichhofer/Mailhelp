@@ -251,6 +251,23 @@ def test_network_adapter_failure_events():
     assert failed[2] == "create_failed" and failed[3]["proposal_id"] == "p1"
 
 
+def test_openrouter_uses_strict_schema_or_validated_json_fallback():
+    requests=[]
+    response={"id":"x","choices":[{"message":{"content":'{"sentences":["X."],"deadlines":[]}'}}]}
+    def handler(request):
+        requests.append(json.loads(request.content)); return httpx.Response(200,json=response,request=request)
+    client=OpenRouterClient("key",1,0,10,httpx.MockTransport(handler))
+    from mailhelp.models import Summary
+    client.complete("m",{},"s",{},response_schema=Summary,supports_json_schema=True)
+    client.complete("m",{},"s",{},response_schema=Summary,supports_json_schema=False)
+    client.close()
+    strict=requests[0]["response_format"]
+    assert strict["type"] == "json_schema"
+    assert strict["json_schema"]["strict"] is True
+    assert strict["json_schema"]["schema"]["additionalProperties"] is False
+    assert requests[1]["response_format"] == {"type":"json_object"}
+
+
 def test_routing_retry_fallback_and_shared_correlation_with_unique_attempts():
     class RoutedClient:
         def __init__(self): self.calls=[]

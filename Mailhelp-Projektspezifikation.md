@@ -841,3 +841,19 @@ Vor jedem Schreiben wird mit dem privaten `mailhelp_key` abgeglichen. Derselbe
 Schlüssel wird beim Event gespeichert, damit Neustarts und unklare Ergebnisse
 ohne doppelten Termin aufgelöst werden können. Schreibzugriffe erfolgen nur nach
 einer ausdrücklichen, versionsbezogenen Telegram-Bestätigung.
+
+### Delta-basierte Proposal-Revision
+
+Die Revisionsstufe liefert ausschließlich `answered_question` und ein geschlossenes
+`changes`-Objekt. Die Anwendung validiert das Delta, wendet es deterministisch auf
+das gespeicherte Proposal an, entfernt nur die beantwortete offene Frage und setzt
+Version und Status selbst. Identität, Evidenz und externe Ergebnisse sind nicht
+änderbar. OpenRouter erhält, soweit die konfigurierte Route dies unterstützt, ein
+striktes `json_schema`; andernfalls wird `json_object` verwendet und dieselbe
+Pydantic-Validierung bleibt verpflichtend.
+
+Bei `output_token_limit` folgt keine identische Wiederholung, sondern eine eigene
+kurze Route mit reduziertem Feldsatz und Ausgabelimit. Nach Erschöpfung wird die
+bereits normalisierte Antwort zusammen mit `retry_required` dauerhaft gespeichert
+und nach Neustart ohne erneute Benutzerfrage wiederaufgenommen. Logs enthalten nur
+Route, Versuchsart, Schemaergebnis und lokalen Apply-Schritt, nie Frage oder Antwort.

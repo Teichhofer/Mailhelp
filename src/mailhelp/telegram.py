@@ -1074,6 +1074,35 @@ class TelegramDialogController:
                     state.proposal_revision_status == ProposalRevisionStatus.RETRY_REQUIRED):
                 self._revise_answered(state)
 
+    def _resume_revision(self) -> None:
+        """Resume a durable normalized answer without asking the person again."""
+        dialog = self.store.load_model("telegram-dialog", TelegramDialogState)
+        if not isinstance(dialog, TelegramDialogState) or not dialog.retry_required:
+            return
+        assert dialog.mail_id and dialog.proposal_id and dialog.version
+        assert dialog.question and dialog.normalized_answer
+        proposal = self.store.load_model(
+            self._proposal_name(dialog.mail_id, dialog.proposal_id), Proposal)
+        if not isinstance(proposal, Proposal) or proposal.version != dialog.version:
+            self.store.save("telegram-dialog", TelegramDialogState().model_dump())
+            return
+        if self.revision_service is None:
+            return
+        try:
+            _, revised = self.revision_service.revise_proposal(
+                proposal, dialog.question, dialog.normalized_answer)
+            revised = validate_revision_successor(proposal, revised)
+        except Exception as exc:
+            self.logger.event("WARNING", "telegram.dialog", "answer_revision_resume_failed",
+                              mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
+                              version=dialog.version, error=exc)
+            return
+        self.send_proposal(revised)
+        self.store.save("telegram-dialog", TelegramDialogState().model_dump())
+        self.logger.event("INFO", "telegram.dialog", "answer_revision_resumed",
+                          mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
+                          previous_version=dialog.version, new_version=revised.version)
+
 
 def _validation_path(exc: Exception) -> str:
     if isinstance(exc, ValidationError):

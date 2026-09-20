@@ -891,6 +891,45 @@ def test_clarification_recovery_edge_paths(tmp_path):
         with pytest.raises(RuntimeError, match="persistence"):
             c.poll_once()
 
+        c.revision_service = RevisionService()
+        c.poll_once()
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["version"] == 2
+        assert store.load("telegram-dialog")["retry_required"] is False
+
+
+def test_revision_resume_handles_stale_unavailable_and_repeated_failure(tmp_path):
+    base={"mail_id":"a"*24,"proposal_id":"p1","version":1,
+          "retry_required":True,"question":"Welche Änderung?",
+          "normalized_answer":"Neu"}
+    with JsonStore(tmp_path) as store:
+        c,_,log=controller(store, revision_service=OperationallyFailingRevisionService())
+        c.persist(proposal(status="needs_clarification"))
+        store.save("telegram-dialog",base)
+        c.poll_once()
+        assert any(item[0][2] == "answer_revision_resume_failed" for item in log.events)
+
+        c.revision_service=None
+        c.poll_once()
+        assert store.load("telegram-dialog")["retry_required"] is True
+
+        store.save("telegram-dialog",{**base,"version":2})
+        c.poll_once()
+        assert store.load("telegram-dialog")["retry_required"] is False
+    with pytest.raises(Exception, match="Revisions-Retry"):
+        TelegramDialogState(retry_required=True)
+
+
+def test_unexpected_interpretation_failure_remains_unacknowledged(tmp_path):
+    class Broken(RevisionService):
+        def interpret_telegram_answer(self, item, question, answer):
+            raise RuntimeError("temporary")
+    with JsonStore(tmp_path) as store:
+        c,_,_=controller(store,[message(8,"Antwort")],revision_service=Broken())
+        c.persist(proposal(status="needs_clarification"))
+        store.save("telegram-dialog",{"mail_id":"a"*24,"proposal_id":"p1","version":1})
+        with pytest.raises(RuntimeError,match="temporary"):
+            c.poll_once()
+
 
 def test_unrelated_telegram_update_does_not_block_following_reply(tmp_path):
     unrelated = {"update_id": 1, "my_chat_member": {"private": "not logged"}}

@@ -83,7 +83,10 @@ class OpenRouterClient:
                  retry_type: str = "initial", retry_number: int = 0,
                  provider_preferences: dict[str, Any] | None = None,
                  correlation_id: str | None = None,
-                 attempt_id: str | None = None) -> tuple[str, Any]:
+                 attempt_id: str | None = None,
+                 response_schema: type[BaseModel] | None = None,
+                 supports_json_schema: bool = True,
+                 revision_route: str = "standard") -> tuple[str, Any]:
         with self._state_lock:
             now = self.clock()
             calls = sorted(value for value in self.load_calls() if isinstance(value, (int, float)) and now - value < 60)
@@ -93,7 +96,13 @@ class OpenRouterClient:
             self.save_calls(calls)
         correlation_id = correlation_id or str(uuid.uuid4())
         call_id = attempt_id or str(uuid.uuid4())
-        request = {**parameters, "model": model, "messages": [{"role": "system", "content": system}, {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}], "response_format": {"type": "json_object"}}
+        response_format: dict[str, Any] = {"type": "json_object"}
+        if response_schema is not None and supports_json_schema:
+            response_format = {"type": "json_schema", "json_schema": {
+                "name": response_schema.__name__, "strict": True,
+                "schema": response_schema.model_json_schema(),
+            }}
+        request = {**parameters, "model": model, "messages": [{"role": "system", "content": system}, {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}], "response_format": response_format}
         if provider_preferences is not None:
             request["provider"] = provider_preferences
         started = time.perf_counter()
@@ -106,6 +115,8 @@ class OpenRouterClient:
                         content_length=0, json_parse_success=False,
                         schema_validation_success=None, retry_type=retry_type,
                         retry_number=retry_number)
+        metadata["revision_route"] = revision_route
+        metadata["structured_output"] = response_format["type"]
         def begin(number: int) -> None:
             nonlocal attempt
             attempt = number
