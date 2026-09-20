@@ -8,7 +8,7 @@ import pytest
 import yaml
 
 from mailhelp.config import Topic
-from mailhelp.imap import FetchedMail
+from mailhelp.imap import FetchedMail, MailCandidate
 from mailhelp.learning import LearningMode, _safe_terminal, _topic_id, save_topics
 from mailhelp.models import AbstractCategories, LearnedCategory, MailClassification, Relevance
 from mailhelp.analysis import Analyzer as RealAnalyzer, LlmProviderResponseInvalid
@@ -91,6 +91,28 @@ def test_learning_fetches_batches_prompts_and_saves_only_accepted(tmp_path):
     assert [item["id"] for item in irrelevant] == ["werbung"]
     assert any("Bitte mit j" in line for line in output)
     assert all("\x1b" not in line for line in output)
+
+
+def test_learning_fetches_globally_newest_messages(tmp_path):
+    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    fetched = []
+
+    class GlobalImap:
+        def discover_since(self, folder):
+            hour = {"INBOX": 1, "Archive": 3}[folder]
+            return [MailCandidate(folder, 9, hour, "0" * 24,
+                                  stamp.replace(hour=hour))]
+        def fetch_uid(self, folder, uid, validity):
+            fetched.append((folder, uid, validity))
+            return FetchedMail(folder, validity, uid, raw_mail(folder), received_at=stamp)
+
+    mode = LearningMode(
+        GlobalImap(), Analyzer([]), ["INBOX", "Archive"], 1000, [],
+        tmp_path / "topics.yaml", [], tmp_path / "irrelevant_topics.yaml",
+        output_fn=lambda _line: None, global_newest_first=True,
+    )
+    assert mode.run(1) == 0
+    assert fetched == [("Archive", 3, 9)]
 
 
 def test_learning_sender_prefilter_skips_before_relevance(tmp_path):

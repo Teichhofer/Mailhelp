@@ -252,7 +252,42 @@ def test_imap():
     with pytest.raises(RuntimeError, match="login"): ImapReader("h",1,"u","p",factory=lambda *a,**k: failed)
     assert not failed.logged
 
-    class RejectedLogin(BadLogin):
+
+def test_imap_discovers_body_free_candidates_and_rejects_bad_metadata():
+    class DiscoveryImap(FakeImap):
+        def __init__(self):
+            super().__init__(); self.problem = None
+        def uid(self, action, *args):
+            if action == "search":
+                return ("NO", []) if self.problem == "search" else ("OK", [b"4 5"])
+            if self.problem == "fetch": return "NO", []
+            if self.problem == "empty": return "OK", []
+            stamp = b"invalid" if self.problem == "date" else b"17-Sep-2026 10:11:12 +0200"
+            return "OK", [(b'4 (UID 4 INTERNALDATE "' + stamp + b'")', b"")]
+
+    connection = DiscoveryImap()
+    reader = ImapReader("h", 1, "u", "p", factory=lambda *_args, **_kwargs: connection)
+    candidates = reader.discover_since("INBOX", completed_uid_ranges=((5, 5),))
+    assert [(item.folder, item.uid, item.uidvalidity) for item in candidates] == [
+        ("INBOX", 4, 7)
+    ]
+    assert candidates[0].received_at.utcoffset() == timedelta(hours=2)
+
+    with pytest.raises(RuntimeError, match="Ordner"):
+        reader.discover_since("bad")
+    connection.mode = "validity"
+    with pytest.raises(RuntimeError, match="UIDVALIDITY"):
+        reader.discover_since("INBOX")
+    connection.mode = "ok"
+    with pytest.raises(UIDValidityChanged):
+        reader.discover_since("INBOX", expected_uidvalidity=8)
+    for problem, message in (("search", "Suche"), ("fetch", "abgelehnt"),
+                             ("empty", "strukturell"), ("date", "Datumswert")):
+        connection.problem = problem
+        with pytest.raises(RuntimeError, match=message):
+            reader.discover_since("INBOX")
+
+    class RejectedLogin(FakeImap):
         def login(self, *args):
             self.credentials = args
             raise imaplib.IMAP4.error(b"authentication failed")

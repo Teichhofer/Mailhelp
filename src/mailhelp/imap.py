@@ -21,6 +21,17 @@ class FetchedMail:
     received_at: datetime = datetime.min.replace(tzinfo=timezone.utc)
 
 
+@dataclass(frozen=True)
+class MailCandidate:
+    """Body-free message identity used for mailbox-wide ordering."""
+
+    folder: str
+    uidvalidity: int
+    uid: int
+    account_id: str
+    received_at: datetime
+
+
 class UIDValidityChanged(RuntimeError):
     """Report a new UID generation before any message body is fetched."""
 
@@ -120,6 +131,51 @@ class ImapReader:
         if status != "OK":
             raise RuntimeError(f"IMAP-Abruf fehlgeschlagen: UID {uid}")
         return _fetched_mail(folder, uidvalidity, uid, body, self.account_id)
+
+    def discover_since(self, folder: str, after_uid: int = 0,
+                       expected_uidvalidity: int | None = None,
+                       completed_uid_ranges: tuple[tuple[int, int], ...] = ()) -> list[MailCandidate]:
+        """Discover body-free candidates so callers can order multiple folders."""
+        status, _data = self.connection.select(folder, readonly=True)
+        if status != "OK":
+            raise RuntimeError(f"IMAP-Ordner nicht lesbar: {folder}")
+        status, validity = self.connection.response("UIDVALIDITY")
+        if status != "UIDVALIDITY" or not validity:
+            raise RuntimeError("IMAP lieferte keine UIDVALIDITY")
+        uidvalidity = int(validity[0])
+        self.last_uidvalidity = uidvalidity
+        if expected_uidvalidity is not None and expected_uidvalidity != uidvalidity:
+            raise UIDValidityChanged(folder, expected_uidvalidity, uidvalidity)
+        status, matches = self.connection.uid("search", None, f"UID {after_uid + 1}:*")
+        if status != "OK":
+            raise RuntimeError("IMAP-Suche fehlgeschlagen")
+        tokens = matches[0].split() if matches else []
+        candidates: list[MailCandidate] = []
+        for token in tokens:
+            uid = int(token)
+            if any(start <= uid <= end for start, end in completed_uid_ranges):
+                continue
+            status, data = self.connection.uid("fetch", token, "(UID INTERNALDATE)")
+            if status != "OK":
+                raise RuntimeError(f"IMAP-INTERNALDATE-Abruf abgelehnt: {status}")
+            metadata = next((part[0] if isinstance(part, tuple) else part
+                             for part in data or []
+                             if isinstance(part[0] if isinstance(part, tuple) and part else part, bytes)), None)
+            match = re.search(rb'\bINTERNALDATE\s+"([^"]+)"', metadata or b"", re.IGNORECASE)
+            if match is None:
+                raise RuntimeError("IMAP-INTERNALDATE-Antwort leer oder strukturell unbrauchbar")
+            try:
+                received_at = datetime.strptime(
+                    match.group(1).decode("ascii"), "%d-%b-%Y %H:%M:%S %z"
+                )
+            except (UnicodeDecodeError, ValueError) as exc:
+                raise RuntimeError("IMAP lieferte ungültigen INTERNALDATE-Datumswert") from exc
+            candidates.append(MailCandidate(
+                folder, uidvalidity, uid, self.account_id, received_at
+            ))
+        self.logger.event("INFO", "imap", "messages_discovered", folder=folder,
+                          available_count=len(candidates), batch_count=0)
+        return candidates
 
     def determine_start_uid(self, folder: str, start: datetime) -> int:
         """Resolve an absolute historical boundary once, without changing flags."""

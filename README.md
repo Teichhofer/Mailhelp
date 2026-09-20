@@ -143,6 +143,17 @@ begrenzter Testlauf ausdrücklich auch mehr als die regulären 25 Nachrichten
 verarbeiten; zugleich werden keine vollständigen Nachrichten geladen, die der
 aktuelle Lauf anschließend gar nicht verarbeitet.
 
+Mit `imap.global_newest_first: true` werden alle unter `imap.folders`
+konfigurierten Ordner als ein gemeinsames Postfach behandelt. Mailhelp ermittelt
+dafür zunächst ausschließlich UID und `INTERNALDATE` aller noch offenen
+Nachrichten, sortiert diese Metadaten ordnerübergreifend absteigend und lädt nur
+die für den aktuellen Lauf ausgewählten vollständigen Nachrichten. Im
+Dauerbetrieb gilt `imap.batch_size` dann als gemeinsames Kontingent für das ganze
+Postfach; `--max-mails N` und `--learn N` wählen ebenfalls die global neuesten
+`N` Nachrichten. Eigene Checkpoints je Ordner bleiben erhalten. Bei `false`
+bleibt das bisherige Verhalten bestehen: Die Ordner werden in
+Konfigurationsreihenfolge jeweils neueste UID zuerst bearbeitet.
+
 `logging.console`, `logging.file` und `logging.llm` besitzen eigene Aktivierungs- und
 Level-Schalter; `logging.modules` überschreibt das Datei-Grundlevel für einzelne
 Anwendungsmodule. Dateiname, Format (`text` oder `jsonl`), maximale Dateigröße,

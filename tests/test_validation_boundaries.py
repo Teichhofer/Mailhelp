@@ -122,8 +122,9 @@ def test_settings_reject_missing_extra_types_ranges_and_semantics(tmp_path):
     base = valid_settings(tmp_path)
     assert Settings.model_validate(base).timezone == "UTC"
     for mode in ("ssl", "starttls", "plain"):
-        configured=copy.deepcopy(base); configured["imap"].update(connection_mode=mode, historical_start="2025-01-02T03:04:05+01:00")
-        assert Settings.model_validate(configured).imap.connection_mode == mode
+        configured=copy.deepcopy(base); configured["imap"].update(connection_mode=mode, historical_start="2025-01-02T03:04:05+01:00", global_newest_first=True)
+        parsed = Settings.model_validate(configured).imap
+        assert parsed.connection_mode == mode and parsed.global_newest_first
     mutations = [
         lambda x: x.pop("imap"),
         lambda x: x.update(extra=True),
@@ -141,6 +142,7 @@ def test_settings_reject_missing_extra_types_ranges_and_semantics(tmp_path):
         lambda x: x["imap"].update(historical_start=123),
         lambda x: x["imap"].update(batch_size=0),
         lambda x: x["imap"].update(batch_size=1001),
+        lambda x: x["imap"].update(global_newest_first="true"),
         lambda x: x.update(timezone="Moon/Base"),
         lambda x: x.update(poll_interval_seconds=4),
         lambda x: x.update(poll_interval_seconds=86401),

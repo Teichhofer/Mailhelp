@@ -141,9 +141,10 @@ def test_cli_runs_terminal_learning_mode(monkeypatch):
 
     assert main() == 0
     assert captured == [(('imap', 'analyzer', ['INBOX'], 'limits', ['topic'],
-                           Path('cfg/topics.yaml'), ['irrelevant'],
+                          Path('cfg/topics.yaml'), ['irrelevant'],
                            Path('cfg/irrelevant_topics.yaml'), 'store'),
-                          {'timezone': 'Europe/Berlin', 'parallel_llm_calls': 7}), 3]
+                          {'timezone': 'Europe/Berlin', 'parallel_llm_calls': 7,
+                           'global_newest_first': False}), 3]
 
 
 def test_signal_shutdown_interrupts_one_shot_modes_and_stops_service():
