@@ -55,6 +55,47 @@ class TelegramDialogState(StrictModel):
         return self
 
 
+class QuestionStatus(StrEnum):
+    OPEN = "open"
+    ANSWERED = "answered"
+
+
+class AnswerStatus(StrEnum):
+    PENDING = "pending"
+    VALID = "valid"
+    INVALID = "invalid"
+
+
+class ProposalRevisionStatus(StrEnum):
+    PENDING = "pending"
+    RETRY_REQUIRED = "retry_required"
+    COMPLETED = "completed"
+
+
+class ProposalClarificationState(StrictModel):
+    """Durable trust boundary between a Telegram answer and proposal revision."""
+
+    schema_version: Literal[2] = 2
+    mail_id: str = Field(pattern=r"^[a-f0-9]{24}$")
+    proposal_id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")
+    version: int = Field(ge=1)
+    question: str = Field(min_length=1, max_length=4000)
+    question_status: QuestionStatus = QuestionStatus.OPEN
+    answer_status: AnswerStatus = AnswerStatus.PENDING
+    normalized_answer: str | None = Field(default=None, min_length=1, max_length=4000)
+    proposal_revision_status: ProposalRevisionStatus = ProposalRevisionStatus.PENDING
+
+    @model_validator(mode="after")
+    def consistent_answer(self) -> "ProposalClarificationState":
+        answered = self.question_status == QuestionStatus.ANSWERED
+        valid = self.answer_status == AnswerStatus.VALID
+        if answered != valid or valid != (self.normalized_answer is not None):
+            raise ValueError("Nur eine valide normalisierte Antwort darf eine Frage beantworten")
+        if not answered and self.proposal_revision_status != ProposalRevisionStatus.PENDING:
+            raise ValueError("Eine offene Frage darf keine Revision besitzen")
+        return self
+
+
 class Relevance(StrictModel):
     decision: Literal["relevant", "irrelevant", "unclear"]
     topic_ids: list[str] = Field(default_factory=list)

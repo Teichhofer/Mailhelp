@@ -6,8 +6,13 @@ from unittest.mock import patch
 from pydantic import ValidationError
 
 from mailhelp.adapter import PermanentError, UncertainWriteError
-from mailhelp.models import (ActionLedger, ActionLedgerEntry, MailState, Proposal,
-                             ProposalStatus, RelevanceDialog, RelevanceDialogStatus,
+from mailhelp.analysis import (ContradictoryRevision, LlmInvalidJson,
+                               LlmProviderResponseInvalid,
+                               LlmSchemaValidationFailed,
+                               LlmTokenLimitExceeded)
+from mailhelp.models import (ActionLedger, ActionLedgerEntry, AnswerStatus, MailState, Proposal,
+                             ProposalClarificationState, ProposalRevisionStatus, ProposalStatus,
+                             QuestionStatus, RelevanceDialog, RelevanceDialogStatus,
                              TelegramDialogState)
 from mailhelp.orchestrator import Orchestrator
 from mailhelp.storage import JsonStore
@@ -95,6 +100,13 @@ class UnusableAnswerService(RevisionService):
         self.calls.append(("interpret", item, question, answer))
         return "interpret-call", type("Interpretation", (), {
             "usable": False, "normalized_answer": None, "reason": "Datum fehlt"})()
+
+
+class InterpretationErrorService(RevisionService):
+    def __init__(self, error):
+        super().__init__(); self.error = error
+    def interpret_telegram_answer(self, item, question, answer):
+        raise self.error
 
 
 def controller(store, updates=(), writers=None, test_mode=False, revision_service=None):
@@ -609,16 +621,18 @@ def test_invalid_unauthorized_missing_and_stale_dialogs(tmp_path):
         c.persist(proposal(version=2, description="x"*3995, status="needs_clarification"))
         store.save("telegram-dialog",{"mail_id":"a"*24,"proposal_id":"p1","version":2})
         t.updates=[message(10,"zu lang")]; c.poll_once()
-        restored=store.load("telegram-dialog")
-        assert "widerspruchsfrei" in t.sent[-1][1] and restored["version"]==2
-        assert restored["retry_required"] is False and restored["normalized_answer"] is None
+        assert "gespeicherten Antwort" in t.sent[-1][1]
+        assert store.load("telegram-dialog")["version"] is None
+        saved = store.load("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v2")
+        assert saved["normalized_answer"] == "zu lang"
+        assert saved["proposal_revision_status"] == "retry_required"
 
 
 def test_unusable_answer_gets_llm_generated_concrete_follow_up(tmp_path):
     service = UnusableAnswerService()
     with JsonStore(tmp_path) as store:
         current = proposal(version=2, open_questions=["Welches Datum?"])
-        c,t,_ = controller(store, revision_service=service)
+        c,t,log = controller(store, revision_service=service)
         c.persist(current)
         store.save("telegram-dialog", TelegramDialogState(
             mail_id=current.source_mail_id, proposal_id=current.id, version=2).model_dump())
@@ -627,6 +641,78 @@ def test_unusable_answer_gets_llm_generated_concrete_follow_up(tmp_path):
         assert [call[0] for call in service.calls] == ["interpret", "clarify"]
         assert store.load("telegram-dialog")["version"] == 2
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["version"] == 2
+        saved = store.load("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v2")
+        assert saved["answer_status"] == "invalid"
+        assert saved["proposal_revision_status"] == "pending"
+        event = next(entry for entry in log.events
+                     if entry[0][2] == "answer_clarification_requested")
+        assert event[1]["error_class"] == "IncompleteUserAnswer"
+
+
+@pytest.mark.parametrize(("error", "error_class"), [
+    (LlmTokenLimitExceeded("telegram_answer_interpretation", "output_token_limit"),
+     "LlmTokenLimitExceeded"),
+    (LlmInvalidJson("telegram_answer_interpretation"), "LlmInvalidJson"),
+    (LlmSchemaValidationFailed("telegram_answer_interpretation"),
+     "LlmSchemaValidationFailed"),
+    (LlmProviderResponseInvalid("telegram_answer_interpretation", "provider_unavailable"),
+     "LlmProviderResponseInvalid"),
+    (httpx.ReadTimeout("timeout"), "ReadTimeout"),
+])
+def test_technical_answer_errors_are_consumed_without_reasking(
+        tmp_path, error, error_class):
+    with JsonStore(tmp_path) as store:
+        item = proposal(open_questions=["Welches Datum?"])
+        c, transport, log = controller(
+            store, [message(4, "vertrauliche Antwort")],
+            revision_service=InterpretationErrorService(error))
+        c.persist(item)
+        store.save("telegram-dialog", TelegramDialogState(
+            mail_id=item.source_mail_id, proposal_id=item.id,
+            version=1).model_dump(mode="json"))
+
+        c.poll_once()
+
+        assert transport.sent[-1][1] == (
+            "Die interne Verarbeitung ist verzögert. "
+            "Die Antwort wurde noch nicht fachlich bewertet.")
+        assert "Welches Datum?" not in transport.sent[-1][1]
+        assert store.load("telegram-offset")["offset"] == 5
+        assert store.load("telegram-dialog")["proposal_id"] == "p1"
+        saved = store.load("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")
+        assert saved["answer_status"] == "pending"
+        assert saved["proposal_revision_status"] == "pending"
+        event = next(entry for entry in log.events
+                     if entry[0][2] == "answer_revision_failed")
+        assert event[1]["error_class"] == error_class
+        assert event[1]["proposal_reference"] == "aaaaaaaaaaaaaaaaaaaaaaaa:p1:v1"
+        assert event[1]["revision_status"] == "pending"
+        assert "vertrauliche Antwort" not in repr(log.events)
+
+
+def test_contradictory_answer_is_domain_failure_not_incomplete(tmp_path):
+    with JsonStore(tmp_path) as store:
+        item = proposal(open_questions=["Welches Datum?"])
+        c, transport, log = controller(
+            store, [message(2, "Antwort")],
+            revision_service=InterpretationErrorService(
+                ContradictoryRevision("fachlicher Widerspruch")))
+        c.persist(item)
+        store.save("telegram-dialog", TelegramDialogState(
+            mail_id=item.source_mail_id, proposal_id=item.id,
+            version=1).model_dump(mode="json"))
+
+        c.poll_once()
+
+        assert "widerspricht" in transport.sent[-1][1]
+        assert "Welches Datum?" not in transport.sent[-1][1]
+        assert store.load("telegram-offset")["offset"] == 3
+        saved = store.load("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")
+        assert saved["answer_status"] == "pending"
+        assert saved["proposal_revision_status"] == "pending"
+        event = next(entry for entry in log.events
+                     if entry[0][2] == "answer_revision_failed")
+        assert event[1]["error_class"] == "ContradictoryRevision"
 
 
 def test_revision_unavailable_preserves_dialog(tmp_path):
@@ -641,7 +727,7 @@ def test_revision_unavailable_preserves_dialog(tmp_path):
         assert store.load("telegram-dialog")["proposal_id"]=="p1"
 
 
-def test_operational_reply_failure_persists_normalized_answer_for_restart(tmp_path):
+def test_operational_reply_failure_keeps_valid_answer_and_is_acknowledged(tmp_path):
     with JsonStore(tmp_path) as store:
         c,t,log=controller(store, [message(4, "Neuer Titel")],
                            revision_service=OperationallyFailingRevisionService())
@@ -649,11 +735,161 @@ def test_operational_reply_failure_persists_normalized_answer_for_restart(tmp_pa
         store.save("telegram-dialog", {"mail_id":"a"*24,"proposal_id":"p1","version":1})
         c.poll_once()
         assert store.load("telegram-offset")["offset"] == 5
-        saved = store.load("telegram-dialog")
-        assert saved["proposal_id"] == "p1" and saved["retry_required"] is True
+        assert store.load("telegram-dialog")["proposal_id"] is None
+        saved = store.load("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")
         assert saved["normalized_answer"] == "Neuer Titel"
-        event = next(item for item in log.events if item[0][2] == "answer_revision_retry_required")
-        assert "provider unavailable" in str(event[1]["error"])
+        assert saved["question_status"] == "answered"
+        assert saved["answer_status"] == "valid"
+        assert saved["proposal_revision_status"] == "retry_required"
+        event = next(item for item in log.events if item[0][2] == "answer_revision_failed")
+        assert event[1]["error_class"] == "TechnicalRevisionError"
+        assert event[1]["revision_status"] == "retry_required"
+        assert "provider unavailable" not in repr(event)
+
+
+def test_answer_is_persisted_and_dialog_closed_before_revision(tmp_path):
+    events = []
+    class OrderedStore(JsonStore):
+        def save(self, name, value):
+            super().save(name, value)
+            if name.startswith("clarification-"):
+                events.append(("answer", value["normalized_answer"]))
+            elif name == "telegram-dialog" and value["proposal_id"] is None:
+                events.append(("dialog", None))
+    class OrderedRevision(RevisionService):
+        def revise_proposal(self, item, question, answer):
+            assert events == [("answer", "2026-10-21"), ("dialog", None)]
+            events.append(("revision", answer))
+            return super().revise_proposal(item, question, answer)
+        def interpret_telegram_answer(self, item, question, answer):
+            return "interpret", type("Interpretation", (), {
+                "usable": True, "normalized_answer": "2026-10-21", "reason": "ok"})()
+    with OrderedStore(tmp_path) as store:
+        item = proposal(open_questions=["Welches Datum?"])
+        c,_,_=controller(store, revision_service=OrderedRevision())
+        c.persist(item)
+        store.save("telegram-dialog", TelegramDialogState(
+            mail_id=item.source_mail_id, proposal_id=item.id, version=1).model_dump(mode="json"))
+        events.clear()
+        c._answer("am nächsten Mittwoch")
+        assert events[:3] == [("answer", "2026-10-21"), ("dialog", None),
+                              ("revision", "2026-10-21")]
+        assert store.load("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")["proposal_revision_status"] == "completed"
+
+
+@pytest.mark.parametrize("error", [
+    ValueError("schema"), RuntimeError("output_token_limit"),
+    LlmInvalidJson("proposal_revision"),
+])
+def test_revision_failures_only_mark_revision_retry_required(tmp_path, error):
+    class Failure(RevisionService):
+        def revise_proposal(self, item, question, answer):
+            raise error
+    with JsonStore(tmp_path) as store:
+        item=proposal(open_questions=["Welches Datum?"])
+        c,_,_=controller(store, revision_service=Failure())
+        c.persist(item)
+        store.save("telegram-dialog", TelegramDialogState(
+            mail_id=item.source_mail_id, proposal_id=item.id, version=1).model_dump(mode="json"))
+        c._answer("2026-10-21")
+        saved=store.load_model("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1", ProposalClarificationState)
+        assert (saved.question_status, saved.answer_status, saved.normalized_answer,
+                saved.proposal_revision_status) == (
+                    QuestionStatus.ANSWERED, AnswerStatus.VALID, "2026-10-21",
+                    ProposalRevisionStatus.RETRY_REQUIRED)
+
+
+def test_restart_retries_normalized_answer_and_ok_is_not_old_answer(tmp_path):
+    class CrashAfterAnswer(JsonStore):
+        crash = True
+        def save(self, name, value):
+            super().save(name, value)
+            if self.crash and name == "telegram-dialog" and value["proposal_id"] is None:
+                raise RuntimeError("simulated crash")
+    directory=tmp_path/"restart"
+    with CrashAfterAnswer(directory) as store:
+        item=proposal(open_questions=["Welches Datum?"])
+        c,_,_=controller(store)
+        c.persist(item)
+        store.save("telegram-dialog", TelegramDialogState(
+            mail_id=item.source_mail_id, proposal_id=item.id, version=1).model_dump(mode="json"))
+        with pytest.raises(RuntimeError, match="simulated crash"):
+            c._answer("2026-10-21")
+        assert store.load("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")["normalized_answer"] == "2026-10-21"
+    with JsonStore(directory) as store:
+        service=RevisionService()
+        c,t,_=controller(store, [message(1, "Ok")], revision_service=service)
+        c.poll_once()
+        revision_calls=[call for call in service.calls if not isinstance(call[0], str)]
+        assert revision_calls[0][2] == "2026-10-21"
+        assert not any(call[0] == "interpret" and call[3] == "Ok" for call in service.calls)
+        assert store.load("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")["normalized_answer"] == "2026-10-21"
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["version"] == 2
+        assert "Keine offene" in t.sent[-1][1]
+
+
+def test_clarification_schema_migration_and_validation(tmp_path):
+    name="clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1"
+    with JsonStore(tmp_path) as store:
+        base={"schema_version":1, "mail_id":"a"*24, "proposal_id":"p1",
+              "version":1, "question":"Welches Datum?"}
+        store.save(name, {**base, "normalized_answer":"2026-10-21"})
+        migrated=store.load_model(name, ProposalClarificationState)
+        assert migrated.schema_version == 2 and migrated.answer_status == AnswerStatus.VALID
+        assert store.load(name)["normalized_answer"] == "2026-10-21"
+        store.save(name, base)
+        open_state=store.load_model(name, ProposalClarificationState)
+        assert open_state.question_status == QuestionStatus.OPEN
+        assert open_state.answer_status == AnswerStatus.PENDING
+    with pytest.raises(ValidationError, match="normalisierte Antwort"):
+        ProposalClarificationState(mail_id="a"*24, proposal_id="p1", version=1,
+                                   question="Datum?", normalized_answer="2026-10-21")
+    with pytest.raises(ValidationError, match="offene Frage"):
+        ProposalClarificationState(mail_id="a"*24, proposal_id="p1", version=1,
+                                   question="Datum?", answer_status=AnswerStatus.INVALID,
+                                   proposal_revision_status=ProposalRevisionStatus.RETRY_REQUIRED)
+
+
+def test_clarification_recovery_edge_paths(tmp_path):
+    class InterpretationFailure(RevisionService):
+        def interpret_telegram_answer(self, item, question, answer):
+            raise LlmInvalidJson("telegram_answer_interpretation")
+    with JsonStore(tmp_path) as store:
+        item=proposal(open_questions=["Datum?"])
+        c,t,_=controller(store, revision_service=InterpretationFailure())
+        c.persist(item)
+        dialog=TelegramDialogState(mail_id=item.source_mail_id, proposal_id=item.id, version=1)
+        store.save("telegram-dialog", dialog.model_dump(mode="json"))
+        c._answer("raw")
+        assert "Verarbeitung ist verzögert" in t.sent[-1][1]
+
+        answered=ProposalClarificationState(
+            mail_id=item.source_mail_id, proposal_id=item.id, version=1,
+            question="Datum?", question_status=QuestionStatus.ANSWERED,
+            answer_status=AnswerStatus.VALID, normalized_answer="2026-10-21",
+            proposal_revision_status=ProposalRevisionStatus.RETRY_REQUIRED)
+        name="clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1"
+        store.save(name, answered.model_dump(mode="json"))
+        c.revision_service=RevisionService()
+        c._answer("Ok")
+        assert "bereits gespeichert" in t.sent[-1][1]
+
+        # A successor published before a crash makes retry completion
+        # idempotent and never invokes the LLM again.
+        c.persist(proposal(version=2))
+        c._revise_answered(answered)
+        assert store.load(name)["proposal_revision_status"] == "completed"
+
+        missing=answered.model_copy(update={"proposal_id":"missing"})
+        c._revise_answered(missing)
+        c.revision_service=None
+        c._revise_answered(answered.model_copy(update={"version":2}))
+
+        c.revision_service=RevisionService()
+        c._handle=lambda update: (_ for _ in ()).throw(RuntimeError("persistence"))
+        t.updates=[message(7)]
+        with pytest.raises(RuntimeError, match="persistence"):
+            c.poll_once()
 
         c.revision_service = RevisionService()
         c.poll_once()

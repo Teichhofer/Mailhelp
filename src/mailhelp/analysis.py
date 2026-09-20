@@ -30,7 +30,23 @@ SCHEMA_REPAIR_INSTRUCTION = (
 )
 
 
-class LlmSchemaValidationExceeded(ValueError):
+class RevisionError(ValueError):
+    """Base class for content-free revision error classification."""
+
+
+class IncompleteUserAnswer(RevisionError):
+    """The validated user answer does not contain the requested information."""
+
+
+class ContradictoryRevision(RevisionError):
+    """A revision is semantically inconsistent with its predecessor."""
+
+
+class TechnicalRevisionError(RevisionError):
+    """A provider, transport, parsing, schema, or token-limit failure."""
+
+
+class LlmSchemaValidationExceeded(TechnicalRevisionError):
     """Die begrenzten Schema-Validierungsversuche sind ausgeschöpft."""
 
     def __init__(self, step: str):
@@ -38,13 +54,17 @@ class LlmSchemaValidationExceeded(ValueError):
         super().__init__(f"LLM-Schemavalidierung für {step} ausgeschöpft")
 
 
-class LlmProviderResponseInvalid(ValueError):
+class LlmProviderResponseInvalid(TechnicalRevisionError):
     def __init__(self, step: str, reason: str):
         self.step, self.reason = step, reason
         super().__init__(f"Ungültige Provider-Antwort für {step}: {reason}")
 
 
-class LlmInvalidJson(ValueError):
+class LlmTokenLimitExceeded(LlmProviderResponseInvalid):
+    """The provider stopped because the configured output token limit was reached."""
+
+
+class LlmInvalidJson(TechnicalRevisionError):
     def __init__(self, step: str):
         self.step = step
         super().__init__(f"Ungültiges JSON für {step}")
@@ -61,9 +81,16 @@ class Completer(Protocol):
 def validate_revision_successor(previous: Proposal, candidate: Any) -> Proposal:
     """Compatibility boundary for services returning an already built successor."""
     revised = Proposal.model_validate(candidate)
-    if (revised.id, revised.source_mail_id, revised.version) != (
-            previous.id, previous.source_mail_id, previous.version + 1):
-        raise ValueError("Ungültige Revisionsidentität")
+    if revised.id != previous.id:
+        raise ContradictoryRevision("Die Vorschlags-ID darf nicht geändert werden")
+    if revised.source_mail_id != previous.source_mail_id:
+        raise ContradictoryRevision("Die Ursprungsmail darf nicht geändert werden")
+    if revised.version != previous.version + 1:
+        raise ContradictoryRevision("Die Vorschlagsversion muss exakt um eins erhöht werden")
+    expected = (ProposalStatus.NEEDS_CLARIFICATION if revised.open_questions
+                else ProposalStatus.PENDING_CONFIRMATION)
+    if revised.status != expected:
+        raise ContradictoryRevision("Der Vorschlagsstatus widerspricht den offenen Fragen")
     return revised
 
 
@@ -155,7 +182,10 @@ class Analyzer:
                     continue
                 if route_index + 1 >= len(routes):
                     reason = exc.reason if isinstance(exc, ProviderResponseInvalid) else "technical_error"
-                    raise LlmProviderResponseInvalid(step, reason) from exc
+                    error_type = (LlmTokenLimitExceeded
+                                  if reason == "output_token_limit"
+                                  else LlmProviderResponseInvalid)
+                    raise error_type(step, reason) from exc
                 route_index += 1
                 route_failures = 0
                 repair = "provider_retry"
