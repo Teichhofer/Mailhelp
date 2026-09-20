@@ -254,6 +254,8 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
   JSON-/Schemaergebnis sowie Retry-Typ und -Nummer. Das Schemaergebnis wird erst
   nach der Analyzer-Validierung als eigenes Abschlussereignis protokolliert;
   `content: null`, ungültiges JSON und Schemafehler bleiben getrennte Ereignisse.
+  Zusätzlich hält `token_usage_recorded` den vom Provider gemeldeten Tokenverbrauch
+  je Call-ID fest; `token_usage_available: false` kennzeichnet fehlende Angaben.
 * Bei Terminen bleiben der physische Ort und ein optionaler, ausschließlich per HTTP/HTTPS erlaubter Videolink getrennte Vorschlagsfelder und werden vor der Bestätigung beide in Telegram angezeigt. Google Calendar erhält Ort, Beschreibung und Videolink; zeitgebundene Werte behalten ihren eindeutigen Offset und ganztägige Enddaten bleiben exklusiv.
 * Externe Aktionen verlangen eine Persistenzfunktion: `writing` wird vor dem API-Aufruf dauerhaft gespeichert. Unklare Resultate werden als `uncertain` angehalten und nur abgeglichen. Ausschließlich ein externer Treffer überführt sie in `created`; ein neuer Schreibversuch setzt eine ausdrücklich modellierte manuelle Betreiberentscheidung voraus.
 * Jede Mail besitzt die schema-validierten Schritte `preparation`, `relevance`,

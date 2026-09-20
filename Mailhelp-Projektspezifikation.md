@@ -240,7 +240,8 @@ Ist der Nachrichteninhalt `null` und zugleich `finish_reason=length`, lautet der
 inhaltsfreie Diagnosegrund `output_token_limit`; ein sonstiger `null`-Inhalt bleibt
 als `message_content_null` unterscheidbar.
 Reasoning-intensive Schritte überschreiben ihr Ausgabelimit in `prompts.yaml`.
-Dies gilt für die Relevanzprüfung und beide Lernschritte; die abschließende
+`action_router`, `task_extraction` und `event_extraction` verwenden jeweils ein
+Ausgabelimit von 10.000 Tokens. Dies gilt außerdem für die Relevanzprüfung und beide Lernschritte; die abschließende
 Abstraktion erhält wegen der gemeinsamen Verarbeitung aller Einzelklassifikationen
 ein Ausgabelimit von 16.000 Tokens. Sie liefert höchstens 20 Kategorien mit jeweils
 einer kurzen Beschreibung und ein bis zwei kurzen synthetischen Beispielen, damit
@@ -619,6 +620,10 @@ logs/
 Das Anwendungslog enthält Verarbeitungsschritte, Statuswechsel, externe Aufrufe, Wiederholungen, Laufzeiten sowie Fehler mit Kontext und Stacktrace. Jeder Eintrag trägt Zeitstempel, Level, Modul und Ereignis; sofern zuordenbar außerdem Mail-ID, Vorschlags-ID und Aufruf-ID. Nach erfolgreicher Konfigurationsprüfung erzeugt jeder reguläre Aufruf ein Ereignis `application_started` mit den geparsten CLI-Parametern `config_directory`, `log_directory`, `check`, `check_access`, `max_mails`, `learn` und `clear`; rohe Befehlszeilen und Umgebungsvariablen werden nicht übernommen. Der Löschbefehl erzeugt bewusst kein neues Log, das unmittelbar wieder gelöscht werden müsste.
 
 Das separate LLM-Log erfasst Anfragebeginn, Antwort oder Fehler als getrennte Ereignisse mit derselben Aufruf-ID. Es enthält Auswertungsschritt, Modell, Anfrageparameter, Prompt-Fingerprint, Dauer, Status, Wiederholung sowie Tokenverbrauch und Kosten, sofern vom Dienst verfügbar.
+Für jede syntaktisch gültige Providerantwort wird zusätzlich ein eigenes
+`token_usage_recorded`-Ereignis geschrieben. Es ordnet die vom Provider gemeldeten
+Eingabe-, Ausgabe- und Gesamttokens eindeutig der Aufruf-ID zu; meldet der Provider
+keine Nutzungsdaten, dokumentiert `token_usage_available: false` diesen Umstand.
 
 Vollständige Anfragen einschließlich Prompt und Mailinhalt sowie vollständige Antworten lassen sich unabhängig einschalten. `DEBUG` allein aktiviert diese Inhalte nicht. Rohinhalte werden ausschließlich im dafür vorgesehenen LLM-Log beziehungsweise expliziten Debug-Artefakten abgelegt und nicht zusätzlich ins allgemeine Log kopiert.
 
