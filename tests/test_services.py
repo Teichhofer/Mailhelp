@@ -9,12 +9,14 @@ import yaml
 from mailhelp.analysis import (Analyzer, LlmInvalidJson, LlmProviderResponseInvalid,
                                JSON_REPAIR_INSTRUCTION, SCHEMA_REPAIR_INSTRUCTION,
                                LlmSchemaValidationExceeded,
-                               LlmSchemaValidationFailed)
-from mailhelp.config import TargetSettings, Topic
+                               LlmSchemaValidationFailed, validate_revision_successor)
+from mailhelp.config import OutputTokenRetry, TargetSettings, Topic
 from mailhelp.imap import FetchedMail
 from mailhelp.integrations import CalendarFileWriter, HttpWriter, calendar_file, execute_confirmed
 from mailhelp.mime import MimeLimits
-from mailhelp.models import ActionRoute, Proposal, ProposalStatus, RelevanceDialog
+from mailhelp.models import (ActionRoute, Proposal, ProposalRevisionDelta,
+                             ProposalStatus, RelevanceDialog,
+                             apply_proposal_revision)
 from mailhelp.openrouter import (InvalidJson, OpenRouterClient, ProviderResponseInvalid,
                                  RateLimitExceeded)
 from mailhelp.adapter import PermanentError, RetryableError
@@ -295,9 +297,8 @@ def test_action_router_prompt_is_narrow_and_injection_resistant():
 
 def test_analyzer_revises_proposal_with_separate_inputs_and_retries():
     original=proposal(open_questions=["Welcher Titel?"])
-    valid={**original.model_dump(mode="json"),"version":2,"title":"Neu",
-           "open_questions":[],"status":"pending_confirmation"}
-    client=FakeCompleter([{**valid,"id":"other"},valid])
+    valid={"answered_question":"Welcher Titel?","changes":{"title":"Neu"}}
+    client=FakeCompleter([{"answered_question":"Welcher Titel?","changes":{"id":"other"}},valid])
     call,revised=Analyzer(client,prompt_config(),1).revise_proposal(original,"Welcher Titel?","Neu")
     assert call=="2" and revised.title=="Neu" and original.title=="Tun"
     assert client.calls==2
@@ -306,42 +307,41 @@ def test_analyzer_revises_proposal_with_separate_inputs_and_retries():
         def __init__(self, error): self.error=error
         def complete(self, *args, **kwargs): raise self.error
     with pytest.raises(LlmProviderResponseInvalid) as provider_error:
-        Analyzer(Malformed(ProviderResponseInvalid("message_missing")),prompt_config(),1).revise_proposal(original,"q","a")
+        Analyzer(Malformed(ProviderResponseInvalid("message_missing")),prompt_config(),1).revise_proposal(original,"Welcher Titel?","a")
     assert provider_error.value.step == "proposal_revision"
     with pytest.raises(LlmInvalidJson) as json_error:
-        Analyzer(Malformed(InvalidJson()),prompt_config(),1).revise_proposal(original,"q","a")
+        Analyzer(Malformed(InvalidJson()),prompt_config(),1).revise_proposal(original,"Welcher Titel?","a")
     assert json_error.value.step == "proposal_revision"
 
-    failures=[
-        {**valid,"source_mail_id":"other"}, {**valid,"version":3},
-        {**valid,"status":"needs_clarification"}, {**valid,"title":""},
-    ]
+    failures=[{"answered_question":"falsch","changes":{"title":"Neu"}},
+              {"answered_question":"Welcher Titel?","changes":{"status":"created"}},
+              {"answered_question":"Welcher Titel?","changes":{"title":""}}]
     for invalid in failures:
         with pytest.raises(LlmSchemaValidationFailed):
-            Analyzer(FakeCompleter([invalid,invalid]),prompt_config()).revise_proposal(original,"q","a")
-    pending_question={**valid,"open_questions":["Noch offen?"],"status":"needs_clarification"}
-    assert Analyzer(FakeCompleter([pending_question]),prompt_config()).revise_proposal(original,"q","a")[1].open_questions
+            Analyzer(FakeCompleter([invalid,invalid]),prompt_config()).revise_proposal(original,"Welcher Titel?","a")
 
     class CapturingCompleter:
         def __init__(self): self.payload=None
         def complete(self, model, parameters, system, payload, **_metadata):
             self.payload=payload; return "call",valid
     capturing=CapturingCompleter()
-    Analyzer(capturing,prompt_config()).revise_proposal(original,"Konkrete Frage","Autorisierte Antwort")
-    assert capturing.payload["validated_proposal"]["id"]=="p1"
-    assert capturing.payload["question"]=="Konkrete Frage"
-    assert capturing.payload["authorized_answer"]=="Autorisierte Antwort"
+    Analyzer(capturing,prompt_config()).revise_proposal(original,"Welcher Titel?","Autorisierte Antwort")
+    assert "id" not in capturing.payload["proposal_fields"]
+    assert capturing.payload["question"]=="Welcher Titel?"
+    assert capturing.payload["normalized_answer"]=="Autorisierte Antwort"
+    assert "status" not in capturing.payload["allowed_changes"]
 
 
 def test_proposal_revision_prompt_covers_date_schema_and_output_budget():
     step = yaml.safe_load(Path("prompts.yaml").read_text(encoding="utf-8"))["prompts"]["proposal_revision"]
 
-    assert step["parameters"] == {"temperature": 0.0, "max_tokens": 4000}
+    assert step["parameters"] == {"temperature": 0.0, "max_tokens": 1200}
+    assert step["output_token_retry"]["parameters"]["max_tokens"] == 600
     prompt = step["system_prompt"]
     assert "reines Kalenderdatum" in prompt
     assert "all_day=true" in prompt
     assert "ISO-8601-Zeitpunkte mit eindeutigem UTC-Offset" in prompt
-    assert "fehlende Angabe als konkrete open_question" in prompt
+    assert "berechnet die Anwendung lokal" in prompt
 
 
 def test_telegram_answer_interpretation_and_clarification_use_separate_fields():
@@ -375,11 +375,50 @@ def test_telegram_answer_interpretation_and_clarification_use_separate_fields():
      "2026-10-02T09:00:00+02:00"),
 ])
 def test_analyzer_revision_validates_task_deadlines_and_event_times(original, changes, expected):
-    raw={**original.model_dump(mode="json"),**changes,"version":2,
-         "open_questions":[],"status":"pending_confirmation"}
-    revised=Analyzer(FakeCompleter([raw]),prompt_config()).revise_proposal(original,"Wann?","Antwort")[1]
+    question=original.open_questions[0]
+    raw={"answered_question":question,"changes":changes}
+    revised=Analyzer(FakeCompleter([raw]),prompt_config()).revise_proposal(original,question,"Antwort")[1]
     value=revised.due if revised.kind.value=="task" else revised.start
     assert value.isoformat()==expected
+
+
+def test_revision_token_limit_uses_reduced_route_and_can_exhaust():
+    cfg=prompt_config()
+    cfg.prompts["proposal_revision"].output_token_retry=OutputTokenRetry(
+        system_prompt="short", parameters={"max_tokens": 50}, change_fields=["title"])
+    original=proposal(open_questions=["Titel?"])
+    client=RetrySequence([ProviderResponseInvalid("output_token_limit"),
+                          {"answered_question":"Titel?","changes":{"title":"Kurz"}}])
+    revised=Analyzer(client,cfg,provider_retries=0).revise_proposal(original,"Titel?","Kurz")[1]
+    assert revised.title == "Kurz"
+    assert client.payloads[1]["proposal_fields"] == {"title":"Tun"}
+
+    exhausted=RetrySequence([ProviderResponseInvalid("output_token_limit"),
+                             ProviderResponseInvalid("output_token_limit")])
+    with pytest.raises(LlmProviderResponseInvalid, match="output_token_limit"):
+        Analyzer(exhausted,cfg,provider_retries=0).revise_proposal(original,"Titel?","Kurz")
+
+    with pytest.raises(ValueError, match="nicht offen"):
+        Analyzer(FakeCompleter([]),cfg).revise_proposal(original,"Andere?","x")
+    with pytest.raises(ValueError, match="nicht offen"):
+        apply_proposal_revision(original, ProposalRevisionDelta(
+            answered_question="Andere?", changes={"title":"x"}))
+
+    with pytest.raises(ValidationError):
+        OutputTokenRetry(system_prompt="x", parameters={"messages": []}, change_fields=["title"])
+
+    invalid=original.model_copy(update={"id":"other","version":2})
+    with pytest.raises(ValueError,match="Revisionsidentität"):
+        validate_revision_successor(original,invalid)
+
+    class Logged(FakeCompleter):
+        class Log:
+            def __init__(self): self.events=[]
+            def event(self,*args,**kwargs): self.events.append((args,kwargs))
+        def __init__(self,values): super().__init__(values); self.logger=self.Log()
+    logged=Logged([{"answered_question":"Titel?","changes":{"title":"Neu"}}])
+    Analyzer(logged,cfg).revise_proposal(original,"Titel?","Neu")
+    assert logged.logger.events[0][0][2] == "proposal_revision_delta_applied"
 
 
 def test_telegram():

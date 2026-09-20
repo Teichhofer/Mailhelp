@@ -10,9 +10,9 @@ from pydantic import BaseModel, ValidationError
 from .adapter import RetryableError
 from .config import LlmRoute, PromptConfig, Topic
 from .models import (AbstractCategories, ActionRoute, EventExtraction,
-                     MailClassification, Proposal, ProposalStatus, Relevance,
+                     MailClassification, Proposal, ProposalRevisionChanges, ProposalRevisionDelta, Relevance,
                      Summary, TaskExtraction, TelegramAnswerInterpretation,
-                     TelegramClarification)
+                     TelegramClarification, apply_proposal_revision)
 from .openrouter import InvalidJson, ProviderResponseInvalid
 
 T = TypeVar("T", bound=BaseModel)
@@ -59,18 +59,11 @@ class Completer(Protocol):
 
 
 def validate_revision_successor(previous: Proposal, candidate: Any) -> Proposal:
-    """Validate both the complete schema and immutable revision identity."""
+    """Compatibility boundary for services returning an already built successor."""
     revised = Proposal.model_validate(candidate)
-    if revised.id != previous.id:
-        raise ValueError("Die Vorschlags-ID darf nicht geändert werden")
-    if revised.source_mail_id != previous.source_mail_id:
-        raise ValueError("Die Ursprungsmail darf nicht geändert werden")
-    if revised.version != previous.version + 1:
-        raise ValueError("Die Vorschlagsversion muss exakt um eins erhöht werden")
-    expected = (ProposalStatus.NEEDS_CLARIFICATION if revised.open_questions
-                else ProposalStatus.PENDING_CONFIRMATION)
-    if revised.status != expected:
-        raise ValueError("Der Vorschlagsstatus widerspricht den offenen Fragen")
+    if (revised.id, revised.source_mail_id, revised.version) != (
+            previous.id, previous.source_mail_id, previous.version + 1):
+        raise ValueError("Ungültige Revisionsidentität")
     return revised
 
 
@@ -94,7 +87,8 @@ class Analyzer:
         self.schema_repair_retries = validation_retries if schema_repair_retries is None else schema_repair_retries
 
     def _classified_run(self, step: str, payload: dict[str, Any],
-                        validator: Callable[[Any], T]) -> tuple[str, T]:
+                        validator: Callable[[Any], T], *, schema: type[BaseModel] | None = None,
+                        token_retry_payload: dict[str, Any] | None = None) -> tuple[str, T]:
         """Run one flat, classified retry state machine."""
         routes, prompt, configured_provider_retries = self.prompts.resolved_routes(step)
         same_route_retries = (configured_provider_retries if self.provider_retries is None
@@ -106,6 +100,7 @@ class Analyzer:
         validation_error: Exception | None = None
         route_index = 0
         route_failures = 0
+        token_retry_used = False
         # One correlation groups the logical stage; every network call receives
         # its own attempt/call ID, which is the persistent call reference.
         correlation_id = str(uuid.uuid4())
@@ -133,8 +128,26 @@ class Analyzer:
                     retry_type=retry_type, retry_number=retry_number,
                     provider_preferences=route.provider_preferences.model_dump(exclude_none=True),
                     correlation_id=correlation_id,
+                    response_schema=(schema or None),
+                    supports_json_schema=route.supports_json_schema,
+                    revision_route=("token_limit_retry" if token_retry_used else "initial_revision")
+                    if step == "proposal_revision" else "standard",
                 )
             except (ProviderResponseInvalid, RetryableError) as exc:
+                if (isinstance(exc, ProviderResponseInvalid)
+                        and exc.reason == "output_token_limit"
+                        and token_retry_payload is not None and not token_retry_used):
+                    retry = self.prompts.prompts[step].output_token_retry
+                    assert retry is not None
+                    token_retry_used = True
+                    payload = token_retry_payload
+                    prompt = retry.system_prompt
+                    route = route.model_copy(update={"parameters": {
+                        **route.parameters, **retry.parameters}})
+                    routes = [route]
+                    route_index = route_failures = 0
+                    repair = "provider_retry"
+                    continue
                 if route_failures < same_route_retries:
                     route_failures += 1
                     used["provider_retry"] += 1
@@ -180,7 +193,7 @@ class Analyzer:
     def _run(self, step: str, schema: type[T], mail: dict[str, Any],
              extra: dict[str, Any] | None = None) -> tuple[str, T]:
         return self._classified_run(
-            step, {"mail": mail, **(extra or {})}, schema.model_validate
+            step, {"mail": mail, **(extra or {})}, schema.model_validate, schema=schema
         )
 
     def relevance(self, mail: dict[str, Any], topics: list[Topic]) -> tuple[str, Relevance]:
@@ -209,16 +222,41 @@ class Analyzer:
 
     def revise_proposal(self, proposal: Proposal, question: str,
                         authorized_answer: str) -> tuple[str, Proposal]:
-        """Create a fully validated successor from three deliberately separate inputs."""
+        """Request only a closed delta and apply lifecycle fields locally."""
+        if question not in proposal.open_questions:
+            raise ValueError("Die Frage ist im Vorschlag nicht offen")
+        allowed = list(ProposalRevisionChanges.model_fields)
+        context = {name: value for name, value in proposal.model_dump(mode="json").items()
+                   if name in allowed}
         payload = {
-            "validated_proposal": proposal.model_dump(mode="json"),
+            "proposal_fields": context,
             "question": question,
-            "authorized_answer": authorized_answer,
+            "normalized_answer": authorized_answer,
+            "allowed_changes": allowed,
         }
-        return self._classified_run(
+        retry = self.prompts.prompts["proposal_revision"].output_token_retry
+        retry_payload = None if retry is None else {
+            "proposal_fields": {key: context[key] for key in retry.change_fields if key in context},
+            "question": question, "normalized_answer": authorized_answer,
+            "allowed_changes": retry.change_fields,
+        }
+        def validate_delta(raw: Any) -> ProposalRevisionDelta:
+            delta = ProposalRevisionDelta.model_validate(raw)
+            if delta.answered_question != question:
+                raise ValueError("Das Delta beantwortet nicht die angeforderte Frage")
+            return delta
+
+        call_id, delta = self._classified_run(
             "proposal_revision", payload,
-            lambda raw: validate_revision_successor(proposal, raw),
+            validate_delta, schema=ProposalRevisionDelta,
+            token_retry_payload=retry_payload,
         )
+        recorder = getattr(self.client, "logger", None)
+        if recorder is not None:
+            recorder.event("INFO", "analysis", "proposal_revision_delta_applied",
+                           proposal_id=proposal.id, previous_version=proposal.version,
+                           new_version=proposal.version + 1)
+        return call_id, apply_proposal_revision(proposal, delta)
 
     def interpret_telegram_answer(self, proposal: Proposal, question: str,
                                   authorized_answer: str) -> tuple[str, TelegramAnswerInterpretation]:
