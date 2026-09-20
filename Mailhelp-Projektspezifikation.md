@@ -388,6 +388,25 @@ beziehungsweise eine mit dem Terminmodell nicht abbildbare Terminart voraus.
 
 ## 8. Telegram-Interaktion und externe Einträge
 
+Der fachliche Klärungszustand einer Vorschlagsversion ist vom flüchtigen aktiven
+Telegram-Dialog getrennt. Er enthält Mail- und Vorschlags-ID, Version, die konkrete
+Frage sowie die geschlossenen Zustände `question_status` (`open|answered`),
+`answer_status` (`pending|valid|invalid`) und `proposal_revision_status`
+(`pending|retry_required|completed`). Als Antwortwert darf ausschließlich das
+erfolgreich validierte und normalisierte Ergebnis der Telegram-Interpretation
+persistiert werden, niemals der unvalidierte Freitext.
+
+Bei einer nutzbaren Antwort speichert Mailhelp den beantworteten Klärungszustand
+absturzsicher vor dem Revisionsaufruf und entfernt anschließend die Frage aus dem
+aktiven Dialog. Fehler des Providers, ein `output_token_limit`, ungültiges JSON
+oder ein Schemafehler setzen ausschließlich `proposal_revision_status` auf
+`retry_required`; Frage, Antwortstatus und normalisierte Antwort bleiben erhalten.
+Ein Folgelauf wiederholt solche Revisionen ohne neue Benutzereingabe aus dem
+persistierten normalisierten Wert. Ein Neustart zwischen Antwortspeicherung und
+Revision lässt die Frage deshalb beantwortet, und ein späteres „Ok“ wird nicht als
+Antwort auf diese alte Frage interpretiert. Bereits veröffentlichte Nachfolgeversionen
+schließen einen nach einem Absturz noch ausstehenden Klärungszustand idempotent ab.
+
 - Telegram verwendet Long Polling; ein öffentlicher Webhook ist nicht vorgesehen.
 - Telegram-Updates, Nachrichten, Callback-Queries und Schreibantworten werden vor
   jeder Verwendung mit Transport-Schemata geprüft. Von Mailhelp verwendete

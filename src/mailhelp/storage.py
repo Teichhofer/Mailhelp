@@ -81,6 +81,16 @@ class JsonStore:
         # earlier summary delivery without recording the conversion on disk.
         mail_state = model.__name__ == "MailState"
         migrated = mail_state and value.get("schema_version") in {6, 7, 8}
+        clarification = model.__name__ == "ProposalClarificationState"
+        if clarification and value.get("schema_version") == 1:
+            # Schema 1 already named the trust-boundary value explicitly.  In
+            # particular, never infer it from a legacy raw Telegram field.
+            value.setdefault("normalized_answer", None)
+            value.setdefault("answer_status", "valid" if value["normalized_answer"] else "pending")
+            value.setdefault("question_status", "answered" if value["normalized_answer"] else "open")
+            value.setdefault("proposal_revision_status", "pending")
+            value["schema_version"] = 2
+            migrated = True
         if mail_state and value.get("schema_version") == 6:
             old_notification = value["steps"].pop("notification", "pending")
             value["steps"]["summary_notification"] = old_notification
