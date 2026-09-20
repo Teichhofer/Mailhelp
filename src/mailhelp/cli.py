@@ -13,6 +13,18 @@ CLEAR_CONFIRMATION = "ALLE DATEN LOESCHEN"
 CONFIGURATION_FILES = ("config.yaml", "prompts.yaml", "topics.yaml", "irrelevant_topics.yaml")
 
 
+class _SignalShutdown:
+    """Route signals to a running service or abort the current one-shot mode."""
+
+    def __init__(self) -> None:
+        self.stop = None
+
+    def __call__(self, _signum: int, _frame: object) -> None:
+        if self.stop is None:
+            raise KeyboardInterrupt
+        self.stop()
+
+
 def _default_config_directory() -> Path:
     """Prefer a complete configuration in cwd, then an editable checkout root."""
     working_directory = Path.cwd()
@@ -71,6 +83,15 @@ def clear_runtime_data(settings: Settings, log_directory: Path | None = None) ->
 
 
 def main() -> int:
+    """Run the CLI and turn Ctrl+C into a quiet, consistent process exit."""
+    try:
+        return _main()
+    except KeyboardInterrupt:
+        print("\nBeenden angefordert.")
+        return 130
+
+
+def _main() -> int:
     parser = argparse.ArgumentParser(description="Mailhelp E-Mail-Assistent")
     parser.add_argument(
         "--config-directory", type=Path, default=_default_config_directory(),
@@ -107,7 +128,11 @@ def main() -> int:
         "--yes", action="store_true",
         help="Bestätigungsabfrage für --clear überspringen",
     )
-    args = parser.parse_args(); settings, secrets, topics, irrelevant_topics, prompts, fingerprint = load_all(args.config_directory)
+    args = parser.parse_args()
+    shutdown = _SignalShutdown()
+    signal.signal(signal.SIGINT, shutdown)
+    signal.signal(signal.SIGTERM, shutdown)
+    settings, secrets, topics, irrelevant_topics, prompts, fingerprint = load_all(args.config_directory)
     if args.yes and not args.clear:
         parser.error("--yes ist nur zusammen mit --clear zulässig")
     if args.show_imap_credentials and not args.check_access:
@@ -160,8 +185,6 @@ def main() -> int:
                 parallel_llm_calls=settings.learning.parallel_llm_calls,
             ).run(args.learn)
             return 0
-        def stop(_signum: int, _frame: object) -> None: application.stop()
-        signal.signal(signal.SIGINT, stop)
-        signal.signal(signal.SIGTERM, stop)
+        shutdown.stop = application.stop
         application.run(max_mails=args.max_mails)
     return 0

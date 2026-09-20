@@ -365,7 +365,9 @@ UIDVALIDITY-Wechsel verwirft nur die Bereiche des betroffenen Ordners und löst
 eine konfigurierte historische Zeitgrenze in der neuen UID-Namenswelt erneut
 auf. Er erscheint als eigenes strukturiertes Ereignis `uidvalidity_changed`. SIGINT und
 SIGTERM fordern ein kontrolliertes Ende an; Netzwerkclients und die
-Einzelinstanz-Sperre werden auch bei Fehlern geschlossen. Unmittelbar vor dem
+Einzelinstanz-Sperre werden auch bei Fehlern geschlossen. `Strg+C` beendet auch
+die Einmalmodi (`--check`, `--check-access`, `--learn` und `--clear`) kontrolliert
+mit Exit-Code 130 und ohne Python-Traceback. Unmittelbar vor dem
 Beenden sendet der Bot in den konfigurierten Telegram-Chat eine Laufzusammenfassung
 mit der Gesamtzahl der bearbeiteten sowie der erfolgreich abgeschlossenen,
 wartenden und fehlgeschlagenen Verarbeitungsversuche. Die Zusammenfassung wird

@@ -7,6 +7,9 @@ der neuen UID-Generation vor jedem Nachrichteninhaltsabruf erneut ermittelt und
 zusammen mit ihr gespeichert (ohne Grenze beginnt der Ordner bei UID 1). SIGINT und SIGTERM
 setzen dasselbe Stop-Ereignis. Beim Verlassen werden IMAP, alle HTTP-Clients und
 die Datensperre garantiert freigegeben.
+In den Einmalmodi `--check`, `--check-access`, `--learn` und `--clear` bricht
+SIGINT die laufende Operation kontrolliert ohne Python-Traceback ab; der
+Prozess meldet den signalbedingten Abbruch mit Exit-Code 130.
 
 Der optionale CLI-Parameter `--max-mails N` führt genau einen Abrufdurchlauf aus,
 bearbeitet dabei ordnerübergreifend höchstens `N` Mails einschließlich fälliger
