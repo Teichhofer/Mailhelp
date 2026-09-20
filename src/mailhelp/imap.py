@@ -81,7 +81,7 @@ class ImapReader:
                     "IMAP_USERNAME/IMAP_PASSWORD überschreiben die .env-Datei"
                 ) from None
         except BaseException:
-            self.connection.logout()
+            self.close()
             raise
 
     def check_access(self, folders: list[str]) -> None:
@@ -198,4 +198,11 @@ class ImapReader:
         return result
 
     def close(self) -> None:
-        self.connection.logout()
+        """Log out without turning an already broken transport into a run failure."""
+        try:
+            self.connection.logout()
+        except (imaplib.IMAP4.abort, OSError) as exc:
+            # LOGOUT is only best-effort once TLS/the socket has already failed.
+            # In particular, do not mask a successful run (or an exception from
+            # construction) with imaplib's follow-up ``socket error`` abort.
+            self.logger.event("WARNING", "imap", "logout_failed", error=exc)

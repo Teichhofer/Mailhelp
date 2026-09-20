@@ -270,6 +270,39 @@ def test_imap():
     assert isinstance(error.value.__context__, imaplib.IMAP4.error)
 
 
+def test_imap_logout_ignores_broken_transport_without_masking_original_error():
+    class BrokenLogout(FakeImap):
+        def logout(self):
+            raise imaplib.IMAP4.abort("socket error: TLS connection already broken")
+
+    class Logger:
+        def __init__(self): self.events=[]
+        def event(self, level, module, event, **fields):
+            self.events.append((level, module, event, fields))
+
+    logger = Logger()
+    reader = ImapReader("h", 1, "u", "p", factory=BrokenLogout, logger=logger)
+    reader.close()
+    assert len(logger.events) == 1
+    level, module, event, fields = logger.events[0]
+    assert (level, module, event) == ("WARNING", "imap", "logout_failed")
+    assert str(fields["error"]) == "socket error: TLS connection already broken"
+    assert isinstance(logger.events[0][3]["error"], imaplib.IMAP4.abort)
+
+    failed = BrokenLogout()
+    failed.login = lambda *_args: (_ for _ in ()).throw(RuntimeError("login failed"))
+    with pytest.raises(RuntimeError, match="login failed"):
+        ImapReader("h", 1, "u", "p", factory=lambda *_a, **_k: failed,
+                   logger=logger)
+
+
+def test_imap_logout_does_not_hide_programming_errors():
+    reader = ImapReader("h", 1, "u", "p", factory=FakeImap)
+    reader.connection.logout = lambda: (_ for _ in ()).throw(RuntimeError("bug"))
+    with pytest.raises(RuntimeError, match="bug"):
+        reader.close()
+
+
 def test_imap_fetch_is_batched_and_reports_progress():
     class ManyImap(FakeImap):
         def uid(self, action, *args):
