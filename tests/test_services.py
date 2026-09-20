@@ -258,7 +258,8 @@ def test_raw_extraction_prompts_are_separate_and_injection_resistant():
     assert 'nicht allein deshalb als "non_binding" oder "unsupported"' in event
     assert '"unsupported" nur für' in event
     assert "Terminarten, die sich mit den geforderten Feldern nicht abbilden lassen" in event
-    assert prompts["event_extraction"]["parameters"]["max_tokens"] > config["defaults"]["parameters"]["max_tokens"]
+    for stage in ("action_router", "task_extraction", "event_extraction"):
+        assert prompts[stage]["parameters"]["max_tokens"] == 10_000
 
 
 def test_learning_stages_have_reasoning_output_budgets():

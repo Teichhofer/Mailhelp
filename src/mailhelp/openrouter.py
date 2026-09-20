@@ -149,6 +149,13 @@ class OpenRouterClient:
             text = data.choices[0].message.content
             metadata.update(provider=data.provider, finish_reason=data.choices[0].finish_reason,
                             content_present=True, content_length=len(text))
+            token_usage = raw.get("usage") if isinstance(raw.get("usage"), dict) else None
+            self.logger.llm_event(
+                "token_usage_recorded", parameters=parameters,
+                prompt_fingerprint=fingerprint, attempt=attempt,
+                token_usage=token_usage, token_usage_available=token_usage is not None,
+                **metadata, **correlation,
+            )
             try: content = json.loads(text)
             except json.JSONDecodeError as exc:
                 self._log_attempt("invalid_json", metadata, **correlation)
@@ -158,7 +165,7 @@ class OpenRouterClient:
                 self._observations[call_id] = metadata
             self.logger.llm_event("response_received", response=raw, parameters=parameters,
                                   prompt_fingerprint=fingerprint, duration_ms=round((time.perf_counter() - started) * 1000, 3),
-                                  status=response.status_code, attempt=attempt, token_usage=raw.get("usage"),
+                                  status=response.status_code, attempt=attempt, token_usage=token_usage,
                                   reported_cost=raw.get("cost", raw.get("usage", {}).get("cost") if isinstance(raw.get("usage"), dict) else None),
                                   **metadata, **correlation)
             return call_id, content

@@ -131,20 +131,35 @@ def test_rotation_backup_limit_retention_and_restart(tmp_path):
 
 
 def test_openrouter_correlated_response_raw_switch_and_error(tmp_path):
-    good = {"id": "call", "choices": [{"message": {"content": "{}"}}], "usage": {"total_tokens": 4, "cost": 0.2}}
+    good = {"id": "call", "choices": [{"message": {"content": "{}"}}], "usage": {"prompt_tokens": 3, "completion_tokens": 1, "total_tokens": 4, "cost": 0.2}}
     logger = JsonlLogger(tmp_path / "raw", True, True)
     client = OpenRouterClient("known", 1, 0, 10, httpx.MockTransport(lambda request: httpx.Response(200, json=good, request=request)), logger=logger)
     call_id, _ = client.complete("model", {"temperature": 0}, "system", {"internal_id": "mail", "proposal_id": "proposal"})
     client.close()
     rows = [json.loads(line) for line in logger.llm.read_text().splitlines()]
-    assert [row["event"] for row in rows] == ["request_started", "response_received"]
+    assert [row["event"] for row in rows] == ["request_started", "token_usage_recorded", "response_received"]
     assert all(row["call_id"] == call_id and row["mail_id"] == "mail" and row["proposal_id"] == "proposal" for row in rows)
-    assert rows[1]["token_usage"]["total_tokens"] == 4 and rows[1]["reported_cost"] == .2
+    assert rows[1]["token_usage"] == good["usage"] and rows[1]["token_usage_available"] is True
+    assert rows[2]["token_usage"]["total_tokens"] == 4 and rows[2]["reported_cost"] == .2
     assert rows[0]["request"]["messages"] == [
         {"role": "system", "content": "system"},
         {"role": "user", "content": '{"internal_id": "mail", "proposal_id": "proposal"}'},
     ]
-    assert rows[1]["response"] == good
+    assert rows[2]["response"] == good
+
+
+def test_openrouter_logs_unavailable_token_usage_per_call(tmp_path):
+    response = {"id": "call", "choices": [{"message": {"content": "{}"}}]}
+    logger = JsonlLogger(tmp_path)
+    client = OpenRouterClient("known", 1, 0, 10, httpx.MockTransport(
+        lambda request: httpx.Response(200, json=response, request=request)), logger=logger)
+    call_id, _ = client.complete("model", {}, "system", {}, stage="action_router")
+    client.close()
+
+    usage = next(row for row in map(json.loads, logger.llm.read_text().splitlines())
+                 if row["event"] == "token_usage_recorded")
+    assert usage["call_id"] == call_id and usage["stage"] == "action_router"
+    assert usage["token_usage"] is None and usage["token_usage_available"] is False
 
     capture = Capture()
     failing = OpenRouterClient("secret", 1, 0, 10, httpx.MockTransport(lambda request: httpx.Response(400, text="token=leak", request=request)), logger=capture)
