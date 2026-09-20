@@ -56,6 +56,15 @@ atomar in `topics.yaml` ergänzt; abgelehnte Kategorien werden atomar in
 `irrelevant_topics.yaml` ergänzt. Der Lernmodus kommuniziert nicht über Telegram
 und führt keine externen Schreibaktionen aus.
 
+Der Lernlauf ergänzt außerdem atomar die lesbare Zustandsdatei
+`irrelevant-senders.json` um normalisierte Absenderadressen der Nachrichten, die
+den abgelehnten Kategorien zugeordnet wurden. Die Datei unterstützt zusätzlich
+manuell pflegbare vollständige Domains. Vor jeder inhaltlichen Relevanzprüfung im
+Regel- und Lernbetrieb wird der RFC-5322-Absender deterministisch gegen exakte
+Adressen und Domains geprüft. Ein Treffer beendet die Relevanzprüfung als
+irrelevant, ohne Mailinhalt an das LLM zu senden. Die Liste ist je Test- bzw.
+Produktiv-Zustandsnamensraum getrennt und gehört zum Umfang von `--clear`.
+
 Der administrative Einmalbefehl `--clear` entfernt nach einer exakten,
 interaktiven Sicherheitsbestätigung beide Zustandsnamensräume (`test` und
 `production`) und den vollständigen Inhalt des wirksamen Logverzeichnisses.

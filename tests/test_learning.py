@@ -14,9 +14,11 @@ from mailhelp.models import AbstractCategories, LearnedCategory, MailClassificat
 from mailhelp.analysis import Analyzer as RealAnalyzer, LlmProviderResponseInvalid
 
 
-def raw_mail(subject: str) -> bytes:
+def raw_mail(subject: str, sender: str | None = None) -> bytes:
     message = EmailMessage()
     message["Subject"] = subject
+    if sender is not None:
+        message["From"] = sender
     message.set_content("Synthetischer Inhalt")
     return message.as_bytes()
 
@@ -62,7 +64,7 @@ def topic(identifier="bestand"):
 
 def test_learning_fetches_batches_prompts_and_saves_only_accepted(tmp_path):
     stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
-    mails = [FetchedMail("INBOX", 1, uid, raw_mail(str(uid)), received_at=stamp)
+    mails = [FetchedMail("INBOX", 1, uid, raw_mail(str(uid), "Shop <offers@example.test>"), received_at=stamp)
              for uid in (3, 2)]
     imap = Imap([[mails[0]], [mails[1]]])
     categories = [
@@ -90,6 +92,77 @@ def test_learning_fetches_batches_prompts_and_saves_only_accepted(tmp_path):
     assert any("Bitte mit j" in line for line in output)
     assert all("\x1b" not in line for line in output)
 
+
+def test_learning_sender_prefilter_skips_before_relevance(tmp_path):
+    from mailhelp.models import IrrelevantSenders
+    from mailhelp.storage import JsonStore
+
+    analyzer = Analyzer([])
+    mail = FetchedMail("INBOX", 1, 1, raw_mail("sale", "Sender <ad@blocked.test>"))
+    with JsonStore(tmp_path / "state") as store:
+        store.save("irrelevant-senders", IrrelevantSenders(
+            domains=["blocked.test"]
+        ).model_dump())
+        mode = LearningMode(
+            Imap([[mail]]), analyzer, ["INBOX"], 1000, [topic()], tmp_path / "topics.yaml",
+            [], tmp_path / "irrelevant_topics.yaml", store, output_fn=lambda _line: None,
+        )
+        assert mode.run(1) == 0
+    assert analyzer.relevance_topics == []
+
+
+def test_learning_records_sender_of_rejected_individual_topic(tmp_path):
+    from mailhelp.storage import JsonStore
+
+    analyzer = Analyzer([LearnedCategory(name="Einzel", description="Einzelbeschreibung")])
+    mail = FetchedMail("INBOX", 1, 1, raw_mail("sale", "Shop <offer@example.test>"))
+    with JsonStore(tmp_path / "state") as store:
+        mode = LearningMode(
+            Imap([[mail]]), analyzer, ["INBOX"], 1000, [], tmp_path / "topics.yaml",
+            [], tmp_path / "irrelevant_topics.yaml", store,
+            input_fn=lambda _prompt: "nein", output_fn=lambda _line: None,
+        )
+        assert mode.run(1) == 0
+        assert store.load("irrelevant-senders")["addresses"] == ["offer@example.test"]
+
+        unchanged = LearningMode(
+            Imap([[FetchedMail("INBOX", 1, 2, raw_mail("sale"))]]), analyzer,
+            ["INBOX"], 1000, [], tmp_path / "topics.yaml", [],
+            tmp_path / "irrelevant_topics.yaml", store,
+            input_fn=lambda _prompt: "nein", output_fn=lambda _line: None,
+        )
+        assert unchanged.run(1) == 0
+        assert store.load("irrelevant-senders")["addresses"] == ["offer@example.test"]
+
+
+def test_learning_maps_abstract_rejection_and_contains_mapping_failures(tmp_path):
+    from mailhelp.storage import JsonStore
+
+    mails = [FetchedMail("INBOX", 1, uid, raw_mail(str(uid), f"s{uid}@example.test"))
+             for uid in (1, 2, 3)]
+
+    class MappingAnalyzer(Analyzer):
+        def classify_for_learning(self, mail):
+            if mail["headers"]["subject"] == "1":
+                raise RuntimeError("bad mail")
+            return super().classify_for_learning(mail)
+
+        def relevance(self, mail, topics):
+            if mail["headers"]["subject"] == "3":
+                raise RuntimeError("mapping unavailable")
+            return "mapping", Relevance(
+                decision="relevant", topic_ids=[topics[0].id], reason="mapped"
+            )
+
+    analyzer = MappingAnalyzer([LearnedCategory(name="Abstrakt", description="Werbung")])
+    with JsonStore(tmp_path / "state") as store:
+        mode = LearningMode(
+            Imap([mails]), analyzer, ["INBOX"], 1000, [], tmp_path / "topics.yaml",
+            [], tmp_path / "irrelevant_topics.yaml", store,
+            input_fn=lambda _prompt: "nein", output_fn=lambda _line: None,
+        )
+        assert mode.run(3) == 0
+        assert store.load("irrelevant-senders")["addresses"] == ["s2@example.test"]
 
 def test_learning_empty_mailbox_and_all_rejected_do_not_write(tmp_path):
     path = tmp_path / "topics.yaml"

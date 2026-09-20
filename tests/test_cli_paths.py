@@ -115,7 +115,7 @@ def test_cli_forwards_mail_limit_and_rejects_non_positive_values(monkeypatch):
 
 
 def test_cli_runs_terminal_learning_mode(monkeypatch):
-    application = SimpleNamespace(imap="imap", analyzer="analyzer")
+    application = SimpleNamespace(imap="imap", analyzer="analyzer", store="store")
     settings = SimpleNamespace(
         imap=SimpleNamespace(folders=["INBOX"]), limits="limits", timezone="Europe/Berlin",
         learning=SimpleNamespace(parallel_llm_calls=7))
@@ -142,7 +142,7 @@ def test_cli_runs_terminal_learning_mode(monkeypatch):
     assert main() == 0
     assert captured == [(('imap', 'analyzer', ['INBOX'], 'limits', ['topic'],
                            Path('cfg/topics.yaml'), ['irrelevant'],
-                           Path('cfg/irrelevant_topics.yaml')),
+                           Path('cfg/irrelevant_topics.yaml'), 'store'),
                           {'timezone': 'Europe/Berlin', 'parallel_llm_calls': 7}), 3]
 
 
@@ -166,7 +166,7 @@ def test_ctrl_c_exits_cleanly_in_learning_mode(monkeypatch, capsys):
 
     @contextmanager
     def builder(*_args, **_kwargs):
-        yield SimpleNamespace(imap="imap", analyzer="analyzer")
+            yield SimpleNamespace(imap="imap", analyzer="analyzer", store="store")
 
     class InterruptedLearning:
         def __init__(self, *_args, **_kwargs):

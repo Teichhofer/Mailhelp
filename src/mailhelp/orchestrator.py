@@ -20,12 +20,13 @@ from .action_normalization import MailDateContext
 from .proposal_builder import ProposalBuilder
 from .imap import FetchedMail
 from .mime import MimeLimitExceeded, extract_display_headers, prepare
-from .models import (DisplayHeaders, DuplicateDecision, DuplicateIndex, DuplicateIndexEntry, MailState, ProcessingError, ProcessingErrorCode, ProcessingStage,
+from .models import (DisplayHeaders, DuplicateDecision, DuplicateIndex, DuplicateIndexEntry, IrrelevantSenders, MailState, ProcessingError, ProcessingErrorCode, ProcessingStage,
                      Proposal, Relevance, RelevanceDialog, RelevanceDialogStatus,
                      ProposalNotification, ValidationIssue)
 from .storage import JsonStore
 from .openrouter import RateLimitExceeded
 from .logging import EventLogger, NullLogger
+from .sender_filter import is_irrelevant_sender
 
 
 class Notifier(Protocol):
@@ -275,12 +276,22 @@ class Orchestrator:
                 return ProcessingResult(ProcessingOutcome.COMPLETED, state.model_dump(mode="json"))
             stage = ProcessingStage.RELEVANCE
             if state.steps.relevance == "pending":
-                call, relevance = self.analyzer.relevance(state.mail, self.topics)
-                state.relevance = relevance
-                state.llm_call_ids.append(call)
+                blocked = self._load_model(
+                    "irrelevant-senders", IrrelevantSenders, IrrelevantSenders()
+                )
+                assert isinstance(blocked, IrrelevantSenders)
+                if is_irrelevant_sender(state.mail["headers"].get("from", ""), blocked):
+                    state.relevance = Relevance(
+                        decision="irrelevant", reason="Absender-Vorfilter"
+                    )
+                    call = None
+                else:
+                    call, state.relevance = self.analyzer.relevance(state.mail, self.topics)
+                    state.llm_call_ids.append(call)
                 state.steps.relevance = "completed"
                 self._save(name, state)
-                self.logger.event("INFO", "orchestrator", "relevance_completed", mail_id=state.id, call_id=call)
+                self.logger.event("INFO", "orchestrator", "relevance_completed", mail_id=state.id,
+                                  call_id=call, sender_prefilter=call is None)
             assert state.relevance is not None
             if state.relevance.decision == "irrelevant":
                 state.steps.summary = "skipped"

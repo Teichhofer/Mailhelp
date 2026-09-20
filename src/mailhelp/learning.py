@@ -15,7 +15,9 @@ from .analysis import Analyzer
 from .config import IrrelevantTopicsConfig, Topic, TopicsConfig
 from .imap import FetchedMail, ImapReader
 from .mime import prepare
-from .models import LearnedCategory, MailClassification
+from .models import IrrelevantSenders, LearnedCategory, MailClassification
+from .sender_filter import add_irrelevant_senders, is_irrelevant_sender
+from .storage import JsonStore
 
 
 def _safe_terminal(value: str) -> str:
@@ -68,6 +70,7 @@ class LearningMode:
     def __init__(self, imap: ImapReader, analyzer: Analyzer, folders: list[str],
                  limits: object, topics: list[Topic], topics_path: Path,
                  irrelevant_topics: list[Topic], irrelevant_topics_path: Path,
+                 store: JsonStore | None = None,
                  *, input_fn: Callable[[str], str] = input,
                  output_fn: Callable[[str], None] = print,
                  timezone: str = "UTC", parallel_llm_calls: int = 4):
@@ -75,6 +78,7 @@ class LearningMode:
         self.limits, self.topics, self.topics_path = limits, topics, topics_path
         self.irrelevant_topics = irrelevant_topics
         self.irrelevant_topics_path = irrelevant_topics_path
+        self.store = store
         self.input, self.output, self.timezone = input_fn, output_fn, timezone
         self.parallel_llm_calls = parallel_llm_calls
 
@@ -97,26 +101,32 @@ class LearningMode:
         self.output(f"{len(mails)} von {count} angeforderten Mails wurden abgerufen.")
         known_topics = [*self.topics, *self.irrelevant_topics]
 
-        def classify(mail: FetchedMail) -> tuple[MailClassification | None, bool]:
+        blocked = (self.store.load_model("irrelevant-senders", IrrelevantSenders,
+                                        IrrelevantSenders()) if self.store else IrrelevantSenders())
+        assert isinstance(blocked, IrrelevantSenders)
+
+        def classify(mail: FetchedMail) -> tuple[MailClassification | None, dict[str, object] | None, bool]:
             try:
                 payload = prepare(mail.raw, self.limits, mail.received_at, self.timezone)
+                if is_irrelevant_sender(payload["headers"].get("from", ""), blocked):
+                    return None, None, False
                 if self._known(payload, known_topics):
-                    return None, False
+                    return None, None, False
                 _call_id, classification = self.analyzer.classify_for_learning(payload)
-                return classification, False
+                return classification, payload, False
             except Exception:
                 # A malformed mail or an exhausted provider retry budget belongs to
                 # this independent item. Do not discard successful sibling results.
                 # Exception text may contain untrusted data and is not printed.
-                return None, True
+                return None, None, True
 
         # Each mail forms an independent first-stage pipeline. ``map`` preserves
         # mailbox order while relevance checks and classifications run concurrently.
         with ThreadPoolExecutor(max_workers=self.parallel_llm_calls) as executor:
             results = list(executor.map(classify, mails))
-        classifications = [classification for classification, _failed in results
+        classifications = [classification for classification, _payload, _failed in results
                            if classification is not None]
-        failures = sum(failed for _classification, failed in results)
+        failures = sum(failed for _classification, _payload, failed in results)
         if failures:
             self.output(
                 f"{failures} Mail(s) konnten nicht ausgewertet werden und wurden übersprungen."
@@ -156,6 +166,26 @@ class LearningMode:
                 self.irrelevant_topics_path, self.irrelevant_topics, rejected,
                 allow_empty=True,
             )
+            if self.store is not None:
+                rejected_names = {item.name.casefold() for item in rejected}
+                rejected_topics = self.irrelevant_topics[-len(rejected):]
+                headers: list[object] = []
+                for classification, payload, _failed in results:
+                    if classification is None or payload is None:
+                        continue
+                    directly_matched = any(
+                        category.name.casefold() in rejected_names
+                        for category in classification.categories
+                    )
+                    try:
+                        matched = directly_matched or self._known(payload, rejected_topics)
+                    except Exception:
+                        matched = directly_matched
+                    if matched:
+                        headers.append(payload["headers"].get("from", ""))
+                updated = add_irrelevant_senders(blocked, headers)
+                if updated != blocked:
+                    self.store.save("irrelevant-senders", updated.model_dump(mode="json"))
         self.output(
             f"{len(accepted)} relevante und {len(rejected)} irrelevante neue Kategorien wurden gespeichert."
         )
