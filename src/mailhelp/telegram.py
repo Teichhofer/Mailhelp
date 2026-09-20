@@ -415,6 +415,18 @@ class TelegramClient:
             return
         self._validate_write(response, "answerCallbackQuery")
 
+    def remove_inline_keyboard(self, chat_id: int, message_id: int) -> None:
+        """Remove every inline button from an already-sent message."""
+        payload = {"chat_id": chat_id, "message_id": message_id, "reply_markup": {"inline_keyboard": []}}
+
+        def request() -> httpx.Response:
+            response = self.client.post("/editMessageReplyMarkup", json=payload)
+            self._raise_for_status(response, "editMessageReplyMarkup")
+            return response
+
+        response = uncertain_write(request)
+        self._validate_write(response, "editMessageReplyMarkup")
+
     @staticmethod
     def _is_expired_callback(response: httpx.Response) -> bool:
         description = TelegramClient._description(response)
@@ -488,6 +500,7 @@ class TelegramTransport(Protocol):
     def poll(self, offset: int) -> list[dict[str, Any]]: ...
     def send(self, chat_id: int, text: str, reply_markup: dict[str, Any] | None = None) -> None: ...
     def answer_callback(self, callback_id: str, text: str) -> None: ...
+    def remove_inline_keyboard(self, chat_id: int, message_id: int) -> None: ...
 
 class ProposalRevisionService(Protocol):
     def interpret_telegram_answer(self, proposal: Proposal, question: str, authorized_answer: str) -> tuple[str, Any]: ...
@@ -725,26 +738,39 @@ class TelegramDialogController:
     def _handle(self, update: TelegramUpdate) -> None:
         if update.callback_query is not None:
             callback = update.callback_query
+            # Stop Telegram's loading indicator before potentially slow state,
+            # LLM, or external-service work begins.
+            self.telegram.answer_callback(callback.id, "Aktion wird verarbeitet …")
             if not self._authorized(callback.sender.id, callback.message.chat.id):
                 self.logger.event("WARNING", "telegram.dialog", "unauthorized_update",
                                   update_id=update.update_id, update_kind="callback_query",
                                   user_id=callback.sender.id, chat_id=callback.message.chat.id)
-                self.telegram.answer_callback(callback.id, "Nicht autorisierte Aktion.")
-                return
-            if callback.data.startswith("relevance:"):
-                try:
-                    relevance = RelevanceDecision.parse(callback.data)
-                except (ValueError, ValidationError):
-                    self.telegram.answer_callback(callback.id, "Relevanzantwort ist syntaktisch ungültig.")
-                    return
-                self._decide_relevance(callback.id, relevance, update.update_id + 1)
+                self.telegram.send(self.chat_id, "❌ Nicht autorisierte Aktion.")
                 return
             try:
-                decision = Decision.parse(callback.data, self.store)
-            except (ValueError, ValidationError):
-                self.telegram.answer_callback(callback.id, "Aktion ist syntaktisch ungültig.")
+                if callback.data.startswith("relevance:"):
+                    try:
+                        relevance = RelevanceDecision.parse(callback.data)
+                    except (ValueError, ValidationError):
+                        self.telegram.send(self.chat_id, "❌ Relevanzantwort ist syntaktisch ungültig; bitte erneut versuchen.")
+                        return
+                    confirmation = self._decide_relevance(relevance, update.update_id + 1)
+                else:
+                    try:
+                        decision = Decision.parse(callback.data, self.store)
+                    except (ValueError, ValidationError):
+                        self.telegram.send(self.chat_id, "❌ Aktion ist syntaktisch ungültig; bitte erneut versuchen.")
+                        return
+                    confirmation = self._decide(decision)
+            except Exception as exc:
+                self.logger.event("ERROR", "telegram.dialog", "callback_processing_failed",
+                                  update_id=update.update_id, error=exc,
+                                  stacktrace=traceback.format_exc())
+                self.telegram.send(self.chat_id, "❌ Aktion konnte nicht verarbeitet werden. Bitte erneut versuchen.")
                 return
-            self._decide(callback.id, decision)
+            assert confirmation is not None
+            self.telegram.remove_inline_keyboard(callback.message.chat.id, callback.message.message_id)
+            self.telegram.send(self.chat_id, confirmation)
             return
         message = update.message
         assert message is not None
@@ -760,7 +786,7 @@ class TelegramDialogController:
                 self.telegram.send(self.chat_id, "Freitext ist nicht eindeutig zuordenbar; bitte die Schaltfläche der gewünschten Mail verwenden.")
                 return
             dialog = dialogs[0]
-            self._decide_relevance(None, RelevanceDecision(mail_id=dialog.mail_id, version=dialog.version, decision=normalized), update.update_id + 1)
+            self._decide_relevance(RelevanceDecision(mail_id=dialog.mail_id, version=dialog.version, decision=normalized), update.update_id + 1, notify=True)
             return
         self._answer(message.text)
 
@@ -778,53 +804,47 @@ class TelegramDialogController:
     def _durable_dialog_offset(self) -> int:
         return max((item.telegram_offset or 0 for item in self._all_relevance_dialogs()), default=0)
 
-    def _decide_relevance(self, callback_id: str | None, decision: RelevanceDecision, offset: int) -> None:
+    def _decide_relevance(self, decision: RelevanceDecision, offset: int, notify: bool = False) -> str | None:
         try:
             if self.relevance_handler is None:
                 raise ValueError("Relevanzverarbeitung ist nicht verfügbar")
             state = self.relevance_handler.resolve_relevance(decision.mail_id, decision.version, decision.decision, offset)
         except ValueError as exc:
-            if callback_id is None:
+            if notify:
                 self.telegram.send(self.chat_id, str(exc))
-            else:
-                self.telegram.answer_callback(callback_id, str(exc))
-            return
-        text = f"Mail als {decision.decision} eingestuft."
-        if callback_id is None:
-            self.telegram.send(self.chat_id, text)
-        else:
-            self.telegram.answer_callback(callback_id, text)
+                return None
+            raise
         if decision.decision == "relevant":
             self.relevance_handler.resume_mail(state)
+        text = f"✅ E-Mail wurde als {decision.decision} eingestuft."
+        if notify:
+            self.telegram.send(self.chat_id, text)
+            return None
+        return text
 
     def _authorized(self, user_id: int, chat_id: int) -> bool:
         return (user_id, chat_id) == (self.user_id, self.chat_id)
 
-    def _decide(self, callback_id: str, decision: Decision) -> None:
+    def _decide(self, decision: Decision) -> str:
         proposal = self.store.load_model(self._proposal_name(decision.mail_id, decision.proposal_id), Proposal)
         if proposal is None:
-            self.telegram.answer_callback(callback_id, "Vorschlag wurde nicht gefunden.")
-            return
+            raise ValueError("Vorschlag wurde nicht gefunden")
         assert isinstance(proposal, Proposal)
         if proposal.version != decision.version or proposal.status not in {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}:
-            self.telegram.answer_callback(callback_id, "Diese Schaltfläche ist veraltet; der Status blieb unverändert.")
-            return
+            raise ValueError("Diese Schaltfläche ist veraltet")
         if decision.action == DecisionAction.EDIT:
             changed = proposal.model_copy(update={"status": ProposalStatus.NEEDS_CLARIFICATION})
             self.persist(changed)
             self.store.save("telegram-dialog", TelegramDialogState(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version).model_dump())
             prompt = proposal.open_questions[0] if proposal.open_questions else "Welche Änderung soll übernommen werden?"
-            self.telegram.answer_callback(callback_id, "Änderung ausgewählt.")
             self.telegram.send(self.chat_id, prompt)
-            return
+            return "✏️ Änderungsmodus gestartet."
         if decision.action in {DecisionAction.CONFIRM, DecisionAction.CONFIRM_DUPLICATE} and proposal.status != ProposalStatus.PENDING_CONFIRMATION:
-            self.telegram.answer_callback(callback_id, "Zuerst müssen die offenen Fragen beantwortet werden.")
-            return
+            raise ValueError("Zuerst müssen die offenen Fragen beantwortet werden")
         duplicates = self._prior_actions(proposal) if decision.action in {
             DecisionAction.CONFIRM, DecisionAction.CONFIRM_DUPLICATE} else []
         if decision.action == DecisionAction.CONFIRM and duplicates:
             previous = duplicates[-1]
-            self.telegram.answer_callback(callback_id, "Diese Aktion wurde bereits angelegt; erneute Freigabe erforderlich.")
             duplicate_decision = decision.model_copy(update={"action": DecisionAction.CONFIRM_DUPLICATE})
             self.telegram.send(self.chat_id, "\n".join([
                 f"Bereits angelegt: {'Aufgabe' if previous.kind == ProposalKind.TASK else 'Termin'} „{previous.title}“.",
@@ -834,19 +854,18 @@ class TelegramDialogController:
                 {"text": "Erneut anlegen", "callback_data": duplicate_decision.encode(self.store)},
                 {"text": "Nicht erneut", "callback_data": decision.model_copy(update={"action": DecisionAction.REJECT}).encode(self.store)},
             ]]})
-            return
+            return "✅ Doppelanlage-Prüfung wurde entgegengenommen."
         if decision.action == DecisionAction.CONFIRM_DUPLICATE and not duplicates:
-            self.telegram.answer_callback(callback_id, "Die Doppelanlage-Bestätigung ist veraltet; es wurde nichts angelegt.")
-            return
+            raise ValueError("Die Doppelanlage-Bestätigung ist veraltet")
         changed = (proposal.model_copy(update={"status": ProposalStatus.REJECTED})
                    if decision.action == DecisionAction.REJECT else
                    apply_decision(proposal, decision.model_copy(update={"action": DecisionAction.CONFIRM}),
                                   self.user_id, self.chat_id, self.user_id, self.chat_id))
         self.persist(changed)
-        response = "Vorschlag bestätigt." if changed.status == ProposalStatus.CONFIRMED else "Vorschlag verworfen."
-        self.telegram.answer_callback(callback_id, response)
         if changed.status == ProposalStatus.CONFIRMED:
             self._execute(changed)
+            return "✅ Vorschlag wurde bestätigt."
+        return "✅ Vorschlag wurde verworfen."
 
     def _writer(self, proposal: Proposal) -> ExternalWriter | None:
         return self.writers.get("todoist" if proposal.kind.value == "task" else "google_calendar")

@@ -60,6 +60,7 @@ class FakeTelegram:
         self.answers = []
         self.updates = []
         self.polls = []
+        self.removed = []
 
     def send(self, chat_id, text, reply_markup=None):
         self.sent.append((chat_id, text, reply_markup))
@@ -70,6 +71,9 @@ class FakeTelegram:
 
     def answer_callback(self, callback_id, text):
         self.answers.append((callback_id, text))
+
+    def remove_inline_keyboard(self, chat_id, message_id):
+        self.removed.append((chat_id, message_id))
 
 
 class FakeWriter:
