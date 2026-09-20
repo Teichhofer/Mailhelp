@@ -7,7 +7,8 @@ from email.message import EmailMessage
 from pydantic import ValidationError
 import yaml
 from mailhelp.analysis import (Analyzer, LlmInvalidJson, LlmProviderResponseInvalid,
-                               JSON_REPAIR_INSTRUCTION, LlmSchemaValidationExceeded,
+                               JSON_REPAIR_INSTRUCTION, SCHEMA_REPAIR_INSTRUCTION,
+                               LlmSchemaValidationExceeded,
                                LlmSchemaValidationFailed)
 from mailhelp.config import TargetSettings, Topic
 from mailhelp.imap import FetchedMail
@@ -93,6 +94,7 @@ def test_analyzer_classifies_retry_payloads_and_call_attempts(failure, repair_ke
         assert JSON_REPAIR_INSTRUCTION not in client.systems[1]
     if repair_key == "previous_validation_error":
         assert "sentences" in client.payloads[1][repair_key]
+        assert client.systems[1].endswith(SCHEMA_REPAIR_INSTRUCTION)
 
 
 @pytest.mark.parametrize(("failure", "error_type", "limit_name"), [
@@ -329,6 +331,17 @@ def test_analyzer_revises_proposal_with_separate_inputs_and_retries():
     assert capturing.payload["validated_proposal"]["id"]=="p1"
     assert capturing.payload["question"]=="Konkrete Frage"
     assert capturing.payload["authorized_answer"]=="Autorisierte Antwort"
+
+
+def test_proposal_revision_prompt_covers_date_schema_and_output_budget():
+    step = yaml.safe_load(Path("prompts.yaml").read_text(encoding="utf-8"))["prompts"]["proposal_revision"]
+
+    assert step["parameters"] == {"temperature": 0.0, "max_tokens": 4000}
+    prompt = step["system_prompt"]
+    assert "reines Kalenderdatum" in prompt
+    assert "all_day=true" in prompt
+    assert "ISO-8601-Zeitpunkte mit eindeutigem UTC-Offset" in prompt
+    assert "fehlende Angabe als konkrete open_question" in prompt
 
 
 def test_telegram_answer_interpretation_and_clarification_use_separate_fields():

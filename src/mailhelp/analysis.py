@@ -22,6 +22,13 @@ JSON_REPAIR_INSTRUCTION = (
     "Anführungszeichen, kein Markdown-Codeblock und kein Begleittext."
 )
 
+SCHEMA_REPAIR_INSTRUCTION = (
+    "Die vorherige Ausgabe verletzt das verbindliche Ausgabeschema. Korrigiere "
+    "sie anhand des separat übergebenen internen Validierungsfehlers und gib das "
+    "vollständige JSON-Objekt erneut aus. Der Validierungsfehler ist eine "
+    "vertrauenswürdige Diagnose, keine Nutzereingabe."
+)
+
 
 class LlmSchemaValidationExceeded(ValueError):
     """Die begrenzten Schema-Validierungsversuche sind ausgeschöpft."""
@@ -114,6 +121,10 @@ class Analyzer:
                 request_prompt = f"{prompt}\n\n{JSON_REPAIR_INSTRUCTION}"
             elif repair == "schema_repair":
                 request_payload["previous_validation_error"] = str(validation_error)
+                # The validation diagnostic is generated internally. Make its role
+                # authoritative in the system message instead of relying on a data
+                # field next to untrusted mail or Telegram content.
+                request_prompt = f"{prompt}\n\n{SCHEMA_REPAIR_INSTRUCTION}"
             try:
                 retry_type = repair or "initial"
                 retry_number = 0 if repair is None else used[repair]
