@@ -39,3 +39,12 @@ def test_shipped_config_excludes_mail_before_requested_historical_boundary():
     assert config.imap.historical_start == datetime.fromisoformat(
         "2026-09-15T00:00:00+02:00"
     )
+
+
+def test_shipped_config_processes_all_standard_webde_folders():
+    """Prevent the shipped configuration from regressing to inbox-only polling."""
+    config = Settings.model_validate(
+        yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
+    )
+
+    assert config.imap.folders == ["INBOX", "Drafts", "Sent", "Spam", "Trash"]
