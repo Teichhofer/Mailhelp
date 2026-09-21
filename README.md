@@ -474,6 +474,10 @@ für den Lernmodus: ältere Kandidaten werden nicht gelernt; `null` lässt die
 historische Einschränkung entfallen. Bei deaktiviertem `global_newest_first`
 bleibt die Ordnerreihenfolge maßgeblich und der bereits begrenzte Inhaltsabruf
 holt pro Ordner neueste UIDs, bis das gemeinsame Kontingent ausgeschöpft ist.
+Kann der Server einen konfigurierten Ordner nicht auswählen (beispielsweise weil
+sein IMAP-Name beim Anbieter abweicht), meldet und überspringt der Lernmodus nur
+diesen Ordner. Lesbare Ordner werden weiterhin verarbeitet; mit
+`mailhelp --check-access` lassen sich die konfigurierten Namen gezielt prüfen.
 Jede Mail wird zuerst in einer
 gemeinsamen LLM-Anfrage gegen die aktivierten Einträge aus `topics.yaml` und
 `irrelevant_topics.yaml` geprüft. Bereits

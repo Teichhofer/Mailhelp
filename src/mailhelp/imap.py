@@ -41,6 +41,14 @@ class UIDValidityChanged(RuntimeError):
         self.current = current
 
 
+class FolderNotReadable(RuntimeError):
+    """Identify a configured mailbox that the server cannot select read-only."""
+
+    def __init__(self, folder: str):
+        super().__init__(f"IMAP-Ordner nicht lesbar: {folder}")
+        self.folder = folder
+
+
 def _fetched_mail(folder: str, uidvalidity: int, uid: int, data: object,
                   mailbox: str) -> FetchedMail:
     """Validate the deliberately combined FETCH response without trusting its shape."""
@@ -100,7 +108,7 @@ class ImapReader:
         for folder in folders:
             status, _ = self.connection.select(folder, readonly=True)
             if status != "OK":
-                raise RuntimeError(f"IMAP-Ordner nicht lesbar: {folder}")
+                raise FolderNotReadable(folder)
 
     def fetch_since(self, folder: str, after_uid: int = 0,
                     expected_uidvalidity: int | None = None,
@@ -121,7 +129,7 @@ class ImapReader:
     def fetch_uid(self, folder: str, uid: int, expected_uidvalidity: int) -> FetchedMail:
         """Load one known message without setting ``\\Seen``."""
         status, _data = self.connection.select(folder, readonly=True)
-        if status != "OK": raise RuntimeError(f"IMAP-Ordner nicht lesbar: {folder}")
+        if status != "OK": raise FolderNotReadable(folder)
         status, validity = self.connection.response("UIDVALIDITY")
         if status != "UIDVALIDITY" or not validity: raise RuntimeError("IMAP lieferte keine UIDVALIDITY")
         uidvalidity = int(validity[0]); self.last_uidvalidity = uidvalidity
@@ -140,7 +148,7 @@ class ImapReader:
         """Discover a bounded, body-free newest window for mailbox-wide ordering."""
         status, _data = self.connection.select(folder, readonly=True)
         if status != "OK":
-            raise RuntimeError(f"IMAP-Ordner nicht lesbar: {folder}")
+            raise FolderNotReadable(folder)
         status, validity = self.connection.response("UIDVALIDITY")
         if status != "UIDVALIDITY" or not validity:
             raise RuntimeError("IMAP lieferte keine UIDVALIDITY")
@@ -212,7 +220,7 @@ class ImapReader:
     def determine_start_uid(self, folder: str, start: datetime) -> int:
         """Resolve an absolute historical boundary once, without changing flags."""
         status, _ = self.connection.select(folder, readonly=True)
-        if status != "OK": raise RuntimeError(f"IMAP-Ordner nicht lesbar: {folder}")
+        if status != "OK": raise FolderNotReadable(folder)
         status, validity = self.connection.response("UIDVALIDITY")
         if status != "UIDVALIDITY" or not validity: raise RuntimeError("IMAP lieferte keine UIDVALIDITY")
         self.last_uidvalidity = int(validity[0])
@@ -255,7 +263,7 @@ class ImapReader:
                      max_count: int | None,
                      completed_uid_ranges: tuple[tuple[int, int], ...] = ()) -> list[FetchedMail]:
         status, data = self.connection.select(folder, readonly=True)
-        if status != "OK": raise RuntimeError(f"IMAP-Ordner nicht lesbar: {folder}")
+        if status != "OK": raise FolderNotReadable(folder)
         status, validity = self.connection.response("UIDVALIDITY")
         if status != "UIDVALIDITY" or not validity: raise RuntimeError("IMAP lieferte keine UIDVALIDITY")
         uidvalidity = int(validity[0]); self.last_uidvalidity = uidvalidity
