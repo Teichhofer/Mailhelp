@@ -56,7 +56,10 @@ limits:
   max_html_tags: 20000
   max_html_depth: 100
   max_llm_payload_bytes: 500000
-  llm_calls_per_minute: 100
+  # Eine Mail benötigt im Normalfall zwei LLM-Aufrufe (Relevanz und Analyse).
+  # Der Höchstwert verhindert deshalb, dass --max-mails 100 bereits nach etwa
+  # 50 Mails am lokalen Minutenbudget angehalten wird.
+  llm_calls_per_minute: 600
 retries:
   provider_retry: 1
   json_repair: 1

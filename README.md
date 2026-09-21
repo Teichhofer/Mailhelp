@@ -186,6 +186,13 @@ Die Frist läuft ab `updated_at`; die Bereinigung läuft einmal pro Polling-Zykl
 und ist bei Wiederholung wirkungsgleich.
 
 Nur Transportfehler sowie HTTP 408, 425, 429, 500, 502, 503 und 504 werden bei lesenden beziehungsweise idempotenten Zugriffen begrenzt wiederholt. `Retry-After` wird bis zur konfigurierten Backoff-Obergrenze berücksichtigt. Schreibzugriffe werden vorab persistiert und bei Transportfehlern oder vorübergehenden HTTP-Antworten als unklar behandelt. Ein unklarer Schreibzugriff wird bei Neustarts nur abgeglichen und niemals automatisch erneut geschrieben; dafür wäre eine ausdrückliche Betreiberentscheidung erforderlich. Das OpenRouter-Minutenbudget wird im Datenverzeichnis persistiert, bleibt deshalb über Neustarts erhalten und stellt betroffene Mails bis zum nächsten zulässigen Zeitpunkt zurück.
+Eine reguläre Mail benötigt typischerweise mindestens zwei LLM-Aufrufe (Relevanz
+und anschließende Analyse). Deshalb verwendet die mitgelieferte Konfiguration
+`limits.llm_calls_per_minute: 600`: Der frühere Wert `100` stellte einen Lauf mit
+`--max-mails 100` schon nach ungefähr 50 vollständig analysierten Mails zurück,
+obwohl das Mail-Kontingent noch nicht ausgeschöpft war. Ein niedrigerer Wert ist
+weiterhin zulässig, begrenzt aber die innerhalb einer Minute vollständig
+analysierbare Mailanzahl unabhängig von `--max-mails`.
 
 ### Fehlerdiagnose im Testlauf
 
