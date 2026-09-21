@@ -142,6 +142,13 @@ noch verbleibende Budget für diesen Abruf `imap.batch_size`. Damit kann ein
 begrenzter Testlauf ausdrücklich auch mehr als die regulären 25 Nachrichten
 verarbeiten; zugleich werden keine vollständigen Nachrichten geladen, die der
 aktuelle Lauf anschließend gar nicht verarbeitet.
+Mehrere Einmalläufe setzen den persistenten Backlog fort: Zwei unmittelbar
+aufeinanderfolgende Aufrufe mit `--max-mails 100` wählen zuerst die neuesten 100
+und danach die nächsten 100 noch offenen Nachrichten. Neu eingetroffene Mails
+haben dabei weiterhin Vorrang. Falls ein Folgelauf keine älteren Nachrichten
+lädt, sind deshalb insbesondere die konfigurierte `historical_start`-Grenze,
+noch fällige Wiederaufnahmen innerhalb desselben Mailkontingents und
+`poll_failed`-/`mail_failed`-Ereignisse im Anwendungslog zu prüfen.
 
 Mit `imap.global_newest_first: true` werden alle unter `imap.folders`
 konfigurierten Ordner als ein gemeinsames Postfach behandelt. Mailhelp ermittelt

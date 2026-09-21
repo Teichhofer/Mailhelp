@@ -102,6 +102,46 @@ def test_global_mailbox_order_and_max_mail_budget(tmp_path):
     ] == [(2, 3)]
 
 
+def test_repeated_global_max_mail_runs_continue_with_next_newest_batch(tmp_path):
+    """A persisted newest-first batch must not hide the older backlog."""
+    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+
+    class GlobalBacklogImap:
+        account_id = "0" * 24
+        last_uidvalidity = 7
+
+        def __init__(self):
+            self.fetches = []
+
+        def discover_since(self, folder, start, expected, ranges):
+            assert (folder, start, expected) == ("INBOX", 0, 7)
+            return [
+                MailCandidate(folder, 7, uid, self.account_id,
+                              stamp + timedelta(seconds=uid))
+                for uid in range(1, 206)
+                if not any(first <= uid <= last for first, last in ranges)
+            ]
+
+        def fetch_uid(self, folder, uid, validity):
+            self.fetches.append(uid)
+            return FetchedMail(folder, validity, uid, b"x", self.account_id, stamp)
+
+    key = _checkpoint_name("0" * 24, "INBOX")
+    store = Store({key: {"uidvalidity": 7, "uid": 0, "start_uid": 0}})
+    reader = GlobalBacklogImap()
+
+    first = app(tmp_path, reader, Telegram([]), Orch(), store=store,
+                global_newest_first=True)
+    assert len(first._poll_imap(max_mails=100)) == 100
+    assert reader.fetches == list(range(205, 105, -1))
+
+    restarted = app(tmp_path, reader, Telegram([]), Orch(), store=store,
+                    global_newest_first=True)
+    assert len(restarted._poll_imap(max_mails=100)) == 100
+    assert reader.fetches[100:] == list(range(105, 5, -1))
+    assert store.values[key]["completed_uid_ranges"] == [(6, 205)]
+
+
 def test_global_mailbox_checkpoint_failures_restarts_and_dialog(tmp_path):
     stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
     key = _checkpoint_name("0" * 24, "INBOX")

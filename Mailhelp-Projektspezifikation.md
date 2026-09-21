@@ -20,6 +20,10 @@ Wiederaufnahmen, pollt Telegram einmal und beendet den Prozess. Das verbleibende
 Kontingent ersetzt bei diesem Abruf die reguläre IMAP-Batchgröße, sodass `N` auch
 größer als deren Standardwert 25 sein kann. `N` ist eine positive Ganzzahl; nicht
 ausgeschöpftes Kontingent löst keinen weiteren Abruf aus.
+Ein nachfolgender Einmallauf verwendet die persistierten abgeschlossenen
+UID-Bereiche und wählt aus dem verbleibenden Backlog wiederum die neuesten `N`
+Nachrichten; neue Nachrichten erhalten Vorrang, ohne ältere offene Nachrichten
+zu überspringen.
 Bleibt dabei Arbeit auf Eingabe stehen, erklärt die abschließende
 Telegram-Zusammenfassung, dass nach dem einmaligen Abruf eingehende Antworten
 erst beim nächsten Start verarbeitet werden; der unbegrenzte Dauerbetrieb hat
