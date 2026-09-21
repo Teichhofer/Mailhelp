@@ -514,7 +514,11 @@ werden, etwa `newsletter.example`. Exakte Adressen und Domains werden bereits vo
 der inhaltlichen LLM-Relevanzprüfung verglichen; passende Nachrichten gelten ohne
 Übermittlung ihres Inhalts an das LLM als irrelevant. Alle Einträge sind
 kleingeschrieben, sortiert und eindeutig. `--clear` entfernt nur Laufzeit- und
-Logdaten, nicht diese gemeinsame Filterkonfiguration.
+Logdaten, nicht diese gemeinsame Filterkonfiguration. Ist der optionale
+Absenderfilter syntaktisch beschädigt oder schemawidrig, isoliert der Lernlauf
+ihn als `.corrupt` beziehungsweise `.invalid`, meldet dies ohne seinen Inhalt
+auszugeben und setzt mit einem leeren Filter fort. Bei einer späteren Ablehnung
+wird die JSON-Datei atomar neu angelegt.
 
 Fehler werden im Mail-Zustand ausschließlich mit sicherem Fehlercode, betroffener
 Verarbeitungsstufe, Zeitstempel und optionaler Wiederholbarkeit gespeichert. Eine vor

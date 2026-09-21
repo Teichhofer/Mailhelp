@@ -69,7 +69,11 @@ Regel- und Lernbetrieb wird der RFC-5322-Absender deterministisch gegen exakte
 Adressen und Domains geprüft. Ein Treffer beendet die Relevanzprüfung als
 irrelevant, ohne Mailinhalt an das LLM zu senden. Die Liste wird von Test- und
 Produktivmodus gemeinsam verwendet und bleibt bei `--clear` als explizit
-gepflegte Filterkonfiguration erhalten.
+gepflegte Filterkonfiguration erhalten. Ein syntaktisch beschädigter oder
+schemawidriger Absenderfilter wird im Lernmodus sichtbar isoliert; da er lediglich
+eine optionale Vorfilterung darstellt, läuft die bereits abgerufene Lernmenge mit
+einem leeren, validierten Filter weiter. Eine nachfolgende Ablehnung legt die
+Filterdatei wieder atomar an.
 
 Der administrative Einmalbefehl `--clear` entfernt nach einer exakten,
 interaktiven Sicherheitsbestätigung beide Zustandsnamensräume (`test` und
