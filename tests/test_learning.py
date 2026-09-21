@@ -245,6 +245,34 @@ def test_learning_sender_prefilter_skips_before_relevance(tmp_path):
     assert analyzer.relevance_topics == []
 
 
+@pytest.mark.parametrize(
+    ("content", "quarantine_suffix"),
+    [("{", ".corrupt"), ('{"schema_version": 1, "addresses": [3]}', ".invalid")],
+)
+def test_learning_recovers_from_corrupt_optional_sender_filter(
+        tmp_path, content, quarantine_suffix):
+    from mailhelp.storage import JsonStore
+
+    analyzer = Analyzer([LearnedCategory(name="Einzel", description="Neue Kategorie")])
+    output = []
+    state = tmp_path / "state"
+    state.mkdir()
+    (state / "irrelevant-senders.json").write_text(content, encoding="utf-8")
+    mail = FetchedMail("INBOX", 1, 1, raw_mail("sale", "Shop <offer@example.test>"))
+
+    with JsonStore(state) as store:
+        mode = LearningMode(
+            Imap([[mail]]), analyzer, ["INBOX"], 1000, [], tmp_path / "topics.yaml",
+            [], tmp_path / "irrelevant_topics.yaml", store,
+            input_fn=lambda _prompt: "nein", output_fn=output.append,
+        )
+        assert mode.run(1) == 0
+        assert store.load("irrelevant-senders")["addresses"] == ["offer@example.test"]
+
+    assert (state / f"irrelevant-senders{quarantine_suffix}").exists()
+    assert any("Absenderfilter wurde isoliert" in line for line in output)
+
+
 def test_learning_records_sender_of_rejected_individual_topic(tmp_path):
     from mailhelp.storage import JsonStore
 

@@ -18,7 +18,7 @@ from .imap import FetchedMail, FolderNotReadable, ImapReader
 from .mime import prepare
 from .models import IrrelevantSenders, LearnedCategory, MailClassification
 from .sender_filter import add_irrelevant_senders, is_irrelevant_sender
-from .storage import JsonStore
+from .storage import CorruptState, JsonStore
 
 
 def _safe_terminal(value: str) -> str:
@@ -138,8 +138,19 @@ class LearningMode:
         self.output(f"{len(mails)} von {count} angeforderten Mails wurden abgerufen.")
         known_topics = [*self.topics, *self.irrelevant_topics]
 
-        blocked = (self.store.load_model("irrelevant-senders", IrrelevantSenders,
-                                        IrrelevantSenders()) if self.store else IrrelevantSenders())
+        try:
+            blocked = (self.store.load_model("irrelevant-senders", IrrelevantSenders,
+                                            IrrelevantSenders())
+                       if self.store else IrrelevantSenders())
+        except CorruptState:
+            # JsonStore has already quarantined the optional filter. It must not
+            # discard a successfully fetched learning batch; a later rejection
+            # will recreate the file atomically.
+            self.output(
+                "Der beschädigte Absenderfilter wurde isoliert; "
+                "der Lernlauf wird ohne seine bisherigen Einträge fortgesetzt."
+            )
+            blocked = IrrelevantSenders()
         assert isinstance(blocked, IrrelevantSenders)
 
         def classify(mail: FetchedMail) -> tuple[MailClassification | None, dict[str, object] | None, bool]:
