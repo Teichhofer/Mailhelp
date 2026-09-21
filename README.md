@@ -479,6 +479,8 @@ Zu Beginn lädt der Lernmodus die vollständige Liste der auswählbaren IMAP-Ord
 Noch nicht unter `imap.folders` aufgeführte Ordner werden atomar in `config.yaml`
 ergänzt und bereits im selben Lernlauf berücksichtigt. Nicht auswählbare
 Containerordner mit dem IMAP-Attribut `\\Noselect` werden nicht eingetragen.
+Ordnernamen mit Leerzeichen, Anführungszeichen oder Nicht-ASCII-Zeichen werden
+für `SELECT`/`EXAMINE` IMAP-konform maskiert und in Modified UTF-7 übertragen.
 `--learn N` bleibt eine Obergrenze und keine Zusage, genau `N` Nachrichten zu
 laden.
 Kann der Server einen konfigurierten Ordner nicht auswählen (beispielsweise weil

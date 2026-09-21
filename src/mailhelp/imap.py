@@ -85,6 +85,40 @@ def _decode_mailbox_name(value: bytes) -> str:
     return name
 
 
+def _encode_mailbox_name(value: str) -> bytes:
+    """Encode a Unicode mailbox name using IMAP's modified UTF-7."""
+    result = bytearray()
+    non_ascii: list[str] = []
+
+    def flush() -> None:
+        if not non_ascii:
+            return
+        encoded = base64.b64encode("".join(non_ascii).encode("utf-16-be"))
+        result.extend(b"&" + encoded.rstrip(b"=").replace(b"/", b",") + b"-")
+        non_ascii.clear()
+
+    for character in value:
+        codepoint = ord(character)
+        if 0x20 <= codepoint <= 0x7e:
+            flush()
+            result.extend(b"&-" if character == "&" else character.encode("ascii"))
+        else:
+            non_ascii.append(character)
+    flush()
+    return bytes(result)
+
+
+def _mailbox_argument(folder: str) -> str | bytes:
+    """Return an atom or safely quoted wire value for an IMAP mailbox command."""
+    if not folder or any(ord(character) < 32 or ord(character) == 127
+                         for character in folder):
+        raise ValueError("IMAP-Ordnername enthält ungültige Steuerzeichen")
+    if folder.isascii() and not any(character in ' (){%*"\\]' for character in folder):
+        return folder
+    encoded = _encode_mailbox_name(folder)
+    return b'"' + encoded.replace(b"\\", b"\\\\").replace(b'"', b'\\"') + b'"'
+
+
 def _list_mailbox_name(item: object) -> str | None:
     """Extract a selectable mailbox from one conventional LIST response."""
     if not isinstance(item, bytes):
@@ -165,7 +199,7 @@ class ImapReader:
     def check_access(self, folders: list[str]) -> None:
         """Verify read-only access without searching for or fetching messages."""
         for folder in folders:
-            status, _ = self.connection.select(folder, readonly=True)
+            status, _ = self.connection.select(_mailbox_argument(folder), readonly=True)
             if status != "OK":
                 raise FolderNotReadable(folder)
 
@@ -198,7 +232,7 @@ class ImapReader:
 
     def fetch_uid(self, folder: str, uid: int, expected_uidvalidity: int) -> FetchedMail:
         """Load one known message without setting ``\\Seen``."""
-        status, _data = self.connection.select(folder, readonly=True)
+        status, _data = self.connection.select(_mailbox_argument(folder), readonly=True)
         if status != "OK": raise FolderNotReadable(folder)
         status, validity = self.connection.response("UIDVALIDITY")
         if status != "UIDVALIDITY" or not validity: raise RuntimeError("IMAP lieferte keine UIDVALIDITY")
@@ -216,7 +250,7 @@ class ImapReader:
                        max_count: int | None = None,
                        historical_start: datetime | None = None) -> list[MailCandidate]:
         """Discover a bounded, body-free newest window for mailbox-wide ordering."""
-        status, _data = self.connection.select(folder, readonly=True)
+        status, _data = self.connection.select(_mailbox_argument(folder), readonly=True)
         if status != "OK":
             raise FolderNotReadable(folder)
         status, validity = self.connection.response("UIDVALIDITY")
@@ -291,7 +325,7 @@ class ImapReader:
 
     def determine_start_uid(self, folder: str, start: datetime) -> int:
         """Resolve an absolute historical boundary once, without changing flags."""
-        status, _ = self.connection.select(folder, readonly=True)
+        status, _ = self.connection.select(_mailbox_argument(folder), readonly=True)
         if status != "OK": raise FolderNotReadable(folder)
         status, validity = self.connection.response("UIDVALIDITY")
         if status != "UIDVALIDITY" or not validity: raise RuntimeError("IMAP lieferte keine UIDVALIDITY")
@@ -334,7 +368,7 @@ class ImapReader:
                      expected_uidvalidity: int | None,
                      max_count: int | None,
                      completed_uid_ranges: tuple[tuple[int, int], ...] = ()) -> list[FetchedMail]:
-        status, data = self.connection.select(folder, readonly=True)
+        status, data = self.connection.select(_mailbox_argument(folder), readonly=True)
         if status != "OK": raise FolderNotReadable(folder)
         status, validity = self.connection.response("UIDVALIDITY")
         if status != "UIDVALIDITY" or not validity: raise RuntimeError("IMAP lieferte keine UIDVALIDITY")
