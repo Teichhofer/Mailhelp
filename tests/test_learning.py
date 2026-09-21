@@ -9,7 +9,8 @@ import yaml
 
 from mailhelp.config import Topic
 from mailhelp.imap import FetchedMail, FolderNotReadable, MailCandidate
-from mailhelp.learning import LearningMode, _safe_terminal, _topic_id, save_topics
+from mailhelp.learning import (LearningMode, _safe_terminal, _topic_id,
+                               add_discovered_folders, save_topics)
 from mailhelp.models import AbstractCategories, LearnedCategory, MailClassification, Relevance
 from mailhelp.analysis import Analyzer as RealAnalyzer, LlmProviderResponseInvalid
 
@@ -60,6 +61,71 @@ class Analyzer:
 
 def topic(identifier="bestand"):
     return Topic(id=identifier, name="Bestand", enabled=True, description="Schon da")
+
+
+def test_learning_discovers_ignores_history_and_persists_new_folders(tmp_path):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text("imap:\n  folders: [INBOX]\nmarker: kept\n", encoding="utf-8")
+    calls = []
+    output = []
+
+    class DiscoveringImap:
+        def list_folders(self):
+            return ["INBOX", "Archive", "Gesendet"]
+        def discover_since(self, folder, **kwargs):
+            calls.append((folder, kwargs))
+            return []
+
+    mode = LearningMode(
+        DiscoveringImap(), Analyzer([]), ["INBOX"], 1000, [],
+        tmp_path / "topics.yaml", [], tmp_path / "irrelevant_topics.yaml",
+        output_fn=output.append, global_newest_first=True, config_path=config_path,
+    )
+
+    assert mode.run(10) == 0
+    assert calls == [
+        (folder, {"max_count": 10, "historical_start": None})
+        for folder in ("INBOX", "Archive", "Gesendet")
+    ]
+    document = yaml.safe_load(config_path.read_text(encoding="utf-8"))
+    assert document == {
+        "imap": {"folders": ["INBOX", "Archive", "Gesendet"]}, "marker": "kept"
+    }
+    assert output[0] == (
+        'Neue IMAP-Ordner wurden in config.yaml eingetragen: "Archive", "Gesendet"'
+    )
+
+
+def test_learning_folder_config_update_validates_and_avoids_unneeded_write(tmp_path):
+    path = tmp_path / "config.yaml"
+    path.write_text("imap:\n  folders: [INBOX]\n", encoding="utf-8")
+    original = path.read_text(encoding="utf-8")
+    assert add_discovered_folders(path, ["INBOX"], ["INBOX"]) == ["INBOX"]
+    assert path.read_text(encoding="utf-8") == original
+
+    class UnchangedImap:
+        def list_folders(self): return ["INBOX"]
+        def fetch_since(self, *_args): return []
+
+    output = []
+    mode = LearningMode(
+        UnchangedImap(), Analyzer([]), ["INBOX"], 1000, [],
+        tmp_path / "topics.yaml", [], tmp_path / "irrelevant_topics.yaml",
+        output_fn=output.append, config_path=path,
+    )
+    assert mode.run(1) == 0
+    assert output == [
+        "0 von 1 angeforderten Mails wurden abgerufen.",
+        "Keine unbekannten Mails zum Lernen gefunden; "
+        "Themendateien wurden nicht geändert.",
+    ]
+
+    path.write_text("invalid: true\n", encoding="utf-8")
+    with pytest.raises(RuntimeError, match="IMAP-Abschnitt"):
+        add_discovered_folders(path, ["INBOX"], ["Archive"])
+    with pytest.raises(RuntimeError, match="mehr als 100"):
+        add_discovered_folders(path, [f"Folder {number}" for number in range(100)],
+                               ["One too many"])
 
 
 def test_learning_fetches_batches_prompts_and_saves_only_accepted(tmp_path):
@@ -143,9 +209,7 @@ def test_learning_skips_unreadable_folders_during_discovery_and_fetch(tmp_path):
     assert any('"Vanished" ist nicht mehr lesbar' in line for line in output)
 
 
-@pytest.mark.parametrize("historical", [False, True])
-def test_folder_ordered_learning_skips_unreadable_folder(tmp_path, historical):
-    boundary = datetime(2026, 1, 1, tzinfo=timezone.utc)
+def test_folder_ordered_learning_skips_unreadable_folder(tmp_path):
     output = []
 
     class PartlyReadable(Imap):
@@ -163,7 +227,7 @@ def test_folder_ordered_learning_skips_unreadable_folder(tmp_path, historical):
     mode = LearningMode(
         imap, Analyzer([]), ["Drafts", "INBOX"], 1000, [],
         tmp_path / "topics.yaml", [], tmp_path / "irrelevant_topics.yaml",
-        output_fn=output.append, historical_start=boundary if historical else None,
+        output_fn=output.append,
     )
 
     assert mode.run(1) == 0
@@ -171,29 +235,8 @@ def test_folder_ordered_learning_skips_unreadable_folder(tmp_path, historical):
     assert imap.calls == [("INBOX", 0, None, 1, ())]
 
 
-def test_folder_ordered_learning_applies_historical_boundary(tmp_path):
-    boundary = datetime(2026, 1, 1, tzinfo=timezone.utc)
-    calls = []
-
-    class HistoricalImap(Imap):
-        def determine_start_uid(self, folder, start):
-            calls.append((folder, start))
-            return 41
-
-    imap = HistoricalImap([[]])
-    mode = LearningMode(
-        imap, Analyzer([]), ["INBOX"], 1000, [], tmp_path / "topics.yaml", [],
-        tmp_path / "irrelevant_topics.yaml", output_fn=lambda _line: None,
-        historical_start=boundary,
-    )
-    assert mode.run(1) == 0
-    assert calls == [("INBOX", boundary)]
-    assert imap.calls == [("INBOX", 41, None, 1, ())]
-
-
 def test_learning_bounds_each_folder_and_orders_ties_deterministically(tmp_path):
     stamp = datetime(2026, 1, 2, tzinfo=timezone.utc)
-    boundary = stamp.replace(hour=1)
     calls = []
     fetched = []
 
@@ -217,10 +260,9 @@ def test_learning_bounds_each_folder_and_orders_ties_deterministically(tmp_path)
         WindowedImap(), Analyzer([]), ["INBOX", "Archive", "Empty"], 1000, [],
         tmp_path / "topics.yaml", [], tmp_path / "irrelevant_topics.yaml",
         output_fn=lambda _line: None, global_newest_first=True,
-        historical_start=boundary,
     )
     assert mode.run(5) == 0
-    assert calls == [(folder, {"max_count": 5, "historical_start": boundary})
+    assert calls == [(folder, {"max_count": 5, "historical_start": None})
                      for folder in ("INBOX", "Archive", "Empty")]
     # Equal times use higher UID first, then configured folder order.  Fewer
     # than N available messages are fetched exactly once and without writes.

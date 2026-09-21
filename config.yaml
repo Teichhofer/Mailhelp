@@ -25,8 +25,8 @@ imap:
   host: imap.web.de
   port: 993
   connection_mode: ssl
-  # Nachrichten mit einem IMAP-Empfangszeitpunkt vor dieser Grenze werden beim
-  # erstmaligen Aufbau des Abrufpunkts nicht verarbeitet (15.09.2026, Berlin).
+  # Nachrichten mit einem IMAP-Empfangszeitpunkt vor dieser Grenze werden im
+  # regulären Abruf nicht verarbeitet; der Lernmodus ignoriert diese Grenze.
   historical_start: "2026-09-15T00:00:00+02:00"
   # Pro Polling-Zyklus werden höchstens so viele Nachrichten geladen und direkt
   # verarbeitet. Das verhindert lange stille Erstabrufe großer Postfächer.

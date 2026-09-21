@@ -2,6 +2,8 @@
 from __future__ import annotations
 import imaplib
 import hashlib
+import base64
+import binascii
 import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
@@ -47,6 +49,63 @@ class FolderNotReadable(RuntimeError):
     def __init__(self, folder: str):
         super().__init__(f"IMAP-Ordner nicht lesbar: {folder}")
         self.folder = folder
+
+
+def _decode_mailbox_name(value: bytes) -> str:
+    """Decode an IMAP LIST mailbox name, including legacy modified UTF-7."""
+    if any(byte > 127 for byte in value):
+        try:
+            return value.decode("utf-8")
+        except UnicodeDecodeError as exc:
+            raise RuntimeError("IMAP-LIST lieferte einen ungültigen Ordnernamen") from exc
+    result: list[str] = []
+    position = 0
+    while position < len(value):
+        marker = value.find(b"&", position)
+        if marker < 0:
+            result.append(value[position:].decode("ascii"))
+            break
+        result.append(value[position:marker].decode("ascii"))
+        end = value.find(b"-", marker)
+        if end < 0:
+            raise RuntimeError("IMAP-LIST lieferte einen ungültigen Ordnernamen")
+        encoded = value[marker + 1:end]
+        if not encoded:
+            result.append("&")
+        else:
+            padded = encoded.replace(b",", b"/") + b"=" * (-len(encoded) % 4)
+            try:
+                result.append(base64.b64decode(padded, validate=True).decode("utf-16-be"))
+            except (binascii.Error, UnicodeDecodeError) as exc:
+                raise RuntimeError("IMAP-LIST lieferte einen ungültigen Ordnernamen") from exc
+        position = end + 1
+    name = "".join(result)
+    if not name.strip() or "\x00" in name or any(ord(character) < 32 for character in name):
+        raise RuntimeError("IMAP-LIST lieferte einen ungültigen Ordnernamen")
+    return name
+
+
+def _list_mailbox_name(item: object) -> str | None:
+    """Extract a selectable mailbox from one conventional LIST response."""
+    if not isinstance(item, bytes):
+        raise RuntimeError("IMAP-LIST-Antwort ist strukturell unbrauchbar")
+    match = re.fullmatch(
+        rb'\(([^)]*)\)\s+(?:NIL|"(?:[^"\\]|\\.)*")\s+(.+)', item
+    )
+    if match is None:
+        raise RuntimeError("IMAP-LIST-Antwort ist strukturell unbrauchbar")
+    if b"\\noselect" in match.group(1).lower().split():
+        return None
+    mailbox = match.group(2)
+    if mailbox.startswith(b'"'):
+        if len(mailbox) < 2 or not mailbox.endswith(b'"'):
+            raise RuntimeError("IMAP-LIST-Antwort ist strukturell unbrauchbar")
+        mailbox = re.sub(rb'\\([\\"])', rb'\1', mailbox[1:-1])
+        if b"\\" in mailbox:
+            raise RuntimeError("IMAP-LIST-Antwort ist strukturell unbrauchbar")
+    elif any(character in mailbox for character in b' (){%*"\\'):
+        raise RuntimeError("IMAP-LIST-Antwort ist strukturell unbrauchbar")
+    return _decode_mailbox_name(mailbox)
 
 
 def _fetched_mail(folder: str, uidvalidity: int, uid: int, data: object,
@@ -109,6 +168,17 @@ class ImapReader:
             status, _ = self.connection.select(folder, readonly=True)
             if status != "OK":
                 raise FolderNotReadable(folder)
+
+    def list_folders(self) -> list[str]:
+        """Return every mailbox advertised by the authenticated IMAP server."""
+        status, data = self.connection.list()
+        if status != "OK":
+            raise RuntimeError("IMAP-Ordnerliste konnte nicht geladen werden")
+        folders = [folder for item in data or []
+                   if (folder := _list_mailbox_name(item)) is not None]
+        if len(folders) != len(set(folders)):
+            raise RuntimeError("IMAP-Ordnerliste enthält doppelte Ordnernamen")
+        return folders
 
     def fetch_since(self, folder: str, after_uid: int = 0,
                     expected_uidvalidity: int | None = None,
@@ -174,7 +244,8 @@ class ImapReader:
         selected = available if max_count is None else available[-max_count:] if max_count else []
         if not selected:
             self.logger.event("INFO", "imap", "messages_discovered", folder=folder,
-                              available_count=len(available), batch_count=0)
+                              available_count=len(available), batch_count=0,
+                              historical_excluded_count=0)
             return []
         # One sequence-set FETCH replaces one request per UID.  Only the newest
         # per-folder window needed for a global N-result can contribute to it.
@@ -214,7 +285,8 @@ class ImapReader:
         if returned_uids != selected_uids:
             raise RuntimeError("IMAP-INTERNALDATE-Antwort leer oder strukturell unbrauchbar")
         self.logger.event("INFO", "imap", "messages_discovered", folder=folder,
-                          available_count=len(available), batch_count=len(candidates))
+                          available_count=len(available), batch_count=len(candidates),
+                          historical_excluded_count=len(selected) - len(candidates))
         return candidates
 
     def determine_start_uid(self, folder: str, start: datetime) -> int:

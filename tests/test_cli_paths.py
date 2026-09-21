@@ -152,7 +152,7 @@ def test_cli_runs_terminal_learning_mode(monkeypatch):
                            Path('cfg/irrelevant_topics.yaml'), 'sender-store'),
                           {'timezone': 'Europe/Berlin', 'parallel_llm_calls': 7,
                            'global_newest_first': False,
-                           'historical_start': None}), 3]
+                           'config_path': Path('cfg/config.yaml')}), 3]
 
 
 def test_signal_shutdown_interrupts_one_shot_modes_and_stops_service():
