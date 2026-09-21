@@ -134,6 +134,7 @@ class Application:
     orchestrator: Orchestrator
     stop_event: Event
     dialog: TelegramDialogController | None = None
+    sender_store: JsonStore | None = None
 
     def check_access(self) -> dict[str, str | None]:
         """Check every external credential and target without processing mail."""
@@ -582,6 +583,7 @@ def build_application(
     with ExitStack() as stack:
         data = _state_directory(settings, base_directory)
         store = stack.enter_context(JsonStore(data))
+        sender_store = JsonStore(base_directory)
         if logger is None or access_diagnostics:
             logger = build_logger(
                 settings, secrets, base_directory,
@@ -638,7 +640,7 @@ def build_application(
             settings.timezone,
             analyzer,
         )
-        orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics, settings.limits.max_mail_bytes, logger, mime_limits=settings.limits, config_fingerprint=fingerprint, targets=settings.targets, user_timezone=settings.timezone)
+        orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics, settings.limits.max_mail_bytes, logger, mime_limits=settings.limits, config_fingerprint=fingerprint, targets=settings.targets, user_timezone=settings.timezone, sender_store=sender_store)
         dialog.relevance_handler = orchestrator
         orchestrator.stop_event = stop_event
-        yield Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar, orchestrator, stop_event, dialog)
+        yield Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar, orchestrator, stop_event, dialog, sender_store)

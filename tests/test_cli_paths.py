@@ -93,7 +93,11 @@ def test_cli_forwards_mail_limit_and_rejects_non_positive_values(monkeypatch):
     logger = CaptureLogger()
     @contextmanager
     def builder(*_args, **kwargs):
-        assert kwargs == {"access_diagnostics": False, "logger": logger}
+        assert kwargs == {
+            "base_directory": Path.cwd(),
+            "access_diagnostics": False,
+            "logger": logger,
+        }
         yield application
     monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], [], None, "fingerprint"))
     monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args, **_kwargs: logger)
@@ -115,7 +119,9 @@ def test_cli_forwards_mail_limit_and_rejects_non_positive_values(monkeypatch):
 
 
 def test_cli_runs_terminal_learning_mode(monkeypatch):
-    application = SimpleNamespace(imap="imap", analyzer="analyzer", store="store")
+    application = SimpleNamespace(
+        imap="imap", analyzer="analyzer", store="store", sender_store="sender-store"
+    )
     settings = SimpleNamespace(
         imap=SimpleNamespace(folders=["INBOX"]), limits="limits", timezone="Europe/Berlin",
         learning=SimpleNamespace(parallel_llm_calls=7))
@@ -142,7 +148,7 @@ def test_cli_runs_terminal_learning_mode(monkeypatch):
     assert main() == 0
     assert captured == [(('imap', 'analyzer', ['INBOX'], 'limits', ['topic'],
                           Path('cfg/topics.yaml'), ['irrelevant'],
-                           Path('cfg/irrelevant_topics.yaml'), 'store'),
+                           Path('cfg/irrelevant_topics.yaml'), 'sender-store'),
                           {'timezone': 'Europe/Berlin', 'parallel_llm_calls': 7,
                            'global_newest_first': False}), 3]
 
@@ -167,7 +173,10 @@ def test_ctrl_c_exits_cleanly_in_learning_mode(monkeypatch, capsys):
 
     @contextmanager
     def builder(*_args, **_kwargs):
-            yield SimpleNamespace(imap="imap", analyzer="analyzer", store="store")
+            yield SimpleNamespace(
+                imap="imap", analyzer="analyzer", store="store",
+                sender_store="sender-store",
+            )
 
     class InterruptedLearning:
         def __init__(self, *_args, **_kwargs):
