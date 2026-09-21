@@ -271,6 +271,32 @@ def test_imap_lists_selectable_folders_and_validates_responses():
     assert _list_mailbox_name(b'(\\Noselect) "/" ignored') is None
 
 
+def test_imap_quotes_and_encodes_mailbox_names_for_select():
+    class RecordingImap(FakeImap):
+        def __init__(self):
+            super().__init__()
+            self.selected = []
+
+        def select(self, folder, readonly):
+            self.selected.append((folder, readonly))
+            return "OK", []
+
+    connection = RecordingImap()
+    reader = ImapReader("h", 1, "u", "p", factory=lambda *_a, **_k: connection)
+
+    reader.check_access(["INBOX", "Christina Immel", 'A "quoted" \\ folder',
+                         "Entwürfe & Ablage"])
+
+    assert connection.selected == [
+        ("INBOX", True),
+        (b'"Christina Immel"', True),
+        (b'"A \\"quoted\\" \\\\ folder"', True),
+        (b'"Entw&APw-rfe &- Ablage"', True),
+    ]
+    with pytest.raises(ValueError, match="Steuerzeichen"):
+        reader.check_access(["bad\nfolder"])
+
+
 def test_imap():
     reader=ImapReader("h", 1, "u", "p", factory=FakeImap); assert reader.fetch_since("INBOX")[0].raw == b"raw"
     assert reader.fetch_since("INBOX", 3, 7)[0].uid == 4
