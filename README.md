@@ -152,8 +152,14 @@ noch fällige Wiederaufnahmen innerhalb desselben Mailkontingents und
 
 Mit `imap.global_newest_first: true` werden alle unter `imap.folders`
 konfigurierten Ordner als ein gemeinsames Postfach behandelt. Mailhelp ermittelt
-dafür zunächst ausschließlich UID und `INTERNALDATE` aller noch offenen
-Nachrichten, sortiert diese Metadaten ordnerübergreifend absteigend und lädt nur
+dafür zunächst pro Ordner nur ein auf das gemeinsame Kontingent begrenztes Fenster
+der höchsten noch offenen UIDs und lädt dessen `INTERNALDATE`-Metadaten mit einem
+einzigen Sequence-Set-`UID FETCH`; bei `N` werden also höchstens `N` Metadatensätze
+je Ordner statt jeder UID des Ordners abgefragt. Die UID-Suche wird, falls
+`historical_start` gesetzt ist, zusätzlich mit `SINCE` serverseitig auf den
+Grenztag (einschließlich eines Sicherheitstags für Zeitzonen) eingegrenzt; der
+sekundengenaue Vergleich erfolgt anschließend lokal. Mailhelp sortiert die so
+begrenzten Metadaten ordnerübergreifend absteigend und lädt nur
 die für den aktuellen Lauf ausgewählten vollständigen Nachrichten. Im
 Dauerbetrieb gilt `imap.batch_size` dann als gemeinsames Kontingent für das ganze
 Postfach; `--max-mails N` und `--learn N` wählen ebenfalls die global neuesten
@@ -458,7 +464,17 @@ Prompts, Themen und Geheimnisse werden nicht gelöscht.
 ### Interaktiver Lernmodus
 
 `mailhelp --learn 20` ruft bis zu 20 der neuesten Mails schreibfrei mit
-`BODY.PEEK[]` aus den konfigurierten Ordnern ab. Jede Mail wird zuerst in einer
+`BODY.PEEK[]` aus den konfigurierten Ordnern ab. Bei aktiviertem
+`global_newest_first` wird dafür je Ordner dasselbe auf 20 Kandidaten begrenzte
+Metadatenfenster wie beim regulären Abruf verwendet, global nach `INTERNALDATE`
+absteigend sortiert und erst danach werden höchstens 20 Mailinhalte geladen.
+Identische Empfangszeitpunkte werden deterministisch durch höhere UID und danach
+durch die konfigurierte Ordnerreihenfolge aufgelöst. `historical_start` gilt auch
+für den Lernmodus: ältere Kandidaten werden nicht gelernt; `null` lässt die
+historische Einschränkung entfallen. Bei deaktiviertem `global_newest_first`
+bleibt die Ordnerreihenfolge maßgeblich und der bereits begrenzte Inhaltsabruf
+holt pro Ordner neueste UIDs, bis das gemeinsame Kontingent ausgeschöpft ist.
+Jede Mail wird zuerst in einer
 gemeinsamen LLM-Anfrage gegen die aktivierten Einträge aus `topics.yaml` und
 `irrelevant_topics.yaml` geprüft. Bereits
 zuordenbare Mails werden übersprungen. Nur Mails, die zu keiner der beiden Listen

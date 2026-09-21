@@ -305,6 +305,74 @@ def test_imap_discovers_body_free_candidates_and_rejects_bad_metadata():
     assert isinstance(error.value.__context__, imaplib.IMAP4.error)
 
 
+def test_imap_discovery_fetches_only_a_bounded_newest_metadata_window():
+    boundary = datetime(2026, 9, 17, 10, 0, tzinfo=timezone.utc)
+
+    class LargeMailbox(FakeImap):
+        def __init__(self):
+            super().__init__()
+            self.requests = []
+
+        def uid(self, action, *args):
+            self.requests.append((action, args))
+            if action == "search":
+                return "OK", [b" ".join(str(uid).encode() for uid in range(1, 10001))]
+            requested = args[0].split(b",")
+            return "OK", [
+                (b'* 1 FETCH (UID ' + token +
+                 b' INTERNALDATE "17-Sep-2026 10:11:12 +0000")', b"")
+                for token in requested
+            ]
+
+    connection = LargeMailbox()
+    reader = ImapReader("h", 1, "u", "p", factory=lambda *_a, **_k: connection)
+    candidates = reader.discover_since(
+        "INBOX", max_count=3, historical_start=boundary
+    )
+    assert [item.uid for item in candidates] == [9998, 9999, 10000]
+    assert connection.requests[0] == (
+        "search", (None, "UID 1:*", "SINCE", "16-Sep-2026")
+    )
+    assert connection.requests[1][1][0] == b"9998,9999,10000"
+    assert len(connection.requests) == 2
+
+    # A zero budget performs no metadata FETCH, while an invalid budget and an
+    # incomplete server response fail explicitly instead of silently misordering.
+    assert reader.discover_since("INBOX", max_count=0) == []
+    with pytest.raises(ValueError, match="nicht negativ"):
+        reader.discover_since("INBOX", max_count=-1)
+    original = connection.uid
+    connection.uid = lambda action, *args: (("OK", [b"1 2"])
+                                             if action == "search" else ("OK", []))
+    with pytest.raises(RuntimeError, match="strukturell"):
+        reader.discover_since("INBOX", max_count=2)
+    connection.uid = original
+
+    def discovery_with(metadata):
+        return lambda action, *args: (("OK", [b"1"])
+                                      if action == "search" else ("OK", metadata))
+
+    for metadata in ([b")"], [b"broken"],
+                     [(b'* FETCH (UID 2 INTERNALDATE '
+                       b'"17-Sep-2026 10:11:12 +0000")', b"")]):
+        connection.uid = discovery_with(metadata)
+        with pytest.raises(RuntimeError, match="strukturell"):
+            reader.discover_since("INBOX", max_count=1)
+
+    duplicate = (b'* FETCH (UID 1 INTERNALDATE '
+                 b'"17-Sep-2026 10:11:12 +0000")', b"")
+    connection.uid = discovery_with([duplicate, duplicate])
+    with pytest.raises(RuntimeError, match="strukturell"):
+        reader.discover_since("INBOX", max_count=1)
+
+    old = (b'* FETCH (UID 1 INTERNALDATE '
+           b'"17-Sep-2026 09:59:59 +0000")', b"")
+    connection.uid = discovery_with([old])
+    assert reader.discover_since(
+        "INBOX", max_count=1, historical_start=boundary
+    ) == []
+
+
 def test_imap_logout_ignores_broken_transport_without_masking_original_error():
     class BrokenLogout(FakeImap):
         def logout(self):
