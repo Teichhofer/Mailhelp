@@ -872,15 +872,19 @@ def test_orchestrator(tmp_path):
         assert state["steps"]=={"preparation":"completed","relevance":"completed","summary":"skipped","summary_notification":"skipped","action_detection":"skipped","action_router":"skipped","task_extraction":"skipped","event_extraction":"skipped","normalization":"skipped","proposal_building":"skipped","proposal_notification":"skipped","completion":"completed"}
     with JsonStore(tmp_path/"blocked") as store:
         from mailhelp.models import IrrelevantSenders
-        store.save("irrelevant-senders", IrrelevantSenders(
+        sender_store = JsonStore(tmp_path / "config")
+        sender_store.save("irrelevant-senders", IrrelevantSenders(
             domains=["example.test"]).model_dump())
         analyzer = AnalyzerStub("relevant")
         blocked_mail = FetchedMail("INBOX", 1, 3, b"From: News <bot@example.test>\nSubject: Sale\n\nBody")
-        state = Orchestrator(analyzer, store, Notify(), 1, [topic], 1000).process(blocked_mail)
+        state = Orchestrator(
+            analyzer, store, Notify(), 1, [topic], 1000, sender_store=sender_store
+        ).process(blocked_mail)
         assert state["relevance"] == {
             "decision": "irrelevant", "topic_ids": [], "reason": "Absender-Vorfilter"
         }
         assert state["llm_call_ids"] == []
+        assert not (store.directory / "irrelevant-senders.json").exists()
     with JsonStore(tmp_path/"c") as store:
         o=Orchestrator(AnalyzerStub("unclear"),store,Notify(),1,[topic],1000)
         state=o.process(mail); assert state.outcome is ProcessingOutcome.WAITING and state["awaiting_relevance"] and state["steps"]["completion"]=="pending"

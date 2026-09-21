@@ -663,6 +663,8 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
         logger=supplied_logger,
     ) as made:
         assert made.todoist and (tmp_path/"data/test/.lock").exists()
+        assert made.sender_store.directory == tmp_path
+        assert made.orchestrator.sender_store is made.sender_store
         assert made.dialog.relevance_handler is made.orchestrator
         assert made.dialog.revision_service is made.analyzer
         assert made.orchestrator.config_fingerprint == "f"*64

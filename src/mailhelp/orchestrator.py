@@ -58,7 +58,7 @@ class ProcessingResult:
 
 
 class Orchestrator:
-    def __init__(self, analyzer: Analyzer, store: JsonStore, notifier: Notifier, chat_id: int, topics: list[Topic], max_mail_bytes: int, logger: EventLogger | None = None, clock: Any = time.time, mime_limits: object | None = None, config_fingerprint: str = "0" * 64, targets: TargetSettings | None = None, user_timezone: str = "UTC"):
+    def __init__(self, analyzer: Analyzer, store: JsonStore, notifier: Notifier, chat_id: int, topics: list[Topic], max_mail_bytes: int, logger: EventLogger | None = None, clock: Any = time.time, mime_limits: object | None = None, config_fingerprint: str = "0" * 64, targets: TargetSettings | None = None, user_timezone: str = "UTC", sender_store: JsonStore | None = None):
         self.analyzer, self.store, self.notifier, self.chat_id, self.topics, self.max_bytes = analyzer, store, notifier, chat_id, topics, mime_limits or max_mail_bytes
         self.stop_event = Event()
         self.logger = logger or NullLogger()
@@ -68,6 +68,9 @@ class Orchestrator:
         # these defaults retain the small dependency-injected test surface.
         self.targets = targets or TargetSettings(todoist_project="inbox", google_calendar="primary")
         self.user_timezone = user_timezone
+        # Unlike processing state, the sender filter is configuration shared by
+        # test and production mode.
+        self.sender_store = sender_store or store
 
     def _build_proposals(self, state: MailState) -> list[Proposal]:
         """Cross from untrusted extracted facts into application-owned proposals."""
@@ -276,8 +279,13 @@ class Orchestrator:
                 return ProcessingResult(ProcessingOutcome.COMPLETED, state.model_dump(mode="json"))
             stage = ProcessingStage.RELEVANCE
             if state.steps.relevance == "pending":
-                blocked = self._load_model(
-                    "irrelevant-senders", IrrelevantSenders, IrrelevantSenders()
+                blocked = (
+                    self._load_model("irrelevant-senders", IrrelevantSenders,
+                                     IrrelevantSenders())
+                    if self.sender_store is self.store else
+                    self.sender_store.load_model(
+                        "irrelevant-senders", IrrelevantSenders, IrrelevantSenders()
+                    )
                 )
                 assert isinstance(blocked, IrrelevantSenders)
                 if is_irrelevant_sender(state.mail["headers"].get("from", ""), blocked):

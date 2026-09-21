@@ -1,5 +1,6 @@
 """Read-only access diagnostics never enter the mail-processing path."""
 from contextlib import contextmanager
+from pathlib import Path
 from types import SimpleNamespace
 import sys
 
@@ -263,7 +264,11 @@ def test_cli_access_check_prints_summary_and_never_runs(monkeypatch, capsys, res
 
     @contextmanager
     def builder(*_args, **kwargs):
-        assert kwargs == {"access_diagnostics": True, "logger": logger}
+        assert kwargs == {
+            "base_directory": Path.cwd(),
+            "access_diagnostics": True,
+            "logger": logger,
+        }
         yield App()
 
     logger = type("Logger", (), {"event": lambda *_args, **_kwargs: None})()

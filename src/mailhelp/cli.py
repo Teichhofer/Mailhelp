@@ -169,6 +169,7 @@ def _main() -> int:
         print(f"IMAP-Passwort: {json.dumps(secrets.imap_password.get_secret_value(), ensure_ascii=False)}")
     with build_application(
         settings, secrets, topics, prompts, fingerprint,
+        base_directory=args.config_directory,
         access_diagnostics=args.check_access, logger=logger,
     ) as application:
         if args.check_access:
@@ -181,7 +182,7 @@ def _main() -> int:
                 application.imap, application.analyzer, settings.imap.folders,
                 settings.limits, topics, args.config_directory / "topics.yaml",
                 irrelevant_topics, args.config_directory / "irrelevant_topics.yaml",
-                application.store,
+                application.sender_store,
                 timezone=settings.timezone,
                 parallel_llm_calls=settings.learning.parallel_llm_calls,
                 global_newest_first=getattr(settings.imap, "global_newest_first", False),
