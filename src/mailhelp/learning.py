@@ -7,6 +7,7 @@ import tempfile
 import unicodedata
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from pathlib import Path
 
 import yaml
@@ -74,7 +75,8 @@ class LearningMode:
                  *, input_fn: Callable[[str], str] = input,
                  output_fn: Callable[[str], None] = print,
                  timezone: str = "UTC", parallel_llm_calls: int = 4,
-                 global_newest_first: bool = False):
+                 global_newest_first: bool = False,
+                 historical_start: datetime | None = None):
         self.imap, self.analyzer, self.folders = imap, analyzer, folders
         self.limits, self.topics, self.topics_path = limits, topics, topics_path
         self.irrelevant_topics = irrelevant_topics
@@ -83,20 +85,32 @@ class LearningMode:
         self.input, self.output, self.timezone = input_fn, output_fn, timezone
         self.parallel_llm_calls = parallel_llm_calls
         self.global_newest_first = global_newest_first
+        self.historical_start = historical_start
 
     def _fetch(self, count: int) -> list[FetchedMail]:
         if self.global_newest_first:
             candidates = [candidate for folder in self.folders
-                          for candidate in self.imap.discover_since(folder)]
-            candidates.sort(key=lambda item: item.received_at, reverse=True)
+                          for candidate in self.imap.discover_since(
+                              folder, max_count=count,
+                              historical_start=self.historical_start)]
+            # Folder order is the stable final tie-breaker; within a folder the
+            # greater UID wins when servers report identical INTERNALDATE values.
+            folder_rank = {folder: index for index, folder in enumerate(self.folders)}
+            candidates.sort(key=lambda item: (
+                item.received_at, item.uid, -folder_rank[item.folder]
+            ), reverse=True)
             return [self.imap.fetch_uid(candidate.folder, candidate.uid,
                                         candidate.uidvalidity)
                     for candidate in candidates[:count]]
         mails: list[FetchedMail] = []
         for folder in self.folders:
+            after_uid = (self.imap.determine_start_uid(folder, self.historical_start)
+                         if self.historical_start is not None else 0)
             ranges: list[tuple[int, int]] = []
             while len(mails) < count:
-                batch = self.imap.fetch_since(folder, 0, None, count - len(mails), tuple(ranges))
+                batch = self.imap.fetch_since(
+                    folder, after_uid, None, count - len(mails), tuple(ranges)
+                )
                 if not batch:
                     break
                 mails.extend(batch)

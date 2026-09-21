@@ -98,7 +98,8 @@ def test_learning_fetches_globally_newest_messages(tmp_path):
     fetched = []
 
     class GlobalImap:
-        def discover_since(self, folder):
+        def discover_since(self, folder, **kwargs):
+            assert kwargs == {"max_count": 1, "historical_start": None}
             hour = {"INBOX": 1, "Archive": 3}[folder]
             return [MailCandidate(folder, 9, hour, "0" * 24,
                                   stamp.replace(hour=hour))]
@@ -113,6 +114,62 @@ def test_learning_fetches_globally_newest_messages(tmp_path):
     )
     assert mode.run(1) == 0
     assert fetched == [("Archive", 3, 9)]
+
+
+def test_folder_ordered_learning_applies_historical_boundary(tmp_path):
+    boundary = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    calls = []
+
+    class HistoricalImap(Imap):
+        def determine_start_uid(self, folder, start):
+            calls.append((folder, start))
+            return 41
+
+    imap = HistoricalImap([[]])
+    mode = LearningMode(
+        imap, Analyzer([]), ["INBOX"], 1000, [], tmp_path / "topics.yaml", [],
+        tmp_path / "irrelevant_topics.yaml", output_fn=lambda _line: None,
+        historical_start=boundary,
+    )
+    assert mode.run(1) == 0
+    assert calls == [("INBOX", boundary)]
+    assert imap.calls == [("INBOX", 41, None, 1, ())]
+
+
+def test_learning_bounds_each_folder_and_orders_ties_deterministically(tmp_path):
+    stamp = datetime(2026, 1, 2, tzinfo=timezone.utc)
+    boundary = stamp.replace(hour=1)
+    calls = []
+    fetched = []
+
+    class WindowedImap:
+        def discover_since(self, folder, **kwargs):
+            calls.append((folder, kwargs))
+            values = {
+                "INBOX": [(8, stamp.replace(hour=4)), (9, stamp.replace(hour=5))],
+                "Archive": [(4, stamp.replace(hour=5))],
+                "Empty": [],
+            }[folder]
+            return [MailCandidate(folder, 7, uid, "0" * 24, received)
+                    for uid, received in values]
+
+        def fetch_uid(self, folder, uid, validity):
+            fetched.append((folder, uid, validity))
+            return FetchedMail(folder, validity, uid, raw_mail(str(uid)),
+                               received_at=stamp)
+
+    mode = LearningMode(
+        WindowedImap(), Analyzer([]), ["INBOX", "Archive", "Empty"], 1000, [],
+        tmp_path / "topics.yaml", [], tmp_path / "irrelevant_topics.yaml",
+        output_fn=lambda _line: None, global_newest_first=True,
+        historical_start=boundary,
+    )
+    assert mode.run(5) == 0
+    assert calls == [(folder, {"max_count": 5, "historical_start": boundary})
+                     for folder in ("INBOX", "Archive", "Empty")]
+    # Equal times use higher UID first, then configured folder order.  Fewer
+    # than N available messages are fetched exactly once and without writes.
+    assert fetched == [("INBOX", 9, 7), ("Archive", 4, 7), ("INBOX", 8, 7)]
 
 
 def test_learning_sender_prefilter_skips_before_relevance(tmp_path):
