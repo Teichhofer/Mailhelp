@@ -186,7 +186,7 @@ def _main() -> int:
                 timezone=settings.timezone,
                 parallel_llm_calls=settings.learning.parallel_llm_calls,
                 global_newest_first=getattr(settings.imap, "global_newest_first", False),
-                historical_start=getattr(settings.imap, "historical_start", None),
+                config_path=args.config_directory / "config.yaml",
             ).run(args.learn)
             return 0
         shutdown.stop = application.stop

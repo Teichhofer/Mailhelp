@@ -7,7 +7,6 @@ import tempfile
 import unicodedata
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
 from pathlib import Path
 
 import yaml
@@ -53,6 +52,12 @@ def save_topics(path: Path, existing: list[Topic], accepted: list[LearnedCategor
         {"topics": [topic.model_dump() for topic in result]}, allow_unicode=True,
         sort_keys=False, default_flow_style=False,
     )
+    _atomic_replace(path, content)
+    return result
+
+
+def _atomic_replace(path: Path, content: str) -> None:
+    """Durably replace one user-editable YAML file without partial writes."""
     path.parent.mkdir(parents=True, exist_ok=True)
     descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
     try:
@@ -64,7 +69,23 @@ def save_topics(path: Path, existing: list[Topic], accepted: list[LearnedCategor
     except BaseException:
         Path(temporary).unlink(missing_ok=True)
         raise
-    return result
+
+
+def add_discovered_folders(path: Path, configured: list[str], discovered: list[str]) -> list[str]:
+    """Add newly advertised selectable mailboxes to config.yaml atomically."""
+    merged = [*configured, *(folder for folder in discovered if folder not in configured)]
+    if len(merged) > 100:
+        raise RuntimeError("IMAP meldet mehr als 100 unterschiedliche Ordner")
+    if merged == configured:
+        return merged
+    document = yaml.safe_load(path.read_text(encoding="utf-8"))
+    if not isinstance(document, dict) or not isinstance(document.get("imap"), dict):
+        raise RuntimeError("config.yaml enthält keinen gültigen IMAP-Abschnitt")
+    document["imap"]["folders"] = merged
+    content = yaml.safe_dump(document, allow_unicode=True, sort_keys=False,
+                             default_flow_style=False)
+    _atomic_replace(path, content)
+    return merged
 
 
 class LearningMode:
@@ -76,7 +97,7 @@ class LearningMode:
                  output_fn: Callable[[str], None] = print,
                  timezone: str = "UTC", parallel_llm_calls: int = 4,
                  global_newest_first: bool = False,
-                 historical_start: datetime | None = None):
+                 config_path: Path | None = None):
         self.imap, self.analyzer, self.folders = imap, analyzer, folders
         self.limits, self.topics, self.topics_path = limits, topics, topics_path
         self.irrelevant_topics = irrelevant_topics
@@ -85,7 +106,20 @@ class LearningMode:
         self.input, self.output, self.timezone = input_fn, output_fn, timezone
         self.parallel_llm_calls = parallel_llm_calls
         self.global_newest_first = global_newest_first
-        self.historical_start = historical_start
+        self.config_path = config_path
+
+    def _refresh_folders(self) -> None:
+        if self.config_path is None:
+            return
+        discovered = self.imap.list_folders()
+        previous = set(self.folders)
+        self.folders = add_discovered_folders(
+            self.config_path, self.folders, discovered
+        )
+        additions = [folder for folder in self.folders if folder not in previous]
+        if additions:
+            names = ", ".join(f'"{_safe_terminal(folder)}"' for folder in additions)
+            self.output(f"Neue IMAP-Ordner wurden in config.yaml eingetragen: {names}")
 
     def _fetch(self, count: int) -> list[FetchedMail]:
         if self.global_newest_first:
@@ -93,8 +127,7 @@ class LearningMode:
             for folder in self.folders:
                 try:
                     candidates.extend(self.imap.discover_since(
-                        folder, max_count=count,
-                        historical_start=self.historical_start))
+                        folder, max_count=count, historical_start=None))
                 except FolderNotReadable:
                     self.output(f'IMAP-Ordner "{_safe_terminal(folder)}" ist nicht lesbar '
                                 "und wird im Lernlauf übersprungen.")
@@ -116,8 +149,7 @@ class LearningMode:
         mails: list[FetchedMail] = []
         for folder in self.folders:
             try:
-                after_uid = (self.imap.determine_start_uid(folder, self.historical_start)
-                             if self.historical_start is not None else 0)
+                after_uid = 0
                 ranges: list[tuple[int, int]] = []
                 while len(mails) < count:
                     batch = self.imap.fetch_since(
@@ -134,6 +166,7 @@ class LearningMode:
         return mails
 
     def run(self, count: int) -> int:
+        self._refresh_folders()
         mails = self._fetch(count)
         self.output(f"{len(mails)} von {count} angeforderten Mails wurden abgerufen.")
         known_topics = [*self.topics, *self.irrelevant_topics]

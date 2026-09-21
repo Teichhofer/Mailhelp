@@ -155,10 +155,11 @@ konfigurierten Ordner als ein gemeinsames Postfach behandelt. Mailhelp ermittelt
 dafür zunächst pro Ordner nur ein auf das gemeinsame Kontingent begrenztes Fenster
 der höchsten noch offenen UIDs und lädt dessen `INTERNALDATE`-Metadaten mit einem
 einzigen Sequence-Set-`UID FETCH`; bei `N` werden also höchstens `N` Metadatensätze
-je Ordner statt jeder UID des Ordners abgefragt. Die UID-Suche wird, falls
-`historical_start` gesetzt ist, zusätzlich mit `SINCE` serverseitig auf den
-Grenztag (einschließlich eines Sicherheitstags für Zeitzonen) eingegrenzt; der
-sekundengenaue Vergleich erfolgt anschließend lokal. Mailhelp sortiert die so
+je Ordner statt jeder UID des Ordners abgefragt. Beim regulären Abruf wird die
+UID-Suche, falls `historical_start` gesetzt ist, zusätzlich mit `SINCE`
+serverseitig auf den Grenztag (einschließlich eines Sicherheitstags für
+Zeitzonen) eingegrenzt; der sekundengenaue Vergleich erfolgt anschließend lokal.
+Der Lernmodus verwendet diese Grenze nicht. Mailhelp sortiert die so
 begrenzten Metadaten ordnerübergreifend absteigend und lädt nur
 die für den aktuellen Lauf ausgewählten vollständigen Nachrichten. Im
 Dauerbetrieb gilt `imap.batch_size` dann als gemeinsames Kontingent für das ganze
@@ -168,8 +169,8 @@ bleibt das bisherige Verhalten bestehen: Die Ordner werden in
 Konfigurationsreihenfolge jeweils neueste UID zuerst bearbeitet.
 Die mitgelieferte WEB.DE-Konfiguration umfasst mit `INBOX`, `Drafts`, `Sent`,
 `Spam` und `Trash` alle Standardordner und verarbeitet damit nicht nur den
-Posteingang. Selbst angelegte Ordner müssen zusätzlich mit ihrem exakten
-IMAP-Namen in `imap.folders` eingetragen werden.
+Posteingang. Der Lernmodus erkennt selbst angelegte, auswählbare Ordner und trägt
+deren exakte IMAP-Namen automatisch in `imap.folders` ein.
 
 `logging.console`, `logging.file` und `logging.llm` besitzen eigene Aktivierungs- und
 Level-Schalter; `logging.modules` überschreibt das Datei-Grundlevel für einzelne
@@ -469,11 +470,17 @@ Prompts, Themen und Geheimnisse werden nicht gelöscht.
 Metadatenfenster wie beim regulären Abruf verwendet, global nach `INTERNALDATE`
 absteigend sortiert und erst danach werden höchstens 20 Mailinhalte geladen.
 Identische Empfangszeitpunkte werden deterministisch durch höhere UID und danach
-durch die konfigurierte Ordnerreihenfolge aufgelöst. `historical_start` gilt auch
-für den Lernmodus: ältere Kandidaten werden nicht gelernt; `null` lässt die
-historische Einschränkung entfallen. Bei deaktiviertem `global_newest_first`
+durch die konfigurierte Ordnerreihenfolge aufgelöst. Der Lernmodus ignoriert
+`historical_start`, damit er auch ältere Nachrichten zur Themenfindung verwenden
+kann. Bei deaktiviertem `global_newest_first`
 bleibt die Ordnerreihenfolge maßgeblich und der bereits begrenzte Inhaltsabruf
 holt pro Ordner neueste UIDs, bis das gemeinsame Kontingent ausgeschöpft ist.
+Zu Beginn lädt der Lernmodus die vollständige Liste der auswählbaren IMAP-Ordner.
+Noch nicht unter `imap.folders` aufgeführte Ordner werden atomar in `config.yaml`
+ergänzt und bereits im selben Lernlauf berücksichtigt. Nicht auswählbare
+Containerordner mit dem IMAP-Attribut `\\Noselect` werden nicht eingetragen.
+`--learn N` bleibt eine Obergrenze und keine Zusage, genau `N` Nachrichten zu
+laden.
 Kann der Server einen konfigurierten Ordner nicht auswählen (beispielsweise weil
 sein IMAP-Name beim Anbieter abweicht), meldet und überspringt der Lernmodus nur
 diesen Ordner. Lesbare Ordner werden weiterhin verarbeitet; mit

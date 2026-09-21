@@ -11,7 +11,8 @@ from mailhelp import __version__
 from mailhelp.analysis import Analyzer
 from mailhelp.cli import main
 from mailhelp.config import IrrelevantTopicsConfig, LlmRoute, PromptConfig, PromptStep, Topic, TopicsConfig, _deep_merge, _dotenv, _yaml, load_all
-from mailhelp.imap import FetchedMail, ImapReader, UIDValidityChanged, account_id
+from mailhelp.imap import (FetchedMail, ImapReader, UIDValidityChanged,
+                           _decode_mailbox_name, _list_mailbox_name, account_id)
 from mailhelp.integrations import HttpWriter, execute_confirmed
 from mailhelp.logging import JsonlLogger, redact
 from mailhelp.mime import prepare
@@ -225,6 +226,51 @@ class FakeImap:
     def logout(self): self.logged=False
 
 
+def test_imap_lists_selectable_folders_and_validates_responses():
+    class ListingImap(FakeImap):
+        def __init__(self, *_args, **_kwargs):
+            super().__init__(); self.listing = ("OK", [
+                b'(\\HasNoChildren) "/" "INBOX"',
+                b'(\\HasNoChildren) "/" "Sent \\"Items\\""',
+                b'(\\Noselect \\HasChildren) "/" "Container"',
+                b'(\\HasNoChildren) NIL Archiv',
+            ])
+        def list(self): return self.listing
+
+    connection = ListingImap()
+    reader = ImapReader("h", 1, "u", "p", factory=lambda *_a, **_k: connection)
+    assert reader.list_folders() == ["INBOX", 'Sent "Items"', "Archiv"]
+    assert _decode_mailbox_name(b"Entw&APw-rfe") == "Entwürfe"
+    assert _decode_mailbox_name(b"A&-B") == "A&B"
+    assert _decode_mailbox_name("Grüße".encode()) == "Grüße"
+
+    connection.listing = ("NO", [])
+    with pytest.raises(RuntimeError, match="nicht geladen"):
+        reader.list_folders()
+    for response, message in (
+        ([None], "strukturell"), ([b"broken"], "strukturell"),
+        ([b'(x) "/" "unfinished'], "strukturell"),
+        ([b'(x) "/" bad name'], "strukturell"),
+        ([b'(x) "/" "bad\\q"'], "strukturell"),
+        ([b'(x) "/" "&A-"'], "ungültigen"),
+        ([b'(x) "/" "\x00"'], "ungültigen"),
+    ):
+        connection.listing = ("OK", response)
+        with pytest.raises(RuntimeError, match=message):
+            reader.list_folders()
+    connection.listing = ("OK", [b'(x) "/" INBOX', b'(x) "/" INBOX'])
+    with pytest.raises(RuntimeError, match="doppelte"):
+        reader.list_folders()
+
+    with pytest.raises(RuntimeError, match="ungültigen"):
+        _decode_mailbox_name(b"missing&end")
+    with pytest.raises(RuntimeError, match="ungültigen"):
+        _decode_mailbox_name(b"bad\xff")
+    with pytest.raises(RuntimeError, match="ungültigen"):
+        _decode_mailbox_name(b"")
+    assert _list_mailbox_name(b'(\\Noselect) "/" ignored') is None
+
+
 def test_imap():
     reader=ImapReader("h", 1, "u", "p", factory=FakeImap); assert reader.fetch_since("INBOX")[0].raw == b"raw"
     assert reader.fetch_since("INBOX", 3, 7)[0].uid == 4
@@ -308,6 +354,11 @@ def test_imap_discovers_body_free_candidates_and_rejects_bad_metadata():
 def test_imap_discovery_fetches_only_a_bounded_newest_metadata_window():
     boundary = datetime(2026, 9, 17, 10, 0, tzinfo=timezone.utc)
 
+    class Logger:
+        def __init__(self): self.events = []
+        def event(self, level, module, event, **fields):
+            self.events.append((level, module, event, fields))
+
     class LargeMailbox(FakeImap):
         def __init__(self):
             super().__init__()
@@ -325,7 +376,9 @@ def test_imap_discovery_fetches_only_a_bounded_newest_metadata_window():
             ]
 
     connection = LargeMailbox()
-    reader = ImapReader("h", 1, "u", "p", factory=lambda *_a, **_k: connection)
+    logger = Logger()
+    reader = ImapReader("h", 1, "u", "p", factory=lambda *_a, **_k: connection,
+                        logger=logger)
     candidates = reader.discover_since(
         "INBOX", max_count=3, historical_start=boundary
     )
@@ -335,6 +388,11 @@ def test_imap_discovery_fetches_only_a_bounded_newest_metadata_window():
     )
     assert connection.requests[1][1][0] == b"9998,9999,10000"
     assert len(connection.requests) == 2
+    assert logger.events[-1] == (
+        "INFO", "imap", "messages_discovered",
+        {"folder": "INBOX", "available_count": 10000, "batch_count": 3,
+         "historical_excluded_count": 0},
+    )
 
     # A zero budget performs no metadata FETCH, while an invalid budget and an
     # incomplete server response fail explicitly instead of silently misordering.
@@ -371,6 +429,11 @@ def test_imap_discovery_fetches_only_a_bounded_newest_metadata_window():
     assert reader.discover_since(
         "INBOX", max_count=1, historical_start=boundary
     ) == []
+    assert logger.events[-1] == (
+        "INFO", "imap", "messages_discovered",
+        {"folder": "INBOX", "available_count": 1, "batch_count": 0,
+         "historical_excluded_count": 1},
+    )
 
 
 def test_imap_logout_ignores_broken_transport_without_masking_original_error():
