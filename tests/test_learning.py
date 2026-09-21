@@ -8,7 +8,7 @@ import pytest
 import yaml
 
 from mailhelp.config import Topic
-from mailhelp.imap import FetchedMail, MailCandidate
+from mailhelp.imap import FetchedMail, FolderNotReadable, MailCandidate
 from mailhelp.learning import LearningMode, _safe_terminal, _topic_id, save_topics
 from mailhelp.models import AbstractCategories, LearnedCategory, MailClassification, Relevance
 from mailhelp.analysis import Analyzer as RealAnalyzer, LlmProviderResponseInvalid
@@ -114,6 +114,61 @@ def test_learning_fetches_globally_newest_messages(tmp_path):
     )
     assert mode.run(1) == 0
     assert fetched == [("Archive", 3, 9)]
+
+
+def test_learning_skips_unreadable_folders_during_discovery_and_fetch(tmp_path):
+    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    output = []
+
+    class ChangingImap:
+        def discover_since(self, folder, **_kwargs):
+            if folder == "Drafts\x1b":
+                raise FolderNotReadable(folder)
+            uid = 2 if folder == "Vanished" else 1
+            return [MailCandidate(folder, 9, uid, "0" * 24, stamp)]
+
+        def fetch_uid(self, folder, uid, validity):
+            if folder == "Vanished":
+                raise FolderNotReadable(folder)
+            return FetchedMail(folder, validity, uid, raw_mail(folder), received_at=stamp)
+
+    mode = LearningMode(
+        ChangingImap(), Analyzer([]), ["INBOX", "Drafts\x1b", "Vanished"], 1000, [],
+        tmp_path / "topics.yaml", [], tmp_path / "irrelevant_topics.yaml",
+        output_fn=output.append, global_newest_first=True,
+    )
+
+    assert mode.run(3) == 0
+    assert any('"Drafts�" ist nicht lesbar' in line for line in output)
+    assert any('"Vanished" ist nicht mehr lesbar' in line for line in output)
+
+
+@pytest.mark.parametrize("historical", [False, True])
+def test_folder_ordered_learning_skips_unreadable_folder(tmp_path, historical):
+    boundary = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    output = []
+
+    class PartlyReadable(Imap):
+        def determine_start_uid(self, folder, _start):
+            if folder == "Drafts":
+                raise FolderNotReadable(folder)
+            return 0
+
+        def fetch_since(self, folder, *args):
+            if folder == "Drafts":
+                raise FolderNotReadable(folder)
+            return super().fetch_since(folder, *args)
+
+    imap = PartlyReadable([[]])
+    mode = LearningMode(
+        imap, Analyzer([]), ["Drafts", "INBOX"], 1000, [],
+        tmp_path / "topics.yaml", [], tmp_path / "irrelevant_topics.yaml",
+        output_fn=output.append, historical_start=boundary if historical else None,
+    )
+
+    assert mode.run(1) == 0
+    assert any('"Drafts" ist nicht lesbar' in line for line in output)
+    assert imap.calls == [("INBOX", 0, None, 1, ())]
 
 
 def test_folder_ordered_learning_applies_historical_boundary(tmp_path):

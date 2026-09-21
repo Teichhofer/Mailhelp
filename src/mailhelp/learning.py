@@ -14,7 +14,7 @@ import yaml
 
 from .analysis import Analyzer
 from .config import IrrelevantTopicsConfig, Topic, TopicsConfig
-from .imap import FetchedMail, ImapReader
+from .imap import FetchedMail, FolderNotReadable, ImapReader
 from .mime import prepare
 from .models import IrrelevantSenders, LearnedCategory, MailClassification
 from .sender_filter import add_irrelevant_senders, is_irrelevant_sender
@@ -89,32 +89,46 @@ class LearningMode:
 
     def _fetch(self, count: int) -> list[FetchedMail]:
         if self.global_newest_first:
-            candidates = [candidate for folder in self.folders
-                          for candidate in self.imap.discover_since(
-                              folder, max_count=count,
-                              historical_start=self.historical_start)]
+            candidates = []
+            for folder in self.folders:
+                try:
+                    candidates.extend(self.imap.discover_since(
+                        folder, max_count=count,
+                        historical_start=self.historical_start))
+                except FolderNotReadable:
+                    self.output(f'IMAP-Ordner "{_safe_terminal(folder)}" ist nicht lesbar '
+                                "und wird im Lernlauf übersprungen.")
             # Folder order is the stable final tie-breaker; within a folder the
             # greater UID wins when servers report identical INTERNALDATE values.
             folder_rank = {folder: index for index, folder in enumerate(self.folders)}
             candidates.sort(key=lambda item: (
                 item.received_at, item.uid, -folder_rank[item.folder]
             ), reverse=True)
-            return [self.imap.fetch_uid(candidate.folder, candidate.uid,
-                                        candidate.uidvalidity)
-                    for candidate in candidates[:count]]
+            mails = []
+            for candidate in candidates[:count]:
+                try:
+                    mails.append(self.imap.fetch_uid(
+                        candidate.folder, candidate.uid, candidate.uidvalidity))
+                except FolderNotReadable:
+                    self.output(f'IMAP-Ordner "{_safe_terminal(candidate.folder)}" ist '
+                                "nicht mehr lesbar; die Nachricht wird übersprungen.")
+            return mails
         mails: list[FetchedMail] = []
         for folder in self.folders:
-            after_uid = (self.imap.determine_start_uid(folder, self.historical_start)
-                         if self.historical_start is not None else 0)
-            ranges: list[tuple[int, int]] = []
-            while len(mails) < count:
-                batch = self.imap.fetch_since(
-                    folder, after_uid, None, count - len(mails), tuple(ranges)
-                )
-                if not batch:
-                    break
-                mails.extend(batch)
-                ranges.extend((mail.uid, mail.uid) for mail in batch)
+            try:
+                after_uid = (self.imap.determine_start_uid(folder, self.historical_start)
+                             if self.historical_start is not None else 0)
+                ranges: list[tuple[int, int]] = []
+                while len(mails) < count:
+                    batch = self.imap.fetch_since(
+                        folder, after_uid, None, count - len(mails), tuple(ranges))
+                    if not batch:
+                        break
+                    mails.extend(batch)
+                    ranges.extend((mail.uid, mail.uid) for mail in batch)
+            except FolderNotReadable:
+                self.output(f'IMAP-Ordner "{_safe_terminal(folder)}" ist nicht lesbar '
+                            "und wird im Lernlauf übersprungen.")
             if len(mails) == count:
                 break
         return mails
