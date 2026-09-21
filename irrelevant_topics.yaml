@@ -1,205 +1,118 @@
 topics:
-- id: bestell-und-versandbestatigungen-online-handel
-  name: Bestell- und Versandbestätigungen (Online-Handel)
+- id: social-media-benachrichtigungen
+  name: Social-Media-Benachrichtigungen
   enabled: true
-  description: Automatisch generierte Transaktionsmails von Online-Marktplätzen und
-    Shops zu abgeschlossenen Käufen, mit Bestell- und Artikeldetails, Verkäuferangaben,
-    Lieferstatus sowie Service-Links zu Kontoeinstellungen.
+  description: Automatisch generierte Benachrichtigungen sozialer Netzwerke über Aktivitäten
+    von Kontakten, gefolgten Seiten oder Gruppen.
   examples:
-  - Bestellbestätigung mit Bestellnummer und Gesamtbetrag
-  - Hinweis, dass das Paket zugestellt wurde
-  - Voraussichtlicher Lieferzeitraum für eine Bestellung
+  - Eine gefolgte Seite hat ein neues Foto geteilt
+  - Ein Kontakt hat auf deiner Pinnwand gepostet
   exclusions: []
-- id: ruckgabe-widerruf-und-kauferschutz
-  name: Rückgabe, Widerruf und Käuferschutz
+- id: konto-sicherheit-und-authentifizierung
+  name: Konto-Sicherheit und Authentifizierung
   enabled: true
-  description: Informationen zu Widerrufsfristen, Rückgabe- und Umtauschprozessen,
-    Rückerstattungen sowie Käuferschutzleistungen, Bewertungsaufrufen rund um einen
-    getätigten Kauf.
+  description: Sicherheitsbenachrichtigungen zu Anmeldungen auf neuen Geräten, App-Passwörtern,
+    Zwei-Faktor-Codes und E-Mail-Verifizierung.
   examples:
-  - Widerruf innerhalb der Frist ohne Angabe von Gründen
-  - Rücksendeetikett für eine Rückgabe anfordern
-  - Kauf ist durch Käuferschutz abgesichert
+  - Neue Anmeldung auf unbekanntem Gerät erkannt
+  - Bitte bestätigen Sie Ihre E-Mail-Adresse
   exclusions: []
-- id: werbe-newsletter
-  name: Werbe-Newsletter
+- id: werbe-newsletter-mit-rabattaktionen
+  name: Werbe-Newsletter mit Rabattaktionen
   enabled: true
-  description: Marketingmails von Händlern mit Produktvorstellungen, saisonalen Kampagnen,
-    Rabatt- und Verkaufsaktionen, individuellen Anfertigungen, Shop-Service-Hinweisen
-    sowie rechtlichen Verweisen; Themenbereiche umfassen z. B. Wohnaccessoires, Bekleidung,
-    Schuhe oder Mineralien.
+  description: Promotionale E-Mails von Online-Shops mit zeitlich begrenzten Rabattcodes,
+    Gutscheinen und Produktangeboten.
   examples:
-  - Saisonaler Produktnewsletter eines Onlineshops
-  - Rabattaktion mit Mindestbestellwert für versandkostenfreie Lieferung
-  - Vorstellung neuer Produkte mit Kauf-Links
+  - 'Nur heute: 20% Rabattcode auf das gesamte Sortiment'
+  - Saisonaler Sale mit Gutscheincode im Newsletter
   exclusions: []
-- id: tierarztliche-korrespondenz
-  name: Tierärztliche Korrespondenz
+- id: gesundheits-und-nahrungserganzungswerbung
+  name: Gesundheits- und Nahrungsergänzungswerbung
   enabled: true
-  description: Nachrichten von Tierarztpraxen oder tiermedizinischen Einrichtungen
-    an Tierhalter, typischerweise zu Terminen, Impferinnerungen, Behandlungen oder
-    Rechnungen, oft mit standardmäßigem Vertraulichkeits-Disclaimer.
+  description: Marketing für Nahrungsergänzungsmittel, Superfoods, Vitalpilze und
+    Online-Apothekendienste mit gesundheitsbezogenen Versprechen.
   examples:
-  - Terminbestätigung der Tierklinik
-  - Erinnerung an den Impftermin
-  - Rechnung für die letzte Behandlung
+  - Pilz-Extrakte für Immunsystem und Energie
+  - Online-Apotheke mit Rabatt auf Gesundheitsprodukte
   exclusions: []
-- id: nachricht-ohne-textinhalt
-  name: Nachricht ohne Textinhalt
+- id: headshop-und-growshop-werbung
+  name: Headshop- und Growshop-Werbung
   enabled: true
-  description: E-Mails mit leerem Betreff und leerem Nachrichtentext, die nur aus
-    Grußformel, Signaturblock und Disclaimer bestehen; der eigentliche Inhalt liegt
-    vermutlich in Anhängen wie Rechnungen, Befunden oder Bescheinigungen.
+  description: Werbe-Newsletter für Cannabis-Samen, Pilzzucht, Rauchzubehör und zugehörige
+    Ratgeber sowie Dosierungstools.
   examples:
-  - Mail nur mit Grußformel und Signaturblock
-  - Inhalt ausschließlich als PDF-Anhang
-  - Nachricht ohne Betreff, lediglich Disclaimer im Body
+  - 40% auf alle Samen nur bis Sonntag
+  - Anleitung zum Pilzanbau mit Flüssigkultur
   exclusions: []
-- id: spam-und-phishing
-  name: Spam und Phishing
+- id: paket-und-versandbenachrichtigungen
+  name: Paket- und Versandbenachrichtigungen
   enabled: true
-  description: Unaufgeforderte Massenwerbung und verdächtige Nachrichten mit unrealistischen
-    Versprechen, erfundenen Promi- oder TV-Referenzen, nicht zusammenpassenden Vorlagen
-    und Absendern sowie Betreff-Manipulationen zur Umgehung von Spamfiltern.
+  description: Automatische Zustellungsankündigungen, Sendungsverfolgung und Zustelloptionen
+    von Paketdienstleistern.
   examples:
-  - Werbung mit unrealistischen Abnehmversprechen
-  - Behauptete Empfehlung durch eine bekannte TV-Sendung
-  - Betreff mit absichtlichen Tippfehlern und Seriennummern
+  - Ihr Paket kommt heute zwischen 14 und 16 Uhr
+  - Paket live verfolgen oder Abstell-Okay erteilen
   exclusions: []
-- id: service-mitteilungen-fristen
-  name: Service-Mitteilungen & Fristen
+- id: veranstaltungs-und-seminarankundigungen
+  name: Veranstaltungs- und Seminarankündigungen
   enabled: true
-  description: Benachrichtigungen eines Abodienstes rund um die Erstellung, den Druck
-    und das Erscheinen persönlicher Magazinausgaben, einschließlich Erinnerungen an
-    Einreichungsfristen für Inhalte.
+  description: Einladungen und Ankündigungen zu Veranstaltungen, Festen, Webinaren,
+    Messen und Fortbildungsseminaren.
   examples:
-  - Nur noch wenige Tage bis zur Einreichungsfrist
-  - Die nächste Ausgabe erscheint in Kürze
-  - Inhalte rechtzeitig hochladen, damit sie berücksichtigt werden
+  - Einladung zu einem virtuellen Branchenfestival
+  - Seminar zur Altersvorsorge im November
   exclusions: []
-- id: werbung-produktmarketing
-  name: Werbung & Produktmarketing
+- id: fach-und-branchen-newsletter
+  name: Fach- und Branchen-Newsletter
   enabled: true
-  description: Werbliche Botschaften, die Produktmerkmale, Markenwerte und emotionale
-    Nutzenversprechen des Anbieters hervorheben.
+  description: Redaktionelle Newsletter für berufliche Zielgruppen mit Fachartikeln,
+    Verbandsnachrichten und Branchenmeldungen.
   examples:
-  - Geteilte Erinnerungen auf Papier
-  - Fotos im Großformat, mit Liebe gemacht
-  - Das Magazin, das die Familie verbindet
+  - Wöchentlicher Agrar-Newsletter mit Meldungen zur Tierhaltung
+  - Newsletter mit KI-Weiterbildungsangeboten
   exclusions: []
-- id: kundenanfragen-und-produktberatung
-  name: Kundenanfragen und Produktberatung
+- id: dating-und-erwachsenenplattform-benachrichtigungen
+  name: Dating- und Erwachsenenplattform-Benachrichtigungen
   enabled: true
-  description: Antworten auf Kundenanfragen, technische Beratung zu Farb- und Holzprodukten
-    sowie Zusendung von Ticket-Gutscheincodes im Geschäftskontakt.
+  description: Benachrichtigungen von Dating-Plattformen und Creator-/Fan-Plattformen
+    über angebliche Nachrichten oder Inhalte, teils mit Spam-Verdacht.
   examples:
-  - Produktfrage aus dem Shop-Kontaktformular zur Bearbeitung
-  - Gutscheincodes zum Abruf von Eintrittskarten für eine Veranstaltung
+  - Neue Nachricht von einem Mitglied auf einer Dating-Plattform
+  - Exklusives Video-Angebot eines Creators
   exclusions: []
-- id: tierzucht-und-futtermitteldaten
-  name: Tierzucht- und Futtermitteldaten
+- id: reise-und-tourismus-werbung
+  name: Reise- und Tourismus-Werbung
   enabled: true
-  description: Systemmitteilungen zur Verarbeitung von Besamungs- und Tierdaten inklusive
-    Fehlerprotokollen sowie Änderungen von Futtermittel-Lieferberechtigungen.
+  description: Marketing-E-Mails von Reiseanbietern mit Rabatten auf Flüge, Hotels
+    und Mitgliedschaftsvorteilen.
   examples:
-  - Verarbeitungsprotokoll mit nicht angenommenen Tierdatensätzen
-  - Änderung der Lieferberechtigung eines Futtermittellieferanten
+  - Spare 20% auf deine nächste Hotelbuchung
+  - Exklusive Flugdeals für Abonnenten
   exclusions: []
-- id: politische-kommunikation-und-gedenkveranstaltungen
-  name: Politische Kommunikation und Gedenkveranstaltungen
+- id: system-und-statusbenachrichtigungen
+  name: System- und Statusbenachrichtigungen
   enabled: true
-  description: Einladungen zu Fest- und Gedenkveranstaltungen sowie Rundmails und
-    Newsletter aus dem Umfeld von Abgeordneten.
+  description: Automatische Dienstmails zu Wartungen, Statusänderungen oder technischen
+    Ereignissen, meist mit No-Reply-Absender.
   examples:
-  - Einladung zu einem Empfang anlässlich eines nationalen Gedenktags
-  - Rundmail eines Abgeordneten mit Rückblick und Anmeldelink
+  - Geplante Serverwartung mit Zeitfenster
+  - Statusseiten-Benachrichtigung über ein Update
   exclusions: []
-- id: automatische-system-und-statusbenachrichtigungen
-  name: Automatische System- und Statusbenachrichtigungen
+- id: umfragen-und-feedback-anfragen
+  name: Umfragen und Feedback-Anfragen
   enabled: true
-  description: Systemgenerierte Benachrichtigungen ohne bestimmten Fachinhalt, etwa
-    Lesebestätigungen oder generische Statusmails.
+  description: Einladungen zur Teilnahme an Umfragen oder Leserbefragungen, teilweise
+    mit Werbeangebot als Anreiz.
   examples:
-  - Lesebestätigung für eine zuvor gesendete Nachricht
-  - Automatische Statusmail mit No-Reply-Absender
+  - Leserumfrage zum Ausgang einer Parlamentswahl
+  - Kurze Bewertung des Newsletters mit Klick auf eine Skala
   exclusions: []
-- id: social-media-benachrichtigung
-  name: Social-Media-Benachrichtigung
+- id: bestell-und-transaktionsbestatigungen
+  name: Bestell- und Transaktionsbestätigungen
   enabled: true
-  description: Automatisch generierte E-Mail einer sozialen Plattform über Aktivitäten
-    im eigenen Netzwerk, z. B. Beiträge, Interaktionen oder Weitermeldungen.
+  description: Automatische Bestell- und Versandbestätigungen von Online-Händlern
+    mit Bestellreferenz und Widerrufshinweisen.
   examples:
-  - Ein Kontakt hat einen neuen Beitrag veröffentlicht
-  - Jemand hat deinen Beitrag geteilt
-  exclusions: []
-- id: gaming-und-erwachsenen-branchen-events
-  name: Gaming- und Erwachsenen-Branchen-Events
-  enabled: true
-  description: Veranstaltungen und Netzwerktreffen für die Spiele- und Adult-Unterhaltungsbranche.
-  examples:
-  - Festival mit Spieleausstellern und Entwicklern
-  - Branchentreff für Erwachsenen-Unterhaltungsanbieter
-  exclusions: []
-- id: ki-sicherheit-und-alignment
-  name: KI-Sicherheit und Alignment
-  enabled: true
-  description: Essays und Analysen zu KI-Ausrichtung, Reward Hacking, Agentenverhalten,
-    Innenarchitektur von Modellen und Sicherheitsvorfällen.
-  examples:
-  - Analyse der Risiken unzureichend ausgerichteter Frontier-Modelle
-  - Artikel zum Überlisten von Evaluatoren durch RL-Modelle
-  exclusions: []
-- id: ki-wissenschaft-und-epistemologie
-  name: KI-Wissenschaft und Epistemologie
-  enabled: true
-  description: Theoretische Abhandlungen zu Entscheidungstheorie, Unsicherheit, Spieltheorie,
-    Konzeptbildung und formalen Agentenrahmenwerken.
-  examples:
-  - Essay über Knight'sche Unsicherheit und Bayes'sche Agenten
-  - Analyse von Schelling-Punkten in der Kommunikation
-  exclusions: []
-- id: agrar-fachnewsletter
-  name: Agrar-Fachnewsletter
-  enabled: true
-  description: Redaktioneller Fachnewsletter mit Agrarnachrichten und Lesetipps eines
-    Landwirtschaftsverlags.
-  examples:
-  - Wöchentlicher Agrar-Newsletter mit Schlagzeilenübersicht
-  - Branchenrundschreiben mit Artikellinks für Landwirte
-  exclusions: []
-- id: agrarfachthemen
-  name: Agrarfachthemen
-  enabled: true
-  description: Fachbeiträge zu Tiergesundheit, Pflanzen- und Ackerbau, Ökolandbau,
-    Forstwirtschaft sowie Vermarktung landwirtschaftlicher Produkte.
-  examples:
-  - Ratgeber zu Kälberkrankheiten und Stallklima
-  - Artikel zur Beikrautregulierung und Waldbewirtschaftung
-  exclusions: []
-- id: agrarpolitik
-  name: Agrarpolitik
-  enabled: true
-  description: Berichte zu agrarpolitischen Themen wie Haushaltsdebatten, Förderpolitik
-    und Interviews mit Agrarpolitikern.
-  examples:
-  - Bericht über eine Haushaltsdebatte im Landtag
-  - Kommentar zu Zuschuss- und Förderpolitik
-  exclusions: []
-- id: newsletter-verwaltung-und-werbung
-  name: Newsletter-Verwaltung und Werbung
-  enabled: true
-  description: Werbeanzeigen im Newsletter sowie Hinweise zu Anmeldung, Abmeldung,
-    Datenschutz und Impressum.
-  examples:
-  - Link zum Abbestellen des Newsletters
-  - Anzeige für Landtechnik mit Impressumshinweis
-  exclusions: []
-- id: plattform-benachrichtigungen
-  name: Plattform-Benachrichtigungen
-  enabled: true
-  description: Automatisierte E-Mail-Benachrichtigungen von Blogs oder Foren über
-    neue kuratierte Inhalte mit Abbestellmöglichkeit.
-  examples:
-  - Hinweis auf einen neuen kuratierten Community-Beitrag
-  - Benachrichtigungs-E-Mail mit Abbestell-Link
+  - Dein Paket wurde versendet – voraussichtliche Ankunft morgen
+  - Bestellbestätigung mit Artikelliste und Widerrufsbelehrung
   exclusions: []

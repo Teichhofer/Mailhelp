@@ -1,13 +1,11 @@
 topics:
-- id: vlf
-  name: VLF
+- id: wohnung
+  name: Wohnung
   enabled: true
-  description: alles das mit dem VLF, dem Verband für Ländliche Fachbildung zu tun hat
+  description: Nachrichten zum eigenen Mietverhältnis und zur Hausverwaltung.
   examples:
-  - Infirmationen
-  - Termine
-  - Ankündigungen
-  - Anfragen
+  - Betriebskostenabrechnung
+  - Wartungstermin
   exclusions:
   - Immobilienwerbung
 - id: gemeinderat
@@ -53,94 +51,12 @@ topics:
   - Bewerbervorstellung für eine Leitungsstelle
   - Elternbefragung zu städtischen Kindertageseinrichtungen
   exclusions: []
-- id: landwirtschaftliche-fachveranstaltungen-und-fortbildungen
-  name: Landwirtschaftliche Fachveranstaltungen und Fortbildungen
+- id: termin-und-meeting-koordination
+  name: Termin- und Meeting-Koordination
   enabled: true
-  description: Einladungen, An- und Abmeldungen, Buchungsbestätigungen und Erinnerungen
-    zu Fachseminaren und Webinaren für die Landwirtschaft, etwa zu Biogas, Tiergesundheit
-    oder Pflanzenbau.
+  description: E-Mails zur Vereinbarung, Verschiebung oder Durchführung von Treffen
+    inklusive Zugangsdaten für Online-Konferenzen.
   examples:
-  - Einladung zu einem kostenfreien Webseminar mit Anmeldelink und Programm
-  - Anmeldebestätigung für ein Fachseminar mit Termin und Zugangslink
-  exclusions: []
-- id: verbands-und-vereinskommunikation
-  name: Verbands- und Vereinskommunikation
-  enabled: true
-  description: Rundmails an Verbands- und Vereinsmitglieder sowie Vereinsangelegenheiten
-    wie Mitgliederversammlungen, Vorstandswechsel oder drohende Auflösung.
-  examples:
-  - Rundschreiben eines Verbands an die Mitgliedschaft mit aktuellen Themen
-  - Einladung zur Jahreshauptversammlung mit Tagesordnung im Anhang
-  exclusions: []
-- id: agrarpolitische-interessenvertretung-und-kundgebungen
-  name: Agrarpolitische Interessenvertretung und Kundgebungen
-  enabled: true
-  description: Aufrufe eines Berufsverbands zu Demonstrationen und Kundgebungen sowie
-    Darstellung agrarpolitischer Forderungen und Positionspapiere.
-  examples:
-  - Aufruf zur Teilnahme an einer Kundgebung mit Treffpunkt und Rückmeldefrist
-  - Forderungspapier zu Rahmenbedingungen und EU-Agrarförderung
-  exclusions: []
-- id: pflanzenbau-infoservice-und-fachnewsletter
-  name: Pflanzenbau-Infoservice und Fachnewsletter
-  enabled: true
-  description: Regelmäßige Fachinformationen zum Acker- und Pflanzenbau inklusive
-    Sortenempfehlungen, meist als Anhang verteilt.
-  examples:
-  - Aktueller Infoservice mit Hinweisen zu Feldarbeiten als PDF-Anhang
-  - Sortenempfehlungen für die kommende Anbausaison
-  exclusions: []
-- id: energie-und-netzbetreiberkommunikation
-  name: Energie- und Netzbetreiberkommunikation
-  enabled: true
-  description: Mitteilungen von Netzbetreibern und Energieportalen zu Zählerablesung,
-    Abrechnung sowie Netzanschluss und Erzeugungsanlagen.
-  examples:
-  - Aufforderung, den Zählerstand fristgerecht online zu melden
-  - Stornierung einer Anfrage für eine geplante Erzeugungsanlage
-  exclusions: []
-- id: vertragsabschluss-und-elektronische-signatur
-  name: Vertragsabschluss und elektronische Signatur
-  enabled: true
-  description: Benachrichtigungen zu elektronischen Signaturvorgängen und Vertragsunterlagen,
-    etwa zur Direktvermarktung von Photovoltaikanlagen.
-  examples:
-  - Bitte prüfen und signieren Sie das Vertragsdokument online
-  - Vertragsanlage mit AGB und SEPA-Mandat
-  exclusions: []
-- id: grundbuch-landtausch-und-bankkorrespondenz
-  name: Grundbuch, Landtausch und Bankkorrespondenz
-  enabled: true
-  description: Korrespondenz mit Behörden, Notaren und Banken zu Grundschuldlöschungen,
-    freiwilligem Flurstücktausch und zugehörigen Vorgängen.
-  examples:
-  - Stand der Löschungsbewilligung für eine Grundschuld
-  - Antrag auf freiwilligen Tausch zweier Flurstücke
-  exclusions: []
-- id: behordliche-forder-und-antragsverfahren
-  name: Behördliche Förder- und Antragsverfahren
-  enabled: true
-  description: Benachrichtigungen aus Behördenpostfächern zu Agrarförderanträgen,
-    fehlenden Nachweisen und Fristen.
-  examples:
-  - Neue Nachricht in Ihrem Antragstellerpostfach verfügbar
-  - 'Erinnerung: Nachweise bitte bis zum Stichtag einreichen'
-  exclusions: []
-- id: versicherungs-schadenmitteilungen
-  name: Versicherungs-Schadenmitteilungen
-  enabled: true
-  description: Begleitschreiben von Versicherern zur Übermittlung von Schadensunterlagen
-    als Anhang.
-  examples:
-  - Schadenmitteilung mit Schadennummer und PDF im Anhang
-  - Hinweis, einen fehlenden Anhang zu melden
-  exclusions: []
-- id: agrar-veranstaltungen
-  name: Agrar-Veranstaltungen
-  enabled: true
-  description: Ankündigungen von Feldtagen, Thementagen und Fachveranstaltungen für
-    die Land- und Forstwirtschaft.
-  examples:
-  - Einladung zu einem Feldtag auf einem Betrieb
-  - Ankündigung von Forst-Thementagen
+  - Meeting wird auf einen späteren Tag verschoben
+  - Zugangsdaten für ein Videomeeting
   exclusions: []
