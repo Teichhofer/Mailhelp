@@ -34,7 +34,9 @@ imap:
   # true führt die konfigurierten Ordner zu einer gemeinsamen, anhand von
   # IMAP-INTERNALDATE absteigend sortierten Warteschlange zusammen.
   global_newest_first: true
-  folders: [INBOX]
+  # Alle Standardordner des WEB.DE-Postfachs; die Namen entsprechen den vom
+  # IMAP-Server gelieferten Ordnernamen, nicht den Übersetzungen der Weboberfläche.
+  folders: [INBOX, Drafts, Sent, Spam, Trash]
 telegram:
   user_id: 1009258347
   chat_id: 1009258347

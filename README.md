@@ -153,6 +153,10 @@ Postfach; `--max-mails N` und `--learn N` wählen ebenfalls die global neuesten
 `N` Nachrichten. Eigene Checkpoints je Ordner bleiben erhalten. Bei `false`
 bleibt das bisherige Verhalten bestehen: Die Ordner werden in
 Konfigurationsreihenfolge jeweils neueste UID zuerst bearbeitet.
+Die mitgelieferte WEB.DE-Konfiguration umfasst mit `INBOX`, `Drafts`, `Sent`,
+`Spam` und `Trash` alle Standardordner und verarbeitet damit nicht nur den
+Posteingang. Selbst angelegte Ordner müssen zusätzlich mit ihrem exakten
+IMAP-Namen in `imap.folders` eingetragen werden.
 
 `logging.console`, `logging.file` und `logging.llm` besitzen eigene Aktivierungs- und
 Level-Schalter; `logging.modules` überschreibt das Datei-Grundlevel für einzelne
