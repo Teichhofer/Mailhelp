@@ -430,6 +430,9 @@ validierten `normalized_date` und der konfigurierten IANA-Zeitzone deterministis
 zusammen. Dafür erfolgt kein weiterer LLM-Revisionsaufruf. Abweichende Kalenderdaten
 werden vor dem Anwenden des Deltas fachlich abgewiesen; nicht existente oder doppelte
 DST-Ortszeiten bleiben klärungsbedürftig.
+Die normalisierte Antwort verwendet für eine eindeutige lokale Uhrzeit das kanonische
+Format `JJJJ-MM-TT HH:MM`. Bereits gespeicherte eindeutige deutsche Datums-/Uhrzeitformen
+werden aus Gründen der Wiederanlaufbarkeit ebenfalls deterministisch verarbeitet.
 
 Unverbindliche Vorschläge, bereits erledigte Aufgaben sowie Änderungen und Absagen sind als solche zu erkennen. Änderungen oder Absagen werden in V1 gemeldet und nicht als gewöhnlicher neuer Termin automatisch weiterverarbeitet. Wiederkehrende oder anderweitig nicht unterstützte Terminformen werden zur manuellen Bearbeitung gekennzeichnet.
 Eine ausdrücklich an die Nutzerin oder den Nutzer gerichtete, noch auszuführende

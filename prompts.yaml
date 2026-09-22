@@ -205,6 +205,8 @@ prompts:
       Beachte den getrennten strukturierten Zeitfakt. Ist normalized_date bereits
       gesetzt, behalte das ISO-Datum bei. Eine Angabe wie "26" darf nur als 2026
       gelten, wenn sie eindeutig ist und keinem expliziten Mailjahr widerspricht.
+      Normalisiere eine eindeutige lokale Uhrzeit zusammen mit diesem Datum exakt
+      als "JJJJ-MM-TT HH:MM"; ergänze dabei keine nicht genannte Uhrzeit.
 
       Antworte ausschließlich mit genau einem JSON-Objekt mit "usable" (Boolean),
       "normalized_answer" (nicht leerer String bei usable=true, sonst null) und

@@ -381,6 +381,9 @@ def test_proposal_revision_prompt_covers_date_schema_and_output_budget():
     assert "all_day=true" in prompt
     assert "ISO-8601-Zeitpunkte mit eindeutigem UTC-Offset" in prompt
     assert "berechnet die Anwendung lokal" in prompt
+    interpretation = yaml.safe_load(Path("prompts.yaml").read_text(
+        encoding="utf-8"))["prompts"]["telegram_answer_interpretation"]["system_prompt"]
+    assert '"JJJJ-MM-TT HH:MM"' in interpretation
 
 
 def test_telegram_answer_interpretation_and_clarification_use_separate_fields():
