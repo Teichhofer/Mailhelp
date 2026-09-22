@@ -266,6 +266,9 @@ class LearningMode:
                         headers.append(payload["headers"].get("from", ""))
                 updated = add_irrelevant_senders(blocked, headers)
                 if updated != blocked:
+                    # Persist the union calculated above: learning must never
+                    # replace addresses or manually maintained domains that
+                    # were already present when this run started.
                     self.store.save("irrelevant-senders", updated.model_dump(mode="json"))
         self.output(
             f"{len(accepted)} relevante und {len(rejected)} irrelevante neue Kategorien wurden gespeichert."

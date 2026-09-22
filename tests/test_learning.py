@@ -321,13 +321,22 @@ def test_learning_records_sender_of_rejected_individual_topic(tmp_path):
     analyzer = Analyzer([LearnedCategory(name="Einzel", description="Einzelbeschreibung")])
     mail = FetchedMail("INBOX", 1, 1, raw_mail("sale", "Shop <offer@example.test>"))
     with JsonStore(tmp_path / "state") as store:
+        store.save("irrelevant-senders", {
+            "schema_version": 1,
+            "addresses": ["existing@example.test"],
+            "domains": ["blocked.test"],
+        })
         mode = LearningMode(
             Imap([[mail]]), analyzer, ["INBOX"], 1000, [], tmp_path / "topics.yaml",
             [], tmp_path / "irrelevant_topics.yaml", store,
             input_fn=lambda _prompt: "nein", output_fn=lambda _line: None,
         )
         assert mode.run(1) == 0
-        assert store.load("irrelevant-senders")["addresses"] == ["offer@example.test"]
+        assert store.load("irrelevant-senders") == {
+            "schema_version": 1,
+            "addresses": ["existing@example.test", "offer@example.test"],
+            "domains": ["blocked.test"],
+        }
 
         unchanged = LearningMode(
             Imap([[FetchedMail("INBOX", 1, 2, raw_mail("sale"))]]), analyzer,
@@ -336,7 +345,11 @@ def test_learning_records_sender_of_rejected_individual_topic(tmp_path):
             input_fn=lambda _prompt: "nein", output_fn=lambda _line: None,
         )
         assert unchanged.run(1) == 0
-        assert store.load("irrelevant-senders")["addresses"] == ["offer@example.test"]
+        assert store.load("irrelevant-senders") == {
+            "schema_version": 1,
+            "addresses": ["existing@example.test", "offer@example.test"],
+            "domains": ["blocked.test"],
+        }
 
 
 def test_learning_maps_abstract_rejection_and_contains_mapping_failures(tmp_path):
