@@ -223,6 +223,10 @@ def _provider_error_reason(raw: Any) -> str | None:
     choice = choices[0]
     if not isinstance(choice, dict):
         return "invalid_provider_envelope"
+    # A provider may return a truncated, non-null fragment. It is still a token
+    # limit failure and must not be misclassified as repairable JSON.
+    if choice.get("finish_reason") == "length":
+        return "output_token_limit"
     if "message" not in choice:
         return "message_missing"
     message = choice["message"]
@@ -230,8 +234,6 @@ def _provider_error_reason(raw: Any) -> str | None:
         return "invalid_provider_envelope"
     content = message["content"]
     if content is None:
-        if choice.get("finish_reason") == "length":
-            return "output_token_limit"
         return "message_content_null"
     if isinstance(content, str) and not content.strip():
         return "message_content_empty"

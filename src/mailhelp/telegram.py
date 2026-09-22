@@ -1,7 +1,7 @@
 """Strict Telegram trust boundary and restart-safe proposal dialogs."""
 from __future__ import annotations
 
-from datetime import date, datetime, time as clock_time, timezone
+from datetime import date, datetime, time as clock_time, timedelta, timezone
 from enum import StrEnum
 import hashlib
 import json
@@ -27,9 +27,22 @@ from .models import apply_proposal_revision
 import time, traceback, uuid
 
 
-_NORMALIZED_DATE_TIME = re.compile(
-    r"\s*(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(?:um\s+)?(\d{1,2})(?::(\d{2}))?\s*Uhr\s*",
-    re.IGNORECASE,
+_NORMALIZED_DATE_TIMES = (
+    re.compile(
+        r"\s*(?P<day>\d{1,2})\.(?P<month>\d{1,2})\.(?P<year>\d{4})"
+        r"(?:\s*,)?\s+(?:um\s+)?(?P<hour>\d{1,2})(?::(?P<minute>\d{2}))?"
+        r"\s*Uhr\s*",
+        re.IGNORECASE,
+    ),
+    # The interpretation prompt requires the already resolved date to remain in
+    # ISO form.  Accept that form locally as well instead of sending a simple,
+    # validated clock-time answer through another fallible LLM call.
+    re.compile(
+        r"\s*(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})"
+        r"(?:[T\s]|\s*,\s*)(?:um\s+)?(?P<hour>\d{1,2}):(?P<minute>\d{2})"
+        r"(?:\s*Uhr)?\s*",
+        re.IGNORECASE,
+    ),
 )
 
 
@@ -40,17 +53,20 @@ def deterministic_temporal_revision(proposal: Proposal, question: str,
     if proposal.kind != ProposalKind.EVENT or not any(
             word in question.casefold() for word in ("beginn", "ende", "uhrzeit")):
         return None
-    match = _NORMALIZED_DATE_TIME.fullmatch(normalized_answer)
+    match = next((candidate.fullmatch(normalized_answer)
+                  for candidate in _NORMALIZED_DATE_TIMES
+                  if candidate.fullmatch(normalized_answer) is not None), None)
     if match is None:
         return None
-    day = date(int(match[3]), int(match[2]), int(match[1]))
+    day = date(int(match["year"]), int(match["month"]), int(match["day"]))
     expected = (proposal.known_temporal_facts.date
                 if proposal.known_temporal_facts is not None
                 else proposal.temporal_fact.normalized_date
                 if proposal.temporal_fact is not None else None)
     if expected is None or day != expected:
         raise ContradictoryRevision("Die Antwort widerspricht dem validierten Termindatum")
-    naive = datetime.combine(day, clock_time(int(match[4]), int(match[5] or 0)))
+    naive = datetime.combine(
+        day, clock_time(int(match["hour"]), int(match["minute"] or 0)))
     zone = ZoneInfo(configured_timezone)
     candidates = []
     for fold in (0, 1):
@@ -722,11 +738,13 @@ class ProposalRevisionProcessor:
 class TelegramDialogController:
     """Validate updates, persist offsets, and enforce version-bound decisions."""
 
-    def __init__(self, store: JsonStore, telegram: TelegramTransport, user_id: int, chat_id: int, logger: EventLogger, writers: dict[str, ExternalWriter] | None = None, test_mode: bool = False, configured_timezone: str = "UTC", revision_service: ProposalRevisionService | None = None):
+    def __init__(self, store: JsonStore, telegram: TelegramTransport, user_id: int, chat_id: int, logger: EventLogger, writers: dict[str, ExternalWriter] | None = None, test_mode: bool = False, configured_timezone: str = "UTC", revision_service: ProposalRevisionService | None = None, *, revision_attempts: int = 3, revision_backoff_seconds: int = 60):
         self.store, self.telegram, self.user_id, self.chat_id, self.logger = store, telegram, user_id, chat_id, logger
         self.writers, self.test_mode = writers or {}, test_mode
         self.configured_timezone = configured_timezone
         self.revision_service = revision_service
+        self.revision_attempts = revision_attempts
+        self.revision_backoff_seconds = revision_backoff_seconds
         self.validator: UpdateValidation = AuthorizedUpdateValidator(store, user_id, chat_id)
         self.relevance = RelevanceDialogProcessor(store, telegram, chat_id)
         self.ledger: ActionLedgerPort = ActionLedgerService(store)
@@ -1219,14 +1237,24 @@ class TelegramDialogController:
                 ContradictoryRevision, TechnicalRevisionError, RetryableError,
                 ValidationError, httpx.TransportError))
                           else TechnicalRevisionError(type(exc).__name__))
+            attempts = state.revision_attempts + 1
+            exhausted = attempts >= self.revision_attempts
+            status = (ProposalRevisionStatus.PAUSED if exhausted
+                      else ProposalRevisionStatus.RETRY_REQUIRED)
             self._log_revision_failure(state.mail_id, state.proposal_id,
-                                       state.version, classified,
-                                       ProposalRevisionStatus.RETRY_REQUIRED)
+                                       state.version, classified, status)
             # The question and validated answer deliberately remain untouched.
-            self.store.save(name, state.model_copy(update={
-                "proposal_revision_status": ProposalRevisionStatus.RETRY_REQUIRED,
-            }).model_dump(mode="json"))
-            self.telegram.send(self.chat_id, "Die interne Verarbeitung der gespeicherten Antwort ist verzögert.")
+            updated = state.model_copy(update={
+                "proposal_revision_status": status,
+                "revision_attempts": attempts,
+                "next_revision_at": (None if exhausted else datetime.now(timezone.utc) +
+                                     timedelta(seconds=self.revision_backoff_seconds)),
+            })
+            self.store.save(name, updated.model_dump(mode="json"))
+            self.telegram.send(self.chat_id, (
+                "Die Überarbeitung der gespeicherten Antwort wurde nach mehreren Versuchen pausiert. Die Antwort bleibt erhalten."
+                if exhausted else
+                "Die interne Verarbeitung der gespeicherten Antwort ist verzögert."))
             return
         if deterministic:
             self.logger.event("INFO", "analysis", "proposal_revision_delta_applied",
@@ -1236,6 +1264,7 @@ class TelegramDialogController:
         self.send_proposal(revised)
         self.store.save(name, state.model_copy(update={
             "proposal_revision_status": ProposalRevisionStatus.COMPLETED,
+            "next_revision_at": None,
         }).model_dump(mode="json"))
         self.logger.event("INFO", "telegram.dialog", "answer_revision_completed",
                           mail_id=state.mail_id, proposal_id=state.proposal_id,
@@ -1272,7 +1301,9 @@ class TelegramDialogController:
             state = self.store.load_model(name, ProposalClarificationState)
             assert isinstance(state, ProposalClarificationState)
             if (state.question_status == QuestionStatus.ANSWERED and
-                    state.proposal_revision_status == ProposalRevisionStatus.RETRY_REQUIRED):
+                    state.proposal_revision_status == ProposalRevisionStatus.RETRY_REQUIRED and
+                    (state.next_revision_at is None or
+                     state.next_revision_at <= datetime.now(timezone.utc))):
                 self._revise_answered(state)
 
     def _resume_revision(self) -> None:

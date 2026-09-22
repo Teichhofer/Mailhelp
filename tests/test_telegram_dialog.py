@@ -150,6 +150,29 @@ def test_deterministic_start_revision_uses_validated_day_without_llm(tmp_path):
         assert applied[1]["new_version"] == 2
 
 
+@pytest.mark.parametrize("normalized", [
+    "09.10.2026, 17:30 Uhr",
+    "2026-10-09 17:30",
+    "2026-10-09T17:30 Uhr",
+])
+def test_deterministic_end_revision_accepts_normalized_time_formats(normalized):
+    item = proposal(
+        kind="event", status="needs_clarification",
+        open_questions=["Wann endet der Termin?"],
+        start="2026-10-09T16:00:00+02:00", end=None,
+        temporal_fact={"raw_text": "09. Oktober 2026",
+                       "normalized_date": "2026-10-09",
+                       "year_source": "explicit_mail", "status": "resolved"},
+    )
+
+    revised = deterministic_temporal_revision(
+        item, item.open_questions[0], normalized, "Europe/Berlin")
+
+    assert revised is not None
+    assert revised.end.isoformat() == "2026-10-09T17:30:00+02:00"
+    assert revised.status == ProposalStatus.PENDING_CONFIRMATION
+
+
 def test_deterministic_temporal_revision_rejects_wrong_day_and_dst_edges():
     item = proposal(kind="event", status="needs_clarification",
                     open_questions=["Wann beginnt der Termin?"],
@@ -923,7 +946,7 @@ def test_clarification_schema_migration_and_validation(tmp_path):
               "version":1, "question":"Welches Datum?"}
         store.save(name, {**base, "normalized_answer":"2026-10-21"})
         migrated=store.load_model(name, ProposalClarificationState)
-        assert migrated.schema_version == 2 and migrated.answer_status == AnswerStatus.VALID
+        assert migrated.schema_version == 3 and migrated.answer_status == AnswerStatus.VALID
         assert store.load(name)["normalized_answer"] == "2026-10-21"
         store.save(name, base)
         open_state=store.load_model(name, ProposalClarificationState)
@@ -936,6 +959,12 @@ def test_clarification_schema_migration_and_validation(tmp_path):
         ProposalClarificationState(mail_id="a"*24, proposal_id="p1", version=1,
                                    question="Datum?", answer_status=AnswerStatus.INVALID,
                                    proposal_revision_status=ProposalRevisionStatus.RETRY_REQUIRED)
+    with pytest.raises(ValidationError, match="UTC-Offset"):
+        ProposalClarificationState(
+            mail_id="a"*24, proposal_id="p1", version=1, question="Datum?",
+            question_status="answered", answer_status="valid",
+            normalized_answer="2026-10-21", proposal_revision_status="retry_required",
+            next_revision_at="2026-09-22T12:00:00")
 
 
 def test_clarification_recovery_edge_paths(tmp_path):

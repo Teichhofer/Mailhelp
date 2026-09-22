@@ -177,6 +177,7 @@ class Analyzer:
                     revision_route=("token_limit_retry" if token_retry_used else "initial_revision")
                     if step == "proposal_revision" else "standard",
                 )
+                route_failures = 0
             except (ProviderResponseInvalid, RetryableError) as exc:
                 if (isinstance(exc, ProviderResponseInvalid)
                         and exc.reason == "output_token_limit"
@@ -208,6 +209,9 @@ class Analyzer:
                 repair = "provider_retry"
                 continue
             except InvalidJson as exc:
+                # The provider request itself succeeded; a later content repair
+                # must not consume the next provider-failure allowance.
+                route_failures = 0
                 if used["json_repair"] >= limits["json_repair"]:
                     raise LlmInvalidJson(step) from exc
                 used["json_repair"] += 1
@@ -279,6 +283,8 @@ class Analyzer:
         # particular, a resolved ISO date must not be degraded back to raw text.
         if proposal.temporal_fact is not None:
             context["temporal_fact"] = proposal.temporal_fact.model_dump(mode="json")
+        if proposal.known_temporal_facts is not None:
+            context["known_temporal_facts"] = proposal.known_temporal_facts.model_dump(mode="json")
         payload = {
             "proposal_fields": context,
             "question": question,
@@ -293,18 +299,23 @@ class Analyzer:
             "question": question, "normalized_answer": authorized_answer,
             "allowed_changes": retry_fields,
         }
-        def validate_delta(raw: Any) -> ProposalRevisionDelta:
+        if retry_payload is not None:
+            for fact_name in ("temporal_fact", "known_temporal_facts"):
+                if fact_name in context:
+                    retry_payload["proposal_fields"][fact_name] = context[fact_name]
+        def validate_delta(raw: Any) -> Proposal:
             delta = ProposalRevisionDelta.model_validate(raw)
             if delta.answered_question != question:
                 raise ValueError("Das Delta beantwortet nicht die angeforderte Frage")
-            return delta
+            # Validate the complete successor inside the bounded repair loop so
+            # business-rule failures are reported to the model before success is logged.
+            return validate_revision_successor(proposal, apply_proposal_revision(proposal, delta))
 
-        call_id, delta = self._classified_run(
+        call_id, revised = self._classified_run(
             "proposal_revision", payload,
             validate_delta, schema=ProposalRevisionDelta,
             token_retry_payload=retry_payload,
         )
-        revised = apply_proposal_revision(proposal, delta)
         recorder = getattr(self.client, "logger", None)
         if recorder is not None:
             recorder.event("INFO", "analysis", "proposal_revision_delta_applied",

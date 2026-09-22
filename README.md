@@ -518,7 +518,8 @@ Zusätzlich führt Mailhelp im Konfigurationsverzeichnis neben `topics.yaml` und
 `irrelevant_topics.yaml` die lesbare Datei `irrelevant-senders.json`. Sie gilt
 gemeinsam für Test- und Produktivmodus. Ihre `addresses` werden im Lernlauf
 automatisch um die Absender von Nachrichten ergänzt, die einer abgelehnten Kategorie zugeordnet
-wurden. Unter `domains` können vollständige Absenderdomains ohne `@` eingetragen
+wurden. Bereits vorhandene Adressen werden dabei nicht ersetzt, und manuell
+gepflegte Domains bleiben unverändert erhalten. Unter `domains` können vollständige Absenderdomains ohne `@` eingetragen
 werden, etwa `newsletter.example`. Exakte Adressen und Domains werden bereits vor
 der inhaltlichen LLM-Relevanzprüfung verglichen; passende Nachrichten gelten ohne
 Übermittlung ihres Inhalts an das LLM als irrelevant. Alle Einträge sind

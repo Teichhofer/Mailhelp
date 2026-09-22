@@ -205,6 +205,8 @@ prompts:
       Beachte den getrennten strukturierten Zeitfakt. Ist normalized_date bereits
       gesetzt, behalte das ISO-Datum bei. Eine Angabe wie "26" darf nur als 2026
       gelten, wenn sie eindeutig ist und keinem expliziten Mailjahr widerspricht.
+      Normalisiere eine eindeutige lokale Uhrzeit zusammen mit diesem Datum exakt
+      als "JJJJ-MM-TT HH:MM"; ergänze dabei keine nicht genannte Uhrzeit.
 
       Antworte ausschließlich mit genau einem JSON-Objekt mit "usable" (Boolean),
       "normalized_answer" (nicht leerer String bei usable=true, sonst null) und
@@ -221,9 +223,11 @@ prompts:
       Sachangaben. Antworte ausschließlich als JSON-Objekt mit genau dem Feld
       "message", dessen Wert ein nicht leerer String ist.
   proposal_revision:
-    parameters: {temperature: 0.0, max_tokens: 1200}
+    parameters: {temperature: 0.0, max_tokens: 2400}
     output_token_retry:
-      parameters: {temperature: 0.0, max_tokens: 600}
+      # Reasoning and the visible delta share this budget; never reduce it after
+      # a length stop.
+      parameters: {temperature: 0.0, max_tokens: 4000}
       change_fields: [title, description, due, start, end, all_day, location, video_link]
       system_prompt: |
         Gib ohne Begründung nur das kleinste JSON-Delta aus. Es enthält exakt
@@ -245,6 +249,9 @@ prompts:
       temporal_fact ist schreibgeschützter Kontext: Ein aufgelöstes
       normalized_date darf nie zum bloßen raw_text reduziert oder durch eine
       widersprechende zweistellige Jahreszahl ersetzt werden.
+      known_temporal_facts ist ebenfalls schreibgeschützter Kontext. Bewahre ein
+      bekanntes Datum und eine bekannte Beginnzeit; eine Datumsantwort darf
+      einen zeitgebundenen Termin niemals ganztägig machen.
   learning_classification:
     # Reasoning-capable providers count hidden reasoning and the JSON response
     # against this limit. The default 2,000-token budget can therefore end at
