@@ -12,6 +12,7 @@ from mailhelp.analysis import (ContradictoryRevision, LlmInvalidJson,
                                LlmSchemaValidationFailed,
                                LlmTokenLimitExceeded, validate_revision_successor)
 from mailhelp.models import (ActionLedger, ActionLedgerEntry, AnswerStatus, MailState, Proposal,
+                             ProposalNotification,
                              ProposalClarificationState, ProposalRevisionStatus, ProposalStatus,
                              QuestionStatus, RelevanceDialog, RelevanceDialogStatus,
                              TelegramDialogState)
@@ -306,6 +307,76 @@ def test_persist_order_and_restart_repair_use_current_proposal(tmp_path):
         assert repaired.status == ProposalStatus.CREATED
         assert repaired.external_id == "external-1"
         assert repaired.external_link == "https://example.test/item"
+
+
+def test_revision_replaces_notification_version_and_validates_mail_state(tmp_path):
+    mail_id = "a" * 24
+    original = proposal(source_mail_id=mail_id, status="needs_clarification",
+                        open_questions=["Welches Datum?"])
+    unrelated = proposal(id="p2", source_mail_id=mail_id)
+    state = MailState(
+        id=mail_id, config_fingerprint="f" * 64,
+        imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":1,"uid":1},
+        proposals=[unrelated, original],
+        proposal_notifications=[ProposalNotification(
+            proposal_id=original.id, proposal_version=1, status="completed")],
+    )
+    revised = proposal(source_mail_id=mail_id, version=2)
+    with JsonStore(tmp_path) as store:
+        store.save("mail-" + mail_id, state.model_dump(mode="json"))
+        dialog, transport, _ = controller(store)
+
+        dialog.persist(revised)
+
+        saved = store.load_model("mail-" + mail_id, MailState)
+        assert saved.proposals == [unrelated, revised]
+        assert saved.proposal_notifications == [ProposalNotification(
+            proposal_id=revised.id, proposal_version=2, status="pending")]
+        dialog.send_proposal(revised)
+        delivered = store.load_model("mail-" + mail_id, MailState)
+        assert delivered.proposal_notifications[0].status == "completed"
+        assert len(transport.sent) == 1
+
+
+def test_restart_delivers_persisted_revision_before_marking_it_completed(tmp_path):
+    mail_id = "a" * 24
+    original = proposal(source_mail_id=mail_id, status="needs_clarification",
+                        open_questions=["Welches Datum?"])
+    state = MailState(
+        id=mail_id, config_fingerprint="f" * 64,
+        imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":1,"uid":1},
+        proposals=[original],
+        proposal_notifications=[ProposalNotification(
+            proposal_id=original.id, proposal_version=1, status="completed")],
+    )
+    answered = ProposalClarificationState(
+        mail_id=mail_id, proposal_id=original.id, version=1,
+        question="Welches Datum?", question_status=QuestionStatus.ANSWERED,
+        answer_status=AnswerStatus.VALID, normalized_answer="2026-10-21",
+        proposal_revision_status=ProposalRevisionStatus.RETRY_REQUIRED)
+    name = "clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1"
+    with JsonStore(tmp_path) as store:
+        store.save("mail-" + mail_id, state.model_dump(mode="json"))
+        first, _, _ = controller(store)
+        first.persist(proposal(source_mail_id=mail_id, version=2))
+        store.save(name, answered.model_dump(mode="json"))
+
+        restarted, transport, _ = controller(store)
+        mail = store.load_model("mail-" + mail_id, MailState)
+        mail.proposal_notifications[0].status = "sending"
+        store.save("mail-" + mail_id, mail.model_dump(mode="json"))
+        restarted._revise_answered(answered)
+        assert not transport.sent
+        assert store.load(name)["proposal_revision_status"] == "retry_required"
+        mail.proposal_notifications[0].status = "pending"
+        store.save("mail-" + mail_id, mail.model_dump(mode="json"))
+        restarted._revise_answered(answered)
+
+        assert len(transport.sent) == 1
+        assert store.load_model("mail-" + mail_id, MailState).proposal_notifications[0].status == "completed"
+        assert store.load(name)["proposal_revision_status"] == "completed"
+        restarted._revise_answered(answered)
+        assert len(transport.sent) == 1
 
 
 def test_created_action_is_booked_and_duplicate_needs_second_confirmation(tmp_path):
