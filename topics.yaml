@@ -60,3 +60,30 @@ topics:
   - Meeting wird auf einen späteren Tag verschoben
   - Zugangsdaten für ein Videomeeting
   exclusions: []
+- id: personlicher-smalltalk-private-korrespondenz
+  name: Persönlicher Smalltalk & private Korrespondenz
+  enabled: true
+  description: Lockere private Nachrichten über Hobbys, Serien, Musik, Schule und
+    Alltagsfragen sowie kurze persönliche Zwischenmeldungen.
+  examples:
+  - Frage nach der Lieblingsserie oder dem Lieblingsbuch
+  - Kurze private Rückmeldung wie 'Alles gut' innerhalb eines Gesprächs
+  exclusions: []
+- id: vereins-verbands-organisationskommunikation
+  name: Vereins-, Verbands- & Organisationskommunikation
+  enabled: true
+  description: 'Organisatorische Korrespondenz rund um Vereine und Verbände: Presseartikel-Einreichungen,
+    Vorstandsarbeit, Einladungen, Petitionen und interne Kurznotizen.'
+  examples:
+  - Vereinsbericht mit Foto an die Lokalredaktion eingereicht
+  - Newsletter einer Petitionsplattform mit Aufruf zum Unterzeichnen
+  exclusions: []
+- id: serviceauftrage-reparaturanfragen
+  name: Serviceaufträge & Reparaturanfragen
+  enabled: true
+  description: Übermittlung von Wartungs- und Instandsetzungsaufträgen, teils als
+    dringende Reparaturanfrage einzelner Bauteile.
+  examples:
+  - Ausgefülltes Serviceauftragsformular im Anhang
+  - Eilige Reparaturanfrage für die Drosselklappe eines Fahrzeugs
+  exclusions: []

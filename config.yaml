@@ -1,53 +1,71 @@
-# IANA-Nutzerzeitzone für Analyse und Google-Kalendertermine. Sie wird zusammen mit
-# ursprünglichem/geprüftem Date-Header und IMAP-INTERNALDATE an das LLM gegeben;
-# Zeitwerte selbst müssen zusätzlich einen eindeutigen UTC-Offset enthalten.
 timezone: Europe/Berlin
-# Intervall zwischen regulären IMAP-Zyklen. Offene Telegram-Dialoge werden
-# stattdessen ohne Zusatzpause fortlaufend per Long-Polling bedient.
 poll_interval_seconds: 60
 test_mode: true
-# Im Testmodus bleiben Todoist-Schreibzugriffe simuliert; ausdrücklich bestätigte
-# Termine werden dennoch tatsächlich in Google Kalender angelegt.
-# Mailhelp ergänzt je nach test_mode automatisch /test oder /production.
 data_directory: data
-# Aufbewahrung gilt ausschließlich für sicher abgeschlossene Vorgänge. Ganze
-# Zahlen bedeuten 1..3650 Tage. "disabled" entfernt den Inhalt beim nächsten
-# Lauf sofort; "unlimited" bewahrt ihn unbegrenzt auf. Technische Identität,
-# Vorschlagsversionen, Idempotenzschlüssel und externe Ergebnisse bleiben erhalten.
 retention:
   full_mail_days: 30
   debug_llm_days: disabled
-# Maximale Zahl gleichzeitiger Relevanzprüfungen und Einzelklassifikationen im
-# Lernmodus. Die abschließende Abstraktion bleibt ein einzelner serieller Aufruf.
 learning:
   parallel_llm_calls: 10
 imap:
   host: imap.web.de
   port: 993
   connection_mode: ssl
-  # Nachrichten mit einem IMAP-Empfangszeitpunkt vor dieser Grenze werden im
-  # regulären Abruf nicht verarbeitet; der Lernmodus ignoriert diese Grenze.
-  historical_start: "2026-09-15T00:00:00+02:00"
-  # Pro Polling-Zyklus werden höchstens so viele Nachrichten geladen und direkt
-  # verarbeitet. Das verhindert lange stille Erstabrufe großer Postfächer.
+  historical_start: '2026-09-15T00:00:00+02:00'
   batch_size: 25
-  # true führt die konfigurierten Ordner zu einer gemeinsamen, anhand von
-  # IMAP-INTERNALDATE absteigend sortierten Warteschlange zusammen.
   global_newest_first: true
-  # Alle Standardordner des WEB.DE-Postfachs; die Namen entsprechen den vom
-  # IMAP-Server gelieferten Ordnernamen, nicht den Übersetzungen der Weboberfläche.
-  folders: [INBOX, Drafts, Sent, Spam, Trash]
+  folders:
+  - INBOX
+  - Drafts
+  - Sent
+  - Spam
+  - Trash
+  - Amazon
+  - Auktionsarchiv
+  - Christina Immel
+  - Claudia
+  - Eis.de
+  - Entwurf
+  - Gesendet
+  - Homeschooling
+  - Jenny
+  - Katrin
+  - Landratsamt
+  - Landwirtschaftsamt
+  - Landwirtschaftsamt 1
+  - Lycos
+  - Maren
+  - Marlene
+  - Novatech
+  - Papierkorb
+  - PayPal
+  - Postausgang
+  - RobotikHardware
+  - Stallbau
+  - Terashop
+  - Unerwünscht
+  - VHM
+  - VLF
+  - Verena
+  - Versuch
+  - alt
+  - audible
+  - be2
+  - brainfloor
+  - getdigital
+  - heise
+  - kwick
+  - mycsharp
+  - topagrar
+  - xing
 telegram:
   user_id: 1009258347
   chat_id: 1009258347
 targets:
-  # Echte Todoist-Projekt-ID (nicht Projektname, URL oder Alias).
-  todoist_project: "6hX5f7MxfC4Qmcrv"
-  # Echte Google-Calendar-ID (häufig die Kalenderadresse).
-  google_calendar: "primary"
+  todoist_project: 6hX5f7MxfC4Qmcrv
+  google_calendar: primary
 limits:
   max_mail_bytes: 1000000
-  # Ausschließlich für die vorgezogene, unvollständige Telegram-Headeranzeige.
   max_header_bytes: 64000
   max_display_header_characters: 500
   max_mime_parts: 100
@@ -56,20 +74,37 @@ limits:
   max_html_tags: 20000
   max_html_depth: 100
   max_llm_payload_bytes: 500000
-  # Eine Mail benötigt im Normalfall zwei LLM-Aufrufe (Relevanz und Analyse).
-  # Der Höchstwert verhindert deshalb, dass --max-mails 100 bereits nach etwa
-  # 50 Mails am lokalen Minutenbudget angehalten wird.
   llm_calls_per_minute: 600
 retries:
   provider_retry: 1
   json_repair: 1
   schema_repair: 1
 timeouts:
-  imap: {timeout_seconds: 30, retries: 2, initial_backoff_seconds: 1, max_backoff_seconds: 8}
-  telegram: {timeout_seconds: 35, retries: 2, initial_backoff_seconds: 1, max_backoff_seconds: 8}
-  openrouter: {timeout_seconds: 30, retries: 2, initial_backoff_seconds: 1, max_backoff_seconds: 8}
-  todoist: {timeout_seconds: 30, retries: 2, initial_backoff_seconds: 1, max_backoff_seconds: 8}
-  google_calendar: {timeout_seconds: 30, retries: 2, initial_backoff_seconds: 1, max_backoff_seconds: 8}
+  imap:
+    timeout_seconds: 30
+    retries: 2
+    initial_backoff_seconds: 1
+    max_backoff_seconds: 8
+  telegram:
+    timeout_seconds: 35
+    retries: 2
+    initial_backoff_seconds: 1
+    max_backoff_seconds: 8
+  openrouter:
+    timeout_seconds: 30
+    retries: 2
+    initial_backoff_seconds: 1
+    max_backoff_seconds: 8
+  todoist:
+    timeout_seconds: 30
+    retries: 2
+    initial_backoff_seconds: 1
+    max_backoff_seconds: 8
+  google_calendar:
+    timeout_seconds: 30
+    retries: 2
+    initial_backoff_seconds: 1
+    max_backoff_seconds: 8
   telegram_poll_seconds: 30
 logging:
   directory: logs
@@ -95,7 +130,5 @@ logging:
     max_bytes: 10000000
     backup_count: 5
     retention_days: 30
-    # Bewusste Opt-in-Konfiguration: vollständige System-/User-Prompts und
-    # Modellnachrichten werden (nach Geheimnisbereinigung) ins LLM-Log geschrieben.
     include_requests: true
     include_responses: true

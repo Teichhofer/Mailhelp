@@ -116,3 +116,185 @@ topics:
   - Dein Paket wurde versendet – voraussichtliche Ankunft morgen
   - Bestellbestätigung mit Artikelliste und Widerrufsbelehrung
   exclusions: []
+- id: crowdfunding-spendenaufrufe
+  name: Crowdfunding & Spendenaufrufe
+  enabled: true
+  description: Mails zu Crowdfunding-Kampagnen, Projektvorstellungen und Aufrufen
+    zur finanziellen Unterstützung gemeinnütziger oder Community-Projekte.
+  examples:
+  - Unterstütze unsere neue Kampagne für ein Gemeinschaftsprojekt – jetzt spenden!
+  - Neue Projekte auf der Plattform entdecken und finanzieren
+  exclusions: []
+- id: community-redaktionsinhalte
+  name: Community- & Redaktionsinhalte
+  enabled: true
+  description: Redaktionell aufbereitete Inhalte wie Interviews, Blogbeiträge und
+    Themen rund um Vereine, Fankultur und Community.
+  examples:
+  - 'Interview: Wie Fans die Vereinskultur mitgestalten'
+  - 'Blogbeitrag: Hinter den Kulissen einer Faninitiative'
+  exclusions: []
+- id: newsletter-betrieb-feedback
+  name: Newsletter-Betrieb & Feedback
+  enabled: true
+  description: Funktionale und administrative Mailbestandteile wie Feedback-Umfragen,
+    Abmeldeoptionen, Web-Version, Impressum und rechtliche Hinweise.
+  examples:
+  - Wie gefällt dir unser Newsletter? Bewerte ihn in unserer Umfrage
+  - Abmelden | Webversion | Impressum
+  exclusions: []
+- id: phishing-gefalschte-absenderidentitat
+  name: Phishing & gefälschte Absenderidentität
+  enabled: true
+  description: Täuschungsversuche, die über Kontoprobleme, gefälschte Rechnungen oder
+    Behörden-/Markenimitation unter Zeitdruck zur Preisgabe von Zugangs- oder Zahlungsdaten
+    drängen.
+  examples:
+  - Drohung mit Kontosperrung, Zahlungsdaten über Link aktualisieren
+  - Gefälschte Steuerbehörden-Mail von einer Lookalike-Domain
+  exclusions: []
+- id: vorschuss-gewinnbetrug
+  name: Vorschuss- & Gewinnbetrug
+  enabled: true
+  description: Unverlangte Lockmails mit erfundenen Lotteriegewinnen, Spenden, Erbschaften
+    oder nicht abgeholten Geldern, die zu Kontaktaufnahme, Vorauszahlungen oder Datenpreisgabe
+    verleiten sollen.
+  examples:
+  - Angeblicher Gewinn einer internationalen Verlosung mit befristeter Anspruchsfrist
+  - Vorgeschobene Stiftungsspende, erreichbar nur über eine private Freemail-Adresse
+  exclusions: []
+- id: romance-scam-unverlangte-kontaktanbahnung
+  name: Romance-Scam & unverlangte Kontaktanbahnung
+  enabled: true
+  description: Flirtende oder Kennenlern-Nachrichten fremder Absender, oft mit verschleierten
+    Kurzlinks oder unpassenden Absenderidentitäten, bis hin zu Grooming-Warnsignalen.
+  examples:
+  - Fremde Person flirtet unverlangt und schlägt ein Treffen über Kurzlink vor
+  - Kennenlernfragen einer unbekannten Adresse mit betont geringem Alter im Betreff
+  exclusions: []
+- id: spam-verdachtige-massenmails
+  name: Spam & verdächtige Massenmails
+  enabled: true
+  description: Unbestellte Nachrichten mit Neugier-Lockbetreff, Wortsalat, Absender-Betreff-Diskrepanzen
+    oder angeblichen Bestellbestätigungen als Klickköder.
+  examples:
+  - Kryptischer Lockbetreff mit nahezu leerem Inhalt von generischem Freemail-Konto
+  - Angebliche Bestellbestätigung ohne echte Bestelldaten, nur werblicher Text
+  exclusions: []
+- id: leere-oder-nichtssagende-nachrichten
+  name: Leere oder nichtssagende Nachrichten
+  enabled: true
+  description: Mails ohne Betreff und Text sowie fragmentarische, kontextlose Floskeln
+    ohne erkennbares Anliegen.
+  examples:
+  - E-Mail mit leerem Betreff und leerem Nachrichtenfeld
+  - Nur bruchstückhafte Floskeln wie 'Passt schon' ohne Kontext
+  exclusions: []
+- id: job-empfehlungs-newsletter
+  name: Job-Empfehlungs-Newsletter
+  enabled: true
+  description: Automatisch generierte Stellenvorschläge von Karriereplattformen, inklusive
+    Abfrage des Job-Suchstatus und regionaler Bündelung.
+  examples:
+  - Personalisierte Jobvorschläge mit Link zur Webansicht
+  - 'Klick-Abfrage: aktiv suchend, offen für Angebote oder nicht suchend'
+  exclusions: []
+- id: stellenangebote-agrar-landwirtschaft
+  name: Stellenangebote Agrar & Landwirtschaft
+  enabled: true
+  description: Offene Positionen in Landwirtschaft, Tierhaltung, Ackerbau, Agrarhandel,
+    Agrarberatung sowie Biogas und Biodiversität.
+  examples:
+  - Vollzeitstelle als Landwirt mit Gehaltsangabe
+  - Fachberater für Agrarprodukte im Außendienst gesucht
+  exclusions: []
+- id: stellenangebote-technik-produktion-logistik-versorgung
+  name: Stellenangebote Technik, Produktion, Logistik & Versorgung
+  enabled: true
+  description: Jobs in Fertigung, Lager und Fahrberufen, im technischen Vertrieb,
+    in der Zeitarbeit, bei Stadtwerken und im öffentlichen Dienst.
+  examples:
+  - Maschinenbediener im Schichtdienst über Zeitarbeit gesucht
+  - Fachkraft für Wasserversorgung bei einem Stadtwerk
+  exclusions: []
+- id: ausbildung-berufseinstieg
+  name: Ausbildung & Berufseinstieg
+  enabled: true
+  description: Ausbildungsplätze, duale Studienplätze, Umschulungen sowie Karriere-Ratgeber
+    und Tipps zu Nebenverdienst.
+  examples:
+  - Ausbildungsplatz Fachinformatiker Systemintegration
+  - Ratgeber zu gut bezahlten Ausbildungsberufen
+  exclusions: []
+- id: marketing-newsletter-produktwerbung
+  name: Marketing-Newsletter & Produktwerbung
+  enabled: true
+  description: Kommerzielle Werbemails mit Angeboten, Gewinnspielen, App- und Gamification-Promotion
+    sowie Social-Media-Bewerbung, teils nur als HTML mit Online-Ansicht.
+  examples:
+  - 'App-Mail: Gratis-In-Game-Münzen abholen'
+  - Gewinnspiel mit persönlichem Aktionscode für Sofortrente und Sachpreise
+  exclusions: []
+- id: produkt-updates-software-ankundigungen
+  name: Produkt-Updates & Software-Ankündigungen
+  enabled: true
+  description: Ankündigungen neuer Softwareversionen, Funktionen, Beta-Rollouts und
+    Changelogs, oft mit Download-Links.
+  examples:
+  - Major-Release mit Feature-Übersicht und Download-Link
+  - Neues Tablet-Layout und Warteliste für ein Analyse-Tool
+  exclusions: []
+- id: vertriebs-nachfass-reputationsmanagement
+  name: Vertriebs-Nachfass & Reputationsmanagement
+  enabled: true
+  description: Follow-up-Mails mit Angebot zur Entfernung negativer Google-Bewertungen,
+    Rückruf- und Terminanfragen, oft automatisiert über CRM versendet.
+  examples:
+  - Angebot zur Bearbeitung von 1-Stern-Bewertungen mit Rückrufbitte
+  - CRM-Nachfass-Mail nach verpasstem Anruf mit Terminvorschlag
+  exclusions: []
+- id: agb-vertragsanderungen
+  name: AGB- & Vertragsänderungen
+  enabled: true
+  description: Offizielle Benachrichtigungen über aktualisierte Nutzungsbedingungen,
+    Funktions- und Rechtsänderungen inklusive Inkrafttreten und Kündigungsoptionen.
+  examples:
+  - Neue AGB mit Inkrafttretensdatum und Zusammenfassung der Änderungen
+  - Neue Download-Limits im Gratis-Tarif ab angekündigtem Update
+  exclusions: []
+- id: automatische-system-statusmails
+  name: Automatische System- & Statusmails
+  enabled: true
+  description: Maschinell erzeugte Nachrichten wie Abwesenheitsnotizen, Betriebsferien-Ankündigungen,
+    Cloud-Freigaben und No-Reply-Versand.
+  examples:
+  - Abwesenheitsnotiz mit Rückkehrdatum und Vertretungskontakten
+  - 'Cloud-Hinweis: Ordner einer Arbeitsgruppe wurde geteilt'
+  exclusions: []
+- id: rechnungs-kundenkontokommunikation
+  name: Rechnungs- & Kundenkontokommunikation
+  enabled: true
+  description: Transaktionsmails von Anbietern zu Rechnungen, Vertrags- und Tarifinformationen
+    im eigenen Kundenkonto.
+  examples:
+  - Neue Mobilfunkrechnung online im Kundenportal abrufbar
+  - Hinweis auf gesetzliche Tarifberatung und E-Mail-Rechnungsoption
+  exclusions: []
+- id: reise-unterkunft
+  name: Reise & Unterkunft
+  enabled: true
+  description: Buchungsbezogene Kommunikation wie Check-in-Bestätigungen von Gastgebern
+    und Anfragen nach Übernachtungsmöglichkeiten.
+  examples:
+  - Check-in-Zeit und Anreiseadresse der Ferienwohnung
+  - Anfrage nach Unterkunft für einen konkreten Zeitraum mit Rückrufbitte
+  exclusions: []
+- id: fach-themennewsletter
+  name: Fach- & Themennewsletter
+  enabled: true
+  description: Redaktionelle und fachliche Newsletter zu Themen wie Wein, Hörbücher,
+    Reise und Outdoor, Podcasts, Energie/Biogas sowie E-Mail-Tipps.
+  examples:
+  - Weinempfehlungen und Praxistipps für den Weinkauf
+  - Beratungsangebot zur Stromvermarktung aus Biogasanlagen
+  exclusions: []
