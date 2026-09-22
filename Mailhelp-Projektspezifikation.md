@@ -684,6 +684,10 @@ Der beim ersten Anlegen gespeicherte Fingerprint umfasst `config.yaml`, `prompts
 Vorschläge werden unabhängig vom Abschluss der Mail sowohl als unveränderliche
 Version als auch als aktueller Stand gespeichert. Der Telegram-Dialog stößt einen
 Schreibvorgang ausschließlich nach einer passenden, aktuellen Versionsbestätigung an.
+Bei einer Überarbeitung werden Vorschlag und versionsgebundener Benachrichtigungsstatus
+gemeinsam als vollständig validierter Mailzustand gespeichert. Eine bereits vorhandene
+neuere Version schließt die Revision beim Neustart nur dann ab, wenn ihre Meldung
+nachweislich versandt wurde; eine noch ausstehende Meldung wird zuerst zugestellt.
 Nach Neustarts werden `confirmed`, `writing` und `uncertain` wiederaufgenommen. Nur
 `confirmed` darf nach einem ergebnislosen Vorab-Abgleich in `writing` wechseln und den
 ersten Schreibaufruf auslösen. Ein beim Absturz in `writing` verbliebener Vorgang wird

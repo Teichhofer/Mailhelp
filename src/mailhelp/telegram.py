@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
-from .models import (ActionLedger, ActionLedgerEntry, AnswerStatus, MailState, Proposal, ProposalClarificationState, ProposalKind, ProposalRevisionDelta, ProposalRevisionStatus, ProposalStatus, QuestionStatus, RelevanceDialog,
+from .models import (ActionLedger, ActionLedgerEntry, AnswerStatus, MailState, Proposal, ProposalClarificationState, ProposalKind, ProposalNotification, ProposalRevisionDelta, ProposalRevisionStatus, ProposalStatus, QuestionStatus, RelevanceDialog,
                      RelevanceDialogStatus, TelegramDialogState, TelegramOffset,
                      WriteAttemptReference)
 from .integrations import ExternalWriter, execute_confirmed, proposal_is_writable
@@ -799,8 +799,28 @@ class TelegramDialogController:
         if isinstance(state, MailState):
             proposals = [proposal if item.id == proposal.id else item
                          for item in state.proposals]
+            notifications = []
+            for item in proposals:
+                previous_notification = next((
+                    notification for notification in state.proposal_notifications
+                    if (notification.proposal_id, notification.proposal_version) ==
+                    (item.id, item.version)
+                ), None)
+                # Legacy/manual mail states may not track proposal delivery at all.
+                # Do not invent entries for unrelated proposals, but a replaced
+                # version always receives a fresh pending delivery record.
+                if previous_notification is not None:
+                    notifications.append(previous_notification)
+                elif (item.id == proposal.id and
+                      any(old.id == proposal.id for old in state.proposals)):
+                    notifications.append(ProposalNotification(
+                        proposal_id=item.id, proposal_version=item.version))
             changed = proposals != state.proposals
-            state.proposals = proposals
+            changed = changed or notifications != state.proposal_notifications
+            values = state.model_dump(mode="json")
+            values["proposals"] = [item.model_dump(mode="json") for item in proposals]
+            values["proposal_notifications"] = [
+                item.model_dump(mode="json") for item in notifications]
             if proposal.status in {ProposalStatus.WRITING, ProposalStatus.CREATED,
                                    ProposalStatus.FAILED, ProposalStatus.UNCERTAIN}:
                 service = "todoist" if proposal.kind.value == "task" else "google_calendar"
@@ -814,10 +834,12 @@ class TelegramDialogController:
                             (reference.proposal_id, reference.proposal_version, reference.service)]
                 attempts.append(reference)
                 changed = changed or attempts != state.write_attempts
-                state.write_attempts = attempts
+                values["write_attempts"] = [
+                    item.model_dump(mode="json") for item in attempts]
             if changed:
-                state.updated_at = datetime.now(timezone.utc)
-                self.store.save(mail_name, state.model_dump(mode="json"))
+                values["updated_at"] = datetime.now(timezone.utc)
+                validated = MailState.model_validate(values)
+                self.store.save(mail_name, validated.model_dump(mode="json"))
         if proposal.status == ProposalStatus.CREATED:
             self._book_created(proposal)
 
@@ -842,6 +864,18 @@ class TelegramDialogController:
         self.persist(proposal)
         text = format_proposal(proposal, self.configured_timezone)
         mail = self.store.load_model(f"mail-{proposal.source_mail_id}", MailState)
+        if isinstance(mail, MailState):
+            values = mail.model_dump(mode="json")
+            pending = False
+            for notification in values["proposal_notifications"]:
+                if (notification["proposal_id"], notification["proposal_version"]) == (
+                        proposal.id, proposal.version) and notification["status"] == "pending":
+                    notification["status"] = "sending"
+                    pending = True
+            if pending:
+                mail = MailState.model_validate(values)
+                self.store.save(f"mail-{proposal.source_mail_id}",
+                                mail.model_dump(mode="json"))
         sender = mail.display_headers.sender if isinstance(mail, MailState) and mail.display_headers else "—"
         subject = mail.display_headers.subject if isinstance(mail, MailState) and mail.display_headers else "—"
         parts = numbered_message_parts(sender, subject, text)
@@ -869,6 +903,15 @@ class TelegramDialogController:
         markup = {"inline_keyboard": buttons}
         validate_callback_markup(markup)
         self.telegram.send(self.chat_id, parts[-1], markup)
+        if isinstance(mail, MailState):
+            values = mail.model_dump(mode="json")
+            for notification in values["proposal_notifications"]:
+                if (notification["proposal_id"], notification["proposal_version"]) == (
+                        proposal.id, proposal.version):
+                    notification["status"] = "completed"
+            completed = MailState.model_validate(values)
+            self.store.save(f"mail-{proposal.source_mail_id}",
+                            completed.model_dump(mode="json"))
 
     def awaiting_decision(self) -> bool:
         """Return whether processing must wait for an explicit Telegram answer.
@@ -1216,6 +1259,15 @@ class TelegramDialogController:
         name = self._clarification_name(state.mail_id, state.proposal_id, state.version)
         current = self.store.load_model(self._proposal_name(state.mail_id, state.proposal_id), Proposal)
         if isinstance(current, Proposal) and current.version > state.version:
+            mail = self.store.load_model(f"mail-{state.mail_id}", MailState)
+            notification = (next((item for item in mail.proposal_notifications
+                                  if (item.proposal_id, item.proposal_version) ==
+                                  (current.id, current.version)), None)
+                            if isinstance(mail, MailState) else None)
+            if notification is None or notification.status == "pending":
+                self.send_proposal(current)
+            elif notification.status != "completed":
+                return
             self.store.save(name, state.model_copy(update={
                 "proposal_revision_status": ProposalRevisionStatus.COMPLETED,
             }).model_dump(mode="json"))
