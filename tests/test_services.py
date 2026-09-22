@@ -374,8 +374,8 @@ def test_analyzer_revises_proposal_with_separate_inputs_and_retries():
 def test_proposal_revision_prompt_covers_date_schema_and_output_budget():
     step = yaml.safe_load(Path("prompts.yaml").read_text(encoding="utf-8"))["prompts"]["proposal_revision"]
 
-    assert step["parameters"] == {"temperature": 0.0, "max_tokens": 1200}
-    assert step["output_token_retry"]["parameters"]["max_tokens"] == 600
+    assert step["parameters"] == {"temperature": 0.0, "max_tokens": 2400}
+    assert step["output_token_retry"]["parameters"]["max_tokens"] == 4000
     prompt = step["system_prompt"]
     assert "reines Kalenderdatum" in prompt
     assert "all_day=true" in prompt
@@ -472,6 +472,30 @@ def test_revision_payload_carries_resolved_temporal_fact_read_only():
                              "changes": {"due": "2026-10-21"}}])
     Analyzer(client, prompt_config()).revise_proposal(original, "Welches Datum?", "21.10.26")
     assert client.payloads[0]["proposal_fields"]["temporal_fact"]["normalized_date"] == "2026-10-21"
+
+
+def test_revision_payload_preserves_known_start_as_read_only_context():
+    original = proposal(
+        kind="event", status="needs_clarification",
+        open_questions=["Wann endet der Termin?"],
+        known_temporal_facts={
+            "date": "2026-10-09", "start": "2026-10-09T19:00:00+02:00"})
+    client = RetrySequence([ProviderResponseInvalid("output_token_limit"), {
+        "answered_question": "Wann endet der Termin?",
+        "changes": {"end": "2026-10-09T21:00:00+02:00"}}])
+    cfg = prompt_config()
+    cfg.prompts["proposal_revision"].output_token_retry = OutputTokenRetry(
+        system_prompt="short", parameters={"max_tokens": 4000}, change_fields=["end"])
+
+    revised = Analyzer(client, cfg, provider_retries=0).revise_proposal(
+        original, "Wann endet der Termin?", "2026-10-09 21:00")[1]
+
+    assert client.payloads[0]["proposal_fields"]["known_temporal_facts"] == {
+        "date": "2026-10-09", "start": "2026-10-09T19:00:00+02:00"}
+    assert client.payloads[1]["proposal_fields"]["known_temporal_facts"] == {
+        "date": "2026-10-09", "start": "2026-10-09T19:00:00+02:00"}
+    assert revised.start.isoformat() == "2026-10-09T19:00:00+02:00"
+    assert revised.end.isoformat() == "2026-10-09T21:00:00+02:00"
 
 
 def test_revision_rejects_change_away_from_resolved_temporal_fact():

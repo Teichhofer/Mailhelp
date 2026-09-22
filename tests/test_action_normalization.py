@@ -190,3 +190,37 @@ def test_invalid_yearless_day_and_conflicting_explicit_years_are_rejected():
     conflict = normalize_event(event(date_text="21.10.2026",
                                      evidence="2026 widerspricht 2027"), context())
     assert conflict.reason == NormalizationReason.CONFLICTING_CONTEXT
+
+@pytest.mark.parametrize("raw", ["Freitag, den 9. Oktober 2026", "9. Oktober 2026"])
+def test_german_named_date_with_year_and_optional_weekday_is_supported(raw):
+    result = normalize_event(event(date_text=raw, time_text="19:00 Uhr",
+                                   end_time_text=None, time_requirement="timed"), context())
+    assert result.reason == NormalizationReason.MISSING_END_TIME
+    assert result.known_date == date(2026, 10, 9)
+    assert result.known_start == datetime.fromisoformat("2026-10-09T19:00:00+02:00")
+    assert result.raw_value == "19:00 Uhr"
+    assert result.question == "Wann endet der Termin?"
+
+
+def test_german_named_date_rejects_invalid_day_and_conflicting_weekday():
+    invalid = normalize_event(event(date_text="31. Februar 2026"), context())
+    conflict = normalize_event(event(date_text="Donnerstag, den 9. Oktober 2026"), context())
+    assert invalid.reason == NormalizationReason.INVALID_DATE
+    assert conflict.reason == NormalizationReason.INVALID_DATE
+
+@pytest.mark.parametrize("raw", ["Freitag, den 9. Oktober 2026", "9. Oktober 2026"])
+def test_german_named_date_with_year_and_optional_weekday_is_supported(raw):
+    result = normalize_event(event(date_text=raw, time_text="19:00 Uhr",
+                                   end_time_text=None, time_requirement="timed"), context())
+    assert result.reason == NormalizationReason.MISSING_END_TIME
+    assert result.known_date == date(2026, 10, 9)
+    assert result.known_start == datetime.fromisoformat("2026-10-09T19:00:00+02:00")
+    assert result.raw_value == "19:00 Uhr"
+    assert result.question == "Wann endet der Termin?"
+
+
+def test_german_named_date_rejects_invalid_day_and_conflicting_weekday():
+    invalid = normalize_event(event(date_text="31. Februar 2026"), context())
+    conflict = normalize_event(event(date_text="Donnerstag, den 9. Oktober 2026"), context())
+    assert invalid.reason == NormalizationReason.INVALID_DATE
+    assert conflict.reason == NormalizationReason.INVALID_DATE

@@ -1,7 +1,7 @@
 """Strict Telegram trust boundary and restart-safe proposal dialogs."""
 from __future__ import annotations
 
-from datetime import date, datetime, time as clock_time, timezone
+from datetime import date, datetime, time as clock_time, timedelta, timezone
 from enum import StrEnum
 import hashlib
 import json
@@ -738,11 +738,13 @@ class ProposalRevisionProcessor:
 class TelegramDialogController:
     """Validate updates, persist offsets, and enforce version-bound decisions."""
 
-    def __init__(self, store: JsonStore, telegram: TelegramTransport, user_id: int, chat_id: int, logger: EventLogger, writers: dict[str, ExternalWriter] | None = None, test_mode: bool = False, configured_timezone: str = "UTC", revision_service: ProposalRevisionService | None = None):
+    def __init__(self, store: JsonStore, telegram: TelegramTransport, user_id: int, chat_id: int, logger: EventLogger, writers: dict[str, ExternalWriter] | None = None, test_mode: bool = False, configured_timezone: str = "UTC", revision_service: ProposalRevisionService | None = None, *, revision_attempts: int = 3, revision_backoff_seconds: int = 60):
         self.store, self.telegram, self.user_id, self.chat_id, self.logger = store, telegram, user_id, chat_id, logger
         self.writers, self.test_mode = writers or {}, test_mode
         self.configured_timezone = configured_timezone
         self.revision_service = revision_service
+        self.revision_attempts = revision_attempts
+        self.revision_backoff_seconds = revision_backoff_seconds
         self.validator: UpdateValidation = AuthorizedUpdateValidator(store, user_id, chat_id)
         self.relevance = RelevanceDialogProcessor(store, telegram, chat_id)
         self.ledger: ActionLedgerPort = ActionLedgerService(store)
@@ -1235,14 +1237,24 @@ class TelegramDialogController:
                 ContradictoryRevision, TechnicalRevisionError, RetryableError,
                 ValidationError, httpx.TransportError))
                           else TechnicalRevisionError(type(exc).__name__))
+            attempts = state.revision_attempts + 1
+            exhausted = attempts >= self.revision_attempts
+            status = (ProposalRevisionStatus.PAUSED if exhausted
+                      else ProposalRevisionStatus.RETRY_REQUIRED)
             self._log_revision_failure(state.mail_id, state.proposal_id,
-                                       state.version, classified,
-                                       ProposalRevisionStatus.RETRY_REQUIRED)
+                                       state.version, classified, status)
             # The question and validated answer deliberately remain untouched.
-            self.store.save(name, state.model_copy(update={
-                "proposal_revision_status": ProposalRevisionStatus.RETRY_REQUIRED,
-            }).model_dump(mode="json"))
-            self.telegram.send(self.chat_id, "Die interne Verarbeitung der gespeicherten Antwort ist verzögert.")
+            updated = state.model_copy(update={
+                "proposal_revision_status": status,
+                "revision_attempts": attempts,
+                "next_revision_at": (None if exhausted else datetime.now(timezone.utc) +
+                                     timedelta(seconds=self.revision_backoff_seconds)),
+            })
+            self.store.save(name, updated.model_dump(mode="json"))
+            self.telegram.send(self.chat_id, (
+                "Die Überarbeitung der gespeicherten Antwort wurde nach mehreren Versuchen pausiert. Die Antwort bleibt erhalten."
+                if exhausted else
+                "Die interne Verarbeitung der gespeicherten Antwort ist verzögert."))
             return
         if deterministic:
             self.logger.event("INFO", "analysis", "proposal_revision_delta_applied",
@@ -1252,6 +1264,7 @@ class TelegramDialogController:
         self.send_proposal(revised)
         self.store.save(name, state.model_copy(update={
             "proposal_revision_status": ProposalRevisionStatus.COMPLETED,
+            "next_revision_at": None,
         }).model_dump(mode="json"))
         self.logger.event("INFO", "telegram.dialog", "answer_revision_completed",
                           mail_id=state.mail_id, proposal_id=state.proposal_id,
@@ -1288,7 +1301,9 @@ class TelegramDialogController:
             state = self.store.load_model(name, ProposalClarificationState)
             assert isinstance(state, ProposalClarificationState)
             if (state.question_status == QuestionStatus.ANSWERED and
-                    state.proposal_revision_status == ProposalRevisionStatus.RETRY_REQUIRED):
+                    state.proposal_revision_status == ProposalRevisionStatus.RETRY_REQUIRED and
+                    (state.next_revision_at is None or
+                     state.next_revision_at <= datetime.now(timezone.utc))):
                 self._revise_answered(state)
 
     def _resume_revision(self) -> None:

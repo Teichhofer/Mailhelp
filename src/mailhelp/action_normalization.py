@@ -1,8 +1,7 @@
 """Deterministic temporal normalization of validated action extractions.
 
-Supported date formats are exactly ``YYYY-MM-DD`` and ``DD.MM.YYYY``.
-Supported time formats are exactly ``HH:MM`` and ``HH:MM:SS`` (24-hour
-clock).  Relative or otherwise free-form values are deliberately retained as
+Supported dates also include German month names with an optional weekday and
+``den``; times may carry the German ``Uhr`` suffix. Relative or otherwise free-form values are deliberately retained as
 unresolved input; this module never guesses a date, time, duration, or offset.
 
 The prepared mail context is accepted only when ``date_context_status`` is
@@ -86,7 +85,11 @@ _DATE_DE = re.compile(r"\d{2}\.\d{2}\.\d{4}\Z")
 _DATE_YEARLESS = re.compile(
     r"(?i)(\d{1,2})\.?\s+(januar|februar|märz|maerz|april|mai|juni|juli|august|"
     r"september|oktober|november|dezember)\Z")
-_TIME = re.compile(r"\d{2}:\d{2}(?::\d{2})?\Z")
+_DATE_NAMED = re.compile(
+    r"(?i)(?:(montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag),?\s+)?"
+    r"(?:den\s+)?(\d{1,2})\.?\s+(januar|februar|märz|maerz|april|mai|juni|juli|august|"
+    r"september|oktober|november|dezember)\s+(\d{4})\Z")
+_TIME = re.compile(r"(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s+Uhr)?\Z", re.IGNORECASE)
 
 
 def _failure(reason: NormalizationReason, raw: str | None, responsibility: str,
@@ -97,6 +100,8 @@ def _failure(reason: NormalizationReason, raw: str | None, responsibility: str,
 _MONTHS = {name: number for number, names in enumerate(((), ("januar",), ("februar",),
     ("märz", "maerz"), ("april",), ("mai",), ("juni",), ("juli",), ("august",),
     ("september",), ("oktober",), ("november",), ("dezember",))) for name in names}
+_WEEKDAYS = {name: number for number, name in enumerate(
+    ("montag", "dienstag", "mittwoch", "donnerstag", "freitag", "samstag", "sonntag"))}
 
 
 def _parse_date(raw: str | None, responsibility: str, context: MailDateContext | None = None,
@@ -106,6 +111,19 @@ def _parse_date(raw: str | None, responsibility: str, context: MailDateContext |
                         "Welches Datum ist gemeint?")
     fmt = "%Y-%m-%d" if _DATE_ISO.fullmatch(raw) else "%d.%m.%Y" if _DATE_DE.fullmatch(raw) else None
     if fmt is None:
+        named = _DATE_NAMED.fullmatch(raw.strip())
+        if named is not None:
+            try:
+                candidate = date(int(named.group(4)), _MONTHS[named.group(3).casefold()],
+                                 int(named.group(2)))
+            except ValueError:
+                return _failure(NormalizationReason.INVALID_DATE, raw, responsibility,
+                                "Bitte ein gültiges Kalenderdatum angeben.")
+            if named.group(1) is not None and candidate.weekday() != _WEEKDAYS[named.group(1).casefold()]:
+                return _failure(NormalizationReason.INVALID_DATE, raw, responsibility,
+                                "Wochentag und Kalenderdatum widersprechen sich.")
+            return candidate, TemporalFact(raw_text=raw, normalized_date=candidate,
+                                           year_source="explicit_mail", status="resolved")
         match = _DATE_YEARLESS.fullmatch(raw.strip())
         if match is not None and context is not None:
             checked = _context_zone(context, responsibility)
@@ -148,11 +166,12 @@ def _parse_date(raw: str | None, responsibility: str, context: MailDateContext |
 
 
 def _parse_time(raw: str, responsibility: str) -> time | NormalizationResult:
-    if not _TIME.fullmatch(raw):
+    match = _TIME.fullmatch(raw.strip())
+    if match is None:
         return _failure(NormalizationReason.UNSUPPORTED_TIME, raw, responsibility,
                         "Bitte die Uhrzeit als HH:MM oder HH:MM:SS angeben.")
     try:
-        return time.fromisoformat(raw)
+        return time(int(match.group(1)), int(match.group(2)), int(match.group(3) or 0))
     except ValueError:
         return _failure(NormalizationReason.INVALID_TIME, raw, responsibility,
                         "Bitte eine gültige Uhrzeit angeben.")

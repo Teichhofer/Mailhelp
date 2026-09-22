@@ -87,6 +87,8 @@ class RetrySettings(ConfigModel):
     provider_retry: int = Field(ge=0, le=10)
     json_repair: int = Field(ge=0, le=10)
     schema_repair: int = Field(ge=0, le=10)
+    revision_attempts: int = Field(default=3, ge=1, le=20)
+    revision_backoff_seconds: int = Field(default=60, ge=1, le=86400)
 
 
 class TimeoutSettings(ConfigModel):

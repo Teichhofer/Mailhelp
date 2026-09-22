@@ -946,7 +946,7 @@ def test_clarification_schema_migration_and_validation(tmp_path):
               "version":1, "question":"Welches Datum?"}
         store.save(name, {**base, "normalized_answer":"2026-10-21"})
         migrated=store.load_model(name, ProposalClarificationState)
-        assert migrated.schema_version == 2 and migrated.answer_status == AnswerStatus.VALID
+        assert migrated.schema_version == 3 and migrated.answer_status == AnswerStatus.VALID
         assert store.load(name)["normalized_answer"] == "2026-10-21"
         store.save(name, base)
         open_state=store.load_model(name, ProposalClarificationState)
@@ -959,6 +959,12 @@ def test_clarification_schema_migration_and_validation(tmp_path):
         ProposalClarificationState(mail_id="a"*24, proposal_id="p1", version=1,
                                    question="Datum?", answer_status=AnswerStatus.INVALID,
                                    proposal_revision_status=ProposalRevisionStatus.RETRY_REQUIRED)
+    with pytest.raises(ValidationError, match="UTC-Offset"):
+        ProposalClarificationState(
+            mail_id="a"*24, proposal_id="p1", version=1, question="Datum?",
+            question_status="answered", answer_status="valid",
+            normalized_answer="2026-10-21", proposal_revision_status="retry_required",
+            next_revision_at="2026-09-22T12:00:00")
 
 
 def test_clarification_recovery_edge_paths(tmp_path):

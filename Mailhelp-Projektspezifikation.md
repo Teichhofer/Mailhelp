@@ -916,7 +916,25 @@ striktes `json_schema`; andernfalls wird `json_object` verwendet und dieselbe
 Pydantic-Validierung bleibt verpflichtend.
 
 Bei `output_token_limit` folgt keine identische Wiederholung, sondern eine eigene
-kurze Route mit reduziertem Feldsatz und Ausgabelimit. Nach Erschöpfung wird die
-bereits normalisierte Antwort zusammen mit `retry_required` dauerhaft gespeichert
-und nach Neustart ohne erneute Benutzerfrage wiederaufgenommen. Logs enthalten nur
+kurze Route mit reduziertem Feldsatz und einem ausreichenden Ausgabelimit. Die
+bereits normalisierte Antwort wird mit begrenztem Versuchszähler und nächstem
+Wiederholungszeitpunkt gespeichert und nach Neustart ohne erneute Benutzerfrage
+wiederaufgenommen. Nach Ausschöpfung wird die Revision pausiert. Logs enthalten nur
 Route, Versuchsart, Schemaergebnis und lokalen Apply-Schritt, nie Frage oder Antwort.
+
+### Begrenzte Überarbeitung von Terminvorschlägen
+
+Ausgeschriebene deutsche Kalenderdaten mit vierstelligem Jahr (optional mit
+Wochentag und „den“) sowie Uhrzeiten mit „Uhr“ werden deterministisch
+normalisiert. Ein angegebener Wochentag muss zum Kalenderdatum passen. Rohwerte
+bleiben im Zeitfakt erhalten; ein bekanntes Datum und eine bekannte Beginnzeit
+werden auch bei fehlendem Ende bewahrt. Eine reine Datumsantwort erzeugt ohne
+explizite Ganztagsevidenz keinen Ganztagstermin.
+
+Bei einer LLM-Überarbeitung wird nicht nur das Delta, sondern der daraus lokal
+gebildete vollständige Folgevorschlag innerhalb der begrenzten Reparaturschleife
+fachlich validiert. `finish_reason=length` gilt unabhängig von einem eventuell
+vorhandenen Textfragment als Tokenlimit. Gespeicherte Telegram-Antworten haben
+einen dauerhaften Versuchszähler und Wiederholungszeitpunkt. Nach Ausschöpfung
+der konfigurierten Versuche pausiert die Verarbeitung, informiert einmalig und
+behält die normalisierte Antwort für eine kontrollierte Wiederaufnahme.
