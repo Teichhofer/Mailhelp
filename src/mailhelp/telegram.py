@@ -27,9 +27,22 @@ from .models import apply_proposal_revision
 import time, traceback, uuid
 
 
-_NORMALIZED_DATE_TIME = re.compile(
-    r"\s*(\d{1,2})\.(\d{1,2})\.(\d{4})\s+(?:um\s+)?(\d{1,2})(?::(\d{2}))?\s*Uhr\s*",
-    re.IGNORECASE,
+_NORMALIZED_DATE_TIMES = (
+    re.compile(
+        r"\s*(?P<day>\d{1,2})\.(?P<month>\d{1,2})\.(?P<year>\d{4})"
+        r"(?:\s*,)?\s+(?:um\s+)?(?P<hour>\d{1,2})(?::(?P<minute>\d{2}))?"
+        r"\s*Uhr\s*",
+        re.IGNORECASE,
+    ),
+    # The interpretation prompt requires the already resolved date to remain in
+    # ISO form.  Accept that form locally as well instead of sending a simple,
+    # validated clock-time answer through another fallible LLM call.
+    re.compile(
+        r"\s*(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})"
+        r"(?:[T\s]|\s*,\s*)(?:um\s+)?(?P<hour>\d{1,2}):(?P<minute>\d{2})"
+        r"(?:\s*Uhr)?\s*",
+        re.IGNORECASE,
+    ),
 )
 
 
@@ -40,17 +53,20 @@ def deterministic_temporal_revision(proposal: Proposal, question: str,
     if proposal.kind != ProposalKind.EVENT or not any(
             word in question.casefold() for word in ("beginn", "ende", "uhrzeit")):
         return None
-    match = _NORMALIZED_DATE_TIME.fullmatch(normalized_answer)
+    match = next((candidate.fullmatch(normalized_answer)
+                  for candidate in _NORMALIZED_DATE_TIMES
+                  if candidate.fullmatch(normalized_answer) is not None), None)
     if match is None:
         return None
-    day = date(int(match[3]), int(match[2]), int(match[1]))
+    day = date(int(match["year"]), int(match["month"]), int(match["day"]))
     expected = (proposal.known_temporal_facts.date
                 if proposal.known_temporal_facts is not None
                 else proposal.temporal_fact.normalized_date
                 if proposal.temporal_fact is not None else None)
     if expected is None or day != expected:
         raise ContradictoryRevision("Die Antwort widerspricht dem validierten Termindatum")
-    naive = datetime.combine(day, clock_time(int(match[4]), int(match[5] or 0)))
+    naive = datetime.combine(
+        day, clock_time(int(match["hour"]), int(match["minute"] or 0)))
     zone = ZoneInfo(configured_timezone)
     candidates = []
     for fold in (0, 1):
