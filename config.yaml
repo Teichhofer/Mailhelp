@@ -64,6 +64,10 @@ retries:
   provider_retry: 1
   json_repair: 1
   schema_repair: 1
+  # Gespeicherte Telegram-Antworten werden begrenzt und mit dauerhaftem
+  # Wiederholungszeitpunkt erneut verarbeitet.
+  revision_attempts: 3
+  revision_backoff_seconds: 60
 timeouts:
   imap: {timeout_seconds: 30, retries: 2, initial_backoff_seconds: 1, max_backoff_seconds: 8}
   telegram: {timeout_seconds: 35, retries: 2, initial_backoff_seconds: 1, max_backoff_seconds: 8}

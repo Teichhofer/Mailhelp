@@ -98,12 +98,13 @@ class ProposalRevisionStatus(StrEnum):
     PENDING = "pending"
     RETRY_REQUIRED = "retry_required"
     COMPLETED = "completed"
+    PAUSED = "paused"
 
 
 class ProposalClarificationState(StrictModel):
     """Durable trust boundary between a Telegram answer and proposal revision."""
 
-    schema_version: Literal[2] = 2
+    schema_version: Literal[3] = 3
     mail_id: str = Field(pattern=r"^[a-f0-9]{24}$")
     proposal_id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")
     version: int = Field(ge=1)
@@ -112,6 +113,8 @@ class ProposalClarificationState(StrictModel):
     answer_status: AnswerStatus = AnswerStatus.PENDING
     normalized_answer: str | None = Field(default=None, min_length=1, max_length=4000)
     proposal_revision_status: ProposalRevisionStatus = ProposalRevisionStatus.PENDING
+    revision_attempts: int = Field(default=0, ge=0)
+    next_revision_at: datetime | None = None
 
     @model_validator(mode="after")
     def consistent_answer(self) -> "ProposalClarificationState":
@@ -121,6 +124,9 @@ class ProposalClarificationState(StrictModel):
             raise ValueError("Nur eine valide normalisierte Antwort darf eine Frage beantworten")
         if not answered and self.proposal_revision_status != ProposalRevisionStatus.PENDING:
             raise ValueError("Eine offene Frage darf keine Revision besitzen")
+        if self.next_revision_at is not None and (self.next_revision_at.tzinfo is None or
+                                                  self.next_revision_at.utcoffset() is None):
+            raise ValueError("Der nächste Revisionsversuch benötigt einen UTC-Offset")
         return self
 
 

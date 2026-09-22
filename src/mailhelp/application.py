@@ -639,6 +639,8 @@ def build_application(
             {"todoist": todoist, "google_calendar": calendar}, settings.test_mode,
             settings.timezone,
             analyzer,
+            revision_attempts=settings.retries.revision_attempts,
+            revision_backoff_seconds=settings.retries.revision_backoff_seconds,
         )
         orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics, settings.limits.max_mail_bytes, logger, mime_limits=settings.limits, config_fingerprint=fingerprint, targets=settings.targets, user_timezone=settings.timezone, sender_store=sender_store)
         dialog.relevance_handler = orchestrator

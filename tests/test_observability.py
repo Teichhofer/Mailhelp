@@ -203,12 +203,12 @@ def test_llm_attempt_observability_covers_all_repairs_and_safe_default_logs(tmp_
         "schema_validation_failed", "schema_validation_succeeded",
     }]
     assert [row["event"] for row in terminal] == [
-        "provider_response_invalid", "invalid_json", "schema_validation_failed",
+        "provider_response_invalid", "invalid_json", "provider_response_invalid",
         "schema_validation_succeeded",
     ]
     assert [(row["retry_type"], row["retry_number"]) for row in terminal] == [
         ("initial", 0), ("provider_retry", 1), ("json_repair", 1),
-        ("schema_repair", 1),
+        ("provider_retry", 2),
     ]
     required = {"stage", "model", "provider", "call_id", "http_status",
                 "finish_reason", "content_present", "content_length",
@@ -219,6 +219,7 @@ def test_llm_attempt_observability_covers_all_repairs_and_safe_default_logs(tmp_
     assert terminal[0]["retryable"] is True and terminal[0]["provider"] == "backend-a"
     assert terminal[1]["provider"] == "backend-b" and terminal[1]["json_parse_success"] is False
     assert terminal[2]["provider"] == "backend-c" and terminal[2]["finish_reason"] == "length"
+    assert terminal[2]["reason"] == "output_token_limit"
     assert terminal[3]["provider"] is None  # missing documented provider metadata is not a content error
     serialized = logger.llm.read_text()
     for secret in ("api-key-marker", "full prompt marker", "mail body marker", "Synthetic one"):
