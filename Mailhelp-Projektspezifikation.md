@@ -65,7 +65,9 @@ und führt keine externen Schreibaktionen aus.
 Der Lernlauf ergänzt außerdem atomar die lesbare Filterdatei
 `irrelevant-senders.json` im Konfigurationsverzeichnis neben den Themendateien um
 normalisierte Absenderadressen der Nachrichten, die
-den abgelehnten Kategorien zugeordnet wurden. Die Datei unterstützt zusätzlich
+den abgelehnten Kategorien zugeordnet wurden. Dabei bildet der Lernlauf die
+Vereinigung mit allen bereits gespeicherten Adressen und übernimmt vorhandene,
+manuell gepflegte Domains unverändert. Die Datei unterstützt zusätzlich
 manuell pflegbare vollständige Domains. Vor jeder inhaltlichen Relevanzprüfung im
 Regel- und Lernbetrieb wird der RFC-5322-Absender deterministisch gegen exakte
 Adressen und Domains geprüft. Ein Treffer beendet die Relevanzprüfung als
