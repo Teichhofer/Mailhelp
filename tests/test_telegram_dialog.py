@@ -673,7 +673,7 @@ def test_callback_token_collision_and_invalid_persisted_record(tmp_path):
                     action=DecisionAction.EDIT)
     with JsonStore(tmp_path) as store:
         store.save("telegram-callback-" + "1" * 32, item.model_dump(mode="json"))
-        with patch("mailhelp.telegram.secrets.token_hex", side_effect=["1" * 32, "2" * 32]):
+        with patch("mailhelp.telegram._core.secrets.token_hex", side_effect=["1" * 32, "2" * 32]):
             value = item.encode(store)
         assert value == "decision:" + "2" * 32
         for token, record in (("3" * 32, ["broken"]),

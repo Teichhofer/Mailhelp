@@ -10,6 +10,7 @@ from mailhelp.telegram import (
     ProposalRevisionProcessor,
     RelevanceDecision,
     TelegramDialogController,
+    clarification_name, proposal_name, proposal_version_name,
 )
 
 
@@ -73,3 +74,10 @@ def test_revision_component_exposes_only_answer_and_resume_operations():
     owner._process_answer.assert_called_once_with("synthetische Antwort")
     owner._resume_durable_revisions.assert_called_once_with()
     owner._resume_legacy_revision.assert_called_once_with()
+
+
+def test_persistence_names_are_available_without_the_dialog_controller():
+    mail_id = "a" * 24
+    assert proposal_name(mail_id, "p1") == f"proposal-{mail_id}-p1"
+    assert proposal_version_name(mail_id, "p1", 2) == f"proposal-{mail_id}-p1-v2"
+    assert clarification_name(mail_id, "p1", 2) == f"clarification-{mail_id}-p1-v2"
