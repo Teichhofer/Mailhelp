@@ -61,7 +61,7 @@ def callback(update_id, data, user=1, chat=2):
 class Telegram:
     def __init__(self, updates=()):
         self.updates = list(updates); self.polls=[]; self.sent=[]; self.answered=[]; self.documents=[]; self.removed=[]
-    def poll(self, offset): self.polls.append(offset); return self.updates
+    def poll(self, offset, timeout=None): self.polls.append(offset); return self.updates
     def send(self, chat, text, reply_markup=None): self.sent.append((chat,text,reply_markup))
     def answer_callback(self, callback_id, text): self.answered.append((callback_id,text))
     def remove_inline_keyboard(self, chat_id, message_id): self.removed.append((chat_id,message_id))

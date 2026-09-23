@@ -150,6 +150,7 @@ class Application:
     stop_event: Event
     dialog: TelegramDialogController | None = None
     sender_store: JsonStore | None = None
+    _interleave_telegram: bool = False
 
     def check_access(self) -> dict[str, str | None]:
         """Check every external credential and target without processing mail."""
@@ -304,7 +305,7 @@ class Application:
                 if budget.remaining is not None:
                     budget.take()
                 try:
-                    result = self.orchestrator.process(mail)
+                    result = self._process_mail(mail)
                 except Exception as exc:
                     self.logger.event("ERROR", "orchestrator", "mail_failed", folder=folder, uid=mail.uid, error=str(exc))
                     continue
@@ -465,7 +466,7 @@ class Application:
                 mail = self.imap.fetch_uid(
                     current.folder, current.uid, current.uidvalidity
                 )
-                result = self.orchestrator.process(mail)
+                result = self._process_mail(mail)
             except TimeoutError:
                 # A connection-level timeout is not a result for this mail.  Keep
                 # the durable ``processing`` entry intact so a newly constructed
@@ -562,7 +563,7 @@ class Application:
                 if budget.remaining is not None:
                     budget.take()
                 mail = self.imap.fetch_uid(state.imap.folder, state.imap.uid, state.imap.uidvalidity)
-                result = self.orchestrator.process(mail)
+                result = self._process_mail(mail)
                 results.append(result)
                 if result.outcome is ProcessingOutcome.FAILED:
                     self.logger.event("ERROR", "orchestrator", "resume_failed", state_name=name,
@@ -571,18 +572,18 @@ class Application:
                 self.logger.event("ERROR", "orchestrator", "resume_failed", state_name=name, error=str(exc))
         return results
 
-    def _poll_telegram(self) -> bool:
+    def _poll_telegram(self, timeout: int | None = None) -> bool:
         """Poll Telegram once and report whether the request completed normally."""
         if self.dialog is not None:
             try:
-                self.dialog.poll_once()
+                self.dialog.poll_once(timeout=timeout)
             except Exception as exc:
                 self.logger.event("ERROR", "telegram", "poll_failed", error=str(exc))
                 return False
             return True
         state_model = self.store.load_model("telegram-offset", TelegramOffset, TelegramOffset()) if hasattr(self.store, "load_model") else TelegramOffset.model_validate(self.store.load("telegram-offset", {}))
         try:
-            updates = self.telegram.poll(state_model.offset)
+            updates = self.telegram.poll(state_model.offset, timeout=timeout)
         except Exception as exc:
             self.logger.event("ERROR", "telegram", "poll_failed", error=str(exc))
             return False
@@ -592,7 +593,18 @@ class Application:
             self.logger.event("INFO", "telegram", "update_received", update_id=update["update_id"])
         return True
 
+    def _process_mail(self, mail: object) -> ProcessingResult:
+        """Process one mail and immediately collect callbacks exposed by it."""
+        result = self.orchestrator.process(mail)
+        if self._interleave_telegram:
+            # Do not wait for the complete mailbox batch after a proposal has
+            # displayed its buttons.  A zero-timeout poll keeps mail throughput
+            # independent of Telegram when no answer is waiting.
+            self._poll_telegram(timeout=0)
+        return result
+
     def run(self, max_mails: int | None = None) -> None:
+        self._interleave_telegram = max_mails is None
         try:
             while not self.stop_event.is_set():
                 try:
