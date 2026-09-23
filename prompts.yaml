@@ -191,8 +191,8 @@ prompts:
 
       Antworte nur mit einem JSON-Objekt mit "schema_version": 1 und "events",
       einer Liste mit höchstens 20 Objekten. Jedes Objekt enthält genau title,
-      description, evidence, date_text, time_text, end_time_text, location,
-      video_link, responsibility, certainty und classification. Nicht genannte
+      description, evidence, date_text, time_text, end_time_text, time_requirement,
+      location, video_link, responsibility, certainty und classification. Nicht genannte
       optionale Rohwerte sind null. video_link ist nur eine ausdrücklich genannte
       HTTP-/HTTPS-URL oder null. responsibility ist "user", "other" oder
       "unclear"; certainty ist "certain", "uncertain" oder "contradictory";

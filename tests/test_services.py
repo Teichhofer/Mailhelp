@@ -295,6 +295,11 @@ def test_raw_extraction_prompts_are_separate_and_injection_resistant():
     assert '"unsupported" nur für Aufgabenarten' in task
     for field in ("title", "description", "evidence", "date_text", "time_text", "end_time_text", "time_requirement", "location", "video_link", "responsibility", "certainty", "classification"):
         assert field in event
+    complete_event_fields = (
+        "title,\ndescription, evidence, date_text, time_text, end_time_text, time_requirement,\n"
+        "location, video_link, responsibility, certainty und classification"
+    )
+    assert complete_event_fields in event
     assert "HTTP-/HTTPS-URL" in event
     assert "einmaliger künftiger Termin oder eine Einladung dazu ist" in event
     assert '"new"' in event
@@ -304,6 +309,40 @@ def test_raw_extraction_prompts_are_separate_and_injection_resistant():
     assert "Datum ohne Uhrzeit ist niemals automatisch ganztägig" in event
     for stage in ("action_router", "task_extraction", "event_extraction"):
         assert prompts[stage]["parameters"]["max_tokens"] == 10_000
+
+
+def test_proposal_builder_forwards_time_requirement_to_event_normalization(monkeypatch):
+    import mailhelp.proposal_builder as proposal_builder
+    from mailhelp.action_normalization import MailDateContext
+    from mailhelp.models import ExtractedEvent
+    from mailhelp.proposal_builder import ProposalBuilder
+
+    seen = []
+    original = proposal_builder.normalize_event
+
+    def recording_normalize_event(event, context):
+        seen.append(event)
+        return original(event, context)
+
+    monkeypatch.setattr(proposal_builder, "normalize_event", recording_normalize_event)
+    extracted = ExtractedEvent(
+        title="Termin", evidence="Termin am 1. Oktober", date_text="2026-10-01",
+        time_requirement="required_unknown", responsibility="user", certainty="certain",
+        classification="new",
+    )
+    context = MailDateContext(
+        date_context_status="valid", date_header_parsed="2026-09-23T10:00:00+00:00",
+        imap_received_at="2026-09-23T10:00:00+00:00", user_timezone="UTC",
+    )
+
+    ProposalBuilder(
+        "a" * 24,
+        TargetSettings(todoist_project="inbox", google_calendar="primary"),
+        context,
+    ).build([], [extracted])
+
+    assert seen == [extracted]
+    assert seen[0].time_requirement.value == "required_unknown"
 
 
 def test_action_prompts_share_invitation_candidate_boundaries():
@@ -977,7 +1016,7 @@ def test_orchestrator_sends_event_candidate_even_when_route_is_unclear(tmp_path)
             from mailhelp.models import EventExtraction, ExtractedEvent
             return "e", EventExtraction(events=[ExtractedEvent(
                 title="Gemeinderatssitzung", evidence="Sitzung am 22.09.2026",
-                date_text="22.09.2026", responsibility="unclear",
+                date_text="22.09.2026", time_requirement="required_unknown", responsibility="unclear",
                 certainty="certain", classification="new")])
 
         def extract_tasks(self, mail):
@@ -1016,7 +1055,7 @@ def test_proposal_boundary_builds_internal_identity_and_routing(tmp_path):
                       "imap_received_at":"2026-01-01T08:00:00Z", "user_timezone":"UTC"}
         state.task_extraction = TaskExtraction(tasks=[ExtractedTask(title="t", description="", evidence="e",
             responsibility="user", certainty="certain", classification="new")])
-        state.event_extraction = EventExtraction(events=[ExtractedEvent(title="e", evidence="e", date_text="2026-01-01",
+        state.event_extraction = EventExtraction(events=[ExtractedEvent(title="e", evidence="e", date_text="2026-01-01", time_requirement="required_unknown",
             responsibility="user", certainty="certain", classification="new")])
         normalized=orchestrator._build_proposals(state)
         assert [item.target for item in normalized] == ["trusted-project","trusted-calendar"]
@@ -1203,7 +1242,7 @@ def test_gemeinderat_action_failure_preserves_summary_and_retries_only_actions(t
             return "e", EventExtraction(events=[ExtractedEvent(
                 title="Gemeinderatssitzung", evidence="Sitzung am 22.09.2026",
                 date_text="22.09.2026", time_text=None, end_time_text=None,
-                location=None, video_link=None, responsibility="unclear",
+                location=None, video_link=None, time_requirement="required_unknown", responsibility="unclear",
                 certainty="uncertain", classification="new")])
 
     raw = (b"From: Gemeinderat <rat@example.test>\nSubject: Sitzung\n\n"
@@ -1263,7 +1302,7 @@ def test_task_and_event_partial_success_resumes_only_failed_event(tmp_path):
                 raise LlmSchemaValidationExceeded("event_extraction")
             from mailhelp.models import EventExtraction, ExtractedEvent
             return "event-id", EventExtraction(events=[ExtractedEvent(
-                title="Termin", evidence="Termin", responsibility="other",
+                title="Termin", evidence="Termin", time_requirement="required_unknown", responsibility="other",
                 certainty="certain", classification="new")])
 
     analyzer, notify = BothAnalyzer(), Notify()
@@ -1345,7 +1384,7 @@ def test_resume_after_extractor_and_after_action_aggregation(tmp_path):
         def extract_events(self, mail):
             from mailhelp.models import EventExtraction, ExtractedEvent
             return "e", EventExtraction(events=[ExtractedEvent(
-                title="Termin", evidence="Termin", responsibility="other",
+                title="Termin", evidence="Termin", time_requirement="required_unknown", responsibility="other",
                 certainty="certain", classification="new")])
 
     fetched = FetchedMail("INBOX", 1, 122, b"Subject: Neustart\n\nTermin")

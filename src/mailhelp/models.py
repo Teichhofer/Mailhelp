@@ -315,7 +315,7 @@ class ExtractedEvent(StrictModel):
     date_text: str | None = Field(default=None, min_length=1, max_length=500)
     time_text: str | None = Field(default=None, min_length=1, max_length=500)
     end_time_text: str | None = Field(default=None, min_length=1, max_length=500)
-    time_requirement: TimeRequirement = TimeRequirement.REQUIRED_UNKNOWN
+    time_requirement: TimeRequirement
     location: str | None = Field(default=None, min_length=1, max_length=1000)
     video_link: AnyHttpUrl | None = Field(default=None, max_length=2000)
     responsibility: Literal["user", "other", "unclear"]

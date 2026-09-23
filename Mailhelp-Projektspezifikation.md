@@ -423,8 +423,10 @@ Ein ausdrücklich in der Mail genannter physischer Ort wird getrennt von einem V
 
 Die geschlossenen Felder `responsibility` (`user`, `other`, `unclear`), `certainty` (`certain`, `uncertain`, `contradictory`) und `classification` (`new`, `non_binding`, `already_completed`, `change`, `cancellation`, `recurring`, `unsupported`) sind verpflichtend. Nur `new` + `user` + `certain` ist bestätigbar und extern schreibbar. Alle übrigen Kombinationen werden verständlich als manuell zu prüfen angezeigt. `unclear`, `uncertain` und `contradictory` erzwingen `needs_clarification`.
 
-Die Extraktion eines Termins klassifiziert die Zeitsemantik geschlossen als
-`all_day`, `timed` oder `required_unknown`. `all_day` verlangt einen ausdrücklichen
+Jedes von der Extraktion gelieferte Terminobjekt enthält das verpflichtende Feld
+`time_requirement` und klassifiziert damit die Zeitsemantik geschlossen als
+`all_day`, `timed` oder `required_unknown`; andere oder fehlende Werte werden an
+der Schemavalidierungsgrenze abgewiesen. `all_day` verlangt einen ausdrücklichen
 Ganztagshinweis in der Mail; ein bloßes Datum ist keine solche Evidenz und führt zu
 `required_unknown`. Nur `all_day` wird als exklusives Datumsintervall vom Datum bis
 zum Folgetag normalisiert. Bei `timed` und `required_unknown` bleibt ein bekanntes
