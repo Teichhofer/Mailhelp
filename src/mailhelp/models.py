@@ -517,6 +517,10 @@ class ProposalRevisionChanges(StrictModel):
     due: date | datetime | None = None
     start: date | datetime | None = None
     end: date | datetime | None = None
+    # An application-owned date fact may be supplied by the bounded Telegram
+    # parser.  It is translated into ``known_temporal_facts`` below and is not
+    # copied blindly onto Proposal.
+    temporal_date: CalendarDate | None = None
     all_day: bool | None = None
     location: str | None = Field(default=None, max_length=1000)
     video_link: AnyHttpUrl | None = Field(default=None, max_length=2000)
@@ -564,11 +568,20 @@ def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta) ->
     if delta.answered_question not in previous.open_questions:
         raise ValueError("Die beantwortete Frage ist im Vorschlag nicht offen")
     changes = delta.changes.model_dump(exclude_unset=True)
+    temporal_date = changes.pop("temporal_date", None)
     resolved_day = (previous.temporal_fact.normalized_date
                     if previous.temporal_fact is not None else None)
     known = previous.known_temporal_facts
     if known is not None and known.date is not None:
         resolved_day = known.date
+    if temporal_date is not None:
+        if resolved_day is not None and temporal_date != resolved_day:
+            raise ValueError(
+                f"temporal_date widerspricht dem validierten Datum {resolved_day.isoformat()}")
+        resolved_day = temporal_date
+        if known is None and previous.temporal_fact is None and previous.start is None:
+            known = KnownTemporalFacts(date=temporal_date)
+            changes["known_temporal_facts"] = known
     for field in ("due", "start"):
         value = changes.get(field)
         value_day = value.date() if isinstance(value, datetime) else value
