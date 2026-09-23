@@ -1,7 +1,7 @@
 """Strict Telegram trust boundary and restart-safe proposal dialogs."""
 from __future__ import annotations
 
-from datetime import date, datetime, time as clock_time, timedelta, timezone
+from datetime import date, date as calendar_date, datetime, time as clock_time, timedelta, timezone
 from enum import StrEnum
 import hashlib
 import json
@@ -27,23 +27,42 @@ from .models import apply_proposal_revision
 import time, traceback, uuid
 
 
-_NORMALIZED_DATE_TIMES = (
-    re.compile(
-        r"\s*(?P<day>\d{1,2})\.(?P<month>\d{1,2})\.(?P<year>\d{4})"
-        r"(?:\s*,)?\s+(?:um\s+)?(?P<hour>\d{1,2})(?::(?P<minute>\d{2}))?"
-        r"\s*Uhr\s*",
-        re.IGNORECASE,
-    ),
-    # The interpretation prompt requires the already resolved date to remain in
-    # ISO form.  Accept that form locally as well instead of sending a simple,
-    # validated clock-time answer through another fallible LLM call.
-    re.compile(
-        r"\s*(?P<year>\d{4})-(?P<month>\d{2})-(?P<day>\d{2})"
-        r"(?:[T\s]|\s*,\s*)(?:um\s+)?(?P<hour>\d{1,2}):(?P<minute>\d{2})"
-        r"(?:\s*Uhr)?\s*",
-        re.IGNORECASE,
-    ),
+class DeterministicTemporalAnswer(BaseModel):
+    """Facts explicitly present in one narrowly supported Telegram answer."""
+
+    model_config = ConfigDict(extra="forbid", strict=True)
+    date: calendar_date | None = None
+    start: clock_time | None = None
+    end: clock_time | None = None
+
+
+_DATE = r"(?:(?P<day>\d{1,2})\.(?P<month>\d{1,2})\.(?P<year>\d{4})|(?P<iso_year>\d{4})-(?P<iso_month>\d{2})-(?P<iso_day>\d{2}))"
+_TIME = r"(?P<{name}_hour>\d{{1,2}})(?::(?P<{name}_minute>\d{{2}}))?\s*(?:Uhr)?"
+_TEMPORAL_ANSWERS = (
+    re.compile(rf"\s*{_DATE}\s*(?:(?:T|,|um)?\s*{_TIME.format(name='start')}(?:\s*(?:bis|[-–])\s*{_TIME.format(name='end')})?)?\s*", re.IGNORECASE),
+    re.compile(rf"\s*{_TIME.format(name='start')}\s*(?:bis|[-–])\s*{_TIME.format(name='end')}\s*", re.IGNORECASE),
+    re.compile(rf"\s*{_TIME.format(name='start')}\s*", re.IGNORECASE),
 )
+
+
+def parse_deterministic_temporal_answer(answer: str) -> DeterministicTemporalAnswer | None:
+    """Parse only numeric, context-free date/time forms; never infer a fact."""
+    match = next((pattern.fullmatch(answer) for pattern in _TEMPORAL_ANSWERS
+                  if pattern.fullmatch(answer) is not None), None)
+    if match is None:
+        return None
+    values = match.groupdict()
+    parsed_date = None
+    if values.get("year"):
+        parsed_date = date(int(values["year"]), int(values["month"]), int(values["day"]))
+    elif values.get("iso_year"):
+        parsed_date = date(int(values["iso_year"]), int(values["iso_month"]), int(values["iso_day"]))
+    def parsed_time(name: str) -> clock_time | None:
+        hour = values.get(f"{name}_hour")
+        return (clock_time(int(hour), int(values.get(f"{name}_minute") or 0))
+                if hour is not None else None)
+    return DeterministicTemporalAnswer(
+        date=parsed_date, start=parsed_time("start"), end=parsed_time("end"))
 
 
 def deterministic_temporal_revision(proposal: Proposal, question: str,
@@ -51,37 +70,66 @@ def deterministic_temporal_revision(proposal: Proposal, question: str,
                                     configured_timezone: str) -> Proposal | None:
     """Build an unambiguous clock-time revision without another LLM call."""
     if proposal.kind != ProposalKind.EVENT or not any(
-            word in question.casefold() for word in ("beginn", "ende", "uhrzeit")):
+            word in question.casefold() for word in ("datum", "beginn", "ende", "uhrzeit", "wann")):
         return None
-    match = next((candidate.fullmatch(normalized_answer)
-                  for candidate in _NORMALIZED_DATE_TIMES
-                  if candidate.fullmatch(normalized_answer) is not None), None)
-    if match is None:
+    parsed = parse_deterministic_temporal_answer(normalized_answer)
+    if parsed is None:
         return None
-    day = date(int(match["year"]), int(match["month"]), int(match["day"]))
     expected = (proposal.known_temporal_facts.date
                 if proposal.known_temporal_facts is not None
                 else proposal.temporal_fact.normalized_date
                 if proposal.temporal_fact is not None else None)
-    field = "end" if "ende" in question.casefold() else "start"
-    allowed_days = {expected}
-    if field == "end" and expected is not None:
-        allowed_days.add(expected + timedelta(days=1))
-    if expected is None or day not in allowed_days:
+    allowed_dates = {expected}
+    if "ende" in question.casefold() and expected is not None:
+        allowed_dates.add(expected + timedelta(days=1))
+    if parsed.date is not None and expected is not None and parsed.date not in allowed_dates:
         raise ContradictoryRevision("Die Antwort widerspricht dem validierten Termindatum")
-    naive = datetime.combine(
-        day, clock_time(int(match["hour"]), int(match["minute"] or 0)))
+    day = parsed.date or expected
+    question_lower = question.casefold()
+    wants_end = "ende" in question_lower
+    wants_start = "beginn" in question_lower or "uhrzeit" in question_lower or "wann" in question_lower
+    # A lone clock value answers only the requested endpoint. A range explicitly
+    # proves both endpoints, irrespective of which temporal question was open.
+    start_time = parsed.start if parsed.end is not None or wants_start and not wants_end else None
+    end_time = parsed.end if parsed.end is not None else parsed.start if wants_end else None
+    if day is None and (start_time is not None or end_time is not None):
+        return None
     zone = ZoneInfo(configured_timezone)
-    candidates = []
-    for fold in (0, 1):
-        candidate = naive.replace(tzinfo=zone, fold=fold)
-        if candidate.astimezone(timezone.utc).astimezone(zone).replace(tzinfo=None) == naive:
-            if not candidates or candidate.utcoffset() != candidates[0].utcoffset():
-                candidates.append(candidate)
-    if len(candidates) != 1:
-        raise ContradictoryRevision("Die Ortszeit ist wegen der Zeitumstellung nicht eindeutig")
+    def localize(value: clock_time | None, value_day: date | None) -> datetime | None:
+        if value is None or value_day is None:
+            return None
+        naive = datetime.combine(value_day, value)
+        candidates = []
+        for fold in (0, 1):
+            candidate = naive.replace(tzinfo=zone, fold=fold)
+            if candidate.astimezone(timezone.utc).astimezone(zone).replace(tzinfo=None) == naive:
+                if not candidates or candidate.utcoffset() != candidates[0].utcoffset():
+                    candidates.append(candidate)
+        if len(candidates) != 1:
+            raise ContradictoryRevision("Die Ortszeit ist wegen der Zeitumstellung nicht eindeutig")
+        return candidates[0]
+    start = localize(start_time, day)
+    end_day = parsed.date or day
+    known_start = (proposal.known_temporal_facts.start
+                   if proposal.known_temporal_facts is not None else proposal.start)
+    reference_start = start or known_start
+    end = localize(end_time, end_day)
+    if (end is not None and reference_start is not None and end <= reference_start
+            and parsed.end is not None):
+        # ``day`` is guaranteed above whenever a clock value exists.  A range
+        # whose end clock is not later therefore explicitly crosses midnight.
+        end = localize(end_time, day + timedelta(days=1))
+    elif end is not None and reference_start is not None and end <= reference_start:
+        raise ContradictoryRevision("Das Terminende muss nach dem Beginn liegen")
+    changes: dict[str, Any] = {}
+    if parsed.date is not None and expected is None:
+        changes["temporal_date"] = parsed.date
+    if start is not None:
+        changes["start"] = start
+    if end is not None:
+        changes["end"] = end
     return apply_proposal_revision(proposal, ProposalRevisionDelta(
-        answered_question=question, changes={field: candidates[0]}))
+        answered_question=question, changes=changes))
 
 
 class TelegramChatNotFoundError(PermanentError):
@@ -1224,7 +1272,29 @@ class TelegramDialogController:
         if not isinstance(proposal, Proposal) or proposal.version != state.version:
             return
         assert self.revision_service is not None
+        local_temporal = (proposal.kind == ProposalKind.EVENT and
+                          parse_deterministic_temporal_answer(
+                              state.authorized_answer) is not None)
         try:
+            deterministic = deterministic_temporal_revision(
+                proposal, state.question, state.authorized_answer,
+                self.configured_timezone)
+            if deterministic is not None:
+                answered = ProposalClarificationState(
+                    mail_id=state.mail_id, proposal_id=state.proposal_id,
+                    version=state.version, question=state.question,
+                    authorized_answer=state.authorized_answer,
+                    interpretation_status=ProposalRevisionStatus.COMPLETED,
+                    interpretation_attempts=state.interpretation_attempts,
+                    question_status=QuestionStatus.ANSWERED,
+                    answer_status=AnswerStatus.VALID,
+                    normalized_answer=state.authorized_answer,
+                    proposal_revision_status=ProposalRevisionStatus.RETRY_REQUIRED,
+                )
+                self.store.save(name, answered.model_dump(mode="json"))
+                self.store.save("telegram-dialog", TelegramDialogState().model_dump(mode="json"))
+                self._revise_answered(answered)
+                return
             _, interpretation = self.revision_service.interpret_telegram_answer(
                 proposal, state.question, state.authorized_answer)
             if not interpretation.usable:
@@ -1251,7 +1321,27 @@ class TelegramDialogController:
             self._defer_interpretation(name, state, exc)
             return
         except ContradictoryRevision as exc:
-            self._defer_interpretation(name, state, exc, contradictory=True)
+            if not local_temporal:
+                self._defer_interpretation(name, state, exc, contradictory=True)
+                return
+            paused = state.model_copy(update={
+                "interpretation_status": ProposalRevisionStatus.PAUSED,
+                "interpretation_attempts": state.interpretation_attempts + 1,
+                "next_interpretation_at": None,
+            })
+            self.store.save(name, paused.model_dump(mode="json"))
+            self._log_revision_failure(state.mail_id, state.proposal_id,
+                                       state.version, exc,
+                                       ProposalRevisionStatus.PAUSED)
+            expected = (proposal.known_temporal_facts.date
+                        if proposal.known_temporal_facts is not None
+                        else proposal.temporal_fact.normalized_date
+                        if proposal.temporal_fact is not None else None)
+            suffix = f" Erwartet wird {expected.isoformat()}." if expected else ""
+            self.telegram.send(
+                self.chat_id,
+                "Das genannte Datum widerspricht dem bereits validierten Termindatum."
+                + suffix + " Bitte bestätige das richtige Datum konkret.")
             return
         # The validated value is the recovery record.  It must reach disk before
         # removing the active user question or making another fallible LLM call.

@@ -597,6 +597,14 @@ benötigte Form normalisiert. Erst danach entsteht eine neue, erneut zu bestäti
 Version. Ist die Antwort nicht eindeutig nutzbar, erzeugt
 ein zweiter, getrennt schematisierter LLM-Aufruf eine konkrete Rückfrage; Vorschlag
 und Dialog bleiben dabei unverändert.
+Vor diesem LLM-Schritt erkennt ein eng begrenzter lokaler Parser ausschließlich
+numerische deutsche und ISO-Daten sowie Uhrzeiten und Zeitspannen (zum Beispiel
+`23.09.2026 9:00 bis 10 Uhr`). Er liefert Datum, Beginn und Ende als getrennte
+typisierte Fakten, ergänzt nur ausdrücklich belegte Werte und erhält bereits
+bekannte Zeitfakten. Ein Datum, das dem validierten Termindatum widerspricht,
+wird pausiert und mit einer konkreten Bestätigungsfrage zurückgewiesen; ein Ende
+muss nach dem Beginn und höchstens am erlaubten Folgetag liegen. Für eindeutig
+lokal erkannte Antworten wird kein Interpretations- oder Revisions-LLM aufgerufen.
 Der Klärungszustand unterscheidet `interpretation_status`, `question_status`,
 `answer_status` und `proposal_revision_status`. Interpretation und Revision haben
 getrennte, konfigurierte Versuchszähler und persistente nächste Versuchstermine.
@@ -751,9 +759,10 @@ strukturierten Erwartungen aus `tests/fixtures/mail_corpus_v1/corpus.json` erfü
 Proposal-Überarbeitungen verwenden ein geschlossenes, minimales Delta statt eines
 erneut vom Modell erzeugten Gesamt-Proposals. IDs, Version, Status, unveränderte
 Felder und offene Fragen bleiben unter Kontrolle der Anwendung. Nach einem
-eindeutigen, bereits validierten Datum-und-Uhrzeit-Ergebnis baut Mailhelp den
-Zeitpunkt direkt aus dem bekannten Datum und der konfigurierten IANA-Zeitzone; ein
-zweiter LLM-Aufruf ist dafür nicht erforderlich. Abweichende Modelldaten werden vor
+eindeutigen, lokal erkannten Datum-und-Uhrzeit-Ergebnis baut Mailhelp Beginn und
+Ende direkt aus den belegten beziehungsweise bereits bekannten Fakten und der
+konfigurierten IANA-Zeitzone; ein LLM-Aufruf ist dafür nicht erforderlich.
+Abweichende Modelldaten werden vor
 dem Anwenden abgewiesen. Nach einem
 `output_token_limit` wird eine kürzere, feldreduzierte Route verwendet. Scheitern
 alle technischen Versuche, speichert Mailhelp die normalisierte Antwort als

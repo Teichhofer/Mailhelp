@@ -13,9 +13,10 @@ from mailhelp.analysis import (ContradictoryRevision, LlmInvalidJson,
                                LlmTokenLimitExceeded, validate_revision_successor)
 from mailhelp.models import (ActionLedger, ActionLedgerEntry, AnswerStatus, MailState, Proposal,
                              ProposalNotification,
-                             ProposalClarificationState, ProposalRevisionStatus, ProposalStatus,
+                             ProposalClarificationState, ProposalRevisionDelta,
+                             ProposalRevisionStatus, ProposalStatus,
                              QuestionStatus, RelevanceDialog, RelevanceDialogStatus,
-                             TelegramDialogState)
+                             TelegramDialogState, apply_proposal_revision)
 from mailhelp.orchestrator import Orchestrator
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import (
@@ -149,6 +150,140 @@ def test_deterministic_start_revision_uses_validated_day_without_llm(tmp_path):
                        if event[0][2] == "proposal_revision_delta_applied")
         assert applied[1]["previous_version"] == 1
         assert applied[1]["new_version"] == 2
+
+
+def test_deterministic_full_interval_bypasses_interpretation_and_is_idempotent(tmp_path):
+    service = RevisionService()
+    with JsonStore(tmp_path) as store:
+        item = proposal(
+            kind="event", status="needs_clarification",
+            open_questions=["Wann beginnt der Termin?"],
+            known_temporal_facts={"date": "2026-09-23"},
+            temporal_fact={"raw_text": "23.09.2026", "normalized_date": "2026-09-23",
+                           "year_source": "explicit_mail", "status": "resolved"},
+        )
+        c, _, _ = controller(store, revision_service=service)
+        c.configured_timezone = "Europe/Berlin"
+        c.persist(item)
+        store.save("telegram-dialog", TelegramDialogState(
+            mail_id=item.source_mail_id, proposal_id=item.id,
+            version=item.version).model_dump(mode="json"))
+
+        c._answer("23.09.2026 9:00 bis 10uhr")
+        revised = store.load_model(
+            "proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1", Proposal)
+
+        assert service.calls == []
+        assert revised.start.isoformat() == "2026-09-23T09:00:00+02:00"
+        assert revised.end.isoformat() == "2026-09-23T10:00:00+02:00"
+        assert revised.temporal_fact == item.temporal_fact
+        assert revised.version == 2
+
+        # Neither startup recovery nor replaying the now stale answer creates a
+        # second successor or invokes the LLM.
+        c._resume_durable_revisions()
+        c._answer("23.09.2026 9:00 bis 10uhr")
+        repeated = store.load_model(
+            "proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1", Proposal)
+        assert repeated.version == 2
+        assert service.calls == []
+
+
+def test_deterministic_end_keeps_known_start_without_interpretation(tmp_path):
+    service = RevisionService()
+    with JsonStore(tmp_path) as store:
+        item = proposal(
+            kind="event", status="needs_clarification",
+            open_questions=["Wann endet der Termin?"],
+            known_temporal_facts={
+                "date": "2026-09-23",
+                "start": "2026-09-23T09:00:00+02:00",
+            },
+        )
+        c, _, _ = controller(store, revision_service=service)
+        c.configured_timezone = "Europe/Berlin"
+        c.persist(item)
+        store.save("telegram-dialog", TelegramDialogState(
+            mail_id=item.source_mail_id, proposal_id=item.id,
+            version=item.version).model_dump(mode="json"))
+
+        c._answer("10 Uhr")
+        revised = store.load_model(
+            "proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1", Proposal)
+
+        assert revised.start.isoformat() == "2026-09-23T09:00:00+02:00"
+        assert revised.end.isoformat() == "2026-09-23T10:00:00+02:00"
+        assert service.calls == []
+
+
+def test_deterministic_contradictory_date_requests_concrete_confirmation(tmp_path):
+    service = RevisionService()
+    with JsonStore(tmp_path) as store:
+        item = proposal(
+            kind="event", status="needs_clarification",
+            open_questions=["Wann beginnt der Termin?"],
+            known_temporal_facts={"date": "2026-09-23"},
+        )
+        c, transport, _ = controller(store, revision_service=service)
+        c.persist(item)
+        store.save("telegram-dialog", TelegramDialogState(
+            mail_id=item.source_mail_id, proposal_id=item.id,
+            version=item.version).model_dump(mode="json"))
+
+        c._answer("2026-09-24 09 Uhr")
+
+        assert service.calls == []
+        assert "2026-09-23" in transport.sent[-1][1]
+        assert "Bitte bestätige" in transport.sent[-1][1]
+        state = store.load("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")
+        assert state["interpretation_status"] == "paused"
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["version"] == 1
+
+
+def test_deterministic_date_only_and_context_requirements():
+    date_question = proposal(
+        kind="event", status="needs_clarification",
+        open_questions=["Welches Datum hat der Termin?"],
+        known_temporal_facts=None,
+    )
+    dated = deterministic_temporal_revision(
+        date_question, date_question.open_questions[0], "2026-09-23", "UTC")
+    assert dated.known_temporal_facts.date == date(2026, 9, 23)
+    assert dated.start is None
+    assert dated.end is None
+
+    time_question = proposal(
+        kind="event", status="needs_clarification",
+        open_questions=["Wann beginnt der Termin?"],
+        known_temporal_facts=None,
+    )
+    assert deterministic_temporal_revision(
+        time_question, time_question.open_questions[0], "9 Uhr", "UTC") is None
+
+    overnight = deterministic_temporal_revision(
+        date_question, date_question.open_questions[0],
+        "23.09.2026 23 Uhr bis 1 Uhr", "Europe/Berlin")
+    assert overnight.end.date() == date(2026, 9, 24)
+    assert overnight.end > overnight.start
+
+
+def test_temporal_date_delta_rejects_conflict_and_preserves_existing_storage():
+    existing = proposal(
+        kind="event", status="needs_clarification",
+        open_questions=["Welches Datum hat der Termin?"],
+        known_temporal_facts={"date": "2026-09-23"},
+    )
+    with pytest.raises(ValueError, match="temporal_date widerspricht"):
+        apply_proposal_revision(existing, ProposalRevisionDelta(
+            answered_question=existing.open_questions[0],
+            changes={"temporal_date": "2026-09-24"},
+        ))
+
+    same = apply_proposal_revision(existing, ProposalRevisionDelta(
+        answered_question=existing.open_questions[0],
+        changes={"temporal_date": "2026-09-23"},
+    ))
+    assert same.known_temporal_facts == existing.known_temporal_facts
 
 
 @pytest.mark.parametrize("normalized", [
