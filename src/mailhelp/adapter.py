@@ -50,7 +50,8 @@ class RetryPolicy:
                 on_attempt(attempt + 1)
             try:
                 return operation()
-            except (httpx.TransportError, httpx.HTTPStatusError, imaplib.IMAP4.abort, TimeoutError, OSError) as exc:
+            except (httpx.TransportError, httpx.HTTPStatusError, imaplib.IMAP4.abort,
+                    TimeoutError, EOFError, OSError) as exc:
                 if on_error is not None:
                     on_error(attempt + 1, exc)
                 delay = self._delay(exc, attempt)
@@ -81,7 +82,8 @@ class RetryPolicy:
 
     @staticmethod
     def _retryable(exc: Exception) -> bool:
-        return isinstance(exc, (httpx.TransportError, imaplib.IMAP4.abort, TimeoutError, OSError)) or (
+        return isinstance(exc, (httpx.TransportError, imaplib.IMAP4.abort,
+                                TimeoutError, EOFError, OSError)) or (
             isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code in RETRYABLE_STATUS
         )
 

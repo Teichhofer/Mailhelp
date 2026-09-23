@@ -9,9 +9,10 @@ import pytest
 from pydantic import SecretStr
 
 from mailhelp.application import Application
+from mailhelp.adapter import RetryPolicy
 from mailhelp.imap import ImapReader
 from mailhelp.integrations import GoogleOAuthTokenProvider, HttpWriter
-from mailhelp.logging import JsonlLogger
+from mailhelp.logging import JsonlLogger, NullLogger
 from mailhelp.openrouter import OpenRouterClient
 from mailhelp.telegram import (TelegramBotResponse, TelegramChatNotFoundError,
                                TelegramClient)
@@ -30,6 +31,8 @@ def test_adapter_access_checks_are_read_only_and_validate_responses():
     connection = SimpleNamespace(select=lambda folder, readonly: ("OK", [folder, readonly]))
     reader = object.__new__(ImapReader)
     reader.connection = connection
+    reader.policy = RetryPolicy(0, 0, 0, lambda _delay: False)
+    reader.logger = NullLogger()
     reader.check_access(["INBOX", "Archive"])
     connection.select = lambda _folder, readonly: ("NO", [readonly])
     with pytest.raises(RuntimeError, match="nicht lesbar"):

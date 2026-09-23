@@ -7,10 +7,12 @@ import binascii
 import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Callable
+from typing import Callable, TypeVar
 from .adapter import RetryPolicy
 from .logging import EventLogger, NullLogger
 import time, traceback
+
+T = TypeVar("T")
 
 
 @dataclass(frozen=True)
@@ -168,36 +170,80 @@ def account_id(host: str, port: int, username: str) -> str:
 
 class ImapReader:
     def __init__(self, host: str, port: int, username: str, password: str, timeout: float = 30, factory: Callable[..., imaplib.IMAP4] = imaplib.IMAP4_SSL, policy: RetryPolicy | None = None, logger: EventLogger | None = None, starttls: bool = False, batch_size: int = 25):
-        self.policy = policy or RetryPolicy(0, 0, 0, lambda _delay: False)
+        # Connection material deliberately remains in memory only.  In
+        # particular it is never included in events or persistent state.
+        self._host, self._port = host, port
+        self._username, self._password = username, password
+        self._timeout, self._factory, self._starttls = timeout, factory, starttls
+        self.policy = policy or RetryPolicy(2, 1, 4, lambda _delay: False)
         self.logger = logger or NullLogger()
         self.batch_size = batch_size
-        self.connection = factory(host, port, timeout=timeout)
+        self.connection = self._connect()
         self.account_id = account_id(host, port, username)
         self.last_uidvalidity: int | None = None
         try:
-            if starttls:
-                status, _ = self.connection.starttls()
-                if status != "OK":
-                    raise RuntimeError("IMAP STARTTLS fehlgeschlagen")
-            try:
-                self.connection.login(username, password)
-            except imaplib.IMAP4.error:
-                raise RuntimeError(
-                    "IMAP-Anmeldung vom Server abgelehnt. Die erfolgreiche "
-                    "Webmail-Anmeldung bestätigt den IMAP-Zugang nicht. Für genau "
-                    "dieses Postfach die verlangte Anmeldekennung (oft die primäre "
-                    "vollständige E-Mail-Adresse statt eines Alias), ein eventuell "
-                    "separates App-Passwort und die postfachbezogene IMAP-Freischaltung "
-                    "prüfen. Punkte und Bindestriche werden unverändert übertragen. "
-                    "Außerdem beachten: Bereits gesetzte Prozessvariablen "
-                    "IMAP_USERNAME/IMAP_PASSWORD überschreiben die .env-Datei"
-                ) from None
+            self._authenticate()
         except BaseException:
             self.close()
             raise
 
+    def _connect(self) -> imaplib.IMAP4:
+        return self._factory(self._host, self._port, timeout=self._timeout)
+
+    def _authenticate(self) -> None:
+        if self._starttls:
+            status, _ = self.connection.starttls()
+            if status != "OK":
+                raise RuntimeError("IMAP STARTTLS fehlgeschlagen")
+        try:
+            self.connection.login(self._username, self._password)
+        except imaplib.IMAP4.error:
+            raise RuntimeError(
+                "IMAP-Anmeldung vom Server abgelehnt. Die erfolgreiche "
+                "Webmail-Anmeldung bestätigt den IMAP-Zugang nicht. Für genau "
+                "dieses Postfach die verlangte Anmeldekennung (oft die primäre "
+                "vollständige E-Mail-Adresse statt eines Alias), ein eventuell "
+                "separates App-Passwort und die postfachbezogene IMAP-Freischaltung "
+                "prüfen. Punkte und Bindestriche werden unverändert übertragen. "
+                "Außerdem beachten: Bereits gesetzte Prozessvariablen "
+                "IMAP_USERNAME/IMAP_PASSWORD überschreiben die .env-Datei"
+            ) from None
+
+    def _reconnect(self) -> None:
+        self.close()
+        self.connection = self._connect()
+        try:
+            self._authenticate()
+        except BaseException:
+            self.close()
+            raise
+
+    def _operation(self, name: str, operation: Callable[[], T]) -> T:
+        """Run one complete read operation, reconnecting before each retry."""
+        reconnect = False
+
+        def attempt() -> T:
+            nonlocal reconnect
+            if reconnect:
+                self._reconnect()
+                reconnect = False
+            if getattr(self.connection, "state", None) == "LOGOUT":
+                raise imaplib.IMAP4.abort("IMAP connection is closed")
+            return operation()
+
+        def failed(attempt_number: int, exc: Exception) -> None:
+            nonlocal reconnect
+            reconnect = True
+            self.logger.event("WARNING", "imap", "request_retry", operation=name,
+                              attempt=attempt_number, error=exc)
+
+        return self.policy.run(attempt, on_error=failed)
+
     def check_access(self, folders: list[str]) -> None:
         """Verify read-only access without searching for or fetching messages."""
+        return self._operation("select", lambda: self._check_access(folders))
+
+    def _check_access(self, folders: list[str]) -> None:
         for folder in folders:
             status, _ = self.connection.select(_mailbox_argument(folder), readonly=True)
             if status != "OK":
@@ -205,6 +251,9 @@ class ImapReader:
 
     def list_folders(self) -> list[str]:
         """Return every mailbox advertised by the authenticated IMAP server."""
+        return self._operation("list", self._list_folders)
+
+    def _list_folders(self) -> list[str]:
         status, data = self.connection.list()
         if status != "OK":
             raise RuntimeError("IMAP-Ordnerliste konnte nicht geladen werden")
@@ -221,9 +270,9 @@ class ImapReader:
         started = time.perf_counter()
         self.logger.event("INFO", "imap", "request_started", folder=folder, after_uid=after_uid)
         try:
-            result = self.policy.run(lambda: self._fetch_since(folder, after_uid, expected_uidvalidity, max_count, completed_uid_ranges),
-                                     lambda attempt: self.logger.event("DEBUG", "imap", "request_attempt", folder=folder, attempt=attempt),
-                                     lambda attempt, exc: self.logger.event("WARNING", "imap", "request_retry", folder=folder, attempt=attempt, error=exc))
+            result = self._operation("uid_fetch_batch", lambda: self._fetch_since(
+                folder, after_uid, expected_uidvalidity, max_count,
+                completed_uid_ranges))
         except Exception as exc:
             self.logger.event("ERROR", "imap", "request_failed", folder=folder, error=exc, stacktrace=traceback.format_exc(), duration_ms=round((time.perf_counter()-started)*1000, 3))
             raise
@@ -232,6 +281,10 @@ class ImapReader:
 
     def fetch_uid(self, folder: str, uid: int, expected_uidvalidity: int) -> FetchedMail:
         """Load one known message without setting ``\\Seen``."""
+        return self._operation("uid_fetch", lambda: self._fetch_uid(
+            folder, uid, expected_uidvalidity))
+
+    def _fetch_uid(self, folder: str, uid: int, expected_uidvalidity: int) -> FetchedMail:
         status, _data = self.connection.select(_mailbox_argument(folder), readonly=True)
         if status != "OK": raise FolderNotReadable(folder)
         status, validity = self.connection.response("UIDVALIDITY")
@@ -250,6 +303,15 @@ class ImapReader:
                        max_count: int | None = None,
                        historical_start: datetime | None = None) -> list[MailCandidate]:
         """Discover a bounded, body-free newest window for mailbox-wide ordering."""
+        return self._operation("uid_search", lambda: self._discover_since(
+            folder, after_uid, expected_uidvalidity, completed_uid_ranges,
+            max_count, historical_start))
+
+    def _discover_since(self, folder: str, after_uid: int = 0,
+                        expected_uidvalidity: int | None = None,
+                        completed_uid_ranges: tuple[tuple[int, int], ...] = (),
+                        max_count: int | None = None,
+                        historical_start: datetime | None = None) -> list[MailCandidate]:
         status, _data = self.connection.select(_mailbox_argument(folder), readonly=True)
         if status != "OK":
             raise FolderNotReadable(folder)
@@ -325,6 +387,9 @@ class ImapReader:
 
     def determine_start_uid(self, folder: str, start: datetime) -> int:
         """Resolve an absolute historical boundary once, without changing flags."""
+        return self._operation("historical_boundary", lambda: self._determine_start_uid(folder, start))
+
+    def _determine_start_uid(self, folder: str, start: datetime) -> int:
         status, _ = self.connection.select(_mailbox_argument(folder), readonly=True)
         if status != "OK": raise FolderNotReadable(folder)
         status, validity = self.connection.response("UIDVALIDITY")

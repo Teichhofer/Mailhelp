@@ -424,6 +424,7 @@ class Application:
             current.status = MailRunEntryStatus.PROCESSING
             current.analysis_terminal = None
             current.user_action_open = False
+            current.failure_code = None
             persisted.counters = self._run_counters(persisted.entries)
             self.store.save(run_name, persisted.model_dump(mode="json"))
             if budget.remaining is not None:
@@ -440,6 +441,7 @@ class Application:
                 )
                 terminal_status = MailRunEntryStatus.FAILED
                 terminal_analysis = "failed"
+                failure_code = "imap_read_exhausted"
                 result = None
             else:
                 results.append(result)
@@ -450,12 +452,15 @@ class Application:
                                    else MailRunEntryStatus.COMPLETED)
                 terminal_analysis = ("failed" if terminal_status is MailRunEntryStatus.FAILED
                                      else "completed")
+                failure_code = ("processing_failed"
+                                if terminal_status is MailRunEntryStatus.FAILED else None)
             persisted = self.store.load_model(run_name, MailRunState)
             assert persisted is not None
             current = next(entry for entry in persisted.entries if entry.key == queued.key)
             current.status = terminal_status
             current.analysis_terminal = terminal_analysis
             current.user_action_open = terminal_status is MailRunEntryStatus.WAITING_FOR_USER
+            current.failure_code = failure_code
             persisted.counters = self._run_counters(persisted.entries)
             self.store.save(run_name, persisted.model_dump(mode="json"))
 

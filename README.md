@@ -562,6 +562,19 @@ abgebrochener Versuch ohne garantiert gespeicherten Zustand hält den Abrufstand
 dagegen fest. Polling- und Wiederaufnahme-Durchläufe geben ihre Einzelergebnisse
 an den Aufrufer zurück.
 
+IMAP-Leseoperationen (`SELECT`, `RESPONSE`, `UID SEARCH`, `UID FETCH`, `LIST`
+und die historische Grenzermittlung) verwenden die unter `timeouts.imap`
+konfigurierte Retryzahl und den exponentiellen Backoff. Bei Timeout, EOF,
+Socketfehler, `IMAP4.abort` oder einer bereits geschlossenen Verbindung wird die
+defekte Sitzung bestmöglich abgemeldet und eine neue Sitzung einschließlich
+STARTTLS und Anmeldung aufgebaut. Der gezielte Abruf eines Queueeintrags
+wiederholt dabei ausschließlich dessen bereits gespeicherte UID und prüft zuvor
+erneut UIDVALIDITY; die Batchentdeckung wird nicht wiederholt. Nach ausgeschöpften
+Versuchen wird der Eintrag mit dem inhaltsfreien Fehlermerkmal
+`imap_read_exhausted` als `failed` gespeichert und die nächste Queueposition
+bearbeitet. Verbindungsparameter und Passwort bleiben hierfür nur im Speicher
+des Adapters und werden weder in JSON-Zustände noch in Logs übernommen.
+
 Telegram-Transportantworten werden an der Eingangsgrenze durch Pydantic-Schemata
 validiert: Die von Mailhelp verwendeten Pflichtfelder bleiben streng typisiert,
 während zusätzliche Telegram-Felder ignoriert und insbesondere nicht in interne
