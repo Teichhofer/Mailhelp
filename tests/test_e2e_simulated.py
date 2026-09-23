@@ -6,12 +6,14 @@ from email.message import EmailMessage
 from pathlib import Path
 from threading import Event
 
+import httpx
+
 from mailhelp.analysis import Analyzer, LlmSchemaValidationExceeded
 from mailhelp.application import Application
 from mailhelp.config import PromptConfig, PromptStep, TargetSettings, Topic
 from mailhelp.imap import FetchedMail
 from mailhelp.logging import NullLogger
-from mailhelp.models import Proposal
+from mailhelp.models import ActionLedger, Proposal
 from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import TelegramDialogController
@@ -112,6 +114,179 @@ def callback_update(update_id, callback_data):
     return {"update_id": update_id, "callback_query": {"id": f"cb-{update_id}", "from": {"id": 42},
             "message": {"message_id": update_id, "from": {"id": 42}, "chat": {"id": 99}, "text": "Vorschlag"},
             "data": callback_data}}
+
+
+def message_update(update_id, text):
+    return {"update_id": update_id, "message": {"message_id": update_id,
+            "from": {"id": 42}, "chat": {"id": 99}, "text": text}}
+
+
+class NachholterminRouter:
+    """Schema-validating LLM double; only extraction completeness is variable."""
+
+    def __init__(self, incomplete=False):
+        self.incomplete = incomplete
+        self.calls = []
+
+    def complete(self, _model, _parameters, system, payload, **_metadata):
+        self.calls.append(system)
+        if system == "relevance":
+            return "relevance-call", {"decision": "relevant", "topic_ids": ["arbeit"],
+                                      "reason": "Ein konkreter Termin ist enthalten."}
+        if system == "summary":
+            return "summary-call", {"sentences": ["Ein synthetischer Nachholtermin wurde angekündigt."],
+                                    "deadlines": []}
+        if system == "action_router":
+            return "router-call", {"action_state": "event", "task_count": 0,
+                                   "event_count": 1, "reason": "Termin erkannt."}
+        if system == "event_extraction":
+            return "event-call", {"schema_version": 1, "events": [{
+                "title": "Auftakt der Bildungsplannovellierung", "description": None,
+                "evidence": "Mi, 23.09.2026, 09:00 Uhr bis 10:00 Uhr (UTC+01:00)",
+                "date_text": "23.09.2026", "time_text": None if self.incomplete else "09:00 Uhr",
+                "end_time_text": None if self.incomplete else "10:00 Uhr",
+                "timezone_offset_text": "UTC+01:00", "time_requirement": "timed",
+                "location": None, "video_link": None, "responsibility": "user",
+                "certainty": "certain", "classification": "new",
+            }]}
+        raise AssertionError(f"Unerwarteter LLM-Aufruf: {system}")
+
+
+class ReconciledCalendar:
+    """Simulate a response loss after Google accepted the sole create request."""
+
+    def __init__(self):
+        self.create_calls = []
+        self.reconcile_calls = []
+        self.remote = {}
+
+    def create(self, proposal, key):
+        self.create_calls.append((proposal, key))
+        self.remote[key] = {"id": "calendar-event-1", "url": "https://example.test/calendar/1"}
+        raise httpx.ReadTimeout("synthetic response loss")
+
+    def reconcile(self, key):
+        self.reconcile_calls.append(key)
+        return self.remote.get(key)
+
+
+def nachholtermin_flow(tmp_path, *, incomplete):
+    router = NachholterminRouter(incomplete)
+    prompts = PromptConfig(defaults={"model": "fake", "parameters": {}}, prompts={
+        step: PromptStep(system_prompt=step) for step in (
+            "relevance", "summary", "action_router", "task_extraction", "event_extraction",
+            "telegram_answer_interpretation", "telegram_answer_clarification",
+            "proposal_revision", "learning_classification", "learning_abstraction")})
+    analyzer = Analyzer(router, prompts)
+    telegram = FakeTelegram()
+    calendar = ReconciledCalendar()
+    fixture = Path(__file__).parent / "fixtures" / "nachholtermin_bildungsplannovellierung.eml"
+    fetched = FetchedMail("INBOX", 7, 23, fixture.read_bytes(), "1" * 24,
+                          datetime(2026, 9, 22, 7, 15, tzinfo=timezone.utc))
+    store = JsonStore(tmp_path).__enter__()
+    dialog = TelegramDialogController(
+        store, telegram, 42, 99, NullLogger(), {"google_calendar": calendar}, False,
+        "Etc/GMT-1", analyzer)
+    orchestrator = Orchestrator(
+        analyzer, store, dialog, 99,
+        [Topic(id="arbeit", name="Arbeit", enabled=True, description="Beruf")], 100_000,
+        targets=TargetSettings(todoist_project="project", google_calendar="calendar"),
+        user_timezone="Etc/GMT-1")
+    result = orchestrator.process(fetched)
+    return store, dialog, telegram, calendar, router, result
+
+
+def telegram_button(telegram, label):
+    return next(button["callback_data"] for _, _, markup in reversed(telegram.sent)
+                if markup for row in markup["inline_keyboard"] for button in row
+                if button["text"] == label)
+
+
+def assert_single_calendar_write_survives_restart(store, dialog, telegram, calendar,
+                                                  decision, update_id):
+    telegram.updates = [callback_update(update_id, decision)]
+    dialog.poll_once()
+    assert len(calendar.create_calls) == 1
+    proposal = calendar.create_calls[0][0]
+    # The executor persists CONFIRMED before advancing to WRITING and calling
+    # the adapter; reaching this boundary therefore proves the version-bound
+    # confirmation was accepted, rather than a direct unconfirmed write.
+    assert proposal.status.value == "writing"
+    assert proposal.version >= 1
+    assert telegram.answers[-1] == (f"cb-{update_id}", "Aktion wird verarbeitet …")
+    assert store.load(f"proposal-{proposal.source_mail_id}-{proposal.id}")["status"] == "uncertain"
+
+    replay = FakeTelegram()
+    replay.updates = [callback_update(update_id, decision)]
+    restarted = TelegramDialogController(
+        store, replay, 42, 99, NullLogger(), {"google_calendar": calendar}, False,
+        "Etc/GMT-1")
+    restarted.poll_once()
+
+    assert len(calendar.create_calls) == 1
+    # One pre-write reconciliation and one restart reconciliation use the same
+    # idempotency key; neither issues another create request.
+    assert calendar.reconcile_calls == [calendar.create_calls[0][1]] * 2
+    saved = store.load(f"proposal-{proposal.source_mail_id}-{proposal.id}")
+    assert saved["status"] == "created" and saved["external_id"] == "calendar-event-1"
+    ledger = store.load_model("action-ledger", ActionLedger)
+    assert ledger is not None and len(ledger.entries) == 1
+    assert ledger.entries[0].proposal_version == proposal.version
+
+
+def test_nachholtermin_fixture_explicit_offset_confirmation_and_reconciliation(tmp_path):
+    store, dialog, telegram, calendar, router, result = nachholtermin_flow(
+        tmp_path / "complete", incomplete=False)
+    try:
+        assert result.outcome is ProcessingOutcome.COMPLETED
+        assert router.calls == ["relevance", "summary", "action_router", "event_extraction"]
+        assert len(result.state["proposals"]) == 1
+        proposal = Proposal.model_validate(result.state["proposals"][0])
+        assert proposal.status.value == "pending_confirmation"
+        assert proposal.open_questions == []
+        assert proposal.temporal_fact.normalized_date.isoformat() == "2026-09-23"
+        assert proposal.start.isoformat() == "2026-09-23T09:00:00+01:00"
+        assert proposal.end.isoformat() == "2026-09-23T10:00:00+01:00"
+        assert proposal.start.astimezone(timezone.utc).isoformat() == "2026-09-23T08:00:00+00:00"
+        assert proposal.end.astimezone(timezone.utc).isoformat() == "2026-09-23T09:00:00+00:00"
+        assert calendar.create_calls == []
+
+        assert_single_calendar_write_survives_restart(
+            store, dialog, telegram, calendar, telegram_button(telegram, "Anlegen"), 100)
+    finally:
+        store.__exit__()
+
+
+def test_nachholtermin_incomplete_is_completed_locally_then_idempotently_written(tmp_path):
+    store, dialog, telegram, calendar, router, result = nachholtermin_flow(
+        tmp_path / "incomplete", incomplete=True)
+    try:
+        proposal = Proposal.model_validate(result.state["proposals"][0])
+        assert result.outcome is ProcessingOutcome.COMPLETED
+        assert proposal.status.value == "needs_clarification"
+        assert proposal.open_questions == ["Wann beginnt der Termin?"]
+        initial_llm_calls = list(router.calls)
+
+        telegram.updates = [callback_update(200, telegram_button(telegram, "Klären"))]
+        dialog.poll_once()
+        telegram.updates.append(message_update(201, "23.09.2026 9:00 bis 10uhr"))
+        dialog.poll_once()
+
+        assert router.calls == initial_llm_calls
+        revised = store.load_model(
+            f"proposal-{proposal.source_mail_id}-{proposal.id}", Proposal)
+        assert revised is not None and revised.version == 2
+        assert revised.status.value == "pending_confirmation" and revised.open_questions == []
+        assert revised.start.isoformat() == "2026-09-23T09:00:00+01:00"
+        assert revised.end.isoformat() == "2026-09-23T10:00:00+01:00"
+        assert revised.start.astimezone(timezone.utc).isoformat() == "2026-09-23T08:00:00+00:00"
+        assert revised.end.astimezone(timezone.utc).isoformat() == "2026-09-23T09:00:00+00:00"
+        assert calendar.create_calls == []
+
+        assert_single_calendar_write_survives_restart(
+            store, dialog, telegram, calendar, telegram_button(telegram, "Anlegen"), 202)
+    finally:
+        store.__exit__()
 
 
 def test_imap_llm_persists_separate_raw_extractions(tmp_path):
