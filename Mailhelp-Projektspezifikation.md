@@ -191,6 +191,31 @@ verfügbar.
 - Die ausgelieferte Konfiguration setzt `historical_start` auf `2026-09-15T00:00:00+02:00` (15. September 2026, 00:00 Uhr in `Europe/Berlin`); Nachrichten mit einem früheren IMAP-Empfangszeitpunkt gehören damit beim erstmaligen Aufbau des Abrufpunkts nicht zum zu verarbeitenden Bestand.
 - `batch_size` begrenzt den Abruf pro regulärem Polling-Zyklus auf `1..1000` Nachrichten (Standard `25`). Bei einem begrenzten Einmallauf ersetzt das nach Wiederaufnahmen verbleibende `--max-mails`-Budget diese Batchgröße; dadurch kann der Testlauf mehr als 25 Mails bearbeiten und lädt dennoch keine Nachrichten über sein Restbudget hinaus. Nach der Suche werden die gefundene und ausgewählte Anzahl sowie nach jedem schreibfreien Nachrichtenabruf der Fortschritt ohne Mailinhalt protokolliert; der persistierte UID-Checkpoint setzt den nächsten Zyklus fort.
 - `global_newest_first` ist ein boolescher Schalter. Bei `true` wird pro Ordner zunächst ein auf das gemeinsame Kontingent `N` begrenztes Fenster der höchsten noch offenen UIDs gebildet. Dessen höchstens `N` UID-/`INTERNALDATE`-Metadatensätze werden schreibfrei in einem Sequence-Set-`UID FETCH` statt durch Einzelabrufe aller UIDs ermittelt und anschließend als gemeinsame, nach Empfangszeitpunkt absteigend sortierte Warteschlange behandelt. Diese Begrenzung verliert keinen Kandidaten der globalen Top `N`, sofern die IMAP-konforme UID-Vergabe die Ankunftsreihenfolge abbildet. Bei identischem `INTERNALDATE` entscheiden höhere UID und danach die konfigurierte Ordnerreihenfolge. Erst danach werden die durch das gemeinsame `batch_size`-, `--max-mails`- oder `--learn`-Kontingent ausgewählten Nachrichten mit `BODY.PEEK[]` geladen. Die ordnerspezifischen Checkpoints und der dauerhafte Backlog bleiben erhalten. `historical_start` begrenzt den regulären Abruf, wird im Lernmodus jedoch ignoriert. Bei `false` werden die Ordner weiterhin in Konfigurationsreihenfolge und jeweils neueste UID zuerst verarbeitet.
+
+### Versionierter Verarbeitungslauf
+
+Vor dem ersten Inhaltsabruf wird ein `MailRunState` der Schema-Version 1 atomar
+als eingerückte JSON-Datei gespeichert. Er enthält eine eindeutige UUID, den
+UTC-Erstellungszeitpunkt, das bei der Anlage wirksame `max_mails`, aggregierte
+Statuszähler und die vollständige deduplizierte Startqueue. Die stabile
+Identität eines Eintrags ist das Tupel `(account_id, folder, uidvalidity, uid)`.
+Zulässige Zustände sind `discovered`, `queued`, `processing`, `completed`,
+`waiting_for_user`, `failed` und `skipped`. Zusätzlich enthält jeder terminale
+Eintrag den davon getrennten Analyseabschluss `completed`, `failed` oder
+`skipped` und ein Kennzeichen für eine noch offene Benutzeraktion. Somit ist
+`waiting_for_user` eine abgeschlossene Mailanalyse mit offener Interaktion und
+keine Aufforderung, die Analyse erneut auszuführen.
+
+`max_mails = N` begrenzt die **einmalig beim Anlegen des Runs festgeschriebene
+Zahl eindeutiger Mails**, nicht die Zahl der Suchtreffer, Abrufversuche oder
+Prozessstarts. Bei 86 verfügbaren Mails umfasst ein Limit von 100 daher 86
+Einträge, bei 150 verfügbaren Mails 100 Einträge. Während einer Wiederaufnahme
+wird die Queue weder erneut entdeckt noch mit später eingegangenen Mails
+aufgefüllt. Vor jedem Verarbeitungsschritt wird ihr persistenter Zustand erneut
+gelesen. Nur `queued`, `discovered` und ein durch Prozessabbruch verbliebenes
+`processing` werden anhand der gespeicherten UID fortgesetzt; terminale
+Einträge werden nie erneut analysiert. Nach Abschluss der gesamten Queue kann
+ein neuer Run den verbleibenden oder neu eingegangenen Bestand aufnehmen.
 - Das Mail-Kontingent `--max-mails` ist vom LLM-Aufrufkontingent unabhängig. Da eine reguläre Mail typischerweise mindestens einen Relevanz- und einen Analyseaufruf benötigt, setzt die ausgelieferte Konfiguration `limits.llm_calls_per_minute` auf den erlaubten Höchstwert `600`. Damit unterbricht das lokale Minutenbudget insbesondere `--max-mails 100` nicht wie beim früheren Wert `100` bereits nach ungefähr 50 vollständig analysierten Mails. Betreiber können den Wert weiterhin bewusst reduzieren; ausgeschöpfte LLM-Kontingente werden unverändert dauerhaft zurückgestellt.
 - Die ausgelieferte WEB.DE-Konfiguration verarbeitet die Standardordner `INBOX`, `Drafts`, `Sent`, `Spam` und `Trash`. Benutzerdefinierte Ordner sind mit ihrem exakten IMAP-Namen zusätzlich zu konfigurieren.
 - Der interaktive Lernmodus lädt vor dem Abruf die vollständige IMAP-Ordnerliste, ergänzt neue auswählbare Ordner atomar in `config.yaml` und berücksichtigt sie sofort. Ordner mit `\\Noselect` werden nicht übernommen. Ordnernamen werden bei `SELECT`/`EXAMINE` als sichere IMAP-Argumente maskiert und bei Nicht-ASCII-Zeichen in Modified UTF-7 codiert. Er meldet nicht lesbare Ordner, überspringt sie und verarbeitet die übrigen lesbaren Ordner weiter. Andere IMAP-Fehler werden nicht als fehlender Ordner behandelt.

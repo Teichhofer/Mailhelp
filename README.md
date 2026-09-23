@@ -776,3 +776,24 @@ dem Anwenden abgewiesen. Nach einem
 `output_token_limit` wird eine kürzere, feldreduzierte Route verwendet. Scheitern
 alle technischen Versuche, speichert Mailhelp die normalisierte Antwort als
 `retry_required` und setzt sie nach einem Neustart fort, ohne erneut zu fragen.
+
+### Dauerhaftes Run-Modell und `--max-mails`
+
+Jeder Verarbeitungslauf besitzt eine UUID, einen UTC-Erstellungszeitpunkt und
+eine vollständig materialisierte Queue in der lesbaren Datei
+`mail-run-<account_id>.json`. Ein Queue-Schlüssel besteht unveränderlich aus
+Account, Ordner, UIDVALIDITY und UID; dadurch werden doppelte Treffer innerhalb
+eines Runs verworfen. Mailhelp speichert **zuerst** die gesamte ausgewählte
+UID-Liste und lädt erst danach Mailinhalte. Vor der Analyse wird der Eintrag
+atomar auf `processing`, anschließend auf `completed`, `waiting_for_user`,
+`failed` oder `skipped` gesetzt. Ein Neustart setzt ausschließlich `queued` und
+unterbrochene `processing`-Einträge anhand ihrer gespeicherten UID fort.
+
+`--max-mails N` bedeutet exakt: Der neu angelegte Run enthält höchstens `N` der
+zum Entdeckungszeitpunkt verfügbaren, noch nicht abgeschlossenen eindeutigen
+Mails. Sind nur 86 verfügbar, enthält `--max-mails 100` genau 86; bei 150
+verfügbaren Mails genau 100. Das Limit wird nicht durch Neustarts aufgefüllt.
+Erst nach Abschluss dieser festen Queue darf ein späterer Aufruf einen neuen Run
+mit inzwischen verfügbaren oder übrig gebliebenen Mails anlegen. Der terminale
+Analysezustand (`completed`, `failed` oder `skipped`) wird getrennt davon
+gespeichert, ob bei `waiting_for_user` noch eine Benutzeraktion offen ist.
