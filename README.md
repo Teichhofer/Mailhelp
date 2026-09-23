@@ -464,14 +464,15 @@ verdeckt einen bereits aufgetretenen Fehler nicht.
 Für einen begrenzten Testlauf verarbeitet beispielsweise `mailhelp --max-mails 50`
 in genau einem Abrufdurchlauf höchstens 50 Mails, auch wenn `imap.batch_size` auf
 dem Standardwert 25 steht (einschließlich fälliger, nach einem
-Neustart fortzusetzender Mails), fragt einmal Telegram ab und beendet sich auch
-bei einem noch offenen Dialog. Nicht verbrauchtes Kontingent führt nicht zu einem weiteren Poll;
-`--max-mails` muss mindestens `1` sein. Bereits bestätigte externe Schreibaktionen
+Neustart fortzusetzender Mails). Nicht verbrauchtes Kontingent führt nicht zu
+einem weiteren IMAP-Abruf;
+`--max-mails` muss mindestens `1` sein. Stellt die Verarbeitung eine Frage oder
+einen Vorschlag per Telegram zur Entscheidung, wartet sie auch in diesem Modus
+auf die Bearbeitung und setzt erst danach dieselbe und anschließend weitere Mails
+fort. Bereits bestätigte externe Schreibaktionen
 behalten auch in diesem Modus ihre normalen Sicherheits- und Abgleichsregeln.
-Wenn Arbeit auf Eingabe wartet, weist die abschließende Telegram-Zusammenfassung
-darauf hin, dass erst nach diesem einmaligen Abruf eingehende Antworten beim
-nächsten Start verarbeitet werden. Für laufende Dialoge ohne dieses begrenzte
-Antwortfenster ist der Dauerbetrieb ohne `--max-mails` vorgesehen.
+Ein Stoppsignal beendet auch dieses Warten kontrolliert; der dauerhafte Zustand
+wird beim nächsten Start wieder aufgenommen.
 Offene Bestandszustände mit einem anderen Konfigurationsfingerprint werden ohne
 IMAP-Abruf und ohne Fortsetzung als blockiert gemeldet. Sie verbrauchen das
 Verarbeitungskontingent nicht; pro Lauf werden zusätzlich höchstens

@@ -16,7 +16,7 @@ Prozess meldet den signalbedingten Abbruch mit Exit-Code 130.
 
 Der optionale CLI-Parameter `--max-mails N` führt genau einen Abrufdurchlauf aus,
 bearbeitet dabei ordnerübergreifend höchstens `N` Mails einschließlich fälliger
-Wiederaufnahmen, pollt Telegram einmal und beendet den Prozess. Das verbleibende
+Wiederaufnahmen und beendet danach den Prozess. Das verbleibende
 Kontingent ersetzt bei diesem Abruf die reguläre IMAP-Batchgröße, sodass `N` auch
 größer als deren Standardwert 25 sein kann. `N` ist eine positive Ganzzahl; nicht
 ausgeschöpftes Kontingent löst keinen weiteren Abruf aus.
@@ -24,10 +24,10 @@ Ein nachfolgender Einmallauf verwendet die persistierten abgeschlossenen
 UID-Bereiche und wählt aus dem verbleibenden Backlog wiederum die neuesten `N`
 Nachrichten; neue Nachrichten erhalten Vorrang, ohne ältere offene Nachrichten
 zu überspringen.
-Bleibt dabei Arbeit auf Eingabe stehen, erklärt die abschließende
-Telegram-Zusammenfassung, dass nach dem einmaligen Abruf eingehende Antworten
-erst beim nächsten Start verarbeitet werden; der unbegrenzte Dauerbetrieb hat
-dieses begrenzte Antwortfenster nicht.
+Nach jeder per Telegram gestellten Frage oder zur Entscheidung vorgelegten
+Aktion wartet die Verarbeitung auf die Antwort. Erst nach deren Bearbeitung wird
+dieselbe Mail fortgesetzt und danach die nächste Mail begonnen. Das gilt auch für
+`--max-mails`; ein Stoppsignal kann das Warten kontrolliert unterbrechen.
 Noch nicht abgeschlossene Zustände mit abweichendem Konfigurationsfingerprint
 werden bereits beim Laden erkannt, weder per IMAP abgerufen noch fortgesetzt und
 verbrauchen dieses Verarbeitungskontingent nicht. Ein separates, ebenfalls auf

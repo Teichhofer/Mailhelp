@@ -127,11 +127,6 @@ class _RunSummary:
             f"Fehlgeschlagen: {self.failed}",
             f"Übersprungen: {self.skipped}",
         ]
-        if bounded and self.waiting_for_user:
-            lines.extend((
-                "Hinweis: --max-mails fragt Telegram nur einmal ab.",
-                "Später eingehende Antworten werden beim nächsten Start verarbeitet.",
-            ))
         return "\n".join(lines)
 
 
@@ -150,7 +145,7 @@ class Application:
     stop_event: Event
     dialog: TelegramDialogController | None = None
     sender_store: JsonStore | None = None
-    _interleave_telegram: bool = False
+    _wait_for_user: bool = False
 
     def check_access(self) -> dict[str, str | None]:
         """Check every external credential and target without processing mail."""
@@ -594,17 +589,32 @@ class Application:
         return True
 
     def _process_mail(self, mail: object) -> ProcessingResult:
-        """Process one mail and immediately collect callbacks exposed by it."""
-        result = self.orchestrator.process(mail)
-        if self._interleave_telegram:
-            # Do not wait for the complete mailbox batch after a proposal has
-            # displayed its buttons.  A zero-timeout poll keeps mail throughput
-            # independent of Telegram when no answer is waiting.
-            self._poll_telegram(timeout=0)
-        return result
+        """Finish one mail's Telegram dialog before allowing the next mail."""
+        while True:
+            result = self.orchestrator.process(mail)
+            if not self._wait_for_user:
+                return result
+            if not self._wait_for_telegram_decision():
+                return result
+            # An unclear relevance answer interrupts analysis.  Once Telegram
+            # resolved it, resume this same mail before advancing the mailbox.
+            if result.outcome is not ProcessingOutcome.WAITING:
+                return result
+
+    def _wait_for_telegram_decision(self) -> bool:
+        """Long-poll until the current explicit question is resolved or stopped."""
+        if self.dialog is None or not self.dialog.awaiting_decision():
+            return False
+        while not self.stop_event.is_set() and self.dialog.awaiting_decision():
+            if not self._poll_telegram():
+                self.stop_event.wait(min(
+                    self.settings.poll_interval_seconds,
+                    _TELEGRAM_ERROR_BACKOFF_SECONDS,
+                ))
+        return not self.stop_event.is_set()
 
     def run(self, max_mails: int | None = None) -> None:
-        self._interleave_telegram = max_mails is None
+        self._wait_for_user = True
         try:
             while not self.stop_event.is_set():
                 try:
@@ -614,6 +624,8 @@ class Application:
                     self.logger.event("ERROR", "retention", "cleanup_failed",
                                       processed_at=datetime.now(timezone.utc).isoformat(), failure_count=1)
                 telegram_poll_succeeded = self._poll_telegram()
+                if not self.stop_event.is_set() and self._wait_for_telegram_decision():
+                    telegram_poll_succeeded = True
                 if not self.stop_event.is_set():
                     self._poll_imap(max_mails)
                 if max_mails is not None:
