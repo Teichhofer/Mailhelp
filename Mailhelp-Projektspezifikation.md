@@ -956,6 +956,11 @@ normalisiert. Ein angegebener Wochentag muss zum Kalenderdatum passen. Rohwerte
 bleiben im Zeitfakt erhalten; ein bekanntes Datum und eine bekannte Beginnzeit
 werden auch bei fehlendem Ende bewahrt. Eine reine Datumsantwort erzeugt ohne
 explizite Ganztagsevidenz keinen Ganztagstermin.
+Aufgabenfristen und beantwortete Terminbeginne bleiben exakt an das bestätigte
+Kalenderdatum gebunden. Ein ausdrücklich beantwortetes Ende eines zeitgebundenen
+Termins darf auf diesem Datum oder auf dem unmittelbar folgenden Kalendertag
+liegen; es muss weiterhin strikt nach dem unveränderten Beginn liegen. Frühere
+Zeitpunkte und weiter entfernte Enddaten werden abgewiesen.
 
 Bei einer LLM-Überarbeitung wird nicht nur das Delta, sondern der daraus lokal
 gebildete vollständige Folgevorschlag innerhalb der begrenzten Reparaturschleife

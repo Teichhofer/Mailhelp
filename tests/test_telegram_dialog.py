@@ -174,6 +174,43 @@ def test_deterministic_end_revision_accepts_normalized_time_formats(normalized):
     assert revised.status == ProposalStatus.PENDING_CONFIRMATION
 
 
+@pytest.mark.parametrize(("end", "expected_offset"), [
+    ("09.10.2026 um 23:00 Uhr", "+02:00"),
+    ("10.10.2026 um 01:00 Uhr", "+02:00"),
+    ("29.03.2026 um 01:00 Uhr", "+01:00"),
+    ("25.10.2026 um 01:00 Uhr", "+02:00"),
+])
+def test_deterministic_end_accepts_same_or_next_day_across_dst(end, expected_offset):
+    start_day = "2026-03-28" if end.startswith("29.03") else (
+        "2026-10-24" if end.startswith("25.10") else "2026-10-09")
+    item = proposal(kind="event", status="needs_clarification",
+                    open_questions=["Wann endet der Termin?"],
+                    known_temporal_facts={
+                        "date": start_day,
+                        "start": f"{start_day}T22:00:00+01:00" if start_day.endswith("03-28")
+                        else f"{start_day}T22:00:00+02:00"})
+    revised = deterministic_temporal_revision(
+        item, item.open_questions[0], end, "Europe/Berlin")
+    assert revised.end.isoformat().endswith(expected_offset)
+    assert revised.end > revised.start
+
+
+@pytest.mark.parametrize("end", [
+    "09.10.2026 um 22:00 Uhr",
+    "09.10.2026 um 21:59 Uhr",
+    "11.10.2026 um 01:00 Uhr",
+])
+def test_deterministic_end_rejects_nonpositive_or_too_distant_end(end):
+    item = proposal(kind="event", status="needs_clarification",
+                    open_questions=["Wann endet der Termin?"],
+                    known_temporal_facts={
+                        "date": "2026-10-09",
+                        "start": "2026-10-09T22:00:00+02:00"})
+    with pytest.raises((ContradictoryRevision, ValueError)):
+        deterministic_temporal_revision(
+            item, item.open_questions[0], end, "Europe/Berlin")
+
+
 def test_deterministic_temporal_revision_rejects_wrong_day_and_dst_edges():
     item = proposal(kind="event", status="needs_clarification",
                     open_questions=["Wann beginnt der Termin?"],

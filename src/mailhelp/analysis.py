@@ -104,6 +104,8 @@ def validate_revision_successor(previous: Proposal, candidate: Any) -> Proposal:
             raise ContradictoryRevision("Bekannte Zeitfakten dürfen nicht verloren gehen")
         if known.start is not None and revised.start != known.start:
             raise ContradictoryRevision("Eine bekannte Beginnzeit darf nicht verändert werden")
+    if previous.start is not None and revised.start != previous.start:
+        raise ContradictoryRevision("Ein bestätigter Terminbeginn darf nicht verändert werden")
     expected = (ProposalStatus.NEEDS_CLARIFICATION if revised.open_questions
                 else ProposalStatus.PENDING_CONFIRMATION)
     if revised.status != expected:

@@ -63,7 +63,11 @@ def deterministic_temporal_revision(proposal: Proposal, question: str,
                 if proposal.known_temporal_facts is not None
                 else proposal.temporal_fact.normalized_date
                 if proposal.temporal_fact is not None else None)
-    if expected is None or day != expected:
+    field = "end" if "ende" in question.casefold() else "start"
+    allowed_days = {expected}
+    if field == "end" and expected is not None:
+        allowed_days.add(expected + timedelta(days=1))
+    if expected is None or day not in allowed_days:
         raise ContradictoryRevision("Die Antwort widerspricht dem validierten Termindatum")
     naive = datetime.combine(
         day, clock_time(int(match["hour"]), int(match["minute"] or 0)))
@@ -76,7 +80,6 @@ def deterministic_temporal_revision(proposal: Proposal, question: str,
                 candidates.append(candidate)
     if len(candidates) != 1:
         raise ContradictoryRevision("Die Ortszeit ist wegen der Zeitumstellung nicht eindeutig")
-    field = "end" if "ende" in question.casefold() else "start"
     return apply_proposal_revision(proposal, ProposalRevisionDelta(
         answered_question=question, changes={field: candidates[0]}))
 

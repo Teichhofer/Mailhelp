@@ -548,6 +548,68 @@ def test_partial_event_revision_promotes_start_to_known_fact():
                               changes={"title": "Neuer Titel"}))
     assert unchanged.known_temporal_facts == original.known_temporal_facts
 
+
+@pytest.mark.parametrize("end", [
+    "2026-10-09T23:00:00+02:00",
+    "2026-10-10T01:00:00+02:00",
+])
+def test_event_revision_accepts_same_or_immediately_following_end_day(end):
+    original = proposal(kind="event", status="needs_clarification",
+                        open_questions=["Wann endet der Termin?"],
+                        known_temporal_facts={
+                            "date": "2026-10-09",
+                            "start": "2026-10-09T22:00:00+02:00"})
+    revised = apply_proposal_revision(original, ProposalRevisionDelta(
+        answered_question=original.open_questions[0], changes={"end": end}))
+    assert revised.start.isoformat() == "2026-10-09T22:00:00+02:00"
+    assert revised.end.isoformat() == end
+
+
+@pytest.mark.parametrize("changes", [
+    {"end": "2026-10-09T22:00:00+02:00"},
+    {"end": "2026-10-09T21:00:00+02:00"},
+    {"end": "2026-10-11T01:00:00+02:00"},
+    {"start": "2026-10-09T21:00:00+02:00", "end": "2026-10-09T23:00:00+02:00"},
+    {"start": "2026-10-10T22:00:00+02:00", "end": "2026-10-10T23:00:00+02:00"},
+])
+def test_event_revision_rejects_invalid_end_or_changed_confirmed_start(changes):
+    original = proposal(kind="event", status="needs_clarification",
+                        open_questions=["Wann endet der Termin?"],
+                        known_temporal_facts={
+                            "date": "2026-10-09",
+                            "start": "2026-10-09T22:00:00+02:00"})
+    with pytest.raises(ValueError):
+        apply_proposal_revision(original, ProposalRevisionDelta(
+            answered_question=original.open_questions[0], changes=changes))
+
+
+def test_all_day_revision_does_not_allow_a_timed_following_day_end():
+    original = proposal(kind="event", all_day=True, status="needs_clarification",
+                        open_questions=["Wann endet der Termin?"],
+                        temporal_fact={"raw_text": "09.10.2026",
+                                       "normalized_date": "2026-10-09",
+                                       "year_source": "explicit_mail", "status": "resolved"})
+    with pytest.raises(ValueError, match="validierten Datum"):
+        apply_proposal_revision(original, ProposalRevisionDelta(
+            answered_question=original.open_questions[0],
+            changes={"end": "2026-10-10T01:00:00+02:00"}))
+
+
+def test_revision_successor_keeps_confirmed_start_but_allows_next_day_end():
+    original = proposal(kind="event", status="needs_clarification",
+                        open_questions=["Wann endet der Termin?"],
+                        start="2026-10-09T22:00:00+02:00", end=None,
+                        temporal_fact={"raw_text": "09.10.2026",
+                                       "normalized_date": "2026-10-09",
+                                       "year_source": "explicit_mail", "status": "resolved"})
+    revised = apply_proposal_revision(original, ProposalRevisionDelta(
+        answered_question=original.open_questions[0],
+        changes={"end": "2026-10-10T01:00:00+02:00"}))
+    assert validate_revision_successor(original, revised) == revised
+    changed = revised.model_copy(update={"start": revised.start.replace(hour=21)})
+    with pytest.raises(ContradictoryRevision, match="bestätigter Terminbeginn"):
+        validate_revision_successor(original, changed)
+
 @pytest.mark.parametrize(("kind","question","expected"), [
     ("task","Ist die Person zuständig?",["responsibility"]),
     ("task","Ist das sicher belegt?",["certainty"]),
