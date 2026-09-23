@@ -7,7 +7,7 @@ from typing import Callable, Literal
 
 from .config import RetentionSettings
 from .models import MailState, ProposalStatus
-from .storage import JsonStore
+from .storage import JsonStore, mail_state_names
 
 
 Period = int | Literal["disabled", "unlimited"]
@@ -57,7 +57,7 @@ class RetentionService:
         if now.tzinfo is None:
             raise ValueError("Bereinigungszeitpunkt benötigt eine Zeitzone")
         scanned = protected = mail_scrubbed = debug_scrubbed = 0
-        for name in self.store.names("mail-"):
+        for name in mail_state_names(self.store):
             scanned += 1
             state = self.store.load_model(name, MailState)
             if state is None:

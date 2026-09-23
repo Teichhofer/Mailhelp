@@ -21,7 +21,7 @@ from .models import (ImapCheckpoint, MailRunCounters, MailRunEntry,
                      MailRunEntryStatus, MailRunState, MailState, TelegramOffset)
 from .openrouter import OpenRouterClient
 from .orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
-from .storage import JsonStore
+from .storage import JsonStore, mail_state_names
 from .telegram import (TelegramChatNotFoundError, TelegramClient,
                        TelegramDialogController)
 from .adapter import RetryPolicy
@@ -531,7 +531,7 @@ class Application:
             return results
         budget = budget or _MailBudget(None)
         now = datetime.now(timezone.utc)
-        for name in self.store.names("mail-"):
+        for name in mail_state_names(self.store):
             if self.stop_event.is_set() or budget.remaining == 0:
                 break
             try:

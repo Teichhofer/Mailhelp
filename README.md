@@ -825,6 +825,12 @@ dieselbe materialisierte Queue ohne erneute Entdeckung und ohne doppelte Analyse
 fortsetzt. Nicht lesbare zusätzliche Ordner verkürzen einen bereits entdeckten
 INBOX-Batch nicht.
 
+Run-Dateien gehören zu einem eigenen Zustandstyp. Scans nach einzelnen
+`mail-<id>.json`-Zuständen (Wiederaufnahme, Aufbewahrung und Telegram-Dialoge)
+schließen `mail-run-<account_id>.json` ausdrücklich aus, damit die dauerhafte
+Queue weder als schemawidrige Mail isoliert noch ein laufender Batch abgebrochen
+wird.
+
 `--max-mails N` bedeutet exakt: Der neu angelegte Run enthält höchstens `N` der
 zum Entdeckungszeitpunkt verfügbaren, noch nicht abgeschlossenen eindeutigen
 Mails. Sind nur 86 verfügbar, enthält `--max-mails 100` genau 86; bei 150

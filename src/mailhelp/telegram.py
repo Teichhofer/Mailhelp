@@ -18,7 +18,7 @@ from .models import (ActionLedger, ActionLedgerEntry, AnswerStatus, MailState, P
                      WriteAttemptReference)
 from .integrations import ExternalWriter, execute_confirmed, proposal_is_writable
 from .adapter import PermanentError, RetryableError, RetryPolicy, uncertain_write
-from .storage import JsonStore
+from .storage import JsonStore, mail_state_names
 from .logging import EventLogger, NullLogger
 from .analysis import (ContradictoryRevision, IncompleteUserAnswer, LlmInvalidJson,
                        LlmProviderResponseInvalid, LlmSchemaValidationFailed,
@@ -682,7 +682,7 @@ class RelevanceDialogProcessor:
 
     def all(self) -> list[RelevanceDialog]:
         result = []
-        for name in self.store.names("mail-") if hasattr(self.store, "names") else []:
+        for name in mail_state_names(self.store) if hasattr(self.store, "names") else []:
             state = self.store.load_model(name, MailState)
             if isinstance(state, MailState) and state.relevance_dialog is not None:
                 result.append(state.relevance_dialog)
