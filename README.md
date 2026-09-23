@@ -788,6 +788,11 @@ UID-Liste und lädt erst danach Mailinhalte. Vor der Analyse wird der Eintrag
 atomar auf `processing`, anschließend auf `completed`, `waiting_for_user`,
 `failed` oder `skipped` gesetzt. Ein Neustart setzt ausschließlich `queued` und
 unterbrochene `processing`-Einträge anhand ihrer gespeicherten UID fort.
+Ein verbindungsbezogener Timeout wird dabei nicht als Analysefehler verbucht:
+Der Eintrag bleibt `processing`, sodass eine neu aufgebaute IMAP-Verbindung
+dieselbe materialisierte Queue ohne erneute Entdeckung und ohne doppelte Analyse
+fortsetzt. Nicht lesbare zusätzliche Ordner verkürzen einen bereits entdeckten
+INBOX-Batch nicht.
 
 `--max-mails N` bedeutet exakt: Der neu angelegte Run enthält höchstens `N` der
 zum Entdeckungszeitpunkt verfügbaren, noch nicht abgeschlossenen eindeutigen

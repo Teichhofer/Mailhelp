@@ -73,6 +73,11 @@ class MailRunState(StrictModel):
     entries: list[MailRunEntry]
     counters: MailRunCounters
 
+    @property
+    def run_complete(self) -> bool:
+        """Report whether analysis reached a terminal state for the fixed queue."""
+        return all(entry.analysis_terminal is not None for entry in self.entries)
+
     @model_validator(mode="after")
     def consistent_queue(self) -> "MailRunState":
         if self.created_at.tzinfo is None or self.created_at.utcoffset() is None:

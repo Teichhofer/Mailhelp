@@ -235,6 +235,143 @@ def test_run_model_rejects_inconsistent_terminals_identity_time_and_counters():
     with pytest.raises(ValueError, match="Zähler"):
         MailRunState(created_at=datetime.now(timezone.utc),
                      **{**base, "counters": MailRunCounters()})
+    assert MailRunState(created_at=datetime.now(timezone.utc), **base).run_complete is False
+    terminal = MailRunEntry(
+        account_id="a", folder="INBOX", uidvalidity=1, uid=1,
+        status="completed", analysis_terminal="completed",
+    )
+    assert MailRunState(
+        created_at=datetime.now(timezone.utc),
+        **{**base, "entries": [terminal], "counters": MailRunCounters(completed=1)},
+    ).run_complete is True
+
+
+def test_reconnectable_timeout_resumes_same_materialized_queue(tmp_path):
+    """Fall D: reconnecting must neither rediscover nor replace the fixed queue."""
+    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+
+    class Reader:
+        account_id = "0" * 24
+        last_uidvalidity = 7
+        def __init__(self, timeout=False): self.timeout=timeout; self.discoveries=0; self.fetches=[]
+        def discover_since(self, folder, *_args):
+            self.discoveries += 1
+            return [MailCandidate(folder, 7, uid, self.account_id, stamp) for uid in (1, 2, 3)]
+        def fetch_uid(self, folder, uid, validity):
+            self.fetches.append(uid)
+            if self.timeout and uid == 3:
+                raise TimeoutError("synthetic reconnectable timeout")
+            return FetchedMail(folder, validity, uid, b"x", self.account_id, stamp)
+
+    store = Store()
+    disconnected = Reader(timeout=True)
+    first = app(tmp_path, disconnected, Telegram([]), Orch(), store=store,
+                global_newest_first=True)
+    with pytest.raises(TimeoutError, match="reconnectable"):
+        first._poll_imap(max_mails=100)
+
+    run_name = f"mail-run-{disconnected.account_id}"
+    interrupted = MailRunState.model_validate(store.values[run_name])
+    assert [entry.status for entry in interrupted.entries] == ["completed", "completed", "processing"]
+    assert interrupted.run_complete is False
+
+    reconnected = Reader()
+    second = app(tmp_path, reconnected, Telegram([]), Orch(), store=store,
+                 global_newest_first=True)
+    assert len(second._poll_imap(max_mails=100)) == 1
+    assert reconnected.discoveries == 0
+    assert second.orchestrator.seen == [3]
+    assert MailRunState.model_validate(store.values[run_name]).run_complete is True
+
+
+def test_failed_analysis_is_terminal_and_next_queued_mail_runs(tmp_path):
+    """Fall E: one failed analysis does not poison the remaining queue."""
+    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+
+    class Reader:
+        account_id = "0" * 24
+        last_uidvalidity = 7
+        def discover_since(self, folder, *_args):
+            return [MailCandidate(folder, 7, uid, self.account_id, stamp) for uid in (1, 2)]
+        def fetch_uid(self, folder, uid, validity):
+            return FetchedMail(folder, validity, uid, b"x", self.account_id, stamp)
+
+    class FailFirst(Orch):
+        def process(self, mail):
+            self.seen.append(mail.uid)
+            if mail.uid == 1:
+                raise RuntimeError("synthetic analysis failure")
+            return ProcessingResult(ProcessingOutcome.COMPLETED, {})
+
+    store = Store()
+    service = app(tmp_path, Reader(), Telegram([]), FailFirst(), store=store,
+                  global_newest_first=True)
+    results = service._poll_imap(max_mails=100)
+    run = MailRunState.model_validate(store.values[f"mail-run-{service.imap.account_id}"])
+
+    assert len(results) == 1
+    assert service.orchestrator.seen == [1, 2]
+    assert [entry.status for entry in run.entries] == ["failed", "completed"]
+    assert run.run_complete is True
+
+
+def test_acceptance_full_inbox_batch_survives_dialog_timeout_and_optional_folders(tmp_path):
+    """Fälle A, C, D und F gemeinsam mit der geforderten 86-Mail-Abnahme."""
+    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    analyzed: list[int] = []
+
+    class Reader:
+        account_id = "0" * 24
+        last_uidvalidity = 7
+        def __init__(self, disconnect=False): self.disconnect=disconnect; self.fetches=[]
+        def discover_since(self, folder, *_args):
+            if folder != "INBOX":
+                raise RuntimeError(f"synthetic unreadable optional folder: {folder}")
+            return [MailCandidate(folder, 7, uid, self.account_id,
+                                  stamp - timedelta(seconds=uid))
+                    for uid in range(1, 87)]
+        def fetch_uid(self, folder, uid, validity):
+            self.fetches.append((folder, uid))
+            if self.disconnect and uid == 3:
+                raise TimeoutError("synthetic one-shot timeout")
+            return FetchedMail(folder, validity, uid, b"Subject: synthetic\n\nBody",
+                               self.account_id, stamp)
+
+    class Analyzer(Orch):
+        def process(self, mail):
+            analyzed.append(mail.uid)
+            outcome = (ProcessingOutcome.WAITING if mail.uid == 2
+                       else ProcessingOutcome.COMPLETED)
+            return ProcessingResult(outcome, {})
+
+    store = Store()
+    folders = ("INBOX", "Optional Archive", "Optional Spam")
+    first_reader = Reader(disconnect=True)
+    first = app(tmp_path, first_reader, Telegram([]), Analyzer(), folders=folders,
+                store=store, global_newest_first=True)
+    with pytest.raises(TimeoutError, match="one-shot"):
+        first._poll_imap(max_mails=100)
+
+    # A new adapter represents the newly established IMAP connection.  It must
+    # consume the already persisted queue instead of running discovery again.
+    second_reader = Reader()
+    second = app(tmp_path, second_reader, Telegram([]), Analyzer(), folders=folders,
+                 store=store, global_newest_first=True)
+    resumed_results = second._poll_imap(max_mails=100)
+    run = MailRunState.model_validate(store.values[f"mail-run-{second_reader.account_id}"])
+    identities = [entry.key for entry in run.entries]
+    processed = sum(entry.analysis_terminal is not None for entry in run.entries)
+
+    assert len(resumed_results) == 84
+    assert processed == 86
+    assert len(identities) == len(set(identities)) == 86
+    assert sorted(analyzed) == list(range(1, 87))
+    assert len(analyzed) == len(set(analyzed))
+    assert run.counters.waiting_for_user == 1
+    assert run.entries[1].user_action_open is True
+    assert run.run_complete is True
+    assert any(event[0][2] == "poll_failed" and "optional folder" in event[1]["error"]
+               for event in first.logger.events)
 
 
 def test_global_mailbox_checkpoint_failures_restarts_and_dialog(tmp_path):
@@ -499,18 +636,31 @@ def test_delayed_versioned_answer_is_processed_on_later_run(tmp_path):
     reference = ("a" * 24, "proposal-2", 3)
 
     class Dialog:
-        def __init__(self): self.updates=[]; self.handled=[]; self.polls=0
+        def __init__(self): self.updates=[]; self.handled=[]; self.executions=[]; self.polls=0
         def poll_once(self):
             self.polls += 1
-            self.handled.extend(self.updates)
+            for update in self.updates:
+                identity = (update["mail_id"], update["proposal_id"], update["version"])
+                if identity not in self.executions:
+                    self.handled.append(update)
+                    self.executions.append(identity)
             self.updates.clear()
         def awaiting_decision(self): return not self.handled
 
+    class ProposesOnTwo(Orch):
+        def process(self, mail):
+            self.seen.append(mail.uid)
+            outcome = (ProcessingOutcome.WAITING if mail.uid == 2
+                       else ProcessingOutcome.COMPLETED)
+            return ProcessingResult(outcome, {})
+
     dialog = Dialog()
-    first = app(tmp_path, Imap([(7,[])]), Telegram([]), Orch())
+    mails = [FetchedMail("INBOX", 7, uid, b"synthetic") for uid in (1, 2, 3)]
+    first = app(tmp_path, Imap([(7, mails)]), Telegram([]), ProposesOnTwo())
     first.dialog = dialog
-    first.run(max_mails=1)
+    first.run(max_mails=3)
     assert dialog.handled == []
+    assert first.orchestrator.seen == [1, 2, 3]
 
     # The callback can arrive well after the mail batch; its immutable identity
     # is retained rather than relying on a synchronous wait in Application.run.
@@ -518,13 +668,16 @@ def test_delayed_versioned_answer_is_processed_on_later_run(tmp_path):
         "received_at": datetime.now(timezone.utc) + timedelta(minutes=10),
         "mail_id": reference[0], "proposal_id": reference[1], "version": reference[2],
     }
-    dialog.updates.append(arrived_ten_minutes_later)
+    # Telegram may redeliver an update; the immutable proposal revision still
+    # authorizes exactly one simulated external write.
+    dialog.updates.extend([arrived_ten_minutes_later, arrived_ten_minutes_later.copy()])
     later = app(tmp_path, Imap([(7,[])]), Telegram([]), Orch(), store=first.store)
     later.dialog = dialog
     later.run(max_mails=1)
 
     assert [(item["mail_id"], item["proposal_id"], item["version"])
             for item in dialog.handled] == [reference]
+    assert dialog.executions == [reference]
     assert dialog.polls == 2
 
 
