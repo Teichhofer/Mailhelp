@@ -316,6 +316,28 @@ class EventExtraction(StrictModel):
     events: list[ExtractedEvent] = Field(default_factory=list, max_length=20)
 
 
+class ExtractionCountConflict(StrictModel):
+    """Durable evidence that a router count disagreed with an extraction."""
+
+    schema_version: Literal[1] = 1
+    category: Literal["task", "event"]
+    expected_count: int = Field(ge=0, le=20)
+    actual_count: int = Field(ge=0, le=20)
+    router_call_id: str = Field(min_length=1, max_length=500)
+    extractor_call_id: str = Field(min_length=1, max_length=500)
+    notification_marked_at: datetime | None = None
+
+    @model_validator(mode="after")
+    def validates_real_conflict(self) -> "ExtractionCountConflict":
+        if self.expected_count == self.actual_count:
+            raise ValueError("Ein Zählerkonflikt benötigt unterschiedliche Werte")
+        if (self.notification_marked_at is not None
+                and (self.notification_marked_at.tzinfo is None
+                     or self.notification_marked_at.utcoffset() is None)):
+            raise ValueError("Der Benachrichtigungszeitpunkt benötigt einen UTC-Offset")
+        return self
+
+
 class ProposalKind(StrEnum):
     TASK = "task"
     EVENT = "event"
@@ -720,8 +742,10 @@ class MailState(StrictModel):
     relevance: Relevance | None = None
     summary: Summary | None = None
     action_route: ActionRoute | None = None
+    action_router_call_id: str | None = Field(default=None, min_length=1, max_length=500)
     task_extraction: TaskExtraction | None = None
     event_extraction: EventExtraction | None = None
+    extraction_count_conflicts: list[ExtractionCountConflict] = Field(default_factory=list)
     normalized_proposals: list[Proposal] = Field(default_factory=list)
     proposals: list[Proposal] = Field(default_factory=list)
     proposal_notifications: list[ProposalNotification] = Field(default_factory=list)
@@ -746,6 +770,10 @@ class MailState(StrictModel):
             raise ValueError("Schreibversuche dürfen nicht doppelt referenziert werden")
         if any(item.mail_id != self.id for item in self.write_attempts):
             raise ValueError("Schreibversuche müssen zur Mail gehören")
+        conflict_keys = [(item.category, item.router_call_id, item.extractor_call_id)
+                         for item in self.extraction_count_conflicts]
+        if len(conflict_keys) != len(set(conflict_keys)):
+            raise ValueError("Zählerkonflikte dürfen nicht doppelt vorkommen")
         notification_keys = [(item.proposal_id, item.proposal_version)
                              for item in self.proposal_notifications]
         if len(notification_keys) != len(set(notification_keys)):

@@ -5,8 +5,8 @@ from pydantic import ValidationError
 
 from mailhelp.action_normalization import MailDateContext
 from mailhelp.config import TargetSettings
-from mailhelp.models import (ExtractedEvent, ExtractedTask, KnownTemporalFacts, Proposal,
-                             ProposalStatus, TemporalFact)
+from mailhelp.models import (ExtractedEvent, ExtractedTask, ExtractionCountConflict,
+                             KnownTemporalFacts, Proposal, ProposalStatus, TemporalFact)
 from mailhelp.proposal_builder import ProposalBuilder
 
 
@@ -72,8 +72,8 @@ def test_trusted_fields_targets_stable_ids_duplicates_and_restart():
     extracted = task(due_text="2026-09-30")
     first = builder().build([extracted, extracted], [])
     restarted = builder().build([extracted], [])
-    assert len(first) == 1
-    assert first == restarted
+    assert len(first) == 2
+    assert first[0] == restarted[0]
     proposal = first[0]
     assert proposal.model_dump(include={"schema_version", "version", "source_mail_id", "target",
                                         "external_id", "external_link", "uncertain_notified",
@@ -89,6 +89,16 @@ def test_trusted_fields_targets_stable_ids_duplicates_and_restart():
 def test_unresolved_date():
     unresolved = builder().build([], [event(date_text="kommenden Dienstag")])[0]
     assert unresolved.status == ProposalStatus.NEEDS_CLARIFICATION and unresolved.start is None
+
+
+@pytest.mark.parametrize(("kind", "word"), [("task", "Aufgaben"), ("event", "Termine")])
+def test_count_conflict_forces_a_concrete_clarification(kind, word):
+    conflict = ExtractionCountConflict(category=kind, expected_count=2, actual_count=1,
+                                       router_call_id="router", extractor_call_id="extractor")
+    proposals = builder().build([task()] if kind == "task" else [],
+                                [event()] if kind == "event" else [], [conflict])
+    assert proposals[0].status == ProposalStatus.NEEDS_CLARIFICATION
+    assert any(word in question for question in proposals[0].open_questions)
 
 
 def test_structured_context_date_survives_proposal_boundary():

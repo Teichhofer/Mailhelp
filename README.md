@@ -309,7 +309,11 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
   und `completion`. Nach jedem Schritt
   wird atomar gespeichert; nach einem Neustart laufen ausschließlich ausstehende
   Schritte. Relevante Mails speichern und versenden die Summary vor der
-  Action-Erkennung. Ein erschöpfter Action-Fehler
+  Action-Erkennung. Router-Zähler sind dabei nur Diagnosehinweise: Abweichende
+  schema-valide Extraktionen werden vollständig gespeichert und nicht abgeschnitten.
+  Der persistierte Zählerkonflikt stellt betroffene Vorschläge bis zu einer neuen,
+  ausdrücklich zu bestätigenden Klärungsversion auf `needs_clarification`; Call-IDs
+  und Konfliktmeldungen werden bei Wiederaufnahme nicht dupliziert. Ein erschöpfter Action-Fehler
   beendet die Mail als Teilfehler und bleibt gezielt wiederholbar; Summary und deren
   Versand werden dabei nicht wiederholt. Versand wird vor dem Telegram-Aufruf als
   `sending` markiert, damit ein Abbruch danach keinen unkontrollierten Doppelversand
