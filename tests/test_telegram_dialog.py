@@ -29,6 +29,7 @@ from mailhelp.telegram import (
     TelegramUpdate,
     numbered_message_parts,
     format_proposal,
+    deterministic_classification_revision,
     deterministic_temporal_revision,
     validate_callback_data,
     validate_callback_markup,
@@ -152,6 +153,76 @@ def test_deterministic_start_revision_uses_validated_day_without_llm(tmp_path):
                        if event[0][2] == "proposal_revision_delta_applied")
         assert applied[1]["previous_version"] == 1
         assert applied[1]["new_version"] == 2
+
+
+@pytest.mark.parametrize("answer", [
+    "Nichts",
+    "Keinen",
+    "Kein bestehender Termin",
+    "Nichts soll geändert werden",
+    "Es gibt keinen bestehenden Termin",
+    "Neu anlegen",
+    "Als neuen Termin anlegen",
+])
+def test_change_without_existing_event_becomes_new_without_llm(tmp_path, answer):
+    class NoLlm(RevisionService):
+        def interpret_telegram_answer(self, item, question, authorized_answer):
+            raise AssertionError("Eindeutige Ablehnung darf nicht zum Interpretations-LLM")
+
+        def revise_proposal(self, item, question, normalized_answer):
+            raise AssertionError("Eindeutige Ablehnung darf nicht zum Revisions-LLM")
+
+    with JsonStore(tmp_path) as store:
+        question = "Welcher bestehende Eintrag soll geändert werden?"
+        item = proposal(
+            kind="event", classification="change", status="needs_clarification",
+            open_questions=[question], target="primary",
+            start="2026-10-02T14:00:00+02:00",
+            end="2026-10-02T15:00:00+02:00",
+        )
+        dialog, transport, log = controller(store, revision_service=NoLlm())
+        dialog.persist(item)
+        store.save("telegram-dialog", TelegramDialogState(
+            mail_id=item.source_mail_id, proposal_id=item.id,
+            version=item.version).model_dump(mode="json"))
+
+        dialog.revisions.answer(answer)
+
+        revised = store.load_model(
+            "proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1", Proposal)
+        assert revised.version == 2
+        assert revised.classification.value == "new"
+        assert revised.status == ProposalStatus.PENDING_CONFIRMATION
+        assert revised.open_questions == []
+        assert "Einordnung: new" in transport.sent[-1][1]
+        assert any(event[0][2] == "answer_revision_completed" for event in log.events)
+        clarification = store.load(
+            "clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")
+        assert clarification["proposal_revision_status"] == "completed"
+        assert clarification["revision_attempts"] == 0
+
+
+@pytest.mark.parametrize("answer", [
+    "Den Jour fixe vom letzten Freitag",
+    "Vielleicht keinen",
+    "Der bestehende Termin soll nicht geändert werden, sondern abgesagt werden",
+])
+def test_change_answer_is_only_reclassified_for_closed_unambiguous_phrases(answer):
+    question = "Welcher bestehende Eintrag soll geändert werden?"
+    item = proposal(classification="change", status="needs_clarification",
+                    open_questions=[question])
+    assert deterministic_classification_revision(item, question, answer) is None
+
+
+def test_no_existing_event_rule_requires_change_question_and_classification():
+    change = proposal(classification="change", status="needs_clarification",
+                      open_questions=["Welche Änderung?"])
+    assert deterministic_classification_revision(
+        change, "Welche Änderung?", "Nichts") is None
+    new = proposal(open_questions=["Welcher bestehende Eintrag soll geändert werden?"],
+                   status="needs_clarification")
+    assert deterministic_classification_revision(
+        new, new.open_questions[0], "Nichts") is None
 
 
 def test_deterministic_full_interval_bypasses_interpretation_and_is_idempotent(tmp_path):

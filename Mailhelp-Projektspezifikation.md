@@ -481,6 +481,15 @@ Die normalisierte Antwort verwendet für eine eindeutige lokale Uhrzeit das kano
 Format `JJJJ-MM-TT HH:MM`. Bereits gespeicherte eindeutige deutsche Datums-/Uhrzeitformen
 werden aus Gründen der Wiederanlaufbarkeit ebenfalls deterministisch verarbeitet.
 
+Beantwortet die Nutzerin oder der Nutzer die Frage nach dem zu ändernden bestehenden
+Eintrag ausdrücklich damit, dass es keinen solchen Eintrag gibt oder der Termin neu
+angelegt werden soll, stuft Mailhelp `classification=change` deterministisch zu
+`classification=new` um. Die geschlossene Erkennung eindeutiger Formulierungen (etwa
+„Nichts“, „Keinen“, „Kein bestehender Termin“ oder „Neu anlegen“) läuft weder durch
+Antwortinterpretation noch Proposal-Revision des LLM. Mehrdeutige Antworten bleiben
+klärungsbedürftig. Der neue Vorschlag muss weiterhin ausdrücklich und versionsbezogen
+in Telegram bestätigt werden, bevor ein Kalender-Schreibzugriff erfolgt.
+
 Unverbindliche Vorschläge, bereits erledigte Aufgaben sowie Änderungen und Absagen sind als solche zu erkennen. Änderungen oder Absagen werden in V1 gemeldet und nicht als gewöhnlicher neuer Termin automatisch weiterverarbeitet. Wiederkehrende oder anderweitig nicht unterstützte Terminformen werden zur manuellen Bearbeitung gekennzeichnet.
 Eine ausdrücklich an die Nutzerin oder den Nutzer gerichtete, noch auszuführende
 einmalige Bitte, Aufforderung oder Verpflichtung gilt als `new`. Eine sachliche,

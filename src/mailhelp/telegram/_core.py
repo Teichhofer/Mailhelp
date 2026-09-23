@@ -132,6 +132,37 @@ def deterministic_temporal_revision(proposal: Proposal, question: str,
         answered_question=question, changes=changes))
 
 
+_NO_EXISTING_EVENT_ANSWERS = (
+    re.compile(r"(?:es soll )?nichts(?: soll)? ge(?:a|ä)ndert werden"),
+    re.compile(r"es soll kein bestehender (?:kalender)?(?:eintrag|termin) ge(?:a|ä)ndert werden"),
+    re.compile(r"es gibt keinen bestehenden (?:kalender)?(?:eintrag|termin)"),
+    re.compile(r"kein bestehender (?:kalender)?(?:eintrag|termin)"),
+    re.compile(r"neu anlegen"),
+    re.compile(r"(?:als )?neuen (?:kalender)?(?:eintrag|termin) anlegen"),
+)
+
+
+def deterministic_classification_revision(proposal: Proposal, question: str,
+                                          answer: str) -> Proposal | None:
+    """Turn an explicit refusal to update an existing event into a new item.
+
+    The intentionally closed vocabulary avoids guessing from ambiguous replies.
+    It also keeps this security-relevant state transition independent of an LLM.
+    """
+    normalized_question = " ".join(question.casefold().split())
+    if (proposal.classification.value != "change"
+            or "bestehende" not in normalized_question
+            or "geändert" not in normalized_question):
+        return None
+    normalized_answer = " ".join(answer.casefold().strip().rstrip(".!?").split())
+    if normalized_answer not in {"nichts", "keinen"} and not any(
+            pattern.fullmatch(normalized_answer)
+            for pattern in _NO_EXISTING_EVENT_ANSWERS):
+        return None
+    return apply_proposal_revision(proposal, ProposalRevisionDelta(
+        answered_question=question, changes={"classification": "new"}))
+
+
 class TelegramChatNotFoundError(PermanentError):
     """The configured Telegram chat cannot be addressed by this bot."""
 
@@ -917,9 +948,12 @@ class ProposalRevisionProcessor:
                           parse_deterministic_temporal_answer(
                               state.authorized_answer) is not None)
         try:
-            deterministic = deterministic_temporal_revision(
-                proposal, state.question, state.authorized_answer,
-                self.configured_timezone)
+            deterministic = deterministic_classification_revision(
+                proposal, state.question, state.authorized_answer)
+            if deterministic is None:
+                deterministic = deterministic_temporal_revision(
+                    proposal, state.question, state.authorized_answer,
+                    self.configured_timezone)
             if deterministic is not None:
                 answered = ProposalClarificationState(
                     mail_id=state.mail_id, proposal_id=state.proposal_id,
@@ -1044,9 +1078,12 @@ class ProposalRevisionProcessor:
         if not isinstance(original, Proposal) or self.revision_service is None:
             return
         try:
-            candidate = deterministic_temporal_revision(
-                original, state.question, state.normalized_answer,
-                self.configured_timezone)
+            candidate = deterministic_classification_revision(
+                original, state.question, state.normalized_answer)
+            if candidate is None:
+                candidate = deterministic_temporal_revision(
+                    original, state.question, state.normalized_answer,
+                    self.configured_timezone)
             deterministic = candidate is not None
             if candidate is None:
                 _, candidate = self.revision_service.revise_proposal(
