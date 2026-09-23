@@ -195,6 +195,12 @@ class Analyzer:
                     route_index = route_failures = 0
                     repair = "provider_retry"
                     continue
+                # A token-limit fallback is a single, deliberately changed
+                # request.  Never replay that same fallback via provider retry
+                # or another route after it was truncated as well.
+                if (isinstance(exc, ProviderResponseInvalid)
+                        and exc.reason == "output_token_limit" and token_retry_used):
+                    raise LlmTokenLimitExceeded(step, exc.reason) from exc
                 if route_failures < same_route_retries:
                     route_failures += 1
                     used["provider_retry"] += 1
@@ -295,7 +301,7 @@ class Analyzer:
         }
         retry = self.prompts.prompts["proposal_revision"].output_token_retry
         retry_fields = [] if retry is None else [
-            field for field in retry.change_fields if field in allowed]
+            field for field in (retry.change_fields or []) if field in allowed]
         retry_payload = None if retry is None else {
             "proposal_fields": {key: context[key] for key in retry_fields if key in context},
             "question": question, "normalized_answer": authorized_answer,
@@ -359,14 +365,49 @@ class Analyzer:
     def interpret_telegram_answer(self, proposal: Proposal, question: str,
                                   authorized_answer: str) -> tuple[str, TelegramAnswerInterpretation]:
         """Compare an untrusted reply with the requested fact and normalize it."""
-        return self._classified_run("telegram_answer_interpretation", {
+        # Imported lazily because telegram owns the conservative parser while
+        # its controller depends on Analyzer's exception types.
+        from .telegram import parse_deterministic_temporal_answer
+        try:
+            temporal = parse_deterministic_temporal_answer(authorized_answer)
+        except ValueError:
+            temporal = None
+        question_lower = question.casefold()
+        asks_date = "datum" in question_lower or "frist" in question_lower
+        asks_time = any(word in question_lower for word in ("uhrzeit", "beginn", "ende"))
+        temporal_matches_question = (
+            temporal is not None
+            and (asks_date or asks_time or "wann" in question_lower)
+            and (not asks_date or temporal.date is not None)
+            and (not asks_time or temporal.start is not None)
+        )
+        if temporal_matches_question:
+            assert temporal is not None
+            parts = []
+            if temporal.date is not None:
+                parts.append(temporal.date.isoformat())
+            if temporal.start is not None:
+                parts.append(temporal.start.strftime("%H:%M"))
+            if temporal.end is not None:
+                parts.extend(("bis", temporal.end.strftime("%H:%M")))
+            return "deterministic", TelegramAnswerInterpretation(
+                usable=True, normalized_answer=" ".join(parts),
+                reason="Eindeutige numerische Datums- oder Zeitangabe")
+        payload = {
             "proposal_fields": {key: value for key, value in proposal.model_dump(mode="json").items()
                                 if key in self._revision_fields(proposal, question)},
             "temporal_fact": (proposal.temporal_fact.model_dump(mode="json")
                               if proposal.temporal_fact else None),
             "question": question,
             "authorized_answer": authorized_answer,
-        }, TelegramAnswerInterpretation.model_validate)
+        }
+        retry = self.prompts.prompts["telegram_answer_interpretation"].output_token_retry
+        return self._classified_run(
+            "telegram_answer_interpretation", payload,
+            TelegramAnswerInterpretation.model_validate,
+            schema=TelegramAnswerInterpretation,
+            token_retry_payload=(dict(payload) if retry is not None else None),
+        )
 
     def clarify_telegram_answer(self, question: str, authorized_answer: str,
                                 reason: str) -> tuple[str, TelegramClarification]:

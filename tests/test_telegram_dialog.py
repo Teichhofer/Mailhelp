@@ -7,7 +7,7 @@ from unittest.mock import patch
 from pydantic import ValidationError
 
 from mailhelp.adapter import PermanentError, UncertainWriteError
-from mailhelp.analysis import (ContradictoryRevision, LlmInvalidJson,
+from mailhelp.analysis import (Analyzer, ContradictoryRevision, LlmInvalidJson,
                                LlmProviderResponseInvalid,
                                LlmSchemaValidationFailed,
                                LlmTokenLimitExceeded, validate_revision_successor)
@@ -34,8 +34,10 @@ from mailhelp.telegram import (
     validate_callback_markup,
 )
 from mailhelp.application import _state_directory
-from mailhelp.config import Settings
+from mailhelp.config import OutputTokenRetry, Settings
 from mailhelp.integrations import CalendarFileWriter
+from mailhelp.openrouter import ProviderResponseInvalid
+from test_core import prompt_config
 
 
 def proposal(**changes):
@@ -1133,6 +1135,58 @@ def test_interpretation_retry_budget_pauses_without_deleting_answer(tmp_path):
         assert len(service.calls) == calls
         assert "pausiert" in transport.sent[-1][1]
         assert secret not in repr(log.events)
+
+
+def test_token_limit_fallback_parameters_persist_and_pause_after_restart(tmp_path):
+    class TruncatedCompleter:
+        def __init__(self):
+            self.requests = []
+
+        def complete(self, model, parameters, system, payload, **metadata):
+            self.requests.append((parameters, system, payload, metadata))
+            raise ProviderResponseInvalid("output_token_limit")
+
+    cfg = prompt_config()
+    step = cfg.prompts["telegram_answer_interpretation"]
+    step.parameters = {"temperature": 0.0, "max_tokens": 500}
+    step.output_token_retry = OutputTokenRetry(
+        system_prompt="Nur usable, normalized_answer und reason.",
+        parameters={"max_tokens": 180})
+    completer = TruncatedCompleter()
+    service = Analyzer(completer, cfg, provider_retries=3)
+    directory = tmp_path / "token-limit-restart"
+    secret = "am ersten Oktober"
+
+    with JsonStore(directory) as store:
+        item = proposal(open_questions=["Welches Datum?"])
+        c, _, _ = controller(store, [message(1, secret)], revision_service=service)
+        c.interpretation_attempts = 2
+        c.persist(item)
+        store.save("telegram-dialog", TelegramDialogState(
+            mail_id=item.source_mail_id, proposal_id=item.id,
+            version=1).model_dump(mode="json"))
+        c.poll_once()
+        saved = store.load("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")
+        assert saved["interpretation_status"] == "retry_required"
+        assert saved["authorized_answer"] == secret
+        saved["next_interpretation_at"] = None
+        store.save("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1", saved)
+
+    with JsonStore(directory) as store:
+        c, transport, _ = controller(store, revision_service=service)
+        c.interpretation_attempts = 2
+        c.poll_once()
+        paused = store.load("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")
+        assert paused["interpretation_status"] == "paused"
+        assert paused["authorized_answer"] == secret
+        assert paused["next_interpretation_at"] is None
+        assert "pausiert" in transport.sent[-1][1]
+
+    assert len(completer.requests) == 4
+    assert [request[0]["max_tokens"] for request in completer.requests] == [
+        500, 180, 500, 180]
+    assert [request[1] for request in completer.requests[1::2]] == [
+        step.output_token_retry.system_prompt, step.output_token_retry.system_prompt]
 
 
 def test_duplicate_delivery_does_not_reinterpret_persisted_answer(tmp_path):

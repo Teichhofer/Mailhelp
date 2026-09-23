@@ -348,7 +348,9 @@ class OutputTokenRetry(ConfigModel):
     """A deliberately smaller, stage-specific request after truncated output."""
     system_prompt: str = Field(min_length=1)
     parameters: dict[str, Any] = Field(default_factory=dict)
-    change_fields: list[str] = Field(min_length=1)
+    # Only proposal revisions need to select writable fields.  Other stages can
+    # use the generic prompt/parameter fallback without inventing revision data.
+    change_fields: list[str] | None = Field(default=None, min_length=1)
 
     @field_validator("parameters")
     @classmethod

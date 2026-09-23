@@ -54,11 +54,12 @@ class FakeCompleter:
 class RetrySequence:
     """Synthetic provider recording every logical provider invocation."""
     def __init__(self, values):
-        self.values=iter(values); self.payloads=[]; self.systems=[]; self.call_ids=[]
+        self.values=iter(values); self.payloads=[]; self.systems=[]; self.parameters=[]; self.call_ids=[]
 
-    def complete(self, _model, _parameters, system, payload, **_metadata):
+    def complete(self, _model, parameters, system, payload, **_metadata):
         self.payloads.append(payload)
         self.systems.append(system)
+        self.parameters.append(parameters)
         call_id=f"provider-call-{len(self.payloads)}"
         self.call_ids.append(call_id)
         value=next(self.values)
@@ -400,8 +401,12 @@ def test_proposal_revision_prompt_covers_date_schema_and_output_budget():
     assert "ISO-8601-Zeitpunkte mit eindeutigem UTC-Offset" in prompt
     assert "berechnet die Anwendung lokal" in prompt
     interpretation = yaml.safe_load(Path("prompts.yaml").read_text(
-        encoding="utf-8"))["prompts"]["telegram_answer_interpretation"]["system_prompt"]
-    assert '"JJJJ-MM-TT HH:MM"' in interpretation
+        encoding="utf-8"))["prompts"]["telegram_answer_interpretation"]
+    assert '"JJJJ-MM-TT HH:MM"' in interpretation["system_prompt"]
+    assert interpretation["parameters"]["max_tokens"] == 500
+    assert interpretation["output_token_retry"]["parameters"]["max_tokens"] == 180
+    assert "drei Feldern" in interpretation["output_token_retry"]["system_prompt"]
+    assert "change_fields" not in interpretation["output_token_retry"]
 
 
 def test_telegram_answer_interpretation_and_clarification_use_separate_fields():
@@ -425,6 +430,58 @@ def test_telegram_answer_interpretation_and_clarification_use_separate_fields():
         "question": "Welches Datum?", "authorized_answer": "irgendwann",
         "interpretation_reason": "kein eindeutiges Datum",
     }
+
+
+def test_telegram_answer_interpretation_is_deterministic_or_uses_one_changed_token_fallback():
+    original = proposal(open_questions=["Welches Datum?"])
+    for question, answer, normalized in (
+            ("Welches Datum?", "01.10.2026", "2026-10-01"),
+            ("Welche Uhrzeit?", "9 Uhr", "09:00"),
+            ("Wann?", "9:00 bis 10:30", "09:00 bis 10:30")):
+        deterministic = RetrySequence([])
+        call_id, interpreted = Analyzer(
+            deterministic, prompt_config()).interpret_telegram_answer(
+                original, question, answer)
+        assert call_id == "deterministic"
+        assert interpreted.normalized_answer == normalized
+        assert deterministic.payloads == []
+
+    cfg = prompt_config()
+    cfg.prompts["telegram_answer_interpretation"].parameters = {
+        "temperature": 0.0, "max_tokens": 500}
+    cfg.prompts["telegram_answer_interpretation"].output_token_retry = OutputTokenRetry(
+        system_prompt="Nur usable, normalized_answer und reason als JSON.",
+        parameters={"max_tokens": 180})
+    client = RetrySequence([
+        ProviderResponseInvalid("output_token_limit"),
+        {"usable": True, "normalized_answer": "1. Oktober", "reason": "eindeutig"},
+    ])
+    result = Analyzer(client, cfg, provider_retries=3).interpret_telegram_answer(
+        original, "Welches Datum?", "am ersten Oktober")[1]
+    assert result.usable
+    assert client.systems == [
+        cfg.prompts["telegram_answer_interpretation"].system_prompt,
+        "Nur usable, normalized_answer und reason als JSON.",
+    ]
+    assert client.parameters == [
+        {"temperature": 0.0, "max_tokens": 500},
+        {"temperature": 0.0, "max_tokens": 180},
+    ]
+    assert client.payloads[1] == client.payloads[0]
+
+    exhausted = RetrySequence([
+        ProviderResponseInvalid("output_token_limit"),
+        ProviderResponseInvalid("output_token_limit"),
+    ])
+    with pytest.raises(LlmProviderResponseInvalid, match="output_token_limit"):
+        Analyzer(exhausted, cfg, provider_retries=3).interpret_telegram_answer(
+            original, "Welches Datum?", "am ersten Oktober")
+    assert len(exhausted.payloads) == 2
+
+    invalid_date = RetrySequence([{
+        "usable": False, "normalized_answer": None, "reason": "ungültiges Datum"}])
+    assert not Analyzer(invalid_date, prompt_config()).interpret_telegram_answer(
+        original, "Welches Datum?", "31.02.2026")[1].usable
 
 
 @pytest.mark.parametrize("original, changes, expected", [

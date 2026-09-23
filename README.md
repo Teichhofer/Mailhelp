@@ -627,6 +627,13 @@ Transport-, Retry-, Tokenlimit-, JSON- und Schemafehler erhalten höchstens eine
 neutralen Verzögerungshinweis; ein gemeinsamer `ValueError` dient nicht als
 fachliche Entscheidungsgrenze. Das strukturierte, inhaltsfreie Ereignis nennt
 Fehlerklasse, versionsgebundene Proposal-Referenz und Revisionsstatus.
+Erreicht die Telegram-Interpretation das Ausgabe-Tokenlimit, verwendet sie genau
+einmal den in `prompts.yaml` konfigurierten kompakten Fallback mit geändertem
+Tokenbudget und einem ausschließlich auf `usable`, `normalized_answer` und
+`reason` beschränkten Systemprompt. Ein erneuter Tokenlimit-Abbruch wird nicht mit
+demselben Request wiederholt, sondern durch die persistente Wiederaufnahme bis zum
+konfigurierten Versuchslimit als `retry_required` beziehungsweise `paused`
+behandelt; `authorized_answer` bleibt dabei erhalten.
 Ein autorisiertes, syntaktisch verarbeitetes Telegram-Update wird durch Fortschreiben
 des Offsets konsumiert. Ist seine semantisch gültige normalisierte Antwort bereits
 persistiert, bleibt sie auch bei einem späteren technischen Revisionsfehler beantwortet
