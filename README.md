@@ -586,23 +586,32 @@ ursprünglichen Nachricht mit `editMessageReplyMarkup` und sendet anschließend
 eine kurze Bestätigung der gewählten Aktion in den Chat. Bei einem Fehler wird
 stattdessen eine kurze Fehlermeldung gesendet; die Schaltflächen bleiben für
 einen erneuten Versuch erhalten.
-Antworten auf Rückfragen werden zuerst in einem eigenen LLM-Schritt mit der
-konkret erfragten Information verglichen und bei eindeutiger Zuordnung in die für
-die Überarbeitung benötigte Form normalisiert. Erst danach erzeugen sie eine neue,
-erneut zu bestätigende Version. Ist die Antwort nicht eindeutig nutzbar, erzeugt
+Autorisierte Antworten auf Rückfragen werden vor dem ersten LLM-Aufruf atomar mit
+Mail-ID, Vorschlags-ID, Version und konkreter Frage im versionsgebundenen
+Klärungszustand (Schema 4) gespeichert. Der Telegram-Offset wird erst nach diesem
+erfolgreichen Schreiben fortgeschrieben. Der Antworttext steht ausschließlich in
+dieser zustandsführenden JSON-Datei und weder in Ereignislogs noch Fehlermeldungen.
+Danach wird die Antwort in einem eigenen LLM-Schritt mit der konkret erfragten
+Information verglichen und bei eindeutiger Zuordnung in die für die Überarbeitung
+benötigte Form normalisiert. Erst danach entsteht eine neue, erneut zu bestätigende
+Version. Ist die Antwort nicht eindeutig nutzbar, erzeugt
 ein zweiter, getrennt schematisierter LLM-Aufruf eine konkrete Rückfrage; Vorschlag
 und Dialog bleiben dabei unverändert.
-Eine nutzbare Antwort wird nicht als Telegram-Freitext, sondern als normalisierter
-Wert in einem eigenen, versionsgebundenen Klärungszustand (Schema 2) gespeichert.
-Dieser unterscheidet `question_status`, `answer_status` und
-`proposal_revision_status`. Die konkrete Frage gilt mit diesem atomaren Schreiben
+Der Klärungszustand unterscheidet `interpretation_status`, `question_status`,
+`answer_status` und `proposal_revision_status`. Interpretation und Revision haben
+getrennte, konfigurierte Versuchszähler und persistente nächste Versuchstermine.
+Nach Ausschöpfung des jeweiligen Budgets wird die Stufe pausiert, ohne autorisierte
+oder normalisierte Antwort zu löschen. Die konkrete Frage gilt erst mit dem atomaren
+Schreiben des normalisierten Werts
 dauerhaft als beantwortet; erst danach wird der aktive Telegram-Dialog geschlossen
 und die Revision aufgerufen. Provider-, Tokenlimit-, JSON- oder Schemafehler ändern
-nur den Revisionsstatus in `retry_required`. Beim nächsten Lauf wird die Revision
-aus der gespeicherten normalisierten Antwort wiederaufgenommen, ohne erneut nach
-einer Telegram-Antwort zu fragen. Auch ein Absturz zwischen Antwortpersistenz und
-Revision verliert die Antwort daher nicht; spätere Nachrichten wie „Ok“ können
-nicht mehr der alten Frage zugeordnet werden.
+den Status der betroffenen Stufe in `retry_required`. Beim nächsten Lauf werden
+zunächst noch nicht interpretierte Antworten und anschließend Revisionen aus dem
+gespeicherten Zustand wiederaufgenommen, ohne erneut nach einer Telegram-Antwort zu
+fragen. Auch ein Absturz zwischen Antwortpersistenz, Interpretation und Revision
+verliert die Antwort daher nicht; doppelt zugestellte Updates oder spätere
+Nachrichten wie „Ok“ werden nicht nochmals als neue Eingabe behandelt. Ein bereits
+erzeugter Nachfolger wird anhand seiner Version erkannt und nicht erneut erzeugt.
 Die Fehlergrenze unterscheidet dabei ausdrücklich unvollständige Benutzereingaben,
 fachlich widersprüchliche Revisionen und technische Revisionsfehler. Nur eine als
 unvollständig validierte Eingabe erhält eine konkrete fachliche Rückfrage. Provider-,

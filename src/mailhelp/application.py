@@ -639,6 +639,8 @@ def build_application(
             {"todoist": todoist, "google_calendar": calendar}, settings.test_mode,
             settings.timezone,
             analyzer,
+            interpretation_attempts=settings.retries.interpretation_attempts,
+            interpretation_backoff_seconds=settings.retries.interpretation_backoff_seconds,
             revision_attempts=settings.retries.revision_attempts,
             revision_backoff_seconds=settings.retries.revision_backoff_seconds,
         )
