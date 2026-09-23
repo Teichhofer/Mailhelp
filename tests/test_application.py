@@ -137,6 +137,34 @@ def test_exhausted_uid_is_failed_without_stopping_following_queue_item(tmp_path)
                      failure_code="processing_failed")
 
 
+def test_persistent_run_records_duplicate_and_irrelevant_analysis(tmp_path):
+    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+
+    class Reader:
+        account_id = "0" * 24
+        last_uidvalidity = 7
+        def discover_since(self, folder, *_args):
+            return [MailCandidate(folder, 7, uid, self.account_id, stamp)
+                    for uid in (1, 2)]
+        def fetch_uid(self, folder, uid, validity):
+            return FetchedMail(folder, validity, uid, b"x", self.account_id, stamp)
+
+    class Classified(Orch):
+        def process(self, mail):
+            state = ({"duplicate": {"previous_mail_id": "a"}}
+                     if mail.uid == 1 else
+                     {"relevance": {"decision": "irrelevant"}})
+            return ProcessingResult(ProcessingOutcome.COMPLETED, state)
+
+    service = app(tmp_path, Reader(), Telegram([]), Classified(),
+                  global_newest_first=True)
+    service._poll_imap(max_mails=2)
+    run = service.store.load_model("mail-run-" + "0" * 24, MailRunState)
+    assert [entry.analysis_terminal for entry in run.entries] == [
+        "duplicate", "irrelevant"
+    ]
+
+
 def test_repeated_global_max_mail_runs_continue_with_next_newest_batch(tmp_path):
     """A persisted newest-first batch must not hide the older backlog."""
     stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
@@ -813,24 +841,49 @@ def test_uid_range_normalization_paths():
     assert _add_uid([(3,4)],1)==[(1,1),(3,4)]
 
 
-def test_run_sends_aggregate_summary_on_normal_and_exceptional_exit(tmp_path):
-    service=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch())
-    service._poll_imap=lambda _limit=None: [
-        ProcessingResult(ProcessingOutcome.COMPLETED,{}),
-        ProcessingResult(ProcessingOutcome.WAITING,{}),
-        ProcessingResult(ProcessingOutcome.FAILED,{}),
-        ProcessingResult(ProcessingOutcome.COMPLETED_WITH_ACTION_ERROR,{}),
+def _persisted_run(entries):
+    return MailRunState(
+        run_id="00000000-0000-0000-0000-000000000001", max_mails=100,
+        created_at=datetime.now(timezone.utc), entries=entries,
+        counters=Application._run_counters(entries),
+    )
+
+
+def test_run_sends_persistent_summary_on_normal_and_exceptional_exit(tmp_path):
+    entries = [
+        MailRunEntry(account_id="a", folder="INBOX", uidvalidity=1, uid=1,
+                     status="completed", analysis_terminal="completed"),
+        MailRunEntry(account_id="a", folder="INBOX", uidvalidity=1, uid=2,
+                     status="waiting_for_user", analysis_terminal="completed",
+                     user_action_open=True),
+        MailRunEntry(account_id="a", folder="INBOX", uidvalidity=1, uid=3,
+                     status="failed", analysis_terminal="failed",
+                     failure_code="processing_failed"),
+        MailRunEntry(account_id="a", folder="INBOX", uidvalidity=1, uid=4,
+                     status="completed", analysis_terminal="irrelevant"),
+        MailRunEntry(account_id="a", folder="INBOX", uidvalidity=1, uid=5,
+                     status="skipped", analysis_terminal="duplicate"),
     ]
+    run = _persisted_run(entries)
+    store = Store({"mail-run-" + "0" * 24: run.model_dump(mode="json")})
+    service=app(tmp_path,Imap([]),Telegram([]),Orch(),store=store)
+    service._poll_imap=lambda _limit=None: []
     service.run(max_mails=3)
-    assert service.telegram.sent == [(2, "Mailhelp-Lauf beendet.\nBearbeitet: 4\nErfolgreich abgeschlossen: 1\nWarten auf Eingabe oder Wiederholung: 1\nFehlgeschlagen: 1\nAbgeschlossen mit Aktionsfehler: 1\nHinweis: --max-mails fragt Telegram nur einmal ab.\nSpäter eingehende Antworten werden beim nächsten Start verarbeitet.")]
+    assert service.telegram.sent == [(2, "Mailhelp-Lauf vollständig abgearbeitet.\nEntdeckt: 5\nIn Warteschlange: 0\nAnalysiert: 5\nRelevant: 2\nIrrelevant: 1\nWarten auf Benutzer: 1\nFehlgeschlagen: 1\nÜbersprungen: 1\nHinweis: --max-mails fragt Telegram nur einmal ab.\nSpäter eingehende Antworten werden beim nächsten Start verarbeitet.")]
     assert service.logger.events[-1][0][2] == "run_summary_sent"
-    assert service.logger.events[-1][1] == {"completed":1,"waiting":1,"failed":1}
+    assert service.logger.events[-1][1] == {
+        "discovered":5, "queued":0, "processed":5, "relevant":2,
+        "irrelevant":1, "waiting_for_user":1, "failed":1, "skipped":1,
+        "run_complete":True,
+    }
 
     broken=app(tmp_path,Imap([]),Telegram([]),Orch())
     broken._poll_imap=lambda _limit=None: (_ for _ in ()).throw(RuntimeError("poll"))
     with pytest.raises(RuntimeError, match="poll"):
         broken.run()
-    assert broken.telegram.sent[0][1].startswith("Mailhelp-Lauf beendet.\nBearbeitet: 0")
+    assert broken.telegram.sent[0][1].startswith(
+        "Mailhelp-Lauf abgebrochen oder unvollständig.\nEntdeckt: 0"
+    )
 
     send_failure=app(tmp_path,Imap([]),Telegram([]),Orch())
     send_failure.stop_event.set()
@@ -839,13 +892,34 @@ def test_run_sends_aggregate_summary_on_normal_and_exceptional_exit(tmp_path):
     assert send_failure.logger.events[-1][0][2] == "run_summary_failed"
 
 
-def test_run_summary_does_not_add_bounded_hint_without_waiting_work():
-    summary = _RunSummary(completed=1)
-    assert summary.message(bounded=True) == (
-        "Mailhelp-Lauf beendet.\nBearbeitet: 1\nErfolgreich abgeschlossen: 1\n"
-        "Warten auf Eingabe oder Wiederholung: 0\nFehlgeschlagen: 0\n"
-        "Abgeschlossen mit Aktionsfehler: 0"
+@pytest.mark.parametrize("batch_size", (86, 100))
+def test_run_summary_uses_all_terminal_entries_in_large_persistent_batch(batch_size):
+    entries = [MailRunEntry(account_id="a", folder="INBOX", uidvalidity=1, uid=uid,
+                            status="completed", analysis_terminal="completed")
+               for uid in range(1, batch_size + 1)]
+    summary = _RunSummary.from_run(_persisted_run(entries))
+    assert (summary.discovered, summary.processed, summary.relevant) == (
+        batch_size, batch_size, batch_size
     )
+    assert summary.run_complete is True
+    assert "vollständig abgearbeitet" in summary.message(bounded=True)
+    assert "Hinweis:" not in summary.message(bounded=True)
+
+
+def test_run_summary_marks_a_genuinely_unfinished_persistent_batch():
+    entries = [
+        MailRunEntry(account_id="a", folder="INBOX", uidvalidity=1, uid=1,
+                     status="completed", analysis_terminal="completed"),
+        MailRunEntry(account_id="a", folder="INBOX", uidvalidity=1, uid=2,
+                     status="queued"),
+        MailRunEntry(account_id="a", folder="INBOX", uidvalidity=1, uid=3,
+                     status="processing"),
+    ]
+    summary = _RunSummary.from_run(_persisted_run(entries))
+    assert (summary.discovered, summary.queued, summary.processed) == (3, 1, 1)
+    assert summary.run_complete is False
+    assert summary.message().startswith("Mailhelp-Lauf abgebrochen oder unvollständig.")
+    assert _RunSummary.from_run(None).run_complete is False
 
 
 def test_bounded_run_limits_resumed_and_new_mail_then_exits(tmp_path):
