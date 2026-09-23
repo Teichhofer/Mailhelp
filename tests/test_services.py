@@ -296,7 +296,7 @@ def test_raw_extraction_prompts_are_separate_and_injection_resistant():
     for field in ("title", "description", "evidence", "date_text", "time_text", "end_time_text", "time_requirement", "location", "video_link", "responsibility", "certainty", "classification"):
         assert field in event
     complete_event_fields = (
-        "title,\ndescription, evidence, date_text, time_text, end_time_text, time_requirement,\n"
+        "title,\ndescription, evidence, date_text, time_text, end_time_text, timezone_offset_text, time_requirement,\n"
         "location, video_link, responsibility, certainty und classification"
     )
     assert complete_event_fields in event
@@ -866,8 +866,8 @@ def test_calendar_payloads_separate_timed_and_all_day_intervals():
     writer.create(proposal(kind="event",status="confirmed",all_day=True,start=date(2026,5,10),end=date(2026,5,11)),"all-day")
     assert payloads[0] == {
         "summary":"Tun", "description":"Agenda\n\n[Mailhelp-Videolink]\nhttps://video.example.test/meeting/42",
-        "start":{"dateTime":"2026-05-10T10:00:00+02:00","timeZone":"Europe/Berlin"},
-        "end":{"dateTime":"2026-05-10T11:00:00+02:00","timeZone":"Europe/Berlin"},
+        "start":{"dateTime":"2026-05-10T10:00:00+02:00"},
+        "end":{"dateTime":"2026-05-10T11:00:00+02:00"},
         "location":"Raum 1", "extendedProperties":{"private":{"mailhelp_key":"timed"}},
     }
     assert payloads[1]["start"] == {"date":"2026-05-10"}
@@ -887,6 +887,21 @@ def test_calendar_payload_maps_video_link_with_empty_description():
     writer.create(proposal(kind="event",status="confirmed",start="2026-05-10T10:00:00+00:00",
                            end="2026-05-10T11:00:00+00:00",video_link="http://video.example.test/room"),"key")
     assert payloads[0]["description"] == "[Mailhelp-Videolink]\nhttp://video.example.test/room"
+    writer.close()
+
+
+def test_calendar_timed_payload_keeps_explicit_offset_without_calendar_zone_reinterpretation():
+    payloads=[]
+    def handler(request):
+        payloads.append(json.loads(request.content))
+        return httpx.Response(200,json={"id":"event"},request=request)
+    writer=HttpWriter("google_calendar","x","primary",transport=httpx.MockTransport(handler),
+                      calendar_timezone="America/New_York")
+    writer.create(proposal(kind="event",status="confirmed",
+                           start="2026-09-23T09:00:00+01:00",
+                           end="2026-09-23T10:00:00+01:00"), "offset")
+    assert payloads[0]["start"] == {"dateTime":"2026-09-23T09:00:00+01:00"}
+    assert payloads[0]["end"] == {"dateTime":"2026-09-23T10:00:00+01:00"}
     writer.close()
 
 

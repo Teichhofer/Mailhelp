@@ -363,9 +363,12 @@ class HttpWriter:
         return {"start": {"date": proposal.start.isoformat()}, "end": {"date": proposal.end.isoformat()}}
 
     def _timed_interval(self, proposal: Proposal) -> dict[str, Any]:
+        # dateTime already identifies the instant through its mandatory UTC
+        # offset.  Supplying the configured calendar zone as well could make a
+        # different zone appear authoritative and reinterpret the wall time.
         return {
-            "start": {"dateTime": proposal.start.isoformat(), "timeZone": self.calendar_timezone},
-            "end": {"dateTime": proposal.end.isoformat(), "timeZone": self.calendar_timezone},
+            "start": {"dateTime": proposal.start.isoformat()},
+            "end": {"dateTime": proposal.end.isoformat()},
         }
 
     def close(self) -> None: self.client.close()

@@ -5,7 +5,7 @@ from datetime import date, datetime, timedelta, timezone
 from enum import StrEnum
 from typing import Annotated, Any, Literal
 import re
-from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, model_validator
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 CalendarDate = date
 
@@ -315,12 +315,27 @@ class ExtractedEvent(StrictModel):
     date_text: str | None = Field(default=None, min_length=1, max_length=500)
     time_text: str | None = Field(default=None, min_length=1, max_length=500)
     end_time_text: str | None = Field(default=None, min_length=1, max_length=500)
+    timezone_offset_text: str | None = None
     time_requirement: TimeRequirement
     location: str | None = Field(default=None, min_length=1, max_length=1000)
     video_link: AnyHttpUrl | None = Field(default=None, max_length=2000)
     responsibility: Literal["user", "other", "unclear"]
     certainty: Literal["certain", "uncertain", "contradictory"]
     classification: Literal["new", "non_binding", "already_completed", "change", "cancellation", "recurring", "unsupported"]
+
+    @field_validator("timezone_offset_text")
+    @classmethod
+    def explicit_timezone_offset(cls, value: str | None) -> str | None:
+        """Accept only an explicit, bounded UTC offset copied from the mail."""
+        if value is None:
+            return None
+        match = re.fullmatch(r"UTC([+-])(\d{2}):(\d{2})", value)
+        if match is None:
+            raise ValueError("Zeitzonen-Offset muss exakt UTC±HH:MM entsprechen")
+        hours, minutes = int(match.group(2)), int(match.group(3))
+        if minutes > 59 or hours > 14 or (hours == 14 and minutes != 0):
+            raise ValueError("Zeitzonen-Offset muss im Bereich UTC-14:00 bis UTC+14:00 liegen")
+        return value
 
 
 class EventExtraction(StrictModel):

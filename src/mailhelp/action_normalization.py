@@ -8,7 +8,9 @@ The prepared mail context is accepted only when ``date_context_status`` is
 ``valid``, both timestamps are offset-aware and no more than seven days apart,
 and ``user_timezone`` names an available IANA zone.  The header timestamp is a
 reference instant only; it is not used to turn relative language into a date.
-The user zone supplies the zone for explicitly extracted local clock times.
+An explicitly extracted ``UTC±HH:MM`` offset supplies a fixed-offset timezone
+for local clock times.  Only when it is absent does the user zone supply the
+timezone.
 
 Responsibility remains an independent fact on every result.  In particular, a
 resolved temporal value with ``responsibility == "unclear"`` is not by itself
@@ -240,6 +242,12 @@ def _localize(day: date, clock: time, zone: ZoneInfo, responsibility: str) -> da
     return candidates[0]
 
 
+def _explicit_offset(raw: str) -> timezone:
+    """Convert the already schema-validated UTC offset into a fixed timezone."""
+    sign = 1 if raw[3] == "+" else -1
+    return timezone(sign * timedelta(hours=int(raw[4:6]), minutes=int(raw[7:9])))
+
+
 def normalize_event(event: ExtractedEvent, context: MailDateContext) -> NormalizationResult:
     """Normalize an event without making a responsibility decision."""
     responsibility = event.responsibility
@@ -271,13 +279,16 @@ def normalize_event(event: ExtractedEvent, context: MailDateContext) -> Normaliz
             result = _failure(NormalizationReason.MISSING_TIME, event.date_text, responsibility,
                               "Wann beginnt der Termin?")
         return replace(result, known_date=day, temporal_fact=fact)
-    zone = _context_zone(context, responsibility)
+    zone = (_explicit_offset(event.timezone_offset_text)
+            if event.timezone_offset_text is not None
+            else _context_zone(context, responsibility))
     if isinstance(zone, NormalizationResult):
         return replace(zone, temporal_fact=fact)
     start_clock = _parse_time(event.time_text, responsibility)
     if isinstance(start_clock, NormalizationResult):
         return replace(start_clock, temporal_fact=fact)
-    start = _localize(day, start_clock, zone, responsibility)
+    start = (datetime.combine(day, start_clock, zone)
+             if isinstance(zone, timezone) else _localize(day, start_clock, zone, responsibility))
     if isinstance(start, NormalizationResult):
         return replace(start, temporal_fact=fact)
     if event.end_time_text is None:
@@ -287,7 +298,8 @@ def normalize_event(event: ExtractedEvent, context: MailDateContext) -> Normaliz
     end_clock = _parse_time(event.end_time_text, responsibility)
     if isinstance(end_clock, NormalizationResult):
         return replace(end_clock, temporal_fact=fact)
-    end = _localize(day, end_clock, zone, responsibility)
+    end = (datetime.combine(day, end_clock, zone)
+           if isinstance(zone, timezone) else _localize(day, end_clock, zone, responsibility))
     if isinstance(end, NormalizationResult):
         return replace(end, temporal_fact=fact)
     if end <= start:
