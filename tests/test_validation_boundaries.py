@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from mailhelp.config import Settings, _validated_file
 from mailhelp.integrations import HttpWriter, _with_external_result
-from mailhelp.models import (DuplicateDecision, DuplicateIndex, DuplicateIndexEntry, ExtractionCountConflict, ImapCheckpoint, MailState, Proposal, ProposalNotification, TelegramDialogState,
+from mailhelp.models import (DuplicateDecision, DuplicateIndex, DuplicateIndexEntry, EventExtraction, ExtractedEvent, ExtractionCountConflict, ImapCheckpoint, MailState, Proposal, ProposalNotification, TelegramDialogState,
                              TelegramOffset, ValidationIssue, WriteAttemptReference)
 from mailhelp.openrouter import InvalidJson, OpenRouterClient, ProviderResponseInvalid, _path
 from mailhelp.storage import CorruptState, JsonStore
@@ -31,6 +31,27 @@ def valid_settings(tmp_path: Path) -> dict:
         "timeouts": {**{name: {"timeout_seconds": 1.0, "retries": 0, "initial_backoff_seconds": 0.0, "max_backoff_seconds": 1.0} for name in ("imap", "telegram", "openrouter", "todoist", "google_calendar")}, "telegram_poll_seconds": 1},
         "logging": {"directory": str(tmp_path / "logs"), "console": {"enabled": False}, "file": {"filename": "application.jsonl", "max_bytes": 10000, "backup_count": 1, "retention_days": 30}, "llm": {"filename": "llm/requests.jsonl", "max_bytes": 10000, "backup_count": 1, "retention_days": 30}},
     }
+
+
+def test_extracted_event_time_requirement_is_required_closed_and_in_json_schema():
+    base = {
+        "title": "Termin", "description": None, "evidence": "Termin am 1. Oktober",
+        "date_text": "1. Oktober", "time_text": None, "end_time_text": None,
+        "location": None, "video_link": None, "responsibility": "user",
+        "certainty": "certain", "classification": "new",
+    }
+    for value in ("all_day", "timed", "required_unknown"):
+        assert ExtractedEvent.model_validate({**base, "time_requirement": value}).time_requirement == value
+    for invalid in ({}, {"time_requirement": "optional"},
+                    {"time_requirement": "timed", "unknown": True}):
+        with pytest.raises(ValidationError):
+            ExtractedEvent.model_validate({**base, **invalid})
+
+    schema = EventExtraction.model_json_schema()
+    event_schema = schema["$defs"]["ExtractedEvent"]
+    assert "time_requirement" in event_schema["required"]
+    enum_schema = schema["$defs"]["TimeRequirement"]
+    assert enum_schema["enum"] == ["all_day", "timed", "required_unknown"]
 
 
 def test_mail_state_v9_metadata_is_closed_and_round_trips(tmp_path):

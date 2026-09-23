@@ -33,7 +33,7 @@ class SimulatedOpenRouter:
         return "e", {"schema_version": 1, "events": [{"title": "Besprechung",
             "description": None, "evidence": "8. Oktober von 09:00 bis 10:00",
             "date_text": "8. Oktober", "time_text": "09:00", "end_time_text": "10:00",
-            "location": None, "video_link": None, "responsibility": "user",
+            "time_requirement": "timed", "location": None, "video_link": None, "responsibility": "user",
             "certainty": "certain", "classification": "new"}]}
 
 
