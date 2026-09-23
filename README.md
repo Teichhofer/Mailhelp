@@ -105,7 +105,7 @@ dem Schreiben und nach unklaren Resultaten; ein unklarer Schreibzugriff wird nic
 automatisch wiederholt. Auch im Testmodus wird ein ausdrücklich bestätigter Termin
 real angelegt, während Todoist-Aufgaben simuliert bleiben.
 
-`config.yaml` besitzt geschlossene Modelle für IMAP, Telegram, Ziele, Limits, Wiederholungen, Timeouts und Logging. `poll_interval_seconds` steuert den Abstand zwischen regulären IMAP-Zyklen. Solange eine Telegram-Entscheidung offen ist, wird dagegen nach jedem beendeten `getUpdates`-Long-Poll unmittelbar der nächste Long-Poll gestartet; dessen Server-Timeout begrenzt die Abfragerate. Fehlgeschlagene Telegram-Polls erhalten einen begrenzten, durch Shutdown unterbrechbaren Backoff. Die LLM-Wiederholungen für ungültige Providerantworten, JSON-Reparatur und Schema-Reparatur sind getrennt begrenzt. IMAP, Telegram, OpenRouter, Todoist und Google Kalender haben jeweils eigene Werte für Timeout, Retry-Anzahl sowie initialen und maximalen Backoff. Validiert werden insbesondere Port, Polling, Adaptertimeouts, Mailgröße, LLM-Rate, Wiederholungszahlen, IANA-Zeitzone, eindeutige nichtleere Ordner, sichere Pfade und die Log-Level `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Unbekannte Schlüssel und falsche Typen werden abgelehnt.
+`config.yaml` besitzt geschlossene Modelle für IMAP, Telegram, Ziele, Limits, Wiederholungen, Timeouts und Logging. `poll_interval_seconds` steuert den Abstand zwischen regulären Verarbeitungszyklen. Jeder Zyklus fragt Telegram ab und verarbeitet danach unabhängig davon neue Mails; ein offener Telegram-Dialog hält weder den restlichen IMAP-Batch noch spätere IMAP-Zyklen an. Fehlgeschlagene Telegram-Polls erhalten einen begrenzten, durch Shutdown unterbrechbaren Backoff. Die LLM-Wiederholungen für ungültige Providerantworten, JSON-Reparatur und Schema-Reparatur sind getrennt begrenzt. IMAP, Telegram, OpenRouter, Todoist und Google Kalender haben jeweils eigene Werte für Timeout, Retry-Anzahl sowie initialen und maximalen Backoff. Validiert werden insbesondere Port, Polling, Adaptertimeouts, Mailgröße, LLM-Rate, Wiederholungszahlen, IANA-Zeitzone, eindeutige nichtleere Ordner, sichere Pfade und die Log-Level `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Unbekannte Schlüssel und falsche Typen werden abgelehnt.
 Auch die Wurzel von `topics.yaml` ist geschlossen: Sie enthält ausschließlich die
 Liste `topics`; diese muss mindestens ein aktiviertes Thema besitzen und alle
 stabilen Themen-IDs müssen eindeutig sein.
@@ -447,8 +447,8 @@ verdeckt einen bereits aufgetretenen Fehler nicht.
 Für einen begrenzten Testlauf verarbeitet beispielsweise `mailhelp --max-mails 50`
 in genau einem Abrufdurchlauf höchstens 50 Mails, auch wenn `imap.batch_size` auf
 dem Standardwert 25 steht (einschließlich fälliger, nach einem
-Neustart fortzusetzender Mails), fragt anschließend einmal Telegram ab und
-beendet sich. Nicht verbrauchtes Kontingent führt nicht zu einem weiteren Poll;
+Neustart fortzusetzender Mails), fragt einmal Telegram ab und beendet sich auch
+bei einem noch offenen Dialog. Nicht verbrauchtes Kontingent führt nicht zu einem weiteren Poll;
 `--max-mails` muss mindestens `1` sein. Bereits bestätigte externe Schreibaktionen
 behalten auch in diesem Modus ihre normalen Sicherheits- und Abgleichsregeln.
 Wenn Arbeit auf Eingabe wartet, weist die abschließende Telegram-Zusammenfassung
