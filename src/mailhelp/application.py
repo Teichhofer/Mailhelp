@@ -434,6 +434,11 @@ class Application:
                     current.folder, current.uid, current.uidvalidity
                 )
                 result = self.orchestrator.process(mail)
+            except TimeoutError:
+                # A connection-level timeout is not a result for this mail.  Keep
+                # the durable ``processing`` entry intact so a newly constructed
+                # reader can resume the exact materialised queue after reconnect.
+                raise
             except Exception as exc:
                 self.logger.event(
                     "ERROR", "orchestrator", "mail_failed",
