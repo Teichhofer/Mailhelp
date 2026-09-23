@@ -83,38 +83,51 @@ class _MailBudget:
 
 @dataclass
 class _RunSummary:
-    """Outcome counters for the lifetime of one application run."""
+    """Safe, persisted aggregate of the fixed mail batch."""
 
-    completed: int = 0
-    waiting: int = 0
+    discovered: int = 0
+    queued: int = 0
+    processed: int = 0
+    relevant: int = 0
+    irrelevant: int = 0
+    waiting_for_user: int = 0
     failed: int = 0
-    action_failed: int = 0
+    skipped: int = 0
+    run_complete: bool = False
 
-    def add(self, results: list[ProcessingResult]) -> None:
-        counts = {
-            ProcessingOutcome.COMPLETED: self.completed,
-            ProcessingOutcome.WAITING: self.waiting,
-            ProcessingOutcome.FAILED: self.failed,
-            ProcessingOutcome.COMPLETED_WITH_ACTION_ERROR: self.action_failed,
-        }
-        for result in results:
-            counts[result.outcome] += 1
-        self.completed = counts[ProcessingOutcome.COMPLETED]
-        self.waiting = counts[ProcessingOutcome.WAITING]
-        self.failed = counts[ProcessingOutcome.FAILED]
-        self.action_failed = counts[ProcessingOutcome.COMPLETED_WITH_ACTION_ERROR]
+    @classmethod
+    def from_run(cls, run: MailRunState | None) -> "_RunSummary":
+        """Build counters only from the durable snapshot, never attempt results."""
+        if run is None:
+            return cls()
+        terminals = [entry.analysis_terminal for entry in run.entries
+                     if entry.analysis_terminal is not None]
+        return cls(
+            discovered=len(run.entries),
+            queued=run.counters.discovered + run.counters.queued,
+            processed=len(terminals),
+            relevant=sum(value == "completed" for value in terminals),
+            irrelevant=sum(value == "irrelevant" for value in terminals),
+            waiting_for_user=run.counters.waiting_for_user,
+            failed=sum(value == "failed" for value in terminals),
+            skipped=sum(value in {"duplicate", "skipped"} for value in terminals),
+            run_complete=run.run_complete,
+        )
 
     def message(self, *, bounded: bool = False) -> str:
-        total = self.completed + self.waiting + self.failed + self.action_failed
         lines = [
-            "Mailhelp-Lauf beendet.",
-            f"Bearbeitet: {total}",
-            f"Erfolgreich abgeschlossen: {self.completed}",
-            f"Warten auf Eingabe oder Wiederholung: {self.waiting}",
+            ("Mailhelp-Lauf vollständig abgearbeitet."
+             if self.run_complete else "Mailhelp-Lauf abgebrochen oder unvollständig."),
+            f"Entdeckt: {self.discovered}",
+            f"In Warteschlange: {self.queued}",
+            f"Analysiert: {self.processed}",
+            f"Relevant: {self.relevant}",
+            f"Irrelevant: {self.irrelevant}",
+            f"Warten auf Benutzer: {self.waiting_for_user}",
             f"Fehlgeschlagen: {self.failed}",
-            f"Abgeschlossen mit Aktionsfehler: {self.action_failed}",
+            f"Übersprungen: {self.skipped}",
         ]
-        if bounded and self.waiting:
+        if bounded and self.waiting_for_user:
             lines.extend((
                 "Hinweis: --max-mails fragt Telegram nur einmal ab.",
                 "Später eingehende Antworten werden beim nächsten Start verarbeitet.",
@@ -455,8 +468,14 @@ class Application:
                                    else MailRunEntryStatus.FAILED
                                    if result.outcome is ProcessingOutcome.FAILED
                                    else MailRunEntryStatus.COMPLETED)
-                terminal_analysis = ("failed" if terminal_status is MailRunEntryStatus.FAILED
-                                     else "completed")
+                if terminal_status is MailRunEntryStatus.FAILED:
+                    terminal_analysis = "failed"
+                elif result.state.get("duplicate") is not None:
+                    terminal_analysis = "duplicate"
+                elif (result.state.get("relevance") or {}).get("decision") == "irrelevant":
+                    terminal_analysis = "irrelevant"
+                else:
+                    terminal_analysis = "completed"
                 failure_code = ("processing_failed"
                                 if terminal_status is MailRunEntryStatus.FAILED else None)
             persisted = self.store.load_model(run_name, MailRunState)
@@ -555,7 +574,6 @@ class Application:
         return True
 
     def run(self, max_mails: int | None = None) -> None:
-        summary = _RunSummary()
         try:
             while not self.stop_event.is_set():
                 try:
@@ -566,7 +584,7 @@ class Application:
                                       processed_at=datetime.now(timezone.utc).isoformat(), failure_count=1)
                 telegram_poll_succeeded = self._poll_telegram()
                 if not self.stop_event.is_set():
-                    summary.add(self._poll_imap(max_mails))
+                    self._poll_imap(max_mails)
                 if max_mails is not None:
                     break
                 delay = (min(self.settings.poll_interval_seconds,
@@ -575,6 +593,10 @@ class Application:
                          else self.settings.poll_interval_seconds)
                 self.stop_event.wait(delay)
         finally:
+            run_name = f"mail-run-{self.imap.account_id}"
+            run = (self.store.load_model(run_name, MailRunState)
+                   if hasattr(self.store, "load_model") else None)
+            summary = _RunSummary.from_run(run)
             try:
                 self.telegram.send(
                     self.settings.telegram.chat_id,
@@ -584,8 +606,12 @@ class Application:
                 self.logger.event("ERROR", "telegram", "run_summary_failed", error=str(exc))
             else:
                 self.logger.event("INFO", "telegram", "run_summary_sent",
-                                  completed=summary.completed, waiting=summary.waiting,
-                                  failed=summary.failed)
+                                  discovered=summary.discovered, queued=summary.queued,
+                                  processed=summary.processed, relevant=summary.relevant,
+                                  irrelevant=summary.irrelevant,
+                                  waiting_for_user=summary.waiting_for_user,
+                                  failed=summary.failed, skipped=summary.skipped,
+                                  run_complete=summary.run_complete)
 
 
 def _safe_name(folder: str) -> str:

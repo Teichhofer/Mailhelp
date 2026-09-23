@@ -33,7 +33,9 @@ class MailRunEntry(StrictModel):
     uidvalidity: int = Field(ge=1)
     uid: int = Field(ge=1)
     status: MailRunEntryStatus = MailRunEntryStatus.DISCOVERED
-    analysis_terminal: Literal["completed", "failed", "skipped"] | None = None
+    analysis_terminal: Literal[
+        "completed", "irrelevant", "duplicate", "failed", "skipped"
+    ] | None = None
     user_action_open: bool = False
     # Stable classification only; exception text (which could contain server
     # or credential material) is deliberately not persisted.

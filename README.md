@@ -439,8 +439,12 @@ Einzelinstanz-Sperre werden auch bei Fehlern geschlossen. `Strg+C` beendet auch
 die Einmalmodi (`--check`, `--check-access`, `--learn` und `--clear`) kontrolliert
 mit Exit-Code 130 und ohne Python-Traceback. Unmittelbar vor dem
 Beenden sendet der Bot in den konfigurierten Telegram-Chat eine Laufzusammenfassung
-mit der Gesamtzahl der bearbeiteten sowie der erfolgreich abgeschlossenen,
-wartenden und fehlgeschlagenen Verarbeitungsversuche. Die Zusammenfassung wird
+aus dem persistenten initialen Batch mit den Zahlen für entdeckte, wartende,
+terminal analysierte, relevante, irrelevante, auf Benutzer wartende,
+fehlgeschlagene und übersprungene Mails. Sie bezeichnet den Lauf nur dann als
+vollständig abgearbeitet, wenn jede Batchposition einen terminalen
+Analysezustand erreicht hat; eine offene Telegram-Aktion ändert daran nichts.
+Die Zusammenfassung wird
 auch bei einem Laufzeitfehler versucht; ein Versandfehler wird protokolliert und
 verdeckt einen bereits aufgetretenen Fehler nicht.
 
