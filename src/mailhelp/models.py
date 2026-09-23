@@ -1,7 +1,7 @@
 """Vertrauensgrenze und feste Schemata der Fachlogik."""
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from enum import StrEnum
 from typing import Annotated, Any, Literal
 import re
@@ -569,12 +569,25 @@ def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta) ->
     known = previous.known_temporal_facts
     if known is not None and known.date is not None:
         resolved_day = known.date
-    for field in ("due", "start", "end"):
+    for field in ("due", "start"):
         value = changes.get(field)
         value_day = value.date() if isinstance(value, datetime) else value
         if resolved_day is not None and value is not None and value_day != resolved_day:
             raise ValueError(
                 f"{field} widerspricht dem validierten Datum {resolved_day.isoformat()}")
+    end = changes.get("end")
+    if resolved_day is not None and end is not None:
+        end_day = end.date() if isinstance(end, datetime) else end
+        allowed_end_days = {resolved_day}
+        if not previous.all_day and isinstance(end, datetime):
+            allowed_end_days.add(resolved_day + timedelta(days=1))
+        if end_day not in allowed_end_days:
+            raise ValueError(
+                f"end widerspricht dem validierten Datum {resolved_day.isoformat()}")
+
+    confirmed_start = (known.start if known is not None else previous.start)
+    if "start" in changes and confirmed_start is not None and changes["start"] != confirmed_start:
+        raise ValueError("Ein bestätigter Terminbeginn darf nicht verändert werden")
 
     # Incomplete event intervals retain their application-owned facts separately.
     # This avoids mixing a half interval with ``known_temporal_facts`` while still

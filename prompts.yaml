@@ -280,6 +280,8 @@ prompts:
       Für Termine gilt strikt: Ein reines Kalenderdatum in start oder end ist nur
       mit all_day=true zulässig. Bei all_day=false müssen vorhandene start- und
       end-Werte vollständige ISO-8601-Zeitpunkte mit eindeutigem UTC-Offset sein.
+      Ein ausdrücklich genanntes Terminende darf am bestätigten Startdatum oder
+      am unmittelbar folgenden Kalendertag liegen, muss aber nach dem Beginn liegen.
       Status, Version und offene Fragen berechnet die Anwendung lokal.
       temporal_fact ist schreibgeschützter Kontext: Ein aufgelöstes
       normalized_date darf nie zum bloßen raw_text reduziert oder durch eine
