@@ -44,7 +44,7 @@ class Imap:
 
 class Telegram:
     def __init__(self, value): self.value=value; self.offsets=[]; self.sent=[]
-    def poll(self, offset):
+    def poll(self, offset, timeout=None):
         self.offsets.append(offset)
         if isinstance(self.value,Exception): raise self.value
         return self.value
@@ -642,7 +642,7 @@ def test_empty_checkpoint_and_run_paths(tmp_path):
 
     class Dialog:
         def __init__(self, error=None): self.calls=0; self.error=error
-        def poll_once(self):
+        def poll_once(self, timeout=None):
             self.calls += 1
             if self.error: raise self.error
     dialog_app=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch()); dialog_app.dialog=Dialog(); dialog_app._poll_telegram(); assert dialog_app.dialog.calls==1
@@ -658,7 +658,7 @@ def test_run_polls_imap_even_while_dialog_is_open(tmp_path):
         def wait(self, seconds): self.waits.append(seconds); self.stopped=True; return True
     class Dialog:
         def __init__(self): self.polls=0
-        def poll_once(self):
+        def poll_once(self, timeout=None):
             self.polls += 1
         def awaiting_decision(self): return True
 
@@ -671,13 +671,31 @@ def test_run_polls_imap_even_while_dialog_is_open(tmp_path):
     assert stop.waits == [service.settings.poll_interval_seconds]
 
 
+def test_continuous_mail_batch_polls_telegram_without_waiting_after_each_mail(tmp_path):
+    mails = [FetchedMail("INBOX", 7, uid, b"synthetic") for uid in (1, 2)]
+
+    class Dialog:
+        def __init__(self): self.timeouts = []
+        def poll_once(self, timeout=None): self.timeouts.append(timeout)
+
+    service = app(tmp_path, Imap([(7, mails)]), Telegram([]), Orch())
+    service.dialog = Dialog()
+    service._interleave_telegram = True
+
+    results = service._poll_imap()
+
+    assert len(results) == 2
+    assert service.orchestrator.seen == [1, 2]
+    assert service.dialog.timeouts == [0, 0]
+
+
 def test_open_dialog_from_mail_two_does_not_block_initial_batch_or_bounded_run(tmp_path):
     mails = [FetchedMail("INBOX", 7, uid, b"x") for uid in (1, 2, 3)]
 
     class Dialog:
         open = False
         polls = 0
-        def poll_once(self): self.polls += 1
+        def poll_once(self, timeout=None): self.polls += 1
         def awaiting_decision(self): return self.open
 
     dialog = Dialog()
@@ -703,7 +721,7 @@ def test_delayed_versioned_answer_is_processed_on_later_run(tmp_path):
 
     class Dialog:
         def __init__(self): self.updates=[]; self.handled=[]; self.executions=[]; self.polls=0
-        def poll_once(self):
+        def poll_once(self, timeout=None):
             self.polls += 1
             for update in self.updates:
                 identity = (update["mail_id"], update["proposal_id"], update["version"])
@@ -770,7 +788,7 @@ def test_telegram_poll_failure_backs_off_and_shutdown_interrupts_it(tmp_path):
         def wait(self, seconds): self.waits.append(seconds); self.stopped=True; return True
     class FailingDialog:
         def __init__(self): self.polls=0
-        def poll_once(self): self.polls += 1; raise RuntimeError("network")
+        def poll_once(self, timeout=None): self.polls += 1; raise RuntimeError("network")
         def awaiting_decision(self): return True
 
     service=app(tmp_path,Imap([]),Telegram([]),Orch())
@@ -785,7 +803,7 @@ def test_telegram_poll_failure_backs_off_and_shutdown_interrupts_it(tmp_path):
 def test_shutdown_requested_during_long_poll_stops_before_retry(tmp_path):
     class Dialog:
         def __init__(self, stop): self.stop=stop; self.polls=0
-        def poll_once(self): self.polls += 1; self.stop.set()
+        def poll_once(self, timeout=None): self.polls += 1; self.stop.set()
         def awaiting_decision(self): return True
 
     service=app(tmp_path,Imap([]),Telegram([]),Orch())

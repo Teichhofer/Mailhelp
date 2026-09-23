@@ -607,7 +607,7 @@ class TelegramClient:
 
 
 class TelegramTransport(Protocol):
-    def poll(self, offset: int) -> list[dict[str, Any]]: ...
+    def poll(self, offset: int, timeout: int | None = None) -> list[dict[str, Any]]: ...
     def send(self, chat_id: int, text: str, reply_markup: dict[str, Any] | None = None) -> None: ...
     def answer_callback(self, callback_id: str, text: str) -> None: ...
     def remove_inline_keyboard(self, chat_id: int, message_id: int) -> None: ...
@@ -987,13 +987,13 @@ class TelegramDialogController:
                 return True
         return False
 
-    def poll_once(self) -> None:
+    def poll_once(self, timeout: int | None = None) -> None:
         self.write_executor.resume()
         self.revisions.resume()
         offset_state = self.store.load_model("telegram-offset", TelegramOffset, TelegramOffset())
         assert isinstance(offset_state, TelegramOffset)
         offset = max(offset_state.offset, self._durable_dialog_offset())
-        updates = self.telegram.poll(offset)
+        updates = self.telegram.poll(offset, timeout=timeout)
         self.logger.event("DEBUG", "telegram.dialog", "updates_received",
                           offset=offset, count=len(updates))
         for raw in updates:

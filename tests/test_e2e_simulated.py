@@ -67,7 +67,7 @@ class FakeTelegram:
     def send(self, chat_id, text, reply_markup=None):
         self.sent.append((chat_id, text, reply_markup))
 
-    def poll(self, offset):
+    def poll(self, offset, timeout=None):
         self.polls.append(offset)
         return self.updates
 
