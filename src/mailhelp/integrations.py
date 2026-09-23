@@ -8,7 +8,7 @@ import time, traceback
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
-from .models import (Proposal, ProposalCertainty, ProposalClassification, ProposalKind,
+from .models import (CalendarDuplicateDecision, Proposal, ProposalCertainty, ProposalClassification, ProposalKind,
                      ProposalResponsibility, ProposalStatus)
 from .adapter import PermanentError, RetryPolicy, UncertainWriteError, uncertain_write
 from .logging import EventLogger, NullLogger
@@ -101,6 +101,16 @@ class CalendarEventResponse(IntegrationModel):
 
 class CalendarListResponse(IntegrationModel):
     items: list[CalendarEventResponse]
+
+
+class CalendarOverlapEvent(IntegrationModel):
+    id: str = Field(min_length=1)
+    summary: str = Field(default="", max_length=500)
+    description: str = Field(default="", max_length=4000)
+    location: str | None = Field(default=None, max_length=1000)
+    htmlLink: str | None = None
+    start: dict[str, str]
+    end: dict[str, str]
 
 
 class ExternalWriter(Protocol):
@@ -271,7 +281,8 @@ def _with_external_result(proposal: Proposal, result: dict[str, Any]) -> Proposa
 
 
 class HttpWriter:
-    def __init__(self, service: str, token: str | AccessTokenProvider, target: str, timeout: float = 30, transport: httpx.BaseTransport | None = None, policy: RetryPolicy | None = None, logger: EventLogger | None = None, calendar_timezone: str | None = None):
+    def __init__(self, service: str, token: str | AccessTokenProvider, target: str, timeout: float = 30, transport: httpx.BaseTransport | None = None, policy: RetryPolicy | None = None, logger: EventLogger | None = None, calendar_timezone: str | None = None,
+                 calendar_matcher: Callable[[Proposal, dict[str, Any]], tuple[str, CalendarDuplicateDecision]] | None = None):
         if service not in {"todoist", "google_calendar"}: raise ValueError("Unbekannter Dienst")
         if service == "google_calendar":
             if calendar_timezone is None: raise ValueError("Google Kalender benötigt die konfigurierte IANA-Zeitzone")
@@ -279,6 +290,7 @@ class HttpWriter:
             except (ZoneInfoNotFoundError, ValueError) as exc: raise ValueError("Unbekannte IANA-Zeitzone für Google Kalender") from exc
         base = "https://api.todoist.com/api/v1" if service == "todoist" else "https://www.googleapis.com/calendar/v3"
         self.service, self.target, self.calendar_timezone = service, target, calendar_timezone
+        self.calendar_matcher = calendar_matcher
         self._token_provider = token if service == "google_calendar" and not isinstance(token, str) else None
         self._static_token = token if isinstance(token, str) else None
         self.client = httpx.Client(base_url=base, timeout=timeout, transport=transport)
@@ -326,6 +338,14 @@ class HttpWriter:
                 body["due_date"] = proposal.due.isoformat()
         else:
             if proposal.kind != ProposalKind.EVENT: raise ValueError("Kalender akzeptiert nur Termine")
+            duplicate = self._matching_calendar_event(proposal)
+            if duplicate is not None:
+                existing, decision = duplicate
+                if decision.missing_fields:
+                    body = self._calendar_merge_body(proposal, key, existing, decision)
+                    return self._update_calendar_event(existing.id, body, key, proposal)
+                return {"id": existing.id, "htmlLink": existing.htmlLink,
+                        "operation": "duplicate_skipped"}
             url, body = f"/calendars/{self.target}/events", self._calendar_event_body(proposal, key)
         started = time.perf_counter()
         try:
@@ -340,6 +360,64 @@ class HttpWriter:
         self.logger.event("INFO", self.service, "create_completed", call_id=key, mail_id=proposal.source_mail_id,
                           proposal_id=proposal.id, duration_ms=round((time.perf_counter()-started)*1000, 3), status=response.status_code)
         return result.model_dump()
+
+    def _matching_calendar_event(self, proposal: Proposal) -> tuple[CalendarOverlapEvent, CalendarDuplicateDecision] | None:
+        if self.service != "google_calendar" or self.calendar_matcher is None:
+            return None
+        assert proposal.start is not None and proposal.end is not None
+        if proposal.all_day:
+            time_min = datetime.combine(proposal.start, datetime.min.time(), timezone.utc).isoformat()
+            time_max = datetime.combine(proposal.end, datetime.min.time(), timezone.utc).isoformat()
+        else:
+            assert isinstance(proposal.start, datetime) and isinstance(proposal.end, datetime)
+            time_min, time_max = proposal.start.isoformat(), proposal.end.isoformat()
+        response = self.policy.run(lambda: self._get(
+            f"/calendars/{self.target}/events",
+            {"timeMin": time_min, "timeMax": time_max, "singleEvents": "true",
+             "maxResults": "50"},
+        ))
+        try:
+            raw_items = response.json().get("items", [])
+            if not isinstance(raw_items, list):
+                raise ValueError("items")
+            items = [CalendarOverlapEvent.model_validate(item) for item in raw_items]
+        except (AttributeError, ValueError, ValidationError) as exc:
+            raise ValueError(f"Google Calendar events: ungültige Antwort am Schlüsselpfad {_path(exc)}") from exc
+        for item in items:
+            safe = item.model_dump(mode="json", exclude={"htmlLink"})
+            _call_id, decision = self.calendar_matcher(proposal, safe)
+            if decision.same_event:
+                return item, decision
+        return None
+
+    def _calendar_merge_body(self, proposal: Proposal, key: str,
+                             existing: CalendarOverlapEvent,
+                             decision: CalendarDuplicateDecision) -> dict[str, Any]:
+        body: dict[str, Any] = {"extendedProperties": {"private": {"mailhelp_key": key}}}
+        if "description" in decision.missing_fields and proposal.description:
+            body["description"] = (f"{existing.description}\n\n{proposal.description}"
+                                   if existing.description else proposal.description)
+        if "location" in decision.missing_fields and proposal.location and not existing.location:
+            body["location"] = proposal.location
+        if "video_link" in decision.missing_fields and proposal.video_link is not None:
+            link = str(proposal.video_link)
+            addition = f"[Mailhelp-Videolink]\n{link}"
+            body["description"] = (f"{body.get('description', existing.description)}\n\n{addition}"
+                                   if body.get("description", existing.description) else addition)
+        return body
+
+    def _update_calendar_event(self, existing_id: str, body: dict[str, Any], key: str,
+                               proposal: Proposal) -> dict[str, Any]:
+        url = f"/calendars/{self.target}/events/{existing_id}"
+        response = uncertain_write(lambda: self._patch(url, body, key))
+        try:
+            result = CalendarEventResponse.model_validate(response.json()).model_dump()
+        except (ValueError, ValidationError) as exc:
+            raise ValueError(f"google_calendar: ungültige Antwort am Schlüsselpfad {_path(exc)}") from exc
+        self.logger.event("INFO", self.service, "duplicate_updated", call_id=key,
+                          mail_id=proposal.source_mail_id, proposal_id=proposal.id,
+                          existing_event_id=existing_id)
+        return {**result, "operation": "duplicate_updated"}
 
     def _calendar_event_body(self, proposal: Proposal, key: str) -> dict[str, Any]:
         # Revalidate at the external trust boundary; model_copy() can otherwise
@@ -382,6 +460,12 @@ class HttpWriter:
     def _post(self, url: str, body: dict[str, Any], key: str) -> httpx.Response:
         self.logger.event("DEBUG", self.service, "http_request", method="POST", url=url, call_id=key)
         response = self.client.post(url, json=body, headers={**self._auth_headers(), "X-Request-Id": key})
+        self._raise_for_status(response)
+        return response
+
+    def _patch(self, url: str, body: dict[str, Any], key: str) -> httpx.Response:
+        self.logger.event("DEBUG", self.service, "http_request", method="PATCH", url=url, call_id=key)
+        response = self.client.patch(url, json=body, headers={**self._auth_headers(), "X-Request-Id": key})
         self._raise_for_status(response)
         return response
 

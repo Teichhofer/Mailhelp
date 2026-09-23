@@ -969,6 +969,17 @@ Schlüssel wird beim Event gespeichert, damit Neustarts und unklare Ergebnisse
 ohne doppelten Termin aufgelöst werden können. Schreibzugriffe erfolgen nur nach
 einer ausdrücklichen, versionsbezogenen Telegram-Bestätigung.
 
+Vor der Anlage fragt der Adapter ausschließlich die zeitlich überschneidenden
+Kalendereinträge ab. Das LLM vergleicht jeden Kandidaten anhand eines geschlossenen
+Schemas konservativ mit dem bestätigten Vorschlag; die zeitliche Überschneidung
+allein genügt nicht. Erkennt es dasselbe Ereignis, wird kein neuer Eintrag erzeugt.
+Fehlen dem bestehenden Eintrag konkrete Beschreibung, Ort oder Videolink aus dem
+neuen Vorschlag, ergänzt die Anwendung nur diese validierten Proposal-Werte und
+setzt dabei den Idempotenzschlüssel. Andernfalls bleibt der Kalender unverändert.
+Telegram weist in beiden Fällen auf den vorhandenen gleichen Termin und den
+Verzicht auf eine Neuanlage hin. Der bestätigte Vorschlag zeigt die Daten der
+möglichen Ergänzung bereits vor dem einzigen, versionsbezogenen Schreibzugriff.
+
 ### Delta-basierte Proposal-Revision
 
 Die Revisionsstufe liefert ausschließlich `answered_question` und ein geschlossenes

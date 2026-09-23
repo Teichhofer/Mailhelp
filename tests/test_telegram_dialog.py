@@ -1910,3 +1910,25 @@ def test_classification_fields_are_required_and_closed():
     for field in ("responsibility", "certainty", "classification"):
         with pytest.raises(ValidationError):
             Proposal.model_validate({**raw, field: "invalid"})
+
+
+def test_calendar_duplicate_outcomes_are_reported_without_claiming_creation(tmp_path):
+    class DuplicateWriter(Writer):
+        def __init__(self, operation):
+            super().__init__(); self.operation=operation
+        def create(self,p,key):
+            self.created += 1
+            return {"id":"existing", "operation":self.operation}
+    for index,(operation,phrase) in enumerate([
+        ("duplicate_updated","fehlende Informationen wurden ergänzt"),
+        ("duplicate_skipped","Kein neuer Termin wurde angelegt"),
+    ]):
+        with JsonStore(tmp_path/str(index)) as store:
+            item=proposal(kind="event",start="2026-05-10T10:00:00+00:00",
+                          end="2026-05-10T11:00:00+00:00")
+            decision=f"proposal:{item.source_mail_id}:{item.id}:1:confirm"
+            dialog,telegram,_=controller(store,[callback(1,decision)],
+                                          {"google_calendar":DuplicateWriter(operation)})
+            dialog.persist(item); dialog.poll_once()
+            assert any(phrase in text for _,text,_ in telegram.sent)
+            assert not any(text.startswith("Erstellt:") for _,text,_ in telegram.sent)
