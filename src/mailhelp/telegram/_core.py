@@ -1176,7 +1176,14 @@ def _validation_path(exc: Exception) -> str:
 class TelegramDialogController:
     """Validate updates, persist offsets, and enforce version-bound decisions."""
 
+    manages_proposal_delivery = True
+
     def __init__(self, store: JsonStore, telegram: TelegramTransport, user_id: int, chat_id: int, logger: EventLogger, writers: dict[str, ExternalWriter] | None = None, test_mode: bool = False, configured_timezone: str = "UTC", revision_service: ProposalRevisionService | None = None, *, interpretation_attempts: int = 3, interpretation_backoff_seconds: int = 60, revision_attempts: int = 3, revision_backoff_seconds: int = 60):
+        from .delivery import ProposalDeliveryService
+        from .decisions import ProposalDecisionService
+        from .persistence import ProposalRepository
+        from .presenter import ProposalPresenter
+
         self.store, self.telegram, self.user_id, self.chat_id, self.logger = store, telegram, user_id, chat_id, logger
         self.writers, self.test_mode = writers or {}, test_mode
         self.configured_timezone = configured_timezone
@@ -1188,7 +1195,15 @@ class TelegramDialogController:
         self.validator: UpdateValidation = AuthorizedUpdateValidator(store, user_id, chat_id)
         self.relevance = RelevanceDialogProcessor(store, telegram, chat_id)
         self.ledger: ActionLedgerPort = ActionLedgerService(store)
+        self.repository = ProposalRepository(store)
+        self.presenter = ProposalPresenter(
+            configured_timezone, lambda decision: decision.encode(store))
+        self.delivery = ProposalDeliveryService(
+            self.repository, self.presenter, telegram, chat_id)
         self.write_executor: WriteExecution = ConfirmedWriteExecutor(store, self.writers, self, telegram, chat_id, test_mode, self.ledger)
+        self.decision_service = ProposalDecisionService(
+            store, self.repository, self, self.ledger, self.write_executor,
+            telegram, user_id, chat_id)
         self.revisions: ProposalRevisions = ProposalRevisionProcessor(store, revision_service, self, telegram, chat_id, logger, configured_timezone, interpretation_attempts=interpretation_attempts, interpretation_backoff_seconds=interpretation_backoff_seconds, revision_attempts=revision_attempts, revision_backoff_seconds=revision_backoff_seconds)
 
     @property
@@ -1213,77 +1228,18 @@ class TelegramDialogController:
         self.telegram.send(self.chat_id, text, {"inline_keyboard": buttons})
 
     @staticmethod
-    def _proposal_name(mail_id: str, proposal_id: str) -> str:
-        return f"proposal-{mail_id}-{proposal_id}"
-
-    @staticmethod
     def _version_name(mail_id: str, proposal_id: str, version: int) -> str:
-        return f"proposal-{mail_id}-{proposal_id}-v{version}"
+        """Deprecated compatibility alias for the repository naming rule."""
+        return proposal_version_name(mail_id, proposal_id, version)
 
     def persist(self, proposal: Proposal) -> None:
-        value = proposal.model_dump(mode="json")
-        version_name = self._version_name(proposal.source_mail_id, proposal.id, proposal.version)
-        if self.store.load(version_name) is None:
-            self.store.save(version_name, value)
-        # The current proposal is the recovery record: publish it before the
-        # denormalized mail state.  If the process stops between these two
-        # atomic file replacements, startup can copy this record into the mail
-        # state without losing the newer status or external result.
-        self.store.save(self._proposal_name(proposal.source_mail_id, proposal.id), value)
-        mail_name = f"mail-{proposal.source_mail_id}"
-        state = self.store.load_model(mail_name, MailState) if hasattr(self.store, "load_model") else None
-        if isinstance(state, MailState):
-            proposals = [proposal if item.id == proposal.id else item
-                         for item in state.proposals]
-            notifications = []
-            for item in proposals:
-                previous_notification = next((
-                    notification for notification in state.proposal_notifications
-                    if (notification.proposal_id, notification.proposal_version) ==
-                    (item.id, item.version)
-                ), None)
-                # Legacy/manual mail states may not track proposal delivery at all.
-                # Do not invent entries for unrelated proposals, but a replaced
-                # version always receives a fresh pending delivery record.
-                if previous_notification is not None:
-                    notifications.append(previous_notification)
-                elif (item.id == proposal.id and
-                      any(old.id == proposal.id for old in state.proposals)):
-                    notifications.append(ProposalNotification(
-                        proposal_id=item.id, proposal_version=item.version))
-            changed = proposals != state.proposals
-            changed = changed or notifications != state.proposal_notifications
-            values = state.model_dump(mode="json")
-            values["proposals"] = [item.model_dump(mode="json") for item in proposals]
-            values["proposal_notifications"] = [
-                item.model_dump(mode="json") for item in notifications]
-            if proposal.status in {ProposalStatus.WRITING, ProposalStatus.CREATED,
-                                   ProposalStatus.FAILED, ProposalStatus.UNCERTAIN}:
-                service = "todoist" if proposal.kind.value == "task" else "google_calendar"
-                reference = WriteAttemptReference(
-                    mail_id=proposal.source_mail_id,
-                    proposal_id=proposal.id, proposal_version=proposal.version, service=service,
-                    idempotency_key=f"mailhelp:{proposal.source_mail_id}:{proposal.id}:v{proposal.version}",
-                )
-                attempts = [item for item in state.write_attempts
-                            if (item.proposal_id, item.proposal_version, item.service) !=
-                            (reference.proposal_id, reference.proposal_version, reference.service)]
-                attempts.append(reference)
-                changed = changed or attempts != state.write_attempts
-                values["write_attempts"] = [
-                    item.model_dump(mode="json") for item in attempts]
-            if changed:
-                values["updated_at"] = datetime.now(timezone.utc)
-                validated = MailState.model_validate(values)
-                self.store.save(mail_name, validated.model_dump(mode="json"))
+        """Compatibility port; persistence itself belongs to the repository."""
+        self.repository.save_revision(proposal)
         if proposal.status == ProposalStatus.CREATED:
             self._book_created(proposal)
 
     def _book_created(self, proposal: Proposal) -> None:
         self.ledger.book_created(proposal)
-
-    def _prior_actions(self, proposal: Proposal) -> list[ActionLedgerEntry]:
-        return self.ledger.prior_actions(proposal)
 
     def send(self, chat_id: int, text: str) -> None:
         if chat_id != self.chat_id:
@@ -1291,58 +1247,8 @@ class TelegramDialogController:
         self.telegram.send(chat_id, text)
 
     def send_proposal(self, proposal: Proposal) -> None:
-        """Persist first, then expose controls for precisely that immutable version."""
-        self.persist(proposal)
-        text = format_proposal(proposal, self.configured_timezone)
-        mail = self.store.load_model(f"mail-{proposal.source_mail_id}", MailState)
-        if isinstance(mail, MailState):
-            values = mail.model_dump(mode="json")
-            pending = False
-            for notification in values["proposal_notifications"]:
-                if (notification["proposal_id"], notification["proposal_version"]) == (
-                        proposal.id, proposal.version) and notification["status"] == "pending":
-                    notification["status"] = "sending"
-                    pending = True
-            if pending:
-                mail = MailState.model_validate(values)
-                self.store.save(f"mail-{proposal.source_mail_id}",
-                                mail.model_dump(mode="json"))
-        sender = mail.display_headers.sender if isinstance(mail, MailState) and mail.display_headers else "—"
-        subject = mail.display_headers.subject if isinstance(mail, MailState) and mail.display_headers else "—"
-        parts = numbered_message_parts(sender, subject, text)
-        for part in parts[:-1]:
-            self.telegram.send(self.chat_id, part)
-        if not proposal_is_writable(proposal):
-            buttons = [[
-                {"text": "Manuell prüfen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.EDIT).encode(self.store)},
-                {"text": "Verwerfen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.REJECT).encode(self.store)},
-            ]]
-        elif proposal.open_questions:
-            buttons = [[
-                {"text": "Klären", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.EDIT).encode(self.store)},
-                {"text": "Verwerfen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.REJECT).encode(self.store)},
-            ]]
-        else:
-            confirm = {"text": "Anlegen" if proposal.kind == ProposalKind.EVENT else "Bestätigen",
-                       "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.CONFIRM).encode(self.store)}
-            reject = {"text": "Verwerfen", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.REJECT).encode(self.store)}
-            buttons = [[confirm, reject]] if proposal.kind == ProposalKind.EVENT else [[
-                confirm,
-                {"text": "Ändern", "callback_data": Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version, action=DecisionAction.EDIT).encode(self.store)},
-                reject,
-            ]]
-        markup = {"inline_keyboard": buttons}
-        validate_callback_markup(markup)
-        self.telegram.send(self.chat_id, parts[-1], markup)
-        if isinstance(mail, MailState):
-            values = mail.model_dump(mode="json")
-            for notification in values["proposal_notifications"]:
-                if (notification["proposal_id"], notification["proposal_version"]) == (
-                        proposal.id, proposal.version):
-                    notification["status"] = "completed"
-            completed = MailState.model_validate(values)
-            self.store.save(f"mail-{proposal.source_mail_id}",
-                            completed.model_dump(mode="json"))
+        """Compatibility port delegating delivery to its dedicated service."""
+        self.delivery.deliver(proposal)
 
     def awaiting_decision(self) -> bool:
         """Return whether processing must wait for an explicit Telegram answer.
@@ -1446,7 +1352,8 @@ class TelegramDialogController:
                     except (ValueError, ValidationError):
                         self.telegram.send(self.chat_id, "❌ Aktion ist syntaktisch ungültig; bitte erneut versuchen.")
                         return
-                    confirmation = self._decide(decision)
+                    confirmation = self.decision_service.decide(
+                        decision, callback.sender.id, callback.message.chat.id)
             except Exception as exc:
                 self.logger.event("ERROR", "telegram.dialog", "callback_processing_failed",
                                   update_id=update.update_id, error=exc,
@@ -1488,43 +1395,6 @@ class TelegramDialogController:
         return self.validator.authorized(user_id, chat_id)
 
     def _decide(self, decision: Decision) -> str:
-        proposal = self.store.load_model(self._proposal_name(decision.mail_id, decision.proposal_id), Proposal)
-        if proposal is None:
-            raise ValueError("Vorschlag wurde nicht gefunden")
-        assert isinstance(proposal, Proposal)
-        if proposal.version != decision.version or proposal.status not in {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}:
-            raise ValueError("Diese Schaltfläche ist veraltet")
-        if decision.action == DecisionAction.EDIT:
-            changed = proposal.model_copy(update={"status": ProposalStatus.NEEDS_CLARIFICATION})
-            self.persist(changed)
-            self.store.save("telegram-dialog", TelegramDialogState(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version).model_dump())
-            prompt = proposal.open_questions[0] if proposal.open_questions else "Welche Änderung soll übernommen werden?"
-            self.telegram.send(self.chat_id, prompt)
-            return "✏️ Änderungsmodus gestartet."
-        if decision.action in {DecisionAction.CONFIRM, DecisionAction.CONFIRM_DUPLICATE} and proposal.status != ProposalStatus.PENDING_CONFIRMATION:
-            raise ValueError("Zuerst müssen die offenen Fragen beantwortet werden")
-        duplicates = self._prior_actions(proposal) if decision.action in {
-            DecisionAction.CONFIRM, DecisionAction.CONFIRM_DUPLICATE} else []
-        if decision.action == DecisionAction.CONFIRM and duplicates:
-            previous = duplicates[-1]
-            duplicate_decision = decision.model_copy(update={"action": DecisionAction.CONFIRM_DUPLICATE})
-            self.telegram.send(self.chat_id, "\n".join([
-                f"Bereits angelegt: {'Aufgabe' if previous.kind == ProposalKind.TASK else 'Termin'} „{previous.title}“.",
-                f"Frühere Quelle: Mail {previous.mail_id}, Vorschlag {previous.proposal_id}, Version {previous.proposal_version}.",
-                "Soll die Aktion wirklich ein zweites Mal angelegt bzw. versendet werden?",
-            ]), {"inline_keyboard": [[
-                {"text": "Erneut anlegen", "callback_data": duplicate_decision.encode(self.store)},
-                {"text": "Nicht erneut", "callback_data": decision.model_copy(update={"action": DecisionAction.REJECT}).encode(self.store)},
-            ]]})
-            return "✅ Doppelanlage-Prüfung wurde entgegengenommen."
-        if decision.action == DecisionAction.CONFIRM_DUPLICATE and not duplicates:
-            raise ValueError("Die Doppelanlage-Bestätigung ist veraltet")
-        changed = (proposal.model_copy(update={"status": ProposalStatus.REJECTED})
-                   if decision.action == DecisionAction.REJECT else
-                   apply_decision(proposal, decision.model_copy(update={"action": DecisionAction.CONFIRM}),
-                                  self.user_id, self.chat_id, self.user_id, self.chat_id))
-        self.persist(changed)
-        if changed.status == ProposalStatus.CONFIRMED:
-            self.write_executor.execute(changed)
-            return "✅ Vorschlag wurde bestätigt."
-        return "✅ Vorschlag wurde verworfen."
+        """Compatibility entry point for already-authorized internal callers."""
+        return self.decision_service.decide(
+            decision, self.user_id, self.chat_id)
