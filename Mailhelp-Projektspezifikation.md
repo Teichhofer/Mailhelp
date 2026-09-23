@@ -550,6 +550,21 @@ Feldpfad, Fehlertyp und Fehlermeldung protokolliert, niemals Eingabewerte. Ein
 erfolgreicher HTTP-200-Telegram-Versand bleibt ein eigener
 Transporterfolg und wird keinem danach auftretenden Revisionsfehler zugerechnet.
 
+Die Telegram-Schicht trennt Routing, Darstellung, Zustandsübergänge und
+Persistenz. Das Proposal-Repository schreibt bei jeder Revision zwingend zuerst
+die unveränderliche Versionsdatei, danach den autoritativen aktuellen Datensatz
+und zuletzt die denormalisierte Mail-Projektion. Der reine Presenter erzeugt aus
+validierten Daten ausschließlich Nachrichtenteile und Inline-Markup und kennt
+weder Store noch Transport. Der Delivery-Service setzt den versionsbezogenen
+Benachrichtigungsstatus vor dem ersten Sendeversuch dauerhaft auf `sending` und
+erst nach dem letzten erfolgreichen Sendeschritt auf `completed`; ein bei einem
+Neustart vorgefundenes `sending` wird wegen des unklaren externen Ergebnisses
+nicht automatisch erneut gesendet. Ein eigener Decision-Service prüft vor jeder
+Bestätigung Benutzer, Chat, Mail-ID, Proposal-ID, Version und aktuellen Status.
+Der Dialog-Controller validiert und autorisiert Updates, delegiert danach an
+diese Komponenten und schreibt den Offset weiterhin erst an der bestehenden
+Replay-Grenze fort.
+
 - Telegram verwendet Long Polling; ein öffentlicher Webhook ist nicht vorgesehen.
 - Telegram-Updates, Nachrichten, Callback-Queries und Schreibantworten werden vor
   jeder Verwendung mit Transport-Schemata geprüft. Von Mailhelp verwendete

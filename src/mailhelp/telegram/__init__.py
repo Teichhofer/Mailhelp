@@ -15,8 +15,12 @@ from .models import (
     TelegramWriteResponse, TelegramWriteResult, apply_decision,
 )
 from .persistence import (
-    ProposalPersistence, clarification_name, proposal_name, proposal_version_name,
+    ProposalPersistence, ProposalRepository, clarification_name, proposal_name,
+    proposal_version_name,
 )
+from .presenter import ProposalPresentation, ProposalPresenter
+from .delivery import ProposalDeliveryService
+from .decisions import ProposalDecisionService
 from .relevance import RelevanceDialogProcessor, RelevanceDialogs
 from .revisions import ProposalRevisionProcessor, ProposalRevisions, ProposalRevisionService
 from .temporal import (

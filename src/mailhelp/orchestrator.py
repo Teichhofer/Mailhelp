@@ -457,11 +457,27 @@ class Orchestrator:
                     for proposal, notification in zip(state.proposals, state.proposal_notifications, strict=True):
                         if notification.status != "pending":
                             continue
-                        notification.status = "sending"
-                        self._save(name, state)
+                        dedicated_delivery = bool(getattr(
+                            self.notifier, "manages_proposal_delivery", False))
+                        if not dedicated_delivery:
+                            notification.status = "sending"
+                            self._save(name, state)
                         self.notifier.send_proposal(proposal)
-                        notification.status = "completed"
-                        self._save(name, state)
+                        # ProposalDeliveryService owns the sending/completed
+                        # transition.  Reload its authoritative projection so a
+                        # later orchestrator save cannot overwrite that state.
+                        state = MailState.model_validate(self.store.load(name))
+                        current = next(item for item in state.proposal_notifications
+                                       if (item.proposal_id, item.proposal_version) ==
+                                       (proposal.id, proposal.version))
+                        # Compatibility for simple notifier ports: the
+                        # dedicated delivery service has already completed its
+                        # own transition, while a synchronous legacy notifier
+                        # reports success by returning normally.
+                        if current.status == "pending" or (
+                                not dedicated_delivery and current.status == "sending"):
+                            current.status = "completed"
+                            self._save(name, state)
                     state.steps.proposal_notification = "completed"
                     self._save(name, state)
             stage = ProcessingStage.COMPLETION
