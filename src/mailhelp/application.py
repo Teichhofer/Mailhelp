@@ -286,12 +286,6 @@ class Application:
                 if result.outcome is ProcessingOutcome.FAILED:
                     self.logger.event("ERROR", "orchestrator", "mail_failed", folder=folder, uid=mail.uid,
                                       error=result.state.get("error"))
-                # A proposal is a synchronous user-decision boundary. Do not
-                # start another mail after exposing its Telegram controls.
-                if self.dialog is not None and self.dialog.awaiting_decision():
-                    break
-            if self.dialog is not None and self.dialog.awaiting_decision():
-                break
             if not mails and self.imap.last_uidvalidity is not None:
                 if checkpoint["uidvalidity"] is None:
                     checkpoint["uidvalidity"] = self.imap.last_uidvalidity
@@ -405,8 +399,6 @@ class Application:
                     "ERROR", "orchestrator", "mail_failed", folder=candidate.folder,
                     uid=candidate.uid, error=result.state.get("error"),
                 )
-            if self.dialog is not None and self.dialog.awaiting_decision():
-                break
         return results
 
     def _resume_pending(self, budget: _MailBudget | None = None) -> list[ProcessingResult]:
@@ -483,24 +475,15 @@ class Application:
                     # No state content is included in this operational event.
                     self.logger.event("ERROR", "retention", "cleanup_failed",
                                       processed_at=datetime.now(timezone.utc).isoformat(), failure_count=1)
-                # Resolve an existing decision before reading more mail. While
-                # it remains open, Telegram is the only polled external source.
                 telegram_poll_succeeded = self._poll_telegram()
-                waiting_for_answer = (self.dialog is not None
-                                      and self.dialog.awaiting_decision())
-                if not waiting_for_answer and not self.stop_event.is_set():
+                if not self.stop_event.is_set():
                     summary.add(self._poll_imap(max_mails))
-                    waiting_for_answer = (self.dialog is not None
-                                          and self.dialog.awaiting_decision())
-                if max_mails is not None and not waiting_for_answer:
+                if max_mails is not None:
                     break
-                if waiting_for_answer and telegram_poll_succeeded:
-                    # getUpdates already held this request for the configured
-                    # server-side timeout. Start the next long poll directly.
-                    continue
                 delay = (min(self.settings.poll_interval_seconds,
                              _TELEGRAM_ERROR_BACKOFF_SECONDS)
-                         if waiting_for_answer else self.settings.poll_interval_seconds)
+                         if not telegram_poll_succeeded
+                         else self.settings.poll_interval_seconds)
                 self.stop_event.wait(delay)
         finally:
             try:
