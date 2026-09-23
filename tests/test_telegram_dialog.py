@@ -857,18 +857,21 @@ def test_technical_answer_errors_are_consumed_without_reasking(
 
         assert transport.sent[-1][1] == (
             "Die interne Verarbeitung ist verzögert. "
-            "Die Antwort wurde noch nicht fachlich bewertet.")
+            "Die sicher gespeicherte Antwort wird erneut bewertet.")
         assert "Welches Datum?" not in transport.sent[-1][1]
         assert store.load("telegram-offset")["offset"] == 5
         assert store.load("telegram-dialog")["proposal_id"] == "p1"
         saved = store.load("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")
         assert saved["answer_status"] == "pending"
-        assert saved["proposal_revision_status"] == "pending"
+        assert saved["authorized_answer"] == "vertrauliche Antwort"
+        assert saved["interpretation_status"] == "retry_required"
+        assert saved["interpretation_attempts"] == 1
+        assert saved["next_interpretation_at"] is not None
         event = next(entry for entry in log.events
                      if entry[0][2] == "answer_revision_failed")
         assert event[1]["error_class"] == error_class
         assert event[1]["proposal_reference"] == "aaaaaaaaaaaaaaaaaaaaaaaa:p1:v1"
-        assert event[1]["revision_status"] == "pending"
+        assert event[1]["revision_status"] == "retry_required"
         assert "vertrauliche Antwort" not in repr(log.events)
 
 
@@ -891,10 +894,117 @@ def test_contradictory_answer_is_domain_failure_not_incomplete(tmp_path):
         assert store.load("telegram-offset")["offset"] == 3
         saved = store.load("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")
         assert saved["answer_status"] == "pending"
-        assert saved["proposal_revision_status"] == "pending"
+        assert saved["authorized_answer"] == "Antwort"
+        assert saved["interpretation_status"] == "retry_required"
         event = next(entry for entry in log.events
                      if entry[0][2] == "answer_revision_failed")
         assert event[1]["error_class"] == "ContradictoryRevision"
+
+
+def test_interpretation_timeout_is_resumed_from_persisted_answer_after_restart(tmp_path):
+    directory = tmp_path / "restart-interpretation"
+    secret = "streng vertrauliche Terminantwort"
+    with JsonStore(directory) as store:
+        item = proposal(open_questions=["Welches Datum?"])
+        c, _, log = controller(store, [message(4, secret)],
+                               revision_service=InterpretationErrorService(
+                                   httpx.ReadTimeout(secret)))
+        c.persist(item)
+        store.save("telegram-dialog", TelegramDialogState(
+            mail_id=item.source_mail_id, proposal_id=item.id,
+            version=1).model_dump(mode="json"))
+        c.poll_once()
+        name = "clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1"
+        saved = store.load(name)
+        assert saved["authorized_answer"] == secret
+        assert secret not in repr(log.events)
+        saved["next_interpretation_at"] = None
+        store.save(name, saved)
+
+    with JsonStore(directory) as store:
+        service = RevisionService()
+        c, _, log = controller(store, revision_service=service)
+        c.poll_once()
+        assert [call[3] for call in service.calls if call[0] == "interpret"] == [secret]
+        saved = store.load("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")
+        assert saved["interpretation_status"] == "completed"
+        assert saved["proposal_revision_status"] == "completed"
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["version"] == 2
+        assert secret not in repr(log.events)
+
+
+def test_interpretation_retry_budget_pauses_without_deleting_answer(tmp_path):
+    secret = "private Antwort"
+    with JsonStore(tmp_path) as store:
+        item = proposal(open_questions=["Datum?"])
+        service = InterpretationErrorService(httpx.ReadTimeout(secret))
+        c, transport, log = controller(store, [message(1, secret)],
+                                       revision_service=service)
+        c.interpretation_attempts = 2
+        c.persist(item)
+        store.save("telegram-dialog", TelegramDialogState(
+            mail_id=item.source_mail_id, proposal_id=item.id,
+            version=1).model_dump(mode="json"))
+        c.poll_once()
+        name = "clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1"
+        pending = store.load(name)
+        pending["next_interpretation_at"] = None
+        store.save(name, pending)
+        c.poll_once()
+        paused = store.load(name)
+        assert paused["interpretation_attempts"] == 2
+        assert paused["interpretation_status"] == "paused"
+        assert paused["next_interpretation_at"] is None
+        assert paused["authorized_answer"] == secret
+        calls = len(service.calls)
+        c.poll_once()
+        assert len(service.calls) == calls
+        assert "pausiert" in transport.sent[-1][1]
+        assert secret not in repr(log.events)
+
+
+def test_duplicate_delivery_does_not_reinterpret_persisted_answer(tmp_path):
+    with JsonStore(tmp_path) as store:
+        item = proposal(open_questions=["Datum?"])
+        service = InterpretationErrorService(httpx.ReadTimeout("timeout"))
+        c, transport, _ = controller(store, [message(3, "erste Antwort")],
+                                     revision_service=service)
+        c.persist(item)
+        store.save("telegram-dialog", TelegramDialogState(
+            mail_id=item.source_mail_id, proposal_id=item.id,
+            version=1).model_dump(mode="json"))
+        c.poll_once()
+        transport.updates = [message(3, "erste Antwort")]
+        store.save("telegram-offset", {"schema_version": 1, "offset": 3})
+        c.poll_once()
+        assert store.load("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")[
+            "interpretation_attempts"] == 1
+        assert "bereits sicher gespeichert" in transport.sent[-1][1]
+
+
+def test_failed_answer_persistence_does_not_advance_offset_or_log_answer(tmp_path):
+    secret = "darf niemals im Fehler stehen"
+    class FailingStore(JsonStore):
+        fail = True
+        def save(self, name, value):
+            if self.fail and name.startswith("clarification-"):
+                raise OSError("Zustand konnte nicht gespeichert werden")
+            super().save(name, value)
+
+    with FailingStore(tmp_path) as store:
+        item = proposal(open_questions=["Datum?"])
+        c, _, log = controller(store, [message(9, secret)])
+        c.persist(item)
+        store.save("telegram-dialog", TelegramDialogState(
+            mail_id=item.source_mail_id, proposal_id=item.id,
+            version=1).model_dump(mode="json"))
+        with pytest.raises(OSError, match="Zustand konnte nicht gespeichert"):
+            c.poll_once()
+        assert store.load("telegram-offset") is None
+        assert secret not in repr(log.events)
+        store.fail = False
+        c.poll_once()
+        assert store.load("telegram-offset")["offset"] == 10
 
 
 def test_revision_unavailable_preserves_dialog(tmp_path):
@@ -940,7 +1050,8 @@ def test_answer_is_persisted_and_dialog_closed_before_revision(tmp_path):
                 events.append(("dialog", None))
     class OrderedRevision(RevisionService):
         def revise_proposal(self, item, question, answer):
-            assert events == [("answer", "2026-10-21"), ("dialog", None)]
+            assert events == [("answer", None), ("answer", "2026-10-21"),
+                              ("dialog", None)]
             events.append(("revision", answer))
             return super().revise_proposal(item, question, answer)
         def interpret_telegram_answer(self, item, question, answer):
@@ -954,8 +1065,8 @@ def test_answer_is_persisted_and_dialog_closed_before_revision(tmp_path):
             mail_id=item.source_mail_id, proposal_id=item.id, version=1).model_dump(mode="json"))
         events.clear()
         c._answer("am nächsten Mittwoch")
-        assert events[:3] == [("answer", "2026-10-21"), ("dialog", None),
-                              ("revision", "2026-10-21")]
+        assert events[:4] == [("answer", None), ("answer", "2026-10-21"),
+                              ("dialog", None), ("revision", "2026-10-21")]
         assert store.load("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")["proposal_revision_status"] == "completed"
 
 
@@ -1017,7 +1128,7 @@ def test_clarification_schema_migration_and_validation(tmp_path):
               "version":1, "question":"Welches Datum?"}
         store.save(name, {**base, "normalized_answer":"2026-10-21"})
         migrated=store.load_model(name, ProposalClarificationState)
-        assert migrated.schema_version == 3 and migrated.answer_status == AnswerStatus.VALID
+        assert migrated.schema_version == 4 and migrated.answer_status == AnswerStatus.VALID
         assert store.load(name)["normalized_answer"] == "2026-10-21"
         store.save(name, base)
         open_state=store.load_model(name, ProposalClarificationState)
@@ -1036,6 +1147,18 @@ def test_clarification_schema_migration_and_validation(tmp_path):
             question_status="answered", answer_status="valid",
             normalized_answer="2026-10-21", proposal_revision_status="retry_required",
             next_revision_at="2026-09-22T12:00:00")
+    with pytest.raises(ValidationError, match="Interpretationsversuche"):
+        ProposalClarificationState(
+            mail_id="a"*24, proposal_id="p1", version=1, question="Datum?",
+            interpretation_attempts=1)
+    with pytest.raises(ValidationError, match="Interpretationsstatus"):
+        ProposalClarificationState(
+            mail_id="a"*24, proposal_id="p1", version=1, question="Datum?",
+            interpretation_status="retry_required")
+    with pytest.raises(ValidationError, match="Interpretationszeitpunkt"):
+        ProposalClarificationState(
+            mail_id="a"*24, proposal_id="p1", version=1, question="Datum?",
+            next_interpretation_at="2026-09-22T12:00:00+00:00")
 
 
 def test_clarification_recovery_edge_paths(tmp_path):
@@ -1050,6 +1173,14 @@ def test_clarification_recovery_edge_paths(tmp_path):
         store.save("telegram-dialog", dialog.model_dump(mode="json"))
         c._answer("raw")
         assert "Verarbeitung ist verzögert" in t.sent[-1][1]
+
+        # An invalid prior response is replaceable; it is not mistaken for a
+        # still pending delivery.
+        invalid = store.load("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")
+        invalid.update(answer_status="invalid", interpretation_status="completed")
+        store.save("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1", invalid)
+        c.revision_service = InterpretationFailure()
+        c._answer("2026-10-21")
 
         answered=ProposalClarificationState(
             mail_id=item.source_mail_id, proposal_id=item.id, version=1,
@@ -1070,6 +1201,13 @@ def test_clarification_recovery_edge_paths(tmp_path):
 
         missing=answered.model_copy(update={"proposal_id":"missing"})
         c._revise_answered(missing)
+        c._interpret_pending(answered.model_copy(update={
+            "question_status": QuestionStatus.OPEN,
+            "answer_status": AnswerStatus.PENDING,
+            "normalized_answer": None,
+            "proposal_revision_status": ProposalRevisionStatus.PENDING,
+            "authorized_answer": "gespeichert",
+        }))
         c.revision_service=None
         c._revise_answered(answered.model_copy(update={"version":2}))
 

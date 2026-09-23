@@ -95,6 +95,11 @@ class JsonStore:
             value.update(schema_version=3, revision_attempts=0,
                          next_revision_at=None)
             migrated = True
+        if clarification and value.get("schema_version") == 3:
+            value.update(schema_version=4, authorized_answer=None,
+                         interpretation_status="pending", interpretation_attempts=0,
+                         next_interpretation_at=None)
+            migrated = True
         if mail_state and value.get("schema_version") == 6:
             old_notification = value["steps"].pop("notification", "pending")
             value["steps"]["summary_notification"] = old_notification

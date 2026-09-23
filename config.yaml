@@ -41,6 +41,10 @@ retries:
   provider_retry: 1
   json_repair: 1
   schema_repair: 1
+  # Autorisierte, noch nicht interpretierte Antworten und bereits normalisierte
+  # Antworten besitzen voneinander getrennte Retry-Budgets.
+  interpretation_attempts: 3
+  interpretation_backoff_seconds: 60
   # Gespeicherte Telegram-Antworten werden begrenzt und mit dauerhaftem
   # Wiederholungszeitpunkt erneut verarbeitet.
   revision_attempts: 3

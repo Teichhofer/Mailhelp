@@ -104,13 +104,17 @@ class ProposalRevisionStatus(StrEnum):
 class ProposalClarificationState(StrictModel):
     """Durable trust boundary between a Telegram answer and proposal revision."""
 
-    schema_version: Literal[3] = 3
+    schema_version: Literal[4] = 4
     mail_id: str = Field(pattern=r"^[a-f0-9]{24}$")
     proposal_id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")
     version: int = Field(ge=1)
     question: str = Field(min_length=1, max_length=4000)
     question_status: QuestionStatus = QuestionStatus.OPEN
     answer_status: AnswerStatus = AnswerStatus.PENDING
+    authorized_answer: str | None = Field(default=None, min_length=1, max_length=4000)
+    interpretation_status: ProposalRevisionStatus = ProposalRevisionStatus.PENDING
+    interpretation_attempts: int = Field(default=0, ge=0)
+    next_interpretation_at: datetime | None = None
     normalized_answer: str | None = Field(default=None, min_length=1, max_length=4000)
     proposal_revision_status: ProposalRevisionStatus = ProposalRevisionStatus.PENDING
     revision_attempts: int = Field(default=0, ge=0)
@@ -122,11 +126,19 @@ class ProposalClarificationState(StrictModel):
         valid = self.answer_status == AnswerStatus.VALID
         if answered != valid or valid != (self.normalized_answer is not None):
             raise ValueError("Nur eine valide normalisierte Antwort darf eine Frage beantworten")
+        if self.answer_status == AnswerStatus.PENDING and self.interpretation_attempts:
+            if self.authorized_answer is None:
+                raise ValueError("Interpretationsversuche benötigen die autorisierte Antwort")
+        if self.interpretation_status != ProposalRevisionStatus.PENDING and self.authorized_answer is None:
+            raise ValueError("Ein Interpretationsstatus benötigt die autorisierte Antwort")
+        if self.next_interpretation_at is not None and self.authorized_answer is None:
+            raise ValueError("Ein Interpretationszeitpunkt benötigt die autorisierte Antwort")
         if not answered and self.proposal_revision_status != ProposalRevisionStatus.PENDING:
             raise ValueError("Eine offene Frage darf keine Revision besitzen")
-        if self.next_revision_at is not None and (self.next_revision_at.tzinfo is None or
-                                                  self.next_revision_at.utcoffset() is None):
-            raise ValueError("Der nächste Revisionsversuch benötigt einen UTC-Offset")
+        for label, value in (("Interpretationsversuch", self.next_interpretation_at),
+                             ("Revisionsversuch", self.next_revision_at)):
+            if value is not None and (value.tzinfo is None or value.utcoffset() is None):
+                raise ValueError(f"Der nächste {label} benötigt einen UTC-Offset")
         return self
 
 
