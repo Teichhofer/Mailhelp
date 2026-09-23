@@ -118,6 +118,20 @@ prompts:
       nur informiert und weder Einladung noch Terminanfrage enthält. Verwende in
       diesem Fall "event" (oder bei zusätzlicher Aufgabe "task_and_event").
 
+      Verwende dieselben Kandidatengrenzen wie die Aufgaben- und
+      Terminextraktion: Eine reine Einladung oder Information über eine
+      Veranstaltung ist genau ein Terminkandidat, aber für sich allein keine
+      Aufgabe. Eine ausdrücklich verlangte Anmeldung, Zu- oder Absage,
+      Rückmeldung, Vorbereitung oder sonstige Handlung ist zusätzlich genau ein
+      Aufgabenkandidat. Die Frage, ob eine benannte Person ein Grußwort halten
+      kann, begründet gegebenenfalls die Aufgabe, diese Frage zu beantworten;
+      sie ist nicht die Aufgabe, das Grußwort zu halten. Bedingte oder nicht
+      eindeutig an die nutzende Person gerichtete Handlungen bleiben Kandidaten,
+      dürfen aber weder als sicher ihr zugewiesen noch als unbedingte
+      Verpflichtung behandelt werden. Erfinde oder entferne niemals Kandidaten,
+      um einen erwarteten Zähler zu erfüllen; die Zähler müssen vielmehr die nach
+      diesen Grenzen tatsächlich erkannten Kandidaten wiedergeben.
+
       Klassifiziere nur Art und Anzahl. Normalisiere keine Datumsangaben und
       liefere weder Zeitzone, Statuslogik, IDs, Ziele, Notification-Flags noch
       vollständige Vorschläge oder Proposals.
@@ -152,6 +166,17 @@ prompts:
       bestehenden Aufgabe, "recurring" nur für ausdrücklich wiederkehrende Aufgaben
       und "unsupported" nur für Aufgabenarten, die sich mit den geforderten Feldern
       nicht abbilden lassen. Fehlende Angaben dürfen nicht erfunden werden.
+      Verwende dieselben Kandidatengrenzen wie Router und Terminextraktion: Eine
+      reine Einladung oder Veranstaltungsinformation ist keine Aufgabe. Eine
+      ausdrücklich verlangte Anmeldung, Zu- oder Absage, Rückmeldung,
+      Vorbereitung oder sonstige Handlung ist dagegen zusätzlich eine Aufgabe.
+      Bei der Frage, ob eine benannte Person ein Grußwort halten kann, ist nur die
+      verlangte Rückmeldung eine Aufgabe; erzeuge daraus nicht die andere Aufgabe
+      "Grußwort halten". Bedingte Handlungen sind nicht "certain" und nicht
+      eindeutig an die nutzende Person gerichtete Handlungen nicht "user";
+      kennzeichne außerdem eine bloße Option als "non_binding" statt als
+      unbedingte Verpflichtung. Erfinde oder entferne keine Aufgaben, um den
+      task_count des Routers zu erfüllen.
       Gibt es keine Aufgabe, liefere {"schema_version":1,"tasks":[]}.
   event_extraction:
     # Reasoning-capable providers count hidden reasoning and the JSON response
@@ -182,6 +207,16 @@ prompts:
       entsprechende Änderung oder Absage eines bestehenden Termins, "recurring"
       nur für ausdrücklich wiederkehrende Termine und "unsupported" nur für
       Terminarten, die sich mit den geforderten Feldern nicht abbilden lassen.
+      Verwende dieselben Kandidatengrenzen wie Router und Aufgabenextraktion:
+      Jede reine Einladung oder Information über eine Veranstaltung ist ein
+      Terminkandidat, aber keine Aufgabe. Ausdrücklich verlangte Anmeldung,
+      Zu- oder Absage, Rückmeldung, Vorbereitung oder sonstige Handlung ändern
+      diese Termingrenze nicht und werden separat als Aufgaben behandelt. Eine
+      Frage, ob eine benannte Person ein Grußwort halten kann, ist keine weitere
+      Veranstaltung. Bedingte oder nicht eindeutig an die nutzende Person
+      gerichtete Teilnahme darf weder responsibility "user" noch certainty
+      "certain" erhalten. Erfinde oder entferne keine Termine, um den event_count
+      des Routers zu erfüllen.
       Setze time_requirement ausschließlich anhand expliziter Mail-Evidenz auf
       "all_day" (ausdrücklich ganztägig), "timed" (eine Uhrzeit ist ausdrücklich
       genannt oder erforderlich) oder "required_unknown" (Zeitsemantik unklar).

@@ -456,6 +456,19 @@ externes Veranstaltungssystem macht einen solchen Termin weder `non_binding` noc
 `unsupported`; diese Einordnungen setzen ausdrückliche Unverbindlichkeit
 beziehungsweise eine mit dem Terminmodell nicht abbildbare Terminart voraus.
 
+Für Einladungen gelten in Router und beiden Extraktoren identische
+Kandidatengrenzen. Eine reine Einladung oder Information über eine Veranstaltung
+ist ein Terminkandidat, jedoch keine eigenständige Aufgabe. Eine ausdrücklich
+verlangte Anmeldung, Zu- oder Absage, Rückmeldung, Vorbereitung oder sonstige
+Handlung ist zusätzlich ein eigener Aufgabenkandidat. Die Frage, ob eine benannte
+Person ein Grußwort halten kann, ist von einer tatsächlichen Aufgabe zum Halten
+des Grußworts zu unterscheiden: Extrahiert wird die verlangte Rückmeldung, nicht
+ein erfundener Redeauftrag. Bedingte oder nicht eindeutig an die nutzende Person
+gerichtete Handlungen dürfen weder sichere Nutzerzuständigkeit noch eine
+unbedingte Verpflichtung behaupten. Router-Zähler beschreiben die nach diesen
+Grenzen erkannten Kandidaten; die Extraktoren dürfen Kandidaten nicht zur
+Anpassung an einen vorgegebenen Zähler erfinden oder entfernen.
+
 ## 8. Telegram-Interaktion und externe Einträge
 
 Der fachliche Klärungszustand einer Vorschlagsversion ist vom flüchtigen aktiven

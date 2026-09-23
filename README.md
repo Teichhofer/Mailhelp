@@ -339,6 +339,16 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
   Einladung dazu wird als `new` klassifiziert. Der reine Informationscharakter
   oder der Versand durch ein externes Veranstaltungssystem macht den Termin
   nicht `non_binding` oder `unsupported`.
+* Bei Einladungen verwenden Router, Aufgaben- und Terminextraktion dieselbe
+  Abgrenzung: Eine reine Einladung oder Veranstaltungsinformation erzeugt einen
+  Terminkandidaten, aber keine Aufgabe. Eine ausdrücklich verlangte Anmeldung,
+  Zu- oder Absage, Rückmeldung, Vorbereitung oder andere Handlung erzeugt
+  zusätzlich einen getrennten Aufgabenkandidaten. Die Frage, ob eine benannte
+  Person ein Grußwort halten kann, wird als verlangte Rückmeldung verstanden und
+  nicht als Auftrag, das Grußwort zu halten. Bedingte oder an andere Personen
+  gerichtete Handlungen werden weder der nutzenden Person sicher zugewiesen noch
+  als unbedingte Verpflichtung dargestellt. Kandidaten werden nicht erfunden
+  oder entfernt, um Router-Zähler einzuhalten.
 * Vorschläge werden zusätzlich zur Maildatei versionsweise und als aktueller Stand
   gespeichert. Bestätigte Schreibvorgänge werden nach Neustarts wiederaufgenommen;
   externe ID und Link sowie `created`, `failed` oder `uncertain` werden im

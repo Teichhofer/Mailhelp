@@ -16,4 +16,6 @@ und Termin, unklare Action, unklare Zuständigkeit, relative Frist, ungültiges 
 Änderung, Absage, Wiederholung und Prompt-Injection ab. Der reine Terminfeldfall
 ist eine synthetische, datenschutzsichere Gemeinderats-Mail; geprüft werden ihre
 Routerausgabe, ausschließliche Event-Extraktion, Datumsnormalisierung und
-`needs_clarification`.
+`needs_clarification`. Vier weitere Fälle grenzen eine reine Einladung, eine
+ausdrückliche Anmeldebitte, die Rückfrage zu einem optionalen Grußwort und eine
+an eine andere Person gerichtete Rückmeldung zwischen Aufgabe und Termin ab.
