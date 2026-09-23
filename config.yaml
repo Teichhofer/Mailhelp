@@ -1,3 +1,5 @@
+# Fallback-IANA-Zone für lokale Termin-Uhrzeiten ohne explizites UTC±HH:MM
+# in der Mail; ein validierter expliziter Mail-Offset hat Vorrang.
 timezone: Europe/Berlin
 poll_interval_seconds: 60
 test_mode: true

@@ -393,9 +393,19 @@ Kurzform, mit oder ohne Komma) und deutsche Tages-/Monatsangaben ohne Jahr sowie
 bleiben zusammen mit einem stabilen Klärungsgrund als Rohangabe erhalten. Ein Datum
 ohne Uhrzeit wird als ganztägiges Intervall vom genannten Tag bis zum exklusiven
 Folgetag dargestellt. Eine Uhrzeit wird nur bei vorhandenem Datum, Beginn, Ende und
-eindeutiger IANA-Nutzerzeitzone normalisiert; nicht existente oder doppelte Ortszeiten
-an DST-Übergängen erfordern eine Rückfrage. Es werden weder eine Standarduhrzeit,
-eine Dauer noch ein UTC-Offset erfunden.
+entweder einem expliziten festen Offset oder einer eindeutigen IANA-Nutzerzeitzone
+normalisiert; nicht existente oder doppelte Ortszeiten an DST-Übergängen erfordern
+eine Rückfrage. Es werden weder eine Standarduhrzeit,
+eine Dauer noch ein UTC-Offset erfunden. Ein optional extrahiertes
+`timezone_offset_text` muss wörtlich und ausdrücklich beim Termin in der Mail
+stehen und exakt `UTC+HH:MM` oder `UTC-HH:MM` im Bereich von `UTC-14:00` bis
+`UTC+14:00` (an den Grenzen nur `:00`) entsprechen. Es darf weder aus Ortsnamen
+noch aus Headern, Konfiguration oder Weltwissen hergeleitet werden. Bei
+Uhrzeiten wird dieser feste `datetime.timezone`-Offset vorrangig verwendet;
+nur ohne ihn gilt die konfigurierte IANA-`user_timezone`. Der dadurch bestimmte
+Instant bleibt in Proposal-Zustand und Google-Calendar-`dateTime` erhalten; ein
+zusätzliches `timeZone`-Feld darf ihn nicht anhand von `calendar_timezone`
+uminterpretieren.
 
 Der vorbereitete Mail-Datumskontext darf nur mit Status `valid`, zwei
 offsetbehafteten Zeitstempeln mit höchstens sieben Tagen Abstand und einer bekannten

@@ -1,4 +1,4 @@
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 
 import pytest
 from pydantic import ValidationError
@@ -8,6 +8,7 @@ from mailhelp.config import TargetSettings
 from mailhelp.models import (ExtractedEvent, ExtractedTask, ExtractionCountConflict,
                              KnownTemporalFacts, Proposal, ProposalStatus, TemporalFact)
 from mailhelp.proposal_builder import ProposalBuilder
+from mailhelp.storage import JsonStore
 
 
 def context(**changes):
@@ -123,6 +124,22 @@ def test_weekday_prefixed_numeric_date_builds_complete_timed_proposal_without_da
     assert proposal.temporal_fact.normalized_date == date(2026, 9, 23)
     assert proposal.temporal_fact.year_source == "explicit_mail"
     assert proposal.temporal_fact.status == "resolved"
+
+
+def test_explicit_offset_instant_survives_proposal_persistence(tmp_path):
+    proposal = builder(user_timezone="America/New_York").build([], [event(
+        date_text="23.09.2026", time_text="09:00", end_time_text="10:00",
+        timezone_offset_text="UTC+01:00", time_requirement="timed",
+        evidence="23.09.2026, 09:00–10:00 (UTC+01:00)",
+    )])[0]
+    with JsonStore(tmp_path / "proposals") as store:
+        store.save("offset-event", proposal.model_dump(mode="json"))
+        restored = store.load_model("offset-event", Proposal)
+    assert restored is not None
+    assert restored.start.isoformat() == "2026-09-23T09:00:00+01:00"
+    assert restored.end.isoformat() == "2026-09-23T10:00:00+01:00"
+    assert restored.start.astimezone(timezone.utc).isoformat() == "2026-09-23T08:00:00+00:00"
+    assert restored.end.astimezone(timezone.utc).isoformat() == "2026-09-23T09:00:00+00:00"
 
 
 def test_temporal_fact_rejects_inconsistent_resolution_and_source():

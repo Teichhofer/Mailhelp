@@ -191,7 +191,7 @@ prompts:
 
       Antworte nur mit einem JSON-Objekt mit "schema_version": 1 und "events",
       einer Liste mit höchstens 20 Objekten. Jedes Objekt enthält genau title,
-      description, evidence, date_text, time_text, end_time_text, time_requirement,
+      description, evidence, date_text, time_text, end_time_text, timezone_offset_text, time_requirement,
       location, video_link, responsibility, certainty und classification. Nicht genannte
       optionale Rohwerte sind null. video_link ist nur eine ausdrücklich genannte
       HTTP-/HTTPS-URL oder null. responsibility ist "user", "other" oder
@@ -224,6 +224,10 @@ prompts:
       Ganztagshinweis ist required_unknown zu liefern. Erfinde weder Datum, Uhrzeit,
       Dauer, Ort, URL noch Zuständigkeit. Gibt es keinen Termin, liefere
       {"schema_version":1,"events":[]}.
+      timezone_offset_text ist nur ein ausdrücklich beim Termin genannter Wert im
+      exakten Format UTC+HH:MM oder UTC-HH:MM (Bereich UTC-14:00 bis UTC+14:00,
+      bei 14 Stunden nur :00), andernfalls null. Leite ihn niemals aus Ortsnamen,
+      Absendern, Weltwissen, Nutzerzeitzone oder Mail-Headern ab.
       date_text bleibt stets der wörtliche Datums-Rohwert. Ein fehlendes Jahr darf
       hier nicht aus Header, Zusammenfassung oder Weltwissen ergänzt werden; erst
       die Anwendung erzeugt danach einen getrennten strukturierten Zeitfakt.

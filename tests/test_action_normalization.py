@@ -1,6 +1,7 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 import pytest
+from pydantic import ValidationError
 
 from mailhelp.action_normalization import (
     MailDateContext,
@@ -27,6 +28,7 @@ def event(**changes):
     values = {
         "title": "Sitzung", "description": None, "evidence": "synthetischer Beleg",
         "date_text": "22.09.2026", "time_text": None, "end_time_text": None,
+        "timezone_offset_text": None,
         "time_requirement": "all_day",
         "location": None, "video_link": None, "responsibility": "user",
         "certainty": "certain", "classification": "new",
@@ -120,6 +122,33 @@ def test_unambiguous_clock_times_use_configured_zone_and_seconds_are_supported()
     assert result.value.start == datetime.fromisoformat("2026-07-01T10:15:30+02:00")
     assert result.value.end == datetime.fromisoformat("2026-07-01T11:16:31+02:00")
     assert result.value.all_day is False
+
+
+def test_explicit_mail_offset_overrides_configured_user_timezone_and_preserves_instant():
+    result = normalize_event(event(
+        date_text="23.09.2026", time_text="09:00", end_time_text="10:00",
+        timezone_offset_text="UTC+01:00", time_requirement="timed",
+        evidence="23.09.2026, 09:00–10:00 (UTC+01:00)",
+    ), context(user_timezone="America/New_York"))
+    assert isinstance(result.value, TemporalValue)
+    assert result.value.start.isoformat() == "2026-09-23T09:00:00+01:00"
+    assert result.value.end.isoformat() == "2026-09-23T10:00:00+01:00"
+    assert result.value.start.astimezone(timezone.utc).isoformat() == "2026-09-23T08:00:00+00:00"
+    assert result.value.end.astimezone(timezone.utc).isoformat() == "2026-09-23T09:00:00+00:00"
+
+
+@pytest.mark.parametrize("raw", [
+    "GMT+01:00", "+01:00", "UTC+1:00", "UTC+01", "UTC+15:00",
+    "UTC-14:01", "UTC+01:60", "Europe/Berlin",
+])
+def test_extracted_event_rejects_non_explicit_or_out_of_range_offsets(raw):
+    with pytest.raises(ValidationError, match="Zeitzonen-Offset"):
+        event(timezone_offset_text=raw)
+
+
+@pytest.mark.parametrize("raw", ["UTC+00:00", "UTC+14:00", "UTC-05:30", "UTC-14:00"])
+def test_extracted_event_accepts_defined_offset_syntax(raw):
+    assert event(timezone_offset_text=raw).timezone_offset_text == raw
 
 
 def test_all_day_rejects_clock_evidence_and_timed_context_is_validated():
