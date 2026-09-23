@@ -18,10 +18,22 @@ class ImapSettings(ConfigModel):
     host: str = Field(min_length=1, max_length=253)
     port: int = Field(ge=1, le=65535)
     folders: list[str] = Field(min_length=1, max_length=100)
+    primary_folder: str = "INBOX"
     connection_mode: Literal["ssl", "starttls", "plain"] = "ssl"
     historical_start: datetime | None = None
     batch_size: int = Field(default=25, ge=1, le=1000)
     global_newest_first: bool = False
+
+    @model_validator(mode="before")
+    @classmethod
+    def default_primary_to_first_folder(cls, value: object) -> object:
+        # Backwards-compatible loading gives old configurations the same clear
+        # semantics: their first source is required, all following ones optional.
+        if isinstance(value, dict) and "primary_folder" not in value:
+            folders = value.get("folders")
+            if isinstance(folders, list) and folders:
+                value = {**value, "primary_folder": folders[0]}
+        return value
 
     @field_validator("historical_start", mode="before")
     @classmethod
@@ -45,6 +57,21 @@ class ImapSettings(ConfigModel):
         if len(folders) != len(set(folders)):
             raise ValueError("Ordnernamen dürfen nicht doppelt vorkommen")
         return folders
+
+    @model_validator(mode="after")
+    def primary_is_configured(self) -> "ImapSettings":
+        """The primary inbox is required; every other configured folder is optional."""
+        if self.primary_folder not in self.folders:
+            raise ValueError("primary_folder muss in folders enthalten sein")
+        return self
+
+    @property
+    def required_folders(self) -> tuple[str, ...]:
+        return (self.primary_folder,)
+
+    @property
+    def optional_folders(self) -> tuple[str, ...]:
+        return tuple(folder for folder in self.folders if folder != self.primary_folder)
 
 
 class TelegramSettings(ConfigModel):

@@ -111,7 +111,8 @@ class LearningMode:
     def _refresh_folders(self) -> None:
         if self.config_path is None:
             return
-        discovered = self.imap.list_folders()
+        discovered = [getattr(mailbox, "name", mailbox)
+                      for mailbox in self.imap.list_folders()]
         previous = set(self.folders)
         self.folders = add_discovered_folders(
             self.config_path, self.folders, discovered

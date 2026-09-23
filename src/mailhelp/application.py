@@ -153,8 +153,21 @@ class Application:
 
     def check_access(self) -> dict[str, str | None]:
         """Check every external credential and target without processing mail."""
+        def check_imap() -> None:
+            imap_settings = self.settings.imap
+            primary = getattr(imap_settings, "primary_folder", imap_settings.folders[0])
+            self.imap.check_access([primary])
+            for folder in (item for item in imap_settings.folders if item != primary):
+                try:
+                    self.imap.check_access([folder])
+                except Exception as exc:
+                    getattr(self, "logger", NullLogger()).event(
+                        "WARNING", "imap", "optional_folder_failed",
+                        folder=folder, error=exc,
+                    )
+
         checks = (
-            ("IMAP", lambda: self.imap.check_access(self.settings.imap.folders)),
+            ("IMAP", check_imap),
             ("OpenRouter", self.openrouter.check_access),
             ("Telegram", lambda: Application._check_telegram_access(self)),
             ("Todoist", self.todoist.check_access),
@@ -280,7 +293,10 @@ class Application:
                         folder, start_uid, changed.current, budget.remaining, ()
                     )
             except Exception as exc:
-                self.logger.event("ERROR", "imap", "poll_failed", folder=folder, error=str(exc))
+                primary = getattr(self.settings.imap, "primary_folder",
+                                  self.settings.imap.folders[0])
+                event = "poll_failed" if folder == primary else "optional_folder_failed"
+                self.logger.event("ERROR", "imap", event, folder=folder, error=str(exc))
                 continue
             for mail in mails:
                 if self.stop_event.is_set() or budget.remaining == 0:
@@ -385,7 +401,10 @@ class Application:
                         folder, start_uid, changed.current, ()
                     )
             except Exception as exc:
-                self.logger.event("ERROR", "imap", "poll_failed", folder=folder, error=str(exc))
+                primary = getattr(self.settings.imap, "primary_folder",
+                                  self.settings.imap.folders[0])
+                event = "poll_failed" if folder == primary else "optional_folder_failed"
+                self.logger.event("ERROR", "imap", event, folder=folder, error=str(exc))
                 continue
             contexts[folder] = (checkpoint_name, checkpoint, ranges)
             candidates.extend(discovered)
