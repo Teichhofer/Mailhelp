@@ -7,7 +7,8 @@ import json
 from .action_normalization import MailDateContext, TemporalValue, normalize_event, normalize_task_due
 from .config import TargetSettings
 from .models import (ExtractedEvent, ExtractedTask, Proposal, ProposalClassification,
-                     KnownTemporalFacts, ProposalResponsibility, ProposalStatus)
+                     ExtractionCountConflict, KnownTemporalFacts,
+                     ProposalResponsibility, ProposalStatus)
 
 
 _RESPONSIBILITY_QUESTION = "Ist die Nutzerin oder der Nutzer für diesen Eintrag zuständig?"
@@ -64,25 +65,24 @@ class ProposalBuilder:
         used.add(candidate)
         return candidate
 
-    def build(self, tasks: list[ExtractedTask], events: list[ExtractedEvent]) -> list[Proposal]:
-        """Build deterministic proposals and discard byte-identical repeated facts."""
+    def build(self, tasks: list[ExtractedTask], events: list[ExtractedEvent],
+              count_conflicts: list[ExtractionCountConflict] | None = None) -> list[Proposal]:
+        """Build deterministic proposals without changing the extracted cardinality."""
         proposals: list[Proposal] = []
         used_ids: set[str] = set()
-        seen: set[tuple[str, str]] = set()
+        conflicted = {item.category for item in count_conflicts or []}
         entries: list[tuple[str, ExtractedTask | ExtractedEvent]] = [
             *(("task", item) for item in tasks), *(("event", item) for item in events)
         ]
         for position, (kind, item) in enumerate(entries):
-            canonical = json.dumps(item.model_dump(mode="json"), ensure_ascii=False,
-                                   sort_keys=True, separators=(",", ":"))
-            duplicate_key = (kind, canonical)
-            if duplicate_key in seen:
-                continue
-            seen.add(duplicate_key)
             temporal = (normalize_task_due(item, self.context) if kind == "task" and item.due_text is not None
                         else normalize_event(item, self.context) if kind == "event" else None)
             question = temporal.question if temporal is not None else None
             questions = self._questions(item, question)
+            if kind in conflicted:
+                questions.append(
+                    f"Wie viele {'Aufgaben' if kind == 'task' else 'Termine'} enthält diese Mail tatsächlich?"
+                )
             values: dict[str, object] = {}
             if temporal is not None and temporal.resolved:
                 if kind == "task":

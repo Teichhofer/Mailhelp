@@ -1172,9 +1172,33 @@ def test_router_count_mismatch_is_assigned_to_its_extractor(tmp_path, kind, expe
             [Topic(id="x", name="x", enabled=True, description="x")], 1000).process(
                 FetchedMail("INBOX", 1, 120 if kind == "task" else 121,
                             b"Subject: Inkonsistent\n\nBody"))
-    assert result.outcome is ProcessingOutcome.COMPLETED_WITH_ACTION_ERROR
-    assert result["error"]["stage"] == expected_stage
-    assert result["steps"][expected_stage] == "failed"
+    assert result.outcome is ProcessingOutcome.COMPLETED
+    assert result["error"] is None
+    assert result["steps"][expected_stage] == "completed"
+    assert result["extraction_count_conflicts"][0] | {
+        "notification_marked_at": None
+    } == {
+        "schema_version": 1, "category": kind, "expected_count": 1,
+        "actual_count": 0, "router_call_id": "ar",
+        "extractor_call_id": "t" if kind == "task" else "e",
+        "notification_marked_at": None,
+    }
+    state = MailState.model_validate(result.state)
+    before = len(state.extraction_count_conflicts)
+    Orchestrator(MismatchAnalyzer("relevant"), store, Notify(), 1,
+        [Topic(id="x", name="x", enabled=True, description="x")], 1000
+    )._record_count_conflict("unused", state, kind, 1, 0, "ar",
+                             "t" if kind == "task" else "e")
+    assert len(state.extraction_count_conflicts) == before
+    state.steps.completion = "pending"
+    state.steps.proposal_notification = "pending"
+    store.save("mail-" + state.id, state.model_dump(mode="json"))
+    restarted_notifier = Notify()
+    Orchestrator(MismatchAnalyzer("relevant"), store, restarted_notifier, 1,
+        [Topic(id="x", name="x", enabled=True, description="x")], 1000
+    ).process(FetchedMail("INBOX", 1, 120 if kind == "task" else 121,
+                          b"Subject: Inkonsistent\n\nBody"))
+    assert not any("Zählerabweichung" in message for message in restarted_notifier.messages)
 
 
 def test_resume_after_extractor_and_after_action_aggregation(tmp_path):

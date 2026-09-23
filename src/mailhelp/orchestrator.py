@@ -20,7 +20,7 @@ from .action_normalization import MailDateContext
 from .proposal_builder import ProposalBuilder
 from .imap import FetchedMail
 from .mime import MimeLimitExceeded, extract_display_headers, prepare
-from .models import (DisplayHeaders, DuplicateDecision, DuplicateIndex, DuplicateIndexEntry, IrrelevantSenders, MailState, ProcessingError, ProcessingErrorCode, ProcessingStage,
+from .models import (DisplayHeaders, DuplicateDecision, DuplicateIndex, DuplicateIndexEntry, ExtractionCountConflict, IrrelevantSenders, MailState, ProcessingError, ProcessingErrorCode, ProcessingStage,
                      Proposal, Relevance, RelevanceDialog, RelevanceDialogStatus,
                      ProposalNotification, ValidationIssue)
 from .storage import JsonStore
@@ -84,7 +84,28 @@ class Orchestrator:
         return ProposalBuilder(state.id, self.targets, context).build(
             state.task_extraction.tasks if state.task_extraction else [],
             state.event_extraction.events if state.event_extraction else [],
+            state.extraction_count_conflicts,
         )
+
+    def _record_count_conflict(self, name: str, state: MailState, category: str,
+                               expected: int, actual: int, router_call_id: str,
+                               extractor_call_id: str) -> None:
+        if expected == actual:
+            return
+        key = (category, router_call_id, extractor_call_id)
+        if any((item.category, item.router_call_id, item.extractor_call_id) == key
+               for item in state.extraction_count_conflicts):
+            return
+        conflict = ExtractionCountConflict(
+            category=category, expected_count=expected, actual_count=actual,
+            router_call_id=router_call_id, extractor_call_id=extractor_call_id,
+        )
+        state.extraction_count_conflicts.append(conflict)
+        self._save(name, state)
+        self.logger.event("WARNING", "orchestrator", "extraction_count_conflict",
+                          mail_id=state.id, category=category, expected_count=expected,
+                          actual_count=actual, router_call_id=router_call_id,
+                          extractor_call_id=extractor_call_id)
 
     def stop(self) -> None: self.stop_event.set()
 
@@ -347,12 +368,14 @@ class Orchestrator:
                         stage = ProcessingStage.ACTION_ROUTER
                         call, route = self.analyzer.action_route(state.mail)
                         state.action_route = route
+                        state.action_router_call_id = call
                         state.llm_call_ids.append(call)
                         state.steps.action_router = "completed"
                         self._save(name, state)
                     else:
                         assert state.action_route is not None
                         route = state.action_route
+                    assert state.action_router_call_id is not None
                     wants_tasks = route.action_state in {"task", "task_and_event"}
                     # An event candidate must not disappear merely because the
                     # router is unsure whether the message is an invitation.  The
@@ -363,24 +386,26 @@ class Orchestrator:
                     if wants_tasks and state.steps.task_extraction in {"pending", "failed"}:
                         stage = ProcessingStage.TASK_EXTRACTION
                         call, extraction = self.analyzer.extract_tasks(state.mail)
-                        if len(extraction.tasks) != route.task_count:
-                            raise ValueError("Router- und Aufgabenanzahl widersprechen sich")
                         state.task_extraction = extraction
                         state.llm_call_ids.append(call)
                         state.steps.task_extraction = "completed"
                         self._save(name, state)
+                        self._record_count_conflict(name, state, "task", route.task_count,
+                                                    len(extraction.tasks),
+                                                    state.action_router_call_id, call)
                     if not wants_tasks:
                         state.steps.task_extraction = "skipped"
                         self._save(name, state)
                     if wants_events and state.steps.event_extraction in {"pending", "failed"}:
                         stage = ProcessingStage.EVENT_EXTRACTION
                         call, extraction = self.analyzer.extract_events(state.mail)
-                        if len(extraction.events) != route.event_count:
-                            raise ValueError("Router- und Terminanzahl widersprechen sich")
                         state.event_extraction = extraction
                         state.llm_call_ids.append(call)
                         state.steps.event_extraction = "completed"
                         self._save(name, state)
+                        self._record_count_conflict(name, state, "event", route.event_count,
+                                                    len(extraction.events),
+                                                    state.action_router_call_id, call)
                     elif not wants_events:
                         state.steps.event_extraction = "skipped"
                         self._save(name, state)
@@ -415,6 +440,19 @@ class Orchestrator:
                             self.chat_id,
                             "Mögliche Aufgabe oder möglicher Termin benötigt fachliche Klärung: "
                             + state.action_route.reason,
+                        )
+                    for conflict in state.extraction_count_conflicts:
+                        if conflict.notification_marked_at is not None:
+                            continue
+                        # Mark before delivery: an uncertain Telegram result must
+                        # never lead to an automatic duplicate after restart.
+                        conflict.notification_marked_at = datetime.now(timezone.utc)
+                        self._save(name, state)
+                        self.notifier.send(
+                            self.chat_id,
+                            f"Zählerabweichung für {conflict.category}: Router "
+                            f"{conflict.expected_count}, Extraktion {conflict.actual_count}. "
+                            "Bitte die tatsächliche Anzahl klären.",
                         )
                     for proposal, notification in zip(state.proposals, state.proposal_notifications, strict=True):
                         if notification.status != "pending":

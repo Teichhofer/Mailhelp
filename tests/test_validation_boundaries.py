@@ -11,7 +11,7 @@ from pydantic import ValidationError
 
 from mailhelp.config import Settings, _validated_file
 from mailhelp.integrations import HttpWriter, _with_external_result
-from mailhelp.models import (DuplicateDecision, DuplicateIndex, DuplicateIndexEntry, ImapCheckpoint, MailState, Proposal, ProposalNotification, TelegramDialogState,
+from mailhelp.models import (DuplicateDecision, DuplicateIndex, DuplicateIndexEntry, ExtractionCountConflict, ImapCheckpoint, MailState, Proposal, ProposalNotification, TelegramDialogState,
                              TelegramOffset, ValidationIssue, WriteAttemptReference)
 from mailhelp.openrouter import InvalidJson, OpenRouterClient, ProviderResponseInvalid, _path
 from mailhelp.storage import CorruptState, JsonStore
@@ -46,6 +46,21 @@ def test_mail_state_v9_metadata_is_closed_and_round_trips(tmp_path):
         store.save("mail-a", state.model_dump(mode="json"))
         loaded = store.load_model("mail-a", MailState)
     assert loaded == state and loaded.schema_version == 9
+
+
+def test_extraction_count_conflicts_are_strict_and_unique():
+    values = dict(category="task", expected_count=2, actual_count=1,
+                  router_call_id="router", extractor_call_id="extractor")
+    conflict = ExtractionCountConflict(**values)
+    with pytest.raises(ValidationError, match="unterschiedliche"):
+        ExtractionCountConflict(**{**values, "actual_count": 2})
+    with pytest.raises(ValidationError, match="UTC-Offset"):
+        ExtractionCountConflict(**values, notification_marked_at=datetime.now())
+    state_values = dict(id="a" * 24, config_fingerprint="f" * 64,
+                        imap={"account_id": "0" * 24, "folder": "INBOX",
+                              "uidvalidity": 1, "uid": 2})
+    with pytest.raises(ValidationError, match="nicht doppelt"):
+        MailState(**state_values, extraction_count_conflicts=[conflict, conflict])
 
 
 def test_mail_state_v6_is_explicitly_migrated(tmp_path):

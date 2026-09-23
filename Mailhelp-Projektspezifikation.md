@@ -247,6 +247,15 @@ Auswertungsschritten `relevance`, `summary`, `action_router`, `task_extraction` 
 Proposal-Builder. Der Router klassifiziert zunächst nur Art und Anzahl möglicher
 Aktionen; die getrennten Task- und Event-Extraktoren laufen gemäß der Routingmatrix
 einzeln oder gemeinsam. Bei `none` endet die Aktionsanalyse ohne Vorschlag.
+Die Routerzähler sind Diagnosehinweise und keine Validitätsbedingung. Mailhelp
+persistiert jede schema-valide Extraktion vollständig samt Call-ID und führt die
+andere Extraktion auch bei einer Abweichung weiter aus. Soll-/Ist-Abweichungen
+werden mit Kategorie sowie Router- und Extraktor-Call-ID dauerhaft und eindeutig
+gespeichert; dies gilt auch für eine leere Extraktion bei positiver Routerzahl.
+Betroffene Vorschläge bleiben mit einer konkreten Mengenfrage in
+`needs_clarification`. Erst eine ausdrückliche Klärung erzeugt eine neue,
+separat zu bestätigende Version; die alte Version darf keinen externen Schreibzugriff
+auslösen. Wiederaufnahmen verwenden Extraktion und Konfliktmeldung idempotent wieder.
 `unclear` ist ein fachlicher Klärungsfall und kein Provider- oder Schemafehler.
 Seine Zähler beschreiben mögliche Kandidaten und dürfen unabhängig voneinander null
 sein. Erkannte Terminkandidaten (`event_count > 0`) werden auch bei `unclear`
