@@ -1172,6 +1172,12 @@ class TelegramDialogController:
         changed, result = execute_confirmed(proposal, writer, self.persist, self.test_mode)
         if result.get("simulation"):
             text = f"Testmodus: „{proposal.title}“ wurde nur simuliert."
+        elif result.get("operation") == "duplicate_updated":
+            text = (f"Bereits vorhandener gleicher Termin „{proposal.title}“ wurde erkannt; "
+                    "fehlende Informationen wurden ergänzt. Kein neuer Termin wurde angelegt.")
+        elif result.get("operation") == "duplicate_skipped":
+            text = (f"Bereits vorhandener gleicher Termin „{proposal.title}“ wurde erkannt. "
+                    "Kein neuer Termin wurde angelegt.")
         elif changed.status == ProposalStatus.CREATED:
             details = f" (ID: {changed.external_id})" if changed.external_id else ""
             link = f" {changed.external_link}" if changed.external_link else ""

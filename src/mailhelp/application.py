@@ -751,18 +751,19 @@ def build_application(
             logger=logger,
         )
         stack.callback(oauth.close)
-        calendar = HttpWriter(
-            "google_calendar", oauth, settings.targets.google_calendar,
-            google_cfg.timeout_seconds, policy=policy("google_calendar"), logger=logger,
-            calendar_timezone=settings.timezone,
-        )
-        stack.callback(calendar.close)
         analyzer = Analyzer(
             openrouter, prompts,
             provider_retries=settings.retries.provider_retry,
             json_repair_retries=settings.retries.json_repair,
             schema_repair_retries=settings.retries.schema_repair,
         )
+        calendar = HttpWriter(
+            "google_calendar", oauth, settings.targets.google_calendar,
+            google_cfg.timeout_seconds, policy=policy("google_calendar"), logger=logger,
+            calendar_timezone=settings.timezone,
+            calendar_matcher=analyzer.calendar_duplicate,
+        )
+        stack.callback(calendar.close)
         dialog = TelegramDialogController(
             store, telegram, settings.telegram.user_id, settings.telegram.chat_id, logger,
             {"todoist": todoist, "google_calendar": calendar}, settings.test_mode,

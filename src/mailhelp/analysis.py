@@ -10,7 +10,7 @@ from pydantic import BaseModel, ValidationError
 
 from .adapter import RetryableError
 from .config import LlmRoute, PromptConfig, Topic
-from .models import (AbstractCategories, ActionRoute, EventExtraction,
+from .models import (AbstractCategories, ActionRoute, CalendarDuplicateDecision, EventExtraction,
                      MailClassification, Proposal, ProposalRevisionChanges, ProposalRevisionDelta, ProposalStatus, Relevance,
                      Summary, TaskExtraction, TelegramAnswerInterpretation,
                      TelegramClarification, apply_proposal_revision)
@@ -278,6 +278,17 @@ class Analyzer:
 
     def extract_events(self, mail: dict[str, Any]) -> tuple[str, EventExtraction]:
         return self._run("event_extraction", EventExtraction, mail)
+
+    def calendar_duplicate(self, proposal: Proposal,
+                           existing: dict[str, Any]) -> tuple[str, CalendarDuplicateDecision]:
+        """Compare a validated proposal with one bounded overlapping event."""
+        proposed = {key: value for key, value in proposal.model_dump(mode="json").items()
+                    if key in {"title", "description", "start", "end", "all_day",
+                               "location", "video_link"}}
+        return self._classified_run(
+            "calendar_duplicate", {"proposed_event": proposed, "existing_event": existing},
+            CalendarDuplicateDecision.model_validate, schema=CalendarDuplicateDecision,
+        )
 
     def revise_proposal(self, proposal: Proposal, question: str,
                         authorized_answer: str) -> tuple[str, Proposal]:

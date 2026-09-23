@@ -290,6 +290,24 @@ class TelegramClarification(StrictModel):
     message: str = Field(min_length=1, max_length=4000)
 
 
+class CalendarDuplicateDecision(StrictModel):
+    """Bounded LLM verdict for one time-overlapping calendar entry."""
+
+    same_event: bool
+    missing_fields: list[Literal["description", "location", "video_link"]] = Field(
+        default_factory=list, max_length=3
+    )
+    reason: str = Field(min_length=1, max_length=1000)
+
+    @model_validator(mode="after")
+    def fields_require_same_event(self) -> "CalendarDuplicateDecision":
+        if not self.same_event and self.missing_fields:
+            raise ValueError("Fehlende Felder sind nur beim gleichen Termin zulässig")
+        if len(self.missing_fields) != len(set(self.missing_fields)):
+            raise ValueError("Fehlende Felder dürfen nicht doppelt vorkommen")
+        return self
+
+
 class LearnedCategory(StrictModel):
     """One deliberately non-authoritative category proposed by an LLM."""
 
