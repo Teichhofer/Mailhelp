@@ -14,7 +14,7 @@ import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from ..models import (ActionLedger, ActionLedgerEntry, AnswerStatus, MailState, Proposal, ProposalClarificationState, ProposalKind, ProposalNotification, ProposalRevisionDelta, ProposalRevisionStatus, ProposalStatus, QuestionStatus, RelevanceDialog,
-                     RelevanceDialogStatus, TelegramDialogState, TelegramOffset,
+                     RelevanceDialogStatus, TelegramDialogState, TelegramOffset, TelegramAnswerInterpretation, TelegramClarification,
                      WriteAttemptReference)
 from ..integrations import ExternalWriter, execute_confirmed, proposal_is_writable
 from ..adapter import PermanentError, RetryableError, RetryPolicy, uncertain_write
@@ -613,8 +613,8 @@ class TelegramTransport(Protocol):
     def remove_inline_keyboard(self, chat_id: int, message_id: int) -> None: ...
 
 class ProposalRevisionService(Protocol):
-    def interpret_telegram_answer(self, proposal: Proposal, question: str, authorized_answer: str) -> tuple[str, Any]: ...
-    def clarify_telegram_answer(self, question: str, authorized_answer: str, reason: str) -> tuple[str, Any]: ...
+    def interpret_telegram_answer(self, proposal: Proposal, question: str, authorized_answer: str) -> tuple[str, TelegramAnswerInterpretation]: ...
+    def clarify_telegram_answer(self, question: str, authorized_answer: str, reason: str) -> tuple[str, TelegramClarification]: ...
     def revise_proposal(self, proposal: Proposal, question: str, authorized_answer: str) -> tuple[str, Proposal]: ...
 
 
@@ -633,6 +633,11 @@ class UpdateValidation(Protocol):
     def authorized(self, user_id: int, chat_id: int) -> bool: ...
     def decision(self, value: str) -> Decision: ...
     def relevance_decision(self, value: str) -> RelevanceDecision: ...
+
+
+class RelevanceHandler(Protocol):
+    def resolve_relevance(self, mail_id: str, version: int, decision: str, offset: int) -> MailState: ...
+    def resume_mail(self, state: MailState) -> None: ...
 
 
 class RelevanceDialogs(Protocol):
@@ -678,7 +683,7 @@ class RelevanceDialogProcessor:
 
     def __init__(self, store: JsonStore, telegram: TelegramTransport, chat_id: int):
         self.store, self.telegram, self.chat_id = store, telegram, chat_id
-        self.handler: Any = None
+        self.handler: RelevanceHandler | None = None
 
     def all(self) -> list[RelevanceDialog]:
         result = []
@@ -759,31 +764,413 @@ class ActionLedgerService:
                 (item.mail_id, item.proposal_id, item.proposal_version) != current]
 
 
-class ConfirmedWriteExecutor:
-    """Execute and resume writes, but only for persisted confirmed proposals."""
+def proposal_name(mail_id: str, proposal_id: str) -> str:
+    return f"proposal-{mail_id}-{proposal_id}"
 
-    def __init__(self, owner: "TelegramDialogController"):
-        self.owner = owner
+
+def proposal_version_name(mail_id: str, proposal_id: str, version: int) -> str:
+    return f"proposal-{mail_id}-{proposal_id}-v{version}"
+
+
+def clarification_name(mail_id: str, proposal_id: str, version: int) -> str:
+    return f"clarification-{mail_id}-{proposal_id}-v{version}"
+
+
+class ConfirmedWriteExecutor:
+    """Execute and recover writes using only explicit infrastructure ports."""
+
+    def __init__(self, store: JsonStore, writers: dict[str, ExternalWriter], persistence: ProposalPersistence, telegram: TelegramTransport, chat_id: int, test_mode: bool, ledger: ActionLedgerPort):
+        self.store, self.writers, self.persistence = store, writers, persistence
+        self.telegram, self.chat_id, self.test_mode, self.ledger = telegram, chat_id, test_mode, ledger
+
+    def writer_for(self, proposal: Proposal) -> ExternalWriter | None:
+        return self.writers.get("todoist" if proposal.kind == ProposalKind.TASK else "google_calendar")
 
     def execute(self, proposal: Proposal) -> None:
-        self.owner._execute_confirmed(proposal)
+        if not proposal_is_writable(proposal):
+            return
+        if proposal.status == ProposalStatus.SIMULATED and proposal.simulation_notified:
+            return
+        writer = self.writer_for(proposal)
+        if writer is None:
+            return
+        changed, result = execute_confirmed(proposal, writer, self.persistence.persist, self.test_mode)
+        if result.get("simulation"):
+            text = f"Testmodus: „{proposal.title}“ wurde nur simuliert."
+        elif result.get("operation") == "duplicate_updated":
+            text = (f"Bereits vorhandener gleicher Termin „{proposal.title}“ wurde erkannt; "
+                    "fehlende Informationen wurden ergänzt. Kein neuer Termin wurde angelegt.")
+        elif result.get("operation") == "duplicate_skipped":
+            text = (f"Bereits vorhandener gleicher Termin „{proposal.title}“ wurde erkannt. "
+                    "Kein neuer Termin wurde angelegt.")
+        elif changed.status == ProposalStatus.CREATED:
+            details = f" (ID: {changed.external_id})" if changed.external_id else ""
+            link = f" {changed.external_link}" if changed.external_link else ""
+            text = f"Erstellt: „{proposal.title}“{details}.{link}"
+        elif changed.status == ProposalStatus.UNCERTAIN:
+            if changed.uncertain_notified:
+                return
+            text = f"Unklarer Schreiberfolg bei „{proposal.title}“; wird weiter abgeglichen und nicht automatisch wiederholt."
+        else:
+            text = f"Erstellen von „{proposal.title}“ fehlgeschlagen."
+        self.telegram.send(self.chat_id, text)
+        if changed.status == ProposalStatus.UNCERTAIN:
+            self.persistence.persist(changed.model_copy(update={"uncertain_notified": True}))
+        elif changed.status == ProposalStatus.SIMULATED:
+            self.persistence.persist(changed.model_copy(update={"simulation_notified": True}))
 
     def resume(self) -> None:
-        self.owner._resume_confirmed_writes()
+        names = getattr(self.store, "names", None)
+        if names is None:
+            return
+        for name in names("proposal-"):
+            if "-v" in name:
+                continue
+            proposal = self.store.load_model(name, Proposal)
+            assert isinstance(proposal, Proposal)
+            # Also repairs a crash after the authoritative proposal file was
+            # replaced but before its embedding MailState was replaced.
+            self.persistence.persist(proposal)
+            if proposal.status in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING,
+                                   ProposalStatus.UNCERTAIN, ProposalStatus.SIMULATED}:
+                self.execute(proposal)
+
 
 
 class ProposalRevisionProcessor:
-    """Own answers, durable revisions, and restart recovery."""
+    """Own authorized answers, revision retries, and restart recovery."""
 
-    def __init__(self, owner: "TelegramDialogController"):
-        self.owner = owner
-
-    def answer(self, answer: str) -> None:
-        self.owner._process_answer(answer)
+    def __init__(self, store: JsonStore, revision_service: ProposalRevisionService | None, persistence: ProposalPersistence, telegram: TelegramTransport, chat_id: int, logger: EventLogger, configured_timezone: str, *, interpretation_attempts: int, interpretation_backoff_seconds: int, revision_attempts: int, revision_backoff_seconds: int):
+        self.store, self.revision_service = store, revision_service
+        self.persistence, self.telegram, self.chat_id = persistence, telegram, chat_id
+        self.logger, self.configured_timezone = logger, configured_timezone
+        self.interpretation_attempts = interpretation_attempts
+        self.interpretation_backoff_seconds = interpretation_backoff_seconds
+        self.revision_attempts = revision_attempts
+        self.revision_backoff_seconds = revision_backoff_seconds
 
     def resume(self) -> None:
-        self.owner._resume_durable_revisions()
-        self.owner._resume_legacy_revision()
+        self._resume_durable_revisions()
+        self._resume_legacy_revision()
+
+    def answer(self, answer: str) -> None:
+        dialog = self.store.load_model("telegram-dialog", TelegramDialogState)
+        if dialog is None or dialog.proposal_id is None:
+            self.logger.event("INFO", "telegram.dialog", "answer_rejected",
+                              reason="no_open_dialog")
+            self.telegram.send(self.chat_id, "Keine offene Rückfrage. Bitte zuerst „Ändern“ wählen.")
+            return
+        assert dialog.mail_id is not None
+        proposal = self.store.load_model(proposal_name(dialog.mail_id, dialog.proposal_id), Proposal)
+        if proposal is None:
+            self.logger.event("WARNING", "telegram.dialog", "answer_rejected",
+                              reason="proposal_missing", mail_id=dialog.mail_id,
+                              proposal_id=dialog.proposal_id, version=dialog.version)
+            self.store.save("telegram-dialog", TelegramDialogState().model_dump())
+            self.telegram.send(self.chat_id, "Der zugehörige Vorschlag wurde nicht gefunden.")
+            return
+        assert isinstance(proposal, Proposal)
+        if proposal.version != dialog.version or proposal.status != ProposalStatus.NEEDS_CLARIFICATION:
+            self.logger.event("WARNING", "telegram.dialog", "answer_rejected",
+                              reason="stale_dialog", mail_id=dialog.mail_id,
+                              proposal_id=dialog.proposal_id, dialog_version=dialog.version,
+                              proposal_version=proposal.version, proposal_status=proposal.status.value)
+            self.store.save("telegram-dialog", TelegramDialogState().model_dump())
+            self.telegram.send(self.chat_id, "Die Rückfrage ist veraltet; es wurde nichts geändert.")
+            return
+        question = proposal.open_questions[0] if proposal.open_questions else "Welche Änderung soll übernommen werden?"
+        clarification_record_name = clarification_name(dialog.mail_id, dialog.proposal_id, dialog.version)
+        existing = self.store.load_model(clarification_record_name, ProposalClarificationState)
+        if isinstance(existing, ProposalClarificationState):
+            if existing.question_status == QuestionStatus.ANSWERED:
+                self.store.save("telegram-dialog", TelegramDialogState().model_dump(mode="json"))
+                self.telegram.send(self.chat_id, "Keine offene Rückfrage. Die vorherige Antwort ist bereits gespeichert.")
+                return
+            if (existing.authorized_answer is not None and
+                    existing.answer_status == AnswerStatus.PENDING):
+                self.telegram.send(self.chat_id, "Die autorisierte Antwort ist bereits sicher gespeichert und wird verarbeitet.")
+                return
+        if self.revision_service is None:
+            self.logger.event("ERROR", "telegram.dialog", "answer_revision_unavailable",
+                              mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
+                              version=dialog.version)
+            self.telegram.send(self.chat_id, "Die Überarbeitung ist derzeit nicht verfügbar; der Vorschlag blieb unverändert.")
+            return
+        # This is the acknowledgement boundary: persist the authorized input
+        # atomically before the first fallible interpretation call.  The raw
+        # answer exists only in this state file and is never added to logs.
+        pending = ProposalClarificationState(
+            mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
+            version=dialog.version, question=question, authorized_answer=answer)
+        self.store.save(clarification_record_name, pending.model_dump(mode="json"))
+        self._interpret_pending(pending)
+
+    def _interpret_pending(self, state: ProposalClarificationState) -> None:
+        """Interpret one durably stored authorized answer without logging it."""
+        assert state.authorized_answer is not None
+        name = clarification_name(state.mail_id, state.proposal_id, state.version)
+        proposal = self.store.load_model(proposal_name(state.mail_id, state.proposal_id), Proposal)
+        if not isinstance(proposal, Proposal) or proposal.version != state.version:
+            return
+        assert self.revision_service is not None
+        local_temporal = (proposal.kind == ProposalKind.EVENT and
+                          parse_deterministic_temporal_answer(
+                              state.authorized_answer) is not None)
+        try:
+            deterministic = deterministic_temporal_revision(
+                proposal, state.question, state.authorized_answer,
+                self.configured_timezone)
+            if deterministic is not None:
+                answered = ProposalClarificationState(
+                    mail_id=state.mail_id, proposal_id=state.proposal_id,
+                    version=state.version, question=state.question,
+                    authorized_answer=state.authorized_answer,
+                    interpretation_status=ProposalRevisionStatus.COMPLETED,
+                    interpretation_attempts=state.interpretation_attempts,
+                    question_status=QuestionStatus.ANSWERED,
+                    answer_status=AnswerStatus.VALID,
+                    normalized_answer=state.authorized_answer,
+                    proposal_revision_status=ProposalRevisionStatus.RETRY_REQUIRED,
+                )
+                self.store.save(name, answered.model_dump(mode="json"))
+                self.store.save("telegram-dialog", TelegramDialogState().model_dump(mode="json"))
+                self._revise_answered(answered)
+                return
+            _, interpretation = self.revision_service.interpret_telegram_answer(
+                proposal, state.question, state.authorized_answer)
+            if not interpretation.usable:
+                incomplete = IncompleteUserAnswer(interpretation.reason)
+                invalid = state.model_copy(update={
+                    "answer_status": AnswerStatus.INVALID,
+                    "interpretation_status": ProposalRevisionStatus.COMPLETED,
+                    "next_interpretation_at": None,
+                })
+                self.store.save(name, invalid.model_dump(mode="json"))
+                _, clarification = self.revision_service.clarify_telegram_answer(
+                    state.question, state.authorized_answer, interpretation.reason)
+                self.logger.event("INFO", "telegram.dialog", "answer_clarification_requested",
+                                  mail_id=state.mail_id, proposal_id=state.proposal_id,
+                                  version=state.version,
+                                  error_class=type(incomplete).__name__,
+                                  proposal_reference=f"{state.mail_id}:{state.proposal_id}:v{state.version}",
+                                  revision_status=ProposalRevisionStatus.PENDING.value)
+                self.telegram.send(self.chat_id, clarification.message)
+                return
+        except (LlmProviderResponseInvalid, LlmInvalidJson,
+                LlmSchemaValidationFailed, RetryableError,
+                TechnicalRevisionError, ValidationError, httpx.TransportError) as exc:
+            self._defer_interpretation(name, state, exc)
+            return
+        except ContradictoryRevision as exc:
+            if not local_temporal:
+                self._defer_interpretation(name, state, exc, contradictory=True)
+                return
+            paused = state.model_copy(update={
+                "interpretation_status": ProposalRevisionStatus.PAUSED,
+                "interpretation_attempts": state.interpretation_attempts + 1,
+                "next_interpretation_at": None,
+            })
+            self.store.save(name, paused.model_dump(mode="json"))
+            self._log_revision_failure(state.mail_id, state.proposal_id,
+                                       state.version, exc,
+                                       ProposalRevisionStatus.PAUSED)
+            expected = (proposal.known_temporal_facts.date
+                        if proposal.known_temporal_facts is not None
+                        else proposal.temporal_fact.normalized_date
+                        if proposal.temporal_fact is not None else None)
+            suffix = f" Erwartet wird {expected.isoformat()}." if expected else ""
+            self.telegram.send(
+                self.chat_id,
+                "Das genannte Datum widerspricht dem bereits validierten Termindatum."
+                + suffix + " Bitte bestätige das richtige Datum konkret.")
+            return
+        # The validated value is the recovery record.  It must reach disk before
+        # removing the active user question or making another fallible LLM call.
+        answered = ProposalClarificationState(
+            mail_id=state.mail_id, proposal_id=state.proposal_id,
+            version=state.version, question=state.question,
+            authorized_answer=state.authorized_answer,
+            interpretation_status=ProposalRevisionStatus.COMPLETED,
+            interpretation_attempts=state.interpretation_attempts,
+            question_status=QuestionStatus.ANSWERED, answer_status=AnswerStatus.VALID,
+            normalized_answer=interpretation.normalized_answer,
+            proposal_revision_status=ProposalRevisionStatus.RETRY_REQUIRED,
+        )
+        self.store.save(name, answered.model_dump(mode="json"))
+        self.store.save("telegram-dialog", TelegramDialogState().model_dump(mode="json"))
+        self._revise_answered(answered)
+
+    def _defer_interpretation(self, name: str, state: ProposalClarificationState,
+                              exc: Exception, *, contradictory: bool = False) -> None:
+        attempts = state.interpretation_attempts + 1
+        exhausted = attempts >= self.interpretation_attempts
+        status = (ProposalRevisionStatus.PAUSED if exhausted else
+                  ProposalRevisionStatus.RETRY_REQUIRED)
+        updated = state.model_copy(update={
+            "interpretation_status": status,
+            "interpretation_attempts": attempts,
+            "next_interpretation_at": (None if exhausted else datetime.now(timezone.utc) +
+                                       timedelta(seconds=self.interpretation_backoff_seconds)),
+        })
+        self.store.save(name, updated.model_dump(mode="json"))
+        self._log_revision_failure(state.mail_id, state.proposal_id, state.version, exc, status)
+        if exhausted:
+            message = "Die Interpretation wurde nach mehreren Versuchen pausiert. Die gespeicherte Antwort bleibt erhalten."
+        elif contradictory:
+            message = "Die Antwort widerspricht möglicherweise dem bestehenden Vorschlag und wird erneut geprüft."
+        else:
+            message = "Die interne Verarbeitung ist verzögert. Die sicher gespeicherte Antwort wird erneut bewertet."
+        self.telegram.send(self.chat_id, message)
+
+    def _revise_answered(self, state: ProposalClarificationState) -> None:
+        """Retry a revision solely from its already validated durable answer."""
+        name = clarification_name(state.mail_id, state.proposal_id, state.version)
+        current = self.store.load_model(proposal_name(state.mail_id, state.proposal_id), Proposal)
+        if isinstance(current, Proposal) and current.version > state.version:
+            mail = self.store.load_model(f"mail-{state.mail_id}", MailState)
+            notification = (next((item for item in mail.proposal_notifications
+                                  if (item.proposal_id, item.proposal_version) ==
+                                  (current.id, current.version)), None)
+                            if isinstance(mail, MailState) else None)
+            if notification is None or notification.status == "pending":
+                self.persistence.send_proposal(current)
+            elif notification.status != "completed":
+                return
+            self.store.save(name, state.model_copy(update={
+                "proposal_revision_status": ProposalRevisionStatus.COMPLETED,
+            }).model_dump(mode="json"))
+            return
+        original = self.store.load_model(proposal_version_name(state.mail_id, state.proposal_id, state.version), Proposal)
+        if not isinstance(original, Proposal) or self.revision_service is None:
+            return
+        try:
+            candidate = deterministic_temporal_revision(
+                original, state.question, state.normalized_answer,
+                self.configured_timezone)
+            deterministic = candidate is not None
+            if candidate is None:
+                _, candidate = self.revision_service.revise_proposal(
+                    original, state.question, state.normalized_answer)
+            revised = validate_revision_successor(original, candidate)
+        except Exception as exc:
+            classified = (exc if isinstance(exc, (
+                ContradictoryRevision, TechnicalRevisionError, RetryableError,
+                ValidationError, httpx.TransportError))
+                          else TechnicalRevisionError(type(exc).__name__))
+            attempts = state.revision_attempts + 1
+            exhausted = attempts >= self.revision_attempts
+            status = (ProposalRevisionStatus.PAUSED if exhausted
+                      else ProposalRevisionStatus.RETRY_REQUIRED)
+            self._log_revision_failure(state.mail_id, state.proposal_id,
+                                       state.version, classified, status)
+            # The question and validated answer deliberately remain untouched.
+            updated = state.model_copy(update={
+                "proposal_revision_status": status,
+                "revision_attempts": attempts,
+                "next_revision_at": (None if exhausted else datetime.now(timezone.utc) +
+                                     timedelta(seconds=self.revision_backoff_seconds)),
+            })
+            self.store.save(name, updated.model_dump(mode="json"))
+            self.telegram.send(self.chat_id, (
+                "Die Überarbeitung der gespeicherten Antwort wurde nach mehreren Versuchen pausiert. Die Antwort bleibt erhalten."
+                if exhausted else
+                "Die interne Verarbeitung der gespeicherten Antwort ist verzögert."))
+            return
+        if deterministic:
+            self.logger.event("INFO", "analysis", "proposal_revision_delta_applied",
+                              proposal_id=original.id,
+                              previous_version=original.version,
+                              new_version=revised.version)
+        self.persistence.send_proposal(revised)
+        self.store.save(name, state.model_copy(update={
+            "proposal_revision_status": ProposalRevisionStatus.COMPLETED,
+            "next_revision_at": None,
+        }).model_dump(mode="json"))
+        self.logger.event("INFO", "telegram.dialog", "answer_revision_completed",
+                          mail_id=state.mail_id, proposal_id=state.proposal_id,
+                          previous_version=state.version, new_version=revised.version)
+
+    def _log_revision_failure(self, mail_id: str, proposal_id: str, version: int,
+                              exc: Exception,
+                              status: ProposalRevisionStatus) -> None:
+        """Log a revision failure without untrusted answer or question content."""
+        fields: dict[str, Any] = {}
+        if isinstance(exc, ValidationError):
+            fields["validation_errors"] = [
+                {"location": [str(part) for part in error["loc"]],
+                 "type": error["type"], "message": error["msg"]}
+                for error in exc.errors(include_url=False, include_context=False,
+                                        include_input=False)
+            ]
+        self.logger.event(
+            "WARNING", "telegram.dialog", "answer_revision_failed",
+            mail_id=mail_id, proposal_id=proposal_id, version=version,
+            error_class=type(exc).__name__,
+            proposal_reference=f"{mail_id}:{proposal_id}:v{version}",
+            revision_status=status.value,
+            **fields,
+        )
+
+    def _resume_durable_revisions(self) -> None:
+        if self.revision_service is None or not hasattr(self.store, "names"):
+            return
+        for name in self.store.names("clarification-"):
+            state = self.store.load_model(name, ProposalClarificationState)
+            assert isinstance(state, ProposalClarificationState)
+            now = datetime.now(timezone.utc)
+            if (state.answer_status == AnswerStatus.PENDING and
+                    state.authorized_answer is not None and
+                    state.interpretation_status in {
+                        ProposalRevisionStatus.PENDING,
+                        ProposalRevisionStatus.RETRY_REQUIRED} and
+                    state.interpretation_attempts < self.interpretation_attempts and
+                    (state.next_interpretation_at is None or
+                     state.next_interpretation_at <= now)):
+                self._interpret_pending(state)
+                # Interpretation can replace this record with an answered one;
+                # load it again so revision can continue in the same resume.
+                state = self.store.load_model(name, ProposalClarificationState)
+                assert isinstance(state, ProposalClarificationState)
+            if (state.question_status == QuestionStatus.ANSWERED and
+                    state.proposal_revision_status == ProposalRevisionStatus.RETRY_REQUIRED and
+                    (state.next_revision_at is None or
+                     state.next_revision_at <= now)):
+                self._revise_answered(state)
+
+    def _resume_legacy_revision(self) -> None:
+        """Resume a durable normalized answer without asking the person again."""
+        dialog = self.store.load_model("telegram-dialog", TelegramDialogState)
+        if not isinstance(dialog, TelegramDialogState) or not dialog.retry_required:
+            return
+        assert dialog.mail_id and dialog.proposal_id and dialog.version
+        assert dialog.question and dialog.normalized_answer
+        proposal = self.store.load_model(
+            proposal_name(dialog.mail_id, dialog.proposal_id), Proposal)
+        if not isinstance(proposal, Proposal) or proposal.version != dialog.version:
+            self.store.save("telegram-dialog", TelegramDialogState().model_dump())
+            return
+        if self.revision_service is None:
+            return
+        try:
+            _, revised = self.revision_service.revise_proposal(
+                proposal, dialog.question, dialog.normalized_answer)
+            revised = validate_revision_successor(proposal, revised)
+        except Exception as exc:
+            self.logger.event("WARNING", "telegram.dialog", "answer_revision_resume_failed",
+                              mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
+                              version=dialog.version, error=exc)
+            return
+        self.persistence.send_proposal(revised)
+        self.store.save("telegram-dialog", TelegramDialogState().model_dump())
+        self.logger.event("INFO", "telegram.dialog", "answer_revision_resumed",
+                          mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
+                          previous_version=dialog.version, new_version=revised.version)
+
+
+def _validation_path(exc: Exception) -> str:
+    if isinstance(exc, ValidationError):
+        return ", ".join(".".join(str(part) for part in item["loc"]) or "<root>" for item in exc.errors(include_input=False))
+    return "<json>"
 
 
 class TelegramDialogController:
@@ -801,15 +1188,15 @@ class TelegramDialogController:
         self.validator: UpdateValidation = AuthorizedUpdateValidator(store, user_id, chat_id)
         self.relevance = RelevanceDialogProcessor(store, telegram, chat_id)
         self.ledger: ActionLedgerPort = ActionLedgerService(store)
-        self.write_executor: WriteExecution = ConfirmedWriteExecutor(self)
-        self.revisions: ProposalRevisions = ProposalRevisionProcessor(self)
+        self.write_executor: WriteExecution = ConfirmedWriteExecutor(store, self.writers, self, telegram, chat_id, test_mode, self.ledger)
+        self.revisions: ProposalRevisions = ProposalRevisionProcessor(store, revision_service, self, telegram, chat_id, logger, configured_timezone, interpretation_attempts=interpretation_attempts, interpretation_backoff_seconds=interpretation_backoff_seconds, revision_attempts=revision_attempts, revision_backoff_seconds=revision_backoff_seconds)
 
     @property
-    def relevance_handler(self) -> Any:
+    def relevance_handler(self) -> RelevanceHandler | None:
         return self.relevance.handler
 
     @relevance_handler.setter
-    def relevance_handler(self, value: Any) -> None:
+    def relevance_handler(self, value: RelevanceHandler | None) -> None:
         self.relevance.handler = value
 
     def send_relevance(self, dialog: RelevanceDialog, sender: str, subject: str) -> None:
@@ -832,10 +1219,6 @@ class TelegramDialogController:
     @staticmethod
     def _version_name(mail_id: str, proposal_id: str, version: int) -> str:
         return f"proposal-{mail_id}-{proposal_id}-v{version}"
-
-    @staticmethod
-    def _clarification_name(mail_id: str, proposal_id: str, version: int) -> str:
-        return f"clarification-{mail_id}-{proposal_id}-v{version}"
 
     def persist(self, proposal: Proposal) -> None:
         value = proposal.model_dump(mode="json")
@@ -895,11 +1278,6 @@ class TelegramDialogController:
                 self.store.save(mail_name, validated.model_dump(mode="json"))
         if proposal.status == ProposalStatus.CREATED:
             self._book_created(proposal)
-
-    @staticmethod
-    def _action_key(proposal: Proposal) -> str:
-        """Identify the externally visible action independently of its source mail."""
-        return ActionLedgerService.action_key(proposal)
 
     def _book_created(self, proposal: Proposal) -> None:
         self.ledger.book_created(proposal)
@@ -1095,10 +1473,7 @@ class TelegramDialogController:
             dialog = dialogs[0]
             self._decide_relevance(RelevanceDecision(mail_id=dialog.mail_id, version=dialog.version, decision=normalized), update.update_id + 1, notify=True)
             return
-        self._answer(message.text)
-
-    def _all_relevance_dialogs(self) -> list[RelevanceDialog]:
-        return self.relevance.all()
+        self.revisions.answer(message.text)
 
     def _open_relevance_dialogs(self) -> list[RelevanceDialog]:
         return self.relevance.open()
@@ -1150,395 +1525,6 @@ class TelegramDialogController:
                                   self.user_id, self.chat_id, self.user_id, self.chat_id))
         self.persist(changed)
         if changed.status == ProposalStatus.CONFIRMED:
-            self._execute(changed)
+            self.write_executor.execute(changed)
             return "✅ Vorschlag wurde bestätigt."
         return "✅ Vorschlag wurde verworfen."
-
-    def _writer(self, proposal: Proposal) -> ExternalWriter | None:
-        return self.writers.get("todoist" if proposal.kind.value == "task" else "google_calendar")
-
-    def _execute(self, proposal: Proposal) -> None:
-        """Compatibility entry point; execution is owned by the write component."""
-        self.write_executor.execute(proposal)
-
-    def _execute_confirmed(self, proposal: Proposal) -> None:
-        if not proposal_is_writable(proposal):
-            return
-        if proposal.status == ProposalStatus.SIMULATED and proposal.simulation_notified:
-            return
-        writer = self._writer(proposal)
-        if writer is None:
-            return
-        changed, result = execute_confirmed(proposal, writer, self.persist, self.test_mode)
-        if result.get("simulation"):
-            text = f"Testmodus: „{proposal.title}“ wurde nur simuliert."
-        elif result.get("operation") == "duplicate_updated":
-            text = (f"Bereits vorhandener gleicher Termin „{proposal.title}“ wurde erkannt; "
-                    "fehlende Informationen wurden ergänzt. Kein neuer Termin wurde angelegt.")
-        elif result.get("operation") == "duplicate_skipped":
-            text = (f"Bereits vorhandener gleicher Termin „{proposal.title}“ wurde erkannt. "
-                    "Kein neuer Termin wurde angelegt.")
-        elif changed.status == ProposalStatus.CREATED:
-            details = f" (ID: {changed.external_id})" if changed.external_id else ""
-            link = f" {changed.external_link}" if changed.external_link else ""
-            text = f"Erstellt: „{proposal.title}“{details}.{link}"
-        elif changed.status == ProposalStatus.UNCERTAIN:
-            if changed.uncertain_notified:
-                return
-            text = f"Unklarer Schreiberfolg bei „{proposal.title}“; wird weiter abgeglichen und nicht automatisch wiederholt."
-        else:
-            text = f"Erstellen von „{proposal.title}“ fehlgeschlagen."
-        self.telegram.send(self.chat_id, text)
-        if changed.status == ProposalStatus.UNCERTAIN:
-            self.persist(changed.model_copy(update={"uncertain_notified": True}))
-        elif changed.status == ProposalStatus.SIMULATED:
-            self.persist(changed.model_copy(update={"simulation_notified": True}))
-
-    def _resume_writes(self) -> None:
-        """Compatibility entry point for callers predating component extraction."""
-        self.write_executor.resume()
-
-    def _resume_confirmed_writes(self) -> None:
-        names = getattr(self.store, "names", None)
-        if names is None:
-            return
-        for name in names("proposal-"):
-            if "-v" in name:
-                continue
-            proposal = self.store.load_model(name, Proposal)
-            assert isinstance(proposal, Proposal)
-            # Also repairs a crash after the authoritative proposal file was
-            # replaced but before its embedding MailState was replaced.
-            self.persist(proposal)
-            if proposal.status in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING,
-                                   ProposalStatus.UNCERTAIN, ProposalStatus.SIMULATED}:
-                self.write_executor.execute(proposal)
-
-    def _answer(self, answer: str) -> None:
-        """Compatibility entry point; revisions are owned by their component."""
-        self.revisions.answer(answer)
-
-    def _process_answer(self, answer: str) -> None:
-        dialog = self.store.load_model("telegram-dialog", TelegramDialogState)
-        if dialog is None or dialog.proposal_id is None:
-            self.logger.event("INFO", "telegram.dialog", "answer_rejected",
-                              reason="no_open_dialog")
-            self.telegram.send(self.chat_id, "Keine offene Rückfrage. Bitte zuerst „Ändern“ wählen.")
-            return
-        assert dialog.mail_id is not None
-        proposal = self.store.load_model(self._proposal_name(dialog.mail_id, dialog.proposal_id), Proposal)
-        if proposal is None:
-            self.logger.event("WARNING", "telegram.dialog", "answer_rejected",
-                              reason="proposal_missing", mail_id=dialog.mail_id,
-                              proposal_id=dialog.proposal_id, version=dialog.version)
-            self.store.save("telegram-dialog", TelegramDialogState().model_dump())
-            self.telegram.send(self.chat_id, "Der zugehörige Vorschlag wurde nicht gefunden.")
-            return
-        assert isinstance(proposal, Proposal)
-        if proposal.version != dialog.version or proposal.status != ProposalStatus.NEEDS_CLARIFICATION:
-            self.logger.event("WARNING", "telegram.dialog", "answer_rejected",
-                              reason="stale_dialog", mail_id=dialog.mail_id,
-                              proposal_id=dialog.proposal_id, dialog_version=dialog.version,
-                              proposal_version=proposal.version, proposal_status=proposal.status.value)
-            self.store.save("telegram-dialog", TelegramDialogState().model_dump())
-            self.telegram.send(self.chat_id, "Die Rückfrage ist veraltet; es wurde nichts geändert.")
-            return
-        question = proposal.open_questions[0] if proposal.open_questions else "Welche Änderung soll übernommen werden?"
-        clarification_name = self._clarification_name(dialog.mail_id, dialog.proposal_id, dialog.version)
-        existing = self.store.load_model(clarification_name, ProposalClarificationState)
-        if isinstance(existing, ProposalClarificationState):
-            if existing.question_status == QuestionStatus.ANSWERED:
-                self.store.save("telegram-dialog", TelegramDialogState().model_dump(mode="json"))
-                self.telegram.send(self.chat_id, "Keine offene Rückfrage. Die vorherige Antwort ist bereits gespeichert.")
-                return
-            if (existing.authorized_answer is not None and
-                    existing.answer_status == AnswerStatus.PENDING):
-                self.telegram.send(self.chat_id, "Die autorisierte Antwort ist bereits sicher gespeichert und wird verarbeitet.")
-                return
-        if self.revision_service is None:
-            self.logger.event("ERROR", "telegram.dialog", "answer_revision_unavailable",
-                              mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
-                              version=dialog.version)
-            self.telegram.send(self.chat_id, "Die Überarbeitung ist derzeit nicht verfügbar; der Vorschlag blieb unverändert.")
-            return
-        # This is the acknowledgement boundary: persist the authorized input
-        # atomically before the first fallible interpretation call.  The raw
-        # answer exists only in this state file and is never added to logs.
-        pending = ProposalClarificationState(
-            mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
-            version=dialog.version, question=question, authorized_answer=answer)
-        self.store.save(clarification_name, pending.model_dump(mode="json"))
-        self._interpret_pending(pending)
-
-    def _interpret_pending(self, state: ProposalClarificationState) -> None:
-        """Interpret one durably stored authorized answer without logging it."""
-        assert state.authorized_answer is not None
-        name = self._clarification_name(state.mail_id, state.proposal_id, state.version)
-        proposal = self.store.load_model(self._proposal_name(state.mail_id, state.proposal_id), Proposal)
-        if not isinstance(proposal, Proposal) or proposal.version != state.version:
-            return
-        assert self.revision_service is not None
-        local_temporal = (proposal.kind == ProposalKind.EVENT and
-                          parse_deterministic_temporal_answer(
-                              state.authorized_answer) is not None)
-        try:
-            deterministic = deterministic_temporal_revision(
-                proposal, state.question, state.authorized_answer,
-                self.configured_timezone)
-            if deterministic is not None:
-                answered = ProposalClarificationState(
-                    mail_id=state.mail_id, proposal_id=state.proposal_id,
-                    version=state.version, question=state.question,
-                    authorized_answer=state.authorized_answer,
-                    interpretation_status=ProposalRevisionStatus.COMPLETED,
-                    interpretation_attempts=state.interpretation_attempts,
-                    question_status=QuestionStatus.ANSWERED,
-                    answer_status=AnswerStatus.VALID,
-                    normalized_answer=state.authorized_answer,
-                    proposal_revision_status=ProposalRevisionStatus.RETRY_REQUIRED,
-                )
-                self.store.save(name, answered.model_dump(mode="json"))
-                self.store.save("telegram-dialog", TelegramDialogState().model_dump(mode="json"))
-                self._revise_answered(answered)
-                return
-            _, interpretation = self.revision_service.interpret_telegram_answer(
-                proposal, state.question, state.authorized_answer)
-            if not interpretation.usable:
-                incomplete = IncompleteUserAnswer(interpretation.reason)
-                invalid = state.model_copy(update={
-                    "answer_status": AnswerStatus.INVALID,
-                    "interpretation_status": ProposalRevisionStatus.COMPLETED,
-                    "next_interpretation_at": None,
-                })
-                self.store.save(name, invalid.model_dump(mode="json"))
-                _, clarification = self.revision_service.clarify_telegram_answer(
-                    state.question, state.authorized_answer, interpretation.reason)
-                self.logger.event("INFO", "telegram.dialog", "answer_clarification_requested",
-                                  mail_id=state.mail_id, proposal_id=state.proposal_id,
-                                  version=state.version,
-                                  error_class=type(incomplete).__name__,
-                                  proposal_reference=f"{state.mail_id}:{state.proposal_id}:v{state.version}",
-                                  revision_status=ProposalRevisionStatus.PENDING.value)
-                self.telegram.send(self.chat_id, clarification.message)
-                return
-        except (LlmProviderResponseInvalid, LlmInvalidJson,
-                LlmSchemaValidationFailed, RetryableError,
-                TechnicalRevisionError, ValidationError, httpx.TransportError) as exc:
-            self._defer_interpretation(name, state, exc)
-            return
-        except ContradictoryRevision as exc:
-            if not local_temporal:
-                self._defer_interpretation(name, state, exc, contradictory=True)
-                return
-            paused = state.model_copy(update={
-                "interpretation_status": ProposalRevisionStatus.PAUSED,
-                "interpretation_attempts": state.interpretation_attempts + 1,
-                "next_interpretation_at": None,
-            })
-            self.store.save(name, paused.model_dump(mode="json"))
-            self._log_revision_failure(state.mail_id, state.proposal_id,
-                                       state.version, exc,
-                                       ProposalRevisionStatus.PAUSED)
-            expected = (proposal.known_temporal_facts.date
-                        if proposal.known_temporal_facts is not None
-                        else proposal.temporal_fact.normalized_date
-                        if proposal.temporal_fact is not None else None)
-            suffix = f" Erwartet wird {expected.isoformat()}." if expected else ""
-            self.telegram.send(
-                self.chat_id,
-                "Das genannte Datum widerspricht dem bereits validierten Termindatum."
-                + suffix + " Bitte bestätige das richtige Datum konkret.")
-            return
-        # The validated value is the recovery record.  It must reach disk before
-        # removing the active user question or making another fallible LLM call.
-        answered = ProposalClarificationState(
-            mail_id=state.mail_id, proposal_id=state.proposal_id,
-            version=state.version, question=state.question,
-            authorized_answer=state.authorized_answer,
-            interpretation_status=ProposalRevisionStatus.COMPLETED,
-            interpretation_attempts=state.interpretation_attempts,
-            question_status=QuestionStatus.ANSWERED, answer_status=AnswerStatus.VALID,
-            normalized_answer=interpretation.normalized_answer,
-            proposal_revision_status=ProposalRevisionStatus.RETRY_REQUIRED,
-        )
-        self.store.save(name, answered.model_dump(mode="json"))
-        self.store.save("telegram-dialog", TelegramDialogState().model_dump(mode="json"))
-        self._revise_answered(answered)
-
-    def _defer_interpretation(self, name: str, state: ProposalClarificationState,
-                              exc: Exception, *, contradictory: bool = False) -> None:
-        attempts = state.interpretation_attempts + 1
-        exhausted = attempts >= self.interpretation_attempts
-        status = (ProposalRevisionStatus.PAUSED if exhausted else
-                  ProposalRevisionStatus.RETRY_REQUIRED)
-        updated = state.model_copy(update={
-            "interpretation_status": status,
-            "interpretation_attempts": attempts,
-            "next_interpretation_at": (None if exhausted else datetime.now(timezone.utc) +
-                                       timedelta(seconds=self.interpretation_backoff_seconds)),
-        })
-        self.store.save(name, updated.model_dump(mode="json"))
-        self._log_revision_failure(state.mail_id, state.proposal_id, state.version, exc, status)
-        if exhausted:
-            message = "Die Interpretation wurde nach mehreren Versuchen pausiert. Die gespeicherte Antwort bleibt erhalten."
-        elif contradictory:
-            message = "Die Antwort widerspricht möglicherweise dem bestehenden Vorschlag und wird erneut geprüft."
-        else:
-            message = "Die interne Verarbeitung ist verzögert. Die sicher gespeicherte Antwort wird erneut bewertet."
-        self.telegram.send(self.chat_id, message)
-
-    def _revise_answered(self, state: ProposalClarificationState) -> None:
-        """Retry a revision solely from its already validated durable answer."""
-        name = self._clarification_name(state.mail_id, state.proposal_id, state.version)
-        current = self.store.load_model(self._proposal_name(state.mail_id, state.proposal_id), Proposal)
-        if isinstance(current, Proposal) and current.version > state.version:
-            mail = self.store.load_model(f"mail-{state.mail_id}", MailState)
-            notification = (next((item for item in mail.proposal_notifications
-                                  if (item.proposal_id, item.proposal_version) ==
-                                  (current.id, current.version)), None)
-                            if isinstance(mail, MailState) else None)
-            if notification is None or notification.status == "pending":
-                self.send_proposal(current)
-            elif notification.status != "completed":
-                return
-            self.store.save(name, state.model_copy(update={
-                "proposal_revision_status": ProposalRevisionStatus.COMPLETED,
-            }).model_dump(mode="json"))
-            return
-        original = self.store.load_model(self._version_name(state.mail_id, state.proposal_id, state.version), Proposal)
-        if not isinstance(original, Proposal) or self.revision_service is None:
-            return
-        try:
-            candidate = deterministic_temporal_revision(
-                original, state.question, state.normalized_answer,
-                self.configured_timezone)
-            deterministic = candidate is not None
-            if candidate is None:
-                _, candidate = self.revision_service.revise_proposal(
-                    original, state.question, state.normalized_answer)
-            revised = validate_revision_successor(original, candidate)
-        except Exception as exc:
-            classified = (exc if isinstance(exc, (
-                ContradictoryRevision, TechnicalRevisionError, RetryableError,
-                ValidationError, httpx.TransportError))
-                          else TechnicalRevisionError(type(exc).__name__))
-            attempts = state.revision_attempts + 1
-            exhausted = attempts >= self.revision_attempts
-            status = (ProposalRevisionStatus.PAUSED if exhausted
-                      else ProposalRevisionStatus.RETRY_REQUIRED)
-            self._log_revision_failure(state.mail_id, state.proposal_id,
-                                       state.version, classified, status)
-            # The question and validated answer deliberately remain untouched.
-            updated = state.model_copy(update={
-                "proposal_revision_status": status,
-                "revision_attempts": attempts,
-                "next_revision_at": (None if exhausted else datetime.now(timezone.utc) +
-                                     timedelta(seconds=self.revision_backoff_seconds)),
-            })
-            self.store.save(name, updated.model_dump(mode="json"))
-            self.telegram.send(self.chat_id, (
-                "Die Überarbeitung der gespeicherten Antwort wurde nach mehreren Versuchen pausiert. Die Antwort bleibt erhalten."
-                if exhausted else
-                "Die interne Verarbeitung der gespeicherten Antwort ist verzögert."))
-            return
-        if deterministic:
-            self.logger.event("INFO", "analysis", "proposal_revision_delta_applied",
-                              proposal_id=original.id,
-                              previous_version=original.version,
-                              new_version=revised.version)
-        self.send_proposal(revised)
-        self.store.save(name, state.model_copy(update={
-            "proposal_revision_status": ProposalRevisionStatus.COMPLETED,
-            "next_revision_at": None,
-        }).model_dump(mode="json"))
-        self.logger.event("INFO", "telegram.dialog", "answer_revision_completed",
-                          mail_id=state.mail_id, proposal_id=state.proposal_id,
-                          previous_version=state.version, new_version=revised.version)
-
-    def _log_revision_failure(self, mail_id: str, proposal_id: str, version: int,
-                              exc: Exception,
-                              status: ProposalRevisionStatus) -> None:
-        """Log a revision failure without untrusted answer or question content."""
-        fields: dict[str, Any] = {}
-        if isinstance(exc, ValidationError):
-            fields["validation_errors"] = [
-                {"location": [str(part) for part in error["loc"]],
-                 "type": error["type"], "message": error["msg"]}
-                for error in exc.errors(include_url=False, include_context=False,
-                                        include_input=False)
-            ]
-        self.logger.event(
-            "WARNING", "telegram.dialog", "answer_revision_failed",
-            mail_id=mail_id, proposal_id=proposal_id, version=version,
-            error_class=type(exc).__name__,
-            proposal_reference=f"{mail_id}:{proposal_id}:v{version}",
-            revision_status=status.value,
-            **fields,
-        )
-
-    def _resume_revisions(self) -> None:
-        self._resume_durable_revisions()
-
-    def _resume_durable_revisions(self) -> None:
-        if self.revision_service is None or not hasattr(self.store, "names"):
-            return
-        for name in self.store.names("clarification-"):
-            state = self.store.load_model(name, ProposalClarificationState)
-            assert isinstance(state, ProposalClarificationState)
-            now = datetime.now(timezone.utc)
-            if (state.answer_status == AnswerStatus.PENDING and
-                    state.authorized_answer is not None and
-                    state.interpretation_status in {
-                        ProposalRevisionStatus.PENDING,
-                        ProposalRevisionStatus.RETRY_REQUIRED} and
-                    state.interpretation_attempts < self.interpretation_attempts and
-                    (state.next_interpretation_at is None or
-                     state.next_interpretation_at <= now)):
-                self._interpret_pending(state)
-                # Interpretation can replace this record with an answered one;
-                # load it again so revision can continue in the same resume.
-                state = self.store.load_model(name, ProposalClarificationState)
-                assert isinstance(state, ProposalClarificationState)
-            if (state.question_status == QuestionStatus.ANSWERED and
-                    state.proposal_revision_status == ProposalRevisionStatus.RETRY_REQUIRED and
-                    (state.next_revision_at is None or
-                     state.next_revision_at <= now)):
-                self._revise_answered(state)
-
-    def _resume_revision(self) -> None:
-        self._resume_legacy_revision()
-
-    def _resume_legacy_revision(self) -> None:
-        """Resume a durable normalized answer without asking the person again."""
-        dialog = self.store.load_model("telegram-dialog", TelegramDialogState)
-        if not isinstance(dialog, TelegramDialogState) or not dialog.retry_required:
-            return
-        assert dialog.mail_id and dialog.proposal_id and dialog.version
-        assert dialog.question and dialog.normalized_answer
-        proposal = self.store.load_model(
-            self._proposal_name(dialog.mail_id, dialog.proposal_id), Proposal)
-        if not isinstance(proposal, Proposal) or proposal.version != dialog.version:
-            self.store.save("telegram-dialog", TelegramDialogState().model_dump())
-            return
-        if self.revision_service is None:
-            return
-        try:
-            _, revised = self.revision_service.revise_proposal(
-                proposal, dialog.question, dialog.normalized_answer)
-            revised = validate_revision_successor(proposal, revised)
-        except Exception as exc:
-            self.logger.event("WARNING", "telegram.dialog", "answer_revision_resume_failed",
-                              mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
-                              version=dialog.version, error=exc)
-            return
-        self.send_proposal(revised)
-        self.store.save("telegram-dialog", TelegramDialogState().model_dump())
-        self.logger.event("INFO", "telegram.dialog", "answer_revision_resumed",
-                          mail_id=dialog.mail_id, proposal_id=dialog.proposal_id,
-                          previous_version=dialog.version, new_version=revised.version)
-
-
-def _validation_path(exc: Exception) -> str:
-    if isinstance(exc, ValidationError):
-        return ", ".join(".".join(str(part) for part in item["loc"]) or "<root>" for item in exc.errors(include_input=False))
-    return "<json>"
