@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from datetime import date, datetime, timedelta, timezone
 from enum import StrEnum
+from uuid import UUID
 from typing import Annotated, Any, Literal
 import re
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -12,6 +13,79 @@ CalendarDate = date
 
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
+
+
+class MailRunEntryStatus(StrEnum):
+    DISCOVERED = "discovered"
+    QUEUED = "queued"
+    PROCESSING = "processing"
+    COMPLETED = "completed"
+    WAITING_FOR_USER = "waiting_for_user"
+    FAILED = "failed"
+    SKIPPED = "skipped"
+
+
+class MailRunEntry(StrictModel):
+    """One immutable IMAP identity and its durable processing state."""
+
+    account_id: str = Field(min_length=1)
+    folder: str = Field(min_length=1)
+    uidvalidity: int = Field(ge=1)
+    uid: int = Field(ge=1)
+    status: MailRunEntryStatus = MailRunEntryStatus.DISCOVERED
+    analysis_terminal: Literal["completed", "failed", "skipped"] | None = None
+    user_action_open: bool = False
+
+    @property
+    def key(self) -> str:
+        return f"{self.account_id}\0{self.folder}\0{self.uidvalidity}\0{self.uid}"
+
+    @model_validator(mode="after")
+    def consistent_terminal_state(self) -> "MailRunEntry":
+        terminal = self.status in {
+            MailRunEntryStatus.COMPLETED, MailRunEntryStatus.WAITING_FOR_USER,
+            MailRunEntryStatus.FAILED, MailRunEntryStatus.SKIPPED,
+        }
+        if terminal != (self.analysis_terminal is not None):
+            raise ValueError("Terminaler Analysezustand und Eintragszustand widersprechen sich")
+        if self.user_action_open != (self.status == MailRunEntryStatus.WAITING_FOR_USER):
+            raise ValueError("Eine offene Benutzeraktion benötigt waiting_for_user")
+        return self
+
+
+class MailRunCounters(StrictModel):
+    discovered: int = Field(default=0, ge=0)
+    queued: int = Field(default=0, ge=0)
+    processing: int = Field(default=0, ge=0)
+    completed: int = Field(default=0, ge=0)
+    waiting_for_user: int = Field(default=0, ge=0)
+    failed: int = Field(default=0, ge=0)
+    skipped: int = Field(default=0, ge=0)
+
+
+class MailRunState(StrictModel):
+    """Versioned, completely materialised queue for one bounded mail run."""
+
+    schema_version: Literal[1] = 1
+    run_id: UUID
+    max_mails: int | None = Field(default=None, ge=1)
+    created_at: datetime
+    entries: list[MailRunEntry]
+    counters: MailRunCounters
+
+    @model_validator(mode="after")
+    def consistent_queue(self) -> "MailRunState":
+        if self.created_at.tzinfo is None or self.created_at.utcoffset() is None:
+            raise ValueError("Run-Erstellungszeit benötigt einen UTC-Offset")
+        keys = [entry.key for entry in self.entries]
+        if len(keys) != len(set(keys)):
+            raise ValueError("Ein Run darf keine doppelten IMAP-Identitäten enthalten")
+        expected = {status.value: 0 for status in MailRunEntryStatus}
+        for entry in self.entries:
+            expected[entry.status.value] += 1
+        if self.counters.model_dump() != expected:
+            raise ValueError("Aggregierte Run-Zähler stimmen nicht mit den Einträgen überein")
+        return self
 
 
 class ImapCheckpoint(StrictModel):

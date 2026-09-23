@@ -8,7 +8,7 @@ import pytest
 from mailhelp.application import Application, _MailBudget, _RunSummary, _add_uid, _checkpoint_name, _safe_name, _state_directory, build_application, build_logger
 from mailhelp.config import Secrets, Settings, Topic
 from mailhelp.imap import FetchedMail, MailCandidate, UIDValidityChanged
-from mailhelp.models import MailState
+from mailhelp.models import MailRunCounters, MailRunEntry, MailRunState, MailState
 from mailhelp.orchestrator import ProcessingOutcome, ProcessingResult
 from test_core import prompt_config
 
@@ -140,6 +140,101 @@ def test_repeated_global_max_mail_runs_continue_with_next_newest_batch(tmp_path)
     assert len(restarted._poll_imap(max_mails=100)) == 100
     assert reader.fetches[100:] == list(range(105, 5, -1))
     assert store.values[key]["completed_uid_ranges"] == [(6, 205)]
+
+
+@pytest.mark.parametrize(("available", "maximum", "expected"), ((86, 100, 86), (150, 100, 100)))
+def test_run_materializes_exact_bounded_uid_queue_before_fetch(tmp_path, available, maximum, expected):
+    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+
+    class Reader:
+        account_id = "0" * 24
+        last_uidvalidity = 7
+        def __init__(self): self.fetches = []
+        def discover_since(self, folder, *_args):
+            return [MailCandidate(folder, 7, uid, self.account_id, stamp)
+                    for uid in range(1, available + 1)]
+        def fetch_uid(self, folder, uid, validity):
+            run = MailRunState.model_validate(store.values[f"mail-run-{self.account_id}"])
+            assert len(run.entries) == expected
+            assert run.counters.processing == 1
+            self.fetches.append(uid)
+            return FetchedMail(folder, validity, uid, b"x", self.account_id, stamp)
+
+    store = Store()
+    reader = Reader()
+    service = app(tmp_path, reader, Telegram([]), Orch(), store=store,
+                  global_newest_first=True)
+
+    assert len(service._poll_imap(max_mails=maximum)) == expected
+    run = MailRunState.model_validate(store.values[f"mail-run-{reader.account_id}"])
+    assert run.max_mails == maximum
+    assert run.counters.completed == expected
+    assert len({entry.key for entry in run.entries}) == expected
+
+
+def test_interrupted_batch_resumes_fixed_queue_without_rediscovery_or_reanalysis(tmp_path):
+    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+
+    class Crash(BaseException):
+        pass
+
+    class Reader:
+        account_id = "0" * 24
+        last_uidvalidity = 7
+        def __init__(self): self.discoveries = 0; self.fetches = []
+        def discover_since(self, folder, *_args):
+            self.discoveries += 1
+            return [MailCandidate(folder, 7, uid, self.account_id, stamp)
+                    for uid in (1, 2, 2, 3)]
+        def fetch_uid(self, folder, uid, validity):
+            self.fetches.append(uid)
+            return FetchedMail(folder, validity, uid, b"x", self.account_id, stamp)
+
+    class CrashOnTwo(Orch):
+        def process(self, mail):
+            self.seen.append(mail.uid)
+            if mail.uid == 2:
+                raise Crash()
+            return ProcessingResult(ProcessingOutcome.COMPLETED, {})
+
+    store = Store(); reader = Reader()
+    first = app(tmp_path, reader, Telegram([]), CrashOnTwo(), store=store,
+                global_newest_first=True)
+    with pytest.raises(Crash):
+        first._poll_imap(max_mails=3)
+    run_name = f"mail-run-{reader.account_id}"
+    interrupted = MailRunState.model_validate(store.values[run_name])
+    assert [entry.status for entry in interrupted.entries] == ["completed", "processing", "queued"]
+
+    restarted = app(tmp_path, reader, Telegram([]), Orch(), store=store,
+                    global_newest_first=True)
+    assert len(restarted._poll_imap(max_mails=3)) == 2
+    assert reader.discoveries == 1
+    assert restarted.orchestrator.seen == [2, 3]
+    assert reader.fetches == [1, 2, 2, 3]
+    completed = MailRunState.model_validate(store.values[run_name])
+    assert completed.counters.completed == 3
+
+
+def test_run_model_rejects_inconsistent_terminals_identity_time_and_counters():
+    with pytest.raises(ValueError, match="Analysezustand"):
+        MailRunEntry(account_id="a", folder="INBOX", uidvalidity=1, uid=1,
+                     status="completed")
+    with pytest.raises(ValueError, match="Benutzeraktion"):
+        MailRunEntry(account_id="a", folder="INBOX", uidvalidity=1, uid=1,
+                     status="completed", analysis_terminal="completed",
+                     user_action_open=True)
+    queued = MailRunEntry(account_id="a", folder="INBOX", uidvalidity=1, uid=1,
+                          status="queued")
+    base = dict(run_id="00000000-0000-0000-0000-000000000001", max_mails=1,
+                entries=[queued], counters=MailRunCounters(queued=1))
+    with pytest.raises(ValueError, match="UTC-Offset"):
+        MailRunState(created_at=datetime(2026, 1, 1), **base)
+    with pytest.raises(ValueError, match="doppelten"):
+        MailRunState(created_at=datetime.now(timezone.utc), **{**base, "entries": [queued, queued]})
+    with pytest.raises(ValueError, match="Zähler"):
+        MailRunState(created_at=datetime.now(timezone.utc),
+                     **{**base, "counters": MailRunCounters()})
 
 
 def test_global_mailbox_checkpoint_failures_restarts_and_dialog(tmp_path):
