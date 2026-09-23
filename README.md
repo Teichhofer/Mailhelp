@@ -169,7 +169,12 @@ bleibt das bisherige Verhalten bestehen: Die Ordner werden in
 Konfigurationsreihenfolge jeweils neueste UID zuerst bearbeitet.
 Die mitgelieferte WEB.DE-Konfiguration umfasst mit `INBOX`, `Drafts`, `Sent`,
 `Spam` und `Trash` alle Standardordner und verarbeitet damit nicht nur den
-Posteingang. Der Lernmodus erkennt selbst angelegte, auswählbare Ordner und trägt
+Posteingang. `imap.primary_folder` bezeichnet dabei den verpflichtend lesbaren
+Eingangsordner; alle anderen Einträge in `imap.folders` sind optional und ein
+Fehler in ihnen hält weder den Posteingang noch weitere Ordner auf. IMAP-
+Special-Use-Flags (`\\Inbox`, `\\Drafts`, `\\Sent`, `\\Junk`, `\\Trash`) liefern
+die Standardrolle unabhängig vom lokalisierten Ordnernamen. Der Lernmodus erkennt
+selbst angelegte, auswählbare Ordner und trägt
 deren exakte IMAP-Namen automatisch in `imap.folders` ein.
 
 `logging.console`, `logging.file` und `logging.llm` besitzen eigene Aktivierungs- und

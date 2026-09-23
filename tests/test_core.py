@@ -231,16 +231,21 @@ def test_imap_lists_selectable_folders_and_validates_responses():
     class ListingImap(FakeImap):
         def __init__(self, *_args, **_kwargs):
             super().__init__(); self.listing = ("OK", [
-                b'(\\HasNoChildren) "/" "INBOX"',
-                b'(\\HasNoChildren) "/" "Sent \\"Items\\""',
+                b'(\\HasNoChildren \\Inbox) "/" "INBOX"',
+                b'(\\HasNoChildren \\Sent) "/" "Sent \\"Items\\""',
                 b'(\\Noselect \\HasChildren) "/" "Container"',
-                b'(\\HasNoChildren) NIL Archiv',
+                b'(\\HasNoChildren \\Drafts) NIL Entw&APw-rfe',
+                b'(\\HasNoChildren \\Junk) "/" Spamverdacht',
+                b'(\\HasNoChildren \\Trash) "/" Gel&APY-scht',
             ])
         def list(self): return self.listing
 
     connection = ListingImap()
     reader = ImapReader("h", 1, "u", "p", factory=lambda *_a, **_k: connection)
-    assert reader.list_folders() == ["INBOX", 'Sent "Items"', "Archiv"]
+    assert [(item.name, item.role) for item in reader.list_folders()] == [
+        ("INBOX", "inbox"), ('Sent "Items"', "sent"), ("Entwürfe", "drafts"),
+        ("Spamverdacht", "junk"), ("Gelöscht", "trash")]
+    assert reader.list_folders()[0].flags == frozenset({"\\HasNoChildren", "\\Inbox"})
     assert _decode_mailbox_name(b"Entw&APw-rfe") == "Entwürfe"
     assert _decode_mailbox_name(b"A&-B") == "A&B"
     assert _decode_mailbox_name("Grüße".encode()) == "Grüße"
@@ -253,6 +258,8 @@ def test_imap_lists_selectable_folders_and_validates_responses():
         ([b'(x) "/" "unfinished'], "strukturell"),
         ([b'(x) "/" bad name'], "strukturell"),
         ([b'(x) "/" "bad\\q"'], "strukturell"),
+        ([b'(bad!) "/" INBOX'], "ungültige Flags"),
+        ([b'(\\Sent \\Trash) "/" Mixed'], "widersprüchliche"),
         ([b'(x) "/" "&A-"'], "ungültigen"),
         ([b'(x) "/" "\x00"'], "ungültigen"),
     ):

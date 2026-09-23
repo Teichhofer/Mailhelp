@@ -408,7 +408,7 @@ def test_acceptance_full_inbox_batch_survives_dialog_timeout_and_optional_folder
             return ProcessingResult(outcome, {})
 
     store = Store()
-    folders = ("INBOX", "Optional Archive", "Optional Spam")
+    folders = ("INBOX", "Drafts", "Sent", "Spam", "Trash")
     first_reader = Reader(disconnect=True)
     first = app(tmp_path, first_reader, Telegram([]), Analyzer(), folders=folders,
                 store=store, global_newest_first=True)
@@ -433,8 +433,11 @@ def test_acceptance_full_inbox_batch_survives_dialog_timeout_and_optional_folder
     assert run.counters.waiting_for_user == 1
     assert run.entries[1].user_action_open is True
     assert run.run_complete is True
-    assert any(event[0][2] == "poll_failed" and "optional folder" in event[1]["error"]
-               for event in first.logger.events)
+    assert sum(event[0][2] == "optional_folder_failed"
+               for event in first.logger.events) == 4
+    assert any("synthetic unreadable optional folder" in event[1]["error"]
+               for event in first.logger.events
+               if event[0][2] == "optional_folder_failed")
 
 
 def test_global_mailbox_checkpoint_failures_restarts_and_dialog(tmp_path):

@@ -180,6 +180,26 @@ def test_application_access_check_runs_every_check_after_errors():
     assert ", Uhrzeit: " in message and message.endswith(" (Europe/Berlin)")
 
 
+def test_optional_imap_access_failure_does_not_hide_primary_success():
+    imap = Check()
+    def selective(folders):
+        imap.calls.append((folders,))
+        if folders != ["Posteingang"]:
+            raise RuntimeError("optional unreadable")
+    imap.check_access = selective
+    application = SimpleNamespace(
+        settings=SimpleNamespace(
+            imap=SimpleNamespace(
+                folders=["Posteingang", "Entwürfe", "Gesendet"],
+                primary_folder="Posteingang"),
+            telegram=SimpleNamespace(chat_id=1), timezone="UTC"),
+        logger=NullLogger(), imap=imap, openrouter=Check(), telegram=Check(),
+        todoist=Check(), calendar=Check(),
+    )
+    assert Application.check_access(application)["IMAP"] is None
+    assert imap.calls == [(["Posteingang"],), (["Entwürfe"],), (["Gesendet"],)]
+
+
 def test_application_reports_telegram_test_message_failure_and_skips_send_if_bot_is_invalid():
     for telegram, expected_sent, expected_error in (
         (Check(RuntimeError("bot invalid")), [], "bot invalid"),

@@ -16,6 +16,9 @@ imap:
   historical_start: '2026-09-15T00:00:00+02:00'
   batch_size: 25
   global_newest_first: true
+  # Verpflichtende primäre Eingangsquelle. Alle weiteren Einträge unter
+  # folders sind optional und werden bei einem isolierten Fehler übersprungen.
+  primary_folder: INBOX
   folders:
   - INBOX
   - Drafts

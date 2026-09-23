@@ -36,6 +36,21 @@ class MailCandidate:
     received_at: datetime
 
 
+@dataclass(frozen=True)
+class ListedMailbox:
+    """A validated LIST entry and its provider-independent standard role."""
+
+    name: str
+    flags: frozenset[str]
+    role: str | None = None
+
+
+_SPECIAL_USE_ROLES = {
+    "\\inbox": "inbox", "\\drafts": "drafts", "\\sent": "sent",
+    "\\junk": "junk", "\\trash": "trash",
+}
+
+
 class UIDValidityChanged(RuntimeError):
     """Report a new UID generation before any message body is fetched."""
 
@@ -121,7 +136,7 @@ def _mailbox_argument(folder: str) -> str | bytes:
     return b'"' + encoded.replace(b"\\", b"\\\\").replace(b'"', b'\\"') + b'"'
 
 
-def _list_mailbox_name(item: object) -> str | None:
+def _list_mailbox_name(item: object) -> ListedMailbox | None:
     """Extract a selectable mailbox from one conventional LIST response."""
     if not isinstance(item, bytes):
         raise RuntimeError("IMAP-LIST-Antwort ist strukturell unbrauchbar")
@@ -130,7 +145,12 @@ def _list_mailbox_name(item: object) -> str | None:
     )
     if match is None:
         raise RuntimeError("IMAP-LIST-Antwort ist strukturell unbrauchbar")
-    if b"\\noselect" in match.group(1).lower().split():
+    raw_flags = match.group(1).split()
+    if any(re.fullmatch(rb"(?:\\)?[A-Za-z0-9]+", flag) is None for flag in raw_flags):
+        raise RuntimeError("IMAP-LIST-Antwort enthält ungültige Flags")
+    flags = frozenset(flag.decode("ascii") for flag in raw_flags)
+    normalized_flags = {flag.lower() for flag in flags}
+    if "\\noselect" in normalized_flags:
         return None
     mailbox = match.group(2)
     if mailbox.startswith(b'"'):
@@ -141,7 +161,12 @@ def _list_mailbox_name(item: object) -> str | None:
             raise RuntimeError("IMAP-LIST-Antwort ist strukturell unbrauchbar")
     elif any(character in mailbox for character in b' (){%*"\\'):
         raise RuntimeError("IMAP-LIST-Antwort ist strukturell unbrauchbar")
-    return _decode_mailbox_name(mailbox)
+    name = _decode_mailbox_name(mailbox)
+    roles = {_SPECIAL_USE_ROLES[flag] for flag in normalized_flags
+             if flag in _SPECIAL_USE_ROLES}
+    if len(roles) > 1:
+        raise RuntimeError("IMAP-LIST-Antwort enthält widersprüchliche Special-Use-Flags")
+    return ListedMailbox(name, flags, next(iter(roles), None))
 
 
 def _fetched_mail(folder: str, uidvalidity: int, uid: int, data: object,
@@ -178,6 +203,7 @@ class ImapReader:
         self.policy = policy or RetryPolicy(2, 1, 4, lambda _delay: False)
         self.logger = logger or NullLogger()
         self.batch_size = batch_size
+        self._reconnect_required = False
         self.connection = self._connect()
         self.account_id = account_id(host, port, username)
         self.last_uidvalidity: int | None = None
@@ -224,9 +250,10 @@ class ImapReader:
 
         def attempt() -> T:
             nonlocal reconnect
-            if reconnect:
+            if reconnect or getattr(self, "_reconnect_required", False):
                 self._reconnect()
                 reconnect = False
+                self._reconnect_required = False
             if getattr(self.connection, "state", None) == "LOGOUT":
                 raise imaplib.IMAP4.abort("IMAP connection is closed")
             return operation()
@@ -234,6 +261,10 @@ class ImapReader:
         def failed(attempt_number: int, exc: Exception) -> None:
             nonlocal reconnect
             reconnect = True
+            # RetryPolicy invokes this callback only for transport/HTTP adapter
+            # failures; IMAP operations do not issue HTTP requests.  Preserve
+            # the reconnect requirement even after the final exhausted attempt.
+            self._reconnect_required = True
             self.logger.event("WARNING", "imap", "request_retry", operation=name,
                               attempt=attempt_number, error=exc)
 
@@ -249,17 +280,17 @@ class ImapReader:
             if status != "OK":
                 raise FolderNotReadable(folder)
 
-    def list_folders(self) -> list[str]:
+    def list_folders(self) -> list[ListedMailbox]:
         """Return every mailbox advertised by the authenticated IMAP server."""
         return self._operation("list", self._list_folders)
 
-    def _list_folders(self) -> list[str]:
+    def _list_folders(self) -> list[ListedMailbox]:
         status, data = self.connection.list()
         if status != "OK":
             raise RuntimeError("IMAP-Ordnerliste konnte nicht geladen werden")
         folders = [folder for item in data or []
                    if (folder := _list_mailbox_name(item)) is not None]
-        if len(folders) != len(set(folders)):
+        if len(folders) != len({folder.name for folder in folders}):
             raise RuntimeError("IMAP-Ordnerliste enthält doppelte Ordnernamen")
         return folders
 

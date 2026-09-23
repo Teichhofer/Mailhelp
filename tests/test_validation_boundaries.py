@@ -156,7 +156,18 @@ def test_mail_state_v8_migrates_pipeline_and_validates_notification_keys(tmp_pat
 
 def test_settings_reject_missing_extra_types_ranges_and_semantics(tmp_path):
     base = valid_settings(tmp_path)
-    assert Settings.model_validate(base).timezone == "UTC"
+    parsed_default = Settings.model_validate(base)
+    assert parsed_default.timezone == "UTC"
+    assert parsed_default.imap.required_folders == ("INBOX",)
+    assert parsed_default.imap.optional_folders == ()
+    explicit = copy.deepcopy(base)
+    explicit["imap"].update(folders=["Posteingang", "Papierkorb"],
+                            primary_folder="Posteingang")
+    assert Settings.model_validate(explicit).imap.optional_folders == ("Papierkorb",)
+    invalid_primary = copy.deepcopy(base)
+    invalid_primary["imap"]["primary_folder"] = "Missing"
+    with pytest.raises(ValidationError, match="primary_folder"):
+        Settings.model_validate(invalid_primary)
     for mode in ("ssl", "starttls", "plain"):
         configured=copy.deepcopy(base); configured["imap"].update(connection_mode=mode, historical_start="2025-01-02T03:04:05+01:00", global_newest_first=True)
         parsed = Settings.model_validate(configured).imap
