@@ -742,6 +742,335 @@
         "builder": [],
         "normalization": []
       }
+    },
+    {
+      "id": "13_pure_invitation",
+      "raw_email": "From: Veranstalter <veranstalter@example.test>\nTo: Testkonto <testkonto@example.test>\nDate: Fri, 18 Sep 2026 10:00:00 +0200\nMessage-ID: <13_pure_invitation@example.test>\nSubject: Einladung zum Fachtag\nContent-Type: text/plain; charset=utf-8\n\nSie sind zum Fachtag am 20.10.2026 von 10:00 bis 11:00 Uhr eingeladen.\n",
+      "expected": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Die Nachricht betrifft Einladung zum Fachtag.",
+            "Die Angaben werden strukturiert geprüft."
+          ],
+          "deadlines": []
+        },
+        "action_route": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 1,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Fachtag",
+              "description": null,
+              "evidence": "am 20.10.2026 von 10:00 bis 11:00 Uhr",
+              "date_text": "20.10.2026",
+              "time_text": "10:00",
+              "end_time_text": "11:00",
+              "location": null,
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "timed"
+            }
+          ]
+        },
+        "builder": [
+          {
+            "kind": "event",
+            "classification": "new",
+            "responsibility": "user",
+            "status": "pending_confirmation",
+            "open_questions": []
+          }
+        ],
+        "normalization": [
+          {
+            "kind": "event",
+            "start": "2026-10-20T10:00:00+02:00",
+            "end": "2026-10-20T11:00:00+02:00",
+            "all_day": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "14_invitation_registration",
+      "raw_email": "From: Veranstalter <veranstalter@example.test>\nTo: Testkonto <testkonto@example.test>\nDate: Fri, 18 Sep 2026 10:00:00 +0200\nMessage-ID: <14_invitation_registration@example.test>\nSubject: Einladung mit Anmeldung\nContent-Type: text/plain; charset=utf-8\n\nSie sind zum Fachtag am 20.10.2026 von 10:00 bis 11:00 Uhr eingeladen. Bitte melden Sie sich bis 01.10.2026 an.\n",
+      "expected": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Die Nachricht betrifft Einladung mit Anmeldung.",
+            "Die Angaben werden strukturiert geprüft."
+          ],
+          "deadlines": []
+        },
+        "action_route": {
+          "action_state": "task_and_event",
+          "task_count": 1,
+          "event_count": 1,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Zum Fachtag anmelden",
+              "description": "",
+              "evidence": "Bitte melden Sie sich bis 01.10.2026 an.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": "01.10.2026"
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Fachtag",
+              "description": null,
+              "evidence": "am 20.10.2026 von 10:00 bis 11:00 Uhr",
+              "date_text": "20.10.2026",
+              "time_text": "10:00",
+              "end_time_text": "11:00",
+              "location": null,
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "timed"
+            }
+          ]
+        },
+        "builder": [
+          {
+            "kind": "task",
+            "classification": "new",
+            "responsibility": "user",
+            "status": "pending_confirmation",
+            "open_questions": []
+          },
+          {
+            "kind": "event",
+            "classification": "new",
+            "responsibility": "user",
+            "status": "pending_confirmation",
+            "open_questions": []
+          }
+        ],
+        "normalization": [
+          {
+            "kind": "task",
+            "due": "2026-10-01"
+          },
+          {
+            "kind": "event",
+            "start": "2026-10-20T10:00:00+02:00",
+            "end": "2026-10-20T11:00:00+02:00",
+            "all_day": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "15_invitation_optional_greeting",
+      "raw_email": "From: Veranstalter <veranstalter@example.test>\nTo: Testkonto <testkonto@example.test>\nDate: Fri, 18 Sep 2026 10:00:00 +0200\nMessage-ID: <15_invitation_optional_greeting@example.test>\nSubject: Einladung und Grußwortanfrage\nContent-Type: text/plain; charset=utf-8\n\nSie sind zum Fachtag am 20.10.2026 von 10:00 bis 11:00 Uhr eingeladen. Bitte teilen Sie uns mit, ob Frau Beispiel ein Grußwort halten kann.\n",
+      "expected": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Die Nachricht betrifft Einladung und Grußwortanfrage.",
+            "Die Angaben werden strukturiert geprüft."
+          ],
+          "deadlines": []
+        },
+        "action_route": {
+          "action_state": "task_and_event",
+          "task_count": 1,
+          "event_count": 1,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Verfügbarkeit von Frau Beispiel für ein Grußwort rückmelden",
+              "description": "",
+              "evidence": "Bitte teilen Sie uns mit, ob Frau Beispiel ein Grußwort halten kann.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": null
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Fachtag",
+              "description": null,
+              "evidence": "am 20.10.2026 von 10:00 bis 11:00 Uhr",
+              "date_text": "20.10.2026",
+              "time_text": "10:00",
+              "end_time_text": "11:00",
+              "location": null,
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "timed"
+            }
+          ]
+        },
+        "builder": [
+          {
+            "kind": "task",
+            "classification": "new",
+            "responsibility": "user",
+            "status": "pending_confirmation",
+            "open_questions": []
+          },
+          {
+            "kind": "event",
+            "classification": "new",
+            "responsibility": "user",
+            "status": "pending_confirmation",
+            "open_questions": []
+          }
+        ],
+        "normalization": [
+          {
+            "kind": "task",
+            "due": null
+          },
+          {
+            "kind": "event",
+            "start": "2026-10-20T10:00:00+02:00",
+            "end": "2026-10-20T11:00:00+02:00",
+            "all_day": false
+          }
+        ]
+      }
+    },
+    {
+      "id": "16_invitation_feedback_other",
+      "raw_email": "From: Veranstalter <veranstalter@example.test>\nTo: Testkonto <testkonto@example.test>\nDate: Fri, 18 Sep 2026 10:00:00 +0200\nMessage-ID: <16_invitation_feedback_other@example.test>\nSubject: Einladung mit fremder Rückmeldung\nContent-Type: text/plain; charset=utf-8\n\nSie sind zum Fachtag am 20.10.2026 von 10:00 bis 11:00 Uhr eingeladen. Herr Anders soll uns bitte seine Teilnahme rückmelden.\n",
+      "expected": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Die Nachricht betrifft Einladung mit fremder Rückmeldung.",
+            "Die Angaben werden strukturiert geprüft."
+          ],
+          "deadlines": []
+        },
+        "action_route": {
+          "action_state": "task_and_event",
+          "task_count": 1,
+          "event_count": 1,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Teilnahme von Herrn Anders rückmelden",
+              "description": "",
+              "evidence": "Herr Anders soll uns bitte seine Teilnahme rückmelden.",
+              "responsibility": "other",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": null
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Fachtag",
+              "description": null,
+              "evidence": "am 20.10.2026 von 10:00 bis 11:00 Uhr",
+              "date_text": "20.10.2026",
+              "time_text": "10:00",
+              "end_time_text": "11:00",
+              "location": null,
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "timed"
+            }
+          ]
+        },
+        "builder": [
+          {
+            "kind": "task",
+            "classification": "new",
+            "responsibility": "other",
+            "status": "needs_clarification",
+            "open_questions": [
+              "Ist die Nutzerin oder der Nutzer für diesen Eintrag zuständig?"
+            ]
+          },
+          {
+            "kind": "event",
+            "classification": "new",
+            "responsibility": "user",
+            "status": "pending_confirmation",
+            "open_questions": []
+          }
+        ],
+        "normalization": [
+          {
+            "kind": "task",
+            "due": null
+          },
+          {
+            "kind": "event",
+            "start": "2026-10-20T10:00:00+02:00",
+            "end": "2026-10-20T11:00:00+02:00",
+            "all_day": false
+          }
+        ]
+      }
     }
   ]
 }

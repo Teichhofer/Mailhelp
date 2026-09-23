@@ -305,6 +305,24 @@ def test_raw_extraction_prompts_are_separate_and_injection_resistant():
         assert prompts[stage]["parameters"]["max_tokens"] == 10_000
 
 
+def test_action_prompts_share_invitation_candidate_boundaries():
+    prompts = yaml.safe_load(Path("prompts.yaml").read_text(encoding="utf-8"))["prompts"]
+    router = prompts["action_router"]["system_prompt"]
+    task = prompts["task_extraction"]["system_prompt"]
+    event = prompts["event_extraction"]["system_prompt"]
+    for prompt in (router, task, event):
+        assert "Kandidatengrenzen" in prompt
+        assert "reine Einladung" in prompt
+        assert "Grußwort halten" in prompt
+        assert "Erfinde oder entferne" in prompt
+    for action in ("Anmeldung", "Zu- oder Absage", "Rückmeldung", "Vorbereitung"):
+        assert all(action in prompt for prompt in (router, task, event))
+    assert 'nicht "certain"' in task
+    assert 'nicht "user"' in task
+    assert 'responsibility "user"' in event
+    assert 'certainty\n"certain"' in "\n".join(line.strip() for line in event.splitlines())
+
+
 def test_learning_stages_have_reasoning_output_budgets():
     config=yaml.safe_load(Path("prompts.yaml").read_text(encoding="utf-8"))
 
