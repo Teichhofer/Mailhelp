@@ -13,17 +13,17 @@ from zoneinfo import ZoneInfo
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
-from .models import (ActionLedger, ActionLedgerEntry, AnswerStatus, MailState, Proposal, ProposalClarificationState, ProposalKind, ProposalNotification, ProposalRevisionDelta, ProposalRevisionStatus, ProposalStatus, QuestionStatus, RelevanceDialog,
+from ..models import (ActionLedger, ActionLedgerEntry, AnswerStatus, MailState, Proposal, ProposalClarificationState, ProposalKind, ProposalNotification, ProposalRevisionDelta, ProposalRevisionStatus, ProposalStatus, QuestionStatus, RelevanceDialog,
                      RelevanceDialogStatus, TelegramDialogState, TelegramOffset,
                      WriteAttemptReference)
-from .integrations import ExternalWriter, execute_confirmed, proposal_is_writable
-from .adapter import PermanentError, RetryableError, RetryPolicy, uncertain_write
-from .storage import JsonStore, mail_state_names
-from .logging import EventLogger, NullLogger
-from .analysis import (ContradictoryRevision, IncompleteUserAnswer, LlmInvalidJson,
+from ..integrations import ExternalWriter, execute_confirmed, proposal_is_writable
+from ..adapter import PermanentError, RetryableError, RetryPolicy, uncertain_write
+from ..storage import JsonStore, mail_state_names
+from ..logging import EventLogger, NullLogger
+from ..analysis import (ContradictoryRevision, IncompleteUserAnswer, LlmInvalidJson,
                        LlmProviderResponseInvalid, LlmSchemaValidationFailed,
                        TechnicalRevisionError, validate_revision_successor)
-from .models import apply_proposal_revision
+from ..models import apply_proposal_revision
 import time, traceback, uuid
 
 

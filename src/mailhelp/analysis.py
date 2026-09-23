@@ -378,7 +378,7 @@ class Analyzer:
         """Compare an untrusted reply with the requested fact and normalize it."""
         # Imported lazily because telegram owns the conservative parser while
         # its controller depends on Analyzer's exception types.
-        from .telegram import parse_deterministic_temporal_answer
+        from .telegram.temporal import parse_deterministic_temporal_answer
         try:
             temporal = parse_deterministic_temporal_answer(authorized_answer)
         except ValueError:
