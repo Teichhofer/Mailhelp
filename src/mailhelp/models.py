@@ -35,6 +35,9 @@ class MailRunEntry(StrictModel):
     status: MailRunEntryStatus = MailRunEntryStatus.DISCOVERED
     analysis_terminal: Literal["completed", "failed", "skipped"] | None = None
     user_action_open: bool = False
+    # Stable classification only; exception text (which could contain server
+    # or credential material) is deliberately not persisted.
+    failure_code: Literal["imap_read_exhausted", "processing_failed"] | None = None
 
     @property
     def key(self) -> str:
@@ -50,6 +53,8 @@ class MailRunEntry(StrictModel):
             raise ValueError("Terminaler Analysezustand und Eintragszustand widersprechen sich")
         if self.user_action_open != (self.status == MailRunEntryStatus.WAITING_FOR_USER):
             raise ValueError("Eine offene Benutzeraktion benötigt waiting_for_user")
+        if self.failure_code is not None and self.status != MailRunEntryStatus.FAILED:
+            raise ValueError("Ein Fehlermerkmal benötigt failed")
         return self
 
 

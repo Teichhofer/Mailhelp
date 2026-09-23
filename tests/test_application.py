@@ -102,6 +102,41 @@ def test_global_mailbox_order_and_max_mail_budget(tmp_path):
     ] == [(2, 3)]
 
 
+def test_exhausted_uid_is_failed_without_stopping_following_queue_item(tmp_path):
+    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+
+    class Reader:
+        account_id = "0" * 24
+        last_uidvalidity = 7
+        def __init__(self): self.fetches = []
+        def discover_since(self, folder, *_args):
+            return [MailCandidate(folder, 7, uid, self.account_id, stamp)
+                    for uid in (2, 3)]
+        def fetch_uid(self, folder, uid, validity):
+            self.fetches.append(uid)
+            if uid == 2:
+                raise RuntimeError("private server diagnostic")
+            return FetchedMail(folder, validity, uid, b"x", self.account_id, stamp)
+
+    reader, store = Reader(), Store()
+    service = app(tmp_path, reader, Telegram([]), Orch(), store=store,
+                  global_newest_first=True)
+
+    results = service._poll_imap(max_mails=2)
+
+    run = MailRunState.model_validate(store.values[f"mail-run-{reader.account_id}"])
+    assert [entry.status.value for entry in run.entries] == ["failed", "completed"]
+    assert [entry.failure_code for entry in run.entries] == ["imap_read_exhausted", None]
+    assert "private server diagnostic" not in str(store.values[f"mail-run-{reader.account_id}"])
+    assert reader.fetches == [2, 3]
+    assert service.orchestrator.seen == [3]
+    assert len(results) == 1
+    with pytest.raises(ValueError, match="Fehlermerkmal"):
+        MailRunEntry(account_id="a", folder="INBOX", uidvalidity=1, uid=1,
+                     status="completed", analysis_terminal="completed",
+                     failure_code="processing_failed")
+
+
 def test_repeated_global_max_mail_runs_continue_with_next_newest_batch(tmp_path):
     """A persisted newest-first batch must not hide the older backlog."""
     stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)

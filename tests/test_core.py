@@ -9,6 +9,7 @@ from pydantic import ValidationError
 
 from mailhelp import __version__
 from mailhelp.analysis import Analyzer
+from mailhelp.adapter import RetryPolicy
 from mailhelp.cli import main
 from mailhelp.config import IrrelevantTopicsConfig, LlmRoute, PromptConfig, PromptStep, Topic, TopicsConfig, _deep_merge, _dotenv, _yaml, load_all
 from mailhelp.imap import (FetchedMail, ImapReader, UIDValidityChanged,
@@ -323,6 +324,81 @@ def test_imap():
     failed=BadLogin()
     with pytest.raises(RuntimeError, match="login"): ImapReader("h",1,"u","p",factory=lambda *a,**k: failed)
     assert not failed.logged
+
+
+@pytest.mark.parametrize("disconnect", [TimeoutError("slow"), EOFError("closed")])
+def test_imap_known_uid_reconnects_and_reauthenticates(disconnect):
+    """A retry repeats the identity, including its UIDVALIDITY guard."""
+    waits = []
+
+    class Connection(FakeImap):
+        def __init__(self, failure=None):
+            super().__init__(); self.failure = failure; self.fetches = []; self.responses = 0
+        def response(self, key):
+            self.responses += 1
+            return "UIDVALIDITY", [b"7"]
+        def uid(self, action, *args):
+            self.fetches.append((action, args))
+            if self.failure is not None:
+                failure, self.failure = self.failure, None
+                raise failure
+            return "OK", [(b'9 (INTERNALDATE "17-Sep-2026 10:11:12 +0200")', b"raw")]
+
+    connections = [Connection(disconnect), Connection()]
+    created = []
+    def factory(*_args, **_kwargs):
+        value = connections[len(created)]; created.append(value); return value
+
+    policy = RetryPolicy(2, 0.25, 1, lambda delay: waits.append(delay) or False)
+    reader = ImapReader("host", 993, "user", "top-secret", factory=factory,
+                        policy=policy)
+
+    assert reader.fetch_uid("INBOX", 9, 7).uid == 9
+    assert len(created) == 2
+    assert all(connection.logged for connection in created[1:])
+    assert [call[1][0] for connection in created for call in connection.fetches] == [b"9", b"9"]
+    assert connections[1].responses == 1
+    assert waits == [0.25]
+
+
+def test_imap_reconnect_attempts_are_bounded():
+    waits, connections = [], []
+
+    class Dead(FakeImap):
+        def uid(self, *_args): raise TimeoutError("secret must not be persisted")
+
+    def factory(*_args, **_kwargs):
+        value = Dead(); connections.append(value); return value
+
+    reader = ImapReader(
+        "h", 1, "u", "password", factory=factory,
+        policy=RetryPolicy(2, 1, 2, lambda delay: waits.append(delay) or False),
+    )
+    with pytest.raises(Exception, match="ausgeschoepft"):
+        reader.fetch_uid("INBOX", 4, 7)
+    assert len(connections) == 3
+    assert waits == [1, 2]
+
+
+def test_imap_closed_connection_reconnects_and_rejected_relogin_closes():
+    closed = FakeImap(); closed.state = "LOGOUT"
+    live = FakeImap()
+    connections = iter((closed, live))
+    reader = ImapReader("h", 1, "u", "p", factory=lambda *_a, **_k: next(connections),
+                        policy=RetryPolicy(1, 0, 0, lambda _delay: False))
+    assert reader.fetch_uid("INBOX", 4, 7).uid == 4
+    assert live.logged
+
+    first = FakeImap()
+    first.uid = lambda *_args: (_ for _ in ()).throw(EOFError())
+    rejected = FakeImap()
+    rejected.login = lambda *_args: (_ for _ in ()).throw(imaplib.IMAP4.error())
+    connections = iter((first, rejected))
+    broken = ImapReader("h", 1, "u", "p", factory=lambda *_a, **_k: next(connections),
+                        policy=RetryPolicy(1, 0, 0, lambda _delay: False))
+    with pytest.raises(RuntimeError, match="Anmeldung"):
+        broken.fetch_uid("INBOX", 4, 7)
+    assert not rejected.logged
 
 
 def test_imap_discovers_body_free_candidates_and_rejects_bad_metadata():
