@@ -387,7 +387,8 @@ die intern erzeugte Validierungsdiagnose wird dabei im Systemkontext als
 verbindliche Reparaturanweisung gekennzeichnet.
 
 Die deterministische Aktionsnormalisierung unterstützt die Datumsformen
-`YYYY-MM-DD`, `DD.MM.YYYY` und deutsche Tages-/Monatsangaben ohne Jahr sowie die
+`YYYY-MM-DD`, `DD.MM.YYYY` (optional mit passendem deutschen Wochentag in Lang- oder
+Kurzform, mit oder ohne Komma) und deutsche Tages-/Monatsangaben ohne Jahr sowie die
 24-Stunden-Zeitformen `HH:MM` und `HH:MM:SS`. Andere Schreibweisen und relative Angaben wie „nächsten Freitag“
 bleiben zusammen mit einem stabilen Klärungsgrund als Rohangabe erhalten. Ein Datum
 ohne Uhrzeit wird als ganztägiges Intervall vom genannten Tag bis zum exklusiven

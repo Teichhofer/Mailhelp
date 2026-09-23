@@ -81,7 +81,9 @@ class NormalizationResult:
 
 
 _DATE_ISO = re.compile(r"\d{4}-\d{2}-\d{2}\Z")
-_DATE_DE = re.compile(r"\d{2}\.\d{2}\.\d{4}\Z")
+_DATE_DE = re.compile(
+    r"(?i)(?:(montag|mo|dienstag|di|mittwoch|mi|donnerstag|do|freitag|fr|"
+    r"samstag|sa|sonntag|so)(?:,\s*|\s+))?(\d{2})\.(\d{2})\.(\d{4})\Z")
 _DATE_YEARLESS = re.compile(
     r"(?i)(\d{1,2})\.?\s+(januar|februar|märz|maerz|april|mai|juni|juli|august|"
     r"september|oktober|november|dezember)\Z")
@@ -102,6 +104,8 @@ _MONTHS = {name: number for number, names in enumerate(((), ("januar",), ("febru
     ("september",), ("oktober",), ("november",), ("dezember",))) for name in names}
 _WEEKDAYS = {name: number for number, name in enumerate(
     ("montag", "dienstag", "mittwoch", "donnerstag", "freitag", "samstag", "sonntag"))}
+_WEEKDAYS.update({name: number for number, name in enumerate(
+    ("mo", "di", "mi", "do", "fr", "sa", "so"))})
 
 
 def _parse_date(raw: str | None, responsibility: str, context: MailDateContext | None = None,
@@ -109,7 +113,8 @@ def _parse_date(raw: str | None, responsibility: str, context: MailDateContext |
     if raw is None:
         return _failure(NormalizationReason.MISSING_DATE, raw, responsibility,
                         "Welches Datum ist gemeint?")
-    fmt = "%Y-%m-%d" if _DATE_ISO.fullmatch(raw) else "%d.%m.%Y" if _DATE_DE.fullmatch(raw) else None
+    numeric = _DATE_DE.fullmatch(raw)
+    fmt = "%Y-%m-%d" if _DATE_ISO.fullmatch(raw) else "%d.%m.%Y" if numeric else None
     if fmt is None:
         named = _DATE_NAMED.fullmatch(raw.strip())
         if named is not None:
@@ -152,7 +157,14 @@ def _parse_date(raw: str | None, responsibility: str, context: MailDateContext |
         return _failure(NormalizationReason.UNSUPPORTED_DATE, raw, responsibility,
                         f"Welches konkrete Datum ist mit „{raw}“ gemeint?")
     try:
-        parsed = datetime.strptime(raw, fmt).date()
+        if numeric is None:
+            parsed = datetime.strptime(raw, fmt).date()
+        else:
+            parsed = date(int(numeric.group(4)), int(numeric.group(3)), int(numeric.group(2)))
+            if (numeric.group(1) is not None
+                    and parsed.weekday() != _WEEKDAYS[numeric.group(1).casefold()]):
+                return _failure(NormalizationReason.INVALID_DATE, raw, responsibility,
+                                "Wochentag und Kalenderdatum widersprechen sich.")
         years = set(re.findall(r"(?<!\d)(?:19|20)\d{2}(?!\d)", f"{raw} {evidence}"))
         if len(years) > 1:
             return replace(_failure(NormalizationReason.CONFLICTING_CONTEXT, raw, responsibility,

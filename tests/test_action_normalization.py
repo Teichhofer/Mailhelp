@@ -61,6 +61,32 @@ def test_supported_dates_cover_leap_year_and_year_boundary(raw, expected_start, 
     assert result.value == TemporalValue(expected_start, expected_end, True)
 
 
+@pytest.mark.parametrize("raw", [
+    "23.09.2026",
+    "Mi, 23.09.2026",
+    "Mittwoch, 23.09.2026",
+    "Mi 23.09.2026",
+    "Mittwoch 23.09.2026",
+])
+def test_numeric_german_date_accepts_matching_optional_weekday(raw):
+    result = normalize_event(event(date_text=raw), context())
+    assert result.value == TemporalValue(date(2026, 9, 23), date(2026, 9, 24), True)
+    assert result.temporal_fact.model_dump(mode="json") == {
+        "raw_text": raw,
+        "normalized_date": "2026-09-23",
+        "year_source": "explicit_mail",
+        "status": "resolved",
+    }
+
+
+@pytest.mark.parametrize("raw", ["Di, 23.09.2026", "Mittwoch, 31.09.2026"])
+def test_numeric_german_date_rejects_conflicting_weekday_and_invalid_calendar_date(raw):
+    result = normalize_event(event(date_text=raw), context())
+    assert result.value is None
+    assert result.reason == NormalizationReason.INVALID_DATE
+    assert result.raw_value == raw
+
+
 @pytest.mark.parametrize(("raw", "reason"), [
     (None, NormalizationReason.MISSING_DATE),
     ("nächsten Freitag", NormalizationReason.UNSUPPORTED_DATE),
