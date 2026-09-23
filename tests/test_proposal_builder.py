@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 import pytest
 from pydantic import ValidationError
@@ -108,6 +108,21 @@ def test_structured_context_date_survives_proposal_boundary():
     assert proposal.temporal_fact.raw_text == "21. Oktober"
     assert proposal.temporal_fact.normalized_date == date(2026, 10, 21)
     assert proposal.temporal_fact.year_source == "mail_context"
+
+
+def test_weekday_prefixed_numeric_date_builds_complete_timed_proposal_without_date_question():
+    proposal = builder().build([], [event(
+        date_text="Mi, 23.09.2026", time_text="09:00 Uhr", end_time_text="10:00 Uhr",
+        time_requirement="timed", evidence="Treffen Mi, 23.09.2026 von 09:00 Uhr bis 10:00 Uhr",
+    )])[0]
+    assert proposal.start == datetime.fromisoformat("2026-09-23T09:00:00+02:00")
+    assert proposal.end == datetime.fromisoformat("2026-09-23T10:00:00+02:00")
+    assert proposal.status == ProposalStatus.PENDING_CONFIRMATION
+    assert proposal.open_questions == []
+    assert proposal.temporal_fact.raw_text == "Mi, 23.09.2026"
+    assert proposal.temporal_fact.normalized_date == date(2026, 9, 23)
+    assert proposal.temporal_fact.year_source == "explicit_mail"
+    assert proposal.temporal_fact.status == "resolved"
 
 
 def test_temporal_fact_rejects_inconsistent_resolution_and_source():
