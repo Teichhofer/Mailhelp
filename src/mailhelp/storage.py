@@ -12,6 +12,12 @@ class CorruptState(RuntimeError): pass
 class AlreadyRunning(RuntimeError): pass
 
 
+def mail_state_names(store: "JsonStore") -> list[str]:
+    """Return only per-mail state names, excluding the ``mail-run-*`` queue."""
+    return [name for name in store.names("mail-")
+            if not name.startswith("mail-run-")]
+
+
 class JsonStore:
     def __init__(self, directory: Path): self.directory, self.lock = directory, None
 

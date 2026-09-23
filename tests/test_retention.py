@@ -4,7 +4,9 @@ import pytest
 from pydantic import ValidationError
 
 from mailhelp.config import RetentionSettings
-from mailhelp.models import DuplicateIndex, DuplicateIndexEntry, MailState, Proposal, ProposalKind, ProposalStatus, RelevanceDialog, Summary
+from mailhelp.models import (DuplicateIndex, DuplicateIndexEntry, MailRunCounters,
+                             MailRunState, MailState, Proposal, ProposalKind,
+                             ProposalStatus, RelevanceDialog, Summary)
 from mailhelp.retention import RetentionService
 from mailhelp.storage import JsonStore
 
@@ -63,6 +65,22 @@ def test_cleanup_expiry_repetition_restart_and_namespace_isolation(tmp_path):
     with JsonStore(test) as isolated:
         assert isolated.load_model("mail-expired", MailState).mail == {"text": "very private"}
     assert all("private" not in str(event) and "stable-key" not in str(event) for event in log.events)
+
+
+def test_cleanup_ignores_durable_mail_run_state(tmp_path):
+    """The overlapping mail-run prefix must never cross the MailState boundary."""
+    run = MailRunState(
+        run_id="00000000-0000-0000-0000-000000000001", max_mails=100,
+        created_at=NOW, entries=[], counters=MailRunCounters(),
+    )
+    with JsonStore(tmp_path) as store:
+        store.save("mail-run-" + "a" * 24, run.model_dump(mode="json"))
+
+        result = RetentionService(store, RetentionSettings(), Log(), lambda: NOW).run()
+
+        assert result.scanned == 0
+        assert store.load_model("mail-run-" + "a" * 24, MailRunState) == run
+        assert not list(tmp_path.glob("*.invalid"))
 
 
 @pytest.mark.parametrize("status,letter", [
