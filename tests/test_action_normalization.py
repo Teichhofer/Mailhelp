@@ -64,6 +64,64 @@ def test_supported_dates_cover_leap_year_and_year_boundary(raw, expected_start, 
 
 
 @pytest.mark.parametrize("raw", [
+    "5.-6. November 2026",
+    "5.\u20136. November 2026",
+    "vom 5. bis 6. November 2026",
+    "5. und 6. November 2026",
+    "05.11.2026 \u2013 06.11.2026",
+])
+def test_explicit_date_ranges_preserve_every_all_day_date(raw):
+    result = normalize_event(event(date_text=raw, time_requirement="required_unknown"), context())
+    assert result.value == TemporalValue(date(2026, 11, 5), date(2026, 11, 7), True)
+    assert result.question is None and result.reason is None
+    assert result.raw_value == raw
+    assert result.temporal_fact.normalized_date == date(2026, 11, 5)
+
+
+def test_missing_date_text_recovers_one_explicit_range_from_evidence_before_questioning():
+    result = normalize_event(event(
+        date_text=None, time_requirement="required_unknown",
+        evidence="Das Seminar findet vom 5.- 6. November 2026 in Würzburg statt.",
+    ), context())
+    assert result.value == TemporalValue(date(2026, 11, 5), date(2026, 11, 7), True)
+    assert result.question is None
+
+
+def test_repeated_equivalent_evidence_ranges_remain_unambiguous():
+    result = normalize_event(event(
+        date_text=None,
+        evidence="Seminar 5.-6. November 2026; nochmals: vom 5. bis 6. November 2026."),
+        context())
+    assert result.value == TemporalValue(date(2026, 11, 5), date(2026, 11, 7), True)
+
+
+def test_evidence_guard_does_not_choose_between_multiple_or_reversed_ranges():
+    multiple = normalize_event(event(
+        date_text=None,
+        evidence="Alternativ 5.-6. November 2026 oder 7.-8. November 2026."), context())
+    reversed_range = normalize_event(event(
+        date_text=None, evidence="Vom 6.-5. November 2026."), context())
+    assert multiple.reason == NormalizationReason.MISSING_DATE
+    assert reversed_range.reason == NormalizationReason.MISSING_DATE
+
+
+@pytest.mark.parametrize("evidence", [
+    "Vom 31.-32. November 2026.",
+    "Vom 31.11.2026-32.11.2026.",
+])
+def test_evidence_guard_ignores_invalid_calendar_ranges(evidence):
+    result = normalize_event(event(date_text=None, evidence=evidence), context())
+    assert result.reason == NormalizationReason.MISSING_DATE
+
+
+def test_explicit_range_still_requires_valid_mail_context():
+    result = normalize_event(event(date_text="5.-6. November 2026"),
+                             context(date_context_status="missing"))
+    assert result.reason == NormalizationReason.INVALID_CONTEXT
+    assert result.temporal_fact.normalized_date == date(2026, 11, 5)
+
+
+@pytest.mark.parametrize("raw", [
     "23.09.2026",
     "Mi, 23.09.2026",
     "Mittwoch, 23.09.2026",

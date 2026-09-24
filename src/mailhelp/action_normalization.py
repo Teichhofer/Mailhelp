@@ -93,6 +93,14 @@ _DATE_NAMED = re.compile(
     r"(?i)(?:(montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag),?\s+)?"
     r"(?:den\s+)?(\d{1,2})\.?\s+(januar|februar|märz|maerz|april|mai|juni|juli|august|"
     r"september|oktober|november|dezember)\s+(\d{4})\Z")
+_MONTH_PATTERN = (r"januar|februar|märz|maerz|april|mai|juni|juli|august|"
+                  r"september|oktober|november|dezember")
+_DATE_RANGE_NAMED = re.compile(
+    rf"(?i)(?:vom\s+)?(\d{{1,2}})\.?\s*(?:-|\u2013|\u2014|bis|und)\s*"
+    rf"(\d{{1,2}})\.?\s+({_MONTH_PATTERN})\s+(\d{{4}})")
+_DATE_RANGE_NUMERIC = re.compile(
+    r"(?<!\d)(\d{1,2})\.(\d{1,2})\.(\d{4})\s*(?:-|\u2013|\u2014|bis)\s*"
+    r"(\d{1,2})\.(\d{1,2})\.(\d{4})(?!\d)", re.IGNORECASE)
 _TIME = re.compile(r"(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s+Uhr)?\Z", re.IGNORECASE)
 
 
@@ -108,6 +116,42 @@ _WEEKDAYS = {name: number for number, name in enumerate(
     ("montag", "dienstag", "mittwoch", "donnerstag", "freitag", "samstag", "sonntag"))}
 _WEEKDAYS.update({name: number for number, name in enumerate(
     ("mo", "di", "mi", "do", "fr", "sa", "so"))})
+
+
+def _date_ranges(raw: str) -> list[tuple[str, date, date]]:
+    """Return the distinct, explicit German date ranges contained in *raw*."""
+    ranges: list[tuple[str, date, date]] = []
+    for match in _DATE_RANGE_NAMED.finditer(raw):
+        try:
+            start = date(int(match.group(4)), _MONTHS[match.group(3).casefold()],
+                         int(match.group(1)))
+            end = date(int(match.group(4)), _MONTHS[match.group(3).casefold()],
+                       int(match.group(2)))
+        except ValueError:
+            continue
+        ranges.append((match.group(0), start, end))
+    for match in _DATE_RANGE_NUMERIC.finditer(raw):
+        try:
+            start = date(int(match.group(3)), int(match.group(2)), int(match.group(1)))
+            end = date(int(match.group(6)), int(match.group(5)), int(match.group(4)))
+        except ValueError:
+            continue
+        ranges.append((match.group(0), start, end))
+    # Repeated mentions (possibly with different dash spelling) are still one
+    # unambiguous range; only differing start/end pairs create ambiguity.
+    distinct = {(start, end): (text, start, end) for text, start, end in ranges}
+    return list(distinct.values())
+
+
+def _unambiguous_date_range(event: ExtractedEvent) -> tuple[str, date, date] | None:
+    """Recover one explicit range from date_text, or defensively from evidence."""
+    for raw in (event.date_text, event.evidence if event.date_text is None else None):
+        if raw is None:
+            continue
+        ranges = _date_ranges(raw)
+        if len(ranges) == 1 and ranges[0][2] >= ranges[0][1]:
+            return ranges[0]
+    return None
 
 
 def _parse_date(raw: str | None, responsibility: str, context: MailDateContext | None = None,
@@ -251,6 +295,17 @@ def _explicit_offset(raw: str) -> timezone:
 def normalize_event(event: ExtractedEvent, context: MailDateContext) -> NormalizationResult:
     """Normalize an event without making a responsibility decision."""
     responsibility = event.responsibility
+    date_range = _unambiguous_date_range(event)
+    if date_range is not None and event.time_text is None and event.end_time_text is None:
+        raw_range, start_day, inclusive_end = date_range
+        checked = _context_zone(context, responsibility)
+        fact = TemporalFact(raw_text=raw_range, normalized_date=start_day,
+                            year_source="explicit_mail", status="resolved")
+        if isinstance(checked, NormalizationResult):
+            return replace(checked, temporal_fact=fact)
+        return NormalizationResult(
+            TemporalValue(start_day, inclusive_end + timedelta(days=1), True), None,
+            raw_range, None, responsibility, temporal_fact=fact)
     parsed_day = _parse_date(event.date_text, responsibility, context, event.evidence)
     if isinstance(parsed_day, NormalizationResult):
         if parsed_day.temporal_fact is None:

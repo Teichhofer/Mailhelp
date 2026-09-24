@@ -92,6 +92,18 @@ def test_unresolved_date():
     assert unresolved.status == ProposalStatus.NEEDS_CLARIFICATION and unresolved.start is None
 
 
+def test_date_range_recovered_from_evidence_needs_no_date_question():
+    proposal = builder().build([], [event(
+        date_text=None, time_requirement="required_unknown",
+        evidence="Das Seminar findet vom 5.- 6. November 2026 in Würzburg statt.",
+        location="Würzburg",
+    )])[0]
+    assert (proposal.start, proposal.end, proposal.all_day) == (
+        date(2026, 11, 5), date(2026, 11, 7), True)
+    assert proposal.open_questions == []
+    assert proposal.status == ProposalStatus.PENDING_CONFIRMATION
+
+
 @pytest.mark.parametrize(("kind", "word"), [("task", "Aufgaben"), ("event", "Termine")])
 def test_count_conflict_forces_a_concrete_clarification(kind, word):
     conflict = ExtractionCountConflict(category=kind, expected_count=2, actual_count=1,
