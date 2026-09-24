@@ -13,7 +13,7 @@ from zoneinfo import ZoneInfo
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
-from ..models import (ActionLedger, ActionLedgerEntry, AnswerStatus, MailState, Proposal, ProposalClarificationState, ProposalKind, ProposalNotification, ProposalRevisionDelta, ProposalRevisionStatus, ProposalStatus, QuestionStatus, RelevanceDialog,
+from ..models import (ActionLedger, ActionLedgerEntry, AnswerStatus, MailState, Proposal, ProposalClarificationState, ProposalKind, ProposalNotification, ProposalRevisionDelta, ProposalRevisionStatus, ProposalStatus, QuestionStatus, RelevanceDialog, TemporalFact,
                      RelevanceDialogStatus, TelegramDialogState, TelegramOffset, TelegramAnswerInterpretation, TelegramClarification,
                      WriteAttemptReference)
 from ..integrations import ExternalWriter, execute_confirmed, proposal_is_writable
@@ -22,7 +22,8 @@ from ..storage import JsonStore, mail_state_names
 from ..logging import EventLogger, NullLogger
 from ..analysis import (ContradictoryRevision, IncompleteUserAnswer, LlmInvalidJson,
                        LlmProviderResponseInvalid, LlmSchemaValidationFailed,
-                       TechnicalRevisionError, validate_revision_successor)
+                       LlmTokenLimitExceeded, TechnicalRevisionError,
+                       validate_revision_successor)
 from ..models import apply_proposal_revision
 import time, traceback, uuid
 
@@ -126,10 +127,18 @@ def deterministic_temporal_revision(proposal: Proposal, question: str,
         changes["temporal_date"] = parsed.date
     if start is not None:
         changes["start"] = start
+        if end is None and proposal.duration_minutes is not None:
+            end = start + timedelta(minutes=proposal.duration_minutes)
     if end is not None:
         changes["end"] = end
-    return apply_proposal_revision(proposal, ProposalRevisionDelta(
+    revised = apply_proposal_revision(proposal, ProposalRevisionDelta(
         answered_question=question, changes=changes))
+    if parsed.date is not None and (proposal.temporal_fact is None or
+                                    proposal.temporal_fact.normalized_date is None):
+        revised = Proposal.model_validate(revised.model_copy(update={"temporal_fact": TemporalFact(
+            raw_text=normalized_answer, normalized_date=parsed.date,
+            year_source="telegram", status="resolved")}).model_dump())
+    return revised
 
 
 _EXPLICIT_CREATE_FALLBACK_ANSWERS = (
@@ -410,9 +419,13 @@ def format_proposal(proposal: Proposal, configured_timezone: str) -> str:
     if proposal.kind == ProposalKind.TASK:
         lines.append(f"Fälligkeit: {proposal.due.isoformat() if proposal.due else missing}")
     else:
+        display_start = (proposal.start or
+                         (proposal.known_temporal_facts.start
+                          if proposal.known_temporal_facts else None))
         lines.extend([
-            f"Beginn: {proposal.start.isoformat() if proposal.start else missing}",
+            f"Beginn: {display_start.isoformat() if display_start else missing}",
             f"Ende: {proposal.end.isoformat() if proposal.end else missing}",
+            f"Dauer: {f'{proposal.duration_minutes} Minuten' if proposal.duration_minutes else missing}",
             f"Ganztägig: {'Ja' if proposal.all_day else 'Nein'}",
             f"Konfigurierte Zeitzone: {configured_timezone}",
             f"Ort: {proposal.location or missing}",
@@ -863,7 +876,9 @@ class ConfirmedWriteExecutor:
             return
         changed, result = execute_confirmed(proposal, writer, self.persistence.persist, self.test_mode)
         if result.get("simulation"):
-            text = f"Testmodus: „{proposal.title}“ wurde nur simuliert."
+            kind = "Aufgabe" if proposal.kind == ProposalKind.TASK else "Kalendertermin"
+            text = (f"Testmodus: {kind} „{proposal.title}“ wurde bestätigt, "
+                    "aber extern nicht angelegt (nur simuliert).")
         elif result.get("operation") == "duplicate_updated":
             text = (f"Bereits vorhandener gleicher Termin „{proposal.title}“ wurde erkannt; "
                     "fehlende Informationen wurden ergänzt. Kein neuer Termin wurde angelegt.")
@@ -873,7 +888,8 @@ class ConfirmedWriteExecutor:
         elif changed.status == ProposalStatus.CREATED:
             details = f" (ID: {changed.external_id})" if changed.external_id else ""
             link = f" {changed.external_link}" if changed.external_link else ""
-            text = f"Erstellt: „{proposal.title}“{details}.{link}"
+            kind = "Aufgabe" if proposal.kind == ProposalKind.TASK else "Kalendertermin"
+            text = f"Erstellt: {kind} extern angelegt „{proposal.title}“{details}.{link}"
         elif changed.status == ProposalStatus.UNCERTAIN:
             if changed.uncertain_notified:
                 return
@@ -1089,7 +1105,10 @@ class ProposalRevisionProcessor:
         elif contradictory:
             message = "Die Antwort widerspricht möglicherweise dem bestehenden Vorschlag und wird erneut geprüft."
         else:
-            message = "Die interne Verarbeitung ist verzögert. Die sicher gespeicherte Antwort wird erneut bewertet."
+            message = (("Technischer Abbruch: Das Modell hat sein Ausgabetokenlimit erreicht. "
+                        "Die sicher gespeicherte Antwort wird mit der Ausweichstrategie erneut bewertet.")
+                       if isinstance(exc, LlmTokenLimitExceeded) else
+                       "Die interne Verarbeitung ist verzögert. Die sicher gespeicherte Antwort wird erneut bewertet.")
         self.telegram.send(self.chat_id, message)
 
     def _revise_answered(self, state: ProposalClarificationState) -> None:

@@ -110,6 +110,8 @@ class ProposalBuilder:
                 source_mail_id=self.source_mail_id, open_questions=questions,
                 location=item.location if isinstance(item, ExtractedEvent) else None,
                 video_link=item.video_link if isinstance(item, ExtractedEvent) else None,
+                duration_minutes=(item.duration_minutes
+                                  if isinstance(item, ExtractedEvent) else None),
                 target=target, status=status, external_id=None, external_link=None,
                 uncertain_notified=False, simulation_notified=False, **values,
             ))
