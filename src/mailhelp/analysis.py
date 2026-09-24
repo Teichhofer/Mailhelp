@@ -417,10 +417,16 @@ class Analyzer:
         normalized_question = " ".join(question.casefold().split())
         normalized_answer = " ".join(
             authorized_answer.casefold().strip().rstrip(".!?").split())
-        if (normalized_answer in {"ja", "nein"}
+        binary_answers = {
+            "ja": "Ja",
+            "nein": "Nein",
+            "es passt alles": "Ja",
+            "alles passt": "Ja",
+        }
+        if (normalized_answer in binary_answers
                 and ("sicher belegt" in normalized_question
                      or "zuständig" in normalized_question)):
-            answer = normalized_answer.capitalize()
+            answer = binary_answers[normalized_answer]
             return "deterministic", TelegramAnswerInterpretation(
                 usable=True,
                 normalized_answer=answer,

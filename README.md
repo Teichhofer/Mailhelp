@@ -686,6 +686,10 @@ persistiert, bleibt sie auch bei einem späteren technischen Revisionsfehler bea
 und wird nach Neustart aus dem Zustand wiederholt; die Chatnachricht wird nie nochmals
 als neue Antwort ausgewertet. Ein vorausgehender erfolgreicher Telegram-HTTP-Aufruf
 bleibt dabei ein separater Erfolg und wird nicht als Revisionsfehler protokolliert.
+Bei binären Rückfragen zur Belegsicherheit oder Zuständigkeit normalisiert die
+Anwendung neben `Ja` und `Nein` auch die geschlossenen Bestätigungsformulierungen
+`Es passt alles` und `Alles passt` deterministisch zu `Ja`; dadurch hängt eine
+eindeutige Bestätigung nicht von einer erneuten Modellbewertung ab.
 Telegram wird ausschließlich für Nachrichten und Callback-Aktionen abgefragt;
 bereits wartende, nicht unterstützte Update-Arten werden einzeln verworfen und
 blockieren nachfolgende Antworten nicht. Meldet Telegram dagegen, dass
