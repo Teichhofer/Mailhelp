@@ -495,7 +495,7 @@ def test_proposal_revision_prompt_covers_date_schema_and_output_budget():
         encoding="utf-8"))["prompts"]["telegram_answer_interpretation"]
     assert '"JJJJ-MM-TT HH:MM"' in interpretation["system_prompt"]
     assert interpretation["parameters"]["max_tokens"] == 500
-    assert interpretation["output_token_retry"]["parameters"]["max_tokens"] == 180
+    assert interpretation["output_token_retry"]["parameters"]["max_tokens"] == 500
     assert "drei Feldern" in interpretation["output_token_retry"]["system_prompt"]
     assert "change_fields" not in interpretation["output_token_retry"]
 
@@ -537,6 +537,20 @@ def test_telegram_answer_interpretation_is_deterministic_or_uses_one_changed_tok
         assert interpreted.normalized_answer == normalized
         assert deterministic.payloads == []
 
+    for question in (
+            "Ist die extrahierte Information sicher belegt?",
+            "Ist die Nutzerin oder der Nutzer für diesen Eintrag zuständig?",
+    ):
+        for answer, normalized in (("Ja", "Ja"), ("  NEIN! ", "Nein")):
+            deterministic = RetrySequence([])
+            call_id, interpreted = Analyzer(
+                deterministic, prompt_config()).interpret_telegram_answer(
+                    original, question, answer)
+            assert call_id == "deterministic"
+            assert interpreted.usable
+            assert interpreted.normalized_answer == normalized
+            assert deterministic.payloads == []
+
     cfg = prompt_config()
     cfg.prompts["telegram_answer_interpretation"].parameters = {
         "temperature": 0.0, "max_tokens": 500}
@@ -556,7 +570,7 @@ def test_telegram_answer_interpretation_is_deterministic_or_uses_one_changed_tok
     ]
     assert client.parameters == [
         {"temperature": 0.0, "max_tokens": 500},
-        {"temperature": 0.0, "max_tokens": 180},
+        {"temperature": 0.0, "max_tokens": 500},
     ]
     assert client.payloads[1] == client.payloads[0]
 

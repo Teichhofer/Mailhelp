@@ -814,7 +814,10 @@ Ende direkt aus den belegten beziehungsweise bereits bekannten Fakten und der
 konfigurierten IANA-Zeitzone; ein LLM-Aufruf ist dafür nicht erforderlich.
 Abweichende Modelldaten werden vor
 dem Anwenden abgewiesen. Nach einem
-`output_token_limit` wird eine kürzere, feldreduzierte Route verwendet. Scheitern
+`output_token_limit` wird eine kürzere, feldreduzierte Route verwendet, deren
+Ausgabetokenbudget nie kleiner als das der fehlgeschlagenen Route ist. Eindeutige
+Antworten `Ja` und `Nein` auf die anwendungseigenen Fragen nach Zuständigkeit oder
+sicherer Beleglage werden lokal normalisiert und benötigen keinen Provideraufruf. Scheitern
 alle technischen Versuche, speichert Mailhelp die normalisierte Antwort als
 `retry_required` und setzt sie nach einem Neustart fort, ohne erneut zu fragen.
 

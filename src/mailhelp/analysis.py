@@ -189,8 +189,14 @@ class Analyzer:
                     token_retry_used = True
                     payload = token_retry_payload
                     prompt = retry.system_prompt
-                    route = route.model_copy(update={"parameters": {
-                        **route.parameters, **retry.parameters}})
+                    retry_parameters = {**route.parameters, **retry.parameters}
+                    # A fallback prompted by an exhausted output budget must never
+                    # make that same budget smaller.  A concise prompt can reduce
+                    # consumption, but provider-side reasoning still counts toward
+                    # max_tokens and varies between providers.
+                    retry_parameters["max_tokens"] = max(
+                        route.parameters["max_tokens"], retry_parameters["max_tokens"])
+                    route = route.model_copy(update={"parameters": retry_parameters})
                     routes = [route]
                     route_index = route_failures = 0
                     repair = "provider_retry"
@@ -408,6 +414,18 @@ class Analyzer:
     def interpret_telegram_answer(self, proposal: Proposal, question: str,
                                   authorized_answer: str) -> tuple[str, TelegramAnswerInterpretation]:
         """Compare an untrusted reply with the requested fact and normalize it."""
+        normalized_question = " ".join(question.casefold().split())
+        normalized_answer = " ".join(
+            authorized_answer.casefold().strip().rstrip(".!?").split())
+        if (normalized_answer in {"ja", "nein"}
+                and ("sicher belegt" in normalized_question
+                     or "zuständig" in normalized_question)):
+            answer = normalized_answer.capitalize()
+            return "deterministic", TelegramAnswerInterpretation(
+                usable=True,
+                normalized_answer=answer,
+                reason="Eindeutige Ja-/Nein-Antwort auf eine binäre Frage",
+            )
         # Imported lazily because telegram owns the conservative parser while
         # its controller depends on Analyzer's exception types.
         from .telegram.temporal import parse_deterministic_temporal_answer
