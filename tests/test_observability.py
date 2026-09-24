@@ -28,6 +28,9 @@ class Capture:
     def llm_event(self, event, request=None, response=None, **context):
         self.events.append(("LLM", "openrouter", event, {"request": request, "response": response, **context}))
 
+    def telegram_event(self, direction, **context):
+        self.events.append(("TELEGRAM", "telegram", direction, context))
+
 
 def test_levels_jsonl_and_recursive_redaction(tmp_path):
     logger = JsonlLogger(tmp_path, True, True, "WARNING", {"worker": "DEBUG"}, {"known-value", ""})
@@ -64,7 +67,8 @@ def test_failure_details_and_stacktraces_are_redacted_in_structured_log(tmp_path
 def test_logging_settings_module_level_validation():
     base = {"directory": "logs", "console": {},
             "file": {"filename": "application.jsonl", "max_bytes": 100, "backup_count": 1, "retention_days": 1},
-            "llm": {"filename": "llm/requests.jsonl", "max_bytes": 100, "backup_count": 1, "retention_days": 1}}
+            "llm": {"filename": "llm/requests.jsonl", "max_bytes": 100, "backup_count": 1, "retention_days": 1},
+            "telegram": {"filename": "telegram/messages.jsonl", "max_bytes": 100, "backup_count": 1, "retention_days": 1}}
     assert LoggingSettings.model_validate({**base, "modules": {"imap": "ERROR"}}).modules["imap"] == "ERROR"
     for bad in ({"": "INFO"}, {"imap": "TRACE"}):
         with pytest.raises(Exception): LoggingSettings.model_validate({**base, "modules": bad})
@@ -128,6 +132,21 @@ def test_rotation_backup_limit_retention_and_restart(tmp_path):
     no_backups.event("INFO", "test", "first")
     no_backups.event("INFO", "test", "second")
     assert no_backups.app.exists() and not no_backups.app.with_name("application.jsonl.1").exists()
+
+
+def test_separate_telegram_log_records_content_and_honours_policy(tmp_path):
+    logger = JsonlLogger(tmp_path, telegram_level="WARNING")
+    logger.telegram_event("sent", chat_id=2, text="synthetic outbound")
+    logger.telegram_event("received", chat_id=2, user_id=3, text="synthetic inbound")
+    rows = [json.loads(line) for line in logger.telegram.read_text().splitlines()]
+    assert [(row["direction"], row["text"]) for row in rows] == [
+        ("sent", "synthetic outbound"), ("received", "synthetic inbound")]
+    assert all(row["level"] == "WARNING" and row["event"] == "message" for row in rows)
+    with pytest.raises(ValueError, match="Richtung"):
+        logger.telegram_event("sideways", text="no")
+    disabled = JsonlLogger(tmp_path / "disabled-telegram", telegram_enabled=False)
+    disabled.telegram_event("sent", text="not written")
+    assert not disabled.telegram.exists()
 
 
 def test_openrouter_correlated_response_raw_switch_and_error(tmp_path):
@@ -250,6 +269,34 @@ def test_network_adapter_failure_events():
     writer.close()
     failed = capture.events[-1]
     assert failed[2] == "create_failed" and failed[3]["proposal_id"] == "p1"
+
+
+def test_telegram_client_records_sent_and_received_messages_separately():
+    capture = Capture()
+    responses = [{"ok": True, "result": [
+        {"update_id": 1, "message": {"message_id": 10, "from": {"id": 3},
+                                      "chat": {"id": 2}, "text": "inbound"}},
+        {"update_id": 2, "callback_query": {"id": "callback", "from": {"id": 3},
+         "message": {"message_id": 11, "from": {"id": 4}, "chat": {"id": 2},
+                     "text": "buttons"}, "data": "choice"}},
+        {"update_id": 3, "poll_answer": {"option_ids": [0]}},
+    ]}, {"ok": True, "result": {"message_id": 12}}]
+
+    def handler(request):
+        return httpx.Response(200, json=responses.pop(0), request=request)
+
+    client = TelegramClient("secret", 1, httpx.MockTransport(handler), logger=capture)
+    client.poll(0)
+    client.send(2, "outbound", {"inline_keyboard": []})
+    client.close()
+    messages = [event for event in capture.events if event[0] == "TELEGRAM"]
+    assert [(event[2], event[3].get("text"), event[3].get("callback_data"))
+            for event in messages] == [
+        ("received", "inbound", None),
+        ("received", None, "choice"),
+        ("sent", "outbound", None),
+    ]
+    assert messages[-1][3]["reply_markup"] == {"inline_keyboard": []}
 
 
 def test_openrouter_uses_strict_schema_or_validated_json_fallback():

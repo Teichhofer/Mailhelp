@@ -107,3 +107,13 @@ logging:
     retention_days: 30
     include_requests: true
     include_responses: true
+  # Enthält bewusst den vollständigen Inhalt aller erfolgreich gesendeten und
+  # validierten empfangenen Telegram-Nachrichten und ist deshalb separat geschützt.
+  telegram:
+    enabled: true
+    level: INFO
+    format: jsonl
+    filename: telegram/messages.jsonl
+    max_bytes: 10000000
+    backup_count: 5
+    retention_days: 30

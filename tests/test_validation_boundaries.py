@@ -29,7 +29,7 @@ def valid_settings(tmp_path: Path) -> dict:
         "limits": {"max_mail_bytes": 1024, "llm_calls_per_minute": 1},
         "retries": {"provider_retry": 0, "json_repair": 0, "schema_repair": 0},
         "timeouts": {**{name: {"timeout_seconds": 1.0, "retries": 0, "initial_backoff_seconds": 0.0, "max_backoff_seconds": 1.0} for name in ("imap", "telegram", "openrouter", "todoist", "google_calendar")}, "telegram_poll_seconds": 1},
-        "logging": {"directory": str(tmp_path / "logs"), "console": {"enabled": False}, "file": {"filename": "application.jsonl", "max_bytes": 10000, "backup_count": 1, "retention_days": 30}, "llm": {"filename": "llm/requests.jsonl", "max_bytes": 10000, "backup_count": 1, "retention_days": 30}},
+        "logging": {"directory": str(tmp_path / "logs"), "console": {"enabled": False}, "file": {"filename": "application.jsonl", "max_bytes": 10000, "backup_count": 1, "retention_days": 30}, "llm": {"filename": "llm/requests.jsonl", "max_bytes": 10000, "backup_count": 1, "retention_days": 30}, "telegram": {"filename": "telegram/messages.jsonl", "max_bytes": 10000, "backup_count": 1, "retention_days": 30}},
     }
 
 

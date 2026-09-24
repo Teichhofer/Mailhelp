@@ -171,12 +171,22 @@ class LlmLoggingSettings(RotatingLogSettings):
     include_responses: bool = False
 
 
+class TelegramLoggingSettings(RotatingLogSettings):
+    """Separate audit trail containing Telegram message contents."""
+
+    filename: Path = Path("telegram/messages.jsonl")
+    max_bytes: int = Field(default=10_000_000, gt=0)
+    backup_count: int = Field(default=5, ge=0)
+    retention_days: int = Field(default=30, gt=0, le=3650)
+
+
 class LoggingSettings(ConfigModel):
     directory: Path
     console: ConsoleLoggingSettings
     file: RotatingLogSettings
     modules: dict[str, str] = Field(default_factory=dict)
     llm: LlmLoggingSettings
+    telegram: TelegramLoggingSettings = Field(default_factory=TelegramLoggingSettings)
 
     @field_validator("modules")
     @classmethod

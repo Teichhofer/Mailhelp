@@ -438,6 +438,12 @@ class TelegramClient:
         self.policy = policy or RetryPolicy(0, 0, 0, lambda _delay: False)
         self.logger = logger or NullLogger()
 
+    def _log_message(self, direction: str, **context: Any) -> None:
+        """Keep third-party logger implementations backward compatible."""
+        record = getattr(self.logger, "telegram_event", None)
+        if record is not None:
+            record(direction, **context)
+
     def check_access(self) -> None:
         """Validate the bot token without reading updates."""
         response = self.policy.run(lambda: self.client.get("/getMe"))
@@ -498,6 +504,25 @@ class TelegramClient:
         except (ValueError, ValidationError) as exc: raise ValueError(f"Telegram getUpdates: ungültige Antwort am Schlüsselpfad {_validation_path(exc)}") from exc
         result = [item.model_dump(by_alias=True) if isinstance(item, TelegramUpdate) else item
                   for item in parsed.result]
+        for item in parsed.result:
+            if not isinstance(item, TelegramUpdate):
+                continue
+            if item.message is not None:
+                self._log_message(
+                    "received", update_id=item.update_id,
+                    message_id=item.message.message_id,
+                    user_id=item.message.sender.id, chat_id=item.message.chat.id,
+                    text=item.message.text,
+                )
+            else:
+                callback = item.callback_query
+                assert callback is not None
+                self._log_message(
+                    "received", update_id=item.update_id,
+                    message_id=callback.message.message_id,
+                    user_id=callback.sender.id, chat_id=callback.message.chat.id,
+                    callback_data=callback.data,
+                )
         self.logger.event("INFO", "telegram", "poll_completed", call_id=call_id, count=len(result), status=response.status_code, duration_ms=round((time.perf_counter()-started)*1000, 3))
         return result
 
@@ -514,6 +539,10 @@ class TelegramClient:
                 response = self.client.post("/sendMessage", json=payload); self._raise_for_status(response, "sendMessage"); return response
             response = uncertain_write(request)
             self._validate_write(response, "sendMessage")
+            self._log_message(
+                "sent", chat_id=chat_id, text=part,
+                reply_markup=payload.get("reply_markup"),
+            )
         self.logger.event("INFO", "telegram", "send_completed", call_id=call_id, parts=len(parts))
 
     def send_document(self, chat_id: int, filename: str, content: bytes,
@@ -538,6 +567,10 @@ class TelegramClient:
 
         response = uncertain_write(request)
         self._validate_write(response, "sendDocument")
+        self._log_message(
+            "sent", chat_id=chat_id, message_type="document",
+            filename=filename, caption=caption,
+        )
         self.logger.event("INFO", "telegram", "document_send_completed", call_id=call_id,
                           filename=filename, size=len(content))
 
@@ -555,6 +588,10 @@ class TelegramClient:
             self.logger.event("WARNING", "telegram", "callback_acknowledgement_expired")
             return
         self._validate_write(response, "answerCallbackQuery")
+        self._log_message(
+            "sent", message_type="callback_answer",
+            callback_id=callback_id, text=text,
+        )
 
     def remove_inline_keyboard(self, chat_id: int, message_id: int) -> None:
         """Remove every inline button from an already-sent message."""
