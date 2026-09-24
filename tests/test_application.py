@@ -661,7 +661,7 @@ def test_empty_checkpoint_and_run_paths(tmp_path):
     assert failed_dialog.logger.events[0][0][2]=="poll_failed"
 
 
-def test_run_waits_for_open_dialog_before_polling_imap(tmp_path):
+def test_run_does_not_wait_for_open_proposal_before_polling_imap(tmp_path):
     class ControlledStop:
         def __init__(self): self.stopped=False; self.waits=[]
         def is_set(self): return self.stopped
@@ -671,13 +671,13 @@ def test_run_waits_for_open_dialog_before_polling_imap(tmp_path):
         def __init__(self): self.polls=0
         def poll_once(self, timeout=None):
             self.polls += 1
-        def awaiting_decision(self): return self.polls < 2
+        def awaiting_decision(self): return True
 
     service=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch())
     stop=ControlledStop(); service.stop_event=stop; service.dialog=Dialog()
     service.run()
 
-    assert service.dialog.polls == 2
+    assert service.dialog.polls == 1
     assert service.imap.calls == [("INBOX",0,None,None,())]
     assert stop.waits == [service.settings.poll_interval_seconds]
 
@@ -700,7 +700,7 @@ def test_mail_batch_does_not_poll_telegram_without_an_open_question(tmp_path):
     assert service.dialog.timeouts == []
 
 
-def test_open_dialog_blocks_next_mail_even_in_bounded_run(tmp_path):
+def test_open_proposal_does_not_block_next_mail_even_in_bounded_run(tmp_path):
     mails = [FetchedMail("INBOX", 7, uid, b"x") for uid in (1, 2, 3)]
 
     class Dialog:
@@ -725,8 +725,8 @@ def test_open_dialog_blocks_next_mail_even_in_bounded_run(tmp_path):
     service.run(max_mails=3)
 
     assert service.orchestrator.seen == [1, 2, 3]
-    assert dialog.open is False
-    assert dialog.polls == 2
+    assert dialog.open is True
+    assert dialog.polls == 1
 
 
 def test_versioned_answer_is_processed_before_later_mail(tmp_path):
@@ -746,6 +746,7 @@ def test_versioned_answer_is_processed_before_later_mail(tmp_path):
             self.updates.clear()
             self.open = False
         def awaiting_decision(self): return self.open
+        def awaiting_relevance_decision(self): return self.open
 
     class ProposesOnTwo(Orch):
         def process(self, mail):
@@ -774,6 +775,50 @@ def test_versioned_answer_is_processed_before_later_mail(tmp_path):
     assert dialog.executions == [reference]
     assert first.orchestrator.seen == [1, 2, 2, 3]
     assert dialog.polls == 2
+
+
+def test_completed_mail_with_multiple_open_proposals_does_not_wait(tmp_path):
+    class Dialog:
+        def __init__(self): self.polls = 0
+        def poll_once(self, timeout=None): self.polls += 1
+        def awaiting_decision(self): return True
+
+    service = app(tmp_path, Imap([]), Telegram([]), Orch())
+    service.dialog = Dialog()
+    service._wait_for_user = True
+
+    result = service._process_mail(FetchedMail("INBOX", 7, 1, b"synthetic"))
+
+    assert result.outcome is ProcessingOutcome.COMPLETED
+    assert service.dialog.polls == 0
+
+
+def test_waiting_relevance_handles_closed_dialog_and_poll_failure(tmp_path):
+    class WaitingOrchestrator(Orch):
+        def process(self, mail):
+            return ProcessingResult(ProcessingOutcome.WAITING, {})
+
+    class Dialog:
+        def __init__(self, open): self.open = open
+        def awaiting_decision(self): return self.open
+        def awaiting_relevance_decision(self): return self.open
+        def poll_once(self, timeout=None): raise RuntimeError("network")
+
+    service = app(tmp_path, Imap([]), Telegram([]), WaitingOrchestrator())
+    service.dialog = Dialog(False)
+    service._wait_for_user = True
+    assert service._process_mail(FetchedMail("INBOX", 7, 1, b"synthetic")).outcome \
+        is ProcessingOutcome.WAITING
+
+    class StopOnWait:
+        def __init__(self): self.stopped = False
+        def is_set(self): return self.stopped
+        def wait(self, _seconds): self.stopped = True; return True
+
+    service.dialog.open = True
+    service.stop_event = StopOnWait()
+    assert service._wait_for_telegram_decision() is False
+    assert service.stop_event.is_set()
 
 
 def test_run_keeps_imap_interval_without_open_dialog(tmp_path):
@@ -806,8 +851,8 @@ def test_telegram_poll_failure_backs_off_and_shutdown_interrupts_it(tmp_path):
     stop=ControlledStop(); service.stop_event=stop; service.dialog=FailingDialog()
     service.run()
 
-    assert service.dialog.polls == 2
-    assert stop.waits == [5, service.settings.poll_interval_seconds]
+    assert service.dialog.polls == 1
+    assert stop.waits == [5]
     assert stop.is_set()
 
 

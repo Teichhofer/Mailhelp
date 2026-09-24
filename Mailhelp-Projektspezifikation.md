@@ -24,10 +24,12 @@ Ein nachfolgender Einmallauf verwendet die persistierten abgeschlossenen
 UID-Bereiche und wählt aus dem verbleibenden Backlog wiederum die neuesten `N`
 Nachrichten; neue Nachrichten erhalten Vorrang, ohne ältere offene Nachrichten
 zu überspringen.
-Nach jeder per Telegram gestellten Frage oder zur Entscheidung vorgelegten
-Aktion wartet die Verarbeitung auf die Antwort. Erst nach deren Bearbeitung wird
-dieselbe Mail fortgesetzt und danach die nächste Mail begonnen. Das gilt auch für
-`--max-mails`; ein Stoppsignal kann das Warten kontrolliert unterbrechen.
+Nur wenn eine unklare Relevanzentscheidung die Analyse derselben Mail unterbricht,
+wartet deren Verarbeitung auf die Telegram-Antwort und setzt die Mail danach fort.
+Zur Entscheidung vorgelegte Aufgaben- und Terminvorschläge bleiben dagegen
+asynchron offen: Sie blockieren weder die nächste Mail desselben Abrufs noch einen
+späteren IMAP-Zyklus. Das gilt auch für `--max-mails`; ein Stoppsignal kann das
+Warten auf eine analyseblockierende Antwort kontrolliert unterbrechen.
 Noch nicht abgeschlossene Zustände mit abweichendem Konfigurationsfingerprint
 werden bereits beim Laden erkannt, weder per IMAP abgerufen noch fortgesetzt und
 verbrauchen dieses Verarbeitungskontingent nicht. Ein separates, ebenfalls auf
