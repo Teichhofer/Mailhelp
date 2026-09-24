@@ -554,6 +554,9 @@ persistierten normalisierten Wert. Ein Neustart zwischen Antwortspeicherung und
 Revision lässt die Frage deshalb beantwortet, und ein späteres „Ok“ wird nicht als
 Antwort auf diese alte Frage interpretiert. Bereits veröffentlichte Nachfolgeversionen
 schließen einen nach einem Absturz noch ausstehenden Klärungszustand idempotent ab.
+Die exakten Formulierungen `Es passt alles` und `Alles passt` gelten bei binären
+Rückfragen zur Belegsicherheit oder Zuständigkeit ebenso wie `Ja` als eindeutige
+positive Antwort und werden ohne Modellaufruf deterministisch normalisiert.
 
 Revisionsfehler werden an einer ausdrücklichen Grenze in drei Kategorien getrennt:
 `IncompleteUserAnswer` bezeichnet allein eine fachlich validierte, aber unvollständige

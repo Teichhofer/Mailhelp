@@ -541,7 +541,9 @@ def test_telegram_answer_interpretation_is_deterministic_or_uses_one_changed_tok
             "Ist die extrahierte Information sicher belegt?",
             "Ist die Nutzerin oder der Nutzer für diesen Eintrag zuständig?",
     ):
-        for answer, normalized in (("Ja", "Ja"), ("  NEIN! ", "Nein")):
+        for answer, normalized in (
+                ("Ja", "Ja"), ("  NEIN! ", "Nein"),
+                ("Es passt alles", "Ja"), ("Alles passt.", "Ja")):
             deterministic = RetrySequence([])
             call_id, interpreted = Analyzer(
                 deterministic, prompt_config()).interpret_telegram_answer(
