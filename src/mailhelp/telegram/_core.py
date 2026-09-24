@@ -132,13 +132,10 @@ def deterministic_temporal_revision(proposal: Proposal, question: str,
         answered_question=question, changes=changes))
 
 
-_NO_EXISTING_EVENT_ANSWERS = (
-    re.compile(r"(?:es soll )?nichts(?: soll)? ge(?:a|ä)ndert werden"),
-    re.compile(r"es soll kein bestehender (?:kalender)?(?:eintrag|termin) ge(?:a|ä)ndert werden"),
-    re.compile(r"es gibt keinen bestehenden (?:kalender)?(?:eintrag|termin)"),
-    re.compile(r"kein bestehender (?:kalender)?(?:eintrag|termin)"),
+_EXPLICIT_CREATE_FALLBACK_ANSWERS = (
     re.compile(r"neu anlegen"),
     re.compile(r"(?:als )?neuen (?:kalender)?(?:eintrag|termin) anlegen"),
+    re.compile(r"(?:ja,? )?(?:bitte )?(?:stattdessen |ersatzweise )?(?:einen )?neuen (?:kalender)?(?:eintrag|termin) (?:erstellen|anlegen)"),
 )
 
 
@@ -155,12 +152,14 @@ def deterministic_classification_revision(proposal: Proposal, question: str,
             or "geändert" not in normalized_question):
         return None
     normalized_answer = " ".join(answer.casefold().strip().rstrip(".!?").split())
-    if normalized_answer not in {"nichts", "keinen"} and not any(
+    if not any(
             pattern.fullmatch(normalized_answer)
-            for pattern in _NO_EXISTING_EVENT_ANSWERS):
+            for pattern in _EXPLICIT_CREATE_FALLBACK_ANSWERS):
         return None
     return apply_proposal_revision(proposal, ProposalRevisionDelta(
-        answered_question=question, changes={"classification": "new"}))
+        answered_question=question,
+        changes={"explicit_create_fallback_confirmed": True}),
+        allow_create_fallback=True)
 
 
 class TelegramChatNotFoundError(PermanentError):

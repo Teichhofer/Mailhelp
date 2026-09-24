@@ -587,6 +587,10 @@ class Proposal(StrictModel):
     external_link: str | None = Field(default=None, max_length=2000)
     uncertain_notified: bool = False
     simulation_notified: bool = False
+    # Set only by the deterministic Telegram fallback confirmation.  Keeping
+    # the original classification makes the write boundary able to distinguish
+    # a genuine new event from an explicitly authorised change fallback.
+    explicit_create_fallback_confirmed: bool = False
 
     @model_validator(mode="after")
     def validate_consistency(self) -> "Proposal":
@@ -594,7 +598,12 @@ class Proposal(StrictModel):
             raise ValueError("Ein simulierter Vorschlag darf kein externes Ergebnis enthalten")
         if self.simulation_notified and self.status != ProposalStatus.SIMULATED:
             raise ValueError("Eine Simulation darf nur im simulierten Zustand als gemeldet markiert werden")
-        ready = (self.classification == ProposalClassification.NEW and
+        creatable_classification = (
+            self.classification == ProposalClassification.NEW or
+            (self.classification == ProposalClassification.CHANGE and
+             self.explicit_create_fallback_confirmed)
+        )
+        ready = (creatable_classification and
                  self.responsibility == ProposalResponsibility.USER and
                  self.certainty == ProposalCertainty.CERTAIN and not self.open_questions)
         if self.status == ProposalStatus.PENDING_CONFIRMATION and not ready:
@@ -647,6 +656,7 @@ class ProposalRevisionChanges(StrictModel):
     location: str | None = Field(default=None, max_length=1000)
     video_link: AnyHttpUrl | None = Field(default=None, max_length=2000)
     target: str | None = Field(default=None, min_length=1, max_length=500)
+    explicit_create_fallback_confirmed: bool | None = None
 
 
 class ProposalRevisionDelta(StrictModel):
@@ -675,7 +685,8 @@ def _required_revision_questions(proposal: Proposal) -> list[str]:
     classification = {
         ProposalClassification.NON_BINDING: "Soll der nicht bindende Hinweis dennoch als neuer Eintrag angelegt werden?",
         ProposalClassification.ALREADY_COMPLETED: "Der Eintrag ist bereits abgeschlossen und nicht direkt ausführbar.",
-        ProposalClassification.CHANGE: "Welcher bestehende Eintrag soll geändert werden?",
+        ProposalClassification.CHANGE: (None if proposal.explicit_create_fallback_confirmed
+                                        else "Welcher bestehende Eintrag soll geändert werden?"),
         ProposalClassification.CANCELLATION: "Welcher bestehende Eintrag soll storniert werden?",
         ProposalClassification.RECURRING: "Wiederkehrende Einträge werden nicht automatisch angelegt.",
         ProposalClassification.UNSUPPORTED: "Diese Art von Eintrag wird nicht unterstützt.",
@@ -685,11 +696,17 @@ def _required_revision_questions(proposal: Proposal) -> list[str]:
     return questions
 
 
-def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta) -> Proposal:
+def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta, *,
+                            allow_create_fallback: bool = False) -> Proposal:
     """Apply a validated delta locally; identity, lifecycle and version stay authoritative."""
     if delta.answered_question not in previous.open_questions:
         raise ValueError("Die beantwortete Frage ist im Vorschlag nicht offen")
     changes = delta.changes.model_dump(exclude_unset=True)
+    if "explicit_create_fallback_confirmed" in changes and not allow_create_fallback:
+        raise ValueError("Die Ersatz-Neuanlage erfordert eine deterministische ausdrückliche Bestätigung")
+    if (previous.classification == ProposalClassification.CHANGE and
+            changes.get("classification") == ProposalClassification.NEW):
+        raise ValueError("Eine Terminänderung darf nicht als neuer Termin eingestuft werden")
     temporal_date = changes.pop("temporal_date", None)
     resolved_day = (previous.temporal_fact.normalized_date
                     if previous.temporal_fact is not None else None)

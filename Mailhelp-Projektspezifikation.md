@@ -462,7 +462,7 @@ später nicht wieder auf den Rohwert reduziert werden.
 
 Ein ausdrücklich in der Mail genannter physischer Ort wird getrennt von einem Videolink in `location` beziehungsweise `video_link` übernommen; fehlende Werte bleiben `null` und dürfen nicht erfunden werden. `video_link` akzeptiert ausschließlich längenbegrenzte HTTP-/HTTPS-URLs. Vor einer Bestätigung zeigt Telegram beide Felder sichtbar an. Google Calendar erhält `location` als Ort. Ein vorhandener Videolink wird in der Beschreibung klar gekennzeichnet; Mailhelp erzeugt keine Konferenz.
 
-Die geschlossenen Felder `responsibility` (`user`, `other`, `unclear`), `certainty` (`certain`, `uncertain`, `contradictory`) und `classification` (`new`, `non_binding`, `already_completed`, `change`, `cancellation`, `recurring`, `unsupported`) sind verpflichtend. Nur `new` + `user` + `certain` ist bestätigbar und extern schreibbar. Alle übrigen Kombinationen werden verständlich als manuell zu prüfen angezeigt. `unclear`, `uncertain` und `contradictory` erzwingen `needs_clarification`.
+Die geschlossenen Felder `responsibility` (`user`, `other`, `unclear`), `certainty` (`certain`, `uncertain`, `contradictory`) und `classification` (`new`, `non_binding`, `already_completed`, `change`, `cancellation`, `recurring`, `unsupported`) sind verpflichtend. Nur `new` + `user` + `certain` ist unmittelbar bestätigbar und extern schreibbar. Daneben ist eine sichere eigene `change`-Proposal ausschließlich dann als Ersatz-Neuanlage schreibbar, wenn das separate Flag `explicit_create_fallback_confirmed` durch die deterministische Erkennung einer ausdrücklichen Telegram-Zustimmung gesetzt wurde. Alle übrigen Kombinationen werden verständlich als manuell zu prüfen angezeigt. `unclear`, `uncertain` und `contradictory` erzwingen `needs_clarification`.
 
 Jedes von der Extraktion gelieferte Terminobjekt enthält das verpflichtende Feld
 `time_requirement` und klassifiziert damit die Zeitsemantik geschlossen als
@@ -492,14 +492,18 @@ Die normalisierte Antwort verwendet für eine eindeutige lokale Uhrzeit das kano
 Format `JJJJ-MM-TT HH:MM`. Bereits gespeicherte eindeutige deutsche Datums-/Uhrzeitformen
 werden aus Gründen der Wiederanlaufbarkeit ebenfalls deterministisch verarbeitet.
 
-Beantwortet die Nutzerin oder der Nutzer die Frage nach dem zu ändernden bestehenden
-Eintrag ausdrücklich damit, dass es keinen solchen Eintrag gibt oder der Termin neu
-angelegt werden soll, stuft Mailhelp `classification=change` deterministisch zu
-`classification=new` um. Die geschlossene Erkennung eindeutiger Formulierungen (etwa
-„Nichts“, „Keinen“, „Kein bestehender Termin“ oder „Neu anlegen“) läuft weder durch
-Antwortinterpretation noch Proposal-Revision des LLM. Mehrdeutige Antworten bleiben
-klärungsbedürftig. Der neue Vorschlag muss weiterhin ausdrücklich und versionsbezogen
-in Telegram bestätigt werden, bevor ein Kalender-Schreibzugriff erfolgt.
+Wird kein bestehender Termin identifiziert, bleibt `classification=change` erhalten
+und die Proposal bleibt klärungsbedürftig. Antworten wie „Alles ist korrekt“,
+„Nichts“, „Keinen“ oder „Kein bestehender Termin“ sind keine Erlaubnis für eine
+Neuanlage. Nur eine ausdrückliche Formulierung wie „Neu anlegen“ oder „Bitte
+stattdessen einen neuen Termin erstellen“ setzt deterministisch
+`explicit_create_fallback_confirmed=true`; das LLM darf weder dieses Flag setzen noch
+eine `change`-Proposal zu `new` umklassifizieren. Die so erzeugte neue
+Vorschlagsversion muss weiterhin ausdrücklich und versionsbezogen in Telegram
+bestätigt werden, bevor ein Kalender-Schreibzugriff erfolgt. Direkt an der
+Schreibgrenze gilt damit die Invariante: Eine `change`-Proposal ohne identifiziertes
+Ziel und ohne ausdrücklich bestätigte Ersatz-Neuanlage verursacht keinen
+Kalender-Schreibzugriff.
 
 Unverbindliche Vorschläge, bereits erledigte Aufgaben sowie Änderungen und Absagen sind als solche zu erkennen. Änderungen oder Absagen werden in V1 gemeldet und nicht als gewöhnlicher neuer Termin automatisch weiterverarbeitet. Wiederkehrende oder anderweitig nicht unterstützte Terminformen werden zur manuellen Bearbeitung gekennzeichnet.
 Eine ausdrücklich an die Nutzerin oder den Nutzer gerichtete, noch auszuführende

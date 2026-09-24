@@ -156,15 +156,11 @@ def test_deterministic_start_revision_uses_validated_day_without_llm(tmp_path):
 
 
 @pytest.mark.parametrize("answer", [
-    "Nichts",
-    "Keinen",
-    "Kein bestehender Termin",
-    "Nichts soll geändert werden",
-    "Es gibt keinen bestehenden Termin",
     "Neu anlegen",
     "Als neuen Termin anlegen",
+    "Bitte stattdessen einen neuen Termin erstellen",
 ])
-def test_change_without_existing_event_becomes_new_without_llm(tmp_path, answer):
+def test_change_without_existing_event_requires_explicit_create_fallback(tmp_path, answer):
     class NoLlm(RevisionService):
         def interpret_telegram_answer(self, item, question, authorized_answer):
             raise AssertionError("Eindeutige Ablehnung darf nicht zum Interpretations-LLM")
@@ -191,10 +187,11 @@ def test_change_without_existing_event_becomes_new_without_llm(tmp_path, answer)
         revised = store.load_model(
             "proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1", Proposal)
         assert revised.version == 2
-        assert revised.classification.value == "new"
+        assert revised.classification.value == "change"
+        assert revised.explicit_create_fallback_confirmed is True
         assert revised.status == ProposalStatus.PENDING_CONFIRMATION
         assert revised.open_questions == []
-        assert "Einordnung: new" in transport.sent[-1][1]
+        assert "Einordnung: change" in transport.sent[-1][1]
         assert any(event[0][2] == "answer_revision_completed" for event in log.events)
         clarification = store.load(
             "clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")
@@ -203,6 +200,12 @@ def test_change_without_existing_event_becomes_new_without_llm(tmp_path, answer)
 
 
 @pytest.mark.parametrize("answer", [
+    "Nichts",
+    "Keinen",
+    "Kein bestehender Termin",
+    "Nichts soll geändert werden",
+    "Es gibt keinen bestehenden Termin",
+    "Alles ist korrekt",
     "Den Jour fixe vom letzten Freitag",
     "Vielleicht keinen",
     "Der bestehende Termin soll nicht geändert werden, sondern abgesagt werden",

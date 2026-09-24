@@ -215,14 +215,19 @@ class AccessTokenProvider(Protocol):
 
 def proposal_is_writable(proposal: Proposal) -> bool:
     """Return whether the proposal may be confirmed and externally created."""
-    return (proposal.classification == ProposalClassification.NEW and
+    creatable_classification = (
+        proposal.classification == ProposalClassification.NEW or
+        (proposal.classification == ProposalClassification.CHANGE and
+         proposal.explicit_create_fallback_confirmed)
+    )
+    return (creatable_classification and
             proposal.responsibility == ProposalResponsibility.USER and
             proposal.certainty == ProposalCertainty.CERTAIN)
 
 
 def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Callable[[Proposal], None], test_mode: bool = False) -> tuple[Proposal, dict[str, Any]]:
     if not proposal_is_writable(proposal):
-        raise ValueError("Nur neue, sichere und eigene Vorschläge dürfen extern angelegt werden")
+        raise ValueError("Nur neue, sichere und eigene Vorschläge oder ausdrücklich bestätigte Ersatz-Neuanlagen dürfen extern angelegt werden")
     if proposal.status == ProposalStatus.SIMULATED:
         return proposal, {"simulation": True}
     if proposal.status not in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN} or proposal.open_questions: raise ValueError("Schreiben erfordert vollständige, bestätigte Vorschlagsversion")

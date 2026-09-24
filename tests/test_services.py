@@ -674,6 +674,19 @@ def test_revision_rejects_change_away_from_resolved_temporal_fact():
             answered_question="Welches Datum?", changes={"due": "2110-10-21"}))
 
 
+def test_change_revision_cannot_authorize_or_disguise_a_create_fallback():
+    question = "Welcher bestehende Eintrag soll geändert werden?"
+    original = proposal(classification="change", status="needs_clarification",
+                        open_questions=[question])
+    with pytest.raises(ValueError, match="ausdrückliche Bestätigung"):
+        apply_proposal_revision(original, ProposalRevisionDelta(
+            answered_question=question,
+            changes={"explicit_create_fallback_confirmed": True}))
+    with pytest.raises(ValueError, match="nicht als neuer Termin"):
+        apply_proposal_revision(original, ProposalRevisionDelta(
+            answered_question=question, changes={"classification": "new"}))
+
+
 def test_partial_event_revision_promotes_start_to_known_fact():
     original = proposal(kind="event", status="needs_clarification",
                         open_questions=["Wann beginnt der Termin?"],
