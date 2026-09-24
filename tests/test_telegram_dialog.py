@@ -1258,7 +1258,7 @@ def test_token_limit_fallback_parameters_persist_and_pause_after_restart(tmp_pat
 
     assert len(completer.requests) == 4
     assert [request[0]["max_tokens"] for request in completer.requests] == [
-        500, 180, 500, 180]
+        500, 500, 500, 500]
     assert [request[1] for request in completer.requests[1::2]] == [
         step.output_token_retry.system_prompt, step.output_token_retry.system_prompt]
 

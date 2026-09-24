@@ -1040,7 +1040,10 @@ striktes `json_schema`; andernfalls wird `json_object` verwendet und dieselbe
 Pydantic-Validierung bleibt verpflichtend.
 
 Bei `output_token_limit` folgt keine identische Wiederholung, sondern eine eigene
-kurze Route mit reduziertem Feldsatz und einem ausreichenden Ausgabelimit. Die
+kurze Route mit reduziertem Feldsatz. Ihr Ausgabelimit ist mindestens so groß wie
+das der fehlgeschlagenen Route. Eindeutige Antworten `Ja` und `Nein` auf die
+anwendungseigenen binären Fragen nach Zuständigkeit und sicherer Beleglage werden
+deterministisch normalisiert, ohne einen LLM-Provider aufzurufen. Die
 bereits normalisierte Antwort wird mit begrenztem Versuchszähler und nächstem
 Wiederholungszeitpunkt gespeichert und nach Neustart ohne erneute Benutzerfrage
 wiederaufgenommen. Nach Ausschöpfung wird die Revision pausiert. Logs enthalten nur
