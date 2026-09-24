@@ -705,6 +705,13 @@ def build_logger(
         llm_name=log.llm.filename, llm_format=log.llm.format,
         llm_max_bytes=log.llm.max_bytes, llm_backup_count=log.llm.backup_count,
         llm_retention_days=log.llm.retention_days,
+        telegram_enabled=log.telegram.enabled,
+        telegram_level=log.telegram.level,
+        telegram_name=log.telegram.filename,
+        telegram_format=log.telegram.format,
+        telegram_max_bytes=log.telegram.max_bytes,
+        telegram_backup_count=log.telegram.backup_count,
+        telegram_retention_days=log.telegram.retention_days,
     )
 
 

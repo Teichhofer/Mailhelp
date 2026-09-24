@@ -20,6 +20,7 @@ SENSITIVE = re.compile(
 class EventLogger(Protocol):
     def event(self, level: str, module: str, event: str, **context: Any) -> None: ...
     def llm_event(self, event: str, request: Any = None, response: Any = None, **context: Any) -> None: ...
+    def telegram_event(self, direction: str, **context: Any) -> None: ...
 
 
 class NullLogger:
@@ -29,6 +30,9 @@ class NullLogger:
         _validate_level(level)
 
     def llm_event(self, event: str, request: Any = None, response: Any = None, **context: Any) -> None:
+        return None
+
+    def telegram_event(self, direction: str, **context: Any) -> None:
         return None
 
 
@@ -100,28 +104,41 @@ class JsonlLogger:
         llm_max_bytes: int = 10_000_000,
         llm_backup_count: int = 5,
         llm_retention_days: int = 30,
+        telegram_enabled: bool = True,
+        telegram_level: str = "INFO",
+        telegram_name: Path | str = "telegram/messages.jsonl",
+        telegram_format: str = "jsonl",
+        telegram_max_bytes: int = 10_000_000,
+        telegram_backup_count: int = 5,
+        telegram_retention_days: int = 30,
     ):
         self.app = directory / file_name
         self.llm = directory / llm_name
+        self.telegram = directory / telegram_name
         self.include_requests, self.include_responses = include_llm_requests, include_llm_responses
         self.level = _validate_level(level)
         self.module_levels = {str(module): _validate_level(item) for module, item in (module_levels or {}).items()}
         self.secrets = tuple(secret for secret in secrets if secret)
         self.file_enabled, self.llm_enabled = file_enabled, llm_enabled
+        self.telegram_enabled = telegram_enabled
         self.console_enabled = console_enabled
         self.console_level = _validate_level(console_level)
         self.llm_level = _validate_level(llm_level or level)
+        self.telegram_level = _validate_level(telegram_level)
         self.console_format = _validate_format(console_format)
         self.file_format = _validate_format(file_format)
         self.llm_format = _validate_format(llm_format)
+        self.telegram_format = _validate_format(telegram_format)
         self.console = console or sys.stderr
         self.file_policy = (file_max_bytes, file_backup_count, file_retention_days)
         self.llm_policy = (llm_max_bytes, llm_backup_count, llm_retention_days)
-        for size, backups, days in (self.file_policy, self.llm_policy):
+        self.telegram_policy = (telegram_max_bytes, telegram_backup_count, telegram_retention_days)
+        for size, backups, days in (self.file_policy, self.llm_policy, self.telegram_policy):
             if size <= 0 or backups < 0 or days <= 0:
                 raise ValueError("Loggröße und Aufbewahrung müssen positiv, Backup-Anzahl darf null sein")
         self._prune(self.app, file_retention_days)
         self._prune(self.llm, llm_retention_days)
+        self._prune(self.telegram, telegram_retention_days)
 
     def enabled(self, level: str, module: str) -> bool:
         configured = self.level
@@ -219,6 +236,19 @@ class JsonlLogger:
         # Deliberately bypass application module filters and console output.
         record = self._record(level, "openrouter", event, context)
         self._write_file(self.llm, record, self.llm_format, self.llm_policy)
+
+    def telegram_event(self, direction: str, **context: Any) -> None:
+        """Write one successfully sent or validated received Telegram message."""
+        if direction not in {"sent", "received"}:
+            raise ValueError("Telegram-Richtung muss sent oder received sein")
+        if not self.telegram_enabled:
+            return
+        record = self._record(self.telegram_level, "telegram", "message", {
+            "direction": direction, **context,
+        })
+        self._write_file(
+            self.telegram, record, self.telegram_format, self.telegram_policy,
+        )
 
 
 def _validate_format(value: str) -> str:

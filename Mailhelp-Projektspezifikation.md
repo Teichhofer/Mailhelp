@@ -826,11 +826,18 @@ logs/
   application.jsonl
   llm/
     requests.jsonl
+  telegram/
+    messages.jsonl
 ```
 
 Das Anwendungslog enthält Verarbeitungsschritte, Statuswechsel, externe Aufrufe, Wiederholungen, Laufzeiten sowie Fehler mit Kontext und Stacktrace. Jeder Eintrag trägt Zeitstempel, Level, Modul und Ereignis; sofern zuordenbar außerdem Mail-ID, Vorschlags-ID und Aufruf-ID. Nach erfolgreicher Konfigurationsprüfung erzeugt jeder reguläre Aufruf ein Ereignis `application_started` mit den geparsten CLI-Parametern `config_directory`, `log_directory`, `check`, `check_access`, `max_mails`, `learn` und `clear`; rohe Befehlszeilen und Umgebungsvariablen werden nicht übernommen. Der Löschbefehl erzeugt bewusst kein neues Log, das unmittelbar wieder gelöscht werden müsste.
 
 Das separate LLM-Log erfasst Anfragebeginn, Antwort oder Fehler als getrennte Ereignisse mit derselben Aufruf-ID. Es enthält Auswertungsschritt, Modell, Anfrageparameter, Prompt-Fingerprint, Dauer, Status, Wiederholung sowie Tokenverbrauch und Kosten, sofern vom Dienst verfügbar.
+Das separate Telegram-Log erfasst jede erfolgreich gesendete und jede validierte
+empfangene Telegram-Nachricht mit Richtung, vollständigem Text beziehungsweise
+Callback-Daten sowie verfügbaren Nachrichten-, Benutzer-, Chat- und Update-IDs.
+Ungültige Telegram-Updates werden nicht als Nachrichten protokolliert. Das Log wird
+weder in das Anwendungslog noch auf die Konsole gespiegelt.
 Für jede syntaktisch gültige Providerantwort wird zusätzlich ein eigenes
 `token_usage_recorded`-Ereignis geschrieben. Es ordnet die vom Provider gemeldeten
 Eingabe-, Ausgabe- und Gesamttokens eindeutig der Aufruf-ID zu; meldet der Provider
@@ -851,9 +858,12 @@ logging:
     {enabled: true, level: INFO, format: jsonl, filename: llm/requests.jsonl,
      max_bytes: 10000000, backup_count: 5, retention_days: 30,
      include_requests: true, include_responses: true}
+  telegram:
+    {enabled: true, level: INFO, format: jsonl, filename: telegram/messages.jsonl,
+     max_bytes: 10000000, backup_count: 5, retention_days: 30}
 ```
 
-Konsole, Anwendungsdatei und LLM-Datei können unabhängig aktiviert werden. Für das
+Konsole, Anwendungsdatei, LLM-Datei und Telegram-Datei können unabhängig aktiviert werden. Für das
 Anwendungslog erben nicht genannte Module `file.level`; `modules` kann diesen Wert je
 Modul überschreiben. Das eigene `llm.level` ist davon vollständig unabhängig, sodass
 insbesondere `modules.openrouter` das LLM-Log nicht abschaltet. Die Konsole besitzt

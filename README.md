@@ -185,7 +185,7 @@ die Standardrolle unabhängig vom lokalisierten Ordnernamen. Der Lernmodus erken
 selbst angelegte, auswählbare Ordner und trägt
 deren exakte IMAP-Namen automatisch in `imap.folders` ein.
 
-`logging.console`, `logging.file` und `logging.llm` besitzen eigene Aktivierungs- und
+`logging.console`, `logging.file`, `logging.llm` und `logging.telegram` besitzen eigene Aktivierungs- und
 Level-Schalter; `logging.modules` überschreibt das Datei-Grundlevel für einzelne
 Anwendungsmodule. Dateiname, Format (`text` oder `jsonl`), maximale Dateigröße,
 Backup-Anzahl und Aufbewahrung in Tagen sind konfigurierbar. Das LLM-Log filtert
@@ -193,7 +193,11 @@ unabhängig von `logging.modules.openrouter`. Die mitgelieferte `config.yaml` ak
 `logging.llm.include_requests` und `include_responses` ausdrücklich: Das LLM-Log enthält
 damit die vollständige Anfrage einschließlich Systemprompt und Usernachricht sowie die
 vollständige Modellantwort. Wer diese Inhalte nicht protokollieren möchte, setzt beide
-Schalter auf `false`; sie werden niemals auf die Konsole gespiegelt. Alle
+Schalter auf `false`; sie werden niemals auf die Konsole gespiegelt.
+Das separate Telegram-Log enthält den vollständigen Text jeder erfolgreich
+gesendeten und jeder von Telegram validiert empfangenen Nachricht sowie empfangene
+Callback-Daten. Es wird nicht in das Anwendungslog oder auf die Konsole gespiegelt
+und sollte wegen dieser vertraulichen Inhalte entsprechend geschützt werden. Alle
 Logfelder, einschließlich Fehler und Stacktraces, durchlaufen die rekursive
 Geheimnisbereinigung. Alte aktive Logs und nummerierte Rotationen werden beim Start
 und vor Schreibzugriffen ausschließlich innerhalb ihres konfigurierten Verzeichnisses
