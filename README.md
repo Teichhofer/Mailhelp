@@ -477,10 +477,10 @@ in genau einem Abrufdurchlauf höchstens 50 Mails, auch wenn `imap.batch_size` a
 dem Standardwert 25 steht (einschließlich fälliger, nach einem
 Neustart fortzusetzender Mails). Nicht verbrauchtes Kontingent führt nicht zu
 einem weiteren IMAP-Abruf;
-`--max-mails` muss mindestens `1` sein. Stellt die Verarbeitung eine Frage oder
-einen Vorschlag per Telegram zur Entscheidung, wartet sie auch in diesem Modus
-auf die Bearbeitung und setzt erst danach dieselbe und anschließend weitere Mails
-fort. Bereits bestätigte externe Schreibaktionen
+`--max-mails` muss mindestens `1` sein. Nur eine unklare Relevanzfrage unterbricht
+in diesem Modus die Analyse derselben Mail bis zur Antwort. Aufgaben- und
+Terminvorschläge bleiben unabhängig davon offen und halten die Verarbeitung
+weiterer Mails nicht an. Bereits bestätigte externe Schreibaktionen
 behalten auch in diesem Modus ihre normalen Sicherheits- und Abgleichsregeln.
 Ein Stoppsignal beendet auch dieses Warten kontrolliert; der dauerhafte Zustand
 wird beim nächsten Start wieder aufgenommen.

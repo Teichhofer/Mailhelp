@@ -589,23 +589,25 @@ class Application:
         return True
 
     def _process_mail(self, mail: object) -> ProcessingResult:
-        """Finish one mail's Telegram dialog before allowing the next mail."""
+        """Finish only analysis-blocking relevance questions for one mail."""
         while True:
             result = self.orchestrator.process(mail)
-            if not self._wait_for_user:
+            # Completed analysis may have created one or more action proposals.
+            # Those proposals remain deliberately asynchronous: waiting for any
+            # open controller dialog here would stall the complete IMAP batch.
+            if not self._wait_for_user or result.outcome is not ProcessingOutcome.WAITING:
                 return result
             if not self._wait_for_telegram_decision():
                 return result
             # An unclear relevance answer interrupts analysis.  Once Telegram
             # resolved it, resume this same mail before advancing the mailbox.
-            if result.outcome is not ProcessingOutcome.WAITING:
-                return result
 
     def _wait_for_telegram_decision(self) -> bool:
-        """Long-poll until the current explicit question is resolved or stopped."""
-        if self.dialog is None or not self.dialog.awaiting_decision():
+        """Long-poll until the current relevance question is resolved or stopped."""
+        if self.dialog is None or not self.dialog.awaiting_relevance_decision():
             return False
-        while not self.stop_event.is_set() and self.dialog.awaiting_decision():
+        while (not self.stop_event.is_set()
+               and self.dialog.awaiting_relevance_decision()):
             if not self._poll_telegram():
                 self.stop_event.wait(min(
                     self.settings.poll_interval_seconds,
@@ -624,8 +626,6 @@ class Application:
                     self.logger.event("ERROR", "retention", "cleanup_failed",
                                       processed_at=datetime.now(timezone.utc).isoformat(), failure_count=1)
                 telegram_poll_succeeded = self._poll_telegram()
-                if not self.stop_event.is_set() and self._wait_for_telegram_decision():
-                    telegram_poll_succeeded = True
                 if not self.stop_event.is_set():
                     self._poll_imap(max_mails)
                 if max_mails is not None:

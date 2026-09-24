@@ -1891,6 +1891,7 @@ def test_relevance_dialog_authorization_stale_restart_and_duplicate(tmp_path):
         store.save("mail-"+mail_id,relevance_state(mail_id).model_dump(mode="json"))
         updates=[callback(1,f"relevance:{mail_id}:1:relevant",user=9),callback(2,f"relevance:{mail_id}:2:relevant"),callback(3,f"relevance:{mail_id}:1:relevant")]
         c,t,_=controller(store,updates); handler=RelevanceHandler(store); c.relevance_handler=handler
+        assert c.awaiting_relevance_decision()
         c.send_relevance(RelevanceDialog(mail_id=mail_id), "Alice <alice@example.test>", "Rechnung")
         visible=t.sent[-1][1]
         callbacks=t.sent[-1][2]["inline_keyboard"][0]
@@ -1901,6 +1902,7 @@ def test_relevance_dialog_authorization_stale_restart_and_duplicate(tmp_path):
             f"relevance:{mail_id}:1:irrelevant",
         ]
         c.poll_once()
+        assert not c.awaiting_relevance_decision()
         assert all(text == "Aktion wird verarbeitet …" for _, text in t.answered[:3])
         assert any("Nicht autorisierte" in text for _, text, _ in t.sent)
         assert any("konnte nicht verarbeitet" in text for _, text, _ in t.sent)

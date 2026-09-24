@@ -1363,6 +1363,10 @@ class TelegramDialogController:
                 return True
         return False
 
+    def awaiting_relevance_decision(self) -> bool:
+        """Return whether an unfinished mail analysis needs a relevance answer."""
+        return bool(self._open_relevance_dialogs())
+
     def poll_once(self, timeout: int | None = None) -> None:
         self.write_executor.resume()
         self.revisions.resume()
