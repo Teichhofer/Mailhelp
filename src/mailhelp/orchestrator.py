@@ -387,7 +387,8 @@ class Orchestrator:
                                     or route.event_count > 0)
                     if wants_tasks and state.steps.task_extraction in {"pending", "failed"}:
                         stage = ProcessingStage.TASK_EXTRACTION
-                        call, extraction = self.analyzer.extract_tasks(state.mail)
+                        call, extraction = self.analyzer.extract_tasks(
+                            state.mail, expected_count=route.task_count)
                         state.task_extraction = extraction
                         state.llm_call_ids.append(call)
                         state.steps.task_extraction = "completed"
@@ -395,12 +396,15 @@ class Orchestrator:
                         self._record_count_conflict(name, state, "task", route.task_count,
                                                     len(extraction.tasks),
                                                     state.action_router_call_id, call)
+                        if len(extraction.tasks) != route.task_count:
+                            raise LlmSchemaValidationExceeded("task_extraction")
                     if not wants_tasks:
                         state.steps.task_extraction = "skipped"
                         self._save(name, state)
                     if wants_events and state.steps.event_extraction in {"pending", "failed"}:
                         stage = ProcessingStage.EVENT_EXTRACTION
-                        call, extraction = self.analyzer.extract_events(state.mail)
+                        call, extraction = self.analyzer.extract_events(
+                            state.mail, expected_count=route.event_count)
                         state.event_extraction = extraction
                         state.llm_call_ids.append(call)
                         state.steps.event_extraction = "completed"
@@ -408,6 +412,8 @@ class Orchestrator:
                         self._record_count_conflict(name, state, "event", route.event_count,
                                                     len(extraction.events),
                                                     state.action_router_call_id, call)
+                        if len(extraction.events) != route.event_count:
+                            raise LlmSchemaValidationExceeded("event_extraction")
                     elif not wants_events:
                         state.steps.event_extraction = "skipped"
                         self._save(name, state)

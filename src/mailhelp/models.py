@@ -368,7 +368,7 @@ class ExtractedTask(StrictModel):
 
 class TaskExtraction(StrictModel):
     schema_version: Literal[1] = 1
-    tasks: list[ExtractedTask] = Field(default_factory=list, max_length=20)
+    tasks: list[ExtractedTask] = Field(max_length=20)
 
 
 class TimeRequirement(StrEnum):
@@ -447,7 +447,7 @@ class ExtractedEvent(StrictModel):
 
 class EventExtraction(StrictModel):
     schema_version: Literal[1] = 1
-    events: list[ExtractedEvent] = Field(default_factory=list, max_length=20)
+    events: list[ExtractedEvent] = Field(max_length=20)
 
 
 class ExtractionCountConflict(StrictModel):

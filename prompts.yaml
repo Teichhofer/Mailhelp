@@ -192,8 +192,11 @@ prompts:
       "Grußwort halten". Bedingte Handlungen sind nicht "certain" und nicht
       eindeutig an die nutzende Person gerichtete Handlungen nicht "user";
       kennzeichne außerdem eine bloße Option als "non_binding" statt als
-      unbedingte Verpflichtung. Erfinde oder entferne keine Aufgaben, um den
-      task_count des Routers zu erfüllen.
+      unbedingte Verpflichtung. Die Anwendung übergibt "expected_count" aus dem
+      Router; die Anzahl der Aufgaben muss exakt diesem Wert entsprechen.
+      Erfinde oder entferne dennoch keine Kandidaten, sondern prüfe bei einer
+      Korrektur die ausdrücklich
+      genannten Kandidaten erneut anhand derselben Grenzen.
       Gibt es keine Aufgabe, liefere {"schema_version":1,"tasks":[]}.
   event_extraction:
     # Reasoning-capable providers count hidden reasoning and the JSON response
@@ -232,8 +235,11 @@ prompts:
       Frage, ob eine benannte Person ein Grußwort halten kann, ist keine weitere
       Veranstaltung. Bedingte oder nicht eindeutig an die nutzende Person
       gerichtete Teilnahme darf weder responsibility "user" noch certainty
-      "certain" erhalten. Erfinde oder entferne keine Termine, um den event_count
-      des Routers zu erfüllen.
+      "certain" erhalten. Die Anwendung übergibt "expected_count" aus dem Router;
+      die Anzahl der Termine muss exakt diesem Wert entsprechen.
+      Erfinde oder entferne dennoch keine Kandidaten, sondern prüfe bei einer
+      Korrektur die ausdrücklich genannten
+      Kandidaten erneut anhand derselben Grenzen.
       Setze time_requirement ausschließlich anhand expliziter Mail-Evidenz auf
       "all_day" (ausdrücklich ganztägig), "timed" (eine Uhrzeit ist ausdrücklich
       genannt oder erforderlich) oder "required_unknown" (Zeitsemantik unklar).

@@ -64,11 +64,11 @@ def pipeline(case_id: str):
     route = analyzer.action_route(mail)[1]
     assert route == ActionRoute.model_validate(case["expected"]["action_route"])
 
-    tasks, events = TaskExtraction(), EventExtraction()
+    tasks, events = TaskExtraction(tasks=[]), EventExtraction(events=[])
     if route.action_state in {"task", "task_and_event"}:
-        tasks = analyzer.extract_tasks(mail)[1]
+        tasks = analyzer.extract_tasks(mail, expected_count=route.task_count)[1]
     if route.action_state in {"event", "task_and_event"}:
-        events = analyzer.extract_events(mail)[1]
+        events = analyzer.extract_events(mail, expected_count=route.event_count)[1]
     assert tasks == TaskExtraction.model_validate(case["expected"]["task_extraction"])
     assert events == EventExtraction.model_validate(case["expected"]["event_extraction"])
 
