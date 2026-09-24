@@ -281,11 +281,35 @@ class Analyzer:
     def action_route(self, mail: dict[str, Any]) -> tuple[str, ActionRoute]:
         return self._run("action_router", ActionRoute, mail)
 
-    def extract_tasks(self, mail: dict[str, Any]) -> tuple[str, TaskExtraction]:
-        return self._run("task_extraction", TaskExtraction, mail)
+    def extract_tasks(self, mail: dict[str, Any], *, expected_count: int) -> tuple[str, TaskExtraction]:
+        def validate_tasks(raw: Any) -> TaskExtraction:
+            result = TaskExtraction.model_validate(raw)
+            if len(result.tasks) != expected_count:
+                raise ValueError(
+                    f"Der Router hat {expected_count} Tasks erkannt. "
+                    f"Extrahiere exakt diese Tasks; erhalten: {len(result.tasks)}."
+                )
+            return result
 
-    def extract_events(self, mail: dict[str, Any]) -> tuple[str, EventExtraction]:
-        return self._run("event_extraction", EventExtraction, mail)
+        return self._classified_run(
+            "task_extraction", {"mail": mail, "expected_count": expected_count},
+            validate_tasks, schema=TaskExtraction,
+        )
+
+    def extract_events(self, mail: dict[str, Any], *, expected_count: int) -> tuple[str, EventExtraction]:
+        def validate_events(raw: Any) -> EventExtraction:
+            result = EventExtraction.model_validate(raw)
+            if len(result.events) != expected_count:
+                raise ValueError(
+                    f"Der Router hat {expected_count} Events erkannt. "
+                    f"Extrahiere exakt diese Events; erhalten: {len(result.events)}."
+                )
+            return result
+
+        return self._classified_run(
+            "event_extraction", {"mail": mail, "expected_count": expected_count},
+            validate_events, schema=EventExtraction,
+        )
 
     def calendar_duplicate(self, proposal: Proposal,
                            existing: dict[str, Any]) -> tuple[str, CalendarDuplicateDecision]:

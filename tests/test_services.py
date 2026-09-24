@@ -15,7 +15,7 @@ from mailhelp.imap import FetchedMail
 from mailhelp.integrations import CalendarFileWriter, HttpWriter, calendar_file, execute_confirmed
 from mailhelp.mime import MimeLimits
 from mailhelp.models import (ActionRoute, Proposal, ProposalRevisionChanges, ProposalRevisionDelta,
-                             ProposalStatus, Relevance, RelevanceDialog,
+                             ProposalStatus, Relevance, RelevanceDialog, TaskExtraction,
                              apply_proposal_revision)
 from mailhelp.openrouter import (InvalidJson, OpenRouterClient, ProviderResponseInvalid,
                                  RateLimitExceeded)
@@ -178,12 +178,46 @@ def test_analyzer():
     client=FakeCompleter([{}, {"decision":"relevant","topic_ids":["x"],"reason":"yes"}, {"sentences":["a","b"]}, {"schema_version":1,"tasks":[]}, {"schema_version":1,"events":[]}])
     analyzer=Analyzer(client,prompt_config(),1); topic=Topic(id="x",name="X",enabled=True,description="D")
     assert analyzer.relevance({},[topic])[1].decision == "relevant"; assert analyzer.summary({})[1].sentences == ["a","b"]
-    assert analyzer.extract_tasks({})[1].tasks == []; assert analyzer.extract_events({})[1].events == []
+    assert analyzer.extract_tasks({}, expected_count=0)[1].tasks == []
+    assert analyzer.extract_events({}, expected_count=0)[1].events == []
     with pytest.raises(ValueError): Analyzer(FakeCompleter([{},{}]),prompt_config(),1).summary({})
     with pytest.raises(LlmSchemaValidationFailed):
         Analyzer(FakeCompleter([{"decision":"relevant","topic_ids":["bad"],"reason":"x"}]),prompt_config(),schema_repair_retries=0).relevance({}, [topic])
     with pytest.raises(LlmSchemaValidationFailed):
         Analyzer(FakeCompleter([{"decision":"relevant","topic_ids":[],"reason":"x"}]),prompt_config(),schema_repair_retries=0).relevance({}, [topic])
+
+
+def test_task_extraction_retries_router_count_and_requires_tasks_field():
+    task = {"title": "Seminar bewerben", "description": "", "evidence": "Bitte bewerben Sie das Seminar.",
+            "responsibility": "user", "certainty": "certain", "classification": "new", "due_text": None}
+    second = {**task, "title": "Ausschreibung weiterleiten",
+              "evidence": "Bitte senden Sie die Ausschreibung an Ihre Mitglieder weiter."}
+    client = RetrySequence([
+        {"schema_version": 1, "tasks": []},
+        {"schema_version": 1, "tasks": [task, second]},
+    ])
+
+    call_id, result = Analyzer(client, prompt_config(), schema_repair_retries=1).extract_tasks(
+        {"text": "synthetische Mail"}, expected_count=2)
+
+    assert call_id == "provider-call-2"
+    assert [item.title for item in result.tasks] == ["Seminar bewerben", "Ausschreibung weiterleiten"]
+    assert client.payloads[0]["expected_count"] == 2
+    assert "Router hat 2 Tasks erkannt" in client.payloads[1]["previous_validation_error"]
+    assert client.systems[1].endswith(SCHEMA_REPAIR_INSTRUCTION)
+    with pytest.raises(ValidationError):
+        TaskExtraction.model_validate({"schema_version": 1})
+
+
+def test_event_extraction_rejects_persistent_router_count_mismatch():
+    client = RetrySequence([
+        {"schema_version": 1, "events": []},
+        {"schema_version": 1, "events": []},
+    ])
+    with pytest.raises(LlmSchemaValidationFailed):
+        Analyzer(client, prompt_config(), schema_repair_retries=1).extract_events(
+            {"text": "synthetische Mail"}, expected_count=1)
+    assert "Router hat 1 Events erkannt" in client.payloads[1]["previous_validation_error"]
 
 
 @pytest.mark.parametrize(("state", "tasks", "events"), [
@@ -977,12 +1011,12 @@ class AnalyzerStub:
     def actions(self,m):
         from mailhelp.models import Actions
         return "a",Actions()
-    def extract_tasks(self,m):
+    def extract_tasks(self,m, *, expected_count):
         from mailhelp.models import ExtractedTask, TaskExtraction
         return "t",TaskExtraction(tasks=[ExtractedTask(title="Aufgabe",description="",evidence="Body",responsibility="user",certainty="certain",classification="new")])
-    def extract_events(self,m):
+    def extract_events(self,m, *, expected_count):
         from mailhelp.models import EventExtraction
-        return "e",EventExtraction()
+        return "e",EventExtraction(events=[])
 class Notify:
     def __init__(self): self.messages=[]
     def send(self,c,t): self.messages.append(t)
@@ -1045,14 +1079,14 @@ def test_orchestrator_sends_event_candidate_even_when_route_is_unclear(tmp_path)
             return "ar", ActionRoute(action_state="unclear", task_count=0, event_count=1,
                                      reason="Der Termin ist erkannt, die Einladung ist unklar.")
 
-        def extract_events(self, mail):
+        def extract_events(self, mail, *, expected_count):
             from mailhelp.models import EventExtraction, ExtractedEvent
             return "e", EventExtraction(events=[ExtractedEvent(
                 title="Gemeinderatssitzung", evidence="Sitzung am 22.09.2026",
                 date_text="22.09.2026", time_requirement="required_unknown", responsibility="unclear",
                 certainty="certain", classification="new")])
 
-        def extract_tasks(self, mail):
+        def extract_tasks(self, mail, *, expected_count):
             raise AssertionError("Ohne Aufgabenkandidat darf keine Aufgabenextraktion laufen")
 
     notify = Notify()
@@ -1223,7 +1257,7 @@ def test_orchestrator_resumes_each_persisted_analysis_step(tmp_path):
         def relevance(self,m,t): self.calls.append("relevance"); return super().relevance(m,t)
         def summary(self,m): self.calls.append("summary"); return super().summary(m)
         def action_route(self,m): self.calls.append("action_router"); return super().action_route(m)
-        def extract_tasks(self,m): self.calls.append("task_extraction"); return super().extract_tasks(m)
+        def extract_tasks(self,m, *, expected_count): self.calls.append("task_extraction"); return super().extract_tasks(m, expected_count=expected_count)
     class InterruptingStore:
         def __init__(self, delegate, fail_at): self.delegate=delegate; self.fail_at=fail_at; self.count=0
         def load(self,*args): return self.delegate.load(*args)
@@ -1267,7 +1301,7 @@ def test_gemeinderat_action_failure_preserves_summary_and_retries_only_actions(t
             self.calls.append("action_router")
             return "ar", ActionRoute(action_state="event", task_count=0, event_count=1,
                                      reason="Eine Gemeinderatssitzung ist ein Termin.")
-        def extract_events(self, mail):
+        def extract_events(self, mail, *, expected_count):
             self.calls.append("events")
             if self.fail_actions:
                 raise LlmSchemaValidationExceeded("event_extraction")
@@ -1326,10 +1360,10 @@ def test_task_and_event_partial_success_resumes_only_failed_event(tmp_path):
             self.calls.append("router-call")
             return "router-id", ActionRoute(action_state="task_and_event", task_count=1,
                                              event_count=1, reason="Beides")
-        def extract_tasks(self, mail):
+        def extract_tasks(self, mail, *, expected_count):
             self.calls.append("task-call")
-            return super().extract_tasks(mail)
-        def extract_events(self, mail):
+            return super().extract_tasks(mail, expected_count=expected_count)
+        def extract_events(self, mail, *, expected_count):
             self.calls.append("event-call")
             if self.fail_event:
                 raise LlmSchemaValidationExceeded("event_extraction")
@@ -1369,21 +1403,24 @@ def test_router_count_mismatch_is_assigned_to_its_extractor(tmp_path, kind, expe
             return "ar", ActionRoute(action_state=kind,
                 task_count=1 if kind == "task" else 0,
                 event_count=1 if kind == "event" else 0, reason="Fund")
-        def extract_tasks(self, mail):
+        def extract_tasks(self, mail, *, expected_count):
             from mailhelp.models import TaskExtraction
-            return "t", TaskExtraction()
-        def extract_events(self, mail):
+            return "t", TaskExtraction(tasks=[])
+        def extract_events(self, mail, *, expected_count):
             from mailhelp.models import EventExtraction
-            return "e", EventExtraction()
+            return "e", EventExtraction(events=[])
 
     with JsonStore(tmp_path / kind) as store:
         result = Orchestrator(MismatchAnalyzer("relevant"), store, Notify(), 1,
             [Topic(id="x", name="x", enabled=True, description="x")], 1000).process(
                 FetchedMail("INBOX", 1, 120 if kind == "task" else 121,
                             b"Subject: Inkonsistent\n\nBody"))
-    assert result.outcome is ProcessingOutcome.COMPLETED
-    assert result["error"] is None
-    assert result["steps"][expected_stage] == "completed"
+    assert result.outcome is ProcessingOutcome.COMPLETED_WITH_ACTION_ERROR
+    assert result["error"]["code"] == "schema_validation_failed"
+    assert result["steps"][expected_stage] == "failed"
+    assert result["steps"]["action_detection"] == "failed"
+    assert result["steps"]["normalization"] == "pending"
+    assert result["proposals"] == []
     assert result["extraction_count_conflicts"][0] | {
         "notification_marked_at": None
     } == {
@@ -1401,20 +1438,33 @@ def test_router_count_mismatch_is_assigned_to_its_extractor(tmp_path, kind, expe
     assert len(state.extraction_count_conflicts) == before
     state.steps.completion = "pending"
     state.steps.proposal_notification = "pending"
+    # Simulate a historical pre-fix state that had already aggregated actions;
+    # its durable conflict must still be notified exactly once.
+    state.steps.action_detection = "completed"
     store.save("mail-" + state.id, state.model_dump(mode="json"))
     restarted_notifier = Notify()
     Orchestrator(MismatchAnalyzer("relevant"), store, restarted_notifier, 1,
         [Topic(id="x", name="x", enabled=True, description="x")], 1000
     ).process(FetchedMail("INBOX", 1, 120 if kind == "task" else 121,
                           b"Subject: Inkonsistent\n\nBody"))
-    assert not any("Zählerabweichung" in message for message in restarted_notifier.messages)
+    assert sum("Zählerabweichung" in message for message in restarted_notifier.messages) == 1
+    state = store.load_model("mail-" + state.id, MailState)
+    state.steps.completion = "pending"
+    state.steps.proposal_notification = "pending"
+    store.save("mail-" + state.id, state.model_dump(mode="json"))
+    again = Notify()
+    Orchestrator(MismatchAnalyzer("relevant"), store, again, 1,
+        [Topic(id="x", name="x", enabled=True, description="x")], 1000
+    ).process(FetchedMail("INBOX", 1, 120 if kind == "task" else 121,
+                          b"Subject: Inkonsistent\n\nBody"))
+    assert not any("Zählerabweichung" in message for message in again.messages)
 
 
 def test_resume_after_extractor_and_after_action_aggregation(tmp_path):
     class EventAnalyzer(AnalyzerStub):
         def action_route(self, mail):
             return "ar", ActionRoute(action_state="event", task_count=0, event_count=1, reason="Termin")
-        def extract_events(self, mail):
+        def extract_events(self, mail, *, expected_count):
             from mailhelp.models import EventExtraction, ExtractedEvent
             return "e", EventExtraction(events=[ExtractedEvent(
                 title="Termin", evidence="Termin", time_requirement="required_unknown", responsibility="other",
