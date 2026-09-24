@@ -427,7 +427,10 @@ Folgetag dargestellt. Eine Uhrzeit wird nur bei vorhandenem Datum, Beginn, Ende 
 entweder einem expliziten festen Offset oder einer eindeutigen IANA-Nutzerzeitzone
 normalisiert; nicht existente oder doppelte Ortszeiten an DST-Übergängen erfordern
 eine Rückfrage. Es werden weder eine Standarduhrzeit,
-eine Dauer noch ein UTC-Offset erfunden. Ein optional extrahiertes
+eine Dauer noch ein UTC-Offset erfunden. Eine ausdrücklich belegte Dauer wird als
+`duration_minutes` (1 bis 1440 ganze Minuten) im Vorschlag erhalten. Sobald ein
+Beginn feststeht, wird das Ende deterministisch daraus berechnet; ohne belegte
+Dauer bleibt das Ende eine eigene Klärungsfrage. Ein optional extrahiertes
 `timezone_offset_text` muss wörtlich und ausdrücklich beim Termin in der Mail
 stehen und exakt `UTC+HH:MM` oder `UTC-HH:MM` im Bereich von `UTC-14:00` bis
 `UTC+14:00` (an den Grenzen nur `:00`) entsprechen. Es darf weder aus Ortsnamen

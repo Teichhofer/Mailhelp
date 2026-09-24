@@ -347,6 +347,11 @@ def normalize_event(event: ExtractedEvent, context: MailDateContext) -> Normaliz
     if isinstance(start, NormalizationResult):
         return replace(start, temporal_fact=fact)
     if event.end_time_text is None:
+        if event.duration_minutes is not None:
+            end = start + timedelta(minutes=event.duration_minutes)
+            return NormalizationResult(TemporalValue(start, end, False), None,
+                                       f"{event.date_text} {event.time_text}", None,
+                                       responsibility, temporal_fact=fact)
         result = _failure(NormalizationReason.MISSING_END_TIME, event.time_text, responsibility,
                           "Wann endet der Termin?")
         return replace(result, known_date=day, known_start=start, temporal_fact=fact)

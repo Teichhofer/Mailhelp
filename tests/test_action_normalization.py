@@ -321,6 +321,15 @@ def test_german_named_date_rejects_invalid_day_and_conflicting_weekday():
     assert invalid.reason == NormalizationReason.INVALID_DATE
     assert conflict.reason == NormalizationReason.INVALID_DATE
 
+
+def test_explicit_duration_calculates_end_without_guessing():
+    result = normalize_event(event(
+        date_text="25.09.2026", time_text="11:00", end_time_text=None,
+        duration_minutes=30, time_requirement="timed"), context())
+    assert result.resolved
+    assert result.value.start.isoformat() == "2026-09-25T11:00:00+02:00"
+    assert result.value.end.isoformat() == "2026-09-25T11:30:00+02:00"
+
 @pytest.mark.parametrize("raw", ["Freitag, den 9. Oktober 2026", "9. Oktober 2026"])
 def test_german_named_date_with_year_and_optional_weekday_is_supported(raw):
     result = normalize_event(event(date_text=raw, time_text="19:00 Uhr",

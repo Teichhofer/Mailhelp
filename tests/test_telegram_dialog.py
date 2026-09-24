@@ -343,6 +343,35 @@ def test_deterministic_date_only_and_context_requirements():
     assert overnight.end > overnight.start
 
 
+def test_reported_date_time_answer_retains_start_fact_and_uses_duration():
+    item = proposal(
+        kind="event", status="needs_clarification", duration_minutes=30,
+        open_questions=["Wann beginnt der Termin?"],
+        temporal_fact={"raw_text": None, "normalized_date": None,
+                       "year_source": "unknown", "status": "unresolved"},
+    )
+    revised = deterministic_temporal_revision(
+        item, item.open_questions[0], "2026-09-25 11:00", "Europe/Berlin")
+    assert revised.start.isoformat() == "2026-09-25T11:00:00+02:00"
+    assert revised.end.isoformat() == "2026-09-25T11:30:00+02:00"
+    assert revised.temporal_fact.normalized_date == date(2026, 9, 25)
+    assert revised.temporal_fact.year_source == "telegram"
+    assert revised.open_questions == []
+    assert "Beginn: 2026-09-25T11:00:00+02:00" in format_proposal(
+        revised, "Europe/Berlin")
+
+
+def test_formatting_shows_retained_incomplete_start_and_duration():
+    item = proposal(
+        kind="event", status="needs_clarification", duration_minutes=30,
+        open_questions=["Wann endet der Termin?"],
+        known_temporal_facts={
+            "date": "2026-09-25", "start": "2026-09-25T11:00:00+02:00"})
+    text = format_proposal(item, "Europe/Berlin")
+    assert "Beginn: 2026-09-25T11:00:00+02:00" in text
+    assert "Dauer: 30 Minuten" in text
+
+
 def test_temporal_date_delta_rejects_conflict_and_preserves_existing_storage():
     existing = proposal(
         kind="event", status="needs_clarification",
@@ -1103,9 +1132,13 @@ def test_technical_answer_errors_are_consumed_without_reasking(
 
         c.poll_once()
 
-        assert transport.sent[-1][1] == (
+        expected_message = (
+            "Technischer Abbruch: Das Modell hat sein Ausgabetokenlimit erreicht. "
+            "Die sicher gespeicherte Antwort wird mit der Ausweichstrategie erneut bewertet."
+            if isinstance(error, LlmTokenLimitExceeded) else
             "Die interne Verarbeitung ist verzögert. "
             "Die sicher gespeicherte Antwort wird erneut bewertet.")
+        assert transport.sent[-1][1] == expected_message
         assert "Welches Datum?" not in transport.sent[-1][1]
         assert store.load("telegram-offset")["offset"] == 5
         assert store.load("telegram-dialog")["proposal_id"] == "p1"

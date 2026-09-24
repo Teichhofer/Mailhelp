@@ -190,6 +190,17 @@ def test_known_temporal_facts_are_strict_and_event_only():
     with pytest.raises(ValidationError, match="nicht mit Terminintervallen"):
         Proposal.model_validate({**incomplete.model_dump(),
                                  "start": "2026-09-22T10:00:00+02:00"})
+    with pytest.raises(ValidationError, match="Nur Termine"):
+        Proposal.model_validate({**builder().build([task()], [])[0].model_dump(),
+                                 "duration_minutes": 30})
+
+
+def test_explicit_event_duration_survives_proposal_boundary():
+    proposal = builder().build([], [event(
+        date_text="25.09.2026", time_text=None, end_time_text=None,
+        duration_minutes=30, time_requirement="timed")])[0]
+    assert proposal.duration_minutes == 30
+    assert proposal.known_temporal_facts.date == date(2026, 9, 25)
 
 
 def test_identity_collision_is_rehashed_and_a_second_collision_rejected(monkeypatch):

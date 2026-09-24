@@ -422,6 +422,7 @@ class ExtractedEvent(StrictModel):
     date_text: str | None = Field(default=None, min_length=1, max_length=500)
     time_text: str | None = Field(default=None, min_length=1, max_length=500)
     end_time_text: str | None = Field(default=None, min_length=1, max_length=500)
+    duration_minutes: int | None = Field(default=None, ge=1, le=1440)
     timezone_offset_text: str | None = None
     time_requirement: TimeRequirement
     location: str | None = Field(default=None, min_length=1, max_length=1000)
@@ -576,6 +577,7 @@ class Proposal(StrictModel):
     due: date | datetime | None = None
     start: date | datetime | None = None
     end: date | datetime | None = None
+    duration_minutes: int | None = Field(default=None, ge=1, le=1440)
     all_day: bool = False
     known_temporal_facts: KnownTemporalFacts | None = None
     temporal_fact: TemporalFact | None = None
@@ -610,6 +612,8 @@ class Proposal(StrictModel):
             raise ValueError("Nur vollständige neue Vorschläge dürfen bestätigt werden")
         if self.kind == ProposalKind.TASK and (self.start is not None or self.end is not None or self.all_day):
             raise ValueError("Aufgaben dürfen keine Kalenderzeit enthalten")
+        if self.kind != ProposalKind.EVENT and self.duration_minutes is not None:
+            raise ValueError("Nur Termine dürfen eine Dauer enthalten")
         if self.kind == ProposalKind.TASK and isinstance(self.due, datetime) and (
                 self.due.tzinfo is None or self.due.utcoffset() is None):
             raise ValueError("Zeitgebundene Aufgabenfristen benötigen einen eindeutigen UTC-Offset")

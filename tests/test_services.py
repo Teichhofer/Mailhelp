@@ -345,10 +345,10 @@ def test_raw_extraction_prompts_are_separate_and_injection_resistant():
     assert 'Ordne sie nicht allein deshalb als\n"non_binding" oder "unsupported"' in task
     assert '"non_binding" gilt nur für ausdrücklich unverbindliche Ideen oder Optionen' in task
     assert '"unsupported" nur für Aufgabenarten' in task
-    for field in ("title", "description", "evidence", "date_text", "time_text", "end_time_text", "time_requirement", "location", "video_link", "responsibility", "certainty", "classification"):
+    for field in ("title", "description", "evidence", "date_text", "time_text", "end_time_text", "duration_minutes", "time_requirement", "location", "video_link", "responsibility", "certainty", "classification"):
         assert field in event
     complete_event_fields = (
-        "title,\ndescription, evidence, date_text, time_text, end_time_text, timezone_offset_text, time_requirement,\n"
+        "title,\ndescription, evidence, date_text, time_text, end_time_text, duration_minutes, timezone_offset_text, time_requirement,\n"
         "location, video_link, responsibility, certainty und classification"
     )
     assert complete_event_fields in event
@@ -495,7 +495,7 @@ def test_proposal_revision_prompt_covers_date_schema_and_output_budget():
         encoding="utf-8"))["prompts"]["telegram_answer_interpretation"]
     assert '"JJJJ-MM-TT HH:MM"' in interpretation["system_prompt"]
     assert interpretation["parameters"]["max_tokens"] == 500
-    assert interpretation["output_token_retry"]["parameters"]["max_tokens"] == 500
+    assert interpretation["output_token_retry"]["parameters"]["max_tokens"] == 1000
     assert "drei Feldern" in interpretation["output_token_retry"]["system_prompt"]
     assert "change_fields" not in interpretation["output_token_retry"]
 
