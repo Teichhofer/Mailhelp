@@ -264,6 +264,12 @@ zunächst für diese Mail; automatische Änderungen an Themenregeln sind nicht
 vorgesehen. Ohne aktivierten Themenbereich startet die Verarbeitung nicht und
 zeigt eine verständliche Konfigurationsmeldung.
 
+Das an OpenRouter übermittelte Structured-Output-Schema verlangt alle drei Felder.
+Fehlt `topic_ids` oder enthält eine als `relevant` bewertete Antwort kein Thema,
+wird die Antwort als Schemafehler behandelt und innerhalb des begrenzten
+Schema-Reparaturpfads erneut angefordert. Erst eine vollständig validierte Antwort
+schließt die Relevanzstufe erfolgreich ab.
+
 ## 6. LLM-Anbindung und Prompt-Konfiguration
 
 Alle LLM-Aufrufe erfolgen über OpenRouter. Die Pipeline besteht aus den getrennten

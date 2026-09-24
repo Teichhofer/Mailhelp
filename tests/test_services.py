@@ -15,7 +15,7 @@ from mailhelp.imap import FetchedMail
 from mailhelp.integrations import CalendarFileWriter, HttpWriter, calendar_file, execute_confirmed
 from mailhelp.mime import MimeLimits
 from mailhelp.models import (ActionRoute, Proposal, ProposalRevisionChanges, ProposalRevisionDelta,
-                             ProposalStatus, RelevanceDialog,
+                             ProposalStatus, Relevance, RelevanceDialog,
                              apply_proposal_revision)
 from mailhelp.openrouter import (InvalidJson, OpenRouterClient, ProviderResponseInvalid,
                                  RateLimitExceeded)
@@ -180,8 +180,10 @@ def test_analyzer():
     assert analyzer.relevance({},[topic])[1].decision == "relevant"; assert analyzer.summary({})[1].sentences == ["a","b"]
     assert analyzer.extract_tasks({})[1].tasks == []; assert analyzer.extract_events({})[1].events == []
     with pytest.raises(ValueError): Analyzer(FakeCompleter([{},{}]),prompt_config(),1).summary({})
-    with pytest.raises(ValueError, match="unbekannte"): Analyzer(FakeCompleter([{"decision":"relevant","topic_ids":["bad"],"reason":"x"}]),prompt_config()).relevance({}, [topic])
-    with pytest.raises(ValueError, match="mindestens"): Analyzer(FakeCompleter([{"decision":"relevant","topic_ids":[],"reason":"x"}]),prompt_config()).relevance({}, [topic])
+    with pytest.raises(LlmSchemaValidationFailed):
+        Analyzer(FakeCompleter([{"decision":"relevant","topic_ids":["bad"],"reason":"x"}]),prompt_config(),schema_repair_retries=0).relevance({}, [topic])
+    with pytest.raises(LlmSchemaValidationFailed):
+        Analyzer(FakeCompleter([{"decision":"relevant","topic_ids":[],"reason":"x"}]),prompt_config(),schema_repair_retries=0).relevance({}, [topic])
 
 
 @pytest.mark.parametrize(("state", "tasks", "events"), [
@@ -231,6 +233,22 @@ def test_analyzer_accepts_complete_relevance_format_for_every_decision(result):
     topic=Topic(id="x",name="X",enabled=True,description="D")
     relevance=Analyzer(FakeCompleter([result]),prompt_config()).relevance({},[topic])[1]
     assert relevance.model_dump()==result
+
+
+def test_relevance_schema_requires_topic_ids_and_missing_field_is_repaired():
+    assert "topic_ids" in Relevance.model_json_schema()["required"]
+    topic=Topic(id="x",name="X",enabled=True,description="D")
+    client=RetrySequence([
+        {"decision":"relevant","reason":"Termin vorhanden."},
+        {"decision":"relevant","topic_ids":["x"],"reason":"Termin vorhanden."},
+    ])
+
+    call_id,relevance=Analyzer(client,prompt_config()).relevance({},[topic])
+
+    assert call_id=="provider-call-2"
+    assert relevance.topic_ids==["x"]
+    assert "previous_validation_error" in client.payloads[1]
+    assert "topic_ids" in client.payloads[1]["previous_validation_error"]
 
 
 def test_relevance_prompt_defines_closed_output_format_and_untrusted_mail_examples():
@@ -949,7 +967,7 @@ class AnalyzerStub:
     def __init__(self, decision): self.decision=decision
     def relevance(self,m,t):
         from mailhelp.models import Relevance
-        return "r",Relevance(decision=self.decision,reason="why")
+        return "r",Relevance(decision=self.decision,topic_ids=[],reason="why")
     def summary(self,m):
         from mailhelp.models import Summary
         return "s",Summary(sentences=["eins","zwei"])
