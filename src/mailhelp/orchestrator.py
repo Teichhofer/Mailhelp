@@ -240,7 +240,9 @@ class Orchestrator:
             raise ValueError("Die Relevanzfrage ist veraltet oder bereits beantwortet")
         if decision not in {"relevant", "irrelevant"}:
             raise ValueError("Ungültige Relevanzentscheidung")
-        state.relevance = Relevance(decision=decision, reason="Telegram-Entscheidung")
+        state.relevance = Relevance(
+            decision=decision, topic_ids=[], reason="Telegram-Entscheidung"
+        )
         state.awaiting_relevance = False
         state.relevance_dialog = dialog.model_copy(update={"status": RelevanceDialogStatus.DECIDED, "decision": decision, "telegram_offset": telegram_offset})
         if decision == "irrelevant":
@@ -311,7 +313,7 @@ class Orchestrator:
                 assert isinstance(blocked, IrrelevantSenders)
                 if is_irrelevant_sender(state.mail["headers"].get("from", ""), blocked):
                     state.relevance = Relevance(
-                        decision="irrelevant", reason="Absender-Vorfilter"
+                        decision="irrelevant", topic_ids=[], reason="Absender-Vorfilter"
                     )
                     call = None
                 else:

@@ -68,7 +68,8 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
             ProcessingErrorCode.INVALID_JSON.value,
             ProcessingErrorCode.SCHEMA_VALIDATION_FAILED.value} == {
                 "provider_response_invalid", "invalid_json", "schema_validation_failed"}
-    assert Relevance(decision="relevant", reason="x").topic_ids == []
+    with pytest.raises(ValidationError):
+        Relevance(decision="relevant", reason="x")
     assert len(Summary(sentences=["a"]).sentences) == 1
     assert len(Summary(sentences=["a", "b"]).sentences) == 2
     assert TelegramAnswerInterpretation(usable=True, normalized_answer="1. Oktober", reason="passt").usable

@@ -230,7 +230,10 @@ class ProposalClarificationState(StrictModel):
 
 class Relevance(StrictModel):
     decision: Literal["relevant", "irrelevant", "unclear"]
-    topic_ids: list[str] = Field(default_factory=list)
+    # Deliberately no default: OpenRouter derives its structured-output schema
+    # from this model, so every provider response must contain the field even
+    # when the correct value is an empty list.
+    topic_ids: list[str]
     reason: str = Field(min_length=1, max_length=1000)
 
     @model_validator(mode="after")

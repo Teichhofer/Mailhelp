@@ -257,15 +257,23 @@ class Analyzer:
 
     def relevance(self, mail: dict[str, Any], topics: list[Topic]) -> tuple[str, Relevance]:
         enabled = [topic for topic in topics if topic.enabled]
-        call_id, result = self._run("relevance", Relevance, mail, {
-            "topics": [topic.model_dump() for topic in enabled]
-        })
-        unknown = set(result.topic_ids) - {topic.id for topic in enabled}
-        if unknown:
-            raise ValueError(f"LLM lieferte unbekannte Themen-IDs: {sorted(unknown)}")
-        if result.decision == "relevant" and not result.topic_ids:
-            raise ValueError("Eine relevante Nachricht benötigt mindestens ein Thema")
-        return call_id, result
+        enabled_ids = {topic.id for topic in enabled}
+
+        def validate_relevance(raw: Any) -> Relevance:
+            result = Relevance.model_validate(raw)
+            unknown = set(result.topic_ids) - enabled_ids
+            if unknown:
+                raise ValueError(f"LLM lieferte unbekannte Themen-IDs: {sorted(unknown)}")
+            if result.decision == "relevant" and not result.topic_ids:
+                raise ValueError("Eine relevante Nachricht benötigt mindestens ein Thema")
+            return result
+
+        return self._classified_run(
+            "relevance",
+            {"mail": mail, "topics": [topic.model_dump() for topic in enabled]},
+            validate_relevance,
+            schema=Relevance,
+        )
 
     def summary(self, mail: dict[str, Any]) -> tuple[str, Summary]:
         return self._run("summary", Summary, mail)

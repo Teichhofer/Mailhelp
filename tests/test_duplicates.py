@@ -14,7 +14,7 @@ class CountingAnalyzer:
     def relevance(self, mail, topics):
         from mailhelp.models import Relevance
         self.calls += 1
-        return "r", Relevance(decision="irrelevant", reason="test")
+        return "r", Relevance(decision="irrelevant", topic_ids=[], reason="test")
 
 
 class Notify:

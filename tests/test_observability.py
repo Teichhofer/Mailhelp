@@ -254,18 +254,21 @@ def test_network_adapter_failure_events():
 
 def test_openrouter_uses_strict_schema_or_validated_json_fallback():
     requests=[]
-    response={"id":"x","choices":[{"message":{"content":'{"sentences":["X."],"deadlines":[]}'}}]}
+    response={"id":"x","choices":[{"message":{"content":'{"decision":"irrelevant","topic_ids":[],"reason":"X"}'}}]}
     def handler(request):
         requests.append(json.loads(request.content)); return httpx.Response(200,json=response,request=request)
     client=OpenRouterClient("key",1,0,10,httpx.MockTransport(handler))
-    from mailhelp.models import Summary
-    client.complete("m",{},"s",{},response_schema=Summary,supports_json_schema=True)
-    client.complete("m",{},"s",{},response_schema=Summary,supports_json_schema=False)
+    from mailhelp.models import Relevance
+    client.complete("m",{},"s",{},response_schema=Relevance,supports_json_schema=True)
+    client.complete("m",{},"s",{},response_schema=Relevance,supports_json_schema=False)
     client.close()
     strict=requests[0]["response_format"]
     assert strict["type"] == "json_schema"
     assert strict["json_schema"]["strict"] is True
     assert strict["json_schema"]["schema"]["additionalProperties"] is False
+    assert strict["json_schema"]["schema"]["required"] == [
+        "decision", "topic_ids", "reason"
+    ]
     assert requests[1]["response_format"] == {"type":"json_object"}
 
 
