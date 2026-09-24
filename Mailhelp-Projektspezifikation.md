@@ -470,7 +470,12 @@ Jedes von der Extraktion gelieferte Terminobjekt enthält das verpflichtende Fel
 der Schemavalidierungsgrenze abgewiesen. `all_day` verlangt einen ausdrücklichen
 Ganztagshinweis in der Mail; ein bloßes Datum ist keine solche Evidenz und führt zu
 `required_unknown`. Nur `all_day` wird als exklusives Datumsintervall vom Datum bis
-zum Folgetag normalisiert. Bei `timed` und `required_unknown` bleibt ein bekanntes
+zum Folgetag normalisiert. Ein expliziter, eindeutig parsebarer mehrtägiger
+Datumsbereich ohne Uhrzeiten wird ebenfalls als Ganztagsintervall normalisiert;
+dabei liegt das technische exklusive Ende am Tag nach dem genannten letzten Tag.
+Fehlt `date_text` irrtümlich, wird vor einer Rückfrage derselbe eindeutige Bereich
+aus `evidence` deterministisch wiedergewonnen. Bei mehreren oder widersprüchlichen
+Bereichen erfolgt weiterhin eine Rückfrage. Bei `timed` und `required_unknown` bleibt ein bekanntes
 Datum strikt typisiert in `known_temporal_facts` erhalten und es wird ausschließlich
 nach dem Beginn gefragt. Ist der Beginn bekannt, bleibt auch dieser Fakt erhalten und
 es wird ausschließlich nach dem Ende gefragt. Beginn, Ende und Dauer werden nicht

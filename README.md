@@ -345,11 +345,15 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
 * Jedes extrahierte Terminobjekt muss `time_requirement` ausdrücklich enthalten;
   zulässig sind ausschließlich `all_day`, `timed` und `required_unknown`. Nur
   explizite Mail-Evidenz darf `all_day` setzen; `timed` bezeichnet einen
-  zeitgebundenen Termin und `required_unknown` die konservative Wahl bei unklarer Zeitsemantik. Ein bekanntes
-  Datum ohne Uhrzeit wird in `known_temporal_facts` bewahrt und löst eine konkrete
-  Frage nach dem Beginn aus, statt stillschweigend einen Ganztagstermin zu erzeugen.
-  Ein bekannter Beginn löst nur noch die Frage nach dem Ende aus; Uhrzeit, Ende und
-  Dauer werden niemals ergänzt.
+  zeitgebundenen Termin und `required_unknown` die konservative Wahl bei unklarer
+  Zeitsemantik. Ein bekanntes Datum ohne Uhrzeit wird in `known_temporal_facts`
+  bewahrt und löst eine konkrete Frage nach dem Beginn aus, statt stillschweigend
+  einen Ganztagstermin zu erzeugen. Ein bekannter Beginn löst nur noch die Frage
+  nach dem Ende aus; Uhrzeit, Ende und Dauer werden niemals ergänzt.
+* Eindeutige Datumsbereiche ohne Uhrzeit (zum Beispiel `5.–6. November 2026`)
+  werden vor einer Rückfrage deterministisch als mehrtägige Ganztagstermine
+  erkannt. Das intern gespeicherte Enddatum ist dabei exklusiv; für den 5. und
+  6. November lautet es daher `2026-11-07`.
   Eine an die Nutzerin oder den Nutzer gerichtete, noch auszuführende einmalige
   Bitte, Aufforderung oder Verpflichtung wird als `new` klassifiziert. Eine
   sachliche, automatisch erzeugte oder indirekte Formulierung macht die Aufgabe
