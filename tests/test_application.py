@@ -102,19 +102,19 @@ def test_global_mailbox_order_and_max_mail_budget(tmp_path):
     ] == [(2, 3)]
 
 
-def test_exhausted_uid_is_failed_without_stopping_following_queue_item(tmp_path):
+def test_exhausted_uid_halts_queue_and_restart_retries_same_item(tmp_path):
     stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
 
     class Reader:
         account_id = "0" * 24
         last_uidvalidity = 7
-        def __init__(self): self.fetches = []
+        def __init__(self, fail=True): self.fetches = []; self.fail = fail
         def discover_since(self, folder, *_args):
             return [MailCandidate(folder, 7, uid, self.account_id, stamp)
                     for uid in (2, 3)]
         def fetch_uid(self, folder, uid, validity):
             self.fetches.append(uid)
-            if uid == 2:
+            if uid == 2 and self.fail:
                 raise RuntimeError("private server diagnostic")
             return FetchedMail(folder, validity, uid, b"x", self.account_id, stamp)
 
@@ -125,12 +125,21 @@ def test_exhausted_uid_is_failed_without_stopping_following_queue_item(tmp_path)
     results = service._poll_imap(max_mails=2)
 
     run = MailRunState.model_validate(store.values[f"mail-run-{reader.account_id}"])
-    assert [entry.status.value for entry in run.entries] == ["failed", "completed"]
-    assert [entry.failure_code for entry in run.entries] == ["imap_read_exhausted", None]
+    assert [entry.status.value for entry in run.entries] == ["processing", "queued"]
+    assert [entry.failure_code for entry in run.entries] == [None, None]
     assert "private server diagnostic" not in str(store.values[f"mail-run-{reader.account_id}"])
-    assert reader.fetches == [2, 3]
-    assert service.orchestrator.seen == [3]
-    assert len(results) == 1
+    assert reader.fetches == [2]
+    assert service.orchestrator.seen == []
+    assert results == []
+    assert service._poll_imap(max_mails=2) == []
+    assert reader.fetches == [2]
+
+    restarted_reader = Reader(fail=False)
+    restarted = app(tmp_path, restarted_reader, Telegram([]), Orch(), store=store,
+                    global_newest_first=True)
+    assert len(restarted._poll_imap(max_mails=2)) == 2
+    assert restarted_reader.fetches == [2, 3]
+    assert restarted.orchestrator.seen == [2, 3]
     with pytest.raises(ValueError, match="Fehlermerkmal"):
         MailRunEntry(account_id="a", folder="INBOX", uidvalidity=1, uid=1,
                      status="completed", analysis_terminal="completed",
@@ -347,8 +356,8 @@ def test_reconnectable_timeout_resumes_same_materialized_queue(tmp_path):
     assert MailRunState.model_validate(store.values[run_name]).run_complete is True
 
 
-def test_failed_analysis_is_terminal_and_next_queued_mail_runs(tmp_path):
-    """Fall E: one failed analysis does not poison the remaining queue."""
+def test_unhandled_analysis_failure_halts_the_materialized_queue(tmp_path):
+    """One analysis failure must not be repeated for the remaining queue."""
     stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
 
     class Reader:
@@ -372,10 +381,10 @@ def test_failed_analysis_is_terminal_and_next_queued_mail_runs(tmp_path):
     results = service._poll_imap(max_mails=100)
     run = MailRunState.model_validate(store.values[f"mail-run-{service.imap.account_id}"])
 
-    assert len(results) == 1
-    assert service.orchestrator.seen == [1, 2]
-    assert [entry.status for entry in run.entries] == ["failed", "completed"]
-    assert run.run_complete is True
+    assert results == []
+    assert service.orchestrator.seen == [1]
+    assert [entry.status for entry in run.entries] == ["processing", "queued"]
+    assert run.run_complete is False
 
 
 def test_acceptance_full_inbox_batch_survives_dialog_timeout_and_optional_folders(tmp_path):
@@ -603,8 +612,10 @@ def test_polling_errors_resume_and_stop(tmp_path):
     durable_store=Store({_checkpoint_name("0"*24, "INBOX"):{"uidvalidity":7,"uid":3}})
     durable=app(tmp_path,Imap([(7,[mail1,mail2])]),Telegram([]),FirstReturnsFailure(),store=durable_store)
     results=durable._poll_imap()
-    assert [result.outcome for result in results]==[ProcessingOutcome.FAILED,ProcessingOutcome.COMPLETED]
-    assert durable_store.values[_checkpoint_name("0"*24, "INBOX")]["uid"]==5
+    assert [result.outcome for result in results]==[ProcessingOutcome.FAILED]
+    assert durable.orchestrator.seen==[4]
+    assert durable_store.values[_checkpoint_name("0"*24, "INBOX")]["uid"]==3
+    assert durable_store.values[_checkpoint_name("0"*24, "INBOX")].get("completed_uid_ranges",[])==[]
     assert any(e[0][2]=="mail_failed" and e[1]["uid"]==4 for e in durable.logger.events)
 
     failing=app(tmp_path,Imap([RuntimeError("imap"),(9,[]),(10,[])]),Telegram(RuntimeError("tg")),Orch(),folders=("bad","new","none"))
