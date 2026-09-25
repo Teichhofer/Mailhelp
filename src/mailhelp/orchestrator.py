@@ -88,6 +88,38 @@ class Orchestrator:
             state.extraction_count_conflicts,
         )
 
+    def _resolve_questions_from_mail(self, name: str, state: MailState) -> None:
+        """Resolve consecutive open questions from the source mail before Telegram."""
+        assert state.mail is not None
+        for index, initial in enumerate(state.proposals):
+            proposal = initial
+            while proposal.open_questions:
+                question = proposal.open_questions[0]
+                call, interpretation = self.analyzer.answer_question_from_mail(
+                    state.mail, proposal, question)
+                state.llm_call_ids.append(call)
+                self._save(name, state)
+                if not interpretation.usable:
+                    self.logger.event(
+                        "INFO", "orchestrator", "mail_question_unanswered",
+                        mail_id=state.id, proposal_id=proposal.id,
+                        proposal_version=proposal.version, question=question,
+                        call_id=call,
+                    )
+                    break
+                assert interpretation.normalized_answer is not None
+                revision_call, proposal = self.analyzer.revise_proposal(
+                    proposal, question, interpretation.normalized_answer)
+                state.llm_call_ids.append(revision_call)
+                state.proposals[index] = proposal
+                self._save(name, state)
+                self.logger.event(
+                    "INFO", "orchestrator", "mail_question_resolved",
+                    mail_id=state.id, proposal_id=proposal.id,
+                    proposal_version=proposal.version, question=question,
+                    interpretation_call_id=call, revision_call_id=revision_call,
+                )
+
     def _record_count_conflict(self, name: str, state: MailState, category: str,
                                expected: int, actual: int, router_call_id: str,
                                extractor_call_id: str) -> None:
@@ -427,11 +459,12 @@ class Orchestrator:
                     if state.steps.proposal_building in {"pending", "failed"}:
                         state.proposals = [Proposal.model_validate(item.model_dump(mode="json"))
                                            for item in state.normalized_proposals]
-                        state.proposal_notifications = [ProposalNotification(
-                            proposal_id=item.id, proposal_version=item.version)
-                            for item in state.proposals]
                         state.steps.proposal_building = "completed"
                         self._save(name, state)
+                    self._resolve_questions_from_mail(name, state)
+                    state.proposal_notifications = [ProposalNotification(
+                        proposal_id=item.id, proposal_version=item.version)
+                        for item in state.proposals]
                     state.steps.action_detection = "completed"
                     self._save(name, state)
                     self.logger.event("INFO", "orchestrator", "actions_completed", mail_id=state.id,

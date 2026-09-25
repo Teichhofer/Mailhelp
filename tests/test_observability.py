@@ -205,7 +205,7 @@ def test_llm_attempt_observability_covers_all_repairs_and_safe_default_logs(tmp_
     client = OpenRouterClient("api-key-marker", 1, 0, 20,
                               httpx.MockTransport(handler), logger=logger)
     prompt_names = ("relevance", "summary", "action_router", "task_extraction",
-                    "event_extraction", "telegram_answer_interpretation", "telegram_answer_clarification", "proposal_revision", "learning_classification", "learning_abstraction", "calendar_duplicate")
+                    "event_extraction", "mail_question_resolution", "telegram_answer_interpretation", "telegram_answer_clarification", "proposal_revision", "learning_classification", "learning_abstraction", "calendar_duplicate")
     prompts = PromptConfig(defaults={"model": "model-x", "parameters": {}}, prompts={
         name: PromptStep(system_prompt=("full prompt marker" if name == "summary" else name))
         for name in prompt_names
@@ -328,7 +328,7 @@ def test_routing_retry_fallback_and_shared_correlation_with_unique_attempts():
                 raise ProviderResponseInvalid("choice_missing")
             return f"attempt-{len(self.calls)}", {"sentences":["One.", "Two."], "deadlines":[]}
     steps = ("relevance", "summary", "action_router", "task_extraction",
-             "event_extraction", "telegram_answer_interpretation", "telegram_answer_clarification", "proposal_revision", "learning_classification", "learning_abstraction", "calendar_duplicate")
+             "event_extraction", "mail_question_resolution", "telegram_answer_interpretation", "telegram_answer_clarification", "proposal_revision", "learning_classification", "learning_abstraction", "calendar_duplicate")
     prompts = PromptConfig(defaults={}, prompts={name: PromptStep(
         system_prompt=name,
         routes=[LlmRoute(provider="openrouter", model="primary"),

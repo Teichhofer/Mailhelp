@@ -27,7 +27,7 @@ from mailhelp.telegram import Decision, TelegramClient, apply_decision, split_me
 
 
 def prompt_config(model="model"):
-    return PromptConfig(defaults={"model": model, "parameters": {"temperature": .2}}, prompts={x: PromptStep(system_prompt=x, parameters={"max_tokens": 200}) for x in ("relevance", "summary", "action_router", "task_extraction", "event_extraction", "telegram_answer_interpretation", "telegram_answer_clarification", "proposal_revision", "learning_classification", "learning_abstraction", "calendar_duplicate")})
+    return PromptConfig(defaults={"model": model, "parameters": {"temperature": .2}}, prompts={x: PromptStep(system_prompt=x, parameters={"max_tokens": 200}) for x in ("relevance", "summary", "action_router", "task_extraction", "event_extraction", "mail_question_resolution", "telegram_answer_interpretation", "telegram_answer_clarification", "proposal_revision", "learning_classification", "learning_abstraction", "calendar_duplicate")})
 
 
 def test_strict_ordered_llm_route_configuration():
@@ -79,6 +79,9 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
         TelegramAnswerInterpretation(usable=True, reason="fehlt")
     with pytest.raises(ValidationError):
         TelegramAnswerInterpretation(usable=False, normalized_answer="Wert", reason="unerwartet")
+    with pytest.raises(ValueError, match="nicht offen"):
+        Analyzer(object(), prompt_config()).answer_question_from_mail(
+            {"text": "synthetisch"}, proposal(), "Unbekannte Frage?")
     with pytest.raises(ValidationError):
         Summary(sentences=["a", "b", "c"])
     assert Actions().proposals == []
@@ -105,7 +108,7 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
     with pytest.raises(ValueError, match="Reservierte"): bad.resolved("summary")
     with pytest.raises(ValidationError): PromptConfig(defaults={}, prompts={"summary": PromptStep(system_prompt="x")})
     names = ("relevance", "summary", "action_router", "task_extraction",
-             "event_extraction", "telegram_answer_interpretation", "telegram_answer_clarification", "proposal_revision", "learning_classification", "learning_abstraction", "calendar_duplicate")
+             "event_extraction", "mail_question_resolution", "telegram_answer_interpretation", "telegram_answer_clarification", "proposal_revision", "learning_classification", "learning_abstraction", "calendar_duplicate")
     with pytest.raises(ValidationError, match="Primärmodell"):
         PromptConfig(defaults={}, prompts={name: PromptStep(system_prompt=name) for name in names})
     invalid_parameters = prompt_config()

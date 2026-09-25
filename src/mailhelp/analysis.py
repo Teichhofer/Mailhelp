@@ -328,6 +328,21 @@ class Analyzer:
             CalendarDuplicateDecision.model_validate, schema=CalendarDuplicateDecision,
         )
 
+    def answer_question_from_mail(self, mail: dict[str, Any], proposal: Proposal,
+                                  question: str) -> tuple[str, TelegramAnswerInterpretation]:
+        """Check whether one open proposal question is answered by its source mail."""
+        if question not in proposal.open_questions:
+            raise ValueError("Die Frage ist im Vorschlag nicht offen")
+        allowed = self._revision_fields(proposal, question)
+        context = {name: value for name, value in proposal.model_dump(mode="json").items()
+                   if name in allowed}
+        return self._classified_run(
+            "mail_question_resolution",
+            {"mail": mail, "question": question, "proposal_fields": context},
+            TelegramAnswerInterpretation.model_validate,
+            schema=TelegramAnswerInterpretation,
+        )
+
     def revise_proposal(self, proposal: Proposal, question: str,
                         authorized_answer: str) -> tuple[str, Proposal]:
         """Request only a closed delta and apply lifecycle fields locally."""
