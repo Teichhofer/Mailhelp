@@ -1627,6 +1627,26 @@ def test_safe_failures_are_structured_and_notified_once_after_restart(tmp_path, 
         assert "Private body" not in message and "not-for" not in message
 
 
+def test_permanent_adapter_safe_detail_is_included_in_notification(tmp_path):
+    class Failing:
+        def relevance(self, mail, topics):
+            raise PermanentError(
+                "Permanente Adapterantwort",
+                safe_detail=("OpenRouter: Authentifizierungsfehler "
+                             "(OPENROUTER_API_KEY wurde abgelehnt)"),
+            )
+
+    topic = Topic(id="x", name="x", enabled=True, description="x")
+    mail = FetchedMail("INBOX", 1, 42, b"Subject: Test\n\nBody")
+    notify = Notify()
+    with JsonStore(tmp_path / "safe-detail") as store:
+        result = Orchestrator(Failing(), store, notify, 1, [topic], 1000).process(mail)
+
+    assert result.outcome is ProcessingOutcome.FAILED
+    assert "OpenRouter: Authentifizierungsfehler" in notify.messages[0]
+    assert "OPENROUTER_API_KEY wurde abgelehnt" in notify.messages[0]
+
+
 @pytest.mark.parametrize("limit_name", ["max_mime_parts", "max_decoded_text_bytes"])
 def test_mime_limit_uses_persisted_display_headers_once_after_restart(tmp_path, limit_name):
     message = EmailMessage()

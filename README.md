@@ -237,6 +237,8 @@ analysierbare Mailanzahl unabhängig von `--max-mails`.
   nicht wiederholbar, weshalb trotz des allgemeinen Ereignisnamens nur
   `attempt: 1` erscheint. `Permanente Adapterantwort` ist die zusammengefasste
   Folge dieses Authentifizierungsfehlers, nicht ein zusätzlicher Telegram-Fehler.
+  Die Telegram-Fehlermeldung nennt OpenRouter und `OPENROUTER_API_KEY` ausdrücklich,
+  gibt aber weder den Schlüssel noch Antwortinhalte des Dienstes aus.
 * `mime_limit_exceeded` mit `max_mail_bytes` bedeutet, dass die MIME-Nachricht
   nach dem Entfernen erkannter Anhänge größer als `limits.max_mail_bytes` ist.
   Große Anhänge und deren Transferkodierung verhindern die Verarbeitung des

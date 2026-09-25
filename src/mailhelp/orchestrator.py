@@ -578,8 +578,11 @@ class Orchestrator:
                               error=exc, stacktrace=traceback.format_exc())
             outcome = self._failure_outcome(name, state, stage)
         except PermanentError as exc:
+            detail = getattr(exc, "safe_detail", None)
+            suffix = f" {detail}" if detail else ""
             self._failure(name, state, ProcessingErrorCode.PERMANENT_ADAPTER_ERROR, stage,
-                          "Ein externer Dienst hat die Anfrage dauerhaft abgelehnt. Bitte dessen Konfiguration prüfen.", False)
+                          ("Ein externer Dienst hat die Anfrage dauerhaft abgelehnt. "
+                           f"Bitte dessen Konfiguration prüfen.{suffix}"), False)
             self.logger.event("ERROR", "orchestrator", "permanent_adapter_error", mail_id=state.id, stage=stage.value,
                               error=exc, stacktrace=traceback.format_exc())
             outcome = self._failure_outcome(name, state, stage)

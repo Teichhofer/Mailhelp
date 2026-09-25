@@ -16,6 +16,10 @@ RETRYABLE_STATUS = frozenset({408, 425, 429, 500, 502, 503, 504})
 class PermanentError(RuntimeError):
     """Die identische Anfrage darf nicht erneut gesendet werden."""
 
+    def __init__(self, message: str, *, safe_detail: str | None = None):
+        self.safe_detail = safe_detail
+        super().__init__(f"{message}: {safe_detail}" if safe_detail else message)
+
 
 class RetryableError(RuntimeError):
     """Eine eindeutig lesende/idempotente Operation ist temporaer gescheitert."""
@@ -58,7 +62,10 @@ class RetryPolicy:
                 if delay is None or attempt == self.retries:
                     if self._retryable(exc):
                         raise RetryableError(_error_message("Wiederholbare Anfrage ist ausgeschoepft", exc)) from exc
-                    raise PermanentError(_error_message("Permanente Adapterantwort", exc)) from exc
+                    raise PermanentError(
+                        "Permanente Adapterantwort",
+                        safe_detail=getattr(exc, "safe_detail", None),
+                    ) from exc
                 if self.wait(delay):
                     raise RetryInterrupted("Shutdown waehrend Adapter-Backoff") from exc
                 attempt += 1
