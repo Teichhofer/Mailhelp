@@ -33,6 +33,7 @@ class Notifier(Protocol):
     def send(self, chat_id: int, text: str) -> None: ...
     def send_proposal(self, proposal: Any) -> None: ...
     def send_relevance(self, dialog: RelevanceDialog, sender: str, subject: str) -> None: ...
+    def awaiting_decision(self) -> bool: ...
 
 
 class ProcessingOutcome(StrEnum):
@@ -486,6 +487,21 @@ class Orchestrator:
                                 not dedicated_delivery and current.status == "sending"):
                             current.status = "completed"
                             self._save(name, state)
+                        # The production dialog persists the proposal before it
+                        # exposes its buttons.  Stop at that durable boundary so
+                        # no later proposal (or other processing) can overtake
+                        # the user's version-bound decision.
+                        if (dedicated_delivery
+                                and self.notifier.awaiting_decision()):
+                            self.logger.event(
+                                "INFO", "orchestrator", "proposal_decision_pending",
+                                mail_id=state.id, proposal_id=proposal.id,
+                                proposal_version=proposal.version,
+                            )
+                            return ProcessingResult(
+                                ProcessingOutcome.WAITING,
+                                state.model_dump(mode="json"),
+                            )
                     state.steps.proposal_notification = "completed"
                     self._save(name, state)
             stage = ProcessingStage.COMPLETION

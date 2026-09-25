@@ -147,11 +147,11 @@ Die nachfolgenden Betriebsdetails konkretisieren den vereinbarten Kern als vorge
 6. Irrelevante Nachrichten werden als verarbeitet markiert und erzeugen keine Telegram-Nachricht. Bei unklarer Relevanz zeigt eine Rückfrage den aufbereiteten Absender und Betreff, jedoch keine interne Mail-ID. Diese bleibt zusammen mit der Dialogversion ausschließlich in den Callback-Daten zur technischen Zuordnung.
 7. Für relevante Nachrichten erstellt das LLM eine Zusammenfassung und prüft auf Aufgaben und Termine. Nach einer unklaren Einstufung geschieht dies erst nach der Auswahl `Relevant`; bei Auswahl `Irrelevant` wird keine Zusammenfassung erzeugt.
 8. Mailhelp validiert die strukturierten Ergebnisse und sendet die Zusammenfassung über Telegram.
-9. Erkannte Aufgaben und Termine werden als einzelne Vorschläge zur Prüfung angeboten.
+9. Erkannte Aufgaben und Termine werden als einzelne Vorschläge zur Prüfung angeboten. Nach jeder Telegram-Nachricht mit Schaltflächen pausiert das gesamte Programm bis zur zugehörigen Auswahl; erst danach darf der nächste Vorschlag oder die nächste Mail verarbeitet werden. Diese Sperre gilt auch über Neustarts hinweg.
 10. Bestätigte, vollständige Vorschläge werden im vorgesehenen Dienst gespeichert. Erfolg oder Fehler wird per Telegram zurückgemeldet.
-11. Vor dem Beenden sendet Mailhelp eine Zusammenfassung des gesamten aktuellen Laufs mit der Zahl der bearbeiteten, erfolgreich abgeschlossenen, wartenden und fehlgeschlagenen Verarbeitungsversuche. Dies gilt auch bei einem kontrollierten Signalabbruch oder einem unerwarteten Laufzeitfehler; ein Fehler beim Versand wird protokolliert und verdeckt den ursprünglichen Fehler nicht.
+11. Vor dem Beenden sendet Mailhelp eine Zusammenfassung des gesamten aktuellen Laufs mit der Zahl der bearbeiteten, erfolgreich abgeschlossenen, wartenden und fehlgeschlagenen Verarbeitungsversuche. Solange eine Telegram-Auswahl offen ist, wird auch diese Nachricht zurückgestellt. Andernfalls gilt der Versand auch bei einem kontrollierten Signalabbruch oder einem unerwarteten Laufzeitfehler; ein Fehler beim Versand wird protokolliert und verdeckt den ursprünglichen Fehler nicht.
 
-Fehler in einer Mail dürfen die Verarbeitung anderer Mails nicht dauerhaft blockieren. Eine Mail wird erst dann als vollständig verarbeitet markiert, wenn die vorgesehenen Schritte erfolgreich abgeschlossen oder ausdrücklich übersprungen wurden. Offene Vorschläge können darüber hinaus bestehen bleiben.
+Fehler in einer Mail dürfen die Verarbeitung anderer Mails nicht dauerhaft blockieren. Eine Mail wird erst dann als vollständig verarbeitet markiert, wenn die vorgesehenen Schritte erfolgreich abgeschlossen oder ausdrücklich übersprungen wurden. Eine offene Telegram-Auswahl blockiert dagegen absichtlich jede weitere Verarbeitung, bis sie beantwortet wurde.
 
 ## 4. IMAP und Inhaltsaufbereitung
 
