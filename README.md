@@ -158,6 +158,14 @@ lädt, sind deshalb insbesondere die konfigurierte `historical_start`-Grenze,
 noch fällige Wiederaufnahmen innerhalb desselben Mailkontingents und
 `poll_failed`-/`mail_failed`-Ereignisse im Anwendungslog zu prüfen.
 
+Mit `mailhelp --max-mails 1000 --ignore-historical-start` wird die konfigurierte
+historische Grenze für diesen Start ausdrücklich aufgehoben. Der Schalter setzt
+zugleich den gespeicherten Startpunkt aller konfigurierten Ordner in der aktuellen
+UID-Generation auf UID 0 zurück, behält aber die Bereiche bereits verarbeiteter
+Nachrichten bei. Damit werden zuvor von der Grenze ausgeschlossene Mails
+nachgeladen, ohne bereits erledigte Mails erneut auszuführen; `--max-mails`
+begrenzt den aktuellen Lauf weiterhin.
+
 Mit `imap.global_newest_first: true` werden alle unter `imap.folders`
 konfigurierten Ordner als ein gemeinsames Postfach behandelt. Mailhelp ermittelt
 dafür zunächst pro Ordner nur ein auf das gemeinsame Kontingent begrenztes Fenster
@@ -204,7 +212,9 @@ und vor Schreibzugriffen ausschließlich innerhalb ihres konfigurierten Verzeich
 entfernt.
 Nach erfolgreichem Laden der Konfiguration schreibt jeder Programmstart das
 Ereignis `application_started` einschließlich der wirksamen CLI-Parameter
-(`config_directory`, `log_directory`, `check`, `check_access` und `max_mails`) in das Anwendungslog.
+(`config_directory`, `log_directory`, `check`, `check_access`,
+`show_imap_credentials`, `max_mails`, `ignore_historical_start`, `learn` und
+`clear`) in das Anwendungslog.
 Dabei werden ausschließlich die geparsten, bekannten Optionen und keine rohe
 Befehlszeile oder Umgebungsvariablen protokolliert.
 

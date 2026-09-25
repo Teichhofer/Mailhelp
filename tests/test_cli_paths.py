@@ -78,7 +78,7 @@ def test_cli_forwards_posix_and_windows_path_spellings(monkeypatch, capsys, spel
     assert logger.events == [("INFO", "application", "application_started", {"parameters": {
         "config_directory": spelling, "log_directory": log_directory,
         "check": True, "check_access": False, "show_imap_credentials": False,
-        "max_mails": None, "learn": None,
+        "max_mails": None, "ignore_historical_start": False, "learn": None,
         "clear": False,
     }})]
 
@@ -87,7 +87,8 @@ def test_cli_forwards_mail_limit_and_rejects_non_positive_values(monkeypatch):
     class App:
         def __init__(self): self.limit = None
         def stop(self): pass
-        def run(self, max_mails=None): self.limit = max_mails
+        def run(self, max_mails=None, *, ignore_historical_start=False):
+            self.limit = (max_mails, ignore_historical_start)
 
     application = App()
     logger = CaptureLogger()
@@ -103,14 +104,16 @@ def test_cli_forwards_mail_limit_and_rejects_non_positive_values(monkeypatch):
     monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args, **_kwargs: logger)
     monkeypatch.setattr("mailhelp.cli.build_application", builder)
     monkeypatch.setattr("mailhelp.cli.signal.signal", lambda *_args: None)
-    monkeypatch.setattr(sys, "argv", ["mailhelp", "--max-mails", "10"])
+    monkeypatch.setattr(sys, "argv", [
+        "mailhelp", "--max-mails", "10", "--ignore-historical-start",
+    ])
 
     assert main() == 0
-    assert application.limit == 10
+    assert application.limit == (10, True)
     assert logger.events[-1][3]["parameters"] == {
         "config_directory": str(Path.cwd()), "log_directory": None,
         "check": False, "check_access": False, "show_imap_credentials": False,
-        "max_mails": 10, "learn": None,
+        "max_mails": 10, "ignore_historical_start": True, "learn": None,
         "clear": False,
     }
     assert _positive_int("1") == 1

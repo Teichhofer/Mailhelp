@@ -117,6 +117,11 @@ def _main() -> int:
         help="höchstens ANZAHL Mails in einem einzelnen Abrufdurchlauf bearbeiten und beenden",
     )
     parser.add_argument(
+        "--ignore-historical-start", action="store_true",
+        help=("konfiguriertes imap.historical_start und den gespeicherten "
+              "historischen Startpunkt für diesen Abruf aufheben"),
+    )
+    parser.add_argument(
         "--learn", type=_positive_int, metavar="ANZAHL",
         help="ANZAHL Mails frei klassifizieren und Themen interaktiv im Terminal lernen",
     )
@@ -157,6 +162,7 @@ def _main() -> int:
         "check_access": args.check_access,
         "show_imap_credentials": args.show_imap_credentials,
         "max_mails": args.max_mails,
+        "ignore_historical_start": args.ignore_historical_start,
         "learn": args.learn,
         "clear": args.clear,
     })
@@ -190,5 +196,11 @@ def _main() -> int:
             ).run(args.learn)
             return 0
         shutdown.stop = application.stop
-        application.run(max_mails=args.max_mails)
+        if args.ignore_historical_start:
+            application.run(
+                max_mails=args.max_mails,
+                ignore_historical_start=True,
+            )
+        else:
+            application.run(max_mails=args.max_mails)
     return 0
