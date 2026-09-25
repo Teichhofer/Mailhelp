@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import Any
 from pydantic import BaseModel, ValidationError
 
+from .persistence.migrations import migrate_document
+
 
 class CorruptState(RuntimeError): pass
 class AlreadyRunning(RuntimeError): pass
@@ -82,60 +84,7 @@ class JsonStore:
         value = self.load(name, None)
         if value is None:
             return default
-        # Schema 6 used one notification flag after both LLM stages.  Migrate it
-        # explicitly so an old completed flag can never be mistaken for the new,
-        # earlier summary delivery without recording the conversion on disk.
-        mail_state = model.__name__ == "MailState"
-        migrated = mail_state and value.get("schema_version") in {6, 7, 8}
-        clarification = model.__name__ == "ProposalClarificationState"
-        if clarification and value.get("schema_version") == 1:
-            # Schema 1 already named the trust-boundary value explicitly.  In
-            # particular, never infer it from a legacy raw Telegram field.
-            value.setdefault("normalized_answer", None)
-            value.setdefault("answer_status", "valid" if value["normalized_answer"] else "pending")
-            value.setdefault("question_status", "answered" if value["normalized_answer"] else "open")
-            value.setdefault("proposal_revision_status", "pending")
-            value["schema_version"] = 2
-            migrated = True
-        if clarification and value.get("schema_version") == 2:
-            value.update(schema_version=3, revision_attempts=0,
-                         next_revision_at=None)
-            migrated = True
-        if clarification and value.get("schema_version") == 3:
-            value.update(schema_version=4, authorized_answer=None,
-                         interpretation_status="pending", interpretation_attempts=0,
-                         next_interpretation_at=None)
-            migrated = True
-        if mail_state and value.get("schema_version") == 6:
-            old_notification = value["steps"].pop("notification", "pending")
-            value["steps"]["summary_notification"] = old_notification
-            value["steps"]["proposal_notification"] = old_notification
-            value["schema_version"] = 7
-        if mail_state and value.get("schema_version") == 7:
-            action_status = value["steps"].get("action_detection", "pending")
-            default = "skipped" if action_status == "skipped" else "pending"
-            value["steps"].update(action_router=default, task_extraction=default,
-                                  event_extraction=default)
-            value.update(task_extraction=None, event_extraction=None)
-            value["schema_version"] = 8
-        if mail_state and value.get("schema_version") == 8:
-            action_status = value["steps"].get("action_detection", "pending")
-            default = "skipped" if action_status == "skipped" else "pending"
-            value["steps"].update(normalization=default, proposal_building=default)
-            # Schema 8 did not distinguish the two deterministic boundaries.
-            # Completed action results are safe to adopt without another LLM call.
-            if action_status == "completed":
-                value["steps"].update(normalization="completed", proposal_building="completed")
-            value["normalized_proposals"] = value.get("proposals", [])
-            notification_status = value["steps"].get("proposal_notification", "pending")
-            per_proposal = ("completed" if notification_status == "completed" else
-                            "sending" if notification_status == "sending" else "pending")
-            value["proposal_notifications"] = [
-                {"proposal_id": proposal["id"], "proposal_version": proposal["version"],
-                 "status": per_proposal}
-                for proposal in value.get("proposals", [])
-            ]
-            value["schema_version"] = 9
+        migrated = migrate_document(model.__name__, value)
         try:
             result = model.model_validate(value)
         except ValidationError as exc:
