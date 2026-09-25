@@ -873,6 +873,12 @@ logs/
 ```
 
 Das Anwendungslog enthält Verarbeitungsschritte, Statuswechsel, externe Aufrufe, Wiederholungen, Laufzeiten sowie Fehler mit Kontext und Stacktrace. Jeder Eintrag trägt Zeitstempel, Level, Modul und Ereignis; sofern zuordenbar außerdem Mail-ID, Vorschlags-ID und Aufruf-ID. Nach erfolgreicher Konfigurationsprüfung erzeugt jeder reguläre Aufruf ein Ereignis `application_started` mit den geparsten CLI-Parametern `config_directory`, `log_directory`, `check`, `check_access`, `max_mails`, `learn` und `clear`; rohe Befehlszeilen und Umgebungsvariablen werden nicht übernommen. Der Löschbefehl erzeugt bewusst kein neues Log, das unmittelbar wieder gelöscht werden müsste.
+Die Laufzusammenfassung zählt einen vom Orchestrator mit terminalem Fehler
+beendeten Analyseversuch als analysiert und fehlgeschlagen, auch wenn die Anwendung
+die übrige Warteschlange zum Schutz vor einem gemeinsamen Anbieter- oder
+Konfigurationsfehler anhält. Der IMAP-Checkpoint wird für diese Mail nicht
+fortgeschrieben, sodass ein späterer Lauf sie nach Behebung der Ursache wieder
+aufnehmen kann.
 
 Das separate LLM-Log erfasst Anfragebeginn, Antwort oder Fehler als getrennte Ereignisse mit derselben Aufruf-ID. Es enthält Auswertungsschritt, Modell, Anfrageparameter, Prompt-Fingerprint, Dauer, Status, Wiederholung sowie Tokenverbrauch und Kosten, sofern vom Dienst verfügbar.
 Das separate Telegram-Log erfasst jede erfolgreich gesendete und jede validierte

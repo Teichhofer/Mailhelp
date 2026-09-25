@@ -491,25 +491,31 @@ class Application:
                 results.append(result)
                 if result.outcome is ProcessingOutcome.FAILED:
                     # The mail state already contains the safe failure details.
-                    # Leave the queue entry resumable and do not advance its IMAP
-                    # checkpoint until a restart successfully processes it.
+                    # Record the failed attempt in the durable run before
+                    # stopping.  Otherwise the summary misleadingly reports
+                    # zero analyzed/failed mails although the orchestrator
+                    # returned a terminal failure.  The missing checkpoint still
+                    # makes the mail eligible for recovery after a restart.
                     self.logger.event(
                         "ERROR", "orchestrator", "mail_failed",
                         folder=current.folder, uid=current.uid,
                         error=result.state.get("error"),
                     )
                     self._mail_processing_halted = True
-                    break
-                terminal_status = (MailRunEntryStatus.WAITING_FOR_USER
-                                   if result.outcome is ProcessingOutcome.WAITING
-                                   else MailRunEntryStatus.COMPLETED)
-                if result.state.get("duplicate") is not None:
-                    terminal_analysis = "duplicate"
-                elif (result.state.get("relevance") or {}).get("decision") == "irrelevant":
-                    terminal_analysis = "irrelevant"
+                    terminal_status = MailRunEntryStatus.FAILED
+                    terminal_analysis = "failed"
+                    failure_code = "processing_failed"
                 else:
-                    terminal_analysis = "completed"
-                failure_code = None
+                    terminal_status = (MailRunEntryStatus.WAITING_FOR_USER
+                                       if result.outcome is ProcessingOutcome.WAITING
+                                       else MailRunEntryStatus.COMPLETED)
+                    if result.state.get("duplicate") is not None:
+                        terminal_analysis = "duplicate"
+                    elif (result.state.get("relevance") or {}).get("decision") == "irrelevant":
+                        terminal_analysis = "irrelevant"
+                    else:
+                        terminal_analysis = "completed"
+                    failure_code = None
             persisted = self.store.load_model(run_name, MailRunState)
             assert persisted is not None
             current = next(entry for entry in persisted.entries if entry.key == queued.key)
@@ -519,6 +525,12 @@ class Application:
             current.failure_code = failure_code
             persisted.counters = self._run_counters(persisted.entries)
             self.store.save(run_name, persisted.model_dump(mode="json"))
+
+            if result.outcome is ProcessingOutcome.FAILED:
+                # A failed result is terminal for this run but deliberately not
+                # checkpointed.  Do not fan a shared provider/configuration
+                # problem out over the remaining queue in the same process.
+                break
 
             checkpoint_name, checkpoint, ranges = contexts[current.folder]
             ranges = _add_uid(ranges, current.uid)
