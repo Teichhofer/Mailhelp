@@ -37,6 +37,19 @@ class InvalidJson(OpenRouterResponseError):
         super().__init__("OpenRouter chat/completions: invalid_json")
 
 
+def _raise_for_status(response: httpx.Response) -> None:
+    """Raise with a service-specific, secret-free authentication diagnostic."""
+    try:
+        response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        if response.status_code == 401:
+            exc.safe_detail = (
+                "OpenRouter: Authentifizierungsfehler "
+                "(OPENROUTER_API_KEY wurde abgelehnt)"
+            )
+        raise
+
+
 class OpenRouterMessage(BaseModel):
     model_config = ConfigDict(extra="ignore", strict=True)
     content: str = Field(min_length=1)
@@ -70,10 +83,14 @@ class OpenRouterClient:
 
     def check_access(self) -> None:
         """Validate the API key using a read-only endpoint without an LLM call."""
-        response = self.policy.run(lambda: self.client.get(
-            "/auth/key", headers={"Authorization": f"Bearer {self.key}"},
-        ))
-        response.raise_for_status()
+        def invoke() -> httpx.Response:
+            response = self.client.get(
+                "/auth/key", headers={"Authorization": f"Bearer {self.key}"},
+            )
+            _raise_for_status(response)
+            return response
+
+        response = self.policy.run(invoke)
         value = response.json()
         if not isinstance(value, dict) or not isinstance(value.get("data"), dict):
             raise ValueError("OpenRouter auth/key: ungültige Antwort am Schlüsselpfad data")
@@ -129,7 +146,7 @@ class OpenRouterClient:
                               **metadata, **correlation)
         def invoke() -> httpx.Response:
             response = self.client.post("/chat/completions", headers={"Authorization": f"Bearer {self.key}", "X-Request-Id": call_id}, json=request)
-            response.raise_for_status()
+            _raise_for_status(response)
             return response
         try:
             response = self.policy.run(invoke, begin, failed_attempt)

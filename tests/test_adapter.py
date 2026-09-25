@@ -15,6 +15,29 @@ def test_provider_response_error_exposes_only_machine_readable_reason():
     assert "mail body" not in str(error)
 
 
+def test_openrouter_401_has_actionable_secret_free_diagnostic():
+    rejected_key = "rejected-secret-key"
+    response_secret = "provider-response-secret"
+    transport = httpx.MockTransport(lambda request: httpx.Response(
+        401, json={"error": response_secret}, request=request,
+    ))
+    client = OpenRouterClient(rejected_key, 1, 0, 1, transport)
+
+    for operation in (
+        client.check_access,
+        lambda: client.complete("model", {}, "system", {}),
+    ):
+        with pytest.raises(PermanentError) as caught:
+            operation()
+        message = str(caught.value)
+        assert "OpenRouter" in message
+        assert "OPENROUTER_API_KEY wurde abgelehnt" in message
+        assert caught.value.safe_detail in message
+        assert rejected_key not in message
+        assert response_secret not in message
+    client.close()
+
+
 def status(code, headers=None):
     request=httpx.Request("GET", "https://example.test")
     response=httpx.Response(code, request=request, headers=headers)
