@@ -221,7 +221,8 @@ class Application:
         self.stop_event.set()
         self.orchestrator.stop()
 
-    def _poll_imap(self, max_mails: int | None = None) -> list[ProcessingResult]:
+    def _poll_imap(self, max_mails: int | None = None, *,
+                   ignore_historical_start: bool = False) -> list[ProcessingResult]:
         """Resume durable work and process new mail, returning every outcome."""
         budget = _MailBudget(max_mails)
         results = self._resume_pending(budget)
@@ -235,7 +236,9 @@ class Application:
         # durable queue before fetching bodies; the fallback keeps deliberately
         # tiny legacy test adapters usable without weakening the real path.
         if hasattr(self.imap, "discover_since"):
-            results.extend(self._poll_imap_global(budget))
+            results.extend(self._poll_imap_global(
+                budget, ignore_historical_start=ignore_historical_start
+            ))
             return results
         for folder in self.settings.imap.folders:
             if self.stop_event.is_set() or budget.remaining == 0:
@@ -245,7 +248,8 @@ class Application:
             checkpoint = checkpoint_model.model_dump(exclude={"schema_version"})
             try:
                 if checkpoint["start_uid"] is None:
-                    if self.settings.imap.historical_start is not None:
+                    if (self.settings.imap.historical_start is not None
+                            and not ignore_historical_start):
                         start_uid = self.imap.determine_start_uid(folder, self.settings.imap.historical_start)
                         initial_uidvalidity = self.imap.last_uidvalidity
                     else:
@@ -259,6 +263,11 @@ class Application:
                 # high-water mark.  Import that already completed prefix once.
                 if not ranges and checkpoint["uid"] > checkpoint["start_uid"]:
                     ranges = [(checkpoint["start_uid"] + 1, checkpoint["uid"])]
+                if ignore_historical_start and checkpoint["start_uid"] != 0:
+                    checkpoint["start_uid"] = 0
+                    self.store.save(
+                        checkpoint_name, ImapCheckpoint(**checkpoint).model_dump()
+                    )
                 try:
                     mails = self.imap.fetch_since(
                         folder, checkpoint["start_uid"], checkpoint.get("uidvalidity"),
@@ -271,7 +280,8 @@ class Application:
                         previous_uidvalidity=changed.previous,
                         uidvalidity=changed.current,
                     )
-                    if self.settings.imap.historical_start is not None:
+                    if (self.settings.imap.historical_start is not None
+                            and not ignore_historical_start):
                         start_uid = self.imap.determine_start_uid(
                             folder, self.settings.imap.historical_start
                         )
@@ -332,7 +342,8 @@ class Application:
                 self.store.save(checkpoint_name, ImapCheckpoint(**checkpoint).model_dump())
         return results
 
-    def _poll_imap_global(self, budget: _MailBudget) -> list[ProcessingResult]:
+    def _poll_imap_global(self, budget: _MailBudget, *,
+                          ignore_historical_start: bool = False) -> list[ProcessingResult]:
         """Process one mailbox-wide batch ordered by IMAP receive time."""
         run_name = f"mail-run-{self.imap.account_id}"
         active = (self.store.load_model(run_name, MailRunState)
@@ -356,7 +367,8 @@ class Application:
             checkpoint = checkpoint_model.model_dump(exclude={"schema_version"})
             try:
                 if checkpoint["start_uid"] is None:
-                    if self.settings.imap.historical_start is not None:
+                    if (self.settings.imap.historical_start is not None
+                            and not ignore_historical_start):
                         start_uid = self.imap.determine_start_uid(
                             folder, self.settings.imap.historical_start
                         )
@@ -372,6 +384,11 @@ class Application:
                 ranges = checkpoint["completed_uid_ranges"]
                 if not ranges and checkpoint["uid"] > checkpoint["start_uid"]:
                     ranges = [(checkpoint["start_uid"] + 1, checkpoint["uid"])]
+                if ignore_historical_start and checkpoint["start_uid"] != 0:
+                    checkpoint["start_uid"] = 0
+                    self.store.save(
+                        checkpoint_name, ImapCheckpoint(**checkpoint).model_dump()
+                    )
                 if active is not None:
                     contexts[folder] = (checkpoint_name, checkpoint, ranges)
                     continue
@@ -386,7 +403,8 @@ class Application:
                         account_id=self.imap.account_id, folder=folder,
                         previous_uidvalidity=changed.previous, uidvalidity=changed.current,
                     )
-                    if self.settings.imap.historical_start is not None:
+                    if (self.settings.imap.historical_start is not None
+                            and not ignore_historical_start):
                         start_uid = self.imap.determine_start_uid(
                             folder, self.settings.imap.historical_start
                         )
@@ -646,7 +664,8 @@ class Application:
                 ))
         return not self.stop_event.is_set()
 
-    def run(self, max_mails: int | None = None) -> None:
+    def run(self, max_mails: int | None = None, *,
+            ignore_historical_start: bool = False) -> None:
         self._wait_for_user = True
         try:
             while not self.stop_event.is_set():
@@ -662,7 +681,12 @@ class Application:
                 if self.dialog is not None and self.dialog.awaiting_decision():
                     self._wait_for_telegram_decision()
                 if not self.stop_event.is_set():
-                    self._poll_imap(max_mails)
+                    if ignore_historical_start:
+                        self._poll_imap(
+                            max_mails, ignore_historical_start=True
+                        )
+                    else:
+                        self._poll_imap(max_mails)
                 if self.stop_event.is_set():
                     break
                 if max_mails is not None:

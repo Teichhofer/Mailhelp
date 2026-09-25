@@ -622,6 +622,39 @@ def test_global_mailbox_uidvalidity_and_historical_boundary(tmp_path):
     assert len(reset._poll_imap()) == 1
 
 
+def test_global_mailbox_can_ignore_persisted_historical_boundary(tmp_path):
+    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    key = _checkpoint_name("0" * 24, "INBOX")
+
+    class Reader:
+        account_id = "0" * 24
+        last_uidvalidity = 7
+        def __init__(self): self.discoveries = []
+        def determine_start_uid(self, *_args):
+            pytest.fail("historical boundary must be ignored")
+        def discover_since(self, folder, start, expected, ranges):
+            self.discoveries.append((folder, start, expected, ranges))
+            return [MailCandidate(folder, 7, 20, self.account_id, stamp)]
+        def fetch_uid(self, folder, uid, validity):
+            return FetchedMail(folder, validity, uid, b"older", self.account_id, stamp)
+
+    configured = settings(tmp_path, global_newest_first=True)
+    configured.imap.historical_start = stamp
+    store = Store({key: {
+        "uidvalidity": 7, "uid": 45, "start_uid": 41,
+        "completed_uid_ranges": [(42, 45)],
+    }})
+    reader = Reader()
+    service = Application(configured, store, Log(), reader, object(), object(),
+                          Telegram([]), object(), object(), Orch(),
+                          __import__('threading').Event())
+
+    service.run(max_mails=1, ignore_historical_start=True)
+    assert service.orchestrator.seen == [20]
+    assert reader.discoveries == [("INBOX", 0, 7, ((42, 45),))]
+    assert store.values[key]["start_uid"] == 0
+
+
 def test_polling_errors_resume_and_stop(tmp_path):
     mail1=FetchedMail("INBOX",7,4,b"x"); mail2=FetchedMail("INBOX",7,5,b"x")
     store=Store({_checkpoint_name("0"*24, "INBOX"):{"uidvalidity":7,"uid":3},"telegram-offset":{"offset":8}})
@@ -1406,3 +1439,29 @@ def test_historical_start_is_persisted_account_scoped_and_uidvalidity_logged(tmp
     foreign=MailState(id="f"*24,config_fingerprint="0"*64,imap={"account_id":"9"*24,"folder":"INBOX","uidvalidity":1,"uid":1})
     other.store.values["mail-foreign"]=foreign.model_dump(mode="json")
     assert other._resume_pending()==[] and changed.uid_calls==[]
+
+
+def test_ignore_historical_start_reopens_older_uids_without_repeating_completed(tmp_path):
+    boundary = datetime(2025, 1, 2, 3, 4, tzinfo=timezone.utc)
+    cfg = settings(tmp_path)
+    cfg.imap.historical_start = boundary
+    key = _checkpoint_name("0" * 24, "INBOX")
+    store = Store({key: {
+        "uidvalidity": 7, "uid": 45, "start_uid": 41,
+        "completed_uid_ranges": [(42, 45)],
+    }})
+    older = FetchedMail("INBOX", 7, 20, b"older")
+    reader = Imap([(7, [older])])
+    reader.determine_start_uid = lambda *_args: pytest.fail(
+        "historical boundary must be ignored"
+    )
+    service = Application(cfg, store, Log(), reader, object(), object(),
+                          Telegram([]), object(), object(), Orch(),
+                          __import__('threading').Event())
+
+    assert len(service._poll_imap(
+        max_mails=1, ignore_historical_start=True
+    )) == 1
+    assert reader.calls == [("INBOX", 0, 7, 1, ((42, 45),))]
+    assert store.values[key]["start_uid"] == 0
+    assert store.values[key]["completed_uid_ranges"] == [(20, 20), (42, 45)]
