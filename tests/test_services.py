@@ -515,12 +515,18 @@ def test_telegram_answer_interpretation_and_clarification_use_separate_fields():
 
     clarifying = RetrySequence([{"message": "Bitte nenne das Datum im Format TT.MM.JJJJ."}])
     _, clarification = Analyzer(clarifying, prompt_config()).clarify_telegram_answer(
-        "Welches Datum?", "irgendwann", "kein eindeutiges Datum")
+        "Welches Datum?", "irgendwann", "kein eindeutiges Datum",
+        current_date=date(2026, 9, 25))
     assert clarification.message.startswith("Bitte nenne")
     assert clarifying.payloads[0] == {
         "question": "Welches Datum?", "authorized_answer": "irgendwann",
         "interpretation_reason": "kein eindeutiges Datum",
+        "context": {"current_date": "2026-09-25"},
     }
+    without_context = RetrySequence([{"message": "Bitte nenne das Datum."}])
+    Analyzer(without_context, prompt_config()).clarify_telegram_answer(
+        "Welches Datum?", "irgendwann", "kein eindeutiges Datum")
+    assert "context" not in without_context.payloads[0]
 
 
 def test_telegram_answer_interpretation_is_deterministic_or_uses_one_changed_token_fallback():

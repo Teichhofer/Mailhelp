@@ -1005,7 +1005,10 @@ bisherige Vorschlag, die konkrete Frage und die autorisierte Antwort werden dabe
 als getrennte Felder übergeben. Ist keine eindeutige Normalisierung möglich,
 formuliert ein zweiter LLM-Schritt eine konkrete Rückfrage, die genau die fehlende
 Information und das benötigte Format benennt; Vorschlag und Dialog bleiben
-unverändert. Bei erfolgreicher Normalisierung muss das Überarbeitungsergebnis
+unverändert. Dem Rückfrage-Prompt wird das aktuelle Kalenderdatum in der
+konfigurierten Nutzerzeitzone als getrennte Kontextinformation übergeben. Die
+deterministische Verarbeitung löst `heute` mit demselben Datum auf. Bei
+erfolgreicher Normalisierung muss das Überarbeitungsergebnis
 eine vollständige `Proposal`-Folgeversion mit unveränderter Vorschlags-ID und
 Ursprungsmail sowie exakt um eins erhöhter Version sein. Jede Version wird vor der
 Anzeige separat persistiert; fehlerhafte Ergebnisse lassen Vorschlag und Dialog

@@ -44,10 +44,27 @@ _TEMPORAL_ANSWERS = (
     re.compile(rf"\s*{_TIME.format(name='start')}\s*(?:bis|[-–])\s*{_TIME.format(name='end')}\s*", re.IGNORECASE),
     re.compile(rf"\s*{_TIME.format(name='start')}\s*", re.IGNORECASE),
 )
+_RELATIVE_TODAY = re.compile(
+    rf"\s*heute\s*(?:(?:,|um)?\s*{_TIME.format(name='start')}(?:\s*(?:bis|[-–])\s*{_TIME.format(name='end')})?)?\s*",
+    re.IGNORECASE,
+)
 
 
-def parse_deterministic_temporal_answer(answer: str) -> DeterministicTemporalAnswer | None:
-    """Parse only numeric, context-free date/time forms; never infer a fact."""
+def parse_deterministic_temporal_answer(
+    answer: str, reference_date: calendar_date | None = None
+) -> DeterministicTemporalAnswer | None:
+    """Parse narrow date/time forms, resolving ``heute`` only with an explicit day."""
+    relative = _RELATIVE_TODAY.fullmatch(answer)
+    if relative is not None:
+        if reference_date is None:
+            return None
+        values = relative.groupdict()
+        def relative_time(name: str) -> clock_time | None:
+            hour = values.get(f"{name}_hour")
+            return (clock_time(int(hour), int(values.get(f"{name}_minute") or 0))
+                    if hour is not None else None)
+        return DeterministicTemporalAnswer(
+            date=reference_date, start=relative_time("start"), end=relative_time("end"))
     match = next((pattern.fullmatch(answer) for pattern in _TEMPORAL_ANSWERS
                   if pattern.fullmatch(answer) is not None), None)
     if match is None:
@@ -66,14 +83,25 @@ def parse_deterministic_temporal_answer(answer: str) -> DeterministicTemporalAns
         date=parsed_date, start=parsed_time("start"), end=parsed_time("end"))
 
 
+def normalize_deterministic_temporal_answer(parsed: DeterministicTemporalAnswer) -> str:
+    """Serialize facts so restart recovery no longer depends on relative time."""
+    parts = [parsed.date.isoformat()] if parsed.date is not None else []
+    if parsed.start is not None:
+        parts.append(parsed.start.strftime("%H:%M"))
+    if parsed.end is not None:
+        parts.extend(("bis", parsed.end.strftime("%H:%M")))
+    return " ".join(parts)
+
+
 def deterministic_temporal_revision(proposal: Proposal, question: str,
                                     normalized_answer: str,
-                                    configured_timezone: str) -> Proposal | None:
+                                    configured_timezone: str,
+                                    reference_date: calendar_date | None = None) -> Proposal | None:
     """Build an unambiguous clock-time revision without another LLM call."""
     if proposal.kind != ProposalKind.EVENT or not any(
             word in question.casefold() for word in ("datum", "beginn", "ende", "uhrzeit", "wann")):
         return None
-    parsed = parse_deterministic_temporal_answer(normalized_answer)
+    parsed = parse_deterministic_temporal_answer(normalized_answer, reference_date)
     if parsed is None:
         return None
     expected = (proposal.known_temporal_facts.date
@@ -694,7 +722,7 @@ class TelegramTransport(Protocol):
 
 class ProposalRevisionService(Protocol):
     def interpret_telegram_answer(self, proposal: Proposal, question: str, authorized_answer: str) -> tuple[str, TelegramAnswerInterpretation]: ...
-    def clarify_telegram_answer(self, question: str, authorized_answer: str, reason: str) -> tuple[str, TelegramClarification]: ...
+    def clarify_telegram_answer(self, question: str, authorized_answer: str, reason: str, *, current_date: calendar_date | None = None) -> tuple[str, TelegramClarification]: ...
     def revise_proposal(self, proposal: Proposal, question: str, authorized_answer: str) -> tuple[str, Proposal]: ...
 
 
@@ -996,17 +1024,24 @@ class ProposalRevisionProcessor:
         if not isinstance(proposal, Proposal) or proposal.version != state.version:
             return
         assert self.revision_service is not None
+        current_date = datetime.now(ZoneInfo(self.configured_timezone)).date()
         local_temporal = (proposal.kind == ProposalKind.EVENT and
                           parse_deterministic_temporal_answer(
-                              state.authorized_answer) is not None)
+                              state.authorized_answer, current_date) is not None)
         try:
             deterministic = deterministic_classification_revision(
                 proposal, state.question, state.authorized_answer)
             if deterministic is None:
                 deterministic = deterministic_temporal_revision(
                     proposal, state.question, state.authorized_answer,
-                    self.configured_timezone)
+                    self.configured_timezone, current_date)
             if deterministic is not None:
+                parsed_answer = parse_deterministic_temporal_answer(
+                    state.authorized_answer, current_date)
+                normalized_answer = state.authorized_answer
+                if parsed_answer is not None:
+                    normalized_answer = normalize_deterministic_temporal_answer(
+                        parsed_answer)
                 answered = ProposalClarificationState(
                     mail_id=state.mail_id, proposal_id=state.proposal_id,
                     version=state.version, question=state.question,
@@ -1015,7 +1050,7 @@ class ProposalRevisionProcessor:
                     interpretation_attempts=state.interpretation_attempts,
                     question_status=QuestionStatus.ANSWERED,
                     answer_status=AnswerStatus.VALID,
-                    normalized_answer=state.authorized_answer,
+                    normalized_answer=normalized_answer,
                     proposal_revision_status=ProposalRevisionStatus.RETRY_REQUIRED,
                 )
                 self.store.save(name, answered.model_dump(mode="json"))
@@ -1033,7 +1068,8 @@ class ProposalRevisionProcessor:
                 })
                 self.store.save(name, invalid.model_dump(mode="json"))
                 _, clarification = self.revision_service.clarify_telegram_answer(
-                    state.question, state.authorized_answer, interpretation.reason)
+                    state.question, state.authorized_answer, interpretation.reason,
+                    current_date=current_date)
                 self.logger.event("INFO", "telegram.dialog", "answer_clarification_requested",
                                   mail_id=state.mail_id, proposal_id=state.proposal_id,
                                   version=state.version,

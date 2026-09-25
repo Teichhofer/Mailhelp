@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from datetime import datetime
+from datetime import date, datetime
 from typing import Any, Protocol, TypeVar
 import uuid
 
@@ -477,13 +477,18 @@ class Analyzer:
         )
 
     def clarify_telegram_answer(self, question: str, authorized_answer: str,
-                                reason: str) -> tuple[str, TelegramClarification]:
+                                reason: str, *,
+                                current_date: date | None = None) -> tuple[str, TelegramClarification]:
         """Generate a concrete follow-up without changing the proposal."""
-        return self._classified_run("telegram_answer_clarification", {
+        payload = {
             "question": question,
             "authorized_answer": authorized_answer,
             "interpretation_reason": reason,
-        }, TelegramClarification.model_validate)
+        }
+        if current_date is not None:
+            payload["context"] = {"current_date": current_date.isoformat()}
+        return self._classified_run("telegram_answer_clarification", payload,
+                                    TelegramClarification.model_validate)
 
     def classify_for_learning(self, mail: dict[str, Any]) -> tuple[str, MailClassification]:
         """Freely classify one untrusted mail without using configured topics."""
