@@ -633,6 +633,15 @@ stattdessen eine kurze Fehlermeldung gesendet; die Schaltflächen bleiben für
 einen erneuten Versuch erhalten.
 Die Ausführung bestätigter Schreibaktionen und die Verarbeitung von Revisionen sind als eigenständige Dienste verdrahtet. Sie erhalten Store, externe Ports, Transport, Chat-ID, Testmodus beziehungsweise Zeitzone und Retry-Konfiguration explizit; sie greifen nicht auf private Controller-Methoden zu. Dadurch bleibt die sicherheitskritische Reihenfolge auch bei Wiederaufnahme eindeutig: Bestätigung vor externem Schreiben persistieren, unklare Ergebnisse nur abgleichen und eine neue Vorschlagsversion vor den zugehörigen Schaltflächen speichern.
 
+Bevor Mailhelp eine offene Vorschlagsfrage über Telegram stellt, prüft ein eigener
+LLM-Schritt die Frage zusammen mit der Ursprungsmail. Ist die erfragte Information
+dort eindeutig belegt, wird sie normalisiert, über die bestehende geschlossene
+Vorschlagsrevision übernommen und die nächste offene Frage auf dieselbe Weise
+geprüft. Die Schleife endet beim ersten nicht eindeutig aus der Mail beantwortbaren
+Punkt; nur dann wird der bisherige, versionsgebundene Telegram-Rückfragepfad
+verwendet. Mailtext und Frage bleiben dabei nicht vertrauenswürdige Daten, und jede
+automatische Revision wird vor einer Benachrichtigung gespeichert.
+
 Autorisierte Antworten auf Rückfragen werden vor dem ersten LLM-Aufruf atomar mit
 Mail-ID, Vorschlags-ID, Version und konkreter Frage im versionsgebundenen
 Klärungszustand (Schema 4) gespeichert. Der Telegram-Offset wird erst nach diesem

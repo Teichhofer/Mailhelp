@@ -405,7 +405,7 @@ class PromptConfig(BaseModel):
     @model_validator(mode="after")
     def required_steps(self) -> "PromptConfig":
         required = {"relevance", "summary", "action_router", "task_extraction",
-                    "event_extraction", "telegram_answer_interpretation",
+                    "event_extraction", "mail_question_resolution", "telegram_answer_interpretation",
                     "telegram_answer_clarification", "proposal_revision", "learning_classification",
                     "learning_abstraction", "calendar_duplicate"}
         if set(self.prompts) != required:

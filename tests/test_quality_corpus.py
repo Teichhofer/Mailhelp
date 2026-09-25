@@ -45,7 +45,7 @@ class SimulatedOpenRouter:
 
 def prompt_config() -> PromptConfig:
     names = ("relevance", "summary", "action_router", "task_extraction",
-             "event_extraction", "telegram_answer_interpretation", "telegram_answer_clarification", "proposal_revision", "learning_classification", "learning_abstraction", "calendar_duplicate")
+             "event_extraction", "mail_question_resolution", "telegram_answer_interpretation", "telegram_answer_clarification", "proposal_revision", "learning_classification", "learning_abstraction", "calendar_duplicate")
     return PromptConfig(
         defaults={"model": "simulated/openrouter", "parameters": {"temperature": 0.0}},
         prompts={name: PromptStep(system_prompt=f"quality:{name}") for name in names},

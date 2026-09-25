@@ -538,6 +538,18 @@ Anpassung an einen vorgegebenen Zähler erfinden oder entfernen.
 
 ## 8. Telegram-Interaktion und externe Einträge
 
+Vor dem Öffnen eines Telegram-Klärungsdialogs prüft die Anwendung jede offene
+Frage eines Vorschlags der Reihe nach in einem separaten LLM-Schritt gegen die
+vollständige Ursprungsmail. Das geschlossene Ergebnis enthält ausschließlich, ob
+die Frage eindeutig beantwortbar ist, gegebenenfalls die normalisierte Antwort
+und einen kurzen Grund. Bei einem positiven Ergebnis wird die Information über
+dieselbe feldbegrenzte Vorschlagsrevision wie eine validierte Telegram-Antwort
+angewendet und die Schleife mit der nächsten offenen Frage fortgesetzt. Beim ersten
+nicht eindeutig beantwortbaren Ergebnis bleibt der Vorschlag unverändert und der
+bisherige Telegram-Rückfragepfad übernimmt. Sämtliche Mail- und Frageinhalte sind
+auch in diesem Schritt nicht vertrauenswürdige Eingaben; erfundene Angaben oder das
+Auflösen von Widersprüchen sind unzulässig.
+
 Der fachliche Klärungszustand einer Vorschlagsversion ist vom flüchtigen aktiven
 Telegram-Dialog getrennt. Er enthält Mail- und Vorschlags-ID, Version, die konkrete
 Frage sowie die geschlossenen Zustände `question_status` (`open|answered`),

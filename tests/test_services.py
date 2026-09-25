@@ -1052,11 +1052,58 @@ class AnalyzerStub:
     def extract_events(self,m, *, expected_count):
         from mailhelp.models import EventExtraction
         return "e",EventExtraction(events=[])
+    def answer_question_from_mail(self, mail, proposal, question):
+        from mailhelp.models import TelegramAnswerInterpretation
+        return "mq", TelegramAnswerInterpretation(
+            usable=False, reason="Synthetische Mail beantwortet die Frage nicht")
 class Notify:
     def __init__(self): self.messages=[]
     def send(self,c,t): self.messages.append(t)
     def send_proposal(self,p): self.messages.append(p.id)
     def send_relevance(self,d,sender,subject): self.messages.append((d.mail_id,sender,subject))
+
+
+def test_orchestrator_resolves_mail_answer_before_telegram(tmp_path):
+    class MailAnswerAnalyzer(AnalyzerStub):
+        def extract_tasks(self, mail, *, expected_count):
+            from mailhelp.models import ExtractedTask, TaskExtraction
+            return "t", TaskExtraction(tasks=[ExtractedTask(
+                title="Unterlagen senden", description="", evidence="Bitte senden Sie",
+                responsibility="unclear", certainty="certain", classification="new")])
+
+        def answer_question_from_mail(self, mail, proposal, question):
+            from mailhelp.models import TelegramAnswerInterpretation
+            assert mail["text"] == "Bitte senden Sie die Unterlagen selbst."
+            assert question in proposal.open_questions
+            return "mq", TelegramAnswerInterpretation(
+                usable=True, normalized_answer="Die nutzende Person ist zuständig.",
+                reason="Die Mail richtet die Bitte ausdrücklich an sie.")
+
+        def revise_proposal(self, proposal, question, answer):
+            from mailhelp.models import Proposal
+            assert answer == "Die nutzende Person ist zuständig."
+            return "rev", Proposal.model_validate({**proposal.model_dump(mode="json"),
+                "version": proposal.version + 1,
+                "responsibility": "user",
+                "open_questions": [],
+                "status": "pending_confirmation",
+            })
+
+    notify = Notify()
+    raw = (b"From: Beispiel <sender@example.test>\nSubject: Unterlagen\n"
+           b"Message-ID: <mail-answer@example.test>\n\n"
+           b"Bitte senden Sie die Unterlagen selbst.")
+    with JsonStore(tmp_path / "mail-answer") as store:
+        result = Orchestrator(
+            MailAnswerAnalyzer("relevant"), store, notify, 1,
+            [Topic(id="x", name="X", enabled=True, description="X")], 1000,
+        ).process(FetchedMail("INBOX", 1, 95, raw))
+
+    revised = result.state["proposals"][0]
+    assert revised["version"] == 2
+    assert revised["open_questions"] == []
+    assert revised["status"] == "pending_confirmation"
+    assert result.state["llm_call_ids"][-2:] == ["mq", "rev"]
 
 
 def test_orchestrator_complete_notification_uses_validated_values(tmp_path):
@@ -1422,7 +1469,7 @@ def test_task_and_event_partial_success_resumes_only_failed_event(tmp_path):
     assert analyzer.calls == ["relevance-call", "summary-call", "router-call", "task-call",
                               "event-call", "event-call"]
     assert resumed["llm_call_ids"][:4] == stable_ids
-    assert resumed["llm_call_ids"] == stable_ids + ["event-id"]
+    assert resumed["llm_call_ids"] == stable_ids + ["event-id", "mq"]
     assert resumed["steps"]["normalization"] == "completed"
     assert resumed["steps"]["proposal_building"] == "completed"
     assert resumed["steps"]["summary_notification"] == "completed"
