@@ -700,7 +700,7 @@ def test_mail_batch_does_not_poll_telegram_without_an_open_question(tmp_path):
     assert service.dialog.timeouts == []
 
 
-def test_open_proposal_does_not_block_next_mail_even_in_bounded_run(tmp_path):
+def test_open_proposal_blocks_next_mail_even_in_bounded_run(tmp_path):
     mails = [FetchedMail("INBOX", 7, uid, b"x") for uid in (1, 2, 3)]
 
     class Dialog:
@@ -725,8 +725,8 @@ def test_open_proposal_does_not_block_next_mail_even_in_bounded_run(tmp_path):
     service.run(max_mails=3)
 
     assert service.orchestrator.seen == [1, 2, 3]
-    assert dialog.open is True
-    assert dialog.polls == 1
+    assert dialog.open is False
+    assert dialog.polls == 2
 
 
 def test_versioned_answer_is_processed_before_later_mail(tmp_path):
@@ -777,11 +777,11 @@ def test_versioned_answer_is_processed_before_later_mail(tmp_path):
     assert dialog.polls == 2
 
 
-def test_completed_mail_with_multiple_open_proposals_does_not_wait(tmp_path):
+def test_completed_mail_with_multiple_open_proposals_waits_until_closed(tmp_path):
     class Dialog:
-        def __init__(self): self.polls = 0
-        def poll_once(self, timeout=None): self.polls += 1
-        def awaiting_decision(self): return True
+        def __init__(self): self.polls = 0; self.open = True
+        def poll_once(self, timeout=None): self.polls += 1; self.open = False
+        def awaiting_decision(self): return self.open
 
     service = app(tmp_path, Imap([]), Telegram([]), Orch())
     service.dialog = Dialog()
@@ -790,7 +790,7 @@ def test_completed_mail_with_multiple_open_proposals_does_not_wait(tmp_path):
     result = service._process_mail(FetchedMail("INBOX", 7, 1, b"synthetic"))
 
     assert result.outcome is ProcessingOutcome.COMPLETED
-    assert service.dialog.polls == 0
+    assert service.dialog.polls == 1
 
 
 def test_waiting_relevance_handles_closed_dialog_and_poll_failure(tmp_path):
@@ -809,6 +809,7 @@ def test_waiting_relevance_handles_closed_dialog_and_poll_failure(tmp_path):
     service._wait_for_user = True
     assert service._process_mail(FetchedMail("INBOX", 7, 1, b"synthetic")).outcome \
         is ProcessingOutcome.WAITING
+    assert service._wait_for_telegram_decision() is False
 
     class StopOnWait:
         def __init__(self): self.stopped = False
@@ -817,7 +818,8 @@ def test_waiting_relevance_handles_closed_dialog_and_poll_failure(tmp_path):
 
     service.dialog.open = True
     service.stop_event = StopOnWait()
-    assert service._wait_for_telegram_decision() is False
+    assert service._process_mail(FetchedMail("INBOX", 7, 1, b"synthetic")).outcome \
+        is ProcessingOutcome.WAITING
     assert service.stop_event.is_set()
 
 
