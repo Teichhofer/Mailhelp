@@ -13,7 +13,7 @@ imap:
   host: imap.web.de
   port: 993
   connection_mode: ssl
-  historical_start: '2026-09-15T00:00:00+02:00'
+  historical_start: '2026-06-15T00:00:00+02:00'
   batch_size: 25
   global_newest_first: true
   # Verpflichtende primäre Eingangsquelle. Alle weiteren Einträge unter
