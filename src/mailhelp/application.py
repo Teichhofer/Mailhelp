@@ -630,19 +630,21 @@ class Application:
                     # No state content is included in this operational event.
                     self.logger.event("ERROR", "retention", "cleanup_failed",
                                       processed_at=datetime.now(timezone.utc).isoformat(), failure_count=1)
+                # Only an already open, durable decision may precede mailbox
+                # work.  An unconditional Telegram long-poll here used to make
+                # every fresh start look stuck for up to telegram_poll_seconds.
                 if self.dialog is not None and self.dialog.awaiting_decision():
-                    telegram_poll_succeeded = self._wait_for_telegram_decision()
-                else:
-                    telegram_poll_succeeded = self._poll_telegram()
-                    if (not self.stop_event.is_set() and self.dialog is not None
-                            and self.dialog.awaiting_decision()):
-                        self._wait_for_telegram_decision()
+                    self._wait_for_telegram_decision()
                 if not self.stop_event.is_set():
                     self._poll_imap(max_mails)
                 if self.stop_event.is_set():
                     break
                 if max_mails is not None:
                     break
+                telegram_poll_succeeded = self._poll_telegram()
+                if (not self.stop_event.is_set() and self.dialog is not None
+                        and self.dialog.awaiting_decision()):
+                    self._wait_for_telegram_decision()
                 delay = (min(self.settings.poll_interval_seconds,
                              _TELEGRAM_ERROR_BACKOFF_SECONDS)
                          if not telegram_poll_succeeded

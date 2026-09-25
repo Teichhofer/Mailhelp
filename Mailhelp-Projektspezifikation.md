@@ -16,7 +16,8 @@ Prozess meldet den signalbedingten Abbruch mit Exit-Code 130.
 
 Der optionale CLI-Parameter `--max-mails N` führt genau einen Abrufdurchlauf aus,
 bearbeitet dabei ordnerübergreifend höchstens `N` Mails einschließlich fälliger
-Wiederaufnahmen und beendet danach den Prozess. Das verbleibende
+Wiederaufnahmen und beendet danach den Prozess, ohne zuvor oder danach einen
+regulären Telegram-Long-Poll auszuführen. Das verbleibende
 Kontingent ersetzt bei diesem Abruf die reguläre IMAP-Batchgröße, sodass `N` auch
 größer als deren Standardwert 25 sein kann. `N` ist eine positive Ganzzahl; nicht
 ausgeschöpftes Kontingent löst keinen weiteren Abruf aus.
@@ -36,6 +37,12 @@ verbrauchen dieses Verarbeitungskontingent nicht. Ein separates, ebenfalls auf
 `N` begrenztes Kontingent beschränkt ihr Scannen und Melden pro Lauf.
 Ohne `--max-mails` liegt diese separate Obergrenze bei 1.000 blockierten
 Zuständen je Abrufdurchlauf.
+
+Ein regulärer Zyklus beginnt unmittelbar mit der IMAP-Verarbeitung und führt den
+Telegram-Long-Poll erst anschließend aus. Dadurch verzögert dessen konfigurierter
+Server-Timeout weder den Programmstart noch den Beginn der Mailbearbeitung. Nur
+eine bereits dauerhaft gespeicherte offene Entscheidung wird beim Start zuerst
+über Telegram fortgesetzt, bevor weitere Mails verarbeitet werden.
 
 Der Lernmodus `--learn N` ist ein separater, interaktiver Einmallauf. Er lädt
 zunächst die auswählbaren IMAP-Ordner, ergänzt bisher unkonfigurierte Ordner in
