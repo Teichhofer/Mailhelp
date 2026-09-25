@@ -591,6 +591,10 @@ class Application:
     def _process_mail(self, mail: object) -> ProcessingResult:
         """Pause mail processing while Telegram needs a user decision."""
         while True:
+            if (self._wait_for_user and self.dialog is not None
+                    and self.dialog.awaiting_decision()
+                    and not self._wait_for_telegram_decision()):
+                return ProcessingResult(ProcessingOutcome.WAITING, {})
             result = self.orchestrator.process(mail)
             if (not self._wait_for_user or self.dialog is None
                     or not self.dialog.awaiting_decision()):
@@ -626,9 +630,17 @@ class Application:
                     # No state content is included in this operational event.
                     self.logger.event("ERROR", "retention", "cleanup_failed",
                                       processed_at=datetime.now(timezone.utc).isoformat(), failure_count=1)
-                telegram_poll_succeeded = self._poll_telegram()
+                if self.dialog is not None and self.dialog.awaiting_decision():
+                    telegram_poll_succeeded = self._wait_for_telegram_decision()
+                else:
+                    telegram_poll_succeeded = self._poll_telegram()
+                    if (not self.stop_event.is_set() and self.dialog is not None
+                            and self.dialog.awaiting_decision()):
+                        self._wait_for_telegram_decision()
                 if not self.stop_event.is_set():
                     self._poll_imap(max_mails)
+                if self.stop_event.is_set():
+                    break
                 if max_mails is not None:
                     break
                 delay = (min(self.settings.poll_interval_seconds,
@@ -641,6 +653,11 @@ class Application:
             run = (self.store.load_model(run_name, MailRunState)
                    if hasattr(self.store, "load_model") else None)
             summary = _RunSummary.from_run(run)
+            # A shutdown must not append a run summary behind unanswered
+            # inline buttons.  The next start resumes that decision first.
+            if self.dialog is not None and self.dialog.awaiting_decision():
+                self.logger.event("INFO", "telegram", "run_summary_deferred")
+                return
             try:
                 self.telegram.send(
                     self.settings.telegram.chat_id,

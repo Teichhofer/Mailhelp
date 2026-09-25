@@ -661,7 +661,7 @@ def test_empty_checkpoint_and_run_paths(tmp_path):
     assert failed_dialog.logger.events[0][0][2]=="poll_failed"
 
 
-def test_run_does_not_wait_for_open_proposal_before_polling_imap(tmp_path):
+def test_run_waits_for_open_proposal_before_polling_imap(tmp_path):
     class ControlledStop:
         def __init__(self): self.stopped=False; self.waits=[]
         def is_set(self): return self.stopped
@@ -671,7 +671,9 @@ def test_run_does_not_wait_for_open_proposal_before_polling_imap(tmp_path):
         def __init__(self): self.polls=0
         def poll_once(self, timeout=None):
             self.polls += 1
-        def awaiting_decision(self): return True
+            self.open = False
+        open = True
+        def awaiting_decision(self): return self.open
 
     service=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch())
     stop=ControlledStop(); service.stop_event=stop; service.dialog=Dialog()
@@ -791,6 +793,50 @@ def test_completed_mail_with_multiple_open_proposals_waits_until_closed(tmp_path
 
     assert result.outcome is ProcessingOutcome.COMPLETED
     assert service.dialog.polls == 1
+
+
+def test_new_proposal_returns_when_shutdown_interrupts_its_wait(tmp_path):
+    class OpensDialog(Orch):
+        def process(self, mail):
+            dialog.open = True
+            return ProcessingResult(ProcessingOutcome.COMPLETED, {})
+
+    class Dialog:
+        open = False
+        def awaiting_decision(self): return self.open
+        def poll_once(self, timeout=None): raise RuntimeError("network")
+
+    class StopOnWait:
+        stopped = False
+        def is_set(self): return self.stopped
+        def wait(self, _seconds): self.stopped = True; return True
+
+    dialog = Dialog()
+    service = app(tmp_path, Imap([]), Telegram([]), OpensDialog())
+    service.dialog = dialog
+    service.stop_event = StopOnWait()
+    service._wait_for_user = True
+
+    result = service._process_mail(FetchedMail("INBOX", 7, 1, b"synthetic"))
+
+    assert result.outcome is ProcessingOutcome.COMPLETED
+
+
+def test_run_waits_when_regular_telegram_poll_opens_dialog(tmp_path):
+    class Dialog:
+        def __init__(self): self.open = False; self.polls = 0
+        def awaiting_decision(self): return self.open
+        def poll_once(self, timeout=None):
+            self.polls += 1
+            self.open = self.polls == 1
+
+    service = app(tmp_path, Imap([(1, [])]), Telegram([]), Orch())
+    service.dialog = Dialog()
+
+    service.run(max_mails=0)
+
+    assert service.dialog.polls == 2
+    assert not service.dialog.open
 
 
 def test_waiting_relevance_handles_closed_dialog_and_poll_failure(tmp_path):

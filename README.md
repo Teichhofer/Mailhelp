@@ -113,7 +113,7 @@ Eintrag übernommen; Telegram meldet sowohl die erkannte Doppelung als auch, ob
 Informationen ergänzt wurden. Die Ergänzung ist durch dieselbe ausdrückliche,
 versionsbezogene Bestätigung des angezeigten Terminvorschlags gedeckt.
 
-`config.yaml` besitzt geschlossene Modelle für IMAP, Telegram, Ziele, Limits, Wiederholungen, Timeouts und Logging. `poll_interval_seconds` steuert den Abstand zwischen regulären Verarbeitungszyklen. Jeder Zyklus fragt Telegram ab und verarbeitet danach unabhängig davon neue Mails; während eines laufenden, unbeschränkten Mail-Batches wird Telegram zusätzlich nach jeder Mail ohne Wartezeit abgefragt. Dadurch werden die soeben angezeigten Schaltflächen verarbeitet, ohne erst das Ende des gesamten Batches abzuwarten. Ein offener Telegram-Dialog hält weder den restlichen IMAP-Batch noch spätere IMAP-Zyklen an. Fehlgeschlagene Telegram-Polls erhalten einen begrenzten, durch Shutdown unterbrechbaren Backoff. Die LLM-Wiederholungen für ungültige Providerantworten, JSON-Reparatur und Schema-Reparatur sind getrennt begrenzt. IMAP, Telegram, OpenRouter, Todoist und Google Kalender haben jeweils eigene Werte für Timeout, Retry-Anzahl sowie initialen und maximalen Backoff. Validiert werden insbesondere Port, Polling, Adaptertimeouts, Mailgröße, LLM-Rate, Wiederholungszahlen, IANA-Zeitzone, eindeutige nichtleere Ordner, sichere Pfade und die Log-Level `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Unbekannte Schlüssel und falsche Typen werden abgelehnt.
+`config.yaml` besitzt geschlossene Modelle für IMAP, Telegram, Ziele, Limits, Wiederholungen, Timeouts und Logging. `poll_interval_seconds` steuert den Abstand zwischen regulären Verarbeitungszyklen. Jeder Zyklus fragt zuerst Telegram ab. Sobald eine Telegram-Nachricht Schaltflächen für eine Rückfrage oder einen Vorschlag enthält, pausiert die gesamte Verarbeitung: Es wird weder ein weiterer Vorschlag gesendet noch eine weitere Mail analysiert, bis genau diese Auswahl verarbeitet wurde. Mehrere Vorschläge werden dadurch strikt einzeln nacheinander angezeigt. Auch beim Herunterfahren wird hinter offenen Schaltflächen keine Laufzusammenfassung gesendet; nach einem Neustart wird zuerst die gespeicherte Entscheidung fortgesetzt. Fehlgeschlagene Telegram-Polls erhalten einen begrenzten, durch Shutdown unterbrechbaren Backoff. Die LLM-Wiederholungen für ungültige Providerantworten, JSON-Reparatur und Schema-Reparatur sind getrennt begrenzt. IMAP, Telegram, OpenRouter, Todoist und Google Kalender haben jeweils eigene Werte für Timeout, Retry-Anzahl sowie initialen und maximalen Backoff. Validiert werden insbesondere Port, Polling, Adaptertimeouts, Mailgröße, LLM-Rate, Wiederholungszahlen, IANA-Zeitzone, eindeutige nichtleere Ordner, sichere Pfade und die Log-Level `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Unbekannte Schlüssel und falsche Typen werden abgelehnt.
 Auch die Wurzel von `topics.yaml` ist geschlossen: Sie enthält ausschließlich die
 Liste `topics`; diese muss mindestens ein aktiviertes Thema besitzen und alle
 stabilen Themen-IDs müssen eindeutig sein.
@@ -467,10 +467,11 @@ aus dem persistenten initialen Batch mit den Zahlen für entdeckte, wartende,
 terminal analysierte, relevante, irrelevante, auf Benutzer wartende,
 fehlgeschlagene und übersprungene Mails. Sie bezeichnet den Lauf nur dann als
 vollständig abgearbeitet, wenn jede Batchposition einen terminalen
-Analysezustand erreicht hat; eine offene Telegram-Aktion ändert daran nichts.
-Die Zusammenfassung wird
-auch bei einem Laufzeitfehler versucht; ein Versandfehler wird protokolliert und
-verdeckt einen bereits aufgetretenen Fehler nicht.
+Analysezustand erreicht hat. Ist noch eine Telegram-Auswahl offen, wird die
+Laufzusammenfassung zurückgestellt, damit keine Nachricht die Schaltflächen
+überholt. Andernfalls wird sie auch bei einem Laufzeitfehler versucht; ein
+Versandfehler wird protokolliert und verdeckt einen bereits aufgetretenen Fehler
+nicht.
 
 Für einen begrenzten Testlauf verarbeitet beispielsweise `mailhelp --max-mails 50`
 in genau einem Abrufdurchlauf höchstens 50 Mails, auch wenn `imap.batch_size` auf
