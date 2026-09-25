@@ -66,3 +66,28 @@ def test_persistence_names_are_available_without_the_dialog_controller():
     assert proposal_name(mail_id, "p1") == f"proposal-{mail_id}-p1"
     assert proposal_version_name(mail_id, "p1", 2) == f"proposal-{mail_id}-p1-v2"
     assert clarification_name(mail_id, "p1", 2) == f"clarification-{mail_id}-p1-v2"
+def test_telegram_implementations_live_in_their_domain_modules():
+    """Guard against turning the compatibility module back into a monolith."""
+    from mailhelp.telegram import (
+        AuthorizedUpdateValidator,
+        ConfirmedWriteExecutor,
+        Decision,
+        ProposalRevisionProcessor,
+        RelevanceDialogProcessor,
+        TelegramClient,
+        TelegramDialogController,
+    )
+    from mailhelp.telegram import _core
+
+    expected_modules = {
+        AuthorizedUpdateValidator: "mailhelp.telegram.authorization",
+        ConfirmedWriteExecutor: "mailhelp.telegram.writes",
+        Decision: "mailhelp.telegram.callbacks",
+        ProposalRevisionProcessor: "mailhelp.telegram.revisions",
+        RelevanceDialogProcessor: "mailhelp.telegram.relevance",
+        TelegramClient: "mailhelp.telegram.client",
+        TelegramDialogController: "mailhelp.telegram.dialog",
+    }
+    for implementation, module_name in expected_modules.items():
+        assert implementation.__module__ == module_name
+        assert getattr(_core, implementation.__name__) is implementation
