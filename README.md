@@ -299,9 +299,11 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
 * IMAP wird im Nur-Lese-Modus mit einem gemeinsamen `BODY.PEEK[] INTERNALDATE`-Abruf gelesen; die nicht geheime Konto-ID, Ordner, UIDVALIDITY und UID bilden die technische Identität. `INTERNALDATE` wird strikt als zeitzonenbehafteter Empfangszeitpunkt geparst. Die Konto-ID ist ein gekürzter SHA-256-Hash aus normalisiertem Server, Port und Benutzernamen und trennt auch gleichnamige Ordner verschiedener Konten.
 * Die Analyse erhält vier getrennte Datumsinformationen: den unveränderten, bereinigten `Date`-Header (`date_header_original`), seine nur bei explizitem Offset verfügbare Parseform (`date_header_parsed`), `imap_received_at` sowie die konfigurierte IANA-`user_timezone`. `date_context_status` kennzeichnet fehlende, ungültige, naive und um mehr als sieben Tage vom Empfang abweichende Angaben. Ein solcher Kontext erzwingt bei Terminen und Aufgaben mit Frist eine offene Rückfrage und verhindert damit die Bestätigung und Speicherung; Aufgaben ohne Frist bleiben davon unberührt.
 * Die Terminextraktion kann zusätzlich `timezone_offset_text` ausschließlich aus einer ausdrücklichen Mailangabe im Format `UTC+HH:MM` oder `UTC-HH:MM` übernehmen. Zulässig ist der Bereich `UTC-14:00` bis `UTC+14:00` (an den Grenzen nur `:00`). Dieser feste Offset hat bei Uhrzeiten Vorrang vor `user_timezone`; ohne expliziten Offset gilt weiterhin die konfigurierte IANA-Zone. Aus Ortsnamen, Mail-Headern oder Weltwissen wird kein Offset abgeleitet. Der offsetbehaftete ISO-Zeitpunkt wird unverändert persistiert und ohne ein konkurrierendes Google-Calendar-`timeZone`-Feld übertragen.
-* Eine ausdrücklich belegte Termindauer wird als `duration_minutes` erhalten. Ist
-  nur der Beginn offen, berechnet Mailhelp nach dessen Klärung das Ende aus dieser
-  Dauer; ohne belegte Dauer fragt es weiterhin gezielt nach dem Ende.
+* Eine ausdrücklich belegte Termindauer wird als `duration_minutes` erhalten.
+  `duration_is_upper_bound` unterscheidet dabei eine Formulierung wie „höchstens
+  30 Minuten“ von einer exakten Dauer. Nur aus einer exakten Dauer berechnet
+  Mailhelp nach Klärung des Beginns das Ende; eine Obergrenze bleibt sichtbar und
+  führt zu einer gezielten Frage nach dem Ende.
 * Nach der schema-validierten Roh-Extraktion entsteht an der Proposal-Grenze ein
   `temporal_fact`: `raw_text` bewahrt die Mailformulierung, `normalized_date` ein
   sicher aufgelöstes ISO-Datum, `year_source` dessen Herkunft und `status` den
@@ -351,7 +353,9 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
   zeitgebundenen Termin und `required_unknown` die konservative Wahl bei unklarer
   Zeitsemantik. Ein bekanntes Datum ohne Uhrzeit wird in `known_temporal_facts`
   bewahrt und löst eine konkrete Frage nach dem Beginn aus, statt stillschweigend
-  einen Ganztagstermin zu erzeugen. Ein bekannter Beginn löst nur noch die Frage
+  einen Ganztagstermin zu erzeugen. Eine bereits in der Mail erkannte Beginnuhrzeit
+  bleibt auch bei einem noch ungeklärten Datum separat erhalten und wird nach der
+  Datumsantwort in der Nutzerzeitzone zusammengesetzt. Ein bekannter Beginn löst nur noch die Frage
   nach dem Ende aus; Uhrzeit, Ende und Dauer werden niemals ergänzt.
 * Eindeutige Datumsbereiche ohne Uhrzeit (zum Beispiel `5.–6. November 2026`)
   werden vor einer Rückfrage deterministisch als mehrtägige Ganztagstermine

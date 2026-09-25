@@ -356,7 +356,8 @@ class Analyzer:
         if proposal.temporal_fact is not None:
             context["temporal_fact"] = proposal.temporal_fact.model_dump(mode="json")
         if proposal.known_temporal_facts is not None:
-            context["known_temporal_facts"] = proposal.known_temporal_facts.model_dump(mode="json")
+            context["known_temporal_facts"] = proposal.known_temporal_facts.model_dump(
+                mode="json", exclude_none=True)
         payload = {
             "proposal_fields": context,
             "question": question,

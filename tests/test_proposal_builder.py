@@ -182,6 +182,8 @@ def test_known_temporal_facts_are_strict_and_event_only():
         KnownTemporalFacts()
     with pytest.raises(ValidationError, match="zusammenpassen"):
         KnownTemporalFacts(date="2026-09-22", start="2026-09-23T10:00:00+02:00")
+    with pytest.raises(ValidationError, match="zugleich"):
+        KnownTemporalFacts(start="2026-09-22T10:00:00+02:00", start_time="10:00:00")
     with pytest.raises(ValidationError, match="Nur Termine"):
         proposal = builder().build([task()], [])[0]
         Proposal.model_validate({**proposal.model_dump(),
@@ -193,6 +195,10 @@ def test_known_temporal_facts_are_strict_and_event_only():
     with pytest.raises(ValidationError, match="Nur Termine"):
         Proposal.model_validate({**builder().build([task()], [])[0].model_dump(),
                                  "duration_minutes": 30})
+    with pytest.raises(ValidationError, match="Obergrenze"):
+        proposal = builder().build([], [event()])[0]
+        Proposal.model_validate({**proposal.model_dump(),
+                                 "duration_is_upper_bound": True})
 
 
 def test_explicit_event_duration_survives_proposal_boundary():
@@ -201,6 +207,19 @@ def test_explicit_event_duration_survives_proposal_boundary():
         duration_minutes=30, time_requirement="timed")])[0]
     assert proposal.duration_minutes == 30
     assert proposal.known_temporal_facts.date == date(2026, 9, 25)
+
+
+def test_unresolved_date_retains_explicit_mail_clock_and_duration_upper_bound():
+    proposal = builder().build([], [event(
+        date_text="Samstag, 3. Oktober", time_text="morgens um 10 Uhr",
+        duration_minutes=30, duration_is_upper_bound=True, time_requirement="timed",
+        evidence="Treffen 9:30 Uhr, Auftritt morgens um 10 Uhr, nicht länger als 30 min",
+    )])[0]
+
+    assert proposal.start is None and proposal.end is None and not proposal.all_day
+    assert proposal.known_temporal_facts.start_time.isoformat() == "10:00:00"
+    assert proposal.duration_is_upper_bound
+    assert proposal.open_questions[0].startswith("Welches konkrete Datum")
 
 
 def test_identity_collision_is_rehashed_and_a_second_collision_rejected(monkeypatch):

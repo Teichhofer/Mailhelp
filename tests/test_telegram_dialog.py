@@ -303,6 +303,7 @@ def test_deterministic_contradictory_date_requests_concrete_confirmation(tmp_pat
             known_temporal_facts={"date": "2026-09-23"},
         )
         c, transport, _ = controller(store, revision_service=service)
+        c.revisions.configured_timezone = "Europe/Berlin"
         c.persist(item)
         store.save("telegram-dialog", TelegramDialogState(
             mail_id=item.source_mail_id, proposal_id=item.id,
@@ -314,8 +315,54 @@ def test_deterministic_contradictory_date_requests_concrete_confirmation(tmp_pat
         assert "2026-09-23" in transport.sent[-1][1]
         assert "Bitte bestätige" in transport.sent[-1][1]
         state = store.load("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")
-        assert state["interpretation_status"] == "paused"
+        assert state["interpretation_status"] == "completed"
+        assert state["answer_status"] == "invalid"
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["version"] == 1
+
+
+def test_mail_start_cannot_be_reinterpreted_as_end_and_gets_targeted_question(tmp_path):
+    service = RevisionService()
+    with JsonStore(tmp_path) as store:
+        item = proposal(
+            kind="event", status="needs_clarification",
+            open_questions=["Wann endet der Termin?"],
+            known_temporal_facts={
+                "date": "2026-10-03", "start": "2026-10-03T10:00:00+02:00"},
+        )
+        c, transport, _ = controller(store, revision_service=service)
+        c.revisions.configured_timezone = "Europe/Berlin"
+        c.persist(item)
+        store.save("telegram-dialog", TelegramDialogState(
+            mail_id=item.source_mail_id, proposal_id=item.id,
+            version=item.version).model_dump(mode="json"))
+
+        c.revisions.answer("3.10.2026 10 Uhr")
+
+        assert service.calls == []
+        assert "10:00 Uhr ist bereits als Beginn belegt" in transport.sent[-1][1]
+        state = store.load("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")
+        assert (state["interpretation_status"], state["answer_status"]) == (
+            "completed", "invalid")
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["version"] == 1
+
+
+def test_ambiguous_local_clock_gets_concrete_temporal_clarification(tmp_path):
+    with JsonStore(tmp_path) as store:
+        item = proposal(
+            kind="event", status="needs_clarification",
+            open_questions=["Wann beginnt der Termin?"],
+            known_temporal_facts={"date": "2026-10-25"},
+        )
+        c, transport, _ = controller(store, revision_service=RevisionService())
+        c.revisions.configured_timezone = "Europe/Berlin"
+        c.persist(item)
+        store.save("telegram-dialog", TelegramDialogState(
+            mail_id=item.source_mail_id, proposal_id=item.id,
+            version=item.version).model_dump(mode="json"))
+
+        c.revisions.answer("25.10.2026 2:30 Uhr")
+
+        assert "Bitte bestätige Datum und Uhrzeit konkret" in transport.sent[-1][1]
 
 
 def test_deterministic_date_only_and_context_requirements():
@@ -361,6 +408,26 @@ def test_reported_date_time_answer_retains_start_fact_and_uses_duration():
     assert revised.open_questions == []
     assert "Beginn: 2026-09-25T11:00:00+02:00" in format_proposal(
         revised, "Europe/Berlin")
+
+
+def test_date_answer_combines_retained_mail_clock_without_assuming_upper_bound_end():
+    item = proposal(
+        kind="event", status="needs_clarification", duration_minutes=30,
+        duration_is_upper_bound=True,
+        open_questions=["Welches konkrete Datum ist mit „Samstag, 3. Oktober“ gemeint?"],
+        known_temporal_facts={"start_time": "10:00:00"},
+        temporal_fact={"raw_text": "Samstag, 3. Oktober", "normalized_date": None,
+                       "year_source": "unknown", "status": "unresolved"},
+    )
+
+    revised = deterministic_temporal_revision(
+        item, item.open_questions[0], "2026-10-03", "Europe/Berlin")
+
+    assert revised.start is None and revised.end is None and not revised.all_day
+    assert revised.known_temporal_facts.date == date(2026, 10, 3)
+    assert revised.known_temporal_facts.start.isoformat() == "2026-10-03T10:00:00+02:00"
+    assert revised.open_questions == ["Wann endet der Termin?"]
+    assert "Dauer: höchstens 30 Minuten" in format_proposal(revised, "Europe/Berlin")
 
 
 def test_today_is_resolved_from_explicit_context():

@@ -92,9 +92,11 @@ class ProposalBuilder:
                     values.update(start=temporal.value.start, end=temporal.value.end,
                                   all_day=temporal.value.all_day)
             elif kind == "event" and temporal is not None and (
-                    temporal.known_date is not None or temporal.known_start is not None):
+                    temporal.known_date is not None or temporal.known_start is not None or
+                    temporal.known_start_time is not None):
                 values["known_temporal_facts"] = KnownTemporalFacts(
-                    date=temporal.known_date, start=temporal.known_start)
+                    date=temporal.known_date, start=temporal.known_start,
+                    start_time=temporal.known_start_time)
             if temporal is not None:
                 values["temporal_fact"] = temporal.temporal_fact
             target = self.targets.todoist_project if kind == "task" else self.targets.google_calendar
@@ -112,6 +114,8 @@ class ProposalBuilder:
                 video_link=item.video_link if isinstance(item, ExtractedEvent) else None,
                 duration_minutes=(item.duration_minutes
                                   if isinstance(item, ExtractedEvent) else None),
+                duration_is_upper_bound=(item.duration_is_upper_bound
+                                         if isinstance(item, ExtractedEvent) else False),
                 target=target, status=status, external_id=None, external_link=None,
                 uncertain_notified=False, simulation_notified=False, **values,
             ))

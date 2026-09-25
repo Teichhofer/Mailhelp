@@ -348,7 +348,7 @@ def test_raw_extraction_prompts_are_separate_and_injection_resistant():
     for field in ("title", "description", "evidence", "date_text", "time_text", "end_time_text", "duration_minutes", "time_requirement", "location", "video_link", "responsibility", "certainty", "classification"):
         assert field in event
     complete_event_fields = (
-        "title,\ndescription, evidence, date_text, time_text, end_time_text, duration_minutes, timezone_offset_text, time_requirement,\n"
+        "title,\ndescription, evidence, date_text, time_text, end_time_text, duration_minutes, duration_is_upper_bound, timezone_offset_text, time_requirement,\n"
         "location, video_link, responsibility, certainty und classification"
     )
     assert complete_event_fields in event
