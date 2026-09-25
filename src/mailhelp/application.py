@@ -589,25 +589,26 @@ class Application:
         return True
 
     def _process_mail(self, mail: object) -> ProcessingResult:
-        """Finish only analysis-blocking relevance questions for one mail."""
+        """Pause mail processing while Telegram needs a user decision."""
         while True:
             result = self.orchestrator.process(mail)
-            # Completed analysis may have created one or more action proposals.
-            # Those proposals remain deliberately asynchronous: waiting for any
-            # open controller dialog here would stall the complete IMAP batch.
-            if not self._wait_for_user or result.outcome is not ProcessingOutcome.WAITING:
+            if (not self._wait_for_user or self.dialog is None
+                    or not self.dialog.awaiting_decision()):
                 return result
+            resume_mail = result.outcome is ProcessingOutcome.WAITING
             if not self._wait_for_telegram_decision():
                 return result
-            # An unclear relevance answer interrupts analysis.  Once Telegram
+            if not resume_mail:
+                return result
+            # An unclear relevance answer interrupts analysis. Once Telegram
             # resolved it, resume this same mail before advancing the mailbox.
 
     def _wait_for_telegram_decision(self) -> bool:
-        """Long-poll until the current relevance question is resolved or stopped."""
-        if self.dialog is None or not self.dialog.awaiting_relevance_decision():
+        """Long-poll until every current user decision is resolved or stopped."""
+        if self.dialog is None or not self.dialog.awaiting_decision():
             return False
         while (not self.stop_event.is_set()
-               and self.dialog.awaiting_relevance_decision()):
+               and self.dialog.awaiting_decision()):
             if not self._poll_telegram():
                 self.stop_event.wait(min(
                     self.settings.poll_interval_seconds,
