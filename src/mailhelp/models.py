@@ -1,7 +1,7 @@
 """Vertrauensgrenze und feste Schemata der Fachlogik."""
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from enum import StrEnum
 from uuid import UUID
 from typing import Annotated, Any, Literal
@@ -423,6 +423,7 @@ class ExtractedEvent(StrictModel):
     time_text: str | None = Field(default=None, min_length=1, max_length=500)
     end_time_text: str | None = Field(default=None, min_length=1, max_length=500)
     duration_minutes: int | None = Field(default=None, ge=1, le=1440)
+    duration_is_upper_bound: bool = False
     timezone_offset_text: str | None = None
     time_requirement: TimeRequirement
     location: str | None = Field(default=None, min_length=1, max_length=1000)
@@ -517,15 +518,20 @@ class KnownTemporalFacts(StrictModel):
 
     date: CalendarDate | None = None
     start: datetime | None = None
+    # A clock explicitly present in the mail can be retained before an
+    # ambiguous/yearless calendar date has been resolved.
+    start_time: time | None = None
 
     @model_validator(mode="after")
     def validate_facts(self) -> "KnownTemporalFacts":
         if self.start is not None and (self.start.tzinfo is None or self.start.utcoffset() is None):
             raise ValueError("Eine bekannte Beginnzeit benötigt einen eindeutigen UTC-Offset")
-        if self.date is None and self.start is None:
+        if self.date is None and self.start is None and self.start_time is None:
             raise ValueError("Mindestens ein bekannter Zeitfakt ist erforderlich")
         if self.date is not None and self.start is not None and self.start.date() != self.date:
             raise ValueError("Bekanntes Datum und bekannte Beginnzeit müssen zusammenpassen")
+        if self.start is not None and self.start_time is not None:
+            raise ValueError("Beginnzeit darf nicht zugleich vollständig und datumslos gespeichert sein")
         return self
 
 
@@ -578,6 +584,7 @@ class Proposal(StrictModel):
     start: date | datetime | None = None
     end: date | datetime | None = None
     duration_minutes: int | None = Field(default=None, ge=1, le=1440)
+    duration_is_upper_bound: bool = False
     all_day: bool = False
     known_temporal_facts: KnownTemporalFacts | None = None
     temporal_fact: TemporalFact | None = None
@@ -612,8 +619,11 @@ class Proposal(StrictModel):
             raise ValueError("Nur vollständige neue Vorschläge dürfen bestätigt werden")
         if self.kind == ProposalKind.TASK and (self.start is not None or self.end is not None or self.all_day):
             raise ValueError("Aufgaben dürfen keine Kalenderzeit enthalten")
-        if self.kind != ProposalKind.EVENT and self.duration_minutes is not None:
+        if self.kind != ProposalKind.EVENT and (self.duration_minutes is not None or
+                                                self.duration_is_upper_bound):
             raise ValueError("Nur Termine dürfen eine Dauer enthalten")
+        if self.duration_is_upper_bound and self.duration_minutes is None:
+            raise ValueError("Eine Dauer-Obergrenze benötigt eine Dauer")
         if self.kind == ProposalKind.TASK and isinstance(self.due, datetime) and (
                 self.due.tzinfo is None or self.due.utcoffset() is None):
             raise ValueError("Zeitgebundene Aufgabenfristen benötigen einen eindeutigen UTC-Offset")
@@ -722,7 +732,10 @@ def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta, *,
             raise ValueError(
                 f"temporal_date widerspricht dem validierten Datum {resolved_day.isoformat()}")
         resolved_day = temporal_date
-        if known is None and previous.temporal_fact is None and previous.start is None:
+        if known is not None and known.date is None:
+            known = known.model_copy(update={"date": temporal_date})
+            changes["known_temporal_facts"] = known
+        elif known is None and previous.temporal_fact is None and previous.start is None:
             known = KnownTemporalFacts(date=temporal_date)
             changes["known_temporal_facts"] = known
     for field in ("due", "start"):
@@ -755,7 +768,8 @@ def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta, *,
             changes.update(start=start, end=end, known_temporal_facts=None)
         elif "start" in changes:
             changes.pop("start")
-            changes["known_temporal_facts"] = known.model_copy(update={"start": start})
+            changes["known_temporal_facts"] = known.model_copy(
+                update={"start": start, "start_time": None})
     remaining = list(previous.open_questions)
     remaining.remove(delta.answered_question)
     provisional = previous.model_copy(update=changes)

@@ -225,10 +225,13 @@ prompts:
 
       Antworte nur mit einem JSON-Objekt mit "schema_version": 1 und "events",
       einer Liste mit höchstens 20 Objekten. Jedes Objekt enthält genau title,
-      description, evidence, date_text, time_text, end_time_text, duration_minutes, timezone_offset_text, time_requirement,
+      description, evidence, date_text, time_text, end_time_text, duration_minutes, duration_is_upper_bound, timezone_offset_text, time_requirement,
       location, video_link, responsibility, certainty und classification. Nicht genannte
       optionale Rohwerte sind null. duration_minutes ist nur eine ausdrücklich
       belegte Dauer in ganzen Minuten zwischen 1 und 1440, andernfalls null.
+      duration_is_upper_bound ist genau dann true, wenn die Dauer ausdrücklich
+      nur als Höchstwert formuliert ist (z. B. „höchstens“ oder „nicht länger als“),
+      sonst false. Eine Obergrenze ist keine gesicherte Endzeit.
       video_link ist nur eine ausdrücklich genannte
       HTTP-/HTTPS-URL oder null. responsibility ist "user", "other" oder
       "unclear"; certainty ist "certain", "uncertain" oder "contradictory";

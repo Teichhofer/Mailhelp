@@ -159,12 +159,20 @@ def test_missing_relative_and_invalid_dates_have_stable_reasons(raw, reason):
     assert result.raw_value == raw and not result.resolved and not result.confirmation_ready
 
 
+def test_unresolved_date_does_not_retain_an_invalid_mail_clock():
+    result = normalize_event(event(
+        date_text="nächsten Freitag", time_text="zehn Uhr",
+        time_requirement="timed"), context())
+    assert result.reason == NormalizationReason.UNSUPPORTED_DATE
+    assert result.known_start_time is None
+
+
 @pytest.mark.parametrize(("changes", "reason"), [
     ({"time_text": "10:00"}, NormalizationReason.MISSING_END_TIME),
     ({"end_time_text": "11:00"}, NormalizationReason.MISSING_TIME),
-    ({"time_text": "10 Uhr", "end_time_text": "11:00"}, NormalizationReason.UNSUPPORTED_TIME),
+    ({"time_text": "zehn Uhr", "end_time_text": "11:00"}, NormalizationReason.UNSUPPORTED_TIME),
     ({"time_text": "25:00", "end_time_text": "11:00"}, NormalizationReason.INVALID_TIME),
-    ({"time_text": "10:00", "end_time_text": "11 Uhr"}, NormalizationReason.UNSUPPORTED_TIME),
+    ({"time_text": "10:00", "end_time_text": "elf Uhr"}, NormalizationReason.UNSUPPORTED_TIME),
     ({"time_text": "10:00", "end_time_text": "25:00"}, NormalizationReason.INVALID_TIME),
     ({"time_text": "11:00", "end_time_text": "10:00"}, NormalizationReason.END_NOT_AFTER_START),
 ])

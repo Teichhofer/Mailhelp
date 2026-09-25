@@ -422,7 +422,8 @@ verbindliche Reparaturanweisung gekennzeichnet.
 Die deterministische Aktionsnormalisierung unterstützt die Datumsformen
 `YYYY-MM-DD`, `DD.MM.YYYY` (optional mit passendem deutschen Wochentag in Lang- oder
 Kurzform, mit oder ohne Komma) und deutsche Tages-/Monatsangaben ohne Jahr sowie die
-24-Stunden-Zeitformen `HH:MM` und `HH:MM:SS`. Andere Schreibweisen und relative Angaben wie „nächsten Freitag“
+24-Stunden-Zeitformen `HH:MM`, `HH:MM:SS` und Zusätze wie „morgens um 10 Uhr“.
+Andere Schreibweisen und relative Angaben wie „nächsten Freitag“
 bleiben zusammen mit einem stabilen Klärungsgrund als Rohangabe erhalten. Ein Datum
 ohne Uhrzeit wird als ganztägiges Intervall vom genannten Tag bis zum exklusiven
 Folgetag dargestellt. Eine Uhrzeit wird nur bei vorhandenem Datum, Beginn, Ende und
@@ -430,9 +431,11 @@ entweder einem expliziten festen Offset oder einer eindeutigen IANA-Nutzerzeitzo
 normalisiert; nicht existente oder doppelte Ortszeiten an DST-Übergängen erfordern
 eine Rückfrage. Es werden weder eine Standarduhrzeit,
 eine Dauer noch ein UTC-Offset erfunden. Eine ausdrücklich belegte Dauer wird als
-`duration_minutes` (1 bis 1440 ganze Minuten) im Vorschlag erhalten. Sobald ein
-Beginn feststeht, wird das Ende deterministisch daraus berechnet; ohne belegte
-Dauer bleibt das Ende eine eigene Klärungsfrage. Ein optional extrahiertes
+`duration_minutes` (1 bis 1440 ganze Minuten) im Vorschlag erhalten. Das getrennte
+Flag `duration_is_upper_bound` kennzeichnet Formulierungen wie „höchstens“; aus
+einer solchen Obergrenze wird kein gesichertes Ende berechnet. Nur bei einer
+exakten Dauer wird das Ende deterministisch aus dem Beginn berechnet; andernfalls
+bleibt das Ende eine eigene Klärungsfrage. Ein optional extrahiertes
 `timezone_offset_text` muss wörtlich und ausdrücklich beim Termin in der Mail
 stehen und exakt `UTC+HH:MM` oder `UTC-HH:MM` im Bereich von `UTC-14:00` bis
 `UTC+14:00` (an den Grenzen nur `:00`) entsprechen. Es darf weder aus Ortsnamen
@@ -480,9 +483,11 @@ Datumsbereich ohne Uhrzeiten wird ebenfalls als Ganztagsintervall normalisiert;
 dabei liegt das technische exklusive Ende am Tag nach dem genannten letzten Tag.
 Fehlt `date_text` irrtümlich, wird vor einer Rückfrage derselbe eindeutige Bereich
 aus `evidence` deterministisch wiedergewonnen. Bei mehreren oder widersprüchlichen
-Bereichen erfolgt weiterhin eine Rückfrage. Bei `timed` und `required_unknown` bleibt ein bekanntes
-Datum strikt typisiert in `known_temporal_facts` erhalten und es wird ausschließlich
-nach dem Beginn gefragt. Ist der Beginn bekannt, bleibt auch dieser Fakt erhalten und
+Bereichen erfolgt weiterhin eine Rückfrage. Bei `timed` und `required_unknown` bleiben ein bekanntes
+Datum und eine unabhängig davon ausdrücklich erkannte Beginnuhrzeit strikt typisiert
+in `known_temporal_facts` erhalten. Die Bestätigung eines noch fehlenden Datums wird
+mit dieser Mailuhrzeit in der konfigurierten IANA-Zone verbunden und darf keinen
+Ganztagstermin erzeugen. Ist der Beginn bekannt, bleibt auch dieser Fakt erhalten und
 es wird ausschließlich nach dem Ende gefragt. Beginn, Ende und Dauer werden nicht
 erfunden. Dieselben Invarianten gelten für Telegram-Revisionen: Ein LLM-Nachfolger
 darf bekannte Fakten weder verwerfen noch ein Datum ohne Ganztagsevidenz in einen

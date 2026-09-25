@@ -70,6 +70,7 @@ class NormalizationResult:
     responsibility: str
     known_date: date | None = None
     known_start: datetime | None = None
+    known_start_time: time | None = None
     temporal_fact: TemporalFact | None = None
 
     @property
@@ -101,7 +102,10 @@ _DATE_RANGE_NAMED = re.compile(
 _DATE_RANGE_NUMERIC = re.compile(
     r"(?<!\d)(\d{1,2})\.(\d{1,2})\.(\d{4})\s*(?:-|\u2013|\u2014|bis)\s*"
     r"(\d{1,2})\.(\d{1,2})\.(\d{4})(?!\d)", re.IGNORECASE)
-_TIME = re.compile(r"(\d{1,2}):(\d{2})(?::(\d{2}))?(?:\s+Uhr)?\Z", re.IGNORECASE)
+_TIME = re.compile(
+    r"(?:(?:morgens|vormittags|mittags|nachmittags|abends)\s+)?(?:um\s+)?"
+    r"(\d{1,2})(?::(\d{2})(?::(\d{2}))?)?\s*Uhr\Z|"
+    r"(\d{1,2}):(\d{2})(?::(\d{2}))?\Z", re.IGNORECASE)
 
 
 def _failure(reason: NormalizationReason, raw: str | None, responsibility: str,
@@ -229,7 +233,10 @@ def _parse_time(raw: str, responsibility: str) -> time | NormalizationResult:
         return _failure(NormalizationReason.UNSUPPORTED_TIME, raw, responsibility,
                         "Bitte die Uhrzeit als HH:MM oder HH:MM:SS angeben.")
     try:
-        return time(int(match.group(1)), int(match.group(2)), int(match.group(3) or 0))
+        hour = match.group(1) or match.group(4)
+        minute = match.group(2) or match.group(5) or 0
+        second = match.group(3) or match.group(6) or 0
+        return time(int(hour), int(minute), int(second))
     except ValueError:
         return _failure(NormalizationReason.INVALID_TIME, raw, responsibility,
                         "Bitte eine gültige Uhrzeit angeben.")
@@ -308,6 +315,12 @@ def normalize_event(event: ExtractedEvent, context: MailDateContext) -> Normaliz
             raw_range, None, responsibility, temporal_fact=fact)
     parsed_day = _parse_date(event.date_text, responsibility, context, event.evidence)
     if isinstance(parsed_day, NormalizationResult):
+        # Date resolution and clock extraction are independent facts.  Do not
+        # discard an explicit clock merely because the year/date needs a reply.
+        if event.time_text is not None and event.time_requirement == TimeRequirement.TIMED:
+            parsed_clock = _parse_time(event.time_text, responsibility)
+            if isinstance(parsed_clock, time):
+                return replace(parsed_day, known_start_time=parsed_clock)
         if parsed_day.temporal_fact is None:
             return replace(parsed_day, temporal_fact=TemporalFact(
                 raw_text=event.date_text,
@@ -347,7 +360,7 @@ def normalize_event(event: ExtractedEvent, context: MailDateContext) -> Normaliz
     if isinstance(start, NormalizationResult):
         return replace(start, temporal_fact=fact)
     if event.end_time_text is None:
-        if event.duration_minutes is not None:
+        if event.duration_minutes is not None and not event.duration_is_upper_bound:
             end = start + timedelta(minutes=event.duration_minutes)
             return NormalizationResult(TemporalValue(start, end, False), None,
                                        f"{event.date_text} {event.time_text}", None,

@@ -138,6 +138,9 @@ def deterministic_temporal_revision(proposal: Proposal, question: str,
             raise ContradictoryRevision("Die Ortszeit ist wegen der Zeitumstellung nicht eindeutig")
         return candidates[0]
     start = localize(start_time, day)
+    if (start is None and day is not None and proposal.known_temporal_facts is not None
+            and proposal.known_temporal_facts.start_time is not None):
+        start = localize(proposal.known_temporal_facts.start_time, day)
     end_day = parsed.date or day
     known_start = (proposal.known_temporal_facts.start
                    if proposal.known_temporal_facts is not None else proposal.start)
@@ -155,7 +158,8 @@ def deterministic_temporal_revision(proposal: Proposal, question: str,
         changes["temporal_date"] = parsed.date
     if start is not None:
         changes["start"] = start
-        if end is None and proposal.duration_minutes is not None:
+        if (end is None and proposal.duration_minutes is not None
+                and not proposal.duration_is_upper_bound):
             end = start + timedelta(minutes=proposal.duration_minutes)
     if end is not None:
         changes["end"] = end
@@ -450,10 +454,13 @@ def format_proposal(proposal: Proposal, configured_timezone: str) -> str:
         display_start = (proposal.start or
                          (proposal.known_temporal_facts.start
                           if proposal.known_temporal_facts else None))
+        duration = (f"{'höchstens ' if proposal.duration_is_upper_bound else ''}"
+                    f"{proposal.duration_minutes} Minuten"
+                    if proposal.duration_minutes else missing)
         lines.extend([
             f"Beginn: {display_start.isoformat() if display_start else missing}",
             f"Ende: {proposal.end.isoformat() if proposal.end else missing}",
-            f"Dauer: {f'{proposal.duration_minutes} Minuten' if proposal.duration_minutes else missing}",
+            f"Dauer: {duration}",
             f"Ganztägig: {'Ja' if proposal.all_day else 'Nein'}",
             f"Konfigurierte Zeitzone: {configured_timezone}",
             f"Ort: {proposal.location or missing}",
@@ -1087,24 +1094,43 @@ class ProposalRevisionProcessor:
             if not local_temporal:
                 self._defer_interpretation(name, state, exc, contradictory=True)
                 return
-            paused = state.model_copy(update={
-                "interpretation_status": ProposalRevisionStatus.PAUSED,
-                "interpretation_attempts": state.interpretation_attempts + 1,
+            invalid = state.model_copy(update={
+                "answer_status": AnswerStatus.INVALID,
+                "interpretation_status": ProposalRevisionStatus.COMPLETED,
                 "next_interpretation_at": None,
             })
-            self.store.save(name, paused.model_dump(mode="json"))
-            self._log_revision_failure(state.mail_id, state.proposal_id,
-                                       state.version, exc,
-                                       ProposalRevisionStatus.PAUSED)
+            self.store.save(name, invalid.model_dump(mode="json"))
             expected = (proposal.known_temporal_facts.date
                         if proposal.known_temporal_facts is not None
                         else proposal.temporal_fact.normalized_date
                         if proposal.temporal_fact is not None else None)
-            suffix = f" Erwartet wird {expected.isoformat()}." if expected else ""
-            self.telegram.send(
-                self.chat_id,
-                "Das genannte Datum widerspricht dem bereits validierten Termindatum."
-                + suffix + " Bitte bestätige das richtige Datum konkret.")
+            parsed = parse_deterministic_temporal_answer(
+                state.authorized_answer, current_date)
+            allowed_dates = ({expected, expected + timedelta(days=1)}
+                             if "ende" in state.question.casefold() else {expected})
+            wrong_date = (parsed is not None and parsed.date is not None
+                          and expected is not None and parsed.date not in allowed_dates)
+            known_start = (proposal.known_temporal_facts.start
+                           if proposal.known_temporal_facts is not None
+                           else proposal.start)
+            if wrong_date:
+                message = ("Das genannte Datum widerspricht dem bereits validierten "
+                           f"Termindatum. Erwartet wird {expected.isoformat()}. "
+                           "Bitte bestätige das richtige Datum konkret.")
+            elif "ende" in state.question.casefold() and known_start is not None:
+                message = (f"{known_start.strftime('%H:%M')} Uhr ist bereits als Beginn "
+                           "belegt und kann nicht zugleich das Ende sein. Bitte nenne "
+                           "die Endzeit nach dem Beginn konkret.")
+            else:
+                message = ("Die Zeitangabe widerspricht den bereits belegten Terminfakten. "
+                           "Bitte bestätige Datum und Uhrzeit konkret.")
+            self.logger.event(
+                "INFO", "telegram.dialog", "answer_clarification_requested",
+                mail_id=state.mail_id, proposal_id=state.proposal_id,
+                version=state.version, error_class=type(exc).__name__,
+                proposal_reference=f"{state.mail_id}:{state.proposal_id}:v{state.version}",
+                revision_status=ProposalRevisionStatus.PENDING.value)
+            self.telegram.send(self.chat_id, message)
             return
         # The validated value is the recovery record.  It must reach disk before
         # removing the active user question or making another fallible LLM call.
