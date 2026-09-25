@@ -803,6 +803,14 @@ Wiederaufnahme startet nur diese fehlgeschlagene Teilstufe und ihre abhängigen
 lokalen Folgeschritte; Relevanz, Zusammenfassung, deren Telegram-Versand und bereits
 erfolgreiche parallele Extraktionen werden weder erneut aufgerufen noch versandt.
 
+Ein terminaler Fehler vor diesem abgeschlossenen Action-Teilfehler hält die
+postfachweite Queue unmittelbar an. Die aktuelle Queueposition bleibt
+`processing`, ihr IMAP-Checkpoint wird nicht fortgeschrieben und spätere Mails
+werden nicht analysiert. Damit wird ein gemeinsamer Provider-, Zugangs- oder
+Konfigurationsfehler nicht auf den gesamten Posteingang vervielfacht. Nach einer
+Prüfung beziehungsweise Korrektur setzt ein Prozessneustart dieselbe Position
+idempotent fort.
+
 Der beim ersten Anlegen gespeicherte Fingerprint umfasst `config.yaml`, `prompts.yaml` und `topics.yaml` (keine Geheimnisse). Er wird bei jedem Neustart mit dem aktiven Fingerprint verglichen und niemals stillschweigend ersetzt. Eine noch nicht abgeschlossene Mail mit abweichendem Fingerprint bleibt im Zustand `pending`, wird mit Ergebnis `waiting` übersprungen und erzeugt das strukturierte Ereignis `configuration_changed`; damit werden keine Ergebnisse verschiedener Konfigurationen vermischt. Sie kann nur mit der ursprünglichen Konfiguration fortgesetzt werden oder nach der oben beschriebenen, bewussten Neuverarbeitung neu beginnen. Bereits abgeschlossene Mails bleiben unverändert und dienen weiter der Duplikatvermeidung.
 
 Vorschläge werden unabhängig vom Abschluss der Mail sowohl als unveränderliche

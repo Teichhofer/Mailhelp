@@ -146,6 +146,7 @@ class Application:
     dialog: TelegramDialogController | None = None
     sender_store: JsonStore | None = None
     _wait_for_user: bool = False
+    _mail_processing_halted: bool = False
 
     def check_access(self) -> dict[str, str | None]:
         """Check every external credential and target without processing mail."""
@@ -224,6 +225,12 @@ class Application:
         """Resume durable work and process new mail, returning every outcome."""
         budget = _MailBudget(max_mails)
         results = self._resume_pending(budget)
+        # A failed mail can indicate a shared provider or credential problem.  Do
+        # not fan that same failure out over the rest of the mailbox.  The
+        # in-memory latch is intentionally cleared only by a process restart,
+        # after an operator had a chance to correct the external configuration.
+        if self._mail_processing_halted:
+            return results
         # Production readers expose metadata-only discovery.  Always build the
         # durable queue before fetching bodies; the fallback keeps deliberately
         # tiny legacy test adapters usable without weakening the real path.
@@ -305,17 +312,20 @@ class Application:
                     self.logger.event("ERROR", "orchestrator", "mail_failed", folder=folder, uid=mail.uid, error=str(exc))
                     continue
                 results.append(result)
-                # Every regular result has a durable mail state, including failed
-                # and deliberately waiting work.  It is therefore safe to move the
-                # discovery checkpoint and let _resume_pending own unfinished work.
+                if result.outcome is ProcessingOutcome.FAILED:
+                    self.logger.event("ERROR", "orchestrator", "mail_failed",
+                                      folder=folder, uid=mail.uid,
+                                      error=result.state.get("error"))
+                    self._mail_processing_halted = True
+                    break
+                # Every result reaching this point has a durable mail state.
+                # Failed results are excluded above so their checkpoint remains
+                # available for restart recovery.
                 ranges = _add_uid(ranges, mail.uid)
                 checkpoint["uid"] = max(checkpoint["uid"], mail.uid)
                 checkpoint["uidvalidity"] = mail.uidvalidity
                 checkpoint["completed_uid_ranges"] = ranges
                 self.store.save(checkpoint_name, ImapCheckpoint(**checkpoint).model_dump())
-                if result.outcome is ProcessingOutcome.FAILED:
-                    self.logger.event("ERROR", "orchestrator", "mail_failed", folder=folder, uid=mail.uid,
-                                      error=result.state.get("error"))
             if not mails and self.imap.last_uidvalidity is not None:
                 if checkpoint["uidvalidity"] is None:
                     checkpoint["uidvalidity"] = self.imap.last_uidvalidity
@@ -472,27 +482,34 @@ class Application:
                     "ERROR", "orchestrator", "mail_failed",
                     folder=current.folder, uid=current.uid, error=str(exc),
                 )
-                terminal_status = MailRunEntryStatus.FAILED
-                terminal_analysis = "failed"
-                failure_code = "imap_read_exhausted"
-                result = None
+                # Keep the entry at ``processing``.  Retrying this exact queue
+                # position after a restart is safer than skipping it and
+                # potentially repeating one shared outage for every later mail.
+                self._mail_processing_halted = True
+                break
             else:
                 results.append(result)
+                if result.outcome is ProcessingOutcome.FAILED:
+                    # The mail state already contains the safe failure details.
+                    # Leave the queue entry resumable and do not advance its IMAP
+                    # checkpoint until a restart successfully processes it.
+                    self.logger.event(
+                        "ERROR", "orchestrator", "mail_failed",
+                        folder=current.folder, uid=current.uid,
+                        error=result.state.get("error"),
+                    )
+                    self._mail_processing_halted = True
+                    break
                 terminal_status = (MailRunEntryStatus.WAITING_FOR_USER
                                    if result.outcome is ProcessingOutcome.WAITING
-                                   else MailRunEntryStatus.FAILED
-                                   if result.outcome is ProcessingOutcome.FAILED
                                    else MailRunEntryStatus.COMPLETED)
-                if terminal_status is MailRunEntryStatus.FAILED:
-                    terminal_analysis = "failed"
-                elif result.state.get("duplicate") is not None:
+                if result.state.get("duplicate") is not None:
                     terminal_analysis = "duplicate"
                 elif (result.state.get("relevance") or {}).get("decision") == "irrelevant":
                     terminal_analysis = "irrelevant"
                 else:
                     terminal_analysis = "completed"
-                failure_code = ("processing_failed"
-                                if terminal_status is MailRunEntryStatus.FAILED else None)
+                failure_code = None
             persisted = self.store.load_model(run_name, MailRunState)
             assert persisted is not None
             current = next(entry for entry in persisted.entries if entry.key == queued.key)
@@ -510,11 +527,6 @@ class Application:
             checkpoint["completed_uid_ranges"] = ranges
             contexts[current.folder] = (checkpoint_name, checkpoint, ranges)
             self.store.save(checkpoint_name, ImapCheckpoint(**checkpoint).model_dump())
-            if result is not None and result.outcome is ProcessingOutcome.FAILED:
-                self.logger.event(
-                    "ERROR", "orchestrator", "mail_failed", folder=current.folder,
-                    uid=current.uid, error=result.state.get("error"),
-                )
         return results
 
     @staticmethod
@@ -563,6 +575,8 @@ class Application:
                 if result.outcome is ProcessingOutcome.FAILED:
                     self.logger.event("ERROR", "orchestrator", "resume_failed", state_name=name,
                                       error=result.state.get("error"))
+                    self._mail_processing_halted = True
+                    break
             except Exception as exc:
                 self.logger.event("ERROR", "orchestrator", "resume_failed", state_name=name, error=str(exc))
         return results

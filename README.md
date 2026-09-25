@@ -863,6 +863,15 @@ dieselbe materialisierte Queue ohne erneute Entdeckung und ohne doppelte Analyse
 fortsetzt. Nicht lesbare zusätzliche Ordner verkürzen einen bereits entdeckten
 INBOX-Batch nicht.
 
+Auch ein terminaler Analyse- oder Abruffehler hält den restlichen Batch sofort an,
+statt denselben möglicherweise postfachweiten Provider- oder Konfigurationsfehler
+für jede weitere Mail zu wiederholen. Die betroffene Position bleibt
+`processing`, ihr IMAP-Checkpoint wird nicht vorgezogen und die übrigen Positionen
+bleiben in der Queue. Nach Prüfung beziehungsweise Korrektur der externen
+Konfiguration setzt ein Neustart exakt an dieser Position fort. Dadurch erzeugt
+beispielsweise eine dauerhaft abgelehnte Relevanzanfrage nur eine Fehlermeldung
+und nicht eine Meldung pro Mail.
+
 Run-Dateien gehören zu einem eigenen Zustandstyp. Scans nach einzelnen
 `mail-<id>.json`-Zuständen (Wiederaufnahme, Aufbewahrung und Telegram-Dialoge)
 schließen `mail-run-<account_id>.json` ausdrücklich aus, damit die dauerhafte
