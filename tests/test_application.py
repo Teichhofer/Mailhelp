@@ -146,6 +146,45 @@ def test_exhausted_uid_halts_queue_and_restart_retries_same_item(tmp_path):
                      failure_code="processing_failed")
 
 
+def test_terminal_processing_failure_is_persisted_and_counted(tmp_path):
+    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+
+    class Reader:
+        account_id = "0" * 24
+        last_uidvalidity = 7
+        def discover_since(self, folder, *_args):
+            return [MailCandidate(folder, 7, uid, self.account_id, stamp)
+                    for uid in (2, 3)]
+        def fetch_uid(self, folder, uid, validity):
+            return FetchedMail(folder, validity, uid, b"x", self.account_id, stamp)
+
+    class Failed(Orch):
+        def process(self, mail):
+            self.seen.append(mail.uid)
+            return ProcessingResult(ProcessingOutcome.FAILED, {
+                "error": {"code": "permanent_adapter_error"},
+            })
+
+    service = app(tmp_path, Reader(), Telegram([]), Failed(),
+                  global_newest_first=True)
+
+    results = service._poll_imap(max_mails=2)
+
+    run = service.store.load_model("mail-run-" + "0" * 24, MailRunState)
+    assert len(results) == 1
+    assert [entry.status.value for entry in run.entries] == ["failed", "queued"]
+    assert run.entries[0].analysis_terminal == "failed"
+    assert run.entries[0].failure_code == "processing_failed"
+    assert run.counters.failed == 1
+    assert _RunSummary.from_run(run) == _RunSummary(
+        discovered=2, queued=1, processed=1, failed=1, run_complete=False,
+    )
+    assert _checkpoint_name(service.imap.account_id, "INBOX") in service.store.values
+    assert service.store.values[_checkpoint_name(
+        service.imap.account_id, "INBOX"
+    )]["completed_uid_ranges"] == []
+
+
 def test_persistent_run_records_duplicate_and_irrelevant_analysis(tmp_path):
     stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
 
