@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, time
 import httpx
 import pytest
 from unittest.mock import patch
@@ -30,6 +30,8 @@ from mailhelp.telegram import (
     numbered_message_parts,
     format_proposal,
     deterministic_classification_revision,
+    normalize_deterministic_temporal_answer,
+    parse_deterministic_temporal_answer,
     deterministic_temporal_revision,
     validate_callback_data,
     validate_callback_markup,
@@ -81,8 +83,8 @@ class RevisionService:
         self.calls.append(("interpret", item, question, answer))
         return "interpret-call", type("Interpretation", (), {
             "usable": True, "normalized_answer": answer, "reason": "passt"})()
-    def clarify_telegram_answer(self, question, answer, reason):
-        self.calls.append(("clarify", question, answer, reason))
+    def clarify_telegram_answer(self, question, answer, reason, *, current_date=None):
+        self.calls.append(("clarify", question, answer, reason, current_date))
         return "clarify-call", type("Clarification", (), {
             "message": f"Bitte konkreter beantworten: {question}"})()
     def revise_proposal(self, item, question, answer):
@@ -359,6 +361,29 @@ def test_reported_date_time_answer_retains_start_fact_and_uses_duration():
     assert revised.open_questions == []
     assert "Beginn: 2026-09-25T11:00:00+02:00" in format_proposal(
         revised, "Europe/Berlin")
+
+
+def test_today_is_resolved_from_explicit_context():
+    parsed = parse_deterministic_temporal_answer(
+        "Heute 11uhr", date(2026, 9, 25))
+    assert parsed.date == date(2026, 9, 25)
+    assert parsed.start == time(11, 0)
+    assert parsed.end is None
+    assert parse_deterministic_temporal_answer("Heute 11uhr") is None
+    date_only = parse_deterministic_temporal_answer(
+        "heute", date(2026, 9, 25))
+    assert date_only.model_dump() == {
+            "date": date(2026, 9, 25), "start": None, "end": None}
+    assert normalize_deterministic_temporal_answer(date_only) == "2026-09-25"
+    ranged = parse_deterministic_temporal_answer(
+        "Heute 11:00 bis 12 Uhr", date(2026, 9, 25))
+    assert ranged.start == time(11, 0)
+    assert ranged.end == time(12, 0)
+    assert normalize_deterministic_temporal_answer(parsed) == "2026-09-25 11:00"
+    assert normalize_deterministic_temporal_answer(ranged) == (
+        "2026-09-25 11:00 bis 12:00")
+    time_only = parse_deterministic_temporal_answer("11 Uhr")
+    assert normalize_deterministic_temporal_answer(time_only) == "11:00"
 
 
 def test_formatting_shows_retained_incomplete_start_and_duration():

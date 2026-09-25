@@ -25,7 +25,7 @@ from .relevance import RelevanceDialogProcessor, RelevanceDialogs
 from .revisions import ProposalRevisionProcessor, ProposalRevisions, ProposalRevisionService
 from .temporal import (
     DeterministicTemporalAnswer, deterministic_classification_revision,
-    deterministic_temporal_revision,
+    deterministic_temporal_revision, normalize_deterministic_temporal_answer,
     parse_deterministic_temporal_answer,
 )
 from .writes import ConfirmedWriteExecutor, WriteExecution

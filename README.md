@@ -645,8 +645,12 @@ ein zweiter, getrennt schematisierter LLM-Aufruf eine konkrete Rückfrage; Vorsc
 und Dialog bleiben dabei unverändert.
 Vor diesem LLM-Schritt erkennt ein eng begrenzter lokaler Parser ausschließlich
 numerische deutsche und ISO-Daten sowie Uhrzeiten und Zeitspannen (zum Beispiel
-`23.09.2026 9:00 bis 10 Uhr`). Er liefert Datum, Beginn und Ende als getrennte
-typisierte Fakten, ergänzt nur ausdrücklich belegte Werte und erhält bereits
+`23.09.2026 9:00 bis 10 Uhr`). Zusätzlich löst er `heute` anhand des aktuellen
+Kalendertags in der konfigurierten Nutzerzeitzone auf. Der Klärungs-Prompt erhält
+dieses Tagesdatum als separates Kontextfeld, damit auch dort relative Angaben
+nicht mangels Referenzdatum abgelehnt werden. Der Parser liefert Datum, Beginn und
+Ende als getrennte typisierte Fakten, ergänzt nur ausdrücklich belegte Werte und
+erhält bereits
 bekannte Zeitfakten. Ein Datum, das dem validierten Termindatum widerspricht,
 wird pausiert und mit einer konkreten Bestätigungsfrage zurückgewiesen; ein Ende
 muss nach dem Beginn und höchstens am erlaubten Folgetag liegen. Für eindeutig
