@@ -598,6 +598,9 @@ schließen einen nach einem Absturz noch ausstehenden Klärungszustand idempoten
 Die exakten Formulierungen `Es passt alles` und `Alles passt` gelten bei binären
 Rückfragen zur Belegsicherheit oder Zuständigkeit ebenso wie `Ja` als eindeutige
 positive Antwort und werden ohne Modellaufruf deterministisch normalisiert.
+Die eindeutige Antwort `Nein` auf die Frage, ob ein nicht bindender Hinweis dennoch
+als neuer Eintrag angelegt werden soll, verwirft den Vorschlag unmittelbar und
+deterministisch ohne Modellaufruf. Der Klärungsdialog wird dabei abgeschlossen.
 
 Revisionsfehler werden an einer ausdrücklichen Grenze in drei Kategorien getrennt:
 `IncompleteUserAnswer` bezeichnet allein eine fachlich validierte, aber unvollständige
