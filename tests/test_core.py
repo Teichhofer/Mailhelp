@@ -130,7 +130,7 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
         (tmp_path / name).write_text((Path(name)).read_text(encoding="utf8"), encoding="utf8")
     env = {x: "secret" for x in ["IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN", "TODOIST_TOKEN", "TODOIST_CLIENT_ID", "TODOIST_CLIENT_SECRET", "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"]}
     settings, secrets, topics, irrelevant_topics, prompts, fingerprint = load_all(tmp_path, env)
-    assert settings.test_mode and secrets.imap_password.get_secret_value() == "secret" and topics[0].enabled and len(fingerprint) == 64
+    assert not settings.test_mode and secrets.imap_password.get_secret_value() == "secret" and topics[0].enabled and len(fingerprint) == 64
     expected_irrelevant_topics = IrrelevantTopicsConfig.model_validate(
         _yaml(Path("irrelevant_topics.yaml"))
     ).topics

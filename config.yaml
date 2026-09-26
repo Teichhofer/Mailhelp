@@ -2,9 +2,9 @@
 # in der Mail; ein validierter expliziter Mail-Offset hat Vorrang.
 timezone: Europe/Berlin
 poll_interval_seconds: 60
-# true simuliert Todoist-Aufgaben (im Telegram-Vorschlag vorab gekennzeichnet),
-# während bestätigte Google-Kalendertermine weiterhin extern angelegt werden.
-test_mode: true
+# false aktiviert nach der ausdrücklichen Telegram-Bestätigung die echte Anlage
+# in Todoist und Google Kalender. Nur für gezielte Testläufe auf true setzen.
+test_mode: false
 data_directory: data
 retention:
   full_mail_days: 30
