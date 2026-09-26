@@ -25,6 +25,7 @@ from ..models import (
     MailState,
     Proposal,
     ProposalClarificationState,
+    ProposalClassification,
     ProposalKind,
     ProposalRevisionStatus,
     ProposalStatus,
@@ -182,6 +183,41 @@ class ProposalRevisionProcessor:
                     "Die autorisierte Antwort ist bereits sicher gespeichert und wird verarbeitet.",
                 )
                 return
+        normalized_answer = " ".join(answer.casefold().strip().rstrip(".!?").split())
+        if (
+            proposal.classification == ProposalClassification.NON_BINDING
+            and normalized_answer == "nein"
+        ):
+            rejected = proposal.model_copy(update={"status": ProposalStatus.REJECTED})
+            self.persistence.persist(rejected)
+            answered = ProposalClarificationState(
+                mail_id=dialog.mail_id,
+                proposal_id=dialog.proposal_id,
+                version=dialog.version,
+                question=question,
+                authorized_answer=answer,
+                interpretation_status=ProposalRevisionStatus.COMPLETED,
+                question_status=QuestionStatus.ANSWERED,
+                answer_status=AnswerStatus.VALID,
+                normalized_answer="Nein",
+                proposal_revision_status=ProposalRevisionStatus.COMPLETED,
+            )
+            self.store.save(
+                clarification_record_name, answered.model_dump(mode="json")
+            )
+            self.store.save(
+                "telegram-dialog", TelegramDialogState().model_dump(mode="json")
+            )
+            self.logger.event(
+                "INFO",
+                "telegram.dialog",
+                "proposal_rejected_by_clarification",
+                mail_id=dialog.mail_id,
+                proposal_id=dialog.proposal_id,
+                version=dialog.version,
+            )
+            self.telegram.send(self.chat_id, "✅ Vorschlag wurde verworfen.")
+            return
         if self.revision_service is None:
             self.logger.event(
                 "ERROR",
