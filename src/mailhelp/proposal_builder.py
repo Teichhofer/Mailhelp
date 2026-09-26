@@ -24,15 +24,30 @@ _CLASSIFICATION_QUESTIONS = {
     "recurring": "Wiederkehrende Einträge werden nicht automatisch angelegt.",
     "unsupported": "Diese Art von Eintrag wird nicht unterstützt.",
 }
+_DESCRIPTION_LIMIT = 4000
 
 
 class ProposalBuilder:
     """The sole trust boundary for proposal identity, routing, and initial status."""
 
-    def __init__(self, source_mail_id: str, targets: TargetSettings, context: MailDateContext):
+    def __init__(self, source_mail_id: str, targets: TargetSettings, context: MailDateContext,
+                 source_sender: str = "—", source_subject: str = "—"):
         self.source_mail_id = source_mail_id
         self.targets = targets
         self.context = context
+        self.source_sender = source_sender
+        self.source_subject = source_subject
+
+    def _description(self, value: str | None) -> str:
+        """Add bounded, application-owned source details to every external description."""
+        mail_date = self.context.date_header_parsed or self.context.imap_received_at or "—"
+        reference = (f"Absender: {self.source_sender}\n"
+                     f"Betreff: {self.source_subject}\n"
+                     f"Mail-Datum: {mail_date}")
+        separator = "\n\n" if value else ""
+        available = _DESCRIPTION_LIMIT - len(separator) - len(reference)
+        description = (value or "")[:max(0, available)]
+        return f"{description}{separator}{reference}"
 
     @staticmethod
     def _questions(item: ExtractedTask | ExtractedEvent, temporal_question: str | None) -> list[str]:
@@ -108,7 +123,7 @@ class ProposalBuilder:
                 schema_version=2, id=self._identity(kind, item, position, used_ids), version=1,
                 kind=kind, responsibility=item.responsibility, certainty=item.certainty,
                 classification=item.classification, title=item.title,
-                description=item.description or "", evidence=item.evidence,
+                description=self._description(item.description), evidence=item.evidence,
                 source_mail_id=self.source_mail_id, open_questions=questions,
                 location=item.location if isinstance(item, ExtractedEvent) else None,
                 video_link=item.video_link if isinstance(item, ExtractedEvent) else None,

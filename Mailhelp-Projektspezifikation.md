@@ -403,7 +403,11 @@ eine belegende Textstelle, offene Fragen und den Bezug zur Ursprungsmail. Das LL
 liefert weder Vorschlags-ID noch Mailbezug oder Ziel. Erst der vertrauenswürdige,
 deterministische Builder erzeugt aus interner Mail-ID, Art, Evidenz und validierten
 Sachdaten eine stabile ID und setzt das Ziel ausschließlich aus `targets` in
-`config.yaml`. Identische Extraktionen derselben Mail werden zusammengeführt.
+`config.yaml`. Die Beschreibung jedes angelegten Todoist- oder Kalendereintrags
+enthält unabhängig von einer fachlichen Beschreibung immer den aufbereiteten
+Absender, den Betreff und das Datum der Ursprungsmail. Bei einem unbrauchbaren
+Date-Header wird dafür der IMAP-Empfangszeitpunkt verwendet. Identische
+Extraktionen derselben Mail werden zusammengeführt.
 
 Der `action_router` verlangt das geschlossene `ActionRoute`-Schema mit `action_state`, `task_count`, `event_count` und `reason`. Er fordert ausdrücklich keine Datumsnormalisierung, Zeitzone, Statuslogik, IDs, Ziele, Benachrichtigungsflags oder vollständigen Vorschläge. `task_extraction` und `event_extraction` liefern strikt versionierte Rohmodelle mit den verpflichtenden Listen `tasks` beziehungsweise `events` und höchstens 20 Einträgen. Ihre Anzahl muss dem jeweiligen Router-Zähler entsprechen. Eine Abweichung ist ein Schemafehler, der mit dem erwarteten Zähler erneut versucht wird; bleibt sie nach den konfigurierten Schema-Reparaturversuchen bestehen, endet die Action-Teilstufe explizit fehlgeschlagen und es werden weder Normalisierung noch `actions_completed` ausgeführt. Die Extraktionen kopieren nur ausdrücklich genannte Texte, normalisieren weder Datum noch Uhrzeit und ergänzen keine fehlenden Werte; Videolinks müssen ausdrücklich genannte HTTP-/HTTPS-URLs sein. Die Ergebnisse werden getrennt persistiert und sind noch keine automatisch bestätigbaren Vorschläge.
 
