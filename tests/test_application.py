@@ -577,6 +577,16 @@ def test_global_mailbox_checkpoint_failures_restarts_and_dialog(tmp_path):
     )
     assert len(stopped_during_processing._poll_imap()) == 1
 
+    technically_blocked = app(
+        tmp_path, GlobalImap([two_candidates]), Telegram([]), Orch(),
+        global_newest_first=True,
+    )
+    technically_blocked.dialog = type("BlockedDialog", (), {
+        "awaiting_decision": lambda self: False,
+        "processing_blocked": lambda self: True,
+    })()
+    assert len(technically_blocked._poll_imap()) == 1
+
 
 def test_global_mailbox_uidvalidity_and_historical_boundary(tmp_path):
     stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
@@ -1238,6 +1248,17 @@ def test_resume_mixes_matching_and_blocked_fingerprints_without_resuming_blocked
     ]
     assert service.imap.uid_calls == [("INBOX",1,7),("INBOX",3,7)]
     assert service.orchestrator.seen == [1,3]
+
+    stopped = app(
+        tmp_path, Imap([]), Telegram([]), Orch(config_fingerprint=active),
+        store=Store(states),
+    )
+    stopped.dialog = type("BlockedDialog", (), {
+        "awaiting_decision": lambda self: False,
+        "processing_blocked": lambda self: True,
+    })()
+    assert len(stopped._resume_pending(_MailBudget(2))) == 1
+    assert stopped.orchestrator.seen == [1]
 
 
 def test_resume_due_pending_states_and_isolate_failures(tmp_path):

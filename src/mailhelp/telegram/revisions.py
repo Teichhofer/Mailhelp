@@ -544,7 +544,9 @@ class ProposalRevisionProcessor:
             self.telegram.send(
                 self.chat_id,
                 (
-                    "Die Überarbeitung der gespeicherten Antwort wurde nach mehreren Versuchen pausiert. Die Antwort bleibt erhalten."
+                    "Die Überarbeitung der gespeicherten Antwort wurde nach mehreren Versuchen pausiert. "
+                    "Die Antwort bleibt erhalten. Zur Wiederaufnahme muss ein Betreiber den "
+                    "Revisionsstatus auf retry_required setzen und Mailhelp neu starten."
                     if exhausted
                     else "Die interne Verarbeitung der gespeicherten Antwort ist verzögert."
                 ),

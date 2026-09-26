@@ -723,6 +723,11 @@ persistiert, bleibt sie auch bei einem späteren technischen Revisionsfehler bea
 und wird nach Neustart aus dem Zustand wiederholt; die Chatnachricht wird nie nochmals
 als neue Antwort ausgewertet. Ein vorausgehender erfolgreicher Telegram-HTTP-Aufruf
 bleibt dabei ein separater Erfolg und wird nicht als Revisionsfehler protokolliert.
+Eine technisch pausierte Revision gilt nicht als unbeantwortete
+Telegram-Entscheidung und löst deshalb keine endlose Long-Poll-Warteschleife aus.
+Sie blockiert dennoch die weitere Mail-Queue. Mailhelp nennt im Chat die notwendige
+Betreiberaktion: den gespeicherten `proposal_revision_status` kontrolliert auf
+`retry_required` setzen und Mailhelp neu starten.
 Bei binären Rückfragen zur Belegsicherheit oder Zuständigkeit normalisiert die
 Anwendung neben `Ja` und `Nein` auch die geschlossenen Bestätigungsformulierungen
 `Es passt alles` und `Alles passt` deterministisch zu `Ja`; dadurch hängt eine
