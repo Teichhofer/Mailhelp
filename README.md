@@ -435,7 +435,12 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
   Idempotenzschlüsseln erhalten. Ein Restore kann so weiterhin Ergebnisse
   zuordnen und Duplikate verhindern; entfernte Inhalte sind nicht
   wiederherstellbar. Logs nennen nur Mail-ID, Laufzeitpunkt und Zähler.
-* Im `test_mode` findet kein Todoist-Schreibzugriff statt; Aufgaben werden als Simulation abgeschlossen. Bestätigte Termine werden dagegen wie im Produktivmodus tatsächlich über die Google Calendar API angelegt.
+* Die mitgelieferte `config.yaml` verwendet `test_mode: false`, damit eine über
+  Telegram ausdrücklich bestätigte Aufgabe tatsächlich in Todoist angelegt wird.
+  Wird `test_mode` für einen gezielten Testlauf auf `true` gesetzt, findet kein
+  Todoist-Schreibzugriff statt; Aufgaben werden dann als Simulation abgeschlossen.
+  Bestätigte Termine werden dagegen auch im Testmodus tatsächlich über die Google
+  Calendar API angelegt.
 * JSONL-Anwendungs- und LLM-Logs sind getrennt. Die Beispielkonfiguration protokolliert vollständige LLM-Anfragen und -Antworten; beide Inhaltsarten lassen sich unabhängig abschalten und Geheimnisfelder werden stets maskiert.
 * `.env` unterstützt einfache `NAME=WERT`-Zeilen und einfache/doppelte Anführungszeichen, aber bewusst keine Shell-Erweiterung. Prozessvariablen überschreiben gleichnamige Werte aus der Datei.
 

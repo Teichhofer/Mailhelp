@@ -987,6 +987,10 @@ Timeouts und begrenzte Wiederholungsversuche mit zunehmenden Abständen gelten j
 Nach erfolgreichem HTTP-Status validieren integrationsspezifische Antwortmodelle OpenRouter, Telegram und Todoist auf JSON-Struktur, Pflichtfelder und erwartete IDs. Telegram-Fehlerdiagnosen übernehmen das dokumentierte menschenlesbare `description`-Feld vollständig, ohne den übrigen Antwortkörper oder den Bot-Token offenzulegen. Sonstige Diagnosen nennen Integration und Schlüsselpfad, nie Tokens, Authorization-Header oder vollständige nicht freigeschaltete Inhalte.
 
 Ein Testmodus führt Auswertung und Telegram-Dialog aus und verhindert Todoist-Schreibzugriffe. Todoist-Erfolge sind deutlich als Simulation markiert und werden nicht als echte externe Einträge gespeichert. Bestätigte Termine werden dagegen auch im Testmodus tatsächlich in Google Kalender angelegt und als `created` gespeichert. Test- und Produktivzustand werden getrennt gehalten. Der Testmodus ist kein Offline-Modus: LLM- und Telegram-Aufrufe finden weiterhin statt.
+Die ausgelieferte Betreiberkonfiguration startet im Produktivmodus
+(`test_mode: false`), sodass ausdrücklich über Telegram bestätigte Aufgaben in
+Todoist angelegt werden. Simulationen müssen durch `test_mode: true` bewusst
+aktiviert werden.
 
 ## 13. Tests und verbindliche Entwicklungsregeln
 

@@ -50,6 +50,15 @@ def test_shipped_config_processes_all_standard_webde_folders():
     assert config.imap.folders == ["INBOX", "Drafts", "Sent", "Spam", "Trash"]
 
 
+def test_shipped_config_creates_confirmed_todoist_tasks():
+    """Keep the operator configuration out of Todoist simulation mode."""
+    config = Settings.model_validate(
+        yaml.safe_load((ROOT / "config.yaml").read_text(encoding="utf-8"))
+    )
+
+    assert config.test_mode is False
+
+
 def test_shipped_config_does_not_throttle_one_hundred_mail_run_after_fifty_mails():
     """Budget at least two routine LLM calls for every requested mail."""
     config = Settings.model_validate(
