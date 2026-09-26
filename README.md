@@ -105,6 +105,13 @@ dem Schreiben und nach unklaren Resultaten; ein unklarer Schreibzugriff wird nic
 automatisch wiederholt. Auch im Testmodus wird ein ausdrücklich bestätigter Termin
 real angelegt, während Todoist-Aufgaben simuliert bleiben.
 
+Lehnt Google den OAuth-Token-Abruf dauerhaft ab, beendet Mailhelp den laufenden
+Prozess sofort mit Status 1, statt den bestätigten Kalenderauftrag fortlaufend neu
+abzugleichen. Eine verständliche Fehlermeldung wird im Terminal, im strukturierten
+Log und – soweit Telegram noch erreichbar ist – im konfigurierten Chat ausgegeben.
+Nach dem Erneuern der Google-Zugangsdaten muss zuerst `mailhelp --check-access`
+erfolgreich sein; anschließend kann Mailhelp neu gestartet werden.
+
 Vor dem Kalender-Schreibzugriff lädt Mailhelp zeitlich überschneidende Einträge und
 lässt ein LLM konservativ prüfen, ob sie dasselbe reale Ereignis bezeichnen. Beim
 gleichen Ereignis wird kein zweiter Termin erzeugt. Ausschließlich im neuen

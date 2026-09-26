@@ -54,7 +54,7 @@ def test_authorization_is_permanently_denied_and_logs_are_redacted(tmp_path, res
     logger = JsonlLogger(tmp_path, secrets=values)
     transport = httpx.MockTransport(lambda request: httpx.Response(status, json=body, request=request))
     provider = GoogleOAuthTokenProvider(*values[:3], transport=transport, logger=logger)
-    with pytest.raises(OAuthTokenError, match="Token-Abruf abgelehnt"):
+    with pytest.raises(OAuthTokenError, match="OAuth-Anmeldung abgelehnt"):
         provider.access_token()
     provider.close()
     content = (tmp_path / "application.jsonl").read_text(encoding="utf-8")

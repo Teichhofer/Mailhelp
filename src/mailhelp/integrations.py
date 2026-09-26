@@ -69,7 +69,9 @@ class GoogleOAuthTokenProvider:
             # contain an untrusted token response and must not reach the
             # access-check stacktrace.
             raise OAuthTokenError(
-                "Google OAuth: Token-Abruf abgelehnt (Client oder Refresh-Token nicht akzeptiert)"
+                "Google OAuth-Anmeldung abgelehnt: Client-Zugangsdaten oder "
+                "Refresh-Zugang sind ungültig. Zugangsdaten erneuern und "
+                "'mailhelp --check-access' ausführen."
             ) from None
         self._token, self._expires_at = value.access_token, self._clock() + value.expires_in
         self._logger.event("INFO", "google_oauth", "token_credentials_accepted",
