@@ -80,7 +80,7 @@ class TelegramDialogController:
         self.ledger: ActionLedgerPort = ActionLedgerService(store)
         self.repository = ProposalRepository(store)
         self.presenter = ProposalPresenter(
-            configured_timezone, lambda decision: decision.encode(store)
+            configured_timezone, lambda decision: decision.encode(store), test_mode
         )
         self.delivery = ProposalDeliveryService(
             self.repository, self.presenter, telegram, chat_id

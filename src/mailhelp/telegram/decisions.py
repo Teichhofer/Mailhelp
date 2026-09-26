@@ -122,8 +122,16 @@ class ProposalDecisionService:
         )
         self.persistence.persist(changed)
         if changed.status == ProposalStatus.CONFIRMED:
-            self.writes.execute(changed)
-            return "✅ Vorschlag wurde bestätigt."
+            result = self.writes.execute(changed)
+            if result.status == ProposalStatus.CREATED:
+                return "✅ Vorschlag bestätigt; externe Anlage erfolgreich."
+            if result.status == ProposalStatus.SIMULATED:
+                return "✅ Vorschlag intern bestätigt; keine externe Anlage (Simulation)."
+            if result.status == ProposalStatus.UNCERTAIN:
+                return "⚠️ Vorschlag bestätigt; externe Anlage ist noch unklar."
+            if result.status == ProposalStatus.FAILED:
+                return "❌ Vorschlag bestätigt; externe Anlage fehlgeschlagen."
+            return "⚠️ Vorschlag intern bestätigt; keine externe Anlage ausgeführt."
         return "✅ Vorschlag wurde verworfen."
 
 

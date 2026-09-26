@@ -20,16 +20,24 @@ class ProposalPresentation:
 class ProposalPresenter:
     """Create message parts and controls without persistence or networking."""
 
-    def __init__(self, configured_timezone: str, encode: Callable[[Decision], str]):
+    def __init__(
+        self,
+        configured_timezone: str,
+        encode: Callable[[Decision], str],
+        test_mode: bool = False,
+    ):
         self.configured_timezone = configured_timezone
         self.encode = encode
+        self.test_mode = test_mode
 
     def present(
         self, proposal: Proposal, sender: str = "—", subject: str = "—"
     ) -> ProposalPresentation:
         parts = tuple(
             numbered_message_parts(
-                sender, subject, format_proposal(proposal, self.configured_timezone)
+                sender,
+                subject,
+                format_proposal(proposal, self.configured_timezone, self.test_mode),
             )
         )
 
@@ -58,7 +66,11 @@ class ProposalPresenter:
             ]
         else:
             confirm = button(
-                "Anlegen" if proposal.kind == ProposalKind.EVENT else "Bestätigen",
+                (
+                    "Simulieren"
+                    if self.test_mode and proposal.kind == ProposalKind.TASK
+                    else "Anlegen" if proposal.kind == ProposalKind.EVENT else "Bestätigen"
+                ),
                 DecisionAction.CONFIRM,
             )
             reject = button("Verwerfen", DecisionAction.REJECT)

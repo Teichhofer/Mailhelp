@@ -1027,6 +1027,17 @@ def test_central_proposal_formatting_for_tasks_and_events(item, expected):
     ]
 
 
+def test_test_mode_marks_task_simulation_before_confirmation(tmp_path):
+    item = proposal()
+    assert "Extern anlegbar: Nein – Simulation (Testmodus, keine Todoist-Anlage)" in format_proposal(
+        item, "Europe/Berlin", test_mode=True
+    )
+    with JsonStore(tmp_path) as store:
+        dialog, transport, _ = controller(store, test_mode=True)
+        dialog.send_proposal(item)
+        assert transport.sent[-1][2]["inline_keyboard"][0][0]["text"] == "Simulieren"
+
+
 def test_persist_before_buttons_and_authorized_flow(tmp_path):
     with JsonStore(tmp_path) as store:
         c,t,_=controller(store)
@@ -1074,7 +1085,7 @@ def test_test_mode_creates_calendar_file_and_sends_it_via_telegram(tmp_path):
         assert b"SUMMARY:Planung\r\n" in content
         assert "Planung" in caption
         assert any("Erstellt" in text for _, text, _ in transport.sent)
-        assert transport.sent[-1][1] == "✅ Vorschlag wurde bestätigt."
+        assert transport.sent[-1][1] == "✅ Vorschlag bestätigt; externe Anlage erfolgreich."
 
 
 def test_proposal_notification_uses_persisted_sender_and_subject(tmp_path):
@@ -1948,6 +1959,11 @@ def test_confirmation_executes_and_reports_all_results(tmp_path):
             saved=store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")
             assert saved["status"]==status
             assert any(text in message for _,message,_ in t.sent)
+            callback_message = t.sent[-1][1]
+            if status == "simulated":
+                assert callback_message == "✅ Vorschlag intern bestätigt; keine externe Anlage (Simulation)."
+            elif status == "created":
+                assert callback_message == "✅ Vorschlag bestätigt; externe Anlage erfolgreich."
             if status=="created": assert saved["external_id"]=="external-1" and saved["external_link"]=="https://example.test/item"
 
 

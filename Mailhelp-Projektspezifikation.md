@@ -698,6 +698,11 @@ vor dem Netzwerkaufruf und danach `created`, `failed` oder `uncertain`. Für
 Todoist-Aufgaben speichert sie im Testmodus stattdessen vor der Erfolgsmeldung den
 eigenen Abschlusszustand `simulated`. Dieser Zustand verbietet externe ID und externen Link strikt und kann
 deshalb niemals als echte externe Erstellung interpretiert werden.
+Der Telegram-Vorschlag weist bei einer solchen Aufgabe bereits vor der Entscheidung
+`Extern anlegbar: Nein – Simulation` aus und bietet `Simulieren` statt `Bestätigen` an.
+Die abschließende Callback-Meldung bezeichnet nur den Vorschlag als intern bestätigt
+und verneint ausdrücklich eine externe Anlage. Im Produktivmodus meldet sie den
+tatsächlichen externen Erfolg, ein unklares Ergebnis oder einen Fehler getrennt.
 
 ## 9. Konfigurations- und Geheimnisdateien
 
