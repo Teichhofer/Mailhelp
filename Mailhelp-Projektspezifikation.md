@@ -226,6 +226,11 @@ gelesen. Nur `queued`, `discovered` und ein durch Prozessabbruch verbliebenes
 `processing` werden anhand der gespeicherten UID fortgesetzt; terminale
 Einträge werden nie erneut analysiert. Nach Abschluss der gesamten Queue kann
 ein neuer Run den verbleibenden oder neu eingegangenen Bestand aufnehmen.
+Wird ein zur Queue gehörender, bereits vorhandener Mail-Einzelzustand vor dem
+Queue-Durchlauf wiederaufgenommen und erfolgreich abgeschlossen, werden der
+terminale Queue-Eintrag und sein UID-Checkpoint dauerhaft fortgeschrieben. Ein
+späterer begrenzter Lauf überspringt diese Mail und setzt mit dem nächsten noch
+offenen Eintrag fort.
 - Das Mail-Kontingent `--max-mails` ist vom LLM-Aufrufkontingent unabhängig. Da eine reguläre Mail typischerweise mindestens einen Relevanz- und einen Analyseaufruf benötigt, setzt die ausgelieferte Konfiguration `limits.llm_calls_per_minute` auf den erlaubten Höchstwert `600`. Damit unterbricht das lokale Minutenbudget insbesondere `--max-mails 100` nicht wie beim früheren Wert `100` bereits nach ungefähr 50 vollständig analysierten Mails. Betreiber können den Wert weiterhin bewusst reduzieren; ausgeschöpfte LLM-Kontingente werden unverändert dauerhaft zurückgestellt.
 - Lehnt OpenRouter einen Schlüssel mit HTTP 401 ab, nennt die Benutzerbenachrichtigung den Dienst und die betroffene Umgebungsvariable `OPENROUTER_API_KEY`, ohne Schlüsselwert oder Antwortinhalt offenzulegen.
 - Die ausgelieferte WEB.DE-Konfiguration verarbeitet die Standardordner `INBOX`, `Drafts`, `Sent`, `Spam` und `Trash`. Benutzerdefinierte Ordner sind mit ihrem exakten IMAP-Namen zusätzlich zu konfigurieren.

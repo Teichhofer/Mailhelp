@@ -568,6 +568,57 @@ class Application:
             values[entry.status.value] += 1
         return MailRunCounters(**values)
 
+    def _complete_resumed_run_entry(
+        self, state: MailState, result: ProcessingResult
+    ) -> None:
+        """Synchronize a separately resumed mail with its durable run queue."""
+        if result.outcome is ProcessingOutcome.FAILED:
+            return
+        run_name = f"mail-run-{self.imap.account_id}"
+        run = self.store.load_model(run_name, MailRunState)
+        if run is None:
+            return
+        entry = next((candidate for candidate in run.entries if (
+            candidate.account_id == state.imap.account_id
+            and candidate.folder == state.imap.folder
+            and candidate.uidvalidity == state.imap.uidvalidity
+            and candidate.uid == state.imap.uid
+        )), None)
+        if entry is None or entry.analysis_terminal is not None:
+            return
+
+        entry.status = (MailRunEntryStatus.WAITING_FOR_USER
+                        if result.outcome is ProcessingOutcome.WAITING
+                        else MailRunEntryStatus.COMPLETED)
+        if result.state.get("duplicate") is not None:
+            entry.analysis_terminal = "duplicate"
+        elif (result.state.get("relevance") or {}).get("decision") == "irrelevant":
+            entry.analysis_terminal = "irrelevant"
+        else:
+            entry.analysis_terminal = "completed"
+        entry.user_action_open = entry.status is MailRunEntryStatus.WAITING_FOR_USER
+        entry.failure_code = None
+        run.counters = self._run_counters(run.entries)
+        self.store.save(run_name, run.model_dump(mode="json"))
+
+        checkpoint_name = _checkpoint_name(state.imap.account_id, state.imap.folder)
+        checkpoint = self.store.load_model(
+            checkpoint_name, ImapCheckpoint, ImapCheckpoint()
+        )
+        # A UID from an obsolete generation must never complete a position in
+        # the current generation's checkpoint.
+        if (checkpoint.uidvalidity is not None
+                and checkpoint.uidvalidity != state.imap.uidvalidity):
+            return
+        ranges = checkpoint.completed_uid_ranges
+        if (not ranges and checkpoint.start_uid is not None
+                and checkpoint.uid > checkpoint.start_uid):
+            ranges = [(checkpoint.start_uid + 1, checkpoint.uid)]
+        checkpoint.uidvalidity = state.imap.uidvalidity
+        checkpoint.uid = max(checkpoint.uid, state.imap.uid)
+        checkpoint.completed_uid_ranges = _add_uid(ranges, state.imap.uid)
+        self.store.save(checkpoint_name, checkpoint.model_dump())
+
     def _resume_pending(self, budget: _MailBudget | None = None) -> list[ProcessingResult]:
         """Resume due durable mail states, independently of IMAP checkpoints."""
         results: list[ProcessingResult] = []
@@ -604,6 +655,7 @@ class Application:
                 mail = self.imap.fetch_uid(state.imap.folder, state.imap.uid, state.imap.uidvalidity)
                 result = self._process_mail(mail)
                 results.append(result)
+                self._complete_resumed_run_entry(state, result)
                 if self._processing_blocked():
                     break
                 if result.outcome is ProcessingOutcome.FAILED:

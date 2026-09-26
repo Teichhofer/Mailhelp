@@ -894,6 +894,11 @@ Der Eintrag bleibt `processing`, sodass eine neu aufgebaute IMAP-Verbindung
 dieselbe materialisierte Queue ohne erneute Entdeckung und ohne doppelte Analyse
 fortsetzt. Nicht lesbare zusätzliche Ordner verkürzen einen bereits entdeckten
 INBOX-Batch nicht.
+Wird eine bereits gespeicherte Mail vor der Queue über ihren Einzelzustand
+wiederaufgenommen, übernimmt Mailhelp ihren Abschluss zugleich in den Run und
+den UID-Checkpoint. Damit verbraucht sie in einem begrenzten Lauf zwar genau
+einen Platz, wird beim nächsten `--max-mails`-Aufruf aber nicht erneut analysiert;
+dieser fährt mit dem nächsten noch offenen Queue-Eintrag fort.
 
 Auch ein terminaler Analyse- oder Abruffehler hält den restlichen Batch sofort an,
 statt denselben möglicherweise postfachweiten Provider- oder Konfigurationsfehler

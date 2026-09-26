@@ -1197,6 +1197,133 @@ def test_mail_budget_and_limit_consumed_by_resume_before_folder_poll(tmp_path):
     assert service.imap.calls == []
 
 
+def test_max_mail_resume_persists_completion_and_continues_with_unprocessed_mail(tmp_path):
+    """A resumed MailState must not leave its fixed max-mails queue entry open."""
+    account = "0" * 24
+    pending = MailState(
+        id="a" * 24, config_fingerprint="0" * 64,
+        imap={"account_id": account, "folder": "INBOX", "uidvalidity": 7, "uid": 2},
+    )
+    entries = [
+        MailRunEntry(account_id=account, folder="INBOX", uidvalidity=7, uid=2,
+                     status="processing"),
+        MailRunEntry(account_id=account, folder="INBOX", uidvalidity=7, uid=1,
+                     status="queued"),
+    ]
+    run = MailRunState(
+        run_id="00000000-0000-0000-0000-000000000001", max_mails=2,
+        created_at=datetime.now(timezone.utc), entries=entries,
+        counters=MailRunCounters(processing=1, queued=1),
+    )
+    run_name = f"mail-run-{account}"
+    store = Store({
+        "mail-a": pending.model_dump(mode="json"),
+        run_name: run.model_dump(mode="json"),
+        _checkpoint_name(account, "INBOX"): {
+            "uidvalidity": 7, "uid": 0, "start_uid": 0,
+        },
+    })
+    class DurableImap(Imap):
+        def discover_since(self, *_args):
+            raise AssertionError("the persisted run must be resumed without discovery")
+
+    reader = DurableImap([])
+
+    first = app(tmp_path, reader, Telegram([]), Orch(), store=store,
+                global_newest_first=True)
+    assert len(first._poll_imap(max_mails=1)) == 1
+    persisted = MailRunState.model_validate(store.values[run_name])
+    assert [entry.status for entry in persisted.entries] == ["completed", "queued"]
+    assert store.values[_checkpoint_name(account, "INBOX")]["completed_uid_ranges"] == [(2, 2)]
+    # The production orchestrator persists this transition while completing
+    # the resumed mail; the deliberately small test double does not.
+    store.values["mail-a"]["steps"]["completion"] = "completed"
+
+    restarted = app(tmp_path, reader, Telegram([]), Orch(), store=store,
+                    global_newest_first=True)
+    assert len(restarted._poll_imap(max_mails=1)) == 1
+    assert restarted.orchestrator.seen == [1]
+    assert reader.uid_calls == [("INBOX", 2, 7), ("INBOX", 1, 7)]
+
+
+def test_resumed_run_completion_handles_terminal_variants_and_safe_checkpoints(tmp_path):
+    account = "0" * 24
+    state = MailState(
+        id="a" * 24, config_fingerprint="0" * 64,
+        imap={"account_id": account, "folder": "INBOX", "uidvalidity": 7, "uid": 2},
+    )
+
+    def service_with(entry, checkpoint=None):
+        run = MailRunState(
+            run_id="00000000-0000-0000-0000-000000000001", max_mails=1,
+            created_at=datetime.now(timezone.utc), entries=[entry],
+            counters=Application._run_counters([entry]),
+        )
+        values = {f"mail-run-{account}": run.model_dump(mode="json")}
+        if checkpoint is not None:
+            values[_checkpoint_name(account, "INBOX")] = checkpoint
+        return app(tmp_path, Imap([]), Telegram([]), Orch(), store=Store(values))
+
+    processing = MailRunEntry(
+        account_id=account, folder="INBOX", uidvalidity=7, uid=2,
+        status="processing",
+    )
+    duplicate = service_with(processing, {
+        "uidvalidity": 8, "uid": 0, "start_uid": 0,
+    })
+    duplicate._complete_resumed_run_entry(state, ProcessingResult(
+        ProcessingOutcome.COMPLETED, {"duplicate": {"previous_mail_id": "b"}},
+    ))
+    assert duplicate.store.load_model(
+        f"mail-run-{account}", MailRunState
+    ).entries[0].analysis_terminal == "duplicate"
+    assert duplicate.store.values[_checkpoint_name(account, "INBOX")]["uidvalidity"] == 8
+
+    waiting = service_with(processing.model_copy(), {
+        "uidvalidity": 7, "uid": 1, "start_uid": 0,
+    })
+    waiting._complete_resumed_run_entry(state, ProcessingResult(
+        ProcessingOutcome.WAITING, {"relevance": {"decision": "irrelevant"}},
+    ))
+    waiting_entry = waiting.store.load_model(
+        f"mail-run-{account}", MailRunState
+    ).entries[0]
+    assert (waiting_entry.status, waiting_entry.analysis_terminal) == (
+        "waiting_for_user", "irrelevant"
+    )
+    assert waiting.store.values[
+        _checkpoint_name(account, "INBOX")
+    ]["completed_uid_ranges"] == [(1, 2)]
+
+    terminal = MailRunEntry(
+        account_id=account, folder="INBOX", uidvalidity=7, uid=2,
+        status="completed", analysis_terminal="completed",
+    )
+    already_done = service_with(terminal)
+    already_done._complete_resumed_run_entry(
+        state, ProcessingResult(ProcessingOutcome.COMPLETED, {})
+    )
+
+    mismatches = [
+        MailRunEntry(account_id="other", folder="INBOX", uidvalidity=7, uid=2),
+        MailRunEntry(account_id=account, folder="Archive", uidvalidity=7, uid=2),
+        MailRunEntry(account_id=account, folder="INBOX", uidvalidity=8, uid=2),
+        MailRunEntry(account_id=account, folder="INBOX", uidvalidity=7, uid=3),
+    ]
+    mismatch_run = MailRunState(
+        run_id="00000000-0000-0000-0000-000000000002", max_mails=4,
+        created_at=datetime.now(timezone.utc), entries=mismatches,
+        counters=MailRunCounters(discovered=4),
+    )
+    mismatch_service = app(
+        tmp_path, Imap([]), Telegram([]), Orch(),
+        store=Store({f"mail-run-{account}": mismatch_run.model_dump(mode="json")}),
+    )
+    mismatch_service._complete_resumed_run_entry(
+        state, ProcessingResult(ProcessingOutcome.COMPLETED, {})
+    )
+
+
 def test_fingerprint_blocked_backlog_has_separate_limit_and_does_not_starve_new_mail(tmp_path):
     active="a"*64
     blocked={
