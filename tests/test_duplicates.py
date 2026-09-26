@@ -72,6 +72,34 @@ def test_same_message_across_folder_uidvalidity_and_restart_is_skipped(tmp_path)
     assert "Body" not in str(log.events) and "Alice" not in str(log.events)
 
 
+def test_durable_index_skips_same_identity_after_mail_state_is_removed(tmp_path):
+    """Content cleanup must not make a stable processed identity new again."""
+    with JsonStore(tmp_path) as store:
+        first = process(store, CountingAnalyzer(), 1, raw())
+        (tmp_path / f"mail-{first['id']}.json").unlink()
+        analyzer = CountingAnalyzer()
+
+        repeated = process(store, analyzer, 1, raw())
+
+        assert repeated["duplicate"] == {
+            "outcome": "duplicate", "reason": "same_message",
+            "previous_mail_id": first["id"],
+        }
+        assert analyzer.calls == 0
+
+        (tmp_path / f"mail-{first['id']}.json").unlink()
+        changed = process(store, analyzer, 1, raw(body="Changed"))
+        assert changed["duplicate"]["outcome"] == "ambiguous"
+        assert changed["duplicate"]["reason"] == "message_id_reused"
+        assert analyzer.calls == 1
+
+        (tmp_path / f"mail-{first['id']}.json").unlink()
+        changed_id = process(store, analyzer, 1, raw("<changed@example.test>"))
+        assert changed_id["duplicate"]["outcome"] == "ambiguous"
+        assert changed_id["duplicate"]["reason"] == "fingerprint_collision"
+        assert analyzer.calls == 2
+
+
 def test_reused_or_multiple_message_id_and_fingerprint_collision_are_not_skipped(tmp_path):
     with JsonStore(tmp_path) as store:
         analyzer = CountingAnalyzer()

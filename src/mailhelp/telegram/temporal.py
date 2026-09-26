@@ -298,13 +298,27 @@ def deterministic_classification_revision(
     It also keeps this security-relevant state transition independent of an LLM.
     """
     normalized_question = " ".join(question.casefold().split())
+    normalized_answer = " ".join(answer.casefold().strip().rstrip(".!?").split())
+    if (
+        proposal.classification.value == "non_binding"
+        and "nicht bindende hinweis" in normalized_question
+        and "angelegt werden" in normalized_question
+        and normalized_answer == "ja"
+    ):
+        return apply_proposal_revision(
+            proposal,
+            ProposalRevisionDelta(
+                answered_question=question,
+                changes={"explicit_non_binding_create_confirmed": True},
+            ),
+            allow_create_fallback=True,
+        )
     if (
         proposal.classification.value != "change"
         or "bestehende" not in normalized_question
         or "geändert" not in normalized_question
     ):
         return None
-    normalized_answer = " ".join(answer.casefold().strip().rstrip(".!?").split())
     if not any(
         pattern.fullmatch(normalized_answer)
         for pattern in _EXPLICIT_CREATE_FALLBACK_ANSWERS

@@ -1242,6 +1242,34 @@ def test_non_binding_question_accepts_no_as_rejection_without_llm(tmp_path):
         assert any(event[0][2] == "proposal_rejected_by_clarification" for event in log.events)
 
 
+def test_non_binding_question_accepts_yes_as_separate_persisted_decision(tmp_path):
+    class LlmMustNotRun(RevisionService):
+        def interpret_telegram_answer(self, item, question, answer):
+            raise AssertionError("Eine eindeutige Zustimmung darf keinen LLM-Aufruf auslösen")
+
+        def revise_proposal(self, item, question, answer):
+            raise AssertionError("Die eindeutige Zustimmung wird deterministisch revidiert")
+
+    with JsonStore(tmp_path) as store:
+        c, t, _ = controller(store, revision_service=LlmMustNotRun())
+        question = "Soll der nicht bindende Hinweis dennoch als neuer Eintrag angelegt werden?"
+        c.send_proposal(proposal(
+            classification="non_binding", open_questions=[question],
+        ))
+        edit = t.sent[-1][2]["inline_keyboard"][0][0]["callback_data"]
+        t.updates = [callback(1, edit), message(2, "  JA!  ")]
+
+        c.poll_once()
+
+        saved = store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")
+        assert saved["version"] == 2
+        assert saved["classification"] == "non_binding"
+        assert saved["explicit_non_binding_create_confirmed"] is True
+        assert saved["open_questions"] == []
+        assert saved["status"] == "pending_confirmation"
+        assert question not in t.sent[-1][1]
+
+
 def test_invalid_unauthorized_missing_and_stale_dialogs(tmp_path):
     with JsonStore(tmp_path) as store:
         bad=[{"not":"an update"}, {"update_id":1,"message":{"private":"do not log"}}, message(2,user=9), message(3,chat=9), callback(4,"bad"), callback(5,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:missing:1:confirm"), callback(6,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm",user=9)]
