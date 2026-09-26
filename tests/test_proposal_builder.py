@@ -34,9 +34,31 @@ def event(**changes):
     return ExtractedEvent(**values)
 
 
-def builder(**changes):
+def builder(source_sender="Ada <ada@example.test>", source_subject="Projektstand", **changes):
     targets = TargetSettings(todoist_project="todoist-1", google_calendar="calendar-1")
-    return ProposalBuilder("a" * 24, targets, context(**changes))
+    return ProposalBuilder("a" * 24, targets, context(**changes), source_sender, source_subject)
+
+
+@pytest.mark.parametrize("item_kind", ["task", "event"])
+def test_description_always_contains_mail_sender_subject_and_date(item_kind):
+    proposals = builder().build([task(description="Details")] if item_kind == "task" else [],
+                                [event(description=None)] if item_kind == "event" else [])
+    expected_prefix = "Details\n\n" if item_kind == "task" else ""
+    assert proposals[0].description == (
+        expected_prefix
+        + "Absender: Ada <ada@example.test>\n"
+        + "Betreff: Projektstand\n"
+        + "Mail-Datum: 2026-09-18T10:00:00+02:00"
+    )
+
+
+def test_source_description_is_bounded_and_uses_received_date_as_fallback():
+    proposal = builder(date_header_parsed=None).build([task(description="x" * 4000)], [])[0]
+    assert len(proposal.description) == 4000
+    assert proposal.description.endswith(
+        "Absender: Ada <ada@example.test>\nBetreff: Projektstand\n"
+        "Mail-Datum: 2026-09-18T10:01:00+02:00"
+    )
 
 
 @pytest.mark.parametrize("responsibility", ["user", "other", "unclear"])

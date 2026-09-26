@@ -82,7 +82,12 @@ class Orchestrator:
             imap_received_at=state.mail.get("imap_received_at"),
             user_timezone=state.mail.get("user_timezone") or self.user_timezone,
         )
-        return ProposalBuilder(state.id, self.targets, context).build(
+        headers = state.display_headers
+        return ProposalBuilder(
+            state.id, self.targets, context,
+            source_sender=headers.sender if headers else "—",
+            source_subject=headers.subject if headers else "—",
+        ).build(
             state.task_extraction.tasks if state.task_extraction else [],
             state.event_extraction.events if state.event_extraction else [],
             state.extraction_count_conflicts,
