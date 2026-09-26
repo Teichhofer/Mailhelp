@@ -8,6 +8,7 @@ import pytest
 from mailhelp.application import Application, _MailBudget, _RunSummary, _add_uid, _checkpoint_name, _safe_name, _state_directory, build_application, build_logger
 from mailhelp.config import Secrets, Settings, Topic
 from mailhelp.imap import FetchedMail, MailCandidate, UIDValidityChanged
+from mailhelp.integrations import OAuthTokenError
 from mailhelp.models import MailRunCounters, MailRunEntry, MailRunState, MailState
 from mailhelp.orchestrator import ProcessingOutcome, ProcessingResult
 from test_core import prompt_config
@@ -1021,6 +1022,46 @@ def test_telegram_poll_failure_backs_off_and_shutdown_interrupts_it(tmp_path):
     assert service.dialog.polls == 1
     assert stop.waits == [5]
     assert stop.is_set()
+
+
+@pytest.mark.parametrize("notification_error", [None, RuntimeError("telegram down")])
+def test_google_oauth_failure_stops_application_without_retry(tmp_path, notification_error):
+    class FailingDialog:
+        def __init__(self): self.polls = 0
+        def poll_once(self, timeout=None):
+            self.polls += 1
+            raise OAuthTokenError(
+                "Google OAuth-Anmeldung abgelehnt: Zugangsdaten erneuern und "
+                "'mailhelp --check-access' ausführen."
+            )
+        def awaiting_decision(self): return True
+
+    telegram = Telegram([])
+    if notification_error is not None:
+        telegram.send = lambda *_args: (_ for _ in ()).throw(notification_error)
+    service = app(tmp_path, Imap([]), telegram, Orch())
+    service.dialog = FailingDialog()
+
+    result = service.run()
+
+    assert result is not None and "check-access" in result
+    assert service.stop_event.is_set()
+    assert service.dialog.polls == 1
+    assert not [event for event in service.logger.events if event[0][2] == "poll_failed"]
+    fatal_event = next(
+        event for event in service.logger.events
+        if event[0][2] == "fatal_google_oauth_error"
+    )
+    assert fatal_event[0] == (
+        "CRITICAL", "application", "fatal_google_oauth_error"
+    )
+    if notification_error is None:
+        assert "Mailhelp wird beendet" in telegram.sent[0][1]
+    else:
+        assert any(
+            event[0][2] == "fatal_error_notification_failed"
+            for event in service.logger.events
+        )
 
 
 def test_shutdown_requested_during_long_poll_stops_before_retry(tmp_path):

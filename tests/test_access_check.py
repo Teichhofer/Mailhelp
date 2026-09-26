@@ -268,7 +268,7 @@ def test_application_distinguishes_oauth_failure_without_logging_response_secret
 
     results = Application.check_access(application)
 
-    assert results["Google Kalender"].startswith("Google OAuth: Token-Abruf abgelehnt")
+    assert results["Google Kalender"].startswith("Google OAuth-Anmeldung abgelehnt")
     logs = (tmp_path / "application.jsonl").read_text(encoding="utf-8")
     assert response_secret not in logs
     assert "client-secret" not in logs and "refresh-secret" not in logs

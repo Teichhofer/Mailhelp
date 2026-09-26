@@ -1,6 +1,6 @@
 """Kommandozeileneinstieg und kontrollierter Signal-Shutdown."""
 from __future__ import annotations
-import argparse, json, signal, shutil
+import argparse, json, signal, shutil, sys
 from contextlib import ExitStack
 from pathlib import Path
 from .application import build_application, build_logger
@@ -197,10 +197,13 @@ def _main() -> int:
             return 0
         shutdown.stop = application.stop
         if args.ignore_historical_start:
-            application.run(
+            fatal_error = application.run(
                 max_mails=args.max_mails,
                 ignore_historical_start=True,
             )
         else:
-            application.run(max_mails=args.max_mails)
+            fatal_error = application.run(max_mails=args.max_mails)
+        if fatal_error is not None:
+            print(f"FATALER FEHLER: {fatal_error}", file=sys.stderr)
+            return 1
     return 0

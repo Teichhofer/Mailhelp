@@ -89,6 +89,7 @@ def test_cli_forwards_mail_limit_and_rejects_non_positive_values(monkeypatch):
         def stop(self): pass
         def run(self, max_mails=None, *, ignore_historical_start=False):
             self.limit = (max_mails, ignore_historical_start)
+            return None
 
     application = App()
     logger = CaptureLogger()
@@ -119,6 +120,29 @@ def test_cli_forwards_mail_limit_and_rejects_non_positive_values(monkeypatch):
     assert _positive_int("1") == 1
     with pytest.raises(Exception, match="mindestens 1"):
         _positive_int("0")
+
+
+def test_cli_reports_fatal_runtime_error_and_returns_failure(monkeypatch, capsys):
+    class App:
+        def stop(self): pass
+        def run(self, max_mails=None, *, ignore_historical_start=False):
+            return "Google OAuth-Anmeldung abgelehnt; check-access ausführen."
+
+    @contextmanager
+    def builder(*_args, **_kwargs):
+        yield App()
+
+    logger = CaptureLogger()
+    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (
+        None, None, [], [], None, "fingerprint"
+    ))
+    monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args, **_kwargs: logger)
+    monkeypatch.setattr("mailhelp.cli.build_application", builder)
+    monkeypatch.setattr("mailhelp.cli.signal.signal", lambda *_args: None)
+    monkeypatch.setattr(sys, "argv", ["mailhelp"])
+
+    assert main() == 1
+    assert "FATALER FEHLER: Google OAuth-Anmeldung abgelehnt" in capsys.readouterr().err
 
 
 def test_cli_runs_terminal_learning_mode(monkeypatch):

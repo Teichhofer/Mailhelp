@@ -789,6 +789,12 @@ erlaubte strukturierte Google-`reason`-Werte fehlende Berechtigung, deaktivierte
 oder eine sonstige Ursache unterscheiden. Ungültige und unbekannte Antwortkörper
 gelten als nicht vertrauenswürdig; Antwortinhalt, Tokens, Client-Secret und
 Authorization-Header erscheinen weder in Diagnose noch Log.
+Eine dauerhafte Ablehnung des OAuth-Abrufs während des Normalbetriebs ist fatal:
+Mailhelp protokolliert die verständliche, geheimnisbereinigte Ursache, informiert
+den konfigurierten Telegram-Chat soweit erreichbar, beendet ohne weitere
+Wiederholung und liefert Prozessstatus 1. Die Meldung fordert zum Erneuern der
+Google-Zugangsdaten, zu einem erfolgreichen `mailhelp --check-access` und erst
+danach zum Neustart auf.
 
 Für `--check-access` werden Datei- und Konsolenlogging grundsätzlich und unabhängig
 von den konfigurierten Aktivierungs- und Modulfiltern auf das maximale Level `DEBUG`

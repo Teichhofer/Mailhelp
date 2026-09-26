@@ -15,7 +15,7 @@ from zoneinfo import ZoneInfo
 from .analysis import Analyzer
 from .config import PromptConfig, Secrets, Settings, Topic
 from .imap import ImapReader, UIDValidityChanged
-from .integrations import GoogleOAuthTokenProvider, HttpWriter
+from .integrations import GoogleOAuthTokenProvider, HttpWriter, OAuthTokenError
 from .logging import JsonlLogger, NullLogger
 from .models import (ImapCheckpoint, MailRunCounters, MailRunEntry,
                      MailRunEntryStatus, MailRunState, MailState, TelegramOffset)
@@ -147,6 +147,7 @@ class Application:
     sender_store: JsonStore | None = None
     _wait_for_user: bool = False
     _mail_processing_halted: bool = False
+    _fatal_error: str | None = None
 
     def check_access(self) -> dict[str, str | None]:
         """Check every external credential and target without processing mail."""
@@ -672,6 +673,9 @@ class Application:
         if self.dialog is not None:
             try:
                 self.dialog.poll_once(timeout=timeout)
+            except OAuthTokenError as exc:
+                self._stop_after_fatal_oauth_error(exc)
+                return False
             except Exception as exc:
                 self.logger.event("ERROR", "telegram", "poll_failed", error=str(exc))
                 return False
@@ -687,6 +691,27 @@ class Application:
             self.store.save("telegram-offset", TelegramOffset(offset=offset).model_dump())
             self.logger.event("INFO", "telegram", "update_received", update_id=update["update_id"])
         return True
+
+    def _stop_after_fatal_oauth_error(self, exc: OAuthTokenError) -> None:
+        """Stop permanently after Google rejected the configured OAuth grant."""
+        self._fatal_error = str(exc)
+        self.logger.event(
+            "CRITICAL", "application", "fatal_google_oauth_error",
+            error=self._fatal_error,
+        )
+        try:
+            self.telegram.send(
+                self.settings.telegram.chat_id,
+                "Mailhelp wird beendet: Die Google-OAuth-Anmeldung wurde "
+                "abgelehnt. Bitte Google-Zugangsdaten erneuern, danach "
+                "'mailhelp --check-access' ausführen und Mailhelp neu starten.",
+            )
+        except Exception as notification_error:
+            self.logger.event(
+                "ERROR", "telegram", "fatal_error_notification_failed",
+                error=str(notification_error),
+            )
+        self.stop_event.set()
 
     def _process_mail(self, mail: object) -> ProcessingResult:
         """Pause mail processing while Telegram needs a user decision."""
@@ -726,7 +751,7 @@ class Application:
         return not self.stop_event.is_set()
 
     def run(self, max_mails: int | None = None, *,
-            ignore_historical_start: bool = False) -> None:
+            ignore_historical_start: bool = False) -> str | None:
         self._wait_for_user = True
         try:
             while not self.stop_event.is_set():
@@ -770,22 +795,23 @@ class Application:
             # inline buttons.  The next start resumes that decision first.
             if self.dialog is not None and self.dialog.awaiting_decision():
                 self.logger.event("INFO", "telegram", "run_summary_deferred")
-                return
-            try:
-                self.telegram.send(
-                    self.settings.telegram.chat_id,
-                    summary.message(bounded=max_mails is not None),
-                )
-            except Exception as exc:
-                self.logger.event("ERROR", "telegram", "run_summary_failed", error=str(exc))
             else:
-                self.logger.event("INFO", "telegram", "run_summary_sent",
-                                  discovered=summary.discovered, queued=summary.queued,
-                                  processed=summary.processed, relevant=summary.relevant,
-                                  irrelevant=summary.irrelevant,
-                                  waiting_for_user=summary.waiting_for_user,
-                                  failed=summary.failed, skipped=summary.skipped,
-                                  run_complete=summary.run_complete)
+                try:
+                    self.telegram.send(
+                        self.settings.telegram.chat_id,
+                        summary.message(bounded=max_mails is not None),
+                    )
+                except Exception as exc:
+                    self.logger.event("ERROR", "telegram", "run_summary_failed", error=str(exc))
+                else:
+                    self.logger.event("INFO", "telegram", "run_summary_sent",
+                                      discovered=summary.discovered, queued=summary.queued,
+                                      processed=summary.processed, relevant=summary.relevant,
+                                      irrelevant=summary.irrelevant,
+                                      waiting_for_user=summary.waiting_for_user,
+                                      failed=summary.failed, skipped=summary.skipped,
+                                      run_complete=summary.run_complete)
+        return self._fatal_error
 
 
 def _safe_name(folder: str) -> str:
