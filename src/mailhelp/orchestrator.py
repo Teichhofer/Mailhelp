@@ -178,8 +178,14 @@ class Orchestrator:
         message_ids, fingerprint, message_id_headers = self._duplicate_identity(state.mail)
         index = self._load_model("duplicate-index", DuplicateIndex, DuplicateIndex())
         assert isinstance(index, DuplicateIndex)
-        others = [entry for entry in index.entries
-                  if entry.mail_id != state.id and entry.imap.account_id == state.imap.account_id]
+        # The index is the durable processed-mail marker.  Include an entry for
+        # this technical identity when its MailState no longer exists (for
+        # example after an operator cleanup); excluding it would incorrectly
+        # turn the same stable mail id into a new message.
+        candidates = [entry for entry in index.entries
+                      if entry.imap.account_id == state.imap.account_id]
+        others = [entry for entry in candidates if entry.mail_id != state.id]
+        same_identity = next((entry for entry in candidates if entry.mail_id == state.id), None)
         matching_ids = [entry for entry in others if set(entry.message_ids) & set(message_ids)]
         matching_fingerprints = [entry for entry in others if entry.content_fingerprint == fingerprint]
 
@@ -187,7 +193,18 @@ class Orchestrator:
             candidate: DuplicateIndexEntry | None = None
             reason = "no_match"
             outcome = "new"
-            if message_id_headers != 1 or len(message_ids) != 1:
+            if (same_identity is not None
+                    and same_identity.message_ids == message_ids
+                    and same_identity.content_fingerprint == fingerprint):
+                candidate = same_identity
+                outcome, reason = "duplicate", "same_message"
+            elif same_identity is not None:
+                candidate = same_identity
+                outcome = "ambiguous"
+                reason = ("message_id_reused"
+                          if set(same_identity.message_ids) & set(message_ids)
+                          else "fingerprint_collision")
+            elif message_id_headers != 1 or len(message_ids) != 1:
                 candidate = (matching_ids or matching_fingerprints or [None])[0]
                 if candidate is not None:
                     outcome = "ambiguous"

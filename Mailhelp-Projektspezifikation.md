@@ -483,7 +483,7 @@ später nicht wieder auf den Rohwert reduziert werden.
 
 Ein ausdrücklich in der Mail genannter physischer Ort wird getrennt von einem Videolink in `location` beziehungsweise `video_link` übernommen; fehlende Werte bleiben `null` und dürfen nicht erfunden werden. `video_link` akzeptiert ausschließlich längenbegrenzte HTTP-/HTTPS-URLs. Vor einer Bestätigung zeigt Telegram beide Felder sichtbar an. Google Calendar erhält `location` als Ort. Ein vorhandener Videolink wird in der Beschreibung klar gekennzeichnet; Mailhelp erzeugt keine Konferenz.
 
-Die geschlossenen Felder `responsibility` (`user`, `other`, `unclear`), `certainty` (`certain`, `uncertain`, `contradictory`) und `classification` (`new`, `non_binding`, `already_completed`, `change`, `cancellation`, `recurring`, `unsupported`) sind verpflichtend. Nur `new` + `user` + `certain` ist unmittelbar bestätigbar und extern schreibbar. Daneben ist eine sichere eigene `change`-Proposal ausschließlich dann als Ersatz-Neuanlage schreibbar, wenn das separate Flag `explicit_create_fallback_confirmed` durch die deterministische Erkennung einer ausdrücklichen Telegram-Zustimmung gesetzt wurde. Alle übrigen Kombinationen werden verständlich als manuell zu prüfen angezeigt. `unclear`, `uncertain` und `contradictory` erzwingen `needs_clarification`.
+Die geschlossenen Felder `responsibility` (`user`, `other`, `unclear`), `certainty` (`certain`, `uncertain`, `contradictory`) und `classification` (`new`, `non_binding`, `already_completed`, `change`, `cancellation`, `recurring`, `unsupported`) sind verpflichtend. Nur `new` + `user` + `certain` ist unmittelbar bestätigbar und extern schreibbar. Daneben ist eine sichere eigene `change`-Proposal ausschließlich dann als Ersatz-Neuanlage schreibbar, wenn das separate Flag `explicit_create_fallback_confirmed` durch die deterministische Erkennung einer ausdrücklichen Telegram-Zustimmung gesetzt wurde. Eine `non_binding`-Proposal ist entsprechend nur mit der separat persistierten Entscheidung `explicit_non_binding_create_confirmed` schreibbar; ihre Klassifikation bleibt dabei erhalten. Alle übrigen Kombinationen werden verständlich als manuell zu prüfen angezeigt. `unclear`, `uncertain` und `contradictory` erzwingen `needs_clarification`.
 
 Jedes von der Extraktion gelieferte Terminobjekt enthält das verpflichtende Feld
 `time_requirement` und klassifiziert damit die Zeitsemantik geschlossen als
@@ -601,6 +601,10 @@ positive Antwort und werden ohne Modellaufruf deterministisch normalisiert.
 Die eindeutige Antwort `Nein` auf die Frage, ob ein nicht bindender Hinweis dennoch
 als neuer Eintrag angelegt werden soll, verwirft den Vorschlag unmittelbar und
 deterministisch ohne Modellaufruf. Der Klärungsdialog wird dabei abgeschlossen.
+Die eindeutige Antwort `Ja` setzt dagegen deterministisch die separate, persistierte
+Entscheidung `explicit_non_binding_create_confirmed`, ohne die fachliche Einordnung
+`non_binding` umzuschreiben. Die beantwortete Frage wird entfernt und die neue
+Vorschlagsversion anschließend weiterhin ausdrücklich versionsbezogen bestätigt.
 
 Revisionsfehler werden an einer ausdrücklichen Grenze in drei Kategorien getrennt:
 `IncompleteUserAnswer` bezeichnet allein eine fachlich validierte, aber unvollständige

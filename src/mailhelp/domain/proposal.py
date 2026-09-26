@@ -139,6 +139,10 @@ class Proposal(StrictModel):
     # the original classification makes the write boundary able to distinguish
     # a genuine new event from an explicitly authorised change fallback.
     explicit_create_fallback_confirmed: bool = False
+    # A non-binding classification remains intact when the user explicitly
+    # requests creation.  This decision is separate from the LLM-owned
+    # classification and can only be set by the deterministic Telegram path.
+    explicit_non_binding_create_confirmed: bool = False
 
     @model_validator(mode="after")
     def validate_consistency(self) -> "Proposal":
@@ -149,7 +153,9 @@ class Proposal(StrictModel):
         creatable_classification = (
             self.classification == ProposalClassification.NEW or
             (self.classification == ProposalClassification.CHANGE and
-             self.explicit_create_fallback_confirmed)
+             self.explicit_create_fallback_confirmed) or
+            (self.classification == ProposalClassification.NON_BINDING and
+             self.explicit_non_binding_create_confirmed)
         )
         ready = (creatable_classification and
                  self.responsibility == ProposalResponsibility.USER and
@@ -210,6 +216,7 @@ class ProposalRevisionChanges(StrictModel):
     video_link: AnyHttpUrl | None = Field(default=None, max_length=2000)
     target: str | None = Field(default=None, min_length=1, max_length=500)
     explicit_create_fallback_confirmed: bool | None = None
+    explicit_non_binding_create_confirmed: bool | None = None
 
 
 class ProposalRevisionDelta(StrictModel):
@@ -236,7 +243,10 @@ def _required_revision_questions(proposal: Proposal) -> list[str]:
     elif proposal.certainty == ProposalCertainty.CONTRADICTORY:
         questions.append("Wie soll der Widerspruch in den Angaben aufgelöst werden?")
     classification = {
-        ProposalClassification.NON_BINDING: "Soll der nicht bindende Hinweis dennoch als neuer Eintrag angelegt werden?",
+        ProposalClassification.NON_BINDING: (
+            None if proposal.explicit_non_binding_create_confirmed
+            else "Soll der nicht bindende Hinweis dennoch als neuer Eintrag angelegt werden?"
+        ),
         ProposalClassification.ALREADY_COMPLETED: "Der Eintrag ist bereits abgeschlossen und nicht direkt ausführbar.",
         ProposalClassification.CHANGE: (None if proposal.explicit_create_fallback_confirmed
                                         else "Welcher bestehende Eintrag soll geändert werden?"),
@@ -257,6 +267,8 @@ def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta, *,
     changes = delta.changes.model_dump(exclude_unset=True)
     if "explicit_create_fallback_confirmed" in changes and not allow_create_fallback:
         raise ValueError("Die Ersatz-Neuanlage erfordert eine deterministische ausdrückliche Bestätigung")
+    if "explicit_non_binding_create_confirmed" in changes and not allow_create_fallback:
+        raise ValueError("Ein nicht bindender Hinweis erfordert eine deterministische ausdrückliche Bestätigung")
     if (previous.classification == ProposalClassification.CHANGE and
             changes.get("classification") == ProposalClassification.NEW):
         raise ValueError("Eine Terminänderung darf nicht als neuer Termin eingestuft werden")

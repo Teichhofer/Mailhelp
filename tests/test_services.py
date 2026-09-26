@@ -711,6 +711,19 @@ def test_change_revision_cannot_authorize_or_disguise_a_create_fallback():
         apply_proposal_revision(original, ProposalRevisionDelta(
             answered_question=question, changes={"classification": "new"}))
 
+    non_binding_question = (
+        "Soll der nicht bindende Hinweis dennoch als neuer Eintrag angelegt werden?"
+    )
+    non_binding = proposal(
+        classification="non_binding", status="needs_clarification",
+        open_questions=[non_binding_question],
+    )
+    with pytest.raises(ValueError, match="deterministische ausdrückliche Bestätigung"):
+        apply_proposal_revision(non_binding, ProposalRevisionDelta(
+            answered_question=non_binding_question,
+            changes={"explicit_non_binding_create_confirmed": True},
+        ))
+
 
 def test_partial_event_revision_promotes_start_to_known_fact():
     original = proposal(kind="event", status="needs_clarification",
