@@ -144,6 +144,11 @@ prompts:
       Kandidaten wieder und dürfen unabhängig voneinander 0 sein. Verwende
       "unclear", wenn aus der Mail nicht sicher hervorgeht, ob eine Aufgabe oder
       ein Termin vorliegt. Gib keine weiteren Felder und keinen Begleittext aus.
+      Die Freiwilligkeit einer eindeutig angebotenen, konkret an die empfangende
+      Person gerichteten Handlung macht nicht das Vorhandensein der Aufgabe
+      unklar: Verwende dafür "task" statt "unclear". Behaupte in der Begründung
+      keine Mailanweisung oder sonstige Tatsache, die im übergebenen Mailtext
+      nicht tatsächlich vorkommt.
 
       Ein ausdrücklich genannter Termin ist auch dann ein Termin, wenn die Mail
       nur informiert und weder Einladung noch Terminanfrage enthält. Verwende in
@@ -211,6 +216,14 @@ prompts:
       Erfinde oder entferne dennoch keine Kandidaten, sondern prüfe bei einer
       Korrektur die ausdrücklich
       genannten Kandidaten erneut anhand derselben Grenzen.
+      Eine freiwillige, konkret an die empfangende Person gerichtete und sofort
+      ausführbare Handlung (zum Beispiel ein Gespräch über einen vorhandenen Link
+      zu buchen) ist als "new", "user" und "certain" zu extrahieren. "certain"
+      bezeichnet dabei die sichere Erkennung des Angebots, nicht eine Pflicht zur
+      Annahme. Titel und Beschreibung müssen die Freiwilligkeit erkennbar bewahren;
+      ein vorhandener Handlungs- oder Buchungslink gehört in die Beschreibung.
+      Ohne genannte Frist bleibt due_text null. Verwende "non_binding" nur für
+      unverbindliche Ideen oder Hinweise ohne eine solche konkrete Handlung.
       Gibt es keine Aufgabe, liefere {"schema_version":1,"tasks":[]}.
   event_extraction:
     # Reasoning-capable providers count hidden reasoning and the JSON response

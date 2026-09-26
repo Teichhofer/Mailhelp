@@ -1071,6 +1071,64 @@
           }
         ]
       }
+    },
+    {
+      "id": "17_optional_booking",
+      "raw_email": "From: Sunrise Test <sales@example.test>\nTo: Testkonto <testkonto@example.test>\nDate: Fri, 25 Sep 2026 18:00:00 +0000\nMessage-ID: <17_optional_booking@example.test>\nSubject: Flaechenverpachtung - Gespraechstermin\nContent-Type: text/plain; charset=utf-8\n\nEinen Termin fuer ein 30-minuetiges Gespraech koennen Sie hier direkt buchen: https://booking.example.test/sunrise\n",
+      "expected": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Sunrise bietet dem Testkonto freiwillig die Buchung eines 30-minütigen Gesprächs zur Flächenverpachtung an."
+          ],
+          "deadlines": []
+        },
+        "action_route": {
+          "action_state": "task",
+          "task_count": 1,
+          "event_count": 0,
+          "reason": "Die konkret adressierte freiwillige Buchungsmöglichkeit ist eine Aufgabe; ein gebuchter Termin liegt nicht vor."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Optional Gespräch zur Flächenverpachtung buchen",
+              "description": "Freiwillige Buchung über https://booking.example.test/sunrise",
+              "evidence": "Einen Termin fuer ein 30-minuetiges Gespraech koennen Sie hier direkt buchen: https://booking.example.test/sunrise",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": null
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": []
+        },
+        "builder": [
+          {
+            "kind": "task",
+            "classification": "new",
+            "responsibility": "user",
+            "status": "pending_confirmation",
+            "open_questions": []
+          }
+        ],
+        "normalization": [
+          {
+            "kind": "task",
+            "due": null
+          }
+        ]
+      }
     }
   ]
 }

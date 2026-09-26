@@ -413,6 +413,9 @@ def test_action_prompts_share_invitation_candidate_boundaries():
     assert 'nicht "user"' in task
     assert 'responsibility "user"' in event
     assert 'certainty\n"certain"' in "\n".join(line.strip() for line in event.splitlines())
+    assert 'Verwende dafür "task" statt "unclear"' in router
+    assert "die Freiwilligkeit erkennbar bewahren" in task
+    assert "Buchungslink gehört in die Beschreibung" in task
 
 
 def test_learning_stages_have_reasoning_output_budgets():
@@ -1190,6 +1193,43 @@ def test_orchestrator_sends_event_candidate_even_when_route_is_unclear(tmp_path)
     assert result["proposals"][0]["status"] == "needs_clarification"
     assert "fachliche Klärung" in notify.messages[1]
     assert notify.messages[2] == result["proposals"][0]["id"]
+
+
+def test_orchestrator_sends_task_candidate_even_when_route_is_unclear(tmp_path):
+    class UnclearTaskAnalyzer(AnalyzerStub):
+        def action_route(self, mail):
+            return "ar", ActionRoute(action_state="unclear", task_count=1, event_count=0,
+                                     reason="Die freiwillige Buchung wurde erkannt.")
+
+        def extract_tasks(self, mail, *, expected_count):
+            from mailhelp.models import ExtractedTask, TaskExtraction
+            assert expected_count == 1
+            return "t", TaskExtraction(tasks=[ExtractedTask(
+                title="Optional ein Gespräch buchen",
+                description="Freiwillige Buchung: https://booking.example.test/sunrise",
+                evidence="Einen Termin können Sie hier direkt buchen",
+                responsibility="user", certainty="certain", classification="new",
+                due_text=None)])
+
+        def extract_events(self, mail, *, expected_count):
+            raise AssertionError("Ohne gebuchten Zeitpunkt darf keine Terminextraktion laufen")
+
+    notify = Notify()
+    topic = Topic(id="vertrieb", name="Vertrieb", enabled=True, description="Gespräche")
+    with JsonStore(tmp_path / "unclear-task") as store:
+        result = Orchestrator(UnclearTaskAnalyzer("relevant"), store, notify, 1,
+                              [topic], 1000).process(FetchedMail(
+                                  "INBOX", 1, 95,
+                                  b"Subject: Gespraech\n\nTermin optional per Link buchen"))
+
+    assert result.outcome is ProcessingOutcome.COMPLETED
+    assert result["steps"]["task_extraction"] == "completed"
+    assert result["steps"]["event_extraction"] == "skipped"
+    assert len(result["proposals"]) == 1
+    assert result["proposals"][0]["kind"] == "task"
+    assert result["proposals"][0]["due"] is None
+    assert result["proposals"][0]["status"] == "pending_confirmation"
+    assert "https://booking.example.test/sunrise" in result["proposals"][0]["description"]
 
 
 def test_proposal_boundary_builds_internal_identity_and_routing(tmp_path):

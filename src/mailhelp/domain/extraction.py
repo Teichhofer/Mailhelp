@@ -75,9 +75,10 @@ class AbstractCategories(StrictModel):
 class ActionRoute(StrictModel):
     """Bounded action classification before detailed extraction.
 
-    For ``unclear`` the counters are merely the number of possible task/event
-    candidates seen by the router.  They may independently be zero; no action
-    is extracted until the ambiguity has been resolved by a person.
+    For ``unclear`` the counters are the number of possible task/event
+    candidates seen by the router.  They may independently be zero.  A counted
+    candidate is still extracted so that its uncertainty can be reviewed in a
+    concrete proposal instead of being hidden behind a generic message.
     """
 
     action_state: Literal["none", "task", "event", "task_and_event", "unclear"]
