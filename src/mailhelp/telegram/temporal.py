@@ -43,7 +43,7 @@ class DeterministicTemporalAnswer(BaseModel):
     end: clock_time | None = None
 
 
-_DATE = r"(?:(?P<day>\d{1,2})\.(?P<month>\d{1,2})\.(?P<year>\d{4})|(?P<iso_year>\d{4})-(?P<iso_month>\d{2})-(?P<iso_day>\d{2}))"
+_DATE = r"(?:(?P<day>\d{1,2})\.(?P<month>\d{1,2})\.(?P<year>\d{4}|\d{2})|(?P<iso_year>\d{4})-(?P<iso_month>\d{2})-(?P<iso_day>\d{2}))"
 _TIME = r"(?P<{name}_hour>\d{{1,2}})(?::(?P<{name}_minute>\d{{2}}))?\s*(?:Uhr)?"
 _TEMPORAL_ANSWERS = (
     re.compile(
@@ -96,8 +96,15 @@ def parse_deterministic_temporal_answer(
     values = match.groupdict()
     parsed_date = None
     if values.get("year"):
+        year = int(values["year"])
+        if year < 100:
+            # Never guess a century from untrusted input. A short year is safe
+            # only when it confirms the already validated proposal date.
+            if reference_date is None or year != reference_date.year % 100:
+                return None
+            year = reference_date.year
         parsed_date = date(
-            int(values["year"]), int(values["month"]), int(values["day"])
+            year, int(values["month"]), int(values["day"])
         )
     elif values.get("iso_year"):
         parsed_date = date(
@@ -140,9 +147,6 @@ def deterministic_temporal_revision(
         for word in ("datum", "beginn", "ende", "uhrzeit", "wann")
     ):
         return None
-    parsed = parse_deterministic_temporal_answer(normalized_answer, reference_date)
-    if parsed is None:
-        return None
     expected = (
         proposal.known_temporal_facts.date
         if proposal.known_temporal_facts is not None
@@ -150,6 +154,11 @@ def deterministic_temporal_revision(
         if proposal.temporal_fact is not None
         else None
     )
+    parsed = parse_deterministic_temporal_answer(
+        normalized_answer, reference_date or expected
+    )
+    if parsed is None:
+        return None
     allowed_dates = {expected}
     if "ende" in question.casefold() and expected is not None:
         allowed_dates.add(expected + timedelta(days=1))
@@ -216,7 +225,9 @@ def deterministic_temporal_revision(
         if proposal.known_temporal_facts is not None
         else proposal.start
     )
-    reference_start = start or known_start
+    reference_start = start or (
+        known_start if isinstance(known_start, datetime) else None
+    )
     end = localize(end_time, end_day)
     if (
         end is not None
@@ -242,6 +253,12 @@ def deterministic_temporal_revision(
             end = start + timedelta(minutes=proposal.duration_minutes)
     if end is not None:
         changes["end"] = end
+        if proposal.all_day and isinstance(proposal.start, date) and not isinstance(
+            proposal.start, datetime
+        ):
+            # An end clock does not prove a beginning clock. Keep the timed
+            # event incomplete rather than persisting a mixed interval.
+            changes.update(start=None, all_day=False)
     revised = apply_proposal_revision(
         proposal, ProposalRevisionDelta(answered_question=question, changes=changes)
     )

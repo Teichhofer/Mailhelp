@@ -294,6 +294,10 @@ def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta, *,
                 f"end widerspricht dem validierten Datum {resolved_day.isoformat()}")
 
     confirmed_start = (known.start if known is not None else previous.start)
+    if previous.all_day and isinstance(confirmed_start, date) and not isinstance(
+        confirmed_start, datetime
+    ):
+        confirmed_start = None
     if "start" in changes and confirmed_start is not None and changes["start"] != confirmed_start:
         raise ValueError("Ein bestätigter Terminbeginn darf nicht verändert werden")
 

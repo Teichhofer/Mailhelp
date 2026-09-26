@@ -506,6 +506,29 @@ def test_deterministic_end_revision_accepts_normalized_time_formats(normalized):
     assert revised.status == ProposalStatus.PENDING_CONFIRMATION
 
 
+def test_short_year_end_turns_date_only_draft_into_timed_clarification():
+    item = proposal(
+        kind="event", status="needs_clarification", all_day=True,
+        start="2026-10-02", end=None,
+        open_questions=["Wann endet der Termin?"],
+        temporal_fact={"raw_text": "2. Oktober 2026", "normalized_date": "2026-10-02",
+                       "year_source": "explicit_mail", "status": "resolved"},
+    )
+
+    revised = deterministic_temporal_revision(
+        item, item.open_questions[0], "2.10.26 15uhr", "Europe/Berlin")
+
+    assert revised.start is None
+    assert revised.end.isoformat() == "2026-10-02T15:00:00+02:00"
+    assert not revised.all_day
+    assert revised.open_questions == ["Wann beginnt der Termin?"]
+    assert revised.status == ProposalStatus.NEEDS_CLARIFICATION
+    assert parse_deterministic_temporal_answer("2.10.26 15uhr") is None
+    assert parse_deterministic_temporal_answer(
+        "2.10.27 15uhr", date(2026, 10, 2)
+    ) is None
+
+
 @pytest.mark.parametrize(("end", "expected_offset"), [
     ("09.10.2026 um 23:00 Uhr", "+02:00"),
     ("10.10.2026 um 01:00 Uhr", "+02:00"),
@@ -949,6 +972,33 @@ def test_awaiting_decision_ignores_version_snapshots_and_supports_legacy_store(t
     assert not dialog.awaiting_decision()
     dialog._open_relevance_dialogs = lambda: [object()]
     assert dialog.awaiting_decision()
+
+
+def test_paused_answer_is_operator_block_not_open_user_decision(tmp_path):
+    item = proposal(status="needs_clarification", open_questions=["Wann?"])
+    state = ProposalClarificationState(
+        mail_id=item.source_mail_id, proposal_id=item.id, version=item.version,
+        question="Wann?", question_status=QuestionStatus.ANSWERED,
+        answer_status=AnswerStatus.VALID, authorized_answer="Antwort",
+        normalized_answer="Antwort",
+        proposal_revision_status=ProposalRevisionStatus.PAUSED,
+    )
+    with JsonStore(tmp_path) as store:
+        dialog, _, _ = controller(store)
+        dialog.persist(item)
+        store.save(
+            "clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1",
+            state.model_dump(mode="json"),
+        )
+
+        assert not dialog.awaiting_decision()
+        assert dialog.processing_blocked()
+
+    class LegacyStore:
+        pass
+
+    dialog, _, _ = controller(LegacyStore())
+    assert not dialog.processing_blocked()
 
 
 def test_numbered_parts():

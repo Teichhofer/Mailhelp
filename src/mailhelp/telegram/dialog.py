@@ -7,6 +7,11 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from ..domain.processing import (
+    ProposalClarificationState,
+    ProposalRevisionStatus,
+    QuestionStatus,
+)
 from ..integrations import ExternalWriter
 from ..models import Proposal, ProposalStatus, RelevanceDialog, TelegramOffset
 from ..storage import JsonStore
@@ -16,7 +21,7 @@ from .callbacks import Decision, RelevanceDecision, validate_callback_markup
 from .client import TelegramTransport, _validation_path
 from .ledger import ActionLedgerPort, ActionLedgerService
 from .models import TelegramUpdate
-from .persistence import proposal_version_name
+from .persistence import clarification_name, proposal_version_name
 from .relevance import RelevanceDialogProcessor, RelevanceHandler
 from .revisions import (
     EventLogger,
@@ -192,8 +197,36 @@ class TelegramDialogController:
                 ProposalStatus.PENDING_CONFIRMATION,
                 ProposalStatus.NEEDS_CLARIFICATION,
             }:
+                clarification = self.store.load_model(
+                    clarification_name(
+                        proposal.source_mail_id, proposal.id, proposal.version
+                    ),
+                    ProposalClarificationState,
+                )
+                if (
+                    isinstance(clarification, ProposalClarificationState)
+                    and clarification.question_status == QuestionStatus.ANSWERED
+                    and clarification.proposal_revision_status
+                    == ProposalRevisionStatus.PAUSED
+                ):
+                    continue
                 return True
         return False
+
+    def processing_blocked(self) -> bool:
+        """Return whether an answered revision needs an operator restart."""
+        names = getattr(self.store, "names", None)
+        if names is None:
+            return False
+        return any(
+            isinstance(
+                state := self.store.load_model(name, ProposalClarificationState),
+                ProposalClarificationState,
+            )
+            and state.question_status == QuestionStatus.ANSWERED
+            and state.proposal_revision_status == ProposalRevisionStatus.PAUSED
+            for name in names("clarification-")
+        )
 
     def awaiting_relevance_decision(self) -> bool:
         """Return whether an unfinished mail analysis needs a relevance answer."""
