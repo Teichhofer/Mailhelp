@@ -34,18 +34,25 @@ def numbered_message_parts(
     ]
 
 
-def format_proposal(proposal: Proposal, configured_timezone: str) -> str:
+def format_proposal(
+    proposal: Proposal, configured_timezone: str, test_mode: bool = False
+) -> str:
     """Render every decision-relevant field in one stable, human-readable order."""
     missing = "—"
     questions = "\n".join(f"- {question}" for question in proposal.open_questions)
     questions_display = f"\n{questions}" if questions else " Keine"
+    externally_creatable = proposal_is_writable(proposal)
+    if externally_creatable and test_mode and proposal.kind == ProposalKind.TASK:
+        external_status = "Nein – Simulation (Testmodus, keine Todoist-Anlage)"
+    else:
+        external_status = "Ja" if externally_creatable else "Nein – manuell prüfen"
     lines = [
         f"Vorschlagsversion: {proposal.version}",
         f"Typ: {'Aufgabe' if proposal.kind == ProposalKind.TASK else 'Termin'}",
         f"Zuständigkeit: {proposal.responsibility.value}",
         f"Sicherheit: {proposal.certainty.value}",
         f"Einordnung: {proposal.classification.value}",
-        f"Extern anlegbar: {'Ja' if proposal_is_writable(proposal) else 'Nein – manuell prüfen'}",
+        f"Extern anlegbar: {external_status}",
         f"Titel: {proposal.title}",
         f"Beschreibung: {proposal.description or missing}",
         f"Belegstelle: {proposal.evidence}",

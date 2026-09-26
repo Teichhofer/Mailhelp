@@ -403,7 +403,10 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
   externe ID und Link sowie `created`, `failed` oder `uncertain` werden im
   konfigurierten Telegram-Chat sichtbar gemeldet. Aufgaben werden im Testmodus
   stattdessen vor der Meldung mit dem Abschlusszustand `simulated` ohne externe ID
-  oder Link atomar gespeichert. Google-Kalendertermine werden auch im Testmodus tatsächlich
+  oder Link atomar gespeichert. Bereits der Vorschlag bezeichnet dann die fehlende
+  externe Anlegbarkeit als Simulation und die Schaltfläche lautet `Simulieren`;
+  die Callback-Antwort unterscheidet die interne Bestätigung ausdrücklich von einer
+  externen Anlage. Google-Kalendertermine werden auch im Testmodus tatsächlich
   angelegt und als `created` gespeichert. `simulation_notified`
   hält anschließend dauerhaft fest, dass die
   eindeutig als Simulation bezeichnete Meldung versandt wurde. Mehrfach-Polls und

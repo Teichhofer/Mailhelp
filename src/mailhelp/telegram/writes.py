@@ -19,7 +19,7 @@ class ProposalPersistence(Protocol):
 
 
 class WriteExecution(Protocol):
-    def execute(self, proposal: Proposal) -> None: ...
+    def execute(self, proposal: Proposal) -> Proposal: ...
     def resume(self) -> None: ...
 
 
@@ -49,14 +49,14 @@ class ConfirmedWriteExecutor:
             "todoist" if proposal.kind == ProposalKind.TASK else "google_calendar"
         )
 
-    def execute(self, proposal: Proposal) -> None:
+    def execute(self, proposal: Proposal) -> Proposal:
         if not proposal_is_writable(proposal):
-            return
+            return proposal
         if proposal.status == ProposalStatus.SIMULATED and proposal.simulation_notified:
-            return
+            return proposal
         writer = self.writer_for(proposal)
         if writer is None:
-            return
+            return proposal
         changed, result = execute_confirmed(
             proposal, writer, self.persistence.persist, self.test_mode
         )
@@ -85,7 +85,7 @@ class ConfirmedWriteExecutor:
             )
         elif changed.status == ProposalStatus.UNCERTAIN:
             if changed.uncertain_notified:
-                return
+                return changed
             text = f"Unklarer Schreiberfolg bei „{proposal.title}“; wird weiter abgeglichen und nicht automatisch wiederholt."
         else:
             text = f"Erstellen von „{proposal.title}“ fehlgeschlagen."
@@ -98,6 +98,7 @@ class ConfirmedWriteExecutor:
             self.persistence.persist(
                 changed.model_copy(update={"simulation_notified": True})
             )
+        return changed
 
     def resume(self) -> None:
         names = getattr(self.store, "names", None)
