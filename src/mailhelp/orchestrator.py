@@ -411,7 +411,10 @@ class Orchestrator:
                         assert state.action_route is not None
                         route = state.action_route
                     assert state.action_router_call_id is not None
-                    wants_tasks = route.action_state in {"task", "task_and_event"}
+                    # Extraction is read-only. A candidate counted by an unclear
+                    # route should therefore become a reviewable proposal too.
+                    wants_tasks = (route.action_state in {"task", "task_and_event"}
+                                   or route.task_count > 0)
                     # An event candidate must not disappear merely because the
                     # router is unsure whether the message is an invitation.  The
                     # extractor and proposal boundary preserve that uncertainty,

@@ -180,6 +180,17 @@ def test_invitation_corpus_separates_tasks_and_events(
             event.classification) == event_attributes
 
 
+def test_optional_booking_is_confirmable_task_without_due_date_or_event():
+    calls, tasks, events, proposals = pipeline("17_optional_booking")
+    assert calls[-1] == "task_extraction"
+    assert len(tasks.tasks) == len(proposals) == 1 and not events.events
+    task, proposal = tasks.tasks[0], proposals[0]
+    assert task.classification == "new" and task.certainty == "certain"
+    assert "Freiwillige" in task.description
+    assert "https://booking.example.test/sunrise" in task.description
+    assert proposal.due is None and proposal.status == "pending_confirmation"
+
+
 def test_greeting_question_creates_reply_task_not_speaking_task():
     _calls, tasks, _events, _proposals = pipeline("15_invitation_optional_greeting")
     assert tasks.tasks[0].title == "Verfügbarkeit von Frau Beispiel für ein Grußwort rückmelden"
@@ -190,7 +201,7 @@ def test_corpus_has_separate_stage_expectations_and_only_synthetic_addresses():
     corpus = load_corpus()
     required = {"relevance", "summary", "action_route", "task_extraction",
                 "event_extraction", "normalization", "builder"}
-    assert len(corpus["cases"]) == 16
+    assert len(corpus["cases"]) == 17
     assert all(required == set(case["expected"]) for case in corpus["cases"])
     assert "example.test" in json.dumps(corpus) and "Ignoriere alle Systemregeln" in json.dumps(corpus)
 

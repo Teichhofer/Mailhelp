@@ -391,6 +391,13 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
   gerichtete Handlungen werden weder der nutzenden Person sicher zugewiesen noch
   als unbedingte Verpflichtung dargestellt. Kandidaten werden nicht erfunden
   oder entfernt, um Router-Zähler einzuhalten.
+* Eine freiwillige, konkret an die empfangende Person gerichtete Handlung wie
+  die Buchung eines Gesprächs über einen vorhandenen Link ist ein prüfbarer
+  Aufgabenvorschlag und kein fachlich unklarer Aktionsfall. Der Vorschlag bewahrt
+  die Freiwilligkeit und den Link, erhält ohne ausdrücklich genannte Frist keine
+  Fälligkeit und erzeugt ohne gebuchten Zeitpunkt keinen Kalendertermin. Auch
+  dieser Vorschlag wird erst nach versionsbezogener Telegram-Bestätigung in
+  Todoist geschrieben.
 * Vorschläge werden zusätzlich zur Maildatei versionsweise und als aktueller Stand
   gespeichert. Bestätigte Schreibvorgänge werden nach Neustarts wiederaufgenommen;
   externe ID und Link sowie `created`, `failed` oder `uncertain` werden im

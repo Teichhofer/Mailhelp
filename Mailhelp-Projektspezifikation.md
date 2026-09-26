@@ -550,6 +550,15 @@ unbedingte Verpflichtung behaupten. Router-Zähler beschreiben die nach diesen
 Grenzen erkannten Kandidaten; die Extraktoren dürfen Kandidaten nicht zur
 Anpassung an einen vorgegebenen Zähler erfinden oder entfernen.
 
+Eine freiwillige, konkret an die empfangende Person gerichtete und unmittelbar
+ausführbare Handlung ist eine vorhandene Aufgabe und kein `unclear`-Fall. Dazu
+gehört insbesondere das Angebot, über einen vorhandenen Buchungslink ein Gespräch
+zu vereinbaren. Ein solcher Vorschlag bleibt in Titel und Beschreibung als
+freiwillig erkennbar, übernimmt den Link, erhält ohne ausdrücklich genannte Frist
+keine Fälligkeit und darf erst nach versionsbezogener Telegram-Bestätigung in
+Todoist geschrieben werden. Solange keine Buchungsbestätigung mit konkretem
+Zeitpunkt vorliegt, entsteht daraus kein Kalendertermin.
+
 ## 8. Telegram-Interaktion und externe Einträge
 
 Vor dem Öffnen eines Telegram-Klärungsdialogs prüft die Anwendung jede offene
