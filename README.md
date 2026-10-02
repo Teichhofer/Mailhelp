@@ -408,7 +408,9 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
 * Vorschläge werden zusätzlich zur Maildatei versionsweise und als aktueller Stand
   gespeichert. Bestätigte Schreibvorgänge werden nach Neustarts wiederaufgenommen;
   externe ID und Link sowie `created`, `failed` oder `uncertain` werden im
-  konfigurierten Telegram-Chat sichtbar gemeldet. Aufgaben werden im Testmodus
+  konfigurierten Telegram-Chat sichtbar gemeldet. Die Erfolgsmeldung für einen
+  Kalendertermin nennt zusätzlich Datum und Uhrzeit in der konfigurierten Zeitzone
+  beziehungsweise kennzeichnet einen ganztägigen Termin. Aufgaben werden im Testmodus
   stattdessen vor der Meldung mit dem Abschlusszustand `simulated` ohne externe ID
   oder Link atomar gespeichert. Bereits der Vorschlag bezeichnet dann die fehlende
   externe Anlegbarkeit als Simulation und die Schaltfläche lautet `Simulieren`;

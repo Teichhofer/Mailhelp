@@ -86,7 +86,14 @@ class TelegramDialogController:
             self.repository, self.presenter, telegram, chat_id
         )
         self.write_executor: WriteExecution = ConfirmedWriteExecutor(
-            store, self.writers, self, telegram, chat_id, test_mode, self.ledger
+            store,
+            self.writers,
+            self,
+            telegram,
+            chat_id,
+            test_mode,
+            self.ledger,
+            configured_timezone,
         )
         self.decision_service = ProposalDecisionService(
             store,

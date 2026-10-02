@@ -428,6 +428,11 @@ Eine Aufgabe kann ohne Fälligkeit angelegt werden. Ihre Frist ist entweder ein 
 
 Zeitgebundene Termine enthalten für Beginn und Ende vollständige ISO-8601-Datums-/Zeitwerte mit eindeutigem UTC-Offset. Google Calendar erhält diese Zeitpunkte mit eindeutigem UTC-Offset; Mailhelp leitet weder einen Offset noch eine Zeitzone stillschweigend aus der Laufzeitumgebung ab. Ganztägige Termine enthalten dagegen ausschließlich Kalenderdaten ohne Uhrzeit. Ihr Enddatum ist gemäß Google-Calendar-Semantik exklusiv: Ein eintägiger Termin am 10. Mai verwendet beispielsweise `start.date: 2026-05-10` und `end.date: 2026-05-11`. Gemischte Datums- und Zeitformen, naive Zeitwerte sowie ein Ende vor oder gleich dem Beginn werden bereits an der Vorschlagsgrenze abgewiesen.
 
+Die Telegram-Erfolgsmeldung nach der externen Anlage eines Kalendertermins nennt
+dessen Datum und Uhrzeit in der konfigurierten Zeitzone. Bei einem ganztägigen
+Termin nennt sie stattdessen das Datum und weist ihn ausdrücklich als ganztägig
+aus.
+
 Auch bei der Überarbeitung nach einer Telegram-Antwort nennt der Prompt diese
 Invarianten ausdrücklich: Ein reines Datum darf nur zu einem ganztägigen Termin
 gehören, während ein zeitgebundener Termin vollständige Zeitpunkte mit UTC-Offset
