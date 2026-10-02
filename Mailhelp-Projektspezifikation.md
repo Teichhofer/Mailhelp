@@ -31,6 +31,11 @@ Zur Entscheidung vorgelegte Aufgaben- und Terminvorschläge bleiben dagegen
 asynchron offen: Sie blockieren weder die nächste Mail desselben Abrufs noch einen
 späteren IMAP-Zyklus. Das gilt auch für `--max-mails`; ein Stoppsignal kann das
 Warten auf eine analyseblockierende Antwort kontrolliert unterbrechen.
+Ein als `failed` gespeicherter Fehler einer einzelnen Mail, einschließlich eines
+nach Provider-Wiederholungen ausgeschöpften LLM-Ausgabetokenlimits, blockiert die
+restliche materialisierte Queue ebenfalls nicht. Die fehlerhafte Mail bleibt ohne
+IMAP-Checkpoint für einen späteren Wiederholungsversuch erhalten, während der
+aktuelle Lauf mit der nächsten Mail fortfährt.
 Noch nicht abgeschlossene Zustände mit abweichendem Konfigurationsfingerprint
 werden bereits beim Laden erkannt, weder per IMAP abgerufen noch fortgesetzt und
 verbrauchen dieses Verarbeitungskontingent nicht. Ein separates, ebenfalls auf

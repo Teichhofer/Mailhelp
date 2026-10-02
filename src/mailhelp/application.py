@@ -327,8 +327,10 @@ class Application:
                     self.logger.event("ERROR", "orchestrator", "mail_failed",
                                       folder=folder, uid=mail.uid,
                                       error=result.state.get("error"))
-                    self._mail_processing_halted = True
-                    break
+                    # This mail has a durable failure state.  Isolate its
+                    # terminal attempt from the batch and leave its UID out of
+                    # the checkpoint, but do not strand later messages.
+                    continue
                 # Every result reaching this point has a durable mail state.
                 # Failed results are excluded above so their checkpoint remains
                 # available for restart recovery.
@@ -520,7 +522,6 @@ class Application:
                         folder=current.folder, uid=current.uid,
                         error=result.state.get("error"),
                     )
-                    self._mail_processing_halted = True
                     terminal_status = MailRunEntryStatus.FAILED
                     terminal_analysis = "failed"
                     failure_code = "processing_failed"
@@ -547,9 +548,9 @@ class Application:
 
             if result.outcome is ProcessingOutcome.FAILED:
                 # A failed result is terminal for this run but deliberately not
-                # checkpointed.  Do not fan a shared provider/configuration
-                # problem out over the remaining queue in the same process.
-                break
+                # checkpointed, so its durable MailState remains eligible for a
+                # later retry.  Continue with the next independent queue item.
+                continue
 
             checkpoint_name, checkpoint, ranges = contexts[current.folder]
             ranges = _add_uid(ranges, current.uid)
@@ -662,8 +663,7 @@ class Application:
                 if result.outcome is ProcessingOutcome.FAILED:
                     self.logger.event("ERROR", "orchestrator", "resume_failed", state_name=name,
                                       error=result.state.get("error"))
-                    self._mail_processing_halted = True
-                    break
+                    continue
             except Exception as exc:
                 self.logger.event("ERROR", "orchestrator", "resume_failed", state_name=name, error=str(exc))
         return results

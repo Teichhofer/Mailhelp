@@ -162,9 +162,12 @@ def test_terminal_processing_failure_is_persisted_and_counted(tmp_path):
     class Failed(Orch):
         def process(self, mail):
             self.seen.append(mail.uid)
-            return ProcessingResult(ProcessingOutcome.FAILED, {
-                "error": {"code": "permanent_adapter_error"},
-            })
+            if mail.uid == 2:
+                return ProcessingResult(ProcessingOutcome.FAILED, {
+                    "error": {"code": "provider_response_invalid",
+                              "reason": "output_token_limit", "retryable": True},
+                })
+            return ProcessingResult(ProcessingOutcome.COMPLETED, {})
 
     service = app(tmp_path, Reader(), Telegram([]), Failed(),
                   global_newest_first=True)
@@ -172,18 +175,19 @@ def test_terminal_processing_failure_is_persisted_and_counted(tmp_path):
     results = service._poll_imap(max_mails=2)
 
     run = service.store.load_model("mail-run-" + "0" * 24, MailRunState)
-    assert len(results) == 1
-    assert [entry.status.value for entry in run.entries] == ["failed", "queued"]
+    assert len(results) == 2
+    assert service.orchestrator.seen == [2, 3]
+    assert [entry.status.value for entry in run.entries] == ["failed", "completed"]
     assert run.entries[0].analysis_terminal == "failed"
     assert run.entries[0].failure_code == "processing_failed"
     assert run.counters.failed == 1
     assert _RunSummary.from_run(run) == _RunSummary(
-        discovered=2, queued=1, processed=1, failed=1, run_complete=False,
+        discovered=2, processed=2, relevant=1, failed=1, run_complete=True,
     )
     assert _checkpoint_name(service.imap.account_id, "INBOX") in service.store.values
     assert service.store.values[_checkpoint_name(
         service.imap.account_id, "INBOX"
-    )]["completed_uid_ranges"] == []
+    )]["completed_uid_ranges"] == [(3, 3)]
 
 
 def test_persistent_run_records_duplicate_and_irrelevant_analysis(tmp_path):
@@ -695,10 +699,10 @@ def test_polling_errors_resume_and_stop(tmp_path):
     durable_store=Store({_checkpoint_name("0"*24, "INBOX"):{"uidvalidity":7,"uid":3}})
     durable=app(tmp_path,Imap([(7,[mail1,mail2])]),Telegram([]),FirstReturnsFailure(),store=durable_store)
     results=durable._poll_imap()
-    assert [result.outcome for result in results]==[ProcessingOutcome.FAILED]
-    assert durable.orchestrator.seen==[4]
-    assert durable_store.values[_checkpoint_name("0"*24, "INBOX")]["uid"]==3
-    assert durable_store.values[_checkpoint_name("0"*24, "INBOX")].get("completed_uid_ranges",[])==[]
+    assert [result.outcome for result in results]==[ProcessingOutcome.FAILED, ProcessingOutcome.COMPLETED]
+    assert durable.orchestrator.seen==[4,5]
+    assert durable_store.values[_checkpoint_name("0"*24, "INBOX")]["uid"]==5
+    assert durable_store.values[_checkpoint_name("0"*24, "INBOX")]["completed_uid_ranges"]==[(5,5)]
     assert any(e[0][2]=="mail_failed" and e[1]["uid"]==4 for e in durable.logger.events)
 
     failing=app(tmp_path,Imap([RuntimeError("imap"),(9,[]),(10,[])]),Telegram(RuntimeError("tg")),Orch(),folders=("bad","new","none"))

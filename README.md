@@ -909,14 +909,15 @@ den UID-Checkpoint. Damit verbraucht sie in einem begrenzten Lauf zwar genau
 einen Platz, wird beim nächsten `--max-mails`-Aufruf aber nicht erneut analysiert;
 dieser fährt mit dem nächsten noch offenen Queue-Eintrag fort.
 
-Auch ein terminaler Analyse- oder Abruffehler hält den restlichen Batch sofort an,
-statt denselben möglicherweise postfachweiten Provider- oder Konfigurationsfehler
-für jede weitere Mail zu wiederholen. Die betroffene Position bleibt
-`processing`, ihr IMAP-Checkpoint wird nicht vorgezogen und die übrigen Positionen
-bleiben in der Queue. Nach Prüfung beziehungsweise Korrektur der externen
-Konfiguration setzt ein Neustart exakt an dieser Position fort. Dadurch erzeugt
-beispielsweise eine dauerhaft abgelehnte Relevanzanfrage nur eine Fehlermeldung
-und nicht eine Meldung pro Mail.
+Ein terminaler, im Mailzustand gespeicherter Analysefehler ist auf diese Mail
+begrenzt. Ihre Run-Position wird als `failed` abgeschlossen und ihr
+IMAP-Checkpoint nicht vorgezogen, damit sie in einem späteren Lauf erneut versucht
+werden kann; der aktuelle Lauf verarbeitet jedoch sofort die nächste
+Queueposition. Insbesondere beendet ein ausgeschöpftes LLM-Ausgabetokenlimit den
+restlichen Batch nicht. Nur ein unerwarteter Fehler ohne garantiert dauerhaften
+Mailzustand lässt die Position auf `processing` stehen und unterbricht den Batch,
+damit ein möglicherweise postfachweiter Ausfall nicht auf jede Mail vervielfacht
+wird.
 
 Run-Dateien gehören zu einem eigenen Zustandstyp. Scans nach einzelnen
 `mail-<id>.json`-Zuständen (Wiederaufnahme, Aufbewahrung und Telegram-Dialoge)
