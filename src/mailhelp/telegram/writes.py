@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Protocol
+from zoneinfo import ZoneInfo
 
 
 from ..integrations import ExternalWriter, execute_confirmed, proposal_is_writable
@@ -35,6 +37,7 @@ class ConfirmedWriteExecutor:
         chat_id: int,
         test_mode: bool,
         ledger: ActionLedgerPort,
+        configured_timezone: str = "UTC",
     ):
         self.store, self.writers, self.persistence = store, writers, persistence
         self.telegram, self.chat_id, self.test_mode, self.ledger = (
@@ -43,6 +46,18 @@ class ConfirmedWriteExecutor:
             test_mode,
             ledger,
         )
+        self.configured_timezone = configured_timezone
+
+    def _event_time_details(self, proposal: Proposal) -> str:
+        """Render the created event's start in the user's configured timezone."""
+        start = proposal.start
+        if isinstance(start, datetime):
+            local_start = start.astimezone(ZoneInfo(self.configured_timezone))
+            return (
+                f" Datum: {local_start:%d.%m.%Y}, Uhrzeit: {local_start:%H:%M} Uhr"
+                f" ({self.configured_timezone})."
+            )
+        return f" Datum: {start:%d.%m.%Y}, ganztägig."
 
     def writer_for(self, proposal: Proposal) -> ExternalWriter | None:
         return self.writers.get(
@@ -83,6 +98,8 @@ class ConfirmedWriteExecutor:
             text = (
                 f"Erstellt: {kind} extern angelegt „{proposal.title}“{details}.{link}"
             )
+            if proposal.kind == ProposalKind.EVENT:
+                text += self._event_time_details(changed)
         elif changed.status == ProposalStatus.UNCERTAIN:
             if changed.uncertain_notified:
                 return changed

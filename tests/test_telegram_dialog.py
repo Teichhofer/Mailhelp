@@ -856,6 +856,34 @@ def test_direct_decision_persists_confirmation_before_write(tmp_path):
     assert events[:2] == ["confirmation persisted", "external write"]
 
 
+@pytest.mark.parametrize(("start", "end", "all_day", "expected"), [
+    ("2026-05-10T22:30:00+00:00", "2026-05-10T23:30:00+00:00",
+     False, "Datum: 11.05.2026, Uhrzeit: 00:30 Uhr (Europe/Berlin)."),
+    ("2026-05-10", "2026-05-11", True, "Datum: 10.05.2026, ganztägig."),
+])
+def test_created_calendar_notification_includes_local_date_and_time(
+    tmp_path, start, end, all_day, expected
+):
+    with JsonStore(tmp_path) as store:
+        writer = Writer()
+        transport = Telegram()
+        dialog = TelegramDialogController(
+            store, transport, 1, 2, Logger(), {"google_calendar": writer},
+            False, "Europe/Berlin", RevisionService()
+        )
+        item = proposal(kind="event", start=start, end=end, all_day=all_day)
+        dialog.persist(item)
+
+        dialog._decide(Decision(mail_id=item.source_mail_id,
+                                proposal_id=item.id, version=item.version,
+                                action=DecisionAction.CONFIRM))
+
+        created_message = next(
+            text for _, text, _ in transport.sent if text.startswith("Erstellt:")
+        )
+        assert expected in created_message
+
+
 def test_strict_schemas_and_decisions():
     parsed=Decision.parse("proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:3:confirm")
     assert parsed.encode()=="proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:3:confirm"
