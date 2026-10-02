@@ -590,7 +590,12 @@ def test_global_mailbox_checkpoint_failures_restarts_and_dialog(tmp_path):
         "awaiting_decision": lambda self: False,
         "processing_blocked": lambda self: True,
     })()
-    assert len(technically_blocked._poll_imap()) == 1
+    assert len(technically_blocked._poll_imap()) == 2
+    blocked_run = MailRunState.model_validate(
+        technically_blocked.store.values[f"mail-run-{technically_blocked.imap.account_id}"]
+    )
+    assert blocked_run.counters.queued == 0
+    assert blocked_run.run_complete is True
 
 
 def test_global_mailbox_uidvalidity_and_historical_boundary(tmp_path):
@@ -1429,8 +1434,8 @@ def test_resume_mixes_matching_and_blocked_fingerprints_without_resuming_blocked
         "awaiting_decision": lambda self: False,
         "processing_blocked": lambda self: True,
     })()
-    assert len(stopped._resume_pending(_MailBudget(2))) == 1
-    assert stopped.orchestrator.seen == [1]
+    assert len(stopped._resume_pending(_MailBudget(2))) == 3
+    assert stopped.orchestrator.seen == [1,3]
 
 
 def test_resume_due_pending_states_and_isolate_failures(tmp_path):

@@ -354,7 +354,9 @@ prompts:
       system_prompt: |
         Gib ohne Begründung nur das kleinste JSON-Delta aus. Es enthält exakt
         answered_question und changes. changes darf ausschließlich Felder aus
-        allowed_changes enthalten. Übernimm die normalisierte Antwort, erfinde
+        allowed_changes enthalten. answered_question MUSS exakt dem Eingabefeld
+        question entsprechen und enthält niemals normalized_answer. Übernimm
+        die normalisierte Antwort nur in changes, erfinde
         nichts und gib weder den vollständigen Vorschlag noch weitere Felder aus.
     system_prompt: |
       Erzeuge ausschließlich ein minimales JSON-Delta anhand der konkreten Frage,
