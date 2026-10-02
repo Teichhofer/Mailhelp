@@ -79,7 +79,8 @@ class Completer(Protocol):
     def complete(self, model: str, parameters: dict[str, Any], system: str, payload: dict[str, Any], **metadata: Any) -> tuple[str, Any]: ...
 
 
-def validate_revision_successor(previous: Proposal, candidate: Any) -> Proposal:
+def validate_revision_successor(previous: Proposal, candidate: Any, *,
+                                allow_all_day_resolution: bool = False) -> Proposal:
     """Compatibility boundary for services returning an already built successor."""
     revised = Proposal.model_validate(candidate)
     if revised.id != previous.id:
@@ -89,7 +90,17 @@ def validate_revision_successor(previous: Proposal, candidate: Any) -> Proposal:
     if revised.version != previous.version + 1:
         raise ContradictoryRevision("Die Vorschlagsversion muss exakt um eins erhöht werden")
     known = previous.known_temporal_facts
-    if known is not None and revised.all_day:
+    resolved_all_day = (
+        known is not None
+        and allow_all_day_resolution
+        and revised.all_day
+        and isinstance(revised.start, date)
+        and not isinstance(revised.start, datetime)
+        and known.date == revised.start
+        and known.start is None
+        and known.start_time is None
+    )
+    if known is not None and revised.all_day and not resolved_all_day:
         raise ContradictoryRevision("Ein bekanntes Datum ohne Ganztagsevidenz darf nicht ganztägig werden")
     if known is not None and revised.known_temporal_facts is not None and revised.known_temporal_facts != known:
         enriched_start = (known.start is None
@@ -100,7 +111,9 @@ def validate_revision_successor(previous: Proposal, candidate: Any) -> Proposal:
     if known is not None and revised.known_temporal_facts is None:
         complete_timed = (isinstance(revised.start, datetime)
                           and isinstance(revised.end, datetime))
-        if not complete_timed or (known.date is not None and revised.start.date() != known.date):
+        if (not complete_timed and not resolved_all_day) or (
+            complete_timed and known.date is not None and revised.start.date() != known.date
+        ):
             raise ContradictoryRevision("Bekannte Zeitfakten dürfen nicht verloren gehen")
         if known.start is not None and revised.start != known.start:
             raise ContradictoryRevision("Eine bekannte Beginnzeit darf nicht verändert werden")
@@ -377,12 +390,20 @@ class Analyzer:
                 if fact_name in context:
                     retry_payload["proposal_fields"][fact_name] = context[fact_name]
         def validate_delta(raw: Any) -> Proposal:
+            # The question is application-owned input.  Never let an LLM typo
+            # or its frequent confusion with ``normalized_answer`` choose which
+            # open question is closed.  Unknown fields and ``changes`` remain
+            # subject to the strict output schema and successor validation.
+            if isinstance(raw, dict):
+                raw = {**raw, "answered_question": question}
             delta = ProposalRevisionDelta.model_validate(raw)
-            if delta.answered_question != question:
-                raise ValueError("Das Delta beantwortet nicht die angeforderte Frage")
             # Validate the complete successor inside the bounded repair loop so
             # business-rule failures are reported to the model before success is logged.
-            return validate_revision_successor(proposal, apply_proposal_revision(proposal, delta))
+            return validate_revision_successor(
+                proposal,
+                apply_proposal_revision(proposal, delta),
+                allow_all_day_resolution=delta.changes.all_day is True,
+            )
 
         call_id, revised = self._classified_run(
             "proposal_revision", payload,

@@ -559,8 +559,6 @@ class Application:
             checkpoint["completed_uid_ranges"] = ranges
             contexts[current.folder] = (checkpoint_name, checkpoint, ranges)
             self.store.save(checkpoint_name, ImapCheckpoint(**checkpoint).model_dump())
-            if self._processing_blocked():
-                break
         return results
 
     @staticmethod
@@ -658,8 +656,6 @@ class Application:
                 result = self._process_mail(mail)
                 results.append(result)
                 self._complete_resumed_run_entry(state, result)
-                if self._processing_blocked():
-                    break
                 if result.outcome is ProcessingOutcome.FAILED:
                     self.logger.event("ERROR", "orchestrator", "resume_failed", state_name=name,
                                       error=result.state.get("error"))
@@ -732,11 +728,6 @@ class Application:
             # An unclear relevance answer interrupts analysis. Once Telegram
             # resolved it, resume this same mail before advancing the mailbox.
 
-    def _processing_blocked(self) -> bool:
-        """Distinguish a technical operator block from a user decision."""
-        checker = getattr(self.dialog, "processing_blocked", None)
-        return bool(checker and checker())
-
     def _wait_for_telegram_decision(self) -> bool:
         """Long-poll until every current user decision is resolved or stopped."""
         if self.dialog is None or not self.dialog.awaiting_decision():
@@ -766,7 +757,11 @@ class Application:
                 # every fresh start look stuck for up to telegram_poll_seconds.
                 if self.dialog is not None and self.dialog.awaiting_decision():
                     self._wait_for_telegram_decision()
-                if not self.stop_event.is_set() and not self._processing_blocked():
+                # A paused proposal revision is isolated to its source mail.
+                # It must never prevent independent queued mail from being
+                # analysed; the durable clarification remains available for an
+                # operator retry without acting as a global circuit breaker.
+                if not self.stop_event.is_set():
                     if ignore_historical_start:
                         self._poll_imap(
                             max_mails, ignore_historical_start=True

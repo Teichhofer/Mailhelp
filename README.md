@@ -914,7 +914,10 @@ begrenzt. Ihre Run-Position wird als `failed` abgeschlossen und ihr
 IMAP-Checkpoint nicht vorgezogen, damit sie in einem späteren Lauf erneut versucht
 werden kann; der aktuelle Lauf verarbeitet jedoch sofort die nächste
 Queueposition. Insbesondere beendet ein ausgeschöpftes LLM-Ausgabetokenlimit den
-restlichen Batch nicht. Nur ein unerwarteter Fehler ohne garantiert dauerhaften
+restlichen Batch nicht. Dasselbe gilt für eine dauerhaft gespeicherte, technisch
+`paused` gesetzte Proposal-Revision: Sie bleibt an ihre Quellmail gebunden und
+blockiert weder die nächste Queueposition noch die Wiederaufnahme anderer Mails.
+Nur ein unerwarteter Fehler ohne garantiert dauerhaften
 Mailzustand lässt die Position auf `processing` stehen und unterbricht den Batch,
 damit ein möglicherweise postfachweiter Ausfall nicht auf jede Mail vervielfacht
 wird.

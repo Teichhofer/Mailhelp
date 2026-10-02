@@ -1133,7 +1133,9 @@ möglichen Ergänzung bereits vor dem einzigen, versionsbezogenen Schreibzugriff
 ### Delta-basierte Proposal-Revision
 
 Die Revisionsstufe liefert ausschließlich `answered_question` und ein geschlossenes
-`changes`-Objekt. Die Anwendung validiert das Delta, wendet es deterministisch auf
+`changes`-Objekt. `answered_question` wird dabei niemals als vertrauenswürdige
+Modellausgabe verwendet: Die Anwendung setzt es vor der Validierung deterministisch
+auf die bereits bekannte, wortgleiche Eingabefrage. Sie validiert das Delta, wendet es deterministisch auf
 das gespeicherte Proposal an, entfernt nur die beantwortete offene Frage und setzt
 Version und Status selbst. Identität, Evidenz und externe Ergebnisse sind nicht
 änderbar. OpenRouter erhält, soweit die konfigurierte Route dies unterstützt, ein
@@ -1149,6 +1151,9 @@ bereits normalisierte Antwort wird mit begrenztem Versuchszähler und nächstem
 Wiederholungszeitpunkt gespeichert und nach Neustart ohne erneute Benutzerfrage
 wiederaufgenommen. Nach Ausschöpfung wird die Revision pausiert. Logs enthalten nur
 Route, Versuchsart, Schemaergebnis und lokalen Apply-Schritt, nie Frage oder Antwort.
+Eine solche Pause ist ausschließlich Zustand des betroffenen Vorschlags; andere
+persistierte Mailzustände und Positionen des aktuellen IMAP-Batches werden weiter
+verarbeitet.
 
 ### Begrenzte Überarbeitung von Terminvorschlägen
 
@@ -1163,6 +1168,9 @@ Kalenderdatum gebunden. Ein ausdrücklich beantwortetes Ende eines zeitgebundene
 Termins darf auf diesem Datum oder auf dem unmittelbar folgenden Kalendertag
 liegen; es muss weiterhin strikt nach dem unveränderten Beginn liegen. Frühere
 Zeitpunkte und weiter entfernte Enddaten werden abgewiesen.
+Nennt die autorisierte Antwort dagegen ausdrücklich einen Ganztagstermin, darf ein
+bereits bekanntes reines Datum als `start` ohne erfundene Uhrzeit oder UTC-Offset
+übernommen werden, sofern keine bekannte Beginnuhrzeit widerspricht.
 
 Bei einer LLM-Überarbeitung wird nicht nur das Delta, sondern der daraus lokal
 gebildete vollständige Folgevorschlag innerhalb der begrenzten Reparaturschleife

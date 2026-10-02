@@ -465,7 +465,15 @@ def test_analyzer_revises_proposal_with_separate_inputs_and_retries():
         Analyzer(Malformed(InvalidJson()),prompt_config(),1).revise_proposal(original,"Welcher Titel?","a")
     assert json_error.value.step == "proposal_revision"
 
-    failures=[{"answered_question":"falsch","changes":{"title":"Neu"}},
+    # The application owns the question identity and replaces an untrusted LLM
+    # value before applying the otherwise strictly validated delta.
+    _, corrected = Analyzer(FakeCompleter([
+        {"answered_question":"Autorisierte Antwort","changes":{"title":"Neu"}}
+    ]), prompt_config()).revise_proposal(original, "Welcher Titel?", "Autorisierte Antwort")
+    assert corrected.title == "Neu"
+    assert corrected.open_questions == []
+
+    failures=[None,
               {"answered_question":"Welcher Titel?","changes":{"status":"created"}},
               {"answered_question":"Welcher Titel?","changes":{"title":""}}]
     for invalid in failures:
@@ -494,6 +502,7 @@ def test_proposal_revision_prompt_covers_date_schema_and_output_budget():
     assert "all_day=true" in prompt
     assert "ISO-8601-Zeitpunkte mit eindeutigem UTC-Offset" in prompt
     assert "berechnet die Anwendung lokal" in prompt
+    assert "enthält niemals normalized_answer" in step["output_token_retry"]["system_prompt"]
     interpretation = yaml.safe_load(Path("prompts.yaml").read_text(
         encoding="utf-8"))["prompts"]["telegram_answer_interpretation"]
     assert '"JJJJ-MM-TT HH:MM"' in interpretation["system_prompt"]
@@ -687,6 +696,27 @@ def test_revision_payload_preserves_known_start_as_read_only_context():
         "date": "2026-10-09", "start": "2026-10-09T19:00:00+02:00"}
     assert revised.start.isoformat() == "2026-10-09T19:00:00+02:00"
     assert revised.end.isoformat() == "2026-10-09T21:00:00+02:00"
+
+
+def test_revision_accepts_date_only_all_day_start_with_known_date():
+    original = proposal(
+        kind="event", status="needs_clarification", all_day=False,
+        open_questions=["Wann beginnt der Termin?", "Wann endet der Termin?"],
+        known_temporal_facts={"date": "2026-11-26"},
+    )
+    client = RetrySequence([{
+        "answered_question": "26.11.26 Ganztags",
+        "changes": {"start": "2026-11-26", "all_day": True},
+    }])
+
+    revised = Analyzer(client, prompt_config()).revise_proposal(
+        original, "Wann beginnt der Termin?", "26.11.26 Ganztags"
+    )[1]
+
+    assert revised.start == date(2026, 11, 26)
+    assert revised.all_day is True
+    assert revised.known_temporal_facts is None
+    assert revised.open_questions == ["Wann endet der Termin?"]
 
 
 def test_revision_rejects_change_away_from_resolved_temporal_fact():

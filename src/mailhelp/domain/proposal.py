@@ -321,6 +321,13 @@ def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta, *,
         end = changes.get("end")
         if start is not None and end is not None:
             changes.update(start=start, end=end, known_temporal_facts=None)
+        elif (changes.get("all_day") is True and isinstance(start, date)
+              and not isinstance(start, datetime)):
+            # A date-only all-day start is a complete proposal field, not a
+            # timezone-less ``KnownTemporalFacts.start`` datetime.  Keeping it
+            # in the latter would make Pydantic coerce the date to midnight and
+            # incorrectly demand a UTC offset for a time the user never gave.
+            changes.update(start=start, known_temporal_facts=None)
         elif "start" in changes:
             changes.pop("start")
             changes["known_temporal_facts"] = known.model_copy(
