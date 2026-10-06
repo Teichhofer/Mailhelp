@@ -9,6 +9,7 @@ from .client import TelegramTransport
 from .ledger import ActionLedgerPort
 from .writes import ProposalPersistence, WriteExecution
 from .persistence import ProposalRepository
+from .formatting import clarification_prompt
 
 
 class ProposalDecisionService:
@@ -24,10 +25,12 @@ class ProposalDecisionService:
         telegram: TelegramTransport,
         allowed_user: int,
         allowed_chat: int,
+        configured_timezone: str = "UTC",
     ):
         self.store, self.repository, self.persistence = store, repository, persistence
         self.ledger, self.writes, self.telegram = ledger, writes, telegram
         self.allowed_user, self.allowed_chat = allowed_user, allowed_chat
+        self.configured_timezone = configured_timezone
 
     def decide(self, decision: Decision, user_id: int, chat_id: int) -> str:
         if (user_id, chat_id) != (self.allowed_user, self.allowed_chat):
@@ -57,11 +60,7 @@ class ProposalDecisionService:
                     version=proposal.version,
                 ).model_dump(),
             )
-            prompt = (
-                proposal.open_questions[0]
-                if proposal.open_questions
-                else "Welche Änderung soll übernommen werden?"
-            )
+            prompt = clarification_prompt(proposal, self.configured_timezone)
             self.telegram.send(self.allowed_chat, prompt)
             return "✏️ Änderungsmodus gestartet."
         if (

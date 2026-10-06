@@ -672,9 +672,10 @@ Replay-Grenze fort.
   der Offset wird fortgeschrieben; andere technische Antwortfehler verhindern die
   Quittierung weiterhin.
 - Nur konfigurierte Nutzer- und Chat-IDs dürfen Nachrichten erhalten und Aktionen auslösen.
-- Vollständige Aufgabenvorschläge bieten `Bestätigen`, `Ändern` und `Verwerfen`.
-  Vollständige Terminvorschläge bieten ausschließlich `Anlegen` und `Verwerfen`;
-  `Anlegen` schreibt den Termin über die Google Calendar API in den konfigurierten Kalender.
+- Vollständige Aufgabenvorschläge bieten `In Todoist anlegen`, `Ändern` und `Verwerfen`
+  (im Testmodus `Simulieren` statt `In Todoist anlegen`).
+  Vollständige Terminvorschläge bieten `Im Kalender anlegen`, `Ändern` und `Verwerfen`;
+  `Im Kalender anlegen` schreibt den Termin über die Google Calendar API in den konfigurierten Kalender.
   Vorschläge mit offenen Fragen bieten dagegen ausschließlich `Klären` und
   `Verwerfen`; erst eine vollständige neue Version erhält eine Bestätigung.
 - Solange eine Relevanz- oder Vorschlagsentscheidung offen ist, pausiert die
@@ -697,6 +698,30 @@ Replay-Grenze fort.
   Rückfragen erzeugen eine neue Version; erst eine vollständige Version erhält
   wieder eine wirksame Bestätigungsschaltfläche.
 - Offene Fragen müssen vor dem Schreiben beantwortet sein. Eine allgemeine Zustimmung zu einer Zusammenfassung gilt nicht als Freigabe aller Vorschläge.
+- Vorschläge zeigen zuerst Titel und Zeitangaben, danach Ziel und Version.
+  Zeitpunkte werden in der konfigurierten Zeitzone mit deutschem Datum, Uhrzeit
+  und UTC-Offset angezeigt, reine Daten ohne Uhrzeit. Das exklusive Ende eines
+  ganztägigen Termins wird als letzter tatsächlicher Tag dargestellt. Fachliche
+  Klassifikationen erscheinen auf Deutsch; Belege, Beschreibung und offene Fragen
+  bleiben vollständig sichtbar. Revisionen zeigen die Änderungen zum gespeicherten
+  Vorgänger, sofern dieser vorhanden ist, vor der aktuellen vollständigen Ansicht.
+- Rückfragen enthalten Titel, Version, bekannte Zeitangaben, Ziel und als solche
+  erkennbare Antwortbeispiele. Beispiele bewirken keine Änderung. Korrekturen
+  erzeugen eine neue, erneut ausdrücklich zu bestätigende Version.
+- Autorisierte Slash-Befehle werden vor der LLM-Freitextinterpretation behandelt:
+  `/hilfe` und `/start` erklären die Bedienung; `/status` und `/offen` zeigen
+  offene Relevanzentscheidungen und aktuelle Vorschläge mit Warte-/Verarbeitungsstatus.
+  Versionierte Archivkopien und abgeschlossene Vorschläge werden nicht aufgelistet.
+  Die Übersicht ist rein lesend und verändert weder Reihenfolge noch Bestätigungen.
+  Unbekannte Befehle verweisen auf `/hilfe`.
+- `/abbrechen` schließt einen unbeantworteten Bearbeitungsdialog und zeigt denselben
+  Vorschlag erneut an. Inhalt, Version und offene Fragen bleiben erhalten; der
+  Status wird aus dem gespeicherten Versionsstand wiederhergestellt. Bereits zur
+  Verarbeitung gespeicherte Antworten und Legacy-Retry-Dialoge werden nicht
+  abgebrochen. Bei einer als unbrauchbar bewerteten Antwort darf der Dialog
+  geschlossen werden, ohne diese Antwort zu löschen. Bei einem Sendefehler bleibt
+  die Dialogreferenz für einen erneuten Abbruch nach Neustart erhalten.
+  Kein Befehl erteilt Schreibfreigaben oder ruft externe Schreibdienste auf.
 - Offene Bestätigungen werden dauerhaft gespeichert und bleiben nach Neustarts nutzbar. Es erfolgt keine automatische Bestätigung durch Zeitablauf.
 - Lange Telegram-Ausgaben werden geordnet aufgeteilt und bleiben eindeutig zuordenbar.
 - Jeder Teil einer langen Vorschlagsausgabe nennt den Absender und Betreff der

@@ -28,6 +28,10 @@ imap:
   - Spam
   - Trash
 telegram:
+  # Nur dieser Nutzer in diesem Chat darf auch /hilfe, /status, /offen und
+  # /abbrechen verwenden. /start zeigt ebenfalls die Hilfe.
+  # Anzeigezeiten verwenden timezone; Befehle benötigen keine weitere Option.
+  # /abbrechen schließt die Bearbeitung, verwirft aber keinen Vorschlag.
   user_id: 1
   chat_id: 2
 targets:
