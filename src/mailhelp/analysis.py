@@ -89,6 +89,8 @@ def validate_revision_successor(previous: Proposal, candidate: Any, *,
         raise ContradictoryRevision("Die Ursprungsmail darf nicht geändert werden")
     if revised.version != previous.version + 1:
         raise ContradictoryRevision("Die Vorschlagsversion muss exakt um eins erhöht werden")
+    if revised.explicit_duplicate_create_confirmed_version is not None:
+        raise ContradictoryRevision("Eine Revision darf keine Doppelanlage freigeben")
     known = previous.known_temporal_facts
     resolved_all_day = (
         known is not None

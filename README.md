@@ -1,5 +1,11 @@
 # Mailhelp
 
+`config.example.yaml` enthält die geprüfte Konfiguration mit synthetischen
+Verbindungsdaten. Für die Einrichtung nach `config.yaml` kopieren und die Ziele
+anpassen. Die CI prüft das Beispiel unabhängig von persönlichen Änderungen.
+Die vollständige Testsuite läuft unter Ubuntu und Windows mit verbindlichen
+100 % Zeilen- und 100 % Branch-Abdeckung.
+
 Python-Assistent zur LLM-basierten Auswertung von IMAP-Mails über OpenRouter. Telegram zeigt Zusammenfassungen und versionsgebundene Einzelvorschläge; erst eine ausdrückliche Bestätigung erlaubt einen Schreibzugriff auf Todoist oder Google Kalender.
 
 ## Installation (Windows 11 und Linux)
@@ -11,6 +17,7 @@ festgeschrieben; das Container-Image installiert genau diese Versionen.
 ```powershell
 py -3.12 -m venv .venv
 .venv\Scripts\python -m pip install -e ".[test]"
+Copy-Item config.example.yaml config.yaml
 Copy-Item .env.example .env
 ```
 
@@ -120,6 +127,23 @@ Eintrag übernommen; Telegram meldet sowohl die erkannte Doppelung als auch, ob
 Informationen ergänzt wurden. Die Ergänzung ist durch dieselbe ausdrückliche,
 versionsbezogene Bestätigung des angezeigten Terminvorschlags gedeckt.
 
+Die Duplikatsuche berücksichtigt sämtliche Ergebnisseiten, auch bei mehr als
+50 überschneidenden Einträgen, entsprechend der
+[Google-Calendar-Paginierung](https://developers.google.com/workspace/calendar/api/v3/reference/events/list).
+Eine zusätzliche Bestätigung „Erneut anlegen“
+erlaubt eine neue Kalenderanlage ausdrücklich für genau die bestätigte Version.
+Diese Freigabe bleibt bei Neustarts erhalten und entfällt bei einer Revision.
+Auch dabei wird vor jedem Schreibversuch der Idempotenzschlüssel abgeglichen;
+ein unklarer Schreiberfolg löst keine automatische Wiederholung aus.
+Todoist-Schlüssel werden als vollständige Marker `[mailhelp:…:vN]` verglichen,
+damit etwa Version 1 nicht mit Version 10 verwechselt wird.
+
+Ein unverbindlicher Hinweis bleibt als `non_binding` klassifiziert. Nach der
+ausdrücklichen Zustimmung zur Anlage und der anschließenden Bestätigung der
+neuen Vorschlagsversion darf er in Todoist oder Google Kalender angelegt werden.
+Hierfür sind keine zusätzlichen Einstellungen in `config.yaml` erforderlich;
+die Beispiele für `test_mode` und die konfigurierten Ziele gelten unverändert.
+
 `config.yaml` besitzt geschlossene Modelle für IMAP, Telegram, Ziele, Limits, Wiederholungen, Timeouts und Logging. `poll_interval_seconds` steuert den Abstand zwischen regulären Verarbeitungszyklen. Beim Start und in jedem regulären Zyklus beginnt Mailhelp sofort mit der IMAP-Verarbeitung; erst danach folgt der Telegram-Long-Poll. Ein begrenzter Einmallauf mit `--max-mails` beendet sich nach seinem IMAP-Durchlauf ohne einen zusätzlichen regulären Telegram-Poll. Nur eine bereits gespeicherte, offene Telegram-Entscheidung wird nach einem Neustart zuerst fortgesetzt. Sobald eine Telegram-Nachricht Schaltflächen für eine Rückfrage oder einen Vorschlag enthält, pausiert die gesamte Verarbeitung: Es wird weder ein weiterer Vorschlag gesendet noch eine weitere Mail analysiert, bis genau diese Auswahl verarbeitet wurde. Mehrere Vorschläge werden dadurch strikt einzeln nacheinander angezeigt. Auch beim Herunterfahren wird hinter offenen Schaltflächen keine Laufzusammenfassung gesendet; nach einem Neustart wird zuerst die gespeicherte Entscheidung fortgesetzt. Fehlgeschlagene Telegram-Polls erhalten einen begrenzten, durch Shutdown unterbrechbaren Backoff. Die LLM-Wiederholungen für ungültige Providerantworten, JSON-Reparatur und Schema-Reparatur sind getrennt begrenzt. IMAP, Telegram, OpenRouter, Todoist und Google Kalender haben jeweils eigene Werte für Timeout, Retry-Anzahl sowie initialen und maximalen Backoff. Validiert werden insbesondere Port, Polling, Adaptertimeouts, Mailgröße, LLM-Rate, Wiederholungszahlen, IANA-Zeitzone, eindeutige nichtleere Ordner, sichere Pfade und die Log-Level `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Unbekannte Schlüssel und falsche Typen werden abgelehnt.
 Auch die Wurzel von `topics.yaml` ist geschlossen: Sie enthält ausschließlich die
 Liste `topics`; diese muss mindestens ein aktiviertes Thema besitzen und alle
@@ -145,7 +169,7 @@ UIDVALIDITY nicht anhand einer geänderten Windows-/Container-Zeitzone oder eine
 inzwischen gewachsenen Postfachs neu aus. Nach einem UIDVALIDITY-Wechsel wird die
 absolute Grenze dagegen mit `INTERNALDATE` in der neuen UID-Generation erneut
 ermittelt und zusammen mit ihr gespeichert, bevor ein `BODY.PEEK[]` erfolgt.
-Die mitgelieferte `config.yaml` setzt diese Grenze auf den 15. September 2026 um
+Die mitgelieferte `config.example.yaml` setzt diese Grenze auf den 15. September 2026 um
 00:00 Uhr in `Europe/Berlin` (`2026-09-15T00:00:00+02:00`), sodass ältere
 Nachrichten beim erstmaligen Aufbau des Abrufpunkts nicht verarbeitet werden.
 Mit `imap.batch_size` (Standard `25`, erlaubt `1..1000`) lädt Mailhelp pro
@@ -207,7 +231,7 @@ deren exakte IMAP-Namen automatisch in `imap.folders` ein.
 Level-Schalter; `logging.modules` überschreibt das Datei-Grundlevel für einzelne
 Anwendungsmodule. Dateiname, Format (`text` oder `jsonl`), maximale Dateigröße,
 Backup-Anzahl und Aufbewahrung in Tagen sind konfigurierbar. Das LLM-Log filtert
-unabhängig von `logging.modules.openrouter`. Die mitgelieferte `config.yaml` aktiviert
+unabhängig von `logging.modules.openrouter`. Die mitgelieferte `config.example.yaml` aktiviert
 `logging.llm.include_requests` und `include_responses` ausdrücklich: Das LLM-Log enthält
 damit die vollständige Anfrage einschließlich Systemprompt und Usernachricht sowie die
 vollständige Modellantwort. Wer diese Inhalte nicht protokollieren möchte, setzt beide
@@ -447,7 +471,7 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
   Idempotenzschlüsseln erhalten. Ein Restore kann so weiterhin Ergebnisse
   zuordnen und Duplikate verhindern; entfernte Inhalte sind nicht
   wiederherstellbar. Logs nennen nur Mail-ID, Laufzeitpunkt und Zähler.
-* Die mitgelieferte `config.yaml` verwendet `test_mode: false`, damit eine über
+* Die mitgelieferte `config.example.yaml` verwendet `test_mode: false`, damit eine über
   Telegram ausdrücklich bestätigte Aufgabe tatsächlich in Todoist angelegt wird.
   Wird `test_mode` für einen gezielten Testlauf auf `true` gesetzt, findet kein
   Todoist-Schreibzugriff statt; Aufgaben werden dann als Simulation abgeschlossen.
@@ -796,6 +820,10 @@ als `skipped` sowie den Abschluss als `completed`.
 
 ```sh
 cp .env.example .env
+cp config.example.yaml config.yaml
+# Unter Linux: Schreibrechte für den Containerbenutzer vorbereiten.
+mkdir -p data logs
+sudo chown 65532:65532 data logs
 docker compose build
 docker compose run --rm mailhelp
 ```
@@ -808,13 +836,27 @@ Ein begrenzter Testlauf ist beispielsweise mit
 möglich.
 
 Konfiguration wird schreibgeschützt eingebunden, Daten und Logs bleiben in getrennten persistenten Host-Verzeichnissen. `.env`, Zustand und Logs gelangen dank `.dockerignore` nicht in den Build-Kontext.
-Relative Daten- und Logpfade aus `config.yaml` beziehen sich auf das aktuelle
-Arbeitsverzeichnis (im Container `/app`).
+Relative Daten- und Logpfade aus `config.yaml` beziehen sich auf das mit
+`--config-directory` gewählte Verzeichnis, unabhängig vom Arbeitsverzeichnis.
+Das gilt auch für `--clear` und relative `--log-directory`-Overrides.
+Absolute Pfade bleiben absolut. Docker bindet die Host-Verzeichnisse `data` und
+`logs` deshalb unter `/config/data` und `/config/logs` ein. Bestehende Daten
+müssen vor einer Umstellung aus einem früher genutzten Pfad übernommen werden.
 Mit `--log-directory PFAD` lässt sich das konfigurierte Logverzeichnis pro Aufruf
 überschreiben. Das ist insbesondere bei schreibgeschütztem Arbeitsverzeichnis
-nötig; der CI-Container schreibt bei der Konfigurationsprüfung nach
-`/tmp/mailhelp/logs`. Im Dauerbetrieb sollte stattdessen ein beschreibbares,
-persistent eingebundenes Verzeichnis verwendet werden.
+nötig. Unter Linux müssen die Host-Verzeichnisse für UID/GID `65532:65532`
+beschreibbar sein; bei vorhandenen Dateien sind auch deren Rechte zu prüfen.
+Die CI verwendet dieselben Volumes wie Compose und startet über
+`compose.smoke.yaml` zwei frische Container mit simulierten externen Diensten
+und abgeschaltetem Netzwerk. Sie prüft den echten CLI-Start, Zustandsdateien,
+Logs und die Wiederaufnahme der IMAP-Checkpoints nach dem Containerneustart.
+
+Das fest versionierte Paket `tzdata` stellt IANA-Zeitzonen auch ohne
+Systemdatenbank bereit, insbesondere unter Windows. Ein Regressionstest prüft
+Winter- und Sommerzeit für `Europe/Berlin` ohne System-Zeitzonenpfade.
+Beim Todoist-Abgleich werden leere oder wiederholte Seitencursor als fehlerhafte
+Antwort abgewiesen. Der Abgleich stoppt vor einer externen Schreibaktion und kann
+nach Behebung des Providerfehlers erneut ausgeführt werden.
 
 ## Zustand sichern
 

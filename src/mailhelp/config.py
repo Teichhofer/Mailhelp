@@ -2,7 +2,7 @@
 from __future__ import annotations
 import hashlib, json, os, re
 from importlib.resources import files
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 from typing import Annotated, Any, Literal
 from datetime import datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -162,7 +162,7 @@ class RotatingLogSettings(LogTargetSettings):
         if not isinstance(value, (str, Path)):
             raise ValueError("Dateiname muss eine Zeichenkette sein")
         path = _valid_path(Path(value))
-        if path.is_absolute():
+        if path.anchor or PureWindowsPath(path).anchor:
             raise ValueError("Log-Dateiname muss relativ zum Logverzeichnis sein")
         return path
 

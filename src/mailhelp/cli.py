@@ -7,6 +7,7 @@ from .application import build_application, build_logger
 from .config import Settings, load_all
 from .learning import LearningMode
 from .storage import JsonStore
+from .paths import runtime_path
 
 
 CLEAR_CONFIRMATION = "ALLE DATEN LOESCHEN"
@@ -57,10 +58,12 @@ def _remove_directory_contents(directory: Path, *, keep: set[str] = frozenset())
             shutil.rmtree(entry)
 
 
-def clear_runtime_data(settings: Settings, log_directory: Path | None = None) -> None:
+def clear_runtime_data(settings: Settings, log_directory: Path | None = None,
+                       base_directory: Path = Path(".")) -> None:
     """Delete all configured state namespaces and logs while holding state locks."""
-    data_root = Path(settings.data_directory)
-    logs = log_directory if log_directory is not None else Path(settings.logging.directory)
+    data_root = runtime_path(settings.data_directory, base_directory)
+    logs = runtime_path(log_directory if log_directory is not None else settings.logging.directory,
+                        base_directory)
     namespaces = [data_root / "test", data_root / "production"]
     existing = [path for path in namespaces if path.exists()]
     logs_contain_state = any(logs == path or logs in path.parents for path in existing)
@@ -151,10 +154,11 @@ def _main() -> int:
             if answer != CLEAR_CONFIRMATION:
                 print("Löschen abgebrochen.")
                 return 1
-        clear_runtime_data(settings, args.log_directory)
+        clear_runtime_data(settings, args.log_directory, args.config_directory)
         print("Alle Zustandsdaten und Logs wurden gelöscht.")
         return 0
-    logger = build_logger(settings, secrets, log_directory=args.log_directory)
+    logger = build_logger(settings, secrets, base_directory=args.config_directory,
+                          log_directory=args.log_directory)
     logger.event("INFO", "application", "application_started", parameters={
         "config_directory": str(args.config_directory),
         "log_directory": str(args.log_directory) if args.log_directory is not None else None,

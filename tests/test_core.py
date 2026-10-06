@@ -127,7 +127,8 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
     with pytest.raises(ValueError, match="Schlüssel"): _dotenv(env_file)
     env_file.unlink()
     for name in ("config.yaml", "prompts.yaml", "topics.yaml", "irrelevant_topics.yaml"):
-        (tmp_path / name).write_text((Path(name)).read_text(encoding="utf8"), encoding="utf8")
+        source = Path("config.example.yaml" if name == "config.yaml" else name)
+        (tmp_path / name).write_text(source.read_text(encoding="utf8"), encoding="utf8")
     env = {x: "secret" for x in ["IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN", "TODOIST_TOKEN", "TODOIST_CLIENT_ID", "TODOIST_CLIENT_SECRET", "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"]}
     settings, secrets, topics, irrelevant_topics, prompts, fingerprint = load_all(tmp_path, env)
     assert not settings.test_mode and secrets.imap_password.get_secret_value() == "secret" and topics[0].enabled and len(fingerprint) == 64
@@ -162,7 +163,8 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
         encoding="utf8",
     )
     with pytest.raises(ValueError, match="unbekannt"): load_all(tmp_path, env)
-    monkeypatch.setattr(sys, "argv", ["mailhelp", "--config-directory", str(Path.cwd()), "--check"]); monkeypatch.setattr(os, "environ", env)
+    (tmp_path / "topics.yaml").write_text(Path("topics.yaml").read_text(encoding="utf8"), encoding="utf8")
+    monkeypatch.setattr(sys, "argv", ["mailhelp", "--config-directory", str(tmp_path), "--check"]); monkeypatch.setattr(os, "environ", env)
     monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args, **_kwargs: type("Logger", (), {"event": lambda *_args, **_kwargs: None})())
     assert main() == 0; assert "gültig" in capsys.readouterr().out
     class App:
@@ -177,12 +179,13 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
     def builder(*args, **kwargs): yield app
     monkeypatch.setattr("mailhelp.cli.build_application", builder)
     monkeypatch.setattr("mailhelp.cli.signal.signal", lambda signum, handler: signal_handlers.__setitem__(signum, handler))
-    monkeypatch.setattr(sys, "argv", ["mailhelp", "--config-directory", str(Path.cwd())]); assert main() == 0 and app.stopped
+    monkeypatch.setattr(sys, "argv", ["mailhelp", "--config-directory", str(tmp_path)]); assert main() == 0 and app.stopped
 
 
 def test_load_all_restores_only_missing_distributed_topic_files(tmp_path, monkeypatch):
     for name in ("config.yaml", "prompts.yaml"):
-        (tmp_path / name).write_text(Path(name).read_text(encoding="utf-8"), encoding="utf-8")
+        source = Path("config.example.yaml" if name == "config.yaml" else name)
+        (tmp_path / name).write_text(source.read_text(encoding="utf-8"), encoding="utf-8")
     custom_irrelevant = "topics:\n- id: custom\n  name: Custom\n  enabled: false\n  description: Custom\n"
     (tmp_path / "irrelevant_topics.yaml").write_text(custom_irrelevant, encoding="utf-8")
     env = {name: "secret" for name in (
@@ -740,7 +743,9 @@ def test_storage_stale_file_process_exit_and_mode_isolation(tmp_path):
     stale.mkdir()
     (stale / ".lock").write_text('{"pid": 1}', encoding="ascii")
     with JsonStore(stale):
-        assert json.loads((stale / ".lock").read_text(encoding="ascii"))["pid"] == os.getpid()
+        assert (stale / ".lock").exists()
+    # Windows byte-range locks prevent reading the locked metadata byte.
+    assert json.loads((stale / ".lock").read_text(encoding="ascii"))["pid"] == os.getpid()
 
     root = tmp_path / "modes"
     with JsonStore(root / "test"):

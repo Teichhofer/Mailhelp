@@ -72,7 +72,9 @@ def test_logging_settings_module_level_validation():
     assert LoggingSettings.model_validate({**base, "modules": {"imap": "ERROR"}}).modules["imap"] == "ERROR"
     for bad in ({"": "INFO"}, {"imap": "TRACE"}):
         with pytest.raises(Exception): LoggingSettings.model_validate({**base, "modules": bad})
-    for field, value in (("filename", "../bad"), ("filename", "/absolute"), ("max_bytes", 0),
+    for field, value in (("filename", "../bad"), ("filename", "/absolute"),
+                         ("filename", "C:/absolute"), ("filename", "C:relative"),
+                         ("filename", r"\rooted"), ("filename", r"\\server\share\log"), ("max_bytes", 0),
                          ("filename", 4), ("backup_count", -1), ("retention_days", 0)):
         candidate = json.loads(json.dumps(base))
         candidate["file"][field] = value
