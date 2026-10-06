@@ -39,6 +39,7 @@ class ImapSettings(ConfigModel):
     @classmethod
     def valid_historical_start(cls, value: object) -> datetime | None:
         if isinstance(value, str):
+            value = re.sub(r"^(\d{4}-\d{2}-\d{2})\s*T\s*", r"\1T", value.strip())
             try:
                 value = datetime.fromisoformat(value.replace("Z", "+00:00"))
             except ValueError as exc:
