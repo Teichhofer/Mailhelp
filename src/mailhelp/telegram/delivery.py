@@ -28,7 +28,10 @@ class ProposalDeliveryService:
         mail = self.repository.load_mail(proposal.source_mail_id)
         sender = mail.display_headers.sender if mail and mail.display_headers else "—"
         subject = mail.display_headers.subject if mail and mail.display_headers else "—"
-        presentation = self.presenter.present(proposal, sender, subject)
+        previous = (self.repository.load_version(
+            proposal.source_mail_id, proposal.id, proposal.version - 1)
+            if proposal.version > 1 else None)
+        presentation = self.presenter.present(proposal, sender, subject, previous)
         status = self.repository.notification_status(proposal)
         if status == "completed" or status == "sending":
             return

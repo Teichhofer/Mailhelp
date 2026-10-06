@@ -333,7 +333,9 @@ class ProposalRevisionProcessor:
                     proposal_reference=f"{state.mail_id}:{state.proposal_id}:v{state.version}",
                     revision_status=ProposalRevisionStatus.PENDING.value,
                 )
-                self.telegram.send(self.chat_id, clarification.message)
+                self.telegram.send(self.chat_id,
+                                   f"Rückfrage zu „{proposal.title}“ · Version {proposal.version}\n"
+                                   f"{clarification.message}\nMit /abbrechen zur Vorschlagsansicht zurückkehren.")
                 return
         except (
             LlmProviderResponseInvalid,

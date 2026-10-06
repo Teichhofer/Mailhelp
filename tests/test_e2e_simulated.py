@@ -255,7 +255,7 @@ def test_nachholtermin_fixture_explicit_offset_confirmation_and_reconciliation(t
         assert calendar.create_calls == []
 
         assert_single_calendar_write_survives_restart(
-            store, dialog, telegram, calendar, telegram_button(telegram, "Anlegen"), 100)
+            store, dialog, telegram, calendar, telegram_button(telegram, "Im Kalender anlegen"), 100)
     finally:
         store.__exit__()
 
@@ -287,7 +287,7 @@ def test_nachholtermin_incomplete_is_completed_locally_then_idempotently_written
         assert calendar.create_calls == []
 
         assert_single_calendar_write_survives_restart(
-            store, dialog, telegram, calendar, telegram_button(telegram, "Anlegen"), 202)
+            store, dialog, telegram, calendar, telegram_button(telegram, "Im Kalender anlegen"), 202)
     finally:
         store.__exit__()
 

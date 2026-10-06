@@ -193,7 +193,7 @@ def test_change_without_existing_event_requires_explicit_create_fallback(tmp_pat
         assert revised.explicit_create_fallback_confirmed is True
         assert revised.status == ProposalStatus.PENDING_CONFIRMATION
         assert revised.open_questions == []
-        assert "Einordnung: change" in transport.sent[-1][1]
+        assert "Einordnung: Änderung eines bestehenden Eintrags" in transport.sent[-1][1]
         assert any(event[0][2] == "answer_revision_completed" for event in log.events)
         clarification = store.load(
             "clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")
@@ -406,7 +406,7 @@ def test_reported_date_time_answer_retains_start_fact_and_uses_duration():
     assert revised.temporal_fact.normalized_date == date(2026, 9, 25)
     assert revised.temporal_fact.year_source == "telegram"
     assert revised.open_questions == []
-    assert "Beginn: 2026-09-25T11:00:00+02:00" in format_proposal(
+    assert "Beginn: 25.09.2026 · 11:00 Uhr (UTC+0200)" in format_proposal(
         revised, "Europe/Berlin")
 
 
@@ -460,7 +460,7 @@ def test_formatting_shows_retained_incomplete_start_and_duration():
         known_temporal_facts={
             "date": "2026-09-25", "start": "2026-09-25T11:00:00+02:00"})
     text = format_proposal(item, "Europe/Berlin")
-    assert "Beginn: 2026-09-25T11:00:00+02:00" in text
+    assert "Beginn: 25.09.2026 · 11:00 Uhr (UTC+0200)" in text
     assert "Dauer: 30 Minuten" in text
 
 
@@ -944,14 +944,14 @@ def test_callback_data_byte_validation_and_legacy_limit():
 
 
 @pytest.mark.parametrize(("changes", "labels", "actions"), [
-    ({}, ["Bestätigen", "Ändern", "Verwerfen"],
+    ({}, ["In Todoist anlegen", "Ändern", "Verwerfen"],
      [DecisionAction.CONFIRM, DecisionAction.EDIT, DecisionAction.REJECT]),
     ({"open_questions": ["Bitte klären"]}, ["Klären", "Verwerfen"],
      [DecisionAction.EDIT, DecisionAction.REJECT]),
     ({"classification": "unsupported"}, ["Manuell prüfen", "Verwerfen"],
      [DecisionAction.EDIT, DecisionAction.REJECT]),
     ({"kind": "event", "start": "2026-05-10T10:00:00+02:00", "end": "2026-05-10T11:00:00+02:00"},
-     ["Anlegen", "Verwerfen"], [DecisionAction.CONFIRM, DecisionAction.REJECT]),
+     ["Im Kalender anlegen", "Ändern", "Verwerfen"], [DecisionAction.CONFIRM, DecisionAction.EDIT, DecisionAction.REJECT]),
 ])
 def test_all_proposal_buttons_use_short_exactly_bound_tokens(tmp_path, changes, labels, actions):
     item = proposal(id="P_" * 16, version=123456789, **changes)
@@ -977,9 +977,9 @@ def test_pending_event_pauses_until_anlegen_or_verwerfen(tmp_path):
 
         assert dialog.awaiting_decision()
         buttons = transport.sent[-1][2]["inline_keyboard"][0]
-        assert [button["text"] for button in buttons] == ["Anlegen", "Verwerfen"]
+        assert [button["text"] for button in buttons] == ["Im Kalender anlegen", "Ändern", "Verwerfen"]
 
-        transport.updates = [callback(1, buttons[1]["callback_data"])]
+        transport.updates = [callback(1, buttons[2]["callback_data"])]
         dialog.poll_once()
         assert not dialog.awaiting_decision()
 
@@ -1042,17 +1042,16 @@ def test_numbered_parts():
 @pytest.mark.parametrize(("item", "expected"), [
     (proposal(description="", due=None), ["Typ: Aufgabe", "Beschreibung: —", "Fälligkeit: —"]),
     (proposal(kind="event", start="2026-05-10T10:00:00+02:00", end="2026-05-10T11:00:00+02:00", location="Raum 1", video_link="https://video.example.test/abc"),
-     ["Typ: Termin", "Beginn: 2026-05-10T10:00:00+02:00", "Ganztägig: Nein", "Konfigurierte Zeitzone: Europe/Berlin", "Ort: Raum 1", "Videolink: https://video.example.test/abc"]),
+     ["Typ: Termin", "Beginn: 10.05.2026 · 10:00 Uhr (UTC+0200)", "Ganztägig: Nein", "Konfigurierte Zeitzone: Europe/Berlin", "Ort: Raum 1", "Videolink: https://video.example.test/abc"]),
     (proposal(kind="event", all_day=True, start="2026-05-10", end="2026-05-11", location=None),
-     ["Ende: 2026-05-11", "Ganztägig: Ja", "Ort: —", "Videolink: —"]),
+     ["Letzter Tag: 10.05.2026", "Ganztägig: Ja", "Ort: —", "Videolink: —"]),
 ])
 def test_central_proposal_formatting_for_tasks_and_events(item, expected):
     text = format_proposal(item, "Europe/Berlin")
     assert all(value in text for value in expected)
-    assert [line.split(":", 1)[0] for line in text.splitlines() if not line.startswith("-")] [:8] == [
-        "Vorschlagsversion", "Typ", "Zuständigkeit", "Sicherheit", "Einordnung",
-        "Extern anlegbar", "Titel", "Beschreibung",
-    ]
+    assert text.startswith(f"Titel: {item.title}\nTyp:")
+    assert text.index("Ziel:") < text.index("Vorschlagsversion:") < text.index("Belegstelle:")
+    assert "Zuständigkeit: Du" in text and "Sicherheit: Eindeutig" in text
 
 
 def test_test_mode_marks_task_simulation_before_confirmation(tmp_path):
@@ -1295,7 +1294,8 @@ def test_non_binding_question_accepts_yes_as_separate_persisted_decision(tmp_pat
         assert saved["explicit_non_binding_create_confirmed"] is True
         assert saved["open_questions"] == []
         assert saved["status"] == "pending_confirmation"
-        assert question not in t.sent[-1][1]
+        assert "Offene Fragen: Keine" in t.sent[-1][1]
+        assert question not in t.sent[-1][1].split("\n\n")[-1]
 
 
 def test_invalid_unauthorized_missing_and_stale_dialogs(tmp_path):
@@ -1334,7 +1334,8 @@ def test_unusable_answer_gets_llm_generated_concrete_follow_up(tmp_path):
         store.save("telegram-dialog", TelegramDialogState(
             mail_id=current.source_mail_id, proposal_id=current.id, version=2).model_dump())
         c.revisions.answer("irgendwann")
-        assert t.sent[-1][1] == "Bitte konkreter beantworten: Welches Datum?"
+        assert "Bitte konkreter beantworten: Welches Datum?" in t.sent[-1][1]
+        assert "Rückfrage zu „Aufgabe“ · Version 2" in t.sent[-1][1]
         assert [call[0] for call in service.calls] == ["interpret", "clarify"]
         assert store.load("telegram-dialog")["version"] == 2
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["version"] == 2

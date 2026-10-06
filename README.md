@@ -718,9 +718,9 @@ Token ein. Vor jedem Telegram-Aufruf prüft Mailhelp jedes `callback_data` auf d
 zulässigen 1 bis 64 UTF-8-Bytes. Alte, eindeutig validierbare Vorschlagscallbacks
 werden innerhalb derselben Bytegrenze weiterhin angenommen. Nur der konfigurierte
 Nutzer im konfigurierten Chat darf eine Aktion auslösen. Jede angezeigte Version
-wird vor ihren Schaltflächen gespeichert. Aufgabenvorschläge bieten `Bestätigen`,
-`Ändern` und `Verwerfen`; vollständige Terminvorschläge bieten ausschließlich
-`Anlegen` und `Verwerfen`. `Anlegen` schreibt den Termin über die Google Calendar API in den konfigurierten Zielkalender. Die Aktionen werden getrennt behandelt,
+wird vor ihren Schaltflächen gespeichert. Aufgabenvorschläge bieten `In Todoist anlegen`,
+`Ändern` und `Verwerfen`; vollständige Terminvorschläge bieten
+`Im Kalender anlegen`, `Ändern` und `Verwerfen`. `Im Kalender anlegen` schreibt den Termin über die Google Calendar API in den konfigurierten Zielkalender. Im Testmodus heißt die Todoist-Schaltfläche weiterhin `Simulieren`. Die Aktionen werden getrennt behandelt,
 während veraltete oder fehlerhafte Schaltflächen keinen Zustand verändern.
 Callback-Klicks werden sofort bei Telegram quittiert. Erst nach erfolgreicher
 fachlicher Annahme entfernt Mailhelp zentral die gesamte Inline-Tastatur der
@@ -729,6 +729,35 @@ eine kurze Bestätigung der gewählten Aktion in den Chat. Bei einem Fehler wird
 stattdessen eine kurze Fehlermeldung gesendet; die Schaltflächen bleiben für
 einen erneuten Versuch erhalten.
 Die Ausführung bestätigter Schreibaktionen und die Verarbeitung von Revisionen sind als eigenständige Dienste verdrahtet. Sie erhalten Store, externe Ports, Transport, Chat-ID, Testmodus beziehungsweise Zeitzone und Retry-Konfiguration explizit; sie greifen nicht auf private Controller-Methoden zu. Dadurch bleibt die sicherheitskritische Reihenfolge auch bei Wiederaufnahme eindeutig: Bestätigung vor externem Schreiben persistieren, unklare Ergebnisse nur abgleichen und eine neue Vorschlagsversion vor den zugehörigen Schaltflächen speichern.
+
+Die Vorschlagsansicht zeigt zuerst Titel und Termin/Fälligkeit, danach Ziel und
+Version. Zeiten erscheinen als `15.10.2026 · 18:00 Uhr (UTC+0200)` in der
+konfigurierten `timezone`; gespeicherte Zeitpunkte bleiben unverändert.
+Ganztägige Termine zeigen den letzten tatsächlichen Tag statt des exklusiven
+API-Enddatums. Zuständigkeit, Sicherheit und Einordnung erhalten deutsche
+Bezeichnungen. Beschreibung, Beleg und offene Fragen bleiben vor der Freigabe
+sichtbar. Bei einer Revision zeigt die Nachricht zusätzlich die Änderungen
+gegenüber dem gespeicherten Vorgänger (falls vorhanden).
+
+Rückfragen nennen Titel, Version, bekannte Zeitangaben, Ziel und Antwortbeispiele.
+Diese Beispiele sind keine vorgeschlagenen Änderungen und werden nicht übernommen.
+Auch nach einer Korrektur ist eine ausdrückliche Bestätigung der neuen Version nötig.
+
+Im konfigurierten Chat stehen dem autorisierten Nutzer folgende lokale Befehle zur Verfügung:
+
+- `/hilfe` (auch `/start`): Bedienhinweise und Befehle anzeigen.
+- `/status` und `/offen`: offene Relevanzentscheidungen und aktuelle Vorschläge
+  mit Warte-, Verarbeitungs- oder Pausenstatus anzeigen. Die Übersicht enthält
+  keine zusätzlichen Freigabeschaltflächen und ändert die Verarbeitungsreihenfolge nicht.
+- `/abbrechen`: eine noch unbeantwortete Bearbeitung schließen und den
+  unveränderten Vorschlag erneut mit seinen Schaltflächen anzeigen. Offene Fragen
+  bleiben offen. Bereits zur Verarbeitung gespeicherte Antworten, einschließlich
+  älterer Retry-Dialoge, werden nicht gelöscht. Nach einer als unbrauchbar erkannten
+  Antwort ist das Schließen der Rückfrage möglich; die Antwort bleibt gespeichert.
+
+Diese Befehle werden vor der Freitextinterpretation erkannt und rufen weder das
+LLM noch externe Schreibdienste auf. Unbekannte Slash-Befehle verweisen auf
+`/hilfe`. Hilfe und Status beenden keine Rückfrage. Es gibt keine neue YAML-Option.
 
 Bevor Mailhelp eine offene Vorschlagsfrage über Telegram stellt, prüft ein eigener
 LLM-Schritt die Frage zusammen mit der Ursprungsmail. Ist die erfragte Information

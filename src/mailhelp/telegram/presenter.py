@@ -8,7 +8,7 @@ from typing import Callable
 from ..integrations import proposal_is_writable
 from ..models import Proposal, ProposalKind
 from .callbacks import Decision, DecisionAction, validate_callback_markup
-from .formatting import format_proposal, numbered_message_parts
+from .formatting import format_proposal, numbered_message_parts, revision_summary
 
 
 @dataclass(frozen=True)
@@ -31,13 +31,16 @@ class ProposalPresenter:
         self.test_mode = test_mode
 
     def present(
-        self, proposal: Proposal, sender: str = "—", subject: str = "—"
+        self, proposal: Proposal, sender: str = "—", subject: str = "—",
+        previous: Proposal | None = None,
     ) -> ProposalPresentation:
         parts = tuple(
             numbered_message_parts(
                 sender,
                 subject,
-                format_proposal(proposal, self.configured_timezone, self.test_mode),
+                ((revision_summary(previous, proposal, self.configured_timezone) + "\n\n")
+                 if previous is not None else "")
+                + format_proposal(proposal, self.configured_timezone, self.test_mode),
             )
         )
 
@@ -69,16 +72,12 @@ class ProposalPresenter:
                 (
                     "Simulieren"
                     if self.test_mode and proposal.kind == ProposalKind.TASK
-                    else "Anlegen" if proposal.kind == ProposalKind.EVENT else "Bestätigen"
+                    else "Im Kalender anlegen" if proposal.kind == ProposalKind.EVENT else "In Todoist anlegen"
                 ),
                 DecisionAction.CONFIRM,
             )
             reject = button("Verwerfen", DecisionAction.REJECT)
-            buttons = (
-                [[confirm, reject]]
-                if proposal.kind == ProposalKind.EVENT
-                else [[confirm, button("Ändern", DecisionAction.EDIT), reject]]
-            )
+            buttons = [[confirm, button("Ändern", DecisionAction.EDIT), reject]]
         markup: dict[str, object] = {"inline_keyboard": buttons}
         validate_callback_markup(markup)
         return ProposalPresentation(parts=parts, reply_markup=markup)

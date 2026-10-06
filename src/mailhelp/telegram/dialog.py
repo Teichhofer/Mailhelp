@@ -104,6 +104,7 @@ class TelegramDialogController:
             telegram,
             user_id,
             chat_id,
+            configured_timezone,
         )
         self.revisions: ProposalRevisions = ProposalRevisionProcessor(
             store,
@@ -431,6 +432,12 @@ class TelegramDialogController:
             )
             return
         normalized = message.text.strip().lower()
+        if normalized.startswith("/"):
+            from .commands import TelegramCommands
+
+            TelegramCommands(self.store, self.repository, self.presenter,
+                             self.telegram, self.chat_id, self.relevance).handle(normalized)
+            return
         if normalized in {"relevant", "irrelevant"}:
             dialogs = self._open_relevance_dialogs()
             if len(dialogs) != 1:
