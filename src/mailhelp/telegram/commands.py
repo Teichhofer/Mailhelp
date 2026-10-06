@@ -1,6 +1,7 @@
 """Local commands, called only after the controller authorizes the sender."""
 from ..models import AnswerStatus, Proposal, ProposalStatus, ProposalClarificationState, TelegramDialogState
 from .persistence import clarification_name, proposal_name
+from .formatting import clarification_prompt
 
 
 HELP = (
@@ -9,7 +10,7 @@ HELP = (
     "/status – Aktuelle Warte- und Bearbeitungsstände\n"
     "/offen – Offene Entscheidungen anzeigen\n"
     "/abbrechen – Unbeantwortete Bearbeitung schließen und Vorschlag anzeigen\n"
-    "Wähle „Ändern“ für Korrekturen oder beantworte die konkrete Rückfrage. "
+    "Öffne /offen und wähle „Klären“ oder „Ändern“, oder beantworte die konkrete Rückfrage. "
     "Jede überarbeitete Version muss erneut per Schaltfläche bestätigt werden. "
     "Solange eine Entscheidung offen ist, wartet die weitere Mailverarbeitung."
 )
@@ -24,14 +25,17 @@ class TelegramCommands:
         if command in {"/hilfe", "/start"}:
             self.telegram.send(self.chat_id, HELP)
         elif command in {"/status", "/offen"}:
-            self.overview()
+            self.overview(interactive=command == "/offen")
         elif command == "/abbrechen":
             self.cancel()
         else:
             self.telegram.send(self.chat_id, "Unbekannter Befehl. Verfügbare Befehle: /hilfe")
 
-    def overview(self) -> None:
+    def overview(self, *, interactive: bool = False) -> None:
         lines = []
+        presentations = []
+        active_prompt = None
+        active = self.store.load_model("telegram-dialog", TelegramDialogState)
         for dialog in self.relevance.open():
             mail = self.repository.load_mail(dialog.mail_id)
             subject = mail.display_headers.subject if mail and mail.display_headers else "Mail ohne Betreff"
@@ -44,15 +48,37 @@ class TelegramCommands:
                 continue
             state = self.store.load_model(clarification_name(
                 proposal.source_mail_id, proposal.id, proposal.version), ProposalClarificationState)
-            if state is not None and state.authorized_answer is not None and state.answer_status != AnswerStatus.INVALID:
+            editing = active is not None and (active.mail_id, active.proposal_id, active.version) == (
+                proposal.source_mail_id, proposal.id, proposal.version)
+            saved = (state is not None and state.authorized_answer is not None
+                     and state.answer_status != AnswerStatus.INVALID)
+            if saved:
                 status = ("Verarbeitung pausiert; Betreiber muss den gespeicherten Zustand prüfen"
                           if "paused" in {state.interpretation_status, state.proposal_revision_status}
                           else "Antwort gespeichert; Verarbeitung läuft oder wird automatisch fortgesetzt")
+            elif editing and active.retry_required:
+                status = "Antwort gespeichert; Verarbeitung wird automatisch fortgesetzt"
             else:
-                status = ("Warte auf Rückfrage/Korrektur" if proposal.status == ProposalStatus.NEEDS_CLARIFICATION
+                status = ("Warte auf Antwort zur angezeigten Frage" if editing else
+                          "Klärung erforderlich – bitte „Klären“ bzw. „Ändern“ oder „Manuell prüfen“ wählen" if proposal.status == ProposalStatus.NEEDS_CLARIFICATION
                           else "Warte auf Bestätigung oder Verwerfen")
+                if interactive:
+                    if editing:
+                        active_prompt = clarification_prompt(proposal, self.presenter.configured_timezone)
+                    else:
+                        mail = self.repository.load_mail(proposal.source_mail_id)
+                        sender = mail.display_headers.sender if mail and mail.display_headers else "—"
+                        subject = mail.display_headers.subject if mail and mail.display_headers else "—"
+                        presentations.append(self.presenter.present(proposal, sender, subject))
             lines.append(f"„{proposal.title}“ · Version {proposal.version}: {status}")
         self.telegram.send(self.chat_id, "\n".join(lines) if lines else "Keine offene Telegram-Entscheidung.")
+        for presentation in presentations:
+            for part in presentation.parts[:-1]:
+                self.telegram.send(self.chat_id, part)
+            self.telegram.send(self.chat_id, presentation.parts[-1], presentation.reply_markup)
+        # Keep the uniquely assigned question last; never assign free text by list order.
+        if active_prompt is not None:
+            self.telegram.send(self.chat_id, active_prompt)
 
     def cancel(self) -> None:
         dialog = self.store.load_model("telegram-dialog", TelegramDialogState)

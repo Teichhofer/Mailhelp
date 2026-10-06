@@ -11,6 +11,9 @@
 - Protokolliere keine Zugangsdaten. Vollständige LLM-Inhalte sind explizit zuschaltbar.
 - Für sämtlichen eigenen Anwendungscode sind 100 % Zeilen- und 100 %
   Branch-Abdeckung verbindlich. Jede Codeänderung enthält passende Tests.
+- Jeder Bugfix muss einen Regressionstest enthalten, der den behobenen Fehler
+  reproduziert, vor dem Fix fehlschlägt und nach dem Fix besteht, damit ein erneutes
+  Auftreten des Bugs künftig automatisch erkannt wird.
 - Die automatisierte Prüfung muss bei Unterschreitung eines der beiden Werte scheitern.
 - Umgehe die Vorgabe nicht durch Coverage-Ausschlüsse oder wirkungslose Tests.
 - Prüfe Erfolgsfälle, Fehlerfälle, Wiederholungen, Neustarts und Autorisierung.
