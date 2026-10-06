@@ -47,6 +47,7 @@ class ConfirmedWriteExecutor:
             ledger,
         )
         self.configured_timezone = configured_timezone
+        self._reported_target_mismatches: set[tuple[str, str, int]] = set()
 
     def _event_time_details(self, proposal: Proposal) -> str:
         """Render the created event's start in the user's configured timezone."""
@@ -75,6 +76,18 @@ class ConfirmedWriteExecutor:
         changed, result = execute_confirmed(
             proposal, writer, self.persistence.persist, self.test_mode
         )
+        if result.get("target_mismatch"):
+            reference = (proposal.source_mail_id, proposal.id, proposal.version)
+            if reference not in self._reported_target_mismatches:
+                self.telegram.send(
+                    self.chat_id,
+                    f"Ziel geändert: „{proposal.title}“ bleibt gesperrt. "
+                    "Das konfigurierte Ziel stimmt nicht mit dem angezeigten Vorschlagsziel überein. "
+                    "Ursprüngliches Ziel wiederherstellen oder einen neuen Vorschlag "
+                    "für das neue Ziel ausdrücklich bestätigen.",
+                )
+                self._reported_target_mismatches.add(reference)
+            return changed
         if result.get("simulation"):
             kind = "Aufgabe" if proposal.kind == ProposalKind.TASK else "Kalendertermin"
             text = (

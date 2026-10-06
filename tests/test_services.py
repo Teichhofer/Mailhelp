@@ -949,15 +949,15 @@ def test_integrations():
     with pytest.raises(ValueError): HttpWriter("bad","x","x")
     seen=[]
     def handler(req): seen.append(req); return httpx.Response(200,json=({"id":"x"} if req.method=="POST" else {"results":[],"next_cursor":None}),request=req)
-    todo=HttpWriter("todoist","x","p",transport=httpx.MockTransport(handler)); assert todo.reconcile("x") is None; todo.create(proposal(status="confirmed", due=datetime.now(timezone.utc)),"key"); todo.close()
+    todo=HttpWriter("todoist","x","p",transport=httpx.MockTransport(handler)); assert todo.reconcile("x") is None; todo.create(proposal(target="p", status="confirmed", due=datetime.now(timezone.utc)),"key"); todo.close()
     found=HttpWriter("todoist","x","p",transport=httpx.MockTransport(mock_response(data={"results":[{"description":"[key]", "id":"old"}],"next_cursor":None}))); assert found.reconcile("key")["id"]=="old"
     now=datetime.now(timezone.utc)
-    with pytest.raises(ValueError): HttpWriter("todoist","x","p",transport=httpx.MockTransport(handler)).create(proposal(kind="event",start=now,end=now.replace(year=now.year+1)),"k")
-    event=proposal(kind="event",start=now,end=now.replace(year=now.year+1),status="confirmed")
+    with pytest.raises(ValueError): HttpWriter("todoist","x","p",transport=httpx.MockTransport(handler)).create(proposal(target="p",kind="event",start=now,end=now.replace(year=now.year+1)),"k")
+    event=proposal(target="primary",kind="event",start=now,end=now.replace(year=now.year+1),status="confirmed")
     def cal_handler(req): return httpx.Response(200,json=({"id":"x"} if req.method=="POST" else {"items":[]}),request=req)
     cal=HttpWriter("google_calendar","x","primary",transport=httpx.MockTransport(cal_handler),calendar_timezone="UTC"); assert cal.reconcile("k") is None; cal.create(event,"k"); cal.close()
     foundcal=HttpWriter("google_calendar","x","p",transport=httpx.MockTransport(mock_response(data={"items":[{"id":"e"}]})),calendar_timezone="UTC"); assert foundcal.reconcile("k")["id"]=="e"
-    with pytest.raises(ValueError): HttpWriter("google_calendar","x","p",transport=httpx.MockTransport(handler),calendar_timezone="UTC").create(p,"k")
+    with pytest.raises(ValueError): HttpWriter("google_calendar","x","inbox",transport=httpx.MockTransport(handler),calendar_timezone="UTC").create(p,"k")
 
 
 def test_todoist_uses_distinct_date_and_datetime_deadlines():
@@ -966,8 +966,8 @@ def test_todoist_uses_distinct_date_and_datetime_deadlines():
         payloads.append(json.loads(request.content))
         return httpx.Response(200,json={"id":"task"},request=request)
     writer=HttpWriter("todoist","x","p",transport=httpx.MockTransport(handler))
-    writer.create(proposal(status="confirmed", due="2026-10-01"), "date")
-    writer.create(proposal(status="confirmed", due="2026-10-01T17:00:00+02:00"), "instant")
+    writer.create(proposal(target='p', status="confirmed", due="2026-10-01"), "date")
+    writer.create(proposal(target='p', status="confirmed", due="2026-10-01T17:00:00+02:00"), "instant")
     assert payloads[0]["due_date"] == "2026-10-01" and "due_datetime" not in payloads[0]
     assert payloads[1]["due_datetime"] == "2026-10-01T17:00:00+02:00" and "due_date" not in payloads[1]
     writer.close()
@@ -994,9 +994,9 @@ def test_calendar_payloads_separate_timed_and_all_day_intervals():
         payloads.append(json.loads(request.content))
         return httpx.Response(200,json={"id":"event"},request=request)
     writer=HttpWriter("google_calendar","x","primary",transport=httpx.MockTransport(handler),calendar_timezone="Europe/Berlin")
-    writer.create(proposal(kind="event",status="confirmed",start="2026-05-10T10:00:00+02:00",end="2026-05-10T11:00:00+02:00",
+    writer.create(proposal(target='primary', kind="event",status="confirmed",start="2026-05-10T10:00:00+02:00",end="2026-05-10T11:00:00+02:00",
                            description="Agenda",location="Raum 1",video_link="https://video.example.test/meeting/42"),"timed")
-    writer.create(proposal(kind="event",status="confirmed",all_day=True,start=date(2026,5,10),end=date(2026,5,11)),"all-day")
+    writer.create(proposal(target='primary', kind="event",status="confirmed",all_day=True,start=date(2026,5,10),end=date(2026,5,11)),"all-day")
     assert payloads[0] == {
         "summary":"Tun", "description":"Agenda\n\n[Mailhelp-Videolink]\nhttps://video.example.test/meeting/42",
         "start":{"dateTime":"2026-05-10T10:00:00+02:00"},
@@ -1017,7 +1017,7 @@ def test_calendar_payload_maps_video_link_with_empty_description():
         payloads.append(json.loads(request.content))
         return httpx.Response(200,json={"id":"event"},request=request)
     writer=HttpWriter("google_calendar","x","primary",transport=httpx.MockTransport(handler),calendar_timezone="UTC")
-    writer.create(proposal(kind="event",status="confirmed",start="2026-05-10T10:00:00+00:00",
+    writer.create(proposal(target='primary', kind="event",status="confirmed",start="2026-05-10T10:00:00+00:00",
                            end="2026-05-10T11:00:00+00:00",video_link="http://video.example.test/room"),"key")
     assert payloads[0]["description"] == "[Mailhelp-Videolink]\nhttp://video.example.test/room"
     writer.close()
@@ -1030,7 +1030,7 @@ def test_calendar_timed_payload_keeps_explicit_offset_without_calendar_zone_rein
         return httpx.Response(200,json={"id":"event"},request=request)
     writer=HttpWriter("google_calendar","x","primary",transport=httpx.MockTransport(handler),
                       calendar_timezone="America/New_York")
-    writer.create(proposal(kind="event",status="confirmed",
+    writer.create(proposal(target='primary', kind="event",status="confirmed",
                            start="2026-09-23T09:00:00+01:00",
                            end="2026-09-23T10:00:00+01:00"), "offset")
     assert payloads[0]["start"] == {"dateTime":"2026-09-23T09:00:00+01:00"}
@@ -1778,7 +1778,7 @@ def test_http_writer_rejects_non_writable_proposal_before_request():
     transport = httpx.MockTransport(lambda request: requests.append(request) or httpx.Response(500, request=request))
     writer = HttpWriter("todoist", "token", "project", transport=transport)
     with pytest.raises(ValueError, match="nicht extern"):
-        writer.create(proposal(classification="unsupported"), "key")
+        writer.create(proposal(target='project', classification="unsupported"), "key")
     assert requests == []
     writer.close()
 
@@ -1806,7 +1806,7 @@ def test_calendar_duplicate_comparison_updates_only_missing_information():
         return httpx.Response(200, json={"id":"old", "htmlLink":"https://calendar.test/old"}, request=request)
     writer=HttpWriter("google_calendar","x","primary",transport=httpx.MockTransport(handler),
                       calendar_timezone="UTC",calendar_matcher=matcher)
-    item=proposal(kind="event",status="confirmed",start="2026-05-10T10:00:00+00:00",
+    item=proposal(target='primary', kind="event",status="confirmed",start="2026-05-10T10:00:00+00:00",
                   end="2026-05-10T11:00:00+00:00",description="Neue Agenda",
                   location="Raum 2",video_link="https://video.example.test/x")
     result=writer.create(item,"stable-key")
@@ -1836,7 +1836,7 @@ def test_calendar_same_event_without_missing_information_is_not_written():
     writer=HttpWriter("google_calendar","x","primary",transport=httpx.MockTransport(handler),
                       calendar_timezone="UTC",calendar_matcher=lambda _p,_e: (
                           "call",CalendarDuplicateDecision(same_event=True,reason="gleich")))
-    result=writer.create(proposal(kind="event",status="confirmed",all_day=True,
+    result=writer.create(proposal(target='primary', kind="event",status="confirmed",all_day=True,
                          start=date(2026,5,10),end=date(2026,5,11)),"key")
     assert result == {"id":"old", "htmlLink":None, "operation":"duplicate_skipped"}
     assert methods == ["GET"]
@@ -1856,7 +1856,7 @@ def test_calendar_overlap_that_is_not_same_event_is_created():
     writer=HttpWriter("google_calendar","x","primary",transport=httpx.MockTransport(handler),
                       calendar_timezone="UTC",calendar_matcher=lambda _p,_e: (
                           "call",CalendarDuplicateDecision(same_event=False,reason="anderer Titel")))
-    item=proposal(kind="event",status="confirmed",start="2026-05-10T10:00:00+00:00",
+    item=proposal(target='primary', kind="event",status="confirmed",start="2026-05-10T10:00:00+00:00",
                   end="2026-05-10T11:00:00+00:00")
     assert writer.create(item,"key")["id"] == "new" and methods == ["GET","POST"]
     writer.close()
@@ -1881,7 +1881,7 @@ def test_calendar_overlap_rejects_malformed_provider_responses(response):
     writer=HttpWriter("google_calendar","x","primary",
         transport=httpx.MockTransport(mock_response(data=response)),calendar_timezone="UTC",
         calendar_matcher=lambda _p,_e: (_ for _ in ()).throw(AssertionError()))
-    item=proposal(kind="event",status="confirmed",start="2026-05-10T10:00:00+00:00",
+    item=proposal(target='primary', kind="event",status="confirmed",start="2026-05-10T10:00:00+00:00",
                   end="2026-05-10T11:00:00+00:00")
     with pytest.raises(ValueError,match="ungültige Antwort"):
         writer.create(item,"key")
@@ -1891,7 +1891,7 @@ def test_calendar_overlap_rejects_malformed_provider_responses(response):
 def test_calendar_duplicate_merge_ignores_fields_without_safe_source_and_validates_patch():
     from mailhelp.models import CalendarDuplicateDecision
     writer=HttpWriter("google_calendar","x","primary",calendar_timezone="UTC")
-    item=proposal(kind="event",status="confirmed",start="2026-05-10T10:00:00+00:00",
+    item=proposal(target='primary', kind="event",status="confirmed",start="2026-05-10T10:00:00+00:00",
                   end="2026-05-10T11:00:00+00:00",description="")
     existing=__import__('mailhelp.integrations',fromlist=['CalendarOverlapEvent']).CalendarOverlapEvent(
         id="old",summary="x",description="",location="belegt",

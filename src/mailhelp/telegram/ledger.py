@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import date, datetime
 import hashlib
 import json
+import re
 from typing import Protocol
 
 
-from ..models import ActionLedger, ActionLedgerEntry, Proposal
+from ..models import ActionLedger, ActionLedgerEntry, Proposal, ProposalKind
 from ..storage import JsonStore
 
 
@@ -28,10 +29,18 @@ class ActionLedgerService:
         def encoded(value: date | datetime | None) -> str | None:
             return value.isoformat() if value is not None else None
 
+        description = proposal.description
+        if proposal.kind == ProposalKind.TASK:
+            # Only the exact trailing block appended by ProposalBuilder is
+            # provenance. Keep the actual task description in the identity.
+            description = re.sub(
+                r"(?:\n\n|^)Absender: [^\n]*\nBetreff: [^\n]*\nMail-Datum: [^\n]*\Z",
+                "", description,
+            )
         identity = {
             "kind": proposal.kind.value,
             "title": proposal.title.strip().casefold(),
-            "description": proposal.description.strip().casefold(),
+            "description": description.strip().casefold(),
             "target": proposal.target,
             "due": encoded(proposal.due),
             "start": encoded(proposal.start),
@@ -60,6 +69,7 @@ class ActionLedgerService:
         ledger.entries.append(
             ActionLedgerEntry(
                 action_key=self.action_key(proposal),
+                action_key_version=2,
                 mail_id=proposal.source_mail_id,
                 proposal_id=proposal.id,
                 proposal_version=proposal.version,
@@ -75,6 +85,22 @@ class ActionLedgerService:
     def prior_actions(self, proposal: Proposal) -> list[ActionLedgerEntry]:
         ledger = self.store.load_model("action-ledger", ActionLedger, ActionLedger())
         assert isinstance(ledger, ActionLedger)
+        upgraded = False
+        for item in ledger.entries:
+            if item.action_key_version == 2:
+                continue
+            name = f"proposal-{item.mail_id}-{item.proposal_id}"
+            previous = self.store.load_model(f"{name}-v{item.proposal_version}", Proposal)
+            if previous is None:
+                previous = self.store.load_model(name, Proposal)
+            if previous is not None and (
+                previous.source_mail_id, previous.id, previous.version
+            ) == (item.mail_id, item.proposal_id, item.proposal_version):
+                item.action_key = self.action_key(previous)
+                item.action_key_version = 2
+                upgraded = True
+        if upgraded:
+            self.store.save("action-ledger", ledger.model_dump(mode="json"))
         current = (proposal.source_mail_id, proposal.id, proposal.version)
         key = self.action_key(proposal)
         return [

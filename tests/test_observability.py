@@ -267,7 +267,7 @@ def test_network_adapter_failure_events():
 
     writer = HttpWriter("todoist", "secret", "target", transport=httpx.MockTransport(
         lambda request: httpx.Response(503, text="secret", request=request)), logger=capture)
-    with pytest.raises(Exception): writer.create(proposal(status="confirmed"), "request-id")
+    with pytest.raises(Exception): writer.create(proposal(target='target', status="confirmed"), "request-id")
     writer.close()
     failed = capture.events[-1]
     assert failed[2] == "create_failed" and failed[3]["proposal_id"] == "p1"

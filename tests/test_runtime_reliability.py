@@ -60,7 +60,7 @@ def test_bad_todoist_pagination_never_enters_write_state(cursors):
     writer = HttpWriter("todoist", "synthetic", "project", transport=httpx.MockTransport(handler))
     try:
         with pytest.raises(ValueError, match="next_cursor"):
-            execute_confirmed(proposal(status="confirmed"), writer, persisted.append)
+            execute_confirmed(proposal(target='project', status="confirmed"), writer, persisted.append)
         assert len(requests) == len(cursors)
         assert persisted == []
     finally:

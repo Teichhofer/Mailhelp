@@ -1,5 +1,6 @@
 """Idempotente Adapter für Todoist, Kalenderdateien und Google Calendar (Legacy)."""
 from __future__ import annotations
+from dataclasses import dataclass
 from datetime import date, datetime, timezone
 import hashlib
 import re
@@ -219,12 +220,22 @@ def proposal_is_writable(proposal: Proposal) -> bool:
     return proposal.is_creatable
 
 
+@dataclass(frozen=True)
+class PreparedWrite:
+    operation: Callable[[], dict[str, Any]]
+    requires_write: bool = True
+
+
 def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Callable[[Proposal], None], test_mode: bool = False) -> tuple[Proposal, dict[str, Any]]:
     if not proposal_is_writable(proposal):
         raise ValueError("Nur neue, sichere und eigene Vorschläge oder ausdrücklich bestätigte Ersatz-Neuanlagen dürfen extern angelegt werden")
     if proposal.status == ProposalStatus.SIMULATED:
         return proposal, {"simulation": True}
     if proposal.status not in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN} or proposal.open_questions: raise ValueError("Schreiben erfordert vollständige, bestätigte Vorschlagsversion")
+    if isinstance(writer, HttpWriter) and proposal.target != writer.target:
+        # Even reconciliation must not search a newly configured target for an
+        # action authorized against a different project/calendar.
+        return proposal, {"target_mismatch": True}
     # Test mode suppresses writes to Todoist, but calendar attachments are the
     # actual user-facing result and are deliberately generated and delivered.
     if test_mode and proposal.kind == ProposalKind.TASK:
@@ -252,8 +263,13 @@ def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Calla
     # future operator retry therefore needs its own explicit state transition
     # back to CONFIRMED rather than falling through from UNCERTAIN.
     writing = proposal.model_copy(update={"status": ProposalStatus.WRITING})
-    persist(writing)
-    try: result = writer.create(writing, key)
+    # All reads, LLM comparisons and payload validation precede the durable
+    # write boundary. A preflight failure leaves the authorization CONFIRMED.
+    prepared = (writer.prepare(proposal, key) if isinstance(writer, HttpWriter)
+                else PreparedWrite(lambda: writer.create(writing, key)))
+    if prepared.requires_write:
+        persist(writing)
+    try: result = prepared.operation()
     except (UncertainWriteError, httpx.TimeoutException, httpx.TransportError):
         uncertain = writing.model_copy(update={"status": ProposalStatus.UNCERTAIN})
         persist(uncertain)
@@ -329,8 +345,14 @@ class HttpWriter:
         return items[0].model_dump() if items else None
 
     def create(self, proposal: Proposal, key: str) -> dict[str, Any]:
+        return self.prepare(proposal, key).operation()
+
+    def prepare(self, proposal: Proposal, key: str) -> PreparedWrite:
+        """Perform read-only checks and return the actual write operation."""
         if not proposal_is_writable(proposal):
             raise ValueError("Dieser Vorschlag darf nicht extern angelegt werden")
+        if proposal.target != self.target:
+            raise ValueError("Konfiguriertes Ziel weicht vom bestätigten Vorschlagsziel ab")
         self.logger.event("INFO", self.service, "create_started", call_id=key, mail_id=proposal.source_mail_id, proposal_id=proposal.id)
         if self.service == "todoist":
             if proposal.kind != ProposalKind.TASK: raise ValueError("Todoist akzeptiert nur Aufgaben")
@@ -347,10 +369,14 @@ class HttpWriter:
                 existing, decision = duplicate
                 if decision.missing_fields:
                     body = self._calendar_merge_body(proposal, key, existing, decision)
-                    return self._update_calendar_event(existing.id, body, key, proposal)
-                return {"id": existing.id, "htmlLink": existing.htmlLink,
-                        "operation": "duplicate_skipped"}
+                    return PreparedWrite(lambda: self._update_calendar_event(existing.id, body, key, proposal))
+                return PreparedWrite(lambda: {"id": existing.id, "htmlLink": existing.htmlLink,
+                        "operation": "duplicate_skipped"}, requires_write=False)
             url, body = f"/calendars/{self.target}/events", self._calendar_event_body(proposal, key)
+        return PreparedWrite(lambda: self._create_prepared(proposal, key, url, body))
+
+    def _create_prepared(self, proposal: Proposal, key: str, url: str,
+                         body: dict[str, Any]) -> dict[str, Any]:
         started = time.perf_counter()
         try:
             response = uncertain_write(lambda: self._post(url, body, key))

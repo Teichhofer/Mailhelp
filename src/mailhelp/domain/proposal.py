@@ -78,6 +78,7 @@ class ActionLedgerEntry(StrictModel):
     """Human-readable record of an action successfully created externally."""
 
     action_key: str = Field(pattern=r"^[a-f0-9]{64}$")
+    action_key_version: Literal[1, 2] = 1
     mail_id: str = Field(pattern=r"^[a-f0-9]{24}$")
     proposal_id: str = Field(pattern=r"^[a-zA-Z0-9_-]{1,64}$")
     proposal_version: int = Field(ge=1)

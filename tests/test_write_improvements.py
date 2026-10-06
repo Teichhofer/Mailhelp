@@ -14,6 +14,7 @@ from test_telegram_dialog import callback, controller, message
 
 
 def event(**changes):
+    changes.setdefault("target", "calendar")
     return proposal(kind="event", start="2026-05-10T10:00:00+00:00",
                     end="2026-05-10T11:00:00+00:00", **changes)
 
@@ -151,7 +152,7 @@ def test_non_binding_agreement_still_requires_current_authorized_confirmation(tm
                         transport=httpx.MockTransport(handler))
     question = "Soll der nicht bindende Hinweis dennoch als neuer Eintrag angelegt werden?"
     item = (event if kind == "event" else proposal)(
-        classification="non_binding", status="needs_clarification", open_questions=[question])
+        target="target", classification="non_binding", status="needs_clarification", open_questions=[question])
     try:
         with JsonStore(tmp_path) as store:
             dialog, telegram, _ = controller(store, writers={service: writer})

@@ -347,7 +347,7 @@ def test_telegram_response_models_and_write_validation():
 
 
 def test_integration_response_boundaries_and_required_ids():
-    with pytest.raises(ValueError, match="id"): _with_external_result(proposal(status="writing"), {})
+    with pytest.raises(ValueError, match="id"): _with_external_result(proposal(target='target', status="writing"), {})
     cases = [
         ("todoist", "GET", {"results": []}),
         ("todoist", "POST", {"description":"no id"}),
@@ -360,11 +360,11 @@ def test_integration_response_boundaries_and_required_ids():
                           calendar_timezone="UTC" if service == "google_calendar" else None)
         with pytest.raises(ValueError) as error:
             if method == "GET": writer.reconcile("key")
-            elif service == "todoist": writer.create(proposal(status="confirmed"),"key")
+            elif service == "todoist": writer.create(proposal(target='target', status="confirmed"),"key")
             else:
                 from datetime import datetime, timedelta, timezone
                 now=datetime.now(timezone.utc)
-                writer.create(proposal(kind="event",start=now,end=now+timedelta(hours=1),status="confirmed"),"key")
+                writer.create(proposal(target='target', kind="event",start=now,end=now+timedelta(hours=1),status="confirmed"),"key")
         assert service.split("_")[0].lower() in str(error.value).lower() and "top-secret" not in str(error.value)
         writer.close()
     writer=HttpWriter("todoist","top-secret","target",transport=httpx.MockTransport(

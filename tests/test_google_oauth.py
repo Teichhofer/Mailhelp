@@ -85,7 +85,7 @@ def test_calendar_401_is_authentication_failure_without_second_write():
 
     writer = HttpWriter("google_calendar", provider, "primary", transport=httpx.MockTransport(reject), calendar_timezone="UTC", logger=Log())
     saved = []
-    result, external = execute_confirmed(proposal(kind="event", status="confirmed", start="2026-01-01T10:00:00+00:00", end="2026-01-01T11:00:00+00:00"), writer, saved.append)
+    result, external = execute_confirmed(proposal(target='primary', kind="event", status="confirmed", start="2026-01-01T10:00:00+00:00", end="2026-01-01T11:00:00+00:00"), writer, saved.append)
     assert result.status.value == "failed" and external == {}
     assert [request.method for request in calls] == ["GET", "POST"]  # never a blind second POST
     assert provider.invalidated == 1
