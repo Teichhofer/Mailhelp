@@ -28,6 +28,8 @@ imap:
   - Spam
   - Trash
 telegram:
+  # Bei jedem normalen Start wird die Befehlsübersicht automatisch gesendet,
+  # auch mit --max-mails und bei Wiederaufnahme offener Entscheidungen.
   # Nur dieser Nutzer in diesem Chat darf auch /hilfe, /status, /offen und
   # /abbrechen verwenden. /start zeigt ebenfalls die Hilfe.
   # Anzeigezeiten verwenden timezone; Befehle benötigen keine weitere Option.

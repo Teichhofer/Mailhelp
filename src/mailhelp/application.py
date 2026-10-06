@@ -25,6 +25,7 @@ from .storage import JsonStore, mail_state_names
 from .paths import runtime_path
 from .telegram import (TelegramChatNotFoundError, TelegramClient,
                        TelegramDialogController)
+from .telegram.commands import HELP
 from .adapter import RetryPolicy
 from .retention import RetentionService
 
@@ -745,6 +746,14 @@ class Application:
     def run(self, max_mails: int | None = None, *,
             ignore_historical_start: bool = False) -> str | None:
         self._wait_for_user = True
+        try:
+            self.telegram.send(self.settings.telegram.chat_id, "Mailhelp gestartet.\n\n" + HELP)
+        except Exception as exc:
+            # A failed greeting must not block recovery or disclose provider data.
+            self.logger.event("ERROR", "telegram", "startup_help_failed",
+                              error_class=type(exc).__name__)
+        else:
+            self.logger.event("INFO", "telegram", "startup_help_sent")
         try:
             while not self.stop_event.is_set():
                 try:

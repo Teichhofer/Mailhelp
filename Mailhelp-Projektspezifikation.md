@@ -708,6 +708,15 @@ Replay-Grenze fort.
 - Rückfragen enthalten Titel, Version, bekannte Zeitangaben, Ziel und als solche
   erkennbare Antwortbeispiele. Beispiele bewirken keine Änderung. Korrekturen
   erzeugen eine neue, erneut ausdrücklich zu bestätigende Version.
+- Jeder normale Programmstart sendet vor Mailverarbeitung und Dialogwiederaufnahme
+  „Mailhelp gestartet.“ mit derselben Befehlsübersicht wie `/hilfe` an die
+  konfigurierte Telegram-Chat-ID. Auch begrenzte Läufe und Neustarts mit offenen
+  Entscheidungen senden diese Übersicht, ohne eine Entscheidung zu verändern.
+  Die Anwendung ruft den Versand einmal pro Lauf auf, nicht pro Polling-Zyklus;
+  die konfigurierten Transport-Retries gelten weiterhin. Versandfehler verhindern
+  den weiteren Ablauf nicht und werden ausschließlich mit Fehlerklasse als
+  `startup_help_failed` protokolliert; Erfolg als `startup_help_sent`.
+  Reine Diagnose- und Lernaufrufe senden keine Startübersicht.
 - Autorisierte Slash-Befehle werden vor der LLM-Freitextinterpretation behandelt:
   `/hilfe` und `/start` erklären die Bedienung; `/status` und `/offen` zeigen
   offene Relevanzentscheidungen und aktuelle Vorschläge mit Warte-/Verarbeitungsstatus.

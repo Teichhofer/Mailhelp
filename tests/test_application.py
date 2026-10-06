@@ -11,6 +11,7 @@ from mailhelp.imap import FetchedMail, MailCandidate, UIDValidityChanged
 from mailhelp.integrations import OAuthTokenError
 from mailhelp.models import MailRunCounters, MailRunEntry, MailRunState, MailState
 from mailhelp.orchestrator import ProcessingOutcome, ProcessingResult
+from mailhelp.telegram.commands import HELP
 from test_core import prompt_config
 
 
@@ -750,9 +751,10 @@ def test_empty_checkpoint_and_run_paths(tmp_path):
     failed_cleanup._poll_imap=lambda _limit=None: (failed_cleanup.stop_event.set(), [])[1]
     failed_cleanup.run()
     application_module.RetentionService = original
-    assert failed_cleanup.logger.events[0][0][2]=="cleanup_failed"
-    assert failed_cleanup.logger.events[0][1]["failure_count"]==1
-    assert datetime.fromisoformat(failed_cleanup.logger.events[0][1]["processed_at"]).tzinfo is not None
+    assert failed_cleanup.logger.events[0][0][2]=="startup_help_sent"
+    assert failed_cleanup.logger.events[1][0][2]=="cleanup_failed"
+    assert failed_cleanup.logger.events[1][1]["failure_count"]==1
+    assert datetime.fromisoformat(failed_cleanup.logger.events[1][1]["processed_at"]).tzinfo is not None
 
     class Dialog:
         def __init__(self, error=None): self.calls=0; self.error=error
@@ -1065,7 +1067,8 @@ def test_google_oauth_failure_stops_application_without_retry(tmp_path, notifica
         "CRITICAL", "application", "fatal_google_oauth_error"
     )
     if notification_error is None:
-        assert "Mailhelp wird beendet" in telegram.sent[0][1]
+        assert telegram.sent[0][1] == "Mailhelp gestartet.\n\n" + HELP
+        assert "Mailhelp wird beendet" in telegram.sent[1][1]
     else:
         assert any(
             event[0][2] == "fatal_error_notification_failed"
@@ -1163,7 +1166,7 @@ def test_run_sends_persistent_summary_on_normal_and_exceptional_exit(tmp_path):
     service=app(tmp_path,Imap([]),Telegram([]),Orch(),store=store)
     service._poll_imap=lambda _limit=None: []
     service.run(max_mails=3)
-    assert service.telegram.sent == [(2, "Mailhelp-Lauf vollständig abgearbeitet.\nEntdeckt: 5\nIn Warteschlange: 0\nAnalysiert: 5\nRelevant: 2\nIrrelevant: 1\nWarten auf Benutzer: 1\nFehlgeschlagen: 1\nÜbersprungen: 1")]
+    assert service.telegram.sent == [(2, "Mailhelp gestartet.\n\n" + HELP), (2, "Mailhelp-Lauf vollständig abgearbeitet.\nEntdeckt: 5\nIn Warteschlange: 0\nAnalysiert: 5\nRelevant: 2\nIrrelevant: 1\nWarten auf Benutzer: 1\nFehlgeschlagen: 1\nÜbersprungen: 1")]
     assert service.logger.events[-1][0][2] == "run_summary_sent"
     assert service.logger.events[-1][1] == {
         "discovered":5, "queued":0, "processed":5, "relevant":2,
@@ -1175,7 +1178,7 @@ def test_run_sends_persistent_summary_on_normal_and_exceptional_exit(tmp_path):
     broken._poll_imap=lambda _limit=None: (_ for _ in ()).throw(RuntimeError("poll"))
     with pytest.raises(RuntimeError, match="poll"):
         broken.run()
-    assert broken.telegram.sent[0][1].startswith(
+    assert broken.telegram.sent[-1][1].startswith(
         "Mailhelp-Lauf abgebrochen oder unvollständig.\nEntdeckt: 0"
     )
 
@@ -1214,6 +1217,65 @@ def test_run_summary_marks_a_genuinely_unfinished_persistent_batch():
     assert summary.run_complete is False
     assert summary.message().startswith("Mailhelp-Lauf abgebrochen oder unvollständig.")
     assert _RunSummary.from_run(None).run_complete is False
+
+
+@pytest.mark.parametrize("max_mails", [None, 1])
+def test_startup_help_once_before_work_and_again_after_restart(tmp_path, max_mails):
+    store = Store()
+    for _restart in range(2):
+        service = app(tmp_path, Imap([]), Telegram([]), Orch(), store=store)
+        cycles = []
+
+        def poll_imap(_limit=None):
+            assert service.telegram.sent == [(2, "Mailhelp gestartet.\n\n" + HELP)]
+            cycles.append(1)
+            if len(cycles) == 2:
+                service.stop_event.set()
+
+        service._poll_imap = poll_imap
+        service.stop_event.wait = lambda _delay: False
+        service.run(max_mails=max_mails)
+        assert len(cycles) == (2 if max_mails is None else 1)
+        greetings = [text for _, text in service.telegram.sent if text.startswith("Mailhelp gestartet.")]
+        assert greetings == ["Mailhelp gestartet.\n\n" + HELP]
+        assert all(command in greetings[0] for command in ("/hilfe", "/status", "/offen", "/abbrechen"))
+        assert all(chat == service.settings.telegram.chat_id for chat, _ in service.telegram.sent)
+        assert any(args[2] == "startup_help_sent" for args, _ in service.logger.events)
+
+
+def test_startup_help_failure_does_not_block_processing_or_log_provider_content(tmp_path):
+    service = app(tmp_path, Imap([(1, [])]), Telegram([]), Orch())
+    calls = []
+    send = service.telegram.send
+
+    def fail_greeting(chat, text):
+        calls.append(text)
+        if text.startswith("Mailhelp gestartet."):
+            raise RuntimeError("synthetic-sensitive-provider-content")
+        send(chat, text)
+
+    service.telegram.send = fail_greeting
+    assert service.run(max_mails=1) is None
+    assert service.imap.calls
+    assert len(calls) == 2  # one greeting attempt and the final summary
+    errors = [(args, fields) for args, fields in service.logger.events if args[2] == "startup_help_failed"]
+    assert errors == [(("ERROR", "telegram", "startup_help_failed"), {"error_class": "RuntimeError"})]
+    assert "synthetic-sensitive-provider-content" not in str(service.logger.events)
+
+
+def test_startup_help_precedes_resumed_decision_without_resolving_it(tmp_path):
+    service = app(tmp_path, Imap([]), Telegram([]), Orch())
+
+    def poll_once(timeout=None):
+        assert service.telegram.sent == [(2, "Mailhelp gestartet.\n\n" + HELP)]
+        service.stop_event.set()
+
+    service.dialog = SimpleNamespace(awaiting_decision=lambda: True, poll_once=poll_once)
+    service.run()
+    assert service.dialog.awaiting_decision()
+    assert not service.imap.calls and not service.orchestrator.seen
+    assert service.logger.events[-1][0][2] == "run_summary_deferred"
+    assert len(service.telegram.sent) == 1
 
 
 def test_bounded_run_limits_resumed_and_new_mail_then_exits(tmp_path):

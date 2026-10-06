@@ -743,6 +743,17 @@ Rückfragen nennen Titel, Version, bekannte Zeitangaben, Ziel und Antwortbeispie
 Diese Beispiele sind keine vorgeschlagenen Änderungen und werden nicht übernommen.
 Auch nach einer Korrektur ist eine ausdrückliche Bestätigung der neuen Version nötig.
 
+Bei jedem Start des normalen Programmlaufs sendet Mailhelp automatisch
+„Mailhelp gestartet.“ mit dieser Befehlsübersicht in den konfigurierten Chat.
+Dies gilt auch für `--max-mails` und Neustarts mit einer offenen Entscheidung;
+die Übersicht bestätigt oder beendet diese Entscheidung nicht. Pro Start gibt
+es einen Versandaufruf vor der Mailverarbeitung und der Wiederaufnahme offener
+Dialoge, nicht pro Polling-Zyklus. Schlägt der Versand trotz der konfigurierten
+Transportwiederholungen fehl, protokolliert Mailhelp `startup_help_failed` ohne
+Providerinhalte und setzt den normalen Ablauf fort. Ein erfolgreicher Versand
+wird als `startup_help_sent` protokolliert. Diagnose- und Lernbefehle starten
+diesen normalen Programmlauf nicht und senden daher keine Startübersicht.
+
 Im konfigurierten Chat stehen dem autorisierten Nutzer folgende lokale Befehle zur Verfügung:
 
 - `/hilfe` (auch `/start`): Bedienhinweise und Befehle anzeigen.
