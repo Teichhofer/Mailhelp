@@ -158,7 +158,10 @@ gezielt abgesicherte lokale Netze gedacht. Die Auswahl wirkt unter Windows und i
 Linux-Docker-Container identisch und benötigt keine betriebssystemspezifischen
 Schalter. `imap.historical_start` ist entweder `null` (bestehendes Verhalten: alle
 verfügbaren UIDs) oder ein ISO-8601-Zeitpunkt **mit explizitem UTC-Offset**, etwa
-`2025-01-15T08:30:00+01:00`. Der Server wird ausschließlich mit Nur-Lese-`SELECT`,
+`2025-01-15T08:30:00+01:00`. Führende und abschließende Leerzeichen sowie
+zusätzliche Leerzeichen um das `T` werden beim Laden entfernt; beispielsweise
+wird `2026-10-01 T00:00:00+02:00` als `2026-10-01T00:00:00+02:00` gelesen.
+Der Server wird ausschließlich mit Nur-Lese-`SELECT`,
 `UID SEARCH` und `UID FETCH INTERNALDATE` abgefragt. Die sekundengenaue Grenze wird
 in UTC verglichen und ihr ermittelter UID-Ausgangspunkt sofort je Konto und Ordner
 persistiert; ein Neustart deutet den Zeitpunkt daher innerhalb derselben

@@ -154,6 +154,32 @@ def test_mail_state_v8_migrates_pipeline_and_validates_notification_keys(tmp_pat
             ProposalNotification(proposal_id="missing", proposal_version=1)]})
 
 
+@pytest.mark.parametrize("stamp", [
+    "2026-10-01 T00:00:00+02:00",
+    " 2026-10-01 T 00:00:00+02:00 ",
+    "2026-10-01T00:00:00+02:00",
+    "2026-10-01 T00:00:00Z",
+])
+def test_historical_start_tolerates_separator_whitespace(tmp_path, stamp):
+    configured = valid_settings(tmp_path)
+    configured["imap"]["historical_start"] = stamp
+    parsed = Settings.model_validate(configured).imap.historical_start
+    offset = timezone.utc if stamp.endswith("Z") else timezone(timedelta(hours=2))
+    assert parsed == datetime(2026, 10, 1, tzinfo=offset)
+    assert parsed.utcoffset() == offset.utcoffset(None)
+
+
+@pytest.mark.parametrize("stamp", [
+    "2026-10-01 T00:00:00", "2026-02-30 T00:00:00+02:00",
+    "2026-10-01 T00: 00:00+02:00",
+])
+def test_historical_start_still_rejects_invalid_dates(tmp_path, stamp):
+    configured = valid_settings(tmp_path)
+    configured["imap"]["historical_start"] = stamp
+    with pytest.raises(ValidationError, match="historical_start"):
+        Settings.model_validate(configured)
+
+
 def test_settings_reject_missing_extra_types_ranges_and_semantics(tmp_path):
     base = valid_settings(tmp_path)
     parsed_default = Settings.model_validate(base)
