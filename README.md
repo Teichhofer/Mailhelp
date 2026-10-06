@@ -817,6 +817,10 @@ als `skipped` sowie den Abschluss als `completed`.
 
 ```sh
 cp .env.example .env
+cp config.example.yaml config.yaml
+# Unter Linux: Schreibrechte für den Containerbenutzer vorbereiten.
+mkdir -p data logs
+sudo chown 65532:65532 data logs
 docker compose build
 docker compose run --rm mailhelp
 ```
@@ -829,13 +833,27 @@ Ein begrenzter Testlauf ist beispielsweise mit
 möglich.
 
 Konfiguration wird schreibgeschützt eingebunden, Daten und Logs bleiben in getrennten persistenten Host-Verzeichnissen. `.env`, Zustand und Logs gelangen dank `.dockerignore` nicht in den Build-Kontext.
-Relative Daten- und Logpfade aus `config.yaml` beziehen sich auf das aktuelle
-Arbeitsverzeichnis (im Container `/app`).
+Relative Daten- und Logpfade aus `config.yaml` beziehen sich auf das mit
+`--config-directory` gewählte Verzeichnis, unabhängig vom Arbeitsverzeichnis.
+Das gilt auch für `--clear` und relative `--log-directory`-Overrides.
+Absolute Pfade bleiben absolut. Docker bindet die Host-Verzeichnisse `data` und
+`logs` deshalb unter `/config/data` und `/config/logs` ein. Bestehende Daten
+müssen vor einer Umstellung aus einem früher genutzten Pfad übernommen werden.
 Mit `--log-directory PFAD` lässt sich das konfigurierte Logverzeichnis pro Aufruf
 überschreiben. Das ist insbesondere bei schreibgeschütztem Arbeitsverzeichnis
-nötig; der CI-Container schreibt bei der Konfigurationsprüfung nach
-`/tmp/mailhelp/logs`. Im Dauerbetrieb sollte stattdessen ein beschreibbares,
-persistent eingebundenes Verzeichnis verwendet werden.
+nötig. Unter Linux müssen die Host-Verzeichnisse für UID/GID `65532:65532`
+beschreibbar sein; bei vorhandenen Dateien sind auch deren Rechte zu prüfen.
+Die CI verwendet dieselben Volumes wie Compose und startet über
+`compose.smoke.yaml` zwei frische Container mit simulierten externen Diensten
+und abgeschaltetem Netzwerk. Sie prüft den echten CLI-Start, Zustandsdateien,
+Logs und die Wiederaufnahme der IMAP-Checkpoints nach dem Containerneustart.
+
+Das fest versionierte Paket `tzdata` stellt IANA-Zeitzonen auch ohne
+Systemdatenbank bereit, insbesondere unter Windows. Ein Regressionstest prüft
+Winter- und Sommerzeit für `Europe/Berlin` ohne System-Zeitzonenpfade.
+Beim Todoist-Abgleich werden leere oder wiederholte Seitencursor als fehlerhafte
+Antwort abgewiesen. Der Abgleich stoppt vor einer externen Schreibaktion und kann
+nach Behebung des Providerfehlers erneut ausgeführt werden.
 
 ## Zustand sichern
 

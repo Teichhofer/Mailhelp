@@ -2,6 +2,8 @@
 # Geheimnisse ausschließlich in .env oder in der Prozessumgebung hinterlegen.
 # Auch non_binding und "Erneut anlegen" erfordern versionsbezogene Telegram-Bestätigung.
 # test_mode simuliert nur Todoist; bestätigte Kalendertermine werden tatsächlich angelegt.
+# Relative Daten-/Logpfade gelten relativ zu --config-directory, auch bei --clear.
+# Docker bindet data und logs unter /config/data bzw. /config/logs ein.
 timezone: Europe/Berlin
 poll_interval_seconds: 60
 test_mode: false

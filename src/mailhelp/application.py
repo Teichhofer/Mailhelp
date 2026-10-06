@@ -22,6 +22,7 @@ from .models import (ImapCheckpoint, MailRunCounters, MailRunEntry,
 from .openrouter import OpenRouterClient
 from .orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
 from .storage import JsonStore, mail_state_names
+from .paths import runtime_path
 from .telegram import (TelegramChatNotFoundError, TelegramClient,
                        TelegramDialogController)
 from .adapter import RetryPolicy
@@ -819,7 +820,7 @@ def _checkpoint_name(account: str, folder: str) -> str:
 
 def _state_directory(settings: Settings, base_directory: Path) -> Path:
     """Return the fully isolated state namespace for the selected mode."""
-    root = settings.data_directory if settings.data_directory.is_absolute() else base_directory / settings.data_directory
+    root = runtime_path(settings.data_directory, base_directory)
     return root / ("test" if settings.test_mode else "production")
 
 
@@ -833,8 +834,7 @@ def build_logger(
 ) -> JsonlLogger:
     """Construct the configured logger with every known secret redacted."""
     log_dir = log_directory if log_directory is not None else settings.logging.directory
-    if not log_dir.is_absolute():
-        log_dir = base_directory / log_dir
+    log_dir = runtime_path(log_dir, base_directory)
     known_secrets = tuple(value.get_secret_value() for value in (
         secrets.imap_password, secrets.openrouter_api_key, secrets.telegram_bot_token,
         secrets.todoist_token, secrets.todoist_client_id, secrets.todoist_client_secret,

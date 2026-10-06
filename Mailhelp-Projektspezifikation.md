@@ -1206,3 +1206,20 @@ vorhandenen Textfragment als Tokenlimit. Gespeicherte Telegram-Antworten haben
 einen dauerhaften Versuchszähler und Wiederholungszeitpunkt. Nach Ausschöpfung
 der konfigurierten Versuche pausiert die Verarbeitung, informiert einmalig und
 behält die normalisierte Antwort für eine kontrollierte Wiederaufnahme.
+# Betriebszuverlässigkeit: Pfade, Zeitzonen und Paginierung
+
+- Relative Zustands- und Logpfade sowie relative `--log-directory`-Overrides
+  werden einheitlich gegen `--config-directory` aufgelöst. `--clear` verwendet
+  dieselben absoluten Pfade wie der Dienst, unabhängig vom Arbeitsverzeichnis.
+- Compose persistiert die Standardpfade unter `/config/data` und `/config/logs`.
+  Die Host-Verzeichnisse müssen für UID/GID 65532 beschreibbar sein.
+- Eine fest versionierte `tzdata`-Abhängigkeit stellt IANA-Zeitzonen auf Windows
+  und Systemen ohne eigene Zeitzonendatenbank bereit.
+- Todoist-Seitenabgleiche erkennen leere und wiederholte Cursor einschließlich
+  mehrseitiger Zyklen. Fehler brechen den Abgleich vor dem Schreibzugriff ab;
+  unklare Schreibresultate bleiben weiterhin ausschließlich abzugleichen.
+- Die Container-CI prüft mit synthetischer Konfiguration, simulierten Diensten
+  und gesperrtem Netzwerk zwei getrennte Containerstarts auf denselben
+  Compose-Volumes. Geprüft werden CLI-Ausführung, Schreibrechte, persistente
+  Checkpoints, Neustart und fehlerfreie JSONL-Logs. Die vollständige Testsuite
+  erzwingt weiterhin 100 % Zeilen- und Branch-Abdeckung.

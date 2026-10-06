@@ -306,6 +306,7 @@ class HttpWriter:
         self.logger.event("INFO", self.service, "reconcile_started", call_id=key)
         if self.service == "todoist":
             cursor = None
+            seen_cursors: set[str] = set()
             while True:
                 params = {"project_id": self.target}
                 if cursor is not None:
@@ -319,6 +320,9 @@ class HttpWriter:
                 cursor = page.next_cursor
                 if cursor is None:
                     return None
+                if not cursor or cursor in seen_cursors:
+                    raise ValueError("Todoist tasks: ungültige Antwort am Schlüsselpfad next_cursor")
+                seen_cursors.add(cursor)
         response = self.policy.run(lambda: self._get(f"/calendars/{self.target}/events", {"privateExtendedProperty": f"mailhelp_key={key}"}))
         try: items = CalendarListResponse.model_validate(response.json()).items
         except (ValueError, ValidationError) as exc: raise ValueError(f"Google Calendar events: ungültige Antwort am Schlüsselpfad {_path(exc)}") from exc
