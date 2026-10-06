@@ -705,7 +705,25 @@ Replay-Grenze fort.
 
 Nach erfolgreichem Speichern werden die externe ID und, sofern verfügbar, ein Link hinterlegt und zurückgemeldet. Fehler werden verständlich gemeldet, ohne Geheimnisse offenzulegen.
 
-Jeder Schreibvorgang wird vor dem API-Aufruf dauerhaft registriert. Bei Zeitüberschreitung oder Absturz nach einem möglicherweise erfolgreichen Aufruf wird zuerst versucht, das Ergebnis abzugleichen. Solange der Erfolg nicht feststellbar ist, bleibt der Vorgang im Zustand `uncertain`; es erfolgt kein blindes erneutes Anlegen. Die konkrete Abgleichsstrategie ist je Dienst zu implementieren und zu testen.
+Die Integrationsgrenze vergleicht vor Abgleich, Simulation und Schreibzugriff das
+gespeicherte Vorschlagsziel mit dem konfigurierten Ziel des jeweiligen Dienstes.
+Eine Abweichung sperrt die Operation ohne Zustandsänderung und ohne Netzaufruf.
+Telegram meldet sie einmal je Vorschlagsversion und Prozessstart; die Sperre darf
+das Polling weiterer Eingaben nicht verhindern. Diese Bindung bleibt nach
+Neustarts erhalten. Zulässig sind die Wiederherstellung des ursprünglichen Ziels
+oder ein neuer, ausdrücklich bestätigter Vorschlag für das neue Ziel. Eine alte
+Bestätigung darf niemals durch einen Konfigurationswechsel umgeleitet werden.
+
+Jeder Schreibvorgang wird unmittelbar vor dem schreibenden API-Aufruf dauerhaft
+registriert. Kalender-Duplikatsuche, LLM-Abgleich und Payload-Vorbereitung finden
+davor im Zustand `confirmed` statt. Fehler dieser rein lesenden Vorprüfung lassen
+den Vorschlag bestätigt und wiederaufnehmbar, auch nach Neustarts. Ein bereits
+vollständiger gleicher Termin wird ohne zwischenzeitlichen Schreibstatus als
+`created` übernommen. Bei Zeitüberschreitung oder Absturz nach einem möglicherweise
+erfolgreichen POST oder PATCH wird ausschließlich das Ergebnis abgeglichen.
+Solange der Erfolg nicht feststellbar ist, bleibt der Vorgang `uncertain`; es
+erfolgt kein blindes erneutes Anlegen. Bestehende `writing`-/`uncertain`-Altfälle
+werden mangels sicherer Kenntnis des früheren Abbruchpunkts nicht zurückgestuft.
 
 Erfolgreich angelegte Aufgaben und Termine werden dienstübergreifend in einem
 schema-validierten Aktionsbuch mit Quellmail, Vorschlagsversion, Ziel und externer
@@ -714,6 +732,20 @@ mit einem Eintrag überein, reicht die normale Vorschlagsbestätigung nicht aus:
 Telegram zeigt den früheren Eintrag an und verlangt eine zweite, ausdrücklich als
 Doppelanlage bezeichnete, versionsgebundene Bestätigung. Erst diese darf den
 erneuten Schreibzugriff auslösen.
+
+Bei Aufgaben wird ausschließlich der von Mailhelp angehängte abschließende
+Dreizeilenblock `Absender: …`, `Betreff: …`, `Mail-Datum: …` aus der für den
+Aktionsschlüssel verwendeten Beschreibung entfernt. Titel, fachliche Beschreibung,
+Ziel, Fälligkeit und die übrigen bisherigen Merkmale bleiben wirksam. Die sichtbare
+und extern gespeicherte Beschreibung behält ihre Herkunftsangaben. Dadurch lösen
+Erinnerungsmails mit geänderter Herkunft bei gleichen Aufgabenmerkmalen weiterhin
+die zusätzliche Doppelanlage-Bestätigung aus. Kalenderidentitäten bleiben unverändert.
+Neue Aktionsbucheinträge tragen `action_key_version: 2`; fehlende Versionsangaben
+werden als Version 1 gelesen. Vor dem Vergleich werden alte Schlüssel aus dem
+passenden gespeicherten Versionssnapshot, ersatzweise dem aktuellen Vorschlag mit
+derselben Identität und Version, neu berechnet und atomar gespeichert. Fehlende
+oder abweichende Vorschläge führen zu keiner geratenen Migration; der bisherige
+Schlüssel und die externe Referenz bleiben erhalten.
 
 Die Integrationsgrenze verlangt dafür eine Persistenzfunktion. Sie speichert `writing`
 vor dem Netzwerkaufruf und danach `created`, `failed` oder `uncertain`. Für

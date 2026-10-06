@@ -144,6 +144,36 @@ neuen Vorschlagsversion darf er in Todoist oder Google Kalender angelegt werden.
 Hierfür sind keine zusätzlichen Einstellungen in `config.yaml` erforderlich;
 die Beispiele für `test_mode` und die konfigurierten Ziele gelten unverändert.
 
+Eine Bestätigung gilt ausschließlich für das im Vorschlag angezeigte und
+gespeicherte Ziel. Weicht `targets.todoist_project` beziehungsweise
+`targets.google_calendar` davon ab, erfolgen weder Abgleich noch Schreibzugriff
+für diesen Vorschlag. Sein bisheriger Zustand bleibt erhalten; Telegram meldet
+die Sperre einmal je Vorschlagsversion und Prozessstart und verarbeitet weitere
+Eingaben weiter. Das gilt auch im Testmodus und nach Neustarts. Zur Fortsetzung
+muss das ursprüngliche Ziel wiederhergestellt oder ein neuer Vorschlag für das
+neue Ziel ausdrücklich bestätigt werden; ein Konfigurationswechsel überträgt
+keine vorhandene Freigabe auf ein anderes Ziel.
+
+Die Kalender-Duplikatsuche, LLM-Vergleiche und die Vorbereitung des API-Inhalts
+laufen vor dem Schreibversuch, während der Vorschlag weiterhin `confirmed` ist.
+Scheitern diese Vorprüfungen, kann die bestätigte Version nach Behebung des Fehlers
+auch nach einem Neustart erneut geprüft werden. Erst nach erfolgreicher
+Vorbereitung wird unmittelbar vor POST oder PATCH `writing` dauerhaft gespeichert.
+Ein unverändert vorhandener Termin wird direkt als `created` übernommen, ohne
+einen Schreibversuch zu markieren. Nach tatsächlich möglichen Schreibzugriffen
+bleibt der Schutz unverändert: `writing`/`uncertain` werden nur abgeglichen und
+nicht automatisch erneut geschrieben. Bereits gespeicherte unklare Altfälle
+werden nicht nachträglich als reine Vorprüfungsfehler umgedeutet.
+
+Beim Vergleich von Todoist-Aufgaben zählt der von Mailhelp angehängte abschließende
+Herkunftsblock (`Absender`, `Betreff`, `Mail-Datum`) nicht zur Aufgabenidentität.
+Die eigentliche Beschreibung, Titel, Ziel und Fälligkeit bleiben Vergleichsmerkmale.
+Eine Erinnerungsmail kann dadurch die zusätzliche Bestätigung „Erneut anlegen“
+auslösen, obwohl Betreff oder Mail-Datum abweichen. Kalendervergleiche bleiben
+unverändert. Aktionsbucheinträge verwenden `action_key_version: 2`; alte Einträge
+werden beim Vergleich aus dem gespeicherten Vorschlag derselben Version
+aktualisiert. Fehlt dieser, bleiben der alte Schlüssel und die Referenz erhalten.
+
 `config.yaml` besitzt geschlossene Modelle für IMAP, Telegram, Ziele, Limits, Wiederholungen, Timeouts und Logging. `poll_interval_seconds` steuert den Abstand zwischen regulären Verarbeitungszyklen. Beim Start und in jedem regulären Zyklus beginnt Mailhelp sofort mit der IMAP-Verarbeitung; erst danach folgt der Telegram-Long-Poll. Ein begrenzter Einmallauf mit `--max-mails` beendet sich nach seinem IMAP-Durchlauf ohne einen zusätzlichen regulären Telegram-Poll. Nur eine bereits gespeicherte, offene Telegram-Entscheidung wird nach einem Neustart zuerst fortgesetzt. Sobald eine Telegram-Nachricht Schaltflächen für eine Rückfrage oder einen Vorschlag enthält, pausiert die gesamte Verarbeitung: Es wird weder ein weiterer Vorschlag gesendet noch eine weitere Mail analysiert, bis genau diese Auswahl verarbeitet wurde. Mehrere Vorschläge werden dadurch strikt einzeln nacheinander angezeigt. Auch beim Herunterfahren wird hinter offenen Schaltflächen keine Laufzusammenfassung gesendet; nach einem Neustart wird zuerst die gespeicherte Entscheidung fortgesetzt. Fehlgeschlagene Telegram-Polls erhalten einen begrenzten, durch Shutdown unterbrechbaren Backoff. Die LLM-Wiederholungen für ungültige Providerantworten, JSON-Reparatur und Schema-Reparatur sind getrennt begrenzt. IMAP, Telegram, OpenRouter, Todoist und Google Kalender haben jeweils eigene Werte für Timeout, Retry-Anzahl sowie initialen und maximalen Backoff. Validiert werden insbesondere Port, Polling, Adaptertimeouts, Mailgröße, LLM-Rate, Wiederholungszahlen, IANA-Zeitzone, eindeutige nichtleere Ordner, sichere Pfade und die Log-Level `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Unbekannte Schlüssel und falsche Typen werden abgelehnt.
 Auch die Wurzel von `topics.yaml` ist geschlossen: Sie enthält ausschließlich die
 Liste `topics`; diese muss mindestens ein aktiviertes Thema besitzen und alle

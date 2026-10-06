@@ -31,6 +31,9 @@ telegram:
   user_id: 1
   chat_id: 2
 targets:
+  # Bestätigungen gelten für das im Vorschlag gespeicherte Ziel. Bei Abweichung
+  # bleiben Schreiben und Abgleich gesperrt (auch nach Neustart/im Testmodus).
+  # Ursprüngliches Ziel wiederherstellen oder neuen Vorschlag bestätigen.
   todoist_project: example-project
   google_calendar: primary
 limits:
