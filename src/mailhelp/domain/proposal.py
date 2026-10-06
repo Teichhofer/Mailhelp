@@ -143,6 +143,22 @@ class Proposal(StrictModel):
     # requests creation.  This decision is separate from the LLM-owned
     # classification and can only be set by the deterministic Telegram path.
     explicit_non_binding_create_confirmed: bool = False
+    # Application-owned, version-bound authorization for a deliberate duplicate.
+    explicit_duplicate_create_confirmed_version: int | None = Field(default=None, ge=1)
+
+    @property
+    def is_creatable(self) -> bool:
+        """Shared business authorization rule for validation and write adapters."""
+        classification_allowed = (
+            self.classification == ProposalClassification.NEW or
+            (self.classification == ProposalClassification.CHANGE and
+             self.explicit_create_fallback_confirmed) or
+            (self.classification == ProposalClassification.NON_BINDING and
+             self.explicit_non_binding_create_confirmed)
+        )
+        return (classification_allowed and
+                self.responsibility == ProposalResponsibility.USER and
+                self.certainty == ProposalCertainty.CERTAIN)
 
     @model_validator(mode="after")
     def validate_consistency(self) -> "Proposal":
@@ -150,16 +166,7 @@ class Proposal(StrictModel):
             raise ValueError("Ein simulierter Vorschlag darf kein externes Ergebnis enthalten")
         if self.simulation_notified and self.status != ProposalStatus.SIMULATED:
             raise ValueError("Eine Simulation darf nur im simulierten Zustand als gemeldet markiert werden")
-        creatable_classification = (
-            self.classification == ProposalClassification.NEW or
-            (self.classification == ProposalClassification.CHANGE and
-             self.explicit_create_fallback_confirmed) or
-            (self.classification == ProposalClassification.NON_BINDING and
-             self.explicit_non_binding_create_confirmed)
-        )
-        ready = (creatable_classification and
-                 self.responsibility == ProposalResponsibility.USER and
-                 self.certainty == ProposalCertainty.CERTAIN and not self.open_questions)
+        ready = self.is_creatable and not self.open_questions
         if self.status == ProposalStatus.PENDING_CONFIRMATION and not ready:
             raise ValueError("Nur vollständige neue Vorschläge dürfen bestätigt werden")
         if self.kind == ProposalKind.TASK and (self.start is not None or self.end is not None or self.all_day):
@@ -340,6 +347,7 @@ def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta, *,
             remaining.append(question)
     changes.update(
         version=previous.version + 1,
+        explicit_duplicate_create_confirmed_version=None,
         open_questions=remaining,
         status=(ProposalStatus.NEEDS_CLARIFICATION if remaining
                 else ProposalStatus.PENDING_CONFIRMATION),

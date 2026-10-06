@@ -6,7 +6,11 @@ on:
 
 jobs:
   tests:
-    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -40,7 +44,7 @@ jobs:
           -e TELEGRAM_BOT_TOKEN -e TODOIST_TOKEN -e TODOIST_CLIENT_ID
           -e TODOIST_CLIENT_SECRET -e GOOGLE_OAUTH_CLIENT_ID
           -e GOOGLE_OAUTH_CLIENT_SECRET -e GOOGLE_OAUTH_REFRESH_TOKEN
-          -v "$PWD/config.yaml:/config/config.yaml:ro"
+          -v "$PWD/config.example.yaml:/config/config.yaml:ro"
           -v "$PWD/prompts.yaml:/config/prompts.yaml:ro"
           -v "$PWD/topics.yaml:/config/topics.yaml:ro"
           -v "$PWD/irrelevant_topics.yaml:/config/irrelevant_topics.yaml:ro"

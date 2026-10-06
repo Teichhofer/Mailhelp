@@ -76,7 +76,7 @@ def test_cli_forwards_posix_and_windows_path_spellings(monkeypatch, capsys, spel
     assert logger_arguments == [{"log_directory": Path(log_directory)}]
     assert capsys.readouterr().out == "Konfiguration ist gültig.\n"
     assert logger.events == [("INFO", "application", "application_started", {"parameters": {
-        "config_directory": spelling, "log_directory": log_directory,
+        "config_directory": str(Path(spelling)), "log_directory": log_directory,
         "check": True, "check_access": False, "show_imap_credentials": False,
         "max_mails": None, "ignore_historical_start": False, "learn": None,
         "clear": False,

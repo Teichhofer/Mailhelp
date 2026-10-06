@@ -1,0 +1,113 @@
+# Für lokale Nutzung nach config.yaml kopieren und Verbindungen/Ziele anpassen.
+# Geheimnisse ausschließlich in .env oder in der Prozessumgebung hinterlegen.
+# Auch non_binding und "Erneut anlegen" erfordern versionsbezogene Telegram-Bestätigung.
+# test_mode simuliert nur Todoist; bestätigte Kalendertermine werden tatsächlich angelegt.
+timezone: Europe/Berlin
+poll_interval_seconds: 60
+test_mode: false
+data_directory: data
+retention:
+  full_mail_days: 30
+  debug_llm_days: disabled
+learning:
+  parallel_llm_calls: 10
+imap:
+  host: imap.example.test
+  port: 993
+  connection_mode: ssl
+  historical_start: '2026-09-15T00:00:00+02:00'
+  batch_size: 25
+  global_newest_first: true
+  primary_folder: INBOX
+  folders:
+  - INBOX
+  - Drafts
+  - Sent
+  - Spam
+  - Trash
+telegram:
+  user_id: 1
+  chat_id: 2
+targets:
+  todoist_project: example-project
+  google_calendar: primary
+limits:
+  max_mail_bytes: 1000000
+  max_header_bytes: 64000
+  max_display_header_characters: 500
+  max_mime_parts: 100
+  max_decoded_text_bytes: 1000000
+  max_html_characters: 1000000
+  max_html_tags: 20000
+  max_html_depth: 100
+  max_llm_payload_bytes: 500000
+  llm_calls_per_minute: 600
+retries:
+  provider_retry: 1
+  json_repair: 1
+  schema_repair: 1
+  interpretation_attempts: 3
+  interpretation_backoff_seconds: 60
+  revision_attempts: 3
+  revision_backoff_seconds: 60
+timeouts:
+  imap:
+    timeout_seconds: 30
+    retries: 2
+    initial_backoff_seconds: 1
+    max_backoff_seconds: 8
+  telegram:
+    timeout_seconds: 35
+    retries: 2
+    initial_backoff_seconds: 1
+    max_backoff_seconds: 8
+  openrouter:
+    timeout_seconds: 30
+    retries: 2
+    initial_backoff_seconds: 1
+    max_backoff_seconds: 8
+  todoist:
+    timeout_seconds: 30
+    retries: 2
+    initial_backoff_seconds: 1
+    max_backoff_seconds: 8
+  google_calendar:
+    timeout_seconds: 30
+    retries: 2
+    initial_backoff_seconds: 1
+    max_backoff_seconds: 8
+  telegram_poll_seconds: 30
+logging:
+  directory: logs
+  console:
+    enabled: true
+    level: INFO
+    format: text
+  file:
+    enabled: true
+    level: INFO
+    format: jsonl
+    filename: application.jsonl
+    max_bytes: 10000000
+    backup_count: 5
+    retention_days: 30
+  modules:
+    openrouter: INFO
+  llm:
+    enabled: true
+    level: INFO
+    format: jsonl
+    filename: llm/requests.jsonl
+    max_bytes: 10000000
+    backup_count: 5
+    retention_days: 30
+    include_requests: true
+    include_responses: true
+  telegram:
+    enabled: true
+    level: INFO
+    format: jsonl
+    filename: telegram/messages.jsonl
+    max_bytes: 10000000
+    backup_count: 5
+    retention_days: 30

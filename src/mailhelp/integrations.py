@@ -8,8 +8,7 @@ import time, traceback
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
-from .models import (CalendarDuplicateDecision, Proposal, ProposalCertainty, ProposalClassification, ProposalKind,
-                     ProposalResponsibility, ProposalStatus)
+from .models import CalendarDuplicateDecision, Proposal, ProposalKind, ProposalStatus
 from .adapter import PermanentError, RetryPolicy, UncertainWriteError, uncertain_write
 from .logging import EventLogger, NullLogger
 
@@ -217,14 +216,7 @@ class AccessTokenProvider(Protocol):
 
 def proposal_is_writable(proposal: Proposal) -> bool:
     """Return whether the proposal may be confirmed and externally created."""
-    creatable_classification = (
-        proposal.classification == ProposalClassification.NEW or
-        (proposal.classification == ProposalClassification.CHANGE and
-         proposal.explicit_create_fallback_confirmed)
-    )
-    return (creatable_classification and
-            proposal.responsibility == ProposalResponsibility.USER and
-            proposal.certainty == ProposalCertainty.CERTAIN)
+    return proposal.is_creatable
 
 
 def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Callable[[Proposal], None], test_mode: bool = False) -> tuple[Proposal, dict[str, Any]]:
@@ -321,7 +313,7 @@ class HttpWriter:
                 response = self.policy.run(lambda: self._get("/tasks", params))
                 try: page = TodoistTaskListResponse.model_validate(response.json())
                 except (ValueError, ValidationError) as exc: raise ValueError(f"Todoist tasks: ungültige Antwort am Schlüsselpfad {_path(exc)}") from exc
-                found = next((item for item in page.results if key in item.description), None)
+                found = next((item for item in page.results if f"[{key}]" in item.description), None)
                 if found is not None:
                     return found.model_dump()
                 cursor = page.next_cursor
@@ -345,7 +337,8 @@ class HttpWriter:
                 body["due_date"] = proposal.due.isoformat()
         else:
             if proposal.kind != ProposalKind.EVENT: raise ValueError("Kalender akzeptiert nur Termine")
-            duplicate = self._matching_calendar_event(proposal)
+            duplicate = (None if proposal.explicit_duplicate_create_confirmed_version == proposal.version
+                         else self._matching_calendar_event(proposal))
             if duplicate is not None:
                 existing, decision = duplicate
                 if decision.missing_fields:
@@ -378,24 +371,34 @@ class HttpWriter:
         else:
             assert isinstance(proposal.start, datetime) and isinstance(proposal.end, datetime)
             time_min, time_max = proposal.start.isoformat(), proposal.end.isoformat()
-        response = self.policy.run(lambda: self._get(
-            f"/calendars/{self.target}/events",
-            {"timeMin": time_min, "timeMax": time_max, "singleEvents": "true",
-             "maxResults": "50"},
-        ))
-        try:
-            raw_items = response.json().get("items", [])
-            if not isinstance(raw_items, list):
-                raise ValueError("items")
-            items = [CalendarOverlapEvent.model_validate(item) for item in raw_items]
-        except (AttributeError, ValueError, ValidationError) as exc:
-            raise ValueError(f"Google Calendar events: ungültige Antwort am Schlüsselpfad {_path(exc)}") from exc
-        for item in items:
-            safe = item.model_dump(mode="json", exclude={"htmlLink"})
-            _call_id, decision = self.calendar_matcher(proposal, safe)
-            if decision.same_event:
-                return item, decision
-        return None
+        params = {"timeMin": time_min, "timeMax": time_max, "singleEvents": "true",
+                  "maxResults": "50"}
+        seen_tokens: set[str] = set()
+        while True:
+            response = self.policy.run(lambda: self._get(
+                f"/calendars/{self.target}/events", params,
+            ))
+            try:
+                page = response.json()
+                raw_items = page.get("items", [])
+                if not isinstance(raw_items, list):
+                    raise ValueError("items")
+                items = [CalendarOverlapEvent.model_validate(item) for item in raw_items]
+                next_token = page.get("nextPageToken")
+                if next_token is not None:
+                    if not isinstance(next_token, str) or not next_token or next_token in seen_tokens:
+                        raise ValueError("nextPageToken")
+                    seen_tokens.add(next_token)
+            except (AttributeError, ValueError, ValidationError) as exc:
+                raise ValueError(f"Google Calendar events: ungültige Antwort am Schlüsselpfad {_path(exc)}") from exc
+            for item in items:
+                safe = item.model_dump(mode="json", exclude={"htmlLink"})
+                _call_id, decision = self.calendar_matcher(proposal, safe)
+                if decision.same_event:
+                    return item, decision
+            if next_token is None:
+                return None
+            params["pageToken"] = next_token
 
     def _calendar_merge_body(self, proposal: Proposal, key: str,
                              existing: CalendarOverlapEvent,

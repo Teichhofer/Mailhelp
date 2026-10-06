@@ -120,6 +120,10 @@ class ProposalDecisionService:
                 self.allowed_chat,
             )
         )
+        if decision.action == DecisionAction.CONFIRM_DUPLICATE:
+            changed = changed.model_copy(update={
+                "explicit_duplicate_create_confirmed_version": changed.version,
+            })
         self.persistence.persist(changed)
         if changed.status == ProposalStatus.CONFIRMED:
             result = self.writes.execute(changed)

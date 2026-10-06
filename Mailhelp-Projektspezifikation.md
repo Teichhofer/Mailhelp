@@ -1120,7 +1120,10 @@ ohne doppelten Termin aufgelöst werden können. Schreibzugriffe erfolgen nur na
 einer ausdrücklichen, versionsbezogenen Telegram-Bestätigung.
 
 Vor der Anlage fragt der Adapter ausschließlich die zeitlich überschneidenden
-Kalendereinträge ab. Das LLM vergleicht jeden Kandidaten anhand eines geschlossenen
+Kalendereinträge auf sämtlichen Ergebnisseiten ab. Eine Seitengröße von 50 ist
+keine Begrenzung der Suche; leere Zwischenseiten werden ebenfalls weiterverfolgt.
+Ungültige oder wiederholte Seitentokens brechen die Suche ohne Neuanlage ab.
+Das LLM vergleicht jeden Kandidaten anhand eines geschlossenen
 Schemas konservativ mit dem bestätigten Vorschlag; die zeitliche Überschneidung
 allein genügt nicht. Erkennt es dasselbe Ereignis, wird kein neuer Eintrag erzeugt.
 Fehlen dem bestehenden Eintrag konkrete Beschreibung, Ort oder Videolink aus dem
@@ -1129,6 +1132,30 @@ setzt dabei den Idempotenzschlüssel. Andernfalls bleibt der Kalender unverände
 Telegram weist in beiden Fällen auf den vorhandenen gleichen Termin und den
 Verzicht auf eine Neuanlage hin. Der bestätigte Vorschlag zeigt die Daten der
 möglichen Ergänzung bereits vor dem einzigen, versionsbezogenen Schreibzugriff.
+
+Die zusätzliche Telegram-Entscheidung „Erneut anlegen“ wird als
+`explicit_duplicate_create_confirmed_version` im Vorschlag gespeichert. Nur die
+genau übereinstimmende Version darf die fachliche Kalender-Duplikatsuche
+überspringen. Eine Revision entfernt diese Freigabe; LLM-Revisionsausgaben dürfen
+sie nicht setzen. Neustarts übernehmen die gespeicherte Entscheidung, gleichen
+aber weiterhin zuerst den Idempotenzschlüssel ab. Ein unklarer Schreiberfolg
+darf auch mit dieser Freigabe niemals automatisch erneut geschrieben werden.
+
+Der Todoist-Abgleich sucht ausschließlich den vollständigen eingerahmten Marker
+`[mailhelp:Mail-ID:Vorschlags-ID:vVersion]`, sodass unterschiedliche Versionen
+keine Teilstring-Treffer erzeugen. Die fachliche Anlegbarkeit ist im
+Vorschlagsmodell zentral definiert und gilt an der externen Schreibgrenze
+gleichermaßen: `non_binding` ist nach deterministischer Zustimmung zur Anlage
+und nachfolgender versionsbezogener Bestätigung anlegbar. Die Klassifikation
+bleibt dabei unverändert. Diese Regeln erfordern keine neuen Konfigurationswerte.
+
+Die CI führt die simulierte Testsuite unter Ubuntu und Windows aus. Beide
+Plattformen müssen 100 % Zeilen- und 100 % Branch-Abdeckung erreichen; der
+Docker-Konfigurationscheck bleibt ein zusätzlicher Linux-Job.
+Tests und Container-Konfigurationscheck verwenden die synthetische
+`config.example.yaml` unabhängig von der persönlichen `config.yaml`.
+Log-Dateinamen müssen auf beiden Plattformen relativ zum Logverzeichnis sein;
+absolute, laufwerksrelative, wurzelrelative und UNC-Pfade sind unzulässig.
 
 ### Delta-basierte Proposal-Revision
 

@@ -950,7 +950,7 @@ def test_integrations():
     seen=[]
     def handler(req): seen.append(req); return httpx.Response(200,json=({"id":"x"} if req.method=="POST" else {"results":[],"next_cursor":None}),request=req)
     todo=HttpWriter("todoist","x","p",transport=httpx.MockTransport(handler)); assert todo.reconcile("x") is None; todo.create(proposal(status="confirmed", due=datetime.now(timezone.utc)),"key"); todo.close()
-    found=HttpWriter("todoist","x","p",transport=httpx.MockTransport(mock_response(data={"results":[{"description":"key", "id":"old"}],"next_cursor":None}))); assert found.reconcile("key")["id"]=="old"
+    found=HttpWriter("todoist","x","p",transport=httpx.MockTransport(mock_response(data={"results":[{"description":"[key]", "id":"old"}],"next_cursor":None}))); assert found.reconcile("key")["id"]=="old"
     now=datetime.now(timezone.utc)
     with pytest.raises(ValueError): HttpWriter("todoist","x","p",transport=httpx.MockTransport(handler)).create(proposal(kind="event",start=now,end=now.replace(year=now.year+1)),"k")
     event=proposal(kind="event",start=now,end=now.replace(year=now.year+1),status="confirmed")
@@ -979,7 +979,7 @@ def test_todoist_reconciliation_follows_v1_cursors():
         requests.append(request)
         data = ({"results": [{"id": "unrelated", "description": "other"}], "next_cursor": "next-page"}
                 if "cursor" not in request.url.params else
-                {"results": [{"id": "existing", "description": "contains stable-key"}], "next_cursor": None})
+                {"results": [{"id": "existing", "description": "contains [stable-key]"}], "next_cursor": None})
         return httpx.Response(200, json=data, request=request)
     writer=HttpWriter("todoist","x","project",transport=httpx.MockTransport(handler))
     assert writer.reconcile("stable-key")["id"] == "existing"
