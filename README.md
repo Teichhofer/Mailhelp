@@ -888,12 +888,13 @@ python -m pytest tests/test_cli_paths.py --cov=mailhelp --cov-branch --cov-fail-
 # Windows PowerShell (dieselbe Suite und Coverage-Grenze)
 py -3.12 -m pytest --cov=mailhelp --cov-branch --cov-fail-under=100
 
-# Lokaler Container-Smoke-Test (entspricht dem separaten CI-Job)
+# Reine Konfigurationsprüfung im Container (ohne Laufzeit-/Neustarttest)
 docker build --tag mailhelp:smoke .
 docker run --rm --env-file .env \
   -v "$PWD/config.yaml:/config/config.yaml:ro" \
   -v "$PWD/prompts.yaml:/config/prompts.yaml:ro" \
   -v "$PWD/topics.yaml:/config/topics.yaml:ro" \
+  -v "$PWD/irrelevant_topics.yaml:/config/irrelevant_topics.yaml:ro" \
   mailhelp:smoke --check --config-directory /config \
   --log-directory /tmp/mailhelp/logs
 ```

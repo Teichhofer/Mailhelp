@@ -1206,7 +1206,8 @@ vorhandenen Textfragment als Tokenlimit. Gespeicherte Telegram-Antworten haben
 einen dauerhaften Versuchszähler und Wiederholungszeitpunkt. Nach Ausschöpfung
 der konfigurierten Versuche pausiert die Verarbeitung, informiert einmalig und
 behält die normalisierte Antwort für eine kontrollierte Wiederaufnahme.
-# Betriebszuverlässigkeit: Pfade, Zeitzonen und Paginierung
+
+## Betriebszuverlässigkeit: Pfade, Zeitzonen und Paginierung
 
 - Relative Zustands- und Logpfade sowie relative `--log-directory`-Overrides
   werden einheitlich gegen `--config-directory` aufgelöst. `--clear` verwendet
