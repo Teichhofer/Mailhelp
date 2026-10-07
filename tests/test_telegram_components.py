@@ -59,7 +59,7 @@ def test_revision_service_public_api_handles_absent_dialog_and_resume(tmp_path):
         controller = _controller(store)
         controller.revisions.answer("synthetische Antwort")
         controller.revisions.resume()
-        controller.telegram.send.assert_called_once_with(2, "Keine offene Rückfrage. Bitte zuerst „Ändern“ wählen.")
+        controller.telegram.send.assert_called_once_with(2, "Keine offene Rückfrage. Bitte /offen öffnen und beim gewünschten Vorschlag „Klären“, „Ändern“ oder „Manuell prüfen“ wählen.")
 
 def test_persistence_names_are_available_without_the_dialog_controller():
     mail_id = "a" * 24

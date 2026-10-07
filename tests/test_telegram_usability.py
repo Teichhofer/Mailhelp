@@ -152,7 +152,7 @@ def test_cancel_keeps_legacy_answer_and_allows_invalid_answer_to_leave_dialog(tm
         name = clarification_name(item.source_mail_id, item.id, 1)
         store.save(name, state.model_dump(mode="json"))
         command(c, "/status")
-        assert "Warte auf Rückfrage" in t.sent[-1][1]
+        assert "Warte auf Antwort" in t.sent[-1][1]
         command(c, "/abbrechen")
         assert store.load("telegram-dialog")["proposal_id"] is None
         assert store.load_model(name, ProposalClarificationState) == state
@@ -175,14 +175,14 @@ def test_overview_relevance_current_proposals_and_revision_state(tmp_path, heade
         command(c, "/status")
         text = t.sent[-1][1]
         assert text.count("„Aufgabe“") == 2  # snapshots and finished proposals excluded
-        assert "Warte auf Bestätigung" in text and "Warte auf Rückfrage" in text
+        assert "Warte auf Bestätigung" in text and "Warte auf Antwort" in text
         assert ("Elternabend" if headers else "Mail ohne Betreff") in text
         for status, expected in [("pending", "Antwort gespeichert"), ("paused", "Verarbeitung pausiert")]:
             clarification = ProposalClarificationState(mail_id=item.source_mail_id, proposal_id=item.id,
                 version=1, question="Titel?", authorized_answer="Neu", interpretation_status=status)
             store.save(clarification_name(item.source_mail_id, item.id, 1), clarification.model_dump(mode="json"))
             command(c, "/offen")
-            assert expected in t.sent[-1][1]
+            assert expected in t.sent[-2][1]
         command(c, "/abbrechen")  # show proposal with/without source headers
         assert ("Schule" if headers else "Absender: —") in t.sent[-1][1]
 
@@ -225,3 +225,134 @@ def test_event_edit_revision_requires_new_confirmation_and_rejects_old_version(t
         with pytest.raises(ValueError, match="veraltet"):
             c._decide(Decision(mail_id=item.source_mail_id, proposal_id=item.id, version=1, action=DecisionAction.CONFIRM))
         assert writer.created == 0
+
+@pytest.mark.parametrize('headers', [None, {'sender': 'Ada', 'subject': 'Frage'}])
+@pytest.mark.parametrize('receipt', ['completed', 'sending'])
+def test_open_redisplays_after_restart_without_changing_delivery_or_authorization(tmp_path, receipt, headers):
+    from mailhelp.models import ProposalNotification
+    item = proposal(open_questions=['Welches Datum?'], description='synthetisch ' * 330)
+    mail = MailState(id=item.source_mail_id, config_fingerprint='f' * 64,
+        imap={'account_id': '0' * 24, 'folder': 'INBOX', 'uidvalidity': 1, 'uid': 1},
+        proposals=[item], display_headers=headers, proposal_notifications=[ProposalNotification(proposal_id=item.id, proposal_version=1, status=receipt)])
+    with JsonStore(tmp_path) as store:
+        c, _, _ = controller(store)
+        c.persist(item)
+        store.save(f'mail-{item.source_mail_id}', mail.model_dump(mode='json'))
+    with JsonStore(tmp_path) as store:
+        writer = Writer()
+        c, t, _ = controller(store, writers={'todoist': writer}, revision_service=RevisionService())
+        c.show_open_decisions()
+        assert 'Klärung erforderlich' in t.sent[0][1]
+        assert len(t.sent) >= 3
+        buttons = t.sent[-1][2]['inline_keyboard'][0]
+        assert [b['text'] for b in buttons] == ['Klären', 'Verwerfen']
+        decision = c.validator.decision(buttons[0]['callback_data'])
+        assert (decision.proposal_id, decision.version, decision.action) == (item.id, 1, DecisionAction.EDIT)
+        assert store.load('telegram-dialog') is None
+        assert c.repository.load_mail(item.source_mail_id) == mail
+        assert c.repository.load_current(item.source_mail_id, item.id) == item
+        count = len(t.sent)
+        c.poll_once()
+        c.send_proposal(item)
+        assert len(t.sent) == count
+        for identity in ({'user': 9}, {'chat': 9}):
+            command(c, '/offen', **identity)
+            c._handle(TelegramUpdate.model_validate(callback(20, buttons[0]['callback_data'], **identity)))
+        assert all('Nicht autorisierte Aktion' in msg[1] for msg in t.sent[count:])
+        assert store.load('telegram-dialog') is None
+        assert c.repository.load_current(item.source_mail_id, item.id) == item
+        command(c, '/offen')
+        assert len(t.sent) > count
+        c._handle(TelegramUpdate.model_validate(callback(21, buttons[0]['callback_data'])))
+        assert 'Welches Datum?' in t.sent[-2][1]
+        c.revisions.answer('Beschreibung korrigieren')
+        revised = c.repository.load_current(item.source_mail_id, item.id)
+        assert revised.version == 2
+        assert writer.created == writer.reconciled == 0
+        with pytest.raises(ValueError, match='veraltet'):
+            c._decide(decision)
+        c._decide(decision.model_copy(update={'version': 2, 'action': DecisionAction.REJECT}))
+        assert not c.awaiting_decision()
+
+
+def test_open_restores_only_matching_active_question_and_does_not_assign_other_proposals(tmp_path):
+    with JsonStore(tmp_path) as store:
+        c, t, _ = controller(store)
+        active = proposal(id='active', open_questions=['Wann genau?'])
+        begin(c, active)
+        c.persist(proposal(id='other'))
+        t.sent.clear()
+        command(c, '/offen')
+        assert 'Warte auf Antwort' in t.sent[0][1]
+        assert t.sent[-2][2]['inline_keyboard']
+        assert 'Wann genau?' in t.sent[-1][1]
+        assert store.load('telegram-dialog')['proposal_id'] == 'active'
+        c.persist(proposal(id='active', version=2, open_questions=['Neues Datum?']))
+        t.sent.clear()
+        command(c, '/offen')
+        assert all(msg[2] is not None for msg in t.sent[1:])
+        assert store.load('telegram-dialog')['version'] == 1
+
+
+@pytest.mark.parametrize('legacy', [False, True])
+def test_open_saved_answer_does_not_request_another_answer(tmp_path, legacy):
+    with JsonStore(tmp_path) as store:
+        c, t, _ = controller(store)
+        item = proposal(open_questions=['Wann?'])
+        begin(c, item)
+        if legacy:
+            store.save('telegram-dialog', TelegramDialogState(mail_id=item.source_mail_id,
+                proposal_id=item.id, version=1, retry_required=True, question='Wann?',
+                normalized_answer='Morgen').model_dump(mode='json'))
+        else:
+            state = ProposalClarificationState(mail_id=item.source_mail_id, proposal_id=item.id,
+                version=1, question='Wann?', authorized_answer='Morgen')
+            store.save(clarification_name(item.source_mail_id, item.id, 1), state.model_dump(mode='json'))
+        t.sent.clear()
+        c.show_open_decisions()
+        assert len(t.sent) == 1 and 'Antwort gespeichert' in t.sent[0][1]
+        assert t.sent[0][2] is None
+        c, t, _ = controller(store, revision_service=RevisionService())
+        c.poll_once()
+        revised = c.repository.load_current(item.source_mail_id, item.id)
+        assert revised.version == 2
+        assert revised.status == ProposalStatus.PENDING_CONFIRMATION
+        assert store.load('telegram-dialog')['proposal_id'] is None
+
+
+def test_open_send_failure_preserves_state_and_explicit_retry_works(tmp_path):
+    with JsonStore(tmp_path) as store:
+        c, t, _ = controller(store)
+        item = proposal(open_questions=['Wann?'])
+        c.persist(item)
+        original_send = t.send
+        t.send = Mock(side_effect=RuntimeError('offline'))
+        with pytest.raises(RuntimeError, match='offline'):
+            c.show_open_decisions()
+        assert c.repository.load_current(item.source_mail_id, item.id) == item
+        assert store.load('telegram-dialog') is None
+        t.send = original_send
+        command(c, '/offen')
+        assert t.sent[-1][2]['inline_keyboard'][0][0]['text'] == 'Klären'
+
+def test_regression_open_after_restart_restores_completed_clarification(tmp_path):
+    """A completed delivery used to leave /offen with text and no usable entry."""
+    from mailhelp.models import ProposalNotification
+    item = proposal(open_questions=['Welches Datum?'])
+    with JsonStore(tmp_path) as store:
+        c, _, _ = controller(store)
+        c.persist(item)
+        mail = MailState(id=item.source_mail_id, config_fingerprint='f' * 64,
+            imap={'account_id': '0' * 24, 'folder': 'INBOX', 'uidvalidity': 1, 'uid': 1},
+            proposals=[item], proposal_notifications=[ProposalNotification(
+                proposal_id=item.id, proposal_version=1, status='completed')])
+        store.save(f'mail-{item.source_mail_id}', mail.model_dump(mode='json'))
+    with JsonStore(tmp_path) as store:
+        c, t, _ = controller(store)
+        command(c, '/offen')
+        assert t.sent[-1][2] is not None
+        buttons = t.sent[-1][2]['inline_keyboard'][0]
+        assert buttons[0]['text'] == 'Klären'
+        c._decide(c.validator.decision(buttons[0]['callback_data']))
+        assert 'Welches Datum?' in t.sent[-1][1]
+        assert store.load('telegram-dialog')['proposal_id'] == item.id

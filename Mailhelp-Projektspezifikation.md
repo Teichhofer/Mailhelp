@@ -721,7 +721,20 @@ Replay-Grenze fort.
   `/hilfe` und `/start` erklären die Bedienung; `/status` und `/offen` zeigen
   offene Relevanzentscheidungen und aktuelle Vorschläge mit Warte-/Verarbeitungsstatus.
   Versionierte Archivkopien und abgeschlossene Vorschläge werden nicht aufgelistet.
-  Die Übersicht ist rein lesend und verändert weder Reihenfolge noch Bestätigungen.
+  `/status` bleibt eine reine Textübersicht. `/offen` zeigt zusätzlich aktuelle
+  Vorschläge erneut mit versionsgebundenen Schaltflächen; ein aktiver unbeantworteter
+  Dialog wird mit seiner konkreten Frage zuletzt angezeigt. Ohne Dialog wird kein
+  Freitext zugeordnet: zuerst „Klären“, „Ändern“ oder „Manuell prüfen“ auswählen.
+  Der Status unterscheidet Klärungsbedarf ohne Dialog, Warten auf eine Antwort,
+  gespeicherte Antworten und pausierte Verarbeitung. Gespeicherte Antworten und
+  Legacy-Retries erhalten keine erneute Antwortanforderung oder Schaltflächen.
+  Die Anzeige verändert weder Vorschlagsversion, Dialogzuordnung, Reihenfolge noch
+  Bestätigungen und setzt keine Zustellnachweise (`completed`/`sending`) zurück.
+  Nach der Starthilfe wird bei offener Entscheidung einmal pro Lauf dieselbe
+  Wiederanzeige versucht, niemals pro Poll. Versandfehler werden nur mit Fehlerklasse
+  als `startup_decisions_failed` protokolliert; Telegram-Polling läuft weiter und
+  `/offen` ermöglicht eine bewusste Wiederholung. Mehrere Vorschläge bleiben über
+  ihre eigenen Schaltflächen eindeutig auswählbar. Keine neue Konfigurationsoption.
   Unbekannte Befehle verweisen auf `/hilfe`.
 - `/abbrechen` schließt einen unbeantworteten Bearbeitungsdialog und zeigt denselben
   Vorschlag erneut an. Inhalt, Version und offene Fragen bleiben erhalten; der

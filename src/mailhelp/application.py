@@ -755,6 +755,12 @@ class Application:
         else:
             self.logger.event("INFO", "telegram", "startup_help_sent")
         try:
+            if self.dialog is not None and self.dialog.awaiting_decision():
+                self.dialog.show_open_decisions()
+        except Exception as exc:
+            self.logger.event("ERROR", "telegram", "startup_decisions_failed",
+                              error_class=type(exc).__name__)
+        try:
             while not self.stop_event.is_set():
                 try:
                     RetentionService(self.store, self.settings.retention, self.logger).run()

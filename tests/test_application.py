@@ -1725,3 +1725,53 @@ def test_ignore_historical_start_reopens_older_uids_without_repeating_completed(
     assert reader.calls == [("INBOX", 0, 7, 1, ((42, 45),))]
     assert store.values[key]["start_uid"] == 0
     assert store.values[key]["completed_uid_ranges"] == [(20, 20), (42, 45)]
+
+@pytest.mark.parametrize('editing', [False, True])
+def test_startup_restores_durable_proposal_once_and_last_decision_resumes_imap(tmp_path, editing):
+    from mailhelp.storage import JsonStore
+    from mailhelp.telegram import Decision, DecisionAction
+    from test_telegram_dialog import controller, proposal
+    item = proposal(open_questions=['Welches Datum?'])
+    with JsonStore(tmp_path / 'state') as store:
+        c, _, _ = controller(store)
+        c.persist(item)
+        if editing:
+            c._decide(Decision(mail_id=item.source_mail_id, proposal_id=item.id,
+                               version=1, action=DecisionAction.EDIT))
+    with JsonStore(tmp_path / 'state') as store:
+        c, telegram, _ = controller(store)
+        service = app(tmp_path, Imap([(1, [])]), telegram, Orch(), store=store)
+        service.dialog = c
+        polls = []
+        def poll_once(timeout=None):
+            polls.append(timeout)
+            assert not service.imap.calls
+            assert telegram.sent[0][1].startswith('Mailhelp gestartet.')
+            assert len(telegram.sent) == 3
+            if editing:
+                assert 'Rückfrage zu' in telegram.sent[-1][1]
+                assert 'Welches Datum?' in telegram.sent[-1][1]
+            else:
+                assert telegram.sent[-1][2]['inline_keyboard'][0][0]['text'] == 'Klären'
+            if len(polls) == 2:
+                c._decide(Decision(mail_id=item.source_mail_id, proposal_id=item.id,
+                                   version=1, action=DecisionAction.REJECT))
+        c.poll_once = poll_once
+        service.run(max_mails=1)
+        assert len(polls) == 2
+        assert service.imap.calls and not c.awaiting_decision()
+        assert not any(args[2] == 'startup_decisions_failed' for args, _ in service.logger.events)
+
+
+def test_startup_redisplay_failure_does_not_stop_polling_or_expose_provider_content(tmp_path):
+    from unittest.mock import Mock
+    service = app(tmp_path, Imap([]), Telegram([]), Orch())
+    def poll_once(timeout=None):
+        service.stop_event.set()
+    service.dialog = SimpleNamespace(awaiting_decision=lambda: True, poll_once=poll_once,
+        show_open_decisions=Mock(side_effect=RuntimeError('synthetic-sensitive-content')))
+    service.run()
+    service.dialog.show_open_decisions.assert_called_once_with()
+    errors = [(args, fields) for args, fields in service.logger.events if args[2] == 'startup_decisions_failed']
+    assert errors == [(('ERROR', 'telegram', 'startup_decisions_failed'), {'error_class': 'RuntimeError'})]
+    assert 'synthetic-sensitive-content' not in str(service.logger.events)

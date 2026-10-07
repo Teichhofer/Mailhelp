@@ -221,6 +221,13 @@ class TelegramDialogController:
                 return True
         return False
 
+    def show_open_decisions(self) -> None:
+        """Explicit redisplay, independent of the initial delivery receipt."""
+        from .commands import TelegramCommands
+
+        TelegramCommands(self.store, self.repository, self.presenter,
+                         self.telegram, self.chat_id, self.relevance).overview(interactive=True)
+
     def processing_blocked(self) -> bool:
         """Return whether an answered revision needs an operator restart."""
         names = getattr(self.store, "names", None)

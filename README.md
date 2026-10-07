@@ -757,9 +757,16 @@ diesen normalen Programmlauf nicht und senden daher keine Startübersicht.
 Im konfigurierten Chat stehen dem autorisierten Nutzer folgende lokale Befehle zur Verfügung:
 
 - `/hilfe` (auch `/start`): Bedienhinweise und Befehle anzeigen.
-- `/status` und `/offen`: offene Relevanzentscheidungen und aktuelle Vorschläge
-  mit Warte-, Verarbeitungs- oder Pausenstatus anzeigen. Die Übersicht enthält
-  keine zusätzlichen Freigabeschaltflächen und ändert die Verarbeitungsreihenfolge nicht.
+- `/status`: offene Relevanzentscheidungen und aktuelle Vorschläge mit
+  Warte-, Verarbeitungs- oder Pausenstatus anzeigen.
+- `/offen`: zusätzlich die aktuellen Vorschläge mit ihren versionsgebundenen
+  Schaltflächen wieder anzeigen. Eine aktive unbeantwortete Rückfrage erscheint
+  zuletzt. Ohne aktiven Dialog zuerst beim gewünschten Vorschlag „Klären“,
+  „Ändern“ oder „Manuell prüfen“ wählen. Gespeicherte Antworten werden weiter
+  verarbeitet und nicht erneut angefordert. Nach einem Neustart erfolgt diese
+  Wiederanzeige einmal nach der Starthilfe. Bei Versandfehlern kann `/offen`
+  erneut verwendet werden. Zustellnachweise, Versionen und Bestätigungen bleiben
+  unverändert; Polling allein wiederholt die Anzeige nicht.
 - `/abbrechen`: eine noch unbeantwortete Bearbeitung schließen und den
   unveränderten Vorschlag erneut mit seinen Schaltflächen anzeigen. Offene Fragen
   bleiben offen. Bereits zur Verarbeitung gespeicherte Antworten, einschließlich
