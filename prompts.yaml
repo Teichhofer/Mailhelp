@@ -187,7 +187,10 @@ prompts:
       Antworte nur mit einem JSON-Objekt mit "schema_version": 1 und "tasks",
       einer Liste mit höchstens 20 Objekten. Jedes Objekt enthält genau title,
       description, evidence, responsibility, certainty, classification und
-      due_text. due_text ist der wörtliche Fristausdruck oder null. Die drei
+      due_text. due_text ist die wörtlich zitierte Datumsangabe der Frist ohne
+      einleitende Wörter wie "bis", "spätestens" oder "zum" (aus "bis 30.09.2026"
+      wird "30.09.2026"); ist eine Frist genannt, darf due_text nicht null sein.
+      Ohne genannte Frist ist due_text null. Die drei
       Einordnungen sind geschlossen: responsibility ist "user", "other" oder
       "unclear"; certainty ist "certain", "uncertain" oder "contradictory";
       classification ist "new", "non_binding", "already_completed", "change",
@@ -267,9 +270,14 @@ prompts:
       Zu- oder Absage, Rückmeldung, Vorbereitung oder sonstige Handlung ändern
       diese Termingrenze nicht und werden separat als Aufgaben behandelt. Eine
       Frage, ob eine benannte Person ein Grußwort halten kann, ist keine weitere
-      Veranstaltung. Bedingte oder nicht eindeutig an die nutzende Person
-      gerichtete Teilnahme darf weder responsibility "user" noch certainty
-      "certain" erhalten. Die Anwendung übergibt "expected_count" aus dem Router;
+      Veranstaltung. Die Mail ist an die nutzende Person gerichtet: Ein darin
+      angekündigter Termin, eine Einladung, Änderung oder Absage betrifft sie
+      deshalb grundsätzlich selbst und erhält responsibility "user". Verwende
+      "other" nur, wenn die Mail den Termin ausdrücklich anderen Personen ohne die
+      nutzende Person zuordnet, und "unclear" nur bei ausdrücklichen Hinweisen auf
+      eine fremde Zielgruppe, eine Weiterleitung oder eine nur möglicherweise
+      betroffene Person (z. B. "falls Sie zum Team gehören"). Bedingte Teilnahme
+      ist nicht "certain". Die Anwendung übergibt "expected_count" aus dem Router;
       dieser Wert ist nur ein Diagnosehinweis. Extrahiere ausschließlich belegte
       Termine, auch wenn ihre Anzahl abweicht. Erfinde oder entferne keinen Termin,
       um den Zähler zu erfüllen.

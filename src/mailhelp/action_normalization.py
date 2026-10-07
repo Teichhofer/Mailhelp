@@ -385,16 +385,52 @@ def normalize_event(event: ExtractedEvent, context: MailDateContext) -> Normaliz
                                responsibility, temporal_fact=fact)
 
 
+# A verbatim deadline keeps its signal words ("bis 01.10.2026"). Only these
+# inclusive signals and a trailing remark are removed; "vor" changes the meaning.
+_DEADLINE_LEAD = re.compile(
+    r"(?i)^(?:(?:bis|spätestens|spaetestens|zum|am|einschließlich|einschliesslich|den)\s+)+")
+_DEADLINE_TAIL = re.compile(r"\s*(?:\([^()]*\))?\s*[.,;:]?\s*\Z")
+DEADLINE_DATE_PATTERN = (r"\d{4}-\d{2}-\d{2}|\d{2}\.\d{2}\.\d{4}|"
+                  rf"\d{{1,2}}\.?\s+(?:{_MONTH_PATTERN})\s+\d{{4}}")
+_EVIDENCE_DEADLINE = re.compile(
+    r"(?i)(?:\bbis(?:\s+(?:zum|spätestens|einschließlich))?|\bspätestens(?:\s+(?:am|zum|bis))?|"
+    r"\bfrist\s*:?|\banmeldeschluss\s*:?)\s+(?:(?:den|am|zum)\s+)?"
+    rf"({DEADLINE_DATE_PATTERN})(?![\d.-]\d)")
+
+
+def deadline_core(raw: str) -> str:
+    return _DEADLINE_TAIL.sub("", _DEADLINE_LEAD.sub("", raw.strip()))
+
+
+def recover_task_due(task: ExtractedTask) -> ExtractedTask:
+    """Take a missing deadline from the evidence only if it is unambiguous.
+
+    The evidence is a verbatim quote of the mail.  Exactly one supported date
+    behind an explicit deadline signal is accepted; several different dates,
+    unsupported values or dates without such a signal leave the task unchanged.
+    """
+    if task.due_text is not None:
+        return task
+    found = {match.group(1) for match in _EVIDENCE_DEADLINE.finditer(task.evidence)}
+    if len(found) != 1:
+        return task
+    return task.model_copy(update={"due_text": found.pop()})
+
+
 def normalize_task_due(task: ExtractedTask, context: MailDateContext) -> NormalizationResult:
     """Normalize the supported date-only task deadline form."""
     responsibility = task.responsibility
     if task.due_text is None:
         return _failure(NormalizationReason.MISSING_DATE, None, responsibility,
                         "Soll die Aufgabe eine Fälligkeit haben?")
-    parsed = _parse_date(task.due_text, responsibility, context, task.evidence)
+    parsed = _parse_date(deadline_core(task.due_text), responsibility, context, task.evidence)
+    if isinstance(parsed, NormalizationResult):
+        # Questions and diagnostics always quote the unchanged extraction.
+        parsed = _parse_date(task.due_text, responsibility, context, task.evidence)
     if isinstance(parsed, NormalizationResult):
         return parsed
     parsed, fact = parsed
+    fact = fact.model_copy(update={"raw_text": task.due_text})
     checked = _context_zone(context, responsibility)
     if isinstance(checked, NormalizationResult):
         return replace(checked, temporal_fact=fact)

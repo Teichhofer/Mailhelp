@@ -102,7 +102,7 @@ Kalenderadapter. Den API-Key ausdrücklich als `OPENROUTER_API_KEY` in der
 Prozessumgebung bereitstellen; der Befehl liest keine persönliche `.env` automatisch.
 
 ```sh
-mailhelp-evaluate --allow-network --max-calls 100 --corpus tests/fixtures/mail_corpus_v1/corpus.json --prompts prompts.yaml --output evaluation-report.json
+mailhelp-evaluate --allow-network --max-calls 100 --corpus tests/fixtures/mail_corpus_v2/corpus.json --prompts prompts.yaml --output evaluation-report.json
 ```
 
 Der Aufruf ist kostenpflichtige OpenRouter-Nutzung. Ohne `--allow-network`,
@@ -113,14 +113,28 @@ in `prompts.yaml` ein `max_tokens` von 1 bis 16.000 haben. Das begrenzt Aufrufe 
 Ausgabetokens, garantiert aber keinen Eurobetrag: Eingabetokens und Modellpreise
 kommen hinzu. Das Aufrufbudget vor dem Start passend wählen.
 
+Für reale Modellläufe ist `mail_corpus_v2` vorgesehen: realistische Mails mit
+Empfangszeitpunkt, aussagekräftige Themenbeschreibungen und für fachliche
+Grenzfälle ausdrücklich erlaubte Alternativen (`accept`). `mail_corpus_v1` bleibt
+unverändert die Grundlage der simulierten Standardtests.
+
+Der Zielpfad des Berichts wird vor dem ersten kostenpflichtigen Aufruf geprüft.
+Nach jedem Fall schreibt der Befehl den Zwischenstand atomar in die Ausgabedatei
+(`complete: false`) und meldet den Fortschritt auf stderr, etwa
+`[3/17] 03_council_event: bestanden (Aufrufe 12/100)`.
+
 Das JSON-Ergebnis enthält Zeit, Prompt-/Korpus-Fingerprints, Modelle und
-Routingparameter, verbrauchte Aufrufe sowie erwartete und tatsächliche semantische
-Ergebnisse pro Stufe. Keine Erwartungsantwort wird an das Modell gesendet.
-Relevanz/Themen, Kandidatenzahlen, Klassifikation, Zuständigkeit, Sicherheit und
-extrahierte Zeit-/Ortsdaten werden gegen den synthetischen Korpus verglichen.
-Abweichungen in Textformen können bewusst als Fehler sichtbar bleiben und müssen
-fachlich bewertet werden. Zusammenfassungen werden auf Fristen und Satzanzahl
-geprüft; ihre Faktentreue sowie Titel, Beschreibung und Evidenz erfordern eine
+Routingparameter, verbrauchte Aufrufe, vom Provider gemeldete Tokens und Kosten
+(`usage`), bestandene Fälle je Stufe (`stage_pass_counts`) sowie erwartete,
+erlaubte und tatsächliche semantische Ergebnisse pro Stufe. Keine
+Erwartungsantwort wird an das Modell gesendet. Die Mail wird wie im Betrieb mit
+Empfangszeitpunkt und Nutzerzeitzone aufbereitet. Relevanz/Themen,
+Kandidatenzahlen, Klassifikation, Zuständigkeit, Sicherheit und Zeitangaben werden
+verglichen; Fristen und Termine nach derselben deterministischen Normalisierung wie
+in der Anwendung, sodass „bis 01.10.2026“ und „01.10.2026“ gleich sind. Freitext
+wird ohne Groß-/Kleinschreibung und Leerraumunterschiede verglichen, beim Ort nur
+dessen Vorhandensein. Zusammenfassungen werden auf die genannten Fristen (als
+Datum, sonst als Text) und die Satzanzahl geprüft; ihre Faktentreue sowie Titel, Beschreibung und Evidenz erfordern eine
 zusätzliche manuelle Qualitätsprüfung. Dies ist keine automatische Gesamtfreigabe.
 
 Exit-Code 0 bedeutet vollständigen Lauf mit bestandenen automatischen Kriterien;

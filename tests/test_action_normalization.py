@@ -9,6 +9,7 @@ from mailhelp.action_normalization import (
     TemporalValue,
     normalize_event,
     normalize_task_due,
+    recover_task_due,
 )
 from mailhelp.models import ExtractedEvent, ExtractedTask
 
@@ -354,3 +355,49 @@ def test_german_named_date_rejects_invalid_day_and_conflicting_weekday():
     conflict = normalize_event(event(date_text="Donnerstag, den 9. Oktober 2026"), context())
     assert invalid.reason == NormalizationReason.INVALID_DATE
     assert conflict.reason == NormalizationReason.INVALID_DATE
+
+
+@pytest.mark.parametrize(("raw", "expected"), [
+    ("bis 2026-10-01", date(2026, 10, 1)),
+    ("bis 01.10.2026", date(2026, 10, 1)),
+    ("Bis zum 1. Oktober 2026", date(2026, 10, 1)),
+    ("spätestens am 01.10.2026.", date(2026, 10, 1)),
+    ("bis einschließlich 01.10.2026", date(2026, 10, 1)),
+    ("01.10.2026 (Anmeldeschluss)", date(2026, 10, 1)),
+])
+def test_regression_task_deadline_with_signal_word_is_normalized(raw, expected):
+    """Bug: a verbatim deadline like "bis 2026-10-01" caused a needless question."""
+    result = normalize_task_due(task(due_text=raw), context())
+    assert result.value == expected and result.reason is None
+    assert result.raw_value == raw and result.temporal_fact.raw_text == raw
+
+
+@pytest.mark.parametrize("raw", ["bis morgen", "bis 31.02.2027", "bis 2026-10-01 12 Uhr",
+                                 "vor dem 01.10.2026"])
+def test_deadline_signal_words_never_hide_unsupported_values(raw):
+    result = normalize_task_due(task(due_text=raw), context())
+    assert result.value is None and result.raw_value == raw and raw in result.question
+
+
+@pytest.mark.parametrize(("evidence", "expected"), [
+    ("Bitte reichen Sie die Unterlagen bis 2026-09-30 ein.", "2026-09-30"),
+    ("Anmeldeschluss: 01.10.2026. Antwort spätestens am 01.10.2026", "01.10.2026"),
+    ("Frist: 1. Oktober 2026", "1. Oktober 2026"),
+])
+def test_regression_missing_due_text_is_recovered_from_one_evidence_deadline(evidence, expected):
+    """Bug: an explicit deadline in the evidence was silently dropped."""
+    recovered = recover_task_due(task(due_text=None, evidence=evidence))
+    assert recovered.due_text == expected
+    assert normalize_task_due(recovered, context()).resolved
+
+
+@pytest.mark.parametrize("evidence", [
+    "Bitte bis 2026-09-30 oder bis 2026-10-07 antworten.",  # two different deadlines
+    "Die Sitzung ist am 2026-09-30.",                        # date without deadline signal
+    "Bitte bis nächsten Freitag antworten.",                 # unsupported value
+])
+def test_due_recovery_never_chooses_or_invents_a_deadline(evidence):
+    original = task(due_text=None, evidence=evidence)
+    assert recover_task_due(original) is original
+    present = task(due_text="morgen", evidence="bis 2026-09-30")
+    assert recover_task_due(present) is present

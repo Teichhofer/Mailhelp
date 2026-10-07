@@ -4,7 +4,8 @@ from __future__ import annotations
 import hashlib
 import json
 
-from .action_normalization import MailDateContext, TemporalValue, normalize_event, normalize_task_due
+from .action_normalization import (MailDateContext, TemporalValue, normalize_event,
+                                   normalize_task_due, recover_task_due)
 from .config import TargetSettings
 from .models import (ExtractedEvent, ExtractedTask, Proposal, ProposalClassification,
                      ExtractionCountConflict, KnownTemporalFacts,
@@ -90,7 +91,11 @@ class ProposalBuilder:
             *(("task", item) for item in tasks), *(("event", item) for item in events)
         ]
         for position, (kind, item) in enumerate(entries):
-            temporal = (normalize_task_due(item, self.context) if kind == "task" and item.due_text is not None
+            # A deadline missing from due_text but unambiguous in the verbatim
+            # evidence is recovered; the identity still uses the raw extraction.
+            due_item = recover_task_due(item) if isinstance(item, ExtractedTask) else item
+            temporal = (normalize_task_due(due_item, self.context)
+                        if kind == "task" and due_item.due_text is not None
                         else normalize_event(item, self.context) if kind == "event" else None)
             question = temporal.question if temporal is not None else None
             questions = self._questions(item, question)

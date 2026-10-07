@@ -410,8 +410,13 @@ def test_action_prompts_share_invitation_candidate_boundaries():
         assert all(action in prompt for prompt in (router, task, event))
     assert 'nicht "certain"' in task
     assert 'nicht "user"' in task
-    assert 'responsibility "user"' in event
-    assert 'certainty\n"certain"' in "\n".join(line.strip() for line in event.splitlines())
+    flat_event = " ".join(event.split())
+    assert 'grundsätzlich selbst und erhält responsibility "user"' in flat_event
+    assert '"other" nur, wenn' in flat_event and '"unclear" nur bei ausdrücklichen' in flat_event
+    assert 'Bedingte Teilnahme ist nicht "certain"' in flat_event
+    flat_task = " ".join(task.split())
+    assert 'ohne einleitende Wörter wie "bis"' in flat_task
+    assert "darf due_text nicht null sein" in flat_task
     assert 'Verwende dafür "task" statt "unclear"' in router
     assert "die Freiwilligkeit erkennbar bewahren" in task
     assert "Buchungslink gehört in die Beschreibung" in task

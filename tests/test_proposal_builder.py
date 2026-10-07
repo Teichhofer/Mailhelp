@@ -257,3 +257,17 @@ def test_identity_collision_is_rehashed_and_a_second_collision_rejected(monkeypa
     monkeypatch.setattr("mailhelp.proposal_builder.hashlib.sha256", lambda _value: Digest("a"))
     with pytest.raises(ValueError, match="Kollision"):
         builder().build([task(title="one"), task(title="two")], [])
+
+
+def test_regression_builder_keeps_deadline_from_evidence_and_signal_words():
+    """Bug: "bis …" deadlines became questions or were silently dropped."""
+    recovered, prefixed = builder().build([
+        task(evidence="Bitte reichen Sie die Unterlagen bis 2026-09-30 ein."),
+        task(title="Protokoll", evidence="Protokoll bis 01.10.2026", due_text="bis 01.10.2026"),
+    ], [])
+    assert recovered.due == date(2026, 9, 30) and recovered.status == ProposalStatus.PENDING_CONFIRMATION
+    assert recovered.temporal_fact.raw_text == "2026-09-30"
+    assert prefixed.due == date(2026, 10, 1) and not prefixed.open_questions
+    # The identity is derived from the unchanged extraction and stays stable.
+    again = builder().build([task(evidence="Bitte reichen Sie die Unterlagen bis 2026-09-30 ein.")], [])
+    assert again[0].id == recovered.id

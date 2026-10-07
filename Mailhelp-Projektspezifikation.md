@@ -429,7 +429,7 @@ Der `action_router` verlangt das geschlossene `ActionRoute`-Schema mit `action_s
 | Zuständigkeit beziehungsweise Unsicherheit | Ganztägig oder mit Uhrzeit |
 | Beleg aus der Mail | Ort oder Videolink, falls vorhanden |
 
-Eine Aufgabe kann ohne Fälligkeit angelegt werden. Ihre Frist ist entweder ein reines ISO-8601-Datum (`YYYY-MM-DD`) oder ein ISO-8601-Zeitpunkt mit explizitem UTC-Offset; naive Zeitpunkte sind unzulässig. Der Todoist-Adapter überträgt diese Formen getrennt als `due_date` beziehungsweise `due_datetime`, ohne ein reines Datum in Mitternacht umzuwandeln. Für Termine müssen alle zum Speichern benötigten Angaben geklärt sein. Fehlende Endzeiten dürfen nicht ohne sichtbare Regel oder Rückfrage erfunden werden. Eine Aufgabenfrist erzeugt nicht automatisch einen Kalendertermin. Ist der Mail-Datumskontext fehlend, naiv, ungültig oder widersprüchlich, bleibt ein Termin oder eine Aufgabe mit Frist bis zur konkreten Rückfrage unbestätigbar; eine Aufgabe ohne Frist bleibt davon unberührt.
+Eine Aufgabe kann ohne Fälligkeit angelegt werden. Ihre Frist ist entweder ein reines ISO-8601-Datum (`YYYY-MM-DD`) oder ein ISO-8601-Zeitpunkt mit explizitem UTC-Offset; naive Zeitpunkte sind unzulässig. Der Todoist-Adapter überträgt diese Formen getrennt als `due_date` beziehungsweise `due_datetime`, ohne ein reines Datum in Mitternacht umzuwandeln. Eine wörtlich extrahierte Frist mit inklusiven Signalwörtern („bis“, „bis zum“, „bis einschließlich“, „spätestens (am)“, „zum“, „am“, „den“) oder einem abschließenden Klammerzusatz wie „(Anmeldeschluss)“ wird deterministisch auf genau die enthaltene unterstützte Datumsangabe zurückgeführt; der Zeitfakt und jede Rückfrage behalten den unveränderten Rohtext. „vor“ verändert die Bedeutung und wird nicht entfernt. Liefert die Extraktion keine Frist, obwohl ihre wörtliche Evidenz genau ein unterstütztes Datum hinter einem ausdrücklichen Fristsignal („bis“, „spätestens“, „Frist:“, „Anmeldeschluss:“) enthält, übernimmt der Builder dieses Datum. Mehrere verschiedene Daten, nicht unterstützte Angaben oder Daten ohne Fristsignal bleiben unverändert; die Vorschlags-ID wird weiterhin aus der unveränderten Extraktion gebildet. Für Termine müssen alle zum Speichern benötigten Angaben geklärt sein. Fehlende Endzeiten dürfen nicht ohne sichtbare Regel oder Rückfrage erfunden werden. Eine Aufgabenfrist erzeugt nicht automatisch einen Kalendertermin. Ist der Mail-Datumskontext fehlend, naiv, ungültig oder widersprüchlich, bleibt ein Termin oder eine Aufgabe mit Frist bis zur konkreten Rückfrage unbestätigbar; eine Aufgabe ohne Frist bleibt davon unberührt.
 
 Zeitgebundene Termine enthalten für Beginn und Ende vollständige ISO-8601-Datums-/Zeitwerte mit eindeutigem UTC-Offset. Google Calendar erhält diese Zeitpunkte mit eindeutigem UTC-Offset; Mailhelp leitet weder einen Offset noch eine Zeitzone stillschweigend aus der Laufzeitumgebung ab. Ganztägige Termine enthalten dagegen ausschließlich Kalenderdaten ohne Uhrzeit. Ihr Enddatum ist gemäß Google-Calendar-Semantik exklusiv: Ein eintägiger Termin am 10. Mai verwendet beispielsweise `start.date: 2026-05-10` und `end.date: 2026-05-11`. Gemischte Datums- und Zeitformen, naive Zeitwerte sowie ein Ende vor oder gleich dem Beginn werden bereits an der Vorschlagsgrenze abgewiesen.
 
@@ -555,6 +555,12 @@ dazu gilt dagegen als `new`. Eine reine Ankündigung oder der Versand durch ein
 externes Veranstaltungssystem macht einen solchen Termin weder `non_binding` noch
 `unsupported`; diese Einordnungen setzen ausdrückliche Unverbindlichkeit
 beziehungsweise eine mit dem Terminmodell nicht abbildbare Terminart voraus.
+Da jede verarbeitete Mail an die nutzende Person gerichtet ist, betrifft ein darin
+angekündigter Termin, eine Einladung, Änderung oder Absage grundsätzlich sie selbst
+(`responsibility=user`). `other` setzt eine ausdrückliche Zuordnung an andere
+Personen ohne die nutzende Person voraus, `unclear` ausdrückliche Hinweise auf eine
+fremde Zielgruppe, eine Weiterleitung oder eine nur möglicherweise betroffene
+Person. Bedingte Teilnahme bleibt nicht `certain`.
 
 Für Einladungen gelten in Router und beiden Extraktoren identische
 Kandidatengrenzen. Eine reine Einladung oder Information über eine Veranstaltung
@@ -1342,8 +1348,15 @@ OAuth-Ersteinrichtung, Wiederautorisierung und Betriebsbefehle sind in
 `mailhelp-evaluate` ist ein getrenntes, ausdrücklich aktiviertes Werkzeug für
 reale Modellantworten auf einen synthetischen Korpus. Netzwerkfreigabe, API-Key
 und positives Aufrufbudget sind Pflicht. Ausgabegrenzen bleiben in `prompts.yaml`.
-Der Bericht enthält Modell-/Parameterangaben, Fingerprints und Vergleiche; die
-Standardtests und CI verwenden weiterhin nur simulierte Dienste. Die Qualität
+Der Bericht enthält Modell-/Parameterangaben, Fingerprints, Vergleiche sowie vom
+Provider gemeldete Tokens und Kosten; die Standardtests und CI verwenden weiterhin
+nur simulierte Dienste. Der Zielpfad wird vor dem ersten Aufruf geprüft, nach jedem
+Fall wird ein atomarer Zwischenstand geschrieben und der Fortschritt gemeldet. Die
+Mail wird wie im Betrieb mit Empfangszeitpunkt und Nutzerzeitzone aufbereitet;
+Fristen und Termine werden nach der Anwendungsnormalisierung verglichen. Der
+Korpus `mail_corpus_v2` enthält realistische synthetische Mails und ausdrücklich
+erlaubte Alternativen für fachliche Grenzfälle; `mail_corpus_v1` bleibt unverändert
+Grundlage der simulierten Standardtests. Die Qualität
 von Zusammenfassung, Titel, Beschreibung und Evidenz erfordert zusätzlich eine
 manuelle Bewertung. Ein vorhandenes Prüfwerkzeug ersetzt keinen ausgeführten
 realen Qualitätsnachweis.
