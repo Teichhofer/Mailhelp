@@ -142,3 +142,26 @@ Exit-Code 1 umfasst Abweichungen, Providerfehler und ausgeschöpftes Budget. Ein
 Teilergebnis ist ausdrücklich `complete: false`. Die automatisierte CI testet
 auch diesen Befehl ausschließlich mit simuliertem Provider und einem synthetischen
 Key. Ein realer Modelllauf ist bei der Implementierung nicht automatisch enthalten.
+
+### Stand der realen Qualitätsprüfung (7. Oktober 2026)
+
+Modell `z-ai/glm-5.3-flash`, Korpus `mail_corpus_v2`, `reasoning: {effort: low}`
+global und `medium` für `action_router`. Zwei identische Läufe ergaben jeweils
+**14 von 17** vollständig bestandenen Fällen bei rund 0,013 USD und 140–200
+Sekunden je Lauf, ohne Provider-, Schema- oder Tokenlimitfehler. Relevanz 17/17,
+Router, Aufgaben und Termine je 16/17, Zusammenfassung 16/17.
+
+Bewusst akzeptierte, in beiden Läufen gleiche Abweichungen:
+
+- `17_optional_booking`: Der Router stuft das freiwillige Buchungsangebot als
+  `unclear` ohne Aufgabe ein, sodass kein Vorschlag entsteht. Akzeptiert, weil es
+  sich um ein freiwilliges Angebot handelt und die Mail weiterhin als
+  Zusammenfassung erscheint. Die Korpuserwartung bleibt `task`, damit eine
+  Verbesserung oder Verschlechterung sichtbar bleibt.
+- `03_council_event`: Zuständigkeit oder Sicherheit schwanken zwischen `unclear`
+  und `uncertain`; beide Varianten führen zur gleichen Rückfrage.
+- `14_invitation_registration`: Die Zusammenfassung nennt die Anmeldefrist, aber
+  nicht den Termin des Fachtags (nur Anzeige).
+
+Die manuelle Bewertung von Zusammenfassung, Titel, Beschreibung und Evidenz steht
+weiterhin aus.
