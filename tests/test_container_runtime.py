@@ -8,8 +8,13 @@ import os
 from pathlib import Path
 import shutil
 import sys
+from types import SimpleNamespace
 
 from mailhelp.cli import main
+from mailhelp.config import Topic
+from mailhelp.imap import FetchedMail
+from mailhelp.orchestrator import Orchestrator
+from mailhelp.storage import JsonStore
 
 
 class OfflineResource:
@@ -45,6 +50,7 @@ def test_installed_cli_persists_state_and_logs_across_restart(tmp_path, monkeypa
         for name in ("prompts.yaml", "topics.yaml", "irrelevant_topics.yaml"):
             shutil.copyfile(Path(__file__).parents[1] / name, config / name)
         shutil.copyfile(Path(__file__).parents[1] / "config.example.yaml", config / "config.yaml")
+        shutil.copyfile(Path(__file__).parent / "fixtures/irrelevant-senders.json", config / "irrelevant-senders.json")
     for name in ("IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN",
                  "TODOIST_TOKEN", "TODOIST_CLIENT_ID", "TODOIST_CLIENT_SECRET",
                  "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"):
@@ -81,3 +87,11 @@ def test_installed_cli_persists_state_and_logs_across_restart(tmp_path, monkeypa
         assert not any(record.get("level") == "ERROR" for record in records)
         assert not (tmp_path / "data").exists()
         assert not (tmp_path / "logs").exists()
+        # Read the actual production-mounted filter using a fresh state each time.
+        with JsonStore(config / "data" / f"production-filter-{stage}") as store:
+            outcome = Orchestrator(SimpleNamespace(relevance=forbid_network), store,
+                SimpleNamespace(send=forbid_network), 1,
+                [Topic(id="synthetic", name="Synthetic", description="Synthetic", enabled=True)],
+                100_000, sender_store=JsonStore(config)).process(FetchedMail(
+                    "INBOX", 7, 1, b"From: blocked@example.test\nSubject: Blocked\n\nSynthetic"))
+            assert outcome.state["relevance"]["decision"] == "irrelevant"

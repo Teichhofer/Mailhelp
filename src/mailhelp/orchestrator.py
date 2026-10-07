@@ -50,6 +50,13 @@ class ProcessingResult:
     outcome: ProcessingOutcome
     state: dict[str, Any]
 
+    @property
+    def user_action_open(self) -> bool:
+        return self.outcome is ProcessingOutcome.WAITING or any(
+            item["status"] in {"pending_confirmation", "needs_clarification"}
+            for item in self.state.get("proposals", [])
+        )
+
     def __getitem__(self, key: str) -> Any:
         """Keep state inspection concise while making the outcome explicit."""
         return self.state[key]
@@ -100,6 +107,9 @@ class Orchestrator:
             proposal = initial
             while proposal.open_questions:
                 question = proposal.open_questions[0]
+                if question.startswith("Wie viele "):
+                    # A model must not resolve its own contradictory counts.
+                    break
                 call, interpretation = self.analyzer.answer_question_from_mail(
                     state.mail, proposal, question)
                 state.llm_call_ids.append(call)
@@ -454,8 +464,6 @@ class Orchestrator:
                         self._record_count_conflict(name, state, "task", route.task_count,
                                                     len(extraction.tasks),
                                                     state.action_router_call_id, call)
-                        if len(extraction.tasks) != route.task_count:
-                            raise LlmSchemaValidationExceeded("task_extraction")
                     if not wants_tasks:
                         state.steps.task_extraction = "skipped"
                         self._save(name, state)
@@ -470,8 +478,6 @@ class Orchestrator:
                         self._record_count_conflict(name, state, "event", route.event_count,
                                                     len(extraction.events),
                                                     state.action_router_call_id, call)
-                        if len(extraction.events) != route.event_count:
-                            raise LlmSchemaValidationExceeded("event_extraction")
                     elif not wants_events:
                         state.steps.event_extraction = "skipped"
                         self._save(name, state)
@@ -545,21 +551,6 @@ class Orchestrator:
                                 not dedicated_delivery and current.status == "sending"):
                             current.status = "completed"
                             self._save(name, state)
-                        # The production dialog persists the proposal before it
-                        # exposes its buttons.  Stop at that durable boundary so
-                        # no later proposal (or other processing) can overtake
-                        # the user's version-bound decision.
-                        if (dedicated_delivery
-                                and self.notifier.awaiting_decision()):
-                            self.logger.event(
-                                "INFO", "orchestrator", "proposal_decision_pending",
-                                mail_id=state.id, proposal_id=proposal.id,
-                                proposal_version=proposal.version,
-                            )
-                            return ProcessingResult(
-                                ProcessingOutcome.WAITING,
-                                state.model_dump(mode="json"),
-                            )
                     state.steps.proposal_notification = "completed"
                     self._save(name, state)
             stage = ProcessingStage.COMPLETION

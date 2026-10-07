@@ -1,5 +1,9 @@
 # Mailhelp
 
+Die [ergänzende Betriebsanleitung](docs/Einrichtung-und-Qualitaetspruefung.md)
+beschreibt Google-OAuth-Ersteinrichtung und Wiederautorisierung, Docker-Filter,
+den beschreibbaren Lernmodus sowie den optionalen realen Qualitätsprüflauf.
+
 `config.example.yaml` enthält die geprüfte Konfiguration mit synthetischen
 Verbindungsdaten. Für die Einrichtung nach `config.yaml` kopieren und die Ziele
 anpassen. Die CI prüft das Beispiel unabhängig von persönlichen Änderungen.
@@ -174,7 +178,7 @@ unverändert. Aktionsbucheinträge verwenden `action_key_version: 2`; alte Eintr
 werden beim Vergleich aus dem gespeicherten Vorschlag derselben Version
 aktualisiert. Fehlt dieser, bleiben der alte Schlüssel und die Referenz erhalten.
 
-`config.yaml` besitzt geschlossene Modelle für IMAP, Telegram, Ziele, Limits, Wiederholungen, Timeouts und Logging. `poll_interval_seconds` steuert den Abstand zwischen regulären Verarbeitungszyklen. Beim Start und in jedem regulären Zyklus beginnt Mailhelp sofort mit der IMAP-Verarbeitung; erst danach folgt der Telegram-Long-Poll. Ein begrenzter Einmallauf mit `--max-mails` beendet sich nach seinem IMAP-Durchlauf ohne einen zusätzlichen regulären Telegram-Poll. Nur eine bereits gespeicherte, offene Telegram-Entscheidung wird nach einem Neustart zuerst fortgesetzt. Sobald eine Telegram-Nachricht Schaltflächen für eine Rückfrage oder einen Vorschlag enthält, pausiert die gesamte Verarbeitung: Es wird weder ein weiterer Vorschlag gesendet noch eine weitere Mail analysiert, bis genau diese Auswahl verarbeitet wurde. Mehrere Vorschläge werden dadurch strikt einzeln nacheinander angezeigt. Auch beim Herunterfahren wird hinter offenen Schaltflächen keine Laufzusammenfassung gesendet; nach einem Neustart wird zuerst die gespeicherte Entscheidung fortgesetzt. Fehlgeschlagene Telegram-Polls erhalten einen begrenzten, durch Shutdown unterbrechbaren Backoff. Die LLM-Wiederholungen für ungültige Providerantworten, JSON-Reparatur und Schema-Reparatur sind getrennt begrenzt. IMAP, Telegram, OpenRouter, Todoist und Google Kalender haben jeweils eigene Werte für Timeout, Retry-Anzahl sowie initialen und maximalen Backoff. Validiert werden insbesondere Port, Polling, Adaptertimeouts, Mailgröße, LLM-Rate, Wiederholungszahlen, IANA-Zeitzone, eindeutige nichtleere Ordner, sichere Pfade und die Log-Level `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Unbekannte Schlüssel und falsche Typen werden abgelehnt.
+`config.yaml` besitzt geschlossene Modelle für IMAP, Telegram, Ziele, Limits, Wiederholungen, Timeouts und Logging. `poll_interval_seconds` steuert den Abstand zwischen regulären Verarbeitungszyklen. Beim Start und in jedem regulären Zyklus beginnt Mailhelp sofort mit der IMAP-Verarbeitung; erst danach folgt der Telegram-Long-Poll. Ein begrenzter Einmallauf mit `--max-mails` beendet sich nach seinem IMAP-Durchlauf ohne einen zusätzlichen regulären Telegram-Poll. Beim Neustart werden offene Entscheidungen erneut angezeigt. Nur offene Relevanzentscheidungen halten die weitere Analyse bis zur Antwort an. Aufgaben- und Terminvorschläge bleiben asynchron offen, auch bei `--max-mails` und nach Neustarts. Jeder Vorschlag muss weiterhin einzeln und versionsbezogen bestätigt werden. Die Laufzusammenfassung wird nur bei offener Relevanzentscheidung zurückgestellt. Fehlgeschlagene Telegram-Polls erhalten einen begrenzten, durch Shutdown unterbrechbaren Backoff. Die LLM-Wiederholungen für ungültige Providerantworten, JSON-Reparatur und Schema-Reparatur sind getrennt begrenzt. IMAP, Telegram, OpenRouter, Todoist und Google Kalender haben jeweils eigene Werte für Timeout, Retry-Anzahl sowie initialen und maximalen Backoff. Validiert werden insbesondere Port, Polling, Adaptertimeouts, Mailgröße, LLM-Rate, Wiederholungszahlen, IANA-Zeitzone, eindeutige nichtleere Ordner, sichere Pfade und die Log-Level `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Unbekannte Schlüssel und falsche Typen werden abgelehnt.
 Auch die Wurzel von `topics.yaml` ist geschlossen: Sie enthält ausschließlich die
 Liste `topics`; diese muss mindestens ein aktiviertes Thema besitzen und alle
 stabilen Themen-IDs müssen eindeutig sein.
@@ -564,9 +568,8 @@ aus dem persistenten initialen Batch mit den Zahlen für entdeckte, wartende,
 terminal analysierte, relevante, irrelevante, auf Benutzer wartende,
 fehlgeschlagene und übersprungene Mails. Sie bezeichnet den Lauf nur dann als
 vollständig abgearbeitet, wenn jede Batchposition einen terminalen
-Analysezustand erreicht hat. Ist noch eine Telegram-Auswahl offen, wird die
-Laufzusammenfassung zurückgestellt, damit keine Nachricht die Schaltflächen
-überholt. Andernfalls wird sie auch bei einem Laufzeitfehler versucht; ein
+Analysezustand erreicht hat. Ist noch eine Relevanzentscheidung offen, wird die Laufzusammenfassung
+zurückgestellt. Offene Vorschläge bleiben auch nach der Zusammenfassung bedienbar. Andernfalls wird sie auch bei einem Laufzeitfehler versucht; ein
 Versandfehler wird protokolliert und verdeckt einen bereits aufgetretenen Fehler
 nicht.
 
@@ -846,7 +849,7 @@ als neue Antwort ausgewertet. Ein vorausgehender erfolgreicher Telegram-HTTP-Auf
 bleibt dabei ein separater Erfolg und wird nicht als Revisionsfehler protokolliert.
 Eine technisch pausierte Revision gilt nicht als unbeantwortete
 Telegram-Entscheidung und löst deshalb keine endlose Long-Poll-Warteschleife aus.
-Sie blockiert dennoch die weitere Mail-Queue. Mailhelp nennt im Chat die notwendige
+Sie blockiert weder die weitere Mail-Queue noch andere Vorschläge. Mailhelp nennt im Chat die notwendige
 Betreiberaktion: den gespeicherten `proposal_revision_status` kontrolliert auf
 `retry_required` setzen und Mailhelp neu starten.
 Bei binären Rückfragen zur Belegsicherheit oder Zuständigkeit normalisiert die
@@ -898,6 +901,8 @@ als `skipped` sowie den Abschluss als `completed`.
 ```sh
 cp .env.example .env
 cp config.example.yaml config.yaml
+# Nur wenn noch kein eigener Absenderfilter existiert:
+cp -n irrelevant-senders.example.json irrelevant-senders.json
 # Unter Linux: Schreibrechte für den Containerbenutzer vorbereiten.
 mkdir -p data logs
 sudo chown 65532:65532 data logs
@@ -985,13 +990,9 @@ den gesamten Anwendungscode ausführt, kann er allein an der globalen
 100-%-Schwelle scheitern; das fachliche Ergebnis steht dann dennoch im Testbericht,
 während die Gesamtsuite der maßgebliche Coverage-Gate ist.
 
-Eine Bewertung mit einem realen Modell ist bewusst **nicht Teil dieser Suite** und
-wird derzeit auch nicht als optionales Skript angeboten. Dadurch gibt es keinen
-versehentlichen Netzwerkzugriff und keine implizite Verwendung eines
-`OPENROUTER_API_KEY`. Soll eine solche Integration später ergänzt werden, muss sie
-über einen ausdrücklich benannten Opt-in-Schalter aktiviert werden, außerhalb des
-Standard-Pytest-Laufs liegen und als Erfolgskriterium dieselben vollständigen
-strukturierten Erwartungen aus `tests/fixtures/mail_corpus_v1/corpus.json` erfüllen.
+Eine reale Modellbewertung ist über `mailhelp-evaluate` ausdrücklich aktivierbar.
+Die Standardtests bleiben simuliert. Einrichtung, Aufrufbudgets, Bericht und
+Grenzen der Qualitätsbewertung beschreibt `docs/Einrichtung-und-Qualitaetspruefung.md`.
 
 ### Sichere Proposal-Revision
 
@@ -1059,3 +1060,17 @@ Erst nach Abschluss dieser festen Queue darf ein späterer Aufruf einen neuen Ru
 mit inzwischen verfügbaren oder übrig gebliebenen Mails anlegen. Der terminale
 Analysezustand (`completed`, `failed` oder `skipped`) wird getrennt davon
 gespeichert, ob bei `waiting_for_user` noch eine Benutzeraktion offen ist.
+
+### Mengenabweichungen bei der Extraktion
+
+Routerzahlen sind Diagnosewerte. Schema-gültige Extraktionen bleiben erhalten;
+Abweichungen stoppen weder die andere Extraktion noch die Mail-Queue. Betroffene
+Vorschläge erhalten eine ausschließlich vom Nutzer zu klärende Mengenfrage.
+Bei leerer Extraktion weist die Telegram-Meldung auf manuelle Prüfung der
+Ursprungsmail und gegebenenfalls manuelle Anlage im Zieldienst hin; Mailhelp
+erfindet keine fehlenden Aufgaben oder Termine. Konflikt und Benachrichtigung
+bleiben dauerhaft gespeichert und werden nach Neustarts nicht dupliziert.
+
+`--check-access` prüft jeden konfigurierten IMAP-Ordner und meldet auch Fehler
+von Nebenordnern im Gesamtergebnis mit Exit-Code 1. Erfolgreiche Ordner stehen
+im Diagnoseprotokoll; die übrigen Dienste werden trotzdem geprüft.

@@ -5,7 +5,8 @@ from datetime import datetime, timezone
 from typing import Protocol
 
 from ..models import (
-    MailState, Proposal, ProposalNotification, ProposalStatus,
+    MailState, MailRunState, MailRunCounters, MailRunEntryStatus,
+    Proposal, ProposalNotification, ProposalStatus,
     WriteAttemptReference,
 )
 from ..storage import JsonStore
@@ -83,6 +84,7 @@ class ProposalRepository:
         if (proposals, notifications, attempts) == (
                 state.proposals, state.proposal_notifications,
                 state.write_attempts):
+            self._sync_run(state)
             return
         changed = state.model_copy(update={
             "proposals": proposals,
@@ -92,6 +94,33 @@ class ProposalRepository:
         })
         self.store.save(f"mail-{proposal.source_mail_id}",
                         changed.model_dump(mode="json"))
+        self._sync_run(changed)
+
+    def _sync_run(self, state: MailState) -> None:
+        """Repair the run's user-action projection after persisting the mail."""
+        name = f"mail-run-{state.imap.account_id}"
+        run = self.store.load_model(name, MailRunState)
+        if run is None:
+            return
+        for entry in run.entries:
+            if ((entry.folder, entry.uidvalidity, entry.uid) !=
+                    (state.imap.folder, state.imap.uidvalidity, state.imap.uid)
+                    or entry.status not in {MailRunEntryStatus.COMPLETED,
+                                            MailRunEntryStatus.WAITING_FOR_USER}):
+                continue
+            pending = any(item.status in {ProposalStatus.PENDING_CONFIRMATION,
+                                          ProposalStatus.NEEDS_CLARIFICATION}
+                          for item in state.proposals)
+            if entry.user_action_open == pending:
+                return
+            entry.user_action_open = pending
+            entry.status = (MailRunEntryStatus.WAITING_FOR_USER if pending
+                            else MailRunEntryStatus.COMPLETED)
+            run.counters = MailRunCounters(**{
+                status.value: sum(item.status == status for item in run.entries)
+                for status in MailRunEntryStatus})
+            self.store.save(name, run.model_dump(mode="json"))
+            return
 
     def record_write_attempt(self, proposal: Proposal) -> None:
         """Add the stable write reference to the mail projection, once."""

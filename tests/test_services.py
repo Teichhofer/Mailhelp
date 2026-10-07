@@ -187,7 +187,7 @@ def test_analyzer():
         Analyzer(FakeCompleter([{"decision":"relevant","topic_ids":[],"reason":"x"}]),prompt_config(),schema_repair_retries=0).relevance({}, [topic])
 
 
-def test_task_extraction_retries_router_count_and_requires_tasks_field():
+def test_task_extraction_preserves_count_mismatch_and_requires_tasks_field():
     task = {"title": "Seminar bewerben", "description": "", "evidence": "Bitte bewerben Sie das Seminar.",
             "responsibility": "user", "certainty": "certain", "classification": "new", "due_text": None}
     second = {**task, "title": "Ausschreibung weiterleiten",
@@ -200,24 +200,23 @@ def test_task_extraction_retries_router_count_and_requires_tasks_field():
     call_id, result = Analyzer(client, prompt_config(), schema_repair_retries=1).extract_tasks(
         {"text": "synthetische Mail"}, expected_count=2)
 
-    assert call_id == "provider-call-2"
-    assert [item.title for item in result.tasks] == ["Seminar bewerben", "Ausschreibung weiterleiten"]
+    assert call_id == "provider-call-1"
+    assert result.tasks == []
+    assert len(client.payloads) == 1
     assert client.payloads[0]["expected_count"] == 2
-    assert "Router hat 2 Tasks erkannt" in client.payloads[1]["previous_validation_error"]
-    assert client.systems[1].endswith(SCHEMA_REPAIR_INSTRUCTION)
     with pytest.raises(ValidationError):
         TaskExtraction.model_validate({"schema_version": 1})
 
 
-def test_event_extraction_rejects_persistent_router_count_mismatch():
+def test_event_extraction_preserves_schema_valid_count_mismatch():
     client = RetrySequence([
         {"schema_version": 1, "events": []},
         {"schema_version": 1, "events": []},
     ])
-    with pytest.raises(LlmSchemaValidationFailed):
-        Analyzer(client, prompt_config(), schema_repair_retries=1).extract_events(
-            {"text": "synthetische Mail"}, expected_count=1)
-    assert "Router hat 1 Events erkannt" in client.payloads[1]["previous_validation_error"]
+    _, result = Analyzer(client, prompt_config(), schema_repair_retries=1).extract_events(
+        {"text": "synthetische Mail"}, expected_count=1)
+    assert result.events == [] and len(client.payloads) == 1
+
 
 
 @pytest.mark.parametrize(("state", "tasks", "events"), [
@@ -1580,11 +1579,11 @@ def test_router_count_mismatch_is_assigned_to_its_extractor(tmp_path, kind, expe
             [Topic(id="x", name="x", enabled=True, description="x")], 1000).process(
                 FetchedMail("INBOX", 1, 120 if kind == "task" else 121,
                             b"Subject: Inkonsistent\n\nBody"))
-    assert result.outcome is ProcessingOutcome.COMPLETED_WITH_ACTION_ERROR
-    assert result["error"]["code"] == "schema_validation_failed"
-    assert result["steps"][expected_stage] == "failed"
-    assert result["steps"]["action_detection"] == "failed"
-    assert result["steps"]["normalization"] == "pending"
+    assert result.outcome is ProcessingOutcome.COMPLETED
+    assert result["error"] is None
+    assert result["steps"][expected_stage] == "completed"
+    assert result["steps"]["action_detection"] == "completed"
+    assert result["steps"]["normalization"] == "completed"
     assert result["proposals"] == []
     assert result["extraction_count_conflicts"][0] | {
         "notification_marked_at": None
@@ -1612,7 +1611,7 @@ def test_router_count_mismatch_is_assigned_to_its_extractor(tmp_path, kind, expe
         [Topic(id="x", name="x", enabled=True, description="x")], 1000
     ).process(FetchedMail("INBOX", 1, 120 if kind == "task" else 121,
                           b"Subject: Inkonsistent\n\nBody"))
-    assert sum("Zählerabweichung" in message for message in restarted_notifier.messages) == 1
+    assert not any("Zählerabweichung" in message for message in restarted_notifier.messages)
     state = store.load_model("mail-" + state.id, MailState)
     state.steps.completion = "pending"
     state.steps.proposal_notification = "pending"

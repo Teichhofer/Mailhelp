@@ -241,7 +241,7 @@ def test_nachholtermin_fixture_explicit_offset_confirmation_and_reconciliation(t
     store, dialog, telegram, calendar, router, result = nachholtermin_flow(
         tmp_path / "complete", incomplete=False)
     try:
-        assert result.outcome is ProcessingOutcome.WAITING
+        assert result.outcome is ProcessingOutcome.COMPLETED
         assert router.calls == ["relevance", "summary", "action_router", "event_extraction"]
         assert len(result.state["proposals"]) == 1
         proposal = Proposal.model_validate(result.state["proposals"][0])
@@ -265,7 +265,7 @@ def test_nachholtermin_incomplete_is_completed_locally_then_idempotently_written
         tmp_path / "incomplete", incomplete=True)
     try:
         proposal = Proposal.model_validate(result.state["proposals"][0])
-        assert result.outcome is ProcessingOutcome.WAITING
+        assert result.outcome is ProcessingOutcome.COMPLETED
         assert proposal.status.value == "needs_clarification"
         assert proposal.open_questions == ["Wann beginnt der Termin?"]
         initial_llm_calls = list(router.calls)
@@ -312,7 +312,7 @@ def test_imap_llm_persists_separate_raw_extractions(tmp_path):
                           telegram, todoist, calendar, orchestrator, Event(), dialog)
 
         results = app._poll_imap()
-        assert [result.outcome for result in results] == [ProcessingOutcome.WAITING]
+        assert [result.outcome for result in results] == [ProcessingOutcome.COMPLETED]
         state = results[0].state
         assert state["task_extraction"]["tasks"][0]["due_text"] == "30. September"
         assert state["event_extraction"]["events"][0]["time_text"] == "09:00"
@@ -320,18 +320,23 @@ def test_imap_llm_persists_separate_raw_extractions(tmp_path):
         assert all(item["status"] == "pending_confirmation" for item in state["proposals"])
         assert state["proposals"][1]["temporal_fact"]["normalized_date"] == "2026-10-08"
         assert todoist.created == calendar.created == []
-        assert sum(markup is not None for _, _, markup in telegram.sent) == 1
-
-        telegram.updates = [callback_update(1, telegram_button(telegram, "Verwerfen"))]
-        dialog.poll_once()
-        second = orchestrator.process(fetched)
-        assert second.outcome is ProcessingOutcome.WAITING
         assert sum(markup is not None for _, _, markup in telegram.sent) == 2
 
-        telegram.updates = [callback_update(2, telegram_button(telegram, "Verwerfen"))]
+        reject_buttons = [button["callback_data"] for _, _, markup in telegram.sent
+                          if markup for row in markup["inline_keyboard"]
+                          for button in row if button["text"] == "Verwerfen"]
+        assert len(reject_buttons) == 2 and len(set(reject_buttons)) == 2
+        telegram.updates = [callback_update(1, reject_buttons[0])]
+        dialog.poll_once()
+        second = orchestrator.process(fetched)
+        assert second.outcome is ProcessingOutcome.COMPLETED
+        assert sum(markup is not None for _, _, markup in telegram.sent) == 2
+
+        telegram.updates = [callback_update(2, reject_buttons[1])]
         dialog.poll_once()
         completed = orchestrator.process(fetched)
         assert completed.outcome is ProcessingOutcome.COMPLETED
+        assert all(item["status"] == "rejected" for item in completed.state["proposals"])
 
 
 def test_synthetic_council_mail_keeps_summary_when_action_detection_fails(tmp_path):

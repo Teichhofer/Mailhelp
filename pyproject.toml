@@ -15,6 +15,7 @@ test = ["pytest==8.4.1", "pytest-cov==6.2.1"]
 
 [project.scripts]
 mailhelp = "mailhelp.cli:main"
+mailhelp-evaluate = "mailhelp.evaluation:main"
 
 [tool.pytest.ini_options]
 addopts = "--cov=mailhelp --cov-branch --cov-fail-under=100"

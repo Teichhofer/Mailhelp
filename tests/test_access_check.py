@@ -168,7 +168,7 @@ def test_application_access_check_runs_every_check_after_errors():
     results = Application.check_access(application)
 
     assert results == {
-        "IMAP": "RuntimeError", "OpenRouter": "bad key", "Telegram": None,
+        "IMAP": "IMAP: INBOX: RuntimeError", "OpenRouter": "bad key", "Telegram": None,
         "Todoist": None, "Google Kalender": None,
     }
     assert imap.calls == [(["INBOX"],)]
@@ -196,7 +196,7 @@ def test_optional_imap_access_failure_does_not_hide_primary_success():
         logger=NullLogger(), imap=imap, openrouter=Check(), telegram=Check(),
         todoist=Check(), calendar=Check(),
     )
-    assert Application.check_access(application)["IMAP"] is None
+    assert "Entwürfe" in Application.check_access(application)["IMAP"]
     assert imap.calls == [(["Posteingang"],), (["Entwürfe"],), (["Gesendet"],)]
 
 

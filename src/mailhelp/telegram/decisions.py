@@ -76,6 +76,10 @@ class ProposalDecisionService:
         duplicates = self.ledger.prior_actions(proposal) if confirming else []
         if decision.action == DecisionAction.CONFIRM and duplicates:
             previous = duplicates[-1]
+            source = self.repository.load_mail(previous.mail_id)
+            headers = source.display_headers if source is not None else None
+            source_text = (f"Absender: {headers.sender}\nBetreff: {headers.subject}"
+                           if headers is not None else "Quellangaben nicht mehr verfügbar.")
             duplicate = decision.model_copy(
                 update={"action": DecisionAction.CONFIRM_DUPLICATE}
             )
@@ -85,7 +89,7 @@ class ProposalDecisionService:
                 "\n".join(
                     [
                         f"Bereits angelegt: {'Aufgabe' if previous.kind == ProposalKind.TASK else 'Termin'} „{previous.title}“.",
-                        f"Frühere Quelle: Mail {previous.mail_id}, Vorschlag {previous.proposal_id}, Version {previous.proposal_version}.",
+                        f"Frühere Quelle (Version {previous.proposal_version}):\n{source_text}",
                         "Soll die Aktion wirklich ein zweites Mal angelegt bzw. versendet werden?",
                     ]
                 ),

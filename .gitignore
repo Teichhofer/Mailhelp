@@ -223,3 +223,6 @@ data/
 logs/
 config.yaml
 HT.env
+learning-config/
+.test-tmp-*/
+.implementation-tests.txt

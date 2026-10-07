@@ -28,6 +28,7 @@ jobs:
       - name: Prepare synthetic configuration and production mount permissions
         run: |
           cp config.example.yaml config.yaml
+          cp tests/fixtures/irrelevant-senders.json irrelevant-senders.json
           for name in IMAP_USERNAME IMAP_PASSWORD OPENROUTER_API_KEY TELEGRAM_BOT_TOKEN TODOIST_TOKEN TODOIST_CLIENT_ID TODOIST_CLIENT_SECRET GOOGLE_OAUTH_CLIENT_ID GOOGLE_OAUTH_CLIENT_SECRET GOOGLE_OAUTH_REFRESH_TOKEN; do
             printf '%s=synthetic-smoke-value\n' "$name" >> .env
           done
@@ -40,3 +41,12 @@ jobs:
         run: docker compose -f compose.yaml -f compose.smoke.yaml run --rm --no-deps -e MAILHELP_SMOKE_STAGE=1 mailhelp
       - name: Restart in a fresh container and verify persisted checkpoints
         run: docker compose -f compose.yaml -f compose.smoke.yaml run --rm --no-deps -e MAILHELP_SMOKE_STAGE=2 mailhelp
+      - name: Prepare replaceable learning configuration
+        run: |
+          mkdir -p learning-config
+          cp config.yaml prompts.yaml topics.yaml irrelevant_topics.yaml irrelevant-senders.json learning-config/
+          sudo chown -R 65532:65532 learning-config
+      - name: Learn synthetic topics and sender with no network
+        run: docker compose -f compose.learn.yaml -f compose.learn.smoke.yaml run --rm --no-deps -e MAILHELP_SMOKE_STAGE=1 mailhelp
+      - name: Verify learned configuration in a fresh container
+        run: docker compose -f compose.learn.yaml -f compose.learn.smoke.yaml run --rm --no-deps -e MAILHELP_SMOKE_STAGE=2 mailhelp

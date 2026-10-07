@@ -4,6 +4,9 @@
 # test_mode simuliert nur Todoist; bestätigte Kalendertermine werden tatsächlich angelegt.
 # Relative Daten-/Logpfade gelten relativ zu --config-directory, auch bei --clear.
 # Docker bindet data und logs unter /config/data bzw. /config/logs ein.
+# Normalbetrieb: irrelevant-senders.json aus der Vorlage anlegen und mit einbinden.
+# Lernen im Container: compose.learn.yaml bindet learning-config als Verzeichnis ein.
+# Offene Vorschläge blockieren die Analyse nicht; nur unklare Relevanz wartet auf Telegram.
 timezone: Europe/Berlin
 poll_interval_seconds: 60
 test_mode: false

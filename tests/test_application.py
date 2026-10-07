@@ -205,7 +205,7 @@ def test_persistent_run_records_duplicate_and_irrelevant_analysis(tmp_path):
 
     class Classified(Orch):
         def process(self, mail):
-            state = ({"duplicate": {"previous_mail_id": "a"}}
+            state = ({"duplicate": {"outcome": "duplicate", "previous_mail_id": "a"}}
                      if mail.uid == 1 else
                      {"relevance": {"decision": "irrelevant"}})
             return ProcessingResult(ProcessingOutcome.COMPLETED, state)
@@ -552,6 +552,7 @@ def test_global_mailbox_checkpoint_failures_restarts_and_dialog(tmp_path):
     class Dialog:
         def __init__(self): self.open = True
         def awaiting_decision(self): return self.open
+        def awaiting_relevance_decision(self): return self.open
         def poll_once(self, timeout=None): self.open = False
 
     dialog = app(tmp_path, GlobalImap([[candidate]]), Telegram([]), Orch(),
@@ -589,6 +590,7 @@ def test_global_mailbox_checkpoint_failures_restarts_and_dialog(tmp_path):
     )
     technically_blocked.dialog = type("BlockedDialog", (), {
         "awaiting_decision": lambda self: False,
+        "awaiting_relevance_decision": lambda self: False,
         "processing_blocked": lambda self: True,
     })()
     assert len(technically_blocked._poll_imap()) == 2
@@ -766,7 +768,7 @@ def test_empty_checkpoint_and_run_paths(tmp_path):
     assert failed_dialog.logger.events[0][0][2]=="poll_failed"
 
 
-def test_run_waits_for_open_proposal_before_polling_imap(tmp_path):
+def test_run_waits_for_open_relevance_before_polling_imap(tmp_path):
     class ControlledStop:
         def __init__(self): self.stopped=False; self.waits=[]
         def is_set(self): return self.stopped
@@ -779,6 +781,7 @@ def test_run_waits_for_open_proposal_before_polling_imap(tmp_path):
             self.open = False
         open = True
         def awaiting_decision(self): return self.open
+        def awaiting_relevance_decision(self): return self.open
 
     service=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch())
     stop=ControlledStop(); service.stop_event=stop; service.dialog=Dialog()
@@ -799,6 +802,7 @@ def test_mail_batch_does_not_poll_telegram_without_an_open_question(tmp_path):
     service = app(tmp_path, Imap([(7, mails)]), Telegram([]), Orch())
     service.dialog = Dialog()
     service.dialog.awaiting_decision = lambda: False
+    service.dialog.awaiting_relevance_decision = lambda: False
 
     results = service._poll_imap()
 
@@ -807,7 +811,7 @@ def test_mail_batch_does_not_poll_telegram_without_an_open_question(tmp_path):
     assert service.dialog.timeouts == []
 
 
-def test_open_proposal_blocks_next_mail_even_in_bounded_run(tmp_path):
+def test_open_relevance_blocks_next_mail_even_in_bounded_run(tmp_path):
     mails = [FetchedMail("INBOX", 7, uid, b"x") for uid in (1, 2, 3)]
 
     class Dialog:
@@ -817,6 +821,7 @@ def test_open_proposal_blocks_next_mail_even_in_bounded_run(tmp_path):
             self.polls += 1
             self.open = False
         def awaiting_decision(self): return self.open
+        def awaiting_relevance_decision(self): return self.open
 
     dialog = Dialog()
     class OpensDialog(Orch):
@@ -854,6 +859,7 @@ def test_versioned_answer_is_processed_before_later_mail(tmp_path):
             self.open = False
         def awaiting_decision(self): return self.open
         def awaiting_relevance_decision(self): return self.open
+        def awaiting_relevance_decision(self): return self.open
 
     class ProposesOnTwo(Orch):
         def process(self, mail):
@@ -884,11 +890,12 @@ def test_versioned_answer_is_processed_before_later_mail(tmp_path):
     assert dialog.polls == 1
 
 
-def test_completed_mail_with_multiple_open_proposals_waits_until_closed(tmp_path):
+def test_existing_relevance_is_resolved_before_processing_mail(tmp_path):
     class Dialog:
         def __init__(self): self.polls = 0; self.open = True
         def poll_once(self, timeout=None): self.polls += 1; self.open = False
         def awaiting_decision(self): return self.open
+        def awaiting_relevance_decision(self): return self.open
 
     service = app(tmp_path, Imap([]), Telegram([]), Orch())
     service.dialog = Dialog()
@@ -900,7 +907,7 @@ def test_completed_mail_with_multiple_open_proposals_waits_until_closed(tmp_path
     assert service.dialog.polls == 1
 
 
-def test_new_proposal_returns_when_shutdown_interrupts_its_wait(tmp_path):
+def test_relevance_wait_returns_when_shutdown_interrupts_it(tmp_path):
     class OpensDialog(Orch):
         def process(self, mail):
             dialog.open = True
@@ -909,6 +916,7 @@ def test_new_proposal_returns_when_shutdown_interrupts_its_wait(tmp_path):
     class Dialog:
         open = False
         def awaiting_decision(self): return self.open
+        def awaiting_relevance_decision(self): return self.open
         def poll_once(self, timeout=None): raise RuntimeError("network")
 
     class StopOnWait:
@@ -932,6 +940,7 @@ def test_run_waits_when_regular_telegram_poll_opens_dialog(tmp_path):
     class Dialog:
         def __init__(self): self.open = False; self.polls = 0
         def awaiting_decision(self): return self.open
+        def awaiting_relevance_decision(self): return self.open
         def poll_once(self, timeout=None):
             calls.append("telegram")
             self.polls += 1
@@ -979,6 +988,7 @@ def test_waiting_relevance_handles_closed_dialog_and_poll_failure(tmp_path):
         def __init__(self, open): self.open = open
         def awaiting_decision(self): return self.open
         def awaiting_relevance_decision(self): return self.open
+        def awaiting_relevance_decision(self): return self.open
         def poll_once(self, timeout=None): raise RuntimeError("network")
 
     service = app(tmp_path, Imap([]), Telegram([]), WaitingOrchestrator())
@@ -1025,6 +1035,7 @@ def test_telegram_poll_failure_backs_off_and_shutdown_interrupts_it(tmp_path):
         def __init__(self): self.polls=0
         def poll_once(self, timeout=None): self.polls += 1; raise RuntimeError("network")
         def awaiting_decision(self): return True
+        def awaiting_relevance_decision(self): return True
 
     service=app(tmp_path,Imap([]),Telegram([]),Orch())
     stop=ControlledStop(); service.stop_event=stop; service.dialog=FailingDialog()
@@ -1046,6 +1057,7 @@ def test_google_oauth_failure_stops_application_without_retry(tmp_path, notifica
                 "'mailhelp --check-access' ausführen."
             )
         def awaiting_decision(self): return True
+        def awaiting_relevance_decision(self): return True
 
     telegram = Telegram([])
     if notification_error is not None:
@@ -1081,6 +1093,7 @@ def test_shutdown_requested_during_long_poll_stops_before_retry(tmp_path):
         def __init__(self, stop): self.stop=stop; self.polls=0
         def poll_once(self, timeout=None): self.polls += 1; self.stop.set()
         def awaiting_decision(self): return True
+        def awaiting_relevance_decision(self): return True
 
     service=app(tmp_path,Imap([]),Telegram([]),Orch())
     service.dialog=Dialog(service.stop_event)
@@ -1270,7 +1283,7 @@ def test_startup_help_precedes_resumed_decision_without_resolving_it(tmp_path):
         assert service.telegram.sent == [(2, "Mailhelp gestartet.\n\n" + HELP)]
         service.stop_event.set()
 
-    service.dialog = SimpleNamespace(awaiting_decision=lambda: True, poll_once=poll_once)
+    service.dialog = SimpleNamespace(awaiting_decision=lambda: True, awaiting_relevance_decision=lambda: True, poll_once=poll_once)
     service.run()
     assert service.dialog.awaiting_decision()
     assert not service.imap.calls and not service.orchestrator.seen
@@ -1384,7 +1397,7 @@ def test_resumed_run_completion_handles_terminal_variants_and_safe_checkpoints(t
         "uidvalidity": 8, "uid": 0, "start_uid": 0,
     })
     duplicate._complete_resumed_run_entry(state, ProcessingResult(
-        ProcessingOutcome.COMPLETED, {"duplicate": {"previous_mail_id": "b"}},
+        ProcessingOutcome.COMPLETED, {"duplicate": {"outcome": "duplicate", "previous_mail_id": "b"}},
     ))
     assert duplicate.store.load_model(
         f"mail-run-{account}", MailRunState
@@ -1494,6 +1507,7 @@ def test_resume_mixes_matching_and_blocked_fingerprints_without_resuming_blocked
     )
     stopped.dialog = type("BlockedDialog", (), {
         "awaiting_decision": lambda self: False,
+        "awaiting_relevance_decision": lambda self: False,
         "processing_blocked": lambda self: True,
     })()
     assert len(stopped._resume_pending(_MailBudget(2))) == 3
@@ -1604,7 +1618,7 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
         base_directory=tmp_path, access_diagnostics=True,
     ) as made:
         assert made.check_access() == {
-            "IMAP": "authentication failed", "OpenRouter": None,
+            "IMAP": "IMAP: INBOX: authentication failed", "OpenRouter": None,
             "Telegram": None, "Todoist": None, "Google Kalender": None,
         }
     assert len(closed) == 5
@@ -1743,23 +1757,19 @@ def test_startup_restores_durable_proposal_once_and_last_decision_resumes_imap(t
         service = app(tmp_path, Imap([(1, [])]), telegram, Orch(), store=store)
         service.dialog = c
         polls = []
-        def poll_once(timeout=None):
-            polls.append(timeout)
-            assert not service.imap.calls
-            assert telegram.sent[0][1].startswith('Mailhelp gestartet.')
-            assert len(telegram.sent) == 3
-            if editing:
-                assert 'Rückfrage zu' in telegram.sent[-1][1]
-                assert 'Welches Datum?' in telegram.sent[-1][1]
-            else:
-                assert telegram.sent[-1][2]['inline_keyboard'][0][0]['text'] == 'Klären'
-            if len(polls) == 2:
-                c._decide(Decision(mail_id=item.source_mail_id, proposal_id=item.id,
-                                   version=1, action=DecisionAction.REJECT))
-        c.poll_once = poll_once
+        c.poll_once = lambda timeout=None: polls.append(timeout)
         service.run(max_mails=1)
-        assert len(polls) == 2
-        assert service.imap.calls and not c.awaiting_decision()
+        assert polls == []
+        assert service.imap.calls and c.awaiting_decision()
+        assert telegram.sent[0][1].startswith('Mailhelp gestartet.')
+        assert len(telegram.sent) == 4  # greeting, overview, proposal/question, summary
+        if editing:
+            assert 'Rückfrage zu' in telegram.sent[2][1]
+        else:
+            assert telegram.sent[2][2]['inline_keyboard'][0][0]['text'] == 'Klären'
+        c._decide(Decision(mail_id=item.source_mail_id, proposal_id=item.id,
+                           version=1, action=DecisionAction.REJECT))
+        assert not c.awaiting_decision()
         assert not any(args[2] == 'startup_decisions_failed' for args, _ in service.logger.events)
 
 
@@ -1768,7 +1778,7 @@ def test_startup_redisplay_failure_does_not_stop_polling_or_expose_provider_cont
     service = app(tmp_path, Imap([]), Telegram([]), Orch())
     def poll_once(timeout=None):
         service.stop_event.set()
-    service.dialog = SimpleNamespace(awaiting_decision=lambda: True, poll_once=poll_once,
+    service.dialog = SimpleNamespace(awaiting_decision=lambda: True, awaiting_relevance_decision=lambda: True, poll_once=poll_once,
         show_open_decisions=Mock(side_effect=RuntimeError('synthetic-sensitive-content')))
     service.run()
     service.dialog.show_open_decisions.assert_called_once_with()

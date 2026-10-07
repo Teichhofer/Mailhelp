@@ -154,17 +154,17 @@ class Application:
     def check_access(self) -> dict[str, str | None]:
         """Check every external credential and target without processing mail."""
         def check_imap() -> None:
-            imap_settings = self.settings.imap
-            primary = getattr(imap_settings, "primary_folder", imap_settings.folders[0])
-            self.imap.check_access([primary])
-            for folder in (item for item in imap_settings.folders if item != primary):
+            failures = []
+            for folder in self.settings.imap.folders:
                 try:
                     self.imap.check_access([folder])
                 except Exception as exc:
+                    failures.append(f"{folder}: {str(exc) or type(exc).__name__}")
+                else:
                     getattr(self, "logger", NullLogger()).event(
-                        "WARNING", "imap", "optional_folder_failed",
-                        folder=folder, error=exc,
-                    )
+                        "DEBUG", "access_check", "imap_folder_accessible", folder=folder)
+            if failures:
+                raise RuntimeError("IMAP: " + "; ".join(failures))
 
         checks = (
             ("IMAP", check_imap),
@@ -529,9 +529,9 @@ class Application:
                     failure_code = "processing_failed"
                 else:
                     terminal_status = (MailRunEntryStatus.WAITING_FOR_USER
-                                       if result.outcome is ProcessingOutcome.WAITING
+                                       if result.user_action_open
                                        else MailRunEntryStatus.COMPLETED)
-                    if result.state.get("duplicate") is not None:
+                    if (result.state.get("duplicate") or {}).get("outcome") == "duplicate":
                         terminal_analysis = "duplicate"
                     elif (result.state.get("relevance") or {}).get("decision") == "irrelevant":
                         terminal_analysis = "irrelevant"
@@ -590,9 +590,9 @@ class Application:
             return
 
         entry.status = (MailRunEntryStatus.WAITING_FOR_USER
-                        if result.outcome is ProcessingOutcome.WAITING
+                        if result.user_action_open
                         else MailRunEntryStatus.COMPLETED)
-        if result.state.get("duplicate") is not None:
+        if (result.state.get("duplicate") or {}).get("outcome") == "duplicate":
             entry.analysis_terminal = "duplicate"
         elif (result.state.get("relevance") or {}).get("decision") == "irrelevant":
             entry.analysis_terminal = "irrelevant"
@@ -712,15 +712,15 @@ class Application:
         self.stop_event.set()
 
     def _process_mail(self, mail: object) -> ProcessingResult:
-        """Pause mail processing while Telegram needs a user decision."""
+        """Wait only for relevance; proposals are independent of mail analysis."""
         while True:
             if (self._wait_for_user and self.dialog is not None
-                    and self.dialog.awaiting_decision()
+                    and self.dialog.awaiting_relevance_decision()
                     and not self._wait_for_telegram_decision()):
                 return ProcessingResult(ProcessingOutcome.WAITING, {})
             result = self.orchestrator.process(mail)
             if (not self._wait_for_user or self.dialog is None
-                    or not self.dialog.awaiting_decision()):
+                    or not self.dialog.awaiting_relevance_decision()):
                 return result
             resume_mail = result.outcome is ProcessingOutcome.WAITING
             if not self._wait_for_telegram_decision():
@@ -731,11 +731,11 @@ class Application:
             # resolved it, resume this same mail before advancing the mailbox.
 
     def _wait_for_telegram_decision(self) -> bool:
-        """Long-poll until every current user decision is resolved or stopped."""
-        if self.dialog is None or not self.dialog.awaiting_decision():
+        """Long-poll until the blocking relevance decision is resolved or stopped."""
+        if self.dialog is None or not self.dialog.awaiting_relevance_decision():
             return False
         while (not self.stop_event.is_set()
-               and self.dialog.awaiting_decision()):
+               and self.dialog.awaiting_relevance_decision()):
             if not self._poll_telegram():
                 self.stop_event.wait(min(
                     self.settings.poll_interval_seconds,
@@ -768,10 +768,10 @@ class Application:
                     # No state content is included in this operational event.
                     self.logger.event("ERROR", "retention", "cleanup_failed",
                                       processed_at=datetime.now(timezone.utc).isoformat(), failure_count=1)
-                # Only an already open, durable decision may precede mailbox
+                # Only an already open, durable relevance decision precedes mailbox
                 # work.  An unconditional Telegram long-poll here used to make
                 # every fresh start look stuck for up to telegram_poll_seconds.
-                if self.dialog is not None and self.dialog.awaiting_decision():
+                if self.dialog is not None and self.dialog.awaiting_relevance_decision():
                     self._wait_for_telegram_decision()
                 # A paused proposal revision is isolated to its source mail.
                 # It must never prevent independent queued mail from being
@@ -790,7 +790,7 @@ class Application:
                     break
                 telegram_poll_succeeded = self._poll_telegram()
                 if (not self.stop_event.is_set() and self.dialog is not None
-                        and self.dialog.awaiting_decision()):
+                        and self.dialog.awaiting_relevance_decision()):
                     self._wait_for_telegram_decision()
                 delay = (min(self.settings.poll_interval_seconds,
                              _TELEGRAM_ERROR_BACKOFF_SECONDS)
@@ -802,9 +802,9 @@ class Application:
             run = (self.store.load_model(run_name, MailRunState)
                    if hasattr(self.store, "load_model") else None)
             summary = _RunSummary.from_run(run)
-            # A shutdown must not append a run summary behind unanswered
-            # inline buttons.  The next start resumes that decision first.
-            if self.dialog is not None and self.dialog.awaiting_decision():
+            # Relevance still blocks analysis. Proposal buttons remain usable
+            # independently of the run summary and of subsequent mail runs.
+            if self.dialog is not None and self.dialog.awaiting_relevance_decision():
                 self.logger.event("INFO", "telegram", "run_summary_deferred")
             else:
                 try:

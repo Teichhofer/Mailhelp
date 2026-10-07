@@ -212,7 +212,9 @@ prompts:
       eindeutig an die nutzende Person gerichtete Handlungen nicht "user";
       kennzeichne außerdem eine bloße Option als "non_binding" statt als
       unbedingte Verpflichtung. Die Anwendung übergibt "expected_count" aus dem
-      Router; die Anzahl der Aufgaben muss exakt diesem Wert entsprechen.
+      Router; dieser Wert ist nur ein Diagnosehinweis. Extrahiere ausschließlich
+      belegte Aufgaben, auch wenn ihre Anzahl vom Router abweicht. Erfinde oder
+      entferne keine Aufgabe, um den Zähler zu erfüllen.
       Erfinde oder entferne dennoch keine Kandidaten, sondern prüfe bei einer
       Korrektur die ausdrücklich
       genannten Kandidaten erneut anhand derselben Grenzen.
@@ -268,7 +270,9 @@ prompts:
       Veranstaltung. Bedingte oder nicht eindeutig an die nutzende Person
       gerichtete Teilnahme darf weder responsibility "user" noch certainty
       "certain" erhalten. Die Anwendung übergibt "expected_count" aus dem Router;
-      die Anzahl der Termine muss exakt diesem Wert entsprechen.
+      dieser Wert ist nur ein Diagnosehinweis. Extrahiere ausschließlich belegte
+      Termine, auch wenn ihre Anzahl abweicht. Erfinde oder entferne keinen Termin,
+      um den Zähler zu erfüllen.
       Erfinde oder entferne dennoch keine Kandidaten, sondern prüfe bei einer
       Korrektur die ausdrücklich genannten
       Kandidaten erneut anhand derselben Grenzen.

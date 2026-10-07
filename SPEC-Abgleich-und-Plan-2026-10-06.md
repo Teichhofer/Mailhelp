@@ -1,5 +1,47 @@
 # Spezifikationsabgleich und Umsetzungsplan
 
+## Umsetzungsstand vom 7. Oktober 2026
+
+Die unten dokumentierten Befunde beschreiben den ursprünglichen Prüfstand.
+Die beauftragten Änderungen sind inzwischen im Arbeitsbaum umgesetzt:
+
+| Punkt | Umsetzung und Nachweis |
+| --- | --- |
+| D1 | Spec 1.4 und README vereinheitlichen Relevanzwarten, asynchrone Vorschläge, Mengenprüfung, Fehlerisolation, Zeitsemantik und Delta-Revision. |
+| F1 | Vorschläge blockieren keine Mailanalyse; auch nach Neustart werden sie angezeigt, ohne zu warten. Alle Vorschläge eines Batches bleiben einzeln bedienbar. Run-Zähler erfassen offene Aktionen und werden nach Entscheidungen aktualisiert. |
+| F2 | Analyzer validiert Struktur unabhängig von Routerzahlen. Beide Extraktionen bleiben erhalten; Mengenfragen werden dem Nutzer überlassen. Leere Extraktionen führen zu einer ausdrücklichen manuellen Prüfung ohne erfundene Aktionen. Prompts sind angepasst. |
+| F3 | Normal-Compose bindet den Absenderfilter ein. `compose.learn.yaml` bietet den atomar beschreibbaren Verzeichnismount. Offline-Tests prüfen Filter und Lernpersistenz; die Linux-CI startet dafür frische Container. |
+| F4 | Der Zugriffstest sammelt Fehler aller IMAP-Ordner; Nebenordnerfehler ergeben einen fehlgeschlagenen Gesamtstatus. Weitere Dienste werden trotzdem geprüft. |
+| F5 | OAuth-Ersteinrichtung, Scopes, Refresh-Token und Wiederautorisierung sind anhand offizieller Google-Dokumentation beschrieben. |
+| F6 | `mailhelp-evaluate` prüft tatsächliche Providerantworten gegen unabhängige Korpuserwartungen, mit expliziter Netzwerkfreigabe, Aufruf-/Tokenbegrenzung und JSON-Bericht. Die Tests des Werkzeugs sind vollständig simuliert. Ein realer Qualitätsnachweis ist weiterhin separat auszuführen. |
+| F7 | Doppelanlage-Rückfragen zeigen Absender/Betreff oder einen neutralen Ersatztext, keine internen IDs. |
+
+Zusätzlich wurde ein im neuen Batch-Regressionstest nachgewiesener Statistikfehler
+behoben: Ein Duplikatprüfergebnis `new` oder `ambiguous` zählt nicht mehr als
+übersprungene Duplikatmail.
+
+**Abschlussprüfung:** 814 Tests bestanden, 6.201/6.201 Statements und
+1.918/1.918 Branches abgedeckt, jeweils 100 %, ohne Test- oder Coverage-Warnungen.
+`git diff --check` meldet keine Whitespace-Fehler. Die Regressionstests für
+Mengenprüfung, Blockierung, IMAP-Teilfehler, sichtbare IDs, fehlenden Filtermount
+und falsche Duplikatzählung wurden vor dem jeweiligen Fix fehlschlagend ausgeführt.
+
+Getestet wurde lokal unter Windows mit Python 3.12.14 und den vorhandenen
+Projektpaketen; die nicht startbare alte `.venv` wurde nicht umgeschrieben.
+Der Abgleich mit `requirements.lock` ergab genau eine Paketabweichung:
+lokal `idna 3.20` statt `3.19`. Die CI installiert weiterhin die exakten Lockversionen;
+eine lokale Referenzmessung mit diesem exakten Paketstand ist noch offen.
+Ein Docker-Programm ist hier nicht verfügbar. Die erweiterten Containerprüfungen
+sind lokal als simulierte Dateisystemtests bestanden und in der CI konfiguriert,
+aber noch nicht in Linux-Containern ausgeführt. Es wurden keine echten
+OpenRouter-, Telegram-, Todoist- oder Google-Calendar-Konten angesprochen.
+Ein aktueller Linux-CI-Lauf, ein realer Modellbericht und die kontobezogene
+OAuth-Abnahme bleiben daher **offene Betriebsnachweise**, keine behaupteten Erfolge.
+
+Die Bedienung steht in `docs/Einrichtung-und-Qualitaetspruefung.md`.
+
+---
+
 Stand: 6. Oktober 2026. Grundlage: `Mailhelp-Projektspezifikation.md`, aktueller
 Arbeitsbaum auf Commit `448794e`, einschließlich der bereits vorhandenen lokalen
 Änderungen. Anwendungscode, Tests und bestehende Dokumentation wurden bei dieser

@@ -10,5 +10,11 @@ services:
       - ./prompts.yaml:/config/prompts.yaml:ro
       - ./topics.yaml:/config/topics.yaml:ro
       - ./irrelevant_topics.yaml:/config/irrelevant_topics.yaml:ro
+      - type: bind
+        source: ./irrelevant-senders.json
+        target: /config/irrelevant-senders.json
+        read_only: true
+        bind:
+          create_host_path: false
       - ./data:/config/data
       - ./logs:/config/logs

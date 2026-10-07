@@ -1,0 +1,11 @@
+# Standalone: docker compose -f compose.learn.yaml run --rm mailhelp --learn 20
+# Copy the four YAML files and the sender filter into learning-config first.
+services:
+  mailhelp:
+    build: .
+    init: true
+    env_file: [.env]
+    volumes:
+      - ./learning-config:/config
+      - ./data:/config/data
+      - ./logs:/config/logs
