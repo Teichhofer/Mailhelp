@@ -652,6 +652,7 @@ mit 16.000 Tokens das größte Budget. Zusätzlich begrenzt der globale Block
 `reasoning: {effort: low}` das verborgene Reasoning aller Schritte; ohne ihn
 verbrauchte das Modell im Betrieb schon für einfache Extraktionen über 1.000
 Reasoning-Tokens und erreichte kleine Limits regelmäßig vor der JSON-Ausgabe.
+Der Router nutzt `medium`, weil er entscheidet, ob überhaupt ein Vorschlag entsteht.
 `reasoning` erlaubt genau eines von `effort` oder `max_tokens` sowie optional
 `exclude`; `enabled: false` wird abgewiesen.
 Antwortet ein Provider dennoch mit syntaktisch ungültigem JSON, wird der

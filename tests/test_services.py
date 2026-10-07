@@ -1919,7 +1919,8 @@ def test_regression_shipped_routes_bound_reasoning_and_leave_output_budget():
     config = PromptConfig.model_validate(yaml.safe_load(Path("prompts.yaml").read_text(encoding="utf-8")))
     for step in config.prompts:
         route = config.resolved_routes(step)[0][0]
-        assert route.parameters["reasoning"] == {"effort": "low"}, step
+        expected = {"effort": "medium" if step == "action_router" else "low"}
+        assert route.parameters["reasoning"] == expected, step
     for step in ("summary", "mail_question_resolution", "telegram_answer_interpretation",
                  "telegram_answer_clarification", "calendar_duplicate"):
         assert config.resolved_routes(step)[0][0].parameters["max_tokens"] >= 4000, step

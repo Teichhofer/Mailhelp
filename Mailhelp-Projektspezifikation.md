@@ -339,6 +339,10 @@ die strukturierte Antwort auch bei großen Lernläufen innerhalb dieses Limits e
 Tokenlimit-Retry), `telegram_answer_clarification` und `calendar_duplicate`
 erhalten mindestens 4.000 Tokens. Zusätzlich begrenzt der globale Parameterblock
 das verborgene Reasoning mit `reasoning: {effort: low}`; jeder Schritt erbt ihn.
+Nur `action_router` verwendet `medium`, weil seine Entscheidung bestimmt, ob überhaupt
+ein Vorschlag entsteht (Korpusvergleich: 32/34 statt 30/34 bei gleichen Kosten).
+Wiederholungen nach einem Tokenlimit erhöhen die Stufe nicht, da höheres Reasoning
+das Ausgabebudget zusätzlich belastet.
 Ohne diese Grenze verbrauchte das eingesetzte Modell im Betrieb schon für einfache
 Extraktionen über 1.000 Reasoning-Tokens und erreichte kleine Limits regelmäßig
 vor der JSON-Ausgabe. `reasoning` ist ein geschlossener Block mit genau einem von
