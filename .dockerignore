@@ -6,5 +6,6 @@ logs
 __pycache__
 *.env
 learning-config
+.test-tmp
 .test-tmp-*
 

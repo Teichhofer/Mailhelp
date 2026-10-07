@@ -952,6 +952,17 @@ python -m pytest
 
 Die Standardkonfiguration erzwingt ohne Rundung 100 % Zeilen- **und** Branch-Abdeckung für `src/mailhelp`.
 
+Temporäre Testdateien liegen nicht im Projekt: `tmp_path`, `tempfile` und
+gestartete Kindprozesse verwenden `<System-Temp>/mailhelp-tests`
+(abweichend über die Umgebungsvariable `MAILHELP_TEST_TEMP`). Unter `Documents`
+können Virenscanner frisch geschriebene Dateien kurz sperren; das ließ atomare
+Zustandsschreibvorgänge in Tests sporadisch scheitern. pytest-Cache und
+Coverage-Daten liegen im ignorierten Projektordner `.test-tmp/`. Dateien
+bestandener Tests werden sofort gelöscht. Nach einem vollständig erfolgreichen
+Lauf entfernt `tests/conftest.py` zusätzlich dessen Laufordner, die
+Coverage-Daten und leer gewordene Ordner. Dateien fehlgeschlagener Tests bleiben
+zur Analyse erhalten; pytest behält davon höchstens die letzten drei Läufe.
+
 ### Reproduzierbare Qualitätsprüfungen
 
 Alle folgenden Standardläufe sind offline, verwenden nur synthetische Daten und

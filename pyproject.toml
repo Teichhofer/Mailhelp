@@ -20,9 +20,13 @@ mailhelp-evaluate = "mailhelp.evaluation:main"
 [tool.pytest.ini_options]
 addopts = "--cov=mailhelp --cov-branch --cov-fail-under=100"
 testpaths = ["tests"]
+# Temporary test files live in .test-tmp; see tests/conftest.py.
+cache_dir = ".test-tmp/pytest-cache"
+tmp_path_retention_policy = "failed"
 
 [tool.coverage.run]
 branch = true
+data_file = ".test-tmp/.coverage"
 source = ["mailhelp"]
 
 [tool.coverage.report]

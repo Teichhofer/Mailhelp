@@ -224,5 +224,6 @@ logs/
 config.yaml
 HT.env
 learning-config/
+.test-tmp/
 .test-tmp-*/
 .implementation-tests.txt
