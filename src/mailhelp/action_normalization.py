@@ -299,8 +299,34 @@ def _explicit_offset(raw: str) -> timezone:
     return timezone(sign * timedelta(hours=int(raw[4:6]), minutes=int(raw[7:9])))
 
 
+_TIME_RANGE = re.compile(
+    r"(?i)(?:von\s+)?(?P<start>.+?)\s*(?:-|\u2013|\u2014|\bbis\b)\s*(?P<end>.+)\Z")
+
+
+def split_time_range(event: ExtractedEvent) -> ExtractedEvent:
+    """Split a verbatim clock range that was copied into ``time_text``.
+
+    Both parts must be supported clock times.  A separately extracted end is
+    only accepted when it names the same time; any other combination is
+    returned unchanged so the regular clarification applies.
+    """
+    match = _TIME_RANGE.fullmatch((event.time_text or "").strip())
+    if match is None:
+        return event
+    start, end = match.group("start"), match.group("end")
+    start_clock, end_clock = _parse_time(start, event.responsibility), _parse_time(end, event.responsibility)
+    if not (isinstance(start_clock, time) and isinstance(end_clock, time)):
+        return event
+    if event.end_time_text is not None and _parse_time(
+            event.end_time_text, event.responsibility) != end_clock:
+        return event
+    return event.model_copy(update={"time_text": start.strip(),
+                                    "end_time_text": event.end_time_text or end.strip()})
+
+
 def normalize_event(event: ExtractedEvent, context: MailDateContext) -> NormalizationResult:
     """Normalize an event without making a responsibility decision."""
+    event = split_time_range(event)
     responsibility = event.responsibility
     date_range = _unambiguous_date_range(event)
     if date_range is not None and event.time_text is None and event.end_time_text is None:

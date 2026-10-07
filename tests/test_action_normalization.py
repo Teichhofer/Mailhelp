@@ -10,6 +10,7 @@ from mailhelp.action_normalization import (
     normalize_event,
     normalize_task_due,
     recover_task_due,
+    split_time_range,
 )
 from mailhelp.models import ExtractedEvent, ExtractedTask
 
@@ -401,3 +402,30 @@ def test_due_recovery_never_chooses_or_invents_a_deadline(evidence):
     assert recover_task_due(original) is original
     present = task(due_text="morgen", evidence="bis 2026-09-30")
     assert recover_task_due(present) is present
+
+
+@pytest.mark.parametrize(("time_text", "end_time_text"), [
+    ("13:00 bis 14:00 Uhr", "14:00 Uhr"),
+    ("von 13:00 bis 14:00 Uhr", None),
+    ("13:00–14:00", "14:00"),
+    ("13 Uhr - 14 Uhr", None),
+])
+def test_regression_time_range_in_start_field_is_split(time_text, end_time_text):
+    """Bug: "13:00 bis 14:00 Uhr" as time_text caused a needless time question."""
+    result = normalize_event(event(date_text="24.09.2026", time_requirement="timed",
+                                   time_text=time_text, end_time_text=end_time_text), context())
+    assert result.reason is None
+    assert result.value.start == datetime(2026, 9, 24, 13, tzinfo=result.value.start.tzinfo)
+    assert result.value.end - result.value.start == timedelta(hours=1)
+
+
+@pytest.mark.parametrize(("time_text", "end_time_text"), [
+    ("13:00 bis 14:00 Uhr", "15:00"),      # conflicting explicit end stays a question
+    ("nachmittags bis 14:00", None),       # unsupported start
+    ("13:00 bis abends", None),            # unsupported end
+])
+def test_time_range_split_never_resolves_conflicts_or_guesses(time_text, end_time_text):
+    original = event(date_text="24.09.2026", time_requirement="timed",
+                     time_text=time_text, end_time_text=end_time_text)
+    assert split_time_range(original) is original
+    assert normalize_event(original, context()).value is None

@@ -648,7 +648,12 @@ JSON-Ausgabe. Für die vorgeschaltete Relevanzprüfung sowie für Einzelklassifi
 Abstraktion überschreibt `prompts.yaml` das globale Ausgabelimit mit größeren
 Budgets, damit Reasoning-Provider ihre interne Verarbeitung und das abschließende
 JSON nicht vorzeitig bei `finish_reason=length` abbrechen. Die Abstraktion erhält
-mit 16.000 Tokens das größte Budget.
+mit 16.000 Tokens das größte Budget. Zusätzlich begrenzt der globale Block
+`reasoning: {effort: low}` das verborgene Reasoning aller Schritte; ohne ihn
+verbrauchte das Modell im Betrieb schon für einfache Extraktionen über 1.000
+Reasoning-Tokens und erreichte kleine Limits regelmäßig vor der JSON-Ausgabe.
+`reasoning` erlaubt genau eines von `effort` oder `max_tokens` sowie optional
+`exclude`; `enabled: false` wird abgewiesen.
 Antwortet ein Provider dennoch mit syntaktisch ungültigem JSON, wird der
 begrenzte Reparaturversuch zusätzlich durch eine Systemanweisung erzwungen;
 die Anweisung im Nutzdatenobjekt allein könnte sonst als nicht vertrauenswürdiger

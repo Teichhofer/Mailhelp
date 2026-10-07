@@ -336,8 +336,36 @@ class PromptStep(BaseModel):
 OPENROUTER_PARAMETER_KEYS = {
     "temperature", "max_tokens", "top_p", "top_k", "frequency_penalty",
     "presence_penalty", "repetition_penalty", "seed", "stop", "logit_bias",
-    "min_p", "top_a",
+    "min_p", "top_a", "reasoning",
 }
+REASONING_EFFORTS = {"minimal", "low", "medium", "high"}
+
+
+def checked_parameters(value: dict[str, Any], message: str) -> dict[str, Any]:
+    """Reject unknown request keys and validate the closed ``reasoning`` block.
+
+    ``reasoning`` limits hidden reasoning of capable models with exactly one of
+    ``effort`` or ``max_tokens`` and an optional ``exclude``.  Disabling it via
+    ``enabled`` is not offered: providers may reject such requests permanently.
+    """
+    unknown = set(value) - OPENROUTER_PARAMETER_KEYS
+    if unknown:
+        raise ValueError(f"{message}: {sorted(unknown)}")
+    reasoning = value.get("reasoning")
+    if reasoning is None:
+        return value
+    if not isinstance(reasoning, dict) or set(reasoning) - {"effort", "max_tokens", "exclude"}:
+        raise ValueError("reasoning erlaubt ausschließlich effort, max_tokens und exclude")
+    if ("effort" in reasoning) == ("max_tokens" in reasoning):
+        raise ValueError("reasoning benötigt genau eines von effort oder max_tokens")
+    if "effort" in reasoning and reasoning["effort"] not in REASONING_EFFORTS:
+        raise ValueError(f"reasoning.effort muss einer von {sorted(REASONING_EFFORTS)} sein")
+    tokens = reasoning.get("max_tokens")
+    if "max_tokens" in reasoning and (type(tokens) is not int or not 1 <= tokens <= 32000):
+        raise ValueError("reasoning.max_tokens muss eine Ganzzahl von 1 bis 32000 sein")
+    if "exclude" in reasoning and type(reasoning["exclude"]) is not bool:
+        raise ValueError("reasoning.exclude muss ein Wahrheitswert sein")
+    return value
 
 
 class OpenRouterProviderPreferences(ConfigModel):
@@ -377,10 +405,7 @@ class LlmRoute(ConfigModel):
     @field_validator("parameters")
     @classmethod
     def safe_parameters(cls, value: dict[str, Any]) -> dict[str, Any]:
-        unknown = set(value) - OPENROUTER_PARAMETER_KEYS
-        if unknown:
-            raise ValueError(f"Unbekannte oder reservierte Request-Schlüssel: {sorted(unknown)}")
-        return value
+        return checked_parameters(value, "Unbekannte oder reservierte Request-Schlüssel")
 
 
 class OutputTokenRetry(ConfigModel):
@@ -394,10 +419,7 @@ class OutputTokenRetry(ConfigModel):
     @field_validator("parameters")
     @classmethod
     def safe_parameters(cls, value: dict[str, Any]) -> dict[str, Any]:
-        unknown = set(value) - OPENROUTER_PARAMETER_KEYS
-        if unknown:
-            raise ValueError(f"Unbekannte Retry-Parameter: {sorted(unknown)}")
-        return value
+        return checked_parameters(value, "Unbekannte Retry-Parameter")
 
 class PromptConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
@@ -435,9 +457,7 @@ class PromptConfig(BaseModel):
         if item.routes is not None:
             return item.routes, item.system_prompt, item.provider_retries
         model, parameters, prompt = self.resolved(step)
-        unknown = set(parameters) - OPENROUTER_PARAMETER_KEYS
-        if unknown:
-            raise ValueError(f"Unbekannte oder reservierte Request-Schlüssel: {sorted(unknown)}")
+        checked_parameters(parameters, "Unbekannte oder reservierte Request-Schlüssel")
         return [LlmRoute(provider="openrouter", model=model,
                          parameters=parameters)], prompt, item.provider_retries
 

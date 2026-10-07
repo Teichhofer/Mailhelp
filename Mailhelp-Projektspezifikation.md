@@ -335,6 +335,16 @@ Abstraktion erhält wegen der gemeinsamen Verarbeitung aller Einzelklassifikatio
 ein Ausgabelimit von 16.000 Tokens. Sie liefert höchstens 20 Kategorien mit jeweils
 einer kurzen Beschreibung und ein bis zwei kurzen synthetischen Beispielen, damit
 die strukturierte Antwort auch bei großen Lernläufen innerhalb dieses Limits endet.
+`summary`, `mail_question_resolution`, `telegram_answer_interpretation` (samt
+Tokenlimit-Retry), `telegram_answer_clarification` und `calendar_duplicate`
+erhalten mindestens 4.000 Tokens. Zusätzlich begrenzt der globale Parameterblock
+das verborgene Reasoning mit `reasoning: {effort: low}`; jeder Schritt erbt ihn.
+Ohne diese Grenze verbrauchte das eingesetzte Modell im Betrieb schon für einfache
+Extraktionen über 1.000 Reasoning-Tokens und erreichte kleine Limits regelmäßig
+vor der JSON-Ausgabe. `reasoning` ist ein geschlossener Block mit genau einem von
+`effort` (`minimal`, `low`, `medium`, `high`) oder `max_tokens` (1–32.000) und
+optional `exclude`; ein Abschalten über `enabled` wird abgewiesen, weil Provider
+solche Anfragen dauerhaft ablehnen können.
 
 Die einzige Prompt-Datei ist `prompts.yaml`. Sie enthält die eigentlichen Prompts
 und für jede Stufe eine geordnete Routingstrategie aus Primärroute und optionalen
@@ -406,7 +416,7 @@ Die Anwendung validiert jedes Ergebnis gegen feste Datenschemata. Fehlerhafte Er
 
 ## 7. Zusammenfassungen, Aufgaben und Termine
 
-Eine Telegram-Zusammenfassung enthält keine interne Mail-ID. Sie zeigt zuerst den Absender, direkt darunter den Betreff und danach einen oder höchstens zwei zusammenfassende Sätze. Diese Sätze verdichten zusammengehörige Einzelheiten zu Oberbegriffen und nennen nur Anlass, Kernaussage sowie eine wesentliche Folge oder Handlung; Namen, einzelne Tagesordnungspunkte, Anlagen und andere Details bleiben weg, sofern sie dafür nicht unverzichtbar sind. Sie machen eindeutig, wer informiert oder handeln soll, vermeiden inhaltsarme Betreff-Paraphrasen und behaupten einen Handlungsbedarf nur, wenn er aus der Mail hervorgeht. Ein zweiter Satz ist nur für eine klar getrennte wesentliche Folge oder Handlung vorgesehen. Nicht übergebene Anhänge werden nicht inhaltlich interpretiert, Unsicherheiten und Widersprüche nicht stillschweigend aufgelöst. Der Zusammenfassungs-Prompt fordert als einzige Ausgabe ein syntaktisch gültiges JSON-Objekt mit genau `sentences` (ein bis zwei deutsche Sätze) und `deadlines` (eine stets vorhandene, gegebenenfalls leere String-Liste). Markdown, Begleittext und weitere Felder sind verboten; Mailinhalte werden ausdrücklich als nicht vertrauenswürdige Daten behandelt. Erkannte Aufgaben und Termine werden weiterhin in getrennten, einzeln zu bestätigenden Vorschlagsnachrichten angezeigt. Ohne erkannte Aufgabe oder Termin ist keine Bestätigung nötig.
+Eine Telegram-Zusammenfassung enthält keine interne Mail-ID. Sie zeigt zuerst den Absender, direkt darunter den Betreff und danach einen oder höchstens zwei zusammenfassende Sätze. Diese Sätze verdichten zusammengehörige Einzelheiten zu Oberbegriffen und nennen nur Anlass, Kernaussage sowie eine wesentliche Folge oder Handlung; Namen, einzelne Tagesordnungspunkte, Anlagen und andere Details bleiben weg, sofern sie dafür nicht unverzichtbar sind. Sie machen eindeutig, wer informiert oder handeln soll, vermeiden inhaltsarme Betreff-Paraphrasen und behaupten einen Handlungsbedarf nur, wenn er aus der Mail hervorgeht. Ein zweiter Satz ist nur für eine klar getrennte wesentliche Folge oder Handlung vorgesehen. Nicht übergebene Anhänge werden nicht inhaltlich interpretiert, Unsicherheiten und Widersprüche nicht stillschweigend aufgelöst. Der Zusammenfassungs-Prompt fordert als einzige Ausgabe ein syntaktisch gültiges JSON-Objekt mit genau `sentences` (ein bis zwei deutsche Sätze) und `deadlines` (eine stets vorhandene, gegebenenfalls leere String-Liste aller ausdrücklich genannten Fristen und Termine im Wortlaut der Mail; relative Angaben werden nicht in Kalenderdaten umgerechnet). Markdown, Begleittext und weitere Felder sind verboten; Mailinhalte werden ausdrücklich als nicht vertrauenswürdige Daten behandelt. Erkannte Aufgaben und Termine werden weiterhin in getrennten, einzeln zu bestätigenden Vorschlagsnachrichten angezeigt. Ohne erkannte Aufgabe oder Termin ist keine Bestätigung nötig.
 
 Jeder Vorschlag enthält eine eigene ID, den Typ, einen Titel, eine Beschreibung,
 eine belegende Textstelle, offene Fragen und den Bezug zur Ursprungsmail. Das LLM
@@ -454,7 +464,7 @@ Kurzform, mit oder ohne Komma) und deutsche Tages-/Monatsangaben ohne Jahr sowie
 Andere Schreibweisen und relative Angaben wie „nächsten Freitag“
 bleiben zusammen mit einem stabilen Klärungsgrund als Rohangabe erhalten. Ein Datum ohne Uhrzeit wird nur mit ausdrücklicher Ganztagsevidenz als
 ganztägiges Intervall dargestellt; die unten beschriebenen eindeutigen
-mehrtägigen Bereiche bleiben gesondert geregelt. Eine Uhrzeit wird nur bei vorhandenem Datum, Beginn, Ende und
+mehrtägigen Bereiche bleiben gesondert geregelt. Wurde eine Uhrzeitspanne wie „13:00 bis 14:00 Uhr“ vollständig als Beginn extrahiert, teilt die Normalisierung sie deterministisch in Beginn und Ende auf, sofern beide Teile unterstützte Uhrzeiten sind und ein separat extrahiertes Ende dieselbe Uhrzeit nennt; jede andere Kombination bleibt eine Rückfrage. Eine Uhrzeit wird nur bei vorhandenem Datum, Beginn, Ende und
 entweder einem expliziten festen Offset oder einer eindeutigen IANA-Nutzerzeitzone
 normalisiert; nicht existente oder doppelte Ortszeiten an DST-Übergängen erfordern
 eine Rückfrage. Es werden weder eine Standarduhrzeit,
@@ -560,7 +570,9 @@ angekündigter Termin, eine Einladung, Änderung oder Absage grundsätzlich sie 
 (`responsibility=user`). `other` setzt eine ausdrückliche Zuordnung an andere
 Personen ohne die nutzende Person voraus, `unclear` ausdrückliche Hinweise auf eine
 fremde Zielgruppe, eine Weiterleitung oder eine nur möglicherweise betroffene
-Person. Bedingte Teilnahme bleibt nicht `certain`.
+Person. Bedingte Teilnahme bleibt nicht `certain`. Eine zusätzliche Bitte an eine
+andere Person (etwa um deren Rückmeldung) ändert die Zuständigkeit für die an die
+nutzende Person gerichtete Einladung nicht; sie ist ausschließlich eine Aufgabe.
 
 Für Einladungen gelten in Router und beiden Extraktoren identische
 Kandidatengrenzen. Eine reine Einladung oder Information über eine Veranstaltung
