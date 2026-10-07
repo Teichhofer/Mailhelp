@@ -78,6 +78,7 @@ class ImapSettings(ConfigModel):
 class TelegramSettings(ConfigModel):
     user_id: int = Field(gt=0)
     chat_id: int
+    sequential_questions: bool = True
 
 
 class TargetSettings(ConfigModel):

@@ -39,6 +39,11 @@ telegram:
   # /abbrechen schließt die Bearbeitung, verwirft aber keinen Vorschlag.
   user_id: 1
   chat_id: 2
+  # true: Nach einer Nachricht mit Rückfrage (Vorschlag mit „Klären“ oder
+  # Relevanzfrage) werden weitere Nachrichten zurückgehalten, bis die Rückfrage
+  # erledigt ist; danach folgen sie der Reihe nach bis zur nächsten Rückfrage.
+  # Die Warteschlange liegt in telegram-outbox.json. false: sofort senden.
+  sequential_questions: true
 targets:
   # Bestätigungen gelten für das im Vorschlag gespeicherte Ziel. Bei Abweichung
   # bleiben Schreiben und Abgleich gesperrt (auch nach Neustart/im Testmodus).

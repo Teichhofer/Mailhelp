@@ -683,6 +683,29 @@ Replay-Grenze fort.
   Vorschlagsentscheidungen bleiben asynchron offen; der reguläre Telegram-Poll
   verarbeitet sie nach dem Maildurchlauf. Einmalläufe benötigen dafür gegebenenfalls
   einen späteren regulären Start.
+- Telegram-Nachrichten der Mailverarbeitung (Zusammenfassungen, Hinweise, Fehler,
+  Relevanzfragen und neue Vorschläge) laufen über eine dauerhafte, geordnete
+  Warteschlange `telegram-outbox.json` (Schemaversion 1). Wurde eine Nachricht mit
+  Rückfrage gesendet – eine Relevanzfrage oder ein Vorschlag mit offenen Fragen
+  („Klären“) –, werden alle späteren Nachrichten zurückgehalten, bis diese Rückfrage
+  erledigt ist. Erledigt ist eine Relevanzfrage mit ihrer Entscheidung, ein Vorschlag
+  sobald er nicht mehr offen ist (z. B. verworfen) oder seine aktuelle Version keine
+  offenen Fragen mehr hat; eine pausierte, vom Betreiber zu prüfende Revision hält
+  nichts zurück. Danach werden die gehaltenen Nachrichten in Entstehungsreihenfolge
+  bis einschließlich der nächsten Rückfrage gesendet. Die Mailanalyse selbst läuft
+  weiter; eine zurückgehaltene Relevanzfrage hält nur die Analyse ihrer Mail an.
+  Direkte Antworten im Dialog (Klärungsfrage, überarbeitete Versionen, Bestätigungen,
+  Fehlermeldungen, Befehlsantworten), Starthilfe und Laufzusammenfassung werden nie
+  zurückgehalten. Vorschläge und Relevanzfragen werden als Verweis gespeichert und
+  erst beim Versand dargestellt; inzwischen entschiedene oder überholte Einträge
+  werden übersprungen. Wiederholtes Einreihen derselben Vorschlagsversion bzw.
+  Relevanzfrage ist idempotent; die Vorschlagsmeldung durchläuft `pending` →
+  `queued` → `sending` → `completed`. Ein Eintrag wird vor dem Versand als `sending`
+  gespeichert; bleibt er nach Abbruch oder Fehler unklar, wird er nicht automatisch
+  erneut gesendet (`outbox_delivery_uncertain` bzw. `outbox_delivery_failed`, nur mit
+  Art, Mail-ID und Fehlerklasse). Die Warteschlange wird nach jedem Einreihen, nach
+  jedem Telegram-Poll und beim Start abgearbeitet. `telegram.sequential_questions:
+  false` (Standard `true`) sendet ohne Zurückhalten sofort.
 - Eine Änderung wird einem konkreten Vorschlag zugeordnet. Sind mehrere Vorschläge offen, darf Freitext nicht willkürlich zugeordnet werden.
 - Änderungen können über das LLM interpretiert werden. Der korrigierte Vorschlag muss erneut angezeigt und ausdrücklich bestätigt werden.
 - Bestätigungen gelten nur für die angezeigte Vorschlagsversion. Veraltete Buttons dürfen keine neuere Fassung freigeben.
@@ -728,7 +751,9 @@ Replay-Grenze fort.
   Dialog wird mit seiner konkreten Frage zuletzt angezeigt. Ohne Dialog wird kein
   Freitext zugeordnet: zuerst „Klären“, „Ändern“ oder „Manuell prüfen“ auswählen.
   Der Status unterscheidet Klärungsbedarf ohne Dialog, Warten auf eine Antwort,
-  gespeicherte Antworten und pausierte Verarbeitung. Gespeicherte Antworten und
+  gespeicherte Antworten und pausierte Verarbeitung. Noch zurückgehaltene Vorschläge
+  erscheinen als „Noch nicht gesendet“ ohne Schaltflächen, zusätzlich die Anzahl
+  aller zurückgehaltenen Nachrichten. Gespeicherte Antworten und
   Legacy-Retries erhalten keine erneute Antwortanforderung oder Schaltflächen.
   Die Anzeige verändert weder Vorschlagsversion, Dialogzuordnung, Reihenfolge noch
   Bestätigungen und setzt keine Zustellnachweise (`completed`/`sending`) zurück.

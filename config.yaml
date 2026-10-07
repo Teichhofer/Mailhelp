@@ -31,6 +31,7 @@ imap:
 telegram:
   user_id: 1009258347
   chat_id: 1009258347
+  sequential_questions: true
 targets:
   todoist_project: 6hX5f7MxfC4Qmcrv
   google_calendar: primary

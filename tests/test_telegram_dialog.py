@@ -2285,3 +2285,20 @@ def test_calendar_duplicate_outcomes_are_reported_without_claiming_creation(tmp_
             dialog.persist(item); dialog.poll_once()
             assert any(phrase in text for _,text,_ in telegram.sent)
             assert not any(text.startswith("Erstellt:") for _,text,_ in telegram.sent)
+
+
+def test_regression_messages_after_open_question_are_held_until_resolved(tmp_path):
+    """Bug: every new notification was sent while a question was still open."""
+    with JsonStore(tmp_path) as store:
+        c, t, _ = controller(store)
+        c.send_proposal(proposal(title="Frage A", open_questions=["Welches Datum?"]))
+        c.send_proposal(proposal(source_mail_id="b" * 24, title="Aufgabe B"))
+        c.send(2, "Zusammenfassung C")
+        assert any("Frage A" in text for _, text, _ in t.sent)
+        assert not any("Aufgabe B" in text or text == "Zusammenfassung C"
+                       for _, text, _ in t.sent)
+        t.updates = [callback(1, "proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:reject")]
+        c.poll_once()
+        later = [text for _, text, _ in t.sent]
+        assert later.index("Zusammenfassung C") > max(
+            i for i, text in enumerate(later) if "Aufgabe B" in text)

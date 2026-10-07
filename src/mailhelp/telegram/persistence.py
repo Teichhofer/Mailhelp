@@ -140,6 +140,12 @@ class ProposalRepository:
     def mark_notification_sending(self, proposal: Proposal) -> bool:
         return self._mark_notification(proposal, "pending", "sending")
 
+    def mark_notification_queued(self, proposal: Proposal) -> bool:
+        return self._mark_notification(proposal, "pending", "queued")
+
+    def mark_queued_notification_sending(self, proposal: Proposal) -> bool:
+        return self._mark_notification(proposal, "queued", "sending")
+
     def mark_notification_completed(self, proposal: Proposal) -> bool:
         return self._mark_notification(proposal, "sending", "completed")
 

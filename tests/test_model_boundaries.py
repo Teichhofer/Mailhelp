@@ -19,7 +19,7 @@ def test_persistence_boundary_is_explicit_and_preserves_json_schemas():
     expected = {
         "ActionLedger", "DuplicateIndex", "ImapCheckpoint", "IrrelevantSenders",
         "MailRunState", "MailState", "ProposalClarificationState", "RelevanceDialog",
-        "TelegramDialogState", "TelegramOffset",
+        "TelegramDialogState", "TelegramOffset", "TelegramOutboxState",
     }
     assert set(schemas.__all__) == expected
     assert all(getattr(schemas, name) is getattr(models, name) for name in expected)

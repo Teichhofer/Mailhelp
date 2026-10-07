@@ -165,4 +165,57 @@ class ProposalNotification(StrictModel):
 
     proposal_id: str = Field(pattern=r"^[a-zA-Z0-9_-]{1,64}$")
     proposal_version: int = Field(ge=1)
-    status: Literal["pending", "sending", "completed"] = "pending"
+    status: Literal["pending", "queued", "sending", "completed"] = "pending"
+
+
+class TelegramOutboxEntry(StrictModel):
+    """One held-back Telegram message, stored by reference where possible.
+
+    Proposals and relevance questions are rendered only when they are sent,
+    so superseded or already decided items can be skipped instead of shown.
+    """
+
+    id: str = Field(pattern=r"^[a-f0-9]{32}$")
+    kind: Literal["proposal", "relevance", "message"]
+    mail_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{24}$")
+    proposal_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{1,64}$")
+    version: int | None = Field(default=None, ge=1)
+    sender: str | None = Field(default=None, max_length=10_000)
+    subject: str | None = Field(default=None, max_length=10_000)
+    text: str | None = Field(default=None, min_length=1, max_length=100_000)
+    status: Literal["queued", "sending"] = "queued"
+    created_at: datetime
+
+    @model_validator(mode="after")
+    def complete_reference(self) -> "TelegramOutboxEntry":
+        if self.created_at.tzinfo is None:
+            raise ValueError("Zeitstempel müssen eine Zeitzone enthalten")
+        required = {
+            "proposal": (self.mail_id, self.proposal_id, self.version),
+            "relevance": (self.mail_id, self.version, self.sender, self.subject),
+            "message": (self.text,),
+        }[self.kind]
+        if any(value is None for value in required):
+            raise ValueError("Unvollständiger Verweis in der Telegram-Warteschlange")
+        return self
+
+
+class TelegramOutboxGate(StrictModel):
+    """The sent question that holds back all later queued messages."""
+
+    kind: Literal["proposal", "relevance"]
+    mail_id: str = Field(pattern=r"^[a-f0-9]{24}$")
+    proposal_id: str | None = Field(default=None, pattern=r"^[A-Za-z0-9_-]{1,64}$")
+    version: int = Field(ge=1)
+
+    @model_validator(mode="after")
+    def complete_reference(self) -> "TelegramOutboxGate":
+        if (self.kind == "proposal") != (self.proposal_id is not None):
+            raise ValueError("Nur Vorschlagsrückfragen tragen eine Vorschlags-ID")
+        return self
+
+
+class TelegramOutboxState(StrictModel):
+    schema_version: Literal[1] = 1
+    active: TelegramOutboxGate | None = None
+    entries: list[TelegramOutboxEntry] = Field(default_factory=list)

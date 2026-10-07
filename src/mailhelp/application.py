@@ -761,6 +761,13 @@ class Application:
             self.logger.event("ERROR", "telegram", "startup_decisions_failed",
                               error_class=type(exc).__name__)
         try:
+            if self.dialog is not None:
+                # Held messages whose question was resolved before a restart.
+                self.dialog.flush_outbox()
+        except Exception as exc:
+            self.logger.event("ERROR", "telegram", "startup_outbox_failed",
+                              error_class=type(exc).__name__)
+        try:
             while not self.stop_event.is_set():
                 try:
                     RetentionService(self.store, self.settings.retention, self.logger).run()
@@ -959,6 +966,7 @@ def build_application(
             interpretation_backoff_seconds=settings.retries.interpretation_backoff_seconds,
             revision_attempts=settings.retries.revision_attempts,
             revision_backoff_seconds=settings.retries.revision_backoff_seconds,
+            sequential_questions=settings.telegram.sequential_questions,
         )
         orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics, settings.limits.max_mail_bytes, logger, mime_limits=settings.limits, config_fingerprint=fingerprint, targets=settings.targets, user_timezone=settings.timezone, sender_store=sender_store)
         dialog.relevance_handler = orchestrator

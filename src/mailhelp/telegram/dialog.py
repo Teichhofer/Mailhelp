@@ -21,7 +21,8 @@ from .callbacks import Decision, RelevanceDecision, validate_callback_markup
 from .client import TelegramTransport, _validation_path
 from .ledger import ActionLedgerPort, ActionLedgerService
 from .models import TelegramUpdate
-from .persistence import clarification_name, proposal_version_name
+from .outbox import TelegramOutbox, revision_paused
+from .persistence import proposal_version_name
 from .relevance import RelevanceDialogProcessor, RelevanceHandler
 from .revisions import (
     EventLogger,
@@ -30,6 +31,19 @@ from .revisions import (
     ProposalRevisionService,
 )
 from .writes import ConfirmedWriteExecutor, WriteExecution
+
+
+class _DialogResponsePersistence:
+    """Revisions answer the user directly and therefore bypass the outbox."""
+
+    def __init__(self, controller: "TelegramDialogController"):
+        self.controller = controller
+
+    def persist(self, proposal: Proposal) -> None:
+        self.controller.persist(proposal)
+
+    def send_proposal(self, proposal: Proposal) -> None:
+        self.controller.delivery.deliver(proposal)
 
 
 class TelegramDialogController:
@@ -53,6 +67,7 @@ class TelegramDialogController:
         interpretation_backoff_seconds: int = 60,
         revision_attempts: int = 3,
         revision_backoff_seconds: int = 60,
+        sequential_questions: bool = True,
     ):
         from .delivery import ProposalDeliveryService
         from .decisions import ProposalDecisionService
@@ -85,6 +100,18 @@ class TelegramDialogController:
         self.delivery = ProposalDeliveryService(
             self.repository, self.presenter, telegram, chat_id
         )
+        self.outbox = TelegramOutbox(
+            store,
+            telegram,
+            chat_id,
+            logger,
+            self.repository,
+            self.delivery.send_now,
+            self._send_relevance_now,
+            self.relevance,
+            enabled=sequential_questions,
+        )
+        self.delivery.outbox = self.outbox
         self.write_executor: WriteExecution = ConfirmedWriteExecutor(
             store,
             self.writers,
@@ -109,7 +136,7 @@ class TelegramDialogController:
         self.revisions: ProposalRevisions = ProposalRevisionProcessor(
             store,
             revision_service,
-            self,
+            _DialogResponsePersistence(self),
             telegram,
             chat_id,
             logger,
@@ -129,6 +156,13 @@ class TelegramDialogController:
         self.relevance.handler = value
 
     def send_relevance(
+        self, dialog: RelevanceDialog, sender: str, subject: str
+    ) -> None:
+        """Queue a relevance question behind a possibly open question."""
+        entry_id = self.outbox.enqueue_relevance(dialog, sender, subject)
+        self.outbox.flush(raise_for=entry_id)
+
+    def _send_relevance_now(
         self, dialog: RelevanceDialog, sender: str, subject: str
     ) -> None:
         buttons = [
@@ -180,11 +214,16 @@ class TelegramDialogController:
             raise PermissionError(
                 "Nachrichten dürfen nur an den konfigurierten Chat gesendet werden"
             )
-        self.telegram.send(chat_id, text)
+        entry_id = self.outbox.enqueue_message(text)
+        self.outbox.flush(raise_for=entry_id)
 
     def send_proposal(self, proposal: Proposal) -> None:
-        """Compatibility port delegating delivery to its dedicated service."""
-        self.delivery.deliver(proposal)
+        """Queue a new proposal; revisions are delivered directly instead."""
+        self.delivery.enqueue(proposal)
+
+    def flush_outbox(self) -> None:
+        """Send held messages whose preceding question has been resolved."""
+        self.outbox.flush()
 
     def awaiting_decision(self) -> bool:
         """Return whether processing must wait for an explicit Telegram answer.
@@ -205,18 +244,7 @@ class TelegramDialogController:
                 ProposalStatus.PENDING_CONFIRMATION,
                 ProposalStatus.NEEDS_CLARIFICATION,
             }:
-                clarification = self.store.load_model(
-                    clarification_name(
-                        proposal.source_mail_id, proposal.id, proposal.version
-                    ),
-                    ProposalClarificationState,
-                )
-                if (
-                    isinstance(clarification, ProposalClarificationState)
-                    and clarification.question_status == QuestionStatus.ANSWERED
-                    and clarification.proposal_revision_status
-                    == ProposalRevisionStatus.PAUSED
-                ):
+                if revision_paused(self.store, proposal):
                     continue
                 return True
         return False
@@ -226,7 +254,8 @@ class TelegramDialogController:
         from .commands import TelegramCommands
 
         TelegramCommands(self.store, self.repository, self.presenter,
-                         self.telegram, self.chat_id, self.relevance).overview(interactive=True)
+                         self.telegram, self.chat_id, self.relevance,
+                         self.outbox).overview(interactive=True)
 
     def processing_blocked(self) -> bool:
         """Return whether an answered revision needs an operator restart."""
@@ -335,6 +364,8 @@ class TelegramDialogController:
                 update_id=raw_id,
                 next_offset=offset,
             )
+        # Answers above may have resolved the question that held messages back.
+        self.outbox.flush()
 
     def _reject_duplicate_relevance(self, raw: dict[str, Any]) -> None:
         """Make a replayed relevance answer visible without trusting raw fields."""
@@ -443,7 +474,8 @@ class TelegramDialogController:
             from .commands import TelegramCommands
 
             TelegramCommands(self.store, self.repository, self.presenter,
-                             self.telegram, self.chat_id, self.relevance).handle(normalized)
+                             self.telegram, self.chat_id, self.relevance,
+                             self.outbox).handle(normalized)
             return
         if normalized in {"relevant", "irrelevant"}:
             dialogs = self._open_relevance_dialogs()

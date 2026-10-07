@@ -36,6 +36,7 @@ from .persistence import (
 )
 from .presenter import ProposalPresentation, ProposalPresenter
 from .delivery import ProposalDeliveryService
+from .outbox import TelegramOutbox
 from .decisions import ProposalDecisionService
 from .relevance import RelevanceDialogProcessor, RelevanceDialogs
 from .revisions import (
