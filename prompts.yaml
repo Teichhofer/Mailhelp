@@ -228,6 +228,15 @@ prompts:
       nicht zu einer aktuellen Aufgabe. Zähle dieselbe verlangte Handlung nur
       einmal, auch wenn sie im aktuellen Text mehrfach umschrieben wird.
 
+      Bewerte Termine ebenso aus dem aktuellen Nachrichtenteil. Eine Veranstaltung,
+      die nur in einer zitierten oder weitergeleiteten älteren Nachricht vorkommt,
+      ist kein zusätzlicher Terminkandidat, außer der aktuelle Teil lädt dazu ein,
+      bestätigt, verschiebt oder sagt sie ab. Die bloße Erwähnung einer
+      Veranstaltung, bei der andere Personen etwas besprechen wollen, ist ohne
+      Einladung, Bestätigung oder ausdrücklichen Bezug zur nutzenden Person kein
+      Terminkandidat. Beispiel: „Frau Lang wollte das an der Mitgliederversammlung
+      am 17.10. mit uns besprechen.“ zählt kein Event.
+
       Klassifiziere nur Art und Anzahl. Normalisiere keine Datumsangaben und
       liefere weder Zeitzone, Statuslogik, IDs, Ziele, Notification-Flags noch
       vollständige Vorschläge oder Proposals.

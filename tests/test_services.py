@@ -361,6 +361,10 @@ def test_raw_extraction_prompts_are_separate_and_injection_resistant():
     assert "Zugangsdaten enthält und weder einen Termin noch eine" in event
     assert "fehlende Zeitfelder" in event and '"required_unknown"' in event
     assert "Zugangsdaten enthält und weder einen Termin" in prompts["action_router"]["system_prompt"]
+    # B7 (run 3): the router counted a merely mentioned meeting as an event.
+    router = prompts["action_router"]["system_prompt"]
+    assert "Bewerte Termine ebenso aus dem aktuellen Nachrichtenteil" in router
+    assert "bloße Erwähnung einer" in router and "zählt kein Event" in router
     assert "Datum ohne Uhrzeit ist niemals automatisch ganztägig" in event
     # B4 (run 3): a reminder 30 minutes before the meeting became "already_completed".
     assert "Beurteile nicht selbst, ob ein Termin in der Vergangenheit" in event
