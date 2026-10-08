@@ -63,10 +63,16 @@ def test_experimental_ollama_configuration():
         with pytest.raises(ValidationError):
             OllamaPromptSettings.model_validate(invalid)
     example = _yaml(root / "config.example.yaml")["timeouts"]
-    assert example["ollama"]["timeout_seconds"] == 300
+    assert example["ollama"]["timeout_seconds"] == 600
     without = {key: value for key, value in example.items() if key != "ollama"}
     default = TimeoutSettings.model_validate(without).ollama
-    assert (default.timeout_seconds, default.retries) == (300, 1)
+    assert (default.timeout_seconds, default.retries) == (600, 1)
+    # Unlike hosted adapters (at most 300 s), the local model may take 600 s.
+    TimeoutSettings.model_validate({**without, "ollama": {**example["ollama"], "timeout_seconds": 600}})
+    with pytest.raises(ValidationError):
+        TimeoutSettings.model_validate({**without, "ollama": {**example["ollama"], "timeout_seconds": 601}})
+    with pytest.raises(ValidationError):
+        TimeoutSettings.model_validate({**without, "openrouter": {**example["openrouter"], "timeout_seconds": 301}})
 
 
 def test_strict_ordered_llm_route_configuration():

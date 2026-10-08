@@ -4,7 +4,7 @@ import argparse, json, signal, shutil, sys
 from contextlib import ExitStack
 from pathlib import Path
 from .application import build_application, build_logger
-from .config import Settings, load_all
+from .config import LOCAL_NUM_CTX, Settings, load_all
 from .learning import LearningMode
 from .ollama import LocalLlm, parse_address
 from .storage import JsonStore
@@ -170,7 +170,7 @@ def _main() -> int:
         if not model:
             parser.error("--ollama benötigt ein Modell: --ollama-model NAME oder ollama.model in prompts.yaml")
         local_llm = LocalLlm(*args.ollama, model=model,
-                             num_ctx=prompts.ollama.num_ctx if prompts.ollama else 16384)
+                             num_ctx=prompts.ollama.num_ctx if prompts.ollama else LOCAL_NUM_CTX)
     if args.clear:
         if not args.yes:
             answer = input(

@@ -112,6 +112,12 @@ class AdapterPolicySettings(ConfigModel):
         return self
 
 
+class LocalLlmPolicySettings(AdapterPolicySettings):
+    """Local models answer much slower than hosted ones: up to 600 seconds."""
+
+    timeout_seconds: float = Field(ge=1, le=600)
+
+
 class RetrySettings(ConfigModel):
     provider_retry: int = Field(ge=0, le=10)
     json_repair: int = Field(ge=0, le=10)
@@ -130,9 +136,9 @@ class TimeoutSettings(ConfigModel):
     google_calendar: AdapterPolicySettings
     telegram_poll_seconds: int = Field(ge=1, le=50)
     # Only used in the experimental local mode (--ollama). Local models are
-    # much slower than hosted ones, hence the generous default.
-    ollama: AdapterPolicySettings = Field(default_factory=lambda: AdapterPolicySettings(
-        timeout_seconds=300, retries=1, initial_backoff_seconds=2, max_backoff_seconds=10))
+    # much slower than hosted ones, hence the generous default and limit.
+    ollama: LocalLlmPolicySettings = Field(default_factory=lambda: LocalLlmPolicySettings(
+        timeout_seconds=600, retries=1, initial_backoff_seconds=2, max_backoff_seconds=10))
 
 
 LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
@@ -430,11 +436,17 @@ class OutputTokenRetry(ConfigModel):
     def safe_parameters(cls, value: dict[str, Any]) -> dict[str, Any]:
         return checked_parameters(value, "Unbekannte Retry-Parameter")
 
+# Context window of the experimental local mode. It matches the instance that
+# is preloaded on the Ollama server; any other value makes Ollama reload the
+# model, which takes several minutes for large models.
+LOCAL_NUM_CTX = 65536
+
+
 class OllamaPromptSettings(ConfigModel):
     """Model of the experimental local mode; replaces every OpenRouter route."""
 
     model: str = Field(min_length=1, max_length=200, pattern=r"^[^<>\s]+$")
-    num_ctx: int = Field(default=16384, ge=2048, le=262144)
+    num_ctx: int = Field(default=LOCAL_NUM_CTX, ge=2048, le=262144)
 
 
 class PromptConfig(BaseModel):

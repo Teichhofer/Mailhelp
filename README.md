@@ -632,13 +632,24 @@ mailhelp --ollama [::1]:11434 --ollama-model llama3.1:8b --check-access
   `qwen2.5:7b-instruct`); `--ollama-model NAME` überschreibt es. Ohne Modell
   bricht der Start ab. Das Modell muss auf dem Server installiert sein
   (`ollama pull <modell>`); `--check-access` prüft das über `/api/tags`.
-- `ollama.num_ctx` (Standard 16.384) setzt das Kontextfenster. Ollamas eigener
-  Standard ist zu klein für System-Prompt, Themen und Mailtext.
+- `ollama.num_ctx` (Standard 65.536) setzt das Kontextfenster passend zur auf
+  dem Server vorgeladenen Instanz. Ein abweichender Wert lässt Ollama ein
+  bereits geladenes Modell neu laden, bei sehr großen Modellen mehrere Minuten.
+- An den System-Prompt jedes lokalen Aufrufs wird „Antworte in maximal N
+  Token.“ angehängt; N ist das `max_tokens` der jeweiligen Stufe aus
+  `prompts.yaml`, das zusätzlich als `num_predict` begrenzt.
 - Strukturierte Antworten werden über Ollamas `format` mit dem JSON-Schema der
-  jeweiligen Stufe erzwungen; JSON- und Schemaprüfung, Reparaturversuche,
+  jeweiligen Stufe erzwungen. Zeichenlängen (`maxLength`/`minLength`) werden
+  dabei weggelassen, weil Ollama lange Grenzen nicht in eine Grammatik
+  übersetzen kann („failed to parse grammar“); sie werden anschließend lokal
+  geprüft. Außerdem sind in dieser Grammatik alle Felder Pflicht (leere Werte
+  weiter als `null`), weil das Modell optionale Felder sonst weglässt – Hy3
+  lieferte so trotz gelesener Angaben nie `date_text` und `time_text`.
+  Ausgenommen ist das Änderungsobjekt der Revision (`changes`): Dort bedeutet
+  ein fehlendes Feld „unverändert“. JSON- und Schemaprüfung, Reparaturversuche,
   Rate-Limit und LLM-Logs (`provider: "ollama"`) bleiben unverändert.
 - Timeout und Wiederholungen stehen in `config.yaml` unter `timeouts.ollama`
-  (Standard 300 s, 1 Wiederholung). Es wird kein API-Schlüssel an den lokalen
+  (Standard und Höchstwert 600 s, 1 Wiederholung). Es wird kein API-Schlüssel an den lokalen
   Server gesendet; `OPENROUTER_API_KEY` muss für die Konfigurationsprüfung
   trotzdem gesetzt sein.
 - Der Start im lokalen Modus wird als `local_llm_experimental` (WARNING) mit

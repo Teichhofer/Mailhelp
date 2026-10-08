@@ -16,6 +16,7 @@ from typing import Any
 
 import httpx
 
+from .config import LOCAL_NUM_CTX
 from .openrouter import OpenRouterClient
 
 # OpenRouter request parameters with a direct counterpart in Ollama ``options``.
@@ -25,6 +26,9 @@ _OPTION_NAMES = {
     "frequency_penalty": "frequency_penalty", "presence_penalty": "presence_penalty",
     "repetition_penalty": "repeat_penalty",
 }
+# Delta objects whose missing keys mean "unchanged"; their fields must stay
+# optional in the grammar, otherwise every field is written (as null).
+_SPARSE_OBJECTS = {"ProposalRevisionChanges"}
 _HOSTNAME = re.compile(r"[A-Za-z0-9](?:[A-Za-z0-9.-]{0,251}[A-Za-z0-9])?")
 
 
@@ -35,7 +39,7 @@ class LocalLlm:
     host: str
     port: int
     model: str
-    num_ctx: int = 16384
+    num_ctx: int = LOCAL_NUM_CTX
 
     @property
     def base_url(self) -> str:
@@ -92,17 +96,49 @@ class OllamaClient(OpenRouterClient):
 
     def _prepare_request(self, request: dict[str, Any]) -> dict[str, Any]:
         response_format = request["response_format"]
+        messages = request["messages"]
+        if "max_tokens" in request:
+            # Local models often ignore the hard num_predict limit until it
+            # cuts the JSON off; the stage budget is stated in the prompt too.
+            system, *rest = messages
+            budget = f"Antworte in maximal {request['max_tokens']} Token."
+            messages = [{**system, "content": f"{system['content']}\n\n{budget}"}, *rest]
         options: dict[str, Any] = {"num_ctx": self.num_ctx}
         options.update({target: request[source] for source, target in _OPTION_NAMES.items()
                         if source in request})
         return {
             "model": request["model"],
-            "messages": request["messages"],
+            "messages": messages,
             "stream": False,
-            "format": (response_format["json_schema"]["schema"]
+            "format": (self._grammar_schema(response_format["json_schema"]["schema"])
                        if response_format["type"] == "json_schema" else "json"),
             "options": options,
         }
+
+    @classmethod
+    def _grammar_schema(cls, node: Any) -> Any:
+        """Drop string length limits Ollama cannot compile into a grammar.
+
+        Long ``maxLength`` values (e.g. 4000) made Ollama reject task, event
+        and revision schemas with "failed to parse grammar".  The complete
+        schema, including every length, is still enforced locally afterwards.
+        Only integer keyword values are removed, never a property of that name.
+
+        Every object property is also made required: Ollama's grammar lets a
+        model skip optional properties, and Hy3 then omitted ``date_text`` and
+        ``time_text`` entirely although it had read them.  ``null`` remains
+        allowed for nullable fields, and local validation keeps the defaults.
+        """
+        if isinstance(node, dict):
+            schema = {key: cls._grammar_schema(value) for key, value in node.items()
+                      if not (key in {"maxLength", "minLength"} and isinstance(value, int))}
+            if (schema.get("type") == "object" and isinstance(schema.get("properties"), dict)
+                    and schema.get("title") not in _SPARSE_OBJECTS):
+                schema["required"] = list(schema["properties"])
+            return schema
+        if isinstance(node, list):
+            return [cls._grammar_schema(value) for value in node]
+        return node
 
     @staticmethod
     def _envelope(raw: Any) -> Any:

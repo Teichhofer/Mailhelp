@@ -126,7 +126,7 @@ def test_cli_forwards_mail_limit_and_rejects_non_positive_values(monkeypatch):
 @pytest.mark.parametrize(("arguments", "configured", "expected_model", "num_ctx"), [
     (["--ollama", "192.168.1.20:11434"], "qwen2.5:7b-instruct", "qwen2.5:7b-instruct", 8192),
     (["--ollama", "192.168.1.20:11434", "--ollama-model", "llama3.1:8b"], None,
-     "llama3.1:8b", 16384),
+     "llama3.1:8b", 65536),
 ])
 def test_cli_starts_experimental_local_ollama_mode(monkeypatch, arguments, configured,
                                                    expected_model, num_ctx):

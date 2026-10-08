@@ -14,9 +14,10 @@ defaults:
 # überschreibt das Modell für einen Aufruf.
 ollama:
   model: qwen2.5:7b-instruct
-  # Kontextfenster in Tokens. Ollamas Standard (2.048–4.096) würde System-Prompt,
-  # Themen und Mailtext abschneiden.
-  num_ctx: 16384
+  # Kontextfenster in Tokens, passend zur auf dem Server vorgeladenen Instanz.
+  # Ein anderer Wert lässt Ollama das Modell neu laden (bei großen Modellen
+  # mehrere Minuten); Ollamas Standard (2.048–4.096) wäre außerdem zu klein.
+  num_ctx: 65536
 prompts:
   calendar_duplicate:
     parameters: {temperature: 0.0, max_tokens: 4000}

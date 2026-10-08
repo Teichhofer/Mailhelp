@@ -436,14 +436,23 @@ optional überschrieben durch `--ollama-model`); ohne Modell bricht der Start ab
 OpenRouter-Modelle, `routes`, `provider_preferences` und `reasoning` werden nicht
 übertragen. `temperature`, `max_tokens` (als `num_predict`), `top_p`, `top_k`,
 `min_p`, `seed`, `stop` und die Penalty-Parameter werden in Ollama-`options`
-übersetzt; `ollama.num_ctx` (Standard 16.384) setzt das Kontextfenster. Das
-JSON-Schema der Stufe wird als `format` übergeben, ohne Schema `format: "json"`.
+übersetzt; `ollama.num_ctx` (Standard 65.536, passend zur vorgeladenen
+Serverinstanz) setzt das Kontextfenster. Hat die Stufe ein `max_tokens`, wird
+dem System-Prompt der Satz „Antworte in maximal N Token.“ mit diesem Wert
+angehängt. Das
+JSON-Schema der Stufe wird ohne die Zeichenlängen `maxLength`/`minLength` als
+`format` übergeben, weil Ollama lange Grenzen nicht in eine Grammatik übersetzen
+kann; zugleich werden dort alle Objektfelder als Pflicht markiert (`null` bleibt
+für optionale Felder erlaubt), weil Ollamas Grammatik das Weglassen optionaler
+Felder zulässt. Ausgenommen bleibt das Änderungsobjekt der Revision, in dem ein
+fehlendes Feld „unverändert“ bedeutet; ohne Schema gilt `format: "json"`. Die vollständige Schemavalidierung samt
+Längen erfolgt unverändert lokal.
 Die native Antwort wird in denselben OpenAI-kompatiblen Umschlag übersetzt
 (`done_reason: length` bleibt `output_token_limit`), sodass Rate-Limit,
 Wiederholungen, JSON- und Schemareparatur sowie Logs unverändert gelten; als
 Provider wird `ollama` protokolliert. An den lokalen Server werden keine
 Zugangsdaten gesendet. Timeout und Wiederholungen stammen aus
-`timeouts.ollama` (Standard 300 s, eine Wiederholung). `--check-access` prüft
+`timeouts.ollama` (Standard und Höchstwert 600 s, eine Wiederholung). `--check-access` prüft
 statt OpenRouter, ob der Server antwortet und das Modell installiert ist. Der
 Start wird als `local_llm_experimental` (WARNING) protokolliert. Der Modus ist
 experimentell; Qualität und Laufzeit hängen vom lokalen Modell ab.
@@ -1035,7 +1044,7 @@ das Zielprojekt und HTTP 404 als nicht erreichbares Zielprojekt ausgegeben. Die
 dienstbezogene Meldung wird unverändert an die CLI weitergereicht und enthält
 weder Token oder Authorization-Header noch vollständige Antwortinhalte.
 
-Die Bereiche `imap`, `telegram`, `targets`, `limits`, `retries`, `timeouts` und `logging` besitzen geschlossene Modelle. `imap.connection_mode` akzeptiert ausschließlich `ssl`, `starttls` und `plain`; `imap.historical_start` akzeptiert ausschließlich `null` oder einen ISO-8601-Zeitpunkt mit Offset und `imap.global_newest_first` ausschließlich einen booleschen Wert. IMAP, Telegram, OpenRouter und Todoist konfigurieren Timeout, Retry-Anzahl, initialen Backoff und Backoff-Obergrenze getrennt. Google Calendar besitzt eine eigene Timeout- und Retry-Konfiguration. Ports (1–65535), Polling (5–86400 Sekunden), Adaptertimeouts (1–300 Sekunden), Telegram-Long-Polling (1–50 Sekunden), Mailgröße (1.024–100.000.000 Bytes), LLM-Rate (1–600/min), Wiederholungen (0–10) und Backoff (0–60 Sekunden) sind begrenzt. Zeitzonen müssen IANA-Namen sein; Ordner sind eindeutig und nicht leer, Pfade sicher, Log-Level sind `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Dieselbe Transportauswahl und UTC-Auswertung gilt unter Windows 11 und im Linux-Docker-Container; die Host-Zeitzone beeinflusst die Grenze nicht. Die CLI-Option `--log-directory` überschreibt das konfigurierte Logverzeichnis für einen einzelnen Aufruf, sodass insbesondere Prüfungen aus einem schreibgeschützten Arbeitsverzeichnis in ein beschreibbares temporäres Verzeichnis loggen können. Im Dauerbetrieb ist ein persistentes Logverzeichnis zu verwenden.
+Die Bereiche `imap`, `telegram`, `targets`, `limits`, `retries`, `timeouts` und `logging` besitzen geschlossene Modelle. `imap.connection_mode` akzeptiert ausschließlich `ssl`, `starttls` und `plain`; `imap.historical_start` akzeptiert ausschließlich `null` oder einen ISO-8601-Zeitpunkt mit Offset und `imap.global_newest_first` ausschließlich einen booleschen Wert. IMAP, Telegram, OpenRouter und Todoist konfigurieren Timeout, Retry-Anzahl, initialen Backoff und Backoff-Obergrenze getrennt. Google Calendar besitzt eine eigene Timeout- und Retry-Konfiguration. Ports (1–65535), Polling (5–86400 Sekunden), Adaptertimeouts (1–300 Sekunden, für den lokalen Ollama-Modus 1–600 Sekunden), Telegram-Long-Polling (1–50 Sekunden), Mailgröße (1.024–100.000.000 Bytes), LLM-Rate (1–600/min), Wiederholungen (0–10) und Backoff (0–60 Sekunden) sind begrenzt. Zeitzonen müssen IANA-Namen sein; Ordner sind eindeutig und nicht leer, Pfade sicher, Log-Level sind `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Dieselbe Transportauswahl und UTC-Auswertung gilt unter Windows 11 und im Linux-Docker-Container; die Host-Zeitzone beeinflusst die Grenze nicht. Die CLI-Option `--log-directory` überschreibt das konfigurierte Logverzeichnis für einen einzelnen Aufruf, sodass insbesondere Prüfungen aus einem schreibgeschützten Arbeitsverzeichnis in ein beschreibbares temporäres Verzeichnis loggen können. Im Dauerbetrieb ist ein persistentes Logverzeichnis zu verwenden.
 
 ## 10. JSON-Zustand und Neustartverhalten
 

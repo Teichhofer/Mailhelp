@@ -1682,11 +1682,11 @@ def test_local_ollama_mode_replaces_openrouter(tmp_path, monkeypatch):
         assert made.analyzer.client is made.openrouter
         assert "Ollama (lokal, experimentell)" in made.check_access()
     (args, kwargs), = FakeOllama.calls
-    assert args == (local, 300, 1, cfg.limits.llm_calls_per_minute)
+    assert args == (local, 600, 1, cfg.limits.llm_calls_per_minute)
     assert (kwargs["initial_backoff"], kwargs["max_backoff"]) == (2, 10)
     assert ("WARNING", "local_llm_experimental", {
         "host": "192.168.1.20", "port": 11434, "model": "qwen2.5:7b-instruct",
-        "num_ctx": 16384}) in events
+        "num_ctx": 65536}) in events
 
 
 def test_state_directory_separates_every_durable_state_and_lock(tmp_path):
