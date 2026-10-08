@@ -66,3 +66,26 @@ def test_shipped_config_does_not_throttle_one_hundred_mail_run_after_fifty_mails
     )
 
     assert config.limits.llm_calls_per_minute >= 2 * 100
+
+
+@pytest.mark.parametrize("stage,label", [
+    ("action_router", "Freiwillige Buchung"),
+    ("summary", "Anmeldung und Veranstaltung"),
+])
+def test_regression_quality_prompt_examples_are_schema_valid_and_complete(stage, label):
+    import json
+    from mailhelp.models import ActionRoute, Summary
+    prompt = yaml.safe_load((ROOT / "prompts.yaml").read_text(encoding="utf-8"))["prompts"][stage]["system_prompt"]
+    example = prompt.split("Beispiel: " + label + "\n")[1]
+    mail, output = example.split("Ausgabe: ", 1)
+    value = json.loads(output.splitlines()[0])
+    if stage == "action_router":
+        route = ActionRoute.model_validate(value)
+        assert route.action_state == "task" and route.task_count == 1 and route.event_count == 0
+        assert "können" in mail and "https://" in mail
+    else:
+        summary = Summary.model_validate(value)
+        # Every literal date in the example mail must survive the summary.
+        dates = re.findall(r"\d{2}\.\d{2}\.\d{4}", mail)
+        assert len(set(dates)) == 2
+        assert all(any(date in deadline for deadline in summary.deadlines) for date in dates)

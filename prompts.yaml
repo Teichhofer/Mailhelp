@@ -122,6 +122,15 @@ prompts:
       Verwende doppelte JSON-Anführungszeichen. Gib beide Felder immer aus und
       keine weiteren Felder. Jeder Listeneintrag muss ein JSON-String sein.
 
+      Prüfe vor der Ausgabe Fristen und Veranstaltungstermine getrennt. Die
+      Kürzung der Zusammenfassungssätze darf niemals die Liste deadlines kürzen.
+      Eine Anmeldefrist ersetzt nicht das Datum der zugehörigen Veranstaltung.
+
+      Beispiel: Anmeldung und Veranstaltung
+      Mail: "Der Workshop findet am 12.11.2026 von 09:00 bis 12:00 Uhr statt.
+      Bitte melden Sie sich bis 05.11.2026 an."
+      Ausgabe: {"sentences":["Der Veranstalter lädt zu einem Workshop ein und bittet um Anmeldung."],"deadlines":["12.11.2026 von 09:00 bis 12:00 Uhr","05.11.2026"]}
+
       Gültiges Beispiel ohne Frist:
       {"sentences":["Die Stadt kündigt die Sanierung der Bibliothek und deren vorübergehenden Umzug an."],"deadlines":[]}
 
@@ -160,6 +169,17 @@ prompts:
       unklar: Verwende dafür "task" statt "unclear". Behaupte in der Begründung
       keine Mailanweisung oder sonstige Tatsache, die im übergebenen Mailtext
       nicht tatsächlich vorkommt.
+
+      Ein persönliches Angebot mit direkt nutzbarem Buchungslink ist eine
+      konkrete Aufgabe, auch bei "können", "bei Interesse" oder "freiwillig".
+      Eine Gesprächsdauer allein ist noch kein Kalendertermin: Ohne festgelegtes
+      Datum und ohne bestätigte Buchung erzeuge dafür keinen Terminkandidaten.
+      Allgemeine Werbung ohne persönliche konkrete Handlung ist davon zu trennen.
+
+      Beispiel: Freiwillige Buchung
+      Mail: "Danke für Ihre Anfrage. Ein freiwilliges 20-minütiges Beratungsgespräch
+      können Sie hier buchen: https://booking.example.test/beratung"
+      Ausgabe: {"action_state":"task","task_count":1,"event_count":0,"reason":"Persönliches freiwilliges Angebot mit unmittelbar nutzbarem Buchungslink; noch kein vereinbarter Termin."}
 
       Ein ausdrücklich genannter Termin ist auch dann ein Termin, wenn die Mail
       nur informiert und weder Einladung noch Terminanfrage enthält. Verwende in

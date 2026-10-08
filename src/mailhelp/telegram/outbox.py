@@ -86,6 +86,19 @@ class TelegramOutbox:
             if entry.kind == "proposal"
         }
 
+    def queued_relevance(self) -> set[tuple[str, int]]:
+        """Relevance questions not yet attempted must not pause other mail."""
+        return {(entry.mail_id, entry.version) for entry in self.load().entries
+                if entry.kind == "relevance" and entry.status == "queued"}
+
+    @staticmethod
+    def _uncertain_gate(entry: TelegramOutboxEntry) -> TelegramOutboxGate | None:
+        """Preserve a possibly delivered question without resending it."""
+        if entry.kind == "message":
+            return None
+        return TelegramOutboxGate(kind=entry.kind, mail_id=entry.mail_id,
+                                  proposal_id=entry.proposal_id, version=entry.version)
+
     def held_count(self) -> int:
         return len(self.load().entries)
 
@@ -160,6 +173,7 @@ class TelegramOutbox:
         state = self.load()
         for entry in [item for item in state.entries if item.status == "sending"]:
             # Interrupted between persisting and confirming the send.
+            state.active = self._uncertain_gate(entry)
             state.entries.remove(entry)
             self._save(state)
             self.logger.event(
@@ -183,6 +197,7 @@ class TelegramOutbox:
             try:
                 gate = self._dispatch(entry)
             except Exception as exc:
+                state.active = self._uncertain_gate(entry)
                 state.entries.pop(0)
                 self._save(state)
                 self.logger.event(

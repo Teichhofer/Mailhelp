@@ -43,6 +43,8 @@ telegram:
   # Relevanzfrage) werden weitere Nachrichten zurückgehalten, bis die Rückfrage
   # erledigt ist; danach folgen sie der Reihe nach bis zur nächsten Rückfrage.
   # Die Warteschlange liegt in telegram-outbox.json. false: sofort senden.
+  # Rückfragen halten spätere Telegram-Nachrichten zurück, auch nach unklarem Versand.
+  # Noch zurückgehaltene Relevanzfragen pausieren nur ihre eigene Mailanalyse.
   sequential_questions: true
 targets:
   # Bestätigungen gelten für das im Vorschlag gespeicherte Ziel. Bei Abweichung

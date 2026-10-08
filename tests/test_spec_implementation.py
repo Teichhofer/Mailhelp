@@ -204,3 +204,133 @@ def test_real_bounded_batch_sends_all_proposals_and_counts_open_actions(tmp_path
         current = dialog.repository.load_current(proposals[-1].source_mail_id, proposals[-1].id)
         dialog.persist(current)
         assert store.load_model("mail-run-" + Reader.account_id, MailRunState) == run
+
+
+@pytest.mark.parametrize("decision", ["relevant", "irrelevant"])
+def test_regression_held_relevance_keeps_queue_incomplete_and_resumes(tmp_path, decision):
+    from mailhelp.imap import MailCandidate
+    from mailhelp.models import MailState, MailRunState, ImapCheckpoint
+    from mailhelp.application import _checkpoint_name
+    from test_telegram_outbox import item, stored, A, shown
+    corpus = load_corpus()
+    case = next(case for case in corpus["cases"] if case["id"] == "02_task_only")
+    calls = []
+    class Provider:
+        def complete(self, model, parameters, system, payload, **metadata):
+            stage = metadata["stage"]
+            subject = payload["mail"]["headers"]["subject"]
+            calls.append((subject, stage))
+            if subject == "Mail B" and stage == "relevance":
+                return "call", {"decision": "unclear", "topic_ids": [], "reason": "Synthetic ambiguity"}
+            return "call", deepcopy(case["expected"][{"action_router": "action_route"}.get(stage, stage)])
+    stamp = datetime(2026, 9, 18, 8, 1, tzinfo=timezone.utc)
+    class Reader:
+        account_id = "0" * 24
+        last_uidvalidity = 7
+        def discover_since(self, *args):
+            return [MailCandidate("INBOX", 7, uid, self.account_id, stamp) for uid in (2, 3)]
+        def fetch_uid(self, folder, uid, validity):
+            lines = case["raw_email"].splitlines()
+            lines = [f"Subject: Mail {'B' if uid == 2 else 'C'}" if line.startswith("Subject:")
+                     else f"Message-ID: <synthetic-{uid}@example.test>" if line.startswith("Message-ID:")
+                     else line for line in lines]
+            return FetchedMail(folder, validity, uid, "\n".join(lines).encode(), self.account_id, stamp)
+    def setup(store):
+        dialog, telegram, _ = controller(store)
+        orch = Orchestrator(Analyzer(Provider(), quality_prompts(), validation_retries=0),
+                            store, dialog, 2, [Topic.model_validate(t) for t in corpus["topics"]],
+                            100_000, user_timezone="Europe/Berlin")
+        dialog.relevance_handler = orch
+        service = app(tmp_path, Reader(), telegram, Orch(), store=store, global_newest_first=True)
+        service.orchestrator, service.dialog = orch, dialog
+        # Fail deterministically rather than hang if a hidden question blocks.
+        original_poll = dialog.poll_once
+        def unexpected_poll(timeout=None):
+            service.stop_event.set()
+            original_poll(timeout)
+        dialog.poll_once = unexpected_poll
+        return service, dialog, telegram
+    with JsonStore(tmp_path / "state") as store:
+        service, dialog, telegram = setup(store)
+        first = item(A, "Question A", ["Wann?"])
+        stored(store, first)
+        state = store.load_model("mail-" + A, MailState)
+        state.steps.completion = "completed"
+        store.save("mail-" + A, state.model_dump(mode="json"))
+        dialog.send_proposal(first)
+        service.run(max_mails=2)
+        states = [store.load_model(name, MailState) for name in store.names("mail-")
+                  if not name.startswith("mail-run-")]
+        b = next(state for state in states if state.imap.uid == 2)
+        c = next(state for state in states if state.imap.uid == 3)
+        assert b.awaiting_relevance and b.steps.completion == "pending"
+        assert c.steps.completion == "completed"
+        assert not shown(telegram, "Mail B")
+        run = store.load_model("mail-run-" + Reader.account_id, MailRunState)
+        assert run.entries[0].analysis_terminal is None and not run.run_complete
+        checkpoint = store.load_model(_checkpoint_name(Reader.account_id, "INBOX"), ImapCheckpoint)
+        assert checkpoint.completed_uid_ranges == [(3, 3)]
+    with JsonStore(tmp_path / "state") as store:
+        service, dialog, telegram = setup(store)
+        assert not dialog.awaiting_relevance_decision()
+        telegram.updates = [callback(1, f"proposal:{A}:p1:1:reject")]
+        dialog.poll_once()
+        service.stop_event.clear()
+        assert shown(telegram, "Mail B") and dialog.awaiting_relevance_decision()
+        telegram.updates = [callback(2, f"relevance:{b.id}:1:{decision}")]
+        dialog.poll_once()
+        service.stop_event.clear()
+        service._poll_imap(max_mails=2)
+        run = store.load_model("mail-run-" + Reader.account_id, MailRunState)
+        assert run.run_complete
+        assert run.entries[0].analysis_terminal == ("completed" if decision == "relevant" else "irrelevant")
+        checkpoint = store.load_model(_checkpoint_name(Reader.account_id, "INBOX"), ImapCheckpoint)
+        assert checkpoint.completed_uid_ranges == [(2, 3)]
+        assert calls.count(("Mail B", "relevance")) == 1
+        assert calls.count(("Mail C", "relevance")) == 1
+
+
+def test_regression_legacy_reader_does_not_checkpoint_unanswered_relevance(tmp_path):
+    from mailhelp.orchestrator import ProcessingResult
+    from mailhelp.application import _checkpoint_name
+    class Waiting(Orch):
+        def process(self, mail):
+            self.seen.append(mail.uid)
+            return ProcessingResult(ProcessingOutcome.WAITING, {"awaiting_relevance": True}) if mail.uid == 1 else ProcessingResult(ProcessingOutcome.COMPLETED, {})
+    reader = Imap([(7, [FetchedMail("INBOX", 7, uid, b"synthetic") for uid in (1, 2)])])
+    service = app(tmp_path, reader, Telegram([]), Waiting())
+    service._poll_imap(max_mails=2)
+    assert service.orchestrator.seen == [1, 2]
+    assert service.store.values[_checkpoint_name(reader.account_id, "INBOX")]["completed_uid_ranges"] == [(2, 2)]
+
+
+def test_regression_held_relevance_does_not_consume_next_run_budget(tmp_path):
+    from uuid import uuid4
+    from mailhelp.models import MailState, MailRunState, MailRunEntry, MailRunCounters, RelevanceDialog
+    from mailhelp.imap import MailCandidate
+    from mailhelp.application import _checkpoint_name
+    stamp = datetime(2026, 9, 18, tzinfo=timezone.utc)
+    class Reader:
+        account_id = "0" * 24
+        last_uidvalidity = 7
+        def __init__(self): self.fetched = []
+        def discover_since(self, *args):
+            return [MailCandidate("INBOX", 7, uid, self.account_id, stamp) for uid in (2, 3)]
+        def fetch_uid(self, folder, uid, validity):
+            self.fetched.append(uid)
+            return FetchedMail(folder, validity, uid, b"synthetic", self.account_id, stamp)
+    with JsonStore(tmp_path / "state") as store:
+        state = MailState(id="b" * 24, config_fingerprint="0" * 64,
+            imap={"account_id": Reader.account_id, "folder": "INBOX", "uidvalidity": 7, "uid": 2},
+            awaiting_relevance=True, relevance_dialog=RelevanceDialog(mail_id="b" * 24))
+        store.save("mail-" + state.id, state.model_dump(mode="json"))
+        run_state = MailRunState(run_id=uuid4(), created_at=stamp,
+            entries=[MailRunEntry(account_id=Reader.account_id, folder="INBOX", uidvalidity=7,
+                                 uid=2, status="processing")], counters=MailRunCounters(processing=1))
+        store.save("mail-run-" + Reader.account_id, run_state.model_dump(mode="json"))
+        reader = Reader()
+        service = app(tmp_path, reader, Telegram([]), Orch(), store=store, global_newest_first=True)
+        service._poll_imap(max_mails=1)
+        assert reader.fetched == [3]
+        assert store.load_model("mail-" + state.id, MailState).awaiting_relevance
+        assert store.load(_checkpoint_name(Reader.account_id, "INBOX"))["completed_uid_ranges"] == [[3, 3]]

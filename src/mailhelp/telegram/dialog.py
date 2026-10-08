@@ -273,8 +273,10 @@ class TelegramDialogController:
         )
 
     def awaiting_relevance_decision(self) -> bool:
-        """Return whether an unfinished mail analysis needs a relevance answer."""
-        return bool(self._open_relevance_dialogs())
+        """Wait globally only for relevance questions already sent or uncertain."""
+        queued = self.outbox.queued_relevance()
+        return any((dialog.mail_id, dialog.version) not in queued
+                   for dialog in self._open_relevance_dialogs())
 
     def poll_once(self, timeout: int | None = None) -> None:
         self.write_executor.resume()

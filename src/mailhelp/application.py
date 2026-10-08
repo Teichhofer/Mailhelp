@@ -333,6 +333,9 @@ class Application:
                     # terminal attempt from the batch and leave its UID out of
                     # the checkpoint, but do not strand later messages.
                     continue
+                if result.state.get("awaiting_relevance"):
+                    # Only this mail is deferred; its UID is not complete yet.
+                    continue
                 # Every result reaching this point has a durable mail state.
                 # Failed results are excluded above so their checkpoint remains
                 # available for restart recovery.
@@ -350,11 +353,19 @@ class Application:
     def _poll_imap_global(self, budget: _MailBudget, *,
                           ignore_historical_start: bool = False) -> list[ProcessingResult]:
         """Process one mailbox-wide batch ordered by IMAP receive time."""
+        # Waiting relevance is durable mail work, not a runnable queue position.
+        # Exclude it from discovery and budgets until an authorized answer arrives.
+        waiting = set()
+        for name in mail_state_names(self.store):
+            state = self.store.load_model(name, MailState)
+            if state.awaiting_relevance:
+                identity = state.imap
+                waiting.add(f"{identity.account_id}\0{identity.folder}\0{identity.uidvalidity}\0{identity.uid}")
         run_name = f"mail-run-{self.imap.account_id}"
         active = (self.store.load_model(run_name, MailRunState)
                   if hasattr(self.store, "load_model") else None)
         active = active if active is not None and any(
-            entry.status in {MailRunEntryStatus.DISCOVERED, MailRunEntryStatus.QUEUED,
+            entry.key not in waiting and entry.status in {MailRunEntryStatus.DISCOVERED, MailRunEntryStatus.QUEUED,
                              MailRunEntryStatus.PROCESSING}
             for entry in active.entries
         ) else None
@@ -456,6 +467,8 @@ class Application:
                     uidvalidity=candidate.uidvalidity, uid=candidate.uid,
                     status=MailRunEntryStatus.QUEUED,
                 )
+                if entry.key in waiting:
+                    continue
                 unique.setdefault(entry.key, entry)
                 if len(unique) == limit:
                     break
@@ -478,7 +491,7 @@ class Application:
             persisted = self.store.load_model(run_name, MailRunState)
             assert persisted is not None
             current = next(entry for entry in persisted.entries if entry.key == queued.key)
-            if current.status not in {MailRunEntryStatus.DISCOVERED,
+            if current.key in waiting or current.status not in {MailRunEntryStatus.DISCOVERED,
                                       MailRunEntryStatus.QUEUED,
                                       MailRunEntryStatus.PROCESSING}:
                 continue
@@ -512,6 +525,10 @@ class Application:
                 break
             else:
                 results.append(result)
+                if result.state.get("awaiting_relevance"):
+                    # Keep the durable processing entry incomplete while moving
+                    # on to independent mail behind the held relevance question.
+                    continue
                 if result.outcome is ProcessingOutcome.FAILED:
                     # The mail state already contains the safe failure details.
                     # Record the failed attempt in the durable run before
@@ -574,7 +591,8 @@ class Application:
         self, state: MailState, result: ProcessingResult
     ) -> None:
         """Synchronize a separately resumed mail with its durable run queue."""
-        if result.outcome is ProcessingOutcome.FAILED:
+        if (result.outcome is ProcessingOutcome.FAILED
+                or result.state.get("awaiting_relevance")):
             return
         run_name = f"mail-run-{self.imap.account_id}"
         run = self.store.load_model(run_name, MailRunState)
@@ -635,6 +653,8 @@ class Application:
                 state = self.store.load_model(name, MailState)
                 if state is None or (state.steps.completion != "pending" and
                                      state.steps.action_detection != "failed"):
+                    continue
+                if state.awaiting_relevance:
                     continue
                 if state.imap.account_id != self.imap.account_id:
                     continue

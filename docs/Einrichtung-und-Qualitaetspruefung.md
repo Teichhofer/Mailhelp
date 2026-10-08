@@ -151,17 +151,59 @@ global und `medium` für `action_router`. Zwei identische Läufe ergaben jeweils
 Sekunden je Lauf, ohne Provider-, Schema- oder Tokenlimitfehler. Relevanz 17/17,
 Router, Aufgaben und Termine je 16/17, Zusammenfassung 16/17.
 
-Bewusst akzeptierte, in beiden Läufen gleiche Abweichungen:
+In beiden damaligen Läufen gleiche Abweichungen (keine vollständige Spec-Abnahme):
 
 - `17_optional_booking`: Der Router stuft das freiwillige Buchungsangebot als
-  `unclear` ohne Aufgabe ein, sodass kein Vorschlag entsteht. Akzeptiert, weil es
-  sich um ein freiwilliges Angebot handelt und die Mail weiterhin als
-  Zusammenfassung erscheint. Die Korpuserwartung bleibt `task`, damit eine
-  Verbesserung oder Verschlechterung sichtbar bleibt.
+  `unclear` ohne Aufgabe ein, sodass kein Vorschlag entsteht. Dies widerspricht
+  der Spec für persönliche, direkt ausführbare Buchungsangebote. Die verbindliche
+  Korpuserwartung bleibt `task`; eine Zusammenfassung ersetzt den Vorschlag nicht.
 - `03_council_event`: Zuständigkeit oder Sicherheit schwanken zwischen `unclear`
   und `uncertain`; beide Varianten führen zur gleichen Rückfrage.
 - `14_invitation_registration`: Die Zusammenfassung nennt die Anmeldefrist, aber
-  nicht den Termin des Fachtags (nur Anzeige).
+  nicht den Termin des Fachtags. Auch dies ist eine Spec-Abweichung: `deadlines`
+  muss sowohl Anmeldefrist als auch Veranstaltungstermin enthalten.
 
 Die manuelle Bewertung von Zusammenfassung, Titel, Beschreibung und Evidenz steht
 weiterhin aus.
+
+### Nachbesserung und Prüfstand (8. Oktober 2026)
+
+Die Prompts enthalten jetzt konkrete Gegenbeispiele für die beiden fachlichen
+Abweichungen: Ein persönliches freiwilliges Buchungsangebot erzeugt eine Aufgabe,
+keinen schon vereinbarten Kalendertermin; Anmeldefrist und Veranstaltungstermin
+müssen beide in `deadlines` erscheinen. Die bisherigen Korpuserwartungen bleiben
+unverändert. Automatische Tests prüfen Schema und Vollständigkeit der neuen
+Promptbeispiele; das ersetzt keine Prüfung tatsächlicher Modellantworten.
+
+Ein neuer Evaluationsversuch mit maximal 100 Aufrufen wurde durchgeführt.
+Der [Rohbericht](../quality-reports/evaluation-2026-10-08.json) enthält
+17 versuchte Fälle mit jeweils `LlmProviderResponseInvalid` und keine
+verwertbaren Modellantworten. Ein separater schreibfreier Zugriffstest ergab
+`RetryableError` mit Ursache `ConnectError`, ohne HTTP-Status. Der Versuch belegt
+somit keine Modellqualität und keine Ablehnung des API-Schlüssels durch den Dienst.
+`complete: true` bedeutet nur, dass alle Korpusfälle versucht wurden;
+`passed: false` bleibt die maßgebliche Abnahmebewertung. Nullwerte bei Tokens
+und Kosten sind fehlende Verbrauchsmeldungen, keine Abrechnungsbestätigung.
+
+Nach wiederhergestelltem OpenRouter-Zugang denselben Korpus erneut ausführen und
+Zusammenfassungen, Titel, Beschreibungen und Evidenz anhand der Rohantworten
+manuell prüfen. Ohne solche Antworten bleibt diese manuelle Abnahme offen.
+
+Die lokale Windows-Prüfung besteht mit **892 Tests**, **6.565/6.565 Statements**
+und **2.034/2.034 Branches**, Exit-Code 0. Ausgeführt mit Python 3.12.14 und
+vorhandenen Projektpaketen; die alte virtuelle Umgebung wurde nicht verändert.
+Docker ist lokal nicht verfügbar; die GitHub-CLI ist nicht angemeldet. Die
+vorhandenen Linux-/Container-CI-Prüfungen müssen noch für den endgültigen Commit
+erfolgreich ausgeführt werden. Kalender und Todoist wurden nicht beschrieben.
+
+Die Telegram-Korrekturen bewahren Rückfragesperren bei unklarem Versand und nach
+Neustart. Zurückgehaltene Relevanzfragen pausieren nur ihre eigene Mail. Diese
+Mails bleiben unvollständig und werden nicht vorschnell als abgeschlossene UIDs
+verbucht; bei späteren Abrufen verbrauchen sie kein Verarbeitungskontingent.
+Gesperrte Restverzeichnisse der Testbereinigung verhindern keinen erfolgreichen
+Testabschluss mehr.
+
+**Deployment:** Geänderte Prompts ändern den Konfigurationsfingerprint. Bereits
+angefangene Mails mit altem Fingerprint benötigen die ursprüngliche Konfiguration
+zur Fortsetzung oder eine ausdrücklich gewählte Neuverarbeitung.
+Der Sicherheitsmechanismus wird durch dieses Update nicht abgeschwächt.

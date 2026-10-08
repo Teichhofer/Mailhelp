@@ -1,0 +1,260 @@
+{
+  "schema_version": 2,
+  "created_at": "2026-10-08T05:10:45.707470+00:00",
+  "prompt_fingerprint": "84a21c293fcf8b5ce5d7c7e3eeecb6d671925a6b46907836f7a0a9db5ad53933",
+  "corpus_fingerprint": "e9e6e339a88a044f156c687d819089e31ce0d5874954b4e65a23f4faef47fd3c",
+  "corpus_schema_version": 2,
+  "routes": {
+    "relevance": [
+      {
+        "provider": "openrouter",
+        "model": "z-ai/glm-5.3-flash",
+        "parameters": {
+          "temperature": 0.0,
+          "max_tokens": 10000,
+          "reasoning": {
+            "effort": "low"
+          }
+        },
+        "provider_preferences": {
+          "order": [],
+          "allow_fallbacks": true,
+          "require_parameters": false,
+          "data_collection": null,
+          "sort": null,
+          "ignore": []
+        },
+        "supports_json_schema": true
+      }
+    ],
+    "summary": [
+      {
+        "provider": "openrouter",
+        "model": "z-ai/glm-5.3-flash",
+        "parameters": {
+          "temperature": 0.0,
+          "max_tokens": 4000,
+          "reasoning": {
+            "effort": "low"
+          }
+        },
+        "provider_preferences": {
+          "order": [],
+          "allow_fallbacks": true,
+          "require_parameters": false,
+          "data_collection": null,
+          "sort": null,
+          "ignore": []
+        },
+        "supports_json_schema": true
+      }
+    ],
+    "action_router": [
+      {
+        "provider": "openrouter",
+        "model": "z-ai/glm-5.3-flash",
+        "parameters": {
+          "temperature": 0.0,
+          "max_tokens": 10000,
+          "reasoning": {
+            "effort": "medium"
+          }
+        },
+        "provider_preferences": {
+          "order": [],
+          "allow_fallbacks": true,
+          "require_parameters": false,
+          "data_collection": null,
+          "sort": null,
+          "ignore": []
+        },
+        "supports_json_schema": true
+      }
+    ],
+    "task_extraction": [
+      {
+        "provider": "openrouter",
+        "model": "z-ai/glm-5.3-flash",
+        "parameters": {
+          "temperature": 0.0,
+          "max_tokens": 10000,
+          "reasoning": {
+            "effort": "low"
+          }
+        },
+        "provider_preferences": {
+          "order": [],
+          "allow_fallbacks": true,
+          "require_parameters": false,
+          "data_collection": null,
+          "sort": null,
+          "ignore": []
+        },
+        "supports_json_schema": true
+      }
+    ],
+    "event_extraction": [
+      {
+        "provider": "openrouter",
+        "model": "z-ai/glm-5.3-flash",
+        "parameters": {
+          "temperature": 0.0,
+          "max_tokens": 10000,
+          "reasoning": {
+            "effort": "low"
+          }
+        },
+        "provider_preferences": {
+          "order": [],
+          "allow_fallbacks": true,
+          "require_parameters": false,
+          "data_collection": null,
+          "sort": null,
+          "ignore": []
+        },
+        "supports_json_schema": true
+      }
+    ]
+  },
+  "max_calls": 100,
+  "calls": 17,
+  "cases_total": 17,
+  "complete": true,
+  "passed": false,
+  "cases": [
+    {
+      "id": "01_no_action",
+      "error": "LlmProviderResponseInvalid",
+      "stages": {},
+      "review_outputs": {},
+      "passed": false
+    },
+    {
+      "id": "02_task_only",
+      "error": "LlmProviderResponseInvalid",
+      "stages": {},
+      "review_outputs": {},
+      "passed": false
+    },
+    {
+      "id": "03_council_event",
+      "error": "LlmProviderResponseInvalid",
+      "stages": {},
+      "review_outputs": {},
+      "passed": false
+    },
+    {
+      "id": "04_task_and_event",
+      "error": "LlmProviderResponseInvalid",
+      "stages": {},
+      "review_outputs": {},
+      "passed": false
+    },
+    {
+      "id": "05_unclear_action",
+      "error": "LlmProviderResponseInvalid",
+      "stages": {},
+      "review_outputs": {},
+      "passed": false
+    },
+    {
+      "id": "06_unclear_responsibility",
+      "error": "LlmProviderResponseInvalid",
+      "stages": {},
+      "review_outputs": {},
+      "passed": false
+    },
+    {
+      "id": "07_relative_deadline",
+      "error": "LlmProviderResponseInvalid",
+      "stages": {},
+      "review_outputs": {},
+      "passed": false
+    },
+    {
+      "id": "08_invalid_date",
+      "error": "LlmProviderResponseInvalid",
+      "stages": {},
+      "review_outputs": {},
+      "passed": false
+    },
+    {
+      "id": "09_change",
+      "error": "LlmProviderResponseInvalid",
+      "stages": {},
+      "review_outputs": {},
+      "passed": false
+    },
+    {
+      "id": "10_cancellation",
+      "error": "LlmProviderResponseInvalid",
+      "stages": {},
+      "review_outputs": {},
+      "passed": false
+    },
+    {
+      "id": "11_recurring",
+      "error": "LlmProviderResponseInvalid",
+      "stages": {},
+      "review_outputs": {},
+      "passed": false
+    },
+    {
+      "id": "12_prompt_injection",
+      "error": "LlmProviderResponseInvalid",
+      "stages": {},
+      "review_outputs": {},
+      "passed": false
+    },
+    {
+      "id": "13_pure_invitation",
+      "error": "LlmProviderResponseInvalid",
+      "stages": {},
+      "review_outputs": {},
+      "passed": false
+    },
+    {
+      "id": "14_invitation_registration",
+      "error": "LlmProviderResponseInvalid",
+      "stages": {},
+      "review_outputs": {},
+      "passed": false
+    },
+    {
+      "id": "15_invitation_optional_greeting",
+      "error": "LlmProviderResponseInvalid",
+      "stages": {},
+      "review_outputs": {},
+      "passed": false
+    },
+    {
+      "id": "16_invitation_feedback_other",
+      "error": "LlmProviderResponseInvalid",
+      "stages": {},
+      "review_outputs": {},
+      "passed": false
+    },
+    {
+      "id": "17_optional_booking",
+      "error": "LlmProviderResponseInvalid",
+      "stages": {},
+      "review_outputs": {},
+      "passed": false
+    }
+  ],
+  "manual_review": "Zusammenfassung, Titel, Beschreibung und Evidenz benötigen zusätzlich fachliche Prüfung.",
+  "usage": {
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "total_tokens": 0,
+    "reported_cost": 0.0,
+    "responses_without_usage": 0
+  },
+  "stage_pass_counts": {
+    "relevance": 0,
+    "summary": 0,
+    "action_router": 0,
+    "task_extraction": 0,
+    "event_extraction": 0
+  }
+}

@@ -50,10 +50,17 @@ def prune_empty(root: Path) -> None:
                if item.is_dir() and not item.is_symlink())
     # Deepest folders first, so parents emptied in this pass are removed too.
     for folder in sorted(folders, key=lambda item: len(item.parts), reverse=True):
-        if not any(folder.iterdir()):
-            folder.rmdir()
-    if not any(root.iterdir()):
-        root.rmdir()
+        try:
+            if not any(folder.iterdir()):
+                folder.rmdir()
+        except OSError:
+            # Another run or a Windows scanner may own this directory.
+            continue
+    try:
+        if not any(root.iterdir()):
+            root.rmdir()
+    except OSError:
+        pass
 
 
 def remove_run_files(root: Path, run_directory: Path | None,

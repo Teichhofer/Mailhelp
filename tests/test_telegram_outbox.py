@@ -355,3 +355,75 @@ def test_queue_survives_restart_and_ignores_unauthorized_answers(tmp_path):
         assert notification(store, B) == "completed"
         restarted.flush_outbox()
         assert sum("Aufgabe B" in text for text in texts(t2)) == 1
+
+
+@pytest.mark.parametrize("kind", ["proposal", "relevance"])
+@pytest.mark.parametrize("failure", ["before", "after", "error"])
+def test_regression_uncertain_question_preserves_gate(tmp_path, kind, failure):
+    with JsonStore(tmp_path) as store:
+        c, t, _ = controller(store)
+        p = item(A, "Question A", ["Wann?"])
+        relevance = RelevanceDialog(mail_id=A) if kind == "relevance" else None
+        stored(store, p, relevance=relevance)
+        c.repository.save_revision(p)
+        if kind == "proposal":
+            c.outbox.enqueue_proposal(p)
+        else:
+            c.outbox.enqueue_relevance(relevance, "Sender", "Question A")
+        c.outbox.enqueue_message("Later message")
+        attr = "send_" + kind
+        original = getattr(c.outbox, attr)
+        def interrupted(*args):
+            if failure != "before":
+                original(*args)
+            if failure == "error":
+                raise TimeoutError("uncertain delivery")
+            raise SystemExit("simulated crash")
+        setattr(c.outbox, attr, interrupted)
+        if failure == "error":
+            c.flush_outbox()
+        else:
+            with pytest.raises(SystemExit):
+                c.flush_outbox()
+        assert shown(t, "Question A") == (failure != "before")
+    with JsonStore(tmp_path) as store:
+        restarted, t, _ = controller(store)
+        restarted.flush_outbox()
+        assert texts(t) == []
+        assert outbox(store).active.mail_id == A
+        assert len(outbox(store).entries) == 1
+        # Unauthorized replies cannot release a possibly delivered question.
+        t.updates = [callback(1, f"proposal:{A}:p1:1:reject", user=999)]
+        restarted.poll_once()
+        assert not shown(t, "Later message")
+        if kind == "proposal":
+            current = restarted.repository.load_current(A, "p1")
+            restarted.persist(current.model_copy(update={"status": ProposalStatus.REJECTED}))
+        else:
+            decided = relevance.model_copy(update={"status": RelevanceDialogStatus.DECIDED,
+                                                    "decision": "irrelevant", "telegram_offset": 3})
+            stored(store, p, relevance=decided)
+        restarted.flush_outbox()
+        assert texts(t).count("Later message") == 1
+        restarted.flush_outbox()
+        assert texts(t).count("Later message") == 1
+
+
+def test_regression_queued_relevance_does_not_block_analysis(tmp_path):
+    with JsonStore(tmp_path) as store:
+        c, t, _ = controller(store)
+        first = item(A, "Question A", ["Wann?"])
+        stored(store, first)
+        c.send_proposal(first)
+        other = RelevanceDialog(mail_id=B)
+        stored(store, item(B, "B"), status="completed", relevance=other)
+        c.send_relevance(other, "Sender B", "Subject B")
+        assert not shown(t, "Subject B")
+        assert not c.awaiting_relevance_decision()
+    with JsonStore(tmp_path) as store:
+        c, t, _ = controller(store)
+        assert not c.awaiting_relevance_decision()
+        c.persist(first.model_copy(update={"status": ProposalStatus.REJECTED}))
+        c.flush_outbox()
+        assert shown(t, "Subject B")
+        assert c.awaiting_relevance_decision()

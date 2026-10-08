@@ -46,7 +46,7 @@ Zuständen je Abrufdurchlauf.
 Ein regulärer Zyklus beginnt unmittelbar mit der IMAP-Verarbeitung und führt den
 Telegram-Long-Poll erst anschließend aus. Dadurch verzögert dessen konfigurierter
 Server-Timeout weder den Programmstart noch den Beginn der Mailbearbeitung. Bereits gespeicherte offene Entscheidungen werden beim Start erneut angezeigt.
-Nur offene Relevanzentscheidungen werden vor weiterer Mailanalyse beantwortet;
+Nur bereits versandte oder versandunsichere Relevanzentscheidungen werden vor weiterer Mailanalyse beantwortet;
 offene Vorschläge blockieren auch nach Neustarts keine Mailverarbeitung.
 
 Der Lernmodus `--learn N` ist ein separater, interaktiver Einmallauf. Er lädt
@@ -159,7 +159,7 @@ Die nachfolgenden Betriebsdetails konkretisieren den vereinbarten Kern als vorge
 6. Irrelevante Nachrichten werden als verarbeitet markiert und erzeugen keine Telegram-Nachricht. Bei unklarer Relevanz zeigt eine Rückfrage den aufbereiteten Absender und Betreff, jedoch keine interne Mail-ID. Diese bleibt zusammen mit der Dialogversion ausschließlich in den Callback-Daten zur technischen Zuordnung.
 7. Für relevante Nachrichten erstellt das LLM eine Zusammenfassung und prüft auf Aufgaben und Termine. Nach einer unklaren Einstufung geschieht dies erst nach der Auswahl `Relevant`; bei Auswahl `Irrelevant` wird keine Zusammenfassung erzeugt.
 8. Mailhelp validiert die strukturierten Ergebnisse und sendet die Zusammenfassung über Telegram.
-9. Erkannte Aufgaben und Termine werden als einzelne, versionsbezogen prüfbare Vorschläge angeboten. Alle Vorschläge werden dauerhaft gespeichert und asynchron angezeigt; sie blockieren weder weitere Vorschläge noch die nächste Mail. Nur eine unklare Relevanzentscheidung hält die weitere Analyse bis zur Antwort an.
+9. Erkannte Aufgaben und Termine werden als einzelne, versionsbezogen prüfbare Vorschläge angeboten. Alle Vorschläge werden dauerhaft gespeichert und über die Telegram-Outbox angezeigt; offene Vorschläge blockieren keine Mailanalyse. Vorschläge mit Rückfragen halten jedoch spätere Telegram-Nachrichten bis zur Klärung zurück. Nur eine bereits versandte oder versandunsichere Relevanzfrage hält die weitere Mailanalyse bis zur Antwort an; eine noch zurückgehaltene Relevanzfrage pausiert ausschließlich ihre eigene Mail.
 10. Bestätigte, vollständige Vorschläge werden im vorgesehenen Dienst gespeichert. Erfolg oder Fehler wird per Telegram zurückgemeldet.
 11. Vor dem Beenden sendet Mailhelp eine Zusammenfassung des gesamten aktuellen Laufs mit der Zahl der bearbeiteten, erfolgreich abgeschlossenen, wartenden und fehlgeschlagenen Verarbeitungsversuche. Solange eine Relevanzentscheidung offen ist, wird auch diese Nachricht zurückgestellt; offene Vorschläge verhindern die Laufzusammenfassung nicht. Andernfalls gilt der Versand auch bei einem kontrollierten Signalabbruch oder einem unerwarteten Laufzeitfehler; ein Fehler beim Versand wird protokolliert und verdeckt den ursprünglichen Fehler nicht.
 
@@ -701,7 +701,9 @@ Replay-Grenze fort.
   `Im Kalender anlegen` schreibt den Termin über die Google Calendar API in den konfigurierten Kalender.
   Vorschläge mit offenen Fragen bieten dagegen ausschließlich `Klären` und
   `Verwerfen`; erst eine vollständige neue Version erhält eine Bestätigung.
-- Solange eine Relevanzentscheidung offen ist, pausiert die weitere Mailanalyse.
+- Solange eine bereits versandte oder versandunsichere Relevanzentscheidung offen
+  ist, pausiert die weitere Mailanalyse. Eine noch in der Outbox zurückgehaltene
+  Relevanzfrage pausiert ausschließlich ihre eigene Mail.
   Vorschlagsentscheidungen bleiben asynchron offen; der reguläre Telegram-Poll
   verarbeitet sie nach dem Maildurchlauf. Einmalläufe benötigen dafür gegebenenfalls
   einen späteren regulären Start.
@@ -716,6 +718,13 @@ Replay-Grenze fort.
   nichts zurück. Danach werden die gehaltenen Nachrichten in Entstehungsreihenfolge
   bis einschließlich der nächsten Rückfrage gesendet. Die Mailanalyse selbst läuft
   weiter; eine zurückgehaltene Relevanzfrage hält nur die Analyse ihrer Mail an.
+  Diese Mail bleibt unvollständig, erhält noch keinen abgeschlossenen UID-Bereich
+  und bleibt in einem bestehenden Run zunächst processing ohne analysis_terminal.
+  Offene Relevanzmails verbrauchen bei späteren Abrufen kein Verarbeitungskontingent
+  und verhindern keine neue Queue für andere Mails. Ihr autoritativer Mailzustand
+  bleibt auch bei einem neuen Run erhalten. Nach einer Entscheidung wird ihre
+  Analyse fortgesetzt beziehungsweise als irrelevant abgeschlossen; der nächste
+  Abgleich aktualisiert Queue und UID-Bereiche.
   Direkte Antworten im Dialog (Klärungsfrage, überarbeitete Versionen, Bestätigungen,
   Fehlermeldungen, Befehlsantworten), Starthilfe und Laufzusammenfassung werden nie
   zurückgehalten. Vorschläge und Relevanzfragen werden als Verweis gespeichert und
@@ -725,7 +734,13 @@ Replay-Grenze fort.
   `queued` → `sending` → `completed`. Ein Eintrag wird vor dem Versand als `sending`
   gespeichert; bleibt er nach Abbruch oder Fehler unklar, wird er nicht automatisch
   erneut gesendet (`outbox_delivery_uncertain` bzw. `outbox_delivery_failed`, nur mit
-  Art, Mail-ID und Fehlerklasse). Die Warteschlange wird nach jedem Einreihen, nach
+  Art, Mail-ID und Fehlerklasse). Bei einer versandunsicheren Rückfrage bleibt
+  ihre Sperre erhalten, auch wenn der Prozess zwischen erfolgreichem externem
+  Versand und lokaler Bestätigung abstürzt. Beim Wiederanlauf wird die Sperre
+  aus der dauerhaften Referenz rekonstruiert, bevor der Eintrag entfernt wird.
+  Dies gilt auch für ältere sending-Einträge ohne gespeicherte Sperre. Der
+  aktuelle autoritative Fragezustand entscheidet, wann die Sperre aufgehoben wird;
+  unberechtigte Antworten heben sie nicht auf. Die Warteschlange wird nach jedem Einreihen, nach
   jedem Telegram-Poll und beim Start abgearbeitet. `telegram.sequential_questions:
   false` (Standard `true`) sendet ohne Zurückhalten sofort.
 - Eine Änderung wird einem konkreten Vorschlag zugeordnet. Sind mehrere Vorschläge offen, darf Freitext nicht willkürlich zugeordnet werden.

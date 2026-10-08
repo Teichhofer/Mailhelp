@@ -98,3 +98,23 @@ def test_temp_root_defaults_to_system_temp_and_can_be_overridden(tmp_path, monke
     module = load()
     assert module.TEST_TEMP_ROOT == (tmp_path / "eigen").resolve()
     assert module.COVERAGE_DATA.parent.name == ".test-tmp"
+
+
+def test_regression_locked_cache_does_not_fail_successful_cleanup(tmp_path, monkeypatch):
+    from pathlib import Path
+    root = tmp_path / "root"
+    run = root / "run"
+    run.mkdir(parents=True)
+    cache = root / "cache"
+    cache.mkdir()
+    coverage = root / ".coverage"
+    coverage.write_text("synthetic")
+    original = Path.iterdir
+    def locked(path):
+        if path == cache:
+            raise PermissionError("synthetic locked cache")
+        return original(path)
+    monkeypatch.setattr(Path, "iterdir", locked)
+    remove_run_files(root, run, coverage)
+    assert not run.exists() and not coverage.exists()
+    assert cache.exists()
