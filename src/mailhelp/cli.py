@@ -6,6 +6,7 @@ from pathlib import Path
 from .application import build_application, build_logger
 from .config import Settings, load_all
 from .learning import LearningMode
+from .ollama import LocalLlm, parse_address
 from .storage import JsonStore
 from .paths import runtime_path
 
@@ -36,6 +37,13 @@ def _default_config_directory() -> Path:
     if all((checkout_directory / name).is_file() for name in CONFIGURATION_FILES):
         return checkout_directory
     return working_directory
+
+
+def _ollama_address(value: str) -> tuple[str, int]:
+    try:
+        return parse_address(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError(str(exc)) from exc
 
 
 def _positive_int(value: str) -> int:
@@ -136,6 +144,15 @@ def _main() -> int:
         "--yes", action="store_true",
         help="Bestätigungsabfrage für --clear überspringen",
     )
+    parser.add_argument(
+        "--ollama", type=_ollama_address, metavar="HOST:PORT",
+        help=("EXPERIMENTELL: alle LLM-Schritte statt über OpenRouter über den lokalen "
+              "Ollama-Server HOST:PORT ausführen (IPv6 als [::1]:11434)"),
+    )
+    parser.add_argument(
+        "--ollama-model", metavar="NAME",
+        help="Ollama-Modell für --ollama; überschreibt ollama.model aus prompts.yaml",
+    )
     args = parser.parse_args()
     shutdown = _SignalShutdown()
     signal.signal(signal.SIGINT, shutdown)
@@ -145,6 +162,15 @@ def _main() -> int:
         parser.error("--yes ist nur zusammen mit --clear zulässig")
     if args.show_imap_credentials and not args.check_access:
         parser.error("--show-imap-credentials ist nur zusammen mit --check-access zulässig")
+    local_llm = None
+    if args.ollama_model is not None and args.ollama is None:
+        parser.error("--ollama-model ist nur zusammen mit --ollama zulässig")
+    if args.ollama is not None:
+        model = args.ollama_model or (prompts.ollama.model if prompts.ollama else None)
+        if not model:
+            parser.error("--ollama benötigt ein Modell: --ollama-model NAME oder ollama.model in prompts.yaml")
+        local_llm = LocalLlm(*args.ollama, model=model,
+                             num_ctx=prompts.ollama.num_ctx if prompts.ollama else 16384)
     if args.clear:
         if not args.yes:
             answer = input(
@@ -169,6 +195,8 @@ def _main() -> int:
         "ignore_historical_start": args.ignore_historical_start,
         "learn": args.learn,
         "clear": args.clear,
+        "ollama": local_llm.base_url if local_llm else None,
+        "ollama_model": local_llm.model if local_llm else None,
     })
     if args.check: print("Konfiguration ist gültig."); return 0
     if args.show_imap_credentials:
@@ -181,6 +209,7 @@ def _main() -> int:
         settings, secrets, topics, prompts, fingerprint,
         base_directory=args.config_directory,
         access_diagnostics=args.check_access, logger=logger,
+        local_llm=local_llm,
     ) as application:
         if args.check_access:
             results = application.check_access()

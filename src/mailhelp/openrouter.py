@@ -69,12 +69,17 @@ class OpenRouterResponse(BaseModel):
 
 
 class OpenRouterClient:
-    def __init__(self, key: str, timeout: float, retries: int, calls_per_minute: int, transport: httpx.BaseTransport | None = None, sleep: Callable[[float], None] = time.sleep, *, initial_backoff: float = 1, max_backoff: float = 8, clock: Callable[[], float] = time.time, load_calls: Callable[[], list[float]] | None = None, save_calls: Callable[[list[float]], None] | None = None, stopped: Callable[[float], bool] | None = None, logger: EventLogger | None = None):
+    # Overridable protocol details; the retry, budget, logging and JSON
+    # validation flow in ``complete`` is shared by every LLM backend.
+    service_name = "OpenRouter"
+    endpoint = "/chat/completions"
+
+    def __init__(self, key: str, timeout: float, retries: int, calls_per_minute: int, transport: httpx.BaseTransport | None = None, sleep: Callable[[float], None] = time.sleep, *, initial_backoff: float = 1, max_backoff: float = 8, clock: Callable[[], float] = time.time, load_calls: Callable[[], list[float]] | None = None, save_calls: Callable[[list[float]], None] | None = None, stopped: Callable[[float], bool] | None = None, logger: EventLogger | None = None, base_url: str = "https://openrouter.ai/api/v1"):
         self.calls: list[float] = []
         self.key, self.limit, self.clock = key, calls_per_minute, clock
         self.load_calls = load_calls or (lambda: self.calls)
         self.save_calls = save_calls or (lambda calls: self.calls.__setitem__(slice(None), calls))
-        self.client = httpx.Client(base_url="https://openrouter.ai/api/v1", timeout=timeout, transport=transport)
+        self.client = httpx.Client(base_url=base_url, timeout=timeout, transport=transport)
         self.logger = logger or NullLogger()
         self._observations: dict[str, dict[str, Any]] = {}
         self._state_lock = Lock()
@@ -104,6 +109,7 @@ class OpenRouterClient:
                  response_schema: type[BaseModel] | None = None,
                  supports_json_schema: bool = True,
                  revision_route: str = "standard") -> tuple[str, Any]:
+        model = self._resolve_model(model)
         with self._state_lock:
             now = self.clock()
             calls = sorted(value for value in self.load_calls() if isinstance(value, (int, float)) and now - value < 60)
@@ -122,6 +128,7 @@ class OpenRouterClient:
         request = {**parameters, "model": model, "messages": [{"role": "system", "content": system}, {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}], "response_format": response_format}
         if provider_preferences is not None:
             request["provider"] = provider_preferences
+        request = self._prepare_request(request)
         started = time.perf_counter()
         fingerprint = hashlib.sha256(json.dumps(request["messages"], ensure_ascii=False, sort_keys=True).encode()).hexdigest()
         correlation = _correlation(payload)
@@ -145,13 +152,13 @@ class OpenRouterClient:
                               error=exc, status=getattr(getattr(exc, "response", None), "status_code", None),
                               **metadata, **correlation)
         def invoke() -> httpx.Response:
-            response = self.client.post("/chat/completions", headers={"Authorization": f"Bearer {self.key}", "X-Request-Id": call_id}, json=request)
-            _raise_for_status(response)
+            response = self.client.post(self.endpoint, headers=self._headers(call_id), json=request)
+            self._raise_for_status(response)
             return response
         try:
             response = self.policy.run(invoke, begin, failed_attempt)
             try:
-                raw = response.json()
+                raw = self._envelope(response.json())
             except (ValueError, json.JSONDecodeError) as exc:
                 metadata["http_status"] = response.status_code
                 self._log_attempt("provider_response_invalid", metadata,
@@ -205,6 +212,24 @@ class OpenRouterClient:
                                       status=getattr(getattr(exc, "response", None), "status_code", "error"), attempt=attempt,
                                       error=exc, stacktrace=traceback.format_exc(), **metadata, **correlation)
             raise
+
+    def _resolve_model(self, model: str) -> str:
+        return model
+
+    def _prepare_request(self, request: dict[str, Any]) -> dict[str, Any]:
+        return request
+
+    def _headers(self, call_id: str) -> dict[str, str]:
+        return {"Authorization": f"Bearer {self.key}", "X-Request-Id": call_id}
+
+    @staticmethod
+    def _raise_for_status(response: httpx.Response) -> None:
+        _raise_for_status(response)
+
+    @staticmethod
+    def _envelope(raw: Any) -> Any:
+        """Return the provider answer in the OpenAI-compatible envelope."""
+        return raw
 
     def _log_attempt(self, event: str, metadata: dict[str, Any], **context: Any) -> None:
         self.logger.llm_event(event, **metadata, **context)

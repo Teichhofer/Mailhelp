@@ -8,7 +8,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from threading import Event
-from typing import Iterator
+from typing import Any, Iterator
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
@@ -19,6 +19,7 @@ from .integrations import GoogleOAuthTokenProvider, HttpWriter, OAuthTokenError
 from .logging import JsonlLogger, NullLogger
 from .models import (ImapCheckpoint, MailRunCounters, MailRunEntry,
                      MailRunEntryStatus, MailRunState, MailState, TelegramOffset)
+from .ollama import LocalLlm, OllamaClient
 from .openrouter import OpenRouterClient
 from .orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
 from .storage import JsonStore, mail_state_names
@@ -168,7 +169,7 @@ class Application:
 
         checks = (
             ("IMAP", check_imap),
-            ("OpenRouter", self.openrouter.check_access),
+            (getattr(self.openrouter, "service_name", "OpenRouter"), self.openrouter.check_access),
             ("Telegram", lambda: Application._check_telegram_access(self)),
             ("Todoist", self.todoist.check_access),
             ("Google Kalender", self.calendar.check_access),
@@ -920,6 +921,7 @@ def build_application(
     *,
     access_diagnostics: bool = False,
     logger: JsonlLogger | None = None,
+    local_llm: LocalLlm | None = None,
 ) -> Iterator[Application]:
     """Construct adapters and close every successfully constructed resource."""
     with ExitStack() as stack:
@@ -948,8 +950,20 @@ def build_application(
             imap = _FailedAccessAdapter(exc)
         else:
             stack.callback(imap.close)
-        llm_cfg = settings.timeouts.openrouter
-        openrouter = OpenRouterClient(secrets.openrouter_api_key.get_secret_value(), llm_cfg.timeout_seconds, llm_cfg.retries, settings.limits.llm_calls_per_minute, initial_backoff=llm_cfg.initial_backoff_seconds, max_backoff=llm_cfg.max_backoff_seconds, load_calls=lambda: store.load("llm-budget", {}).get("calls", []), save_calls=lambda calls: store.save("llm-budget", {"calls": calls}), logger=logger)
+        llm_budget: dict[str, Any] = dict(
+            load_calls=lambda: store.load("llm-budget", {}).get("calls", []),
+            save_calls=lambda calls: store.save("llm-budget", {"calls": calls}), logger=logger)
+        openrouter: OpenRouterClient
+        if local_llm is None:
+            llm_cfg = settings.timeouts.openrouter
+            openrouter = OpenRouterClient(secrets.openrouter_api_key.get_secret_value(), llm_cfg.timeout_seconds, llm_cfg.retries, settings.limits.llm_calls_per_minute, initial_backoff=llm_cfg.initial_backoff_seconds, max_backoff=llm_cfg.max_backoff_seconds, **llm_budget)
+        else:
+            # Experimental: every LLM stage runs on the local Ollama model.
+            llm_cfg = settings.timeouts.ollama
+            openrouter = OllamaClient(local_llm, llm_cfg.timeout_seconds, llm_cfg.retries, settings.limits.llm_calls_per_minute, initial_backoff=llm_cfg.initial_backoff_seconds, max_backoff=llm_cfg.max_backoff_seconds, **llm_budget)
+            logger.event("WARNING", "application", "local_llm_experimental",
+                         host=local_llm.host, port=local_llm.port, model=local_llm.model,
+                         num_ctx=local_llm.num_ctx)
         stack.callback(openrouter.close)
         telegram = TelegramClient(secrets.telegram_bot_token.get_secret_value(), settings.timeouts.telegram.timeout_seconds, poll_timeout=settings.timeouts.telegram_poll_seconds, policy=policy("telegram"), logger=logger)
         stack.callback(telegram.close)

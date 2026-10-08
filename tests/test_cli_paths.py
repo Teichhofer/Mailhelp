@@ -79,7 +79,7 @@ def test_cli_forwards_posix_and_windows_path_spellings(monkeypatch, capsys, spel
         "config_directory": str(Path(spelling)), "log_directory": log_directory,
         "check": True, "check_access": False, "show_imap_credentials": False,
         "max_mails": None, "ignore_historical_start": False, "learn": None,
-        "clear": False,
+        "clear": False, "ollama": None, "ollama_model": None,
     }})]
 
 
@@ -99,6 +99,7 @@ def test_cli_forwards_mail_limit_and_rejects_non_positive_values(monkeypatch):
             "base_directory": Path.cwd(),
             "access_diagnostics": False,
             "logger": logger,
+            "local_llm": None,
         }
         yield application
     monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], [], None, "fingerprint"))
@@ -115,11 +116,62 @@ def test_cli_forwards_mail_limit_and_rejects_non_positive_values(monkeypatch):
         "config_directory": str(Path.cwd()), "log_directory": None,
         "check": False, "check_access": False, "show_imap_credentials": False,
         "max_mails": 10, "ignore_historical_start": True, "learn": None,
-        "clear": False,
+        "clear": False, "ollama": None, "ollama_model": None,
     }
     assert _positive_int("1") == 1
     with pytest.raises(Exception, match="mindestens 1"):
         _positive_int("0")
+
+
+@pytest.mark.parametrize(("arguments", "configured", "expected_model", "num_ctx"), [
+    (["--ollama", "192.168.1.20:11434"], "qwen2.5:7b-instruct", "qwen2.5:7b-instruct", 8192),
+    (["--ollama", "192.168.1.20:11434", "--ollama-model", "llama3.1:8b"], None,
+     "llama3.1:8b", 16384),
+])
+def test_cli_starts_experimental_local_ollama_mode(monkeypatch, arguments, configured,
+                                                   expected_model, num_ctx):
+    from mailhelp.ollama import LocalLlm
+
+    built = []
+
+    class App:
+        def stop(self): pass
+        def run(self, max_mails=None): return None
+
+    @contextmanager
+    def builder(*_args, **kwargs):
+        built.append(kwargs["local_llm"])
+        yield App()
+
+    prompts = SimpleNamespace(ollama=SimpleNamespace(model=configured, num_ctx=8192)
+                              if configured else None)
+    logger = CaptureLogger()
+    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], [], prompts, "f"))
+    monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args, **_kwargs: logger)
+    monkeypatch.setattr("mailhelp.cli.build_application", builder)
+    monkeypatch.setattr("mailhelp.cli.signal.signal", lambda *_args: None)
+    monkeypatch.setattr(sys, "argv", ["mailhelp", *arguments])
+
+    assert main() == 0
+    assert built == [LocalLlm("192.168.1.20", 11434, expected_model, num_ctx)]
+    parameters = logger.events[-1][3]["parameters"]
+    assert parameters["ollama"] == "http://192.168.1.20:11434"
+    assert parameters["ollama_model"] == expected_model
+
+
+@pytest.mark.parametrize(("arguments", "message"), [
+    (["--ollama-model", "llama3.1:8b"], "nur zusammen mit --ollama"),
+    (["--ollama", "localhost:11434"], "benötigt ein Modell"),
+    (["--ollama", "localhost"], "HOST:PORT"),
+])
+def test_cli_rejects_incomplete_local_ollama_mode(monkeypatch, capsys, arguments, message):
+    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (
+        None, None, [], [], SimpleNamespace(ollama=None), "f"))
+    monkeypatch.setattr("mailhelp.cli.signal.signal", lambda *_args: None)
+    monkeypatch.setattr(sys, "argv", ["mailhelp", *arguments])
+    with pytest.raises(SystemExit):
+        main()
+    assert message in capsys.readouterr().err
 
 
 def test_cli_reports_fatal_runtime_error_and_returns_failure(monkeypatch, capsys):

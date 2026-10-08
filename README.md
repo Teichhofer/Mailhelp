@@ -608,6 +608,43 @@ Verfügung. `--yes` ist ohne `--clear` unzulässig. `--log-directory PFAD`
 überschreibt auch beim Löschen das konfigurierte Logverzeichnis. Konfiguration,
 Prompts, Themen und Geheimnisse werden nicht gelöscht.
 
+### Experimenteller lokaler Modus (Ollama)
+
+Statt OpenRouter kann ein lokaler [Ollama](https://ollama.com)-Server alle
+LLM-Schritte ausführen. Der Modus ist experimentell: Lokale Modelle sind
+langsamer und in der Regel weniger zuverlässig als das konfigurierte
+OpenRouter-Modell; Ergebnisse vor produktiver Nutzung mit `--max-mails`
+prüfen.
+
+```powershell
+# Modell aus prompts.yaml (ollama.model) verwenden
+mailhelp --ollama 192.168.1.20:11434 --max-mails 5
+# Modell für diesen Aufruf überschreiben; IPv6 in eckigen Klammern
+mailhelp --ollama [::1]:11434 --ollama-model llama3.1:8b --check-access
+```
+
+- `--ollama HOST:PORT` leitet jeden LLM-Schritt (Relevanz, Zusammenfassung,
+  Router, Extraktionen, Rückfragen, Revisionen, Kalenderduplikate, Lernmodus)
+  an `http://HOST:PORT/api/chat`. Modelle, `routes`, `provider_preferences` und
+  `reasoning` aus `prompts.yaml` gelten dann nicht; Temperatur, `max_tokens`
+  (als `num_predict`) und weitere Sampling-Parameter werden übernommen.
+- Das Modell steht in `prompts.yaml` unter `ollama.model` (Standard
+  `qwen2.5:7b-instruct`); `--ollama-model NAME` überschreibt es. Ohne Modell
+  bricht der Start ab. Das Modell muss auf dem Server installiert sein
+  (`ollama pull <modell>`); `--check-access` prüft das über `/api/tags`.
+- `ollama.num_ctx` (Standard 16.384) setzt das Kontextfenster. Ollamas eigener
+  Standard ist zu klein für System-Prompt, Themen und Mailtext.
+- Strukturierte Antworten werden über Ollamas `format` mit dem JSON-Schema der
+  jeweiligen Stufe erzwungen; JSON- und Schemaprüfung, Reparaturversuche,
+  Rate-Limit und LLM-Logs (`provider: "ollama"`) bleiben unverändert.
+- Timeout und Wiederholungen stehen in `config.yaml` unter `timeouts.ollama`
+  (Standard 300 s, 1 Wiederholung). Es wird kein API-Schlüssel an den lokalen
+  Server gesendet; `OPENROUTER_API_KEY` muss für die Konfigurationsprüfung
+  trotzdem gesetzt sein.
+- Der Start im lokalen Modus wird als `local_llm_experimental` (WARNING) mit
+  Host, Port und Modell protokolliert. Ollama ist nur über HTTP erreichbar;
+  den Server deshalb nur im vertrauenswürdigen lokalen Netz betreiben.
+
 ### Interaktiver Lernmodus
 
 `mailhelp --learn 20` ruft bis zu 20 der neuesten Mails schreibfrei mit

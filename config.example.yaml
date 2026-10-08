@@ -101,6 +101,13 @@ timeouts:
     initial_backoff_seconds: 1
     max_backoff_seconds: 8
   telegram_poll_seconds: 30
+  # Nur im experimentellen lokalen Modus (--ollama). Lokale Modelle antworten
+  # deutlich langsamer; ohne Angabe gelten genau diese Werte.
+  ollama:
+    timeout_seconds: 300
+    retries: 1
+    initial_backoff_seconds: 2
+    max_backoff_seconds: 10
 logging:
   directory: logs
   console:

@@ -427,6 +427,27 @@ Das LLM erhält getrennt vom Systemprompt die aufbereitete E-Mail, nötige Metad
 
 Die Anwendung validiert jedes Ergebnis gegen feste Datenschemata. Fehlerhafte Ergebnisse führen zu einem begrenzten Wiederholungsversuch oder einem sichtbaren Fehlerzustand, niemals unmittelbar zu externen Schreibaktionen. Per Telegram versendete Fehlermeldungen nennen Absender und Betreff statt der internen Mail-ID; konnten die Mailkopfzeilen noch nicht sicher aufbereitet werden, werden beide Angaben mit einem Gedankenstrich gekennzeichnet. Es gibt keinen stillschweigenden Modellwechsel.
 
+### Experimenteller lokaler Modus (Ollama)
+
+`mailhelp --ollama HOST:PORT` ersetzt OpenRouter für alle LLM-Schritte durch einen
+lokalen Ollama-Server (`http://HOST:PORT/api/chat`, IPv6 als `[adresse]:port`).
+Verwendet wird ausschließlich das Modell aus `prompts.yaml` (`ollama.model`,
+optional überschrieben durch `--ollama-model`); ohne Modell bricht der Start ab.
+OpenRouter-Modelle, `routes`, `provider_preferences` und `reasoning` werden nicht
+übertragen. `temperature`, `max_tokens` (als `num_predict`), `top_p`, `top_k`,
+`min_p`, `seed`, `stop` und die Penalty-Parameter werden in Ollama-`options`
+übersetzt; `ollama.num_ctx` (Standard 16.384) setzt das Kontextfenster. Das
+JSON-Schema der Stufe wird als `format` übergeben, ohne Schema `format: "json"`.
+Die native Antwort wird in denselben OpenAI-kompatiblen Umschlag übersetzt
+(`done_reason: length` bleibt `output_token_limit`), sodass Rate-Limit,
+Wiederholungen, JSON- und Schemareparatur sowie Logs unverändert gelten; als
+Provider wird `ollama` protokolliert. An den lokalen Server werden keine
+Zugangsdaten gesendet. Timeout und Wiederholungen stammen aus
+`timeouts.ollama` (Standard 300 s, eine Wiederholung). `--check-access` prüft
+statt OpenRouter, ob der Server antwortet und das Modell installiert ist. Der
+Start wird als `local_llm_experimental` (WARNING) protokolliert. Der Modus ist
+experimentell; Qualität und Laufzeit hängen vom lokalen Modell ab.
+
 ## 7. Zusammenfassungen, Aufgaben und Termine
 
 Eine Telegram-Zusammenfassung enthält keine interne Mail-ID. Sie zeigt zuerst den Absender, direkt darunter den Betreff und danach einen oder höchstens zwei zusammenfassende Sätze. Diese Sätze verdichten zusammengehörige Einzelheiten zu Oberbegriffen und nennen nur Anlass, Kernaussage sowie eine wesentliche Folge oder Handlung; Namen, einzelne Tagesordnungspunkte, Anlagen und andere Details bleiben weg, sofern sie dafür nicht unverzichtbar sind. Sie machen eindeutig, wer informiert oder handeln soll, vermeiden inhaltsarme Betreff-Paraphrasen und behaupten einen Handlungsbedarf nur, wenn er aus der Mail hervorgeht. Ein zweiter Satz ist nur für eine klar getrennte wesentliche Folge oder Handlung vorgesehen. Nicht übergebene Anhänge werden nicht inhaltlich interpretiert, Unsicherheiten und Widersprüche nicht stillschweigend aufgelöst. Der Zusammenfassungs-Prompt fordert als einzige Ausgabe ein syntaktisch gültiges JSON-Objekt mit genau `sentences` (ein bis zwei deutsche Sätze) und `deadlines` (eine stets vorhandene, gegebenenfalls leere String-Liste aller ausdrücklich genannten Fristen und Termine im Wortlaut der Mail; relative Angaben werden nicht in Kalenderdaten umgerechnet). Markdown, Begleittext und weitere Felder sind verboten; Mailinhalte werden ausdrücklich als nicht vertrauenswürdige Daten behandelt. Erkannte Aufgaben und Termine werden weiterhin in getrennten, einzeln zu bestätigenden Vorschlagsnachrichten angezeigt. Ohne erkannte Aufgabe oder Termin ist keine Bestätigung nötig.

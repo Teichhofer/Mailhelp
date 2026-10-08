@@ -291,6 +291,7 @@ def test_cli_access_check_prints_summary_and_never_runs(monkeypatch, capsys, res
             "base_directory": Path.cwd(),
             "access_diagnostics": True,
             "logger": logger,
+            "local_llm": None,
         }
         yield App()
 

@@ -52,6 +52,23 @@ def test_step_provider_preferences_pin_the_default_route():
         assert pinned.provider_preferences.order and not pinned.provider_preferences.allow_fallbacks
 
 
+def test_experimental_ollama_configuration():
+    from mailhelp.config import OllamaPromptSettings, TimeoutSettings
+    root = Path(__file__).resolve().parents[1]
+    shipped = PromptConfig.model_validate(_yaml(root / "prompts.yaml")).ollama
+    assert shipped is not None and shipped.model and shipped.num_ctx >= 8192
+    assert prompt_config().ollama is None
+    for invalid in ({"model": ""}, {"model": "<modell>"}, {"model": "a b"},
+                    {"model": "m", "num_ctx": 1024}, {"model": "m", "extra": 1}):
+        with pytest.raises(ValidationError):
+            OllamaPromptSettings.model_validate(invalid)
+    example = _yaml(root / "config.example.yaml")["timeouts"]
+    assert example["ollama"]["timeout_seconds"] == 300
+    without = {key: value for key, value in example.items() if key != "ollama"}
+    default = TimeoutSettings.model_validate(without).ollama
+    assert (default.timeout_seconds, default.retries) == (300, 1)
+
+
 def test_strict_ordered_llm_route_configuration():
     primary = LlmRoute(provider="openrouter", model="primary", parameters={"temperature": .1},
                        provider_preferences={"order": ["provider-a"]})

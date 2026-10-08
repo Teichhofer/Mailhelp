@@ -1639,6 +1639,56 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
     assert (tmp_path/"relative/test/.lock").exists()
 
 
+def test_local_ollama_mode_replaces_openrouter(tmp_path, monkeypatch):
+    from mailhelp.ollama import LocalLlm
+
+    class Resource:
+        def __init__(self, *args, **kwargs): pass
+        def close(self): pass
+        def check_access(self, *args): pass
+
+    class FakeOllama(Resource):
+        service_name = "Ollama (lokal, experimentell)"
+        calls = []
+        def __init__(self, *args, **kwargs): type(self).calls.append((args, kwargs))
+
+    class NoOpenRouter(Resource):
+        def __init__(self, *args, **kwargs):
+            raise AssertionError("OpenRouter darf im lokalen Modus nicht gebaut werden")
+
+    class FakeTelegram(Resource):
+        def send(self, *args): pass
+
+    monkeypatch.setattr("mailhelp.application.ImapReader", Resource)
+    monkeypatch.setattr("mailhelp.application.OpenRouterClient", NoOpenRouter)
+    monkeypatch.setattr("mailhelp.application.OllamaClient", FakeOllama)
+    monkeypatch.setattr("mailhelp.application.TelegramClient", FakeTelegram)
+    monkeypatch.setattr("mailhelp.application.HttpWriter", Resource)
+    monkeypatch.setattr("mailhelp.application.GoogleOAuthTokenProvider", Resource)
+    cfg = settings(tmp_path)
+    cfg.logging.file.enabled = cfg.logging.console.enabled = False
+    sec = Secrets(imap_username="u", imap_password="p", openrouter_api_key="o",
+                  telegram_bot_token="t", todoist_token="d", todoist_client_id="ti",
+                  todoist_client_secret="ts", google_oauth_client_id="i",
+                  google_oauth_client_secret="s", google_oauth_refresh_token="r")
+    logger = build_logger(cfg, sec, tmp_path)
+    events = []
+    logger.event = lambda level, module, event, **fields: events.append((level, event, fields))
+    local = LocalLlm("192.168.1.20", 11434, "qwen2.5:7b-instruct")
+    with build_application(cfg, sec, [Topic(id="x", name="x", enabled=True, description="x")],
+                           prompt_config(), "f" * 64, base_directory=tmp_path,
+                           logger=logger, local_llm=local) as made:
+        assert isinstance(made.openrouter, FakeOllama)
+        assert made.analyzer.client is made.openrouter
+        assert "Ollama (lokal, experimentell)" in made.check_access()
+    (args, kwargs), = FakeOllama.calls
+    assert args == (local, 300, 1, cfg.limits.llm_calls_per_minute)
+    assert (kwargs["initial_backoff"], kwargs["max_backoff"]) == (2, 10)
+    assert ("WARNING", "local_llm_experimental", {
+        "host": "192.168.1.20", "port": 11434, "model": "qwen2.5:7b-instruct",
+        "num_ctx": 16384}) in events
+
+
 def test_state_directory_separates_every_durable_state_and_lock(tmp_path):
     test_settings=settings(tmp_path)
     production_settings=settings(tmp_path)

@@ -129,6 +129,10 @@ class TimeoutSettings(ConfigModel):
     todoist: AdapterPolicySettings
     google_calendar: AdapterPolicySettings
     telegram_poll_seconds: int = Field(ge=1, le=50)
+    # Only used in the experimental local mode (--ollama). Local models are
+    # much slower than hosted ones, hence the generous default.
+    ollama: AdapterPolicySettings = Field(default_factory=lambda: AdapterPolicySettings(
+        timeout_seconds=300, retries=1, initial_backoff_seconds=2, max_backoff_seconds=10))
 
 
 LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
@@ -426,10 +430,18 @@ class OutputTokenRetry(ConfigModel):
     def safe_parameters(cls, value: dict[str, Any]) -> dict[str, Any]:
         return checked_parameters(value, "Unbekannte Retry-Parameter")
 
+class OllamaPromptSettings(ConfigModel):
+    """Model of the experimental local mode; replaces every OpenRouter route."""
+
+    model: str = Field(min_length=1, max_length=200, pattern=r"^[^<>\s]+$")
+    num_ctx: int = Field(default=16384, ge=2048, le=262144)
+
+
 class PromptConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     defaults: dict[str, Any]
     prompts: dict[str, PromptStep]
+    ollama: OllamaPromptSettings | None = None
 
     @model_validator(mode="after")
     def required_steps(self) -> "PromptConfig":
