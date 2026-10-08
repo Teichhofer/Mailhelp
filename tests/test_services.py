@@ -1356,8 +1356,12 @@ def test_orchestrator_complete_notification_uses_validated_values(tmp_path):
     assert "Mail-ID" not in summary
 
 
-@pytest.mark.parametrize(("route", "expected_messages"), [("none", 1), ("unclear", 2)])
-def test_orchestrator_skips_extractor_for_none_and_business_clarification(tmp_path, route, expected_messages):
+# B6: "unclear" without any candidate is stored as "none" and sends no hint;
+# the hint for "unclear" with a candidate is covered by the tests below.
+@pytest.mark.parametrize(("route", "stored", "expected_messages"),
+                         [("none", "none", 1), ("unclear", "none", 1)])
+def test_orchestrator_skips_extractor_for_none_and_business_clarification(tmp_path, route, stored,
+                                                                          expected_messages):
     class RoutedAnalyzer(AnalyzerStub):
         def action_route(self, mail):
             return "ar", ActionRoute(action_state=route, task_count=0, event_count=0,
@@ -1370,11 +1374,9 @@ def test_orchestrator_skips_extractor_for_none_and_business_clarification(tmp_pa
         result=Orchestrator(RoutedAnalyzer("relevant"),store,notify,1,[topic],1000).process(
             FetchedMail("INBOX",1,93,b"Subject: Router\n\nBody"))
     assert result.outcome is ProcessingOutcome.COMPLETED
-    assert result["action_route"]["action_state"] == route
+    assert result["action_route"]["action_state"] == stored
     assert result["proposals"] == [] and result["error"] is None
     assert len(notify.messages) == expected_messages
-    if route == "unclear":
-        assert "fachliche Klärung" in notify.messages[-1]
 
 
 def test_orchestrator_sends_event_candidate_even_when_route_is_unclear(tmp_path):
@@ -1412,6 +1414,36 @@ def test_orchestrator_sends_event_candidate_even_when_route_is_unclear(tmp_path)
     assert result["proposals"][0]["status"] == "needs_clarification"
     assert "fachliche Klärung" in notify.messages[1]
     assert notify.messages[2] == result["proposals"][0]["id"]
+
+
+def test_regression_unclear_route_without_candidate_sends_no_hint(tmp_path):
+    """Regression 2026-10-08 (B6): a Teams access block became "unclear" 0/0.
+
+    Without any candidate there is nothing to review; the generic hint
+    "benötigt fachliche Klärung" was noise without a possible action.
+    """
+    route = {"action_state": "unclear", "task_count": 0, "event_count": 0,
+             "reason": "Nur Zugangsdaten ohne Termin oder Einladung."}
+    assert ActionRoute.model_validate(route).action_state == "none"
+    assert ActionRoute(action_state="unclear", task_count=0, event_count=1,
+                       reason="Möglicher Termin").action_state == "unclear"
+    router = yaml.safe_load(Path("prompts.yaml").read_text(encoding="utf-8"))[
+        "prompts"]["action_router"]["system_prompt"]
+    assert 'Verwende "unclear" nur, wenn mindestens ein möglicher' in router
+
+    class AccessDataAnalyzer(AnalyzerStub):
+        def action_route(self, mail):
+            return "ar", ActionRoute.model_validate(route)
+
+    notify = Notify()
+    raw = b"Subject: Teams-Besprechung\n\nBesprechungs-ID: 123 456\nPasscode: abc"
+    with JsonStore(tmp_path / "access-data") as store:
+        result = Orchestrator(AccessDataAnalyzer("relevant"), store, notify, 1,
+                              [Topic(id="x", name="X", enabled=True, description="X")],
+                              1000).process(FetchedMail("INBOX", 1, 96, raw))
+    assert result.outcome is ProcessingOutcome.COMPLETED
+    assert result["proposals"] == []
+    assert not any("fachliche Klärung" in str(message) for message in notify.messages)
 
 
 def test_orchestrator_sends_task_candidate_even_when_route_is_unclear(tmp_path):

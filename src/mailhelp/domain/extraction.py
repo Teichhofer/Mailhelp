@@ -76,15 +76,25 @@ class ActionRoute(StrictModel):
     """Bounded action classification before detailed extraction.
 
     For ``unclear`` the counters are the number of possible task/event
-    candidates seen by the router.  They may independently be zero.  A counted
+    candidates seen by the router.  One of them may be zero.  A counted
     candidate is still extracted so that its uncertainty can be reviewed in a
-    concrete proposal instead of being hidden behind a generic message.
+    concrete proposal instead of being hidden behind a generic message.  An
+    ``unclear`` route without any candidate has nothing to review and is
+    treated as ``none``; otherwise it only produced an unanswerable hint.
     """
 
     action_state: Literal["none", "task", "event", "task_and_event", "unclear"]
     task_count: int = Field(ge=0, le=20)
     event_count: int = Field(ge=0, le=20)
     reason: str = Field(min_length=1, max_length=1000)
+
+    @model_validator(mode="before")
+    @classmethod
+    def unclear_without_candidate_is_none(cls, value: Any) -> Any:
+        if (isinstance(value, dict) and value.get("action_state") == "unclear"
+                and value.get("task_count") == 0 and value.get("event_count") == 0):
+            return {**value, "action_state": "none"}
+        return value
 
     @model_validator(mode="after")
     def consistent_counts(self) -> "ActionRoute":

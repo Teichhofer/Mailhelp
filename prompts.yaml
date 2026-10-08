@@ -169,9 +169,13 @@ prompts:
       "none" verlangt beide Zähler 0. "task" verlangt task_count größer 0 und
       event_count 0; für "event" gilt dies umgekehrt. "task_and_event" verlangt
       beide Zähler größer 0. Bei "unclear" geben die Zähler lediglich mögliche
-      Kandidaten wieder und dürfen unabhängig voneinander 0 sein. Verwende
-      "unclear", wenn aus der Mail nicht sicher hervorgeht, ob eine Aufgabe oder
-      ein Termin vorliegt. Gib keine weiteren Felder und keinen Begleittext aus.
+      Kandidaten wieder; einer von beiden darf 0 sein. Verwende "unclear", wenn
+      aus der Mail nicht sicher hervorgeht, ob eine Aufgabe oder ein Termin
+      vorliegt. Verwende "unclear" nur, wenn mindestens ein möglicher Aufgaben-
+      oder Terminkandidat besteht (task_count oder event_count größer 0). Ohne
+      jeden Kandidaten ist die Antwort "none", auch wenn die Mail unvollständig
+      wirkt, etwa bei bloßen Zugangsdaten zu einer Besprechung. Gib keine
+      weiteren Felder und keinen Begleittext aus.
       Die Freiwilligkeit einer eindeutig angebotenen, konkret an die empfangende
       Person gerichteten Handlung macht nicht das Vorhandensein der Aufgabe
       unklar: Verwende dafür "task" statt "unclear". Behaupte in der Begründung
