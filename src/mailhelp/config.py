@@ -317,11 +317,16 @@ class PromptStep(BaseModel):
     model: str | None = None
     parameters: dict[str, Any] = Field(default_factory=dict)
     routes: list["LlmRoute"] | None = None
+    # Provider routing for the default route; keeps model and parameters from
+    # ``defaults``/``parameters`` instead of duplicating them in ``routes``.
+    provider_preferences: "OpenRouterProviderPreferences | None" = None
     provider_retries: int = Field(default=1, ge=0, le=10)
     output_token_retry: "OutputTokenRetry | None" = None
 
     @model_validator(mode="after")
     def valid_routes(self) -> "PromptStep":
+        if self.routes is not None and self.provider_preferences is not None:
+            raise ValueError("provider_preferences gilt nur ohne routes; dort je Route angeben")
         if self.routes is not None:
             if not self.routes:
                 raise ValueError("routes darf nicht leer sein")
@@ -458,8 +463,10 @@ class PromptConfig(BaseModel):
             return item.routes, item.system_prompt, item.provider_retries
         model, parameters, prompt = self.resolved(step)
         checked_parameters(parameters, "Unbekannte oder reservierte Request-Schlüssel")
-        return [LlmRoute(provider="openrouter", model=model,
-                         parameters=parameters)], prompt, item.provider_retries
+        return [LlmRoute(provider="openrouter", model=model, parameters=parameters,
+                         provider_preferences=(item.provider_preferences
+                                               or OpenRouterProviderPreferences()))
+                ], prompt, item.provider_retries
 
 
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:

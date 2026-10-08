@@ -343,6 +343,15 @@ Nur `action_router` verwendet `medium`, weil seine Entscheidung bestimmt, ob üb
 ein Vorschlag entsteht (Korpusvergleich: 32/34 statt 30/34 bei gleichen Kosten).
 Wiederholungen nach einem Tokenlimit erhöhen die Stufe nicht, da höheres Reasoning
 das Ausgabebudget zusätzlich belastet.
+Ein Schritt ohne `routes` kann mit `provider_preferences` (geschlossene Teilmenge des
+OpenRouter-Provider-Routings: `order`, `allow_fallbacks`, `require_parameters`,
+`data_collection`, `sort`, `ignore`) feste Provider für seine Standardroute festlegen;
+Modell und Parameter bleiben dabei aus `defaults` und `parameters` geerbt. Zusammen
+mit `routes` ist das Feld unzulässig, dort gilt es je Route. Die entscheidungsrelevanten
+Schritte `action_router`, `task_extraction`, `event_extraction`,
+`mail_question_resolution` und `proposal_revision` verwenden ausschließlich die
+Provider `together` und danach `parasail` (`allow_fallbacks: false`), weil freies
+Routing bei identischen Prompts zu abweichenden Entscheidungen führte.
 Ohne diese Grenze verbrauchte das eingesetzte Modell im Betrieb schon für einfache
 Extraktionen über 1.000 Reasoning-Tokens und erreichte kleine Limits regelmäßig
 vor der JSON-Ausgabe. `reasoning` ist ein geschlossener Block mit genau einem von

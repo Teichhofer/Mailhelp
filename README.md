@@ -655,6 +655,12 @@ Reasoning-Tokens und erreichte kleine Limits regelmäßig vor der JSON-Ausgabe.
 Der Router nutzt `medium`, weil er entscheidet, ob überhaupt ein Vorschlag entsteht.
 `reasoning` erlaubt genau eines von `effort` oder `max_tokens` sowie optional
 `exclude`; `enabled: false` wird abgewiesen.
+Mit `provider_preferences` legt ein Schritt ohne `routes` feste OpenRouter-Provider
+fest (z. B. `{order: [together, parasail], allow_fallbacks: false}`), ohne Modell und
+Parameter zu duplizieren. Router, Aufgaben- und Terminextraktion, Rückfrageauflösung
+und Vorschlagsrevision sind so fixiert, weil freies Routing bei identischen Prompts
+unterschiedliche Entscheidungen lieferte. Die Providernamen sind OpenRouter-Slugs;
+nach einer Änderung einen kurzen Lauf mit `--max-mails` prüfen.
 Antwortet ein Provider dennoch mit syntaktisch ungültigem JSON, wird der
 begrenzte Reparaturversuch zusätzlich durch eine Systemanweisung erzwungen;
 die Anweisung im Nutzdatenobjekt allein könnte sonst als nicht vertrauenswürdiger

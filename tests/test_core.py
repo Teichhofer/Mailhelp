@@ -30,6 +30,28 @@ def prompt_config(model="model"):
     return PromptConfig(defaults={"model": model, "parameters": {"temperature": .2}}, prompts={x: PromptStep(system_prompt=x, parameters={"max_tokens": 200}) for x in ("relevance", "summary", "action_router", "task_extraction", "event_extraction", "mail_question_resolution", "telegram_answer_interpretation", "telegram_answer_clarification", "proposal_revision", "learning_classification", "learning_abstraction", "calendar_duplicate")})
 
 
+def test_step_provider_preferences_pin_the_default_route():
+    """B3: decision stages use fixed providers; model and parameters stay shared."""
+    cfg = prompt_config()
+    cfg.prompts["action_router"] = PromptStep(
+        system_prompt="router", parameters={"max_tokens": 300},
+        provider_preferences={"order": ["together", "parasail"], "allow_fallbacks": False})
+    (route,), _, _ = cfg.resolved_routes("action_router")
+    assert (route.model, route.parameters) == ("model", {"temperature": .2, "max_tokens": 300})
+    assert route.provider_preferences.order == ["together", "parasail"]
+    assert route.provider_preferences.allow_fallbacks is False
+    (summary,), _, _ = cfg.resolved_routes("summary")
+    assert summary.provider_preferences.order == []
+    with pytest.raises(ValidationError, match="nur ohne routes"):
+        PromptStep(system_prompt="x", provider_preferences={"order": ["a"]},
+                   routes=[LlmRoute(provider="openrouter", model="m")])
+    shipped = PromptConfig.model_validate(_yaml(Path(__file__).resolve().parents[1] / "prompts.yaml"))
+    for stage in ("action_router", "task_extraction", "event_extraction",
+                  "mail_question_resolution", "proposal_revision"):
+        (pinned,), _, _ = shipped.resolved_routes(stage)
+        assert pinned.provider_preferences.order and not pinned.provider_preferences.allow_fallbacks
+
+
 def test_strict_ordered_llm_route_configuration():
     primary = LlmRoute(provider="openrouter", model="primary", parameters={"temperature": .1},
                        provider_preferences={"order": ["provider-a"]})
