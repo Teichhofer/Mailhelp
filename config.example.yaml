@@ -1,5 +1,7 @@
 # Optionaler isolierter Vergleich: mailhelp --decision-test 20
-# Nur dafür decisions_prompts.yaml im Konfigurationsverzeichnis bereitstellen.
+# Standardrelevanz: Jev aus decisions_prompts.yaml; nur unclear nutzt prompts.yaml.
+# Fehlt die Jev-Datei, gilt die mitgelieferte Vorlage; --check validiert sie.
+# Alle weiteren Stufen bleiben auf dem bisherigen LLM aus prompts.yaml.
 # Bericht und JSONL unter data_directory/decision-tests; keine Schreibdienste.
 # Für lokale Nutzung nach config.yaml kopieren und Verbindungen/Ziele anpassen.
 # Geheimnisse ausschließlich in .env oder in der Prozessumgebung hinterlegen.

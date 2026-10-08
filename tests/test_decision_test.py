@@ -335,7 +335,8 @@ def test_separate_docker_configuration_exposes_decision_templates_only_in_test_s
     assert "--decision-test" in service["command"] and service["restart"] == "no"
     assert "./decisions_prompts.yaml:/config/decisions_prompts.yaml:ro" in service["volumes"]
     assert "./data:/config/data" in service["volumes"]
-    assert "decisions_prompts.yaml" not in (ROOT / "compose.yaml").read_text(encoding="utf-8")
+    standard = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
+    assert "./decisions_prompts.yaml:/config/decisions_prompts.yaml:ro" in standard["services"]["mailhelp"]["volumes"]
 
 
 def test_default_report_resolves_directory_links_before_state_namespace_guard(tmp_path, monkeypatch):

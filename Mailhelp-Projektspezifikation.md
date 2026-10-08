@@ -155,7 +155,7 @@ Die nachfolgenden Betriebsdetails konkretisieren den vereinbarten Kern als vorge
 2. Es lädt den bisherigen Zustand und setzt unterbrochene Arbeit kontrolliert fort.
 3. Es prüft konfigurierte IMAP-Ordner im eingestellten Intervall auf neue Nachrichten. Dieses allgemeine Intervall gilt für reguläre IMAP-Zyklen. Während eine Telegram-Entscheidung offen ist, folgt auf jeden abgeschlossenen `getUpdates`-Long-Poll ohne zusätzliche Intervallpause unmittelbar der nächste; der konfigurierte Server-Timeout begrenzt die Abfragerate. Telegram-Fehler führen zu einem begrenzten, durch Shutdown unterbrechbaren Backoff.
 4. Es speichert eine stabile interne Mail-ID und bereitet den Text für die Auswertung auf.
-5. Das LLM prüft die Relevanz anhand der aktivierten Themenbereiche.
+5. Jev prüft die Relevanz anhand der aktivierten Themenbereiche. Nur bei `unclear` übernimmt die bisherige LLM-Relevanzprüfung aus `prompts.yaml`.
 6. Irrelevante Nachrichten werden als verarbeitet markiert und erzeugen keine Telegram-Nachricht. Bei unklarer Relevanz zeigt eine Rückfrage den aufbereiteten Absender und Betreff, jedoch keine interne Mail-ID. Diese bleibt zusammen mit der Dialogversion ausschließlich in den Callback-Daten zur technischen Zuordnung.
 7. Für relevante Nachrichten erstellt das LLM eine Zusammenfassung und prüft auf Aufgaben und Termine. Nach einer unklaren Einstufung geschieht dies erst nach der Auswahl `Relevant`; bei Auswahl `Irrelevant` wird keine Zusammenfassung erzeugt.
 8. Mailhelp validiert die strukturierten Ergebnisse und sendet die Zusammenfassung über Telegram.
@@ -956,7 +956,7 @@ tatsächlichen externen Erfolg, ein unklares Ergebnis oder einen Fehler getrennt
 | Datei | Inhalt |
 | --- | --- |
 | `config.yaml` | Abruf, Ordner, Zeitzone, Ziele, Telegram-Freigaben, Pfade, Limits, Wiederholungen und Logging |
-| `decisions_prompts.yaml` | Ausschließlich für den Decision-Test: Jev-Modell, typisierte Vorlagen und Themenwahrscheinlichkeitsschwelle; kein Bestandteil des normalen Fingerprints |
+| `decisions_prompts.yaml` | Jev-Relevanz im Standard und separate Decision-Tests: Modell, typisierte Vorlagen, Themenpräzisierungen und Schwelle; Relevanzkonfiguration ist Bestandteil des normalen Fingerprints |
 | `prompts.yaml` | Prompts, Modelle, globale und schrittspezifische OpenRouter-Parameter; Relevanzprüfung, Terminextraktion und Lernschritte besitzen höhere Ausgabelimits, damit Reasoning-Token nicht vor Ausgabe des JSON-Ergebnisses das globale Limit ausschöpfen |
 | `topics.yaml` | Themenbereiche und Relevanzkriterien |
 | `irrelevant_topics.yaml` | Im Lernmodus ausgeschlossene Themenbereiche |
@@ -1478,6 +1478,48 @@ von Zusammenfassung, Titel, Beschreibung und Evidenz erfordert zusätzlich eine
 manuelle Bewertung. Ein vorhandenes Prüfwerkzeug ersetzt keinen ausgeführten
 realen Qualitätsnachweis.
 
+
+### Standard-Relevanzprüfung mit Jev
+
+Im regulären Ablauf (auch `--max-mails` und `test_mode`) prüft Jev nach den
+bestehenden Absender- und Duplikatfiltern die Relevanz anhand der aktivierten Themen.
+Bei `relevant` oder `irrelevant` wird das Ergebnis direkt übernommen. Ausschließlich
+bei `unclear` folgt die bisherige Relevanzstufe aus `prompts.yaml` mit ihren bisherigen
+Modellen, Parametern, Providerwechseln und Validierungswiederholungen. Das Ergebnis
+dieser zweiten Prüfung ist maßgeblich; bleibt es unklar, gilt der bisherige
+Telegram-Relevanzdialog. Jev-Timeouts, API-, Validierungs- und Rate-Limit-Fehler sind
+keine fachliche Unsicherheit und laufen durch die bestehende Fehlerbehandlung;
+sie lösen keinen zusätzlichen LLM-Rückfall aus.
+
+Alle späteren Stufen – Zusammenfassung, Aktionsrouting, Extraktion, Revision,
+Telegram-Auswertung und Kalender-Duplikatprüfung – verwenden weiterhin unverändert
+`prompts.yaml`. Jevs Aktionsrouter wird im Standardablauf nicht aufgerufen.
+Bestätigungen und externe Schreibzugriffe bleiben unverändert versionsbezogen.
+Der experimentelle lokale `--ollama`-Modus bleibt vollständig lokal. `--learn`,
+`--check-access` und der isolierte `--decision-test` behalten ihre bisherigen Pfade.
+Der Vergleichstest prüft weiterhin beide Modelle separat, ohne Standard-Rückfall.
+
+`decisions_prompts.yaml` im Konfigurationsverzeichnis enthält Jevs Modell,
+Relevanzfragen, Schwelle und Themenpräzisierungen. Fehlt die Datei, wird die
+mitgelieferte Vorlage aus `mailhelp/defaults` gelesen, ohne die Konfiguration zu
+beschreiben. Eine vorhandene fehlerhafte Datei wird nicht durch Defaults ersetzt.
+`--check` validiert auch die Jev-Vorlage, außer im lokalen Ollama-Modus. Docker bindet
+sie zusätzlich schreibgeschützt unter `/config/decisions_prompts.yaml` ein.
+
+Jev und der bisherige LLM-Client teilen sich dasselbe persistente Aufrufbudget und
+dessen Sperre. Jev nutzt die bestehenden OpenRouter-Timeouts und HTTP-Retries;
+Backoff kann durch Shutdown unterbrochen werden. Logs kennzeichnen Jevs Entscheidung
+und verknüpfen im Rückfall Jev- und LLM-Aufruf-IDs ohne Mailinhalte. Im Mailzustand
+steht wie bisher die Aufruf-ID der übernommenen Entscheidung. Die bestehende
+Protokollierungsoption für vollständige LLM-Inhalte gilt weiterhin für beide Clients.
+
+Der Konfigurationsfingerprint umfasst nun zusätzlich Jevs Modell, Relevanzfragen,
+Schwelle, Präzisierungen und die Rückfallregel; Änderungen des experimentellen
+Jev-Aktionsrouters allein beeinflussen ihn nicht. Bereits abgeschlossene Mails werden
+nicht erneut analysiert. Für noch nicht abgeschlossene Mailzustände mit altem
+Fingerprint bleibt der vorhandene Schutz bei Konfigurationsänderung aktiv: Sie
+werden zurückgehalten und nicht stillschweigend auf die neue Analyse migriert.
+
 ## Separater Decision-Vergleichsmodus
 
 Der separate Einmallauf `mailhelp --decision-test 20` vergleicht bis zu 20 Mails mit
@@ -1490,7 +1532,7 @@ mailhelp --decision-test 20 --decision-test-file data/decision-tests/vergleich.j
 mailhelp --decision-test 20 --ignore-historical-start
 ```
 
-Nur dieser Modus liest `decisions_prompts.yaml` im Konfigurationsverzeichnis. Die
+Auch dieser Modus liest `decisions_prompts.yaml` im Konfigurationsverzeichnis. Die
 Vorlage verwendet `typesafe/jev-1.13` über `POST https://openrouter.ai/api/alpha/decisions`.
 Bei einer Paketinstallation die mitgelieferte Vorlage aus `mailhelp/defaults` in
 das Konfigurationsverzeichnis kopieren. Modell, Fragen, Auswahlkriterien und
@@ -1519,7 +1561,8 @@ stillschweigend verworfen. Es gibt keine zusätzliche automatische DeepSeek-Anfr
 Der Vergleichstest dokumentiert die Unsicherheit und führt wie bisher alle Stufen aus.
 Bestehende binäre Jev-Themenvorlagen müssen auf die drei Auswahlkriterien migriert
 werden; sie werden sonst beim Laden mit einem Konfigurationsfehler zurückgewiesen.
-Normale Modi, `prompts.yaml`, `topics.yaml` und Aktionsrouting bleiben unverändert.
+Die gemeinsamen `prompts.yaml` und `topics.yaml` bleiben unverändert; normales
+Aktionsrouting nutzt weiterhin das bisherige LLM.
 Eine tatsächliche Qualitätsverbesserung muss mit neuen Vergleichsmails geprüft werden.
 
 Die Auswahl erfolgt ordnerübergreifend nach neuestem IMAP-Empfangszeitpunkt;
@@ -1557,8 +1600,8 @@ wurden; 1 kennzeichnet Fehler oder eine kleinere Mailanzahl; Ctrl+C ergibt 130.
 Unterschiedliche Modellentscheidungen sind kein Lauferror.
 
 Der Modus konstruiert ausschließlich IMAP- und Modelladapter. Normale Zustände,
-Telegram, Todoist und Kalender werden nicht angesteuert. Andere Modi benötigen die
-neue Promptdatei nicht. Kombinierbar sind `--config-directory`, `--decision-test-file`
+Telegram, Todoist und Kalender werden nicht angesteuert. Der Standard nutzt die
+Promptdatei für Relevanz; Lern- und lokale Modi bleiben unabhängig. Kombinierbar sind `--config-directory`, `--decision-test-file`
 und `--ignore-historical-start`; andere Modi, `--max-mails`, `--ollama` und
 `--log-directory` werden abgelehnt.
 

@@ -1555,6 +1555,7 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
         kwargs={}
         def __init__(self,*args,**kwargs): type(self).kwargs=kwargs
     class FakeOpen(Resource): pass
+    class FakeDecision(Resource): pass
     class FakeTelegram(Resource):
         def send(self,*args): pass
     class FakeWriter(Resource):
@@ -1566,6 +1567,7 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
         def __init__(self,*args,**kwargs): type(self).calls.append((args,kwargs))
     monkeypatch.setattr("mailhelp.application.ImapReader",FakeImap)
     monkeypatch.setattr("mailhelp.application.OpenRouterClient",FakeOpen)
+    monkeypatch.setattr("mailhelp.application.DecisionClient",FakeDecision)
     monkeypatch.setattr("mailhelp.application.TelegramClient",FakeTelegram)
     monkeypatch.setattr("mailhelp.application.HttpWriter",FakeWriter)
     monkeypatch.setattr("mailhelp.application.GoogleOAuthTokenProvider",FakeOAuth)
@@ -1591,7 +1593,10 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
         assert made.orchestrator.sender_store is made.sender_store
         assert made.dialog.relevance_handler is made.orchestrator
         assert made.dialog.revision_service is made.analyzer
-        assert made.orchestrator.config_fingerprint == "f"*64
+        from mailhelp.decisions import JevRelevanceAnalyzer, load_relevance_prompts, relevance_fingerprint
+        assert made.orchestrator.config_fingerprint == (
+            "f" * 64 if diagnostics else relevance_fingerprint("f" * 64, load_relevance_prompts(tmp_path)))
+        assert isinstance(made.analyzer, JevRelevanceAnalyzer) is not diagnostics
         assert FakeImap.kwargs["starttls"] is starttls
         assert FakeImap.kwargs["batch_size"] == 25
         assert FakeImap.kwargs["factory"].__name__ == ("IMAP4_SSL" if mode=="ssl" else "IMAP4")
@@ -1607,7 +1612,7 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
         assert made.logger.module_levels == ({} if diagnostics else {"access_check": "CRITICAL"})
         if supplied_logger is not None:
             assert made.logger is supplied_logger
-    assert len(closed)==6 and (tmp_path/"data/test/.lock").exists()
+    assert len(closed) == (6 if diagnostics else 7) and (tmp_path/"data/test/.lock").exists()
 
     closed.clear()
     class BrokenImap(Resource):

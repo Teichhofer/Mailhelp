@@ -7,12 +7,14 @@ import traceback
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from threading import Event
+from threading import Event, Lock
 from typing import Any, Iterator
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 from .analysis import Analyzer
+from .decisions import (DecisionAnalyzer, DecisionClient, JevRelevanceAnalyzer,
+                        load_relevance_prompts, relevance_fingerprint)
 from .config import PromptConfig, Secrets, Settings, Topic
 from .imap import ImapReader, UIDValidityChanged
 from .integrations import GoogleOAuthTokenProvider, HttpWriter, OAuthTokenError
@@ -922,8 +924,13 @@ def build_application(
     access_diagnostics: bool = False,
     logger: JsonlLogger | None = None,
     local_llm: LocalLlm | None = None,
+    use_jev_relevance: bool = True,
 ) -> Iterator[Application]:
     """Construct adapters and close every successfully constructed resource."""
+    jev_prompts = None
+    if use_jev_relevance and local_llm is None and not access_diagnostics:
+        jev_prompts = load_relevance_prompts(base_directory)
+        fingerprint = relevance_fingerprint(fingerprint, jev_prompts)
     with ExitStack() as stack:
         data = _state_directory(settings, base_directory)
         store = stack.enter_context(JsonStore(data))
@@ -978,11 +985,28 @@ def build_application(
             logger=logger,
         )
         stack.callback(oauth.close)
-        analyzer = Analyzer(
+        analyzer_options: dict[str, Any] = {}
+        analyzer_type = Analyzer
+        if jev_prompts is not None:
+            llm_cfg = settings.timeouts.openrouter
+            decision_client = DecisionClient(
+                secrets.openrouter_api_key.get_secret_value(), llm_cfg.timeout_seconds,
+                llm_cfg.retries, settings.limits.llm_calls_per_minute,
+                initial_backoff=llm_cfg.initial_backoff_seconds,
+                max_backoff=llm_cfg.max_backoff_seconds, stopped=stop_event.wait, **llm_budget)
+            stack.callback(decision_client.close)
+            # Both adapters charge the same durable budget atomically.
+            shared_lock = Lock()
+            openrouter._state_lock = decision_client._state_lock = shared_lock
+            analyzer_options["decisions"] = DecisionAnalyzer(
+                decision_client, jev_prompts, settings.limits.max_llm_payload_bytes)
+            analyzer_type = JevRelevanceAnalyzer
+        analyzer = analyzer_type(
             openrouter, prompts,
             provider_retries=settings.retries.provider_retry,
             json_repair_retries=settings.retries.json_repair,
             schema_repair_retries=settings.retries.schema_repair,
+            **analyzer_options,
         )
         calendar = HttpWriter(
             "google_calendar", oauth, settings.targets.google_calendar,

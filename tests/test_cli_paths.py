@@ -100,6 +100,7 @@ def test_cli_forwards_mail_limit_and_rejects_non_positive_values(monkeypatch):
             "access_diagnostics": False,
             "logger": logger,
             "local_llm": None,
+            "use_jev_relevance": True,
         }
         yield application
     monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], [], None, "fingerprint"))
@@ -210,6 +211,7 @@ def test_cli_runs_terminal_learning_mode(monkeypatch):
 
     @contextmanager
     def builder(*_args, **_kwargs):
+        assert _kwargs["use_jev_relevance"] is False
         yield application
 
     class Learning:
@@ -367,3 +369,22 @@ def test_yes_without_clear_is_rejected(monkeypatch):
     with pytest.raises(SystemExit) as error:
         main()
     assert error.value.code == 2
+
+
+def test_cli_check_local_mode_does_not_read_jev_configuration(monkeypatch):
+    from mailhelp.ollama import LocalLlm
+    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (
+        None, None, [], [], SimpleNamespace(ollama=None), "f"))
+    monkeypatch.setattr("mailhelp.cli.build_logger", lambda *args, **kwargs: CaptureLogger())
+    monkeypatch.setattr("mailhelp.cli.load_relevance_prompts", lambda *args: pytest.fail("Jev in local mode"))
+    monkeypatch.setattr(sys, "argv", ["mailhelp", "--check", "--ollama", "localhost:11434", "--ollama-model", "synthetic"])
+    assert main() == 0
+
+
+def test_cli_check_rejects_invalid_jev_configuration(tmp_path, monkeypatch):
+    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], [], None, "f"))
+    monkeypatch.setattr("mailhelp.cli.build_logger", lambda *args, **kwargs: CaptureLogger())
+    (tmp_path / "decisions_prompts.yaml").write_text("[]", encoding="utf-8")
+    monkeypatch.setattr(sys, "argv", ["mailhelp", "--check", "--config-directory", str(tmp_path)])
+    with pytest.raises(ValueError, match="Wurzel"):
+        main()

@@ -1,4 +1,5 @@
-# Nur --decision-test liest diese Datei; bestehende Modi verwenden prompts.yaml.
+# Standard: Jev-Relevanz, nur bei unclear LLM-Rückfall aus prompts.yaml.
+# --decision-test nutzt zusätzlich das experimentelle Jev-Aktionsrouting.
 # Modell und Vorlagen werden mit dem Vergleichsbericht gespeichert.
 model: typesafe/jev-1.13
 # Mindestwahrscheinlichkeit der gewählten match/no_match-Antwort.

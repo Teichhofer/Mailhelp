@@ -1,6 +1,7 @@
-"""Opt-in typed OpenRouter Decisions adapter; never used by normal analysis."""
+"""Typed Jev decisions and standard relevance with an unclear-only LLM fallback."""
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import time
@@ -11,6 +12,7 @@ from pathlib import Path
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
 
+from .analysis import Analyzer
 from .config import ConfigModel, Topic, _yaml, _validated_file
 from .models import ActionRoute, Relevance
 from .openrouter import OpenRouterClient, RateLimitExceeded
@@ -229,3 +231,42 @@ class DecisionAnalyzer:
             task_count=int(answers["task_count"]["choice"]),
             event_count=int(answers["event_count"]["choice"]),
             reason="Decision-Modell: typisierte Aktionsart und Kandidatenzahlen.")
+
+
+def load_relevance_prompts(directory: Path) -> DecisionPrompts:
+    """Use editable Jev configuration, or the packaged template if absent."""
+    path = directory / "decisions_prompts.yaml"
+    if not path.exists():
+        path = Path(__file__).parent / "defaults" / "decisions_prompts.yaml"
+    return load_decision_prompts(path)
+
+
+def relevance_fingerprint(previous: str, prompts: DecisionPrompts) -> str:
+    """Track relevant Jev configuration without experimental action routing."""
+    configuration = {"policy": "jev_relevance_unclear_fallback_v1", "previous": previous,
+                     "model": prompts.model, "topic_threshold": prompts.topic_threshold,
+                     "topic_guidance": prompts.topic_guidance,
+                     "relevance": {key: value.model_dump()
+                                   for key, value in prompts.prompts["relevance"].items()}}
+    return hashlib.sha256(json.dumps(configuration, sort_keys=True).encode()).hexdigest()
+
+
+class JevRelevanceAnalyzer(Analyzer):
+    """Override relevance only; inherit every subsequent LLM stage unchanged."""
+
+    def __init__(self, *args: Any, decisions: DecisionAnalyzer, **kwargs: Any):
+        super().__init__(*args, **kwargs)
+        self.decisions = decisions
+
+    def relevance(self, mail: dict[str, Any], topics: list[Topic]) -> tuple[str, Relevance]:
+        call, result = self.decisions.relevance(mail, topics)
+        logger = self.decisions.client.logger
+        logger.event("INFO", "decisions", "jev_relevance_completed",
+                     call_id=call, decision=result.decision)
+        if result.decision != "unclear":
+            return call, result
+        logger.event("INFO", "decisions", "relevance_fallback_started", jev_call_id=call)
+        fallback_call, fallback = super().relevance(mail, topics)
+        logger.event("INFO", "decisions", "relevance_fallback_completed",
+                     jev_call_id=call, call_id=fallback_call, decision=fallback.decision)
+        return fallback_call, fallback

@@ -7,6 +7,7 @@ from .application import build_application, build_logger
 from .config import LOCAL_NUM_CTX, Settings, load_all
 from .learning import LearningMode
 from .decision_test import run_decision_test
+from .decisions import load_relevance_prompts
 from .ollama import LocalLlm, parse_address
 from .storage import JsonStore
 from .paths import runtime_path
@@ -220,7 +221,11 @@ def _main() -> int:
         "ollama": local_llm.base_url if local_llm else None,
         "ollama_model": local_llm.model if local_llm else None,
     })
-    if args.check: print("Konfiguration ist gültig."); return 0
+    if args.check:
+        if local_llm is None:
+            load_relevance_prompts(args.config_directory)
+        print("Konfiguration ist gültig.")
+        return 0
     if args.show_imap_credentials:
         # JSON quoting makes control characters visible instead of allowing a
         # secret loaded from the environment to manipulate the terminal.
@@ -231,7 +236,7 @@ def _main() -> int:
         settings, secrets, topics, prompts, fingerprint,
         base_directory=args.config_directory,
         access_diagnostics=args.check_access, logger=logger,
-        local_llm=local_llm,
+        local_llm=local_llm, use_jev_relevance=args.learn is None,
     ) as application:
         if args.check_access:
             results = application.check_access()
