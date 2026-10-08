@@ -52,13 +52,18 @@ prompts:
       - "decision": exakt "relevant", "irrelevant" oder "unclear";
       - "topic_ids": immer eine JSON-Liste, die nur IDs aus den übergebenen
         Themen enthalten darf und keine ID doppelt enthält;
-      - "reason": eine nicht leere Begründung mit höchstens 1000 Zeichen.
+      - "reason": eine nicht leere Begründung mit höchstens 250 Zeichen.
 
       Bei "irrelevant" muss "topic_ids" die leere Liste [] sein. Die Felder
       "not_relevant", "assigned_topics", "assigned_topic_ids" und "topic_id"
       sind nicht zulässig. Gib "decision", "topic_ids" und "reason" immer aus,
       auch wenn kein Thema passt. Gib keine weiteren Felder und keinen Text
       außerhalb des JSON-Objekts aus.
+
+      Begründe knapp: Bei "irrelevant" nenne den entscheidenden Mailtyp oder
+      fehlenden Themenbezug, aber liste nicht alle geprüften Themen auf. Bei
+      "relevant" nenne nur die zugeordneten Themen und den konkreten Inhalt,
+      der diese Zuordnung trägt. Bei "unclear" benenne die fehlende Information.
 
       Synthetische Beispiele:
       - Themen: [{"id":"billing","name":"Abrechnung"}]
@@ -176,6 +181,15 @@ prompts:
       Datum und ohne bestätigte Buchung erzeuge dafür keinen Terminkandidaten.
       Allgemeine Werbung ohne persönliche konkrete Handlung ist davon zu trennen.
 
+      Ein Teams-/Skype-Link, eine Besprechungs-ID, ein Passcode oder eine
+      Einwahlnummer allein belegt keinen konkreten Kalendereintrag. Wenn die
+      aktuelle Nachricht nur solche Zugangsdaten enthält und weder einen Termin
+      noch eine aktuelle Einladung oder Bestätigung nennt, zähle kein Event.
+      Eine ausdrücklich aktuelle Einladung zu einem identifizierbaren künftigen
+      Treffen zählt dagegen genau einmal, auch wenn Datum oder Uhrzeit noch
+      fehlen oder später mitgeteilt werden sollen; die fehlenden Zeitangaben
+      machen die erkannte Einladung nicht zu einem bloßen Zugangsdatenblock.
+
       Beispiel: Freiwillige Buchung
       Mail: "Danke für Ihre Anfrage. Ein freiwilliges 20-minütiges Beratungsgespräch
       können Sie hier buchen: https://booking.example.test/beratung"
@@ -198,6 +212,14 @@ prompts:
       Verpflichtung behandelt werden. Erfinde oder entferne niemals Kandidaten,
       um einen erwarteten Zähler zu erfüllen; die Zähler müssen vielmehr die nach
       diesen Grenzen tatsächlich erkannten Kandidaten wiedergeben.
+
+      Bewerte Aufgaben aus dem aktuellen Nachrichtenteil. Eine Bitte in einer
+      zitierten oder weitergeleiteten älteren Nachricht ist keine neue aktuelle
+      Aufgabe, außer der aktuelle Nachrichtenteil wiederholt, bestätigt oder
+      übernimmt sie ausdrücklich. Eine vergangene Frist allein beweist nicht,
+      dass die Aufgabe erledigt ist, macht eine historische Bitte aber auch
+      nicht zu einer aktuellen Aufgabe. Zähle dieselbe verlangte Handlung nur
+      einmal, auch wenn sie im aktuellen Text mehrfach umschrieben wird.
 
       Klassifiziere nur Art und Anzahl. Normalisiere keine Datumsangaben und
       liefere weder Zeitzone, Statuslogik, IDs, Ziele, Notification-Flags noch
@@ -240,6 +262,14 @@ prompts:
       reine Einladung oder Veranstaltungsinformation ist keine Aufgabe. Eine
       ausdrücklich verlangte Anmeldung, Zu- oder Absage, Rückmeldung,
       Vorbereitung oder sonstige Handlung ist dagegen zusätzlich eine Aufgabe.
+
+      Bewerte Aufgaben aus dem aktuellen Nachrichtenteil. Eine Bitte in einer
+      zitierten oder weitergeleiteten älteren Nachricht ist keine neue aktuelle
+      Aufgabe, außer der aktuelle Nachrichtenteil wiederholt, bestätigt oder
+      übernimmt sie ausdrücklich. Eine vergangene Frist allein beweist nicht,
+      dass die Aufgabe erledigt ist, macht eine historische Bitte aber auch
+      nicht zu einer aktuellen Aufgabe. Zähle dieselbe verlangte Handlung nur
+      einmal, auch wenn sie mehrfach umschrieben wird.
       Bei der Frage, ob eine benannte Person ein Grußwort halten kann, ist nur die
       verlangte Rückmeldung eine Aufgabe; erzeuge daraus nicht die andere Aufgabe
       "Grußwort halten". Bedingte Handlungen sind nicht "certain" und nicht
@@ -312,6 +342,14 @@ prompts:
       dieser Wert ist nur ein Diagnosehinweis. Extrahiere ausschließlich belegte
       Termine, auch wenn ihre Anzahl abweicht. Erfinde oder entferne keinen Termin,
       um den Zähler zu erfüllen.
+      Ein Teams-/Skype-Link, eine Besprechungs-ID, ein Passcode oder eine
+      Einwahlnummer allein belegt keinen konkreten Termin. Wenn die aktuelle
+      Nachricht nur solche Zugangsdaten enthält und weder einen Termin noch eine
+      aktuelle Einladung oder Bestätigung nennt, liefere "events": []. Eine
+      ausdrücklich aktuelle Einladung zu einem identifizierbaren künftigen
+      Treffen bleibt genau ein Event-Kandidat, auch wenn Datum oder Uhrzeit noch
+      fehlen; extrahiere dann nur belegte Angaben und setze fehlende Zeitfelder
+      auf null. Setze time_requirement in diesem Fall auf "required_unknown".
       Erfinde oder entferne dennoch keine Kandidaten, sondern prüfe bei einer
       Korrektur die ausdrücklich genannten
       Kandidaten erneut anhand derselben Grenzen.
@@ -419,6 +457,14 @@ prompts:
       Für Termine gilt strikt: Ein reines Kalenderdatum in start oder end ist nur
       mit all_day=true zulässig. Bei all_day=false müssen vorhandene start- und
       end-Werte vollständige ISO-8601-Zeitpunkte mit eindeutigem UTC-Offset sein.
+      Erfinde oder errate keinen UTC-Offset. Nutze ausschließlich einen Offset,
+      der in den separat übergebenen vertrauenswürdigen proposal_fields oder
+      known_temporal_facts ausdrücklich enthalten ist; ein Datum, eine lokale
+      Uhrzeit, ein Ortsname oder die Pflicht zum ISO-8601-Format belegt keinen
+      Offset. "Z" und "+00:00" bedeuten ausdrücklich UTC und sind keine
+      neutralen Platzhalter. Wenn ein vollständiger Zeitstempel ohne belegten
+      Offset nicht gebildet werden kann, lasse das betroffene Feld unverändert
+      und gib "changes": {} aus. Die Anwendung hält notwendige Zeitfragen offen.
       Ein ausdrücklich genanntes Terminende darf am bestätigten Startdatum oder
       am unmittelbar folgenden Kalendertag liegen, muss aber nach dem Beginn liegen.
       Status, Version und offene Fragen berechnet die Anwendung lokal.

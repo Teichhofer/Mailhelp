@@ -320,19 +320,22 @@ def test_imap_llm_persists_separate_raw_extractions(tmp_path):
         assert all(item["status"] == "pending_confirmation" for item in state["proposals"])
         assert state["proposals"][1]["temporal_fact"]["normalized_date"] == "2026-10-08"
         assert todoist.created == calendar.created == []
-        assert sum(markup is not None for _, _, markup in telegram.sent) == 2
 
-        reject_buttons = [button["callback_data"] for _, _, markup in telegram.sent
-                          if markup for row in markup["inline_keyboard"]
-                          for button in row if button["text"] == "Verwerfen"]
-        assert len(reject_buttons) == 2 and len(set(reject_buttons)) == 2
-        telegram.updates = [callback_update(1, reject_buttons[0])]
+        def reject_buttons():
+            return [button["callback_data"] for _, _, markup in telegram.sent
+                    if markup for row in markup["inline_keyboard"]
+                    for button in row if button["text"] == "Verwerfen"]
+
+        # Only one open decision is shown; the second follows its resolution.
+        assert sum(markup is not None for _, _, markup in telegram.sent) == 1
+        assert len(reject_buttons()) == 1
+        telegram.updates = [callback_update(1, reject_buttons()[0])]
         dialog.poll_once()
         second = orchestrator.process(fetched)
         assert second.outcome is ProcessingOutcome.COMPLETED
-        assert sum(markup is not None for _, _, markup in telegram.sent) == 2
+        assert len(reject_buttons()) == 2 and len(set(reject_buttons())) == 2
 
-        telegram.updates = [callback_update(2, reject_buttons[1])]
+        telegram.updates = [callback_update(2, reject_buttons()[1])]
         dialog.poll_once()
         completed = orchestrator.process(fetched)
         assert completed.outcome is ProcessingOutcome.COMPLETED

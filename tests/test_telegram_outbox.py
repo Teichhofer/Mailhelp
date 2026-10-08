@@ -222,7 +222,7 @@ def shown_open(store, c, value):
 def test_regression_shown_open_decision_holds_without_stored_gate(tmp_path):
     """Older states only know the last question; every shown decision holds."""
     with JsonStore(tmp_path) as store:
-        c, t, _ = controller(store)
+        c, t, log = controller(store)
         shown_open(store, c, item(A, "Aufgabe A"))
         shown_open(store, c, item(B, "Frage B", ["Wann?"]))
         store.save("telegram-outbox", TelegramOutboxState(active=TelegramOutboxGate(
@@ -238,6 +238,14 @@ def test_regression_shown_open_decision_holds_without_stored_gate(tmp_path):
         c.flush_outbox()
         assert shown(t, "Info")
         assert outbox(store) == TelegramOutboxState()
+        gates = [(args[2], fields) for args, fields in log.events
+                 if args[2] in {"outbox_gate_set", "outbox_gate_released"}]
+        # Only kind and mail id are logged, never proposal content.
+        assert gates == [
+            ("outbox_gate_released", {"kind": "proposal", "mail_id": B}),
+            ("outbox_gate_set", {"kind": "proposal", "mail_id": A}),
+            ("outbox_gate_released", {"kind": "proposal", "mail_id": A}),
+        ]
 
 
 def test_regression_log_sequence_2026_10_08_is_sequential(tmp_path):

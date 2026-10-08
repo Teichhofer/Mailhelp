@@ -147,7 +147,7 @@ def test_real_analyzer_count_conflict_retains_other_extraction_and_restart(tmp_p
         assert len(again.state["extraction_count_conflicts"]) == 1
 
 
-def test_real_bounded_batch_sends_all_proposals_and_counts_open_actions(tmp_path):
+def test_real_bounded_batch_sends_proposals_one_at_a_time_and_counts_open_actions(tmp_path):
     from mailhelp.imap import MailCandidate
     from mailhelp.models import MailRunState
     from test_e2e_simulated import FakeTelegram
@@ -179,7 +179,9 @@ def test_real_bounded_batch_sends_all_proposals_and_counts_open_actions(tmp_path
         service.dialog = dialog
         service.run(max_mails=2)
         assert not telegram.polls
-        assert sum(markup is not None for _, _, markup in telegram.sent) == 4
+        # Four undecided proposals, but only the current decision is shown.
+        assert sum(markup is not None for _, _, markup in telegram.sent) == 1
+        assert [entry.kind for entry in dialog.outbox.load().entries].count("proposal") == 3
         run = store.load_model("mail-run-" + Reader.account_id, MailRunState)
         assert run.counters.waiting_for_user == 2
         assert run.run_complete
@@ -198,6 +200,7 @@ def test_real_bounded_batch_sends_all_proposals_and_counts_open_actions(tmp_path
             assert dialog.repository.load_current(proposal.source_mail_id, proposal.id).status == ProposalStatus.PENDING_CONFIRMATION
             telegram.updates = [callback(index * 2 + 2, decision.encode(store))]
             dialog.poll_once()
+        assert dialog.outbox.load().entries == []
         run = store.load_model("mail-run-" + Reader.account_id, MailRunState)
         assert run.counters.waiting_for_user == 0 and run.counters.completed == 2
         # Replaying persistence after a crash keeps counters unchanged.
