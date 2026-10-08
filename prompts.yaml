@@ -1,5 +1,5 @@
 defaults:
-  model: z-ai/glm-5.3-flash
+  model: deepseek/deepseek-v4.1-flash
   parameters:
     temperature: 0.2
     max_tokens: 2000
