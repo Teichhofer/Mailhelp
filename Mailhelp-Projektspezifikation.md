@@ -709,14 +709,28 @@ Replay-Grenze fort.
   einen späteren regulären Start.
 - Telegram-Nachrichten der Mailverarbeitung (Zusammenfassungen, Hinweise, Fehler,
   Relevanzfragen und neue Vorschläge) laufen über eine dauerhafte, geordnete
-  Warteschlange `telegram-outbox.json` (Schemaversion 1). Wurde eine Nachricht mit
-  Rückfrage gesendet – eine Relevanzfrage oder ein Vorschlag mit offenen Fragen
-  („Klären“) –, werden alle späteren Nachrichten zurückgehalten, bis diese Rückfrage
-  erledigt ist. Erledigt ist eine Relevanzfrage mit ihrer Entscheidung, ein Vorschlag
-  sobald er nicht mehr offen ist (z. B. verworfen) oder seine aktuelle Version keine
-  offenen Fragen mehr hat; eine pausierte, vom Betreiber zu prüfende Revision hält
-  nichts zurück. Danach werden die gehaltenen Nachrichten in Entstehungsreihenfolge
-  bis einschließlich der nächsten Rückfrage gesendet. Die Mailanalyse selbst läuft
+  Warteschlange `telegram-outbox.json` (Schemaversion 1). Es ist immer höchstens
+  eine offene Entscheidung sichtbar. Offene Entscheidung ist jede Nachricht mit
+  Entscheidungsschaltflächen: eine Relevanzfrage, ein Vorschlag mit offenen Fragen
+  („Klären“) und ebenso ein vollständiger Vorschlag mit Bestätigung („Im Kalender
+  anlegen“ bzw. „In Todoist anlegen“, „Ändern“, „Verwerfen“). Wurde eine solche
+  Nachricht gesendet, werden alle späteren Nachrichten zurückgehalten, bis diese
+  Entscheidung erledigt ist; das gilt auch für weitere Vorschläge derselben Mail.
+  Erledigt ist eine Relevanzfrage mit ihrer Entscheidung und ein Vorschlag erst,
+  wenn sein aktueller Zustand – unabhängig von der Version – weder
+  `pending_confirmation` noch `needs_clarification` ist (z. B. bestätigt, im
+  Schreiben, angelegt, simuliert, verworfen, fehlgeschlagen oder unklar). Eine
+  beantwortete Rückfrage, aus der eine vollständige neue Version entsteht, hält
+  daher bis zu deren Bestätigung oder Verwerfung weiter zurück. Eine pausierte, vom
+  Betreiber zu prüfende Revision hält nichts zurück. Die Sperre wird nicht nur aus
+  der zuletzt gesendeten Entscheidung abgeleitet, sondern aus dem autoritativen
+  Zustand: Jede bereits gezeigte (zugestellte, versandunsichere, direkt als
+  Dialogantwort gesendete oder aus einem älteren Zustand ohne Sperre stammende)
+  und noch offene Entscheidung hält zurück; nur noch in der Outbox wartende
+  Einträge zählen nicht. Danach werden die gehaltenen Nachrichten in
+  Entstehungsreihenfolge bis einschließlich der nächsten offenen Entscheidung
+  gesendet. Setzen und Aufheben einer Sperre werden als `outbox_gate_set` bzw.
+  `outbox_gate_released` (INFO, nur Art und Mail-ID) protokolliert. Die Mailanalyse selbst läuft
   weiter; eine zurückgehaltene Relevanzfrage hält nur die Analyse ihrer Mail an.
   Diese Mail bleibt unvollständig, erhält noch keinen abgeschlossenen UID-Bereich
   und bleibt in einem bestehenden Run zunächst processing ohne analysis_terminal.
@@ -742,7 +756,8 @@ Replay-Grenze fort.
   aktuelle autoritative Fragezustand entscheidet, wann die Sperre aufgehoben wird;
   unberechtigte Antworten heben sie nicht auf. Die Warteschlange wird nach jedem Einreihen, nach
   jedem Telegram-Poll und beim Start abgearbeitet. `telegram.sequential_questions:
-  false` (Standard `true`) sendet ohne Zurückhalten sofort.
+  false` (Standard `true`) sendet ohne Zurückhalten sofort; dann zeigen auch
+  Neustart und `/offen` wieder alle offenen Vorschläge mit Schaltflächen.
 - Eine Änderung wird einem konkreten Vorschlag zugeordnet. Sind mehrere Vorschläge offen, darf Freitext nicht willkürlich zugeordnet werden.
 - Änderungen können über das LLM interpretiert werden. Der korrigierte Vorschlag muss erneut angezeigt und ausdrücklich bestätigt werden.
 - Bestätigungen gelten nur für die angezeigte Vorschlagsversion. Veraltete Buttons dürfen keine neuere Fassung freigeben.
@@ -783,9 +798,15 @@ Replay-Grenze fort.
   `/hilfe` und `/start` erklären die Bedienung; `/status` und `/offen` zeigen
   offene Relevanzentscheidungen und aktuelle Vorschläge mit Warte-/Verarbeitungsstatus.
   Versionierte Archivkopien und abgeschlossene Vorschläge werden nicht aufgelistet.
-  `/status` bleibt eine reine Textübersicht. `/offen` zeigt zusätzlich aktuelle
-  Vorschläge erneut mit versionsgebundenen Schaltflächen; ein aktiver unbeantworteter
-  Dialog wird mit seiner konkreten Frage zuletzt angezeigt. Ohne Dialog wird kein
+  `/status` bleibt eine reine Textübersicht und nennt die aktuelle Entscheidung.
+  `/offen` listet alle offenen Entscheidungen als Text und zeigt bei
+  `telegram.sequential_questions: true` ausschließlich die aktuelle Entscheidung
+  erneut mit versionsgebundenen Schaltflächen. Aktuell ist ein aktiver
+  unbeantworteter Dialog (er wird mit seiner konkreten Frage angezeigt), sonst die
+  gespeicherte Outbox-Sperre und ohne gültige Sperre die erste bereits gezeigte offene
+  Entscheidung in Mailreihenfolge (IMAP-UID, innerhalb einer Mail
+  Vorschlagsreihenfolge). Schaltflächen früher gezeigter Vorschläge bleiben gültig,
+  weil sie versionsgebunden sind. Ohne Dialog wird kein
   Freitext zugeordnet: zuerst „Klären“, „Ändern“ oder „Manuell prüfen“ auswählen.
   Der Status unterscheidet Klärungsbedarf ohne Dialog, Warten auf eine Antwort,
   gespeicherte Antworten und pausierte Verarbeitung. Noch zurückgehaltene Vorschläge
@@ -795,7 +816,8 @@ Replay-Grenze fort.
   Die Anzeige verändert weder Vorschlagsversion, Dialogzuordnung, Reihenfolge noch
   Bestätigungen und setzt keine Zustellnachweise (`completed`/`sending`) zurück.
   Nach der Starthilfe wird bei offener Entscheidung einmal pro Lauf dieselbe
-  Wiederanzeige versucht, niemals pro Poll. Versandfehler werden nur mit Fehlerklasse
+  Wiederanzeige wie bei `/offen` versucht (Textübersicht und höchstens eine
+  Entscheidung mit Schaltflächen), niemals pro Poll. Versandfehler werden nur mit Fehlerklasse
   als `startup_decisions_failed` protokolliert; Telegram-Polling läuft weiter und
   `/offen` ermöglicht eine bewusste Wiederholung. Mehrere Vorschläge bleiben über
   ihre eigenen Schaltflächen eindeutig auswählbar. Keine neue Konfigurationsoption.

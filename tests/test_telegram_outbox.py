@@ -1,4 +1,4 @@
-"""Telegram outbox: hold notifications behind an open question, then send in order."""
+"""Telegram outbox: show one open decision at a time, then send in order."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -89,11 +89,20 @@ def test_later_notifications_wait_until_the_question_is_clarified(tmp_path):
         t.updates = [message(2, "Am 21.10.2026")]
         c.poll_once()
 
+        # The complete version 2 still awaits confirmation and keeps holding.
+        revised = store.load_model(proposal_name(A, "p1"), Proposal)
+        assert (revised.version, revised.status) == (2, ProposalStatus.PENDING_CONFIRMATION)
+        assert not shown(t, "Aufgabe B")
+        t.updates = [callback(3, f"proposal:{A}:p1:2:reject")]
+        c.poll_once()
+        assert shown(t, "Aufgabe B") and not shown(t, "Zusammenfassung zu Mail C")
+        t.updates = [callback(4, f"proposal:{B}:p1:1:reject")]
+        c.poll_once()
+
         sent = texts(t)
-        revised = max(i for i, text in enumerate(sent) if "Frage A" in text)
         order = [next(i for i, text in enumerate(sent) if title in text)
                  for title in ("Aufgabe B", "Zusammenfassung zu Mail C", "Frage C")]
-        assert revised < order[0] < order[1] < order[2]
+        assert order[0] < order[1] < order[2]
         assert not shown(t, "Aufgabe D")
         assert notification(store, B) == "completed"
         assert outbox(store).active.mail_id == C
@@ -111,7 +120,8 @@ def test_rejecting_the_question_releases_the_next_message(tmp_path):
         t.updates = [callback(1, f"proposal:{A}:p1:1:reject")]
         c.poll_once()
         assert shown(t, "Aufgabe B")
-        assert outbox(store) == TelegramOutboxState()
+        # The complete proposal B is itself an open decision now.
+        assert outbox(store).entries == [] and outbox(store).active.mail_id == B
 
 
 def test_still_open_after_revision_keeps_holding(tmp_path):
@@ -127,15 +137,178 @@ def test_still_open_after_revision_keeps_holding(tmp_path):
         assert not shown(t, "Aufgabe B")
 
 
-def test_proposals_without_questions_are_sent_without_holding(tmp_path):
+def test_regression_complete_proposal_holds_until_decided(tmp_path):
+    """Regression 2026-10-08: confirmation proposals were sent back to back.
+
+    A complete proposal ("Im Kalender anlegen"/"In Todoist anlegen") is an open
+    decision as well and must hold every later message until it is decided.
+    """
     with JsonStore(tmp_path) as store:
         c, t, _ = controller(store)
-        for mail_id, title in ((A, "Aufgabe A"), (B, "Aufgabe B")):
-            value = item(mail_id, title)
+        first, second = item(A, "Aufgabe A"), item(B, "Aufgabe B")
+        assert first.status == ProposalStatus.PENDING_CONFIRMATION
+        for value in (first, second):
             stored(store, value)
-            c.send_proposal(value)
-        assert shown(t, "Aufgabe A") and shown(t, "Aufgabe B")
+        c.send_proposal(first)
+        c.send(2, "Zusammenfassung zu Mail B")
+        c.send_proposal(second)
+        assert shown(t, "Aufgabe A") and not shown(t, "Aufgabe B")
+        assert not shown(t, "Zusammenfassung zu Mail B")
+        gate = outbox(store).active
+        assert (gate.kind, gate.mail_id, gate.proposal_id) == ("proposal", A, "p1")
+        assert [entry.kind for entry in outbox(store).entries] == ["message", "proposal"]
+        t.updates = [callback(1, f"proposal:{A}:p1:1:reject")]
+        c.poll_once()
+        assert shown(t, "Zusammenfassung zu Mail B") and shown(t, "Aufgabe B")
+        assert outbox(store).active.mail_id == B
+
+
+def test_regression_confirmed_proposal_releases_the_next_decision(tmp_path):
+    with JsonStore(tmp_path) as store:
+        c, t, _ = controller(store, test_mode=True)
+        first, second = item(A, "Aufgabe A"), item(B, "Aufgabe B")
+        stored(store, first), stored(store, second)
+        c.send_proposal(first)
+        c.send_proposal(second)
+        assert not shown(t, "Aufgabe B")
+        t.updates = [callback(1, f"proposal:{A}:p1:1:confirm")]
+        c.poll_once()
+        assert store.load_model(proposal_name(A, "p1"), Proposal).status not in {
+            ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}
+        assert shown(t, "Aufgabe B")
+
+
+def test_regression_proposals_of_one_mail_are_shown_one_at_a_time(tmp_path):
+    """Regression 2026-10-08: task and event of one mail arrived together."""
+    with JsonStore(tmp_path) as store:
+        c, t, _ = controller(store)
+        task = item(A, "Rückmeldung A")
+        event = item(A, "Feier A", ["Wann endet der Termin?"], id="p2")
+        c.send_proposal(task)
+        c.send_proposal(event)
+        assert shown(t, "Rückmeldung A") and not shown(t, "Feier A")
+        t.updates = [callback(1, f"proposal:{A}:p1:1:reject")]
+        c.poll_once()
+        assert shown(t, "Feier A")
+        assert outbox(store).active.proposal_id == "p2"
+
+
+def test_regression_answered_clarification_holds_until_confirmation(tmp_path):
+    """A complete revision after "Klären" is still an open decision."""
+    with JsonStore(tmp_path) as store:
+        c, t, _ = controller(store)
+        first = item(A, "Frage A", ["Welches Datum?"])
+        stored(store, first), stored(store, item(B, "Aufgabe B"))
+        c.send_proposal(first)
+        c.send_proposal(item(B, "Aufgabe B"))
+        t.updates = [callback(1, f"proposal:{A}:p1:1:edit"), message(2, "Am 21.10.2026")]
+        c.poll_once()
+        revised = store.load_model(proposal_name(A, "p1"), Proposal)
+        assert revised.version == 2 and not revised.open_questions
+        assert not shown(t, "Aufgabe B")
+        c.flush_outbox()
+        assert not shown(t, "Aufgabe B")
+        t.updates = [callback(3, f"proposal:{A}:p1:2:reject")]
+        c.poll_once()
+        assert shown(t, "Aufgabe B")
+
+
+def shown_open(store, c, value):
+    """Persist a proposal that was already delivered and is still undecided."""
+    stored(store, value, status="completed")
+    c.repository.save_revision(value)
+
+
+def test_regression_shown_open_decision_holds_without_stored_gate(tmp_path):
+    """Older states only know the last question; every shown decision holds."""
+    with JsonStore(tmp_path) as store:
+        c, t, _ = controller(store)
+        shown_open(store, c, item(A, "Aufgabe A"))
+        shown_open(store, c, item(B, "Frage B", ["Wann?"]))
+        store.save("telegram-outbox", TelegramOutboxState(active=TelegramOutboxGate(
+            kind="proposal", mail_id=B, proposal_id="p1", version=1)).model_dump(mode="json"))
+        c.send(2, "Info")
+        assert not shown(t, "Info")
+        store.save(proposal_name(B, "p1"), item(B, "Frage B", ["Wann?"], status="rejected")
+                   .model_dump(mode="json"))
+        c.flush_outbox()
+        assert not shown(t, "Info")  # Aufgabe A is still undecided
+        store.save(proposal_name(A, "p1"), item(A, "Aufgabe A", status="rejected")
+                   .model_dump(mode="json"))
+        c.flush_outbox()
+        assert shown(t, "Info")
         assert outbox(store) == TelegramOutboxState()
+
+
+def test_regression_log_sequence_2026_10_08_is_sequential(tmp_path):
+    """Replay of the observed run with synthetic data: one decision at a time."""
+    with JsonStore(tmp_path) as store:
+        c, t, _ = controller(store, test_mode=True)
+        c.send(2, "Zusammenfassung Erinnerung A")
+        c.send_proposal(item(A, "Austausch A"))
+        c.send(2, "Zusammenfassung Erinnerung B")
+        c.send_proposal(item(B, "Treffen B"))
+        c.send(2, "Zusammenfassung Einladung C")
+        c.send_proposal(item(C, "Rückmeldung C"))
+        c.send_proposal(item(C, "Übergabe C", ["Wann endet der Termin?"], id="p2"))
+
+        def buttons():
+            return [text for _, text, markup in t.sent if markup is not None]
+
+        assert buttons() == [next(x for x in texts(t) if "Austausch A" in x)]
+        assert not shown(t, "Zusammenfassung Erinnerung B")
+        steps = [(f"proposal:{A}:p1:1:confirm", "Treffen B"),
+                 (f"proposal:{B}:p1:1:reject", "Rückmeldung C"),
+                 (f"proposal:{C}:p1:1:confirm", "Übergabe C")]
+        for update_id, (data, expected) in enumerate(steps, start=1):
+            before = len(buttons())
+            t.updates = [callback(update_id, data)]
+            c.poll_once()
+            new = buttons()[before:]
+            assert len(new) == 1 and expected in new[0]
+        assert outbox(store).entries == []
+
+
+@pytest.mark.parametrize("command", [None, "/offen"])
+def test_regression_restart_and_open_present_only_the_current_decision(tmp_path, command):
+    """Startup redisplay and /offen must not resend every open decision at once."""
+    with JsonStore(tmp_path) as store:
+        c, t, _ = controller(store)
+        for mail_id in (D, B, A, C):
+            shown_open(store, c, item(mail_id, f"Aufgabe {mail_id[0].upper()}"))
+        if command is None:
+            c.show_open_decisions()
+        else:
+            t.updates = [message(1, command)]
+            c.poll_once()
+        overview = texts(t)[0]
+        assert all(f"„Aufgabe {name}“" in overview for name in "ABCD")
+        presented = [text for _, text, markup in t.sent if markup is not None]
+        assert len(presented) == 1 and "Aufgabe A" in presented[0]
+
+
+def test_regression_open_presents_the_stored_gate_as_current_decision(tmp_path):
+    with JsonStore(tmp_path) as store:
+        c, t, _ = controller(store)
+        for mail_id in (A, B, C):
+            shown_open(store, c, item(mail_id, f"Aufgabe {mail_id[0].upper()}"))
+        store.save("telegram-outbox", TelegramOutboxState(active=TelegramOutboxGate(
+            kind="proposal", mail_id=C, proposal_id="p1", version=1)).model_dump(mode="json"))
+        t.updates = [message(1, "/offen")]
+        c.poll_once()
+        presented = [text for _, text, markup in t.sent if markup is not None]
+        assert len(presented) == 1 and "Aufgabe C" in presented[0]
+
+
+def test_disabled_setting_open_presents_every_decision(tmp_path):
+    with JsonStore(tmp_path) as store:
+        c = TelegramDialogController(store, Telegram(), 1, 2, _Log(), None, False,
+                                     "UTC", RevisionService(),
+                                     sequential_questions=False)
+        for mail_id in (A, B):
+            shown_open(store, c, item(mail_id, f"Aufgabe {mail_id[0].upper()}"))
+        c.show_open_decisions()
+        assert len([1 for _, _, markup in c.telegram.sent if markup is not None]) == 2
 
 
 def test_disabled_setting_sends_immediately(tmp_path):
@@ -147,7 +320,9 @@ def test_disabled_setting_sends_immediately(tmp_path):
         first, second = item(A, "Frage A", ["Wann?"]), item(B, "Aufgabe B")
         c.send_proposal(first)
         c.send_proposal(second)
+        c.send_proposal(item(C, "Aufgabe C"))
         assert shown(c.telegram, "Frage A") and shown(c.telegram, "Aufgabe B")
+        assert shown(c.telegram, "Aufgabe C")
 
 
 class _Log:
@@ -205,6 +380,11 @@ def test_obsolete_queued_proposals_are_skipped(tmp_path):
         store.save(proposal_name(A, "p1"), gate.model_copy(
             update={"status": ProposalStatus.REJECTED}).model_dump(mode="json"))
         before = len(t.sent)
+        c.flush_outbox()
+        assert len(t.sent) == before
+        # D was already delivered and is still open: it is the current decision.
+        store.save(proposal_name(D, "p1"), done.model_copy(
+            update={"status": ProposalStatus.REJECTED}).model_dump(mode="json"))
         c.flush_outbox()
         assert len(t.sent) == before
         assert outbox(store) == TelegramOutboxState()
@@ -299,7 +479,8 @@ def test_status_lists_held_messages_and_open_shows_only_sent_proposals(tmp_path)
         t.updates = [message(1, "/status")]
         c.poll_once()
         assert "„Aufgabe B“ · Version 1: Noch nicht gesendet" in texts(t)[-1]
-        assert "Zurückgehaltene Nachrichten bis zur Erledigung der aktuellen Rückfrage: 1" in texts(t)[-1]
+        assert "Zurückgehaltene Nachrichten bis zur Erledigung der aktuellen Entscheidung: 1" in texts(t)[-1]
+        assert "Aktuelle Entscheidung: „Frage A“ · Version 1" in texts(t)[-1]
         before = len(t.sent)
         t.updates = [message(2, "/offen")]
         c.poll_once()

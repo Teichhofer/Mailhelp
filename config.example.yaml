@@ -39,11 +39,14 @@ telegram:
   # /abbrechen schließt die Bearbeitung, verwirft aber keinen Vorschlag.
   user_id: 1
   chat_id: 2
-  # true: Nach einer Nachricht mit Rückfrage (Vorschlag mit „Klären“ oder
-  # Relevanzfrage) werden weitere Nachrichten zurückgehalten, bis die Rückfrage
-  # erledigt ist; danach folgen sie der Reihe nach bis zur nächsten Rückfrage.
+  # true: Immer nur eine offene Entscheidung. Nach einer Nachricht mit
+  # Entscheidungsschaltflächen (Relevanzfrage, Vorschlag mit „Klären“ oder
+  # vollständiger Vorschlag mit „Im Kalender/In Todoist anlegen“) werden weitere
+  # Nachrichten zurückgehalten, bis die Entscheidung erledigt ist; danach folgen
+  # sie der Reihe nach bis zur nächsten Entscheidung. Neustart und /offen zeigen
+  # nur die aktuelle Entscheidung mit Schaltflächen.
   # Die Warteschlange liegt in telegram-outbox.json. false: sofort senden.
-  # Rückfragen halten spätere Telegram-Nachrichten zurück, auch nach unklarem Versand.
+  # Offene Entscheidungen halten spätere Nachrichten zurück, auch nach unklarem Versand.
   # Noch zurückgehaltene Relevanzfragen pausieren nur ihre eigene Mailanalyse.
   sequential_questions: true
 targets:
