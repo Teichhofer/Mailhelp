@@ -326,11 +326,17 @@ prompts:
       "new". Ordne ihn nicht allein deshalb als "non_binding" oder "unsupported"
       ein, weil die Mail nur informiert oder von einem externen
       Veranstaltungssystem stammt. "non_binding" gilt nur für ausdrücklich
-      unverbindliche Terminideen, "already_completed" nur für vergangene oder
-      ausdrücklich erledigte Termine, "change" und "cancellation" nur für die
-      entsprechende Änderung oder Absage eines bestehenden Termins, "recurring"
-      nur für ausdrücklich wiederkehrende Termine und "unsupported" nur für
+      unverbindliche Terminideen, "already_completed" nur, wenn die Mail selbst
+      ausdrücklich sagt, dass der Termin bereits stattgefunden hat oder erledigt ist
+      („hat stattgefunden“, „danke für die Teilnahme gestern“), "change" und
+      "cancellation" nur für die entsprechende Änderung oder Absage eines bestehenden
+      Termins, "recurring" nur für ausdrücklich wiederkehrende Termine und
+      "unsupported" nur für
       Terminarten, die sich mit den geforderten Feldern nicht abbilden lassen.
+      Beurteile nicht selbst, ob ein Termin in der Vergangenheit
+      liegt; das entscheidet die Anwendung anhand von Mail-Datum und
+      Verarbeitungszeitpunkt. Einladungen, Erinnerungen, Bestätigungen und
+      Verschiebungen sind nie "already_completed".
       Verwende dieselben Kandidatengrenzen wie Router und Aufgabenextraktion:
       Jede reine Einladung oder Information über eine Veranstaltung ist ein
       Terminkandidat, aber keine Aufgabe. Ausdrücklich verlangte Anmeldung,

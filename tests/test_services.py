@@ -362,6 +362,10 @@ def test_raw_extraction_prompts_are_separate_and_injection_resistant():
     assert "fehlende Zeitfelder" in event and '"required_unknown"' in event
     assert "Zugangsdaten enthält und weder einen Termin" in prompts["action_router"]["system_prompt"]
     assert "Datum ohne Uhrzeit ist niemals automatisch ganztägig" in event
+    # B4 (run 3): a reminder 30 minutes before the meeting became "already_completed".
+    assert "Beurteile nicht selbst, ob ein Termin in der Vergangenheit" in event
+    assert 'Verschiebungen sind nie "already_completed"' in event
+    assert "vergangene oder" not in event
     for stage in ("action_router", "task_extraction", "event_extraction"):
         assert prompts[stage]["parameters"]["max_tokens"] == 10_000
 
