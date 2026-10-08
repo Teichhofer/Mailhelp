@@ -682,6 +682,33 @@ def test_revision_token_limit_uses_reduced_route_and_can_exhaust():
     assert logged.logger.events[0][0][2] == "proposal_revision_delta_applied"
 
 
+def test_regression_revision_rejects_changes_outside_allowed_fields():
+    """Regression 2026-10-08 (B1): a date answer changed the responsibility.
+
+    The provider returned ``{"responsibility": "unclear"}`` although only
+    ``start``, ``end`` and ``all_day`` were allowed, and it was applied.
+    """
+    question = "Welches konkrete Datum ist mit „Morgen oder am Mittwoch“ gemeint?"
+    original = proposal(kind="event", status="needs_clarification",
+                        open_questions=[question])
+    outside = {"answered_question": question, "changes": {"responsibility": "unclear"}}
+    with pytest.raises(LlmSchemaValidationFailed):
+        Analyzer(FakeCompleter([outside, outside]), prompt_config()).revise_proposal(
+            original, question, "06.10.2026 oder 07.10.2026")
+
+    # The violation is reported to the model like any other validation error,
+    # and an allowed delta from the repair attempt is accepted unchanged.
+    client = RetrySequence([
+        {"answered_question": question,
+         "changes": {"responsibility": "user", "start": "2026-10-07", "all_day": True}},
+        {"answered_question": question, "changes": {"start": "2026-10-07", "all_day": True}},
+    ])
+    revised = Analyzer(client, prompt_config()).revise_proposal(original, question, "2026-10-07")[1]
+    assert "responsibility" in client.payloads[1]["previous_validation_error"]
+    assert revised.responsibility == original.responsibility
+    assert revised.start == date(2026, 10, 7)
+
+
 def test_revision_payload_carries_resolved_temporal_fact_read_only():
     base = proposal(open_questions=["Welches Datum?"]).model_dump()
     original = Proposal.model_validate({**base, "temporal_fact": {

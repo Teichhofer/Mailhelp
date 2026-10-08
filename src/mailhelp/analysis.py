@@ -381,6 +381,13 @@ class Analyzer:
             if isinstance(raw, dict):
                 raw = {**raw, "answered_question": question}
             delta = ProposalRevisionDelta.model_validate(raw)
+            # The closed schema admits every business field, so the per-question
+            # allowance must be enforced on the untrusted delta itself.
+            outside = sorted(delta.changes.model_fields_set - set(allowed))
+            if outside:
+                raise ValueError(
+                    "changes enthält nicht erlaubte Felder: " + ", ".join(outside)
+                    + "; erlaubt sind nur: " + ", ".join(allowed))
             # Validate the complete successor inside the bounded repair loop so
             # business-rule failures are reported to the model before success is logged.
             return validate_revision_successor(

@@ -1334,7 +1334,10 @@ Modellausgabe verwendet: Die Anwendung setzt es vor der Validierung deterministi
 auf die bereits bekannte, wortgleiche Eingabefrage. Sie validiert das Delta, wendet es deterministisch auf
 das gespeicherte Proposal an, entfernt nur die beantwortete offene Frage und setzt
 Version und Status selbst. Identität, Evidenz und externe Ergebnisse sind nicht
-änderbar. OpenRouter erhält, soweit die konfigurierte Route dies unterstützt, ein
+änderbar. `changes` darf nur Felder aus den für die Frage übergebenen
+`allowed_changes` setzen; jedes andere gesetzte Feld ist ein Validierungsfehler,
+der über die begrenzte Schemareparatur an das Modell zurückgemeldet und nie
+übernommen wird. OpenRouter erhält, soweit die konfigurierte Route dies unterstützt, ein
 striktes `json_schema`; andernfalls wird `json_object` verwendet und dieselbe
 Pydantic-Validierung bleibt verpflichtend.
 
