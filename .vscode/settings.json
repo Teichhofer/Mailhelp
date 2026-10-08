@@ -1,3 +1,10 @@
 {
-    "python.terminal.useEnvFile": true
+    "python.terminal.useEnvFile": true,
+    "chat.tools.terminal.autoApprove": {
+        "/^\\.\\\\\\.venv\\\\Scripts\\\\python\\.exe -m pytest tests/test_services\\.py tests/test_evaluation\\.py tests/test_quality_corpus\\.py tests/test_documentation\\.py -q --no-cov$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "git add": true
+    }
 }

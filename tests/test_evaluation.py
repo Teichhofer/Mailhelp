@@ -119,10 +119,10 @@ class AlternativeProvider(Provider):
 
 def test_corpus_v2_is_consistent_and_accepts_only_declared_alternatives():
     corpus = load_corpus_v2()
-    assert corpus["schema_version"] == 2 and len(corpus["cases"]) == 17
+    assert corpus["schema_version"] == 2 and len(corpus["cases"]) == 20
     assert all(case["received_at"] for case in corpus["cases"])
     report = evaluate(corpus, prompts(), Provider(corpus), 200)
-    assert report["passed"] and report["stage_pass_counts"]["summary"] == 17
+    assert report["passed"] and report["stage_pass_counts"]["summary"] == len(corpus["cases"])
     alternative = evaluate(corpus, prompts(), AlternativeProvider(corpus), 200)
     assert alternative["passed"]
     assert any(case["stages"]["action_router"]["accepted_alternatives"]

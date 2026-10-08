@@ -1026,6 +1026,85 @@
           "events": []
         }
       }
+    },
+    {
+      "id": "18_meeting_access_only",
+      "raw_email": "From: Meeting Service <meetings@work.example.test>\nTo: Alex Muster <alex.muster@example.test>\nDate: Fri, 18 Sep 2026 10:00:00 +0200\nMessage-ID: <18_meeting_access_only@example.test>\nSubject: Zugangsdaten fuer den Austausch\nContent-Type: text/plain; charset=utf-8\n\nMicrosoft Teams-Besprechung\nTeilnehmen: https://teams.example.test/meet/123\nBesprechungs-ID: 123 456\nPasscode: 123456\n",
+      "received_at": "2026-09-18T10:01:00+02:00",
+      "expected": {
+        "relevance": {"decision": "relevant", "topic_ids": ["arbeit"], "reason": "Zugangsdaten zu einem Arbeitstreffen."},
+        "summary": {"sentences": ["Die Mail enthält Zugangsdaten zu einem Arbeitstreffen."], "deadlines": []},
+        "action_route": {"action_state": "none", "task_count": 0, "event_count": 0, "reason": "Zugangsdaten allein belegen weder eine aktuelle Einladung noch einen konkreten Termin."},
+        "task_extraction": {"schema_version": 1, "tasks": []},
+        "event_extraction": {"schema_version": 1, "events": []}
+      }
+    },
+    {
+      "id": "19_invitation_time_pending",
+      "raw_email": "From: Fachbereich Arbeit <team@work.example.test>\nTo: Alex Muster <alex.muster@example.test>\nDate: Fri, 18 Sep 2026 10:00:00 +0200\nMessage-ID: <19_invitation_time_pending@example.test>\nSubject: Einladung zum Projektgespraech\nContent-Type: text/plain; charset=utf-8\n\nHallo Alex,\n\nwir laden dich zum Projektgespraech am vereinbarten Termin ein. Datum und Uhrzeit teilen wir noch mit.\n\nViele Gruesse\nDas Projektteam\n",
+      "received_at": "2026-09-18T10:01:00+02:00",
+      "expected": {
+        "relevance": {"decision": "relevant", "topic_ids": ["arbeit"], "reason": "Einladung zu einem Projektgespraech."},
+        "summary": {"sentences": ["Das Projektteam laedt Alex zu einem Projektgespraech ein; Datum und Uhrzeit folgen."], "deadlines": []},
+        "action_route": {"action_state": "event", "task_count": 0, "event_count": 1, "reason": "Ausdrueckliche aktuelle Einladung; Terminangaben folgen noch."},
+        "task_extraction": {"schema_version": 1, "tasks": []},
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [{
+            "title": "Projektgespraech",
+            "description": null,
+            "evidence": "wir laden dich zum Projektgespraech am vereinbarten Termin ein. Datum und Uhrzeit teilen wir noch mit.",
+            "date_text": null,
+            "time_text": null,
+            "end_time_text": null,
+            "location": null,
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "time_requirement": "required_unknown"
+          }]
+        }
+      }
+    },
+    {
+      "id": "20_quoted_old_task_after_reschedule",
+      "raw_email": "From: Projektbuero <projekt@work.example.test>\nTo: Alex Muster <alex.muster@example.test>\nDate: Fri, 18 Sep 2026 10:00:00 +0200\nMessage-ID: <20_quoted_old_task_after_reschedule@example.test>\nSubject: Projektgespraech wurde verschoben\nContent-Type: text/plain; charset=utf-8\n\nHallo Alex,\n\nder Termin wurde auf den 07.10.2026 um 16:00 Uhr verschoben. Bitte richten Sie Ihren Kalendereintrag entsprechend neu ein.\n\n--- Urspruengliche Nachricht ---\nBitte geben Sie bis zum 15.09.2026 Rueckmeldung, ob Sie teilnehmen.\n\nViele Gruesse\nDas Projektbuero\n",
+      "received_at": "2026-09-18T10:01:00+02:00",
+      "expected": {
+        "relevance": {"decision": "relevant", "topic_ids": ["arbeit"], "reason": "Verschiebung eines Arbeitstermins mit aktueller Bitte zur Kalenderanpassung."},
+        "summary": {"sentences": ["Das Projektbuero verschiebt das Projektgespraech auf den 7. Oktober um 16:00 Uhr und bittet um Aktualisierung des Kalendereintrags."], "deadlines": ["07.10.2026 um 16:00 Uhr", "15.09.2026"]},
+        "action_route": {"action_state": "task_and_event", "task_count": 1, "event_count": 1, "reason": "Aktuelle Bitte zur Kalenderanpassung und ausdruecklich verschobener Termin."},
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [{
+            "title": "Kalendereintrag fuer das Projektgespraech aktualisieren",
+            "description": "",
+            "evidence": "Bitte richten Sie Ihren Kalendereintrag entsprechend neu ein.",
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "new",
+            "due_text": null
+          }]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [{
+            "title": "Projektgespraech",
+            "description": null,
+            "evidence": "der Termin wurde auf den 07.10.2026 um 16:00 Uhr verschoben",
+            "date_text": "07.10.2026",
+            "time_text": "16:00 Uhr",
+            "end_time_text": null,
+            "location": null,
+            "video_link": null,
+            "responsibility": "user",
+            "certainty": "certain",
+            "classification": "change",
+            "time_requirement": "timed"
+          }]
+        }
+      }
     }
   ]
 }

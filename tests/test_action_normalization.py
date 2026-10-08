@@ -205,6 +205,45 @@ def test_explicit_mail_offset_overrides_configured_user_timezone_and_preserves_i
     assert result.value.end.astimezone(timezone.utc).isoformat() == "2026-09-23T09:00:00+00:00"
 
 
+def reminder(day, start, end, offset):
+    return event(date_text=day, time_text=start, end_time_text=end,
+                 timezone_offset_text=offset, time_requirement="timed",
+                 evidence=f"Erinnerung: Austausch am {day}, {start} Uhr - {end} Uhr ({offset})")
+
+
+def test_regression_zone_label_with_standard_offset_keeps_local_summer_time():
+    """Regression 2026-10-08: "(UTC+01:00)" labels moved meetings one hour.
+
+    Calendar reminders print the zone's standard offset as a label.  During
+    daylight saving time the stated clock is still local time in the zone.
+    """
+    result = normalize_event(reminder("07.10.2026", "16:00", "16:45", "UTC+01:00"), context())
+    assert isinstance(result.value, TemporalValue)
+    assert result.value.start.isoformat() == "2026-10-07T16:00:00+02:00"
+    assert result.value.end.isoformat() == "2026-10-07T16:45:00+02:00"
+
+
+@pytest.mark.parametrize(("day", "offset", "expected"), [
+    # Standard time: label and actual offset coincide.
+    ("02.12.2026", "UTC+01:00", "2026-12-02T16:00:00+01:00"),
+    # The actual summer offset is kept as stated.
+    ("07.10.2026", "UTC+02:00", "2026-10-07T16:00:00+02:00"),
+    # A genuinely foreign zone keeps its explicit instant.
+    ("07.10.2026", "UTC-05:00", "2026-10-07T16:00:00-05:00"),
+])
+def test_explicit_offsets_other_than_a_summer_zone_label_are_kept(day, offset, expected):
+    result = normalize_event(reminder(day, "16:00", "16:45", offset), context())
+    assert isinstance(result.value, TemporalValue)
+    assert result.value.start.isoformat() == expected
+
+
+def test_zone_label_check_needs_a_valid_user_zone_otherwise_offset_is_kept():
+    result = normalize_event(reminder("07.10.2026", "16:00", "16:45", "UTC+01:00"),
+                             context(user_timezone="Mars/Olympus"))
+    assert isinstance(result.value, TemporalValue)
+    assert result.value.start.isoformat() == "2026-10-07T16:00:00+01:00"
+
+
 @pytest.mark.parametrize("raw", [
     "GMT+01:00", "+01:00", "UTC+1:00", "UTC+01", "UTC+15:00",
     "UTC-14:01", "UTC+01:60", "Europe/Berlin",

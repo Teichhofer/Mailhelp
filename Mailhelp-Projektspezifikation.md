@@ -481,9 +481,17 @@ bleibt das Ende eine eigene Klärungsfrage. Ein optional extrahiertes
 `timezone_offset_text` muss wörtlich und ausdrücklich beim Termin in der Mail
 stehen und exakt `UTC+HH:MM` oder `UTC-HH:MM` im Bereich von `UTC-14:00` bis
 `UTC+14:00` (an den Grenzen nur `:00`) entsprechen. Es darf weder aus Ortsnamen
-noch aus Headern, Konfiguration oder Weltwissen hergeleitet werden. Bei
-Uhrzeiten wird dieser feste `datetime.timezone`-Offset vorrangig verwendet;
-nur ohne ihn gilt die konfigurierte IANA-`user_timezone`. Der dadurch bestimmte
+noch aus Headern, Konfiguration oder Weltwissen hergeleitet werden.
+Zeitzonenbezeichnungen von Kalendersystemen wie „(UTC+01:00) Amsterdam, Berlin, …“
+oder ein angehängtes „(UTC+01:00)“ in Terminerinnerungen nennen den
+Standardversatz der Zone und sind kein am Termin geltender Offset; die Extraktion
+liefert dafür `null`. Bei Uhrzeiten wird ein fester `datetime.timezone`-Offset
+vorrangig verwendet; nur ohne ihn gilt die konfigurierte IANA-`user_timezone`.
+Ausnahme: Entspricht der Offset dem Standardversatz der gültigen `user_timezone`,
+während diese am Termindatum Sommerzeit hat, ist er eine Zonenbezeichnung. Die
+Uhrzeit wird dann deterministisch als Ortszeit der `user_timezone` normalisiert
+(„16:00 Uhr (UTC+01:00)“ am 07.10.2026 in `Europe/Berlin` ergibt
+`16:00+02:00`). Jeder andere Offset behält seinen Instant. Der dadurch bestimmte
 Instant bleibt in Proposal-Zustand und Google-Calendar-`dateTime` erhalten; ein
 zusätzliches `timeZone`-Feld darf ihn nicht anhand von `calendar_timezone`
 uminterpretieren.

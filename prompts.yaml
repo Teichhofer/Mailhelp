@@ -279,9 +279,6 @@ prompts:
       Router; dieser Wert ist nur ein Diagnosehinweis. Extrahiere ausschließlich
       belegte Aufgaben, auch wenn ihre Anzahl vom Router abweicht. Erfinde oder
       entferne keine Aufgabe, um den Zähler zu erfüllen.
-      Erfinde oder entferne dennoch keine Kandidaten, sondern prüfe bei einer
-      Korrektur die ausdrücklich
-      genannten Kandidaten erneut anhand derselben Grenzen.
       Eine freiwillige, konkret an die empfangende Person gerichtete und sofort
       ausführbare Handlung (zum Beispiel ein Gespräch über einen vorhandenen Link
       zu buchen) ist als "new", "user" und "certain" zu extrahieren. "certain"
@@ -350,9 +347,13 @@ prompts:
       Treffen bleibt genau ein Event-Kandidat, auch wenn Datum oder Uhrzeit noch
       fehlen; extrahiere dann nur belegte Angaben und setze fehlende Zeitfelder
       auf null. Setze time_requirement in diesem Fall auf "required_unknown".
-      Erfinde oder entferne dennoch keine Kandidaten, sondern prüfe bei einer
-      Korrektur die ausdrücklich genannten
-      Kandidaten erneut anhand derselben Grenzen.
+      Extrahiere den aktuellen Terminstand. Eine in einer zitierten oder
+      weitergeleiteten älteren Nachricht genannte Veranstaltung ist kein
+      zusätzlicher aktueller Terminkandidat. Nutze ältere Angaben nur, um eine
+      Veranstaltung zu identifizieren, die der aktuelle Nachrichtenteil
+      ausdrücklich bestätigt, ändert oder absagt; bei einer Änderung extrahiere
+      die neuen Angaben aus dem aktuellen Nachrichtenteil und nicht den alten
+      Termin als zusätzliches Event.
       Setze time_requirement ausschließlich anhand expliziter Mail-Evidenz auf
       "all_day" (ausdrücklich ganztägig), "timed" (eine Uhrzeit ist ausdrücklich
       genannt oder erforderlich) oder "required_unknown" (Zeitsemantik unklar).
@@ -364,6 +365,14 @@ prompts:
       exakten Format UTC+HH:MM oder UTC-HH:MM (Bereich UTC-14:00 bis UTC+14:00,
       bei 14 Stunden nur :00), andernfalls null. Leite ihn niemals aus Ortsnamen,
       Absendern, Weltwissen, Nutzerzeitzone oder Mail-Headern ab.
+      Zeitzonenbezeichnungen aus Kalendersystemen sind kein am Termin geltender
+      Versatz: „(UTC+01:00) Amsterdam, Berlin, Bern, Rom, Stockholm, Wien“ und ein
+      bloßes „(UTC+01:00)“ am Ende automatischer Terminerinnerungen nennen den
+      Standardversatz der Zone, auch während der Sommerzeit. Setze
+      timezone_offset_text in diesen Fällen auf null; die Anwendung bestimmt den
+      Versatz aus user_timezone. Beispiel: Aus „Erinnerung: Sitzung am Mi,
+      07.10.2026, 16:00 Uhr - 16:45 Uhr (UTC+01:00)“ wird time_text "16:00 Uhr",
+      end_time_text "16:45 Uhr" und timezone_offset_text null.
       time_text enthält nur die wörtliche Beginnuhrzeit, end_time_text nur die
       wörtliche Enduhrzeit; teile eine Spanne wie "13:00 bis 14:00 Uhr" auf beide
       Felder auf, statt sie vollständig in time_text zu übernehmen.
@@ -458,10 +467,11 @@ prompts:
       mit all_day=true zulässig. Bei all_day=false müssen vorhandene start- und
       end-Werte vollständige ISO-8601-Zeitpunkte mit eindeutigem UTC-Offset sein.
       Erfinde oder errate keinen UTC-Offset. Nutze ausschließlich einen Offset,
-      der in den separat übergebenen vertrauenswürdigen proposal_fields oder
-      known_temporal_facts ausdrücklich enthalten ist; ein Datum, eine lokale
-      Uhrzeit, ein Ortsname oder die Pflicht zum ISO-8601-Format belegt keinen
-      Offset. "Z" und "+00:00" bedeuten ausdrücklich UTC und sind keine
+      der ausdrücklich in proposal_fields.start, proposal_fields.end oder
+      known_temporal_facts.start enthalten ist; andere Proposal-Texte sind keine
+      Offsetquelle. Ein Datum, eine lokale Uhrzeit, ein Ortsname oder die Pflicht
+      zum ISO-8601-Format belegt keinen Offset. "Z" und "+00:00" bedeuten
+      ausdrücklich UTC und sind keine
       neutralen Platzhalter. Wenn ein vollständiger Zeitstempel ohne belegten
       Offset nicht gebildet werden kann, lasse das betroffene Feld unverändert
       und gib "changes": {} aus. Die Anwendung hält notwendige Zeitfragen offen.

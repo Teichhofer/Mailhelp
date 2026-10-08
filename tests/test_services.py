@@ -294,7 +294,8 @@ def test_relevance_prompt_defines_closed_output_format_and_untrusted_mail_exampl
         assert f'"{forbidden}"' in prompt
     assert "immer eine JSON-Liste" in prompt
     assert "keine ID doppelt" in prompt
-    assert "höchstens 1000 Zeichen" in prompt
+    assert "höchstens 250 Zeichen" in prompt
+    assert "liste nicht alle geprüften Themen auf" in prompt
     assert '"irrelevant" muss "topic_ids" die leere Liste []' in prompt
     assert "auch wenn kein Thema passt" in prompt
     assert "nur IDs aus den übergebenen" in prompt
@@ -357,6 +358,9 @@ def test_raw_extraction_prompts_are_separate_and_injection_resistant():
     assert 'nicht allein deshalb als "non_binding" oder "unsupported"' in event
     assert '"unsupported" nur für' in event
     assert "Terminarten, die sich mit den geforderten Feldern nicht abbilden lassen" in event
+    assert "Zugangsdaten enthält und weder einen Termin noch eine" in event
+    assert "fehlende Zeitfelder" in event and '"required_unknown"' in event
+    assert "Zugangsdaten enthält und weder einen Termin" in prompts["action_router"]["system_prompt"]
     assert "Datum ohne Uhrzeit ist niemals automatisch ganztägig" in event
     for stage in ("action_router", "task_extraction", "event_extraction"):
         assert prompts[stage]["parameters"]["max_tokens"] == 10_000
@@ -405,7 +409,8 @@ def test_action_prompts_share_invitation_candidate_boundaries():
         assert "Kandidatengrenzen" in prompt
         assert "reine Einladung" in prompt
         assert "Grußwort halten" in prompt
-        assert "Erfinde oder entferne" in prompt
+    assert "Erfinde oder entferne" in router and "Erfinde oder entferne" in event
+    assert "Erfinde oder entferne keine Aufgabe" in " ".join(task.split())
     for action in ("Anmeldung", "Zu- oder Absage", "Rückmeldung", "Vorbereitung"):
         assert all(action in prompt for prompt in (router, task, event))
     assert 'nicht "certain"' in task
@@ -414,6 +419,11 @@ def test_action_prompts_share_invitation_candidate_boundaries():
     assert 'grundsätzlich selbst und erhält responsibility "user"' in flat_event
     assert '"other" nur, wenn' in flat_event and '"unclear" nur bei ausdrücklichen' in flat_event
     assert 'Bedingte Teilnahme ist nicht "certain"' in flat_event
+    assert "aktuelle Einladung" in prompts["action_router"]["system_prompt"]
+    assert "aktuelle Einladung" in event
+    assert "zitierten oder weitergeleiteten älteren Nachricht" in task
+    assert "zitierten oder weitergeleiteten älteren Nachricht" in prompts["action_router"]["system_prompt"]
+    assert "Extrahiere den aktuellen Terminstand" in event
     flat_task = " ".join(task.split())
     assert 'ohne einleitende Wörter wie "bis"' in flat_task
     assert "darf due_text nicht null sein" in flat_task
@@ -505,6 +515,11 @@ def test_proposal_revision_prompt_covers_date_schema_and_output_budget():
     assert "reines Kalenderdatum" in prompt
     assert "all_day=true" in prompt
     assert "ISO-8601-Zeitpunkte mit eindeutigem UTC-Offset" in prompt
+    assert "Erfinde oder errate keinen UTC-Offset" in prompt
+    flat_prompt = " ".join(prompt.split())
+    assert '"Z" und "+00:00" bedeuten ausdrücklich UTC' in flat_prompt
+    assert "proposal_fields.start, proposal_fields.end oder known_temporal_facts.start" in flat_prompt
+    assert 'gib "changes": {} aus' in prompt
     assert "berechnet die Anwendung lokal" in prompt
     assert "enthält niemals normalized_answer" in step["output_token_retry"]["system_prompt"]
     interpretation = yaml.safe_load(Path("prompts.yaml").read_text(

@@ -10,7 +10,9 @@ and ``user_timezone`` names an available IANA zone.  The header timestamp is a
 reference instant only; it is not used to turn relative language into a date.
 An explicitly extracted ``UTC±HH:MM`` offset supplies a fixed-offset timezone
 for local clock times.  Only when it is absent does the user zone supply the
-timezone.
+timezone.  An offset equal to the user zone's standard offset on a date with
+daylight saving time is a zone label such as "(UTC+01:00) Amsterdam, Berlin",
+so the clock is then interpreted in the user zone.
 
 Responsibility remains an independent fact on every result.  In particular, a
 resolved temporal value with ``responsibility == "unclear"`` is not by itself
@@ -303,6 +305,29 @@ _TIME_RANGE = re.compile(
     r"(?i)(?:von\s+)?(?P<start>.+?)\s*(?:-|\u2013|\u2014|\bbis\b)\s*(?P<end>.+)\Z")
 
 
+def _zone_label_as_local_zone(offset: timezone, day: date, clock: time,
+                              context: MailDateContext,
+                              responsibility: str) -> timezone | ZoneInfo:
+    """Treat a standard-offset zone label during daylight saving as local time.
+
+    Calendar systems print zones as "(UTC+01:00) Amsterdam, Berlin, ..." with
+    the standard offset, also while summer time applies.  If the extracted
+    offset equals the user zone's standard offset but that zone observes
+    daylight saving time on this date, the clock is local time in the user
+    zone.  Any other explicit offset keeps its instant.
+    """
+    user_zone = _context_zone(context, responsibility)
+    if isinstance(user_zone, NormalizationResult):
+        return offset
+    local = datetime.combine(day, clock, user_zone)
+    daylight = local.dst()
+    standard = local.utcoffset()
+    assert daylight is not None and standard is not None
+    if daylight and offset.utcoffset(None) == standard - daylight:
+        return user_zone
+    return offset
+
+
 def split_time_range(event: ExtractedEvent) -> ExtractedEvent:
     """Split a verbatim clock range that was copied into ``time_text``.
 
@@ -381,6 +406,8 @@ def normalize_event(event: ExtractedEvent, context: MailDateContext) -> Normaliz
     start_clock = _parse_time(event.time_text, responsibility)
     if isinstance(start_clock, NormalizationResult):
         return replace(start_clock, temporal_fact=fact)
+    if isinstance(zone, timezone):
+        zone = _zone_label_as_local_zone(zone, day, start_clock, context, responsibility)
     start = (datetime.combine(day, start_clock, zone)
              if isinstance(zone, timezone) else _localize(day, start_clock, zone, responsibility))
     if isinstance(start, NormalizationResult):
