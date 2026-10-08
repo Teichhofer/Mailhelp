@@ -1,3 +1,6 @@
+# Optionaler isolierter Vergleich: mailhelp --decision-test 20
+# Nur dafür decisions_prompts.yaml im Konfigurationsverzeichnis bereitstellen.
+# Bericht und JSONL unter data_directory/decision-tests; keine Schreibdienste.
 # Für lokale Nutzung nach config.yaml kopieren und Verbindungen/Ziele anpassen.
 # Geheimnisse ausschließlich in .env oder in der Prozessumgebung hinterlegen.
 # Auch non_binding und "Erneut anlegen" erfordern versionsbezogene Telegram-Bestätigung.

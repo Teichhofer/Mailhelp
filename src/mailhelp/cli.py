@@ -6,6 +6,7 @@ from pathlib import Path
 from .application import build_application, build_logger
 from .config import LOCAL_NUM_CTX, Settings, load_all
 from .learning import LearningMode
+from .decision_test import run_decision_test
 from .ollama import LocalLlm, parse_address
 from .storage import JsonStore
 from .paths import runtime_path
@@ -153,11 +154,32 @@ def _main() -> int:
         "--ollama-model", metavar="NAME",
         help="Ollama-Modell für --ollama; überschreibt ollama.model aus prompts.yaml",
     )
+    parser.add_argument(
+        "--decision-test", type=_positive_int, metavar="ANZAHL",
+        help="ANZAHL Mails über LLM und Jev vergleichen; Rohdaten explizit speichern",
+    )
+    parser.add_argument(
+        "--decision-test-file", type=Path, metavar="DATEI",
+        help="neue JSON-Testdatei für --decision-test (relativ zu --config-directory)",
+    )
     args = parser.parse_args()
+    if args.decision_test_file is not None and args.decision_test is None:
+        parser.error("--decision-test-file ist nur zusammen mit --decision-test zulässig")
+    if args.decision_test is not None and any((
+        args.check, args.check_access, args.show_imap_credentials, args.max_mails is not None,
+        args.learn is not None, args.clear, args.yes, args.ollama is not None,
+        args.ollama_model is not None, args.log_directory is not None,
+    )):
+        parser.error("--decision-test ist nicht mit anderen Modi, --max-mails, --ollama oder --log-directory kombinierbar")
     shutdown = _SignalShutdown()
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
     settings, secrets, topics, irrelevant_topics, prompts, fingerprint = load_all(args.config_directory)
+    if args.decision_test is not None:
+        return run_decision_test(
+            settings, secrets, topics, prompts, args.decision_test, args.config_directory,
+            args.decision_test_file, ignore_historical_start=args.ignore_historical_start,
+        )
     if args.yes and not args.clear:
         parser.error("--yes ist nur zusammen mit --clear zulässig")
     if args.show_imap_credentials and not args.check_access:

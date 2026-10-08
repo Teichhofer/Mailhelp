@@ -359,7 +359,7 @@ vor der JSON-Ausgabe. `reasoning` ist ein geschlossener Block mit genau einem vo
 optional `exclude`; ein Abschalten über `enabled` wird abgewiesen, weil Provider
 solche Anfragen dauerhaft ablehnen können.
 
-Die einzige Prompt-Datei ist `prompts.yaml`. Sie enthält die eigentlichen Prompts
+Die Prompt-Datei für die bisherigen Modi ist `prompts.yaml`. Sie enthält die eigentlichen Prompts
 und für jede Stufe eine geordnete Routingstrategie aus Primärroute und optionalen
 Fallbackrouten samt Modellen, OpenRouter-Providerpräferenzen, Anfrageparametern
 und Anzahl der Wiederholungen derselben Route. Themen stehen ausschließlich in
@@ -956,6 +956,7 @@ tatsächlichen externen Erfolg, ein unklares Ergebnis oder einen Fehler getrennt
 | Datei | Inhalt |
 | --- | --- |
 | `config.yaml` | Abruf, Ordner, Zeitzone, Ziele, Telegram-Freigaben, Pfade, Limits, Wiederholungen und Logging |
+| `decisions_prompts.yaml` | Ausschließlich für den Decision-Test: Jev-Modell, typisierte Vorlagen und Themenwahrscheinlichkeitsschwelle; kein Bestandteil des normalen Fingerprints |
 | `prompts.yaml` | Prompts, Modelle, globale und schrittspezifische OpenRouter-Parameter; Relevanzprüfung, Terminextraktion und Lernschritte besitzen höhere Ausgabelimits, damit Reasoning-Token nicht vor Ausgabe des JSON-Ergebnisses das globale Limit ausschöpfen |
 | `topics.yaml` | Themenbereiche und Relevanzkriterien |
 | `irrelevant_topics.yaml` | Im Lernmodus ausgeschlossene Themenbereiche |
@@ -1476,3 +1477,71 @@ Grundlage der simulierten Standardtests. Die Qualität
 von Zusammenfassung, Titel, Beschreibung und Evidenz erfordert zusätzlich eine
 manuelle Bewertung. Ein vorhandenes Prüfwerkzeug ersetzt keinen ausgeführten
 realen Qualitätsnachweis.
+
+## Separater Decision-Vergleichsmodus
+
+Der separate Einmallauf `mailhelp --decision-test 20` vergleicht bis zu 20 Mails mit
+zwei Analysepfaden. Der Aufruf aktiviert ausdrücklich reale IMAP-/OpenRouter-Aufrufe
+und die Speicherung vollständiger Mail- und Modellinhalte.
+
+```powershell
+mailhelp --decision-test 20
+mailhelp --decision-test 20 --decision-test-file data/decision-tests/vergleich.json
+mailhelp --decision-test 20 --ignore-historical-start
+```
+
+Nur dieser Modus liest `decisions_prompts.yaml` im Konfigurationsverzeichnis. Die
+Vorlage verwendet `typesafe/jev-1.13` über `POST https://openrouter.ai/api/alpha/decisions`.
+Bei einer Paketinstallation die mitgelieferte Vorlage aus `mailhelp/defaults` in
+das Konfigurationsverzeichnis kopieren. Modell, Fragen, Auswahlkriterien und
+`topic_threshold` stehen dort; Themen stammen weiterhin aus `topics.yaml`. Jev
+ersetzt `relevance` und `action_router`. Zusammenfassung und gegebenenfalls
+Aufgaben-/Terminextraktion laufen in beiden Pfaden separat mit `prompts.yaml`.
+Die Jev-Begründung ist ein gekennzeichneter Vorlagentext, keine Modell-Erklärung.
+
+Die Auswahl erfolgt ordnerübergreifend nach neuestem IMAP-Empfangszeitpunkt;
+höhere UID und konfigurierte Ordnerreihenfolge entscheiden Gleichstände.
+`imap.historical_start` gilt, bis `--ignore-historical-start` gesetzt wird.
+Identische Rohmails in mehreren Ordnern werden einmal verglichen. Je Ordner wird
+ein auf die gewünschte Anzahl begrenztes Metadatenfenster untersucht. Duplikate,
+nicht lesbare Ordner und kleine Postfächer können die erreichte Anzahl reduzieren.
+Bestehende Checkpoints und der Absenderfilter werden nicht verwendet.
+
+Für den Stufenvergleich werden Relevanz, Aktionsrouting und Zusammenfassung auch
+bei irrelevanten oder unklaren Mails geprüft. Extraktion folgt den Kandidatenzahlen
+des jeweiligen Pfads; bei einem Routingfehler wird sie als übersprungen dokumentiert.
+`would_process_in_normal_mode` zeigt, ob die Relevanzentscheidung die Mail im normalen
+Ablauf weiterführen würde. Eine automatische Qualitätsbewertung findet nicht statt.
+
+Standardausgabe: `<data_directory>/decision-tests/decision-test-<UUID>.json`. Ein
+relativer `--decision-test-file`-Pfad gilt relativ zu `--config-directory`. Die Datei
+enthält Vorlagen, Themen, Mailidentität, Empfangszeit, SHA-256 der ursprünglichen Mail,
+geheimnisbereinigte RFC822-Rohdaten als Base64, aufbereitete Eingaben, validierte
+Ergebnisse sowie Request-/Response-Ereignisse einschließlich Wahrscheinlichkeiten,
+Nutzungs-/Kostenangaben und Fehlerstatus. Zugangsdaten werden vor der Base64-Codierung
+entfernt; die Rohmail kann deshalb vom Original abweichen. HTTP-Header werden nicht
+aufgezeichnet. Daneben liegt das separate Ereignislog `<Testdatei>.jsonl`. Die normalen
+Log-Schalter begrenzen diese explizite Testausgabe nicht; die Dateien werden bei Bedarf
+manuell archiviert oder gelöscht.
+
+Der Bericht wird nach jeder Stufe atomar aktualisiert und bleibt bei Abbruch lesbar
+(`complete: false`). Vorhandene Ausgabedateien werden vor Netzwerkzugriff abgelehnt.
+Ein Neustart verwendet eine neue Datei und setzt den alten Vergleich nicht fort.
+Ausgabepfade innerhalb der normalen Test-/Produktivzustände sind gesperrt, auch
+bei Verzeichnisumleitungen.
+Exitcode 0 bedeutet, dass alle angeforderten Mails ohne technische Fehler verglichen
+wurden; 1 kennzeichnet Fehler oder eine kleinere Mailanzahl; Ctrl+C ergibt 130.
+Unterschiedliche Modellentscheidungen sind kein Lauferror.
+
+Der Modus konstruiert ausschließlich IMAP- und Modelladapter. Normale Zustände,
+Telegram, Todoist und Kalender werden nicht angesteuert. Andere Modi benötigen die
+neue Promptdatei nicht. Kombinierbar sind `--config-directory`, `--decision-test-file`
+und `--ignore-historical-start`; andere Modi, `--max-mails`, `--ollama` und
+`--log-directory` werden abgelehnt.
+
+Für Docker gibt es einen eigenen Aufruf:
+
+```powershell
+$env:DECISION_TEST_MAILS = "20"
+docker compose -f compose.decision-test.yaml run --rm mailhelp-decision-test
+```
