@@ -174,7 +174,9 @@ def test_overview_relevance_current_proposals_and_revision_state(tmp_path, heade
         begin(c, proposal(id="question", open_questions=["Wann?"]))
         command(c, "/status")
         text = t.sent[-1][1]
-        assert text.count("„Aufgabe“") == 2  # snapshots and finished proposals excluded
+        # Snapshots and finished proposals are excluded; the edited one is current.
+        assert text.count("„Aufgabe“") == 3
+        assert "Aktuelle Entscheidung: „Aufgabe“ · Version 1" in text
         assert "Warte auf Bestätigung" in text and "Warte auf Antwort" in text
         assert ("Elternabend" if headers else "Mail ohne Betreff") in text
         for status, expected in [("pending", "Antwort gespeichert"), ("paused", "Verarbeitung pausiert")]:
@@ -284,7 +286,9 @@ def test_open_restores_only_matching_active_question_and_does_not_assign_other_p
         t.sent.clear()
         command(c, '/offen')
         assert 'Warte auf Antwort' in t.sent[0][1]
-        assert t.sent[-2][2]['inline_keyboard']
+        # The active question is the current decision; others get no buttons.
+        assert 'Warte auf Bestätigung oder Verwerfen' in t.sent[0][1]
+        assert all(msg[2] is None for msg in t.sent)
         assert 'Wann genau?' in t.sent[-1][1]
         assert store.load('telegram-dialog')['proposal_id'] == 'active'
         c.persist(proposal(id='active', version=2, open_questions=['Neues Datum?']))

@@ -13,8 +13,9 @@ HELP = (
     "Öffne /offen und wähle „Klären“ oder „Ändern“, oder beantworte die konkrete Rückfrage. "
     "Jede überarbeitete Version muss erneut per Schaltfläche bestätigt werden. "
     "Solange eine Relevanzentscheidung offen ist, wartet die weitere Mailverarbeitung. "
-    "Nach einer Rückfrage werden weitere Nachrichten zurückgehalten, bis sie "
-    "erledigt ist; danach folgen sie der Reihe nach bis zur nächsten Rückfrage."
+    "Es ist immer nur eine offene Entscheidung sichtbar: Weitere Nachrichten werden "
+    "zurückgehalten, bis sie erledigt ist; danach folgen sie der Reihe nach bis zur "
+    "nächsten Entscheidung."
 )
 
 
@@ -39,11 +40,17 @@ class TelegramCommands:
         lines = []
         presentations = []
         active_prompt = None
+        labels = {}
         active = self.store.load_model("telegram-dialog", TelegramDialogState)
+        current_key = None
         queued = self.outbox.queued_proposals() if self.outbox is not None else set()
+        # With sequential questions only the current decision gets buttons.
+        sequential = self.outbox is not None and self.outbox.enabled
+        current = self.outbox.current_decision() if sequential else None
         for dialog in self.relevance.open():
             mail = self.repository.load_mail(dialog.mail_id)
             subject = mail.display_headers.subject if mail and mail.display_headers else "Mail ohne Betreff"
+            labels[(dialog.mail_id, None)] = f"Relevanz „{subject}“ · Version {dialog.version}"
             lines.append(f"Relevanzentscheidung: {subject} · Version {dialog.version}")
         for name in self.store.names("proposal-"):
             proposal = self.store.load_model(name, Proposal)
@@ -57,9 +64,13 @@ class TelegramCommands:
                 proposal.source_mail_id, proposal.id, proposal.version)
             saved = (state is not None and state.authorized_answer is not None
                      and state.answer_status != AnswerStatus.INVALID)
+            key = (proposal.source_mail_id, proposal.id)
+            labels[key] = f"„{proposal.title}“ · Version {proposal.version}"
+            if editing:
+                current_key = key
             if (proposal.source_mail_id, proposal.id, proposal.version) in queued:
-                # Not shown yet: it follows once the current question is resolved.
-                status = "Noch nicht gesendet – folgt nach Erledigung der aktuellen Rückfrage"
+                # Not shown yet: it follows once the current decision is resolved.
+                status = "Noch nicht gesendet – folgt nach Erledigung der aktuellen Entscheidung"
             elif saved:
                 status = ("Verarbeitung pausiert; Betreiber muss den gespeicherten Zustand prüfen"
                           if "paused" in {state.interpretation_status, state.proposal_revision_status}
@@ -77,13 +88,19 @@ class TelegramCommands:
                         mail = self.repository.load_mail(proposal.source_mail_id)
                         sender = mail.display_headers.sender if mail and mail.display_headers else "—"
                         subject = mail.display_headers.subject if mail and mail.display_headers else "—"
-                        presentations.append(self.presenter.present(proposal, sender, subject))
+                        presentations.append((key, self.presenter.present(proposal, sender, subject)))
             lines.append(f"„{proposal.title}“ · Version {proposal.version}: {status}")
+        if current_key is None and current is not None:
+            current_key = (current.mail_id, current.proposal_id)
+        if sequential:
+            presentations = [item for item in presentations if item[0] == current_key]
+            if current_key in labels:
+                lines.append(f"Aktuelle Entscheidung: {labels[current_key]}")
         held = self.outbox.held_count() if self.outbox is not None else 0
         if held:
-            lines.append(f"Zurückgehaltene Nachrichten bis zur Erledigung der aktuellen Rückfrage: {held}")
+            lines.append(f"Zurückgehaltene Nachrichten bis zur Erledigung der aktuellen Entscheidung: {held}")
         self.telegram.send(self.chat_id, "\n".join(lines) if lines else "Keine offene Telegram-Entscheidung.")
-        for presentation in presentations:
+        for _, presentation in presentations:
             for part in presentation.parts[:-1]:
                 self.telegram.send(self.chat_id, part)
             self.telegram.send(self.chat_id, presentation.parts[-1], presentation.reply_markup)

@@ -1077,12 +1077,14 @@ def test_persist_before_buttons_and_authorized_flow(tmp_path):
         assert len(t.sent)>=2 and value.startswith("decision:") and len(value.encode("utf-8")) <= 64
         assert Decision.parse(value, store) == Decision(mail_id="a"*24, proposal_id="p1", version=1, action=DecisionAction.CONFIRM)
         c.send(2,"ok")
+        assert t.sent[-1][1] != "ok"  # held behind the undecided proposal
         with pytest.raises(PermissionError): c.send(3,"x")
 
         t.updates=[callback(4,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm")]
         c.poll_once()
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="confirmed"
-        assert "bestätigt" in t.sent[-1][1] and t.removed == [(2, 1)]
+        assert "bestätigt" in t.sent[-2][1] and t.removed == [(2, 1)]
+        assert t.sent[-1][1] == "ok"
         # Duplicate update is ignored by the persisted offset after restart.
         c2,t2,_=controller(store,t.updates); c2.poll_once()
         assert t2.polls==[5] and not t2.answered
@@ -2298,6 +2300,10 @@ def test_regression_messages_after_open_question_are_held_until_resolved(tmp_pat
         assert not any("Aufgabe B" in text or text == "Zusammenfassung C"
                        for _, text, _ in t.sent)
         t.updates = [callback(1, "proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:reject")]
+        c.poll_once()
+        assert any("Aufgabe B" in text for _, text, _ in t.sent)
+        assert not any(text == "Zusammenfassung C" for _, text, _ in t.sent)
+        t.updates = [callback(2, "proposal:bbbbbbbbbbbbbbbbbbbbbbbb:p1:1:reject")]
         c.poll_once()
         later = [text for _, text, _ in t.sent]
         assert later.index("Zusammenfassung C") > max(

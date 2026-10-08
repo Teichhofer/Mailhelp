@@ -335,10 +335,11 @@ def test_relevance_question_holds_and_decided_queued_one_is_skipped(tmp_path):
         c, t, log = controller(store)
         dialog = RelevanceDialog(mail_id=A)
         stored(store, item(A, "x"), status="completed", relevance=dialog)
-        other = RelevanceDialog(mail_id=B)
-        stored(store, item(B, "y"), status="completed", relevance=other)
         c.send_relevance(dialog, "Absender A", "Betreff A")
         c.send(2, "Info danach")
+        # Mail B is analysed later; its question is created only then.
+        other = RelevanceDialog(mail_id=B)
+        stored(store, item(B, "y"), status="completed", relevance=other)
         c.send_relevance(other, "Absender B", "Betreff B")
         assert shown(t, "Betreff A") and not shown(t, "Info danach")
 
@@ -372,8 +373,8 @@ def test_obsolete_queued_proposals_are_skipped(tmp_path):
         c.outbox.enqueue_proposal(missing)
         store.save(proposal_name(B, "p1"), rejected.model_copy(
             update={"status": ProposalStatus.REJECTED}).model_dump(mode="json"))
-        store.save(proposal_name(C, "p1"), revised.model_copy(
-            update={"version": 2}).model_dump(mode="json"))
+        # A revision is tracked with its own, not yet delivered notification.
+        c.repository.save_revision(revised.model_copy(update={"version": 2}))
         state = store.load_model(f"mail-{D}", MailState)
         state.proposal_notifications[0].status = "completed"
         store.save(f"mail-{D}", state.model_dump(mode="json"))

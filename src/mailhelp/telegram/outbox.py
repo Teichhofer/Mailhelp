@@ -1,9 +1,10 @@
-"""Durable, ordered Telegram outbox that holds messages behind an open question.
+"""Durable, ordered Telegram outbox that shows one open decision at a time.
 
-Mail processing produces notifications asynchronously.  Once a message with a
-question (a relevance question or a proposal with open questions) has been
-sent, every later notification stays queued until that question is resolved.
-Afterwards the queue is sent in order up to and including the next question.
+Mail processing produces notifications asynchronously.  Once a message with
+decision buttons (a relevance question or any undecided proposal, with or
+without open questions) has been shown, every later notification stays queued
+until that decision is resolved.  Afterwards the queue is sent in order up to
+and including the next decision.
 """
 
 from __future__ import annotations
@@ -23,11 +24,13 @@ from ..domain.processing import (
 from ..models import Proposal, ProposalStatus, RelevanceDialog, RelevanceDialogStatus
 from ..storage import JsonStore
 from .client import TelegramTransport
-from .persistence import ProposalRepository, clarification_name
+from .persistence import ProposalRepository, clarification_name, proposal_name
 from .revisions import EventLogger
 
 OUTBOX_NAME = "telegram-outbox"
 _OPEN = {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}
+# A proposal version in one of these delivery states has not been shown yet.
+_UNSHOWN = {"pending", "queued"}
 
 
 def revision_paused(store: JsonStore, proposal: Proposal) -> bool:
@@ -146,7 +149,11 @@ class TelegramOutbox:
         return entry.id
 
     def gate_open(self, gate: TelegramOutboxGate | None) -> bool:
-        """Return whether *gate* still holds back the following messages."""
+        """Return whether *gate* still holds back the following messages.
+
+        A proposal stays open across versions until it is decided: a complete
+        revision after a clarification still awaits its confirmation.
+        """
         if gate is None or not self.enabled:
             return False
         if gate.kind == "relevance":
@@ -159,12 +166,69 @@ class TelegramOutbox:
         return (
             current is not None
             and current.status in _OPEN
-            and bool(current.open_questions)
             and not revision_paused(self.store, current)
         )
 
+    def shown_open_decisions(self) -> list[TelegramOutboxGate]:
+        """Return every already shown, still open decision in mail order.
+
+        Entries still waiting in the outbox do not count.  Relevance questions
+        come first because they also pause the mail analysis.
+        """
+        queued_relevance = self.queued_relevance()
+        decisions = [
+            TelegramOutboxGate(kind="relevance", mail_id=dialog.mail_id,
+                               version=dialog.version)
+            for dialog in self.relevance.open()
+            if (dialog.mail_id, dialog.version) not in queued_relevance
+        ]
+        queued = self.queued_proposals()
+        ordered: list[tuple[tuple[int, int, str, str], TelegramOutboxGate]] = []
+        for name in self.store.names("proposal-"):
+            proposal = self.store.load_model(name, Proposal)
+            if (not isinstance(proposal, Proposal)
+                    or name != proposal_name(proposal.source_mail_id, proposal.id)
+                    or proposal.status not in _OPEN
+                    or revision_paused(self.store, proposal)
+                    or (proposal.source_mail_id, proposal.id, proposal.version) in queued
+                    or self.repository.notification_status(proposal) in _UNSHOWN):
+                continue
+            mail = self.repository.load_mail(proposal.source_mail_id)
+            position = (
+                (mail.imap.uid, [item.id for item in mail.proposals].index(proposal.id))
+                if mail is not None and any(item.id == proposal.id for item in mail.proposals)
+                else (0, 0)
+            )
+            ordered.append(((*position, proposal.source_mail_id, proposal.id),
+                            TelegramOutboxGate(
+                                kind="proposal", mail_id=proposal.source_mail_id,
+                                proposal_id=proposal.id, version=proposal.version)))
+        return decisions + [gate for _, gate in sorted(ordered, key=lambda pair: pair[0])]
+
+    def current_decision(self) -> TelegramOutboxGate | None:
+        """Return the decision that currently holds back later messages."""
+        if not self.enabled:
+            return None
+        state = self.load()
+        if self.gate_open(state.active):
+            return state.active
+        return next(iter(self.shown_open_decisions()), None)
+
+    def _set_gate(self, state: TelegramOutboxState,
+                  gate: TelegramOutboxGate | None) -> None:
+        if gate == state.active:
+            return
+        previous, state.active = state.active, gate
+        self._save(state)
+        if previous is not None:
+            self.logger.event("INFO", "telegram.outbox", "outbox_gate_released",
+                              kind=previous.kind, mail_id=previous.mail_id)
+        if gate is not None:
+            self.logger.event("INFO", "telegram.outbox", "outbox_gate_set",
+                              kind=gate.kind, mail_id=gate.mail_id)
+
     def flush(self, raise_for: str | None = None) -> None:
-        """Send queued messages in order until a sent question is still open.
+        """Send queued messages in order until a shown decision is still open.
 
         A failure while sending is an uncertain delivery: the entry is never
         sent automatically again.  It is re-raised only to the caller that
@@ -181,16 +245,15 @@ class TelegramOutbox:
                 entry_id=entry.id, kind=entry.kind, mail_id=entry.mail_id,
             )
         while state.entries:
-            if self.gate_open(state.active):
+            gate = self.current_decision()
+            self._set_gate(state, gate)
+            if gate is not None:
                 self.logger.event(
                     "DEBUG", "telegram.outbox", "outbox_held",
-                    queued=len(state.entries), gate_kind=state.active.kind,
-                    gate_mail_id=state.active.mail_id,
+                    queued=len(state.entries), gate_kind=gate.kind,
+                    gate_mail_id=gate.mail_id,
                 )
                 return
-            if state.active is not None:
-                state.active = None
-                self._save(state)
             entry = state.entries[0]
             entry.status = "sending"
             self._save(state)
@@ -209,9 +272,9 @@ class TelegramOutbox:
                     raise
                 return
             state.entries.pop(0)
-            if gate is not None:
-                state.active = gate
             self._save(state)
+            if gate is not None:
+                self._set_gate(state, gate)
 
     def _dispatch(self, entry: TelegramOutboxEntry) -> TelegramOutboxGate | None:
         if entry.kind == "message":
@@ -259,8 +322,6 @@ class TelegramOutbox:
         if status is not None:
             self.repository.mark_notification_completed(proposal)
         self._sent(entry)
-        if not proposal.open_questions:
-            return None
         return TelegramOutboxGate(
             kind="proposal", mail_id=proposal.source_mail_id,
             proposal_id=proposal.id, version=proposal.version,
