@@ -143,6 +143,7 @@ class DecisionClient(OpenRouterClient):
 class DecisionPrompts(ConfigModel):
     model: str = Field(min_length=1, pattern=r"^[^<>\s]+$")
     topic_threshold: Probability = 0.5
+    topic_guidance: dict[str, str] = Field(default_factory=dict)
     prompts: dict[str, dict[str, Question]]
 
     @model_validator(mode="after")
@@ -156,6 +157,7 @@ class DecisionPrompts(ConfigModel):
                 raise ValueError("Unvollständige Decision-Fragen")
         expected = {
             ("relevance", "decision"): {"relevant", "irrelevant", "unclear"},
+            ("relevance", "topic_match"): {"match", "no_match", "unclear"},
             ("action_router", "action_state"): {"none", "task", "event", "task_and_event", "unclear"},
             ("action_router", "task_count"): {str(index) for index in range(21)},
             ("action_router", "event_count"): {str(index) for index in range(21)},
@@ -164,8 +166,6 @@ class DecisionPrompts(ConfigModel):
             question = self.prompts[stage][name]
             if not isinstance(question, ChoiceQuestion) or set(question.criteria) != keys:
                 raise ValueError("Decision-Auswahl passt nicht zum Anwendungsschema")
-        if not isinstance(self.prompts["relevance"]["topic_match"], NoulQuestion):
-            raise ValueError("topic_match muss noul verwenden")
         return self
 
 
@@ -186,21 +186,37 @@ class DecisionAnalyzer:
         questions = {"decision": templates["decision"].model_dump()}
         for index, topic in enumerate(enabled):
             question = templates["topic_match"].model_dump()
-            question["instructions"] += f"\nBewerte ausschließlich topics[{index}]."
+            question["instructions"] += (
+                f"\nBewerte ausschließlich topics[{index}]: "
+                + json.dumps(topic.model_dump(), ensure_ascii=False)
+                + "\nJev-spezifische Präzisierung: "
+                + self.prompts.topic_guidance.get(topic.id, "Keine zusätzliche Präzisierung."))
             questions[f"topic_{index}"] = question
         call, raw = self.client.decide(
-            self.prompts.model, {"mail": mail, "topics": [topic.model_dump() for topic in enabled]},
+            self.prompts.model, {"mail": mail, "topics": [topic.model_dump() for topic in enabled],
+                                 "topic_guidance": {topic.id: self.prompts.topic_guidance.get(topic.id, "")
+                                                    for topic in enabled}},
             questions, stage="relevance", max_payload_bytes=self.max_payload_bytes)
         answers = raw["answers"]
         decision = answers["decision"]["choice"]
-        ids = [topic.id for index, topic in enumerate(enabled)
-               if answers[f"topic_{index}"]["noul"] >= self.prompts.topic_threshold]
-        if decision == "irrelevant":
-            ids = []
-        if decision == "relevant" and not ids:
-            raise DecisionResponseError("Relevante Decision-Antwort ohne zugeordnetes Thema")
-        return call, Relevance(decision=decision, topic_ids=ids,
-                               reason="Decision-Modell: typisierte Relevanz- und Themenentscheidung.")
+        ids, uncertain = [], []
+        for index, topic in enumerate(enabled):
+            answer = answers[f"topic_{index}"]
+            choice = answer["choice"]
+            if choice == "unclear" or answer["probabilities"][choice] < self.prompts.topic_threshold:
+                uncertain.append(topic.id)
+            elif choice == "match":
+                ids.append(topic.id)
+        contradiction = ((decision == "irrelevant" and bool(ids))
+                         or (decision == "relevant" and not ids))
+        if contradiction or uncertain:
+            decision = "unclear"
+        reason = "Decision-Modell: typisierte Relevanz- und Themenentscheidung."
+        if contradiction:
+            reason += " Widerspruch zwischen Gesamtentscheidung und Themenzuordnung."
+        if uncertain:
+            reason += " Unsichere Themen: " + ", ".join(uncertain) + "."
+        return call, Relevance(decision=decision, topic_ids=ids, reason=reason)
 
     def action_route(self, mail: dict[str, Any]) -> tuple[str, ActionRoute]:
         questions = {name: value.model_dump()

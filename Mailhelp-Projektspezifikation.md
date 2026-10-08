@@ -1499,6 +1499,29 @@ ersetzt `relevance` und `action_router`. Zusammenfassung und gegebenenfalls
 Aufgaben-/Terminextraktion laufen in beiden Pfaden separat mit `prompts.yaml`.
 Die Jev-Begründung ist ein gekennzeichneter Vorlagentext, keine Modell-Erklärung.
 
+Jev-spezifische `topic_guidance` in `decisions_prompts.yaml` präzisieren aktivierte
+Themen nach ihrer ID. Die Vorlage ergänzt persönliche Einladungen und Zeremonien,
+Hochschulbeiräte und Abgrenzungen des Landfrauenvereins gegenüber anderen Verbänden.
+Die gemeinsamen Themen werden nicht verändert; ihre expliziten Ausschlüsse haben
+Vorrang. Unbekannte oder deaktivierte IDs aktivieren keine zusätzlichen Themen.
+Gesamtfrage und einzelne Themenfragen erhalten dieselben Präzisierungen. Jede
+Themenfrage enthält ihre vollständige Definition und erlaubt unabhängige Mehrfachzuordnung.
+
+Die Themenfrage ist jetzt `choice` mit `match`, `no_match` und `unclear`.
+`topic_threshold` bleibt standardmäßig 0,5 und bezeichnet die Mindestwahrscheinlichkeit
+der gewählten `match`-/`no_match`-Antwort, keine kalibrierte Genauigkeit. Werte darunter
+sowie `unclear` machen die Gesamtentscheidung unklar, auch wenn andere Themen sicher
+passen. Sichere Treffer bleiben in `topic_ids` sichtbar; unsichere Themen stehen in
+der gekennzeichneten Vorlagenbegründung und in den Rohantworten des Testberichts.
+Eine irrelevante Gesamtantwort mit sicheren Treffern oder eine relevante Antwort
+ohne sichere Treffer ergibt ebenfalls `unclear`; positive Themen werden nicht mehr
+stillschweigend verworfen. Es gibt keine zusätzliche automatische DeepSeek-Anfrage.
+Der Vergleichstest dokumentiert die Unsicherheit und führt wie bisher alle Stufen aus.
+Bestehende binäre Jev-Themenvorlagen müssen auf die drei Auswahlkriterien migriert
+werden; sie werden sonst beim Laden mit einem Konfigurationsfehler zurückgewiesen.
+Normale Modi, `prompts.yaml`, `topics.yaml` und Aktionsrouting bleiben unverändert.
+Eine tatsächliche Qualitätsverbesserung muss mit neuen Vergleichsmails geprüft werden.
+
 Die Auswahl erfolgt ordnerübergreifend nach neuestem IMAP-Empfangszeitpunkt;
 höhere UID und konfigurierte Ordnerreihenfolge entscheiden Gleichstände.
 `imap.historical_start` gilt, bis `--ignore-historical-start` gesetzt wird.

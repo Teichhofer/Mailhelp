@@ -206,15 +206,125 @@ def test_decision_analyzer_multilabel_disabled_topics_and_route_validation():
         route = analyzer.action_route({"body": "Synthetic"})[1]
         assert (route.action_state, route.task_count, route.event_count) == ("task_and_event", 2, 1)
         choices["decision"] = "irrelevant"
-        assert analyzer.relevance({}, topics)[1].topic_ids == []
+        assert analyzer.relevance({}, topics)[1].decision == "unclear"
+        assert analyzer.relevance({}, topics)[1].topic_ids == ["one", "two"]
         choices["decision"] = "unclear"
         assert analyzer.relevance({}, topics)[1].decision == "unclear"
         choices["decision"] = "relevant"
-        with pytest.raises(DecisionResponseError, match="ohne"):
-            analyzer.relevance({}, [])
+        assert analyzer.relevance({}, [])[1].decision == "unclear"
         choices["action_state"] = "none"
         with pytest.raises(ValidationError):
             analyzer.action_route({})
         assert all(data["model"] == "typesafe/jev-1.13" for data in calls)
+    finally:
+        client.close()
+
+
+def test_regression_irrelevant_does_not_discard_positive_topic():
+    def handler(request):
+        questions = json.loads(request.content)["questions"]
+        raw = envelope(questions, {"decision": "irrelevant", "topic_0": "match"})
+        return httpx.Response(200, json=raw)
+    client = DecisionClient("k", 3, 0, 30, transport=httpx.MockTransport(handler))
+    try:
+        result = DecisionAnalyzer(client, prompts(), 100000).relevance(
+            {"body": "Synthetic invitation"},
+            [Topic(id="meeting", name="Meeting", enabled=True, description="Invitations")])[1]
+        assert result.decision == "unclear"
+        assert result.topic_ids == ["meeting"]
+    finally:
+        client.close()
+
+
+@pytest.mark.parametrize("overall", ["relevant", "irrelevant", "unclear"])
+@pytest.mark.parametrize("topic_choice,probability", [
+    ("match", 0.5), ("match", 0.49), ("no_match", 0.5),
+    ("no_match", 0.49), ("unclear", 1.0),
+])
+def test_ternary_topics_threshold_boundary_and_consistency(overall, topic_choice, probability):
+    def handler(request):
+        questions = json.loads(request.content)["questions"]
+        raw = envelope(questions, {"decision": overall, "topic_0": topic_choice})
+        other = [key for key in questions["topic_0"]["criteria"] if key != topic_choice]
+        raw["answers"]["topic_0"]["probabilities"] = {
+            topic_choice: probability, other[0]: 1 - probability, other[1]: 0.0}
+        return httpx.Response(200, json=raw)
+    client = DecisionClient("k", 3, 0, 30, transport=httpx.MockTransport(handler))
+    try:
+        result = DecisionAnalyzer(client, prompts(), 100000).relevance(
+            {}, [Topic(id="one", name="One", enabled=True, description="Synthetic")])[1]
+        positive = topic_choice == "match" and probability >= 0.5
+        uncertain = topic_choice == "unclear" or probability < 0.5
+        contradiction = (overall == "irrelevant" and positive) or (overall == "relevant" and not positive)
+        assert result.decision == ("unclear" if uncertain or contradiction else overall)
+        assert result.topic_ids == (["one"] if positive else [])
+        assert ("Unsichere Themen: one" in result.reason) == uncertain
+        assert ("Widerspruch" in result.reason) == contradiction
+    finally:
+        client.close()
+
+
+def test_jev_guidance_is_self_contained_and_does_not_mutate_shared_topics():
+    cfg = prompts()
+    topics = [Topic(id=id, name=id, enabled=enabled, description="Original description",
+                    examples=["Original example"], exclusions=["Original exclusion"])
+              for id, enabled in [("termin-und-meeting-koordination", True),
+                                  ("vereins-verbands-organisationskommunikation", True),
+                                  ("landfrauen", True), ("disabled", False)]]
+    before = deepcopy(topics)
+    requests = []
+    def handler(request):
+        data = json.loads(request.content)
+        requests.append(data)
+        return httpx.Response(200, json=envelope(data["questions"], {
+            "decision": "relevant", "topic_0": "match", "topic_1": "match", "topic_2": "no_match"}))
+    client = DecisionClient("k", 3, 0, 30, transport=httpx.MockTransport(handler))
+    try:
+        analyzer = DecisionAnalyzer(client, cfg, 100000)
+        for _ in range(2):
+            result = analyzer.relevance({"body": "Synthetic board invitation"}, topics)[1]
+            assert result.decision == "relevant"
+            assert result.topic_ids == [topic.id for topic in topics[:2]]
+        assert topics == before
+        for data in requests:
+            assert data["state"]["topics"] == [topic.model_dump() for topic in before[:3]]
+            assert set(data["state"]["topic_guidance"]) == {topic.id for topic in before[:3]}
+            for index, topic in enumerate(before[:3]):
+                question = data["questions"][f"topic_{index}"]
+                assert question["type"] == "choice"
+                assert set(question["criteria"]) == {"match", "no_match", "unclear"}
+                assert json.dumps(topic.model_dump(), ensure_ascii=False) in question["instructions"]
+                assert cfg.topic_guidance[topic.id] in question["instructions"]
+                assert "Ausschlüsse" in question["instructions"]
+        assert "Zeremonien" in cfg.topic_guidance[topics[0].id]
+        assert "Hochschulbeiräten" in cfg.topic_guidance[topics[1].id]
+        assert "VLF" in cfg.topic_guidance[topics[2].id]
+    finally:
+        client.close()
+
+
+def test_old_binary_topic_template_is_rejected_with_configuration_error():
+    data = prompts().model_dump()
+    data["prompts"]["relevance"]["topic_match"] = all_questions()["yes"]
+    with pytest.raises(ValidationError, match="Decision-Auswahl"):
+        DecisionPrompts.model_validate(data)
+
+
+def test_uncertain_secondary_topic_keeps_confirmed_primary_topic():
+    def handler(request):
+        data = json.loads(request.content)
+        assert data["state"]["topic_guidance"] == {"one": "", "two": ""}
+        return httpx.Response(200, json=envelope(data["questions"], {
+            "decision": "relevant", "topic_0": "match", "topic_1": "unclear"}))
+    cfg = prompts()
+    cfg.topic_guidance = {"unknown": "Must not activate an additional topic"}
+    client = DecisionClient("k", 3, 0, 30, transport=httpx.MockTransport(handler))
+    try:
+        result = DecisionAnalyzer(client, cfg, 100000).relevance({}, [
+            Topic(id=id, name=id, enabled=True, description="Synthetic") for id in ["one", "two"]])[1]
+        assert result.decision == "unclear"
+        assert result.topic_ids == ["one"]
+        assert "Unsichere Themen: two." in result.reason
+        assert "Widerspruch" not in result.reason
     finally:
         client.close()
