@@ -13,7 +13,7 @@ from threading import Event
 from typing import Any, Protocol
 
 from .analysis import (Analyzer, LlmInvalidJson, LlmProviderResponseInvalid,
-                       LlmSchemaValidationExceeded)
+                       LlmSchemaValidationExceeded, TechnicalRevisionError)
 from .adapter import PermanentError
 from .config import TargetSettings, Topic
 from .action_normalization import MailDateContext
@@ -63,6 +63,16 @@ class ProcessingResult:
 
     def __contains__(self, key: object) -> bool:
         return key in self.state
+
+
+# Lifecycle fields change on every revision; only the remaining facts show
+# whether an answer actually changed the proposal.
+_REVISION_LIFECYCLE_FIELDS = {"version", "status", "open_questions"}
+
+
+def _revision_effective(previous: Proposal, revised: Proposal) -> bool:
+    return (previous.model_dump(mode="json", exclude=_REVISION_LIFECYCLE_FIELDS)
+            != revised.model_dump(mode="json", exclude=_REVISION_LIFECYCLE_FIELDS))
 
 
 class Orchestrator:
@@ -115,17 +125,33 @@ class Orchestrator:
                 state.llm_call_ids.append(call)
                 self._save(name, state)
                 if not interpretation.usable:
-                    self.logger.event(
-                        "INFO", "orchestrator", "mail_question_unanswered",
-                        mail_id=state.id, proposal_id=proposal.id,
-                        proposal_version=proposal.version, question=question,
-                        call_id=call,
-                    )
+                    self._question_unanswered(state, proposal, question, call,
+                                              "not_answered_by_mail", None)
                     break
                 assert interpretation.normalized_answer is not None
-                revision_call, proposal = self.analyzer.revise_proposal(
-                    proposal, question, interpretation.normalized_answer)
-                state.llm_call_ids.append(revision_call)
+                try:
+                    revision_call, revised = self._revise_from_mail(
+                        state, proposal, question, interpretation.normalized_answer)
+                except ValueError as exc:
+                    # Transient provider failures keep their retry semantics.
+                    # A contradictory or unrepairable revision only leaves this
+                    # question open for Telegram instead of failing the mail.
+                    if (isinstance(exc, TechnicalRevisionError)
+                            and not isinstance(exc, LlmSchemaValidationExceeded)):
+                        raise
+                    self._question_unanswered(state, proposal, question, call,
+                                              "revision_failed", type(exc).__name__)
+                    break
+                if revision_call is not None:
+                    state.llm_call_ids.append(revision_call)
+                    self._save(name, state)
+                if not _revision_effective(proposal, revised):
+                    # Never report a question as resolved when nothing changed;
+                    # the unchanged predecessor keeps the question open.
+                    self._question_unanswered(state, proposal, question, call,
+                                              "revision_without_effect", None)
+                    break
+                proposal = revised
                 state.proposals[index] = proposal
                 self._save(name, state)
                 self.logger.event(
@@ -134,6 +160,28 @@ class Orchestrator:
                     proposal_version=proposal.version, question=question,
                     interpretation_call_id=call, revision_call_id=revision_call,
                 )
+
+    def _revise_from_mail(self, state: MailState, proposal: Proposal, question: str,
+                          answer: str) -> tuple[str | None, Proposal]:
+        """Apply clear date and clock answers deterministically before the LLM."""
+        # Imported lazily: the telegram package owns the conservative parser.
+        from .telegram.temporal import deterministic_temporal_revision
+        assert state.mail is not None
+        deterministic = deterministic_temporal_revision(
+            proposal, question, answer,
+            state.mail.get("user_timezone") or self.user_timezone)
+        if deterministic is not None:
+            return None, deterministic
+        return self.analyzer.revise_proposal(proposal, question, answer)
+
+    def _question_unanswered(self, state: MailState, proposal: Proposal, question: str,
+                             call: str, reason: str, error_class: str | None) -> None:
+        self.logger.event(
+            "INFO", "orchestrator", "mail_question_unanswered",
+            mail_id=state.id, proposal_id=proposal.id,
+            proposal_version=proposal.version, question=question,
+            call_id=call, reason=reason, error_class=error_class,
+        )
 
     def _record_count_conflict(self, name: str, state: MailState, category: str,
                                expected: int, actual: int, router_call_id: str,

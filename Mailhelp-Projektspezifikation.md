@@ -614,11 +614,22 @@ Vor dem Öffnen eines Telegram-Klärungsdialogs prüft die Anwendung jede offene
 Frage eines Vorschlags der Reihe nach in einem separaten LLM-Schritt gegen die
 vollständige Ursprungsmail. Das geschlossene Ergebnis enthält ausschließlich, ob
 die Frage eindeutig beantwortbar ist, gegebenenfalls die normalisierte Antwort
-und einen kurzen Grund. Bei einem positiven Ergebnis wird die Information über
-dieselbe feldbegrenzte Vorschlagsrevision wie eine validierte Telegram-Antwort
-angewendet und die Schleife mit der nächsten offenen Frage fortgesetzt. Beim ersten
-nicht eindeutig beantwortbaren Ergebnis bleibt der Vorschlag unverändert und der
-bisherige Telegram-Rückfragepfad übernimmt. Sämtliche Mail- und Frageinhalte sind
+und einen kurzen Grund. Datums- und Zeitangaben werden lokal ohne UTC-Offset als
+`JJJJ-MM-TT`, `HH:MM`, `JJJJ-MM-TT HH:MM` oder `JJJJ-MM-TT HH:MM bis HH:MM`
+normalisiert. Bei einem positiven Ergebnis wird eine eindeutige Datums- oder
+Zeitantwort für einen Termin zuerst wie eine Telegram-Antwort deterministisch mit
+der `user_timezone` übernommen; ein gelöstes Datum wird als Zeitfakt gespeichert.
+Nur andere Antworten durchlaufen dieselbe feldbegrenzte Vorschlagsrevision wie eine
+validierte Telegram-Antwort. Danach wird die Schleife mit der nächsten offenen Frage
+fortgesetzt. Eine Revision ohne fachliche Änderung (nur Version, Status oder offene
+Fragen verschieden) wird verworfen und als `mail_question_unanswered` mit dem Grund
+`revision_without_effect` protokolliert; `mail_question_resolved` steht nur für
+tatsächlich übernommene Angaben. Ein widersprüchliches oder nach der begrenzten
+Schemareparatur weiter ungültiges Revisionsergebnis (`revision_failed`) lässt die Frage
+ebenfalls offen, ohne die Mailverarbeitung abzubrechen; technische Providerfehler
+behalten ihre Wiederholungslogik. Beim ersten nicht eindeutig beantwortbaren oder
+nicht übernommenen Ergebnis bleibt der Vorschlag unverändert und der bisherige
+Telegram-Rückfragepfad übernimmt. Sämtliche Mail- und Frageinhalte sind
 auch in diesem Schritt nicht vertrauenswürdige Eingaben; erfundene Angaben oder das
 Auflösen von Widersprüchen sind unzulässig.
 

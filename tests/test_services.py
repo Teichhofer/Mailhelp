@@ -1198,6 +1198,121 @@ def test_orchestrator_resolves_mail_answer_before_telegram(tmp_path):
     assert result.state["llm_call_ids"][-2:] == ["mq", "rev"]
 
 
+class _MailQuestionAnalyzer(AnalyzerStub):
+    """Answers selected questions from the mail; the revision is configurable."""
+
+    def __init__(self, answers, revision=AssertionError("LLM-Revision darf nicht laufen")):
+        super().__init__("relevant")
+        self.answers, self.revision, self.revisions = answers, revision, 0
+
+    def answer_question_from_mail(self, mail, proposal, question):
+        from mailhelp.models import TelegramAnswerInterpretation
+        answer = self.answers.get(question)
+        if answer is None:
+            return "mq", TelegramAnswerInterpretation(usable=False, reason="Nicht in der Mail")
+        return "mq", TelegramAnswerInterpretation(usable=True, normalized_answer=answer,
+                                                  reason="In der Mail belegt")
+
+    def revise_proposal(self, proposal, question, answer):
+        self.revisions += 1
+        if isinstance(self.revision, BaseException):
+            raise self.revision
+        return "rev", self.revision(proposal)
+
+
+class _EventLog:
+    def __init__(self): self.events = []
+    def event(self, level, module, event, **fields): self.events.append((event, fields))
+
+
+def _resolve_from_mail(tmp_path, analyzer, item):
+    state = MailState(id="a" * 24, config_fingerprint="f" * 64,
+                      imap={"account_id": "0" * 24, "folder": "INBOX", "uidvalidity": 1, "uid": 1},
+                      mail={"text": "synthetische Mail", "user_timezone": "Europe/Berlin"},
+                      proposals=[item])
+    log = _EventLog()
+    with JsonStore(tmp_path) as store:
+        Orchestrator(analyzer, store, Notify(), 1,
+                     [Topic(id="x", name="X", enabled=True, description="X")], 1000,
+                     logger=log)._resolve_questions_from_mail("mail-" + "a" * 24, state)
+    return state, [(event, fields.get("question"), fields.get("reason"))
+                   for event, fields in log.events if event.startswith("mail_question_")]
+
+
+def test_regression_mail_answer_with_clock_is_applied_deterministically(tmp_path):
+    """Regression 2026-10-08 (B2): "13:00" from the mail was lost.
+
+    The LLM revision returned no change without a trusted offset, yet the
+    question was logged as resolved and the user was asked for the start again.
+    """
+    item = proposal(kind="event", status="needs_clarification",
+                    open_questions=["Wann beginnt der Termin?", "Wann endet der Termin?"],
+                    temporal_fact={"raw_text": "07.10.2026", "normalized_date": "2026-10-07",
+                                   "year_source": "explicit_mail", "status": "resolved"})
+    analyzer = _MailQuestionAnalyzer({"Wann beginnt der Termin?": "2026-10-07 13:00"})
+    state, events = _resolve_from_mail(tmp_path, analyzer, item)
+    revised = state.proposals[0]
+    assert revised.start.isoformat() == "2026-10-07T13:00:00+02:00"
+    assert revised.open_questions == ["Wann endet der Termin?"]
+    assert analyzer.revisions == 0 and state.llm_call_ids == ["mq", "mq"]
+    assert events == [
+        ("mail_question_resolved", "Wann beginnt der Termin?", None),
+        ("mail_question_unanswered", "Wann endet der Termin?", "not_answered_by_mail"),
+    ]
+
+
+def test_regression_mail_answer_with_date_keeps_known_start_time(tmp_path):
+    """Regression 2026-10-08 (B2): the resolved "kommenden Freitag" was dropped."""
+    question = "Welches konkrete Datum ist mit „kommenden Freitag“ gemeint?"
+    item = proposal(kind="event", status="needs_clarification",
+                    open_questions=[question, "Wann endet der Termin?"],
+                    known_temporal_facts={"start_time": "08:00:00"})
+    state, _ = _resolve_from_mail(tmp_path, _MailQuestionAnalyzer({question: "2026-10-02"}), item)
+    revised = state.proposals[0]
+    # Until the end is known, the start is kept as an application-owned fact.
+    assert revised.known_temporal_facts.start.isoformat() == "2026-10-02T08:00:00+02:00"
+    assert revised.temporal_fact.normalized_date == date(2026, 10, 2)
+    assert revised.open_questions == ["Wann endet der Termin?"]
+
+
+def test_mail_answer_revision_without_effect_keeps_the_question_open(tmp_path):
+    item = proposal(open_questions=["Welcher Titel?"])
+
+    def unchanged(previous):
+        return Proposal.model_validate({**previous.model_dump(mode="json"),
+                                        "version": previous.version + 1, "open_questions": []})
+
+    analyzer = _MailQuestionAnalyzer({"Welcher Titel?": "Tun"}, unchanged)
+    state, events = _resolve_from_mail(tmp_path, analyzer, item)
+    assert state.proposals[0] == item
+    assert state.llm_call_ids == ["mq", "rev"]
+    assert events == [("mail_question_unanswered", "Welcher Titel?", "revision_without_effect")]
+
+
+@pytest.mark.parametrize(("answer", "failure", "error_class"), [
+    ("Neu", LlmSchemaValidationFailed("proposal_revision"), "LlmSchemaValidationFailed"),
+    ("2026-10-09 13:00", None, "ContradictoryRevision"),
+])
+def test_failed_mail_answer_revision_leaves_question_for_telegram(tmp_path, answer, failure,
+                                                                  error_class):
+    question = "Welcher Titel?" if failure is not None else "Wann beginnt der Termin?"
+    item = (proposal(open_questions=[question]) if failure is not None else
+            proposal(kind="event", status="needs_clarification", open_questions=[question],
+                     temporal_fact={"raw_text": "07.10.2026", "normalized_date": "2026-10-07",
+                                    "year_source": "explicit_mail", "status": "resolved"}))
+    analyzer = _MailQuestionAnalyzer({question: answer}, failure or AssertionError("nie"))
+    state, events = _resolve_from_mail(tmp_path, analyzer, item)
+    assert state.proposals[0] == item
+    assert events == [("mail_question_unanswered", question, "revision_failed")]
+
+
+def test_transient_provider_failure_during_mail_answer_revision_is_retried_later(tmp_path):
+    analyzer = _MailQuestionAnalyzer(
+        {"Welcher Titel?": "Neu"}, LlmProviderResponseInvalid("proposal_revision", "timeout"))
+    with pytest.raises(LlmProviderResponseInvalid):
+        _resolve_from_mail(tmp_path, analyzer, proposal(open_questions=["Welcher Titel?"]))
+
+
 def test_orchestrator_complete_notification_uses_validated_values(tmp_path):
     class CompleteAnalyzer(AnalyzerStub):
         def relevance(self, mail, topics):
