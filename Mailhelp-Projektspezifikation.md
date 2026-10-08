@@ -625,7 +625,9 @@ vollständige Ursprungsmail. Das geschlossene Ergebnis enthält ausschließlich,
 die Frage eindeutig beantwortbar ist, gegebenenfalls die normalisierte Antwort
 und einen kurzen Grund. Datums- und Zeitangaben werden lokal ohne UTC-Offset als
 `JJJJ-MM-TT`, `HH:MM`, `JJJJ-MM-TT HH:MM` oder `JJJJ-MM-TT HH:MM bis HH:MM`
-normalisiert. Bei einem positiven Ergebnis wird eine eindeutige Datums- oder
+normalisiert. Eindeutig beantwortbar ist eine Frage nur mit genau einem Wert;
+nennt die Mail Alternativen oder eine noch offene Auswahl („morgen oder Mittwoch“),
+ist das Ergebnis nicht verwendbar. Bei einem positiven Ergebnis wird eine eindeutige Datums- oder
 Zeitantwort für einen Termin zuerst wie eine Telegram-Antwort deterministisch mit
 der `user_timezone` übernommen; ein gelöstes Datum wird als Zeitfakt gespeichert.
 Nur andere Antworten durchlaufen dieselbe feldbegrenzte Vorschlagsrevision wie eine

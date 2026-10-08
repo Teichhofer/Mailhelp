@@ -426,6 +426,12 @@ prompts:
       Beispiel: Die Mail nennt „morgen (07.10.2026) um 13.00 Uhr“ und die Frage
       lautet „Wann beginnt der Termin?“ → normalized_answer "2026-10-07 13:00".
 
+      usable=true verlangt genau einen Wert. Nennt die Mail mehrere Alternativen,
+      eine Spanne möglicher Tage oder eine noch offene Auswahl („morgen oder
+      Mittwoch“, „an beiden Tagen nachmittags“), liefere usable=false und nenne die
+      Alternativen in reason. Beispiel: „Gerne können wir morgen oder am Mittwoch
+      telefonieren.“ auf die Frage nach dem konkreten Datum → usable false.
+
       Antworte ausschließlich mit genau einem JSON-Objekt mit "usable" (Boolean),
       "normalized_answer" (nicht leerer String bei usable=true, sonst null) und
       "reason" (kurze, nicht leere Begründung). Weitere Felder und Begleittext

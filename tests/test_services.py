@@ -370,6 +370,17 @@ def test_raw_extraction_prompts_are_separate_and_injection_resistant():
         assert prompts[stage]["parameters"]["max_tokens"] == 10_000
 
 
+def test_mail_question_resolution_prompt_requires_one_local_value():
+    prompt = yaml.safe_load(Path("prompts.yaml").read_text(encoding="utf-8"))[
+        "prompts"]["mail_question_resolution"]["system_prompt"]
+    # B2 (run 3): "2026-10-07T13:00:00+02:00" carried an offset from world knowledge.
+    assert "ohne UTC-Offset" in prompt and "„JJJJ-MM-TT HH:MM“" in prompt
+    assert 'normalized_answer "2026-10-07 13:00"' in prompt
+    # B5 (run 3): "06.10.2026 oder 07.10.2026" was returned as usable.
+    assert "usable=true verlangt genau einen Wert" in prompt
+    assert "Alternativen in reason" in prompt and "→ usable false" in prompt
+
+
 def test_proposal_builder_forwards_time_requirement_to_event_normalization(monkeypatch):
     import mailhelp.proposal_builder as proposal_builder
     from mailhelp.action_normalization import MailDateContext
