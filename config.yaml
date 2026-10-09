@@ -85,6 +85,11 @@ timeouts:
     initial_backoff_seconds: 1
     max_backoff_seconds: 8
   telegram_poll_seconds: 30
+  ollama:
+    timeout_seconds: 600
+    retries: 1
+    initial_backoff_seconds: 2
+    max_backoff_seconds: 10
 logging:
   directory: logs
   console:

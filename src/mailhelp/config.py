@@ -113,9 +113,9 @@ class AdapterPolicySettings(ConfigModel):
 
 
 class LocalLlmPolicySettings(AdapterPolicySettings):
-    """Local models answer much slower than hosted ones: up to 600 seconds."""
+    """Local models answer much slower than hosted ones: up to 1800 seconds."""
 
-    timeout_seconds: float = Field(ge=1, le=600)
+    timeout_seconds: float = Field(ge=1, le=1800)
 
 
 class RetrySettings(ConfigModel):
@@ -138,7 +138,7 @@ class TimeoutSettings(ConfigModel):
     # Only used in the experimental local mode (--ollama). Local models are
     # much slower than hosted ones, hence the generous default and limit.
     ollama: LocalLlmPolicySettings = Field(default_factory=lambda: LocalLlmPolicySettings(
-        timeout_seconds=600, retries=1, initial_backoff_seconds=2, max_backoff_seconds=10))
+        timeout_seconds=1800, retries=1, initial_backoff_seconds=2, max_backoff_seconds=10))
 
 
 LOG_LEVELS = {"DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"}
@@ -447,6 +447,7 @@ class OllamaPromptSettings(ConfigModel):
 
     model: str = Field(min_length=1, max_length=200, pattern=r"^[^<>\s]+$")
     num_ctx: int = Field(default=LOCAL_NUM_CTX, ge=2048, le=262144)
+    num_thread: int | None = Field(default=None, ge=1, le=1024)
 
 
 class PromptConfig(BaseModel):

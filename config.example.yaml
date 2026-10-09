@@ -107,10 +107,10 @@ timeouts:
     initial_backoff_seconds: 1
     max_backoff_seconds: 8
   telegram_poll_seconds: 30
-  # Nur im experimentellen lokalen Modus (--ollama). Lokale Modelle antworten
+  # Für den lokalen Modus und --decision-test. Lokale Modelle antworten
   # deutlich langsamer; ohne Angabe gelten genau diese Werte.
   ollama:
-    timeout_seconds: 600
+    timeout_seconds: 1800
     retries: 1
     initial_backoff_seconds: 2
     max_backoff_seconds: 10

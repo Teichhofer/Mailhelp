@@ -59,18 +59,19 @@ def test_experimental_ollama_configuration():
     assert shipped is not None and shipped.model and shipped.num_ctx >= 8192
     assert prompt_config().ollama is None
     for invalid in ({"model": ""}, {"model": "<modell>"}, {"model": "a b"},
-                    {"model": "m", "num_ctx": 1024}, {"model": "m", "extra": 1}):
+                    {"model": "m", "num_ctx": 1024}, {"model": "m", "extra": 1},
+                    {"model": "m", "num_thread": 0}, {"model": "m", "num_thread": 1025}):
         with pytest.raises(ValidationError):
             OllamaPromptSettings.model_validate(invalid)
     example = _yaml(root / "config.example.yaml")["timeouts"]
-    assert example["ollama"]["timeout_seconds"] == 600
+    assert example["ollama"]["timeout_seconds"] == 1800
     without = {key: value for key, value in example.items() if key != "ollama"}
     default = TimeoutSettings.model_validate(without).ollama
-    assert (default.timeout_seconds, default.retries) == (600, 1)
-    # Unlike hosted adapters (at most 300 s), the local model may take 600 s.
-    TimeoutSettings.model_validate({**without, "ollama": {**example["ollama"], "timeout_seconds": 600}})
+    assert (default.timeout_seconds, default.retries) == (1800, 1)
+    # Unlike hosted adapters (at most 300 s), the local model may take 1800 s.
+    TimeoutSettings.model_validate({**without, "ollama": {**example["ollama"], "timeout_seconds": 1800}})
     with pytest.raises(ValidationError):
-        TimeoutSettings.model_validate({**without, "ollama": {**example["ollama"], "timeout_seconds": 601}})
+        TimeoutSettings.model_validate({**without, "ollama": {**example["ollama"], "timeout_seconds": 1801}})
     with pytest.raises(ValidationError):
         TimeoutSettings.model_validate({**without, "openrouter": {**example["openrouter"], "timeout_seconds": 301}})
 

@@ -40,6 +40,7 @@ class LocalLlm:
     port: int
     model: str
     num_ctx: int = LOCAL_NUM_CTX
+    num_thread: int | None = None
 
     @property
     def base_url(self) -> str:
@@ -76,6 +77,7 @@ class OllamaClient(OpenRouterClient):
         super().__init__("", timeout, retries, calls_per_minute,
                          base_url=local.base_url, **kwargs)
         self.model, self.num_ctx = local.model, local.num_ctx
+        self.num_thread = local.num_thread
 
     def _resolve_model(self, model: str) -> str:
         return self.model
@@ -104,6 +106,8 @@ class OllamaClient(OpenRouterClient):
             budget = f"Antworte in maximal {request['max_tokens']} Token."
             messages = [{**system, "content": f"{system['content']}\n\n{budget}"}, *rest]
         options: dict[str, Any] = {"num_ctx": self.num_ctx}
+        if self.num_thread is not None:
+            options["num_thread"] = self.num_thread
         options.update({target: request[source] for source, target in _OPTION_NAMES.items()
                         if source in request})
         return {

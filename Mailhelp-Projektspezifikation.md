@@ -452,7 +452,7 @@ Die native Antwort wird in denselben OpenAI-kompatiblen Umschlag übersetzt
 Wiederholungen, JSON- und Schemareparatur sowie Logs unverändert gelten; als
 Provider wird `ollama` protokolliert. An den lokalen Server werden keine
 Zugangsdaten gesendet. Timeout und Wiederholungen stammen aus
-`timeouts.ollama` (Standard und Höchstwert 600 s, eine Wiederholung). `--check-access` prüft
+`timeouts.ollama` (Standard und Höchstwert 1.800 s, eine Wiederholung). `--check-access` prüft
 statt OpenRouter, ob der Server antwortet und das Modell installiert ist. Der
 Start wird als `local_llm_experimental` (WARNING) protokolliert. Der Modus ist
 experimentell; Qualität und Laufzeit hängen vom lokalen Modell ab.
@@ -1045,7 +1045,7 @@ das Zielprojekt und HTTP 404 als nicht erreichbares Zielprojekt ausgegeben. Die
 dienstbezogene Meldung wird unverändert an die CLI weitergereicht und enthält
 weder Token oder Authorization-Header noch vollständige Antwortinhalte.
 
-Die Bereiche `imap`, `telegram`, `targets`, `limits`, `retries`, `timeouts` und `logging` besitzen geschlossene Modelle. `imap.connection_mode` akzeptiert ausschließlich `ssl`, `starttls` und `plain`; `imap.historical_start` akzeptiert ausschließlich `null` oder einen ISO-8601-Zeitpunkt mit Offset und `imap.global_newest_first` ausschließlich einen booleschen Wert. IMAP, Telegram, OpenRouter und Todoist konfigurieren Timeout, Retry-Anzahl, initialen Backoff und Backoff-Obergrenze getrennt. Google Calendar besitzt eine eigene Timeout- und Retry-Konfiguration. Ports (1–65535), Polling (5–86400 Sekunden), Adaptertimeouts (1–300 Sekunden, für den lokalen Ollama-Modus 1–600 Sekunden), Telegram-Long-Polling (1–50 Sekunden), Mailgröße (1.024–100.000.000 Bytes), LLM-Rate (1–600/min), Wiederholungen (0–10) und Backoff (0–60 Sekunden) sind begrenzt. Zeitzonen müssen IANA-Namen sein; Ordner sind eindeutig und nicht leer, Pfade sicher, Log-Level sind `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Dieselbe Transportauswahl und UTC-Auswertung gilt unter Windows 11 und im Linux-Docker-Container; die Host-Zeitzone beeinflusst die Grenze nicht. Die CLI-Option `--log-directory` überschreibt das konfigurierte Logverzeichnis für einen einzelnen Aufruf, sodass insbesondere Prüfungen aus einem schreibgeschützten Arbeitsverzeichnis in ein beschreibbares temporäres Verzeichnis loggen können. Im Dauerbetrieb ist ein persistentes Logverzeichnis zu verwenden.
+Die Bereiche `imap`, `telegram`, `targets`, `limits`, `retries`, `timeouts` und `logging` besitzen geschlossene Modelle. `imap.connection_mode` akzeptiert ausschließlich `ssl`, `starttls` und `plain`; `imap.historical_start` akzeptiert ausschließlich `null` oder einen ISO-8601-Zeitpunkt mit Offset und `imap.global_newest_first` ausschließlich einen booleschen Wert. IMAP, Telegram, OpenRouter und Todoist konfigurieren Timeout, Retry-Anzahl, initialen Backoff und Backoff-Obergrenze getrennt. Google Calendar besitzt eine eigene Timeout- und Retry-Konfiguration. Ports (1–65535), Polling (5–86400 Sekunden), Adaptertimeouts (1–300 Sekunden, für den lokalen Ollama-Modus 1–1.800 Sekunden), Telegram-Long-Polling (1–50 Sekunden), Mailgröße (1.024–100.000.000 Bytes), LLM-Rate (1–600/min), Wiederholungen (0–10) und Backoff (0–60 Sekunden) sind begrenzt. Zeitzonen müssen IANA-Namen sein; Ordner sind eindeutig und nicht leer, Pfade sicher, Log-Level sind `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Dieselbe Transportauswahl und UTC-Auswertung gilt unter Windows 11 und im Linux-Docker-Container; die Host-Zeitzone beeinflusst die Grenze nicht. Die CLI-Option `--log-directory` überschreibt das konfigurierte Logverzeichnis für einen einzelnen Aufruf, sodass insbesondere Prüfungen aus einem schreibgeschützten Arbeitsverzeichnis in ein beschreibbares temporäres Verzeichnis loggen können. Im Dauerbetrieb ist ein persistentes Logverzeichnis zu verwenden.
 
 ## 10. JSON-Zustand und Neustartverhalten
 
@@ -1551,7 +1551,10 @@ mailhelp --decision-test 20 --ollama 192.168.1.20:11434 --ollama-model qwen2.5:7
 
 `--ollama HOST:PORT` ist für diesen Modus erforderlich. Das Modell kommt aus
 `prompts.yaml` unter `ollama.model`; `--ollama-model NAME` überschreibt es für den
-Test. `ollama.num_ctx` gilt wie im lokalen Modus. Fehlende Adresse oder fehlendes
+Test. `ollama.num_ctx` gilt wie im lokalen Modus. Optionales `ollama.num_thread`
+wird bei jedem lokalen Aufruf als `options.num_thread` übertragen und im
+Testbericht gespeichert; ohne Angabe bleibt Ollamas automatische Threadwahl
+erhalten. Fehlende Adresse oder fehlendes
 Modell werden vor dem Teststart abgelehnt.
 
 Die zwei Berichtspfade sind:

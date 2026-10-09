@@ -74,6 +74,28 @@ def test_complete_sends_native_chat_request_and_maps_the_answer():
     assert received["token_usage"] == {"prompt_tokens": 12, "completion_tokens": 5}
 
 
+def test_configured_cpu_threads_are_sent_on_every_local_request():
+    seen = []
+    local = LocalLlm("localhost", 11434, "gemma4:31b", num_thread=16)
+
+    def handler(request):
+        seen.append(json.loads(request.content))
+        return httpx.Response(200, json=native())
+
+    llm = client(handler, local=local)
+    try:
+        for stage in ("relevance", "summary"):
+            _, answer = llm.complete("cloud/model", {}, "System", {},
+                                     stage=stage, response_schema=Answer)
+            assert answer == {"value": 1}
+    finally:
+        llm.close()
+    assert len(seen) == 2
+    assert all(request["model"] == "gemma4:31b" and
+               request["options"] == {"num_ctx": 65536, "num_thread": 16}
+               for request in seen)
+
+
 def test_regression_length_limits_are_not_sent_as_ollama_grammar():
     """Regression 2026-10-08: Ollama rejected task, event and revision schemas.
 
@@ -224,3 +246,16 @@ def test_parse_address_rejects_invalid_values(value, message):
 def test_ipv6_base_url_uses_brackets():
     assert LocalLlm("::1", 11434, "m").base_url == "http://[::1]:11434"
     assert LOCAL.base_url == "http://192.168.1.20:11434"
+
+
+def test_regression_ollama_timeout_accepts_thirty_minutes():
+    from mailhelp.config import LocalLlmPolicySettings
+    policy = LocalLlmPolicySettings(timeout_seconds=1800, retries=1,
+                                    initial_backoff_seconds=2, max_backoff_seconds=10)
+    llm = OllamaClient(LOCAL, policy.timeout_seconds, policy.retries, 100,
+                      transport=httpx.MockTransport(lambda request: httpx.Response(200, json=native())))
+    try:
+        assert llm.client.timeout.read == 1800
+        assert llm.complete("ignored", {}, "System", {})[1] == {"value": 1}
+    finally:
+        llm.close()

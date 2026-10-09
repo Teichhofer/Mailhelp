@@ -220,7 +220,9 @@ def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
     recorder = ComparisonRecorder(log_path, known_secrets)
     report = {"schema_version": 2, "mode": "decision_test",
               "comparison": "standard_vs_ollama", "pipeline_policy": "relevant_only",
-              "ollama": asdict(local_llm), "run_id": str(uuid4()),
+              "ollama": asdict(local_llm),
+              "timeouts": {"openrouter": settings.timeouts.openrouter.model_dump(),
+                           "ollama": settings.timeouts.ollama.model_dump()}, "run_id": str(uuid4()),
               "started_at": datetime.now(timezone.utc).isoformat(), "complete": False,
               "requested_mail_count": count, "selection": "global_newest_first_unique_raw_mail",
               "historical_start": (None if ignore_historical_start or settings.imap.historical_start is None

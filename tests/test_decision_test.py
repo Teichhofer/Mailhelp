@@ -137,6 +137,7 @@ def test_paired_full_pipeline_raw_reports_unique_selection_and_no_state_writes(t
     assert report["complete"] and report["count_satisfied"]
     assert report["schema_version"] == 2 and report["comparison"] == "standard_vs_ollama"
     assert report["ollama"]["model"] == LOCAL.model
+    assert report["timeouts"]["ollama"]["timeout_seconds"] == 1800
     assert report["requested_mail_count"] == report["selected_mail_count"] == 2
     assert report["decisions_prompts"]["model"] == "typesafe/jev-1.13"
     assert [record["uid"] for record in report["mails"]] == [2, 1]
@@ -474,11 +475,11 @@ def test_actual_adapters_compare_standard_fallback_against_local_relevance_gates
 
 def test_cli_decision_test_uses_configured_ollama_model_and_context(monkeypatch):
     data = prompt_config().model_dump()
-    data["ollama"] = {"model": "synthetic/configured", "num_ctx": 4096}
+    data["ollama"] = {"model": "synthetic/configured", "num_ctx": 4096, "num_thread": 16}
     config = type(prompt_config()).model_validate(data)
     monkeypatch.setattr(cli, "load_all", lambda directory: (settings(), secrets(), topics(), [], config, "f"))
     captured = []
     monkeypatch.setattr(cli, "run_decision_test", lambda *args, **kwargs: captured.append(kwargs) or 0)
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--decision-test", "1", "--ollama", "localhost:11434"])
     assert cli.main() == 0
-    assert captured[0]["local_llm"] == LocalLlm("localhost", 11434, "synthetic/configured", 4096)
+    assert captured[0]["local_llm"] == LocalLlm("localhost", 11434, "synthetic/configured", 4096, 16)

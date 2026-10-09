@@ -629,12 +629,15 @@ mailhelp --ollama [::1]:11434 --ollama-model llama3.1:8b --check-access
   `reasoning` aus `prompts.yaml` gelten dann nicht; Temperatur, `max_tokens`
   (als `num_predict`) und weitere Sampling-Parameter werden übernommen.
 - Das Modell steht in `prompts.yaml` unter `ollama.model` (Standard
-  `qwen2.5:7b-instruct`); `--ollama-model NAME` überschreibt es. Ohne Modell
+  `gemma4:31b`); `--ollama-model NAME` überschreibt es. Ohne Modell
   bricht der Start ab. Das Modell muss auf dem Server installiert sein
   (`ollama pull <modell>`); `--check-access` prüft das über `/api/tags`.
 - `ollama.num_ctx` (Standard 65.536) setzt das Kontextfenster passend zur auf
   dem Server vorgeladenen Instanz. Ein abweichender Wert lässt Ollama ein
   bereits geladenes Modell neu laden, bei sehr großen Modellen mehrere Minuten.
+- `ollama.num_thread` setzt optional die CPU-Threadzahl für jeden lokalen
+  Aufruf, etwa `16` für Gemma4. Ohne Angabe verwendet Ollama seine automatische
+  Auswahl. Der Parameter gilt auch im Decision-Test und wird dort gespeichert.
 - An den System-Prompt jedes lokalen Aufrufs wird „Antworte in maximal N
   Token.“ angehängt; N ist das `max_tokens` der jeweiligen Stufe aus
   `prompts.yaml`, das zusätzlich als `num_predict` begrenzt.
@@ -649,7 +652,7 @@ mailhelp --ollama [::1]:11434 --ollama-model llama3.1:8b --check-access
   ein fehlendes Feld „unverändert“. JSON- und Schemaprüfung, Reparaturversuche,
   Rate-Limit und LLM-Logs (`provider: "ollama"`) bleiben unverändert.
 - Timeout und Wiederholungen stehen in `config.yaml` unter `timeouts.ollama`
-  (Standard und Höchstwert 600 s, 1 Wiederholung). Es wird kein API-Schlüssel an den lokalen
+  (Standard und Höchstwert 1.800 s, 1 Wiederholung). Es wird kein API-Schlüssel an den lokalen
   Server gesendet; `OPENROUTER_API_KEY` muss für die Konfigurationsprüfung
   trotzdem gesetzt sein.
 - Der Start im lokalen Modus wird als `local_llm_experimental` (WARNING) mit

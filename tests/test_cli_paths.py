@@ -144,7 +144,7 @@ def test_cli_starts_experimental_local_ollama_mode(monkeypatch, arguments, confi
         built.append(kwargs["local_llm"])
         yield App()
 
-    prompts = SimpleNamespace(ollama=SimpleNamespace(model=configured, num_ctx=8192)
+    prompts = SimpleNamespace(ollama=SimpleNamespace(model=configured, num_ctx=8192, num_thread=16)
                               if configured else None)
     logger = CaptureLogger()
     monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], [], prompts, "f"))
@@ -154,7 +154,8 @@ def test_cli_starts_experimental_local_ollama_mode(monkeypatch, arguments, confi
     monkeypatch.setattr(sys, "argv", ["mailhelp", *arguments])
 
     assert main() == 0
-    assert built == [LocalLlm("192.168.1.20", 11434, expected_model, num_ctx)]
+    assert built == [LocalLlm("192.168.1.20", 11434, expected_model, num_ctx,
+                              16 if configured else None)]
     parameters = logger.events[-1][3]["parameters"]
     assert parameters["ollama"] == "http://192.168.1.20:11434"
     assert parameters["ollama_model"] == expected_model
