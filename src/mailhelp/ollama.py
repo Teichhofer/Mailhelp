@@ -41,6 +41,7 @@ class LocalLlm:
     model: str
     num_ctx: int = LOCAL_NUM_CTX
     num_thread: int | None = None
+    think: bool | None = None
 
     @property
     def base_url(self) -> str:
@@ -78,6 +79,7 @@ class OllamaClient(OpenRouterClient):
                          base_url=local.base_url, **kwargs)
         self.model, self.num_ctx = local.model, local.num_ctx
         self.num_thread = local.num_thread
+        self.think = local.think
 
     def _resolve_model(self, model: str) -> str:
         return self.model
@@ -110,7 +112,7 @@ class OllamaClient(OpenRouterClient):
             options["num_thread"] = self.num_thread
         options.update({target: request[source] for source, target in _OPTION_NAMES.items()
                         if source in request})
-        return {
+        body = {
             "model": request["model"],
             "messages": messages,
             "stream": False,
@@ -118,6 +120,9 @@ class OllamaClient(OpenRouterClient):
                        if response_format["type"] == "json_schema" else "json"),
             "options": options,
         }
+        if self.think is not None:
+            body["think"] = self.think
+        return body
 
     @classmethod
     def _grammar_schema(cls, node: Any) -> Any:

@@ -60,7 +60,8 @@ def test_experimental_ollama_configuration():
     assert prompt_config().ollama is None
     for invalid in ({"model": ""}, {"model": "<modell>"}, {"model": "a b"},
                     {"model": "m", "num_ctx": 1024}, {"model": "m", "extra": 1},
-                    {"model": "m", "num_thread": 0}, {"model": "m", "num_thread": 1025}):
+                    {"model": "m", "num_thread": 0}, {"model": "m", "num_thread": 1025},
+                    {"model": "m", "think": "false"}, {"model": "m", "think": 1}):
         with pytest.raises(ValidationError):
             OllamaPromptSettings.model_validate(invalid)
     example = _yaml(root / "config.example.yaml")["timeouts"]

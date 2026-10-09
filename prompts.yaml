@@ -16,6 +16,8 @@ ollama:
   model: gemma4:31b
   # CPU-Threads für lokale Aufrufe; weglassen für Ollamas automatische Auswahl.
   num_thread: 16
+  # Thinking für diesen lokalen Vergleich explizit deaktivieren.
+  think: false
   # Kontextfenster in Tokens, passend zur auf dem Server vorgeladenen Instanz.
   # Ein anderer Wert lässt Ollama das Modell neu laden (bei großen Modellen
   # mehrere Minuten); Ollamas Standard (2.048–4.096) wäre außerdem zu klein.

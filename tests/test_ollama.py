@@ -74,9 +74,10 @@ def test_complete_sends_native_chat_request_and_maps_the_answer():
     assert received["token_usage"] == {"prompt_tokens": 12, "completion_tokens": 5}
 
 
-def test_configured_cpu_threads_are_sent_on_every_local_request():
+@pytest.mark.parametrize("thinking", [False, True])
+def test_configured_cpu_threads_and_thinking_are_sent_on_every_local_request(thinking):
     seen = []
-    local = LocalLlm("localhost", 11434, "gemma4:31b", num_thread=16)
+    local = LocalLlm("localhost", 11434, "gemma4:31b", num_thread=16, think=thinking)
 
     def handler(request):
         seen.append(json.loads(request.content))
@@ -92,6 +93,7 @@ def test_configured_cpu_threads_are_sent_on_every_local_request():
         llm.close()
     assert len(seen) == 2
     assert all(request["model"] == "gemma4:31b" and
+               request["think"] is thinking and
                request["options"] == {"num_ctx": 65536, "num_thread": 16}
                for request in seen)
 

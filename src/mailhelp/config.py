@@ -448,6 +448,7 @@ class OllamaPromptSettings(ConfigModel):
     model: str = Field(min_length=1, max_length=200, pattern=r"^[^<>\s]+$")
     num_ctx: int = Field(default=LOCAL_NUM_CTX, ge=2048, le=262144)
     num_thread: int | None = Field(default=None, ge=1, le=1024)
+    think: bool | None = None
 
 
 class PromptConfig(BaseModel):

@@ -1554,7 +1554,10 @@ mailhelp --decision-test 20 --ollama 192.168.1.20:11434 --ollama-model qwen2.5:7
 Test. `ollama.num_ctx` gilt wie im lokalen Modus. Optionales `ollama.num_thread`
 wird bei jedem lokalen Aufruf als `options.num_thread` übertragen und im
 Testbericht gespeichert; ohne Angabe bleibt Ollamas automatische Threadwahl
-erhalten. Fehlende Adresse oder fehlendes
+erhalten. Optionales `ollama.think` wird als boolesches Top-Level-Feld `think`
+übertragen: `false` schaltet Thinking explizit ab, `true` ein; ohne Angabe
+bleibt der Modellstandard erhalten. Dies betrifft ausschließlich den lokalen
+Pfad und wird im Testbericht gespeichert. Fehlende Adresse oder fehlendes
 Modell werden vor dem Teststart abgelehnt.
 
 Die zwei Berichtspfade sind:

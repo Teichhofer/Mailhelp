@@ -638,6 +638,10 @@ mailhelp --ollama [::1]:11434 --ollama-model llama3.1:8b --check-access
 - `ollama.num_thread` setzt optional die CPU-Threadzahl für jeden lokalen
   Aufruf, etwa `16` für Gemma4. Ohne Angabe verwendet Ollama seine automatische
   Auswahl. Der Parameter gilt auch im Decision-Test und wird dort gespeichert.
+- `ollama.think: false` sendet bei jedem lokalen Aufruf ausdrücklich
+  `think: false`, um Thinking bei unterstützten Modellen abzuschalten.
+  `true` aktiviert es; ohne Angabe bleibt der Modellstandard erhalten.
+  Die Einstellung wird ebenfalls im Decision-Testbericht gespeichert.
 - An den System-Prompt jedes lokalen Aufrufs wird „Antworte in maximal N
   Token.“ angehängt; N ist das `max_tokens` der jeweiligen Stufe aus
   `prompts.yaml`, das zusätzlich als `num_predict` begrenzt.

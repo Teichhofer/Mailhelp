@@ -190,7 +190,8 @@ def _main() -> int:
             parser.error("--ollama benötigt ein Modell: --ollama-model NAME oder ollama.model in prompts.yaml")
         local_llm = LocalLlm(*args.ollama, model=model,
                              num_ctx=prompts.ollama.num_ctx if prompts.ollama else LOCAL_NUM_CTX,
-                             num_thread=prompts.ollama.num_thread if prompts.ollama else None)
+                             num_thread=prompts.ollama.num_thread if prompts.ollama else None,
+                             think=prompts.ollama.think if prompts.ollama else None)
     if args.decision_test is not None:
         return run_decision_test(
             settings, secrets, topics, prompts, args.decision_test, args.config_directory,
