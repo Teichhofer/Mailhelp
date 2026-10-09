@@ -170,20 +170,25 @@ class OllamaClient(OpenRouterClient):
 
     def check_access(self) -> None:
         """Check that the server answers and the configured model is installed."""
-        def invoke() -> httpx.Response:
-            response = self.client.get("/api/tags")
-            self._raise_for_status(response)
-            return response
-
-        value = self.policy.run(invoke).json()
-        models = value.get("models") if isinstance(value, dict) else None
-        if not isinstance(models, list):
-            raise ValueError("Ollama /api/tags: ungültige Antwort am Schlüsselpfad models")
-        names = {item.get(key) for item in models if isinstance(item, dict)
-                 for key in ("name", "model")}
-        if self.model not in names and f"{self.model}:latest" not in names:
-            raise ValueError(f"Ollama: Modell {self.model!r} ist nicht installiert "
-                             f"(auf dem Server 'ollama pull {self.model}' ausführen)")
+        require_installed_model(self, self.model)
 
 
-__all__ = ["LocalLlm", "OllamaClient", "parse_address"]
+def require_installed_model(client: OpenRouterClient, model: str) -> None:
+    """Fail unless the Ollama server behind *client* lists *model* in /api/tags."""
+    def invoke() -> httpx.Response:
+        response = client.client.get("/api/tags")
+        OllamaClient._raise_for_status(response)
+        return response
+
+    value = client.policy.run(invoke).json()
+    models = value.get("models") if isinstance(value, dict) else None
+    if not isinstance(models, list):
+        raise ValueError("Ollama /api/tags: ungültige Antwort am Schlüsselpfad models")
+    names = {item.get(key) for item in models if isinstance(item, dict)
+             for key in ("name", "model")}
+    if model not in names and f"{model}:latest" not in names:
+        raise ValueError(f"Ollama: Modell {model!r} ist nicht installiert "
+                         f"(auf dem Server 'ollama pull {model}' ausführen)")
+
+
+__all__ = ["LocalLlm", "OllamaClient", "parse_address", "require_installed_model"]

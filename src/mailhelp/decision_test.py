@@ -26,6 +26,7 @@ from .imap import FolderNotReadable, ImapReader
 from .logging import NullLogger, redact
 from .mime import prepare
 from .openrouter import OpenRouterClient
+from .laya import LayaClient, LayaRelevanceAnalyzer, load_laya_prompts
 from .ollama import LocalLlm, OllamaClient
 from .paths import runtime_path
 
@@ -69,18 +70,45 @@ def _raw_mail(raw: bytes, secrets: tuple[str, ...]) -> str:
     return base64.b64encode(cleaned.encode("latin-1")).decode("ascii")
 
 
+class LocalPipeline:
+    """Ollama path whose relevance check runs on Laya, a local decision model."""
+
+    def __init__(self, main: Analyzer, relevance: Any):
+        self.main, self.relevance_analyzer = main, relevance
+
+    def relevance(self, mail: dict[str, Any], topics: list[Topic]) -> Any:
+        return self.relevance_analyzer.relevance(mail, topics)
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.main, name)
+
+
+# Intermediate reports are written at most this often.  The report holds every
+# raw mail, so rewriting it after each stage would grow quadratically with the
+# mail count.  The final state and aborts are always written immediately.
+SAVE_INTERVAL_SECONDS = 60.0
+
+
 class DecisionTestMode:
     def __init__(self, imap: ImapReader, standard: Analyzer, ollama: Analyzer,
                  settings: Settings, topics: list[Topic], report: dict[str, Any],
                  output: Path, recorder: ComparisonRecorder,
-                 *, ignore_historical_start: bool = False):
+                 *, ignore_historical_start: bool = False, relevance_only: bool = False,
+                 save_interval: float = SAVE_INTERVAL_SECONDS, clock=time.monotonic):
         self.imap, self.standard, self.ollama = imap, standard, ollama
         self.settings, self.topics = settings, topics
         self.report, self.output, self.recorder = report, output, recorder
         self.ignore_historical_start = ignore_historical_start
+        self.relevance_only = relevance_only
+        self.save_interval, self.clock = save_interval, clock
+        self.saved_at: float | None = None
 
-    def _save(self) -> None:
+    def _save(self, *, force: bool = False) -> None:
+        now = self.clock()
+        if not force and self.saved_at is not None and now - self.saved_at < self.save_interval:
+            return
         write_report(self.output, redact(self.report, self.recorder.secrets))
+        self.saved_at = now
 
     def _stage(self, result: dict, name: str, operation) -> Any:
         stage = {"status": "running", "events": []}
@@ -103,7 +131,11 @@ class DecisionTestMode:
         record["paths"][name] = result
         relevance = self._stage(result, "relevance", lambda: classifier.relevance(mail, self.topics))
         result["would_process_in_normal_mode"] = relevance is not None and relevance.decision == "relevant"
-        if not result["would_process_in_normal_mode"]:
+        if self.relevance_only:
+            # Only the relevance decision is compared; no follow-up stage runs.
+            for stage in ("summary", "action_router", "task_extraction", "event_extraction"):
+                result["stages"][stage] = {"status": "skipped", "reason": "relevance_only"}
+        elif not result["would_process_in_normal_mode"]:
             reason = "relevance_failed" if relevance is None else "relevance_" + relevance.decision
             for stage in ("summary", "action_router", "task_extraction", "event_extraction"):
                 result["stages"][stage] = {"status": "skipped", "reason": reason}
@@ -185,7 +217,7 @@ class DecisionTestMode:
         finally:
             self.report["selected_mail_count"] = len(self.report["mails"])
             self.report["count_satisfied"] = len(self.report["mails"]) == count
-            self._save()
+            self._save(force=True)
         failed = any(item["status"] == "failed" for item in self.report["mails"])
         return 1 if not self.report["count_satisfied"] or self.report["selection_errors"] or failed else 0
 
@@ -193,9 +225,18 @@ class DecisionTestMode:
 def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
                       prompts: PromptConfig, count: int, directory: Path,
                       output: Path | None = None, *, local_llm: LocalLlm,
-                      ignore_historical_start: bool = False) -> int:
+                      ignore_historical_start: bool = False,
+                      laya: tuple[str, int] | None = None, laya_model: str | None = None,
+                      relevance_only: bool = False,
+                      irrelevant_topics: list[Topic] | None = None) -> int:
     """Construct only read adapters; production stores and write services do not exist here."""
     decision_prompts = load_relevance_prompts(directory)
+    # With Laya, the Ollama path checks relevance with the local decision model.
+    laya_prompts = None
+    if laya is not None:
+        laya_prompts = load_laya_prompts(directory)
+        if laya_model:
+            laya_prompts = laya_prompts.model_copy(update={"model": laya_model})
     if output is None:
         output = runtime_path(settings.data_directory, directory) / "decision-tests" / f"decision-test-{uuid4()}.json"
     else:
@@ -219,8 +260,16 @@ def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
         secrets.google_oauth_client_id, secrets.google_oauth_client_secret, secrets.google_oauth_refresh_token))
     recorder = ComparisonRecorder(log_path, known_secrets)
     report = {"schema_version": 2, "mode": "decision_test",
-              "comparison": "standard_vs_ollama", "pipeline_policy": "relevant_only",
+              "comparison": "standard_vs_ollama",
+              "pipeline_policy": "relevance_only" if relevance_only else "relevant_only",
               "ollama": asdict(local_llm),
+              "ollama_relevance": (None if laya_prompts is None else {
+                  "engine": "laya", "base_url": LocalLlm(*laya, laya_prompts.model).base_url,
+                  "model": laya_prompts.model}),
+              "laya_prompts": None if laya_prompts is None else laya_prompts.model_dump(mode="json"),
+              # Laya builds its questions from these categories as well.
+              "laya_irrelevant_topics": (None if laya_prompts is None else
+                                         [topic.model_dump() for topic in irrelevant_topics or []]),
               "timeouts": {"openrouter": settings.timeouts.openrouter.model_dump(),
                            "ollama": settings.timeouts.ollama.model_dump()}, "run_id": str(uuid4()),
               "started_at": datetime.now(timezone.utc).isoformat(), "complete": False,
@@ -263,21 +312,35 @@ def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
                 client.client.event_hooks["response"].append(recorder.http_response)
                 clients.append(client)
             cfg = settings.timeouts.ollama
+            local = dict(initial_backoff=cfg.initial_backoff_seconds,
+                         max_backoff=cfg.max_backoff_seconds, logger=recorder)
             local_client = OllamaClient(local_llm, cfg.timeout_seconds, cfg.retries,
-                                       settings.limits.llm_calls_per_minute,
-                                       initial_backoff=cfg.initial_backoff_seconds,
-                                       max_backoff=cfg.max_backoff_seconds, logger=recorder)
+                                        settings.limits.llm_calls_per_minute, **local)
             stack.callback(local_client.close)
-            local_client.client.event_hooks["response"].append(recorder.http_response)
+            local_clients: list[Any] = [local_client]
+            if laya is not None and laya_prompts is not None:
+                laya_client = LayaClient(*laya, laya_prompts.model, cfg.timeout_seconds, cfg.retries,
+                                         settings.limits.llm_calls_per_minute, **local)
+                stack.callback(laya_client.close)
+                local_clients.append(laya_client)
+            for client in local_clients:
+                # Fail before any mail is read if a local model is not installed.
+                client.check_access()
+                client.client.event_hooks["response"].append(recorder.http_response)
             options = dict(provider_retries=settings.retries.provider_retry,
                            json_repair_retries=settings.retries.json_repair,
                            schema_repair_retries=settings.retries.schema_repair)
             standard = JevRelevanceAnalyzer(
                 clients[0], prompts, decisions=DecisionAnalyzer(
                     clients[1], decision_prompts, settings.limits.max_llm_payload_bytes), **options)
-            ollama = Analyzer(local_client, prompts, **options)
+            ollama: Any = Analyzer(local_client, prompts, **options)
+            if laya_prompts is not None:
+                ollama = LocalPipeline(ollama, LayaRelevanceAnalyzer(
+                    local_clients[1], laya_prompts, settings.limits.max_llm_payload_bytes,
+                    irrelevant_topics or []))
             return DecisionTestMode(reader, standard, ollama, settings, topics, report, output,
-                                    recorder, ignore_historical_start=ignore_historical_start).run(count)
+                                    recorder, ignore_historical_start=ignore_historical_start,
+                                    relevance_only=relevance_only).run(count)
     except BaseException as exc:
         report["error_type"] = type(exc).__name__
         write_report(output, redact(report, known_secrets))

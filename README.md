@@ -699,16 +699,27 @@ steht wie bisher die Aufruf-ID der übernommenen Entscheidung. Die bestehende
 Protokollierungsoption für vollständige LLM-Inhalte gilt weiterhin für beide Clients.
 
 Der Konfigurationsfingerprint umfasst nun zusätzlich Jevs Modell, Relevanzfragen,
-Schwelle, Präzisierungen und die Rückfallregel; Änderungen des experimentellen
+Schwelle, Mailkürzung, Präzisierungen und die Rückfallregel; Änderungen des experimentellen
 Jev-Aktionsrouters allein beeinflussen ihn nicht. Bereits abgeschlossene Mails werden
 nicht erneut analysiert. Für noch nicht abgeschlossene Mailzustände mit altem
 Fingerprint bleibt der vorhandene Schutz bei Konfigurationsänderung aktiv: Sie
 werden zurückgehalten und nicht stillschweigend auf die neue Analyse migriert.
 
 
-Jevs `topic_guidance` präzisiert ausschließlich dessen Themenfragen: persönliche
-Einladungen und Zeremonien, Hochschulbeiräte sowie die Abgrenzung von Landfrauen
-gegenüber anderen landwirtschaftlichen Verbänden. Die gemeinsame `topics.yaml`
+Jev erhält als Zustand nur eine schlanke Mail (Absender, Betreff, Datum und den
+Mailtext ohne Links und Linkfußnoten, gekürzt auf `max_mail_characters`, Standard
+8000 Zeichen, mit Hinweis `[gekürzt]`) sowie die aktivierten Themen. Jev erlaubt
+höchstens 32.000 Token für Zustand und längste Frage; ungekürzte Newsletter
+scheiterten sonst mit HTTP 400 `max_tokens_exceeded`, und unnötiger Inhalt senkt
+laut TypeSafe die Genauigkeit. Die nachfolgenden LLM-Stufen und der Rückfall
+erhalten weiterhin die vollständig vorbereitete Mail.
+
+Jevs `topic_guidance` präzisiert ausschließlich dessen Themenfragen und steht nur
+dort, nicht zusätzlich im Zustand: persönliche Einladungen und Zeremonien, die
+Abgrenzung der Termin-Koordination gegenüber offenen Seminar-, Event- und
+Messeangeboten, Newsletter-Anmeldeaufrufen und Terminbuchungswerbung,
+Hochschulbeiräte sowie die Abgrenzung von Landfrauen gegenüber anderen
+landwirtschaftlichen Verbänden. Die gemeinsame `topics.yaml`
 bleibt maßgeblich; explizite Ausschlüsse haben Vorrang. Mehrere Themen dürfen
 unabhängig passen. Jev fragt pro Thema `match`, `no_match` oder `unclear`.
 Die unveränderte Schwelle `topic_threshold: 0.5` gilt für die Wahrscheinlichkeit
@@ -732,12 +743,51 @@ die Speicherung vollständiger Mail- und Modellinhalte.
 mailhelp --decision-test 20 --ollama localhost:11434
 mailhelp --decision-test 40 --ollama localhost:11434 --decision-test-file data/decision-tests/standard-vs-ollama.json
 mailhelp --decision-test 20 --ollama 192.168.1.20:11434 --ollama-model qwen2.5:7b-instruct --ignore-historical-start
+mailhelp --decision-test 100 --ollama 192.168.1.20:11434 --decision-test-relevance-only
+mailhelp --decision-test 50 --ollama 192.168.1.20:11434 --decision-test-laya 192.168.1.30:11434
+mailhelp --decision-test 50 --ollama 192.168.1.20:11434 --decision-test-laya 192.168.1.30:11434 --decision-test-laya-model laya:latest --decision-test-relevance-only
 ```
 
 `--ollama HOST:PORT` ist für diesen Modus erforderlich. Das Modell kommt aus
 `prompts.yaml` unter `ollama.model`; `--ollama-model NAME` überschreibt es für den
 Test. `ollama.num_ctx` gilt wie im lokalen Modus. Fehlende Adresse oder fehlendes
 Modell werden vor dem Teststart abgelehnt.
+
+Experimentell prüft `--decision-test-laya HOST:PORT` die Relevanz des
+Ollama-Pfads mit dem typisierten Entscheidungsmodell Laya. Laya läuft auf einem
+eigenen Ollama-Server mit MLX-Unterstützung (Apple Silicon) und wird über
+`/v1/systemone` angesprochen. Alle übrigen lokalen Stufen nutzen weiter
+`ollama.model` auf dem `--ollama`-Server; ohne `--decision-test-laya` prüft dieses
+Modell auch die Relevanz. Laya erhält nicht die langen Jev-Fragen. Die Frage
+entsteht zur Laufzeit aus den Relevanzkriterien und folgt den Empfehlungen der
+Laya-Modellkarte: eine `choice`-Frage (statt Ja/Nein-Fragen mit bekanntem
+Label-Bias), deren Optionen die aktivierten Themen aus `topics.yaml` (höchstens
+25) plus eine Sammeloption „keines davon“ sind, mit neutralen Buchstaben als
+Schlüsseln und kurzen Optionstexten. Laya hat einen Positions-Bias; dieselbe
+Frage wird daher in `rotations` Optionsreihenfolgen im selben Aufruf gestellt
+und die Wahrscheinlichkeiten werden gemittelt. `laya_prompts.yaml` (fehlt die
+Datei, gilt die mitgelieferte Vorlage) enthält Anweisung, die Optionsvorlagen
+`topic_option` (`{name}`, `{description}`) und `other_option` (optional
+`{irrelevant}` mit den Namen aus `irrelevant_topics.yaml`), die Kürzungen
+`max_option_characters` und `max_state_characters` sowie die Schwellen. Mit
+P(Thema) = 1 − P(keines davon) gilt: `relevant` ab `relevant_threshold` mit
+mindestens einem Thema ab `topic_threshold`, `irrelevant` unter
+`irrelevant_threshold`, sonst `unclear`. Die Begründung nennt P(Thema) und die
+Themenwahrscheinlichkeiten. Vor der Prüfung werden Links, zitierte Zeilen (`>`)
+und Linkfußnoten entfernt; lehnt Laya den Text als zu lang ab, wird er einmal
+anteilig gekürzt und erneut gesendet.
+`--decision-test-laya-model NAME` überschreibt das Laya-Modell für einen Test.
+Ollama- und Laya-Modell werden über `/api/tags` geprüft, bevor eine Mail gelesen
+wird; ein nicht installiertes Modell bricht mit Hinweis auf `ollama pull` ab. An
+keinen der beiden lokalen Server werden Zugangsdaten gesendet. Der Bericht
+enthält `ollama_relevance` (`engine: laya`, Adresse, Modell oder `null`) und die
+verwendeten `laya_prompts` und `laya_irrelevant_topics` (sonst jeweils `null`).
+
+`--decision-test-relevance-only` vergleicht ausschließlich die Relevanzprüfung beider
+Pfade. Zusammenfassung, Aktionsrouting und Extraktionen werden dann nie ausgeführt
+und als `skipped` mit Grund `relevance_only` dokumentiert; der Bericht trägt
+`pipeline_policy: relevance_only`. `--decision-test-laya` und
+`--decision-test-relevance-only` sind nur zusammen mit `--decision-test` zulässig.
 
 Die zwei Berichtspfade sind:
 
@@ -798,7 +848,10 @@ Cloud-Aufrufe teilen sich ein isoliertes gemeinsames Budget und eine Sperre.
 Ollama hat sein eigenes isoliertes Budget sowie `timeouts.ollama`; der Standard nutzt
 `timeouts.openrouter`. Keine normalen Budgets oder Zustandsdateien werden verändert.
 
-Der Bericht wird nach jeder Stufe atomar aktualisiert und bleibt bei Abbruch lesbar
+Der Bericht wird während des Laufs höchstens einmal pro Minute atomar
+aktualisiert, weil er alle Rohmails enthält und ein Neuschreiben nach jeder Stufe
+bei großen Läufen quadratisch wüchse. Am Ende und bei Abbruch wird er sofort
+geschrieben und bleibt lesbar
 (`complete: false`). Vorhandene Dateien werden vor Netzwerkzugriff abgelehnt;
 Ausgaben in normalen Test-/Produktivzuständen sind gesperrt, auch bei
 Verzeichnisumleitungen. Ein Neustart verwendet eine neue Datei und setzt alte
@@ -808,7 +861,10 @@ ergibt 130. Abweichungen und unklare Entscheidungen sind keine technischen Fehle
 
 Der Modus konstruiert nur IMAP- und Modelladapter. Telegram, Todoist und Kalender
 werden nicht angesteuert. Kombinierbar sind `--config-directory`, `--decision-test-file`,
-`--ignore-historical-start`, `--ollama` und `--ollama-model`. Andere Modi,
+`--ignore-historical-start`, `--ollama`, `--ollama-model`,
+`--decision-test-laya`, `--decision-test-laya-model` und
+`--decision-test-relevance-only`. `--decision-test-laya-model` setzt
+`--decision-test-laya` voraus. Andere Modi,
 `--max-mails` und `--log-directory` werden abgelehnt.
 
 Docker verwendet standardmäßig `host.docker.internal:11434`. Für einen anderen

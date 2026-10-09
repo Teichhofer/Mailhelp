@@ -1,0 +1,35 @@
+# EXPERIMENTELL, nur --decision-test mit --decision-test-laya HOST:PORT:
+# Relevanzprüfung des Ollama-Pfads mit dem lokalen Entscheidungsmodell Laya
+# über Ollamas /v1/systemone. Alle übrigen Ollama-Stufen nutzen weiter
+# ollama.model aus prompts.yaml.
+#
+# Die Frage entsteht zur Laufzeit aus den Relevanzkriterien und folgt den
+# Empfehlungen der Laya-Modellkarte:
+# - eine choice-Frage statt vieler noul-Fragen (noul hat einen bekannten
+#   Ja/Nein-Label-Bias); Optionen sind die aktivierten Themen aus topics.yaml
+#   (höchstens 25) plus eine Sammeloption „keines davon“;
+# - neutrale Buchstaben als Optionsschlüssel, kurze beschreibende Optionen
+#   (Laya: höchstens etwa 48 Token je Option);
+# - dieselbe Frage in mehreren Optionsreihenfolgen, Wahrscheinlichkeiten
+#   gemittelt (Laya hat einen Positions-Bias).
+# P(Thema) = 1 - P(keines davon):
+#   relevant:   P(Thema) >= relevant_threshold und mindestens ein Thema
+#   irrelevant: P(Thema) <  irrelevant_threshold
+#   unclear:    dazwischen
+# Themen: alle mit gemittelter Wahrscheinlichkeit >= topic_threshold.
+# Vor der Prüfung werden Links, zitierte Zeilen (>) und Linkfußnoten aus dem
+# Mailtext entfernt. Lehnt Laya den Text als zu lang ab, wird er einmal
+# anteilig gekürzt und erneut gesendet.
+model: laya:322m-multilingual-mlx-fp16
+max_state_characters: 900
+max_option_characters: 90
+rotations: 3
+instructions: Which topic is this email about?
+# {name} und {description} stammen aus topics.yaml.
+topic_option: "{name}: {description}"
+# {irrelevant} würde die Namen aus irrelevant_topics.yaml einsetzen; in Proben
+# trennte die allgemeine Beschreibung besser.
+other_option: "None of these topics: advertising, newsletters, notifications or anything else."
+relevant_threshold: 0.9
+irrelevant_threshold: 0.75
+topic_threshold: 0.2

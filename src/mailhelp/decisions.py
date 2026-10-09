@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 import time
 import uuid
 from typing import Annotated, Any, Literal
@@ -61,8 +62,9 @@ class DecisionResponseError(ValueError):
     """Content-free diagnostic for untrusted provider output."""
 
 
-def validate_answers(raw: Any, questions: dict[str, Question]) -> None:
-    if not isinstance(raw, dict) or not isinstance(raw.get("id"), str) or not raw["id"]:
+def validate_answers(raw: Any, questions: dict[str, Question], *, require_id: bool = True) -> None:
+    # Ollama's local /v1/systemone answers without an id; OpenRouter always has one.
+    if not isinstance(raw, dict) or (require_id and (not isinstance(raw.get("id"), str) or not raw["id"])):
         raise DecisionResponseError("Ungültige Decision-Antworthülle")
     answers = raw.get("answers")
     if not isinstance(answers, dict) or set(answers) != set(questions):
@@ -96,7 +98,7 @@ class DecisionClient(OpenRouterClient):
 
     endpoint = "https://openrouter.ai/api/alpha/decisions"
 
-    def decide(self, model: str, state: dict[str, Any], questions: dict[str, Any],
+    def decide(self, model: str, state: Any, questions: dict[str, Any],
                *, stage: str, max_payload_bytes: int) -> tuple[str, dict[str, Any]]:
         validated = QUESTIONS.validate_python(questions)
         if not 1 <= len(validated) <= 64:
@@ -134,7 +136,7 @@ class DecisionClient(OpenRouterClient):
             self.logger.llm_event("response_received", response=raw, stage=stage,
                                   model=model, call_id=call_id, http_status=response.status_code,
                                   duration_ms=round((time.perf_counter() - started) * 1000, 3))
-            validate_answers(raw, validated)
+            self._validate_answers(raw, validated)
             return call_id, raw
         except Exception as exc:
             self.logger.llm_event("request_failed", stage=stage, model=model,
@@ -142,9 +144,16 @@ class DecisionClient(OpenRouterClient):
             raise
 
 
+    @staticmethod
+    def _validate_answers(raw: Any, questions: dict[str, Question]) -> None:
+        validate_answers(raw, questions)
+
+
 class DecisionPrompts(ConfigModel):
     model: str = Field(min_length=1, pattern=r"^[^<>\s]+$")
     topic_threshold: Probability = 0.5
+    # Jev reads the mail text only up to this length; links are removed first.
+    max_mail_characters: int = Field(default=8000, ge=500, le=100000)
     topic_guidance: dict[str, str] = Field(default_factory=dict)
     prompts: dict[str, dict[str, Question]]
 
@@ -175,6 +184,28 @@ def load_decision_prompts(path: Path) -> DecisionPrompts:
     return _validated_file(path, DecisionPrompts, _yaml(path))
 
 
+_LINK = re.compile(r"https?://\S+")
+# Lines left over from link footnotes and separators, e.g. "[1]", "Links:", "-----".
+_NOISE = re.compile(r"Links:|[\[\]\d\s=_-]+")
+
+
+def jev_mail(mail: dict[str, Any], limit: int) -> dict[str, str]:
+    """The part of a prepared mail Jev needs for relevance: sender, subject, date, text.
+
+    Jev rejects requests above 32,000 tokens for state plus the longest question,
+    and irrelevant state lowers its accuracy, so links and link footnotes are
+    removed and the text is cut to *limit* characters.
+    """
+    headers = mail.get("headers") or {}
+    lines = [line.rstrip() for line in _LINK.sub("", mail.get("text", "")).splitlines()
+             if not _NOISE.fullmatch(line.strip())]
+    text = "\n".join(line for index, line in enumerate(lines)
+                     if line or (index and lines[index - 1])).strip()
+    if len(text) > limit:
+        text = text[:limit] + "\n[gekürzt]"
+    return {key: headers.get(key, "") for key in ("from", "subject", "date")} | {"text": text}
+
+
 class DecisionAnalyzer:
     """Only classification/routing; generative stages stay with Analyzer."""
 
@@ -194,10 +225,10 @@ class DecisionAnalyzer:
                 + "\nJev-spezifische Präzisierung: "
                 + self.prompts.topic_guidance.get(topic.id, "Keine zusätzliche Präzisierung."))
             questions[f"topic_{index}"] = question
+        # The topic guidance is part of each topic question, not of the shared state.
         call, raw = self.client.decide(
-            self.prompts.model, {"mail": mail, "topics": [topic.model_dump() for topic in enabled],
-                                 "topic_guidance": {topic.id: self.prompts.topic_guidance.get(topic.id, "")
-                                                    for topic in enabled}},
+            self.prompts.model, {"mail": jev_mail(mail, self.prompts.max_mail_characters),
+                                 "topics": [topic.model_dump(exclude={"enabled"}) for topic in enabled]},
             questions, stage="relevance", max_payload_bytes=self.max_payload_bytes)
         answers = raw["answers"]
         decision = answers["decision"]["choice"]
@@ -243,8 +274,9 @@ def load_relevance_prompts(directory: Path) -> DecisionPrompts:
 
 def relevance_fingerprint(previous: str, prompts: DecisionPrompts) -> str:
     """Track relevant Jev configuration without experimental action routing."""
-    configuration = {"policy": "jev_relevance_unclear_fallback_v1", "previous": previous,
+    configuration = {"policy": "jev_relevance_unclear_fallback_v2", "previous": previous,
                      "model": prompts.model, "topic_threshold": prompts.topic_threshold,
+                     "max_mail_characters": prompts.max_mail_characters,
                      "topic_guidance": prompts.topic_guidance,
                      "relevance": {key: value.model_dump()
                                    for key, value in prompts.prompts["relevance"].items()}}

@@ -11,6 +11,7 @@ services:
       - ./config.yaml:/config/config.yaml:ro
       - ./prompts.yaml:/config/prompts.yaml:ro
       - ./decisions_prompts.yaml:/config/decisions_prompts.yaml:ro
+      - ./laya_prompts.yaml:/config/laya_prompts.yaml:ro
       - ./topics.yaml:/config/topics.yaml:ro
       - ./irrelevant_topics.yaml:/config/irrelevant_topics.yaml:ro
       - ./data:/config/data

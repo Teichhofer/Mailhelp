@@ -12,7 +12,7 @@ from mailhelp.adapter import PermanentError, RetryableError
 from mailhelp.config import Topic
 from mailhelp.decisions import (DecisionAnalyzer, DecisionClient, DecisionPrompts,
                                 DecisionResponseError, NoulQuestion, QUESTIONS,
-                                load_decision_prompts, validate_answers)
+                                jev_mail, load_decision_prompts, validate_answers)
 from mailhelp.openrouter import RateLimitExceeded
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -287,8 +287,9 @@ def test_jev_guidance_is_self_contained_and_does_not_mutate_shared_topics():
             assert result.topic_ids == [topic.id for topic in topics[:2]]
         assert topics == before
         for data in requests:
-            assert data["state"]["topics"] == [topic.model_dump() for topic in before[:3]]
-            assert set(data["state"]["topic_guidance"]) == {topic.id for topic in before[:3]}
+            # The guidance lives only in the topic questions, not in the shared state.
+            assert data["state"]["topics"] == [topic.model_dump(exclude={"enabled"}) for topic in before[:3]]
+            assert set(data["state"]) == {"mail", "topics"}
             for index, topic in enumerate(before[:3]):
                 question = data["questions"][f"topic_{index}"]
                 assert question["type"] == "choice"
@@ -313,7 +314,7 @@ def test_old_binary_topic_template_is_rejected_with_configuration_error():
 def test_uncertain_secondary_topic_keeps_confirmed_primary_topic():
     def handler(request):
         data = json.loads(request.content)
-        assert data["state"]["topic_guidance"] == {"one": "", "two": ""}
+        assert set(data["state"]) == {"mail", "topics"}
         return httpx.Response(200, json=envelope(data["questions"], {
             "decision": "relevant", "topic_0": "match", "topic_1": "unclear"}))
     cfg = prompts()
@@ -328,3 +329,45 @@ def test_uncertain_secondary_topic_keeps_confirmed_primary_topic():
         assert "Widerspruch" not in result.reason
     finally:
         client.close()
+
+
+
+def test_jev_reads_a_slim_mail_without_links_and_with_bounded_length():
+    mail = {"headers": {"from": "a@example.test", "subject": "Betreff", "date": "Fri, 09 Oct 2026",
+                        "message_id": "<id@example.test>"},
+            "text": "Hallo,\n\n\n\nsiehe https://track.example.test/?id=xyz bitte.\n> Zitat bleibt\n"
+                    "Links:\n------\n[1] https://example.test\n\nGruss",
+            "metadata": {"attachments_omitted": 0}, "message_ids": ["<id@example.test>"]}
+    assert jev_mail(mail, 8000) == {"from": "a@example.test", "subject": "Betreff",
+                                    "date": "Fri, 09 Oct 2026",
+                                    "text": "Hallo,\n\nsiehe  bitte.\n> Zitat bleibt\n\nGruss"}
+    assert jev_mail({}, 8000) == {"from": "", "subject": "", "date": "", "text": ""}
+
+
+def test_overlong_mails_are_cut_before_jev_rejects_them_with_max_tokens_exceeded():
+    """Regression: newsletters with up to 189,000 characters failed with HTTP 400."""
+    marker = "\n[gekürzt]"
+    long = jev_mail({"text": "Wort " * 40000}, 8000)["text"]
+    assert len(long) == 8000 + len(marker) and long.endswith(marker)
+    seen = []
+
+    def handler(request):
+        data = json.loads(request.content)
+        seen.append(data)
+        return httpx.Response(200, json=envelope(data["questions"], {"decision": "irrelevant",
+                                                                     "topic_0": "no_match"}))
+
+    cfg = prompts()
+    assert cfg.max_mail_characters == 8000
+    client = DecisionClient("k", 3, 0, 30, transport=httpx.MockTransport(handler))
+    try:
+        DecisionAnalyzer(client, cfg, 10_000_000).relevance(
+            {"text": "x" * 189_000}, [Topic(id="one", name="One", enabled=True, description="Synthetic")])
+    finally:
+        client.close()
+    assert len(seen[0]["state"]["mail"]["text"]) == 8000 + len(marker)
+    for invalid in (499, 100_001):
+        data = cfg.model_dump()
+        data["max_mail_characters"] = invalid
+        with pytest.raises(ValidationError, match="max_mail_characters"):
+            DecisionPrompts.model_validate(data)

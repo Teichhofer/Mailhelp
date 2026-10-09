@@ -163,9 +163,28 @@ def _main() -> int:
         "--decision-test-file", type=Path, metavar="DATEI",
         help="neue JSON-Testdatei für --decision-test (relativ zu --config-directory)",
     )
+    parser.add_argument(
+        "--decision-test-laya", type=_ollama_address, metavar="HOST:PORT",
+        help=("EXPERIMENTELL: Relevanzprüfung des Ollama-Pfads im --decision-test mit dem "
+              "Entscheidungsmodell Laya auf diesem Ollama-Server (/v1/systemone)"),
+    )
+    parser.add_argument(
+        "--decision-test-laya-model", metavar="NAME",
+        help="Laya-Modell für --decision-test-laya; überschreibt model aus laya_prompts.yaml",
+    )
+    parser.add_argument(
+        "--decision-test-relevance-only", action="store_true",
+        help="im --decision-test ausschließlich die Relevanzprüfung beider Pfade vergleichen",
+    )
     args = parser.parse_args()
     if args.decision_test_file is not None and args.decision_test is None:
         parser.error("--decision-test-file ist nur zusammen mit --decision-test zulässig")
+    if args.decision_test is None and (args.decision_test_laya is not None
+                                       or args.decision_test_relevance_only):
+        parser.error("--decision-test-laya und --decision-test-relevance-only "
+                     "sind nur zusammen mit --decision-test zulässig")
+    if args.decision_test_laya_model is not None and args.decision_test_laya is None:
+        parser.error("--decision-test-laya-model ist nur zusammen mit --decision-test-laya zulässig")
     if args.decision_test is not None and any((
         args.check, args.check_access, args.show_imap_credentials, args.max_mails is not None,
         args.learn is not None, args.clear, args.yes, args.log_directory is not None,
@@ -197,6 +216,8 @@ def _main() -> int:
             settings, secrets, topics, prompts, args.decision_test, args.config_directory,
             args.decision_test_file, local_llm=local_llm,
             ignore_historical_start=args.ignore_historical_start,
+            laya=args.decision_test_laya, laya_model=args.decision_test_laya_model,
+            relevance_only=args.decision_test_relevance_only, irrelevant_topics=irrelevant_topics,
         )
     if args.clear:
         if not args.yes:

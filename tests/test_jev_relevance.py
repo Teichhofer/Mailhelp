@@ -11,7 +11,7 @@ from mailhelp.adapter import PermanentError
 from mailhelp.analysis import Analyzer
 from mailhelp.application import build_application
 from mailhelp.decisions import (DecisionAnalyzer, DecisionClient,
-    JevRelevanceAnalyzer, load_relevance_prompts, relevance_fingerprint)
+    JevRelevanceAnalyzer, jev_mail, load_relevance_prompts, relevance_fingerprint)
 from mailhelp.imap import FetchedMail
 from mailhelp.openrouter import OpenRouterClient, RateLimitExceeded
 from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
@@ -93,7 +93,7 @@ def test_only_unclear_calls_existing_relevance_and_returns_its_result(fallback):
         assert result.reason == "Synthetic legacy result"
         assert len(requests) == len(service.client.calls) == 1
         assert service.client.calls[0][1] == "relevance"
-        assert service.client.calls[0][2]["mail"] == requests[0]["state"]["mail"]
+        assert jev_mail(service.client.calls[0][2]["mail"], 8000) == requests[0]["state"]["mail"]
         assert [e[0] for e in events] == ["jev_relevance_completed",
             "relevance_fallback_started", "relevance_fallback_completed"]
         assert events[-1][1]["jev_call_id"] == events[0][1]["call_id"]
@@ -134,6 +134,7 @@ def test_prompt_loading_precedence_validation_and_fingerprint(tmp_path):
     assert relevance_fingerprint("f" * 64, changed) == original
     for change in [lambda x: setattr(x, "model", "other/jev"),
                    lambda x: setattr(x, "topic_threshold", 0.6),
+                   lambda x: setattr(x, "max_mail_characters", 4000),
                    lambda x: x.topic_guidance.update(one="New definition"),
                    lambda x: setattr(x.prompts["relevance"]["decision"], "instructions", "New question")]:
         changed = deepcopy(cfg)

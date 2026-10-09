@@ -14,16 +14,20 @@ import yaml
 from mailhelp import cli
 from mailhelp.config import Secrets, Settings, Topic
 from mailhelp.decision_test import ComparisonRecorder, DecisionTestMode, _raw_mail, run_decision_test as _run_decision_test
-from mailhelp.decisions import DecisionClient
+from mailhelp.decisions import DecisionClient, jev_mail
 from mailhelp.imap import FetchedMail, FolderNotReadable, MailCandidate
 from mailhelp.models import ActionRoute, Relevance, Summary, TaskExtraction, EventExtraction
 from mailhelp.openrouter import OpenRouterClient
+from mailhelp.laya import LayaClient
 from mailhelp.ollama import LocalLlm, OllamaClient
 from test_decisions import ROOT, envelope
 from test_quality_corpus import prompt_config
 
 
 LOCAL = LocalLlm("ollama.example.test", 11434, "synthetic/local", 8192)
+LAYA = ("laya.example.test", 11434)
+LAYA_MODEL = "laya:322m-multilingual-mlx-fp16"
+ADS = Topic(id="werbung", name="Werbung", enabled=True, description="Synthetische Werbung")
 
 
 def run_decision_test(*args, **kwargs):
@@ -80,7 +84,8 @@ def llm_response(request, *, none=False, decision="relevant"):
 
 
 def configure(tmp_path, monkeypatch, *, none=False, imap_mode="ssl", fail_client=False,
-              jev="relevant", fallback="relevant", local="relevant"):
+              jev="relevant", fallback="relevant", local="relevant",
+              installed=(LOCAL.model, LAYA_MODEL)):
     (tmp_path / "decisions_prompts.yaml").write_bytes((ROOT / "decisions_prompts.yaml").read_bytes())
     cfg = settings()
     cfg.imap.connection_mode = imap_mode
@@ -97,9 +102,28 @@ def configure(tmp_path, monkeypatch, *, none=False, imap_mode="ssl", fail_client
                 requests.append((kind, request))
                 if kind is OpenRouterClient:
                     return llm_response(request, none=none, decision=fallback)
+                if kind is LayaClient:
+                    assert request.url.host == LAYA[0]
+                    assert "Authorization" not in request.headers
+                    if request.url.path == "/api/tags":
+                        return httpx.Response(200, json={"models": [{"name": name} for name in installed]})
+                    data = json.loads(request.content)
+                    assert isinstance(data["state"], str)
+                    # A relevant mail: the topic option wins over the catch-all in every order.
+                    answers = {}
+                    for name, question in data["questions"].items():
+                        probabilities = {letter: 0.02 if text.startswith("None of these") else 0.98
+                                         for letter, text in question["criteria"].items()}
+                        answers[name] = {"type": "choice", "choice": max(probabilities, key=probabilities.get),
+                                         "confidence": 0.9, "probabilities": probabilities}
+                    # Ollama answers without an id, unlike OpenRouter decisions.
+                    return httpx.Response(200, json={"model": data["model"], "answers": answers,
+                                                     "usage": {"input_tokens": 40, "output_tokens": 0}})
                 if kind is OllamaClient:
                     assert request.url.host == LOCAL.host
                     assert "Authorization" not in request.headers
+                    if request.url.path == "/api/tags":
+                        return httpx.Response(200, json={"models": [{"name": name} for name in installed]})
                     value = llm_response(request, decision=local).json()
                     return httpx.Response(200, json={
                         "model": LOCAL.model, "done": True, "done_reason": "stop",
@@ -118,6 +142,7 @@ def configure(tmp_path, monkeypatch, *, none=False, imap_mode="ssl", fail_client
     monkeypatch.setattr("mailhelp.decision_test.OpenRouterClient", make_client(OpenRouterClient))
     monkeypatch.setattr("mailhelp.decision_test.DecisionClient", make_client(DecisionClient))
     monkeypatch.setattr("mailhelp.decision_test.OllamaClient", make_client(OllamaClient))
+    monkeypatch.setattr("mailhelp.decision_test.LayaClient", make_client(LayaClient))
     return cfg, reader, clients, requests, reader_options
 
 
@@ -156,7 +181,9 @@ def test_paired_full_pipeline_raw_reports_unique_selection_and_no_state_writes(t
                       for kind, request in requests if kind is DecisionClient]
     llm_payloads = [json.loads(json.loads(request.content)["messages"][1]["content"])["mail"]
                     for kind, request in requests if kind is OpenRouterClient]
-    assert all(mail in llm_payloads for mail in state_payloads)
+    # Jev reads a slim view of the same mail the LLM stages receive.
+    assert state_payloads and all(mail in [jev_mail(item, 8000) for item in llm_payloads]
+                                  for mail in state_payloads)
     assert marker.read_text(encoding="utf-8") == '{"untouched":true}'
     assert (tmp_path / "decisions_prompts.yaml").read_bytes() == config_before
     assert reader.closed and all(client.client.is_closed for client in clients)
@@ -328,7 +355,7 @@ def test_cli_rejects_ambiguous_modes_before_loading_or_connecting(monkeypatch, a
 
 @pytest.mark.parametrize("file,ignore", [(None, False), ("result.json", True)])
 def test_cli_decision_test_bypasses_normal_builder_and_logger(monkeypatch, file, ignore):
-    loaded = (settings(), secrets(), topics(), [], prompt_config(), "f")
+    loaded = (settings(), secrets(), topics(), [ADS], prompt_config(), "f")
     captured = []
     monkeypatch.setattr(cli, "load_all", lambda directory: loaded)
     monkeypatch.setattr(cli, "build_logger", lambda *args, **kwargs: pytest.fail("normal logger"))
@@ -344,7 +371,9 @@ def test_cli_decision_test_bypasses_normal_builder_and_logger(monkeypatch, file,
     assert cli.main() == 0
     assert captured == [((loaded[0], loaded[1], loaded[2], loaded[4], 7, Path("cfg"),
                           Path(file) if file is not None else None), {"ignore_historical_start": ignore,
-                          "local_llm": LocalLlm("localhost", 11434, "synthetic/local")})]
+                          "local_llm": LocalLlm("localhost", 11434, "synthetic/local"),
+                          "laya": None, "laya_model": None, "relevance_only": False,
+                          "irrelevant_topics": [ADS]})]
 
 
 @pytest.mark.parametrize("namespace", ["test", "production"])
@@ -362,6 +391,7 @@ def test_separate_docker_configuration_exposes_decision_templates_only_in_test_s
     service = compose["services"]["mailhelp-decision-test"]
     assert "--decision-test" in service["command"] and service["restart"] == "no"
     assert "./decisions_prompts.yaml:/config/decisions_prompts.yaml:ro" in service["volumes"]
+    assert "./laya_prompts.yaml:/config/laya_prompts.yaml:ro" in service["volumes"]
     assert "./data:/config/data" in service["volumes"]
     standard = yaml.safe_load((ROOT / "compose.yaml").read_text(encoding="utf-8"))
     assert "./decisions_prompts.yaml:/config/decisions_prompts.yaml:ro" in standard["services"]["mailhelp"]["volumes"]
@@ -455,7 +485,8 @@ def test_actual_adapters_compare_standard_fallback_against_local_relevance_gates
     cfg, _, clients, requests, _ = configure(tmp_path, monkeypatch, jev=jev, fallback=fallback, local=local)
     assert run_decision_test(cfg, secrets(), topics(), prompt_config(), 1, tmp_path) == 0
     cloud = [json.loads(request.content) for kind, request in requests if kind is OpenRouterClient]
-    native = [json.loads(request.content) for kind, request in requests if kind is OllamaClient]
+    native = [json.loads(request.content) for kind, request in requests
+              if kind is OllamaClient and request.url.path == "/api/chat"]
     cloud_stages = [data["messages"][0]["content"].removeprefix("quality:") for data in cloud]
     native_stages = [data["messages"][0]["content"].split("\n")[0].removeprefix("quality:") for data in native]
     assert ("relevance" in cloud_stages) is legacy_relevance
@@ -484,3 +515,125 @@ def test_cli_decision_test_uses_configured_ollama_model_and_context(monkeypatch)
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--decision-test", "1", "--ollama", "localhost:11434"])
     assert cli.main() == 0
     assert captured[0]["local_llm"] == LocalLlm("localhost", 11434, "synthetic/configured", 4096, 16, False)
+
+
+def test_laya_checks_ollama_relevance_and_later_stages_stay_local(tmp_path, monkeypatch):
+    """With --decision-test-laya the Ollama path uses Laya only for relevance."""
+    cfg, _, clients, requests, _ = configure(tmp_path, monkeypatch)
+    assert run_decision_test(cfg, secrets(), topics(), prompt_config(), 1, tmp_path, Path("laya.json"),
+                             laya=LAYA, irrelevant_topics=[ADS]) == 0
+    laya = [json.loads(request.content) for kind, request in requests
+            if kind is LayaClient and request.url.path == "/v1/systemone"]
+    native = [json.loads(request.content) for kind, request in requests
+              if kind is OllamaClient and request.url.path == "/api/chat"]
+    native_stages = [data["messages"][0]["content"].split("\n")[0].removeprefix("quality:") for data in native]
+    assert len(laya) == 1 and laya[0]["model"] == LAYA_MODEL
+    # One choice built from topics.yaml, asked in several option orders.
+    assert set(laya[0]["questions"]) == {"order_0", "order_1", "order_2"}
+    assert laya[0]["questions"]["order_0"]["criteria"] == {
+        "A": "Abrechnung: Synthetic",
+        "B": "None of these topics: advertising, newsletters, notifications or anything else."}
+    assert list(laya[0]["questions"]["order_1"]["criteria"].values())[0].startswith("None of these")
+    assert "relevance" not in native_stages and {"summary", "action_router"} <= set(native_stages)
+    assert all(data["model"] == LOCAL.model for data in native)
+    report = json.loads((tmp_path / "laya.json").read_text(encoding="utf-8"))
+    assert report["ollama_relevance"] == {"engine": "laya", "base_url": "http://laya.example.test:11434",
+                                          "model": LAYA_MODEL}
+    assert report["laya_prompts"]["model"] == LAYA_MODEL
+    assert report["laya_irrelevant_topics"] == [ADS.model_dump()]
+    relevance = report["mails"][0]["paths"]["ollama"]["stages"]["relevance"]
+    assert relevance["result"] == {"decision": "relevant", "topic_ids": ["billing"],
+                                   "reason": 'Laya: P(Thema)=0.98; {"billing": 0.98}'}
+    assert any(e["event"] == "http_response" for e in relevance["events"])
+    # Ollama and Laya models were checked before any mail was read.
+    assert len([1 for kind, request in requests if kind in (OllamaClient, LayaClient)
+                and request.url.path == "/api/tags"]) == 2
+    assert all(client.client.is_closed for client in clients)
+
+
+def test_laya_model_can_be_overridden_and_without_laya_nothing_changes(tmp_path, monkeypatch):
+    cfg, _, _, requests, _ = configure(tmp_path, monkeypatch, installed=(LOCAL.model, "laya:latest"))
+    with pytest.raises(ValueError, match="ollama pull laya:322m"):
+        run_decision_test(cfg, secrets(), topics(), prompt_config(), 1, tmp_path, Path("a.json"), laya=LAYA)
+    requests.clear()
+    assert run_decision_test(cfg, secrets(), topics(), prompt_config(), 1, tmp_path, Path("b.json"),
+                             laya=LAYA, laya_model="laya:latest") == 0
+    assert [json.loads(request.content)["model"] for kind, request in requests
+            if kind is LayaClient and request.url.path == "/v1/systemone"] == ["laya:latest"]
+    assert json.loads((tmp_path / "b.json").read_text(encoding="utf-8"))["ollama_relevance"]["model"] == "laya:latest"
+    assert run_decision_test(cfg, secrets(), topics(), prompt_config(), 1, tmp_path, Path("c.json")) == 0
+    report = json.loads((tmp_path / "c.json").read_text(encoding="utf-8"))
+    assert report["ollama_relevance"] is None and report["laya_prompts"] is None
+    assert report["laya_irrelevant_topics"] is None
+
+
+def test_missing_local_model_stops_before_any_mail_is_read(tmp_path, monkeypatch):
+    cfg, reader, clients, requests, _ = configure(tmp_path, monkeypatch, installed=(LOCAL.model,))
+    with pytest.raises(ValueError, match="ollama pull laya"):
+        run_decision_test(cfg, secrets(), topics(), prompt_config(), 1, tmp_path, Path("missing.json"),
+                          laya=LAYA)
+    assert not reader.fetched and not reader.discovery
+    assert all(client.client.is_closed for client in clients) and reader.closed
+    assert json.loads((tmp_path / "missing.json").read_text(encoding="utf-8"))["complete"] is False
+
+
+def test_relevance_only_compares_just_the_relevance_decision(tmp_path, monkeypatch):
+    cfg, _, _, requests, _ = configure(tmp_path, monkeypatch)
+    assert run_decision_test(cfg, secrets(), topics(), prompt_config(), 2, tmp_path, Path("rel.json"),
+                             laya=LAYA, relevance_only=True) == 0
+    report = json.loads((tmp_path / "rel.json").read_text(encoding="utf-8"))
+    assert report["pipeline_policy"] == "relevance_only" and report["complete"]
+    for record in report["mails"]:
+        for path in record["paths"].values():
+            assert path["stages"]["relevance"]["status"] == "completed"
+            assert path["would_process_in_normal_mode"]
+            for stage in ("summary", "action_router", "task_extraction", "event_extraction"):
+                assert path["stages"][stage] == {"status": "skipped", "reason": "relevance_only"}
+    assert not [1 for kind, request in requests if kind is OllamaClient and request.url.path == "/api/chat"]
+    cloud = [json.loads(request.content) for kind, request in requests if kind is OpenRouterClient]
+    assert all(data["messages"][0]["content"].removeprefix("quality:") == "relevance" for data in cloud)
+    assert run_decision_test(cfg, secrets(), topics(), prompt_config(), 1, tmp_path, Path("full.json")) == 0
+    assert json.loads((tmp_path / "full.json").read_text(encoding="utf-8"))["pipeline_policy"] == "relevant_only"
+
+
+@pytest.mark.parametrize("arguments,laya,model", [
+    (["--decision-test-laya", "192.168.249.165:11434"], ("192.168.249.165", 11434), None),
+    (["--decision-test-laya", "mac.local:11434", "--decision-test-laya-model", "laya:latest"],
+     ("mac.local", 11434), "laya:latest"),
+    ([], None, None),
+])
+def test_cli_passes_laya_and_relevance_only(monkeypatch, arguments, laya, model):
+    monkeypatch.setattr(cli, "load_all", lambda directory: (settings(), secrets(), topics(), [], prompt_config(), "f"))
+    captured = []
+    monkeypatch.setattr(cli, "run_decision_test", lambda *args, **kwargs: captured.append(kwargs) or 0)
+    monkeypatch.setattr(sys, "argv", ["mailhelp", "--decision-test", "3", "--ollama", "localhost:11434",
+                                      "--ollama-model", "m", "--decision-test-relevance-only", *arguments])
+    assert cli.main() == 0
+    assert (captured[0]["laya"], captured[0]["laya_model"], captured[0]["relevance_only"]) == (laya, model, True)
+
+
+@pytest.mark.parametrize("extra,message", [
+    (["--decision-test-relevance-only"], "nur zusammen mit --decision-test"),
+    (["--decision-test-laya", "mac.local:11434"], "nur zusammen mit --decision-test"),
+    (["--decision-test", "1", "--ollama", "localhost:11434", "--decision-test-laya-model", "laya"],
+     "nur zusammen mit --decision-test-laya"),
+])
+def test_cli_rejects_laya_options_without_their_mode(monkeypatch, capsys, extra, message):
+    monkeypatch.setattr(cli, "load_all", lambda *args: pytest.fail("must reject before load"))
+    monkeypatch.setattr(sys, "argv", ["mailhelp", *extra])
+    with pytest.raises(SystemExit):
+        cli.main()
+    assert message in capsys.readouterr().err
+
+
+def test_intermediate_reports_are_throttled_but_the_final_state_is_always_written(tmp_path, monkeypatch):
+    """Regression: rewriting the full report after every stage grew quadratically."""
+    now = [0.0]
+    writes = []
+    monkeypatch.setattr("mailhelp.decision_test.write_report", lambda path, report: writes.append(now[0]))
+    mode = DecisionTestMode(None, None, None, settings(), [], {"mails": []}, tmp_path / "r.json",
+                            SimpleNamespace(secrets=[]), save_interval=60, clock=lambda: now[0])
+    for moment, force in ((0.0, False), (59.9, False), (60.0, False), (60.5, True)):
+        now[0] = moment
+        mode._save(force=force)
+    assert writes == [0.0, 60.0, 60.5]
