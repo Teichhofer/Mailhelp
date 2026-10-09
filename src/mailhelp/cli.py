@@ -157,7 +157,7 @@ def _main() -> int:
     )
     parser.add_argument(
         "--decision-test", type=_positive_int, metavar="ANZAHL",
-        help="ANZAHL Mails über LLM und Jev vergleichen; Rohdaten explizit speichern",
+        help="ANZAHL Mails über Standardpfad und Ollama vergleichen; nur relevante Mails weiter analysieren",
     )
     parser.add_argument(
         "--decision-test-file", type=Path, metavar="DATEI",
@@ -168,19 +168,15 @@ def _main() -> int:
         parser.error("--decision-test-file ist nur zusammen mit --decision-test zulässig")
     if args.decision_test is not None and any((
         args.check, args.check_access, args.show_imap_credentials, args.max_mails is not None,
-        args.learn is not None, args.clear, args.yes, args.ollama is not None,
-        args.ollama_model is not None, args.log_directory is not None,
+        args.learn is not None, args.clear, args.yes, args.log_directory is not None,
     )):
-        parser.error("--decision-test ist nicht mit anderen Modi, --max-mails, --ollama oder --log-directory kombinierbar")
+        parser.error("--decision-test ist nicht mit anderen Modi, --max-mails oder --log-directory kombinierbar")
+    if args.decision_test is not None and args.ollama is None:
+        parser.error("--decision-test benötigt --ollama HOST:PORT")
     shutdown = _SignalShutdown()
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
     settings, secrets, topics, irrelevant_topics, prompts, fingerprint = load_all(args.config_directory)
-    if args.decision_test is not None:
-        return run_decision_test(
-            settings, secrets, topics, prompts, args.decision_test, args.config_directory,
-            args.decision_test_file, ignore_historical_start=args.ignore_historical_start,
-        )
     if args.yes and not args.clear:
         parser.error("--yes ist nur zusammen mit --clear zulässig")
     if args.show_imap_credentials and not args.check_access:
@@ -194,6 +190,12 @@ def _main() -> int:
             parser.error("--ollama benötigt ein Modell: --ollama-model NAME oder ollama.model in prompts.yaml")
         local_llm = LocalLlm(*args.ollama, model=model,
                              num_ctx=prompts.ollama.num_ctx if prompts.ollama else LOCAL_NUM_CTX)
+    if args.decision_test is not None:
+        return run_decision_test(
+            settings, secrets, topics, prompts, args.decision_test, args.config_directory,
+            args.decision_test_file, local_llm=local_llm,
+            ignore_historical_start=args.ignore_historical_start,
+        )
     if args.clear:
         if not args.yes:
             answer = input(

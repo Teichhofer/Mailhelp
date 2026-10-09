@@ -1,4 +1,5 @@
-# Optionaler isolierter Vergleich: mailhelp --decision-test 20
+# Optionaler Vergleich: mailhelp --decision-test 20 --ollama localhost:11434
+# Standard (Jev-Relevanz + LLM-Rückfall) gegen Ollama; nur relevante Mails weiter.
 # Standardrelevanz: Jev aus decisions_prompts.yaml; nur unclear nutzt prompts.yaml.
 # Fehlt die Jev-Datei, gilt die mitgelieferte Vorlage; --check validiert sie.
 # Alle weiteren Stufen bleiben auf dem bisherigen LLM aus prompts.yaml.

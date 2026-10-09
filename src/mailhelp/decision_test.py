@@ -8,6 +8,8 @@ import json
 import time
 from contextlib import ExitStack
 from datetime import datetime, timezone
+from dataclasses import asdict
+from threading import Lock
 from pathlib import Path
 from typing import Any
 from uuid import uuid4
@@ -17,12 +19,14 @@ import httpx
 from .adapter import RetryPolicy
 from .analysis import Analyzer
 from .config import PromptConfig, Secrets, Settings, Topic
-from .decisions import DecisionAnalyzer, DecisionClient, load_decision_prompts
+from .decisions import (DecisionAnalyzer, DecisionClient, JevRelevanceAnalyzer,
+                        load_relevance_prompts)
 from .evaluation import write_report
 from .imap import FolderNotReadable, ImapReader
 from .logging import NullLogger, redact
 from .mime import prepare
 from .openrouter import OpenRouterClient
+from .ollama import LocalLlm, OllamaClient
 from .paths import runtime_path
 
 
@@ -66,11 +70,11 @@ def _raw_mail(raw: bytes, secrets: tuple[str, ...]) -> str:
 
 
 class DecisionTestMode:
-    def __init__(self, imap: ImapReader, analyzer: Analyzer, decisions: DecisionAnalyzer,
+    def __init__(self, imap: ImapReader, standard: Analyzer, ollama: Analyzer,
                  settings: Settings, topics: list[Topic], report: dict[str, Any],
                  output: Path, recorder: ComparisonRecorder,
                  *, ignore_historical_start: bool = False):
-        self.imap, self.analyzer, self.decisions = imap, analyzer, decisions
+        self.imap, self.standard, self.ollama = imap, standard, ollama
         self.settings, self.topics = settings, topics
         self.report, self.output, self.recorder = report, output, recorder
         self.ignore_historical_start = ignore_historical_start
@@ -97,22 +101,29 @@ class DecisionTestMode:
     def _pipeline(self, record: dict, name: str, mail: dict[str, Any], classifier) -> None:
         result = {"status": "running", "stages": {}}
         record["paths"][name] = result
-        # Like the existing stage evaluator, compare both decisions for every
-        # mail, even when relevance says irrelevant. This exposes hidden misses.
         relevance = self._stage(result, "relevance", lambda: classifier.relevance(mail, self.topics))
-        route = self._stage(result, "action_router", lambda: classifier.action_route(mail))
-        self._stage(result, "summary", lambda: self.analyzer.summary(mail))
-        for stage, count, extract in (
-            ("task_extraction", None if route is None else route.task_count, self.analyzer.extract_tasks),
-            ("event_extraction", None if route is None else route.event_count, self.analyzer.extract_events),
-        ):
-            if count is None:
-                result["stages"][stage] = {"status": "skipped", "reason": "routing_failed"}
-            elif count == 0:
-                result["stages"][stage] = {"status": "skipped", "reason": "no_candidates"}
-            else:
-                self._stage(result, stage, lambda: extract(mail, expected_count=count))
         result["would_process_in_normal_mode"] = relevance is not None and relevance.decision == "relevant"
+        if not result["would_process_in_normal_mode"]:
+            reason = "relevance_failed" if relevance is None else "relevance_" + relevance.decision
+            for stage in ("summary", "action_router", "task_extraction", "event_extraction"):
+                result["stages"][stage] = {"status": "skipped", "reason": reason}
+        else:
+            summary = self._stage(result, "summary", lambda: classifier.summary(mail))
+            if summary is None:
+                result["stages"]["action_router"] = {"status": "skipped", "reason": "summary_failed"}
+                route = None
+            else:
+                route = self._stage(result, "action_router", lambda: classifier.action_route(mail))
+            for stage, count, extract in (
+                ("task_extraction", None if route is None else route.task_count, classifier.extract_tasks),
+                ("event_extraction", None if route is None else route.event_count, classifier.extract_events),
+            ):
+                if count is None:
+                    result["stages"][stage] = {"status": "skipped", "reason": "summary_failed" if summary is None else "routing_failed"}
+                elif count == 0:
+                    result["stages"][stage] = {"status": "skipped", "reason": "no_candidates"}
+                else:
+                    self._stage(result, stage, lambda: extract(mail, expected_count=count))
         result["status"] = ("failed" if any(stage["status"] == "failed"
                                              for stage in result["stages"].values()) else "completed")
         self._save()
@@ -161,8 +172,8 @@ class DecisionTestMode:
                     self._save()
                     continue
                 record["prepared_mail"] = mail
-                self._pipeline(record, "llm", mail, self.analyzer)
-                self._pipeline(record, "decision", mail, self.decisions)
+                self._pipeline(record, "standard", mail, self.standard)
+                self._pipeline(record, "ollama", mail, self.ollama)
                 record["status"] = ("failed" if any(path["status"] == "failed"
                                                        for path in record["paths"].values()) else "completed")
                 self._save()
@@ -181,9 +192,10 @@ class DecisionTestMode:
 
 def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
                       prompts: PromptConfig, count: int, directory: Path,
-                      output: Path | None = None, *, ignore_historical_start: bool = False) -> int:
+                      output: Path | None = None, *, local_llm: LocalLlm,
+                      ignore_historical_start: bool = False) -> int:
     """Construct only read adapters; production stores and write services do not exist here."""
-    decision_prompts = load_decision_prompts(directory / "decisions_prompts.yaml")
+    decision_prompts = load_relevance_prompts(directory)
     if output is None:
         output = runtime_path(settings.data_directory, directory) / "decision-tests" / f"decision-test-{uuid4()}.json"
     else:
@@ -206,7 +218,9 @@ def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
         secrets.todoist_token, secrets.todoist_client_id, secrets.todoist_client_secret,
         secrets.google_oauth_client_id, secrets.google_oauth_client_secret, secrets.google_oauth_refresh_token))
     recorder = ComparisonRecorder(log_path, known_secrets)
-    report = {"schema_version": 1, "mode": "decision_test", "run_id": str(uuid4()),
+    report = {"schema_version": 2, "mode": "decision_test",
+              "comparison": "standard_vs_ollama", "pipeline_policy": "relevant_only",
+              "ollama": asdict(local_llm), "run_id": str(uuid4()),
               "started_at": datetime.now(timezone.utc).isoformat(), "complete": False,
               "requested_mail_count": count, "selection": "global_newest_first_unique_raw_mail",
               "historical_start": (None if ignore_historical_start or settings.imap.historical_start is None
@@ -236,19 +250,31 @@ def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
             def save_calls(values):
                 calls[:] = values
             clients = []
+            shared_lock = Lock()
             for client_type in (OpenRouterClient, DecisionClient):
                 client = client_type(secrets.openrouter_api_key.get_secret_value(), cfg.timeout_seconds,
                                      cfg.retries, settings.limits.llm_calls_per_minute,
                                      initial_backoff=cfg.initial_backoff_seconds, max_backoff=cfg.max_backoff_seconds,
                                      load_calls=lambda: calls, save_calls=save_calls, logger=recorder)
                 stack.callback(client.close)
+                client._state_lock = shared_lock
                 client.client.event_hooks["response"].append(recorder.http_response)
                 clients.append(client)
-            analyzer = Analyzer(clients[0], prompts, provider_retries=settings.retries.provider_retry,
-                                json_repair_retries=settings.retries.json_repair,
-                                schema_repair_retries=settings.retries.schema_repair)
-            decisions = DecisionAnalyzer(clients[1], decision_prompts, settings.limits.max_llm_payload_bytes)
-            return DecisionTestMode(reader, analyzer, decisions, settings, topics, report, output,
+            cfg = settings.timeouts.ollama
+            local_client = OllamaClient(local_llm, cfg.timeout_seconds, cfg.retries,
+                                       settings.limits.llm_calls_per_minute,
+                                       initial_backoff=cfg.initial_backoff_seconds,
+                                       max_backoff=cfg.max_backoff_seconds, logger=recorder)
+            stack.callback(local_client.close)
+            local_client.client.event_hooks["response"].append(recorder.http_response)
+            options = dict(provider_retries=settings.retries.provider_retry,
+                           json_repair_retries=settings.retries.json_repair,
+                           schema_repair_retries=settings.retries.schema_repair)
+            standard = JevRelevanceAnalyzer(
+                clients[0], prompts, decisions=DecisionAnalyzer(
+                    clients[1], decision_prompts, settings.limits.max_llm_payload_bytes), **options)
+            ollama = Analyzer(local_client, prompts, **options)
+            return DecisionTestMode(reader, standard, ollama, settings, topics, report, output,
                                     recorder, ignore_historical_start=ignore_historical_start).run(count)
     except BaseException as exc:
         report["error_type"] = type(exc).__name__

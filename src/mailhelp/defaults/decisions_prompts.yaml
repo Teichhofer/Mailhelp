@@ -1,5 +1,6 @@
 # Standard: Jev-Relevanz, nur bei unclear LLM-Rückfall aus prompts.yaml.
-# --decision-test nutzt zusätzlich das experimentelle Jev-Aktionsrouting.
+# --decision-test vergleicht diesen Standardpfad gegen Ollama.
+# Jevs action_router bleibt als experimentelle Vorlage gespeichert, aber ungenutzt.
 # Modell und Vorlagen werden mit dem Vergleichsbericht gespeichert.
 model: typesafe/jev-1.13
 # Mindestwahrscheinlichkeit der gewählten match/no_match-Antwort.

@@ -674,8 +674,8 @@ Telegram-Auswertung und Kalender-Duplikatprüfung – verwenden weiterhin unver�
 `prompts.yaml`. Jevs Aktionsrouter wird im Standardablauf nicht aufgerufen.
 Bestätigungen und externe Schreibzugriffe bleiben unverändert versionsbezogen.
 Der experimentelle lokale `--ollama`-Modus bleibt vollständig lokal. `--learn`,
-`--check-access` und der isolierte `--decision-test` behalten ihre bisherigen Pfade.
-Der Vergleichstest prüft weiterhin beide Modelle separat, ohne Standard-Rückfall.
+`--check-access` behält seinen bisherigen Pfad. Der isolierte `--decision-test`
+vergleicht den Standard einschließlich Rückfall gegen Ollama, ohne Schreibdienste.
 
 `decisions_prompts.yaml` im Konfigurationsverzeichnis enthält Jevs Modell,
 Relevanzfragen, Schwelle und Themenpräzisierungen. Fehlt die Datei, wird die
@@ -698,95 +698,118 @@ nicht erneut analysiert. Für noch nicht abgeschlossene Mailzustände mit altem
 Fingerprint bleibt der vorhandene Schutz bei Konfigurationsänderung aktiv: Sie
 werden zurückgehalten und nicht stillschweigend auf die neue Analyse migriert.
 
-### Decision-Vergleich mit Jev
 
-Der separate Einmallauf `mailhelp --decision-test 20` vergleicht bis zu 20 Mails mit
-zwei Analysepfaden. Der Aufruf aktiviert ausdrücklich reale IMAP-/OpenRouter-Aufrufe
-und die Speicherung vollständiger Mail- und Modellinhalte.
+Jevs `topic_guidance` präzisiert ausschließlich dessen Themenfragen: persönliche
+Einladungen und Zeremonien, Hochschulbeiräte sowie die Abgrenzung von Landfrauen
+gegenüber anderen landwirtschaftlichen Verbänden. Die gemeinsame `topics.yaml`
+bleibt maßgeblich; explizite Ausschlüsse haben Vorrang. Mehrere Themen dürfen
+unabhängig passen. Jev fragt pro Thema `match`, `no_match` oder `unclear`.
+Die unveränderte Schwelle `topic_threshold: 0.5` gilt für die Wahrscheinlichkeit
+der gewählten eindeutigen Themenantwort; darunter oder bei unklaren Themen wird
+die Gesamtentscheidung unklar. Auch Widersprüche zwischen Gesamtentscheidung und
+sicheren Themen erzeugen `unclear`. Bestätigte Themen bleiben dabei sichtbar.
+Im Standard und im Standardpfad des Vergleichs löst dieses Ergebnis die bisherige
+LLM-Relevanzprüfung aus. Alte binäre Jev-Themenvorlagen werden mit einem
+Konfigurationsfehler abgelehnt und müssen auf die drei Auswahlkriterien migriert werden.
+
+### Decision-Vergleich: Standard gegen Ollama
+
+Der separate Einmallauf vergleicht bis zu N Mails zwischen dem aktuellen Standard
+und einem angegebenen Ollama-Server. Die Relevanz wird in beiden Pfaden geprüft;
+ausschließlich die im jeweiligen Pfad relevanten Mails werden weiter analysiert.
+N bezeichnet die Anzahl ausgewählter Mails, nicht die Anzahl relevanter Mails.
+Der Aufruf aktiviert reale IMAP-, OpenRouter- und Ollama-Anfragen sowie ausdrücklich
+die Speicherung vollständiger Mail- und Modellinhalte.
 
 ```powershell
-mailhelp --decision-test 20
-mailhelp --decision-test 20 --decision-test-file data/decision-tests/vergleich.json
-mailhelp --decision-test 20 --ignore-historical-start
+mailhelp --decision-test 20 --ollama localhost:11434
+mailhelp --decision-test 40 --ollama localhost:11434 --decision-test-file data/decision-tests/standard-vs-ollama.json
+mailhelp --decision-test 20 --ollama 192.168.1.20:11434 --ollama-model qwen2.5:7b-instruct --ignore-historical-start
 ```
 
-Auch dieser Modus liest `decisions_prompts.yaml` im Konfigurationsverzeichnis. Die
-Vorlage verwendet `typesafe/jev-1.13` über `POST https://openrouter.ai/api/alpha/decisions`.
-Bei einer Paketinstallation die mitgelieferte Vorlage aus `mailhelp/defaults` in
-das Konfigurationsverzeichnis kopieren. Modell, Fragen, Auswahlkriterien und
-`topic_threshold` stehen dort; Themen stammen weiterhin aus `topics.yaml`. Jev
-ersetzt `relevance` und `action_router`. Zusammenfassung und gegebenenfalls
-Aufgaben-/Terminextraktion laufen in beiden Pfaden separat mit `prompts.yaml`.
-Die Jev-Begründung ist ein gekennzeichneter Vorlagentext, keine Modell-Erklärung.
+`--ollama HOST:PORT` ist für diesen Modus erforderlich. Das Modell kommt aus
+`prompts.yaml` unter `ollama.model`; `--ollama-model NAME` überschreibt es für den
+Test. `ollama.num_ctx` gilt wie im lokalen Modus. Fehlende Adresse oder fehlendes
+Modell werden vor dem Teststart abgelehnt.
 
-Jev-spezifische `topic_guidance` in `decisions_prompts.yaml` präzisieren aktivierte
-Themen nach ihrer ID. Die Vorlage ergänzt persönliche Einladungen und Zeremonien,
-Hochschulbeiräte und Abgrenzungen des Landfrauenvereins gegenüber anderen Verbänden.
-Die gemeinsamen Themen werden nicht verändert; ihre expliziten Ausschlüsse haben
-Vorrang. Unbekannte oder deaktivierte IDs aktivieren keine zusätzlichen Themen.
-Gesamtfrage und einzelne Themenfragen erhalten dieselben Präzisierungen. Jede
-Themenfrage enthält ihre vollständige Definition und erlaubt unabhängige Mehrfachzuordnung.
+Die zwei Berichtspfade sind:
 
-Die Themenfrage ist jetzt `choice` mit `match`, `no_match` und `unclear`.
-`topic_threshold` bleibt standardmäßig 0,5 und bezeichnet die Mindestwahrscheinlichkeit
-der gewählten `match`-/`no_match`-Antwort, keine kalibrierte Genauigkeit. Werte darunter
-sowie `unclear` machen die Gesamtentscheidung unklar, auch wenn andere Themen sicher
-passen. Sichere Treffer bleiben in `topic_ids` sichtbar; unsichere Themen stehen in
-der gekennzeichneten Vorlagenbegründung und in den Rohantworten des Testberichts.
-Eine irrelevante Gesamtantwort mit sicheren Treffern oder eine relevante Antwort
-ohne sichere Treffer ergibt ebenfalls `unclear`; positive Themen werden nicht mehr
-stillschweigend verworfen. Es gibt keine zusätzliche automatische DeepSeek-Anfrage.
-Der Vergleichstest dokumentiert die Unsicherheit und führt wie bisher alle Stufen aus.
-Bestehende binäre Jev-Themenvorlagen müssen auf die drei Auswahlkriterien migriert
-werden; sie werden sonst beim Laden mit einem Konfigurationsfehler zurückgewiesen.
-Die gemeinsamen `prompts.yaml` und `topics.yaml` bleiben unverändert; normales
-Aktionsrouting nutzt weiterhin das bisherige LLM.
-Eine tatsächliche Qualitätsverbesserung muss mit neuen Vergleichsmails geprüft werden.
+- `standard`: Jev-Relevanz aus `decisions_prompts.yaml`, nur bei `unclear` die
+  bisherige LLM-Relevanz aus `prompts.yaml`. Das Ergebnis der Rückfallprüfung ist
+  maßgeblich. Alle weiteren Analysestufen laufen über das bisherige Standard-LLM.
+  Eine fehlende Jev-Datei verwendet wie im Standard die mitgelieferte Vorlage;
+  eine vorhandene fehlerhafte Datei wird nicht ersetzt. Jevs Aktionsrouter bleibt ungenutzt.
+- `ollama`: Relevanz, Zusammenfassung, Aktionsrouting und Aufgaben-/Terminextraktion
+  laufen vollständig über den angegebenen lokalen Server und das gewählte Modell.
+  Dieser Pfad verwendet die bisherigen Vorlagen und Schemas aus `prompts.yaml`;
+  er ruft weder Jev noch das Standard-LLM auf. OpenRouter-Zugangsdaten werden nicht
+  an Ollama gesendet.
+
+Bei `relevant` folgen Zusammenfassung, Aktionsrouting und Extraktion entsprechend
+der Kandidatenzahlen. Bei `irrelevant` oder weiterhin `unclear` werden alle vier
+Folgestufen mit einem ausdrücklichen Grund als `skipped` dokumentiert. Im Test wird
+kein Telegram-Relevanzdialog geöffnet. Auch nach einem Fehler der Relevanz werden
+keine Folgestufen gestartet. Ein Zusammenfassungsfehler stoppt Routing und Extraktion;
+ein Routingfehler stoppt beide Extraktionen. Fehler eines Pfads verhindern nicht
+die Auswertung des anderen. Unterschiedliche Relevanzentscheidungen führen somit
+bewusst zu unterschiedlichen Mengen nachgelagerter Modellanfragen.
+
+`would_process_in_normal_mode` nennt je Pfad, ob dessen endgültige Entscheidung
+`relevant` ist. Die Standard-Relevanzereignisse enthalten gegebenenfalls Jev und
+LLM-Rückfall samt verknüpften Aufruf-IDs. Es gibt keine automatische Qualitätsbewertung.
+Normale Verarbeitung, Lernmodus und der eigenständige lokale Ollama-Modus bleiben
+von dieser Teständerung unberührt.
 
 Die Auswahl erfolgt ordnerübergreifend nach neuestem IMAP-Empfangszeitpunkt;
 höhere UID und konfigurierte Ordnerreihenfolge entscheiden Gleichstände.
-`imap.historical_start` gilt, bis `--ignore-historical-start` gesetzt wird.
-Identische Rohmails in mehreren Ordnern werden einmal verglichen. Je Ordner wird
-ein auf die gewünschte Anzahl begrenztes Metadatenfenster untersucht. Duplikate,
-nicht lesbare Ordner und kleine Postfächer können die erreichte Anzahl reduzieren.
-Bestehende Checkpoints und der Absenderfilter werden nicht verwendet.
+`imap.historical_start` gilt bis `--ignore-historical-start`. Identische Rohmails in
+mehreren Ordnern werden einmal verglichen. Je Ordner wird ein auf N begrenztes
+Metadatenfenster untersucht. Duplikate, nicht lesbare Ordner oder kleine Postfächer
+können die erreichte Anzahl reduzieren. Wie bisher werden keine Produktions-
+checkpoints oder Absenderfilter verwendet; verglichen werden die Analysepfade
+auf identischen ausgewählten Eingaben, nicht Kalender-/Todoist-Aktionen.
 
-Für den Stufenvergleich werden Relevanz, Aktionsrouting und Zusammenfassung auch
-bei irrelevanten oder unklaren Mails geprüft. Extraktion folgt den Kandidatenzahlen
-des jeweiligen Pfads; bei einem Routingfehler wird sie als übersprungen dokumentiert.
-`would_process_in_normal_mode` zeigt, ob die Relevanzentscheidung die Mail im normalen
-Ablauf weiterführen würde. Eine automatische Qualitätsbewertung findet nicht statt.
+Standardausgabe: `<data_directory>/decision-tests/decision-test-<UUID>.json` plus
+`<Testdatei>.jsonl`. Relative `--decision-test-file`-Pfade gelten relativ zu
+`--config-directory`. Das neue Berichtsschema ist **Version 2**, mit
+`comparison: standard_vs_ollama`, `pipeline_policy: relevant_only`, den Pfaden
+`standard`/`ollama`, der lokalen Adresse, Modell und Kontextfenster. Alte Berichte
+mit `llm`/`decision` bleiben erhalten, sind aber wegen anderer Pfade und der früheren
+Verarbeitung aller Mails nicht unmittelbar mit neuen Gesamtkosten vergleichbar.
 
-Standardausgabe: `<data_directory>/decision-tests/decision-test-<UUID>.json`. Ein
-relativer `--decision-test-file`-Pfad gilt relativ zu `--config-directory`. Die Datei
-enthält Vorlagen, Themen, Mailidentität, Empfangszeit, SHA-256 der ursprünglichen Mail,
+Gespeichert werden Vorlagen, Themen, Mailidentität, Empfangszeit, Original-SHA-256,
 geheimnisbereinigte RFC822-Rohdaten als Base64, aufbereitete Eingaben, validierte
-Ergebnisse sowie Request-/Response-Ereignisse einschließlich Wahrscheinlichkeiten,
-Nutzungs-/Kostenangaben und Fehlerstatus. Zugangsdaten werden vor der Base64-Codierung
-entfernt; die Rohmail kann deshalb vom Original abweichen. HTTP-Header werden nicht
-aufgezeichnet. Daneben liegt das separate Ereignislog `<Testdatei>.jsonl`. Die normalen
-Log-Schalter begrenzen diese explizite Testausgabe nicht; die Dateien werden bei Bedarf
-manuell archiviert oder gelöscht.
+Ergebnisse und Request-/Response-Ereignisse einschließlich Nutzung und Fehlerstatus.
+Zugangsdaten werden vor der Base64-Codierung entfernt; die Rohmail kann deshalb vom
+Original abweichen. HTTP-Header werden nicht aufgezeichnet. Die normalen Log-Schalter
+begrenzen die ausdrücklich aktivierte Testausgabe nicht.
+
+Ollama-Antworten enthalten üblicherweise keine API-Kosten. Fehlende Kosten dürfen
+bei der späteren Auswertung nicht mit nachgewiesenen Gesamtkosten von null verwechselt
+werden; lokale Hardware-, Strom- und Betriebsaufwendungen sind nicht gemessen.
+Cloud-Aufrufe teilen sich ein isoliertes gemeinsames Budget und eine Sperre.
+Ollama hat sein eigenes isoliertes Budget sowie `timeouts.ollama`; der Standard nutzt
+`timeouts.openrouter`. Keine normalen Budgets oder Zustandsdateien werden verändert.
 
 Der Bericht wird nach jeder Stufe atomar aktualisiert und bleibt bei Abbruch lesbar
-(`complete: false`). Vorhandene Ausgabedateien werden vor Netzwerkzugriff abgelehnt.
-Ein Neustart verwendet eine neue Datei und setzt den alten Vergleich nicht fort.
-Ausgabepfade innerhalb der normalen Test-/Produktivzustände sind gesperrt, auch
-bei Verzeichnisumleitungen.
-Exitcode 0 bedeutet, dass alle angeforderten Mails ohne technische Fehler verglichen
-wurden; 1 kennzeichnet Fehler oder eine kleinere Mailanzahl; Ctrl+C ergibt 130.
-Unterschiedliche Modellentscheidungen sind kein Lauferror.
+(`complete: false`). Vorhandene Dateien werden vor Netzwerkzugriff abgelehnt;
+Ausgaben in normalen Test-/Produktivzuständen sind gesperrt, auch bei
+Verzeichnisumleitungen. Ein Neustart verwendet eine neue Datei und setzt alte
+Vergleiche nicht fort. Exitcode 0 bedeutet vollständigen Vergleich ohne technische
+Fehler; 1 kennzeichnet Fehler, Ordnerfehler oder eine kleinere Mailanzahl; Ctrl+C
+ergibt 130. Abweichungen und unklare Entscheidungen sind keine technischen Fehler.
 
-Der Modus konstruiert ausschließlich IMAP- und Modelladapter. Normale Zustände,
-Telegram, Todoist und Kalender werden nicht angesteuert. Der Standard nutzt die
-Promptdatei für Relevanz; Lern- und lokale Modi bleiben unabhängig. Kombinierbar sind `--config-directory`, `--decision-test-file`
-und `--ignore-historical-start`; andere Modi, `--max-mails`, `--ollama` und
-`--log-directory` werden abgelehnt.
+Der Modus konstruiert nur IMAP- und Modelladapter. Telegram, Todoist und Kalender
+werden nicht angesteuert. Kombinierbar sind `--config-directory`, `--decision-test-file`,
+`--ignore-historical-start`, `--ollama` und `--ollama-model`. Andere Modi,
+`--max-mails` und `--log-directory` werden abgelehnt.
 
-Für Docker gibt es einen eigenen Aufruf:
+Docker verwendet standardmäßig `host.docker.internal:11434`. Für einen anderen
+Server wird `DECISION_TEST_OLLAMA` gesetzt; das Modell bleibt in `prompts.yaml`.
 
 ```powershell
-$env:DECISION_TEST_MAILS = "20"
+$env:DECISION_TEST_MAILS = "40"
+$env:DECISION_TEST_OLLAMA = "192.168.1.20:11434"
 docker compose -f compose.decision-test.yaml run --rm mailhelp-decision-test
 ```
 

@@ -5,7 +5,8 @@ services:
     restart: "no"
     stop_grace_period: 45s
     env_file: [.env]
-    command: ["--config-directory", "/config", "--decision-test", "${DECISION_TEST_MAILS:-20}"]
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    command: ["--config-directory", "/config", "--decision-test", "${DECISION_TEST_MAILS:-20}", "--ollama", "${DECISION_TEST_OLLAMA:-host.docker.internal:11434}"]
     volumes:
       - ./config.yaml:/config/config.yaml:ro
       - ./prompts.yaml:/config/prompts.yaml:ro
