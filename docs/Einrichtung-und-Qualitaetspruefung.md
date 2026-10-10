@@ -1,5 +1,23 @@
 # Einrichtung und Qualitätsprüfung
 
+<p align="center">
+  <img src="../src/mailhelp/assets/logo.png" alt="Mailhelp" width="200">
+</p>
+
+## Anwendungslogo und Telegram-Profilbild
+
+Das offizielle Logo liegt unter
+[`src/mailhelp/assets/logo.png`](../src/mailhelp/assets/logo.png).
+Die bereitgestellte PNG-Datei bleibt unverändert und wird mit dem Python-Paket
+und Docker-Image ausgeliefert. Auch bei einer installierten Version ist sie als
+Paketressource `mailhelp/assets/logo.png` verfügbar.
+
+Als sichtbares Anwendungsicon dient das Profilbild des Telegram-Bots. Für einen
+neu eingerichteten Bot lässt es sich in BotFather über `/setuserpic` setzen:
+den zugehörigen Mailhelp-Bot auswählen und die Logo-Datei als Bild hochladen.
+Telegram speichert das Profilbild; ein erneuter Upload bei jedem Programmstart
+ist nicht erforderlich. Die Kommandozeilenoberfläche benötigt kein Bildbanner.
+
 ## Aktualisierung einer bestehenden Installation
 
 Nach Übernahme der Änderungen die Installation mit `python -m pip install -e ".[test]"`

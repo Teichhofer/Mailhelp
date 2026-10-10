@@ -1,5 +1,9 @@
 # Mailhelp
 
+<p align="center">
+  <img src="src/mailhelp/assets/logo.png" alt="Mailhelp – vom Posteingang zum Aktionsplan" width="320">
+</p>
+
 Die [ergänzende Betriebsanleitung](docs/Einrichtung-und-Qualitaetspruefung.md)
 beschreibt Google-OAuth-Ersteinrichtung und Wiederautorisierung, Docker-Filter,
 den beschreibbaren Lernmodus sowie den optionalen realen Qualitätsprüflauf.
@@ -13,6 +17,11 @@ Die vollständige Testsuite läuft unter Ubuntu und Windows mit verbindlichen
 Python-Assistent zur LLM-basierten Auswertung von IMAP-Mails über OpenRouter. Telegram zeigt Zusammenfassungen und versionsgebundene Einzelvorschläge; erst eine ausdrückliche Bestätigung erlaubt einen Schreibzugriff auf Todoist oder Google Kalender.
 
 ## Installation (Windows 11 und Linux)
+
+Das Anwendungslogo liegt unter [`src/mailhelp/assets/logo.png`](src/mailhelp/assets/logo.png)
+und wird mit dem Python-Paket und Docker-Image ausgeliefert. Es dient auch als
+Profilbild des Telegram-Bots; Hinweise dazu stehen in der
+[Einrichtungsanleitung](docs/Einrichtung-und-Qualitaetspruefung.md#anwendungslogo-und-telegram-profilbild).
 
 Voraussetzung ist exakt Python **3.12.x**; `.python-version` legt für Versionsmanager 3.12.10 fest und `pyproject.toml` verhindert versehentliche Installation unter einer anderen Minor-Version.
 Direkte und transitive Laufzeit-/Testabhängigkeiten sind in `requirements.lock`
