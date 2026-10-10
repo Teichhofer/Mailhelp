@@ -16,7 +16,7 @@ imap:
   port: 993
   connection_mode: ssl
   # ISO 8601 mit UTC-Offset; zusätzliche Leerzeichen um T werden toleriert.
-  historical_start: '2026-09-15T00:00:00+02:00'
+  historical_start: '2026-10-01T00:00:00+02:00'
   batch_size: 25
   global_newest_first: true
   # Verpflichtende primäre Eingangsquelle. Alle weiteren Einträge unter
