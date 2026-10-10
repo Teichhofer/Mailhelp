@@ -16,15 +16,20 @@ unter dem GitHub-Pages-Projektpfad `/Mailhelp/`.
 
 ## Veröffentlichen
 
-Nach Commit und Push in GitHub unter **Settings → Pages → Build and deployment**
-die Quelle **GitHub Actions** auswählen. Anschließend den Workflow **GitHub Pages**
-unter **Actions → Run workflow** manuell starten. Er veröffentlicht ausschließlich
+Einmalig in GitHub unter **Settings → Pages → Build and deployment** die Quelle
+**GitHub Actions** auswählen. Danach startet der Workflow **GitHub Pages** bei jedem
+Push auf `main` automatisch, unabhängig davon, welche Dateien geändert wurden.
+Lokale Commits lösen erst nach dem Push einen Lauf aus; bei mehreren gemeinsam
+gepushten Commits wird der aktuelle Stand einmal veröffentlicht. Andere Branches
+und Pull Requests lösen keine automatische Veröffentlichung aus. Zusätzlich bleibt
+der manuelle Start unter **Actions → Run workflow** verfügbar. Er veröffentlicht ausschließlich
 `website/`, nicht den Repository-Stamm, Konfigurationen, Logs oder Testberichte.
 Die erwartete Projektadresse ist `https://teichhofer.github.io/Mailhelp/`.
 Die tatsächlich veröffentlichte Adresse steht im Deployment-Ergebnis.
 
 Der Workflow prüft erforderliche Seiten, unvollständige rechtliche Platzhalter,
-unerwartete Dateien und symbolische Links. Er startet nicht automatisch beim Push.
+unerwartete Dateien und symbolische Links. Diese Prüfungen gelten auch für
+automatische Veröffentlichungen.
 
 ## Datenschutz und Pflege
 
