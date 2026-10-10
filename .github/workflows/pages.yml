@@ -1,0 +1,49 @@
+name: GitHub Pages
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check public website contents
+        shell: bash
+        run: |
+          set -euo pipefail
+          for page in index einrichtung konfiguration datenschutz impressum nutzungsbedingungen; do
+            test -s "website/$page.html"
+          done
+          if grep -R -n -E 'RECHTLICHE_ANGABEN_OFFEN|\[[A-Z_]{4,}\]' website --include='*.html'; then
+            echo 'Unfilled legal information prevents publication.' >&2
+            exit 1
+          fi
+          while IFS= read -r -d '' file; do
+            case "$file" in
+              website/index.html|website/einrichtung.html|website/konfiguration.html|website/datenschutz.html|website/impressum.html|website/nutzungsbedingungen.html|website/assets/style.css|website/assets/logo.png|website/.nojekyll) ;;
+              *) echo "Unexpected public file: $file" >&2; exit 1 ;;
+            esac
+          done < <(find website -type f -print0)
+          test -z "$(find website -type l -print -quit)"
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: website
+      - name: Publish website
+        id: deployment
+        uses: actions/deploy-pages@v4

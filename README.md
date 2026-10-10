@@ -1,5 +1,9 @@
 # Mailhelp
 
+Die Projektwebsite mit Einrichtung, Konfiguration, Datenschutz, Impressum und
+Nutzungsbedingungen liegt unter [`website/`](website/). Die
+[GitHub-Pages-Anleitung](docs/GitHub-Pages.md) beschreibt Vorschau und Veröffentlichung.
+
 <p align="center">
   <img src="src/mailhelp/assets/logo.png" alt="Mailhelp – vom Posteingang zum Aktionsplan" width="320">
 </p>
