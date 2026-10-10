@@ -1375,3 +1375,11 @@ bleiben dauerhaft gespeichert und werden nach Neustarts nicht dupliziert.
 `--check-access` prüft jeden konfigurierten IMAP-Ordner und meldet auch Fehler
 von Nebenordnern im Gesamtergebnis mit Exit-Code 1. Erfolgreiche Ordner stehen
 im Diagnoseprotokoll; die übrigen Dienste werden trotzdem geprüft.
+
+## Datenschutz und Nutzungsbedingungen
+
+Für eine betriebene Instanz gelten die [Datenschutzerklärung](DATENSCHUTZ.md) und
+die [Nutzungsbedingungen](NUTZUNGSBEDINGUNGEN.md). Beide sind Vorlagen: Platzhalter
+in eckigen Klammern ersetzen und bei abweichender Konfiguration (Modelle, Anbieter,
+Aufbewahrung, Logging) anpassen. Für die Google-OAuth-Prüfung müssen beide Seiten
+öffentlich erreichbar sein.
