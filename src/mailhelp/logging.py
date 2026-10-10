@@ -8,6 +8,7 @@ import sys
 from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from threading import RLock
 from typing import Any, Protocol, TextIO
 
 LEVELS = {"DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40, "CRITICAL": 50}
@@ -112,6 +113,9 @@ class JsonlLogger:
         telegram_backup_count: int = 5,
         telegram_retention_days: int = 30,
     ):
+        # The Telegram receiver thread logs concurrently with the main thread;
+        # rotation and appends must not interleave.
+        self._lock = RLock()
         self.app = directory / file_name
         self.llm = directory / llm_name
         self.telegram = directory / telegram_name
@@ -197,11 +201,12 @@ class JsonlLogger:
     def _write_file(self, path: Path, record: Mapping[str, Any], format_name: str, policy: tuple[int, int, int]) -> None:
         rendered = self._render(record, format_name)
         encoded_size = len(rendered.encode("utf-8"))
-        path.parent.mkdir(parents=True, exist_ok=True)
-        self._prune(path, policy[2])
-        self._rotate(path, encoded_size, policy[0], policy[1])
-        with path.open("a", encoding="utf-8") as stream:
-            stream.write(rendered)
+        with self._lock:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            self._prune(path, policy[2])
+            self._rotate(path, encoded_size, policy[0], policy[1])
+            with path.open("a", encoding="utf-8") as stream:
+                stream.write(rendered)
 
     def event(self, level: str, module: str, event: str, **context: Any) -> None:
         level = _validate_level(level)
@@ -213,8 +218,9 @@ class JsonlLogger:
         if write_file:
             self._write_file(self.app, record, self.file_format, self.file_policy)
         if write_console:
-            self.console.write(self._render(record, self.console_format))
-            self.console.flush()
+            with self._lock:
+                self.console.write(self._render(record, self.console_format))
+                self.console.flush()
 
     def llm_event(self, event: str, request: Any = None, response: Any = None, **context: Any) -> None:
         level = _validate_level(context.pop("level", "INFO"))

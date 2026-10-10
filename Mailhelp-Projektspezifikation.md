@@ -17,7 +17,8 @@ Prozess meldet den signalbedingten Abbruch mit Exit-Code 130.
 Der optionale CLI-Parameter `--max-mails N` führt genau einen Abrufdurchlauf aus,
 bearbeitet dabei ordnerübergreifend höchstens `N` Mails einschließlich fälliger
 Wiederaufnahmen und beendet danach den Prozess, ohne zuvor oder danach einen
-regulären Telegram-Long-Poll auszuführen. Das verbleibende
+regulären Telegram-Long-Poll auszuführen (Eingaben nimmt währenddessen der
+Empfangs-Thread entgegen, siehe unten). Das verbleibende
 Kontingent ersetzt bei diesem Abruf die reguläre IMAP-Batchgröße, sodass `N` auch
 größer als deren Standardwert 25 sein kann. `N` ist eine positive Ganzzahl; nicht
 ausgeschöpftes Kontingent löst keinen weiteren Abruf aus.
@@ -42,6 +43,8 @@ verbrauchen dieses Verarbeitungskontingent nicht. Ein separates, ebenfalls auf
 `N` begrenztes Kontingent beschränkt ihr Scannen und Melden pro Lauf.
 Ohne `--max-mails` liegt diese separate Obergrenze bei 1.000 blockierten
 Zuständen je Abrufdurchlauf.
+
+Telegram-Eingaben empfängt ein eigener Empfangs-Thread per Long-Poll (`telegram_poll_seconds`), sobald ein Lauf beginnt – auch während der Mailanalyse und bei `--max-mails`. Er quittiert jede Schaltflächenbetätigung sofort mit „Eingegangen – wird bearbeitet …“, sodass Telegram keinen Ladeindikator mehr zeigt, und speichert jedes Update in `telegram-inbox.json`, bevor der nächste `getUpdates`-Aufruf es gegenüber Telegram bestätigt; ein Absturz verliert daher keine Eingabe. Verarbeitet werden Eingaben ausschließlich im Hauptthread: vor jeder Mail, während eine analyseblockierende Relevanzfrage offen ist, und in der Wartezeit zwischen zwei Zyklen sofort bei Eingang. Eine Eingabe wartet damit höchstens auf das Ende der gerade laufenden Mailanalyse. Der Empfangs-Thread verändert keine Mail-, Vorschlags- oder Dialogzustände; bereits quittierte Schaltflächen werden bei der Verarbeitung nicht erneut quittiert. Nach dem Ende eines Laufs gespeicherte Eingaben werden beim nächsten Start verarbeitet. Scheitert die Verarbeitung einer Eingabe, wird sie nach 30 und 60 Sekunden erneut versucht; nachfolgende Eingaben warten so lange, damit die Reihenfolge erhalten bleibt. Nach dem dritten Fehlversuch oder sofort bei einem dauerhaften Fehler wird die Eingabe verworfen und einmalig in Telegram gemeldet; eine unbegrenzte Wiederholung würde ihre Nebenwirkungen, etwa eine erneut gesendete Rückfrage, vor jeder Mail wiederholen. Ein wiederholtes „Manuell prüfen“ für die Vorschlagsversion, deren Änderungsmodus bereits auf eine Antwort wartet, sendet die Rückfrage nicht erneut, sondern meldet „Änderungsmodus läuft bereits“. Das Entfernen bereits entfernter Schaltflächen (Telegram: „message is not modified“) gilt als erfolgreich. Je Bot-Token darf nur ein Prozess `getUpdates` abrufen.
 
 Ein regulärer Zyklus beginnt unmittelbar mit der IMAP-Verarbeitung und führt den
 Telegram-Long-Poll erst anschließend aus. Dadurch verzögert dessen konfigurierter

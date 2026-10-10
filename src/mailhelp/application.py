@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from contextlib import ExitStack, contextmanager
 import imaplib
+import time
 import traceback
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -29,6 +30,7 @@ from .paths import runtime_path
 from .telegram import (TelegramChatNotFoundError, TelegramClient,
                        TelegramDialogController)
 from .telegram.commands import HELP
+from .telegram.receiver import TelegramInbox, TelegramReceiver
 from .adapter import RetryPolicy
 from .retention import RetentionService
 
@@ -153,6 +155,7 @@ class Application:
     _wait_for_user: bool = False
     _mail_processing_halted: bool = False
     _fatal_error: str | None = None
+    _receiver: TelegramReceiver | None = None
 
     def check_access(self) -> dict[str, str | None]:
         """Check every external credential and target without processing mail."""
@@ -226,6 +229,39 @@ class Application:
     def stop(self) -> None:
         self.stop_event.set()
         self.orchestrator.stop()
+        if self._receiver is not None:
+            self._receiver.stop()
+
+    def _start_receiver(self) -> None:
+        """Receive Telegram input in its own thread if the dialog has an inbox."""
+        inbox = getattr(self.dialog, "inbox", None)
+        if not isinstance(inbox, TelegramInbox):
+            return
+        assert self.dialog is not None
+        self._receiver = TelegramReceiver(
+            self.telegram, inbox, self.dialog.receive_offset(), self.logger,
+            _TELEGRAM_ERROR_BACKOFF_SECONDS)
+        self._receiver.start()
+
+    def _stop_receiver(self) -> None:
+        receiver, self._receiver = self._receiver, None
+        if receiver is not None:
+            receiver.stop()
+            # A long-poll in flight ends with the Telegram client; never block exit.
+            receiver.join(timeout=1)
+
+    def _idle(self, delay: float) -> None:
+        """Wait for the next mail cycle while handling Telegram input as it arrives."""
+        if self._receiver is None:
+            self.stop_event.wait(delay)
+            return
+        deadline = time.monotonic() + delay
+        while not self.stop_event.is_set():
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return
+            if self._receiver.inbox.wait(remaining):
+                self._poll_telegram(timeout=0)
 
     def _poll_imap(self, max_mails: int | None = None, *,
                    ignore_historical_start: bool = False) -> list[ProcessingResult]:
@@ -690,7 +726,14 @@ class Application:
         return results
 
     def _poll_telegram(self, timeout: int | None = None) -> bool:
-        """Poll Telegram once and report whether the request completed normally."""
+        """Poll Telegram once and report whether the request completed normally.
+
+        With a receiver thread, wait up to *timeout* (default: the Telegram
+        long-poll time) for its inbox and then process what arrived.
+        """
+        if self._receiver is not None:
+            self._receiver.inbox.wait(self.settings.timeouts.telegram_poll_seconds
+                                      if timeout is None else timeout)
         if self.dialog is not None:
             try:
                 self.dialog.poll_once(timeout=timeout)
@@ -736,6 +779,9 @@ class Application:
 
     def _process_mail(self, mail: object) -> ProcessingResult:
         """Wait only for relevance; proposals are independent of mail analysis."""
+        if self._receiver is not None:
+            # Button presses received during the previous mail come first.
+            self._poll_telegram(timeout=0)
         while True:
             if (self._wait_for_user and self.dialog is not None
                     and self.dialog.awaiting_relevance_decision()
@@ -790,6 +836,7 @@ class Application:
         except Exception as exc:
             self.logger.event("ERROR", "telegram", "startup_outbox_failed",
                               error_class=type(exc).__name__)
+        self._start_receiver()
         try:
             while not self.stop_event.is_set():
                 try:
@@ -818,7 +865,10 @@ class Application:
                     break
                 if max_mails is not None:
                     break
-                telegram_poll_succeeded = self._poll_telegram()
+                # The receiver already waited for input; only process what arrived.
+                telegram_poll_succeeded = (self._poll_telegram(timeout=0)
+                                           if self._receiver is not None
+                                           else self._poll_telegram())
                 if (not self.stop_event.is_set() and self.dialog is not None
                         and self.dialog.awaiting_relevance_decision()):
                     self._wait_for_telegram_decision()
@@ -826,8 +876,9 @@ class Application:
                              _TELEGRAM_ERROR_BACKOFF_SECONDS)
                          if not telegram_poll_succeeded
                          else self.settings.poll_interval_seconds)
-                self.stop_event.wait(delay)
+                self._idle(delay)
         finally:
+            self._stop_receiver()
             run_name = f"mail-run-{self.imap.account_id}"
             run = (self.store.load_model(run_name, MailRunState)
                    if hasattr(self.store, "load_model") else None)
@@ -1025,6 +1076,7 @@ def build_application(
             revision_attempts=settings.retries.revision_attempts,
             revision_backoff_seconds=settings.retries.revision_backoff_seconds,
             sequential_questions=settings.telegram.sequential_questions,
+            inbox=TelegramInbox(store),
         )
         orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics, settings.limits.max_mail_bytes, logger, mime_limits=settings.limits, config_fingerprint=fingerprint, targets=settings.targets, user_timezone=settings.timezone, sender_store=sender_store)
         dialog.relevance_handler = orchestrator

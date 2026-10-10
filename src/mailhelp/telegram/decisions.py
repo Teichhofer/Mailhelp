@@ -48,6 +48,16 @@ class ProposalDecisionService:
         }:
             raise ValueError("Diese Schaltfläche ist veraltet")
         if decision.action == DecisionAction.EDIT:
+            active = TelegramDialogState.model_validate(
+                self.store.load("telegram-dialog", TelegramDialogState().model_dump()))
+            if (
+                (active.mail_id, active.proposal_id, active.version)
+                == (proposal.source_mail_id, proposal.id, proposal.version)
+                and proposal.status == ProposalStatus.NEEDS_CLARIFICATION
+                and active.question is None
+                and not active.retry_required
+            ):
+                return "✏️ Änderungsmodus läuft bereits – bitte die Rückfrage oben beantworten."
             changed = proposal.model_copy(
                 update={"status": ProposalStatus.NEEDS_CLARIFICATION}
             )

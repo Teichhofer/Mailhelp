@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import time
 import traceback
 from typing import Any
 
 from pydantic import ValidationError
 
+from ..adapter import PermanentError
 from ..domain.processing import (
     ProposalClarificationState,
     ProposalRevisionStatus,
@@ -23,6 +25,7 @@ from .ledger import ActionLedgerPort, ActionLedgerService
 from .models import TelegramUpdate
 from .outbox import TelegramOutbox, revision_paused
 from .persistence import proposal_version_name
+from .receiver import TelegramInbox
 from .relevance import RelevanceDialogProcessor, RelevanceHandler
 from .revisions import (
     EventLogger,
@@ -31,6 +34,14 @@ from .revisions import (
     ProposalRevisionService,
 )
 from .writes import ConfirmedWriteExecutor, WriteExecution
+
+
+# A failing inbox update is retried after 30 s, then 60 s, and dropped after
+# the third attempt; a permanent error is dropped at once.  Retrying without
+# limit repeated the side effects of the update (e.g. a resent question)
+# before every mail.
+INBOX_RETRY_SECONDS = 30.0
+INBOX_MAX_ATTEMPTS = 3
 
 
 class _DialogResponsePersistence:
@@ -68,6 +79,7 @@ class TelegramDialogController:
         revision_attempts: int = 3,
         revision_backoff_seconds: int = 60,
         sequential_questions: bool = True,
+        inbox: TelegramInbox | None = None,
     ):
         from .delivery import ProposalDeliveryService
         from .decisions import ProposalDecisionService
@@ -81,6 +93,9 @@ class TelegramDialogController:
             chat_id,
             logger,
         )
+        # With an inbox, a receiver thread fetches updates; this controller
+        # only processes them (see poll_once).
+        self.inbox = inbox
         self.writers, self.test_mode = writers or {}, test_mode
         self.configured_timezone = configured_timezone
         self.revision_service = revision_service
@@ -278,15 +293,38 @@ class TelegramDialogController:
         return any((dialog.mail_id, dialog.version) not in queued
                    for dialog in self._open_relevance_dialogs())
 
-    def poll_once(self, timeout: int | None = None) -> None:
-        self.write_executor.resume()
-        self.revisions.resume()
+    def _processed_offset(self) -> int:
         offset_state = self.store.load_model(
             "telegram-offset", TelegramOffset, TelegramOffset()
         )
         assert isinstance(offset_state, TelegramOffset)
-        offset = max(offset_state.offset, self._durable_dialog_offset())
-        updates = self.telegram.poll(offset, timeout=timeout)
+        return max(offset_state.offset, self._durable_dialog_offset())
+
+    def receive_offset(self) -> int:
+        """Where a receiver thread continues: after processed and stored updates."""
+        stored = self.inbox.next_offset() if self.inbox is not None else 0
+        return max(self._processed_offset(), stored)
+
+    def poll_once(self, timeout: int | None = None) -> None:
+        """Process new updates: from the inbox if a receiver fills it, else from Telegram.
+
+        With an inbox this never waits; *timeout* only applies to direct polling.
+        """
+        self.write_executor.resume()
+        self.revisions.resume()
+        offset = self._processed_offset()
+        if self.inbox is not None:
+            now = time.time()
+            entries = []
+            for entry in self.inbox.pending():
+                if not entry.ready(now):
+                    break  # keep the order: later input waits for this retry
+                entries.append(entry)
+            updates = [entry.update for entry in entries]
+            acknowledged = {entry.update_id for entry in entries if entry.acknowledged}
+        else:
+            updates = self.telegram.poll(offset, timeout=timeout)
+            acknowledged = set()
         self.logger.event(
             "DEBUG",
             "telegram.dialog",
@@ -316,6 +354,8 @@ class TelegramDialogController:
                     and raw_id < offset
                 ):
                     self._reject_duplicate_relevance(raw)
+                    if self.inbox is not None:
+                        self.inbox.remove(raw_id)
                 continue
             try:
                 update = TelegramUpdate.model_validate(raw)
@@ -329,7 +369,10 @@ class TelegramDialogController:
                     update_id=raw_id,
                     update_kind=update_kind,
                 )
-                self._handle(update)
+                if raw_id in acknowledged:
+                    self._handle(update, acknowledged=True)
+                else:
+                    self._handle(update)
             except ValidationError as exc:
                 self.logger.event(
                     "WARNING",
@@ -354,11 +397,30 @@ class TelegramDialogController:
                     update_id=raw_id,
                     error_class=type(exc).__name__,
                 )
-                raise
+                if self.inbox is None:
+                    raise
+                attempts = self.inbox.record_failure(raw_id, INBOX_RETRY_SECONDS)
+                if not isinstance(exc, PermanentError) and attempts < INBOX_MAX_ATTEMPTS:
+                    raise
+                self.logger.event(
+                    "ERROR",
+                    "telegram.dialog",
+                    "update_abandoned",
+                    update_id=raw_id,
+                    attempts=attempts,
+                    error_class=type(exc).__name__,
+                )
+                self.telegram.send(
+                    self.chat_id,
+                    "❌ Eine Telegram-Eingabe konnte nicht verarbeitet werden und wurde "
+                    "verworfen. Bitte /offen öffnen und die Aktion erneut wählen.",
+                )
             offset = raw_id + 1
             self.store.save(
                 "telegram-offset", TelegramOffset(offset=offset).model_dump()
             )
+            if self.inbox is not None:
+                self.inbox.remove(raw_id)
             self.logger.event(
                 "INFO",
                 "telegram.dialog",
@@ -395,12 +457,14 @@ class TelegramDialogController:
                 self.chat_id, "Diese Relevanzantwort wurde bereits verarbeitet."
             )
 
-    def _handle(self, update: TelegramUpdate) -> None:
+    def _handle(self, update: TelegramUpdate, acknowledged: bool = False) -> None:
         if update.callback_query is not None:
             callback = update.callback_query
             # Stop Telegram's loading indicator before potentially slow state,
-            # LLM, or external-service work begins.
-            self.telegram.answer_callback(callback.id, "Aktion wird verarbeitet …")
+            # LLM, or external-service work begins, unless the receiver thread
+            # already did so when the update arrived.
+            if not acknowledged:
+                self.telegram.answer_callback(callback.id, "Aktion wird verarbeitet …")
             if not self._authorized(callback.sender.id, callback.message.chat.id):
                 self.logger.event(
                     "WARNING",

@@ -8,6 +8,7 @@ import os
 from pathlib import Path
 import shutil
 import sys
+import time
 from types import SimpleNamespace
 
 from mailhelp.cli import main
@@ -40,6 +41,11 @@ class OfflineTelegram(OfflineResource):
 
     def send(self, chat_id, text, reply_markup=None):
         self.messages.append(text)
+
+    def poll(self, offset, timeout=None):
+        # The receiver thread long-polls during every run; nothing ever arrives.
+        time.sleep(0.01)
+        return []
 
 
 def test_installed_cli_persists_state_and_logs_across_restart(tmp_path, monkeypatch):

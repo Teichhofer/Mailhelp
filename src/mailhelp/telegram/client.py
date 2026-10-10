@@ -34,6 +34,7 @@ class TelegramClient:
         "bei Gruppen sicherstellen, dass der Bot Mitglied ist"
     )
     _EXPIRED_CALLBACK_DESCRIPTION = "bad request: query is too old and response timeout expired or query id is invalid"
+    _NOT_MODIFIED_DESCRIPTION = "bad request: message is not modified"
 
     def __init__(
         self,
@@ -308,11 +309,26 @@ class TelegramClient:
 
         def request() -> httpx.Response:
             response = self.client.post("/editMessageReplyMarkup", json=payload)
-            self._raise_for_status(response, "editMessageReplyMarkup")
+            if not self._is_not_modified(response):
+                self._raise_for_status(response, "editMessageReplyMarkup")
             return response
 
         response = uncertain_write(request)
+        if self._is_not_modified(response):
+            # The buttons are already gone (e.g. a repeated button press): the
+            # requested state exists, so this is success, not a permanent error.
+            self.logger.event("INFO", "telegram", "inline_keyboard_already_removed")
+            return
         self._validate_write(response, "editMessageReplyMarkup")
+
+    @staticmethod
+    def _is_not_modified(response: httpx.Response) -> bool:
+        description = TelegramClient._description(response)
+        return (
+            response.status_code == 400
+            and description is not None
+            and description.casefold().startswith(TelegramClient._NOT_MODIFIED_DESCRIPTION)
+        )
 
     @staticmethod
     def _is_expired_callback(response: httpx.Response) -> bool:
