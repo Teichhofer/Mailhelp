@@ -1124,5 +1124,6 @@ def build_application(
                 dialog.commands)
             dialog.review.web_authorizer = components.authorize
             dialog.web_logout = components.auth.revoke_all
+            dialog.web_invite = components.invite
             web = components.server
         yield Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar, orchestrator, stop_event, dialog, sender_store, web=web)

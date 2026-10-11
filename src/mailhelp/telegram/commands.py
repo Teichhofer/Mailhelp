@@ -9,6 +9,7 @@ HELP = (
     "/offen – aktuelle Entscheidung erneut zeigen\n"
     "/status – alle offenen Vorgänge auflisten\n"
     "/abbrechen – laufende Rückfrage beenden\n"
+    "/web – Link und Code für die Weboberfläche\n"
     "/web_abmelden – alle Geräte der Weboberfläche abmelden\n"
     "/hilfe – diese Übersicht\n\n"
     "Vorschläge kommen einzeln nacheinander. Rückfragen beantwortest du einfach mit "
@@ -20,10 +21,10 @@ STARTUP = "👋 Mailhelp gestartet. Befehle: /hilfe"
 
 class TelegramCommands:
     def __init__(self, store, repository, presenter, telegram, chat_id, relevance,
-                 outbox=None, web_logout=None):
+                 outbox=None, web_logout=None, web_invite=None):
         self.store, self.repository, self.presenter = store, repository, presenter
         self.telegram, self.chat_id, self.relevance = telegram, chat_id, relevance
-        self.outbox, self.web_logout = outbox, web_logout
+        self.outbox, self.web_logout, self.web_invite = outbox, web_logout, web_invite
 
     def handle(self, command: str) -> None:
         if command in {"/hilfe", "/start"}:
@@ -34,6 +35,8 @@ class TelegramCommands:
             self.cancel()
         elif command == "/web_abmelden":
             self.web_signout()
+        elif command == "/web":
+            self.web_link()
         else:
             self.telegram.send(self.chat_id, "Unbekannter Befehl. Verfügbare Befehle: /hilfe")
 
@@ -115,6 +118,18 @@ class TelegramCommands:
         # Keep the uniquely assigned question last; never assign free text by list order.
         if active_prompt is not None:
             self.telegram.send(self.chat_id, active_prompt)
+
+    def web_link(self) -> None:
+        if self.web_invite is None:
+            self.telegram.send(self.chat_id, "Die Weboberfläche ist nicht aktiviert.")
+            return
+        from ..web.auth import PairingLimited
+
+        try:
+            text = self.web_invite()
+        except PairingLimited as exc:
+            text = str(exc)
+        self.telegram.send(self.chat_id, text)
 
     def web_signout(self) -> None:
         if self.web_logout is None:

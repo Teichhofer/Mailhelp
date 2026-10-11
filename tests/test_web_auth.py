@@ -189,7 +189,8 @@ class Browser:
         body = urlencode(form or {}).encode() if form is not None else b""
         if form is not None:
             base["content-type"] = content_type
-        response = self.app(Request(method, path, {**base, **headers}, body=body))
+        path, _, query = path.partition("?")
+        response = self.app(Request(method, path, {**base, **headers}, query=query, body=body))
         for line in response.cookies:
             name, value = line.split(";")[0].split("=", 1)
             if "Max-Age=0" in line:

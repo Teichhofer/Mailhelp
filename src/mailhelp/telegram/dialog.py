@@ -120,6 +120,8 @@ class TelegramDialogController:
         self._commands_recovered = False
         # Revokes every web session (Telegram command /web_abmelden).
         self.web_logout: Callable[[], int] | None = None
+        # Link and one-time code for the web interface (Telegram command /web).
+        self.web_invite: Callable[[], str] | None = None
         self.writers, self.test_mode = writers or {}, test_mode
         self.configured_timezone = configured_timezone
         self.revision_service = revision_service
@@ -619,7 +621,7 @@ class TelegramDialogController:
 
             TelegramCommands(self.store, self.repository, self.presenter,
                              self.telegram, self.chat_id, self.relevance,
-                             self.outbox, self.web_logout).handle(normalized)
+                             self.outbox, self.web_logout, self.web_invite).handle(normalized)
             return
         if normalized in {"relevant", "irrelevant"}:
             dialogs = self._open_relevance_dialogs()

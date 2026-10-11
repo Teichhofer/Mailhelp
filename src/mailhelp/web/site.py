@@ -9,6 +9,7 @@ main thread.
 from __future__ import annotations
 
 from typing import Callable, Protocol
+from urllib.parse import parse_qs
 
 from ..config import WebSettings
 from pydantic import ValidationError
@@ -134,7 +135,8 @@ class MailhelpSite:
             nonce = self.auth.new_browser_nonce()
             response.cookies.append(self._cookie(request, PAIR_COOKIE, nonce, PAIR_COOKIE_SECONDS))
         response.body = login_page(self.auth.csrf_token(f"pair:{nonce}"),
-                                   self.auth.code_requested(nonce)).encode("utf-8")
+                                   self.auth.code_requested(nonce),
+                                   code=_link_code(request.query)).encode("utf-8")
         return response
 
     def request_code(self, request: Request) -> Response:
@@ -296,6 +298,15 @@ class MailhelpSite:
     def state(self, request: Request, session: WebSession) -> Response:
         """Fingerprint of the overview; the page reloads when it changes."""
         return Response.json(200, {"fingerprint": self.views.overview().fingerprint})
+
+
+def _link_code(query: str) -> str:
+    """The code from a /web link (only digits, at most 8), else empty."""
+    try:
+        value = parse_qs(query, max_num_fields=5).get("code", [""])[0]
+    except ValueError:
+        return ""
+    return value if value.isascii() and value.isdigit() and len(value) == 8 else ""
 
 
 __all__ = ["FORM_TYPE", "MailhelpSite", "PAIR_COOKIE", "SESSION_COOKIE"]

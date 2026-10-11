@@ -126,6 +126,7 @@ def mailhelp(tmp_path):
         server = WebServer("127.0.0.1", port, app, logger)
         server.start()
         instance = Mailhelp(f"http://127.0.0.1:{port}", store, telegram, writer, dialog)
+        instance.auth = auth
 
         def main_thread():
             # Mailhelp's main thread executes web commands between mails.

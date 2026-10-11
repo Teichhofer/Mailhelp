@@ -64,3 +64,15 @@ def test_connection_indicator_and_double_submit_protection(page, mailhelp):
     button.click()
     expect(button).to_be_disabled()
     assert page.url == f"{mailhelp.url}/geraete"
+
+
+def test_link_from_telegram_command_signs_in_with_one_tap(page, mailhelp):
+    """/web: the link opens the login page with the code already filled in."""
+    code = mailhelp.auth.issue_code()
+    page.goto(f"{mailhelp.url}/anmelden?code={code}")
+    expect(page.get_by_label("Code aus Telegram")).to_have_value(code)
+    assert audit(page, f"anmelden-link-{page.device}", page.mobile) == []
+    page.get_by_role("button", name="Gerät koppeln").click()
+    page.wait_for_url(f"{mailhelp.url}/")
+    expect(page.get_by_role("heading", name="Offene Entscheidungen")).to_be_visible()
+    assert page.errors == []

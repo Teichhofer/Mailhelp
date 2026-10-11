@@ -1750,8 +1750,11 @@ sind ohne Anmeldung erreichbar und enthalten keine Daten.
 **Anmeldung:** Kopplung per achtstelligem Telegram-Code (10 Minuten, an den Browser
 gebunden, Ratenbegrenzung), Sitzungen als gehashte Zufallstoken mit
 `HttpOnly`/`SameSite=Strict`-Cookie (über Tailscale `Secure`), CSRF-Token je Sitzung.
-Tailscale-Identitäts-Header werden ignoriert. Jede Kopplung wird in Telegram
-gemeldet; `/web_abmelden` meldet alle Geräte ab. Ein Befehl wird nur ausgeführt,
+Tailscale-Identitäts-Header werden ignoriert. Der Telegram-Befehl `/web` sendet
+einen Link zur Anmeldeseite (Tailnet-Name per HTTPS, falls in `allowed_hosts`
+eingetragen, sonst die lokale Adresse) mit einem nicht an einen Browser gebundenen
+Einmal-Code, der im Link vorausgefüllt ist und einen früheren `/web`-Code ersetzt.
+Jede Kopplung wird in Telegram gemeldet; `/web_abmelden` meldet alle Geräte ab. Ein Befehl wird nur ausgeführt,
 solange seine Sitzung besteht.
 
 **Aktionen:** `POST /aktion` prüft die Version vorab (veraltet: 409 mit aktueller

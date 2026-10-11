@@ -8,7 +8,8 @@
   und Relevanz im Web – versionsgebunden, über eine dauerhafte Befehlswarteschlange,
   idempotent und mit Abgleich nach Neustart.
 - Kanalneutrale Review-Schicht; Telegram-Schaltflächen nutzen sie ebenfalls und melden
-  im Web entschiedene Vorschläge als veraltet. Neuer Befehl `/web_abmelden`.
+  im Web entschiedene Vorschläge als veraltet. Neue Befehle `/web` (Link mit
+  vorausgefülltem Einmal-Code) und `/web_abmelden`.
 - Anmeldung per Telegram-Kopplungscode, gehashte Sitzungen, CSRF, Host-Prüfung,
   strenge Sicherheits-Header; Service Worker speichert nur die App-Hülle.
 - `JsonStore` ist zusätzlich thread-sicher (Regressionstest für `os.replace` unter Windows).

@@ -79,6 +79,15 @@ Die Seiten funktionieren auch ohne JavaScript. Das Skript ergänzt nur drei Ding
 4. Im Browser `http://127.0.0.1:8765` öffnen, „Code per Telegram senden“ wählen
    und den Code aus Telegram eingeben. Jede neue Kopplung meldet Telegram.
 
+**Schneller vom Telefon:** Der Telegram-Befehl `/web` sendet einen Link zur
+Anmeldeseite mit einem frischen Einmal-Code (10 Minuten gültig, für ein Gerät).
+Der Code steht im Link schon im Eingabefeld; ein Tipp auf „Gerät koppeln“ genügt.
+Er steht zusätzlich in der Nachricht, falls die Seite anders geöffnet wird. Ist in
+`web.allowed_hosts` ein Tailnet-Name eingetragen, verweist der Link per HTTPS
+darauf, sonst auf `http://127.0.0.1:<port>` mit dem Hinweis, dass er nur am PC
+funktioniert. Ein neuer `/web`-Code ersetzt den vorherigen; Ratenbegrenzung und
+Fehlversuche zählen wie bei angeforderten Codes.
+
 Ist der Port belegt, meldet Telegram „Weboberfläche konnte nicht … starten“ und
 die Mailverarbeitung läuft ohne Weboberfläche weiter.
 

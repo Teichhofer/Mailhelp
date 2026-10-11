@@ -69,15 +69,17 @@ def notice(text: str, kind: str = "info") -> str:
     return f'<p class="notice notice-{kind}" role="{role}">{e(text)}</p>'
 
 
-def login_page(csrf: str, code_requested: bool, error: str | None = None) -> str:
+def login_page(csrf: str, code_requested: bool, error: str | None = None,
+               code: str = "") -> str:
+    """Login; *code* pre-fills the field when the page was opened from the /web link."""
     message = notice(error, "error") if error else ""
-    if code_requested:
+    if code_requested or code:
         body = f"""<p>Der Code wurde an deinen Telegram-Chat gesendet. Er gilt 10 Minuten.</p>
 <form method="post" action="/anmelden" class="stack">
 <input type="hidden" name="csrf" value="{e(csrf)}">
 <label for="code">Code aus Telegram</label>
 <input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{{8,9}}"
- maxlength="9" required autofocus>
+ maxlength="9" required autofocus value="{e(code)}">
 <label for="geraet">Gerätename <span class="hint">(optional)</span></label>
 <input id="geraet" name="geraet" maxlength="60" autocomplete="off" placeholder="z. B. iPhone">
 <button class="button primary" type="submit">Gerät koppeln</button>

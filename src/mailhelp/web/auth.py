@@ -60,7 +60,8 @@ class _Model(BaseModel):
 
 
 class PendingCode(_Model):
-    browser_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    # None: issued with the Telegram command /web and valid in any browser.
+    browser_hash: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
     code_hmac: str = Field(pattern=r"^[a-f0-9]{64}$")
     expires_at: datetime
     attempts: int = Field(default=0, ge=0)
@@ -150,7 +151,7 @@ class WebAuth:
     def code_requested(self, browser_nonce: str) -> bool:
         with self._lock:
             browser = _sha256(browser_nonce)
-            return any(code.browser_hash == browser for code in self._pairing().codes)
+            return any(code.browser_hash in {browser, None} for code in self._pairing().codes)
 
     def request_code(self, browser_nonce: str, device: str) -> None:
         """Send a new code for this browser to Telegram; replaces its earlier code."""
@@ -168,6 +169,23 @@ class WebAuth:
         self.notify(f"🔐 Mailhelp-Webanmeldung für „{device}“: Code {code[:4]} {code[4:]}\n"
                     "Gültig 10 Minuten. Nur eingeben, wenn du die Anmeldung selbst gestartet hast.")
 
+    def issue_code(self) -> str:
+        """A code for the Telegram command /web: not bound to a browser, replaces the previous one.
+
+        Only the authorized Telegram chat receives it, exactly like a requested code.
+        """
+        with self._lock:
+            state = self._pairing()
+            if len(state.failures) >= FAILURE_LIMIT or len(state.requests) >= CODE_REQUESTS:
+                raise PairingLimited("Zu viele Codes angefordert – bitte später erneut versuchen.")
+            code = f"{secrets.randbelow(10 ** 8):08d}"
+            state.codes = [item for item in state.codes if item.browser_hash is not None]
+            state.codes.append(PendingCode(code_hmac=self._mac("code", code),
+                                           expires_at=self.clock() + CODE_LIFETIME))
+            state.requests.append(self.clock())
+            self.store.save(PAIRING, state.model_dump(mode="json"))
+        return code
+
     def redeem(self, browser_nonce: str, code: str, device: str) -> str:
         """Exchange a correct code for a new session; returns the session token."""
         entered = re.sub(r"\s", "", code)
@@ -176,14 +194,20 @@ class WebAuth:
             if len(state.failures) >= FAILURE_LIMIT:
                 raise PairingLimited("Zu viele Fehlversuche – bitte später erneut versuchen.")
             browser = _sha256(browser_nonce)
-            pending = next((item for item in state.codes if item.browser_hash == browser), None)
-            if pending is None:
+            # The code requested in this browser, then one sent with /web.
+            candidates = [item for item in state.codes if item.browser_hash == browser]
+            candidates += [item for item in state.codes if item.browser_hash is None]
+            if not candidates:
                 raise PairingRefused("Kein gültiger Code angefordert oder Code abgelaufen.")
-            if not hmac.compare_digest(pending.code_hmac, self._mac("code", entered)):
-                pending.attempts += 1
+            mac = self._mac("code", entered)
+            pending = next((item for item in candidates
+                            if hmac.compare_digest(item.code_hmac, mac)), None)
+            if pending is None:
                 state.failures.append(self.clock())
-                if pending.attempts >= CODE_ATTEMPTS:
-                    state.codes.remove(pending)
+                for item in candidates:
+                    item.attempts += 1
+                    if item.attempts >= CODE_ATTEMPTS:
+                        state.codes.remove(item)
                 self.store.save(PAIRING, state.model_dump(mode="json"))
                 raise PairingRefused("Der Code stimmt nicht.")
             state.codes.remove(pending)
