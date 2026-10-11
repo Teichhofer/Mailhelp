@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 import traceback
-from typing import Any
+from typing import Any, Callable
 
 from pydantic import ValidationError
 
@@ -16,10 +16,14 @@ from ..domain.processing import (
 )
 from ..integrations import ExternalWriter
 from ..models import Proposal, ProposalStatus, RelevanceDialog, TelegramOffset
+from ..review.commands import CommandKind, CommandSource, ReviewCommand
+from ..review.inbox import CommandInbox
+from ..review.errors import StaleCommand
+from ..review.results import ResultStatus, ReviewResult
 from ..storage import JsonStore
 
 from .authorization import AuthorizedUpdateValidator, UpdateValidation
-from .callbacks import Decision, RelevanceDecision, validate_callback_markup
+from .callbacks import Decision, DecisionAction, RelevanceDecision, validate_callback_markup
 from .client import TelegramTransport, _validation_path
 from .ledger import ActionLedgerPort, ActionLedgerService
 from .models import TelegramUpdate
@@ -42,6 +46,15 @@ from .writes import ConfirmedWriteExecutor, WriteExecution
 # before every mail.
 INBOX_RETRY_SECONDS = 30.0
 INBOX_MAX_ATTEMPTS = 3
+STALE_BUTTON = ("ℹ️ Bereits entschieden oder geändert (z. B. in der Weboberfläche) – "
+                "diese Schaltfläche ist veraltet. Aktueller Stand: /offen")
+# Telegram buttons translated into channel-neutral review commands.
+_COMMAND_KINDS = {
+    DecisionAction.CONFIRM: CommandKind.CONFIRM,
+    DecisionAction.CONFIRM_DUPLICATE: CommandKind.CONFIRM_DUPLICATE,
+    DecisionAction.EDIT: CommandKind.START_CLARIFICATION,
+    DecisionAction.REJECT: CommandKind.REJECT,
+}
 
 
 class _DialogResponsePersistence:
@@ -85,6 +98,7 @@ class TelegramDialogController:
         revision_backoff_seconds: int = 60,
         sequential_questions: bool = True,
         inbox: TelegramInbox | None = None,
+        commands: CommandInbox | None = None,
     ):
         from .delivery import ProposalDeliveryService
         from .decisions import ProposalDecisionService
@@ -101,6 +115,13 @@ class TelegramDialogController:
         # With an inbox, a receiver thread fetches updates; this controller
         # only processes them (see poll_once).
         self.inbox = inbox
+        # Web commands, executed here in the main thread like Telegram updates.
+        self.commands = commands
+        self._commands_recovered = False
+        # Revokes every web session (Telegram command /web_abmelden).
+        self.web_logout: Callable[[], int] | None = None
+        # Link and one-time code for the web interface (Telegram command /web).
+        self.web_invite: Callable[[], str] | None = None
         self.writers, self.test_mode = writers or {}, test_mode
         self.configured_timezone = configured_timezone
         self.revision_service = revision_service
@@ -166,6 +187,9 @@ class TelegramDialogController:
             revision_attempts=revision_attempts,
             revision_backoff_seconds=revision_backoff_seconds,
         )
+        from ..review.service import ReviewService
+
+        self.review = ReviewService(self)
 
     @property
     def relevance_handler(self) -> RelevanceHandler | None:
@@ -275,7 +299,7 @@ class TelegramDialogController:
 
         TelegramCommands(self.store, self.repository, self.presenter,
                          self.telegram, self.chat_id, self.relevance,
-                         self.outbox).overview(interactive=True, compact=True)
+                         self.outbox, self.web_logout).overview(interactive=True, compact=True)
 
     def processing_blocked(self) -> bool:
         """Return whether an answered revision needs an operator restart."""
@@ -317,6 +341,10 @@ class TelegramDialogController:
         """
         self.write_executor.resume()
         self.revisions.resume()
+        if self.commands is not None and not self._commands_recovered:
+            # Commands interrupted by a restart are reconciled, never repeated.
+            self._commands_recovered = True
+            self.commands.recover(self.review.reconcile)
         offset = self._processed_offset()
         if self.inbox is not None:
             now = time.time()
@@ -433,8 +461,38 @@ class TelegramDialogController:
                 update_id=raw_id,
                 next_offset=offset,
             )
+        self._process_commands()
         # Answers above may have resolved the question that held messages back.
         self.outbox.flush()
+
+    def _process_commands(self) -> None:
+        """Execute queued web commands in arrival order."""
+        if self.commands is None:
+            return
+        for entry in self.commands.queued():
+            command = entry.command
+            self.commands.start(entry.id)
+            try:
+                result = self.review.execute(command)
+            except Exception as exc:
+                self.logger.event("ERROR", "review", "command_failed", command_id=entry.id,
+                                  source=command.source.value, kind=command.kind.value,
+                                  error_class=type(exc).__name__)
+                result = ReviewResult(status=ResultStatus.FAILED,
+                                      message="Die Aktion ist fehlgeschlagen; Details stehen im Protokoll.")
+            self.commands.finish(entry.id, result)
+            self.logger.event("INFO", "review", "command_finished", command_id=entry.id,
+                              source=command.source.value, kind=command.kind.value,
+                              status=result.status.value)
+            # Writes, revisions and clarifications report in Telegram by
+            # themselves; a rejection or relevance decision is mirrored here.
+            if (command.source == CommandSource.WEB and result.status == ResultStatus.DONE
+                    and command.kind in {CommandKind.REJECT, CommandKind.RELEVANCE}):
+                try:
+                    self.telegram.send(self.chat_id, f"🌐 Im Web: {result.message}")
+                except Exception as exc:
+                    self.logger.event("ERROR", "review", "web_notice_failed",
+                                      error_class=type(exc).__name__)
 
     def _reject_duplicate_relevance(self, raw: dict[str, Any]) -> None:
         """Make a replayed relevance answer visible without trusting raw fields."""
@@ -482,6 +540,8 @@ class TelegramDialogController:
                 )
                 self.telegram.send(self.chat_id, "❌ Nicht autorisierte Aktion.")
                 return
+            actor = f"telegram:{callback.sender.id}:{callback.message.chat.id}"
+            key = f"telegram-update-{update.update_id}"
             try:
                 if callback.data.startswith("relevance:"):
                     try:
@@ -492,9 +552,12 @@ class TelegramDialogController:
                             "❌ Relevanzantwort ist syntaktisch ungültig; bitte erneut versuchen.",
                         )
                         return
-                    confirmation = self._decide_relevance(
-                        relevance, update.update_id + 1
-                    )
+                    confirmation = self.review.execute(ReviewCommand(
+                        kind=CommandKind.RELEVANCE, source=CommandSource.TELEGRAM,
+                        actor=actor, mail_id=relevance.mail_id, version=relevance.version,
+                        decision=relevance.decision, idempotency_key=key,
+                        replay_offset=update.update_id + 1,
+                    ), raise_errors=True).message
                 else:
                     try:
                         decision = self.validator.decision(callback.data)
@@ -504,9 +567,20 @@ class TelegramDialogController:
                             "❌ Aktion ist syntaktisch ungültig; bitte erneut versuchen.",
                         )
                         return
-                    confirmation = self.decision_service.decide(
-                        decision, callback.sender.id, callback.message.chat.id
-                    )
+                    confirmation = self.review.execute(ReviewCommand(
+                        kind=_COMMAND_KINDS[decision.action], source=CommandSource.TELEGRAM,
+                        actor=actor, mail_id=decision.mail_id,
+                        proposal_id=decision.proposal_id, version=decision.version,
+                        idempotency_key=key,
+                    ), raise_errors=True).message
+            except StaleCommand:
+                # Typically decided in the web interface after this card was sent.
+                self.logger.event("INFO", "telegram.dialog", "stale_button",
+                                  update_id=update.update_id)
+                self.telegram.remove_inline_keyboard(
+                    callback.message.chat.id, callback.message.message_id)
+                self.telegram.send(self.chat_id, STALE_BUTTON)
+                return
             except Exception as exc:
                 self.logger.event(
                     "ERROR",
@@ -547,7 +621,7 @@ class TelegramDialogController:
 
             TelegramCommands(self.store, self.repository, self.presenter,
                              self.telegram, self.chat_id, self.relevance,
-                             self.outbox).handle(normalized)
+                             self.outbox, self.web_logout, self.web_invite).handle(normalized)
             return
         if normalized in {"relevant", "irrelevant"}:
             dialogs = self._open_relevance_dialogs()

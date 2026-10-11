@@ -104,10 +104,14 @@ _DATE_RANGE_NAMED = re.compile(
 _DATE_RANGE_NUMERIC = re.compile(
     r"(?<!\d)(\d{1,2})\.(\d{1,2})\.(\d{4})\s*(?:-|\u2013|\u2014|bis)\s*"
     r"(\d{1,2})\.(\d{1,2})\.(\d{4})(?!\d)", re.IGNORECASE)
+# Approximate times ("ca. 15:30 Uhr") are taken at face value; a dot as the
+# separator ("13.00 Uhr") is accepted only together with "Uhr", so that a date
+# such as "07.10" in the time field is never read as a clock time.
+_TIME_PREFIX = (r"(?:(?:ca\.|ca|circa|etwa|ungefähr|gegen|um|morgens|vormittags|mittags|"
+                r"nachmittags|abends)\s*)*")
 _TIME = re.compile(
-    r"(?:(?:morgens|vormittags|mittags|nachmittags|abends)\s+)?(?:um\s+)?"
-    r"(\d{1,2})(?::(\d{2})(?::(\d{2}))?)?\s*Uhr\Z|"
-    r"(\d{1,2}):(\d{2})(?::(\d{2}))?\Z", re.IGNORECASE)
+    _TIME_PREFIX + r"(\d{1,2})(?:[:.](\d{2})(?::(\d{2}))?)?\s*Uhr\Z|"
+    + _TIME_PREFIX + r"(\d{1,2}):(\d{2})(?::(\d{2}))?\Z", re.IGNORECASE)
 
 
 def _failure(reason: NormalizationReason, raw: str | None, responsibility: str,

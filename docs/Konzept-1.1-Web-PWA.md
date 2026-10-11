@@ -2,8 +2,10 @@
 
 **Zielversion:** 1.1
 
-**Status:** Geplante Erweiterung. Dieses Dokument beschreibt noch keine vorhandene
-Weboberfläche; Konfigurationsschlüssel, Endpunkte und Module sind Zielvorgaben.
+**Status:** Phasen 0–8 umgesetzt im Branch `beta` (Version 1.1.0, Beta). Offen ist
+nur die Anpassung der Bestätigungsregel in `AGENTS.md`, die eine ausdrückliche
+Zustimmung erfordert (siehe Abschnitt 7). Betriebsanleitung:
+[Release-1.1.md](Release-1.1.md).
 
 **Stand:** 11. Oktober 2026
 
@@ -351,3 +353,30 @@ Offline-Seite), manueller Test am iPhone und am PC-Browser nach Checkliste.
 | Web-Push-Benachrichtigungen? | Nicht in 1.1; Telegram bleibt Benachrichtigungskanal |
 | Mehrere Benutzer? | Nicht in 1.1 |
 | Telegram langfristig optional? | Nach 1.1 bewerten; Voraussetzung wäre Web-Push |
+
+## 7. Umsetzungsstand und Abweichungen
+
+| Phase | Ergebnis |
+| --- | --- |
+| 0 | [1.1-Bestandsaufnahme.md](1.1-Bestandsaufnahme.md) |
+| 1 | `mailhelp.review` (Befehle, Ergebnisse, Service, Lesemodelle, gemeinsame Kartendaten); Telegram-Schaltflächen laufen über den Service |
+| 2 | `command-inbox` mit Idempotenz, Statusmodell und Neustartabgleich; `JsonStore` mit `RLock`, `peek`/`peek_model` |
+| 3 | `mailhelp.web` (Router, Server, Sicherheits-Header, Limits), Konfiguration `web`, `MAILHELP_WEB_SECRET` |
+| 4 | Kopplung per Telegram-Code, Sitzungen, CSRF, `/web_abmelden` |
+| 5 | Übersicht, Detail, Status, automatische Aktualisierung |
+| 6 | Aktionen über `/aktion` mit 409/202/303, Statusseite, Telegram-Konsistenz |
+| 7 | Manifest, Service Worker (nur App-Hülle), Offline-Seite, Tailscale-Anleitung |
+| 8 | Ende-zu-Ende-Test im Web, Docker-Port auf `127.0.0.1`, Doku, CI-Job für Browsertests |
+
+Bewusste Abweichungen vom Entwurf:
+
+- Die `telegram-inbox` bleibt eigenständig, weil Telegram-Updates Offsets und
+  Quittungen tragen, die Web-Befehle nicht haben. Web-Befehle stehen in der neuen
+  `command-inbox`; beide werden vom Hauptthread im selben Zyklus abgearbeitet und
+  wecken ihn über dasselbe Ereignis.
+- Zusätzlich zu den In-Prozess-Tests prüfen Browsertests (`ui_tests/`, Chrome über
+  Playwright) jede Seite auf Desktop und iPhone mit Screenshots. Sie messen auch die
+  JavaScript-Abdeckung, die das Konzept verlangt.
+- Die Formulierung in `AGENTS.md` und Spezifikation zur Bestätigungspflicht wird
+  erst nach ausdrücklicher Zustimmung geändert; bis dahin beschreibt Abschnitt 18
+  der Spezifikation die Web-Bestätigung.

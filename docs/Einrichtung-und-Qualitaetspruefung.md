@@ -29,6 +29,16 @@ oder nach dem dokumentierten Verfahren bewusst neu verarbeiten; den gespeicherte
 Fingerprint nicht manuell überschreiben. Bereits abgeschlossene Zustände und
 versionsbezogene Schreibreferenzen erhalten.
 
+## Weboberfläche und Tailscale (ab 1.1)
+
+Einrichtung der optionalen Weboberfläche, Tailscale Serve für das iPhone,
+Installation als App und Verhalten bei Schlaf oder Neustart des PCs beschreibt
+[Release-1.1.md](Release-1.1.md). Kurzfassung: `web.enabled: true` und
+`MAILHELP_WEB_SECRET` setzen, am PC `http://127.0.0.1:8765` öffnen und per
+Telegram-Code koppeln; für das iPhone `tailscale serve --bg --https=443
+http://127.0.0.1:8765` ausführen und den Tailnet-Namen in `web.allowed_hosts`
+eintragen.
+
 ## Google OAuth erstmals einrichten
 
 Stand der verlinkten Google-Dokumentation: geprüft am 7. Oktober 2026.

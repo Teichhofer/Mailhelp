@@ -399,3 +399,68 @@ def test_test_mode_end_to_end_never_calls_writer_and_survives_restart(tmp_path):
         restarted.poll_once()
         assert restarted_transport.polls == [2]
         assert restarted_transport.sent == [] and writer.created == []
+
+
+def test_nachholtermin_clarified_and_confirmed_in_the_web(tmp_path):
+    """Mail in, answered and confirmed in the browser, written once, Telegram consistent."""
+    import re
+    from html import unescape
+
+    from mailhelp.config import WebSettings
+    from mailhelp.review.inbox import CommandInbox
+    from mailhelp.review.views import ReviewViews
+    from mailhelp.web import WebApp
+    from mailhelp.web.auth import WebAuth
+    from mailhelp.web.site import MailhelpSite
+    from test_web_auth import LOCAL, SECRET, Browser, code_from
+
+    store, dialog, telegram, calendar, router, result = nachholtermin_flow(
+        tmp_path / "web", incomplete=True)
+    try:
+        proposal = Proposal.model_validate(result.state["proposals"][0])
+        old_card_button = telegram_button(telegram, "Klären")
+        dialog.commands = CommandInbox(store)
+        messages = []
+        auth = WebAuth(store, SECRET, 30, messages.append)
+        dialog.review.web_authorizer = lambda actor: auth.active(actor.removeprefix("web:"))
+        app = WebApp([LOCAL])
+        MailhelpSite(app, auth, WebSettings(), "Etc/GMT-1", NullLogger(),
+                     ReviewViews(store, "Etc/GMT-1"), dialog.commands)
+        browser = Browser(app)
+        csrf = browser.csrf()
+        browser.request("POST", "/anmelden/code", {"csrf": csrf})
+        browser.request("POST", "/anmelden", {"csrf": csrf, "code": code_from(messages)})
+
+        def form(kind):
+            html = browser.request("GET", "/").body.decode()
+            for block in re.findall(r'<form method="post" action="/aktion"[^>]*>(.*?)</form>', html, re.S):
+                fields = {name: unescape(value) for name, value in re.findall(
+                    r'<input type="hidden" name="([^"]+)" value="([^"]*)">', block)}
+                if fields["kind"] == kind:
+                    return fields
+            raise AssertionError(kind)
+
+        initial_llm_calls = list(router.calls)
+        browser.request("POST", "/aktion", {**form("answer"), "text": "23.09.2026 9:00 bis 10uhr"})
+        dialog.poll_once()
+        assert router.calls == initial_llm_calls
+        revised = store.load_model(f"proposal-{proposal.source_mail_id}-{proposal.id}", Proposal)
+        assert (revised.version, revised.status.value) == (2, "pending_confirmation")
+        assert calendar.create_calls == []
+        location = browser.request("POST", "/aktion", form("confirm")).headers["Location"]
+        dialog.poll_once()
+        assert len(calendar.create_calls) == 1 and calendar.create_calls[0][0].version == 2
+        assert browser.request("GET", location).headers["Location"].startswith("/?ergebnis=")
+        # Telegram saw the revision and the write; its old button is now stale.
+        texts = [text for _, text, _ in telegram.sent]
+        assert any("Übernommen" in text for text in texts)
+        telegram.updates = [callback_update(300, old_card_button)]
+        dialog.poll_once()
+        assert "Schaltfläche ist veraltet" in telegram.sent[-1][1]
+        restarted = TelegramDialogController(
+            store, FakeTelegram(), 42, 99, NullLogger(), {"google_calendar": calendar}, False,
+            "Etc/GMT-1", commands=CommandInbox(store))
+        restarted.poll_once()
+        assert len(calendar.create_calls) == 1
+    finally:
+        store.__exit__()

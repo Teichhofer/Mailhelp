@@ -17,6 +17,7 @@ ROOT = Path(__file__).parents[1]
 def test_package_resources_and_fresh_configuration(tmp_path):
     package = Path(mailhelp.__file__).parent
     assert (package / "assets/logo.png").read_bytes().startswith(b"\x89PNG")
+    assert (package / "web/static/icon-192.png").read_bytes().startswith(b"\x89PNG")
     for name in ("topics.yaml", "irrelevant_topics.yaml", "decisions_prompts.yaml"):
         assert (package / "defaults" / name).is_file()
     for source, target in (("config.example.yaml", "config.yaml"), ("prompts.yaml", "prompts.yaml")):
@@ -48,11 +49,13 @@ def test_built_artifacts_exclude_private_runtime_files():
     with zipfile.ZipFile(wheels[-1]) as archive:
         names = archive.namelist()
         assert "mailhelp/assets/logo.png" in names
+        assert {"mailhelp/web/static/app.js", "mailhelp/web/static/sw.js",
+                "mailhelp/web/static/manifest.webmanifest"} <= set(names)
         assert "mailhelp/defaults/decisions_prompts.yaml" in names
         assert not any(name.endswith(".env") for name in names)
     with tarfile.open(sources[-1]) as archive:
         names = {name.split("/", 1)[-1] for name in archive.getnames()}
         assert {"config.example.yaml", ".env.example", "prompts.yaml", "requirements.lock",
-                "docs/Release-1.0.md", "src/mailhelp/assets/logo.png"} <= names
+                "docs/Release-1.0.md", "docs/Release-1.1.md", "src/mailhelp/assets/logo.png"} <= names
         assert "config.yaml" not in names and ".env" not in names
         assert not any(name.startswith(("data/", "logs/", "quality-reports/")) for name in names)

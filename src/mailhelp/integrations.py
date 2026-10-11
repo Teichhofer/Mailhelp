@@ -1,7 +1,7 @@
 """Idempotente Adapter für Todoist, Kalenderdateien und Google Calendar (Legacy)."""
 from __future__ import annotations
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 import hashlib
 import re
 from typing import Any, Callable, Protocol
@@ -152,6 +152,11 @@ class CalendarFileWriter:
                           mail_id=proposal.source_mail_id, proposal_id=proposal.id,
                           filename=filename)
         return {"id": f"calendar-file:{digest}"}
+
+
+def _now(configured_timezone: str | None) -> datetime:
+    """Current local time for change notes; separate so tests can fix it."""
+    return datetime.now(ZoneInfo(configured_timezone or "UTC"))
 
 
 def calendar_file(proposal: Proposal, key: str) -> bytes:
@@ -366,9 +371,20 @@ class HttpWriter:
                          else self._matching_calendar_event(proposal))
             if duplicate is not None:
                 existing, decision = duplicate
-                if decision.missing_fields:
+                changes, interval = self._time_changes(proposal, existing)
+                if decision.missing_fields or changes:
                     body = self._calendar_merge_body(proposal, key, existing, decision)
-                    return PreparedWrite(lambda: self._update_calendar_event(existing.id, body, key, proposal))
+                    if changes:
+                        # The user confirmed exactly these times; the existing
+                        # event takes them over and records what changed when.
+                        body.update(interval)
+                        note = (f"[Mailhelp {_now(self.calendar_timezone):%d.%m.%Y %H:%M}] "
+                                f"Zeit aktualisiert: {'; '.join(changes)} "
+                                f"(bestätigte Vorschlagsversion {proposal.version}).")
+                        base = body.get("description", existing.description)
+                        body["description"] = f"{base}\n\n{note}" if base else note
+                    return PreparedWrite(lambda: self._update_calendar_event(
+                        existing.id, body, key, proposal, changes))
                 return PreparedWrite(lambda: {"id": existing.id, "htmlLink": existing.htmlLink,
                         "operation": "duplicate_skipped"}, requires_write=False)
             url, body = f"/calendars/{self.target}/events", self._calendar_event_body(proposal, key)
@@ -445,8 +461,38 @@ class HttpWriter:
                                    if body.get("description", existing.description) else addition)
         return body
 
+    def _time_changes(self, proposal: Proposal,
+                      existing: CalendarOverlapEvent) -> tuple[list[str], dict[str, Any]]:
+        """Compare start and end deterministically; the LLM only decides identity."""
+        validated = Proposal.model_validate(proposal.model_dump())
+        interval = (self._all_day_interval(validated) if validated.all_day
+                    else self._timed_interval(validated))
+        zone = ZoneInfo(self.calendar_timezone or "UTC")
+
+        def parse(raw: dict[str, str]) -> date | datetime | None:
+            if "dateTime" in raw:
+                return datetime.fromisoformat(raw["dateTime"])
+            return date.fromisoformat(raw["date"]) if "date" in raw else None
+
+        def display(value: date | datetime, end: bool) -> str:
+            if isinstance(value, datetime):
+                return f"{value.astimezone(zone):%d.%m.%Y %H:%M} Uhr"
+            # Google stores the exclusive day after an all-day event.
+            return f"{value - timedelta(days=1) if end else value:%d.%m.%Y}"
+
+        changes = []
+        for label, old_raw, new in (("Beginn", existing.start, validated.start),
+                                    ("Ende", existing.end, validated.end)):
+            old = parse(old_raw)
+            # An unknown existing time cannot be compared and is left alone.
+            if old is not None and not (type(old) is type(new) and old == new):
+                changes.append(f"{label} {display(old, label == 'Ende')} → "
+                               f"{display(new, label == 'Ende')}")
+        return changes, interval
+
     def _update_calendar_event(self, existing_id: str, body: dict[str, Any], key: str,
-                               proposal: Proposal) -> dict[str, Any]:
+                               proposal: Proposal,
+                               time_changes: list[str] | None = None) -> dict[str, Any]:
         url = f"/calendars/{self.target}/events/{existing_id}"
         response = uncertain_write(lambda: self._patch(url, body, key))
         try:
@@ -455,8 +501,8 @@ class HttpWriter:
             raise ValueError(f"google_calendar: ungültige Antwort am Schlüsselpfad {_path(exc)}") from exc
         self.logger.event("INFO", self.service, "duplicate_updated", call_id=key,
                           mail_id=proposal.source_mail_id, proposal_id=proposal.id,
-                          existing_event_id=existing_id)
-        return {**result, "operation": "duplicate_updated"}
+                          existing_event_id=existing_id, time_changed=bool(time_changes))
+        return {**result, "operation": "duplicate_updated", "time_changes": time_changes or []}
 
     def _calendar_event_body(self, proposal: Proposal, key: str) -> dict[str, Any]:
         # Revalidate at the external trust boundary; model_copy() can otherwise

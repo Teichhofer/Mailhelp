@@ -110,7 +110,7 @@ def proposal(**kw):
 
 
 def test_models_and_config(tmp_path, monkeypatch, capsys):
-    assert __version__ == "1.0.0"
+    assert __version__ == "1.1.0"
     assert {ProcessingErrorCode.PROVIDER_RESPONSE_INVALID.value,
             ProcessingErrorCode.INVALID_JSON.value,
             ProcessingErrorCode.SCHEMA_VALIDATION_FAILED.value} == {

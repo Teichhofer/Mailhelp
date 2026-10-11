@@ -523,7 +523,7 @@ verbindliche Reparaturanweisung gekennzeichnet.
 Die deterministische Aktionsnormalisierung unterstützt die Datumsformen
 `YYYY-MM-DD`, `DD.MM.YYYY` (optional mit passendem deutschen Wochentag in Lang- oder
 Kurzform, mit oder ohne Komma) und deutsche Tages-/Monatsangaben ohne Jahr sowie die
-24-Stunden-Zeitformen `HH:MM`, `HH:MM:SS` und Zusätze wie „morgens um 10 Uhr“.
+24-Stunden-Zeitformen `HH:MM`, `HH:MM:SS` und Zusätze wie „morgens um 10 Uhr“. Ebenso gelten die im Deutschen übliche Form mit Punkt vor „Uhr“ („13.00 Uhr“) und ungefähre Angaben mit „ca.“, „circa“, „etwa“, „ungefähr“ oder „gegen“, die wörtlich übernommen werden („ca. 15:30 Uhr“ ergibt 15:30). Ein Punkt ohne „Uhr“ („07.10“) wird nicht als Uhrzeit gelesen, damit ein Datum im Zeitfeld nicht als Uhrzeit missverstanden wird.
 Andere Schreibweisen und relative Angaben wie „nächsten Freitag“
 bleiben zusammen mit einem stabilen Klärungsgrund als Rohangabe erhalten. Ein Datum ohne Uhrzeit wird nur mit ausdrücklicher Ganztagsevidenz als
 ganztägiges Intervall dargestellt; die unten beschriebenen eindeutigen
@@ -923,7 +923,7 @@ registriert. Kalender-Duplikatsuche, LLM-Abgleich und Payload-Vorbereitung finde
 davor im Zustand `confirmed` statt. Fehler dieser rein lesenden Vorprüfung lassen
 den Vorschlag bestätigt und wiederaufnehmbar, auch nach Neustarts. Ein bereits
 vollständiger gleicher Termin wird ohne zwischenzeitlichen Schreibstatus als
-`created` übernommen. Bei Zeitüberschreitung oder Absturz nach einem möglicherweise
+`created` übernommen. Erkennt der Abgleich einen bestehenden Termin als dasselbe Ereignis, vergleicht Mailhelp Beginn und Ende deterministisch (gleiche Zeitpunkte unabhängig vom UTC-Offset gelten als gleich, unbekannte bestehende Zeiten werden nicht verglichen). Weichen sie ab, übernimmt der bestehende Termin die Zeiten der bestätigten Vorschlagsversion; seine Beschreibung erhält den Hinweis „[Mailhelp TT.MM.JJJJ HH:MM] Zeit aktualisiert: Ende … → … (bestätigte Vorschlagsversion N).“ und Telegram meldet „Bestehender Termin … aktualisiert“. Ohne Zeitabweichung werden wie bisher nur fehlende Beschreibung, Ort oder Videolink ergänzt oder der Termin unverändert übernommen. Bei Zeitüberschreitung oder Absturz nach einem möglicherweise
 erfolgreichen POST oder PATCH wird ausschließlich das Ergebnis abgeglichen.
 Solange der Erfolg nicht feststellbar ist, bleibt der Vorgang `uncertain`; es
 erfolgt kein blindes erneutes Anlegen. Bestehende `writing`-/`uncertain`-Altfälle
@@ -1708,3 +1708,74 @@ $env:DECISION_TEST_MAILS = "40"
 $env:DECISION_TEST_OLLAMA = "192.168.1.20:11434"
 docker compose -f compose.decision-test.yaml run --rm mailhelp-decision-test
 ```
+
+## 18. Weboberfläche und PWA (1.1)
+
+Die Weboberfläche ist optional (`web.enabled`, Standard aus) und läuft als
+`ThreadingHTTPServer` der Standardbibliothek in einem Daemon-Thread des
+Mailhelp-Prozesses. Ein belegter Port wird gemeldet und stoppt die Mailverarbeitung
+nicht. Konfiguration: `web.host`, `web.port`, `web.allowed_hosts`,
+`web.session_days`; Geheimnis `MAILHELP_WEB_SECRET` (nur bei aktivierter
+Oberfläche, mindestens 32 Zeichen). Der Abschnitt `web` geht nicht in den
+Konfigurations-Fingerprint ein.
+
+**Kanalneutrale Review-Schicht** (`mailhelp.review`): Befehle (`confirm`,
+`confirm_duplicate`, `reject`, `clarify`, `answer`, `cancel`, `relevance`) tragen
+Quelle, autorisierte Person, Mail-ID, Vorschlags-ID, erwartete Version und einen
+Idempotenzschlüssel. Der `ReviewService` prüft Autorisierung und Version und führt
+die Befehle über die bestehenden Dienste aus (`ProposalDecisionService`,
+`ProposalRevisionProcessor`, Relevanzdialog); er liefert typisierte Ergebnisse.
+Telegram-Schaltflächen laufen ebenfalls über ihn. Eine Web-Antwort setzt den
+Rückfragezeiger `telegram-dialog` auf ihre Zielversion; eine laufende, gespeicherte
+Antwort eines anderen Vorschlags wird dabei nicht überschrieben (Ergebnis „busy“).
+Lesemodelle lesen ohne Migration und ohne Quarantäne; beschädigte Datensätze werden
+übersprungen und gezählt.
+
+**Ein Zustandsbesitzer:** Web-Threads schreiben nie Review-Zustand. Sie legen Befehle
+in die dauerhafte `command-inbox` (Status `queued`, `running`, `done`, `rejected`,
+`failed`; erledigte Einträge einen Tag). Derselbe Schlüssel hat nie eine zweite
+Wirkung, ein anderer Befehl mit demselben Schlüssel wird abgewiesen, höchstens 50
+Befehle warten. Der Hauptthread verarbeitet sie nach den Telegram-Eingaben eines
+Zyklus in Eingangsreihenfolge; nach einem Neustart werden `running`-Einträge gegen
+den aktuellen Zustand abgeglichen statt wiederholt. `JsonStore` serialisiert Lesen
+und Schreiben zusätzlich mit einer prozessinternen Sperre.
+
+**HTTP-Regeln:** `Host` gegen `allowed_hosts` (sonst 421), nur GET und POST,
+Request-Bodies höchstens 16 KB, POST nur als Formulardaten. Antworten tragen eine
+Content-Security-Policy ohne Inline-Skripte, `X-Frame-Options: DENY`,
+`Referrer-Policy: no-referrer` und `Cache-Control: no-store` (statische Dateien
+`no-cache`). `/health`, statische Dateien, Manifest, Service Worker und Offline-Seite
+sind ohne Anmeldung erreichbar und enthalten keine Daten.
+
+**Anmeldung:** Kopplung per achtstelligem Telegram-Code (10 Minuten, an den Browser
+gebunden, Ratenbegrenzung), Sitzungen als gehashte Zufallstoken mit
+`HttpOnly`/`SameSite=Strict`-Cookie (über Tailscale `Secure`), CSRF-Token je Sitzung.
+Tailscale-Identitäts-Header werden ignoriert. Mit `web.lan_access` (erfordert `host: 0.0.0.0`) sind zusätzlich
+private IPv4-Adressen mit dem konfigurierten Port als Host zulässig; Cookies tragen
+`Secure` nur bei einem Host-Namen (HTTPS über Tailscale), nicht bei IP-Adressen oder
+`localhost`. Der Telegram-Befehl `/web` sendet einen Link zur Anmeldeseite (mit
+`lan_access` die bei jedem Aufruf neu ermittelte IP des PCs im Heimnetz, sonst den
+Tailnet-Namen per HTTPS, falls in `allowed_hosts` eingetragen, sonst die lokale
+Adresse) mit einem nicht an einen Browser gebundenen
+Einmal-Code, der im Link vorausgefüllt ist und einen früheren `/web`-Code ersetzt.
+Jede Kopplung wird in Telegram gemeldet; `/web_abmelden` meldet alle Geräte ab. Ein Befehl wird nur ausgeführt,
+solange seine Sitzung besteht.
+
+**Aktionen:** `POST /aktion` prüft die Version vorab (veraltet: 409 mit aktueller
+Version), legt den Befehl ab und antwortet mit 303 auf die Statusseite
+`/aktion/<id>` bzw. mit 202 und JSON. Die Statusseite wartet bis zu 1,5 s auf das Ergebnis,
+lädt sich sonst ohne JavaScript jede Sekunde neu und leitet nach dem Ergebnis zur
+Übersicht (`/?ergebnis=<id>`) weiter, die das Ergebnis der eigenen Sitzung oben
+anzeigt. Nur bei einer erkannten früheren Anlage bleibt sie mit „Erneut anlegen“
+stehen. Jede Karte hat „Details“: Vorschläge zeigen dort die vollständige gespeicherte
+Mail, Relevanzfragen führen auf `/mail/<id>` mit der Mail und den Relevanz-Schaltflächen. Telegram erhält Schreibergebnisse und Revisionen wie bisher;
+im Web verworfene Vorschläge und Relevanzentscheidungen werden als „🌐 Im Web: …“
+gemeldet. Ein Telegram-Callback zu einer nicht mehr aktuellen Version antwortet mit
+„Bereits entschieden oder geändert … veraltet“.
+
+**PWA:** Manifest (`display: standalone`) und ein Service Worker, der nur
+`offline.html`, `app.css` und Icons speichert. Seitenaufrufe gehen immer an den PC;
+ohne Verbindung erscheint die Offline-Seite. POST-Anfragen, Daten und API-Antworten
+werden weder gespeichert noch später gesendet.
+
+Einrichtung und Betrieb: [docs/Release-1.1.md](docs/Release-1.1.md).

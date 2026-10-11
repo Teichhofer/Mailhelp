@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from ..models import ProposalKind, ProposalStatus, TelegramDialogState
+from ..review.errors import AnswerRequired, StaleCommand
+from ..review.results import ResultStatus
 from ..storage import JsonStore
 from .callbacks import Decision, DecisionAction, apply_decision
 from .client import TelegramTransport
@@ -33,11 +35,17 @@ class ProposalDecisionService:
         self.configured_timezone = configured_timezone
 
     def decide(self, decision: Decision, user_id: int, chat_id: int) -> str:
+        """Apply the decision and return the confirmation text ("" if none)."""
+        return self.decide_with_status(decision, user_id, chat_id)[1]
+
+    def decide_with_status(self, decision: Decision, user_id: int,
+                           chat_id: int) -> tuple[ResultStatus, str]:
+        """Apply the decision; stale or premature decisions raise a ReviewError."""
         if (user_id, chat_id) != (self.allowed_user, self.allowed_chat):
             raise PermissionError("Nicht autorisierte Telegram-Anfrage")
         proposal = self.repository.load_current(decision.mail_id, decision.proposal_id)
         if proposal is None:
-            raise ValueError("Vorschlag wurde nicht gefunden")
+            raise StaleCommand("Vorschlag wurde nicht gefunden")
         if (proposal.source_mail_id, proposal.id, proposal.version) != (
             decision.mail_id,
             decision.proposal_id,
@@ -46,7 +54,7 @@ class ProposalDecisionService:
             ProposalStatus.PENDING_CONFIRMATION,
             ProposalStatus.NEEDS_CLARIFICATION,
         }:
-            raise ValueError("Diese Schaltfläche ist veraltet")
+            raise StaleCommand("Diese Schaltfläche ist veraltet")
         if decision.action == DecisionAction.EDIT:
             active = TelegramDialogState.model_validate(
                 self.store.load("telegram-dialog", TelegramDialogState().model_dump()))
@@ -57,7 +65,8 @@ class ProposalDecisionService:
                 and active.question is None
                 and not active.retry_required
             ):
-                return "✏️ Änderungsmodus läuft bereits – bitte die Rückfrage oben beantworten."
+                return (ResultStatus.DONE,
+                        "✏️ Änderungsmodus läuft bereits – bitte die Rückfrage oben beantworten.")
             changed = proposal.model_copy(
                 update={"status": ProposalStatus.NEEDS_CLARIFICATION}
             )
@@ -73,13 +82,13 @@ class ProposalDecisionService:
             prompt = clarification_prompt(proposal, self.configured_timezone)
             self.telegram.send(self.allowed_chat, prompt)
             # The question itself is the confirmation; no second message.
-            return ""
+            return ResultStatus.DONE, ""
         if (
             decision.action
             in {DecisionAction.CONFIRM, DecisionAction.CONFIRM_DUPLICATE}
             and proposal.status != ProposalStatus.PENDING_CONFIRMATION
         ):
-            raise ValueError("Zuerst müssen die offenen Fragen beantwortet werden")
+            raise AnswerRequired("Zuerst müssen die offenen Fragen beantwortet werden")
         confirming = decision.action in {
             DecisionAction.CONFIRM,
             DecisionAction.CONFIRM_DUPLICATE,
@@ -119,9 +128,10 @@ class ProposalDecisionService:
                     ]
                 },
             )
-            return "✅ Doppelanlage-Prüfung wurde entgegengenommen."
+            return (ResultStatus.NEEDS_DUPLICATE_CONFIRMATION,
+                    "✅ Doppelanlage-Prüfung wurde entgegengenommen.")
         if decision.action == DecisionAction.CONFIRM_DUPLICATE and not duplicates:
-            raise ValueError("Die Doppelanlage-Bestätigung ist veraltet")
+            raise StaleCommand("Die Doppelanlage-Bestätigung ist veraltet")
         changed = (
             proposal.model_copy(update={"status": ProposalStatus.REJECTED})
             if decision.action == DecisionAction.REJECT
@@ -143,13 +153,16 @@ class ProposalDecisionService:
             result = self.writes.execute(changed)
             if result.status in {ProposalStatus.CREATED, ProposalStatus.SIMULATED}:
                 # The write result message already reports the outcome.
-                return ""
+                return ResultStatus.WRITTEN, ""
             if result.status == ProposalStatus.UNCERTAIN:
-                return "⚠️ Vorschlag bestätigt; externe Anlage ist noch unklar."
+                return (ResultStatus.WRITE_UNCERTAIN,
+                        "⚠️ Vorschlag bestätigt; externe Anlage ist noch unklar.")
             if result.status == ProposalStatus.FAILED:
-                return "❌ Vorschlag bestätigt; externe Anlage fehlgeschlagen."
-            return "⚠️ Vorschlag intern bestätigt; keine externe Anlage ausgeführt."
-        return "✅ Vorschlag wurde verworfen."
+                return (ResultStatus.WRITE_FAILED,
+                        "❌ Vorschlag bestätigt; externe Anlage fehlgeschlagen.")
+            return (ResultStatus.NOT_WRITTEN,
+                    "⚠️ Vorschlag intern bestätigt; keine externe Anlage ausgeführt.")
+        return ResultStatus.DONE, "✅ Vorschlag wurde verworfen."
 
 
 __all__ = ["ProposalDecisionService"]

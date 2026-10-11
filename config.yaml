@@ -126,3 +126,11 @@ logging:
     max_bytes: 10000000
     backup_count: 5
     retention_days: 30
+
+web:
+  enabled: true
+  host: 0.0.0.0
+  port: 8765
+  allowed_hosts: [127.0.0.1:8765, localhost:8765]
+  session_days: 30
+  lan_access: true

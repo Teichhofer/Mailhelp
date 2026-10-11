@@ -43,6 +43,7 @@ E-Mail: [Kontakt-E-Mail-Adresse]
 | Aufgaben im konfigurierten Todoist-Projekt | Todoist | Erkennen bereits angelegter Aufgaben vor dem Anlegen |
 | Gelernte Absender- und Themenfilter | aus bestätigten Entscheidungen | künftige Relevanzprüfung |
 | Technische Protokolle (Zeitpunkte, Status, Fehler) | Mailhelp | Betrieb und Fehlersuche |
+| Nur bei aktivierter Weboberfläche: gekoppelte Geräte (selbst gewählter oder aus dem Browser abgeleiteter Gerätename, Zeitpunkte der Kopplung und letzten Nutzung, Sitzungsschlüssel nur als Hash), Kopplungscodes nur als Hash, Web-Aktionen mit Ergebnis | Browser der berechtigten Person | Anmeldung und Bedienung über das Web |
 
 Von Absenderinnen und Absendern verarbeitet Mailhelp nur, was in den empfangenen
 E-Mails steht. Mailhelp versendet keine E-Mails und verändert das Postfach nicht.
@@ -75,6 +76,13 @@ Für die Funktion werden Daten an folgende Dienste übermittelt:
 | Telegram Messenger | Zusammenfassungen, Vorschläge mit Mailauszügen, Rückfragen | Bedienung und Bestätigung | Vereinigte Arabische Emirate / Vereinigtes Königreich |
 | Todoist (Doist Inc.) | bestätigte Aufgaben; Lesen des Zielprojekts | Aufgabenanlage | USA |
 | Google Kalender (Google LLC / Google Ireland Ltd.) | bestätigte Termine; Lesen von Terminen im betroffenen Zeitraum | Terminanlage, Duplikatprüfung | Irland / USA |
+
+Die optionale Weboberfläche (ab Version 1.1) läuft auf dem eigenen PC und ist
+standardmäßig ausgeschaltet. Sie ist lokal unter `127.0.0.1` und – falls
+eingerichtet – über Tailscale Serve im eigenen Tailnet erreichbar. Tailscale
+(Tailscale Inc., USA) vermittelt dabei die verschlüsselte Verbindung zwischen den
+eigenen Geräten; die Inhalte werden Ende-zu-Ende verschlüsselt übertragen.
+Kopplungscodes und Hinweise auf neue Geräte werden über Telegram gesendet.
 
 Optional kann statt OpenRouter ein lokaler KI-Server (Ollama) im eigenen Netz
 genutzt werden. Dann verlassen die Mailinhalte für die KI-Auswertung das eigene Netz
@@ -129,6 +137,9 @@ verantwortlichen Person, als lesbare JSON-Dateien und Protokolle.
 | Protokoll der KI-Anfragen und -Antworten, einschließlich Mailinhalten | 30 Tage, rotierend |
 | Protokoll der Telegram-Nachrichten, einschließlich Inhalten | 30 Tage, rotierend |
 | Gelernte Filter | bis zur manuellen Änderung |
+| Gekoppelte Geräte der Weboberfläche | bis zum Ablauf (Standard 30 Tage), zum Abmelden oder Widerruf (auch per `/web_abmelden`) |
+| Kopplungscodes | 10 Minuten |
+| Web-Aktionen und deren Ergebnis | ein Tag nach Abschluss |
 | Vergleichs- und Testberichte, sofern manuell erzeugt (enthalten vollständige Mails) | bis zur manuellen Löschung |
 
 Offene Vorgänge (etwa eine unbeantwortete Rückfrage) werden erst nach ihrem Abschluss
@@ -144,6 +155,11 @@ bis sie dort gelöscht werden.
 - Alle Verbindungen zu externen Diensten sind verschlüsselt (TLS).
 - Nur ein konfiguriertes Telegram-Konto in einem konfigurierten Chat darf den Bot
   bedienen; andere Eingaben werden abgewiesen.
+- Die Weboberfläche ist nur nach Kopplung per einmaligem Telegram-Code nutzbar.
+  Sitzungs-Cookies sind `HttpOnly` und `SameSite=Strict`, über Tailscale zusätzlich
+  `Secure`; schreibende Anfragen benötigen ein CSRF-Token, fremde Host-Namen werden
+  abgewiesen. Mailinhalte werden ohne aktive Inhalte dargestellt; die installierbare
+  App speichert offline nur ihre Hülle, keine Mails oder Vorschläge.
 - Inhalte aus E-Mails und KI-Ausgaben werden als nicht vertrauenswürdig behandelt.
   Schreibzugriffe erfolgen nur nach ausdrücklicher, versionsbezogener Bestätigung;
   doppelte Anlagen werden verhindert.
