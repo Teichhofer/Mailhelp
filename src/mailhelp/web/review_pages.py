@@ -1,4 +1,4 @@
-﻿"""Pages built from the review read models: overview, proposal detail, run status.
+"""Pages built from the review read models: overview, proposal detail, run status.
 
 They show the same content as the compact Telegram card; description and
 evidence can be expanded.  Every value is escaped.  Links contained in mails
