@@ -105,7 +105,8 @@ def _text(value: str | None) -> str | None:
 def _clock(value: str | None) -> str | None:
     if value is None:
         return None
-    parsed = _parse_time(value, "user")
+    cleaned = re.sub(r"\b(\d{1,2})\.(\d{2})\b", r"\1:\2", value)
+    parsed = _parse_time(cleaned, "user")
     return parsed.isoformat(timespec="minutes") if isinstance(parsed, time) else _text(value)
 
 

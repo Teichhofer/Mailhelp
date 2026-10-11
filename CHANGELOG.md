@@ -1,6 +1,6 @@
 # Änderungen
 
-## 1.0.0 – in Vorbereitung
+## 1.0.0 – 11. Oktober 2026
 
 - Vollständiger Trockenlauf für Todoist und Google Kalender.
 - Konservative Kurzlink-Vorprüfung mit synthetischen Regressionstests.
