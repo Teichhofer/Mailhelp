@@ -265,6 +265,27 @@ def test_network_adapter_failure_events():
     telegram.close()
     assert capture.events[-1][2] == "poll_failed"
 
+
+def test_telegram_poll_shutdown_interrupted_emits_no_error_event():
+    """Regression test for 1.5: RetryInterrupted during adapter backoff must not log poll_failed as ERROR."""
+    from mailhelp.adapter import RetryInterrupted, RetryPolicy
+    capture = Capture()
+    policy = RetryPolicy(retries=2, initial_backoff_seconds=1.0, max_backoff_seconds=2.0,
+                         wait=lambda delay: True)
+    def flaky(request):
+        raise httpx.RemoteProtocolError("Server disconnected without sending a response.", request=request)
+
+    client = TelegramClient("secret", 1, httpx.MockTransport(flaky), policy=policy, logger=capture)
+    with pytest.raises(RetryInterrupted):
+        client.poll(0)
+    client.close()
+
+    error_events = [e for e in capture.events if e[0] == "ERROR"]
+    assert not error_events, f"Unerwartetes ERROR-Event beim Shutdown: {error_events}"
+    interrupted_events = [e for e in capture.events if e[2] == "poll_interrupted"]
+    assert len(interrupted_events) == 1
+    assert interrupted_events[0][0] == "INFO"
+
     writer = HttpWriter("todoist", "secret", "target", transport=httpx.MockTransport(
         lambda request: httpx.Response(503, text="secret", request=request)), logger=capture)
     with pytest.raises(Exception): writer.create(proposal(target='target', status="confirmed"), "request-id")

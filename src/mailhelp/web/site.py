@@ -409,12 +409,12 @@ def _ip_or_localhost(name: str) -> bool:
 
 
 def _link_code(query: str) -> str:
-    """The code from a /web link (only digits, at most 8), else empty."""
+    """The code from a /web link (only digits, exactly 4), else empty."""
     try:
         value = parse_qs(query, max_num_fields=5).get("code", [""])[0]
     except ValueError:
         return ""
-    return value if value.isascii() and value.isdigit() and len(value) == 8 else ""
+    return value if value.isascii() and value.isdigit() and len(value) == 4 else ""
 
 
 __all__ = ["FORM_TYPE", "MailhelpSite", "PAIR_COOKIE", "SESSION_COOKIE"]

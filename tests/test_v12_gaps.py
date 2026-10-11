@@ -27,8 +27,10 @@ from web_scenario import mail_id, proposal
 
 
 def test_exchange_rate_needs_its_date():
-    with pytest.raises(ValueError, match="gemeinsam"):
-        MetricsSettings(usd_per_eur=1.08)
+    assert MetricsSettings().usd_per_eur == 1.1
+    assert MetricsSettings(usd_per_eur=1.08).usd_per_eur == 1.08
+    with pytest.raises(ValueError, match="konfigurierten Wechselkurs"):
+        MetricsSettings(usd_per_eur=None, exchange_rate_date="2026-10-01")
     assert MetricsSettings(usd_per_eur=1.08, exchange_rate_date="2026-10-01").usd_per_eur == 1.08
 
 
@@ -269,8 +271,8 @@ def test_legacy_metrics_move_once_with_their_aggregates(tmp_path):
     assert not adopt_legacy(tmp_path / "fehlt.jsonl", tmp_path / "neu.jsonl")
 
 
-def attempt(metrics, call, **response):
-    metrics.observe("request_started", {"call_id": call, "model": "deepseek", "stage": "summary"})
+def attempt(metrics, call, model="deepseek", **response):
+    metrics.observe("request_started", {"call_id": call, "model": model, "stage": "summary"})
     metrics.observe("response_received", {"call_id": call, **response})
 
 
@@ -307,18 +309,24 @@ def test_statistics_page_labels_rates_and_incomplete_capture(web, tmp_path):
     _, metrics, *_ = configure(web, tmp_path)
     page = web.browser.request("GET", "/auswertung").body.decode()
     assert "Für diese Auswahl gibt es keine erfassten Aufrufe." in page
-    assert "kein Wechselkurs hinterlegt" in page and "<dd>— / — / —</dd>" in page
+    assert "<dd>0,0000 EUR</dd>" in page and "<dd>— / — / —</dd>" in page
     assert web.browser.request("GET", "/auswertung?mode=unbekannt").status == 422
     metrics.settings = MetricsSettings(usd_per_eur=1.25, exchange_rate_date="2026-10-01")
-    attempt(metrics, "c1", reported_cost=2.5)
+    attempt(metrics, "c1", model="openrouter/deepseek", reported_cost=2.5)
     metrics.failures = 1
     with metrics.path.open("a", encoding="utf-8") as stream:
         stream.write("kaputt\n")
-    page = web.browser.request("GET", "/auswertung?model=deepseek").body.decode()
+    page = web.browser.request("GET", "/auswertung?model=openrouter/deepseek").body.decode()
     assert "<dd>2,0000 EUR (Wechselkurs vom 2026-10-01)</dd>" in page
     assert "<dd>1 beschädigte Zeilen, 1 Erfassungsfehler</dd>" in page
-    assert '<option value="deepseek" selected>' in page and "<th>Modell</th>" in page
+    assert "<th>$Cent</th>" in page
+    assert '<td title="openrouter/deepseek">deepseek</td>' in page
+    assert '<td title="2,5000 USD">250,00</td>' in page
+    assert '<option value="openrouter/deepseek" selected>' in page and "<th>Modell</th>" in page
     assert "<dt>Geschätzte Stromkosten Ollama</dt><dd>0,0000 EUR</dd>" in page
+    metrics.settings = MetricsSettings(usd_per_eur=None)
+    page_no_rate = web.browser.request("GET", "/auswertung").body.decode()
+    assert "kein Wechselkurs hinterlegt" in page_no_rate
 
 
 def test_application_writes_metrics_into_the_log_directory(tmp_path, monkeypatch):
@@ -389,8 +397,8 @@ def test_settings_page_groups_values_and_marks_pending_restarts(web, tmp_path):
     assert "<strong>c…</strong>" not in page and "fam…com" in page
     assert '<option value="true"' in page and '<option value="INFO" selected>' in page
     assert 'type="number" step="any" name="value" value="5"' in page
-    assert "Kommentare und Aufbau der Datei bleiben erhalten" in page
-    assert "<span>Wechselkurs (USD je EUR)</span><strong>nicht gesetzt</strong>" in page
+    assert "<span>Wechselkurs (USD je EUR)</span><strong>1.1</strong>" in page
+    assert "<span>Wechselkurs vom</span><strong>nicht gesetzt</strong>" in page
     web.site.archive.configuration = None
     unavailable = web.browser.request("GET", "/einstellungen").body.decode()
     assert "Konfigurationsdienst nicht verfügbar." in unavailable and "<h2>Modelle (nur lesend)</h2>" in unavailable

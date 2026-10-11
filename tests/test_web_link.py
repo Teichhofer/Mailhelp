@@ -18,9 +18,9 @@ from test_web_auth import LOCAL, SECRET, TAILNET, Browser, auth, site  # noqa: F
 
 def test_a_telegram_code_works_in_any_browser_once(auth):
     code = auth.issue_code()
-    assert re.fullmatch(r"\d{8}", code) and auth.code_requested("irgendein-browser")
+    assert re.fullmatch(r"\d{4}", code) and auth.code_requested("irgendein-browser")
     assert code not in str(auth.store.load("web-pairing"))
-    token = auth.redeem("neues-telefon", f"{code[:4]} {code[4:]}", "iPhone")
+    token = auth.redeem("neues-telefon", f"{code[:2]} {code[2:]}", "iPhone")
     assert auth.authenticate(token).device == "iPhone"
     with pytest.raises(PairingRefused, match="angefordert"):
         auth.redeem("anderer-browser", code, "x")
@@ -36,7 +36,7 @@ def test_a_new_telegram_code_replaces_the_previous_one(auth):
 
 def test_browser_and_telegram_codes_coexist_and_share_the_limits(auth):
     auth.request_code("browser", "PC")
-    browser_code = re.search(r"Code (\d{4}) (\d{4})", auth.messages[-1]).group(0)[5:]
+    browser_code = re.search(r"Code (\d{4})", auth.messages[-1]).group(1)
     telegram_code = auth.issue_code()
     assert auth.redeem("browser", telegram_code, "per Link")
     assert auth.redeem("browser", browser_code, "angefordert")
@@ -48,16 +48,16 @@ def test_browser_and_telegram_codes_coexist_and_share_the_limits(auth):
     auth.issue_code()
     for _ in range(CODE_ATTEMPTS):
         with pytest.raises(PairingRefused, match="stimmt nicht"):
-            auth.redeem("browser", "00000000", "x")
+            auth.redeem("browser", "0000", "x")
     # Wrong attempts count against every code this browser could use.
     assert auth.store.load("web-pairing")["codes"] == []
     assert CODE_REQUESTS == 3
 
 
 def test_link_code_is_only_taken_from_a_clean_query():
-    assert _link_code("code=12345678") == "12345678"
-    for query in ("", "code=1234", "code=abcdefgh", "code=１２３４５６７８", "code=123456789",
-                  "&".join(f"x{index}=1" for index in range(10))):
+    assert _link_code("code=1234") == "1234"
+    for query in ("", "code=123", "code=abcdefgh", "code=１２３４", "code=12345",
+                  "code=12345678", "&".join(f"x{index}=1" for index in range(10))):
         assert _link_code(query) == ""
 
 
@@ -120,7 +120,7 @@ def test_invite_message(tmp_path, hosts, url, pc_only):
         components = create_web(settings_with(tmp_path, hosts), SECRET, store, print,
                                 __import__("test_web_auth").Logger(), CommandInbox(store))
         text = components.invite()
-        code = re.search(rf"{re.escape(url)}/anmelden\?code=(\d{{8}})", text).group(1)
-        assert f"Code: {code[:4]} {code[4:]}" in text and "10 Minuten" in text
+        code = re.search(rf"{re.escape(url)}/anmelden\?code=(\d{{4}})", text).group(1)
+        assert f"Code: {code}" in text and "10 Minuten" in text
         assert ("nur am PC" in text) is pc_only
         assert components.auth.redeem("telefon", code, "iPhone")

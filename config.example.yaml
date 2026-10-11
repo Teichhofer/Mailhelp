@@ -35,9 +35,10 @@ metrics:
   # Leistung des ganzen Servers in Watt und Strompreis in EUR je kWh.
   ollama_power_watts: 300
   electricity_eur_per_kwh: 0.30
-  # Optional: Wechselkurs für die Umrechnung von USD-Kosten, immer mit Datum.
-  # usd_per_eur: 1.08
-  # exchange_rate_date: 2026-10-01
+  # Standard-Wechselkurs für die Umrechnung von USD-Kosten in Euro (1 € = 1,10 $).
+  usd_per_eur: 1.1
+  # Optional mit Bezugsdatum:
+  # exchange_rate_date: 2026-10-11
 vision:
   # Ab 1.4: Bildanhänge (JPG, PNG, WebP) und gescannte PDFs werden per
   # Bilderkennung gelesen (Schritt vision_ocr in prompts.yaml). Dabei gehen die

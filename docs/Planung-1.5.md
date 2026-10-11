@@ -2,7 +2,7 @@
 
 **Zielversion:** 1.5.0  
 **Stand:** 11. Oktober 2026  
-**Status:** In Planung (Folgt auf Version 1.4 und geht dem Refactoring 1.6 voraus)  
+**Status:** Vollständig umgesetzt (100 % Coverage, Phasen 1–5 abgeschlossen)  
 **Vorausgehende Version:** [Planung-1.4.md](Planung-1.4.md) (Multimodal, OCR & Absender-Filterung)  
 **Nachfolge-Version:** [Planung-1.6.md](Planung-1.6.md) (Stabilisieren & Entflechten)  
 **Große Roadmap:** [Planung-2.0.md](Planung-2.0.md) (Split-View, Smart Reply Drafts & Web-Push)

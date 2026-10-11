@@ -42,7 +42,7 @@ class Logger:
 
 
 def code_from(messages):
-    return re.search(r"Code (\d{4}) (\d{4})", messages[-1]).group(0)[5:]
+    return re.search(r"Code (\d{4})", messages[-1]).group(1)
 
 
 @pytest.fixture
@@ -97,7 +97,7 @@ def test_wrong_codes_spend_the_code_and_expired_codes_are_refused(auth):
     code = code_from(auth.messages)
     for _ in range(CODE_ATTEMPTS):
         with pytest.raises(PairingRefused, match="stimmt nicht"):
-            auth.redeem("browser", "00000000" if code != "0000 0000" else "11111111", "PC")
+            auth.redeem("browser", "0000" if code != "0000" else "1111", "PC")
     with pytest.raises(PairingRefused, match="angefordert"):
         auth.redeem("browser", code, "PC")
     auth.clock_.now += timedelta(minutes=11)

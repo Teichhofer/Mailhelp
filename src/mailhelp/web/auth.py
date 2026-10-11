@@ -159,14 +159,14 @@ class WebAuth:
             state = self._pairing()
             if len(state.failures) >= FAILURE_LIMIT or len(state.requests) >= CODE_REQUESTS:
                 raise PairingLimited("Zu viele Anfragen – bitte später erneut versuchen.")
-            code = f"{secrets.randbelow(10 ** 8):08d}"
+            code = f"{secrets.randbelow(10 ** 4):04d}"
             browser = _sha256(browser_nonce)
             state.codes = [item for item in state.codes if item.browser_hash != browser]
             state.codes.append(PendingCode(browser_hash=browser, code_hmac=self._mac("code", code),
                                            expires_at=self.clock() + CODE_LIFETIME))
             state.requests.append(self.clock())
             self.store.save(PAIRING, state.model_dump(mode="json"))
-        self.notify(f"🔐 Mailhelp-Webanmeldung für „{device}“: Code {code[:4]} {code[4:]}\n"
+        self.notify(f"🔐 Mailhelp-Webanmeldung für „{device}“: Code {code}\n"
                     "Gültig 10 Minuten. Nur eingeben, wenn du die Anmeldung selbst gestartet hast.")
 
     def issue_code(self) -> str:
@@ -178,7 +178,7 @@ class WebAuth:
             state = self._pairing()
             if len(state.failures) >= FAILURE_LIMIT or len(state.requests) >= CODE_REQUESTS:
                 raise PairingLimited("Zu viele Codes angefordert – bitte später erneut versuchen.")
-            code = f"{secrets.randbelow(10 ** 8):08d}"
+            code = f"{secrets.randbelow(10 ** 4):04d}"
             state.codes = [item for item in state.codes if item.browser_hash is not None]
             state.codes.append(PendingCode(code_hmac=self._mac("code", code),
                                            expires_at=self.clock() + CODE_LIFETIME))

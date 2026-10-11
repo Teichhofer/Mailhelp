@@ -126,7 +126,7 @@ def test_web_command_sends_the_current_lan_address(tmp_path, monkeypatch):
         components = create_web(settings(tmp_path, host="0.0.0.0", lan_access=True), SECRET, store,
                                 print, Logger(), CommandInbox(store))
         first, second = components.invite(), components.invite()
-    assert re.search(rf"http://{LAN}:8765/anmelden\?code=\d{{8}}", first)
+    assert re.search(rf"http://{LAN}:8765/anmelden\?code=\d{{4}}", first)
     assert "Nur im selben Netzwerk" in first and "nur am PC" not in first
     # The address is determined anew for every /web (DHCP may change it).
     assert "http://192.168.1.31:8765/anmelden" in second

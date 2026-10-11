@@ -21,13 +21,13 @@ class MetricsSettings(BaseModel):
     retention_days: int = Field(default=90, ge=1, le=3650)
     ollama_power_watts: float = Field(default=300, ge=0, le=100000, allow_inf_nan=False)
     electricity_eur_per_kwh: float = Field(default=0.30, ge=0, le=100, allow_inf_nan=False)
-    usd_per_eur: float | None = Field(default=None, gt=0, allow_inf_nan=False)
+    usd_per_eur: float | None = Field(default=1.1, gt=0, allow_inf_nan=False)
     exchange_rate_date: date | None = None
 
     @model_validator(mode="after")
     def exchange_rate_pair(self):
-        if (self.usd_per_eur is None) != (self.exchange_rate_date is None):
-            raise ValueError("Wechselkurs und Bezugsdatum müssen gemeinsam angegeben werden")
+        if self.exchange_rate_date is not None and self.usd_per_eur is None:
+            raise ValueError("Ein Bezugsdatum erfordert einen konfigurierten Wechselkurs")
         return self
 
 

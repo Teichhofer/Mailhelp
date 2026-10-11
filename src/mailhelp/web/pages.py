@@ -83,8 +83,8 @@ def login_page(csrf: str, code_requested: bool, error: str | None = None,
 <form method="post" action="/anmelden" class="stack">
 <input type="hidden" name="csrf" value="{e(csrf)}">
 <label for="code">Code aus Telegram</label>
-<input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{{8,9}}"
- maxlength="9" required autofocus value="{e(code)}">
+<input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{{4,5}}"
+ maxlength="5" required autofocus value="{e(code)}">
 <label for="geraet">Gerätename <span class="hint">(optional)</span></label>
 <input id="geraet" name="geraet" maxlength="60" autocomplete="off" placeholder="z. B. iPhone">
 <button class="button primary" type="submit">Gerät koppeln</button>

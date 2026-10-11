@@ -30,7 +30,7 @@ class WebComponents:
         base = self.base_url()
         code = self.auth.issue_code()
         text = (f"🌐 Mailhelp-Weboberfläche öffnen:\n{base}/anmelden?code={code}\n\n"
-                f"Code: {code[:4]} {code[4:]} – 10 Minuten gültig, für ein Gerät. Nicht weitergeben.")
+                f"Code: {code} – 10 Minuten gültig, für ein Gerät. Nicht weitergeben.")
         if base.startswith("http://127.0.0.1"):
             text += ("\n\nDieser Link funktioniert nur am PC. Fürs Telefon im selben WLAN "
                      "web.lan_access: true und web.host: 0.0.0.0 setzen (oder Tailscale Serve einrichten).")

@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import secrets
 from datetime import datetime
+from decimal import Decimal
 from zoneinfo import ZoneInfo
 from pathlib import Path
 from urllib.parse import parse_qs, urlencode
@@ -101,12 +102,14 @@ def statistics_page(params: dict, report: dict, everything: list[dict]) -> str:
     if report["groups"]:
         body += ('<h2>Nach Modell und Schritt</h2><div class="table-scroll"><table><thead><tr>'
                  "<th>Modell</th><th>Schritt</th><th>Anbieter</th><th>Aufrufe</th><th>Fehler</th>"
-                 "<th>Summe</th><th>Median</th><th>95 %</th><th>USD</th></tr></thead><tbody>")
+                 "<th>Summe</th><th>Median</th><th>95 %</th><th>$Cent</th></tr></thead><tbody>")
         for group in report["groups"]:
-            body += (f'<tr><td>{e(group["model"])}</td><td>{e(group["stage"])}</td><td>{e(group["provider"])}</td>'
+            model_short = group["model"].rsplit("/", 1)[-1]
+            cent = Decimal(str(group["usd"])) * 100
+            body += (f'<tr><td title="{e(group["model"])}">{e(model_short)}</td><td>{e(group["stage"])}</td><td>{e(group["provider"])}</td>'
                      f'<td>{group["count"]}</td><td>{group["failed"]}</td><td>{_number(group["seconds"], 1)} s</td>'
                      f'<td>{_number(group["median"], 2)} s</td><td>{_number(group["p95"], 2)} s</td>'
-                     f'<td>{_number(group["usd"], 4)}</td></tr>')
+                     f'<td title="{_number(group["usd"], 4)} USD">{_number(cent, 2)}</td></tr>')
         body += "</tbody></table></div>"
     else:
         body += '<p class="empty">Für diese Auswahl gibt es keine erfassten Aufrufe.</p>'

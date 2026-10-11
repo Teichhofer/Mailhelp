@@ -10,7 +10,7 @@ from typing import Any, Protocol
 import httpx
 from pydantic import ValidationError
 
-from ..adapter import PermanentError, RetryPolicy, uncertain_write
+from ..adapter import PermanentError, RetryInterrupted, RetryPolicy, uncertain_write
 from ..logging import NullLogger
 
 from .formatting import split_message
@@ -141,6 +141,16 @@ class TelegramClient:
                     error=exc,
                 ),
             )
+        except RetryInterrupted as exc:
+            self.logger.event(
+                "INFO",
+                "telegram",
+                "poll_interrupted",
+                call_id=call_id,
+                error=exc,
+                duration_ms=round((time.perf_counter() - started) * 1000, 3),
+            )
+            raise
         except Exception as exc:
             self.logger.event(
                 "ERROR",
