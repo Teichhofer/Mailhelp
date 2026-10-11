@@ -338,7 +338,7 @@ h2 { overflow-wrap: anywhere; }
 
 .stack input[type="checkbox"] { width: 44px; height: 44px; min-height: 44px; vertical-align: middle; }
 
-.table-scroll { max-width: 100%; overflow-x: auto; }
+.table-scroll { max-width: 100%; overflow-x: auto; border: 1px solid var(--border); border-radius: var(--radius); margin: 0 0 16px; }
 .table-scroll table { border-collapse: collapse; width: 100%; min-width: 640px; }
 .table-scroll th, .table-scroll td { padding: 12px; border-bottom: 1px solid var(--border); text-align: left; overflow-wrap: anywhere; }
 
@@ -349,3 +349,16 @@ select {
   width: 100%; font: inherit; font-size: 16px; color: var(--text); background: var(--surface);
   border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; min-height: 44px;
 }
+
+/* Settings: one expandable row per value */
+details.setting {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
+  margin: 0 0 8px; padding: 0 14px;
+}
+details.setting summary { justify-content: space-between; gap: 12px; color: var(--text); }
+details.setting summary span { flex: 1 1 auto; min-width: 0; }
+details.setting summary strong { flex: 0 0 auto; max-width: 55%; overflow-wrap: anywhere; text-align: right; }
+details.setting[open] { padding-bottom: 12px; }
+table { width: 100%; border-collapse: collapse; background: var(--surface); }
+th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { color: var(--muted); font-weight: 600; }

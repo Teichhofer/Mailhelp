@@ -347,3 +347,66 @@ def test_application_writes_metrics_into_the_log_directory(tmp_path, monkeypatch
         assert made.logger.metrics.path == logs / "llm.jsonl"
         assert made.logger.metrics.comparison.path == logs / "decision-tests.jsonl"
         assert (logs / "llm.jsonl").exists() and not legacy.exists()
+
+
+# --- R4: settings page ---------------------------------------------------------------
+
+def test_effective_models_name_their_source_without_prompt_texts():
+    from mailhelp.configuration import effective_models
+    from test_core import prompt_config
+    prompts = prompt_config()
+    standard = effective_models(prompts, "typesafe/jev", None)
+    assert standard[0] == ("Relevanz", "typesafe/jev", "unklare Fälle: Rückfall auf das Relevanzmodell",
+                           "decisions_prompts.yaml")
+    assert all(source == "prompts.yaml" for *_, source in standard[1:])
+    assert ("Zusammenfassung" in {step for step, *_ in standard})
+    local = effective_models(prompts, None, "gemma3:12b")
+    assert local[0] == ("Alle Schritte", "gemma3:12b", "", "Startparameter --ollama")
+    assert all(source == "Startparameter --ollama ersetzt" for *_, source in local[1:])
+    legacy = effective_models(prompts, None, None)
+    assert all(source == "prompts.yaml" for *_, source in legacy)
+    rendered = " ".join(str(value) for row in standard for value in row)
+    assert "system_prompt" not in rendered and "Du bist" not in rendered
+
+
+def test_settings_page_groups_values_and_marks_pending_restarts(web, tmp_path):
+    service, *_ = configure(web, tmp_path)
+    path = tmp_path / "config.yaml"
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    data["timeouts"]["imap"]["retries"] = 7
+    data["targets"]["google_calendar"] = "familie@group.calendar.google.com"
+    path.write_text(yaml.safe_dump(data), encoding="utf-8")
+    page = web.browser.request("GET", "/einstellungen").body.decode()
+    for title in ("Mailabruf und Betrieb", "Ziele", "Zeitlimits und Wiederholungen", "Aufbewahrung",
+                  "Protokollierung", "Kosten und Messung"):
+        assert f"<h2>{title}</h2>" in page
+    assert "<span>IMAP: Wiederholungen</span><strong>0</strong>" in page
+    assert "Gespeichert: 7 · gespeichert – wirkt erst nach einem Neustart" in page
+    assert "<strong>c…</strong>" not in page and "fam…com" in page
+    assert '<option value="true"' in page and '<option value="INFO" selected>' in page
+    assert 'type="number" step="any" name="value" value="5"' in page
+    assert "Kommentare und Aufbau der Datei bleiben erhalten" in page
+    assert "<span>Wechselkurs (USD je EUR)</span><strong>nicht gesetzt</strong>" in page
+    web.site.archive.configuration = None
+    unavailable = web.browser.request("GET", "/einstellungen").body.decode()
+    assert "Konfigurationsdienst nicht verfügbar." in unavailable and "<h2>Modelle (nur lesend)</h2>" in unavailable
+
+
+def test_live_settings_saved_but_not_yet_taken_over(web, tmp_path):
+    service, *_ = configure(web, tmp_path)
+    path = tmp_path / "config.yaml"
+    data = yaml.safe_load(path.read_text(encoding="utf-8"))
+    data["poll_interval_seconds"] = 33
+    path.write_text(yaml.safe_dump(data), encoding="utf-8")
+    page = web.browser.request("GET", "/einstellungen").body.decode()
+    assert "Gespeichert: 33 · gespeichert – wird an der nächsten sicheren Stelle übernommen" in page
+
+
+def test_settings_page_shows_the_model_table_or_says_there_is_none(web, tmp_path):
+    from mailhelp.configuration import effective_models
+    from test_core import prompt_config
+    configure(web, tmp_path)
+    assert "Keine Modellangaben verfügbar." in web.browser.request("GET", "/einstellungen").body.decode()
+    web.site.archive.models = effective_models(prompt_config(), "typesafe/jev", None)
+    page = web.browser.request("GET", "/einstellungen").body.decode()
+    assert "<td>Relevanz</td><td>typesafe/jev</td>" in page and "<td>decisions_prompts.yaml</td>" in page

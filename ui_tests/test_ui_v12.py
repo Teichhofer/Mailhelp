@@ -30,9 +30,11 @@ def test_deterministic_edit_and_settings_confirmation(page, mailhelp):
     expect(page.locator(f'#v-{mail_id(1)}-formular')).to_contain_text('Neuer Titel aus dem Formular')
     assert mailhelp.writer.created == []
     page.goto(mailhelp.url + '/einstellungen')
-    card = page.locator('section.card').filter(has=page.get_by_role('heading', name='Abrufintervall (Sekunden)', exact=True))
-    card.get_by_label('Neuer Wert').fill('10')
-    card.get_by_role('button', name='Speichern').click()
+    setting = page.locator('details.setting').filter(has_text='Abrufintervall (Sekunden)')
+    setting.locator('summary').click()
+    assert audit(page, f'v12-setting-open-{page.device}', page.mobile) == []
+    setting.get_by_label('Neuer Wert').fill('10')
+    setting.get_by_role('button', name='Prüfen').click()
     expect(page.get_by_role('heading', name='Änderung bestätigen')).to_be_visible()
     assert audit(page, f'v12-setting-confirm-{page.device}', page.mobile) == []
     page.get_by_role('button', name='Änderung ausdrücklich speichern').click()

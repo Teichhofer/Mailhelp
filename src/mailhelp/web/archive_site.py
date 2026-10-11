@@ -113,6 +113,110 @@ def statistics_page(params: dict, report: dict, everything: list[dict]) -> str:
     return body
 
 
+SETTING_GROUPS = (
+    ("Mailabruf und Betrieb", ("poll_interval_seconds", "timezone", "test_mode")),
+    ("Ziele", ("targets.",)),
+    ("Aufrufbudget und Mailgrenzen", ("limits.",)),
+    ("Zeitlimits und Wiederholungen", ("timeouts.", "retries.")),
+    ("Aufbewahrung", ("retention.",)),
+    ("Protokollierung", ("logging.",)),
+    ("Kosten und Messung", ("metrics.",)),
+)
+SERVICE_LABELS = {"imap": "IMAP", "telegram": "Telegram", "openrouter": "OpenRouter", "ollama": "Ollama",
+                  "todoist": "Todoist", "google_calendar": "Google Kalender"}
+TIMEOUT_LABELS = {"timeout_seconds": "Zeitlimit (s)", "retries": "Wiederholungen",
+                  "initial_backoff_seconds": "erste Wartezeit (s)", "max_backoff_seconds": "längste Wartezeit (s)"}
+EXTRA_LABELS = {
+    "targets.todoist_project": "Todoist-Projekt", "targets.google_calendar": "Google-Kalender",
+    "logging.console.level": "Konsole: Mindeststufe", "logging.file.level": "Logdatei: Mindeststufe",
+    "logging.llm.include_requests": "KI-Anfragen vollständig protokollieren",
+    "logging.llm.include_responses": "KI-Antworten vollständig protokollieren",
+    "metrics.usd_per_eur": "Wechselkurs (USD je EUR)", "metrics.exchange_rate_date": "Wechselkurs vom",
+    "retries.interpretation_attempts": "Antworten verstehen: Versuche",
+    "retries.interpretation_backoff_seconds": "Antworten verstehen: Wartezeit (s)",
+    "retries.revision_attempts": "Überarbeitung: Versuche", "retries.revision_backoff_seconds": "Überarbeitung: Wartezeit (s)",
+}
+LEVEL_CHOICES = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+
+
+def setting_label(name: str) -> str:
+    if name in SETTING_LABELS or name in EXTRA_LABELS:
+        return SETTING_LABELS.get(name) or EXTRA_LABELS[name]
+    _, service, key = name.split(".")
+    return f"{SERVICE_LABELS[service]}: {TIMEOUT_LABELS[key]}"
+
+
+def _lookup(values: dict | None, name: str) -> object:
+    for part in name.split("."):
+        values = values.get(part) if isinstance(values, dict) else None
+    return values
+
+
+def _shown(name: str, value: object) -> str:
+    """A readable value; target IDs are masked, missing values marked."""
+    if value is None:
+        return "nicht gesetzt"
+    if isinstance(value, bool):
+        return "ja" if value else "nein"
+    text = str(value)
+    if name.startswith("targets.") and len(text) > 8:
+        return f"{text[:3]}…{text[-3:]}"
+    return text
+
+
+def _input(name: str, saved: object) -> str:
+    label = "Neuer Wert"
+    if isinstance(saved, bool):
+        return select("value", label, json.dumps(saved), [("true", "ja"), ("false", "nein")])
+    if name.endswith(".level"):
+        return select("value", label, saved, [(level, level) for level in LEVEL_CHOICES])
+    kind = "number" if isinstance(saved, (int, float)) else "text"
+    step = ' step="any"' if kind == "number" else ""
+    shown = "" if saved is None else saved
+    return (f'<label>{label}<input type="{kind}"{step} name="value" value="{e(shown)}" '
+            'maxlength="200" required></label>')
+
+
+def settings_page(models: list, raw: dict | None, active: dict | None, revision: str, csrf: str) -> str:
+    body = ('<h1>Einstellungen</h1><p class="card-links"><a class="button small" href="/themen">Themen</a> '
+            '<a class="button small" href="/geraete">Geräte</a> '
+            '<a class="button small danger" href="/einstellungen/beenden">Mailhelp beenden</a></p>')
+    body += "<h2>Modelle (nur lesend)</h2>"
+    if models:
+        body += ('<div class="table-scroll"><table><thead><tr><th>Schritt</th>'
+                 "<th>Modell</th><th>Parameter</th><th>Quelle</th></tr></thead><tbody>"
+                 + "".join(f"<tr><td>{e(step)}</td><td>{e(model)}</td><td>{e(parameters or '—')}</td><td>{e(source)}</td></tr>"
+                           for step, model, parameters, source in models)
+                 + "</tbody></table></div>")
+    else:
+        body += '<p class="meta">Keine Modellangaben verfügbar.</p>'
+    if raw is None:
+        return body + notice("Konfigurationsdienst nicht verfügbar.", "warn")
+    body += ('<p class="meta">Quelle aller folgenden Werte: <code>config.yaml</code>. Gespeichert wird nur der '
+             "geänderte Wert; Kommentare und Aufbau der Datei bleiben erhalten. Vor dem Speichern wird die "
+             "Änderung noch einmal angezeigt.</p>")
+    for title, prefixes in SETTING_GROUPS:
+        names = sorted(name for name in SETTINGS_FIELDS
+                       if any(name == prefix or name.startswith(prefix) for prefix in prefixes))
+        body += f"<h2>{e(title)}</h2>"
+        for name in names:
+            current, saved = _lookup(active, name), _lookup(raw, name)
+            live = name.split(".")[0] in LIVE_FIELDS
+            if current == saved:
+                state = "aktiv"
+            else:
+                state = ("gespeichert – wird an der nächsten sicheren Stelle übernommen" if live
+                         else "gespeichert – wirkt erst nach einem Neustart")
+            timing = "sofort nach dem Speichern" if live else "beim nächsten Start"
+            form = post_form("/einstellungen/speichern", csrf, _input(name, saved), "Prüfen",
+                             name=name, expected_hash=revision)
+            body += (f'<details class="setting"><summary><span>{e(setting_label(name))}</span>'
+                     f'<strong>{e(_shown(name, current))}</strong></summary>'
+                     f'<p class="meta">Gespeichert: {e(_shown(name, saved))} · {e(state)} · '
+                     f'Änderungen wirken {e(timing)}.</p>{form}</details>')
+    return body
+
+
 def field(name: str, label: str, value: object = "", *, hidden: bool = False) -> str:
     if hidden:
         return f'<input type="hidden" name="{e(name)}" value="{e(value)}">'
@@ -300,25 +404,16 @@ class ArchiveSite:
         return Response.redirect(f"/aktion/{entry.id}")
 
     def settings(self, request, session):
-        body = '<h1>Einstellungen</h1><p><a href="/themen">Themen verwalten</a> · <a href="/geraete">Geräte verwalten</a> · <a href="/einstellungen/beenden">Mailhelp beenden</a></p>'
-        body += '<h2>Aktive Modelle</h2><ul>' + "".join(f'<li>{e(k)}: {e(v)}</li>' for k, v in self.models.items()) + '</ul>'
-        if self.configuration is None:
-            return Response.html(200, layout("Einstellungen", body + notice("Konfigurationsdienst nicht verfügbar.", "warn")))
-        raw = yaml.safe_load((self.configuration.directory / "config.yaml").read_text(encoding="utf-8"))
-        active = self.configuration.active.model_dump(mode="json")
-        revision = file_hash(self.configuration.directory / "config.yaml")
-        body += '<p>Nur angebotene Werte werden bearbeitet. YAML-Kommentare werden beim Speichern nicht erhalten. Änderungen werden vor Speicherung nochmals angezeigt.</p>'
-        for name in sorted(SETTINGS_FIELDS):
-            current, saved = active, raw
-            for part in name.split("."):
-                current = current.get(part) if isinstance(current, dict) else None
-                saved = saved.get(part) if isinstance(saved, dict) else None
-            body += f'<section class="card"><h2>{e(SETTING_LABELS.get(name, name))}</h2><p class="meta">{e(name)}</p><p>Aktiv: {e(current)} · gespeichert: {e(saved)}. Quelle: config.yaml</p>'
-            activation = "Nach sicherer Übernahme" if name.split(".")[0] in LIVE_FIELDS else "Beim nächsten Start"
-            body += f'<p>Wirksam: {e(activation)}.</p>'
-            body += post_form("/einstellungen/speichern", self.site.auth.csrf_token(session.id), field("value", "Neuer Wert (JSON-Skalar oder Text)", json.dumps(saved, ensure_ascii=False)),
-                              name=name, expected_hash=revision) + '</section>'
-        return Response.html(200, layout("Einstellungen", body, active="/einstellungen"))
+        configuration = self.configuration
+        raw = active = None
+        revision = ""
+        if configuration is not None:
+            path = configuration.directory / "config.yaml"
+            raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+            active = configuration.active.model_dump(mode="json")
+            revision = file_hash(path)
+        page = settings_page(self.models, raw, active, revision, self.site.auth.csrf_token(session.id))
+        return Response.html(200, layout("Einstellungen", page, active="/einstellungen"))
 
     def save_settings(self, request, session, form):
         if self.configuration is None:

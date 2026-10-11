@@ -1167,9 +1167,7 @@ def build_application(
             dialog.stop_requested = lambda: components.site.lifecycle.state != "running" or stop_event.is_set()
             components.site.archive.configuration = configuration
             components.site.archive.metrics = logger.metrics
-            components.site.archive.models = {step: local_llm.model if local_llm else ", ".join(route.model for route in prompts.resolved_routes(step)[0])
-                                               for step in prompts.prompts}
-            components.site.archive.models["Relevanz"] = jev_prompts.model if jev_prompts else getattr(openrouter, "service_name", "Standard-LLM")
-            components.site.archive.models["Modus / Startparameter"] = "Ollama: " + local_llm.model if local_llm else "Standard: JEV mit unklarem Ergebnis als LLM-Fallback"
-            components.site.archive.models["Parameter (prompts.yaml, lesend)"] = json.dumps({step: [route.parameters for route in prompts.resolved_routes(step)[0]] for step in prompts.prompts}, ensure_ascii=False)
+            from .configuration import effective_models
+            components.site.archive.models = effective_models(
+                prompts, jev_prompts.model if jev_prompts else None, local_llm.model if local_llm else None)
         yield application

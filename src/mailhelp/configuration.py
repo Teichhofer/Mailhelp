@@ -54,6 +54,36 @@ for field in ("interpretation_attempts", "interpretation_backoff_seconds", "revi
 LIVE_FIELDS = {"poll_interval_seconds", "retention", "metrics"}
 
 
+STEP_LABELS = {
+    "relevance": "Relevanz (Rückfall)", "summary": "Zusammenfassung", "action_router": "Aktionszuordnung",
+    "task_extraction": "Aufgabenerkennung", "event_extraction": "Terminerkennung",
+    "mail_question_resolution": "Rückfragen aus der Mail", "telegram_answer_interpretation": "Antworten verstehen",
+    "telegram_answer_clarification": "Nachfragen formulieren", "proposal_revision": "Vorschläge überarbeiten",
+    "learning_classification": "Lernmodus: Einordnung", "learning_abstraction": "Lernmodus: Themen",
+    "calendar_duplicate": "Kalender-Dubletten",
+}
+
+
+def effective_models(prompts, jev_model: str | None, local_model: str | None) -> list[tuple[str, str, str, str]]:
+    """(step, model, parameters, source) of the running process, read-only.
+
+    No prompt texts, provider addresses or secrets are included.
+    """
+    rows = []
+    if local_model:
+        rows.append(("Alle Schritte", local_model, "", "Startparameter --ollama"))
+    elif jev_model:
+        rows.append(("Relevanz", jev_model, "unklare Fälle: Rückfall auf das Relevanzmodell",
+                     "decisions_prompts.yaml"))
+    for step in prompts.prompts:
+        routes = prompts.resolved_routes(step)[0]
+        parameters = "; ".join(", ".join(f"{key} {value}" for key, value in sorted(route.parameters.items()))
+                               for route in routes if route.parameters)
+        rows.append((STEP_LABELS.get(step, step), ", ".join(route.model for route in routes),
+                     parameters, "Startparameter --ollama ersetzt" if local_model else "prompts.yaml"))
+    return rows
+
+
 def file_hash(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
