@@ -2,7 +2,7 @@
 
 **Stand:** 11. Oktober 2026  
 **Zielversion:** 1.2.0  
-**Status:** Plan, noch nicht implementiert. Grundlage ist der aktuelle Arbeitsstand von 1.1 im Branch `beta`, einschließlich bereits begonnener Änderungen an Betriebsdaten und Webansichten.
+**Status:** Umgesetzt im Branch `beta` (Version 1.2.0, Beta). Abgleich und Restarbeiten: [1.2-Restplan.md](1.2-Restplan.md); Betrieb: [Release-1.2.md](Release-1.2.md).
 
 ## 1. Ziel und vollständiger Umfang
 

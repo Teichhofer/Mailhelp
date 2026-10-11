@@ -20,6 +20,24 @@ data_directory: data
 retention:
   full_mail_days: 30
   debug_llm_days: disabled
+  # Ab 1.2: kompakte Analyse (Relevanz, Begründung, Themen, Zusammenfassung) für die
+  # Weboberfläche. Fehlt der Schlüssel, gilt wie bisher debug_llm_days. 30 bewusst setzen,
+  # damit Analysen nach Abschluss eines Vorgangs 30 Tage sichtbar bleiben.
+  # analysis_days: 30
+  # Ab 1.2: angezeigter Entscheidungsverlauf (Ereignisse, ältere Vorschlagsversionen).
+  history_days: 90
+metrics:
+  # Ab 1.2: inhaltsfreie Messung von KI-Aufrufen (Dauer, Modell, Schritt, Kosten) für
+  # die Seite „Auswertung“. Gespeichert in logs/metrics/.
+  enabled: true
+  retention_days: 90
+  # Annahmen für die Stromschätzung im Ollama-Betrieb (keine Messung):
+  # Leistung des ganzen Servers in Watt und Strompreis in EUR je kWh.
+  ollama_power_watts: 300
+  electricity_eur_per_kwh: 0.30
+  # Optional: Wechselkurs für die Umrechnung von USD-Kosten, immer mit Datum.
+  # usd_per_eur: 1.08
+  # exchange_rate_date: 2026-10-01
 learning:
   parallel_llm_calls: 10
 imap:

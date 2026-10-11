@@ -1,5 +1,20 @@
 # Änderungen
 
+## 1.2.0 – Beta (Branch `beta`)
+
+- Weboberfläche mit Mailarchiv (Suche, Filter, Analyse), Entscheidungsverlauf mit
+  lesenden Altversionen, erweitertem Betriebsstatus und Kosten-/Zeitauswertung.
+- Strukturierte Bearbeitung von Vorschlägen; Speichern erzeugt eine neue Version, die
+  separat bestätigt werden muss.
+- Einstellungen und Themen im Web, kommentarerhaltend in `config.yaml` gespeichert;
+  kontrolliertes Beenden aus dem Web.
+- Konfigurations-Fingerprint nur aus analyserelevanten Einstellungen; Vorgänge aus 1.1
+  laufen nach dem Upgrade weiter.
+- Lernmodus ergänzt IMAP-Ordner ohne Kommentarverlust.
+- Bestätigung von Schreibzugriffen über Telegram oder die authentifizierte Weboberfläche.
+
+Einrichtung, Upgrade und Rollback: [Release-Anleitung](docs/Release-1.2.md).
+
 ## 1.1.0 – Beta (Branch `beta`)
 
 - Optionale Weboberfläche mit Übersicht, Vorschlagsdetail, Status und Geräteverwaltung,

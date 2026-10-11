@@ -70,7 +70,8 @@ def test_status_page_counts_the_run(browser):
     assert '<progress class="run-progress" max="9" value="7"' in html
     assert '<strong>6</strong><span>Relevant und ausgewertet</span>' in html
     assert '<strong>1</strong><span>Irrelevant</span>' in html
-    assert "<dt>Version</dt><dd>1.1.0</dd>" in html and "<dt>Modus</dt><dd>Produktiv</dd>" in html
+    from mailhelp import __version__
+    assert f"<dt>Version</dt><dd>{__version__}</dd>" in html and "<dt>Modus</dt><dd>Produktiv</dd>" in html
     assert "<dt>Weboberfläche</dt><dd>http://127.0.0.1:8765</dd>" in html
     assert "<dt>Gekoppelte Geräte</dt><dd>1</dd>" in html and "<dt>Gespeichert</dt><dd>7</dd>" in html
     assert '<strong>2</strong><span>Klärung nötig</span>' in html and "Angelegt</span>" in html

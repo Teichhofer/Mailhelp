@@ -56,6 +56,7 @@ def test_built_artifacts_exclude_private_runtime_files():
     with tarfile.open(sources[-1]) as archive:
         names = {name.split("/", 1)[-1] for name in archive.getnames()}
         assert {"config.example.yaml", ".env.example", "prompts.yaml", "requirements.lock",
-                "docs/Release-1.0.md", "docs/Release-1.1.md", "src/mailhelp/assets/logo.png"} <= names
+                "docs/Release-1.0.md", "docs/Release-1.1.md", "docs/Release-1.2.md",
+                "src/mailhelp/assets/logo.png"} <= names
         assert "config.yaml" not in names and ".env" not in names
         assert not any(name.startswith(("data/", "logs/", "quality-reports/")) for name in names)

@@ -139,6 +139,10 @@ verantwortlichen Person, als lesbare JSON-Dateien und Protokolle.
 | Protokoll der KI-Anfragen und -Antworten, einschließlich Mailinhalten | 30 Tage, rotierend |
 | Protokoll der Telegram-Nachrichten, einschließlich Inhalten | 30 Tage, rotierend |
 | Gelernte Filter | bis zur manuellen Änderung |
+| Kompakte Analyse einer Mail (Relevanz, Begründung, Themen, Zusammenfassung; ab 1.2) | `retention.analysis_days` nach Abschluss; ohne Angabe wie die KI-Zwischenergebnisse |
+| Entscheidungsverlauf und ältere Vorschlagsversionen (ab 1.2) | `retention.history_days`, Standard 90 Tage nach Abschluss; Sicherheitsreferenzen gegen Doppelanlagen bleiben |
+| Inhaltsfreie Messwerte von KI-Aufrufen (Dauer, Modell, Schritt, Kosten; ab 1.2) | `metrics.retention_days`, Standard 90 Tage; danach nur Tagessummen ohne Mailbezug |
+| Journal von Einstellungs- und Themenänderungen über das Web (ab 1.2) | bis `mailhelp --clear` |
 | Gekoppelte Geräte der Weboberfläche | bis zum Ablauf (Standard 30 Tage), zum Abmelden oder Widerruf (auch per `/web_abmelden`) |
 | Kopplungscodes | 10 Minuten |
 | Web-Aktionen und deren Ergebnis | ein Tag nach Abschluss |

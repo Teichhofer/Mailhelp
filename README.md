@@ -1212,6 +1212,18 @@ Mailhelp wie 1.0.
 Einrichtung, Tailscale, iPhone-Installation und Sicherheitsdetails:
 [Release-1.1.md](docs/Release-1.1.md).
 
+Ab 1.2 zeigt die Weboberfläche außerdem:
+
+- **Mails:** Suche und Filter über alle gespeicherten Mails mit ihrer Analyse.
+- **Verlauf:** Entscheidungen und ältere Vorschlagsversionen.
+- **Status:** laufender Schritt und letzte erfolgreiche Dienstkontakte.
+- **Auswertung:** Kosten und Zeiten der KI-Aufrufe.
+- **Einstellungen:** wichtige Werte, gespeichert kommentarerhaltend in `config.yaml`.
+- **Themen** und **Mailhelp beenden**.
+
+Vorschläge lassen sich in Formularfeldern ändern; die neue Version wird wie immer
+erst nach eigener Bestätigung angelegt. Details: [Release-1.2.md](docs/Release-1.2.md).
+
 ## Docker
 
 ```sh

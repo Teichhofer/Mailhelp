@@ -1782,3 +1782,66 @@ ohne Verbindung erscheint die Offline-Seite. POST-Anfragen, Daten und API-Antwor
 werden weder gespeichert noch später gesendet.
 
 Einrichtung und Betrieb: [docs/Release-1.1.md](docs/Release-1.1.md).
+
+## 19. Weboberfläche 1.2: Archiv, Verlauf, Auswertung und Einstellungen
+
+Version 1.2 erweitert Abschnitt 18; alle Regeln dort (Anmeldung, CSRF, Host-Prüfung,
+Hauptthread als einziger Zustandsbesitzer, versionsgebundene Befehle) gelten auch hier.
+
+**Mails und Analyse.** `/mails` durchsucht ausschließlich gespeicherte Vorgänge
+(Absender, Betreff, Zusammenfassung) mit validierten Filtern und höchstens 100 Einträgen
+je Seite über einen nur bei Zustandsänderungen neu aufgebauten Speicherindex. `/mail/<id>`
+zeigt Zusammenfassung, Relevanz mit Begründung, Themen zum Analysezeitpunkt,
+Entscheidungsquelle und Originalmail. Die Analyse wird beim Speichern des Mailzustands
+als `analysis-<id>` festgehalten und mit `retention.analysis_days` bereinigt (fehlt der
+Schlüssel, gilt `debug_llm_days`). Beim Öffnen einer Seite findet kein KI-Aufruf statt.
+
+**Verlauf.** Ereignisse (`history-<id>`) entstehen bei Zustandsänderungen von Vorschlägen
+und bei Befehlen aus Telegram und Web, mit aus Vorgang und Ereignis abgeleitetem
+Schlüssel, ohne Mailtext oder Tokens. Historische Versionen sind lesend und zeigen die
+Feldänderungen gegenüber der Vorgängerversion. Vorgänge vor 1.2 werden als nicht
+vollständig erfasst gekennzeichnet. `retention.history_days` entfernt Ereignisse und
+Inhalte alter Versionen, nicht die Sicherheitsreferenzen gegen Doppelanlagen.
+Vorschlagsdateien werden nur unter der Identität geladen, die ihr Dateiname angibt.
+
+**Strukturierte Bearbeitung.** `ProposalEditPatch` ist geschlossen. Speichern erzeugt eine
+neue Version über die gemeinsame Revisionslogik und schreibt nie extern; die neue Version
+benötigt eine eigene Bestätigung. Für `writing`, `uncertain` und angelegte Vorschläge gibt
+es kein Formular. Zeiten gelten in der konfigurierten Zone; nicht existierende oder
+doppeldeutige Zeiten werden abgewiesen.
+
+**Betriebsstatus.** Ein Laufzeitschnappschuss (Schritt, Dauer, Mail, nächster Abruf) und
+der letzte belegte erfolgreiche Kontakt je Dienst stammen aus ohnehin protokollierten
+Ereignissen; die Statusseite löst keinen Dienstaufruf aus und aktualisiert sich über ein
+eigenes Signal (`/api/stand?seite=status`).
+
+**Metriken.** Jeder KI-Versuch wird inhaltsfrei in `logs/metrics/llm.jsonl` (Betrieb) bzw.
+`logs/metrics/decision-tests.jsonl` (Vergleichsläufe) festgehalten, mit Schritt, Modell,
+Anbieter, Dauer, Status, Tokenzahlen und gemeldeten Kosten. Doppelte Zeilen zählen einmal;
+abgelaufene Einzelwerte werden über ein Journal in Tagesaggregate ohne Mailbezug
+überführt. Fehlende Kosten sind „unbekannt“, nicht null; Euro nur mit Wechselkurs und
+Datum; Stromkosten sind eine gekennzeichnete Schätzung aus `metrics.ollama_power_watts` und
+`metrics.electricity_eur_per_kwh`, überlappende Aufrufe zählen einmal.
+
+**Einstellungen und Themen.** Bearbeitbar ist nur eine Positivliste von Einstellungen;
+Geheimnisse, Web-Bindung, Datenverzeichnis und IMAP-Konten nicht. Änderungen sind
+`AdminCommand`s mit erwartetem Dateihash und ausdrücklicher Bestätigung, laufen im
+Hauptthread, werden journalisiert und atomar geschrieben. `config.yaml` wird
+kommentarerhaltend geändert (nur betroffene Zeilen); weicht die geparste Datei vom
+validierten Kandidaten ab, wird nichts geschrieben. Abrufintervall, Aufbewahrung und
+Metrikannahmen werden an einer sicheren Stelle übernommen, alles andere nach einem
+Neustart. Themenänderungen gelten für neue Mails; begonnene Mails behalten ihren
+Themenstand. Der Lernmodus ergänzt IMAP-Ordner ebenfalls kommentarerhaltend.
+
+**Konfigurations-Fingerprint.** Er umfasst nur analyserelevante Einstellungen sowie
+Prompts und Themen; Polling, Logging, Aufbewahrung, Zeitlimits, Wiederholungen, Lernmodus,
+Metriken und Web gehören nicht dazu. Fingerprints, die 1.1 oder die 1.2-Beta für dieselbe
+Konfiguration berechnet hätten, werden beim Start als gleichwertig registriert.
+
+**Programmstopp.** Ein bestätigter POST mit Prozesskennung fordert den Stopp an; danach
+werden keine Analysen und Web-Befehle mehr ausgeführt. Nach Auslieferung der Antwort ruft
+der Lebenszyklus `Application.stop()` auf – denselben Weg wie SIGINT/SIGTERM. Zustände:
+`running → stop_requested → stopping → stopped`, jeweils protokolliert. Eine
+Stoppanforderung gilt nur für ihren Prozess und wird nie wiederholt.
+
+Einrichtung, Upgrade und Rollback: [docs/Release-1.2.md](docs/Release-1.2.md).
