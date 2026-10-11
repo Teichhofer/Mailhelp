@@ -103,6 +103,57 @@ class MailView:
 
 
 @dataclass(frozen=True)
+class ErrorView:
+    """A mail whose processing stopped with an error (no content, only the cause)."""
+
+    mail_id: str
+    subject: str
+    stage: str
+    cause: str
+    occurred_at: datetime
+    retryable: bool | None
+
+
+@dataclass(frozen=True)
+class SystemStatus:
+    mails_total: int
+    mails_failed: int
+    mails_deferred: int
+    mails_waiting_relevance: int
+    last_processed: datetime | None
+    # Outcome of the analysis in the current run: completed, irrelevant, duplicate, ...
+    analysis: dict[str, int]
+    run_total: int
+    run_finished: int
+    proposals: dict[ProposalStatus, int]
+    errors: tuple[ErrorView, ...]
+    telegram_held: int
+    telegram_unprocessed: int
+    llm_calls_last_minute: int
+
+
+STAGE_LABELS = {
+    "preparation": "Aufbereitung", "relevance": "Relevanzprüfung", "summary": "Zusammenfassung",
+    "summary_notification": "Telegram-Zusammenfassung", "action_detection": "Aktionserkennung",
+    "action_router": "Aktionszuordnung", "task_extraction": "Aufgabenerkennung",
+    "event_extraction": "Terminerkennung", "normalization": "Normalisierung",
+    "proposal_building": "Vorschlagserstellung", "proposal_notification": "Telegram-Vorschlag",
+    "completion": "Abschluss",
+}
+ERROR_LABELS = {
+    "mime_limit_exceeded": "Mail zu groß oder zu komplex",
+    "llm_schema_validation_exhausted": "KI-Antwort wiederholt ungültig",
+    "provider_response_invalid": "Ungültige Antwort des KI-Anbieters",
+    "invalid_json": "KI-Antwort war kein gültiges JSON",
+    "schema_validation_failed": "KI-Antwort entsprach nicht dem Schema",
+    "permanent_adapter_error": "Dienst lehnt dauerhaft ab",
+    "llm_rate_limited": "KI-Aufruflimit erreicht",
+    "internal_error": "Interner Fehler",
+}
+ERROR_LIMIT = 5
+
+
+@dataclass(frozen=True)
 class RunStatus:
     counters: dict[str, int]
     run_complete: bool
@@ -131,6 +182,15 @@ class _Reader:
             self.damaged.add(name)
             return None
         return value  # type: ignore[return-value]
+
+    def raw(self, name: str) -> dict:
+        """An unvalidated state object; damaged or missing ones read as empty."""
+        try:
+            value = self.store.peek(name, {})
+        except CorruptState:
+            self.damaged.add(name)
+            return {}
+        return value if isinstance(value, dict) else {}
 
 
 class ReviewViews:
@@ -161,6 +221,55 @@ class ReviewViews:
         overview = self.overview()
         return next((view for view in overview.open + overview.recent
                      if (view.mail_id, view.proposal_id) == (mail_id, proposal_id)), None)
+
+    def system(self, now: datetime | None = None) -> SystemStatus:
+        """Operating figures from the stored state; nothing is changed."""
+        now = now or datetime.now(timezone.utc)
+        with self.store.locked():
+            reader = _Reader(self.store)
+            mails = [state for name in self.store.names("mail-") if not name.startswith("mail-run-")
+                     if (state := reader.model(name, MailState)) is not None]
+            runs = [run for name in self.store.names("mail-run-")
+                    if (run := reader.model(name, MailRunState)) is not None]
+            outbox = reader.model("telegram-outbox", TelegramOutboxState) or TelegramOutboxState()
+            inbox = reader.raw("telegram-inbox")
+            budget = reader.raw("llm-budget")
+            proposals = [proposal for name in self.store.names("proposal-") if not _SNAPSHOT.search(name)
+                         if (proposal := reader.model(name, Proposal)) is not None]
+        analysis: dict[str, int] = {}
+        for run in runs:
+            for entry in run.entries:
+                if entry.analysis_terminal is not None:
+                    analysis[entry.analysis_terminal] = analysis.get(entry.analysis_terminal, 0) + 1
+        counts: dict[ProposalStatus, int] = {}
+        for proposal in proposals:
+            counts[proposal.status] = counts.get(proposal.status, 0) + 1
+        failed = sorted(((state, state.error) for state in mails if state.error is not None),
+                        key=lambda pair: pair[1].occurred_at, reverse=True)
+        calls = budget.get("calls")
+        entries = inbox.get("entries")
+        return SystemStatus(
+            mails_total=len(mails),
+            mails_failed=len(failed),
+            mails_deferred=sum(state.deferred_until is not None and state.deferred_until > now
+                               for state in mails),
+            mails_waiting_relevance=sum(state.awaiting_relevance for state in mails),
+            last_processed=max((state.updated_at for state in mails), default=None),
+            analysis=analysis,
+            run_total=sum(len(run.entries) for run in runs),
+            run_finished=sum(entry.analysis_terminal is not None for run in runs for entry in run.entries),
+            proposals=counts,
+            errors=tuple(ErrorView(
+                mail_id=state.id,
+                subject=state.display_headers.subject if state.display_headers else "Mail ohne Betreff",
+                stage=STAGE_LABELS[error.stage.value], cause=ERROR_LABELS[error.code.value],
+                occurred_at=error.occurred_at, retryable=error.retryable,
+            ) for state, error in failed[:ERROR_LIMIT]),
+            telegram_held=len(outbox.entries),
+            telegram_unprocessed=len(entries) if isinstance(entries, list) else 0,
+            llm_calls_last_minute=(sum(isinstance(value, (int, float)) and now.timestamp() - value < 60
+                                       for value in calls) if isinstance(calls, list) else 0),
+        )
 
     def mail(self, mail_id: str) -> MailView | None:
         """The mail with its complete text, or None if no such mail is known."""
@@ -316,5 +425,6 @@ def _fingerprint(relevance: list[RelevanceView], open_views: list[ProposalView],
     return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()[:16]
 
 
-__all__ = ["MailView", "Overview", "ProposalView", "RECENT_LIMIT", "RelevanceView", "ReviewViews",
+__all__ = ["ERROR_LABELS", "ErrorView", "MailView", "Overview", "ProposalView", "STAGE_LABELS",
+           "SystemStatus", "RECENT_LIMIT", "RelevanceView", "ReviewViews",
            "RunStatus", "STATUS_LABELS"]

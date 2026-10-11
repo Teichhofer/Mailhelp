@@ -19,7 +19,7 @@ Bestandsaufnahme: [1.1-Bestandsaufnahme.md](1.1-Bestandsaufnahme.md).
 | --- | --- |
 | **Offen** | Relevanzfragen zuerst, danach alle offenen Vorschläge. Der Vorschlag, der gerade in Telegram angezeigt wird, steht oben. Jede Karte zeigt dieselben Angaben wie die Telegram-Karte; Beschreibung und Beleg lassen sich vollständig aufklappen. Darunter steht „Zuletzt erledigt“. |
 | **Details** | Über die Schaltfläche „Details“ jeder Karte: der Vorschlag mit allen Aktionen und darunter die vollständige Mail (Absender, Betreff, Datum, kompletter Text; Links darin sind nicht klickbar). Bei Relevanzfragen die Mail mit den Schaltflächen „Relevant“/„Irrelevant“. Nach Ablauf der Aufbewahrung steht dort, dass der Mailtext nicht mehr gespeichert ist. |
-| **Status** | Zähler des letzten Mail-Durchlaufs, offene Vorschläge, Relevanzfragen und wartende Web-Aktionen. |
+| **Status** | Version, Modus (produktiv/Test), Laufzeit, Adresse und gekoppelte Geräte; Fortschritt und Zähler des letzten Mail-Durchlaufs sowie das Ergebnis der Analyse (relevant, irrelevant, doppelt …); gespeicherte, zurückgestellte und auf Relevanz wartende Mails; Vorschläge je Zustand; die letzten fünf Mails mit Fehler (Ursache, Schritt, Zeitpunkt, ob automatisch wiederholt wird, mit Link zur Mail); zurückgehaltene Telegram-Nachrichten, unverarbeitete Telegram-Eingänge, Web-Aktionen der letzten 24 Stunden und KI-Aufrufe der letzten Minute im Verhältnis zum Limit. |
 | **Geräte** | Gekoppelte Geräte mit letzter Nutzung; einzelne oder alle abmelden. |
 
 **Aktionen:**

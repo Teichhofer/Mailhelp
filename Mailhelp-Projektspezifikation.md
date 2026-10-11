@@ -1729,7 +1729,10 @@ Telegram-Schaltflächen laufen ebenfalls über ihn. Eine Web-Antwort setzt den
 Rückfragezeiger `telegram-dialog` auf ihre Zielversion; eine laufende, gespeicherte
 Antwort eines anderen Vorschlags wird dabei nicht überschrieben (Ergebnis „busy“).
 Lesemodelle lesen ohne Migration und ohne Quarantäne; beschädigte Datensätze werden
-übersprungen und gezählt.
+übersprungen und gezählt. Die Statusseite zeigt zusätzlich Betriebszahlen aus dem
+gespeicherten Zustand (Durchlauffortschritt, Analyseergebnisse, Mails mit Fehler ohne
+Inhalte, Vorschläge je Zustand, Telegram-Warteschlangen, Web-Aktionen, KI-Aufrufe der
+letzten Minute) sowie Version, Modus, Laufzeit und Adresse der Weboberfläche.
 
 **Ein Zustandsbesitzer:** Web-Threads schreiben nie Review-Zustand. Sie legen Befehle
 in die dauerhafte `command-inbox` (Status `queued`, `running`, `done`, `rejected`,

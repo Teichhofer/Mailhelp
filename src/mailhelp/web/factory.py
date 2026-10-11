@@ -51,7 +51,9 @@ def create_web(settings: Settings, secret: str | None, store: JsonStore,
     app = WebApp(settings.web.allowed_hosts,
                  settings.web.port if settings.web.lan_access else None)
     views = ReviewViews(store, settings.timezone, settings.test_mode)
-    MailhelpSite(app, auth, settings.web, settings.timezone, logger, views, commands)
+    MailhelpSite(app, auth, settings.web, settings.timezone, logger, views, commands,
+                 link_base=lambda: base_url(settings),
+                 llm_calls_per_minute=settings.limits.llm_calls_per_minute)
     server = WebServer(settings.web.host, settings.web.port, app, logger)
     return WebComponents(server, auth, lambda: base_url(settings))
 

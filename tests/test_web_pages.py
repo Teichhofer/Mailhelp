@@ -65,7 +65,105 @@ def test_status_page_counts_the_run(browser):
     assert '<strong>1</strong><span>In Bearbeitung</span>' in html
     assert '<strong>5</strong><span>Offene Vorschläge</span>' in html
     assert '<strong>0</strong><span>Wartende Web-Aktionen</span>' in html
-    assert "11.10.2026, 11:30 Uhr" in html and "Analyse läuft noch" in html
+    assert "<dt>Gestartet</dt><dd>11.10.2026, 11:30 Uhr</dd>" in html
+    assert "läuft noch · 7 von 9 Mails analysiert" in html
+    assert '<progress class="run-progress" max="9" value="7"' in html
+    assert '<strong>6</strong><span>Relevant und ausgewertet</span>' in html
+    assert '<strong>1</strong><span>Irrelevant</span>' in html
+    assert "<dt>Version</dt><dd>1.1.0</dd>" in html and "<dt>Modus</dt><dd>Produktiv</dd>" in html
+    assert "<dt>Weboberfläche</dt><dd>http://127.0.0.1:8765</dd>" in html
+    assert "<dt>Gekoppelte Geräte</dt><dd>1</dd>" in html and "<dt>Gespeichert</dt><dd>7</dd>" in html
+    assert '<strong>2</strong><span>Klärung nötig</span>' in html and "Angelegt</span>" in html
+    assert "Keine Fehler bei gespeicherten Mails." in html
+    assert "<dd>0 wartend, 0 laufend, 0 erledigt, 0 abgelehnt, 0 fehlgeschlagen</dd>" in html
+    assert "<dt>KI-Aufrufe in der letzten Minute</dt><dd>0</dd>" in html
+
+
+def test_status_page_lists_errors_and_operating_figures(tmp_path):
+    from datetime import datetime, timedelta, timezone
+
+    from mailhelp.config import WebSettings
+    from mailhelp.models import MailState, ProcessingError
+    from mailhelp.review.inbox import CommandInbox
+    from mailhelp.web import WebApp
+    from mailhelp.web.auth import WebAuth
+    from mailhelp.web.site import MailhelpSite
+    from test_review import command
+    from test_web_auth import SECRET, Logger, code_from
+    from mailhelp.review.commands import CommandKind
+
+    now = datetime(2026, 10, 13, 14, 0, tzinfo=timezone.utc)
+    clock = iter([now - timedelta(days=2, hours=3)] + [now] * 20)
+    with JsonStore(tmp_path) as store:
+        populate(store)
+        for number, stage, code, retry, minutes in ((1, "event_extraction", "invalid_json", True, 5),
+                                                    (2, "relevance", "llm_rate_limited", None, 1)):
+            state = store.load_model(f"mail-{mail_id(number)}", MailState)
+            store.save(f"mail-{mail_id(number)}", state.model_copy(update={
+                "error": ProcessingError(code=code, stage=stage, retryable=retry,
+                                         occurred_at=now - timedelta(minutes=minutes)),
+                "deferred_until": now + timedelta(hours=1) if number == 1 else None,
+                "display_headers": None if number == 2 else state.display_headers,
+            }).model_dump(mode="json"))
+        store.save("llm-budget", {"calls": [now.timestamp() - 5, now.timestamp() - 120, "x"]})
+        store.save("telegram-inbox", {"entries": [{}, {}]})
+        commands = CommandInbox(store)
+        entry, _ = commands.submit(command(CommandKind.REJECT, mail_id=mail_id(1), proposal_id="formular"))
+        messages = []
+        auth = WebAuth(store, SECRET, 30, messages.append)
+        app = WebApp(["127.0.0.1:8765"])
+        MailhelpSite(app, auth, WebSettings(), "Europe/Berlin", Logger(),
+                     ReviewViews(store, "Europe/Berlin", test_mode=True), commands,
+                     link_base=lambda: "http://192.168.1.144:8765", llm_calls_per_minute=20,
+                     clock=lambda: next(clock))
+        browser = Browser(app)
+        csrf = browser.csrf()
+        browser.request("POST", "/anmelden/code", {"csrf": csrf})
+        browser.request("POST", "/anmelden", {"csrf": csrf, "code": code_from(messages)})
+        html = page(browser, "/status")
+    assert "<dd>Testmodus – Einträge werden nur simuliert</dd>" in html
+    assert "(2 T 3 Std.)" in html and "<dd>http://192.168.1.144:8765</dd>" in html
+    assert '<strong>2</strong><span>Mails mit Fehler</span>' in html
+    assert '<strong>1</strong><span>Wartende Web-Aktionen</span>' in html
+    assert "<dd>1 wartend, 0 laufend" in html
+    assert html.index("Mail ohne Betreff") < html.index("Elternabend und Klassenfahrt")
+    assert "KI-Aufruflimit erreicht · Relevanzprüfung" in html
+    assert "KI-Antwort war kein gültiges JSON · Terminerkennung" in html
+    assert html.count("wird automatisch wiederholt") == 1
+    assert f'href="/mail/{mail_id(1)}"' in html
+    assert "<dt>Zurückgestellt (neuer Versuch später)</dt><dd>1</dd>" in html
+    assert "<dd>1 von höchstens 20</dd>" in html
+    assert "<dt>Unverarbeitete Telegram-Eingänge</dt><dd>2</dd>" in html
+    assert "<dt>Zurückgehaltene Telegram-Nachrichten</dt><dd>1</dd>" in html
+    assert entry.id
+
+
+def test_status_page_without_any_run_or_proposal(site):
+    client, _ = signed_in(site)
+    html = page(client, "/status")
+    assert "Keine Mails im aktuellen Durchlauf" in html and "<progress" not in html
+    assert "Noch keine Vorschläge gespeichert." in html and "Ergebnis der Analyse" not in html
+    assert "<dt>Zuletzt verarbeitet</dt><dd>—</dd>" in html
+
+
+def test_operating_figures_tolerate_damaged_counters(tmp_path):
+    from mailhelp.review.views import ReviewViews as Views
+    with JsonStore(tmp_path) as store:
+        (tmp_path / "telegram-inbox.json").write_text("{", encoding="utf-8")
+        store.save("llm-budget", ["kein", "objekt"])
+        system = Views(store, "UTC").system()
+    assert (system.telegram_unprocessed, system.llm_calls_last_minute) == (0, 0)
+    with JsonStore(tmp_path / "b") as store:
+        store.save("llm-budget", {"calls": "kaputt"})
+        store.save("telegram-inbox", {"entries": "kaputt"})
+        system = Views(store, "UTC").system()
+    assert (system.telegram_unprocessed, system.llm_calls_last_minute) == (0, 0)
+
+
+def test_durations_on_the_status_page():
+    from mailhelp.web.review_pages import _duration
+    assert _duration(59) == "0 Min." and _duration(3 * 3600 + 5 * 60) == "3 Std. 5 Min."
+    assert _duration(2 * 86400 + 3600) == "2 T 1 Std."
 
 
 def test_refresh_state_needs_a_session_and_changes_with_the_data(site, browser):

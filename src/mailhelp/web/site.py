@@ -11,9 +11,11 @@ from __future__ import annotations
 import ipaddress
 import re
 import time
+from datetime import datetime, timezone
 from typing import Callable, Protocol
 from urllib.parse import parse_qs
 
+from .. import __version__
 from ..config import WebSettings
 from pydantic import ValidationError
 
@@ -27,7 +29,7 @@ from .http import Request, Response
 from .pages import devices_page, error_page, login_page
 from .actions import (command_page, needs_choice, proposal_actions, relevance_actions,
                       result_kind, stale_page)
-from .review_pages import detail_page, mail_page, overview_page, status_page
+from .review_pages import ServiceInfo, detail_page, mail_page, overview_page, status_page
 
 SESSION_COOKIE = "mh_session"
 PAIR_COOKIE = "mh_pair"
@@ -49,9 +51,15 @@ class MailhelpSite:
 
     def __init__(self, app: WebApp, auth: WebAuth, settings: WebSettings,
                  configured_timezone: str, logger: EventLogger, views: ReviewViews,
-                 commands: CommandInbox):
+                 commands: CommandInbox, *, link_base: Callable[[], str] | None = None,
+                 llm_calls_per_minute: int | None = None,
+                 clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc)):
         self.app, self.auth, self.settings = app, auth, settings
         self.views, self.commands = views, commands
+        self.link_base = link_base or (lambda: f"http://127.0.0.1:{settings.port}")
+        self.llm_calls_per_minute, self.clock = llm_calls_per_minute, clock
+        # The web interface starts together with Mailhelp.
+        self.started_at = clock()
         self.configured_timezone, self.logger = configured_timezone, logger
         self.local_hosts = {f"127.0.0.1:{settings.port}", f"localhost:{settings.port}"}
         app.route("GET", "/anmelden", self.login)
@@ -251,8 +259,13 @@ class MailhelpSite:
 
     def status(self, request: Request, session: WebSession) -> Response:
         overview = self.views.overview()
+        now = self.clock()
+        info = ServiceInfo(
+            version=__version__, test_mode=self.views.test_mode, started_at=self.started_at, now=now,
+            address=self.link_base(), devices=len(self.auth.sessions()),
+            llm_calls_per_minute=self.llm_calls_per_minute, commands=self.commands.counts())
         return Response.html(200, status_page(overview.run, overview, self.configured_timezone,
-                                              len(self.commands.queued())))
+                                              self.views.system(now), info))
 
     def act(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         """Queue a version-bound command for the main thread; answer at once."""

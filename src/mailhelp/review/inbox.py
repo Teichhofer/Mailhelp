@@ -117,6 +117,13 @@ class CommandInbox:
         with self._lock:
             return [entry for entry in self._load().entries if entry.status == CommandStatus.QUEUED]
 
+    def counts(self) -> dict[CommandStatus, int]:
+        """Entries per status; finished ones are kept for one day."""
+        result: dict[CommandStatus, int] = {}
+        for entry in self._entries():
+            result[entry.status] = result.get(entry.status, 0) + 1
+        return result
+
     def start(self, entry_id: str) -> None:
         """Mark the entry running; persisted before the command has any effect."""
         self._update(entry_id, status=CommandStatus.RUNNING)
