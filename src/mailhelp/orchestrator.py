@@ -27,6 +27,7 @@ from .storage import JsonStore
 from .openrouter import RateLimitExceeded
 from .logging import EventLogger, NullLogger
 from .sender_filter import is_irrelevant_sender
+from .telegram.formatting import mail_line
 
 
 class Notifier(Protocol):
@@ -305,12 +306,8 @@ class Orchestrator:
         """Format the compact mail notification from validated display values."""
         assert state.mail is not None and state.relevance is not None and state.summary is not None
         headers = state.mail["headers"]
-        sentences = "\n".join(f"- {sentence}" for sentence in state.summary.sentences)
-        return "\n".join([
-            f"Absender: {headers['from'] or '—'}",
-            f"Betreff: {headers['subject'] or '—'}",
-            f"Zusammenfassung:\n{sentences}",
-        ])
+        sentences = "\n".join(f"• {sentence}" for sentence in state.summary.sentences)
+        return f"{mail_line(headers['from'] or '—', headers['subject'] or '—')}\n{sentences}"
 
     def _save(self, name: str, state: MailState) -> None:
         state.updated_at = datetime.now(timezone.utc)
@@ -337,9 +334,8 @@ class Orchestrator:
         self.notifier.send(
             self.chat_id,
             "\n".join([
-                f"Absender: {headers.get('from') or '—'}",
-                f"Betreff: {headers.get('subject') or '—'}",
-                f"Stufe {stage.value}: {text}",
+                mail_line(headers.get("from") or "—", headers.get("subject") or "—"),
+                f"⚠️ Schritt {stage.value}: {text}",
             ]),
         )
 

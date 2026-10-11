@@ -51,8 +51,9 @@ def test_cancel_edit_survives_restart_and_repetition_without_external_write(tmp_
     with JsonStore(tmp_path) as store:
         c, t, _ = controller(store)
         begin(c, item)
-        assert "Rückfrage zu „Aufgabe“" in t.sent[-1][1]
-        assert "Beispiel" in t.sent[-1][1]
+        # "Ändern" without an open question asks what to change, with an example.
+        assert t.sent[-1][1].startswith("✏️ Was soll an „Aufgabe“ geändert werden?")
+        assert "z. B." in t.sent[-1][1] and "/abbrechen" in t.sent[-1][1]
         assert store.load("telegram-dialog")["version"] == 1
     with JsonStore(tmp_path) as store:
         c, t, _ = controller(store)
@@ -129,7 +130,8 @@ def test_cancel_delivery_failure_can_be_retried_after_restart(tmp_path):
     with JsonStore(tmp_path) as store:
         c, t, _ = controller(store)
         command(c, "/abbrechen")
-        assert len(t.sent) >= 3
+        # Notice plus the shortened proposal card with its buttons.
+        assert len(t.sent) == 2 and t.sent[-1][2] is not None
         assert store.load("telegram-dialog")["proposal_id"] is None
         assert c.repository.load_current(item.source_mail_id, item.id) == item
 
@@ -186,29 +188,43 @@ def test_overview_relevance_current_proposals_and_revision_state(tmp_path, heade
             command(c, "/offen")
             assert expected in t.sent[-2][1]
         command(c, "/abbrechen")  # show proposal with/without source headers
-        assert ("Schule" if headers else "Absender: —") in t.sent[-1][1]
+        assert t.sent[-1][1].startswith("✉️ Schule · Elternabend" if headers else "✉️ — · —")
 
 
 def test_readable_dates_facts_questions_and_revision_summary():
     assert display_date(date(2026, 10, 15), "Europe/Berlin") == "15.10.2026"
-    assert display_date(datetime.fromisoformat("2026-10-15T16:00:00+00:00"), "Europe/Berlin") == "15.10.2026 · 18:00 Uhr (UTC+0200)"
+    assert display_date(datetime.fromisoformat("2026-10-15T16:00:00+00:00"), "Europe/Berlin") == "15.10.2026, 18:00 Uhr"
     assert display_date(None, "Europe/Berlin") == "—"
     for facts in ({"date": "2026-10-15", "start_time": "18:00:00"},
                   {"start": "2026-10-15T18:00:00+02:00"}):
         item = proposal(kind="event", open_questions=["Wann endet der Termin?"], known_temporal_facts=facts)
         text = format_proposal(item, "Europe/Berlin")
         prompt = clarification_prompt(item, "Europe/Berlin")
-        assert "Wann endet der Termin?" in prompt and "19:30 Uhr" in prompt and "/abbrechen" in prompt
-        assert "Bekanntes Datum:" in text
-        if "start_time" in facts:
-            assert "Bekannte Uhrzeit: 18:00 Uhr" in text
-    assert "Beginn: —" in clarification_prompt(proposal(kind="event", open_questions=["Wann?"]), "Europe/Berlin")
-    assert "Fälligkeit: —" in clarification_prompt(proposal(open_questions=["Wann?"]), "Europe/Berlin")
+        assert prompt.startswith("❓ Wann endet der Termin?\n„Aufgabe“ · 15.10.2026, 18:00 Uhr")
+        assert "nach 2 Stunden" in prompt and "/abbrechen" in prompt
+        assert "🕒 15.10.2026, 18:00 Uhr" in text
+    # Unknown times are not shown as placeholders.
+    assert clarification_prompt(proposal(kind="event", open_questions=["Wann?"]), "Europe/Berlin") == (
+        "❓ Wann?\n„Aufgabe“\nz. B. „21.10.2026 14:00“ · /abbrechen beendet die Bearbeitung")
+    assert clarification_prompt(proposal(open_questions=["Welche Farbe?"], due="2026-10-15"), "Europe/Berlin") == (
+        "❓ Welche Farbe?\n„Aufgabe“ · fällig 15.10.2026\n/abbrechen beendet die Bearbeitung")
+    assert "„Raum 3“" in clarification_prompt(proposal(open_questions=["Welcher Ort ist gemeint?"]), "Europe/Berlin")
+    assert "„ja“ oder „nein“" in clarification_prompt(proposal(open_questions=[
+        "Ist die Nutzerin oder der Nutzer für diesen Eintrag zuständig?"]), "Europe/Berlin")
+    # "bestehende" must not be mistaken for the end question.
+    assert "nach 2 Stunden" not in clarification_prompt(proposal(open_questions=[
+        "Welcher bestehende Eintrag soll geändert werden?"]), "Europe/Berlin")
     before = proposal(title="Alt")
     after = proposal(title="Neu", version=2)
-    summary = revision_summary(before, after, "Europe/Berlin")
-    assert "Bisher: Titel: Alt" in summary and "Jetzt: Titel: Neu" in summary
-    assert "Keine inhaltlichen Änderungen" in revision_summary(before, before.model_copy(update={"version": 2}), "Europe/Berlin")
+    # A changed title is visible; the new version number alone is not a change.
+    assert revision_summary(before, after, "Europe/Berlin") == "Übernommen:\n✅ Aufgabe: Neu"
+    answered = proposal(open_questions=["Wann?"])
+    assert revision_summary(answered, proposal(version=2), "Europe/Berlin") == "Übernommen."
+    moved = proposal(kind="event", start="2026-10-15T18:00:00+02:00", end="2026-10-15T19:00:00+02:00")
+    later = moved.model_copy(update={"version": 2, "end": datetime.fromisoformat("2026-10-15T20:00:00+02:00")})
+    assert revision_summary(moved, later, "Europe/Berlin") == "Übernommen:\n🕒 15.10.2026, 18:00–20:00 Uhr"
+    assert revision_summary(before, before.model_copy(update={"version": 2}), "Europe/Berlin") == (
+        "Übernommen – keine sichtbare Änderung.")
 
 
 def test_event_edit_revision_requires_new_confirmation_and_rejects_old_version(tmp_path):
@@ -222,7 +238,7 @@ def test_event_edit_revision_requires_new_confirmation_and_rejects_old_version(t
         c.revisions.answer("Beschreibung korrigieren")
         revised = c.repository.load_current(item.source_mail_id, item.id)
         assert revised.version == 2 and revised.status == ProposalStatus.PENDING_CONFIRMATION
-        assert "Geändert seit Version 1" in t.sent[-1][1]
+        assert "Übernommen" in t.sent[-1][1]
         assert writer.created == 0
         with pytest.raises(ValueError, match="veraltet"):
             c._decide(Decision(mail_id=item.source_mail_id, proposal_id=item.id, version=1, action=DecisionAction.CONFIRM))
@@ -245,7 +261,8 @@ def test_open_redisplays_after_restart_without_changing_delivery_or_authorizatio
         c, t, _ = controller(store, writers={'todoist': writer}, revision_service=RevisionService())
         c.show_open_decisions()
         assert 'Klärung erforderlich' in t.sent[0][1]
-        assert len(t.sent) >= 3
+        # Status line and the shortened card with its buttons.
+        assert len(t.sent) == 2
         buttons = t.sent[-1][2]['inline_keyboard'][0]
         assert [b['text'] for b in buttons] == ['Klären', 'Verwerfen']
         decision = c.validator.decision(buttons[0]['callback_data'])

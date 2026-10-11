@@ -72,7 +72,8 @@ class ProposalDecisionService:
             )
             prompt = clarification_prompt(proposal, self.configured_timezone)
             self.telegram.send(self.allowed_chat, prompt)
-            return "✏️ Änderungsmodus gestartet."
+            # The question itself is the confirmation; no second message.
+            return ""
         if (
             decision.action
             in {DecisionAction.CONFIRM, DecisionAction.CONFIRM_DUPLICATE}
@@ -140,10 +141,9 @@ class ProposalDecisionService:
         self.persistence.persist(changed)
         if changed.status == ProposalStatus.CONFIRMED:
             result = self.writes.execute(changed)
-            if result.status == ProposalStatus.CREATED:
-                return "✅ Vorschlag bestätigt; externe Anlage erfolgreich."
-            if result.status == ProposalStatus.SIMULATED:
-                return "✅ Vorschlag intern bestätigt; keine externe Anlage (Simulation)."
+            if result.status in {ProposalStatus.CREATED, ProposalStatus.SIMULATED}:
+                # The write result message already reports the outcome.
+                return ""
             if result.status == ProposalStatus.UNCERTAIN:
                 return "⚠️ Vorschlag bestätigt; externe Anlage ist noch unklar."
             if result.status == ProposalStatus.FAILED:

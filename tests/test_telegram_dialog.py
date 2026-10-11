@@ -406,8 +406,7 @@ def test_reported_date_time_answer_retains_start_fact_and_uses_duration():
     assert revised.temporal_fact.normalized_date == date(2026, 9, 25)
     assert revised.temporal_fact.year_source == "telegram"
     assert revised.open_questions == []
-    assert "Beginn: 25.09.2026 · 11:00 Uhr (UTC+0200)" in format_proposal(
-        revised, "Europe/Berlin")
+    assert "🕒 25.09.2026, 11:00–11:30 Uhr" in format_proposal(revised, "Europe/Berlin")
 
 
 def test_date_answer_combines_retained_mail_clock_without_assuming_upper_bound_end():
@@ -427,7 +426,7 @@ def test_date_answer_combines_retained_mail_clock_without_assuming_upper_bound_e
     assert revised.known_temporal_facts.date == date(2026, 10, 3)
     assert revised.known_temporal_facts.start.isoformat() == "2026-10-03T10:00:00+02:00"
     assert revised.open_questions == ["Wann endet der Termin?"]
-    assert "Dauer: höchstens 30 Minuten" in format_proposal(revised, "Europe/Berlin")
+    assert "🕒 03.10.2026, 10:00 Uhr (höchstens 30 Min.)" in format_proposal(revised, "Europe/Berlin")
 
 
 def test_today_is_resolved_from_explicit_context():
@@ -460,8 +459,7 @@ def test_formatting_shows_retained_incomplete_start_and_duration():
         known_temporal_facts={
             "date": "2026-09-25", "start": "2026-09-25T11:00:00+02:00"})
     text = format_proposal(item, "Europe/Berlin")
-    assert "Beginn: 25.09.2026 · 11:00 Uhr (UTC+0200)" in text
-    assert "Dauer: 30 Minuten" in text
+    assert "🕒 25.09.2026, 11:00 Uhr (30 Min.)" in text
 
 
 def test_temporal_date_delta_rejects_conflict_and_preserves_existing_storage():
@@ -792,7 +790,9 @@ def test_created_action_is_booked_and_duplicate_needs_second_confirmation(tmp_pa
         repeat = Decision.parse(markup["inline_keyboard"][0][0]["callback_data"], store)
         assert repeat.action == DecisionAction.CONFIRM_DUPLICATE
 
-        assert "bestätigt" in dialog._decide(repeat)
+        # The write result message reports the creation; no second confirmation.
+        assert dialog._decide(repeat) == ""
+        assert telegram.sent[-1][1].startswith("✅ Angelegt")
         assert writer.created == 1
         assert store.load("proposal-" + second_mail + "-p1")["status"] == "created"
         ledger = store.load_model("action-ledger", ActionLedger)
@@ -858,8 +858,8 @@ def test_direct_decision_persists_confirmation_before_write(tmp_path):
 
 @pytest.mark.parametrize(("start", "end", "all_day", "expected"), [
     ("2026-05-10T22:30:00+00:00", "2026-05-10T23:30:00+00:00",
-     False, "Datum: 11.05.2026, Uhrzeit: 00:30 Uhr (Europe/Berlin)."),
-    ("2026-05-10", "2026-05-11", True, "Datum: 10.05.2026, ganztägig."),
+     False, " · 11.05.2026, 00:30 Uhr"),
+    ("2026-05-10", "2026-05-11", True, " · 10.05.2026, ganztägig"),
 ])
 def test_created_calendar_notification_includes_local_date_and_time(
     tmp_path, start, end, all_day, expected
@@ -879,7 +879,7 @@ def test_created_calendar_notification_includes_local_date_and_time(
                                 action=DecisionAction.CONFIRM))
 
         created_message = next(
-            text for _, text, _ in transport.sent if text.startswith("Erstellt:")
+            text for _, text, _ in transport.sent if text.startswith("✅ Angelegt im Kalender")
         )
         assert expected in created_message
 
@@ -1032,31 +1032,61 @@ def test_paused_answer_is_operator_block_not_open_user_decision(tmp_path):
 def test_numbered_parts():
     parts=numbered_message_parts("sender@example.test","Ein Betreff","x"*150,100)
     assert len(parts)>1 and all(
-        f"[Absender: sender@example.test · Teil {i}/{len(parts)}]\nBetreff: Ein Betreff\n" in part
+        part.startswith(f"✉️ sender@example.test · Ein Betreff · Teil {i}/{len(parts)}\n")
         for i,part in enumerate(parts,1))
+    # A single part carries no counter; the display name replaces the address.
+    assert numbered_message_parts("Ada <ada@example.test>", "Betreff", "Text") == [
+        "✉️ Ada · Betreff\nText"]
     with pytest.raises(ValueError): numbered_message_parts("","p","x")
     with pytest.raises(ValueError): numbered_message_parts("m","","x")
     with pytest.raises(ValueError): numbered_message_parts("m","p","x",31)
 
 
 @pytest.mark.parametrize(("item", "expected"), [
-    (proposal(description="", due=None), ["Typ: Aufgabe", "Beschreibung: —", "Fälligkeit: —"]),
-    (proposal(kind="event", start="2026-05-10T10:00:00+02:00", end="2026-05-10T11:00:00+02:00", location="Raum 1", video_link="https://video.example.test/abc"),
-     ["Typ: Termin", "Beginn: 10.05.2026 · 10:00 Uhr (UTC+0200)", "Ganztägig: Nein", "Konfigurierte Zeitzone: Europe/Berlin", "Ort: Raum 1", "Videolink: https://video.example.test/abc"]),
+    (proposal(description="", due=None), "✅ Aufgabe: Aufgabe\nBeleg: „Beleg“"),
+    (proposal(due="2026-05-10"), "✅ Aufgabe: Aufgabe\n🕒 Fällig: 10.05.2026\n📝 Text\nBeleg: „Beleg“"),
+    (proposal(kind="event", start="2026-05-10T10:00:00+02:00", end="2026-05-10T11:00:00+02:00",
+              location="Raum 1", video_link="https://video.example.test/abc"),
+     "📅 Termin: Aufgabe\n🕒 10.05.2026, 10:00–11:00 Uhr\n📍 Raum 1\n"
+     "🔗 https://video.example.test/abc\n📝 Text\nBeleg: „Beleg“"),
+    (proposal(kind="event", start="2026-05-10T22:00:00+02:00", end="2026-05-11T01:00:00+02:00"),
+     "📅 Termin: Aufgabe\n🕒 10.05.2026, 22:00 Uhr – 11.05.2026, 01:00 Uhr\n📝 Text\nBeleg: „Beleg“"),
     (proposal(kind="event", all_day=True, start="2026-05-10", end="2026-05-11", location=None),
-     ["Letzter Tag: 10.05.2026", "Ganztägig: Ja", "Ort: —", "Videolink: —"]),
+     "📅 Termin: Aufgabe\n🕒 10.05.2026, ganztägig\n📝 Text\nBeleg: „Beleg“"),
+    (proposal(kind="event", all_day=True, start="2026-05-10", end="2026-05-13"),
+     "📅 Termin: Aufgabe\n🕒 10.05.2026 – 12.05.2026, ganztägig\n📝 Text\nBeleg: „Beleg“"),
 ])
 def test_central_proposal_formatting_for_tasks_and_events(item, expected):
+    # Compact card: empty fields, default values, target and version 1 are left out.
+    assert format_proposal(item, "Europe/Berlin") == expected
+
+
+def test_card_shows_deviations_shortens_long_texts_and_drops_provenance():
+    description = "Lange Beschreibung " * 40 + "\n\nAbsender: a\nBetreff: b\nMail-Datum: c"
+    item = proposal(version=3, responsibility="other", certainty="uncertain",
+                    classification="non_binding", description=description,
+                    evidence="Beleg " * 80, open_questions=[
+                        "Ist die Nutzerin oder der Nutzer für diesen Eintrag zuständig?"])
     text = format_proposal(item, "Europe/Berlin")
-    assert all(value in text for value in expected)
-    assert text.startswith(f"Titel: {item.title}\nTyp:")
-    assert text.index("Ziel:") < text.index("Vorschlagsversion:") < text.index("Belegstelle:")
-    assert "Zuständigkeit: Du" in text and "Sicherheit: Eindeutig" in text
+    assert text.startswith("✅ Aufgabe (Version 3): Aufgabe\n")
+    for line in ("Zuständig: Andere Person", "Sicherheit: Unsicher",
+                 "Einordnung: Unverbindlicher Hinweis",
+                 "⚠️ Kann nicht automatisch angelegt werden – bitte manuell prüfen.",
+                 "❓ Offen:\n- Bist du dafür zuständig?"):
+        assert line in text
+    assert "Mail-Datum" not in text and "Absender:" not in text
+    description_line = next(line for line in text.splitlines() if line.startswith("📝 "))
+    evidence_line = next(line for line in text.splitlines() if line.startswith("Beleg: "))
+    assert len(description_line) <= 2 + 300 and description_line.endswith("…")
+    assert len(evidence_line) <= len("Beleg: „“") + 200 and evidence_line.endswith("…“")
+    # A description that only repeats title or evidence adds nothing.
+    assert "📝" not in format_proposal(proposal(description="Beleg"), "Europe/Berlin")
+    assert "📝" not in format_proposal(proposal(description="Aufgabe"), "Europe/Berlin")
 
 
 def test_test_mode_marks_task_simulation_before_confirmation(tmp_path):
     item = proposal()
-    assert "Extern anlegbar: Nein – Simulation (Testmodus, keine Todoist-Anlage)" in format_proposal(
+    assert "🧪 Testmodus: Die Aufgabe wird nur simuliert" in format_proposal(
         item, "Europe/Berlin", test_mode=True
     )
     with JsonStore(tmp_path) as store:
@@ -1071,10 +1101,11 @@ def test_persist_before_buttons_and_authorized_flow(tmp_path):
         p=proposal(title="t"*500, description="x"*4000)
         c.send_proposal(p)
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")["version"]==1
-        assert all("[Absender: — · Teil " in message for _, message, _ in t.sent)
+        assert all(message.startswith("✉️ — · —\n") for _, message, _ in t.sent)
         assert "Vorschlag p1" not in t.sent[-1][1] and "Ursprungsmail:" not in t.sent[-1][1]
         value=t.sent[-1][2]["inline_keyboard"][0][0]["callback_data"]
-        assert len(t.sent)>=2 and value.startswith("decision:") and len(value.encode("utf-8")) <= 64
+        # Long texts are shortened, so the card fits into one message.
+        assert len(t.sent)==1 and value.startswith("decision:") and len(value.encode("utf-8")) <= 64
         assert Decision.parse(value, store) == Decision(mail_id="a"*24, proposal_id="p1", version=1, action=DecisionAction.CONFIRM)
         c.send(2,"ok")
         assert t.sent[-1][1] != "ok"  # held behind the undecided proposal
@@ -1113,8 +1144,8 @@ def test_test_mode_creates_calendar_file_and_sends_it_via_telegram(tmp_path):
         assert content.startswith(b"BEGIN:VCALENDAR\r\n")
         assert b"SUMMARY:Planung\r\n" in content
         assert "Planung" in caption
-        assert any("Erstellt" in text for _, text, _ in transport.sent)
-        assert transport.sent[-1][1] == "✅ Vorschlag bestätigt; externe Anlage erfolgreich."
+        # One message reports the creation; no second confirmation follows.
+        assert transport.sent[-1][1] == "✅ Angelegt im Kalender: „Planung“ · 10.05.2026, 08:00 Uhr"
 
 
 def test_proposal_notification_uses_persisted_sender_and_subject(tmp_path):
@@ -1129,7 +1160,7 @@ def test_proposal_notification_uses_persisted_sender_and_subject(tmp_path):
         dialog, transport, _ = controller(store)
         dialog.send_proposal(proposal(source_mail_id=mail_id))
         text = transport.sent[-1][1]
-        assert text.startswith("[Absender: Ada <ada@example.test> · Teil 1/1]\nBetreff: Besprechung\n")
+        assert text.startswith("✉️ Ada · Besprechung\n")
         assert mail_id not in text and "Vorschlag p1" not in text
 
 
@@ -1296,7 +1327,7 @@ def test_non_binding_question_accepts_yes_as_separate_persisted_decision(tmp_pat
         assert saved["explicit_non_binding_create_confirmed"] is True
         assert saved["open_questions"] == []
         assert saved["status"] == "pending_confirmation"
-        assert "Offene Fragen: Keine" in t.sent[-1][1]
+        assert "❓ Offen" not in t.sent[-1][1]
         assert question not in t.sent[-1][1].split("\n\n")[-1]
 
 
@@ -1337,7 +1368,7 @@ def test_unusable_answer_gets_llm_generated_concrete_follow_up(tmp_path):
             mail_id=current.source_mail_id, proposal_id=current.id, version=2).model_dump())
         c.revisions.answer("irgendwann")
         assert "Bitte konkreter beantworten: Welches Datum?" in t.sent[-1][1]
-        assert "Rückfrage zu „Aufgabe“ · Version 2" in t.sent[-1][1]
+        assert t.sent[-1][1].startswith("❓ ") and "„Aufgabe“ · /abbrechen" in t.sent[-1][1]
         assert [call[0] for call in service.calls] == ["interpret", "clarify"]
         assert store.load("telegram-dialog")["version"] == 2
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["version"] == 2
@@ -2035,7 +2066,7 @@ def test_telegram_client_sends_calendar_document_and_validates_filename():
 
 def test_confirmation_executes_and_reports_all_results(tmp_path):
     cases=[
-        (Writer(),False,"created","Erstellt"),
+        (Writer(),False,"created","✅ Angelegt in Todoist"),
         (Writer(error=httpx.ReadTimeout("timeout")),False,"uncertain","Unklarer"),
         (Writer(error=httpx.HTTPStatusError("bad",request=httpx.Request("POST","https://x"),response=httpx.Response(400))),False,"failed","fehlgeschlagen"),
         (Writer(),True,"simulated","Testmodus"),
@@ -2048,10 +2079,11 @@ def test_confirmation_executes_and_reports_all_results(tmp_path):
             assert saved["status"]==status
             assert any(text in message for _,message,_ in t.sent)
             callback_message = t.sent[-1][1]
+            # Created and simulated results are reported once, by the write message.
             if status == "simulated":
-                assert callback_message == "✅ Vorschlag intern bestätigt; keine externe Anlage (Simulation)."
+                assert callback_message.startswith("🧪 Testmodus: Aufgabe „Aufgabe“ bestätigt")
             elif status == "created":
-                assert callback_message == "✅ Vorschlag bestätigt; externe Anlage erfolgreich."
+                assert callback_message == "✅ Angelegt in Todoist: „Aufgabe“\nhttps://example.test/item"
             if status=="created": assert saved["external_id"]=="external-1" and saved["external_link"]=="https://example.test/item"
 
 
@@ -2111,7 +2143,7 @@ def test_uncertain_write_is_only_reconciled_across_restarts(tmp_path):
         assert unresolved.reconciled == 4
         assert unresolved.created == 0
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"] == "created"
-        assert "Erstellt" in messages.sent[-1][1]
+        assert "✅ Angelegt" in messages.sent[-1][1]
 
 
 class RelevanceHandler:
@@ -2223,7 +2255,7 @@ def test_non_creatable_classifications_stay_manual_after_telegram_interaction(tm
         dialog.send_proposal(item)
         markup = transport.sent[-1][2]["inline_keyboard"]
         assert [button["text"] for button in markup[0]] == ["Manuell prüfen", "Verwerfen"]
-        assert "Extern anlegbar: Nein – manuell prüfen" in transport.sent[-1][1]
+        assert "⚠️ Kann nicht automatisch angelegt werden" in transport.sent[-1][1]
         transport.updates = [callback(1, Decision(mail_id=item.source_mail_id, proposal_id=item.id,
                                                    version=item.version, action=DecisionAction.CONFIRM).encode())]
         dialog.poll_once()

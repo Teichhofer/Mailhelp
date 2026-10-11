@@ -112,8 +112,10 @@ prompts:
       verwende keine inhaltsarmen Aussagen wie "Die Mail informiert über ein
       Thema", "Es gibt Neuigkeiten" oder "Die Angaben werden geprüft". Behaupte
       weder, dass keine Antwort oder Handlung erforderlich sei, noch dass eine
-      erforderlich sei, sofern dies nicht aus der Mail hervorgeht. Trenne
-      mehrere wesentliche Sachverhalte möglichst in einem Satz zusammen. Nutze
+      erforderlich sei, sofern dies nicht aus der Mail hervorgeht. Jeder Satz
+      hat höchstens 25 Wörter; die Zusammenfassung wird in Telegram auf dem
+      Handy gelesen. Fasse mehrere Sachverhalte zu ihrem Kern zusammen, statt
+      sie mit Kommas und Semikolons aneinanderzureihen. Nutze
       einen zweiten Satz nur für eine davon klar getrennte wesentliche Folge oder
       Handlung. Vermeide Aufzählungen von Unterpunkten und Nebeninformationen.
       Erwähne Anhänge nur, wenn die Mail auf deren Inhalt oder Bedeutung Bezug
@@ -273,7 +275,9 @@ prompts:
       Antworte nur mit einem JSON-Objekt mit "schema_version": 1 und "tasks",
       einer Liste mit höchstens 20 Objekten. Jedes Objekt enthält genau title,
       description, evidence, responsibility, certainty, classification und
-      due_text. due_text ist die wörtlich zitierte Datumsangabe der Frist ohne
+      due_text. title ist kurz (höchstens etwa 8 Wörter) und nennt die Handlung.
+      description ist höchstens ein kurzer Satz (etwa 25 Wörter), der ergänzt,
+      was zu tun ist; sie wiederholt weder title noch evidence wörtlich. due_text ist die wörtlich zitierte Datumsangabe der Frist ohne
       einleitende Wörter wie "bis", "spätestens" oder "zum" (aus "bis 30.09.2026"
       wird "30.09.2026"); ist eine Frist genannt, darf due_text nicht null sein.
       Ohne genannte Frist ist due_text null. Die drei
@@ -338,7 +342,11 @@ prompts:
       Antworte nur mit einem JSON-Objekt mit "schema_version": 1 und "events",
       einer Liste mit höchstens 20 Objekten. Jedes Objekt enthält genau title,
       description, evidence, date_text, time_text, end_time_text, duration_minutes, duration_is_upper_bound, timezone_offset_text, time_requirement,
-      location, video_link, responsibility, certainty und classification. Nicht genannte
+      location, video_link, responsibility, certainty und classification. title
+      ist kurz (höchstens etwa 8 Wörter) und enthält kein Datum und keine
+      Uhrzeit. description ist höchstens ein kurzer Satz (etwa 25 Wörter), der
+      ergänzt, worum es geht; sie wiederholt weder title noch evidence wörtlich
+      und enthält keine Einwahldaten, die schon in video_link stehen. Nicht genannte
       optionale Rohwerte sind null. duration_minutes ist nur eine ausdrücklich
       belegte Dauer in ganzen Minuten zwischen 1 und 1440, andernfalls null.
       duration_is_upper_bound ist genau dann true, wenn die Dauer ausdrücklich

@@ -43,7 +43,9 @@ from .temporal import (
     deterministic_temporal_revision,
     normalize_deterministic_temporal_answer,
     parse_deterministic_temporal_answer,
+    relative_end_answer,
 )
+from .formatting import clarification_prompt
 from .writes import ProposalPersistence
 
 
@@ -256,11 +258,13 @@ class ProposalRevisionProcessor:
             return
         assert self.revision_service is not None
         current_date = datetime.now(ZoneInfo(self.configured_timezone)).date()
+        # "nach 3h" for the end question is resolved against the known start.
+        temporal_answer = relative_end_answer(
+            proposal, state.question, state.authorized_answer, self.configured_timezone
+        ) or state.authorized_answer
         local_temporal = (
             proposal.kind == ProposalKind.EVENT
-            and parse_deterministic_temporal_answer(
-                state.authorized_answer, current_date
-            )
+            and parse_deterministic_temporal_answer(temporal_answer, current_date)
             is not None
         )
         try:
@@ -271,15 +275,15 @@ class ProposalRevisionProcessor:
                 deterministic = deterministic_temporal_revision(
                     proposal,
                     state.question,
-                    state.authorized_answer,
+                    temporal_answer,
                     self.configured_timezone,
                     current_date,
                 )
             if deterministic is not None:
                 parsed_answer = parse_deterministic_temporal_answer(
-                    state.authorized_answer, current_date
+                    temporal_answer, current_date
                 )
-                normalized_answer = state.authorized_answer
+                normalized_answer = temporal_answer
                 if parsed_answer is not None:
                     normalized_answer = normalize_deterministic_temporal_answer(
                         parsed_answer
@@ -334,8 +338,8 @@ class ProposalRevisionProcessor:
                     revision_status=ProposalRevisionStatus.PENDING.value,
                 )
                 self.telegram.send(self.chat_id,
-                                   f"Rückfrage zu „{proposal.title}“ · Version {proposal.version}\n"
-                                   f"{clarification.message}\nMit /abbrechen zur Vorschlagsansicht zurückkehren.")
+                                   f"❓ {clarification.message}\n"
+                                   f"„{proposal.title}“ · /abbrechen beendet die Bearbeitung")
                 return
         except (
             LlmProviderResponseInvalid,
@@ -367,9 +371,7 @@ class ProposalRevisionProcessor:
                 if proposal.temporal_fact is not None
                 else None
             )
-            parsed = parse_deterministic_temporal_answer(
-                state.authorized_answer, current_date
-            )
+            parsed = parse_deterministic_temporal_answer(temporal_answer, current_date)
             allowed_dates = (
                 {expected, expected + timedelta(days=1)}
                 if "ende" in state.question.casefold()
@@ -609,6 +611,7 @@ class ProposalRevisionProcessor:
                 }
             ).model_dump(mode="json"),
         )
+        self._continue_clarification(revised)
         self.logger.event(
             "INFO",
             "telegram.dialog",
@@ -617,6 +620,32 @@ class ProposalRevisionProcessor:
             proposal_id=state.proposal_id,
             previous_version=state.version,
             new_version=revised.version,
+        )
+
+    def _continue_clarification(self, proposal: Proposal) -> None:
+        """Ask the next open question at once instead of waiting for another press.
+
+        Only for a version the user has actually been shown; a version still held
+        back in the outbox gets its question when it is delivered and selected.
+        """
+        delivered = getattr(self.persistence, "delivered", None)
+        if (
+            proposal.status != ProposalStatus.NEEDS_CLARIFICATION
+            or not proposal.open_questions
+            or delivered is None
+            or not delivered(proposal)
+        ):
+            return
+        self.store.save(
+            "telegram-dialog",
+            TelegramDialogState(
+                mail_id=proposal.source_mail_id,
+                proposal_id=proposal.id,
+                version=proposal.version,
+            ).model_dump(mode="json"),
+        )
+        self.telegram.send(
+            self.chat_id, clarification_prompt(proposal, self.configured_timezone)
         )
 
     def _log_revision_failure(

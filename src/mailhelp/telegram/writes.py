@@ -54,11 +54,8 @@ class ConfirmedWriteExecutor:
         start = proposal.start
         if isinstance(start, datetime):
             local_start = start.astimezone(ZoneInfo(self.configured_timezone))
-            return (
-                f" Datum: {local_start:%d.%m.%Y}, Uhrzeit: {local_start:%H:%M} Uhr"
-                f" ({self.configured_timezone})."
-            )
-        return f" Datum: {start:%d.%m.%Y}, ganztägig."
+            return f" · {local_start:%d.%m.%Y, %H:%M} Uhr"
+        return f" · {start:%d.%m.%Y}, ganztägig"
 
     def writer_for(self, proposal: Proposal) -> ExternalWriter | None:
         return self.writers.get(
@@ -91,8 +88,8 @@ class ConfirmedWriteExecutor:
         if result.get("simulation"):
             kind = "Aufgabe" if proposal.kind == ProposalKind.TASK else "Kalendertermin"
             text = (
-                f"Testmodus: {kind} „{proposal.title}“ wurde bestätigt, "
-                "aber extern nicht angelegt (nur simuliert)."
+                f"🧪 Testmodus: {kind} „{proposal.title}“ bestätigt, "
+                "aber nicht angelegt (nur simuliert)."
             )
         elif result.get("operation") == "duplicate_updated":
             text = (
@@ -105,14 +102,12 @@ class ConfirmedWriteExecutor:
                 "Kein neuer Termin wurde angelegt."
             )
         elif changed.status == ProposalStatus.CREATED:
-            details = f" (ID: {changed.external_id})" if changed.external_id else ""
-            link = f" {changed.external_link}" if changed.external_link else ""
-            kind = "Aufgabe" if proposal.kind == ProposalKind.TASK else "Kalendertermin"
-            text = (
-                f"Erstellt: {kind} extern angelegt „{proposal.title}“{details}.{link}"
-            )
+            where = "in Todoist" if proposal.kind == ProposalKind.TASK else "im Kalender"
+            text = f"✅ Angelegt {where}: „{proposal.title}“"
             if proposal.kind == ProposalKind.EVENT:
                 text += self._event_time_details(changed)
+            if changed.external_link:
+                text += f"\n{changed.external_link}"
         elif changed.status == ProposalStatus.UNCERTAIN:
             if changed.uncertain_notified:
                 return changed

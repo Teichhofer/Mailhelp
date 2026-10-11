@@ -56,6 +56,11 @@ class _DialogResponsePersistence:
     def send_proposal(self, proposal: Proposal) -> None:
         self.controller.delivery.deliver(proposal)
 
+    def delivered(self, proposal: Proposal) -> bool:
+        """Whether this version was shown, i.e. is not held back in the outbox."""
+        return (proposal.source_mail_id, proposal.id, proposal.version) not in (
+            self.controller.outbox.queued_proposals())
+
 
 class TelegramDialogController:
     """Validate updates, persist offsets, and enforce version-bound decisions."""
@@ -265,12 +270,12 @@ class TelegramDialogController:
         return False
 
     def show_open_decisions(self) -> None:
-        """Explicit redisplay, independent of the initial delivery receipt."""
+        """Redisplay at startup: the current decision, held-back ones only as a count."""
         from .commands import TelegramCommands
 
         TelegramCommands(self.store, self.repository, self.presenter,
                          self.telegram, self.chat_id, self.relevance,
-                         self.outbox).overview(interactive=True)
+                         self.outbox).overview(interactive=True, compact=True)
 
     def processing_blocked(self) -> bool:
         """Return whether an answered revision needs an operator restart."""
@@ -520,7 +525,8 @@ class TelegramDialogController:
             self.telegram.remove_inline_keyboard(
                 callback.message.chat.id, callback.message.message_id
             )
-            self.telegram.send(self.chat_id, confirmation)
+            if confirmation:
+                self.telegram.send(self.chat_id, confirmation)
             return
         message = update.message
         assert message is not None

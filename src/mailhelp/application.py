@@ -29,7 +29,7 @@ from .storage import JsonStore, mail_state_names
 from .paths import runtime_path
 from .telegram import (TelegramChatNotFoundError, TelegramClient,
                        TelegramDialogController)
-from .telegram.commands import HELP
+from .telegram.commands import STARTUP
 from .telegram.receiver import TelegramInbox, TelegramReceiver
 from .adapter import RetryPolicy
 from .retention import RetentionService
@@ -121,20 +121,22 @@ class _RunSummary:
             run_complete=run.run_complete,
         )
 
+    @property
+    def empty(self) -> bool:
+        """A completed run that found no mail is not worth a message."""
+        return self.run_complete and self.discovered == 0
+
     def message(self, *, bounded: bool = False) -> str:
-        lines = [
-            ("Mailhelp-Lauf vollständig abgearbeitet."
-             if self.run_complete else "Mailhelp-Lauf abgebrochen oder unvollständig."),
-            f"Entdeckt: {self.discovered}",
-            f"In Warteschlange: {self.queued}",
-            f"Analysiert: {self.processed}",
-            f"Relevant: {self.relevant}",
-            f"Irrelevant: {self.irrelevant}",
-            f"Warten auf Benutzer: {self.waiting_for_user}",
-            f"Fehlgeschlagen: {self.failed}",
-            f"Übersprungen: {self.skipped}",
-        ]
-        return "\n".join(lines)
+        """One compact line; zero counters are left out."""
+        head = "✅ Lauf abgeschlossen" if self.run_complete else "⏸ Lauf unterbrochen"
+        parts = [f"{self.processed} von {self.discovered} Mails geprüft"]
+        for count, label in ((self.relevant, "relevant"), (self.irrelevant, "irrelevant"),
+                             (self.waiting_for_user, "warten auf dich"),
+                             (self.failed, "fehlgeschlagen"), (self.skipped, "übersprungen"),
+                             (self.queued, "noch offen")):
+            if count:
+                parts.append(f"{count} {label}")
+        return f"{head}: " + " · ".join(parts)
 
 
 @dataclass
@@ -816,7 +818,7 @@ class Application:
             ignore_historical_start: bool = False) -> str | None:
         self._wait_for_user = True
         try:
-            self.telegram.send(self.settings.telegram.chat_id, "Mailhelp gestartet.\n\n" + HELP)
+            self.telegram.send(self.settings.telegram.chat_id, STARTUP)
         except Exception as exc:
             # A failed greeting must not block recovery or disclose provider data.
             self.logger.event("ERROR", "telegram", "startup_help_failed",
@@ -887,6 +889,8 @@ class Application:
             # independently of the run summary and of subsequent mail runs.
             if self.dialog is not None and self.dialog.awaiting_relevance_decision():
                 self.logger.event("INFO", "telegram", "run_summary_deferred")
+            elif summary.empty:
+                self.logger.event("INFO", "telegram", "run_summary_skipped", reason="no_mail")
             else:
                 try:
                     self.telegram.send(

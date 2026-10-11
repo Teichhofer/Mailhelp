@@ -577,11 +577,8 @@ Einzelinstanz-Sperre werden auch bei Fehlern geschlossen. `Strg+C` beendet auch
 die Einmalmodi (`--check`, `--check-access`, `--learn` und `--clear`) kontrolliert
 mit Exit-Code 130 und ohne Python-Traceback. Unmittelbar vor dem
 Beenden sendet der Bot in den konfigurierten Telegram-Chat eine Laufzusammenfassung
-aus dem persistenten initialen Batch mit den Zahlen für entdeckte, wartende,
-terminal analysierte, relevante, irrelevante, auf Benutzer wartende,
-fehlgeschlagene und übersprungene Mails. Sie bezeichnet den Lauf nur dann als
-vollständig abgearbeitet, wenn jede Batchposition einen terminalen
-Analysezustand erreicht hat. Ist noch eine Relevanzentscheidung offen, wird die Laufzusammenfassung
+aus dem persistenten initialen Batch. Vor dem Beenden sendet Mailhelp eine einzeilige Laufzusammenfassung, etwa „✅ Lauf abgeschlossen: 25 von 25 Mails geprüft · 3 relevant · 14 irrelevant · 3 warten auf dich“ bzw. „⏸ Lauf unterbrochen: …“; Zähler mit dem Wert 0 entfallen. Ein vollständiger Lauf ohne entdeckte Mail sendet keine Zusammenfassung (`run_summary_skipped`). Sie bezeichnet den Lauf nur dann als
+abgeschlossen, wenn jede Batchposition einen terminalen Analysezustand erreicht hat. Ist noch eine Relevanzentscheidung offen, wird die Laufzusammenfassung
 zurückgestellt. Offene Vorschläge bleiben auch nach der Zusammenfassung bedienbar. Andernfalls wird sie auch bei einem Laufzeitfehler versucht; ein
 Versandfehler wird protokolliert und verdeckt einen bereits aufgetretenen Fehler
 nicht.
@@ -1021,26 +1018,16 @@ während veraltete oder fehlerhafte Schaltflächen keinen Zustand verändern.
 Callback-Klicks werden sofort bei Telegram quittiert. Erst nach erfolgreicher
 fachlicher Annahme entfernt Mailhelp zentral die gesamte Inline-Tastatur der
 ursprünglichen Nachricht mit `editMessageReplyMarkup` und sendet anschließend
-eine kurze Bestätigung der gewählten Aktion in den Chat. Bei einem Fehler wird
+eine kurze Bestätigung der gewählten Aktion in den Chat. Erzeugt die Aktion selbst eine Antwort – die Rückfrage nach „Klären“, „Ändern“ oder „Manuell prüfen“ oder die Ergebnismeldung einer Anlage („✅ Angelegt im Kalender: „Titel“ · Datum, Uhrzeit“ mit Link) –, entfällt die zusätzliche Bestätigung, damit jede Aktion genau eine Nachricht auslöst. Bei einem Fehler wird
 stattdessen eine kurze Fehlermeldung gesendet; die Schaltflächen bleiben für
 einen erneuten Versuch erhalten.
 Die Ausführung bestätigter Schreibaktionen und die Verarbeitung von Revisionen sind als eigenständige Dienste verdrahtet. Sie erhalten Store, externe Ports, Transport, Chat-ID, Testmodus beziehungsweise Zeitzone und Retry-Konfiguration explizit; sie greifen nicht auf private Controller-Methoden zu. Dadurch bleibt die sicherheitskritische Reihenfolge auch bei Wiederaufnahme eindeutig: Bestätigung vor externem Schreiben persistieren, unklare Ergebnisse nur abgleichen und eine neue Vorschlagsversion vor den zugehörigen Schaltflächen speichern.
 
-Die Vorschlagsansicht zeigt zuerst Titel und Termin/Fälligkeit, danach Ziel und
-Version. Zeiten erscheinen als `15.10.2026 · 18:00 Uhr (UTC+0200)` in der
-konfigurierten `timezone`; gespeicherte Zeitpunkte bleiben unverändert.
-Ganztägige Termine zeigen den letzten tatsächlichen Tag statt des exklusiven
-API-Enddatums. Zuständigkeit, Sicherheit und Einordnung erhalten deutsche
-Bezeichnungen. Beschreibung, Beleg und offene Fragen bleiben vor der Freigabe
-sichtbar. Bei einer Revision zeigt die Nachricht zusätzlich die Änderungen
-gegenüber dem gespeicherten Vorgänger (falls vorhanden).
+Vorschläge erscheinen als kompakte Karte, damit sie auf dem Handy auf einen Blick lesbar sind: zuerst eine Zeile mit Absendername und Betreff (`✉️ Name · Betreff`), dann Art und Titel (`📅 Termin` bzw. `✅ Aufgabe`, ab Version 2 mit Versionsnummer), die Zeit in einer Zeile in der konfigurierten Zeitzone (`🕒 21.10.2026, 12:30–14:30 Uhr`, über Mitternacht mit beiden Daten, ganztägig mit letztem tatsächlichem Tag, bei Aufgaben die Fälligkeit), Ort und Videolink. Zuständigkeit, Sicherheit und Einordnung erscheinen nur, wenn sie vom Normalfall (du, eindeutig, neu) abweichen; ein nicht automatisch anlegbarer Vorschlag trägt einen Warnhinweis. Offene Fragen werden einzeln aufgeführt. Die Beschreibung erscheint ohne den angehängten Herkunftsblock (Absender, Betreff, Mail-Datum) und nur, wenn sie nicht bloß Titel oder Beleg wiederholt; sie wird auf 300, der Beleg auf 200 Zeichen gekürzt. Leere Felder, Ziel und interne Kennungen werden nicht angezeigt; gespeicherte und extern geschriebene Inhalte bleiben vollständig. Nach einer Antwort beginnt die Karte mit „Übernommen:“ und den geänderten Zeilen.
 
-Rückfragen nennen Titel, Version, bekannte Zeitangaben, Ziel und Antwortbeispiele.
-Diese Beispiele sind keine vorgeschlagenen Änderungen und werden nicht übernommen.
-Auch nach einer Korrektur ist eine ausdrückliche Bestätigung der neuen Version nötig.
+Rückfragen stellen genau eine Frage („❓ …“), nennen Titel und bekannte Zeit und geben ein zur Frage passendes, als solches erkennbares Beispiel (etwa „16:00“ oder „nach 2 Stunden“ für das Ende, „ja“ oder „nein“ für die Zuständigkeit). Interne Fragetexte werden für die Anzeige an die Person gerichtet (etwa „Bist du dafür zuständig?“). Die Wahl von „Klären“, „Ändern“ oder „Manuell prüfen“ beantwortet Mailhelp nur mit dieser Rückfrage. Nach jeder Antwort folgt die überarbeitete Karte; sind noch Fragen offen und wurde die neue Version angezeigt, stellt Mailhelp die nächste Frage sofort, ohne erneuten Klick. Eine Dauer als Antwort auf das Ende („nach 3h“, „2 Stunden“, „+90 min“, „1,5 h nach Beginn“) wird bei bekanntem Beginn ohne LLM in eine Endzeit umgerechnet. Beispiele bewirken keine Änderung; jede neue Version muss erneut ausdrücklich bestätigt werden.
 
-Bei jedem Start des normalen Programmlaufs sendet Mailhelp automatisch
-„Mailhelp gestartet.“ mit dieser Befehlsübersicht in den konfigurierten Chat.
+Jeder normale Programmstart sendet vor Mailverarbeitung und Dialogwiederaufnahme die kurze Zeile „👋 Mailhelp gestartet. Befehle: /hilfe“; `/hilfe` zeigt die Befehlsübersicht. Danach wird die aktuelle offene Entscheidung erneut gezeigt; weitere zurückgehaltene Vorschläge erscheinen nur als Anzahl („N weitere Vorschläge folgen nacheinander.“), `/status` listet sie einzeln.
 Dies gilt auch für `--max-mails` und Neustarts mit einer offenen Entscheidung;
 die Übersicht bestätigt oder beendet diese Entscheidung nicht. Pro Start gibt
 es einen Versandaufruf vor der Mailverarbeitung und der Wiederaufnahme offener
@@ -1170,12 +1157,12 @@ Namen, Unterpunkte, Anlagen und andere Details erscheinen nur, wenn sie dafür
 unverzichtbar sind; bloße Betreff-Paraphrasen und unbelegte Aussagen zum
 Handlungsbedarf bleiben ausgeschlossen. Mailinhalte bleiben dabei ausdrücklich
 nicht vertrauenswürdige Daten.
-Jeder Vorschlag nennt in jedem Nachrichtenteil den Absender und Betreff der
-Ursprungsmail, zeigt aber keine internen Mail- oder Vorschlags-IDs. Er zeigt vor
-den Schaltflächen alle entscheidungsrelevanten Felder in
-einer
-festen Reihenfolge; Termine nennen dabei auch die konfigurierte Zeitzone. Lange
-Vorschläge tragen in jedem Teil Absender, Betreff und Teilnummer. Solange
+Jeder Vorschlag nennt in jedem Nachrichtenteil Absendername und Betreff der
+Ursprungsmail, zeigt aber keine internen Mail- oder Vorschlags-IDs. Lange
+Vorschläge tragen in jedem Teil zusätzlich die Teilnummer. Mail-Zusammenfassungen
+beginnen mit derselben Zeile, gefolgt von Stichpunkten (`• …`); die
+Zusammenfassungs-Prompts begrenzen Sätze auf 25 Wörter, Titel auf etwa 8 Wörter
+und Beschreibungen auf einen kurzen Satz. Solange
 offene Fragen bestehen, werden nur Klären und Verwerfen angeboten.
 Unklare Relevanz wird vor dem Senden als schema-versionierter Dialog direkt im
 Mailzustand gespeichert. Die sichtbare Rückfrage nennt Absender und Betreff, aber

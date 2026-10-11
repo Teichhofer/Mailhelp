@@ -11,7 +11,7 @@ from mailhelp.imap import FetchedMail, MailCandidate, UIDValidityChanged
 from mailhelp.integrations import OAuthTokenError
 from mailhelp.models import MailRunCounters, MailRunEntry, MailRunState, MailState
 from mailhelp.orchestrator import ProcessingOutcome, ProcessingResult
-from mailhelp.telegram.commands import HELP
+from mailhelp.telegram.commands import HELP, STARTUP
 from test_core import prompt_config
 
 
@@ -1079,7 +1079,7 @@ def test_google_oauth_failure_stops_application_without_retry(tmp_path, notifica
         "CRITICAL", "application", "fatal_google_oauth_error"
     )
     if notification_error is None:
-        assert telegram.sent[0][1] == "Mailhelp gestartet.\n\n" + HELP
+        assert telegram.sent[0][1] == STARTUP
         assert "Mailhelp wird beendet" in telegram.sent[1][1]
     else:
         assert any(
@@ -1179,7 +1179,8 @@ def test_run_sends_persistent_summary_on_normal_and_exceptional_exit(tmp_path):
     service=app(tmp_path,Imap([]),Telegram([]),Orch(),store=store)
     service._poll_imap=lambda _limit=None: []
     service.run(max_mails=3)
-    assert service.telegram.sent == [(2, "Mailhelp gestartet.\n\n" + HELP), (2, "Mailhelp-Lauf vollständig abgearbeitet.\nEntdeckt: 5\nIn Warteschlange: 0\nAnalysiert: 5\nRelevant: 2\nIrrelevant: 1\nWarten auf Benutzer: 1\nFehlgeschlagen: 1\nÜbersprungen: 1")]
+    # One compact line; zero counters (here: still queued) are left out.
+    assert service.telegram.sent == [(2, STARTUP), (2, "✅ Lauf abgeschlossen: 5 von 5 Mails geprüft · 2 relevant · 1 irrelevant · 1 warten auf dich · 1 fehlgeschlagen · 1 übersprungen")]
     assert service.logger.events[-1][0][2] == "run_summary_sent"
     assert service.logger.events[-1][1] == {
         "discovered":5, "queued":0, "processed":5, "relevant":2,
@@ -1191,9 +1192,7 @@ def test_run_sends_persistent_summary_on_normal_and_exceptional_exit(tmp_path):
     broken._poll_imap=lambda _limit=None: (_ for _ in ()).throw(RuntimeError("poll"))
     with pytest.raises(RuntimeError, match="poll"):
         broken.run()
-    assert broken.telegram.sent[-1][1].startswith(
-        "Mailhelp-Lauf abgebrochen oder unvollständig.\nEntdeckt: 0"
-    )
+    assert broken.telegram.sent[-1][1] == "⏸ Lauf unterbrochen: 0 von 0 Mails geprüft"
 
     send_failure=app(tmp_path,Imap([]),Telegram([]),Orch())
     send_failure.stop_event.set()
@@ -1212,7 +1211,7 @@ def test_run_summary_uses_all_terminal_entries_in_large_persistent_batch(batch_s
         batch_size, batch_size, batch_size
     )
     assert summary.run_complete is True
-    assert "vollständig abgearbeitet" in summary.message(bounded=True)
+    assert summary.message(bounded=True).startswith("✅ Lauf abgeschlossen")
     assert "Hinweis:" not in summary.message(bounded=True)
 
 
@@ -1228,7 +1227,7 @@ def test_run_summary_marks_a_genuinely_unfinished_persistent_batch():
     summary = _RunSummary.from_run(_persisted_run(entries))
     assert (summary.discovered, summary.queued, summary.processed) == (3, 1, 1)
     assert summary.run_complete is False
-    assert summary.message().startswith("Mailhelp-Lauf abgebrochen oder unvollständig.")
+    assert summary.message() == "⏸ Lauf unterbrochen: 1 von 3 Mails geprüft · 1 relevant · 1 noch offen"
     assert _RunSummary.from_run(None).run_complete is False
 
 
@@ -1240,7 +1239,7 @@ def test_startup_help_once_before_work_and_again_after_restart(tmp_path, max_mai
         cycles = []
 
         def poll_imap(_limit=None):
-            assert service.telegram.sent == [(2, "Mailhelp gestartet.\n\n" + HELP)]
+            assert service.telegram.sent == [(2, STARTUP)]
             cycles.append(1)
             if len(cycles) == 2:
                 service.stop_event.set()
@@ -1249,9 +1248,11 @@ def test_startup_help_once_before_work_and_again_after_restart(tmp_path, max_mai
         service.stop_event.wait = lambda _delay: False
         service.run(max_mails=max_mails)
         assert len(cycles) == (2 if max_mails is None else 1)
-        greetings = [text for _, text in service.telegram.sent if text.startswith("Mailhelp gestartet.")]
-        assert greetings == ["Mailhelp gestartet.\n\n" + HELP]
-        assert all(command in greetings[0] for command in ("/hilfe", "/status", "/offen", "/abbrechen"))
+        greetings = [text for _, text in service.telegram.sent if "Mailhelp gestartet." in text]
+        assert greetings == [STARTUP]
+        # The short greeting points to /hilfe, which lists every command.
+        assert "/hilfe" in greetings[0]
+        assert all(command in HELP for command in ("/hilfe", "/status", "/offen", "/abbrechen"))
         assert all(chat == service.settings.telegram.chat_id for chat, _ in service.telegram.sent)
         assert any(args[2] == "startup_help_sent" for args, _ in service.logger.events)
 
@@ -1263,7 +1264,7 @@ def test_startup_help_failure_does_not_block_processing_or_log_provider_content(
 
     def fail_greeting(chat, text):
         calls.append(text)
-        if text.startswith("Mailhelp gestartet."):
+        if text == STARTUP:
             raise RuntimeError("synthetic-sensitive-provider-content")
         send(chat, text)
 
@@ -1280,7 +1281,7 @@ def test_startup_help_precedes_resumed_decision_without_resolving_it(tmp_path):
     service = app(tmp_path, Imap([]), Telegram([]), Orch())
 
     def poll_once(timeout=None):
-        assert service.telegram.sent == [(2, "Mailhelp gestartet.\n\n" + HELP)]
+        assert service.telegram.sent == [(2, STARTUP)]
         service.stop_event.set()
 
     service.dialog = SimpleNamespace(awaiting_decision=lambda: True, awaiting_relevance_decision=lambda: True, poll_once=poll_once)
@@ -1816,10 +1817,10 @@ def test_startup_restores_durable_proposal_once_and_last_decision_resumes_imap(t
         service.run(max_mails=1)
         assert polls == []
         assert service.imap.calls and c.awaiting_decision()
-        assert telegram.sent[0][1].startswith('Mailhelp gestartet.')
+        assert telegram.sent[0][1] == STARTUP
         assert len(telegram.sent) == 4  # greeting, overview, proposal/question, summary
         if editing:
-            assert 'Rückfrage zu' in telegram.sent[2][1]
+            assert telegram.sent[2][1].startswith('❓ ')
         else:
             assert telegram.sent[2][2]['inline_keyboard'][0][0]['text'] == 'Klären'
         c._decide(Decision(mail_id=item.source_mail_id, proposal_id=item.id,

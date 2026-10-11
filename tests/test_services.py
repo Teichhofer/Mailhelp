@@ -322,6 +322,8 @@ def test_summary_prompt_defines_closed_json_output_format():
     assert "gemeinsamen Oberbegriff" in prompt
     assert "einen zweiten Satz nur" in prompt
     assert "Vermeide Aufzählungen" in prompt
+    # Summaries are read on a phone: short sentences, no run-on lists.
+    assert "höchstens 25 Wörter" in prompt
     assert "Wiederhole nicht nur den Betreff" in prompt
     assert "keine inhaltsarmen Aussagen" in prompt
     assert "sofern dies nicht aus der Mail hervorgeht" in prompt
@@ -1350,12 +1352,11 @@ def test_orchestrator_complete_notification_uses_validated_values(tmp_path):
         Orchestrator(CompleteAnalyzer("relevant"),store,notify,1,[topic],1000,
                      targets=TargetSettings(todoist_project="inbox",google_calendar="primary")).process(FetchedMail("INBOX",1,91,raw))
     summary=notify.messages[0]
+    # One compact mail line (sender name, subject), then the sentences.
     assert summary == "\n".join([
-        "Absender: Alice <alice@example.test>",
-        "Betreff: Rechnung",
-        "Zusammenfassung:",
-        "- Satz eins.",
-        "- Satz zwei.",
+        "✉️ Alice · Rechnung",
+        "• Satz eins.",
+        "• Satz zwei.",
     ])
     assert "Mail-ID" not in summary
 
@@ -1543,7 +1544,7 @@ def test_orchestrator(tmp_path):
         failed=Orchestrator(AnalyzerStub("relevant"),store,notify,1,[topic],1).process(oversized)
         assert failed.outcome is ProcessingOutcome.FAILED and "error" in failed
         assert notify.messages == [
-            "Absender: safe@example.test\nBetreff: Safe subject\nStufe preparation: "
+            "✉️ safe@example.test · Safe subject\n⚠️ Schritt preparation: "
             "Die Nachricht überschreitet ein Sicherheitslimit. Bitte Anhänge oder Nachrichtengröße reduzieren."
         ]
         assert failed["id"] not in notify.messages[0]
@@ -1608,11 +1609,9 @@ def test_orchestrator_resolves_versioned_relevance_both_ways(tmp_path):
                 assert completed.outcome is ProcessingOutcome.COMPLETED
                 assert completed["steps"]["summary"]==completed["steps"]["action_detection"]=="completed"
                 assert notify.messages[1] == "\n".join([
-                    "Absender: Alice <alice@example.test>",
-                    "Betreff: Private",
-                    "Zusammenfassung:",
-                    "- eins",
-                    "- zwei",
+                    "✉️ Alice · Private",
+                    "• eins",
+                    "• zwei",
                 ])
                 assert len(notify.messages) == 2
 
@@ -1706,8 +1705,8 @@ def test_gemeinderat_action_failure_preserves_summary_and_retries_only_actions(t
             "reason": "Eine Gemeinderatssitzung ist ein Termin.",
         }
         assert partial["steps"]["completion"] == "completed"
-        assert "Zusammenfassung:" in notify.messages[0]
-        assert "Stufe event_extraction:" in notify.messages[1]
+        assert "• " in notify.messages[0]
+        assert "Schritt event_extraction:" in notify.messages[1]
 
         analyzer.fail_actions = False
         resumed = orchestrator.resume_mail(store.load_model("mail-" + partial["id"], MailState))
@@ -1716,8 +1715,8 @@ def test_gemeinderat_action_failure_preserves_summary_and_retries_only_actions(t
         assert resumed["event_extraction"]["events"][0]["date_text"] == "22.09.2026"
         assert resumed["event_extraction"]["events"][0]["responsibility"] == "unclear"
         assert resumed["event_extraction"]["events"][0]["time_text"] is None
-        assert len([message for message in notify.messages if "Zusammenfassung:" in message]) == 1
-        assert len([message for message in notify.messages if "Stufe event_extraction:" in message]) == 1
+        assert len([message for message in notify.messages if "\n• " in message]) == 1
+        assert len([message for message in notify.messages if "Schritt event_extraction:" in message]) == 1
         assert resumed["error"] is None
 
 
@@ -1768,7 +1767,7 @@ def test_task_and_event_partial_success_resumes_only_failed_event(tmp_path):
     assert resumed["steps"]["normalization"] == "completed"
     assert resumed["steps"]["proposal_building"] == "completed"
     assert resumed["steps"]["summary_notification"] == "completed"
-    assert len([message for message in notify.messages if "Zusammenfassung:" in message]) == 1
+    assert len([message for message in notify.messages if "\n• " in message]) == 1
 
 
 @pytest.mark.parametrize(("kind", "expected_stage"), [
@@ -1916,8 +1915,7 @@ def test_safe_failures_are_structured_and_notified_once_after_restart(tmp_path, 
         assert first["error"]["occurred_at"] == second["error"]["occurred_at"]
         assert len(notify.messages) == 1
         message=notify.messages[0]
-        assert "Absender: sender@example.test" in message
-        assert "Betreff: Classified" in message and "relevance" in message
+        assert "✉️ sender@example.test · Classified" in message and "relevance" in message
         assert first["id"] not in message
         assert "Private body" not in message and "not-for" not in message
 
@@ -1978,7 +1976,7 @@ def test_mime_limit_uses_persisted_display_headers_once_after_restart(tmp_path, 
                               100_000, logger=log, mime_limits=limits).process(fetched)
     assert second["error"]["occurred_at"] == first["error"]["occurred_at"]
     assert notify.messages == [
-        "Absender: bounded@example.test\nBetreff: Visible safely\nStufe preparation: "
+        "✉️ bounded@example.test · Visible safely\n⚠️ Schritt preparation: "
         "Die Nachricht überschreitet ein Sicherheitslimit. Bitte Anhänge oder Nachrichtengröße reduzieren."
     ]
     exceeded = [kwargs for args, kwargs in log.events if args[2] == "mime_limit_exceeded"]

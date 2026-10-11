@@ -31,6 +31,7 @@ __all__ = [
     "deterministic_temporal_revision",
     "normalize_deterministic_temporal_answer",
     "parse_deterministic_temporal_answer",
+    "relative_end_answer",
 ]
 
 
@@ -60,6 +61,42 @@ _RELATIVE_TODAY = re.compile(
     rf"\s*heute\s*(?:(?:,|um)?\s*{_TIME.format(name='start')}(?:\s*(?:bis|[-–])\s*{_TIME.format(name='end')})?)?\s*",
     re.IGNORECASE,
 )
+
+
+_DURATION = re.compile(
+    r"\s*(?:nach|plus|\+|in)?\s*(?P<amount>\d+(?:[.,]\d+)?)\s*"
+    r"(?P<unit>h|std\.?|stunden?|min\.?|minuten?)\s*"
+    r"(?:später|danach|nach\s+(?:dem\s+)?beginn)?\s*",
+    re.IGNORECASE,
+)
+# A duration longer than a week is not a plausible event length.
+_MAX_DURATION_MINUTES = 7 * 24 * 60
+
+
+def relative_end_answer(
+    proposal: Proposal, question: str, answer: str, configured_timezone: str
+) -> str | None:
+    """Turn a duration answer to the end question into an absolute end.
+
+    "nach 3h", "2 Stunden", "+90 min" or "1,5 h nach Beginn" are resolved only
+    when the start is already known; the result is an ordinary date and clock
+    answer for the deterministic revision.
+    """
+    if proposal.kind != ProposalKind.EVENT or not (
+        {"ende", "endet"} & set(re.findall(r"\w+", question.casefold()))
+    ):
+        return None
+    match = _DURATION.fullmatch(answer)
+    known = proposal.known_temporal_facts.start if proposal.known_temporal_facts else None
+    start = proposal.start if isinstance(proposal.start, datetime) else known
+    if match is None or not isinstance(start, datetime):
+        return None
+    amount = float(match["amount"].replace(",", "."))
+    minutes = amount if match["unit"].casefold().startswith("min") else amount * 60
+    if not 0 < minutes <= _MAX_DURATION_MINUTES:
+        return None
+    end = start.astimezone(ZoneInfo(configured_timezone)) + timedelta(minutes=round(minutes))
+    return f"{end:%d.%m.%Y %H:%M}"
 
 
 def parse_deterministic_temporal_answer(

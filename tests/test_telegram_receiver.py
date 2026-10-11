@@ -315,7 +315,7 @@ class FloodTelegram(Telegram):
 
 
 def clarification_prompts(transport):
-    return [text for _, text, _ in transport.sent if text.startswith("Rückfrage zu")]
+    return [text for _, text, _ in transport.sent if text.startswith("❓ ")]
 
 
 @pytest.mark.parametrize("failure,notice", [

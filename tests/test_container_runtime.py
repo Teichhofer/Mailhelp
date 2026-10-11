@@ -82,7 +82,8 @@ def test_installed_cli_persists_state_and_logs_across_restart(tmp_path, monkeypa
         assert OfflineImap.discoveries
         assert all(validity == (7 if stage == 2 else None)
                    for _, validity in OfflineImap.discoveries)
-        assert any("vollständig abgearbeitet" in text for text in OfflineTelegram.messages)
+        # A complete run without mail sends no summary, only the startup line.
+        assert OfflineTelegram.messages == ["👋 Mailhelp gestartet. Befehle: /hilfe"]
         checkpoints = list((config / "data/production").glob("imap-*.json"))
         assert checkpoints
         assert all(json.loads(path.read_text(encoding="utf-8"))["uidvalidity"] == 7
@@ -91,6 +92,7 @@ def test_installed_cli_persists_state_and_logs_across_restart(tmp_path, monkeypa
         records = [json.loads(line) for path in logs for line in path.read_text(encoding="utf-8").splitlines()]
         assert records
         assert not any(record.get("level") == "ERROR" for record in records)
+        assert any(record.get("event") == "run_summary_skipped" for record in records)
         assert not (tmp_path / "data").exists()
         assert not (tmp_path / "logs").exists()
         # Read the actual production-mounted filter using a fresh state each time.

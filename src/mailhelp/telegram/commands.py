@@ -5,18 +5,16 @@ from .formatting import clarification_prompt
 
 
 HELP = (
-    "Mailhelp – Hilfe\n"
-    "/hilfe – Befehle anzeigen\n"
-    "/status – Aktuelle Warte- und Bearbeitungsstände\n"
-    "/offen – Offene Entscheidungen anzeigen\n"
-    "/abbrechen – Unbeantwortete Bearbeitung schließen und Vorschlag anzeigen\n"
-    "Öffne /offen und wähle „Klären“ oder „Ändern“, oder beantworte die konkrete Rückfrage. "
-    "Jede überarbeitete Version muss erneut per Schaltfläche bestätigt werden. "
-    "Solange eine Relevanzentscheidung offen ist, wartet die weitere Mailverarbeitung. "
-    "Es ist immer nur eine offene Entscheidung sichtbar: Weitere Nachrichten werden "
-    "zurückgehalten, bis sie erledigt ist; danach folgen sie der Reihe nach bis zur "
-    "nächsten Entscheidung."
+    "Mailhelp – Befehle\n"
+    "/offen – aktuelle Entscheidung erneut zeigen\n"
+    "/status – alle offenen Vorgänge auflisten\n"
+    "/abbrechen – laufende Rückfrage beenden\n"
+    "/hilfe – diese Übersicht\n\n"
+    "Vorschläge kommen einzeln nacheinander. Rückfragen beantwortest du einfach mit "
+    "einer Nachricht; die nächste offene Frage folgt automatisch. Angelegt wird erst, "
+    "wenn du „Im Kalender anlegen“ bzw. „In Todoist anlegen“ drückst."
 )
+STARTUP = "👋 Mailhelp gestartet. Befehle: /hilfe"
 
 
 class TelegramCommands:
@@ -36,7 +34,8 @@ class TelegramCommands:
         else:
             self.telegram.send(self.chat_id, "Unbekannter Befehl. Verfügbare Befehle: /hilfe")
 
-    def overview(self, *, interactive: bool = False) -> None:
+    def overview(self, *, interactive: bool = False, compact: bool = False) -> None:
+        """List open decisions; *compact* counts held-back proposals instead of listing them."""
         lines = []
         presentations = []
         active_prompt = None
@@ -44,6 +43,7 @@ class TelegramCommands:
         active = self.store.load_model("telegram-dialog", TelegramDialogState)
         current_key = None
         queued = self.outbox.queued_proposals() if self.outbox is not None else set()
+        held_back = 0
         # With sequential questions only the current decision gets buttons.
         sequential = self.outbox is not None and self.outbox.enabled
         current = self.outbox.current_decision() if sequential else None
@@ -70,6 +70,9 @@ class TelegramCommands:
                 current_key = key
             if (proposal.source_mail_id, proposal.id, proposal.version) in queued:
                 # Not shown yet: it follows once the current decision is resolved.
+                if compact:
+                    held_back += 1
+                    continue
                 status = "Noch nicht gesendet – folgt nach Erledigung der aktuellen Entscheidung"
             elif saved:
                 status = ("Verarbeitung pausiert; Betreiber muss den gespeicherten Zustand prüfen"
@@ -96,8 +99,10 @@ class TelegramCommands:
             presentations = [item for item in presentations if item[0] == current_key]
             if current_key in labels:
                 lines.append(f"Aktuelle Entscheidung: {labels[current_key]}")
+        if held_back:
+            lines.append(f"{held_back} weitere Vorschläge folgen nacheinander.")
         held = self.outbox.held_count() if self.outbox is not None else 0
-        if held:
+        if held and not compact:
             lines.append(f"Zurückgehaltene Nachrichten bis zur Erledigung der aktuellen Entscheidung: {held}")
         self.telegram.send(self.chat_id, "\n".join(lines) if lines else "Keine offene Telegram-Entscheidung.")
         for _, presentation in presentations:

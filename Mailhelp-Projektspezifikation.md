@@ -164,7 +164,7 @@ Die nachfolgenden Betriebsdetails konkretisieren den vereinbarten Kern als vorge
 8. Mailhelp validiert die strukturierten Ergebnisse und sendet die Zusammenfassung über Telegram.
 9. Erkannte Aufgaben und Termine werden als einzelne, versionsbezogen prüfbare Vorschläge angeboten. Alle Vorschläge werden dauerhaft gespeichert und über die Telegram-Outbox angezeigt; offene Vorschläge blockieren keine Mailanalyse. Vorschläge mit Rückfragen halten jedoch spätere Telegram-Nachrichten bis zur Klärung zurück. Nur eine bereits versandte oder versandunsichere Relevanzfrage hält die weitere Mailanalyse bis zur Antwort an; eine noch zurückgehaltene Relevanzfrage pausiert ausschließlich ihre eigene Mail.
 10. Bestätigte, vollständige Vorschläge werden im vorgesehenen Dienst gespeichert. Erfolg oder Fehler wird per Telegram zurückgemeldet.
-11. Vor dem Beenden sendet Mailhelp eine Zusammenfassung des gesamten aktuellen Laufs mit der Zahl der bearbeiteten, erfolgreich abgeschlossenen, wartenden und fehlgeschlagenen Verarbeitungsversuche. Solange eine Relevanzentscheidung offen ist, wird auch diese Nachricht zurückgestellt; offene Vorschläge verhindern die Laufzusammenfassung nicht. Andernfalls gilt der Versand auch bei einem kontrollierten Signalabbruch oder einem unerwarteten Laufzeitfehler; ein Fehler beim Versand wird protokolliert und verdeckt den ursprünglichen Fehler nicht.
+11. Vor dem Beenden sendet Mailhelp eine einzeilige Laufzusammenfassung, etwa „✅ Lauf abgeschlossen: 25 von 25 Mails geprüft · 3 relevant · 14 irrelevant · 3 warten auf dich“ bzw. „⏸ Lauf unterbrochen: …“; Zähler mit dem Wert 0 entfallen. Ein vollständiger Lauf ohne entdeckte Mail sendet keine Zusammenfassung (`run_summary_skipped`). Solange eine Relevanzentscheidung offen ist, wird auch diese Nachricht zurückgestellt; offene Vorschläge verhindern die Laufzusammenfassung nicht. Andernfalls gilt der Versand auch bei einem kontrollierten Signalabbruch oder einem unerwarteten Laufzeitfehler; ein Fehler beim Versand wird protokolliert und verdeckt den ursprünglichen Fehler nicht.
 
 Fehler in einer Mail dürfen die Verarbeitung anderer Mails nicht dauerhaft blockieren. Eine Mail wird erst dann als vollständig verarbeitet markiert, wenn die vorgesehenen Schritte erfolgreich abgeschlossen oder ausdrücklich übersprungen wurden. Eine offene Relevanzentscheidung blockiert die weitere Analyse bis zur Antwort. Vorschlagsentscheidungen bleiben davon unabhängig offen.
 
@@ -827,7 +827,7 @@ Replay-Grenze fort.
 - Jede Callback-Query wird vor der fachlichen Verarbeitung sofort gegenüber
   Telegram bestätigt. Nach erfolgreicher Annahme entfernt Mailhelp über
   `editMessageReplyMarkup` die vollständige Inline-Tastatur der ursprünglichen
-  Nachricht und sendet eine kurze, aktionsbezogene Bestätigungsnachricht. Bei
+  Nachricht und sendet eine kurze, aktionsbezogene Bestätigungsnachricht. Erzeugt die Aktion selbst eine Antwort – die Rückfrage nach „Klären“, „Ändern“ oder „Manuell prüfen“ oder die Ergebnismeldung einer Anlage („✅ Angelegt im Kalender: „Titel“ · Datum, Uhrzeit“ mit Link) –, entfällt die zusätzliche Bestätigung, damit jede Aktion genau eine Nachricht auslöst. Bei
   einem Verarbeitungsfehler bleibt die Tastatur für einen erneuten Versuch
   erhalten und eine kurze Fehlermeldung wird als neue Chatnachricht gesendet.
 - Aktueller und versionierter Vorschlagszustand, Callback, Rückfragedialog,
@@ -838,20 +838,10 @@ Replay-Grenze fort.
   Rückfragen erzeugen eine neue Version; erst eine vollständige Version erhält
   wieder eine wirksame Bestätigungsschaltfläche.
 - Offene Fragen müssen vor dem Schreiben beantwortet sein. Eine allgemeine Zustimmung zu einer Zusammenfassung gilt nicht als Freigabe aller Vorschläge.
-- Vorschläge zeigen zuerst Titel und Zeitangaben, danach Ziel und Version.
-  Zeitpunkte werden in der konfigurierten Zeitzone mit deutschem Datum, Uhrzeit
-  und UTC-Offset angezeigt, reine Daten ohne Uhrzeit. Das exklusive Ende eines
-  ganztägigen Termins wird als letzter tatsächlicher Tag dargestellt. Fachliche
-  Klassifikationen erscheinen auf Deutsch; Belege, Beschreibung und offene Fragen
-  bleiben vollständig sichtbar. Revisionen zeigen die Änderungen zum gespeicherten
-  Vorgänger, sofern dieser vorhanden ist, vor der aktuellen vollständigen Ansicht.
-- Rückfragen enthalten Titel, Version, bekannte Zeitangaben, Ziel und als solche
-  erkennbare Antwortbeispiele. Beispiele bewirken keine Änderung. Korrekturen
-  erzeugen eine neue, erneut ausdrücklich zu bestätigende Version.
-- Jeder normale Programmstart sendet vor Mailverarbeitung und Dialogwiederaufnahme
-  „Mailhelp gestartet.“ mit derselben Befehlsübersicht wie `/hilfe` an die
-  konfigurierte Telegram-Chat-ID. Auch begrenzte Läufe und Neustarts mit offenen
-  Entscheidungen senden diese Übersicht, ohne eine Entscheidung zu verändern.
+- Vorschläge erscheinen als kompakte Karte, damit sie auf dem Handy auf einen Blick lesbar sind: zuerst eine Zeile mit Absendername und Betreff (`✉️ Name · Betreff`), dann Art und Titel (`📅 Termin` bzw. `✅ Aufgabe`, ab Version 2 mit Versionsnummer), die Zeit in einer Zeile in der konfigurierten Zeitzone (`🕒 21.10.2026, 12:30–14:30 Uhr`, über Mitternacht mit beiden Daten, ganztägig mit letztem tatsächlichem Tag, bei Aufgaben die Fälligkeit), Ort und Videolink. Zuständigkeit, Sicherheit und Einordnung erscheinen nur, wenn sie vom Normalfall (du, eindeutig, neu) abweichen; ein nicht automatisch anlegbarer Vorschlag trägt einen Warnhinweis. Offene Fragen werden einzeln aufgeführt. Die Beschreibung erscheint ohne den angehängten Herkunftsblock (Absender, Betreff, Mail-Datum) und nur, wenn sie nicht bloß Titel oder Beleg wiederholt; sie wird auf 300, der Beleg auf 200 Zeichen gekürzt. Leere Felder, Ziel und interne Kennungen werden nicht angezeigt; gespeicherte und extern geschriebene Inhalte bleiben vollständig. Nach einer Antwort beginnt die Karte mit „Übernommen:“ und den geänderten Zeilen.
+- Rückfragen stellen genau eine Frage („❓ …“), nennen Titel und bekannte Zeit und geben ein zur Frage passendes, als solches erkennbares Beispiel (etwa „16:00“ oder „nach 2 Stunden“ für das Ende, „ja“ oder „nein“ für die Zuständigkeit). Interne Fragetexte werden für die Anzeige an die Person gerichtet (etwa „Bist du dafür zuständig?“). Die Wahl von „Klären“, „Ändern“ oder „Manuell prüfen“ beantwortet Mailhelp nur mit dieser Rückfrage. Nach jeder Antwort folgt die überarbeitete Karte; sind noch Fragen offen und wurde die neue Version angezeigt, stellt Mailhelp die nächste Frage sofort, ohne erneuten Klick. Eine Dauer als Antwort auf das Ende („nach 3h“, „2 Stunden“, „+90 min“, „1,5 h nach Beginn“) wird bei bekanntem Beginn ohne LLM in eine Endzeit umgerechnet. Beispiele bewirken keine Änderung; jede neue Version muss erneut ausdrücklich bestätigt werden.
+- Jeder normale Programmstart sendet vor Mailverarbeitung und Dialogwiederaufnahme die kurze Zeile „👋 Mailhelp gestartet. Befehle: /hilfe“; `/hilfe` zeigt die Befehlsübersicht. Danach wird die aktuelle offene Entscheidung erneut gezeigt; weitere zurückgehaltene Vorschläge erscheinen nur als Anzahl („N weitere Vorschläge folgen nacheinander.“), `/status` listet sie einzeln. Auch begrenzte Läufe und Neustarts mit offenen
+  Entscheidungen senden diese Zeile, ohne eine Entscheidung zu verändern.
   Die Anwendung ruft den Versand einmal pro Lauf auf, nicht pro Polling-Zyklus;
   die konfigurierten Transport-Retries gelten weiterhin. Versandfehler verhindern
   den weiteren Ablauf nicht und werden ausschließlich mit Fehlerklasse als
@@ -895,8 +885,9 @@ Replay-Grenze fort.
   Kein Befehl erteilt Schreibfreigaben oder ruft externe Schreibdienste auf.
 - Offene Bestätigungen werden dauerhaft gespeichert und bleiben nach Neustarts nutzbar. Es erfolgt keine automatische Bestätigung durch Zeitablauf.
 - Lange Telegram-Ausgaben werden geordnet aufgeteilt und bleiben eindeutig zuordenbar.
-- Jeder Teil einer langen Vorschlagsausgabe nennt den Absender und Betreff der
-  Ursprungsmail sowie die fortlaufende Nummer und Gesamtzahl der Teile. Interne
+- Jeder Teil einer langen Vorschlagsausgabe beginnt mit der Zeile aus
+  Absendername und Betreff der Ursprungsmail; nur bei mehreren Teilen folgen
+  fortlaufende Nummer und Gesamtzahl („Teil 1/2“). Interne
   Mail- und Vorschlags-IDs werden in der sichtbaren Nachricht nicht angezeigt.
 
 Nach erfolgreichem Speichern werden die externe ID und, sofern verfügbar, ein Link hinterlegt und zurückgemeldet. Fehler werden verständlich gemeldet, ohne Geheimnisse offenzulegen.
