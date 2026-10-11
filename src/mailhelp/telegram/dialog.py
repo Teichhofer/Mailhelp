@@ -17,6 +17,8 @@ from ..domain.processing import (
 from ..integrations import ExternalWriter
 from ..models import Proposal, ProposalStatus, RelevanceDialog, TelegramOffset
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
+from ..review.inbox import CommandInbox
+from ..review.results import ResultStatus, ReviewResult
 from ..storage import JsonStore
 
 from .authorization import AuthorizedUpdateValidator, UpdateValidation
@@ -93,6 +95,7 @@ class TelegramDialogController:
         revision_backoff_seconds: int = 60,
         sequential_questions: bool = True,
         inbox: TelegramInbox | None = None,
+        commands: CommandInbox | None = None,
     ):
         from .delivery import ProposalDeliveryService
         from .decisions import ProposalDecisionService
@@ -109,6 +112,9 @@ class TelegramDialogController:
         # With an inbox, a receiver thread fetches updates; this controller
         # only processes them (see poll_once).
         self.inbox = inbox
+        # Web commands, executed here in the main thread like Telegram updates.
+        self.commands = commands
+        self._commands_recovered = False
         self.writers, self.test_mode = writers or {}, test_mode
         self.configured_timezone = configured_timezone
         self.revision_service = revision_service
@@ -328,6 +334,10 @@ class TelegramDialogController:
         """
         self.write_executor.resume()
         self.revisions.resume()
+        if self.commands is not None and not self._commands_recovered:
+            # Commands interrupted by a restart are reconciled, never repeated.
+            self._commands_recovered = True
+            self.commands.recover(self.review.reconcile)
         offset = self._processed_offset()
         if self.inbox is not None:
             now = time.time()
@@ -444,8 +454,29 @@ class TelegramDialogController:
                 update_id=raw_id,
                 next_offset=offset,
             )
+        self._process_commands()
         # Answers above may have resolved the question that held messages back.
         self.outbox.flush()
+
+    def _process_commands(self) -> None:
+        """Execute queued web commands in arrival order."""
+        if self.commands is None:
+            return
+        for entry in self.commands.queued():
+            command = entry.command
+            self.commands.start(entry.id)
+            try:
+                result = self.review.execute(command)
+            except Exception as exc:
+                self.logger.event("ERROR", "review", "command_failed", command_id=entry.id,
+                                  source=command.source.value, kind=command.kind.value,
+                                  error_class=type(exc).__name__)
+                result = ReviewResult(status=ResultStatus.FAILED,
+                                      message="Die Aktion ist fehlgeschlagen; Details stehen im Protokoll.")
+            self.commands.finish(entry.id, result)
+            self.logger.event("INFO", "review", "command_finished", command_id=entry.id,
+                              source=command.source.value, kind=command.kind.value,
+                              status=result.status.value)
 
     def _reject_duplicate_relevance(self, raw: dict[str, Any]) -> None:
         """Make a replayed relevance answer visible without trusting raw fields."""

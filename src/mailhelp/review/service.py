@@ -13,7 +13,8 @@ from typing import Any, Callable
 
 from pydantic import ValidationError
 
-from ..models import Proposal, ProposalStatus, TelegramDialogState
+from ..models import MailState, Proposal, ProposalStatus, RelevanceDialogStatus, TelegramDialogState
+from ..domain.processing import ProposalClarificationState
 from .commands import CommandKind, CommandSource, ReviewCommand
 from .errors import AnswerRequired, ReviewBusy, ReviewError, StaleCommand
 from .results import ResultStatus, ReviewResult
@@ -64,6 +65,44 @@ class ReviewService:
             if raise_errors:
                 raise
             return ReviewResult(status=_error_status(exc), message=_error_message(exc))
+
+    def reconcile(self, command: ReviewCommand) -> ReviewResult:
+        """Result of a command interrupted by a restart, judged from the current state.
+
+        The command is never executed again: if its effect is visible it
+        counts as done, otherwise the user is asked to trigger it again.
+        """
+        if self._took_effect(command):
+            return ReviewResult(status=ResultStatus.DONE,
+                                message="Nach einem Neustart abgeglichen; der aktuelle Stand wird angezeigt.")
+        return ReviewResult(status=ResultStatus.FAILED,
+                            message="Durch einen Neustart unterbrochen – bitte prüfen und erneut auslösen.")
+
+    def _took_effect(self, command: ReviewCommand) -> bool:
+        store = self.controller.store
+        if command.kind == CommandKind.RELEVANCE:
+            mail = store.load_model(f"mail-{command.mail_id}", MailState)
+            dialog = mail.relevance_dialog if isinstance(mail, MailState) else None
+            return dialog is not None and dialog.status == RelevanceDialogStatus.DECIDED
+        assert command.proposal_id is not None
+        current = self.controller.repository.load_current(command.mail_id, command.proposal_id)
+        if current is None:
+            return False
+        if current.version != command.version or current.status not in _OPEN:
+            return True
+        pointer = self._pointer()
+        on_target = (pointer.mail_id, pointer.proposal_id, pointer.version) == (
+            command.mail_id, command.proposal_id, command.version)
+        if command.kind == CommandKind.START_CLARIFICATION:
+            return on_target
+        if command.kind == CommandKind.CANCEL_CLARIFICATION:
+            return not on_target
+        if command.kind == CommandKind.ANSWER:
+            answer = store.load_model(
+                f"clarification-{command.mail_id}-{command.proposal_id}-v{command.version}",
+                ProposalClarificationState)
+            return isinstance(answer, ProposalClarificationState) and answer.authorized_answer is not None
+        return False
 
     def _authorized(self, command: ReviewCommand) -> bool:
         if command.source == CommandSource.TELEGRAM:
