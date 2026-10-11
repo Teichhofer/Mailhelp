@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .config import Settings, Topic, TopicsConfig, IrrelevantTopicsConfig
 from .learning import _atomic_replace
+from .yaml_edit import YamlEditError, set_scalars
 from .review.commands import CommandSource
 from .review.results import ResultStatus, ReviewResult
 from .storage import JsonStore
@@ -104,12 +105,22 @@ class ConfigurationService:
         model = TopicsConfig if command.category == "relevant" else IrrelevantTopicsConfig
         return model(topics=topics).model_dump(mode="json")
 
+    def render(self, command: AdminCommand, candidate: dict) -> str:
+        """New file content; config.yaml keeps its comments and layout."""
+        if command.kind != AdminKind.SETTINGS:
+            return yaml.safe_dump(candidate, allow_unicode=True, sort_keys=False)
+        content = set_scalars(self.path(command).read_text(encoding="utf-8"), command.patch)
+        if yaml.safe_load(content) != candidate:
+            # Never write a file whose meaning differs from the validated candidate.
+            raise YamlEditError("config.yaml lässt sich hier nicht sicher ändern")
+        return content
+
     def execute(self, command: AdminCommand) -> ReviewResult:
         if not self.authorize(command.actor):
             return ReviewResult(status=ResultStatus.UNAUTHORIZED, message="Nicht autorisiert.")
         try:
             candidate = self.candidate(command)
-            content = yaml.safe_dump(candidate, allow_unicode=True, sort_keys=False)
+            content = self.render(command, candidate)
             journal = {"schema_version": 1, "command": command.model_dump(mode="json"),
                        "candidate_hash": hashlib.sha256(content.encode()).hexdigest(), "status": "prepared"}
             self.store.save(f"configuration-{command.idempotency_key}", journal)
