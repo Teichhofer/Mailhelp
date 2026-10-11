@@ -356,3 +356,10 @@ def test_service_worker_caches_only_the_shell():
     assert shell == '"/offline.html", "/static/app.css", "/static/icon-192.png", "/static/icon-512.png"'
     # No API, page or data URL is ever put into the cache, and nothing is replayed later.
     assert "cache.put" not in source and "sync" not in source and "/api" not in source
+
+
+def test_compose_publishes_the_web_port_only_on_localhost():
+    import yaml
+    service = yaml.safe_load(Path("compose.yaml").read_text(encoding="utf-8"))["services"]["mailhelp"]
+    assert service["ports"] == ["127.0.0.1:8765:8765"]
+    assert "EXPOSE 8765" in Path("Dockerfile").read_text(encoding="utf-8")

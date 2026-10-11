@@ -1708,3 +1708,64 @@ $env:DECISION_TEST_MAILS = "40"
 $env:DECISION_TEST_OLLAMA = "192.168.1.20:11434"
 docker compose -f compose.decision-test.yaml run --rm mailhelp-decision-test
 ```
+
+## 18. Weboberfläche und PWA (1.1)
+
+Die Weboberfläche ist optional (`web.enabled`, Standard aus) und läuft als
+`ThreadingHTTPServer` der Standardbibliothek in einem Daemon-Thread des
+Mailhelp-Prozesses. Ein belegter Port wird gemeldet und stoppt die Mailverarbeitung
+nicht. Konfiguration: `web.host`, `web.port`, `web.allowed_hosts`,
+`web.session_days`; Geheimnis `MAILHELP_WEB_SECRET` (nur bei aktivierter
+Oberfläche, mindestens 32 Zeichen). Der Abschnitt `web` geht nicht in den
+Konfigurations-Fingerprint ein.
+
+**Kanalneutrale Review-Schicht** (`mailhelp.review`): Befehle (`confirm`,
+`confirm_duplicate`, `reject`, `clarify`, `answer`, `cancel`, `relevance`) tragen
+Quelle, autorisierte Person, Mail-ID, Vorschlags-ID, erwartete Version und einen
+Idempotenzschlüssel. Der `ReviewService` prüft Autorisierung und Version und führt
+die Befehle über die bestehenden Dienste aus (`ProposalDecisionService`,
+`ProposalRevisionProcessor`, Relevanzdialog); er liefert typisierte Ergebnisse.
+Telegram-Schaltflächen laufen ebenfalls über ihn. Eine Web-Antwort setzt den
+Rückfragezeiger `telegram-dialog` auf ihre Zielversion; eine laufende, gespeicherte
+Antwort eines anderen Vorschlags wird dabei nicht überschrieben (Ergebnis „busy“).
+Lesemodelle lesen ohne Migration und ohne Quarantäne; beschädigte Datensätze werden
+übersprungen und gezählt.
+
+**Ein Zustandsbesitzer:** Web-Threads schreiben nie Review-Zustand. Sie legen Befehle
+in die dauerhafte `command-inbox` (Status `queued`, `running`, `done`, `rejected`,
+`failed`; erledigte Einträge einen Tag). Derselbe Schlüssel hat nie eine zweite
+Wirkung, ein anderer Befehl mit demselben Schlüssel wird abgewiesen, höchstens 50
+Befehle warten. Der Hauptthread verarbeitet sie nach den Telegram-Eingaben eines
+Zyklus in Eingangsreihenfolge; nach einem Neustart werden `running`-Einträge gegen
+den aktuellen Zustand abgeglichen statt wiederholt. `JsonStore` serialisiert Lesen
+und Schreiben zusätzlich mit einer prozessinternen Sperre.
+
+**HTTP-Regeln:** `Host` gegen `allowed_hosts` (sonst 421), nur GET und POST,
+Request-Bodies höchstens 16 KB, POST nur als Formulardaten. Antworten tragen eine
+Content-Security-Policy ohne Inline-Skripte, `X-Frame-Options: DENY`,
+`Referrer-Policy: no-referrer` und `Cache-Control: no-store` (statische Dateien
+`no-cache`). `/health`, statische Dateien, Manifest, Service Worker und Offline-Seite
+sind ohne Anmeldung erreichbar und enthalten keine Daten.
+
+**Anmeldung:** Kopplung per achtstelligem Telegram-Code (10 Minuten, an den Browser
+gebunden, Ratenbegrenzung), Sitzungen als gehashte Zufallstoken mit
+`HttpOnly`/`SameSite=Strict`-Cookie (über Tailscale `Secure`), CSRF-Token je Sitzung.
+Tailscale-Identitäts-Header werden ignoriert. Jede Kopplung wird in Telegram
+gemeldet; `/web_abmelden` meldet alle Geräte ab. Ein Befehl wird nur ausgeführt,
+solange seine Sitzung besteht.
+
+**Aktionen:** `POST /aktion` prüft die Version vorab (veraltet: 409 mit aktueller
+Version), legt den Befehl ab und antwortet mit 303 auf die Statusseite
+`/aktion/<id>` bzw. mit 202 und JSON. Die Statusseite lädt sich ohne JavaScript
+neu, bis das Ergebnis vorliegt, und bietet bei einer erkannten früheren Anlage
+„Erneut anlegen“ an. Telegram erhält Schreibergebnisse und Revisionen wie bisher;
+im Web verworfene Vorschläge und Relevanzentscheidungen werden als „🌐 Im Web: …“
+gemeldet. Ein Telegram-Callback zu einer nicht mehr aktuellen Version antwortet mit
+„Bereits entschieden oder geändert … veraltet“.
+
+**PWA:** Manifest (`display: standalone`) und ein Service Worker, der nur
+`offline.html`, `app.css` und Icons speichert. Seitenaufrufe gehen immer an den PC;
+ohne Verbindung erscheint die Offline-Seite. POST-Anfragen, Daten und API-Antworten
+werden weder gespeichert noch später gesendet.
+
+Einrichtung und Betrieb: [docs/Release-1.1.md](docs/Release-1.1.md).

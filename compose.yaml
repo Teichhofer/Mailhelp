@@ -5,6 +5,10 @@ services:
     init: true
     stop_grace_period: 45s
     env_file: [.env]
+    # Weboberfläche (web.enabled): im Container auf 0.0.0.0 lauschen, auf dem Host
+    # ausschließlich über 127.0.0.1 erreichbar (Tailscale Serve läuft auf dem Host).
+    ports:
+      - "127.0.0.1:8765:8765"
     volumes:
       - ./config.yaml:/config/config.yaml:ro
       - ./prompts.yaml:/config/prompts.yaml:ro

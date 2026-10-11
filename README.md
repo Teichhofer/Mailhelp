@@ -1187,6 +1187,29 @@ abgelehnt. `relevant` setzt die Verarbeitung bei Zusammenfassung und
 Aktionserkennung fort; `irrelevant` markiert diese Schritte und die Benachrichtigung
 als `skipped` sowie den Abschluss als `completed`.
 
+## Weboberfläche und App (ab 1.1)
+
+Optional bietet Mailhelp eine Weboberfläche mit denselben Entscheidungen wie
+Telegram: Vorschläge bestätigen oder verwerfen, Rückfragen beantworten (bei Ja/Nein
+per Schaltfläche) und Relevanz klären. Sie läuft im Mailhelp-Prozess, am PC unter
+`http://127.0.0.1:8765` und auf dem iPhone über Tailscale Serve als installierbare
+App. Telegram bleibt Benachrichtigungskanal; ohne `web.enabled: true` verhält sich
+Mailhelp wie 1.0.
+
+- Aktivierung: Abschnitt `web:` in `config.yaml` und `MAILHELP_WEB_SECRET`
+  (mindestens 32 Zeichen) in `.env`; `mailhelp --check` prüft beides.
+- Anmeldung: einmaliger Kopplungscode über Telegram, danach eine Sitzung je Gerät
+  (`session_days`). Abmelden unter „Geräte“ oder mit `/web_abmelden` in Telegram.
+- Jede Web-Aktion gilt für genau die angezeigte Vorschlagsversion und wird vom
+  Hauptthread ausgeführt wie eine Telegram-Eingabe. Veraltete Versionen werden
+  abgewiesen; eine wiederholte Anfrage (z. B. nach einem Browser-Timeout) hat keine
+  zweite Wirkung. Eine Telegram-Schaltfläche zu einem im Web entschiedenen
+  Vorschlag meldet „Bereits entschieden“.
+- Offline zeigt die App „PC nicht erreichbar“ und speichert keine Daten.
+
+Einrichtung, Tailscale, iPhone-Installation und Sicherheitsdetails:
+[Release-1.1.md](docs/Release-1.1.md).
+
 ## Docker
 
 ```sh
@@ -1242,6 +1265,14 @@ python -m pytest
 ```
 
 Die Standardkonfiguration erzwingt ohne Rundung 100 % Zeilen- **und** Branch-Abdeckung für `src/mailhelp`.
+
+Browsertests der Weboberfläche (Chrome, Desktop- und iPhone-Format, Screenshots in
+`.test-tmp/ui-screens`, 100 % Blockabdeckung von `app.js` und `sw.js`):
+
+```sh
+python -m pip install playwright==1.62.0
+python -m pytest ui_tests --no-cov -p no:cacheprovider
+```
 
 Temporäre Testdateien liegen nicht im Projekt: `tmp_path`, `tempfile` und
 gestartete Kindprozesse verwenden `<System-Temp>/mailhelp-tests`
