@@ -347,6 +347,10 @@ def test_application_writes_metrics_into_the_log_directory(tmp_path, monkeypatch
         assert made.logger.metrics.path == logs / "llm.jsonl"
         assert made.logger.metrics.comparison.path == logs / "decision-tests.jsonl"
         assert (logs / "llm.jsonl").exists() and not legacy.exists()
+        # Former fingerprints of this configuration are registered as equivalent.
+        registered = made.store.names("processing-topics-")
+        assert len(registered) == 2
+        assert all(made.store.load(name)["policy"] == made.orchestrator.topic_policy for name in registered)
 
 
 # --- R4: settings page ---------------------------------------------------------------

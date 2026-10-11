@@ -1142,9 +1142,16 @@ def build_application(
             commands=CommandInbox(store, wake=telegram_inbox.wake) if web_enabled else None,
         )
         orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics, settings.limits.max_mail_bytes, logger, mime_limits=settings.limits, config_fingerprint=fingerprint, targets=settings.targets, user_timezone=settings.timezone, sender_store=sender_store)
-        orchestrator.topic_policy = hashlib.sha256(json.dumps([
-            settings.model_dump(mode="json", exclude={"web", "metrics", "retention"}),
-            prompts.model_dump()], sort_keys=True).encode()).hexdigest()
+        from .fingerprints import (adopt_legacy_configuration, legacy_fingerprints, legacy_policies,
+                                   topic_policy)
+        orchestrator.topic_policy = topic_policy(settings, prompts)
+        if not access_diagnostics:
+            legacy = legacy_fingerprints(settings, prompts, topics)
+            if jev_prompts is not None:
+                legacy = {relevance_fingerprint(item, jev_prompts) for item in legacy}
+            # Mails started under 1.1 or the 1.2 beta with this same configuration continue.
+            adopt_legacy_configuration(store, fingerprint, legacy, orchestrator.topic_policy,
+                                       legacy_policies(settings, prompts), topics)
         dialog.relevance_handler = orchestrator
         orchestrator.stop_event = stop_event
         web = None

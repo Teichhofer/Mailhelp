@@ -629,10 +629,10 @@ def load_all(directory: Path, environ: dict[str, str] | None = None) -> tuple[Se
             raise ValueError("MAILHELP_WEB_SECRET muss mindestens 32 Zeichen lang sein")
         values["mailhelp_web_secret"] = web_secret
     secrets = Secrets.model_validate(values)
-    # The web interface does not influence mail analysis; changing it must not
-    # hold back mails that are still being processed.
-    analysis_settings = settings.model_dump(mode="json", exclude={"web"})
-    fingerprint = hashlib.sha256(json.dumps([analysis_settings, prompts.model_dump(), [x.model_dump() for x in topics]], sort_keys=True).encode()).hexdigest()
+    # Only analysis-relevant settings: operational changes (web, polling, logging,
+    # retention, timeouts, metrics) must not hold back mails that are running.
+    from .fingerprints import config_fingerprint
+    fingerprint = config_fingerprint(settings, prompts, topics)
     return settings, secrets, topics, irrelevant_topics, prompts, fingerprint
 
 
