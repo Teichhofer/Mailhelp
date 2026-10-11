@@ -34,7 +34,8 @@ from .telegram.receiver import TelegramInbox, TelegramReceiver
 from .adapter import RetryPolicy
 from .retention import RetentionService
 from .review.inbox import CommandInbox
-from .web import WebApp, WebServer, WebServerError
+from .web import WebServer, WebServerError
+from .web.factory import create_web
 
 _BLOCKED_STATE_SCAN_LIMIT = 1000
 _TELEGRAM_ERROR_BACKOFF_SECONDS = 5.0
@@ -1114,7 +1115,13 @@ def build_application(
         orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics, settings.limits.max_mail_bytes, logger, mime_limits=settings.limits, config_fingerprint=fingerprint, targets=settings.targets, user_timezone=settings.timezone, sender_store=sender_store)
         dialog.relevance_handler = orchestrator
         orchestrator.stop_event = stop_event
-        web = (WebServer(settings.web.host, settings.web.port,
-                         WebApp(settings.web.allowed_hosts), logger)
-               if web_enabled else None)
+        web = None
+        if web_enabled:
+            secret = secrets.mailhelp_web_secret
+            components = create_web(
+                settings, secret.get_secret_value() if secret is not None else None, store,
+                lambda text: telegram.send(settings.telegram.chat_id, text), logger)
+            dialog.review.web_authorizer = components.authorize
+            dialog.web_logout = components.auth.revoke_all
+            web = components.server
         yield Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar, orchestrator, stop_event, dialog, sender_store, web=web)

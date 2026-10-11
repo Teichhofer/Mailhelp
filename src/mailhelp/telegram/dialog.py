@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import time
 import traceback
-from typing import Any
+from typing import Any, Callable
 
 from pydantic import ValidationError
 
@@ -115,6 +115,8 @@ class TelegramDialogController:
         # Web commands, executed here in the main thread like Telegram updates.
         self.commands = commands
         self._commands_recovered = False
+        # Revokes every web session (Telegram command /web_abmelden).
+        self.web_logout: Callable[[], int] | None = None
         self.writers, self.test_mode = writers or {}, test_mode
         self.configured_timezone = configured_timezone
         self.revision_service = revision_service
@@ -292,7 +294,7 @@ class TelegramDialogController:
 
         TelegramCommands(self.store, self.repository, self.presenter,
                          self.telegram, self.chat_id, self.relevance,
-                         self.outbox).overview(interactive=True, compact=True)
+                         self.outbox, self.web_logout).overview(interactive=True, compact=True)
 
     def processing_blocked(self) -> bool:
         """Return whether an answered revision needs an operator restart."""
@@ -597,7 +599,7 @@ class TelegramDialogController:
 
             TelegramCommands(self.store, self.repository, self.presenter,
                              self.telegram, self.chat_id, self.relevance,
-                             self.outbox).handle(normalized)
+                             self.outbox, self.web_logout).handle(normalized)
             return
         if normalized in {"relevant", "irrelevant"}:
             dialogs = self._open_relevance_dialogs()

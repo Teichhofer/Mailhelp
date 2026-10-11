@@ -307,3 +307,17 @@ def test_build_application_creates_the_web_server_only_when_enabled(tmp_path, mo
         assert (made.dialog.commands is not None) is enabled
         if enabled:
             assert (made.web.host, made.web.port) == ("127.0.0.1", 8765)
+
+
+@pytest.mark.parametrize("name", ["app.css", "app.js", "icon-192.png", "icon-512.png",
+                                  "icon-maskable-512.png"])
+def test_static_application_files_are_served_from_the_package(name):
+    response = get(WebApp([HOST]), f"/static/{name}")
+    assert response.status == 200 and response.cache == "no-cache" and response.body
+    assert response.body == (Path("src/mailhelp/web/static") / name).read_bytes()
+
+
+@pytest.mark.parametrize("path", ["/static/unbekannt.css", "/static/..", "/static/pages.py",
+                                  "/static/APP.CSS"])
+def test_only_listed_static_files_are_readable(path):
+    assert get(WebApp([HOST]), path).status in {400, 404}

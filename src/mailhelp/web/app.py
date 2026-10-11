@@ -3,11 +3,25 @@
 from __future__ import annotations
 
 import re
+from importlib.resources import files
 from typing import Callable
 
 from .http import Request, Response, rejected
 
 Route = Callable[..., Response]
+
+# Application files served from the package; nothing else is readable.
+STATIC_FILES = {
+    "app.css": "text/css; charset=utf-8",
+    "app.js": "text/javascript; charset=utf-8",
+    "icon-192.png": "image/png",
+    "icon-512.png": "image/png",
+    "icon-maskable-512.png": "image/png",
+}
+
+
+def static_file(name: str) -> bytes:
+    return files("mailhelp.web").joinpath("static", name).read_bytes()
 
 
 class WebApp:
@@ -17,6 +31,7 @@ class WebApp:
         self.allowed_hosts = frozenset(allowed_hosts)
         self._routes: list[tuple[str, re.Pattern[str], Route]] = []
         self.route("GET", "/health", self.health)
+        self.route("GET", r"/static/(?P<name>[a-z0-9.-]+)", self.static)
 
     def route(self, method: str, pattern: str, handler: Route) -> None:
         self._routes.append((method, re.compile(pattern), handler))
@@ -46,5 +61,11 @@ class WebApp:
         """Liveness only: no data, no authentication."""
         return Response.json(200, {"status": "ok"})
 
+    @staticmethod
+    def static(_request: Request, name: str) -> Response:
+        if name not in STATIC_FILES:
+            return Response.text(404, "Nicht gefunden.")
+        return Response(200, static_file(name), STATIC_FILES[name], cache="no-cache")
 
-__all__ = ["WebApp"]
+
+__all__ = ["STATIC_FILES", "WebApp", "static_file"]
