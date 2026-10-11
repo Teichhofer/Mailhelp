@@ -1,6 +1,7 @@
 """1.2 behaviour that was implemented but not yet verified by a test."""
 from __future__ import annotations
 
+import json
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 from threading import Event
@@ -61,7 +62,8 @@ def test_runtime_snapshot_follows_processing_steps(tmp_path):
     assert changes == ["preparation", "relevance", "waiting_for_user", "failed", "idle", "idle"]
     assert runtime["stage"] == "idle" and runtime["elapsed"] >= 0
     assert datetime.fromisoformat(runtime["next_poll"]) > datetime.now(timezone.utc)
-    assert set(runtime["contacts"]) == {"imap", "unknown"}
+    # Only known success events count; an event without a service is not a contact.
+    assert set(runtime["contacts"]) == {"IMAP-Postfach"}
 
 
 def test_comparison_metrics_failures_are_counted_not_raised(tmp_path):
@@ -172,3 +174,77 @@ def test_relevance_history_is_skipped_when_the_mail_record_is_gone(web, monkeypa
                                                decision="irrelevant", actor=actor))
     assert result.status == ResultStatus.DONE
     assert web.store.peek("history-" + "e" * 24) is None
+
+
+@pytest.mark.parametrize(("mode", "llm"), [("standard", "KI-Modelle (OpenRouter)"), ("local", "Ollama")])
+def test_successful_contacts_per_service_from_logged_events(tmp_path, mode, llm):
+    metrics = MetricsRecorder(tmp_path / "llm.jsonl", MetricsSettings(), mode)
+    for service, event in (("todoist", "create_completed"), ("google_calendar", "duplicate_updated"),
+                           ("google_oauth", "token_credentials_accepted"), ("decisions", "jev_relevance_completed"),
+                           ("todoist", "create_failed"), ("google_calendar", "target_access_failed")):
+        metrics.observe(event, {"service": service})
+    metrics.observe("response_received", {"call_id": "c1"})
+    contacts = metrics.runtime()["contacts"]
+    assert set(contacts) == {"Todoist", "Google Kalender", "Google-Anmeldung", "Jev (Relevanz)", llm}
+    services = metrics.expected_services()
+    assert services[0] == "IMAP-Postfach" and llm in services
+    assert ("Jev (Relevanz)" in services) is (mode == "standard")
+
+
+def test_telegram_messages_count_as_contacts_without_content(tmp_path):
+    from mailhelp.logging import JsonlLogger
+    from test_application import settings as app_settings
+    from mailhelp.application import build_logger
+    from mailhelp.config import Secrets
+    secrets = Secrets(imap_username="u", imap_password="p", openrouter_api_key="o", telegram_bot_token="t",
+                      todoist_token="d", todoist_client_id="ti", todoist_client_secret="ts",
+                      google_oauth_client_id="i", google_oauth_client_secret="s", google_oauth_refresh_token="r")
+    logger = build_logger(app_settings(tmp_path), secrets, tmp_path)
+    assert isinstance(logger, JsonlLogger)
+    seen = []
+    logger.metrics = SimpleNamespace(observe=lambda event, context: seen.append((event, context)))
+    logger.telegram_event("sent", chat_id=2, text="geheimer Inhalt")
+    assert seen == [("message_sent", {"service": "telegram"})]
+
+
+def test_status_page_shows_runtime_contacts_and_its_own_refresh_signal(web, tmp_path):
+    _, metrics, *_ = configure(web, tmp_path)
+    metrics.observe("processing_started", {"mail_id": mail_id(1)})
+    metrics.observe("request_completed", {"service": "imap"})
+    page = web.browser.request("GET", "/status").body.decode()
+    assert "<dt>Schritt</dt><dd>Aufbereitung</dd>" in page
+    assert f'href="/mail/{mail_id(1)}">Bearbeitete Mail öffnen</a>' in page
+    assert "<dt>IMAP-Postfach</dt><dd>zuletzt erfolgreich" in page
+    assert "<dt>Telegram</dt><dd>unbekannt</dd>" in page
+    assert 'data-state-url="/api/stand?seite=status"' in page
+    first = json.loads(web.browser.request("GET", "/api/stand?seite=status", accept="application/json").body)
+    metrics.observe("idle_started", {"delay_seconds": 120})
+    second = json.loads(web.browser.request("GET", "/api/stand?seite=status", accept="application/json").body)
+    assert first["fingerprint"] != second["fingerprint"]
+    assert first["fingerprint"] in page
+    # A contact alone does not reload the page every poll.
+    metrics.observe("request_completed", {"service": "imap"})
+    third = json.loads(web.browser.request("GET", "/api/stand?seite=status", accept="application/json").body)
+    assert third == second
+    idle = web.browser.request("GET", "/status").body.decode()
+    assert "<dt>Nächster Mailabruf</dt>" in idle and "Bearbeitete Mail öffnen" not in idle
+    overview = json.loads(web.browser.request("GET", "/api/stand", accept="application/json").body)
+    assert overview["fingerprint"] != second["fingerprint"]
+
+
+def test_status_without_metrics_and_unknown_stage(web, tmp_path):
+    from mailhelp.web.review_pages import RUNTIME_STAGES, ServiceInfo, _runtime_section
+    from zoneinfo import ZoneInfo
+    assert "Aktuelle Verarbeitung" not in web.browser.request("GET", "/status").body.decode()
+    plain = json.loads(web.browser.request("GET", "/api/stand?seite=status", accept="application/json").body)
+    assert len(plain["fingerprint"]) == 16
+    info = ServiceInfo(version="1", test_mode=False, started_at=datetime.now(timezone.utc),
+                       now=datetime.now(timezone.utc), address="x", devices=0, llm_calls_per_minute=None,
+                       commands={}, runtime={"stage": "event_extraction", "elapsed": 5, "contacts":
+                                             {"Sonderdienst": "2026-10-11T10:00:00+00:00"}},
+                       services=("IMAP-Postfach",))
+    html = _runtime_section(info, ZoneInfo("UTC"))
+    assert "Terminerkennung" in html and "Sonderdienst" in html and "unbekannt" in html
+    other = _runtime_section(info.__class__(**{**info.__dict__, "runtime": {"stage": "neu", "elapsed": 0,
+                                                                            "contacts": {}}}), ZoneInfo("UTC"))
+    assert "<dd>neu</dd>" in other and RUNTIME_STAGES["idle"].startswith("Leerlauf")

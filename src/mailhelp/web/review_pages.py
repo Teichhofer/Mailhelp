@@ -1,4 +1,4 @@
-"""Pages built from the review read models: overview, proposal detail, run status.
+﻿"""Pages built from the review read models: overview, proposal detail, run status.
 
 They show the same content as the compact Telegram card; description and
 evidence can be expanded.  Every value is escaped.  Links contained in mails
@@ -236,6 +236,46 @@ class ServiceInfo:
     devices: int
     llm_calls_per_minute: int | None
     commands: dict[CommandStatus, int]
+    # Live snapshot of the main thread (stage, mail, next poll, contacts) if recorded.
+    runtime: dict | None = None
+    services: tuple[str, ...] = ()
+    fingerprint: str | None = None
+
+
+RUNTIME_STAGES = {
+    "idle": "Leerlauf – wartet auf den nächsten Mailabruf",
+    "waiting_for_user": "Wartet auf deine Relevanzentscheidung",
+    "failed": "Letzte Verarbeitung fehlgeschlagen",
+    "unknown": "Unbekannter Schritt",
+}
+
+
+def _runtime_section(info: ServiceInfo, zone: ZoneInfo) -> str:
+    """What the main thread is doing now and the last known successful contacts."""
+    from ..review.views import STAGE_LABELS
+
+    runtime = info.runtime
+    if runtime is None:
+        return ""
+    stage = runtime["stage"]
+    label = RUNTIME_STAGES.get(stage) or STAGE_LABELS.get(stage) or stage
+    rows = [("Schritt", label), ("Seit", _duration(runtime["elapsed"]))]
+    mail = runtime.get("mail_id")
+    next_poll = runtime.get("next_poll")
+    if next_poll:
+        rows.append(("Nächster Mailabruf", _when(datetime.fromisoformat(next_poll), zone)))
+    section = "<h2>Aktuelle Verarbeitung</h2>" + _facts(rows)
+    if mail:
+        section += f'<p><a href="/mail/{e(mail)}">Bearbeitete Mail öffnen</a></p>'
+    contacts = runtime.get("contacts", {})
+    services = list(info.services) + sorted(set(contacts) - set(info.services))
+    contact_rows = [(service, ("zuletzt erfolgreich " + _when(datetime.fromisoformat(contacts[service]), zone))
+                     if service in contacts else "unbekannt")
+                    for service in services]
+    section += "<h2>Dienste</h2>" + _facts(contact_rows)
+    section += ('<p class="meta">„Unbekannt“: seit dem Start kein belegter erfolgreicher Kontakt. '
+                "Die Seite selbst prüft keinen Dienst.</p>")
+    return section
 
 
 def _when(value: datetime | None, zone: ZoneInfo) -> str:
@@ -285,6 +325,8 @@ def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
         ("Weboberfläche", info.address),
         ("Gekoppelte Geräte", str(info.devices)),
     ]))
+
+    parts.append(_runtime_section(info, zone))
 
     parts.append("<h2>Letzter Mail-Durchlauf</h2>")
     progress = (f"{system.run_finished} von {system.run_total} Mails analysiert"
@@ -345,7 +387,9 @@ def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
     parts.append('<p class="meta">Die Seite zeigt den gespeicherten Stand dieses PCs und aktualisiert '
                  "sich, sobald sich offene Entscheidungen ändern. Schläft der PC oder läuft Mailhelp "
                  "nicht, ist die Weboberfläche nicht erreichbar.</p>")
-    return layout("Status", "\n".join(parts), active="/status", fingerprint=overview.fingerprint)
+    return layout("Status", "\n".join(parts), active="/status",
+                  fingerprint=info.fingerprint or overview.fingerprint,
+                  state_url="/api/stand?seite=status")
 
 
 __all__ = ["ANALYSIS_LABELS", "COMMAND_LABELS", "RUN_LABELS", "ServiceInfo", "detail_page", "https_link", "mail_page", "mail_section",

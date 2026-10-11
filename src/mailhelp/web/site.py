@@ -8,9 +8,12 @@ main thread.
 
 from __future__ import annotations
 
+import hashlib
 import ipaddress
+import json
 import re
 import time
+from dataclasses import replace
 from datetime import datetime, timezone
 from typing import Callable, Protocol
 from urllib.parse import parse_qs
@@ -23,7 +26,7 @@ from pydantic import ValidationError
 from ..models import ProposalStatus
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.inbox import CommandConflict, CommandEntry, CommandInbox, CommandInboxFull
-from ..review.views import ReviewViews, STAGE_LABELS
+from ..review.views import ReviewViews
 from .app import WebApp
 from .auth import PairingLimited, PairingRefused, WebAuth, WebSession, device_name
 from .http import Request, Response
@@ -272,18 +275,23 @@ class MailhelpSite:
             version=__version__, test_mode=self.views.test_mode, started_at=self.started_at, now=now,
             address=self.link_base(), devices=len(self.auth.sessions()),
             llm_calls_per_minute=self.llm_calls_per_minute, commands=self.commands.counts())
-        page = status_page(overview.run, overview, self.configured_timezone, self.views.system(now), info)
+        system = self.views.system(now)
         metrics = self.archive.metrics
-        if metrics is not None:
-            from .pages import e
-            activity = metrics.runtime()
-            stage = {**STAGE_LABELS, "idle": "Leerlauf", "waiting_for_user": "Warten auf Relevanzentscheidung", "failed": "Verarbeitung fehlgeschlagen"}.get(activity["stage"], activity["stage"])
-            body = f'<section class="card"><h2>Aktuelle Verarbeitung</h2><p>{e(stage)} · {round(activity["elapsed"])} Sekunden</p>'
-            body += f'<p>Mail: {e(activity["mail_id"] or "keine aktive Mail")}</p><h3>Letzte bekannte erfolgreiche Dienstkontakte</h3>'
-            body += f'<p>Nächster geplanter Abruf: {e(activity.get("next_poll", "noch nicht geplant"))}</p>'
-            body += '<ul>' + ''.join(f'<li>{e(k)}: {e(v)}</li>' for k, v in activity["contacts"].items()) + '</ul></section>'
-            page = page.replace('</main>', body + '</main>')
-        return Response.html(200, page)
+        runtime = metrics.runtime() if metrics is not None else None
+        info = replace(info, runtime=runtime,
+                       services=tuple(metrics.expected_services()) if metrics is not None else (),
+                       fingerprint=self._status_fingerprint(overview, system, runtime))
+        return Response.html(200, status_page(overview.run, overview, self.configured_timezone, system, info))
+
+    @staticmethod
+    def _status_fingerprint(overview, system, runtime) -> str:
+        """Changes when anything the status page shows changes (contact times excluded)."""
+        parts = [overview.fingerprint, system.run_finished, system.run_total, system.mails_failed,
+                 system.mails_waiting_relevance, sorted(system.analysis.items()),
+                 sorted((str(key), value) for key, value in system.proposals.items())]
+        if runtime is not None:
+            parts += [runtime["stage"], runtime.get("mail_id"), runtime.get("next_poll")]
+        return hashlib.sha256(json.dumps(parts, default=str).encode("utf-8")).hexdigest()[:16]
 
     def act(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         """Queue a version-bound command for the main thread; answer at once."""
@@ -371,8 +379,14 @@ class MailhelpSite:
         return entry
 
     def state(self, request: Request, session: WebSession) -> Response:
-        """Fingerprint of the overview; the page reloads when it changes."""
-        return Response.json(200, {"fingerprint": self.views.overview().fingerprint})
+        """Fingerprint of the overview (or the status page); the page reloads when it changes."""
+        overview = self.views.overview()
+        if parse_qs(request.query, max_num_fields=5).get("seite") == ["status"]:
+            metrics = self.archive.metrics
+            return Response.json(200, {"fingerprint": self._status_fingerprint(
+                overview, self.views.system(self.clock()),
+                metrics.runtime() if metrics is not None else None)})
+        return Response.json(200, {"fingerprint": overview.fingerprint})
 
 
 def _ip_or_localhost(name: str) -> bool:

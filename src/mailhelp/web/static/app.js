@@ -32,7 +32,7 @@
 
   function checkState() {
     var current = document.body.dataset.fingerprint;
-    return fetch("/api/stand", {
+    return fetch(document.body.dataset.stateUrl || "/api/stand", {
       cache: "no-store", credentials: "same-origin", headers: { Accept: "application/json" }
     })
       .then(function (response) { return response.ok ? response.json() : null; })

@@ -263,6 +263,9 @@ class JsonlLogger:
         """Write one successfully sent or validated received Telegram message."""
         if direction not in {"sent", "received"}:
             raise ValueError("Telegram-Richtung muss sent oder received sein")
+        if self.metrics is not None:
+            # Only the fact of a successful contact; no message content.
+            self.metrics.observe(f"message_{direction}", {"service": "telegram"})
         if not self.telegram_enabled:
             return
         record = self._record(self.telegram_level, "telegram", "message", {

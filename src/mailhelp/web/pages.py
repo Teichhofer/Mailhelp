@@ -24,7 +24,8 @@ NAVIGATION = (("/", "Offen"), ("/mails", "Mails"), ("/verlauf", "Verlauf"),
 
 
 def layout(title: str, content: str, *, active: str | None = None, signed_in: bool = True,
-           refresh: int | None = None, fingerprint: str | None = None) -> str:
+           refresh: int | None = None, fingerprint: str | None = None,
+           state_url: str | None = None) -> str:
     """Page frame; *refresh* adds a no-JavaScript reload for pending commands."""
     navigation = ""
     if signed_in:
@@ -34,6 +35,9 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
         navigation = f'<nav class="nav" aria-label="Hauptnavigation">{links}</nav>'
     meta_refresh = f'<meta http-equiv="refresh" content="{refresh}">' if refresh else ""
     data = f' data-fingerprint="{e(fingerprint)}"' if fingerprint else ""
+    if state_url:
+        # Pages with their own refresh signal (e.g. the status page).
+        data += f' data-state-url="{e(state_url)}"'
     return f"""<!doctype html>
 <html lang="de">
 <head>

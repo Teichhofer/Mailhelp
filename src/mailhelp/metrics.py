@@ -87,6 +87,23 @@ def server_electricity(records: list[dict]) -> Decimal:
     return total
 
 
+# Successful contacts are taken from events that are logged anyway; showing the
+# status never triggers a request.  Keys are (module, event).
+CONTACT_EVENTS = {
+    ("imap", "request_completed"): "IMAP-Postfach",
+    ("imap", "message_fetched"): "IMAP-Postfach",
+    ("decisions", "jev_relevance_completed"): "Jev (Relevanz)",
+    ("telegram", "message_sent"): "Telegram",
+    ("telegram", "message_received"): "Telegram",
+    ("todoist", "create_completed"): "Todoist",
+    ("todoist", "duplicate_updated"): "Todoist",
+    ("google_calendar", "create_completed"): "Google Kalender",
+    ("google_calendar", "duplicate_updated"): "Google Kalender",
+    ("google_oauth", "token_credentials_accepted"): "Google-Anmeldung",
+}
+LLM_CONTACT = {"standard": "KI-Modelle (OpenRouter)", "local": "Ollama", "decision_test": "KI-Vergleichslauf"}
+
+
 class MetricsRecorder:
     def __init__(self, path: Path, settings: MetricsSettings, mode: str = "standard"):
         self.path, self.settings, self.mode = path, settings, mode
@@ -106,6 +123,12 @@ class MetricsRecorder:
         with self._lock:
             return {**self.activity, "elapsed": time.monotonic() - self.activity["started"], "contacts": dict(self.contacts)}
 
+    def expected_services(self) -> list[str]:
+        """The services this process talks to, in display order."""
+        models = ([LLM_CONTACT["local"]] if self.mode == "local"
+                  else [LLM_CONTACT["standard"], "Jev (Relevanz)"])
+        return ["IMAP-Postfach", *models, "Telegram", "Todoist", "Google Kalender", "Google-Anmeldung"]
+
     def observe(self, event: str, context: dict) -> None:
         with self._lock:
             self._observe(event, context)
@@ -121,8 +144,11 @@ class MetricsRecorder:
             self.activity = {"stage": "idle", "mail_id": None, "started": time.monotonic(),
                              "next_poll": (datetime.now(timezone.utc) + timedelta(seconds=context["delay_seconds"])).isoformat()}
             self.changed()
-        elif event == "request_completed":
-            self.contacts[context.get("service", "unknown")] = datetime.now(timezone.utc).isoformat()
+        contact = CONTACT_EVENTS.get((context.get("service"), event))
+        if event == "response_received":
+            contact = LLM_CONTACT[self.mode]
+        if contact is not None:
+            self.contacts[contact] = datetime.now(timezone.utc).isoformat()
         if event == "processing_started":
             self.activity = {"stage": "preparation", "mail_id": context.get("mail_id"), "started": time.monotonic()}
         elif event in {"processing_completed", "processing_failed", "llm_rate_limited"}:
@@ -173,8 +199,6 @@ class MetricsRecorder:
         provider = context.get("provider")
         if isinstance(provider, str) and len(provider) <= 200:
             item["provider"] = provider
-        if status == "success":
-            self.contacts[item["provider"]] = datetime.now(timezone.utc).isoformat()
         pending_usage = item.pop("token_usage", None)
         usage = context.get("token_usage") or pending_usage or {}
         usage = usage if isinstance(usage, dict) else {}
