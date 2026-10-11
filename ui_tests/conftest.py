@@ -21,16 +21,18 @@ from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "ui_tests"))
+sys.path.insert(0, str(ROOT / "tests"))
 
 from mailhelp.config import WebSettings  # noqa: E402
 from mailhelp.models import Proposal  # noqa: E402
 from mailhelp.review.inbox import CommandInbox  # noqa: E402
+from mailhelp.review.views import ReviewViews  # noqa: E402
 from mailhelp.storage import JsonStore  # noqa: E402
 from mailhelp.telegram import TelegramDialogController  # noqa: E402
 from mailhelp.web import WebApp, WebServer  # noqa: E402
 from mailhelp.web.auth import WebAuth  # noqa: E402
 from mailhelp.web.site import MailhelpSite  # noqa: E402
-from scenario import populate  # noqa: E402
+from web_scenario import populate  # noqa: E402
 
 STATIC = ROOT / "src/mailhelp/web/static"
 COVERED_SCRIPTS = tuple(name for name in ("app.js", "sw.js") if (STATIC / name).exists())
@@ -143,7 +145,8 @@ def mailhelp(tmp_path):
         auth = WebAuth(store, "u" * 40, 30, lambda text: telegram.send(2, text))
         dialog.review.web_authorizer = lambda actor: auth.active(actor.removeprefix("web:"))
         app = WebApp(settings.allowed_hosts)
-        MailhelpSite(app, auth, settings, "Europe/Berlin", logger)
+        MailhelpSite(app, auth, settings, "Europe/Berlin", logger,
+                     ReviewViews(store, "Europe/Berlin"), commands)
         server = WebServer("127.0.0.1", port, app, logger)
         server.start()
         instance = Mailhelp(f"http://127.0.0.1:{port}", store, telegram, writer, dialog)

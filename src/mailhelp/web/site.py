@@ -11,10 +11,13 @@ from __future__ import annotations
 from typing import Callable, Protocol
 
 from ..config import WebSettings
+from ..review.inbox import CommandInbox
+from ..review.views import ReviewViews
 from .app import WebApp
 from .auth import PairingLimited, PairingRefused, WebAuth, WebSession, device_name
 from .http import Request, Response
-from .pages import devices_page, error_page, layout, login_page
+from .pages import devices_page, error_page, login_page
+from .review_pages import detail_page, overview_page, status_page
 
 SESSION_COOKIE = "mh_session"
 PAIR_COOKIE = "mh_pair"
@@ -33,8 +36,10 @@ class MailhelpSite:
     """Register the Mailhelp routes on a :class:`WebApp`."""
 
     def __init__(self, app: WebApp, auth: WebAuth, settings: WebSettings,
-                 configured_timezone: str, logger: EventLogger):
+                 configured_timezone: str, logger: EventLogger, views: ReviewViews,
+                 commands: CommandInbox):
         self.app, self.auth, self.settings = app, auth, settings
+        self.views, self.commands = views, commands
         self.configured_timezone, self.logger = configured_timezone, logger
         self.local_hosts = {f"127.0.0.1:{settings.port}", f"localhost:{settings.port}"}
         app.route("GET", "/anmelden", self.login)
@@ -46,6 +51,10 @@ class MailhelpSite:
                   self.signed_in(self.revoke))
         app.route("POST", "/geraete/alle-abmelden", self.signed_in(self.revoke_all))
         app.route("GET", "/", self.signed_in(self.home))
+        app.route("GET", r"/vorschlag/(?P<mail_id>[a-f0-9]{24})/(?P<proposal_id>[A-Za-z0-9_-]{1,64})",
+                  self.signed_in(self.detail))
+        app.route("GET", "/status", self.signed_in(self.status))
+        app.route("GET", "/api/stand", self.signed_in(self.state))
 
     # --- helpers ------------------------------------------------------------------
 
@@ -74,6 +83,8 @@ class MailhelpSite:
         def guarded(request: Request, **arguments: str) -> Response:
             session = self.auth.authenticate(request.cookies().get(SESSION_COOKIE))
             if session is None:
+                if request.wants_json():
+                    return Response.json(401, {"error": "nicht angemeldet"})
                 if request.method == "GET":
                     return Response.redirect("/anmelden")
                 return self._forbidden()
@@ -188,7 +199,24 @@ class MailhelpSite:
         return self._signed_out(request)
 
     def home(self, request: Request, session: WebSession) -> Response:
-        return Response.html(200, layout("Offen", "<h1>Offene Entscheidungen</h1>", active="/"))
+        return Response.html(200, overview_page(self.views.overview()))
+
+    def detail(self, request: Request, session: WebSession, mail_id: str,
+               proposal_id: str) -> Response:
+        view = self.views.proposal(mail_id, proposal_id)
+        if view is None:
+            return Response.html(404, error_page(
+                "Nicht gefunden", "Dieser Vorschlag ist nicht (mehr) vorhanden."))
+        return Response.html(200, detail_page(view))
+
+    def status(self, request: Request, session: WebSession) -> Response:
+        overview = self.views.overview()
+        return Response.html(200, status_page(overview.run, overview, self.configured_timezone,
+                                              len(self.commands.queued())))
+
+    def state(self, request: Request, session: WebSession) -> Response:
+        """Fingerprint of the overview; the page reloads when it changes."""
+        return Response.json(200, {"fingerprint": self.views.overview().fingerprint})
 
 
 __all__ = ["FORM_TYPE", "MailhelpSite", "PAIR_COOKIE", "SESSION_COOKIE"]

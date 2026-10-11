@@ -9,6 +9,7 @@ never stops the mail processing.
 from __future__ import annotations
 
 import socket
+import sys
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
@@ -41,6 +42,11 @@ class _Server(ThreadingHTTPServer):
     def __init__(self, address: tuple[str, int], handler: Handler, logger: EventLogger):
         self.app, self.logger = handler, logger
         super().__init__(address, _RequestHandler)
+
+    def handle_error(self, request: object, client_address: object) -> None:
+        """A browser closing a connection early is normal; log it without a traceback."""
+        self.logger.event("DEBUG", "web", "connection_error",
+                          error_class=type(sys.exc_info()[1]).__name__)
 
     def server_bind(self) -> None:
         if self.exclusive_bind is not None:

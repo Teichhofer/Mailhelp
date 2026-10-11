@@ -6,6 +6,8 @@ from dataclasses import dataclass
 from typing import Callable
 
 from ..config import Settings
+from ..review.inbox import CommandInbox
+from ..review.views import ReviewViews
 from ..storage import JsonStore
 from .app import WebApp
 from .auth import WebAuth
@@ -24,12 +26,14 @@ class WebComponents:
 
 
 def create_web(settings: Settings, secret: str | None, store: JsonStore,
-               notify: Callable[[str], None], logger: EventLogger) -> WebComponents:
+               notify: Callable[[str], None], logger: EventLogger,
+               commands: CommandInbox) -> WebComponents:
     if not secret:
         raise ValueError("MAILHELP_WEB_SECRET fehlt für die Weboberfläche")
     auth = WebAuth(store, secret, settings.web.session_days, notify)
     app = WebApp(settings.web.allowed_hosts)
-    MailhelpSite(app, auth, settings.web, settings.timezone, logger)
+    views = ReviewViews(store, settings.timezone, settings.test_mode)
+    MailhelpSite(app, auth, settings.web, settings.timezone, logger, views, commands)
     server = WebServer(settings.web.host, settings.web.port, app, logger)
     return WebComponents(server, auth)
 

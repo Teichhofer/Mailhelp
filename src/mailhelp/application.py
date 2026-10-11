@@ -1120,7 +1120,8 @@ def build_application(
             secret = secrets.mailhelp_web_secret
             components = create_web(
                 settings, secret.get_secret_value() if secret is not None else None, store,
-                lambda text: telegram.send(settings.telegram.chat_id, text), logger)
+                lambda text: telegram.send(settings.telegram.chat_id, text), logger,
+                dialog.commands)
             dialog.review.web_authorizer = components.authorize
             dialog.web_logout = components.auth.revoke_all
             web = components.server

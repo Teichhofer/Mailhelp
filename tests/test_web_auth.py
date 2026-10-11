@@ -8,6 +8,8 @@ from urllib.parse import urlencode
 import pytest
 
 from mailhelp.config import WebSettings
+from mailhelp.review.inbox import CommandInbox
+from mailhelp.review.views import ReviewViews
 from mailhelp.storage import JsonStore
 from mailhelp.telegram.commands import HELP, TelegramCommands
 from mailhelp.web import Request, WebApp
@@ -207,7 +209,8 @@ def site(tmp_path):
     with JsonStore(tmp_path) as store:
         auth = WebAuth(store, SECRET, 30, messages.append)
         app = WebApp([LOCAL, TAILNET])
-        MailhelpSite(app, auth, WebSettings(allowed_hosts=[LOCAL, TAILNET]), "Europe/Berlin", logger)
+        MailhelpSite(app, auth, WebSettings(allowed_hosts=[LOCAL, TAILNET]), "Europe/Berlin", logger,
+                     ReviewViews(store, "Europe/Berlin"), CommandInbox(store))
         app.messages, app.logger, app.auth = messages, logger, auth
         yield app
 
@@ -361,9 +364,10 @@ def test_create_web_requires_the_secret_and_authorizes_live_sessions(tmp_path):
     configured = app_settings(tmp_path)
     with JsonStore(tmp_path / "data") as store:
         with pytest.raises(ValueError, match="MAILHELP_WEB_SECRET"):
-            create_web(configured, None, store, print, Logger())
+            create_web(configured, None, store, print, Logger(), CommandInbox(store))
         messages = []
-        components = create_web(configured, SECRET, store, messages.append, Logger())
+        components = create_web(configured, SECRET, store, messages.append, Logger(),
+                                CommandInbox(store))
         components.auth.request_code("b", "PC")
         token = components.auth.redeem("b", code_from(messages), "PC")
         session = components.auth.authenticate(token)

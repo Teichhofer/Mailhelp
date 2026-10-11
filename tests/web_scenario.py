@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from mailhelp.domain.processing import TelegramOutboxGate, TelegramOutboxState
+from mailhelp.domain.processing import TelegramOutboxEntry, TelegramOutboxGate, TelegramOutboxState
 from mailhelp.models import (DisplayHeaders, MailRunCounters, MailRunEntry, MailRunState,
                              MailState, Proposal, RelevanceDialog)
 from mailhelp.storage import JsonStore
@@ -85,7 +85,10 @@ def populate(store: JsonStore) -> None:
     save_mail(store, 7, "Sportverein <news@sv.test>", "Vereinsnachrichten Oktober",
               awaiting_relevance=True, relevance_dialog=RelevanceDialog(mail_id=mail_id(7)))
     store.save("telegram-outbox", TelegramOutboxState(active=TelegramOutboxGate(
-        kind="proposal", mail_id=mail_id(1), proposal_id="elternabend", version=1)
+        kind="proposal", mail_id=mail_id(1), proposal_id="elternabend", version=1),
+        # Telegram shows one decision at a time; the Herbstfest is still held back.
+        entries=[TelegramOutboxEntry(id="1" * 32, kind="proposal", mail_id=mail_id(3),
+                                     proposal_id="fest", version=1, created_at=NOW)],
     ).model_dump(mode="json"))
     entries = [MailRunEntry(account_id=ACCOUNT, folder="INBOX", uidvalidity=1, uid=uid,
                             status=status, analysis_terminal=terminal,

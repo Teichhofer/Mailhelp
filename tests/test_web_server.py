@@ -321,3 +321,13 @@ def test_static_application_files_are_served_from_the_package(name):
                                   "/static/APP.CSS"])
 def test_only_listed_static_files_are_readable(path):
     assert get(WebApp([HOST]), path).status in {400, 404}
+
+
+def test_aborted_connections_are_logged_without_traceback(running, capsys):
+    server, logger = running()
+    try:
+        raise ConnectionAbortedError("client gone")
+    except ConnectionAbortedError:
+        server._server.handle_error(None, ("127.0.0.1", 1))
+    assert logger.events[-1][2:] == ("connection_error", {"error_class": "ConnectionAbortedError"})
+    assert capsys.readouterr().err == ""
