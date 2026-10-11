@@ -1,4 +1,4 @@
-# Mailhelp 1.4 – Konzept und detaillierter Umsetzungsplan: Multimodal & OCR (Texterkennung für Scans und Bildanhänge)
+# Mailhelp 1.4 – Konzept und detaillierter Umsetzungsplan: Multimodal, OCR und Absender-Filterung
 
 **Stand:** 11. Oktober 2026  
 **Zielversion:** 1.4.0  
@@ -11,11 +11,15 @@
 
 ## 1. Ziel und vollständiger Umfang
 
-Während Version 1.3 die digitale Textextraktion (PDFs mit Textlayer, Word `.docx`, ICS-Dateien) implementiert, schließt Version 1.4 die Lücke für **visuelle und gescannte Dokumente**:
-- **Bildanhänge:** `.jpg`, `.jpeg`, `.png`, `.webp` (z.B. Handyfotos von Verträgen, Aushängen, Veranstaltungskalendern, Quittungen).
-- **Gescannte Bild-PDFs:** Mehrseitige PDF-Dokumente, die von klassischen Scannern ohne OCR als reine Bildraster erzeugt wurden.
-
-Ziel ist es, den Text aus solchen Anhängen hochpräzise zu erfassen und in dieselbe Aufgaben- und Terminextraktionskette einzuspeisen, **ohne** schwere lokale Systemtools (wie Tesseract) oder riesige Machine-Learning-Pakete (wie PyTorch) vorauszusetzen.
+Während Version 1.3 die digitale Textextraktion (PDFs mit Textlayer, Word `.docx`, ICS-Dateien) implementiert, schließt Version 1.4 zwei entscheidende Lücken im alltäglichen E-Mail-Handling:
+1. **Multimodale Texterkennung (OCR) für visuelle Dokumente:**
+   - **Bildanhänge:** `.jpg`, `.jpeg`, `.png`, `.webp` (z.B. Fotos von Verträgen, Aushängen, Veranstaltungskalendern, Quittungen).
+   - **Gescannte Bild-PDFs:** Mehrseitige PDF-Dokumente, die von klassischen Scannern ohne OCR als reine Bildraster erzeugt wurden.
+   - Text und Termine werden hochpräzise erfasst, **ohne** schwere lokale Systemtools (wie Tesseract) oder riesige Machine-Learning-Pakete (wie PyTorch) vorauszusetzen.
+2. **Direktes Absender-Management in der Web-Mail-Detailansicht:**
+   - Ein-Klick-Aufnahme der jeweiligen Absenderadresse in die Liste ignorierter Absender (`irrelevant-senders`).
+   - Künftige E-Mails dieser Adresse werden vor jedem LLM-Aufruf deterministisch als irrelevant eingestuft.
+   - Reversible Verwaltung und Entsperrung direkt über die Weboberfläche.
 
 ---
 
@@ -38,7 +42,7 @@ Mailhelp setzt in Version 1.4 auf **multimodale Vision-Modelle über OpenRouter*
 
 ---
 
-## 3. Architektur und Ablaufsteuerung
+## 3. Architektur und Ablaufsteuerung (Vision-OCR)
 
 ```mermaid
 sequenceDiagram
@@ -65,16 +69,16 @@ sequenceDiagram
 
 ---
 
-## 4. Detaillierte Spezifikationen
+## 4. Detaillierte Spezifikationen: Bildvorbereitung & Vision-OCR
 
 ### 4.1 Bildvorbereitung und DoS-/Kostenschutz (`src/mailhelp/vision.py`)
 1. **Relevanz-Filter für Bilder:**
    - Bilder unter 150×150 Pixel oder unter 10 KB Dateigröße werden als Tracking-Pixel, Firmenlogos oder E-Mail-Signatur-Icons eingestuft und ignoriert.
 2. **Skalierung & Normalisierung:**
-   - Überschreitet ein Foto 1600 Pixel an der längsten Kante, wird es mit Pythons Standard-Bildverarbeitung (`Pillow` oder leichtgewichtigem Skalierer) auf max. 1600px herunterskaliert. Dies halbiert den Tokenverbrauch bei gleichbleibender Lesbarkeit.
+   - Überschreitet ein Foto 1600 Pixel an der längsten Kante, wird es auf max. 1600px herunterskaliert. Dies halbiert den Tokenverbrauch bei gleichbleibender Lesbarkeit.
 3. **Format-Unterstützung:**
    - Direkt: `image/jpeg`, `image/png`, `image/webp`.
-   - Bei gescannten PDFs: Die ersten $N$ Seiten (konfigurierbar, Standard: max. 3 Seiten) werden in 150 DPI gerendert und als JPEG verarbeitet.
+   - Bei gescannten PDFs: Die ersten $N$ Seiten (Standard: max. 3 Seiten) werden in 150 DPI gerendert und verarbeitet.
 4. **Budgetierung in `config.yaml`:**
    ```yaml
    vision:
@@ -85,7 +89,6 @@ sequenceDiagram
    ```
 
 ### 4.2 API-Payload nach W3C / OpenRouter-Standard
-Die Nachricht an das Vision-Modell nutzt das multimodale Content-Format:
 ```json
 {
   "model": "google/gemini-2.0-flash-001",
@@ -109,53 +112,82 @@ Die Nachricht an das Vision-Modell nutzt das multimodale Content-Format:
 }
 ```
 
-### 4.3 Provenienz und Web-Darstellung
-- **Belegführung (`evidence`):**
-  *„Gefunden in Bildanhang ‚Handwerker_Angebot.jpg‘ (via Vision-OCR): 'Montage erfolgt am 24.10. ab 08:00 Uhr.'“*
-- **Web-Transparenz (`/mail/<id>`):**
-  Anzeige des Anhangs mit Kennzeichnung `[Vision-OCR: Text erfolgreich erkannt (1 Termin extrahiert)]`.
+---
+
+## 5. Absender-Management in der Mail-Detailansicht
+
+### 5.1 Motivation & Benutzerführung
+Bisher konnten ignorierte Absender nur über statische Konfigurationsdateien (`irrelevant-senders.json`) definiert werden. Nutzer, die in der Web-Oberfläche eine unerwünschte Newsletter-Mail oder Spam-Nachricht sichten, mussten diesen Absender mühsam manuell in JSON-Dateien nachtragen.
+
+In Version 1.4 wird die Mail-Detailansicht `/mail/<mail_id>` um eine direkte **Ein-Klick-Aktion** ergänzt.
+
+### 5.2 Darstellung in der Mail-Detailansicht (`web/review_pages.py`)
+In der Header-Box der Mail:
+```html
+<div class="mail-header-sender">
+  <span><strong>Von:</strong> newsletter@marketing-spam.de</span>
+  <form method="post" action="/mail/a3f890c21.../absender-ignorieren" class="inline-form">
+    <input type="hidden" name="csrf" value="...">
+    <button type="submit" class="button small danger" title="Künftige E-Mails dieses Absenders automatisch als irrelevant einstufen">
+      🚫 Absender ignorieren
+    </button>
+  </form>
+</div>
+```
+- **Ist der Absender bereits blockiert:**
+  Anzeige des Badges `<span class="badge danger">Absender wird ignoriert</span>` mit Aktionsbutton:  
+  `[Absender wieder zulassen]` (`POST /mail/<id>/absender-zulassen`).
+
+### 5.3 Backend-Verarbeitung & Persistenz (`src/mailhelp/web/site.py`)
+1. **Route `POST /mail/<mail_id>/absender-ignorieren`:**
+   - Validierung der Sitzung und des CSRF-Tokens.
+   - Laden des `MailState` zur `mail_id`.
+   - Normalisierung der Absenderadresse über `sender_filter.sender_addresses(mail.display_headers.sender)`.
+   - Laden des bestehenden `IrrelevantSenders`-Modells aus `irrelevant-senders`.
+   - Hinzufügen der Adresse über `sender_filter.add_irrelevant_senders()`.
+   - Atomares Speichern des aktualisierten Modells im JsonStore.
+   - Rückleitung auf die Mail-Detailseite mit Erfolgsmeldung:  
+     *„Absender 'newsletter@marketing-spam.de' zur Liste ignorierter Absender hinzugefügt.“*
+2. **Route `POST /mail/<mail_id>/absender-zulassen`:**
+   - Entfernt die normalisierte Adresse aus `IrrelevantSenders.addresses` und speichert die Datei atomar.
+   - Rückleitung mit Bestätigung: *„Absender wird künftig wieder normal verarbeitet.“*
+
+### 5.4 Zentrale Verwaltung unter `/einstellungen/ignorierte-absender`
+- Eine übersichtliche Einstellungsseite listet alle aktuell blockierten Adressen und Domains auf.
+- Jede Adresse besitzt einen `[Entfernen]`-Button.
+- Neue Adressen oder Domains können auch manuell über ein Formularfeld ergänzt werden.
 
 ---
 
-## 5. Phasenweiser Umsetzungsplan für Version 1.4
+## 6. Phasenweiser Umsetzungsplan für Version 1.4
 
-### Phase 1: Konfiguration & Domänenmodelle
-1. `config.yaml` und `config.py` um den Abschnitt `vision` erweitern (`enabled`, `model`, `max_images_per_mail`).
-2. Datenmodell `VisionExtractionResult` (Text, Token-Verbrauch, Bildgröße, Dauer) in `domain/processing.py` anlegen.
-3. Validierungsregeln für Grenzwerte und Bilddimensionen testen.
+```mermaid
+flowchart TD
+    M1[Phase 1: Vision-Domänenmodelle & Konfiguration] --> M2[Phase 2: Bild-Normalisierung & PDF-Scan-Erkennung]
+    M2 --> M3[Phase 3: Multimodale OpenRouter/Ollama Vision-Schnittstelle]
+    M3 --> M4[Phase 4: Pipeline-Integration im Orchestrator & Fallback]
+    M4 --> M5[Phase 5: Absender-Management in der Weboberfläche]
+    M5 --> M6[Phase 6: E2E-Tests, 100% Coverage & Release 1.4]
+```
 
-### Phase 2: Bildvorbereitung & Scan-Erkennung
-1. Modul `src/mailhelp/vision.py` anlegen: Größenfilter gegen Icons/Tracking-Pixel, Normalisierung und Base64-Codierung.
-2. In `attachment_extractor.py`: Erkennung von bildbasierten PDFs (`is_scanned_pdf()` wenn Zeichenzahl < 50 trotz Dateigröße > 50 KB).
-
-### Phase 3: Multimodaler Vision-Client
-1. `OpenRouterClient` um multimodale Bild-Payloads erweitern.
-2. Vision-Prompt in `prompts.yaml` einpflegen.
-3. Fehlerbehandlung (ungültiges Bildformat, API-Rate-Limits, fehlerhaftes JSON) absichern.
-
-### Phase 4: Pipeline-Integration im Orchestrator
-1. Vision-Extraktor in den Extraktionsschritt des `Orchestrators` einhängen.
-2. Extrahierte Bildtexte fließen nahtlos in die Normalisierungs- und Vorabprüfungs-Kette aus Version 1.3 ein.
-3. Telemetrie und Event-Logging (`vision_ocr_completed`, Bildgröße, Verarbeitungsdauer).
-
-### Phase 5: Web-Oberfläche & Kostenansicht
-1. `/mail/<id>`: Ausweisung des Vision-OCR-Status bei Bildanhängen.
-2. `/auswertung`: Anzeige der für Vision-Modelle aufgewendeten Tokens und Kosten.
-
-### Phase 6: Qualitätssicherung & Release 1.4
-1. Synthetische Bildtests (Kassenzettel, Scan-Dokument, Einladungsflyer) mit `httpx.MockTransport`.
-2. 100 % Zeilen- und Branch-Coverage für alle neuen Codepfade.
-3. Aktualisierung von `CHANGELOG.md` und `Mailhelp-Projektspezifikation.md`.
-4. Version auf `1.4.0` anheben.
+| Phase | Schwerpunkt | Liefergegenstand |
+| :--- | :--- | :--- |
+| **Phase 1** | **Konfiguration & Modelle** | Ergänzung `config.yaml` (`vision`-Sektion, Limits), `VisionExtractionResult`-Modell, Budget-Validierung. |
+| **Phase 2** | **Bildvorbereitung & Scan-Erkennung** | Bildskalierung (Pillow/reine Byte-Normalisierung), Erkennung textloser PDFs in `attachment_extractor.py`. |
+| **Phase 3** | **Vision-Client** | Erweiterung von `OpenRouterClient` und `OllamaClient` um multimodale Bild-Payloads (Base64 data URLs), dedizierte Prompts in `prompts.yaml`. |
+| **Phase 4** | **Pipeline-Integration** | Anbindung im `Orchestrator`: Bildtexte fließen nahtlos in dieselbe Normalisierungs- und Vorabprüfungs-Kette ein wie Mail- und PDF-Texte. |
+| **Phase 5** | **Absender-Management in Web-UI** | Routen `POST /mail/<id>/absender-ignorieren` und `absender-zulassen`, Button & Badges in der Detailansicht, Verwaltungsliste in `/einstellungen/ignorierte-absender`. |
+| **Phase 6** | **Qualitätssicherung & 1.4-Release** | Synthetische Bildtests, Mock-Vision-Transports, Tests für Absender-Blockieren/Zulassen, 100 % Zeilen-/Branch-Coverage, Release **1.4.0**. |
 
 ---
 
-## 6. Test- und Qualitätssicherungsstrategie ([`AGENTS.md`](../AGENTS.md))
+## 7. Test- und Qualitätssicherungsstrategie ([`AGENTS.md`](../AGENTS.md))
 
-- **Keine echten externen Aufrufe in automatisierten Tests:** Alle multimodalen Anfragen an OpenRouter werden offline über Mock-Transports mit synthetischen Bild- und Textantworten simuliert.
-- **Synthetische Test-Assets:**
-  - Sehr kleines Bild (1×1 Tracking-Pixel) $\rightarrow$ Test verifiziert, dass kein Vision-Call erfolgt.
-  - Großes JPEG-Foto (3000×2000) $\rightarrow$ Test verifiziert automatische Skalierung.
-  - Bild mit handschriftlichem Termin $\rightarrow$ Test verifiziert korrekte Übernahme in `Proposal`.
-- **100 % Coverage-Gate:** Verbindliche 100 % Zeilen- und Branch-Abdeckung für `vision.py` und alle Adaptererweiterungen.
-
+1. **Keine echten externen Aufrufe in automatisierten Tests:**
+   - Alle multimodalen Anfragen an OpenRouter werden offline über Mock-Transports mit synthetischen Bild- und Textantworten simuliert.
+2. **Sicherheits- und Berechtigungstests für Absenderfilter:**
+   - Test auf CSRF-Schutz: Fehlendes oder falsches CSRF-Token wird mit HTTP 403 abgewiesen.
+   - Test auf Normalisierung: Groß-/Kleinschreibung, Leerzeichen und Display-Namen werden syntaktisch korrekt bereinigt.
+   - Test auf Idempotenz: Mehrfaches Ignorieren derselben Adresse erzeugt keine Duplikate in `IrrelevantSenders`.
+3. **100 % Coverage-Gate:**
+   - Verbindliche 100 % Zeilen- und Branch-Abdeckung für `vision.py`, Web-Routen und modifizierte Module.
