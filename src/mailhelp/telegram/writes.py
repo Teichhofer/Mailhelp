@@ -91,6 +91,12 @@ class ConfirmedWriteExecutor:
                 f"🧪 Testmodus: {kind} „{proposal.title}“ bestätigt, "
                 "aber nicht angelegt (nur simuliert)."
             )
+        elif result.get("operation") == "duplicate_updated" and result.get("time_changes"):
+            text = (
+                f"✅ Bestehender Termin „{proposal.title}“ aktualisiert: "
+                f"{'; '.join(result['time_changes'])}. "
+                "Die Änderung ist in der Terminbeschreibung vermerkt."
+            )
         elif result.get("operation") == "duplicate_updated":
             text = (
                 f"Bereits vorhandener gleicher Termin „{proposal.title}“ wurde erkannt; "

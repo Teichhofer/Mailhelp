@@ -523,7 +523,7 @@ verbindliche Reparaturanweisung gekennzeichnet.
 Die deterministische Aktionsnormalisierung unterstützt die Datumsformen
 `YYYY-MM-DD`, `DD.MM.YYYY` (optional mit passendem deutschen Wochentag in Lang- oder
 Kurzform, mit oder ohne Komma) und deutsche Tages-/Monatsangaben ohne Jahr sowie die
-24-Stunden-Zeitformen `HH:MM`, `HH:MM:SS` und Zusätze wie „morgens um 10 Uhr“.
+24-Stunden-Zeitformen `HH:MM`, `HH:MM:SS` und Zusätze wie „morgens um 10 Uhr“. Ebenso gelten die im Deutschen übliche Form mit Punkt vor „Uhr“ („13.00 Uhr“) und ungefähre Angaben mit „ca.“, „circa“, „etwa“, „ungefähr“ oder „gegen“, die wörtlich übernommen werden („ca. 15:30 Uhr“ ergibt 15:30). Ein Punkt ohne „Uhr“ („07.10“) wird nicht als Uhrzeit gelesen, damit ein Datum im Zeitfeld nicht als Uhrzeit missverstanden wird.
 Andere Schreibweisen und relative Angaben wie „nächsten Freitag“
 bleiben zusammen mit einem stabilen Klärungsgrund als Rohangabe erhalten. Ein Datum ohne Uhrzeit wird nur mit ausdrücklicher Ganztagsevidenz als
 ganztägiges Intervall dargestellt; die unten beschriebenen eindeutigen
@@ -923,7 +923,7 @@ registriert. Kalender-Duplikatsuche, LLM-Abgleich und Payload-Vorbereitung finde
 davor im Zustand `confirmed` statt. Fehler dieser rein lesenden Vorprüfung lassen
 den Vorschlag bestätigt und wiederaufnehmbar, auch nach Neustarts. Ein bereits
 vollständiger gleicher Termin wird ohne zwischenzeitlichen Schreibstatus als
-`created` übernommen. Bei Zeitüberschreitung oder Absturz nach einem möglicherweise
+`created` übernommen. Erkennt der Abgleich einen bestehenden Termin als dasselbe Ereignis, vergleicht Mailhelp Beginn und Ende deterministisch (gleiche Zeitpunkte unabhängig vom UTC-Offset gelten als gleich, unbekannte bestehende Zeiten werden nicht verglichen). Weichen sie ab, übernimmt der bestehende Termin die Zeiten der bestätigten Vorschlagsversion; seine Beschreibung erhält den Hinweis „[Mailhelp TT.MM.JJJJ HH:MM] Zeit aktualisiert: Ende … → … (bestätigte Vorschlagsversion N).“ und Telegram meldet „Bestehender Termin … aktualisiert“. Ohne Zeitabweichung werden wie bisher nur fehlende Beschreibung, Ort oder Videolink ergänzt oder der Termin unverändert übernommen. Bei Zeitüberschreitung oder Absturz nach einem möglicherweise
 erfolgreichen POST oder PATCH wird ausschließlich das Ergebnis abgeglichen.
 Solange der Erfolg nicht feststellbar ist, bleibt der Vorgang `uncertain`; es
 erfolgt kein blindes erneutes Anlegen. Bestehende `writing`-/`uncertain`-Altfälle

@@ -178,6 +178,8 @@ muss das ursprüngliche Ziel wiederhergestellt oder ein neuer Vorschlag für das
 neue Ziel ausdrücklich bestätigt werden; ein Konfigurationswechsel überträgt
 keine vorhandene Freigabe auf ein anderes Ziel.
 
+Erkennt der Abgleich einen bestehenden Termin als dasselbe Ereignis, vergleicht Mailhelp Beginn und Ende deterministisch (gleiche Zeitpunkte unabhängig vom UTC-Offset gelten als gleich, unbekannte bestehende Zeiten werden nicht verglichen). Weichen sie ab, übernimmt der bestehende Termin die Zeiten der bestätigten Vorschlagsversion; seine Beschreibung erhält den Hinweis „[Mailhelp TT.MM.JJJJ HH:MM] Zeit aktualisiert: Ende … → … (bestätigte Vorschlagsversion N).“ und Telegram meldet „Bestehender Termin … aktualisiert“. Ohne Zeitabweichung werden wie bisher nur fehlende Beschreibung, Ort oder Videolink ergänzt oder der Termin unverändert übernommen. Uhrzeiten wie „13.00 Uhr“ und „ca. 15:30 Uhr“ werden ohne Rückfrage verstanden.
+
 Die Kalender-Duplikatsuche, LLM-Vergleiche und die Vorbereitung des API-Inhalts
 laufen vor dem Schreibversuch, während der Vorschlag weiterhin `confirmed` ist.
 Scheitern diese Vorprüfungen, kann die bestätigte Version nach Behebung des Fehlers

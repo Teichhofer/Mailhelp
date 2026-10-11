@@ -231,5 +231,11 @@ def revision_summary(previous: Proposal, current: Proposal, configured_timezone:
     before, after = lines(previous), lines(current)
     if before == after:
         return "Übernommen – keine sichtbare Änderung."
-    added = [line for line in after if line not in before and line != "❓ Offen:"]
-    return "Übernommen" + (":\n" + "\n".join(added) if added else ".")
+    new_questions = [f"- {display_question(question)}" for question in current.open_questions
+                     if question not in previous.open_questions]
+    added = [line for line in after if line not in before
+             and line != "❓ Offen:" and line not in new_questions]
+    text = "Übernommen" + (":\n" + "\n".join(added) if added else ".")
+    if new_questions:
+        text += "\nNeu offen:\n" + "\n".join(new_questions)
+    return text
