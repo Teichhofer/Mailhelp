@@ -1429,3 +1429,11 @@ die [Nutzungsbedingungen](NUTZUNGSBEDINGUNGEN.md). Beide sind Vorlagen: Platzhal
 in eckigen Klammern ersetzen und bei abweichender Konfiguration (Modelle, Anbieter,
 Aufbewahrung, Logging) anpassen. Für die Google-OAuth-Prüfung müssen beide Seiten
 öffentlich erreichbar sein.
+
+
+## Interne Architektur ab 1.6
+
+Version 1.6 trennt Webstatus und Review-Renderer, Mailbox-Laufsteuerung, externe
+Integrationen sowie Telegram-Interpretation und Recovery. Nutzerabläufe,
+Konfiguration, JSON-Schemas und Schreibschutz bleiben unverändert. Details:
+[Architektur](docs/Architektur-1.6.md), [Upgrade und Release](docs/Release-1.6.md).

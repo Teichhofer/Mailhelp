@@ -64,7 +64,7 @@ def timed_event(**changes):
 
 def test_same_event_with_another_end_is_updated_and_the_change_is_noted(monkeypatch):
     """Regression: a confirmed new end time was dropped as "already exists"."""
-    monkeypatch.setattr("mailhelp.integrations._now", lambda zone: NOW)
+    monkeypatch.setattr("mailhelp.external.calendar._now", lambda zone: NOW)
     seen = []
     writer = calendar_writer({"start": {"dateTime": "2026-10-21T12:30:00+02:00"},
                               "end": {"dateTime": "2026-10-21T14:30:00+02:00"}}, seen=seen)
@@ -84,7 +84,7 @@ def test_same_event_with_another_end_is_updated_and_the_change_is_noted(monkeypa
 
 
 def test_equal_instants_in_another_offset_and_unknown_times_are_not_changes(monkeypatch):
-    monkeypatch.setattr("mailhelp.integrations._now", lambda zone: NOW)
+    monkeypatch.setattr("mailhelp.external.calendar._now", lambda zone: NOW)
     for existing in ({"start": {"dateTime": "2026-10-21T10:30:00Z"},
                       "end": {"dateTime": "2026-10-21T13:30:00Z"}},
                      {"start": {}, "end": {}}):
@@ -99,7 +99,7 @@ def test_equal_instants_in_another_offset_and_unknown_times_are_not_changes(monk
 
 
 def test_all_day_and_timed_changes_name_old_and_new_values(monkeypatch):
-    monkeypatch.setattr("mailhelp.integrations._now", lambda zone: NOW)
+    monkeypatch.setattr("mailhelp.external.calendar._now", lambda zone: NOW)
     all_day = proposal(kind="event", all_day=True, start="2026-10-21", end="2026-10-22",
                        status="confirmed", target="calendar")
     writer = calendar_writer({"start": {"date": "2026-10-21"}, "end": {"date": "2026-10-24"}})

@@ -101,7 +101,7 @@ class Mailhelp:
 
     def pairing_code(self) -> str:
         message = next(text for text in reversed(self.telegram.sent) if "Code " in text)
-        return re.search(r"Code (\d{4} \d{4})", message).group(1)
+        return re.search(r"\bCode (\d{4})\b", message).group(1)
 
 
 def _free_port() -> int:
@@ -148,8 +148,16 @@ def mailhelp(tmp_path):
         def main_thread():
             # Mailhelp's main thread executes web commands between mails.
             while not instance.stop.wait(0.1):
-                dialog.poll_once()
+                # This synthetic Telegram port never receives updates. Execute
+                # real queued web commands, but keep idle rendering tests idle.
+                # Production recovery rewrites projections on every poll and
+                # would invalidate a fingerprint even without a new decision.
+                if commands.queued():
+                    dialog.poll_once()
 
+        # Finish startup recovery before the first browser reads a fingerprint.
+        # Otherwise a foreground check can legitimately reload during the test.
+        dialog.poll_once()
         worker = threading.Thread(target=main_thread, daemon=True)
         worker.start()
         try:

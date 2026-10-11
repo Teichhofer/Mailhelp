@@ -49,8 +49,10 @@ def refresh(page):
 def test_overview_refreshes_itself_but_never_discards_typed_text(page, mailhelp):
     sign_in(page, mailhelp)
     badge = page.locator("#verbindung")
-    # Unchanged state: nothing happens.
-    refresh(page)
+    # Wait for the state request as well as health before simulating the next event.
+    with page.expect_response("**/api/stand") as unchanged:
+        refresh(page)
+    assert unchanged.value.json()["fingerprint"] == page.locator("body").get_attribute("data-fingerprint")
     expect(badge).to_have_text("● Verbunden")
     # A failing or refused state request does not reload.
     # The PC is unreachable: both requests of the foreground check fail. (Failing only

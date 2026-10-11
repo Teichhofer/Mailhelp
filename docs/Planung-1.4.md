@@ -6,6 +6,7 @@
 **Detailkonzept:** [Konzept-1.4-Multimodal-und-OCR.md](Konzept-1.4-Multimodal-und-OCR.md)  
 **Vorausgehende Version:** [Planung-1.3.md](Planung-1.3.md) (Smart Engine & digitale Anhänge)  
 **Nachfolge-Version:** [Planung-1.5.md](Planung-1.5.md) (UX-Feinschliff & Kostenübersicht)  
+**Refactoring vor 2.0:** [Planung-1.6.md](Planung-1.6.md) (Stabilisieren & Entflechten)<br>
 **Große Roadmap:** [Planung-2.0.md](Planung-2.0.md) (Großes UI-Redesign & Web-Push)
 
 ---

@@ -463,7 +463,8 @@ def test_activate_application_live_subset(tmp_path):
     from mailhelp.application import Application
     cfg = settings(tmp_path)
     metrics = MetricsRecorder(tmp_path/'metrics.jsonl', cfg.metrics)
-    app = SimpleNamespace(logger=SimpleNamespace(metrics=metrics), settings=cfg)
+    app = SimpleNamespace(logger=SimpleNamespace(metrics=metrics), settings=cfg,
+                          mailbox=SimpleNamespace(settings=cfg))
     changed = cfg.model_copy(update={'poll_interval_seconds': 10})
     Application.apply_settings(app, changed)
     assert app.settings.poll_interval_seconds == 10 and metrics.settings == changed.metrics

@@ -52,11 +52,21 @@ def test_built_artifacts_exclude_private_runtime_files():
         assert {"mailhelp/web/static/app.js", "mailhelp/web/static/sw.js",
                 "mailhelp/web/static/manifest.webmanifest"} <= set(names)
         assert "mailhelp/defaults/decisions_prompts.yaml" in names
+        assert {"mailhelp/mailbox_run.py", "mailhelp/web/status_pages.py",
+                "mailhelp/external/oauth.py", "mailhelp/external/calendar.py",
+                "mailhelp/external/todoist.py", "mailhelp/external/ical.py",
+                "mailhelp/external/transport.py", "mailhelp/external/http_writer.py",
+                "mailhelp/external/confirmed.py", "mailhelp/external/contracts.py",
+                "mailhelp/telegram/answer_interpretation.py",
+                "mailhelp/telegram/revision_recovery.py",
+                "mailhelp/telegram/revision_successor.py",
+                "mailhelp/telegram/revision_contracts.py"} <= set(names)
         assert not any(name.endswith(".env") for name in names)
     with tarfile.open(sources[-1]) as archive:
         names = {name.split("/", 1)[-1] for name in archive.getnames()}
         assert {"config.example.yaml", ".env.example", "prompts.yaml", "requirements.lock",
                 "docs/Release-1.0.md", "docs/Release-1.1.md", "docs/Release-1.2.md",
+                "docs/Release-1.6.md", "docs/Architektur-1.6.md", "docs/Planung-1.6.md",
                 "src/mailhelp/assets/logo.png"} <= names
         assert "config.yaml" not in names and ".env" not in names
         assert not any(name.startswith(("data/", "logs/", "quality-reports/")) for name in names)

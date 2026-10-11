@@ -14,7 +14,9 @@ def test_pairing_flow_is_usable(page, mailhelp):
     page.get_by_role("button", name="Code per Telegram senden").click()
     assert page.get_by_label("Code aus Telegram").is_visible()
     assert audit(page, f"anmelden-code-{page.device}", page.mobile) == []
-    page.get_by_label("Code aus Telegram").fill("0000 0000")
+    real_code = mailhelp.pairing_code()
+    assert len(real_code) == 4 and real_code.isdecimal()
+    page.get_by_label("Code aus Telegram").fill("0000" if real_code != "0000" else "0001")
     page.get_by_role("button", name="Gerät koppeln").click()
     assert page.get_by_role("alert").inner_text() == "Der Code stimmt nicht."
     assert audit(page, f"anmelden-fehler-{page.device}", page.mobile) == []

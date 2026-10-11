@@ -92,6 +92,7 @@ def test_live_settings_reach_both_metric_recorders(tmp_path):
     changed = configured.model_copy(update={"poll_interval_seconds": 30})
     app.apply_settings(changed)
     assert app.settings.poll_interval_seconds == 30
+    assert app.mailbox.settings is changed
     assert logger.metrics.settings is comparison.settings is changed.metrics
 
 

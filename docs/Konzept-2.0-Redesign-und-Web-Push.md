@@ -2,9 +2,9 @@
 
 **Stand:** 11. Oktober 2026  
 **Zielversion:** 2.0.0  
-**Status:** In Planung (Folgt auf den Abschluss von Version 1.4)  
+**Status:** In Planung (Folgt auf die Versionen 1.5 und 1.6)
 **Grundlage:** [Mailhelp-Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Entwicklungsregeln](../AGENTS.md), [Planung-2.0.md](Planung-2.0.md)  
-**Vorausgehende Releases:** [Konzept-1.3-Intelligenter-Workflow.md](Konzept-1.3-Intelligenter-Workflow.md), [Konzept-1.4-Multimodal-und-OCR.md](Konzept-1.4-Multimodal-und-OCR.md)
+**Vorausgehende Releases:** [Konzept-1.3-Intelligenter-Workflow.md](Konzept-1.3-Intelligenter-Workflow.md), [Konzept-1.4-Multimodal-und-OCR.md](Konzept-1.4-Multimodal-und-OCR.md), [Planung-1.5.md](Planung-1.5.md), [Planung-1.6.md](Planung-1.6.md)
 
 ---
 
@@ -13,7 +13,7 @@
 Mailhelp 2.0 vollzieht den entscheidenden Generationswechsel von einem begleitenden Telegram-Bot mit Administrations-Webseite zu einer **autonomen, modernen Produktivitätsanwendung** für Smartphone und Desktop.
 
 Das Release ruht auf **vier tragenden Säulen**:
-1. **Säule 1: Modernes Web-Redesign nach 7 UX-Design-Patterns:** Master-Detail Split-View am Desktop, Daumenzonen-Buttons am Smartphone, Progressive Disclosure, Quick-Filter-Chips, Keyboard-Shortcuts (`J`/`K`/`C`/`E`/`X`) und Undo-Toasts.
+1. **Säule 1: Modernes Web-Redesign nach 8 UX-Design-Patterns:** Master-Detail Split-View am Desktop, Daumenzonen-Buttons am Smartphone, Progressive Disclosure, Quick-Filter-Chips, Keyboard-Shortcuts (`J`/`K`/`C`/`E`/`X`), Undo-Toasts, visuelle Bildanhang-Vorschau mit Lightbox im Detail-Pane und motivierender Inbox-Zero-State.
 2. **Säule 2: Mobile Autonomie durch Web-Push:** Vollwertige System-Push-Benachrichtigungen über den W3C VAPID-/Service-Worker-Standard. Mailhelp kann auf iOS Safari (installierte PWA), Android Chrome und Desktop völlig unabhängig von Telegram betrieben werden.
 3. **Säule 3: Intelligente Antwort-Entwürfe (Smart Reply Drafts):** Automatische Vorformulierung passender Antwortschreiben. Nach Nutzerbestätigung werden sie **via IMAP-Append im Entwurfsordner (`Drafts`)** abgelegt – inklusive korrekter Thread-Header (`In-Reply-To`, `References`). Es erfolgt **kein automatischer Direktversand**.
 4. **Säule 4: Smart Daily Briefing (Tageszusammenfassung):** Konfigurierbare morgendliche Zusammenfassung über anstehende Termine, fällige Todos und offene Entscheidungen per Web-Push und Telegram; steuerbar über ein `enabled`-Flag in `config.yaml`.
@@ -37,12 +37,12 @@ Gemäß den [Entwicklungsregeln](../AGENTS.md) gelten für Version 2.0 folgende 
 
 ---
 
-## 3. Säule 1 im Detail: Die 7 UX-Design-Patterns für die Weboberfläche
+## 3. Säule 1 im Detail: Die 8 UX-Design-Patterns für die Weboberfläche
 
 ### 1. Master-Detail / Split-View Pattern (Desktop ab 1024px)
 - **Architektur:** Auf breiten Displays schaltet das Layout via CSS Grid automatisch auf zwei Spalten um:
   - **Master-Pane (links, 380px fest):** Vertikale Liste aller offenen Vorgänge mit Typ (📅/✅), Titel, Zeitfenster, Quell-Absender und Status-Badge.
-  - **Detail-Pane (rechts, flexibel):** Synchron mitlaufende Vollansicht des selektierten Vorgangs. Enthält die Quell-Mail, Anhangsübersicht, Fristen, Differenz-Boxen bei Terminverschiebungen, den Antwort-Entwurf-Editor und die Aktionsleiste.
+  - **Detail-Pane (rechts, flexibel):** Synchron mitlaufende Vollansicht des selektierten Vorgangs. Enthält die Quell-Mail, optische Bildanhang-Vorschau (Thumbnails & Lightbox für Belegabgleich), Fristen, Differenz-Boxen bei Terminverschiebungen, den Antwort-Entwurf-Editor und die Aktionsleiste.
 - **Workflow:** Der Nutzer klickt sich links durch die Liste oder navigiert per Tastatur; die Detailansicht aktualisiert sich sofort ohne Seitenreload.
 
 ### 2. Progressive Disclosure (Schrittweise Offenlegung)
@@ -84,6 +84,20 @@ Gemäß den [Entwicklungsregeln](../AGENTS.md) gelten für Version 2.0 folgende 
   - Grüner Status-Badge: *„Alles erledigt! Keine offenen Entscheidungen.“*
   - Tagesstatistik: *„Heute 6 Vorgänge verarbeitet: 3 Termine angelegt, 2 Duplikate vorab abgeglichen, 1 Aufgabe erledigt.“*
   - Letzter erfolgreicher E-Mail-Abruf und Server-Status im Überblick.
+
+### 8. Visuelle Bildanhang-Vorschau & Beleg-Lightbox im Detail-Pane
+- **UX & Anwendungsfall:** E-Mails enthalten häufig bildhafte Belege (eingescannte oder abfotografierte Rechnungen, Quittungen, Terminzettel, Aushänge, Veranstaltungsflyer, Screenshots). Im Detail-Pane werden Bildanhänge nicht nur als Text-Badge aufgeführt, sondern als visuelle Vorschaubilder (Thumbnails) direkt gerendert.
+- **Interaktion & Belegprüfung:**
+  - **Inline-Thumbnail:** Bildkarte mit Dateiname, Abmessungen, Dateigröße und Vision-Erkennungsstatus.
+  - **Lightbox / Zoom-Modal:** Ein Klick auf das Bild öffnet eine bildschirmfüllende, zoombare Lightbox zur genauen Prüfung von Kleingedrucktem oder handschriftlichen Notizen.
+  - **OCR-Text-Akkordeon:** Unter dem Bild befindet sich ein `<details>`-Block mit dem vom Vision-Modell erkannten Text, der mit einem Klick verglichen oder kopiert werden kann.
+- **Sichere Bereitstellung & Architektur (`GET /mail/<mail_id>/anhang/<int:index>`):**
+  - Authentifizierter Endpunkt mit zwingender Sitzungsvalidierung (`SessionAuth`).
+  - Strikte HTTP-Sicherheitsheader (`X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'none'`, `Content-Type: image/jpeg|png|webp`).
+  - Ausschließliche Unterstützung von Rastergrafiken (JPEG, PNG, WebP), SVG ist zur Vermeidung von Stored XSS strikt verboten.
+- **Lifecycle & Retention:**
+  - Caching der weboptimierten Vorschaubilder im Dateisystem unter `data/attachments/<mail_id>/`.
+  - Vollständiges automatisches Löschen beim Archivieren oder Bereinigen der E-Mail gemäß `retention.py`.
 
 ---
 
@@ -177,7 +191,7 @@ daily_briefing:
 
 ```mermaid
 flowchart TD
-    P1[Phase 1: Web-Push Infrastruktur & VAPID] --> P2[Phase 2: Master-Detail Split-View Layout]
+    P1[Phase 1: Web-Push Infrastruktur & VAPID] --> P2[Phase 2: Master-Detail Split-View Layout & Bildvorschau]
     P2 --> P3[Phase 3: Smart Reply Drafts & IMAP-Append]
     P3 --> P4[Phase 4: Smart Daily Briefing & Scheduler]
     P4 --> P5[Phase 5: Shortcuts, Daumenzone & Undo-Toasts]
@@ -187,7 +201,7 @@ flowchart TD
 | Phase | Schwerpunkt | Liefergegenstand |
 | :--- | :--- | :--- |
 | **Phase 1** | **Web-Push & Autonomie** | VAPID-Kryptographie (`webpush.py`), Subscriptions-Store, Endpunkte `/api/push/*`, Service Worker Push-Event, Opt-In Schalter in `/einstellungen`. |
-| **Phase 2** | **Master-Detail Split-View** | Responsives Zweispalten-Layout (Desktop ab 1024px) in `web/review_pages.py` und `app.css`, synchrone Detailanzeige ohne Reload. |
+| **Phase 2** | **Master-Detail Split-View & Bildvorschau** | Responsives Zweispalten-Layout (Desktop ab 1024px) in `web/review_pages.py` und `app.css`, synchrone Detailanzeige ohne Reload, sicherer Anhang-Endpunkt `/mail/<id>/anhang/<index>` und Inline-Bildvorschau mit Lightbox. |
 | **Phase 3** | **Smart Reply Drafts** | Prompt `draft_reply`, Web-Editor im Detail-Panel, `src/mailhelp/drafts.py` mit IMAP-Append und RFC-5322 Threading-Headern im Ordner `Drafts`. |
 | **Phase 4** | **Smart Daily Briefing** | `src/mailhelp/briefing.py`, Konfigurationsabschnitt `daily_briefing` (`enabled`), Hintergrund-Timer, Push-/Telegram-Versand, Graceful Fallback. |
 | **Phase 5** | **Ergonomie & Feedback** | Daumenzonen-Aktionsleiste, Keyboard-Shortcuts (`J`/`K`/`C`/`E`/`X`), Quick-Filter-Chips, Optimistic UI mit 5s-Undo-Toast. |
@@ -199,10 +213,17 @@ flowchart TD
 
 1. **Progressive Enhancement & Barrierefreiheit:**
    - Automatisierte Playwright-Tests verifizieren, dass jede Aktion auch bei deaktiviertem JavaScript über klassische HTTP-POST-Routen funktioniert.
-2. **IMAP-Append & Drafts-Tests:**
+2. **Bildanhang-Auslieferung & XSS-Prävention:**
+   - Tests prüfen die HTTP-Endpunkte `/mail/<mail_id>/anhang/<index>`:
+     - 401/403 bei fehlender oder ungültiger Sitzung.
+     - 404 bei ungültigem Anhang-Index oder nicht existierender Mail.
+     - Strikte Sicherheitsheader (`X-Content-Type-Options: nosniff`, restriktive Content-Security-Policy).
+     - Ablehnung potenziell gefährlicher Dateitypen (insb. SVG).
+     - Überprüfung der Bereinigung gecachter Bilddateien bei Aufbewahrungsfrist-Ablauf (`retention.py`).
+3. **IMAP-Append & Drafts-Tests:**
    - Tests prüfen die korrekte Erstellung der MIME-Nachricht, Header `In-Reply-To`, `References`, Flags `\Draft`, `\Seen` und UTF-7-Ordnernamen gegen einen simulierten IMAP-Server.
    - Absicherung, dass kein SMTP-Versand aufgerufen wird.
-3. **Daily-Briefing-Tests:**
+4. **Daily-Briefing-Tests:**
    - Zeitgesteuerte Auslösung mit synthetischer Systemuhr (`clock`), Überprüfung der Teilausfall-Resilienz und korrekten Aggregation.
-4. **100 % Zeilen- und Branch-Abdeckung:**
-   - Verbindlich für alle serverseitigen Module (`webpush.py`, `drafts.py`, `briefing.py`, API-Handler, Push-Subscriptions-Store).
+5. **100 % Zeilen- und Branch-Abdeckung:**
+   - Verbindlich für alle serverseitigen Module (`webpush.py`, `drafts.py`, `briefing.py`, Anhang-Handler, API-Handler, Push-Subscriptions-Store).

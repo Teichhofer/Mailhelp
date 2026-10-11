@@ -1856,3 +1856,17 @@ Version 1.3 erweitert Mailhelp um eine smarte Workflow-Engine und Dokumenten-Ext
 - **RFC 5545 Kalenderanhänge (.ics):** Termine und Stornierungen (`VEVENT`) aus `text/calendar` und Dateianhängen werden deterministisch in Vorschläge überführt und LLM-Textextraktionen bei gleicher Einladung unterdrückt.
 - **Web- und Telegram-Erweiterungen:** Anzeige von Terminänderungs-Diff-Boxen, Duplikat-Badges mit externen Links, Extraktionsstatus-Badges bei Dokumenten sowie spezifischen Bestätigungsaktionen ("Termin aktualisieren", "Termin absagen").
 
+
+
+## Interne Verantwortlichkeiten ab Version 1.6
+
+Version 1.6 verändert keine fachlichen Abläufe, Routen, API-Verträge oder
+Zustandsschemas. `Application` bleibt Composition Root und Lifecycle-Koordinator;
+`MailboxRunService` übernimmt Discovery, durable Queue, Checkpoints und Recovery.
+Review- und Betriebsstatusrenderer sind getrennt. Die Integrationsfassade delegiert
+an OAuth-, Kalender-, Todoist-, ICS-, Transport- und bestätigte Schreibmodule.
+Telegram-Antwortinterpretation, validierter Nachfolge-Vorschlag und Recovery
+erhalten explizite Abhängigkeiten; Persistenz und Zustellung bleiben koordiniert.
+Die bestehende Bestätigungsschranke und Reihenfolge dauerhafter Zustandsübergänge
+bleiben verpflichtend. Die vollständige Zuordnung ist in
+[Architektur-1.6.md](docs/Architektur-1.6.md) beschrieben.

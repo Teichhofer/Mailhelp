@@ -2,23 +2,24 @@
 
 **Zielversion:** 2.0.0  
 **Stand:** 11. Oktober 2026  
-**Status:** In Planung (Folgt auf den Abschluss von Version 1.4)  
+**Status:** In Planung (Folgt auf die Versionen 1.5 und 1.6)  
 **Detailkonzept:** [Konzept-2.0-Redesign-und-Web-Push.md](Konzept-2.0-Redesign-und-Web-Push.md)  
-**Vorausgehende Versionen:** [Planung-1.3.md](Planung-1.3.md) (Smart Engine) → [Planung-1.4.md](Planung-1.4.md) (Multimodal & OCR)
+**Vorausgehende Versionen:** [Planung-1.3.md](Planung-1.3.md) → [Planung-1.4.md](Planung-1.4.md) → [Planung-1.5.md](Planung-1.5.md) → [Planung-1.6.md](Planung-1.6.md)
 
 ---
 
 ## 1. Leitmotiv für Mailhelp 2.0
 
-> **„Mailhelp 2.0 – Die neue Generation: Volle mobile Unabhängigkeit durch Web-Push, modernes Web-Redesign nach aktuellen UX-Design-Patterns, intelligente Antwort-Entwürfe im Entwurfsordner und konfigurierbares Daily Briefing.“**
+> **„Mailhelp 2.0 – Die neue Generation: Volle mobile Unabhängigkeit durch Web-Push, modernes Web-Redesign nach aktuellen UX-Design-Patterns, visuelle Bildanhang-Vorschau für den Belegabgleich, intelligente Antwort-Entwürfe im Entwurfsordner und konfigurierbares Daily Briefing.“**
 
-Mit den Versionen 1.0 bis 1.4 wurde Mailhelp von Grund auf als hochintelligenter, zuverlässiger Backend-Assistent aufgebaut, der Duplikate filtert, Kalendereinträge aktualisiert und Anhänge (PDF, Word, ICS, Bilder) liest.
+Mit den Versionen 1.0 bis 1.5 wurde Mailhelp von Grund auf als hochintelligenter, zuverlässiger Backend-Assistent aufgebaut, der Duplikate filtert, Kalendereinträge aktualisiert und Anhänge (PDF, Word, ICS, Bilder per Vision OCR) liest.
 
 **Version 2.0 vollzieht den entscheidenden Generationswechsel für den Nutzer:**
 1. **Volle Autonomie von Telegram (Mobile Standalone PWA):** Dank nativer Web-Push-Benachrichtigungen (VAPID / Service Worker) ist Telegram nicht länger Pflicht. Mailhelp lässt sich direkt auf dem Smartphone (iOS Safari PWA, Android Chrome) und PC als vollwertige, eigenständige Applikation betreiben.
 2. **Modernes Web-Redesign nach 7 UX-Design-Patterns:** Master-Detail Split-View am Desktop, Daumenzonen-Buttons am Smartphone, Progressive Disclosure, Quick-Filter-Chips, Keyboard-Shortcuts (`J`/`K`/`C`/`E`/`X`) und Undo-Toasts.
-3. **Intelligente Antwort-Entwürfe (Smart Reply Drafts):** Mailhelp formuliert passende Antwortschreiben vor. Nach Bestätigung werden sie **sicher via IMAP im Entwurfsordner (`Drafts`)** des Nutzers abgelegt – inklusive korrekter Thread-Header (`In-Reply-To`, `References`). Es erfolgt **kein automatischer Direktversand**, der Nutzer behält im eigenen E-Mail-Programm die volle Kontrolle.
-4. **Smart Daily Briefing (Tageszusammenfassung):** Jeden Morgen fasst Mailhelp anstehende Termine, fällige Todos und offene Entscheidungen kompakt per Web-Push und Telegram zusammen – flexibel steuerbar über ein `enabled`-Flag in `config.yaml`.
+3. **Visuelle Bildanhang-Vorschau in der Mail-Detailansicht:** An E-Mails angehängte Bilddateien (Rechnungen, Belege, Aushänge, Screenshots) werden im Detail-Panel der Weboberfläche (`/mail/<id>` sowie Split-View) direkt optisch dargestellt (Inline-Viewer mit Lightbox-Vergrößerung) – inklusive aufklappbarem, per Vision OCR extrahiertem Text zum bequemen visuellen Belegabgleich.
+4. **Intelligente Antwort-Entwürfe (Smart Reply Drafts):** Mailhelp formuliert passende Antwortschreiben vor. Nach Bestätigung werden sie **sicher via IMAP im Entwurfsordner (`Drafts`)** des Nutzers abgelegt – inklusive korrekter Thread-Header (`In-Reply-To`, `References`). Es erfolgt **kein automatischer Direktversand**, der Nutzer behält im eigenen E-Mail-Programm die volle Kontrolle.
+5. **Smart Daily Briefing (Tageszusammenfassung):** Jeden Morgen fasst Mailhelp anstehende Termine, fällige Todos und offene Entscheidungen kompakt per Web-Push und Telegram zusammen – flexibel steuerbar über ein `enabled`-Flag in `config.yaml`.
 
 ---
 
@@ -62,6 +63,7 @@ flowchart TD
 | Bereich | Bisheriger Stand (bis v1.4) | Der Generationswechsel in Version 2.0 |
 | :--- | :--- | :--- |
 | **Benachrichtigungen** | Nur über Telegram Bot; die PWA bot keine System-Push-Meldungen bei anstehenden Entscheidungen. | **Native Web-Push-Notifications (VAPID):** Reiner Standalone-Betrieb ohne Telegram-Account möglich; PWA benachrichtigt gezielt nur bei echten Entscheidungen. |
+| **Bildanhänge** | Bisher nur Dateiname, Größe und Text-Status (`[Per Bilderkennung gelesen]`). Keine Bildanzeige im Browser. | **Visuelle Inline-Vorschau & Lightbox:** Bildanhänge werden direkt in der Mail-Detailansicht gerendert; Zoom/Lightbox für Belegprüfung; extrahierter OCR-Text auf Knopfdruck daneben. |
 | **Desktop-Layout** | Sequenzielle Listenansicht; jedes Detail erforderte einen Seitenwechsel mit Ladezeit. | **Master-Detail / Split-View:** Zweispaltige Ansicht ab 1024px; Liste links, synchron mitlaufende Mail- und Detailansicht rechts; kein Seitenwechsel mehr. |
 | **E-Mail-Beantwortung** | Nutzer musste Mailprogramm öffnen und Text mühsam selbst formulieren. | **Smart Reply Drafts:** Mailhelp formuliert Antwort vor. Bestätigter Text wird via IMAP im `Drafts`-Ordner abgelegt (kein Direktversand!). |
 | **Tagesüberblick** | Nutzer musste aktiv nachsehen, was ansteht und was Mailhelp über Nacht verarbeitet hat. | **Smart Daily Briefing:** Morgendliche kompakte Zusammenfassung per Web-Push & Telegram; konfigurierbar via `daily_briefing.enabled`. |
@@ -109,13 +111,34 @@ flowchart TD
 3. **Resilienz:**
    - Ist ein Zielsystem offline (z.B. Google Kalender nicht erreichbar), bricht das Briefing nicht ab, sondern informiert transparent über die verfügbaren Daten.
 
+### 3.3 Visuelle Bildanhang-Vorschau in der Mail-Detailansicht (Image Attachment Viewer)
+1. **Zweck und Nutzererlebnis:**
+   - Enthält eine E-Mail Bildanhänge (z. B. Rechnungsbelege, Aushänge, fotografierte Terminzettel, Screenshots), werden diese in der Mail-Detailansicht (`/mail/<id>` sowie im Split-View Detail-Panel) optisch als ansprechende Bildkarten gerendert.
+   - Ermöglicht den direkten visuellen Soll-Ist-Abgleich der extrahierten Vorschläge (Termine, Aufgaben) mit dem Originalbeleg.
+   - Ein Klick auf das Bild öffnet eine vergrößerte Lightbox-Ansicht.
+   - Direkt unter dem Bild bietet ein ausklappbarer Container (`<details>`) Einsicht in den per Vision OCR erkannten Roh- und Bereinigungstext.
+2. **Sichere Bereitstellung & Architektur:**
+   - **Bild-Ablage / Blob-Cache:** Beim Verarbeiten von Bildanhängen legt Mailhelp eine optimierte, web-taugliche Bildkopie (JPEG/WebP, max. 1.600 px, EXIF-transposed) in einem geschützten Anhang-Verzeichnis (`data/attachments/<mail_id>/<index>.jpg`) ab.
+   - **Authentifizierter Endpunkt:**
+     `GET /mail/<mail_id>/anhang/<int:index>`
+     - Zugriff erfordert eine gültige, serverseitig geprüfte Benutzersitzung (`SessionAuth`).
+     - Strikte HTTP-Sicherheitsheader zum Schutz vor XSS und MIME-Sniffing:
+       `Content-Type: image/jpeg` (bzw. `image/png`, `image/webp` – SVG ist strikt ausgeschlossen!)
+       `X-Content-Type-Options: nosniff`
+       `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'`
+       `Cache-Control: private, max-age=3600`
+   - **Progressive Enhancement:** Funktioniert auch bei deaktiviertem JavaScript; Bilder werden als Standard-`<img>` gerendert und verlinken direkt auf den sicheren Anhang-Endpunkt.
+3. **Lebenszyklus & Datenminimierung (Retention):**
+   - Bildanhänge unterliegen den gleichen Aufbewahrungs- und Löschfristen wie der Mail-Volltext (`retention.py`).
+   - Bei Archivierung oder Löschung der Mail werden die gecachten Bilddateien restlos vom Datenträger entfernt.
+
 ---
 
 ## 4. Umsetzungsphasen für Version 2.0
 
 ```mermaid
 flowchart TD
-    P1[Phase 1: Web-Push Infrastruktur & VAPID] --> P2[Phase 2: Master-Detail Split-View Layout]
+    P1[Phase 1: Web-Push Infrastruktur & VAPID] --> P2[Phase 2: Master-Detail Split-View Layout & Bildvorschau]
     P2 --> P3[Phase 3: Smart Reply Drafts & IMAP-Append]
     P3 --> P4[Phase 4: Smart Daily Briefing & Scheduler]
     P4 --> P5[Phase 5: Shortcuts, Daumenzone & Undo-Toasts]
@@ -125,7 +148,7 @@ flowchart TD
 | Phase | Schwerpunkt | Liefergegenstand |
 | :--- | :--- | :--- |
 | **Phase 1** | **Web-Push & Autonomie** | VAPID-Kryptographie (`webpush.py`), Subscriptions-Store, Endpunkte `/api/push/*`, Service Worker Push-Event, Opt-In Schalter in `/einstellungen`. |
-| **Phase 2** | **Master-Detail Split-View** | Responsives Zweispalten-Layout (Desktop ab 1024px) in `web/review_pages.py` und `app.css`, synchrone Detailanzeige ohne Reload. |
+| **Phase 2** | **Master-Detail Split-View & Bildvorschau** | Responsives Zweispalten-Layout (Desktop ab 1024px) in `web/review_pages.py` und `app.css`, synchrone Detailanzeige ohne Reload, sicherer Anhang-Endpunkt `/mail/<id>/anhang/<index>` und Inline-Bildvorschau mit Lightbox. |
 | **Phase 3** | **Smart Reply Drafts** | Prompt `draft_reply`, Web-Editor im Detail-Panel, IMAP-Append-Service mit RFC-5322 Thread-Headern im Ordner `Drafts`. |
 | **Phase 4** | **Smart Daily Briefing** | `DailyBriefingService`, Konfigurationsabschnitt `daily_briefing`, Hintergrund-Timer, Push-/Telegram-Versand, Graceful Fallback. |
 | **Phase 5** | **Ergonomie & Feedback** | Daumenzonen-Aktionsleiste, Keyboard-Shortcuts (`J`/`K`/`C`/`E`/`X`), Quick-Filter-Chips, Optimistic UI mit 5s-Undo-Toast. |
@@ -136,13 +159,16 @@ flowchart TD
 ## 5. Abnahme- und Qualitätskriterien ([`AGENTS.md`](../AGENTS.md))
 
 1. **Progressive Enhancement:**
-   - Alle Basisfunktionen (Lesen, Bestätigen, Bearbeiten, Verwerfen, Entwurf-Erstellen) bleiben auch bei vollständig deaktiviertem JavaScript garantiert funktionsfähig.
+   - Alle Basisfunktionen (Lesen, Bestätigen, Bearbeiten, Verwerfen, Entwurf-Erstellen, Bildanzeige) bleiben auch bei vollständig deaktiviertem JavaScript garantiert funktionsfähig.
 2. **Kein eigenmächtiger E-Mail-Versand:**
    - Antwort-Entwürfe dürfen **ausschließlich** als Entwurf (`\Draft`) in das IMAP-Postfach geschrieben werden. Ein SMTP-Versand durch Mailhelp ist kategorisch ausgeschlossen.
-3. **100 % Zeilen- und Branch-Abdeckung:**
-   - Verbindlich für alle neuen serverseitigen Module (`webpush.py`, `drafts.py`, `briefing.py`, Subscriptions, API-Routen).
-4. **Playwright-Browsertests:**
-   - Vollständige automatisierte Browsertests für Split-View, Entwurf-Editor, Filter-Chips, Daumenzonen-Buttons und Tastaturnavigation.
-5. **Datenschutz & Geheimnisschutz:**
+3. **Sichere Bildauslieferung & XSS-Schutz:**
+   - Bildanhänge werden ausschließlich über den authentifizierten Endpunkt mit striktem `nosniff`, statischem Content-Type und sicherem CSP ausgeliefert. Vektorformate (SVG) sind verboten.
+   - Cache-Bereinigung folgt den Retention-Regeln von Mailhelp.
+4. **100 % Zeilen- und Branch-Abdeckung:**
+   - Verbindlich für alle neuen serverseitigen Module (`webpush.py`, `drafts.py`, `briefing.py`, Anhang-Endpunkte, Subscriptions, API-Routen).
+5. **Playwright-Browsertests:**
+   - Vollständige automatisierte Browsertests für Split-View, Bildanhang-Viewer/Lightbox, Entwurf-Editor, Filter-Chips, Daumenzonen-Buttons und Tastaturnavigation.
+6. **Datenschutz & Geheimnisschutz:**
    - Push-Nachrichten enthalten keine vertraulichen Volltexte, sondern neutrale Hinweise.
    - VAPID Private Keys und IMAP-Zugangsdaten bleiben sicher geschützt und werden nicht geloggt.

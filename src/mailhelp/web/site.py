@@ -33,7 +33,8 @@ from .http import Request, Response
 from .pages import devices_page, error_page, login_page, layout, notice
 from .actions import (command_page, needs_choice, proposal_actions, relevance_actions,
                       result_kind, stale_page)
-from .review_pages import ServiceInfo, detail_page, mail_page, overview_page, status_page
+from .review_pages import detail_page, mail_page, overview_page
+from .status_pages import ServiceInfo, status_page
 from .sender_site import LIST_PATH as SENDERS_PATH, SenderSite
 
 SESSION_COOKIE = "mh_session"
