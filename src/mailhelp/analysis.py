@@ -14,7 +14,7 @@ from .config import LlmRoute, PromptConfig, Topic
 from .models import (AbstractCategories, ActionRoute, CalendarDuplicateDecision, EventExtraction,
                      MailClassification, Proposal, ProposalRevisionChanges, ProposalRevisionDelta, ProposalStatus, Relevance,
                      Summary, TaskExtraction, TelegramAnswerInterpretation,
-                     TelegramClarification, apply_proposal_revision)
+                     TelegramClarification, VisionExtractionResult, apply_proposal_revision)
 from .openrouter import InvalidJson, ProviderResponseInvalid
 
 T = TypeVar("T", bound=BaseModel)
@@ -150,7 +150,8 @@ class Analyzer:
 
     def _classified_run(self, step: str, payload: dict[str, Any],
                         validator: Callable[[Any], T], *, schema: type[BaseModel] | None = None,
-                        token_retry_payload: dict[str, Any] | None = None) -> tuple[str, T]:
+                        token_retry_payload: dict[str, Any] | None = None,
+                        images: list[str] | None = None) -> tuple[str, T]:
         """Run one flat, classified retry state machine."""
         routes, prompt, configured_provider_retries = self.prompts.resolved_routes(step)
         same_route_retries = (configured_provider_retries if self.provider_retries is None
@@ -194,6 +195,7 @@ class Analyzer:
                     supports_json_schema=route.supports_json_schema,
                     revision_route=("token_limit_retry" if token_retry_used else "initial_revision")
                     if step == "proposal_revision" else "standard",
+                    **({"images": images} if images else {}),
                 )
                 route_failures = 0
             except (ProviderResponseInvalid, RetryableError) as exc:
@@ -356,6 +358,16 @@ class Analyzer:
         return self._classified_run(
             "event_extraction", {"mail": self._enrich_mail_with_attachments(mail), "expected_count": expected_count},
             EventExtraction.model_validate, schema=EventExtraction,
+        )
+
+    def read_document(self, filename: str, content_type: str,
+                      images: list[str]) -> tuple[str, VisionExtractionResult]:
+        """Read the visible text of one image or scanned document (``vision_ocr``)."""
+        return self._classified_run(
+            "vision_ocr",
+            {"attachment": {"filename": filename, "content_type": content_type,
+                            "pages": len(images)}},
+            VisionExtractionResult.model_validate, schema=VisionExtractionResult, images=images,
         )
 
     def calendar_duplicate(self, proposal: Proposal,

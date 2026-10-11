@@ -1693,6 +1693,45 @@ def test_local_ollama_mode_replaces_openrouter(tmp_path, monkeypatch):
     assert ("WARNING", "local_llm_experimental", {
         "host": "192.168.1.20", "port": 11434, "model": "qwen2.5:7b-instruct",
         "num_ctx": 65536}) in events
+    # A prompts.yaml from before 1.4 has no vision step: no image is sent.
+    assert made.orchestrator.vision is None
+    assert ("WARNING", "vision_prompt_missing", {}) in events
+
+
+@pytest.mark.parametrize("enabled", [True, False])
+def test_vision_ocr_is_wired_only_when_enabled_and_prompted(tmp_path, monkeypatch, enabled):
+    from mailhelp.config import PromptConfig
+    from mailhelp.vision import VisionExtractor
+
+    class Resource:
+        def __init__(self, *args, **kwargs): pass
+        def close(self): pass
+
+    for name in ("ImapReader", "OpenRouterClient", "TelegramClient", "HttpWriter",
+                 "GoogleOAuthTokenProvider"):
+        monkeypatch.setattr(f"mailhelp.application.{name}", Resource)
+    cfg = settings(tmp_path)
+    cfg.logging.file.enabled = cfg.logging.console.enabled = False
+    cfg.vision.enabled = enabled
+    sec = Secrets(imap_username="u", imap_password="p", openrouter_api_key="o",
+                  telegram_bot_token="t", todoist_token="d", todoist_client_id="ti",
+                  todoist_client_secret="ts", google_oauth_client_id="i",
+                  google_oauth_client_secret="s", google_oauth_refresh_token="r")
+    logger = build_logger(cfg, sec, tmp_path)
+    events = []
+    logger.event = lambda level, module, event, **fields: events.append(event)
+    data = prompt_config().model_dump()
+    data["prompts"]["vision_ocr"] = {"system_prompt": "Lies den Text."}
+    with build_application(cfg, sec, [Topic(id="x", name="x", enabled=True, description="x")],
+                           PromptConfig.model_validate(data), "f" * 64, base_directory=tmp_path,
+                           logger=logger, access_diagnostics=True) as made:
+        vision = made.orchestrator.vision
+    if enabled:
+        assert isinstance(vision, VisionExtractor)
+        assert vision.reader is made.analyzer and vision.settings is cfg.vision
+    else:
+        assert vision is None
+    assert "vision_prompt_missing" not in events
 
 
 def test_state_directory_separates_every_durable_state_and_lock(tmp_path):

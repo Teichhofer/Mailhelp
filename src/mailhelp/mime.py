@@ -1,6 +1,7 @@
 """Bounded, defensive MIME preparation without fetching external resources."""
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import dataclass
 from email import policy
 from email.message import Message
@@ -11,6 +12,7 @@ from datetime import datetime, timezone
 from html.parser import HTMLParser
 import json
 import re
+from typing import Any
 import unicodedata
 
 
@@ -197,16 +199,12 @@ def _omit_attachments(part: Message) -> int:
     return attachments
 
 
-def _collect_and_extract_attachments(
-    message: Message, user_timezone: str
-) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
-    """Collect attachment parts and extract calendar events and document texts."""
-    from .calendar_parser import parse_icalendar
-    from .attachment_extractor import extract_attachment_text
+def attachment_parts(message: Message) -> Iterator[tuple[str, str, bytes]]:
+    """Yield every attachment leaf in a stable order with its decoded payload.
 
-    calendar_events: list[dict[str, Any]] = []
-    extracted_attachments: list[dict[str, Any]] = []
-
+    Vision OCR (``mailhelp.vision``) walks the same parts later; the shared
+    order maps each part to its entry in ``extracted_attachments``.
+    """
     for child in message.walk():
         if child.is_multipart():
             continue
@@ -217,11 +215,22 @@ def _collect_and_extract_attachments(
         )
         if not is_attachment:
             continue
+        yield (child.get_filename() or "unnamed",
+               child.get_content_type() or "application/octet-stream",
+               child.get_payload(decode=True) or b"")
 
-        filename = child.get_filename() or "unnamed"
-        content_type = child.get_content_type() or "application/octet-stream"
-        payload = child.get_payload(decode=True) or b""
 
+def _collect_and_extract_attachments(
+    message: Message, user_timezone: str
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Collect attachment parts and extract calendar events and document texts."""
+    from .calendar_parser import parse_icalendar
+    from .attachment_extractor import extract_attachment_text
+
+    calendar_events: list[dict[str, Any]] = []
+    extracted_attachments: list[dict[str, Any]] = []
+
+    for filename, content_type, payload in attachment_parts(message):
         lower_name = filename.lower()
         lower_type = content_type.lower()
         if lower_name.endswith(".ics") or "calendar" in lower_type:

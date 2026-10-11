@@ -109,7 +109,9 @@ class OpenRouterClient:
                  attempt_id: str | None = None,
                  response_schema: type[BaseModel] | None = None,
                  supports_json_schema: bool = True,
-                 revision_route: str = "standard") -> tuple[str, Any]:
+                 revision_route: str = "standard",
+                 images: list[str] | None = None) -> tuple[str, Any]:
+        """Run one validated JSON completion; ``images`` are data URLs for vision steps."""
         model = self._resolve_model(model)
         with self._state_lock:
             now = self.clock()
@@ -126,7 +128,11 @@ class OpenRouterClient:
                 "name": response_schema.__name__, "strict": True,
                 "schema": response_schema.model_json_schema(),
             }}
-        request = {**parameters, "model": model, "messages": [{"role": "system", "content": system}, {"role": "user", "content": json.dumps(payload, ensure_ascii=False)}], "response_format": response_format}
+        user: Any = json.dumps(payload, ensure_ascii=False)
+        if images:
+            user = [{"type": "text", "text": user},
+                    *({"type": "image_url", "image_url": {"url": url}} for url in images)]
+        request = {**parameters, "model": model, "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}], "response_format": response_format}
         if provider_preferences is not None:
             request["provider"] = provider_preferences
         request = self._prepare_request(request)
@@ -146,7 +152,7 @@ class OpenRouterClient:
         def begin(number: int) -> None:
             nonlocal attempt
             attempt = number
-            self.logger.llm_event("request_started", request=request,
+            self.logger.llm_event("request_started", request=_without_image_data(request),
                                   parameters=parameters, prompt_fingerprint=fingerprint, attempt=number,
                                   status="started", **metadata, **correlation)
         def failed_attempt(number: int, exc: Exception) -> None:
@@ -284,6 +290,18 @@ def _provider_error_reason(raw: Any) -> str | None:
     if not isinstance(content, str):
         return "invalid_provider_envelope"
     return None
+
+
+def _without_image_data(value: Any) -> Any:
+    """Replace inline image data with its size; full LLM logs stay readable."""
+    if isinstance(value, dict):
+        return {key: _without_image_data(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_without_image_data(item) for item in value]
+    if isinstance(value, str) and value.startswith("data:image/"):
+        header = value.split(",", 1)[0]
+        return f"{header},<{len(value)} Zeichen>"
+    return value
 
 
 def _correlation(payload: dict[str, Any]) -> dict[str, Any]:

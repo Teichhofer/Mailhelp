@@ -25,6 +25,7 @@ from .logging import JsonlLogger, NullLogger
 from .models import (ImapCheckpoint, MailRunCounters, MailRunEntry,
                      MailRunEntryStatus, MailRunState, MailState, TelegramOffset)
 from .ollama import LocalLlm, OllamaClient
+from .vision import VisionExtractor
 from .openrouter import OpenRouterClient
 from .orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
 from .storage import JsonStore, mail_state_names
@@ -1147,7 +1148,13 @@ def build_application(
             ledger=dialog.ledger,
             logger=logger,
         )
-        orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics, settings.limits.max_mail_bytes, logger, mime_limits=settings.limits, config_fingerprint=fingerprint, targets=settings.targets, user_timezone=settings.timezone, sender_store=sender_store, precheck=precheck)
+        vision = None
+        if settings.vision.enabled and "vision_ocr" in prompts.prompts:
+            vision = VisionExtractor(analyzer, settings.vision)
+        elif settings.vision.enabled:
+            # A prompts.yaml from before 1.4: no image is sent anywhere.
+            logger.event("WARNING", "application", "vision_prompt_missing")
+        orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics, settings.limits.max_mail_bytes, logger, mime_limits=settings.limits, config_fingerprint=fingerprint, targets=settings.targets, user_timezone=settings.timezone, sender_store=sender_store, precheck=precheck, vision=vision)
         from .fingerprints import (adopt_legacy_configuration, legacy_fingerprints, legacy_policies,
                                    topic_policy)
         orchestrator.topic_policy = topic_policy(settings, prompts)

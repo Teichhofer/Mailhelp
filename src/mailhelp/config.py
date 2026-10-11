@@ -282,6 +282,19 @@ class WebSettings(ConfigModel):
         return value
 
 
+class VisionSettings(ConfigModel):
+    """Multimodal OCR for image attachments and scanned PDFs (1.4).
+
+    Model and prompt are the ``vision_ocr`` step in ``prompts.yaml``; without
+    that step no image is sent.  The limits bound cost and data transfer.
+    """
+
+    enabled: bool = True
+    max_images_per_mail: int = Field(default=3, ge=1, le=10)
+    max_image_bytes: int = Field(default=10_485_760, ge=10_240, le=50_000_000)
+    max_edge_pixels: int = Field(default=1600, ge=512, le=4096)
+
+
 class Settings(ConfigModel):
     timezone: str
     poll_interval_seconds: int = Field(ge=5, le=86400)
@@ -298,6 +311,7 @@ class Settings(ConfigModel):
     learning: LearningSettings = Field(default_factory=LearningSettings)
     web: WebSettings = Field(default_factory=WebSettings)
     metrics: MetricsSettings = Field(default_factory=MetricsSettings)
+    vision: VisionSettings = Field(default_factory=VisionSettings)
 
     @field_validator("timezone")
     @classmethod
@@ -503,6 +517,10 @@ class OllamaPromptSettings(ConfigModel):
     think: bool | None = None
 
 
+# Steps a prompts.yaml from an earlier release may lack; the feature is then off.
+OPTIONAL_PROMPT_STEPS = frozenset({"vision_ocr"})
+
+
 class PromptConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     defaults: dict[str, Any]
@@ -517,7 +535,7 @@ class PromptConfig(BaseModel):
                     "event_extraction", "mail_question_resolution", "telegram_answer_interpretation",
                     "telegram_answer_clarification", "proposal_revision", "learning_classification",
                     "learning_abstraction", "calendar_duplicate"}
-        if set(self.prompts) != required:
+        if not required <= set(self.prompts) <= required | OPTIONAL_PROMPT_STEPS:
             raise ValueError("prompts enthält nicht genau die erforderlichen Schritte")
         default_model = self.defaults.get("model")
         for name, step in self.prompts.items():

@@ -30,6 +30,7 @@ from .openrouter import RateLimitExceeded
 from .logging import EventLogger, NullLogger
 from .sender_filter import is_irrelevant_sender
 from .telegram.formatting import mail_line
+from .vision import VisionExtractor
 
 
 class Notifier(Protocol):
@@ -79,7 +80,7 @@ def _revision_effective(previous: Proposal, revised: Proposal) -> bool:
 
 
 class Orchestrator:
-    def __init__(self, analyzer: Analyzer, store: JsonStore, notifier: Notifier, chat_id: int, topics: list[Topic], max_mail_bytes: int, logger: EventLogger | None = None, clock: Any = time.time, mime_limits: object | None = None, config_fingerprint: str = "0" * 64, targets: TargetSettings | None = None, user_timezone: str = "UTC", sender_store: JsonStore | None = None, precheck: DuplicatePreCheckService | None = None):
+    def __init__(self, analyzer: Analyzer, store: JsonStore, notifier: Notifier, chat_id: int, topics: list[Topic], max_mail_bytes: int, logger: EventLogger | None = None, clock: Any = time.time, mime_limits: object | None = None, config_fingerprint: str = "0" * 64, targets: TargetSettings | None = None, user_timezone: str = "UTC", sender_store: JsonStore | None = None, precheck: DuplicatePreCheckService | None = None, vision: VisionExtractor | None = None):
         self.analyzer, self.store, self.notifier, self.chat_id, self.topics, self.max_bytes = analyzer, store, notifier, chat_id, topics, mime_limits or max_mail_bytes
         self.stop_event = Event()
         self.logger = logger or NullLogger()
@@ -94,6 +95,7 @@ class Orchestrator:
         # test and production mode.
         self.sender_store = sender_store or store
         self.precheck = precheck or DuplicatePreCheckService(logger=self.logger)
+        self.vision = vision
 
     def _build_proposals(self, state: MailState) -> list[Proposal]:
         """Cross from untrusted extracted facts into application-owned proposals."""
@@ -235,6 +237,44 @@ class Orchestrator:
             return self.store.load_model(name, model, default)
         value = self.store.load(name, None)
         return default if value is None else model.model_validate(value)
+
+    def _blocked_senders(self) -> IrrelevantSenders:
+        blocked = (
+            self._load_model("irrelevant-senders", IrrelevantSenders, IrrelevantSenders())
+            if self.sender_store is self.store else
+            self.sender_store.load_model("irrelevant-senders", IrrelevantSenders, IrrelevantSenders())
+        )
+        assert isinstance(blocked, IrrelevantSenders)
+        return blocked
+
+    def _read_images(self, name: str, state: MailState, raw: bytes) -> None:
+        """Vision OCR before relevance; progress is saved per attachment.
+
+        It runs at most once per mail, never for a blocked sender and only while
+        the original message is available (a resumed mail has no raw bytes).
+        """
+        assert state.mail is not None and self.vision is not None
+        metadata = state.mail["metadata"]
+        if "vision" in metadata:
+            return
+        if not raw:
+            metadata["vision"] = "unavailable"
+        elif is_irrelevant_sender(state.mail["headers"].get("from", ""), self._blocked_senders()):
+            metadata["vision"] = "skipped_sender"
+        else:
+            attachments = state.mail.get("extracted_attachments", [])
+            for update in self.vision.extract(raw, attachments):
+                attachments[update.index] = update.attachment
+                if update.call_id is not None:
+                    state.llm_call_ids.append(update.call_id)
+                self._save(name, state)
+                self.logger.event("WARNING" if update.error else "INFO", "orchestrator",
+                                  "vision_attachment", mail_id=state.id, attachment=update.index,
+                                  outcome=update.attachment["vision"], call_id=update.call_id,
+                                  error_type=update.error,
+                                  characters=update.attachment.get("character_count", 0))
+            metadata["vision"] = "completed"
+        self._save(name, state)
 
     def _check_duplicate(self, name: str, state: MailState) -> bool:
         """Persist a conservative decision before any LLM call; return whether to skip."""
@@ -443,18 +483,11 @@ class Orchestrator:
                 self.logger.event("INFO", "orchestrator", "duplicate_skipped", mail_id=state.id,
                                   previous_mail_id=state.duplicate.previous_mail_id)
                 return ProcessingResult(ProcessingOutcome.COMPLETED, state.model_dump(mode="json"))
+            if self.vision is not None and state.steps.relevance == "pending":
+                self._read_images(name, state, fetched.raw)
             stage = ProcessingStage.RELEVANCE
             if state.steps.relevance == "pending":
-                blocked = (
-                    self._load_model("irrelevant-senders", IrrelevantSenders,
-                                     IrrelevantSenders())
-                    if self.sender_store is self.store else
-                    self.sender_store.load_model(
-                        "irrelevant-senders", IrrelevantSenders, IrrelevantSenders()
-                    )
-                )
-                assert isinstance(blocked, IrrelevantSenders)
-                if is_irrelevant_sender(state.mail["headers"].get("from", ""), blocked):
+                if is_irrelevant_sender(state.mail["headers"].get("from", ""), self._blocked_senders()):
                     state.relevance = Relevance(
                         decision="irrelevant", topic_ids=[], reason="Absender-Vorfilter"
                     )

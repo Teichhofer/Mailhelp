@@ -19,8 +19,8 @@ TOPICS = [Topic(id="schule", name="Schule", enabled=True, description="Schule")]
 
 
 def fingerprint_1_1(settings, prompts, topics) -> str:
-    """The algorithm of release 1.1 (all settings except a then non-existing web section)."""
-    dump = settings.model_dump(mode="json", exclude={"web", "metrics"})
+    """The algorithm of release 1.1 (all settings except then non-existing sections)."""
+    dump = settings.model_dump(mode="json", exclude={"web", "metrics", "vision"})
     dump["retention"] = {key: value for key, value in dump["retention"].items()
                          if key in {"full_mail_days", "debug_llm_days"}}
     return hashlib.sha256(json.dumps([dump, prompts.model_dump(), [t.model_dump() for t in topics]],
@@ -35,6 +35,8 @@ def fingerprint_1_1(settings, prompts, topics) -> str:
     lambda s: setattr(s.metrics, "ollama_power_watts", 50.0),
     lambda s: setattr(s.web, "session_days", 5),
     lambda s: setattr(s.retries, "revision_attempts", 1),
+    lambda s: setattr(s.vision, "enabled", False),
+    lambda s: setattr(s.vision, "max_images_per_mail", 1),
 ])
 def test_operational_settings_do_not_change_the_fingerprint(tmp_path, change):
     settings, prompts = app_settings(tmp_path), prompt_config()
@@ -50,6 +52,30 @@ def test_analysis_settings_still_change_the_fingerprint(tmp_path):
     assert config_fingerprint(settings, prompts, TOPICS) != before
     assert config_fingerprint(settings, prompts, [*TOPICS, Topic(id="x", name="X", enabled=True,
                                                                 description="x")]) != config_fingerprint(
+        settings, prompts, TOPICS)
+
+
+def fingerprint_1_3(settings, prompts, topics) -> str:
+    """The algorithm of release 1.3: no vision section and no vision_ocr prompt existed."""
+    from mailhelp.fingerprints import OPERATIONAL
+    dump = settings.model_dump(mode="json", exclude=set(OPERATIONAL) | {"vision"})
+    return hashlib.sha256(json.dumps([dump, prompts.model_dump(), [t.model_dump() for t in topics]],
+                                     sort_keys=True).encode()).hexdigest()
+
+
+def test_the_vision_prompt_keeps_the_1_3_fingerprint(tmp_path):
+    """Upgrading to 1.4 adds vision_ocr; prepared 1.3 mails must not be held back."""
+    from mailhelp.config import PromptConfig
+    settings, prompts = app_settings(tmp_path), prompt_config()
+    before = fingerprint_1_3(settings, prompts, TOPICS)
+    assert config_fingerprint(settings, prompts, TOPICS) == before
+    data = prompts.model_dump()
+    data["prompts"]["vision_ocr"] = {"system_prompt": "Lies den Text."}
+    with_vision = PromptConfig.model_validate(data)
+    assert config_fingerprint(settings, with_vision, TOPICS) == before
+    assert topic_policy(settings, with_vision) == topic_policy(settings, prompts)
+    assert legacy_policies(settings, with_vision) == legacy_policies(settings, prompts)
+    assert legacy_fingerprints(settings, with_vision, TOPICS) == legacy_fingerprints(
         settings, prompts, TOPICS)
 
 

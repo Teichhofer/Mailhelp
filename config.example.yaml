@@ -38,6 +38,18 @@ metrics:
   # Optional: Wechselkurs für die Umrechnung von USD-Kosten, immer mit Datum.
   # usd_per_eur: 1.08
   # exchange_rate_date: 2026-10-01
+vision:
+  # Ab 1.4: Bildanhänge (JPG, PNG, WebP) und gescannte PDFs werden per
+  # Bilderkennung gelesen (Schritt vision_ocr in prompts.yaml). Dabei gehen die
+  # Bilder an den KI-Anbieter. Symbole und Logos (unter 150 × 150 Pixel oder
+  # 10 KB) werden nie gesendet. false schaltet die Bilderkennung ab.
+  enabled: true
+  # Höchstens so viele Bilder bzw. Scanseiten je Mail.
+  max_images_per_mail: 3
+  # Größere Anhänge werden nicht gelesen (10 MB).
+  max_image_bytes: 10485760
+  # Längste Bildkante nach dem Verkleinern; spart Tokens.
+  max_edge_pixels: 1600
 learning:
   parallel_llm_calls: 10
 imap:

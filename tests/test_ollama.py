@@ -261,3 +261,19 @@ def test_regression_ollama_timeout_accepts_thirty_minutes():
         assert llm.complete("ignored", {}, "System", {})[1] == {"value": 1}
     finally:
         llm.close()
+
+
+def test_vision_images_become_native_base64_without_credentials():
+    seen = []
+
+    def handler(request):
+        seen.append(json.loads(request.content))
+        return httpx.Response(200, json=native())
+
+    llm = client(handler)
+    llm.complete("google/gemini", {}, "Lies", {"attachment": {"pages": 2}}, stage="vision_ocr",
+                 images=["data:image/jpeg;base64,QUJD", "data:image/jpeg;base64,REVG"])
+    llm.close()
+    assert seen[0]["messages"][1] == {"role": "user",
+                                      "content": json.dumps({"attachment": {"pages": 2}}),
+                                      "images": ["QUJD", "REVG"]}

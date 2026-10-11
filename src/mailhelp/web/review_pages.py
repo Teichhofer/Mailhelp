@@ -180,6 +180,17 @@ def overview_page(overview: Overview, *, actions: Actions | None = None,
     return layout("Offen", "\n".join(parts), active="/", fingerprint=overview.fingerprint)
 
 
+VISION_LABELS = {
+    "read": "Per Bilderkennung gelesen",
+    "no_text": "Bild ohne lesbaren Text",
+    "failed": "Bilderkennung fehlgeschlagen",
+    "skipped_small": "Übersprungen (Symbol oder Logo)",
+    "skipped_limit": "Übersprungen (Bildlimit je Mail)",
+    "skipped_oversized": "Übersprungen (Bild zu groß)",
+    "skipped_unreadable": "Bild nicht lesbar",
+}
+
+
 def mail_section(mail: MailView | None) -> str:
     """The complete stored mail as text; links in it stay plain text."""
     if mail is None:
@@ -215,6 +226,9 @@ def mail_section(mail: MailView | None) -> str:
             st = att.get("extraction_status", "success")
             st_text = status_labels.get(st, st)
             badge_class = "ok" if st == "success" else "warn"
+            if att.get("vision") is not None:
+                st_text = VISION_LABELS.get(att["vision"], att["vision"])
+                badge_class = "ok" if att["vision"] == "read" else "warn"
             att_items.append(
                 f'<li>📎 <strong>{e(fn)}</strong> <span class="badge {badge_class}">{e(st_text)}</span></li>'
             )

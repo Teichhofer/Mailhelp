@@ -10,6 +10,11 @@ Up to 1.1 (and in the 1.2 beta) the fingerprint covered almost every setting.
 For exactly the same configuration those former fingerprints are registered as
 equivalent at start-up, so mails waiting for a decision continue after the
 upgrade instead of being held back forever.
+
+Vision OCR (1.4) only enriches a mail while it is being prepared, before any
+fingerprinted analysis step.  Its settings and its ``vision_ocr`` prompt are
+therefore excluded as well; the fingerprint of an unchanged 1.3 configuration
+stays the same after the upgrade.
 """
 
 from __future__ import annotations
@@ -24,6 +29,9 @@ from .storage import JsonStore
 
 OPERATIONAL = frozenset({"web", "metrics", "retention", "logging", "learning", "poll_interval_seconds",
                          "timeouts", "retries"})
+# Preparation-only settings and prompt steps (see module documentation).
+PREPARATION = frozenset({"vision"})
+PREPARATION_PROMPTS = frozenset({"vision_ocr"})
 
 
 def _hash(value: Any) -> str:
@@ -31,33 +39,39 @@ def _hash(value: Any) -> str:
 
 
 def analysis_settings(settings: Settings) -> dict[str, Any]:
-    return settings.model_dump(mode="json", exclude=set(OPERATIONAL))
+    return settings.model_dump(mode="json", exclude=set(OPERATIONAL | PREPARATION))
+
+
+def analysis_prompts(prompts: PromptConfig) -> dict[str, Any]:
+    return prompts.model_dump(exclude={"prompts": set(PREPARATION_PROMPTS)})
 
 
 def config_fingerprint(settings: Settings, prompts: PromptConfig, topics: list[Topic]) -> str:
-    return _hash([analysis_settings(settings), prompts.model_dump(), [topic.model_dump() for topic in topics]])
+    return _hash([analysis_settings(settings), analysis_prompts(prompts),
+                  [topic.model_dump() for topic in topics]])
 
 
 def topic_policy(settings: Settings, prompts: PromptConfig) -> str:
     """Everything but the topics; equal policies may exchange topic lists."""
-    return _hash([analysis_settings(settings), prompts.model_dump()])
+    return _hash([analysis_settings(settings), analysis_prompts(prompts)])
 
 
 def legacy_fingerprints(settings: Settings, prompts: PromptConfig, topics: list[Topic]) -> set[str]:
     """Fingerprints that 1.1 and the 1.2 beta computed for this same configuration."""
-    beta = settings.model_dump(mode="json", exclude={"web"})
+    beta = settings.model_dump(mode="json", exclude={"web", *PREPARATION})
     release_1_1 = copy.deepcopy(beta)
     release_1_1.pop("metrics")
     release_1_1["retention"] = {key: value for key, value in release_1_1["retention"].items()
                                 if key not in {"analysis_days", "history_days"}}
-    rest = [prompts.model_dump(), [topic.model_dump() for topic in topics]]
+    rest = [analysis_prompts(prompts), [topic.model_dump() for topic in topics]]
     return {_hash([release_1_1, *rest]), _hash([beta, *rest])}
 
 
 def legacy_policies(settings: Settings, prompts: PromptConfig) -> set[str]:
     """Topic policies written by the 1.2 beta."""
-    return {_hash([settings.model_dump(mode="json", exclude={"web", "metrics", "retention"}),
-                   prompts.model_dump()])}
+    return {_hash([settings.model_dump(mode="json", exclude={"web", "metrics", "retention",
+                                                             *PREPARATION}),
+                   analysis_prompts(prompts)])}
 
 
 def adopt_legacy_configuration(store: JsonStore, fingerprint: str, legacy: set[str], policy: str,
@@ -77,5 +91,6 @@ def adopt_legacy_configuration(store: JsonStore, fingerprint: str, legacy: set[s
     return added
 
 
-__all__ = ["OPERATIONAL", "adopt_legacy_configuration", "analysis_settings", "config_fingerprint",
+__all__ = ["OPERATIONAL", "PREPARATION", "PREPARATION_PROMPTS", "adopt_legacy_configuration",
+           "analysis_prompts", "analysis_settings", "config_fingerprint",
            "legacy_fingerprints", "legacy_policies", "topic_policy"]

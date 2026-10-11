@@ -60,7 +60,7 @@ STEP_LABELS = {
     "mail_question_resolution": "Rückfragen aus der Mail", "telegram_answer_interpretation": "Antworten verstehen",
     "telegram_answer_clarification": "Nachfragen formulieren", "proposal_revision": "Vorschläge überarbeiten",
     "learning_classification": "Lernmodus: Einordnung", "learning_abstraction": "Lernmodus: Themen",
-    "calendar_duplicate": "Kalender-Dubletten",
+    "calendar_duplicate": "Kalender-Dubletten", "vision_ocr": "Bilderkennung (OCR)",
 }
 
 

@@ -199,6 +199,25 @@ class ExtractedAttachment(StrictModel):
         "success", "no_text_found", "encrypted", "skipped_oversized", "error", "unsupported_format"
     ] = "success"
     character_count: int = Field(default=0, ge=0)
+    # Outcome of the multimodal OCR (1.4); ``None`` when no image was involved.
+    vision: Literal[
+        "read", "no_text", "failed", "skipped_small", "skipped_limit",
+        "skipped_oversized", "skipped_unreadable",
+    ] | None = None
+
+
+class VisionExtractionResult(StrictModel):
+    """Bounded answer of the vision model for one image or scanned document."""
+
+    legible: bool
+    # Longer texts are shortened to the attachment limit like digital documents.
+    text: str = Field(default="", max_length=50000)
+
+    @model_validator(mode="after")
+    def text_requires_legibility(self) -> "VisionExtractionResult":
+        if not self.legible and self.text.strip():
+            raise ValueError("Ein unlesbares Dokument darf keinen Text enthalten")
+        return self
 
 
 class ParsedCalendarEvent(StrictModel):
