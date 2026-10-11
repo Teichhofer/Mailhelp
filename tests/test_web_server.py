@@ -140,7 +140,16 @@ def test_server_answers_and_logs_without_query_strings(running):
 def test_server_limits_request_bodies(running):
     server, _ = running(lambda request: Response.text(200, str(len(request.body))))
     assert call(server, "POST", "/", body=b"x=1")[2] == b"3"
-    assert call(server, "POST", "/", body=b"x" * (MAX_BODY_BYTES + 1))[0] == 413
+    # Refused from the header alone: the server answers before any body byte is
+    # sent. (Sending the body raced with the closed connection on Windows.)
+    oversized = http.client.HTTPConnection(*server.address, timeout=5)
+    oversized.putrequest("POST", "/")
+    oversized.putheader("Host", HOST)
+    oversized.putheader("Content-Length", str(MAX_BODY_BYTES + 1))
+    oversized.endheaders()
+    refused = oversized.getresponse()
+    assert refused.status == 413 and refused.getheader("Connection") in {None, "close"}
+    oversized.close()
     assert call(server, "POST", "/", headers={"Content-Length": "zehn"})[0] == 400
     connection = http.client.HTTPConnection(*server.address, timeout=5)
     connection.putrequest("POST", "/")

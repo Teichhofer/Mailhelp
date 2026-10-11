@@ -164,6 +164,8 @@ class Application:
     _fatal_error: str | None = None
     _receiver: TelegramReceiver | None = None
     web: WebServer | None = None
+    # Web stop handshake; its final state is set when the run loop ends.
+    lifecycle: Any = None
     configuration: object | None = None
 
     def check_access(self) -> dict[str, str | None]:
@@ -923,6 +925,8 @@ class Application:
         finally:
             self._stop_web()
             self._stop_receiver()
+            if self.lifecycle is not None:
+                self.lifecycle.finished()
             run_name = f"mail-run-{self.imap.account_id}"
             run = (self.store.load_model(run_name, MailRunState)
                    if hasattr(self.store, "load_model") else None)
@@ -1162,7 +1166,10 @@ def build_application(
                                                   application.apply_settings, orchestrator.change_topics)
             application.configuration = configuration
             dialog.review.configuration = configuration
-            components.site.lifecycle = Lifecycle(application.stop, components.authorize)
+            components.site.lifecycle = Lifecycle(
+                application.stop, components.authorize,
+                lambda state, process: logger.event("INFO", "lifecycle", state, process=process))
+            application.lifecycle = components.site.lifecycle
             components.site.archive.lifecycle = components.site.lifecycle
             dialog.stop_requested = lambda: components.site.lifecycle.state != "running" or stop_event.is_set()
             components.site.archive.configuration = configuration

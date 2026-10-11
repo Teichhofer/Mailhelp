@@ -450,3 +450,100 @@ def test_shorter_retention_is_not_saved_without_explicit_confirmation(web, tmp_p
     saved = yaml.safe_load((tmp_path / "config.yaml").read_text(encoding="utf-8"))
     assert saved["retention"]["full_mail_days"] == 30
     assert web.commands.queued() == []
+
+
+# --- R5: controlled stop -------------------------------------------------------------
+
+def test_stop_states_are_logged_and_end_in_stopped():
+    from mailhelp.lifecycle import Lifecycle
+    log, calls = [], []
+    life = Lifecycle(lambda: calls.append("stop"), lambda actor: True, lambda state, process: log.append(state))
+    after = life.request(life.process, "a" * 32, "web:x")
+    after()
+    after()  # a second delivery of the answer does not stop twice
+    life.finished()
+    life.finished()
+    assert log == ["stop_requested", "stopping", "stopped"] and calls == ["stop"]
+    # A signal stops without a web request and still ends in "stopped".
+    signal_log = []
+    by_signal = Lifecycle(lambda: None, lambda actor: True, lambda state, process: signal_log.append(state))
+    by_signal.finished()
+    assert signal_log == ["stopped"] and by_signal.state == "stopped"
+
+
+def test_the_run_loop_reports_its_end_to_the_lifecycle(tmp_path):
+    from mailhelp.lifecycle import Lifecycle
+    from test_application import Imap, Telegram, app
+    service = app(tmp_path, Imap([]), Telegram([]), Orch())
+    service.lifecycle = Lifecycle(service.stop, lambda actor: True)
+    service.stop_event.set()
+    service.run()
+    assert service.lifecycle.state == "stopped"
+
+
+def test_after_a_stop_request_web_commands_wait_and_run_after_a_restart(web, tmp_path):
+    from mailhelp.lifecycle import Lifecycle
+    from mailhelp.review.inbox import CommandStatus
+    _, _, lifecycle, _, calls = configure(web, tmp_path)
+    web.dialog.stop_requested = lambda: lifecycle.state != "running"
+    queued = web.submit(web.form("/", kind="reject", proposal_id="formular"))
+    entry_id = queued.headers["Location"].rsplit("/", 1)[1]
+    form = web.form("/einstellungen/beenden", action="/einstellungen/beenden")
+    answer = web.browser.request("POST", "/einstellungen/beenden", form)
+    assert answer.status == 202 and lifecycle.state == "stop_requested"
+    web.run()  # the main thread no longer executes anything
+    assert web.commands.get(entry_id).status == CommandStatus.QUEUED
+    answer.after_send()
+    assert calls == ["stop"] and lifecycle.state == "stopping"
+    # New process: a fresh lifecycle; the stored command is checked again and runs once.
+    restarted = Lifecycle(lambda: calls.append("again"), web.dialog.review.web_authorizer)
+    web.dialog.stop_requested = lambda: restarted.state != "running"
+    web.run()
+    assert web.commands.get(entry_id).status == CommandStatus.DONE
+    assert calls == ["stop"] and restarted.state == "running"
+    assert web.store.load(f"proposal-{mail_id(1)}-formular")["status"] == "rejected"
+
+
+def test_a_parallel_learning_run_wins_over_an_open_topic_form(web, tmp_path):
+    from mailhelp.config import Topic
+    from mailhelp.learning import save_topics
+    from mailhelp.models import LearnedCategory
+    configure(web, tmp_path)
+    form = web.form("/themen", action="/themen/speichern", original_id="")
+    # The learning mode adds a topic while the form is open in the browser.
+    existing = [Topic.model_validate(item) for item in
+                yaml.safe_load((tmp_path / "topics.yaml").read_text(encoding="utf-8"))["topics"]]
+    save_topics(tmp_path / "topics.yaml", existing,
+                [LearnedCategory(name="Verein", description="Vereinspost", examples=["Training"])])
+    learned = (tmp_path / "topics.yaml").read_text(encoding="utf-8")
+    data = {**form, "id": "sport", "name": "Sport", "description": "Sport", "enabled": "true",
+            "examples": "", "exclusions": "", "confirm": "yes"}
+    assert web.browser.request("POST", "/themen/speichern", data).status == 409
+    web.run()
+    assert (tmp_path / "topics.yaml").read_text(encoding="utf-8") == learned
+
+
+@pytest.mark.parametrize("swapped", [False, True])
+def test_crash_before_or_after_the_atomic_topic_swap(web, tmp_path, swapped):
+    from mailhelp.configuration import AdminCommand, AdminKind, file_hash
+    from mailhelp.learning import topics_document
+    from mailhelp.config import Topic
+    service, *_ = configure(web, tmp_path)
+    path = tmp_path / "topics.yaml"
+    command = AdminCommand(kind=AdminKind.TOPICS, actor=f"web:{web.auth.sessions()[0].id}",
+                           idempotency_key="key-topic-crash", expected_hash=file_hash(path), acknowledged=True,
+                           patch={"id": "sport", "name": "Sport", "description": "Sport", "enabled": True})
+    candidate = service.candidate(command)
+    content = service.render(command, candidate)
+    import hashlib
+    web.store.save("configuration-key-topic-crash", {
+        "schema_version": 1, "command": command.model_dump(mode="json"),
+        "candidate_hash": hashlib.sha256(content.encode()).hexdigest(), "status": "prepared"})
+    if swapped:
+        path.write_text(content, encoding="utf-8", newline="\n")
+    result = service.reconcile(command)
+    assert result.status == (ResultStatus.DONE if swapped else ResultStatus.FAILED)
+    topics = [Topic.model_validate(item) for item in yaml.safe_load(path.read_text(encoding="utf-8"))["topics"]]
+    assert ("sport" in {topic.id for topic in topics}) is swapped
+    # After the swap the file is exactly the journaled candidate, never a mixture.
+    assert (topics_document(topics) == path.read_text(encoding="utf-8")) is swapped
