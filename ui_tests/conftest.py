@@ -221,8 +221,10 @@ class Page:
 
 @pytest.fixture(params=list(DEVICES))
 def page(request, browser):
+    # Service workers are tested separately (test_ui_pwa.py); here they would
+    # hide requests from page.route.
     context = browser.new_context(locale="de-DE", timezone_id="Europe/Berlin",
-                                  **DEVICES[request.param])
+                                  service_workers="block", **DEVICES[request.param])
     wrapped = Page(context.new_page(), request.param)
     try:
         yield wrapped

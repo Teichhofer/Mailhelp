@@ -70,6 +70,10 @@
     window.addEventListener("offline", function () { setConnection("offline"); });
     checkHealth();
     window.setInterval(checkHealth, HEALTH_INTERVAL);
+    if ("serviceWorker" in navigator) {
+      // Without the worker only the offline page is missing; everything else works.
+      navigator.serviceWorker.register("/sw.js").catch(function () { return null; });
+    }
     if (document.body.dataset.fingerprint) {
       document.addEventListener("visibilitychange", whenVisible);
       window.setInterval(checkState, REFRESH_INTERVAL);

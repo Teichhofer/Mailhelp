@@ -18,6 +18,12 @@ STATIC_FILES = {
     "icon-512.png": "image/png",
     "icon-maskable-512.png": "image/png",
 }
+# Served at the root: the service worker needs the root scope; none contains data.
+ROOT_FILES = {
+    "manifest.webmanifest": "application/manifest+json; charset=utf-8",
+    "sw.js": "text/javascript; charset=utf-8",
+    "offline.html": "text/html; charset=utf-8",
+}
 
 
 def static_file(name: str) -> bytes:
@@ -32,6 +38,7 @@ class WebApp:
         self._routes: list[tuple[str, re.Pattern[str], Route]] = []
         self.route("GET", "/health", self.health)
         self.route("GET", r"/static/(?P<name>[a-z0-9.-]+)", self.static)
+        self.route("GET", r"/(?P<name>manifest\.webmanifest|sw\.js|offline\.html)", self.root_file)
 
     def route(self, method: str, pattern: str, handler: Route) -> None:
         self._routes.append((method, re.compile(pattern), handler))
@@ -67,5 +74,9 @@ class WebApp:
             return Response.text(404, "Nicht gefunden.")
         return Response(200, static_file(name), STATIC_FILES[name], cache="no-cache")
 
+    @staticmethod
+    def root_file(_request: Request, name: str) -> Response:
+        return Response(200, static_file(name), ROOT_FILES[name], cache="no-cache")
 
-__all__ = ["STATIC_FILES", "WebApp", "static_file"]
+
+__all__ = ["ROOT_FILES", "STATIC_FILES", "WebApp", "static_file"]

@@ -331,3 +331,28 @@ def test_aborted_connections_are_logged_without_traceback(running, capsys):
         server._server.handle_error(None, ("127.0.0.1", 1))
     assert logger.events[-1][2:] == ("connection_error", {"error_class": "ConnectionAbortedError"})
     assert capsys.readouterr().err == ""
+
+
+def test_pwa_files_are_served_at_the_root_without_login():
+    import json as json_module
+    from mailhelp.web.app import ROOT_FILES, STATIC_FILES
+    app = WebApp([HOST])
+    manifest = get(app, "/manifest.webmanifest")
+    assert manifest.content_type.startswith("application/manifest+json")
+    data = json_module.loads(manifest.body)
+    assert (data["display"], data["start_url"], data["scope"], data["lang"]) == ("standalone", "/", "/", "de")
+    assert {icon["src"].removeprefix("/static/") for icon in data["icons"]} <= set(STATIC_FILES)
+    assert any(icon.get("purpose") == "maskable" for icon in data["icons"])
+    worker = get(app, "/sw.js")
+    assert worker.status == 200 and worker.content_type.startswith("text/javascript")
+    offline = get(app, "/offline.html")
+    assert "PC nicht erreichbar".encode() in offline.body and b"<script" not in offline.body
+    assert set(ROOT_FILES) == {"manifest.webmanifest", "sw.js", "offline.html"}
+
+
+def test_service_worker_caches_only_the_shell():
+    source = (Path("src/mailhelp/web/static") / "sw.js").read_text(encoding="utf-8")
+    shell = source.split("var SHELL = [", 1)[1].split("]", 1)[0]
+    assert shell == '"/offline.html", "/static/app.css", "/static/icon-192.png", "/static/icon-512.png"'
+    # No API, page or data URL is ever put into the cache, and nothing is replayed later.
+    assert "cache.put" not in source and "sync" not in source and "/api" not in source

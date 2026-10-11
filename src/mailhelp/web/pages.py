@@ -45,6 +45,9 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/static/icon-192.png" type="image/png">
 <link rel="apple-touch-icon" href="/static/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mailhelp">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <script src="/static/app.js" defer></script>
 </head>
 <body{data}>
