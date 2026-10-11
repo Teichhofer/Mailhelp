@@ -129,7 +129,8 @@ logging:
 
 web:
   enabled: true
-  host: 127.0.0.1
+  host: 0.0.0.0
   port: 8765
   allowed_hosts: [127.0.0.1:8765, localhost:8765]
   session_days: 30
+  lan_access: true
