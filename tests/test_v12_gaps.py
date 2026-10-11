@@ -410,3 +410,43 @@ def test_settings_page_shows_the_model_table_or_says_there_is_none(web, tmp_path
     web.site.archive.models = effective_models(prompt_config(), "typesafe/jev", None)
     page = web.browser.request("GET", "/einstellungen").body.decode()
     assert "<td>Relevanz</td><td>typesafe/jev</td>" in page and "<td>decisions_prompts.yaml</td>" in page
+
+
+def test_no_secret_appears_in_any_web_page_or_answer(web, tmp_path):
+    secret_values = ("imap-geheim-123", "sk-or-geheim-456", "bot-geheim-789")
+    service, metrics, *_ = configure(web, tmp_path)
+    path = tmp_path / "config.yaml"
+    # Secrets must never be in config.yaml; even a misplaced one is not echoed by a refused field.
+    form = web.form("/einstellungen", action="/einstellungen/speichern", name="timezone")
+    refused = web.browser.request("POST", "/einstellungen/speichern",
+                                  {**form, "name": "imap_password", "value": secret_values[0], "confirm": "yes"})
+    assert refused.status == 422 and secret_values[0] not in refused.body.decode()
+    (tmp_path / ".env").write_text("\n".join(f"KEY{i}={value}" for i, value in enumerate(secret_values)),
+                                   encoding="utf-8")
+    for route in ("/", "/mails", "/verlauf", "/status", "/auswertung", "/einstellungen", "/themen",
+                  "/einstellungen/beenden", "/api/stand", "/api/stand?seite=status"):
+        body = web.browser.request("GET", route).body.decode()
+        assert not any(value in body for value in secret_values), route
+    assert secret_values[0] not in path.read_text(encoding="utf-8")
+
+
+def test_a_lower_call_limit_keeps_the_counted_budget(web, tmp_path):
+    service, *_ = configure(web, tmp_path)
+    web.store.save("llm-budget", {"calls": [1.0, 2.0, 3.0]})
+    form = web.form("/einstellungen", action="/einstellungen/speichern", name="limits.llm_calls_per_minute")
+    response = web.browser.request("POST", "/einstellungen/speichern", {**form, "value": "1", "confirm": "yes"})
+    assert response.status == 303
+    web.run()
+    assert web.store.load("llm-budget") == {"calls": [1.0, 2.0, 3.0]}
+    assert yaml.safe_load((tmp_path / "config.yaml").read_text(encoding="utf-8"))["limits"]["llm_calls_per_minute"] == 1
+
+
+def test_shorter_retention_is_not_saved_without_explicit_confirmation(web, tmp_path):
+    service, *_ = configure(web, tmp_path)
+    form = web.form("/einstellungen", action="/einstellungen/speichern", name="retention.full_mail_days")
+    preview = web.browser.request("POST", "/einstellungen/speichern", {**form, "value": "1"})
+    assert preview.status == 200 and "unwiderruflich" in preview.body.decode()
+    web.run()
+    saved = yaml.safe_load((tmp_path / "config.yaml").read_text(encoding="utf-8"))
+    assert saved["retention"]["full_mail_days"] == 30
+    assert web.commands.queued() == []
