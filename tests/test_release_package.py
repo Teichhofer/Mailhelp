@@ -28,7 +28,12 @@ def test_package_resources_and_fresh_configuration(tmp_path):
     assert topics and prompts.prompts and len(fingerprint) == 64
     assert load_relevance_prompts(tmp_path).model
     assert settings.targets.google_calendar
-    assert mailhelp.__version__ == tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["version"]
+    version = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["version"]
+    assert mailhelp.__version__ == version
+    parts = mailhelp.__version__.split(".")
+    assert len(parts) == 3 and all(p.isdigit() for p in parts)
+    agents_rules = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
+    assert "Jeder Commit in `main` erhöht die Versionsnummer" in agents_rules
     if os.environ.get("MAILHELP_INSTALLED_WHEEL"):
         assert ROOT / "src" not in package.parents
 

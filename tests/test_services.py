@@ -530,7 +530,7 @@ def test_analyzer_revises_proposal_with_separate_inputs_and_retries():
 def test_proposal_revision_prompt_covers_date_schema_and_output_budget():
     step = yaml.safe_load(Path("prompts.yaml").read_text(encoding="utf-8"))["prompts"]["proposal_revision"]
 
-    assert step["parameters"] == {"temperature": 0.0, "max_tokens": 2400}
+    assert step["parameters"] == {"temperature": 0.0, "max_tokens": 4000}
     assert step["output_token_retry"]["parameters"]["max_tokens"] == 4000
     prompt = step["system_prompt"]
     assert "reines Kalenderdatum" in prompt

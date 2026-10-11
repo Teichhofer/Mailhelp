@@ -1170,6 +1170,24 @@
             }
           ]
         }
+      },
+      "accept": {
+        "task_extraction": [
+          {
+            "schema_version": 1,
+            "tasks": [
+              {
+                "title": "Kalendereintrag fuer das Projektgespraech aktualisieren",
+                "description": "",
+                "evidence": "Bitte richten Sie Ihren Kalendereintrag entsprechend neu ein.",
+                "responsibility": "user",
+                "certainty": "certain",
+                "classification": "change",
+                "due_text": null
+              }
+            ]
+          }
+        ]
       }
     },
     {

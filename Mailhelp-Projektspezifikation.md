@@ -1290,6 +1290,7 @@ Folgender Inhalt ist bei der Projektinitialisierung in `AGENTS.md` im Repository
 - Prüfe Erfolgsfälle, Fehlerfälle, Wiederholungen, Neustarts und Autorisierung.
 - Automatisierte Tests verwenden simulierte externe Dienste und synthetische Daten.
 - Aktualisiere bei Verhaltensänderungen Spezifikation und Konfigurationsbeispiele.
+- Jeder Commit in `main` erhöht die Versionsnummer (Patch-Version `X.X.+1`) in `pyproject.toml` und `src/mailhelp/__init__.py` und führt die Änderungen in `CHANGELOG.md` auf.
 ```
 
 ## 14. Abnahmekriterien
