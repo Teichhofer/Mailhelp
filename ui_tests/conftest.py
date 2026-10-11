@@ -43,6 +43,9 @@ DEVICES = {
                    user_agent=("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) "
                                "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 "
                                "Mobile/15E148 Safari/604.1")),
+    # Small phones (e.g. iPhone SE first generation) and large zoom levels.
+    "narrow": dict(viewport={"width": 320, "height": 640}, device_scale_factor=2, is_mobile=True,
+                   has_touch=True),
 }
 
 
@@ -210,7 +213,7 @@ class Page:
 
     def __init__(self, page, device: str):
         self.page, self.device, self.errors = page, device, []
-        self.mobile = device == "mobile"
+        self.mobile = device != "desktop"
         page.on("console", lambda message: self.errors.append(message.text)
                 if message.type == "error" else None)
         page.on("pageerror", lambda error: self.errors.append(str(error)))

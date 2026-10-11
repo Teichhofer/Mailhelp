@@ -362,3 +362,6 @@ details.setting[open] { padding-bottom: 12px; }
 table { width: 100%; border-collapse: collapse; background: var(--surface); }
 th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); vertical-align: top; }
 th { color: var(--muted); font-weight: 600; }
+
+.filter-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 0 14px; }
+.filter-box[open] { padding-bottom: 12px; }

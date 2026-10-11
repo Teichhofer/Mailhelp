@@ -547,3 +547,30 @@ def test_crash_before_or_after_the_atomic_topic_swap(web, tmp_path, swapped):
     assert ("sport" in {topic.id for topic in topics}) is swapped
     # After the swap the file is exactly the journaled candidate, never a mixture.
     assert (topics_document(topics) == path.read_text(encoding="utf-8")) is swapped
+
+
+# --- R6: mail list readability ---------------------------------------------------------
+
+def test_mail_list_shows_readable_entries_filters_and_paging(web):
+    from mailhelp.models import ProcessingError
+    now = datetime.now(timezone.utc)
+    state = web.store.load_model(f"mail-{mail_id(2)}", MailState)
+    web.store.save(f"mail-{mail_id(2)}", state.model_copy(update={
+        "error": ProcessingError(code="internal_error", stage="summary", occurred_at=now)}).model_dump(mode="json"))
+    page = web.browser.request("GET", "/mails").body.decode()
+    assert "<details class=\"filter-box\"><summary>Filter</summary>" in page
+    assert ">Klassenleitung 4b · " in page and "&lt;klasse4b" not in page
+    assert '<span class="badge warn">wartet auf dich</span>' in page
+    assert '<span class="badge danger">Fehler</span>' in page
+    assert "× Wartet auf Bestätigung" in page and "nicht mehr bekannt" in page
+    assert "beschädigt" not in page
+    filtered = web.browser.request("GET", "/mails?state=waiting&sort=updated").body.decode()
+    assert '<details class="filter-box" open>' in filtered
+    assert '<option value="waiting" selected>' in filtered and '<option value="updated" selected>' in filtered
+    second = web.browser.request("GET", "/mails?size=1&page=2").body.decode()
+    assert "Vorherige Seite" in second and "Nächste Seite" in second
+    none = web.browser.request("GET", "/mails?q=gibtsnicht").body.decode()
+    assert "Keine gespeicherte Mail passt zu dieser Suche." in none
+    (web.store.directory / f"mail-{'e' * 24}.json").write_text("{", encoding="utf-8")
+    web.store.archive_revision += 1  # the next regular state change rebuilds the index
+    assert "1 gespeicherte Datensätze sind beschädigt" in web.browser.request("GET", "/mails").body.decode()

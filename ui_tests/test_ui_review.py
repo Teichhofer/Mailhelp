@@ -63,7 +63,12 @@ def test_overview_refreshes_itself_but_never_discards_typed_text(page, mailhelp)
     expect(badge).to_have_text("PC nicht erreichbar")
     page.unroute("**/api/stand")
     page.unroute("**/health")
-    assert page.errors == ["Failed to load resource: net::ERR_FAILED"] * 2  # the aborts above
+    # Chrome reports each aborted request, sometimes late or only once.
+    for _ in range(20):
+        if len(page.errors) >= 2:
+            break
+        page.wait_for_timeout(100)
+    assert page.errors and set(page.errors) == {"Failed to load resource: net::ERR_FAILED"}
     page.errors.clear()
     page.route("**/api/stand", lambda route: route.fulfill(status=401, body="{}"))
     with page.expect_response("**/api/stand"):

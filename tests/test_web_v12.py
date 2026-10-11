@@ -51,7 +51,7 @@ def test_mail_archive_filters_and_analysis(web):
     record_analysis(web.store, state, {'school': 'Schule'}, 'JEV')
     assert web.browser.request('GET', '/mails').status == 200
     page = web.browser.request('GET', '/mails?q=Schule&relevance=relevant&topic=school').body.decode()
-    assert '1 gespeicherte Vorgänge' in page and '&lt;b&gt;' in page
+    assert '1 gespeicherte Mails' in page and '&lt;b&gt;' in page
     page = web.browser.request('GET', f'/mail/{state.id}').body.decode()
     assert 'Zusammenfassung' in page and 'Schule' in page and 'JEV' in page and '&lt;script&gt;reason' in page
     queries = ArchiveQueries(web.store)
@@ -65,7 +65,7 @@ def test_mail_archive_filters_and_analysis(web):
     assert queries.search(ArchiveQuery(since='2099-01-01'))[1] == 0
     assert queries.search(ArchiveQuery(until='2000-01-01'))[1] == 0
     assert queries.search(ArchiveQuery(size=1, page=2))[0]
-    assert 'Seite 2' in web.browser.request('GET', '/mails?size=1').body.decode()
+    assert 'Nächste Seite' in web.browser.request('GET', '/mails?size=1').body.decode()
     for query in ('q=x&q=y', 'relevance=bogus', 'page=0', 'size=101', 'since=2026-02-02&until=2026-01-01', 'secret=x'):
         assert web.browser.request('GET', '/mails?' + query).status == 422
 

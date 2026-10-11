@@ -13,9 +13,9 @@ def test_archive_history_statistics_settings_and_topics(page, mailhelp):
         assert audit(page, f'v12-{route.replace("/", "-")}-{page.device}', page.mobile) == []
     assert not mailhelp.stop.is_set()
     page.goto(f'{mailhelp.url}/mails')
-    page.get_by_label('Suche: Absender, Betreff, Zusammenfassung').fill('Klassenfahrt')
+    page.get_by_label('Suche (Absender, Betreff, Zusammenfassung)').fill('Klassenfahrt')
     page.get_by_role('button', name='Suchen', exact=True).click()
-    expect(page.locator('main')).to_contain_text('1 gespeicherte Vorgänge')
+    expect(page.locator('main')).to_contain_text('1 gespeicherte Mails')
     assert page.errors == []
 
 

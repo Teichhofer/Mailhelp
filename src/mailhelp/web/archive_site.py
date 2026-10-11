@@ -217,6 +217,77 @@ def settings_page(models: list, raw: dict | None, active: dict | None, revision:
     return body
 
 
+RELEVANCE_LABELS = {"relevant": "relevant", "irrelevant": "irrelevant", "unclear": "unklar",
+                    "unknown": "nicht mehr bekannt"}
+STATE_FILTERS = (("", "alle"), ("waiting", "wartet auf dich"), ("failed", "mit Fehler"),
+                 ("completed", "abgeschlossen"), ("no_action", "ohne Vorschlag"))
+SORTS = (("received", "Empfangszeit"), ("updated", "zuletzt bearbeitet"))
+
+
+def _local_time(value: str | None, zone: str) -> str:
+    if not value:
+        return "Empfangszeit unbekannt"
+    return datetime.fromisoformat(value).astimezone(ZoneInfo(zone)).strftime("%d.%m.%Y, %H:%M Uhr")
+
+
+def mail_list_page(query, items: list[dict], total: int, damaged: int, topics: list[str], zone: str) -> str:
+    """Search and filters for stored mails; works without JavaScript."""
+    from ..review.cards import sender_name
+    from ..review.views import STATUS_LABELS
+
+    status = "" if query.status is None else str(query.status)
+    status_choices = [("", "alle")] + [(item.value, label) for item, label in STATUS_LABELS.items()]
+    filters = (select("relevance", "Relevanz", query.relevance,
+                      [("", "alle"), *((key, label) for key, label in RELEVANCE_LABELS.items())])
+               + select("topic", "Thema", query.topic, [("", "alle"), *((topic, topic) for topic in topics)])
+               + select("state", "Verarbeitung", query.state, list(STATE_FILTERS))
+               + select("status", "Vorschläge", status, status_choices)
+               + f'<label>Von<input type="date" name="since" value="{e(query.since or "")}"></label>'
+               + f'<label>Bis<input type="date" name="until" value="{e(query.until or "")}"></label>'
+               + select("sort", "Sortierung", query.sort, list(SORTS)))
+    active = any((query.relevance, query.topic, query.state, status, query.since, query.until,
+                  query.sort != "received"))
+    body = ('<h1>Mails</h1><form method="get" class="stack">'
+            f'<label>Suche (Absender, Betreff, Zusammenfassung)<input type="search" name="q" '
+            f'value="{e(query.q)}" maxlength="200"></label>'
+            f'<details class="filter-box"{" open" if active else ""}><summary>Filter</summary>'
+            f'<div class="filters">{filters}</div></details>'
+            '<button class="button primary">Suchen</button></form>')
+    body += f'<p class="meta">{total} gespeicherte Mails · Seite {query.page}</p>'
+    if not items:
+        body += '<p class="empty">Keine gespeicherte Mail passt zu dieser Suche.</p>'
+    rows = []
+    for item in items:
+        badges = [f'<span class="badge">{e(RELEVANCE_LABELS.get(item["relevance"], item["relevance"]))}</span>']
+        if item["waiting"]:
+            badges.append('<span class="badge warn">wartet auf dich</span>')
+        if item["failed"]:
+            badges.append('<span class="badge danger">Fehler</span>')
+        counts: dict[str, int] = {}
+        for value in item["statuses"]:
+            counts[value] = counts.get(value, 0) + 1
+        for value, count in sorted(counts.items()):
+            label = next(text for state, text in STATUS_LABELS.items() if state.value == value)
+            badges.append(f'<span class="badge accent">{count} × {e(label)}</span>')
+        summary = f'<p>{e(item["summary"])}</p>' if item["summary"] else ""
+        rows.append(f'<li class="card"><h3><a href="/mail/{e(item["id"])}">{e(item["subject"])}</a></h3>'
+                    f'<p class="source">{e(sender_name(item["sender"]))} · {e(_local_time(item["received"], zone))}</p>'
+                    f'<p class="labels">{" ".join(badges)}</p>{summary}</li>')
+    body += f'<ul class="archive-list">{"".join(rows)}</ul>'
+    pages = []
+    for number, label in ((query.page - 1, "Vorherige Seite"), (query.page + 1, "Nächste Seite")):
+        if 1 <= number <= max(1, (total + query.size - 1) // query.size):
+            parameters = query.model_dump(mode="json", exclude_none=True)
+            parameters["page"] = number
+            parameters = {k: v for k, v in parameters.items() if v not in ("", None)}
+            pages.append(f'<a class="button" href="/mails?{e(urlencode(parameters))}">{label}</a>')
+    if pages:
+        body += f'<p class="actions">{" ".join(pages)}</p>'
+    if damaged:
+        body += notice(f"{damaged} gespeicherte Datensätze sind beschädigt und werden nicht angezeigt.", "warn")
+    return body + '<p class="meta">Gezeigt werden nur Mails, die Mailhelp noch gespeichert hat – nicht der ganze Posteingang.</p>'
+
+
 def field(name: str, label: str, value: object = "", *, hidden: bool = False) -> str:
     if hidden:
         return f'<input type="hidden" name="{e(name)}" value="{e(value)}">'
@@ -259,25 +330,9 @@ class ArchiveSite:
         except ValueError:
             return self.site._reply(request, 422, "Ungültige Suche oder Filter.")
         items, total = self.queries.search(query)
-        fields = "".join(field(key, label, getattr(query, key) or "") for key, label in
-                         (("q", "Suche: Absender, Betreff, Zusammenfassung"), ("relevance", "Relevanz"),
-                          ("topic", "Themen-ID"), ("state", "Verarbeitung"), ("status", "Vorschlagsstatus"),
-                          ("since", "Von (JJJJ-MM-TT)"), ("until", "Bis (JJJJ-MM-TT)")))
-        rows = "".join(f'<li class="card"><a href="/mail/{e(item["id"])}">{e(item["subject"])}</a>'
-                       f'<p>{e(item["sender"])} · {e(item["received"] or "Empfangszeit unbekannt")}</p>'
-                       f'<p>{e(item["relevance"])} · {e(", ".join(item["topics"]))}</p>'
-                       f'<p>{e(item["summary"])}</p></li>' for item in items)
-        pages = []
-        for number in (query.page - 1, query.page + 1):
-            if 1 <= number <= max(1, (total + query.size - 1) // query.size):
-                parameters = query.model_dump(mode="json", exclude_none=True)
-                parameters["page"] = number
-                parameters = {k: v for k, v in parameters.items() if v != ""}
-                pages.append(f'<a class="button" href="/mails?{e(urlencode(parameters))}">Seite {number}</a>')
-        body = f'<h1>Mails</h1><form method="get" class="stack">{fields}<button class="button">Suchen</button></form>'
-        body += f'<p>{total} gespeicherte Vorgänge · Seite {query.page}</p><ul class="archive-list">{rows}</ul>'
-        body += " ".join(pages) + notice(f"Beschädigte Datensätze: {self.queries.damaged}. Nur lokal gespeicherte Mails werden angezeigt.", "info")
-        return Response.html(200, layout("Mails", body, active="/mails"))
+        topics = sorted({topic for item in self.queries.items() for topic in item["topics"]})
+        page = mail_list_page(query, items, total, self.queries.damaged, topics, self.site.configured_timezone)
+        return Response.html(200, layout("Mails", page, active="/mails"))
 
     def analysis(self, mail_id):
         store = self.site.views.store

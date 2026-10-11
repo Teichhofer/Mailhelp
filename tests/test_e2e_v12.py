@@ -92,7 +92,7 @@ def test_a_relevant_mail_without_action_is_found_with_its_summary(tmp_path):
         mail_id = result.state["id"]
         assert result.state["proposals"] == []
         listing = web.browser.request("GET", "/mails?state=no_action&relevance=relevant").body.decode()
-        assert "1 gespeicherte Vorgänge" in listing and f"/mail/{mail_id}" in listing
+        assert "1 gespeicherte Mails" in listing and f"/mail/{mail_id}" in listing
         detail = web.browser.request("GET", f"/mail/{mail_id}").body.decode()
         assert "Ein synthetischer Nachholtermin wurde angekündigt." in detail
         assert "Arbeit" in detail and "Ein konkreter Termin ist enthalten." in detail
