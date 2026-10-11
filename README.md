@@ -3,6 +3,8 @@
 Die [Release-Anleitung](docs/Release-1.0.md) beschreibt Installation aus den
 Distributionspaketen, Aktualisierung, Sicherung und Rückkehr zur vorherigen Version.
 Änderungen stehen im [Changelog](CHANGELOG.md).
+Die geplante Weboberfläche für Version 1.1 beschreibt das
+[Konzept mit Umsetzungsplan](docs/Konzept-1.1-Web-PWA.md).
 
 Die Projektwebsite mit Einrichtung, Konfiguration, Datenschutz, Impressum und
 Nutzungsbedingungen liegt unter [`website/`](website/). Die
