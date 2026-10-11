@@ -33,6 +33,8 @@ from .telegram.commands import STARTUP
 from .telegram.receiver import TelegramInbox, TelegramReceiver
 from .adapter import RetryPolicy
 from .retention import RetentionService
+from .review.inbox import CommandInbox
+from .web import WebApp, WebServer, WebServerError
 
 _BLOCKED_STATE_SCAN_LIMIT = 1000
 _TELEGRAM_ERROR_BACKOFF_SECONDS = 5.0
@@ -158,6 +160,7 @@ class Application:
     _mail_processing_halted: bool = False
     _fatal_error: str | None = None
     _receiver: TelegramReceiver | None = None
+    web: WebServer | None = None
 
     def check_access(self) -> dict[str, str | None]:
         """Check every external credential and target without processing mail."""
@@ -251,6 +254,27 @@ class Application:
             receiver.stop()
             # A long-poll in flight ends with the Telegram client; never block exit.
             receiver.join(timeout=1)
+
+    def _start_web(self) -> None:
+        """Start the optional web interface; mail processing continues without it."""
+        if self.web is None:
+            return
+        try:
+            self.web.start()
+        except WebServerError as exc:
+            self.logger.event("ERROR", "web", "server_start_failed", error=str(exc))
+            self.web = None
+            try:
+                self.telegram.send(self.settings.telegram.chat_id,
+                                   f"⚠️ {exc}. Mailhelp läuft ohne Weboberfläche weiter.")
+            except Exception as notification_error:
+                self.logger.event("ERROR", "telegram", "web_start_notice_failed",
+                                  error_class=type(notification_error).__name__)
+
+    def _stop_web(self) -> None:
+        web, self.web = self.web, None
+        if web is not None:
+            web.stop()
 
     def _idle(self, delay: float) -> None:
         """Wait for the next mail cycle while handling Telegram input as it arrives."""
@@ -839,6 +863,7 @@ class Application:
             self.logger.event("ERROR", "telegram", "startup_outbox_failed",
                               error_class=type(exc).__name__)
         self._start_receiver()
+        self._start_web()
         try:
             while not self.stop_event.is_set():
                 try:
@@ -880,6 +905,7 @@ class Application:
                          else self.settings.poll_interval_seconds)
                 self._idle(delay)
         finally:
+            self._stop_web()
             self._stop_receiver()
             run_name = f"mail-run-{self.imap.account_id}"
             run = (self.store.load_model(run_name, MailRunState)
@@ -1070,6 +1096,8 @@ def build_application(
             calendar_matcher=analyzer.calendar_duplicate,
         )
         stack.callback(calendar.close)
+        telegram_inbox = TelegramInbox(store)
+        web_enabled = settings.web.enabled and not access_diagnostics
         dialog = TelegramDialogController(
             store, telegram, settings.telegram.user_id, settings.telegram.chat_id, logger,
             {"todoist": todoist, "google_calendar": calendar}, settings.test_mode,
@@ -1080,9 +1108,13 @@ def build_application(
             revision_attempts=settings.retries.revision_attempts,
             revision_backoff_seconds=settings.retries.revision_backoff_seconds,
             sequential_questions=settings.telegram.sequential_questions,
-            inbox=TelegramInbox(store),
+            inbox=telegram_inbox,
+            commands=CommandInbox(store, wake=telegram_inbox.wake) if web_enabled else None,
         )
         orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics, settings.limits.max_mail_bytes, logger, mime_limits=settings.limits, config_fingerprint=fingerprint, targets=settings.targets, user_timezone=settings.timezone, sender_store=sender_store)
         dialog.relevance_handler = orchestrator
         orchestrator.stop_event = stop_event
-        yield Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar, orchestrator, stop_event, dialog, sender_store)
+        web = (WebServer(settings.web.host, settings.web.port,
+                         WebApp(settings.web.allowed_hosts), logger)
+               if web_enabled else None)
+        yield Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar, orchestrator, stop_event, dialog, sender_store, web=web)

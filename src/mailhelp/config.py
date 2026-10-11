@@ -1,6 +1,6 @@
 """Laden und Validieren von Konfiguration und Geheimnissen."""
 from __future__ import annotations
-import hashlib, json, os, re
+import hashlib, ipaddress, json, os, re
 from importlib.resources import files
 from pathlib import Path, PureWindowsPath
 from typing import Annotated, Any, Literal
@@ -234,6 +234,39 @@ class LearningSettings(ConfigModel):
     parallel_llm_calls: int = Field(default=4, ge=1, le=100)
 
 
+_WEB_HOST = re.compile(r"[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:[0-9]{1,5})?")
+
+
+class WebSettings(ConfigModel):
+    """Optional web interface; disabled by default (Mailhelp then behaves like 1.0)."""
+
+    enabled: bool = False
+    # 127.0.0.1 on Windows; 0.0.0.0 only inside a container whose port is
+    # published on 127.0.0.1 of the host.
+    host: str = "127.0.0.1"
+    port: int = Field(default=8765, ge=1, le=65535)
+    # Exact Host headers accepted (protection against DNS rebinding).
+    allowed_hosts: list[str] = Field(
+        default_factory=lambda: ["127.0.0.1:8765", "localhost:8765"], min_length=1, max_length=20)
+    session_days: int = Field(default=30, ge=1, le=365)
+
+    @field_validator("host")
+    @classmethod
+    def valid_host(cls, value: str) -> str:
+        try:
+            ipaddress.ip_address(value)
+        except ValueError as exc:
+            raise ValueError("host muss eine IP-Adresse sein") from exc
+        return value
+
+    @field_validator("allowed_hosts")
+    @classmethod
+    def valid_allowed_hosts(cls, value: list[str]) -> list[str]:
+        if any(not _WEB_HOST.fullmatch(item) for item in value):
+            raise ValueError("allowed_hosts enthält nur kleingeschriebene Hostnamen mit optionalem Port")
+        return value
+
+
 class Settings(ConfigModel):
     timezone: str
     poll_interval_seconds: int = Field(ge=5, le=86400)
@@ -248,6 +281,7 @@ class Settings(ConfigModel):
     logging: LoggingSettings
     retention: RetentionSettings = Field(default_factory=RetentionSettings)
     learning: LearningSettings = Field(default_factory=LearningSettings)
+    web: WebSettings = Field(default_factory=WebSettings)
 
     @field_validator("timezone")
     @classmethod
@@ -281,6 +315,8 @@ class Secrets(BaseModel):
     google_oauth_client_id: SecretStr
     google_oauth_client_secret: SecretStr
     google_oauth_refresh_token: SecretStr
+    # Signs web sessions and CSRF tokens; required only with web.enabled.
+    mailhelp_web_secret: SecretStr | None = None
 
 
 class Topic(BaseModel):
@@ -569,8 +605,18 @@ def load_all(directory: Path, environ: dict[str, str] | None = None) -> tuple[Se
     if missing:
         raise ValueError("Fehlende Geheimnisse: " + ", ".join(missing))
     values = {name.lower(): env[name] for name in names}
+    if settings.web.enabled:
+        web_secret = env.get("MAILHELP_WEB_SECRET", "")
+        if not web_secret:
+            raise ValueError("Fehlende Geheimnisse: MAILHELP_WEB_SECRET (benötigt für web.enabled)")
+        if len(web_secret) < 32:
+            raise ValueError("MAILHELP_WEB_SECRET muss mindestens 32 Zeichen lang sein")
+        values["mailhelp_web_secret"] = web_secret
     secrets = Secrets.model_validate(values)
-    fingerprint = hashlib.sha256(json.dumps([settings.model_dump(mode="json"), prompts.model_dump(), [x.model_dump() for x in topics]], sort_keys=True).encode()).hexdigest()
+    # The web interface does not influence mail analysis; changing it must not
+    # hold back mails that are still being processed.
+    analysis_settings = settings.model_dump(mode="json", exclude={"web"})
+    fingerprint = hashlib.sha256(json.dumps([analysis_settings, prompts.model_dump(), [x.model_dump() for x in topics]], sort_keys=True).encode()).hexdigest()
     return settings, secrets, topics, irrelevant_topics, prompts, fingerprint
 
 
