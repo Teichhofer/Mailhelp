@@ -9,7 +9,7 @@ import pytest
 from mailhelp.config import Settings, Topic, RetentionSettings
 from mailhelp.configuration import (AdminCommand, AdminKind, ConfigurationService, apply_settings, file_hash)
 from mailhelp.lifecycle import Lifecycle
-from mailhelp.metrics import MetricsRecorder, MetricsSettings, electricity
+from mailhelp.metrics import MetricsRecorder, MetricsSettings, electricity, sibling
 from mailhelp.models import MailState, Proposal, Relevance, Summary
 from mailhelp.review.archive import record_analysis, record_event
 from mailhelp.review.commands import CommandKind
@@ -360,13 +360,13 @@ def test_metrics_compaction_recovery_validation_and_logging(tmp_path, monkeypatc
     metrics._cache = None
     assert metrics.records()[0] == []
     metrics.maintain()
-    daily = json.loads(metrics.path.with_name('daily.json').read_text())
+    daily = json.loads(sibling(metrics.path, 'daily').read_text())
     assert list(daily.values())[0]['count'] == 1
     assert metrics.path.read_text() == ''
     metrics.maintain()
-    assert json.loads(metrics.path.with_name('daily.json').read_text()) == daily
+    assert json.loads(sibling(metrics.path, 'daily').read_text()) == daily
     # Recover a compaction interrupted after the journal was persisted.
-    pending = metrics.path.with_name('compaction.json')
+    pending = sibling(metrics.path, 'compaction')
     pending.write_text(json.dumps({'daily': daily, 'retained': ''}))
     metrics.maintain()
     assert not pending.exists()

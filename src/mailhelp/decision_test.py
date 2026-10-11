@@ -267,8 +267,11 @@ def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
         secrets.todoist_token, secrets.todoist_client_id, secrets.todoist_client_secret,
         secrets.google_oauth_client_id, secrets.google_oauth_client_secret, secrets.google_oauth_refresh_token))
     recorder = ComparisonRecorder(log_path, known_secrets)
-    from .metrics import MetricsRecorder
-    recorder.metrics = MetricsRecorder(output.parent / "metrics" / "llm.jsonl", settings.metrics, "decision_test")
+    from .metrics import DECISION_TEST_FILE, MetricsRecorder, metrics_directory
+    # Content-free metrics of every comparison run in one log, separate from production.
+    recorder.metrics = MetricsRecorder(
+        metrics_directory(runtime_path(settings.logging.directory, directory)) / DECISION_TEST_FILE,
+        settings.metrics, "decision_test")
     report = {"schema_version": 2, "mode": "decision_test",
               "comparison": "standard_vs_ollama",
               "pipeline_policy": "relevance_only" if relevance_only else "relevant_only",

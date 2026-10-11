@@ -1037,9 +1037,15 @@ def build_application(
                 settings, secrets, base_directory,
                 access_diagnostics=access_diagnostics,
             )
-        from .metrics import MetricsRecorder
-        logger.metrics = MetricsRecorder(data / "metrics" / "llm.jsonl", settings.metrics, "local" if local_llm else "standard")
-        logger.metrics.comparison = MetricsRecorder(data / "decision-tests" / "metrics" / "llm.jsonl", settings.metrics, "decision_test")
+        from .metrics import (DECISION_TEST_FILE, PRODUCTION_FILE, MetricsRecorder, adopt_legacy,
+                              metrics_directory)
+        metrics_root = metrics_directory(runtime_path(settings.logging.directory, base_directory))
+        production = metrics_root / PRODUCTION_FILE
+        comparison = metrics_root / DECISION_TEST_FILE
+        adopt_legacy(data / "metrics" / "llm.jsonl", production)
+        adopt_legacy(data.parent / "decision-tests" / "metrics" / "llm.jsonl", comparison)
+        logger.metrics = MetricsRecorder(production, settings.metrics, "local" if local_llm else "standard")
+        logger.metrics.comparison = MetricsRecorder(comparison, settings.metrics, "decision_test")
         logger.metrics.changed = store.touch
         stop_event = Event()
         def policy(name: str) -> RetryPolicy:

@@ -41,6 +41,78 @@ SETTING_LABELS = {"poll_interval_seconds": "Abrufintervall (Sekunden)", "timezon
                   "metrics.enabled": "Metrikerfassung aktivieren"}
 
 
+MODE_LABELS = {"production": "Betrieb (Standard und Ollama)", "standard": "Betrieb mit Standard-KI",
+               "local": "Betrieb mit Ollama", "decision_test": "Vergleichsläufe (Decision-Tests)"}
+PERIODS = ((1, "Heute (24 Std.)"), (7, "7 Tage"), (30, "30 Tage"), (90, "90 Tage"))
+
+
+def _number(value: object, digits: int = 2) -> str:
+    """German number format; callers show missing figures as "—" or "unbekannt"."""
+    return f"{float(value):,.{digits}f}".replace(",", " ").replace(".", ",").replace(" ", ".")
+
+
+def _money(value: object, currency: str) -> str:
+    return "unbekannt" if value is None else f"{_number(value, 4)} {currency}"
+
+
+def select(name: str, label: str, value: object, options: list[tuple[object, str]]) -> str:
+    rendered = "".join(f'<option value="{e(key)}"{" selected" if str(key) == str(value) else ""}>{e(text)}</option>'
+                       for key, text in options)
+    return f'<label>{e(label)}<select name="{e(name)}">{rendered}</select></label>'
+
+
+def statistics_page(params: dict, report: dict, everything: list[dict]) -> str:
+    """Costs and durations with readable labels; unknown values are never shown as zero."""
+    def choices(key: str) -> list[tuple[str, str]]:
+        return [("", "alle")] + [(value, value) for value in sorted({row[key] for row in everything})]
+
+    form = ('<form method="get" class="filters">'
+            + select("days", "Zeitraum", params["days"], list(PERIODS))
+            + select("mode", "Erfassung", params["mode"], list(MODE_LABELS.items()))
+            + select("model", "Modell", params.get("model", ""), choices("model"))
+            + select("provider", "Anbieter", params.get("provider", ""), choices("provider"))
+            + select("stage", "Verarbeitungsschritt", params.get("stage", ""), choices("stage"))
+            + f'<label>Von<input type="date" name="since" value="{e(params.get("since", ""))}"></label>'
+            + f'<label>Bis<input type="date" name="until" value="{e(params.get("until", ""))}"></label>'
+            + '<button class="button primary">Auswerten</button></form>')
+    rate = report["exchange_rate_date"]
+    rows = [
+        ("Aufrufe (einzelne Versuche)", str(report["count"])),
+        ("davon fehlgeschlagen", str(report["failed"])),
+        ("Gemeldete Cloudkosten", _money(report["usd"], "USD")),
+        ("Cloudaufrufe ohne Kostenangabe", str(report["unknown_cost"])),
+        ("Cloudkosten in Euro", _money(report["cloud_eur"], "EUR") + (f" (Wechselkurs vom {rate})" if rate else "")
+         if report["cloud_eur"] is not None else "kein Wechselkurs hinterlegt"),
+        ("Geschätzte Stromkosten Ollama", _money(report["electricity_eur"], "EUR")),
+        ("Summierte Aufrufdauer", f'{_number(report["seconds"], 1)} s'),
+        ("Dauer je Aufruf (Mittel / Median / 95 %)",
+         " / ".join(f"{_number(report[key], 2)} s" if report[key] is not None else "—"
+                    for key in ("mean", "median", "p95"))),
+    ]
+    if report["damaged"] or report["capture_failures"]:
+        rows.append(("Unvollständige Erfassung",
+                     f'{report["damaged"]} beschädigte Zeilen, {report["capture_failures"]} Erfassungsfehler'))
+    body = ("<h1>Kosten und Zeiten</h1>" + form
+            + '<dl class="facts-table">' + "".join(f"<dt>{e(k)}</dt><dd>{e(v)}</dd>" for k, v in rows) + "</dl>"
+            + '<p class="meta">Kosten in USD stammen aus den Angaben des Anbieters; fehlt eine Angabe, ist sie '
+              "unbekannt, nicht null. Stromkosten sind eine Schätzung aus der eingestellten Leistung und dem "
+              "Strompreis (überlappende Aufrufe einmal gezählt); Leerlauf, Hardware und andere Serverlast sind "
+              "nicht enthalten. Die summierte Aufrufdauer ist keine Durchlaufzeit.</p>")
+    if report["groups"]:
+        body += ('<h2>Nach Modell und Schritt</h2><div class="table-scroll"><table><thead><tr>'
+                 "<th>Modell</th><th>Schritt</th><th>Anbieter</th><th>Aufrufe</th><th>Fehler</th>"
+                 "<th>Summe</th><th>Median</th><th>95 %</th><th>USD</th></tr></thead><tbody>")
+        for group in report["groups"]:
+            body += (f'<tr><td>{e(group["model"])}</td><td>{e(group["stage"])}</td><td>{e(group["provider"])}</td>'
+                     f'<td>{group["count"]}</td><td>{group["failed"]}</td><td>{_number(group["seconds"], 1)} s</td>'
+                     f'<td>{_number(group["median"], 2)} s</td><td>{_number(group["p95"], 2)} s</td>'
+                     f'<td>{_number(group["usd"], 4)}</td></tr>')
+        body += "</tbody></table></div>"
+    else:
+        body += '<p class="empty">Für diese Auswahl gibt es keine erfassten Aufrufe.</p>'
+    return body
+
+
 def field(name: str, label: str, value: object = "", *, hidden: bool = False) -> str:
     if hidden:
         return f'<input type="hidden" name="{e(name)}" value="{e(value)}">'
@@ -311,20 +383,15 @@ class ArchiveSite:
             params = self.parameters(request)
             params["days"] = int(params.get("days", 30))
             params.setdefault("mode", "production")
+            if params["mode"] not in MODE_LABELS:
+                raise ValueError("Unbekannter Modus")
             selected = self.metrics.comparison if params["mode"] == "decision_test" and self.metrics.comparison is not None else self.metrics
             report = selected.report(**params)
         except (ValueError, TypeError):
             return self.site._reply(request, 422, "Ungültige Auswertungsfilter.")
-        body = '<h1>Kosten und Zeiten</h1><p><a href="/auswertung?days=7">7 Tage</a> · <a href="/auswertung?days=30">30 Tage</a></p><form method="get" class="stack">' + "".join(field(key, key, params.get(key, "")) for key in ("days", "model", "provider", "stage", "mode", "since", "until"))
-        body += '<button class="button">Auswerten</button></form><dl>'
-        body += "".join(f'<dt>{e(k)}</dt><dd>{e(v)}</dd>' for k, v in report.items() if k not in {"records", "groups"})
-        body += '</dl><p>Produktionsdaten und Decision-Tests werden getrennt angezeigt. Modus: production oder decision_test (Standard-Testverzeichnis).</p><p>USD: gemeldete Cloudkosten; unbekannte Kosten sind nicht null. EUR: Stromschätzung mit historischen Annahmen. Summierte Aufrufzeit ist keine Durchlaufzeit. Leerlauf, Hardware und andere Serverlast sind nicht enthalten.</p>'
-        body += '<div class="table-scroll"><table><caption>Vergleich nach Modell und Schritt</caption><thead><tr><th>Modus / Modell</th><th>Schritt / Anbieter</th><th>Aufrufe / Fehler</th><th>Summe s</th><th>Mittel / Median / p95 s</th><th>USD</th></tr></thead><tbody>'
-        for group in report["groups"]:
-            body += f'<tr><td>{e(group["mode"])} / {e(group["model"])}</td><td>{e(group["stage"])} / {e(group["provider"])}</td><td>{group["count"]} / {group["failed"]}</td><td>{round(group["seconds"], 3)}</td><td>{round(group["mean"], 3)} / {round(group["median"], 3)} / {round(group["p95"], 3)}</td><td>{e(group["usd"])}</td></tr>'
-        body += '</tbody></table></div>'
-        body += '<ul class="archive-list">' + "".join(f'<li>{e(r["started_at"])} · {e(r["model"])} · {e(r["stage"])} · {e(r["status"])} · {e(round(r["duration_ms"]/1000, 3))} s</li>' for r in report["records"][-100:]) + '</ul>'
-        return Response.html(200, layout("Auswertung", body, active="/auswertung"))
+        everything = selected.report(days=params["days"], mode=params["mode"])["records"]
+        return Response.html(200, layout("Auswertung", statistics_page(params, report, everything),
+                                         active="/auswertung"))
 
     def stop_page(self, request, session):
         if self.lifecycle is None:

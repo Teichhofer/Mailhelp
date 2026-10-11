@@ -341,3 +341,11 @@ h2 { overflow-wrap: anywhere; }
 .table-scroll { max-width: 100%; overflow-x: auto; }
 .table-scroll table { border-collapse: collapse; width: 100%; min-width: 640px; }
 .table-scroll th, .table-scroll td { padding: 12px; border-bottom: 1px solid var(--border); text-align: left; overflow-wrap: anywhere; }
+
+/* Filter forms (Auswertung, Mails, Verlauf) */
+.filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin: 0 0 16px; align-items: end; }
+.filters label { display: grid; gap: 4px; }
+select {
+  width: 100%; font: inherit; font-size: 16px; color: var(--text); background: var(--surface);
+  border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; min-height: 44px;
+}

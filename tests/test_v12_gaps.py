@@ -248,3 +248,102 @@ def test_status_without_metrics_and_unknown_stage(web, tmp_path):
     other = _runtime_section(info.__class__(**{**info.__dict__, "runtime": {"stage": "neu", "elapsed": 0,
                                                                             "contacts": {}}}), ZoneInfo("UTC"))
     assert "<dd>neu</dd>" in other and RUNTIME_STAGES["idle"].startswith("Leerlauf")
+
+
+# --- R3: metrics location, no double counting, readable report --------------------
+
+def test_legacy_metrics_move_once_with_their_aggregates(tmp_path):
+    from mailhelp.metrics import adopt_legacy, sibling
+    legacy = tmp_path / "data" / "production" / "metrics" / "llm.jsonl"
+    legacy.parent.mkdir(parents=True)
+    legacy.write_text('{"id": "a"}\n', encoding="utf-8")
+    legacy.with_name("daily.json").write_text("{}", encoding="utf-8")
+    target = tmp_path / "logs" / "metrics" / "llm.jsonl"
+    assert adopt_legacy(legacy, target)
+    assert target.read_text(encoding="utf-8") == '{"id": "a"}\n'
+    assert sibling(target, "daily").exists() and not sibling(target, "compaction").exists()
+    assert not legacy.exists()
+    # A later legacy file never overwrites the adopted data.
+    legacy.write_text('{"id": "b"}\n', encoding="utf-8")
+    assert not adopt_legacy(legacy, target) and target.read_text(encoding="utf-8") == '{"id": "a"}\n'
+    assert not adopt_legacy(tmp_path / "fehlt.jsonl", tmp_path / "neu.jsonl")
+
+
+def attempt(metrics, call, **response):
+    metrics.observe("request_started", {"call_id": call, "model": "deepseek", "stage": "summary"})
+    metrics.observe("response_received", {"call_id": call, **response})
+
+
+def test_a_restart_or_a_repeated_line_never_counts_an_attempt_twice(tmp_path):
+    path = tmp_path / "llm.jsonl"
+    first = MetricsRecorder(path, MetricsSettings())
+    attempt(first, "c1", reported_cost=0.01)
+    # Crash recovery or log replay may write the same attempt again.
+    line = path.read_text(encoding="utf-8")
+    path.write_text(line + line, encoding="utf-8")
+    restarted = MetricsRecorder(path, MetricsSettings())
+    attempt(restarted, "c2", reported_cost=0.02)
+    report = restarted.report()
+    assert report["count"] == 2 and Decimal(report["usd"]) == Decimal("0.03")
+    assert restarted.report()["count"] == 2
+
+
+def test_production_and_decision_tests_are_reported_separately(web, tmp_path):
+    _, metrics, *_ = configure(web, tmp_path)
+    metrics.comparison = MetricsRecorder(tmp_path / "decision-tests.jsonl", MetricsSettings(), "decision_test")
+    attempt(metrics, "prod", reported_cost=0.5)
+    for call in ("t1", "t2"):
+        attempt(metrics.comparison, call)
+    production = web.browser.request("GET", "/auswertung").body.decode()
+    assert "<dt>Aufrufe (einzelne Versuche)</dt><dd>1</dd>" in production
+    assert "<dt>Gemeldete Cloudkosten</dt><dd>0,5000 USD</dd>" in production
+    tests = web.browser.request("GET", "/auswertung?mode=decision_test").body.decode()
+    assert "<dt>Aufrufe (einzelne Versuche)</dt><dd>2</dd>" in tests
+    assert "<dt>Cloudaufrufe ohne Kostenangabe</dt><dd>2</dd>" in tests
+    assert '<option value="decision_test" selected>' in tests
+
+
+def test_statistics_page_labels_rates_and_incomplete_capture(web, tmp_path):
+    _, metrics, *_ = configure(web, tmp_path)
+    page = web.browser.request("GET", "/auswertung").body.decode()
+    assert "Für diese Auswahl gibt es keine erfassten Aufrufe." in page
+    assert "kein Wechselkurs hinterlegt" in page and "<dd>— / — / —</dd>" in page
+    assert web.browser.request("GET", "/auswertung?mode=unbekannt").status == 422
+    metrics.settings = MetricsSettings(usd_per_eur=1.25, exchange_rate_date="2026-10-01")
+    attempt(metrics, "c1", reported_cost=2.5)
+    metrics.failures = 1
+    with metrics.path.open("a", encoding="utf-8") as stream:
+        stream.write("kaputt\n")
+    page = web.browser.request("GET", "/auswertung?model=deepseek").body.decode()
+    assert "<dd>2,0000 EUR (Wechselkurs vom 2026-10-01)</dd>" in page
+    assert "<dd>1 beschädigte Zeilen, 1 Erfassungsfehler</dd>" in page
+    assert '<option value="deepseek" selected>' in page and "<th>Modell</th>" in page
+    assert "<dt>Geschätzte Stromkosten Ollama</dt><dd>0,0000 EUR</dd>" in page
+
+
+def test_application_writes_metrics_into_the_log_directory(tmp_path, monkeypatch):
+    from mailhelp.application import build_application
+    from mailhelp.config import Secrets, Topic
+    from test_core import prompt_config
+
+    class Resource:
+        def __init__(self, *args, **kwargs): pass
+        def close(self): pass
+
+    for name in ("ImapReader", "OpenRouterClient", "DecisionClient", "TelegramClient",
+                 "HttpWriter", "GoogleOAuthTokenProvider"):
+        monkeypatch.setattr(f"mailhelp.application.{name}", Resource)
+    cfg = app_settings(tmp_path)
+    cfg.logging.file.enabled = cfg.logging.console.enabled = False
+    legacy = tmp_path / "data" / "test" / "metrics" / "llm.jsonl"
+    legacy.parent.mkdir(parents=True)
+    legacy.write_text("", encoding="utf-8")
+    secrets = Secrets(imap_username="u", imap_password="p", openrouter_api_key="o", telegram_bot_token="t",
+                      todoist_token="d", todoist_client_id="ti", todoist_client_secret="ts",
+                      google_oauth_client_id="i", google_oauth_client_secret="s", google_oauth_refresh_token="r")
+    with build_application(cfg, secrets, [Topic(id="x", name="x", enabled=True, description="x")],
+                           prompt_config(), "f" * 64, base_directory=tmp_path) as made:
+        logs = tmp_path / "logs" / "metrics"
+        assert made.logger.metrics.path == logs / "llm.jsonl"
+        assert made.logger.metrics.comparison.path == logs / "decision-tests.jsonl"
+        assert (logs / "llm.jsonl").exists() and not legacy.exists()

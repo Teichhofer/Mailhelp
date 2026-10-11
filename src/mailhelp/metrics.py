@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import math
 import secrets
 import statistics
@@ -102,6 +103,37 @@ CONTACT_EVENTS = {
     ("google_oauth", "token_credentials_accepted"): "Google-Anmeldung",
 }
 LLM_CONTACT = {"standard": "KI-Modelle (OpenRouter)", "local": "Ollama", "decision_test": "KI-Vergleichslauf"}
+
+
+PRODUCTION_FILE = "llm.jsonl"
+DECISION_TEST_FILE = "decision-tests.jsonl"
+
+
+def metrics_directory(log_directory: Path) -> Path:
+    """Metrics are content-free JSONL logs and live next to the other logs."""
+    return log_directory / "metrics"
+
+
+def adopt_legacy(legacy: Path, target: Path) -> bool:
+    """Move a metrics file and its aggregates from the former state location once.
+
+    Up to 1.2 beta the files lived in the state directory.  Nothing is merged or
+    overwritten: an existing target always wins, so a repeated start is harmless.
+    """
+    if not legacy.exists() or target.exists():
+        return False
+    target.parent.mkdir(parents=True, exist_ok=True)
+    for old, new in ((legacy, target),
+                     (legacy.with_name("daily.json"), sibling(target, "daily")),
+                     (legacy.with_name("compaction.json"), sibling(target, "compaction"))):
+        if old.exists():
+            os.replace(old, new)
+    return True
+
+
+def sibling(path: Path, kind: str) -> Path:
+    """Aggregate and journal belong to exactly one metrics file."""
+    return path.with_name(f"{path.stem}-{kind}.json")
 
 
 class MetricsRecorder:
@@ -294,8 +326,8 @@ class MetricsRecorder:
         """
         from .learning import _atomic_replace
         with self._lock:
-            pending = self.path.with_name("compaction.json")
-            daily = self.path.with_name("daily.json")
+            pending = sibling(self.path, "compaction")
+            daily = sibling(self.path, "daily")
             if pending.exists():
                 operation = json.loads(pending.read_text(encoding="utf-8"))
                 _atomic_replace(daily, json.dumps(operation["daily"], ensure_ascii=False, indent=2))
