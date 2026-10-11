@@ -113,6 +113,19 @@ Nicht gleichzeitig lernen und den Dienst mit denselben Zustandsverzeichnissen be
 
 ## Reale Erkennungsqualität ausdrücklich prüfen
 
+Ab Version 1.0 prüft der folgende Befehl standardmäßig den produktiven
+Jev-Relevanzpfad einschließlich des generativen Rückfalls bei `unclear`.
+`--decisions-prompts` wählt eine andere Jev-Konfiguration; ansonsten wird sie
+neben `prompts.yaml` oder aus der Paketvorlage geladen. `--legacy-relevance`
+prüft ausdrücklich nur den früheren Pfad und zählt nicht als Standardpfad-Abnahme.
+Jev und generative Aufrufe teilen sich `--max-calls`; Berichte in Schema 3 enthalten
+zusätzlich den geprüften Modus und einen Fingerprint der Jev-Konfiguration.
+Für die Release-Abnahme `tests/fixtures/mail_corpus_v3/corpus.json` verwenden.
+Gleichbedeutende Uhrzeitangaben werden auch bei unvollständigen Terminen normalisiert.
+
+Die folgenden historischen Ergebnisse beschreiben frühere Stände. Maßgeblich für
+eine Release-Freigabe sind die aktuellen Berichte unter `quality-reports/`.
+
 Die Standardtests bleiben offline und messen Vertrauensgrenzen, Persistenz und
 Verarbeitung. Für echte Modellausgaben gibt es nach Installation den separaten
 Befehl `mailhelp-evaluate`. Er verwendet keine IMAP-, Telegram-, Todoist- oder

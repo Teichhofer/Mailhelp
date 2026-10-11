@@ -3,6 +3,7 @@ from __future__ import annotations
 import errno
 import json, os
 import re
+import time
 from pathlib import Path
 from typing import Any
 from pydantic import BaseModel, ValidationError
@@ -27,11 +28,22 @@ class JsonStore:
         self.directory.mkdir(parents=True, exist_ok=True); path = self.directory / ".lock"
         descriptor = os.open(path, os.O_CREAT | os.O_RDWR, 0o600)
         try:
-            self._acquire_lock(descriptor)
-        except OSError as exc:
+            attempt = 0
+            while True:
+                try:
+                    self._acquire_lock(descriptor)
+                    break
+                except OSError as exc:
+                    if exc.errno not in (errno.EACCES, errno.EAGAIN, errno.EDEADLK):
+                        raise
+                    if attempt == 3:
+                        raise AlreadyRunning(f"Datenverzeichnis wird bereits verwendet: {self.directory}") from exc
+                    # Windows can report process exit before its byte-range lock
+                    # is released. Never delete the lock or trust a stored PID.
+                    attempt += 1
+                    time.sleep(0.05)
+        except BaseException:
             os.close(descriptor)
-            if exc.errno in (errno.EACCES, errno.EAGAIN, errno.EDEADLK):
-                raise AlreadyRunning(f"Datenverzeichnis wird bereits verwendet: {self.directory}") from exc
             raise
         self.lock = descriptor
         # This is diagnostic information only.  The kernel-held lock above, not

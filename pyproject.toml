@@ -34,3 +34,11 @@ fail_under = 100
 show_missing = true
 skip_covered = true
 
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src", "/README.md", "/LICENSE", "/pyproject.toml", "/requirements.lock",
+  "/config.example.yaml", "/.env.example", "/prompts.yaml", "/decisions_prompts.yaml",
+  "/topics.yaml", "/irrelevant_topics.yaml", "/irrelevant-senders.example.json",
+  "/compose.yaml", "/Dockerfile", "/.dockerignore", "/CHANGELOG.md", "/docs/Release-1.0.md",
+]
+

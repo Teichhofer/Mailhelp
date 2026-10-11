@@ -5,6 +5,7 @@ from collections.abc import Callable
 from datetime import date, datetime
 from typing import Any, Protocol, TypeVar
 import uuid
+import re
 
 from pydantic import BaseModel, ValidationError
 
@@ -276,7 +277,18 @@ class Analyzer:
             step, {"mail": mail, **(extra or {})}, schema.model_validate, schema=schema
         )
 
+    def suspicious_link_bait(self, mail: dict[str, Any]) -> bool:
+        """Conservative, local heuristic; never resolve or visit untrusted URLs."""
+        text = " ".join(mail.get("text", "").casefold().split())
+        has_lure = any(phrase.casefold() in text for phrase in self.prompts.suspicious_link_phrases)
+        return has_lure and any(
+            re.search(r"https?://(?:www\.)?" + re.escape(host.casefold()) + r"(?=[/?#\s]|$)", text)
+            for host in self.prompts.suspicious_link_hosts)
+
     def relevance(self, mail: dict[str, Any], topics: list[Topic]) -> tuple[str, Relevance]:
+        if self.suspicious_link_bait(mail):
+            return "local-link-safety", Relevance(decision="unclear", topic_ids=[],
+                reason="Verdächtiger Kurzlink-Köder. Bitte unabhängig prüfen; daraus werden keine Aktionen angelegt.")
         enabled = [topic for topic in topics if topic.enabled]
         enabled_ids = {topic.id for topic in enabled}
 
@@ -300,6 +312,9 @@ class Analyzer:
         return self._run("summary", Summary, mail)
 
     def action_route(self, mail: dict[str, Any]) -> tuple[str, ActionRoute]:
+        if self.suspicious_link_bait(mail):
+            return "local-link-safety", ActionRoute(action_state="none", task_count=0,
+                event_count=0, reason="Verdächtiger Kurzlink-Köder: keine automatische Handlungsempfehlung.")
         return self._run("action_router", ActionRoute, mail)
 
     def extract_tasks(self, mail: dict[str, Any], *, expected_count: int) -> tuple[str, TaskExtraction]:

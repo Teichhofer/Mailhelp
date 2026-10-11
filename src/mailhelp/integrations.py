@@ -236,9 +236,8 @@ def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Calla
         # Even reconciliation must not search a newly configured target for an
         # action authorized against a different project/calendar.
         return proposal, {"target_mismatch": True}
-    # Test mode suppresses writes to Todoist, but calendar attachments are the
-    # actual user-facing result and are deliberately generated and delivered.
-    if test_mode and proposal.kind == ProposalKind.TASK:
+    # A dry run must never contact either target, even for reconciliation.
+    if test_mode:
         simulated = proposal.model_copy(update={
             "status": ProposalStatus.SIMULATED,
             "external_id": None,

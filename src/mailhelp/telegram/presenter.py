@@ -71,7 +71,7 @@ class ProposalPresenter:
             confirm = button(
                 (
                     "Simulieren"
-                    if self.test_mode and proposal.kind == ProposalKind.TASK
+                    if self.test_mode
                     else "Im Kalender anlegen" if proposal.kind == ProposalKind.EVENT else "In Todoist anlegen"
                 ),
                 DecisionAction.CONFIRM,

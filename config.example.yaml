@@ -7,7 +7,7 @@
 # Für lokale Nutzung nach config.yaml kopieren und Verbindungen/Ziele anpassen.
 # Geheimnisse ausschließlich in .env oder in der Prozessumgebung hinterlegen.
 # Auch non_binding und "Erneut anlegen" erfordern versionsbezogene Telegram-Bestätigung.
-# test_mode simuliert nur Todoist; bestätigte Kalendertermine werden tatsächlich angelegt.
+# test_mode simuliert Todoist und Google Kalender ohne Zugriff auf die Schreibdienste.
 # Relative Daten-/Logpfade gelten relativ zu --config-directory, auch bei --clear.
 # Docker bindet data und logs unter /config/data bzw. /config/logs ein.
 # Normalbetrieb: irrelevant-senders.json aus der Vorlage anlegen und mit einbinden.

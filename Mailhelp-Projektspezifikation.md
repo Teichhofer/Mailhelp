@@ -299,6 +299,20 @@ schließt die Relevanzstufe erfolgreich ab.
 
 ## 6. LLM-Anbindung und Prompt-Konfiguration
 
+Vor der Relevanzentscheidung prüft die Anwendung lokal die in `prompts.yaml`
+konfigurierten `suspicious_link_hosts` und `suspicious_link_phrases`. Nur eine
+Kombination aus passendem HTTP-/HTTPS-Host und Ködertext führt zu `unclear` mit
+einem Sicherheitshinweis. Derselbe Schutz gilt vor dem Aktionsrouter, auch nach
+einer positiven Relevanzbestätigung: keine Aufgaben oder Termine aus dem Köder.
+Es werden keine Links aufgelöst oder besucht. Die konservative Heuristik kann
+legitime Nachrichten treffen und erkennt nicht jede Phishing-Nachricht.
+
+Zusammenfassungen behalten ausdrücklich genannte abgesagte, wiederkehrende und
+nicht selbst verantwortete Termine in `deadlines`. Bloße organisatorische
+Verweise ohne Zeitangabe und Datumsangaben ausschließlich aus Prompt-Injections
+werden dort nicht übernommen. Ausdrücklich offene Teilnahme bedeutet bei der
+Terminextraktion unklare Zuständigkeit und unsichere Teilnahme.
+
 Alle LLM-Aufrufe erfolgen über OpenRouter. Die Pipeline besteht aus den getrennten
 Auswertungsschritten `relevance`, `summary`, `action_router`, `task_extraction` und
 `event_extraction` und den vollständig lokalen Schritten Normalisierung und
@@ -762,7 +776,7 @@ Replay-Grenze fort.
   Quittierung weiterhin.
 - Nur konfigurierte Nutzer- und Chat-IDs dürfen Nachrichten erhalten und Aktionen auslösen.
 - Vollständige Aufgabenvorschläge bieten `In Todoist anlegen`, `Ändern` und `Verwerfen`
-  (im Testmodus `Simulieren` statt `In Todoist anlegen`).
+  (im Testmodus `Simulieren` für beide Ziele).
   Vollständige Terminvorschläge bieten `Im Kalender anlegen`, `Ändern` und `Verwerfen`;
   `Im Kalender anlegen` schreibt den Termin über die Google Calendar API in den konfigurierten Kalender.
   Vorschläge mit offenen Fragen bieten dagegen ausschließlich `Klären` und
@@ -939,7 +953,7 @@ Schlüssel und die externe Referenz bleiben erhalten.
 
 Die Integrationsgrenze verlangt dafür eine Persistenzfunktion. Sie speichert `writing`
 vor dem Netzwerkaufruf und danach `created`, `failed` oder `uncertain`. Für
-Todoist-Aufgaben speichert sie im Testmodus stattdessen vor der Erfolgsmeldung den
+Aufgaben und Termine speichert sie im Testmodus stattdessen vor der Erfolgsmeldung den
 eigenen Abschlusszustand `simulated`. Dieser Zustand verbietet externe ID und externen Link strikt und kann
 deshalb niemals als echte externe Erstellung interpretiert werden.
 Der Telegram-Vorschlag weist bei einer solchen Aufgabe bereits vor der Entscheidung
@@ -1230,7 +1244,7 @@ Timeouts und begrenzte Wiederholungsversuche mit zunehmenden Abständen gelten j
 
 Nach erfolgreichem HTTP-Status validieren integrationsspezifische Antwortmodelle OpenRouter, Telegram und Todoist auf JSON-Struktur, Pflichtfelder und erwartete IDs. Telegram-Fehlerdiagnosen übernehmen das dokumentierte menschenlesbare `description`-Feld vollständig, ohne den übrigen Antwortkörper oder den Bot-Token offenzulegen. Sonstige Diagnosen nennen Integration und Schlüsselpfad, nie Tokens, Authorization-Header oder vollständige nicht freigeschaltete Inhalte.
 
-Ein Testmodus führt Auswertung und Telegram-Dialog aus und verhindert Todoist-Schreibzugriffe. Todoist-Erfolge sind deutlich als Simulation markiert und werden nicht als echte externe Einträge gespeichert. Bestätigte Termine werden dagegen auch im Testmodus tatsächlich in Google Kalender angelegt und als `created` gespeichert. Test- und Produktivzustand werden getrennt gehalten. Der Testmodus ist kein Offline-Modus: LLM- und Telegram-Aufrufe finden weiterhin statt.
+Ein Testmodus führt Auswertung und Telegram-Dialog aus und verhindert sämtliche Zugriffe auf Todoist und Google Kalender an der Schreibgrenze, einschließlich Abgleich und Kalenderdateiversand. Bestätigte Aufgaben und Termine werden als `simulated` ohne externe ID oder Link gespeichert. Beide Bestätigungsschaltflächen heißen `Simulieren`. Test- und Produktivzustand werden getrennt gehalten. Der Testmodus ist kein Offline-Modus: IMAP-, LLM- und Telegram-Aufrufe finden weiterhin statt. Der separat aufgerufene Zugriffstest `--check-access` behält seine ausdrücklich dokumentierten Leseprüfungen bei.
 Die ausgelieferte Betreiberkonfiguration startet im Produktivmodus
 (`test_mode: false`), sodass ausdrücklich über Telegram bestätigte Aufgaben in
 Todoist angelegt werden. Simulationen müssen durch `test_mode: true` bewusst
@@ -1246,7 +1260,7 @@ Pflichtfälle umfassen:
 - Aufgaben und Termine ohne, mit fehlenden oder mit widersprüchlichen Angaben.
 - Fehlerhafte LLM-Ausgaben, Timeouts, abgelehnte Parameter und ausgeschöpfte Wiederholungen.
 - Bestätigen, Ändern, Verwerfen, veraltete Buttons und unberechtigte Telegram-Nutzer.
-- Kein externer Eintrag ohne Bestätigung; kein echter Todoist-Eintrag im Testmodus.
+- Kein externer Eintrag ohne Bestätigung; keine echten Aufgaben oder Termine im Testmodus.
 - Mehrfachklicks, Neustarts und Abbruch während eines externen Schreibzugriffs.
 - Beschädigte JSON-Dateien, konkurrierender Start und Schreibfehler.
 - Maskierung von Geheimnissen, Modulfilter, getrennte LLM-Logs und Rotation.
@@ -1290,7 +1304,7 @@ Folgender Inhalt ist bei der Projektinitialisierung in `AGENTS.md` im Repository
 8. Mehrfachbestätigungen und Wiederanlauf erzeugen keine unkontrollierten Duplikate. Unklare externe Ergebnisse werden sichtbar angehalten und abgeglichen.
 9. Offene Bestätigungen und Verarbeitungszustände überstehen Neustarts.
 10. LLM-Aufrufe sind im separaten Log über Aufruf- und Mail-ID nachvollziehbar. Geheimnisse erscheinen auch bei Fehlern nicht in Logs.
-11. Der Testmodus verhindert Todoist-Aktionen und meldet sie eindeutig als Simulation; bestätigte Termine werden tatsächlich in Google Kalender angelegt.
+11. Der Testmodus verhindert Todoist- und Kalenderaktionen und meldet beide eindeutig als Simulation.
 12. Die automatisierte Testsuite erfüllt 100 % Zeilen- und Branch-Abdeckung des eigenen Anwendungscodes; die Regeln stehen in AGENTS.md.
 
 ## 15. Noch zu belegende Einrichtungswerte

@@ -7,17 +7,19 @@ import json
 import os
 import re
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timezone, time
 from pathlib import Path
 from typing import Any, Callable
 
 import yaml
 
 from .action_normalization import (DEADLINE_DATE_PATTERN, MailDateContext, deadline_core,
-                                   normalize_event,
+                                   normalize_event, _parse_time,
                                    normalize_task_due, recover_task_due)
 from .analysis import Analyzer
 from .config import PromptConfig, Topic
+from .decisions import (DecisionAnalyzer, DecisionClient, DecisionPrompts,
+                        JevRelevanceAnalyzer, load_decision_prompts, load_relevance_prompts)
 from .mime import prepare
 from .models import EventExtraction, TaskExtraction
 from .openrouter import OpenRouterClient
@@ -82,9 +84,29 @@ class UsageRecorder:
                 "responses_without_usage": self.responses_without_usage}
 
 
+class BoundedDecider:
+    """Jev and its generative fallback consume the same explicit call budget."""
+
+    def __init__(self, client: object, budget: BoundedCompleter):
+        self.client, self.budget, self.logger = client, budget, client.logger
+
+    def decide(self, *args, **kwargs):
+        if self.budget.calls >= self.budget.max_calls:
+            raise EvaluationBudgetExceeded("Aufrufbudget ausgeschöpft")
+        self.budget.calls += 1
+        return self.client.decide(*args, **kwargs)
+
+
 def _text(value: str | None) -> str | None:
     """Compare free text independent of case and whitespace."""
     return " ".join(value.split()).casefold() if value is not None else None
+
+
+def _clock(value: str | None) -> str | None:
+    if value is None:
+        return None
+    parsed = _parse_time(value, "user")
+    return parsed.isoformat(timespec="minutes") if isinstance(parsed, time) else _text(value)
 
 
 _DATE_TOKEN = re.compile(rf"(?i)(?<![\d.])({DEADLINE_DATE_PATTERN})(?![\d.-]?\d)")
@@ -146,8 +168,8 @@ def semantic_result(stage: str, value: dict, context: MailDateContext) -> dict:
                     "end": normalized.value.end.isoformat(),
                     "all_day": normalized.value.all_day}
         else:
-            when = {"date": _text(event.date_text), "time": _text(event.time_text),
-                    "end_time": _text(event.end_time_text)}
+            when = {"date": _text(event.date_text), "time": _clock(event.time_text),
+                    "end_time": _clock(event.end_time_text)}
         result.append({"classification": event.classification,
                        "responsibility": event.responsibility, "certainty": event.certainty,
                        "time_requirement": event.time_requirement, "when": when,
@@ -173,14 +195,26 @@ def _context(mail: dict) -> MailDateContext:
 
 
 def evaluate(corpus: dict, prompts: PromptConfig, client: object, max_calls: int,
-             progress: Callable[[dict], None] | None = None) -> dict:
+             progress: Callable[[dict], None] | None = None, *,
+             decision_prompts: DecisionPrompts | None = None,
+             decision_client: object = None) -> dict:
     bounded = BoundedCompleter(client, max_calls)
-    analyzer = Analyzer(bounded, prompts, validation_retries=0, provider_retries=0)
+    if decision_prompts is None:
+        analyzer = Analyzer(bounded, prompts, validation_retries=0, provider_retries=0)
+    else:
+        decisions = DecisionAnalyzer(BoundedDecider(decision_client, bounded),
+                                     decision_prompts, 500_000)
+        analyzer = JevRelevanceAnalyzer(bounded, prompts, decisions=decisions,
+                                       validation_retries=0, provider_retries=0)
     topics = [Topic.model_validate(item) for item in corpus["topics"]]
     timezone_name = corpus.get("user_timezone", "UTC")
     results = []
     report = {
-        "schema_version": 2, "created_at": datetime.now(timezone.utc).isoformat(),
+        "schema_version": 3, "created_at": datetime.now(timezone.utc).isoformat(),
+        "relevance_mode": "legacy" if decision_prompts is None else "jev_unclear_fallback",
+        "decision_prompts": None if decision_prompts is None else decision_prompts.model_dump(mode="json"),
+        "decision_prompt_fingerprint": None if decision_prompts is None else hashlib.sha256(
+            decision_prompts.model_dump_json().encode()).hexdigest(),
         "prompt_fingerprint": hashlib.sha256(prompts.model_dump_json().encode()).hexdigest(),
         "corpus_fingerprint": hashlib.sha256(json.dumps(corpus, sort_keys=True).encode()).hexdigest(),
         "corpus_schema_version": corpus.get("schema_version"),
@@ -258,15 +292,24 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--prompts", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--max-calls", type=int, required=True)
+    relevance = parser.add_mutually_exclusive_group()
+    relevance.add_argument("--legacy-relevance", action="store_true",
+                           help="Nur die alte Relevanzstufe prüfen, keine Standardpfad-Abnahme")
+    relevance.add_argument("--decisions-prompts", type=Path,
+                           help="Jev-Konfiguration; Standard: neben prompts.yaml oder Paketvorlage")
     args = parser.parse_args(argv)
     if args.max_calls < 1 or not os.environ.get("OPENROUTER_API_KEY"):
         parser.error("Positives Aufrufbudget und OPENROUTER_API_KEY sind erforderlich")
     prompts = PromptConfig.model_validate(yaml.safe_load(args.prompts.read_text(encoding="utf-8")))
     corpus = json.loads(args.corpus.read_text(encoding="utf-8"))
+    decision_config = (None if args.legacy_relevance else
+                       load_decision_prompts(args.decisions_prompts) if args.decisions_prompts else
+                       load_relevance_prompts(args.prompts.parent))
     # Fail before the first paid call if the report cannot be written.
-    write_report(args.output, {"schema_version": 2, "complete": False, "cases": []})
+    write_report(args.output, {"schema_version": 3, "complete": False, "cases": []})
     usage = UsageRecorder()
     client = OpenRouterClient(os.environ["OPENROUTER_API_KEY"], 60, 0, 600, logger=usage)
+    decision_client = None
     total = len(corpus["cases"])
 
     def progress(report: dict) -> None:
@@ -278,9 +321,14 @@ def main(argv: list[str] | None = None) -> int:
               f"(Aufrufe {report['calls']}/{report['max_calls']})", file=sys.stderr, flush=True)
 
     try:
-        report = evaluate(corpus, prompts, client, args.max_calls, progress)
+        if decision_config is not None:
+            decision_client = DecisionClient(os.environ["OPENROUTER_API_KEY"], 60, 0, 600, logger=usage)
+        report = evaluate(corpus, prompts, client, args.max_calls, progress,
+                          decision_prompts=decision_config, decision_client=decision_client)
         report["usage"] = usage.report()
         write_report(args.output, report)
         return 0 if report["passed"] else 1
     finally:
         client.close()
+        if decision_client is not None:
+            decision_client.close()

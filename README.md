@@ -1,5 +1,9 @@
 # Mailhelp
 
+Die [Release-Anleitung](docs/Release-1.0.md) beschreibt Installation aus den
+Distributionspaketen, Aktualisierung, Sicherung und Rückkehr zur vorherigen Version.
+Änderungen stehen im [Changelog](CHANGELOG.md).
+
 Die Projektwebsite mit Einrichtung, Konfiguration, Datenschutz, Impressum und
 Nutzungsbedingungen liegt unter [`website/`](website/). Die
 [GitHub-Pages-Anleitung](docs/GitHub-Pages.md) beschreibt Vorschau und Veröffentlichung.
@@ -33,7 +37,8 @@ festgeschrieben; das Container-Image installiert genau diese Versionen.
 
 ```powershell
 py -3.12 -m venv .venv
-.venv\Scripts\python -m pip install -e ".[test]"
+.venv\Scripts\python -m pip install -r requirements.lock
+.venv\Scripts\python -m pip install --no-deps -e .
 Copy-Item config.example.yaml config.yaml
 Copy-Item .env.example .env
 ```
@@ -126,8 +131,8 @@ vorliegen. Der Refresh-Token benötigt Schreibzugriff auf Google Calendar. Ort,
 Beschreibung, Videolink, ganztägige Intervalle und Zeitpunkte werden über die
 Calendar API übertragen. Ein privater Idempotenzschlüssel erlaubt den Abgleich vor
 dem Schreiben und nach unklaren Resultaten; ein unklarer Schreibzugriff wird nicht
-automatisch wiederholt. Auch im Testmodus wird ein ausdrücklich bestätigter Termin
-real angelegt, während Todoist-Aufgaben simuliert bleiben.
+automatisch wiederholt. Im Testmodus werden bestätigte Termine und Aufgaben
+simuliert; Google Kalender und Todoist werden dabei weder gelesen noch beschrieben.
 
 Lehnt Google den OAuth-Token-Abruf dauerhaft ab, beendet Mailhelp den laufenden
 Prozess sofort mit Status 1, statt den bestätigten Kalenderauftrag fortlaufend neu
@@ -484,13 +489,12 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
   externe ID und Link sowie `created`, `failed` oder `uncertain` werden im
   konfigurierten Telegram-Chat sichtbar gemeldet. Die Erfolgsmeldung für einen
   Kalendertermin nennt zusätzlich Datum und Uhrzeit in der konfigurierten Zeitzone
-  beziehungsweise kennzeichnet einen ganztägigen Termin. Aufgaben werden im Testmodus
+  beziehungsweise kennzeichnet einen ganztägigen Termin. Aufgaben und Termine werden im Testmodus
   stattdessen vor der Meldung mit dem Abschlusszustand `simulated` ohne externe ID
   oder Link atomar gespeichert. Bereits der Vorschlag bezeichnet dann die fehlende
   externe Anlegbarkeit als Simulation und die Schaltfläche lautet `Simulieren`;
   die Callback-Antwort unterscheidet die interne Bestätigung ausdrücklich von einer
-  externen Anlage. Google-Kalendertermine werden auch im Testmodus tatsächlich
-  angelegt und als `created` gespeichert. `simulation_notified`
+  externen Anlage. Für beide Ziele wird `simulated` gespeichert. `simulation_notified`
   hält anschließend dauerhaft fest, dass die
   eindeutig als Simulation bezeichnete Meldung versandt wurde. Mehrfach-Polls und
   Neustarts führen deshalb weder die Simulation erneut aus noch melden sie erneut;
@@ -521,9 +525,8 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
 * Die mitgelieferte `config.example.yaml` verwendet `test_mode: false`, damit eine über
   Telegram ausdrücklich bestätigte Aufgabe tatsächlich in Todoist angelegt wird.
   Wird `test_mode` für einen gezielten Testlauf auf `true` gesetzt, findet kein
-  Todoist-Schreibzugriff statt; Aufgaben werden dann als Simulation abgeschlossen.
-  Bestätigte Termine werden dagegen auch im Testmodus tatsächlich über die Google
-  Calendar API angelegt.
+  Zugriff auf Todoist oder Google Kalender statt; Aufgaben und Termine werden
+  als Simulation abgeschlossen. IMAP, LLM und Telegram bleiben online.
 * JSONL-Anwendungs- und LLM-Logs sind getrennt. Die Beispielkonfiguration protokolliert vollständige LLM-Anfragen und -Antworten; beide Inhaltsarten lassen sich unabhängig abschalten und Geheimnisfelder werden stets maskiert.
 * `.env` unterstützt einfache `NAME=WERT`-Zeilen und einfache/doppelte Anführungszeichen, aber bewusst keine Shell-Erweiterung. Prozessvariablen überschreiben gleichnamige Werte aus der Datei.
 
@@ -1016,7 +1019,7 @@ werden innerhalb derselben Bytegrenze weiterhin angenommen. Nur der konfiguriert
 Nutzer im konfigurierten Chat darf eine Aktion auslösen. Jede angezeigte Version
 wird vor ihren Schaltflächen gespeichert. Aufgabenvorschläge bieten `In Todoist anlegen`,
 `Ändern` und `Verwerfen`; vollständige Terminvorschläge bieten
-`Im Kalender anlegen`, `Ändern` und `Verwerfen`. `Im Kalender anlegen` schreibt den Termin über die Google Calendar API in den konfigurierten Zielkalender. Im Testmodus heißt die Todoist-Schaltfläche weiterhin `Simulieren`. Die Aktionen werden getrennt behandelt,
+`Im Kalender anlegen`, `Ändern` und `Verwerfen`. `Im Kalender anlegen` schreibt den Termin über die Google Calendar API in den konfigurierten Zielkalender. Im Testmodus heißt die Bestätigung für beide Ziele `Simulieren`. Die Aktionen werden getrennt behandelt,
 während veraltete oder fehlerhafte Schaltflächen keinen Zustand verändern.
 Callback-Klicks werden sofort bei Telegram quittiert. Erst nach erfolgreicher
 fachlicher Annahme entfernt Mailhelp zentral die gesamte Inline-Tastatur der

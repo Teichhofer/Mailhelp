@@ -456,6 +456,8 @@ class PromptConfig(BaseModel):
     defaults: dict[str, Any]
     prompts: dict[str, PromptStep]
     ollama: OllamaPromptSettings | None = None
+    suspicious_link_hosts: list[Annotated[str, Field(min_length=1, max_length=253)]] = Field(default_factory=list)
+    suspicious_link_phrases: list[Annotated[str, Field(min_length=1, max_length=250)]] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def required_steps(self) -> "PromptConfig":

@@ -291,6 +291,8 @@ class JevRelevanceAnalyzer(Analyzer):
         self.decisions = decisions
 
     def relevance(self, mail: dict[str, Any], topics: list[Topic]) -> tuple[str, Relevance]:
+        if self.suspicious_link_bait(mail):
+            return super().relevance(mail, topics)
         call, result = self.decisions.relevance(mail, topics)
         logger = self.decisions.client.logger
         logger.event("INFO", "decisions", "jev_relevance_completed",

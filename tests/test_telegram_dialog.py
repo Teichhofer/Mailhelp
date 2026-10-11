@@ -1086,7 +1086,7 @@ def test_card_shows_deviations_shortens_long_texts_and_drops_provenance():
 
 def test_test_mode_marks_task_simulation_before_confirmation(tmp_path):
     item = proposal()
-    assert "🧪 Testmodus: Die Aufgabe wird nur simuliert" in format_proposal(
+    assert "🧪 Testmodus: Der Eintrag wird nur simuliert" in format_proposal(
         item, "Europe/Berlin", test_mode=True
     )
     with JsonStore(tmp_path) as store:
@@ -1125,11 +1125,11 @@ def test_persist_before_buttons_and_authorized_flow(tmp_path):
         assert "konnte nicht verarbeitet" in t2.sent[-1][1]
 
 
-def test_test_mode_creates_calendar_file_and_sends_it_via_telegram(tmp_path):
+def test_production_mode_creates_calendar_file_and_sends_it_via_telegram(tmp_path):
     item = proposal(kind="event", start="2026-05-10T10:00:00+02:00",
                     end="2026-05-10T11:00:00+02:00", title="Planung")
     with JsonStore(tmp_path) as store:
-        dialog, transport, _ = controller(store, test_mode=True)
+        dialog, transport, _ = controller(store, test_mode=False)
         dialog.writers["google_calendar"] = CalendarFileWriter(transport, 2)
         dialog.send_proposal(item)
         callback_data = transport.sent[-1][2]["inline_keyboard"][0][0]["callback_data"]

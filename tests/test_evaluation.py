@@ -18,6 +18,88 @@ def prompts():
     return value
 
 
+def test_regression_evaluation_uses_jev_and_counts_unclear_fallback_in_one_budget():
+    from mailhelp.decisions import load_relevance_prompts
+    from test_decisions import envelope
+    corpus = load_corpus_v2()
+    corpus["cases"] = corpus["cases"][1:2]
+
+    class Decisions:
+        logger = UsageRecorder()
+        mode = "unclear"
+
+        def decide(self, model, state, questions, **kwargs):
+            assert "expected" not in state
+            return "jev-test", envelope(questions, {
+                "decision": self.mode, "topic_0": "match", "topic_1": "no_match"})
+
+    config = load_relevance_prompts(Path(__file__).parents[1])
+    decisions = Decisions()
+    report = evaluate(corpus, prompts(), Provider(corpus), 20,
+                      decision_prompts=config, decision_client=decisions)
+    assert report["passed"]
+    assert report["relevance_mode"] == "jev_unclear_fallback"
+    assert report["calls"] == 5
+    assert len(report["decision_prompt_fingerprint"]) == 64
+    limited = evaluate(corpus, prompts(), Provider(corpus), 1,
+                       decision_prompts=config, decision_client=decisions)
+    assert limited["calls"] == 1 and not limited["passed"]
+    assert limited["cases"][0]["error"] == "EvaluationBudgetExceeded"
+    decisions.mode = "irrelevant"  # Contradiction leads to the same fallback.
+    assert evaluate(corpus, prompts(), Provider(corpus), 20,
+                    decision_prompts=config, decision_client=decisions)["passed"]
+    decisions.mode = "relevant"
+    assert evaluate(corpus, prompts(), Provider(corpus, wrong=True), 20,
+                    decision_prompts=config, decision_client=decisions)["passed"]
+    from mailhelp.evaluation import BoundedDecider
+    budget = BoundedCompleter(Provider(corpus), 1)
+    budget.calls = 1
+    with pytest.raises(EvaluationBudgetExceeded):
+        BoundedDecider(decisions, budget).decide()
+
+
+def test_regression_recurring_clock_wording_is_compared_semantically():
+    corpus = load_corpus_v2()
+    case = next(c for c in corpus["cases"] if c["id"] == "11_recurring")
+    original = case["expected"]["event_extraction"]
+    actual = deepcopy(original)
+    actual["events"][0].update(time_text="13:00 Uhr", end_time_text="14.00 Uhr")
+    context = MailDateContext(date_context_status="trusted", user_timezone="Europe/Berlin",
+                              date_header_parsed=None, imap_received_at=None)
+    assert semantic_result("event_extraction", actual, context) == semantic_result("event_extraction", original, context)
+    actual["events"][0]["time_text"] = "Am Vormittag"
+    assert semantic_result("event_extraction", actual, context)["events"][0]["when"]["time"] == "am vormittag"
+
+
+@pytest.mark.parametrize("explicit", [False, True])
+def test_evaluation_cli_defaults_to_production_jev_and_closes_both_clients(tmp_path, monkeypatch, explicit):
+    from test_decisions import envelope
+    corpus = load_corpus_v2()
+    corpus["cases"] = corpus["cases"][1:2]
+    source, prompt_file, output = (tmp_path / "c.json", tmp_path / "p.yaml", tmp_path / "r.json")
+    source.write_text(json.dumps(corpus), encoding="utf-8")
+    prompt_file.write_text(yaml.safe_dump(prompts().model_dump(mode="json")), encoding="utf-8")
+
+    class Decisions:
+        logger = UsageRecorder()
+        closed = False
+        def decide(self, model, state, questions, **kwargs):
+            return "jev-test", envelope(questions, {
+                "decision": "relevant", "topic_0": "match", "topic_1": "no_match"})
+        def close(self):
+            self.closed = True
+
+    provider, decisions = Provider(corpus), Decisions()
+    monkeypatch.setenv("OPENROUTER_API_KEY", "synthetic-key")
+    monkeypatch.setattr("mailhelp.evaluation.OpenRouterClient", lambda *a, **k: provider)
+    monkeypatch.setattr("mailhelp.evaluation.DecisionClient", lambda *a, **k: decisions)
+    extra = ["--decisions-prompts", str(Path(__file__).parents[1] / "decisions_prompts.yaml")] if explicit else []
+    assert main(["--allow-network", "--corpus", str(source), "--prompts", str(prompt_file),
+                 "--output", str(output), "--max-calls", "50", *extra]) == 0
+    assert provider.closed and decisions.closed
+    assert json.loads(output.read_text(encoding="utf-8"))["relevance_mode"] == "jev_unclear_fallback"
+
+
 class Provider:
     def __init__(self, corpus, wrong=False):
         self.cases = {case["raw_email"].split("Subject: ")[1].split("\n")[0]: case
@@ -72,7 +154,7 @@ def test_cli_requires_explicit_network_budget_and_key_and_always_closes(tmp_path
     output = tmp_path / "report.json"
     source.write_text(json.dumps(corpus), encoding="utf-8")
     prompt_file.write_text(yaml.safe_dump(prompts().model_dump(mode="json")), encoding="utf-8")
-    args = ["--allow-network", "--corpus", str(source), "--prompts", str(prompt_file),
+    args = ["--allow-network", "--legacy-relevance", "--corpus", str(source), "--prompts", str(prompt_file),
             "--output", str(output), "--max-calls", "200"]
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     with pytest.raises(SystemExit): main(args)
@@ -207,7 +289,7 @@ def test_cli_writes_progress_and_partial_reports(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr("mailhelp.evaluation.write_report", recording)
     provider = Provider(corpus)
     monkeypatch.setattr("mailhelp.evaluation.OpenRouterClient", lambda *a, **k: provider)
-    assert main(["--allow-network", "--corpus", str(source), "--prompts", str(prompt_file),
+    assert main(["--allow-network", "--legacy-relevance", "--corpus", str(source), "--prompts", str(prompt_file),
                  "--output", str(output), "--max-calls", "50"]) == 0
     assert [len(item["cases"]) for item in snapshots] == [0, 1, 2, 2]
     assert snapshots[1]["complete"] is False and "usage" in snapshots[1]
@@ -216,6 +298,6 @@ def test_cli_writes_progress_and_partial_reports(tmp_path, monkeypatch, capsys):
     err = capsys.readouterr().err
     assert "[1/2] 01_no_action: bestanden (Aufrufe 3/50)" in err
     provider.wrong = True
-    main(["--allow-network", "--corpus", str(source), "--prompts", str(prompt_file),
+    main(["--allow-network", "--legacy-relevance", "--corpus", str(source), "--prompts", str(prompt_file),
           "--output", str(output), "--max-calls", "50"])
     assert "[1/2] 01_no_action: abweichend" in capsys.readouterr().err

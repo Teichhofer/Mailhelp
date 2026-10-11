@@ -187,8 +187,8 @@ def format_proposal(
     writable = proposal_is_writable(proposal)
     if not writable:
         lines.append("⚠️ Kann nicht automatisch angelegt werden – bitte manuell prüfen.")
-    elif test_mode and proposal.kind == ProposalKind.TASK:
-        lines.append("🧪 Testmodus: Die Aufgabe wird nur simuliert, nicht in Todoist angelegt.")
+    elif test_mode:
+        lines.append("🧪 Testmodus: Der Eintrag wird nur simuliert, nicht extern angelegt.")
     if proposal.open_questions:
         lines.append("❓ Offen:")
         lines.extend(f"- {display_question(question)}" for question in proposal.open_questions)
