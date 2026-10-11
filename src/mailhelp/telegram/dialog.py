@@ -16,10 +16,11 @@ from ..domain.processing import (
 )
 from ..integrations import ExternalWriter
 from ..models import Proposal, ProposalStatus, RelevanceDialog, TelegramOffset
+from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..storage import JsonStore
 
 from .authorization import AuthorizedUpdateValidator, UpdateValidation
-from .callbacks import Decision, RelevanceDecision, validate_callback_markup
+from .callbacks import Decision, DecisionAction, RelevanceDecision, validate_callback_markup
 from .client import TelegramTransport, _validation_path
 from .ledger import ActionLedgerPort, ActionLedgerService
 from .models import TelegramUpdate
@@ -42,6 +43,13 @@ from .writes import ConfirmedWriteExecutor, WriteExecution
 # before every mail.
 INBOX_RETRY_SECONDS = 30.0
 INBOX_MAX_ATTEMPTS = 3
+# Telegram buttons translated into channel-neutral review commands.
+_COMMAND_KINDS = {
+    DecisionAction.CONFIRM: CommandKind.CONFIRM,
+    DecisionAction.CONFIRM_DUPLICATE: CommandKind.CONFIRM_DUPLICATE,
+    DecisionAction.EDIT: CommandKind.START_CLARIFICATION,
+    DecisionAction.REJECT: CommandKind.REJECT,
+}
 
 
 class _DialogResponsePersistence:
@@ -166,6 +174,9 @@ class TelegramDialogController:
             revision_attempts=revision_attempts,
             revision_backoff_seconds=revision_backoff_seconds,
         )
+        from ..review.service import ReviewService
+
+        self.review = ReviewService(self)
 
     @property
     def relevance_handler(self) -> RelevanceHandler | None:
@@ -482,6 +493,8 @@ class TelegramDialogController:
                 )
                 self.telegram.send(self.chat_id, "❌ Nicht autorisierte Aktion.")
                 return
+            actor = f"telegram:{callback.sender.id}:{callback.message.chat.id}"
+            key = f"telegram-update-{update.update_id}"
             try:
                 if callback.data.startswith("relevance:"):
                     try:
@@ -492,9 +505,12 @@ class TelegramDialogController:
                             "❌ Relevanzantwort ist syntaktisch ungültig; bitte erneut versuchen.",
                         )
                         return
-                    confirmation = self._decide_relevance(
-                        relevance, update.update_id + 1
-                    )
+                    confirmation = self.review.execute(ReviewCommand(
+                        kind=CommandKind.RELEVANCE, source=CommandSource.TELEGRAM,
+                        actor=actor, mail_id=relevance.mail_id, version=relevance.version,
+                        decision=relevance.decision, idempotency_key=key,
+                        replay_offset=update.update_id + 1,
+                    ), raise_errors=True).message
                 else:
                     try:
                         decision = self.validator.decision(callback.data)
@@ -504,9 +520,12 @@ class TelegramDialogController:
                             "❌ Aktion ist syntaktisch ungültig; bitte erneut versuchen.",
                         )
                         return
-                    confirmation = self.decision_service.decide(
-                        decision, callback.sender.id, callback.message.chat.id
-                    )
+                    confirmation = self.review.execute(ReviewCommand(
+                        kind=_COMMAND_KINDS[decision.action], source=CommandSource.TELEGRAM,
+                        actor=actor, mail_id=decision.mail_id,
+                        proposal_id=decision.proposal_id, version=decision.version,
+                        idempotency_key=key,
+                    ), raise_errors=True).message
             except Exception as exc:
                 self.logger.event(
                     "ERROR",

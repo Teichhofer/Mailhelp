@@ -4,8 +4,10 @@ import errno
 import json, os
 import re
 import time
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Any
+from threading import RLock
+from typing import Any, Iterator
 from pydantic import BaseModel, ValidationError
 
 from .persistence.migrations import migrate_document
@@ -22,7 +24,23 @@ def mail_state_names(store: "JsonStore") -> list[str]:
 
 
 class JsonStore:
-    def __init__(self, directory: Path): self.directory, self.lock = directory, None
+    """JSON state files guarded against other processes and other threads.
+
+    The file lock excludes a second Mailhelp process.  The re-entrant thread
+    lock serializes reads and writes inside this process: the web server reads
+    while the main thread writes, and on Windows ``os.replace`` fails while
+    another thread holds the target file open.
+    """
+
+    def __init__(self, directory: Path):
+        self.directory, self.lock = directory, None
+        self._thread_lock = RLock()
+
+    @contextmanager
+    def locked(self) -> Iterator["JsonStore"]:
+        """Hold the thread lock across several reads for a consistent view."""
+        with self._thread_lock:
+            yield self
 
     def __enter__(self) -> "JsonStore":
         self.directory.mkdir(parents=True, exist_ok=True); path = self.directory / ".lock"
@@ -82,17 +100,46 @@ class JsonStore:
             fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
 
     def load(self, name: str, default: Any = None) -> Any:
+        with self._thread_lock:
+            value = self._read(name, default, quarantine=True)
+        return value
+
+    def peek(self, name: str, default: Any = None) -> Any:
+        """Read without side effects: a damaged file is reported, never moved."""
+        with self._thread_lock:
+            value = self._read(name, default, quarantine=False)
+        return value
+
+    def _read(self, name: str, default: Any, *, quarantine: bool) -> Any:
         self._validate_name(name)
         path = self.directory / f"{name}.json"
         if not path.exists(): return default
         try:
             with path.open(encoding="utf-8") as stream: return json.load(stream)
         except (OSError, json.JSONDecodeError) as exc:
-            quarantine = path.with_suffix(".corrupt"); os.replace(path, quarantine)
-            raise CorruptState(f"Beschädigter Zustand isoliert: {quarantine.name}") from exc
+            if not quarantine:
+                raise CorruptState(f"Beschädigter Zustand: {path.name}") from exc
+            isolated = path.with_suffix(".corrupt"); os.replace(path, isolated)
+            raise CorruptState(f"Beschädigter Zustand isoliert: {isolated.name}") from exc
+
+    def peek_model(self, name: str, model: type[BaseModel], default: BaseModel | None = None) -> BaseModel | None:
+        """Validate a state object read-only; migrations apply in memory only."""
+        value = self.peek(name, None)
+        if value is None:
+            return default
+        migrate_document(model.__name__, value)
+        try:
+            return model.model_validate(value)
+        except ValidationError as exc:
+            raise CorruptState(f"Schemawidriger Zustand: {name}.json") from exc
 
     def load_model(self, name: str, model: type[BaseModel], default: BaseModel | None = None) -> BaseModel | None:
         """Load and validate a state object, quarantining invalid schemas too."""
+        with self._thread_lock:
+            value = self._load_model(name, model, default)
+        return value
+
+    def _load_model(self, name: str, model: type[BaseModel], default: BaseModel | None) -> BaseModel | None:
         value = self.load(name, None)
         if value is None:
             return default
@@ -112,19 +159,22 @@ class JsonStore:
     def save(self, name: str, value: Any) -> None:
         self._validate_name(name)
         path = self.directory / f"{name}.json"; temporary = path.with_suffix(".tmp")
-        self.directory.mkdir(parents=True, exist_ok=True)
-        with temporary.open("w", encoding="utf-8", newline="\n") as stream:
-            json.dump(value, stream, ensure_ascii=False, indent=2, sort_keys=True); stream.write("\n"); stream.flush(); os.fsync(stream.fileno())
-        os.replace(temporary, path)
-        # Make the directory entry durable as well as the file contents.
-        if os.name != "nt":
-            descriptor = os.open(self.directory, os.O_RDONLY)
-            try: os.fsync(descriptor)
-            finally: os.close(descriptor)
+        with self._thread_lock:
+            self.directory.mkdir(parents=True, exist_ok=True)
+            with temporary.open("w", encoding="utf-8", newline="\n") as stream:
+                json.dump(value, stream, ensure_ascii=False, indent=2, sort_keys=True); stream.write("\n"); stream.flush(); os.fsync(stream.fileno())
+            os.replace(temporary, path)
+            # Make the directory entry durable as well as the file contents.
+            if os.name != "nt":
+                descriptor = os.open(self.directory, os.O_RDONLY)
+                try: os.fsync(descriptor)
+                finally: os.close(descriptor)
 
     def names(self, prefix: str = "") -> list[str]:
         """Return stable state names without exposing temporary/corrupt files."""
-        return sorted(path.stem for path in self.directory.glob(f"{prefix}*.json") if path.is_file())
+        with self._thread_lock:
+            names = sorted(path.stem for path in self.directory.glob(f"{prefix}*.json") if path.is_file())
+        return names
 
     @staticmethod
     def _validate_name(name: str) -> None:
