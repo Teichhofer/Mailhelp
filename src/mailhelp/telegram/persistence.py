@@ -24,6 +24,13 @@ def clarification_name(mail_id: str, proposal_id: str, version: int) -> str:
     return f"clarification-{mail_id}-{proposal_id}-v{version}"
 
 
+def _bound(value: object, mail_id: str, proposal_id: str, version: int | None = None) -> bool:
+    """A stored proposal is only actionable under the identity its file name claims."""
+    return (isinstance(value, Proposal)
+            and (value.source_mail_id, value.id) == (mail_id, proposal_id)
+            and version in {None, value.version})
+
+
 class ProposalPersistence(Protocol):
     """Port consumed by write and revision services."""
 
@@ -45,13 +52,13 @@ class ProposalRepository:
 
     def load_current(self, mail_id: str, proposal_id: str) -> Proposal | None:
         value = self.store.load_model(proposal_name(mail_id, proposal_id), Proposal)
-        return value if isinstance(value, Proposal) else None
+        return value if _bound(value, mail_id, proposal_id) else None
 
     def load_version(self, mail_id: str, proposal_id: str,
                      version: int) -> Proposal | None:
         value = self.store.load_model(
             proposal_version_name(mail_id, proposal_id, version), Proposal)
-        return value if isinstance(value, Proposal) else None
+        return value if _bound(value, mail_id, proposal_id, version) else None
 
     def load_mail(self, mail_id: str) -> MailState | None:
         value = self.store.load_model(f"mail-{mail_id}", MailState)

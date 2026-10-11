@@ -278,6 +278,7 @@ class ReviewViews:
                 subject=state.display_headers.subject if state.display_headers else "Mail ohne Betreff",
                 stage=STAGE_LABELS[error.stage.value], cause=ERROR_LABELS[error.code.value],
                 occurred_at=error.occurred_at, retryable=error.retryable,
+                next_attempt=state.deferred_until,
             ) for state, error in failed[:ERROR_LIMIT]),
             telegram_held=len(outbox.entries),
             telegram_unprocessed=len(entries) if isinstance(entries, list) else 0,

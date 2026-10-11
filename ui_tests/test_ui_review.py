@@ -53,11 +53,17 @@ def test_overview_refreshes_itself_but_never_discards_typed_text(page, mailhelp)
     refresh(page)
     expect(badge).to_have_text("● Verbunden")
     # A failing or refused state request does not reload.
+    # The PC is unreachable: both requests of the foreground check fail. (Failing only
+    # /api/stand raced with a successful /health that rightly shows "Verbunden".)
     page.route("**/api/stand", lambda route: route.abort())
+    page.route("**/health", lambda route: route.abort())
     refresh(page)
     expect(badge).to_have_text("PC nicht erreichbar")
+    page.wait_for_timeout(200)
+    expect(badge).to_have_text("PC nicht erreichbar")
     page.unroute("**/api/stand")
-    assert page.errors == ["Failed to load resource: net::ERR_FAILED"]  # the abort above
+    page.unroute("**/health")
+    assert page.errors == ["Failed to load resource: net::ERR_FAILED"] * 2  # the aborts above
     page.errors.clear()
     page.route("**/api/stand", lambda route: route.fulfill(status=401, body="{}"))
     with page.expect_response("**/api/stand"):
