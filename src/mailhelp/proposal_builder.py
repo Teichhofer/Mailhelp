@@ -7,6 +7,7 @@ import json
 from .action_normalization import (MailDateContext, TemporalValue, normalize_event,
                                    normalize_task_due, recover_task_due)
 from .config import TargetSettings
+from .domain.extraction import ParsedCalendarEvent
 from .models import (ExtractedEvent, ExtractedTask, Proposal, ProposalClassification,
                      ExtractionCountConflict, KnownTemporalFacts,
                      ProposalResponsibility, ProposalStatus)
@@ -82,13 +83,61 @@ class ProposalBuilder:
         return candidate
 
     def build(self, tasks: list[ExtractedTask], events: list[ExtractedEvent],
-              count_conflicts: list[ExtractionCountConflict] | None = None) -> list[Proposal]:
+              count_conflicts: list[ExtractionCountConflict] | None = None,
+              calendar_events: list[ParsedCalendarEvent | dict] | None = None) -> list[Proposal]:
         """Build deterministic proposals without changing the extracted cardinality."""
         proposals: list[Proposal] = []
         used_ids: set[str] = set()
         conflicted = {item.category for item in count_conflicts or []}
+
+        cal_items: list[ParsedCalendarEvent] = []
+        ics_summaries: set[str] = set()
+        if calendar_events:
+            for item in calendar_events:
+                cal = item if isinstance(item, ParsedCalendarEvent) else ParsedCalendarEvent.model_validate(item)
+                cal_items.append(cal)
+                ics_summaries.add(cal.summary.strip().casefold())
+
+        for pos_offset, cal in enumerate(cal_items):
+            evidence = "Aus Kalenderanhang übernommen"
+            classification = (
+                ProposalClassification.CANCELLATION
+                if cal.status == "CANCELLED"
+                else ProposalClassification.NEW
+            )
+            raw_id = hashlib.sha256(
+                f"{self.source_mail_id}:cal:{cal.uid or cal.summary}".encode()
+            ).hexdigest()[:24]
+            cand_id = f"p_{raw_id}"
+            if cand_id in used_ids:
+                cand_id = f"p_{hashlib.sha256(f'{cand_id}:{pos_offset}'.encode()).hexdigest()[:24]}"
+            used_ids.add(cand_id)
+            proposals.append(Proposal(
+                schema_version=2,
+                id=cand_id,
+                version=1,
+                kind="event",
+                responsibility=ProposalResponsibility.USER,
+                certainty="certain",
+                classification=classification,
+                title=cal.summary,
+                description=self._description(cal.description),
+                evidence=evidence,
+                source_mail_id=self.source_mail_id,
+                open_questions=[],
+                location=cal.location,
+                video_link=str(cal.video_link) if cal.video_link else None,
+                target=self.targets.google_calendar,
+                status=ProposalStatus.PENDING_CONFIRMATION,
+                start=cal.start,
+                end=cal.end,
+                all_day=cal.all_day,
+                is_cancellation=cal.status == "CANCELLED",
+            ))
+
+        filtered_events = [e for e in events if e.title.strip().casefold() not in ics_summaries]
         entries: list[tuple[str, ExtractedTask | ExtractedEvent]] = [
-            *(("task", item) for item in tasks), *(("event", item) for item in events)
+            *(("task", item) for item in tasks), *(("event", item) for item in filtered_events)
         ]
         for position, (kind, item) in enumerate(entries):
             # A deadline missing from due_text but unambiguous in the verbatim

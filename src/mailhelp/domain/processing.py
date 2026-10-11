@@ -101,6 +101,7 @@ class ProcessingSteps(StrictModel):
     event_extraction: Literal["pending", "completed", "failed", "skipped"] = "pending"
     normalization: Literal["pending", "completed", "failed", "skipped"] = "pending"
     proposal_building: Literal["pending", "completed", "failed", "skipped"] = "pending"
+    duplicate_precheck: Literal["pending", "completed", "failed", "skipped"] = "pending"
     proposal_notification: Literal["pending", "sending", "completed", "skipped"] = "pending"
     completion: Literal["pending", "completed", "skipped"] = "pending"
 
@@ -116,6 +117,7 @@ class ProcessingStage(StrEnum):
     EVENT_EXTRACTION = "event_extraction"
     NORMALIZATION = "normalization"
     PROPOSAL_BUILDING = "proposal_building"
+    DUPLICATE_PRECHECK = "duplicate_precheck"
     PROPOSAL_NOTIFICATION = "proposal_notification"
     COMPLETION = "completion"
 

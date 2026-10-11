@@ -43,6 +43,7 @@ class ProposalClassification(StrEnum):
 class ProposalStatus(StrEnum):
     NEEDS_CLARIFICATION = "needs_clarification"
     PENDING_CONFIRMATION = "pending_confirmation"
+    ALREADY_EXISTS = "already_exists"
     CONFIRMED = "confirmed"
     WRITING = "writing"
     CREATED = "created"
@@ -50,6 +51,23 @@ class ProposalStatus(StrEnum):
     REJECTED = "rejected"
     FAILED = "failed"
     UNCERTAIN = "uncertain"
+
+
+class DuplicateSource(StrEnum):
+    ACTION_LEDGER = "action_ledger"
+    GOOGLE_CALENDAR = "google_calendar"
+    TODOIST = "todoist"
+
+
+class DuplicateMatchInfo(StrictModel):
+    source: DuplicateSource
+    external_id: str | None = Field(default=None, max_length=500)
+    external_link: str | None = Field(default=None, max_length=2000)
+    matched_title: str = Field(min_length=1, max_length=500)
+    matched_time: datetime | date | None = None
+    similarity_score: float | None = Field(default=None, ge=0.0, le=1.0)
+    details: str = Field(default="", max_length=1000)
+    checked_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 class KnownTemporalFacts(StrictModel):
@@ -146,6 +164,10 @@ class Proposal(StrictModel):
     explicit_non_binding_create_confirmed: bool = False
     # Application-owned, version-bound authorization for a deliberate duplicate.
     explicit_duplicate_create_confirmed_version: int | None = Field(default=None, ge=1)
+    duplicate_match: DuplicateMatchInfo | None = None
+    target_event_id: str | None = Field(default=None, max_length=500)
+    time_changes: list[str] = Field(default_factory=list)
+    is_cancellation: bool = False
 
     @property
     def is_creatable(self) -> bool:
@@ -153,7 +175,9 @@ class Proposal(StrictModel):
         classification_allowed = (
             self.classification == ProposalClassification.NEW or
             (self.classification == ProposalClassification.CHANGE and
-             self.explicit_create_fallback_confirmed) or
+             (self.explicit_create_fallback_confirmed or self.target_event_id is not None)) or
+            (self.classification == ProposalClassification.CANCELLATION and
+             self.target_event_id is not None) or
             (self.classification == ProposalClassification.NON_BINDING and
              self.explicit_non_binding_create_confirmed)
         )
@@ -167,9 +191,19 @@ class Proposal(StrictModel):
             raise ValueError("Ein simulierter Vorschlag darf kein externes Ergebnis enthalten")
         if self.simulation_notified and self.status != ProposalStatus.SIMULATED:
             raise ValueError("Eine Simulation darf nur im simulierten Zustand als gemeldet markiert werden")
+        if self.kind == ProposalKind.TASK and self.target_event_id is not None:
+            raise ValueError("Nur Termine unterstützen Terminaktualisierungen")
+        if self.is_cancellation and self.target_event_id is None:
+            raise ValueError("Eine Stornierung erfordert eine Ziel-Event-ID")
+        if self.status == ProposalStatus.ALREADY_EXISTS and self.open_questions:
+            raise ValueError("Ein bereits vorhandener Eintrag darf keine offenen Fragen enthalten")
+        if self.status == ProposalStatus.ALREADY_EXISTS and self.duplicate_match is None:
+            raise ValueError("Ein bereits vorhandener Eintrag benötigt Duplikat-Informationen")
         ready = self.is_creatable and not self.open_questions
         if self.status == ProposalStatus.PENDING_CONFIRMATION and not ready:
             raise ValueError("Nur vollständige neue Vorschläge dürfen bestätigt werden")
+
+
         if self.kind == ProposalKind.TASK and (self.start is not None or self.end is not None or self.all_day):
             raise ValueError("Aufgaben dürfen keine Kalenderzeit enthalten")
         if self.kind != ProposalKind.EVENT and (self.duration_minutes is not None or
@@ -225,6 +259,9 @@ class ProposalRevisionChanges(StrictModel):
     target: str | None = Field(default=None, min_length=1, max_length=500)
     explicit_create_fallback_confirmed: bool | None = None
     explicit_non_binding_create_confirmed: bool | None = None
+    target_event_id: str | None = Field(default=None, max_length=500)
+    time_changes: list[str] | None = None
+    is_cancellation: bool | None = None
 
 
 class ProposalRevisionDelta(StrictModel):
@@ -256,9 +293,10 @@ def _required_revision_questions(proposal: Proposal) -> list[str]:
             else "Soll der nicht bindende Hinweis dennoch als neuer Eintrag angelegt werden?"
         ),
         ProposalClassification.ALREADY_COMPLETED: "Der Eintrag ist bereits abgeschlossen und nicht direkt ausführbar.",
-        ProposalClassification.CHANGE: (None if proposal.explicit_create_fallback_confirmed
+        ProposalClassification.CHANGE: (None if (proposal.explicit_create_fallback_confirmed or proposal.target_event_id is not None)
                                         else "Welcher bestehende Eintrag soll geändert werden?"),
-        ProposalClassification.CANCELLATION: "Welcher bestehende Eintrag soll storniert werden?",
+        ProposalClassification.CANCELLATION: (None if proposal.target_event_id is not None
+                                              else "Welcher bestehende Eintrag soll storniert werden?"),
         ProposalClassification.RECURRING: "Wiederkehrende Einträge werden nicht automatisch angelegt.",
         ProposalClassification.UNSUPPORTED: "Diese Art von Eintrag wird nicht unterstützt.",
     }.get(proposal.classification)

@@ -20,9 +20,11 @@ from .action_normalization import MailDateContext
 from .proposal_builder import ProposalBuilder
 from .imap import FetchedMail
 from .mime import MimeLimitExceeded, extract_display_headers, prepare
+from .domain.proposal import ProposalStatus
 from .models import (DisplayHeaders, DuplicateDecision, DuplicateIndex, DuplicateIndexEntry, ExtractionCountConflict, IrrelevantSenders, MailState, ProcessingError, ProcessingErrorCode, ProcessingStage,
                      Proposal, Relevance, RelevanceDialog, RelevanceDialogStatus,
                      ProposalNotification, ValidationIssue)
+from .precheck import DuplicatePreCheckService
 from .storage import JsonStore
 from .openrouter import RateLimitExceeded
 from .logging import EventLogger, NullLogger
@@ -77,7 +79,7 @@ def _revision_effective(previous: Proposal, revised: Proposal) -> bool:
 
 
 class Orchestrator:
-    def __init__(self, analyzer: Analyzer, store: JsonStore, notifier: Notifier, chat_id: int, topics: list[Topic], max_mail_bytes: int, logger: EventLogger | None = None, clock: Any = time.time, mime_limits: object | None = None, config_fingerprint: str = "0" * 64, targets: TargetSettings | None = None, user_timezone: str = "UTC", sender_store: JsonStore | None = None):
+    def __init__(self, analyzer: Analyzer, store: JsonStore, notifier: Notifier, chat_id: int, topics: list[Topic], max_mail_bytes: int, logger: EventLogger | None = None, clock: Any = time.time, mime_limits: object | None = None, config_fingerprint: str = "0" * 64, targets: TargetSettings | None = None, user_timezone: str = "UTC", sender_store: JsonStore | None = None, precheck: DuplicatePreCheckService | None = None):
         self.analyzer, self.store, self.notifier, self.chat_id, self.topics, self.max_bytes = analyzer, store, notifier, chat_id, topics, mime_limits or max_mail_bytes
         self.stop_event = Event()
         self.logger = logger or NullLogger()
@@ -91,6 +93,7 @@ class Orchestrator:
         # Unlike processing state, the sender filter is configuration shared by
         # test and production mode.
         self.sender_store = sender_store or store
+        self.precheck = precheck or DuplicatePreCheckService(logger=self.logger)
 
     def _build_proposals(self, state: MailState) -> list[Proposal]:
         """Cross from untrusted extracted facts into application-owned proposals."""
@@ -110,6 +113,7 @@ class Orchestrator:
             state.task_extraction.tasks if state.task_extraction else [],
             state.event_extraction.events if state.event_extraction else [],
             state.extraction_count_conflicts,
+            calendar_events=state.mail.get("calendar_events"),
         )
 
     def _resolve_questions_from_mail(self, name: str, state: MailState) -> None:
@@ -387,6 +391,7 @@ class Orchestrator:
             state.steps.summary = state.steps.action_detection = "skipped"
             state.steps.action_router = state.steps.task_extraction = state.steps.event_extraction = "skipped"
             state.steps.normalization = state.steps.proposal_building = "skipped"
+            state.steps.duplicate_precheck = "skipped"
             state.steps.summary_notification = state.steps.proposal_notification = "skipped"
             state.steps.completion = "completed"
         else:
@@ -468,6 +473,7 @@ class Orchestrator:
                 state.steps.action_detection = "skipped"
                 state.steps.action_router = state.steps.task_extraction = state.steps.event_extraction = "skipped"
                 state.steps.normalization = state.steps.proposal_building = "skipped"
+                state.steps.duplicate_precheck = "skipped"
                 state.steps.summary_notification = state.steps.proposal_notification = "skipped"
             elif state.relevance.decision == "unclear":
                 if state.steps.summary_notification == "pending":
@@ -525,8 +531,10 @@ class Orchestrator:
                     # router is unsure whether the message is an invitation.  The
                     # extractor and proposal boundary preserve that uncertainty,
                     # while Telegram still receives the detected appointment.
-                    wants_events = (route.action_state in {"event", "task_and_event"}
-                                    or route.event_count > 0)
+                    has_cal_events = bool(state.mail.get("calendar_events"))
+                    wants_llm_events = (route.action_state in {"event", "task_and_event"}
+                                        or route.event_count > 0)
+                    wants_events = wants_llm_events or has_cal_events
                     if wants_tasks and state.steps.task_extraction in {"pending", "failed"}:
                         stage = ProcessingStage.TASK_EXTRACTION
                         call, extraction = self.analyzer.extract_tasks(
@@ -541,7 +549,7 @@ class Orchestrator:
                     if not wants_tasks:
                         state.steps.task_extraction = "skipped"
                         self._save(name, state)
-                    if wants_events and state.steps.event_extraction in {"pending", "failed"}:
+                    if wants_llm_events and state.steps.event_extraction in {"pending", "failed"}:
                         stage = ProcessingStage.EVENT_EXTRACTION
                         call, extraction = self.analyzer.extract_events(
                             state.mail, expected_count=route.event_count)
@@ -552,7 +560,7 @@ class Orchestrator:
                         self._record_count_conflict(name, state, "event", route.event_count,
                                                     len(extraction.events),
                                                     state.action_router_call_id, call)
-                    elif not wants_events:
+                    elif not wants_llm_events:
                         state.steps.event_extraction = "skipped"
                         self._save(name, state)
                     stage = ProcessingStage.NORMALIZATION
@@ -567,9 +575,22 @@ class Orchestrator:
                         state.steps.proposal_building = "completed"
                         self._save(name, state)
                     self._resolve_questions_from_mail(name, state)
-                    state.proposal_notifications = [ProposalNotification(
-                        proposal_id=item.id, proposal_version=item.version)
-                        for item in state.proposals]
+                    stage = ProcessingStage.DUPLICATE_PRECHECK
+                    if state.steps.duplicate_precheck in {"pending", "failed"}:
+                        state.proposals = [
+                            self.precheck.check_proposal(p, mail_context=state.mail)
+                            for p in state.proposals
+                        ]
+                        state.steps.duplicate_precheck = "completed"
+                        self._save(name, state)
+                    state.proposal_notifications = [
+                        ProposalNotification(
+                            proposal_id=item.id,
+                            proposal_version=item.version,
+                            status="completed" if item.status == ProposalStatus.ALREADY_EXISTS else "pending",
+                        )
+                        for item in state.proposals
+                    ]
                     state.steps.action_detection = "completed"
                     self._save(name, state)
                     self.logger.event("INFO", "orchestrator", "actions_completed", mail_id=state.id,
@@ -691,7 +712,7 @@ class Orchestrator:
         """Complete the mail while retaining a retryable action-only failure."""
         action_stages = {ProcessingStage.ACTION_ROUTER, ProcessingStage.TASK_EXTRACTION,
                          ProcessingStage.EVENT_EXTRACTION, ProcessingStage.NORMALIZATION,
-                         ProcessingStage.PROPOSAL_BUILDING}
+                         ProcessingStage.PROPOSAL_BUILDING, ProcessingStage.DUPLICATE_PRECHECK}
         if stage not in action_stages:
             return ProcessingOutcome.FAILED
         step_name = {
@@ -700,6 +721,7 @@ class Orchestrator:
             ProcessingStage.EVENT_EXTRACTION: "event_extraction",
             ProcessingStage.NORMALIZATION: "normalization",
             ProcessingStage.PROPOSAL_BUILDING: "proposal_building",
+            ProcessingStage.DUPLICATE_PRECHECK: "duplicate_precheck",
         }[stage]
         setattr(state.steps, step_name, "failed")
         state.steps.action_detection = "failed"

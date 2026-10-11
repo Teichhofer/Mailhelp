@@ -186,3 +186,31 @@ class ExtractionCountConflict(StrictModel):
                      or self.notification_marked_at.utcoffset() is None)):
             raise ValueError("Der Benachrichtigungszeitpunkt benötigt einen UTC-Offset")
         return self
+
+
+class ExtractedAttachment(StrictModel):
+    """Structured text extract and metadata from an email attachment."""
+
+    filename: str = Field(min_length=1, max_length=500)
+    content_type: str = Field(min_length=1, max_length=200)
+    size_bytes: int = Field(ge=0)
+    text: str = Field(default="", max_length=50000)
+    extraction_status: Literal[
+        "success", "no_text_found", "encrypted", "skipped_oversized", "error", "unsupported_format"
+    ] = "success"
+    character_count: int = Field(default=0, ge=0)
+
+
+class ParsedCalendarEvent(StrictModel):
+    """Deterministic event extracted from an RFC 5545 iCalendar stream."""
+
+    uid: str | None = Field(default=None, max_length=500)
+    sequence: int = Field(default=0, ge=0)
+    summary: str = Field(min_length=1, max_length=500)
+    description: str = Field(default="", max_length=4000)
+    start: datetime | date
+    end: datetime | date
+    all_day: bool = False
+    location: str | None = Field(default=None, max_length=1000)
+    video_link: AnyHttpUrl | None = None
+    status: Literal["CONFIRMED", "TENTATIVE", "CANCELLED"] = "CONFIRMED"

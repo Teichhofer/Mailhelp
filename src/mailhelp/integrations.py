@@ -87,7 +87,9 @@ class GoogleOAuthTokenProvider:
 
 class TodoistTaskResponse(IntegrationModel):
     id: str | int
+    content: str = ""
     description: str = ""
+    due: dict[str, Any] | None = None
     url: str | None = None
 
 
@@ -315,6 +317,18 @@ class HttpWriter:
         self.client = httpx.Client(base_url=base, timeout=timeout, transport=transport)
         self.policy = policy or RetryPolicy(0, 0, 0, lambda _delay: False)
         self.logger = logger or NullLogger()
+        self._read_cache: dict[tuple[Any, ...], tuple[float, Any]] = {}
+        self._cache_ttl: float = 60.0
+
+    def _get_cached(self, key: tuple[Any, ...]) -> Any | None:
+        if key in self._read_cache:
+            ts, val = self._read_cache[key]
+            if time.time() - ts < self._cache_ttl:
+                return val
+        return None
+
+    def _set_cached(self, key: tuple[Any, ...], val: Any) -> None:
+        self._read_cache[key] = (time.time(), val)
 
     def check_access(self) -> None:
         """Verify access to the configured target using only a GET request."""
@@ -367,6 +381,12 @@ class HttpWriter:
                 body["due_date"] = proposal.due.isoformat()
         else:
             if proposal.kind != ProposalKind.EVENT: raise ValueError("Kalender akzeptiert nur Termine")
+            if proposal.target_event_id is not None:
+                body = self._calendar_event_body(proposal, key)
+                if proposal.is_cancellation:
+                    body["status"] = "cancelled"
+                return PreparedWrite(lambda: self._update_calendar_event(
+                    proposal.target_event_id, body, key, proposal, proposal.time_changes))
             duplicate = (None if proposal.explicit_duplicate_create_confirmed_version == proposal.version
                          else self._matching_calendar_event(proposal))
             if duplicate is not None:
@@ -404,7 +424,88 @@ class HttpWriter:
         except (ValueError, ValidationError) as exc: raise ValueError(f"{self.service}: ungültige Antwort am Schlüsselpfad {_path(exc)}") from exc
         self.logger.event("INFO", self.service, "create_completed", call_id=key, mail_id=proposal.source_mail_id,
                           proposal_id=proposal.id, duration_ms=round((time.perf_counter()-started)*1000, 3), status=response.status_code)
+        self._read_cache.clear()
         return result.model_dump()
+
+    def fetch_events_in_window(
+        self, start: datetime | date, end: datetime | date
+    ) -> list[CalendarOverlapEvent]:
+        """Fetch existing Google Calendar events in the given window with caching and fallback."""
+        if self.service != "google_calendar":
+            return []
+        if isinstance(start, date) and not isinstance(start, datetime):
+            time_min = datetime.combine(start, datetime.min.time(), timezone.utc).isoformat()
+        else:
+            time_min = start.isoformat()
+        if isinstance(end, date) and not isinstance(end, datetime):
+            time_max = datetime.combine(end, datetime.min.time(), timezone.utc).isoformat()
+        else:
+            time_max = end.isoformat()
+
+        cache_key = (self.service, self.target, time_min, time_max)
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
+        params = {
+            "timeMin": time_min,
+            "timeMax": time_max,
+            "singleEvents": "true",
+            "maxResults": "50",
+        }
+        events: list[CalendarOverlapEvent] = []
+        seen_tokens: set[str] = set()
+        try:
+            while True:
+                response = self.policy.run(lambda: self._get(
+                    f"/calendars/{self.target}/events", params
+                ))
+                page = response.json()
+                raw_items = page.get("items", [])
+                if not isinstance(raw_items, list):
+                    break
+                items = [CalendarOverlapEvent.model_validate(item) for item in raw_items]
+                events.extend(items)
+                next_token = page.get("nextPageToken")
+                if next_token is None or not isinstance(next_token, str) or next_token in seen_tokens:
+                    break
+                seen_tokens.add(next_token)
+                params["pageToken"] = next_token
+            self._set_cached(cache_key, events)
+            return events
+        except Exception as exc:
+            self.logger.event("WARNING", self.service, "fetch_events_failed", error=str(exc))
+            return []
+
+    def fetch_active_tasks(self) -> list[TodoistTaskResponse]:
+        """Fetch active tasks in configured project with caching and graceful fallback."""
+        if self.service != "todoist":
+            return []
+        cache_key = (self.service, self.target, "tasks")
+        cached = self._get_cached(cache_key)
+        if cached is not None:
+            return cached
+
+        tasks: list[TodoistTaskResponse] = []
+        cursor = None
+        seen_cursors: set[str] = set()
+        try:
+            while True:
+                params = {"project_id": self.target}
+                if cursor is not None:
+                    params["cursor"] = cursor
+                response = self.policy.run(lambda: self._get("/tasks", params))
+                page = TodoistTaskListResponse.model_validate(response.json())
+                tasks.extend(page.results)
+                cursor = page.next_cursor
+                if cursor is None or cursor in seen_cursors:
+                    break
+                seen_cursors.add(cursor)
+            self._set_cached(cache_key, tasks)
+            return tasks
+        except Exception as exc:
+            self.logger.event("WARNING", self.service, "fetch_tasks_failed", error=str(exc))
+            return []
 
     def _matching_calendar_event(self, proposal: Proposal) -> tuple[CalendarOverlapEvent, CalendarDuplicateDecision] | None:
         if self.service != "google_calendar" or self.calendar_matcher is None:
@@ -502,6 +603,7 @@ class HttpWriter:
         self.logger.event("INFO", self.service, "duplicate_updated", call_id=key,
                           mail_id=proposal.source_mail_id, proposal_id=proposal.id,
                           existing_event_id=existing_id, time_changed=bool(time_changes))
+        self._read_cache.clear()
         return {**result, "operation": "duplicate_updated", "time_changes": time_changes or []}
 
     def _calendar_event_body(self, proposal: Proposal, key: str) -> dict[str, Any]:

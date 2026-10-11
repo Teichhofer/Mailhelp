@@ -1141,7 +1141,13 @@ def build_application(
             inbox=telegram_inbox,
             commands=CommandInbox(store, wake=telegram_inbox.wake) if web_enabled else None,
         )
-        orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics, settings.limits.max_mail_bytes, logger, mime_limits=settings.limits, config_fingerprint=fingerprint, targets=settings.targets, user_timezone=settings.timezone, sender_store=sender_store)
+        from .precheck import DuplicatePreCheckService
+        precheck = DuplicatePreCheckService(
+            writers={"google_calendar": calendar, "todoist": todoist},
+            ledger=dialog.ledger,
+            logger=logger,
+        )
+        orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics, settings.limits.max_mail_bytes, logger, mime_limits=settings.limits, config_fingerprint=fingerprint, targets=settings.targets, user_timezone=settings.timezone, sender_store=sender_store, precheck=precheck)
         from .fingerprints import (adopt_legacy_configuration, legacy_fingerprints, legacy_policies,
                                    topic_policy)
         orchestrator.topic_policy = topic_policy(settings, prompts)

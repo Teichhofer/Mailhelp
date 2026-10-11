@@ -13,6 +13,10 @@ def test_context_modules_and_legacy_facade_share_model_types():
     assert models.ProcessingError is processing.ProcessingError
     assert models.DuplicateIndex is duplicate.DuplicateIndex
     assert models.MailState is mail.MailState
+    assert models.DuplicateSource is proposal.DuplicateSource
+    assert models.DuplicateMatchInfo is proposal.DuplicateMatchInfo
+    assert models.ExtractedAttachment is extraction.ExtractedAttachment
+    assert models.ParsedCalendarEvent is extraction.ParsedCalendarEvent
 
 
 def test_persistence_boundary_is_explicit_and_preserves_json_schemas():

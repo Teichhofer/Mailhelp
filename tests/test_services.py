@@ -1517,7 +1517,7 @@ def test_orchestrator(tmp_path):
         n=PlainNotify(); o=Orchestrator(AnalyzerStub("relevant"),store,n,1,[topic],1000); state=o.process(mail); assert state.outcome is ProcessingOutcome.COMPLETED and state["steps"]["completion"]=="completed" and n.messages; assert o.process(mail)==state
     with JsonStore(tmp_path/"b") as store:
         state=Orchestrator(AnalyzerStub("irrelevant"),store,Notify(),1,[topic],1000).process(mail)
-        assert state["steps"]=={"preparation":"completed","relevance":"completed","summary":"skipped","summary_notification":"skipped","action_detection":"skipped","action_router":"skipped","task_extraction":"skipped","event_extraction":"skipped","normalization":"skipped","proposal_building":"skipped","proposal_notification":"skipped","completion":"completed"}
+        assert state["steps"]=={"preparation":"completed","relevance":"completed","summary":"skipped","summary_notification":"skipped","action_detection":"skipped","action_router":"skipped","task_extraction":"skipped","event_extraction":"skipped","normalization":"skipped","proposal_building":"skipped","duplicate_precheck":"skipped","proposal_notification":"skipped","completion":"completed"}
     with JsonStore(tmp_path/"blocked") as store:
         from mailhelp.models import IrrelevantSenders
         sender_store = JsonStore(tmp_path / "config")
@@ -1603,7 +1603,7 @@ def test_orchestrator_resolves_versioned_relevance_both_ways(tmp_path):
             assert resolved.relevance_dialog.telegram_offset==10
             with pytest.raises(ValueError,match="bereits"): orchestrator.resolve_relevance(mail_id,1,decision,11)
             if decision == "irrelevant":
-                assert resolved.steps.model_dump()=={"preparation":"completed","relevance":"completed","summary":"skipped","summary_notification":"skipped","action_detection":"skipped","action_router":"skipped","task_extraction":"skipped","event_extraction":"skipped","normalization":"skipped","proposal_building":"skipped","proposal_notification":"skipped","completion":"completed"}
+                assert resolved.steps.model_dump()=={"preparation":"completed","relevance":"completed","summary":"skipped","summary_notification":"skipped","action_detection":"skipped","action_router":"skipped","task_extraction":"skipped","event_extraction":"skipped","normalization":"skipped","proposal_building":"skipped","duplicate_precheck":"skipped","proposal_notification":"skipped","completion":"completed"}
             else:
                 completed=orchestrator.resume_mail(resolved)
                 assert completed.outcome is ProcessingOutcome.COMPLETED

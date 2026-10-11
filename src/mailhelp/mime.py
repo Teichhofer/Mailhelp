@@ -197,11 +197,68 @@ def _omit_attachments(part: Message) -> int:
     return attachments
 
 
+def _collect_and_extract_attachments(
+    message: Message, user_timezone: str
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Collect attachment parts and extract calendar events and document texts."""
+    from .calendar_parser import parse_icalendar
+    from .attachment_extractor import extract_attachment_text
+
+    calendar_events: list[dict[str, Any]] = []
+    extracted_attachments: list[dict[str, Any]] = []
+
+    for child in message.walk():
+        if child.is_multipart():
+            continue
+        is_attachment = (
+            child.get_content_disposition() == "attachment"
+            or child.get_filename() is not None
+            or child.get_content_type() not in {"text/plain", "text/html"}
+        )
+        if not is_attachment:
+            continue
+
+        filename = child.get_filename() or "unnamed"
+        content_type = child.get_content_type() or "application/octet-stream"
+        payload = child.get_payload(decode=True) or b""
+
+        lower_name = filename.lower()
+        lower_type = content_type.lower()
+        if lower_name.endswith(".ics") or "calendar" in lower_type:
+            try:
+                events = parse_icalendar(payload, default_timezone=user_timezone)
+                for ev in events:
+                    calendar_events.append(ev.model_dump(mode="json"))
+                extracted_attachments.append({
+                    "filename": filename[:500],
+                    "content_type": content_type[:200],
+                    "size_bytes": len(payload),
+                    "text": f"Kalendereinladung mit {len(events)} Termin(en) geparst.",
+                    "extraction_status": "success",
+                    "character_count": 0,
+                })
+            except Exception:
+                extracted_attachments.append({
+                    "filename": filename[:500],
+                    "content_type": content_type[:200],
+                    "size_bytes": len(payload),
+                    "text": "",
+                    "extraction_status": "error",
+                    "character_count": 0,
+                })
+        else:
+            extracted = extract_attachment_text(filename, content_type, payload)
+            extracted_attachments.append(extracted.model_dump(mode="json"))
+
+    return extracted_attachments, calendar_events
+
+
 def prepare(raw: bytes, limits: int | MimeLimits | object,
             received_at: datetime | None = None, user_timezone: str = "UTC") -> dict[str, object]:
     """Return distinct untrusted header/text fields plus non-sensitive preparation metadata."""
     configured = _limits(limits)
     message = BytesParser(policy=policy.default).parsebytes(raw)
+    extracted_attachments, calendar_events = _collect_and_extract_attachments(message, user_timezone)
     attachments = _omit_attachments(message)
     # Large transfer-encoded attachments must not prevent processing the mail
     # body.  For an oversized raw message, enforce the limit again after all
@@ -236,6 +293,8 @@ def prepare(raw: bytes, limits: int | MimeLimits | object,
             ("from", "From"), ("subject", "Subject"), ("date", "Date"), ("message_id", "Message-ID"))},
         "text": text,
         "metadata": {"attachments_omitted": attachments, "text_shortened": shortened},
+        "extracted_attachments": extracted_attachments,
+        "calendar_events": calendar_events,
         **_date_context(message, received, user_timezone),
     }
     # Preserve all occurrences for conservative duplicate handling.  They are

@@ -285,11 +285,39 @@ class Analyzer:
             re.search(r"https?://(?:www\.)?" + re.escape(host.casefold()) + r"(?=[/?#\s]|$)", text)
             for host in self.prompts.suspicious_link_hosts)
 
+    @staticmethod
+    def _enrich_mail_with_attachments(mail: dict[str, Any]) -> dict[str, Any]:
+        attachments = mail.get("extracted_attachments")
+        if not attachments:
+            return mail
+        snippets = []
+        for att in attachments:
+            if isinstance(att, dict):
+                fn = att.get("filename", "Anhang")
+                ct = att.get("content_type", "")
+                txt = att.get("text", "")
+                status = att.get("extraction_status", "success")
+            else:
+                fn = getattr(att, "filename", "Anhang")
+                ct = getattr(att, "content_type", "")
+                txt = getattr(att, "text", "")
+                status = getattr(att, "extraction_status", "success")
+            if status == "success" and txt.strip():
+                header = f"--- Anhang: {fn} ({ct}) ---" if ct else f"--- Anhang: {fn} ---"
+                snippets.append(f"\n\n{header}\n{txt.strip()}")
+        if not snippets:
+            return mail
+        enriched = dict(mail)
+        base_text = str(mail.get("text", ""))
+        enriched["text"] = base_text + "".join(snippets)
+        return enriched
+
     def relevance(self, mail: dict[str, Any], topics: list[Topic]) -> tuple[str, Relevance]:
         self.last_relevance_source = getattr(self.client, "service_name", "OpenRouter")
         if self.suspicious_link_bait(mail):
             return "local-link-safety", Relevance(decision="unclear", topic_ids=[],
                 reason="Verdächtiger Kurzlink-Köder. Bitte unabhängig prüfen; daraus werden keine Aktionen angelegt.")
+        mail = self._enrich_mail_with_attachments(mail)
         enabled = [topic for topic in topics if topic.enabled]
         enabled_ids = {topic.id for topic in enabled}
 
@@ -310,23 +338,23 @@ class Analyzer:
         )
 
     def summary(self, mail: dict[str, Any]) -> tuple[str, Summary]:
-        return self._run("summary", Summary, mail)
+        return self._run("summary", Summary, self._enrich_mail_with_attachments(mail))
 
     def action_route(self, mail: dict[str, Any]) -> tuple[str, ActionRoute]:
         if self.suspicious_link_bait(mail):
             return "local-link-safety", ActionRoute(action_state="none", task_count=0,
                 event_count=0, reason="Verdächtiger Kurzlink-Köder: keine automatische Handlungsempfehlung.")
-        return self._run("action_router", ActionRoute, mail)
+        return self._run("action_router", ActionRoute, self._enrich_mail_with_attachments(mail))
 
     def extract_tasks(self, mail: dict[str, Any], *, expected_count: int) -> tuple[str, TaskExtraction]:
         return self._classified_run(
-            "task_extraction", {"mail": mail, "expected_count": expected_count},
+            "task_extraction", {"mail": self._enrich_mail_with_attachments(mail), "expected_count": expected_count},
             TaskExtraction.model_validate, schema=TaskExtraction,
         )
 
     def extract_events(self, mail: dict[str, Any], *, expected_count: int) -> tuple[str, EventExtraction]:
         return self._classified_run(
-            "event_extraction", {"mail": mail, "expected_count": expected_count},
+            "event_extraction", {"mail": self._enrich_mail_with_attachments(mail), "expected_count": expected_count},
             EventExtraction.model_validate, schema=EventExtraction,
         )
 
@@ -335,7 +363,7 @@ class Analyzer:
         """Compare a validated proposal with one bounded overlapping event."""
         proposed = {key: value for key, value in proposal.model_dump(mode="json").items()
                     if key in {"title", "description", "start", "end", "all_day",
-                               "location", "video_link"}}
+                                "location", "video_link"}}
         return self._classified_run(
             "calendar_duplicate", {"proposed_event": proposed, "existing_event": existing},
             CalendarDuplicateDecision.model_validate, schema=CalendarDuplicateDecision,
@@ -351,7 +379,7 @@ class Analyzer:
                    if name in allowed}
         return self._classified_run(
             "mail_question_resolution",
-            {"mail": mail, "question": question, "proposal_fields": context},
+            {"mail": self._enrich_mail_with_attachments(mail), "question": question, "proposal_fields": context},
             TelegramAnswerInterpretation.model_validate,
             schema=TelegramAnswerInterpretation,
         )

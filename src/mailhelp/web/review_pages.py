@@ -34,6 +34,7 @@ _STATE_BADGE = {
     ProposalStatus.UNCERTAIN: "warn",
     ProposalStatus.CONFIRMED: "accent",
     ProposalStatus.WRITING: "accent",
+    ProposalStatus.ALREADY_EXISTS: "info",
 }
 RUN_LABELS = (
     ("discovered", "Gefunden"), ("queued", "In Warteschlange"), ("processing", "In Bearbeitung"),
@@ -110,6 +111,18 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
     title = e(card.title)
     if detail_link:
         title = f'<a href="/vorschlag/{e(view.mail_id)}/{e(view.proposal_id)}">{title}</a>'
+    diff_box = ""
+    if view.time_changes:
+        diff_lines = [f"<li>{e(str(change))}</li>" for change in view.time_changes]
+        diff_box = f'<div class="diff-box"><p>🔄 <strong>Terminänderung gegenüber Google Kalender:</strong></p><ul>{"".join(diff_lines)}</ul></div>'
+    if view.duplicate_match is not None:
+        dm = view.duplicate_match
+        dup_url = https_link(getattr(dm, "external_link", None))
+        dup_text = e(getattr(dm, "details", "Bereits vorhanden"))
+        if dup_url:
+            labels.append(f'<span class="badge info"><a href="{e(dup_url)}" target="_blank" rel="noopener noreferrer">{dup_text} ↗</a></span>')
+        else:
+            labels.append(f'<span class="badge info">{dup_text}</span>')
     current = " current" if view.current else ""
     details = (f'<p class="card-links"><a class="button small" '
                f'href="/vorschlag/{e(view.mail_id)}/{e(view.proposal_id)}">Details</a></p>'
@@ -120,7 +133,7 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
 <p class="source">✉️ {e(view.sender)} · {e(view.subject)}</p>
 <p class="labels">{" ".join(labels)}</p>
 <ul class="facts">{"".join(facts)}</ul>
-{"".join(warnings)}{questions}{description}{evidence}{created_link}{details}
+{"".join(warnings)}{diff_box}{questions}{description}{evidence}{created_link}{details}
 {actions(view) if actions else ""}
 </article>"""
 
@@ -186,10 +199,33 @@ def mail_section(mail: MailView | None) -> str:
     else:
         body = f'<div class="mail-text">{e(mail.text)}</div>'
     hints = "".join(f'<p class="meta">{e(note)}</p>' for note in notes)
+    att_section = ""
+    if mail.extracted_attachments:
+        status_labels = {
+            "success": "Text extrahiert",
+            "no_text_found": "Kein Text gefunden",
+            "encrypted": "Verschlüsselt / Passwortgeschützt",
+            "skipped_oversized": "Übersprungen (zu groß)",
+            "error": "Fehler beim Lesen",
+            "unsupported_format": "Nicht unterstütztes Format",
+        }
+        att_items = []
+        for att in mail.extracted_attachments:
+            fn = att.get("filename", "Anhang")
+            st = att.get("extraction_status", "success")
+            st_text = status_labels.get(st, st)
+            badge_class = "ok" if st == "success" else "warn"
+            att_items.append(
+                f'<li>📎 <strong>{e(fn)}</strong> <span class="badge {badge_class}">{e(st_text)}</span></li>'
+            )
+        att_section = f'<div class="attachments"><p><strong>Anhänge ({len(mail.extracted_attachments)}):</strong></p><ul>{"".join(att_items)}</ul></div>'
+    cal_section = ""
+    if mail.calendar_events:
+        cal_section = f'<div class="notice info"><p>📅 <strong>{len(mail.calendar_events)} ICS-Kalenderanhang/-anhänge erkannt</strong></p></div>'
     return f"""<section class="card mail" id="mail" aria-labelledby="mail-titel">
 <h2 id="mail-titel">Mail</h2>
 <dl class="mail-head">{rows}</dl>
-{body}{hints}
+{att_section}{cal_section}{body}{hints}
 </section>"""
 
 

@@ -52,6 +52,7 @@ STATUS_LABELS = {
     ProposalStatus.REJECTED: "Verworfen",
     ProposalStatus.FAILED: "Anlage fehlgeschlagen",
     ProposalStatus.UNCERTAIN: "Wird abgeglichen",
+    ProposalStatus.ALREADY_EXISTS: "Bereits vorhanden",
 }
 Model = TypeVar("Model", bound=BaseModel)
 
@@ -78,6 +79,10 @@ class ProposalView:
     confirm_label: str
     external_link: str | None
     updated_at: datetime | None
+    duplicate_match: Any | None = None
+    target_event_id: str | None = None
+    time_changes: dict[str, Any] | None = None
+    is_cancellation: bool = False
 
 
 @dataclass(frozen=True)
@@ -100,6 +105,8 @@ class MailView:
     text: str | None
     attachments_omitted: int
     text_shortened: bool
+    extracted_attachments: tuple[dict[str, Any], ...] = ()
+    calendar_events: tuple[dict[str, Any], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -308,10 +315,16 @@ class ReviewViews:
         text = content.get("text") if isinstance(content.get("text"), str) else None
         metadata = content.get("metadata") if isinstance(content.get("metadata"), dict) else {}
         omitted = metadata.get("attachments_omitted")
+        extracted_att = content.get("extracted_attachments")
+        extracted_tuple = tuple(extracted_att) if isinstance(extracted_att, list) else ()
+        cal_events = content.get("calendar_events")
+        cal_tuple = tuple(cal_events) if isinstance(cal_events, list) else ()
         return MailView(
             mail_id=mail_id, sender=sender, subject=subject, received=received, text=text,
             attachments_omitted=omitted if isinstance(omitted, int) else 0,
-            text_shortened=metadata.get("text_shortened") is True)
+            text_shortened=metadata.get("text_shortened") is True,
+            extracted_attachments=extracted_tuple,
+            calendar_events=cal_tuple)
 
     def _relevance(self, reader: _Reader) -> list[RelevanceView]:
         result = []
@@ -405,6 +418,8 @@ class ReviewViews:
             state = STATUS_LABELS[proposal.status]
         headers = mail.display_headers if mail is not None else None
         target = "In Todoist anlegen" if proposal.kind == ProposalKind.TASK else "Im Kalender anlegen"
+        if proposal.target_event_id is not None:
+            target = "Termin absagen" if proposal.is_cancellation else "Bestehenden Termin aktualisieren"
         return ProposalView(
             mail_id=proposal.source_mail_id, proposal_id=proposal.id,
             version=proposal.version, status=proposal.status, card=card,
@@ -419,6 +434,10 @@ class ReviewViews:
             confirm_label="Simulieren" if self.test_mode else target,
             external_link=proposal.external_link if proposal.status == ProposalStatus.CREATED else None,
             updated_at=mail.updated_at if mail is not None else None,
+            duplicate_match=proposal.duplicate_match,
+            target_event_id=proposal.target_event_id,
+            time_changes=proposal.time_changes,
+            is_cancellation=proposal.is_cancellation,
         )
 
 
