@@ -113,4 +113,38 @@ def _block(parts: list[str], rendered: str, indent: int) -> list[str]:
     return block
 
 
-__all__ = ["YamlEditError", "render", "set_scalars"]
+__all__ = ["YamlEditError", "render", "set_list", "set_scalars"]
+
+
+def set_list(text: str, dotted: str, items: list[Any]) -> str:
+    """Replace the block sequence under *dotted* (``key:`` followed by ``- item`` lines)."""
+    lines = text.splitlines()
+    found = next(((index, indent) for index, path, indent in _paths(lines) if path == dotted), None)
+    if found is None:
+        raise YamlEditError(f"{dotted} fehlt in der Datei")
+    index, indent = found
+    match = _KEY.match(lines[index])
+    assert match is not None
+    current, comment = _split_comment(match["rest"])
+    if current.strip():
+        # An inline list ([a, b]) stays inline.
+        if not current.strip().startswith("["):
+            raise YamlEditError(f"{dotted} ist keine Liste")
+        flow = yaml.safe_dump(list(items), default_flow_style=True, allow_unicode=True, width=10**6).strip()
+        gap = (current[len(current.rstrip()):] or " ") if comment else ""
+        lines[index] = f"{' ' * indent}{match['key']}: {flow}{gap}{comment}"
+        return "\n".join(lines) + "\n"
+    end, item_indent = index, indent + 2
+    for position in range(index + 1, len(lines)):
+        stripped = lines[position].lstrip()
+        if stripped.startswith("- ") and len(lines[position]) - len(stripped) >= indent:
+            item_indent, end = len(lines[position]) - len(stripped), position
+        elif stripped and not stripped.startswith("#"):
+            break
+    existing = yaml.safe_load("\n".join(lines[index:end + 1]))[match["key"]] or []
+    if items[:len(existing)] == existing:
+        # Only new entries are appended; comments between existing entries stay.
+        added = [f"{' ' * item_indent}- {render(item)}" for item in items[len(existing):]]
+        return "\n".join([*lines[:end + 1], *added, *lines[end + 1:]]) + "\n"
+    rendered = [f"{' ' * item_indent}- {render(item)}" for item in items]
+    return "\n".join([*lines[:index + 1], *rendered, *lines[end + 1:]]) + "\n"

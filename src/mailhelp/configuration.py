@@ -10,7 +10,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
 from .config import Settings, Topic, TopicsConfig, IrrelevantTopicsConfig
-from .learning import _atomic_replace
+from .learning import _atomic_replace, topics_document
 from .yaml_edit import YamlEditError, set_scalars
 from .review.commands import CommandSource
 from .review.results import ResultStatus, ReviewResult
@@ -138,7 +138,7 @@ class ConfigurationService:
     def render(self, command: AdminCommand, candidate: dict) -> str:
         """New file content; config.yaml keeps its comments and layout."""
         if command.kind != AdminKind.SETTINGS:
-            return yaml.safe_dump(candidate, allow_unicode=True, sort_keys=False)
+            return topics_document([Topic.model_validate(item) for item in candidate["topics"]])
         content = set_scalars(self.path(command).read_text(encoding="utf-8"), command.patch)
         if yaml.safe_load(content) != candidate:
             # Never write a file whose meaning differs from the validated candidate.

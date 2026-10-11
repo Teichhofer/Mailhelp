@@ -120,3 +120,60 @@ def test_continuation_lines_of_long_texts_are_not_keys():
     text = "hinweis: >\n  langer Text: kein Schlüssel\n  zweite Zeile\nport: 1\n"
     new = set_scalars(text, {"port": 2})
     assert yaml.safe_load(new) == {"hinweis": "langer Text: kein Schlüssel zweite Zeile\n", "port": 2}
+
+
+# --- lists (IMAP folders discovered by the learning mode) ---------------------------
+
+def test_new_folders_are_appended_and_comments_in_the_list_stay():
+    from mailhelp.yaml_edit import set_list
+    text = "imap:\n  folders:\n  - INBOX\n  # Arbeit\n  - Sent\n\n  host: x\nlast: 1\n"
+    new = set_list(text, "imap.folders", ["INBOX", "Sent", "Archiv"])
+    assert "  # Arbeit\n  - Sent\n  - Archiv\n" in new
+    assert yaml.safe_load(new) == {"imap": {"folders": ["INBOX", "Sent", "Archiv"], "host": "x"}, "last": 1}
+
+
+def test_a_changed_order_rewrites_the_list_and_inline_lists_stay_inline():
+    from mailhelp.yaml_edit import set_list
+    reordered = set_list("folders:\n- A\n- B\nx: 1\n", "folders", ["B", "A"])
+    assert yaml.safe_load(reordered) == {"folders": ["B", "A"], "x": 1}
+    inline = set_list("folders: [A]   # Ordner\n", "folders", ["A", "B"])
+    assert inline == "folders: [A, B]   # Ordner\n"
+    assert set_list("folders: [A]\n", "folders", ["A"]) == "folders: [A]\n"
+    empty = set_list("folders:\nx: 1\n", "folders", ["A"])
+    assert yaml.safe_load(empty) == {"folders": ["A"], "x": 1}
+
+
+def test_lists_that_cannot_be_edited_are_refused():
+    from mailhelp.yaml_edit import set_list
+    with pytest.raises(YamlEditError, match="fehlt"):
+        set_list("x: 1\n", "folders", ["A"])
+    with pytest.raises(YamlEditError, match="keine Liste"):
+        set_list("folders: INBOX\n", "folders", ["A"])
+
+
+def test_learning_mode_adds_folders_without_losing_comments(tmp_path):
+    from mailhelp.learning import add_discovered_folders
+    path = tmp_path / "config.yaml"
+    example = Path("config.example.yaml").read_text(encoding="utf-8")
+    path.write_text(example, encoding="utf-8")
+    configured = yaml.safe_load(example)["imap"]["folders"]
+    merged = add_discovered_folders(path, configured, [*configured, "Archiv/2026"])
+    saved = path.read_text(encoding="utf-8")
+    assert merged[-1] == "Archiv/2026" and yaml.safe_load(saved)["imap"]["folders"] == merged
+    assert saved.count("#") == example.count("#")
+    assert len(saved.splitlines()) == len(example.splitlines()) + 1
+
+
+def test_learning_mode_refuses_an_unsafe_folder_change(tmp_path, monkeypatch):
+    from mailhelp.learning import add_discovered_folders
+    path = tmp_path / "config.yaml"
+    path.write_text("imap:\n  folders: [INBOX]\n", encoding="utf-8")
+    monkeypatch.setattr("mailhelp.learning.set_list", lambda text, dotted, items: text)
+    with pytest.raises(RuntimeError, match="von Hand"):
+        add_discovered_folders(path, ["INBOX"], ["INBOX", "Neu"])
+    assert path.read_text(encoding="utf-8") == "imap:\n  folders: [INBOX]\n"
+
+
+def test_a_list_at_the_end_of_the_file():
+    from mailhelp.yaml_edit import set_list
+    assert set_list("x: 1\nfolders:\n- A\n", "folders", ["A", "B"]) == "x: 1\nfolders:\n- A\n- B\n"

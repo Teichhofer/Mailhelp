@@ -11,6 +11,8 @@ from pathlib import Path
 
 import yaml
 
+from .yaml_edit import set_list
+
 from .analysis import Analyzer
 from .config import IrrelevantTopicsConfig, Topic, TopicsConfig
 from .imap import FetchedMail, FolderNotReadable, ImapReader
@@ -48,12 +50,14 @@ def save_topics(path: Path, existing: list[Topic], accepted: list[LearnedCategor
                  for item in accepted]
     model = IrrelevantTopicsConfig if allow_empty else TopicsConfig
     result = model(topics=[*existing, *additions]).topics
-    content = yaml.safe_dump(
-        {"topics": [topic.model_dump() for topic in result]}, allow_unicode=True,
-        sort_keys=False, default_flow_style=False,
-    )
-    _atomic_replace(path, content)
+    _atomic_replace(path, topics_document(result))
     return result
+
+
+def topics_document(topics: list[Topic]) -> str:
+    """The one serialization of topic files, shared by learning mode and web."""
+    return yaml.safe_dump({"topics": [topic.model_dump() for topic in topics]}, allow_unicode=True,
+                          sort_keys=False, default_flow_style=False)
 
 
 def _atomic_replace(path: Path, content: str) -> None:
@@ -82,8 +86,10 @@ def add_discovered_folders(path: Path, configured: list[str], discovered: list[s
     if not isinstance(document, dict) or not isinstance(document.get("imap"), dict):
         raise RuntimeError("config.yaml enthält keinen gültigen IMAP-Abschnitt")
     document["imap"]["folders"] = merged
-    content = yaml.safe_dump(document, allow_unicode=True, sort_keys=False,
-                             default_flow_style=False)
+    # Only the folder list changes; comments and layout of config.yaml stay.
+    content = set_list(path.read_text(encoding="utf-8"), "imap.folders", merged)
+    if yaml.safe_load(content) != document:
+        raise RuntimeError("config.yaml lässt sich nicht sicher ergänzen; Ordner bitte von Hand eintragen")
     _atomic_replace(path, content)
     return merged
 
