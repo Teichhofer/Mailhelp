@@ -1200,7 +1200,8 @@ Mailhelp wie 1.0.
   (mindestens 32 Zeichen) in `.env`; `mailhelp --check` prüft beides.
 - Anmeldung: einmaliger Kopplungscode über Telegram, danach eine Sitzung je Gerät
   (`session_days`). `/web` in Telegram sendet den Link mit bereits eingetragenem
-  Code. Abmelden unter „Geräte“ oder mit `/web_abmelden` in Telegram.
+  Code – mit `web.lan_access: true` und `web.host: 0.0.0.0` über die aktuelle IP des
+  PCs im Heimnetz. Abmelden unter „Geräte“ oder mit `/web_abmelden` in Telegram.
 - Jede Web-Aktion gilt für genau die angezeigte Vorschlagsversion und wird vom
   Hauptthread ausgeführt wie eine Telegram-Eingabe. Veraltete Versionen werden
   abgewiesen; eine wiederholte Anfrage (z. B. nach einem Browser-Timeout) hat keine

@@ -8,6 +8,7 @@ main thread.
 
 from __future__ import annotations
 
+import ipaddress
 from typing import Callable, Protocol
 from urllib.parse import parse_qs
 
@@ -67,8 +68,10 @@ class MailhelpSite:
     # --- helpers ------------------------------------------------------------------
 
     def _cookie(self, request: Request, name: str, value: str, max_age: int) -> str:
-        # Requests through Tailscale Serve arrive over HTTPS; local ones over HTTP.
-        secure = "; Secure" if request.host not in self.local_hosts else ""
+        # Only a host name (Tailscale Serve) is reached over HTTPS; the local
+        # address and LAN IP addresses use plain HTTP, where Secure cookies fail.
+        hostname = request.host.rpartition(":")[0] if ":" in request.host else request.host
+        secure = "; Secure" if not _ip_or_localhost(hostname) else ""
         return f"{name}={value}; Path=/; HttpOnly; SameSite=Strict; Max-Age={max_age}{secure}"
 
     def _form(self, request: Request) -> dict[str, str] | Response:
@@ -298,6 +301,14 @@ class MailhelpSite:
     def state(self, request: Request, session: WebSession) -> Response:
         """Fingerprint of the overview; the page reloads when it changes."""
         return Response.json(200, {"fingerprint": self.views.overview().fingerprint})
+
+
+def _ip_or_localhost(name: str) -> bool:
+    try:
+        ipaddress.ip_address(name)
+    except ValueError:
+        return name == "localhost"
+    return True
 
 
 def _link_code(query: str) -> str:

@@ -33,8 +33,8 @@ def static_file(name: str) -> bytes:
 class WebApp:
     """Dispatch checked requests to exactly matching routes."""
 
-    def __init__(self, allowed_hosts: list[str]):
-        self.allowed_hosts = frozenset(allowed_hosts)
+    def __init__(self, allowed_hosts: list[str], lan_port: int | None = None):
+        self.allowed_hosts, self.lan_port = frozenset(allowed_hosts), lan_port
         self._routes: list[tuple[str, re.Pattern[str], Route]] = []
         self.route("GET", "/health", self.health)
         self.route("GET", r"/static/(?P<name>[a-z0-9.-]+)", self.static)
@@ -44,7 +44,7 @@ class WebApp:
         self._routes.append((method, re.compile(pattern), handler))
 
     def __call__(self, request: Request) -> Response:
-        rejection = rejected(request, self.allowed_hosts)
+        rejection = rejected(request, self.allowed_hosts, self.lan_port)
         if rejection is not None:
             return rejection
         path_known = False

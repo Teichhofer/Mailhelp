@@ -249,6 +249,15 @@ class WebSettings(ConfigModel):
     allowed_hosts: list[str] = Field(
         default_factory=lambda: ["127.0.0.1:8765", "localhost:8765"], min_length=1, max_length=20)
     session_days: int = Field(default=30, ge=1, le=365)
+    # Reachable in the home network under the PC's private IP address (plain
+    # HTTP); /web then sends that address. Requires host 0.0.0.0.
+    lan_access: bool = False
+
+    @model_validator(mode="after")
+    def lan_needs_all_interfaces(self) -> "WebSettings":
+        if self.lan_access and ipaddress.ip_address(self.host).is_loopback:
+            raise ValueError("lan_access benötigt host 0.0.0.0")
+        return self
 
     @field_validator("host")
     @classmethod

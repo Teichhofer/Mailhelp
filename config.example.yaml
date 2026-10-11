@@ -162,3 +162,6 @@ web:
   allowed_hosts: [127.0.0.1:8765, localhost:8765]
   # Gültigkeit einer gekoppelten Browsersitzung in Tagen.
   session_days: 30
+  # Zugriff im eigenen WLAN über die IP-Adresse des PCs (unverschlüsseltes HTTP).
+  # Benötigt host: 0.0.0.0; /web sendet dann den Link mit der aktuellen IP.
+  lan_access: false

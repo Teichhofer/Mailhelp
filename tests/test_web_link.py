@@ -11,7 +11,7 @@ from mailhelp.review.inbox import CommandInbox
 from mailhelp.storage import JsonStore
 from mailhelp.telegram.commands import HELP, TelegramCommands
 from mailhelp.web.auth import CODE_ATTEMPTS, CODE_REQUESTS, PairingLimited, PairingRefused
-from mailhelp.web.factory import WebComponents, base_url, create_web
+from mailhelp.web.factory import base_url, create_web
 from mailhelp.web.site import _link_code
 from test_web_auth import LOCAL, SECRET, TAILNET, Browser, auth, site  # noqa: F401  (fixtures)
 
@@ -124,4 +124,3 @@ def test_invite_message(tmp_path, hosts, url, pc_only):
         assert f"Code: {code[:4]} {code[4:]}" in text and "10 Minuten" in text
         assert ("nur am PC" in text) is pc_only
         assert components.auth.redeem("telefon", code, "iPhone")
-    assert WebComponents.__dataclass_fields__["base_url"].default == ""

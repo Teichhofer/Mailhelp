@@ -83,13 +83,39 @@ Die Seiten funktionieren auch ohne JavaScript. Das Skript ergänzt nur drei Ding
 Anmeldeseite mit einem frischen Einmal-Code (10 Minuten gültig, für ein Gerät).
 Der Code steht im Link schon im Eingabefeld; ein Tipp auf „Gerät koppeln“ genügt.
 Er steht zusätzlich in der Nachricht, falls die Seite anders geöffnet wird. Ist in
-`web.allowed_hosts` ein Tailnet-Name eingetragen, verweist der Link per HTTPS
-darauf, sonst auf `http://127.0.0.1:<port>` mit dem Hinweis, dass er nur am PC
-funktioniert. Ein neuer `/web`-Code ersetzt den vorherigen; Ratenbegrenzung und
+`web.lan_access` aktiv, enthält der Link die aktuelle IP-Adresse des PCs im
+Heimnetz. Sonst verweist er auf einen in `web.allowed_hosts` eingetragenen
+Tailnet-Namen per HTTPS, und ohne beides auf `http://127.0.0.1:<port>` mit dem
+Hinweis, dass er nur am PC funktioniert. Ein neuer `/web`-Code ersetzt den vorherigen; Ratenbegrenzung und
 Fehlversuche zählen wie bei angeforderten Codes.
 
 Ist der Port belegt, meldet Telegram „Weboberfläche konnte nicht … starten“ und
 die Mailverarbeitung läuft ohne Weboberfläche weiter.
+
+## Zugriff vom Telefon im eigenen WLAN
+
+Ist das Telefon im selben WLAN wie der PC, genügt die IP-Adresse des PCs:
+
+```yaml
+web:
+  enabled: true
+  host: 0.0.0.0
+  lan_access: true
+```
+
+`/web` sendet dann einen Link wie `http://192.168.1.144:8765/anmelden?code=…`.
+Die Adresse wird bei jedem `/web` neu ermittelt, weil der Router sie ändern kann.
+Angenommen werden Aufrufe über private IPv4-Adressen mit dem konfigurierten Port;
+fremde Host-Namen bleiben abgewiesen.
+
+- Windows fragt beim ersten Start, ob Python Verbindungen im Netzwerk annehmen darf:
+  nur für **private Netzwerke** erlauben. Das WLAN muss in Windows als „Privat“
+  eingestuft sein.
+- Die Verbindung ist unverschlüsseltes HTTP. Im eigenen, vertrauenswürdigen WLAN ist
+  das vertretbar; in fremden Netzen (Hotel, Café) `lan_access` nicht verwenden.
+  Verschlüsselt und auch von unterwegs geht es über Tailscale (nächster Abschnitt).
+- Über HTTP installiert das iPhone die App ohne Offline-Seite (Service Worker
+  benötigen HTTPS); alles andere funktioniert.
 
 ## Zugriff vom iPhone über Tailscale
 

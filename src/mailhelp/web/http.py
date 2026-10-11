@@ -107,9 +107,16 @@ class Response:
         return headers
 
 
-def rejected(request: Request, allowed_hosts: frozenset[str]) -> Response | None:
-    """Checks that precede every route; None if the request may proceed."""
-    if request.host not in allowed_hosts:
+def rejected(request: Request, allowed_hosts: frozenset[str],
+             lan_port: int | None = None) -> Response | None:
+    """Checks that precede every route; None if the request may proceed.
+
+    With *lan_port*, the PC's private IP addresses with that port are accepted too.
+    """
+    from .network import lan_host
+
+    if request.host not in allowed_hosts and not (
+            lan_port is not None and lan_host(request.host, lan_port)):
         # DNS rebinding: a foreign name resolving to 127.0.0.1 is refused.
         return Response.text(421, "Unbekannter Host.")
     if request.method not in ALLOWED_METHODS:
