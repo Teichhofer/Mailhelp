@@ -45,3 +45,17 @@ API-Schreibzugriffe sind kein Teil der Abnahme.
 Die CI-Matrix prüft weiterhin Windows und Linux, Browser, installierte Pakete sowie
 Container-Neustart mit Produktionsmounts. Lokale Windows-Prüfung ersetzt keinen
 auf Linux tatsächlich ausgeführten CI-/Docker-Lauf.
+
+### Lokale Abnahme am 11. Oktober 2026
+
+- 1.566 Python-Tests bestanden; 100 % Zeilen- und Branch-Coverage.
+- 54 Browsertests bestanden (Desktop, Smartphone, schmales Display).
+- 100 % JavaScript-Blockabdeckung für `app.js` und `sw.js`.
+- Wheel und Source-Archiv gebaut; separat installiertes Wheel und beide
+  Paketprüfungen bestanden. Die neuen Module sind im Wheel enthalten.
+- Eigene Änderungen ohne Whitespace-Fehler geprüft.
+- Kein lokaler Linux-/Docker-Lauf, da Docker hier nicht verfügbar ist.
+
+Ein bestehender Wiederholungseffekt bei Recovery und Web-Fingerprints bleibt
+unverändert und ist für Folgearbeiten in der
+[Architekturdokumentation](Architektur-1.6.md#hinweis-für-folgearbeiten) festgehalten.

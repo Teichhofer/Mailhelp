@@ -2,7 +2,7 @@
 
 **Zielversion:** 1.6.0  
 **Stand:** 11. Oktober 2026  
-**Status:** In Planung  
+**Status:** Vollständig umgesetzt; lokale Windows-Abnahme abgeschlossen<br>
 **Voraussetzung:** Abschluss der vorgesehenen Funktionsarbeit bis [Planung-1.5.md](Planung-1.5.md)  
 **Roadmap-Ziel:** Refactoring vor dem größeren Web- und Produktumbau in [Planung-2.0.md](Planung-2.0.md)
 
@@ -146,3 +146,36 @@ Version 1.6 ist abnahmefähig, wenn:
 - die vollständige Suite besteht und 100 % Zeilen- sowie Branch-Coverage erreicht,
 - kritische Fehler-, Wiederholungs-, Neustart- und Autorisierungspfade getestet sind,
 - die aktualisierte Struktur eine klare Grundlage für die geplanten Webarbeiten in Version 2.0 bildet.
+
+## 8. Umsetzung und Abnahme am 11. Oktober 2026
+
+Alle vier Refactoring-Schwerpunkte und die sechs Phasen sind abgeschlossen.
+Die [Architektur](Architektur-1.6.md) ordnet Module und Sicherheitsgrenzen zu;
+[Release-1.6.md](Release-1.6.md) beschreibt das Upgrade ohne Datenmigration.
+
+| Phase | Ergebnis |
+| --- | --- |
+| 0 | Saubere Baseline: 1.562 Tests, 100 % Zeilen und Branches. Bestehende Verhaltenstests schützen die zu verschiebenden Zustandsübergänge. |
+| 1 | Statusrenderer nach `web/status_pages.py` getrennt; Review bleibt in `web/review_pages.py`, kompatible Re-Exports und zentrale HTML-Helfer bleiben erhalten. Vollständige Suite: 1.562 Tests, 100 %. |
+| 2 | OAuth, Kalender, Todoist, ICS, HTTP-Transport und bestätigte Schreibausführung unter `external/` getrennt; `integrations.py` bleibt Fassade. Vollständige Suite: 1.562 Tests, 100 %. |
+| 3 | `MailboxRunService` übernimmt Discovery, Queue, Budgets, Checkpoints und Resume mit explizitem Analyse-Callback. Application koordiniert Lifecycle und Eingaben. Vollständige Suite: 1.562 Tests, 100 %. |
+| 4 | Autorisierte Antwortinterpretation, validierter Nachfolge-Vorschlag und Recovery getrennt; Persistenz und Zustellung bleiben koordiniert. Vollständige Suite mit ersten zusätzlichen Vertragstests: 1.564 Tests, 100 %. |
+| 5 | Version 1.6.0, Architektur, Spezifikation, Changelog, Roadmap und Release-Dokumentation aktualisiert; Paket und Browser geprüft. |
+
+Abschließende Python-Suite: **1.566 Tests bestanden**, **100 % Zeilen- und
+Branch-Coverage** (0 fehlende Zeilen, 0 teilweise abgedeckte Branches). Zusätzliche
+Vertragstests sichern kompatible Importe, eigenständige Mailbox-Wiederaufnahme,
+Nachfolge-Identität sowie byteidentische Renderer-Ausgaben gegenüber 1.5.
+
+Browser: **54 Tests bestanden** auf Desktop, Smartphone und schmalem Display;
+**100 % JavaScript-Blockabdeckung** für `app.js` und `sw.js`. Die veraltete
+Kopplungstesthilfe wurde auf den bestehenden vierstelligen Code angepasst und
+die synthetische Hauptschleife für unveränderte Renderzustände stabilisiert.
+Das produktive Polling-/Recovery-Verhalten wurde dadurch nicht geändert.
+
+Wheel und Source-Archiv wurden gebaut. Das Wheel wurde separat installiert;
+beide Paketprüfungen bestanden, einschließlich neuer Module, Ressourcen und
+Ausschluss privater Laufzeitdateien. Die lokalen Tests verwenden simulierte
+externe Dienste und synthetische Daten. Ein tatsächlicher Linux-/Docker-Lauf
+konnte lokal mangels Docker nicht ausgeführt werden; dafür bleibt die bestehende
+CI-Matrix zuständig. Es wurden lokal keine Deployments vorgenommen.
