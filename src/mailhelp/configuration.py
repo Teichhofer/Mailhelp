@@ -7,9 +7,11 @@ from pathlib import Path
 from typing import Callable, Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .config import Settings, Topic, TopicsConfig, IrrelevantTopicsConfig
+from .domain.relevance import IrrelevantSenders
+from .sender_filter import change_irrelevant_senders
 from .learning import _atomic_replace, topics_document
 from .yaml_edit import YamlEditError, set_scalars
 from .review.commands import CommandSource
@@ -24,6 +26,7 @@ class ConfigurationConflict(ValueError):
 class AdminKind(StrEnum):
     SETTINGS = "settings"
     TOPICS = "topics"
+    SENDERS = "senders"
 
 
 class AdminCommand(BaseModel):
@@ -32,10 +35,39 @@ class AdminCommand(BaseModel):
     source: Literal[CommandSource.WEB] = CommandSource.WEB
     actor: str = Field(pattern=r"^web:[a-f0-9]{16}$")
     idempotency_key: str = Field(pattern=r"^[A-Za-z0-9_-]{8,80}$")
-    expected_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    # File edits are bound to the file they were checked against.  Sender
+    # changes are idempotent and commutative and need no such binding.
+    expected_hash: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
     category: str = Field(default="relevant", pattern=r"^(relevant|irrelevant)$")
     patch: dict = Field(max_length=30)
     acknowledged: bool = False
+
+    @model_validator(mode="after")
+    def file_edits_need_a_hash(self) -> "AdminCommand":
+        if self.kind != AdminKind.SENDERS and self.expected_hash is None:
+            raise ValueError("Dateiänderungen benötigen den erwarteten Dateihash")
+        return self
+
+
+class SenderChange(BaseModel):
+    """Add or remove ignored senders; ``mail_id`` names the mail it came from."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    action: Literal["add", "remove"]
+    addresses: list[str] = Field(default_factory=list, max_length=10)
+    domains: list[str] = Field(default_factory=list, max_length=10)
+    mail_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{24}$")
+
+    @model_validator(mode="after")
+    def valid_entries(self) -> "SenderChange":
+        if not self.addresses and not self.domains:
+            raise ValueError("Mindestens eine Adresse oder Domain angeben")
+        IrrelevantSenders(addresses=sorted(set(self.addresses)), domains=sorted(set(self.domains)))
+        return self
+
+    @property
+    def entries(self) -> str:
+        return ", ".join([*self.addresses, *self.domains])
 
 
 SETTINGS_FIELDS = {
@@ -108,10 +140,49 @@ def apply_settings(raw: dict, patch: dict, acknowledged: bool) -> dict:
 class ConfigurationService:
     def __init__(self, directory: Path, store: JsonStore, active: Settings,
                  authorize: Callable[[str], bool], activate: Callable[[Settings], None],
-                 activate_topics: Callable[[list[Topic]], None] = lambda topics: None):
+                 activate_topics: Callable[[list[Topic]], None] = lambda topics: None,
+                 senders: JsonStore | None = None):
         self.directory, self.store, self.active = directory, store, active
         self.authorize, self.activate = authorize, activate
         self.activate_topics = activate_topics
+        # Holds irrelevant-senders, which the orchestrator reads for every mail.
+        self.senders = senders
+
+    def blocked_senders(self) -> IrrelevantSenders:
+        """Current list for display; read without quarantining a damaged file."""
+        if self.senders is None:
+            return IrrelevantSenders()
+        blocked = self.senders.peek_model("irrelevant-senders", IrrelevantSenders, IrrelevantSenders())
+        assert isinstance(blocked, IrrelevantSenders)
+        return blocked
+
+    def _current_senders(self) -> IrrelevantSenders:
+        if self.senders is None:
+            raise OSError("Absenderliste nicht verfügbar")
+        blocked = self.senders.load_model("irrelevant-senders", IrrelevantSenders, IrrelevantSenders())
+        assert isinstance(blocked, IrrelevantSenders)
+        return blocked
+
+    def change_senders(self, command: AdminCommand) -> ReviewResult:
+        """Apply an idempotent sender change; it takes effect with the next mail."""
+        try:
+            change = SenderChange.model_validate(command.patch)
+            current = self._current_senders()
+            updated = change_irrelevant_senders(current, change.action == "add",
+                                                change.addresses, change.domains)
+            if updated == current:
+                message = (f"„{change.entries}“ wird bereits ignoriert." if change.action == "add"
+                           else f"„{change.entries}“ stand nicht auf der Liste.")
+            else:
+                self.senders.save("irrelevant-senders", updated.model_dump(mode="json"))
+                message = (f"„{change.entries}“ wird ab sofort ignoriert: neue Mails werden ohne "
+                           "KI-Aufruf und ohne Benachrichtigung aussortiert."
+                           if change.action == "add" else
+                           f"„{change.entries}“ wird künftig wieder normal verarbeitet.")
+            return ReviewResult(status=ResultStatus.DONE, message=message)
+        except (ValueError, OSError):
+            return ReviewResult(status=ResultStatus.INVALID,
+                                message="Absenderliste nicht geändert: ungültig oder nicht schreibbar.")
 
     def path(self, command: AdminCommand) -> Path:
         filename = "config.yaml" if command.kind == AdminKind.SETTINGS else (
@@ -148,6 +219,8 @@ class ConfigurationService:
     def execute(self, command: AdminCommand) -> ReviewResult:
         if not self.authorize(command.actor):
             return ReviewResult(status=ResultStatus.UNAUTHORIZED, message="Nicht autorisiert.")
+        if command.kind == AdminKind.SENDERS:
+            return self.change_senders(command)
         try:
             candidate = self.candidate(command)
             content = self.render(command, candidate)
@@ -176,6 +249,20 @@ class ConfigurationService:
             return ReviewResult(status=ResultStatus.INVALID, message="Konfiguration nicht übernommen: ungültig, geändert oder nicht schreibbar.")
 
     def reconcile(self, command: AdminCommand) -> ReviewResult:
+        if command.kind == AdminKind.SENDERS:
+            # Never repeated: done if the list already shows the requested state.
+            try:
+                change = SenderChange.model_validate(command.patch)
+                current = self._current_senders()
+                done = change_irrelevant_senders(current, change.action == "add", change.addresses,
+                                                 change.domains) == current
+            except (ValueError, OSError):
+                done = False
+            if done:
+                return ReviewResult(status=ResultStatus.DONE,
+                                    message="Absenderliste nach Neustart abgeglichen.")
+            return ReviewResult(status=ResultStatus.FAILED,
+                                message="Absenderänderung unterbrochen; bitte erneut auslösen.")
         journal = self.store.load(f"configuration-{command.idempotency_key}", {})
         if journal.get("candidate_hash") == file_hash(self.path(command)):
             return ReviewResult(status=ResultStatus.DONE, message="Gespeicherte Konfiguration nach Neustart abgeglichen.")

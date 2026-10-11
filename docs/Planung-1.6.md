@@ -3,7 +3,7 @@
 **Zielversion:** 1.6.0  
 **Stand:** 11. Oktober 2026  
 **Status:** In Planung  
-**Voraussetzung:** Abschluss der vorgesehenen Funktionsarbeit bis Version 1.5  
+**Voraussetzung:** Abschluss der vorgesehenen Funktionsarbeit bis [Planung-1.5.md](Planung-1.5.md)  
 **Roadmap-Ziel:** Refactoring vor dem größeren Web- und Produktumbau in [Planung-2.0.md](Planung-2.0.md)
 
 ---

@@ -324,6 +324,12 @@ h3 { margin: 16px 0 8px; }
 .mail-head { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0 0 12px; }
 .mail-head dt { color: var(--muted); }
 .mail-head dd { margin: 0; overflow-wrap: anywhere; }
+.inline-form { display: inline-block; margin: 0; }
+.sender-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 12px; }
+.sender-actions .meta { flex-basis: 100%; margin: 0; }
+.sender-list { list-style: none; padding: 0; margin: 0 0 16px; }
+.sender-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; padding: 10px 0; border-bottom: 1px solid var(--border); }
+.sender-entry { flex: 1 1 12rem; font-weight: 600; overflow-wrap: anywhere; }
 .mail-text {
   white-space: pre-wrap; overflow-wrap: anywhere; font-size: .95rem;
   border-top: 1px solid var(--border); padding-top: 12px;

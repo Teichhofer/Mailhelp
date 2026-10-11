@@ -179,6 +179,7 @@ def _input(name: str, saved: object) -> str:
 
 def settings_page(models: list, raw: dict | None, active: dict | None, revision: str, csrf: str) -> str:
     body = ('<h1>Einstellungen</h1><p class="card-links"><a class="button small" href="/themen">Themen</a> '
+            '<a class="button small" href="/einstellungen/ignorierte-absender">Ignorierte Absender</a> '
             '<a class="button small" href="/geraete">Geräte</a> '
             '<a class="button small danger" href="/einstellungen/beenden">Mailhelp beenden</a></p>')
     body += "<h2>Modelle (nur lesend)</h2>"

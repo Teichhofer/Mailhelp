@@ -2,10 +2,11 @@
 
 **Zielversion:** 1.4.0  
 **Stand:** 11. Oktober 2026  
-**Status:** In Planung (Folgt auf Version 1.3 und bereitet Version 2.0 vor)  
+**Status:** Vollständig umgesetzt (100 % Coverage, Phasen 1–6 abgeschlossen)  
 **Detailkonzept:** [Konzept-1.4-Multimodal-und-OCR.md](Konzept-1.4-Multimodal-und-OCR.md)  
 **Vorausgehende Version:** [Planung-1.3.md](Planung-1.3.md) (Smart Engine & digitale Anhänge)  
-**Nachfolge-Version:** [Planung-2.0.md](Planung-2.0.md) (Großes UI-Redesign & Web-Push)
+**Nachfolge-Version:** [Planung-1.5.md](Planung-1.5.md) (UX-Feinschliff & Kostenübersicht)  
+**Große Roadmap:** [Planung-2.0.md](Planung-2.0.md) (Großes UI-Redesign & Web-Push)
 
 ---
 

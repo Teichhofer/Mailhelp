@@ -20,7 +20,7 @@ from urllib.parse import parse_qs
 
 from .. import __version__
 from ..config import WebSettings
-from ..configuration import AdminCommand
+from ..configuration import AdminCommand, AdminKind
 from pydantic import ValidationError
 
 from ..models import ProposalStatus
@@ -34,6 +34,7 @@ from .pages import devices_page, error_page, login_page, layout, notice
 from .actions import (command_page, needs_choice, proposal_actions, relevance_actions,
                       result_kind, stale_page)
 from .review_pages import ServiceInfo, detail_page, mail_page, overview_page, status_page
+from .sender_site import LIST_PATH as SENDERS_PATH, SenderSite
 
 SESSION_COOKIE = "mh_session"
 PAIR_COOKIE = "mh_pair"
@@ -86,6 +87,7 @@ class MailhelpSite:
         app.route("GET", r"/aktion/(?P<entry_id>[a-f0-9]{32})", self.signed_in(self.progress))
         from .archive_site import ArchiveSite
         self.archive = ArchiveSite(self, configuration, metrics, lifecycle, models)
+        self.senders = SenderSite(self)
 
     # --- helpers ------------------------------------------------------------------
 
@@ -255,7 +257,11 @@ class MailhelpSite:
         if view is None:
             return Response.html(404, error_page("Nicht gefunden", "Diese Mail ist nicht (mehr) vorhanden."))
         question = next((item for item in self.views.overview().relevance if item.mail_id == mail_id), None)
-        page = mail_page(view, question, relevance_actions(self.auth.csrf_token(session.id)))
+        csrf = self.auth.csrf_token(session.id)
+        message, kind = self._result_notice(request, session)
+        page = mail_page(view, question, relevance_actions(csrf),
+                         sender_actions=self.senders.actions(mail_id, view.sender, csrf),
+                         message=message, message_kind=kind)
         return Response.html(200, page.replace("</main>", self.archive.analysis(mail_id) + "</main>"))
 
     def detail(self, request: Request, session: WebSession, mail_id: str,
@@ -362,6 +368,11 @@ class MailhelpSite:
         if isinstance(command, AdminCommand):
             if entry.result is None:
                 return Response.html(200, layout("Einstellungen werden gespeichert", "<h1>Wird verarbeitet</h1>", refresh=1))
+            if command.kind == AdminKind.SENDERS:
+                # Back to where the change was made; that page shows the result.
+                mail_id = command.patch.get("mail_id")
+                target = f"/mail/{mail_id}" if mail_id else SENDERS_PATH
+                return Response.redirect(f"{target}?ergebnis={entry.id}")
             return Response.html(200, layout("Ergebnis", notice(entry.result.message, result_kind(entry.result.status)) + '<a href="/einstellungen">Zurück</a>'))
         current = (self.views.proposal(command.mail_id, command.proposal_id)
                    if command.proposal_id else None)

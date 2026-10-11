@@ -30,3 +30,28 @@ def add_irrelevant_senders(blocked: IrrelevantSenders, headers: list[object]) ->
     """Return a validated list extended by every syntactically usable address."""
     additions = set().union(*(sender_addresses(header) for header in headers)) if headers else set()
     return blocked.model_copy(update={"addresses": sorted(set(blocked.addresses) | additions)})
+
+
+def sender_entry(text: str) -> tuple[str, str]:
+    """Normalize one manually entered address or domain; ``ValueError`` if unusable."""
+    value = text.strip()
+    if "@" in value:
+        addresses = sender_addresses(value)
+        if len(addresses) != 1:
+            raise ValueError("Bitte genau eine gültige E-Mail-Adresse angeben")
+        address = addresses.pop()
+        IrrelevantSenders(addresses=[address])
+        return "address", address
+    domain = value.casefold().rstrip(".")
+    IrrelevantSenders(domains=[domain])
+    return "domain", domain
+
+
+def change_irrelevant_senders(blocked: IrrelevantSenders, add: bool, addresses: list[str],
+                              domains: list[str]) -> IrrelevantSenders:
+    """Add or remove entries idempotently; the result is validated and sorted."""
+    def changed(current: list[str], entries: list[str]) -> list[str]:
+        return sorted(set(current) | set(entries) if add else set(current) - set(entries))
+
+    return IrrelevantSenders(addresses=changed(blocked.addresses, addresses),
+                             domains=changed(blocked.domains, domains))

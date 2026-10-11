@@ -191,7 +191,7 @@ VISION_LABELS = {
 }
 
 
-def mail_section(mail: MailView | None) -> str:
+def mail_section(mail: MailView | None, sender_actions: str = "") -> str:
     """The complete stored mail as text; links in it stay plain text."""
     if mail is None:
         return ""
@@ -239,7 +239,7 @@ def mail_section(mail: MailView | None) -> str:
     return f"""<section class="card mail" id="mail" aria-labelledby="mail-titel">
 <h2 id="mail-titel">Mail</h2>
 <dl class="mail-head">{rows}</dl>
-{att_section}{cal_section}{body}{hints}
+{sender_actions}{att_section}{cal_section}{body}{hints}
 </section>"""
 
 
@@ -253,13 +253,15 @@ def detail_page(view: ProposalView, *, actions: Actions | None = None,
 
 
 def mail_page(mail: MailView, relevance: RelevanceView | None = None,
-              actions: RelevanceActions | None = None) -> str:
+              actions: RelevanceActions | None = None, *, sender_actions: str = "",
+              message: str | None = None, message_kind: str = "ok") -> str:
     """A mail on its own, with the relevance question if it is still open."""
     question = relevance_card(relevance, actions, detail_link=False) if relevance else ""
+    result = notice(message, message_kind) if message else ""
     content = f"""<p><a href="/">← Zur Übersicht</a></p>
 <h1>Mail</h1>
-{question}
-{mail_section(mail)}"""
+{result}{question}
+{mail_section(mail, sender_actions)}"""
     return layout(mail.subject, content, active="/")
 
 

@@ -1183,7 +1183,8 @@ def build_application(
             from .configuration import ConfigurationService
             from .lifecycle import Lifecycle
             configuration = ConfigurationService(base_directory, store, settings, components.authorize,
-                                                  application.apply_settings, orchestrator.change_topics)
+                                                  application.apply_settings, orchestrator.change_topics,
+                                                  senders=sender_store)
             application.configuration = configuration
             dialog.review.configuration = configuration
             components.site.lifecycle = Lifecycle(
