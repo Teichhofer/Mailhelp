@@ -304,3 +304,12 @@ code { font-size: .9em; background: var(--surface-2); padding: 1px 6px; border-r
   color: var(--text); text-decoration: none;
 }
 .card-head h3 a:hover { text-decoration: underline; }
+.card-links { margin: 12px 0 0; }
+.mail h2 { margin-top: 0; color: var(--text); }
+.mail-head { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0 0 12px; }
+.mail-head dt { color: var(--muted); }
+.mail-head dd { margin: 0; overflow-wrap: anywhere; }
+.mail-text {
+  white-space: pre-wrap; overflow-wrap: anywhere; font-size: .95rem;
+  border-top: 1px solid var(--border); padding-top: 12px;
+}

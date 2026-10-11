@@ -13,7 +13,7 @@ from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo
 
 from ..models import ProposalKind, ProposalStatus
-from ..review.views import Overview, ProposalView, RelevanceView, RunStatus
+from ..review.views import MailView, Overview, ProposalView, RelevanceView, RunStatus
 from .pages import e, layout, notice
 
 # Renders the action forms of a card (phase 6); None shows the card read-only.
@@ -107,33 +107,40 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
     if detail_link:
         title = f'<a href="/vorschlag/{e(view.mail_id)}/{e(view.proposal_id)}">{title}</a>'
     current = " current" if view.current else ""
+    details = (f'<p class="card-links"><a class="button small" '
+               f'href="/vorschlag/{e(view.mail_id)}/{e(view.proposal_id)}">Details</a></p>'
+               if detail_link else "")
     return f"""<article class="card{current}" id="v-{e(view.mail_id)}-{e(view.proposal_id)}">
 <p class="kind">{"📅 Termin" if event else "✅ Aufgabe"}{version}</p>
 <div class="card-head"><h3>{title}</h3></div>
 <p class="source">✉️ {e(view.sender)} · {e(view.subject)}</p>
 <p class="labels">{" ".join(labels)}</p>
 <ul class="facts">{"".join(facts)}</ul>
-{"".join(warnings)}{questions}{description}{evidence}{created_link}
+{"".join(warnings)}{questions}{description}{evidence}{created_link}{details}
 {actions(view) if actions else ""}
 </article>"""
 
 
-def relevance_card(view: RelevanceView, actions: RelevanceActions | None = None) -> str:
+def relevance_card(view: RelevanceView, actions: RelevanceActions | None = None,
+                   detail_link: bool = True) -> str:
+    details = (f'<p class="card-links"><a class="button small" href="/mail/{e(view.mail_id)}">'
+               'Details</a></p>' if detail_link else "")
     return f"""<article class="card" id="r-{e(view.mail_id)}">
 <p class="kind">❔ Relevanz</p>
 <h3>{e(view.subject)}</h3>
 <p class="source">✉️ {e(view.sender)}</p>
 <p>Ist diese Mail für dich relevant? Bis zur Antwort wartet die Mailanalyse.</p>
+{details}
 {actions(view) if actions else ""}
 </article>"""
 
 
 def overview_page(overview: Overview, *, actions: Actions | None = None,
                   relevance_actions: RelevanceActions | None = None,
-                  message: str | None = None) -> str:
+                  message: str | None = None, message_kind: str = "ok") -> str:
     parts = [f'<h1>Offene Entscheidungen <span class="count">{len(overview.open) + len(overview.relevance)}</span></h1>']
     if message:
-        parts.append(notice(message, "ok"))
+        parts.append(notice(message, message_kind))
     if overview.damaged:
         parts.append(notice(f"{overview.damaged} gespeicherte Datensätze sind beschädigt und werden "
                             "nicht angezeigt. Bitte die Protokolle prüfen.", "error"))
@@ -156,11 +163,50 @@ def overview_page(overview: Overview, *, actions: Actions | None = None,
     return layout("Offen", "\n".join(parts), active="/", fingerprint=overview.fingerprint)
 
 
-def detail_page(view: ProposalView, *, actions: Actions | None = None) -> str:
+def mail_section(mail: MailView | None) -> str:
+    """The complete stored mail as text; links in it stay plain text."""
+    if mail is None:
+        return ""
+    facts = [("Von", mail.sender), ("Betreff", mail.subject)]
+    if mail.received:
+        facts.append(("Datum", mail.received))
+    rows = "".join(f"<dt>{label}</dt><dd>{e(value)}</dd>" for label, value in facts)
+    notes = []
+    if mail.attachments_omitted:
+        notes.append(f"{mail.attachments_omitted} Anhang/Anhänge nicht ausgewertet und nicht gespeichert.")
+    if mail.text_shortened:
+        notes.append("Der Text wurde für die Auswertung gekürzt.")
+    if mail.text is None:
+        body = notice("Der vollständige Mailtext ist nicht mehr gespeichert "
+                      "(automatische Löschung nach Abschluss und Aufbewahrungsfrist).", "info")
+    else:
+        body = f'<div class="mail-text">{e(mail.text)}</div>'
+    hints = "".join(f'<p class="meta">{e(note)}</p>' for note in notes)
+    return f"""<section class="card mail" id="mail" aria-labelledby="mail-titel">
+<h2 id="mail-titel">Mail</h2>
+<dl class="mail-head">{rows}</dl>
+{body}{hints}
+</section>"""
+
+
+def detail_page(view: ProposalView, *, actions: Actions | None = None,
+                mail: MailView | None = None) -> str:
     content = f"""<p><a href="/">← Zur Übersicht</a></p>
 <h1>{"Termin" if view.card.kind == ProposalKind.EVENT else "Aufgabe"}</h1>
-{proposal_card(view, actions=actions, detail_link=False)}"""
+{proposal_card(view, actions=actions, detail_link=False)}
+{mail_section(mail)}"""
     return layout(view.card.title, content, active="/")
+
+
+def mail_page(mail: MailView, relevance: RelevanceView | None = None,
+              actions: RelevanceActions | None = None) -> str:
+    """A mail on its own, with the relevance question if it is still open."""
+    question = relevance_card(relevance, actions, detail_link=False) if relevance else ""
+    content = f"""<p><a href="/">← Zur Übersicht</a></p>
+<h1>Mail</h1>
+{question}
+{mail_section(mail)}"""
+    return layout(mail.subject, content, active="/")
 
 
 def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
@@ -187,5 +233,6 @@ Mailhelp nicht, ist die Weboberfläche nicht erreichbar.</p>"""
     return layout("Status", content, active="/status", fingerprint=overview.fingerprint)
 
 
-__all__ = ["RUN_LABELS", "detail_page", "https_link", "overview_page", "proposal_card",
+__all__ = ["RUN_LABELS", "detail_page", "https_link", "mail_page", "mail_section",
+           "overview_page", "proposal_card",
            "relevance_card", "status_page"]

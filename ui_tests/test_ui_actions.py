@@ -13,9 +13,10 @@ def card(page, number, pid):
 
 
 def wait_for_result(page, text):
-    """The progress page reloads itself (no JavaScript needed) until the result is there."""
-    expect(page.get_by_role("heading", name="Ergebnis")).to_be_visible(timeout=10000)
-    expect(page.locator(".notice")).to_contain_text(text)
+    """After an action the browser returns to the overview, which shows the result on top."""
+    expect(page.get_by_role("heading", name="Offene Entscheidungen")).to_be_visible(timeout=10000)
+    expect(page.locator("main > .notice").first).to_contain_text(text)
+    assert "/?ergebnis=" in page.url
 
 
 def test_overview_with_actions_is_easy_to_operate(page, mailhelp):
@@ -36,7 +37,6 @@ def test_confirm_in_the_browser_creates_the_entry_once(page, mailhelp):
     card(page, 1, "elternabend").get_by_role("button", name="Im Kalender anlegen").click()
     wait_for_result(page, "Angelegt.")
     assert audit(page, f"aktion-ergebnis-{page.device}", page.mobile) == []
-    page.get_by_role("link", name="Zur Übersicht").click()
     expect(card(page, 1, "elternabend")).to_have_count(0)
     expect(page.locator(".recent")).to_contain_text("Elternabend Klasse 4b")
     assert mailhelp.writer.created == ["Elternabend Klasse 4b"]
@@ -50,14 +50,12 @@ def test_answering_questions_until_the_proposal_can_be_confirmed(page, mailhelp)
     dentist.get_by_label("Wann beginnt der Termin?").fill("10 Uhr")
     dentist.get_by_role("button", name="Antwort senden").click()
     wait_for_result(page, "Antwort übernommen")
-    page.get_by_role("link", name="Zur Übersicht").click()
     dentist = card(page, 2, "zahnarzt")
     expect(dentist.get_by_label("Wann endet der Termin?")).to_be_visible()
     assert audit(page, f"aktion-folgefrage-{page.device}", page.mobile) == []
     dentist.get_by_label("Wann endet der Termin?").fill("10:30")
     dentist.get_by_role("button", name="Antwort senden").click()
     wait_for_result(page, "Antwort übernommen")
-    page.get_by_role("link", name="Zur Übersicht").click()
     dentist = card(page, 2, "zahnarzt")
     expect(dentist).to_contain_text("23.10.2026, 10:00–10:30 Uhr")
     dentist.get_by_role("button", name="Im Kalender anlegen").click()
@@ -84,11 +82,9 @@ def test_quick_answer_and_relevance_buttons(page, mailhelp):
     sign_in(page, mailhelp)
     card(page, 3, "fest").get_by_role("button", name="Ja", exact=True).click()
     wait_for_result(page, "Antwort übernommen")
-    page.get_by_role("link", name="Zur Übersicht").click()
     expect(card(page, 3, "fest").get_by_role("button", name="Im Kalender anlegen")).to_be_visible()
     page.locator(f"#r-{mail_id(7)}").get_by_role("button", name="Irrelevant").click()
     wait_for_result(page, "Mail als irrelevant eingestuft.")
-    page.get_by_role("link", name="Zur Übersicht").click()
     expect(page.locator(f"#r-{mail_id(7)}")).to_have_count(0)
     assert "🌐 Im Web: Mail als irrelevant eingestuft." in mailhelp.telegram.sent
     assert page.errors == []

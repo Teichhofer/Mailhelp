@@ -9,6 +9,8 @@ main thread.
 from __future__ import annotations
 
 import ipaddress
+import re
+import time
 from typing import Callable, Protocol
 from urllib.parse import parse_qs
 
@@ -17,19 +19,22 @@ from pydantic import ValidationError
 
 from ..models import ProposalStatus
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
-from ..review.inbox import CommandConflict, CommandInbox, CommandInboxFull
+from ..review.inbox import CommandConflict, CommandEntry, CommandInbox, CommandInboxFull
 from ..review.views import ReviewViews
 from .app import WebApp
 from .auth import PairingLimited, PairingRefused, WebAuth, WebSession, device_name
 from .http import Request, Response
 from .pages import devices_page, error_page, login_page
-from .actions import command_page, proposal_actions, relevance_actions, stale_page
-from .review_pages import detail_page, overview_page, status_page
+from .actions import (command_page, needs_choice, proposal_actions, relevance_actions,
+                      result_kind, stale_page)
+from .review_pages import detail_page, mail_page, overview_page, status_page
 
 SESSION_COOKIE = "mh_session"
 PAIR_COOKIE = "mh_pair"
 PAIR_COOKIE_SECONDS = 15 * 60
 FORM_TYPE = "application/x-www-form-urlencoded"
+# How long the progress page waits for a quick result before it shows "running".
+SETTLE_SECONDS = 1.5
 
 
 class EventLogger(Protocol):
@@ -60,6 +65,7 @@ class MailhelpSite:
         app.route("GET", "/", self.signed_in(self.home))
         app.route("GET", r"/vorschlag/(?P<mail_id>[a-f0-9]{24})/(?P<proposal_id>[A-Za-z0-9_-]{1,64})",
                   self.signed_in(self.detail))
+        app.route("GET", r"/mail/(?P<mail_id>[a-f0-9]{24})", self.signed_in(self.mail))
         app.route("GET", "/status", self.signed_in(self.status))
         app.route("GET", "/api/stand", self.signed_in(self.state))
         app.route("POST", "/aktion", self.signed_in(self.act))
@@ -212,8 +218,27 @@ class MailhelpSite:
 
     def home(self, request: Request, session: WebSession) -> Response:
         csrf = self.auth.csrf_token(session.id)
+        message, kind = self._result_notice(request, session)
         return Response.html(200, overview_page(self.views.overview(), actions=proposal_actions(csrf),
-                                                relevance_actions=relevance_actions(csrf)))
+                                                relevance_actions=relevance_actions(csrf),
+                                                message=message, message_kind=kind))
+
+    def _result_notice(self, request: Request, session: WebSession) -> tuple[str | None, str]:
+        """The result of the action this browser just finished (?ergebnis=<id>)."""
+        entry_id = parse_qs(request.query, max_num_fields=5).get("ergebnis", [""])[0] \
+            if request.query else ""
+        entry = self.commands.get(entry_id) if re.fullmatch(r"[a-f0-9]{32}", entry_id) else None
+        if entry is None or entry.result is None or entry.command.actor != f"web:{session.id}":
+            return None, "ok"
+        return entry.result.message, result_kind(entry.result.status)
+
+    def mail(self, request: Request, session: WebSession, mail_id: str) -> Response:
+        view = self.views.mail(mail_id)
+        if view is None:
+            return Response.html(404, error_page("Nicht gefunden", "Diese Mail ist nicht (mehr) vorhanden."))
+        question = next((item for item in self.views.overview().relevance if item.mail_id == mail_id), None)
+        return Response.html(200, mail_page(view, question, relevance_actions(
+            self.auth.csrf_token(session.id))))
 
     def detail(self, request: Request, session: WebSession, mail_id: str,
                proposal_id: str) -> Response:
@@ -222,7 +247,7 @@ class MailhelpSite:
             return Response.html(404, error_page(
                 "Nicht gefunden", "Dieser Vorschlag ist nicht (mehr) vorhanden."))
         return Response.html(200, detail_page(view, actions=proposal_actions(
-            self.auth.csrf_token(session.id))))
+            self.auth.csrf_token(session.id)), mail=self.views.mail(mail_id)))
 
     def status(self, request: Request, session: WebSession) -> Response:
         overview = self.views.overview()
@@ -293,10 +318,22 @@ class MailhelpSite:
             return Response.json(200, {
                 "id": entry.id, "status": entry.status.value,
                 "result": entry.result.model_dump(mode="json") if entry.result else None})
+        entry = self._settled(entry)
         command = entry.command
         current = (self.views.proposal(command.mail_id, command.proposal_id)
                    if command.proposal_id else None)
+        if entry.result is not None and not needs_choice(entry, current):
+            # Done: back to the overview, which shows the result on top.
+            return Response.redirect(f"/?ergebnis={entry.id}")
         return Response.html(200, command_page(entry, self.auth.csrf_token(session.id), current))
+
+    def _settled(self, entry: CommandEntry) -> CommandEntry:
+        """Wait briefly for a quick result so the page usually needs no reload."""
+        deadline = time.monotonic() + SETTLE_SECONDS
+        while entry.result is None and time.monotonic() < deadline:
+            time.sleep(0.05)
+            entry = self.commands.get(entry.id) or entry
+        return entry
 
     def state(self, request: Request, session: WebSession) -> Response:
         """Fingerprint of the overview; the page reloads when it changes."""

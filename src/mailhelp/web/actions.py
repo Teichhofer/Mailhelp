@@ -107,24 +107,36 @@ def relevance_actions(csrf: str):
     return render
 
 
+def result_kind(status: ResultStatus) -> str:
+    """Notice style for a command result."""
+    return _RESULT_KIND[status]
+
+
+def needs_choice(entry: CommandEntry, current: ProposalView | None) -> bool:
+    """Only a detected earlier creation needs a decision on the result page."""
+    return (entry.result is not None
+            and entry.result.status == ResultStatus.NEEDS_DUPLICATE_CONFIRMATION
+            and current is not None and current.status == ProposalStatus.PENDING_CONFIRMATION)
+
+
 def command_page(entry: CommandEntry, csrf: str, current: ProposalView | None) -> str:
     """Progress of a submitted command; reloads itself until the result is there."""
     running = entry.status in {CommandStatus.QUEUED, CommandStatus.RUNNING}
     if running:
         body = (notice("Wird ausgeführt … Mailhelp bearbeitet die Aktion, sobald die aktuelle "
-                       "Mail analysiert ist. Diese Seite aktualisiert sich selbst.", "info"))
+                       "Mail analysiert ist. Danach geht es automatisch zur Übersicht.", "info"))
         return layout("Aktion läuft", f"<h1>Aktion läuft</h1>{body}"
-                      '<p><a class="button" href="/">Zur Übersicht</a></p>', refresh=2)
+                      '<p><a class="button" href="/">Zur Übersicht</a></p>', refresh=1)
     assert entry.result is not None
     result = entry.result
-    parts = [notice(result.message, _RESULT_KIND[result.status])]
-    if (result.status == ResultStatus.NEEDS_DUPLICATE_CONFIRMATION and current is not None
-            and current.status == ProposalStatus.PENDING_CONFIRMATION):
-        parts.append(f"<p>„{e(current.card.title)}“ wurde schon einmal angelegt.</p>")
-        parts.append('<div class="actions">'
-                     + _button_form(csrf, current, CommandKind.CONFIRM_DUPLICATE, "Erneut anlegen", "primary")
-                     + _button_form(csrf, current, CommandKind.REJECT, "Nicht erneut anlegen", "")
-                     + "</div>")
+    # Every other result returns to the overview; only this one needs a choice.
+    assert needs_choice(entry, current) and current is not None
+    parts = [notice(result.message, _RESULT_KIND[result.status]),
+             f"<p>„{e(current.card.title)}“ wurde schon einmal angelegt.</p>",
+             '<div class="actions">'
+             + _button_form(csrf, current, CommandKind.CONFIRM_DUPLICATE, "Erneut anlegen", "primary")
+             + _button_form(csrf, current, CommandKind.REJECT, "Nicht erneut anlegen", "")
+             + "</div>"]
     parts.append('<p><a class="button" href="/">Zur Übersicht</a></p>')
     return layout("Ergebnis", "<h1>Ergebnis</h1>" + "".join(parts))
 
@@ -137,4 +149,4 @@ def stale_page(message: str, current: ProposalView | None) -> str:
 <p><a class="button primary" href="/">Aktuellen Stand anzeigen</a></p>""")
 
 
-__all__ = ["command_page", "new_key", "proposal_actions", "relevance_actions", "stale_page"]
+__all__ = ["command_page", "needs_choice", "new_key", "result_kind", "proposal_actions", "relevance_actions", "stale_page"]

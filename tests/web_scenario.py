@@ -29,7 +29,11 @@ def proposal(number: int, pid: str, **fields) -> Proposal:
 
 
 def save_mail(store: JsonStore, number: int, sender: str, subject: str, proposals=(),
-              **fields) -> None:
+              text: str | None = None, **fields) -> None:
+    if text is not None:
+        fields["mail"] = {"headers": {"from": sender, "subject": subject}, "text": text,
+                          "date_header_parsed": (NOW - timedelta(hours=number)).isoformat(),
+                          "metadata": {"attachments_omitted": 0, "text_shortened": False}}
     state = MailState(
         id=mail_id(number), config_fingerprint="f" * 64,
         imap={"account_id": ACCOUNT, "folder": "INBOX", "uidvalidity": 1, "uid": number},
@@ -72,7 +76,13 @@ def populate(store: JsonStore) -> None:
         evidence='Zahlung über <a href="https://evil.test">diesen Link</a> javascript:alert(1)',
         description="Siehe https://evil.test/login?token=1")
     save_mail(store, 1, "Klassenleitung 4b <klasse4b@schule.test>", "Elternabend und Klassenfahrt",
-              [elternabend, formular])
+              [elternabend, formular], text=(
+                  "Liebe Eltern,\n\nunser Elternabend findet am Dienstag, 21.10., um 19 Uhr in "
+                  "Raum 12 der Grundschule am Park statt. Wir besprechen die Klassenfahrt, das "
+                  "Sportfest und die neue Regel zu den Hausaufgaben.\n\nBitte bringen Sie die "
+                  "unterschriebene Einverständniserklärung mit oder geben Sie sie bis Freitag, "
+                  "17.10., Ihrem Kind mit.\n\nMehr Infos: https://schule.test/elternabend\n\n"
+                  "Viele Grüße\nKlassenleitung 4b"))
     save_mail(store, 2, "Praxis Dr. Weiß <praxis@zahn.test>", "Ihr Kontrolltermin", [zahnarzt])
     save_mail(store, 3, "Förderverein <info@foerderverein.test>", "Einladung zum Herbstfest", [hinweis])
     save_mail(store, 4, '"Buchhaltung" <rechnung@evil.test>', "Offene Rechnung <b>dringend</b>", [boese])
@@ -83,6 +93,8 @@ def populate(store: JsonStore) -> None:
     save_mail(store, 5, "Turnverein <info@tv.test>", "Kinderturnen", [angelegt])
     save_mail(store, 6, "Shop <news@shop.test>", "Ihr Gutschein", [verworfen])
     save_mail(store, 7, "Sportverein <news@sv.test>", "Vereinsnachrichten Oktober",
+              text="Hallo zusammen,\n\nim Oktober startet das Hallentraining. Unser Sommerfest war "
+                   "ein voller Erfolg – danke an alle Helfer!\n\nEuer Vorstand",
               awaiting_relevance=True, relevance_dialog=RelevanceDialog(mail_id=mail_id(7)))
     store.save("telegram-outbox", TelegramOutboxState(active=TelegramOutboxGate(
         kind="proposal", mail_id=mail_id(1), proposal_id="elternabend", version=1),

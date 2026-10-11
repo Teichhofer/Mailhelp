@@ -71,7 +71,9 @@ class Web:
 
 
 @pytest.fixture
-def web(tmp_path):
+def web(tmp_path, monkeypatch):
+    # Without a running main thread, waiting for a quick result only slows tests down.
+    monkeypatch.setattr("mailhelp.web.site.SETTLE_SECONDS", 0)
     with JsonStore(tmp_path) as store:
         populate(store)
         yield Web(store)
@@ -84,10 +86,14 @@ def test_confirm_in_the_web_writes_once_and_reports_progress(web):
     location = response.headers["Location"]
     assert response.status == 303 and location.startswith("/aktion/")
     running = web.browser.request("GET", location).body.decode()
-    assert '<meta http-equiv="refresh" content="2">' in running and "Wird ausgeführt" in running
+    assert '<meta http-equiv="refresh" content="1">' in running and "Wird ausgeführt" in running
     web.run()
-    done = web.browser.request("GET", location).body.decode()
-    assert "Angelegt." in done and "refresh" not in done
+    # Done: the browser goes back to the overview, which shows the result on top.
+    done = web.browser.request("GET", location)
+    entry_id = location.rsplit("/", 1)[1]
+    assert done.status == 303 and done.headers["Location"] == f"/?ergebnis={entry_id}"
+    overview = web.browser.request("GET", done.headers["Location"]).body.decode()
+    assert '<p class="notice notice-ok" role="status">Angelegt.</p>' in overview
     assert web.writer.created == 1
     assert web.store.load(f"proposal-{MAIL1}-elternabend")["status"] == "created"
     assert any("✅ Angelegt im Kalender" in text for _, text, _ in web.telegram.sent)
@@ -120,7 +126,9 @@ def test_simultaneous_confirmation_in_telegram_and_web_writes_once(web):
     assert web.writer.created == 1
     result = web.commands.get(location.rsplit("/", 1)[1]).result
     assert result.status.value == "stale"
-    assert "geändert oder entschieden" in web.browser.request("GET", location).body.decode()
+    back = web.browser.request("GET", location).headers["Location"]
+    assert "notice-warn" in web.browser.request("GET", back).body.decode()
+    assert "geändert oder entschieden" in web.browser.request("GET", back).body.decode()
 
 
 def test_a_telegram_button_after_a_web_decision_is_reported_as_stale(web):

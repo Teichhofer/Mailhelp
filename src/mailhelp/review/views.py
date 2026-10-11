@@ -13,6 +13,7 @@ import re
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import TypeVar
+from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel
 
@@ -88,6 +89,20 @@ class RelevanceView:
 
 
 @dataclass(frozen=True)
+class MailView:
+    """The stored mail behind a proposal or relevance question, for reading."""
+
+    mail_id: str
+    sender: str
+    subject: str
+    received: str | None
+    # None once retention removed the full mail (or it was never stored).
+    text: str | None
+    attachments_omitted: int
+    text_shortened: bool
+
+
+@dataclass(frozen=True)
 class RunStatus:
     counters: dict[str, int]
     run_complete: bool
@@ -146,6 +161,33 @@ class ReviewViews:
         overview = self.overview()
         return next((view for view in overview.open + overview.recent
                      if (view.mail_id, view.proposal_id) == (mail_id, proposal_id)), None)
+
+    def mail(self, mail_id: str) -> MailView | None:
+        """The mail with its complete text, or None if no such mail is known."""
+        with self.store.locked():
+            state = _Reader(self.store).model(f"mail-{mail_id}", MailState)
+        if state is None:
+            return None
+        content = state.mail if isinstance(state.mail, dict) else {}
+        headers = content.get("headers") if isinstance(content.get("headers"), dict) else {}
+        display = state.display_headers
+        sender = display.sender if display else str(headers.get("from") or "—")
+        subject = display.subject if display else str(headers.get("subject") or "—")
+        received = None
+        stamp = content.get("date_header_parsed") or content.get("imap_received_at")
+        if isinstance(stamp, str):
+            try:
+                received = datetime.fromisoformat(stamp).astimezone(
+                    ZoneInfo(self.configured_timezone)).strftime("%d.%m.%Y, %H:%M Uhr")
+            except ValueError:
+                received = None
+        text = content.get("text") if isinstance(content.get("text"), str) else None
+        metadata = content.get("metadata") if isinstance(content.get("metadata"), dict) else {}
+        omitted = metadata.get("attachments_omitted")
+        return MailView(
+            mail_id=mail_id, sender=sender, subject=subject, received=received, text=text,
+            attachments_omitted=omitted if isinstance(omitted, int) else 0,
+            text_shortened=metadata.get("text_shortened") is True)
 
     def _relevance(self, reader: _Reader) -> list[RelevanceView]:
         result = []
@@ -274,5 +316,5 @@ def _fingerprint(relevance: list[RelevanceView], open_views: list[ProposalView],
     return hashlib.sha256("\n".join(parts).encode("utf-8")).hexdigest()[:16]
 
 
-__all__ = ["Overview", "ProposalView", "RECENT_LIMIT", "RelevanceView", "ReviewViews",
+__all__ = ["MailView", "Overview", "ProposalView", "RECENT_LIMIT", "RelevanceView", "ReviewViews",
            "RunStatus", "STATUS_LABELS"]

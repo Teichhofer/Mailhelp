@@ -18,7 +18,7 @@ Bestandsaufnahme: [1.1-Bestandsaufnahme.md](1.1-Bestandsaufnahme.md).
 | Seite | Inhalt |
 | --- | --- |
 | **Offen** | Relevanzfragen zuerst, danach alle offenen Vorschläge. Der Vorschlag, der gerade in Telegram angezeigt wird, steht oben. Jede Karte zeigt dieselben Angaben wie die Telegram-Karte; Beschreibung und Beleg lassen sich vollständig aufklappen. Darunter steht „Zuletzt erledigt“. |
-| **Vorschlagsdetail** | Eine einzelne Karte mit allen Aktionen; auch für bereits erledigte Vorschläge, mit Link zum angelegten Termin bzw. zur Aufgabe. |
+| **Details** | Über die Schaltfläche „Details“ jeder Karte: der Vorschlag mit allen Aktionen und darunter die vollständige Mail (Absender, Betreff, Datum, kompletter Text; Links darin sind nicht klickbar). Bei Relevanzfragen die Mail mit den Schaltflächen „Relevant“/„Irrelevant“. Nach Ablauf der Aufbewahrung steht dort, dass der Mailtext nicht mehr gespeichert ist. |
 | **Status** | Zähler des letzten Mail-Durchlaufs, offene Vorschläge, Relevanzfragen und wartende Web-Aktionen. |
 | **Geräte** | Gekoppelte Geräte mit letzter Nutzung; einzelne oder alle abmelden. |
 
@@ -36,7 +36,7 @@ entsteht eine neue Version, die erneut bestätigt werden muss.
 
 **Ablauf einer Aktion:**
 
-1. Mailhelp nimmt die Aktion sofort an und zeigt eine Statusseite, die sich bis zum Ergebnis selbst aktualisiert.
+1. Mailhelp nimmt die Aktion sofort an. Ist sie schnell erledigt, geht es direkt zurück zur Übersicht, oben steht das Ergebnis (z. B. „Angelegt.“). Dauert sie länger, erscheint kurz „Aktion läuft“, und danach geht es ebenfalls automatisch zur Übersicht. Nur bei einer bereits früher angelegten Aktion bleibt eine Seite mit „Erneut anlegen“/„Nicht erneut anlegen“ stehen.
 2. Ausgeführt wird sie vom Mailhelp-Hauptthread, genau wie eine Telegram-Eingabe: vor der nächsten Mail, im Leerlauf sofort und während einer offenen Relevanzfrage.
 3. Läuft gerade eine längere Mailanalyse, kann das einige Sekunden dauern.
 

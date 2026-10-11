@@ -1763,9 +1763,12 @@ solange seine Sitzung besteht.
 
 **Aktionen:** `POST /aktion` prüft die Version vorab (veraltet: 409 mit aktueller
 Version), legt den Befehl ab und antwortet mit 303 auf die Statusseite
-`/aktion/<id>` bzw. mit 202 und JSON. Die Statusseite lädt sich ohne JavaScript
-neu, bis das Ergebnis vorliegt, und bietet bei einer erkannten früheren Anlage
-„Erneut anlegen“ an. Telegram erhält Schreibergebnisse und Revisionen wie bisher;
+`/aktion/<id>` bzw. mit 202 und JSON. Die Statusseite wartet bis zu 1,5 s auf das Ergebnis,
+lädt sich sonst ohne JavaScript jede Sekunde neu und leitet nach dem Ergebnis zur
+Übersicht (`/?ergebnis=<id>`) weiter, die das Ergebnis der eigenen Sitzung oben
+anzeigt. Nur bei einer erkannten früheren Anlage bleibt sie mit „Erneut anlegen“
+stehen. Jede Karte hat „Details“: Vorschläge zeigen dort die vollständige gespeicherte
+Mail, Relevanzfragen führen auf `/mail/<id>` mit der Mail und den Relevanz-Schaltflächen. Telegram erhält Schreibergebnisse und Revisionen wie bisher;
 im Web verworfene Vorschläge und Relevanzentscheidungen werden als „🌐 Im Web: …“
 gemeldet. Ein Telegram-Callback zu einer nicht mehr aktuellen Version antwortet mit
 „Bereits entschieden oder geändert … veraltet“.
