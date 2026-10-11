@@ -303,6 +303,39 @@ def test_clear_removes_both_state_namespaces_and_logs(tmp_path):
     assert not logs.exists()
 
 
+def test_clear_also_removes_decision_test_reports(tmp_path):
+    """Regression: --clear kept data/decision-tests with complete raw mails."""
+    data = tmp_path / "data"
+    reports = data / "decision-tests"
+    (reports / "nested").mkdir(parents=True)
+    (reports / "vergleich.json").write_text("{}", encoding="utf-8")
+    (reports / "nested" / "auswertung.md").write_text("x", encoding="utf-8")
+    (data / "production").mkdir()
+    settings = SimpleNamespace(data_directory=data, logging=SimpleNamespace(directory=tmp_path / "logs"))
+
+    clear_runtime_data(settings)
+
+    assert not reports.exists() and not data.exists()
+
+
+def test_clear_unlinks_a_linked_report_directory_without_following_it(tmp_path):
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    (outside / "keep.json").write_text("{}", encoding="utf-8")
+    data = tmp_path / "data"
+    data.mkdir()
+    link = data / "decision-tests"
+    try:
+        link.symlink_to(outside, target_is_directory=True)
+    except OSError:
+        pytest.skip("symbolic links need extra rights on this system")
+    settings = SimpleNamespace(data_directory=data, logging=SimpleNamespace(directory=tmp_path / "logs"))
+
+    clear_runtime_data(settings)
+
+    assert not link.exists() and (outside / "keep.json").exists()
+
+
 def test_clear_supports_log_directory_containing_state(tmp_path):
     combined = tmp_path / "runtime"
     state = combined / "test"
@@ -319,7 +352,7 @@ def test_clear_supports_log_directory_containing_state(tmp_path):
 
 @pytest.mark.parametrize(("answer", "expected_code", "message"), [
     ("nein", 1, "Löschen abgebrochen."),
-    (CLEAR_CONFIRMATION, 0, "Alle Zustandsdaten und Logs wurden gelöscht."),
+    (CLEAR_CONFIRMATION, 0, "Alle Zustandsdaten, Decision-Test-Berichte und Logs wurden gelöscht."),
 ])
 def test_clear_requires_exact_confirmation(monkeypatch, capsys, tmp_path, answer,
                                            expected_code, message):

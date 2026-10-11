@@ -606,7 +606,10 @@ Im dauerhaften Betrieb ohne `--max-mails` endet dieser zusätzliche Scan nach
 ### Alle Laufzeitdaten löschen
 
 `mailhelp --clear` löscht die vollständigen Zustände der Test- und
-Produktionsnamensräume sowie sämtliche Dateien im konfigurierten Logverzeichnis.
+Produktionsnamensräume, die Decision-Test-Berichte in `data/decision-tests`
+(sie enthalten vollständige Rohmails) sowie sämtliche Dateien im konfigurierten
+Logverzeichnis. Ein verlinktes Berichtsverzeichnis wird nur entkoppelt, nicht
+verfolgt.
 Der Dienst muss dafür beendet sein; eine noch aktive Instanz verhindert das
 Löschen über ihre Datensperre. Da auch Checkpoints, offene Bestätigungen,
 Duplikatschutz und externe Ergebnisreferenzen unwiderruflich verloren gehen,

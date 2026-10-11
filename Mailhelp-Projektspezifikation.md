@@ -98,7 +98,10 @@ Filterdatei wieder atomar an.
 
 Der administrative Einmalbefehl `--clear` entfernt nach einer exakten,
 interaktiven Sicherheitsbestätigung beide Zustandsnamensräume (`test` und
-`production`) und den vollständigen Inhalt des wirksamen Logverzeichnisses.
+`production`), das Verzeichnis der Decision-Test-Berichte (`decision-tests` im
+Datenverzeichnis; es enthält vollständige Rohmails, ein Link darauf wird nur
+entfernt, nicht verfolgt) und den vollständigen Inhalt des wirksamen
+Logverzeichnisses.
 Eine gehaltene Zustandsperre bricht den Vorgang ab. `--clear --yes` erlaubt den
 bewusst nicht interaktiven Einsatz; `--yes` ist ohne `--clear` ungültig. Ein mit
 `--log-directory` gesetzter Pfad ist auch für diesen Befehl wirksam. YAML-Dateien

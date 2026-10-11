@@ -70,8 +70,13 @@ def _remove_directory_contents(directory: Path, *, keep: set[str] = frozenset())
 
 def clear_runtime_data(settings: Settings, log_directory: Path | None = None,
                        base_directory: Path = Path(".")) -> None:
-    """Delete all configured state namespaces and logs while holding state locks."""
+    """Delete all state namespaces, decision-test reports and logs while holding state locks.
+
+    Decision-test reports contain complete raw mails and model contents, so they
+    are runtime data like the state itself.
+    """
     data_root = runtime_path(settings.data_directory, base_directory)
+    reports = data_root / "decision-tests"
     logs = runtime_path(log_directory if log_directory is not None else settings.logging.directory,
                         base_directory)
     namespaces = [data_root / "test", data_root / "production"]
@@ -87,6 +92,10 @@ def clear_runtime_data(settings: Settings, log_directory: Path | None = None,
     for path in existing:
         (path / ".lock").unlink(missing_ok=True)
         path.rmdir()
+    if reports.exists() and not reports.is_symlink():
+        shutil.rmtree(reports)
+    elif reports.is_symlink():
+        reports.unlink()
     if data_root.exists() and not any(data_root.iterdir()):
         data_root.rmdir()
     if logs_contain_state:
@@ -140,7 +149,7 @@ def _main() -> int:
     )
     parser.add_argument(
         "--clear", action="store_true",
-        help="alle Zustandsdaten und Logs nach ausdrücklicher Bestätigung löschen",
+        help="alle Zustandsdaten, Decision-Test-Berichte und Logs nach ausdrücklicher Bestätigung löschen",
     )
     parser.add_argument(
         "--yes", action="store_true",
@@ -222,14 +231,15 @@ def _main() -> int:
     if args.clear:
         if not args.yes:
             answer = input(
-                "ACHTUNG: Alle Zustandsdaten und Logs werden unwiderruflich gelöscht.\n"
+                "ACHTUNG: Alle Zustandsdaten, Decision-Test-Berichte und Logs werden "
+                "unwiderruflich gelöscht.\n"
                 f"Zum Fortfahren exakt {CLEAR_CONFIRMATION!r} eingeben: "
             )
             if answer != CLEAR_CONFIRMATION:
                 print("Löschen abgebrochen.")
                 return 1
         clear_runtime_data(settings, args.log_directory, args.config_directory)
-        print("Alle Zustandsdaten und Logs wurden gelöscht.")
+        print("Alle Zustandsdaten, Decision-Test-Berichte und Logs wurden gelöscht.")
         return 0
     logger = build_logger(settings, secrets, base_directory=args.config_directory,
                           log_directory=args.log_directory)
