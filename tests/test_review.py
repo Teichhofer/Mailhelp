@@ -105,8 +105,8 @@ def test_web_confirmation_writes_exactly_the_confirmed_version(tmp_path):
      (ResultStatus.DONE, "Bearbeitung gestartet – bitte die Rückfrage beantworten.")),
     ("needs_clarification", CommandKind.CONFIRM,
      (ResultStatus.NEEDS_ANSWER, "Zuerst müssen die offenen Fragen beantwortet werden")),
-    ("rejected", CommandKind.CONFIRM, (ResultStatus.STALE, "Diese Schaltfläche ist veraltet")),
-    ("created", CommandKind.REJECT, (ResultStatus.STALE, "Diese Schaltfläche ist veraltet")),
+    ("rejected", CommandKind.CONFIRM, (ResultStatus.STALE, "Der Vorschlag wurde inzwischen geändert oder entschieden")),
+    ("created", CommandKind.REJECT, (ResultStatus.STALE, "Der Vorschlag wurde inzwischen geändert oder entschieden")),
 ])
 def test_each_decision_in_allowed_and_forbidden_states(tmp_path, status, kind, expected):
     item = proposal(status=status, open_questions=["Ort?"] if status == "needs_clarification" else [])
@@ -124,7 +124,8 @@ def test_version_conflict_and_unknown_proposal_are_stale(tmp_path):
         missing = service.execute(command(CommandKind.CONFIRM, proposal_id="unknown"))
         assert (missing.status, missing.message) == (ResultStatus.STALE, "Vorschlag wurde nicht gefunden")
         # A web identifier that the decision model refuses is invalid, not a crash.
-        invalid = service.execute(command(CommandKind.CONFIRM, proposal_id="x" * 40))
+        invalid = service.execute(command(CommandKind.CONFIRM, proposal_id="x" * 40,
+                                          source=CommandSource.TELEGRAM, actor=TELEGRAM))
         assert (invalid.status, invalid.message) == (ResultStatus.INVALID, "Die Eingabe ist ungültig.")
         with pytest.raises(StaleCommand):
             service.execute(command(CommandKind.CONFIRM, version=1), raise_errors=True)

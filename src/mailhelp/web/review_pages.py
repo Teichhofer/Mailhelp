@@ -85,8 +85,9 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
         if value:
             labels.append(f'<span class="badge warn">{prefix}: {e(value)}</span>')
     warnings = []
-    if not card.writable and view.status in {ProposalStatus.PENDING_CONFIRMATION,
-                                             ProposalStatus.NEEDS_CLARIFICATION}:
+    # With open questions the answers decide whether it can be created.
+    if not card.writable and not card.questions and view.status in {
+            ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}:
         warnings.append(notice("Kann nicht automatisch angelegt werden – bitte manuell prüfen.", "warn"))
     elif card.test_mode:
         warnings.append(notice("Testmodus: Der Eintrag wird nur simuliert.", "info"))

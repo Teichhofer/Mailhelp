@@ -123,6 +123,9 @@ class ReviewService:
     def _decide(self, command: ReviewCommand) -> ReviewResult:
         from ..telegram.callbacks import Decision, DecisionAction
 
+        if command.source == CommandSource.WEB:
+            # Named in web terms; Telegram's own check speaks of buttons.
+            self._target(command)
         decision = Decision(
             mail_id=command.mail_id, proposal_id=command.proposal_id,
             version=command.version,

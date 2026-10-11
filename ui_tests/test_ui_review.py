@@ -80,7 +80,7 @@ def test_overview_refreshes_itself_but_never_discards_typed_text(page, mailhelp)
     refresh(page)
     expect(badge).to_have_text("Neue Daten – bitte neu laden")
     assert audit(page, f"neue-daten-{page.device}", page.mobile) == []
-    page.evaluate("document.querySelector('main textarea').value = ''")
+    page.evaluate("document.querySelector('textarea[aria-label=Notiz]').value = ''")
 
     # The automatic reload is answered once with 204 so the document stays and
     # its script coverage can be read; then the page is loaded normally.
@@ -92,7 +92,7 @@ def test_overview_refreshes_itself_but_never_discards_typed_text(page, mailhelp)
 
     page.route(f"{mailhelp.url}/", hold)
     refresh(page)
-    expect(page.locator("main textarea")).to_have_count(1)
+    expect(page.get_by_label("Notiz")).to_have_count(1)
     page.wait_for_timeout(300)
     assert reloads == [f"{mailhelp.url}/"]
     page.unroute(f"{mailhelp.url}/")

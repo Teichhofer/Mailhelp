@@ -81,6 +81,8 @@ _AUDIT = r"""
 def audit(page, label: str, mobile: bool) -> list[str]:
     """Take a full-page screenshot and return every usability finding."""
     SCREENSHOTS.mkdir(parents=True, exist_ok=True)
+    # A sticky header would otherwise appear in the middle of a full-page image.
+    page.evaluate("window.scrollTo(0, 0)")
     page.screenshot(path=str(SCREENSHOTS / f"{label}.png"), full_page=True)
     return page.evaluate(_AUDIT, mobile)
 

@@ -1122,7 +1122,7 @@ def test_persist_before_buttons_and_authorized_flow(tmp_path):
         # A replay with a fresh update id still cannot mutate the terminal state.
         t2.updates=[callback(5,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:reject")]; c2.poll_once()
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="confirmed"
-        assert "konnte nicht verarbeitet" in t2.sent[-1][1]
+        assert "Schaltfläche ist veraltet" in t2.sent[-1][1]
 
 
 def test_production_mode_creates_calendar_file_and_sends_it_via_telegram(tmp_path):
@@ -1172,7 +1172,7 @@ def test_only_exactly_displayed_version_is_written(tmp_path):
         c.send_proposal(proposal(version=2, title="Neue Fassung"))
         t.updates=[callback(1,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm"),callback(2,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:2:confirm")]
         c.poll_once()
-        assert any("konnte nicht verarbeitet" in text for _, text, _ in t.sent)
+        assert any("Schaltfläche ist veraltet" in text for _, text, _ in t.sent)
         assert writer.versions == [2]
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v2")["title"] == "Neue Fassung"
 
@@ -1250,7 +1250,7 @@ def test_same_llm_id_from_two_mails_survives_restart_and_writes_separately(tmp_p
         t2.updates=[callback(4,f"proposal:{first_mail}:p1:1:confirm")]
         restarted.poll_once()
         assert first_writer.created == 1 and second_writer.created == 1
-        assert "konnte nicht verarbeitet" in t2.sent[-1][1]
+        assert "Schaltfläche ist veraltet" in t2.sent[-1][1]
 
 def test_edit_question_answer_new_version_then_reject(tmp_path):
     with JsonStore(tmp_path) as store:
@@ -2183,12 +2183,12 @@ def test_relevance_dialog_authorization_stale_restart_and_duplicate(tmp_path):
         assert not c.awaiting_relevance_decision()
         assert all(text == "Aktion wird verarbeitet …" for _, text in t.answered[:3])
         assert any("Nicht autorisierte" in text for _, text, _ in t.sent)
-        assert any("konnte nicht verarbeitet" in text for _, text, _ in t.sent)
+        assert any("Schaltfläche ist veraltet" in text for _, text, _ in t.sent)
         assert handler.resumed==[mail_id] and store.load("mail-"+mail_id)["relevance_dialog"]["telegram_offset"]==4
         restarted,t2,_=controller(store,[callback(3,f"relevance:{mail_id}:1:irrelevant")]); restarted.relevance_handler=handler
         restarted.poll_once(); assert t2.polls==[4] and "bereits verarbeitet" in t2.answered[-1][1]
         t2.updates=[callback(4,f"relevance:{mail_id}:1:irrelevant")]; restarted.poll_once()
-        assert "konnte nicht verarbeitet" in t2.sent[-1][1]
+        assert "Schaltfläche ist veraltet" in t2.sent[-1][1]
 
 
 def test_relevance_dialog_displays_missing_headers_without_exposing_mail_id(tmp_path):

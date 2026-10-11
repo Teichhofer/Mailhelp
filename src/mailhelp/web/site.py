@@ -11,12 +11,17 @@ from __future__ import annotations
 from typing import Callable, Protocol
 
 from ..config import WebSettings
-from ..review.inbox import CommandInbox
+from pydantic import ValidationError
+
+from ..models import ProposalStatus
+from ..review.commands import CommandKind, CommandSource, ReviewCommand
+from ..review.inbox import CommandConflict, CommandInbox, CommandInboxFull
 from ..review.views import ReviewViews
 from .app import WebApp
 from .auth import PairingLimited, PairingRefused, WebAuth, WebSession, device_name
 from .http import Request, Response
 from .pages import devices_page, error_page, login_page
+from .actions import command_page, proposal_actions, relevance_actions, stale_page
 from .review_pages import detail_page, overview_page, status_page
 
 SESSION_COOKIE = "mh_session"
@@ -55,6 +60,8 @@ class MailhelpSite:
                   self.signed_in(self.detail))
         app.route("GET", "/status", self.signed_in(self.status))
         app.route("GET", "/api/stand", self.signed_in(self.state))
+        app.route("POST", "/aktion", self.signed_in(self.act))
+        app.route("GET", r"/aktion/(?P<entry_id>[a-f0-9]{32})", self.signed_in(self.progress))
 
     # --- helpers ------------------------------------------------------------------
 
@@ -199,7 +206,9 @@ class MailhelpSite:
         return self._signed_out(request)
 
     def home(self, request: Request, session: WebSession) -> Response:
-        return Response.html(200, overview_page(self.views.overview()))
+        csrf = self.auth.csrf_token(session.id)
+        return Response.html(200, overview_page(self.views.overview(), actions=proposal_actions(csrf),
+                                                relevance_actions=relevance_actions(csrf)))
 
     def detail(self, request: Request, session: WebSession, mail_id: str,
                proposal_id: str) -> Response:
@@ -207,12 +216,82 @@ class MailhelpSite:
         if view is None:
             return Response.html(404, error_page(
                 "Nicht gefunden", "Dieser Vorschlag ist nicht (mehr) vorhanden."))
-        return Response.html(200, detail_page(view))
+        return Response.html(200, detail_page(view, actions=proposal_actions(
+            self.auth.csrf_token(session.id))))
 
     def status(self, request: Request, session: WebSession) -> Response:
         overview = self.views.overview()
         return Response.html(200, status_page(overview.run, overview, self.configured_timezone,
                                               len(self.commands.queued())))
+
+    def act(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
+        """Queue a version-bound command for the main thread; answer at once."""
+        try:
+            command = ReviewCommand(
+                kind=CommandKind(form.get("kind", "")), source=CommandSource.WEB,
+                actor=f"web:{session.id}", mail_id=form.get("mail_id", ""),
+                proposal_id=form.get("proposal_id") or None,
+                version=int(form.get("version", "")), idempotency_key=form.get("key", ""),
+                text=form.get("text") or None, decision=form.get("decision") or None)
+        except (ValueError, ValidationError):
+            return self._reply(request, 422, "Die Aktion ist unvollständig oder ungültig.")
+        stale = self._stale(command)
+        if stale is not None:
+            current = (self.views.proposal(command.mail_id, command.proposal_id)
+                       if command.proposal_id else None)
+            if request.wants_json():
+                return Response.json(409, {"error": stale,
+                                           "current_version": current.version if current else None})
+            return Response.html(409, stale_page(stale, current))
+        try:
+            entry, new = self.commands.submit(command)
+        except CommandConflict:
+            return self._reply(request, 422, "Diese Aktion wurde bereits mit anderen Angaben gesendet.")
+        except CommandInboxFull:
+            return self._reply(request, 503, "Mailhelp ist gerade ausgelastet. Bitte gleich erneut versuchen.")
+        self.logger.event("INFO", "web", "command_submitted", command_id=entry.id,
+                          kind=command.kind.value, repeated=not new)
+        location = f"/aktion/{entry.id}"
+        if request.wants_json():
+            response = Response.json(202, {"id": entry.id, "status": entry.status.value,
+                                           "status_url": location})
+            response.headers["Location"] = location
+            return response
+        return Response.redirect(location)
+
+    def _stale(self, command: ReviewCommand) -> str | None:
+        """Refuse an outdated version before it is queued (checked again when it runs)."""
+        if command.kind == CommandKind.RELEVANCE:
+            open_ = {(view.mail_id, view.version) for view in self.views.overview().relevance}
+            if (command.mail_id, command.version) not in open_:
+                return "Diese Relevanzfrage ist bereits beantwortet oder veraltet."
+            return None
+        assert command.proposal_id is not None
+        current = self.views.proposal(command.mail_id, command.proposal_id)
+        if (current is None or current.version != command.version
+                or current.status not in {ProposalStatus.PENDING_CONFIRMATION,
+                                          ProposalStatus.NEEDS_CLARIFICATION}):
+            return "Dieser Vorschlag wurde inzwischen geändert oder entschieden."
+        return None
+
+    @staticmethod
+    def _reply(request: Request, status: int, message: str) -> Response:
+        if request.wants_json():
+            return Response.json(status, {"error": message})
+        return Response.html(status, error_page("Aktion nicht möglich", message))
+
+    def progress(self, request: Request, session: WebSession, entry_id: str) -> Response:
+        entry = self.commands.get(entry_id)
+        if entry is None or entry.command.actor != f"web:{session.id}":
+            return self._reply(request, 404, "Diese Aktion ist nicht (mehr) bekannt.")
+        if request.wants_json():
+            return Response.json(200, {
+                "id": entry.id, "status": entry.status.value,
+                "result": entry.result.model_dump(mode="json") if entry.result else None})
+        command = entry.command
+        current = (self.views.proposal(command.mail_id, command.proposal_id)
+                   if command.proposal_id else None)
+        return Response.html(200, command_page(entry, self.auth.csrf_token(session.id), current))
 
     def state(self, request: Request, session: WebSession) -> Response:
         """Fingerprint of the overview; the page reloads when it changes."""

@@ -105,4 +105,28 @@ def populate(store: JsonStore) -> None:
         counters=MailRunCounters(**counters)).model_dump(mode="json"))
 
 
-__all__ = ["mail_id", "populate", "proposal", "save_mail"]
+class Revisions:
+    """Deterministic stand-in for the LLM revision of an answered question."""
+
+    def interpret_telegram_answer(self, item, question, answer):
+        return "interpret", type("I", (), {"usable": True, "normalized_answer": answer,
+                                           "reason": "eindeutig"})()
+
+    def clarify_telegram_answer(self, question, answer, reason, *, current_date=None):
+        return "clarify", type("C", (), {"message": f"Bitte genauer: {question}"})()
+
+    def revise_proposal(self, item, question, answer):
+        remaining = item.open_questions[1:]
+        data = {**item.model_dump(), "version": item.version + 1, "open_questions": remaining,
+                "status": "needs_clarification" if remaining else "pending_confirmation",
+                "responsibility": "user"}
+        if item.kind.value == "event" and item.known_temporal_facts is not None:
+            day = item.known_temporal_facts.date.isoformat()
+            data.update(known_temporal_facts=None, start=f"{day}T10:00:00+02:00",
+                        end=f"{day}T10:30:00+02:00")
+        if not item.open_questions:
+            data["title"] = answer.removeprefix("Titel:").strip() or item.title
+        return "revision", Proposal.model_validate(data)
+
+
+__all__ = ["Revisions", "mail_id", "populate", "proposal", "save_mail"]

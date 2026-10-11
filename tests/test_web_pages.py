@@ -112,3 +112,15 @@ def test_links_and_card_variants(tmp_path):
         overview, message="Gespeichert & erledigt")
     done = proposal_card(views["done"], actions=lambda view: "<form>aktion</form>")
     assert "In Todoist öffnen" not in done and "<form>aktion</form>" in done
+
+
+def test_manual_warning_only_without_open_questions(tmp_path):
+    with JsonStore(tmp_path) as store:
+        save_mail(store, 1, "A <a@x.test>", "Absage", [
+            proposal(1, "manual", classification="cancellation", status="needs_clarification"),
+            proposal(1, "asked", responsibility="unclear",
+                     open_questions=["Ist die Nutzerin oder der Nutzer für diesen Eintrag zuständig?"]),
+        ])
+        views = {view.proposal_id: view for view in ReviewViews(store, "UTC").overview().open}
+    assert "manuell prüfen" in proposal_card(views["manual"])
+    assert "manuell prüfen" not in proposal_card(views["asked"])

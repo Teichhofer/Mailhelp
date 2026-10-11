@@ -18,6 +18,7 @@ from ..integrations import ExternalWriter
 from ..models import Proposal, ProposalStatus, RelevanceDialog, TelegramOffset
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.inbox import CommandInbox
+from ..review.errors import StaleCommand
 from ..review.results import ResultStatus, ReviewResult
 from ..storage import JsonStore
 
@@ -45,6 +46,8 @@ from .writes import ConfirmedWriteExecutor, WriteExecution
 # before every mail.
 INBOX_RETRY_SECONDS = 30.0
 INBOX_MAX_ATTEMPTS = 3
+STALE_BUTTON = ("ℹ️ Bereits entschieden oder geändert (z. B. in der Weboberfläche) – "
+                "diese Schaltfläche ist veraltet. Aktueller Stand: /offen")
 # Telegram buttons translated into channel-neutral review commands.
 _COMMAND_KINDS = {
     DecisionAction.CONFIRM: CommandKind.CONFIRM,
@@ -479,6 +482,15 @@ class TelegramDialogController:
             self.logger.event("INFO", "review", "command_finished", command_id=entry.id,
                               source=command.source.value, kind=command.kind.value,
                               status=result.status.value)
+            # Writes, revisions and clarifications report in Telegram by
+            # themselves; a rejection or relevance decision is mirrored here.
+            if (command.source == CommandSource.WEB and result.status == ResultStatus.DONE
+                    and command.kind in {CommandKind.REJECT, CommandKind.RELEVANCE}):
+                try:
+                    self.telegram.send(self.chat_id, f"🌐 Im Web: {result.message}")
+                except Exception as exc:
+                    self.logger.event("ERROR", "review", "web_notice_failed",
+                                      error_class=type(exc).__name__)
 
     def _reject_duplicate_relevance(self, raw: dict[str, Any]) -> None:
         """Make a replayed relevance answer visible without trusting raw fields."""
@@ -559,6 +571,14 @@ class TelegramDialogController:
                         proposal_id=decision.proposal_id, version=decision.version,
                         idempotency_key=key,
                     ), raise_errors=True).message
+            except StaleCommand:
+                # Typically decided in the web interface after this card was sent.
+                self.logger.event("INFO", "telegram.dialog", "stale_button",
+                                  update_id=update.update_id)
+                self.telegram.remove_inline_keyboard(
+                    callback.message.chat.id, callback.message.message_id)
+                self.telegram.send(self.chat_id, STALE_BUTTON)
+                return
             except Exception as exc:
                 self.logger.event(
                     "ERROR",
