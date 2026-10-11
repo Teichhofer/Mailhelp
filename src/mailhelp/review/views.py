@@ -112,6 +112,7 @@ class ErrorView:
     cause: str
     occurred_at: datetime
     retryable: bool | None
+    next_attempt: datetime | None = None
 
 
 @dataclass(frozen=True)
@@ -213,14 +214,27 @@ class ReviewViews:
         return Overview(
             relevance=tuple(relevance), open=tuple(open_views), recent=tuple(recent),
             run=run, damaged=len(reader.damaged),
-            fingerprint=_fingerprint(relevance, open_views, recent),
+            fingerprint=_fingerprint(relevance, open_views, recent) + f"-{self.store.revision}",
         )
 
-    def proposal(self, mail_id: str, proposal_id: str) -> ProposalView | None:
-        """One proposal by identity, open or recently decided."""
-        overview = self.overview()
-        return next((view for view in overview.open + overview.recent
-                     if (view.mail_id, view.proposal_id) == (mail_id, proposal_id)), None)
+    def proposal(self, mail_id: str, proposal_id: str, version: int | None = None) -> ProposalView | None:
+        """Resolve by identity, independently of the recent-results window."""
+        with self.store.locked():
+            reader = _Reader(self.store)
+            suffix = f"-v{version}" if version is not None else ""
+            item = reader.model(f"proposal-{mail_id}-{proposal_id}{suffix}", Proposal)
+            if item is None or (item.source_mail_id, item.id) != (mail_id, proposal_id):
+                return None
+            mail = reader.model(f"mail-{mail_id}", MailState)
+            pointer = reader.model("telegram-dialog", TelegramDialogState) or TelegramDialogState()
+            clarification = reader.model(f"clarification-{mail_id}-{proposal_id}-v{item.version}",
+                                         ProposalClarificationState)
+            outbox = reader.model("telegram-outbox", TelegramOutboxState) or TelegramOutboxState()
+            gate = outbox.active
+            current = gate is not None and (gate.mail_id, gate.proposal_id) == (mail_id, proposal_id)
+            queued = any((entry.mail_id, entry.proposal_id, entry.version) ==
+                         (mail_id, proposal_id, item.version) for entry in outbox.entries)
+            return self._view(item, mail, clarification, pointer, current, queued)
 
     def system(self, now: datetime | None = None) -> SystemStatus:
         """Operating figures from the stored state; nothing is changed."""

@@ -286,6 +286,7 @@ class Analyzer:
             for host in self.prompts.suspicious_link_hosts)
 
     def relevance(self, mail: dict[str, Any], topics: list[Topic]) -> tuple[str, Relevance]:
+        self.last_relevance_source = getattr(self.client, "service_name", "OpenRouter")
         if self.suspicious_link_bait(mail):
             return "local-link-safety", Relevance(decision="unclear", topic_ids=[],
                 reason="Verdächtiger Kurzlink-Köder. Bitte unabhängig prüfen; daraus werden keine Aktionen angelegt.")

@@ -17,9 +17,11 @@ Stand: 10. Oktober 2026
 
 Mailhelp ist eine selbst betriebene Software. Sie liest E-Mails aus einem Postfach,
 lässt sie mit KI-Modellen auswerten und schlägt daraus Aufgaben (Todoist) und Termine
-(Google Kalender) vor. Die Vorschläge werden über einen Telegram-Bot zur Bestätigung
-vorgelegt. Mailhelp legt **nichts** in Todoist oder Google Kalender an, solange die
-berechtigte Person den konkreten Vorschlag nicht ausdrücklich in Telegram bestätigt hat.
+(Google Kalender) vor. Die Vorschläge werden über einen Telegram-Bot oder die
+authentifizierte Weboberfläche zur Bestätigung vorgelegt. Mailhelp legt **nichts**
+in Todoist oder Google Kalender an, solange die berechtigte Person die konkrete
+Vorschlagsversion nicht ausdrücklich über einen dieser beiden Kanäle bestätigt hat.
+Das Speichern einer Bearbeitung allein ist keine Bestätigung.
 
 Mailhelp ist kein öffentlicher Dienst. Eine Instanz wird von einer Person für ihr
 eigenes Postfach betrieben und von genau einem berechtigten Telegram-Konto bedient.

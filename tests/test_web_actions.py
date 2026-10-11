@@ -42,7 +42,7 @@ class Web:
         self.dialog.review.web_authorizer = lambda actor: self.auth.active(actor.removeprefix("web:"))
         self.logger = Logger()
         self.app = WebApp([LOCAL])
-        MailhelpSite(self.app, self.auth, WebSettings(), "Europe/Berlin", self.logger,
+        self.site = MailhelpSite(self.app, self.auth, WebSettings(), "Europe/Berlin", self.logger,
                      ReviewViews(store, "Europe/Berlin"), self.commands)
         self.browser = Browser(self.app)
         csrf = self.browser.csrf()

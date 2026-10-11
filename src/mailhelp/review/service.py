@@ -16,6 +16,9 @@ from pydantic import ValidationError
 from ..models import MailState, Proposal, ProposalStatus, RelevanceDialogStatus, TelegramDialogState
 from ..domain.processing import ProposalClarificationState
 from .commands import CommandKind, CommandSource, ReviewCommand
+from ..configuration import AdminCommand
+from .editing import edit_proposal
+from .archive import record_event, record_relevance
 from .errors import AnswerRequired, ReviewBusy, ReviewError, StaleCommand
 from .results import ResultStatus, ReviewResult
 
@@ -54,17 +57,35 @@ class ReviewService:
         # Confirms that a web session is still valid when the command runs,
         # so a session revoked after submitting cannot act any more.
         self.web_authorizer = web_authorizer
+        self.configuration = None
 
     def execute(self, command: ReviewCommand, *, raise_errors: bool = False) -> ReviewResult:
         """Apply *command*; with *raise_errors*, a rejected command raises instead."""
+        if isinstance(command, AdminCommand):
+            if self.configuration is None:
+                return ReviewResult(status=ResultStatus.INVALID, message="Konfigurationsdienst nicht verfügbar.")
+            return self.configuration.execute(command)
         if not self._authorized(command):
             return ReviewResult(status=ResultStatus.UNAUTHORIZED, message="Nicht autorisiert.")
         try:
-            return self._execute(command)
+            result = self._execute(command)
+            self._record(command)
+            return result
         except (ReviewError, ValidationError, ValueError) as exc:
             if raise_errors:
                 raise
             return ReviewResult(status=_error_status(exc), message=_error_message(exc))
+
+    def _record(self, command: ReviewCommand) -> None:
+        if command.proposal_id is None:
+            state = self.controller.store.load_model(f"mail-{command.mail_id}", MailState)
+            if state is not None:
+                record_relevance(self.controller.store, state, command.source.value, command.idempotency_key)
+            return
+        current = self.controller.repository.load_current(command.mail_id, command.proposal_id)
+        if current is not None:
+            record_event(self.controller.store, current, command.kind.value, command.source.value,
+                         command.idempotency_key)
 
     def reconcile(self, command: ReviewCommand) -> ReviewResult:
         """Result of a command interrupted by a restart, judged from the current state.
@@ -72,7 +93,12 @@ class ReviewService:
         The command is never executed again: if its effect is visible it
         counts as done, otherwise the user is asked to trigger it again.
         """
+        if isinstance(command, AdminCommand):
+            if self.configuration is None:
+                return ReviewResult(status=ResultStatus.FAILED, message="Konfigurationsdienst nicht verfügbar.")
+            return self.configuration.reconcile(command)
         if self._took_effect(command):
+            self._record(command)
             return ReviewResult(status=ResultStatus.DONE,
                                 message="Nach einem Neustart abgeglichen; der aktuelle Stand wird angezeigt.")
         return ReviewResult(status=ResultStatus.FAILED,
@@ -112,6 +138,19 @@ class ReviewService:
                 and self.web_authorizer(command.actor))
 
     def _execute(self, command: ReviewCommand) -> ReviewResult:
+        if command.kind == CommandKind.EDIT:
+            previous = self._target(command)
+            targets = {previous.target}
+            handler = self.controller.relevance_handler
+            configured = getattr(handler, "targets", None)
+            if configured is not None:
+                targets.add(configured.todoist_project if previous.kind.value == "task" else configured.google_calendar)
+            revised = edit_proposal(previous, command.patch, self.controller.configured_timezone, targets)
+            self.controller.persist(revised)
+            record_event(self.controller.store, revised, "edit", command.source.value, command.idempotency_key)
+            if revised.version != previous.version:
+                self.controller.send_proposal(revised)
+            return ReviewResult(status=ResultStatus.DONE, message="Neue Version gespeichert; bitte separat bestätigen.")
         if command.kind == CommandKind.RELEVANCE:
             return self._relevance(command)
         if command.kind == CommandKind.ANSWER:

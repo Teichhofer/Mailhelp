@@ -11,6 +11,7 @@ from enum import StrEnum
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from .editing import ProposalEditPatch
 
 
 class CommandSource(StrEnum):
@@ -26,6 +27,7 @@ class CommandKind(StrEnum):
     ANSWER = "answer"
     CANCEL_CLARIFICATION = "cancel"
     RELEVANCE = "relevance"
+    EDIT = "edit_fields"
 
 
 PROPOSAL_KINDS = frozenset(set(CommandKind) - {CommandKind.RELEVANCE})
@@ -45,9 +47,12 @@ class ReviewCommand(BaseModel):
     decision: Literal["relevant", "irrelevant"] | None = None
     # Telegram update offset that makes a replayed relevance answer detectable.
     replay_offset: int | None = Field(default=None, ge=1)
+    patch: ProposalEditPatch | None = None
 
     @model_validator(mode="after")
     def complete(self) -> "ReviewCommand":
+        if (self.kind == CommandKind.EDIT) != (self.patch is not None):
+            raise ValueError("Nur strukturierte Bearbeitung enthält Felder")
         if (self.kind in PROPOSAL_KINDS) != (self.proposal_id is not None):
             raise ValueError("Nur Vorschlagsbefehle benötigen eine Vorschlags-ID")
         if (self.kind == CommandKind.ANSWER) != (self.text is not None and bool(self.text.strip())):

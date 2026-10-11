@@ -65,6 +65,19 @@ class RetentionService:
             if self._protected(state):
                 protected += 1
                 continue
+            analysis_period = self.settings.analysis_days
+            if analysis_period is None:
+                analysis_period = self.settings.debug_llm_days
+            for prefix, period in (("analysis", analysis_period), ("history", self.settings.history_days)):
+                record = self.store.load(f"{prefix}-{state.id}")
+                if record is not None and self._expired(period, state.updated_at, now):
+                    self.store.save(f"{prefix}-{state.id}", {"schema_version": 1, "removed": True})
+                    if prefix == "history":
+                        for snapshot in self.store.names(f"proposal-{state.id}-"):
+                            if snapshot.rsplit("-", 1)[-1].startswith("v") and snapshot.rsplit("-", 1)[-1][1:].isdigit():
+                                old = self.store.load(snapshot)
+                                old.update(title="Historischer Vorschlag", description="", evidence="Nach Aufbewahrung entfernt", location=None, video_link=None)
+                                self.store.save(snapshot, old)
             mail_changed = self._expired(self.settings.full_mail_days, state.updated_at, now) and state.mail is not None
             debug_changed = self._expired(self.settings.debug_llm_days, state.updated_at, now) and any(
                 (state.relevance is not None, state.summary is not None, bool(state.llm_call_ids), bool(state.validation_errors))

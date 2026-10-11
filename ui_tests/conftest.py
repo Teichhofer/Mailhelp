@@ -121,12 +121,26 @@ def mailhelp(tmp_path):
         auth = WebAuth(store, "u" * 40, 30, lambda text: telegram.send(2, text))
         dialog.review.web_authorizer = lambda actor: auth.active(actor.removeprefix("web:"))
         app = WebApp(settings.allowed_hosts)
-        MailhelpSite(app, auth, settings, "Europe/Berlin", logger,
+        site = MailhelpSite(app, auth, settings, "Europe/Berlin", logger,
                      ReviewViews(store, "Europe/Berlin"), commands)
         server = WebServer("127.0.0.1", port, app, logger)
         server.start()
         instance = Mailhelp(f"http://127.0.0.1:{port}", store, telegram, writer, dialog)
         instance.auth = auth
+        instance.site = site
+        from test_application import settings as application_settings
+        from mailhelp.configuration import ConfigurationService
+        from mailhelp.lifecycle import Lifecycle
+        from mailhelp.metrics import MetricsRecorder, MetricsSettings
+        import yaml
+        cfg = application_settings(tmp_path)
+        (tmp_path / "config.yaml").write_text(yaml.safe_dump(cfg.model_dump(mode="json")), encoding="utf-8")
+        (tmp_path / "topics.yaml").write_text("topics:\n- id: school\n  name: Schule\n  description: Schule\n  enabled: true\n  examples: []\n  exclusions: []\n", encoding="utf-8")
+        (tmp_path / "irrelevant_topics.yaml").write_text("topics: []\n", encoding="utf-8")
+        configuration = ConfigurationService(tmp_path, store, cfg, dialog.review.web_authorizer, lambda value: None)
+        dialog.review.configuration = site.archive.configuration = configuration
+        site.archive.metrics = MetricsRecorder(tmp_path / "metrics.jsonl", MetricsSettings())
+        site.lifecycle = site.archive.lifecycle = Lifecycle(instance.stop.set, dialog.review.web_authorizer)
 
         def main_thread():
             # Mailhelp's main thread executes web commands between mails.

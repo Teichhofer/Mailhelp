@@ -218,6 +218,6 @@ Wirkung sichtbar, gilt sie als erledigt; sonst wird um erneutes Auslösen gebete
 - Genau eine berechtigte Person (wie `telegram.user_id`), kein Mehrbenutzerbetrieb.
 - Bereits gesendete Telegram-Schaltflächen werden nach einer Web-Entscheidung nicht
   entfernt, sondern beim Drücken als veraltet gemeldet.
-- Die Entwicklungsregeln (`AGENTS.md`) sprechen noch von „Telegram-Bestätigung“. Die
-  Umstellung auf „autorisierte, versionsbezogene Bestätigung über Telegram oder Web“
-  erfolgt erst mit ausdrücklicher Zustimmung der projektverantwortlichen Person.
+- Die projektverantwortliche Person hat am 11. Oktober 2026 die autorisierte,
+  versionsbezogene Bestätigung über Telegram oder Web ausdrücklich freigegeben.
+  Bearbeiten und Speichern ersetzen keine Bestätigung der neuen Version.

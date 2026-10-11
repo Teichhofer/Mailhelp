@@ -322,6 +322,8 @@ def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
         items = []
         for error in system.errors:
             retry = " · wird automatisch wiederholt" if error.retryable else ""
+            if error.next_attempt is not None:
+                retry += f" · nächster Versuch: {_when(error.next_attempt, zone)}"
             items.append(
                 f'<li><span><a href="/mail/{e(error.mail_id)}">{e(error.subject)}</a><br>'
                 f'<span class="meta">{e(error.cause)} · {e(error.stage)} · '

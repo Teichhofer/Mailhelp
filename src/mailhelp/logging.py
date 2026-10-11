@@ -120,6 +120,7 @@ class JsonlLogger:
         self.llm = directory / llm_name
         self.telegram = directory / telegram_name
         self.include_requests, self.include_responses = include_llm_requests, include_llm_responses
+        self.metrics = None
         self.level = _validate_level(level)
         self.module_levels = {str(module): _validate_level(item) for module, item in (module_levels or {}).items()}
         self.secrets = tuple(secret for secret in secrets if secret)
@@ -209,6 +210,11 @@ class JsonlLogger:
                 stream.write(rendered)
 
     def event(self, level: str, module: str, event: str, **context: Any) -> None:
+        if self.metrics is not None:
+            try:
+                self.metrics.observe(event, redact({"service": module, **context}, self.secrets))
+            except OSError:
+                self.metrics.failures += 1
         level = _validate_level(level)
         write_file = self.file_enabled and self.enabled(level, module)
         write_console = self.console_enabled and LEVELS[level] >= LEVELS[self.console_level]
@@ -223,6 +229,16 @@ class JsonlLogger:
                 self.console.flush()
 
     def llm_event(self, event: str, request: Any = None, response: Any = None, **context: Any) -> None:
+        if self.metrics is not None:
+            selected = dict(context)
+            if isinstance(response, dict):
+                selected.setdefault("token_usage", response.get("usage"))
+                selected.setdefault("reported_cost", response.get("cost"))
+                selected["provider"] = selected.get("provider") or response.get("provider")
+            try:
+                self.metrics.observe(event, redact(selected, self.secrets))
+            except OSError:
+                self.metrics.failures += 1
         level = _validate_level(context.pop("level", "INFO"))
         if not self.llm_enabled or LEVELS[level] < LEVELS[self.llm_level]:
             return

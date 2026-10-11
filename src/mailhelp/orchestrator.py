@@ -83,6 +83,7 @@ class Orchestrator:
         self.logger = logger or NullLogger()
         self.clock = clock
         self.config_fingerprint = config_fingerprint
+        self.topic_policy = None
         # Normal application construction always supplies validated settings;
         # these defaults retain the small dependency-injected test surface.
         self.targets = targets or TargetSettings(todoist_project="inbox", google_calendar="primary")
@@ -309,11 +310,39 @@ class Orchestrator:
         sentences = "\n".join(f"• {sentence}" for sentence in state.summary.sentences)
         return f"{mail_line(headers['from'] or '—', headers['subject'] or '—')}\n{sentences}"
 
+    def accepts_configuration(self, fingerprint: str) -> bool:
+        if fingerprint == self.config_fingerprint:
+            return True
+        if self.topic_policy is None:
+            return False
+        record = self.store.load(f"processing-topics-{fingerprint}", {})
+        return record.get("policy") == self.topic_policy
+
+    def topics_for(self, fingerprint: str) -> list[Topic]:
+        if fingerprint == self.config_fingerprint:
+            return self.topics
+        record = self.store.load(f"processing-topics-{fingerprint}", {})
+        return [Topic.model_validate(item) for item in record.get("topics", [t.model_dump() for t in self.topics])]
+
+    def change_topics(self, topics: list[Topic]) -> None:
+        self.store.save(f"processing-topics-{self.config_fingerprint}", {
+            "schema_version": 1, "policy": self.topic_policy,
+            "topics": [topic.model_dump() for topic in self.topics]})
+        self.topics = topics
+        self.config_fingerprint = hashlib.sha256(json.dumps(
+            [self.topic_policy, [topic.model_dump() for topic in topics]], sort_keys=True).encode()).hexdigest()
+        self.store.save(f"processing-topics-{self.config_fingerprint}", {
+            "schema_version": 1, "policy": self.topic_policy,
+            "topics": [topic.model_dump() for topic in topics]})
+
     def _save(self, name: str, state: MailState) -> None:
         state.updated_at = datetime.now(timezone.utc)
         self.store.save(name, state.model_dump(mode="json"))
+        from .review.archive import record_analysis
+        record_analysis(self.store, state, {topic.id: topic.name for topic in self.topics_for(state.config_fingerprint)},
+                        getattr(self.analyzer, "last_relevance_source", "unknown"))
         self.logger.event("DEBUG", "orchestrator", "state_persisted", mail_id=state.id,
-                          state=state.steps.model_dump(mode="json"))
+                          state=state.steps.model_dump(mode="json"), awaiting_relevance=state.awaiting_relevance, failed=state.error is not None)
 
     def _failure(self, name: str, state: MailState, code: ProcessingErrorCode,
                  stage: ProcessingStage, text: str, retryable: bool | None = None) -> None:
@@ -380,7 +409,7 @@ class Orchestrator:
             imap={"account_id": fetched.account_id, "folder": fetched.folder, "uidvalidity": fetched.uidvalidity, "uid": fetched.uid},
             config_fingerprint=self.config_fingerprint,
         )
-        if state.steps.completion != "completed" and state.config_fingerprint != self.config_fingerprint:
+        if state.steps.completion != "completed" and not self.accepts_configuration(state.config_fingerprint):
             self.logger.event("WARNING", "orchestrator", "configuration_changed", mail_id=state.id,
                               state_fingerprint=state.config_fingerprint, active_fingerprint=self.config_fingerprint)
             return ProcessingResult(ProcessingOutcome.WAITING, state.model_dump(mode="json"))
@@ -425,8 +454,9 @@ class Orchestrator:
                         decision="irrelevant", topic_ids=[], reason="Absender-Vorfilter"
                     )
                     call = None
+                    self.analyzer.last_relevance_source = "prefilter"
                 else:
-                    call, state.relevance = self.analyzer.relevance(state.mail, self.topics)
+                    call, state.relevance = self.analyzer.relevance(state.mail, self.topics_for(state.config_fingerprint))
                     state.llm_call_ids.append(call)
                 state.steps.relevance = "completed"
                 self._save(name, state)

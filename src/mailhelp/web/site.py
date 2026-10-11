@@ -17,16 +17,17 @@ from urllib.parse import parse_qs
 
 from .. import __version__
 from ..config import WebSettings
+from ..configuration import AdminCommand
 from pydantic import ValidationError
 
 from ..models import ProposalStatus
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.inbox import CommandConflict, CommandEntry, CommandInbox, CommandInboxFull
-from ..review.views import ReviewViews
+from ..review.views import ReviewViews, STAGE_LABELS
 from .app import WebApp
 from .auth import PairingLimited, PairingRefused, WebAuth, WebSession, device_name
 from .http import Request, Response
-from .pages import devices_page, error_page, login_page
+from .pages import devices_page, error_page, login_page, layout, notice
 from .actions import (command_page, needs_choice, proposal_actions, relevance_actions,
                       result_kind, stale_page)
 from .review_pages import ServiceInfo, detail_page, mail_page, overview_page, status_page
@@ -53,9 +54,11 @@ class MailhelpSite:
                  configured_timezone: str, logger: EventLogger, views: ReviewViews,
                  commands: CommandInbox, *, link_base: Callable[[], str] | None = None,
                  llm_calls_per_minute: int | None = None,
-                 clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc)):
+                 clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+                 configuration=None, metrics=None, lifecycle=None, models=None):
         self.app, self.auth, self.settings = app, auth, settings
         self.views, self.commands = views, commands
+        self.lifecycle = lifecycle
         self.link_base = link_base or (lambda: f"http://127.0.0.1:{settings.port}")
         self.llm_calls_per_minute, self.clock = llm_calls_per_minute, clock
         # The web interface starts together with Mailhelp.
@@ -78,6 +81,8 @@ class MailhelpSite:
         app.route("GET", "/api/stand", self.signed_in(self.state))
         app.route("POST", "/aktion", self.signed_in(self.act))
         app.route("GET", r"/aktion/(?P<entry_id>[a-f0-9]{32})", self.signed_in(self.progress))
+        from .archive_site import ArchiveSite
+        self.archive = ArchiveSite(self, configuration, metrics, lifecycle, models)
 
     # --- helpers ------------------------------------------------------------------
 
@@ -114,6 +119,8 @@ class MailhelpSite:
                     return Response.redirect("/anmelden")
                 return self._forbidden()
             if request.method == "POST":
+                if self.lifecycle is not None and self.lifecycle.state != "running" and request.path != "/einstellungen/beenden":
+                    return self._reply(request, 503, "Mailhelp wird beendet; keine neuen Aktionen möglich.")
                 form = self._form(request)
                 if isinstance(form, Response):
                     return form
@@ -245,8 +252,8 @@ class MailhelpSite:
         if view is None:
             return Response.html(404, error_page("Nicht gefunden", "Diese Mail ist nicht (mehr) vorhanden."))
         question = next((item for item in self.views.overview().relevance if item.mail_id == mail_id), None)
-        return Response.html(200, mail_page(view, question, relevance_actions(
-            self.auth.csrf_token(session.id))))
+        page = mail_page(view, question, relevance_actions(self.auth.csrf_token(session.id)))
+        return Response.html(200, page.replace("</main>", self.archive.analysis(mail_id) + "</main>"))
 
     def detail(self, request: Request, session: WebSession, mail_id: str,
                proposal_id: str) -> Response:
@@ -254,8 +261,9 @@ class MailhelpSite:
         if view is None:
             return Response.html(404, error_page(
                 "Nicht gefunden", "Dieser Vorschlag ist nicht (mehr) vorhanden."))
-        return Response.html(200, detail_page(view, actions=proposal_actions(
-            self.auth.csrf_token(session.id)), mail=self.views.mail(mail_id)))
+        page = detail_page(view, actions=proposal_actions(self.auth.csrf_token(session.id)), mail=self.views.mail(mail_id))
+        link = f'<p><a class="button" href="/vorschlag/{mail_id}/{proposal_id}/bearbeiten">Felder bearbeiten</a></p>'
+        return Response.html(200, page.replace("</main>", link + self.archive.analysis(mail_id) + "</main>"))
 
     def status(self, request: Request, session: WebSession) -> Response:
         overview = self.views.overview()
@@ -264,8 +272,18 @@ class MailhelpSite:
             version=__version__, test_mode=self.views.test_mode, started_at=self.started_at, now=now,
             address=self.link_base(), devices=len(self.auth.sessions()),
             llm_calls_per_minute=self.llm_calls_per_minute, commands=self.commands.counts())
-        return Response.html(200, status_page(overview.run, overview, self.configured_timezone,
-                                              self.views.system(now), info))
+        page = status_page(overview.run, overview, self.configured_timezone, self.views.system(now), info)
+        metrics = self.archive.metrics
+        if metrics is not None:
+            from .pages import e
+            activity = metrics.runtime()
+            stage = {**STAGE_LABELS, "idle": "Leerlauf", "waiting_for_user": "Warten auf Relevanzentscheidung", "failed": "Verarbeitung fehlgeschlagen"}.get(activity["stage"], activity["stage"])
+            body = f'<section class="card"><h2>Aktuelle Verarbeitung</h2><p>{e(stage)} · {round(activity["elapsed"])} Sekunden</p>'
+            body += f'<p>Mail: {e(activity["mail_id"] or "keine aktive Mail")}</p><h3>Letzte bekannte erfolgreiche Dienstkontakte</h3>'
+            body += f'<p>Nächster geplanter Abruf: {e(activity.get("next_poll", "noch nicht geplant"))}</p>'
+            body += '<ul>' + ''.join(f'<li>{e(k)}: {e(v)}</li>' for k, v in activity["contacts"].items()) + '</ul></section>'
+            page = page.replace('</main>', body + '</main>')
+        return Response.html(200, page)
 
     def act(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         """Queue a version-bound command for the main thread; answer at once."""
@@ -333,6 +351,10 @@ class MailhelpSite:
                 "result": entry.result.model_dump(mode="json") if entry.result else None})
         entry = self._settled(entry)
         command = entry.command
+        if isinstance(command, AdminCommand):
+            if entry.result is None:
+                return Response.html(200, layout("Einstellungen werden gespeichert", "<h1>Wird verarbeitet</h1>", refresh=1))
+            return Response.html(200, layout("Ergebnis", notice(entry.result.message, result_kind(entry.result.status)) + '<a href="/einstellungen">Zurück</a>'))
         current = (self.views.proposal(command.mail_id, command.proposal_id)
                    if command.proposal_id else None)
         if entry.result is not None and not needs_choice(entry, current):

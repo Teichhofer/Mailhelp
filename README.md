@@ -125,7 +125,7 @@ gehört in `config.yaml`, Zustandsdateien oder Logs.
 
 ### Google Kalender einrichten
 
-Nach der versionsbezogenen Telegram-Bestätigung legt Mailhelp den Termin direkt im
+Nach der versionsbezogenen Bestätigung über Telegram oder die authentifizierte Weboberfläche legt Mailhelp den Termin direkt im
 unter `targets.google_calendar` konfigurierten Google Kalender an. Dafür müssen
 `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` und
 `GOOGLE_OAUTH_REFRESH_TOKEN` ausschließlich in `.env` oder als Prozessvariablen
@@ -486,7 +486,7 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
   Aufgabenvorschlag und kein fachlich unklarer Aktionsfall. Der Vorschlag bewahrt
   die Freiwilligkeit und den Link, erhält ohne ausdrücklich genannte Frist keine
   Fälligkeit und erzeugt ohne gebuchten Zeitpunkt keinen Kalendertermin. Auch
-  dieser Vorschlag wird erst nach versionsbezogener Telegram-Bestätigung in
+  dieser Vorschlag wird erst nach versionsbezogener Bestätigung über Telegram oder die authentifizierte Weboberfläche in
   Todoist geschrieben.
 * Vorschläge werden zusätzlich zur Maildatei versionsweise und als aktueller Stand
   gespeichert. Bestätigte Schreibvorgänge werden nach Neustarts wiederaufgenommen;
@@ -1299,7 +1299,7 @@ python -m pytest --cov=mailhelp --cov-branch --cov-fail-under=100
 # Versionierter deutscher Qualitätskorpus mit simuliertem OpenRouter-Adapter
 python -m pytest tests/test_quality_corpus.py --cov=mailhelp --cov-branch --cov-fail-under=100
 
-# Simulierter Ablauf IMAP → LLM → Telegram-Bestätigung → Todoist/Calendar
+# Simulierter Ablauf IMAP → LLM → Bestätigung über Telegram oder die authentifizierte Weboberfläche → Todoist/Calendar
 python -m pytest tests/test_e2e_simulated.py --cov=mailhelp --cov-branch --cov-fail-under=100
 
 # CLI- und POSIX-/Windows-Pfadvarianten

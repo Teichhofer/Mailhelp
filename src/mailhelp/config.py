@@ -10,6 +10,9 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError, field_validator, model_validator
 
 
+from .metrics import MetricsSettings
+
+
 class ConfigModel(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
@@ -226,6 +229,9 @@ class RetentionSettings(ConfigModel):
 
     full_mail_days: RetentionPeriod = 30
     debug_llm_days: RetentionPeriod = "disabled"
+    # None preserves the earlier debug retention for existing installations.
+    analysis_days: RetentionPeriod | None = None
+    history_days: RetentionPeriod = 90
 
 
 class LearningSettings(ConfigModel):
@@ -291,6 +297,7 @@ class Settings(ConfigModel):
     retention: RetentionSettings = Field(default_factory=RetentionSettings)
     learning: LearningSettings = Field(default_factory=LearningSettings)
     web: WebSettings = Field(default_factory=WebSettings)
+    metrics: MetricsSettings = Field(default_factory=MetricsSettings)
 
     @field_validator("timezone")
     @classmethod

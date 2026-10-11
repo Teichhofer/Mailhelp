@@ -94,3 +94,14 @@ def test_detail_of_a_proposal_without_mail_record(web):
     web.store.save(f"proposal-{item.source_mail_id}-solo", item.model_dump(mode="json"))
     page = web.browser.request("GET", f"/vorschlag/{item.source_mail_id}/solo").body.decode()
     assert "Ohne Mail" in page and 'id="mail-titel"' not in page
+
+
+def test_old_proposal_detail_is_not_limited_to_recent_window(web):
+    """Regression: a ninth completed proposal remains addressable by identity."""
+    from web_scenario import proposal, save_mail
+    for number in range(10, 22):
+        item = proposal(number, "done", status="rejected")
+        save_mail(web.store, number, "Synthetic", f"Archived {number}", [item])
+    response = web.browser.request("GET", f"/vorschlag/{mail_id(10)}/done")
+    assert response.status == 200
+    assert "Archived 10" in response.body.decode()

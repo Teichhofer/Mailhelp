@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable
 from urllib.parse import parse_qs
 
 MAX_BODY_BYTES = 16 * 1024
@@ -80,6 +80,7 @@ class Response:
     cookies: list[str] = field(default_factory=list)
     # Static application files may be revalidated; data is never stored.
     cache: str = "no-store"
+    after_send: Callable[[], None] | None = None
 
     @classmethod
     def text(cls, status: int, text: str) -> "Response":

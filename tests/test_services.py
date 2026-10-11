@@ -1643,7 +1643,11 @@ def test_orchestrator_resumes_each_persisted_analysis_step(tmp_path):
             self.delegate.save(*args)
     # Every durable boundary, including normalization, proposal construction and
     # both sides of the per-version Telegram delivery marker, is interrupted.
-    for fail_at in range(2, 19):
+    with JsonStore(tmp_path/"boundaries") as disk:
+        counting = InterruptingStore(disk, 1000000)
+        Orchestrator(CountingAnalyzer(), counting, Notify(), 1, [topic], 1000).process(mail)
+        boundary_count = counting.count
+    for fail_at in range(2, boundary_count + 1):
         with JsonStore(tmp_path/str(fail_at)) as disk:
             first=CountingAnalyzer()
             notify = Notify()

@@ -190,6 +190,7 @@ class TelegramDialogController:
         from ..review.service import ReviewService
 
         self.review = ReviewService(self)
+        self.stop_requested = lambda: False
 
     @property
     def relevance_handler(self) -> RelevanceHandler | None:
@@ -339,6 +340,8 @@ class TelegramDialogController:
 
         With an inbox this never waits; *timeout* only applies to direct polling.
         """
+        if self.stop_requested():
+            return
         self.write_executor.resume()
         self.revisions.resume()
         if self.commands is not None and not self._commands_recovered:
@@ -470,6 +473,8 @@ class TelegramDialogController:
         if self.commands is None:
             return
         for entry in self.commands.queued():
+            if self.stop_requested():
+                break
             command = entry.command
             self.commands.start(entry.id)
             try:

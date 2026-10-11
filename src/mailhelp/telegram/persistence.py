@@ -64,6 +64,8 @@ class ProposalRepository:
         if self.store.load(version) is None:
             self.store.save(version, value)
         self.store.save(proposal_name(proposal.source_mail_id, proposal.id), value)
+        from ..review.archive import record_event
+        record_event(self.store, proposal, "state")
         state = self.load_mail(proposal.source_mail_id)
         if state is None:
             return

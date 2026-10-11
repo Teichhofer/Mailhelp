@@ -663,7 +663,7 @@ ausführbare Handlung ist eine vorhandene Aufgabe und kein `unclear`-Fall. Dazu
 gehört insbesondere das Angebot, über einen vorhandenen Buchungslink ein Gespräch
 zu vereinbaren. Ein solcher Vorschlag bleibt in Titel und Beschreibung als
 freiwillig erkennbar, übernimmt den Link, erhält ohne ausdrücklich genannte Frist
-keine Fälligkeit und darf erst nach versionsbezogener Telegram-Bestätigung in
+keine Fälligkeit und darf erst nach versionsbezogener Bestätigung über Telegram oder die authentifizierte Weboberfläche in
 Todoist geschrieben werden. Solange keine Buchungsbestätigung mit konkretem
 Zeitpunkt vorliegt, entsteht daraus kein Kalendertermin.
 
@@ -770,7 +770,7 @@ Replay-Grenze fort.
   Rohdaten noch als Validierungsinhalt protokolliert. Interne Vorschlags- und
   Relevanzentscheidungen bleiben geschlossene Schemata. Der Offset wird nach jedem
   identifizierbaren Update atomar gespeichert; ältere oder doppelte Updates werden
-  nach Neustarts ignoriert. Ist ausschließlich die Telegram-Bestätigung einer
+  nach Neustarts ignoriert. Ist ausschließlich die Bestätigung über Telegram oder die authentifizierte Weboberfläche einer
   Callback-Query bereits abgelaufen, bleibt die fachliche Verarbeitung wirksam und
   der Offset wird fortgeschrieben; andere technische Antwortfehler verhindern die
   Quittierung weiterhin.
@@ -1278,7 +1278,7 @@ Folgender Inhalt ist bei der Projektinitialisierung in `AGENTS.md` im Repository
 - Halte Prompts/Modelle/LLM-Parameter in prompts.yaml, Themen in topics.yaml,
   Anwendungseinstellungen in config.yaml und Geheimnisse außerhalb des Codes.
 - Verwende lesbare JSON-Dateien für den Zustand und separate JSONL-Logs.
-- Erzwinge ausdrückliche, versionsbezogene Telegram-Bestätigung vor jedem
+- Erzwinge ausdrückliche, versionsbezogene Bestätigung über Telegram oder die authentifizierte Weboberfläche vor jedem
   Schreibzugriff auf Todoist oder Google Kalender.
 - Behandle Mailinhalte und LLM-Ausgaben als nicht vertrauenswürdige Eingaben.
 - Verhindere doppelte Aktionen; gleiche unklare Schreibresultate vor Wiederholung ab.
@@ -1351,7 +1351,7 @@ Refresh-Token liegen ausschließlich als Geheimnisse außerhalb der YAML-Dateien
 Vor jedem Schreiben wird mit dem privaten `mailhelp_key` abgeglichen. Derselbe
 Schlüssel wird beim Event gespeichert, damit Neustarts und unklare Ergebnisse
 ohne doppelten Termin aufgelöst werden können. Schreibzugriffe erfolgen nur nach
-einer ausdrücklichen, versionsbezogenen Telegram-Bestätigung.
+einer ausdrücklichen, versionsbezogenen Bestätigung über Telegram oder die authentifizierte Weboberfläche.
 
 Vor der Anlage fragt der Adapter ausschließlich die zeitlich überschneidenden
 Kalendereinträge auf sämtlichen Ergebnisseiten ab. Eine Seitengröße von 50 ist

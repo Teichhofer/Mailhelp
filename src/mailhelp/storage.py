@@ -35,6 +35,8 @@ class JsonStore:
     def __init__(self, directory: Path):
         self.directory, self.lock = directory, None
         self._thread_lock = RLock()
+        self.revision = 0
+        self.archive_revision = 0
 
     @contextmanager
     def locked(self) -> Iterator["JsonStore"]:
@@ -164,11 +166,18 @@ class JsonStore:
             with temporary.open("w", encoding="utf-8", newline="\n") as stream:
                 json.dump(value, stream, ensure_ascii=False, indent=2, sort_keys=True); stream.write("\n"); stream.flush(); os.fsync(stream.fileno())
             os.replace(temporary, path)
+            self.revision += not name.startswith("web-")
+            self.archive_revision += name.startswith(("mail-", "analysis-", "history-", "proposal-"))
             # Make the directory entry durable as well as the file contents.
             if os.name != "nt":
                 descriptor = os.open(self.directory, os.O_RDONLY)
                 try: os.fsync(descriptor)
                 finally: os.close(descriptor)
+
+    def touch(self) -> None:
+        """Invalidate operational fingerprints without rebuilding mail metadata."""
+        with self._thread_lock:
+            self.revision += 1
 
     def names(self, prefix: str = "") -> list[str]:
         """Return stable state names without exposing temporary/corrupt files."""

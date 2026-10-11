@@ -37,6 +37,7 @@ class ComparisonRecorder(NullLogger):
     def __init__(self, log_path: Path, secrets: tuple[str, ...]):
         self.path, self.secrets = log_path, secrets
         self.entries: list[dict[str, Any]] = []
+        self.metrics = None
 
     def event(self, level: str, module: str, event: str, **context: Any) -> None:
         self._record(event, {"level": level, "module": module, **context})
@@ -46,6 +47,11 @@ class ComparisonRecorder(NullLogger):
         self._record(event, {"request": request, "response": response, **context})
 
     def _record(self, event: str, context: dict[str, Any]) -> None:
+        if self.metrics is not None:
+            try:
+                self.metrics.observe(event, redact(context, self.secrets))
+            except OSError:
+                self.metrics.failures += 1
         entry = redact({"timestamp": datetime.now(timezone.utc).isoformat(),
                         "event": event, **context}, self.secrets)
         self.entries.append(entry)
@@ -129,6 +135,8 @@ class DecisionTestMode:
     def _pipeline(self, record: dict, name: str, mail: dict[str, Any], classifier) -> None:
         result = {"status": "running", "stages": {}}
         record["paths"][name] = result
+        if self.recorder.metrics is not None:
+            self.recorder.metrics.test_mail_hash = record.get("mail_sha256")
         relevance = self._stage(result, "relevance", lambda: classifier.relevance(mail, self.topics))
         result["would_process_in_normal_mode"] = relevance is not None and relevance.decision == "relevant"
         if self.relevance_only:
@@ -259,6 +267,8 @@ def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
         secrets.todoist_token, secrets.todoist_client_id, secrets.todoist_client_secret,
         secrets.google_oauth_client_id, secrets.google_oauth_client_secret, secrets.google_oauth_refresh_token))
     recorder = ComparisonRecorder(log_path, known_secrets)
+    from .metrics import MetricsRecorder
+    recorder.metrics = MetricsRecorder(output.parent / "metrics" / "llm.jsonl", settings.metrics, "decision_test")
     report = {"schema_version": 2, "mode": "decision_test",
               "comparison": "standard_vs_ollama",
               "pipeline_policy": "relevance_only" if relevance_only else "relevant_only",
@@ -283,6 +293,7 @@ def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
               "selection_errors": [], "mails": []}
     write_report(output, redact(report, known_secrets))
     print(f"Decision-Testdatei: {output}", flush=True)
+    recorder.metrics.run_id = report["run_id"]
     try:
         with ExitStack() as stack:
             cfg = settings.timeouts.imap

@@ -75,12 +75,12 @@ flowchart LR
 - Keine Zugangsdaten, Sitzungs- oder Kopplungstoken in Logs; Webzugriffe werden
   ohne Mailinhalte protokolliert.
 
-Die Entwicklungsregeln und die Spezifikation verlangen bisher ausdrücklich eine
-**Telegram**-Bestätigung. Diese Formulierung wird erst in Phase 6 auf „autorisierte,
-versionsbezogene Bestätigung über Telegram oder Web“ geändert, wenn Anmeldung,
-Autorisierung und Schreibaktionen implementiert und getestet sind. Die Änderung an
-`AGENTS.md` bestätigt die projektverantwortliche Person ausdrücklich. Bis dahin
-bleibt die Telegram-Bestätigungspflicht wirksam.
+Die projektverantwortliche Person hat am 11. Oktober 2026 die autorisierte,
+versionsbezogene Bestätigung über Telegram oder die authentifizierte Weboberfläche
+ausdrücklich freigegeben. `AGENTS.md` und Spezifikation wurden entsprechend angepasst.
+Eine Bearbeitung autorisiert keine externe Anlage; die neue Version benötigt eine
+separate Bestätigung. Anmeldung, CSRF, erneute Autorisierung bei Ausführung,
+Versionsprüfung und Idempotenz bleiben verbindlich.
 
 ## 3. Prüfergebnis: Änderungen gegenüber dem Entwurf
 

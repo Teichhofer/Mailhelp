@@ -1,0 +1,141 @@
+"""Validated local configuration commands, optimistic concurrency and recovery."""
+from __future__ import annotations
+
+import hashlib
+from enum import StrEnum
+from pathlib import Path
+from typing import Callable, Literal
+
+import yaml
+from pydantic import BaseModel, ConfigDict, Field
+
+from .config import Settings, Topic, TopicsConfig, IrrelevantTopicsConfig
+from .learning import _atomic_replace
+from .review.commands import CommandSource
+from .review.results import ResultStatus, ReviewResult
+from .storage import JsonStore
+
+
+class ConfigurationConflict(ValueError):
+    """A validated edit no longer refers to the file currently on disk."""
+
+
+class AdminKind(StrEnum):
+    SETTINGS = "settings"
+    TOPICS = "topics"
+
+
+class AdminCommand(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    kind: AdminKind
+    source: Literal[CommandSource.WEB] = CommandSource.WEB
+    actor: str = Field(pattern=r"^web:[a-f0-9]{16}$")
+    idempotency_key: str = Field(pattern=r"^[A-Za-z0-9_-]{8,80}$")
+    expected_hash: str = Field(pattern=r"^[a-f0-9]{64}$")
+    category: str = Field(default="relevant", pattern=r"^(relevant|irrelevant)$")
+    patch: dict = Field(max_length=30)
+    acknowledged: bool = False
+
+
+SETTINGS_FIELDS = {
+    "poll_interval_seconds", "timezone", "test_mode", "targets.todoist_project", "targets.google_calendar",
+    "limits.llm_calls_per_minute", "limits.max_mail_bytes", "limits.max_llm_payload_bytes",
+    "retention.full_mail_days", "retention.debug_llm_days", "retention.analysis_days", "retention.history_days",
+    "logging.console.level", "logging.file.level", "logging.llm.include_requests", "logging.llm.include_responses",
+    "metrics.enabled", "metrics.retention_days", "metrics.usd_per_eur", "metrics.exchange_rate_date", "metrics.ollama_power_watts", "metrics.electricity_eur_per_kwh",
+}
+for service in ("imap", "telegram", "openrouter", "ollama", "todoist", "google_calendar"):
+    SETTINGS_FIELDS.update(f"timeouts.{service}.{field}" for field in
+                           ("timeout_seconds", "retries", "initial_backoff_seconds", "max_backoff_seconds"))
+for field in ("interpretation_attempts", "interpretation_backoff_seconds", "revision_attempts", "revision_backoff_seconds"):
+    SETTINGS_FIELDS.add(f"retries.{field}")
+
+LIVE_FIELDS = {"poll_interval_seconds", "retention", "metrics"}
+
+
+def file_hash(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def apply_settings(raw: dict, patch: dict, acknowledged: bool) -> dict:
+    import copy
+    candidate = copy.deepcopy(raw)
+    if set(patch) - SETTINGS_FIELDS:
+        raise ValueError("Nicht angebotene Einstellung")
+    if patch and not acknowledged:
+        raise ValueError("Änderungen und ihre Folgen müssen bestätigt werden")
+    for dotted, value in patch.items():
+        parts = dotted.split(".")
+        target = candidate
+        for part in parts[:-1]:
+            target = target.setdefault(part, {})
+        target[parts[-1]] = value
+    Settings.model_validate(candidate)
+    return candidate
+
+
+class ConfigurationService:
+    def __init__(self, directory: Path, store: JsonStore, active: Settings,
+                 authorize: Callable[[str], bool], activate: Callable[[Settings], None],
+                 activate_topics: Callable[[list[Topic]], None] = lambda topics: None):
+        self.directory, self.store, self.active = directory, store, active
+        self.authorize, self.activate = authorize, activate
+        self.activate_topics = activate_topics
+
+    def path(self, command: AdminCommand) -> Path:
+        filename = "config.yaml" if command.kind == AdminKind.SETTINGS else (
+            "topics.yaml" if command.category == "relevant" else "irrelevant_topics.yaml")
+        return self.directory / filename
+
+    def candidate(self, command: AdminCommand) -> dict:
+        path = self.path(command)
+        if file_hash(path) != command.expected_hash:
+            raise ConfigurationConflict("Datei wurde inzwischen geändert; bitte neu laden")
+        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+        if command.kind == AdminKind.SETTINGS:
+            return apply_settings(raw, command.patch, command.acknowledged)
+        if not command.acknowledged:
+            raise ValueError("Themenänderung muss bestätigt werden")
+        topic = Topic.model_validate(command.patch)
+        existing = [Topic.model_validate(item) for item in raw["topics"]]
+        topics = [topic if item.id == topic.id else item for item in existing]
+        if not any(item.id == topic.id for item in existing):
+            topics.append(topic)
+        model = TopicsConfig if command.category == "relevant" else IrrelevantTopicsConfig
+        return model(topics=topics).model_dump(mode="json")
+
+    def execute(self, command: AdminCommand) -> ReviewResult:
+        if not self.authorize(command.actor):
+            return ReviewResult(status=ResultStatus.UNAUTHORIZED, message="Nicht autorisiert.")
+        try:
+            candidate = self.candidate(command)
+            content = yaml.safe_dump(candidate, allow_unicode=True, sort_keys=False)
+            journal = {"schema_version": 1, "command": command.model_dump(mode="json"),
+                       "candidate_hash": hashlib.sha256(content.encode()).hexdigest(), "status": "prepared"}
+            self.store.save(f"configuration-{command.idempotency_key}", journal)
+            _atomic_replace(self.path(command), content)
+            journal["status"] = "saved"
+            self.store.save(f"configuration-{command.idempotency_key}", journal)
+            if command.kind == AdminKind.SETTINGS:
+                saved = Settings.model_validate(candidate)
+                live = self.active.model_dump(mode="json")
+                for field in LIVE_FIELDS:
+                    live[field] = candidate.get(field, live[field])
+                self.active = Settings.model_validate(live)
+                self.activate(self.active)
+                message = "Gespeichert. Pollintervall, Aufbewahrung und Metrikannahmen übernommen; übrige Änderungen beim nächsten Start."
+            else:
+                if command.category == "relevant":
+                    self.activate_topics([Topic.model_validate(item) for item in candidate["topics"]])
+                message = "Themen gespeichert; neue Analysen übernehmen sie am nächsten sicheren Verarbeitungspunkt."
+            return ReviewResult(status=ResultStatus.DONE, message=message)
+        except ConfigurationConflict:
+            return ReviewResult(status=ResultStatus.STALE, message="Datei inzwischen geändert; bitte neu laden.")
+        except (ValueError, OSError):
+            return ReviewResult(status=ResultStatus.INVALID, message="Konfiguration nicht übernommen: ungültig, geändert oder nicht schreibbar.")
+
+    def reconcile(self, command: AdminCommand) -> ReviewResult:
+        journal = self.store.load(f"configuration-{command.idempotency_key}", {})
+        if journal.get("candidate_hash") == file_hash(self.path(command)):
+            return ReviewResult(status=ResultStatus.DONE, message="Gespeicherte Konfiguration nach Neustart abgeglichen.")
+        return ReviewResult(status=ResultStatus.FAILED, message="Konfigurationsänderung unterbrochen; bitte neu prüfen.")

@@ -4,6 +4,7 @@ import hashlib, json, time, traceback, uuid
 from threading import Lock
 from datetime import datetime, timezone
 from typing import Any, Callable
+from urllib.parse import urlsplit
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
@@ -134,6 +135,7 @@ class OpenRouterClient:
         correlation = _correlation(payload)
         attempt = 0
         metadata = dict(stage=stage, model=model, provider=None, call_id=call_id,
+                        backend=self.service_name, server=urlsplit(str(getattr(self.client, "base_url", ""))).hostname or "unknown",
                         correlation_id=correlation_id, attempt_id=call_id,
                         http_status=None, finish_reason=None, content_present=False,
                         content_length=0, json_parse_success=False,

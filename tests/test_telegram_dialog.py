@@ -687,7 +687,7 @@ def test_persist_order_and_restart_repair_use_current_proposal(tmp_path):
                                            "external_link":"https://example.test/item"})
         dialog,_,_=controller(store); dialog.persist(created)
         assert store.saved == [f"proposal-{mail_id}-p1-v1", f"proposal-{mail_id}-p1",
-                               f"mail-{mail_id}", "action-ledger"]
+                               f"history-{mail_id}", f"mail-{mail_id}", "action-ledger"]
 
         # Simulate a crash between the second and third writes by restoring a
         # stale embedding.  Startup repairs it from the current proposal file.

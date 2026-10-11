@@ -17,9 +17,10 @@ Die Weboberfläche soll nicht nur offene Vorschläge bearbeiten, sondern den ges
 | Kosten und Zeiten | Auswertung nach Zeitraum, Modell, Anbieter und Verarbeitungsschritt |
 | Strukturierte Bearbeitung | Aufgaben und Termine in Formularfeldern ändern, neue Version erneut bestätigen |
 | Themenverwaltung | Themen anlegen, ändern und deaktivieren, Änderungen kontrolliert übernehmen |
-| Modelle und Einstellungen | Aktiven Modus und wirksame Konfiguration lesend anzeigen, ohne Geheimnisse |
+| Modelle und Einstellungen | Aktiven Modus und wirksame Konfiguration anzeigen; wichtige Anwendungseinstellungen validiert ändern, ohne Geheimnisse |
+| Programm beenden | Mailhelp aus dem Web kontrolliert stoppen, mit ausdrücklicher Bestätigung und sicherem Wiederanlauf |
 
-Nicht Teil dieser Version: Mehrbenutzerbetrieb, Web-Push, Offlineaktionen, Anhangsauswertung, automatisches Beantworten oder Verschieben von Mails sowie nachträgliches Ändern/Löschen bereits angelegter Kalender- oder Todoist-Einträge. Eine freie Promptbearbeitung und ein allgemeiner Konfigurationseditor gehören ebenfalls nicht zum Umfang; die Einstellungsansicht ist lesend.
+Nicht Teil dieser Version: Mehrbenutzerbetrieb, Web-Push, Offlineaktionen, Anhangsauswertung, automatisches Beantworten oder Verschieben von Mails sowie nachträgliches Ändern/Löschen bereits angelegter Kalender- oder Todoist-Einträge. Eine freie Promptbearbeitung und ein beliebiger YAML-/Geheimniseditor gehören nicht zum Umfang. Wichtige Anwendungseinstellungen werden über begrenzte, validierte Formulare bearbeitet; Modelle und Prompttexte bleiben in dieser Version lesend.
 
 ## 2. Ausgangslage und technische Ansatzpunkte
 
@@ -40,7 +41,7 @@ Nicht Teil dieser Version: Mehrbenutzerbetrieb, Web-Push, Offlineaktionen, Anhan
 3. Authentifizierung, Sitzungswiderruf, CSRF, Hostprüfung, Größenlimits, Escaping und Sicherheitsheader gelten für alle neuen Routen. Kein Zugriff auf beliebige Dateipfade durch URL-Parameter.
 4. Änderungen eines Vorschlags tragen dessen erwartete Version. Wiederholungen verwenden denselben Idempotenzschlüssel. Unklare externe Schreibresultate werden vor weiteren Schreibversuchen abgeglichen.
 5. Bearbeiten und Speichern erzeugt niemals unmittelbar einen Kalender- oder Todoist-Schreibzugriff. Die neue Vorschlagsversion benötigt eine ausdrückliche Bestätigung.
-6. **Bestätigungsregel:** `AGENTS.md` verlangt weiterhin ausdrücklich Telegram-Bestätigung. Der Widerspruch zum bestehenden 1.1-Webablauf muss vor Freigabe schreibender Webaktionen geklärt werden. Dieser Plan ändert die Regel nicht. Ohne ausdrücklich genehmigte Regelanpassung bleibt die externe Anlage an Telegram gebunden; die neuen lesenden Ansichten und lokalen Entwurfsänderungen können unabhängig davon umgesetzt werden.
+6. **Bestätigungsregel (vom Auftraggeber am 11. Oktober 2026 ausdrücklich freigegeben):** Bearbeitung und versionsbezogene Bestätigung sind über Telegram oder die authentifizierte Weboberfläche zulässig. Speichern einer Bearbeitung erzeugt keine externe Anlage; jede neue Vorschlagsversion benötigt eine separate ausdrückliche Bestätigung. Webaktionen verlangen CSRF-Schutz, Idempotenzschlüssel und erneute Sitzungs-, Versions- und Zustandsprüfung bei Ausführung. `AGENTS.md` enthält dieselbe Regel.
 7. Mit deaktiviertem Web müssen die bisherigen Verarbeitungswege weiter funktionieren. Neue Telemetrie erzeugt weder LLM-Aufrufe noch Änderungen an Relevanzentscheidungen.
 8. PWA und Browser speichern keine Maildaten, Formularentwürfe oder Antworten dauerhaft. Kein Hintergrundversand und kein Daten-Cache im Service Worker.
 9. Für sämtlichen eigenen Anwendungscode bleiben 100 % Zeilen- und 100 % Branch-Abdeckung verbindlich. Jeder Bugfix erhält einen vor dem Fix scheiternden Regressionstest.
@@ -61,11 +62,12 @@ Neue GET-Routen, jeweils mit Anmeldung:
 | `/vorschlag/<mail_id>/<proposal_id>/bearbeiten` | Typabhängiges Formular für einen offenen Vorschlag |
 | `/status` | Betrieb, letzter Lauf, Fortschritt und Fehler |
 | `/auswertung` | Kosten und Zeiten mit Zeitraum und Modellfiltern |
-| `/einstellungen` | Wirksame Konfiguration und Modus, lesend |
+| `/einstellungen` | Wirksame Konfiguration, bearbeitbare wichtige Settings und ausstehende Änderungen |
+| `/einstellungen/beenden` | Bestätigungsseite für den kontrollierten Programmstopp |
 | `/themen` | Themenlisten und Revision |
 | `/themen/<topic_id>/bearbeiten` | Themenformular |
 
-Neue POST-Routen sind schmale Adapter für typisierte Befehle, keine direkten Dateischreiber. Vorgesehen sind `/vorschlag/.../bearbeiten`, `/themen/anlegen`, `/themen/.../bearbeiten` und `/themen/.../aktivierung`. Ergebnisanzeige, 202/303 und Statusadresse folgen dem bestehenden Webablauf. Veraltete Versionen ergeben 409, ungültige Formulardaten 422 mit erhaltenen Eingaben, ausgelastete Warteschlangen 503.
+Neue POST-Routen sind schmale Adapter für typisierte Befehle, keine direkten Dateischreiber. Vorgesehen sind `/vorschlag/.../bearbeiten`, `/themen/anlegen`, `/themen/.../bearbeiten`, `/themen/.../aktivierung`, `/einstellungen/speichern` und `/einstellungen/beenden`. Ergebnisanzeige, 202/303 und Statusadresse folgen dem bestehenden Webablauf. Veraltete Versionen ergeben 409, ungültige Formulardaten 422 mit erhaltenen Eingaben, ausgelastete Warteschlangen 503.
 
 Alle Grundfunktionen funktionieren ohne JavaScript. JS ergänzt Aktualisierungen und Verbindungshinweise. Ungesendete Formulare dürfen durch Aktualisierung oder Sitzungsablauf nicht still überschrieben werden; nach erneutem Anmelden muss eine Versionsprüfung erfolgen.
 
@@ -215,7 +217,7 @@ Neue Themen wirken nicht rückwirkend auf alle Mails. Es gibt keinen automatisch
 
 **Abnahme:** Erstellen, Ändern, Deaktivieren beider Listen, doppelte IDs, letztes aktives Thema, paralleler Lernlauf, manuelle Dateiänderung, Schreibfehler, Absturz vor/nach atomarem Austausch, laufende Analyse, Neustart und unveränderte alte Vorschläge.
 
-## 12. Feature H – Modelle und wirksame Einstellungen anzeigen
+## 12. Feature H – Einstellungsseite mit sicheren Änderungen
 
 Eigenes `EffectiveSettingsView` ausschließlich aus einer Positivliste zulässiger Felder erzeugen. Keine automatische Serialisierung von `Secrets`, `.env`, Rohkonfiguration oder Clientobjekten.
 
@@ -223,11 +225,61 @@ Anzeige: Anwendungs-/Schemaversion, Standard-/Ollama-Modus, Relevanzmodell und F
 
 Quelle je Feld nennen: `config.yaml`, `prompts.yaml` oder tatsächlich verwendete separate Decision-/Laya-Promptdatei sowie Startparameter. Gestartete effektive Konfiguration von seitdem auf Datenträger geänderten Dateien unterscheiden; externe Änderungen ohne Übernahme heißen „Neustart/Übernahme erforderlich“.
 
-Prompttexte, Secrets und Authentifizierungszustände nicht ausgeben. Modelle/Parameter bleiben in Promptdateien, Anwendungseinstellungen in `config.yaml`, Themen in Themendateien. Es gibt in 1.2 keine Schaltflächen zum freien Modellwechsel, Dienstzugriffstest oder Geheimnisbearbeiten.
+Prompttexte, Secrets und Authentifizierungszustände nicht ausgeben. Modelle/Parameter bleiben in Promptdateien, Anwendungseinstellungen in `config.yaml`, Themen in Themendateien. Es gibt in 1.2 keine Schaltflächen zum freien Modellwechsel, Dienstzugriffstest oder Geheimnisbearbeiten. Die folgenden Anwendungseinstellungen sind dagegen bearbeitbar.
 
-**Abnahme:** Beide LLM-Modi, Fallback, Startparameter, geänderte Dateien, maskierte sensible Angaben; Tests mit synthetischen Geheimnissen belegen deren Abwesenheit in HTML, JSON, Fehlern und Logs.
+### Bearbeitbare Settings und Übernahmezeitpunkt
 
-## 13. Geplante Modulstruktur
+| Bereich | Felder der Einstellungsseite | Wirkung |
+| --- | --- | --- |
+| Mailabruf | `poll_interval_seconds` | Nächste Leerlauf-/Pollplanung; keine zweite parallel gestartete Abfrage |
+| Darstellung | `timezone` | Neue Anzeigen und neue Verarbeitung nach sicherer Übernahme; vorhandene Zeitpunkte werden nicht umgeschrieben |
+| Aufrufbudget und Mailgrenzen | `limits.llm_calls_per_minute`, `limits.max_mail_bytes`, `limits.max_llm_payload_bytes` | Nächster sicherer Verarbeitungspunkt; Budgethistorie nicht zurücksetzen |
+| Timeouts und Wiederholungen | `timeouts` der Dienste einschließlich Ollama: Timeout, Retries und Backoff; ausgewählte `retries` für Interpretation/Revision | Speichern für nächsten Start; in 1.2 keine Clients während laufender Requests austauschen |
+| Aufbewahrung | `retention.full_mail_days`, `debug_llm_days`, `analysis_days`, `history_days` | Nächster Bereinigungslauf; Verkürzung mit gesondertem Hinweis auf irreversible Entfernung |
+| Protokollierung | Konsolen-/Dateilevel und Opt-in für vollständige LLM-Anfragen/-Antworten | Nächster Start; aktivierte Inhaltsprotokollierung ausdrücklich bestätigen |
+| Wirtschaftlichkeit | Metrikfrist, Ollama-Leistung und Strompreis; optionaler Wechselkurs mit Datum | Neue Messungen/Schätzungen; historische Annahmen erhalten und Änderung datieren |
+| Trockenlauf | `test_mode` | Nächster Start; Wechsel in echten Schreibbetrieb deutlich bestätigen, vorhandene Vorschläge nicht automatisch bestätigen |
+| Ziele | Konfigurierte Todoist-/Kalenderziele aus einer begrenzten Auswahl bekannter zulässiger Ziele | Nächster Start; vorhandene Vorschläge behalten ihren Zielbezug und benötigen bei Änderung eine neue Version |
+
+Grenzen stammen aus den Pydantic-Konfigurationsmodellen, nicht aus abweichenden HTML-Konstanten. Zeitzonen gegen IANA validieren; Retention unterstützt die bestehenden Werte für Tage, `disabled` und `unlimited`, soweit die jeweilige neue Frist das zulässt. Nicht angebotene Einstellungen bleiben lesend. Web-Host, Port, erlaubte Hosts, Datenverzeichnis, IMAP-Konten, Tokens und Sitzungsgeheimnisse werden nicht über das Formular geändert; dadurch sperrt der Nutzer sich nicht versehentlich aus.
+
+### Speicherung, Konflikte und Aktivierung
+
+1. Formular zeigt wirksamen und gespeicherten Wert sowie Kennzeichnung „sofort/sicherer Verarbeitungspunkt“ oder „nächster Start“. Startparameter haben sichtbaren Vorrang; übersteuerte Werte lassen sich nicht scheinbar aktiv ändern.
+2. `SettingsPatch` ist ein geschlossenes, typisiertes Modell. Der Server ergänzt Autor, CSRF, Idempotenzschlüssel und erwarteten Dateihash; weder Dateipfad noch Geheimnisse kommen aus dem Browser.
+3. Vor dem Speichern vollständige Kandidatenkonfiguration validieren, Differenz und Folgen anzeigen. Eine Bestätigung bindet sich an genau diese Kandidatenrevision. Fremde/manuelle Dateiänderung ergibt 409 statt Überschreiben.
+4. Über den gemeinsamen Konfigurationsdienst im Hauptthread `config.yaml` atomar ersetzen. Unbekannte/nicht angebotene Werte erhalten; keine Geheimnisse aufnehmen. Dateimodus und Schreibrechte beachten. YAML-Kommentarverlust vermeiden oder vor Umsetzung einen verlustarmen Weg festlegen und dokumentieren.
+5. Anwendung separat aktivieren: sofort freigegebene Felder an sicherer Grenze übernehmen, restartpflichtige Felder nur vormerken. Journal und Hashes ermöglichen eindeutige Wiederaufnahme bei Absturz; ein Ladefehler lässt die aktive Konfiguration unverändert.
+6. Ein verkürzter Aufrufgrenzwert nutzt das gemeinsame bestehende Budget; bereits gezählte Aufrufe bleiben gezählt. Änderungen starten keine erneute Mailanalyse und führen keine alten Aktionen automatisch aus.
+7. Verkürzte Retention und Inhaltslogging brauchen eine konkrete Folgenbestätigung. Ausgeschaltetes Inhaltslogging löscht nicht automatisch bereits bestehende Logs. Historische Stromkosten werden nicht still mit einer neuen Leistungsannahme neu berechnet; eine bewusste Szenariorechnung ist gesondert gekennzeichnet.
+8. „Gespeichert – Neustart erforderlich“ ist ein gültiges Ergebnis, aber nicht „bereits aktiv“. Ein kontrollierter Stopp kann anschließend über Feature I ausgelöst werden; automatischer Neustart ist nicht vorgesehen.
+
+**Abnahme:** Beide LLM-Modi, Fallback, Startparameter, geänderte Dateien und maskierte sensible Angaben. Zusätzlich jede Settinggruppe mit gültigen/ungültigen Werten, Konflikt, Schreibfehler, Doppelübermittlung, Neustart, aktiver Analyse und korrektem Übernahmezeitpunkt testen. Regressionen gegen Budgetreset, unbeabsichtigte Retentionlöschung, Logging ohne Opt-in und automatische externe Anlage. Synthetische Geheimnisse dürfen in HTML, JSON, Fehlern und Logs nicht vorkommen.
+
+## 13. Feature I – Mailhelp kontrolliert aus der Weboberfläche beenden
+
+### Bedienung und Autorisierung
+
+Unter Einstellungen steht „Mailhelp beenden“. Ein erster Aufruf öffnet eine Bestätigungsseite mit aktivem Vorgang, Warteschlangen und dem Hinweis: Danach ist auch die Weboberfläche nicht erreichbar; erneut starten muss man Mailhelp am PC oder über den Betreiber des Containers/Dienstes. Der Vorgang fährt weder Windows noch den Docker-Host herunter.
+
+Erst ein ausdrücklich bestätigter POST mit Sitzung, CSRF, Idempotenzschlüssel und aktueller Prozess-/Startkennung fordert den Stopp an. GET, Prefetching und Linkvorschau beenden nichts. Der Browser zeigt zunächst „Beenden angefordert“ und die letzte bekannte Phase. Verbindungsabbruch allein beweist keinen erfolgreichen Shutdown; entsprechend „Verbindung beendet – Abschluss nicht mehr überprüfbar“ anzeigen, falls keine abschließende Rückmeldung vorliegt.
+
+### Technischer Ablauf
+
+- Bestehende `Application.stop()`, `stop_event` und den `finally`-Aufräumweg in `Application.run()` wiederverwenden. Keine `os._exit`, Prozesskills oder Shellbefehle aus einer Webroute. Webserver-Shutdown nicht aus seinem Serving-Thread aufrufen.
+- Stopanforderung als eigener typisierter Steuerbefehl behandeln, nicht als normale Vorschlagsaktion. Sitzung bei Annahme und Übergabe erneut prüfen. Eingang idempotent quittieren und Antwort ausliefern, bevor der Server geschlossen werden darf.
+- Ein kleiner Lifecycle-Koordinator reicht nach der Antwort das Stoppsignal unmittelbar weiter und weckt den Hauptthread. Dieses Signal darf auch während eines blockierenden LLM-Aufrufs gesetzt werden; persistente fachliche Abschlussänderungen verbleiben im Hauptthread. Ein bloßes Einreihen hinter einer langen Analyse reicht nicht.
+- Zustand `running → stop_requested → stopping → stopped` mit Prozesskennung und Zeitpunkten sichtbar machen. Ab `stop_requested` keine neuen Analysen und keine neuen fachlichen Änderungs-/Bestätigungsbefehle annehmen; GET-Status bis zum tatsächlichen Serverstopp verfügbar halten. Wiederholter Stopp liefert dasselbe Ergebnis.
+- Laufenden synchronen Request nicht gewaltsam abbrechen: Er darf bis zu seinem konfigurierten Timeout auslaufen; Retry-/Backoff-Warten muss das Stoppsignal beachten. Die Oberfläche nennt diese mögliche Wartezeit, insbesondere bei Ollama. Keine weiteren LLM-Schritte nach dem sicheren Abbruchpunkt starten.
+- Bereits begonnene externe Schreiboperation normal abschließen oder bei unklarem Ausgang als abzugleichen persistieren. Shutdown ist weder Erfolg noch Autorisierung für eine Wiederholung. Kein neuer externer Schreibversuch wird zum Aufräumen ausgelöst.
+- Noch nicht ausgeführte Befehle bleiben nachvollziehbar gespeichert. Beim Neustart erneut Sitzung, erwartete Version und ursprüngliche Autorisierung prüfen; `running` wie bisher abgleichen. Eine neue externe Aktion benötigt die geltende Bestätigung; Shutdown erzeugt keine Ersatzbestätigung.
+- Aktuelle Analyse, Konfigurationsoperationen und Verlauf an sicheren Punkten sichern, Logs flushen, Receiver/Webserver stoppen und Ressourcen nach bestehendem Contextmanager freigeben. Shutdown mit SIGINT/SIGTERM muss denselben Pfad nutzen.
+- Eine Stopanforderung ist an diese Prozessinstanz gebunden. Beim nächsten Start als abgeschlossen/überholt behandeln; niemals automatisch erneut ausführen und die neue Instanz sofort beenden. Für einen Neustart ausschließlich eine neue explizite Anforderung erlauben.
+- Docker-/Dienst-Restartpolitik prüfen: Ein Supervisor kann den regulär beendeten Prozess automatisch neu starten. Dies wird in der Releaseanleitung erklärt und in der Oberfläche benannt, sofern bekannt; kein uneingeschränktes Versprechen, dass der Dienst dauerhaft ausgeschaltet bleibt. Host-/Supervisor-Konfiguration nicht heimlich ändern.
+
+**Abnahme:** Stoppen im Leerlauf, während Relevanzfrage, LLM-Request, Retry-Wartezeit, Konfigurationsübernahme und externer Anlage; sichere Persistenz bei Timeout/unklarem Schreibresultat. CSRF, abgelaufene/widerrufene Sitzung, GET, Doppelclick, alte Prozesskennung, Antwort vor Serverstopp, Deadlockfreiheit, paralleles SIGTERM und Neustart ohne wiederholten Stop testen. Kein Kalender-/Todoist-Schreibzugriff durch Stoppen; keine fremden Prozesse oder Hostfunktionen werden beendet.
+
+## 14. Geplante Modulstruktur
 
 Bestehende Dienste erweitern, nicht duplizieren. Die folgenden neuen Modulnamen sind Vorschläge und werden beim Implementierungsstart mit dem aktuellen Arbeitsstand abgeglichen:
 
@@ -245,16 +297,18 @@ src/mailhelp/
   configuration/
     topics.py              # Gemeinsame YAML-Persistenz und Themenbefehle
     effective.py           # Sichere Ansicht wirksamer Einstellungen
+    settings.py            # SettingsPatch, atomare Speicherung und Aktivierung
+  lifecycle.py             # Autorisierter Stop und geordneter Shutdown
   web/
     mail_pages.py          # Übersicht und Analyse
     history_pages.py       # Verlauf und historische Versionen
-    settings_pages.py      # Themen und lesende Konfiguration
+    settings_pages.py      # Themen, Settingformulare und Stopbestätigung
     metrics_pages.py       # Kosten und Zeiten
 ```
 
 Vor einer Aufteilung Import- und Migrationspfade prüfen. Ein Konfigurationsbefehlsmodell erhält keine künstliche Mail-ID, nur um in `ReviewCommand` zu passen; stattdessen eine geschlossene Befehlsunion in der bestehenden Inbox mit kompatibler Schemamigration.
 
-## 14. Umsetzung in überprüfbaren Phasen
+## 15. Umsetzung in überprüfbaren Phasen
 
 | Phase | Arbeiten | Abnahme und Ergebnis |
 | --- | --- | --- |
@@ -265,12 +319,13 @@ Vor einer Aufteilung Import- und Migrationspfade prüfen. Ein Konfigurationsbefe
 | 4 – Betrieb | Systemlesemodelle integrieren, Laufzeitschnappschuss, Retry- und Fehlersichten | Feature D; Status ohne externe Aufrufe und mit eigenem Aktualisierungssignal |
 | 5 – Wirtschaftlichkeit | Adaptermetriken, Import, Aggregate, Stromschätzung und Auswertungsseite | Feature E mit prüfbaren Formeln und unbekannten Kosten statt Scheingenauigkeit |
 | 6 – Formulare | Gemeinsame Revision, Editbefehle, Zeitvalidierung und typabhängige Formulare | Feature F; neue Version, erneute Bestätigung, unveränderte Schreibgrenze |
-| 7 – Konfiguration | Sichere Einstellungsansicht, Themenbefehle, atomare Speicherung und Übernahme | Features G und H; Konflikte und Neustart geprüft, keine Geheimnisse sichtbar |
-| 8 – Gesamtabnahme | Ende-zu-Ende, Migration, Performance, Retention, Plattformen und Dokumentation | Sämtliche Kriterien aus Abschnitt 15 erfüllt, Release 1.2.0 vorbereitet |
+| 7 – Konfiguration | Einstellungsformulare, Themenbefehle, atomare Speicherung und Übernahme | Features G und H; Konflikte, Budget, Retention, Restartpflicht und Geheimnisschutz geprüft |
+| 8 – Programmstopp | Lifecycle-Koordinator, Bestätigung und geordneter Shutdown | Feature I; laufende Requests, externe Schreibresultate, wiederholte Stopps und Neustart sicher |
+| 9 – Gesamtabnahme | Ende-zu-Ende, Migration, Performance, Retention, Plattformen und Dokumentation | Sämtliche Kriterien aus Abschnitt 16 erfüllt, Release 1.2.0 vorbereitet |
 
 Jede Phase enthält ihre Tests und Dokumentationsänderungen. Keine spätere Testphase als Ersatz für die Abdeckung während der Implementierung. Phasen 4/5 können nach der Datenbasis unabhängig vorbereitet werden; Änderungen an gemeinsamem Zustand werden abgestimmt integriert.
 
-## 15. Test- und Releasekriterien
+## 16. Test- und Releasekriterien
 
 - Gesamtsuite mit 100 % Zeilen- und 100 % Branch-Abdeckung für eigenen Pythoncode; kein Ausschluss neuer Module. JavaScript ebenfalls nach bestehender CI-Regel vollständig prüfen.
 - Tests simulieren IMAP, OpenRouter/JEV/Ollama, Telegram, Kalender und Todoist mit synthetischen Daten. Keine produktiven Decision-Tests als automatisierte Abnahme.
@@ -282,13 +337,14 @@ Jede Phase enthält ihre Tests und Dokumentationsänderungen. Keine spätere Tes
 - Performance und Begrenzungen mit synthetischem Großbestand dokumentieren. Logauswertung nie unbeschränkt im HTTP-Thread; lange Locks dürfen Befehle und Mailanalyse nicht blockieren.
 - Ende-zu-Ende: relevante Mail ohne Aktion finden; irrelevante Mail nachvollziehen; Vorschlag strukturiert ändern und die neue Version separat bestätigen; alten Vorgang wiederfinden; Themen speichern und Wirkung nur bei neuen Mails zeigen; Kosten korrekt zuordnen.
 - README, Spezifikation, Konfigurationsbeispiele, Datenschutzunterlagen und Websitebeschreibung aktualisieren. Neue Dateien, Fristen und sichtbare Daten erklären; `docs/Release-1.2.md` mit Upgrade-/Rollbackhinweisen erstellen.
+- Einstellungs- und Stop-Ende-zu-Ende: Pollintervall speichern und aktive Wirkung prüfen, restartpflichtigen Timeout speichern und als ausstehend anzeigen, Stopp bestätigen, neu starten und gespeicherte Konfiguration übernehmen; kein wiederholter Stop oder doppelter externer Effekt. Docker-Recoverypolitik gesondert prüfen.
 - Rollback: Sicherung vor Migration dokumentieren, neue YAML-Schlüssel und Schemas benennen. Keine Behauptung, 1.1 könne neue Zustände ungeprüft lesen. Wiederherstellung offener Aktionen muss mit externem Aktionsbuch abgestimmt sein, um Doppelanlagen zu verhindern.
 - Releaseversion in `pyproject.toml` und `src/mailhelp/__init__.py` konsistent setzen, CHANGELOG ergänzen. Bei Commits nach `main` zusätzlich die verbindliche Patchversionsregel aus `AGENTS.md` beachten.
 
-## 16. Festgelegte Planungsentscheidungen und verbleibende Voraussetzungen
+## 17. Festgelegte Planungsentscheidungen und verbleibende Voraussetzungen
 
-Festgelegt sind serverseitiges HTML, JSON/JSONL, kein neuer Cloudservice, lesende allgemeine Einstellungen, bearbeitbare Themen, deaktivieren statt löschen, explizite neue Vorschlagsversionen, getrennte Produktions-/Testmetriken und begrenzte Aufbewahrung.
+Festgelegt sind serverseitiges HTML, JSON/JSONL, kein neuer Cloudservice, bearbeitbare wichtige Anwendungseinstellungen, lesende Modelle/Prompts, kontrollierter Programmstopp, bearbeitbare Themen, deaktivieren statt löschen, explizite neue Vorschlagsversionen, getrennte Produktions-/Testmetriken und begrenzte Aufbewahrung.
 
 Vor Implementierung konkret zu prüfen sind die inzwischen integrierten 1.1-Änderungen, der Umfang vorhandener historischer Versionsdateien und die genaue Migration der bisherigen Fingerprintbehandlung. Fehlende Altinformationen werden sichtbar als unbekannt behandelt.
 
-Die Bestätigungsregel aus Abschnitt 3 bleibt eine Freigabevoraussetzung für externe Webschreibaktionen. Die angenommene Ollama-Leistung von 300 W ist ein konfigurierbarer Rechenwert, keine zugesicherte Messung. Für die Planerstellung werden weder laufende Mailtests gestartet noch Anwendungseinstellungen geändert.
+Die Freigabe für externe Webschreibaktionen wurde am 11. Oktober 2026 ausdrücklich erteilt; die Sicherheitsbedingungen aus Abschnitt 3 bleiben verbindlich. Die angenommene Ollama-Leistung von 300 W ist ein konfigurierbarer Rechenwert, keine zugesicherte Messung. Für die Planerstellung werden weder laufende Mailtests gestartet noch Anwendungseinstellungen geändert.

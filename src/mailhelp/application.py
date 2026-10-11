@@ -3,6 +3,8 @@ from __future__ import annotations
 
 from contextlib import ExitStack, contextmanager
 import imaplib
+import hashlib
+import json
 import time
 import traceback
 from dataclasses import dataclass
@@ -162,6 +164,7 @@ class Application:
     _fatal_error: str | None = None
     _receiver: TelegramReceiver | None = None
     web: WebServer | None = None
+    configuration: object | None = None
 
     def check_access(self) -> dict[str, str | None]:
         """Check every external credential and target without processing mail."""
@@ -232,6 +235,13 @@ class Application:
                 "aus TELEGRAM_BOT_TOKEN gesendet wurde und telegram.user_id stimmt."
             ) from exc
 
+    def apply_settings(self, settings: Settings) -> None:
+        """Main-thread activation of the explicitly live configuration subset."""
+        self.settings = settings
+        self.logger.metrics.settings = settings.metrics
+        if self.logger.metrics.comparison is not None:
+            self.logger.metrics.comparison.settings = settings.metrics
+
     def stop(self) -> None:
         self.stop_event.set()
         self.orchestrator.stop()
@@ -279,6 +289,7 @@ class Application:
 
     def _idle(self, delay: float) -> None:
         """Wait for the next mail cycle while handling Telegram input as it arrives."""
+        getattr(self, "logger", NullLogger()).event("DEBUG", "application", "idle_started", delay_seconds=delay)
         if self._receiver is None:
             self.stop_event.wait(delay)
             return
@@ -724,7 +735,8 @@ class Application:
                     continue
                 if state.imap.account_id != self.imap.account_id:
                     continue
-                if state.config_fingerprint != self.orchestrator.config_fingerprint:
+                if not getattr(self.orchestrator, "accepts_configuration",
+                               lambda fp: fp == self.orchestrator.config_fingerprint)(state.config_fingerprint):
                     if budget.blocked_remaining == 0:
                         break
                     budget.take_blocked()
@@ -869,6 +881,9 @@ class Application:
             while not self.stop_event.is_set():
                 try:
                     RetentionService(self.store, self.settings.retention, self.logger).run()
+                    metrics = getattr(self.logger, "metrics", None)
+                    if metrics is not None:
+                        metrics.maintain()
                 except Exception:
                     # No state content is included in this operational event.
                     self.logger.event("ERROR", "retention", "cleanup_failed",
@@ -1022,6 +1037,10 @@ def build_application(
                 settings, secrets, base_directory,
                 access_diagnostics=access_diagnostics,
             )
+        from .metrics import MetricsRecorder
+        logger.metrics = MetricsRecorder(data / "metrics" / "llm.jsonl", settings.metrics, "local" if local_llm else "standard")
+        logger.metrics.comparison = MetricsRecorder(data / "decision-tests" / "metrics" / "llm.jsonl", settings.metrics, "decision_test")
+        logger.metrics.changed = store.touch
         stop_event = Event()
         def policy(name: str) -> RetryPolicy:
             item = getattr(settings.timeouts, name)
@@ -1113,9 +1132,13 @@ def build_application(
             commands=CommandInbox(store, wake=telegram_inbox.wake) if web_enabled else None,
         )
         orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics, settings.limits.max_mail_bytes, logger, mime_limits=settings.limits, config_fingerprint=fingerprint, targets=settings.targets, user_timezone=settings.timezone, sender_store=sender_store)
+        orchestrator.topic_policy = hashlib.sha256(json.dumps([
+            settings.model_dump(mode="json", exclude={"web", "metrics", "retention"}),
+            prompts.model_dump()], sort_keys=True).encode()).hexdigest()
         dialog.relevance_handler = orchestrator
         orchestrator.stop_event = stop_event
         web = None
+        application = Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar, orchestrator, stop_event, dialog, sender_store)
         if web_enabled:
             secret = secrets.mailhelp_web_secret
             components = create_web(
@@ -1126,4 +1149,21 @@ def build_application(
             dialog.web_logout = components.auth.revoke_all
             dialog.web_invite = components.invite
             web = components.server
-        yield Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar, orchestrator, stop_event, dialog, sender_store, web=web)
+            application.web = web
+            from .configuration import ConfigurationService
+            from .lifecycle import Lifecycle
+            configuration = ConfigurationService(base_directory, store, settings, components.authorize,
+                                                  application.apply_settings, orchestrator.change_topics)
+            application.configuration = configuration
+            dialog.review.configuration = configuration
+            components.site.lifecycle = Lifecycle(application.stop, components.authorize)
+            components.site.archive.lifecycle = components.site.lifecycle
+            dialog.stop_requested = lambda: components.site.lifecycle.state != "running" or stop_event.is_set()
+            components.site.archive.configuration = configuration
+            components.site.archive.metrics = logger.metrics
+            components.site.archive.models = {step: local_llm.model if local_llm else ", ".join(route.model for route in prompts.resolved_routes(step)[0])
+                                               for step in prompts.prompts}
+            components.site.archive.models["Relevanz"] = jev_prompts.model if jev_prompts else getattr(openrouter, "service_name", "Standard-LLM")
+            components.site.archive.models["Modus / Startparameter"] = "Ollama: " + local_llm.model if local_llm else "Standard: JEV mit unklarem Ergebnis als LLM-Fallback"
+            components.site.archive.models["Parameter (prompts.yaml, lesend)"] = json.dumps({step: [route.parameters for route in prompts.resolved_routes(step)[0]] for step in prompts.prompts}, ensure_ascii=False)
+        yield application

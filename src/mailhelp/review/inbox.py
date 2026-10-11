@@ -27,6 +27,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ..storage import JsonStore
 from .commands import ReviewCommand
+from ..configuration import AdminCommand
 from .results import REJECTED_STATUSES, ResultStatus, ReviewResult
 
 COMMAND_INBOX = "command-inbox"
@@ -48,7 +49,7 @@ FINISHED = frozenset({CommandStatus.DONE, CommandStatus.REJECTED, CommandStatus.
 class CommandEntry(BaseModel):
     model_config = ConfigDict(extra="forbid")
     id: str = Field(pattern=r"^[a-f0-9]{32}$")
-    command: ReviewCommand
+    command: ReviewCommand | AdminCommand
     received_at: datetime
     status: CommandStatus = CommandStatus.QUEUED
     result: ReviewResult | None = None
@@ -87,9 +88,13 @@ class CommandInbox:
         return state
 
     def _save(self, state: CommandInboxState) -> None:
-        self.store.save(COMMAND_INBOX, state.model_dump(mode="json"))
+        value = state.model_dump(mode="json")
+        for entry, record in zip(state.entries, value["entries"]):
+            if isinstance(entry.command, ReviewCommand) and entry.command.patch is not None:
+                record["command"]["patch"] = entry.command.patch.model_dump(mode="json", exclude_unset=True)
+        self.store.save(COMMAND_INBOX, value)
 
-    def submit(self, command: ReviewCommand) -> tuple[CommandEntry, bool]:
+    def submit(self, command: ReviewCommand | AdminCommand) -> tuple[CommandEntry, bool]:
         """Queue *command*; returns the entry and whether it is new."""
         with self._lock:
             state = self._load()

@@ -328,3 +328,16 @@ h3 { margin: 16px 0 8px; }
   white-space: pre-wrap; overflow-wrap: anywhere; font-size: .95rem;
   border-top: 1px solid var(--border); padding-top: 12px;
 }
+
+.archive-list { list-style: none; padding: 0; display: grid; gap: 16px; }
+.stack input[type="text"] { max-width: 100%; width: 100%; font-size: 16px; min-height: 44px; }
+
+.nav { flex-wrap: wrap; overflow-x: visible; }
+.nav a { flex: 1 0 auto; }
+h2 { overflow-wrap: anywhere; }
+
+.stack input[type="checkbox"] { width: 44px; height: 44px; min-height: 44px; vertical-align: middle; }
+
+.table-scroll { max-width: 100%; overflow-x: auto; }
+.table-scroll table { border-collapse: collapse; width: 100%; min-width: 640px; }
+.table-scroll th, .table-scroll td { padding: 12px; border-bottom: 1px solid var(--border); text-align: left; overflow-wrap: anywhere; }

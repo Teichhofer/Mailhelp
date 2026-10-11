@@ -19,7 +19,8 @@ def e(value: object) -> str:
     return html.escape(str(value), quote=True)
 
 
-NAVIGATION = (("/", "Offen"), ("/status", "Status"), ("/geraete", "Geräte"))
+NAVIGATION = (("/", "Offen"), ("/mails", "Mails"), ("/verlauf", "Verlauf"),
+              ("/status", "Status"), ("/auswertung", "Auswertung"), ("/einstellungen", "Einstellungen"), ("/geraete", "Geräte"))
 
 
 def layout(title: str, content: str, *, active: str | None = None, signed_in: bool = True,
