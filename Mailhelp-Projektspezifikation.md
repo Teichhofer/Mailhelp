@@ -1845,3 +1845,14 @@ der Lebenszyklus `Application.stop()` auf – denselben Weg wie SIGINT/SIGTERM. 
 Stoppanforderung gilt nur für ihren Prozess und wird nie wiederholt.
 
 Einrichtung, Upgrade und Rollback: [docs/Release-1.2.md](docs/Release-1.2.md).
+
+## 20. Version 1.3: Intelligenter Workflow & Dokumenten-Anhänge (Smart Engine)
+
+Version 1.3 erweitert Mailhelp um eine smarte Workflow-Engine und Dokumenten-Extraktion:
+
+- **Kalender-Vorabprüfung & Reschedule (Stufe 2):** Vor einer Benachrichtigung wird Google Kalender im relevanten Zeitfenster (±7 Tage) lesend abgefragt (mit 60s In-Memory Cache). Exakte Duplikate erhalten den Status `already_exists` und werden weder auf Telegram noch unter `/offen` gemeldet. Terminverschiebungen erkennen den bestehenden Termin (`target_event_id`), stellen Differenzen (`time_changes`) dar und aktualisieren den Termin bei Bestätigung per HTTP `PATCH` anstelle eines Neuanlage-`POST`.
+- **Todoist-Vorabprüfung (Stufe 3):** Aktive Aufgaben werden im konfigurierten Projekt abgefragt und bei identischem/ähnlichem Titel als Duplikat erkannt.
+- **Dokumenten-Anhänge (PDF, DOCX, TXT):** Text wird aus Anhängen bis 10 MB sicher und ressourcenschonend lokal extrahiert (via `pypdf`, `zipfile`/XML für Word sowie Plaintext) und auf max. 20.000 Zeichen begrenzt. Der Text wird mit Quellenbeleg in den Analysekontext für Relevanz, Router und Extraktion eingebunden.
+- **RFC 5545 Kalenderanhänge (.ics):** Termine und Stornierungen (`VEVENT`) aus `text/calendar` und Dateianhängen werden deterministisch in Vorschläge überführt und LLM-Textextraktionen bei gleicher Einladung unterdrückt.
+- **Web- und Telegram-Erweiterungen:** Anzeige von Terminänderungs-Diff-Boxen, Duplikat-Badges mit externen Links, Extraktionsstatus-Badges bei Dokumenten sowie spezifischen Bestätigungsaktionen ("Termin aktualisieren", "Termin absagen").
+
