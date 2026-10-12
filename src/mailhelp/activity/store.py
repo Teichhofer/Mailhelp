@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
+from typing import Literal
 from uuid import uuid4
 
 from ..storage import StateStore
@@ -43,7 +44,7 @@ class ActivityReportStore:
         self.store.save(report_name(report.id), report.model_dump(mode="json"))
 
     def _blocks(self, report_id: str) -> list[list[ReportMail]]:
-        blocks = []
+        blocks: list[list[ReportMail]] = []
         while (raw := self.store.load(mails_name(report_id, len(blocks)))) is not None:
             blocks.append([ReportMail.model_validate(item) for item in raw])
         return blocks
@@ -77,7 +78,7 @@ class ActivityReportStore:
             self.store.delete(name)
         self.store.delete(report_name(report_id))
 
-    def remove_expired_texts(self, days: int | str, now: datetime) -> int:
+    def remove_expired_texts(self, days: int | Literal["disabled", "unlimited"], now: datetime) -> int:
         """Retention: drop full texts of finished reports; dates, senders and subjects stay."""
         if days == "unlimited":
             return 0
@@ -85,7 +86,7 @@ class ActivityReportStore:
         for report in self.reports():
             if report.finished_at is None:
                 continue
-            if days != "disabled" and report.finished_at > now - timedelta(days=days):
+            if isinstance(days, int) and report.finished_at > now - timedelta(days=days):
                 continue
             for number, block in enumerate(self._blocks(report.id)):
                 changed = [mail for mail in block if not mail.text_removed]

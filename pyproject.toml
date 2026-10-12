@@ -56,7 +56,7 @@ warn_redundant_casts = true
 
 [[tool.mypy.overrides]]
 # Third-party packages without type information.
-module = ["pywebpush.*", "py_vapid.*", "http_ece.*", "pypdf.*"]
+module = ["pywebpush.*", "py_vapid.*", "http_ece.*", "pypdf.*", "openpyxl.*"]
 ignore_missing_imports = true
 
 [[tool.mypy.overrides]]

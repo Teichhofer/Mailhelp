@@ -95,7 +95,7 @@ def read_mail(report: ActivityReport, progress: FolderProgress, fetched: Fetched
     key = f"{progress.folder}:{progress.uidvalidity}:{fetched.uid}"
     headers = BytesHeaderParser(policy=policy.default).parsebytes(fetched.raw)
     # Shown for skipped mails too, so the user sees which mail was left out.
-    base = dict(key=key, folder=progress.folder, uid=fetched.uid, received_at=fetched.received_at,
+    base: dict[str, Any] = dict(key=key, folder=progress.folder, uid=fetched.uid, received_at=fetched.received_at,
                 sender=_header(headers, "To" if progress.sent else "From"), subject=_header(headers, "Subject"))
     try:
         prepared = PreparedMail.model_validate(prepare(fetched.raw, limits, fetched.received_at, zone))

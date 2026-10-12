@@ -76,7 +76,7 @@ class ActivityAnalyzer:
         call, result = ClassifiedRun(self.analyzer, "activity_events", payload, ActivityEvents.model_validate,
                                      ActivityEvents, None, None).run()
         source = _compact(f"{mail.subject}\n{mail.text}")
-        events = []
+        events: list[ReportEvent] = []
         for candidate in result.events:
             if _compact(candidate.evidence) not in source:
                 # An invented quote invents the date as well; the user can add it manually.
