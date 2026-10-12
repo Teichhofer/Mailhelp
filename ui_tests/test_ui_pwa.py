@@ -27,7 +27,6 @@ def test_installed_app_shows_the_offline_page_and_caches_no_data(browser, mailhe
                 .then((requests) => requests.map((request) => new URL(request.url).pathname)))))""")
             assert [sorted(paths) for paths in cached] == [sorted(SHELL)]
             assert page.locator("link[rel=manifest]").get_attribute("href") == "/manifest.webmanifest"
-            page.collect()
             page.context.set_offline(True)
             page.page.goto(f"{mailhelp.url}/status")
             expect(page.get_by_role("heading", name="PC nicht erreichbar")).to_be_visible()
@@ -38,7 +37,6 @@ def test_installed_app_shows_the_offline_page_and_caches_no_data(browser, mailhe
             page.errors[:] = [error for error in page.errors if "ERR_INTERNET_DISCONNECTED" not in error]
             assert page.errors == []
         finally:
-            page.collect()
             page.context.close()
 
 
@@ -52,7 +50,6 @@ def test_a_failed_worker_registration_is_harmless(browser, mailhelp):
         page.errors[:] = [error for error in page.errors if "404" not in error and "sw.js" not in error]
         assert page.errors == []
     finally:
-        page.collect()
         page.context.close()
 
 
@@ -111,7 +108,6 @@ def test_service_worker_rules(browser, mailhelp):
           return response.text(); }""")
         assert offline == "offline-seite"
     finally:
-        page.collect()
         page.context.close()
 
 
@@ -159,5 +155,4 @@ def test_push_notifications_show_fixed_texts_and_open_the_app(browser, mailhelp)
         assert result["opened"] == ["/briefing", "/offen"]
         assert page.errors == []
     finally:
-        page.collect()
         page.context.close()

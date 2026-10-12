@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 from playwright.sync_api import expect
+from web_scenario import mail_id
 
 from checks import audit
 from conftest import item, sign_in
-from web_scenario import mail_id
 
 
 def test_details_show_the_complete_mail(page, mailhelp):

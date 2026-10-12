@@ -8,14 +8,15 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from PIL import Image
 from playwright.sync_api import expect
+from shared_vision import image_bytes
+from shared_vision import mail as raw_mail
+from web_scenario import mail_id
 
 from checks import audit
-from conftest import act, item, sign_in
+from conftest import item, sign_in
 from mailhelp.attachments import AttachmentCache
 from mailhelp.models import MailState, Proposal
 from mailhelp.webpush import PushService
-from test_vision import image_bytes, mail as raw_mail
-from web_scenario import mail_id
 
 MASTER, PANE = ".master-pane", ".detail-pane"
 
@@ -86,7 +87,6 @@ def test_split_view_follows_the_keyboard_and_shows_help(page, mailhelp):
     page.keyboard.press("j")
     page.keyboard.press("j")
     expect(page.locator(f"{PANE} #detail-v-{mail_id(1)}-formular")).to_be_visible()
-    page.collect()
     page.keyboard.press("e")
     page.wait_for_url(f"**/vorschlag/{mail_id(1)}/formular/bearbeiten")
     assert page.errors == []
@@ -95,6 +95,9 @@ def test_split_view_follows_the_keyboard_and_shows_help(page, mailhelp):
 def test_shortcut_confirm_can_be_undone_and_reject_is_sent_after_five_seconds(page, mailhelp):
     if page.device != "desktop":
         return
+    # This dedicated test keeps the real five-second default; other tests use the test server's short delay.
+    page.route("**/", lambda route: route.fulfill(response=route.fetch(),
+               body=route.fetch().text().replace(' data-undo-ms="1000"', '')))
     sign_in(page, mailhelp)
     item(page, f"#v-{mail_id(1)}-elternabend")
     page.locator("body").focus()
@@ -110,7 +113,6 @@ def test_shortcut_confirm_can_be_undone_and_reject_is_sent_after_five_seconds(pa
     page.wait_for_timeout(5500)
     assert mailhelp.writer.created == [] and "/?ergebnis=" not in page.url
     page.locator("body").focus()
-    page.collect()
     with page.expect_event("framenavigated", timeout=20000,
                            predicate=lambda frame: "?ergebnis=" in frame.url):
         page.keyboard.press("x")
@@ -163,7 +165,6 @@ def test_quick_filter_chips_update_the_list_and_the_address(page, mailhelp):
     page.wait_for_url("**/offen?filter=duplicates")
     expect(page.locator("article.card")).to_have_count(0)
     page.keyboard.press("j")  # Nothing to select.
-    page.collect()
     page.go_back()
     page.wait_for_url("**/offen?filter=events")
     expect(page.get_by_role("link", name="Termine")).to_have_attribute("aria-current", "true")
@@ -324,7 +325,6 @@ def test_web_push_opt_in_on_the_settings_page(page, mailhelp):
     disable.click()
     expect(status).to_have_text("Push ist auf diesem Gerät deaktiviert.")
     page.add_init_script("Object.defineProperty(window, 'isSecureContext', {value: false});")
-    page.collect()
     page.reload()
     page.get_by_role("button", name="Push aktivieren").click()
     expect(page.locator("#push-status")).to_contain_text("Push benötigt HTTPS")
@@ -367,6 +367,7 @@ class Writer:
 
 def with_draft(mailhelp):
     from contextlib import nullcontext
+
     from mailhelp.drafts import DraftService
     imap = Drafts()
     state = mailhelp.store.load_model(f"mail-{mail_id(1)}", MailState)
@@ -384,20 +385,16 @@ def edit_and_save_draft(page, imap):
         expect(reply.get_by_role("button", name=label)).to_be_visible()
     expect(page.get_by_label("Antworttext")).to_have_count(0)
     # Cancel discards a generated draft without touching the mailbox.
-    page.collect()
     reply.get_by_role("button", name="Absagen").click()
     expect(page.get_by_label("Antworttext")).to_have_value("Leider kann ich am Elternabend nicht teilnehmen.")
-    page.collect()
     page.get_by_role("button", name="Abbrechen").click()
     expect(page.get_by_label("Antworttext")).to_have_count(0)
     assert imap.writes == []
-    page.collect()
     page.locator("#antwort").get_by_role("button", name="Zusagen").click()
     expect(page.get_by_role("heading", name="Entwurf: Zusage")).to_be_visible()
     editor = page.get_by_label("Antworttext")
     expect(editor).to_have_value("Vielen Dank, ich komme gerne zum Elternabend.")
     editor.fill("Vielen Dank, wir kommen zu zweit.")
-    page.collect()
     page.get_by_role("button", name="Als Entwurf im Postfach speichern").click()
     expect(page.get_by_text("Im Postfach gespeichert.")).to_be_visible()
     assert imap.writer.calls == ["decline", "accept"]
@@ -427,7 +424,6 @@ def test_reply_buttons_announce_the_running_generation(page, mailhelp):
     reply.get_by_role("button", name="Rückfrage").click()
     expect(reply.get_by_text("Entwurf wird erstellt …")).to_be_visible()
     expect(reply.get_by_role("button", name="Zusagen")).to_be_disabled()
-    page.collect()
     page.unroute("**/entwurf")
     assert page.errors == []
 
@@ -475,7 +471,6 @@ def test_script_steps_that_end_in_a_navigation(page, mailhelp):
     expect(toast(page)).to_have_text("„Einverständniserklärung Klassenfahrt zurückgeben“ wird verworfen …",
                                      timeout=10000)
     expect(pane.get_by_role("button", name="Verwerfen")).to_be_disabled()
-    page.collect()
     page.unroute("**/aktion")
     # E follows the edit link of the selected proposal.
     page.goto(f"{mailhelp.url}/")
@@ -484,7 +479,6 @@ def test_script_steps_that_end_in_a_navigation(page, mailhelp):
     page.locator("body").focus()
     with page.expect_request("**/formular/bearbeiten"):
         page.keyboard.press("e")
-    page.collect()
     # Back after a quick filter reloads the page for the address shown.
     page.goto(f"{mailhelp.url}/")
     page.get_by_role("link", name="Termine").click()
@@ -492,7 +486,6 @@ def test_script_steps_that_end_in_a_navigation(page, mailhelp):
     page.route(f"{mailhelp.url}/", lambda route: route.abort("aborted"))
     with page.expect_request(f"{mailhelp.url}/"):
         page.go_back()
-    page.collect()
     page.unroute(f"{mailhelp.url}/")
     # A filter answered with an error status (e.g. an expired session) is reported.
     page.goto(f"{mailhelp.url}/")
@@ -508,7 +501,6 @@ def test_script_steps_that_end_in_a_navigation(page, mailhelp):
     assert "mode=cancel" in sent.value.post_data
     assert page.locator('form:has(#draft-editor) input[type="hidden"][name="mode"]').get_attribute("value") == "cancel"
     expect(page.get_by_role("button", name="Abbrechen")).to_be_disabled()
-    page.collect()
     assert imap.writes == []
     without_load_errors(page, "503", "ERR_ABORTED")
     assert page.errors == []
@@ -540,13 +532,11 @@ def test_split_selection_survives_background_refresh_and_missing_item(page, mail
     item(page, "#" + identity)
     for revision in range(2):
         mailhelp.store.save("synthetic-background-state", {"revision": revision})
-        page.collect()
         with page.expect_event("framenavigated", predicate=lambda frame: frame == page.main_frame):
             page.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
         expect(selected(page)).to_have_attribute("id", identity)
         expect(page.locator(f"{PANE} #detail-{identity}")).to_be_visible()
     # A manual reload also retains the selection, including after resizing.
-    page.collect()
     page.set_viewport_size({"width": 900, "height": 900})
     page.reload()
     expect(selected(page)).to_have_count(0)
@@ -556,7 +546,6 @@ def test_split_selection_survives_background_refresh_and_missing_item(page, mail
     name = f"proposal-{mail_id(1)}-formular"
     proposal = mailhelp.store.load_model(name, Proposal)
     mailhelp.store.save(name, {**proposal.model_dump(mode="json"), "status": "rejected"})
-    page.collect()
     page.reload()
     expect(selected(page)).to_have_attribute("id", f"r-{mail_id(7)}")
     assert mailhelp.writer.created == [] and page.errors == []

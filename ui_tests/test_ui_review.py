@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 from playwright.sync_api import expect
+from web_scenario import mail_id, proposal, save_mail
 
 from checks import audit
 from conftest import item, sign_in
-from web_scenario import mail_id, proposal, save_mail
 
 
 def test_overview_is_readable_and_mail_content_stays_inert(page, mailhelp):
@@ -111,7 +111,6 @@ def test_overview_refreshes_itself_but_never_discards_typed_text(page, mailhelp)
     page.wait_for_timeout(300)
     assert reloads == [f"{mailhelp.url}/"]
     page.unroute(f"{mailhelp.url}/")
-    page.collect()
     page.reload()
     expect(page.get_by_text("Anmeldung Ferienbetreuung abgeben")).to_be_visible()
     assert page.errors == []

@@ -12,7 +12,6 @@ import re
 import socket
 import sys
 import threading
-import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -26,8 +25,9 @@ for _folder in sorted((ROOT / "tests").iterdir()):
     if _folder.is_dir() and _folder.name not in {"fixtures", "__pycache__"}:
         sys.path.insert(0, str(_folder))
 
+from web_scenario import Revisions, populate  # noqa: E402
+
 from mailhelp.config import WebSettings  # noqa: E402
-from mailhelp.models import Proposal  # noqa: E402
 from mailhelp.review.inbox import CommandInbox  # noqa: E402
 from mailhelp.review.views import ReviewViews  # noqa: E402
 from mailhelp.storage import JsonStore  # noqa: E402
@@ -35,7 +35,6 @@ from mailhelp.telegram import TelegramDialogController  # noqa: E402
 from mailhelp.web import WebApp, WebServer  # noqa: E402
 from mailhelp.web.auth import WebAuth  # noqa: E402
 from mailhelp.web.site import MailhelpSite  # noqa: E402
-from web_scenario import Revisions, populate  # noqa: E402
 
 STATIC = ROOT / "src/mailhelp/web/static"
 COVERED_SCRIPTS = tuple(name for name in ("app.js", "sw.js") if (STATIC / name).exists())
@@ -129,16 +128,22 @@ def mailhelp(tmp_path):
         app = WebApp(settings.allowed_hosts)
         site = MailhelpSite(app, auth, settings, "Europe/Berlin", logger,
                      ReviewViews(store, "Europe/Berlin"), commands)
-        server = WebServer("127.0.0.1", port, app, logger)
+        def test_app(request):
+            response = app(request)
+            if response.content_type.startswith("text/html"):
+                response.body = response.body.replace(b"<body", b'<body data-undo-ms="1000"', 1)
+            return response
+        server = WebServer("127.0.0.1", port, test_app, logger)
         server.start()
         instance = Mailhelp(f"http://127.0.0.1:{port}", store, telegram, writer, dialog)
         instance.auth = auth
         instance.site = site
-        from test_application import settings as application_settings
+        import yaml
+        from shared_application import settings as application_settings
+
         from mailhelp.configuration import ConfigurationService
         from mailhelp.lifecycle import Lifecycle
         from mailhelp.metrics import MetricsRecorder, MetricsSettings
-        import yaml
         cfg = application_settings(tmp_path)
         (tmp_path / "config.yaml").write_text(yaml.safe_dump(cfg.model_dump(mode="json")), encoding="utf-8")
         (tmp_path / "topics.yaml").write_text("topics:\n- id: school\n  name: Schule\n  description: Schule\n  enabled: true\n  examples: []\n  exclusions: []\n", encoding="utf-8")
@@ -190,7 +195,7 @@ class Coverage:
                 for offset in range(item["startOffset"], min(item["endOffset"], len(source))):
                     counts[offset] = item["count"]
             merged = self.counts.setdefault(name, [0] * len(source))
-            self.counts[name] = [max(a, b) for a, b in zip(merged, counts)]
+            self.counts[name] = [max(a, b) for a, b in zip(merged, counts, strict=False)]
 
     def uncovered(self) -> dict[str, list[int]]:
         report = {}
@@ -233,8 +238,11 @@ class Page:
         # every load compiles app.js afresh with block coverage.
         self.cdp.send("Network.enable")
         self.cdp.send("Network.setCacheDisabled", {"cacheDisabled": True})
+        self.cdp.send("Page.enable")
         self.cdp.send("Profiler.enable")
         self.cdp.send("Profiler.startPreciseCoverage", {"callCount": True, "detailed": True})
+        self.cdp.on("Page.frameRequestedNavigation", lambda event: self.collect())
+        self.cdp.on("Page.frameStartedLoading", lambda event: self.collect())
 
     def collect(self) -> None:
         COVERAGE.add(self.cdp.send("Profiler.takePreciseCoverage"))

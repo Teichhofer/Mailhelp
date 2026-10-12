@@ -1,9 +1,9 @@
 """Version 1.2 pages and workflows on desktop and iPhone, synthetic data only."""
 from playwright.sync_api import expect
+from web_scenario import mail_id
 
 from checks import audit
 from conftest import sign_in
-from web_scenario import mail_id
 
 
 def test_archive_history_statistics_settings_and_topics(page, mailhelp):
