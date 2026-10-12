@@ -9,6 +9,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from threading import Event, Lock
+from collections.abc import Callable
 from typing import Any, Iterator
 from zoneinfo import ZoneInfo
 
@@ -468,6 +469,185 @@ def build_logger(
     )
 
 
+def _attach_metrics(logger: JsonlLogger, settings: Settings, base_directory: Path, data: Path,
+                    store: JsonStore, local_llm: LocalLlm | None) -> None:
+    from .metrics import (DECISION_TEST_FILE, PRODUCTION_FILE, MetricsRecorder, adopt_legacy,
+                          metrics_directory)
+    metrics_root = metrics_directory(runtime_path(settings.logging.directory, base_directory))
+    production = metrics_root / PRODUCTION_FILE
+    comparison = metrics_root / DECISION_TEST_FILE
+    adopt_legacy(data / "metrics" / "llm.jsonl", production)
+    adopt_legacy(data.parent / "decision-tests" / "metrics" / "llm.jsonl", comparison)
+    logger.metrics = MetricsRecorder(production, settings.metrics, "local" if local_llm else "standard")
+    logger.metrics.comparison = MetricsRecorder(comparison, settings.metrics, "decision_test")
+    logger.metrics.changed = store.touch
+
+
+def _build_imap(settings: Settings, secrets: Secrets, policy: Callable[[str], RetryPolicy],
+                logger: JsonlLogger, access_diagnostics: bool, stack: ExitStack) -> Any:
+    imap_cfg = settings.timeouts.imap
+    factory = imaplib.IMAP4_SSL if settings.imap.connection_mode == "ssl" else imaplib.IMAP4
+    try:
+        imap = ImapReader(settings.imap.host, settings.imap.port, secrets.imap_username, secrets.imap_password.get_secret_value(), imap_cfg.timeout_seconds, factory=factory, policy=policy("imap"), logger=logger, starttls=settings.imap.connection_mode == "starttls", batch_size=settings.imap.batch_size)
+    except Exception as exc:
+        if not access_diagnostics:
+            raise
+        # IMAP connects and authenticates in its constructor, unlike the
+        # HTTP adapters. Preserve that failure as one diagnostic result so
+        # constructing the application cannot prevent the other checks.
+        return _FailedAccessAdapter(exc)
+    stack.callback(imap.close)
+    return imap
+
+
+def _build_llm(settings: Settings, secrets: Secrets, local_llm: LocalLlm | None, llm_budget: dict[str, Any],
+               logger: JsonlLogger, stack: ExitStack) -> OpenRouterClient:
+    openrouter: OpenRouterClient
+    if local_llm is None:
+        llm_cfg = settings.timeouts.openrouter
+        openrouter = OpenRouterClient(secrets.openrouter_api_key.get_secret_value(), llm_cfg.timeout_seconds, llm_cfg.retries, settings.limits.llm_calls_per_minute, initial_backoff=llm_cfg.initial_backoff_seconds, max_backoff=llm_cfg.max_backoff_seconds, **llm_budget)
+    else:
+        # Experimental: every LLM stage runs on the local Ollama model.
+        llm_cfg = settings.timeouts.ollama
+        openrouter = OllamaClient(local_llm, llm_cfg.timeout_seconds, llm_cfg.retries, settings.limits.llm_calls_per_minute, initial_backoff=llm_cfg.initial_backoff_seconds, max_backoff=llm_cfg.max_backoff_seconds, **llm_budget)
+        logger.event("WARNING", "application", "local_llm_experimental",
+                     host=local_llm.host, port=local_llm.port, model=local_llm.model,
+                     num_ctx=local_llm.num_ctx)
+    stack.callback(openrouter.close)
+    return openrouter
+
+
+def _build_telegram(settings: Settings, secrets: Secrets, policy: Callable[[str], RetryPolicy],
+                    logger: JsonlLogger, stack: ExitStack) -> Any:
+    if settings.telegram.enabled:
+        telegram = TelegramClient(secrets.telegram_bot_token.get_secret_value(), settings.timeouts.telegram.timeout_seconds, poll_timeout=settings.timeouts.telegram_poll_seconds, policy=policy("telegram"), logger=logger)
+    else:
+        from .standalone import DisabledTelegram
+        telegram = DisabledTelegram()
+    stack.callback(telegram.close)
+    return telegram
+
+
+def _build_analyzer(settings: Settings, secrets: Secrets, prompts: PromptConfig, openrouter: OpenRouterClient,
+                    jev_prompts: Any, llm_budget: dict[str, Any], stop_event: Event, stack: ExitStack) -> Analyzer:
+    analyzer_options: dict[str, Any] = {}
+    analyzer_type = Analyzer
+    if jev_prompts is not None:
+        llm_cfg = settings.timeouts.openrouter
+        decision_client = DecisionClient(
+            secrets.openrouter_api_key.get_secret_value(), llm_cfg.timeout_seconds,
+            llm_cfg.retries, settings.limits.llm_calls_per_minute,
+            initial_backoff=llm_cfg.initial_backoff_seconds,
+            max_backoff=llm_cfg.max_backoff_seconds, stopped=stop_event.wait, **llm_budget)
+        stack.callback(decision_client.close)
+        # Both adapters charge the same durable budget atomically.
+        shared_lock = Lock()
+        openrouter._state_lock = decision_client._state_lock = shared_lock
+        analyzer_options["decisions"] = DecisionAnalyzer(
+            decision_client, jev_prompts, settings.limits.max_llm_payload_bytes)
+        analyzer_type = JevRelevanceAnalyzer
+    return analyzer_type(
+        openrouter, prompts,
+        provider_retries=settings.retries.provider_retry,
+        json_repair_retries=settings.retries.json_repair,
+        schema_repair_retries=settings.retries.schema_repair,
+        **analyzer_options,
+    )
+
+
+def _build_dialog(settings: Settings, store: JsonStore, telegram: Any, logger: JsonlLogger, writers: dict[str, Any],
+                  analyzer: Analyzer, web_enabled: bool) -> TelegramDialogController:
+    telegram_inbox = TelegramInbox(store)
+    return TelegramDialogController(
+        store, telegram, settings.telegram.user_id, settings.telegram.chat_id, logger,
+        writers, settings.test_mode,
+        settings.timezone,
+        analyzer,
+        interpretation_attempts=settings.retries.interpretation_attempts,
+        interpretation_backoff_seconds=settings.retries.interpretation_backoff_seconds,
+        revision_attempts=settings.retries.revision_attempts,
+        revision_backoff_seconds=settings.retries.revision_backoff_seconds,
+        sequential_questions=settings.telegram.sequential_questions,
+        inbox=telegram_inbox,
+        commands=CommandInbox(store, wake=telegram_inbox.wake) if web_enabled else None,
+    )
+
+
+def _build_orchestrator(settings: Settings, prompts: PromptConfig, topics: list[Topic], fingerprint: str,
+                        jev_prompts: Any, store: JsonStore, sender_store: JsonStore, logger: JsonlLogger,
+                        analyzer: Analyzer, dialog: TelegramDialogController, writers: dict[str, Any],
+                        access_diagnostics: bool) -> Orchestrator:
+    from .precheck import DuplicatePreCheckService
+    precheck = DuplicatePreCheckService(
+        writers={"google_calendar": writers["google_calendar"], "todoist": writers["todoist"]},
+        ledger=dialog.ledger,
+        logger=logger,
+    )
+    vision = None
+    if settings.vision.enabled and "vision_ocr" in prompts.prompts:
+        vision = VisionExtractor(analyzer, settings.vision)
+    elif settings.vision.enabled:
+        # A prompts.yaml from before 1.4: no image is sent anywhere.
+        logger.event("WARNING", "application", "vision_prompt_missing")
+    orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics, settings.limits.max_mail_bytes, logger, mime_limits=settings.limits, config_fingerprint=fingerprint, targets=settings.targets, user_timezone=settings.timezone, sender_store=sender_store, precheck=precheck, vision=vision)
+    from .fingerprints import (adopt_legacy_configuration, legacy_fingerprints, legacy_policies,
+                               topic_policy)
+    orchestrator.topic_policy = topic_policy(settings, prompts)
+    if not access_diagnostics:
+        legacy = legacy_fingerprints(settings, prompts, topics)
+        if jev_prompts is not None:
+            legacy = {relevance_fingerprint(item, jev_prompts) for item in legacy}
+        # Mails started under 1.1 or the 1.2 beta with this same configuration continue.
+        adopt_legacy_configuration(store, fingerprint, legacy, orchestrator.topic_policy,
+                                   legacy_policies(settings, prompts), topics)
+    return orchestrator
+
+
+def _attach_web(application: Application, settings: Settings, secrets: Secrets, prompts: PromptConfig,
+                jev_prompts: Any, local_llm: LocalLlm | None, base_directory: Path, sender_store: JsonStore) -> None:
+    store, logger, dialog = application.store, application.logger, application.dialog
+    telegram, orchestrator, stop_event = application.telegram, application.orchestrator, application.stop_event
+    secret = secrets.mailhelp_web_secret
+    if settings.telegram.enabled:
+        def notify(text):
+            telegram.send(settings.telegram.chat_id, text)
+    else:
+        # Standalone: pairing codes appear only in the console of the PC, never in a log file.
+        def notify(text):
+            print(text, flush=True)
+    components = create_web(
+        settings, secret.get_secret_value() if secret is not None else None, store,
+        notify, logger, dialog.commands)
+    if not settings.telegram.enabled:
+        components.auth.channel = "console"
+    dialog.review.web_authorizer = components.authorize
+    dialog.web_logout = components.auth.revoke_all
+    dialog.web_invite = components.invite
+    application.web = components.server
+    from .configuration import ConfigurationService
+    from .lifecycle import Lifecycle
+    configuration = ConfigurationService(base_directory, store, settings, components.authorize,
+                                          application.apply_settings, orchestrator.change_topics,
+                                          senders=sender_store)
+    application.configuration = configuration
+    dialog.review.configuration = configuration
+    components.site.lifecycle = Lifecycle(
+        application.stop, components.authorize,
+        lambda state, process: logger.event("INFO", "lifecycle", state, process=process))
+    application.lifecycle = components.site.lifecycle
+    components.site.archive.lifecycle = components.site.lifecycle
+    dialog.stop_requested = lambda: components.site.lifecycle.state != "running" or stop_event.is_set()
+    components.site.archive.configuration = configuration
+    components.site.archive.metrics = logger.metrics
+    from .configuration import effective_models
+    components.site.archive.models = effective_models(
+        prompts, jev_prompts.model if jev_prompts else None, local_llm.model if local_llm else None)
+    from .experience import ExperienceRuntime
+    application.experience = ExperienceRuntime(application, components, secrets)
+    if not settings.telegram.enabled:
+        print(components.invite())
+
+
 @contextmanager
 def build_application(
     settings: Settings,
@@ -496,54 +676,17 @@ def build_application(
                 settings, secrets, base_directory,
                 access_diagnostics=access_diagnostics,
             )
-        from .metrics import (DECISION_TEST_FILE, PRODUCTION_FILE, MetricsRecorder, adopt_legacy,
-                              metrics_directory)
-        metrics_root = metrics_directory(runtime_path(settings.logging.directory, base_directory))
-        production = metrics_root / PRODUCTION_FILE
-        comparison = metrics_root / DECISION_TEST_FILE
-        adopt_legacy(data / "metrics" / "llm.jsonl", production)
-        adopt_legacy(data.parent / "decision-tests" / "metrics" / "llm.jsonl", comparison)
-        logger.metrics = MetricsRecorder(production, settings.metrics, "local" if local_llm else "standard")
-        logger.metrics.comparison = MetricsRecorder(comparison, settings.metrics, "decision_test")
-        logger.metrics.changed = store.touch
+        _attach_metrics(logger, settings, base_directory, data, store, local_llm)
         stop_event = Event()
         def policy(name: str) -> RetryPolicy:
             item = getattr(settings.timeouts, name)
             return RetryPolicy(item.retries, item.initial_backoff_seconds, item.max_backoff_seconds, stop_event.wait)
-        imap_cfg = settings.timeouts.imap
-        factory = imaplib.IMAP4_SSL if settings.imap.connection_mode == "ssl" else imaplib.IMAP4
-        try:
-            imap = ImapReader(settings.imap.host, settings.imap.port, secrets.imap_username, secrets.imap_password.get_secret_value(), imap_cfg.timeout_seconds, factory=factory, policy=policy("imap"), logger=logger, starttls=settings.imap.connection_mode == "starttls", batch_size=settings.imap.batch_size)
-        except Exception as exc:
-            if not access_diagnostics:
-                raise
-            # IMAP connects and authenticates in its constructor, unlike the
-            # HTTP adapters. Preserve that failure as one diagnostic result so
-            # constructing the application cannot prevent the other checks.
-            imap = _FailedAccessAdapter(exc)
-        else:
-            stack.callback(imap.close)
+        imap = _build_imap(settings, secrets, policy, logger, access_diagnostics, stack)
         llm_budget: dict[str, Any] = dict(
             load_calls=lambda: store.load("llm-budget", {}).get("calls", []),
             save_calls=lambda calls: store.save("llm-budget", {"calls": calls}), logger=logger)
-        openrouter: OpenRouterClient
-        if local_llm is None:
-            llm_cfg = settings.timeouts.openrouter
-            openrouter = OpenRouterClient(secrets.openrouter_api_key.get_secret_value(), llm_cfg.timeout_seconds, llm_cfg.retries, settings.limits.llm_calls_per_minute, initial_backoff=llm_cfg.initial_backoff_seconds, max_backoff=llm_cfg.max_backoff_seconds, **llm_budget)
-        else:
-            # Experimental: every LLM stage runs on the local Ollama model.
-            llm_cfg = settings.timeouts.ollama
-            openrouter = OllamaClient(local_llm, llm_cfg.timeout_seconds, llm_cfg.retries, settings.limits.llm_calls_per_minute, initial_backoff=llm_cfg.initial_backoff_seconds, max_backoff=llm_cfg.max_backoff_seconds, **llm_budget)
-            logger.event("WARNING", "application", "local_llm_experimental",
-                         host=local_llm.host, port=local_llm.port, model=local_llm.model,
-                         num_ctx=local_llm.num_ctx)
-        stack.callback(openrouter.close)
-        if settings.telegram.enabled:
-            telegram = TelegramClient(secrets.telegram_bot_token.get_secret_value(), settings.timeouts.telegram.timeout_seconds, poll_timeout=settings.timeouts.telegram_poll_seconds, policy=policy("telegram"), logger=logger)
-        else:
-            from .standalone import DisabledTelegram
-            telegram = DisabledTelegram()
-        stack.callback(telegram.close)
+        openrouter = _build_llm(settings, secrets, local_llm, llm_budget, logger, stack)
+        telegram = _build_telegram(settings, secrets, policy, logger, stack)
         todoist = HttpWriter("todoist", secrets.todoist_token.get_secret_value(), settings.targets.todoist_project, settings.timeouts.todoist.timeout_seconds, policy=policy("todoist"), logger=logger)
         stack.callback(todoist.close)
         google_cfg = settings.timeouts.google_calendar
@@ -555,29 +698,7 @@ def build_application(
             logger=logger,
         )
         stack.callback(oauth.close)
-        analyzer_options: dict[str, Any] = {}
-        analyzer_type = Analyzer
-        if jev_prompts is not None:
-            llm_cfg = settings.timeouts.openrouter
-            decision_client = DecisionClient(
-                secrets.openrouter_api_key.get_secret_value(), llm_cfg.timeout_seconds,
-                llm_cfg.retries, settings.limits.llm_calls_per_minute,
-                initial_backoff=llm_cfg.initial_backoff_seconds,
-                max_backoff=llm_cfg.max_backoff_seconds, stopped=stop_event.wait, **llm_budget)
-            stack.callback(decision_client.close)
-            # Both adapters charge the same durable budget atomically.
-            shared_lock = Lock()
-            openrouter._state_lock = decision_client._state_lock = shared_lock
-            analyzer_options["decisions"] = DecisionAnalyzer(
-                decision_client, jev_prompts, settings.limits.max_llm_payload_bytes)
-            analyzer_type = JevRelevanceAnalyzer
-        analyzer = analyzer_type(
-            openrouter, prompts,
-            provider_retries=settings.retries.provider_retry,
-            json_repair_retries=settings.retries.json_repair,
-            schema_repair_retries=settings.retries.schema_repair,
-            **analyzer_options,
-        )
+        analyzer = _build_analyzer(settings, secrets, prompts, openrouter, jev_prompts, llm_budget, stop_event, stack)
         calendar = HttpWriter(
             "google_calendar", oauth, settings.targets.google_calendar,
             google_cfg.timeout_seconds, policy=policy("google_calendar"), logger=logger,
@@ -585,87 +706,14 @@ def build_application(
             calendar_matcher=analyzer.calendar_duplicate,
         )
         stack.callback(calendar.close)
-        telegram_inbox = TelegramInbox(store)
+        writers = {"todoist": todoist, "google_calendar": calendar}
         web_enabled = settings.web.enabled and not access_diagnostics
-        dialog = TelegramDialogController(
-            store, telegram, settings.telegram.user_id, settings.telegram.chat_id, logger,
-            {"todoist": todoist, "google_calendar": calendar}, settings.test_mode,
-            settings.timezone,
-            analyzer,
-            interpretation_attempts=settings.retries.interpretation_attempts,
-            interpretation_backoff_seconds=settings.retries.interpretation_backoff_seconds,
-            revision_attempts=settings.retries.revision_attempts,
-            revision_backoff_seconds=settings.retries.revision_backoff_seconds,
-            sequential_questions=settings.telegram.sequential_questions,
-            inbox=telegram_inbox,
-            commands=CommandInbox(store, wake=telegram_inbox.wake) if web_enabled else None,
-        )
-        from .precheck import DuplicatePreCheckService
-        precheck = DuplicatePreCheckService(
-            writers={"google_calendar": calendar, "todoist": todoist},
-            ledger=dialog.ledger,
-            logger=logger,
-        )
-        vision = None
-        if settings.vision.enabled and "vision_ocr" in prompts.prompts:
-            vision = VisionExtractor(analyzer, settings.vision)
-        elif settings.vision.enabled:
-            # A prompts.yaml from before 1.4: no image is sent anywhere.
-            logger.event("WARNING", "application", "vision_prompt_missing")
-        orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics, settings.limits.max_mail_bytes, logger, mime_limits=settings.limits, config_fingerprint=fingerprint, targets=settings.targets, user_timezone=settings.timezone, sender_store=sender_store, precheck=precheck, vision=vision)
-        from .fingerprints import (adopt_legacy_configuration, legacy_fingerprints, legacy_policies,
-                                   topic_policy)
-        orchestrator.topic_policy = topic_policy(settings, prompts)
-        if not access_diagnostics:
-            legacy = legacy_fingerprints(settings, prompts, topics)
-            if jev_prompts is not None:
-                legacy = {relevance_fingerprint(item, jev_prompts) for item in legacy}
-            # Mails started under 1.1 or the 1.2 beta with this same configuration continue.
-            adopt_legacy_configuration(store, fingerprint, legacy, orchestrator.topic_policy,
-                                       legacy_policies(settings, prompts), topics)
+        dialog = _build_dialog(settings, store, telegram, logger, writers, analyzer, web_enabled)
+        orchestrator = _build_orchestrator(settings, prompts, topics, fingerprint, jev_prompts, store, sender_store,
+                                           logger, analyzer, dialog, writers, access_diagnostics)
         dialog.relevance_handler = orchestrator
         orchestrator.stop_event = stop_event
-        web = None
         application = Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar, orchestrator, stop_event, dialog, sender_store)
         if web_enabled:
-            secret = secrets.mailhelp_web_secret
-            if settings.telegram.enabled:
-                def notify(text):
-                    telegram.send(settings.telegram.chat_id, text)
-            else:
-                # Standalone: pairing codes appear only in the console of the PC, never in a log file.
-                def notify(text):
-                    print(text, flush=True)
-            components = create_web(
-                settings, secret.get_secret_value() if secret is not None else None, store,
-                notify, logger, dialog.commands)
-            if not settings.telegram.enabled:
-                components.auth.channel = "console"
-            dialog.review.web_authorizer = components.authorize
-            dialog.web_logout = components.auth.revoke_all
-            dialog.web_invite = components.invite
-            web = components.server
-            application.web = web
-            from .configuration import ConfigurationService
-            from .lifecycle import Lifecycle
-            configuration = ConfigurationService(base_directory, store, settings, components.authorize,
-                                                  application.apply_settings, orchestrator.change_topics,
-                                                  senders=sender_store)
-            application.configuration = configuration
-            dialog.review.configuration = configuration
-            components.site.lifecycle = Lifecycle(
-                application.stop, components.authorize,
-                lambda state, process: logger.event("INFO", "lifecycle", state, process=process))
-            application.lifecycle = components.site.lifecycle
-            components.site.archive.lifecycle = components.site.lifecycle
-            dialog.stop_requested = lambda: components.site.lifecycle.state != "running" or stop_event.is_set()
-            components.site.archive.configuration = configuration
-            components.site.archive.metrics = logger.metrics
-            from .configuration import effective_models
-            components.site.archive.models = effective_models(
-                prompts, jev_prompts.model if jev_prompts else None, local_llm.model if local_llm else None)
-            from .experience import ExperienceRuntime
-            application.experience = ExperienceRuntime(application, components, secrets)
-            if not settings.telegram.enabled:
-                print(components.invite())
+            _attach_web(application, settings, secrets, prompts, jev_prompts, local_llm, base_directory, sender_store)
         yield application

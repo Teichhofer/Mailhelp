@@ -152,122 +152,146 @@ class MailboxRunService:
         for folder in self.settings.imap.folders:
             if self.stop_event.is_set() or budget.remaining == 0:
                 break
-            checkpoint_name = _checkpoint_name(self.imap.account_id, folder)
-            checkpoint_model = self.store.load_model(checkpoint_name, ImapCheckpoint, ImapCheckpoint())
-            checkpoint = checkpoint_model.model_dump(exclude={"schema_version"})
-            try:
-                if checkpoint["start_uid"] is None:
-                    if (self.settings.imap.historical_start is not None
-                            and not ignore_historical_start):
-                        start_uid = self.imap.determine_start_uid(folder, self.settings.imap.historical_start)
-                        initial_uidvalidity = self.imap.last_uidvalidity
-                    else:
-                        start_uid = checkpoint["uid"]
-                        initial_uidvalidity = checkpoint["uidvalidity"]
-                    checkpoint_model = ImapCheckpoint(uidvalidity=initial_uidvalidity, uid=start_uid, start_uid=start_uid)
-                    self.store.save(checkpoint_name, checkpoint_model.model_dump())
-                    checkpoint = checkpoint_model.model_dump(exclude={"schema_version"})
-                ranges = checkpoint["completed_uid_ranges"]
-                # Checkpoints written before range tracking used one ascending
-                # high-water mark.  Import that already completed prefix once.
-                if not ranges and checkpoint["uid"] > checkpoint["start_uid"]:
-                    ranges = [(checkpoint["start_uid"] + 1, checkpoint["uid"])]
-                if ignore_historical_start and checkpoint["start_uid"] != 0:
-                    checkpoint["start_uid"] = 0
-                    self.store.save(
-                        checkpoint_name, ImapCheckpoint(**checkpoint).model_dump()
-                    )
-                try:
-                    mails = self.imap.fetch_since(
-                        folder, checkpoint["start_uid"], checkpoint.get("uidvalidity"),
-                        budget.remaining, tuple(ranges),
-                    )
-                except UIDValidityChanged as changed:
-                    self.logger.event(
-                        "WARNING", "imap", "uidvalidity_changed",
-                        account_id=self.imap.account_id, folder=folder,
-                        previous_uidvalidity=changed.previous,
-                        uidvalidity=changed.current,
-                    )
-                    if (self.settings.imap.historical_start is not None
-                            and not ignore_historical_start):
-                        start_uid = self.imap.determine_start_uid(
-                            folder, self.settings.imap.historical_start
-                        )
-                        # Guard against a second generation change while the
-                        # absolute boundary was being resolved.
-                        if self.imap.last_uidvalidity != changed.current:
-                            raise RuntimeError(
-                                f"IMAP-UIDVALIDITY änderte sich während der Grenzermittlung: {folder}"
-                            )
-                    else:
-                        start_uid = 0
-                    checkpoint = ImapCheckpoint(
-                        uidvalidity=changed.current, uid=start_uid, start_uid=start_uid
-                    ).model_dump(exclude={"schema_version"})
-                    ranges = []
-                    # Persist generation and its matching boundary atomically
-                    # before message content from that generation is requested.
-                    self.store.save(
-                        checkpoint_name, ImapCheckpoint(**checkpoint).model_dump()
-                    )
-                    mails = self.imap.fetch_since(
-                        folder, start_uid, changed.current, budget.remaining, ()
-                    )
-            except Exception as exc:
-                primary = getattr(self.settings.imap, "primary_folder",
-                                  self.settings.imap.folders[0])
-                event = "poll_failed" if folder == primary else "optional_folder_failed"
-                self.logger.event("ERROR", "imap", event, folder=folder, error=str(exc))
-                continue
-            for mail in mails:
-                if self.stop_event.is_set() or budget.remaining == 0:
-                    break
-                if budget.remaining is not None:
-                    budget.take()
-                try:
-                    result = self.process_mail(mail)
-                except Exception as exc:
-                    self.logger.event("ERROR", "orchestrator", "mail_failed", folder=folder, uid=mail.uid, error=str(exc))
-                    continue
-                results.append(result)
-                if result.outcome is ProcessingOutcome.FAILED:
-                    self.logger.event("ERROR", "orchestrator", "mail_failed",
-                                      folder=folder, uid=mail.uid,
-                                      error=result.state.get("error"))
-                    # This mail has a durable failure state.  Isolate its
-                    # terminal attempt from the batch and leave its UID out of
-                    # the checkpoint, but do not strand later messages.
-                    continue
-                if result.state.get("awaiting_relevance"):
-                    # Only this mail is deferred; its UID is not complete yet.
-                    continue
-                # Every result reaching this point has a durable mail state.
-                # Failed results are excluded above so their checkpoint remains
-                # available for restart recovery.
-                ranges = _add_uid(ranges, mail.uid)
-                checkpoint["uid"] = max(checkpoint["uid"], mail.uid)
-                checkpoint["uidvalidity"] = mail.uidvalidity
-                checkpoint["completed_uid_ranges"] = ranges
-                self.store.save(checkpoint_name, ImapCheckpoint(**checkpoint).model_dump())
-            if not mails and self.imap.last_uidvalidity is not None:
-                if checkpoint["uidvalidity"] is None:
-                    checkpoint["uidvalidity"] = self.imap.last_uidvalidity
-                self.store.save(checkpoint_name, ImapCheckpoint(**checkpoint).model_dump())
+            self._poll_folder_directly(folder, budget, ignore_historical_start, results)
         return results
 
+    def _poll_folder_directly(self, folder: str, budget: _MailBudget, ignore_historical_start: bool,
+                              results: list[ProcessingResult]) -> None:
+        """Fetch and process one folder without a durable queue (readers without discovery)."""
+        checkpoint_name = _checkpoint_name(self.imap.account_id, folder)
+        try:
+            checkpoint, ranges = self._start_checkpoint(folder, checkpoint_name, ignore_historical_start)
+            try:
+                mails = self.imap.fetch_since(
+                    folder, checkpoint["start_uid"], checkpoint.get("uidvalidity"),
+                    budget.remaining, tuple(ranges),
+                )
+            except UIDValidityChanged as changed:
+                checkpoint, start_uid = self._restart_generation(
+                    folder, checkpoint_name, changed, ignore_historical_start)
+                ranges = []
+                mails = self.imap.fetch_since(
+                    folder, start_uid, changed.current, budget.remaining, ()
+                )
+        except Exception as exc:
+            self._folder_failed(folder, exc)
+            return
+        for mail in mails:
+            if self.stop_event.is_set() or budget.remaining == 0:
+                break
+            if budget.remaining is not None:
+                budget.take()
+            try:
+                result = self.process_mail(mail)
+            except Exception as exc:
+                self.logger.event("ERROR", "orchestrator", "mail_failed", folder=folder, uid=mail.uid, error=str(exc))
+                continue
+            results.append(result)
+            if result.outcome is ProcessingOutcome.FAILED:
+                self.logger.event("ERROR", "orchestrator", "mail_failed",
+                                  folder=folder, uid=mail.uid,
+                                  error=result.state.get("error"))
+                # This mail has a durable failure state.  Isolate its
+                # terminal attempt from the batch and leave its UID out of
+                # the checkpoint, but do not strand later messages.
+                continue
+            if result.state.get("awaiting_relevance"):
+                # Only this mail is deferred; its UID is not complete yet.
+                continue
+            # Every result reaching this point has a durable mail state.
+            # Failed results are excluded above so their checkpoint remains
+            # available for restart recovery.
+            ranges = self._complete_uid(checkpoint_name, checkpoint, ranges, mail.uid, mail.uidvalidity)
+        if not mails:
+            self._remember_generation(checkpoint_name, checkpoint)
+
+    def _start_checkpoint(self, folder: str, checkpoint_name: str,
+                          ignore_historical_start: bool) -> tuple[dict, list[tuple[int, int]]]:
+        """Load the folder checkpoint, fixing its start boundary on first use."""
+        checkpoint_model = self.store.load_model(checkpoint_name, ImapCheckpoint, ImapCheckpoint())
+        checkpoint = checkpoint_model.model_dump(exclude={"schema_version"})
+        if checkpoint["start_uid"] is None:
+            if (self.settings.imap.historical_start is not None
+                    and not ignore_historical_start):
+                start_uid = self.imap.determine_start_uid(folder, self.settings.imap.historical_start)
+                initial_uidvalidity = self.imap.last_uidvalidity
+            else:
+                start_uid = checkpoint["uid"]
+                initial_uidvalidity = checkpoint["uidvalidity"]
+            checkpoint_model = ImapCheckpoint(uidvalidity=initial_uidvalidity, uid=start_uid, start_uid=start_uid)
+            self.store.save(checkpoint_name, checkpoint_model.model_dump())
+            checkpoint = checkpoint_model.model_dump(exclude={"schema_version"})
+        ranges = checkpoint["completed_uid_ranges"]
+        # Checkpoints written before range tracking used one ascending
+        # high-water mark.  Import that already completed prefix once.
+        if not ranges and checkpoint["uid"] > checkpoint["start_uid"]:
+            ranges = [(checkpoint["start_uid"] + 1, checkpoint["uid"])]
+        if ignore_historical_start and checkpoint["start_uid"] != 0:
+            checkpoint["start_uid"] = 0
+            self.store.save(
+                checkpoint_name, ImapCheckpoint(**checkpoint).model_dump()
+            )
+        return checkpoint, ranges
+
+    def _restart_generation(self, folder: str, checkpoint_name: str, changed: UIDValidityChanged,
+                            ignore_historical_start: bool) -> tuple[dict, int]:
+        """A new UIDVALIDITY: persist the new generation and its boundary first."""
+        self.logger.event(
+            "WARNING", "imap", "uidvalidity_changed",
+            account_id=self.imap.account_id, folder=folder,
+            previous_uidvalidity=changed.previous,
+            uidvalidity=changed.current,
+        )
+        if (self.settings.imap.historical_start is not None
+                and not ignore_historical_start):
+            start_uid = self.imap.determine_start_uid(
+                folder, self.settings.imap.historical_start
+            )
+            # Guard against a second generation change while the
+            # absolute boundary was being resolved.
+            if self.imap.last_uidvalidity != changed.current:
+                raise RuntimeError(
+                    f"IMAP-UIDVALIDITY änderte sich während der Grenzermittlung: {folder}"
+                )
+        else:
+            start_uid = 0
+        checkpoint = ImapCheckpoint(
+            uidvalidity=changed.current, uid=start_uid, start_uid=start_uid
+        ).model_dump(exclude={"schema_version"})
+        # Persist generation and its matching boundary atomically
+        # before message content from that generation is requested.
+        self.store.save(
+            checkpoint_name, ImapCheckpoint(**checkpoint).model_dump()
+        )
+        return checkpoint, start_uid
+
+    def _folder_failed(self, folder: str, exc: Exception) -> None:
+        primary = getattr(self.settings.imap, "primary_folder",
+                          self.settings.imap.folders[0])
+        event = "poll_failed" if folder == primary else "optional_folder_failed"
+        self.logger.event("ERROR", "imap", event, folder=folder, error=str(exc))
+
+    def _complete_uid(self, checkpoint_name: str, checkpoint: dict, ranges: list[tuple[int, int]],
+                      uid: int, uidvalidity: int) -> list[tuple[int, int]]:
+        """Record one finished UID in the folder checkpoint."""
+        ranges = _add_uid(ranges, uid)
+        checkpoint["uid"] = max(checkpoint["uid"], uid)
+        checkpoint["uidvalidity"] = uidvalidity
+        checkpoint["completed_uid_ranges"] = ranges
+        self.store.save(checkpoint_name, ImapCheckpoint(**checkpoint).model_dump())
+        return ranges
+
+    def _remember_generation(self, checkpoint_name: str, checkpoint: dict) -> None:
+        """An empty folder still records the UIDVALIDITY the server reported."""
+        if self.imap.last_uidvalidity is not None:
+            if checkpoint["uidvalidity"] is None:
+                checkpoint["uidvalidity"] = self.imap.last_uidvalidity
+            self.store.save(checkpoint_name, ImapCheckpoint(**checkpoint).model_dump())
 
     def poll_global(self, budget: _MailBudget, *,
                           ignore_historical_start: bool = False) -> list[ProcessingResult]:
         """Process one mailbox-wide batch ordered by IMAP receive time."""
-        # Waiting relevance is durable mail work, not a runnable queue position.
-        # Exclude it from discovery and budgets until an authorized answer arrives.
-        waiting = set()
-        for name in mail_state_names(self.store):
-            state = self.store.load_model(name, MailState)
-            if state.awaiting_relevance:
-                identity = state.imap
-                waiting.add(f"{identity.account_id}\0{identity.folder}\0{identity.uidvalidity}\0{identity.uid}")
+        waiting = self._waiting_identities()
         run_name = state_names.mail_run(self.imap.account_id)
         active = self.store.load_model(run_name, MailRunState)
         active = active if active is not None and any(
@@ -276,212 +300,183 @@ class MailboxRunService:
             for entry in active.entries
         ) else None
         contexts: dict[str, tuple[str, dict[str, object], list[tuple[int, int]]]] = {}
-        candidates = []
+        candidates: list = []
         for folder in self.settings.imap.folders:
             if self.stop_event.is_set() or budget.remaining == 0:
                 break
-            checkpoint_name = _checkpoint_name(self.imap.account_id, folder)
-            checkpoint_model = self.store.load_model(checkpoint_name, ImapCheckpoint, ImapCheckpoint())
-            checkpoint = checkpoint_model.model_dump(exclude={"schema_version"})
-            try:
-                if checkpoint["start_uid"] is None:
-                    if (self.settings.imap.historical_start is not None
-                            and not ignore_historical_start):
-                        start_uid = self.imap.determine_start_uid(
-                            folder, self.settings.imap.historical_start
-                        )
-                        initial_uidvalidity = self.imap.last_uidvalidity
-                    else:
-                        start_uid = checkpoint["uid"]
-                        initial_uidvalidity = checkpoint["uidvalidity"]
-                    checkpoint_model = ImapCheckpoint(
-                        uidvalidity=initial_uidvalidity, uid=start_uid, start_uid=start_uid
-                    )
-                    self.store.save(checkpoint_name, checkpoint_model.model_dump())
-                    checkpoint = checkpoint_model.model_dump(exclude={"schema_version"})
-                ranges = checkpoint["completed_uid_ranges"]
-                if not ranges and checkpoint["uid"] > checkpoint["start_uid"]:
-                    ranges = [(checkpoint["start_uid"] + 1, checkpoint["uid"])]
-                if ignore_historical_start and checkpoint["start_uid"] != 0:
-                    checkpoint["start_uid"] = 0
-                    self.store.save(
-                        checkpoint_name, ImapCheckpoint(**checkpoint).model_dump()
-                    )
-                if active is not None:
-                    contexts[folder] = (checkpoint_name, checkpoint, ranges)
-                    continue
-                try:
-                    discovered = self.imap.discover_since(
-                        folder, checkpoint["start_uid"], checkpoint.get("uidvalidity"),
-                        tuple(ranges),
-                    )
-                except UIDValidityChanged as changed:
-                    self.logger.event(
-                        "WARNING", "imap", "uidvalidity_changed",
-                        account_id=self.imap.account_id, folder=folder,
-                        previous_uidvalidity=changed.previous, uidvalidity=changed.current,
-                    )
-                    if (self.settings.imap.historical_start is not None
-                            and not ignore_historical_start):
-                        start_uid = self.imap.determine_start_uid(
-                            folder, self.settings.imap.historical_start
-                        )
-                        if self.imap.last_uidvalidity != changed.current:
-                            raise RuntimeError(
-                                f"IMAP-UIDVALIDITY änderte sich während der Grenzermittlung: {folder}"
-                            )
-                    else:
-                        start_uid = 0
-                    checkpoint = ImapCheckpoint(
-                        uidvalidity=changed.current, uid=start_uid, start_uid=start_uid
-                    ).model_dump(exclude={"schema_version"})
-                    ranges = []
-                    self.store.save(
-                        checkpoint_name, ImapCheckpoint(**checkpoint).model_dump()
-                    )
-                    discovered = self.imap.discover_since(
-                        folder, start_uid, changed.current, ()
-                    )
-            except Exception as exc:
-                primary = getattr(self.settings.imap, "primary_folder",
-                                  self.settings.imap.folders[0])
-                event = "poll_failed" if folder == primary else "optional_folder_failed"
-                self.logger.event("ERROR", "imap", event, folder=folder, error=str(exc))
-                continue
-            contexts[folder] = (checkpoint_name, checkpoint, ranges)
-            candidates.extend(discovered)
-            if not discovered and self.imap.last_uidvalidity is not None:
-                if checkpoint["uidvalidity"] is None:
-                    checkpoint["uidvalidity"] = self.imap.last_uidvalidity
-                self.store.save(
-                    checkpoint_name, ImapCheckpoint(**checkpoint).model_dump()
-                )
-
-        candidates.sort(key=lambda item: item.received_at, reverse=True)
-        limit = budget.remaining if budget.remaining is not None else self.settings.imap.batch_size
-        if active is not None:
-            run = active
-        else:
-            unique = {}
-            for candidate in candidates:
-                entry = MailRunEntry(
-                    account_id=candidate.account_id, folder=candidate.folder,
-                    uidvalidity=candidate.uidvalidity, uid=candidate.uid,
-                    status=MailRunEntryStatus.QUEUED,
-                )
-                if entry.key in waiting:
-                    continue
-                unique.setdefault(entry.key, entry)
-                if len(unique) == limit:
-                    break
-            entries = list(unique.values())
-            run = MailRunState(
-                run_id=uuid4(), max_mails=budget.remaining,
-                created_at=datetime.now(timezone.utc), entries=entries,
-                counters=self.run_counters(entries),
-            )
-            # The complete, deduplicated identity list is durable before the
-            # first BODY.PEEK or analyzer call is allowed to happen.
-            self.store.save(run_name, run.model_dump(mode="json"))
-
+            self._discover_folder(folder, active is not None, ignore_historical_start, contexts, candidates)
+        run = active if active is not None else self._new_run(run_name, candidates, waiting, budget)
         results: list[ProcessingResult] = []
         for queued in run.entries:
             if self.stop_event.is_set() or budget.remaining == 0:
                 break
-            # Reload before every transition: repeated invocations must observe
-            # another worker/restart having completed this identity already.
-            persisted = self.store.load_model(run_name, MailRunState)
-            assert persisted is not None
-            current = next(entry for entry in persisted.entries if entry.key == queued.key)
-            if current.key in waiting or current.status not in {MailRunEntryStatus.DISCOVERED,
-                                      MailRunEntryStatus.QUEUED,
-                                      MailRunEntryStatus.PROCESSING}:
-                continue
-            current.status = MailRunEntryStatus.PROCESSING
-            current.analysis_terminal = None
-            current.user_action_open = False
-            current.failure_code = None
-            persisted.counters = self.run_counters(persisted.entries)
-            self.store.save(run_name, persisted.model_dump(mode="json"))
-            if budget.remaining is not None:
-                budget.take()
-            try:
-                mail = self.imap.fetch_uid(
-                    current.folder, current.uid, current.uidvalidity
-                )
-                result = self.process_mail(mail)
-            except TimeoutError:
-                # A connection-level timeout is not a result for this mail.  Keep
-                # the durable ``processing`` entry intact so a newly constructed
-                # reader can resume the exact materialised queue after reconnect.
-                raise
-            except Exception as exc:
-                self.logger.event(
-                    "ERROR", "orchestrator", "mail_failed",
-                    folder=current.folder, uid=current.uid, error=str(exc),
-                )
-                # Keep the entry at ``processing``.  Retrying this exact queue
-                # position after a restart is safer than skipping it and
-                # potentially repeating one shared outage for every later mail.
-                self._mail_processing_halted = True
+            if not self._process_queued(run_name, queued, waiting, budget, contexts, results):
                 break
-            else:
-                results.append(result)
-                if result.state.get("awaiting_relevance"):
-                    # Keep the durable processing entry incomplete while moving
-                    # on to independent mail behind the held relevance question.
-                    continue
-                if result.outcome is ProcessingOutcome.FAILED:
-                    # The mail state already contains the safe failure details.
-                    # Record the failed attempt in the durable run before
-                    # stopping.  Otherwise the summary misleadingly reports
-                    # zero analyzed/failed mails although the orchestrator
-                    # returned a terminal failure.  The missing checkpoint still
-                    # makes the mail eligible for recovery after a restart.
-                    self.logger.event(
-                        "ERROR", "orchestrator", "mail_failed",
-                        folder=current.folder, uid=current.uid,
-                        error=result.state.get("error"),
-                    )
-                    terminal_status = MailRunEntryStatus.FAILED
-                    terminal_analysis = "failed"
-                    failure_code = "processing_failed"
-                else:
-                    terminal_status = (MailRunEntryStatus.WAITING_FOR_USER
-                                       if result.user_action_open
-                                       else MailRunEntryStatus.COMPLETED)
-                    if (result.state.get("duplicate") or {}).get("outcome") == "duplicate":
-                        terminal_analysis = "duplicate"
-                    elif (result.state.get("relevance") or {}).get("decision") == "irrelevant":
-                        terminal_analysis = "irrelevant"
-                    else:
-                        terminal_analysis = "completed"
-                    failure_code = None
-            persisted = self.store.load_model(run_name, MailRunState)
-            assert persisted is not None
-            current = next(entry for entry in persisted.entries if entry.key == queued.key)
-            current.status = terminal_status
-            current.analysis_terminal = terminal_analysis
-            current.user_action_open = terminal_status is MailRunEntryStatus.WAITING_FOR_USER
-            current.failure_code = failure_code
-            persisted.counters = self.run_counters(persisted.entries)
-            self.store.save(run_name, persisted.model_dump(mode="json"))
-
-            if result.outcome is ProcessingOutcome.FAILED:
-                # A failed result is terminal for this run but deliberately not
-                # checkpointed, so its durable MailState remains eligible for a
-                # later retry.  Continue with the next independent queue item.
-                continue
-
-            checkpoint_name, checkpoint, ranges = contexts[current.folder]
-            ranges = _add_uid(ranges, current.uid)
-            checkpoint["uid"] = max(checkpoint["uid"], current.uid)
-            checkpoint["uidvalidity"] = current.uidvalidity
-            checkpoint["completed_uid_ranges"] = ranges
-            contexts[current.folder] = (checkpoint_name, checkpoint, ranges)
-            self.store.save(checkpoint_name, ImapCheckpoint(**checkpoint).model_dump())
         return results
 
+    def _waiting_identities(self) -> set[str]:
+        """Waiting relevance is durable mail work, not a runnable queue position.
+
+        It is excluded from discovery and budgets until an authorized answer arrives.
+        """
+        waiting = set()
+        for name in mail_state_names(self.store):
+            state = self.store.load_model(name, MailState)
+            if state.awaiting_relevance:
+                identity = state.imap
+                waiting.add(f"{identity.account_id}\0{identity.folder}\0{identity.uidvalidity}\0{identity.uid}")
+        return waiting
+
+    def _discover_folder(self, folder: str, resuming: bool, ignore_historical_start: bool,
+                         contexts: dict, candidates: list) -> None:
+        """Prepare the folder checkpoint and, for a new batch, list its new mail."""
+        checkpoint_name = _checkpoint_name(self.imap.account_id, folder)
+        try:
+            checkpoint, ranges = self._start_checkpoint(folder, checkpoint_name, ignore_historical_start)
+            if resuming:
+                contexts[folder] = (checkpoint_name, checkpoint, ranges)
+                return
+            try:
+                discovered = self.imap.discover_since(
+                    folder, checkpoint["start_uid"], checkpoint.get("uidvalidity"),
+                    tuple(ranges),
+                )
+            except UIDValidityChanged as changed:
+                checkpoint, start_uid = self._restart_generation(
+                    folder, checkpoint_name, changed, ignore_historical_start)
+                ranges = []
+                discovered = self.imap.discover_since(
+                    folder, start_uid, changed.current, ()
+                )
+        except Exception as exc:
+            self._folder_failed(folder, exc)
+            return
+        contexts[folder] = (checkpoint_name, checkpoint, ranges)
+        candidates.extend(discovered)
+        if not discovered:
+            self._remember_generation(checkpoint_name, checkpoint)
+
+    def _new_run(self, run_name: str, candidates: list, waiting: set[str], budget: _MailBudget) -> MailRunState:
+        """The newest candidates as a durable, deduplicated queue."""
+        candidates.sort(key=lambda item: item.received_at, reverse=True)
+        limit = budget.remaining if budget.remaining is not None else self.settings.imap.batch_size
+        unique = {}
+        for candidate in candidates:
+            entry = MailRunEntry(
+                account_id=candidate.account_id, folder=candidate.folder,
+                uidvalidity=candidate.uidvalidity, uid=candidate.uid,
+                status=MailRunEntryStatus.QUEUED,
+            )
+            if entry.key in waiting:
+                continue
+            unique.setdefault(entry.key, entry)
+            if len(unique) == limit:
+                break
+        entries = list(unique.values())
+        run = MailRunState(
+            run_id=uuid4(), max_mails=budget.remaining,
+            created_at=datetime.now(timezone.utc), entries=entries,
+            counters=self.run_counters(entries),
+        )
+        # The complete, deduplicated identity list is durable before the
+        # first BODY.PEEK or analyzer call is allowed to happen.
+        self.store.save(run_name, run.model_dump(mode="json"))
+        return run
+
+    def _process_queued(self, run_name: str, queued: MailRunEntry, waiting: set[str], budget: _MailBudget,
+                        contexts: dict, results: list[ProcessingResult]) -> bool:
+        """Process one queue entry; ``False`` halts the batch."""
+        # Reload before every transition: repeated invocations must observe
+        # another worker/restart having completed this identity already.
+        persisted = self.store.load_model(run_name, MailRunState)
+        assert persisted is not None
+        current = next(entry for entry in persisted.entries if entry.key == queued.key)
+        if current.key in waiting or current.status not in {MailRunEntryStatus.DISCOVERED,
+                                  MailRunEntryStatus.QUEUED,
+                                  MailRunEntryStatus.PROCESSING}:
+            return True
+        current.status = MailRunEntryStatus.PROCESSING
+        current.analysis_terminal = None
+        current.user_action_open = False
+        current.failure_code = None
+        persisted.counters = self.run_counters(persisted.entries)
+        self.store.save(run_name, persisted.model_dump(mode="json"))
+        if budget.remaining is not None:
+            budget.take()
+        try:
+            mail = self.imap.fetch_uid(
+                current.folder, current.uid, current.uidvalidity
+            )
+            result = self.process_mail(mail)
+        except TimeoutError:
+            # A connection-level timeout is not a result for this mail.  Keep
+            # the durable ``processing`` entry intact so a newly constructed
+            # reader can resume the exact materialised queue after reconnect.
+            raise
+        except Exception as exc:
+            self.logger.event(
+                "ERROR", "orchestrator", "mail_failed",
+                folder=current.folder, uid=current.uid, error=str(exc),
+            )
+            # Keep the entry at ``processing``.  Retrying this exact queue
+            # position after a restart is safer than skipping it and
+            # potentially repeating one shared outage for every later mail.
+            self._mail_processing_halted = True
+            return False
+        results.append(result)
+        if result.state.get("awaiting_relevance"):
+            # Keep the durable processing entry incomplete while moving
+            # on to independent mail behind the held relevance question.
+            return True
+        self._finish_entry(run_name, queued, current, result)
+        if result.outcome is ProcessingOutcome.FAILED:
+            # A failed result is terminal for this run but deliberately not
+            # checkpointed, so its durable MailState remains eligible for a
+            # later retry.  Continue with the next independent queue item.
+            return True
+        checkpoint_name, checkpoint, ranges = contexts[current.folder]
+        ranges = self._complete_uid(checkpoint_name, checkpoint, ranges, current.uid, current.uidvalidity)
+        contexts[current.folder] = (checkpoint_name, checkpoint, ranges)
+        return True
+
+    def _finish_entry(self, run_name: str, queued: MailRunEntry, current: MailRunEntry,
+                      result: ProcessingResult) -> None:
+        """Persist the terminal queue status of one processed mail."""
+        if result.outcome is ProcessingOutcome.FAILED:
+            # The mail state already contains the safe failure details.
+            # Record the failed attempt in the durable run before
+            # stopping.  Otherwise the summary misleadingly reports
+            # zero analyzed/failed mails although the orchestrator
+            # returned a terminal failure.  The missing checkpoint still
+            # makes the mail eligible for recovery after a restart.
+            self.logger.event(
+                "ERROR", "orchestrator", "mail_failed",
+                folder=current.folder, uid=current.uid,
+                error=result.state.get("error"),
+            )
+            terminal_status = MailRunEntryStatus.FAILED
+            terminal_analysis = "failed"
+            failure_code = "processing_failed"
+        else:
+            terminal_status = (MailRunEntryStatus.WAITING_FOR_USER
+                               if result.user_action_open
+                               else MailRunEntryStatus.COMPLETED)
+            if (result.state.get("duplicate") or {}).get("outcome") == "duplicate":
+                terminal_analysis = "duplicate"
+            elif (result.state.get("relevance") or {}).get("decision") == "irrelevant":
+                terminal_analysis = "irrelevant"
+            else:
+                terminal_analysis = "completed"
+            failure_code = None
+        persisted = self.store.load_model(run_name, MailRunState)
+        assert persisted is not None
+        current = next(entry for entry in persisted.entries if entry.key == queued.key)
+        current.status = terminal_status
+        current.analysis_terminal = terminal_analysis
+        current.user_action_open = terminal_status is MailRunEntryStatus.WAITING_FOR_USER
+        current.failure_code = failure_code
+        persisted.counters = self.run_counters(persisted.entries)
+        self.store.save(run_name, persisted.model_dump(mode="json"))
 
     @staticmethod
     def run_counters(entries: list[MailRunEntry]) -> MailRunCounters:

@@ -113,7 +113,7 @@ def main() -> int:
         return 130
 
 
-def _main() -> int:
+def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Mailhelp E-Mail-Assistent")
     parser.add_argument(
         "--config-directory", type=Path, default=_default_config_directory(),
@@ -185,7 +185,10 @@ def _main() -> int:
         "--decision-test-relevance-only", action="store_true",
         help="im --decision-test ausschließlich die Relevanzprüfung beider Pfade vergleichen",
     )
-    args = parser.parse_args()
+    return parser
+
+
+def _check_decision_test_options(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
     if args.decision_test_file is not None and args.decision_test is None:
         parser.error("--decision-test-file ist nur zusammen mit --decision-test zulässig")
     if args.decision_test is None and (args.decision_test_laya is not None
@@ -201,14 +204,16 @@ def _main() -> int:
         parser.error("--decision-test ist nicht mit anderen Modi, --max-mails oder --log-directory kombinierbar")
     if args.decision_test is not None and args.ollama is None:
         parser.error("--decision-test benötigt --ollama HOST:PORT")
-    shutdown = _SignalShutdown()
-    signal.signal(signal.SIGINT, shutdown)
-    signal.signal(signal.SIGTERM, shutdown)
-    settings, secrets, topics, irrelevant_topics, prompts, fingerprint = load_all(args.config_directory)
+
+
+def _check_mode_options(parser: argparse.ArgumentParser, args: argparse.Namespace) -> None:
     if args.yes and not args.clear:
         parser.error("--yes ist nur zusammen mit --clear zulässig")
     if args.show_imap_credentials and not args.check_access:
         parser.error("--show-imap-credentials ist nur zusammen mit --check-access zulässig")
+
+
+def _local_llm(parser: argparse.ArgumentParser, args: argparse.Namespace, prompts) -> LocalLlm | None:
     local_llm = None
     if args.ollama_model is not None and args.ollama is None:
         parser.error("--ollama-model ist nur zusammen mit --ollama zulässig")
@@ -220,29 +225,25 @@ def _main() -> int:
                              num_ctx=prompts.ollama.num_ctx if prompts.ollama else LOCAL_NUM_CTX,
                              num_thread=prompts.ollama.num_thread if prompts.ollama else None,
                              think=prompts.ollama.think if prompts.ollama else None)
-    if args.decision_test is not None:
-        return run_decision_test(
-            settings, secrets, topics, prompts, args.decision_test, args.config_directory,
-            args.decision_test_file, local_llm=local_llm,
-            ignore_historical_start=args.ignore_historical_start,
-            laya=args.decision_test_laya, laya_model=args.decision_test_laya_model,
-            relevance_only=args.decision_test_relevance_only, irrelevant_topics=irrelevant_topics,
+    return local_llm
+
+
+def _clear(args: argparse.Namespace, settings) -> int:
+    if not args.yes:
+        answer = input(
+            "ACHTUNG: Alle Zustandsdaten, Decision-Test-Berichte und Logs werden "
+            "unwiderruflich gelöscht.\n"
+            f"Zum Fortfahren exakt {CLEAR_CONFIRMATION!r} eingeben: "
         )
-    if args.clear:
-        if not args.yes:
-            answer = input(
-                "ACHTUNG: Alle Zustandsdaten, Decision-Test-Berichte und Logs werden "
-                "unwiderruflich gelöscht.\n"
-                f"Zum Fortfahren exakt {CLEAR_CONFIRMATION!r} eingeben: "
-            )
-            if answer != CLEAR_CONFIRMATION:
-                print("Löschen abgebrochen.")
-                return 1
-        clear_runtime_data(settings, args.log_directory, args.config_directory)
-        print("Alle Zustandsdaten, Decision-Test-Berichte und Logs wurden gelöscht.")
-        return 0
-    logger = build_logger(settings, secrets, base_directory=args.config_directory,
-                          log_directory=args.log_directory)
+        if answer != CLEAR_CONFIRMATION:
+            print("Löschen abgebrochen.")
+            return 1
+    clear_runtime_data(settings, args.log_directory, args.config_directory)
+    print("Alle Zustandsdaten, Decision-Test-Berichte und Logs wurden gelöscht.")
+    return 0
+
+
+def _log_start(logger, args: argparse.Namespace, local_llm: LocalLlm | None) -> None:
     logger.event("INFO", "application", "application_started", parameters={
         "config_directory": str(args.config_directory),
         "log_directory": str(args.log_directory) if args.log_directory is not None else None,
@@ -256,17 +257,18 @@ def _main() -> int:
         "ollama": local_llm.base_url if local_llm else None,
         "ollama_model": local_llm.model if local_llm else None,
     })
-    if args.check:
-        if local_llm is None:
-            load_relevance_prompts(args.config_directory)
-        print("Konfiguration ist gültig.")
-        return 0
-    if args.show_imap_credentials:
-        # JSON quoting makes control characters visible instead of allowing a
-        # secret loaded from the environment to manipulate the terminal.
-        print("ACHTUNG: IMAP-Zugangsdaten werden nur in diesem Terminal ausgegeben.")
-        print(f"IMAP-Benutzername: {json.dumps(secrets.imap_username, ensure_ascii=False)}")
-        print(f"IMAP-Passwort: {json.dumps(secrets.imap_password.get_secret_value(), ensure_ascii=False)}")
+
+
+def _show_imap_credentials(secrets) -> None:
+    # JSON quoting makes control characters visible instead of allowing a
+    # secret loaded from the environment to manipulate the terminal.
+    print("ACHTUNG: IMAP-Zugangsdaten werden nur in diesem Terminal ausgegeben.")
+    print(f"IMAP-Benutzername: {json.dumps(secrets.imap_username, ensure_ascii=False)}")
+    print(f"IMAP-Passwort: {json.dumps(secrets.imap_password.get_secret_value(), ensure_ascii=False)}")
+
+
+def _run(args: argparse.Namespace, settings, secrets, topics, irrelevant_topics, prompts, fingerprint,
+         logger, local_llm: LocalLlm | None, shutdown: _SignalShutdown) -> int:
     with build_application(
         settings, secrets, topics, prompts, fingerprint,
         base_directory=args.config_directory,
@@ -302,3 +304,37 @@ def _main() -> int:
             print(f"FATALER FEHLER: {fatal_error}", file=sys.stderr)
             return 1
     return 0
+
+
+def _main() -> int:
+    parser = _parser()
+    args = parser.parse_args()
+    _check_decision_test_options(parser, args)
+    shutdown = _SignalShutdown()
+    signal.signal(signal.SIGINT, shutdown)
+    signal.signal(signal.SIGTERM, shutdown)
+    settings, secrets, topics, irrelevant_topics, prompts, fingerprint = load_all(args.config_directory)
+    _check_mode_options(parser, args)
+    local_llm = _local_llm(parser, args, prompts)
+    if args.decision_test is not None:
+        return run_decision_test(
+            settings, secrets, topics, prompts, args.decision_test, args.config_directory,
+            args.decision_test_file, local_llm=local_llm,
+            ignore_historical_start=args.ignore_historical_start,
+            laya=args.decision_test_laya, laya_model=args.decision_test_laya_model,
+            relevance_only=args.decision_test_relevance_only, irrelevant_topics=irrelevant_topics,
+        )
+    if args.clear:
+        return _clear(args, settings)
+    logger = build_logger(settings, secrets, base_directory=args.config_directory,
+                          log_directory=args.log_directory)
+    _log_start(logger, args, local_llm)
+    if args.check:
+        if local_llm is None:
+            load_relevance_prompts(args.config_directory)
+        print("Konfiguration ist gültig.")
+        return 0
+    if args.show_imap_credentials:
+        _show_imap_credentials(secrets)
+    return _run(args, settings, secrets, topics, irrelevant_topics, prompts, fingerprint,
+                logger, local_llm, shutdown)
