@@ -19,14 +19,13 @@ from .config import PromptConfig, Secrets, Settings, Topic
 from .imap import ImapReader
 from .integrations import GoogleOAuthTokenProvider, HttpWriter, OAuthTokenError
 from .logging import JsonlLogger, NullLogger
-from .models import MailRunState, MailState, TelegramOffset
+from .models import MailRunState, TelegramOffset
 from .ollama import LocalLlm, OllamaClient
 from .vision import VisionExtractor
 from .openrouter import OpenRouterClient
 from .orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
 from .storage import JsonStore
-from .mailbox_run import (MailboxRunService, _MailBudget, _RunSummary,
-                          _add_uid, _checkpoint_name, _safe_name)
+from .mailbox_run import (MailboxRunService, _RunSummary)
 from .paths import runtime_path
 from .telegram import (TelegramChatNotFoundError, TelegramClient,
                        TelegramDialogController)
@@ -228,17 +227,6 @@ class Application:
                    ignore_historical_start: bool = False) -> list[ProcessingResult]:
         return self.mailbox.poll(max_mails, ignore_historical_start=ignore_historical_start)
 
-    def _poll_imap_global(self, budget: _MailBudget, *,
-                          ignore_historical_start: bool = False) -> list[ProcessingResult]:
-        return self.mailbox.poll_global(budget, ignore_historical_start=ignore_historical_start)
-
-    _run_counters = staticmethod(MailboxRunService._run_counters)
-
-    def _complete_resumed_run_entry(self, state: MailState, result: ProcessingResult) -> None:
-        self.mailbox.complete_resumed_entry(state, result)
-
-    def _resume_pending(self, budget: _MailBudget | None = None) -> list[ProcessingResult]:
-        return self.mailbox.resume_pending(budget)
 
     def _poll_telegram(self, timeout: int | None = None) -> bool:
         """Poll Telegram once and report whether the request completed normally.

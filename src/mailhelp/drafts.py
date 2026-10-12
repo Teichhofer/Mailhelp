@@ -10,6 +10,7 @@ from email.utils import format_datetime, parseaddr
 from threading import Lock
 from pydantic import BaseModel, ConfigDict, Field
 from .imap import _mailbox_argument
+from .domain.prepared import MailHeaders
 from .models import MailState
 from . import state_names
 
@@ -24,16 +25,16 @@ class ReplyDraft(BaseModel):
     text: str = Field(min_length=1, max_length=8000)
 
 
-def message(headers, sender, text, message_id):
+def message(headers: MailHeaders, sender, text, message_id):
     result = EmailMessage(policy=SMTP)
-    address = parseaddr(headers.get("reply_to") or headers.get("from", ""))[1]
+    address = parseaddr(headers.reply_to or headers.sender)[1]
     if not address or "@" not in address or any(c in address + sender for c in "\r\n\x00"):
         raise ValueError("Ungültiger Empfänger oder Absender")
     result["From"], result["To"] = sender, address
-    subject = headers.get("subject", "")
+    subject = headers.subject
     result["Subject"] = subject if subject.lower().startswith("re:") else "Re: " + subject
-    parent = headers.get("message_id", "")
-    ids = re.findall(r"<[^<>\s]+@[^<>\s]+>", headers.get("references", ""))[-20:]
+    parent = headers.message_id
+    ids = re.findall(r"<[^<>\s]+@[^<>\s]+>", headers.references)[-20:]
     if re.fullmatch(r"<[^<>\s]+@[^<>\s]+>", parent):
         result["In-Reply-To"] = parent
         ids.append(parent)
@@ -160,7 +161,7 @@ class DraftService:
                 draft["text"] = text
                 self.store.save(state_names.draft(mail_id), draft)
                 message_id = f"<mailhelp-{mail_id}-v{version}@draft.local>"
-                content = message(source.mail["headers"], self.sender, text, message_id)
+                content = message(source.prepared.headers, self.sender, text, message_id)
                 if self.test_mode:
                     draft.update(status="simulated", error=None)
                     self._remember(draft, key, digest)

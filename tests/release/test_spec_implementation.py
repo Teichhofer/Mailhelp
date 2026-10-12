@@ -213,7 +213,7 @@ def test_real_bounded_batch_sends_proposals_one_at_a_time_and_counts_open_action
 def test_regression_held_relevance_keeps_queue_incomplete_and_resumes(tmp_path, decision):
     from mailhelp.imap import MailCandidate
     from mailhelp.models import MailState, MailRunState, ImapCheckpoint
-    from mailhelp.application import _checkpoint_name
+    from mailhelp.mailbox_run import _checkpoint_name
     from test_telegram_outbox import item, stored, A, shown
     corpus = load_corpus()
     case = next(case for case in corpus["cases"] if case["id"] == "02_task_only")
@@ -283,7 +283,7 @@ def test_regression_held_relevance_keeps_queue_incomplete_and_resumes(tmp_path, 
         telegram.updates = [callback(2, f"relevance:{b.id}:1:{decision}")]
         dialog.poll_once()
         service.stop_event.clear()
-        service._poll_imap(max_mails=2)
+        service.mailbox.poll(max_mails=2)
         run = store.load_model("mail-run-" + Reader.account_id, MailRunState)
         assert run.run_complete
         assert run.entries[0].analysis_terminal == ("completed" if decision == "relevant" else "irrelevant")
@@ -295,14 +295,14 @@ def test_regression_held_relevance_keeps_queue_incomplete_and_resumes(tmp_path, 
 
 def test_regression_legacy_reader_does_not_checkpoint_unanswered_relevance(tmp_path):
     from mailhelp.orchestrator import ProcessingResult
-    from mailhelp.application import _checkpoint_name
+    from mailhelp.mailbox_run import _checkpoint_name
     class Waiting(Orch):
         def process(self, mail):
             self.seen.append(mail.uid)
             return ProcessingResult(ProcessingOutcome.WAITING, {"awaiting_relevance": True}) if mail.uid == 1 else ProcessingResult(ProcessingOutcome.COMPLETED, {})
     reader = Imap([(7, [FetchedMail("INBOX", 7, uid, b"synthetic") for uid in (1, 2)])])
     service = app(tmp_path, reader, Telegram([]), Waiting())
-    service._poll_imap(max_mails=2)
+    service.mailbox.poll(max_mails=2)
     assert service.orchestrator.seen == [1, 2]
     assert service.store.values[_checkpoint_name(reader.account_id, "INBOX")]["completed_uid_ranges"] == [(2, 2)]
 
@@ -311,7 +311,7 @@ def test_regression_held_relevance_does_not_consume_next_run_budget(tmp_path):
     from uuid import uuid4
     from mailhelp.models import MailState, MailRunState, MailRunEntry, MailRunCounters, RelevanceDialog
     from mailhelp.imap import MailCandidate
-    from mailhelp.application import _checkpoint_name
+    from mailhelp.mailbox_run import _checkpoint_name
     stamp = datetime(2026, 9, 18, tzinfo=timezone.utc)
     class Reader:
         account_id = "0" * 24
@@ -333,7 +333,7 @@ def test_regression_held_relevance_does_not_consume_next_run_budget(tmp_path):
         store.save("mail-run-" + Reader.account_id, run_state.model_dump(mode="json"))
         reader = Reader()
         service = app(tmp_path, reader, Telegram([]), Orch(), store=store, global_newest_first=True)
-        service._poll_imap(max_mails=1)
+        service.mailbox.poll(max_mails=1)
         assert reader.fetched == [3]
         assert store.load_model("mail-" + state.id, MailState).awaiting_relevance
         assert store.load(_checkpoint_name(Reader.account_id, "INBOX"))["completed_uid_ranges"] == [[3, 3]]

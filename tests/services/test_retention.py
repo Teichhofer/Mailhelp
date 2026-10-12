@@ -94,7 +94,8 @@ def test_open_writes_and_confirmations_are_protected(tmp_path, status, letter):
 
 
 def test_pending_and_open_relevance_are_protected_and_unlimited_is_explicit(tmp_path):
-    pending = state("c" * 24); pending.steps.completion = "pending"
+    pending = state("c" * 24)
+    pending.steps.completion = "pending"
     dialog = state("d" * 24)
     dialog.awaiting_relevance = True
     dialog.relevance_dialog = RelevanceDialog(mail_id=dialog.id)

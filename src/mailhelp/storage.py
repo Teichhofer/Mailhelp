@@ -59,7 +59,8 @@ class JsonStore:
             yield self
 
     def __enter__(self) -> "JsonStore":
-        self.directory.mkdir(parents=True, exist_ok=True); path = self.directory / ".lock"
+        self.directory.mkdir(parents=True, exist_ok=True)
+        path = self.directory / ".lock"
         descriptor = os.open(path, os.O_CREAT | os.O_RDWR, 0o600)
         try:
             attempt = 0
@@ -135,7 +136,8 @@ class JsonStore:
         except (OSError, json.JSONDecodeError) as exc:
             if not quarantine:
                 raise CorruptState(f"Beschädigter Zustand: {path.name}") from exc
-            isolated = path.with_suffix(".corrupt"); os.replace(path, isolated)
+            isolated = path.with_suffix(".corrupt")
+            os.replace(path, isolated)
             raise CorruptState(f"Beschädigter Zustand isoliert: {isolated.name}") from exc
 
     def peek_model(self, name: str, model: type[BaseModel], default: BaseModel | None = None) -> BaseModel | None:
@@ -174,11 +176,15 @@ class JsonStore:
 
     def save(self, name: str, value: Any) -> None:
         self._validate_name(name)
-        path = self.directory / f"{name}.json"; temporary = path.with_suffix(".tmp")
+        path = self.directory / f"{name}.json"
+        temporary = path.with_suffix(".tmp")
         with self._thread_lock:
             self.directory.mkdir(parents=True, exist_ok=True)
             with temporary.open("w", encoding="utf-8", newline="\n") as stream:
-                json.dump(value, stream, ensure_ascii=False, indent=2, sort_keys=True); stream.write("\n"); stream.flush(); os.fsync(stream.fileno())
+                json.dump(value, stream, ensure_ascii=False, indent=2, sort_keys=True)
+                stream.write("\n")
+                stream.flush()
+                os.fsync(stream.fileno())
             os.replace(temporary, path)
             self.revision += not name.startswith("web-")
             self.archive_revision += name.startswith(("mail-", "analysis-", "history-", "proposal-"))

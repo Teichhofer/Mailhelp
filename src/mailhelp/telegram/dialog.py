@@ -655,7 +655,3 @@ class TelegramDialogController:
 
     def _authorized(self, user_id: int, chat_id: int) -> bool:
         return self.validator.authorized(user_id, chat_id)
-
-    def _decide(self, decision: Decision) -> str:
-        """Compatibility entry point for already-authorized internal callers."""
-        return self.decision_service.decide(decision, self.user_id, self.chat_id)

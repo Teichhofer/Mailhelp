@@ -106,11 +106,21 @@ def proposal(**kw):
                                or kw.get("certainty") not in {None, "certain"}
                                or kw.get("classification") not in {None, "new"}):
         base["status"] = "needs_clarification"
-    base.update(kw); return Proposal.model_validate(base)
+    base.update(kw)
+    return Proposal.model_validate(base)
 
 
-def test_models_and_config(tmp_path, monkeypatch, capsys):
-    assert __version__ == "2.0.2"
+def shipped_configuration(tmp_path):
+    """The shipped example files in *tmp_path*; returns a complete synthetic environment."""
+    for name in ("config.yaml", "prompts.yaml", "topics.yaml", "irrelevant_topics.yaml"):
+        source = Path("config.example.yaml" if name == "config.yaml" else name)
+        (tmp_path / name).write_text(source.read_text(encoding="utf8"), encoding="utf8")
+    env = {x: "secret" for x in ["IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN", "TODOIST_TOKEN", "TODOIST_CLIENT_ID", "TODOIST_CLIENT_SECRET", "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"]}
+    return env
+
+
+def test_version_error_codes_and_model_validation():
+    assert __version__ == "2.0.3"
     assert {ProcessingErrorCode.PROVIDER_RESPONSE_INVALID.value,
             ProcessingErrorCode.INVALID_JSON.value,
             ProcessingErrorCode.SCHEMA_VALIDATION_FAILED.value} == {
@@ -134,6 +144,9 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
     assert Actions().proposals == []
     with pytest.raises(ValidationError): Relevance(decision="irrelevant", reason="x", topic_ids=["x"])
     with pytest.raises(ValidationError): Relevance(decision="relevant", reason="x", topic_ids=["x", "x"])
+
+
+def test_proposal_invariants():
     start = datetime.now(timezone.utc)
     proposal(id="e", kind="event", start=start, end=start + timedelta(hours=1))
     with pytest.raises(ValidationError): proposal(kind="event")
@@ -145,8 +158,12 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
     with pytest.raises(ValidationError, match="gemeldet"):
         proposal(simulation_notified=True)
     assert proposal(status="simulated", simulation_notified=True).external_id is None
+
+
+def test_prompt_configuration_resolution():
     assert _deep_merge({"x": {"a": 1}, "z": 1}, {"x": {"b": 2}, "z": 2}) == {"x": {"a": 1, "b": 2}, "z": 2}
-    cfg = prompt_config(); model, params, prompt = cfg.resolved("summary")
+    cfg = prompt_config()
+    model, params, prompt = cfg.resolved("summary")
     assert (model, prompt, params) == ("model", "summary", {"temperature": .2, "max_tokens": 200})
     bad = prompt_config("<placeholder>")
     with pytest.raises(ValueError, match="nicht eingerichtet"): bad.resolved("summary")
@@ -162,6 +179,9 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
     invalid_parameters.defaults["parameters"]["nested"] = {"unsupported": True}
     with pytest.raises(ValueError, match="Unbekannte"):
         invalid_parameters.resolved_routes("summary")
+
+
+def test_yaml_and_dotenv_parsing(tmp_path):
     (tmp_path / "bad.yaml").write_text("- x", encoding="utf8")
     with pytest.raises(ValueError): _yaml(tmp_path / "bad.yaml")
     assert _dotenv(tmp_path / "missing.env") == {}
@@ -173,10 +193,10 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
     env_file.write_text("bad-key=x\n", encoding="utf8")
     with pytest.raises(ValueError, match="Schlüssel"): _dotenv(env_file)
     env_file.unlink()
-    for name in ("config.yaml", "prompts.yaml", "topics.yaml", "irrelevant_topics.yaml"):
-        source = Path("config.example.yaml" if name == "config.yaml" else name)
-        (tmp_path / name).write_text(source.read_text(encoding="utf8"), encoding="utf8")
-    env = {x: "secret" for x in ["IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN", "TODOIST_TOKEN", "TODOIST_CLIENT_ID", "TODOIST_CLIENT_SECRET", "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"]}
+
+
+def test_load_all_reads_the_shipped_configuration_and_validates_topics(tmp_path):
+    env = shipped_configuration(tmp_path)
     settings, secrets, topics, irrelevant_topics, prompts, fingerprint = load_all(tmp_path, env)
     assert not settings.test_mode and secrets.imap_password.get_secret_value() == "secret" and topics[0].enabled and len(fingerprint) == 64
     expected_irrelevant_topics = IrrelevantTopicsConfig.model_validate(
@@ -211,9 +231,15 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
     )
     with pytest.raises(ValueError, match="unbekannt"): load_all(tmp_path, env)
     (tmp_path / "topics.yaml").write_text(Path("topics.yaml").read_text(encoding="utf8"), encoding="utf8")
-    monkeypatch.setattr(sys, "argv", ["mailhelp", "--config-directory", str(tmp_path), "--check"]); monkeypatch.setattr(os, "environ", env)
+
+
+def test_cli_check_and_graceful_signal_shutdown(tmp_path, monkeypatch, capsys):
+    env = shipped_configuration(tmp_path)
+    monkeypatch.setattr(sys, "argv", ["mailhelp", "--config-directory", str(tmp_path), "--check"])
+    monkeypatch.setattr(os, "environ", env)
     monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args, **_kwargs: type("Logger", (), {"event": lambda *_args, **_kwargs: None})())
-    assert main() == 0; assert "gültig" in capsys.readouterr().out
+    assert main() == 0
+    assert "gültig" in capsys.readouterr().out
     class App:
         def __init__(self): self.stopped=False
         def stop(self): self.stopped=True
@@ -221,12 +247,14 @@ def test_models_and_config(tmp_path, monkeypatch, capsys):
             assert max_mails is None
             signal_handlers[signal.SIGINT](signal.SIGINT, None)
             signal_handlers[signal.SIGTERM](signal.SIGTERM, None)
-    app=App(); signal_handlers={}
+    app=App()
+    signal_handlers={}
     @contextmanager
     def builder(*args, **kwargs): yield app
     monkeypatch.setattr("mailhelp.cli.build_application", builder)
     monkeypatch.setattr("mailhelp.cli.signal.signal", lambda signum, handler: signal_handlers.__setitem__(signum, handler))
-    monkeypatch.setattr(sys, "argv", ["mailhelp", "--config-directory", str(tmp_path)]); assert main() == 0 and app.stopped
+    monkeypatch.setattr(sys, "argv", ["mailhelp", "--config-directory", str(tmp_path)])
+    assert main() == 0 and app.stopped
 
 
 def test_load_all_restores_only_missing_distributed_topic_files(tmp_path, monkeypatch):
@@ -262,14 +290,25 @@ def test_load_all_restores_only_missing_distributed_topic_files(tmp_path, monkey
 
 
 def test_mime():
-    msg = EmailMessage(); msg["From"]="A <a@example.test>"; msg["Subject"]="Hallo"; msg["Message-ID"]="<1>"; msg.set_content("Inhalt\n-- \nSignatur"); msg.add_alternative("<b>HTML</b>", subtype="html"); msg.add_attachment(b"x", maintype="application", subtype="octet-stream", filename="x.bin")
-    value = prepare(msg.as_bytes(), 10000); assert value["text"] == "Inhalt" and value["metadata"]["attachments_omitted"] == 1
-    html = EmailMessage(); html.set_content("<p>Nur <b>HTML</b></p>", subtype="html"); assert prepare(html.as_bytes(), 1000)["text"] == "Nur HTML"
+    msg = EmailMessage()
+    msg["From"]="A <a@example.test>"
+    msg["Subject"]="Hallo"
+    msg["Message-ID"]="<1>"
+    msg.set_content("Inhalt\n-- \nSignatur")
+    msg.add_alternative("<b>HTML</b>", subtype="html")
+    msg.add_attachment(b"x", maintype="application", subtype="octet-stream", filename="x.bin")
+    value = prepare(msg.as_bytes(), 10000)
+    assert value["text"] == "Inhalt" and value["metadata"]["attachments_omitted"] == 1
+    html = EmailMessage()
+    html.set_content("<p>Nur <b>HTML</b></p>", subtype="html")
+    assert prepare(html.as_bytes(), 1000)["text"] == "Nur HTML"
     with pytest.raises(ValueError): prepare(b"x" * 5, 2)
 
 
 class FakeImap:
-    def __init__(self, *args, **kwargs): self.mode="ok"; self.logged=False
+    def __init__(self, *args, **kwargs):
+        self.mode="ok"
+        self.logged=False
     def login(self, *args): self.logged=True
     def select(self, folder, readonly): return (("NO", []) if folder == "bad" else ("OK", []))
     def response(self, key): return ((None, []) if self.mode == "validity" else ("UIDVALIDITY", [b"7"]))
@@ -284,7 +323,8 @@ class FakeImap:
 def test_imap_lists_selectable_folders_and_validates_responses():
     class ListingImap(FakeImap):
         def __init__(self, *_args, **_kwargs):
-            super().__init__(); self.listing = ("OK", [
+            super().__init__()
+            self.listing = ("OK", [
                 b'(\\HasNoChildren \\Inbox) "/" "INBOX"',
                 b'(\\HasNoChildren \\Sent) "/" "Sent \\"Items\\""',
                 b'(\\Noselect \\HasChildren) "/" "Container"',
@@ -360,7 +400,8 @@ def test_imap_quotes_and_encodes_mailbox_names_for_select():
 
 
 def test_imap():
-    reader=ImapReader("h", 1, "u", "p", factory=FakeImap); assert reader.fetch_since("INBOX")[0].raw == b"raw"
+    reader=ImapReader("h", 1, "u", "p", factory=FakeImap)
+    assert reader.fetch_since("INBOX")[0].raw == b"raw"
     assert reader.fetch_since("INBOX", 3, 7)[0].uid == 4
     assert reader.fetch_uid("INBOX",4,7).raw == b"raw"
     with pytest.raises(RuntimeError): reader.fetch_uid("bad",4,7)
@@ -378,7 +419,8 @@ def test_imap():
     with pytest.raises(RuntimeError): reader.fetch_since("INBOX")
     reader.connection.mode="fetch"
     with pytest.raises(RuntimeError): reader.fetch_since("INBOX")
-    reader.close(); assert not reader.connection.logged
+    reader.close()
+    assert not reader.connection.logged
 
     class BadLogin(FakeImap):
         def login(self, *args): raise RuntimeError("login")
@@ -394,7 +436,10 @@ def test_imap_known_uid_reconnects_and_reauthenticates(disconnect):
 
     class Connection(FakeImap):
         def __init__(self, failure=None):
-            super().__init__(); self.failure = failure; self.fetches = []; self.responses = 0
+            super().__init__()
+            self.failure = failure
+            self.fetches = []
+            self.responses = 0
         def response(self, key):
             self.responses += 1
             return "UIDVALIDITY", [b"7"]
@@ -408,7 +453,9 @@ def test_imap_known_uid_reconnects_and_reauthenticates(disconnect):
     connections = [Connection(disconnect), Connection()]
     created = []
     def factory(*_args, **_kwargs):
-        value = connections[len(created)]; created.append(value); return value
+        value = connections[len(created)]
+        created.append(value)
+        return value
 
     policy = RetryPolicy(2, 0.25, 1, lambda delay: waits.append(delay) or False)
     reader = ImapReader("host", 993, "user", "top-secret", factory=factory,
@@ -429,7 +476,9 @@ def test_imap_reconnect_attempts_are_bounded():
         def uid(self, *_args): raise TimeoutError("secret must not be persisted")
 
     def factory(*_args, **_kwargs):
-        value = Dead(); connections.append(value); return value
+        value = Dead()
+        connections.append(value)
+        return value
 
     reader = ImapReader(
         "h", 1, "u", "password", factory=factory,
@@ -442,7 +491,8 @@ def test_imap_reconnect_attempts_are_bounded():
 
 
 def test_imap_closed_connection_reconnects_and_rejected_relogin_closes():
-    closed = FakeImap(); closed.state = "LOGOUT"
+    closed = FakeImap()
+    closed.state = "LOGOUT"
     live = FakeImap()
     connections = iter((closed, live))
     reader = ImapReader("h", 1, "u", "p", factory=lambda *_a, **_k: next(connections),
@@ -465,7 +515,8 @@ def test_imap_closed_connection_reconnects_and_rejected_relogin_closes():
 def test_imap_discovers_body_free_candidates_and_rejects_bad_metadata():
     class DiscoveryImap(FakeImap):
         def __init__(self):
-            super().__init__(); self.problem = None
+            super().__init__()
+            self.problem = None
         def uid(self, action, *args):
             if action == "search":
                 return ("NO", []) if self.problem == "search" else ("OK", [b"4 5"])
@@ -667,7 +718,8 @@ def test_imap_fetch_is_batched_and_reports_progress():
 def test_imap_newest_first_skips_completed_ranges_and_resets_on_uidvalidity():
     class BacklogImap(FakeImap):
         def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs); self.commands=[]
+            super().__init__(*args, **kwargs)
+            self.commands=[]
         def uid(self, action, *args):
             self.commands.append((action,args))
             if action == "search": return "OK", [b"4 5 6"]
@@ -685,8 +737,13 @@ def test_imap_newest_first_skips_completed_ranges_and_resets_on_uidvalidity():
 def test_imap_connection_and_exact_historical_boundary():
     class BoundaryImap(FakeImap):
         def __init__(self, dates=(b'2',)):
-            super().__init__(); self.dates=dates; self.tls=False; self.commands=[]
-        def starttls(self): self.tls=True; return "OK", []
+            super().__init__()
+            self.dates=dates
+            self.tls=False
+            self.commands=[]
+        def starttls(self):
+            self.tls=True
+            return "OK", []
         def uid(self, action, *args):
             self.commands.append((action,args))
             if action=="search" and args[-1]=="ALL": return "OK", [b"1 2 9"]
@@ -713,13 +770,15 @@ def test_imap_connection_and_exact_historical_boundary():
     no_match.uid=lambda *args: ("NO",[])
     with pytest.raises(RuntimeError): other.determine_start_uid("INBOX",datetime.now(timezone.utc))
 
-    bad_tls=BoundaryImap(); bad_tls.starttls=lambda: ("NO",[])
+    bad_tls=BoundaryImap()
+    bad_tls.starttls=lambda: ("NO",[])
     with pytest.raises(RuntimeError,match="STARTTLS"): ImapReader("h",143,"u","p",factory=lambda *a,**k:bad_tls,starttls=True)
 
     broken=BoundaryImap()
     broken.select=lambda *_a,**_k: ("NO",[])
     with pytest.raises(RuntimeError,match="nicht lesbar"): ImapReader("h",143,"u","p",factory=lambda *a,**k:broken).determine_start_uid("bad",datetime.now(timezone.utc))
-    no_validity=BoundaryImap(); no_validity.mode="validity"
+    no_validity=BoundaryImap()
+    no_validity.mode="validity"
     with pytest.raises(RuntimeError,match="UIDVALIDITY"): ImapReader("h",143,"u","p",factory=lambda *a,**k:no_validity).determine_start_uid("INBOX",datetime.now(timezone.utc))
 
     valid_responses = (
@@ -766,7 +825,9 @@ def test_imap_connection_and_exact_historical_boundary():
 def test_storage_and_logging(tmp_path):
     store=JsonStore(tmp_path/"data")
     with store:
-        store.save("x", {"umlaut":"ä"}); assert store.load("x") == {"umlaut":"ä"}; assert store.load("missing", 4)==4
+        store.save("x", {"umlaut":"ä"})
+        assert store.load("x") == {"umlaut":"ä"}
+        assert store.load("missing", 4)==4
         with pytest.raises(ValueError): store.load("../outside")
         with pytest.raises(ValueError): store.save("bad/name", {})
         with pytest.raises(AlreadyRunning): JsonStore(tmp_path/"data").__enter__()
@@ -774,15 +835,28 @@ def test_storage_and_logging(tmp_path):
     (tmp_path/"data/x.json").write_text("{", encoding="utf8")
     with pytest.raises(CorruptState): store.load("x")
     assert redact({"token":"abc", "nested":["Bearer xyz", 2]}) == {"token":"***", "nested":["Bearer ***", 2]}
-    logger=JsonlLogger(tmp_path/"logs"); logger.event("INFO","test","ok", password="bad"); logger.llm_event("request", request={"mail":"private"}, response="private")
-    logger2=JsonlLogger(tmp_path/"logs2", True, True); logger2.llm_event("response", request="a", response="b")
+    logger=JsonlLogger(tmp_path/"logs")
+    logger.event("INFO","test","ok", password="bad")
+    logger.llm_event("request", request={"mail":"private"}, response="private")
+    logger2=JsonlLogger(tmp_path/"logs2", True, True)
+    logger2.llm_event("response", request="a", response="b")
     assert "bad" not in logger.app.read_text() and "private" not in logger.llm.read_text() and '"response": "b"' in logger2.llm.read_text()
 
 
 def test_storage_windows_directory_sync(tmp_path, monkeypatch):
+    """Windows cannot open a directory for fsync; the file is still written durably."""
+    import os
     store = JsonStore(tmp_path)
+    opened = []
+    real_open = os.open
+    def recording_open(path, *args, **kwargs):
+        opened.append(str(path))
+        return real_open(path, *args, **kwargs)
     monkeypatch.setattr("mailhelp.storage.os.name", "nt")
+    monkeypatch.setattr("mailhelp.storage.os.open", recording_open)
     store.save("windows", {"ok": True})
+    assert store.load("windows") == {"ok": True}
+    assert str(tmp_path) not in opened
 
 
 def test_storage_stale_file_process_exit_and_mode_isolation(tmp_path):

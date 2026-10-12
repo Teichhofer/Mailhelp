@@ -45,7 +45,8 @@ def status(code, headers=None):
 
 
 def test_retry_transport_exponential_exhaustion_and_shutdown():
-    waits=[]; attempts=[]
+    waits=[]
+    attempts=[]
     policy=RetryPolicy(2, 1, 2, lambda delay: waits.append(delay) or False)
     def flaky():
         attempts.append(1)
@@ -82,7 +83,8 @@ def test_uncertain_write_classification():
     with pytest.raises(UncertainWriteError): uncertain_write(lambda: (_ for _ in ()).throw(httpx.ReadTimeout("x")))
     with pytest.raises(UncertainWriteError): uncertain_write(lambda: (_ for _ in ()).throw(status(500)))
     with pytest.raises(PermanentError): uncertain_write(lambda: (_ for _ in ()).throw(status(401)))
-    detailed=status(401); detailed.safe_detail="Telegram sendMessage: Bad Request: chat not found"
+    detailed=status(401)
+    detailed.safe_detail="Telegram sendMessage: Bad Request: chat not found"
     with pytest.raises(PermanentError, match="Telegram sendMessage: Bad Request: chat not found"):
         uncertain_write(lambda: (_ for _ in ()).throw(detailed))
     assert uncertain_write(lambda: 4)==4
@@ -93,7 +95,8 @@ def test_backoff_model_order():
 
 
 def test_llm_budget_survives_client_restart():
-    state={"calls":[]}; now=[100.0]
+    state={"calls":[]}
+    now=[100.0]
     response={"id":"x","choices":[{"message":{"content":"{}"}}]}
     transport=httpx.MockTransport(lambda request:httpx.Response(200,json=response,request=request))
     arguments=dict(key="x",timeout=1,retries=0,calls_per_minute=1,transport=transport,clock=lambda:now[0],load_calls=lambda:state["calls"],save_calls=lambda calls:state.update(calls=calls))

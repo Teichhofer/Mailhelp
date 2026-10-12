@@ -69,10 +69,10 @@ class ArchiveQueries:
                 state.relevance.model_dump(mode="json") if state.relevance else {})
             summary = {} if analysis.get("removed") else analysis.get("summary") or (
                 state.summary.model_dump(mode="json") if state.summary else {})
-            mail = state.mail or {}
-            received = mail.get("date_header_parsed") or mail.get("imap_received_at")
+            mail = state.prepared
+            received = mail.received if mail is not None else None
             try:
-                stamp = datetime.fromisoformat(received) if isinstance(received, str) else None
+                stamp = datetime.fromisoformat(received) if received is not None else None
                 received = stamp.isoformat() if stamp and stamp.tzinfo else None
             except ValueError:
                 received = None
@@ -87,9 +87,9 @@ class ArchiveQueries:
                           "completed": state.steps.completion == "completed",
                           "statuses": [p.status.value for p in state.proposals],
                           "kinds": {p.id: p.kind.value for p in state.proposals},
-                          "attachments": bool(mail.get("extracted_attachments")),
+                          "attachments": mail is not None and bool(mail.extracted_attachments),
                           "duplicate": state.duplicate is not None,
-                          "text_available": isinstance(mail.get("text"), str)})
+                          "text_available": mail is not None and mail.text is not None})
         self._items, self._revision = items, self.store.archive_revision
 
     def search(self, query: ArchiveQuery) -> tuple[list[dict], int]:

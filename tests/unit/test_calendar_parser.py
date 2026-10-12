@@ -207,3 +207,18 @@ END:VCALENDAR"""
     assert events2[0].all_day is True
     assert events2[0].start == date(2026, 10, 25)
     assert events2[0].end == date(2026, 10, 26)
+
+
+def test_an_escaped_backslash_before_n_stays_a_backslash():
+    """Regression: unescaping replaced step by step, so an escaped backslash
+    followed by "n" or "N" (a Windows path) turned into a line break."""
+    ics = (
+        "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n"
+        "UID:path@example.com\r\nDTSTART:20261015T100000Z\r\n"
+        r"SUMMARY:Ablage C:\\new" "\r\n"
+        r"DESCRIPTION:Ordner C:\\new\\Nordsee\, Plan\; zweite\nZeile" "\r\n"
+        "END:VEVENT\r\nEND:VCALENDAR\r\n"
+    )
+    (event,) = parse_icalendar(ics)
+    assert event.summary == r"Ablage C:\new"
+    assert event.description == "Ordner C:\\new\\Nordsee, Plan; zweite\nZeile"

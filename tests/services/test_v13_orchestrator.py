@@ -15,6 +15,7 @@ from mailhelp.domain.extraction import (
     TaskExtraction,
     TelegramAnswerInterpretation,
 )
+from mailhelp.domain.prepared import PreparedAttachment
 from mailhelp.domain.temporal import TimeRequirement
 from mailhelp.domain.proposal import (
     DuplicateMatchInfo,
@@ -560,9 +561,18 @@ def test_regression_3_pdf_attachment_task_extraction(tmp_path):
     assert "rechnung.pdf" in proposal.evidence
 
 
-def test_web_presentation_reschedule_diff_and_duplicate_match():
-    # ProposalView with time_changes and duplicate_match
-    card = card_content(
+CALENDAR_MATCH = DuplicateMatchInfo(
+    source=DuplicateSource.GOOGLE_CALENDAR,
+    external_id="ev-123",
+    external_link="https://calendar.google.com/event?id=ev-123",
+    matched_title="Team-Meeting",
+    details="Bereits im Google Kalender eingetragen",
+)
+
+
+def rescheduled_card():
+    """Card of an event that moves an existing calendar entry from 14:00 to 10:00."""
+    return card_content(
         Proposal(
             schema_version=2,
             id="p1",
@@ -582,23 +592,20 @@ def test_web_presentation_reschedule_diff_and_duplicate_match():
             end=datetime(2026, 10, 15, 11, 0, tzinfo=timezone.utc),
             target_event_id="ev-123",
             time_changes=["Beginn 14:00 → 10:00 Uhr"],
-            duplicate_match=DuplicateMatchInfo(
-                source=DuplicateSource.GOOGLE_CALENDAR,
-                external_id="ev-123",
-                external_link="https://calendar.google.com/event?id=ev-123",
-                matched_title="Team-Meeting",
-                details="Bereits im Google Kalender eingetragen",
-            ),
+            duplicate_match=CALENDAR_MATCH,
         ),
         "UTC",
     )
 
-    view = ProposalView(
+
+def presented(**changes):
+    """A web view of the rescheduled card; *changes* override single fields."""
+    values = dict(
         mail_id="m1",
         proposal_id="p1",
         version=1,
         status=ProposalStatus.PENDING_CONFIRMATION,
-        card=card,
+        card=rescheduled_card(),
         sender="Alice",
         subject="Meeting",
         state="Wartet auf Bestätigung",
@@ -614,62 +621,32 @@ def test_web_presentation_reschedule_diff_and_duplicate_match():
         confirm_label="Bestehenden Termin aktualisieren",
         external_link=None,
         updated_at=None,
-        duplicate_match=card.duplicate_match if hasattr(card, "duplicate_match") else None,
-        target_event_id="ev-123",
-        time_changes=["Beginn 14:00 → 10:00 Uhr"],
     )
+    return ProposalView(**(values | changes))
 
-    html = proposal_card(view)
+
+def test_web_card_shows_the_time_change_against_the_calendar():
+    html = proposal_card(presented(duplicate_match=CALENDAR_MATCH, target_event_id="ev-123",
+                                   time_changes=["Beginn 14:00 → 10:00 Uhr"]))
     assert "Terminänderung gegenüber Google Kalender" in html
     assert "Beginn 14:00 → 10:00 Uhr" in html
 
-    # Duplicate match badge
-    view_dup = ProposalView(
-        mail_id="m1",
-        proposal_id="p2",
-        version=1,
-        status=ProposalStatus.ALREADY_EXISTS,
-        card=card,
-        sender="Alice",
-        subject="Meeting",
-        state="Bereits vorhanden",
-        editing=False,
-        answer_saved=False,
-        paused=False,
-        current=False,
-        queued=False,
-        question=None,
-        example=None,
-        yes_no=False,
-        actions=frozenset(),
-        confirm_label="Im Kalender anlegen",
-        external_link=None,
-        updated_at=None,
-        duplicate_match=DuplicateMatchInfo(
-            source=DuplicateSource.GOOGLE_CALENDAR,
-            external_id="ev-123",
-            external_link="https://calendar.google.com/event?id=ev-123",
-            matched_title="Team-Meeting",
-            details="Bereits im Google Kalender eingetragen",
-        ),
-    )
-    html_dup = proposal_card(view_dup)
-    assert "Bereits im Google Kalender eingetragen" in html_dup
-    assert "https://calendar.google.com/event?id=ev-123" in html_dup
 
-    import dataclasses
-    view_dup_no_link = dataclasses.replace(
-        view_dup,
-        duplicate_match=DuplicateMatchInfo(
-            source=DuplicateSource.ACTION_LEDGER,
-            external_id=None,
-            external_link=None,
-            matched_title="Team-Meeting",
-            details="Bereits per Mailhelp ausgeführt",
-        ),
-    )
-    html_dup_no_link = proposal_card(view_dup_no_link)
-    assert '<span class="badge info">Bereits per Mailhelp ausgeführt</span>' in html_dup_no_link
+def test_web_card_links_an_existing_calendar_duplicate():
+    html = proposal_card(presented(proposal_id="p2", status=ProposalStatus.ALREADY_EXISTS,
+                                   state="Bereits vorhanden", confirm_label="Im Kalender anlegen",
+                                   duplicate_match=CALENDAR_MATCH))
+    assert "Bereits im Google Kalender eingetragen" in html
+    assert "https://calendar.google.com/event?id=ev-123" in html
+
+
+def test_web_card_names_a_ledger_duplicate_without_a_link():
+    ledger = DuplicateMatchInfo(source=DuplicateSource.ACTION_LEDGER, external_id=None, external_link=None,
+                                matched_title="Team-Meeting", details="Bereits per Mailhelp ausgeführt")
+    html = proposal_card(presented(proposal_id="p2", status=ProposalStatus.ALREADY_EXISTS,
+                                   state="Bereits vorhanden", confirm_label="Im Kalender anlegen",
+                                   duplicate_match=ledger))
+    assert '<span class="badge info">Bereits per Mailhelp ausgeführt</span>' in html
 
 
 def test_web_mail_section_with_attachments_and_calendar():
@@ -682,8 +659,8 @@ def test_web_mail_section_with_attachments_and_calendar():
         attachments_omitted=0,
         text_shortened=False,
         extracted_attachments=(
-            {"filename": "plan.pdf", "extraction_status": "success"},
-            {"filename": "passwort.pdf", "extraction_status": "encrypted"},
+            PreparedAttachment(filename="plan.pdf", extraction_status="success"),
+            PreparedAttachment(filename="passwort.pdf", extraction_status="encrypted"),
         ),
         calendar_events=({"summary": "Meeting", "start": "2026-10-15T10:00:00Z"},),
     )
@@ -750,18 +727,20 @@ def test_telegram_presenter_and_formatting_reschedule_and_cancel():
 
 
 def test_analysis_attachment_enrichment_edges():
-    # ExtractedAttachment object instead of dict (covers lines 301-304 of analysis.py)
-    att_obj = ExtractedAttachment(
+    # The stored form of an attachment (mime.prepare stores the extraction as JSON).
+    att = ExtractedAttachment(
         filename="daten.txt",
         content_type="text/plain",
         size_bytes=50,
         text="Wichtiger Inhalt",
         extraction_status="success",
         character_count=16,
-    )
-    mail_with_obj = {"text": "Mail-Text", "extracted_attachments": [att_obj]}
-    enriched = Analyzer._enrich_mail_with_attachments(mail_with_obj)
-    assert "Wichtiger Inhalt" in enriched["text"]
+    ).model_dump(mode="json")
+    enriched = Analyzer._enrich_mail_with_attachments({"text": "Mail-Text", "extracted_attachments": [att]})
+    assert enriched["text"] == "Mail-Text\n\n--- Anhang: daten.txt (text/plain) ---\nWichtiger Inhalt"
+    # Without a content type the header names only the file.
+    bare = Analyzer._enrich_mail_with_attachments({"text": "", "extracted_attachments": [{"text": " x "}]})
+    assert bare["text"] == "\n\n--- Anhang: Anhang ---\nx"
 
     # Failed extraction / empty snippets -> returns original mail untouched (covers line 309 of analysis.py)
     att_failed = ExtractedAttachment(
@@ -772,7 +751,7 @@ def test_analysis_attachment_enrichment_edges():
         extraction_status="error",
         character_count=0,
     )
-    mail_failed = {"text": "Nur Mail", "extracted_attachments": [att_failed]}
+    mail_failed = {"text": "Nur Mail", "extracted_attachments": [att_failed.model_dump(mode="json")]}
     not_enriched = Analyzer._enrich_mail_with_attachments(mail_failed)
     assert not_enriched == mail_failed
 

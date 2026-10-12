@@ -63,8 +63,15 @@ def callback(update_id, data, user=1, chat=2):
 
 class Telegram:
     def __init__(self, updates=()):
-        self.updates = list(updates); self.polls=[]; self.sent=[]; self.answered=[]; self.documents=[]; self.removed=[]
-    def poll(self, offset, timeout=None): self.polls.append(offset); return self.updates
+        self.updates = list(updates)
+        self.polls=[]
+        self.sent=[]
+        self.answered=[]
+        self.documents=[]
+        self.removed=[]
+    def poll(self, offset, timeout=None):
+        self.polls.append(offset)
+        return self.updates
     def send(self, chat, text, reply_markup=None): self.sent.append((chat,text,reply_markup))
     def answer_callback(self, callback_id, text): self.answered.append((callback_id,text))
     def remove_inline_keyboard(self, chat_id, message_id): self.removed.append((chat_id,message_id))
@@ -604,13 +611,15 @@ def test_validation_failure_log_contains_safe_structured_details(tmp_path):
 
 class InterpretationErrorService(RevisionService):
     def __init__(self, error):
-        super().__init__(); self.error = error
+        super().__init__()
+        self.error = error
     def interpret_telegram_answer(self, item, question, answer):
         raise self.error
 
 
 def controller(store, updates=(), writers=None, test_mode=False, revision_service=None):
-    transport=Telegram(updates); log=Logger()
+    transport=Telegram(updates)
+    log=Logger()
     service=revision_service if revision_service is not None else RevisionService()
     return TelegramDialogController(store,transport,1,2,log,writers,test_mode,"UTC",service),transport,log
 
@@ -670,8 +679,12 @@ def test_persist_synchronizes_every_terminal_result_with_mail_state(tmp_path, st
 
 def test_persist_order_and_restart_repair_use_current_proposal(tmp_path):
     class RecordingStore(JsonStore):
-        def __init__(self, directory): super().__init__(directory); self.saved=[]
-        def save(self, name, value): self.saved.append(name); super().save(name, value)
+        def __init__(self, directory):
+            super().__init__(directory)
+            self.saved=[]
+        def save(self, name, value):
+            self.saved.append(name)
+            super().save(name, value)
 
     mail_id="a"*24
     initial=proposal(source_mail_id=mail_id)
@@ -679,18 +692,21 @@ def test_persist_order_and_restart_repair_use_current_proposal(tmp_path):
         state=MailState(id=mail_id,config_fingerprint="f"*64,
                         imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":1,"uid":1},
                         proposals=[initial])
-        store.save("mail-"+mail_id,state.model_dump(mode="json")); store.saved.clear()
+        store.save("mail-"+mail_id,state.model_dump(mode="json"))
+        store.saved.clear()
         created=initial.model_copy(update={"status":ProposalStatus.CREATED,
                                            "external_id":"external-1",
                                            "external_link":"https://example.test/item"})
-        dialog,_,_=controller(store); dialog.persist(created)
+        dialog,_,_=controller(store)
+        dialog.persist(created)
         assert store.saved == [f"proposal-{mail_id}-p1-v1", f"proposal-{mail_id}-p1",
                                f"history-{mail_id}", f"mail-{mail_id}", "action-ledger"]
 
         # Simulate a crash between the second and third writes by restoring a
         # stale embedding.  Startup repairs it from the current proposal file.
         store.save("mail-"+mail_id,state.model_dump(mode="json"))
-        restarted,_,_=controller(store); restarted.poll_once()
+        restarted,_,_=controller(store)
+        restarted.poll_once()
         repaired=store.load_model("mail-"+mail_id,MailState).proposals[0]
         assert repaired.status == ProposalStatus.CREATED
         assert repaired.external_id == "external-1"
@@ -781,7 +797,7 @@ def test_created_action_is_booked_and_duplicate_needs_second_confirmation(tmp_pa
 
         normal = Decision(mail_id=second_mail, proposal_id="p1", version=1,
                           action=DecisionAction.CONFIRM)
-        assert "Doppelanlage" in dialog._decide(normal)
+        assert "Doppelanlage" in dialog.decision_service.decide(normal, dialog.user_id, dialog.chat_id)
         assert writer.created == 0
         assert "Bereits angelegt" in telegram.sent[-1][1]
         markup = telegram.sent[-1][2]
@@ -789,7 +805,7 @@ def test_created_action_is_booked_and_duplicate_needs_second_confirmation(tmp_pa
         assert repeat.action == DecisionAction.CONFIRM_DUPLICATE
 
         # The write result message reports the creation; no second confirmation.
-        assert dialog._decide(repeat) == ""
+        assert dialog.decision_service.decide(repeat, dialog.user_id, dialog.chat_id) == ""
         assert telegram.sent[-1][1].startswith("✅ Angelegt")
         assert writer.created == 1
         assert store.load("proposal-" + second_mail + "-p1")["status"] == "created"
@@ -806,7 +822,7 @@ def test_duplicate_override_is_rejected_when_ledger_no_longer_matches(tmp_path):
         decision = Decision(mail_id=item.source_mail_id, proposal_id=item.id, version=1,
                             action=DecisionAction.CONFIRM_DUPLICATE)
         with pytest.raises(ValueError, match="veraltet"):
-            dialog._decide(decision)
+            dialog.decision_service.decide(decision, dialog.user_id, dialog.chat_id)
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"] == "pending_confirmation"
 
 
@@ -818,10 +834,18 @@ def test_action_ledger_rejects_duplicate_proposal_version():
 
 
 class Writer:
-    def __init__(self, found=None, error=None): self.found=found; self.error=error; self.created=0; self.reconciled=0; self.versions=[]
-    def reconcile(self,key): self.reconciled+=1; return self.found
+    def __init__(self, found=None, error=None):
+        self.found=found
+        self.error=error
+        self.created=0
+        self.reconciled=0
+        self.versions=[]
+    def reconcile(self,key):
+        self.reconciled+=1
+        return self.found
     def create(self,p,key):
-        self.created+=1; self.versions.append(p.version)
+        self.created+=1
+        self.versions.append(p.version)
         if self.error: raise self.error
         return {"id":"external-1","url":"https://example.test/item"}
 
@@ -847,9 +871,9 @@ def test_direct_decision_persists_confirmation_before_write(tmp_path):
         item=proposal(id="event",kind="event",status="pending_confirmation",
                       start="2026-01-01T10:00:00Z",end="2026-01-01T11:00:00Z")
         dialog.persist(item)
-        dialog._decide(Decision(mail_id=item.source_mail_id,
+        dialog.decision_service.decide(Decision(mail_id=item.source_mail_id,
                        proposal_id=item.id,version=item.version,
-                       action=DecisionAction.CONFIRM))
+                       action=DecisionAction.CONFIRM), dialog.user_id, dialog.chat_id)
 
     assert events[:2] == ["confirmation persisted", "external write"]
 
@@ -872,9 +896,9 @@ def test_created_calendar_notification_includes_local_date_and_time(
         item = proposal(kind="event", start=start, end=end, all_day=all_day)
         dialog.persist(item)
 
-        dialog._decide(Decision(mail_id=item.source_mail_id,
+        dialog.decision_service.decide(Decision(mail_id=item.source_mail_id,
                                 proposal_id=item.id, version=item.version,
-                                action=DecisionAction.CONFIRM))
+                                action=DecisionAction.CONFIRM), dialog.user_id, dialog.chat_id)
 
         created_message = next(
             text for _, text, _ in transport.sent if text.startswith("✅ Angelegt im Kalender")
@@ -1102,10 +1126,12 @@ def test_persist_before_buttons_and_authorized_flow(tmp_path):
         assert "bestätigt" in t.sent[-2][1] and t.removed == [(2, 1)]
         assert t.sent[-1][1] == "ok"
         # Duplicate update is ignored by the persisted offset after restart.
-        c2,t2,_=controller(store,t.updates); c2.poll_once()
+        c2,t2,_=controller(store,t.updates)
+        c2.poll_once()
         assert t2.polls==[5] and not t2.answered
         # A replay with a fresh update id still cannot mutate the terminal state.
-        t2.updates=[callback(5,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:reject")]; c2.poll_once()
+        t2.updates=[callback(5,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:reject")]
+        c2.poll_once()
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="confirmed"
         assert "Schaltfläche ist veraltet" in t2.sent[-1][1]
 
@@ -1185,7 +1211,8 @@ def test_identical_proposals_have_isolated_confirmation_and_external_results(tmp
     production_settings=Settings(test_mode=False,**common)
     with JsonStore(_state_directory(test_settings,tmp_path)) as test_store:
         test_dialog,_,_=controller(test_store,[callback(1,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm")],{"todoist":Writer()},True)
-        test_dialog.persist(proposal()); test_dialog.poll_once()
+        test_dialog.persist(proposal())
+        test_dialog.poll_once()
         assert test_store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="simulated"
         assert test_store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1").get("external_id") is None
         assert test_store.load("telegram-offset")["offset"]==2
@@ -1195,7 +1222,8 @@ def test_identical_proposals_have_isolated_confirmation_and_external_results(tmp
         assert production_store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1") is None
         assert production_store.load("telegram-offset") is None
         production_dialog,_,_=controller(production_store,[callback(7,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm")],{"todoist":writer})
-        production_dialog.persist(proposal()); production_dialog.poll_once()
+        production_dialog.persist(proposal())
+        production_dialog.poll_once()
         assert production_store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["external_id"]=="external-1"
         assert production_store.load("telegram-offset")["offset"]==8
         assert writer.created==1
@@ -1248,12 +1276,15 @@ def test_edit_question_answer_new_version_then_reject(tmp_path):
         c.poll_once()
         assert any("konnte nicht verarbeitet" in text for _, text, _ in t.sent)
         assert store.load("telegram-dialog")["proposal_id"]=="p1"
-        t.updates=[message(3,"Morgen")]; c.poll_once()
+        t.updates=[message(3,"Morgen")]
+        c.poll_once()
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v2")["open_questions"]==["Wo?"]
         # Select edit and answer the remaining question, producing a confirmable v3.
-        t.updates=[callback(4,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:2:edit"),message(5,"Berlin")]; c.poll_once()
+        t.updates=[callback(4,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:2:edit"),message(5,"Berlin")]
+        c.poll_once()
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["version"]==3 and store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="pending_confirmation"
-        t.updates=[callback(6,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:3:reject")]; c.poll_once()
+        t.updates=[callback(6,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:3:reject")]
+        c.poll_once()
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="rejected"
         assert "verworfen" in t.sent[-1][1]
 
@@ -1319,7 +1350,8 @@ def test_non_binding_question_accepts_yes_as_separate_persisted_decision(tmp_pat
 def test_invalid_unauthorized_missing_and_stale_dialogs(tmp_path):
     with JsonStore(tmp_path) as store:
         bad=[{"not":"an update"}, {"update_id":1,"message":{"private":"do not log"}}, message(2,user=9), message(3,chat=9), callback(4,"bad"), callback(5,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:missing:1:confirm"), callback(6,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm",user=9)]
-        c,t,log=controller(store,bad); c.poll_once()
+        c,t,log=controller(store,bad)
+        c.poll_once()
         assert store.load("telegram-offset")["offset"]==7
         assert any("syntaktisch" in item[1] for item in t.sent)
         assert any("Nicht autorisierte" in text for _,text,_ in t.sent)
@@ -1327,15 +1359,22 @@ def test_invalid_unauthorized_missing_and_stale_dialogs(tmp_path):
 
         c.persist(proposal(version=2))
         store.save("telegram-dialog",{"mail_id":"a"*24,"proposal_id":"p1","version":1})
-        t.updates=[message(7)]; c.poll_once(); assert "veraltet" in t.sent[-1][1]
+        t.updates=[message(7)]
+        c.poll_once()
+        assert "veraltet" in t.sent[-1][1]
         store.save("telegram-dialog",{"mail_id":"a"*24,"proposal_id":"gone","version":1})
-        t.updates=[message(8)]; c.poll_once(); assert "nicht gefunden" in t.sent[-1][1]
-        t.updates=[message(9)]; c.poll_once(); assert "Keine offene" in t.sent[-1][1]
+        t.updates=[message(8)]
+        c.poll_once()
+        assert "nicht gefunden" in t.sent[-1][1]
+        t.updates=[message(9)]
+        c.poll_once()
+        assert "Keine offene" in t.sent[-1][1]
 
         c.revisions.revision_service=FailingRevisionService()
         c.persist(proposal(version=2, description="x"*3995, status="needs_clarification"))
         store.save("telegram-dialog",{"mail_id":"a"*24,"proposal_id":"p1","version":2})
-        t.updates=[message(10,"zu lang")]; c.poll_once()
+        t.updates=[message(10,"zu lang")]
+        c.poll_once()
         assert "gespeicherten Antwort" in t.sent[-1][1]
         assert store.load("telegram-dialog")["version"] is None
         saved = store.load("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v2")
@@ -1599,7 +1638,8 @@ def test_failed_answer_persistence_does_not_advance_offset_or_log_answer(tmp_pat
 
 def test_revision_unavailable_preserves_dialog(tmp_path):
     with JsonStore(tmp_path) as store:
-        transport=Telegram([message(1,"Neuer Titel")]); log=Logger()
+        transport=Telegram([message(1,"Neuer Titel")])
+        log=Logger()
         c=TelegramDialogController(store,transport,1,2,log)
         c.persist(proposal(status="needs_clarification"))
         store.save("telegram-dialog",{"mail_id":"a"*24,"proposal_id":"p1","version":1})
@@ -1873,8 +1913,10 @@ def test_telegram_client_validation_and_callback():
         return httpx.Response(200,json=data,request=request)
     client=TelegramClient("secret",1,httpx.MockTransport(handler))
     assert client.poll(0)==[]
-    client.send(2,"x",{"inline_keyboard":[]}); client.answer_callback("c","ok")
-    client.remove_inline_keyboard(2, 7); client.close()
+    client.send(2,"x",{"inline_keyboard":[]})
+    client.answer_callback("c","ok")
+    client.remove_inline_keyboard(2, 7)
+    client.close()
     assert len(requests)==4
     assert requests[-1].url.path.endswith("editMessageReplyMarkup")
     assert requests[-1].read() == b'{"chat_id":2,"message_id":7,"reply_markup":{"inline_keyboard":[]}}'
@@ -2059,7 +2101,8 @@ def test_confirmation_executes_and_reports_all_results(tmp_path):
     for index,(writer,test_mode,status,text) in enumerate(cases):
         with JsonStore(tmp_path/str(index)) as store:
             c,t,_=controller(store,[callback(1,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm")],{"todoist":writer},test_mode)
-            c.persist(proposal()); c.poll_once()
+            c.persist(proposal())
+            c.poll_once()
             saved=store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")
             assert saved["status"]==status
             assert any(text in message for _,message,_ in t.sent)
@@ -2076,7 +2119,8 @@ def test_restart_reconciles_before_retry_and_duplicate_update_is_safe(tmp_path):
     with JsonStore(tmp_path) as store:
         first=Writer(error=httpx.ReadTimeout("timeout"))
         c,t,_=controller(store,[callback(1,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm")],{"todoist":first})
-        c.persist(proposal()); c.poll_once()
+        c.persist(proposal())
+        c.poll_once()
         assert first.created==1 and store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="uncertain"
         recovered=Writer(found={"id":"external-existing","html_url":"https://example.test/existing"})
         restarted,t2,_=controller(store,[callback(1,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm")],{"todoist":recovered})
@@ -2088,7 +2132,8 @@ def test_restart_reconciles_before_retry_and_duplicate_update_is_safe(tmp_path):
     with JsonStore(tmp_path/"writing") as store:
         interrupted=Writer()
         c,t,_=controller(store,(),{"todoist":interrupted})
-        c.persist(proposal(status="writing")); c.poll_once()
+        c.persist(proposal(status="writing"))
+        c.poll_once()
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="uncertain"
         assert interrupted.reconciled == 1 and interrupted.created == 0
 
@@ -2098,7 +2143,8 @@ def test_uncertain_write_is_only_reconciled_across_restarts(tmp_path):
         failed=Writer(error=httpx.ConnectError("lost"))
         initial,telegram,_=controller(
             store,[callback(1,"proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:confirm")],{"todoist":failed})
-        initial.persist(proposal()); initial.poll_once()
+        initial.persist(proposal())
+        initial.poll_once()
         assert failed.created == 1
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"] == "uncertain"
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["uncertain_notified"] is True
@@ -2123,7 +2169,9 @@ def test_uncertain_write_is_only_reconciled_across_restarts(tmp_path):
 
 
 class RelevanceHandler:
-    def __init__(self, store): self.store=store; self.resumed=[]
+    def __init__(self, store):
+        self.store=store
+        self.resumed=[]
     def resolve_relevance(self, mail_id, version, decision, offset):
         state=self.store.load_model("mail-"+mail_id,MailState)
         dialog=state.relevance_dialog
@@ -2131,7 +2179,8 @@ class RelevanceHandler:
             raise ValueError("Die Relevanzfrage ist veraltet oder bereits beantwortet")
         state.relevance_dialog=dialog.model_copy(update={"status":RelevanceDialogStatus.DECIDED,"decision":decision,"telegram_offset":offset})
         state.awaiting_relevance=False
-        self.store.save("mail-"+mail_id,state.model_dump(mode="json")); return state
+        self.store.save("mail-"+mail_id,state.model_dump(mode="json"))
+        return state
     def resume_mail(self,state): self.resumed.append(state.id)
 
 
@@ -2144,7 +2193,9 @@ def test_relevance_dialog_authorization_stale_restart_and_duplicate(tmp_path):
     with JsonStore(tmp_path) as store:
         store.save("mail-"+mail_id,relevance_state(mail_id).model_dump(mode="json"))
         updates=[callback(1,f"relevance:{mail_id}:1:relevant",user=9),callback(2,f"relevance:{mail_id}:2:relevant"),callback(3,f"relevance:{mail_id}:1:relevant")]
-        c,t,_=controller(store,updates); handler=RelevanceHandler(store); c.relevance_handler=handler
+        c,t,_=controller(store,updates)
+        handler=RelevanceHandler(store)
+        c.relevance_handler=handler
         assert c.awaiting_relevance_decision()
         c.send_relevance(RelevanceDialog(mail_id=mail_id), "Alice <alice@example.test>", "Rechnung")
         visible=t.sent[-1][1]
@@ -2161,9 +2212,12 @@ def test_relevance_dialog_authorization_stale_restart_and_duplicate(tmp_path):
         assert any("Nicht autorisierte" in text for _, text, _ in t.sent)
         assert any("Schaltfläche ist veraltet" in text for _, text, _ in t.sent)
         assert handler.resumed==[mail_id] and store.load("mail-"+mail_id)["relevance_dialog"]["telegram_offset"]==4
-        restarted,t2,_=controller(store,[callback(3,f"relevance:{mail_id}:1:irrelevant")]); restarted.relevance_handler=handler
-        restarted.poll_once(); assert t2.polls==[4] and "bereits verarbeitet" in t2.answered[-1][1]
-        t2.updates=[callback(4,f"relevance:{mail_id}:1:irrelevant")]; restarted.poll_once()
+        restarted,t2,_=controller(store,[callback(3,f"relevance:{mail_id}:1:irrelevant")])
+        restarted.relevance_handler=handler
+        restarted.poll_once()
+        assert t2.polls==[4] and "bereits verarbeitet" in t2.answered[-1][1]
+        t2.updates=[callback(4,f"relevance:{mail_id}:1:irrelevant")]
+        restarted.poll_once()
         assert "Schaltfläche ist veraltet" in t2.sent[-1][1]
 
 
@@ -2184,11 +2238,16 @@ def test_relevance_free_text_requires_unique_open_dialog(tmp_path):
     ids=["a"*24,"b"*24]
     with JsonStore(tmp_path) as store:
         for mail_id in ids: store.save("mail-"+mail_id,relevance_state(mail_id).model_dump(mode="json"))
-        c,t,_=controller(store,[message(1,"relevant")]); c.relevance_handler=RelevanceHandler(store); c.poll_once()
+        c,t,_=controller(store,[message(1,"relevant")])
+        c.relevance_handler=RelevanceHandler(store)
+        c.poll_once()
         assert "nicht eindeutig" in t.sent[-1][1]
-        state=store.load_model("mail-"+ids[1],MailState); state.relevance_dialog=None; state.awaiting_relevance=False
+        state=store.load_model("mail-"+ids[1],MailState)
+        state.relevance_dialog=None
+        state.awaiting_relevance=False
         store.save("mail-"+ids[1],state.model_dump(mode="json"))
-        t.updates=[message(2,"irrelevant")]; c.poll_once()
+        t.updates=[message(2,"irrelevant")]
+        c.poll_once()
         assert store.load("mail-"+ids[0])["relevance_dialog"]["decision"]=="irrelevant"
 
 
@@ -2278,7 +2337,8 @@ def test_classification_fields_are_required_and_closed():
 def test_calendar_duplicate_outcomes_are_reported_without_claiming_creation(tmp_path):
     class DuplicateWriter(Writer):
         def __init__(self, operation):
-            super().__init__(); self.operation=operation
+            super().__init__()
+            self.operation=operation
         def create(self,p,key):
             self.created += 1
             return {"id":"existing", "operation":self.operation}
@@ -2292,7 +2352,8 @@ def test_calendar_duplicate_outcomes_are_reported_without_claiming_creation(tmp_
             decision=f"proposal:{item.source_mail_id}:{item.id}:1:confirm"
             dialog,telegram,_=controller(store,[callback(1,decision)],
                                           {"google_calendar":DuplicateWriter(operation)})
-            dialog.persist(item); dialog.poll_once()
+            dialog.persist(item)
+            dialog.poll_once()
             assert any(phrase in text for _,text,_ in telegram.sent)
             assert not any(text.startswith("Erstellt:") for _,text,_ in telegram.sent)
 

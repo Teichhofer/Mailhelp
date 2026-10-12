@@ -32,6 +32,7 @@ from ..models import (
     RelevanceDialogStatus,
     TelegramDialogState,
 )
+from ..domain.prepared import PreparedAttachment, PreparedMail
 from ..storage import CorruptState, JsonStore
 from .cards import CardContent, answer_example, card_content, display_question, sender_name, yes_no_question
 from .commands import CommandKind
@@ -106,7 +107,7 @@ class MailView:
     text: str | None
     attachments_omitted: int
     text_shortened: bool
-    extracted_attachments: tuple[dict[str, Any], ...] = ()
+    extracted_attachments: tuple[PreparedAttachment, ...] = ()
     calendar_events: tuple[dict[str, Any], ...] = ()
 
 
@@ -299,32 +300,25 @@ class ReviewViews:
             state = _Reader(self.store).model(state_names.mail(mail_id), MailState)
         if state is None:
             return None
-        content = state.mail if isinstance(state.mail, dict) else {}
-        headers = content.get("headers") if isinstance(content.get("headers"), dict) else {}
+        content = state.prepared or PreparedMail()
         display = state.display_headers
-        sender = display.sender if display else str(headers.get("from") or "—")
-        subject = display.subject if display else str(headers.get("subject") or "—")
+        sender = display.sender if display else content.headers.sender or "—"
+        subject = display.subject if display else content.headers.subject or "—"
         received = None
-        stamp = content.get("date_header_parsed") or content.get("imap_received_at")
-        if isinstance(stamp, str):
+        stamp = content.received
+        if stamp is not None:
             try:
                 received = datetime.fromisoformat(stamp).astimezone(
                     ZoneInfo(self.configured_timezone)).strftime("%d.%m.%Y, %H:%M Uhr")
             except ValueError:
                 received = None
-        text = content.get("text") if isinstance(content.get("text"), str) else None
-        metadata = content.get("metadata") if isinstance(content.get("metadata"), dict) else {}
-        omitted = metadata.get("attachments_omitted")
-        extracted_att = content.get("extracted_attachments")
-        extracted_tuple = tuple(extracted_att) if isinstance(extracted_att, list) else ()
-        cal_events = content.get("calendar_events")
-        cal_tuple = tuple(cal_events) if isinstance(cal_events, list) else ()
+        omitted = content.metadata.get("attachments_omitted")
         return MailView(
-            mail_id=mail_id, sender=sender, subject=subject, received=received, text=text,
+            mail_id=mail_id, sender=sender, subject=subject, received=received, text=content.text,
             attachments_omitted=omitted if isinstance(omitted, int) else 0,
-            text_shortened=metadata.get("text_shortened") is True,
-            extracted_attachments=extracted_tuple,
-            calendar_events=cal_tuple)
+            text_shortened=content.metadata.get("text_shortened") is True,
+            extracted_attachments=tuple(content.extracted_attachments),
+            calendar_events=tuple(content.calendar_events))
 
     def _relevance(self, reader: _Reader) -> list[RelevanceView]:
         result = []

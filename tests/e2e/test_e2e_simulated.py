@@ -311,7 +311,7 @@ def test_imap_llm_persists_separate_raw_extractions(tmp_path):
         app = Application(SettingsStub(), store, NullLogger(), imap, analyzer.client, analyzer,
                           telegram, todoist, calendar, orchestrator, Event(), dialog)
 
-        results = app._poll_imap()
+        results = app.mailbox.poll()
         assert [result.outcome for result in results] == [ProcessingOutcome.COMPLETED]
         state = results[0].state
         assert state["task_extraction"]["tasks"][0]["due_text"] == "30. September"

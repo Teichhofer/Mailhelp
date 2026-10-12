@@ -217,23 +217,23 @@ def mail_section(mail: MailView | None, sender_actions: str = "") -> str:
         }
         att_items = []
         for att in mail.extracted_attachments:
-            fn = att.get("filename", "Anhang")
-            st = att.get("extraction_status", "success")
+            fn = att.filename
+            st = att.extraction_status
             st_text = status_labels.get(st, st)
             badge_class = "ok" if st == "success" else "warn"
-            if att.get("vision") is not None:
-                st_text = VISION_LABELS.get(att["vision"], att["vision"])
-                badge_class = "ok" if att["vision"] == "read" else "warn"
+            if att.vision is not None:
+                st_text = VISION_LABELS.get(att.vision, att.vision)
+                badge_class = "ok" if att.vision == "read" else "warn"
             att_items.append(
                 f'<li>📎 <strong>{e(fn)}</strong> <span class="badge {badge_class}">{e(st_text)}</span></li>'
             )
-            preview = att.get("preview")
+            preview = att.preview
             if preview is not None:
-                url = f'/mail/{e(mail.mail_id)}/anhang/{int(preview["index"])}'
-                size = f'{max(1, round(int(preview["size_bytes"]) / 1024))} KB'
-                if "width" in preview:
-                    size = f'{int(preview["width"])} × {int(preview["height"])} px · {size}'
-                text = att.get("text") or ""
+                url = f'/mail/{e(mail.mail_id)}/anhang/{preview.index}'
+                size = f'{max(1, round(preview.size_bytes / 1024))} KB'
+                if preview.width is not None:
+                    size = f'{preview.width} × {preview.height} px · {size}'
+                text = att.text
                 recognized = (f'<details><summary>Erkannten Text anzeigen</summary><pre>{e(text)}</pre></details>'
                               if text else '<p class="meta">Kein erkannter Text gespeichert.</p>')
                 att_items.append(f'<li class="image-preview"><a href="{url}" data-lightbox '
@@ -262,7 +262,7 @@ def disclosure(summary: str, body: str, *, opened: bool = False) -> str:
 def detail_page(view: ProposalView, *, actions: Actions | None = None,
                 mail: MailView | None = None) -> str:
     # Image previews are the evidence to compare with; they are shown at once.
-    previews = mail is not None and any("preview" in item for item in mail.extracted_attachments)
+    previews = mail is not None and any(item.preview is not None for item in mail.extracted_attachments)
     content = f"""<p><a href="/">← Zur Übersicht</a></p>
 <h1>{"Termin" if view.card.kind == ProposalKind.EVENT else "Aufgabe"}</h1>
 {proposal_card(view, actions=actions, detail_link=False)}

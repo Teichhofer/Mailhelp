@@ -5,7 +5,8 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 import pytest
 
-from mailhelp.application import Application, _MailBudget, _RunSummary, _add_uid, _checkpoint_name, _safe_name, _state_directory, build_application, build_logger
+from mailhelp.application import Application, _state_directory, build_application, build_logger
+from mailhelp.mailbox_run import MailboxRunService, _MailBudget, _RunSummary, _add_uid, _checkpoint_name, _safe_name
 from mailhelp.config import Secrets, Settings, Topic
 from mailhelp.imap import FetchedMail, MailCandidate, UIDValidityChanged
 from mailhelp.integrations import OAuthTokenError
@@ -16,9 +17,13 @@ from test_core import prompt_config
 
 
 class Store:
-    def __init__(self, values=None): self.values=values or {}; self.saved=[]
+    def __init__(self, values=None):
+        self.values=values or {}
+        self.saved=[]
     def load(self, name, default=None): return self.values.get(name, default)
-    def save(self, name, value): self.saved.append((name,value)); self.values[name]=value
+    def save(self, name, value):
+        self.saved.append((name,value))
+        self.values[name]=value
     def names(self, prefix=""): return sorted(name for name in self.values if name.startswith(prefix))
     def load_model(self, name, model, default=None):
         value=self.values.get(name)
@@ -29,9 +34,15 @@ from log_fakes import RecordingLogger as Log
 
 
 class Imap:
-    def __init__(self, outcomes): self.outcomes=iter(outcomes); self.last_uidvalidity=None; self.account_id="0"*24; self.calls=[]; self.uid_calls=[]
+    def __init__(self, outcomes):
+        self.outcomes=iter(outcomes)
+        self.last_uidvalidity=None
+        self.account_id="0"*24
+        self.calls=[]
+        self.uid_calls=[]
     def fetch_since(self,*args):
-        self.calls.append(args); value=next(self.outcomes)
+        self.calls.append(args)
+        value=next(self.outcomes)
         if isinstance(value,Exception): raise value
         self.last_uidvalidity=value[0]
         if args[2] is not None and value[0] != args[2]:
@@ -43,7 +54,10 @@ class Imap:
 
 
 class Telegram:
-    def __init__(self, value): self.value=value; self.offsets=[]; self.sent=[]
+    def __init__(self, value):
+        self.value=value
+        self.offsets=[]
+        self.sent=[]
     def poll(self, offset, timeout=None):
         self.offsets.append(offset)
         if isinstance(self.value,Exception): raise self.value
@@ -52,7 +66,13 @@ class Telegram:
 
 
 class Orch:
-    def __init__(self, fail=False, stop=None, config_fingerprint="0"*64): self.fail=fail; self.stop_event=SimpleNamespace(set=lambda:None); self.stop_called=False; self.seen=[]; self._stop=stop; self.config_fingerprint=config_fingerprint
+    def __init__(self, fail=False, stop=None, config_fingerprint="0"*64):
+        self.fail=fail
+        self.stop_event=SimpleNamespace(set=lambda:None)
+        self.stop_called=False
+        self.seen=[]
+        self._stop=stop
+        self.config_fingerprint=config_fingerprint
     def stop(self): self.stop_called=True
     def process(self, mail):
         self.seen.append(mail.uid)
@@ -68,7 +88,8 @@ def settings(tmp_path, folders=("INBOX",), global_newest_first=False):
 def app(tmp_path, imap, telegram, orch, folders=("INBOX",), store=None,
         global_newest_first=False):
     from threading import Event
-    event=Event(); orch._stop=event if orch._stop else None
+    event=Event()
+    orch._stop=event if orch._stop else None
     return Application(settings(tmp_path,folders,global_newest_first),store or Store(),Log(),imap,object(),object(),telegram,object(),object(),orch,event)
 
 
@@ -92,7 +113,7 @@ def test_global_mailbox_order_and_max_mail_budget(tmp_path):
     imap = GlobalImap()
     service = app(tmp_path, imap, Telegram([]), Orch(), folders=("INBOX", "Archive"),
                   global_newest_first=True)
-    results = service._poll_imap(max_mails=2)
+    results = service.mailbox.poll(max_mails=2)
 
     assert len(results) == 2
     assert imap.fetches == [("Archive", 2, 7), ("Archive", 3, 7)]
@@ -108,7 +129,9 @@ def test_exhausted_uid_halts_queue_and_restart_retries_same_item(tmp_path):
     class Reader:
         account_id = "0" * 24
         last_uidvalidity = 7
-        def __init__(self, fail=True): self.fetches = []; self.fail = fail
+        def __init__(self, fail=True):
+            self.fetches = []
+            self.fail = fail
         def discover_since(self, folder, *_args):
             return [MailCandidate(folder, 7, uid, self.account_id, stamp)
                     for uid in (2, 3)]
@@ -122,7 +145,7 @@ def test_exhausted_uid_halts_queue_and_restart_retries_same_item(tmp_path):
     service = app(tmp_path, reader, Telegram([]), Orch(), store=store,
                   global_newest_first=True)
 
-    results = service._poll_imap(max_mails=2)
+    results = service.mailbox.poll(max_mails=2)
 
     run = MailRunState.model_validate(store.values[f"mail-run-{reader.account_id}"])
     assert [entry.status.value for entry in run.entries] == ["processing", "queued"]
@@ -131,13 +154,13 @@ def test_exhausted_uid_halts_queue_and_restart_retries_same_item(tmp_path):
     assert reader.fetches == [2]
     assert service.orchestrator.seen == []
     assert results == []
-    assert service._poll_imap(max_mails=2) == []
+    assert service.mailbox.poll(max_mails=2) == []
     assert reader.fetches == [2]
 
     restarted_reader = Reader(fail=False)
     restarted = app(tmp_path, restarted_reader, Telegram([]), Orch(), store=store,
                     global_newest_first=True)
-    assert len(restarted._poll_imap(max_mails=2)) == 2
+    assert len(restarted.mailbox.poll(max_mails=2)) == 2
     assert restarted_reader.fetches == [2, 3]
     assert restarted.orchestrator.seen == [2, 3]
     with pytest.raises(ValueError, match="Fehlermerkmal"):
@@ -171,7 +194,7 @@ def test_terminal_processing_failure_is_persisted_and_counted(tmp_path):
     service = app(tmp_path, Reader(), Telegram([]), Failed(),
                   global_newest_first=True)
 
-    results = service._poll_imap(max_mails=2)
+    results = service.mailbox.poll(max_mails=2)
 
     run = service.store.load_model("mail-run-" + "0" * 24, MailRunState)
     assert len(results) == 2
@@ -210,7 +233,7 @@ def test_persistent_run_records_duplicate_and_irrelevant_analysis(tmp_path):
 
     service = app(tmp_path, Reader(), Telegram([]), Classified(),
                   global_newest_first=True)
-    service._poll_imap(max_mails=2)
+    service.mailbox.poll(max_mails=2)
     run = service.store.load_model("mail-run-" + "0" * 24, MailRunState)
     assert [entry.analysis_terminal for entry in run.entries] == [
         "duplicate", "irrelevant"
@@ -247,12 +270,12 @@ def test_repeated_global_max_mail_runs_continue_with_next_newest_batch(tmp_path)
 
     first = app(tmp_path, reader, Telegram([]), Orch(), store=store,
                 global_newest_first=True)
-    assert len(first._poll_imap(max_mails=100)) == 100
+    assert len(first.mailbox.poll(max_mails=100)) == 100
     assert reader.fetches == list(range(205, 105, -1))
 
     restarted = app(tmp_path, reader, Telegram([]), Orch(), store=store,
                     global_newest_first=True)
-    assert len(restarted._poll_imap(max_mails=100)) == 100
+    assert len(restarted.mailbox.poll(max_mails=100)) == 100
     assert reader.fetches[100:] == list(range(105, 5, -1))
     assert store.values[key]["completed_uid_ranges"] == [(6, 205)]
 
@@ -280,7 +303,7 @@ def test_run_materializes_exact_bounded_uid_queue_before_fetch(tmp_path, availab
     service = app(tmp_path, reader, Telegram([]), Orch(), store=store,
                   global_newest_first=True)
 
-    assert len(service._poll_imap(max_mails=maximum)) == expected
+    assert len(service.mailbox.poll(max_mails=maximum)) == expected
     run = MailRunState.model_validate(store.values[f"mail-run-{reader.account_id}"])
     assert run.max_mails == maximum
     assert run.counters.completed == expected
@@ -296,7 +319,9 @@ def test_interrupted_batch_resumes_fixed_queue_without_rediscovery_or_reanalysis
     class Reader:
         account_id = "0" * 24
         last_uidvalidity = 7
-        def __init__(self): self.discoveries = 0; self.fetches = []
+        def __init__(self):
+            self.discoveries = 0
+            self.fetches = []
         def discover_since(self, folder, *_args):
             self.discoveries += 1
             return [MailCandidate(folder, 7, uid, self.account_id, stamp)
@@ -312,18 +337,19 @@ def test_interrupted_batch_resumes_fixed_queue_without_rediscovery_or_reanalysis
                 raise Crash()
             return ProcessingResult(ProcessingOutcome.COMPLETED, {})
 
-    store = Store(); reader = Reader()
+    store = Store()
+    reader = Reader()
     first = app(tmp_path, reader, Telegram([]), CrashOnTwo(), store=store,
                 global_newest_first=True)
     with pytest.raises(Crash):
-        first._poll_imap(max_mails=3)
+        first.mailbox.poll(max_mails=3)
     run_name = f"mail-run-{reader.account_id}"
     interrupted = MailRunState.model_validate(store.values[run_name])
     assert [entry.status for entry in interrupted.entries] == ["completed", "processing", "queued"]
 
     restarted = app(tmp_path, reader, Telegram([]), Orch(), store=store,
                     global_newest_first=True)
-    assert len(restarted._poll_imap(max_mails=3)) == 2
+    assert len(restarted.mailbox.poll(max_mails=3)) == 2
     assert reader.discoveries == 1
     assert restarted.orchestrator.seen == [2, 3]
     assert reader.fetches == [1, 2, 2, 3]
@@ -368,7 +394,10 @@ def test_reconnectable_timeout_resumes_same_materialized_queue(tmp_path):
     class Reader:
         account_id = "0" * 24
         last_uidvalidity = 7
-        def __init__(self, timeout=False): self.timeout=timeout; self.discoveries=0; self.fetches=[]
+        def __init__(self, timeout=False):
+            self.timeout=timeout
+            self.discoveries=0
+            self.fetches=[]
         def discover_since(self, folder, *_args):
             self.discoveries += 1
             return [MailCandidate(folder, 7, uid, self.account_id, stamp) for uid in (1, 2, 3)]
@@ -383,7 +412,7 @@ def test_reconnectable_timeout_resumes_same_materialized_queue(tmp_path):
     first = app(tmp_path, disconnected, Telegram([]), Orch(), store=store,
                 global_newest_first=True)
     with pytest.raises(TimeoutError, match="reconnectable"):
-        first._poll_imap(max_mails=100)
+        first.mailbox.poll(max_mails=100)
 
     run_name = f"mail-run-{disconnected.account_id}"
     interrupted = MailRunState.model_validate(store.values[run_name])
@@ -393,7 +422,7 @@ def test_reconnectable_timeout_resumes_same_materialized_queue(tmp_path):
     reconnected = Reader()
     second = app(tmp_path, reconnected, Telegram([]), Orch(), store=store,
                  global_newest_first=True)
-    assert len(second._poll_imap(max_mails=100)) == 1
+    assert len(second.mailbox.poll(max_mails=100)) == 1
     assert reconnected.discoveries == 0
     assert second.orchestrator.seen == [3]
     assert MailRunState.model_validate(store.values[run_name]).run_complete is True
@@ -421,7 +450,7 @@ def test_unhandled_analysis_failure_halts_the_materialized_queue(tmp_path):
     store = Store()
     service = app(tmp_path, Reader(), Telegram([]), FailFirst(), store=store,
                   global_newest_first=True)
-    results = service._poll_imap(max_mails=100)
+    results = service.mailbox.poll(max_mails=100)
     run = MailRunState.model_validate(store.values[f"mail-run-{service.imap.account_id}"])
 
     assert results == []
@@ -438,7 +467,9 @@ def test_acceptance_full_inbox_batch_survives_dialog_timeout_and_optional_folder
     class Reader:
         account_id = "0" * 24
         last_uidvalidity = 7
-        def __init__(self, disconnect=False): self.disconnect=disconnect; self.fetches=[]
+        def __init__(self, disconnect=False):
+            self.disconnect=disconnect
+            self.fetches=[]
         def discover_since(self, folder, *_args):
             if folder != "INBOX":
                 raise RuntimeError(f"synthetic unreadable optional folder: {folder}")
@@ -465,14 +496,14 @@ def test_acceptance_full_inbox_batch_survives_dialog_timeout_and_optional_folder
     first = app(tmp_path, first_reader, Telegram([]), Analyzer(), folders=folders,
                 store=store, global_newest_first=True)
     with pytest.raises(TimeoutError, match="one-shot"):
-        first._poll_imap(max_mails=100)
+        first.mailbox.poll(max_mails=100)
 
     # A new adapter represents the newly established IMAP connection.  It must
     # consume the already persisted queue instead of running discovery again.
     second_reader = Reader()
     second = app(tmp_path, second_reader, Telegram([]), Analyzer(), folders=folders,
                  store=store, global_newest_first=True)
-    resumed_results = second._poll_imap(max_mails=100)
+    resumed_results = second.mailbox.poll(max_mails=100)
     run = MailRunState.model_validate(store.values[f"mail-run-{second_reader.account_id}"])
     identities = [entry.key for entry in run.entries]
     processed = sum(entry.analysis_terminal is not None for entry in run.entries)
@@ -500,7 +531,8 @@ def test_global_mailbox_checkpoint_failures_restarts_and_dialog(tmp_path):
         account_id = "0" * 24
         last_uidvalidity = 7
         def __init__(self, discoveries):
-            self.discoveries = iter(discoveries); self.fetch_error = False
+            self.discoveries = iter(discoveries)
+            self.fetch_error = False
         def discover_since(self, *args):
             value = next(self.discoveries)
             if isinstance(value, Exception): raise value
@@ -515,26 +547,26 @@ def test_global_mailbox_checkpoint_failures_restarts_and_dialog(tmp_path):
     legacy_store = Store({key: {"uidvalidity": 7, "uid": 3, "start_uid": 0}})
     empty = app(tmp_path, GlobalImap([[]]), Telegram([]), Orch(), store=legacy_store,
                 global_newest_first=True)
-    empty._poll_imap()
+    empty.mailbox.poll()
     assert legacy_store.values[key]["completed_uid_ranges"] == []
 
     fresh_store = Store()
     fresh = app(tmp_path, GlobalImap([[]]), Telegram([]), Orch(), store=fresh_store,
                 global_newest_first=True)
-    fresh._poll_imap()
+    fresh.mailbox.poll()
     assert fresh_store.values[key]["uidvalidity"] == 7
 
     failed_imap = GlobalImap([RuntimeError("discovery")])
     failed = app(tmp_path, failed_imap, Telegram([]), Orch(),
                  global_newest_first=True)
-    assert failed._poll_imap() == []
+    assert failed.mailbox.poll() == []
     assert failed.logger.events[-1][0][2] == "poll_failed"
 
     fetch_imap = GlobalImap([[candidate]])
     fetch_imap.fetch_error = True
     fetch_failed = app(tmp_path, fetch_imap, Telegram([]), Orch(),
                        global_newest_first=True)
-    assert fetch_failed._poll_imap() == []
+    assert fetch_failed.mailbox.poll() == []
     assert fetch_failed.logger.events[-1][0][2] == "mail_failed"
 
     class FailedOrch(Orch):
@@ -544,7 +576,7 @@ def test_global_mailbox_checkpoint_failures_restarts_and_dialog(tmp_path):
 
     outcome = app(tmp_path, GlobalImap([[candidate]]), Telegram([]), FailedOrch(),
                   global_newest_first=True)
-    assert outcome._poll_imap()[0].outcome is ProcessingOutcome.FAILED
+    assert outcome.mailbox.poll()[0].outcome is ProcessingOutcome.FAILED
     assert outcome.logger.events[-1][1]["error"] == "failed"
 
     class Dialog:
@@ -556,14 +588,14 @@ def test_global_mailbox_checkpoint_failures_restarts_and_dialog(tmp_path):
     dialog = app(tmp_path, GlobalImap([[candidate]]), Telegram([]), Orch(),
                  global_newest_first=True)
     dialog.dialog = Dialog()
-    assert len(dialog._poll_imap()) == 1
+    assert len(dialog.mailbox.poll()) == 1
     assert dialog.dialog.open is True
 
     stopped = app(tmp_path, GlobalImap([]), Telegram([]), Orch(),
                   global_newest_first=True)
     stopped.stop_event.set()
-    assert stopped._poll_imap() == []
-    assert stopped._poll_imap_global(_MailBudget(1)) == []
+    assert stopped.mailbox.poll() == []
+    assert stopped.mailbox.poll_global(_MailBudget(1)) == []
 
     interrupted = app(tmp_path, GlobalImap([[candidate]]), Telegram([]), Orch(),
                       global_newest_first=True)
@@ -573,14 +605,14 @@ def test_global_mailbox_checkpoint_failures_restarts_and_dialog(tmp_path):
         interrupted.stop_event.set()
         return result
     interrupted.imap.discover_since = discover_and_stop
-    assert interrupted._poll_imap() == []
+    assert interrupted.mailbox.poll() == []
 
     two_candidates = [candidate, MailCandidate("INBOX", 7, 6, "0" * 24, stamp)]
     stopped_during_processing = app(
         tmp_path, GlobalImap([two_candidates]), Telegram([]), Orch(stop=True),
         global_newest_first=True,
     )
-    assert len(stopped_during_processing._poll_imap()) == 1
+    assert len(stopped_during_processing.mailbox.poll()) == 1
 
     technically_blocked = app(
         tmp_path, GlobalImap([two_candidates]), Telegram([]), Orch(),
@@ -591,7 +623,7 @@ def test_global_mailbox_checkpoint_failures_restarts_and_dialog(tmp_path):
         "awaiting_relevance_decision": lambda self: False,
         "processing_blocked": lambda self: True,
     })()
-    assert len(technically_blocked._poll_imap()) == 2
+    assert len(technically_blocked.mailbox.poll()) == 2
     blocked_run = MailRunState.model_validate(
         technically_blocked.store.values[f"mail-run-{technically_blocked.imap.account_id}"]
     )
@@ -607,7 +639,9 @@ def test_global_mailbox_uidvalidity_and_historical_boundary(tmp_path):
     class ChangingImap:
         account_id = "0" * 24
         last_uidvalidity = 7
-        def __init__(self, drift=False): self.calls = 0; self.drift = drift
+        def __init__(self, drift=False):
+            self.calls = 0
+            self.drift = drift
         def determine_start_uid(self, _folder, _start):
             self.last_uidvalidity = 9 if self.drift else (8 if self.calls else 7)
             return 4
@@ -624,7 +658,7 @@ def test_global_mailbox_uidvalidity_and_historical_boundary(tmp_path):
     imap = ChangingImap()
     service = Application(configured, Store(), Log(), imap, object(), object(),
                           Telegram([]), object(), object(), Orch(), __import__('threading').Event())
-    assert len(service._poll_imap()) == 1
+    assert len(service.mailbox.poll()) == 1
     assert service.store.values[key]["uidvalidity"] == 8
     assert any(event[0][2] == "uidvalidity_changed" for event in service.logger.events)
 
@@ -632,7 +666,7 @@ def test_global_mailbox_uidvalidity_and_historical_boundary(tmp_path):
     drift_store = Store({key: {"uidvalidity": 7, "uid": 4, "start_uid": 4}})
     drifted = Application(configured, drift_store, Log(), drifting, object(), object(),
                           Telegram([]), object(), object(), Orch(), __import__('threading').Event())
-    assert drifted._poll_imap() == []
+    assert drifted.mailbox.poll() == []
     assert "während der Grenzermittlung" in drifted.logger.events[-1][1]["error"]
 
     no_history = settings(tmp_path, global_newest_first=True)
@@ -640,7 +674,7 @@ def test_global_mailbox_uidvalidity_and_historical_boundary(tmp_path):
     changed_store = Store({key: {"uidvalidity": 7, "uid": 4, "start_uid": 4}})
     reset = Application(no_history, changed_store, Log(), changed, object(), object(),
                         Telegram([]), object(), object(), Orch(), __import__('threading').Event())
-    assert len(reset._poll_imap()) == 1
+    assert len(reset.mailbox.poll()) == 1
 
 
 def test_global_mailbox_can_ignore_persisted_historical_boundary(tmp_path):
@@ -677,10 +711,12 @@ def test_global_mailbox_can_ignore_persisted_historical_boundary(tmp_path):
 
 
 def test_polling_errors_resume_and_stop(tmp_path):
-    mail1=FetchedMail("INBOX",7,4,b"x"); mail2=FetchedMail("INBOX",7,5,b"x")
+    mail1=FetchedMail("INBOX",7,4,b"x")
+    mail2=FetchedMail("INBOX",7,5,b"x")
     store=Store({_checkpoint_name("0"*24, "INBOX"):{"uidvalidity":7,"uid":3},"telegram-offset":{"offset":8}})
     service=app(tmp_path,Imap([(7,[mail1,mail2])]),Telegram([{"update_id":8},{"update_id":10}]),Orch(fail=True),store=store)
-    service._poll_imap(); service._poll_telegram()
+    service.mailbox.poll()
+    service._poll_telegram()
     assert service.imap.calls==[("INBOX",3,7,None,())] and service.orchestrator.seen==[4,5]
     assert store.values[_checkpoint_name("0"*24, "INBOX")]["uid"]==3 and store.values["telegram-offset"]["offset"]==11
     assert any(e[0][2]=="mail_failed" for e in service.logger.events)
@@ -692,7 +728,7 @@ def test_polling_errors_resume_and_stop(tmp_path):
             return ProcessingResult(ProcessingOutcome.COMPLETED,{})
     mixed_store=Store({_checkpoint_name("0"*24, "INBOX"):{"uidvalidity":7,"uid":3}})
     mixed=app(tmp_path,Imap([(7,[mail1,mail2])]),Telegram([]),FirstFails(),store=mixed_store)
-    mixed._poll_imap()
+    mixed.mailbox.poll()
     assert mixed.orchestrator.seen==[4,5]
     assert mixed_store.values[_checkpoint_name("0"*24, "INBOX")]["uid"]==5
     assert mixed_store.values[_checkpoint_name("0"*24, "INBOX")]["completed_uid_ranges"]==[(5,5)]
@@ -704,7 +740,7 @@ def test_polling_errors_resume_and_stop(tmp_path):
             return ProcessingResult(outcome,{"error":{"type":"RuntimeError","message":"mail"}} if mail.uid==4 else {})
     durable_store=Store({_checkpoint_name("0"*24, "INBOX"):{"uidvalidity":7,"uid":3}})
     durable=app(tmp_path,Imap([(7,[mail1,mail2])]),Telegram([]),FirstReturnsFailure(),store=durable_store)
-    results=durable._poll_imap()
+    results=durable.mailbox.poll()
     assert [result.outcome for result in results]==[ProcessingOutcome.FAILED, ProcessingOutcome.COMPLETED]
     assert durable.orchestrator.seen==[4,5]
     assert durable_store.values[_checkpoint_name("0"*24, "INBOX")]["uid"]==5
@@ -712,30 +748,37 @@ def test_polling_errors_resume_and_stop(tmp_path):
     assert any(e[0][2]=="mail_failed" and e[1]["uid"]==4 for e in durable.logger.events)
 
     failing=app(tmp_path,Imap([RuntimeError("imap"),(9,[]),(10,[])]),Telegram(RuntimeError("tg")),Orch(),folders=("bad","new","none"))
-    failing._poll_imap(); failing._poll_telegram()
+    failing.mailbox.poll()
+    failing._poll_telegram()
     assert len(failing.logger.events)==2
     assert failing.store.values[_checkpoint_name("0"*24, "new")]["uidvalidity"]==9
     assert failing.store.values[_checkpoint_name("0"*24, "none")]["uidvalidity"]==10
 
     stopped=app(tmp_path,Imap([(1,[mail1,mail2])]),Telegram([]),Orch(stop=True),folders=("INBOX","Other"))
-    stopped._poll_imap(); assert stopped.orchestrator.seen==[4]
-    stopped.stop(); assert stopped.stop_event.is_set() and stopped.orchestrator.stop_called
+    stopped.mailbox.poll()
+    assert stopped.orchestrator.seen==[4]
+    stopped.stop()
+    assert stopped.stop_event.is_set() and stopped.orchestrator.stop_called
 
     limited=app(tmp_path,Imap([(7,[mail1])]),Telegram([]),Orch(),store=store)
-    limited._poll_imap(max_mails=1)
+    limited.mailbox.poll(max_mails=1)
     assert limited.imap.calls == [("INBOX",3,7,1,())]
 
 
 def test_empty_checkpoint_and_run_paths(tmp_path):
     key=_checkpoint_name("0"*24, "INBOX")
     store=Store({key:{"uidvalidity":4,"uid":12}})
-    same=app(tmp_path,Imap([(4,[])]),Telegram([]),Orch(),store=store); same._poll_imap()
+    same=app(tmp_path,Imap([(4,[])]),Telegram([]),Orch(),store=store)
+    same.mailbox.poll()
     assert store.values[key]["uid"]==12
-    none=app(tmp_path,Imap([(None,[])]),Telegram([]),Orch()); none._poll_imap()
+    none=app(tmp_path,Imap([(None,[])]),Telegram([]),Orch())
+    none.mailbox.poll()
     assert none.store.saved[0][1]["start_uid"] == 0
-    none.stop_event.set(); none.run()
+    none.stop_event.set()
+    none.run()
     running=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch())
-    running._poll_imap=lambda _limit=None: (running.stop_event.set(), [])[1]; running.run()
+    running._poll_imap=lambda _limit=None: (running.stop_event.set(), [])[1]
+    running.run()
     complete=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch())
     complete._poll_imap=lambda _limit=None: []
     complete._poll_telegram=lambda: complete.stop_event.set()
@@ -757,21 +800,33 @@ def test_empty_checkpoint_and_run_paths(tmp_path):
     assert datetime.fromisoformat(failed_cleanup.logger.events[1][1]["processed_at"]).tzinfo is not None
 
     class Dialog:
-        def __init__(self, error=None): self.calls=0; self.error=error
+        def __init__(self, error=None):
+            self.calls=0
+            self.error=error
         def poll_once(self, timeout=None):
             self.calls += 1
             if self.error: raise self.error
-    dialog_app=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch()); dialog_app.dialog=Dialog(); dialog_app._poll_telegram(); assert dialog_app.dialog.calls==1
-    failed_dialog=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch()); failed_dialog.dialog=Dialog(RuntimeError("dialog")); failed_dialog._poll_telegram()
+    dialog_app=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch())
+    dialog_app.dialog=Dialog()
+    dialog_app._poll_telegram()
+    assert dialog_app.dialog.calls==1
+    failed_dialog=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch())
+    failed_dialog.dialog=Dialog(RuntimeError("dialog"))
+    failed_dialog._poll_telegram()
     assert failed_dialog.logger.events[0][0][2]=="poll_failed"
 
 
 def test_run_waits_for_open_relevance_before_polling_imap(tmp_path):
     class ControlledStop:
-        def __init__(self): self.stopped=False; self.waits=[]
+        def __init__(self):
+            self.stopped=False
+            self.waits=[]
         def is_set(self): return self.stopped
         def set(self): self.stopped=True
-        def wait(self, seconds): self.waits.append(seconds); self.stopped=True; return True
+        def wait(self, seconds):
+            self.waits.append(seconds)
+            self.stopped=True
+            return True
     class Dialog:
         def __init__(self): self.polls=0
         def poll_once(self, timeout=None):
@@ -782,7 +837,9 @@ def test_run_waits_for_open_relevance_before_polling_imap(tmp_path):
         def awaiting_relevance_decision(self): return self.open
 
     service=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch())
-    stop=ControlledStop(); service.stop_event=stop; service.dialog=Dialog()
+    stop=ControlledStop()
+    service.stop_event=stop
+    service.dialog=Dialog()
     service.run()
 
     assert service.dialog.polls == 2
@@ -802,7 +859,7 @@ def test_mail_batch_does_not_poll_telegram_without_an_open_question(tmp_path):
     service.dialog.awaiting_decision = lambda: False
     service.dialog.awaiting_relevance_decision = lambda: False
 
-    results = service._poll_imap()
+    results = service.mailbox.poll()
 
     assert len(results) == 2
     assert service.orchestrator.seen == [1, 2]
@@ -843,7 +900,12 @@ def test_versioned_answer_is_processed_before_later_mail(tmp_path):
     reference = ("a" * 24, "proposal-2", 3)
 
     class Dialog:
-        def __init__(self): self.updates=[]; self.handled=[]; self.executions=[]; self.polls=0; self.open=False
+        def __init__(self):
+            self.updates=[]
+            self.handled=[]
+            self.executions=[]
+            self.polls=0
+            self.open=False
         def poll_once(self, timeout=None):
             self.polls += 1
             if not self.open:
@@ -890,8 +952,12 @@ def test_versioned_answer_is_processed_before_later_mail(tmp_path):
 
 def test_existing_relevance_is_resolved_before_processing_mail(tmp_path):
     class Dialog:
-        def __init__(self): self.polls = 0; self.open = True
-        def poll_once(self, timeout=None): self.polls += 1; self.open = False
+        def __init__(self):
+            self.polls = 0
+            self.open = True
+        def poll_once(self, timeout=None):
+            self.polls += 1
+            self.open = False
         def awaiting_decision(self): return self.open
         def awaiting_relevance_decision(self): return self.open
 
@@ -920,7 +986,9 @@ def test_relevance_wait_returns_when_shutdown_interrupts_it(tmp_path):
     class StopOnWait:
         stopped = False
         def is_set(self): return self.stopped
-        def wait(self, _seconds): self.stopped = True; return True
+        def wait(self, _seconds):
+            self.stopped = True
+            return True
 
     dialog = Dialog()
     service = app(tmp_path, Imap([]), Telegram([]), OpensDialog())
@@ -936,7 +1004,9 @@ def test_relevance_wait_returns_when_shutdown_interrupts_it(tmp_path):
 def test_run_waits_when_regular_telegram_poll_opens_dialog(tmp_path):
     calls = []
     class Dialog:
-        def __init__(self): self.open = False; self.polls = 0
+        def __init__(self):
+            self.open = False
+            self.polls = 0
         def awaiting_decision(self): return self.open
         def awaiting_relevance_decision(self): return self.open
         def poll_once(self, timeout=None):
@@ -948,7 +1018,9 @@ def test_run_waits_when_regular_telegram_poll_opens_dialog(tmp_path):
         def __init__(self): self.stopped = False
         def is_set(self): return self.stopped
         def set(self): self.stopped = True
-        def wait(self, _seconds): self.stopped = True; return True
+        def wait(self, _seconds):
+            self.stopped = True
+            return True
 
     service = app(tmp_path, Imap([(1, [])]), Telegram([]), Orch())
     service.dialog = Dialog()
@@ -999,7 +1071,9 @@ def test_waiting_relevance_handles_closed_dialog_and_poll_failure(tmp_path):
     class StopOnWait:
         def __init__(self): self.stopped = False
         def is_set(self): return self.stopped
-        def wait(self, _seconds): self.stopped = True; return True
+        def wait(self, _seconds):
+            self.stopped = True
+            return True
 
     service.dialog.open = True
     service.stop_event = StopOnWait()
@@ -1010,13 +1084,19 @@ def test_waiting_relevance_handles_closed_dialog_and_poll_failure(tmp_path):
 
 def test_run_keeps_imap_interval_without_open_dialog(tmp_path):
     class ControlledStop:
-        def __init__(self): self.stopped=False; self.waits=[]
+        def __init__(self):
+            self.stopped=False
+            self.waits=[]
         def is_set(self): return self.stopped
         def set(self): self.stopped=True
-        def wait(self, seconds): self.waits.append(seconds); self.stopped=True; return True
+        def wait(self, seconds):
+            self.waits.append(seconds)
+            self.stopped=True
+            return True
 
     service=app(tmp_path,Imap([(1,[])]),Telegram([]),Orch())
-    stop=ControlledStop(); service.stop_event=stop
+    stop=ControlledStop()
+    service.stop_event=stop
     service.run()
 
     assert service.imap.calls == [("INBOX",0,None,None,())]
@@ -1025,18 +1105,27 @@ def test_run_keeps_imap_interval_without_open_dialog(tmp_path):
 
 def test_telegram_poll_failure_backs_off_and_shutdown_interrupts_it(tmp_path):
     class ControlledStop:
-        def __init__(self): self.stopped=False; self.waits=[]
+        def __init__(self):
+            self.stopped=False
+            self.waits=[]
         def is_set(self): return self.stopped
         def set(self): self.stopped=True
-        def wait(self, seconds): self.waits.append(seconds); self.stopped=True; return True
+        def wait(self, seconds):
+            self.waits.append(seconds)
+            self.stopped=True
+            return True
     class FailingDialog:
         def __init__(self): self.polls=0
-        def poll_once(self, timeout=None): self.polls += 1; raise RuntimeError("network")
+        def poll_once(self, timeout=None):
+            self.polls += 1
+            raise RuntimeError("network")
         def awaiting_decision(self): return True
         def awaiting_relevance_decision(self): return True
 
     service=app(tmp_path,Imap([]),Telegram([]),Orch())
-    stop=ControlledStop(); service.stop_event=stop; service.dialog=FailingDialog()
+    stop=ControlledStop()
+    service.stop_event=stop
+    service.dialog=FailingDialog()
     service.run()
 
     assert service.dialog.polls == 1
@@ -1088,8 +1177,12 @@ def test_google_oauth_failure_stops_application_without_retry(tmp_path, notifica
 
 def test_shutdown_requested_during_long_poll_stops_before_retry(tmp_path):
     class Dialog:
-        def __init__(self, stop): self.stop=stop; self.polls=0
-        def poll_once(self, timeout=None): self.polls += 1; self.stop.set()
+        def __init__(self, stop):
+            self.stop=stop
+            self.polls=0
+        def poll_once(self, timeout=None):
+            self.polls += 1
+            self.stop.set()
         def awaiting_decision(self): return True
         def awaiting_relevance_decision(self): return True
 
@@ -1106,7 +1199,8 @@ def test_newest_first_backlog_arrivals_restart_failure_and_folders(tmp_path):
         account_id="0"*24
         last_uidvalidity=None
         def __init__(self):
-            self.available={"INBOX":[4,5,6],"Archive":[2]}; self.calls=[]
+            self.available={"INBOX":[4,5,6],"Archive":[2]}
+            self.calls=[]
         def fetch_since(self,folder,start,expected,maximum,ranges):
             self.calls.append((folder,start,expected,maximum,ranges))
             self.last_uidvalidity=7
@@ -1116,16 +1210,21 @@ def test_newest_first_backlog_arrivals_restart_failure_and_folders(tmp_path):
             return [FetchedMail(folder,7,uid,b"x") for uid in remaining[:count]]
         def fetch_uid(self,*_args): raise AssertionError("no pending state")
     class FailFiveOnce(Orch):
-        def __init__(self): super().__init__(); self.failed=False
+        def __init__(self):
+            super().__init__()
+            self.failed=False
         def process(self,mail):
             self.seen.append(mail.uid)
             if mail.uid==5 and not self.failed:
-                self.failed=True; raise RuntimeError("synthetic")
+                self.failed=True
+                raise RuntimeError("synthetic")
             return ProcessingResult(ProcessingOutcome.COMPLETED,{})
 
-    reader=BacklogImap(); store=Store(); folders=("INBOX","Archive")
+    reader=BacklogImap()
+    store=Store()
+    folders=("INBOX","Archive")
     first=app(tmp_path,reader,Telegram([]),FailFiveOnce(),folders=folders,store=store)
-    first._poll_imap(max_mails=2)
+    first.mailbox.poll(max_mails=2)
     key=_checkpoint_name(reader.account_id,"INBOX")
     assert first.orchestrator.seen==[6,5]
     assert store.values[key]["completed_uid_ranges"]==[(6,6)]
@@ -1134,10 +1233,10 @@ def test_newest_first_backlog_arrivals_restart_failure_and_folders(tmp_path):
     # Application instance proves that the JSON checkpoint alone is sufficient.
     reader.available["INBOX"].append(7)
     restarted=app(tmp_path,reader,Telegram([]),Orch(),folders=folders,store=store)
-    restarted._poll_imap(max_mails=2)
+    restarted.mailbox.poll(max_mails=2)
     assert restarted.orchestrator.seen==[7,5]
     assert store.values[key]["completed_uid_ranges"]==[(5,7)]
-    restarted._poll_imap(max_mails=2)
+    restarted.mailbox.poll(max_mails=2)
     assert restarted.orchestrator.seen==[7,5,4,2]
     assert store.values[key]["completed_uid_ranges"]==[(4,7)]
     assert store.values[_checkpoint_name(reader.account_id,"Archive")]["completed_uid_ranges"]==[(2,2)]
@@ -1153,7 +1252,7 @@ def _persisted_run(entries):
     return MailRunState(
         run_id="00000000-0000-0000-0000-000000000001", max_mails=100,
         created_at=datetime.now(timezone.utc), entries=entries,
-        counters=Application._run_counters(entries),
+        counters=MailboxRunService.run_counters(entries),
     )
 
 
@@ -1317,7 +1416,7 @@ def test_mail_budget_and_limit_consumed_by_resume_before_folder_poll(tmp_path):
 
     pending=MailState(id="a"*24,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":7,"uid":2})
     service=app(tmp_path,Imap([]),Telegram([]),Orch(),store=Store({"mail-a":pending.model_dump(mode="json")}))
-    assert len(service._poll_imap(max_mails=1)) == 1
+    assert len(service.mailbox.poll(max_mails=1)) == 1
     assert service.imap.calls == []
 
 
@@ -1355,7 +1454,7 @@ def test_max_mail_resume_persists_completion_and_continues_with_unprocessed_mail
 
     first = app(tmp_path, reader, Telegram([]), Orch(), store=store,
                 global_newest_first=True)
-    assert len(first._poll_imap(max_mails=1)) == 1
+    assert len(first.mailbox.poll(max_mails=1)) == 1
     persisted = MailRunState.model_validate(store.values[run_name])
     assert [entry.status for entry in persisted.entries] == ["completed", "queued"]
     assert store.values[_checkpoint_name(account, "INBOX")]["completed_uid_ranges"] == [(2, 2)]
@@ -1365,7 +1464,7 @@ def test_max_mail_resume_persists_completion_and_continues_with_unprocessed_mail
 
     restarted = app(tmp_path, reader, Telegram([]), Orch(), store=store,
                     global_newest_first=True)
-    assert len(restarted._poll_imap(max_mails=1)) == 1
+    assert len(restarted.mailbox.poll(max_mails=1)) == 1
     assert restarted.orchestrator.seen == [1]
     assert reader.uid_calls == [("INBOX", 2, 7), ("INBOX", 1, 7)]
 
@@ -1381,7 +1480,7 @@ def test_resumed_run_completion_handles_terminal_variants_and_safe_checkpoints(t
         run = MailRunState(
             run_id="00000000-0000-0000-0000-000000000001", max_mails=1,
             created_at=datetime.now(timezone.utc), entries=[entry],
-            counters=Application._run_counters([entry]),
+            counters=MailboxRunService.run_counters([entry]),
         )
         values = {f"mail-run-{account}": run.model_dump(mode="json")}
         if checkpoint is not None:
@@ -1395,7 +1494,7 @@ def test_resumed_run_completion_handles_terminal_variants_and_safe_checkpoints(t
     duplicate = service_with(processing, {
         "uidvalidity": 8, "uid": 0, "start_uid": 0,
     })
-    duplicate._complete_resumed_run_entry(state, ProcessingResult(
+    duplicate.mailbox.complete_resumed_entry(state, ProcessingResult(
         ProcessingOutcome.COMPLETED, {"duplicate": {"outcome": "duplicate", "previous_mail_id": "b"}},
     ))
     assert duplicate.store.load_model(
@@ -1406,7 +1505,7 @@ def test_resumed_run_completion_handles_terminal_variants_and_safe_checkpoints(t
     waiting = service_with(processing.model_copy(), {
         "uidvalidity": 7, "uid": 1, "start_uid": 0,
     })
-    waiting._complete_resumed_run_entry(state, ProcessingResult(
+    waiting.mailbox.complete_resumed_entry(state, ProcessingResult(
         ProcessingOutcome.WAITING, {"relevance": {"decision": "irrelevant"}},
     ))
     waiting_entry = waiting.store.load_model(
@@ -1424,7 +1523,7 @@ def test_resumed_run_completion_handles_terminal_variants_and_safe_checkpoints(t
         status="completed", analysis_terminal="completed",
     )
     already_done = service_with(terminal)
-    already_done._complete_resumed_run_entry(
+    already_done.mailbox.complete_resumed_entry(
         state, ProcessingResult(ProcessingOutcome.COMPLETED, {})
     )
 
@@ -1443,7 +1542,7 @@ def test_resumed_run_completion_handles_terminal_variants_and_safe_checkpoints(t
         tmp_path, Imap([]), Telegram([]), Orch(),
         store=Store({f"mail-run-{account}": mismatch_run.model_dump(mode="json")}),
     )
-    mismatch_service._complete_resumed_run_entry(
+    mismatch_service.mailbox.complete_resumed_entry(
         state, ProcessingResult(ProcessingOutcome.COMPLETED, {})
     )
 
@@ -1462,7 +1561,7 @@ def test_fingerprint_blocked_backlog_has_separate_limit_and_does_not_starve_new_
     new=[FetchedMail("INBOX",7,5,b"x"),FetchedMail("INBOX",7,6,b"x")]
     service=app(tmp_path,Imap([(7,new)]),Telegram([]),Orch(config_fingerprint=active),store=store)
 
-    results=service._poll_imap(max_mails=2)
+    results=service.mailbox.poll(max_mails=2)
 
     assert [result.outcome for result in results] == [
         ProcessingOutcome.WAITING, ProcessingOutcome.WAITING,
@@ -1475,7 +1574,7 @@ def test_fingerprint_blocked_backlog_has_separate_limit_and_does_not_starve_new_
                 if event[0][2] == "configuration_changed"]) == 2
 
     restarted=app(tmp_path,Imap([(7,[])]),Telegram([]),Orch(config_fingerprint=active),store=store)
-    restarted_results=restarted._poll_imap(max_mails=2)
+    restarted_results=restarted.mailbox.poll(max_mails=2)
     assert len(restarted_results) == 2
     assert restarted.imap.uid_calls == []
     assert restarted.orchestrator.seen == []
@@ -1491,7 +1590,7 @@ def test_resume_mixes_matching_and_blocked_fingerprints_without_resuming_blocked
         ).model_dump(mode="json")
     service=app(tmp_path,Imap([]),Telegram([]),Orch(config_fingerprint=active),store=Store(states))
 
-    results=service._resume_pending(_MailBudget(2))
+    results=service.mailbox.resume_pending(_MailBudget(2))
 
     assert [result.outcome for result in results] == [
         ProcessingOutcome.COMPLETED, ProcessingOutcome.WAITING,
@@ -1509,7 +1608,7 @@ def test_resume_mixes_matching_and_blocked_fingerprints_without_resuming_blocked
         "awaiting_relevance_decision": lambda self: False,
         "processing_blocked": lambda self: True,
     })()
-    assert len(stopped._resume_pending(_MailBudget(2))) == 3
+    assert len(stopped.mailbox.resume_pending(_MailBudget(2))) == 3
     assert stopped.orchestrator.seen == [1,3]
 
 
@@ -1519,23 +1618,26 @@ def test_resume_due_pending_states_and_isolate_failures(tmp_path):
     completed=MailState(id="c"*24,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":7,"uid":6})
     completed.steps.completion="completed"
     store=Store({"mail-a":due.model_dump(mode="json"),"mail-b":future.model_dump(mode="json"),"mail-c":completed.model_dump(mode="json"),"mail-missing":None})
-    imap=Imap([]); orch=Orch(); service=app(tmp_path,imap,Telegram([]),orch,store=store)
-    results=service._resume_pending()
+    imap=Imap([])
+    orch=Orch()
+    service=app(tmp_path,imap,Telegram([]),orch,store=store)
+    results=service.mailbox.resume_pending()
     assert imap.uid_calls==[("INBOX",4,7)] and orch.seen==[4]
     assert results[0].outcome is ProcessingOutcome.COMPLETED
 
     failed_orch=Orch()
     failed_orch.process=lambda mail: ProcessingResult(ProcessingOutcome.FAILED,{"error":{"type":"RuntimeError","message":"resume"}})
     failed_service=app(tmp_path,Imap([]),Telegram([]),failed_orch,store=Store({"mail-a":due.model_dump(mode="json")}))
-    assert failed_service._resume_pending()[0].outcome is ProcessingOutcome.FAILED
+    assert failed_service.mailbox.resume_pending()[0].outcome is ProcessingOutcome.FAILED
     assert failed_service.logger.events[0][0][2]=="resume_failed"
 
     class BrokenImap(Imap):
         def fetch_uid(self,*args): raise RuntimeError("gone")
     broken=app(tmp_path,BrokenImap([]),Telegram([]),Orch(),store=Store({"mail-a":due.model_dump(mode="json")}))
-    broken._resume_pending()
+    broken.mailbox.resume_pending()
     assert broken.logger.events[0][0][2]=="resume_failed"
-    broken.stop_event.set(); broken._resume_pending()
+    broken.stop_event.set()
+    broken.mailbox.resume_pending()
 
 
 @pytest.mark.parametrize(("mode","starttls"), [("ssl",False),("starttls",True),("plain",False)])
@@ -1565,7 +1667,8 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
     monkeypatch.setattr("mailhelp.application.TelegramClient",FakeTelegram)
     monkeypatch.setattr("mailhelp.application.HttpWriter",FakeWriter)
     monkeypatch.setattr("mailhelp.application.GoogleOAuthTokenProvider",FakeOAuth)
-    cfg=settings(tmp_path); cfg.imap.connection_mode=mode
+    cfg=settings(tmp_path)
+    cfg.imap.connection_mode=mode
     cfg.logging.file.enabled = False
     cfg.logging.file.level = "CRITICAL"
     cfg.logging.console.enabled = False
@@ -1628,7 +1731,8 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
         ):
             pass
 
-    cfg.data_directory=Path("relative"); cfg.logging.directory=Path("relative-logs")
+    cfg.data_directory=Path("relative")
+    cfg.logging.directory=Path("relative-logs")
     monkeypatch.setattr("mailhelp.application.ImapReader",FakeImap)
     class BrokenTelegram(Resource):
         def __init__(self,*args,**kwargs): raise RuntimeError("build")
@@ -1753,54 +1857,63 @@ def test_state_directory_separates_every_durable_state_and_lock(tmp_path):
 
 def test_historical_start_is_persisted_account_scoped_and_uidvalidity_logged(tmp_path):
     boundary=datetime(2025,1,2,3,4,tzinfo=timezone.utc)
-    cfg=settings(tmp_path); cfg.imap.historical_start=boundary
-    fake=Imap([(8,[])]); fake.account_id="1"*24
+    cfg=settings(tmp_path)
+    cfg.imap.historical_start=boundary
+    fake=Imap([(8,[])])
+    fake.account_id="1"*24
     fake.determine_calls=[]
     def initial_boundary(folder, start):
-        fake.determine_calls.append((folder,start)); fake.last_uidvalidity=8; return 41
+        fake.determine_calls.append((folder,start))
+        fake.last_uidvalidity=8
+        return 41
     fake.determine_start_uid=initial_boundary
-    store=Store(); service=Application(cfg,store,Log(),fake,object(),object(),Telegram([]),object(),object(),Orch(),__import__('threading').Event())
-    service._poll_imap()
+    store=Store()
+    service=Application(cfg,store,Log(),fake,object(),object(),Telegram([]),object(),object(),Orch(),__import__('threading').Event())
+    service.mailbox.poll()
     key=_checkpoint_name("1"*24,"INBOX")
     assert fake.determine_calls==[("INBOX",boundary)]
     assert fake.calls==[("INBOX",41,8,None,())] and store.values[key]["start_uid"]==41
 
     before_boundary=FetchedMail("INBOX",9,1,b"must-not-be-delivered")
-    restarted=Imap([(9,[before_boundary]),(9,[])]); restarted.account_id="1"*24
+    restarted=Imap([(9,[before_boundary]),(9,[])])
+    restarted.account_id="1"*24
     restarted.determine_start_uid=lambda *_: setattr(restarted,"last_uidvalidity",9) or 42
     again=Application(cfg,store,Log(),restarted,object(),object(),Telegram([]),object(),object(),Orch(),__import__('threading').Event())
-    again._poll_imap()
+    again.mailbox.poll()
     assert restarted.calls==[("INBOX",41,8,None,()),("INBOX",42,9,None,())]
     assert again.orchestrator.seen==[]
     assert store.values[key]["start_uid"]==42
     assert any(event[0][2]=="uidvalidity_changed" for event in again.logger.events)
 
-    changed=Imap([(3,[])]); changed.account_id="2"*24
+    changed=Imap([(3,[])])
+    changed.account_id="2"*24
     changed.determine_start_uid=lambda *_: setattr(changed,"last_uidvalidity",3) or 7
     other=Application(cfg,store,Log(),changed,object(),object(),Telegram([]),object(),object(),Orch(),__import__('threading').Event())
-    other._poll_imap()
+    other.mailbox.poll()
     assert _checkpoint_name("2"*24,"INBOX") in store.values
 
     no_history_store=Store({_checkpoint_name("0"*24,"INBOX"):{"uidvalidity":1,"uid":9,"start_uid":0}})
     no_history=app(tmp_path,Imap([(2,[])]),Telegram([]),Orch(),store=no_history_store)
-    no_history._poll_imap()
+    no_history.mailbox.poll()
     assert no_history_store.values[_checkpoint_name("0"*24,"INBOX")]["uid"]==0
 
-    broken=Imap([(10,[]) ]); broken.account_id="1"*24
+    broken=Imap([(10,[]) ])
+    broken.account_id="1"*24
     broken.determine_start_uid=lambda *_: (_ for _ in ()).throw(RuntimeError("boundary"))
     failed=Application(cfg,store,Log(),broken,object(),object(),Telegram([]),object(),object(),Orch(),__import__('threading').Event())
-    failed._poll_imap()
+    failed.mailbox.poll()
     assert failed.logger.events[-1][0][2]=="poll_failed"
 
-    drifting=Imap([(10,[])]); drifting.account_id="1"*24
+    drifting=Imap([(10,[])])
+    drifting.account_id="1"*24
     drifting.determine_start_uid=lambda *_: setattr(drifting,"last_uidvalidity",11) or 5
     drifted=Application(cfg,store,Log(),drifting,object(),object(),Telegram([]),object(),object(),Orch(),__import__('threading').Event())
-    drifted._poll_imap()
+    drifted.mailbox.poll()
     assert len(drifting.calls)==1 and "während der Grenzermittlung" in drifted.logger.events[-1][1]["error"]
 
     foreign=MailState(id="f"*24,config_fingerprint="0"*64,imap={"account_id":"9"*24,"folder":"INBOX","uidvalidity":1,"uid":1})
     other.store.values["mail-foreign"]=foreign.model_dump(mode="json")
-    assert other._resume_pending()==[] and changed.uid_calls==[]
+    assert other.mailbox.resume_pending()==[] and changed.uid_calls==[]
 
 
 def test_ignore_historical_start_reopens_older_uids_without_repeating_completed(tmp_path):
@@ -1821,7 +1934,7 @@ def test_ignore_historical_start_reopens_older_uids_without_repeating_completed(
                           Telegram([]), object(), object(), Orch(),
                           __import__('threading').Event())
 
-    assert len(service._poll_imap(
+    assert len(service.mailbox.poll(
         max_mails=1, ignore_historical_start=True
     )) == 1
     assert reader.calls == [("INBOX", 0, 7, 1, ((42, 45),))]
@@ -1838,8 +1951,8 @@ def test_startup_restores_durable_proposal_once_and_last_decision_resumes_imap(t
         c, _, _ = controller(store)
         c.persist(item)
         if editing:
-            c._decide(Decision(mail_id=item.source_mail_id, proposal_id=item.id,
-                               version=1, action=DecisionAction.EDIT))
+            c.decision_service.decide(Decision(mail_id=item.source_mail_id, proposal_id=item.id,
+                               version=1, action=DecisionAction.EDIT), c.user_id, c.chat_id)
     with JsonStore(tmp_path / 'state') as store:
         c, telegram, _ = controller(store)
         service = app(tmp_path, Imap([(1, [])]), telegram, Orch(), store=store)
@@ -1855,8 +1968,8 @@ def test_startup_restores_durable_proposal_once_and_last_decision_resumes_imap(t
             assert telegram.sent[2][1].startswith('❓ ')
         else:
             assert telegram.sent[2][2]['inline_keyboard'][0][0]['text'] == 'Klären'
-        c._decide(Decision(mail_id=item.source_mail_id, proposal_id=item.id,
-                           version=1, action=DecisionAction.REJECT))
+        c.decision_service.decide(Decision(mail_id=item.source_mail_id, proposal_id=item.id,
+                           version=1, action=DecisionAction.REJECT), c.user_id, c.chat_id)
         assert not c.awaiting_decision()
         assert not any(args[2] == 'startup_decisions_failed' for args, _ in service.logger.events)
 

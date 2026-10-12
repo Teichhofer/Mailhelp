@@ -34,9 +34,12 @@ def mock_response(status=200, data=None):
 def test_openrouter(monkeypatch):
     data={"id":"completion-1","choices":[{"message":{"content":json.dumps({"decision":"irrelevant","reason":"x"})}}]}
     client=OpenRouterClient("secret", 1, 0, 1, httpx.MockTransport(mock_response(data=data)))
-    call, result=client.complete("m", {}, "s", {"x":1}); assert call and result["decision"] == "irrelevant"
+    call, result=client.complete("m", {}, "s", {"x":1})
+    assert call and result["decision"] == "irrelevant"
     with pytest.raises(RateLimitExceeded): client.complete("m", {}, "s", {})
-    client.calls[0] -= 61; client.complete("m", {}, "s", {}); client.close()
+    client.calls[0] -= 61
+    client.complete("m", {}, "s", {})
+    client.close()
     attempts=[]
     def flaky(request):
         attempts.append(1)
@@ -47,14 +50,22 @@ def test_openrouter(monkeypatch):
 
 
 class FakeCompleter:
-    def __init__(self, values): self.values=iter(values); self.calls=0
-    def complete(self, *args, **kwargs): self.calls+=1; return str(self.calls), next(self.values)
+    def __init__(self, values):
+        self.values=iter(values)
+        self.calls=0
+    def complete(self, *args, **kwargs):
+        self.calls+=1
+        return str(self.calls), next(self.values)
 
 
 class RetrySequence:
     """Synthetic provider recording every logical provider invocation."""
     def __init__(self, values):
-        self.values=iter(values); self.payloads=[]; self.systems=[]; self.parameters=[]; self.call_ids=[]
+        self.values=iter(values)
+        self.payloads=[]
+        self.systems=[]
+        self.parameters=[]
+        self.call_ids=[]
 
     def complete(self, _model, parameters, system, payload, **_metadata):
         self.payloads.append(payload)
@@ -176,8 +187,10 @@ def test_analyzer_rejects_negative_retry_limits(kwargs):
 
 def test_analyzer():
     client=FakeCompleter([{}, {"decision":"relevant","topic_ids":["x"],"reason":"yes"}, {"sentences":["a","b"]}, {"schema_version":1,"tasks":[]}, {"schema_version":1,"events":[]}])
-    analyzer=Analyzer(client,prompt_config(),1); topic=Topic(id="x",name="X",enabled=True,description="D")
-    assert analyzer.relevance({},[topic])[1].decision == "relevant"; assert analyzer.summary({})[1].sentences == ["a","b"]
+    analyzer=Analyzer(client,prompt_config(),1)
+    topic=Topic(id="x",name="X",enabled=True,description="D")
+    assert analyzer.relevance({},[topic])[1].decision == "relevant"
+    assert analyzer.summary({})[1].sentences == ["a","b"]
     assert analyzer.extract_tasks({}, expected_count=0)[1].tasks == []
     assert analyzer.extract_events({}, expected_count=0)[1].events == []
     with pytest.raises(ValueError): Analyzer(FakeCompleter([{},{}]),prompt_config(),1).summary({})
@@ -518,7 +531,8 @@ def test_analyzer_revises_proposal_with_separate_inputs_and_retries():
     class CapturingCompleter:
         def __init__(self): self.payload=None
         def complete(self, model, parameters, system, payload, **_metadata):
-            self.payload=payload; return "call",valid
+            self.payload=payload
+            return "call",valid
     capturing=CapturingCompleter()
     Analyzer(capturing,prompt_config()).revise_proposal(original,"Welcher Titel?","Autorisierte Antwort")
     assert "id" not in capturing.payload["proposal_fields"]
@@ -697,7 +711,9 @@ def test_revision_token_limit_uses_reduced_route_and_can_exhaust():
         class Log:
             def __init__(self): self.events=[]
             def event(self,*args,**kwargs): self.events.append((args,kwargs))
-        def __init__(self,values): super().__init__(values); self.logger=self.Log()
+        def __init__(self,values):
+            super().__init__(values)
+            self.logger=self.Log()
     logged=Logged([{"answered_question":"Titel?","changes":{"title":"Neu"}}])
     Analyzer(logged,cfg).revise_proposal(original,"Titel?","Neu")
     assert logged.logger.events[0][0][2] == "proposal_revision_delta_applied"
@@ -962,7 +978,8 @@ def test_local_delta_apply_derives_every_invariant_question():
 
 
 def test_telegram():
-    p=proposal(); assert apply_decision(p,Decision(mail_id="a"*24,proposal_id="p1",version=1,action=DecisionAction.CONFIRM),1,2,1,2).status == ProposalStatus.CONFIRMED
+    p=proposal()
+    assert apply_decision(p,Decision(mail_id="a"*24,proposal_id="p1",version=1,action=DecisionAction.CONFIRM),1,2,1,2).status == ProposalStatus.CONFIRMED
     assert apply_decision(p,Decision(mail_id="a"*24,proposal_id="p1",version=1,action=DecisionAction.REJECT),1,2,1,2).status == ProposalStatus.REJECTED
     assert apply_decision(p,Decision(mail_id="a"*24,proposal_id="p1",version=1,action=DecisionAction.EDIT),1,2,1,2).status == ProposalStatus.NEEDS_CLARIFICATION
     with pytest.raises(PermissionError): apply_decision(p,Decision(mail_id="a"*24,proposal_id="p1",version=1,action=DecisionAction.CONFIRM),9,2,1,2)
@@ -978,11 +995,18 @@ def test_telegram():
         requests.append(req)
         data={"ok":True,"result":[{"update_id":1,"message":{"message_id":1,"from":{"id":1,"is_bot":False,"first_name":"Ada"},"chat":{"id":2,"type":"private"},"date":1_789_000_000,"text":"x","forward_origin":{"type":"user"}},"unused":True}]} if req.url.path.endswith("getUpdates") else {"ok":True,"result":{"message_id":1,"from":{"id":99,"is_bot":True,"first_name":"Mailhelp"},"chat":{"id":2,"type":"private"},"date":1_789_000_001,"text":"x","unused":True}}
         return httpx.Response(200,json=data,request=req)
-    c=TelegramClient("secret",1,httpx.MockTransport(handler)); assert c.poll(1)[0]["update_id"]==1; c.send(2,"x"*4001); assert len(requests)==3; c.close()
+    c=TelegramClient("secret",1,httpx.MockTransport(handler))
+    assert c.poll(1)[0]["update_id"]==1
+    c.send(2,"x"*4001)
+    assert len(requests)==3
+    c.close()
 
 
 class Writer:
-    def __init__(self, found=None, error=None): self.found=found; self.error=error; self.created=0
+    def __init__(self, found=None, error=None):
+        self.found=found
+        self.error=error
+        self.created=0
     def reconcile(self,key): return self.found
     def create(self,p,key):
         self.created += 1
@@ -1015,15 +1039,25 @@ def test_integrations():
     assert ProposalStatus.WRITING in [item.status for item in saved]
     with pytest.raises(ValueError): HttpWriter("bad","x","x")
     seen=[]
-    def handler(req): seen.append(req); return httpx.Response(200,json=({"id":"x"} if req.method=="POST" else {"results":[],"next_cursor":None}),request=req)
-    todo=HttpWriter("todoist","x","p",transport=httpx.MockTransport(handler)); assert todo.reconcile("x") is None; todo.create(proposal(target="p", status="confirmed", due=datetime.now(timezone.utc)),"key"); todo.close()
-    found=HttpWriter("todoist","x","p",transport=httpx.MockTransport(mock_response(data={"results":[{"description":"[key]", "id":"old"}],"next_cursor":None}))); assert found.reconcile("key")["id"]=="old"
+    def handler(req):
+        seen.append(req)
+        return httpx.Response(200,json=({"id":"x"} if req.method=="POST" else {"results":[],"next_cursor":None}),request=req)
+    todo=HttpWriter("todoist","x","p",transport=httpx.MockTransport(handler))
+    assert todo.reconcile("x") is None
+    todo.create(proposal(target="p", status="confirmed", due=datetime.now(timezone.utc)),"key")
+    todo.close()
+    found=HttpWriter("todoist","x","p",transport=httpx.MockTransport(mock_response(data={"results":[{"description":"[key]", "id":"old"}],"next_cursor":None})))
+    assert found.reconcile("key")["id"]=="old"
     now=datetime.now(timezone.utc)
     with pytest.raises(ValueError): HttpWriter("todoist","x","p",transport=httpx.MockTransport(handler)).create(proposal(target="p",kind="event",start=now,end=now.replace(year=now.year+1)),"k")
     event=proposal(target="primary",kind="event",start=now,end=now.replace(year=now.year+1),status="confirmed")
     def cal_handler(req): return httpx.Response(200,json=({"id":"x"} if req.method=="POST" else {"items":[]}),request=req)
-    cal=HttpWriter("google_calendar","x","primary",transport=httpx.MockTransport(cal_handler),calendar_timezone="UTC"); assert cal.reconcile("k") is None; cal.create(event,"k"); cal.close()
-    foundcal=HttpWriter("google_calendar","x","p",transport=httpx.MockTransport(mock_response(data={"items":[{"id":"e"}]})),calendar_timezone="UTC"); assert foundcal.reconcile("k")["id"]=="e"
+    cal=HttpWriter("google_calendar","x","primary",transport=httpx.MockTransport(cal_handler),calendar_timezone="UTC")
+    assert cal.reconcile("k") is None
+    cal.create(event,"k")
+    cal.close()
+    foundcal=HttpWriter("google_calendar","x","p",transport=httpx.MockTransport(mock_response(data={"items":[{"id":"e"}]})),calendar_timezone="UTC")
+    assert foundcal.reconcile("k")["id"]=="e"
     with pytest.raises(ValueError): HttpWriter("google_calendar","x","inbox",transport=httpx.MockTransport(handler),calendar_timezone="UTC").create(p,"k")
 
 
@@ -1111,7 +1145,8 @@ def test_calendar_file_writer_sends_ios_importable_attachment():
         def send_document(self, chat_id, filename, content, caption=None):
             self.documents.append((chat_id,filename,content,caption))
 
-    sender=Sender(); writer=CalendarFileWriter(sender,99)
+    sender=Sender()
+    writer=CalendarFileWriter(sender,99)
     item=proposal(kind="event",status="confirmed",start="2026-05-10T10:00:00+02:00",
                   end="2026-05-10T11:00:00+02:00",title="Planung, München " + "ä"*40,
                   description="Zeile 1\nZeile 2; Abstimmung",location="Raum 1",
@@ -1508,13 +1543,19 @@ def test_proposal_boundary_builds_internal_identity_and_routing(tmp_path):
 
 
 def test_orchestrator(tmp_path):
-    raw=b"Subject: Test\n\nBody"; mail=FetchedMail("INBOX",1,2,raw); topic=Topic(id="x",name="x",enabled=True,description="x")
+    raw=b"Subject: Test\n\nBody"
+    mail=FetchedMail("INBOX",1,2,raw)
+    topic=Topic(id="x",name="x",enabled=True,description="x")
     with JsonStore(tmp_path/"a") as store:
         class PlainNotify:
             def __init__(self): self.messages=[]
             def send(self,c,t): self.messages.append(t)
             def send_proposal(self,p): self.messages.append(p.id)
-        n=PlainNotify(); o=Orchestrator(AnalyzerStub("relevant"),store,n,1,[topic],1000); state=o.process(mail); assert state.outcome is ProcessingOutcome.COMPLETED and state["steps"]["completion"]=="completed" and n.messages; assert o.process(mail)==state
+        n=PlainNotify()
+        o=Orchestrator(AnalyzerStub("relevant"),store,n,1,[topic],1000)
+        state=o.process(mail)
+        assert state.outcome is ProcessingOutcome.COMPLETED and state["steps"]["completion"]=="completed" and n.messages
+        assert o.process(mail)==state
     with JsonStore(tmp_path/"b") as store:
         state=Orchestrator(AnalyzerStub("irrelevant"),store,Notify(),1,[topic],1000).process(mail)
         assert state["steps"]=={"preparation":"completed","relevance":"completed","summary":"skipped","summary_notification":"skipped","action_detection":"skipped","action_router":"skipped","task_extraction":"skipped","event_extraction":"skipped","normalization":"skipped","proposal_building":"skipped","duplicate_precheck":"skipped","proposal_notification":"skipped","completion":"completed"}
@@ -1535,7 +1576,8 @@ def test_orchestrator(tmp_path):
         assert not (store.directory / "irrelevant-senders.json").exists()
     with JsonStore(tmp_path/"c") as store:
         o=Orchestrator(AnalyzerStub("unclear"),store,Notify(),1,[topic],1000)
-        state=o.process(mail); assert state.outcome is ProcessingOutcome.WAITING and state["awaiting_relevance"] and state["steps"]["completion"]=="pending"
+        state=o.process(mail)
+        assert state.outcome is ProcessingOutcome.WAITING and state["awaiting_relevance"] and state["steps"]["completion"]=="pending"
         assert o.process(mail)==state
     with JsonStore(tmp_path/"d") as store:
         notify=Notify()
@@ -1551,24 +1593,35 @@ def test_orchestrator(tmp_path):
         assert failed["mail"] is None and failed["display_headers"] == {
             "sender": "safe@example.test", "subject": "Safe subject"}
     with JsonStore(tmp_path/"e") as store:
-        o=Orchestrator(AnalyzerStub("irrelevant"),store,Notify(),1,[topic],1000); count=[]
-        def poll(): count.append(1); o.stop(); return [mail]
-        o.run(poll,0,lambda _:None); assert count==[1]
+        o=Orchestrator(AnalyzerStub("irrelevant"),store,Notify(),1,[topic],1000)
+        count=[]
+        def poll():
+            count.append(1)
+            o.stop()
+            return [mail]
+        o.run(poll,0,lambda _:None)
+        assert count==[1]
     with JsonStore(tmp_path/"f") as store:
-        o=Orchestrator(AnalyzerStub("irrelevant"),store,Notify(),1,[topic],1000); waits=[]
-        def wait(x): waits.append(x); o.stop()
-        o.run(lambda: [mail],2,wait); assert waits==[2]
+        o=Orchestrator(AnalyzerStub("irrelevant"),store,Notify(),1,[topic],1000)
+        waits=[]
+        def wait(x):
+            waits.append(x)
+            o.stop()
+        o.run(lambda: [mail],2,wait)
+        assert waits==[2]
 
     class ProposalAnalyzer(AnalyzerStub):
         def actions(self,m):
             from mailhelp.models import Actions
             return "a",Actions(proposals=[proposal(source_mail_id=m["internal_id"])])
     with JsonStore(tmp_path/"g") as store:
-        notify=Notify(); Orchestrator(ProposalAnalyzer("relevant"),store,notify,1,[topic],1000,
+        notify=Notify()
+        Orchestrator(ProposalAnalyzer("relevant"),store,notify,1,[topic],1000,
                                       targets=TargetSettings(todoist_project="inbox",google_calendar="primary")).process(mail)
         assert any(message.startswith("p_") for message in notify.messages)
     with JsonStore(tmp_path/"multiple") as store:
-        analyzer=AnalyzerStub("irrelevant"); orchestrator=Orchestrator(analyzer,store,Notify(),1,[topic],1000)
+        analyzer=AnalyzerStub("irrelevant")
+        orchestrator=Orchestrator(analyzer,store,Notify(),1,[topic],1000)
         first=orchestrator.process(mail)
         second=orchestrator.process(FetchedMail("INBOX",1,3,b"Subject: Other\n\nBody"))
         assert first["id"] != second["id"] and all(item["steps"]["completion"]=="completed" for item in (first,second))
@@ -1592,7 +1645,8 @@ def test_orchestrator_resolves_versioned_relevance_both_ways(tmp_path):
     topic=Topic(id="x",name="x",enabled=True,description="x")
     for uid,decision in ((31,"irrelevant"),(32,"relevant")):
         with JsonStore(tmp_path/decision) as store:
-            notify=Notify(); orchestrator=Orchestrator(AnalyzerStub("unclear"),store,notify,1,[topic],1000)
+            notify=Notify()
+            orchestrator=Orchestrator(AnalyzerStub("unclear"),store,notify,1,[topic],1000)
             waiting=orchestrator.process(FetchedMail("INBOX",1,uid,b"From: Alice <alice@example.test>\nSubject: Private\n\nSecret"))
             mail_id=waiting["id"]
             assert notify.messages == [(mail_id,"Alice <alice@example.test>","Private")]
@@ -1627,13 +1681,25 @@ def test_relevance_dialog_schema_consistency():
 
 
 def test_orchestrator_resumes_each_persisted_analysis_step(tmp_path):
-    raw=b"Subject: Restart\n\nBody"; mail=FetchedMail("INBOX",1,9,raw); topic=Topic(id="x",name="x",enabled=True,description="x")
+    raw=b"Subject: Restart\n\nBody"
+    mail=FetchedMail("INBOX",1,9,raw)
+    topic=Topic(id="x",name="x",enabled=True,description="x")
     class CountingAnalyzer(AnalyzerStub):
-        def __init__(self): super().__init__("relevant"); self.calls=[]
-        def relevance(self,m,t): self.calls.append("relevance"); return super().relevance(m,t)
-        def summary(self,m): self.calls.append("summary"); return super().summary(m)
-        def action_route(self,m): self.calls.append("action_router"); return super().action_route(m)
-        def extract_tasks(self,m, *, expected_count): self.calls.append("task_extraction"); return super().extract_tasks(m, expected_count=expected_count)
+        def __init__(self):
+            super().__init__("relevant")
+            self.calls=[]
+        def relevance(self,m,t):
+            self.calls.append("relevance")
+            return super().relevance(m,t)
+        def summary(self,m):
+            self.calls.append("summary")
+            return super().summary(m)
+        def action_route(self,m):
+            self.calls.append("action_router")
+            return super().action_route(m)
+        def extract_tasks(self,m, *, expected_count):
+            self.calls.append("task_extraction")
+            return super().extract_tasks(m, expected_count=expected_count)
     from store_fakes import InterruptingStore
     # Every durable boundary, including normalization, proposal construction and
     # both sides of the per-version Telegram delivery marker, is interrupted.
@@ -1647,7 +1713,8 @@ def test_orchestrator_resumes_each_persisted_analysis_step(tmp_path):
             notify = Notify()
             with pytest.raises(RuntimeError,match="power loss"):
                 Orchestrator(first,InterruptingStore(disk,fail_at),notify,1,[topic],1000).process(mail)
-            second=CountingAnalyzer(); result=Orchestrator(second,disk,notify,1,[topic],1000).process(mail)
+            second=CountingAnalyzer()
+            result=Orchestrator(second,disk,notify,1,[topic],1000).process(mail)
             assert result["steps"]["completion"]=="completed"
             assert second.calls == [step for step in ("relevance", "summary", "action_router", "task_extraction") if step in second.calls]
             assert len(second.calls) == len(set(second.calls))
@@ -1870,7 +1937,8 @@ def test_orchestrator_defers_rate_limit_and_reports(tmp_path):
             raise RateLimitExceeded(120.0)
     from log_fakes import RecordingLogger as Log
     with JsonStore(tmp_path/"limited") as store:
-        notify=Notify(); log=Log()
+        notify=Notify()
+        log=Log()
         topic=Topic(id="x",name="x",enabled=True,description="x")
         mail=FetchedMail("INBOX",1,20,b"Subject: Limit\n\nBody")
         state=Orchestrator(Limited(),store,notify,1,[topic],1000,log).process(mail)
@@ -1944,7 +2012,9 @@ def test_mime_limit_uses_persisted_display_headers_once_after_restart(tmp_path, 
     if limit_name == "max_mime_parts":
         message.make_mixed()
         for text in ("one", "two"):
-            part = EmailMessage(); part.set_content(text); message.attach(part)
+            part = EmailMessage()
+            part.set_content(text)
+            message.attach(part)
     else:
         message.set_content("decoded text is too long")
     limits = MimeLimits(

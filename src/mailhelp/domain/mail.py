@@ -14,6 +14,7 @@ from .duplicate import DuplicateDecision, MailImapIdentity
 from .extraction import ActionRoute, EventExtraction, ExtractionCountConflict, Summary, TaskExtraction
 from .processing import (ProcessingError, ProcessingSteps, ProposalNotification,
                          ValidationIssue, WriteAttemptReference)
+from .prepared import PreparedMail
 from .proposal import Proposal
 from .relevance import Relevance, RelevanceDialog, RelevanceDialogStatus
 
@@ -53,6 +54,11 @@ class MailState(StrictModel):
     error: ProcessingError | None = None
     deferred_until: datetime | None = None
     duplicate: DuplicateDecision | None = None
+
+    @property
+    def prepared(self) -> PreparedMail | None:
+        """Typed read view of ``mail``; the stored dict itself stays unchanged."""
+        return None if self.mail is None else PreparedMail.model_validate(self.mail)
 
     @model_validator(mode="after")
     def consistent_relevance_dialog(self) -> "MailState":

@@ -11,6 +11,7 @@ from pydantic import BaseModel, ValidationError
 
 from .adapter import RetryableError
 from .config import LlmRoute, PromptConfig, Topic
+from .domain.prepared import PreparedAttachment
 from .models import (AbstractCategories, ActionRoute, CalendarDuplicateDecision, EventExtraction,
                      MailClassification, Proposal, ProposalRevisionChanges, ProposalRevisionDelta, ProposalStatus, Relevance,
                      Summary, TaskExtraction, TelegramAnswerInterpretation,
@@ -293,20 +294,11 @@ class Analyzer:
         if not attachments:
             return mail
         snippets = []
-        for att in attachments:
-            if isinstance(att, dict):
-                fn = att.get("filename", "Anhang")
-                ct = att.get("content_type", "")
-                txt = att.get("text", "")
-                status = att.get("extraction_status", "success")
-            else:
-                fn = getattr(att, "filename", "Anhang")
-                ct = getattr(att, "content_type", "")
-                txt = getattr(att, "text", "")
-                status = getattr(att, "extraction_status", "success")
-            if status == "success" and txt.strip():
-                header = f"--- Anhang: {fn} ({ct}) ---" if ct else f"--- Anhang: {fn} ---"
-                snippets.append(f"\n\n{header}\n{txt.strip()}")
+        for att in map(PreparedAttachment.model_validate, attachments):
+            if att.usable_text:
+                ct = att.content_type
+                header = f"--- Anhang: {att.filename} ({ct}) ---" if ct else f"--- Anhang: {att.filename} ---"
+                snippets.append(f"\n\n{header}\n{att.usable_text}")
         if not snippets:
             return mail
         enriched = dict(mail)
@@ -346,9 +338,9 @@ class Analyzer:
         and the user's own ``personal_info``, but no technical metadata.
         """
         from .drafts import ReplyDraft
-        attachments = [{"filename": item.get("filename", "Anhang"), "text": item["text"].strip()}
-                       for item in mail.get("extracted_attachments", [])
-                       if item.get("extraction_status", "success") == "success" and item.get("text", "").strip()]
+        attachments = [{"filename": item.filename, "text": item.usable_text}
+                       for item in map(PreparedAttachment.model_validate, mail.get("extracted_attachments", []))
+                       if item.usable_text]
         context = {"headers": {name: mail["headers"].get(name, "") for name in ("from", "subject", "date")},
                    "text": mail.get("text", ""), "attachments": attachments,
                    "calendar_events": mail.get("calendar_events", [])}

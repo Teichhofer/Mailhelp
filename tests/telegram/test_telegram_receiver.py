@@ -224,7 +224,7 @@ def test_button_press_during_a_mail_batch_is_processed_before_the_next_mail(tmp_
         service = app(tmp_path, Imap([(7, mails)]), AppTelegram([]), orchestrator)
         service.dialog = InboxDialog(inbox, order)
         service._receiver = SimpleNamespace(inbox=inbox, stop=lambda: None)
-        service._poll_imap()
+        service.mailbox.poll()
     assert order == [("mail", 1), ("telegram", 9), ("mail", 2)]
 
 

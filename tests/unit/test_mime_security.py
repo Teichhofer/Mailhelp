@@ -15,7 +15,9 @@ def limits(**changes):
 
 
 def mail_bytes(text="hello", subtype="plain", charset="utf-8"):
-    message = EmailMessage(); message["From"] = "sender@example.test"; message["Subject"] = "subject"
+    message = EmailMessage()
+    message["From"] = "sender@example.test"
+    message["Subject"] = "subject"
     message.set_content(text, subtype=subtype, charset=charset)
     return message.as_bytes()
 
@@ -26,25 +28,36 @@ def assert_limit(raw, name, **change):
 
 
 def test_nested_alternative_prefers_plain_and_omits_non_text_parts():
-    root = EmailMessage(); root["Subject"] = "=?utf-8?q?Gr=C3=BC=C3=9Fe?="; root.make_mixed()
-    alternative = EmailMessage(); alternative.set_content("plain\nOn Someone wrote:\nsecret"); alternative.add_alternative("<p>html</p>", subtype="html")
-    root.attach(alternative); root.add_attachment(b"binary", maintype="application", subtype="pdf", filename="doc.pdf")
-    inline = EmailMessage(); inline.set_content(b"image", maintype="image", subtype="png"); root.attach(inline)
+    root = EmailMessage()
+    root["Subject"] = "=?utf-8?q?Gr=C3=BC=C3=9Fe?="
+    root.make_mixed()
+    alternative = EmailMessage()
+    alternative.set_content("plain\nOn Someone wrote:\nsecret")
+    alternative.add_alternative("<p>html</p>", subtype="html")
+    root.attach(alternative)
+    root.add_attachment(b"binary", maintype="application", subtype="pdf", filename="doc.pdf")
+    inline = EmailMessage()
+    inline.set_content(b"image", maintype="image", subtype="png")
+    root.attach(inline)
     result = prepare(root.as_bytes(), limits())
     assert result["text"] == "plain" and result["headers"]["subject"] == "Grüße"
     assert result["metadata"] == {"attachments_omitted": 2, "text_shortened": True}
 
 
 def test_text_and_message_attachments_are_completely_omitted():
-    root = EmailMessage(); root.set_content("visible body")
+    root = EmailMessage()
+    root.set_content("visible body")
 
     # Some senders omit Content-Disposition or label attachments as inline.
     # A filename must still prevent textual attachment content reaching the LLM.
-    named_text = EmailMessage(); named_text.set_content("named attachment secret")
+    named_text = EmailMessage()
+    named_text.set_content("named attachment secret")
     named_text.set_param("name", "notes.txt", header="Content-Type")
-    root.make_mixed(); root.attach(named_text)
+    root.make_mixed()
+    root.attach(named_text)
 
-    forwarded = EmailMessage(); forwarded["Subject"] = "attached message"
+    forwarded = EmailMessage()
+    forwarded["Subject"] = "attached message"
     forwarded.set_content("forwarded message secret")
     root.add_attachment(forwarded)
 
@@ -78,9 +91,12 @@ def test_signature_markers_and_unclosed_html_are_safe():
 
 def test_every_size_and_complexity_limit():
     assert_limit(b"hello", "max_mail_bytes", max_mail_bytes=4)
-    multipart = EmailMessage(); multipart.make_mixed()
+    multipart = EmailMessage()
+    multipart.make_mixed()
     for value in ("a", "b"):
-        part = EmailMessage(); part.set_content(value); multipart.attach(part)
+        part = EmailMessage()
+        part.set_content(value)
+        multipart.attach(part)
     assert_limit(multipart.as_bytes(), "max_mime_parts", max_mime_parts=1)
     assert_limit(mail_bytes("hello"), "max_decoded_text_bytes", max_decoded_text_bytes=4)
     assert_limit(mail_bytes("<p>hello</p>", "html"), "max_html_characters", max_html_characters=5)
@@ -121,7 +137,8 @@ def test_limit_exception_only_exposes_the_configured_limit():
 
 def test_html_self_closing_and_raw_string_payload_paths():
     assert prepare(mail_bytes("a<hr/><custom/>b", "html"), limits())["text"] == "ab"
-    message = EmailMessage(); message.set_payload("direct")
+    message = EmailMessage()
+    message.set_payload("direct")
     assert prepare(message.as_bytes(), limits())["text"] == "direct"
     class Undecodable:
         def __init__(self, value): self.value = value

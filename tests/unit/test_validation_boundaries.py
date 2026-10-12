@@ -195,7 +195,8 @@ def test_settings_reject_missing_extra_types_ranges_and_semantics(tmp_path):
     with pytest.raises(ValidationError, match="primary_folder"):
         Settings.model_validate(invalid_primary)
     for mode in ("ssl", "starttls", "plain"):
-        configured=copy.deepcopy(base); configured["imap"].update(connection_mode=mode, historical_start="2025-01-02T03:04:05+01:00", global_newest_first=True)
+        configured=copy.deepcopy(base)
+        configured["imap"].update(connection_mode=mode, historical_start="2025-01-02T03:04:05+01:00", global_newest_first=True)
         parsed = Settings.model_validate(configured).imap
         assert parsed.connection_mode == mode and parsed.global_newest_first
     mutations = [
@@ -237,10 +238,13 @@ def test_settings_reject_missing_extra_types_ranges_and_semantics(tmp_path):
         lambda x: x["targets"].update(todoist_project=""),
     ]
     for mutate in mutations:
-        candidate = copy.deepcopy(base); mutate(candidate)
+        candidate = copy.deepcopy(base)
+        mutate(candidate)
         with pytest.raises(ValidationError): Settings.model_validate(candidate)
     with pytest.raises(ValueError, match=r"config.yaml.*imap.port") as error:
-        bad=copy.deepcopy(base); bad["imap"]["port"]=0; _validated_file(Path("config.yaml"), Settings, bad)
+        bad=copy.deepcopy(base)
+        bad["imap"]["port"]=0
+        _validated_file(Path("config.yaml"), Settings, bad)
     assert "secret" not in str(error.value)
 
 

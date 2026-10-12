@@ -25,10 +25,16 @@ def _unfold_ical(text: str) -> list[str]:
     return [line.strip() for line in unfolded.split("\n") if line.strip()]
 
 
+_ESCAPE = re.compile(r"\\([nN,;\\])")
+
+
 def _unescape_text(value: str) -> str:
-    """Unescape RFC 5545 escaped characters: \\n, \\N, \\,, \\;, \\\\."""
-    result = value.replace(r"\n", "\n").replace(r"\N", "\n")
-    result = result.replace(r"\,", ",").replace(r"\;", ";").replace(r"\\", "\\")
+    """Unescape RFC 5545 escaped characters: \\n, \\N, \\,, \\;, \\\\.
+
+    One pass from left to right: an escaped backslash is consumed before the
+    character after it can form a new escape (``C:\\\\new`` stays ``C:\\new``).
+    """
+    result = _ESCAPE.sub(lambda match: "\n" if match.group(1) in "nN" else match.group(1), value)
     return result.strip()
 
 

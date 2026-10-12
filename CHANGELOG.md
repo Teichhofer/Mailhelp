@@ -1,5 +1,12 @@
 # Änderungen
 
+## 2.0.3 – Beta (Branch `beta`), Planung 2.1 Phase 3
+
+- **Bugfix – Kalendereinladungen:** Der ICS-Parser löste Escape-Sequenzen nacheinander auf; ein maskierter Backslash vor `n`/`N` wurde so zum Zeilenumbruch (aus `C:\\new\\Nordsee` in einer Einladung wurde `C:\` + Umbruch + `ew\` + Umbruch + `ordsee`). Jetzt in einem Durchlauf; Regressionstest `test_an_escaped_backslash_before_n_stays_a_backslash`. Gefunden durch die neuen eigenschaftsbasierten Tests.
+- **Typisierte vorbereitete Mail (A3):** Lesemodelle `PreparedMail`, `MailHeaders`, `PreparedAttachment`, `ImagePreview` (`domain/prepared.py`) über `MailState.prepared`. Orchestrator, Mail- und Archivansicht, Anhangsdarstellung und Antwortentwürfe lesen typisiert statt über Zeichenkettenschlüssel; die Dict-oder-Objekt-Weiche der Anhangsanreicherung entfällt. Gespeichert und an das Sprachmodell gesendet wird unverändert das bisherige Dict (Dateien und Anfragen byte-gleich). Beschädigte optionale Werte gelten wie bisher als fehlend. Die Duplikatsignatur rechnet bewusst weiter auf dem gespeicherten Dict.
+- **Tests über öffentliche Schnittstellen (T3):** Keine Tests mehr über `Application._poll_imap`, `_poll_imap_global`, `_resume_pending`, `_complete_resumed_run_entry` oder `TelegramDialogController._decide`; diese reinen Durchreicher sind entfernt, `MailboxRunService.run_counters` ist öffentlich. Telegram-Befehle laufen in den Usability-Tests über `poll_once()`; nur Tests, die den Zustand zwischen Empfang und Weiterverarbeitung prüfen, nutzen `_handle` mit Begründung. Alle 282 Anweisungsketten mit `;` sind aufgelöst (AST-geprüft unverändert). `test_models_and_config` und der Darstellungstest für Terminänderung/Duplikat sind in benannte Einzeltests geteilt; `test_storage_windows_directory_sync` prüft jetzt ausdrücklich. Offen: 18 weitere Tests über 60 Zeilen.
+- **Eigenschaftsbasierte Tests (T6):** `hypothesis` (gepinnt) prüft MIME-Vorbereitung beliebiger Bytes, Payload-Grenzen, Header-Injektion in Antwortentwürfen, zulässige Push-Anbieter, ICS-Escaping und -Faltung als Rundreise, Datumsparser und den Telegram-Zeitparser.
+
 ## 2.0.2 – Beta (Branch `beta`), Planung 2.1 Phase 2
 
 Keine Verhaltensänderung für Nutzer; gespeicherte Zustände bleiben byte-gleich lesbar.

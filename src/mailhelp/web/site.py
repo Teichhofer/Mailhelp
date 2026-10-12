@@ -290,7 +290,7 @@ class MailhelpSite:
         from ..attachments import AttachmentCache
         mail = self.views.mail(mail_id)
         if mail is None or mail.text is None or not any(
-                item.get("preview", {}).get("index") == int(index) for item in mail.extracted_attachments):
+                item.preview is not None and item.preview.index == int(index) for item in mail.extracted_attachments):
             return Response.text(404, "Anhang nicht vorhanden.")
         data = AttachmentCache(self.views.store).read(mail_id, int(index))
         if data is None:

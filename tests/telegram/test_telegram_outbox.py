@@ -447,7 +447,8 @@ def test_interrupted_send_is_not_repeated_after_restart(tmp_path):
 
 class _FailingTelegram(Telegram):
     def __init__(self, failing):
-        super().__init__(); self.failing = failing
+        super().__init__()
+        self.failing = failing
     def send(self, chat, text, reply_markup=None):
         if text in self.failing:
             raise RuntimeError("synthetic transport failure")

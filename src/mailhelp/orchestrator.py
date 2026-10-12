@@ -100,12 +100,13 @@ class Orchestrator:
 
     def _build_proposals(self, state: MailState) -> list[Proposal]:
         """Cross from untrusted extracted facts into application-owned proposals."""
-        assert state.mail is not None
+        mail = state.prepared
+        assert mail is not None
         context = MailDateContext(
-            date_context_status=str(state.mail.get("date_context_status", "missing")),
-            date_header_parsed=state.mail.get("date_header_parsed"),
-            imap_received_at=state.mail.get("imap_received_at"),
-            user_timezone=state.mail.get("user_timezone") or self.user_timezone,
+            date_context_status=mail.date_context_status,
+            date_header_parsed=mail.date_header_parsed,
+            imap_received_at=mail.imap_received_at,
+            user_timezone=mail.user_timezone or self.user_timezone,
         )
         headers = state.display_headers
         return ProposalBuilder(
@@ -116,7 +117,7 @@ class Orchestrator:
             state.task_extraction.tasks if state.task_extraction else [],
             state.event_extraction.events if state.event_extraction else [],
             state.extraction_count_conflicts,
-            calendar_events=state.mail.get("calendar_events"),
+            calendar_events=mail.calendar_events,
         )
 
     def _resolve_questions_from_mail(self, name: str, state: MailState) -> None:
@@ -175,10 +176,10 @@ class Orchestrator:
         """Apply clear date and clock answers deterministically before the LLM."""
         # Imported lazily: the telegram package owns the conservative parser.
         from .telegram.temporal import deterministic_temporal_revision
-        assert state.mail is not None
+        mail = state.prepared
+        assert mail is not None
         deterministic = deterministic_temporal_revision(
-            proposal, question, answer,
-            state.mail.get("user_timezone") or self.user_timezone)
+            proposal, question, answer, mail.user_timezone or self.user_timezone)
         if deterministic is not None:
             return None, deterministic
         return self.analyzer.revise_proposal(proposal, question, answer)
@@ -216,7 +217,11 @@ class Orchestrator:
 
     @staticmethod
     def _duplicate_identity(mail: dict[str, Any]) -> tuple[list[str], str, int]:
-        """Derive bounded identifiers and a one-way digest, never stored content."""
+        """Derive bounded identifiers and a one-way digest, never stored content.
+
+        Works on the stored dict on purpose: the digest is kept in the
+        duplicate index and must stay bit-identical across releases.
+        """
         values = mail.get("message_ids", [mail["headers"].get("message_id", "")])
         normalized: list[str] = []
         for value in values:
@@ -266,7 +271,7 @@ class Orchestrator:
             return
         if not raw:
             metadata["vision"] = "unavailable"
-        elif is_irrelevant_sender(state.mail["headers"].get("from", ""), self._blocked_senders()):
+        elif is_irrelevant_sender(state.prepared.headers.sender, self._blocked_senders()):
             metadata["vision"] = "skipped_sender"
         else:
             attachments = state.mail.get("extracted_attachments", [])
@@ -357,9 +362,9 @@ class Orchestrator:
     def _notification_text(self, state: MailState) -> str:
         """Format the compact mail notification from validated display values."""
         assert state.mail is not None and state.relevance is not None and state.summary is not None
-        headers = state.mail["headers"]
+        headers = state.prepared.headers
         sentences = "\n".join(f"• {sentence}" for sentence in state.summary.sentences)
-        return f"{mail_line(headers['from'] or '—', headers['subject'] or '—')}\n{sentences}"
+        return f"{mail_line(headers.sender or '—', headers.subject or '—')}\n{sentences}"
 
     def accepts_configuration(self, fingerprint: str) -> bool:
         if fingerprint == self.config_fingerprint:
@@ -407,14 +412,15 @@ class Orchestrator:
             return
         state.error.notification_marked_at = now
         self._save(name, state)
-        headers = state.mail.get("headers", {}) if state.mail is not None else {
-            "from": state.display_headers.sender if state.display_headers else "—",
-            "subject": state.display_headers.subject if state.display_headers else "—",
-        }
+        if state.prepared is not None:
+            sender, subject = state.prepared.headers.sender, state.prepared.headers.subject
+        else:
+            display = state.display_headers
+            sender, subject = (display.sender, display.subject) if display else ("—", "—")
         self.notifier.send(
             self.chat_id,
             "\n".join([
-                mail_line(headers.get("from") or "—", headers.get("subject") or "—"),
+                mail_line(sender or "—", subject or "—"),
                 f"⚠️ Schritt {stage.value}: {text}",
             ]),
         )
@@ -495,7 +501,7 @@ class Orchestrator:
                 self._read_images(name, state, fetched.raw)
             stage = ProcessingStage.RELEVANCE
             if state.steps.relevance == "pending":
-                if is_irrelevant_sender(state.mail["headers"].get("from", ""), self._blocked_senders()):
+                if is_irrelevant_sender(state.prepared.headers.sender, self._blocked_senders()):
                     state.relevance = Relevance(
                         decision="irrelevant", topic_ids=[], reason="Absender-Vorfilter"
                     )
@@ -521,11 +527,11 @@ class Orchestrator:
                     state.relevance_dialog = RelevanceDialog(mail_id=state.id)
                     state.awaiting_relevance = True
                     self._save(name, state)
-                    headers = state.mail["headers"]
+                    headers = state.prepared.headers
                     self.notifier.send_relevance(
                         state.relevance_dialog,
-                        headers["from"] or "—",
-                        headers["subject"] or "—",
+                        headers.sender or "—",
+                        headers.subject or "—",
                     )
                     state.steps.summary_notification = "completed"
                     state.steps.proposal_notification = "skipped"
@@ -572,7 +578,7 @@ class Orchestrator:
                     # router is unsure whether the message is an invitation.  The
                     # extractor and proposal boundary preserve that uncertainty,
                     # while Telegram still receives the detected appointment.
-                    has_cal_events = bool(state.mail.get("calendar_events"))
+                    has_cal_events = bool(state.prepared.calendar_events)
                     wants_llm_events = (route.action_state in {"event", "task_and_event"}
                                         or route.event_count > 0)
                     wants_events = wants_llm_events or has_cal_events

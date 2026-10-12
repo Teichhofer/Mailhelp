@@ -326,7 +326,8 @@ def test_openrouter_uses_strict_schema_or_validated_json_fallback():
     requests=[]
     response={"id":"x","choices":[{"message":{"content":'{"decision":"irrelevant","topic_ids":[],"reason":"X"}'}}]}
     def handler(request):
-        requests.append(json.loads(request.content)); return httpx.Response(200,json=response,request=request)
+        requests.append(json.loads(request.content))
+        return httpx.Response(200,json=response,request=request)
     client=OpenRouterClient("key",1,0,10,httpx.MockTransport(handler))
     from mailhelp.models import Relevance
     client.complete("m",{},"s",{},response_schema=Relevance,supports_json_schema=True)

@@ -4,14 +4,14 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mailhelp"
-version = "2.0.2"
+version = "2.0.3"
 description = "Persönlicher, bestätigungspflichtiger E-Mail-Assistent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = ["httpx==0.28.1", "pillow==12.2.0", "pydantic==2.11.7", "pypdf==6.20.0", "PyYAML==6.0.2", "tzdata==2026.4", "pywebpush==2.5.0"]
 
 [project.optional-dependencies]
-test = ["pytest==8.4.1", "pytest-cov==6.2.1"]
+test = ["pytest==8.4.1", "pytest-cov==6.2.1", "hypothesis==6.131.0"]
 # Browser tests of the web interface (ui_tests/), using the installed Chrome.
 ui = ["playwright==1.62.0"]
 # Static checks (Planung 2.1, A1); reported in CI, enforced from 2.1.0.

@@ -320,7 +320,8 @@ class ImapReader:
         if status != "OK": raise FolderNotReadable(folder)
         status, validity = self.connection.response("UIDVALIDITY")
         if status != "UIDVALIDITY" or not validity: raise RuntimeError("IMAP lieferte keine UIDVALIDITY")
-        uidvalidity = int(validity[0]); self.last_uidvalidity = uidvalidity
+        uidvalidity = int(validity[0])
+        self.last_uidvalidity = uidvalidity
         if uidvalidity != expected_uidvalidity:
             raise RuntimeError(f"IMAP-UIDVALIDITY hat sich geändert: {folder}")
         status, body = self.connection.uid("fetch", str(uid).encode(), "(BODY.PEEK[] INTERNALDATE)")
@@ -468,7 +469,8 @@ class ImapReader:
         if status != "OK": raise FolderNotReadable(folder)
         status, validity = self.connection.response("UIDVALIDITY")
         if status != "UIDVALIDITY" or not validity: raise RuntimeError("IMAP lieferte keine UIDVALIDITY")
-        uidvalidity = int(validity[0]); self.last_uidvalidity = uidvalidity
+        uidvalidity = int(validity[0])
+        self.last_uidvalidity = uidvalidity
         if expected_uidvalidity is not None and expected_uidvalidity != uidvalidity:
             # Do not search or fetch in a UID generation whose durable boundary
             # has not been resolved yet.  In particular, BODY.PEEK must not run.
@@ -488,7 +490,8 @@ class ImapReader:
                           available_count=len(available), batch_count=len(selected))
         result = []
         for token in selected:
-            uid = int(token); status, body = self.connection.uid("fetch", token, "(BODY.PEEK[] INTERNALDATE)")
+            uid = int(token)
+            status, body = self.connection.uid("fetch", token, "(BODY.PEEK[] INTERNALDATE)")
             if status != "OK": raise RuntimeError(f"IMAP-Abruf fehlgeschlagen: UID {uid}")
             result.append(_fetched_mail(folder, uidvalidity, uid, body, self.account_id))
             self.logger.event("INFO", "imap", "message_fetched", folder=folder, uid=uid,

@@ -13,14 +13,28 @@ from mailhelp.telegram.persistence import clarification_name
 from test_telegram_dialog import proposal, controller, message, callback, RevisionService, Writer
 
 
+def deliver(c, update):
+    """One update through the public polling path; a fresh id keeps it from counting as already seen."""
+    update["update_id"] = max((item["update_id"] for item in c.telegram.updates), default=0) + 1
+    c.telegram.updates.append(update)
+    c.poll_once()
+
+
 def command(c, text, index=1, **identity):
+    deliver(c, message(index, text, **identity))
+
+
+def receive_only(c, text, index=1, **identity):
+    """Private on purpose: handle one message without the processing ``poll_once``
+    continues right after it (stored answers, delivery), so a test can inspect
+    the state in between."""
     c._handle(TelegramUpdate.model_validate(message(index, text, **identity)))
 
 
 def begin(c, item):
     c.persist(item)
-    c._decide(Decision(mail_id=item.source_mail_id, proposal_id=item.id,
-                       version=item.version, action=DecisionAction.EDIT))
+    c.decision_service.decide(Decision(mail_id=item.source_mail_id, proposal_id=item.id,
+                       version=item.version, action=DecisionAction.EDIT), c.user_id, c.chat_id)
 
 
 @pytest.mark.parametrize("text", ["/hilfe", "/start", "/status", "/offen", "/abbrechen", "/unbekannt", "/hilfe argument"])
@@ -103,7 +117,7 @@ def test_cancel_boundaries(tmp_path, case):
             state = ProposalClarificationState(mail_id=item.source_mail_id, proposal_id=item.id,
                 version=1, question="Änderung?", authorized_answer="Neuer Titel")
             store.save(clarification_name(item.source_mail_id, item.id, 1), state.model_dump(mode="json"))
-        command(c, "/abbrechen")
+        receive_only(c, "/abbrechen")
         if case == "saved_answer":
             assert "bereits gespeichert" in t.sent[-1][1]
             assert store.load("telegram-dialog")["proposal_id"] == item.id
@@ -144,7 +158,7 @@ def test_cancel_keeps_legacy_answer_and_allows_invalid_answer_to_leave_dialog(tm
         legacy = TelegramDialogState(mail_id=item.source_mail_id, proposal_id=item.id,
             version=1, retry_required=True, question="Wann?", normalized_answer="Morgen")
         store.save("telegram-dialog", legacy.model_dump(mode="json"))
-        command(c, "/abbrechen")
+        receive_only(c, "/abbrechen")
         assert "bereits gespeichert" in t.sent[-1][1]
         assert store.load_model("telegram-dialog", TelegramDialogState) == legacy
         begin(c, item)
@@ -153,9 +167,9 @@ def test_cancel_keeps_legacy_answer_and_allows_invalid_answer_to_leave_dialog(tm
             interpretation_status="completed")
         name = clarification_name(item.source_mail_id, item.id, 1)
         store.save(name, state.model_dump(mode="json"))
-        command(c, "/status")
+        receive_only(c, "/status")
         assert "Warte auf Antwort" in t.sent[-1][1]
-        command(c, "/abbrechen")
+        receive_only(c, "/abbrechen")
         assert store.load("telegram-dialog")["proposal_id"] is None
         assert store.load_model(name, ProposalClarificationState) == state
 
@@ -174,7 +188,7 @@ def test_overview_relevance_current_proposals_and_revision_state(tmp_path, heade
         c.persist(item)
         c.persist(proposal(id="done", status="rejected"))
         begin(c, proposal(id="question", open_questions=["Wann?"]))
-        command(c, "/status")
+        receive_only(c, "/status")
         text = t.sent[-1][1]
         # Snapshots and finished proposals are excluded; the edited one is current.
         assert text.count("„Aufgabe“") == 3
@@ -185,9 +199,9 @@ def test_overview_relevance_current_proposals_and_revision_state(tmp_path, heade
             clarification = ProposalClarificationState(mail_id=item.source_mail_id, proposal_id=item.id,
                 version=1, question="Titel?", authorized_answer="Neu", interpretation_status=status)
             store.save(clarification_name(item.source_mail_id, item.id, 1), clarification.model_dump(mode="json"))
-            command(c, "/offen")
+            receive_only(c, "/offen")
             assert expected in t.sent[-2][1]
-        command(c, "/abbrechen")  # show proposal with/without source headers
+        receive_only(c, "/abbrechen")  # show proposal with/without source headers
         assert t.sent[-1][1].startswith("✉️ Schule · Elternabend" if headers else "✉️ — · —")
 
 
@@ -241,7 +255,7 @@ def test_event_edit_revision_requires_new_confirmation_and_rejects_old_version(t
         assert "Übernommen" in t.sent[-1][1]
         assert writer.created == 0
         with pytest.raises(ValueError, match="veraltet"):
-            c._decide(Decision(mail_id=item.source_mail_id, proposal_id=item.id, version=1, action=DecisionAction.CONFIRM))
+            c.decision_service.decide(Decision(mail_id=item.source_mail_id, proposal_id=item.id, version=1, action=DecisionAction.CONFIRM), c.user_id, c.chat_id)
         assert writer.created == 0
 
 @pytest.mark.parametrize('headers', [None, {'sender': 'Ada', 'subject': 'Frage'}])
@@ -276,21 +290,21 @@ def test_open_redisplays_after_restart_without_changing_delivery_or_authorizatio
         assert len(t.sent) == count
         for identity in ({'user': 9}, {'chat': 9}):
             command(c, '/offen', **identity)
-            c._handle(TelegramUpdate.model_validate(callback(20, buttons[0]['callback_data'], **identity)))
+            deliver(c, callback(20, buttons[0]['callback_data'], **identity))
         assert all('Nicht autorisierte Aktion' in msg[1] for msg in t.sent[count:])
         assert store.load('telegram-dialog') is None
         assert c.repository.load_current(item.source_mail_id, item.id) == item
         command(c, '/offen')
         assert len(t.sent) > count
-        c._handle(TelegramUpdate.model_validate(callback(21, buttons[0]['callback_data'])))
+        deliver(c, callback(21, buttons[0]['callback_data']))
         assert 'Welches Datum?' in t.sent[-2][1]
         c.revisions.answer('Beschreibung korrigieren')
         revised = c.repository.load_current(item.source_mail_id, item.id)
         assert revised.version == 2
         assert writer.created == writer.reconciled == 0
         with pytest.raises(ValueError, match='veraltet'):
-            c._decide(decision)
-        c._decide(decision.model_copy(update={'version': 2, 'action': DecisionAction.REJECT}))
+            c.decision_service.decide(decision, c.user_id, c.chat_id)
+        c.decision_service.decide(decision.model_copy(update={'version': 2, 'action': DecisionAction.REJECT}), c.user_id, c.chat_id)
         assert not c.awaiting_decision()
 
 
@@ -374,6 +388,6 @@ def test_regression_open_after_restart_restores_completed_clarification(tmp_path
         assert t.sent[-1][2] is not None
         buttons = t.sent[-1][2]['inline_keyboard'][0]
         assert buttons[0]['text'] == 'Klären'
-        c._decide(c.validator.decision(buttons[0]['callback_data']))
+        c.decision_service.decide(c.validator.decision(buttons[0]['callback_data']), c.user_id, c.chat_id)
         assert 'Welches Datum?' in t.sent[-1][1]
         assert store.load('telegram-dialog')['proposal_id'] == item.id

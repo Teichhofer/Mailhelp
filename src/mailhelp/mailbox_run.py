@@ -378,7 +378,7 @@ class MailboxRunService:
             run = MailRunState(
                 run_id=uuid4(), max_mails=budget.remaining,
                 created_at=datetime.now(timezone.utc), entries=entries,
-                counters=self._run_counters(entries),
+                counters=self.run_counters(entries),
             )
             # The complete, deduplicated identity list is durable before the
             # first BODY.PEEK or analyzer call is allowed to happen.
@@ -401,7 +401,7 @@ class MailboxRunService:
             current.analysis_terminal = None
             current.user_action_open = False
             current.failure_code = None
-            persisted.counters = self._run_counters(persisted.entries)
+            persisted.counters = self.run_counters(persisted.entries)
             self.store.save(run_name, persisted.model_dump(mode="json"))
             if budget.remaining is not None:
                 budget.take()
@@ -464,7 +464,7 @@ class MailboxRunService:
             current.analysis_terminal = terminal_analysis
             current.user_action_open = terminal_status is MailRunEntryStatus.WAITING_FOR_USER
             current.failure_code = failure_code
-            persisted.counters = self._run_counters(persisted.entries)
+            persisted.counters = self.run_counters(persisted.entries)
             self.store.save(run_name, persisted.model_dump(mode="json"))
 
             if result.outcome is ProcessingOutcome.FAILED:
@@ -484,7 +484,7 @@ class MailboxRunService:
 
 
     @staticmethod
-    def _run_counters(entries: list[MailRunEntry]) -> MailRunCounters:
+    def run_counters(entries: list[MailRunEntry]) -> MailRunCounters:
         values = {status.value: 0 for status in MailRunEntryStatus}
         for entry in entries:
             values[entry.status.value] += 1
@@ -522,7 +522,7 @@ class MailboxRunService:
             entry.analysis_terminal = "completed"
         entry.user_action_open = entry.status is MailRunEntryStatus.WAITING_FOR_USER
         entry.failure_code = None
-        run.counters = self._run_counters(run.entries)
+        run.counters = self.run_counters(run.entries)
         self.store.save(run_name, run.model_dump(mode="json"))
 
         checkpoint_name = _checkpoint_name(state.imap.account_id, state.imap.folder)

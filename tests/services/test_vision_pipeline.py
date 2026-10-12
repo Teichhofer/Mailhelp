@@ -119,6 +119,7 @@ def test_finished_vision_is_not_repeated_when_relevance_is_retried(tmp_path):
 
 
 def test_the_mail_page_names_the_vision_outcome_per_attachment():
+    from mailhelp.domain.prepared import PreparedAttachment
     from mailhelp.review.views import MailView
     from mailhelp.web.review_pages import mail_section
 
@@ -126,10 +127,10 @@ def test_the_mail_page_names_the_vision_outcome_per_attachment():
         mail_id="m1", sender="Schule <info@schule.example>", subject="Aushang", received="",
         text="Siehe Anhang.", attachments_omitted=0, text_shortened=False,
         extracted_attachments=(
-            {"filename": "flyer.jpg", "extraction_status": "success", "vision": "read"},
-            {"filename": "icon.png", "extraction_status": "unsupported_format",
-             "vision": "skipped_small"},
-            {"filename": "neu.png", "extraction_status": "unsupported_format", "vision": "künftig"},
+            PreparedAttachment(filename="flyer.jpg", extraction_status="success", vision="read"),
+            PreparedAttachment(filename="icon.png", extraction_status="unsupported_format",
+                               vision="skipped_small"),
+            PreparedAttachment(filename="neu.png", extraction_status="unsupported_format", vision="künftig"),
         )))
     assert '<span class="badge ok">Per Bilderkennung gelesen</span>' in html
     assert '<span class="badge warn">Übersprungen (Symbol oder Logo)</span>' in html

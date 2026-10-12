@@ -120,18 +120,22 @@ def draft(tmp_path):
 
 
 def test_draft_mime_headers_and_input_rejection():
-    data = message({"from": "Them <from@example.test>", "reply_to": "reply@example.test", "subject": "Test",
-                    "message_id": "<parent@test>", "references": "<older@test> <parent@test>"}, "me@test", "Höfliche Antwort", "<new@test>")
+    from mailhelp.domain.prepared import MailHeaders
+    H = MailHeaders.model_validate
+    data = message(H({"from": "Them <from@example.test>", "reply_to": "reply@example.test", "subject": "Test",
+                      "message_id": "<parent@test>", "references": "<older@test> <parent@test>"}),
+                   "me@test", "Höfliche Antwort", "<new@test>")
     parsed = BytesParser(policy=policy.default).parsebytes(data)
     assert str(parsed["To"]) == "reply@example.test"
     assert parsed["In-Reply-To"] == "<parent@test>" and parsed["References"] == "<older@test> <parent@test>"
     assert parsed["Subject"] == "Re: Test" and parsed.get_content().strip() == "Höfliche Antwort"
     assert "Bcc" not in parsed and "Cc" not in parsed
-    parsed = BytesParser(policy=policy.default).parsebytes(message({"from": "a@test", "subject": "Re: Test"}, "me@test", "Text", "<new@test>"))
+    parsed = BytesParser(policy=policy.default).parsebytes(
+        message(H({"from": "a@test", "subject": "Re: Test"}), "me@test", "Text", "<new@test>"))
     assert parsed["Subject"] == "Re: Test" and "In-Reply-To" not in parsed
     for headers, sender in (({}, "a@test"), ({"from": "bad"}, "a@test"), ({"from": "a@test"}, "a@test\r\nBcc:evil@test"),
                             ({"from": "a@test", "subject": "Test\r\nBcc:evil@test"}, "me@test")):
-        with pytest.raises(ValueError): message(headers, sender, "Text", "<new@test>")
+        with pytest.raises(ValueError): message(H(headers), sender, "Text", "<new@test>")
 
 
 def test_draft_generate_edit_save_replay_and_restart(draft):
