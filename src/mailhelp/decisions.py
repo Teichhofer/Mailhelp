@@ -14,7 +14,7 @@ import httpx
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
 
 from .analysis import Analyzer
-from .config import ConfigModel, Topic, _yaml, _validated_file
+from .config import ConfigModel, Topic, read_yaml, validated_file
 from .models import ActionRoute, Relevance
 from .openrouter import OpenRouterClient, RateLimitExceeded
 
@@ -181,7 +181,7 @@ class DecisionPrompts(ConfigModel):
 
 
 def load_decision_prompts(path: Path) -> DecisionPrompts:
-    return _validated_file(path, DecisionPrompts, _yaml(path))
+    return validated_file(path, DecisionPrompts, read_yaml(path))
 
 
 _LINK = re.compile(r"https?://\S+")

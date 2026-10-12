@@ -948,7 +948,7 @@ def test_local_delta_apply_derives_every_invariant_question():
     event=proposal(kind="event",open_questions=["Änderung?"],start=None,end=None,
                    responsibility="other",certainty="contradictory",
                    classification="recurring")
-    questions=models._required_revision_questions(event)
+    questions=models.required_revision_questions(event)
     assert any("beginnt" in value for value in questions)
     assert any("endet" in value for value in questions)
     assert any("zuständig" in value for value in questions)
@@ -959,10 +959,10 @@ def test_local_delta_apply_derives_every_invariant_question():
                            "cancellation","unsupported"):
         item=proposal(open_questions=["x"],classification=classification,
                       status="needs_clarification")
-        assert models._required_revision_questions(item)
+        assert models.required_revision_questions(item)
     uncertain=proposal(open_questions=["x"],certainty="uncertain",
                        status="needs_clarification")
-    assert "sicher belegt" in models._required_revision_questions(uncertain)[0]
+    assert "sicher belegt" in models.required_revision_questions(uncertain)[0]
 
     partial=apply_proposal_revision(
         proposal(kind="event",open_questions=["Wann?"],start=None,end=None),

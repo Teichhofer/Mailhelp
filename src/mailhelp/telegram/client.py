@@ -66,7 +66,7 @@ class TelegramClient:
             TelegramBotResponse.model_validate(response.json())
         except (ValueError, ValidationError) as exc:
             raise ValueError(
-                f"Telegram getMe: ungültige Antwort am Schlüsselpfad {_validation_path(exc)}"
+                f"Telegram getMe: ungültige Antwort am Schlüsselpfad {validation_path(exc)}"
             ) from exc
 
     def started_chats(self, user_id: int) -> list[int]:
@@ -87,7 +87,7 @@ class TelegramClient:
             parsed = TelegramUpdatesResponse.model_validate(response.json())
         except (ValueError, ValidationError) as exc:
             raise ValueError(
-                f"Telegram getUpdates: ungültige Antwort am Schlüsselpfad {_validation_path(exc)}"
+                f"Telegram getUpdates: ungültige Antwort am Schlüsselpfad {validation_path(exc)}"
             ) from exc
         chats = set()
         for item in parsed.result:
@@ -164,7 +164,7 @@ class TelegramClient:
             parsed = TelegramUpdatesResponse.model_validate(response.json())
         except (ValueError, ValidationError) as exc:
             raise ValueError(
-                f"Telegram getUpdates: ungültige Antwort am Schlüsselpfad {_validation_path(exc)}"
+                f"Telegram getUpdates: ungültige Antwort am Schlüsselpfad {validation_path(exc)}"
             ) from exc
         result = [
             item.model_dump(by_alias=True) if isinstance(item, TelegramUpdate) else item
@@ -353,7 +353,7 @@ class TelegramClient:
             TelegramWriteResponse.model_validate(response.json())
         except (ValueError, ValidationError) as exc:
             raise ValueError(
-                f"Telegram {operation}: ungültige Antwort am Schlüsselpfad {_validation_path(exc)}"
+                f"Telegram {operation}: ungültige Antwort am Schlüsselpfad {validation_path(exc)}"
             ) from exc
 
     @staticmethod
@@ -417,7 +417,7 @@ class TelegramClient:
         self.client.close()
 
 
-def _validation_path(exc: Exception) -> str:
+def validation_path(exc: Exception) -> str:
     if isinstance(exc, ValidationError):
         return ", ".join(
             ".".join(str(part) for part in item["loc"]) or "<root>"

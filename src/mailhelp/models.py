@@ -13,4 +13,4 @@ from .domain.duplicate import *
 from .domain.mail import *
 
 # Kept for callers that used this intentionally testable compatibility helper.
-from .domain.proposal import _required_revision_questions as _required_revision_questions
+from .domain.proposal import required_revision_questions as required_revision_questions

@@ -11,7 +11,7 @@ import shutil
 from PIL import Image
 
 from .mime import attachment_parts
-from .vision import _open, encode, IMAGE_TYPES
+from .vision import open_image, encode, IMAGE_TYPES
 
 
 class AttachmentCache:
@@ -33,7 +33,7 @@ class AttachmentCache:
         for index, ((_, kind, data), attachment) in enumerate(zip(parts, attachments)):
             if kind not in IMAGE_TYPES or len(data) > 10_485_760:
                 continue
-            image = _open(data)
+            image = open_image(data)
             if image is None:
                 continue
             encoded = base64.b64decode(encode(image, 1600).partition(",")[2])

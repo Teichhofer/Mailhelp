@@ -8,7 +8,7 @@ from pydantic import ValidationError
 from ..models import CalendarDuplicateDecision, Proposal
 from ..adapter import RetryPolicy, uncertain_write
 from ..logging import EventLogger, NullLogger
-from .contracts import AccessTokenProvider, CalendarEventResponse, PreparedWrite, TodoistTaskResponse, proposal_is_writable, _path
+from .contracts import AccessTokenProvider, CalendarEventResponse, PreparedWrite, TodoistTaskResponse, proposal_is_writable, validation_path
 from .calendar import CalendarOperations
 from .todoist import TodoistOperations
 from .transport import HttpTransport
@@ -72,7 +72,7 @@ class HttpWriter(CalendarOperations, TodoistOperations, HttpTransport):
             raise
         model = TodoistTaskResponse if self.service == "todoist" else CalendarEventResponse
         try: result = model.model_validate(response.json())
-        except (ValueError, ValidationError) as exc: raise ValueError(f"{self.service}: ungültige Antwort am Schlüsselpfad {_path(exc)}") from exc
+        except (ValueError, ValidationError) as exc: raise ValueError(f"{self.service}: ungültige Antwort am Schlüsselpfad {validation_path(exc)}") from exc
         self.logger.event("INFO", self.service, "create_completed", call_id=key, mail_id=proposal.source_mail_id,
                           proposal_id=proposal.id, duration_ms=round((time.perf_counter()-started)*1000, 3), status=response.status_code)
         self._read_cache.clear()

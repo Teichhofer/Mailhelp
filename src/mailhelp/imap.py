@@ -125,7 +125,7 @@ def _encode_mailbox_name(value: str) -> bytes:
     return bytes(result)
 
 
-def _mailbox_argument(folder: str) -> str | bytes:
+def mailbox_argument(folder: str) -> str | bytes:
     """Return an atom or safely quoted wire value for an IMAP mailbox command."""
     if not folder or any(ord(character) < 32 or ord(character) == 127
                          for character in folder):
@@ -276,7 +276,7 @@ class ImapReader:
 
     def _check_access(self, folders: list[str]) -> None:
         for folder in folders:
-            status, _ = self.connection.select(_mailbox_argument(folder), readonly=True)
+            status, _ = self.connection.select(mailbox_argument(folder), readonly=True)
             if status != "OK":
                 raise FolderNotReadable(folder)
 
@@ -316,7 +316,7 @@ class ImapReader:
             folder, uid, expected_uidvalidity))
 
     def _fetch_uid(self, folder: str, uid: int, expected_uidvalidity: int) -> FetchedMail:
-        status, _data = self.connection.select(_mailbox_argument(folder), readonly=True)
+        status, _data = self.connection.select(mailbox_argument(folder), readonly=True)
         if status != "OK": raise FolderNotReadable(folder)
         status, validity = self.connection.response("UIDVALIDITY")
         if status != "UIDVALIDITY" or not validity: raise RuntimeError("IMAP lieferte keine UIDVALIDITY")
@@ -344,7 +344,7 @@ class ImapReader:
                         completed_uid_ranges: tuple[tuple[int, int], ...] = (),
                         max_count: int | None = None,
                         historical_start: datetime | None = None) -> list[MailCandidate]:
-        status, _data = self.connection.select(_mailbox_argument(folder), readonly=True)
+        status, _data = self.connection.select(mailbox_argument(folder), readonly=True)
         if status != "OK":
             raise FolderNotReadable(folder)
         status, validity = self.connection.response("UIDVALIDITY")
@@ -422,7 +422,7 @@ class ImapReader:
         return self._operation("historical_boundary", lambda: self._determine_start_uid(folder, start))
 
     def _determine_start_uid(self, folder: str, start: datetime) -> int:
-        status, _ = self.connection.select(_mailbox_argument(folder), readonly=True)
+        status, _ = self.connection.select(mailbox_argument(folder), readonly=True)
         if status != "OK": raise FolderNotReadable(folder)
         status, validity = self.connection.response("UIDVALIDITY")
         if status != "UIDVALIDITY" or not validity: raise RuntimeError("IMAP lieferte keine UIDVALIDITY")
@@ -465,7 +465,7 @@ class ImapReader:
                      expected_uidvalidity: int | None,
                      max_count: int | None,
                      completed_uid_ranges: tuple[tuple[int, int], ...] = ()) -> list[FetchedMail]:
-        status, data = self.connection.select(_mailbox_argument(folder), readonly=True)
+        status, data = self.connection.select(mailbox_argument(folder), readonly=True)
         if status != "OK": raise FolderNotReadable(folder)
         status, validity = self.connection.response("UIDVALIDITY")
         if status != "UIDVALIDITY" or not validity: raise RuntimeError("IMAP lieferte keine UIDVALIDITY")

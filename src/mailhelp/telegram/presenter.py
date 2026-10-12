@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Callable
 
-from ..integrations import proposal_is_writable
+from ..external.contracts import proposal_is_writable
 from ..models import Proposal, ProposalKind
 from .callbacks import Decision, DecisionAction, validate_callback_markup
 from .formatting import format_proposal, numbered_message_parts, revision_summary

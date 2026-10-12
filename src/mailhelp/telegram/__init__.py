@@ -1,7 +1,7 @@
 """Public Telegram API, retained across the package-level decomposition."""
 
 from .authorization import AuthorizedUpdateValidator, UpdateValidation
-from .client import TelegramChatNotFoundError, TelegramClient, _validation_path
+from .client import TelegramChatNotFoundError, TelegramClient, validation_path
 from .dialog import EventLogger, TelegramDialogController, TelegramTransport
 from .callbacks import (
     Decision,

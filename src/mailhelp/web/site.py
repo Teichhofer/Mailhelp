@@ -256,13 +256,12 @@ class MailhelpSite:
                            mail.extracted_attachments if mail else ())
         overview = replace(overview, open=tuple(view for view in overview.open if include(view)),
                            relevance=overview.relevance if selected in {"", "clarification"} else ())
+        # The day's summary reads the history; only the finished, unfiltered state needs it.
+        finished = not overview.open and not overview.relevance and not selected
         page = overview_page(overview, actions=proposal_actions(csrf),
-                                                relevance_actions=relevance_actions(csrf),
-                                                message=message, message_kind=kind)
-        page = page.replace('<main id="inhalt">', '<main id="inhalt">' + chips("/offen", selected))
-        if not overview.open and not overview.relevance and not selected:
-            page = page.replace('<p class="empty">Nichts zu entscheiden. Neue Vorschläge erscheinen hier '
-                                'automatisch.</p>', self.experience.inbox_zero())
+                             relevance_actions=relevance_actions(csrf),
+                             message=message, message_kind=kind, before=chips("/offen", selected),
+                             empty=self.experience.inbox_zero() if finished else None)
         return Response.html(200, page)
 
     def _result_notice(self, request: Request, session: WebSession) -> tuple[str | None, str]:
@@ -283,8 +282,9 @@ class MailhelpSite:
         message, kind = self._result_notice(request, session)
         page = mail_page(view, question, relevance_actions(csrf),
                          sender_actions=self.senders.actions(mail_id, view.sender, csrf),
-                         message=message, message_kind=kind)
-        return Response.html(200, page.replace("</main>", self.experience.editor(mail_id, csrf) + self.archive.analysis(mail_id) + "</main>"))
+                         message=message, message_kind=kind,
+                         after=self.experience.editor(mail_id, csrf) + self.archive.analysis(mail_id))
+        return Response.html(200, page)
 
     def attachment(self, request, session, mail_id, index):
         from ..attachments import AttachmentCache
@@ -305,13 +305,14 @@ class MailhelpSite:
         if view is None:
             return Response.html(404, error_page(
                 "Nicht gefunden", "Dieser Vorschlag ist nicht (mehr) vorhanden."))
-        page = detail_page(view, actions=proposal_actions(self.auth.csrf_token(session.id)), mail=self.views.mail(mail_id))
         link = f'<p><a class="button" href="/vorschlag/{mail_id}/{proposal_id}/bearbeiten">Felder bearbeiten</a></p>'
         from .review_pages import disclosure
         extra = (link + self.experience.editor(mail_id, self.auth.csrf_token(session.id))
                  + disclosure("Revisionshistorie &amp; Differenzen", self.archive.revisions(mail_id, proposal_id))
                  + disclosure("Technische LLM-Analyse &amp; Metriken", self.archive.analysis(mail_id)))
-        return Response.html(200, page.replace("</main>", extra + "</main>"))
+        page = detail_page(view, actions=proposal_actions(self.auth.csrf_token(session.id)),
+                           mail=self.views.mail(mail_id), after=extra)
+        return Response.html(200, page)
 
     def status(self, request: Request, session: WebSession) -> Response:
         overview = self.views.overview()

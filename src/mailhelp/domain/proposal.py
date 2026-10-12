@@ -271,7 +271,7 @@ class ProposalRevisionDelta(StrictModel):
     changes: ProposalRevisionChanges
 
 
-def _required_revision_questions(proposal: Proposal) -> list[str]:
+def required_revision_questions(proposal: Proposal) -> list[str]:
     """Derive invariant clarification questions from the revised business facts."""
     questions: list[str] = []
     if proposal.kind == ProposalKind.EVENT:
@@ -381,7 +381,7 @@ def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta, *,
     remaining = list(previous.open_questions)
     remaining.remove(delta.answered_question)
     provisional = previous.model_copy(update=changes)
-    for question in _required_revision_questions(provisional):
+    for question in required_revision_questions(provisional):
         if question not in remaining:
             remaining.append(question)
     changes.update(

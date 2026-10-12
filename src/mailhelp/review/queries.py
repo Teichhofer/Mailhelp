@@ -10,6 +10,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from ..models import MailState, ProposalStatus
 from .archive import AnalysisSnapshot, HistorySnapshot
 from ..storage import CorruptState, JsonStore, mail_state_names
+from .filters import matches
 
 
 class ArchiveQuery(BaseModel):
@@ -95,7 +96,6 @@ class ArchiveQueries:
     def search(self, query: ArchiveQuery) -> tuple[list[dict], int]:
         items = []
         for item in self.items():
-            from ..web.filters import matches
             if not matches(query.filter, item["kinds"].values(), item["statuses"] + [item["relevance"]], item["attachments"], item["duplicate"]):
                 continue
             day = datetime.fromisoformat(item[query.sort] or item["updated"]).astimezone(self.zone).date()

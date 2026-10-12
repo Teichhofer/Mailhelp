@@ -15,7 +15,7 @@ from datetime import date, datetime, timedelta
 from email.utils import parseaddr
 from zoneinfo import ZoneInfo
 
-from ..integrations import proposal_is_writable
+from ..external.contracts import proposal_is_writable
 from ..models import Proposal, ProposalKind
 
 

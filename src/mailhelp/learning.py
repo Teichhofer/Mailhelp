@@ -1,9 +1,7 @@
 """Terminal-only, read-only mailbox learning workflow."""
 from __future__ import annotations
 
-import os
 import re
-import tempfile
 import unicodedata
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
@@ -19,7 +17,7 @@ from .imap import FetchedMail, FolderNotReadable, ImapReader
 from .mime import prepare
 from .models import IrrelevantSenders, LearnedCategory, MailClassification
 from .sender_filter import add_irrelevant_senders, is_irrelevant_sender
-from .storage import CorruptState, JsonStore
+from .storage import CorruptState, JsonStore, atomic_replace
 
 
 def _safe_terminal(value: str) -> str:
@@ -50,7 +48,7 @@ def save_topics(path: Path, existing: list[Topic], accepted: list[LearnedCategor
                  for item in accepted]
     model = IrrelevantTopicsConfig if allow_empty else TopicsConfig
     result = model(topics=[*existing, *additions]).topics
-    _atomic_replace(path, topics_document(result))
+    atomic_replace(path, topics_document(result))
     return result
 
 
@@ -58,21 +56,6 @@ def topics_document(topics: list[Topic]) -> str:
     """The one serialization of topic files, shared by learning mode and web."""
     return yaml.safe_dump({"topics": [topic.model_dump() for topic in topics]}, allow_unicode=True,
                           sort_keys=False, default_flow_style=False)
-
-
-def _atomic_replace(path: Path, content: str) -> None:
-    """Durably replace one user-editable YAML file without partial writes."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
-    try:
-        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
-            stream.write(content)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(temporary, path)
-    except BaseException:
-        Path(temporary).unlink(missing_ok=True)
-        raise
 
 
 def add_discovered_folders(path: Path, configured: list[str], discovered: list[str]) -> list[str]:
@@ -90,7 +73,7 @@ def add_discovered_folders(path: Path, configured: list[str], discovered: list[s
     content = set_list(path.read_text(encoding="utf-8"), "imap.folders", merged)
     if yaml.safe_load(content) != document:
         raise RuntimeError("config.yaml lässt sich nicht sicher ergänzen; Ordner bitte von Hand eintragen")
-    _atomic_replace(path, content)
+    atomic_replace(path, content)
     return merged
 
 

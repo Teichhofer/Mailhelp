@@ -13,7 +13,7 @@ from mailhelp.domain.proposal import (
     ProposalResponsibility,
     ProposalRevisionChanges,
     ProposalStatus,
-    _required_revision_questions,
+    required_revision_questions,
 )
 from mailhelp.domain.extraction import ExtractedAttachment, ParsedCalendarEvent
 from mailhelp.domain.processing import ProcessingStage, ProcessingSteps
@@ -145,7 +145,7 @@ def test_required_revision_questions_with_target_event_id():
         open_questions=["Welcher bestehende Eintrag soll geändert werden?"],
         target_event_id=None,
     )
-    questions = _required_revision_questions(change_without_id)
+    questions = required_revision_questions(change_without_id)
     assert "Welcher bestehende Eintrag soll geändert werden?" in questions
 
     # With target_event_id, CHANGE does NOT ask
@@ -153,7 +153,7 @@ def test_required_revision_questions_with_target_event_id():
         classification=ProposalClassification.CHANGE,
         target_event_id="event-1",
     )
-    assert "Welcher bestehende Eintrag soll geändert werden?" not in _required_revision_questions(change_with_id)
+    assert "Welcher bestehende Eintrag soll geändert werden?" not in required_revision_questions(change_with_id)
 
     # Without target_event_id, CANCELLATION asks
     cancel_without_id = sample_event_proposal(
@@ -162,14 +162,14 @@ def test_required_revision_questions_with_target_event_id():
         open_questions=["Welcher bestehende Eintrag soll storniert werden?"],
         target_event_id=None,
     )
-    assert "Welcher bestehende Eintrag soll storniert werden?" in _required_revision_questions(cancel_without_id)
+    assert "Welcher bestehende Eintrag soll storniert werden?" in required_revision_questions(cancel_without_id)
 
     # With target_event_id, CANCELLATION does NOT ask
     cancel_with_id = sample_event_proposal(
         classification=ProposalClassification.CANCELLATION,
         target_event_id="event-1",
     )
-    assert "Welcher bestehende Eintrag soll storniert werden?" not in _required_revision_questions(cancel_with_id)
+    assert "Welcher bestehende Eintrag soll storniert werden?" not in required_revision_questions(cancel_with_id)
 
 
 def test_proposal_revision_changes_with_update_fields():

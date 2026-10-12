@@ -236,7 +236,7 @@ def test_status_page_shows_runtime_contacts_and_its_own_refresh_signal(web, tmp_
 
 
 def test_status_without_metrics_and_unknown_stage(web, tmp_path):
-    from mailhelp.web.review_pages import RUNTIME_STAGES, ServiceInfo, _runtime_section
+    from mailhelp.web.status_pages import RUNTIME_STAGES, ServiceInfo, _runtime_section
     from zoneinfo import ZoneInfo
     assert "Aktuelle Verarbeitung" not in web.browser.request("GET", "/status").body.decode()
     plain = json.loads(web.browser.request("GET", "/api/stand?seite=status", accept="application/json").body)

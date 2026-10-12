@@ -12,7 +12,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from .config import Settings, Topic, TopicsConfig, IrrelevantTopicsConfig
 from .domain.relevance import IrrelevantSenders
 from .sender_filter import change_irrelevant_senders
-from .learning import _atomic_replace, topics_document
+from .learning import topics_document
+from .storage import atomic_replace
 from .yaml_edit import YamlEditError, set_scalars
 from .review.commands import CommandSource
 from .review.results import ResultStatus, ReviewResult
@@ -227,7 +228,7 @@ class ConfigurationService:
             journal = {"schema_version": 1, "command": command.model_dump(mode="json"),
                        "candidate_hash": hashlib.sha256(content.encode()).hexdigest(), "status": "prepared"}
             self.store.save(f"configuration-{command.idempotency_key}", journal)
-            _atomic_replace(self.path(command), content)
+            atomic_replace(self.path(command), content)
             journal["status"] = "saved"
             self.store.save(f"configuration-{command.idempotency_key}", journal)
             if command.kind == AdminKind.SETTINGS:

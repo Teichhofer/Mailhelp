@@ -21,7 +21,7 @@ import warnings
 import pypdf
 from PIL import Image, ImageOps
 
-from .attachment_extractor import MAX_TEXT_CHARACTERS, _clean_text, _truncate_text
+from .attachment_extractor import MAX_TEXT_CHARACTERS, clean_text, truncate_text
 from .config import VisionSettings
 from .domain.extraction import VisionExtractionResult
 from .mime import attachment_parts
@@ -80,7 +80,7 @@ def is_scanned_pdf(attachment: dict[str, Any]) -> bool:
             and int(attachment.get("size_bytes", 0)) > SCAN_MIN_BYTES)
 
 
-def _open(data: bytes) -> Image.Image | None:
+def open_image(data: bytes) -> Image.Image | None:
     """Decode a JPEG, PNG or WebP image; ``None`` for anything unreadable."""
     try:
         with warnings.catch_warnings():
@@ -161,7 +161,7 @@ def plan(raw: bytes, attachments: list[dict[str, Any]],
             skipped[index] = "skipped_limit"
             continue
         if image:
-            decoded = _open(payload)
+            decoded = open_image(payload)
             if decoded is None:
                 skipped[index] = "skipped_unreadable"
                 continue
@@ -206,11 +206,11 @@ class VisionExtractor:
                 yield VisionUpdate(job.index, {**attachment, "vision": "failed"},
                                    error=type(exc).__name__)
                 continue
-            text = _clean_text(result.text) if result.legible else ""
+            text = clean_text(result.text) if result.legible else ""
             if not text:
                 yield VisionUpdate(job.index, {**attachment, "vision": "no_text"}, call_id)
                 continue
-            text, _ = _truncate_text(text, MAX_TEXT_CHARACTERS)
+            text, _ = truncate_text(text, MAX_TEXT_CHARACTERS)
             yield VisionUpdate(job.index, {
                 **attachment, "text": text, "extraction_status": "success",
                 "character_count": len(text), "vision": "read"}, call_id)

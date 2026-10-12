@@ -25,6 +25,7 @@ from .pages import e, layout, notice
 from .review_pages import detail_page
 from .setting_help import SETTING_HELP, EXTRA_HELP, help_bubble
 from .. import state_names
+from ..review.filters import matches
 
 
 EDIT_LABELS = {"title": "Titel", "description": "Beschreibung", "target": "Ziel", "due": "Frist",
@@ -400,10 +401,10 @@ class ArchiveSite:
         except ValueError:
             return self.site._reply(request, 422, "Ungültige Verlaufsfilter.")
         rows = []
-        store = self.site.views.store
+        # One lookup per history row instead of a scan over all mails.
+        sources = {item["id"]: item for item in self.queries.items()}
         for row in self.queries.history():
-            from .filters import matches
-            source = next(item for item in self.queries.items() if item["id"] == row["mail_id"])
+            source = sources[row["mail_id"]]
             if not matches(query.filter, [row["proposal_kind"]], [row["status"]], source["attachments"], source["duplicate"]):
                 continue
             if query.q and query.q.casefold() not in (row["mail_id"] + row["title"]).casefold():
@@ -446,7 +447,6 @@ class ArchiveSite:
         view = self.site.views.proposal(mail_id, proposal_id, int(version))
         if view is None:
             return self.site._reply(request, 404, "Version nicht mehr vorhanden.")
-        page = detail_page(view)
         previous = self.site.views.store.peek_model(state_names.proposal(mail_id, proposal_id, int(version)-1), Proposal)
         current = self.site.views.store.peek_model(state_names.proposal(mail_id, proposal_id, version), Proposal)
         diff = '<section class="card"><h2>Änderungen gegenüber vorheriger Version</h2>'
@@ -456,8 +456,8 @@ class ArchiveSite:
             before, after = previous.model_dump(mode="json"), current.model_dump(mode="json")
             diff += '<dl>' + ''.join(f'<dt>{e(key)}</dt><dd>{e(before[key])} → {e(after[key])}</dd>'
                                     for key in ('title', 'description', 'target', 'due', 'start', 'end', 'all_day', 'location', 'video_link', 'status', 'open_questions') if before[key] != after[key]) + '</dl>'
-        page = page.replace('</main>', diff + '</section></main>')
-        return Response.html(200, page.replace('</main>', '<p>Historische Version – ausschließlich lesend.</p></main>'))
+        read_only = '<p>Historische Version – ausschließlich lesend.</p>'
+        return Response.html(200, detail_page(view, after=diff + '</section>' + read_only))
 
     def edit(self, request, session, mail_id, proposal_id, values=None, message=""):
         proposal = self.site.views.store.peek_model(state_names.proposal(mail_id, proposal_id), Proposal)

@@ -1,11 +1,13 @@
-"""Compatibility facade for integrations; implementations live in external/."""
+"""Compatibility facade for integrations; implementations live in external/.
+
+Deprecated: only public names are re-exported, and the facade is removed in 3.0.
+Mailhelp itself imports from ``external/``.
+"""
 from .external.contracts import (AuthenticationError, OAuthTokenError, CalendarAccessError,
     IntegrationModel, TodoistTaskResponse, TodoistTaskListResponse, CalendarEventResponse,
     CalendarListResponse, CalendarOverlapEvent, ExternalWriter, AccessTokenProvider,
-    PreparedWrite, proposal_is_writable, _path)
+    PreparedWrite, proposal_is_writable, validation_path)
 from .external.oauth import GoogleOAuthTokenProvider, OAuthTokenResponse
-from .external.ical import CalendarFileWriter, calendar_file, _ical_datetime, _ical_text, _fold_ical_line
-from .external.calendar import _now
-from .external.transport import _google_error_reason
+from .external.ical import CalendarFileWriter, calendar_file
 from .external.http_writer import HttpWriter
-from .external.confirmed import execute_confirmed, _with_external_result
+from .external.confirmed import execute_confirmed

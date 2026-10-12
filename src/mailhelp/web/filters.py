@@ -1,17 +1,8 @@
 """Shared server-side quick filters, also usable without JavaScript."""
 from urllib.parse import urlencode
 
+from ..review.filters import FILTERS, matches  # noqa: F401  (re-exported for web callers)
 from .pages import e
-
-FILTERS = {"": "Alle", "events": "Termine", "tasks": "Aufgaben", "clarification": "Klärung nötig",
-           "attachments": "Mit Anhängen", "duplicates": "Duplikate"}
-
-
-def matches(selected, kinds, statuses, attachments, duplicate=False):
-    return {"": True, "events": "event" in kinds, "tasks": "task" in kinds,
-            "clarification": "needs_clarification" in statuses or "unclear" in statuses,
-            "attachments": bool(attachments),
-            "duplicates": duplicate or "already_exists" in statuses}[selected]
 
 
 def chips(path, selected=""):

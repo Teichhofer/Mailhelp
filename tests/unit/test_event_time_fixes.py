@@ -145,7 +145,7 @@ def test_new_questions_after_an_answer_are_shown_as_new_not_taken_over():
 
 
 def test_change_notes_use_the_current_time_in_the_calendar_zone():
-    from mailhelp.integrations import _now
+    from mailhelp.external.calendar import _now
     before = datetime.now(timezone.utc)
     noted = _now("Europe/Berlin")
     assert str(noted.tzinfo) == "Europe/Berlin" and noted >= before

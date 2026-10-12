@@ -324,14 +324,14 @@ class MetricsRecorder:
         Daily aggregates contain no mail/call IDs. The journal is written first;
         recovery replaces both outputs instead of incrementing a sum twice.
         """
-        from .learning import _atomic_replace
+        from .storage import atomic_replace
         with self._lock:
             pending = sibling(self.path, "compaction")
             daily = sibling(self.path, "daily")
             if pending.exists():
                 operation = json.loads(pending.read_text(encoding="utf-8"))
-                _atomic_replace(daily, json.dumps(operation["daily"], ensure_ascii=False, indent=2))
-                _atomic_replace(self.path, operation["retained"])
+                atomic_replace(daily, json.dumps(operation["daily"], ensure_ascii=False, indent=2))
+                atomic_replace(self.path, operation["retained"])
                 pending.unlink()
                 self._cache = None
             records, _ = self.records()
@@ -350,8 +350,8 @@ class MetricsRecorder:
                 row["unknown_cost"] += item["cost_usd"] is None
                 row["usd"] = str(Decimal(row["usd"]) + Decimal(item["cost_usd"] or "0"))
             operation = {"daily": aggregate, "retained": "".join(json.dumps(item) + "\n" for item in records)}
-            _atomic_replace(pending, json.dumps(operation, ensure_ascii=False, indent=2))
-            _atomic_replace(daily, json.dumps(aggregate, ensure_ascii=False, indent=2))
-            _atomic_replace(self.path, operation["retained"])
+            atomic_replace(pending, json.dumps(operation, ensure_ascii=False, indent=2))
+            atomic_replace(daily, json.dumps(aggregate, ensure_ascii=False, indent=2))
+            atomic_replace(self.path, operation["retained"])
             pending.unlink()
             self._cache = None

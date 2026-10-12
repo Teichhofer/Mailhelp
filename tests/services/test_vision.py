@@ -72,20 +72,20 @@ def test_image_and_scan_detection():
 
 def test_open_accepts_only_bounded_jpeg_png_and_webp(monkeypatch):
     for fmt in ("PNG", "JPEG", "WEBP"):
-        assert vision._open(image_bytes(noise(), fmt)).size == (300, 300)
-    assert vision._open(image_bytes(noise(), "GIF")) is None
-    assert vision._open(b"kein Bild") is None
+        assert vision.open_image(image_bytes(noise(), fmt)).size == (300, 300)
+    assert vision.open_image(image_bytes(noise(), "GIF")) is None
+    assert vision.open_image(b"kein Bild") is None
     monkeypatch.setattr(vision, "MAX_SOURCE_PIXELS", 300 * 300 - 1)
-    assert vision._open(image_bytes(noise(), "PNG")) is None
+    assert vision.open_image(image_bytes(noise(), "PNG")) is None
 
 
 def test_open_rejects_decompression_bombs(monkeypatch):
     # Pillow warns above MAX_IMAGE_PIXELS; the warning is treated as an error.
     monkeypatch.setattr(Image, "MAX_IMAGE_PIXELS", 100 * 100)
-    assert vision._open(image_bytes(noise(), "PNG")) is None
+    assert vision.open_image(image_bytes(noise(), "PNG")) is None
     # Twice the limit is an error in Pillow itself.
     monkeypatch.setattr(Image, "MAX_IMAGE_PIXELS", 10 * 10)
-    assert vision._open(image_bytes(noise(), "PNG")) is None
+    assert vision.open_image(image_bytes(noise(), "PNG")) is None
 
 
 def test_encode_scales_flattens_and_rotates():

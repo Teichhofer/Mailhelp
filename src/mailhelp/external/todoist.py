@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Any
 from pydantic import ValidationError
 from ..models import Proposal, ProposalKind
-from .contracts import PreparedWrite, TodoistTaskListResponse, TodoistTaskResponse, _path
+from .contracts import PreparedWrite, TodoistTaskListResponse, TodoistTaskResponse, validation_path
 
 class TodoistOperations:
     def _reconcile_todoist(self, key: str) -> dict[str, Any] | None:
@@ -16,7 +16,7 @@ class TodoistOperations:
                 params["cursor"] = cursor
             response = self.policy.run(lambda: self._get("/tasks", params))
             try: page = TodoistTaskListResponse.model_validate(response.json())
-            except (ValueError, ValidationError) as exc: raise ValueError(f"Todoist tasks: ungültige Antwort am Schlüsselpfad {_path(exc)}") from exc
+            except (ValueError, ValidationError) as exc: raise ValueError(f"Todoist tasks: ungültige Antwort am Schlüsselpfad {validation_path(exc)}") from exc
             found = next((item for item in page.results if f"[{key}]" in item.description), None)
             if found is not None:
                 return found.model_dump()

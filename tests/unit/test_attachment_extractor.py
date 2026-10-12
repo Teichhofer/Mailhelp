@@ -8,8 +8,8 @@ import pytest
 
 from mailhelp.attachment_extractor import (
     extract_attachment_text,
-    _clean_text,
-    _truncate_text,
+    clean_text,
+    truncate_text,
     _TRUNCATION_MARKER,
     MAX_ATTACHMENT_BYTES,
 )
@@ -73,13 +73,13 @@ def make_docx(paragraphs: list[str]) -> bytes:
 
 def test_clean_and_truncate_text():
     raw = "  Text   mit \t Tabs  \n\n\n\nund   vielen   Zeilen. \x00 "
-    cleaned = _clean_text(raw)
+    cleaned = clean_text(raw)
     assert cleaned == "Text mit Tabs\n\nund vielen Zeilen."
 
-    short, truncated = _truncate_text("12345", 10)
+    short, truncated = truncate_text("12345", 10)
     assert short == "12345" and not truncated
 
-    long_text, truncated = _truncate_text("1234567890", 5)
+    long_text, truncated = truncate_text("1234567890", 5)
     assert truncated is True
     assert long_text.startswith("12345")
     assert _TRUNCATION_MARKER in long_text
@@ -247,7 +247,7 @@ def test_docx_empty_paragraph_and_extract_text_error(monkeypatch):
     assert "Text nach Leerzeile" in res.text
 
     # extract_text unexpected error branch
-    monkeypatch.setattr("mailhelp.attachment_extractor._clean_text", lambda _t: (_ for _ in ()).throw(RuntimeError("boom")))
+    monkeypatch.setattr("mailhelp.attachment_extractor.clean_text", lambda _t: (_ for _ in ()).throw(RuntimeError("boom")))
     res_err = extract_attachment_text("boom.txt", "text/plain", b"irrelevant")
     assert res_err.extraction_status == "error"
 

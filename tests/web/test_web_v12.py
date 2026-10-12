@@ -316,7 +316,7 @@ def test_configuration_reconcile_failure_and_closed_patch(web, tmp_path, monkeyp
     assert service.execute(original).status == ResultStatus.DONE
     assert service.reconcile(original).status == ResultStatus.DONE
     fresh = cmd()
-    monkeypatch.setattr('mailhelp.configuration._atomic_replace', lambda *args: (_ for _ in ()).throw(OSError('readonly')))
+    monkeypatch.setattr('mailhelp.configuration.atomic_replace', lambda *args: (_ for _ in ()).throw(OSError('readonly')))
     assert service.execute(fresh).status == ResultStatus.INVALID
     web.dialog.review.configuration = None
     assert web.dialog.review.execute(fresh).status == ResultStatus.INVALID
@@ -344,7 +344,7 @@ def test_topics_snapshot_survives_reconfiguration_and_restart(tmp_path):
 
 def test_metrics_compaction_recovery_validation_and_logging(tmp_path, monkeypatch):
     from mailhelp.logging import JsonlLogger
-    from mailhelp.learning import _atomic_replace
+    from mailhelp.storage import atomic_replace
     metrics = MetricsRecorder(tmp_path/'metrics'/'llm.jsonl', MetricsSettings())
     logger = JsonlLogger(tmp_path/'logs', file_enabled=False, llm_enabled=False)
     logger.metrics = metrics

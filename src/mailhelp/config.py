@@ -601,7 +601,7 @@ def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any
     return result
 
 
-def _yaml(path: Path) -> Any:
+def read_yaml(path: Path) -> Any:
     with path.open(encoding="utf-8") as stream:
         value = yaml.safe_load(stream)
     if not isinstance(value, dict):
@@ -651,13 +651,13 @@ def _create_missing_topic_files(directory: Path) -> None:
 
 def load_all(directory: Path, environ: dict[str, str] | None = None) -> tuple[Settings, Secrets, list[Topic], list[Topic], PromptConfig, str]:
     env = {**_dotenv(directory / ".env"), **(os.environ if environ is None else environ)}
-    settings = _validated_file(directory / "config.yaml", Settings, _yaml(directory / "config.yaml"))
-    prompts = _validated_file(directory / "prompts.yaml", PromptConfig, _yaml(directory / "prompts.yaml"))
+    settings = validated_file(directory / "config.yaml", Settings, read_yaml(directory / "config.yaml"))
+    prompts = validated_file(directory / "prompts.yaml", PromptConfig, read_yaml(directory / "prompts.yaml"))
     _create_missing_topic_files(directory)
-    topics = _validated_file(directory / "topics.yaml", TopicsConfig, _yaml(directory / "topics.yaml")).topics
-    irrelevant_topics = _validated_file(
+    topics = validated_file(directory / "topics.yaml", TopicsConfig, read_yaml(directory / "topics.yaml")).topics
+    irrelevant_topics = validated_file(
         directory / "irrelevant_topics.yaml", IrrelevantTopicsConfig,
-        _yaml(directory / "irrelevant_topics.yaml"),
+        read_yaml(directory / "irrelevant_topics.yaml"),
     ).topics
     names = ["IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN", "TODOIST_TOKEN",
              "TODOIST_CLIENT_ID", "TODOIST_CLIENT_SECRET", "GOOGLE_OAUTH_CLIENT_ID",
@@ -684,7 +684,7 @@ def load_all(directory: Path, environ: dict[str, str] | None = None) -> tuple[Se
     return settings, secrets, topics, irrelevant_topics, prompts, fingerprint
 
 
-def _validated_file(path: Path, model: type[BaseModel], value: Any, prefix: str = "") -> Any:
+def validated_file(path: Path, model: type[BaseModel], value: Any, prefix: str = "") -> Any:
     try: return model.model_validate(value)
     except ValidationError as exc:
         locations = []

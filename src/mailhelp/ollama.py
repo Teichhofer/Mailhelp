@@ -90,13 +90,7 @@ class OllamaClient(OpenRouterClient):
 
     @staticmethod
     def _raise_for_status(response: httpx.Response) -> None:
-        try:
-            response.raise_for_status()
-        except httpx.HTTPStatusError as exc:
-            exc.safe_detail = f"Ollama: HTTP {response.status_code}" + (
-                " (Modell auf dem Ollama-Server nicht gefunden)"
-                if response.status_code == 404 else "")
-            raise
+        raise_for_ollama_status(response)
 
     def _prepare_request(self, request: dict[str, Any]) -> dict[str, Any]:
         response_format = request["response_format"]
@@ -184,11 +178,22 @@ class OllamaClient(OpenRouterClient):
         require_installed_model(self, self.model)
 
 
+def raise_for_ollama_status(response: httpx.Response) -> None:
+    """Raise for an HTTP error with a content-free detail naming a missing model."""
+    try:
+        response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        exc.safe_detail = f"Ollama: HTTP {response.status_code}" + (
+            " (Modell auf dem Ollama-Server nicht gefunden)"
+            if response.status_code == 404 else "")
+        raise
+
+
 def require_installed_model(client: OpenRouterClient, model: str) -> None:
     """Fail unless the Ollama server behind *client* lists *model* in /api/tags."""
     def invoke() -> httpx.Response:
         response = client.client.get("/api/tags")
-        OllamaClient._raise_for_status(response)
+        raise_for_ollama_status(response)
         return response
 
     value = client.policy.run(invoke).json()

@@ -517,7 +517,7 @@ def test_topic_ids_collision_fallback_and_atomic_cleanup(tmp_path, monkeypatch):
     assert _topic_id("a" * 100, used).endswith("-2")
     assert _safe_terminal("ok\n\x00") == "ok\n�"
     path = tmp_path / "topics.yaml"
-    monkeypatch.setattr("mailhelp.learning.os.replace", lambda *_args: (_ for _ in ()).throw(OSError("disk")))
+    monkeypatch.setattr("mailhelp.storage.os.replace", lambda *_args: (_ for _ in ()).throw(OSError("disk")))
     with pytest.raises(OSError, match="disk"):
         save_topics(path, [topic()], [LearnedCategory(name="Neu", description="Neu")])
     assert not list(tmp_path.iterdir())

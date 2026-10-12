@@ -17,7 +17,9 @@ from .decisions import (DecisionAnalyzer, DecisionClient, JevRelevanceAnalyzer,
                         load_relevance_prompts, relevance_fingerprint)
 from .config import PromptConfig, Secrets, Settings, Topic
 from .imap import ImapReader
-from .integrations import GoogleOAuthTokenProvider, HttpWriter, OAuthTokenError
+from .external.contracts import OAuthTokenError
+from .external.http_writer import HttpWriter
+from .external.oauth import GoogleOAuthTokenProvider
 from .logging import JsonlLogger, NullLogger
 from .models import MailRunState, TelegramOffset
 from .ollama import LocalLlm, OllamaClient

@@ -14,7 +14,7 @@ from ..domain.processing import (
     ProposalRevisionStatus,
     QuestionStatus,
 )
-from ..integrations import ExternalWriter
+from ..external.contracts import ExternalWriter
 from ..models import Proposal, ProposalStatus, RelevanceDialog, TelegramOffset
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.inbox import CommandInbox
@@ -24,7 +24,7 @@ from ..storage import JsonStore
 
 from .authorization import AuthorizedUpdateValidator, UpdateValidation
 from .callbacks import Decision, DecisionAction, RelevanceDecision, validate_callback_markup
-from .client import TelegramTransport, _validation_path
+from .client import TelegramTransport, validation_path
 from .ledger import ActionLedgerPort, ActionLedgerService
 from .models import TelegramUpdate
 from .outbox import TelegramOutbox, revision_paused
@@ -411,7 +411,7 @@ class TelegramDialogController:
                     "invalid_update",
                     update_id=raw_id,
                     reason="schema_validation",
-                    validation_path=_validation_path(exc),
+                    validation_path=validation_path(exc),
                 )
                 self.telegram.send(
                     self.chat_id,

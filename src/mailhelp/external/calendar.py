@@ -7,7 +7,7 @@ from zoneinfo import ZoneInfo
 from pydantic import ValidationError
 from ..models import CalendarDuplicateDecision, Proposal, ProposalKind
 from ..adapter import uncertain_write
-from .contracts import CalendarEventResponse, CalendarListResponse, CalendarOverlapEvent, PreparedWrite, _path
+from .contracts import CalendarEventResponse, CalendarListResponse, CalendarOverlapEvent, PreparedWrite, validation_path
 
 def _now(configured_timezone: str | None) -> datetime:
     """Current local time for change notes; separate so tests can fix it."""
@@ -18,7 +18,7 @@ class CalendarOperations:
     def _reconcile_calendar(self, key: str) -> dict[str, Any] | None:
         response = self.policy.run(lambda: self._get(f"/calendars/{self.target}/events", {"privateExtendedProperty": f"mailhelp_key={key}"}))
         try: items = CalendarListResponse.model_validate(response.json()).items
-        except (ValueError, ValidationError) as exc: raise ValueError(f"Google Calendar events: ungültige Antwort am Schlüsselpfad {_path(exc)}") from exc
+        except (ValueError, ValidationError) as exc: raise ValueError(f"Google Calendar events: ungültige Antwort am Schlüsselpfad {validation_path(exc)}") from exc
         return items[0].model_dump() if items else None
 
 
@@ -135,7 +135,7 @@ class CalendarOperations:
                         raise ValueError("nextPageToken")
                     seen_tokens.add(next_token)
             except (AttributeError, ValueError, ValidationError) as exc:
-                raise ValueError(f"Google Calendar events: ungültige Antwort am Schlüsselpfad {_path(exc)}") from exc
+                raise ValueError(f"Google Calendar events: ungültige Antwort am Schlüsselpfad {validation_path(exc)}") from exc
             for item in items:
                 safe = item.model_dump(mode="json", exclude={"htmlLink"})
                 _call_id, decision = self.calendar_matcher(proposal, safe)
@@ -201,7 +201,7 @@ class CalendarOperations:
         try:
             result = CalendarEventResponse.model_validate(response.json()).model_dump()
         except (ValueError, ValidationError) as exc:
-            raise ValueError(f"google_calendar: ungültige Antwort am Schlüsselpfad {_path(exc)}") from exc
+            raise ValueError(f"google_calendar: ungültige Antwort am Schlüsselpfad {validation_path(exc)}") from exc
         self.logger.event("INFO", self.service, "duplicate_updated", call_id=key,
                           mail_id=proposal.source_mail_id, proposal_id=proposal.id,
                           existing_event_id=existing_id, time_changed=bool(time_changes))

@@ -25,8 +25,11 @@ NAVIGATION = (("/", "Offen"), ("/mails", "Mails"), ("/verlauf", "Verlauf"),
 
 def layout(title: str, content: str, *, active: str | None = None, signed_in: bool = True,
            refresh: int | None = None, fingerprint: str | None = None,
-           state_url: str | None = None) -> str:
-    """Page frame; *refresh* adds a no-JavaScript reload for pending commands."""
+           state_url: str | None = None, before: str = "", after: str = "") -> str:
+    """Page frame; *refresh* adds a no-JavaScript reload for pending commands.
+
+    *before* and *after* are further sections at the start and end of ``main``.
+    """
     navigation = ""
     if signed_in:
         links = "".join(
@@ -61,9 +64,9 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
 <span class="connection" id="verbindung" role="status" aria-live="polite" hidden></span>
 {navigation}
 </header>
-<main id="inhalt">
+<main id="inhalt">{before}
 {content}
-</main>
+{after}</main>
 </body>
 </html>
 """

@@ -145,7 +145,9 @@ def relevance_card(view: RelevanceView, actions: RelevanceActions | None = None,
 
 def overview_page(overview: Overview, *, actions: Actions | None = None,
                   relevance_actions: RelevanceActions | None = None,
-                  message: str | None = None, message_kind: str = "ok") -> str:
+                  message: str | None = None, message_kind: str = "ok",
+                  before: str = "", empty: str | None = None) -> str:
+    """*before* precedes the heading (filters); *empty* replaces the default empty state."""
     parts = [f'<h1>Offene Entscheidungen <span class="count">{len(overview.open) + len(overview.relevance)}</span></h1>']
     if message:
         parts.append(notice(message, message_kind))
@@ -163,7 +165,8 @@ def overview_page(overview: Overview, *, actions: Actions | None = None,
         # On wide screens app.js turns this list into the master pane of a split view.
         parts.append('<div class="open-items">' + "\n".join(items) + "</div>")
     if not overview.open and not overview.relevance:
-        parts.append('<p class="empty">Nichts zu entscheiden. Neue Vorschläge erscheinen hier automatisch.</p>')
+        parts.append(empty if empty is not None else
+                     '<p class="empty">Nichts zu entscheiden. Neue Vorschläge erscheinen hier automatisch.</p>')
     if overview.recent:
         items = []
         for view in overview.recent:
@@ -172,7 +175,7 @@ def overview_page(overview: Overview, *, actions: Actions | None = None,
                 f'{e(view.card.title)}</a></span>'
                 f'<span class="badge {_STATE_BADGE[view.status]}">{e(view.state)}</span></li>')
         parts.append(f'<h2>Zuletzt erledigt</h2><ul class="recent">{"".join(items)}</ul>')
-    return layout("Offen", "\n".join(parts), active="/", fingerprint=overview.fingerprint)
+    return layout("Offen", "\n".join(parts), active="/", fingerprint=overview.fingerprint, before=before)
 
 
 VISION_LABELS = {
@@ -260,19 +263,19 @@ def disclosure(summary: str, body: str, *, opened: bool = False) -> str:
 
 
 def detail_page(view: ProposalView, *, actions: Actions | None = None,
-                mail: MailView | None = None) -> str:
+                mail: MailView | None = None, after: str = "") -> str:
     # Image previews are the evidence to compare with; they are shown at once.
     previews = mail is not None and any(item.preview is not None for item in mail.extracted_attachments)
     content = f"""<p><a href="/">← Zur Übersicht</a></p>
 <h1>{"Termin" if view.card.kind == ProposalKind.EVENT else "Aufgabe"}</h1>
 {proposal_card(view, actions=actions, detail_link=False)}
 {disclosure("Quellbeleg aus E-Mail / Anhang", mail_section(mail), opened=previews)}"""
-    return layout(view.card.title, content, active="/")
+    return layout(view.card.title, content, active="/", after=after)
 
 
 def mail_page(mail: MailView, relevance: RelevanceView | None = None,
               actions: RelevanceActions | None = None, *, sender_actions: str = "",
-              message: str | None = None, message_kind: str = "ok") -> str:
+              message: str | None = None, message_kind: str = "ok", after: str = "") -> str:
     """A mail on its own, with the relevance question if it is still open."""
     question = relevance_card(relevance, actions, detail_link=False) if relevance else ""
     result = notice(message, message_kind) if message else ""
@@ -280,13 +283,13 @@ def mail_page(mail: MailView, relevance: RelevanceView | None = None,
 <h1>Mail</h1>
 {result}{question}
 {mail_section(mail, sender_actions)}"""
-    return layout(mail.subject, content, active="/")
+    return layout(mail.subject, content, active="/", after=after)
 
 
-# Compatibility for callers of the original renderer module.
+# Compatibility for callers of the original renderer module (public names only;
+# deprecated, removed in 3.0 – import from status_pages).
 from .status_pages import (ANALYSIS_LABELS, COMMAND_LABELS, RUN_LABELS,
-                           RUNTIME_STAGES, ServiceInfo, _duration,
-                           _runtime_section, status_page)
+                           RUNTIME_STAGES, ServiceInfo, status_page)
 
 __all__ = ["ANALYSIS_LABELS", "COMMAND_LABELS", "RUN_LABELS", "ServiceInfo",
            "detail_page", "disclosure", "https_link", "mail_page", "mail_section",

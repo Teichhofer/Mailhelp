@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field
 
-from ..domain.proposal import _required_revision_questions
+from ..domain.proposal import required_revision_questions
 from ..models import Proposal, ProposalKind, ProposalStatus
 
 
@@ -68,7 +68,7 @@ def edit_proposal(previous: Proposal, patch: ProposalEditPatch, zone: str, targe
         changes.update(known_temporal_facts=None, temporal_fact=None, duration_minutes=None, duration_is_upper_bound=False)
     changes.update(explicit_create_fallback_confirmed=False, explicit_non_binding_create_confirmed=False)
     candidate = previous.model_copy(update=changes)
-    questions = _required_revision_questions(candidate)
+    questions = required_revision_questions(candidate)
     # Preserve unresolved questions not replaced by the directly entered facts.
     temporal = {"Wann beginnt der Termin?", "Wann endet der Termin?"}
     questions = list(dict.fromkeys(questions + [q for q in previous.open_questions if q not in temporal]))

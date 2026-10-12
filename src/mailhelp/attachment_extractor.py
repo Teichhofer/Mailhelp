@@ -16,7 +16,7 @@ MAX_TEXT_CHARACTERS = 20_000
 _TRUNCATION_MARKER = "\n[... Text nach 20.000 Zeichen gekürzt ...]"
 
 
-def _clean_text(value: str) -> str:
+def clean_text(value: str) -> str:
     """Normalize extracted text and strip control characters except tabs and newlines."""
     normalized = unicodedata.normalize("NFKC", value.replace("\r\n", "\n").replace("\r", "\n"))
     cleaned = "".join(
@@ -27,7 +27,7 @@ def _clean_text(value: str) -> str:
     return re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
 
 
-def _truncate_text(text: str, max_chars: int) -> tuple[str, bool]:
+def truncate_text(text: str, max_chars: int) -> tuple[str, bool]:
     if len(text) <= max_chars:
         return text, False
     return text[:max_chars].rstrip() + _TRUNCATION_MARKER, True
@@ -106,7 +106,7 @@ def _extract_pdf(
                     break
 
         raw_text = "\n\n".join(extracted_pages)
-        cleaned = _clean_text(raw_text)
+        cleaned = clean_text(raw_text)
         if not cleaned:
             return ExtractedAttachment(
                 filename=filename[:500],
@@ -117,7 +117,7 @@ def _extract_pdf(
                 character_count=0,
             )
 
-        truncated, _ = _truncate_text(cleaned, max_chars)
+        truncated, _ = truncate_text(cleaned, max_chars)
         return ExtractedAttachment(
             filename=filename[:500],
             content_type=content_type[:200],
@@ -164,7 +164,7 @@ def _extract_docx(
                     paragraphs.append("".join(texts))
 
             raw_text = "\n".join(paragraphs)
-            cleaned = _clean_text(raw_text)
+            cleaned = clean_text(raw_text)
             if not cleaned:
                 return ExtractedAttachment(
                     filename=filename[:500],
@@ -175,7 +175,7 @@ def _extract_docx(
                     character_count=0,
                 )
 
-            truncated, _ = _truncate_text(cleaned, max_chars)
+            truncated, _ = truncate_text(cleaned, max_chars)
             return ExtractedAttachment(
                 filename=filename[:500],
                 content_type=content_type[:200],
@@ -204,7 +204,7 @@ def _extract_text(
         except UnicodeDecodeError:
             raw_text = data.decode("latin-1", errors="replace")
 
-        cleaned = _clean_text(raw_text)
+        cleaned = clean_text(raw_text)
         if not cleaned:
             return ExtractedAttachment(
                 filename=filename[:500],
@@ -215,7 +215,7 @@ def _extract_text(
                 character_count=0,
             )
 
-        truncated, _ = _truncate_text(cleaned, max_chars)
+        truncated, _ = truncate_text(cleaned, max_chars)
         return ExtractedAttachment(
             filename=filename[:500],
             content_type=content_type[:200],

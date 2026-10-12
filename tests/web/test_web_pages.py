@@ -162,7 +162,7 @@ def test_operating_figures_tolerate_damaged_counters(tmp_path):
 
 
 def test_durations_on_the_status_page():
-    from mailhelp.web.review_pages import _duration
+    from mailhelp.web.status_pages import _duration
     assert _duration(59) == "0 Min." and _duration(3 * 3600 + 5 * 60) == "3 Std. 5 Min."
     assert _duration(2 * 86400 + 3600) == "2 T 1 Std."
 

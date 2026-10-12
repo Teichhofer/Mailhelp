@@ -9,13 +9,14 @@ import httpx
 import pytest
 from pydantic import ValidationError
 
-from mailhelp.config import Settings, _validated_file
-from mailhelp.integrations import HttpWriter, _with_external_result
+from mailhelp.config import Settings, validated_file
+from mailhelp.external.confirmed import _with_external_result
+from mailhelp.integrations import HttpWriter
 from mailhelp.models import (DuplicateDecision, DuplicateIndex, DuplicateIndexEntry, EventExtraction, ExtractedEvent, ExtractionCountConflict, ImapCheckpoint, MailState, Proposal, ProposalNotification, TelegramDialogState,
                              TelegramOffset, ValidationIssue, WriteAttemptReference)
 from mailhelp.openrouter import InvalidJson, OpenRouterClient, ProviderResponseInvalid, _path
 from mailhelp.storage import CorruptState, JsonStore
-from mailhelp.telegram import TelegramClient, TelegramUpdatesResponse, TelegramWriteResponse, _validation_path
+from mailhelp.telegram import TelegramClient, TelegramUpdatesResponse, TelegramWriteResponse, validation_path
 from test_core import proposal
 
 
@@ -244,7 +245,7 @@ def test_settings_reject_missing_extra_types_ranges_and_semantics(tmp_path):
     with pytest.raises(ValueError, match=r"config.yaml.*imap.port") as error:
         bad=copy.deepcopy(base)
         bad["imap"]["port"]=0
-        _validated_file(Path("config.yaml"), Settings, bad)
+        validated_file(Path("config.yaml"), Settings, bad)
     assert "secret" not in str(error.value)
 
 
@@ -326,7 +327,7 @@ def test_openrouter_corrupt_responses_are_named_and_sanitized():
 
 
 def test_telegram_response_models_and_write_validation():
-    assert _validation_path(ValueError()) == "<json>"
+    assert validation_path(ValueError()) == "<json>"
     real_update={"ok":True,"result":[{"update_id":7,"irrelevant_update_field":"ignored",
         "message":{"message_id":11,"from":{"id":1,"is_bot":False,"first_name":"Ada","language_code":"de"},
                    "chat":{"id":-2,"type":"private","first_name":"Ada"},"date":1_789_000_000,

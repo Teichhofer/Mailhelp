@@ -12,7 +12,8 @@ from .domain.proposal import (
     ProposalKind,
     ProposalStatus,
 )
-from .integrations import ExternalWriter, HttpWriter
+from .external.contracts import ExternalWriter
+from .external.http_writer import HttpWriter
 from .logging import EventLogger, NullLogger
 from .telegram.ledger import ActionLedgerPort
 

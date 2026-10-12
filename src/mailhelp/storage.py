@@ -3,6 +3,7 @@ from __future__ import annotations
 import errno
 import json, os
 import re
+import tempfile
 import time
 from contextlib import AbstractContextManager, contextmanager
 from pathlib import Path
@@ -17,6 +18,21 @@ from .state_names import mail_state_names  # noqa: F401
 
 class CorruptState(RuntimeError): pass
 class AlreadyRunning(RuntimeError): pass
+
+
+def atomic_replace(path: Path, content: str) -> None:
+    """Durably replace one user-editable text file (configuration, topics, metrics) without partial writes."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
+            stream.write(content)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    except BaseException:
+        Path(temporary).unlink(missing_ok=True)
+        raise
 
 
 @runtime_checkable

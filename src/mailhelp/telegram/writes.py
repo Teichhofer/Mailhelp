@@ -7,7 +7,8 @@ from typing import Protocol
 from zoneinfo import ZoneInfo
 
 
-from ..integrations import ExternalWriter, execute_confirmed, proposal_is_writable
+from ..external.confirmed import execute_confirmed
+from ..external.contracts import ExternalWriter, proposal_is_writable
 from ..models import Proposal, ProposalKind, ProposalStatus
 from ..storage import JsonStore
 

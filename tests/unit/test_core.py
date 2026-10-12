@@ -11,7 +11,7 @@ from mailhelp import __version__
 from mailhelp.analysis import Analyzer
 from mailhelp.adapter import RetryPolicy
 from mailhelp.cli import main
-from mailhelp.config import IrrelevantTopicsConfig, LlmRoute, PromptConfig, PromptStep, Topic, TopicsConfig, _deep_merge, _dotenv, _yaml, load_all
+from mailhelp.config import IrrelevantTopicsConfig, LlmRoute, PromptConfig, PromptStep, Topic, TopicsConfig, _deep_merge, _dotenv, read_yaml, load_all
 from mailhelp.imap import (FetchedMail, ImapReader, UIDValidityChanged,
                            _decode_mailbox_name, _list_mailbox_name, account_id)
 from mailhelp.integrations import HttpWriter, execute_confirmed
@@ -45,7 +45,7 @@ def test_step_provider_preferences_pin_the_default_route():
     with pytest.raises(ValidationError, match="nur ohne routes"):
         PromptStep(system_prompt="x", provider_preferences={"order": ["a"]},
                    routes=[LlmRoute(provider="openrouter", model="m")])
-    shipped = PromptConfig.model_validate(_yaml(Path(__file__).resolve().parents[2] / "prompts.yaml"))
+    shipped = PromptConfig.model_validate(read_yaml(Path(__file__).resolve().parents[2] / "prompts.yaml"))
     for stage in ("action_router", "task_extraction", "event_extraction",
                   "mail_question_resolution", "proposal_revision"):
         (pinned,), _, _ = shipped.resolved_routes(stage)
@@ -55,7 +55,7 @@ def test_step_provider_preferences_pin_the_default_route():
 def test_experimental_ollama_configuration():
     from mailhelp.config import OllamaPromptSettings, TimeoutSettings
     root = Path(__file__).resolve().parents[2]
-    shipped = PromptConfig.model_validate(_yaml(root / "prompts.yaml")).ollama
+    shipped = PromptConfig.model_validate(read_yaml(root / "prompts.yaml")).ollama
     assert shipped is not None and shipped.model and shipped.num_ctx >= 8192
     assert prompt_config().ollama is None
     for invalid in ({"model": ""}, {"model": "<modell>"}, {"model": "a b"},
@@ -64,7 +64,7 @@ def test_experimental_ollama_configuration():
                     {"model": "m", "think": "false"}, {"model": "m", "think": 1}):
         with pytest.raises(ValidationError):
             OllamaPromptSettings.model_validate(invalid)
-    example = _yaml(root / "config.example.yaml")["timeouts"]
+    example = read_yaml(root / "config.example.yaml")["timeouts"]
     assert example["ollama"]["timeout_seconds"] == 1800
     without = {key: value for key, value in example.items() if key != "ollama"}
     default = TimeoutSettings.model_validate(without).ollama
@@ -183,7 +183,7 @@ def test_prompt_configuration_resolution():
 
 def test_yaml_and_dotenv_parsing(tmp_path):
     (tmp_path / "bad.yaml").write_text("- x", encoding="utf8")
-    with pytest.raises(ValueError): _yaml(tmp_path / "bad.yaml")
+    with pytest.raises(ValueError): read_yaml(tmp_path / "bad.yaml")
     assert _dotenv(tmp_path / "missing.env") == {}
     env_file = tmp_path / ".env"
     env_file.write_text("# comment\n\nIMAP_USERNAME='file-user'\nIMAP_PASSWORD=file-pass\n", encoding="utf8")
@@ -200,7 +200,7 @@ def test_load_all_reads_the_shipped_configuration_and_validates_topics(tmp_path)
     settings, secrets, topics, irrelevant_topics, prompts, fingerprint = load_all(tmp_path, env)
     assert not settings.test_mode and secrets.imap_password.get_secret_value() == "secret" and topics[0].enabled and len(fingerprint) == 64
     expected_irrelevant_topics = IrrelevantTopicsConfig.model_validate(
-        _yaml(Path("irrelevant_topics.yaml"))
+        read_yaml(Path("irrelevant_topics.yaml"))
     ).topics
     assert irrelevant_topics == expected_irrelevant_topics
     assert len({topic.id for topic in irrelevant_topics}) == len(irrelevant_topics)

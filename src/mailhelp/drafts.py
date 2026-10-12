@@ -9,7 +9,7 @@ from email.policy import SMTP
 from email.utils import format_datetime, parseaddr
 from threading import Lock
 from pydantic import BaseModel, ConfigDict, Field
-from .imap import _mailbox_argument
+from .imap import mailbox_argument
 from .domain.prepared import MailHeaders
 from .models import MailState
 from . import state_names
@@ -175,7 +175,7 @@ class DraftService:
 
     def _append(self, connection, actor, mail_id, key, digest, draft, message_id, content):
         """Reconcile first; append only if the draft is provably missing from the folder."""
-        folder = _mailbox_argument(self.folder)
+        folder = mailbox_argument(self.folder)
         status, _ = connection.select(folder, readonly=True)
         if status != "OK":
             raise ValueError("Entwurfsordner nicht verfügbar")
