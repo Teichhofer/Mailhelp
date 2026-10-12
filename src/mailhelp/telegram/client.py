@@ -170,7 +170,21 @@ class TelegramClient:
             item.model_dump(by_alias=True) if isinstance(item, TelegramUpdate) else item
             for item in parsed.result
         ]
-        for item in parsed.result:
+        self._log_received(parsed.result)
+        self.logger.event(
+            "INFO",
+            "telegram",
+            "poll_completed",
+            call_id=call_id,
+            count=len(result),
+            status=response.status_code,
+            duration_ms=round((time.perf_counter() - started) * 1000, 3),
+        )
+        return result
+
+    def _log_received(self, items: list[Any]) -> None:
+        """Record each received message or button press (content only if enabled)."""
+        for item in items:
             if not isinstance(item, TelegramUpdate):
                 continue
             if item.message is not None:
@@ -193,16 +207,6 @@ class TelegramClient:
                     chat_id=callback.message.chat.id,
                     callback_data=callback.data,
                 )
-        self.logger.event(
-            "INFO",
-            "telegram",
-            "poll_completed",
-            call_id=call_id,
-            count=len(result),
-            status=response.status_code,
-            duration_ms=round((time.perf_counter() - started) * 1000, 3),
-        )
-        return result
 
     def send(
         self, chat_id: int, text: str, reply_markup: dict[str, Any] | None = None

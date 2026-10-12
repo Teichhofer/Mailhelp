@@ -353,47 +353,56 @@ def split_time_range(event: ExtractedEvent) -> ExtractedEvent:
                                     "end_time_text": event.end_time_text or end.strip()})
 
 
-def normalize_event(event: ExtractedEvent, context: MailDateContext) -> NormalizationResult:
-    """Normalize an event without making a responsibility decision."""
-    event = split_time_range(event)
+def _normalize_date_range(event: ExtractedEvent, context: MailDateContext,
+                          date_range: tuple[str, date, date]) -> NormalizationResult:
+    """An explicit multi-day range without clock times is an all-day interval."""
     responsibility = event.responsibility
-    date_range = _unambiguous_date_range(event)
-    if date_range is not None and event.time_text is None and event.end_time_text is None:
-        raw_range, start_day, inclusive_end = date_range
-        checked = _context_zone(context, responsibility)
-        fact = TemporalFact(raw_text=raw_range, normalized_date=start_day,
-                            year_source="explicit_mail", status="resolved")
-        if isinstance(checked, NormalizationResult):
-            return replace(checked, temporal_fact=fact)
-        return NormalizationResult(
-            TemporalValue(start_day, inclusive_end + timedelta(days=1), True), None,
-            raw_range, None, responsibility, temporal_fact=fact)
-    parsed_day = _parse_date(event.date_text, responsibility, context, event.evidence)
-    if isinstance(parsed_day, NormalizationResult):
-        # Date resolution and clock extraction are independent facts.  Do not
-        # discard an explicit clock merely because the year/date needs a reply.
-        if event.time_text is not None and event.time_requirement == TimeRequirement.TIMED:
-            parsed_clock = _parse_time(event.time_text, responsibility)
-            if isinstance(parsed_clock, time):
-                return replace(parsed_day, known_start_time=parsed_clock)
-        if parsed_day.temporal_fact is None:
-            return replace(parsed_day, temporal_fact=TemporalFact(
-                raw_text=event.date_text,
-                status=("conflicting" if parsed_day.reason == NormalizationReason.CONFLICTING_CONTEXT
-                        else "unresolved")))
-        return parsed_day
-    day, fact = parsed_day
-    if event.time_requirement == TimeRequirement.ALL_DAY:
-        if event.time_text is not None or event.end_time_text is not None:
-            return replace(_failure(NormalizationReason.INVALID_TIME,
-                           event.time_text or event.end_time_text, responsibility,
-                           "Ein ausdrücklich ganztägiger Termin darf keine Uhrzeit enthalten."),
-                           temporal_fact=fact)
-        checked = _context_zone(context, responsibility)
-        if isinstance(checked, NormalizationResult):
-            return replace(checked, temporal_fact=fact)
-        return NormalizationResult(TemporalValue(day, day + timedelta(days=1), True), None,
-                                   event.date_text, None, responsibility, temporal_fact=fact)
+    raw_range, start_day, inclusive_end = date_range
+    checked = _context_zone(context, responsibility)
+    fact = TemporalFact(raw_text=raw_range, normalized_date=start_day,
+                        year_source="explicit_mail", status="resolved")
+    if isinstance(checked, NormalizationResult):
+        return replace(checked, temporal_fact=fact)
+    return NormalizationResult(
+        TemporalValue(start_day, inclusive_end + timedelta(days=1), True), None,
+        raw_range, None, responsibility, temporal_fact=fact)
+
+
+def _unresolved_event_day(event: ExtractedEvent, parsed_day: NormalizationResult) -> NormalizationResult:
+    """The day needs a reply; an explicit clock is kept as a known fact."""
+    # Date resolution and clock extraction are independent facts.  Do not
+    # discard an explicit clock merely because the year/date needs a reply.
+    if event.time_text is not None and event.time_requirement == TimeRequirement.TIMED:
+        parsed_clock = _parse_time(event.time_text, event.responsibility)
+        if isinstance(parsed_clock, time):
+            return replace(parsed_day, known_start_time=parsed_clock)
+    if parsed_day.temporal_fact is None:
+        return replace(parsed_day, temporal_fact=TemporalFact(
+            raw_text=event.date_text,
+            status=("conflicting" if parsed_day.reason == NormalizationReason.CONFLICTING_CONTEXT
+                    else "unresolved")))
+    return parsed_day
+
+
+def _normalize_all_day(event: ExtractedEvent, context: MailDateContext, day: date,
+                       fact: TemporalFact) -> NormalizationResult:
+    responsibility = event.responsibility
+    if event.time_text is not None or event.end_time_text is not None:
+        return replace(_failure(NormalizationReason.INVALID_TIME,
+                       event.time_text or event.end_time_text, responsibility,
+                       "Ein ausdrücklich ganztägiger Termin darf keine Uhrzeit enthalten."),
+                       temporal_fact=fact)
+    checked = _context_zone(context, responsibility)
+    if isinstance(checked, NormalizationResult):
+        return replace(checked, temporal_fact=fact)
+    return NormalizationResult(TemporalValue(day, day + timedelta(days=1), True), None,
+                               event.date_text, None, responsibility, temporal_fact=fact)
+
+
+def _normalize_timed(event: ExtractedEvent, context: MailDateContext, day: date,
+                     fact: TemporalFact) -> NormalizationResult:
+    """Start and end on the event day; missing parts become one concrete question."""
+    responsibility = event.responsibility
     if event.time_text is None:
         if event.end_time_text is not None:
             result = _failure(NormalizationReason.MISSING_TIME, event.end_time_text, responsibility,
@@ -440,6 +449,21 @@ def normalize_event(event: ExtractedEvent, context: MailDateContext) -> Normaliz
     return NormalizationResult(TemporalValue(start, end, False), None,
                                f"{event.date_text} {event.time_text}–{event.end_time_text}", None,
                                responsibility, temporal_fact=fact)
+
+
+def normalize_event(event: ExtractedEvent, context: MailDateContext) -> NormalizationResult:
+    """Normalize an event without making a responsibility decision."""
+    event = split_time_range(event)
+    date_range = _unambiguous_date_range(event)
+    if date_range is not None and event.time_text is None and event.end_time_text is None:
+        return _normalize_date_range(event, context, date_range)
+    parsed_day = _parse_date(event.date_text, event.responsibility, context, event.evidence)
+    if isinstance(parsed_day, NormalizationResult):
+        return _unresolved_event_day(event, parsed_day)
+    day, fact = parsed_day
+    if event.time_requirement == TimeRequirement.ALL_DAY:
+        return _normalize_all_day(event, context, day, fact)
+    return _normalize_timed(event, context, day, fact)
 
 
 # A verbatim deadline keeps its signal words ("bis 01.10.2026"). Only these

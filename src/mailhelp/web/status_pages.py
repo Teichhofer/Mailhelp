@@ -106,6 +106,47 @@ def _stats(items: list[tuple[int, str]]) -> str:
             + "</div>")
 
 
+def _run_section(run: RunStatus, system: SystemStatus, zone: ZoneInfo) -> list[str]:
+    """Progress and counters of the last mailbox run."""
+    parts: list[str] = []
+    parts.append("<h2>Letzter Mail-Durchlauf</h2>")
+    progress = (f"{system.run_finished} von {system.run_total} Mails analysiert"
+                if system.run_total else "Keine Mails im aktuellen Durchlauf")
+    parts.append(_facts([
+        ("Gestartet", _when(run.started_at, zone)),
+        ("Stand", ("abgeschlossen" if run.run_complete else "läuft noch") + f" · {progress}"),
+    ]))
+    if system.run_total:
+        parts.append(f'<progress class="run-progress" max="{system.run_total}" '
+                     f'value="{system.run_finished}" aria-label="Fortschritt des Durchlaufs">'
+                     f'{system.run_finished} von {system.run_total}</progress>')
+    parts.append(_stats([(run.counters.get(key, 0), label) for key, label in RUN_LABELS]))
+    if system.analysis:
+        parts.append("<h3>Ergebnis der Analyse</h3>")
+        parts.append(_stats([(system.analysis.get(key, 0), label) for key, label in ANALYSIS_LABELS]))
+    return parts
+
+
+def _error_section(system: SystemStatus, zone: ZoneInfo) -> list[str]:
+    """The latest stored mail failures with their next automatic attempt."""
+    parts: list[str] = []
+    parts.append("<h2>Letzte Fehler</h2>")
+    if system.errors:
+        items = []
+        for error in system.errors:
+            retry = " · wird automatisch wiederholt" if error.retryable else ""
+            if error.next_attempt is not None:
+                retry += f" · nächster Versuch: {_when(error.next_attempt, zone)}"
+            items.append(
+                f'<li><span><a href="/mail/{e(error.mail_id)}">{e(error.subject)}</a><br>'
+                f'<span class="meta">{e(error.cause)} · {e(error.stage)} · '
+                f'{e(_when(error.occurred_at, zone))}{retry}</span></span></li>')
+        parts.append(f'<ul class="recent">{"".join(items)}</ul>')
+    else:
+        parts.append('<p class="meta">Keine Fehler bei gespeicherten Mails.</p>')
+    return parts
+
+
 def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
                 system: SystemStatus, info: ServiceInfo) -> str:
     zone = ZoneInfo(configured_timezone)
@@ -128,21 +169,7 @@ def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
 
     parts.append(_runtime_section(info, zone))
 
-    parts.append("<h2>Letzter Mail-Durchlauf</h2>")
-    progress = (f"{system.run_finished} von {system.run_total} Mails analysiert"
-                if system.run_total else "Keine Mails im aktuellen Durchlauf")
-    parts.append(_facts([
-        ("Gestartet", _when(run.started_at, zone)),
-        ("Stand", ("abgeschlossen" if run.run_complete else "läuft noch") + f" · {progress}"),
-    ]))
-    if system.run_total:
-        parts.append(f'<progress class="run-progress" max="{system.run_total}" '
-                     f'value="{system.run_finished}" aria-label="Fortschritt des Durchlaufs">'
-                     f'{system.run_finished} von {system.run_total}</progress>')
-    parts.append(_stats([(run.counters.get(key, 0), label) for key, label in RUN_LABELS]))
-    if system.analysis:
-        parts.append("<h3>Ergebnis der Analyse</h3>")
-        parts.append(_stats([(system.analysis.get(key, 0), label) for key, label in ANALYSIS_LABELS]))
+    parts.extend(_run_section(run, system, zone))
 
     parts.append("<h2>Mails</h2>")
     parts.append(_facts([
@@ -159,20 +186,7 @@ def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
     else:
         parts.append('<p class="meta">Noch keine Vorschläge gespeichert.</p>')
 
-    parts.append("<h2>Letzte Fehler</h2>")
-    if system.errors:
-        items = []
-        for error in system.errors:
-            retry = " · wird automatisch wiederholt" if error.retryable else ""
-            if error.next_attempt is not None:
-                retry += f" · nächster Versuch: {_when(error.next_attempt, zone)}"
-            items.append(
-                f'<li><span><a href="/mail/{e(error.mail_id)}">{e(error.subject)}</a><br>'
-                f'<span class="meta">{e(error.cause)} · {e(error.stage)} · '
-                f'{e(_when(error.occurred_at, zone))}{retry}</span></span></li>')
-        parts.append(f'<ul class="recent">{"".join(items)}</ul>')
-    else:
-        parts.append('<p class="meta">Keine Fehler bei gespeicherten Mails.</p>')
+    parts.extend(_error_section(system, zone))
 
     parts.append("<h2>Telegram, Web und KI</h2>")
     commands = ", ".join(f"{info.commands.get(status, 0)} {label}" for status, label in COMMAND_LABELS)

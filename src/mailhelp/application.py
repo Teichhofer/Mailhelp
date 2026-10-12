@@ -321,6 +321,19 @@ class Application:
     def run(self, max_mails: int | None = None, *,
             ignore_historical_start: bool = False) -> str | None:
         self._wait_for_user = True
+        self._announce_start()
+        self._start_receiver()
+        self._start_web()
+        try:
+            while not self.stop_event.is_set():
+                if not self._cycle(max_mails, ignore_historical_start):
+                    break
+        finally:
+            self._finish(max_mails)
+        return self._fatal_error
+
+    def _announce_start(self) -> None:
+        """Greeting, open decisions and held messages; no failure blocks the start."""
         try:
             self.telegram.send(self.settings.telegram.chat_id, STARTUP)
         except Exception as exc:
@@ -342,82 +355,86 @@ class Application:
         except Exception as exc:
             self.logger.event("ERROR", "telegram", "startup_outbox_failed",
                               error_class=type(exc).__name__)
-        self._start_receiver()
-        self._start_web()
+
+    def _maintain(self) -> None:
         try:
-            while not self.stop_event.is_set():
-                try:
-                    RetentionService(self.store, self.settings.retention, self.logger).run()
-                    metrics = getattr(self.logger, "metrics", None)
-                    if metrics is not None:
-                        metrics.maintain()
-                except Exception:
-                    # No state content is included in this operational event.
-                    self.logger.event("ERROR", "retention", "cleanup_failed",
-                                      processed_at=datetime.now(timezone.utc).isoformat(), failure_count=1)
-                # Only an already open, durable relevance decision precedes mailbox
-                # work.  An unconditional Telegram long-poll here used to make
-                # every fresh start look stuck for up to telegram_poll_seconds.
-                if self.dialog is not None and self.dialog.awaiting_relevance_decision():
-                    self._wait_for_telegram_decision()
-                # A paused proposal revision is isolated to its source mail.
-                # It must never prevent independent queued mail from being
-                # analysed; the durable clarification remains available for an
-                # operator retry without acting as a global circuit breaker.
-                if not self.stop_event.is_set():
-                    if ignore_historical_start:
-                        self._poll_imap(
-                            max_mails, ignore_historical_start=True
-                        )
-                    else:
-                        self._poll_imap(max_mails)
-                if self.stop_event.is_set():
-                    break
-                if max_mails is not None:
-                    break
-                # The receiver already waited for input; only process what arrived.
-                telegram_poll_succeeded = (self._poll_telegram(timeout=0)
-                                           if self._receiver is not None
-                                           else self._poll_telegram())
-                if (not self.stop_event.is_set() and self.dialog is not None
-                        and self.dialog.awaiting_relevance_decision()):
-                    self._wait_for_telegram_decision()
-                delay = (min(self.settings.poll_interval_seconds,
-                             _TELEGRAM_ERROR_BACKOFF_SECONDS)
-                         if not telegram_poll_succeeded
-                         else self.settings.poll_interval_seconds)
-                self._idle(delay)
-        finally:
-            self._stop_web()
-            self._stop_receiver()
-            if self.lifecycle is not None:
-                self.lifecycle.finished()
-            run_name = state_names.mail_run(self.imap.account_id)
-            run = self.store.load_model(run_name, MailRunState)
-            summary = _RunSummary.from_run(run)
-            # Relevance still blocks analysis. Proposal buttons remain usable
-            # independently of the run summary and of subsequent mail runs.
-            if self.dialog is not None and self.dialog.awaiting_relevance_decision():
-                self.logger.event("INFO", "telegram", "run_summary_deferred")
-            elif summary.empty:
-                self.logger.event("INFO", "telegram", "run_summary_skipped", reason="no_mail")
+            RetentionService(self.store, self.settings.retention, self.logger).run()
+            metrics = getattr(self.logger, "metrics", None)
+            if metrics is not None:
+                metrics.maintain()
+        except Exception:
+            # No state content is included in this operational event.
+            self.logger.event("ERROR", "retention", "cleanup_failed",
+                              processed_at=datetime.now(timezone.utc).isoformat(), failure_count=1)
+
+    def _cycle(self, max_mails: int | None, ignore_historical_start: bool) -> bool:
+        """One pass: maintenance, mail, Telegram input and idle time; ``False`` ends the run."""
+        self._maintain()
+        # Only an already open, durable relevance decision precedes mailbox
+        # work.  An unconditional Telegram long-poll here used to make
+        # every fresh start look stuck for up to telegram_poll_seconds.
+        if self.dialog is not None and self.dialog.awaiting_relevance_decision():
+            self._wait_for_telegram_decision()
+        # A paused proposal revision is isolated to its source mail.
+        # It must never prevent independent queued mail from being
+        # analysed; the durable clarification remains available for an
+        # operator retry without acting as a global circuit breaker.
+        if not self.stop_event.is_set():
+            if ignore_historical_start:
+                self._poll_imap(
+                    max_mails, ignore_historical_start=True
+                )
             else:
-                try:
-                    self.telegram.send(
-                        self.settings.telegram.chat_id,
-                        summary.message(bounded=max_mails is not None),
-                    )
-                except Exception as exc:
-                    self.logger.event("ERROR", "telegram", "run_summary_failed", error=str(exc))
-                else:
-                    self.logger.event("INFO", "telegram", "run_summary_sent",
-                                      discovered=summary.discovered, queued=summary.queued,
-                                      processed=summary.processed, relevant=summary.relevant,
-                                      irrelevant=summary.irrelevant,
-                                      waiting_for_user=summary.waiting_for_user,
-                                      failed=summary.failed, skipped=summary.skipped,
-                                      run_complete=summary.run_complete)
-        return self._fatal_error
+                self._poll_imap(max_mails)
+        if self.stop_event.is_set():
+            return False
+        if max_mails is not None:
+            return False
+        # The receiver already waited for input; only process what arrived.
+        telegram_poll_succeeded = (self._poll_telegram(timeout=0)
+                                   if self._receiver is not None
+                                   else self._poll_telegram())
+        if (not self.stop_event.is_set() and self.dialog is not None
+                and self.dialog.awaiting_relevance_decision()):
+            self._wait_for_telegram_decision()
+        delay = (min(self.settings.poll_interval_seconds,
+                     _TELEGRAM_ERROR_BACKOFF_SECONDS)
+                 if not telegram_poll_succeeded
+                 else self.settings.poll_interval_seconds)
+        self._idle(delay)
+        return True
+
+    def _finish(self, max_mails: int | None) -> None:
+        """Stop the helpers and report the run, unless a relevance question still blocks it."""
+        self._stop_web()
+        self._stop_receiver()
+        if self.lifecycle is not None:
+            self.lifecycle.finished()
+        run_name = state_names.mail_run(self.imap.account_id)
+        run = self.store.load_model(run_name, MailRunState)
+        summary = _RunSummary.from_run(run)
+        # Relevance still blocks analysis. Proposal buttons remain usable
+        # independently of the run summary and of subsequent mail runs.
+        if self.dialog is not None and self.dialog.awaiting_relevance_decision():
+            self.logger.event("INFO", "telegram", "run_summary_deferred")
+        elif summary.empty:
+            self.logger.event("INFO", "telegram", "run_summary_skipped", reason="no_mail")
+        else:
+            try:
+                self.telegram.send(
+                    self.settings.telegram.chat_id,
+                    summary.message(bounded=max_mails is not None),
+                )
+            except Exception as exc:
+                self.logger.event("ERROR", "telegram", "run_summary_failed", error=str(exc))
+            else:
+                self.logger.event("INFO", "telegram", "run_summary_sent",
+                                  discovered=summary.discovered, queued=summary.queued,
+                                  processed=summary.processed, relevant=summary.relevant,
+                                  irrelevant=summary.irrelevant,
+                                  waiting_for_user=summary.waiting_for_user,
+                                  failed=summary.failed, skipped=summary.skipped,
+                                  run_complete=summary.run_complete)
 
 
 def _state_directory(settings: Settings, base_directory: Path) -> Path:

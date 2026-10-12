@@ -305,12 +305,8 @@ def required_revision_questions(proposal: Proposal) -> list[str]:
     return questions
 
 
-def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta, *,
-                            allow_create_fallback: bool = False) -> Proposal:
-    """Apply a validated delta locally; identity, lifecycle and version stay authoritative."""
-    if delta.answered_question not in previous.open_questions:
-        raise ValueError("Die beantwortete Frage ist im Vorschlag nicht offen")
-    changes = delta.changes.model_dump(exclude_unset=True)
+def _check_revision_permissions(previous: Proposal, changes: dict[str, Any],
+                                allow_create_fallback: bool) -> None:
     if "explicit_create_fallback_confirmed" in changes and not allow_create_fallback:
         raise ValueError("Die Ersatz-Neuanlage erfordert eine deterministische ausdrückliche Bestätigung")
     if "explicit_non_binding_create_confirmed" in changes and not allow_create_fallback:
@@ -318,6 +314,10 @@ def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta, *,
     if (previous.classification == ProposalClassification.CHANGE and
             changes.get("classification") == ProposalClassification.NEW):
         raise ValueError("Eine Terminänderung darf nicht als neuer Termin eingestuft werden")
+
+
+def _revision_day(previous: Proposal, changes: dict[str, Any]) -> KnownTemporalFacts | None:
+    """Fix the validated event day and check every changed date against it."""
     temporal_date = changes.pop("temporal_date", None)
     resolved_day = (previous.temporal_fact.normalized_date
                     if previous.temporal_fact is not None else None)
@@ -350,7 +350,11 @@ def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta, *,
         if end_day not in allowed_end_days:
             raise ValueError(
                 f"end widerspricht dem validierten Datum {resolved_day.isoformat()}")
+    return known
 
+
+def _revision_interval(previous: Proposal, changes: dict[str, Any], known: KnownTemporalFacts | None) -> None:
+    """Keep a confirmed start, and half intervals in ``known_temporal_facts``."""
     confirmed_start = (known.start if known is not None else previous.start)
     if previous.all_day and isinstance(confirmed_start, date) and not isinstance(
         confirmed_start, datetime
@@ -378,6 +382,17 @@ def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta, *,
             changes.pop("start")
             changes["known_temporal_facts"] = known.model_copy(
                 update={"start": start, "start_time": None})
+
+
+def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta, *,
+                            allow_create_fallback: bool = False) -> Proposal:
+    """Apply a validated delta locally; identity, lifecycle and version stay authoritative."""
+    if delta.answered_question not in previous.open_questions:
+        raise ValueError("Die beantwortete Frage ist im Vorschlag nicht offen")
+    changes = delta.changes.model_dump(exclude_unset=True)
+    _check_revision_permissions(previous, changes, allow_create_fallback)
+    known = _revision_day(previous, changes)
+    _revision_interval(previous, changes, known)
     remaining = list(previous.open_questions)
     remaining.remove(delta.answered_question)
     provisional = previous.model_copy(update=changes)
