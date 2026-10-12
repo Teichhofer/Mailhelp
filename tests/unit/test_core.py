@@ -4,6 +4,7 @@ import errno
 import imaplib
 import json
 import os
+import re
 import signal
 import subprocess
 import sys
@@ -131,7 +132,8 @@ def test_strict_ordered_llm_route_configuration():
 
 
 def test_version_error_codes_and_model_validation():
-    assert __version__ == "2.0.3"
+    # The value itself is compared with pyproject.toml in test_release_package.
+    assert re.fullmatch(r"\d+\.\d+\.\d+", __version__)
     assert {ProcessingErrorCode.PROVIDER_RESPONSE_INVALID.value,
             ProcessingErrorCode.INVALID_JSON.value,
             ProcessingErrorCode.SCHEMA_VALIDATION_FAILED.value} == {
