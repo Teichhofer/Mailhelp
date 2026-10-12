@@ -31,14 +31,14 @@ from typing import Any
 from .config import PromptConfig, Settings, Topic
 from .storage import JsonStore
 
-# Sections and fields introduced by 2.0; they never influence an analysis.
-EXPERIENCE = frozenset({"push", "daily_briefing", "smart_reply", "personal_info"})
-EXPERIENCE_FIELDS = (("imap", "drafts_folder"), ("telegram", "enabled"))
+# Sections and fields introduced by 2.0 and later; they never influence an analysis.
+EXPERIENCE = frozenset({"push", "daily_briefing", "smart_reply", "personal_info", "activity_report"})
+EXPERIENCE_FIELDS = (("imap", "drafts_folder"), ("telegram", "enabled"), ("retention", "activity_report_days"))
 OPERATIONAL = frozenset({"web", "metrics", "retention", "logging", "learning", "poll_interval_seconds",
                          "timeouts", "retries", *EXPERIENCE})
 # Preparation-only settings and prompt steps (see module documentation).
 PREPARATION = frozenset({"vision"})
-PREPARATION_PROMPTS = frozenset({"vision_ocr", "draft_reply"})
+PREPARATION_PROMPTS = frozenset({"vision_ocr", "draft_reply", "activity_relevance", "activity_events"})
 
 
 def _hash(value: Any) -> str:
@@ -48,7 +48,9 @@ def _hash(value: Any) -> str:
 def _settings(settings: Settings, exclude: set[str]) -> dict[str, Any]:
     value = settings.model_dump(mode="json", exclude=exclude | EXPERIENCE)
     for section, name in EXPERIENCE_FIELDS:
-        value[section].pop(name)
+        # A section may itself be excluded (retention is operational for the analysis).
+        if section in value:
+            value[section].pop(name)
     return value
 
 

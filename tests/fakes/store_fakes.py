@@ -36,6 +36,9 @@ class DelegatingStore:
     def names(self, prefix: str = "") -> list[str]:
         return self.delegate.names(prefix)
 
+    def delete(self, name: str) -> None:
+        self.delegate.delete(name)
+
     def locked(self) -> AbstractContextManager[Any]:
         return self.delegate.locked()
 

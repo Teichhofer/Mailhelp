@@ -55,6 +55,7 @@ class StateStore(Protocol):
     def load_model[M: BaseModel](self, name: str, model: type[M], default: M | None = None) -> M | None: ...
     def peek_model[M: BaseModel](self, name: str, model: type[M], default: M | None = None) -> M | None: ...
     def names(self, prefix: str = "") -> list[str]: ...
+    def delete(self, name: str) -> None: ...
     def locked(self) -> AbstractContextManager[Any]: ...
 
 
@@ -195,6 +196,13 @@ class JsonStore:
         if migrated:
             self.save(name, result.model_dump(mode="json"))
         return result
+
+    def delete(self, name: str) -> None:
+        """Remove one state file; a missing file is already the desired state."""
+        self._validate_name(name)
+        with self._thread_lock:
+            (self.directory / f"{name}.json").unlink(missing_ok=True)
+            self.revision += 1
 
     def save(self, name: str, value: Any) -> None:
         self._validate_name(name)

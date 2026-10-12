@@ -25,9 +25,10 @@ TOPICS = [Topic(id="schule", name="Schule", enabled=True, description="Schule")]
 
 def before_2_0(dump: dict) -> dict:
     """A configuration as releases before 2.0 knew it (no 2.0 sections and fields)."""
-    for name in ("push", "daily_briefing", "smart_reply", "personal_info"):
+    for name in ("push", "daily_briefing", "smart_reply", "personal_info", "activity_report"):
         dump.pop(name, None)
     dump["imap"].pop("drafts_folder")
+    dump.get("retention", {}).pop("activity_report_days", None)
     dump["telegram"].pop("enabled")
     return dump
 

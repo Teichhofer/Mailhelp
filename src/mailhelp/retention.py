@@ -27,6 +27,7 @@ class CleanupResult:
     protected: int = 0
     mail_scrubbed: int = 0
     debug_scrubbed: int = 0
+    activity_scrubbed: int = 0
 
 
 class RetentionService:
@@ -106,8 +107,12 @@ class RetentionService:
             self.logger.event("INFO", "retention", "state_scrubbed", mail_id=state.id,
                               processed_at=now.isoformat(), mail_count=int(mail_changed),
                               debug_count=int(debug_changed))
-        result = CleanupResult(scanned, protected, mail_scrubbed, debug_scrubbed)
+        from .activity.store import ActivityReportStore
+        activity_scrubbed = ActivityReportStore(self.store).remove_expired_texts(
+            self.settings.activity_report_days, now)
+        result = CleanupResult(scanned, protected, mail_scrubbed, debug_scrubbed, activity_scrubbed)
         self.logger.event("INFO", "retention", "cleanup_completed", processed_at=now.isoformat(),
                           scanned_count=scanned, protected_count=protected,
-                          mail_count=mail_scrubbed, debug_count=debug_scrubbed)
+                          mail_count=mail_scrubbed, debug_count=debug_scrubbed,
+                          activity_count=activity_scrubbed)
         return result

@@ -237,6 +237,8 @@ class RetentionSettings(ConfigModel):
     # None preserves the earlier debug retention for existing installations.
     analysis_days: RetentionPeriod | None = None
     history_days: RetentionPeriod = 90
+    # Activity reports (2.2): full texts are removed, dates and senders stay.
+    activity_report_days: RetentionPeriod = 365
 
 
 class LearningSettings(ConfigModel):
@@ -305,6 +307,20 @@ class PushSettings(ConfigModel):
     subject: str = Field(default="mailto:admin@example.invalid", pattern=r"^mailto:[^\s@]+@[^\s@]+$")
 
 
+class ActivityReportSettings(ConfigModel):
+    """Activity reports (2.2): read-only scans of the mailbox for one topic."""
+
+    enabled: bool = False
+    # A report pauses when one of these limits is reached.
+    max_mails: int = Field(default=2000, ge=1, le=20000)
+    max_llm_calls: int = Field(default=3000, ge=1, le=50000)
+    # Share of limits.llm_calls_per_minute a running report may use.
+    max_share_of_llm_budget: float = Field(default=0.5, gt=0, le=1)
+    # Excel allows 32,767 characters per cell; the marker "… gekürzt" must fit as well.
+    max_fulltext_chars: int = Field(default=30000, ge=1000, le=32000)
+    export_mails_without_events: bool = True
+
+
 class DailyBriefingSettings(ConfigModel):
     enabled: bool = False
     time: str = Field(default="07:30", pattern=r"^(?:[01][0-9]|2[0-3]):[0-5][0-9]$")
@@ -336,6 +352,7 @@ class Settings(ConfigModel):
     # Name, role, signature and similar facts the user wants in reply drafts.
     # Trusted context for draft_reply only; tab and line breaks are the only control characters.
     personal_info: str = Field(default="", max_length=2000, pattern=r"^[^\x00-\x08\x0b-\x1f\x7f]*$")
+    activity_report: ActivityReportSettings = Field(default_factory=lambda: ActivityReportSettings())
 
     @model_validator(mode="after")
     def standalone_needs_web(self):
@@ -548,7 +565,7 @@ class OllamaPromptSettings(ConfigModel):
 
 
 # Steps a prompts.yaml from an earlier release may lack; the feature is then off.
-OPTIONAL_PROMPT_STEPS = frozenset({"vision_ocr", "draft_reply"})
+OPTIONAL_PROMPT_STEPS = frozenset({"vision_ocr", "draft_reply", "activity_relevance", "activity_events"})
 
 
 class PromptConfig(BaseModel):

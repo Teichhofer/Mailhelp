@@ -724,7 +724,7 @@ def test_experience_settings_preserve_16_analysis_fingerprint(tmp_path):
     prompts.prompts["draft_reply"] = PromptStep(system_prompt="Draft")
     assert config_fingerprint(cfg, prompts, []) == before
     legacy = cfg.model_dump(mode="json")
-    for name in ("push", "smart_reply", "personal_info", "daily_briefing", "vision", "web", "metrics", "retention", "logging", "learning", "poll_interval_seconds", "timeouts", "retries"):
+    for name in ("push", "smart_reply", "personal_info", "activity_report", "daily_briefing", "vision", "web", "metrics", "retention", "logging", "learning", "poll_interval_seconds", "timeouts", "retries"):
         legacy.pop(name)
     legacy["imap"].pop("drafts_folder")
     legacy["telegram"].pop("enabled")
