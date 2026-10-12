@@ -21,6 +21,7 @@ from .editing import edit_proposal
 from .archive import record_event, record_relevance
 from .errors import AnswerRequired, ReviewBusy, ReviewError, StaleCommand
 from .results import ResultStatus, ReviewResult
+from .. import state_names
 
 _OPEN = {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}
 _DIALOG = "telegram-dialog"
@@ -78,7 +79,7 @@ class ReviewService:
 
     def _record(self, command: ReviewCommand) -> None:
         if command.proposal_id is None:
-            state = self.controller.store.load_model(f"mail-{command.mail_id}", MailState)
+            state = self.controller.store.load_model(state_names.mail(command.mail_id), MailState)
             if state is not None:
                 record_relevance(self.controller.store, state, command.source.value, command.idempotency_key)
             return
@@ -107,7 +108,7 @@ class ReviewService:
     def _took_effect(self, command: ReviewCommand) -> bool:
         store = self.controller.store
         if command.kind == CommandKind.RELEVANCE:
-            mail = store.load_model(f"mail-{command.mail_id}", MailState)
+            mail = store.load_model(state_names.mail(command.mail_id), MailState)
             dialog = mail.relevance_dialog if isinstance(mail, MailState) else None
             return dialog is not None and dialog.status == RelevanceDialogStatus.DECIDED
         assert command.proposal_id is not None
@@ -125,7 +126,7 @@ class ReviewService:
             return not on_target
         if command.kind == CommandKind.ANSWER:
             answer = store.load_model(
-                f"clarification-{command.mail_id}-{command.proposal_id}-v{command.version}",
+                state_names.clarification(command.mail_id, command.proposal_id, command.version),
                 ProposalClarificationState)
             return isinstance(answer, ProposalClarificationState) and answer.authorized_answer is not None
         return False

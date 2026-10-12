@@ -1,0 +1,19 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "offset": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Offset",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "title": "TelegramOffset",
+  "type": "object"
+}

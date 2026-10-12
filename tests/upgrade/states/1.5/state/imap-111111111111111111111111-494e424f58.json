@@ -1,0 +1,12 @@
+{
+  "completed_uid_ranges": [
+    [
+      1,
+      1
+    ]
+  ],
+  "schema_version": 1,
+  "start_uid": 0,
+  "uid": 1,
+  "uidvalidity": 7
+}

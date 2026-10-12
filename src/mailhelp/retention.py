@@ -8,6 +8,7 @@ from typing import Callable, Literal
 from .config import RetentionSettings
 from .models import MailState, ProposalStatus
 from .storage import JsonStore, mail_state_names
+from . import state_names
 
 
 Period = int | Literal["disabled", "unlimited"]
@@ -73,7 +74,7 @@ class RetentionService:
                 if record is not None and self._expired(period, state.updated_at, now):
                     self.store.save(f"{prefix}-{state.id}", {"schema_version": 1, "removed": True})
                     if prefix == "history":
-                        for snapshot in self.store.names(f"proposal-{state.id}-"):
+                        for snapshot in self.store.names(state_names.proposals_of(state.id)):
                             if snapshot.rsplit("-", 1)[-1].startswith("v") and snapshot.rsplit("-", 1)[-1][1:].isdigit():
                                 old = self.store.load(snapshot)
                                 old.update(title="Historischer Vorschlag", description="", evidence="Nach Aufbewahrung entfernt", location=None, video_link=None)
@@ -87,10 +88,10 @@ class RetentionService:
             if mail_changed:
                 from .attachments import AttachmentCache
                 AttachmentCache(self.store).remove(state.id)
-                draft = self.store.load(f"draft-{state.id}")
+                draft = self.store.load(state_names.draft(state.id))
                 if draft is not None:
                     draft["text"] = ""
-                    self.store.save(f"draft-{state.id}", draft)
+                    self.store.save(state_names.draft(state.id), draft)
                 state.mail = None
                 mail_scrubbed += 1
             if debug_changed:

@@ -11,6 +11,7 @@ from threading import Lock
 from pydantic import BaseModel, ConfigDict, Field
 from .imap import _mailbox_argument
 from .models import MailState
+from . import state_names
 
 
 # Reply intents offered on every mail page, with their German button labels.
@@ -57,20 +58,20 @@ class DraftService:
         self._lock = Lock()
 
     def get(self, mail_id):
-        return self.store.load(f"draft-{mail_id}")
+        return self.store.load(state_names.draft(mail_id))
 
     def available(self, mail_id):
         """Replies need the mail text; retention removes it together with the draft text."""
-        source = self.store.load_model(f"mail-{mail_id}", MailState)
+        source = self.store.load_model(state_names.mail(mail_id), MailState)
         return source is not None and source.mail is not None
 
     def _save(self, mail_id, draft):
         """Retention may have removed the mail meanwhile; its text never comes back."""
-        with self.store._thread_lock:
-            source = self.store.load_model(f"mail-{mail_id}", MailState)
+        with self.store.locked():
+            source = self.store.load_model(state_names.mail(mail_id), MailState)
             if source is None or source.mail is None:
                 draft["text"] = ""
-            self.store.save(f"draft-{mail_id}", draft)
+            self.store.save(state_names.draft(mail_id), draft)
 
     @staticmethod
     def _remember(draft, key, digest):
@@ -84,7 +85,7 @@ class DraftService:
             raise ValueError("Ungültige Identität")
         if not self.authorize(actor):
             raise PermissionError("Sitzung abgelaufen")
-        source = self.store.load_model(f"mail-{mail_id}", MailState)
+        source = self.store.load_model(state_names.mail(mail_id), MailState)
         draft = self.get(mail_id)
         if draft is None and created:
             draft = {"version": 0, "text": "", "status": "discarded", "operations": {}}
@@ -105,7 +106,7 @@ class DraftService:
             raise ValueError("Unbekannte Antwortart")
         digest = hashlib.sha256(repr((actor, "generate", version, intent)).encode()).hexdigest()
         with self._lock:
-            with self.store._thread_lock:
+            with self.store.locked():
                 source, draft, replay = self._begin(actor, mail_id, version, key, digest, created=True)
                 if replay:
                     return draft
@@ -124,7 +125,7 @@ class DraftService:
     def cancel(self, actor, mail_id, version, key):
         """Discard the open draft locally; nothing was written to the mailbox."""
         digest = hashlib.sha256(repr((actor, "cancel", version)).encode()).hexdigest()
-        with self._lock, self.store._thread_lock:
+        with self._lock, self.store.locked():
             _, draft, replay = self._begin(actor, mail_id, version, key, digest)
             if replay:
                 return draft
@@ -132,7 +133,7 @@ class DraftService:
                 raise ValueError("Nur ein offener Entwurf kann verworfen werden")
             draft.update(version=version + 1, text="", status="discarded", error=None)
             self._remember(draft, key, digest)
-            self.store.save(f"draft-{mail_id}", draft)
+            self.store.save(state_names.draft(mail_id), draft)
             return draft
 
     def act(self, actor, mail_id, version, key, text):
@@ -142,7 +143,7 @@ class DraftService:
             raise ValueError("Leerer Entwurf")
         digest = hashlib.sha256(repr((actor, "save", version, text)).encode()).hexdigest()
         with self._lock:
-            with self.store._thread_lock:
+            with self.store.locked():
                 source, draft, replay = self._begin(actor, mail_id, version, key, digest)
                 if replay:
                     return draft
@@ -157,13 +158,13 @@ class DraftService:
                 # An unwritten version may still change: a refused APPEND wrote nothing.
                 # Kept before the mailbox access so a failure never loses the edits.
                 draft["text"] = text
-                self.store.save(f"draft-{mail_id}", draft)
+                self.store.save(state_names.draft(mail_id), draft)
                 message_id = f"<mailhelp-{mail_id}-v{version}@draft.local>"
                 content = message(source.mail["headers"], self.sender, text, message_id)
                 if self.test_mode:
                     draft.update(status="simulated", error=None)
                     self._remember(draft, key, digest)
-                    self.store.save(f"draft-{mail_id}", draft)
+                    self.store.save(state_names.draft(mail_id), draft)
                     return draft
             with self.connection() as connection:
                 self._append(connection, actor, mail_id, key, digest, draft, message_id, content)

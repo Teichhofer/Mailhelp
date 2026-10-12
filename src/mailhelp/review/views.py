@@ -35,6 +35,7 @@ from ..models import (
 from ..storage import CorruptState, JsonStore
 from .cards import CardContent, answer_example, card_content, display_question, sender_name, yes_no_question
 from .commands import CommandKind
+from .. import state_names
 
 _OPEN = {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}
 _SNAPSHOT = re.compile(r"-v\d+\Z")
@@ -228,13 +229,12 @@ class ReviewViews:
         """Resolve by identity, independently of the recent-results window."""
         with self.store.locked():
             reader = _Reader(self.store)
-            suffix = f"-v{version}" if version is not None else ""
-            item = reader.model(f"proposal-{mail_id}-{proposal_id}{suffix}", Proposal)
+            item = reader.model(state_names.proposal(mail_id, proposal_id, version), Proposal)
             if item is None or (item.source_mail_id, item.id) != (mail_id, proposal_id):
                 return None
-            mail = reader.model(f"mail-{mail_id}", MailState)
+            mail = reader.model(state_names.mail(mail_id), MailState)
             pointer = reader.model("telegram-dialog", TelegramDialogState) or TelegramDialogState()
-            clarification = reader.model(f"clarification-{mail_id}-{proposal_id}-v{item.version}",
+            clarification = reader.model(state_names.clarification(mail_id, proposal_id, item.version),
                                          ProposalClarificationState)
             outbox = reader.model("telegram-outbox", TelegramOutboxState) or TelegramOutboxState()
             gate = outbox.active
@@ -248,14 +248,14 @@ class ReviewViews:
         now = now or datetime.now(timezone.utc)
         with self.store.locked():
             reader = _Reader(self.store)
-            mails = [state for name in self.store.names("mail-") if not name.startswith("mail-run-")
+            mails = [state for name in state_names.mail_state_names(self.store)
                      if (state := reader.model(name, MailState)) is not None]
-            runs = [run for name in self.store.names("mail-run-")
+            runs = [run for name in self.store.names(state_names.MAIL_RUN_PREFIX)
                     if (run := reader.model(name, MailRunState)) is not None]
             outbox = reader.model("telegram-outbox", TelegramOutboxState) or TelegramOutboxState()
             inbox = reader.raw("telegram-inbox")
             budget = reader.raw("llm-budget")
-            proposals = [proposal for name in self.store.names("proposal-") if not _SNAPSHOT.search(name)
+            proposals = [proposal for name in self.store.names(state_names.PROPOSAL_PREFIX) if not _SNAPSHOT.search(name)
                          if (proposal := reader.model(name, Proposal)) is not None]
         analysis: dict[str, int] = {}
         for run in runs:
@@ -296,7 +296,7 @@ class ReviewViews:
     def mail(self, mail_id: str) -> MailView | None:
         """The mail with its complete text, or None if no such mail is known."""
         with self.store.locked():
-            state = _Reader(self.store).model(f"mail-{mail_id}", MailState)
+            state = _Reader(self.store).model(state_names.mail(mail_id), MailState)
         if state is None:
             return None
         content = state.mail if isinstance(state.mail, dict) else {}
@@ -328,9 +328,7 @@ class ReviewViews:
 
     def _relevance(self, reader: _Reader) -> list[RelevanceView]:
         result = []
-        for name in self.store.names("mail-"):
-            if name.startswith("mail-run-"):
-                continue
+        for name in state_names.mail_state_names(self.store):
             mail = reader.model(name, MailState)
             dialog = mail.relevance_dialog if mail is not None else None
             if dialog is None or dialog.status != RelevanceDialogStatus.OPEN:
@@ -345,7 +343,7 @@ class ReviewViews:
     def _run(self, reader: _Reader) -> RunStatus:
         counters: dict[str, int] = {}
         complete, started = True, None
-        for name in self.store.names("mail-run-"):
+        for name in self.store.names(state_names.MAIL_RUN_PREFIX):
             run = reader.model(name, MailRunState)
             if run is None:
                 continue
@@ -363,7 +361,7 @@ class ReviewViews:
         gate = outbox.active
         mails: dict[str, MailState | None] = {}
         result = []
-        for name in self.store.names("proposal-"):
+        for name in self.store.names(state_names.PROPOSAL_PREFIX):
             if _SNAPSHOT.search(name):
                 continue
             proposal = reader.model(name, Proposal)
@@ -371,10 +369,10 @@ class ReviewViews:
                 continue
             mail_id = proposal.source_mail_id
             if mail_id not in mails:
-                mails[mail_id] = reader.model(f"mail-{mail_id}", MailState)
+                mails[mail_id] = reader.model(state_names.mail(mail_id), MailState)
             mail = mails[mail_id]
             clarification = reader.model(
-                f"clarification-{mail_id}-{proposal.id}-v{proposal.version}",
+                state_names.clarification(mail_id, proposal.id, proposal.version),
                 ProposalClarificationState)
             current = (gate is not None and gate.kind == "proposal"
                        and (gate.mail_id, gate.proposal_id) == (mail_id, proposal.id))

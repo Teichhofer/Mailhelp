@@ -15,6 +15,7 @@ from .writes import ProposalPersistence
 
 
 from .revision_contracts import ProposalRevisionService, EventLogger
+from .. import state_names
 
 @dataclass
 class RevisionRecovery:
@@ -27,9 +28,9 @@ class RevisionRecovery:
     revise: Callable[[ProposalClarificationState], None]
 
     def resume_durable(self) -> None:
-        if self.revision_service is None or not hasattr(self.store, "names"):
+        if self.revision_service is None:
             return
-        for name in self.store.names("clarification-"):
+        for name in self.store.names(state_names.CLARIFICATION_PREFIX):
             state = self.store.load_model(name, ProposalClarificationState)
             assert isinstance(state, ProposalClarificationState)
             now = datetime.now(timezone.utc)

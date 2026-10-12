@@ -25,9 +25,7 @@ class Store:
         return default if value is None else model.model_validate(value)
 
 
-class Log:
-    def __init__(self): self.events=[]
-    def event(self,*args,**kwargs): self.events.append((args,kwargs))
+from log_fakes import RecordingLogger as Log
 
 
 class Imap:
@@ -1516,11 +1514,6 @@ def test_resume_mixes_matching_and_blocked_fingerprints_without_resuming_blocked
 
 
 def test_resume_due_pending_states_and_isolate_failures(tmp_path):
-    class LegacyStore:
-        def load(self,name,default=None): return default
-        def save(self,name,value): pass
-    legacy=app(tmp_path,Imap([]),Telegram([]),Orch(),store=LegacyStore())
-    assert legacy._resume_pending()==[]
     due=MailState(id="a"*24,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":7,"uid":4})
     future=MailState(id="b"*24,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":7,"uid":5},deferred_until=datetime.now(timezone.utc)+timedelta(hours=1))
     completed=MailState(id="c"*24,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":7,"uid":6})

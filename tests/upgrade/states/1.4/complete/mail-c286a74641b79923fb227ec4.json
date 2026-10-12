@@ -1,0 +1,220 @@
+{
+  "action_route": {
+    "action_state": "event",
+    "event_count": 1,
+    "reason": "Termin erkannt.",
+    "task_count": 0
+  },
+  "action_router_call_id": "router-call",
+  "awaiting_relevance": false,
+  "config_fingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+  "created_at": "2026-10-12T14:30:02.021299Z",
+  "deferred_until": null,
+  "display_headers": {
+    "sender": "Terminbuero Beispiel <termine@bildungsforum.example>",
+    "subject": "Nachholtermin: Auftakt der Bildungsplannovellierung"
+  },
+  "duplicate": {
+    "outcome": "new",
+    "previous_mail_id": null,
+    "reason": "no_match"
+  },
+  "error": null,
+  "event_extraction": {
+    "events": [
+      {
+        "certainty": "certain",
+        "classification": "new",
+        "date_text": "23.09.2026",
+        "description": null,
+        "duration_is_upper_bound": false,
+        "duration_minutes": null,
+        "end_time_text": "10:00 Uhr",
+        "evidence": "Mi, 23.09.2026, 09:00 Uhr bis 10:00 Uhr (UTC+01:00)",
+        "location": null,
+        "responsibility": "user",
+        "time_requirement": "timed",
+        "time_text": "09:00 Uhr",
+        "timezone_offset_text": "UTC+01:00",
+        "title": "Auftakt der Bildungsplannovellierung",
+        "video_link": null
+      }
+    ],
+    "schema_version": 1
+  },
+  "extraction_count_conflicts": [],
+  "id": "c286a74641b79923fb227ec4",
+  "imap": {
+    "account_id": "111111111111111111111111",
+    "folder": "INBOX",
+    "uid": 23,
+    "uidvalidity": 7
+  },
+  "llm_call_ids": [
+    "relevance-call",
+    "summary-call",
+    "router-call",
+    "event-call"
+  ],
+  "mail": {
+    "calendar_events": [],
+    "date_context_status": "valid",
+    "date_header_original": "Tue, 22 Sep 2026 08:15:00 +0100",
+    "date_header_parsed": "2026-09-22T08:15:00+01:00",
+    "extracted_attachments": [],
+    "headers": {
+      "date": "Tue, 22 Sep 2026 08:15:00 +0100",
+      "from": "Terminbuero Beispiel <termine@bildungsforum.example>",
+      "message_id": "<nachholtermin-20260923@bildungsforum.example>",
+      "subject": "Nachholtermin: Auftakt der Bildungsplannovellierung"
+    },
+    "imap_received_at": "2026-09-22T07:15:00+00:00",
+    "internal_id": "c286a74641b79923fb227ec4",
+    "message_ids": [
+      "<nachholtermin-20260923@bildungsforum.example>"
+    ],
+    "metadata": {
+      "attachments_omitted": 0,
+      "text_shortened": false
+    },
+    "text": "Guten Tag,\n\nder synthetische Nachholtermin „Auftakt der Bildungsplannovellierung“ findet\nam Mi, 23.09.2026, von 09:00 Uhr bis 10:00 Uhr (UTC+01:00) statt.\n\nViele Grüße\nDas Beispiel-Team",
+    "user_timezone": "Etc/GMT-1"
+  },
+  "normalized_proposals": [
+    {
+      "all_day": false,
+      "certainty": "certain",
+      "classification": "new",
+      "description": "Absender: Terminbuero Beispiel <termine@bildungsforum.example>\nBetreff: Nachholtermin: Auftakt der Bildungsplannovellierung\nMail-Datum: 2026-09-22T08:15:00+01:00",
+      "due": null,
+      "duplicate_match": null,
+      "duration_is_upper_bound": false,
+      "duration_minutes": null,
+      "end": "2026-09-23T10:00:00+01:00",
+      "evidence": "Mi, 23.09.2026, 09:00 Uhr bis 10:00 Uhr (UTC+01:00)",
+      "explicit_create_fallback_confirmed": false,
+      "explicit_duplicate_create_confirmed_version": null,
+      "explicit_non_binding_create_confirmed": false,
+      "external_id": null,
+      "external_link": null,
+      "id": "p_937f4c6c69c9936b8f9722d3",
+      "is_cancellation": false,
+      "kind": "event",
+      "known_temporal_facts": null,
+      "location": null,
+      "open_questions": [],
+      "responsibility": "user",
+      "schema_version": 2,
+      "simulation_notified": false,
+      "source_mail_id": "c286a74641b79923fb227ec4",
+      "start": "2026-09-23T09:00:00+01:00",
+      "status": "pending_confirmation",
+      "target": "calendar",
+      "target_event_id": null,
+      "temporal_fact": {
+        "normalized_date": "2026-09-23",
+        "raw_text": "23.09.2026",
+        "status": "resolved",
+        "year_source": "explicit_mail"
+      },
+      "time_changes": [],
+      "title": "Auftakt der Bildungsplannovellierung",
+      "uncertain_notified": false,
+      "version": 1,
+      "video_link": null
+    }
+  ],
+  "proposal_notifications": [
+    {
+      "proposal_id": "p_937f4c6c69c9936b8f9722d3",
+      "proposal_version": 1,
+      "status": "completed"
+    }
+  ],
+  "proposals": [
+    {
+      "all_day": false,
+      "certainty": "certain",
+      "classification": "new",
+      "description": "Absender: Terminbuero Beispiel <termine@bildungsforum.example>\nBetreff: Nachholtermin: Auftakt der Bildungsplannovellierung\nMail-Datum: 2026-09-22T08:15:00+01:00",
+      "due": null,
+      "duplicate_match": null,
+      "duration_is_upper_bound": false,
+      "duration_minutes": null,
+      "end": "2026-09-23T10:00:00+01:00",
+      "evidence": "Mi, 23.09.2026, 09:00 Uhr bis 10:00 Uhr (UTC+01:00)",
+      "explicit_create_fallback_confirmed": false,
+      "explicit_duplicate_create_confirmed_version": null,
+      "explicit_non_binding_create_confirmed": false,
+      "external_id": "calendar-event-1",
+      "external_link": "https://example.test/calendar/1",
+      "id": "p_937f4c6c69c9936b8f9722d3",
+      "is_cancellation": false,
+      "kind": "event",
+      "known_temporal_facts": null,
+      "location": null,
+      "open_questions": [],
+      "responsibility": "user",
+      "schema_version": 2,
+      "simulation_notified": false,
+      "source_mail_id": "c286a74641b79923fb227ec4",
+      "start": "2026-09-23T09:00:00+01:00",
+      "status": "created",
+      "target": "calendar",
+      "target_event_id": null,
+      "temporal_fact": {
+        "normalized_date": "2026-09-23",
+        "raw_text": "23.09.2026",
+        "status": "resolved",
+        "year_source": "explicit_mail"
+      },
+      "time_changes": [],
+      "title": "Auftakt der Bildungsplannovellierung",
+      "uncertain_notified": true,
+      "version": 1,
+      "video_link": null
+    }
+  ],
+  "relevance": {
+    "decision": "relevant",
+    "reason": "Ein konkreter Termin ist enthalten.",
+    "topic_ids": [
+      "arbeit"
+    ]
+  },
+  "relevance_dialog": null,
+  "schema_version": 9,
+  "steps": {
+    "action_detection": "completed",
+    "action_router": "completed",
+    "completion": "completed",
+    "duplicate_precheck": "completed",
+    "event_extraction": "completed",
+    "normalization": "completed",
+    "preparation": "completed",
+    "proposal_building": "completed",
+    "proposal_notification": "completed",
+    "relevance": "completed",
+    "summary": "completed",
+    "summary_notification": "completed",
+    "task_extraction": "skipped"
+  },
+  "summary": {
+    "deadlines": [],
+    "sentences": [
+      "Ein synthetischer Nachholtermin wurde angekündigt."
+    ]
+  },
+  "task_extraction": null,
+  "updated_at": "2026-10-12T14:30:02.271082Z",
+  "validation_errors": [],
+  "write_attempts": [
+    {
+      "idempotency_key": "mailhelp:c286a74641b79923fb227ec4:p_937f4c6c69c9936b8f9722d3:v1",
+      "mail_id": "c286a74641b79923fb227ec4",
+      "proposal_id": "p_937f4c6c69c9936b8f9722d3",
+      "proposal_version": 1,
+      "service": "google_calendar"
+    }
+  ]
+}

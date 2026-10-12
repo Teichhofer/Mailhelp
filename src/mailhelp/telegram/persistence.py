@@ -10,18 +10,19 @@ from ..models import (
     WriteAttemptReference,
 )
 from ..storage import JsonStore
+from .. import state_names
 
 
 def proposal_name(mail_id: str, proposal_id: str) -> str:
-    return f"proposal-{mail_id}-{proposal_id}"
+    return state_names.proposal(mail_id, proposal_id)
 
 
 def proposal_version_name(mail_id: str, proposal_id: str, version: int) -> str:
-    return f"proposal-{mail_id}-{proposal_id}-v{version}"
+    return state_names.proposal(mail_id, proposal_id, version)
 
 
 def clarification_name(mail_id: str, proposal_id: str, version: int) -> str:
-    return f"clarification-{mail_id}-{proposal_id}-v{version}"
+    return state_names.clarification(mail_id, proposal_id, version)
 
 
 def _bound(value: object, mail_id: str, proposal_id: str, version: int | None = None) -> bool:
@@ -61,7 +62,7 @@ class ProposalRepository:
         return value if _bound(value, mail_id, proposal_id, version) else None
 
     def load_mail(self, mail_id: str) -> MailState | None:
-        value = self.store.load_model(f"mail-{mail_id}", MailState)
+        value = self.store.load_model(state_names.mail(mail_id), MailState)
         return value if isinstance(value, MailState) else None
 
     def save_revision(self, proposal: Proposal) -> None:
@@ -101,13 +102,13 @@ class ProposalRepository:
             "write_attempts": attempts,
             "updated_at": datetime.now(timezone.utc),
         })
-        self.store.save(f"mail-{proposal.source_mail_id}",
+        self.store.save(state_names.mail(proposal.source_mail_id),
                         changed.model_dump(mode="json"))
         self._sync_run(changed)
 
     def _sync_run(self, state: MailState) -> None:
         """Repair the run's user-action projection after persisting the mail."""
-        name = f"mail-run-{state.imap.account_id}"
+        name = state_names.mail_run(state.imap.account_id)
         run = self.store.load_model(name, MailRunState)
         if run is None:
             return
@@ -143,7 +144,7 @@ class ProposalRepository:
             "write_attempts": attempts,
             "updated_at": datetime.now(timezone.utc),
         })
-        self.store.save(f"mail-{proposal.source_mail_id}",
+        self.store.save(state_names.mail(proposal.source_mail_id),
                         changed.model_dump(mode="json"))
 
     def mark_notification_sending(self, proposal: Proposal) -> bool:
@@ -185,7 +186,7 @@ class ProposalRepository:
                 "proposal_notifications": notifications,
                 "updated_at": datetime.now(timezone.utc),
             })
-            self.store.save(f"mail-{proposal.source_mail_id}",
+            self.store.save(state_names.mail(proposal.source_mail_id),
                             updated.model_dump(mode="json"))
         return changed
 

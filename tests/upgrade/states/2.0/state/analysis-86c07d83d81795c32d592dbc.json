@@ -1,0 +1,26 @@
+{
+  "human_decision": null,
+  "mail_id": "86c07d83d81795c32d592dbc",
+  "recorded_at": "2026-10-12T14:30:10.640307+00:00",
+  "relevance": {
+    "decision": "relevant",
+    "reason": "Aufgabe und Termin",
+    "topic_ids": [
+      "arbeit"
+    ]
+  },
+  "schema_version": 1,
+  "source": "OpenRouter",
+  "summary": {
+    "deadlines": [
+      "30. September"
+    ],
+    "sentences": [
+      "Eine Aufgabe ist fällig.",
+      "Ein Termin wurde vereinbart."
+    ]
+  },
+  "topics": {
+    "arbeit": "Arbeit"
+  }
+}

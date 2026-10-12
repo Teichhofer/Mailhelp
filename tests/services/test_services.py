@@ -1634,13 +1634,7 @@ def test_orchestrator_resumes_each_persisted_analysis_step(tmp_path):
         def summary(self,m): self.calls.append("summary"); return super().summary(m)
         def action_route(self,m): self.calls.append("action_router"); return super().action_route(m)
         def extract_tasks(self,m, *, expected_count): self.calls.append("task_extraction"); return super().extract_tasks(m, expected_count=expected_count)
-    class InterruptingStore:
-        def __init__(self, delegate, fail_at): self.delegate=delegate; self.fail_at=fail_at; self.count=0
-        def load(self,*args): return self.delegate.load(*args)
-        def save(self,*args):
-            self.count += 1
-            if self.count >= self.fail_at: raise RuntimeError("power loss")
-            self.delegate.save(*args)
+    from store_fakes import InterruptingStore
     # Every durable boundary, including normalization, proposal construction and
     # both sides of the per-version Telegram delivery marker, is interrupted.
     with JsonStore(tmp_path/"boundaries") as disk:
@@ -1874,9 +1868,7 @@ def test_orchestrator_defers_rate_limit_and_reports(tmp_path):
     class Limited:
         def relevance(self, mail, topics):
             raise RateLimitExceeded(120.0)
-    class Log:
-        def __init__(self): self.events=[]
-        def event(self,*args,**kwargs): self.events.append((args,kwargs))
+    from log_fakes import RecordingLogger as Log
     with JsonStore(tmp_path/"limited") as store:
         notify=Notify(); log=Log()
         topic=Topic(id="x",name="x",enabled=True,description="x")
@@ -1963,9 +1955,7 @@ def test_mime_limit_uses_persisted_display_headers_once_after_restart(tmp_path, 
     fetched = FetchedMail("INBOX", 1, 99, message.as_bytes())
     topic = Topic(id="x", name="x", enabled=True, description="x")
     notify = Notify()
-    class Log:
-        def __init__(self): self.events = []
-        def event(self, *args, **kwargs): self.events.append((args, kwargs))
+    from log_fakes import RecordingLogger as Log
     log = Log()
     directory = tmp_path / limit_name
     with JsonStore(directory) as store:

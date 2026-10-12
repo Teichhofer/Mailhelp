@@ -13,6 +13,7 @@ from ..storage import JsonStore
 
 from .client import TelegramTransport
 from .ledger import ActionLedgerPort
+from .. import state_names
 
 
 class ProposalPersistence(Protocol):
@@ -132,10 +133,7 @@ class ConfirmedWriteExecutor:
         return changed
 
     def resume(self) -> None:
-        names = getattr(self.store, "names", None)
-        if names is None:
-            return
-        for name in names("proposal-"):
+        for name in self.store.names(state_names.PROPOSAL_PREFIX):
             if "-v" in name:
                 continue
             proposal = self.store.load_model(name, Proposal)

@@ -72,9 +72,7 @@ class Telegram:
         self.documents.append((chat_id, filename, content, caption))
 
 
-class Logger:
-    def __init__(self): self.events=[]
-    def event(self, *args, **fields): self.events.append((args,fields))
+from log_fakes import RecordingLogger as Logger
 
 
 class RevisionService:
@@ -984,22 +982,15 @@ def test_pending_event_pauses_until_anlegen_or_verwerfen(tmp_path):
         assert not dialog.awaiting_decision()
 
 
-def test_awaiting_decision_ignores_version_snapshots_and_supports_legacy_store(tmp_path):
+def test_awaiting_decision_ignores_version_snapshots_but_not_open_relevance(tmp_path):
     with JsonStore(tmp_path) as store:
         dialog, _, _ = controller(store)
         item = proposal()
         store.save(dialog._version_name(item.source_mail_id, item.id, item.version),
                    item.model_dump(mode="json"))
         assert not dialog.awaiting_decision()
-
-    class LegacyStore:
-        pass
-
-    dialog, _, _ = controller(LegacyStore())
-    dialog._open_relevance_dialogs = lambda: []
-    assert not dialog.awaiting_decision()
-    dialog._open_relevance_dialogs = lambda: [object()]
-    assert dialog.awaiting_decision()
+        dialog._open_relevance_dialogs = lambda: [object()]
+        assert dialog.awaiting_decision()
 
 
 def test_paused_answer_is_operator_block_not_open_user_decision(tmp_path):
@@ -1021,12 +1012,6 @@ def test_paused_answer_is_operator_block_not_open_user_decision(tmp_path):
 
         assert not dialog.awaiting_decision()
         assert dialog.processing_blocked()
-
-    class LegacyStore:
-        pass
-
-    dialog, _, _ = controller(LegacyStore())
-    assert not dialog.processing_blocked()
 
 
 def test_numbered_parts():
@@ -2106,15 +2091,6 @@ def test_restart_reconciles_before_retry_and_duplicate_update_is_safe(tmp_path):
         c.persist(proposal(status="writing")); c.poll_once()
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["status"]=="uncertain"
         assert interrupted.reconciled == 1 and interrupted.created == 0
-
-    class MinimalStore:
-        def __init__(self): self.values={}
-        def load(self,name,default=None): return self.values.get(name,default)
-        def save(self,name,value): self.values[name]=value
-        def load_model(self,name,model,default=None):
-            value=self.load(name)
-            return default if value is None else model.model_validate(value)
-    minimal=MinimalStore(); c,_,_=controller(minimal); c.poll_once()
 
 
 def test_uncertain_write_is_only_reconciled_across_restarts(tmp_path):

@@ -24,6 +24,7 @@ from .http import Response
 from .pages import e, layout, notice
 from .review_pages import detail_page
 from .setting_help import SETTING_HELP, EXTRA_HELP, help_bubble
+from .. import state_names
 
 
 EDIT_LABELS = {"title": "Titel", "description": "Beschreibung", "target": "Ziel", "due": "Frist",
@@ -356,7 +357,7 @@ class ArchiveSite:
     def analysis(self, mail_id):
         store = self.site.views.store
         try:
-            state = store.peek_model(f"mail-{mail_id}", MailState)
+            state = store.peek_model(state_names.mail(mail_id), MailState)
             snapshot = store.peek_model(f"analysis-{mail_id}", AnalysisSnapshot)
             record = snapshot.model_dump(mode="json") if snapshot is not None else {}
         except CorruptState:
@@ -446,8 +447,8 @@ class ArchiveSite:
         if view is None:
             return self.site._reply(request, 404, "Version nicht mehr vorhanden.")
         page = detail_page(view)
-        previous = self.site.views.store.peek_model(f"proposal-{mail_id}-{proposal_id}-v{int(version)-1}", Proposal)
-        current = self.site.views.store.peek_model(f"proposal-{mail_id}-{proposal_id}-v{version}", Proposal)
+        previous = self.site.views.store.peek_model(state_names.proposal(mail_id, proposal_id, int(version)-1), Proposal)
+        current = self.site.views.store.peek_model(state_names.proposal(mail_id, proposal_id, version), Proposal)
         diff = '<section class="card"><h2>Änderungen gegenüber vorheriger Version</h2>'
         if previous is None:
             diff += '<p>Vorherige Version nicht vorhanden.</p>'
@@ -459,7 +460,7 @@ class ArchiveSite:
         return Response.html(200, page.replace('</main>', '<p>Historische Version – ausschließlich lesend.</p></main>'))
 
     def edit(self, request, session, mail_id, proposal_id, values=None, message=""):
-        proposal = self.site.views.store.peek_model(f"proposal-{mail_id}-{proposal_id}", Proposal)
+        proposal = self.site.views.store.peek_model(state_names.proposal(mail_id, proposal_id), Proposal)
         if proposal is None:
             return self.site._reply(request, 404, "Vorschlag nicht gefunden.")
         if proposal.status not in {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}:

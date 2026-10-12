@@ -11,6 +11,7 @@ from typing import Protocol
 
 from ..models import ActionLedger, ActionLedgerEntry, Proposal, ProposalKind
 from ..storage import JsonStore
+from .. import state_names
 
 
 class ActionLedgerPort(Protocol):
@@ -89,7 +90,7 @@ class ActionLedgerService:
         for item in ledger.entries:
             if item.action_key_version == 2:
                 continue
-            name = f"proposal-{item.mail_id}-{item.proposal_id}"
+            name = state_names.proposal(item.mail_id, item.proposal_id)
             previous = self.store.load_model(f"{name}-v{item.proposal_version}", Proposal)
             if previous is None:
                 previous = self.store.load_model(name, Proposal)

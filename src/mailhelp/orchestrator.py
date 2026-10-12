@@ -31,6 +31,7 @@ from .logging import EventLogger, NullLogger
 from .sender_filter import is_irrelevant_sender
 from .telegram.formatting import mail_line
 from .vision import VisionExtractor
+from . import state_names
 
 
 class Notifier(Protocol):
@@ -233,15 +234,10 @@ class Orchestrator:
         return normalized, digest, len(values)
 
     def _load_model(self, name: str, model: type[Any], default: Any = None) -> Any:
-        if hasattr(self.store, "load_model"):
-            return self.store.load_model(name, model, default)
-        value = self.store.load(name, None)
-        return default if value is None else model.model_validate(value)
+        return self.store.load_model(name, model, default)
 
     def _cache_previews(self, state: MailState, raw: bytes) -> None:
         """Image previews are optional; a failure never stops the analysis."""
-        if not hasattr(self.store, "directory"):
-            return
         from .attachments import AttachmentCache
         try:
             AttachmentCache(self.store).prepare(state.id, raw, state.mail["extracted_attachments"])
@@ -328,7 +324,7 @@ class Orchestrator:
                 candidate = matching_ids[0]
                 completed = []
                 for entry in matching_ids:
-                    previous = self._load_model(f"mail-{entry.mail_id}", MailState)
+                    previous = self._load_model(state_names.mail(entry.mail_id), MailState)
                     completed.append(isinstance(previous, MailState) and previous.steps.completion == "completed")
                 if all(entry.content_fingerprint == fingerprint for entry in matching_ids) and all(completed):
                     outcome, reason = "duplicate", "same_message"
@@ -424,7 +420,7 @@ class Orchestrator:
         )
 
     def resolve_relevance(self, mail_id: str, version: int, decision: str, telegram_offset: int) -> MailState:
-        name = f"mail-{mail_id}"
+        name = state_names.mail(mail_id)
         state = self.store.load_model(name, MailState)
         if not isinstance(state, MailState) or state.relevance_dialog is None:
             raise ValueError("Relevanzfrage wurde nicht gefunden")
@@ -458,9 +454,9 @@ class Orchestrator:
         internal_id = hashlib.sha256(identity.encode()).hexdigest()[:24]
         started = time.perf_counter()
         self.logger.event("INFO", "orchestrator", "processing_started", mail_id=internal_id)
-        name = f"mail-{internal_id}"
-        existing = self.store.load_model(name, MailState) if hasattr(self.store, "load_model") else self.store.load(name)
-        state = existing if isinstance(existing, MailState) else MailState.model_validate(existing) if existing is not None else MailState(
+        name = state_names.mail(internal_id)
+        existing = self.store.load_model(name, MailState)
+        state = existing if isinstance(existing, MailState) else MailState(
             id=internal_id,
             imap={"account_id": fetched.account_id, "folder": fetched.folder, "uidvalidity": fetched.uidvalidity, "uid": fetched.uid},
             config_fingerprint=self.config_fingerprint,

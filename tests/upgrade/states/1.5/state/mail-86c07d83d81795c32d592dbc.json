@@ -1,0 +1,318 @@
+{
+  "action_route": {
+    "action_state": "task_and_event",
+    "event_count": 1,
+    "reason": "Aufgabe und Termin erkannt.",
+    "task_count": 1
+  },
+  "action_router_call_id": "ar",
+  "awaiting_relevance": false,
+  "config_fingerprint": "0000000000000000000000000000000000000000000000000000000000000000",
+  "created_at": "2026-10-12T14:30:05.304645Z",
+  "deferred_until": null,
+  "display_headers": {
+    "sender": "Synthetischer Absender <absender@example.test>",
+    "subject": "Aufgabe und Termin"
+  },
+  "duplicate": {
+    "outcome": "new",
+    "previous_mail_id": null,
+    "reason": "no_match"
+  },
+  "error": null,
+  "event_extraction": {
+    "events": [
+      {
+        "certainty": "certain",
+        "classification": "new",
+        "date_text": "8. Oktober",
+        "description": null,
+        "duration_is_upper_bound": false,
+        "duration_minutes": null,
+        "end_time_text": "10:00",
+        "evidence": "8. Oktober von 09:00 bis 10:00",
+        "location": null,
+        "responsibility": "user",
+        "time_requirement": "timed",
+        "time_text": "09:00",
+        "timezone_offset_text": null,
+        "title": "Besprechung",
+        "video_link": null
+      }
+    ],
+    "schema_version": 1
+  },
+  "extraction_count_conflicts": [],
+  "id": "86c07d83d81795c32d592dbc",
+  "imap": {
+    "account_id": "111111111111111111111111",
+    "folder": "INBOX",
+    "uid": 1,
+    "uidvalidity": 7
+  },
+  "llm_call_ids": [
+    "r",
+    "s",
+    "ar",
+    "t",
+    "e"
+  ],
+  "mail": {
+    "calendar_events": [],
+    "date_context_status": "valid",
+    "date_header_original": "Thu, 17 Sep 2026 10:00:00 +0200",
+    "date_header_parsed": "2026-09-17T10:00:00+02:00",
+    "extracted_attachments": [],
+    "headers": {
+      "date": "Thu, 17 Sep 2026 10:00:00 +0200",
+      "from": "Synthetischer Absender <absender@example.test>",
+      "message_id": "<e2e@example.test>",
+      "subject": "Aufgabe und Termin"
+    },
+    "imap_received_at": "2026-09-17T08:00:00+00:00",
+    "internal_id": "86c07d83d81795c32d592dbc",
+    "message_ids": [
+      "<e2e@example.test>"
+    ],
+    "metadata": {
+      "attachments_omitted": 0,
+      "text_shortened": false
+    },
+    "text": "Bitte senden Sie Unterlagen. Besprechung am 8. Oktober von 09:00 bis 10:00 Uhr.",
+    "user_timezone": "Europe/Berlin"
+  },
+  "normalized_proposals": [
+    {
+      "all_day": false,
+      "certainty": "certain",
+      "classification": "new",
+      "description": "Absender: Synthetischer Absender <absender@example.test>\nBetreff: Aufgabe und Termin\nMail-Datum: 2026-09-17T10:00:00+02:00",
+      "due": "2026-09-30",
+      "duplicate_match": null,
+      "duration_is_upper_bound": false,
+      "duration_minutes": null,
+      "end": null,
+      "evidence": "Bitte senden",
+      "explicit_create_fallback_confirmed": false,
+      "explicit_duplicate_create_confirmed_version": null,
+      "explicit_non_binding_create_confirmed": false,
+      "external_id": null,
+      "external_link": null,
+      "id": "p_7d225ebf38a7518abb73add6",
+      "is_cancellation": false,
+      "kind": "task",
+      "known_temporal_facts": null,
+      "location": null,
+      "open_questions": [],
+      "responsibility": "user",
+      "schema_version": 2,
+      "simulation_notified": false,
+      "source_mail_id": "86c07d83d81795c32d592dbc",
+      "start": null,
+      "status": "pending_confirmation",
+      "target": "project",
+      "target_event_id": null,
+      "temporal_fact": {
+        "normalized_date": "2026-09-30",
+        "raw_text": "30. September",
+        "status": "resolved",
+        "year_source": "mail_context"
+      },
+      "time_changes": [],
+      "title": "Unterlagen senden",
+      "uncertain_notified": false,
+      "version": 1,
+      "video_link": null
+    },
+    {
+      "all_day": false,
+      "certainty": "certain",
+      "classification": "new",
+      "description": "Absender: Synthetischer Absender <absender@example.test>\nBetreff: Aufgabe und Termin\nMail-Datum: 2026-09-17T10:00:00+02:00",
+      "due": null,
+      "duplicate_match": null,
+      "duration_is_upper_bound": false,
+      "duration_minutes": null,
+      "end": "2026-10-08T10:00:00+02:00",
+      "evidence": "8. Oktober von 09:00 bis 10:00",
+      "explicit_create_fallback_confirmed": false,
+      "explicit_duplicate_create_confirmed_version": null,
+      "explicit_non_binding_create_confirmed": false,
+      "external_id": null,
+      "external_link": null,
+      "id": "p_36bc9554230a4fa576278f11",
+      "is_cancellation": false,
+      "kind": "event",
+      "known_temporal_facts": null,
+      "location": null,
+      "open_questions": [],
+      "responsibility": "user",
+      "schema_version": 2,
+      "simulation_notified": false,
+      "source_mail_id": "86c07d83d81795c32d592dbc",
+      "start": "2026-10-08T09:00:00+02:00",
+      "status": "pending_confirmation",
+      "target": "calendar",
+      "target_event_id": null,
+      "temporal_fact": {
+        "normalized_date": "2026-10-08",
+        "raw_text": "8. Oktober",
+        "status": "resolved",
+        "year_source": "mail_context"
+      },
+      "time_changes": [],
+      "title": "Besprechung",
+      "uncertain_notified": false,
+      "version": 1,
+      "video_link": null
+    }
+  ],
+  "proposal_notifications": [
+    {
+      "proposal_id": "p_7d225ebf38a7518abb73add6",
+      "proposal_version": 1,
+      "status": "completed"
+    },
+    {
+      "proposal_id": "p_36bc9554230a4fa576278f11",
+      "proposal_version": 1,
+      "status": "completed"
+    }
+  ],
+  "proposals": [
+    {
+      "all_day": false,
+      "certainty": "certain",
+      "classification": "new",
+      "description": "Absender: Synthetischer Absender <absender@example.test>\nBetreff: Aufgabe und Termin\nMail-Datum: 2026-09-17T10:00:00+02:00",
+      "due": "2026-09-30",
+      "duplicate_match": null,
+      "duration_is_upper_bound": false,
+      "duration_minutes": null,
+      "end": null,
+      "evidence": "Bitte senden",
+      "explicit_create_fallback_confirmed": false,
+      "explicit_duplicate_create_confirmed_version": null,
+      "explicit_non_binding_create_confirmed": false,
+      "external_id": null,
+      "external_link": null,
+      "id": "p_7d225ebf38a7518abb73add6",
+      "is_cancellation": false,
+      "kind": "task",
+      "known_temporal_facts": null,
+      "location": null,
+      "open_questions": [],
+      "responsibility": "user",
+      "schema_version": 2,
+      "simulation_notified": false,
+      "source_mail_id": "86c07d83d81795c32d592dbc",
+      "start": null,
+      "status": "rejected",
+      "target": "project",
+      "target_event_id": null,
+      "temporal_fact": {
+        "normalized_date": "2026-09-30",
+        "raw_text": "30. September",
+        "status": "resolved",
+        "year_source": "mail_context"
+      },
+      "time_changes": [],
+      "title": "Unterlagen senden",
+      "uncertain_notified": false,
+      "version": 1,
+      "video_link": null
+    },
+    {
+      "all_day": false,
+      "certainty": "certain",
+      "classification": "new",
+      "description": "Absender: Synthetischer Absender <absender@example.test>\nBetreff: Aufgabe und Termin\nMail-Datum: 2026-09-17T10:00:00+02:00",
+      "due": null,
+      "duplicate_match": null,
+      "duration_is_upper_bound": false,
+      "duration_minutes": null,
+      "end": "2026-10-08T10:00:00+02:00",
+      "evidence": "8. Oktober von 09:00 bis 10:00",
+      "explicit_create_fallback_confirmed": false,
+      "explicit_duplicate_create_confirmed_version": null,
+      "explicit_non_binding_create_confirmed": false,
+      "external_id": null,
+      "external_link": null,
+      "id": "p_36bc9554230a4fa576278f11",
+      "is_cancellation": false,
+      "kind": "event",
+      "known_temporal_facts": null,
+      "location": null,
+      "open_questions": [],
+      "responsibility": "user",
+      "schema_version": 2,
+      "simulation_notified": false,
+      "source_mail_id": "86c07d83d81795c32d592dbc",
+      "start": "2026-10-08T09:00:00+02:00",
+      "status": "rejected",
+      "target": "calendar",
+      "target_event_id": null,
+      "temporal_fact": {
+        "normalized_date": "2026-10-08",
+        "raw_text": "8. Oktober",
+        "status": "resolved",
+        "year_source": "mail_context"
+      },
+      "time_changes": [],
+      "title": "Besprechung",
+      "uncertain_notified": false,
+      "version": 1,
+      "video_link": null
+    }
+  ],
+  "relevance": {
+    "decision": "relevant",
+    "reason": "Aufgabe und Termin",
+    "topic_ids": [
+      "arbeit"
+    ]
+  },
+  "relevance_dialog": null,
+  "schema_version": 9,
+  "steps": {
+    "action_detection": "completed",
+    "action_router": "completed",
+    "completion": "completed",
+    "duplicate_precheck": "completed",
+    "event_extraction": "completed",
+    "normalization": "completed",
+    "preparation": "completed",
+    "proposal_building": "completed",
+    "proposal_notification": "completed",
+    "relevance": "completed",
+    "summary": "completed",
+    "summary_notification": "completed",
+    "task_extraction": "completed"
+  },
+  "summary": {
+    "deadlines": [
+      "30. September"
+    ],
+    "sentences": [
+      "Eine Aufgabe ist fällig.",
+      "Ein Termin wurde vereinbart."
+    ]
+  },
+  "task_extraction": {
+    "schema_version": 1,
+    "tasks": [
+      {
+        "certainty": "certain",
+        "classification": "new",
+        "description": "",
+        "due_text": "30. September",
+        "evidence": "Bitte senden",
+        "responsibility": "user",
+        "title": "Unterlagen senden"
+      }
+    ]
+  },
+  "updated_at": "2026-10-12T14:30:05.557849Z",
+  "validation_errors": [],
+  "write_attempts": []
+}

@@ -37,6 +37,7 @@ from .retention import RetentionService
 from .review.inbox import CommandInbox
 from .web import WebServer, WebServerError
 from .web.factory import create_web
+from . import state_names
 
 _TELEGRAM_ERROR_BACKOFF_SECONDS = 5.0
 
@@ -258,7 +259,7 @@ class Application:
                 self.logger.event("ERROR", "telegram", "poll_failed", error=str(exc))
                 return False
             return True
-        state_model = self.store.load_model("telegram-offset", TelegramOffset, TelegramOffset()) if hasattr(self.store, "load_model") else TelegramOffset.model_validate(self.store.load("telegram-offset", {}))
+        state_model = self.store.load_model("telegram-offset", TelegramOffset, TelegramOffset())
         try:
             updates = self.telegram.poll(state_model.offset, timeout=timeout)
         except Exception as exc:
@@ -400,9 +401,8 @@ class Application:
             self._stop_receiver()
             if self.lifecycle is not None:
                 self.lifecycle.finished()
-            run_name = f"mail-run-{self.imap.account_id}"
-            run = (self.store.load_model(run_name, MailRunState)
-                   if hasattr(self.store, "load_model") else None)
+            run_name = state_names.mail_run(self.imap.account_id)
+            run = self.store.load_model(run_name, MailRunState)
             summary = _RunSummary.from_run(run)
             # Relevance still blocks analysis. Proposal buttons remain usable
             # independently of the run summary and of subsequent mail runs.

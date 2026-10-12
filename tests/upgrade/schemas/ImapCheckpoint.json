@@ -1,0 +1,62 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "completed_uid_ranges": {
+      "items": {
+        "maxItems": 2,
+        "minItems": 2,
+        "prefixItems": [
+          {
+            "type": "integer"
+          },
+          {
+            "type": "integer"
+          }
+        ],
+        "type": "array"
+      },
+      "title": "Completed Uid Ranges",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "start_uid": {
+      "anyOf": [
+        {
+          "minimum": 0,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Start Uid"
+    },
+    "uid": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Uid",
+      "type": "integer"
+    },
+    "uidvalidity": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Uidvalidity"
+    }
+  },
+  "title": "ImapCheckpoint",
+  "type": "object"
+}

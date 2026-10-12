@@ -11,9 +11,7 @@ from mailhelp.retention import RetentionService
 from mailhelp.storage import JsonStore
 
 
-class Log:
-    def __init__(self): self.events = []
-    def event(self, *args, **kwargs): self.events.append((args, kwargs))
+from log_fakes import RecordingLogger as Log
 
 
 NOW = datetime(2026, 9, 16, tzinfo=timezone.utc)

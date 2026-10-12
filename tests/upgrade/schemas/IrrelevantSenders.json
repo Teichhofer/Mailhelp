@@ -1,0 +1,28 @@
+{
+  "additionalProperties": false,
+  "description": "Durable, human-readable sender prefilter learned from rejected topics.",
+  "properties": {
+    "addresses": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Addresses",
+      "type": "array"
+    },
+    "domains": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Domains",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "title": "IrrelevantSenders",
+  "type": "object"
+}

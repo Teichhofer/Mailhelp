@@ -1,0 +1,23 @@
+{
+  "human_decision": null,
+  "mail_id": "c286a74641b79923fb227ec4",
+  "recorded_at": "2026-10-12T14:30:08.384338+00:00",
+  "relevance": {
+    "decision": "relevant",
+    "reason": "Ein konkreter Termin ist enthalten.",
+    "topic_ids": [
+      "arbeit"
+    ]
+  },
+  "schema_version": 1,
+  "source": "OpenRouter",
+  "summary": {
+    "deadlines": [],
+    "sentences": [
+      "Ein synthetischer Nachholtermin wurde angekündigt."
+    ]
+  },
+  "topics": {
+    "arbeit": "Arbeit"
+  }
+}

@@ -10,12 +10,7 @@ from mailhelp.logging import JsonlLogger
 from test_core import proposal
 
 
-class Log:
-    def __init__(self):
-        self.events = []
-
-    def event(self, *args, **kwargs):
-        self.events.append((args, kwargs))
+from log_fakes import RecordingLogger as Log
 
 
 def test_first_token_cached_regular_refresh_expiry_and_restart():

@@ -21,6 +21,7 @@ from .revision_contracts import ProposalRevisionService, EventLogger
 from .answer_interpretation import AuthorizedAnswerInterpreter
 from .revision_recovery import RevisionRecovery
 from .revision_successor import build_revision_successor
+from .. import state_names
 
 
 class ProposalRevisions(Protocol):
@@ -221,7 +222,7 @@ class ProposalRevisionProcessor:
             proposal_name(state.mail_id, state.proposal_id), Proposal
         )
         if isinstance(current, Proposal) and current.version > state.version:
-            mail = self.store.load_model(f"mail-{state.mail_id}", MailState)
+            mail = self.store.load_model(state_names.mail(state.mail_id), MailState)
             notification = (
                 next(
                     (

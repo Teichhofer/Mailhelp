@@ -156,14 +156,3 @@ def test_a_failing_preview_never_stops_the_analysis(tmp_path, monkeypatch):
         result, analyzer = run(store, Reader(), vision=False, log=log)
     assert result.outcome is ProcessingOutcome.COMPLETED and analyzer.seen
     assert ("WARNING", "preview_failed", {"mail_id": result.state["id"], "error_class": "OSError"}) in log.events
-
-    class ForeignStore:
-        """A store without a data directory (e.g. a wrapper) simply has no previews."""
-        def __init__(self, delegate): self.delegate = delegate
-        def load(self, *args): return self.delegate.load(*args)
-        def save(self, *args): self.delegate.save(*args)
-    monkeypatch.undo()
-    with JsonStore(tmp_path / "foreign") as store:
-        result, analyzer = run(ForeignStore(store), Reader(), vision=False)
-    assert result.outcome is ProcessingOutcome.COMPLETED
-    assert all("preview" not in item for item in result.state["mail"]["extracted_attachments"])

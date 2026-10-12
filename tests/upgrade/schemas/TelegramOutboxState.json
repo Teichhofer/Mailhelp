@@ -1,0 +1,197 @@
+{
+  "$defs": {
+    "TelegramOutboxEntry": {
+      "additionalProperties": false,
+      "description": "One held-back Telegram message, stored by reference where possible.\n\nProposals and relevance questions are rendered only when they are sent,\nso superseded or already decided items can be skipped instead of shown.",
+      "properties": {
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "proposal",
+            "relevance",
+            "message"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "mail_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{24}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mail Id"
+        },
+        "proposal_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Proposal Id"
+        },
+        "sender": {
+          "anyOf": [
+            {
+              "maxLength": 10000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sender"
+        },
+        "status": {
+          "default": "queued",
+          "enum": [
+            "queued",
+            "sending"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "subject": {
+          "anyOf": [
+            {
+              "maxLength": 10000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subject"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "maxLength": 100000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Text"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "created_at"
+      ],
+      "title": "TelegramOutboxEntry",
+      "type": "object"
+    },
+    "TelegramOutboxGate": {
+      "additionalProperties": false,
+      "description": "The sent question that holds back all later queued messages.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "proposal",
+            "relevance"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "mail_id": {
+          "pattern": "^[a-f0-9]{24}$",
+          "title": "Mail Id",
+          "type": "string"
+        },
+        "proposal_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Proposal Id"
+        },
+        "version": {
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "mail_id",
+        "version"
+      ],
+      "title": "TelegramOutboxGate",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "active": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TelegramOutboxGate"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/TelegramOutboxEntry"
+      },
+      "title": "Entries",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "title": "TelegramOutboxState",
+  "type": "object"
+}

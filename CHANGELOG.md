@@ -1,5 +1,16 @@
 # Änderungen
 
+## 2.0.2 – Beta (Branch `beta`), Planung 2.1 Phase 2
+
+Keine Verhaltensänderung für Nutzer; gespeicherte Zustände bleiben byte-gleich lesbar.
+
+- **Speicher-Protokoll (A2):** `StateStore` (`typing.Protocol`) beschreibt, was Dienste vom Zustandsspeicher brauchen. Alle `hasattr`/`getattr`-Weichen auf den Store in `application`, `mailbox_run`, `orchestrator` und `telegram/*` sind entfernt; sie existierten nur für unvollständige Test-Fakes. `drafts` und `webpush` sperren über `store.locked()` statt `store._thread_lock`.
+- **Zentrale Zustandsnamen (A2):** Neues Modul `state_names.py` (`mail`, `mail_run`, `draft`, `proposal`, `clarification`, `mail_state_names` …) ersetzt die verstreuten Namensmuster; ein Vertragstest hält die Muster byte-gleich.
+- **Telegram-Client:** Die `getattr`-Weiche für Logger ohne `telegram_event` entfällt; das `EventLogger`-Protokoll verlangt die Methode.
+- **Gemeinsame Test-Doubles (T2, Beginn):** `tests/fakes/store_fakes.py` (`DelegatingStore`, `InterruptingStore` über einen echten `JsonStore`) und `tests/fakes/log_fakes.py` (`RecordingLogger`, prüft die Log-Stufe wie der echte Logger) ersetzen sieben gleichartige Kopien.
+- **Wirkungsloser Test korrigiert:** Der Test „Push-Zustellung hält keine Sperre“ prüfte die re-entrante Store-Sperre im selben Thread und hätte nie scheitern können. Er prüft jetzt aus einem zweiten Thread und schlägt bei gehaltener Sperre nachweislich an.
+- **Upgrade-Verträge (T5):** `tests/upgrade/states/` enthält echte Zustände der Releases 1.1–2.0, erzeugt von deren eigenem Ende-zu-Ende-Test aus dem jeweiligen Release-Commit (je vier Szenarien). Geprüft wird: verlustfreies Laden ohne Quarantäne, kein erneuter Schreibzugriff auf Kalender/Todoist und keine erneute Analyse nach einem Neustart. JSON-Schema-Snapshots aller gespeicherten Modelle lassen jede ungeplante Formatänderung scheitern.
+
 ## 2.0.1 – Beta (Branch `beta`), Planung 2.1 Phase 1
 
 Keine Verhaltensänderung für Nutzer.

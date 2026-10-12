@@ -4,23 +4,37 @@ import errno
 import json, os
 import re
 import time
-from contextlib import contextmanager
+from contextlib import AbstractContextManager, contextmanager
 from pathlib import Path
 from threading import RLock
-from typing import Any, Iterator
+from typing import Any, Iterator, Protocol, runtime_checkable
 from pydantic import BaseModel, ValidationError
 
 from .persistence.migrations import migrate_document
+# Re-exported for existing callers; the name patterns live in state_names.
+from .state_names import mail_state_names  # noqa: F401
 
 
 class CorruptState(RuntimeError): pass
 class AlreadyRunning(RuntimeError): pass
 
 
-def mail_state_names(store: "JsonStore") -> list[str]:
-    """Return only per-mail state names, excluding the ``mail-run-*`` queue."""
-    return [name for name in store.names("mail-")
-            if not name.startswith("mail-run-")]
+@runtime_checkable
+class StateStore(Protocol):
+    """What Mailhelp's services need from the state store; ``JsonStore`` in production.
+
+    Test doubles implement the whole protocol (usually by delegating to a real
+    ``JsonStore``), so production code never has to check for missing methods.
+    """
+
+    directory: Path
+
+    def load(self, name: str, default: Any = None) -> Any: ...
+    def save(self, name: str, value: Any) -> None: ...
+    def load_model(self, name: str, model: type[BaseModel], default: BaseModel | None = None) -> BaseModel | None: ...
+    def peek_model(self, name: str, model: type[BaseModel], default: BaseModel | None = None) -> BaseModel | None: ...
+    def names(self, prefix: str = "") -> list[str]: ...
+    def locked(self) -> AbstractContextManager[Any]: ...
 
 
 class JsonStore:

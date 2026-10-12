@@ -58,7 +58,7 @@ class PushService:
         self.store, self.auth, self.subject, self.sender = store, auth, subject, sender
         # Serializes subscription changes; never held by other parts of Mailhelp.
         self._lock = Lock()
-        with store._thread_lock:
+        with store.locked():
             saved = store.load("web-vapid")
             if saved is None:
                 vapid = Vapid()

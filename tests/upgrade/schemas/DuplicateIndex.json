@@ -1,0 +1,91 @@
+{
+  "$defs": {
+    "DuplicateIndexEntry": {
+      "additionalProperties": false,
+      "description": "Minimal, content-free identity material retained for duplicate checks.",
+      "properties": {
+        "content_fingerprint": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Content Fingerprint",
+          "type": "string"
+        },
+        "imap": {
+          "$ref": "#/$defs/MailImapIdentity"
+        },
+        "mail_id": {
+          "pattern": "^[a-f0-9]{24}$",
+          "title": "Mail Id",
+          "type": "string"
+        },
+        "message_ids": {
+          "items": {
+            "maxLength": 998,
+            "pattern": "^<[^<>@\\s]+@[^<>@\\s]+>$",
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Message Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "mail_id",
+        "imap",
+        "content_fingerprint"
+      ],
+      "title": "DuplicateIndexEntry",
+      "type": "object"
+    },
+    "MailImapIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "account_id": {
+          "pattern": "^[a-f0-9]{24}$",
+          "title": "Account Id",
+          "type": "string"
+        },
+        "folder": {
+          "minLength": 1,
+          "title": "Folder",
+          "type": "string"
+        },
+        "uid": {
+          "minimum": 1,
+          "title": "Uid",
+          "type": "integer"
+        },
+        "uidvalidity": {
+          "minimum": 1,
+          "title": "Uidvalidity",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "account_id",
+        "folder",
+        "uidvalidity",
+        "uid"
+      ],
+      "title": "MailImapIdentity",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/DuplicateIndexEntry"
+      },
+      "title": "Entries",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "title": "DuplicateIndex",
+  "type": "object"
+}

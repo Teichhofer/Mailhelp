@@ -710,6 +710,17 @@ def test_experience_settings_preserve_16_analysis_fingerprint(tmp_path):
     assert before == _hash([legacy, analysis_prompts(prompts), []])
 
 
+def usable_from_another_thread(store):
+    """The store lock is re-entrant, so only another thread can show that it is free."""
+    from threading import Event, Thread
+    done = Event()
+    def use():
+        with store.locked():
+            done.set()
+    Thread(target=use, daemon=True).start()
+    return done.wait(timeout=5)
+
+
 def test_push_delivery_holds_no_lock_and_keeps_a_device_renewed_meanwhile(tmp_path):
     """Regression: delivery ran under the global store lock and blocked the whole application."""
     store = JsonStore(tmp_path)
@@ -718,8 +729,7 @@ def test_push_delivery_holds_no_lock_and_keeps_a_device_renewed_meanwhile(tmp_pa
     def gone(**kw):
         # Pages and other services stay usable while a push provider answers slowly.
         assert not service._lock.locked()
-        assert store._thread_lock.acquire(blocking=False)
-        store._thread_lock.release()
+        assert usable_from_another_thread(store)
         service.change("device", "key-0002", renewed)
         raise WebPushException("gone", response=response)
     service = PushService(store, NS(active=lambda _: True), "mailto:me@test", gone)

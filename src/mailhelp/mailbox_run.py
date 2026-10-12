@@ -16,6 +16,7 @@ from .models import (ImapCheckpoint, MailRunCounters, MailRunEntry,
                      MailRunEntryStatus, MailRunState, MailState)
 from .orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
 from .storage import JsonStore, mail_state_names
+from . import state_names
 
 _BLOCKED_STATE_SCAN_LIMIT = 1000
 
@@ -152,7 +153,7 @@ class MailboxRunService:
             if self.stop_event.is_set() or budget.remaining == 0:
                 break
             checkpoint_name = _checkpoint_name(self.imap.account_id, folder)
-            checkpoint_model = self.store.load_model(checkpoint_name, ImapCheckpoint, ImapCheckpoint()) if hasattr(self.store, "load_model") else ImapCheckpoint.model_validate(self.store.load(checkpoint_name, {}))
+            checkpoint_model = self.store.load_model(checkpoint_name, ImapCheckpoint, ImapCheckpoint())
             checkpoint = checkpoint_model.model_dump(exclude={"schema_version"})
             try:
                 if checkpoint["start_uid"] is None:
@@ -267,9 +268,8 @@ class MailboxRunService:
             if state.awaiting_relevance:
                 identity = state.imap
                 waiting.add(f"{identity.account_id}\0{identity.folder}\0{identity.uidvalidity}\0{identity.uid}")
-        run_name = f"mail-run-{self.imap.account_id}"
-        active = (self.store.load_model(run_name, MailRunState)
-                  if hasattr(self.store, "load_model") else None)
+        run_name = state_names.mail_run(self.imap.account_id)
+        active = self.store.load_model(run_name, MailRunState)
         active = active if active is not None and any(
             entry.key not in waiting and entry.status in {MailRunEntryStatus.DISCOVERED, MailRunEntryStatus.QUEUED,
                              MailRunEntryStatus.PROCESSING}
@@ -281,11 +281,7 @@ class MailboxRunService:
             if self.stop_event.is_set() or budget.remaining == 0:
                 break
             checkpoint_name = _checkpoint_name(self.imap.account_id, folder)
-            checkpoint_model = (self.store.load_model(
-                checkpoint_name, ImapCheckpoint, ImapCheckpoint()
-            ) if hasattr(self.store, "load_model") else ImapCheckpoint.model_validate(
-                self.store.load(checkpoint_name, {})
-            ))
+            checkpoint_model = self.store.load_model(checkpoint_name, ImapCheckpoint, ImapCheckpoint())
             checkpoint = checkpoint_model.model_dump(exclude={"schema_version"})
             try:
                 if checkpoint["start_uid"] is None:
@@ -502,7 +498,7 @@ class MailboxRunService:
         if (result.outcome is ProcessingOutcome.FAILED
                 or result.state.get("awaiting_relevance")):
             return
-        run_name = f"mail-run-{self.imap.account_id}"
+        run_name = state_names.mail_run(self.imap.account_id)
         run = self.store.load_model(run_name, MailRunState)
         if run is None:
             return
@@ -551,8 +547,6 @@ class MailboxRunService:
     def resume_pending(self, budget: _MailBudget | None = None) -> list[ProcessingResult]:
         """Resume due durable mail states, independently of IMAP checkpoints."""
         results: list[ProcessingResult] = []
-        if not hasattr(self.store, "names"):
-            return results
         budget = budget or _MailBudget(None)
         now = datetime.now(timezone.utc)
         for name in mail_state_names(self.store):

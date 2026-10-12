@@ -2,6 +2,7 @@
 from ..models import AnswerStatus, Proposal, ProposalStatus, ProposalClarificationState, TelegramDialogState
 from .persistence import clarification_name, proposal_name
 from .formatting import clarification_prompt
+from .. import state_names
 
 
 HELP = (
@@ -58,7 +59,7 @@ class TelegramCommands:
             subject = mail.display_headers.subject if mail and mail.display_headers else "Mail ohne Betreff"
             labels[(dialog.mail_id, None)] = f"Relevanz „{subject}“ · Version {dialog.version}"
             lines.append(f"Relevanzentscheidung: {subject} · Version {dialog.version}")
-        for name in self.store.names("proposal-"):
+        for name in self.store.names(state_names.PROPOSAL_PREFIX):
             proposal = self.store.load_model(name, Proposal)
             if name != proposal_name(proposal.source_mail_id, proposal.id):
                 continue

@@ -1,0 +1,18 @@
+{
+  "entries": [
+    {
+      "action_key": "e28caf742987db42d8b0b082c3bb391eee75a17f9ee5ba16159be851e33f6653",
+      "action_key_version": 2,
+      "created_at": "2026-10-12T14:30:08.745388Z",
+      "external_id": "calendar-event-1",
+      "external_link": "https://example.test/calendar/1",
+      "kind": "event",
+      "mail_id": "c286a74641b79923fb227ec4",
+      "proposal_id": "p_fee0dc073a32b8be7b1a483b",
+      "proposal_version": 2,
+      "target": "calendar",
+      "title": "Auftakt der Bildungsplannovellierung"
+    }
+  ],
+  "schema_version": 1
+}

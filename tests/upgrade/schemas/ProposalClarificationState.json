@@ -1,0 +1,152 @@
+{
+  "$defs": {
+    "AnswerStatus": {
+      "enum": [
+        "pending",
+        "valid",
+        "invalid"
+      ],
+      "title": "AnswerStatus",
+      "type": "string"
+    },
+    "ProposalRevisionStatus": {
+      "enum": [
+        "pending",
+        "retry_required",
+        "completed",
+        "paused"
+      ],
+      "title": "ProposalRevisionStatus",
+      "type": "string"
+    },
+    "QuestionStatus": {
+      "enum": [
+        "open",
+        "answered"
+      ],
+      "title": "QuestionStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Durable trust boundary between a Telegram answer and proposal revision.",
+  "properties": {
+    "answer_status": {
+      "$ref": "#/$defs/AnswerStatus",
+      "default": "pending"
+    },
+    "authorized_answer": {
+      "anyOf": [
+        {
+          "maxLength": 4000,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Authorized Answer"
+    },
+    "interpretation_attempts": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Interpretation Attempts",
+      "type": "integer"
+    },
+    "interpretation_status": {
+      "$ref": "#/$defs/ProposalRevisionStatus",
+      "default": "pending"
+    },
+    "mail_id": {
+      "pattern": "^[a-f0-9]{24}$",
+      "title": "Mail Id",
+      "type": "string"
+    },
+    "next_interpretation_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Next Interpretation At"
+    },
+    "next_revision_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Next Revision At"
+    },
+    "normalized_answer": {
+      "anyOf": [
+        {
+          "maxLength": 4000,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Normalized Answer"
+    },
+    "proposal_id": {
+      "pattern": "^[A-Za-z0-9_-]{1,64}$",
+      "title": "Proposal Id",
+      "type": "string"
+    },
+    "proposal_revision_status": {
+      "$ref": "#/$defs/ProposalRevisionStatus",
+      "default": "pending"
+    },
+    "question": {
+      "maxLength": 4000,
+      "minLength": 1,
+      "title": "Question",
+      "type": "string"
+    },
+    "question_status": {
+      "$ref": "#/$defs/QuestionStatus",
+      "default": "open"
+    },
+    "revision_attempts": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Revision Attempts",
+      "type": "integer"
+    },
+    "schema_version": {
+      "const": 4,
+      "default": 4,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "version": {
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "mail_id",
+    "proposal_id",
+    "version",
+    "question"
+  ],
+  "title": "ProposalClarificationState",
+  "type": "object"
+}

@@ -1,0 +1,18 @@
+{
+  "entries": [
+    {
+      "content_fingerprint": "7142d02534897d94cf94079ca5a505f87e85326f4fae6d78e76f9cc023662b1a",
+      "imap": {
+        "account_id": "111111111111111111111111",
+        "folder": "INBOX",
+        "uid": 23,
+        "uidvalidity": 7
+      },
+      "mail_id": "c286a74641b79923fb227ec4",
+      "message_ids": [
+        "<nachholtermin-20260923@bildungsforum.example>"
+      ]
+    }
+  ],
+  "schema_version": 1
+}

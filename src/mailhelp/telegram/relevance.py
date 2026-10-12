@@ -36,9 +36,7 @@ class RelevanceDialogProcessor:
 
     def all(self) -> list[RelevanceDialog]:
         result = []
-        for name in (
-            mail_state_names(self.store) if hasattr(self.store, "names") else []
-        ):
+        for name in mail_state_names(self.store):
             state = self.store.load_model(name, MailState)
             if isinstance(state, MailState) and state.relevance_dialog is not None:
                 result.append(state.relevance_dialog)

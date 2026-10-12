@@ -38,6 +38,7 @@ from .revisions import (
     ProposalRevisionService,
 )
 from .writes import ConfirmedWriteExecutor, WriteExecution
+from .. import state_names
 
 
 # A failing inbox update is retried after 30 s, then 60 s, and dropped after
@@ -278,10 +279,7 @@ class TelegramDialogController:
         """
         if self._open_relevance_dialogs():
             return True
-        names = getattr(self.store, "names", None)
-        if names is None:
-            return False
-        for name in names("proposal-"):
+        for name in self.store.names(state_names.PROPOSAL_PREFIX):
             if "-v" in name:
                 continue
             proposal = self.store.load_model(name, Proposal)
@@ -304,9 +302,6 @@ class TelegramDialogController:
 
     def processing_blocked(self) -> bool:
         """Return whether an answered revision needs an operator restart."""
-        names = getattr(self.store, "names", None)
-        if names is None:
-            return False
         return any(
             isinstance(
                 state := self.store.load_model(name, ProposalClarificationState),
@@ -314,7 +309,7 @@ class TelegramDialogController:
             )
             and state.question_status == QuestionStatus.ANSWERED
             and state.proposal_revision_status == ProposalRevisionStatus.PAUSED
-            for name in names("clarification-")
+            for name in self.store.names(state_names.CLARIFICATION_PREFIX)
         )
 
     def awaiting_relevance_decision(self) -> bool:

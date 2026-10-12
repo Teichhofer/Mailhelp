@@ -26,6 +26,7 @@ from ..storage import JsonStore
 from .client import TelegramTransport
 from .persistence import ProposalRepository, clarification_name, proposal_name
 from .revisions import EventLogger
+from .. import state_names
 
 OUTBOX_NAME = "telegram-outbox"
 _OPEN = {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}
@@ -184,7 +185,7 @@ class TelegramOutbox:
         ]
         queued = self.queued_proposals()
         ordered: list[tuple[tuple[int, int, str, str], TelegramOutboxGate]] = []
-        for name in self.store.names("proposal-"):
+        for name in self.store.names(state_names.PROPOSAL_PREFIX):
             proposal = self.store.load_model(name, Proposal)
             if (not isinstance(proposal, Proposal)
                     or name != proposal_name(proposal.source_mail_id, proposal.id)

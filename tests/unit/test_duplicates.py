@@ -23,9 +23,7 @@ class Notify:
     def send_relevance(self, dialog): pass
 
 
-class Log:
-    def __init__(self): self.events = []
-    def event(self, *args, **kwargs): self.events.append((args, kwargs))
+from log_fakes import RecordingLogger as Log
 
 
 TOPICS = [Topic(id="x", name="X", enabled=True, description="X")]

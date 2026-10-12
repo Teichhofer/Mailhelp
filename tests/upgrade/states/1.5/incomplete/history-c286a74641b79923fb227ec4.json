@@ -1,0 +1,78 @@
+{
+  "events": [
+    {
+      "at": "2026-10-12T14:30:05.030286Z",
+      "id": "a11137f2ab124eacc496765776be988b",
+      "kind": "state",
+      "proposal_id": "p_fee0dc073a32b8be7b1a483b",
+      "source": "system",
+      "status": "needs_clarification",
+      "version": 1
+    },
+    {
+      "at": "2026-10-12T14:30:05.112501Z",
+      "id": "1246978806d1e361887083bfd443b6ce",
+      "kind": "clarify",
+      "proposal_id": "p_fee0dc073a32b8be7b1a483b",
+      "source": "telegram",
+      "status": "needs_clarification",
+      "version": 1
+    },
+    {
+      "at": "2026-10-12T14:30:05.138614Z",
+      "id": "b5c4f26ee32484408fb67b2689331e31",
+      "kind": "state",
+      "proposal_id": "p_fee0dc073a32b8be7b1a483b",
+      "source": "system",
+      "status": "pending_confirmation",
+      "version": 2
+    },
+    {
+      "at": "2026-10-12T14:30:05.191370Z",
+      "id": "eedf4bf7ab323d7d83d2a68c3ee8a4be",
+      "kind": "state",
+      "proposal_id": "p_fee0dc073a32b8be7b1a483b",
+      "source": "system",
+      "status": "confirmed",
+      "version": 2
+    },
+    {
+      "at": "2026-10-12T14:30:05.199586Z",
+      "id": "617195627c344cb5c2f1e0a2a516e268",
+      "kind": "state",
+      "proposal_id": "p_fee0dc073a32b8be7b1a483b",
+      "source": "system",
+      "status": "writing",
+      "version": 2
+    },
+    {
+      "at": "2026-10-12T14:30:05.217397Z",
+      "id": "b24a1cacdea33ed501180a3ce100b43e",
+      "kind": "state",
+      "proposal_id": "p_fee0dc073a32b8be7b1a483b",
+      "source": "system",
+      "status": "uncertain",
+      "version": 2
+    },
+    {
+      "at": "2026-10-12T14:30:05.253837Z",
+      "id": "bf1a15560030c3b272b358d5d9e9942f",
+      "kind": "confirm",
+      "proposal_id": "p_fee0dc073a32b8be7b1a483b",
+      "source": "telegram",
+      "status": "uncertain",
+      "version": 2
+    },
+    {
+      "at": "2026-10-12T14:30:05.274946Z",
+      "id": "e3720571f4833ef62209da1d4d632ffe",
+      "kind": "state",
+      "proposal_id": "p_fee0dc073a32b8be7b1a483b",
+      "source": "system",
+      "status": "created",
+      "version": 2
+    }
+  ],
+  "removed": false,
+  "schema_version": 1
+}

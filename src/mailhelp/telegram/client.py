@@ -11,7 +11,7 @@ import httpx
 from pydantic import ValidationError
 
 from ..adapter import PermanentError, RetryInterrupted, RetryPolicy, uncertain_write
-from ..logging import NullLogger
+from ..logging import EventLogger, NullLogger
 
 from .formatting import split_message
 from .callbacks import validate_callback_markup
@@ -55,10 +55,7 @@ class TelegramClient:
         self.logger = logger or NullLogger()
 
     def _log_message(self, direction: str, **context: Any) -> None:
-        """Keep third-party logger implementations backward compatible."""
-        record = getattr(self.logger, "telegram_event", None)
-        if record is not None:
-            record(direction, **context)
+        self.logger.telegram_event(direction, **context)
 
     def check_access(self) -> None:
         """Validate the bot token without reading updates."""
