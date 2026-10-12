@@ -19,6 +19,7 @@ from mailhelp.models import (ActionLedger, ActionLedgerEntry, AnswerStatus, Mail
                              TelegramDialogState, apply_proposal_revision)
 from mailhelp.orchestrator import Orchestrator
 from mailhelp.storage import JsonStore
+from mailhelp.telegram.persistence import proposal_version_name
 from mailhelp.telegram import (
     Decision, DecisionAction,
     TelegramCallbackQuery,
@@ -1010,7 +1011,7 @@ def test_awaiting_decision_ignores_version_snapshots_but_not_open_relevance(tmp_
     with JsonStore(tmp_path) as store:
         dialog, _, _ = controller(store)
         item = proposal()
-        store.save(dialog._version_name(item.source_mail_id, item.id, item.version),
+        store.save(proposal_version_name(item.source_mail_id, item.id, item.version),
                    item.model_dump(mode="json"))
         assert not dialog.awaiting_decision()
         dialog._open_relevance_dialogs = lambda: [object()]
@@ -1842,14 +1843,14 @@ def test_clarification_recovery_edge_paths(tmp_path):
         c.revisions._revise_answered(answered.model_copy(update={"version":2}))
 
         c.revisions.revision_service=RevisionService()
-        original_handle = c._handle
-        c._handle=lambda update: (_ for _ in ()).throw(RuntimeError("persistence"))
+        original_handle = c.updates.handle
+        c.updates.handle=lambda update: (_ for _ in ()).throw(RuntimeError("persistence"))
         t.updates=[message(7)]
         with pytest.raises(RuntimeError, match="persistence"):
             c.poll_once()
 
         c.revisions.revision_service = RevisionService()
-        c._handle = original_handle
+        c.updates.handle = original_handle
         c.poll_once()
         assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["version"] == 2
         assert store.load("telegram-dialog")["retry_required"] is False

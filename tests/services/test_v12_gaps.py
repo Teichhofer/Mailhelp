@@ -171,7 +171,7 @@ def test_error_list_names_the_next_attempt(web):
 
 def test_relevance_history_is_skipped_when_the_mail_record_is_gone(web, monkeypatch):
     """The decision stands even if retention removed the mail record meanwhile."""
-    monkeypatch.setattr(web.dialog, "_decide_relevance", lambda decision, offset: "ok")
+    monkeypatch.setattr(web.dialog, "decide_relevance", lambda decision, offset: "ok")
     actor = f"web:{web.auth.sessions()[0].id}"
     result = web.dialog.review.execute(command(CommandKind.RELEVANCE, mail_id="e" * 24,
                                                decision="irrelevant", actor=actor))

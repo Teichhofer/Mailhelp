@@ -171,43 +171,20 @@ def normalize_deterministic_temporal_answer(parsed: DeterministicTemporalAnswer)
     return " ".join(parts)
 
 
-def deterministic_temporal_revision(
-    proposal: Proposal,
-    question: str,
-    normalized_answer: str,
-    configured_timezone: str,
-    reference_date: calendar_date | None = None,
-) -> Proposal | None:
-    """Build an unambiguous clock-time revision without another LLM call."""
-    if proposal.kind != ProposalKind.EVENT or not any(
-        word in question.casefold()
-        for word in ("datum", "beginn", "ende", "uhrzeit", "wann")
-    ):
-        return None
-    expected = (
+def expected_event_date(proposal: Proposal) -> date | None:
+    """The validated event date an answer must not contradict."""
+    return (
         proposal.known_temporal_facts.date
         if proposal.known_temporal_facts is not None
         else proposal.temporal_fact.normalized_date
         if proposal.temporal_fact is not None
         else None
     )
-    parsed = parse_deterministic_temporal_answer(
-        normalized_answer, reference_date or expected
-    )
-    if parsed is None:
-        return None
-    allowed_dates = {expected}
-    if "ende" in question.casefold() and expected is not None:
-        allowed_dates.add(expected + timedelta(days=1))
-    if (
-        parsed.date is not None
-        and expected is not None
-        and parsed.date not in allowed_dates
-    ):
-        raise ContradictoryRevision(
-            "Die Antwort widerspricht dem validierten Termindatum"
-        )
-    day = parsed.date or expected
+
+
+def _requested_times(parsed: DeterministicTemporalAnswer,
+                     question: str) -> tuple[clock_time | None, clock_time | None]:
+    """Which endpoint each parsed clock value answers."""
     question_lower = question.casefold()
     wants_end = "ende" in question_lower
     wants_start = (
@@ -225,37 +202,42 @@ def deterministic_temporal_revision(
     end_time = (
         parsed.end if parsed.end is not None else parsed.start if wants_end else None
     )
-    if day is None and (start_time is not None or end_time is not None):
+    return start_time, end_time
+
+
+def _localize(value: clock_time | None, value_day: date | None, zone: ZoneInfo) -> datetime | None:
+    """A local wall-clock time; ambiguous or missing times at a DST change are refused."""
+    if value is None or value_day is None:
         return None
-    zone = ZoneInfo(configured_timezone)
+    naive = datetime.combine(value_day, value)
+    candidates = []
+    for fold in (0, 1):
+        candidate = naive.replace(tzinfo=zone, fold=fold)
+        if (
+            candidate.astimezone(timezone.utc).astimezone(zone).replace(tzinfo=None)
+            == naive
+        ):
+            if not candidates or candidate.utcoffset() != candidates[0].utcoffset():
+                candidates.append(candidate)
+    if len(candidates) != 1:
+        raise ContradictoryRevision(
+            "Die Ortszeit ist wegen der Zeitumstellung nicht eindeutig"
+        )
+    return candidates[0]
 
-    def localize(value: clock_time | None, value_day: date | None) -> datetime | None:
-        if value is None or value_day is None:
-            return None
-        naive = datetime.combine(value_day, value)
-        candidates = []
-        for fold in (0, 1):
-            candidate = naive.replace(tzinfo=zone, fold=fold)
-            if (
-                candidate.astimezone(timezone.utc).astimezone(zone).replace(tzinfo=None)
-                == naive
-            ):
-                if not candidates or candidate.utcoffset() != candidates[0].utcoffset():
-                    candidates.append(candidate)
-        if len(candidates) != 1:
-            raise ContradictoryRevision(
-                "Die Ortszeit ist wegen der Zeitumstellung nicht eindeutig"
-            )
-        return candidates[0]
 
-    start = localize(start_time, day)
+def _interval(proposal: Proposal, parsed: DeterministicTemporalAnswer, day: date | None,
+              start_time: clock_time | None, end_time: clock_time | None,
+              zone: ZoneInfo) -> tuple[datetime | None, datetime | None]:
+    """Start and end of the answer, checked against the already known start."""
+    start = _localize(start_time, day, zone)
     if (
         start is None
         and day is not None
         and proposal.known_temporal_facts is not None
         and proposal.known_temporal_facts.start_time is not None
     ):
-        start = localize(proposal.known_temporal_facts.start_time, day)
+        start = _localize(proposal.known_temporal_facts.start_time, day, zone)
     end_day = parsed.date or day
     known_start = (
         proposal.known_temporal_facts.start
@@ -265,7 +247,7 @@ def deterministic_temporal_revision(
     reference_start = start or (
         known_start if isinstance(known_start, datetime) else None
     )
-    end = localize(end_time, end_day)
+    end = _localize(end_time, end_day, zone)
     if (
         end is not None
         and reference_start is not None
@@ -274,9 +256,14 @@ def deterministic_temporal_revision(
     ):
         # ``day`` is guaranteed above whenever a clock value exists.  A range
         # whose end clock is not later therefore explicitly crosses midnight.
-        end = localize(end_time, day + timedelta(days=1))
+        end = _localize(end_time, day + timedelta(days=1), zone)
     elif end is not None and reference_start is not None and end <= reference_start:
         raise ContradictoryRevision("Das Terminende muss nach dem Beginn liegen")
+    return start, end
+
+
+def _temporal_changes(proposal: Proposal, parsed: DeterministicTemporalAnswer, expected: date | None,
+                      start: datetime | None, end: datetime | None) -> dict[str, Any]:
     changes: dict[str, Any] = {}
     if parsed.date is not None and expected is None:
         changes["temporal_date"] = parsed.date
@@ -296,6 +283,45 @@ def deterministic_temporal_revision(
             # An end clock does not prove a beginning clock. Keep the timed
             # event incomplete rather than persisting a mixed interval.
             changes.update(start=None, all_day=False)
+    return changes
+
+
+def deterministic_temporal_revision(
+    proposal: Proposal,
+    question: str,
+    normalized_answer: str,
+    configured_timezone: str,
+    reference_date: calendar_date | None = None,
+) -> Proposal | None:
+    """Build an unambiguous clock-time revision without another LLM call."""
+    if proposal.kind != ProposalKind.EVENT or not any(
+        word in question.casefold()
+        for word in ("datum", "beginn", "ende", "uhrzeit", "wann")
+    ):
+        return None
+    expected = expected_event_date(proposal)
+    parsed = parse_deterministic_temporal_answer(
+        normalized_answer, reference_date or expected
+    )
+    if parsed is None:
+        return None
+    allowed_dates = {expected}
+    if "ende" in question.casefold() and expected is not None:
+        allowed_dates.add(expected + timedelta(days=1))
+    if (
+        parsed.date is not None
+        and expected is not None
+        and parsed.date not in allowed_dates
+    ):
+        raise ContradictoryRevision(
+            "Die Antwort widerspricht dem validierten Termindatum"
+        )
+    day = parsed.date or expected
+    start_time, end_time = _requested_times(parsed, question)
+    if day is None and (start_time is not None or end_time is not None):
+        return None
+    start, end = _interval(proposal, parsed, day, start_time, end_time, ZoneInfo(configured_timezone))
+    changes = _temporal_changes(proposal, parsed, expected, start, end)
     revised = apply_proposal_revision(
         proposal, ProposalRevisionDelta(answered_question=question, changes=changes)
     )

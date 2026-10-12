@@ -173,7 +173,7 @@ def test_dialog_inbox_drops_stale_and_invalid_updates_but_keeps_failed_ones(tmp_
         assert any("syntaktisch ungültig" in text for _, text, _ in transport.sent)
         assert inbox.pending() == [] and store.load("telegram-offset")["offset"] == 12
         inbox.add([message(12)], set())
-        monkeypatch.setattr(controller, "_handle", lambda update: (_ for _ in ()).throw(RuntimeError("down")))
+        monkeypatch.setattr(controller.updates, "handle", lambda update: (_ for _ in ()).throw(RuntimeError("down")))
         with pytest.raises(RuntimeError):
             controller.poll_once()
         assert ids(inbox) == [12] and store.load("telegram-offset")["offset"] == 12
@@ -352,7 +352,7 @@ def test_a_permanently_failing_update_is_dropped_once_with_a_notice(tmp_path, mo
             if update.update_id == 4:
                 raise PermanentError("synthetic permanent failure")
 
-        monkeypatch.setattr(controller, "_handle", handle)
+        monkeypatch.setattr(controller.updates, "handle", handle)
         controller.poll_once()
         assert handled == [4, 5] and inbox.pending() == []
         assert sum("wurde verworfen" in text for _, text, _ in transport.sent) == 1
@@ -373,7 +373,7 @@ def test_transient_failures_are_retried_with_backoff_then_dropped(tmp_path, monk
             if update.update_id == 4:
                 raise RuntimeError("synthetic network failure")
 
-        monkeypatch.setattr(controller, "_handle", handle)
+        monkeypatch.setattr(controller.updates, "handle", handle)
         with pytest.raises(RuntimeError):
             controller.poll_once()
         assert [(entry.update_id, entry.attempts, entry.not_before) for entry in inbox.pending()] == [

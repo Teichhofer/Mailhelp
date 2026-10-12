@@ -19,6 +19,7 @@ from .persistence import clarification_name, proposal_name
 from .temporal import (
     deterministic_classification_revision,
     deterministic_temporal_revision,
+    expected_event_date,
     normalize_deterministic_temporal_answer,
     parse_deterministic_temporal_answer,
     relative_end_answer,
@@ -61,78 +62,15 @@ class AuthorizedAnswerInterpreter:
             is not None
         )
         try:
-            deterministic = deterministic_classification_revision(
-                proposal, state.question, state.authorized_answer
-            )
-            if deterministic is None:
-                deterministic = deterministic_temporal_revision(
-                    proposal,
-                    state.question,
-                    temporal_answer,
-                    self.configured_timezone,
-                    current_date,
-                )
-            if deterministic is not None:
-                parsed_answer = parse_deterministic_temporal_answer(
-                    temporal_answer, current_date
-                )
-                normalized_answer = temporal_answer
-                if parsed_answer is not None:
-                    normalized_answer = normalize_deterministic_temporal_answer(
-                        parsed_answer
-                    )
-                answered = ProposalClarificationState(
-                    mail_id=state.mail_id,
-                    proposal_id=state.proposal_id,
-                    version=state.version,
-                    question=state.question,
-                    authorized_answer=state.authorized_answer,
-                    interpretation_status=ProposalRevisionStatus.COMPLETED,
-                    interpretation_attempts=state.interpretation_attempts,
-                    question_status=QuestionStatus.ANSWERED,
-                    answer_status=AnswerStatus.VALID,
-                    normalized_answer=normalized_answer,
-                    proposal_revision_status=ProposalRevisionStatus.RETRY_REQUIRED,
-                )
-                self.store.save(name, answered.model_dump(mode="json"))
-                self.store.save(
-                    "telegram-dialog", TelegramDialogState().model_dump(mode="json")
-                )
-                self.revise(answered)
+            normalized = self._deterministic_answer(proposal, state, temporal_answer, current_date)
+            if normalized is not None:
+                self._answered(name, state, normalized)
                 return
             _, interpretation = self.revision_service.interpret_telegram_answer(
                 proposal, state.question, state.authorized_answer
             )
             if not interpretation.usable:
-                incomplete = IncompleteUserAnswer(interpretation.reason)
-                invalid = state.model_copy(
-                    update={
-                        "answer_status": AnswerStatus.INVALID,
-                        "interpretation_status": ProposalRevisionStatus.COMPLETED,
-                        "next_interpretation_at": None,
-                    }
-                )
-                self.store.save(name, invalid.model_dump(mode="json"))
-                _, clarification = self.revision_service.clarify_telegram_answer(
-                    state.question,
-                    state.authorized_answer,
-                    interpretation.reason,
-                    current_date=current_date,
-                )
-                self.logger.event(
-                    "INFO",
-                    "telegram.dialog",
-                    "answer_clarification_requested",
-                    mail_id=state.mail_id,
-                    proposal_id=state.proposal_id,
-                    version=state.version,
-                    error_class=type(incomplete).__name__,
-                    proposal_reference=f"{state.mail_id}:{state.proposal_id}:v{state.version}",
-                    revision_status=ProposalRevisionStatus.PENDING.value,
-                )
-                self.telegram.send(self.chat_id,
-                                   f"❓ {clarification.message}\n"
-                                   f"„{proposal.title}“ · /abbrechen beendet die Bearbeitung")
+                self._ask_again(name, state, proposal, interpretation.reason, current_date)
                 return
         except (
             LlmProviderResponseInvalid,
@@ -149,70 +87,43 @@ class AuthorizedAnswerInterpreter:
             if not local_temporal:
                 self._defer_interpretation(name, state, exc, contradictory=True)
                 return
-            invalid = state.model_copy(
-                update={
-                    "answer_status": AnswerStatus.INVALID,
-                    "interpretation_status": ProposalRevisionStatus.COMPLETED,
-                    "next_interpretation_at": None,
-                }
-            )
-            self.store.save(name, invalid.model_dump(mode="json"))
-            expected = (
-                proposal.known_temporal_facts.date
-                if proposal.known_temporal_facts is not None
-                else proposal.temporal_fact.normalized_date
-                if proposal.temporal_fact is not None
-                else None
-            )
-            parsed = parse_deterministic_temporal_answer(temporal_answer, current_date)
-            allowed_dates = (
-                {expected, expected + timedelta(days=1)}
-                if "ende" in state.question.casefold()
-                else {expected}
-            )
-            wrong_date = (
-                parsed is not None
-                and parsed.date is not None
-                and expected is not None
-                and parsed.date not in allowed_dates
-            )
-            known_start = (
-                proposal.known_temporal_facts.start
-                if proposal.known_temporal_facts is not None
-                else proposal.start
-            )
-            if wrong_date:
-                message = (
-                    "Das genannte Datum widerspricht dem bereits validierten "
-                    f"Termindatum. Erwartet wird {expected.isoformat()}. "
-                    "Bitte bestätige das richtige Datum konkret."
-                )
-            elif "ende" in state.question.casefold() and known_start is not None:
-                message = (
-                    f"{known_start.strftime('%H:%M')} Uhr ist bereits als Beginn "
-                    "belegt und kann nicht zugleich das Ende sein. Bitte nenne "
-                    "die Endzeit nach dem Beginn konkret."
-                )
-            else:
-                message = (
-                    "Die Zeitangabe widerspricht den bereits belegten Terminfakten. "
-                    "Bitte bestätige Datum und Uhrzeit konkret."
-                )
-            self.logger.event(
-                "INFO",
-                "telegram.dialog",
-                "answer_clarification_requested",
-                mail_id=state.mail_id,
-                proposal_id=state.proposal_id,
-                version=state.version,
-                error_class=type(exc).__name__,
-                proposal_reference=f"{state.mail_id}:{state.proposal_id}:v{state.version}",
-                revision_status=ProposalRevisionStatus.PENDING.value,
-            )
+            self._mark_invalid(name, state)
+            message = self._contradiction_message(state, proposal, temporal_answer, current_date)
+            self._log_clarification(state, type(exc).__name__)
             self.telegram.send(self.chat_id, message)
             return
         # The validated value is the recovery record.  It must reach disk before
         # removing the active user question or making another fallible LLM call.
+        self._answered(name, state, interpretation.normalized_answer)
+
+    def _deterministic_answer(self, proposal: Proposal, state: ProposalClarificationState,
+                              temporal_answer: str, current_date) -> str | None:
+        """The normalized answer when no language model is needed, else ``None``."""
+        deterministic = deterministic_classification_revision(
+            proposal, state.question, state.authorized_answer
+        )
+        if deterministic is None:
+            deterministic = deterministic_temporal_revision(
+                proposal,
+                state.question,
+                temporal_answer,
+                self.configured_timezone,
+                current_date,
+            )
+        if deterministic is None:
+            return None
+        parsed_answer = parse_deterministic_temporal_answer(
+            temporal_answer, current_date
+        )
+        normalized_answer = temporal_answer
+        if parsed_answer is not None:
+            normalized_answer = normalize_deterministic_temporal_answer(
+                parsed_answer
+            )
+        return normalized_answer
+
+    def _answered(self, name: str, state: ProposalClarificationState, normalized_answer: str) -> None:
+        """Persist the valid answer, end the active question, then revise."""
         answered = ProposalClarificationState(
             mail_id=state.mail_id,
             proposal_id=state.proposal_id,
@@ -223,7 +134,7 @@ class AuthorizedAnswerInterpreter:
             interpretation_attempts=state.interpretation_attempts,
             question_status=QuestionStatus.ANSWERED,
             answer_status=AnswerStatus.VALID,
-            normalized_answer=interpretation.normalized_answer,
+            normalized_answer=normalized_answer,
             proposal_revision_status=ProposalRevisionStatus.RETRY_REQUIRED,
         )
         self.store.save(name, answered.model_dump(mode="json"))
@@ -232,6 +143,83 @@ class AuthorizedAnswerInterpreter:
         )
         self.revise(answered)
 
+    def _mark_invalid(self, name: str, state: ProposalClarificationState) -> None:
+        invalid = state.model_copy(
+            update={
+                "answer_status": AnswerStatus.INVALID,
+                "interpretation_status": ProposalRevisionStatus.COMPLETED,
+                "next_interpretation_at": None,
+            }
+        )
+        self.store.save(name, invalid.model_dump(mode="json"))
+
+    def _log_clarification(self, state: ProposalClarificationState, error_class: str) -> None:
+        self.logger.event(
+            "INFO",
+            "telegram.dialog",
+            "answer_clarification_requested",
+            mail_id=state.mail_id,
+            proposal_id=state.proposal_id,
+            version=state.version,
+            error_class=error_class,
+            proposal_reference=f"{state.mail_id}:{state.proposal_id}:v{state.version}",
+            revision_status=ProposalRevisionStatus.PENDING.value,
+        )
+
+    def _ask_again(self, name: str, state: ProposalClarificationState, proposal: Proposal,
+                   reason: str, current_date) -> None:
+        """An unusable answer: keep the question open and ask more concretely."""
+        incomplete = IncompleteUserAnswer(reason)
+        self._mark_invalid(name, state)
+        _, clarification = self.revision_service.clarify_telegram_answer(
+            state.question,
+            state.authorized_answer,
+            reason,
+            current_date=current_date,
+        )
+        self._log_clarification(state, type(incomplete).__name__)
+        self.telegram.send(self.chat_id,
+                           f"❓ {clarification.message}\n"
+                           f"„{proposal.title}“ · /abbrechen beendet die Bearbeitung")
+
+    @staticmethod
+    def _contradiction_message(state: ProposalClarificationState, proposal: Proposal,
+                               temporal_answer: str, current_date) -> str:
+        """Explain which validated fact a deterministic time answer contradicts."""
+        expected = expected_event_date(proposal)
+        parsed = parse_deterministic_temporal_answer(temporal_answer, current_date)
+        allowed_dates = (
+            {expected, expected + timedelta(days=1)}
+            if "ende" in state.question.casefold()
+            else {expected}
+        )
+        wrong_date = (
+            parsed is not None
+            and parsed.date is not None
+            and expected is not None
+            and parsed.date not in allowed_dates
+        )
+        known_start = (
+            proposal.known_temporal_facts.start
+            if proposal.known_temporal_facts is not None
+            else proposal.start
+        )
+        if wrong_date:
+            return (
+                "Das genannte Datum widerspricht dem bereits validierten "
+                f"Termindatum. Erwartet wird {expected.isoformat()}. "
+                "Bitte bestätige das richtige Datum konkret."
+            )
+        if "ende" in state.question.casefold() and known_start is not None:
+            return (
+                f"{known_start.strftime('%H:%M')} Uhr ist bereits als Beginn "
+                "belegt und kann nicht zugleich das Ende sein. Bitte nenne "
+                "die Endzeit nach dem Beginn konkret."
+            )
+        return (
+            "Die Zeitangabe widerspricht den bereits belegten Terminfakten. "
+            "Bitte bestätige Datum und Uhrzeit konkret."
+        )
 
     def _defer_interpretation(
         self,

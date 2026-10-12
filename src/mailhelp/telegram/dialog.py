@@ -3,12 +3,9 @@
 from __future__ import annotations
 
 import time
-import traceback
-from typing import Any, Callable
+from typing import Callable
 
-from pydantic import ValidationError
 
-from ..adapter import PermanentError
 from ..domain.processing import (
     ProposalClarificationState,
     ProposalRevisionStatus,
@@ -16,19 +13,17 @@ from ..domain.processing import (
 )
 from ..external.contracts import ExternalWriter
 from ..models import Proposal, ProposalStatus, RelevanceDialog, TelegramOffset
-from ..review.commands import CommandKind, CommandSource, ReviewCommand
+from ..review.commands import CommandKind, CommandSource
 from ..review.inbox import CommandInbox
-from ..review.errors import StaleCommand
 from ..review.results import ResultStatus, ReviewResult
 from ..storage import JsonStore
 
 from .authorization import AuthorizedUpdateValidator, UpdateValidation
-from .callbacks import Decision, DecisionAction, RelevanceDecision, validate_callback_markup
-from .client import TelegramTransport, validation_path
+from .callbacks import RelevanceDecision
+from .client import TelegramTransport
 from .ledger import ActionLedgerPort, ActionLedgerService
 from .models import TelegramUpdate
 from .outbox import TelegramOutbox, revision_paused
-from .persistence import proposal_version_name
 from .receiver import TelegramInbox
 from .relevance import RelevanceDialogProcessor, RelevanceHandler
 from .revisions import (
@@ -41,21 +36,8 @@ from .writes import ConfirmedWriteExecutor, WriteExecution
 from .. import state_names
 
 
-# A failing inbox update is retried after 30 s, then 60 s, and dropped after
-# the third attempt; a permanent error is dropped at once.  Retrying without
-# limit repeated the side effects of the update (e.g. a resent question)
-# before every mail.
-INBOX_RETRY_SECONDS = 30.0
-INBOX_MAX_ATTEMPTS = 3
-STALE_BUTTON = ("ℹ️ Bereits entschieden oder geändert (z. B. in der Weboberfläche) – "
-                "diese Schaltfläche ist veraltet. Aktueller Stand: /offen")
-# Telegram buttons translated into channel-neutral review commands.
-_COMMAND_KINDS = {
-    DecisionAction.CONFIRM: CommandKind.CONFIRM,
-    DecisionAction.CONFIRM_DUPLICATE: CommandKind.CONFIRM_DUPLICATE,
-    DecisionAction.EDIT: CommandKind.START_CLARIFICATION,
-    DecisionAction.REJECT: CommandKind.REJECT,
-}
+from .update_handling import (INBOX_MAX_ATTEMPTS, INBOX_RETRY_SECONDS,  # noqa: F401
+                              STALE_BUTTON, TelegramUpdateHandler, send_relevance_question)
 
 
 class _DialogResponsePersistence:
@@ -101,18 +83,8 @@ class TelegramDialogController:
         inbox: TelegramInbox | None = None,
         commands: CommandInbox | None = None,
     ):
-        from .delivery import ProposalDeliveryService
-        from .decisions import ProposalDecisionService
-        from .persistence import ProposalRepository
-        from .presenter import ProposalPresenter
-
         self.store, self.telegram, self.user_id, self.chat_id, self.logger = (
-            store,
-            telegram,
-            user_id,
-            chat_id,
-            logger,
-        )
+            store, telegram, user_id, chat_id, logger)
         # With an inbox, a receiver thread fetches updates; this controller
         # only processes them (see poll_once).
         self.inbox = inbox
@@ -130,6 +102,22 @@ class TelegramDialogController:
         self.interpretation_backoff_seconds = interpretation_backoff_seconds
         self.revision_attempts = revision_attempts
         self.revision_backoff_seconds = revision_backoff_seconds
+        self.updates = TelegramUpdateHandler(self)
+        self._compose(sequential_questions)
+
+    def _compose(self, sequential_questions: bool) -> None:
+        """Wire the services that share this dialog's state and transport."""
+        from .delivery import ProposalDeliveryService
+        from .decisions import ProposalDecisionService
+        from .persistence import ProposalRepository
+        from .presenter import ProposalPresenter
+
+        store, telegram, user_id, chat_id = self.store, self.telegram, self.user_id, self.chat_id
+        logger, test_mode, configured_timezone = self.logger, self.test_mode, self.configured_timezone
+        revision_service = self.revision_service
+        interpretation_attempts = self.interpretation_attempts
+        interpretation_backoff_seconds = self.interpretation_backoff_seconds
+        revision_attempts, revision_backoff_seconds = self.revision_attempts, self.revision_backoff_seconds
         self.validator: UpdateValidation = AuthorizedUpdateValidator(
             store, user_id, chat_id
         )
@@ -149,7 +137,8 @@ class TelegramDialogController:
             logger,
             self.repository,
             self.delivery.send_now,
-            self._send_relevance_now,
+            lambda dialog, sender, subject: send_relevance_question(
+                telegram, chat_id, dialog, sender, subject),
             self.relevance,
             enabled=sequential_questions,
         )
@@ -208,52 +197,11 @@ class TelegramDialogController:
         entry_id = self.outbox.enqueue_relevance(dialog, sender, subject)
         self.outbox.flush(raise_for=entry_id)
 
-    def _send_relevance_now(
-        self, dialog: RelevanceDialog, sender: str, subject: str
-    ) -> None:
-        buttons = [
-            [
-                {
-                    "text": "Relevant",
-                    "callback_data": RelevanceDecision(
-                        mail_id=dialog.mail_id,
-                        version=dialog.version,
-                        decision="relevant",
-                    ).encode(),
-                },
-                {
-                    "text": "Irrelevant",
-                    "callback_data": RelevanceDecision(
-                        mail_id=dialog.mail_id,
-                        version=dialog.version,
-                        decision="irrelevant",
-                    ).encode(),
-                },
-            ]
-        ]
-        text = "\n".join(
-            [
-                f"Absender: {sender}",
-                f"Betreff: {subject}",
-                "Relevanz bitte bestätigen:",
-            ]
-        )
-        validate_callback_markup({"inline_keyboard": buttons})
-        self.telegram.send(self.chat_id, text, {"inline_keyboard": buttons})
-
-    @staticmethod
-    def _version_name(mail_id: str, proposal_id: str, version: int) -> str:
-        """Deprecated compatibility alias for the repository naming rule."""
-        return proposal_version_name(mail_id, proposal_id, version)
-
     def persist(self, proposal: Proposal) -> None:
         """Compatibility port; persistence itself belongs to the repository."""
         self.repository.save_revision(proposal)
         if proposal.status == ProposalStatus.CREATED:
-            self._book_created(proposal)
-
-    def _book_created(self, proposal: Proposal) -> None:
-        self.ledger.book_created(proposal)
+            self.ledger.book_created(proposal)
 
     def send(self, chat_id: int, text: str) -> None:
         if chat_id != self.chat_id:
@@ -323,7 +271,7 @@ class TelegramDialogController:
             "telegram-offset", TelegramOffset, TelegramOffset()
         )
         assert isinstance(offset_state, TelegramOffset)
-        return max(offset_state.offset, self._durable_dialog_offset())
+        return max(offset_state.offset, self.relevance.durable_offset())
 
     def receive_offset(self) -> int:
         """Where a receiver thread continues: after processed and stored updates."""
@@ -363,102 +311,7 @@ class TelegramDialogController:
             offset=offset,
             count=len(updates),
         )
-        for raw in updates:
-            raw_id = raw.get("update_id") if isinstance(raw, dict) else None
-            if (
-                not isinstance(raw_id, int)
-                or isinstance(raw_id, bool)
-                or raw_id < offset
-            ):
-                self.logger.event(
-                    "WARNING",
-                    "telegram.dialog",
-                    "invalid_update",
-                    update_id=raw_id
-                    if isinstance(raw_id, int) and not isinstance(raw_id, bool)
-                    else None,
-                    reason="missing_or_stale_update_id",
-                )
-                if (
-                    isinstance(raw_id, int)
-                    and not isinstance(raw_id, bool)
-                    and raw_id < offset
-                ):
-                    self._reject_duplicate_relevance(raw)
-                    if self.inbox is not None:
-                        self.inbox.remove(raw_id)
-                continue
-            try:
-                update = TelegramUpdate.model_validate(raw)
-                update_kind = (
-                    "callback_query" if update.callback_query is not None else "message"
-                )
-                self.logger.event(
-                    "INFO",
-                    "telegram.dialog",
-                    "update_processing",
-                    update_id=raw_id,
-                    update_kind=update_kind,
-                )
-                if raw_id in acknowledged:
-                    self._handle(update, acknowledged=True)
-                else:
-                    self._handle(update)
-            except ValidationError as exc:
-                self.logger.event(
-                    "WARNING",
-                    "telegram.dialog",
-                    "invalid_update",
-                    update_id=raw_id,
-                    reason="schema_validation",
-                    validation_path=validation_path(exc),
-                )
-                self.telegram.send(
-                    self.chat_id,
-                    "Telegram-Eingabe ist syntaktisch ungültig und wurde verworfen.",
-                )
-            except Exception as exc:
-                # Do not acknowledge an update that failed operationally.  It
-                # remains queued and can be retried after a transient provider,
-                # network, or persistence problem has recovered.
-                self.logger.event(
-                    "ERROR",
-                    "telegram.dialog",
-                    "update_processing_failed",
-                    update_id=raw_id,
-                    error_class=type(exc).__name__,
-                )
-                if self.inbox is None:
-                    raise
-                attempts = self.inbox.record_failure(raw_id, INBOX_RETRY_SECONDS)
-                if not isinstance(exc, PermanentError) and attempts < INBOX_MAX_ATTEMPTS:
-                    raise
-                self.logger.event(
-                    "ERROR",
-                    "telegram.dialog",
-                    "update_abandoned",
-                    update_id=raw_id,
-                    attempts=attempts,
-                    error_class=type(exc).__name__,
-                )
-                self.telegram.send(
-                    self.chat_id,
-                    "❌ Eine Telegram-Eingabe konnte nicht verarbeitet werden und wurde "
-                    "verworfen. Bitte /offen öffnen und die Aktion erneut wählen.",
-                )
-            offset = raw_id + 1
-            self.store.save(
-                "telegram-offset", TelegramOffset(offset=offset).model_dump()
-            )
-            if self.inbox is not None:
-                self.inbox.remove(raw_id)
-            self.logger.event(
-                "INFO",
-                "telegram.dialog",
-                "update_processed",
-                update_id=raw_id,
-                next_offset=offset,
-            )
+        self.updates.process(updates, acknowledged, offset)
         self._process_commands()
         # Answers above may have resolved the question that held messages back.
         self.outbox.flush()
@@ -494,164 +347,13 @@ class TelegramDialogController:
                     self.logger.event("ERROR", "review", "web_notice_failed",
                                       error_class=type(exc).__name__)
 
-    def _reject_duplicate_relevance(self, raw: dict[str, Any]) -> None:
-        """Make a replayed relevance answer visible without trusting raw fields."""
-        try:
-            update = TelegramUpdate.model_validate(raw)
-        except ValidationError:
-            return
-        callback = update.callback_query
-        if (
-            callback is not None
-            and callback.data.startswith("relevance:")
-            and self._authorized(callback.sender.id, callback.message.chat.id)
-        ):
-            self.telegram.answer_callback(
-                callback.id, "Diese Relevanzantwort wurde bereits verarbeitet."
-            )
-            return
-        message = update.message
-        if (
-            message is not None
-            and message.text.strip().lower() in {"relevant", "irrelevant"}
-            and self._authorized(message.sender.id, message.chat.id)
-        ):
-            self.telegram.send(
-                self.chat_id, "Diese Relevanzantwort wurde bereits verarbeitet."
-            )
-
     def _handle(self, update: TelegramUpdate, acknowledged: bool = False) -> None:
-        if update.callback_query is not None:
-            callback = update.callback_query
-            # Stop Telegram's loading indicator before potentially slow state,
-            # LLM, or external-service work begins, unless the receiver thread
-            # already did so when the update arrived.
-            if not acknowledged:
-                self.telegram.answer_callback(callback.id, "Aktion wird verarbeitet …")
-            if not self._authorized(callback.sender.id, callback.message.chat.id):
-                self.logger.event(
-                    "WARNING",
-                    "telegram.dialog",
-                    "unauthorized_update",
-                    update_id=update.update_id,
-                    update_kind="callback_query",
-                    user_id=callback.sender.id,
-                    chat_id=callback.message.chat.id,
-                )
-                self.telegram.send(self.chat_id, "❌ Nicht autorisierte Aktion.")
-                return
-            actor = f"telegram:{callback.sender.id}:{callback.message.chat.id}"
-            key = f"telegram-update-{update.update_id}"
-            try:
-                if callback.data.startswith("relevance:"):
-                    try:
-                        relevance = self.validator.relevance_decision(callback.data)
-                    except (ValueError, ValidationError):
-                        self.telegram.send(
-                            self.chat_id,
-                            "❌ Relevanzantwort ist syntaktisch ungültig; bitte erneut versuchen.",
-                        )
-                        return
-                    confirmation = self.review.execute(ReviewCommand(
-                        kind=CommandKind.RELEVANCE, source=CommandSource.TELEGRAM,
-                        actor=actor, mail_id=relevance.mail_id, version=relevance.version,
-                        decision=relevance.decision, idempotency_key=key,
-                        replay_offset=update.update_id + 1,
-                    ), raise_errors=True).message
-                else:
-                    try:
-                        decision = self.validator.decision(callback.data)
-                    except (ValueError, ValidationError):
-                        self.telegram.send(
-                            self.chat_id,
-                            "❌ Aktion ist syntaktisch ungültig; bitte erneut versuchen.",
-                        )
-                        return
-                    confirmation = self.review.execute(ReviewCommand(
-                        kind=_COMMAND_KINDS[decision.action], source=CommandSource.TELEGRAM,
-                        actor=actor, mail_id=decision.mail_id,
-                        proposal_id=decision.proposal_id, version=decision.version,
-                        idempotency_key=key,
-                    ), raise_errors=True).message
-            except StaleCommand:
-                # Typically decided in the web interface after this card was sent.
-                self.logger.event("INFO", "telegram.dialog", "stale_button",
-                                  update_id=update.update_id)
-                self.telegram.remove_inline_keyboard(
-                    callback.message.chat.id, callback.message.message_id)
-                self.telegram.send(self.chat_id, STALE_BUTTON)
-                return
-            except Exception as exc:
-                self.logger.event(
-                    "ERROR",
-                    "telegram.dialog",
-                    "callback_processing_failed",
-                    update_id=update.update_id,
-                    error=exc,
-                    stacktrace=traceback.format_exc(),
-                )
-                self.telegram.send(
-                    self.chat_id,
-                    "❌ Aktion konnte nicht verarbeitet werden. Bitte erneut versuchen.",
-                )
-                return
-            assert confirmation is not None
-            self.telegram.remove_inline_keyboard(
-                callback.message.chat.id, callback.message.message_id
-            )
-            if confirmation:
-                self.telegram.send(self.chat_id, confirmation)
-            return
-        message = update.message
-        assert message is not None
-        if not self._authorized(message.sender.id, message.chat.id):
-            self.logger.event(
-                "WARNING",
-                "telegram.dialog",
-                "unauthorized_update",
-                update_id=update.update_id,
-                update_kind="message",
-                user_id=message.sender.id,
-                chat_id=message.chat.id,
-            )
-            return
-        normalized = message.text.strip().lower()
-        if normalized.startswith("/"):
-            from .commands import TelegramCommands
-
-            TelegramCommands(self.store, self.repository, self.presenter,
-                             self.telegram, self.chat_id, self.relevance,
-                             self.outbox, self.web_logout, self.web_invite).handle(normalized)
-            return
-        if normalized in {"relevant", "irrelevant"}:
-            dialogs = self._open_relevance_dialogs()
-            if len(dialogs) != 1:
-                self.telegram.send(
-                    self.chat_id,
-                    "Freitext ist nicht eindeutig zuordenbar; bitte die Schaltfläche der gewünschten Mail verwenden.",
-                )
-                return
-            dialog = dialogs[0]
-            self._decide_relevance(
-                RelevanceDecision(
-                    mail_id=dialog.mail_id, version=dialog.version, decision=normalized
-                ),
-                update.update_id + 1,
-                notify=True,
-            )
-            return
-        self.revisions.answer(message.text)
+        self.updates.handle(update, acknowledged)
 
     def _open_relevance_dialogs(self) -> list[RelevanceDialog]:
         return self.relevance.open()
 
-    def _durable_dialog_offset(self) -> int:
-        return self.relevance.durable_offset()
-
-    def _decide_relevance(
+    def decide_relevance(
         self, decision: RelevanceDecision, offset: int, notify: bool = False
     ) -> str | None:
         return self.relevance.decide(decision, offset, notify)
-
-    def _authorized(self, user_id: int, chat_id: int) -> bool:
-        return self.validator.authorized(user_id, chat_id)

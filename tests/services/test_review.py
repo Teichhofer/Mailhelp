@@ -301,7 +301,7 @@ def test_a_review_error_from_the_relevance_dialog_is_kept(tmp_path, monkeypatch)
         def stale(*_):
             raise StaleCommand("bereits entschieden")
 
-        monkeypatch.setattr(dialog, "_decide_relevance", stale)
+        monkeypatch.setattr(dialog, "decide_relevance", stale)
         result = web(dialog).execute(command(CommandKind.RELEVANCE, decision="relevant"))
     assert (result.status, result.message) == (ResultStatus.STALE, "bereits entschieden")
 

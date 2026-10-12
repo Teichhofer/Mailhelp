@@ -184,7 +184,7 @@ class ReviewService:
         assert command.decision is not None
         offset = command.replay_offset or max(self.controller.receive_offset(), 1)
         try:
-            text = self.controller._decide_relevance(
+            text = self.controller.decide_relevance(
                 RelevanceDecision(mail_id=command.mail_id, version=command.version,
                                   decision=command.decision), offset)
         except ReviewError:
