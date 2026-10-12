@@ -1,46 +1,26 @@
 """Synthetic archive, edit, settings, lifecycle and cost acceptance tests."""
-from datetime import datetime, timedelta, timezone
-from decimal import Decimal
 import json
-import yaml
+from decimal import Decimal
 
 import pytest
+import yaml
+from shared_application import settings
+from shared_review import command
+from shared_web_v12 import configure as configure
+from web_scenario import mail_id, proposal
 
-from mailhelp.config import Settings, Topic, RetentionSettings
-from mailhelp.configuration import (AdminCommand, AdminKind, ConfigurationService, apply_settings, file_hash)
+from mailhelp.config import RetentionSettings, Topic
+from mailhelp.configuration import AdminCommand, AdminKind, file_hash
 from mailhelp.lifecycle import Lifecycle
 from mailhelp.metrics import MetricsRecorder, MetricsSettings, electricity, sibling
-from mailhelp.models import MailState, Proposal, Relevance, Summary
+from mailhelp.models import MailState, Relevance, Summary
+from mailhelp.retention import RetentionService
 from mailhelp.review.archive import record_analysis, record_event
 from mailhelp.review.commands import CommandKind
 from mailhelp.review.editing import ProposalEditPatch, edit_proposal, local_time
-from mailhelp.review.queries import ArchiveQuery, ArchiveQueries
+from mailhelp.review.queries import ArchiveQueries, ArchiveQuery
 from mailhelp.review.results import ResultStatus
-from mailhelp.storage import CorruptState, JsonStore
-from mailhelp.retention import RetentionService
-from test_application import settings
-from test_web_actions import web
-from test_web_server import running
-from test_review import command
-from web_scenario import mail_id, populate, proposal, save_mail
-
-
-def configure(web, tmp_path):
-    cfg = settings(tmp_path)
-    (tmp_path / 'config.yaml').write_text(yaml.safe_dump(cfg.model_dump(mode='json')), encoding='utf-8')
-    for name, topics in [('topics.yaml', [Topic(id='school', name='Schule', description='Schule', enabled=True).model_dump()]),
-                         ('irrelevant_topics.yaml', [])]:
-        (tmp_path / name).write_text(yaml.safe_dump({'topics': topics}), encoding='utf-8')
-    active = []
-    service = ConfigurationService(tmp_path, web.store, cfg, web.dialog.review.web_authorizer, active.append)
-    web.site.archive.configuration = service
-    web.dialog.review.configuration = service
-    metrics = MetricsRecorder(tmp_path / 'metrics.jsonl', MetricsSettings())
-    web.site.archive.metrics = metrics
-    calls = []
-    lifecycle = Lifecycle(lambda: calls.append('stop'), web.dialog.review.web_authorizer)
-    web.site.lifecycle = web.site.archive.lifecycle = lifecycle
-    return service, metrics, lifecycle, active, calls
+from mailhelp.storage import JsonStore
 
 
 def test_mail_archive_filters_and_analysis(web):
@@ -344,7 +324,6 @@ def test_topics_snapshot_survives_reconfiguration_and_restart(tmp_path):
 
 def test_metrics_compaction_recovery_validation_and_logging(tmp_path, monkeypatch):
     from mailhelp.logging import JsonlLogger
-    from mailhelp.storage import atomic_replace
     metrics = MetricsRecorder(tmp_path/'metrics'/'llm.jsonl', MetricsSettings())
     logger = JsonlLogger(tmp_path/'logs', file_enabled=False, llm_enabled=False)
     logger.metrics = metrics
@@ -418,8 +397,9 @@ def test_missing_data_versions_queries_and_queue_conflicts(web, monkeypatch):
 
 
 def test_structured_edits_keep_unset_fields_and_authorization(web):
-    from mailhelp.config import TargetSettings
     from types import SimpleNamespace
+
+    from mailhelp.config import TargetSettings
     web.dialog.relevance.handler = SimpleNamespace(targets=TargetSettings(todoist_project='New inbox', google_calendar='Calendar'))
     cmd = command(CommandKind.EDIT, mail_id=mail_id(1), proposal_id='formular', actor='web:' + web.auth.sessions()[0].id,
                   patch=ProposalEditPatch(title='Task', target='New inbox'))
@@ -446,8 +426,10 @@ def test_structured_edits_keep_unset_fields_and_authorization(web):
 
 def test_after_send_runs_only_after_actual_http_response(running):
     from threading import Event
+
+    from shared_web_server import call
+
     from mailhelp.web import Response
-    from test_web_server import call
     flag = Event()
     def handler(request):
         response = Response.text(202, 'accepted')
@@ -460,6 +442,7 @@ def test_after_send_runs_only_after_actual_http_response(running):
 
 def test_activate_application_live_subset(tmp_path):
     from types import SimpleNamespace
+
     from mailhelp.application import Application
     cfg = settings(tmp_path)
     metrics = MetricsRecorder(tmp_path/'metrics.jsonl', cfg.metrics)
@@ -494,9 +477,10 @@ def test_remaining_retention_filters_and_config_validation(web, tmp_path):
 
 
 def test_finished_notification_is_not_sent_twice_during_resume(tmp_path):
-    from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
+    from shared_services import AnalyzerStub, Notify
+
     from mailhelp.imap import FetchedMail
-    from test_services import AnalyzerStub, Notify
+    from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
     topic = Topic(id='school', name='School', enabled=True, description='school')
     with JsonStore(tmp_path) as store:
         notifier = Notify()

@@ -1,105 +1,78 @@
 from __future__ import annotations
 
 from datetime import date, time
+from unittest.mock import patch
+
 import httpx
 import pytest
-from unittest.mock import patch
+from log_fakes import RecordingLogger as Logger
 from pydantic import ValidationError
+from shared_core import prompt_config
+from shared_telegram_dialog import FailingRevisionService as FailingRevisionService
+from shared_telegram_dialog import InterpretationErrorService as InterpretationErrorService
+from shared_telegram_dialog import OperationallyFailingRevisionService as OperationallyFailingRevisionService
+from shared_telegram_dialog import RelevanceHandler as RelevanceHandler
+from shared_telegram_dialog import RevisionService as RevisionService
+from shared_telegram_dialog import Telegram as Telegram
+from shared_telegram_dialog import UnusableAnswerService as UnusableAnswerService
+from shared_telegram_dialog import Writer as Writer
+from shared_telegram_dialog import callback as callback
+from shared_telegram_dialog import controller as controller
+from shared_telegram_dialog import message as message
+from shared_telegram_dialog import proposal as proposal
+from shared_telegram_dialog import relevance_state as relevance_state
 
 from mailhelp.adapter import PermanentError, UncertainWriteError
-from mailhelp.analysis import (Analyzer, ContradictoryRevision, LlmInvalidJson,
-                               LlmProviderResponseInvalid,
-                               LlmSchemaValidationFailed,
-                               LlmTokenLimitExceeded, validate_revision_successor)
-from mailhelp.models import (ActionLedger, ActionLedgerEntry, AnswerStatus, MailState, Proposal,
-                             ProposalNotification,
-                             ProposalClarificationState, ProposalRevisionDelta,
-                             ProposalRevisionStatus, ProposalStatus,
-                             QuestionStatus, RelevanceDialog, RelevanceDialogStatus,
-                             TelegramDialogState, apply_proposal_revision)
-from mailhelp.orchestrator import Orchestrator
+from mailhelp.analysis import (
+    Analyzer,
+    ContradictoryRevision,
+    LlmInvalidJson,
+    LlmProviderResponseInvalid,
+    LlmSchemaValidationFailed,
+    LlmTokenLimitExceeded,
+    validate_revision_successor,
+)
+from mailhelp.application import _state_directory
+from mailhelp.config import OutputTokenRetry, Settings
+from mailhelp.integrations import CalendarFileWriter
+from mailhelp.models import (
+    ActionLedger,
+    ActionLedgerEntry,
+    AnswerStatus,
+    MailState,
+    Proposal,
+    ProposalClarificationState,
+    ProposalNotification,
+    ProposalRevisionDelta,
+    ProposalRevisionStatus,
+    ProposalStatus,
+    QuestionStatus,
+    RelevanceDialog,
+    RelevanceDialogStatus,
+    TelegramDialogState,
+    apply_proposal_revision,
+)
+from mailhelp.openrouter import ProviderResponseInvalid
 from mailhelp.storage import JsonStore
-from mailhelp.telegram.persistence import proposal_version_name
 from mailhelp.telegram import (
-    Decision, DecisionAction,
+    Decision,
+    DecisionAction,
     TelegramCallbackQuery,
     TelegramChatNotFoundError,
     TelegramClient,
     TelegramDialogController,
     TelegramMessage,
     TelegramUpdate,
-    numbered_message_parts,
-    format_proposal,
     deterministic_classification_revision,
-    normalize_deterministic_temporal_answer,
-    parse_deterministic_temporal_answer,
     deterministic_temporal_revision,
+    format_proposal,
+    normalize_deterministic_temporal_answer,
+    numbered_message_parts,
+    parse_deterministic_temporal_answer,
     validate_callback_data,
     validate_callback_markup,
 )
-from mailhelp.application import _state_directory
-from mailhelp.config import OutputTokenRetry, Settings
-from mailhelp.integrations import CalendarFileWriter
-from mailhelp.openrouter import ProviderResponseInvalid
-from test_core import prompt_config
-
-
-def proposal(**changes):
-    data = {"id": "p1", "version": 1, "kind": "task", "responsibility": "user", "certainty": "certain", "classification": "new", "title": "Aufgabe", "description": "Text", "evidence": "Beleg", "source_mail_id": "aaaaaaaaaaaaaaaaaaaaaaaa", "target": "inbox"}
-    if "status" not in changes and (changes.get("open_questions") or changes.get("responsibility") not in {None, "user"}
-                                    or changes.get("certainty") not in {None, "certain"}
-                                    or changes.get("classification") not in {None, "new"}):
-        data["status"] = "needs_clarification"
-    data.update(changes)
-    return Proposal.model_validate(data)
-
-
-def message(update_id, text="Antwort", user=1, chat=2):
-    return {"update_id": update_id, "message": {"message_id": update_id, "from": {"id": user}, "chat": {"id": chat}, "text": text}}
-
-
-def callback(update_id, data, user=1, chat=2):
-    return {"update_id": update_id, "callback_query": {"id": f"c{update_id}", "from": {"id": user, "is_bot": False, "first_name": "Ada"}, "chat_instance": "irrelevant", "message": {"message_id": 1, "from": {"id": 99, "is_bot": True, "first_name": "Mailhelp"}, "chat": {"id": chat, "type": "private"}, "date": 1_789_000_000, "text": "buttons", "reply_markup": {"inline_keyboard": []}}, "data": data}}
-
-
-class Telegram:
-    def __init__(self, updates=()):
-        self.updates = list(updates)
-        self.polls=[]
-        self.sent=[]
-        self.answered=[]
-        self.documents=[]
-        self.removed=[]
-    def poll(self, offset, timeout=None):
-        self.polls.append(offset)
-        return self.updates
-    def send(self, chat, text, reply_markup=None): self.sent.append((chat,text,reply_markup))
-    def answer_callback(self, callback_id, text): self.answered.append((callback_id,text))
-    def remove_inline_keyboard(self, chat_id, message_id): self.removed.append((chat_id,message_id))
-    def send_document(self, chat_id, filename, content, caption=None):
-        self.documents.append((chat_id, filename, content, caption))
-
-
-from log_fakes import RecordingLogger as Logger
-
-
-class RevisionService:
-    def __init__(self): self.calls=[]
-    def interpret_telegram_answer(self, item, question, answer):
-        self.calls.append(("interpret", item, question, answer))
-        return "interpret-call", type("Interpretation", (), {
-            "usable": True, "normalized_answer": answer, "reason": "passt"})()
-    def clarify_telegram_answer(self, question, answer, reason, *, current_date=None):
-        self.calls.append(("clarify", question, answer, reason, current_date))
-        return "clarify-call", type("Clarification", (), {
-            "message": f"Bitte konkreter beantworten: {question}"})()
-    def revise_proposal(self, item, question, answer):
-        self.calls.append((item,question,answer))
-        remaining=item.open_questions[1:]
-        return "revision-call", Proposal.model_validate({**item.model_dump(),
-            "version":item.version+1, "description":answer,
-            "open_questions":remaining,
-            "status":"needs_clarification" if remaining else "pending_confirmation"})
+from mailhelp.telegram.persistence import proposal_version_name
 
 
 def test_telegram_date_only_successor_cannot_become_all_day():
@@ -114,19 +87,10 @@ def test_telegram_date_only_successor_cannot_become_all_day():
         validate_revision_successor(original, candidate)
 
 
-class FailingRevisionService(RevisionService):
-    def revise_proposal(self, item, question, answer): raise ValueError("contradiction")
 
 
-class OperationallyFailingRevisionService(RevisionService):
-    def revise_proposal(self, item, question, answer): raise RuntimeError("provider unavailable")
 
 
-class UnusableAnswerService(RevisionService):
-    def interpret_telegram_answer(self, item, question, answer):
-        self.calls.append(("interpret", item, question, answer))
-        return "interpret-call", type("Interpretation", (), {
-            "usable": False, "normalized_answer": None, "reason": "Datum fehlt"})()
 
 
 def test_deterministic_start_revision_uses_validated_day_without_llm(tmp_path):
@@ -610,19 +574,8 @@ def test_validation_failure_log_contains_safe_structured_details(tmp_path):
         assert "input" not in repr(fields["validation_errors"])
 
 
-class InterpretationErrorService(RevisionService):
-    def __init__(self, error):
-        super().__init__()
-        self.error = error
-    def interpret_telegram_answer(self, item, question, answer):
-        raise self.error
 
 
-def controller(store, updates=(), writers=None, test_mode=False, revision_service=None):
-    transport=Telegram(updates)
-    log=Logger()
-    service=revision_service if revision_service is not None else RevisionService()
-    return TelegramDialogController(store,transport,1,2,log,writers,test_mode,"UTC",service),transport,log
 
 
 def test_write_attempt_references_are_linked_to_mail(tmp_path):
@@ -834,21 +787,6 @@ def test_action_ledger_rejects_duplicate_proposal_version():
         ActionLedger(entries=[entry, entry])
 
 
-class Writer:
-    def __init__(self, found=None, error=None):
-        self.found=found
-        self.error=error
-        self.created=0
-        self.reconciled=0
-        self.versions=[]
-    def reconcile(self,key):
-        self.reconciled+=1
-        return self.found
-    def create(self,p,key):
-        self.created+=1
-        self.versions.append(p.version)
-        if self.error: raise self.error
-        return {"id":"external-1","url":"https://example.test/item"}
 
 
 def test_direct_decision_persists_confirmation_before_write(tmp_path):
@@ -2169,24 +2107,8 @@ def test_uncertain_write_is_only_reconciled_across_restarts(tmp_path):
         assert "✅ Angelegt" in messages.sent[-1][1]
 
 
-class RelevanceHandler:
-    def __init__(self, store):
-        self.store=store
-        self.resumed=[]
-    def resolve_relevance(self, mail_id, version, decision, offset):
-        state=self.store.load_model("mail-"+mail_id,MailState)
-        dialog=state.relevance_dialog
-        if dialog is None or dialog.version != version or dialog.status.value != "open":
-            raise ValueError("Die Relevanzfrage ist veraltet oder bereits beantwortet")
-        state.relevance_dialog=dialog.model_copy(update={"status":RelevanceDialogStatus.DECIDED,"decision":decision,"telegram_offset":offset})
-        state.awaiting_relevance=False
-        self.store.save("mail-"+mail_id,state.model_dump(mode="json"))
-        return state
-    def resume_mail(self,state): self.resumed.append(state.id)
 
 
-def relevance_state(mail_id, version=1):
-    return MailState(id=mail_id,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":1,"uid":1},awaiting_relevance=True,relevance_dialog=RelevanceDialog(mail_id=mail_id,version=version))
 
 
 def test_relevance_dialog_authorization_stale_restart_and_duplicate(tmp_path):

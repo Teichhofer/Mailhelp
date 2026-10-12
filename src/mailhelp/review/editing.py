@@ -1,7 +1,7 @@
 """Deterministic, bounded human edits. Saving an edit never authorizes a write."""
 from __future__ import annotations
 
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo
 
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field
@@ -34,9 +34,9 @@ def local_time(value: str | None, zone: str, date_only: bool = False):
     if stamp.tzinfo is not None:
         return stamp
     tz = ZoneInfo(zone)
-    candidates = {stamp.replace(tzinfo=tz, fold=fold).astimezone(timezone.utc)
+    candidates = {stamp.replace(tzinfo=tz, fold=fold).astimezone(UTC)
                   for fold in (0, 1)
-                  if stamp.replace(tzinfo=tz, fold=fold).astimezone(timezone.utc)
+                  if stamp.replace(tzinfo=tz, fold=fold).astimezone(UTC)
                   .astimezone(tz).replace(tzinfo=None) == stamp}
     if len(candidates) != 1:
         raise ValueError("Uhrzeit ist mehrdeutig oder existiert nicht; bitte eindeutigen UTC-Offset angeben")

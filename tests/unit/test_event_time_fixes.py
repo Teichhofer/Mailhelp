@@ -1,21 +1,22 @@
 """Event times from mails: clock formats, changed times of existing events, revision notes."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
 import json
+from datetime import UTC, datetime
 
 import httpx
 import pytest
+from shared_action_normalization import context
+from shared_action_normalization import event as extracted
+from shared_telegram_dialog import Writer, callback, controller, proposal
 
 from mailhelp.action_normalization import NormalizationReason, normalize_event
 from mailhelp.integrations import HttpWriter
 from mailhelp.models import CalendarDuplicateDecision
 from mailhelp.storage import JsonStore
 from mailhelp.telegram.formatting import revision_summary
-from test_action_normalization import context, event as extracted
-from test_telegram_dialog import Writer, callback, controller, proposal
 
-NOW = datetime(2026, 10, 11, 14, 3, tzinfo=timezone.utc)
+NOW = datetime(2026, 10, 11, 14, 3, tzinfo=UTC)
 
 
 @pytest.mark.parametrize(("time_text", "end_text", "start", "end"), [
@@ -146,7 +147,7 @@ def test_new_questions_after_an_answer_are_shown_as_new_not_taken_over():
 
 def test_change_notes_use_the_current_time_in_the_calendar_zone():
     from mailhelp.external.calendar import _now
-    before = datetime.now(timezone.utc)
+    before = datetime.now(UTC)
     noted = _now("Europe/Berlin")
     assert str(noted.tzinfo) == "Europe/Berlin" and noted >= before
     assert str(_now(None).tzinfo) == "UTC"

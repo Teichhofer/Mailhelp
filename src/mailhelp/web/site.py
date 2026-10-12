@@ -9,37 +9,34 @@ main thread.
 from __future__ import annotations
 
 import hashlib
-import ipaddress
 import json
-import re
 import time
+from collections.abc import Callable
 from dataclasses import replace
-from datetime import datetime, timezone
-from typing import Callable, Protocol
+from datetime import UTC, datetime
+from typing import Protocol
 from urllib.parse import parse_qs
+
+from pydantic import ValidationError
 
 from .. import __version__
 from ..config import WebSettings
 from ..configuration import AdminCommand, AdminKind
-from pydantic import ValidationError
-
 from ..models import ProposalStatus
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.inbox import CommandConflict, CommandEntry, CommandInbox, CommandInboxFull
 from ..review.views import ReviewViews
+from .actions import command_page, needs_choice, result_kind, stale_page
 from .app import WebApp
-from .auth import PairingLimited, PairingRefused, WebAuth, WebSession, device_name
+from .auth import WebAuth, WebSession
 from .http import Request, Response
-from .pages import devices_page, error_page, login_page, layout, notice
-from .actions import (command_page, needs_choice, proposal_actions, relevance_actions,
-                      result_kind, stale_page)
-from .review_pages import detail_page, mail_page, overview_page
+from .login_site import PAIR_COOKIE, SESSION_COOKIE, LoginSite
+from .pages import error_page, layout, notice
+from .review_site import ReviewSite
+from .sender_site import LIST_PATH as SENDERS_PATH
+from .sender_site import SenderSite
 from .status_pages import ServiceInfo, status_page
-from .sender_site import LIST_PATH as SENDERS_PATH, SenderSite
 
-SESSION_COOKIE = "mh_session"
-PAIR_COOKIE = "mh_pair"
-PAIR_COOKIE_SECONDS = 15 * 60
 FORM_TYPE = "application/x-www-form-urlencoded"
 # How long the progress page waits for a quick result before it shows "running".
 SETTLE_SECONDS = 1.5
@@ -59,7 +56,7 @@ class MailhelpSite:
                  configured_timezone: str, logger: EventLogger, views: ReviewViews,
                  commands: CommandInbox, *, link_base: Callable[[], str] | None = None,
                  llm_calls_per_minute: int | None = None,
-                 clock: Callable[[], datetime] = lambda: datetime.now(timezone.utc),
+                 clock: Callable[[], datetime] = lambda: datetime.now(UTC),
                  configuration=None, metrics=None, lifecycle=None, models=None):
         self.app, self.auth, self.settings = app, auth, settings
         self.views, self.commands = views, commands
@@ -70,20 +67,23 @@ class MailhelpSite:
         self.started_at = clock()
         self.configured_timezone, self.logger = configured_timezone, logger
         self.local_hosts = {f"127.0.0.1:{settings.port}", f"localhost:{settings.port}"}
-        app.route("GET", "/anmelden", self.login)
-        app.route("POST", "/anmelden/code", self.request_code)
-        app.route("POST", "/anmelden", self.pair)
-        app.route("POST", "/abmelden", self.signed_in(self.logout))
-        app.route("GET", "/geraete", self.signed_in(self.devices))
+        self.login_pages = LoginSite(self)
+        self.review = ReviewSite(self)
+        app.route("GET", "/offen", self.signed_in(self.review.home))
+        app.route("GET", "/anmelden", self.login_pages.login)
+        app.route("POST", "/anmelden/code", self.login_pages.request_code)
+        app.route("POST", "/anmelden", self.login_pages.pair)
+        app.route("POST", "/abmelden", self.signed_in(self.login_pages.logout))
+        app.route("GET", "/geraete", self.signed_in(self.login_pages.devices))
         app.route("POST", r"/geraete/(?P<session_id>[a-f0-9]{16})/abmelden",
-                  self.signed_in(self.revoke))
-        app.route("POST", "/geraete/alle-abmelden", self.signed_in(self.revoke_all))
-        app.route("GET", "/", self.signed_in(self.home))
+                  self.signed_in(self.login_pages.revoke))
+        app.route("POST", "/geraete/alle-abmelden", self.signed_in(self.login_pages.revoke_all))
+        app.route("GET", "/", self.signed_in(self.review.home))
         app.route("GET", r"/vorschlag/(?P<mail_id>[a-f0-9]{24})/(?P<proposal_id>[A-Za-z0-9_-]{1,64})",
-                  self.signed_in(self.detail))
-        app.route("GET", r"/mail/(?P<mail_id>[a-f0-9]{24})", self.signed_in(self.mail))
+                  self.signed_in(self.review.detail))
+        app.route("GET", r"/mail/(?P<mail_id>[a-f0-9]{24})", self.signed_in(self.review.mail))
         app.route("GET", r"/mail/(?P<mail_id>[a-f0-9]{24})/anhang/(?P<index>[0-9]{1,5})",
-                  self.signed_in(self.attachment))
+                  self.signed_in(self.review.attachment))
         app.route("GET", "/status", self.signed_in(self.status))
         app.route("GET", "/api/stand", self.signed_in(self.state))
         app.route("POST", "/aktion", self.signed_in(self.act))
@@ -96,12 +96,6 @@ class MailhelpSite:
 
     # --- helpers ------------------------------------------------------------------
 
-    def _cookie(self, request: Request, name: str, value: str, max_age: int) -> str:
-        # Only a host name (Tailscale Serve) is reached over HTTPS; the local
-        # address and LAN IP addresses use plain HTTP, where Secure cookies fail.
-        hostname = request.host.rpartition(":")[0] if ":" in request.host else request.host
-        secure = "; Secure" if not _ip_or_localhost(hostname) else ""
-        return f"{name}={value}; Path=/; HttpOnly; SameSite=Strict; Max-Age={max_age}{secure}"
 
     def _form(self, request: Request) -> dict[str, str] | Response:
         content_type = (request.header("content-type") or "").split(";")[0].strip().lower()
@@ -141,178 +135,23 @@ class MailhelpSite:
             return handler(request, session, **arguments)
         return guarded
 
-    def _signed_out(self, request: Request, location: str = "/anmelden") -> Response:
-        response = Response.redirect(location)
-        response.cookies.append(self._cookie(request, SESSION_COOKIE, "", 0))
-        return response
 
     # --- pairing ------------------------------------------------------------------
 
-    def _pairing_form(self, request: Request) -> tuple[str, dict[str, str]] | Response:
-        nonce = request.cookies().get(PAIR_COOKIE)
-        if not nonce:
-            return Response.redirect("/anmelden")
-        form = self._form(request)
-        if isinstance(form, Response):
-            return form
-        if not self.auth.csrf_valid(f"pair:{nonce}", form.get("csrf")):
-            self.logger.event("WARNING", "web", "csrf_rejected", path=request.path)
-            return self._forbidden()
-        return nonce, form
 
-    def login(self, request: Request) -> Response:
-        if self.auth.authenticate(request.cookies().get(SESSION_COOKIE)) is not None:
-            return Response.redirect("/")
-        nonce = request.cookies().get(PAIR_COOKIE)
-        response = Response.html(200, "")
-        if not nonce:
-            nonce = self.auth.new_browser_nonce()
-            response.cookies.append(self._cookie(request, PAIR_COOKIE, nonce, PAIR_COOKIE_SECONDS))
-        response.body = login_page(self.auth.csrf_token(f"pair:{nonce}"),
-                                   self.auth.code_requested(nonce),
-                                   code=_link_code(request.query), channel=self.auth.channel).encode("utf-8")
-        return response
 
-    def request_code(self, request: Request) -> Response:
-        checked = self._pairing_form(request)
-        if isinstance(checked, Response):
-            return checked
-        nonce, _ = checked
-        try:
-            self.auth.request_code(nonce, device_name(request.header("user-agent")))
-        except PairingLimited as exc:
-            self.logger.event("WARNING", "web", "pairing_limited", step="request")
-            return Response.html(429, error_page("Bitte später erneut versuchen", str(exc),
-                                                 signed_in=False))
-        except Exception as exc:
-            self.logger.event("ERROR", "web", "pairing_code_not_sent", error_class=type(exc).__name__)
-            return Response.html(503, error_page(
-                "Code nicht gesendet",
-                "Der Code konnte nicht über Telegram gesendet werden. Bitte später erneut versuchen.",
-                signed_in=False))
-        self.logger.event("INFO", "web", "pairing_code_requested")
-        return Response.redirect("/anmelden")
 
-    def pair(self, request: Request) -> Response:
-        checked = self._pairing_form(request)
-        if isinstance(checked, Response):
-            return checked
-        nonce, form = checked
-        device = device_name(request.header("user-agent"), form.get("geraet"))
-        try:
-            token = self.auth.redeem(nonce, form.get("code", ""), device)
-        except PairingLimited as exc:
-            self.logger.event("WARNING", "web", "pairing_limited", step="redeem")
-            return Response.html(429, error_page("Bitte später erneut versuchen", str(exc),
-                                                 signed_in=False))
-        except PairingRefused as exc:
-            self.logger.event("WARNING", "web", "pairing_refused")
-            # Shown again with the error; a normal page, not a failed request.
-            return Response.html(200, login_page(self.auth.csrf_token(f"pair:{nonce}"),
-                                                 self.auth.code_requested(nonce), str(exc),
-                                                 channel=self.auth.channel))
-        self.logger.event("INFO", "web", "device_paired")
-        response = Response.redirect("/")
-        response.cookies.append(self._cookie(request, SESSION_COOKIE, token,
-                                             self.settings.session_days * 86400))
-        response.cookies.append(self._cookie(request, PAIR_COOKIE, "", 0))
-        return response
 
     # --- sessions -----------------------------------------------------------------
 
-    def logout(self, request: Request, session: WebSession, _form: dict[str, str]) -> Response:
-        self.auth.revoke(session.id)
-        self.logger.event("INFO", "web", "session_revoked", scope="current")
-        return self._signed_out(request)
 
-    def devices(self, request: Request, session: WebSession) -> Response:
-        return Response.html(200, devices_page(
-            self.auth.sessions(), session, self.auth.csrf_token(session.id), self.configured_timezone))
 
-    def revoke(self, request: Request, session: WebSession, _form: dict[str, str],
-               session_id: str) -> Response:
-        self.auth.revoke(session_id)
-        self.logger.event("INFO", "web", "session_revoked", scope="single")
-        if session_id == session.id:
-            return self._signed_out(request)
-        return Response.redirect("/geraete")
 
-    def revoke_all(self, request: Request, _session: WebSession, _form: dict[str, str]) -> Response:
-        self.auth.revoke_all()
-        self.logger.event("INFO", "web", "session_revoked", scope="all")
-        return self._signed_out(request)
 
-    def home(self, request: Request, session: WebSession) -> Response:
-        csrf = self.auth.csrf_token(session.id)
-        message, kind = self._result_notice(request, session)
-        from .filters import FILTERS, chips, matches
-        selected = parse_qs(request.query).get("filter", [""])[0]
-        if selected not in FILTERS:
-            return Response.text(422, "Ungültiger Filter.")
-        overview = self.views.overview()
-        def include(view):
-            mail = self.views.mail(view.mail_id)
-            return matches(selected, [view.card.kind.value], [view.status.value],
-                           mail.extracted_attachments if mail else ())
-        overview = replace(overview, open=tuple(view for view in overview.open if include(view)),
-                           relevance=overview.relevance if selected in {"", "clarification"} else ())
-        # The day's summary reads the history; only the finished, unfiltered state needs it.
-        finished = not overview.open and not overview.relevance and not selected
-        page = overview_page(overview, actions=proposal_actions(csrf),
-                             relevance_actions=relevance_actions(csrf),
-                             message=message, message_kind=kind, before=chips("/offen", selected),
-                             empty=self.experience.inbox_zero() if finished else None)
-        return Response.html(200, page)
 
-    def _result_notice(self, request: Request, session: WebSession) -> tuple[str | None, str]:
-        """The result of the action this browser just finished (?ergebnis=<id>)."""
-        entry_id = parse_qs(request.query, max_num_fields=5).get("ergebnis", [""])[0] \
-            if request.query else ""
-        entry = self.commands.get(entry_id) if re.fullmatch(r"[a-f0-9]{32}", entry_id) else None
-        if entry is None or entry.result is None or entry.command.actor != f"web:{session.id}":
-            return None, "ok"
-        return entry.result.message, result_kind(entry.result.status)
 
-    def mail(self, request: Request, session: WebSession, mail_id: str) -> Response:
-        view = self.views.mail(mail_id)
-        if view is None:
-            return Response.html(404, error_page("Nicht gefunden", "Diese Mail ist nicht (mehr) vorhanden."))
-        question = next((item for item in self.views.overview().relevance if item.mail_id == mail_id), None)
-        csrf = self.auth.csrf_token(session.id)
-        message, kind = self._result_notice(request, session)
-        page = mail_page(view, question, relevance_actions(csrf),
-                         sender_actions=self.senders.actions(mail_id, view.sender, csrf),
-                         message=message, message_kind=kind,
-                         after=self.experience.editor(mail_id, csrf) + self.archive.analysis(mail_id))
-        return Response.html(200, page)
 
-    def attachment(self, request, session, mail_id, index):
-        from ..attachments import AttachmentCache
-        mail = self.views.mail(mail_id)
-        if mail is None or mail.text is None or not any(
-                item.preview is not None and item.preview.index == int(index) for item in mail.extracted_attachments):
-            return Response.text(404, "Anhang nicht vorhanden.")
-        data = AttachmentCache(self.views.store).read(mail_id, int(index))
-        if data is None:
-            return Response.text(404, "Anhang nicht vorhanden.")
-        return Response(200, data, "image/jpeg", headers={
-            "Content-Security-Policy": "default-src 'none'",
-            "X-Content-Type-Options": "nosniff"}, cache="private, max-age=3600")
 
-    def detail(self, request: Request, session: WebSession, mail_id: str,
-               proposal_id: str) -> Response:
-        view = self.views.proposal(mail_id, proposal_id)
-        if view is None:
-            return Response.html(404, error_page(
-                "Nicht gefunden", "Dieser Vorschlag ist nicht (mehr) vorhanden."))
-        link = f'<p><a class="button" href="/vorschlag/{mail_id}/{proposal_id}/bearbeiten">Felder bearbeiten</a></p>'
-        from .review_pages import disclosure
-        extra = (link + self.experience.editor(mail_id, self.auth.csrf_token(session.id))
-                 + disclosure("Revisionshistorie &amp; Differenzen", self.archive.revisions(mail_id, proposal_id))
-                 + disclosure("Technische LLM-Analyse &amp; Metriken", self.archive.analysis(mail_id)))
-        page = detail_page(view, actions=proposal_actions(self.auth.csrf_token(session.id)),
-                           mail=self.views.mail(mail_id), after=extra)
-        return Response.html(200, page)
 
     def status(self, request: Request, session: WebSession) -> Response:
         overview = self.views.overview()
@@ -440,21 +279,8 @@ class MailhelpSite:
         return Response.json(200, {"fingerprint": overview.fingerprint})
 
 
-def _ip_or_localhost(name: str) -> bool:
-    try:
-        ipaddress.ip_address(name)
-    except ValueError:
-        return name == "localhost"
-    return True
 
 
-def _link_code(query: str) -> str:
-    """The code from a /web link (only digits, exactly 4), else empty."""
-    try:
-        value = parse_qs(query, max_num_fields=5).get("code", [""])[0]
-    except ValueError:
-        return ""
-    return value if value.isascii() and value.isdigit() and len(value) == 4 else ""
 
 
 __all__ = ["FORM_TYPE", "MailhelpSite", "PAIR_COOKIE", "SESSION_COOKIE"]

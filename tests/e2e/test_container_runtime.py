@@ -5,10 +5,10 @@ The ordinary suite runs both starts against an isolated temporary directory.
 """
 import json
 import os
-from pathlib import Path
 import shutil
 import sys
 import time
+from pathlib import Path
 from types import SimpleNamespace
 
 from mailhelp.cli import main

@@ -9,9 +9,9 @@ OpenRouter models, provider preferences and reasoning settings do not apply.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
 import ipaddress
 import re
+from dataclasses import dataclass
 from typing import Any
 
 import httpx

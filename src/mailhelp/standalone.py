@@ -1,4 +1,7 @@
 """Explicitly disabled Telegram transport; the web command inbox remains active."""
+
+from __future__ import annotations
+
 from threading import Event
 
 

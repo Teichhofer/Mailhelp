@@ -7,19 +7,32 @@ import json
 import os
 import re
 import sys
-from datetime import datetime, timezone, time
+from collections.abc import Callable
+from datetime import UTC, datetime, time
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import yaml
 
-from .action_normalization import (DEADLINE_DATE_PATTERN, MailDateContext, deadline_core,
-                                   normalize_event, _parse_time,
-                                   normalize_task_due, recover_task_due)
+from .action_normalization import (
+    DEADLINE_DATE_PATTERN,
+    MailDateContext,
+    _parse_time,
+    deadline_core,
+    normalize_event,
+    normalize_task_due,
+    recover_task_due,
+)
 from .analysis import Analyzer
 from .config import PromptConfig, Topic
-from .decisions import (DecisionAnalyzer, DecisionClient, DecisionPrompts,
-                        JevRelevanceAnalyzer, load_decision_prompts, load_relevance_prompts)
+from .decisions import (
+    DecisionAnalyzer,
+    DecisionClient,
+    DecisionPrompts,
+    JevRelevanceAnalyzer,
+    load_decision_prompts,
+    load_relevance_prompts,
+)
 from .mime import prepare
 from .models import EventExtraction, TaskExtraction
 from .openrouter import OpenRouterClient
@@ -211,7 +224,7 @@ def evaluate(corpus: dict, prompts: PromptConfig, client: object, max_calls: int
     timezone_name = corpus.get("user_timezone", "UTC")
     results = []
     report = {
-        "schema_version": 3, "created_at": datetime.now(timezone.utc).isoformat(),
+        "schema_version": 3, "created_at": datetime.now(UTC).isoformat(),
         "relevance_mode": "legacy" if decision_prompts is None else "jev_unclear_fallback",
         "decision_prompts": None if decision_prompts is None else decision_prompts.model_dump(mode="json"),
         "decision_prompt_fingerprint": None if decision_prompts is None else hashlib.sha256(

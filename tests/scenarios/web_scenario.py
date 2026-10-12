@@ -1,15 +1,22 @@
 """Synthetic Mailhelp state for the browser tests (no real mails, no real services)."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 from mailhelp.domain.processing import TelegramOutboxEntry, TelegramOutboxGate, TelegramOutboxState
-from mailhelp.models import (DisplayHeaders, MailRunCounters, MailRunEntry, MailRunState,
-                             MailState, Proposal, RelevanceDialog)
+from mailhelp.models import (
+    DisplayHeaders,
+    MailRunCounters,
+    MailRunEntry,
+    MailRunState,
+    MailState,
+    Proposal,
+    RelevanceDialog,
+)
 from mailhelp.storage import JsonStore
 
 ACCOUNT = "0" * 24
-NOW = datetime(2026, 10, 11, 9, 30, tzinfo=timezone.utc)
+NOW = datetime(2026, 10, 11, 9, 30, tzinfo=UTC)
 
 
 def mail_id(number: int) -> str:

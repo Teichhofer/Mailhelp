@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 import yaml
+from shared_web_actions import web  # noqa: F401  (fixture)
 
 from mailhelp.yaml_edit import YamlEditError, render, set_scalars
-from test_web_actions import web  # noqa: F401  (fixture)
 
 TEXT = """# Kopfkommentar
 timezone: Europe/Berlin   # Anzeigezeitzone
@@ -83,7 +83,7 @@ def test_scalars_are_rendered_as_yaml(value, expected):
 
 
 def test_web_settings_keep_the_comments_of_the_real_example(web, tmp_path):
-    from test_web_v12 import configure
+    from shared_web_v12 import configure
     service, *_ = configure(web, tmp_path)
     example = Path("config.example.yaml").read_text(encoding="utf-8")
     base = yaml.safe_load((tmp_path / "config.yaml").read_text(encoding="utf-8"))
@@ -102,9 +102,10 @@ def test_web_settings_keep_the_comments_of_the_real_example(web, tmp_path):
 
 
 def test_a_file_that_cannot_be_edited_safely_is_left_untouched(web, tmp_path, monkeypatch):
+    from shared_web_v12 import configure
+
     from mailhelp.configuration import AdminCommand, AdminKind, file_hash
     from mailhelp.review.results import ResultStatus
-    from test_web_v12 import configure
     service, *_ = configure(web, tmp_path)
     path = tmp_path / "config.yaml"
     before = path.read_text(encoding="utf-8")
@@ -189,7 +190,7 @@ def test_long_texts_with_line_breaks_stay_on_one_line():
 
 
 def test_personal_information_is_edited_as_free_text_and_applies_live(web, tmp_path):
-    from test_web_v12 import configure
+    from shared_web_v12 import configure
     service, _, _, active, _ = configure(web, tmp_path)
     page = web.browser.request("GET", "/einstellungen").body.decode()
     assert "<h2>Antworten</h2>" in page and "Persönliche Angaben für Antworten" in page

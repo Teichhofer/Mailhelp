@@ -2,22 +2,22 @@
 from __future__ import annotations
 
 import hashlib
+from collections.abc import Callable
 from enum import StrEnum
 from pathlib import Path
-from typing import Callable, Literal
+from typing import Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from .config import Settings, Topic, TopicsConfig, IrrelevantTopicsConfig
+from .config import IrrelevantTopicsConfig, Settings, Topic, TopicsConfig
 from .domain.relevance import IrrelevantSenders
-from .sender_filter import change_irrelevant_senders
 from .learning import topics_document
-from .storage import atomic_replace
-from .yaml_edit import YamlEditError, set_scalars
 from .review.commands import CommandSource
 from .review.results import ResultStatus, ReviewResult
-from .storage import JsonStore
+from .sender_filter import change_irrelevant_senders
+from .storage import JsonStore, atomic_replace
+from .yaml_edit import YamlEditError, set_scalars
 
 
 class ConfigurationConflict(ValueError):
@@ -44,7 +44,7 @@ class AdminCommand(BaseModel):
     acknowledged: bool = False
 
     @model_validator(mode="after")
-    def file_edits_need_a_hash(self) -> "AdminCommand":
+    def file_edits_need_a_hash(self) -> AdminCommand:
         if self.kind != AdminKind.SENDERS and self.expected_hash is None:
             raise ValueError("Dateiänderungen benötigen den erwarteten Dateihash")
         return self
@@ -60,7 +60,7 @@ class SenderChange(BaseModel):
     mail_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{24}$")
 
     @model_validator(mode="after")
-    def valid_entries(self) -> "SenderChange":
+    def valid_entries(self) -> SenderChange:
         if not self.addresses and not self.domains:
             raise ValueError("Mindestens eine Adresse oder Domain angeben")
         IrrelevantSenders(addresses=sorted(set(self.addresses)), domains=sorted(set(self.domains)))

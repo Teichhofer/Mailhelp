@@ -12,9 +12,8 @@ from pydantic import ValidationError
 
 from ..adapter import PermanentError, RetryInterrupted, RetryPolicy, uncertain_write
 from ..logging import EventLogger, NullLogger
-
-from .formatting import split_message
 from .callbacks import validate_callback_markup
+from .formatting import split_message
 from .models import (
     TelegramBotResponse,
     TelegramUpdate,

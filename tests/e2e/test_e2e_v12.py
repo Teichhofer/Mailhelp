@@ -6,10 +6,13 @@ from __future__ import annotations
 
 import json
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import yaml
+from shared_e2e_simulated import NachholterminRouter
+from shared_web_actions import Web
+from shared_web_v12 import configure
 
 from mailhelp.analysis import Analyzer
 from mailhelp.config import PromptConfig, PromptStep, Settings, TargetSettings, Topic
@@ -17,9 +20,6 @@ from mailhelp.imap import FetchedMail
 from mailhelp.orchestrator import Orchestrator
 from mailhelp.review.inbox import CommandStatus
 from mailhelp.storage import JsonStore
-from test_e2e_simulated import NachholterminRouter
-from test_web_actions import Web
-from test_web_v12 import configure
 
 FIXTURE = Path(__file__).parents[1] / "fixtures" / "nachholtermin_bildungsplannovellierung.eml"
 STEPS = ("relevance", "summary", "action_router", "task_extraction", "event_extraction",
@@ -73,7 +73,7 @@ def analyse(store, router, uid=23, topics=None):
         targets=TargetSettings(todoist_project="project", google_calendar="calendar"),
         user_timezone="Europe/Berlin")
     fetched = FetchedMail("INBOX", 7, uid, FIXTURE.read_bytes(), "1" * 24,
-                          datetime(2026, 9, 22, 7, 15, tzinfo=timezone.utc))
+                          datetime(2026, 9, 22, 7, 15, tzinfo=UTC))
     return web, orchestrator, orchestrator.process(fetched)
 
 
@@ -139,7 +139,7 @@ def test_topics_saved_in_the_web_apply_only_to_new_mails(tmp_path):
         assert [topic.id for topic in orchestrator.topics] == ["school", "verein"]
         assert store.load(f"analysis-{first.state['id']}")["topics"] == {"arbeit": "Arbeit"}
         second = orchestrator.process(FetchedMail("INBOX", 7, 24, another_mail(), "1" * 24,
-                                                  datetime(2026, 9, 29, 8, tzinfo=timezone.utc)))
+                                                  datetime(2026, 9, 29, 8, tzinfo=UTC)))
         assert second.state["duplicate"]["outcome"] == "new"
         # The first mail was analysed with the old topics, the new mail with the new ones.
         assert router.topics[0] == ["arbeit"] and router.topics[1] == ["school", "verein"]

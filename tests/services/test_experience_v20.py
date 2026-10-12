@@ -1,33 +1,33 @@
 """Synthetic 2.0 contracts: authorization, replay, restart and untrusted input."""
-from contextlib import nullcontext
-from datetime import datetime, timezone
-from email import policy
-from email.parser import BytesParser
-from types import SimpleNamespace as NS
 import base64
 import imaplib
 import json
+from contextlib import nullcontext
+from datetime import UTC, datetime
+from email import policy
+from email.parser import BytesParser
+from types import SimpleNamespace as NS
 
 import pytest
-from PIL import Image
-from pydantic import ValidationError
+import requests
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
+from PIL import Image
+from pydantic import ValidationError
 from pywebpush import WebPushException
-import requests
+from shared_vision import image_bytes, mail
+from shared_web_actions import MAIL1
+from shared_web_details import with_mail
+from web_scenario import mail_id, populate
 
 from mailhelp.attachments import AttachmentCache
 from mailhelp.briefing import DailyBriefingService
-from mailhelp.config import DailyBriefingSettings, Settings, TelegramSettings
+from mailhelp.config import DailyBriefingSettings, Settings
 from mailhelp.drafts import DraftService, ReplyDraft, message
 from mailhelp.models import MailState
 from mailhelp.standalone import DisabledTelegram
 from mailhelp.storage import JsonStore
-from mailhelp.webpush import PushService, NoRedirectSession, b64, subscription
-from test_web_actions import web, MAIL1
-from test_web_details import with_mail
-from test_vision import image_bytes, mail
-from web_scenario import populate, mail_id
+from mailhelp.webpush import NoRedirectSession, PushService, b64, subscription
 
 NEWLINE = chr(10)
 
@@ -360,7 +360,7 @@ def test_push_failures_do_not_leak_or_stop_other_devices(tmp_path, code, removed
 
 def test_briefing_clock_partial_failure_restart_and_formatting(tmp_path):
     store = JsonStore(tmp_path)
-    now = [datetime(2026, 10, 25, 5, 29, tzinfo=timezone.utc)]
+    now = [datetime(2026, 10, 25, 5, 29, tzinfo=UTC)]
     windows, sent = [], []
     def events(start, end, strict):
         windows.append((start, end, strict))
@@ -376,7 +376,7 @@ def test_briefing_clock_partial_failure_restart_and_formatting(tmp_path):
         NS(overview=lambda: NS(open=[1], relevance=[])), channels, lambda: now[0])
     svc.tick()
     assert not sent
-    now[0] = datetime(2026, 10, 25, 6, 30, tzinfo=timezone.utc)
+    now[0] = datetime(2026, 10, 25, 6, 30, tzinfo=UTC)
     svc.tick()
     assert sent == [store.load("briefing-latest")["text"]] == [NEWLINE.join([
         "Guten Morgen! ☀️", "📅 Heute 3 Termine:", "• ganztägig: Ohne Titel", "• 10:00 Uhr: Jour fixe",
@@ -388,7 +388,7 @@ def test_briefing_clock_partial_failure_restart_and_formatting(tmp_path):
     restarted = DailyBriefingService(store, svc.settings, "Europe/Berlin", calendar, tasks, svc.views, channels, lambda: now[0])
     restarted.tick()
     assert len(sent) == 1
-    now[0] = datetime(2026, 10, 26, 7, 30, tzinfo=timezone.utc)
+    now[0] = datetime(2026, 10, 26, 7, 30, tzinfo=UTC)
     restarted.tick()
     assert len(sent) == 2
     calendar.fetch_events_in_window = lambda *a, **kw: (_ for _ in ()).throw(OSError())
@@ -405,16 +405,16 @@ def test_briefing_lists_are_limited_and_fit_into_one_telegram_message(tmp_path):
     many = [NS(due={"date": "2026-10-01"}, content="x" * 500) for _ in range(12)]
     svc = DailyBriefingService(JsonStore(tmp_path), DailyBriefingSettings(include_open=False), "UTC",
         NS(fetch_events_in_window=lambda *a, **kw: []), NS(fetch_active_tasks=lambda: many), None, {})
-    text = svc.build(datetime(2026, 10, 25, 8, tzinfo=timezone.utc))
+    text = svc.build(datetime(2026, 10, 25, 8, tzinfo=UTC))
     assert "📅 Heute 0 Termine." in text and "✅ 12 Aufgaben fällig:" in text
     assert len(text) == MAX_LENGTH and text.endswith("…")
     svc.tasks = NS(fetch_active_tasks=lambda: many[:1] * 11)
     short = [NS(due={"date": "2026-10-01"}, content="kurz")] * 11
     svc.tasks = NS(fetch_active_tasks=lambda: short)
-    text = svc.build(datetime(2026, 10, 25, 8, tzinfo=timezone.utc))
+    text = svc.build(datetime(2026, 10, 25, 8, tzinfo=UTC))
     assert text.count("• kurz") == 10 and text.endswith("• … und 1 weitere")
     svc.tasks = NS(fetch_active_tasks=lambda: [])
-    assert "✅ 0 Aufgaben fällig." in svc.build(datetime(2026, 10, 25, 8, tzinfo=timezone.utc))
+    assert "✅ 0 Aufgaben fällig." in svc.build(datetime(2026, 10, 25, 8, tzinfo=UTC))
 
 
 def test_disabled_telegram_never_uses_network(monkeypatch):
@@ -529,9 +529,10 @@ def test_briefing_and_filters_work_without_javascript(web):
 
 
 def test_analyzer_reply_uses_configured_prompt():
+    from shared_core import prompt_config
+
     from mailhelp.analysis import Analyzer
     from mailhelp.config import PromptStep
-    from test_core import prompt_config
     prompts = prompt_config()
     prompts.prompts["draft_reply"] = PromptStep(system_prompt="Untrusted input; only draft.")
     calls = []
@@ -567,19 +568,21 @@ def test_analyzer_reply_uses_configured_prompt():
 
 def test_strict_briefing_calendar_query_propagates_failure():
     import httpx
+
     from mailhelp.integrations import HttpWriter
     writer = HttpWriter("google_calendar", "fake", "primary",
         calendar_timezone="UTC",
         transport=httpx.MockTransport(lambda request: httpx.Response(503)))
-    with pytest.raises(Exception): writer.fetch_events_in_window(datetime.now(timezone.utc), datetime.now(timezone.utc), strict=True)
+    with pytest.raises(Exception): writer.fetch_events_in_window(datetime.now(UTC), datetime.now(UTC), strict=True)
     writer.close()
 
 
 @pytest.mark.parametrize("mode", ["ssl", "starttls"])
 def test_runtime_composes_services_and_ticks_without_external_io(web, tmp_path, monkeypatch, mode):
-    from mailhelp.experience import ExperienceRuntime
-    from test_application import settings, Log
     from pydantic import SecretStr
+    from shared_application import Log, settings
+
+    from mailhelp.experience import ExperienceRuntime
     cfg = settings(tmp_path)
     cfg.push.enabled = cfg.smart_reply = cfg.daily_briefing.enabled = True
     cfg.daily_briefing.time = "00:00"
@@ -629,12 +632,13 @@ def test_runtime_composes_services_and_ticks_without_external_io(web, tmp_path, 
 
 
 def test_standalone_config_loading_and_composition(tmp_path, monkeypatch, capsys):
+
     import yaml
-    from pathlib import Path
-    from mailhelp.config import load_all, Secrets, Topic
+    from shared_application import settings
+    from shared_core import prompt_config
+
     from mailhelp.application import build_application
-    from test_application import settings
-    from test_core import prompt_config
+    from mailhelp.config import Secrets, load_all
     cfg = settings(tmp_path)
     cfg.telegram.enabled = False
     with pytest.raises(ValueError): Settings.model_validate(cfg.model_dump())
@@ -668,9 +672,10 @@ def test_standalone_config_loading_and_composition(tmp_path, monkeypatch, capsys
 
 
 def test_retention_scrubs_draft_and_preview_together(tmp_path):
-    from mailhelp.retention import RetentionService
+    from shared_retention import NOW, Log, state
+
     from mailhelp.config import RetentionSettings
-    from test_retention import state, NOW, Log
+    from mailhelp.retention import RetentionService
     store = JsonStore(tmp_path)
     item = state(MAIL1)
     store.save(f"mail-{MAIL1}", item.model_dump(mode="json"))
@@ -693,10 +698,11 @@ def test_preview_rejects_resolved_path_escape(tmp_path, monkeypatch):
 
 
 def test_experience_settings_preserve_16_analysis_fingerprint(tmp_path):
-    from mailhelp.fingerprints import config_fingerprint, analysis_settings, analysis_prompts, _hash
-    from test_application import settings
-    from test_core import prompt_config
+    from shared_application import settings
+    from shared_core import prompt_config
+
     from mailhelp.config import PromptStep
+    from mailhelp.fingerprints import _hash, analysis_prompts, config_fingerprint
     cfg, prompts = settings(tmp_path), prompt_config()
     before = config_fingerprint(cfg, prompts, [])
     cfg.push.enabled = cfg.smart_reply = cfg.daily_briefing.enabled = True
@@ -772,7 +778,7 @@ def test_draft_editor_explains_refusal_and_form_errors(web):
 
 def test_inbox_zero_summarizes_today_in_the_configured_zone(web, monkeypatch):
     site = web.site
-    site.clock = lambda: datetime(2026, 10, 12, 22, 30, tzinfo=timezone.utc)  # 00:30 in Berlin
+    site.clock = lambda: datetime(2026, 10, 12, 22, 30, tzinfo=UTC)  # 00:30 in Berlin
     def row(pid, status, kind, at="2026-10-12T22:10:00+00:00"):
         return {"mail_id": MAIL1, "proposal_id": pid, "status": status, "proposal_kind": kind, "at": at,
                 "version": 1, "source": "web", "kind": "decision", "title": "x"}
@@ -823,8 +829,9 @@ def test_detail_page_discloses_evidence_revisions_and_analysis(web, monkeypatch)
 
 
 def test_runtime_without_optional_features_only_keeps_the_local_briefing(web, tmp_path):
+    from shared_application import Log, settings
+
     from mailhelp.experience import ExperienceRuntime
-    from test_application import settings, Log
     cfg = settings(tmp_path)
     cfg.web.enabled, cfg.telegram.enabled = True, False
     cfg.daily_briefing.enabled, cfg.daily_briefing.time = True, "00:00"
@@ -851,8 +858,9 @@ def test_login_page_names_the_console_without_telegram():
 
 def test_background_never_calls_the_model_for_drafts_and_sections_stay_isolated(web, tmp_path):
     """Drafts cost one LLM call per click only; the minute scheduler never creates one."""
+    from shared_application import Log, settings
+
     from mailhelp.experience import ExperienceRuntime
-    from test_application import settings, Log
     cfg = settings(tmp_path)
     cfg.smart_reply = cfg.daily_briefing.enabled = True
     cfg.daily_briefing.time = "00:00"
@@ -878,8 +886,9 @@ def test_background_never_calls_the_model_for_drafts_and_sections_stay_isolated(
 
 
 def test_drafts_stay_off_without_the_prompt(web, tmp_path):
+    from shared_application import Log, settings
+
     from mailhelp.experience import ExperienceRuntime
-    from test_application import settings, Log
     cfg = settings(tmp_path)
     cfg.smart_reply = True
     app = NS(settings=cfg, store=web.store, logger=Log(), calendar=None, todoist=None,
@@ -889,8 +898,9 @@ def test_drafts_stay_off_without_the_prompt(web, tmp_path):
 
 
 def test_push_section_failure_is_logged(web, tmp_path):
+    from shared_application import Log, settings
+
     from mailhelp.experience import ExperienceRuntime
-    from test_application import settings, Log
     cfg = settings(tmp_path)
     cfg.push.enabled = True
     app = NS(settings=cfg, store=web.store, logger=Log(), calendar=None, todoist=None,

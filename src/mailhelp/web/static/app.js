@@ -107,7 +107,7 @@
 // 2.0: split view, quick filters, shortcuts, undo, lightbox and Web-Push.
 // Every form still posts to the server, which checks session, CSRF and version.
 (function () {
-  var UNDO_MS = 5000;
+  var UNDO_MS = Number(document.body.dataset.undoMs || 5000);
   var main = document.getElementById("inhalt");
   var desktop = window.matchMedia("(min-width: 1024px)");
   var items = null, pane = null, selected = null, pending = null, requestNumber = 0;

@@ -18,7 +18,6 @@ from zoneinfo import ZoneInfo
 from ..external.contracts import proposal_is_writable
 from ..models import Proposal, ProposalKind
 
-
 RESPONSIBILITY = {"user": "Du", "other": "Andere Person", "unclear": "Noch unklar"}
 CERTAINTY = {"certain": "Eindeutig", "uncertain": "Unsicher", "contradictory": "Widersprüchlich"}
 CLASSIFICATION = {

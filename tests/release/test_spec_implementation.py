@@ -1,25 +1,26 @@
 """Regression tests for the specification audit, using synthetic services only."""
-from types import SimpleNamespace
-from pathlib import Path
-import yaml
 from copy import deepcopy
-from datetime import datetime, timezone
+from datetime import UTC, datetime
+from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
+import yaml
+from shared_application import Imap, Orch, Telegram, app
+from shared_core import prompt_config
+from shared_quality_corpus import load_corpus
+from shared_quality_corpus import prompt_config as quality_prompts
+from shared_review_write_safety import reminder
+from shared_telegram_dialog import callback, controller
 
 from mailhelp.analysis import Analyzer
 from mailhelp.application import Application
+from mailhelp.config import Topic
 from mailhelp.imap import FetchedMail
 from mailhelp.logging import NullLogger
-from mailhelp.storage import JsonStore
 from mailhelp.models import ProposalStatus
-from test_application import app, Imap, Orch, Telegram
-from test_core import prompt_config
-from test_telegram_dialog import controller, callback
-from test_review_write_safety import reminder
-from test_quality_corpus import load_corpus, prompt_config as quality_prompts
-from mailhelp.config import Topic
 from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
+from mailhelp.storage import JsonStore
 
 
 @pytest.mark.parametrize("kind", ["tasks", "events"])
@@ -119,10 +120,10 @@ def test_real_analyzer_count_conflict_retains_other_extraction_and_restart(tmp_p
             if stage == "action_router": value["task_count"] = 2
             if empty and stage == "task_extraction": value["tasks"] = []
             return "call-" + stage, value
-    from test_services import Notify
+    from shared_services import Notify
     notifier = Notify()
     mail = FetchedMail("INBOX", 7, 1, case["raw_email"].encode(), "0" * 24,
-                       datetime(2026, 9, 18, 8, 1, tzinfo=timezone.utc))
+                       datetime(2026, 9, 18, 8, 1, tzinfo=UTC))
     with JsonStore(tmp_path) as store:
         analyzer = Analyzer(Provider(), quality_prompts(), validation_retries=0)
         service = Orchestrator(analyzer, store, notifier, 1,
@@ -148,9 +149,10 @@ def test_real_analyzer_count_conflict_retains_other_extraction_and_restart(tmp_p
 
 
 def test_real_bounded_batch_sends_proposals_one_at_a_time_and_counts_open_actions(tmp_path):
+    from shared_e2e_simulated import FakeTelegram
+
     from mailhelp.imap import MailCandidate
     from mailhelp.models import MailRunState
-    from test_e2e_simulated import FakeTelegram
     from mailhelp.telegram import TelegramDialogController
     corpus = load_corpus()
     case = next(item for item in corpus["cases"] if item["id"] == "04_task_and_event")
@@ -158,7 +160,7 @@ def test_real_bounded_batch_sends_proposals_one_at_a_time_and_counts_open_action
         def complete(self, model, parameters, system, payload, **metadata):
             stage = metadata["stage"]
             return stage, deepcopy(case["expected"][{"action_router": "action_route"}.get(stage, stage)])
-    stamp = datetime(2026, 9, 18, 8, 1, tzinfo=timezone.utc)
+    stamp = datetime(2026, 9, 18, 8, 1, tzinfo=UTC)
     class Reader:
         account_id = "0" * 24
         last_uidvalidity = 7
@@ -211,10 +213,11 @@ def test_real_bounded_batch_sends_proposals_one_at_a_time_and_counts_open_action
 
 @pytest.mark.parametrize("decision", ["relevant", "irrelevant"])
 def test_regression_held_relevance_keeps_queue_incomplete_and_resumes(tmp_path, decision):
+    from shared_telegram_outbox import A, item, shown, stored
+
     from mailhelp.imap import MailCandidate
-    from mailhelp.models import MailState, MailRunState, ImapCheckpoint
     from mailhelp.mailbox_run import _checkpoint_name
-    from test_telegram_outbox import item, stored, A, shown
+    from mailhelp.models import ImapCheckpoint, MailRunState, MailState
     corpus = load_corpus()
     case = next(case for case in corpus["cases"] if case["id"] == "02_task_only")
     calls = []
@@ -226,7 +229,7 @@ def test_regression_held_relevance_keeps_queue_incomplete_and_resumes(tmp_path, 
             if subject == "Mail B" and stage == "relevance":
                 return "call", {"decision": "unclear", "topic_ids": [], "reason": "Synthetic ambiguity"}
             return "call", deepcopy(case["expected"][{"action_router": "action_route"}.get(stage, stage)])
-    stamp = datetime(2026, 9, 18, 8, 1, tzinfo=timezone.utc)
+    stamp = datetime(2026, 9, 18, 8, 1, tzinfo=UTC)
     class Reader:
         account_id = "0" * 24
         last_uidvalidity = 7
@@ -294,8 +297,8 @@ def test_regression_held_relevance_keeps_queue_incomplete_and_resumes(tmp_path, 
 
 
 def test_regression_legacy_reader_does_not_checkpoint_unanswered_relevance(tmp_path):
-    from mailhelp.orchestrator import ProcessingResult
     from mailhelp.mailbox_run import _checkpoint_name
+    from mailhelp.orchestrator import ProcessingResult
     class Waiting(Orch):
         def process(self, mail):
             self.seen.append(mail.uid)
@@ -309,10 +312,11 @@ def test_regression_legacy_reader_does_not_checkpoint_unanswered_relevance(tmp_p
 
 def test_regression_held_relevance_does_not_consume_next_run_budget(tmp_path):
     from uuid import uuid4
-    from mailhelp.models import MailState, MailRunState, MailRunEntry, MailRunCounters, RelevanceDialog
+
     from mailhelp.imap import MailCandidate
     from mailhelp.mailbox_run import _checkpoint_name
-    stamp = datetime(2026, 9, 18, tzinfo=timezone.utc)
+    from mailhelp.models import MailRunCounters, MailRunEntry, MailRunState, MailState, RelevanceDialog
+    stamp = datetime(2026, 9, 18, tzinfo=UTC)
     class Reader:
         account_id = "0" * 24
         last_uidvalidity = 7

@@ -8,7 +8,7 @@ every field missing in an old state gets a neutral default instead of failing.
 """
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 
 from pydantic import (
     BaseModel,
@@ -31,7 +31,7 @@ class _ReadModel(BaseModel):
         try:
             return handler(value)
         except ValidationError:
-            field = cls.model_fields[info.field_name]
+            field = cls.model_fields[cast(str, info.field_name)]
             if field.is_required():
                 raise
             return field.get_default(call_default_factory=True)

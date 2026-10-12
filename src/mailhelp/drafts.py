@@ -1,19 +1,25 @@
 """Versioned reply drafts; uncertain APPENDs are reconciled, never blindly retried."""
 from __future__ import annotations
+
 import hashlib
 import imaplib
 import re
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from email.message import EmailMessage
 from email.policy import SMTP
 from email.utils import format_datetime, parseaddr
 from threading import Lock
-from pydantic import BaseModel, ConfigDict, Field
-from .imap import mailbox_argument
-from .domain.prepared import MailHeaders
-from .models import MailState
-from . import state_names
+from contextlib import AbstractContextManager
+from collections.abc import Callable
+from typing import Any, Protocol, cast
+from .storage import StateStore
 
+from pydantic import BaseModel, ConfigDict, Field
+
+from . import state_names
+from .domain.prepared import MailHeaders
+from .imap import mailbox_argument
+from .models import MailState
 
 # Reply intents offered on every mail page, with their German button labels.
 INTENTS = {"accept": "Zusage", "decline": "Absage", "question": "Rückfrage"}
@@ -25,7 +31,7 @@ class ReplyDraft(BaseModel):
     text: str = Field(min_length=1, max_length=8000)
 
 
-def message(headers: MailHeaders, sender, text, message_id):
+def message(headers: MailHeaders, sender: str, text: str, message_id: str) -> bytes:
     result = EmailMessage(policy=SMTP)
     address = parseaddr(headers.reply_to or headers.sender)[1]
     if not address or "@" not in address or any(c in address + sender for c in "\r\n\x00"):
@@ -40,17 +46,23 @@ def message(headers: MailHeaders, sender, text, message_id):
         ids.append(parent)
     if ids:
         result["References"] = " ".join(dict.fromkeys(ids))
-    result["Date"] = format_datetime(datetime.now(timezone.utc))
+    result["Date"] = format_datetime(datetime.now(UTC))
     result["Message-ID"] = message_id
     result.set_content(text)
     return result.as_bytes()
 
 
+class DraftAnalyzer(Protocol):
+    def draft_reply(self, mail: dict[str, Any], intent: str, personal_info: str) -> tuple[str, ReplyDraft]: ...
+
+
 class DraftService:
     """One reply draft per mail, generated on request for a chosen reply intent."""
 
-    def __init__(self, store, authorize, connection, sender, folder="Drafts", test_mode=False, analyzer=None,
-                 personal_info=lambda: ""):
+    def __init__(self, store: StateStore, authorize: Callable[[str], bool],
+                 connection: Callable[[], AbstractContextManager[imaplib.IMAP4]], sender: str,
+                 folder: str = "Drafts", test_mode: bool = False, analyzer: DraftAnalyzer | None = None,
+                 personal_info: Callable[[], str] = lambda: "") -> None:
         self.store, self.authorize, self.connection = store, authorize, connection
         self.sender, self.folder, self.test_mode = sender, folder, test_mode
         # Read on every click, so a changed setting applies without a restart.
@@ -58,15 +70,15 @@ class DraftService:
         # Serializes draft actions including the LLM and IMAP access, without the store lock.
         self._lock = Lock()
 
-    def get(self, mail_id):
-        return self.store.load(state_names.draft(mail_id))
+    def get(self, mail_id: str) -> dict[str, Any] | None:
+        return cast(dict[str, Any] | None, self.store.load(state_names.draft(mail_id)))
 
-    def available(self, mail_id):
+    def available(self, mail_id: str) -> bool:
         """Replies need the mail text; retention removes it together with the draft text."""
         source = self.store.load_model(state_names.mail(mail_id), MailState)
         return source is not None and source.mail is not None
 
-    def _save(self, mail_id, draft):
+    def _save(self, mail_id: str, draft: dict[str, Any]) -> None:
         """Retention may have removed the mail meanwhile; its text never comes back."""
         with self.store.locked():
             source = self.store.load_model(state_names.mail(mail_id), MailState)
@@ -75,12 +87,13 @@ class DraftService:
             self.store.save(state_names.draft(mail_id), draft)
 
     @staticmethod
-    def _remember(draft, key, digest):
+    def _remember(draft: dict[str, Any], key: str, digest: str) -> None:
         draft["operations"][key] = digest
         for old in list(draft["operations"])[:-MAX_OPERATIONS]:
             del draft["operations"][old]
 
-    def _begin(self, actor, mail_id, version, key, digest, *, created=False):
+    def _begin(self, actor: str, mail_id: str, version: int, key: str, digest: str,
+               *, created: bool = False) -> tuple[MailState, dict[str, Any], bool]:
         """Authorize and load under the store lock; ``None`` means a finished replay."""
         if not re.fullmatch(r"[a-f0-9]{24}", mail_id) or not re.fullmatch(r"[A-Za-z0-9_-]{8,80}", key):
             raise ValueError("Ungültige Identität")
@@ -101,7 +114,7 @@ class DraftService:
             raise ValueError("Veraltete Entwurfsversion")
         return source, draft, False
 
-    def generate(self, actor, mail_id, version, key, intent):
+    def generate(self, actor: str, mail_id: str, version: int, key: str, intent: str) -> dict[str, Any]:
         """One LLM call per click; a replayed click returns the stored draft."""
         if intent not in INTENTS:
             raise ValueError("Unbekannte Antwortart")
@@ -114,7 +127,7 @@ class DraftService:
                 if draft["status"] == "uncertain":
                     raise ValueError("Schreibresultat unklar; zuerst den Entwurf erneut speichern")
             # The paid call runs without the store lock; the session is checked again afterwards.
-            call, reply = self.analyzer.draft_reply(source.mail, intent, self.personal_info())
+            call, reply = cast(DraftAnalyzer, self.analyzer).draft_reply(cast(dict[str, Any], source.mail), intent, self.personal_info())
             if not self.authorize(actor):
                 raise PermissionError("Sitzung abgelaufen")
             draft.update(version=version + 1, text=reply.text, intent=intent, status="editing",
@@ -123,7 +136,7 @@ class DraftService:
             self._save(mail_id, draft)
             return draft
 
-    def cancel(self, actor, mail_id, version, key):
+    def cancel(self, actor: str, mail_id: str, version: int, key: str) -> dict[str, Any]:
         """Discard the open draft locally; nothing was written to the mailbox."""
         digest = hashlib.sha256(repr((actor, "cancel", version)).encode()).hexdigest()
         with self._lock, self.store.locked():
@@ -137,7 +150,7 @@ class DraftService:
             self.store.save(state_names.draft(mail_id), draft)
             return draft
 
-    def act(self, actor, mail_id, version, key, text):
+    def act(self, actor: str, mail_id: str, version: int, key: str, text: str) -> dict[str, Any]:
         """Save exactly the submitted text of this version as a draft in the mailbox."""
         ReplyDraft(text=text)
         if not text.strip():
@@ -173,7 +186,8 @@ class DraftService:
             self._save(mail_id, draft)
             return draft
 
-    def _append(self, connection, actor, mail_id, key, digest, draft, message_id, content):
+    def _append(self, connection: imaplib.IMAP4, actor: str, mail_id: str, key: str, digest: str,
+                draft: dict[str, Any], message_id: str, content: bytes) -> None:
         """Reconcile first; append only if the draft is provably missing from the folder."""
         folder = mailbox_argument(self.folder)
         status, _ = connection.select(folder, readonly=True)

@@ -1,15 +1,15 @@
 """Inhaltsminimierung abgeschlossener, sicher wiederaufnehmbarer Vorgänge."""
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from typing import Callable, Literal
+from datetime import UTC, datetime, timedelta
+from typing import Literal
 
+from . import state_names
 from .config import RetentionSettings
 from .models import MailState, ProposalStatus
 from .storage import JsonStore, mail_state_names
-from . import state_names
-
 
 Period = int | Literal["disabled", "unlimited"]
 _OPEN_PROPOSALS = {
@@ -37,7 +37,7 @@ class RetentionService:
         self.store = store
         self.settings = settings
         self.logger = logger
-        self.clock = clock or (lambda: datetime.now(timezone.utc))
+        self.clock = clock or (lambda: datetime.now(UTC))
 
     @staticmethod
     def _expired(period: Period, updated_at: datetime, now: datetime) -> bool:

@@ -1,13 +1,11 @@
 """Fachmodelle für den Kontext Vorschläge und Revisionen."""
 from __future__ import annotations
 
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta
 from enum import StrEnum
-from typing import Annotated, Any, Literal
-from uuid import UUID
-import re
+from typing import Any, Literal
 
-from pydantic import AnyHttpUrl, Field, field_validator, model_validator
+from pydantic import AnyHttpUrl, Field, model_validator
 
 from ._base import CalendarDate, StrictModel
 from .temporal import TemporalFact
@@ -67,7 +65,7 @@ class DuplicateMatchInfo(StrictModel):
     matched_time: datetime | date | None = None
     similarity_score: float | None = Field(default=None, ge=0.0, le=1.0)
     details: str = Field(default="", max_length=1000)
-    checked_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    checked_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class KnownTemporalFacts(StrictModel):
@@ -80,7 +78,7 @@ class KnownTemporalFacts(StrictModel):
     start_time: time | None = None
 
     @model_validator(mode="after")
-    def validate_facts(self) -> "KnownTemporalFacts":
+    def validate_facts(self) -> KnownTemporalFacts:
         if self.start is not None and (self.start.tzinfo is None or self.start.utcoffset() is None):
             raise ValueError("Eine bekannte Beginnzeit benötigt einen eindeutigen UTC-Offset")
         if self.date is None and self.start is None and self.start_time is None:
@@ -105,7 +103,7 @@ class ActionLedgerEntry(StrictModel):
     target: str = Field(min_length=1, max_length=500)
     external_id: str | None = Field(default=None, max_length=500)
     external_link: str | None = Field(default=None, max_length=2000)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class ActionLedger(StrictModel):
@@ -115,7 +113,7 @@ class ActionLedger(StrictModel):
     entries: list[ActionLedgerEntry] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def unique_proposal_versions(self) -> "ActionLedger":
+    def unique_proposal_versions(self) -> ActionLedger:
         keys = [(item.mail_id, item.proposal_id, item.proposal_version) for item in self.entries]
         if len(keys) != len(set(keys)):
             raise ValueError("Angelegte Aktionen dürfen nicht doppelt verbucht werden")
@@ -186,7 +184,7 @@ class Proposal(StrictModel):
                 self.certainty == ProposalCertainty.CERTAIN)
 
     @model_validator(mode="after")
-    def validate_consistency(self) -> "Proposal":
+    def validate_consistency(self) -> Proposal:
         if self.status == ProposalStatus.SIMULATED and (self.external_id is not None or self.external_link is not None):
             raise ValueError("Ein simulierter Vorschlag darf kein externes Ergebnis enthalten")
         if self.simulation_notified and self.status != ProposalStatus.SIMULATED:

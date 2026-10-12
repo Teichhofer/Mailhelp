@@ -4,13 +4,16 @@ from unittest.mock import Mock
 from mailhelp.models import Proposal
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import (
-    ActionLedgerService, ConfirmedWriteExecutor,
     AuthorizedUpdateValidator,
-    Decision, DecisionAction,
+    ConfirmedWriteExecutor,
+    Decision,
+    DecisionAction,
     ProposalRevisionProcessor,
     RelevanceDecision,
     TelegramDialogController,
-    clarification_name, proposal_name, proposal_version_name,
+    clarification_name,
+    proposal_name,
+    proposal_version_name,
 )
 
 
@@ -76,8 +79,8 @@ def test_telegram_implementations_live_in_their_domain_modules():
         RelevanceDialogProcessor,
         TelegramClient,
         TelegramDialogController,
+        _core,
     )
-    from mailhelp.telegram import _core
 
     expected_modules = {
         AuthorizedUpdateValidator: "mailhelp.telegram.authorization",

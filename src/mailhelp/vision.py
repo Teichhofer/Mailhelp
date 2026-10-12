@@ -10,13 +10,13 @@ untrusted as the mail itself.
 from __future__ import annotations
 
 import base64
+import io
+import warnings
 from collections.abc import Iterator
 from dataclasses import dataclass
 from email import policy
 from email.parser import BytesParser
-import io
 from typing import Any, Protocol
-import warnings
 
 import pypdf
 from PIL import Image, ImageOps
@@ -147,7 +147,7 @@ def plan(raw: bytes, attachments: list[dict[str, Any]],
     jobs: list[VisionJob] = []
     skipped: dict[int, str] = {}
     remaining = settings.max_images_per_mail
-    for index, ((filename, content_type, payload), attachment) in enumerate(zip(parts, attachments)):
+    for index, ((filename, content_type, payload), attachment) in enumerate(zip(parts, attachments, strict=False)):
         image = is_image(filename, content_type)
         if attachment.get("vision") is not None or not (image or is_scanned_pdf(attachment)):
             continue

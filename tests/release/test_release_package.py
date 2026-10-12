@@ -1,12 +1,13 @@
 """Verify real distribution contents and configuration away from a checkout."""
 import os
-from pathlib import Path
 import shutil
 import tarfile
 import tomllib
 import zipfile
+from pathlib import Path
 
 import pytest
+
 import mailhelp
 from mailhelp.config import load_all
 from mailhelp.decisions import load_relevance_prompts

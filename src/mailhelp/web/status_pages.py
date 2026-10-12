@@ -1,8 +1,10 @@
 """Operating status renderer, independent of proposal and mail rendering."""
 from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime
 from zoneinfo import ZoneInfo
+
 from ..review.inbox import CommandStatus
 from ..review.views import STATUS_LABELS, Overview, RunStatus, SystemStatus
 from .pages import e, layout, notice

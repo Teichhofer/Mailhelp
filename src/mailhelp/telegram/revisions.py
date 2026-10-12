@@ -2,26 +2,35 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any, Protocol
 
 import httpx
 from pydantic import ValidationError
 
+from .. import state_names
 from ..adapter import RetryableError
 from ..analysis import ContradictoryRevision, TechnicalRevisionError
-from ..models import AnswerStatus, MailState, Proposal, ProposalClarificationState, ProposalClassification, ProposalRevisionStatus, ProposalStatus, QuestionStatus, TelegramDialogState
+from ..models import (
+    AnswerStatus,
+    MailState,
+    Proposal,
+    ProposalClarificationState,
+    ProposalClassification,
+    ProposalRevisionStatus,
+    ProposalStatus,
+    QuestionStatus,
+    TelegramDialogState,
+)
 from ..storage import JsonStore
-
-from .client import TelegramTransport
-from .persistence import clarification_name, proposal_name, proposal_version_name
-from .formatting import clarification_prompt
-from .writes import ProposalPersistence
-from .revision_contracts import ProposalRevisionService, EventLogger
 from .answer_interpretation import AuthorizedAnswerInterpreter
+from .client import TelegramTransport
+from .formatting import clarification_prompt
+from .persistence import clarification_name, proposal_name, proposal_version_name
+from .revision_contracts import EventLogger, ProposalRevisionService
 from .revision_recovery import RevisionRecovery
 from .revision_successor import build_revision_successor
-from .. import state_names
+from .writes import ProposalPersistence
 
 
 class ProposalRevisions(Protocol):
@@ -349,7 +358,7 @@ class ProposalRevisionProcessor:
                 "next_revision_at": (
                     None
                     if exhausted
-                    else datetime.now(timezone.utc)
+                    else datetime.now(UTC)
                     + timedelta(seconds=self.revision_backoff_seconds)
                 ),
             }

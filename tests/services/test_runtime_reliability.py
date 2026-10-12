@@ -1,18 +1,18 @@
 """Regression coverage for configuration-relative paths and provider boundaries."""
+import sys
+import zoneinfo
 from datetime import datetime, timedelta
 from pathlib import Path
 from types import SimpleNamespace
-import sys
-import zoneinfo
 
 import httpx
 import pytest
+from shared_core import proposal
 
 from mailhelp.application import _state_directory
 from mailhelp.cli import main
 from mailhelp.integrations import HttpWriter, execute_confirmed
 from mailhelp.paths import runtime_path
-from test_core import proposal
 
 
 @pytest.mark.parametrize("absolute", [False, True])

@@ -122,7 +122,7 @@ class SenderSite:
     def list(self, request: Request, session) -> Response:
         if self.configuration is None:
             return self.site._reply(request, 503, "Absenderverwaltung nicht verfügbar.")
-        message, kind = self.site._result_notice(request, session)
+        message, kind = self.site.review._result_notice(request, session)
         page = senders_page(self.configuration.blocked_senders(), self.site.auth.csrf_token(session.id),
                             message, kind)
         return Response.html(200, layout("Ignorierte Absender", page, active="/einstellungen"))

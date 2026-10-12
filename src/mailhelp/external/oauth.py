@@ -1,11 +1,15 @@
 """Google access-token renewal, isolated from Calendar resource requests."""
 from __future__ import annotations
+
 import time
-from typing import Callable
+from collections.abc import Callable
+
 import httpx
 from pydantic import Field, ValidationError
+
 from ..logging import EventLogger, NullLogger
 from .contracts import IntegrationModel, OAuthTokenError
+
 
 class OAuthTokenResponse(IntegrationModel):
     access_token: str = Field(min_length=1)

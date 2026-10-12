@@ -1,23 +1,35 @@
 from __future__ import annotations
 
 import copy
-import json
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta, timezone
 from pathlib import Path
 
 import httpx
 import pytest
 from pydantic import ValidationError
+from shared_core import proposal
 
 from mailhelp.config import Settings, validated_file
 from mailhelp.external.confirmed import _with_external_result
 from mailhelp.integrations import HttpWriter
-from mailhelp.models import (DuplicateDecision, DuplicateIndex, DuplicateIndexEntry, EventExtraction, ExtractedEvent, ExtractionCountConflict, ImapCheckpoint, MailState, Proposal, ProposalNotification, TelegramDialogState,
-                             TelegramOffset, ValidationIssue, WriteAttemptReference)
+from mailhelp.models import (
+    DuplicateDecision,
+    DuplicateIndex,
+    DuplicateIndexEntry,
+    EventExtraction,
+    ExtractedEvent,
+    ExtractionCountConflict,
+    ImapCheckpoint,
+    MailState,
+    ProposalNotification,
+    TelegramDialogState,
+    TelegramOffset,
+    ValidationIssue,
+    WriteAttemptReference,
+)
 from mailhelp.openrouter import InvalidJson, OpenRouterClient, ProviderResponseInvalid, _path
 from mailhelp.storage import CorruptState, JsonStore
 from mailhelp.telegram import TelegramClient, TelegramUpdatesResponse, TelegramWriteResponse, validation_path
-from test_core import proposal
 
 
 def valid_settings(tmp_path: Path) -> dict:
@@ -56,7 +68,7 @@ def test_extracted_event_time_requirement_is_required_closed_and_in_json_schema(
 
 
 def test_mail_state_v9_metadata_is_closed_and_round_trips(tmp_path):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     state = MailState(
         id="a" * 24, imap={"account_id":"0"*24,"folder": "INBOX", "uidvalidity": 1, "uid": 2},
         created_at=now, updated_at=now, config_fingerprint="f" * 64,
@@ -86,7 +98,7 @@ def test_extraction_count_conflicts_are_strict_and_unique():
 
 
 def test_mail_state_v6_is_explicitly_migrated(tmp_path):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     state = MailState(
         id="a" * 24, config_fingerprint="f" * 64,
         imap={"account_id": "0" * 24, "folder": "INBOX", "uidvalidity": 1, "uid": 2},
@@ -165,7 +177,7 @@ def test_historical_start_tolerates_separator_whitespace(tmp_path, stamp):
     configured = valid_settings(tmp_path)
     configured["imap"]["historical_start"] = stamp
     parsed = Settings.model_validate(configured).imap.historical_start
-    offset = timezone.utc if stamp.endswith("Z") else timezone(timedelta(hours=2))
+    offset = UTC if stamp.endswith("Z") else timezone(timedelta(hours=2))
     assert parsed == datetime(2026, 10, 1, tzinfo=offset)
     assert parsed.utcoffset() == offset.utcoffset(None)
 
@@ -367,8 +379,8 @@ def test_integration_response_boundaries_and_required_ids():
             if method == "GET": writer.reconcile("key")
             elif service == "todoist": writer.create(proposal(target='target', status="confirmed"),"key")
             else:
-                from datetime import datetime, timedelta, timezone
-                now=datetime.now(timezone.utc)
+                from datetime import datetime, timedelta
+                now=datetime.now(UTC)
                 writer.create(proposal(target='target', kind="event",start=now,end=now+timedelta(hours=1),status="confirmed"),"key")
         assert service.split("_")[0].lower() in str(error.value).lower() and "top-secret" not in str(error.value)
         writer.close()

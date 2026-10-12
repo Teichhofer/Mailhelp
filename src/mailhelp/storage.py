@@ -1,17 +1,22 @@
 """Atomare, menschenlesbare JSON-Ablage mit Einzelinstanz-Sperre."""
 from __future__ import annotations
+
 import errno
-import json, os
+import json
+import os
 import re
 import tempfile
 import time
+from collections.abc import Iterator
 from contextlib import AbstractContextManager, contextmanager
 from pathlib import Path
 from threading import RLock
-from typing import Any, Iterator, Protocol, runtime_checkable
+from typing import Any, Protocol, runtime_checkable
+
 from pydantic import BaseModel, ValidationError
 
 from .persistence.migrations import migrate_document
+
 # Re-exported for existing callers; the name patterns live in state_names.
 from .state_names import mail_state_names  # noqa: F401
 
@@ -47,8 +52,8 @@ class StateStore(Protocol):
 
     def load(self, name: str, default: Any = None) -> Any: ...
     def save(self, name: str, value: Any) -> None: ...
-    def load_model(self, name: str, model: type[BaseModel], default: BaseModel | None = None) -> BaseModel | None: ...
-    def peek_model(self, name: str, model: type[BaseModel], default: BaseModel | None = None) -> BaseModel | None: ...
+    def load_model[M: BaseModel](self, name: str, model: type[M], default: M | None = None) -> M | None: ...
+    def peek_model[M: BaseModel](self, name: str, model: type[M], default: M | None = None) -> M | None: ...
     def names(self, prefix: str = "") -> list[str]: ...
     def locked(self) -> AbstractContextManager[Any]: ...
 
@@ -63,18 +68,19 @@ class JsonStore:
     """
 
     def __init__(self, directory: Path):
-        self.directory, self.lock = directory, None
+        self.directory = directory
+        self.lock: int | None = None
         self._thread_lock = RLock()
         self.revision = 0
         self.archive_revision = 0
 
     @contextmanager
-    def locked(self) -> Iterator["JsonStore"]:
+    def locked(self) -> Iterator[JsonStore]:
         """Hold the thread lock across several reads for a consistent view."""
         with self._thread_lock:
             yield self
 
-    def __enter__(self) -> "JsonStore":
+    def __enter__(self) -> JsonStore:
         self.directory.mkdir(parents=True, exist_ok=True)
         path = self.directory / ".lock"
         descriptor = os.open(path, os.O_CREAT | os.O_RDWR, 0o600)
@@ -156,7 +162,7 @@ class JsonStore:
             os.replace(path, isolated)
             raise CorruptState(f"Beschädigter Zustand isoliert: {isolated.name}") from exc
 
-    def peek_model(self, name: str, model: type[BaseModel], default: BaseModel | None = None) -> BaseModel | None:
+    def peek_model[M: BaseModel](self, name: str, model: type[M], default: M | None = None) -> M | None:
         """Validate a state object read-only; migrations apply in memory only."""
         value = self.peek(name, None)
         if value is None:
@@ -167,13 +173,13 @@ class JsonStore:
         except ValidationError as exc:
             raise CorruptState(f"Schemawidriger Zustand: {name}.json") from exc
 
-    def load_model(self, name: str, model: type[BaseModel], default: BaseModel | None = None) -> BaseModel | None:
+    def load_model[M: BaseModel](self, name: str, model: type[M], default: M | None = None) -> M | None:
         """Load and validate a state object, quarantining invalid schemas too."""
         with self._thread_lock:
             value = self._load_model(name, model, default)
         return value
 
-    def _load_model(self, name: str, model: type[BaseModel], default: BaseModel | None) -> BaseModel | None:
+    def _load_model[M: BaseModel](self, name: str, model: type[M], default: M | None) -> M | None:
         value = self.load(name, None)
         if value is None:
             return default

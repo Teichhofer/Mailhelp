@@ -1,13 +1,16 @@
 """Calendar lookup, duplicate matching, merge payloads and event updates."""
 from __future__ import annotations
-from datetime import date, datetime, timedelta, timezone
+
+from datetime import UTC, date, datetime, timedelta
 from typing import Any
-import time, traceback
 from zoneinfo import ZoneInfo
+
 from pydantic import ValidationError
-from ..models import CalendarDuplicateDecision, Proposal, ProposalKind
+
 from ..adapter import uncertain_write
+from ..models import CalendarDuplicateDecision, Proposal, ProposalKind
 from .contracts import CalendarEventResponse, CalendarListResponse, CalendarOverlapEvent, PreparedWrite, validation_path
+
 
 def _now(configured_timezone: str | None) -> datetime:
     """Current local time for change notes; separate so tests can fix it."""
@@ -60,11 +63,11 @@ class CalendarOperations:
         if self.service != "google_calendar":
             return []
         if isinstance(start, date) and not isinstance(start, datetime):
-            time_min = datetime.combine(start, datetime.min.time(), timezone.utc).isoformat()
+            time_min = datetime.combine(start, datetime.min.time(), UTC).isoformat()
         else:
             time_min = start.isoformat()
         if isinstance(end, date) and not isinstance(end, datetime):
-            time_max = datetime.combine(end, datetime.min.time(), timezone.utc).isoformat()
+            time_max = datetime.combine(end, datetime.min.time(), UTC).isoformat()
         else:
             time_max = end.isoformat()
 
@@ -111,8 +114,8 @@ class CalendarOperations:
             return None
         assert proposal.start is not None and proposal.end is not None
         if proposal.all_day:
-            time_min = datetime.combine(proposal.start, datetime.min.time(), timezone.utc).isoformat()
-            time_max = datetime.combine(proposal.end, datetime.min.time(), timezone.utc).isoformat()
+            time_min = datetime.combine(proposal.start, datetime.min.time(), UTC).isoformat()
+            time_max = datetime.combine(proposal.end, datetime.min.time(), UTC).isoformat()
         else:
             assert isinstance(proposal.start, datetime) and isinstance(proposal.end, datetime)
             time_min, time_max = proposal.start.isoformat(), proposal.end.isoformat()

@@ -3,14 +3,19 @@ from datetime import date, datetime
 from unittest.mock import Mock
 
 import pytest
+from shared_telegram_dialog import RevisionService, Writer, callback, controller, message, proposal
 
-from mailhelp.models import (Proposal, ProposalStatus, TelegramDialogState,
-                             ProposalClarificationState, RelevanceDialog, MailState)
+from mailhelp.models import (
+    MailState,
+    ProposalClarificationState,
+    ProposalStatus,
+    RelevanceDialog,
+    TelegramDialogState,
+)
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import Decision, DecisionAction, TelegramUpdate
-from mailhelp.telegram.formatting import display_date, format_proposal, clarification_prompt, revision_summary
+from mailhelp.telegram.formatting import clarification_prompt, display_date, format_proposal, revision_summary
 from mailhelp.telegram.persistence import clarification_name
-from test_telegram_dialog import proposal, controller, message, callback, RevisionService, Writer
 
 
 def deliver(c, update):
@@ -78,7 +83,7 @@ def test_cancel_edit_survives_restart_and_repetition_without_external_write(tmp_
         assert c.awaiting_decision()
         buttons = t.sent[-1][2]["inline_keyboard"][0]
         assert [b["text"] for b in buttons] == ["Im Kalender anlegen", "Ändern", "Verwerfen"]
-        for b, action in zip(buttons, (DecisionAction.CONFIRM, DecisionAction.EDIT, DecisionAction.REJECT)):
+        for b, action in zip(buttons, (DecisionAction.CONFIRM, DecisionAction.EDIT, DecisionAction.REJECT), strict=False):
             assert c.validator.decision(b["callback_data"]).action == action
         count = len(t.sent)
         c.poll_once()  # duplicated update is not re-applied

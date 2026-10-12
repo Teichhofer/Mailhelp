@@ -4,30 +4,38 @@ from __future__ import annotations
 import hashlib
 import json
 import time
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from threading import Event
 from typing import Any, Protocol
 
-from .analysis import (Analyzer)
-from .config import TargetSettings, Topic
+from . import state_names
 from .action_normalization import MailDateContext
-from .proposal_builder import ProposalBuilder
+from .analysis import Analyzer
+from .config import TargetSettings, Topic
 from .imap import FetchedMail
-from .models import (ExtractionCountConflict, IrrelevantSenders, MailState, ProcessingError, ProcessingErrorCode, ProcessingStage,
-                     Proposal, Relevance, RelevanceDialog, RelevanceDialogStatus)
-from .precheck import DuplicatePreCheckService
-from .storage import JsonStore
 from .logging import EventLogger, NullLogger
+from .mail_duplicates import DuplicateMailCheck
+from .mail_pipeline import MailPipeline, ProcessingOutcome, ProcessingResult, ProcessingRun
+from .mail_questions import MailQuestions
+from .models import (
+    ExtractionCountConflict,
+    IrrelevantSenders,
+    MailState,
+    ProcessingError,
+    ProcessingErrorCode,
+    ProcessingStage,
+    Proposal,
+    Relevance,
+    RelevanceDialog,
+    RelevanceDialogStatus,
+)
+from .precheck import DuplicatePreCheckService
+from .proposal_builder import ProposalBuilder
 from .sender_filter import is_irrelevant_sender
+from .storage import JsonStore
 from .telegram.formatting import mail_line
 from .vision import VisionExtractor
-from . import state_names
 
-
-from .mail_duplicates import DuplicateMailCheck
-from .mail_pipeline import MailPipeline
-from .mail_pipeline import ProcessingOutcome, ProcessingResult, ProcessingRun
-from .mail_questions import MailQuestions
 
 class Notifier(Protocol):
     def send(self, chat_id: int, text: str) -> None: ...
@@ -184,7 +192,7 @@ class Orchestrator:
             "topics": [topic.model_dump() for topic in topics]})
 
     def save(self, name: str, state: MailState) -> None:
-        state.updated_at = datetime.now(timezone.utc)
+        state.updated_at = datetime.now(UTC)
         self.store.save(name, state.model_dump(mode="json"))
         from .review.archive import record_analysis
         record_analysis(self.store, state, {topic.id: topic.name for topic in self.topics_for(state.config_fingerprint)},
@@ -195,7 +203,7 @@ class Orchestrator:
     def failure(self, name: str, state: MailState, code: ProcessingErrorCode,
                  stage: ProcessingStage, text: str, retryable: bool | None = None) -> None:
         """Mark before sending, and retain a matching generation across restarts."""
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         previous = state.error
         if previous is None or previous.code != code or previous.stage != stage:
             state.error = ProcessingError(code=code, stage=stage, occurred_at=now, retryable=retryable)

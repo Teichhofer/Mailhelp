@@ -5,14 +5,13 @@ import re
 import socket
 
 import pytest
+from shared_web_auth import LOCAL, SECRET, TAILNET, Browser, Logger, code_from, signed_in, site  # noqa: F401
 
 from mailhelp.config import WebSettings
 from mailhelp.review.inbox import CommandInbox
 from mailhelp.storage import JsonStore
-from mailhelp.web import Request, WebApp
-from mailhelp.web import network
+from mailhelp.web import Request, WebApp, network
 from mailhelp.web.factory import base_url, create_web
-from test_web_auth import LOCAL, SECRET, TAILNET, Browser, Logger, code_from, signed_in, site  # noqa: F401
 
 LAN = "192.168.1.20"
 
@@ -90,9 +89,9 @@ def test_lan_access_requires_listening_on_all_interfaces():
 def test_sign_in_over_the_lan_ip_uses_cookies_without_secure(tmp_path):
     with JsonStore(tmp_path) as store:
         messages = []
+        from mailhelp.review.views import ReviewViews
         from mailhelp.web.auth import WebAuth
         from mailhelp.web.site import MailhelpSite
-        from mailhelp.review.views import ReviewViews
         auth = WebAuth(store, SECRET, 30, messages.append)
         app = WebApp([LOCAL], lan_port=8765)
         MailhelpSite(app, auth, WebSettings(host="0.0.0.0", lan_access=True), "UTC", Logger(),
@@ -106,7 +105,7 @@ def test_sign_in_over_the_lan_ip_uses_cookies_without_secure(tmp_path):
 
 
 def settings(tmp_path, **web):
-    from test_application import settings as app_settings
+    from shared_application import settings as app_settings
     configured = app_settings(tmp_path)
     configured.web = WebSettings(enabled=True, **web)
     return configured

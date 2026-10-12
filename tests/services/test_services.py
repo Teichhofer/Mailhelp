@@ -1,34 +1,56 @@
 from __future__ import annotations
+
 import json
-from datetime import date, datetime, timedelta, timezone
-from pathlib import Path
-import httpx, pytest
+from datetime import UTC, date, datetime
 from email.message import EmailMessage
-from pydantic import ValidationError
+from pathlib import Path
+
+import httpx
+import pytest
 import yaml
-from mailhelp.analysis import (Analyzer, ContradictoryRevision, LlmInvalidJson, LlmProviderResponseInvalid,
-                               JSON_REPAIR_INSTRUCTION, SCHEMA_REPAIR_INSTRUCTION,
-                               LlmSchemaValidationExceeded,
-                               LlmSchemaValidationFailed, validate_revision_successor)
+from pydantic import ValidationError
+from shared_core import prompt_config, proposal
+from shared_services import AnalyzerStub as AnalyzerStub
+from shared_services import FakeCompleter as FakeCompleter
+from shared_services import Notify as Notify
+from shared_services import RetrySequence as RetrySequence
+from shared_services import Writer as Writer
+from shared_services import _EventLog as _EventLog
+from shared_services import _MailQuestionAnalyzer as _MailQuestionAnalyzer
+from shared_services import _resolve_from_mail as _resolve_from_mail
+from shared_services import mock_response as mock_response
+
+from mailhelp.adapter import PermanentError, RetryableError
+from mailhelp.analysis import (
+    JSON_REPAIR_INSTRUCTION,
+    SCHEMA_REPAIR_INSTRUCTION,
+    Analyzer,
+    ContradictoryRevision,
+    LlmInvalidJson,
+    LlmProviderResponseInvalid,
+    LlmSchemaValidationExceeded,
+    LlmSchemaValidationFailed,
+    validate_revision_successor,
+)
 from mailhelp.config import OutputTokenRetry, TargetSettings, Topic
 from mailhelp.imap import FetchedMail
 from mailhelp.integrations import CalendarFileWriter, HttpWriter, calendar_file, execute_confirmed
 from mailhelp.mime import MimeLimits
-from mailhelp.models import (ActionRoute, Proposal, ProposalRevisionChanges, ProposalRevisionDelta,
-                             ProposalStatus, Relevance, RelevanceDialog, TaskExtraction,
-                             apply_proposal_revision)
-from mailhelp.openrouter import (InvalidJson, OpenRouterClient, ProviderResponseInvalid,
-                                 RateLimitExceeded)
-from mailhelp.adapter import PermanentError, RetryableError
-from mailhelp.orchestrator import MailState, Orchestrator
-from mailhelp.orchestrator import ProcessingOutcome
+from mailhelp.models import (
+    ActionRoute,
+    Proposal,
+    ProposalRevisionChanges,
+    ProposalRevisionDelta,
+    ProposalStatus,
+    Relevance,
+    RelevanceDialog,
+    TaskExtraction,
+    apply_proposal_revision,
+)
+from mailhelp.openrouter import InvalidJson, OpenRouterClient, ProviderResponseInvalid, RateLimitExceeded
+from mailhelp.orchestrator import MailState, Orchestrator, ProcessingOutcome
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import Decision, DecisionAction, TelegramClient, apply_decision, split_message
-from test_core import prompt_config, proposal
-
-
-def mock_response(status=200, data=None):
-    return lambda request: httpx.Response(status, json={} if data is None else data, request=request)
 
 
 def test_openrouter(monkeypatch):
@@ -49,34 +71,8 @@ def test_openrouter(monkeypatch):
     with pytest.raises(RetryableError): client.complete("m", {}, "s", {})
 
 
-class FakeCompleter:
-    def __init__(self, values):
-        self.values=iter(values)
-        self.calls=0
-    def complete(self, *args, **kwargs):
-        self.calls+=1
-        return str(self.calls), next(self.values)
 
 
-class RetrySequence:
-    """Synthetic provider recording every logical provider invocation."""
-    def __init__(self, values):
-        self.values=iter(values)
-        self.payloads=[]
-        self.systems=[]
-        self.parameters=[]
-        self.call_ids=[]
-
-    def complete(self, _model, parameters, system, payload, **_metadata):
-        self.payloads.append(payload)
-        self.systems.append(system)
-        self.parameters.append(parameters)
-        call_id=f"provider-call-{len(self.payloads)}"
-        self.call_ids.append(call_id)
-        value=next(self.values)
-        if isinstance(value, Exception):
-            raise value
-        return call_id,value
 
 
 def test_revision_keeps_known_date_and_start_and_never_infers_all_day():
@@ -1002,16 +998,6 @@ def test_telegram():
     c.close()
 
 
-class Writer:
-    def __init__(self, found=None, error=None):
-        self.found=found
-        self.error=error
-        self.created=0
-    def reconcile(self,key): return self.found
-    def create(self,p,key):
-        self.created += 1
-        if self.error: raise self.error
-        return {"id":"1"}
 
 
 def test_integrations():
@@ -1044,11 +1030,11 @@ def test_integrations():
         return httpx.Response(200,json=({"id":"x"} if req.method=="POST" else {"results":[],"next_cursor":None}),request=req)
     todo=HttpWriter("todoist","x","p",transport=httpx.MockTransport(handler))
     assert todo.reconcile("x") is None
-    todo.create(proposal(target="p", status="confirmed", due=datetime.now(timezone.utc)),"key")
+    todo.create(proposal(target="p", status="confirmed", due=datetime.now(UTC)),"key")
     todo.close()
     found=HttpWriter("todoist","x","p",transport=httpx.MockTransport(mock_response(data={"results":[{"description":"[key]", "id":"old"}],"next_cursor":None})))
     assert found.reconcile("key")["id"]=="old"
-    now=datetime.now(timezone.utc)
+    now=datetime.now(UTC)
     with pytest.raises(ValueError): HttpWriter("todoist","x","p",transport=httpx.MockTransport(handler)).create(proposal(target="p",kind="event",start=now,end=now.replace(year=now.year+1)),"k")
     event=proposal(target="primary",kind="event",start=now,end=now.replace(year=now.year+1),status="confirmed")
     def cal_handler(req): return httpx.Response(200,json=({"id":"x"} if req.method=="POST" else {"items":[]}),request=req)
@@ -1180,35 +1166,6 @@ def test_all_day_calendar_file_and_validation():
         calendar_file(proposal(),"task")
 
 
-class AnalyzerStub:
-    def __init__(self, decision): self.decision=decision
-    def relevance(self,m,t):
-        from mailhelp.models import Relevance
-        return "r",Relevance(decision=self.decision,topic_ids=[],reason="why")
-    def summary(self,m):
-        from mailhelp.models import Summary
-        return "s",Summary(sentences=["eins","zwei"])
-    def action_route(self,m):
-        from mailhelp.models import ActionRoute
-        return "ar",ActionRoute(action_state="task",task_count=1,event_count=0,reason="synthetic")
-    def actions(self,m):
-        from mailhelp.models import Actions
-        return "a",Actions()
-    def extract_tasks(self,m, *, expected_count):
-        from mailhelp.models import ExtractedTask, TaskExtraction
-        return "t",TaskExtraction(tasks=[ExtractedTask(title="Aufgabe",description="",evidence="Body",responsibility="user",certainty="certain",classification="new")])
-    def extract_events(self,m, *, expected_count):
-        from mailhelp.models import EventExtraction
-        return "e",EventExtraction(events=[])
-    def answer_question_from_mail(self, mail, proposal, question):
-        from mailhelp.models import TelegramAnswerInterpretation
-        return "mq", TelegramAnswerInterpretation(
-            usable=False, reason="Synthetische Mail beantwortet die Frage nicht")
-class Notify:
-    def __init__(self): self.messages=[]
-    def send(self,c,t): self.messages.append(t)
-    def send_proposal(self,p): self.messages.append(p.id)
-    def send_relevance(self,d,sender,subject): self.messages.append((d.mail_id,sender,subject))
 
 
 def test_orchestrator_resolves_mail_answer_before_telegram(tmp_path):
@@ -1254,45 +1211,10 @@ def test_orchestrator_resolves_mail_answer_before_telegram(tmp_path):
     assert result.state["llm_call_ids"][-2:] == ["mq", "rev"]
 
 
-class _MailQuestionAnalyzer(AnalyzerStub):
-    """Answers selected questions from the mail; the revision is configurable."""
-
-    def __init__(self, answers, revision=AssertionError("LLM-Revision darf nicht laufen")):
-        super().__init__("relevant")
-        self.answers, self.revision, self.revisions = answers, revision, 0
-
-    def answer_question_from_mail(self, mail, proposal, question):
-        from mailhelp.models import TelegramAnswerInterpretation
-        answer = self.answers.get(question)
-        if answer is None:
-            return "mq", TelegramAnswerInterpretation(usable=False, reason="Nicht in der Mail")
-        return "mq", TelegramAnswerInterpretation(usable=True, normalized_answer=answer,
-                                                  reason="In der Mail belegt")
-
-    def revise_proposal(self, proposal, question, answer):
-        self.revisions += 1
-        if isinstance(self.revision, BaseException):
-            raise self.revision
-        return "rev", self.revision(proposal)
 
 
-class _EventLog:
-    def __init__(self): self.events = []
-    def event(self, level, module, event, **fields): self.events.append((event, fields))
 
 
-def _resolve_from_mail(tmp_path, analyzer, item):
-    state = MailState(id="a" * 24, config_fingerprint="f" * 64,
-                      imap={"account_id": "0" * 24, "folder": "INBOX", "uidvalidity": 1, "uid": 1},
-                      mail={"text": "synthetische Mail", "user_timezone": "Europe/Berlin"},
-                      proposals=[item])
-    log = _EventLog()
-    with JsonStore(tmp_path) as store:
-        Orchestrator(analyzer, store, Notify(), 1,
-                     [Topic(id="x", name="X", enabled=True, description="X")], 1000,
-                     logger=log).questions.resolve("mail-" + "a" * 24, state)
-    return state, [(event, fields.get("question"), fields.get("reason"))
-                   for event, fields in log.events if event.startswith("mail_question_")]
 
 
 def test_regression_mail_answer_with_clock_is_applied_deterministically(tmp_path):
@@ -1530,7 +1452,7 @@ def test_proposal_boundary_builds_internal_identity_and_routing(tmp_path):
         orchestrator=Orchestrator(AnalyzerStub("relevant"),store,Notify(),1,[topic],1000,targets=targets)
         state=MailState(id="a"*24,config_fingerprint="0"*64,
                         imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":1,"uid":1})
-        from mailhelp.models import ExtractedTask, ExtractedEvent, TaskExtraction, EventExtraction
+        from mailhelp.models import EventExtraction, ExtractedEvent, ExtractedTask, TaskExtraction
         state.mail = {"date_context_status":"valid", "date_header_parsed":"2026-01-01T08:00:00Z",
                       "imap_received_at":"2026-01-01T08:00:00Z", "user_timezone":"UTC"}
         state.task_extraction = TaskExtraction(tasks=[ExtractedTask(title="t", description="", evidence="e",

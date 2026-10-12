@@ -1,4 +1,7 @@
 """Shared server-side quick filters, also usable without JavaScript."""
+
+from __future__ import annotations
+
 from urllib.parse import urlencode
 
 from ..review.filters import FILTERS, matches  # noqa: F401  (re-exported for web callers)

@@ -2,15 +2,19 @@
 
 from __future__ import annotations
 
-from datetime import (
-    date,
-    date as calendar_date,
-    datetime,
-    time as clock_time,
-    timedelta,
-    timezone,
-)
 import re
+from datetime import (
+    UTC,
+    date,
+    datetime,
+    timedelta,
+)
+from datetime import (
+    date as calendar_date,
+)
+from datetime import (
+    time as clock_time,
+)
 from typing import Any
 from zoneinfo import ZoneInfo
 
@@ -214,7 +218,7 @@ def _localize(value: clock_time | None, value_day: date | None, zone: ZoneInfo) 
     for fold in (0, 1):
         candidate = naive.replace(tzinfo=zone, fold=fold)
         if (
-            candidate.astimezone(timezone.utc).astimezone(zone).replace(tzinfo=None)
+            candidate.astimezone(UTC).astimezone(zone).replace(tzinfo=None)
             == naive
         ):
             if not candidates or candidate.utcoffset() != candidates[0].utcoffset():

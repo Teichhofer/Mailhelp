@@ -8,8 +8,9 @@ standard library's HTTP server.
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any
 from urllib.parse import parse_qs
 
 MAX_BODY_BYTES = 16 * 1024
@@ -83,20 +84,20 @@ class Response:
     after_send: Callable[[], None] | None = None
 
     @classmethod
-    def text(cls, status: int, text: str) -> "Response":
+    def text(cls, status: int, text: str) -> Response:
         return cls(status, text.encode("utf-8"))
 
     @classmethod
-    def html(cls, status: int, html: str) -> "Response":
+    def html(cls, status: int, html: str) -> Response:
         return cls(status, html.encode("utf-8"), "text/html; charset=utf-8")
 
     @classmethod
-    def json(cls, status: int, value: Any) -> "Response":
+    def json(cls, status: int, value: Any) -> Response:
         return cls(status, json.dumps(value, ensure_ascii=False).encode("utf-8"),
                    "application/json; charset=utf-8")
 
     @classmethod
-    def redirect(cls, location: str) -> "Response":
+    def redirect(cls, location: str) -> Response:
         if not location.startswith("/") or location.startswith("//"):
             raise ValueError("Nur interne Weiterleitungen sind erlaubt")
         return cls(303, headers={"Location": location})

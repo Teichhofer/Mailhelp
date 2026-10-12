@@ -9,19 +9,20 @@ exclusively in the main thread.
 
 from __future__ import annotations
 
-from typing import Any, Callable
+from collections.abc import Callable
+from typing import Any
 
 from pydantic import ValidationError
 
-from ..models import MailState, Proposal, ProposalStatus, RelevanceDialogStatus, TelegramDialogState
-from ..domain.processing import ProposalClarificationState
-from .commands import CommandKind, CommandSource, ReviewCommand
+from .. import state_names
 from ..configuration import AdminCommand
-from .editing import edit_proposal
+from ..domain.processing import ProposalClarificationState
+from ..models import MailState, Proposal, ProposalStatus, RelevanceDialogStatus, TelegramDialogState
 from .archive import record_event, record_relevance
+from .commands import CommandKind, CommandSource, ReviewCommand
+from .editing import edit_proposal
 from .errors import AnswerRequired, ReviewBusy, ReviewError, StaleCommand
 from .results import ResultStatus, ReviewResult
-from .. import state_names
 
 _OPEN = {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}
 _DIALOG = "telegram-dialog"

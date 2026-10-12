@@ -1,10 +1,14 @@
 """Todoist task payloads, pagination and idempotency lookup."""
 from __future__ import annotations
+
 from datetime import datetime
 from typing import Any
+
 from pydantic import ValidationError
+
 from ..models import Proposal, ProposalKind
 from .contracts import PreparedWrite, TodoistTaskListResponse, TodoistTaskResponse, validation_path
+
 
 class TodoistOperations:
     def _reconcile_todoist(self, key: str) -> dict[str, Any] | None:

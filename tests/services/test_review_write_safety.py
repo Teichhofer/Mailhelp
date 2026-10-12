@@ -1,22 +1,20 @@
 """Regression coverage for approved targets, preflight recovery and reminders."""
-from datetime import datetime, timezone
 import json
+from datetime import UTC, datetime
 
 import httpx
 import pytest
+from shared_core import proposal
+from shared_review_write_safety import reminder as reminder
+from shared_telegram_dialog import callback, controller
+from shared_write_improvements import event
 
-from mailhelp.action_normalization import MailDateContext
 from mailhelp.adapter import RetryableError
-from mailhelp.config import TargetSettings
 from mailhelp.integrations import HttpWriter, execute_confirmed
-from mailhelp.models import ActionLedger, ExtractedTask, Proposal, ProposalStatus
+from mailhelp.models import ActionLedger, Proposal, ProposalStatus
 from mailhelp.openrouter import RateLimitExceeded
-from mailhelp.proposal_builder import ProposalBuilder
 from mailhelp.storage import JsonStore
 from mailhelp.telegram.ledger import ActionLedgerService
-from test_core import proposal
-from test_telegram_dialog import callback, controller
-from test_write_improvements import event
 
 
 @pytest.mark.parametrize("kind", ["task", "event"])
@@ -176,16 +174,10 @@ def test_prepared_write_keeps_ambiguous_result_protected_across_restart(tmp_path
         writer.close()
 
 
-def reminder(mail_id, subject, day="2026-10-06", description="Unterlagen an Frau Muster senden"):
-    context = MailDateContext("valid", f"{day}T10:00:00Z", f"{day}T10:00:00Z", "UTC")
-    return ProposalBuilder(mail_id, TargetSettings(todoist_project="inbox", google_calendar="calendar"),
-        context, "sender@example.test", subject).build([ExtractedTask(title="Unterlagen senden",
-            description=description, evidence="Bitte senden", responsibility="user", certainty="certain",
-            classification="new")], [])[0]
 
 
 def test_reminder_requires_duplicate_confirmation_even_with_different_source(tmp_path):
-    from test_telegram_dialog import Writer
+    from shared_telegram_dialog import Writer
     writer = Writer()
     first = reminder("a" * 24, "Original")
     second = reminder("b" * 24, "Erinnerung", "2026-10-07")
@@ -202,7 +194,7 @@ def test_reminder_requires_duplicate_confirmation_even_with_different_source(tmp
 
 
 @pytest.mark.parametrize("change", [{"title": "Andere Aufgabe"}, {"description": "Andere Sachdaten"},
-    {"target": "other-project"}, {"due": datetime(2026, 10, 10, tzinfo=timezone.utc)}])
+    {"target": "other-project"}, {"due": datetime(2026, 10, 10, tzinfo=UTC)}])
 def test_task_identity_preserves_business_differences(change):
     original = reminder("a" * 24, "Original")
     changed = original.model_copy(update=change)

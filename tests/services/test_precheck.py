@@ -1,10 +1,9 @@
 """Unit-Tests für den DuplicatePreCheckService in Mailhelp 1.3."""
-from datetime import date, datetime, timezone, timedelta
+from datetime import UTC, date, datetime
+
 import httpx
-import pytest
 
 from mailhelp.domain.proposal import (
-    DuplicateMatchInfo,
     DuplicateSource,
     Proposal,
     ProposalCertainty,
@@ -13,7 +12,7 @@ from mailhelp.domain.proposal import (
     ProposalResponsibility,
     ProposalStatus,
 )
-from mailhelp.integrations import CalendarOverlapEvent, HttpWriter, TodoistTaskResponse
+from mailhelp.integrations import HttpWriter
 from mailhelp.precheck import DuplicatePreCheckService
 from mailhelp.telegram.ledger import ActionLedgerEntry, ActionLedgerPort
 
@@ -41,8 +40,8 @@ class DummyLedger(ActionLedgerPort):
 def make_event_proposal(
     proposal_id="p1",
     title="Projektmeeting",
-    start=datetime(2026, 10, 15, 10, 0, tzinfo=timezone.utc),
-    end=datetime(2026, 10, 15, 11, 0, tzinfo=timezone.utc),
+    start=datetime(2026, 10, 15, 10, 0, tzinfo=UTC),
+    end=datetime(2026, 10, 15, 11, 0, tzinfo=UTC),
     all_day=False,
     classification=ProposalClassification.NEW,
     status=ProposalStatus.PENDING_CONFIRMATION,
@@ -107,7 +106,7 @@ def test_precheck_ledger_match():
         target="primary",
         external_id="ext-123",
         external_link="https://calendar.google.com/event?id=ext-123",
-        created_at=datetime(2026, 10, 10, 8, 0, tzinfo=timezone.utc),
+        created_at=datetime(2026, 10, 10, 8, 0, tzinfo=UTC),
     )
     ledger = DummyLedger(entries=[entry])
     service = DuplicatePreCheckService(ledger=ledger)

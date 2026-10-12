@@ -1,15 +1,14 @@
 """Fachmodelle für den Kontext Run- und Queue-Zustand."""
 from __future__ import annotations
 
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Any, Literal
+from typing import Literal
 from uuid import UUID
-import re
 
-from pydantic import AnyHttpUrl, Field, field_validator, model_validator
+from pydantic import Field, model_validator
 
-from ._base import CalendarDate, StrictModel
+from ._base import StrictModel
 
 
 class MailRunEntryStatus(StrEnum):
@@ -43,7 +42,7 @@ class MailRunEntry(StrictModel):
         return f"{self.account_id}\0{self.folder}\0{self.uidvalidity}\0{self.uid}"
 
     @model_validator(mode="after")
-    def consistent_terminal_state(self) -> "MailRunEntry":
+    def consistent_terminal_state(self) -> MailRunEntry:
         terminal = self.status in {
             MailRunEntryStatus.COMPLETED, MailRunEntryStatus.WAITING_FOR_USER,
             MailRunEntryStatus.FAILED, MailRunEntryStatus.SKIPPED,
@@ -83,7 +82,7 @@ class MailRunState(StrictModel):
         return all(entry.analysis_terminal is not None for entry in self.entries)
 
     @model_validator(mode="after")
-    def consistent_queue(self) -> "MailRunState":
+    def consistent_queue(self) -> MailRunState:
         if self.created_at.tzinfo is None or self.created_at.utcoffset() is None:
             raise ValueError("Run-Erstellungszeit benötigt einen UTC-Offset")
         keys = [entry.key for entry in self.entries]
@@ -108,7 +107,7 @@ class ImapCheckpoint(StrictModel):
     completed_uid_ranges: list[tuple[int, int]] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def valid_completed_uid_ranges(self) -> "ImapCheckpoint":
+    def valid_completed_uid_ranges(self) -> ImapCheckpoint:
         previous_end = self.start_uid or 0
         for start, end in self.completed_uid_ranges:
             if start > end or start <= previous_end:

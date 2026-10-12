@@ -1,15 +1,13 @@
 """Fachmodelle für den Kontext LLM-Extraktion."""
 from __future__ import annotations
 
-from datetime import date, datetime, time, timedelta, timezone
-from enum import StrEnum
-from typing import Annotated, Any, Literal
-from uuid import UUID
 import re
+from datetime import date, datetime
+from typing import Any, Literal
 
 from pydantic import AnyHttpUrl, Field, field_validator, model_validator
 
-from ._base import CalendarDate, StrictModel
+from ._base import StrictModel
 from .temporal import TimeRequirement
 
 
@@ -26,7 +24,7 @@ class TelegramAnswerInterpretation(StrictModel):
     reason: str = Field(min_length=1, max_length=1000)
 
     @model_validator(mode="after")
-    def answer_matches_decision(self) -> "TelegramAnswerInterpretation":
+    def answer_matches_decision(self) -> TelegramAnswerInterpretation:
         if self.usable != (self.normalized_answer is not None):
             raise ValueError("Nur eine verwendbare Antwort darf einen normalisierten Wert enthalten")
         return self
@@ -48,7 +46,7 @@ class CalendarDuplicateDecision(StrictModel):
     reason: str = Field(min_length=1, max_length=1000)
 
     @model_validator(mode="after")
-    def fields_require_same_event(self) -> "CalendarDuplicateDecision":
+    def fields_require_same_event(self) -> CalendarDuplicateDecision:
         if not self.same_event and self.missing_fields:
             raise ValueError("Fehlende Felder sind nur beim gleichen Termin zulässig")
         if len(self.missing_fields) != len(set(self.missing_fields)):
@@ -97,7 +95,7 @@ class ActionRoute(StrictModel):
         return value
 
     @model_validator(mode="after")
-    def consistent_counts(self) -> "ActionRoute":
+    def consistent_counts(self) -> ActionRoute:
         expected = {
             "none": self.task_count == 0 and self.event_count == 0,
             "task": self.task_count > 0 and self.event_count == 0,
@@ -178,7 +176,7 @@ class ExtractionCountConflict(StrictModel):
     notification_marked_at: datetime | None = None
 
     @model_validator(mode="after")
-    def validates_real_conflict(self) -> "ExtractionCountConflict":
+    def validates_real_conflict(self) -> ExtractionCountConflict:
         if self.expected_count == self.actual_count:
             raise ValueError("Ein Zählerkonflikt benötigt unterschiedliche Werte")
         if (self.notification_marked_at is not None
@@ -214,7 +212,7 @@ class VisionExtractionResult(StrictModel):
     text: str = Field(default="", max_length=50000)
 
     @model_validator(mode="after")
-    def text_requires_legibility(self) -> "VisionExtractionResult":
+    def text_requires_legibility(self) -> VisionExtractionResult:
         if not self.legible and self.text.strip():
             raise ValueError("Ein unlesbares Dokument darf keinen Text enthalten")
         return self

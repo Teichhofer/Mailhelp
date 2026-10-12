@@ -1,4 +1,7 @@
 """Composition and minute scheduler for the optional 2.0 services."""
+
+from __future__ import annotations
+
 from contextlib import contextmanager
 from threading import Event, Thread
 

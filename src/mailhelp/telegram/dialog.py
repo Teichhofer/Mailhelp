@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import time
-from typing import Callable
+from collections.abc import Callable
 
-
+from .. import state_names
 from ..domain.processing import (
     ProposalClarificationState,
     ProposalRevisionStatus,
@@ -17,7 +17,6 @@ from ..review.commands import CommandKind, CommandSource
 from ..review.inbox import CommandInbox
 from ..review.results import ResultStatus, ReviewResult
 from ..storage import JsonStore
-
 from .authorization import AuthorizedUpdateValidator, UpdateValidation
 from .callbacks import RelevanceDecision
 from .client import TelegramTransport
@@ -28,22 +27,24 @@ from .receiver import TelegramInbox
 from .relevance import RelevanceDialogProcessor, RelevanceHandler
 from .revisions import (
     EventLogger,
-    ProposalRevisions,
     ProposalRevisionProcessor,
+    ProposalRevisions,
     ProposalRevisionService,
 )
+from .update_handling import (  # noqa: F401
+    INBOX_MAX_ATTEMPTS,
+    INBOX_RETRY_SECONDS,
+    STALE_BUTTON,
+    TelegramUpdateHandler,
+    send_relevance_question,
+)
 from .writes import ConfirmedWriteExecutor, WriteExecution
-from .. import state_names
-
-
-from .update_handling import (INBOX_MAX_ATTEMPTS, INBOX_RETRY_SECONDS,  # noqa: F401
-                              STALE_BUTTON, TelegramUpdateHandler, send_relevance_question)
 
 
 class _DialogResponsePersistence:
     """Revisions answer the user directly and therefore bypass the outbox."""
 
-    def __init__(self, controller: "TelegramDialogController"):
+    def __init__(self, controller: TelegramDialogController):
         self.controller = controller
 
     def persist(self, proposal: Proposal) -> None:
@@ -107,8 +108,8 @@ class TelegramDialogController:
 
     def _compose(self, sequential_questions: bool) -> None:
         """Wire the services that share this dialog's state and transport."""
-        from .delivery import ProposalDeliveryService
         from .decisions import ProposalDecisionService
+        from .delivery import ProposalDeliveryService
         from .persistence import ProposalRepository
         from .presenter import ProposalPresenter
 

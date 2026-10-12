@@ -6,10 +6,13 @@ import pytest
 from mailhelp.models import MailState, Proposal, ProposalNotification
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import (
-    Decision, DecisionAction, ProposalDecisionService,
-    ProposalDeliveryService, ProposalPresenter, ProposalRepository,
+    Decision,
+    DecisionAction,
+    ProposalDecisionService,
+    ProposalDeliveryService,
+    ProposalPresenter,
+    ProposalRepository,
 )
-
 
 MAIL_ID = "a" * 24
 

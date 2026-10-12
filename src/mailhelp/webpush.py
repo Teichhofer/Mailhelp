@@ -8,11 +8,11 @@ import re
 from threading import Lock
 from urllib.parse import urlsplit
 
+import requests
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from py_vapid import Vapid
-from pywebpush import webpush, WebPushException
-import requests
+from pywebpush import WebPushException, webpush
 
 
 def b64(value):

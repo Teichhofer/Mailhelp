@@ -4,7 +4,7 @@ from __future__ import annotations
 import time
 import traceback
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
@@ -305,7 +305,7 @@ class MailPipeline:
                 continue
             # Mark before delivery: an uncertain Telegram result must
             # never lead to an automatic duplicate after restart.
-            conflict.notification_marked_at = datetime.now(timezone.utc)
+            conflict.notification_marked_at = datetime.now(UTC)
             self.o.save(name, state)
             self.o.notifier.send(
                 self.o.chat_id,
@@ -344,7 +344,7 @@ class MailPipeline:
         """Record a failed step; called inside ``except`` so the traceback is current."""
         name, state, stage, started = run.name, run.state, run.stage, run.started
         if isinstance(exc, RateLimitExceeded):
-            state.deferred_until = datetime.fromtimestamp(exc.next_allowed_at, timezone.utc)
+            state.deferred_until = datetime.fromtimestamp(exc.next_allowed_at, UTC)
             self.o.failure(name, state, ProcessingErrorCode.LLM_RATE_LIMITED, stage,
                           f"LLM-Limit erreicht. Automatischer neuer Versuch nach {state.deferred_until.isoformat()}.", True)
             self.o.logger.event("WARNING", "orchestrator", "llm_rate_limited", mail_id=state.id, next_allowed_at=state.deferred_until.isoformat(),
@@ -368,7 +368,7 @@ class MailPipeline:
                               error=exc, stacktrace=traceback.format_exc())
         elif isinstance(exc, LlmSchemaValidationExceeded):
             state.validation_errors.append(ValidationIssue(
-                stage=stage, code="schema_validation_failed", occurred_at=datetime.now(timezone.utc)
+                stage=stage, code="schema_validation_failed", occurred_at=datetime.now(UTC)
             ))
             self.o.failure(name, state, ProcessingErrorCode.SCHEMA_VALIDATION_FAILED, stage,
                           "Die automatische Auswertung war nicht zuverlässig. Bitte die Nachricht manuell prüfen.", True)

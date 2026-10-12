@@ -10,8 +10,14 @@ import pytest
 from mailhelp.adapter import PermanentError
 from mailhelp.config import Topic
 from mailhelp.decisions import DecisionResponseError
-from mailhelp.laya import (MAX_TOPICS, LayaClient, LayaPrompts, LayaRelevanceAnalyzer, LayaStateTooLong,
-                           load_laya_prompts)
+from mailhelp.laya import (
+    MAX_TOPICS,
+    LayaClient,
+    LayaPrompts,
+    LayaRelevanceAnalyzer,
+    LayaStateTooLong,
+    load_laya_prompts,
+)
 
 ROOT = Path(__file__).resolve().parents[2]
 MODEL = "laya:322m-multilingual-mlx-fp16"

@@ -18,16 +18,17 @@ offsets and acknowledgements that web commands do not have.
 from __future__ import annotations
 
 import secrets
-from datetime import datetime, timedelta, timezone
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from threading import Lock
-from typing import Callable, Literal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from ..configuration import AdminCommand
 from ..storage import JsonStore
 from .commands import ReviewCommand
-from ..configuration import AdminCommand
 from .results import REJECTED_STATUSES, ResultStatus, ReviewResult
 
 COMMAND_INBOX = "command-inbox"
@@ -71,7 +72,7 @@ class CommandInboxFull(RuntimeError):
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class CommandInbox:
@@ -89,7 +90,7 @@ class CommandInbox:
 
     def _save(self, state: CommandInboxState) -> None:
         value = state.model_dump(mode="json")
-        for entry, record in zip(state.entries, value["entries"]):
+        for entry, record in zip(state.entries, value["entries"], strict=False):
             if isinstance(entry.command, ReviewCommand) and entry.command.patch is not None:
                 record["command"]["patch"] = entry.command.patch.model_dump(mode="json", exclude_unset=True)
         self.store.save(COMMAND_INBOX, value)

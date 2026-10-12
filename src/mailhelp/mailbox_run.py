@@ -4,19 +4,20 @@ The service owns mailbox progress and the fatal processing latch. Mail analysis
 is supplied as a callback so Telegram/Web lifecycle stays in Application.
 """
 from __future__ import annotations
+
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from threading import Event
-from typing import Callable
 from uuid import uuid4
+
+from . import state_names
 from .config import Settings
 from .imap import ImapReader, UIDValidityChanged
 from .logging import EventLogger
-from .models import (ImapCheckpoint, MailRunCounters, MailRunEntry,
-                     MailRunEntryStatus, MailRunState, MailState)
+from .models import ImapCheckpoint, MailRunCounters, MailRunEntry, MailRunEntryStatus, MailRunState, MailState
 from .orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
 from .storage import JsonStore, mail_state_names
-from . import state_names
 
 _BLOCKED_STATE_SCAN_LIMIT = 1000
 
@@ -75,7 +76,7 @@ class _RunSummary:
     run_complete: bool = False
 
     @classmethod
-    def from_run(cls, run: MailRunState | None) -> "_RunSummary":
+    def from_run(cls, run: MailRunState | None) -> _RunSummary:
         """Build counters only from the durable snapshot, never attempt results."""
         if run is None:
             return cls()
@@ -375,7 +376,7 @@ class MailboxRunService:
         entries = list(unique.values())
         run = MailRunState(
             run_id=uuid4(), max_mails=budget.remaining,
-            created_at=datetime.now(timezone.utc), entries=entries,
+            created_at=datetime.now(UTC), entries=entries,
             counters=self.run_counters(entries),
         )
         # The complete, deduplicated identity list is durable before the
@@ -543,7 +544,7 @@ class MailboxRunService:
         """Resume due durable mail states, independently of IMAP checkpoints."""
         results: list[ProcessingResult] = []
         budget = budget or _MailBudget(None)
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         for name in mail_state_names(self.store):
             if self.stop_event.is_set() or budget.remaining == 0:
                 break

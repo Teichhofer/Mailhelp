@@ -1,18 +1,19 @@
 """Compatibility and standalone service contracts for release 1.6."""
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from threading import Event
 
+from shared_application import Log, Orch, Store, settings
+
 from mailhelp import integrations
-from mailhelp.external.oauth import GoogleOAuthTokenProvider
-from mailhelp.external.http_writer import HttpWriter
 from mailhelp.external.confirmed import execute_confirmed
+from mailhelp.external.http_writer import HttpWriter
 from mailhelp.external.ical import CalendarFileWriter, calendar_file
+from mailhelp.external.oauth import GoogleOAuthTokenProvider
 from mailhelp.imap import FetchedMail, MailCandidate
 from mailhelp.mailbox_run import MailboxRunService
 from mailhelp.models import MailRunState
 from mailhelp.orchestrator import ProcessingOutcome, ProcessingResult
 from mailhelp.web import review_pages, status_pages
-from test_application import Store, Log, Orch, settings
 
 
 def test_existing_integration_and_renderer_imports_remain_identical():
@@ -28,7 +29,7 @@ def test_existing_integration_and_renderer_imports_remain_identical():
 def test_mailbox_service_materializes_batch_before_bodies_and_resumes_without_application(tmp_path):
     store = Store()
     stopped = Event()
-    stamp = datetime(2026, 10, 1, tzinfo=timezone.utc)
+    stamp = datetime(2026, 10, 1, tzinfo=UTC)
 
     class Reader:
         account_id = "a" * 24
@@ -67,16 +68,18 @@ def test_mailbox_service_materializes_batch_before_bodies_and_resumes_without_ap
     assert len(restarted.poll(2)) == 1
     assert reader.bodies == processed == [2, 1]
     assert reader.discoveries == 1  # resume uses the saved batch, no rediscovery
-    checkpoint = store.load(f"imap-{reader.account_id}-{'INBOX'.encode().hex()}")
+    checkpoint = store.load(f"imap-{reader.account_id}-{b'INBOX'.hex()}")
     assert checkpoint["completed_uid_ranges"] == [(1, 2)]
 
 
 def renderer_contract_pages(store, renderer):
     """Fixed synthetic states, including malicious mail values and runtime contacts."""
     from dataclasses import replace
-    from mailhelp.review.views import ReviewViews
+
+    from web_scenario import NOW, mail_id, populate
+
     from mailhelp.review.inbox import CommandStatus
-    from web_scenario import populate, mail_id, NOW
+    from mailhelp.review.views import ReviewViews
     populate(store)
     views = ReviewViews(store, "Europe/Berlin", test_mode=True)
     overview = replace(views.overview(), fingerprint="fixed-contract")
@@ -102,6 +105,7 @@ def test_renderer_output_is_byte_identical_to_release_15(tmp_path):
     import hashlib
     import json
     from pathlib import Path
+
     from mailhelp.storage import JsonStore
     expected = json.loads(Path(__file__).with_name("renderer_v15_hashes.json").read_text(encoding="utf-8"))
     with JsonStore(tmp_path) as store:
@@ -122,9 +126,10 @@ def test_renderer_output_is_byte_identical_to_release_15(tmp_path):
 
 def test_successor_builder_rejects_changed_identity_without_persisting(tmp_path):
     import pytest
+    from web_scenario import Revisions, proposal
+
     from mailhelp.analysis import ContradictoryRevision
     from mailhelp.telegram.revision_successor import build_revision_successor
-    from web_scenario import proposal, Revisions
     original = proposal(1, "edit")
     revised, deterministic = build_revision_successor(original, "Welche Änderung?", "Titel: Neuer Titel", "UTC", Revisions())
     assert (revised.id, revised.version, revised.title) == (original.id, 2, "Neuer Titel")

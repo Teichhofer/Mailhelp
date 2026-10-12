@@ -4,14 +4,19 @@ from __future__ import annotations
 import hashlib
 import json
 
-from .action_normalization import (MailDateContext, TemporalValue, normalize_event,
-                                   normalize_task_due, recover_task_due)
+from .action_normalization import MailDateContext, TemporalValue, normalize_event, normalize_task_due, recover_task_due
 from .config import TargetSettings
 from .domain.extraction import ParsedCalendarEvent
-from .models import (ExtractedEvent, ExtractedTask, Proposal, ProposalClassification,
-                     ExtractionCountConflict, KnownTemporalFacts,
-                     ProposalResponsibility, ProposalStatus)
-
+from .models import (
+    ExtractedEvent,
+    ExtractedTask,
+    ExtractionCountConflict,
+    KnownTemporalFacts,
+    Proposal,
+    ProposalClassification,
+    ProposalResponsibility,
+    ProposalStatus,
+)
 
 _RESPONSIBILITY_QUESTION = "Ist die Nutzerin oder der Nutzer für diesen Eintrag zuständig?"
 _CERTAINTY_QUESTIONS = {
@@ -86,10 +91,21 @@ class ProposalBuilder:
               count_conflicts: list[ExtractionCountConflict] | None = None,
               calendar_events: list[ParsedCalendarEvent | dict] | None = None) -> list[Proposal]:
         """Build deterministic proposals without changing the extracted cardinality."""
-        proposals: list[Proposal] = []
         used_ids: set[str] = set()
         conflicted = {item.category for item in count_conflicts or []}
+        proposals, ics_summaries = self._calendar_proposals(calendar_events, used_ids)
+        filtered_events = [e for e in events if e.title.strip().casefold() not in ics_summaries]
+        entries: list[tuple[str, ExtractedTask | ExtractedEvent]] = [
+            *(("task", item) for item in tasks), *(("event", item) for item in filtered_events)
+        ]
+        for position, (kind, item) in enumerate(entries):
+            proposals.append(self._extracted_proposal(kind, item, position, conflicted, used_ids))
+        return proposals
 
+    def _calendar_proposals(self, calendar_events: list[ParsedCalendarEvent | dict] | None,
+                            used_ids: set[str]) -> tuple[list[Proposal], set[str]]:
+        """Complete proposals from calendar attachments and their titles."""
+        proposals: list[Proposal] = []
         cal_items: list[ParsedCalendarEvent] = []
         ics_summaries: set[str] = set()
         if calendar_events:
@@ -134,58 +150,56 @@ class ProposalBuilder:
                 all_day=cal.all_day,
                 is_cancellation=cal.status == "CANCELLED",
             ))
+        return proposals, ics_summaries
 
-        filtered_events = [e for e in events if e.title.strip().casefold() not in ics_summaries]
-        entries: list[tuple[str, ExtractedTask | ExtractedEvent]] = [
-            *(("task", item) for item in tasks), *(("event", item) for item in filtered_events)
-        ]
-        for position, (kind, item) in enumerate(entries):
-            # A deadline missing from due_text but unambiguous in the verbatim
-            # evidence is recovered; the identity still uses the raw extraction.
-            due_item = recover_task_due(item) if isinstance(item, ExtractedTask) else item
-            temporal = (normalize_task_due(due_item, self.context)
-                        if kind == "task" and due_item.due_text is not None
-                        else normalize_event(item, self.context) if kind == "event" else None)
-            question = temporal.question if temporal is not None else None
-            questions = self._questions(item, question)
-            if kind in conflicted:
-                questions.append(
-                    f"Wie viele {'Aufgaben' if kind == 'task' else 'Termine'} enthält diese Mail tatsächlich?"
-                )
-            values: dict[str, object] = {}
-            if temporal is not None and temporal.resolved:
-                if kind == "task":
-                    values["due"] = temporal.value
-                else:
-                    assert isinstance(temporal.value, TemporalValue)
-                    values.update(start=temporal.value.start, end=temporal.value.end,
-                                  all_day=temporal.value.all_day)
-            elif kind == "event" and temporal is not None and (
-                    temporal.known_date is not None or temporal.known_start is not None or
-                    temporal.known_start_time is not None):
-                values["known_temporal_facts"] = KnownTemporalFacts(
-                    date=temporal.known_date, start=temporal.known_start,
-                    start_time=temporal.known_start_time)
-            if temporal is not None:
-                values["temporal_fact"] = temporal.temporal_fact
-            target = self.targets.todoist_project if kind == "task" else self.targets.google_calendar
-            status = (ProposalStatus.PENDING_CONFIRMATION
-                      if item.classification == "new" and item.responsibility == "user"
-                      and item.certainty == "certain" and not questions
-                      else ProposalStatus.NEEDS_CLARIFICATION)
-            proposals.append(Proposal(
-                schema_version=2, id=self._identity(kind, item, position, used_ids), version=1,
-                kind=kind, responsibility=item.responsibility, certainty=item.certainty,
-                classification=item.classification, title=item.title,
-                description=self._description(item.description), evidence=item.evidence,
-                source_mail_id=self.source_mail_id, open_questions=questions,
-                location=item.location if isinstance(item, ExtractedEvent) else None,
-                video_link=item.video_link if isinstance(item, ExtractedEvent) else None,
-                duration_minutes=(item.duration_minutes
-                                  if isinstance(item, ExtractedEvent) else None),
-                duration_is_upper_bound=(item.duration_is_upper_bound
-                                         if isinstance(item, ExtractedEvent) else False),
-                target=target, status=status, external_id=None, external_link=None,
-                uncertain_notified=False, simulation_notified=False, **values,
-            ))
-        return proposals
+    def _extracted_proposal(self, kind: str, item: ExtractedTask | ExtractedEvent, position: int,
+                            conflicted: set[str], used_ids: set[str]) -> Proposal:
+        """One proposal from an extracted task or event, with its open questions."""
+        # A deadline missing from due_text but unambiguous in the verbatim
+        # evidence is recovered; the identity still uses the raw extraction.
+        due_item = recover_task_due(item) if isinstance(item, ExtractedTask) else item
+        temporal = (normalize_task_due(due_item, self.context)
+                    if kind == "task" and due_item.due_text is not None
+                    else normalize_event(item, self.context) if kind == "event" else None)
+        question = temporal.question if temporal is not None else None
+        questions = self._questions(item, question)
+        if kind in conflicted:
+            questions.append(
+                f"Wie viele {'Aufgaben' if kind == 'task' else 'Termine'} enthält diese Mail tatsächlich?"
+            )
+        values: dict[str, object] = {}
+        if temporal is not None and temporal.resolved:
+            if kind == "task":
+                values["due"] = temporal.value
+            else:
+                assert isinstance(temporal.value, TemporalValue)
+                values.update(start=temporal.value.start, end=temporal.value.end,
+                              all_day=temporal.value.all_day)
+        elif kind == "event" and temporal is not None and (
+                temporal.known_date is not None or temporal.known_start is not None or
+                temporal.known_start_time is not None):
+            values["known_temporal_facts"] = KnownTemporalFacts(
+                date=temporal.known_date, start=temporal.known_start,
+                start_time=temporal.known_start_time)
+        if temporal is not None:
+            values["temporal_fact"] = temporal.temporal_fact
+        target = self.targets.todoist_project if kind == "task" else self.targets.google_calendar
+        status = (ProposalStatus.PENDING_CONFIRMATION
+                  if item.classification == "new" and item.responsibility == "user"
+                  and item.certainty == "certain" and not questions
+                  else ProposalStatus.NEEDS_CLARIFICATION)
+        return Proposal(
+            schema_version=2, id=self._identity(kind, item, position, used_ids), version=1,
+            kind=kind, responsibility=item.responsibility, certainty=item.certainty,
+            classification=item.classification, title=item.title,
+            description=self._description(item.description), evidence=item.evidence,
+            source_mail_id=self.source_mail_id, open_questions=questions,
+            location=item.location if isinstance(item, ExtractedEvent) else None,
+            video_link=item.video_link if isinstance(item, ExtractedEvent) else None,
+            duration_minutes=(item.duration_minutes
+                              if isinstance(item, ExtractedEvent) else None),
+            duration_is_upper_bound=(item.duration_is_upper_bound
+                                     if isinstance(item, ExtractedEvent) else False),
+            target=target, status=status, external_id=None, external_link=None,
+            uncertain_notified=False, simulation_notified=False, **values,
+        )

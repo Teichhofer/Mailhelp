@@ -1,12 +1,19 @@
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 
 import pytest
 from pydantic import ValidationError
 
 from mailhelp.action_normalization import MailDateContext
 from mailhelp.config import TargetSettings
-from mailhelp.models import (ExtractedEvent, ExtractedTask, ExtractionCountConflict,
-                             KnownTemporalFacts, Proposal, ProposalStatus, TemporalFact)
+from mailhelp.models import (
+    ExtractedEvent,
+    ExtractedTask,
+    ExtractionCountConflict,
+    KnownTemporalFacts,
+    Proposal,
+    ProposalStatus,
+    TemporalFact,
+)
 from mailhelp.proposal_builder import ProposalBuilder
 from mailhelp.storage import JsonStore
 
@@ -172,8 +179,8 @@ def test_explicit_offset_instant_survives_proposal_persistence(tmp_path):
     assert restored is not None
     assert restored.start.isoformat() == "2026-09-23T09:00:00+01:00"
     assert restored.end.isoformat() == "2026-09-23T10:00:00+01:00"
-    assert restored.start.astimezone(timezone.utc).isoformat() == "2026-09-23T08:00:00+00:00"
-    assert restored.end.astimezone(timezone.utc).isoformat() == "2026-09-23T09:00:00+00:00"
+    assert restored.start.astimezone(UTC).isoformat() == "2026-09-23T08:00:00+00:00"
+    assert restored.end.astimezone(UTC).isoformat() == "2026-09-23T09:00:00+00:00"
 
 
 def test_temporal_fact_rejects_inconsistent_resolution_and_source():

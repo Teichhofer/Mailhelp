@@ -28,7 +28,6 @@ from ..review.cards import (
     shorten,
 )
 
-
 _VERSION = re.compile(r" \(Version \d+\)")
 
 

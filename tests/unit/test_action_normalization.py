@@ -1,10 +1,13 @@
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from pydantic import ValidationError
+from shared_action_normalization import context as context
+from shared_action_normalization import event as event
+from shared_action_normalization import reminder as reminder
+from shared_action_normalization import task as task
 
 from mailhelp.action_normalization import (
-    MailDateContext,
     NormalizationReason,
     TemporalValue,
     normalize_event,
@@ -12,39 +15,6 @@ from mailhelp.action_normalization import (
     recover_task_due,
     split_time_range,
 )
-from mailhelp.models import ExtractedEvent, ExtractedTask
-
-
-def context(**changes):
-    values = {
-        "date_context_status": "valid",
-        "date_header_parsed": "2026-09-18T12:00:00+02:00",
-        "imap_received_at": "2026-09-18T10:01:00+00:00",
-        "user_timezone": "Europe/Berlin",
-    }
-    values.update(changes)
-    return MailDateContext(**values)
-
-
-def event(**changes):
-    values = {
-        "title": "Sitzung", "description": None, "evidence": "synthetischer Beleg",
-        "date_text": "22.09.2026", "time_text": None, "end_time_text": None,
-        "timezone_offset_text": None,
-        "time_requirement": "all_day",
-        "location": None, "video_link": None, "responsibility": "user",
-        "certainty": "certain", "classification": "new",
-    }
-    values.update(changes)
-    return ExtractedEvent(**values)
-
-
-def task(**changes):
-    values = {"title": "Aufgabe", "description": "", "evidence": "Beleg",
-              "responsibility": "user", "certainty": "certain", "classification": "new",
-              "due_text": "2026-09-22"}
-    values.update(changes)
-    return ExtractedTask(**values)
 
 
 def test_gemeinderat_is_one_exclusive_all_day_interval_and_responsibility_stays_separate():
@@ -201,14 +171,10 @@ def test_explicit_mail_offset_overrides_configured_user_timezone_and_preserves_i
     assert isinstance(result.value, TemporalValue)
     assert result.value.start.isoformat() == "2026-09-23T09:00:00+01:00"
     assert result.value.end.isoformat() == "2026-09-23T10:00:00+01:00"
-    assert result.value.start.astimezone(timezone.utc).isoformat() == "2026-09-23T08:00:00+00:00"
-    assert result.value.end.astimezone(timezone.utc).isoformat() == "2026-09-23T09:00:00+00:00"
+    assert result.value.start.astimezone(UTC).isoformat() == "2026-09-23T08:00:00+00:00"
+    assert result.value.end.astimezone(UTC).isoformat() == "2026-09-23T09:00:00+00:00"
 
 
-def reminder(day, start, end, offset):
-    return event(date_text=day, time_text=start, end_time_text=end,
-                 timezone_offset_text=offset, time_requirement="timed",
-                 evidence=f"Erinnerung: Austausch am {day}, {start} Uhr - {end} Uhr ({offset})")
 
 
 def test_regression_zone_label_with_standard_offset_keeps_local_summer_time():

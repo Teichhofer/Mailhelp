@@ -5,15 +5,20 @@ import hashlib
 import json
 
 import pytest
+from shared_application import settings as app_settings
+from shared_core import prompt_config
 
 from mailhelp.config import Topic
-from mailhelp.fingerprints import (adopt_legacy_configuration, config_fingerprint, legacy_fingerprints,
-                                   legacy_policies, topic_policy)
+from mailhelp.fingerprints import (
+    adopt_legacy_configuration,
+    config_fingerprint,
+    legacy_fingerprints,
+    legacy_policies,
+    topic_policy,
+)
 from mailhelp.models import MailState, RelevanceDialog
 from mailhelp.orchestrator import Orchestrator
 from mailhelp.storage import JsonStore
-from test_application import settings as app_settings
-from test_core import prompt_config
 
 TOPICS = [Topic(id="schule", name="Schule", enabled=True, description="Schule")]
 

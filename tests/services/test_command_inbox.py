@@ -2,19 +2,33 @@
 from __future__ import annotations
 
 import threading
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
+from shared_review import MAIL, OTHER, command, setup
+from shared_telegram_dialog import (
+    Logger,
+    RelevanceHandler,
+    RevisionService,
+    Telegram,
+    Writer,
+    proposal,
+    relevance_state,
+)
 
 from mailhelp.domain.processing import ProposalClarificationState
 from mailhelp.models import TelegramDialogState
 from mailhelp.review import CommandKind, ResultStatus, ReviewResult
-from mailhelp.review.inbox import (COMMAND_INBOX, MAX_QUEUED, CommandConflict, CommandInbox,
-                                   CommandInboxFull, CommandStatus)
+from mailhelp.review.inbox import (
+    COMMAND_INBOX,
+    MAX_QUEUED,
+    CommandConflict,
+    CommandInbox,
+    CommandInboxFull,
+    CommandStatus,
+)
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import TelegramDialogController
-from test_review import MAIL, OTHER, command, setup
-from test_telegram_dialog import Logger, RelevanceHandler, RevisionService, Telegram, Writer, proposal, relevance_state
 
 
 def with_commands(store, dialog, clock=None):
@@ -163,7 +177,7 @@ def test_reconciliation_of_clarification_answer_cancel_and_relevance(tmp_path):
         dialog = restarted(store, inbox=inbox)
         dialog.relevance_handler = RelevanceHandler(store)
         assert inbox.recover(dialog.review.reconcile) == len(commands)
-        outcome = {name: inbox.get(entry.id).status for name, entry in zip(commands, entries)}
+        outcome = {name: inbox.get(entry.id).status for name, entry in zip(commands, entries, strict=False)}
     assert outcome == {
         "edit": CommandStatus.DONE, "cancel_edit": CommandStatus.FAILED,
         "cancel": CommandStatus.DONE, "clarify": CommandStatus.FAILED,
@@ -196,7 +210,7 @@ def test_recovery_runs_once_per_process(tmp_path):
 
 
 def test_finished_entries_are_removed_after_a_day(tmp_path):
-    now = [datetime(2026, 10, 11, 12, tzinfo=timezone.utc)]
+    now = [datetime(2026, 10, 11, 12, tzinfo=UTC)]
     with JsonStore(tmp_path) as store:
         inbox = CommandInbox(store, clock=lambda: now[0])
         old, _ = inbox.submit(command(CommandKind.REJECT, key="key-older"))

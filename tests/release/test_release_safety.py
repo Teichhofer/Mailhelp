@@ -13,7 +13,9 @@ from mailhelp.storage import AlreadyRunning, JsonStore
 def test_regression_shortlink_bait_cannot_become_an_action_even_if_model_says_so(jev):
     from pathlib import Path
     from unittest.mock import Mock
+
     import yaml
+
     from mailhelp.analysis import Analyzer
     from mailhelp.config import PromptConfig, Topic
     from mailhelp.decisions import JevRelevanceAnalyzer
@@ -107,7 +109,9 @@ def test_regression_test_mode_never_contacts_either_external_writer(tmp_path, ki
 ])
 def test_shortlink_policy_checks_host_and_lure_together(text, blocked):
     from pathlib import Path
+
     import yaml
+
     from mailhelp.analysis import Analyzer
     from mailhelp.config import PromptConfig
     config = PromptConfig.model_validate(yaml.safe_load(
@@ -118,7 +122,8 @@ def test_shortlink_policy_checks_host_and_lure_together(text, blocked):
 @pytest.mark.parametrize("status", ["confirmed", "writing", "uncertain"])
 def test_restored_snapshot_reconciles_existing_action_across_repeated_restarts(tmp_path, status):
     import shutil
-    from test_services import proposal
+
+    from shared_services import proposal
 
     external = {}
     writes = []

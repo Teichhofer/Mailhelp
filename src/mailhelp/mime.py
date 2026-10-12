@@ -1,19 +1,18 @@
 """Bounded, defensive MIME preparation without fetching external resources."""
 from __future__ import annotations
 
-from collections.abc import Iterator
-from dataclasses import dataclass
-from email import policy
-from email.message import Message
-from email.parser import BytesParser
-from email.parser import BytesHeaderParser
-from email.utils import parsedate_to_datetime
-from datetime import datetime, timezone
-from html.parser import HTMLParser
 import json
 import re
-from typing import Any
 import unicodedata
+from collections.abc import Iterator
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from email import policy
+from email.message import Message
+from email.parser import BytesHeaderParser, BytesParser
+from email.utils import parsedate_to_datetime
+from html.parser import HTMLParser
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -169,7 +168,7 @@ def _date_context(message: Message, received_at: datetime, user_timezone: str) -
                 status = "naive"
             else:
                 parsed, status = candidate, "valid"
-                if abs((candidate.astimezone(timezone.utc) - received_at.astimezone(timezone.utc)).total_seconds()) > 7 * 86400:
+                if abs((candidate.astimezone(UTC) - received_at.astimezone(UTC)).total_seconds()) > 7 * 86400:
                     status = "conflicting"
     return {"date_header_original": original, "date_header_parsed": parsed.isoformat() if parsed else None,
             "imap_received_at": received_at.isoformat(), "user_timezone": user_timezone,
@@ -224,8 +223,8 @@ def _collect_and_extract_attachments(
     message: Message, user_timezone: str
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Collect attachment parts and extract calendar events and document texts."""
-    from .calendar_parser import parse_icalendar
     from .attachment_extractor import extract_attachment_text
+    from .calendar_parser import parse_icalendar
 
     calendar_events: list[dict[str, Any]] = []
     extracted_attachments: list[dict[str, Any]] = []
@@ -275,7 +274,7 @@ def prepare(raw: bytes, limits: int | MimeLimits | object,
     if (len(raw) > configured.max_mail_bytes
             and len(message.as_bytes(policy=policy.default)) > configured.max_mail_bytes):
         raise MimeLimitExceeded("max_mail_bytes")
-    received = received_at or datetime.min.replace(tzinfo=timezone.utc)
+    received = received_at or datetime.min.replace(tzinfo=UTC)
     if received.tzinfo is None or received.utcoffset() is None:
         raise ValueError("IMAP-Empfangszeitpunkt muss zeitzonenbehaftet sein")
     leaves = [part for part in message.walk() if not part.is_multipart()]

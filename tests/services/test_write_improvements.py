@@ -3,20 +3,15 @@ import types
 
 import httpx
 import pytest
+from shared_core import proposal
+from shared_telegram_dialog import callback, controller, message
+from shared_write_improvements import event as event
 
 from mailhelp.analysis import ContradictoryRevision, validate_revision_successor
 from mailhelp.integrations import HttpWriter
 from mailhelp.models import CalendarDuplicateDecision, ProposalRevisionDelta, apply_proposal_revision
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import Decision, DecisionAction
-from test_core import proposal
-from test_telegram_dialog import callback, controller, message
-
-
-def event(**changes):
-    changes.setdefault("target", "calendar")
-    return proposal(kind="event", start="2026-05-10T10:00:00+00:00",
-                    end="2026-05-10T11:00:00+00:00", **changes)
 
 
 @pytest.mark.parametrize("description", [
@@ -281,6 +276,7 @@ def test_explicit_calendar_duplicate_survives_restart_without_blind_retries(tmp_
 def test_posix_storage_lock_and_directory_sync_on_all_platforms(tmp_path, monkeypatch):
     """Exercise the POSIX syscall contract on Windows without changing global os.name."""
     import os
+
     import mailhelp.storage as storage
     store = JsonStore(tmp_path)
     calls = []

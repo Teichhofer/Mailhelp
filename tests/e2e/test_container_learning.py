@@ -1,8 +1,8 @@
 """Exercise atomically replaced learning files on actual Compose directory mounts."""
 import json
 import os
-from pathlib import Path
 import shutil
+from pathlib import Path
 from types import SimpleNamespace
 
 import yaml

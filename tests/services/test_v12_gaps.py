@@ -2,13 +2,19 @@
 from __future__ import annotations
 
 import json
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from threading import Event
 from types import SimpleNamespace
 
 import pytest
 import yaml
+from shared_application import Log, Orch
+from shared_application import settings as app_settings
+from shared_review import command
+from shared_web_actions import web  # noqa: F401  (fixture)
+from shared_web_v12 import configure
+from web_scenario import mail_id, proposal
 
 from mailhelp.application import Application
 from mailhelp.configuration import AdminCommand, AdminKind, file_hash
@@ -19,11 +25,6 @@ from mailhelp.review.archive import record_event, record_relevance
 from mailhelp.review.commands import CommandKind
 from mailhelp.review.editing import ProposalEditPatch, edit_proposal
 from mailhelp.review.results import ResultStatus
-from test_application import Log, Orch, settings as app_settings
-from test_review import command
-from test_web_actions import web  # noqa: F401  (fixture)
-from test_web_v12 import configure
-from web_scenario import mail_id, proposal
 
 
 def test_exchange_rate_needs_its_date():
@@ -63,7 +64,7 @@ def test_runtime_snapshot_follows_processing_steps(tmp_path):
     runtime = metrics.runtime()
     assert changes == ["preparation", "relevance", "waiting_for_user", "failed", "idle", "idle"]
     assert runtime["stage"] == "idle" and runtime["elapsed"] >= 0
-    assert datetime.fromisoformat(runtime["next_poll"]) > datetime.now(timezone.utc)
+    assert datetime.fromisoformat(runtime["next_poll"]) > datetime.now(UTC)
     # Only known success events count; an event without a service is not a contact.
     assert set(runtime["contacts"]) == {"IMAP-Postfach"}
 
@@ -160,7 +161,7 @@ def test_history_filters_paging_and_first_version(web):
 
 
 def test_error_list_names_the_next_attempt(web):
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     state = web.store.load_model(f"mail-{mail_id(2)}", MailState)
     web.store.save(f"mail-{mail_id(2)}", state.model_copy(update={
         "error": ProcessingError(code="llm_rate_limited", stage="relevance", occurred_at=now, retryable=True),
@@ -195,10 +196,11 @@ def test_successful_contacts_per_service_from_logged_events(tmp_path, mode, llm)
 
 
 def test_telegram_messages_count_as_contacts_without_content(tmp_path):
-    from mailhelp.logging import JsonlLogger
-    from test_application import settings as app_settings
+    from shared_application import settings as app_settings
+
     from mailhelp.application import build_logger
     from mailhelp.config import Secrets
+    from mailhelp.logging import JsonlLogger
     secrets = Secrets(imap_username="u", imap_password="p", openrouter_api_key="o", telegram_bot_token="t",
                       todoist_token="d", todoist_client_id="ti", todoist_client_secret="ts",
                       google_oauth_client_id="i", google_oauth_client_secret="s", google_oauth_refresh_token="r")
@@ -236,13 +238,14 @@ def test_status_page_shows_runtime_contacts_and_its_own_refresh_signal(web, tmp_
 
 
 def test_status_without_metrics_and_unknown_stage(web, tmp_path):
-    from mailhelp.web.status_pages import RUNTIME_STAGES, ServiceInfo, _runtime_section
     from zoneinfo import ZoneInfo
+
+    from mailhelp.web.status_pages import RUNTIME_STAGES, ServiceInfo, _runtime_section
     assert "Aktuelle Verarbeitung" not in web.browser.request("GET", "/status").body.decode()
     plain = json.loads(web.browser.request("GET", "/api/stand?seite=status", accept="application/json").body)
     assert len(plain["fingerprint"]) == 16
-    info = ServiceInfo(version="1", test_mode=False, started_at=datetime.now(timezone.utc),
-                       now=datetime.now(timezone.utc), address="x", devices=0, llm_calls_per_minute=None,
+    info = ServiceInfo(version="1", test_mode=False, started_at=datetime.now(UTC),
+                       now=datetime.now(UTC), address="x", devices=0, llm_calls_per_minute=None,
                        commands={}, runtime={"stage": "event_extraction", "elapsed": 5, "contacts":
                                              {"Sonderdienst": "2026-10-11T10:00:00+00:00"}},
                        services=("IMAP-Postfach",))
@@ -331,9 +334,10 @@ def test_statistics_page_labels_rates_and_incomplete_capture(web, tmp_path):
 
 
 def test_application_writes_metrics_into_the_log_directory(tmp_path, monkeypatch):
+    from shared_core import prompt_config
+
     from mailhelp.application import build_application
     from mailhelp.config import Secrets, Topic
-    from test_core import prompt_config
 
     class Resource:
         def __init__(self, *args, **kwargs): pass
@@ -365,8 +369,9 @@ def test_application_writes_metrics_into_the_log_directory(tmp_path, monkeypatch
 # --- R4: settings page ---------------------------------------------------------------
 
 def test_effective_models_name_their_source_without_prompt_texts():
+    from shared_core import prompt_config
+
     from mailhelp.configuration import effective_models
-    from test_core import prompt_config
     prompts = prompt_config()
     standard = effective_models(prompts, "typesafe/jev", None)
     assert standard[0] == ("Relevanz", "typesafe/jev", "unklare Fälle: Rückfall auf das Relevanzmodell",
@@ -416,8 +421,9 @@ def test_live_settings_saved_but_not_yet_taken_over(web, tmp_path):
 
 
 def test_settings_page_shows_the_model_table_or_says_there_is_none(web, tmp_path):
+    from shared_core import prompt_config
+
     from mailhelp.configuration import effective_models
-    from test_core import prompt_config
     configure(web, tmp_path)
     assert "Keine Modellangaben verfügbar." in web.browser.request("GET", "/einstellungen").body.decode()
     web.site.archive.models = effective_models(prompt_config(), "typesafe/jev", None)
@@ -485,8 +491,9 @@ def test_stop_states_are_logged_and_end_in_stopped():
 
 
 def test_the_run_loop_reports_its_end_to_the_lifecycle(tmp_path):
+    from shared_application import Imap, Telegram, app
+
     from mailhelp.lifecycle import Lifecycle
-    from test_application import Imap, Telegram, app
     service = app(tmp_path, Imap([]), Telegram([]), Orch())
     service.lifecycle = Lifecycle(service.stop, lambda actor: True)
     service.stop_event.set()
@@ -538,9 +545,9 @@ def test_a_parallel_learning_run_wins_over_an_open_topic_form(web, tmp_path):
 
 @pytest.mark.parametrize("swapped", [False, True])
 def test_crash_before_or_after_the_atomic_topic_swap(web, tmp_path, swapped):
+    from mailhelp.config import Topic
     from mailhelp.configuration import AdminCommand, AdminKind, file_hash
     from mailhelp.learning import topics_document
-    from mailhelp.config import Topic
     service, *_ = configure(web, tmp_path)
     path = tmp_path / "topics.yaml"
     command = AdminCommand(kind=AdminKind.TOPICS, actor=f"web:{web.auth.sessions()[0].id}",
@@ -566,7 +573,7 @@ def test_crash_before_or_after_the_atomic_topic_swap(web, tmp_path, swapped):
 
 def test_mail_list_shows_readable_entries_filters_and_paging(web):
     from mailhelp.models import ProcessingError
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     state = web.store.load_model(f"mail-{mail_id(2)}", MailState)
     web.store.save(f"mail-{mail_id(2)}", state.model_copy(update={
         "error": ProcessingError(code="internal_error", stage="summary", occurred_at=now)}).model_dump(mode="json"))

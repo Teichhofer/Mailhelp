@@ -6,7 +6,6 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-
 __all__ = [
     "InternalTelegramModel",
     "TelegramBot",
@@ -63,7 +62,7 @@ class TelegramUpdate(TelegramTransportModel):
     callback_query: TelegramCallbackQuery | None = None
 
     @model_validator(mode="after")
-    def exactly_one_payload(self) -> "TelegramUpdate":
+    def exactly_one_payload(self) -> TelegramUpdate:
         if (self.message is None) == (self.callback_query is None):
             raise ValueError(
                 "Update muss genau eine Nachricht oder Callback-Query enthalten"
@@ -80,7 +79,7 @@ class TelegramUpdatesResponse(TelegramTransportModel):
     result: list[TelegramUpdate | dict[str, Any]]
 
     @model_validator(mode="after")
-    def successful(self) -> "TelegramUpdatesResponse":
+    def successful(self) -> TelegramUpdatesResponse:
         if not self.ok:
             raise ValueError("Telegram meldet keinen Erfolg")
         if any(
@@ -100,7 +99,7 @@ class TelegramWriteResponse(TelegramTransportModel):
     result: TelegramWriteResult | bool
 
     @model_validator(mode="after")
-    def successful(self) -> "TelegramWriteResponse":
+    def successful(self) -> TelegramWriteResponse:
         if not self.ok:
             raise ValueError("Telegram meldet keinen Erfolg")
         return self
@@ -117,7 +116,7 @@ class TelegramBotResponse(TelegramTransportModel):
     result: TelegramBot
 
     @model_validator(mode="after")
-    def successful(self) -> "TelegramBotResponse":
+    def successful(self) -> TelegramBotResponse:
         if not self.ok or not self.result.is_bot:
             raise ValueError("Telegram meldet keinen gültigen Bot")
         return self

@@ -1,10 +1,14 @@
 """Shared HTTP requests, caching and service error classification."""
 from __future__ import annotations
+
 import time
 from typing import Any
+
 import httpx
+
 from ..adapter import PermanentError
 from .contracts import AuthenticationError, CalendarAccessError
+
 
 class HttpTransport:
     def _get_cached(self, key: tuple[Any, ...]) -> Any | None:

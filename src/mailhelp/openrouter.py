@@ -1,13 +1,19 @@
 """Begrenzter OpenRouter-Client mit Timeouts, Wiederholung und Rate-Limit."""
 from __future__ import annotations
-import hashlib, json, time, traceback, uuid
+
+import hashlib
+import json
+import time
+import traceback
+import uuid
+from collections.abc import Callable
+from datetime import UTC, datetime
 from threading import Lock
-from datetime import datetime, timezone
-from typing import Any, Callable
+from typing import Any
 from urllib.parse import urlsplit
+
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
-
 
 from .adapter import RetryPolicy
 from .logging import EventLogger, NullLogger
@@ -16,7 +22,7 @@ from .logging import EventLogger, NullLogger
 class RateLimitExceeded(RuntimeError):
     def __init__(self, next_allowed_at: float):
         self.next_allowed_at = next_allowed_at
-        super().__init__(f"OpenRouter-Aufruflimit erreicht; naechster Aufruf {datetime.fromtimestamp(next_allowed_at, timezone.utc).isoformat()}")
+        super().__init__(f"OpenRouter-Aufruflimit erreicht; naechster Aufruf {datetime.fromtimestamp(next_allowed_at, UTC).isoformat()}")
 
 
 class OpenRouterResponseError(ValueError):

@@ -2,27 +2,41 @@
 from __future__ import annotations
 
 import threading
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from pydantic import ValidationError
 
 from mailhelp.adapter import PermanentError, UncertainWriteError
-from mailhelp.domain.processing import (AnswerStatus, ProposalClarificationState,
-                                        ProposalRevisionStatus, TelegramOutboxEntry,
-                                        TelegramOutboxGate, TelegramOutboxState)
-from mailhelp.models import (ActionLedger, DisplayHeaders, ActionLedgerEntry, MailRunCounters, MailRunEntry,
-                             MailRunState, MailState, ProposalStatus, TelegramDialogState)
-from mailhelp.review import (CommandKind, CommandSource, ResultStatus, ReviewCommand,
-                             StaleCommand)
+from mailhelp.domain.processing import (
+    AnswerStatus,
+    ProposalClarificationState,
+    ProposalRevisionStatus,
+    TelegramOutboxEntry,
+    TelegramOutboxGate,
+    TelegramOutboxState,
+)
+from mailhelp.models import (
+    ActionLedger,
+    ActionLedgerEntry,
+    DisplayHeaders,
+    MailRunCounters,
+    MailRunEntry,
+    MailRunState,
+    TelegramDialogState,
+)
+from mailhelp.review import CommandKind, CommandSource, ResultStatus, ReviewCommand, StaleCommand
 from mailhelp.review.cards import card_content, yes_no_question
 from mailhelp.review.views import RECENT_LIMIT, ReviewViews
 from mailhelp.storage import CorruptState, JsonStore
 from mailhelp.telegram.ledger import ActionLedgerService
 
 action_key = ActionLedgerService.action_key
-from test_telegram_dialog import (RelevanceHandler, Writer, controller, proposal,
-                                  relevance_state)
+from shared_review import command as command
+from shared_review import mail_state as mail_state
+from shared_review import setup as setup
+from shared_review import web as web
+from shared_telegram_dialog import RelevanceHandler, Writer, controller, proposal, relevance_state
 
 MAIL = "a" * 24
 OTHER = "b" * 24
@@ -31,36 +45,12 @@ EVENT = dict(kind="event", start="2026-10-21T12:30:00+02:00", end="2026-10-21T15
              target="calendar")
 
 
-def command(kind, *, mail_id=MAIL, proposal_id="p1", version=1, source=CommandSource.WEB,
-            actor="web:session", key="key-00000001", **extra):
-    if kind == CommandKind.RELEVANCE:
-        proposal_id = None
-    return ReviewCommand(kind=kind, source=source, actor=actor, mail_id=mail_id,
-                         proposal_id=proposal_id, version=version, idempotency_key=key, **extra)
 
 
-def mail_state(mail_id=MAIL, uid=1, proposals=(), sender="Ada Muster <ada@example.test>",
-               subject="Elternabend", updated=None):
-    now = updated or datetime.now(timezone.utc)
-    return MailState(id=mail_id, config_fingerprint="f" * 64,
-                     imap={"account_id": "0" * 24, "folder": "INBOX", "uidvalidity": 1, "uid": uid},
-                     display_headers={"sender": sender, "subject": subject} if sender else None,
-                     proposals=list(proposals), created_at=now - timedelta(days=1),
-                     updated_at=now)
 
 
-def setup(store, *items, writers=None, test_mode=False, mail_id=MAIL, uid=1, **mail):
-    """Persist a mail with its proposals the way the orchestrator does."""
-    store.save(f"mail-{mail_id}", mail_state(mail_id, uid, items, **mail).model_dump(mode="json"))
-    dialog, telegram, log = controller(store, writers=writers, test_mode=test_mode)
-    for item in items:
-        dialog.persist(item)
-    return dialog, telegram, log
 
 
-def web(dialog, allowed=True):
-    dialog.review.web_authorizer = lambda actor: allowed and actor == "web:session"
-    return dialog.review
 
 
 # --- commands -----------------------------------------------------------------
@@ -319,7 +309,7 @@ def test_overview_orders_current_first_and_marks_queued_and_editing(tmp_path):
         store.save("telegram-outbox", TelegramOutboxState(
             active=TelegramOutboxGate(kind="proposal", mail_id=MAIL, proposal_id="event", version=1),
             entries=[TelegramOutboxEntry(id="1" * 32, kind="proposal", mail_id=MAIL, proposal_id="held",
-                                         version=1, created_at=datetime.now(timezone.utc))],
+                                         version=1, created_at=datetime.now(UTC))],
         ).model_dump(mode="json"))
         store.save("telegram-dialog", TelegramDialogState(
             mail_id=MAIL, proposal_id="task", version=1).model_dump(mode="json"))
@@ -375,7 +365,7 @@ def test_a_running_retry_counts_as_a_saved_answer(tmp_path):
 
 def test_recent_results_are_newest_first_and_limited(tmp_path):
     with JsonStore(tmp_path) as store:
-        base = datetime(2026, 10, 1, tzinfo=timezone.utc)
+        base = datetime(2026, 10, 1, tzinfo=UTC)
         for index in range(RECENT_LIMIT + 2):
             mail_id = f"{index:024x}"
             item = proposal(id="p1", source_mail_id=mail_id, status="created",
@@ -414,8 +404,8 @@ def test_relevance_questions_run_status_and_fingerprint(tmp_path):
         entries = [MailRunEntry(account_id="0" * 24, folder="INBOX", uidvalidity=1, uid=1,
                                 status="completed", analysis_terminal="completed"),
                    MailRunEntry(account_id="0" * 24, folder="INBOX", uidvalidity=1, uid=2)]
-        for name, created in (("mail-run-a", datetime(2026, 10, 1, tzinfo=timezone.utc)),
-                              ("mail-run-b", datetime(2026, 10, 2, tzinfo=timezone.utc))):
+        for name, created in (("mail-run-a", datetime(2026, 10, 1, tzinfo=UTC)),
+                              ("mail-run-b", datetime(2026, 10, 2, tzinfo=UTC))):
             store.save(name, MailRunState(
                 run_id="00000000-0000-0000-0000-000000000001", created_at=created, entries=entries,
                 counters=MailRunCounters(discovered=1, completed=1)).model_dump(mode="json"))
@@ -425,7 +415,7 @@ def test_relevance_questions_run_status_and_fingerprint(tmp_path):
             ("Schule", "Ausflug"), ("—", "Mail ohne Betreff")]
         assert overview.run.counters["completed"] == 2 and overview.run.counters["discovered"] == 2
         assert not overview.run.run_complete
-        assert overview.run.started_at == datetime(2026, 10, 2, tzinfo=timezone.utc)
+        assert overview.run.started_at == datetime(2026, 10, 2, tzinfo=UTC)
         setup(store, proposal(), mail_id="d" * 24)
         changed = views.overview()
         assert changed.fingerprint != overview.fingerprint

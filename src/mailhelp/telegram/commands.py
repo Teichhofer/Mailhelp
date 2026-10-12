@@ -1,9 +1,11 @@
 """Local commands, called only after the controller authorizes the sender."""
-from ..models import AnswerStatus, Proposal, ProposalStatus, ProposalClarificationState, TelegramDialogState
-from .persistence import clarification_name, proposal_name
-from .formatting import clarification_prompt
-from .. import state_names
 
+from __future__ import annotations
+
+from .. import state_names
+from ..models import AnswerStatus, Proposal, ProposalClarificationState, ProposalStatus, TelegramDialogState
+from .formatting import clarification_prompt
+from .persistence import clarification_name, proposal_name
 
 HELP = (
     "Mailhelp – Befehle\n"

@@ -1,14 +1,17 @@
 """Laden und Validieren von Konfiguration und Geheimnissen."""
 from __future__ import annotations
-import hashlib, ipaddress, json, os, re
+
+import ipaddress
+import os
+import re
+from datetime import datetime
 from importlib.resources import files
 from pathlib import Path, PureWindowsPath
 from typing import Annotated, Any, Literal
-from datetime import datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError, field_validator, model_validator
-
 
 from .metrics import MetricsSettings
 
@@ -64,7 +67,7 @@ class ImapSettings(ConfigModel):
         return folders
 
     @model_validator(mode="after")
-    def primary_is_configured(self) -> "ImapSettings":
+    def primary_is_configured(self) -> ImapSettings:
         """The primary inbox is required; every other configured folder is optional."""
         if self.primary_folder not in self.folders:
             raise ValueError("primary_folder muss in folders enthalten sein")
@@ -111,7 +114,7 @@ class AdapterPolicySettings(ConfigModel):
     max_backoff_seconds: float = Field(ge=0, le=60)
 
     @model_validator(mode="after")
-    def valid_backoff(self) -> "AdapterPolicySettings":
+    def valid_backoff(self) -> AdapterPolicySettings:
         if self.max_backoff_seconds < self.initial_backoff_seconds:
             raise ValueError("max_backoff_seconds muss mindestens initial_backoff_seconds sein")
         return self
@@ -262,7 +265,7 @@ class WebSettings(ConfigModel):
     lan_access: bool = False
 
     @model_validator(mode="after")
-    def lan_needs_all_interfaces(self) -> "WebSettings":
+    def lan_needs_all_interfaces(self) -> WebSettings:
         if self.lan_access and ipaddress.ip_address(self.host).is_loopback:
             raise ValueError("lan_access benötigt host 0.0.0.0")
         return self
@@ -392,7 +395,7 @@ class TopicsConfig(ConfigModel):
     topics: list[Topic] = Field(min_length=1)
 
     @model_validator(mode="after")
-    def unique_enabled_topics(self) -> "TopicsConfig":
+    def unique_enabled_topics(self) -> TopicsConfig:
         identifiers = [topic.id for topic in self.topics]
         if len(identifiers) != len(set(identifiers)):
             raise ValueError("Themen-IDs dürfen nicht doppelt vorkommen")
@@ -407,7 +410,7 @@ class IrrelevantTopicsConfig(ConfigModel):
     topics: list[Topic] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def unique_topic_ids(self) -> "IrrelevantTopicsConfig":
+    def unique_topic_ids(self) -> IrrelevantTopicsConfig:
         identifiers = [topic.id for topic in self.topics]
         if len(identifiers) != len(set(identifiers)):
             raise ValueError("Themen-IDs dürfen nicht doppelt vorkommen")
@@ -419,15 +422,15 @@ class PromptStep(BaseModel):
     system_prompt: str = Field(min_length=1)
     model: str | None = None
     parameters: dict[str, Any] = Field(default_factory=dict)
-    routes: list["LlmRoute"] | None = None
+    routes: list[LlmRoute] | None = None
     # Provider routing for the default route; keeps model and parameters from
     # ``defaults``/``parameters`` instead of duplicating them in ``routes``.
-    provider_preferences: "OpenRouterProviderPreferences | None" = None
+    provider_preferences: OpenRouterProviderPreferences | None = None
     provider_retries: int = Field(default=1, ge=0, le=10)
-    output_token_retry: "OutputTokenRetry | None" = None
+    output_token_retry: OutputTokenRetry | None = None
 
     @model_validator(mode="after")
-    def valid_routes(self) -> "PromptStep":
+    def valid_routes(self) -> PromptStep:
         if self.routes is not None and self.provider_preferences is not None:
             raise ValueError("provider_preferences gilt nur ohne routes; dort je Route angeben")
         if self.routes is not None:
@@ -557,7 +560,7 @@ class PromptConfig(BaseModel):
     suspicious_link_phrases: list[Annotated[str, Field(min_length=1, max_length=250)]] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def required_steps(self) -> "PromptConfig":
+    def required_steps(self) -> PromptConfig:
         required = {"relevance", "summary", "action_router", "task_extraction",
                     "event_extraction", "mail_question_resolution", "telegram_answer_interpretation",
                     "telegram_answer_clarification", "proposal_revision", "learning_classification",

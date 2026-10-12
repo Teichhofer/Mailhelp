@@ -1,45 +1,49 @@
 """Composition Root und kontrollierte Polling-Schleife des Dienstes."""
 from __future__ import annotations
 
-from contextlib import ExitStack, contextmanager
 import imaplib
 import time
 import traceback
+from collections.abc import Callable, Iterator
+from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from threading import Event, Lock
-from collections.abc import Callable
-from typing import Any, Iterator
+from typing import Any
 from zoneinfo import ZoneInfo
 
+from . import state_names
+from .adapter import RetryPolicy
 from .analysis import Analyzer
-from .decisions import (DecisionAnalyzer, DecisionClient, JevRelevanceAnalyzer,
-                        load_relevance_prompts, relevance_fingerprint)
 from .config import PromptConfig, Secrets, Settings, Topic
-from .imap import ImapReader
+from .decisions import (
+    DecisionAnalyzer,
+    DecisionClient,
+    JevRelevanceAnalyzer,
+    load_relevance_prompts,
+    relevance_fingerprint,
+)
 from .external.contracts import OAuthTokenError
 from .external.http_writer import HttpWriter
 from .external.oauth import GoogleOAuthTokenProvider
+from .imap import ImapReader
 from .logging import JsonlLogger, NullLogger
+from .mailbox_run import MailboxRunService, _RunSummary
 from .models import MailRunState, TelegramOffset
 from .ollama import LocalLlm, OllamaClient
-from .vision import VisionExtractor
 from .openrouter import OpenRouterClient
 from .orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
-from .storage import JsonStore
-from .mailbox_run import (MailboxRunService, _RunSummary)
 from .paths import runtime_path
-from .telegram import (TelegramChatNotFoundError, TelegramClient,
-                       TelegramDialogController)
-from .telegram.commands import STARTUP
-from .telegram.receiver import TelegramInbox, TelegramReceiver
-from .adapter import RetryPolicy
 from .retention import RetentionService
 from .review.inbox import CommandInbox
+from .storage import JsonStore
+from .telegram import TelegramChatNotFoundError, TelegramClient, TelegramDialogController
+from .telegram.commands import STARTUP
+from .telegram.receiver import TelegramInbox, TelegramReceiver
+from .vision import VisionExtractor
 from .web import WebServer, WebServerError
 from .web.factory import create_web
-from . import state_names
 
 _TELEGRAM_ERROR_BACKOFF_SECONDS = 5.0
 
@@ -365,7 +369,7 @@ class Application:
         except Exception:
             # No state content is included in this operational event.
             self.logger.event("ERROR", "retention", "cleanup_failed",
-                              processed_at=datetime.now(timezone.utc).isoformat(), failure_count=1)
+                              processed_at=datetime.now(UTC).isoformat(), failure_count=1)
 
     def _cycle(self, max_mails: int | None, ignore_historical_start: bool) -> bool:
         """One pass: maintenance, mail, Telegram input and idle time; ``False`` ends the run."""
@@ -488,8 +492,7 @@ def build_logger(
 
 def _attach_metrics(logger: JsonlLogger, settings: Settings, base_directory: Path, data: Path,
                     store: JsonStore, local_llm: LocalLlm | None) -> None:
-    from .metrics import (DECISION_TEST_FILE, PRODUCTION_FILE, MetricsRecorder, adopt_legacy,
-                          metrics_directory)
+    from .metrics import DECISION_TEST_FILE, PRODUCTION_FILE, MetricsRecorder, adopt_legacy, metrics_directory
     metrics_root = metrics_directory(runtime_path(settings.logging.directory, base_directory))
     production = metrics_root / PRODUCTION_FILE
     comparison = metrics_root / DECISION_TEST_FILE
@@ -607,8 +610,7 @@ def _build_orchestrator(settings: Settings, prompts: PromptConfig, topics: list[
         # A prompts.yaml from before 1.4: no image is sent anywhere.
         logger.event("WARNING", "application", "vision_prompt_missing")
     orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics, settings.limits.max_mail_bytes, logger, mime_limits=settings.limits, config_fingerprint=fingerprint, targets=settings.targets, user_timezone=settings.timezone, sender_store=sender_store, precheck=precheck, vision=vision)
-    from .fingerprints import (adopt_legacy_configuration, legacy_fingerprints, legacy_policies,
-                               topic_policy)
+    from .fingerprints import adopt_legacy_configuration, legacy_fingerprints, legacy_policies, topic_policy
     orchestrator.topic_policy = topic_policy(settings, prompts)
     if not access_diagnostics:
         legacy = legacy_fingerprints(settings, prompts, topics)

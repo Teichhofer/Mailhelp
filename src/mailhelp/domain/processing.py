@@ -1,15 +1,13 @@
 """Fachmodelle für den Kontext Verarbeitung und Dialogzustand."""
 from __future__ import annotations
 
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import datetime
 from enum import StrEnum
-from typing import Annotated, Any, Literal
-from uuid import UUID
-import re
+from typing import Literal
 
-from pydantic import AnyHttpUrl, Field, field_validator, model_validator
+from pydantic import Field, model_validator
 
-from ._base import CalendarDate, StrictModel
+from ._base import StrictModel
 
 
 class TelegramDialogState(StrictModel):
@@ -22,7 +20,7 @@ class TelegramDialogState(StrictModel):
     normalized_answer: str | None = Field(default=None, min_length=1, max_length=4000)
 
     @model_validator(mode="after")
-    def complete_reference(self) -> "TelegramDialogState":
+    def complete_reference(self) -> TelegramDialogState:
         if len({self.mail_id is None, self.proposal_id is None, self.version is None}) != 1:
             raise ValueError("mail_id, proposal_id und version müssen gemeinsam gesetzt sein")
         retry_values = self.question is not None and self.normalized_answer is not None
@@ -69,7 +67,7 @@ class ProposalClarificationState(StrictModel):
     next_revision_at: datetime | None = None
 
     @model_validator(mode="after")
-    def consistent_answer(self) -> "ProposalClarificationState":
+    def consistent_answer(self) -> ProposalClarificationState:
         answered = self.question_status == QuestionStatus.ANSWERED
         valid = self.answer_status == AnswerStatus.VALID
         if answered != valid or valid != (self.normalized_answer is not None):
@@ -189,7 +187,7 @@ class TelegramOutboxEntry(StrictModel):
     created_at: datetime
 
     @model_validator(mode="after")
-    def complete_reference(self) -> "TelegramOutboxEntry":
+    def complete_reference(self) -> TelegramOutboxEntry:
         if self.created_at.tzinfo is None:
             raise ValueError("Zeitstempel müssen eine Zeitzone enthalten")
         required = {
@@ -211,7 +209,7 @@ class TelegramOutboxGate(StrictModel):
     version: int = Field(ge=1)
 
     @model_validator(mode="after")
-    def complete_reference(self) -> "TelegramOutboxGate":
+    def complete_reference(self) -> TelegramOutboxGate:
         if (self.kind == "proposal") != (self.proposal_id is not None):
             raise ValueError("Nur Vorschlagsrückfragen tragen eine Vorschlags-ID")
         return self

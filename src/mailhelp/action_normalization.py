@@ -20,10 +20,10 @@ an action that may be offered for confirmation.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
-from datetime import date, datetime, time, timedelta, timezone
-from enum import StrEnum
 import re
+from dataclasses import dataclass, replace
+from datetime import UTC, date, datetime, time, timedelta, timezone
+from enum import StrEnum
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from .models import ExtractedEvent, ExtractedTask, TemporalFact, TimeRequirement
@@ -269,7 +269,7 @@ def _context_zone(context: MailDateContext, responsibility: str) -> ZoneInfo | N
     if header is None or received is None:
         return _failure(NormalizationReason.INVALID_CONTEXT, None, responsibility,
                         "Welcher Mail-Datumskontext soll verwendet werden?")
-    if abs((header.astimezone(timezone.utc) - received.astimezone(timezone.utc)).total_seconds()) > 7 * 86400:
+    if abs((header.astimezone(UTC) - received.astimezone(UTC)).total_seconds()) > 7 * 86400:
         return _failure(NormalizationReason.CONFLICTING_CONTEXT, None, responsibility,
                         "Welcher Mail-Datumskontext soll verwendet werden?")
     if not context.user_timezone:
@@ -287,7 +287,7 @@ def _localize(day: date, clock: time, zone: ZoneInfo, responsibility: str) -> da
     candidates: list[datetime] = []
     for fold in (0, 1):
         candidate = naive.replace(tzinfo=zone, fold=fold)
-        if candidate.astimezone(timezone.utc).astimezone(zone).replace(tzinfo=None) == naive:
+        if candidate.astimezone(UTC).astimezone(zone).replace(tzinfo=None) == naive:
             if not candidates or candidate.utcoffset() != candidates[0].utcoffset():
                 candidates.append(candidate)
     if not candidates:

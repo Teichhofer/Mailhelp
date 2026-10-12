@@ -5,6 +5,7 @@ import re
 from datetime import timedelta
 
 import pytest
+from shared_web_auth import LOCAL, SECRET, TAILNET, Browser, auth, site  # noqa: F401  (fixtures)
 
 from mailhelp.config import WebSettings
 from mailhelp.review.inbox import CommandInbox
@@ -12,8 +13,7 @@ from mailhelp.storage import JsonStore
 from mailhelp.telegram.commands import HELP, TelegramCommands
 from mailhelp.web.auth import CODE_ATTEMPTS, CODE_REQUESTS, PairingLimited, PairingRefused
 from mailhelp.web.factory import base_url, create_web
-from mailhelp.web.site import _link_code
-from test_web_auth import LOCAL, SECRET, TAILNET, Browser, auth, site  # noqa: F401  (fixtures)
+from mailhelp.web.login_site import link_code
 
 
 def test_a_telegram_code_works_in_any_browser_once(auth):
@@ -55,10 +55,10 @@ def test_browser_and_telegram_codes_coexist_and_share_the_limits(auth):
 
 
 def test_link_code_is_only_taken_from_a_clean_query():
-    assert _link_code("code=1234") == "1234"
+    assert link_code("code=1234") == "1234"
     for query in ("", "code=123", "code=abcdefgh", "code=１２３４", "code=12345",
                   "code=12345678", "&".join(f"x{index}=1" for index in range(10))):
-        assert _link_code(query) == ""
+        assert link_code(query) == ""
 
 
 def test_opening_the_link_prefills_the_code_and_pairs(site):
@@ -100,7 +100,7 @@ def test_telegram_command_sends_link_and_code():
 
 
 def settings_with(tmp_path, hosts):
-    from test_application import settings as app_settings
+    from shared_application import settings as app_settings
     configured = app_settings(tmp_path)
     configured.web = WebSettings(enabled=True, allowed_hosts=hosts)
     return configured

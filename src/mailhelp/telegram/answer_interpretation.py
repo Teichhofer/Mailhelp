@@ -1,21 +1,37 @@
 """Interpretation of durably authorized answers, with its own retry policy."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta, timezone
-from typing import Callable
+from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import httpx
 from pydantic import ValidationError
 
 from ..adapter import RetryableError
-from ..analysis import ContradictoryRevision, IncompleteUserAnswer, LlmInvalidJson, LlmProviderResponseInvalid, LlmSchemaValidationFailed, LlmTokenLimitExceeded, TechnicalRevisionError
-from ..models import AnswerStatus, Proposal, ProposalClarificationState, ProposalKind, ProposalRevisionStatus, QuestionStatus, TelegramDialogState
+from ..analysis import (
+    ContradictoryRevision,
+    IncompleteUserAnswer,
+    LlmInvalidJson,
+    LlmProviderResponseInvalid,
+    LlmSchemaValidationFailed,
+    LlmTokenLimitExceeded,
+    TechnicalRevisionError,
+)
+from ..models import (
+    AnswerStatus,
+    Proposal,
+    ProposalClarificationState,
+    ProposalKind,
+    ProposalRevisionStatus,
+    QuestionStatus,
+    TelegramDialogState,
+)
 from ..storage import JsonStore
-
 from .client import TelegramTransport
 from .persistence import clarification_name, proposal_name
+from .revision_contracts import EventLogger, ProposalRevisionService
 from .temporal import (
     deterministic_classification_revision,
     deterministic_temporal_revision,
@@ -25,8 +41,6 @@ from .temporal import (
     relative_end_answer,
 )
 
-
-from .revision_contracts import ProposalRevisionService, EventLogger
 
 @dataclass
 class AuthorizedAnswerInterpreter:
@@ -243,7 +257,7 @@ class AuthorizedAnswerInterpreter:
                 "next_interpretation_at": (
                     None
                     if exhausted
-                    else datetime.now(timezone.utc)
+                    else datetime.now(UTC)
                     + timedelta(seconds=self.interpretation_backoff_seconds)
                 ),
             }

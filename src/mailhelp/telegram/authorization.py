@@ -4,9 +4,7 @@ from __future__ import annotations
 
 from typing import Protocol
 
-
 from ..storage import JsonStore
-
 from .callbacks import Decision, RelevanceDecision
 
 

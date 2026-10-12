@@ -7,15 +7,14 @@ from time import time
 
 import httpx
 import pytest
+from shared_core import proposal
 
 from mailhelp.analysis import Analyzer
 from mailhelp.config import LlmRoute, LoggingSettings, PromptConfig, PromptStep
-from mailhelp.openrouter import ProviderResponseInvalid
 from mailhelp.integrations import HttpWriter
 from mailhelp.logging import JsonlLogger, NullLogger, redact
-from mailhelp.openrouter import OpenRouterClient
+from mailhelp.openrouter import OpenRouterClient, ProviderResponseInvalid
 from mailhelp.telegram import TelegramClient
-from test_core import proposal
 
 
 class Capture:

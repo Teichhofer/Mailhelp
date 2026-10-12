@@ -8,8 +8,8 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..models import MailState, ProposalStatus
-from .archive import AnalysisSnapshot, HistorySnapshot
 from ..storage import CorruptState, JsonStore, mail_state_names
+from .archive import AnalysisSnapshot, HistorySnapshot
 from .filters import matches
 
 

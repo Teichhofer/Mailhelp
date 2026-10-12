@@ -5,28 +5,25 @@ import json
 import secrets
 from datetime import datetime
 from decimal import Decimal
-from zoneinfo import ZoneInfo
-from pathlib import Path
 from urllib.parse import parse_qs, urlencode
+from zoneinfo import ZoneInfo
 
 import yaml
-from pydantic import ValidationError
 
-from ..configuration import AdminCommand, AdminKind, ConfigurationConflict, LIVE_FIELDS, SETTINGS_FIELDS, file_hash
+from .. import state_names
+from ..configuration import LIVE_FIELDS, SETTINGS_FIELDS, AdminCommand, AdminKind, ConfigurationConflict, file_hash
 from ..models import MailState, Proposal, ProposalStatus
+from ..review.archive import AnalysisSnapshot
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.editing import ProposalEditPatch
+from ..review.filters import matches
 from ..review.inbox import CommandConflict, CommandInboxFull
 from ..review.queries import ArchiveQueries, ArchiveQuery
-from ..review.archive import AnalysisSnapshot
 from ..storage import CorruptState
 from .http import Response
 from .pages import e, layout, notice
 from .review_pages import detail_page
-from .setting_help import SETTING_HELP, EXTRA_HELP, help_bubble
-from .. import state_names
-from ..review.filters import matches
-
+from .setting_help import EXTRA_HELP, SETTING_HELP, help_bubble
 
 EDIT_LABELS = {"title": "Titel", "description": "Beschreibung", "target": "Ziel", "due": "Frist",
                "start": "Beginn", "end": "Ende", "all_day": "Ganztägig (true/false)", "location": "Ort",

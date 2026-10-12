@@ -1,12 +1,9 @@
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
 from mailhelp.imap import ImapReader
 from mailhelp.mime import prepare
-from mailhelp.models import MailState, Proposal, ProposalStatus
-from mailhelp.orchestrator import Orchestrator
-from mailhelp.config import TargetSettings
 
 
 class Connection:
@@ -63,7 +60,7 @@ def test_mail_date_context_valid_invalid_naive_conflicting_and_dst():
 
 def test_prepared_mail_exposes_context_independently_of_summary_text():
     mail = prepare(b"Date: Fri, 18 Sep 2026 12:00:00 +0200\r\nSubject: 21. Oktober\r\n\r\nTermin",
-                   10000, datetime(2026, 9, 18, 10, 1, tzinfo=timezone.utc), "Europe/Berlin")
+                   10000, datetime(2026, 9, 18, 10, 1, tzinfo=UTC), "Europe/Berlin")
     assert mail["date_context_status"] == "valid"
     assert mail["date_header_parsed"].startswith("2026-")
     assert "summary" not in mail

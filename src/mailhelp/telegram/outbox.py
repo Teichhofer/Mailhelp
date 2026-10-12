@@ -10,9 +10,11 @@ and including the next decision.
 from __future__ import annotations
 
 import uuid
-from datetime import datetime, timezone
-from typing import Callable, Protocol
+from collections.abc import Callable
+from datetime import UTC, datetime
+from typing import Protocol
 
+from .. import state_names
 from ..domain.processing import (
     ProposalClarificationState,
     ProposalRevisionStatus,
@@ -26,7 +28,6 @@ from ..storage import JsonStore
 from .client import TelegramTransport
 from .persistence import ProposalRepository, clarification_name, proposal_name
 from .revisions import EventLogger
-from .. import state_names
 
 OUTBOX_NAME = "telegram-outbox"
 _OPEN = {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}
@@ -138,7 +139,7 @@ class TelegramOutbox:
                        if key in {"kind", "mail_id", "proposal_id", "version"}):
                     return entry.id
         entry = TelegramOutboxEntry(
-            id=uuid.uuid4().hex, created_at=datetime.now(timezone.utc), **reference
+            id=uuid.uuid4().hex, created_at=datetime.now(UTC), **reference
         )
         state.entries.append(entry)
         self._save(state)

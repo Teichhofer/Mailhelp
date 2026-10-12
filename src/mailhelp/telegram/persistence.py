@@ -1,16 +1,21 @@
 """Named, crash-safe persistence operations for Telegram proposals."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Protocol
 
+from .. import state_names
 from ..models import (
-    MailState, MailRunState, MailRunCounters, MailRunEntryStatus,
-    Proposal, ProposalNotification, ProposalStatus,
+    MailRunCounters,
+    MailRunEntryStatus,
+    MailRunState,
+    MailState,
+    Proposal,
+    ProposalNotification,
+    ProposalStatus,
     WriteAttemptReference,
 )
 from ..storage import JsonStore
-from .. import state_names
 
 
 def proposal_name(mail_id: str, proposal_id: str) -> str:
@@ -100,7 +105,7 @@ class ProposalRepository:
             "proposals": proposals,
             "proposal_notifications": notifications,
             "write_attempts": attempts,
-            "updated_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(UTC),
         })
         self.store.save(state_names.mail(proposal.source_mail_id),
                         changed.model_dump(mode="json"))
@@ -142,7 +147,7 @@ class ProposalRepository:
             return
         changed = state.model_copy(update={
             "write_attempts": attempts,
-            "updated_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(UTC),
         })
         self.store.save(state_names.mail(proposal.source_mail_id),
                         changed.model_dump(mode="json"))
@@ -184,7 +189,7 @@ class ProposalRepository:
         if changed:
             updated = state.model_copy(update={
                 "proposal_notifications": notifications,
-                "updated_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(UTC),
             })
             self.store.save(state_names.mail(proposal.source_mail_id),
                             updated.model_dump(mode="json"))

@@ -1,4 +1,7 @@
 """One path policy for runtime state, logging and explicit cleanup."""
+
+from __future__ import annotations
+
 from pathlib import Path
 
 

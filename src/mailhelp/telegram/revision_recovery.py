@@ -1,21 +1,25 @@
 """Durable answer/revision recovery and compatibility with legacy dialogs."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
-from typing import Callable
+from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import UTC, datetime
 
-
+from .. import state_names
 from ..analysis import validate_revision_successor
-from ..models import AnswerStatus, Proposal, ProposalClarificationState, ProposalRevisionStatus, QuestionStatus, TelegramDialogState
+from ..models import (
+    AnswerStatus,
+    Proposal,
+    ProposalClarificationState,
+    ProposalRevisionStatus,
+    QuestionStatus,
+    TelegramDialogState,
+)
 from ..storage import JsonStore
-
 from .persistence import proposal_name
+from .revision_contracts import EventLogger, ProposalRevisionService
 from .writes import ProposalPersistence
 
-
-from .revision_contracts import ProposalRevisionService, EventLogger
-from .. import state_names
 
 @dataclass
 class RevisionRecovery:
@@ -33,7 +37,7 @@ class RevisionRecovery:
         for name in self.store.names(state_names.CLARIFICATION_PREFIX):
             state = self.store.load_model(name, ProposalClarificationState)
             assert isinstance(state, ProposalClarificationState)
-            now = datetime.now(timezone.utc)
+            now = datetime.now(UTC)
             if (
                 state.answer_status == AnswerStatus.PENDING
                 and state.authorized_answer is not None

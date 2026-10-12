@@ -1,16 +1,20 @@
 """Schreibfreier IMAP-Adapter (BODY.PEEK verändert \\Seen nicht)."""
 from __future__ import annotations
-import imaplib
-import hashlib
+
 import base64
 import binascii
+import hashlib
+import imaplib
 import re
+import time
+import traceback
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
-from typing import Callable, TypeVar
+from datetime import UTC, datetime, timedelta
+from typing import TypeVar
+
 from .adapter import RetryPolicy
 from .logging import EventLogger, NullLogger
-import time, traceback
 
 T = TypeVar("T")
 
@@ -22,7 +26,7 @@ class FetchedMail:
     uid: int
     raw: bytes
     account_id: str = "0" * 24
-    received_at: datetime = datetime.min.replace(tzinfo=timezone.utc)
+    received_at: datetime = datetime.min.replace(tzinfo=UTC)
 
 
 @dataclass(frozen=True)
@@ -358,7 +362,7 @@ class ImapReader:
         if historical_start is not None:
             # SEARCH has day precision.  Include the preceding UTC day and apply
             # the configured instant exactly to the returned INTERNALDATE values.
-            since = (historical_start.astimezone(timezone.utc) - timedelta(days=1))
+            since = (historical_start.astimezone(UTC) - timedelta(days=1))
             search.extend(("SINCE", since.strftime("%d-%b-%Y")))
         status, matches = self.connection.uid("search", None, *search)
         if status != "OK":
@@ -429,7 +433,7 @@ class ImapReader:
         self.last_uidvalidity = int(validity[0])
         # IMAP SEARCH only has day precision. Search one day early and inspect
         # INTERNALDATE so the configured instant remains exact and timezone-safe.
-        utc_start = start.astimezone(timezone.utc)
+        utc_start = start.astimezone(UTC)
         since = (utc_start - timedelta(days=1)).strftime("%d-%b-%Y")
         status, matches = self.connection.uid("search", None, "SINCE", since)
         if status != "OK": raise RuntimeError("IMAP-Suche nach Startgrenze fehlgeschlagen")

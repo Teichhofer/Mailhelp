@@ -1,22 +1,23 @@
 """Unit-Tests für die neuen Domänenmodelle und Invarianten von Mailhelp 1.3."""
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
+
 import pytest
 from pydantic import ValidationError
 
+from mailhelp.domain.extraction import ExtractedAttachment, ParsedCalendarEvent
+from mailhelp.domain.processing import ProcessingStage, ProcessingSteps
 from mailhelp.domain.proposal import (
     DuplicateMatchInfo,
     DuplicateSource,
     Proposal,
-    ProposalClassification,
     ProposalCertainty,
+    ProposalClassification,
     ProposalKind,
     ProposalResponsibility,
     ProposalRevisionChanges,
     ProposalStatus,
     required_revision_questions,
 )
-from mailhelp.domain.extraction import ExtractedAttachment, ParsedCalendarEvent
-from mailhelp.domain.processing import ProcessingStage, ProcessingSteps
 
 
 def sample_event_proposal(**kwargs) -> Proposal:
@@ -31,8 +32,8 @@ def sample_event_proposal(**kwargs) -> Proposal:
         "description": "Details zum Release",
         "evidence": "Termin am 12.10. um 10 Uhr",
         "source_mail_id": "a" * 24,
-        "start": datetime(2026, 10, 12, 10, 0, tzinfo=timezone.utc),
-        "end": datetime(2026, 10, 12, 11, 0, tzinfo=timezone.utc),
+        "start": datetime(2026, 10, 12, 10, 0, tzinfo=UTC),
+        "end": datetime(2026, 10, 12, 11, 0, tzinfo=UTC),
         "target": "primary",
         "status": ProposalStatus.PENDING_CONFIRMATION,
     }
@@ -65,7 +66,7 @@ def test_duplicate_match_info_and_already_exists_status():
         external_id="cal-123",
         external_link="https://calendar.google.com/event?eid=123",
         matched_title="Projektbesprechung",
-        matched_time=datetime(2026, 10, 12, 10, 0, tzinfo=timezone.utc),
+        matched_time=datetime(2026, 10, 12, 10, 0, tzinfo=UTC),
         similarity_score=1.0,
         details="Exakte Übereinstimmung",
     )
@@ -203,8 +204,8 @@ def test_parsed_calendar_event_model():
         sequence=2,
         summary="Treffen",
         description="Besprechung",
-        start=datetime(2026, 10, 15, 14, 0, tzinfo=timezone.utc),
-        end=datetime(2026, 10, 15, 15, 0, tzinfo=timezone.utc),
+        start=datetime(2026, 10, 15, 14, 0, tzinfo=UTC),
+        end=datetime(2026, 10, 15, 15, 0, tzinfo=UTC),
         all_day=False,
         location="Raum 1",
         status="CONFIRMED",

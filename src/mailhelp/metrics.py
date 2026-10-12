@@ -2,12 +2,12 @@
 from __future__ import annotations
 
 import json
-import os
 import math
+import os
 import secrets
 import statistics
 import time
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from threading import RLock
@@ -174,13 +174,13 @@ class MetricsRecorder:
                 self.changed()
         elif event == "idle_started":
             self.activity = {"stage": "idle", "mail_id": None, "started": time.monotonic(),
-                             "next_poll": (datetime.now(timezone.utc) + timedelta(seconds=context["delay_seconds"])).isoformat()}
+                             "next_poll": (datetime.now(UTC) + timedelta(seconds=context["delay_seconds"])).isoformat()}
             self.changed()
         contact = CONTACT_EVENTS.get((context.get("service"), event))
         if event == "response_received":
             contact = LLM_CONTACT[self.mode]
         if contact is not None:
-            self.contacts[contact] = datetime.now(timezone.utc).isoformat()
+            self.contacts[contact] = datetime.now(UTC).isoformat()
         if event == "processing_started":
             self.activity = {"stage": "preparation", "mail_id": context.get("mail_id"), "started": time.monotonic()}
         elif event in {"processing_completed", "processing_failed", "llm_rate_limited"}:
@@ -213,7 +213,7 @@ class MetricsRecorder:
                     "model": str(context.get("model", "unknown")),
                     "stage": str(context.get("stage", context.get("step", "unknown"))),
                     "provider": "ollama" if self.mode == "local" or context.get("backend", "").startswith(("Ollama", "Laya")) else "unknown",
-                    "started_at": datetime.now(timezone.utc).isoformat(),
+                    "started_at": datetime.now(UTC).isoformat(),
                     "start": time.time(), "monotonic": time.monotonic(),
                 }
             elif event == "token_usage_recorded" and call in self._pending:
@@ -271,7 +271,7 @@ class MetricsRecorder:
                             except (ValueError, KeyError, TypeError):
                                 damaged += 1
                 self._damaged = damaged
-            cutoff = datetime.now(timezone.utc) - timedelta(days=self.settings.retention_days)
+            cutoff = datetime.now(UTC) - timedelta(days=self.settings.retention_days)
             records = [item for item in self._cache if datetime.fromisoformat(item["started_at"]) >= cutoff]
             return records, self._damaged
 
@@ -285,7 +285,7 @@ class MetricsRecorder:
             raise ValueError("Ungültiger Zeitraum")
         if not 1 <= days <= 3650:
             raise ValueError("Ungültiger Zeitraum")
-        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        cutoff = datetime.now(UTC) - timedelta(days=days)
         records, damaged = self.records()
         records = [item for item in records if datetime.fromisoformat(item["started_at"]) >= cutoff
                    and (not model or item["model"] == model) and (not stage or item["stage"] == stage)

@@ -21,7 +21,7 @@ from typing import Any
 import httpx
 from pydantic import Field, model_validator
 
-from .config import ConfigModel, Topic, validated_file, read_yaml
+from .config import ConfigModel, Topic, read_yaml, validated_file
 from .decisions import DecisionClient, Probability, Question, validate_answers
 from .models import Relevance
 from .ollama import LocalLlm, raise_for_ollama_status, require_installed_model
@@ -60,7 +60,7 @@ class LayaPrompts(ConfigModel):
     topic_threshold: Probability = 0.2
 
     @model_validator(mode="after")
-    def ordered_thresholds(self) -> "LayaPrompts":
+    def ordered_thresholds(self) -> LayaPrompts:
         if self.irrelevant_threshold > self.relevant_threshold:
             raise ValueError("irrelevant_threshold darf relevant_threshold nicht übersteigen")
         return self

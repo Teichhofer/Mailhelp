@@ -8,8 +8,8 @@ A signal (SIGINT/SIGTERM) uses the same ``application.stop`` and ends in
 from __future__ import annotations
 
 import secrets
+from collections.abc import Callable
 from threading import RLock
-from typing import Callable
 
 
 class Lifecycle:

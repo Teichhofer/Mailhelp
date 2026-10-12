@@ -4,17 +4,14 @@ import zipfile
 from email.message import EmailMessage
 
 import pypdf
-import pytest
 
 from mailhelp.attachment_extractor import (
-    extract_attachment_text,
-    clean_text,
-    truncate_text,
     _TRUNCATION_MARKER,
-    MAX_ATTACHMENT_BYTES,
+    clean_text,
+    extract_attachment_text,
+    truncate_text,
 )
-from mailhelp.mime import prepare, MimeLimits
-
+from mailhelp.mime import MimeLimits, prepare
 
 RAW_PDF_BYTES = b"""%PDF-1.4
 1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj
@@ -153,7 +150,7 @@ def test_extract_docx():
 
 def test_extract_text_formats():
     # UTF-8 text
-    txt_utf8 = "Rechnung Nr. 1234\nFällig am 30.11.2026".encode("utf-8")
+    txt_utf8 = "Rechnung Nr. 1234\nFällig am 30.11.2026".encode()
     res = extract_attachment_text("info.txt", "text/plain", txt_utf8)
     assert res.extraction_status == "success"
     assert "Rechnung Nr. 1234" in res.text

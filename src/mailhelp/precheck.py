@@ -1,7 +1,7 @@
 """Vollautomatischer Vorab-Dubletten- und Aktualisierungsabgleich vor der Entscheidungsvorlage."""
 from __future__ import annotations
 
-from datetime import date, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from .domain.proposal import (
@@ -102,8 +102,8 @@ class DuplicatePreCheckService:
         assert isinstance(writer, HttpWriter)
         assert proposal.start is not None and proposal.end is not None
 
-        start_dt = proposal.start if isinstance(proposal.start, datetime) else datetime.combine(proposal.start, datetime.min.time(), timezone.utc)
-        end_dt = proposal.end if isinstance(proposal.end, datetime) else datetime.combine(proposal.end, datetime.min.time(), timezone.utc)
+        start_dt = proposal.start if isinstance(proposal.start, datetime) else datetime.combine(proposal.start, datetime.min.time(), UTC)
+        end_dt = proposal.end if isinstance(proposal.end, datetime) else datetime.combine(proposal.end, datetime.min.time(), UTC)
 
         search_start = start_dt - timedelta(days=1)
         search_end = end_dt + timedelta(days=1)

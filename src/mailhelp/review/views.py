@@ -11,12 +11,14 @@ from __future__ import annotations
 import hashlib
 import re
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import TypeVar
 from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel
 
+from .. import state_names
+from ..domain.prepared import PreparedAttachment, PreparedMail
 from ..domain.processing import (
     AnswerStatus,
     ProposalClarificationState,
@@ -32,18 +34,16 @@ from ..models import (
     RelevanceDialogStatus,
     TelegramDialogState,
 )
-from ..domain.prepared import PreparedAttachment, PreparedMail
 from ..storage import CorruptState, JsonStore
 from .cards import CardContent, answer_example, card_content, display_question, sender_name, yes_no_question
 from .commands import CommandKind
-from .. import state_names
 
 _OPEN = {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}
 _SNAPSHOT = re.compile(r"-v\d+\Z")
 _CHANGE_QUESTION = "Was soll geändert werden?"
 _CHANGE_EXAMPLE = "„Titel: Elternabend“ oder „Ort: Raum 3“"
 RECENT_LIMIT = 8
-_EPOCH = datetime(1970, 1, 1, tzinfo=timezone.utc)
+_EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 STATUS_LABELS = {
     ProposalStatus.PENDING_CONFIRMATION: "Wartet auf Bestätigung",
     ProposalStatus.NEEDS_CLARIFICATION: "Klärung nötig",
@@ -246,7 +246,7 @@ class ReviewViews:
 
     def system(self, now: datetime | None = None) -> SystemStatus:
         """Operating figures from the stored state; nothing is changed."""
-        now = now or datetime.now(timezone.utc)
+        now = now or datetime.now(UTC)
         with self.store.locked():
             reader = _Reader(self.store)
             mails = [state for name in state_names.mail_state_names(self.store)

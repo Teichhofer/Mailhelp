@@ -1,100 +1,32 @@
 from __future__ import annotations
 
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
+
 import pytest
+from log_fakes import RecordingLogger as Log
+from shared_application import Imap as Imap
+from shared_application import Orch as Orch
+from shared_application import Store as Store
+from shared_application import Telegram as Telegram
+from shared_application import _persisted_run as _persisted_run
+from shared_application import app as app
+from shared_application import settings as settings
+from shared_core import prompt_config
 
 from mailhelp.application import Application, _state_directory, build_application, build_logger
-from mailhelp.mailbox_run import MailboxRunService, _MailBudget, _RunSummary, _add_uid, _checkpoint_name, _safe_name
-from mailhelp.config import Secrets, Settings, Topic
+from mailhelp.config import Secrets, Topic
 from mailhelp.imap import FetchedMail, MailCandidate, UIDValidityChanged
 from mailhelp.integrations import OAuthTokenError
+from mailhelp.mailbox_run import MailboxRunService, _add_uid, _checkpoint_name, _MailBudget, _RunSummary
 from mailhelp.models import MailRunCounters, MailRunEntry, MailRunState, MailState
 from mailhelp.orchestrator import ProcessingOutcome, ProcessingResult
 from mailhelp.telegram.commands import HELP, STARTUP
-from test_core import prompt_config
-
-
-class Store:
-    def __init__(self, values=None):
-        self.values=values or {}
-        self.saved=[]
-    def load(self, name, default=None): return self.values.get(name, default)
-    def save(self, name, value):
-        self.saved.append((name,value))
-        self.values[name]=value
-    def names(self, prefix=""): return sorted(name for name in self.values if name.startswith(prefix))
-    def load_model(self, name, model, default=None):
-        value=self.values.get(name)
-        return default if value is None else model.model_validate(value)
-
-
-from log_fakes import RecordingLogger as Log
-
-
-class Imap:
-    def __init__(self, outcomes):
-        self.outcomes=iter(outcomes)
-        self.last_uidvalidity=None
-        self.account_id="0"*24
-        self.calls=[]
-        self.uid_calls=[]
-    def fetch_since(self,*args):
-        self.calls.append(args)
-        value=next(self.outcomes)
-        if isinstance(value,Exception): raise value
-        self.last_uidvalidity=value[0]
-        if args[2] is not None and value[0] != args[2]:
-            raise UIDValidityChanged(args[0], args[2], value[0])
-        return value[1]
-    def fetch_uid(self,*args):
-        self.uid_calls.append(args)
-        return FetchedMail(args[0],args[2],args[1],b"Subject: resumed\n\nBody")
-
-
-class Telegram:
-    def __init__(self, value):
-        self.value=value
-        self.offsets=[]
-        self.sent=[]
-    def poll(self, offset, timeout=None):
-        self.offsets.append(offset)
-        if isinstance(self.value,Exception): raise self.value
-        return self.value
-    def send(self, chat_id, text): self.sent.append((chat_id,text))
-
-
-class Orch:
-    def __init__(self, fail=False, stop=None, config_fingerprint="0"*64):
-        self.fail=fail
-        self.stop_event=SimpleNamespace(set=lambda:None)
-        self.stop_called=False
-        self.seen=[]
-        self._stop=stop
-        self.config_fingerprint=config_fingerprint
-    def stop(self): self.stop_called=True
-    def process(self, mail):
-        self.seen.append(mail.uid)
-        if self._stop: self._stop.set()
-        if self.fail: raise RuntimeError("mail")
-        return ProcessingResult(ProcessingOutcome.COMPLETED, {})
-
-
-def settings(tmp_path, folders=("INBOX",), global_newest_first=False):
-    return Settings(timezone="UTC",poll_interval_seconds=5,test_mode=True,data_directory=tmp_path/"data",imap={"host":"h","port":993,"folders":list(folders),"global_newest_first":global_newest_first},telegram={"user_id":1,"chat_id":2},targets={"todoist_project":"p","google_calendar":"c"},limits={"max_mail_bytes":1024,"llm_calls_per_minute":2},retries={"provider_retry":0,"json_repair":0,"schema_repair":0},timeouts={**{name:{"timeout_seconds":30.0,"retries":0,"initial_backoff_seconds":0.0,"max_backoff_seconds":1.0} for name in ("imap","telegram","openrouter","todoist","google_calendar")},"telegram_poll_seconds":30},logging={"directory":str(tmp_path/"logs"),"console":{"enabled":False},"file":{"filename":"application.jsonl","max_bytes":10000,"backup_count":1,"retention_days":30},"llm":{"filename":"llm/requests.jsonl","max_bytes":10000,"backup_count":1,"retention_days":30}})
-
-
-def app(tmp_path, imap, telegram, orch, folders=("INBOX",), store=None,
-        global_newest_first=False):
-    from threading import Event
-    event=Event()
-    orch._stop=event if orch._stop else None
-    return Application(settings(tmp_path,folders,global_newest_first),store or Store(),Log(),imap,object(),object(),telegram,object(),object(),orch,event)
 
 
 def test_global_mailbox_order_and_max_mail_budget(tmp_path):
-    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    stamp = datetime(2026, 1, 1, tzinfo=UTC)
 
     class GlobalImap:
         account_id = "0" * 24
@@ -124,7 +56,7 @@ def test_global_mailbox_order_and_max_mail_budget(tmp_path):
 
 
 def test_exhausted_uid_halts_queue_and_restart_retries_same_item(tmp_path):
-    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    stamp = datetime(2026, 1, 1, tzinfo=UTC)
 
     class Reader:
         account_id = "0" * 24
@@ -170,7 +102,7 @@ def test_exhausted_uid_halts_queue_and_restart_retries_same_item(tmp_path):
 
 
 def test_terminal_processing_failure_is_persisted_and_counted(tmp_path):
-    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    stamp = datetime(2026, 1, 1, tzinfo=UTC)
 
     class Reader:
         account_id = "0" * 24
@@ -213,7 +145,7 @@ def test_terminal_processing_failure_is_persisted_and_counted(tmp_path):
 
 
 def test_persistent_run_records_duplicate_and_irrelevant_analysis(tmp_path):
-    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    stamp = datetime(2026, 1, 1, tzinfo=UTC)
 
     class Reader:
         account_id = "0" * 24
@@ -242,7 +174,7 @@ def test_persistent_run_records_duplicate_and_irrelevant_analysis(tmp_path):
 
 def test_repeated_global_max_mail_runs_continue_with_next_newest_batch(tmp_path):
     """A persisted newest-first batch must not hide the older backlog."""
-    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    stamp = datetime(2026, 1, 1, tzinfo=UTC)
 
     class GlobalBacklogImap:
         account_id = "0" * 24
@@ -282,7 +214,7 @@ def test_repeated_global_max_mail_runs_continue_with_next_newest_batch(tmp_path)
 
 @pytest.mark.parametrize(("available", "maximum", "expected"), ((86, 100, 86), (150, 100, 100)))
 def test_run_materializes_exact_bounded_uid_queue_before_fetch(tmp_path, available, maximum, expected):
-    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    stamp = datetime(2026, 1, 1, tzinfo=UTC)
 
     class Reader:
         account_id = "0" * 24
@@ -311,7 +243,7 @@ def test_run_materializes_exact_bounded_uid_queue_before_fetch(tmp_path, availab
 
 
 def test_interrupted_batch_resumes_fixed_queue_without_rediscovery_or_reanalysis(tmp_path):
-    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    stamp = datetime(2026, 1, 1, tzinfo=UTC)
 
     class Crash(BaseException):
         pass
@@ -372,24 +304,24 @@ def test_run_model_rejects_inconsistent_terminals_identity_time_and_counters():
     with pytest.raises(ValueError, match="UTC-Offset"):
         MailRunState(created_at=datetime(2026, 1, 1), **base)
     with pytest.raises(ValueError, match="doppelten"):
-        MailRunState(created_at=datetime.now(timezone.utc), **{**base, "entries": [queued, queued]})
+        MailRunState(created_at=datetime.now(UTC), **{**base, "entries": [queued, queued]})
     with pytest.raises(ValueError, match="Zähler"):
-        MailRunState(created_at=datetime.now(timezone.utc),
+        MailRunState(created_at=datetime.now(UTC),
                      **{**base, "counters": MailRunCounters()})
-    assert MailRunState(created_at=datetime.now(timezone.utc), **base).run_complete is False
+    assert MailRunState(created_at=datetime.now(UTC), **base).run_complete is False
     terminal = MailRunEntry(
         account_id="a", folder="INBOX", uidvalidity=1, uid=1,
         status="completed", analysis_terminal="completed",
     )
     assert MailRunState(
-        created_at=datetime.now(timezone.utc),
+        created_at=datetime.now(UTC),
         **{**base, "entries": [terminal], "counters": MailRunCounters(completed=1)},
     ).run_complete is True
 
 
 def test_reconnectable_timeout_resumes_same_materialized_queue(tmp_path):
     """Fall D: reconnecting must neither rediscover nor replace the fixed queue."""
-    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    stamp = datetime(2026, 1, 1, tzinfo=UTC)
 
     class Reader:
         account_id = "0" * 24
@@ -430,7 +362,7 @@ def test_reconnectable_timeout_resumes_same_materialized_queue(tmp_path):
 
 def test_unhandled_analysis_failure_halts_the_materialized_queue(tmp_path):
     """One analysis failure must not be repeated for the remaining queue."""
-    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    stamp = datetime(2026, 1, 1, tzinfo=UTC)
 
     class Reader:
         account_id = "0" * 24
@@ -461,7 +393,7 @@ def test_unhandled_analysis_failure_halts_the_materialized_queue(tmp_path):
 
 def test_acceptance_full_inbox_batch_survives_dialog_timeout_and_optional_folders(tmp_path):
     """Fälle A, C, D und F gemeinsam mit der geforderten 86-Mail-Abnahme."""
-    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    stamp = datetime(2026, 1, 1, tzinfo=UTC)
     analyzed: list[int] = []
 
     class Reader:
@@ -524,7 +456,7 @@ def test_acceptance_full_inbox_batch_survives_dialog_timeout_and_optional_folder
 
 
 def test_global_mailbox_checkpoint_failures_restarts_and_dialog(tmp_path):
-    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    stamp = datetime(2026, 1, 1, tzinfo=UTC)
     key = _checkpoint_name("0" * 24, "INBOX")
 
     class GlobalImap:
@@ -632,7 +564,7 @@ def test_global_mailbox_checkpoint_failures_restarts_and_dialog(tmp_path):
 
 
 def test_global_mailbox_uidvalidity_and_historical_boundary(tmp_path):
-    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    stamp = datetime(2026, 1, 1, tzinfo=UTC)
     boundary = stamp - timedelta(days=1)
     key = _checkpoint_name("0" * 24, "INBOX")
 
@@ -678,7 +610,7 @@ def test_global_mailbox_uidvalidity_and_historical_boundary(tmp_path):
 
 
 def test_global_mailbox_can_ignore_persisted_historical_boundary(tmp_path):
-    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    stamp = datetime(2026, 1, 1, tzinfo=UTC)
     key = _checkpoint_name("0" * 24, "INBOX")
 
     class Reader:
@@ -932,7 +864,7 @@ def test_versioned_answer_is_processed_before_later_mail(tmp_path):
 
     dialog = Dialog()
     arrived_ten_minutes_later = {
-        "received_at": datetime.now(timezone.utc) + timedelta(minutes=10),
+        "received_at": datetime.now(UTC) + timedelta(minutes=10),
         "mail_id": reference[0], "proposal_id": reference[1], "version": reference[2],
     }
     # Telegram may redeliver an update; the immutable proposal revision still
@@ -1248,12 +1180,6 @@ def test_uid_range_normalization_paths():
     assert _add_uid([(3,4)],1)==[(1,1),(3,4)]
 
 
-def _persisted_run(entries):
-    return MailRunState(
-        run_id="00000000-0000-0000-0000-000000000001", max_mails=100,
-        created_at=datetime.now(timezone.utc), entries=entries,
-        counters=MailboxRunService.run_counters(entries),
-    )
 
 
 def test_run_sends_persistent_summary_on_normal_and_exceptional_exit(tmp_path):
@@ -1435,7 +1361,7 @@ def test_max_mail_resume_persists_completion_and_continues_with_unprocessed_mail
     ]
     run = MailRunState(
         run_id="00000000-0000-0000-0000-000000000001", max_mails=2,
-        created_at=datetime.now(timezone.utc), entries=entries,
+        created_at=datetime.now(UTC), entries=entries,
         counters=MailRunCounters(processing=1, queued=1),
     )
     run_name = f"mail-run-{account}"
@@ -1479,7 +1405,7 @@ def test_resumed_run_completion_handles_terminal_variants_and_safe_checkpoints(t
     def service_with(entry, checkpoint=None):
         run = MailRunState(
             run_id="00000000-0000-0000-0000-000000000001", max_mails=1,
-            created_at=datetime.now(timezone.utc), entries=[entry],
+            created_at=datetime.now(UTC), entries=[entry],
             counters=MailboxRunService.run_counters([entry]),
         )
         values = {f"mail-run-{account}": run.model_dump(mode="json")}
@@ -1535,7 +1461,7 @@ def test_resumed_run_completion_handles_terminal_variants_and_safe_checkpoints(t
     ]
     mismatch_run = MailRunState(
         run_id="00000000-0000-0000-0000-000000000002", max_mails=4,
-        created_at=datetime.now(timezone.utc), entries=mismatches,
+        created_at=datetime.now(UTC), entries=mismatches,
         counters=MailRunCounters(discovered=4),
     )
     mismatch_service = app(
@@ -1614,7 +1540,7 @@ def test_resume_mixes_matching_and_blocked_fingerprints_without_resuming_blocked
 
 def test_resume_due_pending_states_and_isolate_failures(tmp_path):
     due=MailState(id="a"*24,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":7,"uid":4})
-    future=MailState(id="b"*24,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":7,"uid":5},deferred_until=datetime.now(timezone.utc)+timedelta(hours=1))
+    future=MailState(id="b"*24,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":7,"uid":5},deferred_until=datetime.now(UTC)+timedelta(hours=1))
     completed=MailState(id="c"*24,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":7,"uid":6})
     completed.steps.completion="completed"
     store=Store({"mail-a":due.model_dump(mode="json"),"mail-b":future.model_dump(mode="json"),"mail-c":completed.model_dump(mode="json"),"mail-missing":None})
@@ -1856,7 +1782,7 @@ def test_state_directory_separates_every_durable_state_and_lock(tmp_path):
 
 
 def test_historical_start_is_persisted_account_scoped_and_uidvalidity_logged(tmp_path):
-    boundary=datetime(2025,1,2,3,4,tzinfo=timezone.utc)
+    boundary=datetime(2025,1,2,3,4,tzinfo=UTC)
     cfg=settings(tmp_path)
     cfg.imap.historical_start=boundary
     fake=Imap([(8,[])])
@@ -1917,7 +1843,7 @@ def test_historical_start_is_persisted_account_scoped_and_uidvalidity_logged(tmp
 
 
 def test_ignore_historical_start_reopens_older_uids_without_repeating_completed(tmp_path):
-    boundary = datetime(2025, 1, 2, 3, 4, tzinfo=timezone.utc)
+    boundary = datetime(2025, 1, 2, 3, 4, tzinfo=UTC)
     cfg = settings(tmp_path)
     cfg.imap.historical_start = boundary
     key = _checkpoint_name("0" * 24, "INBOX")
@@ -1943,9 +1869,10 @@ def test_ignore_historical_start_reopens_older_uids_without_repeating_completed(
 
 @pytest.mark.parametrize('editing', [False, True])
 def test_startup_restores_durable_proposal_once_and_last_decision_resumes_imap(tmp_path, editing):
+    from shared_telegram_dialog import controller, proposal
+
     from mailhelp.storage import JsonStore
     from mailhelp.telegram import Decision, DecisionAction
-    from test_telegram_dialog import controller, proposal
     item = proposal(open_questions=['Welches Datum?'])
     with JsonStore(tmp_path / 'state') as store:
         c, _, _ = controller(store)

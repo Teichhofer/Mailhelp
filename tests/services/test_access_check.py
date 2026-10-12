@@ -1,22 +1,21 @@
 """Read-only access diagnostics never enter the mail-processing path."""
+import sys
 from contextlib import contextmanager
 from pathlib import Path
 from types import SimpleNamespace
-import sys
 
 import httpx
 import pytest
 from pydantic import SecretStr
 
-from mailhelp.application import Application
 from mailhelp.adapter import RetryPolicy
+from mailhelp.application import Application
+from mailhelp.cli import main
 from mailhelp.imap import ImapReader
 from mailhelp.integrations import GoogleOAuthTokenProvider, HttpWriter
 from mailhelp.logging import JsonlLogger, NullLogger
 from mailhelp.openrouter import OpenRouterClient
-from mailhelp.telegram import (TelegramBotResponse, TelegramChatNotFoundError,
-                               TelegramClient)
-from mailhelp.cli import main
+from mailhelp.telegram import TelegramBotResponse, TelegramChatNotFoundError, TelegramClient
 
 
 def response_transport(payload, status=200, seen=None):

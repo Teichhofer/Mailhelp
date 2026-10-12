@@ -1,21 +1,35 @@
 """Fachliche LLM-Schritte; jede Ausgabe wird an einem festen Schema validiert."""
 from __future__ import annotations
 
+import re
+import uuid
 from collections.abc import Callable
 from datetime import date, datetime
 from typing import Any, Protocol, TypeVar
-import uuid
-import re
 
 from pydantic import BaseModel, ValidationError
 
 from .adapter import RetryableError
 from .config import LlmRoute, PromptConfig, Topic
 from .domain.prepared import PreparedAttachment
-from .models import (AbstractCategories, ActionRoute, CalendarDuplicateDecision, EventExtraction,
-                     MailClassification, Proposal, ProposalRevisionChanges, ProposalRevisionDelta, ProposalStatus, Relevance,
-                     Summary, TaskExtraction, TelegramAnswerInterpretation,
-                     TelegramClarification, VisionExtractionResult, apply_proposal_revision)
+from .models import (
+    AbstractCategories,
+    ActionRoute,
+    CalendarDuplicateDecision,
+    EventExtraction,
+    MailClassification,
+    Proposal,
+    ProposalRevisionChanges,
+    ProposalRevisionDelta,
+    ProposalStatus,
+    Relevance,
+    Summary,
+    TaskExtraction,
+    TelegramAnswerInterpretation,
+    TelegramClarification,
+    VisionExtractionResult,
+    apply_proposal_revision,
+)
 from .openrouter import InvalidJson, ProviderResponseInvalid
 
 T = TypeVar("T", bound=BaseModel)

@@ -1,4 +1,7 @@
 """Shared explanations for the web settings and the checked documentation table."""
+
+from __future__ import annotations
+
 from .pages import e
 
 SETTING_HELP = {

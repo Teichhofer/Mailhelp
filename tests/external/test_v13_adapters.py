@@ -1,10 +1,9 @@
 """Unit-Tests für die Read-Only Query-Adapter und Caching in Mailhelp 1.3."""
-from datetime import date, datetime, timezone
-import httpx
-import pytest
+from datetime import UTC, date, datetime
 
-from mailhelp.integrations import HttpWriter, CalendarOverlapEvent, TodoistTaskResponse
-from mailhelp.models import Proposal, ProposalKind, ProposalStatus, ProposalResponsibility, ProposalCertainty, ProposalClassification
+import httpx
+
+from mailhelp.integrations import HttpWriter
 
 
 def test_fetch_events_in_window_success_and_caching():
@@ -50,8 +49,8 @@ def test_fetch_events_in_window_success_and_caching():
         transport=transport,
     )
 
-    start = datetime(2026, 10, 15, 9, 0, tzinfo=timezone.utc)
-    end = datetime(2026, 10, 15, 18, 0, tzinfo=timezone.utc)
+    start = datetime(2026, 10, 15, 9, 0, tzinfo=UTC)
+    end = datetime(2026, 10, 15, 18, 0, tzinfo=UTC)
 
     # First fetch: queries 2 pages
     events = writer.fetch_events_in_window(start, end)

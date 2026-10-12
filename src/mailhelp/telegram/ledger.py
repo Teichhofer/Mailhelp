@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
 import hashlib
 import json
 import re
+from datetime import date, datetime
 from typing import Protocol
 
-
+from .. import state_names
 from ..models import ActionLedger, ActionLedgerEntry, Proposal, ProposalKind
 from ..storage import JsonStore
-from .. import state_names
 
 
 class ActionLedgerPort(Protocol):

@@ -8,7 +8,7 @@ Mailhelp created itself are clickable.
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 from urllib.parse import urlsplit
 
 from ..models import ProposalKind, ProposalStatus
@@ -288,8 +288,7 @@ def mail_page(mail: MailView, relevance: RelevanceView | None = None,
 
 # Compatibility for callers of the original renderer module (public names only;
 # deprecated, removed in 3.0 – import from status_pages).
-from .status_pages import (ANALYSIS_LABELS, COMMAND_LABELS, RUN_LABELS,
-                           RUNTIME_STAGES, ServiceInfo, status_page)
+from .status_pages import ANALYSIS_LABELS, COMMAND_LABELS, RUN_LABELS, ServiceInfo, status_page
 
 __all__ = ["ANALYSIS_LABELS", "COMMAND_LABELS", "RUN_LABELS", "ServiceInfo",
            "detail_page", "disclosure", "https_link", "mail_page", "mail_section",

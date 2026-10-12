@@ -1,8 +1,8 @@
 """Public Telegram API, retained across the package-level decomposition."""
 
+from __future__ import annotations
+
 from .authorization import AuthorizedUpdateValidator, UpdateValidation
-from .client import TelegramChatNotFoundError, TelegramClient, validation_path
-from .dialog import EventLogger, TelegramDialogController, TelegramTransport
 from .callbacks import (
     Decision,
     DecisionAction,
@@ -11,6 +11,10 @@ from .callbacks import (
     validate_callback_data,
     validate_callback_markup,
 )
+from .client import TelegramChatNotFoundError, TelegramClient, validation_path
+from .decisions import ProposalDecisionService
+from .delivery import ProposalDeliveryService
+from .dialog import EventLogger, TelegramDialogController, TelegramTransport
 from .formatting import format_proposal, numbered_message_parts, split_message
 from .ledger import ActionLedgerPort, ActionLedgerService
 from .models import (
@@ -27,6 +31,7 @@ from .models import (
     TelegramWriteResponse,
     TelegramWriteResult,
 )
+from .outbox import TelegramOutbox
 from .persistence import (
     ProposalPersistence,
     ProposalRepository,
@@ -35,9 +40,6 @@ from .persistence import (
     proposal_version_name,
 )
 from .presenter import ProposalPresentation, ProposalPresenter
-from .delivery import ProposalDeliveryService
-from .outbox import TelegramOutbox
-from .decisions import ProposalDecisionService
 from .relevance import RelevanceDialogProcessor, RelevanceDialogs
 from .revisions import (
     ProposalRevisionProcessor,

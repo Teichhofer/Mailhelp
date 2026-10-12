@@ -1,18 +1,18 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from email.message import EmailMessage
 from threading import Barrier, Lock
 
 import pytest
 import yaml
 
+from mailhelp.analysis import Analyzer as RealAnalyzer
+from mailhelp.analysis import LlmProviderResponseInvalid
 from mailhelp.config import Topic
 from mailhelp.imap import FetchedMail, FolderNotReadable, MailCandidate
-from mailhelp.learning import (LearningMode, _safe_terminal, _topic_id,
-                               add_discovered_folders, save_topics)
+from mailhelp.learning import LearningMode, _safe_terminal, _topic_id, add_discovered_folders, save_topics
 from mailhelp.models import AbstractCategories, LearnedCategory, MailClassification, Relevance
-from mailhelp.analysis import Analyzer as RealAnalyzer, LlmProviderResponseInvalid
 
 
 def raw_mail(subject: str, sender: str | None = None) -> bytes:
@@ -129,7 +129,7 @@ def test_learning_folder_config_update_validates_and_avoids_unneeded_write(tmp_p
 
 
 def test_learning_fetches_batches_prompts_and_saves_only_accepted(tmp_path):
-    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    stamp = datetime(2026, 1, 1, tzinfo=UTC)
     mails = [FetchedMail("INBOX", 1, uid, raw_mail(str(uid), "Shop <offers@example.test>"), received_at=stamp)
              for uid in (3, 2)]
     imap = Imap([[mails[0]], [mails[1]]])
@@ -160,7 +160,7 @@ def test_learning_fetches_batches_prompts_and_saves_only_accepted(tmp_path):
 
 
 def test_learning_fetches_globally_newest_messages(tmp_path):
-    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    stamp = datetime(2026, 1, 1, tzinfo=UTC)
     fetched = []
 
     class GlobalImap:
@@ -183,7 +183,7 @@ def test_learning_fetches_globally_newest_messages(tmp_path):
 
 
 def test_learning_skips_unreadable_folders_during_discovery_and_fetch(tmp_path):
-    stamp = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    stamp = datetime(2026, 1, 1, tzinfo=UTC)
     output = []
 
     class ChangingImap:
@@ -236,7 +236,7 @@ def test_folder_ordered_learning_skips_unreadable_folder(tmp_path):
 
 
 def test_learning_bounds_each_folder_and_orders_ties_deterministically(tmp_path):
-    stamp = datetime(2026, 1, 2, tzinfo=timezone.utc)
+    stamp = datetime(2026, 1, 2, tzinfo=UTC)
     calls = []
     fetched = []
 

@@ -5,18 +5,33 @@ Web-Push channels decide themselves to show only a neutral hint on lock screens.
 Each channel is attempted at most once per day: a crash during a delivery leaves
 it as "uncertain" and it is not repeated, so the user never gets duplicates.
 """
-from datetime import datetime, timedelta, timezone
+
+from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
+from collections.abc import Callable
+from typing import Protocol
+from .config import DailyBriefingSettings
+from .storage import StateStore
+from .review.views import ReviewViews
+from .external.contracts import CalendarOverlapEvent, TodoistTaskResponse
+
+class CalendarReader(Protocol):
+    def fetch_events_in_window(self, start: datetime, end: datetime, *, strict: bool = False) -> list[CalendarOverlapEvent]: ...
+
+class TaskReader(Protocol):
+    def fetch_active_tasks(self) -> list[TodoistTaskResponse]: ...
 
 # Telegram accepts at most 4096 characters per message.
 MAX_ITEMS, MAX_LENGTH = 10, 4000
 
 
-def _plural(count, one, many):
+def _plural(count: int, one: str, many: str) -> str:
     return f"{count} {one if count == 1 else many}"
 
 
-def _limited(lines):
+def _limited(lines: list[str]) -> list[str]:
     shown = [f"• {line}" for line in lines[:MAX_ITEMS]]
     if len(lines) > MAX_ITEMS:
         shown.append(f"• … und {len(lines) - MAX_ITEMS} weitere")
@@ -24,20 +39,22 @@ def _limited(lines):
 
 
 class DailyBriefingService:
-    def __init__(self, store, settings, zone, calendar, tasks, views, channels,
-                 clock=lambda: datetime.now(timezone.utc)):
+    def __init__(self, store: StateStore, settings: DailyBriefingSettings, zone: str,
+                 calendar: CalendarReader, tasks: TaskReader, views: ReviewViews,
+                 channels: dict[str, Callable[[str], object]],
+                 clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -> None:
         self.store, self.settings, self.zone = store, settings, ZoneInfo(zone)
         self.calendar, self.tasks, self.views = calendar, tasks, views
         self.channels, self.clock = channels, clock
 
-    def _start(self, item):
+    def _start(self, item: CalendarOverlapEvent) -> tuple[str, str]:
         """Local start time of an event; all-day events come first."""
         if "dateTime" in item.start:
             moment = datetime.fromisoformat(item.start["dateTime"]).astimezone(self.zone)
             return moment.strftime("%H:%M"), f"{moment:%H:%M} Uhr"
         return "", "ganztägig"
 
-    def build(self, now):
+    def build(self, now: datetime) -> str:
         lines = ["Guten Morgen! ☀️"]
         start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         if self.settings.include_calendar:
@@ -66,7 +83,7 @@ class DailyBriefingService:
         text = "\n".join(lines)
         return text if len(text) <= MAX_LENGTH else text[:MAX_LENGTH - 1] + "…"
 
-    def tick(self):
+    def tick(self) -> None:
         """Called by one scheduler thread; network access happens without the store lock."""
         now = self.clock().astimezone(self.zone)
         if not self.settings.enabled or now.strftime("%H:%M") < self.settings.time:

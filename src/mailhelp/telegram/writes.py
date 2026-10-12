@@ -6,15 +6,13 @@ from datetime import datetime
 from typing import Protocol
 from zoneinfo import ZoneInfo
 
-
+from .. import state_names
 from ..external.confirmed import execute_confirmed
 from ..external.contracts import ExternalWriter, proposal_is_writable
 from ..models import Proposal, ProposalKind, ProposalStatus
 from ..storage import JsonStore
-
 from .client import TelegramTransport
 from .ledger import ActionLedgerPort
-from .. import state_names
 
 
 class ProposalPersistence(Protocol):

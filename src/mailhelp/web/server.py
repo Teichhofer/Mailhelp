@@ -11,9 +11,10 @@ from __future__ import annotations
 import socket
 import sys
 import time
+from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
-from typing import Callable, Protocol
+from typing import Protocol
 
 from .http import MAX_BODY_BYTES, STATUS_TEXT, Request, Response
 

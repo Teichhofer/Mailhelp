@@ -6,7 +6,7 @@ import os
 import re
 import sys
 from collections.abc import Mapping
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from threading import RLock
 from typing import Any, Protocol, TextIO
@@ -157,7 +157,7 @@ class JsonlLogger:
 
     def _record(self, level: str, module: str, event: str, context: Mapping[str, Any]) -> dict[str, Any]:
         return redact({
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "level": level,
             "module": module,
             "event": event,
@@ -174,7 +174,7 @@ class JsonlLogger:
 
     @staticmethod
     def _prune(path: Path, retention_days: int) -> None:
-        cutoff = datetime.now(timezone.utc).timestamp() - timedelta(days=retention_days).total_seconds()
+        cutoff = datetime.now(UTC).timestamp() - timedelta(days=retention_days).total_seconds()
         parent = path.parent
         if not parent.exists():
             return

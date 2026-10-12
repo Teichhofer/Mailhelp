@@ -8,6 +8,9 @@ from types import SimpleNamespace
 
 import httpx
 import pytest
+from shared_application import Imap, Orch, app
+from shared_application import Telegram as AppTelegram
+from shared_telegram_dialog import Logger, RevisionService, Telegram, callback, message, proposal
 
 from mailhelp.adapter import PermanentError
 from mailhelp.imap import FetchedMail
@@ -15,8 +18,6 @@ from mailhelp.logging import JsonlLogger
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import TelegramClient, TelegramDialogController
 from mailhelp.telegram.receiver import ACKNOWLEDGEMENT, TelegramInbox, TelegramReceiver
-from test_application import Imap, Orch, Telegram as AppTelegram, app
-from test_telegram_dialog import Logger, RevisionService, Telegram, callback, message, proposal
 
 REJECT = "proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:reject"
 EDIT = "proposal:aaaaaaaaaaaaaaaaaaaaaaaa:p1:1:edit"

@@ -1,17 +1,30 @@
 """Compatible construction and dispatch for the two HTTP integration adapters."""
 from __future__ import annotations
-from typing import Any, Callable
-import time, traceback
+
+import time
+import traceback
+from collections.abc import Callable
+from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
 import httpx
 from pydantic import ValidationError
-from ..models import CalendarDuplicateDecision, Proposal
+
 from ..adapter import RetryPolicy, uncertain_write
 from ..logging import EventLogger, NullLogger
-from .contracts import AccessTokenProvider, CalendarEventResponse, PreparedWrite, TodoistTaskResponse, proposal_is_writable, validation_path
+from ..models import CalendarDuplicateDecision, Proposal
 from .calendar import CalendarOperations
+from .contracts import (
+    AccessTokenProvider,
+    CalendarEventResponse,
+    PreparedWrite,
+    TodoistTaskResponse,
+    proposal_is_writable,
+    validation_path,
+)
 from .todoist import TodoistOperations
 from .transport import HttpTransport
+
 
 class HttpWriter(CalendarOperations, TodoistOperations, HttpTransport):
     def __init__(self, service: str, token: str | AccessTokenProvider, target: str, timeout: float = 30, transport: httpx.BaseTransport | None = None, policy: RetryPolicy | None = None, logger: EventLogger | None = None, calendar_timezone: str | None = None,

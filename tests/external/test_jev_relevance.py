@@ -1,25 +1,31 @@
 """Standard Jev relevance uses synthetic mail and simulated external services."""
-from copy import deepcopy
-from pathlib import Path
-from types import SimpleNamespace
 import json
+from copy import deepcopy
+from types import SimpleNamespace
 
 import httpx
 import pytest
+from shared_application import settings
+from shared_core import prompt_config
+from shared_decision_test import secrets
+from shared_decisions import ROOT, envelope, prompts
 
 from mailhelp.adapter import PermanentError
 from mailhelp.analysis import Analyzer
 from mailhelp.application import build_application
-from mailhelp.decisions import (DecisionAnalyzer, DecisionClient,
-    JevRelevanceAnalyzer, jev_mail, load_relevance_prompts, relevance_fingerprint)
+from mailhelp.decisions import (
+    DecisionAnalyzer,
+    DecisionClient,
+    JevRelevanceAnalyzer,
+    jev_mail,
+    load_relevance_prompts,
+    relevance_fingerprint,
+)
 from mailhelp.imap import FetchedMail
 from mailhelp.openrouter import OpenRouterClient, RateLimitExceeded
 from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.storage import JsonStore
-from test_application import settings
-from test_core import prompt_config
-from test_decisions import ROOT, envelope, prompts
-from test_decision_test import secrets
+
 
 def topics():
     from mailhelp.config import Topic

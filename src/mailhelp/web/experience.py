@@ -1,4 +1,7 @@
 """Authenticated 2.0 endpoints; normal HTML forms are the authoritative path."""
+
+from __future__ import annotations
+
 import json
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -8,15 +11,14 @@ from pydantic import ValidationError
 from ..drafts import INTENTS
 from .actions import new_key
 from .http import Response
-from .setting_help import EXTRA_HELP, help_bubble
 from .pages import e, layout
+from .setting_help import EXTRA_HELP, help_bubble
 
 
 class ExperienceSite:
     def __init__(self, site):
         self.site, self.push, self.drafts = site, None, None
         route = site.app.route
-        route("GET", "/offen", site.signed_in(site.home))
         route("GET", "/briefing", site.signed_in(self.briefing))
         route("GET", "/api/push/public-key", site.signed_in(self.public_key))
         route("POST", "/api/push/subscribe", site.signed_in(self.subscribe))
@@ -45,7 +47,7 @@ class ExperienceSite:
         return Response.json(200, {"ok": True})
 
     def controls(self, csrf):
-        return (f'<section class="card"><div class="setting-row"><h2>Benachrichtigungen</h2>'
+        return ('<section class="card"><div class="setting-row"><h2>Benachrichtigungen</h2>'
                 + help_bubble('push', 'Benachrichtigungen', EXTRA_HELP['push']) + '</div>'
                 +
                 f'<div id="push-controls" data-csrf="{e(csrf)}">'

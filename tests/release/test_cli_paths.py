@@ -1,14 +1,18 @@
 """CLI path parsing remains native and does not hard-code either separator style."""
-from pathlib import Path, PurePosixPath, PureWindowsPath
-from contextlib import contextmanager
-from types import SimpleNamespace
 import sys
+from contextlib import contextmanager
+from pathlib import Path, PurePosixPath, PureWindowsPath
+from types import SimpleNamespace
 
 import pytest
 
 from mailhelp.cli import (
-    CLEAR_CONFIRMATION, _SignalShutdown, _default_config_directory, _positive_int,
-    clear_runtime_data, main,
+    CLEAR_CONFIRMATION,
+    _default_config_directory,
+    _positive_int,
+    _SignalShutdown,
+    clear_runtime_data,
+    main,
 )
 
 
@@ -407,7 +411,6 @@ def test_yes_without_clear_is_rejected(monkeypatch):
 
 
 def test_cli_check_local_mode_does_not_read_jev_configuration(monkeypatch):
-    from mailhelp.ollama import LocalLlm
     monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (
         None, None, [], [], SimpleNamespace(ollama=None), "f"))
     monkeypatch.setattr("mailhelp.cli.build_logger", lambda *args, **kwargs: CaptureLogger())

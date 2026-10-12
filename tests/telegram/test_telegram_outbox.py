@@ -1,62 +1,56 @@
 """Telegram outbox: show one open decision at a time, then send in order."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
+from shared_telegram_dialog import (
+    RevisionService,
+    Telegram,
+    callback,
+    controller,
+    message,
+)
+from shared_telegram_outbox import _FailingTelegram as _FailingTelegram
+from shared_telegram_outbox import _Log as _Log
+from shared_telegram_outbox import item as item
+from shared_telegram_outbox import notification as notification
+from shared_telegram_outbox import outbox as outbox
+from shared_telegram_outbox import shown as shown
+from shared_telegram_outbox import shown_open as shown_open
+from shared_telegram_outbox import stored as stored
+from shared_telegram_outbox import texts as texts
 
 from mailhelp.config import TelegramSettings
 from mailhelp.models import (
-    MailState, Proposal, ProposalClarificationState, ProposalNotification,
-    ProposalStatus, RelevanceDialogStatus,
-    RelevanceDialog, TelegramOutboxEntry, TelegramOutboxGate, TelegramOutboxState,
+    MailState,
+    Proposal,
+    ProposalClarificationState,
+    ProposalStatus,
+    RelevanceDialog,
+    RelevanceDialogStatus,
+    TelegramOutboxEntry,
+    TelegramOutboxGate,
+    TelegramOutboxState,
 )
 from mailhelp.storage import JsonStore
-from mailhelp.telegram import ProposalDeliveryService
+from mailhelp.telegram import ProposalDeliveryService, TelegramDialogController
 from mailhelp.telegram.persistence import clarification_name, proposal_name
-from test_telegram_dialog import (
-    RevisionService, Telegram, callback, controller, message, proposal,
-)
-from mailhelp.telegram import TelegramDialogController
 
 A, B, C, D = "a" * 24, "b" * 24, "c" * 24, "d" * 24
 
 
-def item(mail_id, title, questions=(), **changes):
-    return proposal(source_mail_id=mail_id, title=title,
-                    open_questions=list(questions), **changes)
 
 
-def stored(store, value, status="pending", relevance=None):
-    """Persist a mail projection whose proposal notification is tracked."""
-    state = MailState(
-        id=value.source_mail_id, config_fingerprint="f" * 64,
-        imap={"account_id": "0" * 24, "folder": "INBOX", "uidvalidity": 1,
-              "uid": int(value.source_mail_id[0], 16)},
-        proposals=[value],
-        proposal_notifications=[ProposalNotification(
-            proposal_id=value.id, proposal_version=value.version, status=status)],
-        awaiting_relevance=relevance is not None and relevance.status == "open",
-        relevance_dialog=relevance,
-    )
-    store.save(f"mail-{value.source_mail_id}", state.model_dump(mode="json"))
 
 
-def texts(transport):
-    return [text for _, text, _ in transport.sent]
 
 
-def shown(transport, title):
-    return any(title in text for text in texts(transport))
 
 
-def notification(store, mail_id):
-    return store.load_model(f"mail-{mail_id}", MailState).proposal_notifications[0].status
 
 
-def outbox(store):
-    return store.load_model("telegram-outbox", TelegramOutboxState)
 
 
 def test_later_notifications_wait_until_the_question_is_clarified(tmp_path):
@@ -213,10 +207,6 @@ def test_regression_answered_clarification_holds_until_confirmation(tmp_path):
         assert shown(t, "Aufgabe B")
 
 
-def shown_open(store, c, value):
-    """Persist a proposal that was already delivered and is still undecided."""
-    stored(store, value, status="completed")
-    c.repository.save_revision(value)
 
 
 def test_regression_shown_open_decision_holds_without_stored_gate(tmp_path):
@@ -333,9 +323,6 @@ def test_disabled_setting_sends_immediately(tmp_path):
         assert shown(c.telegram, "Aufgabe C")
 
 
-class _Log:
-    def __init__(self): self.events = []
-    def event(self, *args, **fields): self.events.append((args, fields))
 
 
 def test_relevance_question_holds_and_decided_queued_one_is_skipped(tmp_path):
@@ -434,9 +421,9 @@ def test_interrupted_send_is_not_repeated_after_restart(tmp_path):
     with JsonStore(tmp_path) as store:
         entry = TelegramOutboxEntry(id="1" * 32, kind="message", text="Unklar",
                                     status="sending",
-                                    created_at=datetime.now(timezone.utc))
+                                    created_at=datetime.now(UTC))
         waiting = TelegramOutboxEntry(id="2" * 32, kind="message", text="Danach",
-                                      created_at=datetime.now(timezone.utc))
+                                      created_at=datetime.now(UTC))
         store.save("telegram-outbox", TelegramOutboxState(
             entries=[entry, waiting]).model_dump(mode="json"))
         c, t, log = controller(store)
@@ -445,14 +432,6 @@ def test_interrupted_send_is_not_repeated_after_restart(tmp_path):
         assert any(event[0][2] == "outbox_delivery_uncertain" for event in log.events)
 
 
-class _FailingTelegram(Telegram):
-    def __init__(self, failing):
-        super().__init__()
-        self.failing = failing
-    def send(self, chat, text, reply_markup=None):
-        if text in self.failing:
-            raise RuntimeError("synthetic transport failure")
-        super().send(chat, text, reply_markup)
 
 
 def test_send_failure_is_raised_only_to_the_enqueuing_caller(tmp_path):
@@ -515,7 +494,7 @@ def test_delivery_service_without_outbox_and_already_delivered_versions(tmp_path
 
 
 def test_outbox_models_reject_incomplete_references():
-    now = datetime.now(timezone.utc)
+    now = datetime.now(UTC)
     with pytest.raises(ValidationError, match="Unvollständiger Verweis"):
         TelegramOutboxEntry(id="1" * 32, kind="proposal", mail_id=A, created_at=now)
     with pytest.raises(ValidationError, match="Zeitzone"):

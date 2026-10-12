@@ -1,11 +1,16 @@
 """Durable, version-authorized write execution and uncertain-result reconciliation."""
 from __future__ import annotations
-from typing import Any, Callable
+
+from collections.abc import Callable
+from typing import Any
+
 import httpx
-from ..models import Proposal, ProposalStatus
+
 from ..adapter import PermanentError, UncertainWriteError
+from ..models import Proposal, ProposalStatus
 from .contracts import ExternalWriter, PreparedWrite, proposal_is_writable
 from .http_writer import HttpWriter
+
 
 def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Callable[[Proposal], None], test_mode: bool = False) -> tuple[Proposal, dict[str, Any]]:
     if not proposal_is_writable(proposal):

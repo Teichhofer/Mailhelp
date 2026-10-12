@@ -1,12 +1,15 @@
 """RFC 5545 file serialization and Telegram document delivery."""
 from __future__ import annotations
-from datetime import date, datetime, timezone
+
 import hashlib
 import re
+from datetime import UTC, date, datetime
 from typing import Any
-from ..models import Proposal, ProposalKind
+
 from ..logging import EventLogger, NullLogger
+from ..models import Proposal, ProposalKind
 from .contracts import proposal_is_writable
+
 
 class CalendarFileWriter:
     """Create a standards-based iCalendar attachment and deliver it via Telegram."""
@@ -71,7 +74,7 @@ def calendar_file(proposal: Proposal, key: str) -> bytes:
 
 
 def _ical_datetime(value: datetime) -> str:
-    return value.astimezone(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    return value.astimezone(UTC).strftime("%Y%m%dT%H%M%SZ")
 
 
 def _ical_text(value: str) -> str:

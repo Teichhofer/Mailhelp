@@ -1,17 +1,22 @@
 """Kommandozeileneinstieg und kontrollierter Signal-Shutdown."""
 from __future__ import annotations
-import argparse, json, signal, shutil, sys
+
+import argparse
+import json
+import shutil
+import signal
+import sys
 from contextlib import ExitStack
 from pathlib import Path
+
 from .application import build_application, build_logger
 from .config import LOCAL_NUM_CTX, Settings, load_all
-from .learning import LearningMode
 from .decision_test import run_decision_test
 from .decisions import load_relevance_prompts
+from .learning import LearningMode
 from .ollama import LocalLlm, parse_address
-from .storage import JsonStore
 from .paths import runtime_path
-
+from .storage import JsonStore
 
 CLEAR_CONFIRMATION = "ALLE DATEN LOESCHEN"
 CONFIGURATION_FILES = ("config.yaml", "prompts.yaml", "topics.yaml", "irrelevant_topics.yaml")

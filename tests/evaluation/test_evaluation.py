@@ -1,15 +1,22 @@
 """The opt-in evaluator itself is tested without a network or real key."""
-from copy import deepcopy
 import json
+from copy import deepcopy
 from pathlib import Path
 
 import pytest
 import yaml
+from shared_quality_corpus import load_corpus, prompt_config
 
 from mailhelp.action_normalization import MailDateContext
-from mailhelp.evaluation import (BoundedCompleter, EvaluationBudgetExceeded, UsageRecorder, evaluate,
-                                 main, semantic_result, write_report)
-from test_quality_corpus import load_corpus, prompt_config
+from mailhelp.evaluation import (
+    BoundedCompleter,
+    EvaluationBudgetExceeded,
+    UsageRecorder,
+    evaluate,
+    main,
+    semantic_result,
+    write_report,
+)
 
 
 def prompts():
@@ -19,8 +26,9 @@ def prompts():
 
 
 def test_regression_evaluation_uses_jev_and_counts_unclear_fallback_in_one_budget():
+    from shared_decisions import envelope
+
     from mailhelp.decisions import load_relevance_prompts
-    from test_decisions import envelope
     corpus = load_corpus_v2()
     corpus["cases"] = corpus["cases"][1:2]
 
@@ -73,7 +81,7 @@ def test_regression_recurring_clock_wording_is_compared_semantically():
 
 @pytest.mark.parametrize("explicit", [False, True])
 def test_evaluation_cli_defaults_to_production_jev_and_closes_both_clients(tmp_path, monkeypatch, explicit):
-    from test_decisions import envelope
+    from shared_decisions import envelope
     corpus = load_corpus_v2()
     corpus["cases"] = corpus["cases"][1:2]
     source, prompt_file, output = (tmp_path / "c.json", tmp_path / "p.yaml", tmp_path / "r.json")

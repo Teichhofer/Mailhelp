@@ -18,8 +18,8 @@ import shutil
 from pathlib import Path
 
 import pytest
-from test_application import Imap, Orch, Telegram, app
-from test_telegram_dialog import Writer, controller
+from shared_application import Imap, Orch, Telegram, app
+from shared_telegram_dialog import Writer, controller
 
 from mailhelp.domain.duplicate import DuplicateIndex
 from mailhelp.domain.mail import MailState

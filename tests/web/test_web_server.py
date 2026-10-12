@@ -4,23 +4,27 @@ from __future__ import annotations
 import http.client
 import socket
 from pathlib import Path
-from threading import Event
 
 import pytest
+from shared_application import settings as app_settings
+from shared_core import prompt_config
+from shared_web_server import FakeWeb as FakeWeb
+from shared_web_server import Logger as Logger
+from shared_web_server import Telegram as Telegram
+from shared_web_server import call as call
+from shared_web_server import get as get
+from shared_web_server import lifecycle_app as lifecycle_app
+from shared_web_server import write_config as write_config
 
-from mailhelp.application import Application, build_application
+from mailhelp.application import build_application
 from mailhelp.config import Secrets, Topic, WebSettings, load_all
 from mailhelp.web import Request, Response, WebApp, WebServer, WebServerError
 from mailhelp.web import server as server_module
 from mailhelp.web.http import CONTENT_SECURITY_POLICY, MAX_BODY_BYTES
-from test_application import Log, Orch, settings as app_settings
-from test_core import prompt_config
 
 HOST = "127.0.0.1:8765"
 
 
-def get(app, path, host=HOST, method="GET", **headers):
-    return app(Request(method, path, {"host": host, **headers}))
 
 
 # --- in-process checks -----------------------------------------------------------
@@ -88,38 +92,10 @@ def test_responses_only_redirect_inside_the_application():
 
 # --- real sockets ----------------------------------------------------------------
 
-class Logger:
-    def __init__(self):
-        self.events = []
-
-    def event(self, level, module, event, **fields):
-        self.events.append((level, module, event, fields))
 
 
-@pytest.fixture
-def running():
-    servers = []
-
-    def start(handler=None, **kwargs):
-        logger = Logger()
-        server = WebServer("127.0.0.1", 0, handler or WebApp([HOST]), logger, **kwargs)
-        server.start()
-        servers.append(server)
-        return server, logger
-
-    yield start
-    for server in servers:
-        server.stop()
 
 
-def call(server, method, path, body=None, headers=None):
-    connection = http.client.HTTPConnection(*server.address, timeout=5)
-    try:
-        connection.request(method, path, body=body, headers={"Host": HOST, **(headers or {})})
-        response = connection.getresponse()
-        return response.status, dict(response.getheaders()), response.read()
-    finally:
-        connection.close()
 
 
 def test_server_answers_and_logs_without_query_strings(running):
@@ -165,7 +141,7 @@ def test_a_failing_route_is_an_internal_error_without_details(running):
 
     server, logger = running(broken)
     status, _, body = call(server, "GET", "/")
-    assert (status, body) == (500, "Interner Fehler.".encode())
+    assert (status, body) == (500, b"Interner Fehler.")
     failure = next(fields for _, _, event, fields in logger.events if event == "request_failed")
     assert failure == {"method": "GET", "error_class": "RuntimeError"}
 
@@ -207,14 +183,6 @@ def test_web_settings_defaults_and_validation():
             WebSettings(**invalid)
 
 
-def write_config(directory: Path) -> dict[str, str]:
-    for name in ("config.yaml", "prompts.yaml", "topics.yaml", "irrelevant_topics.yaml"):
-        source = Path("config.example.yaml" if name == "config.yaml" else name)
-        (directory / name).write_text(source.read_text(encoding="utf8"), encoding="utf8")
-    return {name: "secret" for name in [
-        "IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN", "TODOIST_TOKEN",
-        "TODOIST_CLIENT_ID", "TODOIST_CLIENT_SECRET", "GOOGLE_OAUTH_CLIENT_ID",
-        "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"]}
 
 
 def test_web_secret_is_required_only_when_enabled_and_never_changes_the_fingerprint(tmp_path):
@@ -238,32 +206,10 @@ def test_web_secret_is_required_only_when_enabled_and_never_changes_the_fingerpr
 
 # --- application lifecycle -------------------------------------------------------
 
-class Telegram:
-    def __init__(self, error=None):
-        self.sent, self.error = [], error
-
-    def send(self, chat_id, text):
-        if self.error:
-            raise self.error
-        self.sent.append(text)
 
 
-class FakeWeb:
-    def __init__(self, error=None):
-        self.error, self.calls = error, []
-
-    def start(self):
-        self.calls.append("start")
-        if self.error:
-            raise self.error
-
-    def stop(self):
-        self.calls.append("stop")
 
 
-def lifecycle_app(tmp_path, web, telegram):
-    return Application(app_settings(tmp_path), object(), Log(), object(), object(), object(),
-                       telegram, object(), object(), Orch(), Event(), web=web)
 
 
 def test_web_start_failure_keeps_mail_processing_running(tmp_path):
@@ -352,6 +298,7 @@ def test_aborted_connections_are_logged_without_traceback(running, capsys):
 
 def test_pwa_files_are_served_at_the_root_without_login():
     import json as json_module
+
     from mailhelp.web.app import ROOT_FILES, STATIC_FILES
     app = WebApp([HOST])
     manifest = get(app, "/manifest.webmanifest")
@@ -363,7 +310,7 @@ def test_pwa_files_are_served_at_the_root_without_login():
     worker = get(app, "/sw.js")
     assert worker.status == 200 and worker.content_type.startswith("text/javascript")
     offline = get(app, "/offline.html")
-    assert "PC nicht erreichbar".encode() in offline.body and b"<script" not in offline.body
+    assert b"PC nicht erreichbar" in offline.body and b"<script" not in offline.body
     assert set(ROOT_FILES) == {"manifest.webmanifest", "sw.js", "offline.html"}
 
 

@@ -1,10 +1,17 @@
-from datetime import datetime, timezone
 import imaplib
 import json
+
 import httpx
 import pytest
 
-from mailhelp.adapter import PermanentError, RetryableError, RetryInterrupted, RetryPolicy, UncertainWriteError, uncertain_write
+from mailhelp.adapter import (
+    PermanentError,
+    RetryableError,
+    RetryInterrupted,
+    RetryPolicy,
+    UncertainWriteError,
+    uncertain_write,
+)
 from mailhelp.config import AdapterPolicySettings
 from mailhelp.openrouter import OpenRouterClient, ProviderResponseInvalid, RateLimitExceeded
 

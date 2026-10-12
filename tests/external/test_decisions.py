@@ -1,45 +1,38 @@
 """Typed decision requests use simulated HTTP and synthetic mail only."""
-from copy import deepcopy
 import json
+from copy import deepcopy
 from pathlib import Path
 
 import httpx
 import pytest
-import yaml
 from pydantic import ValidationError
+from shared_decisions import all_questions as all_questions
+from shared_decisions import answer as answer
+from shared_decisions import envelope as envelope
+from shared_decisions import prompts as prompts
 
 from mailhelp.adapter import PermanentError, RetryableError
 from mailhelp.config import Topic
-from mailhelp.decisions import (DecisionAnalyzer, DecisionClient, DecisionPrompts,
-                                DecisionResponseError, NoulQuestion, QUESTIONS,
-                                jev_mail, load_decision_prompts, validate_answers)
+from mailhelp.decisions import (
+    QUESTIONS,
+    DecisionAnalyzer,
+    DecisionClient,
+    DecisionPrompts,
+    DecisionResponseError,
+    NoulQuestion,
+    jev_mail,
+    load_decision_prompts,
+    validate_answers,
+)
 from mailhelp.openrouter import RateLimitExceeded
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
-def prompts():
-    return load_decision_prompts(ROOT / "decisions_prompts.yaml")
 
 
-def answer(question, choice=None):
-    if question["type"] == "noul":
-        return {"type": "noul", "noul": 0.9}
-    keys = (list(question["criteria"]) if question["type"] == "choice"
-            else [str(index) for index in range(len(question["criteria"]))])
-    selected = choice or keys[0]
-    value = {"type": question["type"], "confidence": 1.0,
-             "probabilities": {key: float(key == selected) for key in keys}}
-    value["choice" if question["type"] == "choice" else "score"] = (
-        selected if question["type"] == "choice" else float(selected))
-    return value
 
 
-def envelope(questions, choices=None):
-    return {"id": "synthetic-decision", "model": "typesafe/jev-1.13-test",
-            "provider": "TypeSafe", "usage": {"input_tokens": 20, "output_tokens": 0, "cost": 0.001},
-            "answers": {name: answer(question, (choices or {}).get(name))
-                        for name, question in questions.items()}}
 
 
 def test_distributed_templates_match_and_configuration_is_closed(tmp_path):
@@ -74,10 +67,6 @@ def test_distributed_templates_match_and_configuration_is_closed(tmp_path):
         NoulQuestion(instructions="I", criteria={"true": "T"})
 
 
-def all_questions():
-    return {"yes": {"type": "noul", "instructions": "I", "criteria": {"true": "T", "false": "F"}},
-            "pick": {"type": "choice", "instructions": "I", "criteria": {"a": "A", "b": "B"}},
-            "rate": {"type": "score", "instructions": "I", "criteria": ["Low", "High"]}}
 
 
 def test_all_three_primitives_validate_and_preserve_provider_data():

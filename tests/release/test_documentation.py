@@ -9,7 +9,6 @@ import yaml
 from mailhelp.config import Settings
 from mailhelp.models import MailState
 
-
 ROOT = Path(__file__).parents[2]
 
 
@@ -74,6 +73,7 @@ def test_shipped_config_does_not_throttle_one_hundred_mail_run_after_fifty_mails
 ])
 def test_regression_quality_prompt_examples_are_schema_valid_and_complete(stage, label):
     import json
+
     from mailhelp.models import ActionRoute, Summary
     prompt = yaml.safe_load((ROOT / "prompts.yaml").read_text(encoding="utf-8"))["prompts"][stage]["system_prompt"]
     example = prompt.split("Beispiel: " + label + "\n")[1]

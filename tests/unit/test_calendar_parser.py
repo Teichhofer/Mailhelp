@@ -1,9 +1,10 @@
 """Unit-Tests für den deterministischen RFC 5545 Kalender-Parser."""
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo
+
 import pytest
 
-from mailhelp.calendar_parser import parse_icalendar, MAX_CALENDAR_BYTES
+from mailhelp.calendar_parser import MAX_CALENDAR_BYTES, parse_icalendar
 
 
 def test_parse_simple_timed_event():
@@ -31,8 +32,8 @@ END:VCALENDAR"""
     assert ev.location == "Raum 101"
     assert ev.status == "CONFIRMED"
     assert ev.all_day is False
-    assert ev.start == datetime(2026, 10, 15, 10, 0, tzinfo=timezone.utc)
-    assert ev.end == datetime(2026, 10, 15, 11, 30, tzinfo=timezone.utc)
+    assert ev.start == datetime(2026, 10, 15, 10, 0, tzinfo=UTC)
+    assert ev.end == datetime(2026, 10, 15, 11, 30, tzinfo=UTC)
 
 
 def test_parse_tzid_and_unfolding_and_escapes():
@@ -192,7 +193,7 @@ END:VCALENDAR"""
     assert events[0].summary == "Unbenannter Termin"
     assert events[0].sequence == 0
     assert events[0].status == "CONFIRMED"
-    assert events[0].start.tzinfo == timezone.utc
+    assert events[0].start.tzinfo == UTC
 
     # Test all-day date start with datetime end
     allday_ics = """BEGIN:VCALENDAR

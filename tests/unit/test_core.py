@@ -1,33 +1,59 @@
 from __future__ import annotations
-import errno, imaplib, json, os, signal, subprocess, sys
+
+import errno
+import imaplib
+import json
+import os
+import signal
+import subprocess
+import sys
 from contextlib import contextmanager
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta
 from email.message import EmailMessage
 from pathlib import Path
-import httpx, pytest
+
+import pytest
 from pydantic import ValidationError
+from shared_core import FakeImap as FakeImap
+from shared_core import prompt_config as prompt_config
+from shared_core import proposal as proposal
+from shared_core import shipped_configuration as shipped_configuration
 
 from mailhelp import __version__
-from mailhelp.analysis import Analyzer
 from mailhelp.adapter import RetryPolicy
+from mailhelp.analysis import Analyzer
 from mailhelp.cli import main
-from mailhelp.config import IrrelevantTopicsConfig, LlmRoute, PromptConfig, PromptStep, Topic, TopicsConfig, _deep_merge, _dotenv, read_yaml, load_all
-from mailhelp.imap import (FetchedMail, ImapReader, UIDValidityChanged,
-                           _decode_mailbox_name, _list_mailbox_name, account_id)
-from mailhelp.integrations import HttpWriter, execute_confirmed
+from mailhelp.config import (
+    IrrelevantTopicsConfig,
+    LlmRoute,
+    PromptConfig,
+    PromptStep,
+    Topic,
+    TopicsConfig,
+    _deep_merge,
+    _dotenv,
+    load_all,
+    read_yaml,
+)
+from mailhelp.imap import (
+    ImapReader,
+    UIDValidityChanged,
+    _decode_mailbox_name,
+    _list_mailbox_name,
+    account_id,
+)
 from mailhelp.logging import JsonlLogger, redact
 from mailhelp.mime import prepare
-from mailhelp.models import (Actions, ProcessingErrorCode, Proposal, ProposalKind,
-                             ProposalStatus, Relevance, Summary,
-                             TelegramAnswerInterpretation, TelegramClarification)
-from mailhelp.openrouter import OpenRouterClient, RateLimitExceeded
-from mailhelp.orchestrator import Orchestrator
+from mailhelp.models import (
+    Actions,
+    ProcessingErrorCode,
+    Proposal,
+    Relevance,
+    Summary,
+    TelegramAnswerInterpretation,
+    TelegramClarification,
+)
 from mailhelp.storage import AlreadyRunning, CorruptState, JsonStore
-from mailhelp.telegram import Decision, TelegramClient, apply_decision, split_message
-
-
-def prompt_config(model="model"):
-    return PromptConfig(defaults={"model": model, "parameters": {"temperature": .2}}, prompts={x: PromptStep(system_prompt=x, parameters={"max_tokens": 200}) for x in ("relevance", "summary", "action_router", "task_extraction", "event_extraction", "mail_question_resolution", "telegram_answer_interpretation", "telegram_answer_clarification", "proposal_revision", "learning_classification", "learning_abstraction", "calendar_duplicate")})
 
 
 def test_step_provider_preferences_pin_the_default_route():
@@ -100,23 +126,8 @@ def test_strict_ordered_llm_route_configuration():
             LlmRoute.model_validate(route)
 
 
-def proposal(**kw):
-    base = dict(id="p1", version=1, kind="task", responsibility="user", certainty="certain", classification="new", title="Tun", evidence="Mail sagt es", source_mail_id="a"*24, target="inbox")
-    if "status" not in kw and (kw.get("open_questions") or kw.get("responsibility") not in {None, "user"}
-                               or kw.get("certainty") not in {None, "certain"}
-                               or kw.get("classification") not in {None, "new"}):
-        base["status"] = "needs_clarification"
-    base.update(kw)
-    return Proposal.model_validate(base)
 
 
-def shipped_configuration(tmp_path):
-    """The shipped example files in *tmp_path*; returns a complete synthetic environment."""
-    for name in ("config.yaml", "prompts.yaml", "topics.yaml", "irrelevant_topics.yaml"):
-        source = Path("config.example.yaml" if name == "config.yaml" else name)
-        (tmp_path / name).write_text(source.read_text(encoding="utf8"), encoding="utf8")
-    env = {x: "secret" for x in ["IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN", "TODOIST_TOKEN", "TODOIST_CLIENT_ID", "TODOIST_CLIENT_SECRET", "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"]}
-    return env
 
 
 def test_version_error_codes_and_model_validation():
@@ -147,7 +158,7 @@ def test_version_error_codes_and_model_validation():
 
 
 def test_proposal_invariants():
-    start = datetime.now(timezone.utc)
+    start = datetime.now(UTC)
     proposal(id="e", kind="event", start=start, end=start + timedelta(hours=1))
     with pytest.raises(ValidationError): proposal(kind="event")
     with pytest.raises(ValidationError): Proposal(id="e", version=1, kind="event", title="x", evidence="y")
@@ -305,19 +316,6 @@ def test_mime():
     with pytest.raises(ValueError): prepare(b"x" * 5, 2)
 
 
-class FakeImap:
-    def __init__(self, *args, **kwargs):
-        self.mode="ok"
-        self.logged=False
-    def login(self, *args): self.logged=True
-    def select(self, folder, readonly): return (("NO", []) if folder == "bad" else ("OK", []))
-    def response(self, key): return ((None, []) if self.mode == "validity" else ("UIDVALIDITY", [b"7"]))
-    def uid(self, action, *args):
-        if self.mode == "search": return "NO", []
-        if action == "search": return "OK", [b"4"]
-        if self.mode == "fetch": return "NO", []
-        return "OK", [(b'4 (INTERNALDATE "17-Sep-2026 10:11:12 +0200")', b"raw")]
-    def logout(self): self.logged=False
 
 
 def test_imap_lists_selectable_folders_and_validates_responses():
@@ -566,7 +564,7 @@ def test_imap_discovers_body_free_candidates_and_rejects_bad_metadata():
 
 
 def test_imap_discovery_fetches_only_a_bounded_newest_metadata_window():
-    boundary = datetime(2026, 9, 17, 10, 0, tzinfo=timezone.utc)
+    boundary = datetime(2026, 9, 17, 10, 0, tzinfo=UTC)
 
     class Logger:
         def __init__(self): self.events = []
@@ -756,19 +754,19 @@ def test_imap_connection_and_exact_historical_boundary():
             return super().uid(action,*args)
     connection=BoundaryImap((b"2",b"3"))
     reader=ImapReader(" Example.COM. ",143," User ","p",factory=lambda *a,**k: connection,starttls=True)
-    assert connection.tls and reader.determine_start_uid("INBOX",datetime(2025,1,2,4,0,tzinfo=timezone.utc))==2
+    assert connection.tls and reader.determine_start_uid("INBOX",datetime(2025,1,2,4,0,tzinfo=UTC))==2
     assert account_id("example.com",143,"user")==reader.account_id
     assert all(command[1][-1] != "(BODY[])" for command in connection.commands)
 
     exact=BoundaryImap((b"4",))
     assert ImapReader("h",143,"u","p",factory=lambda *a,**k:exact).determine_start_uid(
-        "INBOX",datetime(2025,1,2,4,0,tzinfo=timezone.utc))==3
+        "INBOX",datetime(2025,1,2,4,0,tzinfo=UTC))==3
 
     no_match=BoundaryImap(())
     other=ImapReader("h",143,"u","p",factory=lambda *a,**k:no_match)
-    assert other.determine_start_uid("INBOX",datetime(2025,1,2,tzinfo=timezone.utc))==9
+    assert other.determine_start_uid("INBOX",datetime(2025,1,2,tzinfo=UTC))==9
     no_match.uid=lambda *args: ("NO",[])
-    with pytest.raises(RuntimeError): other.determine_start_uid("INBOX",datetime.now(timezone.utc))
+    with pytest.raises(RuntimeError): other.determine_start_uid("INBOX",datetime.now(UTC))
 
     bad_tls=BoundaryImap()
     bad_tls.starttls=lambda: ("NO",[])
@@ -776,10 +774,10 @@ def test_imap_connection_and_exact_historical_boundary():
 
     broken=BoundaryImap()
     broken.select=lambda *_a,**_k: ("NO",[])
-    with pytest.raises(RuntimeError,match="nicht lesbar"): ImapReader("h",143,"u","p",factory=lambda *a,**k:broken).determine_start_uid("bad",datetime.now(timezone.utc))
+    with pytest.raises(RuntimeError,match="nicht lesbar"): ImapReader("h",143,"u","p",factory=lambda *a,**k:broken).determine_start_uid("bad",datetime.now(UTC))
     no_validity=BoundaryImap()
     no_validity.mode="validity"
-    with pytest.raises(RuntimeError,match="UIDVALIDITY"): ImapReader("h",143,"u","p",factory=lambda *a,**k:no_validity).determine_start_uid("INBOX",datetime.now(timezone.utc))
+    with pytest.raises(RuntimeError,match="UIDVALIDITY"): ImapReader("h",143,"u","p",factory=lambda *a,**k:no_validity).determine_start_uid("INBOX",datetime.now(UTC))
 
     valid_responses = (
         [b'2 (INTERNALDATE "02-Jan-2025 04:01:00 +0000")'],
@@ -791,35 +789,35 @@ def test_imap_connection_and_exact_historical_boundary():
         direct=BoundaryImap()
         original=direct.uid
         direct.uid=lambda action,*args,response=response: ("OK",response) if action=="fetch" else original(action,*args)
-        assert ImapReader("h",143,"u","p",factory=lambda *a,**k:direct).determine_start_uid("INBOX",datetime(2025,1,2,4,0,tzinfo=timezone.utc)) == 1
+        assert ImapReader("h",143,"u","p",factory=lambda *a,**k:direct).determine_start_uid("INBOX",datetime(2025,1,2,4,0,tzinfo=UTC)) == 1
 
     for rejected_status in ("NO", "BAD"):
         rejected=BoundaryImap()
         original=rejected.uid
         rejected.uid=lambda action,*args,status=rejected_status: (status,[]) if action=="fetch" else original(action,*args)
         with pytest.raises(RuntimeError,match=f"abgelehnt: {rejected_status}"):
-            ImapReader("h",143,"u","p",factory=lambda *a,**k:rejected).determine_start_uid("INBOX",datetime.now(timezone.utc))
+            ImapReader("h",143,"u","p",factory=lambda *a,**k:rejected).determine_start_uid("INBOX",datetime.now(UTC))
 
     for response in (None, [], [b")"], [b"bad"], [(b"bad",b"")]):
         malformed=BoundaryImap()
         original=malformed.uid
         malformed.uid=lambda action,*args,response=response: ("OK",response) if action=="fetch" else original(action,*args)
         with pytest.raises(RuntimeError,match="leer oder strukturell unbrauchbar"):
-            ImapReader("h",143,"u","p",factory=lambda *a,**k:malformed).determine_start_uid("INBOX",datetime.now(timezone.utc))
+            ImapReader("h",143,"u","p",factory=lambda *a,**k:malformed).determine_start_uid("INBOX",datetime.now(UTC))
 
     invalid=BoundaryImap()
     original=invalid.uid
     invalid.uid=lambda action,*args: ("OK",[(b'2 (INTERNALDATE "bad")',b"")]) if action=="fetch" else original(action,*args)
     with pytest.raises(RuntimeError,match="ungültigen INTERNALDATE-Datumswert"):
-        ImapReader("h",143,"u","p",factory=lambda *a,**k:invalid).determine_start_uid("INBOX",datetime.now(timezone.utc))
+        ImapReader("h",143,"u","p",factory=lambda *a,**k:invalid).determine_start_uid("INBOX",datetime.now(UTC))
 
     empty=BoundaryImap(())
     empty.uid=lambda action,*args: ("OK",[b""])
-    assert ImapReader("h",143,"u","p",factory=lambda *a,**k:empty).determine_start_uid("INBOX",datetime.now(timezone.utc))==0
+    assert ImapReader("h",143,"u","p",factory=lambda *a,**k:empty).determine_start_uid("INBOX",datetime.now(UTC))==0
     all_failure=BoundaryImap(())
     all_failure.uid=lambda action,*args: ("NO",[]) if args[-1]=="ALL" else ("OK",[b""])
     with pytest.raises(RuntimeError,match="IMAP-Suche fehlgeschlagen"):
-        ImapReader("h",143,"u","p",factory=lambda *a,**k:all_failure).determine_start_uid("INBOX",datetime.now(timezone.utc))
+        ImapReader("h",143,"u","p",factory=lambda *a,**k:all_failure).determine_start_uid("INBOX",datetime.now(UTC))
 
 
 def test_storage_and_logging(tmp_path):

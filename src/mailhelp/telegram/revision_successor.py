@@ -1,9 +1,10 @@
 """Validated successor construction, independent of persistence and delivery."""
 from __future__ import annotations
-from ..models import Proposal
+
 from ..analysis import validate_revision_successor
-from .temporal import deterministic_classification_revision, deterministic_temporal_revision
+from ..models import Proposal
 from .revision_contracts import ProposalRevisionService
+from .temporal import deterministic_classification_revision, deterministic_temporal_revision
 
 
 def build_revision_successor(original: Proposal, question: str, normalized_answer: str,

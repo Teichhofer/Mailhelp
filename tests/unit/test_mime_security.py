@@ -2,8 +2,7 @@ from email.message import EmailMessage
 
 import pytest
 
-from mailhelp.mime import (MimeLimitExceeded, MimeLimits, _clean, _decode,
-                           extract_display_headers, prepare)
+from mailhelp.mime import MimeLimitExceeded, MimeLimits, _clean, _decode, extract_display_headers, prepare
 
 
 def limits(**changes):

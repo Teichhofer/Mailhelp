@@ -1,10 +1,15 @@
 """Provider response schemas and shared write contracts."""
 from __future__ import annotations
+
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any, Callable, Protocol
+from typing import Any, Protocol
+
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
-from ..models import Proposal
+
 from ..adapter import PermanentError
+from ..models import Proposal
+
 
 class AuthenticationError(PermanentError):
     """Anmeldedaten wurden dauerhaft abgelehnt; ein Schreibzugriff ist nicht unklar."""

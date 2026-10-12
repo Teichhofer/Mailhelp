@@ -1,8 +1,11 @@
 """Ports for answer interpretation, revision and safe event logging."""
 from __future__ import annotations
+
 from datetime import date as calendar_date
 from typing import Any, Protocol
+
 from ..models import Proposal, TelegramAnswerInterpretation, TelegramClarification
+
 
 class ProposalRevisionService(Protocol):
     def interpret_telegram_answer(

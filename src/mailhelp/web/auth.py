@@ -25,9 +25,10 @@ import hashlib
 import hmac
 import re
 import secrets
-from datetime import datetime, timedelta, timezone
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 from threading import Lock
-from typing import Callable, Literal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -93,7 +94,7 @@ def _sha256(value: str) -> str:
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def device_name(user_agent: str | None, chosen: str | None = None) -> str:
@@ -126,7 +127,7 @@ class WebAuth:
     # --- tokens ------------------------------------------------------------------
 
     def _mac(self, purpose: str, value: str) -> str:
-        return hmac.new(self._key, f"{purpose}:{value}".encode("utf-8"), hashlib.sha256).hexdigest()
+        return hmac.new(self._key, f"{purpose}:{value}".encode(), hashlib.sha256).hexdigest()
 
     def csrf_token(self, binding: str) -> str:
         """CSRF token for a session id or a browser pairing nonce."""

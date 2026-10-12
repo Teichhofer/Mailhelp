@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Literal
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
@@ -70,7 +70,7 @@ def record_event(store: JsonStore, proposal: Proposal, kind: str, source: str = 
     identifier = hashlib.sha256(json.dumps(identity).encode()).hexdigest()[:32]
     append_event(store, proposal.source_mail_id, HistoryEvent(
         id=identifier, proposal_id=proposal.id, version=proposal.version, kind=kind,
-        status=proposal.status, source=source, at=at or datetime.now(timezone.utc)))
+        status=proposal.status, source=source, at=at or datetime.now(UTC)))
 
 
 def record_relevance(store: JsonStore, state: MailState, source: str, operation: str) -> None:

@@ -1,8 +1,8 @@
 """V1.3 Pipeline, Orchestrator, Attachment Prompt & Regression Tests."""
-from datetime import date, datetime, timezone, timedelta
+from datetime import UTC, datetime
 from typing import Any
+
 import httpx
-import pytest
 
 from mailhelp.analysis import ActionRoute, Analyzer, Summary
 from mailhelp.config import TargetSettings, Topic
@@ -16,7 +16,6 @@ from mailhelp.domain.extraction import (
     TelegramAnswerInterpretation,
 )
 from mailhelp.domain.prepared import PreparedAttachment
-from mailhelp.domain.temporal import TimeRequirement
 from mailhelp.domain.proposal import (
     DuplicateMatchInfo,
     DuplicateSource,
@@ -27,16 +26,15 @@ from mailhelp.domain.proposal import (
     ProposalResponsibility,
     ProposalStatus,
 )
+from mailhelp.domain.temporal import TimeRequirement
 from mailhelp.imap import FetchedMail
 from mailhelp.integrations import HttpWriter
-from mailhelp.logging import NullLogger
 from mailhelp.models import MailState, ProcessingStage, Relevance
 from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.precheck import DuplicatePreCheckService
 from mailhelp.review.cards import card_content
-from mailhelp.review.views import MailView, ReviewViews, ProposalView, STATUS_LABELS
+from mailhelp.review.views import MailView, ProposalView, ReviewViews
 from mailhelp.storage import JsonStore
-from mailhelp.telegram.callbacks import Decision, DecisionAction
 from mailhelp.telegram.formatting import format_proposal
 from mailhelp.telegram.presenter import ProposalPresenter
 from mailhelp.web.review_pages import mail_section, proposal_card
@@ -215,7 +213,7 @@ def test_orchestrator_precheck_filters_exact_duplicates(tmp_path):
         uidvalidity=1,
         uid=10,
         raw=b"Subject: Team-Meeting\nDate: Wed, 14 Oct 2026 12:00:00 +0000\n\nBesprechung morgen um 10:00",
-        received_at=datetime(2026, 10, 14, 12, 0, tzinfo=timezone.utc),
+        received_at=datetime(2026, 10, 14, 12, 0, tzinfo=UTC),
     )
 
     res = orchestrator.process(mail)
@@ -372,7 +370,7 @@ def test_regression_1_existing_calendar_event_suppressed_from_notifications(tmp_
         uidvalidity=1,
         uid=42,
         raw=b"Subject: Team-Meeting\nDate: Wed, 14 Oct 2026 10:00:00 +0000\n\nMeeting morgen von 10 bis 11",
-        received_at=datetime(2026, 10, 14, 10, 0, tzinfo=timezone.utc),
+        received_at=datetime(2026, 10, 14, 10, 0, tzinfo=UTC),
     )
 
     result = orchestrator.process(mail)
@@ -462,7 +460,7 @@ def test_regression_2_rescheduled_event_updates_via_patch(tmp_path):
         uidvalidity=1,
         uid=43,
         raw=b"Subject: Team-Meeting Verschiebung\nDate: Wed, 14 Oct 2026 10:00:00 +0000\n\nNeuer Termin: 10:00 bis 11:00",
-        received_at=datetime(2026, 10, 14, 10, 0, tzinfo=timezone.utc),
+        received_at=datetime(2026, 10, 14, 10, 0, tzinfo=UTC),
     )
 
     result = orchestrator.process(mail)
@@ -588,8 +586,8 @@ def rescheduled_card():
             open_questions=[],
             target="primary",
             status=ProposalStatus.PENDING_CONFIRMATION,
-            start=datetime(2026, 10, 15, 10, 0, tzinfo=timezone.utc),
-            end=datetime(2026, 10, 15, 11, 0, tzinfo=timezone.utc),
+            start=datetime(2026, 10, 15, 10, 0, tzinfo=UTC),
+            end=datetime(2026, 10, 15, 11, 0, tzinfo=UTC),
             target_event_id="ev-123",
             time_changes=["Beginn 14:00 → 10:00 Uhr"],
             duplicate_match=CALENDAR_MATCH,
@@ -689,8 +687,8 @@ def test_telegram_presenter_and_formatting_reschedule_and_cancel():
         open_questions=[],
         target="primary",
         status=ProposalStatus.PENDING_CONFIRMATION,
-        start=datetime(2026, 10, 15, 10, 0, tzinfo=timezone.utc),
-        end=datetime(2026, 10, 15, 11, 0, tzinfo=timezone.utc),
+        start=datetime(2026, 10, 15, 10, 0, tzinfo=UTC),
+        end=datetime(2026, 10, 15, 11, 0, tzinfo=UTC),
         target_event_id="ev-999",
         time_changes=["Beginn 14:00 → 10:00 Uhr"],
     )
@@ -786,8 +784,8 @@ def test_http_writer_calendar_cancellation_prepare():
         open_questions=[],
         target="primary",
         status=ProposalStatus.PENDING_CONFIRMATION,
-        start=datetime(2026, 10, 15, 10, 0, tzinfo=timezone.utc),
-        end=datetime(2026, 10, 15, 11, 0, tzinfo=timezone.utc),
+        start=datetime(2026, 10, 15, 10, 0, tzinfo=UTC),
+        end=datetime(2026, 10, 15, 11, 0, tzinfo=UTC),
         target_event_id="ev-123",
         is_cancellation=True,
     )
@@ -798,9 +796,9 @@ def test_http_writer_calendar_cancellation_prepare():
 
 
 def test_proposal_builder_calendar_collision():
-    from mailhelp.proposal_builder import ProposalBuilder
     from mailhelp.action_normalization import MailDateContext
     from mailhelp.config import TargetSettings
+    from mailhelp.proposal_builder import ProposalBuilder
     context = MailDateContext(
         date_context_status="valid",
         date_header_parsed="2026-10-14T10:00:00+00:00",
@@ -818,16 +816,16 @@ def test_proposal_builder_calendar_collision():
         uid="dup-uid",
         summary="Workshop",
         description="Desc",
-        start=datetime(2026, 10, 20, 10, 0, tzinfo=timezone.utc),
-        end=datetime(2026, 10, 20, 11, 0, tzinfo=timezone.utc),
+        start=datetime(2026, 10, 20, 10, 0, tzinfo=UTC),
+        end=datetime(2026, 10, 20, 11, 0, tzinfo=UTC),
         all_day=False,
     )
     cal2 = ParsedCalendarEvent(
         uid="dup-uid",
         summary="Workshop",
         description="Desc",
-        start=datetime(2026, 10, 20, 14, 0, tzinfo=timezone.utc),
-        end=datetime(2026, 10, 20, 15, 0, tzinfo=timezone.utc),
+        start=datetime(2026, 10, 20, 14, 0, tzinfo=UTC),
+        end=datetime(2026, 10, 20, 15, 0, tzinfo=UTC),
         all_day=False,
     )
     proposals = builder.build(tasks=[], events=[], calendar_events=[cal1, cal2])
@@ -853,8 +851,8 @@ def test_review_views_cancellation_label(tmp_path):
         open_questions=[],
         target="primary",
         status=ProposalStatus.PENDING_CONFIRMATION,
-        start=datetime(2026, 10, 15, 10, 0, tzinfo=timezone.utc),
-        end=datetime(2026, 10, 15, 11, 0, tzinfo=timezone.utc),
+        start=datetime(2026, 10, 15, 10, 0, tzinfo=UTC),
+        end=datetime(2026, 10, 15, 11, 0, tzinfo=UTC),
         target_event_id="ev-123",
         is_cancellation=True,
     )
@@ -889,7 +887,7 @@ def test_orchestrator_without_precheck_skips_precheck(tmp_path):
         uidvalidity=1,
         uid=88,
         raw=b"Subject: Task Mail\nDate: Wed, 14 Oct 2026 12:00:00 +0000\n\nTask text",
-        received_at=datetime(2026, 10, 14, 12, 0, tzinfo=timezone.utc),
+        received_at=datetime(2026, 10, 14, 12, 0, tzinfo=UTC),
     )
     res = orchestrator.process(mail)
     assert res.outcome == ProcessingOutcome.COMPLETED
