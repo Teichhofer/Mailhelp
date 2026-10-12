@@ -94,11 +94,11 @@ Bestätigung für einen externen Schreibzugriff.
 Die vollständige synthetische Suite schützt Reihenfolge, UIDVALIDITY, optionale
 Ordner, Budgets, Neustart, Timeout, Teilfehler, externe Autorisierung, Pagination,
 Retries, unklare Resultate, Idempotenz, Versionsfolge und Recovery.
-`tests/test_refactoring_v16.py` prüft zusätzlich die Importfassaden, eine unabhängig
+`tests/upgrade/test_refactoring_v16.py` prüft zusätzlich die Importfassaden, eine unabhängig
 von Application wiederaufgenommene durable Mailbox-Queue und die unveränderten
 Renderer. Die Renderer-Referenzwerte wurden aus dem unveränderten 1.5-Code vor
 dem Refactoring mit festen synthetischen Views erzeugt
-(`tests/renderer_v15_hashes.json`). Sie umfassen Review, Mail, Vorschlag mit
+(`tests/upgrade/renderer_v15_hashes.json`). Sie umfassen Review, Mail, Vorschlag mit
 bösartigem Inhalt und Status mit/ohne Laufzeitdaten.
 
 Alle Python-Tests messen weiterhin Zeilen- und Branch-Coverage und scheitern unter

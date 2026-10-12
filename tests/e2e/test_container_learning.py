@@ -18,7 +18,7 @@ from mailhelp.storage import JsonStore
 def test_learning_mount_preserves_filter_topics_and_folders_across_restart(tmp_path, monkeypatch):
     supplied = os.environ.get("MAILHELP_LEARNING_CONFIG")
     config = Path(supplied) if supplied else tmp_path / "config"
-    root = Path(__file__).parents[1]
+    root = Path(__file__).parents[2]
     if not supplied:
         config.mkdir()
         for source, target in (("config.example.yaml", "config.yaml"),

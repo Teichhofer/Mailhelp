@@ -1305,6 +1305,25 @@ python -m pip install playwright==1.62.0
 python -m pytest ui_tests --no-cov -p no:cacheprovider
 ```
 
+Die Tests liegen nach Fachgebiet geordnet unter `tests/`: `unit/` (Parser,
+Modelle, Konfiguration), `services/` (Verarbeitung, Review, Entwürfe, Push,
+Aufbewahrung), `telegram/`, `web/`, `external/` (Kalender, Todoist, OAuth,
+LLM-Clients), `evaluation/` (Qualitätskorpus, Decision-Test), `upgrade/`
+(Fingerprints, Altzustände, Renderer-Verträge), `e2e/`, `release/` (Paket,
+Dokumentation, CLI, Abhängigkeiten) und `scenarios/` (synthetische Daten).
+`tests/release/test_dependency_lock.py` prüft, dass `requirements.lock` und
+`requirements-lint.lock` die vollständige installierte Abhängigkeitshülle aus
+`pyproject.toml` exakt festschreiben.
+
+Statische Prüfung (die CI meldet die Befunde; ab 2.1.0 lassen sie den Lauf
+scheitern). `requirements-lint.lock` gelangt nicht ins Container-Image:
+
+```sh
+python -m pip install -r requirements-lint.lock
+python -m ruff check
+python -m mypy
+```
+
 Temporäre Testdateien liegen nicht im Projekt: `tmp_path`, `tempfile` und
 gestartete Kindprozesse verwenden `<System-Temp>/mailhelp-tests`
 (abweichend über die Umgebungsvariable `MAILHELP_TEST_TEMP`). Unter `Documents`
@@ -1326,13 +1345,13 @@ benötigen keine Geheimnisse:
 python -m pytest --cov=mailhelp --cov-branch --cov-fail-under=100
 
 # Versionierter deutscher Qualitätskorpus mit simuliertem OpenRouter-Adapter
-python -m pytest tests/test_quality_corpus.py --cov=mailhelp --cov-branch --cov-fail-under=100
+python -m pytest tests/evaluation/test_quality_corpus.py --cov=mailhelp --cov-branch --cov-fail-under=100
 
 # Simulierter Ablauf IMAP → LLM → Bestätigung über Telegram oder die authentifizierte Weboberfläche → Todoist/Calendar
-python -m pytest tests/test_e2e_simulated.py --cov=mailhelp --cov-branch --cov-fail-under=100
+python -m pytest tests/e2e/test_e2e_simulated.py --cov=mailhelp --cov-branch --cov-fail-under=100
 
 # CLI- und POSIX-/Windows-Pfadvarianten
-python -m pytest tests/test_cli_paths.py --cov=mailhelp --cov-branch --cov-fail-under=100
+python -m pytest tests/release/test_cli_paths.py --cov=mailhelp --cov-branch --cov-fail-under=100
 
 # Windows PowerShell (dieselbe Suite und Coverage-Grenze)
 py -3.12 -m pytest --cov=mailhelp --cov-branch --cov-fail-under=100

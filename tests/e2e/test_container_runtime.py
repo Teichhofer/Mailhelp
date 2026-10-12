@@ -54,9 +54,9 @@ def test_installed_cli_persists_state_and_logs_across_restart(tmp_path, monkeypa
     if not supplied:
         config.mkdir()
         for name in ("prompts.yaml", "topics.yaml", "irrelevant_topics.yaml"):
-            shutil.copyfile(Path(__file__).parents[1] / name, config / name)
-        shutil.copyfile(Path(__file__).parents[1] / "config.example.yaml", config / "config.yaml")
-        shutil.copyfile(Path(__file__).parent / "fixtures/irrelevant-senders.json", config / "irrelevant-senders.json")
+            shutil.copyfile(Path(__file__).parents[2] / name, config / name)
+        shutil.copyfile(Path(__file__).parents[2] / "config.example.yaml", config / "config.yaml")
+        shutil.copyfile(Path(__file__).parents[1] / "fixtures/irrelevant-senders.json", config / "irrelevant-senders.json")
     for name in ("IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN",
                  "TODOIST_TOKEN", "TODOIST_CLIENT_ID", "TODOIST_CLIENT_SECRET",
                  "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"):

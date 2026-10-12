@@ -9,7 +9,7 @@ from mailhelp.web.setting_help import SETTING_HELP, EXTRA_HELP, help_bubble
 
 def test_all_settings_have_matching_documentation_and_connected_help():
     assert set(SETTING_HELP) == SETTINGS_FIELDS
-    document = (Path(__file__).resolve().parents[1] / "docs/Web-Einstellungen.md").read_text(encoding="utf-8")
+    document = (Path(__file__).resolve().parents[2] / "docs/Web-Einstellungen.md").read_text(encoding="utf-8")
     page = settings_page([], {}, {}, "revision", "csrf")
     for name, explanation in SETTING_HELP.items():
         assert f"`{name}`" in document and explanation in document

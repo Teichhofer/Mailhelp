@@ -15,7 +15,7 @@ from mailhelp.mime import prepare
 from mailhelp.models import ActionRoute, EventExtraction, Relevance, Summary, TaskExtraction
 from mailhelp.proposal_builder import ProposalBuilder
 
-CORPUS = Path(__file__).parent / "fixtures" / "mail_corpus_v1" / "corpus.json"
+CORPUS = Path(__file__).parents[1] / "fixtures" / "mail_corpus_v1" / "corpus.json"
 
 
 def load_corpus() -> dict[str, object]:

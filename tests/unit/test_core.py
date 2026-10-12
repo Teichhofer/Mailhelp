@@ -45,7 +45,7 @@ def test_step_provider_preferences_pin_the_default_route():
     with pytest.raises(ValidationError, match="nur ohne routes"):
         PromptStep(system_prompt="x", provider_preferences={"order": ["a"]},
                    routes=[LlmRoute(provider="openrouter", model="m")])
-    shipped = PromptConfig.model_validate(_yaml(Path(__file__).resolve().parents[1] / "prompts.yaml"))
+    shipped = PromptConfig.model_validate(_yaml(Path(__file__).resolve().parents[2] / "prompts.yaml"))
     for stage in ("action_router", "task_extraction", "event_extraction",
                   "mail_question_resolution", "proposal_revision"):
         (pinned,), _, _ = shipped.resolved_routes(stage)
@@ -54,7 +54,7 @@ def test_step_provider_preferences_pin_the_default_route():
 
 def test_experimental_ollama_configuration():
     from mailhelp.config import OllamaPromptSettings, TimeoutSettings
-    root = Path(__file__).resolve().parents[1]
+    root = Path(__file__).resolve().parents[2]
     shipped = PromptConfig.model_validate(_yaml(root / "prompts.yaml")).ollama
     assert shipped is not None and shipped.model and shipped.num_ctx >= 8192
     assert prompt_config().ollama is None
@@ -110,7 +110,7 @@ def proposal(**kw):
 
 
 def test_models_and_config(tmp_path, monkeypatch, capsys):
-    assert __version__ == "2.0.0"
+    assert __version__ == "2.0.1"
     assert {ProcessingErrorCode.PROVIDER_RESPONSE_INVALID.value,
             ProcessingErrorCode.INVALID_JSON.value,
             ProcessingErrorCode.SCHEMA_VALIDATION_FAILED.value} == {

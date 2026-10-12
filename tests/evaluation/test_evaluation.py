@@ -33,7 +33,7 @@ def test_regression_evaluation_uses_jev_and_counts_unclear_fallback_in_one_budge
             return "jev-test", envelope(questions, {
                 "decision": self.mode, "topic_0": "match", "topic_1": "no_match"})
 
-    config = load_relevance_prompts(Path(__file__).parents[1])
+    config = load_relevance_prompts(Path(__file__).parents[2])
     decisions = Decisions()
     report = evaluate(corpus, prompts(), Provider(corpus), 20,
                       decision_prompts=config, decision_client=decisions)
@@ -93,7 +93,7 @@ def test_evaluation_cli_defaults_to_production_jev_and_closes_both_clients(tmp_p
     monkeypatch.setenv("OPENROUTER_API_KEY", "synthetic-key")
     monkeypatch.setattr("mailhelp.evaluation.OpenRouterClient", lambda *a, **k: provider)
     monkeypatch.setattr("mailhelp.evaluation.DecisionClient", lambda *a, **k: decisions)
-    extra = ["--decisions-prompts", str(Path(__file__).parents[1] / "decisions_prompts.yaml")] if explicit else []
+    extra = ["--decisions-prompts", str(Path(__file__).parents[2] / "decisions_prompts.yaml")] if explicit else []
     assert main(["--allow-network", "--corpus", str(source), "--prompts", str(prompt_file),
                  "--output", str(output), "--max-calls", "50", *extra]) == 0
     assert provider.closed and decisions.closed
@@ -180,7 +180,7 @@ def test_cli_requires_explicit_network_budget_and_key_and_always_closes(tmp_path
     assert created == [] and not list(tmp_path.glob("*.tmp"))
 
 
-CORPUS_V2 = Path(__file__).parent / "fixtures" / "mail_corpus_v2" / "corpus.json"
+CORPUS_V2 = Path(__file__).parents[1] / "fixtures" / "mail_corpus_v2" / "corpus.json"
 
 
 def load_corpus_v2():

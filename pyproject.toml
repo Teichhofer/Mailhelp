@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mailhelp"
-version = "2.0.0"
+version = "2.0.1"
 description = "Persönlicher, bestätigungspflichtiger E-Mail-Assistent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -14,6 +14,8 @@ dependencies = ["httpx==0.28.1", "pillow==12.2.0", "pydantic==2.11.7", "pypdf==6
 test = ["pytest==8.4.1", "pytest-cov==6.2.1"]
 # Browser tests of the web interface (ui_tests/), using the installed Chrome.
 ui = ["playwright==1.62.0"]
+# Static checks (Planung 2.1, A1); reported in CI, enforced from 2.1.0.
+lint = ["ruff==0.12.12", "mypy==1.17.1", "types-PyYAML==6.0.12.20250809"]
 
 [project.scripts]
 mailhelp = "mailhelp.cli:main"
@@ -25,6 +27,43 @@ testpaths = ["tests"]
 # Temporary test files live in .test-tmp; see tests/conftest.py.
 cache_dir = ".test-tmp/pytest-cache"
 tmp_path_retention_policy = "failed"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+src = ["src", "tests", "ui_tests"]
+
+[tool.ruff.lint]
+# Pyflakes, isort, pyupgrade, bugbear and the line length.
+select = ["F", "I", "UP", "B", "E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["mailhelp"]
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "src"
+packages = ["mailhelp"]
+warn_unused_configs = true
+warn_redundant_casts = true
+
+[[tool.mypy.overrides]]
+# Third-party packages without type information.
+module = ["pywebpush.*", "py_vapid.*", "http_ece.*", "pypdf.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# Strict core (Planung 2.1, A1); extended step by step.
+module = ["mailhelp.domain.*", "mailhelp.external.contracts", "mailhelp.drafts", "mailhelp.webpush",
+          "mailhelp.briefing", "mailhelp.attachments"]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_calls = true
+disallow_any_generics = true
+check_untyped_defs = true
+warn_return_any = true
+no_implicit_reexport = true
+strict_equality = true
 
 [tool.coverage.run]
 branch = true
@@ -38,7 +77,7 @@ skip_covered = true
 
 [tool.hatch.build.targets.sdist]
 include = [
-  "/src", "/README.md", "/LICENSE", "/pyproject.toml", "/requirements.lock",
+  "/src", "/README.md", "/LICENSE", "/pyproject.toml", "/requirements.lock", "/requirements-lint.lock",
   "/config.example.yaml", "/.env.example", "/prompts.yaml", "/decisions_prompts.yaml",
   "/topics.yaml", "/irrelevant_topics.yaml", "/irrelevant-senders.example.json",
   "/compose.yaml", "/Dockerfile", "/.dockerignore", "/CHANGELOG.md", "/docs/Release-1.0.md",

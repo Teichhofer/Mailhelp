@@ -15,7 +15,7 @@ from mailhelp.decisions import (DecisionAnalyzer, DecisionClient, DecisionPrompt
                                 jev_mail, load_decision_prompts, validate_answers)
 from mailhelp.openrouter import RateLimitExceeded
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 
 
 def prompts():

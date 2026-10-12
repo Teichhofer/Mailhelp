@@ -10,7 +10,7 @@ from mailhelp.config import Settings
 from mailhelp.models import MailState
 
 
-ROOT = Path(__file__).parents[1]
+ROOT = Path(__file__).parents[2]
 
 
 @pytest.mark.parametrize(

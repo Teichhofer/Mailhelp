@@ -21,7 +21,10 @@ from playwright.sync_api import expect, sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "ui_tests"))
-sys.path.insert(0, str(ROOT / "tests"))
+# Synthetic scenarios and shared helpers of the Python suite (tests/<area>/).
+for _folder in sorted((ROOT / "tests").iterdir()):
+    if _folder.is_dir() and _folder.name not in {"fixtures", "__pycache__"}:
+        sys.path.insert(0, str(_folder))
 
 from mailhelp.config import WebSettings  # noqa: E402
 from mailhelp.models import Proposal  # noqa: E402

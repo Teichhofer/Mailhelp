@@ -1,0 +1,6 @@
+# Static checks (ruff, mypy) for CI only; installed on top of requirements.lock.
+mypy==1.17.1
+mypy_extensions==1.1.0
+pathspec==1.1.1
+ruff==0.12.12
+types-PyYAML==6.0.12.20250809

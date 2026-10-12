@@ -11,7 +11,7 @@ import mailhelp
 from mailhelp.config import load_all
 from mailhelp.decisions import load_relevance_prompts
 
-ROOT = Path(__file__).parents[1]
+ROOT = Path(__file__).parents[2]
 
 
 def test_package_resources_and_fresh_configuration(tmp_path):

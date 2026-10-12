@@ -96,7 +96,7 @@ def test_duplicate_prompt_does_not_disclose_internal_identifiers(tmp_path, has_h
 
 
 def test_compose_mounts_filter_and_learning_uses_replaceable_directory():
-    root = Path(__file__).parents[1]
+    root = Path(__file__).parents[2]
     production = yaml.safe_load((root / "compose.yaml").read_text(encoding="utf-8"))
     mounts = production["services"]["mailhelp"]["volumes"]
     assert any("/config/irrelevant-senders.json" in str(mount) for mount in mounts)

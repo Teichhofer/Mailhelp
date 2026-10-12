@@ -183,7 +183,7 @@ def nachholtermin_flow(tmp_path, *, incomplete):
     analyzer = Analyzer(router, prompts)
     telegram = FakeTelegram()
     calendar = ReconciledCalendar()
-    fixture = Path(__file__).parent / "fixtures" / "nachholtermin_bildungsplannovellierung.eml"
+    fixture = Path(__file__).parents[1] / "fixtures" / "nachholtermin_bildungsplannovellierung.eml"
     fetched = FetchedMail("INBOX", 7, 23, fixture.read_bytes(), "1" * 24,
                           datetime(2026, 9, 22, 7, 15, tzinfo=timezone.utc))
     store = JsonStore(tmp_path).__enter__()

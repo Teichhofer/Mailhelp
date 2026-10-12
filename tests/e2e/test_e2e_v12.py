@@ -21,7 +21,7 @@ from test_e2e_simulated import NachholterminRouter
 from test_web_actions import Web
 from test_web_v12 import configure
 
-FIXTURE = Path(__file__).parent / "fixtures" / "nachholtermin_bildungsplannovellierung.eml"
+FIXTURE = Path(__file__).parents[1] / "fixtures" / "nachholtermin_bildungsplannovellierung.eml"
 STEPS = ("relevance", "summary", "action_router", "task_extraction", "event_extraction",
          "mail_question_resolution", "telegram_answer_interpretation", "telegram_answer_clarification",
          "proposal_revision", "learning_classification", "learning_abstraction", "calendar_duplicate")

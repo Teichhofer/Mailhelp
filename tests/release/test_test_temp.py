@@ -86,7 +86,7 @@ def test_temp_root_defaults_to_system_temp_and_can_be_overridden(tmp_path, monke
 
     def load():
         spec = importlib.util.spec_from_file_location(
-            "conftest_copy", Path(__file__).with_name("conftest.py"))
+            "conftest_copy", Path(__file__).parents[1] / "conftest.py")
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
         return module

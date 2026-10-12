@@ -13,7 +13,7 @@ from mailhelp.decisions import DecisionResponseError
 from mailhelp.laya import (MAX_TOPICS, LayaClient, LayaPrompts, LayaRelevanceAnalyzer, LayaStateTooLong,
                            load_laya_prompts)
 
-ROOT = Path(__file__).resolve().parents[1]
+ROOT = Path(__file__).resolve().parents[2]
 MODEL = "laya:322m-multilingual-mlx-fp16"
 TOPICS = [Topic(id="wohnung", name="Wohnung", enabled=True, description="Mietverhältnis"),
           Topic(id="verein", name="Vereinsleben", enabled=True, description="Vereine"),

@@ -1,5 +1,14 @@
 # Änderungen
 
+## 2.0.1 – Beta (Branch `beta`), Planung 2.1 Phase 1
+
+Keine Verhaltensänderung für Nutzer.
+
+- **Statische Prüfung (A1):** `ruff` und `mypy` sind in `pyproject.toml` konfiguriert (strikter Kern: `domain`, `external.contracts`, `drafts`, `webpush`, `briefing`, `attachments`). Die CI meldet die Befunde in einem eigenen Job, ohne vorerst zu scheitern. Ausgangsbestand: 1.312 ruff-Befunde (Anwendungscode 663) und 490 mypy-Fehler.
+- **Abhängigkeiten (T8):** Neuer Test `tests/release/test_dependency_lock.py` prüft, dass die Lock-Dateien die vollständige installierte Abhängigkeitshülle festschreiben. Er fand `colorama` (pytest unter Windows), das bisher ungepinnt installiert wurde; es ist jetzt mit Plattform-Marker gepinnt. Die Werkzeuge für die statische Prüfung stehen in `requirements-lint.lock` und gelangen nicht ins Container-Image.
+- **CI (T8):** Laufzeitbericht der 20 langsamsten Tests; wöchentlicher Workflow mit `pip-audit` gegen beide Lock-Dateien.
+- **Tests nach Fachgebiet (T1):** Die Testmodule liegen jetzt in `tests/unit`, `services`, `telegram`, `web`, `external`, `evaluation`, `upgrade`, `e2e`, `release` und `scenarios`. Inhaltlich unverändert bis auf repo-relative Pfade; gleiche Testanzahl und 100 % Abdeckung. Pfade in CI, Compose-Smoke-Dateien, README und Architekturdokument angepasst.
+
 ## 2.0.0 – Beta (Branch `beta`)
 
 - **Einstellungshilfe:** Alle Web-Konfigurationswerte erhalten Info-Blasen zu Wirkung und Wertewahl, erreichbar per Maus, Tastatur und Antippen. Identische Texte mit Übernahmezeitpunkt stehen in [Web-Einstellungen](docs/Web-Einstellungen.md); Vollständigkeit und Übereinstimmung werden getestet.
