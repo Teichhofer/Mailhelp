@@ -135,6 +135,8 @@ def test_todoist_access_errors_reach_cli_without_secrets(
 
 
 class Check:
+    service_name = "OpenRouter"
+
     def __init__(self, error=None, send_error=None):
         self.error = error
         self.send_error = send_error

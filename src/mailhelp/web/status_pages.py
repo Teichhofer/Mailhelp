@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
+from ..formatting import format_datetime_local
 from ..review.inbox import CommandStatus
 from ..review.views import STATUS_LABELS, Overview, RunStatus, SystemStatus
 from .pages import e, layout, notice
@@ -81,7 +82,7 @@ def _runtime_section(info: ServiceInfo, zone: ZoneInfo) -> str:
 
 
 def _when(value: datetime | None, zone: ZoneInfo) -> str:
-    return value.astimezone(zone).strftime("%d.%m.%Y, %H:%M Uhr") if value else "—"
+    return format_datetime_local(value, zone) if value else "—"
 
 
 def _duration(seconds: float) -> str:

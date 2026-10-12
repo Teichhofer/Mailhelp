@@ -4,22 +4,22 @@ from __future__ import annotations
 import hashlib
 import imaplib
 import re
+from collections.abc import Callable
+from contextlib import AbstractContextManager
 from datetime import UTC, datetime
 from email.message import EmailMessage
 from email.policy import SMTP
 from email.utils import format_datetime, parseaddr
 from threading import Lock
-from contextlib import AbstractContextManager
-from collections.abc import Callable
 from typing import Any, Protocol, cast
-from .storage import StateStore
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from . import state_names
-from .domain.prepared import MailHeaders
+from .domain.prepared import MailHeaders, PreparedMail
 from .imap import mailbox_argument
 from .models import MailState
+from .storage import StateStore
 
 # Reply intents offered on every mail page, with their German button labels.
 INTENTS = {"accept": "Zusage", "decline": "Absage", "question": "Rückfrage"}
@@ -174,7 +174,7 @@ class DraftService:
                 draft["text"] = text
                 self.store.save(state_names.draft(mail_id), draft)
                 message_id = f"<mailhelp-{mail_id}-v{version}@draft.local>"
-                content = message(source.prepared.headers, self.sender, text, message_id)
+                content = message(cast(PreparedMail, source.prepared).headers, self.sender, text, message_id)
                 if self.test_mode:
                     draft.update(status="simulated", error=None)
                     self._remember(draft, key, digest)
@@ -190,10 +190,11 @@ class DraftService:
                 draft: dict[str, Any], message_id: str, content: bytes) -> None:
         """Reconcile first; append only if the draft is provably missing from the folder."""
         folder = mailbox_argument(self.folder)
-        status, _ = connection.select(folder, readonly=True)
+        conn = cast(Any, connection)
+        status, _ = conn.select(folder, readonly=True)
         if status != "OK":
             raise ValueError("Entwurfsordner nicht verfügbar")
-        status, matches = connection.uid("search", None, "HEADER", "Message-ID", message_id)
+        status, matches = conn.uid("search", None, "HEADER", "Message-ID", message_id)
         if status != "OK":
             raise ValueError("Entwurfsabgleich nicht möglich")
         if any(matches):
@@ -205,7 +206,7 @@ class DraftService:
         if not self.authorize(actor):
             raise PermissionError("Sitzung abgelaufen")
         try:
-            status, _ = connection.append(folder, r"(\Draft \Seen)", None, content)
+            status, _ = conn.append(folder, r"(\Draft \Seen)", None, content)
         except (OSError, EOFError, imaplib.IMAP4.abort):
             return
         except imaplib.IMAP4.error:

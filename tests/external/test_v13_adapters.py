@@ -65,7 +65,7 @@ def test_fetch_events_in_window_success_and_caching():
     assert request_count == 2  # No additional network requests!
 
     # Date-only window also works
-    events_date = writer.fetch_events_in_window(date(2026, 10, 15), date(2026, 10, 16))
+    _ = writer.fetch_events_in_window(date(2026, 10, 15), date(2026, 10, 16))
     assert request_count == 4  # 2 more requests for different window key
 
     # Expired cache branch (time.time() - ts >= ttl)

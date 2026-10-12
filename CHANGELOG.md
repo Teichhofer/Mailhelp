@@ -1,5 +1,15 @@
 # Änderungen
 
+## 2.1.0 – Beta (Branch `beta`), Planung 2.1 Abschluss
+
+- **Modularisierung großer Komponenten (A4, A5, A6):** `MailhelpSite` in spezialisierte Teil-Sites zerlegt (`LoginSite` für Koppelung und Geräte, `ReviewSite` für offene Entscheidungen und Vorschläge, `ArchiveSite` für Archiv und Einstellungen). Seitenaufbau ohne `page.replace("</main>", ...)` über strukturierte Parameter. Modulgrößen gestrafft (Funktionen ≤ 80 Zeilen, Klassen ≤ 20 Methoden).
+- **Fehlerbehandlung und Schnittstellen (A7, A8):** Einheitliche Ausnahmehierarchie für externe Dienste (`ExternalServiceError`, `ExternalUnavailable`, `ExternalRefused`, `ExternalUncertain`) in `external/contracts.py`. Neuer Helfer `log_and_continue` für prozessgrenzenübergreifende Fehlerprotokollierung. Zentrales Zeitformatierungsmodul `formatting.py` (`%d.%m.%Y, %H:%M Uhr`).
+- **Einheitliche Bilderkennung (A8):** Bildvorschau in `attachments.py` und Texterkennung in `vision.py` nutzen dieselbe Funktion `is_image(filename, content_type)`. Regressionstest `test_raster_cache_matches_image_by_filename_extension` sichert Erkennung über Dateiendungen ab.
+- **Bereinigte Client- und Einstellungsattribute (A8):** `getattr`/`hasattr`-Weichen auf Settings und Clients (`primary_folder`, `service_name`, `last_relevance_source`) durch feste Attribute und Protokolle ersetzt.
+- **Browsertests & Stabilität (T7):** Automatisches Sammeln der Browser-Coverage vor jeder Navigation über DevTools-Hooks; konfigurierbare Rückgängig-Frist im Testserver via `data-undo-ms`. Alle 98 UI-Browsertests stabil.
+- **Statische Analyse (A1):** `ruff` und `mypy --strict` auf dem Kern (`domain/`, `external/contracts.py`, `drafts.py`, `webpush.py`, `briefing.py`, `attachments.py`) fehlerfrei. Durchgängig `from __future__ import annotations`.
+- **Qualitätssicherung:** 100 % Zeilen- und Branch-Abdeckung über alle 125 Module (1.721 Tests) verbindlich erreicht. Detaillierte Dokumentation in [Architektur-2.1.md](docs/Architektur-2.1.md) und [Release-2.1.md](docs/Release-2.1.md).
+
 ## 2.0.3 – Beta (Branch `beta`), Planung 2.1 Phase 3
 
 - **Bugfix – Kalendereinladungen:** Der ICS-Parser löste Escape-Sequenzen nacheinander auf; ein maskierter Backslash vor `n`/`N` wurde so zum Zeilenumbruch (aus `C:\\new\\Nordsee` in einer Einladung wurde `C:\` + Umbruch + `ew\` + Umbruch + `ordsee`). Jetzt in einem Durchlauf; Regressionstest `test_an_escaped_backslash_before_n_stays_a_backslash`. Gefunden durch die neuen eigenschaftsbasierten Tests.

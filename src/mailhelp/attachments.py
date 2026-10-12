@@ -7,14 +7,14 @@ import re
 import shutil
 from email import policy
 from email.parser import BytesParser
+from pathlib import Path
+from typing import Any
 
 from PIL import Image
 
-from pathlib import Path
-from typing import Any
-from .storage import StateStore
 from .mime import attachment_parts
-from .vision import IMAGE_TYPES, encode, open_image
+from .storage import StateStore
+from .vision import encode, is_image, open_image
 
 
 class AttachmentCache:
@@ -33,8 +33,8 @@ class AttachmentCache:
         parts = list(attachment_parts(BytesParser(policy=policy.default).parsebytes(raw)))
         if len(parts) != len(attachments):
             return
-        for index, ((_, kind, data), attachment) in enumerate(zip(parts, attachments, strict=False)):
-            if kind not in IMAGE_TYPES or len(data) > 10_485_760:
+        for index, ((name, kind, data), attachment) in enumerate(zip(parts, attachments, strict=False)):
+            if not is_image(name, kind) or len(data) > 10_485_760:
                 continue
             image = open_image(data)
             if image is None:

@@ -7,11 +7,27 @@ from typing import Any, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from ..adapter import PermanentError
+from ..adapter import PermanentError, RetryableError, UncertainWriteError
 from ..models import Proposal
 
 
-class AuthenticationError(PermanentError):
+class ExternalServiceError(Exception):
+    """Base class for errors originating from external services."""
+
+
+class ExternalUnavailable(ExternalServiceError, RetryableError):
+    """External service is temporarily unreachable or returned a retryable status."""
+
+
+class ExternalRefused(ExternalServiceError, PermanentError):
+    """External service permanently rejected the credentials or request."""
+
+
+class ExternalUncertain(ExternalServiceError, UncertainWriteError):
+    """Write outcome is uncertain and must be reconciled before retry."""
+
+
+class AuthenticationError(ExternalRefused):
     """Anmeldedaten wurden dauerhaft abgelehnt; ein Schreibzugriff ist nicht unklar."""
 
 
@@ -19,7 +35,7 @@ class OAuthTokenError(AuthenticationError):
     """Client oder Refresh-Token wurden am OAuth-Endpunkt abgelehnt."""
 
 
-class CalendarAccessError(PermanentError):
+class CalendarAccessError(ExternalRefused):
     """Ein bezogener Access-Token konnte den Zielkalender nicht erreichen."""
 
 

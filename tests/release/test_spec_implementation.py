@@ -60,7 +60,7 @@ def test_access_check_reports_unreadable_secondary_folder_and_checks_remaining()
         seen.extend(folders)
         if folders == ["Archive"]:
             raise RuntimeError("synthetic failure")
-    noop = SimpleNamespace(check_access=lambda: None)
+    noop = SimpleNamespace(check_access=lambda: None, service_name="OpenRouter")
     service = SimpleNamespace(
         settings=SimpleNamespace(imap=SimpleNamespace(folders=["INBOX", "Archive", "Sent"]),
                                  timezone="UTC", telegram=SimpleNamespace(chat_id=1)),

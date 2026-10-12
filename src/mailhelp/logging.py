@@ -280,3 +280,12 @@ def _validate_format(value: str) -> str:
     if value not in {"text", "jsonl"}:
         raise ValueError("Logformat muss text oder jsonl sein")
     return value
+
+
+def log_and_continue(logger: EventLogger | Any, module: str, event: str, exc: BaseException | None = None, **fields: Any) -> None:
+    """Log an exception at a process boundary and continue without propagating."""
+    context = dict(fields)
+    if exc is not None and "error_class" not in context:
+        context["error_class"] = type(exc).__name__
+    logger.event("ERROR", module, event, **context)
+

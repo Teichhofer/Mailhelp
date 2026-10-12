@@ -1576,7 +1576,7 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
     class FakeImap(Resource):
         kwargs={}
         def __init__(self,*args,**kwargs): type(self).kwargs=kwargs
-    class FakeOpen(Resource): pass
+    class FakeOpen(Resource): service_name = "OpenRouter"
     class FakeDecision(Resource): pass
     class FakeTelegram(Resource):
         def send(self,*args): pass

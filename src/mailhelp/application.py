@@ -28,7 +28,7 @@ from .external.contracts import OAuthTokenError
 from .external.http_writer import HttpWriter
 from .external.oauth import GoogleOAuthTokenProvider
 from .imap import ImapReader
-from .logging import JsonlLogger, NullLogger
+from .logging import JsonlLogger, NullLogger, log_and_continue
 from .mailbox_run import MailboxRunService, _RunSummary
 from .models import MailRunState, TelegramOffset
 from .ollama import LocalLlm, OllamaClient
@@ -107,7 +107,7 @@ class Application:
 
         checks = (
             ("IMAP", check_imap),
-            (getattr(self.openrouter, "service_name", "OpenRouter"), self.openrouter.check_access),
+            (self.openrouter.service_name, self.openrouter.check_access),
             ("Telegram", lambda: Application._check_telegram_access(self)),
             ("Todoist", self.todoist.check_access),
             ("Google Kalender", self.calendar.check_access),
@@ -206,8 +206,7 @@ class Application:
                 self.telegram.send(self.settings.telegram.chat_id,
                                    f"⚠️ {exc}. Mailhelp läuft ohne Weboberfläche weiter.")
             except Exception as notification_error:
-                self.logger.event("ERROR", "telegram", "web_start_notice_failed",
-                                  error_class=type(notification_error).__name__)
+                log_and_continue(self.logger, "telegram", "web_start_notice_failed", notification_error)
 
     def _stop_web(self) -> None:
         if self.experience is not None:
@@ -342,23 +341,20 @@ class Application:
             self.telegram.send(self.settings.telegram.chat_id, STARTUP)
         except Exception as exc:
             # A failed greeting must not block recovery or disclose provider data.
-            self.logger.event("ERROR", "telegram", "startup_help_failed",
-                              error_class=type(exc).__name__)
+            log_and_continue(self.logger, "telegram", "startup_help_failed", exc)
         else:
             self.logger.event("INFO", "telegram", "startup_help_sent")
         try:
             if self.dialog is not None and self.dialog.awaiting_decision():
                 self.dialog.show_open_decisions()
         except Exception as exc:
-            self.logger.event("ERROR", "telegram", "startup_decisions_failed",
-                              error_class=type(exc).__name__)
+            log_and_continue(self.logger, "telegram", "startup_decisions_failed", exc)
         try:
             if self.dialog is not None:
                 # Held messages whose question was resolved before a restart.
                 self.dialog.flush_outbox()
         except Exception as exc:
-            self.logger.event("ERROR", "telegram", "startup_outbox_failed",
-                              error_class=type(exc).__name__)
+            log_and_continue(self.logger, "telegram", "startup_outbox_failed", exc)
 
     def _maintain(self) -> None:
         try:
@@ -366,10 +362,10 @@ class Application:
             metrics = getattr(self.logger, "metrics", None)
             if metrics is not None:
                 metrics.maintain()
-        except Exception:
+        except Exception as exc:
             # No state content is included in this operational event.
-            self.logger.event("ERROR", "retention", "cleanup_failed",
-                              processed_at=datetime.now(UTC).isoformat(), failure_count=1)
+            log_and_continue(self.logger, "retention", "cleanup_failed", exc,
+                             processed_at=datetime.now(UTC).isoformat(), failure_count=1)
 
     def _cycle(self, max_mails: int | None, ignore_historical_start: bool) -> bool:
         """One pass: maintenance, mail, Telegram input and idle time; ``False`` ends the run."""

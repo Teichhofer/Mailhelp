@@ -54,6 +54,17 @@ def test_raster_cache_validation_restart_and_removal(tmp_path):
     assert not cache.directory(MAIL1).exists()
 
 
+def test_raster_cache_matches_image_by_filename_extension(tmp_path):
+    store = JsonStore(tmp_path)
+    cache = AttachmentCache(store)
+    raw = mail(("photo.jpg", "application", "octet-stream", image_bytes(Image.new("RGB", (300, 300)))))
+    entries = [{}]
+    cache.prepare(MAIL1, raw, entries)
+    assert "preview" in entries[0]
+    assert entries[0]["preview"]["index"] == 0
+    assert cache.read(MAIL1, 0) is not None
+
+
 def test_preview_session_metadata_and_headers(web):
     raw = mail(("image.png", "image", "png", image_bytes(Image.new("RGB", (200, 300)))))
     entries = [{"filename": "<img onerror=bad>", "text": "<script>bad</script>"}]

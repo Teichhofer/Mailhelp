@@ -232,7 +232,7 @@ class ConfigurationService:
             journal["status"] = "saved"
             self.store.save(f"configuration-{command.idempotency_key}", journal)
             if command.kind == AdminKind.SETTINGS:
-                saved = Settings.model_validate(candidate)
+                Settings.model_validate(candidate)
                 live = self.active.model_dump(mode="json")
                 for field in LIVE_FIELDS:
                     live[field] = candidate.get(field, live[field])

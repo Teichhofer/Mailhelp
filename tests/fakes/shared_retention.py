@@ -2,6 +2,7 @@
 from datetime import UTC, datetime, timedelta
 
 from log_fakes import RecordingLogger as Log
+
 from mailhelp.models import MailState, Proposal, ProposalKind, ProposalStatus, Summary
 
 NOW = datetime(2026, 9, 16, tzinfo=UTC)

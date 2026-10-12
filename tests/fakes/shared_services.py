@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import httpx
+from shared_core import proposal
 
 from mailhelp.config import Topic
 from mailhelp.models import (
@@ -11,7 +12,6 @@ from mailhelp.models import (
 )
 from mailhelp.orchestrator import MailState, Orchestrator
 from mailhelp.storage import JsonStore
-from shared_core import proposal
 
 
 def mock_response(status=200, data=None):
@@ -57,6 +57,8 @@ class Writer:
         return {"id":"1"}
 
 class AnalyzerStub:
+    last_relevance_source = "test"
+
     def __init__(self, decision): self.decision=decision
     def relevance(self,m,t):
         return "r",Relevance(decision=self.decision,topic_ids=[],reason="why")

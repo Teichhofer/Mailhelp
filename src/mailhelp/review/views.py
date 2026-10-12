@@ -13,7 +13,6 @@ import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import TypeVar
-from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel
 
@@ -25,6 +24,7 @@ from ..domain.processing import (
     ProposalRevisionStatus,
     TelegramOutboxState,
 )
+from ..formatting import format_datetime_local
 from ..models import (
     MailRunState,
     MailState,
@@ -308,8 +308,7 @@ class ReviewViews:
         stamp = content.received
         if stamp is not None:
             try:
-                received = datetime.fromisoformat(stamp).astimezone(
-                    ZoneInfo(self.configured_timezone)).strftime("%d.%m.%Y, %H:%M Uhr")
+                received = format_datetime_local(datetime.fromisoformat(stamp), self.configured_timezone)
             except ValueError:
                 received = None
         omitted = content.metadata.get("attachments_omitted")

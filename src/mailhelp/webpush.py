@@ -6,6 +6,7 @@ import hashlib
 import json
 import re
 from threading import Lock
+from typing import Any, Protocol, cast
 from urllib.parse import urlsplit
 
 import requests
@@ -14,14 +15,16 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from py_vapid import Vapid
 from pywebpush import WebPushException, webpush
 
+from .storage import StateStore
 
-def b64(value):
+
+def b64(value: bytes) -> str:
     return base64.urlsafe_b64encode(value).decode().rstrip("=")
 
 
-def subscription(value):
+def subscription(value: dict[str, Any]) -> dict[str, Any]:
     """Only known browser push providers, never arbitrary user supplied URLs."""
-    endpoint = value["endpoint"]
+    endpoint = str(value["endpoint"])
     url = urlsplit(endpoint)
     allowed = (url.hostname in {"fcm.googleapis.com", "updates.push.services.mozilla.com",
                                "web.push.apple.com"}
@@ -30,9 +33,9 @@ def subscription(value):
             or url.username or url.password or url.fragment or len(endpoint) > 4096):
         raise ValueError("Ungültiger Push-Anbieter")
     keys = value["keys"]
-    decoded = {}
+    decoded: dict[str, str] = {}
     for name, size in (("p256dh", 65), ("auth", 16)):
-        text = keys[name]
+        text = str(keys[name])
         if not re.fullmatch(r"[A-Za-z0-9_-]+={0,2}", text):
             raise ValueError("Ungültiger Push-Schlüssel")
         raw = base64.urlsafe_b64decode(text + "=" * (-len(text) % 4))
@@ -47,14 +50,18 @@ def subscription(value):
 MAX_OPERATIONS = 500
 
 
+class AuthSessionManager(Protocol):
+    def active(self, session_id: str) -> bool: ...
+
+
 class NoRedirectSession(requests.Session):
-    def request(self, method, url, **kwargs):
+    def request(self, method: str, url: str | bytes, *args: Any, **kwargs: Any) -> requests.Response:
         kwargs["allow_redirects"] = False
-        return super().request(method, url, **kwargs)
+        return super().request(method, url, *args, **kwargs)
 
 
 class PushService:
-    def __init__(self, store, auth, subject, sender=webpush):
+    def __init__(self, store: StateStore, auth: AuthSessionManager, subject: str, sender: Any = webpush) -> None:
         self.store, self.auth, self.subject, self.sender = store, auth, subject, sender
         # Serializes subscription changes; never held by other parts of Mailhelp.
         self._lock = Lock()
@@ -72,7 +79,7 @@ class PushService:
             self.public_key = b64(key.public_bytes(serialization.Encoding.X962,
                                                   serialization.PublicFormat.UncompressedPoint))
 
-    def change(self, actor, key, value=None):
+    def change(self, actor: str, key: str, value: dict[str, Any] | None = None) -> None:
         if not re.fullmatch(r"[A-Za-z0-9_-]{8,80}", key):
             raise ValueError("Idempotenzschlüssel fehlt")
         checked = subscription(value) if value is not None else None
@@ -95,10 +102,10 @@ class PushService:
             state["operations"] = dict(list(state["operations"].items())[-MAX_OPERATIONS:])
             self.store.save("push-subscriptions", state)
 
-    def _state(self):
-        return self.store.load("push-subscriptions", {"devices": {}, "operations": {}})
+    def _state(self) -> dict[str, Any]:
+        return cast(dict[str, Any], self.store.load("push-subscriptions", {"devices": {}, "operations": {}}))
 
-    def notify(self, tag="decisions"):
+    def notify(self, tag: str = "decisions") -> None:
         """Never put subjects, mail text, calendar titles or tokens on lock screens.
 
         Delivery runs without any lock; a device is only removed afterwards if its

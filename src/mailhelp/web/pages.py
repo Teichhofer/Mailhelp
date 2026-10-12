@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import html
 from datetime import datetime
-from zoneinfo import ZoneInfo
 
+from ..formatting import format_datetime_local
 from .auth import WebSession
 
 
@@ -123,7 +123,7 @@ def login_page(csrf: str, code_requested: bool, error: str | None = None,
 
 
 def _local(value: datetime, configured_timezone: str) -> str:
-    return value.astimezone(ZoneInfo(configured_timezone)).strftime("%d.%m.%Y, %H:%M Uhr")
+    return format_datetime_local(value, configured_timezone)
 
 
 def devices_page(sessions: list[WebSession], current: WebSession, csrf: str,

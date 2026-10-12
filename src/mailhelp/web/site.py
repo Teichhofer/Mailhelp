@@ -123,7 +123,8 @@ class MailhelpSite:
                     return Response.redirect("/anmelden")
                 return self._forbidden()
             if request.method == "POST":
-                if self.lifecycle is not None and self.lifecycle.state != "running" and request.path != "/einstellungen/beenden":
+                if (self.lifecycle is not None and self.lifecycle.state != "running"
+                        and request.path != "/einstellungen/beenden"):
                     return self._reply(request, 503, "Mailhelp wird beendet; keine neuen Aktionen möglich.")
                 form = self._form(request)
                 if isinstance(form, Response):
@@ -246,13 +247,18 @@ class MailhelpSite:
         command = entry.command
         if isinstance(command, AdminCommand):
             if entry.result is None:
-                return Response.html(200, layout("Einstellungen werden gespeichert", "<h1>Wird verarbeitet</h1>", refresh=1))
+                return Response.html(
+                    200, layout("Einstellungen werden gespeichert", "<h1>Wird verarbeitet</h1>", refresh=1)
+                )
             if command.kind == AdminKind.SENDERS:
                 # Back to where the change was made; that page shows the result.
                 mail_id = command.patch.get("mail_id")
                 target = f"/mail/{mail_id}" if mail_id else SENDERS_PATH
                 return Response.redirect(f"{target}?ergebnis={entry.id}")
-            return Response.html(200, layout("Ergebnis", notice(entry.result.message, result_kind(entry.result.status)) + '<a href="/einstellungen">Zurück</a>'))
+            return Response.html(
+                200, layout("Ergebnis", notice(entry.result.message, result_kind(entry.result.status))
+                            + '<a href="/einstellungen">Zurück</a>')
+            )
         current = (self.views.proposal(command.mail_id, command.proposal_id)
                    if command.proposal_id else None)
         if entry.result is not None and not needs_choice(entry, current):

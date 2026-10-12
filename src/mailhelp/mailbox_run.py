@@ -267,8 +267,7 @@ class MailboxRunService:
         return checkpoint, start_uid
 
     def _folder_failed(self, folder: str, exc: Exception) -> None:
-        primary = getattr(self.settings.imap, "primary_folder",
-                          self.settings.imap.folders[0])
+        primary = self.settings.imap.primary_folder
         event = "poll_failed" if folder == primary else "optional_folder_failed"
         self.logger.event("ERROR", "imap", event, folder=folder, error=str(exc))
 

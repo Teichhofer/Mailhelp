@@ -468,7 +468,6 @@ def test_remaining_retention_filters_and_config_validation(web, tmp_path):
     record_event(web.store, item, 'state')
     page = web.browser.request('GET', '/verlauf?status=created').body.decode()
     assert '0 Ereignisse' in page  # unknown legacy events do not falsely match a status
-    life = web.site.lifecycle
     csrf = web.auth.csrf_token(web.auth.sessions()[0].id)
     assert web.browser.request('POST', '/einstellungen/beenden', {'csrf': csrf}).status == 409
     event = proposal(2, 'event', kind='event', start='2026-10-12T10:00+02:00', end='2026-10-12T11:00+02:00')

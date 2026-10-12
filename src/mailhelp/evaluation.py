@@ -51,6 +51,10 @@ class BoundedCompleter:
             raise ValueError("max_calls muss positiv sein")
         self.client, self.max_calls, self.calls = client, max_calls, 0
 
+    @property
+    def service_name(self) -> str:
+        return getattr(self.client, "service_name", "OpenRouter")
+
     def complete(self, model, parameters, system, payload, **metadata):
         if self.calls >= self.max_calls:
             raise EvaluationBudgetExceeded("Aufrufbudget ausgeschöpft")

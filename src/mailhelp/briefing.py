@@ -8,14 +8,16 @@ it as "uncertain" and it is not repeated, so the user never gets duplicates.
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
-from zoneinfo import ZoneInfo
 from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 from typing import Protocol
+from zoneinfo import ZoneInfo
+
 from .config import DailyBriefingSettings
-from .storage import StateStore
-from .review.views import ReviewViews
 from .external.contracts import CalendarOverlapEvent, TodoistTaskResponse
+from .review.views import ReviewViews
+from .storage import StateStore
+
 
 class CalendarReader(Protocol):
     def fetch_events_in_window(self, start: datetime, end: datetime, *, strict: bool = False) -> list[CalendarOverlapEvent]: ...

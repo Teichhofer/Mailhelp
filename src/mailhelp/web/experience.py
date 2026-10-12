@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 from pydantic import ValidationError
 
 from ..drafts import INTENTS
+from ..formatting import format_datetime_local
 from .actions import new_key
 from .http import Response
 from .pages import e, layout
@@ -81,7 +82,7 @@ class ExperienceSite:
         summary = (f"Heute {total} {'Vorgang' if total == 1 else 'Vorgänge'} verarbeitet: {details}."
                    if total else "Heute noch keine Vorgänge abgeschlossen.")
         last = site.views.system(now).last_processed
-        when = last.astimezone(zone).strftime("%d.%m.%Y, %H:%M Uhr") if last else "noch keine"
+        when = format_datetime_local(last, zone) if last else "noch keine"
         return ('<section class="card inbox-zero" aria-labelledby="inbox-zero">'
                 '<p><span class="badge ok">✓</span></p>'
                 '<h2 id="inbox-zero">Alles erledigt! Keine offenen Entscheidungen.</h2>'

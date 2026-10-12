@@ -12,6 +12,7 @@ import yaml
 
 from .. import state_names
 from ..configuration import LIVE_FIELDS, SETTINGS_FIELDS, AdminCommand, AdminKind, ConfigurationConflict, file_hash
+from ..formatting import format_datetime_local
 from ..models import MailState, Proposal, ProposalStatus
 from ..review.archive import AnalysisSnapshot
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
@@ -243,7 +244,7 @@ SORTS = (("received", "Empfangszeit"), ("updated", "zuletzt bearbeitet"))
 def _local_time(value: str | None, zone: str) -> str:
     if not value:
         return "Empfangszeit unbekannt"
-    return datetime.fromisoformat(value).astimezone(ZoneInfo(zone)).strftime("%d.%m.%Y, %H:%M Uhr")
+    return format_datetime_local(datetime.fromisoformat(value), zone)
 
 
 def mail_list_page(query, items: list[dict], total: int, damaged: int, topics: list[str], zone: str) -> str:

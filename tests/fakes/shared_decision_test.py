@@ -135,6 +135,8 @@ def configure(tmp_path, monkeypatch, *, none=False, imap_mode="ssl", fail_client
     return cfg, reader, clients, requests, reader_options
 
 class AnalyzerStub:
+    last_relevance_source = "test"
+
     def __init__(self, *, fail=(), irrelevant=False, interrupted=False, unclear=False):
         self.fail, self.irrelevant, self.interrupted = fail, irrelevant, interrupted
         self.unclear = unclear

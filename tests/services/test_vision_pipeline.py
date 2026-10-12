@@ -18,6 +18,7 @@ RAW = mail(("flyer.png", "image", "png", image_bytes(noise())),
 
 class Analyzer:
     """Records the mail the relevance step sees; the mail is irrelevant afterwards."""
+    last_relevance_source = "test"
 
     def __init__(self): self.seen = []
 

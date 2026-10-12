@@ -285,6 +285,8 @@ class ClassifiedRun:
 
 
 class Analyzer:
+    last_relevance_source: str = "OpenRouter"
+
     def __init__(self, client: Completer, prompts: PromptConfig,
                  validation_retries: int = 1, *, provider_retries: int | None = None,
                  json_repair_retries: int | None = None,
