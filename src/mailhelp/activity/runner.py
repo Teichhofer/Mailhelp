@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 from threading import Event, Thread
 from typing import Any
 
+from ..analysis import TechnicalRevisionError
 from ..imap import FolderNotReadable
 from ..logging import log_and_continue
 from ..openrouter import RateLimitExceeded
@@ -37,6 +38,7 @@ class ActivityRunner:
         self.thread: Thread | None = None
         self._calls: list[float] = []
         self._failures = 0
+        self._model_failures = 0
 
     # --- lifecycle -------------------------------------------------------------------
 
@@ -167,9 +169,27 @@ class ActivityRunner:
         except Exception as exc:
             return self._fetch_failed(report_id, progress, exc)
         self._failures = 0
-        mail = self._judge(report, progress, fetched)
+        try:
+            mail = self._judge(report, progress, fetched)
+        except Exception as exc:
+            return self._model_unavailable(report_id, exc)
+        self._model_failures = 0
         self._record(report_id, progress.folder, mail)
         return True
+
+    def _model_unavailable(self, report_id: str, exc: Exception) -> bool:
+        """An unreachable model stops the batch; after repeated failures the report pauses."""
+        self._model_failures += 1
+        log_and_continue(self.logger, "activity", "model_unavailable", exc)
+        if self._model_failures >= MAX_FAILURES:
+            def pause(current: ActivityReport) -> None:
+                if current.status == ReportStatus.RUNNING:
+                    current.status = ReportStatus.PAUSED
+                    current.message = (f"Der KI-Dienst war wiederholt nicht erreichbar ({type(exc).__name__}). "
+                                       "Fortsetzen versucht die Mail erneut.")
+            self._settle(report_id, pause)
+            self._model_failures = 0
+        return False
 
     def _fetch_failed(self, report_id: str, progress: FolderProgress, exc: Exception) -> bool:
         """A failing mailbox stops the batch; after repeated failures the report fails."""
@@ -200,8 +220,13 @@ class ActivityRunner:
                 mail.skipped, mail.text = "suspicious", ""
             if mail.skipped is not None:
                 return mail
-            call, verdict = self._call(lambda: self.analyzer.relevance(
-                report, mail, received_day(mail, self.settings.timezone)))
+            try:
+                call, verdict = self._call(lambda: self.analyzer.relevance(
+                    report, mail, received_day(mail, self.settings.timezone)))
+            except TechnicalRevisionError as exc:
+                log_and_continue(self.logger, "activity", "model_answer_unusable", exc)
+                mail.failed_step = "relevance"
+                return mail
             mail.relevant, mail.confidence, mail.reason = verdict.relevant, verdict.confidence, verdict.reason
             mail.relevance_call_id = call
             # Durable before the second call: a restart repeats only the date extraction.
@@ -211,9 +236,16 @@ class ActivityRunner:
         return mail
 
     def _extract(self, report: ActivityReport, mail: ReportMail) -> None:
-        call, events = self._call(lambda: self.analyzer.events(
-            report, mail, received_day(mail, self.settings.timezone), self.logger))
+        try:
+            call, events = self._call(lambda: self.analyzer.events(
+                report, mail, received_day(mail, self.settings.timezone), self.logger))
+        except TechnicalRevisionError as exc:
+            # The user adds the dates by hand; a repetition would cost again.
+            log_and_continue(self.logger, "activity", "model_answer_unusable", exc)
+            mail.failed_step, mail.events_extracted = "events", True
+            return
         mail.events, mail.events_call_id, mail.events_extracted = events, call, True
+        mail.failed_step = None
 
     def _record_partial(self, report_id: str, mail: ReportMail) -> None:
         def count(report: ActivityReport) -> None:
@@ -236,6 +268,10 @@ class ActivityRunner:
                 counters.skipped_other += 1
             else:
                 counters.evaluated += 1
+            if mail.failed_step is not None:
+                counters.failed += 1
+                if mail.failed_step == "relevance":
+                    counters.llm_calls += 1
             if mail.relevant:
                 counters.relevant += 1
                 counters.events += len(mail.events)
@@ -252,13 +288,18 @@ class ActivityRunner:
         key = report.pending_extractions[0]
         mail = self.service.store.mail(report_id, key)
         if mail is not None and not mail.events_extracted and not mail.text_removed:
-            self._extract(report, mail)
+            try:
+                self._extract(report, mail)
+            except Exception as exc:
+                # The request is dropped, not repeated every few seconds; the user may ask again.
+                log_and_continue(self.logger, "activity", "model_unavailable", exc)
 
         def done(current: ActivityReport) -> None:
             current.pending_extractions = [item for item in current.pending_extractions if item != key]
             if mail is not None and mail.events_extracted:
                 current.counters.llm_calls += 1
                 current.counters.events += len(mail.events)
+                current.counters.failed += mail.failed_step == "events"
                 self.service.store.save_mail(report_id, mail)
         self._settle(report_id, done)
 

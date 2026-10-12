@@ -1,5 +1,11 @@
 # Änderungen
 
+## 2.2.1 – Beta (Branch `beta`)
+
+- **Bugfix – Ordnervorschlag im Tätigkeitsbericht:** Konfigurierte Ordner, die der Server nicht kennt (z. B. `Trash` und `Sent`, wenn das Postfach `Papierkorb` und `Gesendet` nutzt), wurden vorgeschlagen, weil ihre Rolle unbekannt war, und beim Zählen als „nicht lesbar“ gemeldet. Vorgeschlagen werden jetzt nur vom Server gelistete Ordner; Regressionstest `test_suggested_folders_exist_on_the_server`. Gefunden beim ersten echten Bericht.
+- **Bugfix – KI-Fehler im Tätigkeitsbericht:** Eine unbrauchbare KI-Antwort (z. B. Tokenlimit bei der Terminsuche) brach den Hintergrundschritt ab; die Schleife hätte dieselbe kostenpflichtige Anfrage alle fünf Sekunden wiederholt. Unbrauchbare Antworten werden jetzt an der Mail vermerkt (`failed_step`) und nicht wiederholt, die Seite bittet um eigene Entscheidung bzw. Termine von Hand; ein dreimal nicht erreichbarer KI-Dienst pausiert den Bericht, eine fehlschlagende Terminsuche auf Anfrage wird verworfen. Regressionstests `test_unusable_model_answers_are_recorded_once_and_never_retried`, `test_an_unreachable_model_pauses_the_report_after_repeated_failures`, `test_a_failing_requested_extraction_is_dropped_not_repeated`.
+- **Prompts:** `max_tokens` für `activity_relevance` (2000) und `activity_events` (8000) angehoben; 2000 reichten dem konfigurierten Modell bei langen Mails nicht. Beim Upgrade die beiden Werte in der eigenen `prompts.yaml` übernehmen.
+
 ## 2.2.0 – Beta (Branch `beta`), Tätigkeitsbericht
 
 - **Neu – Tätigkeitsbericht (`/berichte`):** Für ein Thema und einen Zeitraum liest Mailhelp die Mails der gewählten und der gesendeten Ordner schreibfrei, überspringt ignorierte Absender, Duplikate und verdächtige Mails, lässt jede übrige per KI auf das Thema prüfen (`activity_relevance`, mit `personal_info` als Kontext) und extrahiert aus relevanten Mails alle datierten Termine, auch vergangene (`activity_events`, wörtlicher Beleg je Termin). Zählen und kostenpflichtiger Start sind getrennt; Pausieren, Fortsetzen, Abbrechen und Neustart setzen an der nächsten Mail an.

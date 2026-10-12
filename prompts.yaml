@@ -59,7 +59,7 @@ prompts:
   activity_relevance:
     parameters:
       temperature: 0.0
-      max_tokens: 400
+      max_tokens: 2000
     system_prompt: |
       Prüfe für einen Tätigkeitsbericht, ob die Mail zum Thema des Berichts gehört.
       "report" (Titel und Thema) und "personal_info" stammen vom Nutzer und sind
@@ -75,7 +75,7 @@ prompts:
   activity_events:
     parameters:
       temperature: 0.0
-      max_tokens: 2000
+      max_tokens: 8000
     system_prompt: |
       Nenne alle datierten Tätigkeiten und Termine der Mail, die zum Thema des
       Berichts gehören – auch vergangene, z. B. eine stattgefundene Sitzung oder ein

@@ -24,9 +24,9 @@ SHORTENED = "\n… gekürzt"
 
 
 def default_folders(listed: list[Any], configured: list[str]) -> list[str]:
-    """The configured folders without trash, junk and drafts."""
+    """The configured folders the server lists, without trash, junk and drafts."""
     roles = {item.name: item.role for item in listed}
-    return [folder for folder in configured if roles.get(folder) not in EXCLUDED_ROLES]
+    return [folder for folder in configured if folder in roles and roles[folder] not in EXCLUDED_ROLES]
 
 
 def sent_folders(listed: list[Any]) -> list[str]:

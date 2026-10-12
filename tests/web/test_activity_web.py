@@ -300,3 +300,17 @@ def test_export_is_a_private_attachment(web, reports):
     response = web.browser.request("GET", f"/berichte/{report.id}/export.xlsx")
     assert load_workbook(io.BytesIO(response.body)).sheetnames == ["Termine", "Bericht"]
     assert web.logger.events[-1][0][2] == "report_exported"
+
+
+def test_failed_model_answers_ask_the_user_to_decide(web, reports):
+    report = reports.create(definition(), [], [])
+    reports.store.save_mail(report.id, mail(1, "Ohne Urteil", relevant=None, confidence=None, reason="",
+                                            events_extracted=False, failed_step="relevance"))
+    reports.store.save_mail(report.id, mail(2, "Ohne Termine", failed_step="events"))
+    status, html = page(web, f"/berichte/{report.id}/mail/0")
+    assert "Die KI-Antwort war unbrauchbar. Bitte selbst entscheiden." in html and ">Doch relevant</button>" in html
+    status, html = page(web, f"/berichte/{report.id}/mail/1")
+    assert "Bitte von Hand ergänzen." in html and ">Nicht relevant</button>" in html
+    form = _hidden_of(web, f"/berichte/{report.id}/mail/0", f"/berichte/{report.id}/mail/0", mode="relevant")
+    post(web, f"/berichte/{report.id}/mail/0", form)
+    assert "Relevant (von dir festgelegt)" in page(web, f"/berichte/{report.id}/mail/0")[1]

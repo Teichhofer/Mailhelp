@@ -2001,6 +2001,10 @@ ausdrücklich auch vergangene.
   auch nach Neustarts; ein laufender Bericht ist nach einem Neustart pausiert.
   Höchstwerte `max_mails` und `max_llm_calls` pausieren den Bericht; er nutzt
   höchstens `max_share_of_llm_budget` von `limits.llm_calls_per_minute`.
+  Eine unbrauchbare KI-Antwort (Tokenlimit, ungültiges JSON, Schema) wird an der
+  Mail vermerkt und nie automatisch wiederholt; der Nutzer entscheidet selbst bzw.
+  ergänzt Termine von Hand. Ist der KI-Dienst dreimal in Folge nicht erreichbar,
+  pausiert der Bericht vor der betroffenen Mail.
 - **Korrekturen:** Relevanz umstellen, Termine bearbeiten, ausschließen oder
   ergänzen. Jede Aktion prüft Sitzung, CSRF-Token, Berichtsversion und
   Idempotenzschlüssel; auch das Anlegen ist idempotent. Der Fortschritt des

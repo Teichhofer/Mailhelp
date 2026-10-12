@@ -112,6 +112,8 @@ class ReportMail(StrictModel):
     # The user's verdict overrides the model's in views and export.
     user_relevant: bool | None = None
     text_removed: bool = False
+    # An unusable model answer is recorded, never retried automatically (cost).
+    failed_step: Literal["relevance", "events"] | None = None
 
     @property
     def counts_as_relevant(self) -> bool:

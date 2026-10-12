@@ -191,18 +191,22 @@ def mail_page(report: ActivityReport, index: int, mail: ReportMail, csrf: str, z
     received = mail.received_at.astimezone(ZoneInfo(zone)).strftime("%d.%m.%Y, %H:%M Uhr")
     if mail.skipped is not None:
         verdict = f"Übersprungen: {SKIPPED[mail.skipped]}."
-    elif mail.relevant is None:
+    elif mail.failed_step == "relevance" and mail.user_relevant is None:
+        verdict = "Die KI-Antwort war unbrauchbar. Bitte selbst entscheiden."
+    elif mail.relevant is None and mail.user_relevant is None:
         verdict = "Noch nicht bewertet."
     else:
         verdict = (("Relevant" if mail.counts_as_relevant else "Nicht relevant")
                    + (" (von dir festgelegt)" if mail.user_relevant is not None else
                       f" (KI, Sicherheit: {mail.confidence}) – {mail.reason}"))
     toggle = ""
-    if mail.skipped is None and mail.relevant is not None:
+    if mail.skipped is None and (mail.relevant is not None or mail.failed_step is not None):
         mode, label = ("irrelevant", "Nicht relevant") if mail.counts_as_relevant else ("relevant", "Doch relevant")
         toggle = (f'<form method="post" action="/berichte/{report.id}/mail/{index}">'
                   f'{_hidden(csrf, report.version, mode=mode)}<button class="button">{label}</button></form>')
     events = "".join(_event_form(report, index, event, csrf) for event in mail.events)
+    if mail.failed_step == "events":
+        events = notice("Die KI konnte die Termine nicht auslesen. Bitte von Hand ergänzen.", "warn") + events
     adding = _event_form(report, index, None, csrf) if mail.skipped is None else ""
     text = ("<p class=\"meta\">Volltext nach Ablauf der Aufbewahrungsfrist entfernt.</p>" if mail.text_removed
             else f'<pre class="mail-text">{e(mail.text)}</pre>')

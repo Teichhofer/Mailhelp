@@ -39,6 +39,11 @@ Ein laufender Bericht lässt sich pausieren, fortsetzen und abbrechen. Nach eine
 Neustart ist er pausiert und setzt beim Fortsetzen an der nächsten Mail an; keine
 Mail wird zweimal bewertet.
 
+Eine unbrauchbare KI-Antwort wird an der Mail vermerkt („Bitte selbst entscheiden“
+bzw. „Termine von Hand ergänzen“) und nicht automatisch wiederholt. Ist der
+KI-Dienst dreimal in Folge nicht erreichbar, pausiert der Bericht; Fortsetzen
+versucht dieselbe Mail erneut.
+
 ## Sicherheit und Datenschutz
 
 - Ein Bericht schreibt nichts in Postfach, Kalender oder Todoist und erzeugt keine

@@ -17,7 +17,7 @@ from mailhelp.activity.service import ActivityService, ReportConflict, event_val
 from mailhelp.activity.store import ActivityReportStore
 from mailhelp.analysis import Analyzer
 from mailhelp.domain.prepared import PreparedMail
-from mailhelp.openrouter import RateLimitExceeded
+from mailhelp.openrouter import ProviderResponseInvalid, RateLimitExceeded
 from mailhelp.storage import JsonStore
 
 JAN = datetime(2026, 1, 10, 9, 0, tzinfo=UTC)
@@ -136,8 +136,8 @@ def test_a_restart_repeats_only_the_interrupted_call(setup):
     setup.service.act(older.id, 1, "cancel-001", "cancel")
     report = started(setup)
     setup.model.answers["activity_events"] = RuntimeError("Abbruch")
-    with pytest.raises(RuntimeError):
-        setup.runner.tick()
+    # The interrupted call ends the batch; the relevance verdict is already stored.
+    assert setup.runner.tick()
     stored = setup.service.store.mails(report.id)
     assert len(stored) == 1 and stored[0].relevant and not stored[0].events_extracted
     # Restart: the reading report waits; continuing does not judge the mail again.
@@ -372,3 +372,89 @@ def test_remaining_paths_of_run_and_service(setup, monkeypatch):
         def get(self, name, default=""):
             raise ValueError("kaputt")
     assert _header(Broken(), "Subject") == "" and _header({"Subject": " a\n  b "}, "Subject") == "a b"
+
+
+def test_suggested_folders_exist_on_the_server(setup):
+    # Regression: configured names the server does not list (here "Trash" and "Sent"
+    # next to the real "Papierkorb" and "Gesendet") were suggested and then failed as unreadable.
+    assert default_report_folders(setup.box.connection, ["INBOX", "Trash", "Sent", "Archiv"]) == ["INBOX", "Archiv"]
+
+
+def test_unusable_model_answers_are_recorded_once_and_never_retried(setup):
+    # Regression: a token-limit answer during date extraction escaped tick(); the
+    # background loop then repeated the same paid call every few seconds.
+    def relevance(payload):
+        if payload["mail"]["subject"] == "Werbung":
+            return ProviderResponseInvalid("output_token_limit")
+        return relevance_answer(payload)
+    setup.model.answers.update(activity_relevance=relevance,
+                               activity_events=ProviderResponseInvalid("output_token_limit"))
+    report = started(setup)
+    run_all(setup)
+    report = setup.service.store.load(report.id)
+    assert report.status == ReportStatus.DONE and report.counters.failed == 3
+    failed = {mail.subject: mail.failed_step for mail in setup.service.store.mails(report.id) if mail.failed_step}
+    assert failed == {"Werbung": "relevance", "Elternabend": "events", "Zusage": "events"}
+    stages = [stage for stage, _ in setup.model.requests]
+    assert stages.count("activity_events") == 2 and report.counters.llm_calls == len(stages)
+    assert sum(event[0][2] == "model_answer_unusable" for event in setup.log.events) == 3
+    # Asked again by the user, a successful extraction clears the failure.
+    setup.model.answers["activity_events"] = events_answer
+    werbung = next(mail for mail in setup.service.store.mails(report.id) if mail.subject == "Werbung")
+    report = setup.service.set_relevance(report.id, report.version, "rel-00000001", werbung.key, True)
+    run_all(setup)
+    werbung = setup.service.store.mail(report.id, werbung.key)
+    assert werbung.failed_step is None and werbung.events_extracted
+
+
+def test_an_unreachable_model_pauses_the_report_after_repeated_failures(setup):
+    setup.model.answers["activity_relevance"] = OSError("offline")
+    report = started(setup)
+    for _ in range(MAX_FAILURES):
+        assert setup.runner.tick()
+    report = setup.service.store.load(report.id)
+    assert report.status == ReportStatus.PAUSED and "KI-Dienst" in report.message and report.counters.read == 0
+    # Resumed with a working model, the same mails are judged; nothing was skipped.
+    setup.model.answers["activity_relevance"] = relevance_answer
+    report = setup.service.act(report.id, report.version, "resume-0001", "resume")
+    run_all(setup)
+    report = setup.service.store.load(report.id)
+    assert report.status == ReportStatus.DONE and report.counters.failed == 0 and report.counters.relevant == 2
+
+
+def test_a_failing_requested_extraction_is_dropped_not_repeated(setup):
+    report = started(setup)
+    run_all(setup)
+    werbung = next(mail for mail in setup.service.store.mails(report.id) if mail.subject == "Werbung")
+    setup.model.answers["activity_events"] = OSError("offline")
+    report = setup.service.set_relevance(report.id, setup.service.store.load(report.id).version,
+                                         "rel-00000002", werbung.key, True)
+    calls = len(setup.model.requests)
+    run_all(setup)
+    assert len(setup.model.requests) == calls + 1
+    assert setup.service.store.load(report.id).pending_extractions == []
+    assert not setup.service.store.mail(report.id, werbung.key).events_extracted
+    # Once more requested, the token-limit answer is recorded as a failure.
+    setup.model.answers["activity_events"] = ProviderResponseInvalid("output_token_limit")
+    report = setup.service.set_relevance(report.id, report.version, "rel-00000003", werbung.key, False)
+    report = setup.service.set_relevance(report.id, report.version, "rel-00000004", werbung.key, True)
+    failed_before = report.counters.failed
+    run_all(setup)
+    assert setup.service.store.mail(report.id, werbung.key).failed_step == "events"
+    assert setup.service.store.load(report.id).counters.failed == failed_before + 1
+
+
+def test_a_report_cancelled_during_failing_calls_stays_cancelled(setup):
+    report = started(setup)
+    attempts = []
+
+    def offline(payload):
+        attempts.append(payload)
+        if len(attempts) == MAX_FAILURES:
+            current = setup.service.store.load(report.id)
+            setup.service.act(report.id, current.version, "cancel-0001", "cancel")
+        return OSError("offline")
+    setup.model.answers["activity_relevance"] = offline
+    for _ in range(MAX_FAILURES):
+        setup.runner.tick()
+    assert setup.service.store.load(report.id).status == ReportStatus.CANCELLED
