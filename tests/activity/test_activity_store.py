@@ -7,8 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from mailhelp.activity import store as store_module
-from mailhelp.activity.models import (ActivityReport, ReportDefinition, ReportEvent, ReportMail,
-                                      ReportStatus)
+from mailhelp.activity.models import ActivityReport, ReportDefinition, ReportEvent, ReportMail, ReportStatus
 from mailhelp.activity.store import ActivityReportStore, mails_name, report_name
 from mailhelp.fingerprints import config_fingerprint, legacy_fingerprints, legacy_policies, topic_policy
 from mailhelp.retention import RetentionService
@@ -120,6 +119,7 @@ def test_activity_settings_never_change_an_analysis_fingerprint(tmp_path):
     """The report and its prompts act outside the analysis; mails in progress must not wait."""
     from test_application import settings
     from test_core import prompt_config
+
     from mailhelp.config import PromptStep
     cfg, prompts = settings(tmp_path), prompt_config()
     before = (config_fingerprint(cfg, prompts, []), legacy_fingerprints(cfg, prompts, []),
