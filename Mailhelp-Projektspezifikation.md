@@ -1870,3 +1870,103 @@ erhalten explizite Abhängigkeiten; Persistenz und Zustellung bleiben koordinier
 Die bestehende Bestätigungsschranke und Reihenfolge dauerhafter Zustandsübergänge
 bleiben verpflichtend. Die vollständige Zuordnung ist in
 [Architektur-1.6.md](docs/Architektur-1.6.md) beschrieben.
+
+
+## 21. Version 2.0: Eigenständige App, Web-Push, Antwort-Entwürfe und Tagesüberblick
+
+Alle 2.0-Funktionen sind optional; die Standardwerte schalten sie aus. Die
+Bestätigungsschranke gilt unverändert: Bearbeiten und Speichern allein lösen keine
+externe Anlage und keine Ablage im Postfach aus.
+
+**Weboberfläche.** Ab 1024 px Breite zeigt `/` bzw. `/offen` die offenen Vorgänge
+als Liste und den ausgewählten Vorgang daneben (geladen aus derselben Detailseite,
+eindeutige IDs mit Präfix `detail-`). Die Vorschlagsseite zeigt Quellbeleg,
+Revisionshistorie und technische Analyse als einklappbare Abschnitte; mit
+Bildvorschauen ist der Quellbeleg geöffnet. Schnellfilter (`filter` = `events`,
+`tasks`, `clarification`, `attachments`, `duplicates`) werden serverseitig
+ausgewertet; unbekannte Werte ergeben 422. Bestätigen und Verwerfen werden im
+Browser 5 Sekunden zurückgehalten und dann als normales Formular gesendet; der
+Server prüft Sitzung, CSRF, Version und Idempotenzschlüssel. Tastenkürzel sind in
+Eingabefeldern und bei geöffneten Dialogen inaktiv. Ohne JavaScript funktionieren
+alle Funktionen über normale Links und Formulare. Ohne offene Entscheidungen zeigt
+die Übersicht die heutigen Ergebnisse in der konfigurierten Zeitzone.
+
+**Bildvorschau.** Bei der Vorbereitung werden Rasterbilder (JPEG, PNG, WebP,
+bis 10 MB) unabhängig von der Bilderkennung als JPEG mit höchstens 1.600 px unter
+`data/attachments/<mail_id>/<index>.jpg` abgelegt. `GET /mail/<id>/anhang/<index>`
+verlangt eine Sitzung und liefert nur Vorschauen, die in der gespeicherten Mail
+verzeichnet sind, mit `Content-Type: image/jpeg`, `X-Content-Type-Options: nosniff`,
+`Content-Security-Policy: default-src 'none'` und `Cache-Control: private,
+max-age=3600`; sonst 404. SVG wird nie ausgeliefert. Fehler beim Anlegen werden
+protokolliert (`preview_failed`) und halten die Analyse nicht auf. Die
+Aufbewahrung löscht Vorschauen und Entwurfstext zusammen mit dem Mailtext.
+
+**Web-Push.** `push.enabled` erzeugt einmalig ein P-256-VAPID-Schlüsselpaar
+(`web-vapid.json`, nie protokolliert). `GET /api/push/public-key`,
+`POST /api/push/subscribe` und `POST /api/push/unsubscribe` verlangen Sitzung und
+CSRF; An- und Abmeldung tragen einen Idempotenzschlüssel. Je Gerätesitzung wird
+höchstens ein Abo gespeichert (`push-subscriptions.json`); erlaubt sind nur
+HTTPS-Endpunkte von Google, Mozilla, Apple und Microsoft (Port 443, ohne
+Zugangsdaten und Fragment) mit gültigem P-256-Schlüssel. Payloads enthalten nur
+eine Art (`decisions`, `briefing`); Texte und Ziele legt der Service Worker fest.
+Abos abgemeldeter Sitzungen sowie mit 404/410 beantwortete Abos werden entfernt.
+Ein Hintergrundthread prüft minütlich, ob neue offene Entscheidungen hinzugekommen
+sind. Netzwerkzugriffe laufen nie unter der globalen Zustandssperre.
+
+**Antwort-Entwürfe.** Mit `smart_reply: true` und dem Prompt `draft_reply` zeigt
+die Mail- und die Vorschlagsdetailseite jeder Mail mit gespeichertem Mailtext immer
+die Schaltflächen „Zusagen“, „Absagen“ und „Rückfrage“ (`intent` = `accept`,
+`decline`, `question`). Erst ein Klick löst genau einen LLM-Aufruf aus; der
+Hintergrunddienst erzeugt keine Entwürfe. Das LLM erhält `intent`,
+`personal_info` und unter `mail` nur Absender, Betreff, Datum, Mailtext,
+`attachments` (Dateiname und Text jedes erfolgreich extrahierten oder per OCR
+gelesenen Anhangs, je einmal) sowie `calendar_events`, aber keine technischen
+Metadaten. Es antwortet mit `{"text": "..."}` (1–8.000 Zeichen; Mailinhalt und
+Ausgabe gelten als nicht vertrauenswürdig). `personal_info` (höchstens 2.000
+Zeichen, Zeilenumbrüche und Tabulatoren als einzige Steuerzeichen) enthält
+eigene Angaben des Nutzers wie Name, Rolle oder Signatur. Es ist vertrauenswürdiger
+Kontext ausschließlich für `draft_reply`, gehört zu keinem Analyse-Fingerprint und
+ist unter Einstellungen → Antworten als mehrzeiliges Textfeld bearbeitbar. Die
+Änderung wird nach der Bestätigung als einzeiliger, doppelt gequoteter YAML-Wert
+in `config.yaml` geschrieben und gilt sofort für den nächsten Klick. Der Entwurf
+(`draft-<mail_id>.json`, je Mail einer) erscheint mit neuer Version in einem
+bearbeitbaren Textfeld. „Abbrechen“ verwirft ihn lokal ohne Postfachzugriff; ein
+erneuter Klick auf eine Antwortart ersetzt ihn durch eine neue Version. Jede
+Aktion verlangt Sitzung, CSRF-Token, die aktuelle Version und einen
+Idempotenzschlüssel; ein wiederholter Klick mit demselben Schlüssel löst keinen
+zweiten LLM-Aufruf aus. Die Sitzung wird nach dem LLM-Aufruf erneut geprüft.
+„Als Entwurf im Postfach speichern“ bestätigt genau den abgeschickten Text dieser
+Version; er wird vor dem Postfachzugriff lokal gesichert und per `APPEND` in
+`imap.drafts_folder` (modifiziertes UTF-7) als RFC-5322-Nachricht abgelegt: `From` = IMAP-Benutzer, `To` = `Reply-To` oder `From`
+der Quelle, `Re:`-Betreff, `In-Reply-To`, `References` (höchstens 20 frühere IDs),
+eindeutige `Message-ID`, Flags `\Draft \Seen`. Vor jedem `APPEND` wird über die
+Message-ID abgeglichen; ein unklares Ergebnis bleibt `uncertain` und wird nur
+wiederholt, wenn der Abgleich das Fehlen belegt; solange sind Text,
+Antwortarten und „Abbrechen“ gesperrt. Eine eindeutige Ablehnung gibt den Entwurf
+zur Bearbeitung frei. Die Sitzung wird unmittelbar vor dem `APPEND`
+erneut geprüft. `test_mode` simuliert die Ablage. Es gibt keinen SMTP-Versand.
+
+**Tagesüberblick.** Mit `daily_briefing.enabled` erstellt Mailhelp ab `time`
+(lokale Zeit) einmal je Kalendertag einen Überblick aus heutigen Terminen,
+Aufgaben mit Fälligkeit bis heute und offenen Entscheidungen (je höchstens 10
+Einträge, höchstens 4.000 Zeichen). Ausfälle einzelner Quellen werden vermerkt.
+Jeder Kanal wird je Tag höchstens einmal versucht; ein beim Senden unterbrochener
+Kanal bleibt `uncertain` und wird nicht wiederholt. Telegram erhält den Text,
+Web-Push einen neutralen Hinweis, `/briefing` zeigt den letzten Überblick.
+
+**Betrieb ohne Telegram.** `telegram.enabled: false` setzt `web.enabled: true`
+voraus; `TELEGRAM_BOT_TOKEN`, `telegram.user_id` und `telegram.chat_id` entfallen.
+Kopplungscodes werden nur auf der Konsole ausgegeben. Die 2.0-Einstellungen sind
+nicht Teil des Konfigurations-Fingerprints, auch nicht der Legacy-Fingerprints.
+
+Details und Upgrade: [Release-2.0.md](docs/Release-2.0.md).
+
+
+### Auswahl bei Aktualisierung der Webübersicht
+
+Die Split-View behält den ausgewählten Vorgang bei automatischem und manuellem Neuladen über seine stabile Karten-ID im aktuellen Browser-Verlaufseintrag bei. Ist der Vorgang nicht mehr in der angezeigten Liste vorhanden, wird der erste verbleibende Vorgang ausgewählt. Eine leere Übersicht bleibt ohne Auswahl. Ein neu gewählter Schnellfilter beginnt mit dem ersten passenden Vorgang. Die Wiederherstellung gilt auch beim Wechsel von schmaler zu breiter Ansicht und führt keine Bestätigung oder externe Schreibaktion aus. Dafür ist keine zusätzliche Konfiguration erforderlich.
+
+
+### Erläuterungen zu Web-Einstellungen
+
+Jede angebotene Konfigurationseinstellung erhält eine kleine Info-Schaltfläche mit Erläuterungen zu Wirkung, Wertebereich und Folgen unterschiedlicher Werte. Die Hinweise sind über Hover, Tastaturfokus und Antippen erreichbar; Escape blendet sie aus. Sie stehen außerhalb des Bearbeitungsformulars und lösen keine Speicherung aus. Modelle und Browser-Push erhalten ergänzende Erklärungen. Der zentrale Hilfetextkatalog und die [Einstellungsreferenz](docs/Web-Einstellungen.md) müssen vollständig und inhaltlich identisch bleiben; automatisierte Tests prüfen dies sowie Bedienbarkeit und sichere HTML-Ausgabe.

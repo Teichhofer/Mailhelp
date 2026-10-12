@@ -238,6 +238,17 @@ class Orchestrator:
         value = self.store.load(name, None)
         return default if value is None else model.model_validate(value)
 
+    def _cache_previews(self, state: MailState, raw: bytes) -> None:
+        """Image previews are optional; a failure never stops the analysis."""
+        if not hasattr(self.store, "directory"):
+            return
+        from .attachments import AttachmentCache
+        try:
+            AttachmentCache(self.store).prepare(state.id, raw, state.mail["extracted_attachments"])
+        except (OSError, ValueError) as exc:
+            self.logger.event("WARNING", "orchestrator", "preview_failed", mail_id=state.id,
+                              error_class=type(exc).__name__)
+
     def _blocked_senders(self) -> IrrelevantSenders:
         blocked = (
             self._load_model("irrelevant-senders", IrrelevantSenders, IrrelevantSenders())
@@ -474,6 +485,7 @@ class Orchestrator:
                     self._save(name, state)
                 state.mail = prepare(fetched.raw, self.max_bytes, fetched.received_at, self.user_timezone)
                 state.mail["internal_id"] = internal_id
+                self._cache_previews(state, fetched.raw)
                 state.steps.preparation = "completed"
                 self._save(name, state)
                 self.logger.event("INFO", "orchestrator", "preparation_completed", mail_id=state.id,

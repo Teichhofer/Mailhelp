@@ -18,9 +18,18 @@ from test_core import prompt_config
 TOPICS = [Topic(id="schule", name="Schule", enabled=True, description="Schule")]
 
 
+def before_2_0(dump: dict) -> dict:
+    """A configuration as releases before 2.0 knew it (no 2.0 sections and fields)."""
+    for name in ("push", "daily_briefing", "smart_reply", "personal_info"):
+        dump.pop(name, None)
+    dump["imap"].pop("drafts_folder")
+    dump["telegram"].pop("enabled")
+    return dump
+
+
 def fingerprint_1_1(settings, prompts, topics) -> str:
     """The algorithm of release 1.1 (all settings except then non-existing sections)."""
-    dump = settings.model_dump(mode="json", exclude={"web", "metrics", "vision"})
+    dump = before_2_0(settings.model_dump(mode="json", exclude={"web", "metrics", "vision"}))
     dump["retention"] = {key: value for key, value in dump["retention"].items()
                          if key in {"full_mail_days", "debug_llm_days"}}
     return hashlib.sha256(json.dumps([dump, prompts.model_dump(), [t.model_dump() for t in topics]],
@@ -57,8 +66,9 @@ def test_analysis_settings_still_change_the_fingerprint(tmp_path):
 
 def fingerprint_1_3(settings, prompts, topics) -> str:
     """The algorithm of release 1.3: no vision section and no vision_ocr prompt existed."""
-    from mailhelp.fingerprints import OPERATIONAL
-    dump = settings.model_dump(mode="json", exclude=set(OPERATIONAL) | {"vision"})
+    operational = {"web", "metrics", "retention", "logging", "learning", "poll_interval_seconds",
+                   "timeouts", "retries"}
+    dump = before_2_0(settings.model_dump(mode="json", exclude=operational | {"vision"}))
     return hashlib.sha256(json.dumps([dump, prompts.model_dump(), [t.model_dump() for t in topics]],
                                      sort_keys=True).encode()).hexdigest()
 
@@ -107,6 +117,18 @@ def test_a_mail_waiting_under_1_1_continues_after_the_upgrade(tmp_path):
         assert adopt_legacy_configuration(store, run.config_fingerprint,
                                           legacy_fingerprints(settings, prompts, TOPICS), run.topic_policy,
                                           legacy_policies(settings, prompts), TOPICS) == 0
+
+
+def test_2_0_features_keep_every_former_fingerprint(tmp_path):
+    """Regression: 2.0 sections leaked into the legacy fingerprints and held back 1.1 mails."""
+    settings, prompts = app_settings(tmp_path), prompt_config()
+    old, policies = fingerprint_1_1(settings, prompts, TOPICS), legacy_policies(settings, prompts)
+    settings.push.enabled = settings.smart_reply = settings.daily_briefing.enabled = True
+    settings.web.enabled, settings.telegram.enabled = True, False
+    settings.imap.drafts_folder = "Entwürfe"
+    settings.personal_info = "Max Mustermann\nElternbeirat"
+    assert old in legacy_fingerprints(settings, prompts, TOPICS)
+    assert legacy_policies(settings, prompts) == policies
 
 
 def test_beta_topic_records_get_the_new_policy(tmp_path):

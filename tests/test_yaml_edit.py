@@ -177,3 +177,48 @@ def test_learning_mode_refuses_an_unsafe_folder_change(tmp_path, monkeypatch):
 def test_a_list_at_the_end_of_the_file():
     from mailhelp.yaml_edit import set_list
     assert set_list("x: 1\nfolders:\n- A\n", "folders", ["A", "B"]) == "x: 1\nfolders:\n- A\n- B\n"
+
+
+def test_long_texts_with_line_breaks_stay_on_one_line():
+    """A long personal text must not be wrapped onto continuation lines."""
+    value = "Max Mustermann\nVorstand · Förderverein der Grundschule am Park\n" + "x" * 300
+    rendered = render(value)
+    assert "\n" not in rendered
+    new = set_scalars("personal_info: ''\nport: 1\n", {"personal_info": value})
+    assert yaml.safe_load(new) == {"personal_info": value, "port": 1} and len(new.splitlines()) == 2
+
+
+def test_personal_information_is_edited_as_free_text_and_applies_live(web, tmp_path):
+    from test_web_v12 import configure
+    service, _, _, active, _ = configure(web, tmp_path)
+    page = web.browser.request("GET", "/einstellungen").body.decode()
+    assert "<h2>Antworten</h2>" in page and "Persönliche Angaben für Antworten" in page
+    assert '<textarea name="value" rows="6" maxlength="2000"></textarea>' in page
+    assert "<strong>nicht gesetzt</strong>" in page
+    form = web.form("/einstellungen", action="/einstellungen/speichern", name="personal_info")
+    text = "Max Mustermann\r\nElternbeirat Klasse 4b\r\nBitte duzen <ok>"
+    response = web.browser.request("POST", "/einstellungen/speichern", {**form, "value": text})
+    body = response.body.decode()
+    assert response.status == 200 and "<pre>Max Mustermann" in body and "&lt;ok&gt;" in body
+    response = web.browser.request("POST", "/einstellungen/speichern", {**form, "value": text, "confirm": "yes"})
+    assert response.status == 303
+    web.run()
+    expected = "Max Mustermann\nElternbeirat Klasse 4b\nBitte duzen <ok>"
+    assert yaml.safe_load((tmp_path / "config.yaml").read_text(encoding="utf-8"))["personal_info"] == expected
+    # Applied without a restart.
+    assert service.active.personal_info == expected and active[-1].personal_info == expected
+    page = web.browser.request("GET", "/einstellungen").body.decode()
+    assert "<strong>Max Mustermann Elternbeirat Klasse 4b Bitte duzen &lt;ok&gt;</strong>" in page
+    assert "Elternbeirat Klasse 4b\nBitte duzen &lt;ok&gt;</textarea>" in page
+    # Numbers stay text; long texts are shortened in the overview; control characters are refused.
+    form = web.form("/einstellungen", action="/einstellungen/speichern", name="personal_info")
+    response = web.browser.request("POST", "/einstellungen/speichern", {**form, "value": "1234", "confirm": "yes"})
+    assert response.status == 303
+    web.run()
+    assert service.active.personal_info == "1234"
+    form = web.form("/einstellungen", action="/einstellungen/speichern", name="personal_info")
+    web.browser.request("POST", "/einstellungen/speichern", {**form, "value": "a" * 80, "confirm": "yes"})
+    web.run()
+    assert "<strong>" + "a" * 59 + "…</strong>" in web.browser.request("GET", "/einstellungen").body.decode()
+    form = web.form("/einstellungen", action="/einstellungen/speichern", name="personal_info")
+    assert web.browser.request("POST", "/einstellungen/speichern", {**form, "value": "a\x07b"}).status == 422

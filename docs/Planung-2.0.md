@@ -2,7 +2,7 @@
 
 **Zielversion:** 2.0.0  
 **Stand:** 11. Oktober 2026  
-**Status:** In Planung (Folgt auf die Versionen 1.5 und 1.6)  
+**Status:** Umgesetzt in 2.0.0 – siehe [Release-2.0.md](Release-2.0.md)  
 **Detailkonzept:** [Konzept-2.0-Redesign-und-Web-Push.md](Konzept-2.0-Redesign-und-Web-Push.md)  
 **Vorausgehende Versionen:** [Planung-1.3.md](Planung-1.3.md) → [Planung-1.4.md](Planung-1.4.md) → [Planung-1.5.md](Planung-1.5.md) → [Planung-1.6.md](Planung-1.6.md)
 

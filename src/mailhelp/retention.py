@@ -85,6 +85,12 @@ class RetentionService:
             if not mail_changed and not debug_changed:
                 continue
             if mail_changed:
+                from .attachments import AttachmentCache
+                AttachmentCache(self.store).remove(state.id)
+                draft = self.store.load(f"draft-{state.id}")
+                if draft is not None:
+                    draft["text"] = ""
+                    self.store.save(f"draft-{state.id}", draft)
                 state.mail = None
                 mail_scrubbed += 1
             if debug_changed:

@@ -1,3 +1,4 @@
+# Erläuterungen aller Web-Einstellungen: docs/Web-Einstellungen.md (auch als Info-Blasen in der Weboberfläche).
 # Optionaler Vergleich: mailhelp --decision-test 20 --ollama localhost:11434
 # Standard (Jev-Relevanz + LLM-Rückfall) gegen Ollama; nur relevante Mails weiter.
 # Standardrelevanz: Jev aus decisions_prompts.yaml; nur unclear nutzt prompts.yaml.
@@ -14,6 +15,27 @@
 # Lernen im Container: compose.learn.yaml bindet learning-config als Verzeichnis ein.
 # Offene Vorschläge blockieren die Analyse nicht; nur unklare Relevanz wartet auf Telegram.
 timezone: Europe/Berlin
+# 2.0: Schaltflächen Zusagen/Absagen/Rückfrage auf der Mailseite; ein Klick lässt das
+# LLM (Prompt draft_reply) einen Entwurf formulieren. Gespeichert wird nur nach
+# ausdrücklichem Klick per IMAP APPEND in imap.drafts_folder; Mailhelp sendet nie.
+smart_reply: false
+# Eigene Angaben für Antwort-Entwürfe (Name, Rolle, Signatur, Anrede-/Stilwünsche),
+# höchstens 2.000 Zeichen. Gehen nur an den Prompt draft_reply; auch unter
+# Einstellungen → Antworten bearbeitbar und dort sofort wirksam.
+personal_info: ""
+push:
+  # Web-Push (VAPID) für die App; nur über HTTPS oder localhost. Jedes Gerät schaltet
+  # Push zusätzlich unter Einstellungen ein. Meldungen enthalten keine Mailinhalte.
+  enabled: false
+  subject: mailto:admin@example.invalid  # Kontaktadresse des Betreibers für VAPID
+daily_briefing:
+  # Tagesüberblick (Termine, fällige Aufgaben, offene Entscheidungen), nur lesend.
+  # Telegram erhält den Text, Web-Push nur einen neutralen Hinweis; /briefing zeigt ihn.
+  enabled: false
+  time: "07:30"  # HH:MM in der Zeitzone oben; einmal je lokalem Kalendertag
+  include_calendar: true
+  include_tasks: true
+  include_open: true
 poll_interval_seconds: 60
 test_mode: false
 data_directory: data
@@ -54,6 +76,7 @@ vision:
 learning:
   parallel_llm_calls: 10
 imap:
+  drafts_folder: Drafts  # Unicode erlaubt; muss auf dem IMAP-Server existieren
   host: imap.example.test
   port: 993
   connection_mode: ssl
@@ -68,6 +91,9 @@ imap:
   - Spam
   - Trash
 telegram:
+  # false (2.0): Betrieb nur mit Weboberfläche/App, web.enabled muss true sein,
+  # TELEGRAM_BOT_TOKEN entfällt; Kopplungscodes erscheinen in der Konsole des PCs.
+  enabled: true
   # Bei jedem normalen Start wird die Befehlsübersicht automatisch gesendet,
   # auch mit --max-mails und bei Wiederaufnahme offener Entscheidungen.
   # Nur dieser Nutzer in diesem Chat darf auch /hilfe, /status, /offen und
@@ -180,6 +206,7 @@ logging:
     backup_count: 5
     retention_days: 30
 web:
+  # Die Webübersicht behält die Auswahl beim Neuladen automatisch bei; keine Option n?tig.
   # Optionale Weboberfläche (ab 1.1). Standard: aus – Mailhelp verhält sich dann wie 1.0.
   # Mit enabled: true wird MAILHELP_WEB_SECRET (mindestens 32 Zeichen) in .env benötigt.
   enabled: false

@@ -71,7 +71,7 @@ class SenderChange(BaseModel):
 
 
 SETTINGS_FIELDS = {
-    "poll_interval_seconds", "timezone", "test_mode", "targets.todoist_project", "targets.google_calendar",
+    "poll_interval_seconds", "timezone", "test_mode", "personal_info", "targets.todoist_project", "targets.google_calendar",
     "limits.llm_calls_per_minute", "limits.max_mail_bytes", "limits.max_llm_payload_bytes",
     "retention.full_mail_days", "retention.debug_llm_days", "retention.analysis_days", "retention.history_days",
     "logging.console.level", "logging.file.level", "logging.llm.include_requests", "logging.llm.include_responses",
@@ -83,7 +83,7 @@ for service in ("imap", "telegram", "openrouter", "ollama", "todoist", "google_c
 for field in ("interpretation_attempts", "interpretation_backoff_seconds", "revision_attempts", "revision_backoff_seconds"):
     SETTINGS_FIELDS.add(f"retries.{field}")
 
-LIVE_FIELDS = {"poll_interval_seconds", "retention", "metrics"}
+LIVE_FIELDS = {"poll_interval_seconds", "retention", "metrics", "personal_info"}
 
 
 STEP_LABELS = {
@@ -237,7 +237,7 @@ class ConfigurationService:
                     live[field] = candidate.get(field, live[field])
                 self.active = Settings.model_validate(live)
                 self.activate(self.active)
-                message = "Gespeichert. Pollintervall, Aufbewahrung und Metrikannahmen übernommen; übrige Änderungen beim nächsten Start."
+                message = "Gespeichert. Pollintervall, Aufbewahrung, Metrikannahmen und persönliche Angaben übernommen; übrige Änderungen beim nächsten Start."
             else:
                 if command.category == "relevant":
                     self.activate_topics([Topic.model_validate(item) for item in candidate["topics"]])

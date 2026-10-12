@@ -82,6 +82,8 @@ class MailhelpSite:
         app.route("GET", r"/vorschlag/(?P<mail_id>[a-f0-9]{24})/(?P<proposal_id>[A-Za-z0-9_-]{1,64})",
                   self.signed_in(self.detail))
         app.route("GET", r"/mail/(?P<mail_id>[a-f0-9]{24})", self.signed_in(self.mail))
+        app.route("GET", r"/mail/(?P<mail_id>[a-f0-9]{24})/anhang/(?P<index>[0-9]{1,5})",
+                  self.signed_in(self.attachment))
         app.route("GET", "/status", self.signed_in(self.status))
         app.route("GET", "/api/stand", self.signed_in(self.state))
         app.route("POST", "/aktion", self.signed_in(self.act))
@@ -89,6 +91,8 @@ class MailhelpSite:
         from .archive_site import ArchiveSite
         self.archive = ArchiveSite(self, configuration, metrics, lifecycle, models)
         self.senders = SenderSite(self)
+        from .experience import ExperienceSite
+        self.experience = ExperienceSite(self)
 
     # --- helpers ------------------------------------------------------------------
 
@@ -166,7 +170,7 @@ class MailhelpSite:
             response.cookies.append(self._cookie(request, PAIR_COOKIE, nonce, PAIR_COOKIE_SECONDS))
         response.body = login_page(self.auth.csrf_token(f"pair:{nonce}"),
                                    self.auth.code_requested(nonce),
-                                   code=_link_code(request.query)).encode("utf-8")
+                                   code=_link_code(request.query), channel=self.auth.channel).encode("utf-8")
         return response
 
     def request_code(self, request: Request) -> Response:
@@ -205,7 +209,8 @@ class MailhelpSite:
             self.logger.event("WARNING", "web", "pairing_refused")
             # Shown again with the error; a normal page, not a failed request.
             return Response.html(200, login_page(self.auth.csrf_token(f"pair:{nonce}"),
-                                                 self.auth.code_requested(nonce), str(exc)))
+                                                 self.auth.code_requested(nonce), str(exc),
+                                                 channel=self.auth.channel))
         self.logger.event("INFO", "web", "device_paired")
         response = Response.redirect("/")
         response.cookies.append(self._cookie(request, SESSION_COOKIE, token,
@@ -240,9 +245,25 @@ class MailhelpSite:
     def home(self, request: Request, session: WebSession) -> Response:
         csrf = self.auth.csrf_token(session.id)
         message, kind = self._result_notice(request, session)
-        return Response.html(200, overview_page(self.views.overview(), actions=proposal_actions(csrf),
+        from .filters import FILTERS, chips, matches
+        selected = parse_qs(request.query).get("filter", [""])[0]
+        if selected not in FILTERS:
+            return Response.text(422, "Ungültiger Filter.")
+        overview = self.views.overview()
+        def include(view):
+            mail = self.views.mail(view.mail_id)
+            return matches(selected, [view.card.kind.value], [view.status.value],
+                           mail.extracted_attachments if mail else ())
+        overview = replace(overview, open=tuple(view for view in overview.open if include(view)),
+                           relevance=overview.relevance if selected in {"", "clarification"} else ())
+        page = overview_page(overview, actions=proposal_actions(csrf),
                                                 relevance_actions=relevance_actions(csrf),
-                                                message=message, message_kind=kind))
+                                                message=message, message_kind=kind)
+        page = page.replace('<main id="inhalt">', '<main id="inhalt">' + chips("/offen", selected))
+        if not overview.open and not overview.relevance and not selected:
+            page = page.replace('<p class="empty">Nichts zu entscheiden. Neue Vorschläge erscheinen hier '
+                                'automatisch.</p>', self.experience.inbox_zero())
+        return Response.html(200, page)
 
     def _result_notice(self, request: Request, session: WebSession) -> tuple[str | None, str]:
         """The result of the action this browser just finished (?ergebnis=<id>)."""
@@ -263,7 +284,20 @@ class MailhelpSite:
         page = mail_page(view, question, relevance_actions(csrf),
                          sender_actions=self.senders.actions(mail_id, view.sender, csrf),
                          message=message, message_kind=kind)
-        return Response.html(200, page.replace("</main>", self.archive.analysis(mail_id) + "</main>"))
+        return Response.html(200, page.replace("</main>", self.experience.editor(mail_id, csrf) + self.archive.analysis(mail_id) + "</main>"))
+
+    def attachment(self, request, session, mail_id, index):
+        from ..attachments import AttachmentCache
+        mail = self.views.mail(mail_id)
+        if mail is None or mail.text is None or not any(
+                item.get("preview", {}).get("index") == int(index) for item in mail.extracted_attachments):
+            return Response.text(404, "Anhang nicht vorhanden.")
+        data = AttachmentCache(self.views.store).read(mail_id, int(index))
+        if data is None:
+            return Response.text(404, "Anhang nicht vorhanden.")
+        return Response(200, data, "image/jpeg", headers={
+            "Content-Security-Policy": "default-src 'none'",
+            "X-Content-Type-Options": "nosniff"}, cache="private, max-age=3600")
 
     def detail(self, request: Request, session: WebSession, mail_id: str,
                proposal_id: str) -> Response:
@@ -273,7 +307,11 @@ class MailhelpSite:
                 "Nicht gefunden", "Dieser Vorschlag ist nicht (mehr) vorhanden."))
         page = detail_page(view, actions=proposal_actions(self.auth.csrf_token(session.id)), mail=self.views.mail(mail_id))
         link = f'<p><a class="button" href="/vorschlag/{mail_id}/{proposal_id}/bearbeiten">Felder bearbeiten</a></p>'
-        return Response.html(200, page.replace("</main>", link + self.archive.analysis(mail_id) + "</main>"))
+        from .review_pages import disclosure
+        extra = (link + self.experience.editor(mail_id, self.auth.csrf_token(session.id))
+                 + disclosure("Revisionshistorie &amp; Differenzen", self.archive.revisions(mail_id, proposal_id))
+                 + disclosure("Technische LLM-Analyse &amp; Metriken", self.archive.analysis(mail_id)))
+        return Response.html(200, page.replace("</main>", extra + "</main>"))
 
     def status(self, request: Request, session: WebSession) -> Response:
         overview = self.views.overview()

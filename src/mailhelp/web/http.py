@@ -103,7 +103,7 @@ class Response:
 
     def all_headers(self) -> list[tuple[str, str]]:
         headers = [("Content-Type", self.content_type), ("Content-Length", str(len(self.body))),
-                   ("Cache-Control", self.cache), *SECURITY_HEADERS.items(), *self.headers.items()]
+                   ("Cache-Control", self.cache), *{**SECURITY_HEADERS, **self.headers}.items()]
         headers += [("Set-Cookie", cookie) for cookie in self.cookies]
         return headers
 

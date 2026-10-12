@@ -23,6 +23,7 @@ from ..storage import CorruptState
 from .http import Response
 from .pages import e, layout, notice
 from .review_pages import detail_page
+from .setting_help import SETTING_HELP, EXTRA_HELP, help_bubble
 
 
 EDIT_LABELS = {"title": "Titel", "description": "Beschreibung", "target": "Ziel", "due": "Frist",
@@ -39,7 +40,11 @@ SETTING_LABELS = {"poll_interval_seconds": "Abrufintervall (Sekunden)", "timezon
                   "metrics.ollama_power_watts": "Ollama-Leistung (Watt)",
                   "metrics.electricity_eur_per_kwh": "Strompreis (EUR/kWh)",
                   "metrics.retention_days": "Einzelmessungen aufbewahren (Tage)",
-                  "metrics.enabled": "Metrikerfassung aktivieren"}
+                  "metrics.enabled": "Metrikerfassung aktivieren",
+                  "personal_info": "Persönliche Angaben für Antworten"}
+# Free text settings: edited in a text area and never parsed as JSON.
+TEXT_SETTINGS = {"personal_info": ("Zum Beispiel Name, Rolle, Signatur oder gewünschte Anrede. Die Angaben gehen "
+                                   "nur in Antwort-Entwürfe ein und werden dafür an das KI-Modell übergeben.")}
 
 
 MODE_LABELS = {"production": "Betrieb (Standard und Ollama)", "standard": "Betrieb mit Standard-KI",
@@ -118,6 +123,7 @@ def statistics_page(params: dict, report: dict, everything: list[dict]) -> str:
 
 SETTING_GROUPS = (
     ("Mailabruf und Betrieb", ("poll_interval_seconds", "timezone", "test_mode")),
+    ("Antworten", ("personal_info",)),
     ("Ziele", ("targets.",)),
     ("Aufrufbudget und Mailgrenzen", ("limits.",)),
     ("Zeitlimits und Wiederholungen", ("timeouts.", "retries.")),
@@ -157,8 +163,11 @@ def _lookup(values: dict | None, name: str) -> object:
 
 def _shown(name: str, value: object) -> str:
     """A readable value; target IDs are masked, missing values marked."""
-    if value is None:
+    if value is None or value == "":
         return "nicht gesetzt"
+    if name in TEXT_SETTINGS:
+        line = " ".join(str(value).split())
+        return line if len(line) <= 60 else line[:59] + "…"
     if isinstance(value, bool):
         return "ja" if value else "nein"
     text = str(value)
@@ -169,6 +178,9 @@ def _shown(name: str, value: object) -> str:
 
 def _input(name: str, saved: object) -> str:
     label = "Neuer Wert"
+    if name in TEXT_SETTINGS:
+        return (f'<label>{label}<textarea name="value" rows="6" maxlength="2000">{e(saved or "")}</textarea></label>'
+                f'<p class="meta">{e(TEXT_SETTINGS[name])}</p>')
     if isinstance(saved, bool):
         return select("value", label, json.dumps(saved), [("true", "ja"), ("false", "nein")])
     if name.endswith(".level"):
@@ -185,7 +197,7 @@ def settings_page(models: list, raw: dict | None, active: dict | None, revision:
             '<a class="button small" href="/einstellungen/ignorierte-absender">Ignorierte Absender</a> '
             '<a class="button small" href="/geraete">Geräte</a> '
             '<a class="button small danger" href="/einstellungen/beenden">Mailhelp beenden</a></p>')
-    body += "<h2>Modelle (nur lesend)</h2>"
+    body += '<div class="setting-row"><h2>Modelle (nur lesend)</h2>' + help_bubble("models", "Modelle", EXTRA_HELP["models"]) + "</div>"
     if models:
         body += ('<div class="table-scroll"><table><thead><tr><th>Schritt</th>'
                  "<th>Modell</th><th>Parameter</th><th>Quelle</th></tr></thead><tbody>"
@@ -214,10 +226,11 @@ def settings_page(models: list, raw: dict | None, active: dict | None, revision:
             timing = "sofort nach dem Speichern" if live else "beim nächsten Start"
             form = post_form("/einstellungen/speichern", csrf, _input(name, saved), "Prüfen",
                              name=name, expected_hash=revision)
-            body += (f'<details class="setting"><summary><span>{e(setting_label(name))}</span>'
+            body += (f'<div class="setting-row"><details class="setting"><summary><span>{e(setting_label(name))}</span>'
                      f'<strong>{e(_shown(name, current))}</strong></summary>'
                      f'<p class="meta">Gespeichert: {e(_shown(name, saved))} · {e(state)} · '
-                     f'Änderungen wirken {e(timing)}.</p>{form}</details>')
+                     f'Änderungen wirken {e(timing)}.</p>{form}</details>'
+                     + help_bubble(name, setting_label(name), SETTING_HELP[name]) + '</div>')
     return body
 
 
@@ -336,6 +349,8 @@ class ArchiveSite:
         items, total = self.queries.search(query)
         topics = sorted({topic for item in self.queries.items() for topic in item["topics"]})
         page = mail_list_page(query, items, total, self.queries.damaged, topics, self.site.configured_timezone)
+        from .filters import chips
+        page = chips("/mails", query.filter) + page
         return Response.html(200, layout("Mails", page, active="/mails"))
 
     def analysis(self, mail_id):
@@ -364,6 +379,19 @@ class ArchiveSite:
         body += "".join(f'<li><a href="/vorschlag/{mail_id}/{e(p.id)}">{e(p.title)}</a> · {e(p.status.value)}</li>' for p in state.proposals)
         return body + f'</ul><a class="button" href="/verlauf?q={mail_id}">Verlauf dieser Mail</a></section>'
 
+    def revisions(self, mail_id, proposal_id):
+        """Recorded events of one proposal with links to every stored version."""
+        rows = sorted((row for row in self.queries.history()
+                       if row["mail_id"] == mail_id and row["proposal_id"] == proposal_id),
+                      key=lambda row: row["at"], reverse=True)
+        if not rows:
+            return '<p class="meta">Noch keine Revisionen erfasst.</p>'
+        items = "".join(
+            f'<li><a href="/vorschlag/{mail_id}/{e(proposal_id)}/version/{e(row["version"])}">'
+            f'Version {e(row["version"])}</a> · {e(row["at"])} · {e(row["status"])} · {e(row["source"])}</li>'
+            for row in rows)
+        return f'<ul class="archive-list">{items}</ul>'
+
     def history(self, request, session):
         try:
             params = self.parameters(request)
@@ -373,6 +401,10 @@ class ArchiveSite:
         rows = []
         store = self.site.views.store
         for row in self.queries.history():
+            from .filters import matches
+            source = next(item for item in self.queries.items() if item["id"] == row["mail_id"])
+            if not matches(query.filter, [row["proposal_kind"]], [row["status"]], source["attachments"], source["duplicate"]):
+                continue
             if query.q and query.q.casefold() not in (row["mail_id"] + row["title"]).casefold():
                 continue
             day = datetime.fromisoformat(row["at"]).astimezone(ZoneInfo(self.site.configured_timezone)).date().isoformat()
@@ -389,6 +421,8 @@ class ArchiveSite:
         total = len(rows)
         rows = rows[(query.page - 1)*query.size:query.page*query.size]
         body = '<h1>Verlauf</h1><form method="get" class="stack">' + field("q", "Betreff, Absender oder Mail-ID", query.q)
+        from .filters import chips
+        body = chips("/verlauf", query.filter) + body
         body += field("status", "Vorschlagsstatus", query.status or "") + field("kind", "Ereignisart", query.kind) + field("proposal_kind", "Aufgabe (task) oder Termin (event)", query.proposal_kind) + field("since", "Von", query.since or "") + field("until", "Bis", query.until or "")
         body += '<button class="button">Filtern</button></form>' + f'<p>{total} Ereignisse · Seite {query.page}</p><ul class="archive-list">'
         for row in rows:
@@ -472,16 +506,21 @@ class ArchiveSite:
             active = configuration.active.model_dump(mode="json")
             revision = file_hash(path)
         page = settings_page(self.models, raw, active, revision, self.site.auth.csrf_token(session.id))
+        page += self.site.experience.controls(self.site.auth.csrf_token(session.id))
         return Response.html(200, layout("Einstellungen", page, active="/einstellungen"))
 
     def save_settings(self, request, session, form):
         if self.configuration is None:
             return self.site._reply(request, 503, "Konfiguration nicht verfügbar.")
         try:
-            try:
-                value = json.loads(form["value"])
-            except json.JSONDecodeError:
-                value = form["value"]
+            if form["name"] in TEXT_SETTINGS:
+                # Browsers send line breaks as CRLF; the file keeps plain LF.
+                value = form["value"].replace("\r\n", "\n").strip()
+            else:
+                try:
+                    value = json.loads(form["value"])
+                except json.JSONDecodeError:
+                    value = form["value"]
             command = AdminCommand(kind=AdminKind.SETTINGS, actor=f"web:{session.id}", idempotency_key=form["key"],
                                    expected_hash=form["expected_hash"], patch={form["name"]: value}, acknowledged=True)
             self.configuration.candidate(command)
@@ -492,7 +531,7 @@ class ArchiveSite:
         if form.get("confirm") != "yes":
             body = '<h1>Änderung bestätigen</h1>' + notice('Aufbewahrung kann Inhalte unwiderruflich entfernen; Inhaltslogging speichert Maildaten. Echter Betrieb kann bestätigte Aktionen extern anlegen. Übrige Einstellungen benötigen teilweise einen Neustart.', "warn")
             hidden = {key: value for key, value in form.items() if key not in {"csrf", "key", "confirm"}}
-            body += f'<p>{e(form["name"])} → {e(form["value"])}</p>'
+            body += f'<p>{e(form["name"])} →</p><pre>{e(form["value"])}</pre>'
             body += post_form(request.path, self.site.auth.csrf_token(session.id), "", "Änderung ausdrücklich speichern", confirm="yes", **hidden)
             return Response.html(200, layout("Bestätigen", body))
         return self.queue(request, command)

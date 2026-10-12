@@ -180,7 +180,7 @@ def test_refresh_state_needs_a_session_and_changes_with_the_data(site, browser):
 def test_empty_and_damaged_states_are_explained(site, tmp_path):
     client, _ = signed_in(site)
     html = page(client, "/")
-    assert "Nichts zu entscheiden" in html and "Zuletzt erledigt" not in html
+    assert "Alles erledigt! Keine offenen Entscheidungen" in html and "Zuletzt erledigt" not in html
     (site.auth.store.directory / f"proposal-{mail_id(1)}-x.json").write_text("{", encoding="utf-8")
     assert "beschädigt" in page(client, "/") and "beschädigte" in page(client, "/status")
 

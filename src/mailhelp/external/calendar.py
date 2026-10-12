@@ -54,7 +54,7 @@ class CalendarOperations:
         return PreparedWrite(lambda: self._create_prepared(proposal, key, url, body))
 
     def fetch_events_in_window(
-        self, start: datetime | date, end: datetime | date
+        self, start: datetime | date, end: datetime | date, *, strict: bool = False
     ) -> list[CalendarOverlapEvent]:
         """Fetch existing Google Calendar events in the given window with caching and fallback."""
         if self.service != "google_calendar":
@@ -100,6 +100,8 @@ class CalendarOperations:
             self._set_cached(cache_key, events)
             return events
         except Exception as exc:
+            if strict:
+                raise
             self.logger.event("WARNING", self.service, "fetch_events_failed", error=str(exc))
             return []
 

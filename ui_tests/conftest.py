@@ -17,7 +17,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import pytest
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "ui_tests"))
@@ -270,6 +270,30 @@ def sign_in(page: Page, mailhelp: Mailhelp, device_label: str = "") -> None:
     page.wait_for_url(f"{mailhelp.url}/")
 
 
+def item(page: Page, selector: str):
+    """An open item with its actions.
+
+    On the desktop the item is selected in the master list and operated in the
+    detail pane, whose ids carry the prefix ``detail-``; on phones it is the card.
+    """
+    if page.device != "desktop":
+        return page.locator(selector)
+    page.locator(".master-pane " + selector).click(position={"x": 12, "y": 12})
+    shown = page.locator(".detail-pane #detail-" + selector.removeprefix("#"))
+    expect(shown).to_be_visible()
+    return shown
+
+
+def act(page: Page, control, text: str) -> None:
+    """Click and wait for the next result page (confirm and reject after the undo time)."""
+    page.collect()  # The result page replaces this document and its script coverage.
+    with page.expect_event("framenavigated", timeout=20000,
+                           predicate=lambda frame: frame == page.main_frame and "?ergebnis=" in frame.url):
+        control.click()
+    expect(page.get_by_role("heading", name="Offene Entscheidungen")).to_be_visible(timeout=10000)
+    expect(page.locator("main > .notice").first).to_contain_text(text)
+
+
 def pytest_sessionfinish(session, exitstatus):
     """Fail the run if a block of the application scripts never ran."""
     if exitstatus != 0 or session.config.option.keyword or session.config.option.markexpr:
@@ -284,4 +308,4 @@ def pytest_sessionfinish(session, exitstatus):
         print("\nJavaScript-Abdeckung: 100 % der Blöcke in " + ", ".join(COVERED_SCRIPTS))
 
 
-__all__ = ["DEVICES", "Mailhelp", "Page", "sign_in"]
+__all__ = ["DEVICES", "Mailhelp", "Page", "act", "item", "sign_in"]

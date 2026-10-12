@@ -73,6 +73,7 @@ class Application:
     # Web stop handshake; its final state is set when the run loop ends.
     lifecycle: Any = None
     configuration: object | None = None
+    experience: object | None = None
 
     mailbox: MailboxRunService = field(init=False, repr=False)
 
@@ -189,6 +190,8 @@ class Application:
             return
         try:
             self.web.start()
+            if self.experience is not None:
+                self.experience.start()
         except WebServerError as exc:
             self.logger.event("ERROR", "web", "server_start_failed", error=str(exc))
             self.web = None
@@ -200,6 +203,8 @@ class Application:
                                   error_class=type(notification_error).__name__)
 
     def _stop_web(self) -> None:
+        if self.experience is not None:
+            self.experience.stop()
         web, self.web = self.web, None
         if web is not None:
             web.stop()
@@ -543,7 +548,11 @@ def build_application(
                          host=local_llm.host, port=local_llm.port, model=local_llm.model,
                          num_ctx=local_llm.num_ctx)
         stack.callback(openrouter.close)
-        telegram = TelegramClient(secrets.telegram_bot_token.get_secret_value(), settings.timeouts.telegram.timeout_seconds, poll_timeout=settings.timeouts.telegram_poll_seconds, policy=policy("telegram"), logger=logger)
+        if settings.telegram.enabled:
+            telegram = TelegramClient(secrets.telegram_bot_token.get_secret_value(), settings.timeouts.telegram.timeout_seconds, poll_timeout=settings.timeouts.telegram_poll_seconds, policy=policy("telegram"), logger=logger)
+        else:
+            from .standalone import DisabledTelegram
+            telegram = DisabledTelegram()
         stack.callback(telegram.close)
         todoist = HttpWriter("todoist", secrets.todoist_token.get_secret_value(), settings.targets.todoist_project, settings.timeouts.todoist.timeout_seconds, policy=policy("todoist"), logger=logger)
         stack.callback(todoist.close)
@@ -630,10 +639,18 @@ def build_application(
         application = Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar, orchestrator, stop_event, dialog, sender_store)
         if web_enabled:
             secret = secrets.mailhelp_web_secret
+            if settings.telegram.enabled:
+                def notify(text):
+                    telegram.send(settings.telegram.chat_id, text)
+            else:
+                # Standalone: pairing codes appear only in the console of the PC, never in a log file.
+                def notify(text):
+                    print(text, flush=True)
             components = create_web(
                 settings, secret.get_secret_value() if secret is not None else None, store,
-                lambda text: telegram.send(settings.telegram.chat_id, text), logger,
-                dialog.commands)
+                notify, logger, dialog.commands)
+            if not settings.telegram.enabled:
+                components.auth.channel = "console"
             dialog.review.web_authorizer = components.authorize
             dialog.web_logout = components.auth.revoke_all
             dialog.web_invite = components.invite
@@ -657,4 +674,8 @@ def build_application(
             from .configuration import effective_models
             components.site.archive.models = effective_models(
                 prompts, jev_prompts.model if jev_prompts else None, local_llm.model if local_llm else None)
+            from .experience import ExperienceRuntime
+            application.experience = ExperienceRuntime(application, components, secrets)
+            if not settings.telegram.enabled:
+                print(components.invite())
         yield application

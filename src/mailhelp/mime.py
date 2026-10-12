@@ -299,7 +299,8 @@ def prepare(raw: bytes, limits: int | MimeLimits | object,
     text = re.split(r"\n(?:-- ?$|On .+ wrote:$|Am .+ schrieb .+:$)", text, maxsplit=1, flags=re.MULTILINE)[0].strip()
     result: dict[str, object] = {
         "headers": {name: _clean(str(message.get(source, ""))) for name, source in (
-            ("from", "From"), ("subject", "Subject"), ("date", "Date"), ("message_id", "Message-ID"))},
+            ("from", "From"), ("subject", "Subject"), ("date", "Date"), ("message_id", "Message-ID"),
+            ("reply_to", "Reply-To"), ("references", "References"))},
         "text": text,
         "metadata": {"attachments_omitted": attachments, "text_shortened": shortened},
         "extracted_attachments": extracted_attachments,

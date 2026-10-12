@@ -152,12 +152,16 @@ def overview_page(overview: Overview, *, actions: Actions | None = None,
     if overview.damaged:
         parts.append(notice(f"{overview.damaged} gespeicherte Datensätze sind beschädigt und werden "
                             "nicht angezeigt. Bitte die Protokolle prüfen.", "error"))
+    items = []
     if overview.relevance:
-        parts.append("<h2>Relevanz klären</h2>")
-        parts.extend(relevance_card(view, relevance_actions) for view in overview.relevance)
+        items.append("<h2>Relevanz klären</h2>")
+        items.extend(relevance_card(view, relevance_actions) for view in overview.relevance)
     if overview.open:
-        parts.append("<h2>Vorschläge</h2>")
-        parts.extend(proposal_card(view, actions=actions) for view in overview.open)
+        items.append("<h2>Vorschläge</h2>")
+        items.extend(proposal_card(view, actions=actions) for view in overview.open)
+    if items:
+        # On wide screens app.js turns this list into the master pane of a split view.
+        parts.append('<div class="open-items">' + "\n".join(items) + "</div>")
     if not overview.open and not overview.relevance:
         parts.append('<p class="empty">Nichts zu entscheiden. Neue Vorschläge erscheinen hier automatisch.</p>')
     if overview.recent:
@@ -223,6 +227,19 @@ def mail_section(mail: MailView | None, sender_actions: str = "") -> str:
             att_items.append(
                 f'<li>📎 <strong>{e(fn)}</strong> <span class="badge {badge_class}">{e(st_text)}</span></li>'
             )
+            preview = att.get("preview")
+            if preview is not None:
+                url = f'/mail/{e(mail.mail_id)}/anhang/{int(preview["index"])}'
+                size = f'{max(1, round(int(preview["size_bytes"]) / 1024))} KB'
+                if "width" in preview:
+                    size = f'{int(preview["width"])} × {int(preview["height"])} px · {size}'
+                text = att.get("text") or ""
+                recognized = (f'<details><summary>Erkannten Text anzeigen</summary><pre>{e(text)}</pre></details>'
+                              if text else '<p class="meta">Kein erkannter Text gespeichert.</p>')
+                att_items.append(f'<li class="image-preview"><a href="{url}" data-lightbox '
+                                 f'aria-label="{e(fn)} vergrößern">'
+                                 f'<img src="{url}" alt="{e(fn)}" loading="lazy"></a>'
+                                 f'<p class="meta">{e(fn)} · {size}</p>{recognized}</li>')
         att_section = f'<div class="attachments"><p><strong>Anhänge ({len(mail.extracted_attachments)}):</strong></p><ul>{"".join(att_items)}</ul></div>'
     cal_section = ""
     if mail.calendar_events:
@@ -234,12 +251,22 @@ def mail_section(mail: MailView | None, sender_actions: str = "") -> str:
 </section>"""
 
 
+def disclosure(summary: str, body: str, *, opened: bool = False) -> str:
+    """A secondary section, collapsed unless it is needed for the decision."""
+    if not body:
+        return ""
+    return (f'<details class="disclosure"{" open" if opened else ""}><summary>{summary}</summary>'
+            f'{body}</details>')
+
+
 def detail_page(view: ProposalView, *, actions: Actions | None = None,
                 mail: MailView | None = None) -> str:
+    # Image previews are the evidence to compare with; they are shown at once.
+    previews = mail is not None and any("preview" in item for item in mail.extracted_attachments)
     content = f"""<p><a href="/">← Zur Übersicht</a></p>
 <h1>{"Termin" if view.card.kind == ProposalKind.EVENT else "Aufgabe"}</h1>
 {proposal_card(view, actions=actions, detail_link=False)}
-{mail_section(mail)}"""
+{disclosure("Quellbeleg aus E-Mail / Anhang", mail_section(mail), opened=previews)}"""
     return layout(view.card.title, content, active="/")
 
 
@@ -262,5 +289,5 @@ from .status_pages import (ANALYSIS_LABELS, COMMAND_LABELS, RUN_LABELS,
                            _runtime_section, status_page)
 
 __all__ = ["ANALYSIS_LABELS", "COMMAND_LABELS", "RUN_LABELS", "ServiceInfo",
-           "detail_page", "https_link", "mail_page", "mail_section",
+           "detail_page", "disclosure", "https_link", "mail_page", "mail_section",
            "overview_page", "proposal_card", "relevance_card", "status_page"]

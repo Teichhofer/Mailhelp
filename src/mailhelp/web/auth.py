@@ -117,6 +117,8 @@ class WebAuth:
     def __init__(self, store: JsonStore, secret: str, session_days: int,
                  notify: Callable[[str], None], clock: Callable[[], datetime] = _now):
         self.store, self.notify, self.clock = store, notify, clock
+        # "telegram", or "console" when Mailhelp runs without Telegram (standalone, 2.0).
+        self.channel = "telegram"
         self._key = secret.encode("utf-8")
         self.session_lifetime = timedelta(days=session_days)
         self._lock = Lock()

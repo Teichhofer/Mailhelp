@@ -3,6 +3,7 @@
 Die [Release-Anleitung](docs/Release-1.0.md) beschreibt Installation aus den
 Distributionspaketen, Aktualisierung, Sicherung und Rückkehr zur vorherigen Version.
 Änderungen stehen im [Changelog](CHANGELOG.md).
+Alle Web-Einstellungen mit Wirkung und Wertebeispielen: [Einstellungsreferenz](docs/Web-Einstellungen.md).
 Die geplante Weboberfläche für Version 1.1 beschreibt das
 [Konzept mit Umsetzungsplan](docs/Konzept-1.1-Web-PWA.md).
 
@@ -1223,6 +1224,22 @@ Ab 1.2 zeigt die Weboberfläche außerdem:
 
 Vorschläge lassen sich in Formularfeldern ändern; die neue Version wird wie immer
 erst nach eigener Bestätigung angelegt. Details: [Release-1.2.md](docs/Release-1.2.md).
+
+Ab 2.0 ist die Weboberfläche eine eigenständige App:
+
+- **Desktop:** Liste und Details nebeneinander, Tastenkürzel `J`/`K` (navigieren),
+  `C` (bestätigen), `E` (bearbeiten), `X` (verwerfen), `?` (Hilfe).
+- **Smartphone:** Aktionen am unteren Rand in der Daumenzone.
+- **Rückgängig:** Nach Bestätigen oder Verwerfen bleiben 5 Sekunden, bevor etwas
+  gesendet wird.
+- **Schnellfilter** für Termine, Aufgaben, Klärung, Anhänge und Duplikate.
+- **Bildanhänge** als Vorschau mit Vergrößerung und erkanntem Text.
+- Optional **Web-Push** (`push.enabled`), **Antwort-Entwürfe** im Entwurfsordner
+  des Postfachs (`smart_reply`; Mailhelp sendet nie selbst), ein morgendlicher
+  **Tagesüberblick** (`daily_briefing`) und Betrieb **ohne Telegram**
+  (`telegram.enabled: false`).
+
+Einrichtung und Upgrade: [Release-2.0.md](docs/Release-2.0.md).
 
 ## Docker
 

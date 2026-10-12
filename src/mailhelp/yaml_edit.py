@@ -25,7 +25,10 @@ def render(value: Any) -> str:
     """A YAML scalar for one line (numbers, booleans, null, dates and plain strings)."""
     if isinstance(value, (dict, list)):
         raise YamlEditError("Nur einzelne Werte können geändert werden")
-    flow = yaml.safe_dump([value], default_flow_style=True, allow_unicode=True).strip()
+    # Never wrapped; line breaks are escaped in double quotes, so a text stays on its own line.
+    style = '"' if isinstance(value, str) and "\n" in value else None
+    flow = yaml.safe_dump([value], default_flow_style=True, default_style=style, allow_unicode=True,
+                          width=10**6).strip()
     return flow[1:-1]
 
 

@@ -2,7 +2,7 @@
 
 **Stand:** 11. Oktober 2026  
 **Zielversion:** 2.0.0  
-**Status:** In Planung (Folgt auf die Versionen 1.5 und 1.6)
+**Status:** Umgesetzt in 2.0.0 – siehe [Release-2.0.md](Release-2.0.md)
 **Grundlage:** [Mailhelp-Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Entwicklungsregeln](../AGENTS.md), [Planung-2.0.md](Planung-2.0.md)  
 **Vorausgehende Releases:** [Konzept-1.3-Intelligenter-Workflow.md](Konzept-1.3-Intelligenter-Workflow.md), [Konzept-1.4-Multimodal-und-OCR.md](Konzept-1.4-Multimodal-und-OCR.md), [Planung-1.5.md](Planung-1.5.md), [Planung-1.6.md](Planung-1.6.md)
 
@@ -121,7 +121,7 @@ Gemäß den [Entwicklungsregeln](../AGENTS.md) gelten für Version 2.0 folgende 
 ## 5. Säule 3 im Detail: Intelligente Antwort-Entwürfe (Smart Reply Drafts)
 
 ### 5.1 Generierung im Analyzer (`analysis.py`)
-- Wenn eine E-Mail einen Termin, eine Zusage, eine Terminanfrage oder eine Aufgabe enthält, erzeugt das LLM parallel einen passenden Antwortentwurf (`draft_reply`).
+- Die Detailansicht jeder Mail bietet immer „Zusagen“, „Absagen“ und „Rückfrage“. Erst der Klick erzeugt per LLM (`draft_reply` mit `intent` = `accept`/`decline`/`question`) einen passenden Antwortentwurf; der Nutzer bearbeitet ihn und bricht ab oder speichert ihn als Entwurf im Postfach.
 - **Prompt-Regel:** Kurz, höflich, professionell, exakt auf die Entscheidung bezogen (z.B. Zusage des vorgeschlagenen Zeitpunkts oder Dank für die Übermittlung der Protokollaufgaben).
 
 ### 5.2 Weboberfläche & Editor

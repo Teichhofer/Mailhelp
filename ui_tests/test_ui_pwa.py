@@ -92,7 +92,7 @@ def test_service_worker_rules(browser, mailhelp):
           const foreign = await respond(fetchHandler, new Request("https://example.test/x"));
           const data = await respond(fetchHandler, new Request("/api/stand"));
           const cachedShell = await respond(fetchHandler, new Request("/static/app.css"));
-          await caches.delete("mailhelp-shell-v1");
+          await caches.delete("mailhelp-shell-v2");
           const uncachedShell = await respond(fetchHandler, new Request("/static/app.css"));
           const page = await respond(fetchHandler, navigation("/health"));
           return { installed, keys, post, foreign, data,
@@ -100,16 +100,64 @@ def test_service_worker_rules(browser, mailhelp):
                    page: page.status };
         }""")
         assert result["installed"] == ["skipped", "claimed"]
-        assert result["keys"] == ["mailhelp-shell-v1"]
+        assert result["keys"] == ["mailhelp-shell-v2"]
         assert (result["post"], result["foreign"], result["data"]) == ("network",) * 3
         assert (result["cachedShell"], result["uncachedShell"], result["page"]) == (200, 200, 200)
         page.context.set_offline(True)
         offline = page.evaluate("""async () => {
-          const cache = await caches.open("mailhelp-shell-v1");
+          const cache = await caches.open("mailhelp-shell-v2");
           await cache.put("/offline.html", new Response("offline-seite"));
           const response = await respond(handlers.fetch, navigation("/status"));
           return response.text(); }""")
         assert offline == "offline-seite"
+    finally:
+        page.collect()
+        page.context.close()
+
+
+def test_push_notifications_show_fixed_texts_and_open_the_app(browser, mailhelp):
+    page = new_page(browser, "desktop", service_workers="block")
+    try:
+        page.page.route(f"{mailhelp.url}/__sw",
+                        lambda route: route.fulfill(body=HARNESS, content_type="text/html"))
+        page.page.goto(f"{mailhelp.url}/__sw")
+        result = page.evaluate("""async () => {
+          const shown = [], opened = [], navigated = [];
+          self.registration = { showNotification: (title, options) => { shown.push([title, options]); } };
+          const push = async (data) => { const waits = [];
+            handlers.push({ data, waitUntil: (promise) => waits.push(promise) }); await Promise.all(waits); };
+          const json = (value) => ({ json: () => value });
+          await push(json({ tag: "briefing", body: "Privater Betreff" }));
+          await push(json({ tag: "constructor" }));
+          await push(json({ tag: "unbekannt" }));
+          await push(null);
+          let windows = [];
+          clients.matchAll = () => Promise.resolve(windows);
+          clients.openWindow = (url) => { opened.push(url); return Promise.resolve(null); };
+          const click = async (data) => { const waits = []; let closed = false;
+            handlers.notificationclick({ notification: { data, close: () => { closed = true; } },
+                                         waitUntil: (promise) => waits.push(promise) });
+            await Promise.all(waits); return closed; };
+          const closed = await click({ kind: "briefing" });
+          windows = [{ url: "https://other.example/", focus: () => Promise.reject() },
+                     { url: location.origin + "/status",
+                       focus() { return Promise.resolve({ navigate: (url) => { navigated.push(url); } }); } }];
+          await click(undefined);
+          windows = [{ url: location.origin + "/", focus: () => Promise.resolve({
+                       navigate: () => Promise.reject(new TypeError("uncontrolled")) }) }];
+          await click({ kind: "__proto__" });
+          return { shown, opened, navigated, closed };
+        }""")
+        bodies = [(title, options["body"], options["tag"], options["data"]["kind"])
+                  for title, options in result["shown"]]
+        assert bodies == [
+            ("Mailhelp", "Dein Tagesüberblick ist verfügbar.", "mailhelp-briefing", "briefing"),
+            ("Mailhelp", "Neue Entscheidungen warten in Mailhelp.", "mailhelp-decisions", "decisions"),
+            ("Mailhelp", "Neue Entscheidungen warten in Mailhelp.", "mailhelp-decisions", "decisions"),
+            ("Mailhelp", "Neue Entscheidungen warten in Mailhelp.", "mailhelp-decisions", "decisions")]
+        assert result["closed"] and result["navigated"] == ["/offen"]
+        assert result["opened"] == ["/briefing", "/offen"]
+        assert page.errors == []
     finally:
         page.collect()
         page.context.close()

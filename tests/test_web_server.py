@@ -296,10 +296,12 @@ def test_web_runs_with_the_application_and_stops_with_it(tmp_path):
 
 @pytest.mark.parametrize("enabled", [True, False])
 def test_build_application_creates_the_web_server_only_when_enabled(tmp_path, monkeypatch, enabled):
+    sent = []
+
     class Resource:
         def __init__(self, *args, **kwargs): pass
         def close(self): pass
-        def send(self, *args): pass
+        def send(self, *args): sent.append(args)
 
     for name in ("ImapReader", "OpenRouterClient", "DecisionClient", "TelegramClient",
                  "HttpWriter", "GoogleOAuthTokenProvider"):
@@ -317,6 +319,11 @@ def test_build_application_creates_the_web_server_only_when_enabled(tmp_path, mo
         assert (made.dialog.commands is not None) is enabled
         if enabled:
             assert (made.web.host, made.web.port) == ("127.0.0.1", 8765)
+            # With Telegram, pairing codes are sent to the authorized chat.
+            auth = made.experience.site.auth
+            assert auth.channel == "telegram"
+            auth.request_code("n" * 32, "iPhone")
+            assert "Code " in sent[-1][1] and sent[-1][0] == cfg.telegram.chat_id
 
 
 @pytest.mark.parametrize("name", ["app.css", "app.js", "icon-192.png", "icon-512.png",

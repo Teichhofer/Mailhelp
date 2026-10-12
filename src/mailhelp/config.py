@@ -26,6 +26,7 @@ class ImapSettings(ConfigModel):
     historical_start: datetime | None = None
     batch_size: int = Field(default=25, ge=1, le=1000)
     global_newest_first: bool = False
+    drafts_folder: str = Field(default="Drafts", min_length=1, max_length=500, pattern=r"^[^\x00-\x1f\x7f]+$")
 
     @model_validator(mode="before")
     @classmethod
@@ -79,8 +80,9 @@ class ImapSettings(ConfigModel):
 
 
 class TelegramSettings(ConfigModel):
-    user_id: int = Field(gt=0)
-    chat_id: int
+    enabled: bool = True
+    user_id: int = Field(default=1, gt=0)
+    chat_id: int = 1
     sequential_questions: bool = True
 
 
@@ -295,6 +297,19 @@ class VisionSettings(ConfigModel):
     max_edge_pixels: int = Field(default=1600, ge=512, le=4096)
 
 
+class PushSettings(ConfigModel):
+    enabled: bool = False
+    subject: str = Field(default="mailto:admin@example.invalid", pattern=r"^mailto:[^\s@]+@[^\s@]+$")
+
+
+class DailyBriefingSettings(ConfigModel):
+    enabled: bool = False
+    time: str = Field(default="07:30", pattern=r"^(?:[01][0-9]|2[0-3]):[0-5][0-9]$")
+    include_calendar: bool = True
+    include_tasks: bool = True
+    include_open: bool = True
+
+
 class Settings(ConfigModel):
     timezone: str
     poll_interval_seconds: int = Field(ge=5, le=86400)
@@ -312,6 +327,18 @@ class Settings(ConfigModel):
     web: WebSettings = Field(default_factory=WebSettings)
     metrics: MetricsSettings = Field(default_factory=MetricsSettings)
     vision: VisionSettings = Field(default_factory=VisionSettings)
+    push: PushSettings = Field(default_factory=lambda: PushSettings())
+    daily_briefing: DailyBriefingSettings = Field(default_factory=lambda: DailyBriefingSettings())
+    smart_reply: bool = False
+    # Name, role, signature and similar facts the user wants in reply drafts.
+    # Trusted context for draft_reply only; tab and line breaks are the only control characters.
+    personal_info: str = Field(default="", max_length=2000, pattern=r"^[^\x00-\x08\x0b-\x1f\x7f]*$")
+
+    @model_validator(mode="after")
+    def standalone_needs_web(self):
+        if not self.telegram.enabled and not self.web.enabled:
+            raise ValueError("Ohne Telegram muss web.enabled aktiviert sein")
+        return self
 
     @field_validator("timezone")
     @classmethod
@@ -338,7 +365,7 @@ class Secrets(BaseModel):
     imap_username: str
     imap_password: SecretStr
     openrouter_api_key: SecretStr
-    telegram_bot_token: SecretStr
+    telegram_bot_token: SecretStr = SecretStr("")
     todoist_token: SecretStr
     todoist_client_id: SecretStr
     todoist_client_secret: SecretStr
@@ -518,7 +545,7 @@ class OllamaPromptSettings(ConfigModel):
 
 
 # Steps a prompts.yaml from an earlier release may lack; the feature is then off.
-OPTIONAL_PROMPT_STEPS = frozenset({"vision_ocr"})
+OPTIONAL_PROMPT_STEPS = frozenset({"vision_ocr", "draft_reply"})
 
 
 class PromptConfig(BaseModel):
@@ -636,6 +663,9 @@ def load_all(directory: Path, environ: dict[str, str] | None = None) -> tuple[Se
              "TODOIST_CLIENT_ID", "TODOIST_CLIENT_SECRET", "GOOGLE_OAUTH_CLIENT_ID",
              "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"]
     missing = [name for name in names if not env.get(name)]
+    if not settings.telegram.enabled:
+        names.remove("TELEGRAM_BOT_TOKEN")
+        missing = [name for name in missing if name != "TELEGRAM_BOT_TOKEN"]
     if missing:
         raise ValueError("Fehlende Geheimnisse: " + ", ".join(missing))
     values = {name.lower(): env[name] for name in names}

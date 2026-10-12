@@ -74,15 +74,29 @@ def notice(text: str, kind: str = "info") -> str:
     return f'<p class="notice notice-{kind}" role="{role}">{e(text)}</p>'
 
 
+# Where pairing codes appear: the Telegram chat or, without Telegram (2.0), the PC console.
+LOGIN_CHANNELS = {
+    "telegram": {"sent": "Der Code wurde an deinen Telegram-Chat gesendet.", "label": "Code aus Telegram",
+                 "intro": "Mailhelp sendet dir einen einmaligen Code in deinen Telegram-Chat.",
+                 "button": "Code per Telegram senden", "again": "Neuen Code senden"},
+    "console": {"sent": "Der Code steht im Konsolenfenster von Mailhelp auf dem PC "
+                        "(bei Docker: <code>docker compose logs mailhelp</code>).",
+                "label": "Code aus der Mailhelp-Konsole",
+                "intro": "Mailhelp zeigt einen einmaligen Code im Konsolenfenster auf dem PC an.",
+                "button": "Code in der Konsole anzeigen", "again": "Neuen Code anzeigen"},
+}
+
+
 def login_page(csrf: str, code_requested: bool, error: str | None = None,
-               code: str = "") -> str:
+               code: str = "", channel: str = "telegram") -> str:
     """Login; *code* pre-fills the field when the page was opened from the /web link."""
     message = notice(error, "error") if error else ""
+    text = LOGIN_CHANNELS[channel]
     if code_requested or code:
-        body = f"""<p>Der Code wurde an deinen Telegram-Chat gesendet. Er gilt 10 Minuten.</p>
+        body = f"""<p>{text["sent"]} Er gilt 10 Minuten.</p>
 <form method="post" action="/anmelden" class="stack">
 <input type="hidden" name="csrf" value="{e(csrf)}">
-<label for="code">Code aus Telegram</label>
+<label for="code">{text["label"]}</label>
 <input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{{4,5}}"
  maxlength="5" required autofocus value="{e(code)}">
 <label for="geraet">Gerätename <span class="hint">(optional)</span></label>
@@ -91,14 +105,13 @@ def login_page(csrf: str, code_requested: bool, error: str | None = None,
 </form>
 <form method="post" action="/anmelden/code" class="secondary-form">
 <input type="hidden" name="csrf" value="{e(csrf)}">
-<button class="button link" type="submit">Neuen Code senden</button>
+<button class="button link" type="submit">{text["again"]}</button>
 </form>"""
     else:
-        body = f"""<p>Dieses Gerät ist noch nicht gekoppelt. Mailhelp sendet dir einen einmaligen
-Code in deinen Telegram-Chat.</p>
+        body = f"""<p>Dieses Gerät ist noch nicht gekoppelt. {text["intro"]}</p>
 <form method="post" action="/anmelden/code" class="stack">
 <input type="hidden" name="csrf" value="{e(csrf)}">
-<button class="button primary" type="submit">Code per Telegram senden</button>
+<button class="button primary" type="submit">{text["button"]}</button>
 </form>"""
     return layout("Anmelden", f"""<section class="card narrow">
 <h1>Gerät koppeln</h1>

@@ -1,5 +1,20 @@
 # Änderungen
 
+## 2.0.0 – Beta (Branch `beta`)
+
+- **Einstellungshilfe:** Alle Web-Konfigurationswerte erhalten Info-Blasen zu Wirkung und Wertewahl, erreichbar per Maus, Tastatur und Antippen. Identische Texte mit Übernahmezeitpunkt stehen in [Web-Einstellungen](docs/Web-Einstellungen.md); Vollständigkeit und Übereinstimmung werden getestet.
+- **Auswahl in der Webübersicht (Bugfix):** Automatische und manuelle Aktualisierungen behalten den ausgewählten Vorgang im aktuellen Browser-Verlaufseintrag. Nur wenn er nicht mehr in der Liste vorhanden ist, wird der erste verbleibende Eintrag geöffnet. Regressionstest für wiederholte Hintergrundänderungen, Neuladen und entfernte Vorgänge.
+- **Neue Weboberfläche:** Split-View ab 1024 px (Liste links, Details rechts, ohne Seitenwechsel), einklappbare Sektionen für Quellbeleg, Revisionshistorie und technische Analyse, Schnellfilter (`?filter=events|tasks|clarification|attachments|duplicates`) auf `/offen`, `/mails` und `/verlauf`, Daumenzonen-Aktionsleiste mit 48-px-Schaltflächen, Tastenkürzel (`J`/`K`/`C`/`E`/`X`/`?`), 5-Sekunden-Rückgängig vor dem Absenden sowie ein „Alles erledigt“-Zustand mit Tagesbilanz. Alle Funktionen bleiben ohne JavaScript nutzbar.
+- **Bildanhänge im Browser:** Neu kodierte JPEG-Vorschauen (max. 1.600 px) unter `GET /mail/<id>/anhang/<index>` mit Sitzungsprüfung, `nosniff` und restriktiver CSP; zoombare Lightbox und erkannter Text. Vorschauen werden mit dem Mailtext gelöscht; ein Vorschaufehler hält die Analyse nie auf.
+- **Web-Push (`push.enabled`):** VAPID-Schlüssel im Datenverzeichnis, Opt-in je Gerät unter Einstellungen, nur bekannte Push-Dienste, keine Weiterleitungen, inhaltsneutrale Meldungen für neue Entscheidungen und den Tagesüberblick. Der Versand blockiert weder Weboberfläche noch Mailverarbeitung.
+- **Antwort-Entwürfe (`smart_reply`, Prompt `draft_reply`):** Die Mail- und Vorschlagsdetailseite zeigt immer „Zusagen“, „Absagen“ und „Rückfrage“. Ein Klick erzeugt per LLM genau einen passenden Entwurf (positiv, negativ, Rückfrage) in einem bearbeitbaren Textfeld; „Abbrechen“ verwirft ihn lokal, „Als Entwurf im Postfach speichern“ legt genau den angezeigten Text per IMAP `APPEND` mit `\Draft \Seen`, `In-Reply-To` und `References` in `imap.drafts_folder` ab. Keine Entwurfserzeugung im Hintergrund; doppelte Klicks lösen keinen zweiten LLM-Aufruf aus. Das Modell erhält die erkannten Anhangtexte (inklusive OCR) genau einmal und ohne technische Metadaten.
+- **Persönliche Angaben für Antworten (`personal_info`):** Neues mehrzeiliges Textfeld unter Einstellungen → Antworten (bis 2.000 Zeichen) für Name, Rolle, Signatur und Anrede-Wünsche. Wird nur dem Prompt `draft_reply` als vertrauenswürdiger Kontext übergeben, wirkt ohne Neustart und ändert keinen Analyse-Fingerprint. Mehrzeilige Werte schreibt der Einstellungseditor als einzeiligen YAML-Wert in `config.yaml`. Kein SMTP-Versand. Unklare Ergebnisse werden über die Message-ID abgeglichen und nur bei nachweislich fehlendem Entwurf wiederholt.
+- **Tagesüberblick (`daily_briefing`):** Einmal je lokalem Tag Termine, fällige Aufgaben und offene Entscheidungen, auch bei Teilausfällen; Text an Telegram, neutraler Hinweis per Push, Anzeige unter `/briefing`.
+- **Betrieb ohne Telegram (`telegram.enabled: false`):** Nur mit Weboberfläche; Kopplungscodes erscheinen in der Konsole des PCs, `TELEGRAM_BOT_TOKEN` entfällt.
+- **Fingerprints (Bugfix):** Die 2.0-Einstellungen gelangten in die Legacy-Fingerprints von 1.1/1.2; Mails aus diesen Versionen wären nach dem Upgrade hängen geblieben. Mit Regressionstest.
+- **Abhängigkeiten:** `pywebpush==2.5.0` samt Abhängigkeiten in `requirements.lock`; Docker-Image neu bauen.
+- Einrichtung, Upgrade und Rollback: [Release-2.0.md](docs/Release-2.0.md).
+
 ## 1.6.0 – Beta (Branch `beta`)
 
 - **Webdarstellung getrennt:** Vorschlags-, Mail- und Review-Seiten bleiben in `web/review_pages.py`; Betriebsstatus und Laufzeitformatierung liegen in `web/status_pages.py`. Bestehende Importe bleiben kompatibel.

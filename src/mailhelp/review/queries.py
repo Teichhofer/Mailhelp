@@ -15,6 +15,7 @@ from ..storage import CorruptState, JsonStore, mail_state_names
 class ArchiveQuery(BaseModel):
     model_config = ConfigDict(extra="forbid")
     q: str = Field(default="", max_length=200)
+    filter: Literal["", "events", "tasks", "clarification", "attachments", "duplicates"] = ""
     relevance: Literal["", "relevant", "irrelevant", "unclear", "unknown"] = ""
     topic: str = Field(default="", max_length=100)
     state: Literal["", "failed", "waiting", "completed", "no_action"] = ""
@@ -86,12 +87,17 @@ class ArchiveQueries:
                           "completed": state.steps.completion == "completed",
                           "statuses": [p.status.value for p in state.proposals],
                           "kinds": {p.id: p.kind.value for p in state.proposals},
+                          "attachments": bool(mail.get("extracted_attachments")),
+                          "duplicate": state.duplicate is not None,
                           "text_available": isinstance(mail.get("text"), str)})
         self._items, self._revision = items, self.store.archive_revision
 
     def search(self, query: ArchiveQuery) -> tuple[list[dict], int]:
         items = []
         for item in self.items():
+            from ..web.filters import matches
+            if not matches(query.filter, item["kinds"].values(), item["statuses"] + [item["relevance"]], item["attachments"], item["duplicate"]):
+                continue
             day = datetime.fromisoformat(item[query.sort] or item["updated"]).astimezone(self.zone).date()
             if query.q.casefold() not in " ".join([item["sender"], item["subject"], item["summary"]]).casefold():
                 continue

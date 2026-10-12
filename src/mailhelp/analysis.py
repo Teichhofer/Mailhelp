@@ -339,6 +339,21 @@ class Analyzer:
             schema=Relevance,
         )
 
+    def draft_reply(self, mail: dict[str, Any], intent: str, personal_info: str = ""):
+        """Reply draft for one requested intent (``accept``, ``decline``, ``question``).
+
+        The model sees the mail, every recognized attachment text (including OCR)
+        and the user's own ``personal_info``, but no technical metadata.
+        """
+        from .drafts import ReplyDraft
+        attachments = [{"filename": item.get("filename", "Anhang"), "text": item["text"].strip()}
+                       for item in mail.get("extracted_attachments", [])
+                       if item.get("extraction_status", "success") == "success" and item.get("text", "").strip()]
+        context = {"headers": {name: mail["headers"].get(name, "") for name in ("from", "subject", "date")},
+                   "text": mail.get("text", ""), "attachments": attachments,
+                   "calendar_events": mail.get("calendar_events", [])}
+        return self._run("draft_reply", ReplyDraft, context, {"intent": intent, "personal_info": personal_info})
+
     def summary(self, mail: dict[str, Any]) -> tuple[str, Summary]:
         return self._run("summary", Summary, self._enrich_mail_with_attachments(mail))
 

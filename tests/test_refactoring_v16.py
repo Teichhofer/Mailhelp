@@ -106,6 +106,16 @@ def test_renderer_output_is_byte_identical_to_release_15(tmp_path):
     expected = json.loads(Path(__file__).with_name("renderer_v15_hashes.json").read_text(encoding="utf-8"))
     with JsonStore(tmp_path) as store:
         pages = renderer_contract_pages(store, review_pages)
+    # 2.0 only wraps existing content: the open items (master list of the split view)
+    # and the mail of a proposal (collapsed source section). Without the wrappers
+    # every byte is still the same as in release 1.5.
+    overview, proposal = pages["overview"], pages["proposal"]
+    assert overview.count('<div class="open-items">') == 1
+    pages["overview"] = overview.replace('<div class="open-items">', "", 1).replace(
+        "</div>\n<h2>Zuletzt erledigt</h2>", "\n<h2>Zuletzt erledigt</h2>", 1)
+    wrapper = '<details class="disclosure"><summary>Quellbeleg aus E-Mail / Anhang</summary>'
+    assert proposal.count(wrapper) == 1 and proposal.count("</section></details>") == 1
+    pages["proposal"] = proposal.replace(wrapper, "", 1).replace("</section></details>", "</section>", 1)
     assert {name: hashlib.sha256(html.encode("utf-8")).hexdigest()
             for name, html in pages.items()} == expected
 

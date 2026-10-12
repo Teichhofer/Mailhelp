@@ -135,3 +135,35 @@ def test_the_mail_page_names_the_vision_outcome_per_attachment():
     assert '<span class="badge warn">Übersprungen (Symbol oder Logo)</span>' in html
     assert '<span class="badge warn">künftig</span>' in html
     assert "Nicht unterstütztes Format" not in html
+
+
+def test_preparation_caches_private_previews_without_vision(tmp_path):
+    """2.0: raster previews exist independently of OCR and are bound to the mail."""
+    from mailhelp.attachments import AttachmentCache
+    with JsonStore(tmp_path) as store:
+        result, _ = run(store, Reader(), vision=False)
+        mail_id = result.state["id"]
+        assert [item["preview"]["index"] for item in result.state["mail"]["extracted_attachments"]] == [0, 1]
+        assert AttachmentCache(store).read(mail_id, 1)[:2] == b"\xff\xd8"
+
+
+def test_a_failing_preview_never_stops_the_analysis(tmp_path, monkeypatch):
+    """Regression: a preview error (full disk, foreign store) must not fail the preparation."""
+    def full(*args): raise OSError("disk full")
+    monkeypatch.setattr("mailhelp.attachments.AttachmentCache.prepare", full)
+    log = Log()
+    with JsonStore(tmp_path) as store:
+        result, analyzer = run(store, Reader(), vision=False, log=log)
+    assert result.outcome is ProcessingOutcome.COMPLETED and analyzer.seen
+    assert ("WARNING", "preview_failed", {"mail_id": result.state["id"], "error_class": "OSError"}) in log.events
+
+    class ForeignStore:
+        """A store without a data directory (e.g. a wrapper) simply has no previews."""
+        def __init__(self, delegate): self.delegate = delegate
+        def load(self, *args): return self.delegate.load(*args)
+        def save(self, *args): self.delegate.save(*args)
+    monkeypatch.undo()
+    with JsonStore(tmp_path / "foreign") as store:
+        result, analyzer = run(ForeignStore(store), Reader(), vision=False)
+    assert result.outcome is ProcessingOutcome.COMPLETED
+    assert all("preview" not in item for item in result.state["mail"]["extracted_attachments"])

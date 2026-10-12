@@ -4,11 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mailhelp"
-version = "1.6.0"
+version = "2.0.0"
 description = "Persönlicher, bestätigungspflichtiger E-Mail-Assistent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
-dependencies = ["httpx==0.28.1", "pillow==12.2.0", "pydantic==2.11.7", "pypdf==6.20.0", "PyYAML==6.0.2", "tzdata==2026.4"]
+dependencies = ["httpx==0.28.1", "pillow==12.2.0", "pydantic==2.11.7", "pypdf==6.20.0", "PyYAML==6.0.2", "tzdata==2026.4", "pywebpush==2.5.0"]
 
 [project.optional-dependencies]
 test = ["pytest==8.4.1", "pytest-cov==6.2.1"]
@@ -44,5 +44,7 @@ include = [
   "/compose.yaml", "/Dockerfile", "/.dockerignore", "/CHANGELOG.md", "/docs/Release-1.0.md",
   "/docs/Release-1.1.md", "/docs/Release-1.2.md",
   "/docs/Release-1.6.md", "/docs/Architektur-1.6.md", "/docs/Planung-1.6.md",
+  "/docs/Web-Einstellungen.md",
+  "/docs/Release-2.0.md", "/docs/Planung-2.0.md", "/docs/Konzept-2.0-Redesign-und-Web-Push.md",
 ]
 

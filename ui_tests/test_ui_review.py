@@ -4,7 +4,7 @@ from __future__ import annotations
 from playwright.sync_api import expect
 
 from checks import audit
-from conftest import sign_in
+from conftest import item, sign_in
 from web_scenario import mail_id, proposal, save_mail
 
 
@@ -20,7 +20,7 @@ def test_overview_is_readable_and_mail_content_stays_inert(page, mailhelp):
     malicious = page.locator(f"#v-{mail_id(4)}-boese")
     expect(malicious).to_contain_text('Rechnung <script>alert("x")</script> prüfen')
     assert malicious.locator("a[href^='https://evil']").count() == 0
-    long_card = page.locator(f"#v-{mail_id(1)}-elternabend")
+    long_card = item(page, f"#v-{mail_id(1)}-elternabend")
     long_card.get_by_text("Beleg vollständig anzeigen").click()
     expect(long_card.locator("details .full")).to_be_visible()
     assert dialogs == [] and page.errors == []
@@ -29,8 +29,10 @@ def test_overview_is_readable_and_mail_content_stays_inert(page, mailhelp):
 def test_detail_and_status_pages(page, mailhelp):
     sign_in(page, mailhelp)
     page.get_by_role("link", name="Elternabend Klasse 4b").click()
-    expect(page.get_by_role("heading", name="Termin")).to_be_visible()
-    page.get_by_text("Beleg vollständig anzeigen").click()
+    # On the desktop the detail page appears in the split view next to the list.
+    scope = page.locator(".detail-pane") if page.device == "desktop" else page
+    expect(scope.get_by_role("heading", name="Termin")).to_be_visible()
+    scope.get_by_text("Beleg vollständig anzeigen").click()
     assert audit(page, f"detail-{page.device}", page.mobile) == []
     page.get_by_role("link", name="Status").click()
     expect(page.locator(".stat").filter(has_text="Warten auf dich")).to_contain_text("4")
