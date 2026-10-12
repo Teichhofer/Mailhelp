@@ -37,10 +37,28 @@ class ActivityService:
         self.store, self.clock = store, clock
         self.lock = RLock()
 
-    def create(self, definition: ReportDefinition, addresses: list[str], domains: list[str]) -> ActivityReport:
-        """A new report starts counting at once; reading content needs the explicit start."""
+    def create(self, definition: ReportDefinition, addresses: list[str], domains: list[str],
+               key: str | None = None) -> ActivityReport:
+        """A new report starts counting at once; reading content needs the explicit start.
+
+        With *key*, a repeated form submission returns the report it created first.
+        """
+        digest = hashlib.sha256(repr(("create", definition.model_dump(mode="json"))).encode()).hexdigest()
+        if key is not None and not _KEY.fullmatch(key):
+            raise ReportConflict("Ungültiger Idempotenzschlüssel")
         with self.lock:
-            return self.store.create(definition, addresses, domains)
+            if key is not None:
+                for existing in self.store.reports():
+                    done = existing.operations.get(key)
+                    if done is not None:
+                        if done != digest:
+                            raise ReportConflict("Idempotenzkonflikt")
+                        return existing
+            report = self.store.create(definition, addresses, domains)
+            if key is not None:
+                report.operations[key] = digest
+                self.store.save(report)
+            return report
 
     def _change(self, report_id: str, version: int, key: str, digest_input: tuple[Any, ...],
                 change: Callable[[ActivityReport], None]) -> ActivityReport:

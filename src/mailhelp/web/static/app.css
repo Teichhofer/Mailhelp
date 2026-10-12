@@ -431,3 +431,7 @@ th { color: var(--muted); font-weight: 600; }
   line-height: 1.5; overflow-wrap: anywhere; text-align: left; }
 .setting-help:not(.dismissed):hover .setting-tooltip,
 .setting-help:not(.dismissed):focus-within .setting-tooltip { display: block; }
+/* 2.2 activity reports */
+label.check { display: flex; align-items: center; gap: 8px; font-weight: 400; }
+.event-list { list-style: none; padding: 0; display: grid; gap: 10px; }
+.event-list .filters { align-items: end; }

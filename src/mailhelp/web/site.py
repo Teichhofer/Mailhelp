@@ -93,6 +93,8 @@ class MailhelpSite:
         self.senders = SenderSite(self)
         from .experience import ExperienceSite
         self.experience = ExperienceSite(self)
+        from .activity_site import ActivitySite
+        self.activity = ActivitySite(self)
 
     # --- helpers ------------------------------------------------------------------
 

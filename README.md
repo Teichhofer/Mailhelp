@@ -1241,6 +1241,12 @@ Ab 2.0 ist die Weboberfläche eine eigenständige App:
 
 Einrichtung und Upgrade: [Release-2.0.md](docs/Release-2.0.md).
 
+Ab 2.2 erstellt Mailhelp auf Wunsch **Tätigkeitsberichte** (`activity_report.enabled`):
+Unter „Berichte“ ein Thema und einen Zeitraum angeben; Mailhelp liest die Mails
+schreibfrei, lässt sie per KI auf das Thema prüfen, findet alle – auch vergangene –
+Termine und erstellt nach deiner Prüfung eine xlsx-Liste mit Termin, Datum,
+Betreff, Absender und Volltext. Details: [Release-2.2.md](docs/Release-2.2.md).
+
 ## Docker
 
 ```sh

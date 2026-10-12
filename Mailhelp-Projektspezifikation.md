@@ -1970,3 +1970,49 @@ Die Split-View behält den ausgewählten Vorgang bei automatischem und manuellem
 ### Erläuterungen zu Web-Einstellungen
 
 Jede angebotene Konfigurationseinstellung erhält eine kleine Info-Schaltfläche mit Erläuterungen zu Wirkung, Wertebereich und Folgen unterschiedlicher Werte. Die Hinweise sind über Hover, Tastaturfokus und Antippen erreichbar; Escape blendet sie aus. Sie stehen außerhalb des Bearbeitungsformulars und lösen keine Speicherung aus. Modelle und Browser-Push erhalten ergänzende Erklärungen. Der zentrale Hilfetextkatalog und die [Einstellungsreferenz](docs/Web-Einstellungen.md) müssen vollständig und inhaltlich identisch bleiben; automatisierte Tests prüfen dies sowie Bedienbarkeit und sichere HTML-Ausgabe.
+
+
+## 22. Version 2.2: Tätigkeitsbericht
+
+Mit `activity_report.enabled: true` und den Prompts `activity_relevance` und
+`activity_events` bietet die Weboberfläche unter `/berichte` Tätigkeitsberichte:
+Für ein Thema und einen Zeitraum (höchstens drei Jahre) liest Mailhelp die Mails
+der gewählten Ordner und standardmäßig der gesendeten Ordner, prüft jede per LLM
+auf das Thema und extrahiert aus relevanten Mails alle datierten Termine,
+ausdrücklich auch vergangene.
+
+- **Schreibfrei:** IMAP nur lesend (`BODY.PEEK`), keine Vorschläge, keine Einträge
+  in Kalender oder Todoist, keine Telegram-Nachrichten oder Pushes, keine
+  Änderung an `mail-*.json`, Duplikatindex oder UID-Checkpoints.
+- **Zweistufiger Start:** Ein neuer Bericht zählt nur die Mails des Zeitraums.
+  Inhalte werden erst nach der ausdrücklichen Aktion „Bericht kostenpflichtig
+  starten“ gelesen; die Seite nennt vorher die Mailzahl.
+- **Ausschlüsse ohne LLM-Aufruf:** ignorierte Absender (Stand bei Anlage; eine
+  gesendete Mail nur, wenn alle Empfänger ignoriert sind), Duplikate nach
+  Message-ID, zu große und unlesbare Mails, Mails mit verdächtigen Links und
+  optional automatische Mails (`Auto-Submitted`, `List-Unsubscribe`).
+- **Relevanz:** Prompt `activity_relevance` mit Berichtstitel, Thema und
+  `personal_info` als vertrauenswürdigem Kontext; die Mail ist nicht
+  vertrauenswürdig. Ergebnis: `relevant`, `confidence`, `reason`.
+- **Termine:** Prompt `activity_events`; jeder Termin braucht ein wörtliches Zitat
+  aus Betreff oder Text, sonst wird er verworfen. Termine außerhalb des Zeitraums
+  werden markiert, abgesagte nicht exportiert.
+- **Fortschritt und Kosten:** Jede Mail wird je Schritt höchstens einmal bewertet,
+  auch nach Neustarts; ein laufender Bericht ist nach einem Neustart pausiert.
+  Höchstwerte `max_mails` und `max_llm_calls` pausieren den Bericht; er nutzt
+  höchstens `max_share_of_llm_budget` von `limits.llm_calls_per_minute`.
+- **Korrekturen:** Relevanz umstellen, Termine bearbeiten, ausschließen oder
+  ergänzen. Jede Aktion prüft Sitzung, CSRF-Token, Berichtsversion und
+  Idempotenzschlüssel; auch das Anlegen ist idempotent. Der Fortschritt des
+  Hintergrundlaufs erhöht die Version nicht.
+- **xlsx-Export:** Blätter „Termine“ (eine Zeile je Quellmail, gleiche Termine
+  teilen die Termin-Nr.), „Ohne Termin“ (`export_mails_without_events`) und
+  „Bericht“. Textzellen sind nie Formeln; Steuerzeichen werden entfernt, Werte auf
+  Excels Zellgrenze gekürzt.
+- **Zustand und Aufbewahrung:** `activity-report-<id>.json` und Blöcke zu je 500
+  Mails `activity-mails-<id>-<n>.json`. Nach `retention.activity_report_days`
+  (Standard 365) entfernt die Aufbewahrung Volltexte und Belegzitate
+  abgeschlossener Berichte. Die Einstellungen und Prompts sind nicht Teil der
+  Analyse- oder Legacy-Fingerprints.
+
+Details: [Release-2.2.md](docs/Release-2.2.md).

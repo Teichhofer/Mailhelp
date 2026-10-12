@@ -2,7 +2,7 @@
 
 **Zielversion:** 2.2.0
 **Stand:** 12. Oktober 2026
-**Status:** Geplant, Entscheidungen getroffen (folgt auf 2.1.0)
+**Status:** Umgesetzt in 2.2.0 ([Release-2.2.md](Release-2.2.md))
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md),
 [Release-2.0.md](Release-2.0.md), [Planung-2.1.md](Planung-2.1.md)
 

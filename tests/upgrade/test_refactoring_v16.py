@@ -120,6 +120,10 @@ def test_renderer_output_is_byte_identical_to_release_15(tmp_path):
     wrapper = '<details class="disclosure"><summary>Quellbeleg aus E-Mail / Anhang</summary>'
     assert proposal.count(wrapper) == 1 and proposal.count("</section></details>") == 1
     pages["proposal"] = proposal.replace(wrapper, "", 1).replace("</section></details>", "</section>", 1)
+    # 2.2 adds one navigation entry for activity reports.
+    berichte = '<a href="/berichte">Berichte</a>'
+    assert all(html.count(berichte) == 1 for html in pages.values())
+    pages = {name: html.replace(berichte, "", 1) for name, html in pages.items()}
     assert {name: hashlib.sha256(html.encode("utf-8")).hexdigest()
             for name, html in pages.items()} == expected
 

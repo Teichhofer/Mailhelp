@@ -1,5 +1,14 @@
 # Änderungen
 
+## 2.2.0 – Beta (Branch `beta`), Tätigkeitsbericht
+
+- **Neu – Tätigkeitsbericht (`/berichte`):** Für ein Thema und einen Zeitraum liest Mailhelp die Mails der gewählten und der gesendeten Ordner schreibfrei, überspringt ignorierte Absender, Duplikate und verdächtige Mails, lässt jede übrige per KI auf das Thema prüfen (`activity_relevance`, mit `personal_info` als Kontext) und extrahiert aus relevanten Mails alle datierten Termine, auch vergangene (`activity_events`, wörtlicher Beleg je Termin). Zählen und kostenpflichtiger Start sind getrennt; Pausieren, Fortsetzen, Abbrechen und Neustart setzen an der nächsten Mail an.
+- **Prüfen und korrigieren:** Termine chronologisch mit Quellmail, relevante Mails ohne Termin, „Doch relevant“ für abgelehnte Mails, Termine bearbeiten, ausschließen und ergänzen – mit Sitzungs-, CSRF-, Versions- und Idempotenzprüfung, ohne JavaScript bedienbar.
+- **xlsx-Export:** Blätter „Termine“, „Ohne Termin“ und „Bericht“; Mailinhalte werden nie zu Formeln. Neue Abhängigkeit `openpyxl` (gepinnt).
+- **Konfiguration:** Abschnitt `activity_report` (standardmäßig aus) und `retention.activity_report_days` (365); neue Prompts in `prompts.yaml`. Kein Analyse-Fingerprint ändert sich.
+- **PWA:** Cache-Name `mailhelp-shell-v3`, damit installierte Apps das neue Stylesheet laden.
+- Details: [Release-2.2.md](docs/Release-2.2.md).
+
 ## 2.1.1 – Beta (Branch `beta`)
 
 - **Testkorrektur:** Der Kerntest prüfte noch die fest eingetragene Version 2.0.3 und brach in 2.1.0 vor seinen übrigen Prüfungen ab (Abdeckung 99,95 %). Er prüft jetzt nur das Format; die Übereinstimmung mit `pyproject.toml` sichert `test_release_package`.

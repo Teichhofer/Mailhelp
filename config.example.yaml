@@ -20,9 +20,20 @@ timezone: Europe/Berlin
 # ausdrücklichem Klick per IMAP APPEND in imap.drafts_folder; Mailhelp sendet nie.
 smart_reply: false
 # Eigene Angaben für Antwort-Entwürfe (Name, Rolle, Signatur, Anrede-/Stilwünsche),
-# höchstens 2.000 Zeichen. Gehen nur an den Prompt draft_reply; auch unter
-# Einstellungen → Antworten bearbeitbar und dort sofort wirksam.
+# höchstens 2.000 Zeichen. Gehen an die Prompts draft_reply und (ab 2.2) activity_relevance;
+# auch unter Einstellungen → Antworten bearbeitbar und dort sofort wirksam.
 personal_info: ""
+activity_report:
+  # 2.2: Tätigkeitsberichte unter /berichte. Ein Bericht liest die Mails eines Zeitraums
+  # nur (IMAP BODY.PEEK, keine Flags), prüft sie per LLM auf das Berichtsthema, findet
+  # Termine und erstellt eine xlsx-Liste. Nichts wird in Postfach, Kalender oder Todoist
+  # geschrieben. Benötigt die Prompts activity_relevance und activity_events.
+  enabled: false
+  max_mails: 2000                  # Bericht pausiert bei Erreichen
+  max_llm_calls: 3000              # Bericht pausiert bei Erreichen
+  max_share_of_llm_budget: 0.5     # Anteil von limits.llm_calls_per_minute
+  max_fulltext_chars: 30000        # Volltext je Mail in Bericht und xlsx (1000–32000)
+  export_mails_without_events: true  # Blatt „Ohne Termin“ in der xlsx-Liste
 push:
   # Web-Push (VAPID) für die App; nur über HTTPS oder localhost. Jedes Gerät schaltet
   # Push zusätzlich unter Einstellungen ein. Meldungen enthalten keine Mailinhalte.
@@ -48,6 +59,9 @@ retention:
   # analysis_days: 30
   # Ab 1.2: angezeigter Entscheidungsverlauf (Ereignisse, ältere Vorschlagsversionen).
   history_days: 90
+  # Ab 2.2: Volltexte und Belegzitate abgeschlossener Tätigkeitsberichte; Termine,
+  # Absender und Betreffe bleiben. Zahl, disabled (sofort) oder unlimited.
+  activity_report_days: 365
 metrics:
   # Ab 1.2: inhaltsfreie Messung von KI-Aufrufen (Dauer, Modell, Schritt, Kosten) für
   # die Seite „Auswertung“. Gespeichert in logs/metrics/.
