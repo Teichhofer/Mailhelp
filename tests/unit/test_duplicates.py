@@ -3,6 +3,7 @@ from email.message import EmailMessage
 from mailhelp.config import Topic
 from mailhelp.imap import FetchedMail
 from mailhelp.models import DuplicateIndex, MailState, ProposalStatus
+from mailhelp.mail_duplicates import DuplicateMailCheck
 from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.storage import JsonStore
 
@@ -133,7 +134,7 @@ def test_incomplete_candidate_and_identifier_normalization_are_conservative(tmp_
 
         prepared = {"headers": {"from": "", "subject": "", "date": "", "message_id": ""},
                     "text": "", "message_ids": ["bad", "<x@example.test>", "<X@EXAMPLE.TEST>", "<" + "x" * 999 + ">@x>"]}
-        identifiers, fingerprint, count = Orchestrator._duplicate_identity(prepared)
+        identifiers, fingerprint, count = DuplicateMailCheck.identity(prepared)
         assert identifiers == ["<x@example.test>"] and len(fingerprint) == 64 and count == 4
 
 

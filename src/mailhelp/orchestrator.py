@@ -3,30 +3,20 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 import time
-import traceback
-from dataclasses import dataclass
 from datetime import datetime, timezone
-from enum import StrEnum
 from threading import Event
 from typing import Any, Protocol
 
-from .analysis import (Analyzer, LlmInvalidJson, LlmProviderResponseInvalid,
-                       LlmSchemaValidationExceeded, TechnicalRevisionError)
-from .adapter import PermanentError
+from .analysis import (Analyzer)
 from .config import TargetSettings, Topic
 from .action_normalization import MailDateContext
 from .proposal_builder import ProposalBuilder
 from .imap import FetchedMail
-from .mime import MimeLimitExceeded, extract_display_headers, prepare
-from .domain.proposal import ProposalStatus
-from .models import (DisplayHeaders, DuplicateDecision, DuplicateIndex, DuplicateIndexEntry, ExtractionCountConflict, IrrelevantSenders, MailState, ProcessingError, ProcessingErrorCode, ProcessingStage,
-                     Proposal, Relevance, RelevanceDialog, RelevanceDialogStatus,
-                     ProposalNotification, ValidationIssue)
+from .models import (ExtractionCountConflict, IrrelevantSenders, MailState, ProcessingError, ProcessingErrorCode, ProcessingStage,
+                     Proposal, Relevance, RelevanceDialog, RelevanceDialogStatus)
 from .precheck import DuplicatePreCheckService
 from .storage import JsonStore
-from .openrouter import RateLimitExceeded
 from .logging import EventLogger, NullLogger
 from .sender_filter import is_irrelevant_sender
 from .telegram.formatting import mail_line
@@ -34,50 +24,16 @@ from .vision import VisionExtractor
 from . import state_names
 
 
+from .mail_duplicates import DuplicateMailCheck
+from .mail_pipeline import MailPipeline
+from .mail_pipeline import ProcessingOutcome, ProcessingResult, ProcessingRun
+from .mail_questions import MailQuestions
+
 class Notifier(Protocol):
     def send(self, chat_id: int, text: str) -> None: ...
     def send_proposal(self, proposal: Any) -> None: ...
     def send_relevance(self, dialog: RelevanceDialog, sender: str, subject: str) -> None: ...
     def awaiting_decision(self) -> bool: ...
-
-
-class ProcessingOutcome(StrEnum):
-    """Extern sichtbares Ergebnis eines Verarbeitungsversuchs."""
-
-    COMPLETED = "completed"
-    COMPLETED_WITH_ACTION_ERROR = "completed_with_action_error"
-    WAITING = "waiting"
-    FAILED = "failed"
-
-
-@dataclass(frozen=True)
-class ProcessingResult:
-    outcome: ProcessingOutcome
-    state: dict[str, Any]
-
-    @property
-    def user_action_open(self) -> bool:
-        return self.outcome is ProcessingOutcome.WAITING or any(
-            item["status"] in {"pending_confirmation", "needs_clarification"}
-            for item in self.state.get("proposals", [])
-        )
-
-    def __getitem__(self, key: str) -> Any:
-        """Keep state inspection concise while making the outcome explicit."""
-        return self.state[key]
-
-    def __contains__(self, key: object) -> bool:
-        return key in self.state
-
-
-# Lifecycle fields change on every revision; only the remaining facts show
-# whether an answer actually changed the proposal.
-_REVISION_LIFECYCLE_FIELDS = {"version", "status", "open_questions"}
-
-
-def _revision_effective(previous: Proposal, revised: Proposal) -> bool:
-    return (previous.model_dump(mode="json", exclude=_REVISION_LIFECYCLE_FIELDS)
-            != revised.model_dump(mode="json", exclude=_REVISION_LIFECYCLE_FIELDS))
 
 
 class Orchestrator:
@@ -97,8 +53,11 @@ class Orchestrator:
         self.sender_store = sender_store or store
         self.precheck = precheck or DuplicatePreCheckService(logger=self.logger)
         self.vision = vision
+        self.pipeline = MailPipeline(self)
+        self.duplicates = DuplicateMailCheck(self)
+        self.questions = MailQuestions(self)
 
-    def _build_proposals(self, state: MailState) -> list[Proposal]:
+    def build_proposals(self, state: MailState) -> list[Proposal]:
         """Cross from untrusted extracted facts into application-owned proposals."""
         mail = state.prepared
         assert mail is not None
@@ -120,80 +79,7 @@ class Orchestrator:
             calendar_events=mail.calendar_events,
         )
 
-    def _resolve_questions_from_mail(self, name: str, state: MailState) -> None:
-        """Resolve consecutive open questions from the source mail before Telegram."""
-        assert state.mail is not None
-        for index, initial in enumerate(state.proposals):
-            proposal = initial
-            while proposal.open_questions:
-                question = proposal.open_questions[0]
-                if question.startswith("Wie viele "):
-                    # A model must not resolve its own contradictory counts.
-                    break
-                call, interpretation = self.analyzer.answer_question_from_mail(
-                    state.mail, proposal, question)
-                state.llm_call_ids.append(call)
-                self._save(name, state)
-                if not interpretation.usable:
-                    self._question_unanswered(state, proposal, question, call,
-                                              "not_answered_by_mail", None)
-                    break
-                assert interpretation.normalized_answer is not None
-                try:
-                    revision_call, revised = self._revise_from_mail(
-                        state, proposal, question, interpretation.normalized_answer)
-                except ValueError as exc:
-                    # Transient provider failures keep their retry semantics.
-                    # A contradictory or unrepairable revision only leaves this
-                    # question open for Telegram instead of failing the mail.
-                    if (isinstance(exc, TechnicalRevisionError)
-                            and not isinstance(exc, LlmSchemaValidationExceeded)):
-                        raise
-                    self._question_unanswered(state, proposal, question, call,
-                                              "revision_failed", type(exc).__name__)
-                    break
-                if revision_call is not None:
-                    state.llm_call_ids.append(revision_call)
-                    self._save(name, state)
-                if not _revision_effective(proposal, revised):
-                    # Never report a question as resolved when nothing changed;
-                    # the unchanged predecessor keeps the question open.
-                    self._question_unanswered(state, proposal, question, call,
-                                              "revision_without_effect", None)
-                    break
-                proposal = revised
-                state.proposals[index] = proposal
-                self._save(name, state)
-                self.logger.event(
-                    "INFO", "orchestrator", "mail_question_resolved",
-                    mail_id=state.id, proposal_id=proposal.id,
-                    proposal_version=proposal.version, question=question,
-                    interpretation_call_id=call, revision_call_id=revision_call,
-                )
-
-    def _revise_from_mail(self, state: MailState, proposal: Proposal, question: str,
-                          answer: str) -> tuple[str | None, Proposal]:
-        """Apply clear date and clock answers deterministically before the LLM."""
-        # Imported lazily: the telegram package owns the conservative parser.
-        from .telegram.temporal import deterministic_temporal_revision
-        mail = state.prepared
-        assert mail is not None
-        deterministic = deterministic_temporal_revision(
-            proposal, question, answer, mail.user_timezone or self.user_timezone)
-        if deterministic is not None:
-            return None, deterministic
-        return self.analyzer.revise_proposal(proposal, question, answer)
-
-    def _question_unanswered(self, state: MailState, proposal: Proposal, question: str,
-                             call: str, reason: str, error_class: str | None) -> None:
-        self.logger.event(
-            "INFO", "orchestrator", "mail_question_unanswered",
-            mail_id=state.id, proposal_id=proposal.id,
-            proposal_version=proposal.version, question=question,
-            call_id=call, reason=reason, error_class=error_class,
-        )
-
-    def _record_count_conflict(self, name: str, state: MailState, category: str,
+    def record_count_conflict(self, name: str, state: MailState, category: str,
                                expected: int, actual: int, router_call_id: str,
                                extractor_call_id: str) -> None:
         if expected == actual:
@@ -207,7 +93,7 @@ class Orchestrator:
             router_call_id=router_call_id, extractor_call_id=extractor_call_id,
         )
         state.extraction_count_conflicts.append(conflict)
-        self._save(name, state)
+        self.save(name, state)
         self.logger.event("WARNING", "orchestrator", "extraction_count_conflict",
                           mail_id=state.id, category=category, expected_count=expected,
                           actual_count=actual, router_call_id=router_call_id,
@@ -215,33 +101,10 @@ class Orchestrator:
 
     def stop(self) -> None: self.stop_event.set()
 
-    @staticmethod
-    def _duplicate_identity(mail: dict[str, Any]) -> tuple[list[str], str, int]:
-        """Derive bounded identifiers and a one-way digest, never stored content.
-
-        Works on the stored dict on purpose: the digest is kept in the
-        duplicate index and must stay bit-identical across releases.
-        """
-        values = mail.get("message_ids", [mail["headers"].get("message_id", "")])
-        normalized: list[str] = []
-        for value in values:
-            compact = re.sub(r"\s+", "", str(value)).casefold()
-            if len(compact) <= 998 and re.fullmatch(r"<[^<>@\s]+@[^<>@\s]+>", compact) and compact not in normalized:
-                normalized.append(compact)
-        stable = {
-            "from": str(mail["headers"].get("from", "")).casefold(),
-            "subject": str(mail["headers"].get("subject", "")).casefold(),
-            "date": str(mail["headers"].get("date", "")),
-            "text": str(mail.get("text", "")),
-        }
-        digest = hashlib.sha256(json.dumps(stable, ensure_ascii=False, sort_keys=True,
-                                           separators=(",", ":")).encode()).hexdigest()
-        return normalized, digest, len(values)
-
-    def _load_model(self, name: str, model: type[Any], default: Any = None) -> Any:
+    def load_model(self, name: str, model: type[Any], default: Any = None) -> Any:
         return self.store.load_model(name, model, default)
 
-    def _cache_previews(self, state: MailState, raw: bytes) -> None:
+    def cache_previews(self, state: MailState, raw: bytes) -> None:
         """Image previews are optional; a failure never stops the analysis."""
         from .attachments import AttachmentCache
         try:
@@ -250,16 +113,16 @@ class Orchestrator:
             self.logger.event("WARNING", "orchestrator", "preview_failed", mail_id=state.id,
                               error_class=type(exc).__name__)
 
-    def _blocked_senders(self) -> IrrelevantSenders:
+    def blocked_senders(self) -> IrrelevantSenders:
         blocked = (
-            self._load_model("irrelevant-senders", IrrelevantSenders, IrrelevantSenders())
+            self.load_model("irrelevant-senders", IrrelevantSenders, IrrelevantSenders())
             if self.sender_store is self.store else
             self.sender_store.load_model("irrelevant-senders", IrrelevantSenders, IrrelevantSenders())
         )
         assert isinstance(blocked, IrrelevantSenders)
         return blocked
 
-    def _read_images(self, name: str, state: MailState, raw: bytes) -> None:
+    def read_images(self, name: str, state: MailState, raw: bytes) -> None:
         """Vision OCR before relevance; progress is saved per attachment.
 
         It runs at most once per mail, never for a blocked sender and only while
@@ -271,7 +134,7 @@ class Orchestrator:
             return
         if not raw:
             metadata["vision"] = "unavailable"
-        elif is_irrelevant_sender(state.prepared.headers.sender, self._blocked_senders()):
+        elif is_irrelevant_sender(state.prepared.headers.sender, self.blocked_senders()):
             metadata["vision"] = "skipped_sender"
         else:
             attachments = state.mail.get("extracted_attachments", [])
@@ -279,87 +142,16 @@ class Orchestrator:
                 attachments[update.index] = update.attachment
                 if update.call_id is not None:
                     state.llm_call_ids.append(update.call_id)
-                self._save(name, state)
+                self.save(name, state)
                 self.logger.event("WARNING" if update.error else "INFO", "orchestrator",
                                   "vision_attachment", mail_id=state.id, attachment=update.index,
                                   outcome=update.attachment["vision"], call_id=update.call_id,
                                   error_type=update.error,
                                   characters=update.attachment.get("character_count", 0))
             metadata["vision"] = "completed"
-        self._save(name, state)
+        self.save(name, state)
 
-    def _check_duplicate(self, name: str, state: MailState) -> bool:
-        """Persist a conservative decision before any LLM call; return whether to skip."""
-        assert state.mail is not None
-        message_ids, fingerprint, message_id_headers = self._duplicate_identity(state.mail)
-        index = self._load_model("duplicate-index", DuplicateIndex, DuplicateIndex())
-        assert isinstance(index, DuplicateIndex)
-        # The index is the durable processed-mail marker.  Include an entry for
-        # this technical identity when its MailState no longer exists (for
-        # example after an operator cleanup); excluding it would incorrectly
-        # turn the same stable mail id into a new message.
-        candidates = [entry for entry in index.entries
-                      if entry.imap.account_id == state.imap.account_id]
-        others = [entry for entry in candidates if entry.mail_id != state.id]
-        same_identity = next((entry for entry in candidates if entry.mail_id == state.id), None)
-        matching_ids = [entry for entry in others if set(entry.message_ids) & set(message_ids)]
-        matching_fingerprints = [entry for entry in others if entry.content_fingerprint == fingerprint]
-
-        if state.duplicate is None:
-            candidate: DuplicateIndexEntry | None = None
-            reason = "no_match"
-            outcome = "new"
-            if (same_identity is not None
-                    and same_identity.message_ids == message_ids
-                    and same_identity.content_fingerprint == fingerprint):
-                candidate = same_identity
-                outcome, reason = "duplicate", "same_message"
-            elif same_identity is not None:
-                candidate = same_identity
-                outcome = "ambiguous"
-                reason = ("message_id_reused"
-                          if set(same_identity.message_ids) & set(message_ids)
-                          else "fingerprint_collision")
-            elif message_id_headers != 1 or len(message_ids) != 1:
-                candidate = (matching_ids or matching_fingerprints or [None])[0]
-                if candidate is not None:
-                    outcome = "ambiguous"
-                reason = "multiple_message_ids" if message_id_headers > 1 else "missing_message_id"
-            elif matching_ids:
-                candidate = matching_ids[0]
-                completed = []
-                for entry in matching_ids:
-                    previous = self._load_model(state_names.mail(entry.mail_id), MailState)
-                    completed.append(isinstance(previous, MailState) and previous.steps.completion == "completed")
-                if all(entry.content_fingerprint == fingerprint for entry in matching_ids) and all(completed):
-                    outcome, reason = "duplicate", "same_message"
-                elif not all(completed):
-                    outcome, reason = "ambiguous", "candidate_incomplete"
-                else:
-                    outcome, reason = "ambiguous", "message_id_reused"
-            elif matching_fingerprints:
-                candidate = matching_fingerprints[0]
-                outcome, reason = "ambiguous", "fingerprint_collision"
-            state.duplicate = DuplicateDecision(outcome=outcome, reason=reason,
-                                                previous_mail_id=candidate.mail_id if candidate else None)
-            if outcome == "duplicate":
-                state.steps.relevance = state.steps.summary = state.steps.action_detection = "skipped"
-                state.steps.action_router = state.steps.task_extraction = state.steps.event_extraction = "skipped"
-                state.steps.normalization = state.steps.proposal_building = "skipped"
-                state.steps.summary_notification = state.steps.proposal_notification = "skipped"
-                state.steps.completion = "completed"
-            self._save(name, state)
-            self.logger.event("INFO", "orchestrator", "duplicate_checked", mail_id=state.id,
-                              outcome=outcome, reason=reason,
-                              previous_mail_id=candidate.mail_id if candidate else None)
-
-        entry = DuplicateIndexEntry(mail_id=state.id, imap=state.imap, message_ids=message_ids,
-                                    content_fingerprint=fingerprint)
-        index.entries = [item for item in index.entries if item.mail_id != state.id] + [entry]
-        self.store.save("duplicate-index", index.model_dump(mode="json"))
-        return state.duplicate.outcome == "duplicate"
-
-    def _notification_text(self, state: MailState) -> str:
+    def notification_text(self, state: MailState) -> str:
         """Format the compact mail notification from validated display values."""
         assert state.mail is not None and state.relevance is not None and state.summary is not None
         headers = state.prepared.headers
@@ -391,7 +183,7 @@ class Orchestrator:
             "schema_version": 1, "policy": self.topic_policy,
             "topics": [topic.model_dump() for topic in topics]})
 
-    def _save(self, name: str, state: MailState) -> None:
+    def save(self, name: str, state: MailState) -> None:
         state.updated_at = datetime.now(timezone.utc)
         self.store.save(name, state.model_dump(mode="json"))
         from .review.archive import record_analysis
@@ -400,7 +192,7 @@ class Orchestrator:
         self.logger.event("DEBUG", "orchestrator", "state_persisted", mail_id=state.id,
                           state=state.steps.model_dump(mode="json"), awaiting_relevance=state.awaiting_relevance, failed=state.error is not None)
 
-    def _failure(self, name: str, state: MailState, code: ProcessingErrorCode,
+    def failure(self, name: str, state: MailState, code: ProcessingErrorCode,
                  stage: ProcessingStage, text: str, retryable: bool | None = None) -> None:
         """Mark before sending, and retain a matching generation across restarts."""
         now = datetime.now(timezone.utc)
@@ -408,10 +200,10 @@ class Orchestrator:
         if previous is None or previous.code != code or previous.stage != stage:
             state.error = ProcessingError(code=code, stage=stage, occurred_at=now, retryable=retryable)
         if state.error.notification_marked_at is not None:
-            self._save(name, state)
+            self.save(name, state)
             return
         state.error.notification_marked_at = now
-        self._save(name, state)
+        self.save(name, state)
         if state.prepared is not None:
             sender, subject = state.prepared.headers.sender, state.prepared.headers.subject
         else:
@@ -449,13 +241,34 @@ class Orchestrator:
             state.steps.completion = "completed"
         else:
             state.steps.summary_notification = "pending"
-        self._save(name, state)
+        self.save(name, state)
         return state
 
     def resume_mail(self, state: MailState) -> ProcessingResult:
         return self.process(FetchedMail(state.imap.folder, state.imap.uidvalidity, state.imap.uid, b"", state.imap.account_id))
 
     def process(self, fetched: FetchedMail) -> ProcessingResult:
+        run = self._begin(fetched)
+        if isinstance(run, ProcessingResult):
+            return run
+        try:
+            early = self.pipeline.advance(run, fetched)
+            if early is not None:
+                return early
+            run.stage = ProcessingStage.COMPLETION
+            run.state.steps.completion = "completed"
+            run.state.error = None
+            self.save(run.name, run.state)
+            self.logger.event("INFO", "orchestrator", "processing_completed", mail_id=run.state.id,
+                              duration_ms=round((time.perf_counter() - run.started) * 1000, 3))
+        except Exception as exc:
+            outcome = self.pipeline.handle_failure(run, exc)
+        else:
+            outcome = ProcessingOutcome.COMPLETED
+        return ProcessingResult(outcome, run.state.model_dump(mode="json"))
+
+    def _begin(self, fetched: FetchedMail) -> ProcessingRun | ProcessingResult:
+        """Load or create the mail state; a result means nothing is to be done now."""
         identity = f"{fetched.account_id}:{fetched.folder}:{fetched.uidvalidity}:{fetched.uid}"
         internal_id = hashlib.sha256(identity.encode()).hexdigest()[:24]
         started = time.perf_counter()
@@ -478,283 +291,9 @@ class Orchestrator:
         if state.steps.completion == "completed" and state.steps.action_detection != "failed":
             self.logger.event("DEBUG", "orchestrator", "processing_already_completed", mail_id=state.id)
             return ProcessingResult(ProcessingOutcome.COMPLETED, state.model_dump(mode="json"))
-        stage = ProcessingStage.PREPARATION
-        try:
-            if state.steps.preparation == "pending":
-                if state.display_headers is None:
-                    display = extract_display_headers(fetched.raw, self.max_bytes)
-                    state.display_headers = DisplayHeaders(sender=display["from"], subject=display["subject"])
-                    self._save(name, state)
-                state.mail = prepare(fetched.raw, self.max_bytes, fetched.received_at, self.user_timezone)
-                state.mail["internal_id"] = internal_id
-                self._cache_previews(state, fetched.raw)
-                state.steps.preparation = "completed"
-                self._save(name, state)
-                self.logger.event("INFO", "orchestrator", "preparation_completed", mail_id=state.id,
-                                  preparation_metadata=state.mail["metadata"])
-            assert state.mail is not None
-            if self._check_duplicate(name, state):
-                self.logger.event("INFO", "orchestrator", "duplicate_skipped", mail_id=state.id,
-                                  previous_mail_id=state.duplicate.previous_mail_id)
-                return ProcessingResult(ProcessingOutcome.COMPLETED, state.model_dump(mode="json"))
-            if self.vision is not None and state.steps.relevance == "pending":
-                self._read_images(name, state, fetched.raw)
-            stage = ProcessingStage.RELEVANCE
-            if state.steps.relevance == "pending":
-                if is_irrelevant_sender(state.prepared.headers.sender, self._blocked_senders()):
-                    state.relevance = Relevance(
-                        decision="irrelevant", topic_ids=[], reason="Absender-Vorfilter"
-                    )
-                    call = None
-                    self.analyzer.last_relevance_source = "prefilter"
-                else:
-                    call, state.relevance = self.analyzer.relevance(state.mail, self.topics_for(state.config_fingerprint))
-                    state.llm_call_ids.append(call)
-                state.steps.relevance = "completed"
-                self._save(name, state)
-                self.logger.event("INFO", "orchestrator", "relevance_completed", mail_id=state.id,
-                                  call_id=call, sender_prefilter=call is None)
-            assert state.relevance is not None
-            if state.relevance.decision == "irrelevant":
-                state.steps.summary = "skipped"
-                state.steps.action_detection = "skipped"
-                state.steps.action_router = state.steps.task_extraction = state.steps.event_extraction = "skipped"
-                state.steps.normalization = state.steps.proposal_building = "skipped"
-                state.steps.duplicate_precheck = "skipped"
-                state.steps.summary_notification = state.steps.proposal_notification = "skipped"
-            elif state.relevance.decision == "unclear":
-                if state.steps.summary_notification == "pending":
-                    state.relevance_dialog = RelevanceDialog(mail_id=state.id)
-                    state.awaiting_relevance = True
-                    self._save(name, state)
-                    headers = state.prepared.headers
-                    self.notifier.send_relevance(
-                        state.relevance_dialog,
-                        headers.sender or "—",
-                        headers.subject or "—",
-                    )
-                    state.steps.summary_notification = "completed"
-                    state.steps.proposal_notification = "skipped"
-                    self._save(name, state)
-                    self.logger.event("INFO", "orchestrator", "notification_completed", mail_id=state.id)
-                return ProcessingResult(ProcessingOutcome.WAITING, state.model_dump(mode="json"))
-            else:
-                stage = ProcessingStage.SUMMARY
-                if state.steps.summary == "pending":
-                    call, summary = self.analyzer.summary(state.mail)
-                    state.summary = summary
-                    state.llm_call_ids.append(call)
-                    state.steps.summary = "completed"
-                    self._save(name, state)
-                    self.logger.event("INFO", "orchestrator", "summary_completed", mail_id=state.id, call_id=call)
-                stage = ProcessingStage.SUMMARY_NOTIFICATION
-                if state.steps.summary_notification == "pending":
-                    # ``sending`` is a durable uncertainty marker.  A crash after
-                    # Telegram accepted the call must not cause an automatic duplicate.
-                    state.steps.summary_notification = "sending"
-                    self._save(name, state)
-                    self.notifier.send(self.chat_id, self._notification_text(state))
-                    state.steps.summary_notification = "completed"
-                    self._save(name, state)
-                stage = ProcessingStage.ACTION_DETECTION
-                if state.steps.action_detection in {"pending", "failed"}:
-                    if state.steps.action_router in {"pending", "failed"}:
-                        stage = ProcessingStage.ACTION_ROUTER
-                        call, route = self.analyzer.action_route(state.mail)
-                        state.action_route = route
-                        state.action_router_call_id = call
-                        state.llm_call_ids.append(call)
-                        state.steps.action_router = "completed"
-                        self._save(name, state)
-                    else:
-                        assert state.action_route is not None
-                        route = state.action_route
-                    assert state.action_router_call_id is not None
-                    # Extraction is read-only. A candidate counted by an unclear
-                    # route should therefore become a reviewable proposal too.
-                    wants_tasks = (route.action_state in {"task", "task_and_event"}
-                                   or route.task_count > 0)
-                    # An event candidate must not disappear merely because the
-                    # router is unsure whether the message is an invitation.  The
-                    # extractor and proposal boundary preserve that uncertainty,
-                    # while Telegram still receives the detected appointment.
-                    has_cal_events = bool(state.prepared.calendar_events)
-                    wants_llm_events = (route.action_state in {"event", "task_and_event"}
-                                        or route.event_count > 0)
-                    wants_events = wants_llm_events or has_cal_events
-                    if wants_tasks and state.steps.task_extraction in {"pending", "failed"}:
-                        stage = ProcessingStage.TASK_EXTRACTION
-                        call, extraction = self.analyzer.extract_tasks(
-                            state.mail, expected_count=route.task_count)
-                        state.task_extraction = extraction
-                        state.llm_call_ids.append(call)
-                        state.steps.task_extraction = "completed"
-                        self._save(name, state)
-                        self._record_count_conflict(name, state, "task", route.task_count,
-                                                    len(extraction.tasks),
-                                                    state.action_router_call_id, call)
-                    if not wants_tasks:
-                        state.steps.task_extraction = "skipped"
-                        self._save(name, state)
-                    if wants_llm_events and state.steps.event_extraction in {"pending", "failed"}:
-                        stage = ProcessingStage.EVENT_EXTRACTION
-                        call, extraction = self.analyzer.extract_events(
-                            state.mail, expected_count=route.event_count)
-                        state.event_extraction = extraction
-                        state.llm_call_ids.append(call)
-                        state.steps.event_extraction = "completed"
-                        self._save(name, state)
-                        self._record_count_conflict(name, state, "event", route.event_count,
-                                                    len(extraction.events),
-                                                    state.action_router_call_id, call)
-                    elif not wants_llm_events:
-                        state.steps.event_extraction = "skipped"
-                        self._save(name, state)
-                    stage = ProcessingStage.NORMALIZATION
-                    if state.steps.normalization in {"pending", "failed"}:
-                        state.normalized_proposals = self._build_proposals(state) if (wants_tasks or wants_events) else []
-                        state.steps.normalization = "completed"
-                        self._save(name, state)
-                    stage = ProcessingStage.PROPOSAL_BUILDING
-                    if state.steps.proposal_building in {"pending", "failed"}:
-                        state.proposals = [Proposal.model_validate(item.model_dump(mode="json"))
-                                           for item in state.normalized_proposals]
-                        state.steps.proposal_building = "completed"
-                        self._save(name, state)
-                    self._resolve_questions_from_mail(name, state)
-                    stage = ProcessingStage.DUPLICATE_PRECHECK
-                    if state.steps.duplicate_precheck in {"pending", "failed"}:
-                        state.proposals = [
-                            self.precheck.check_proposal(p, mail_context=state.mail)
-                            for p in state.proposals
-                        ]
-                        state.steps.duplicate_precheck = "completed"
-                        self._save(name, state)
-                    state.proposal_notifications = [
-                        ProposalNotification(
-                            proposal_id=item.id,
-                            proposal_version=item.version,
-                            status="completed" if item.status == ProposalStatus.ALREADY_EXISTS else "pending",
-                        )
-                        for item in state.proposals
-                    ]
-                    state.steps.action_detection = "completed"
-                    self._save(name, state)
-                    self.logger.event("INFO", "orchestrator", "actions_completed", mail_id=state.id,
-                                      action_state=route.action_state,
-                                      proposal_ids=[item.id for item in state.proposals])
-                stage = ProcessingStage.PROPOSAL_NOTIFICATION
-                if state.steps.proposal_notification in {"pending", "sending"}:
-                    first_attempt = state.steps.proposal_notification == "pending"
-                    if first_attempt:
-                        state.steps.proposal_notification = "sending"
-                        self._save(name, state)
-                    if (first_attempt and state.action_route is not None
-                            and state.action_route.action_state == "unclear"):
-                        self.notifier.send(
-                            self.chat_id,
-                            "Mögliche Aufgabe oder möglicher Termin benötigt fachliche Klärung: "
-                            + state.action_route.reason,
-                        )
-                    for conflict in state.extraction_count_conflicts:
-                        if conflict.notification_marked_at is not None:
-                            continue
-                        # Mark before delivery: an uncertain Telegram result must
-                        # never lead to an automatic duplicate after restart.
-                        conflict.notification_marked_at = datetime.now(timezone.utc)
-                        self._save(name, state)
-                        self.notifier.send(
-                            self.chat_id,
-                            f"Zählerabweichung für {conflict.category}: Router "
-                            f"{conflict.expected_count}, Extraktion {conflict.actual_count}. "
-                            "Bitte die tatsächliche Anzahl klären.",
-                        )
-                    for proposal, notification in zip(state.proposals, state.proposal_notifications, strict=True):
-                        if notification.status != "pending":
-                            continue
-                        dedicated_delivery = bool(getattr(
-                            self.notifier, "manages_proposal_delivery", False))
-                        if not dedicated_delivery:
-                            notification.status = "sending"
-                            self._save(name, state)
-                        self.notifier.send_proposal(proposal)
-                        # ProposalDeliveryService owns the sending/completed
-                        # transition.  Reload its authoritative projection so a
-                        # later orchestrator save cannot overwrite that state.
-                        state = MailState.model_validate(self.store.load(name))
-                        current = next(item for item in state.proposal_notifications
-                                       if (item.proposal_id, item.proposal_version) ==
-                                       (proposal.id, proposal.version))
-                        # Compatibility for simple notifier ports: the
-                        # dedicated delivery service has already completed its
-                        # own transition, while a synchronous legacy notifier
-                        # reports success by returning normally.
-                        if current.status == "pending" or (
-                                not dedicated_delivery and current.status == "sending"):
-                            current.status = "completed"
-                            self._save(name, state)
-                    state.steps.proposal_notification = "completed"
-                    self._save(name, state)
-            stage = ProcessingStage.COMPLETION
-            state.steps.completion = "completed"
-            state.error = None
-            self._save(name, state)
-            self.logger.event("INFO", "orchestrator", "processing_completed", mail_id=state.id,
-                              duration_ms=round((time.perf_counter() - started) * 1000, 3))
-        except RateLimitExceeded as exc:
-            state.deferred_until = datetime.fromtimestamp(exc.next_allowed_at, timezone.utc)
-            self._failure(name, state, ProcessingErrorCode.LLM_RATE_LIMITED, stage,
-                          f"LLM-Limit erreicht. Automatischer neuer Versuch nach {state.deferred_until.isoformat()}.", True)
-            self.logger.event("WARNING", "orchestrator", "llm_rate_limited", mail_id=state.id, next_allowed_at=state.deferred_until.isoformat(),
-                              duration_ms=round((time.perf_counter() - started) * 1000, 3), error=exc, stacktrace=traceback.format_exc())
-            outcome = ProcessingOutcome.WAITING
-        except MimeLimitExceeded as exc:
-            self._failure(name, state, ProcessingErrorCode.MIME_LIMIT_EXCEEDED, stage,
-                          "Die Nachricht überschreitet ein Sicherheitslimit. Bitte Anhänge oder Nachrichtengröße reduzieren.", False)
-            self.logger.event("WARNING", "orchestrator", "mime_limit_exceeded", mail_id=state.id, stage=stage.value,
-                              limit=exc.limit, error=exc, stacktrace=traceback.format_exc())
-            outcome = ProcessingOutcome.FAILED
-        except LlmProviderResponseInvalid as exc:
-            self._failure(name, state, ProcessingErrorCode.PROVIDER_RESPONSE_INVALID, stage,
-                          "Der LLM-Anbieter hat keine verwendbare Antwort geliefert.", True)
-            self.logger.event("ERROR", "orchestrator", "provider_response_invalid", mail_id=state.id,
-                              stage=stage.value, reason=exc.reason, error=exc, stacktrace=traceback.format_exc())
-            outcome = self._failure_outcome(name, state, stage)
-        except LlmInvalidJson as exc:
-            self._failure(name, state, ProcessingErrorCode.INVALID_JSON, stage,
-                          "Die LLM-Antwort enthielt kein gültiges JSON.", True)
-            self.logger.event("ERROR", "orchestrator", "invalid_json", mail_id=state.id, stage=stage.value,
-                              error=exc, stacktrace=traceback.format_exc())
-            outcome = self._failure_outcome(name, state, stage)
-        except LlmSchemaValidationExceeded as exc:
-            state.validation_errors.append(ValidationIssue(
-                stage=stage, code="schema_validation_failed", occurred_at=datetime.now(timezone.utc)
-            ))
-            self._failure(name, state, ProcessingErrorCode.SCHEMA_VALIDATION_FAILED, stage,
-                          "Die automatische Auswertung war nicht zuverlässig. Bitte die Nachricht manuell prüfen.", True)
-            self.logger.event("ERROR", "orchestrator", "schema_validation_failed", mail_id=state.id, stage=stage.value,
-                              error=exc, stacktrace=traceback.format_exc())
-            outcome = self._failure_outcome(name, state, stage)
-        except PermanentError as exc:
-            detail = getattr(exc, "safe_detail", None)
-            suffix = f" {detail}" if detail else ""
-            self._failure(name, state, ProcessingErrorCode.PERMANENT_ADAPTER_ERROR, stage,
-                          ("Ein externer Dienst hat die Anfrage dauerhaft abgelehnt. "
-                           f"Bitte dessen Konfiguration prüfen.{suffix}"), False)
-            self.logger.event("ERROR", "orchestrator", "permanent_adapter_error", mail_id=state.id, stage=stage.value,
-                              error=exc, stacktrace=traceback.format_exc())
-            outcome = self._failure_outcome(name, state, stage)
-        except Exception as exc:
-            self._failure(name, state, ProcessingErrorCode.INTERNAL_ERROR, stage,
-                          "Ein interner Fehler ist aufgetreten. Bitte Protokoll und Konfiguration prüfen.")
-            self.logger.event("ERROR", "orchestrator", "processing_failed", mail_id=state.id, stage=stage.value, error=exc,
-                              duration_ms=round((time.perf_counter() - started) * 1000, 3), stacktrace=traceback.format_exc())
-            outcome = self._failure_outcome(name, state, stage)
-        else:
-            outcome = ProcessingOutcome.COMPLETED
-        return ProcessingResult(outcome, state.model_dump(mode="json"))
+        return ProcessingRun(name, state, ProcessingStage.PREPARATION, started)
 
-    def _failure_outcome(self, name: str, state: MailState,
+    def failure_outcome(self, name: str, state: MailState,
                          stage: ProcessingStage) -> ProcessingOutcome:
         """Complete the mail while retaining a retryable action-only failure."""
         action_stages = {ProcessingStage.ACTION_ROUTER, ProcessingStage.TASK_EXTRACTION,
@@ -774,7 +313,7 @@ class Orchestrator:
         state.steps.action_detection = "failed"
         state.steps.proposal_notification = "pending"
         state.steps.completion = "completed"
-        self._save(name, state)
+        self.save(name, state)
         return ProcessingOutcome.COMPLETED_WITH_ACTION_ERROR
 
     def run(self, poll: Any, interval: float, wait: Any = None) -> None:

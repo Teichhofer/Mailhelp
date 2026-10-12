@@ -310,7 +310,7 @@ def test_orchestrator_failure_outcome_duplicate_precheck(tmp_path):
         imap={"account_id": "0" * 24, "folder": "INBOX", "uidvalidity": 1, "uid": 1},
         config_fingerprint="0" * 64,
     )
-    outcome = orchestrator._failure_outcome("mail-" + state.id, state, ProcessingStage.DUPLICATE_PRECHECK)
+    outcome = orchestrator.failure_outcome("mail-" + state.id, state, ProcessingStage.DUPLICATE_PRECHECK)
     assert outcome == ProcessingOutcome.COMPLETED_WITH_ACTION_ERROR
     assert state.steps.duplicate_precheck == "failed"
     assert state.steps.action_detection == "failed"

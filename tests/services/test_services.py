@@ -1290,7 +1290,7 @@ def _resolve_from_mail(tmp_path, analyzer, item):
     with JsonStore(tmp_path) as store:
         Orchestrator(analyzer, store, Notify(), 1,
                      [Topic(id="x", name="X", enabled=True, description="X")], 1000,
-                     logger=log)._resolve_questions_from_mail("mail-" + "a" * 24, state)
+                     logger=log).questions.resolve("mail-" + "a" * 24, state)
     return state, [(event, fields.get("question"), fields.get("reason"))
                    for event, fields in log.events if event.startswith("mail_question_")]
 
@@ -1537,7 +1537,7 @@ def test_proposal_boundary_builds_internal_identity_and_routing(tmp_path):
             responsibility="user", certainty="certain", classification="new")])
         state.event_extraction = EventExtraction(events=[ExtractedEvent(title="e", evidence="e", date_text="2026-01-01", time_requirement="required_unknown",
             responsibility="user", certainty="certain", classification="new")])
-        normalized=orchestrator._build_proposals(state)
+        normalized=orchestrator.build_proposals(state)
         assert [item.target for item in normalized] == ["trusted-project","trusted-calendar"]
         assert all(item.id.startswith("p_") for item in normalized)
 
@@ -1874,7 +1874,7 @@ def test_router_count_mismatch_is_assigned_to_its_extractor(tmp_path, kind, expe
     before = len(state.extraction_count_conflicts)
     Orchestrator(MismatchAnalyzer("relevant"), store, Notify(), 1,
         [Topic(id="x", name="x", enabled=True, description="x")], 1000
-    )._record_count_conflict("unused", state, kind, 1, 0, "ar",
+    ).record_count_conflict("unused", state, kind, 1, 0, "ar",
                              "t" if kind == "task" else "e")
     assert len(state.extraction_count_conflicts) == before
     state.steps.completion = "pending"
