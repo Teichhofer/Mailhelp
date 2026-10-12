@@ -113,29 +113,11 @@ class OpenRouterClient:
                  images: list[str] | None = None) -> tuple[str, Any]:
         """Run one validated JSON completion; ``images`` are data URLs for vision steps."""
         model = self._resolve_model(model)
-        with self._state_lock:
-            now = self.clock()
-            calls = sorted(value for value in self.load_calls() if isinstance(value, (int, float)) and now - value < 60)
-            if len(calls) >= self.limit:
-                raise RateLimitExceeded(calls[0] + 60)
-            calls.append(now)
-            self.save_calls(calls)
+        self._reserve_call()
         correlation_id = correlation_id or str(uuid.uuid4())
         call_id = attempt_id or str(uuid.uuid4())
-        response_format: dict[str, Any] = {"type": "json_object"}
-        if response_schema is not None and supports_json_schema:
-            response_format = {"type": "json_schema", "json_schema": {
-                "name": response_schema.__name__, "strict": True,
-                "schema": response_schema.model_json_schema(),
-            }}
-        user: Any = json.dumps(payload, ensure_ascii=False)
-        if images:
-            user = [{"type": "text", "text": user},
-                    *({"type": "image_url", "image_url": {"url": url}} for url in images)]
-        request = {**parameters, "model": model, "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}], "response_format": response_format}
-        if provider_preferences is not None:
-            request["provider"] = provider_preferences
-        request = self._prepare_request(request)
+        request, response_format = self._request(model, parameters, system, payload, response_schema,
+                                                 supports_json_schema, provider_preferences, images)
         started = time.perf_counter()
         fingerprint = hashlib.sha256(json.dumps(request["messages"], ensure_ascii=False, sort_keys=True).encode()).hexdigest()
         correlation = _correlation(payload)
@@ -165,45 +147,8 @@ class OpenRouterClient:
             return response
         try:
             response = self.policy.run(invoke, begin, failed_attempt)
-            try:
-                raw = self._envelope(response.json())
-            except (ValueError, json.JSONDecodeError) as exc:
-                metadata["http_status"] = response.status_code
-                self._log_attempt("provider_response_invalid", metadata,
-                                  reason="invalid_provider_envelope", retryable=True,
-                                  **correlation)
-                raise ProviderResponseInvalid("invalid_provider_envelope") from exc
-            metadata.update(http_status=response.status_code,
-                            provider=raw.get("provider") if isinstance(raw, dict) and isinstance(raw.get("provider"), str) else None)
-            reason = _provider_error_reason(raw)
-            if reason is not None:
-                choice = raw.get("choices", [{}])[0] if isinstance(raw, dict) and isinstance(raw.get("choices"), list) and raw.get("choices") else {}
-                if isinstance(choice, dict):
-                    metadata["finish_reason"] = choice.get("finish_reason") if isinstance(choice.get("finish_reason"), str) else None
-                self._log_attempt("provider_response_invalid", metadata,
-                                  reason=reason, retryable=True, **correlation)
-                raise ProviderResponseInvalid(reason)
-            try: data = OpenRouterResponse.model_validate(raw)
-            except (ValueError, ValidationError) as exc:
-                self._log_attempt("provider_response_invalid", metadata,
-                                  reason="invalid_provider_envelope", retryable=True,
-                                  **correlation)
-                raise ProviderResponseInvalid("invalid_provider_envelope") from exc
-            text = data.choices[0].message.content
-            metadata.update(provider=data.provider, finish_reason=data.choices[0].finish_reason,
-                            content_present=True, content_length=len(text))
-            token_usage = raw.get("usage") if isinstance(raw.get("usage"), dict) else None
-            self.logger.llm_event(
-                "token_usage_recorded", parameters=parameters,
-                prompt_fingerprint=fingerprint, attempt=attempt,
-                token_usage=token_usage, token_usage_available=token_usage is not None,
-                **metadata, **correlation,
-            )
-            try: content = json.loads(text)
-            except json.JSONDecodeError as exc:
-                self._log_attempt("invalid_json", metadata, **correlation)
-                raise InvalidJson() from exc
-            metadata["json_parse_success"] = True
+            raw, content, token_usage = self._content(response, metadata, correlation, parameters,
+                                                      fingerprint, attempt)
             with self._state_lock:
                 self._observations[call_id] = metadata
             self.logger.llm_event("response_received", response=raw, parameters=parameters,
@@ -220,6 +165,79 @@ class OpenRouterClient:
                                       status=getattr(getattr(exc, "response", None), "status_code", "error"), attempt=attempt,
                                       error=exc, stacktrace=traceback.format_exc(), **metadata, **correlation)
             raise
+
+    def _reserve_call(self) -> None:
+        """Charge the shared, durable per-minute budget before any request is sent."""
+        with self._state_lock:
+            now = self.clock()
+            calls = sorted(value for value in self.load_calls() if isinstance(value, (int, float)) and now - value < 60)
+            if len(calls) >= self.limit:
+                raise RateLimitExceeded(calls[0] + 60)
+            calls.append(now)
+            self.save_calls(calls)
+
+    def _request(self, model: str, parameters: dict[str, Any], system: str, payload: dict[str, Any],
+                 response_schema: type[BaseModel] | None, supports_json_schema: bool,
+                 provider_preferences: dict[str, Any] | None,
+                 images: list[str] | None) -> tuple[dict[str, Any], dict[str, Any]]:
+        response_format: dict[str, Any] = {"type": "json_object"}
+        if response_schema is not None and supports_json_schema:
+            response_format = {"type": "json_schema", "json_schema": {
+                "name": response_schema.__name__, "strict": True,
+                "schema": response_schema.model_json_schema(),
+            }}
+        user: Any = json.dumps(payload, ensure_ascii=False)
+        if images:
+            user = [{"type": "text", "text": user},
+                    *({"type": "image_url", "image_url": {"url": url}} for url in images)]
+        request = {**parameters, "model": model, "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}], "response_format": response_format}
+        if provider_preferences is not None:
+            request["provider"] = provider_preferences
+        return self._prepare_request(request), response_format
+
+    def _content(self, response: httpx.Response, metadata: dict[str, Any], correlation: dict[str, Any],
+                 parameters: dict[str, Any], fingerprint: str, attempt: int) -> tuple[Any, Any, Any]:
+        """Validate the provider envelope and parse the JSON answer; record token usage."""
+        try:
+            raw = self._envelope(response.json())
+        except (ValueError, json.JSONDecodeError) as exc:
+            metadata["http_status"] = response.status_code
+            self._log_attempt("provider_response_invalid", metadata,
+                              reason="invalid_provider_envelope", retryable=True,
+                              **correlation)
+            raise ProviderResponseInvalid("invalid_provider_envelope") from exc
+        metadata.update(http_status=response.status_code,
+                        provider=raw.get("provider") if isinstance(raw, dict) and isinstance(raw.get("provider"), str) else None)
+        reason = _provider_error_reason(raw)
+        if reason is not None:
+            choice = raw.get("choices", [{}])[0] if isinstance(raw, dict) and isinstance(raw.get("choices"), list) and raw.get("choices") else {}
+            if isinstance(choice, dict):
+                metadata["finish_reason"] = choice.get("finish_reason") if isinstance(choice.get("finish_reason"), str) else None
+            self._log_attempt("provider_response_invalid", metadata,
+                              reason=reason, retryable=True, **correlation)
+            raise ProviderResponseInvalid(reason)
+        try: data = OpenRouterResponse.model_validate(raw)
+        except (ValueError, ValidationError) as exc:
+            self._log_attempt("provider_response_invalid", metadata,
+                              reason="invalid_provider_envelope", retryable=True,
+                              **correlation)
+            raise ProviderResponseInvalid("invalid_provider_envelope") from exc
+        text = data.choices[0].message.content
+        metadata.update(provider=data.provider, finish_reason=data.choices[0].finish_reason,
+                        content_present=True, content_length=len(text))
+        token_usage = raw.get("usage") if isinstance(raw.get("usage"), dict) else None
+        self.logger.llm_event(
+            "token_usage_recorded", parameters=parameters,
+            prompt_fingerprint=fingerprint, attempt=attempt,
+            token_usage=token_usage, token_usage_available=token_usage is not None,
+            **metadata, **correlation,
+        )
+        try: content = json.loads(text)
+        except json.JSONDecodeError as exc:
+            self._log_attempt("invalid_json", metadata, **correlation)
+            raise InvalidJson() from exc
+        metadata["json_parse_success"] = True
+        return raw, content, token_usage
 
     def _resolve_model(self, model: str) -> str:
         return model

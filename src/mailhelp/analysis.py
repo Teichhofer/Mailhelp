@@ -130,6 +130,146 @@ def validate_revision_successor(previous: Proposal, candidate: Any, *,
     return revised
 
 
+class ClassifiedRun:
+    """One flat, classified retry state machine for a single analysis step.
+
+    Provider failures, invalid JSON and schema violations are retried separately,
+    each within its own limit; the state lives here instead of in loop variables.
+    """
+
+    def __init__(self, analyzer: Analyzer, step: str, payload: dict[str, Any],
+                 validator: Callable[[Any], Any], schema: type[BaseModel] | None,
+                 token_retry_payload: dict[str, Any] | None, images: list[str] | None):
+        self.client, self.prompts = analyzer.client, analyzer.prompts
+        self.step, self.payload, self.validator, self.schema = step, payload, validator, schema
+        self.token_retry_payload, self.images = token_retry_payload, images
+        self.routes, self.prompt, configured_provider_retries = self.prompts.resolved_routes(step)
+        self.same_route_retries = (configured_provider_retries if analyzer.provider_retries is None
+                                   else analyzer.provider_retries)
+        self.used = {"provider_retry": 0, "json_repair": 0, "schema_repair": 0}
+        self.limits = {"json_repair": analyzer.json_repair_retries,
+                       "schema_repair": analyzer.schema_repair_retries}
+        self.repair: str | None = None
+        self.validation_error: Exception | None = None
+        self.route_index = 0
+        self.route_failures = 0
+        self.token_retry_used = False
+        # One correlation groups the logical stage; every network call receives
+        # its own attempt/call ID, which is the persistent call reference.
+        self.correlation_id = str(uuid.uuid4())
+
+    def run(self) -> tuple[str, Any]:
+        while True:
+            route: LlmRoute = self.routes[self.route_index]
+            retry_type = self.repair or "initial"
+            retry_number = 0 if self.repair is None else self.used[self.repair]
+            try:
+                call_id, raw = self._complete(route, retry_type, retry_number)
+                self.route_failures = 0
+            except (ProviderResponseInvalid, RetryableError) as exc:
+                self._provider_failed(exc, route)
+                continue
+            except InvalidJson as exc:
+                # The provider request itself succeeded; a later content repair
+                # must not consume the next provider-failure allowance.
+                self.route_failures = 0
+                if self.used["json_repair"] >= self.limits["json_repair"]:
+                    raise LlmInvalidJson(self.step) from exc
+                self.used["json_repair"] += 1
+                self.repair = "json_repair"
+                continue
+            try:
+                result = self.validator(raw)
+            except (ValidationError, ValueError) as exc:
+                self._record_schema_result(call_id, route.model, False, retry_type, retry_number)
+                self.validation_error = exc
+                if self.used["schema_repair"] >= self.limits["schema_repair"]:
+                    raise LlmSchemaValidationFailed(self.step) from exc
+                self.used["schema_repair"] += 1
+                self.repair = "schema_repair"
+            else:
+                self._record_schema_result(call_id, route.model, True, retry_type, retry_number)
+                return call_id, result
+
+    def _complete(self, route: LlmRoute, retry_type: str, retry_number: int) -> tuple[str, Any]:
+        request_payload = dict(self.payload)
+        request_prompt = self.prompt
+        if self.repair == "json_repair":
+            request_payload["json_repair_instruction"] = JSON_REPAIR_INSTRUCTION
+            # A repair instruction in the JSON payload alone can be mistaken for
+            # untrusted mail data.  Keep it there for an explicit audit trail, but
+            # also add the authoritative instruction to the system message.
+            request_prompt = f"{self.prompt}\n\n{JSON_REPAIR_INSTRUCTION}"
+        elif self.repair == "schema_repair":
+            request_payload["previous_validation_error"] = str(self.validation_error)
+            # The validation diagnostic is generated internally. Make its role
+            # authoritative in the system message instead of relying on a data
+            # field next to untrusted mail or Telegram content.
+            request_prompt = f"{self.prompt}\n\n{SCHEMA_REPAIR_INSTRUCTION}"
+        return self.client.complete(
+            route.model, route.parameters, request_prompt, request_payload, stage=self.step,
+            retry_type=retry_type, retry_number=retry_number,
+            provider_preferences=route.provider_preferences.model_dump(exclude_none=True),
+            correlation_id=self.correlation_id,
+            response_schema=(self.schema or None),
+            supports_json_schema=route.supports_json_schema,
+            revision_route=("token_limit_retry" if self.token_retry_used else "initial_revision")
+            if self.step == "proposal_revision" else "standard",
+            **({"images": self.images} if self.images else {}),
+        )
+
+    def _provider_failed(self, exc: Exception, route: LlmRoute) -> None:
+        """Choose the next attempt after a provider failure, or raise when none is left."""
+        if (isinstance(exc, ProviderResponseInvalid)
+                and exc.reason == "output_token_limit"
+                and self.token_retry_payload is not None and not self.token_retry_used):
+            retry = self.prompts.prompts[self.step].output_token_retry
+            assert retry is not None
+            self.token_retry_used = True
+            self.payload = self.token_retry_payload
+            self.prompt = retry.system_prompt
+            retry_parameters = {**route.parameters, **retry.parameters}
+            # A fallback prompted by an exhausted output budget must never
+            # make that same budget smaller.  A concise prompt can reduce
+            # consumption, but provider-side reasoning still counts toward
+            # max_tokens and varies between providers.
+            retry_parameters["max_tokens"] = max(
+                route.parameters["max_tokens"], retry_parameters["max_tokens"])
+            route = route.model_copy(update={"parameters": retry_parameters})
+            self.routes = [route]
+            self.route_index = self.route_failures = 0
+            self.repair = "provider_retry"
+            return
+        # A token-limit fallback is a single, deliberately changed
+        # request.  Never replay that same fallback via provider retry
+        # or another route after it was truncated as well.
+        if (isinstance(exc, ProviderResponseInvalid)
+                and exc.reason == "output_token_limit" and self.token_retry_used):
+            raise LlmTokenLimitExceeded(self.step, exc.reason) from exc
+        if self.route_failures < self.same_route_retries:
+            self.route_failures += 1
+            self.used["provider_retry"] += 1
+            self.repair = "provider_retry"
+            return
+        if self.route_index + 1 >= len(self.routes):
+            reason = exc.reason if isinstance(exc, ProviderResponseInvalid) else "technical_error"
+            error_type = (LlmTokenLimitExceeded
+                          if reason == "output_token_limit"
+                          else LlmProviderResponseInvalid)
+            raise error_type(self.step, reason) from exc
+        self.route_index += 1
+        self.route_failures = 0
+        self.repair = "provider_retry"
+
+    def _record_schema_result(self, call_id: str, model: str, success: bool, retry_type: str,
+                              retry_number: int) -> None:
+        """Complete observability only after the untrusted output was validated."""
+        recorder = getattr(self.client, "record_schema_validation", None)
+        if callable(recorder):
+            recorder(call_id=call_id, stage=self.step, model=model, success=success,
+                     retry_type=retry_type, retry_number=retry_number)
+
+
 class Analyzer:
     def __init__(self, client: Completer, prompts: PromptConfig,
                  validation_retries: int = 1, *, provider_retries: int | None = None,
@@ -154,125 +294,7 @@ class Analyzer:
                         token_retry_payload: dict[str, Any] | None = None,
                         images: list[str] | None = None) -> tuple[str, T]:
         """Run one flat, classified retry state machine."""
-        routes, prompt, configured_provider_retries = self.prompts.resolved_routes(step)
-        same_route_retries = (configured_provider_retries if self.provider_retries is None
-                              else self.provider_retries)
-        used = {"provider_retry": 0, "json_repair": 0, "schema_repair": 0}
-        limits = {"json_repair": self.json_repair_retries,
-                  "schema_repair": self.schema_repair_retries}
-        repair: str | None = None
-        validation_error: Exception | None = None
-        route_index = 0
-        route_failures = 0
-        token_retry_used = False
-        # One correlation groups the logical stage; every network call receives
-        # its own attempt/call ID, which is the persistent call reference.
-        correlation_id = str(uuid.uuid4())
-        while True:
-            route: LlmRoute = routes[route_index]
-            request_payload = dict(payload)
-            request_prompt = prompt
-            if repair == "json_repair":
-                request_payload["json_repair_instruction"] = JSON_REPAIR_INSTRUCTION
-                # A repair instruction in the JSON payload alone can be mistaken for
-                # untrusted mail data.  Keep it there for an explicit audit trail, but
-                # also add the authoritative instruction to the system message.
-                request_prompt = f"{prompt}\n\n{JSON_REPAIR_INSTRUCTION}"
-            elif repair == "schema_repair":
-                request_payload["previous_validation_error"] = str(validation_error)
-                # The validation diagnostic is generated internally. Make its role
-                # authoritative in the system message instead of relying on a data
-                # field next to untrusted mail or Telegram content.
-                request_prompt = f"{prompt}\n\n{SCHEMA_REPAIR_INSTRUCTION}"
-            try:
-                retry_type = repair or "initial"
-                retry_number = 0 if repair is None else used[repair]
-                call_id, raw = self.client.complete(
-                    route.model, route.parameters, request_prompt, request_payload, stage=step,
-                    retry_type=retry_type, retry_number=retry_number,
-                    provider_preferences=route.provider_preferences.model_dump(exclude_none=True),
-                    correlation_id=correlation_id,
-                    response_schema=(schema or None),
-                    supports_json_schema=route.supports_json_schema,
-                    revision_route=("token_limit_retry" if token_retry_used else "initial_revision")
-                    if step == "proposal_revision" else "standard",
-                    **({"images": images} if images else {}),
-                )
-                route_failures = 0
-            except (ProviderResponseInvalid, RetryableError) as exc:
-                if (isinstance(exc, ProviderResponseInvalid)
-                        and exc.reason == "output_token_limit"
-                        and token_retry_payload is not None and not token_retry_used):
-                    retry = self.prompts.prompts[step].output_token_retry
-                    assert retry is not None
-                    token_retry_used = True
-                    payload = token_retry_payload
-                    prompt = retry.system_prompt
-                    retry_parameters = {**route.parameters, **retry.parameters}
-                    # A fallback prompted by an exhausted output budget must never
-                    # make that same budget smaller.  A concise prompt can reduce
-                    # consumption, but provider-side reasoning still counts toward
-                    # max_tokens and varies between providers.
-                    retry_parameters["max_tokens"] = max(
-                        route.parameters["max_tokens"], retry_parameters["max_tokens"])
-                    route = route.model_copy(update={"parameters": retry_parameters})
-                    routes = [route]
-                    route_index = route_failures = 0
-                    repair = "provider_retry"
-                    continue
-                # A token-limit fallback is a single, deliberately changed
-                # request.  Never replay that same fallback via provider retry
-                # or another route after it was truncated as well.
-                if (isinstance(exc, ProviderResponseInvalid)
-                        and exc.reason == "output_token_limit" and token_retry_used):
-                    raise LlmTokenLimitExceeded(step, exc.reason) from exc
-                if route_failures < same_route_retries:
-                    route_failures += 1
-                    used["provider_retry"] += 1
-                    repair = "provider_retry"
-                    continue
-                if route_index + 1 >= len(routes):
-                    reason = exc.reason if isinstance(exc, ProviderResponseInvalid) else "technical_error"
-                    error_type = (LlmTokenLimitExceeded
-                                  if reason == "output_token_limit"
-                                  else LlmProviderResponseInvalid)
-                    raise error_type(step, reason) from exc
-                route_index += 1
-                route_failures = 0
-                repair = "provider_retry"
-                continue
-            except InvalidJson as exc:
-                # The provider request itself succeeded; a later content repair
-                # must not consume the next provider-failure allowance.
-                route_failures = 0
-                if used["json_repair"] >= limits["json_repair"]:
-                    raise LlmInvalidJson(step) from exc
-                used["json_repair"] += 1
-                repair = "json_repair"
-                continue
-            try:
-                result = validator(raw)
-            except (ValidationError, ValueError) as exc:
-                self._record_schema_result(call_id, step, route.model, False,
-                                           retry_type, retry_number)
-                validation_error = exc
-                if used["schema_repair"] >= limits["schema_repair"]:
-                    raise LlmSchemaValidationFailed(step) from exc
-                used["schema_repair"] += 1
-                repair = "schema_repair"
-            else:
-                self._record_schema_result(call_id, step, route.model, True,
-                                           retry_type, retry_number)
-                return call_id, result
-
-    def _record_schema_result(self, call_id: str, stage: str, model: str,
-                              success: bool, retry_type: str,
-                              retry_number: int) -> None:
-        """Complete observability only after the untrusted output was validated."""
-        recorder = getattr(self.client, "record_schema_validation", None)
-        if callable(recorder):
-            recorder(call_id=call_id, stage=stage, model=model, success=success,
-                     retry_type=retry_type, retry_number=retry_number)
+        return ClassifiedRun(self, step, payload, validator, schema, token_retry_payload, images).run()
 
     def _run(self, step: str, schema: type[T], mail: dict[str, Any],
              extra: dict[str, Any] | None = None) -> tuple[str, T]:
