@@ -158,7 +158,8 @@ class DecisionTestMode:
                 ("event_extraction", None if route is None else route.event_count, classifier.extract_events),
             ):
                 if count is None:
-                    result["stages"][stage] = {"status": "skipped", "reason": "summary_failed" if summary is None else "routing_failed"}
+                    reason = "summary_failed" if summary is None else "routing_failed"
+                    result["stages"][stage] = {"status": "skipped", "reason": reason}
                 elif count == 0:
                     result["stages"][stage] = {"status": "skipped", "reason": "no_candidates"}
                 else:

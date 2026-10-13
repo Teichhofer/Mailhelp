@@ -45,8 +45,14 @@ class Notifier(Protocol):
 
 
 class Orchestrator:
-    def __init__(self, analyzer: Analyzer, store: JsonStore, notifier: Notifier, chat_id: int, topics: list[Topic], max_mail_bytes: int, logger: EventLogger | None = None, clock: Any = time.time, mime_limits: object | None = None, config_fingerprint: str = "0" * 64, targets: TargetSettings | None = None, user_timezone: str = "UTC", sender_store: JsonStore | None = None, precheck: DuplicatePreCheckService | None = None, vision: VisionExtractor | None = None):
-        self.analyzer, self.store, self.notifier, self.chat_id, self.topics, self.max_bytes = analyzer, store, notifier, chat_id, topics, mime_limits or max_mail_bytes
+    def __init__(self, analyzer: Analyzer, store: JsonStore, notifier: Notifier, chat_id: int, topics: list[Topic],
+                 max_mail_bytes: int, logger: EventLogger | None = None, clock: Any = time.time,
+                 mime_limits: object | None = None, config_fingerprint: str = "0" * 64,
+                 targets: TargetSettings | None = None, user_timezone: str = "UTC",
+                 sender_store: JsonStore | None = None, precheck: DuplicatePreCheckService | None = None,
+                 vision: VisionExtractor | None = None):
+        self.analyzer, self.store, self.notifier, self.chat_id = analyzer, store, notifier, chat_id
+        self.topics, self.max_bytes = topics, mime_limits or max_mail_bytes
         self.stop_event = Event()
         self.logger = logger or NullLogger()
         self.clock = clock
@@ -195,10 +201,11 @@ class Orchestrator:
         state.updated_at = datetime.now(UTC)
         self.store.save(name, state.model_dump(mode="json"))
         from .review.archive import record_analysis
-        record_analysis(self.store, state, {topic.id: topic.name for topic in self.topics_for(state.config_fingerprint)},
-                        getattr(self.analyzer, "last_relevance_source", "unknown"))
+        names = {topic.id: topic.name for topic in self.topics_for(state.config_fingerprint)}
+        record_analysis(self.store, state, names, getattr(self.analyzer, "last_relevance_source", "unknown"))
         self.logger.event("DEBUG", "orchestrator", "state_persisted", mail_id=state.id,
-                          state=state.steps.model_dump(mode="json"), awaiting_relevance=state.awaiting_relevance, failed=state.error is not None)
+                          state=state.steps.model_dump(mode="json"), awaiting_relevance=state.awaiting_relevance,
+                          failed=state.error is not None)
 
     def failure(self, name: str, state: MailState, code: ProcessingErrorCode,
                  stage: ProcessingStage, text: str, retryable: bool | None = None) -> None:
@@ -239,7 +246,8 @@ class Orchestrator:
             decision=decision, topic_ids=[], reason="Telegram-Entscheidung"
         )
         state.awaiting_relevance = False
-        state.relevance_dialog = dialog.model_copy(update={"status": RelevanceDialogStatus.DECIDED, "decision": decision, "telegram_offset": telegram_offset})
+        state.relevance_dialog = dialog.model_copy(update={
+            "status": RelevanceDialogStatus.DECIDED, "decision": decision, "telegram_offset": telegram_offset})
         if decision == "irrelevant":
             state.steps.summary = state.steps.action_detection = "skipped"
             state.steps.action_router = state.steps.task_extraction = state.steps.event_extraction = "skipped"
@@ -253,7 +261,8 @@ class Orchestrator:
         return state
 
     def resume_mail(self, state: MailState) -> ProcessingResult:
-        return self.process(FetchedMail(state.imap.folder, state.imap.uidvalidity, state.imap.uid, b"", state.imap.account_id))
+        return self.process(FetchedMail(state.imap.folder, state.imap.uidvalidity, state.imap.uid, b"",
+                                        state.imap.account_id))
 
     def process(self, fetched: FetchedMail) -> ProcessingResult:
         run = self._begin(fetched)
@@ -285,7 +294,8 @@ class Orchestrator:
         existing = self.store.load_model(name, MailState)
         state = existing if isinstance(existing, MailState) else MailState(
             id=internal_id,
-            imap={"account_id": fetched.account_id, "folder": fetched.folder, "uidvalidity": fetched.uidvalidity, "uid": fetched.uid},
+            imap={"account_id": fetched.account_id, "folder": fetched.folder, "uidvalidity": fetched.uidvalidity,
+                  "uid": fetched.uid},
             config_fingerprint=self.config_fingerprint,
         )
         if state.steps.completion != "completed" and not self.accepts_configuration(state.config_fingerprint):
@@ -293,7 +303,8 @@ class Orchestrator:
                               state_fingerprint=state.config_fingerprint, active_fingerprint=self.config_fingerprint)
             return ProcessingResult(ProcessingOutcome.WAITING, state.model_dump(mode="json"))
         if state.deferred_until is not None and state.deferred_until.timestamp() > self.clock():
-            self.logger.event("INFO", "orchestrator", "processing_deferred", mail_id=state.id, deferred_until=state.deferred_until)
+            self.logger.event("INFO", "orchestrator", "processing_deferred", mail_id=state.id,
+                              deferred_until=state.deferred_until)
             return ProcessingResult(ProcessingOutcome.WAITING, state.model_dump(mode="json"))
         state.deferred_until = None
         if state.steps.completion == "completed" and state.steps.action_detection != "failed":

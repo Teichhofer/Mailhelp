@@ -43,7 +43,9 @@ JPEG_QUALITY = 85
 
 
 class DocumentReader(Protocol):
-    def read_document(self, filename: str, content_type: str, images: list[str]) -> tuple[str, VisionExtractionResult]: ...
+    def read_document(self, filename: str, content_type: str,
+                      images: list[str]) -> tuple[str, VisionExtractionResult]:
+        """The call id and the text recognized in the document images."""
 
 
 @dataclass(frozen=True)

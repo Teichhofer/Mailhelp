@@ -20,9 +20,12 @@ def _now(configured_timezone: str | None) -> datetime:
 
 class CalendarOperations(HttpTransport):
     def _reconcile_calendar(self, key: str) -> dict[str, Any] | None:
-        response = self.policy.run(lambda: self._get(f"/calendars/{self.target}/events", {"privateExtendedProperty": f"mailhelp_key={key}"}))
+        query = {"privateExtendedProperty": f"mailhelp_key={key}"}
+        response = self.policy.run(lambda: self._get(f"/calendars/{self.target}/events", query))
         try: items = CalendarListResponse.model_validate(response.json()).items
-        except (ValueError, ValidationError) as exc: raise ValueError(f"Google Calendar events: ungültige Antwort am Schlüsselpfad {validation_path(exc)}") from exc
+        except (ValueError, ValidationError) as exc:
+            raise ValueError("Google Calendar events: ungültige Antwort am Schlüsselpfad "
+                             f"{validation_path(exc)}") from exc
         return items[0].model_dump() if items else None
 
 
@@ -110,7 +113,8 @@ class CalendarOperations(HttpTransport):
             return []
 
 
-    def _matching_calendar_event(self, proposal: Proposal) -> tuple[CalendarOverlapEvent, CalendarDuplicateDecision] | None:
+    def _matching_calendar_event(self, proposal: Proposal
+                                 ) -> tuple[CalendarOverlapEvent, CalendarDuplicateDecision] | None:
         if self.service != "google_calendar" or self.calendar_matcher is None:
             return None
         assert proposal.start is not None and proposal.end is not None
@@ -139,7 +143,8 @@ class CalendarOperations(HttpTransport):
                         raise ValueError("nextPageToken")
                     seen_tokens.add(next_token)
             except (AttributeError, ValueError, ValidationError) as exc:
-                raise ValueError(f"Google Calendar events: ungültige Antwort am Schlüsselpfad {validation_path(exc)}") from exc
+                raise ValueError("Google Calendar events: ungültige Antwort am Schlüsselpfad "
+                                 f"{validation_path(exc)}") from exc
             for item in items:
                 safe = item.model_dump(mode="json", exclude={"htmlLink"})
                 _call_id, decision = self.calendar_matcher(proposal, safe)

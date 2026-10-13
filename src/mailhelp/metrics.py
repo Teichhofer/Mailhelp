@@ -154,7 +154,8 @@ class MetricsRecorder:
 
     def runtime(self) -> dict:
         with self._lock:
-            return {**self.activity, "elapsed": time.monotonic() - self.activity["started"], "contacts": dict(self.contacts)}
+            return {**self.activity, "elapsed": time.monotonic() - self.activity["started"],
+                    "contacts": dict(self.contacts)}
 
     def expected_services(self) -> list[str]:
         """The services this process talks to, in display order."""
@@ -188,7 +189,8 @@ class MetricsRecorder:
             self.activity = {"stage": "idle", "mail_id": None, "started": time.monotonic()}
         elif event == "request_started":
             self.activity = {**self.activity, "stage": context.get("stage", "unknown"), "started": time.monotonic()}
-        if event in {"processing_started", "processing_completed", "processing_failed", "llm_rate_limited", "request_started"}:
+        if event in {"processing_started", "processing_completed", "processing_failed", "llm_rate_limited",
+                     "request_started"}:
             self.changed()
         if not self.settings.enabled:
             return
@@ -202,6 +204,7 @@ class MetricsRecorder:
                            "reported_cost": context.get("reported_cost") or raw.get("cost"),
                            "provider": context.get("provider") or raw.get("provider")}
             if event == "request_started":
+                local = self.mode == "local" or context.get("backend", "").startswith(("Ollama", "Laya"))
                 if call in self._pending:
                     self._finish(call, "failed", {})
                 self._pending[call] = {
@@ -213,13 +216,14 @@ class MetricsRecorder:
                     "server": context.get("server", "unknown"), "backend": context.get("backend", "unknown"),
                     "model": str(context.get("model", "unknown")),
                     "stage": str(context.get("stage", context.get("step", "unknown"))),
-                    "provider": "ollama" if self.mode == "local" or context.get("backend", "").startswith(("Ollama", "Laya")) else "unknown",
+                    "provider": "ollama" if local else "unknown",
                     "started_at": datetime.now(UTC).isoformat(),
                     "start": time.time(), "monotonic": time.monotonic(),
                 }
             elif event == "token_usage_recorded" and call in self._pending:
                 self._pending[call]["token_usage"] = context.get("token_usage")
-            elif event in {"response_received", "request_failed", "invalid_json", "provider_response_invalid", "retry_failed"}:
+            elif event in {"response_received", "request_failed", "invalid_json", "provider_response_invalid",
+                           "retry_failed"}:
                 self._finish(call, "success" if event == "response_received" else "failed", context)
 
     def _finish(self, call: str, status: str, context: dict) -> None:
@@ -235,7 +239,8 @@ class MetricsRecorder:
         pending_usage = item.pop("token_usage", None)
         usage = context.get("token_usage") or pending_usage or {}
         usage = usage if isinstance(usage, dict) else {}
-        item["tokens"] = {key: usage.get(key) if type(usage.get(key)) is int and 0 <= usage[key] <= 10**12 else None for key in ("prompt_tokens", "completion_tokens")}
+        item["tokens"] = {key: usage.get(key) if type(usage.get(key)) is int and 0 <= usage[key] <= 10**12 else None
+                          for key in ("prompt_tokens", "completion_tokens")}
         cost = context.get("reported_cost")
         if cost is None:
             cost = usage.get("cost")
@@ -288,9 +293,10 @@ class MetricsRecorder:
             raise ValueError("Ungültiger Zeitraum")
         cutoff = datetime.now(UTC) - timedelta(days=days)
         records, damaged = self.records()
+        modes = {"standard", "local"} if mode == "production" else {mode}
         records = [item for item in records if datetime.fromisoformat(item["started_at"]) >= cutoff
                    and (not model or item["model"] == model) and (not stage or item["stage"] == stage)
-                   and (not mode or (item["mode"] in {"standard", "local"} if mode == "production" else item["mode"] == mode)) and (not provider or item["provider"] == provider)
+                   and (not mode or item["mode"] in modes) and (not provider or item["provider"] == provider)
                    and (not since or item["started_at"][:10] >= since)
                    and (not until or item["started_at"][:10] <= until)]
         durations = sorted(item["duration_ms"] / 1000 for item in records)
@@ -304,15 +310,17 @@ class MetricsRecorder:
         summaries = []
         for key, rows in sorted(groups.items()):
             times = sorted(row["duration_ms"] / 1000 for row in rows)
+            usd = sum((Decimal(row["cost_usd"]) for row in rows if row["cost_usd"] is not None), Decimal(0))
             summaries.append({"mode": key[0], "model": key[1], "stage": key[2], "provider": key[3],
                               "count": len(rows), "failed": sum(row["status"] != "success" for row in rows),
                               "seconds": sum(times), "mean": statistics.mean(times), "median": statistics.median(times),
-                              "p95": times[math.ceil(len(times)*.95)-1],
-                              "usd": str(sum((Decimal(row["cost_usd"]) for row in rows if row["cost_usd"] is not None), Decimal(0)))})
+                              "p95": times[math.ceil(len(times)*.95)-1], "usd": str(usd)})
+        rate, rate_date = self.settings.usd_per_eur, self.settings.exchange_rate_date
         return {"count": len(records), "failed": sum(r["status"] != "success" for r in records),
-                "unknown_cost": sum(r["cost_usd"] is None and r["provider"] != "ollama" for r in records), "usd": str(sum(costs, Decimal(0))),
-                "cloud_eur": str(sum(costs, Decimal(0))/Decimal(str(self.settings.usd_per_eur))) if self.settings.usd_per_eur else None,
-                "exchange_rate_date": str(self.settings.exchange_rate_date) if self.settings.exchange_rate_date else None,
+                "unknown_cost": sum(r["cost_usd"] is None and r["provider"] != "ollama" for r in records),
+                "usd": str(sum(costs, Decimal(0))),
+                "cloud_eur": str(sum(costs, Decimal(0))/Decimal(str(rate))) if rate else None,
+                "exchange_rate_date": str(rate_date) if rate_date else None,
                 "electricity_eur": str(energy), "seconds": sum(durations),
                 "mean": statistics.mean(durations) if durations else None,
                 "median": statistics.median(durations) if durations else None,
@@ -344,7 +352,8 @@ class MetricsRecorder:
                 return
             aggregate = json.loads(daily.read_text(encoding="utf-8")) if daily.exists() else {}
             for item in expired:
-                key = json.dumps([item["started_at"][:10], item["mode"], item["model"], item["stage"], item["provider"]])
+                key = json.dumps([item["started_at"][:10], item["mode"], item["model"], item["stage"],
+                                  item["provider"]])
                 row = aggregate.setdefault(key, {"count": 0, "failed": 0, "seconds": 0, "usd": "0", "unknown_cost": 0})
                 row["count"] += 1
                 row["failed"] += item["status"] != "success"

@@ -617,7 +617,8 @@ class PromptConfig(BaseModel):
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
     result = dict(base)
     for key, value in override.items():
-        result[key] = _deep_merge(result[key], value) if isinstance(value, dict) and isinstance(result.get(key), dict) else value
+        nested = isinstance(value, dict) and isinstance(result.get(key), dict)
+        result[key] = _deep_merge(result[key], value) if nested else value
     return result
 
 
@@ -669,7 +670,8 @@ def _create_missing_topic_files(directory: Path) -> None:
             pass
 
 
-def load_all(directory: Path, environ: dict[str, str] | None = None) -> tuple[Settings, Secrets, list[Topic], list[Topic], PromptConfig, str]:
+def load_all(directory: Path, environ: dict[str, str] | None = None
+             ) -> tuple[Settings, Secrets, list[Topic], list[Topic], PromptConfig, str]:
     env = {**_dotenv(directory / ".env"), **(os.environ if environ is None else environ)}
     settings = validated_file(directory / "config.yaml", Settings, read_yaml(directory / "config.yaml"))
     prompts = validated_file(directory / "prompts.yaml", PromptConfig, read_yaml(directory / "prompts.yaml"))

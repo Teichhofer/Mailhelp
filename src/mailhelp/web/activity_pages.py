@@ -170,7 +170,8 @@ def report_page(report: ActivityReport, mails: list[ReportMail], csrf: str,
             f'{_hidden(csrf, report.version, action="repeat")}'
             '<label>Neues Thema<textarea name="topic" minlength="10" maxlength="2000" required>'
             f'{e(report.definition.topic)}</textarea></label>'
-            '<p>Geladene Mailtexte werden wiederverwendet. Die neue KI-Analyse beginnt erst nach deiner Bestätigung.</p>'
+            '<p>Geladene Mailtexte werden wiederverwendet. '
+            'Die neue KI-Analyse beginnt erst nach deiner Bestätigung.</p>'
             '<button class="button">Neuen Bericht vorbereiten</button></form></details>')
     # Without JavaScript the page reloads itself while the report counts or reads.
     refresh = 15 if report.status in {ReportStatus.COUNTING, ReportStatus.RUNNING} else None

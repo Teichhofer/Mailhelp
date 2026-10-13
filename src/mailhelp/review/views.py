@@ -256,7 +256,8 @@ class ReviewViews:
             outbox = reader.model("telegram-outbox", TelegramOutboxState) or TelegramOutboxState()
             inbox = reader.raw("telegram-inbox")
             budget = reader.raw("llm-budget")
-            proposals = [proposal for name in self.store.names(state_names.PROPOSAL_PREFIX) if not _SNAPSHOT.search(name)
+            proposals = [proposal for name in self.store.names(state_names.PROPOSAL_PREFIX)
+                         if not _SNAPSHOT.search(name)
                          if (proposal := reader.model(name, Proposal)) is not None]
         analysis: dict[str, int] = {}
         for run in runs:

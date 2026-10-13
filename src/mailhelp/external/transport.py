@@ -79,7 +79,8 @@ class HttpTransport:
                 message = "Google Calendar: ausgestellter Access-Token wurde vom Calendar-Endpunkt abgelehnt"
                 error: type[PermanentError] = AuthenticationError
             elif status == 404:
-                message = "Google Calendar: Zielkalender existiert nicht oder ist für das authentifizierte Konto nicht sichtbar"
+                message = ("Google Calendar: Zielkalender existiert nicht oder ist für das authentifizierte "
+                           "Konto nicht sichtbar")
                 error = CalendarAccessError
             elif reason in {"insufficientPermissions", "forbidden"}:
                 message = "Google Calendar: OAuth-Token bezogen, aber Berechtigung für den Zielkalender fehlt"

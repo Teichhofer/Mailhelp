@@ -38,7 +38,8 @@ def _unescape_text(value: str) -> str:
     return result.strip()
 
 
-def _parse_ical_datetime(raw_val: str, params: dict[str, str], default_timezone: str = "UTC") -> tuple[date | datetime, bool]:
+def _parse_ical_datetime(raw_val: str, params: dict[str, str],
+                         default_timezone: str = "UTC") -> tuple[date | datetime, bool]:
     """Parse an iCalendar DATE or DATE-TIME value into date or timezone-aware datetime."""
     val = raw_val.strip()
     is_date_value = params.get("VALUE", "").upper() == "DATE" or (len(val) == 8 and val.isdigit())

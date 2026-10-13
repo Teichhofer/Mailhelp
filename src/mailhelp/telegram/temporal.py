@@ -48,7 +48,8 @@ class DeterministicTemporalAnswer(BaseModel):
     end: clock_time | None = None
 
 
-_DATE = r"(?:(?P<day>\d{1,2})\.(?P<month>\d{1,2})\.(?P<year>\d{4}|\d{2})|(?P<iso_year>\d{4})-(?P<iso_month>\d{2})-(?P<iso_day>\d{2}))"
+_DATE = (r"(?:(?P<day>\d{1,2})\.(?P<month>\d{1,2})\.(?P<year>\d{4}|\d{2})"
+         r"|(?P<iso_year>\d{4})-(?P<iso_month>\d{2})-(?P<iso_day>\d{2}))")
 _TIME = r"(?P<{name}_hour>\d{{1,2}})(?::(?P<{name}_minute>\d{{2}}))?\s*(?:Uhr)?"
 _TEMPORAL_ANSWERS = (
     re.compile(
@@ -351,7 +352,8 @@ _EXPLICIT_CREATE_FALLBACK_ANSWERS = (
     re.compile(r"neu anlegen"),
     re.compile(r"(?:als )?neuen (?:kalender)?(?:eintrag|termin) anlegen"),
     re.compile(
-        r"(?:ja,? )?(?:bitte )?(?:stattdessen |ersatzweise )?(?:einen )?neuen (?:kalender)?(?:eintrag|termin) (?:erstellen|anlegen)"
+        r"(?:ja,? )?(?:bitte )?(?:stattdessen |ersatzweise )?(?:einen )?"
+        r"neuen (?:kalender)?(?:eintrag|termin) (?:erstellen|anlegen)"
     ),
 )
 

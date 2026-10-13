@@ -20,7 +20,9 @@ from .storage import StateStore
 
 
 class CalendarReader(Protocol):
-    def fetch_events_in_window(self, start: datetime, end: datetime, *, strict: bool = False) -> list[CalendarOverlapEvent]: ...
+    def fetch_events_in_window(self, start: datetime, end: datetime, *,
+                               strict: bool = False) -> list[CalendarOverlapEvent]:
+        """Events overlapping the window; *strict* raises instead of returning an empty list."""
 
 class TaskReader(Protocol):
     def fetch_active_tasks(self) -> list[TodoistTaskResponse]: ...

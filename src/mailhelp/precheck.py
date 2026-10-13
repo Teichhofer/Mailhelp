@@ -56,7 +56,8 @@ class DuplicatePreCheckService:
                             external_id=entry.external_id,
                             external_link=entry.external_link,
                             matched_title=entry.title,
-                            details=f"Bereits erfolgreich über Mailhelp angelegt ({entry.created_at.date().isoformat()})",
+                            details="Bereits erfolgreich über Mailhelp angelegt "
+                                    f"({entry.created_at.date().isoformat()})",
                         ),
                     })
             except Exception as exc:
@@ -102,8 +103,10 @@ class DuplicatePreCheckService:
         assert isinstance(writer, HttpWriter)
         assert proposal.start is not None and proposal.end is not None
 
-        start_dt = proposal.start if isinstance(proposal.start, datetime) else datetime.combine(proposal.start, datetime.min.time(), UTC)
-        end_dt = proposal.end if isinstance(proposal.end, datetime) else datetime.combine(proposal.end, datetime.min.time(), UTC)
+        start_dt = (proposal.start if isinstance(proposal.start, datetime)
+                    else datetime.combine(proposal.start, datetime.min.time(), UTC))
+        end_dt = (proposal.end if isinstance(proposal.end, datetime)
+                  else datetime.combine(proposal.end, datetime.min.time(), UTC))
 
         search_start = start_dt - timedelta(days=1)
         search_end = end_dt + timedelta(days=1)

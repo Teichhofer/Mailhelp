@@ -1,5 +1,13 @@
 # Änderungen
 
+## 2.2.3 – Beta (Branch `beta`), statische Prüfung: ruff fehlerfrei
+
+Keine Verhaltensänderung.
+
+- **ruff (Planung 2.1, A1):** Von 236 Befunden auf 0. Zu lange Zeilen von Hand im Stil des Codes umbrochen (Texte als implizit verkettete Literale, sodass Seiten und Meldungen byte-gleich bleiben; der Renderer-Vertragstest bestätigt das). Closures binden ihre Schleifenwerte ausdrücklich; Tests erwarten konkrete Ausnahmen (`ValidationError`, `RetryableError`, `PermanentError`, `UncertainWriteError`) statt `Exception`.
+- **Konfiguration:** UP038 ist in ruff selbst veraltet und wird ignoriert; die Kompatibilitätsfassaden `models.py` und `domain/__init__.py` dürfen wie `telegram/_core.py` per Stern importieren.
+- Protokollmethoden mit mehrzeiliger Signatur tragen einen Docstring statt `...`.
+
 ## 2.2.2 – Beta (Branch `beta`), Anforderungsprüfung 2.2
 
 Behebt die Befunde aus [Pruefung-2.2.md](docs/Pruefung-2.2.md); jede Korrektur hat einen Regressionstest.

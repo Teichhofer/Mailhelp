@@ -65,7 +65,8 @@ def edit_proposal(previous: Proposal, patch: ProposalEditPatch, zone: str, targe
     if not changes:
         return previous
     if {"due", "start", "end"} & changes.keys():
-        changes.update(known_temporal_facts=None, temporal_fact=None, duration_minutes=None, duration_is_upper_bound=False)
+        changes.update(known_temporal_facts=None, temporal_fact=None, duration_minutes=None,
+                       duration_is_upper_bound=False)
     changes.update(explicit_create_fallback_confirmed=False, explicit_non_binding_create_confirmed=False)
     candidate = previous.model_copy(update=changes)
     questions = required_revision_questions(candidate)

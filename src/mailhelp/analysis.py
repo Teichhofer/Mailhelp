@@ -92,7 +92,9 @@ class LlmSchemaValidationFailed(LlmSchemaValidationExceeded):
 
 
 class Completer(Protocol):
-    def complete(self, model: str, parameters: dict[str, Any], system: str, payload: dict[str, Any], **metadata: Any) -> tuple[str, Any]: ...
+    def complete(self, model: str, parameters: dict[str, Any], system: str, payload: dict[str, Any],
+                 **metadata: Any) -> tuple[str, Any]:
+        """Return the call id and the parsed JSON answer."""
 
 
 def validate_revision_successor(previous: Proposal, candidate: Any, *,

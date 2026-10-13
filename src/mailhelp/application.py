@@ -504,7 +504,10 @@ def _build_imap(settings: Settings, secrets: Secrets, policy: Callable[[str], Re
     imap_cfg = settings.timeouts.imap
     factory = imaplib.IMAP4_SSL if settings.imap.connection_mode == "ssl" else imaplib.IMAP4
     try:
-        imap = ImapReader(settings.imap.host, settings.imap.port, secrets.imap_username, secrets.imap_password.get_secret_value(), imap_cfg.timeout_seconds, factory=factory, policy=policy("imap"), logger=logger, starttls=settings.imap.connection_mode == "starttls", batch_size=settings.imap.batch_size)
+        imap = ImapReader(settings.imap.host, settings.imap.port, secrets.imap_username,
+                          secrets.imap_password.get_secret_value(), imap_cfg.timeout_seconds, factory=factory,
+                          policy=policy("imap"), logger=logger, starttls=settings.imap.connection_mode == "starttls",
+                          batch_size=settings.imap.batch_size)
     except Exception as exc:
         if not access_diagnostics:
             raise
@@ -521,11 +524,16 @@ def _build_llm(settings: Settings, secrets: Secrets, local_llm: LocalLlm | None,
     openrouter: OpenRouterClient
     if local_llm is None:
         llm_cfg = settings.timeouts.openrouter
-        openrouter = OpenRouterClient(secrets.openrouter_api_key.get_secret_value(), llm_cfg.timeout_seconds, llm_cfg.retries, settings.limits.llm_calls_per_minute, initial_backoff=llm_cfg.initial_backoff_seconds, max_backoff=llm_cfg.max_backoff_seconds, **llm_budget)
+        openrouter = OpenRouterClient(secrets.openrouter_api_key.get_secret_value(), llm_cfg.timeout_seconds,
+                                      llm_cfg.retries, settings.limits.llm_calls_per_minute,
+                                      initial_backoff=llm_cfg.initial_backoff_seconds,
+                                      max_backoff=llm_cfg.max_backoff_seconds, **llm_budget)
     else:
         # Experimental: every LLM stage runs on the local Ollama model.
         llm_cfg = settings.timeouts.ollama
-        openrouter = OllamaClient(local_llm, llm_cfg.timeout_seconds, llm_cfg.retries, settings.limits.llm_calls_per_minute, initial_backoff=llm_cfg.initial_backoff_seconds, max_backoff=llm_cfg.max_backoff_seconds, **llm_budget)
+        openrouter = OllamaClient(local_llm, llm_cfg.timeout_seconds, llm_cfg.retries,
+                                  settings.limits.llm_calls_per_minute, initial_backoff=llm_cfg.initial_backoff_seconds,
+                                  max_backoff=llm_cfg.max_backoff_seconds, **llm_budget)
         logger.event("WARNING", "application", "local_llm_experimental",
                      host=local_llm.host, port=local_llm.port, model=local_llm.model,
                      num_ctx=local_llm.num_ctx)
@@ -536,7 +544,10 @@ def _build_llm(settings: Settings, secrets: Secrets, local_llm: LocalLlm | None,
 def _build_telegram(settings: Settings, secrets: Secrets, policy: Callable[[str], RetryPolicy],
                     logger: JsonlLogger, stack: ExitStack) -> Any:
     if settings.telegram.enabled:
-        telegram = TelegramClient(secrets.telegram_bot_token.get_secret_value(), settings.timeouts.telegram.timeout_seconds, poll_timeout=settings.timeouts.telegram_poll_seconds, policy=policy("telegram"), logger=logger)
+        telegram = TelegramClient(secrets.telegram_bot_token.get_secret_value(),
+                                  settings.timeouts.telegram.timeout_seconds,
+                                  poll_timeout=settings.timeouts.telegram_poll_seconds, policy=policy("telegram"),
+                                  logger=logger)
     else:
         from .standalone import DisabledTelegram
         telegram = DisabledTelegram()
@@ -605,7 +616,11 @@ def _build_orchestrator(settings: Settings, prompts: PromptConfig, topics: list[
     elif settings.vision.enabled:
         # A prompts.yaml from before 1.4: no image is sent anywhere.
         logger.event("WARNING", "application", "vision_prompt_missing")
-    orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics, settings.limits.max_mail_bytes, logger, mime_limits=settings.limits, config_fingerprint=fingerprint, targets=settings.targets, user_timezone=settings.timezone, sender_store=sender_store, precheck=precheck, vision=vision)
+    orchestrator = Orchestrator(analyzer, store, dialog, settings.telegram.chat_id, topics,
+                                settings.limits.max_mail_bytes, logger, mime_limits=settings.limits,
+                                config_fingerprint=fingerprint, targets=settings.targets,
+                                user_timezone=settings.timezone, sender_store=sender_store, precheck=precheck,
+                                vision=vision)
     from .fingerprints import adopt_legacy_configuration, legacy_fingerprints, legacy_policies, topic_policy
     orchestrator.topic_policy = topic_policy(settings, prompts)
     if not access_diagnostics:
@@ -702,7 +717,8 @@ def build_application(
             save_calls=lambda calls: store.save("llm-budget", {"calls": calls}), logger=logger)
         openrouter = _build_llm(settings, secrets, local_llm, llm_budget, logger, stack)
         telegram = _build_telegram(settings, secrets, policy, logger, stack)
-        todoist = HttpWriter("todoist", secrets.todoist_token.get_secret_value(), settings.targets.todoist_project, settings.timeouts.todoist.timeout_seconds, policy=policy("todoist"), logger=logger)
+        todoist = HttpWriter("todoist", secrets.todoist_token.get_secret_value(), settings.targets.todoist_project,
+                             settings.timeouts.todoist.timeout_seconds, policy=policy("todoist"), logger=logger)
         stack.callback(todoist.close)
         google_cfg = settings.timeouts.google_calendar
         oauth = GoogleOAuthTokenProvider(
@@ -728,7 +744,8 @@ def build_application(
                                            logger, analyzer, dialog, writers, access_diagnostics)
         dialog.relevance_handler = orchestrator
         orchestrator.stop_event = stop_event
-        application = Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar, orchestrator, stop_event, dialog, sender_store)
+        application = Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar,
+                                  orchestrator, stop_event, dialog, sender_store)
         if web_enabled:
             _attach_web(application, settings, secrets, prompts, jev_prompts, local_llm, base_directory, sender_store)
         yield application

@@ -99,7 +99,8 @@ class ActivitySite:
                        "Jahren und jeden Ordner nur einmal angeben.")
             return Response.html(422, new_page(self._csrf(session), [], form, message))
         except OSError:
-            return self.site._reply(request, 503, "Die Ordnerliste ist gerade nicht erreichbar. Bitte erneut versuchen.")
+            return self.site._reply(request, 503,
+                                    "Die Ordnerliste ist gerade nicht erreichbar. Bitte erneut versuchen.")
         configuration = self.site.archive.configuration
         blocked = configuration.blocked_senders() if configuration is not None else None
         try:

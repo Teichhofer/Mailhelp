@@ -77,7 +77,8 @@ def record_relevance(store: JsonStore, state: MailState, source: str, operation:
     dialog = state.relevance_dialog
     if dialog is None or dialog.decision is None:
         return
-    identifier = hashlib.sha256(json.dumps([state.id, dialog.version, dialog.decision, source, operation]).encode()).hexdigest()[:32]
+    parts = json.dumps([state.id, dialog.version, dialog.decision, source, operation])
+    identifier = hashlib.sha256(parts.encode()).hexdigest()[:32]
     append_event(store, state.id, HistoryEvent(id=identifier, version=dialog.version,
                  kind="relevance", status=dialog.decision, source=source, at=state.updated_at))
 

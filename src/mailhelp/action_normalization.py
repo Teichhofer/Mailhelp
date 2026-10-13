@@ -217,7 +217,8 @@ def _parse_date(raw: str | None, responsibility: str, context: MailDateContext |
                 return _failure(NormalizationReason.INVALID_DATE, raw, responsibility,
                                 "Wochentag und Kalenderdatum widersprechen sich.")
             return candidate, TemporalFact(raw_text=raw, normalized_date=candidate,
-                                           year_source=YearSource.EXPLICIT_MAIL, status=TemporalResolutionStatus.RESOLVED)
+                                           year_source=YearSource.EXPLICIT_MAIL,
+                                           status=TemporalResolutionStatus.RESOLVED)
         match = _DATE_YEARLESS.fullmatch(raw.strip())
         if match is not None and context is not None:
             checked = _context_zone(context, responsibility)

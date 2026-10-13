@@ -191,8 +191,10 @@ class JsonStore:
             path = self.directory / f"{name}.json"
             quarantine = path.with_suffix(".invalid")
             os.replace(path, quarantine)
-            locations = [".".join(str(part) for part in error["loc"]) or "<root>" for error in exc.errors(include_input=False)]
-            raise CorruptState(f"Schemawidriger Zustand isoliert: {quarantine.name}; Schlüsselpfad: {', '.join(locations)}") from exc
+            locations = [".".join(str(part) for part in error["loc"]) or "<root>"
+                         for error in exc.errors(include_input=False)]
+            raise CorruptState(f"Schemawidriger Zustand isoliert: {quarantine.name}; "
+                               f"Schlüsselpfad: {', '.join(locations)}") from exc
         if migrated:
             self.save(name, result.model_dump(mode="json"))
         return result

@@ -72,16 +72,19 @@ class SenderChange(BaseModel):
 
 
 SETTINGS_FIELDS = {
-    "poll_interval_seconds", "timezone", "test_mode", "personal_info", "targets.todoist_project", "targets.google_calendar",
+    "poll_interval_seconds", "timezone", "test_mode", "personal_info",
+    "targets.todoist_project", "targets.google_calendar",
     "limits.llm_calls_per_minute", "limits.max_mail_bytes", "limits.max_llm_payload_bytes",
     "retention.full_mail_days", "retention.debug_llm_days", "retention.analysis_days", "retention.history_days",
     "logging.console.level", "logging.file.level", "logging.llm.include_requests", "logging.llm.include_responses",
-    "metrics.enabled", "metrics.retention_days", "metrics.usd_per_eur", "metrics.exchange_rate_date", "metrics.ollama_power_watts", "metrics.electricity_eur_per_kwh",
+    "metrics.enabled", "metrics.retention_days", "metrics.usd_per_eur", "metrics.exchange_rate_date",
+    "metrics.ollama_power_watts", "metrics.electricity_eur_per_kwh",
 }
 for service in ("imap", "telegram", "openrouter", "ollama", "todoist", "google_calendar"):
     SETTINGS_FIELDS.update(f"timeouts.{service}.{field}" for field in
                            ("timeout_seconds", "retries", "initial_backoff_seconds", "max_backoff_seconds"))
-for field in ("interpretation_attempts", "interpretation_backoff_seconds", "revision_attempts", "revision_backoff_seconds"):
+for field in ("interpretation_attempts", "interpretation_backoff_seconds", "revision_attempts",
+              "revision_backoff_seconds"):
     SETTINGS_FIELDS.add(f"retries.{field}")
 
 LIVE_FIELDS = {"poll_interval_seconds", "retention", "metrics", "personal_info"}
@@ -238,7 +241,8 @@ class ConfigurationService:
                     live[field] = candidate.get(field, live[field])
                 self.active = Settings.model_validate(live)
                 self.activate(self.active)
-                message = "Gespeichert. Pollintervall, Aufbewahrung, Metrikannahmen und persönliche Angaben übernommen; übrige Änderungen beim nächsten Start."
+                message = ("Gespeichert. Pollintervall, Aufbewahrung, Metrikannahmen und persönliche Angaben "
+                           "übernommen; übrige Änderungen beim nächsten Start.")
             else:
                 if command.category == "relevant":
                     self.activate_topics([Topic.model_validate(item) for item in candidate["topics"]])
@@ -247,7 +251,8 @@ class ConfigurationService:
         except ConfigurationConflict:
             return ReviewResult(status=ResultStatus.STALE, message="Datei inzwischen geändert; bitte neu laden.")
         except (ValueError, OSError):
-            return ReviewResult(status=ResultStatus.INVALID, message="Konfiguration nicht übernommen: ungültig, geändert oder nicht schreibbar.")
+            return ReviewResult(status=ResultStatus.INVALID,
+                                message="Konfiguration nicht übernommen: ungültig, geändert oder nicht schreibbar.")
 
     def reconcile(self, command: AdminCommand) -> ReviewResult:
         if command.kind == AdminKind.SENDERS:
@@ -266,5 +271,7 @@ class ConfigurationService:
                                 message="Absenderänderung unterbrochen; bitte erneut auslösen.")
         journal = self.store.load(f"configuration-{command.idempotency_key}", {})
         if journal.get("candidate_hash") == file_hash(self.path(command)):
-            return ReviewResult(status=ResultStatus.DONE, message="Gespeicherte Konfiguration nach Neustart abgeglichen.")
-        return ReviewResult(status=ResultStatus.FAILED, message="Konfigurationsänderung unterbrochen; bitte neu prüfen.")
+            return ReviewResult(status=ResultStatus.DONE,
+                                message="Gespeicherte Konfiguration nach Neustart abgeglichen.")
+        return ReviewResult(status=ResultStatus.FAILED,
+                            message="Konfigurationsänderung unterbrochen; bitte neu prüfen.")

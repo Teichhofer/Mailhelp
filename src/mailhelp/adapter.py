@@ -48,7 +48,8 @@ class RetryPolicy:
     wait: Callable[[float], bool]
     clock: Callable[[], float] = time
 
-    def run(self, operation: Callable[[], T], on_attempt: Callable[[int], None] | None = None, on_error: Callable[[int, Exception], None] | None = None) -> T:
+    def run(self, operation: Callable[[], T], on_attempt: Callable[[int], None] | None = None,
+            on_error: Callable[[int, Exception], None] | None = None) -> T:
         attempt = 0
         while True:
             if on_attempt is not None:

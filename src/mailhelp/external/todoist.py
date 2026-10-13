@@ -21,7 +21,8 @@ class TodoistOperations(HttpTransport):
                 params["cursor"] = cursor
             response = self.policy.run(lambda params=params: self._get("/tasks", params))
             try: page = TodoistTaskListResponse.model_validate(response.json())
-            except (ValueError, ValidationError) as exc: raise ValueError(f"Todoist tasks: ungültige Antwort am Schlüsselpfad {validation_path(exc)}") from exc
+            except (ValueError, ValidationError) as exc:
+                raise ValueError(f"Todoist tasks: ungültige Antwort am Schlüsselpfad {validation_path(exc)}") from exc
             found = next((item for item in page.results if f"[{key}]" in item.description), None)
             if found is not None:
                 return found.model_dump()
@@ -34,7 +35,9 @@ class TodoistOperations(HttpTransport):
 
     def _prepare_todoist(self, proposal: Proposal, key: str) -> PreparedWrite:
         if proposal.kind != ProposalKind.TASK: raise ValueError("Todoist akzeptiert nur Aufgaben")
-        url, body = "/tasks", {"content": proposal.title, "description": f"{proposal.description}\n\n[{key}]".strip(), "project_id": self.target}
+        url, body = "/tasks", {"content": proposal.title,
+                               "description": f"{proposal.description}\n\n[{key}]".strip(),
+                               "project_id": self.target}
         if isinstance(proposal.due, datetime):
             body["due_datetime"] = proposal.due.isoformat()
         elif proposal.due is not None:

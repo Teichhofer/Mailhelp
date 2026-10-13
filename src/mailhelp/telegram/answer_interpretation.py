@@ -267,7 +267,8 @@ class AuthorizedAnswerInterpreter:
             state.mail_id, state.proposal_id, state.version, exc, status
         )
         if exhausted:
-            message = "Die Interpretation wurde nach mehreren Versuchen pausiert. Die gespeicherte Antwort bleibt erhalten."
+            message = ("Die Interpretation wurde nach mehreren Versuchen pausiert. "
+                       "Die gespeicherte Antwort bleibt erhalten.")
         elif contradictory:
             message = "Die Antwort widerspricht möglicherweise dem bestehenden Vorschlag und wird erneut geprüft."
         else:

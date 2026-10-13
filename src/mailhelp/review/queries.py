@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import date, datetime
-from typing import Literal
+from typing import Any, Literal
 from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -20,7 +20,8 @@ class ArchiveQuery(BaseModel):
     relevance: Literal["", "relevant", "irrelevant", "unclear", "unknown"] = ""
     topic: str = Field(default="", max_length=100)
     state: Literal["", "failed", "waiting", "completed", "no_action"] = ""
-    kind: Literal["", "state", "edit", "edit_fields", "confirm", "confirm_duplicate", "reject", "clarify", "answer", "cancel", "relevance", "legacy"] = ""
+    kind: Literal["", "state", "edit", "edit_fields", "confirm", "confirm_duplicate", "reject", "clarify", "answer",
+                  "cancel", "relevance", "legacy"] = ""
     proposal_kind: Literal["", "task", "event"] = ""
     status: ProposalStatus | Literal["relevant", "irrelevant"] | None = None
     since: date | None = None
@@ -80,7 +81,8 @@ class ArchiveQueries:
             items.append({"id": state.id, "sender": headers.sender if headers else "—",
                           "subject": headers.subject if headers else "Mail ohne Betreff",
                           "received": received, "updated": state.updated_at.isoformat(),
-                          "relevance": (state.relevance_dialog.decision if state.relevance_dialog else None) or relevance.get("decision", "unknown"),
+                          "relevance": (state.relevance_dialog.decision if state.relevance_dialog else None)
+                                       or relevance.get("decision", "unknown"),
                           "topics": relevance.get("topic_ids", []),
                           "summary": " ".join(summary.get("sentences", [])),
                           "failed": state.error is not None,
@@ -96,7 +98,8 @@ class ArchiveQueries:
     def search(self, query: ArchiveQuery) -> tuple[list[dict], int]:
         items = []
         for item in self.items():
-            if not matches(query.filter, item["kinds"].values(), item["statuses"] + [item["relevance"]], item["attachments"], item["duplicate"]):
+            if not matches(query.filter, item["kinds"].values(), item["statuses"] + [item["relevance"]],
+                           item["attachments"], item["duplicate"]):
                 continue
             day = datetime.fromisoformat(item[query.sort] or item["updated"]).astimezone(self.zone).date()
             if query.q.casefold() not in " ".join([item["sender"], item["subject"], item["summary"]]).casefold():
@@ -114,7 +117,9 @@ class ArchiveQueries:
             if query.since and day < query.since or query.until and day > query.until:
                 continue
             items.append(item)
-        items.sort(key=lambda item: (datetime.fromisoformat(item[query.sort] or item["updated"]).timestamp(), item["id"]), reverse=True)
+        def order(item: dict[str, Any]) -> tuple[float, str]:
+            return datetime.fromisoformat(item[query.sort] or item["updated"]).timestamp(), item["id"]
+        items.sort(key=order, reverse=True)
         start = (query.page - 1) * query.size
         return items[start:start + query.size], len(items)
 

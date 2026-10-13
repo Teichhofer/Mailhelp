@@ -12,12 +12,16 @@ from .contracts import ExternalWriter, PreparedWrite, proposal_is_writable
 from .http_writer import HttpWriter
 
 
-def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Callable[[Proposal], None], test_mode: bool = False) -> tuple[Proposal, dict[str, Any]]:
+def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Callable[[Proposal], None],
+                      test_mode: bool = False) -> tuple[Proposal, dict[str, Any]]:
     if not proposal_is_writable(proposal):
-        raise ValueError("Nur neue, sichere und eigene Vorschläge oder ausdrücklich bestätigte Ersatz-Neuanlagen dürfen extern angelegt werden")
+        raise ValueError("Nur neue, sichere und eigene Vorschläge oder ausdrücklich bestätigte "
+                         "Ersatz-Neuanlagen dürfen extern angelegt werden")
     if proposal.status == ProposalStatus.SIMULATED:
         return proposal, {"simulation": True}
-    if proposal.status not in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN} or proposal.open_questions: raise ValueError("Schreiben erfordert vollständige, bestätigte Vorschlagsversion")
+    if (proposal.status not in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN}
+            or proposal.open_questions):
+        raise ValueError("Schreiben erfordert vollständige, bestätigte Vorschlagsversion")
     if isinstance(writer, HttpWriter) and proposal.target != writer.target:
         # Even reconciliation must not search a newly configured target for an
         # action authorized against a different project/calendar.

@@ -72,7 +72,10 @@ class ProposalPresenter:
                 (
                     "Simulieren"
                     if self.test_mode
-                    else ("Termin absagen" if proposal.is_cancellation else "Termin aktualisieren") if proposal.target_event_id is not None else "Im Kalender anlegen" if proposal.kind == ProposalKind.EVENT else "In Todoist anlegen"
+                    else ("Termin absagen" if proposal.is_cancellation else "Termin aktualisieren")
+                    if proposal.target_event_id is not None
+                    else "Im Kalender anlegen" if proposal.kind == ProposalKind.EVENT
+                    else "In Todoist anlegen"
                 ),
                 DecisionAction.CONFIRM,
             )

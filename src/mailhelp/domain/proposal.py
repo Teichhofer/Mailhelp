@@ -229,7 +229,8 @@ class Proposal(StrictModel):
         else:
             if any(not isinstance(value, datetime) for value in values if value is not None):
                 raise ValueError("Zeitgebundene Termine benötigen Datums- und Zeitwerte")
-            if any(value.tzinfo is None or value.utcoffset() is None for value in values if isinstance(value, datetime)):
+            if any(value.tzinfo is None or value.utcoffset() is None
+                   for value in values if isinstance(value, datetime)):
                 raise ValueError("Zeitgebundene Termine benötigen einen eindeutigen UTC-Offset")
         if self.end is not None and self.start is not None and self.end <= self.start:
             raise ValueError("Terminende muss nach dem Beginn liegen")
@@ -291,7 +292,8 @@ def required_revision_questions(proposal: Proposal) -> list[str]:
             else "Soll der nicht bindende Hinweis dennoch als neuer Eintrag angelegt werden?"
         ),
         ProposalClassification.ALREADY_COMPLETED: "Der Eintrag ist bereits abgeschlossen und nicht direkt ausführbar.",
-        ProposalClassification.CHANGE: (None if (proposal.explicit_create_fallback_confirmed or proposal.target_event_id is not None)
+        ProposalClassification.CHANGE: (None if (proposal.explicit_create_fallback_confirmed
+                                                 or proposal.target_event_id is not None)
                                         else "Welcher bestehende Eintrag soll geändert werden?"),
         ProposalClassification.CANCELLATION: (None if proposal.target_event_id is not None
                                               else "Welcher bestehende Eintrag soll storniert werden?"),

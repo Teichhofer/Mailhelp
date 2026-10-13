@@ -144,7 +144,8 @@ class ProposalDecisionService:
             self.allowed_chat,
             "\n".join(
                 [
-                    f"Bereits angelegt: {'Aufgabe' if previous.kind == ProposalKind.TASK else 'Termin'} „{previous.title}“.",
+                    f"Bereits angelegt: {'Aufgabe' if previous.kind == ProposalKind.TASK else 'Termin'} "
+                    f"„{previous.title}“.",
                     f"Frühere Quelle (Version {previous.proposal_version}):\n{source_text}",
                     "Soll die Aktion wirklich ein zweites Mal angelegt bzw. versendet werden?",
                 ]

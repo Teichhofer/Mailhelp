@@ -74,8 +74,10 @@ def _clean_display(value: str) -> str:
 
 class _TextHTML(HTMLParser):
     _ignored = frozenset({"script", "style", "noscript", "object", "embed", "iframe", "svg", "canvas"})
-    _breaks = frozenset({"address", "article", "br", "div", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "li", "p", "section", "tr"})
-    _void = frozenset({"area", "base", "br", "col", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"})
+    _breaks = frozenset({"address", "article", "br", "div", "footer", "h1", "h2", "h3", "h4", "h5", "h6",
+                         "header", "li", "p", "section", "tr"})
+    _void = frozenset({"area", "base", "br", "col", "hr", "img", "input", "link", "meta", "param", "source",
+                       "track", "wbr"})
 
     def __init__(self, limits: MimeLimits) -> None:
         super().__init__(convert_charrefs=True)
@@ -309,6 +311,7 @@ def prepare(raw: bytes, limits: int | MimeLimits | object,
     # Preserve all occurrences for conservative duplicate handling.  They are
     # untrusted input and are normalized only at the duplicate-index boundary.
     result["message_ids"] = [_clean(str(value)) for value in message.get_all("Message-ID", [])]
-    if len(json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) > configured.max_llm_payload_bytes:
+    encoded = json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    if len(encoded) > configured.max_llm_payload_bytes:
         raise MimeLimitExceeded("max_llm_payload_bytes")
     return result

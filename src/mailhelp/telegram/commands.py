@@ -90,8 +90,9 @@ class TelegramCommands:
             elif editing and active.retry_required:
                 status = "Antwort gespeichert; Verarbeitung wird automatisch fortgesetzt"
             else:
+                clarify = ("Klärung erforderlich – bitte „Klären“ bzw. „Ändern“ oder „Manuell prüfen“ wählen")
                 status = ("Warte auf Antwort zur angezeigten Frage" if editing else
-                          "Klärung erforderlich – bitte „Klären“ bzw. „Ändern“ oder „Manuell prüfen“ wählen" if proposal.status == ProposalStatus.NEEDS_CLARIFICATION
+                          clarify if proposal.status == ProposalStatus.NEEDS_CLARIFICATION
                           else "Warte auf Bestätigung oder Verwerfen")
                 if interactive:
                     if editing:
@@ -154,8 +155,10 @@ class TelegramCommands:
             return
         state = self.store.load_model(clarification_name(
             dialog.mail_id, dialog.proposal_id, dialog.version), ProposalClarificationState)
-        if dialog.retry_required or (state is not None and state.authorized_answer is not None and state.answer_status != AnswerStatus.INVALID):
-            self.telegram.send(self.chat_id, "Die Antwort ist bereits gespeichert. Die Verarbeitung kann hier nicht abgebrochen werden. Status: /status")
+        if dialog.retry_required or (state is not None and state.authorized_answer is not None
+                                     and state.answer_status != AnswerStatus.INVALID):
+            self.telegram.send(self.chat_id, "Die Antwort ist bereits gespeichert. Die Verarbeitung kann hier "
+                                             "nicht abgebrochen werden. Status: /status")
             return
         # Only the editing mode changes. Questions, content and version are preserved.
         snapshot = self.repository.load_version(dialog.mail_id, dialog.proposal_id, dialog.version)

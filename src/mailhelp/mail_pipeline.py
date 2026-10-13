@@ -131,7 +131,8 @@ class MailPipeline:
                 call = None
                 self.o.analyzer.last_relevance_source = "prefilter"
             else:
-                call, state.relevance = self.o.analyzer.relevance(state.mail, self.o.topics_for(state.config_fingerprint))
+                topics = self.o.topics_for(state.config_fingerprint)
+                call, state.relevance = self.o.analyzer.relevance(state.mail, topics)
                 state.llm_call_ids.append(call)
             state.steps.relevance = "completed"
             self.o.save(run.name, state)
@@ -345,14 +346,17 @@ class MailPipeline:
         name, state, stage, started = run.name, run.state, run.stage, run.started
         if isinstance(exc, RateLimitExceeded):
             state.deferred_until = datetime.fromtimestamp(exc.next_allowed_at, UTC)
+            retry_at = state.deferred_until.isoformat()
             self.o.failure(name, state, ProcessingErrorCode.LLM_RATE_LIMITED, stage,
-                          f"LLM-Limit erreicht. Automatischer neuer Versuch nach {state.deferred_until.isoformat()}.", True)
-            self.o.logger.event("WARNING", "orchestrator", "llm_rate_limited", mail_id=state.id, next_allowed_at=state.deferred_until.isoformat(),
-                              duration_ms=round((time.perf_counter() - started) * 1000, 3), error=exc, stacktrace=traceback.format_exc())
+                          f"LLM-Limit erreicht. Automatischer neuer Versuch nach {retry_at}.", True)
+            self.o.logger.event("WARNING", "orchestrator", "llm_rate_limited", mail_id=state.id,
+                              next_allowed_at=retry_at, duration_ms=round((time.perf_counter() - started) * 1000, 3),
+                              error=exc, stacktrace=traceback.format_exc())
             return ProcessingOutcome.WAITING
         if isinstance(exc, MimeLimitExceeded):
             self.o.failure(name, state, ProcessingErrorCode.MIME_LIMIT_EXCEEDED, stage,
-                          "Die Nachricht überschreitet ein Sicherheitslimit. Bitte Anhänge oder Nachrichtengröße reduzieren.", False)
+                          "Die Nachricht überschreitet ein Sicherheitslimit. "
+                          "Bitte Anhänge oder Nachrichtengröße reduzieren.", False)
             self.o.logger.event("WARNING", "orchestrator", "mime_limit_exceeded", mail_id=state.id, stage=stage.value,
                               limit=exc.limit, error=exc, stacktrace=traceback.format_exc())
             return ProcessingOutcome.FAILED
@@ -371,9 +375,10 @@ class MailPipeline:
                 stage=stage, code="schema_validation_failed", occurred_at=datetime.now(UTC)
             ))
             self.o.failure(name, state, ProcessingErrorCode.SCHEMA_VALIDATION_FAILED, stage,
-                          "Die automatische Auswertung war nicht zuverlässig. Bitte die Nachricht manuell prüfen.", True)
-            self.o.logger.event("ERROR", "orchestrator", "schema_validation_failed", mail_id=state.id, stage=stage.value,
-                              error=exc, stacktrace=traceback.format_exc())
+                          "Die automatische Auswertung war nicht zuverlässig. "
+                          "Bitte die Nachricht manuell prüfen.", True)
+            self.o.logger.event("ERROR", "orchestrator", "schema_validation_failed", mail_id=state.id,
+                              stage=stage.value, error=exc, stacktrace=traceback.format_exc())
         elif isinstance(exc, PermanentError):
             detail = getattr(exc, "safe_detail", None)
             suffix = f" {detail}" if detail else ""
@@ -385,6 +390,7 @@ class MailPipeline:
         else:
             self.o.failure(name, state, ProcessingErrorCode.INTERNAL_ERROR, stage,
                           "Ein interner Fehler ist aufgetreten. Bitte Protokoll und Konfiguration prüfen.")
-            self.o.logger.event("ERROR", "orchestrator", "processing_failed", mail_id=state.id, stage=stage.value, error=exc,
-                              duration_ms=round((time.perf_counter() - started) * 1000, 3), stacktrace=traceback.format_exc())
+            self.o.logger.event("ERROR", "orchestrator", "processing_failed", mail_id=state.id, stage=stage.value,
+                              error=exc, duration_ms=round((time.perf_counter() - started) * 1000, 3),
+                              stacktrace=traceback.format_exc())
         return self.o.failure_outcome(name, state, stage)

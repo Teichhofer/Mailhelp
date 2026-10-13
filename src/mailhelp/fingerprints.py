@@ -106,6 +106,7 @@ def adopt_legacy_configuration(store: JsonStore, fingerprint: str, legacy: set[s
     return added
 
 
-__all__ = ["EXPERIENCE", "EXPERIENCE_FIELDS", "OPERATIONAL", "PREPARATION", "PREPARATION_PROMPTS", "adopt_legacy_configuration",
+__all__ = ["EXPERIENCE", "EXPERIENCE_FIELDS", "OPERATIONAL", "PREPARATION", "PREPARATION_PROMPTS",
+           "adopt_legacy_configuration",
            "analysis_prompts", "analysis_settings", "config_fingerprint",
            "legacy_fingerprints", "legacy_policies", "topic_policy"]

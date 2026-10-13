@@ -98,6 +98,7 @@ class PreparedWrite:
 
 def validation_path(exc: Exception) -> str:
     if isinstance(exc, ValidationError):
-        return ", ".join(".".join(str(value) for value in item["loc"]) or "<root>" for item in exc.errors(include_input=False))
+        return ", ".join(".".join(str(value) for value in item["loc"]) or "<root>"
+                         for item in exc.errors(include_input=False))
     return "<json>"
 

@@ -127,7 +127,8 @@ class DraftService:
                 if draft["status"] == "uncertain":
                     raise ValueError("Schreibresultat unklar; zuerst den Entwurf erneut speichern")
             # The paid call runs without the store lock; the session is checked again afterwards.
-            call, reply = cast(DraftAnalyzer, self.analyzer).draft_reply(cast(dict[str, Any], source.mail), intent, self.personal_info())
+            call, reply = cast(DraftAnalyzer, self.analyzer).draft_reply(cast(dict[str, Any], source.mail),
+                                                                         intent, self.personal_info())
             if not self.authorize(actor):
                 raise PermissionError("Sitzung abgelaufen")
             draft.update(version=version + 1, text=reply.text, intent=intent, status="editing",

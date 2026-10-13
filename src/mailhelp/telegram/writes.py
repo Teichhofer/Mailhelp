@@ -117,7 +117,8 @@ class ConfirmedWriteExecutor:
         elif changed.status == ProposalStatus.UNCERTAIN:
             if changed.uncertain_notified:
                 return changed
-            text = f"Unklarer Schreiberfolg bei „{proposal.title}“; wird weiter abgeglichen und nicht automatisch wiederholt."
+            text = (f"Unklarer Schreiberfolg bei „{proposal.title}“; wird weiter abgeglichen und nicht "
+                    "automatisch wiederholt.")
         else:
             text = f"Erstellen von „{proposal.title}“ fehlgeschlagen."
         self.telegram.send(self.chat_id, text)

@@ -79,7 +79,8 @@ class ProposalRevisionProcessor:
                 "INFO", "telegram.dialog", "answer_rejected", reason="no_open_dialog"
             )
             self.telegram.send(
-                self.chat_id, "Keine offene Rückfrage. Bitte /offen öffnen und beim gewünschten Vorschlag „Klären“, „Ändern“ oder „Manuell prüfen“ wählen."
+                self.chat_id, "Keine offene Rückfrage. Bitte /offen öffnen und beim gewünschten Vorschlag "
+                              "„Klären“, „Ändern“ oder „Manuell prüfen“ wählen."
             )
             return
         assert dialog.mail_id is not None

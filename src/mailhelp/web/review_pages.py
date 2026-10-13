@@ -105,13 +105,15 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
     diff_box = ""
     if view.time_changes:
         diff_lines = [f"<li>{e(str(change))}</li>" for change in view.time_changes]
-        diff_box = f'<div class="diff-box"><p>🔄 <strong>Terminänderung gegenüber Google Kalender:</strong></p><ul>{"".join(diff_lines)}</ul></div>'
+        diff_box = ('<div class="diff-box"><p>🔄 <strong>Terminänderung gegenüber Google Kalender:</strong></p>'
+                    f'<ul>{"".join(diff_lines)}</ul></div>')
     if view.duplicate_match is not None:
         dm = view.duplicate_match
         dup_url = https_link(getattr(dm, "external_link", None))
         dup_text = e(getattr(dm, "details", "Bereits vorhanden"))
         if dup_url:
-            labels.append(f'<span class="badge info"><a href="{e(dup_url)}" target="_blank" rel="noopener noreferrer">{dup_text} ↗</a></span>')
+            labels.append(f'<span class="badge info"><a href="{e(dup_url)}" target="_blank" '
+                          f'rel="noopener noreferrer">{dup_text} ↗</a></span>')
         else:
             labels.append(f'<span class="badge info">{dup_text}</span>')
     current = " current" if view.current else ""
@@ -148,7 +150,8 @@ def overview_page(overview: Overview, *, actions: Actions | None = None,
                   message: str | None = None, message_kind: str = "ok",
                   before: str = "", empty: str | None = None) -> str:
     """*before* precedes the heading (filters); *empty* replaces the default empty state."""
-    parts = [f'<h1>Offene Entscheidungen <span class="count">{len(overview.open) + len(overview.relevance)}</span></h1>']
+    count = len(overview.open) + len(overview.relevance)
+    parts = [f'<h1>Offene Entscheidungen <span class="count">{count}</span></h1>']
     if message:
         parts.append(notice(message, message_kind))
     if overview.damaged:
@@ -243,10 +246,12 @@ def mail_section(mail: MailView | None, sender_actions: str = "") -> str:
                                  f'aria-label="{e(fn)} vergrößern">'
                                  f'<img src="{url}" alt="{e(fn)}" loading="lazy"></a>'
                                  f'<p class="meta">{e(fn)} · {size}</p>{recognized}</li>')
-        att_section = f'<div class="attachments"><p><strong>Anhänge ({len(mail.extracted_attachments)}):</strong></p><ul>{"".join(att_items)}</ul></div>'
+        att_section = (f'<div class="attachments"><p><strong>Anhänge ({len(mail.extracted_attachments)}):</strong></p>'
+                       f'<ul>{"".join(att_items)}</ul></div>')
     cal_section = ""
     if mail.calendar_events:
-        cal_section = f'<div class="notice info"><p>📅 <strong>{len(mail.calendar_events)} ICS-Kalenderanhang/-anhänge erkannt</strong></p></div>'
+        cal_section = (f'<div class="notice info"><p>📅 <strong>{len(mail.calendar_events)} '
+                       'ICS-Kalenderanhang/-anhänge erkannt</strong></p></div>')
     return f"""<section class="card mail" id="mail" aria-labelledby="mail-titel">
 <h2 id="mail-titel">Mail</h2>
 <dl class="mail-head">{rows}</dl>

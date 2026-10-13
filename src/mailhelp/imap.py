@@ -198,7 +198,9 @@ def account_id(host: str, port: int, username: str) -> str:
 
 
 class ImapReader:
-    def __init__(self, host: str, port: int, username: str, password: str, timeout: float = 30, factory: Callable[..., imaplib.IMAP4] = imaplib.IMAP4_SSL, policy: RetryPolicy | None = None, logger: EventLogger | None = None, starttls: bool = False, batch_size: int = 25):
+    def __init__(self, host: str, port: int, username: str, password: str, timeout: float = 30,
+                 factory: Callable[..., imaplib.IMAP4] = imaplib.IMAP4_SSL, policy: RetryPolicy | None = None,
+                 logger: EventLogger | None = None, starttls: bool = False, batch_size: int = 25):
         # Connection material deliberately remains in memory only.  In
         # particular it is never included in events or persistent state.
         self._host, self._port = host, port
@@ -309,9 +311,12 @@ class ImapReader:
                 folder, after_uid, expected_uidvalidity, max_count,
                 completed_uid_ranges))
         except Exception as exc:
-            self.logger.event("ERROR", "imap", "request_failed", folder=folder, error=exc, stacktrace=traceback.format_exc(), duration_ms=round((time.perf_counter()-started)*1000, 3))
+            self.logger.event("ERROR", "imap", "request_failed", folder=folder, error=exc,
+                              stacktrace=traceback.format_exc(),
+                              duration_ms=round((time.perf_counter()-started)*1000, 3))
             raise
-        self.logger.event("INFO", "imap", "request_completed", folder=folder, count=len(result), duration_ms=round((time.perf_counter()-started)*1000, 3))
+        self.logger.event("INFO", "imap", "request_completed", folder=folder, count=len(result),
+                          duration_ms=round((time.perf_counter()-started)*1000, 3))
         return result
 
     def fetch_uid(self, folder: str, uid: int, expected_uidvalidity: int) -> FetchedMail:
