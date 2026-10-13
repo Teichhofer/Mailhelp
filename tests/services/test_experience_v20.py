@@ -667,7 +667,7 @@ def test_standalone_config_loading_and_composition(tmp_path, monkeypatch, capsys
         def __init__(self, *a, **kw): pass
         def close(self): pass
     for name in ("ImapReader", "OpenRouterClient", "HttpWriter", "GoogleOAuthTokenProvider"):
-        monkeypatch.setattr("mailhelp.application." + name, Resource)
+        monkeypatch.setattr("mailhelp.composition." + name, Resource)
     with build_application(loaded[0], loaded[1], loaded[2], loaded[4], loaded[5], tmp_path, use_jev_relevance=False) as app:
         assert isinstance(app.telegram, DisabledTelegram)
         assert "Code:" in capsys.readouterr().out
@@ -922,3 +922,34 @@ def test_push_section_failure_is_logged(web, tmp_path):
     web.site.experience.push.notify = lambda *a: (_ for _ in ()).throw(OSError("provider"))
     runtime.tick()
     assert app.logger.events[-1] == (("WARNING", "experience", "push_failed"), {"error_class": "OSError"})
+
+
+def test_push_operations_are_bounded_per_device(tmp_path, monkeypatch):
+    # Decision (Planung 2.1, 5.3): every device keeps its own recent keys; a busy
+    # device no longer evicts another device's keys from one shared list.
+    monkeypatch.setattr("mailhelp.webpush.MAX_OPERATIONS", 2)
+    store = JsonStore(tmp_path)
+    service = PushService(store, NS(active=lambda _: True), "mailto:me@test", lambda **kw: None)
+    service.change("phone", "key-phone-0", sub())
+    for number in range(3):
+        service.change("laptop", f"key-lap-{number}", sub())
+    operations = set(store.load("push-subscriptions")["operations"])
+    assert operations == {"phone:key-phone-0", "laptop:key-lap-1", "laptop:key-lap-2"}
+    # The phone's replay with other content is still recognized as a conflict.
+    with pytest.raises(ValueError, match="Idempotenzkonflikt"):
+        service.change("phone", "key-phone-0", None)
+
+
+def test_briefing_is_still_sent_after_a_late_start(tmp_path):
+    # Decision (Planung 2.1, 5.1): a start long after the configured time (07:30)
+    # still sends today's overview once; there is deliberately no time window.
+    store = JsonStore(tmp_path)
+    sent = []
+    late = datetime(2026, 10, 25, 22, 30, tzinfo=UTC)  # 23:30 in Berlin
+    svc = DailyBriefingService(
+        store, DailyBriefingSettings(enabled=True, include_calendar=False, include_tasks=False),
+        "Europe/Berlin", None, None, NS(overview=lambda: NS(open=[], relevance=[])),
+        {"telegram": sent.append}, lambda: late)
+    svc.tick()
+    svc.tick()
+    assert len(sent) == 1 and store.load("daily-briefing")["day"] == "2026-10-25"

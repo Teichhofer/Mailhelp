@@ -35,6 +35,7 @@ from mailhelp.telegram import TelegramDialogController  # noqa: E402
 from mailhelp.web import WebApp, WebServer  # noqa: E402
 from mailhelp.web.auth import WebAuth  # noqa: E402
 from mailhelp.web.site import MailhelpSite  # noqa: E402
+from pages import Overview  # noqa: E402
 
 STATIC = ROOT / "src/mailhelp/web/static"
 COVERED_SCRIPTS = tuple(name for name in ("app.js", "sw.js") if (STATIC / name).exists())
@@ -309,17 +310,8 @@ def sign_in(page: Page, mailhelp: Mailhelp, device_label: str = "") -> None:
 
 
 def item(page: Page, selector: str):
-    """An open item with its actions.
-
-    On the desktop the item is selected in the master list and operated in the
-    detail pane, whose ids carry the prefix ``detail-``; on phones it is the card.
-    """
-    if page.device != "desktop":
-        return page.locator(selector)
-    page.locator(".master-pane " + selector).click(position={"x": 12, "y": 12})
-    shown = page.locator(".detail-pane #detail-" + selector.removeprefix("#"))
-    expect(shown).to_be_visible()
-    return shown
+    """An open item with its actions (see ``pages.Overview.item``)."""
+    return Overview(page).item(selector)
 
 
 def act(page: Page, control, text: str) -> None:

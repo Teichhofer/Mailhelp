@@ -17,16 +17,15 @@ from conftest import item, sign_in
 from mailhelp.attachments import AttachmentCache
 from mailhelp.models import MailState, Proposal
 from mailhelp.webpush import PushService
-
-MASTER, PANE = ".master-pane", ".detail-pane"
+from pages import MASTER, PANE, Overview, SettingsPage
 
 
 def selected(page):
-    return page.locator(f"{MASTER} article.selected")
+    return Overview(page).selected
 
 
 def toast(page):
-    return page.locator(".undo-toast")
+    return Overview(page).toast
 
 
 def without_load_errors(page, *fragments):
@@ -99,6 +98,9 @@ def test_shortcut_confirm_can_be_undone_and_reject_is_sent_after_five_seconds(pa
     page.route("**/", lambda route: route.fulfill(response=route.fetch(),
                body=route.fetch().text().replace(' data-undo-ms="1000"', '')))
     sign_in(page, mailhelp)
+    # The login ends with a redirect, which the route does not see: load the page itself.
+    page.goto(f"{mailhelp.url}/")
+    assert page.evaluate("document.body.dataset.undoMs") is None
     item(page, f"#v-{mail_id(1)}-elternabend")
     page.locator("body").focus()
     page.keyboard.press("c")
@@ -116,7 +118,10 @@ def test_shortcut_confirm_can_be_undone_and_reject_is_sent_after_five_seconds(pa
     with page.expect_event("framenavigated", timeout=20000,
                            predicate=lambda frame: "?ergebnis=" in frame.url):
         page.keyboard.press("x")
-    expect(page.locator("main > .notice").first).to_contain_text("Vorschlag verworfen.")
+        # Still nothing sent after three seconds: the real default is five.
+        page.wait_for_timeout(3000)
+        assert "/?ergebnis=" not in page.url
+    expect(Overview(page).notice).to_contain_text("Vorschlag verworfen.")
     expect(page.locator(f"#v-{mail_id(1)}-elternabend")).to_have_count(0)
     assert mailhelp.writer.created == [] and page.errors == []
 
@@ -443,7 +448,7 @@ def test_every_2_0_function_works_without_javascript(browser, mailhelp):
         page.get_by_role("link", name="Alle").click()
         card = page.locator(f"#v-{mail_id(1)}-elternabend")
         card.get_by_role("button", name="Im Kalender anlegen").click()
-        expect(page.locator("main > .notice").first).to_contain_text("Angelegt.", timeout=15000)
+        expect(Overview(page).notice).to_contain_text("Angelegt.", timeout=15000)
         assert mailhelp.writer.created == ["Elternabend Klasse 4b"]
         page.goto(f"{mailhelp.url}/vorschlag/{mail_id(1)}/formular")
         page.get_by_text("Technische LLM-Analyse & Metriken").click()
@@ -509,15 +514,12 @@ def test_script_steps_that_end_in_a_navigation(page, mailhelp):
 def test_personal_information_is_saved_with_line_breaks(page, mailhelp):
     """The text area keeps line breaks through the confirmation step into config.yaml."""
     sign_in(page, mailhelp)
-    page.goto(f"{mailhelp.url}/einstellungen")
-    setting = page.locator("details.setting").filter(has_text="Persönliche Angaben für Antworten")
-    setting.locator("summary").click()
+    settings = SettingsPage(page, mailhelp.url).open()
+    setting = settings.expand("Persönliche Angaben für Antworten")
     assert audit(page, f"v20-persoenlich-{page.device}", page.mobile) == []
-    setting.get_by_label("Neuer Wert").fill("Max Mustermann\nElternbeirat Klasse 4b")
-    setting.get_by_role("button", name="Prüfen").click()
-    expect(page.get_by_role("heading", name="Änderung bestätigen")).to_be_visible()
+    settings.propose(setting, "Max Mustermann\nElternbeirat Klasse 4b")
     expect(page.locator("main pre")).to_have_text("Max Mustermann\nElternbeirat Klasse 4b")
-    page.get_by_role("button", name="Änderung ausdrücklich speichern").click()
+    settings.confirm()
     expect(page.locator("main")).to_contain_text("persönliche Angaben übernommen", timeout=10000)
     assert mailhelp.site.archive.configuration.active.personal_info == "Max Mustermann\nElternbeirat Klasse 4b"
     assert page.errors == []

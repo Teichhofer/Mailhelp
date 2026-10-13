@@ -5,6 +5,7 @@ from playwright.sync_api import expect
 from web_scenario import mail_id
 
 from conftest import item, sign_in
+from pages import Overview
 
 
 def focused(page) -> dict:
@@ -49,5 +50,5 @@ def test_details_and_actions_are_reachable_with_the_keyboard(page, mailhelp):
     assert focused(page)["outline"] != "none"
     page.keyboard.press("Enter")
     expect(page.locator(".undo-toast")).to_contain_text("wird bestätigt")
-    expect(page.locator("main > .notice").first).to_contain_text("Angelegt.", timeout=15000)
+    expect(Overview(page).notice).to_contain_text("Angelegt.", timeout=15000)
     assert page.errors == []

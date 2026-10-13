@@ -1,5 +1,16 @@
 # Änderungen
 
+## 2.2.5 – Beta (Branch `beta`), Entscheidungen aus Planung 2.1 und Testinfrastruktur
+
+- **Web-Push je Gerät (Planung 2.1, 5.3):** Die Idempotenzschlüssel der An- und Abmeldung werden je Gerät begrenzt (500); ein aktives Gerät verdrängt nicht mehr die Schlüssel eines anderen. Test `test_push_operations_are_bounded_per_device`.
+- **Tagesüberblick nach spätem Start (Planung 2.1, 5.1):** Entschieden, kein Zeitfenster – der Überblick wird auch nach einem Start lange nach der eingestellten Uhrzeit noch am selben Tag gesendet. Festgehalten mit `test_briefing_is_still_sent_after_a_late_start`.
+- **`composition.py` (A4):** Der Aufbau der Anwendung (Logger, Metriken, IMAP, LLM, Telegram, Analyzer, Dialog, Orchestrator, Weboberfläche) liegt in eigenen Fabriken in `composition.py`; `application.py` enthält nur noch die Polling-Schleife und exportiert `build_application` weiter.
+- **Tests ohne Querimporte (T1/T2):** Activity-Tests nutzen die gemeinsamen Fakes; ein Architekturtest verbietet Importe aus anderen `test_*`-Modulen.
+- **Browsertests (T7):**
+  - `axe-core` (WCAG 2.1 A/AA) läuft bei jedem Seiten-Audit, ohne Befund auf allen Seiten; ein Test belegt, dass axe Verstöße tatsächlich meldet.
+  - Seitenobjekte `Overview`, `DetailPane`, `SettingsPage` in `ui_tests/pages.py`.
+  - Der Test der echten 5-Sekunden-Rückgängig-Frist lud wegen einer Weiterleitung die verkürzte Testfrist und prüfte die 5 Sekunden nicht; er lädt die Seite jetzt selbst und stellt sicher, dass nach 3 Sekunden noch nichts gesendet ist.
+
 ## 2.2.4 – Beta (Branch `beta`), statische Prüfung: mypy fehlerfrei und verbindlich
 
 - **mypy (Planung 2.1, A1):** Von 339 Fehlern auf 0, unter Windows und Linux (`--platform linux`). Der CI-Job `static-analysis` bricht jetzt bei jedem ruff- oder mypy-Befund ab (kein `continue-on-error` mehr).

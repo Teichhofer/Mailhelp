@@ -251,7 +251,7 @@ def test_build_application_creates_the_web_server_only_when_enabled(tmp_path, mo
 
     for name in ("ImapReader", "OpenRouterClient", "DecisionClient", "TelegramClient",
                  "HttpWriter", "GoogleOAuthTokenProvider"):
-        monkeypatch.setattr(f"mailhelp.application.{name}", Resource)
+        monkeypatch.setattr(f"mailhelp.composition.{name}", Resource)
     cfg = app_settings(tmp_path)
     cfg.logging.file.enabled = cfg.logging.console.enabled = False
     cfg.web.enabled = enabled

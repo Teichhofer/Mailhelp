@@ -48,7 +48,7 @@ jobs:
         with:
           python-version: '3.12.10'
           cache: pip
-      - run: python -m pip install -r requirements.lock playwright==1.62.0
+      - run: python -m pip install -r requirements.lock playwright==1.62.0 axe-playwright-python==0.1.8
       - run: python -m pip install --no-deps -e .
       - run: python -m pytest ui_tests --no-cov -p no:cacheprovider
       - uses: actions/upload-artifact@v4

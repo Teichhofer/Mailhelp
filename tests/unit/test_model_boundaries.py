@@ -31,3 +31,17 @@ def test_persistence_boundary_is_explicit_and_preserves_json_schemas():
     assert all(getattr(schemas, name) is getattr(models, name) for name in expected)
     assert schemas.ActivityReport is activity_models.ActivityReport
     assert schemas.ReportMail is activity_models.ReportMail
+
+
+def test_test_modules_share_helpers_only_through_fakes():
+    # Planung 2.1, T1/T2: helpers live in tests/fakes and tests/scenarios, never in another test module.
+    import ast
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2]
+    offenders = []
+    for path in [*root.joinpath("tests").rglob("test_*.py"), *root.joinpath("ui_tests").rglob("test_*.py")]:
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            names = ([node.module or ""] if isinstance(node, ast.ImportFrom)
+                     else [alias.name for alias in node.names] if isinstance(node, ast.Import) else [])
+            offenders += [f"{path.name}: {name}" for name in names if name.split(".")[0].startswith("test_")]
+    assert offenders == []

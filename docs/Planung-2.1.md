@@ -304,13 +304,15 @@ eigene, kleine Änderungen mit Regressionstest entschieden:
 1. **Tagesüberblick nach spätem Start:** Startet Mailhelp nach der eingestellten
    Uhrzeit (z. B. um 23 Uhr), wird der Überblick noch am selben Tag gesendet.
    Gewünscht ist vermutlich ein Zeitfenster (z. B. höchstens 3 Stunden nach
-   `time`).
+   `time`). **Entschieden (13.10.2026):** Kein Zeitfenster; der Überblick wird
+   auch nach spätem Start gesendet (Test `test_briefing_is_still_sent_after_a_late_start`).
 2. **Web-Reload durch Recovery:** Unveränderte Vorschläge werden bei der
    Wiederaufnahme neu geschrieben und lösen einen Reload aus
    ([Architektur-1.6.md](Architektur-1.6.md#hinweis-für-folgearbeiten)). Mit
    dem Split-View fällt das stärker auf, weil die Auswahl zurückgesetzt wird.
 3. **Push-Operationsprotokoll:** Je Gerät nur die letzten Schlüssel speichern
-   statt global 500.
+   statt global 500. **Umgesetzt in 2.2.5:** je Gerät 500
+   (Test `test_push_operations_are_bounded_per_device`).
 
 ---
 

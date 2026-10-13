@@ -1304,10 +1304,11 @@ python -m pytest
 Die Standardkonfiguration erzwingt ohne Rundung 100 % Zeilen- **und** Branch-Abdeckung für `src/mailhelp`.
 
 Browsertests der Weboberfläche (Chrome, Desktop- und iPhone-Format, Screenshots in
-`.test-tmp/ui-screens`, 100 % Blockabdeckung von `app.js` und `sw.js`):
+`.test-tmp/ui-screens`, 100 % Blockabdeckung von `app.js` und `sw.js`, WCAG-2.1-AA-Regeln
+von axe-core auf jeder geprüften Seite):
 
 ```sh
-python -m pip install playwright==1.62.0
+python -m pip install playwright==1.62.0 axe-playwright-python==0.1.8
 python -m pytest ui_tests --no-cov -p no:cacheprovider
 ```
 

@@ -47,7 +47,7 @@ def subscription(value: dict[str, Any]) -> dict[str, Any]:
     return {"endpoint": endpoint, "keys": decoded}
 
 
-MAX_OPERATIONS = 500
+MAX_OPERATIONS = 500  # per device
 
 
 class AuthSessionManager(Protocol):
@@ -98,8 +98,11 @@ class PushService:
             else:
                 state["devices"][actor] = checked
             state["operations"][operation] = digest
-            # Replays are only expected shortly after a request; old keys are dropped.
-            state["operations"] = dict(list(state["operations"].items())[-MAX_OPERATIONS:])
+            # Replays are only expected shortly after a request; old keys are dropped,
+            # counted per device so that one busy device never evicts another's keys.
+            own = [name for name in state["operations"] if name.startswith(f"{actor}:")]
+            for name in own[:-MAX_OPERATIONS]:
+                del state["operations"][name]
             self.store.save("push-subscriptions", state)
 
     def _state(self) -> dict[str, Any]:

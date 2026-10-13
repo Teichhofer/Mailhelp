@@ -85,7 +85,20 @@ def audit(page, label: str, mobile: bool) -> list[str]:
     # A sticky header would otherwise appear in the middle of a full-page image.
     page.evaluate("window.scrollTo(0, 0)")
     page.screenshot(path=str(SCREENSHOTS / f"{label}.png"), full_page=True)
-    return page.evaluate(_AUDIT, mobile)
+    return page.evaluate(_AUDIT, mobile) + axe_findings(page)
 
 
-__all__ = ["SCREENSHOTS", "audit"]
+# WCAG 2.1 A/AA rules of axe-core complement the own checks above (Planung 2.1, T7).
+AXE_OPTIONS = {"resultTypes": ["violations"],
+               "runOnly": {"type": "tag", "values": ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]}}
+
+
+def axe_findings(page) -> list[str]:
+    """axe-core violations, one finding per rule and element."""
+    from axe_playwright_python.sync_playwright import Axe
+    response = Axe().run(page, options=AXE_OPTIONS).response
+    return [f"axe {rule['id']} ({rule['impact']}): {node['target']}"
+            for rule in response["violations"] for node in rule["nodes"]]
+
+
+__all__ = ["AXE_OPTIONS", "SCREENSHOTS", "audit", "axe_findings"]

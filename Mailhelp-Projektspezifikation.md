@@ -1904,7 +1904,8 @@ Aufbewahrung löscht Vorschauen und Entwurfstext zusammen mit dem Mailtext.
 **Web-Push.** `push.enabled` erzeugt einmalig ein P-256-VAPID-Schlüsselpaar
 (`web-vapid.json`, nie protokolliert). `GET /api/push/public-key`,
 `POST /api/push/subscribe` und `POST /api/push/unsubscribe` verlangen Sitzung und
-CSRF; An- und Abmeldung tragen einen Idempotenzschlüssel. Je Gerätesitzung wird
+CSRF; An- und Abmeldung tragen einen Idempotenzschlüssel (je Gerät die letzten
+500 Schlüssel; ein Gerät verdrängt nie die eines anderen). Je Gerätesitzung wird
 höchstens ein Abo gespeichert (`push-subscriptions.json`); erlaubt sind nur
 HTTPS-Endpunkte von Google, Mozilla, Apple und Microsoft (Port 443, ohne
 Zugangsdaten und Fragment) mit gültigem P-256-Schlüssel. Payloads enthalten nur
@@ -1950,7 +1951,8 @@ erneut geprüft. `test_mode` simuliert die Ablage. Es gibt keinen SMTP-Versand.
 (lokale Zeit) einmal je Kalendertag einen Überblick aus heutigen Terminen,
 Aufgaben mit Fälligkeit bis heute und offenen Entscheidungen (je höchstens 10
 Einträge, höchstens 4.000 Zeichen). Ausfälle einzelner Quellen werden vermerkt.
-Jeder Kanal wird je Tag höchstens einmal versucht; ein beim Senden unterbrochener
+Startet Mailhelp erst nach `time`, wird der Überblick desselben Tages trotzdem
+gesendet (bewusst ohne Zeitfenster). Jeder Kanal wird je Tag höchstens einmal versucht; ein beim Senden unterbrochener
 Kanal bleibt `uncertain` und wird nicht wiederholt. Telegram erhält den Text,
 Web-Push einen neutralen Hinweis, `/briefing` zeigt den letzten Überblick.
 

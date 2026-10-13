@@ -345,7 +345,7 @@ def test_application_writes_metrics_into_the_log_directory(tmp_path, monkeypatch
 
     for name in ("ImapReader", "OpenRouterClient", "DecisionClient", "TelegramClient",
                  "HttpWriter", "GoogleOAuthTokenProvider"):
-        monkeypatch.setattr(f"mailhelp.application.{name}", Resource)
+        monkeypatch.setattr(f"mailhelp.composition.{name}", Resource)
     cfg = app_settings(tmp_path)
     cfg.logging.file.enabled = cfg.logging.console.enabled = False
     legacy = tmp_path / "data" / "test" / "metrics" / "llm.jsonl"

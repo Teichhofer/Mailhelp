@@ -1587,12 +1587,12 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
     class FakeOAuth(Resource):
         calls=[]
         def __init__(self,*args,**kwargs): type(self).calls.append((args,kwargs))
-    monkeypatch.setattr("mailhelp.application.ImapReader",FakeImap)
-    monkeypatch.setattr("mailhelp.application.OpenRouterClient",FakeOpen)
-    monkeypatch.setattr("mailhelp.application.DecisionClient",FakeDecision)
-    monkeypatch.setattr("mailhelp.application.TelegramClient",FakeTelegram)
-    monkeypatch.setattr("mailhelp.application.HttpWriter",FakeWriter)
-    monkeypatch.setattr("mailhelp.application.GoogleOAuthTokenProvider",FakeOAuth)
+    monkeypatch.setattr("mailhelp.composition.ImapReader",FakeImap)
+    monkeypatch.setattr("mailhelp.composition.OpenRouterClient",FakeOpen)
+    monkeypatch.setattr("mailhelp.composition.DecisionClient",FakeDecision)
+    monkeypatch.setattr("mailhelp.composition.TelegramClient",FakeTelegram)
+    monkeypatch.setattr("mailhelp.composition.HttpWriter",FakeWriter)
+    monkeypatch.setattr("mailhelp.composition.GoogleOAuthTokenProvider",FakeOAuth)
     cfg=settings(tmp_path)
     cfg.imap.connection_mode=mode
     cfg.logging.file.enabled = False
@@ -1640,7 +1640,7 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
     closed.clear()
     class BrokenImap(Resource):
         def __init__(self,*args,**kwargs): raise RuntimeError("authentication failed")
-    monkeypatch.setattr("mailhelp.application.ImapReader",BrokenImap)
+    monkeypatch.setattr("mailhelp.composition.ImapReader",BrokenImap)
     with build_application(
         cfg, sec, topic, prompt_config(), "f" * 64,
         base_directory=tmp_path, access_diagnostics=True,
@@ -1659,10 +1659,10 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
 
     cfg.data_directory=Path("relative")
     cfg.logging.directory=Path("relative-logs")
-    monkeypatch.setattr("mailhelp.application.ImapReader",FakeImap)
+    monkeypatch.setattr("mailhelp.composition.ImapReader",FakeImap)
     class BrokenTelegram(Resource):
         def __init__(self,*args,**kwargs): raise RuntimeError("build")
-    monkeypatch.setattr("mailhelp.application.TelegramClient",BrokenTelegram)
+    monkeypatch.setattr("mailhelp.composition.TelegramClient",BrokenTelegram)
     with pytest.raises(RuntimeError,match="build"):
         with build_application(cfg,sec,topic,prompt_config(),"f"*64,base_directory=tmp_path): pass
     assert (tmp_path/"relative/test/.lock").exists()
@@ -1688,12 +1688,12 @@ def test_local_ollama_mode_replaces_openrouter(tmp_path, monkeypatch):
     class FakeTelegram(Resource):
         def send(self, *args): pass
 
-    monkeypatch.setattr("mailhelp.application.ImapReader", Resource)
-    monkeypatch.setattr("mailhelp.application.OpenRouterClient", NoOpenRouter)
-    monkeypatch.setattr("mailhelp.application.OllamaClient", FakeOllama)
-    monkeypatch.setattr("mailhelp.application.TelegramClient", FakeTelegram)
-    monkeypatch.setattr("mailhelp.application.HttpWriter", Resource)
-    monkeypatch.setattr("mailhelp.application.GoogleOAuthTokenProvider", Resource)
+    monkeypatch.setattr("mailhelp.composition.ImapReader", Resource)
+    monkeypatch.setattr("mailhelp.composition.OpenRouterClient", NoOpenRouter)
+    monkeypatch.setattr("mailhelp.composition.OllamaClient", FakeOllama)
+    monkeypatch.setattr("mailhelp.composition.TelegramClient", FakeTelegram)
+    monkeypatch.setattr("mailhelp.composition.HttpWriter", Resource)
+    monkeypatch.setattr("mailhelp.composition.GoogleOAuthTokenProvider", Resource)
     cfg = settings(tmp_path)
     cfg.logging.file.enabled = cfg.logging.console.enabled = False
     sec = Secrets(imap_username="u", imap_password="p", openrouter_api_key="o",
@@ -1732,7 +1732,7 @@ def test_vision_ocr_is_wired_only_when_enabled_and_prompted(tmp_path, monkeypatc
 
     for name in ("ImapReader", "OpenRouterClient", "TelegramClient", "HttpWriter",
                  "GoogleOAuthTokenProvider"):
-        monkeypatch.setattr(f"mailhelp.application.{name}", Resource)
+        monkeypatch.setattr(f"mailhelp.composition.{name}", Resource)
     cfg = settings(tmp_path)
     cfg.logging.file.enabled = cfg.logging.console.enabled = False
     cfg.vision.enabled = enabled
