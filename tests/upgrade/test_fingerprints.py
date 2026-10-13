@@ -30,6 +30,11 @@ def before_2_0(dump: dict) -> dict:
     dump["imap"].pop("drafts_folder")
     dump.get("retention", {}).pop("activity_report_days", None)
     dump["telegram"].pop("enabled")
+    # 2.3: original attachments and further write targets.
+    dump.pop("attachments", None)
+    for name in ("calendar_provider", "task_provider", "caldav_calendar_url", "caldav_task_url",
+                 "outlook_calendar", "microsoft_todo_list", "microsoft_tenant"):
+        dump["targets"].pop(name)
     return dump
 
 

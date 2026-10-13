@@ -126,6 +126,37 @@ Bearer-Token verwendete `TODOIST_TOKEN` wird ebenfalls dort gespeichert; Client-
 und Client-Schlüssel ersetzen dieses Zugriffstoken nicht. Keiner dieser Werte
 gehört in `config.yaml`, Zustandsdateien oder Logs.
 
+### Andere Kalender- und Aufgabendienste (ab 2.3)
+
+Statt Google Kalender und Todoist lassen sich in `config.yaml` unter `targets`
+andere Dienste wählen – je ein Kalender- und ein Aufgabendienst:
+
+| Dienst | `config.yaml` | `.env` |
+| --- | --- | --- |
+| Nextcloud, mailbox.org, Radicale … (CalDAV-Kalender) | `calendar_provider: caldav`, `caldav_calendar_url: https://…/calendars/<name>/<kalender>/` | `CALDAV_USERNAME`, `CALDAV_PASSWORD` (App-Passwort) |
+| CalDAV-Aufgabenliste (z. B. Nextcloud Tasks) | `task_provider: caldav`, `caldav_task_url: https://…/` | wie oben |
+| Apple Erinnerungen (iCloud) | `task_provider: apple_reminders`, `caldav_task_url: https://pNN-caldav.icloud.com/…/` | Apple-ID und app-spezifisches Passwort als `CALDAV_*` |
+| Outlook / Microsoft 365 | `calendar_provider: outlook`, `outlook_calendar: default` | `MICROSOFT_CLIENT_ID` |
+| Microsoft To Do | `task_provider: microsoft_todo`, `microsoft_todo_list: default` | `MICROSOFT_CLIENT_ID` |
+
+Für Microsoft wird eine App-Registrierung im Azure-Portal mit den delegierten
+Berechtigungen `Calendars.ReadWrite`, `Tasks.ReadWrite` und `offline_access` sowie
+„Öffentliche Clientflows zulassen“ benötigt. Danach einmalig
+`mailhelp --microsoft-login` ausführen: Mailhelp zeigt eine Adresse und einen Code,
+nach der Bestätigung im Browser liegt der Refresh-Token in `microsoft-token.json`
+neben `.env` (nicht im Repository, nicht im Docker-Image). Jede Erneuerung
+überschreibt ihn; `mailhelp --clear` lässt ihn stehen.
+
+Apple bietet für Erinnerungen keine offizielle Schnittstelle. Erreichbar sind nur
+Listen über iCloud-CalDAV; Listen, die auf die neuen iCloud-Erinnerungen
+aktualisiert wurden, sind dort nicht sichtbar. `mailhelp --check-access` und die
+Diagnose melden diesen Fall ausdrücklich.
+
+Für alle Dienste gelten dieselben Regeln wie für Google und Todoist: Anlage nur
+nach versionsbezogener Bestätigung, Abgleich vor jedem Schreiben, keine blinde
+Wiederholung unklarer Ergebnisse, kein externer Kontakt im Testmodus. Einzelheiten
+stehen in [docs/Planung-2.3.md](docs/Planung-2.3.md).
+
 ### Google Kalender einrichten
 
 Nach der versionsbezogenen Bestätigung über Telegram oder die authentifizierte Weboberfläche legt Mailhelp den Termin direkt im
@@ -1198,6 +1229,13 @@ per Schaltfläche) und Relevanz klären. Sie läuft im Mailhelp-Prozess, am PC u
 `http://127.0.0.1:8765` und auf dem iPhone über Tailscale Serve als installierbare
 App. Telegram bleibt Benachrichtigungskanal; ohne `web.enabled: true` verhält sich
 Mailhelp wie 1.0.
+
+Ab 2.3 durchsucht die Suche unter „Mails“ auch den Mailtext und den erkannten Text
+der Anhänge (alle Wörter müssen vorkommen, „genaue Wortfolge“ in Anführungszeichen,
+ä/ae usw. gleichwertig) und zeigt die Fundstelle. Originaldokumente (PDF, Word,
+Excel, OpenDocument, Text, Bilder) neu verarbeiteter Mails lassen sich in der
+Maildetailansicht herunterladen; sie werden mit `retention.full_mail_days` gelöscht
+und sind über `attachments.store_originals` abschaltbar.
 
 - Aktivierung: Abschnitt `web:` in `config.yaml` und `MAILHELP_WEB_SECRET`
   (mindestens 32 Zeichen) in `.env`; `mailhelp --check` prüft beides.

@@ -30,6 +30,9 @@ from mailhelp.standalone import DisabledTelegram
 from mailhelp.storage import JsonStore
 from mailhelp.webpush import NoRedirectSession, PushService, b64, subscription
 
+# Since 2.3 the writers are built in mailhelp.external.providers.
+MOVED_WRITERS = ("HttpWriter", "GoogleOAuthTokenProvider")
+
 NEWLINE = chr(10)
 
 
@@ -667,7 +670,7 @@ def test_standalone_config_loading_and_composition(tmp_path, monkeypatch, capsys
         def __init__(self, *a, **kw): pass
         def close(self): pass
     for name in ("ImapReader", "OpenRouterClient", "HttpWriter", "GoogleOAuthTokenProvider"):
-        monkeypatch.setattr("mailhelp.composition." + name, Resource)
+        monkeypatch.setattr(("mailhelp.external.providers." if name in MOVED_WRITERS else "mailhelp.composition.") + name, Resource)
     with build_application(loaded[0], loaded[1], loaded[2], loaded[4], loaded[5], tmp_path, use_jev_relevance=False) as app:
         assert isinstance(app.telegram, DisabledTelegram)
         assert "Code:" not in capsys.readouterr().out
@@ -731,6 +734,11 @@ def test_experience_settings_preserve_16_analysis_fingerprint(tmp_path):
         legacy.pop(name)
     legacy["imap"].pop("drafts_folder")
     legacy["telegram"].pop("enabled")
+    # 2.3 fields did not exist in 1.6 either.
+    legacy.pop("attachments")
+    for name in ("calendar_provider", "task_provider", "caldav_calendar_url", "caldav_task_url",
+                 "outlook_calendar", "microsoft_todo_list", "microsoft_tenant"):
+        legacy["targets"].pop(name)
     assert before == _hash([legacy, analysis_prompts(prompts), []])
 
 

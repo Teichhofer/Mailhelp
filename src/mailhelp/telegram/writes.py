@@ -108,7 +108,7 @@ class ConfirmedWriteExecutor:
                 "Kein neuer Termin wurde angelegt."
             )
         elif changed.status == ProposalStatus.CREATED:
-            where = "in Todoist" if proposal.kind == ProposalKind.TASK else "im Kalender"
+            where = "als Aufgabe" if proposal.kind == ProposalKind.TASK else "im Kalender"
             text = f"✅ Angelegt {where}: „{proposal.title}“"
             if proposal.kind == ProposalKind.EVENT:
                 text += self._event_time_details(changed)

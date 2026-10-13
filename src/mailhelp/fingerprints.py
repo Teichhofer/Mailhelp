@@ -33,11 +33,15 @@ from .storage import JsonStore
 
 # Sections and fields introduced by 2.0 and later; they never influence an analysis.
 EXPERIENCE = frozenset({"push", "daily_briefing", "smart_reply", "personal_info", "activity_report", "notifications"})
-EXPERIENCE_FIELDS = (("imap", "drafts_folder"), ("telegram", "enabled"), ("retention", "activity_report_days"))
+EXPERIENCE_FIELDS = (("imap", "drafts_folder"), ("telegram", "enabled"), ("retention", "activity_report_days"),
+                     # 2.3: further write targets; an unchanged Google/Todoist configuration keeps its fingerprint.
+                     *(("targets", name) for name in ("calendar_provider", "task_provider", "caldav_calendar_url",
+                                                      "caldav_task_url", "outlook_calendar", "microsoft_todo_list",
+                                                      "microsoft_tenant")))
 OPERATIONAL = frozenset({"web", "metrics", "retention", "logging", "learning", "poll_interval_seconds",
                          "timeouts", "retries", *EXPERIENCE})
 # Preparation-only settings and prompt steps (see module documentation).
-PREPARATION = frozenset({"vision"})
+PREPARATION = frozenset({"vision", "attachments"})
 PREPARATION_PROMPTS = frozenset({
     "vision_ocr", "draft_reply", "activity_relevance", "activity_events", "diagnostic_test"})
 

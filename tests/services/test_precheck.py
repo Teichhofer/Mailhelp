@@ -158,7 +158,7 @@ def test_precheck_calendar_exact_duplicate():
     assert res.duplicate_match.source == DuplicateSource.GOOGLE_CALENDAR
     assert res.duplicate_match.external_id == "cal-evt-1"
     assert res.duplicate_match.external_link == "https://calendar.google.com/event?id=cal-evt-1"
-    assert "Bereits im Google Kalender eingetragen" in res.duplicate_match.details
+    assert res.duplicate_match.details == "Bereits im Kalender eingetragen (Google Kalender)"
 
 
 def test_precheck_calendar_reschedule_detected():
@@ -335,7 +335,7 @@ def test_precheck_todoist_match_and_exception():
     assert res.duplicate_match.source == DuplicateSource.TODOIST
     assert res.duplicate_match.external_id == "12345"
     assert res.duplicate_match.external_link == "https://todoist.com/showTask?id=12345"
-    assert "Bereits in Todoist vorhanden" in res.duplicate_match.details
+    assert res.duplicate_match.details == "Bereits als Aufgabe vorhanden (Todoist)"
 
     # Todoist error resilience
     err_writer = HttpWriter(

@@ -1,6 +1,7 @@
 """Calendar lookup, duplicate matching, merge payloads and event updates."""
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -42,7 +43,7 @@ class CalendarOperations(HttpTransport):
                      else self._matching_calendar_event(proposal))
         if duplicate is not None:
             existing, decision = duplicate
-            changes, interval = self._time_changes(proposal, existing)
+            changes, interval = self.time_changes(proposal, existing)
             if decision.missing_fields or changes:
                 body = self._calendar_merge_body(proposal, key, existing, decision)
                 if changes:
@@ -58,14 +59,18 @@ class CalendarOperations(HttpTransport):
                     existing.id, body, key, proposal, changes))
             return PreparedWrite(lambda: {"id": existing.id, "htmlLink": existing.htmlLink,
                     "operation": "duplicate_skipped"}, requires_write=False)
-        url, body = f"/calendars/{self.target}/events", self._calendar_event_body(proposal, key)
-        return PreparedWrite(lambda: self._create_prepared(proposal, key, url, body))
+        body = self._calendar_event_body(proposal, key)
+        return PreparedWrite(lambda: self._insert_calendar_event(proposal, key, body))
+
+    def _insert_calendar_event(self, proposal: Proposal, key: str, body: dict[str, Any]) -> dict[str, Any]:
+        """Create a new event from the provider-neutral body (Google format)."""
+        return self._create_prepared(proposal, key, f"/calendars/{self.target}/events", body)
 
     def fetch_events_in_window(
         self, start: datetime | date, end: datetime | date, *, strict: bool = False
     ) -> list[CalendarOverlapEvent]:
         """Fetch existing Google Calendar events in the given window with caching and fallback."""
-        if self.service != "google_calendar":
+        if self.role != "calendar":
             return []
         if isinstance(start, date) and not isinstance(start, datetime):
             time_min = datetime.combine(start, datetime.min.time(), UTC).isoformat()
@@ -116,7 +121,7 @@ class CalendarOperations(HttpTransport):
 
     def _matching_calendar_event(self, proposal: Proposal
                                  ) -> tuple[CalendarOverlapEvent, CalendarDuplicateDecision] | None:
-        if self.service != "google_calendar" or self.calendar_matcher is None:
+        if self.role != "calendar" or self.calendar_matcher is None:
             return None
         assert proposal.start is not None and proposal.end is not None
         if proposal.all_day:
@@ -125,6 +130,15 @@ class CalendarOperations(HttpTransport):
         else:
             assert isinstance(proposal.start, datetime) and isinstance(proposal.end, datetime)
             time_min, time_max = proposal.start.isoformat(), proposal.end.isoformat()
+        for item in self._calendar_candidates(time_min, time_max):
+            safe = item.model_dump(mode="json", exclude={"htmlLink"})
+            _call_id, decision = self.calendar_matcher(proposal, safe)
+            if decision.same_event:
+                return item, decision
+        return None
+
+    def _calendar_candidates(self, time_min: str, time_max: str) -> Iterator[CalendarOverlapEvent]:
+        """Existing events overlapping the interval, page by page; invalid answers raise."""
         params = {"timeMin": time_min, "timeMax": time_max, "singleEvents": "true",
                   "maxResults": "50"}
         seen_tokens: set[str] = set()
@@ -146,13 +160,9 @@ class CalendarOperations(HttpTransport):
             except (AttributeError, ValueError, ValidationError) as exc:
                 raise ValueError("Google Calendar events: ungültige Antwort am Schlüsselpfad "
                                  f"{validation_path(exc)}") from exc
-            for item in items:
-                safe = item.model_dump(mode="json", exclude={"htmlLink"})
-                _call_id, decision = self.calendar_matcher(proposal, safe)
-                if decision.same_event:
-                    return item, decision
+            yield from items
             if next_token is None:
-                return None
+                return
             params["pageToken"] = next_token
 
 
@@ -173,8 +183,8 @@ class CalendarOperations(HttpTransport):
         return body
 
 
-    def _time_changes(self, proposal: Proposal,
-                      existing: CalendarOverlapEvent) -> tuple[list[str], dict[str, Any]]:
+    def time_changes(self, proposal: Proposal,
+                     existing: CalendarOverlapEvent) -> tuple[list[str], dict[str, Any]]:
         """Compare start and end deterministically; the LLM only decides identity."""
         validated = Proposal.model_validate(proposal.model_dump())
         interval = (self._all_day_interval(validated) if validated.all_day

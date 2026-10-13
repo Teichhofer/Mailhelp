@@ -19,8 +19,7 @@ from .decisions import (
     load_relevance_prompts,
     relevance_fingerprint,
 )
-from .external.http_writer import HttpWriter
-from .external.oauth import GoogleOAuthTokenProvider
+from .external.providers import build_writers, provider_services
 from .imap import ImapReader, account_id
 from .logging import JsonlLogger
 from .ollama import LocalLlm, OllamaClient
@@ -353,32 +352,20 @@ def build_application(
             save_calls=lambda calls: store.save("llm-budget", {"calls": calls}), logger=logger)
         openrouter = _build_llm(settings, secrets, local_llm, llm_budget, logger, stack)
         telegram = _build_telegram(settings, secrets, policy, logger, stack)
-        todoist = HttpWriter("todoist", secrets.todoist_token.get_secret_value(), settings.targets.todoist_project,
-                             settings.timeouts.todoist.timeout_seconds, policy=policy("todoist"), logger=logger)
-        stack.callback(todoist.close)
-        google_cfg = settings.timeouts.google_calendar
-        oauth = GoogleOAuthTokenProvider(
-            secrets.google_oauth_client_id.get_secret_value(),
-            secrets.google_oauth_client_secret.get_secret_value(),
-            secrets.google_oauth_refresh_token.get_secret_value(),
-            google_cfg.timeout_seconds,
-            logger=logger,
-        )
-        stack.callback(oauth.close)
         analyzer = _build_analyzer(settings, secrets, prompts, openrouter, jev_prompts, llm_budget, stop_event, stack)
-        calendar = HttpWriter(
-            "google_calendar", oauth, settings.targets.google_calendar,
-            google_cfg.timeout_seconds, policy=policy("google_calendar"), logger=logger,
-            calendar_timezone=settings.timezone,
-            calendar_matcher=analyzer.calendar_duplicate,
-        )
-        stack.callback(calendar.close)
-        writers = {"todoist": todoist, "google_calendar": calendar}
+        built = build_writers(settings, secrets, base_directory, policy=policy, logger=logger,
+                              calendar_matcher=analyzer.calendar_duplicate)
+        stack.callback(built.close)
+        assert logger.metrics is not None  # _attach_metrics above always sets the recorder
+        logger.metrics.write_services = provider_services(settings.targets)
+        todoist, calendar = built.tasks, built.calendar
+        writers = built.slots
         web_enabled = settings.web.enabled and not access_diagnostics
         dialog = _build_dialog(settings, store, telegram, logger, writers, analyzer, web_enabled)
         orchestrator = _build_orchestrator(settings, prompts, topics, fingerprint, jev_prompts, store, sender_store,
                                            logger, analyzer, dialog, writers, access_diagnostics)
         dialog.relevance_handler = orchestrator
+        orchestrator.original_attachments = settings.attachments
         orchestrator.stop_event = stop_event
         application = Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar,
                                   orchestrator, stop_event, dialog, sender_store)

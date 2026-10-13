@@ -905,7 +905,7 @@ def test_callback_data_byte_validation_and_legacy_limit():
 
 
 @pytest.mark.parametrize(("changes", "labels", "actions"), [
-    ({}, ["In Todoist anlegen", "Ändern", "Verwerfen"],
+    ({}, ["Als Aufgabe anlegen", "Ändern", "Verwerfen"],
      [DecisionAction.CONFIRM, DecisionAction.EDIT, DecisionAction.REJECT]),
     ({"open_questions": ["Bitte klären"]}, ["Klären", "Verwerfen"],
      [DecisionAction.EDIT, DecisionAction.REJECT]),
@@ -2032,7 +2032,7 @@ def test_telegram_client_sends_calendar_document_and_validates_filename():
 
 def test_confirmation_executes_and_reports_all_results(tmp_path):
     cases=[
-        (Writer(),False,"created","✅ Angelegt in Todoist"),
+        (Writer(),False,"created","✅ Angelegt als Aufgabe"),
         (Writer(error=httpx.ReadTimeout("timeout")),False,"uncertain","Unklarer"),
         (Writer(error=httpx.HTTPStatusError("bad",request=httpx.Request("POST","https://x"),response=httpx.Response(400))),False,"failed","fehlgeschlagen"),
         (Writer(),True,"simulated","Testmodus"),
@@ -2050,7 +2050,7 @@ def test_confirmation_executes_and_reports_all_results(tmp_path):
             if status == "simulated":
                 assert callback_message.startswith("🧪 Testmodus: Aufgabe „Aufgabe“ bestätigt")
             elif status == "created":
-                assert callback_message == "✅ Angelegt in Todoist: „Aufgabe“\nhttps://example.test/item"
+                assert callback_message == "✅ Angelegt als Aufgabe: „Aufgabe“\nhttps://example.test/item"
             if status=="created": assert saved["external_id"]=="external-1" and saved["external_link"]=="https://example.test/item"
 
 

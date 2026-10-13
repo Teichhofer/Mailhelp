@@ -795,7 +795,7 @@ Replay-Grenze fort.
   der Offset wird fortgeschrieben; andere technische Antwortfehler verhindern die
   Quittierung weiterhin.
 - Nur konfigurierte Nutzer- und Chat-IDs dürfen Nachrichten erhalten und Aktionen auslösen.
-- Vollständige Aufgabenvorschläge bieten `In Todoist anlegen`, `Ändern` und `Verwerfen`
+- Vollständige Aufgabenvorschläge bieten `Als Aufgabe anlegen`, `Ändern` und `Verwerfen`
   (im Testmodus `Simulieren` für beide Ziele).
   Vollständige Terminvorschläge bieten `Im Kalender anlegen`, `Ändern` und `Verwerfen`;
   `Im Kalender anlegen` schreibt den Termin über die Google Calendar API in den konfigurierten Kalender.
@@ -813,7 +813,7 @@ Replay-Grenze fort.
   eine offene Entscheidung sichtbar. Offene Entscheidung ist jede Nachricht mit
   Entscheidungsschaltflächen: eine Relevanzfrage, ein Vorschlag mit offenen Fragen
   („Klären“) und ebenso ein vollständiger Vorschlag mit Bestätigung („Im Kalender
-  anlegen“ bzw. „In Todoist anlegen“, „Ändern“, „Verwerfen“). Wurde eine solche
+  anlegen“ bzw. „Als Aufgabe anlegen“, „Ändern“, „Verwerfen“). Wurde eine solche
   Nachricht gesendet, werden alle späteren Nachrichten zurückgehalten, bis diese
   Entscheidung erledigt ist; das gilt auch für weitere Vorschläge derselben Mail.
   Erledigt ist eine Relevanzfrage mit ihrer Entscheidung und ein Vorschlag erst,
@@ -2067,3 +2067,78 @@ ausdrücklich auch vergangene.
   Analyse- oder Legacy-Fingerprints.
 
 Details: [Release-2.2.md](docs/Release-2.2.md).
+
+## 23. Version 2.3: Weitere Kalender- und Aufgabendienste, Volltextsuche, Originaldokumente
+
+Planung und Entscheidungen: [docs/Planung-2.3.md](docs/Planung-2.3.md).
+
+### 23.1 Anbieter
+
+Je Installation ist genau ein Kalenderdienst (`targets.calendar_provider`: `google`,
+`caldav`, `outlook`) und genau ein Aufgabendienst (`targets.task_provider`:
+`todoist`, `microsoft_todo`, `caldav`, `apple_reminders`) aktiv. Standard ist
+`google`/`todoist`; bestehende Konfigurationen bleiben unverändert gültig und
+behalten ihren Analyse-Fingerprint. Das aktive Ziel (`calendar_target`,
+`task_target`) wird wie bisher in jedem Vorschlag gespeichert; ein Anbieter- oder
+Zielwechsel schreibt bereits bestätigte Vorschläge nicht in das neue Ziel.
+
+Für alle Anbieter gelten unverändert: Schreiben nur nach versionsbezogener
+Bestätigung, Abgleich über den Idempotenzschlüssel vor jedem Schreiben, kein
+blindes Wiederholen unklarer Ergebnisse, Testmodus ohne externen Kontakt,
+Vorabprüfung auf vorhandene Einträge, Duplikatergänzung, Zeitänderung und Absage.
+
+- **CalDAV-Kalender und -Aufgaben** (Nextcloud, iCloud, mailbox.org, Radicale …):
+  HTTP Basic mit App-Passwort (`CALDAV_USERNAME`, `CALDAV_PASSWORD`), nur
+  `https://` (Ausnahme `localhost`). Jede Vorschlagsversion entspricht genau einer
+  Ressource `<uid>.ics`, deren Name aus dem Idempotenzschlüssel abgeleitet ist;
+  Anlage per `PUT` mit `If-None-Match: *` (`412` gilt als bereits vorhanden),
+  Abgleich per `GET`. Änderungen und Absagen (`STATUS:CANCELLED`) erfolgen per
+  `GET` und `PUT` mit `If-Match`; unbekannte Eigenschaften bleiben erhalten,
+  `SEQUENCE` steigt. Wiederkehrende Termine werden nicht verändert und nicht als
+  Duplikat herangezogen. XML-Antworten mit DTD werden abgewiesen.
+- **Apple Erinnerungen**: CalDAV-VTODO-Voreinstellung für Listen unter
+  `caldav.icloud.com`. Auf die neuen iCloud-Erinnerungen aktualisierte Listen sind
+  über CalDAV nicht erreichbar; die Zugriffsprüfung meldet das ausdrücklich.
+- **Outlook / Microsoft 365 und Microsoft To Do** über Microsoft Graph mit
+  OAuth-Refresh-Token (`MICROSOFT_CLIENT_ID`, optional `MICROSOFT_CLIENT_SECRET`,
+  `targets.microsoft_tenant`). Jeder rotierte Refresh-Token wird sofort in
+  `microsoft-token.json` neben `.env` gespeichert (unter Linux Dateirechte 0600) und
+  bevorzugt; `MICROSOFT_REFRESH_TOKEN` dient nur als Startwert.
+  `mailhelp --microsoft-login` meldet per Gerätecode an und zeigt nur Code und
+  Adresse. Outlook-Termine tragen den Idempotenzschlüssel als erweiterte
+  Eigenschaft und als `transactionId`; Absagen löschen den Termin. To-Do-Aufgaben
+  tragen ihn als `linkedResources.externalId` und als Marker im Text.
+- Geheimnisse werden nur für gewählte Anbieter verlangt. Die Web-Einstellungen
+  und der Einrichtungsschritt „Analyse und Ziele“ bieten Anbieter und Ziele an;
+  Ziel- und Anbieteränderungen benötigen eine aktuelle erfolgreiche Diagnose.
+- Schaltflächen und Meldungen sind anbieterneutral („Im Kalender anlegen“,
+  „Als Aufgabe anlegen“, „Angelegt als Aufgabe“); Verbindungsstatus und
+  Zugriffsprüfung nennen den konfigurierten Dienst.
+
+### 23.2 Volltextsuche
+
+Die Suche unter `/mails` durchsucht Absender, Betreff, Zusammenfassung, Mailtext,
+Anhangnamen und erkannten Anhangtext. Alle Wörter müssen vorkommen; Begriffe in
+Anführungszeichen suchen die genaue Wortfolge. Groß-/Kleinschreibung, Akzente und
+die Schreibweisen ä/ae, ö/oe, ü/ue, ß/ss sind gleichwertig. „Suchen in: nur
+Absender, Betreff und Zusammenfassung“ beschränkt die Suche. Jeder Treffer nennt
+die Fundstelle mit einem maskierten Ausschnitt. Der Index liegt im Speicher, ist je
+Mail auf 200.000 Zeichen begrenzt und wird nur bei geänderter Archivrevision neu
+aufgebaut. Nach Ablauf von `retention.full_mail_days` finden Suchen nur noch die
+Metadaten. Suchbegriffe werden nicht protokolliert.
+
+### 23.3 Originaldokumente
+
+Für neu verarbeitete Mails speichert Mailhelp Originalanhänge der Typen PDF, DOC,
+DOCX, XLS, XLSX, PPT, PPTX, ODT, ODS, ODP, RTF, TXT, CSV, ICS, JPG, PNG, GIF, WEBP
+und HEIC – nur wenn Dateiendung und Inhaltssignatur passen – bis
+`attachments.max_original_bytes` je Datei und `attachments.max_total_bytes` je Mail
+(`attachments.store_originals` schaltet das ab). Metadaten stehen in einem eigenen
+Manifest; die für die Analyse gespeicherte Mail bleibt unverändert. Die
+Maildetailseite bietet „Original herunterladen“. `GET /mail/<id>/original/<index>`
+verlangt eine gültige Sitzung, liefert nur bei unveränderter Prüfsumme und stets
+mit `Content-Disposition: attachment`, festem Inhaltstyp aus der Allowlist,
+`X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'none';
+sandbox` und `Cache-Control: private, no-store`. Protokolliert werden nur Mail-ID,
+Index und Größe. Originale werden mit dem Mailinhalt nach
+`retention.full_mail_days` und durch `mailhelp --clear` gelöscht.

@@ -12,8 +12,7 @@ from zoneinfo import ZoneInfo
 from . import state_names
 from .analysis import Analyzer
 from .config import Settings
-from .external.contracts import OAuthTokenError
-from .external.http_writer import HttpWriter
+from .external.contracts import OAuthTokenError, TargetWriter
 from .imap import ImapReader
 from .logging import JsonlLogger, NullLogger, log_and_continue
 from .mailbox_run import MailboxRunService, _RunSummary
@@ -44,8 +43,8 @@ class Application:
     openrouter: OpenRouterClient
     analyzer: Analyzer
     telegram: TelegramClient | DisabledTelegram
-    todoist: HttpWriter
-    calendar: HttpWriter
+    todoist: TargetWriter
+    calendar: TargetWriter
     orchestrator: Orchestrator
     stop_event: Event
     dialog: TelegramDialogController | None = None
@@ -87,8 +86,8 @@ class Application:
             ("IMAP", check_imap),
             (self.openrouter.service_name, self.openrouter.check_access),
             ("Telegram", lambda: Application._check_telegram_access(self)),
-            ("Todoist", self.todoist.check_access),
-            ("Google Kalender", self.calendar.check_access),
+            (getattr(self.todoist, "label", "Todoist"), self.todoist.check_access),
+            (getattr(self.calendar, "label", "Google Kalender"), self.calendar.check_access),
         )
         results: dict[str, str | None] = {}
         logger = getattr(self, "logger", NullLogger())

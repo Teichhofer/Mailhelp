@@ -107,10 +107,15 @@ class SetupService:
             command = AdminCommand(kind=AdminKind.SETUP, actor=actor, expected_hash=expected_hash,
                                    idempotency_key=key, patch=state.patch, acknowledged=True)
             self.configuration.candidate(command)
-            checks = {"imap": "imap.", "calendar": "targets.google_calendar", "todoist": "targets.todoist_project"}
+            checks = {"imap": ("imap.",),
+                      "calendar": ("targets.google_calendar", "targets.calendar_provider",
+                                   "targets.caldav_calendar_url", "targets.outlook_calendar",
+                                   "targets.microsoft_tenant"),
+                      "todoist": ("targets.todoist_project", "targets.task_provider", "targets.caldav_task_url",
+                                  "targets.microsoft_todo_list")}
             diagnostics = self.store.load_model("diagnostics-state", DiagnosticsState, DiagnosticsState())
-            for name, prefix in checks.items():
-                if any(field.startswith(prefix) for field in state.patch):
+            for name, prefixes in checks.items():
+                if any(field.startswith(prefixes) for field in state.patch):
                     result = diagnostics.results.get(name)
                     if (result is None or result.status not in {"ready", "limited"}
                             or result.config_revision != self.fingerprint()):

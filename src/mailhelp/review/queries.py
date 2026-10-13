@@ -11,11 +11,14 @@ from ..models import MailState, ProposalStatus
 from ..storage import CorruptState, JsonStore, mail_state_names
 from .archive import AnalysisSnapshot, HistorySnapshot
 from .filters import matches
+from .search import SEPARATOR, bounded, excerpt, fold, terms
 
 
 class ArchiveQuery(BaseModel):
     model_config = ConfigDict(extra="forbid")
     q: str = Field(default="", max_length=200)
+    # "all" also searches the mail text and the recognised attachment text (2.3).
+    scope: Literal["all", "meta"] = "all"
     filter: Literal["", "events", "tasks", "clarification", "attachments", "duplicates"] = ""
     relevance: Literal["", "relevant", "irrelevant", "unclear", "unknown"] = ""
     topic: str = Field(default="", max_length=100)
@@ -78,13 +81,19 @@ class ArchiveQueries:
                 received = stamp.isoformat() if stamp and stamp.tzinfo else None
             except ValueError:
                 received = None
-            items.append({"id": state.id, "sender": headers.sender if headers else "—",
-                          "subject": headers.subject if headers else "Mail ohne Betreff",
+            sender = headers.sender if headers else "—"
+            subject = headers.subject if headers else "Mail ohne Betreff"
+            summary_text = " ".join(summary.get("sentences", []))
+            meta = [("Absender", sender), ("Betreff", subject), ("Zusammenfassung", summary_text)]
+            content = bounded([("Mailtext", mail.text or ""), *(
+                (f"Anhang „{item.filename}“", f"{item.filename}\n{item.text}")
+                for item in mail.extracted_attachments)] if mail is not None else [])
+            items.append({"id": state.id, "sender": sender, "subject": subject,
                           "received": received, "updated": state.updated_at.isoformat(),
                           "relevance": (state.relevance_dialog.decision if state.relevance_dialog else None)
                                        or relevance.get("decision", "unknown"),
                           "topics": relevance.get("topic_ids", []),
-                          "summary": " ".join(summary.get("sentences", [])),
+                          "summary": summary_text,
                           "failed": state.error is not None,
                           "waiting": state.awaiting_relevance,
                           "completed": state.steps.completion == "completed",
@@ -92,17 +101,24 @@ class ArchiveQueries:
                           "kinds": {p.id: p.kind.value for p in state.proposals},
                           "attachments": mail is not None and bool(mail.extracted_attachments),
                           "duplicate": state.duplicate is not None,
-                          "text_available": mail is not None and mail.text is not None})
+                          "text_available": mail is not None and mail.text is not None,
+                          # Folded copies for matching; fields for the excerpt of a hit.
+                          "fields": meta + content,
+                          "meta_folded": SEPARATOR.join(fold(text) for _, text in meta),
+                          "content_folded": SEPARATOR.join(fold(text) for _, text in content)})
         self._items, self._revision = items, self.store.archive_revision
 
     def search(self, query: ArchiveQuery) -> tuple[list[dict], int]:
+        """Matching mails, newest first; each page item carries where the first term matched."""
         items = []
+        wanted = terms(query.q)
         for item in self.items():
             if not matches(query.filter, item["kinds"].values(), item["statuses"] + [item["relevance"]],
                            item["attachments"], item["duplicate"]):
                 continue
             day = datetime.fromisoformat(item[query.sort] or item["updated"]).astimezone(self.zone).date()
-            if query.q.casefold() not in " ".join([item["sender"], item["subject"], item["summary"]]).casefold():
+            haystack = item["meta_folded"] + (SEPARATOR + item["content_folded"] if query.scope == "all" else "")
+            if not all(term in haystack for term in wanted):
                 continue
             if query.relevance and query.relevance != item["relevance"]:
                 continue
@@ -121,7 +137,9 @@ class ArchiveQueries:
             return datetime.fromisoformat(item[query.sort] or item["updated"]).timestamp(), item["id"]
         items.sort(key=order, reverse=True)
         start = (query.page - 1) * query.size
-        return items[start:start + query.size], len(items)
+        page = items[start:start + query.size]
+        fields = (lambda item: item["fields"][:3]) if query.scope == "meta" else (lambda item: item["fields"])
+        return [{**item, "hit": excerpt(fields(item), wanted)} for item in page], len(items)
 
     def history(self) -> list[dict]:
         with self.store.locked():

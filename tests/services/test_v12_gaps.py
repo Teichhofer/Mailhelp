@@ -26,6 +26,9 @@ from mailhelp.review.commands import CommandKind
 from mailhelp.review.editing import ProposalEditPatch, edit_proposal
 from mailhelp.review.results import ResultStatus
 
+# Since 2.3 the writers are built in mailhelp.external.providers.
+MOVED_WRITERS = ("HttpWriter", "GoogleOAuthTokenProvider")
+
 
 def test_exchange_rate_needs_its_date():
     assert MetricsSettings().usd_per_eur == 1.1
@@ -345,7 +348,7 @@ def test_application_writes_metrics_into_the_log_directory(tmp_path, monkeypatch
 
     for name in ("ImapReader", "OpenRouterClient", "DecisionClient", "TelegramClient",
                  "HttpWriter", "GoogleOAuthTokenProvider"):
-        monkeypatch.setattr(f"mailhelp.composition.{name}", Resource)
+        monkeypatch.setattr(f"mailhelp.{'external.providers' if name in MOVED_WRITERS else 'composition'}.{name}", Resource)
     cfg = app_settings(tmp_path)
     cfg.logging.file.enabled = cfg.logging.console.enabled = False
     legacy = tmp_path / "data" / "test" / "metrics" / "llm.jsonl"

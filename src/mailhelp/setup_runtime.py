@@ -2,13 +2,11 @@
 from __future__ import annotations
 
 import tempfile
-from contextlib import ExitStack
 from pathlib import Path
 
 from .diagnostics import DiagnosticsService
 from .experience import _reader
-from .external.http_writer import HttpWriter
-from .external.oauth import GoogleOAuthTokenProvider
+from .external.providers import build_writers
 from .setup import SetupService
 from .storage import atomic_replace
 
@@ -25,8 +23,13 @@ class SetupRuntime:
             "push_test": self.push_test, "llm_test": self.llm_test}, revision=self.setup.fingerprint)
 
     def secret_status(self):
-        names = ("imap_password", "openrouter_api_key", "telegram_bot_token", "todoist_token",
-                 "google_oauth_refresh_token")
+        """Presence of the secrets the configured providers need; never their values."""
+        targets = self.setup.draft_settings().targets
+        names = ["imap_password", "openrouter_api_key", "telegram_bot_token"]
+        names += ["todoist_token"] if targets.task_provider == "todoist" else []
+        names += ["google_oauth_refresh_token"] if targets.calendar_provider == "google" else []
+        names += ["caldav_username", "caldav_password"] if targets.uses_caldav else []
+        names += ["microsoft_client_id"] if targets.uses_microsoft else []
         return {name: "vorhanden" if self.secrets is not None and
                 getattr(self.secrets, name).get_secret_value() else "fehlt" for name in names}
 
@@ -50,20 +53,12 @@ class SetupRuntime:
         return "ready", ""
 
     def _check_target(self, service, cfg):
-        with ExitStack() as stack:
-            timeout = min(10, getattr(cfg.timeouts, service).timeout_seconds)
-            if service == "google_calendar":
-                token = GoogleOAuthTokenProvider(self.secrets.google_oauth_client_id.get_secret_value(),
-                    self.secrets.google_oauth_client_secret.get_secret_value(),
-                    self.secrets.google_oauth_refresh_token.get_secret_value(), timeout)
-                stack.callback(token.close)
-            else:
-                token = self.secrets.todoist_token.get_secret_value()
-            target = cfg.targets.google_calendar if service == "google_calendar" else cfg.targets.todoist_project
-            adapter = HttpWriter(service, token, target, timeout,
-                                 calendar_timezone=cfg.timezone)
-            stack.callback(adapter.close)
-            adapter.check_access()
+        """Read-only access check of the configured calendar or task target."""
+        writers = build_writers(cfg, self.secrets, self.app.configuration.directory, timeout_cap=10)
+        try:
+            (writers.calendar if service == "google_calendar" else writers.tasks).check_access()
+        finally:
+            writers.close()
 
     def llm(self, actor):
         for step in self.app.analyzer.prompts.prompts:

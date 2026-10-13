@@ -154,8 +154,28 @@ targets:
   # Bestätigungen gelten für das im Vorschlag gespeicherte Ziel. Bei Abweichung
   # bleiben Schreiben und Abgleich gesperrt (auch nach Neustart/im Testmodus).
   # Ursprüngliches Ziel wiederherstellen oder neuen Vorschlag bestätigen.
+  # Kalenderdienst: google | caldav (Nextcloud, iCloud, mailbox.org, …) | outlook (Microsoft 365).
+  calendar_provider: google
+  # Aufgabendienst: todoist | microsoft_todo | caldav (VTODO) | apple_reminders (iCloud-CalDAV;
+  # auf die neuen iCloud-Erinnerungen aktualisierte Listen sind über CalDAV nicht erreichbar).
+  task_provider: todoist
   todoist_project: example-project
   google_calendar: primary
+  # Nur bei caldav/apple_reminders: vollständige https-Adressen der Sammlungen.
+  # Zugang über CALDAV_USERNAME und App-Passwort CALDAV_PASSWORD in .env.
+  caldav_calendar_url: ""
+  caldav_task_url: ""
+  # Nur bei outlook/microsoft_todo: Kalender- bzw. Listen-ID oder default.
+  # Anmeldung einmalig mit "mailhelp --microsoft-login" (MICROSOFT_CLIENT_ID in .env).
+  outlook_calendar: default
+  microsoft_todo_list: default
+  microsoft_tenant: common
+# Originaldokumente (PDF, Word, Excel, OpenDocument, Text, Bilder) neu verarbeiteter Mails
+# zum Herunterladen in der Weboberfläche; gelöscht mit retention.full_mail_days.
+attachments:
+  store_originals: true
+  max_original_bytes: 26214400
+  max_total_bytes: 52428800
 limits:
   max_mail_bytes: 1000000
   max_header_bytes: 64000
@@ -201,6 +221,16 @@ timeouts:
     retries: 2
     initial_backoff_seconds: 1
     max_backoff_seconds: 8
+  caldav:
+    timeout_seconds: 30
+    retries: 2
+    initial_backoff_seconds: 1
+    max_backoff_seconds: 10
+  microsoft:
+    timeout_seconds: 30
+    retries: 2
+    initial_backoff_seconds: 1
+    max_backoff_seconds: 10
   telegram_poll_seconds: 30
   # Für den lokalen Modus und --decision-test. Lokale Modelle antworten
   # deutlich langsamer; ohne Angabe gelten genau diese Werte.

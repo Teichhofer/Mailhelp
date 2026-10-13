@@ -212,7 +212,7 @@ def test_links_and_card_variants(tmp_path):
     assert '<p class="notice notice-ok" role="status">Gespeichert &amp; erledigt</p>' in overview_page(
         overview, message="Gespeichert & erledigt")
     done = proposal_card(views["done"], actions=lambda view: "<form>aktion</form>")
-    assert "In Todoist öffnen" not in done and "<form>aktion</form>" in done
+    assert "Aufgabe öffnen" not in done and "<form>aktion</form>" in done
 
 
 def test_manual_warning_only_without_open_questions(tmp_path):

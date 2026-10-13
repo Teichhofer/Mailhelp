@@ -103,6 +103,11 @@ CONTACT_EVENTS = {
     ("google_calendar", "create_completed"): "Google Kalender",
     ("google_calendar", "duplicate_updated"): "Google Kalender",
     ("google_oauth", "token_credentials_accepted"): "Google-Anmeldung",
+    ("microsoft_oauth", "token_credentials_accepted"): "Microsoft-Anmeldung",
+    **{(service, event): label for service, label in (
+        ("caldav_calendar", "CalDAV-Kalender"), ("caldav_tasks", "CalDAV-Aufgaben"),
+        ("apple_reminders", "Apple Erinnerungen"), ("outlook_calendar", "Outlook-Kalender"),
+        ("microsoft_todo", "Microsoft To Do")) for event in ("create_completed", "duplicate_updated")},
 }
 LLM_CONTACT = {"standard": "KI-Modelle (OpenRouter)", "local": "Ollama", "decision_test": "KI-Vergleichslauf"}
 
@@ -147,6 +152,8 @@ class MetricsRecorder:
         self._cache_signature: tuple[int, int] | None = None
         self.activity: dict[str, Any] = {"stage": "idle", "mail_id": None, "started": time.monotonic()}
         self.contacts: dict[str, str] = {}
+        # Calendar, task list and their sign-in; replaced by the configured providers.
+        self.write_services: list[str] = ["Todoist", "Google Kalender", "Google-Anmeldung"]
         self.failures = 0
         self.run_id = secrets.token_hex(16)
         self.test_mail_hash: str | None = None
@@ -162,7 +169,7 @@ class MetricsRecorder:
         """The services this process talks to, in display order."""
         models = ([LLM_CONTACT["local"]] if self.mode == "local"
                   else [LLM_CONTACT["standard"], "Jev (Relevanz)"])
-        return ["IMAP-Postfach", *models, "Telegram", "Todoist", "Google Kalender", "Google-Anmeldung"]
+        return ["IMAP-Postfach", *models, "Telegram", *self.write_services]
 
     def observe(self, event: str, context: dict) -> None:
         with self._lock:

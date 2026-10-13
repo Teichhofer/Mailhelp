@@ -17,6 +17,8 @@ class HttpTransport:
     client: httpx.Client
     logger: EventLogger
     service: str
+    role: str
+    label: str
     target: str
     policy: RetryPolicy
     calendar_timezone: str | None

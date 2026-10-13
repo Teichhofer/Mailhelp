@@ -11,7 +11,7 @@ from typing import Any, Literal, Protocol, cast
 from . import state_names
 from .action_normalization import MailDateContext
 from .analysis import Analyzer
-from .config import TargetSettings, Topic
+from .config import OriginalAttachmentSettings, TargetSettings, Topic
 from .imap import FetchedMail
 from .logging import EventLogger, NullLogger
 from .mail_duplicates import DuplicateMailCheck
@@ -115,6 +115,9 @@ class Orchestrator:
                           actual_count=actual, router_call_id=router_call_id,
                           extractor_call_id=extractor_call_id)
 
+    # Original documents for download (2.3); composition applies ``attachments`` from config.yaml.
+    original_attachments: OriginalAttachmentSettings = OriginalAttachmentSettings()
+
     def stop(self) -> None: self.stop_event.set()
 
     def load_model(self, name: str, model: type[Any], default: Any = None) -> Any:
@@ -125,7 +128,8 @@ class Orchestrator:
         from .attachments import AttachmentCache
         assert state.mail is not None  # previews are cached while the mail is prepared
         try:
-            AttachmentCache(self.store).prepare(state.id, raw, state.mail["extracted_attachments"])
+            AttachmentCache(self.store).prepare(state.id, raw, state.mail["extracted_attachments"],
+                                                self.original_attachments)
         except (OSError, ValueError) as exc:
             self.logger.event("WARNING", "orchestrator", "preview_failed", mail_id=state.id,
                               error_class=type(exc).__name__)

@@ -20,6 +20,33 @@
 - Ungültige Unicode-Werte in Kopplungssignaturen und CSRF-Tokens werden mit HTTP 403
   abgewiesen; Regressionstests belegen beide zuvor ausgelösten Serverfehler.
 
+## 2.3.0 – Beta (Branch `beta`), weitere Kalender- und Aufgabendienste, Volltextsuche, Originaldokumente
+
+Planung: [docs/Planung-2.3.md](docs/Planung-2.3.md).
+
+- **Kalender:** zusätzlich CalDAV (Nextcloud, iCloud, mailbox.org, Radicale …) und Outlook /
+  Microsoft 365 (`targets.calendar_provider`). Duplikatprüfung, Ergänzung, Zeitänderung und Absage
+  laufen für alle Kalender über denselben Ablauf (`TargetWriter`, `CalendarOperations`).
+- **Aufgaben:** zusätzlich Microsoft To Do, CalDAV-Aufgabenlisten (VTODO) und Apple Erinnerungen über
+  iCloud-CalDAV (`targets.task_provider`). Auf die neuen iCloud-Erinnerungen aktualisierte Listen sind
+  über CalDAV nicht erreichbar; die Zugriffsprüfung meldet das.
+- **Idempotenz je Anbieter:** CalDAV über einen aus dem Schlüssel abgeleiteten Ressourcennamen mit
+  `If-None-Match: *`; Outlook über eine erweiterte Eigenschaft und `transactionId`; To Do über
+  `linkedResources.externalId`. Unklare Ergebnisse werden wie bisher nur abgeglichen.
+- **Microsoft-Anmeldung:** `mailhelp --microsoft-login` (Gerätecode); rotierte Refresh-Tokens werden in
+  `microsoft-token.json` neben `.env` gespeichert.
+- **Geheimnisse** werden nur noch für die gewählten Anbieter verlangt; neue Variablen `CALDAV_*`, `MICROSOFT_*`.
+- **Volltextsuche** unter `/mails` über Mailtext, Anhangnamen und Anhangtext mit Fundstelle, UND-Verknüpfung,
+  Phrasen und Umlaut-Gleichwertigkeit; Auswahl „nur Absender, Betreff und Zusammenfassung“.
+- **Originaldokumente** (PDF, Office, OpenDocument, Text, Bilder) neu verarbeiteter Mails zum Herunterladen;
+  Allowlist mit Signaturprüfung, Prüfsumme, Download-only-Header, Aufbewahrung wie Mailinhalte
+  (`attachments.*`).
+- Web-Einstellungen und Einrichtungsschritt „Analyse und Ziele“ bieten Anbieter und Ziele an; neue Zeitlimits
+  `timeouts.caldav` und `timeouts.microsoft`. Bestehende Konfigurationen behalten ihren Analyse-Fingerprint.
+- Anbieterneutrale Texte: „Als Aufgabe anlegen“, „Angelegt als Aufgabe“, „Aufgabe öffnen“,
+  „Terminänderung gegenüber dem Kalender“.
+- Tests mit simuliertem CalDAV-Server und simuliertem Microsoft Graph; 100 % Zeilen- und Branch-Abdeckung.
+
 ## 2.2.6 – Beta (Branch `beta`), Split-View ohne Flackern
 
 - **Split-View:** Neue Daten ersetzen Liste und Detailbereich ohne Neuladen der Seite; kein Flackern

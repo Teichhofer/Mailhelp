@@ -18,6 +18,7 @@ from .contracts import (
     AccessTokenProvider,
     CalendarEventResponse,
     PreparedWrite,
+    TargetWriter,
     TodoistTaskResponse,
     proposal_is_writable,
     validation_path,
@@ -26,7 +27,9 @@ from .todoist import TodoistOperations
 from .transport import HttpTransport
 
 
-class HttpWriter(CalendarOperations, TodoistOperations, HttpTransport):
+class HttpWriter(CalendarOperations, TodoistOperations, HttpTransport, TargetWriter):
+    """Google Kalender (Kalenderrolle) or Todoist (Aufgabenrolle)."""
+
     def __init__(self, service: str, token: str | AccessTokenProvider, target: str, timeout: float = 30,
                  transport: httpx.BaseTransport | None = None, policy: RetryPolicy | None = None,
                  logger: EventLogger | None = None, calendar_timezone: str | None = None,
@@ -40,6 +43,8 @@ class HttpWriter(CalendarOperations, TodoistOperations, HttpTransport):
                 raise ValueError("Unbekannte IANA-Zeitzone für Google Kalender") from exc
         base = "https://api.todoist.com/api/v1" if service == "todoist" else "https://www.googleapis.com/calendar/v3"
         self.service, self.target, self.calendar_timezone = service, target, calendar_timezone
+        self.role = "tasks" if service == "todoist" else "calendar"
+        self.label = "Todoist" if service == "todoist" else "Google Kalender"
         self.calendar_matcher = calendar_matcher
         self._token_provider = token if service == "google_calendar" and not isinstance(token, str) else None
         self._static_token = token if isinstance(token, str) else None

@@ -142,6 +142,11 @@ def _parser() -> argparse.ArgumentParser:
               "und das Passwort im Terminal ausgeben"),
     )
     parser.add_argument(
+        "--microsoft-login", action="store_true",
+        help=("bei Microsoft (Outlook-Kalender, Microsoft To Do) per Gerätecode anmelden und den "
+              "Refresh-Token in microsoft-token.json neben .env speichern"),
+    )
+    parser.add_argument(
         "--max-mails", type=_positive_int, metavar="ANZAHL",
         help="höchstens ANZAHL Mails in einem einzelnen Abrufdurchlauf bearbeiten und beenden",
     )
@@ -251,6 +256,24 @@ def _clear(args: argparse.Namespace, settings) -> int:
     return 0
 
 
+def _microsoft_login(settings, secrets, directory: Path) -> int:
+    """Device-code sign-in; the terminal shows only the code and address, never a token."""
+    from .external.contracts import OAuthTokenError
+    from .external.providers import microsoft_tokens
+    if not secrets.microsoft_client_id.get_secret_value():
+        print("MICROSOFT_CLIENT_ID fehlt in .env oder der Prozessumgebung.", file=sys.stderr)
+        return 1
+    tokens = microsoft_tokens(settings, secrets, directory, settings.timeouts.microsoft.timeout_seconds)
+    try:
+        tokens.device_login(print)
+    except OAuthTokenError as exc:
+        print(f"FEHLER: {exc}", file=sys.stderr)
+        return 1
+    finally:
+        tokens.close()
+    return 0
+
+
 def _log_start(logger, args: argparse.Namespace, local_llm: LocalLlm | None) -> None:
     logger.event("INFO", "application", "application_started", parameters={
         "config_directory": str(args.config_directory),
@@ -326,6 +349,8 @@ def _main() -> int:
         request_local_code(args.config_directory)
         return 0
     settings, secrets, topics, irrelevant_topics, prompts, fingerprint = load_all(args.config_directory)
+    if args.microsoft_login:
+        return _microsoft_login(settings, secrets, args.config_directory)
     _check_mode_options(parser, args)
     local_llm = _local_llm(parser, args, prompts)
     if args.decision_test is not None:

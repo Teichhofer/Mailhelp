@@ -17,6 +17,7 @@ from typing import Any, TypeVar
 from pydantic import BaseModel
 
 from .. import state_names
+from ..attachments import AttachmentCache, OriginalFile
 from ..domain.prepared import PreparedAttachment, PreparedMail
 from ..domain.processing import (
     AnswerStatus,
@@ -109,6 +110,8 @@ class MailView:
     text_shortened: bool
     extracted_attachments: tuple[PreparedAttachment, ...] = ()
     calendar_events: tuple[dict[str, Any], ...] = ()
+    # Attachment index → stored original document (2.3); empty for older mails.
+    originals: dict[int, OriginalFile] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -313,12 +316,13 @@ class ReviewViews:
             except ValueError:
                 received = None
         omitted = content.metadata.get("attachments_omitted")
+        originals = AttachmentCache(self.store).originals(mail_id) if content.text is not None else {}
         return MailView(
             mail_id=mail_id, sender=sender, subject=subject, received=received, text=content.text,
             attachments_omitted=omitted if isinstance(omitted, int) else 0,
             text_shortened=content.metadata.get("text_shortened") is True,
             extracted_attachments=tuple(content.extracted_attachments),
-            calendar_events=tuple(content.calendar_events))
+            calendar_events=tuple(content.calendar_events), originals=originals)
 
     def _relevance(self, reader: _Reader) -> list[RelevanceView]:
         result = []
@@ -409,7 +413,7 @@ class ReviewViews:
         else:
             state = STATUS_LABELS[proposal.status]
         headers = mail.display_headers if mail is not None else None
-        target = "In Todoist anlegen" if proposal.kind == ProposalKind.TASK else "Im Kalender anlegen"
+        target = "Als Aufgabe anlegen" if proposal.kind == ProposalKind.TASK else "Im Kalender anlegen"
         if proposal.target_event_id is not None:
             target = "Termin absagen" if proposal.is_cancellation else "Bestehenden Termin aktualisieren"
         return ProposalView(

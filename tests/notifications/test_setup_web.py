@@ -221,41 +221,73 @@ def test_refresh_and_diagnostic_staleness_are_visible(configured):
     assert "wird geprüft" not in web.browser.request("GET", "/diagnose").body.decode()
 
 
+def test_setup_offers_the_providers_with_defaults_for_a_2_2_configuration(configured):
+    path = configured.tmp_path / "config.yaml"
+    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    for name in ("calendar_provider", "task_provider", "caldav_calendar_url", "caldav_task_url",
+                 "outlook_calendar", "microsoft_todo_list", "microsoft_tenant"):
+        raw["targets"].pop(name)
+    path.write_text(yaml.safe_dump(raw), encoding="utf-8")
+    page = configured.web.browser.request("GET", "/einrichtung").body.decode()
+    assert '<option value="google" selected>google</option>' in page
+    assert '<option value="apple_reminders">apple_reminders</option>' in page
+    assert 'name="value" value="default"' in page and "Microsoft-Mandant" in page
+
+
 def test_target_probes_use_draft_targets_own_clients_and_close_on_failure(configured, monkeypatch):
     from pydantic import SecretStr
+
+    from mailhelp.external.providers import Writers
     calls = []
-    class Token:
-        def __init__(self, *args):
-            calls.append(("token", args))
-        def close(self):
-            calls.append("token closed")
+
     class Adapter:
         fail = False
-        def __init__(self, service, token, target, timeout, **kw):
-            calls.append((service, target, timeout, kw))
+
+        def __init__(self, name):
+            self.name = name
+
         def close(self):
-            calls.append("adapter closed")
+            calls.append(f"{self.name} closed")
+
         def check_access(self):
+            calls.append(f"{self.name} checked")
             if self.fail:
                 raise PermissionError("synthetic refused")
-    monkeypatch.setattr("mailhelp.setup_runtime.HttpWriter", Adapter)
-    monkeypatch.setattr("mailhelp.setup_runtime.GoogleOAuthTokenProvider", Token)
+
+    class Token:
+        def close(self):
+            calls.append("token closed")
+
+    def build(cfg, secrets, directory, *, timeout_cap):
+        calls.append((cfg.targets.calendar_target, cfg.targets.task_target, directory, timeout_cap))
+        return Writers(Adapter("calendar"), Adapter("tasks"), [Token()])
+
+    monkeypatch.setattr("mailhelp.setup_runtime.build_writers", build)
     secrets = NS(**{name: SecretStr("synthetic") for name in (
-        "imap_password", "openrouter_api_key", "telegram_bot_token", "todoist_token",
-        "google_oauth_refresh_token", "google_oauth_client_id", "google_oauth_client_secret")})
+        "imap_password", "openrouter_api_key", "telegram_bot_token", "todoist_token", "todoist_client_id",
+        "todoist_client_secret", "google_oauth_refresh_token", "google_oauth_client_id",
+        "google_oauth_client_secret", "caldav_username", "caldav_password", "microsoft_client_id")})
     runtime = SetupRuntime(configured.app, configured.web.site, secrets)
     actor = "web:" + configured.web.auth.sessions()[0].id
     runtime.setup.save(actor, 0, "target-001", 3, {"targets.google_calendar": "new-calendar",
                                                   "targets.todoist_project": "new-project"})
     assert runtime.calendar("device") == runtime.todoist("device") == ("ready", "")
-    assert ("google_calendar", "new-calendar", 10, {"calendar_timezone": "UTC"}) in calls
-    assert ("todoist", "new-project", 10, {"calendar_timezone": "UTC"}) in calls
-    assert calls.count("token closed") == 1 and calls.count("adapter closed") == 2
+    directory = configured.app.configuration.directory
+    assert calls[0] == ("new-calendar", "new-project", directory, 10)
+    assert calls[1:5] == ["calendar checked", "tasks closed", "calendar closed", "token closed"]
+    assert "tasks checked" in calls and calls.count("token closed") == 2
     assert set(runtime.secret_status().values()) == {"vorhanden"}
     Adapter.fail = True
     with pytest.raises(PermissionError):
         runtime.calendar("device")
-    assert calls[-2:] == ["adapter closed", "token closed"]
+    assert calls[-3:] == ["tasks closed", "calendar closed", "token closed"]
+    # Only the secrets of the configured providers are listed.
+    runtime.setup.save(actor, 1, "target-002", 3, {"targets.caldav_task_url": "https://dav.example.org/tasks/",
+                                                  "targets.task_provider": "caldav"})
+    assert "caldav_password" in runtime.secret_status() and "todoist_token" not in runtime.secret_status()
+    runtime.setup.save(actor, 2, "target-003", 3, {"targets.calendar_provider": "outlook"})
+    assert "microsoft_client_id" in runtime.secret_status()
+    assert "google_oauth_refresh_token" not in runtime.secret_status()
 
 
 @pytest.mark.parametrize("kind", ["local", "csrf"])

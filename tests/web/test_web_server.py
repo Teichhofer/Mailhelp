@@ -22,6 +22,9 @@ from mailhelp.web import Request, Response, WebApp, WebServer, WebServerError
 from mailhelp.web import server as server_module
 from mailhelp.web.http import CONTENT_SECURITY_POLICY, MAX_BODY_BYTES
 
+# Since 2.3 the writers are built in mailhelp.external.providers.
+MOVED_WRITERS = ("HttpWriter", "GoogleOAuthTokenProvider")
+
 HOST = "127.0.0.1:8765"
 
 
@@ -251,7 +254,7 @@ def test_build_application_creates_the_web_server_only_when_enabled(tmp_path, mo
 
     for name in ("ImapReader", "OpenRouterClient", "DecisionClient", "TelegramClient",
                  "HttpWriter", "GoogleOAuthTokenProvider"):
-        monkeypatch.setattr(f"mailhelp.composition.{name}", Resource)
+        monkeypatch.setattr(f"mailhelp.{'external.providers' if name in MOVED_WRITERS else 'composition'}.{name}", Resource)
     cfg = app_settings(tmp_path)
     cfg.logging.file.enabled = cfg.logging.console.enabled = False
     cfg.web.enabled = enabled

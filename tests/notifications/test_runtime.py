@@ -23,6 +23,9 @@ from mailhelp.review.results import ResultStatus, ReviewResult
 from mailhelp.telegram import TelegramClient
 from mailhelp.webpush import PushService
 
+# Since 2.3 the writers are built in mailhelp.external.providers.
+MOVED_WRITERS = ("HttpWriter", "GoogleOAuthTokenProvider")
+
 
 @pytest.fixture
 def runtime(configured):
@@ -398,7 +401,7 @@ def test_setup_remains_available_when_the_mailbox_cannot_authenticate(tmp_path, 
         def close(self):
             pass
     for name in ("OpenRouterClient", "HttpWriter", "GoogleOAuthTokenProvider"):
-        monkeypatch.setattr("mailhelp.composition." + name, Resource)
+        monkeypatch.setattr(("mailhelp.external.providers." if name in MOVED_WRITERS else "mailhelp.composition.") + name, Resource)
     monkeypatch.setattr("mailhelp.composition.ImapReader",
                         lambda *args, **kw: (_ for _ in ()).throw(imaplib.IMAP4.error("private provider answer")))
     with build_application(cfg, secret, [], prompt_config(), "a" * 64, tmp_path, use_jev_relevance=False) as app:

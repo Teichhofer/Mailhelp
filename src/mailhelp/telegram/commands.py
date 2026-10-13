@@ -17,7 +17,7 @@ HELP = (
     "/hilfe – diese Übersicht\n\n"
     "Vorschläge kommen einzeln nacheinander. Rückfragen beantwortest du einfach mit "
     "einer Nachricht; die nächste offene Frage folgt automatisch. Angelegt wird erst, "
-    "wenn du „Im Kalender anlegen“ bzw. „In Todoist anlegen“ drückst."
+    "wenn du „Im Kalender anlegen“ bzw. „Als Aufgabe anlegen“ drückst."
 )
 STARTUP = "👋 Mailhelp gestartet. Befehle: /hilfe"
 

@@ -83,7 +83,7 @@ def test_web_confirmation_writes_exactly_the_confirmed_version(tmp_path):
         assert writer.versions == [1]
         assert store.load(f"proposal-{MAIL}-p1")["status"] == "created"
         # Telegram stays consistent: the write result is reported there too.
-        assert "✅ Angelegt in Todoist" in telegram.sent[-1][1]
+        assert "✅ Angelegt als Aufgabe" in telegram.sent[-1][1]
         # A second, identical confirmation is stale and writes nothing.
         again = web(dialog).execute(command(CommandKind.CONFIRM, key="key-00000002"))
         assert again.status == ResultStatus.STALE and writer.created == 1
@@ -324,7 +324,7 @@ def test_overview_orders_current_first_and_marks_queued_and_editing(tmp_path):
     assert task_view.question == "Was soll geändert werden?"
     assert task_view.actions == {CommandKind.CONFIRM, CommandKind.REJECT, CommandKind.ANSWER,
                                  CommandKind.CANCEL_CLARIFICATION}
-    assert task_view.card.due == "30.10.2026" and task_view.confirm_label == "In Todoist anlegen"
+    assert task_view.card.due == "30.10.2026" and task_view.confirm_label == "Als Aufgabe anlegen"
     assert held_view.queued and held_view.yes_no and held_view.question == "Bist du dafür zuständig?"
     assert held_view.state == "Klärung nötig"
     assert (task_view.sender, task_view.subject) == ("Ada Muster", "Elternabend")

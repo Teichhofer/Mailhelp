@@ -26,6 +26,9 @@ from mailhelp.openrouter import OpenRouterClient, RateLimitExceeded
 from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.storage import JsonStore
 
+# Since 2.3 the writers are built in mailhelp.external.providers.
+MOVED_WRITERS = ("HttpWriter", "GoogleOAuthTokenProvider")
+
 
 def topics():
     from mailhelp.config import Topic
@@ -157,7 +160,7 @@ def simulated_resources(monkeypatch):
         def __init__(self, *args, **kwargs): self.closed = False
         def close(self): self.closed = True
     for name in ["ImapReader", "TelegramClient", "HttpWriter", "GoogleOAuthTokenProvider"]:
-        monkeypatch.setattr("mailhelp.composition." + name, Resource)
+        monkeypatch.setattr(("mailhelp.external.providers." if name in MOVED_WRITERS else "mailhelp.composition.") + name, Resource)
 
 
 def test_standard_composition_durable_shared_budget_restart_and_cleanup(tmp_path, monkeypatch):

@@ -86,6 +86,8 @@ class MailhelpSite:
         app.route("GET", r"/mail/(?P<mail_id>[a-f0-9]{24})", self.signed_in(self.review.mail))
         app.route("GET", r"/mail/(?P<mail_id>[a-f0-9]{24})/anhang/(?P<index>[0-9]{1,5})",
                   self.signed_in(self.review.attachment))
+        app.route("GET", r"/mail/(?P<mail_id>[a-f0-9]{24})/original/(?P<index>[0-9]{1,5})",
+                  self.signed_in(self.review.original))
         app.route("GET", "/status", self.signed_in(self.status))
         app.route("GET", "/api/stand", self.signed_in(self.state))
         app.route("POST", "/aktion", self.signed_in(self.act))

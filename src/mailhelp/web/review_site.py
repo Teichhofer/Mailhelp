@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from .site import MailhelpSite
 import re
 from dataclasses import replace
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, quote
 
 from .actions import proposal_actions, relevance_actions, result_kind
 from .pages import error_page
@@ -77,6 +77,23 @@ class ReviewSite:
         return Response(200, data, "image/jpeg", headers={
             "Content-Security-Policy": "default-src 'none'",
             "X-Content-Type-Options": "nosniff"}, cache="private, max-age=3600")
+
+    def original(self, request, session, mail_id, index):
+        """The original document, only as a download and never rendered by the browser."""
+        from ..attachments import AttachmentCache, download_name
+        mail = self.site.views.mail(mail_id)
+        found = (AttachmentCache(self.site.views.store).original(mail_id, int(index))
+                 if mail is not None and mail.text is not None else None)
+        if found is None:
+            return Response.text(404, "Original nicht vorhanden.")
+        original, data = found
+        name, fallback = download_name(original.filename, original.index)
+        self.site.logger.event("INFO", "web", "attachment_downloaded", mail_id=mail_id, index=original.index,
+                               size_bytes=len(data))
+        return Response(200, data, original.content_type, headers={
+            "Content-Disposition": f"attachment; filename=\"{fallback}\"; filename*=UTF-8''{quote(name, safe='')}",
+            "Content-Security-Policy": "default-src 'none'; sandbox",
+            "X-Content-Type-Options": "nosniff"}, cache="private, no-store")
 
     def detail(self, request: Request, session: WebSession, mail_id: str,
                proposal_id: str) -> Response:

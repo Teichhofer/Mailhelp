@@ -96,7 +96,7 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
     evidence = _expandable(card.evidence, card.evidence_full, "Beleg", True)
     created = https_link(view.external_link)
     created_link = (f'<p><a href="{e(created)}" rel="noopener noreferrer" target="_blank">'
-                    f'{"Im Kalender öffnen" if event else "In Todoist öffnen"}</a></p>'
+                    f'{"Im Kalender öffnen" if event else "Aufgabe öffnen"}</a></p>'
                     if created else "")
     version = f" · Version {view.version}" if view.version > 1 else ""
     title = e(card.title)
@@ -105,7 +105,7 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
     diff_box = ""
     if view.time_changes:
         diff_lines = [f"<li>{e(str(change))}</li>" for change in view.time_changes]
-        diff_box = ('<div class="diff-box"><p>🔄 <strong>Terminänderung gegenüber Google Kalender:</strong></p>'
+        diff_box = ('<div class="diff-box"><p>🔄 <strong>Terminänderung gegenüber dem Kalender:</strong></p>'
                     f'<ul>{"".join(diff_lines)}</ul></div>')
     if view.duplicate_match is not None:
         dm = view.duplicate_match
@@ -222,7 +222,7 @@ def mail_section(mail: MailView | None, sender_actions: str = "") -> str:
             "unsupported_format": "Nicht unterstütztes Format",
         }
         att_items = []
-        for att in mail.extracted_attachments:
+        for position, att in enumerate(mail.extracted_attachments):
             fn = att.filename
             st = att.extraction_status
             st_text = status_labels.get(st, st)
@@ -230,8 +230,13 @@ def mail_section(mail: MailView | None, sender_actions: str = "") -> str:
             if att.vision is not None:
                 st_text = VISION_LABELS.get(att.vision, att.vision)
                 badge_class = "ok" if att.vision == "read" else "warn"
+            original = mail.originals.get(position)
+            download = (f' <a class="button small" href="/mail/{e(mail.mail_id)}/original/{position}" download>'
+                        f'Original herunterladen</a> <span class="meta">{_size(original.size_bytes)}</span>'
+                        if original is not None else "")
             att_items.append(
-                f'<li>📎 <strong>{e(fn)}</strong> <span class="badge {badge_class}">{e(st_text)}</span></li>'
+                f'<li>📎 <strong>{e(fn)}</strong> <span class="badge {badge_class}">{e(st_text)}</span>'
+                f'{download}</li>'
             )
             preview = att.preview
             if preview is not None:
@@ -257,6 +262,13 @@ def mail_section(mail: MailView | None, sender_actions: str = "") -> str:
 <dl class="mail-head">{rows}</dl>
 {sender_actions}{att_section}{cal_section}{body}{hints}
 </section>"""
+
+
+def _size(size: int) -> str:
+    """A readable file size: KB below one megabyte, else MB with one decimal (German style)."""
+    if size < 1_048_576:
+        return f"{max(1, round(size / 1024))} KB"
+    return f"{size / 1_048_576:.1f} MB".replace(".", ",")
 
 
 def disclosure(summary: str, body: str, *, opened: bool = False) -> str:

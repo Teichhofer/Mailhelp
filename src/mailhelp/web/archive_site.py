@@ -129,6 +129,7 @@ SETTING_GROUPS = (
     ("Mailabruf und Betrieb", ("poll_interval_seconds", "timezone", "test_mode")),
     ("Antworten", ("personal_info",)),
     ("Ziele", ("targets.",)),
+    ("Originalanhänge", ("attachments.",)),
     ("Aufrufbudget und Mailgrenzen", ("limits.",)),
     ("Zeitlimits und Wiederholungen", ("timeouts.", "retries.")),
     ("Aufbewahrung", ("retention.",)),
@@ -136,11 +137,20 @@ SETTING_GROUPS = (
     ("Kosten und Messung", ("metrics.",)),
 )
 SERVICE_LABELS = {"imap": "IMAP", "telegram": "Telegram", "openrouter": "OpenRouter", "ollama": "Ollama",
-                  "todoist": "Todoist", "google_calendar": "Google Kalender"}
+                  "todoist": "Todoist", "google_calendar": "Google Kalender", "caldav": "CalDAV",
+                  "microsoft": "Microsoft 365"}
 TIMEOUT_LABELS = {"timeout_seconds": "Zeitlimit (s)", "retries": "Wiederholungen",
                   "initial_backoff_seconds": "erste Wartezeit (s)", "max_backoff_seconds": "längste Wartezeit (s)"}
 EXTRA_LABELS = {
     "targets.todoist_project": "Todoist-Projekt", "targets.google_calendar": "Google-Kalender",
+    "targets.calendar_provider": "Kalenderdienst", "targets.task_provider": "Aufgabendienst",
+    "targets.caldav_calendar_url": "CalDAV-Kalender (Adresse)",
+    "targets.caldav_task_url": "CalDAV-Aufgabenliste (Adresse)",
+    "targets.outlook_calendar": "Outlook-Kalender", "targets.microsoft_todo_list": "Microsoft-To-Do-Liste",
+    "targets.microsoft_tenant": "Microsoft-Mandant",
+    "attachments.store_originals": "Originale speichern",
+    "attachments.max_original_bytes": "Höchstgröße je Datei (Bytes)",
+    "attachments.max_total_bytes": "Höchstgröße je Mail (Bytes)",
     "logging.console.level": "Konsole: Mindeststufe", "logging.file.level": "Logdatei: Mindeststufe",
     "logging.llm.include_requests": "KI-Anfragen vollständig protokollieren",
     "logging.llm.include_responses": "KI-Antworten vollständig protokollieren",
@@ -151,6 +161,13 @@ EXTRA_LABELS = {
     "retries.revision_backoff_seconds": "Überarbeitung: Wartezeit (s)",
 }
 LEVEL_CHOICES = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+PROVIDER_CHOICES = {
+    "targets.calendar_provider": (("google", "Google Kalender"), ("caldav", "CalDAV (Nextcloud, iCloud, …)"),
+                                  ("outlook", "Outlook / Microsoft 365")),
+    "targets.task_provider": (("todoist", "Todoist"), ("microsoft_todo", "Microsoft To Do"),
+                              ("caldav", "CalDAV-Aufgaben (VTODO)"),
+                              ("apple_reminders", "Apple Erinnerungen (iCloud)")),
+}
 
 
 def setting_label(name: str) -> str:
@@ -176,6 +193,8 @@ def _shown(name: str, value: object) -> str:
     if isinstance(value, bool):
         return "ja" if value else "nein"
     text = str(value)
+    if name in PROVIDER_CHOICES:
+        return dict(PROVIDER_CHOICES[name]).get(text, text)
     if name.startswith("targets.") and len(text) > 8:
         return f"{text[:3]}…{text[-3:]}"
     return text
@@ -190,6 +209,8 @@ def _input(name: str, saved: object) -> str:
         return select("value", label, json.dumps(saved), [("true", "ja"), ("false", "nein")])
     if name.endswith(".level"):
         return select("value", label, saved, [(level, level) for level in LEVEL_CHOICES])
+    if name in PROVIDER_CHOICES:
+        return select("value", label, saved, list(PROVIDER_CHOICES[name]))
     kind = "number" if isinstance(saved, (int, float)) else "text"
     step = ' step="any"' if kind == "number" else ""
     shown = "" if saved is None else saved
@@ -247,6 +268,16 @@ RELEVANCE_LABELS = {"relevant": "relevant", "irrelevant": "irrelevant", "unclear
 STATE_FILTERS = (("", "alle"), ("waiting", "wartet auf dich"), ("failed", "mit Fehler"),
                  ("completed", "abgeschlossen"), ("no_action", "ohne Vorschlag"))
 SORTS = (("received", "Empfangszeit"), ("updated", "zuletzt bearbeitet"))
+SEARCH_SCOPES = (("all", "allem – auch Mailtext und Anhänge"),
+                 ("meta", "nur Absender, Betreff und Zusammenfassung"))
+
+
+def _hit(hit) -> str:
+    """Where the first search word was found, with the match highlighted (all text escaped)."""
+    if hit is None:
+        return ""
+    return (f'<p class="search-hit"><span class="meta">Gefunden in {e(hit.where)}:</span> '
+            f'{e(hit.before)}<mark>{e(hit.match)}</mark>{e(hit.after)}</p>')
 
 
 def _local_time(value: str | None, zone: str) -> str:
@@ -273,8 +304,11 @@ def mail_list_page(query, items: list[dict], total: int, damaged: int, topics: l
     active = any((query.relevance, query.topic, query.state, status, query.since, query.until,
                   query.sort != "received"))
     body = ('<h1>Mails</h1><form method="get" class="stack">'
-            f'<label>Suche (Absender, Betreff, Zusammenfassung)<input type="search" name="q" '
-            f'value="{e(query.q)}" maxlength="200"></label>'
+            f'<label>Suche<input type="search" name="q" value="{e(query.q)}" maxlength="200" '
+            'aria-describedby="suche-hinweis"></label>'
+            '<p class="meta" id="suche-hinweis">Alle Wörter müssen vorkommen; „genaue Wortfolge“ in '
+            'Anführungszeichen. Groß-/Kleinschreibung und ä/ae, ö/oe, ü/ue, ß/ss sind gleichwertig.</p>'
+            + select("scope", "Suchen in", query.scope, list(SEARCH_SCOPES)) +
             f'<details class="filter-box"{" open" if active else ""}><summary>Filter</summary>'
             f'<div class="filters">{filters}</div></details>'
             '<button class="button primary">Suchen</button></form>')
@@ -298,7 +332,7 @@ def mail_list_page(query, items: list[dict], total: int, damaged: int, topics: l
         rows.append(f'<li class="card"><h3><a href="/mail/{e(item["id"])}">{e(item["subject"])}</a></h3>'
                     f'<p class="source">{e(sender_name(item["sender"]))} · '
                     f'{e(_local_time(item["received"], zone))}</p>'
-                    f'<p class="labels">{" ".join(badges)}</p>{summary}</li>')
+                    f'<p class="labels">{" ".join(badges)}</p>{summary}{_hit(item.get("hit"))}</li>')
     body += f'<ul class="archive-list">{"".join(rows)}</ul>'
     pages = []
     for number, label in ((query.page - 1, "Vorherige Seite"), (query.page + 1, "Nächste Seite")):
@@ -312,7 +346,8 @@ def mail_list_page(query, items: list[dict], total: int, damaged: int, topics: l
     if damaged:
         body += notice(f"{damaged} gespeicherte Datensätze sind beschädigt und werden nicht angezeigt.", "warn")
     return body + ('<p class="meta">Gezeigt werden nur Mails, die Mailhelp noch gespeichert hat – '
-                   'nicht der ganze Posteingang.</p>')
+                   'nicht der ganze Posteingang. Nach Ablauf der Aufbewahrungsfrist für Mailinhalte '
+                   'findet die Suche nur noch Absender, Betreff und Zusammenfassung.</p>')
 
 
 def _topic_value(value: object) -> object:

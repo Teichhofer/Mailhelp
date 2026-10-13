@@ -90,9 +90,74 @@ class TelegramSettings(ConfigModel):
     sequential_questions: bool = True
 
 
+CALENDAR_PROVIDERS = ("google", "caldav", "outlook")
+TASK_PROVIDERS = ("todoist", "microsoft_todo", "caldav", "apple_reminders")
+# iCloud serves collections on caldav.icloud.com and on numbered partition hosts (p52-caldav…).
+ICLOUD_CALDAV = re.compile(r"https://(p\d{1,3}-)?caldav\.icloud\.com/")
+
+
+def _dav_url(value: str) -> bool:
+    """CalDAV collections need TLS; plain HTTP only on the local machine."""
+    match = re.fullmatch(r"(https?)://([^/:?#\s]+)(:\d{1,5})?(/[^\s?#]*)?", value)
+    if match is None:
+        return False
+    return match.group(1) == "https" or match.group(2) in {"localhost", "127.0.0.1"}
+
+
 class TargetSettings(ConfigModel):
-    todoist_project: str = Field(min_length=1, max_length=500)
-    google_calendar: str = Field(min_length=1, max_length=500)
+    """One calendar and one task target; each provider needs its own target field."""
+
+    calendar_provider: Literal["google", "caldav", "outlook"] = "google"
+    task_provider: Literal["todoist", "microsoft_todo", "caldav", "apple_reminders"] = "todoist"
+    todoist_project: str = Field(default="", max_length=500)
+    google_calendar: str = Field(default="", max_length=500)
+    caldav_calendar_url: str = Field(default="", max_length=2000)
+    caldav_task_url: str = Field(default="", max_length=2000)
+    outlook_calendar: str = Field(default="default", min_length=1, max_length=500, pattern=r"^[A-Za-z0-9=_+/-]+$")
+    microsoft_todo_list: str = Field(default="default", min_length=1, max_length=500, pattern=r"^[A-Za-z0-9=_+/-]+$")
+    microsoft_tenant: str = Field(default="common", pattern=r"^[A-Za-z0-9.-]{1,100}$")
+
+    @model_validator(mode="after")
+    def provider_targets(self) -> TargetSettings:
+        if self.calendar_provider == "google" and not self.google_calendar:
+            raise ValueError("google_calendar wird für calendar_provider google benötigt")
+        if self.task_provider == "todoist" and not self.todoist_project:
+            raise ValueError("todoist_project wird für task_provider todoist benötigt")
+        if self.calendar_provider == "caldav" and not _dav_url(self.caldav_calendar_url):
+            raise ValueError("caldav_calendar_url muss eine https-Adresse sein")
+        if self.task_provider in {"caldav", "apple_reminders"} and not _dav_url(self.caldav_task_url):
+            raise ValueError("caldav_task_url muss eine https-Adresse sein")
+        if self.task_provider == "apple_reminders" and not ICLOUD_CALDAV.match(self.caldav_task_url):
+            raise ValueError("Apple Erinnerungen benötigen eine Listenadresse unter https://caldav.icloud.com")
+        return self
+
+    @property
+    def calendar_target(self) -> str:
+        """The calendar each event proposal is confirmed against."""
+        return {"google": self.google_calendar, "caldav": self.caldav_calendar_url,
+                "outlook": self.outlook_calendar}[self.calendar_provider]
+
+    @property
+    def task_target(self) -> str:
+        """The project or list each task proposal is confirmed against."""
+        return {"todoist": self.todoist_project, "microsoft_todo": self.microsoft_todo_list}.get(
+            self.task_provider, self.caldav_task_url)
+
+    @property
+    def uses_microsoft(self) -> bool:
+        return self.calendar_provider == "outlook" or self.task_provider == "microsoft_todo"
+
+    @property
+    def uses_caldav(self) -> bool:
+        return self.calendar_provider == "caldav" or self.task_provider in {"caldav", "apple_reminders"}
+
+
+class OriginalAttachmentSettings(ConfigModel):
+    """Original documents kept for download in the web interface (2.3)."""
+
+    store_originals: bool = True
+    max_original_bytes: int = Field(default=26_214_400, ge=1024, le=104_857_600)
+    max_total_bytes: int = Field(default=52_428_800, ge=1024, le=524_288_000)
 
 
 class LimitSettings(ConfigModel):
@@ -143,6 +208,10 @@ class TimeoutSettings(ConfigModel):
     openrouter: AdapterPolicySettings
     todoist: AdapterPolicySettings
     google_calendar: AdapterPolicySettings
+    caldav: AdapterPolicySettings = Field(default_factory=lambda: AdapterPolicySettings(
+        timeout_seconds=30, retries=2, initial_backoff_seconds=1, max_backoff_seconds=10))
+    microsoft: AdapterPolicySettings = Field(default_factory=lambda: AdapterPolicySettings(
+        timeout_seconds=30, retries=2, initial_backoff_seconds=1, max_backoff_seconds=10))
     telegram_poll_seconds: int = Field(ge=1, le=50)
     # Only used in the experimental local mode (--ollama). Local models are
     # much slower than hosted ones, hence the generous default and limit.
@@ -355,6 +424,7 @@ class Settings(ConfigModel):
     # Trusted context for draft_reply only; tab and line breaks are the only control characters.
     personal_info: str = Field(default="", max_length=2000, pattern=r"^[^\x00-\x08\x0b-\x1f\x7f]*$")
     activity_report: ActivityReportSettings = Field(default_factory=lambda: ActivityReportSettings())
+    attachments: OriginalAttachmentSettings = Field(default_factory=lambda: OriginalAttachmentSettings())
 
     @model_validator(mode="after")
     def standalone_needs_web(self):
@@ -388,12 +458,19 @@ class Secrets(BaseModel):
     imap_password: SecretStr
     openrouter_api_key: SecretStr
     telegram_bot_token: SecretStr = SecretStr("")
-    todoist_token: SecretStr
-    todoist_client_id: SecretStr
-    todoist_client_secret: SecretStr
-    google_oauth_client_id: SecretStr
-    google_oauth_client_secret: SecretStr
-    google_oauth_refresh_token: SecretStr
+    # Each provider's secrets are only required while it is configured (2.3).
+    todoist_token: SecretStr = SecretStr("")
+    todoist_client_id: SecretStr = SecretStr("")
+    todoist_client_secret: SecretStr = SecretStr("")
+    google_oauth_client_id: SecretStr = SecretStr("")
+    google_oauth_client_secret: SecretStr = SecretStr("")
+    google_oauth_refresh_token: SecretStr = SecretStr("")
+    caldav_username: SecretStr = SecretStr("")
+    caldav_password: SecretStr = SecretStr("")
+    microsoft_client_id: SecretStr = SecretStr("")
+    microsoft_client_secret: SecretStr = SecretStr("")
+    # Optional seed; a rotated token from ``mailhelp --microsoft-login`` takes precedence.
+    microsoft_refresh_token: SecretStr = SecretStr("")
     # Signs web sessions and CSRF tokens; required only with web.enabled.
     mailhelp_web_secret: SecretStr | None = None
 
@@ -673,6 +750,23 @@ def _create_missing_topic_files(directory: Path) -> None:
             pass
 
 
+OPTIONAL_PROVIDER_SECRETS = ("MICROSOFT_CLIENT_SECRET", "MICROSOFT_REFRESH_TOKEN")
+
+
+def provider_secret_names(targets: TargetSettings) -> list[str]:
+    """Environment names the configured calendar and task providers require."""
+    names = []
+    if targets.task_provider == "todoist":
+        names += ["TODOIST_TOKEN", "TODOIST_CLIENT_ID", "TODOIST_CLIENT_SECRET"]
+    if targets.calendar_provider == "google":
+        names += ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"]
+    if targets.uses_caldav:
+        names += ["CALDAV_USERNAME", "CALDAV_PASSWORD"]
+    if targets.uses_microsoft:
+        names.append("MICROSOFT_CLIENT_ID")
+    return names
+
+
 def load_all(directory: Path, environ: dict[str, str] | None = None
              ) -> tuple[Settings, Secrets, list[Topic], list[Topic], PromptConfig, str]:
     env = {**_dotenv(directory / ".env"), **(os.environ if environ is None else environ)}
@@ -684,9 +778,8 @@ def load_all(directory: Path, environ: dict[str, str] | None = None
         directory / "irrelevant_topics.yaml", IrrelevantTopicsConfig,
         read_yaml(directory / "irrelevant_topics.yaml"),
     ).topics
-    names = ["IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN", "TODOIST_TOKEN",
-             "TODOIST_CLIENT_ID", "TODOIST_CLIENT_SECRET", "GOOGLE_OAUTH_CLIENT_ID",
-             "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"]
+    names = ["IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN",
+             *provider_secret_names(settings.targets)]
     missing = [name for name in names if not env.get(name)]
     if not settings.telegram.enabled:
         names.remove("TELEGRAM_BOT_TOKEN")
@@ -694,6 +787,7 @@ def load_all(directory: Path, environ: dict[str, str] | None = None
     if missing:
         raise ValueError("Fehlende Geheimnisse: " + ", ".join(missing))
     values = {name.lower(): env[name] for name in names}
+    values.update({name.lower(): env[name] for name in OPTIONAL_PROVIDER_SECRETS if env.get(name)})
     if settings.web.enabled:
         web_secret = env.get("MAILHELP_WEB_SECRET", "")
         if not web_secret:

@@ -75,7 +75,7 @@ class ProposalPresenter:
                     else ("Termin absagen" if proposal.is_cancellation else "Termin aktualisieren")
                     if proposal.target_event_id is not None
                     else "Im Kalender anlegen" if proposal.kind == ProposalKind.EVENT
-                    else "In Todoist anlegen"
+                    else "Als Aufgabe anlegen"
                 ),
                 DecisionAction.CONFIRM,
             )

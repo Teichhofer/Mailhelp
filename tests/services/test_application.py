@@ -24,6 +24,9 @@ from mailhelp.models import MailRunCounters, MailRunEntry, MailRunState, MailSta
 from mailhelp.orchestrator import ProcessingOutcome, ProcessingResult
 from mailhelp.telegram.commands import HELP, STARTUP
 
+# Since 2.3 the writers are built in mailhelp.external.providers.
+MOVED_WRITERS = ("HttpWriter", "GoogleOAuthTokenProvider")
+
 
 def test_global_mailbox_order_and_max_mail_budget(tmp_path):
     stamp = datetime(2026, 1, 1, tzinfo=UTC)
@@ -1591,8 +1594,8 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
     monkeypatch.setattr("mailhelp.composition.OpenRouterClient",FakeOpen)
     monkeypatch.setattr("mailhelp.composition.DecisionClient",FakeDecision)
     monkeypatch.setattr("mailhelp.composition.TelegramClient",FakeTelegram)
-    monkeypatch.setattr("mailhelp.composition.HttpWriter",FakeWriter)
-    monkeypatch.setattr("mailhelp.composition.GoogleOAuthTokenProvider",FakeOAuth)
+    monkeypatch.setattr("mailhelp.external.providers.HttpWriter",FakeWriter)
+    monkeypatch.setattr("mailhelp.external.providers.GoogleOAuthTokenProvider",FakeOAuth)
     cfg=settings(tmp_path)
     cfg.imap.connection_mode=mode
     cfg.logging.file.enabled = False
@@ -1692,8 +1695,8 @@ def test_local_ollama_mode_replaces_openrouter(tmp_path, monkeypatch):
     monkeypatch.setattr("mailhelp.composition.OpenRouterClient", NoOpenRouter)
     monkeypatch.setattr("mailhelp.composition.OllamaClient", FakeOllama)
     monkeypatch.setattr("mailhelp.composition.TelegramClient", FakeTelegram)
-    monkeypatch.setattr("mailhelp.composition.HttpWriter", Resource)
-    monkeypatch.setattr("mailhelp.composition.GoogleOAuthTokenProvider", Resource)
+    monkeypatch.setattr("mailhelp.external.providers.HttpWriter", Resource)
+    monkeypatch.setattr("mailhelp.external.providers.GoogleOAuthTokenProvider", Resource)
     cfg = settings(tmp_path)
     cfg.logging.file.enabled = cfg.logging.console.enabled = False
     sec = Secrets(imap_username="u", imap_password="p", openrouter_api_key="o",
@@ -1732,7 +1735,7 @@ def test_vision_ocr_is_wired_only_when_enabled_and_prompted(tmp_path, monkeypatc
 
     for name in ("ImapReader", "OpenRouterClient", "TelegramClient", "HttpWriter",
                  "GoogleOAuthTokenProvider"):
-        monkeypatch.setattr(f"mailhelp.composition.{name}", Resource)
+        monkeypatch.setattr(f"mailhelp.{'external.providers' if name in MOVED_WRITERS else 'composition'}.{name}", Resource)
     cfg = settings(tmp_path)
     cfg.logging.file.enabled = cfg.logging.console.enabled = False
     cfg.vision.enabled = enabled

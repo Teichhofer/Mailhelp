@@ -8,8 +8,7 @@ import httpx
 
 from ..adapter import PermanentError, UncertainWriteError
 from ..models import Proposal, ProposalStatus
-from .contracts import ExternalWriter, PreparedWrite, proposal_is_writable
-from .http_writer import HttpWriter
+from .contracts import ExternalWriter, PreparedWrite, TargetWriter, proposal_is_writable
 
 
 def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Callable[[Proposal], None],
@@ -22,7 +21,7 @@ def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Calla
     if (proposal.status not in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN}
             or proposal.open_questions):
         raise ValueError("Schreiben erfordert vollständige, bestätigte Vorschlagsversion")
-    if isinstance(writer, HttpWriter) and proposal.target != writer.target:
+    if isinstance(writer, TargetWriter) and proposal.target != writer.target:
         # Even reconciliation must not search a newly configured target for an
         # action authorized against a different project/calendar.
         return proposal, {"target_mismatch": True}
@@ -54,7 +53,7 @@ def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Calla
     writing = proposal.model_copy(update={"status": ProposalStatus.WRITING})
     # All reads, LLM comparisons and payload validation precede the durable
     # write boundary. A preflight failure leaves the authorization CONFIRMED.
-    prepared = (writer.prepare(proposal, key) if isinstance(writer, HttpWriter)
+    prepared = (writer.prepare(proposal, key) if isinstance(writer, TargetWriter)
                 else PreparedWrite(lambda: writer.create(writing, key)))
     if prepared.requires_write:
         persist(writing)

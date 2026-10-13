@@ -227,3 +227,6 @@ learning-config/
 .test-tmp/
 .test-tmp-*/
 .implementation-tests.txt
+
+# Rotierter Microsoft-Refresh-Token (mailhelp --microsoft-login)
+microsoft-token.json

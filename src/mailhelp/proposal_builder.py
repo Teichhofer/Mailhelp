@@ -154,7 +154,7 @@ class ProposalBuilder:
                 open_questions=[],
                 location=cal.location,
                 video_link=cal.video_link,
-                target=self.targets.google_calendar,
+                target=self.targets.calendar_target,
                 status=ProposalStatus.PENDING_CONFIRMATION,
                 start=cal.start,
                 end=cal.end,
@@ -196,7 +196,7 @@ class ProposalBuilder:
                 start_time=temporal.known_start_time)
         if temporal is not None:
             values["temporal_fact"] = temporal.temporal_fact
-        target = self.targets.todoist_project if kind == "task" else self.targets.google_calendar
+        target = self.targets.task_target if kind == "task" else self.targets.calendar_target
         status = (ProposalStatus.PENDING_CONFIRMATION
                   if item.classification == "new" and item.responsibility == "user"
                   and item.certainty == "certain" and not questions

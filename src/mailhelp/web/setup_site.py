@@ -19,7 +19,9 @@ STEPS = ("Betriebsart", "Postfach", "Analyse und Ziele", "Web und Geräte", "Ben
 FIELDS = {
     1: ("timezone", "telegram.enabled"),
     2: ("imap.host", "imap.port", "imap.connection_mode", "imap.folders", "imap.primary_folder", "imap.drafts_folder"),
-    3: ("targets.google_calendar", "targets.todoist_project"),
+    3: ("targets.calendar_provider", "targets.google_calendar", "targets.caldav_calendar_url",
+        "targets.outlook_calendar", "targets.task_provider", "targets.todoist_project", "targets.caldav_task_url",
+        "targets.microsoft_todo_list", "targets.microsoft_tenant"),
     4: ("push.enabled",),
     5: ("notifications.quiet_hours.enabled", "notifications.quiet_hours.start", "notifications.quiet_hours.end",
         "notifications.quiet_hours.allow_system_errors", "notifications.batching.enabled",
@@ -31,7 +33,11 @@ LABELS = {"timezone": "Zeitzone (IANA)", "telegram.enabled": "Telegram verwenden
           "imap.host": "IMAP-Server", "imap.port": "IMAP-Port", "imap.connection_mode": "IMAP-Verbindungsart",
           "imap.folders": "Quellordner (JSON-Liste)", "imap.primary_folder": "Hauptordner",
           "imap.drafts_folder": "Entwurfsordner", "targets.google_calendar": "Google-Kalender",
-          "targets.todoist_project": "Todoist-Projekt", "push.enabled": "Web-Push am Server aktivieren",
+          "targets.todoist_project": "Todoist-Projekt", "targets.calendar_provider": "Kalenderdienst",
+          "targets.task_provider": "Aufgabendienst", "targets.caldav_calendar_url": "CalDAV-Kalender (Adresse)",
+          "targets.caldav_task_url": "CalDAV-Aufgabenliste (Adresse)", "targets.outlook_calendar": "Outlook-Kalender",
+          "targets.microsoft_todo_list": "Microsoft-To-Do-Liste", "targets.microsoft_tenant": "Microsoft-Mandant",
+          "push.enabled": "Web-Push am Server aktivieren",
           "notifications.quiet_hours.enabled": "Ruhezeiten aktivieren", "notifications.quiet_hours.start": "Ruhe ab",
           "notifications.quiet_hours.end": "Ruhe bis", "notifications.quiet_hours.allow_system_errors":
           "Betriebsprobleme von Ruhezeiten ausnehmen", "notifications.batching.enabled": "Meldungen bündeln",
@@ -40,7 +46,9 @@ LABELS = {"timezone": "Zeitzone (IANA)", "telegram.enabled": "Telegram verwenden
           "daily_briefing.time": "Tagesüberblick um"}
 CHOICES = {"telegram.enabled": ("true", "false"), "push.enabled": ("true", "false"),
            "imap.connection_mode": ("ssl", "starttls", "plain"),
-           "notifications.telegram_content": ("neutral", "summary")}
+           "notifications.telegram_content": ("neutral", "summary"),
+           "targets.calendar_provider": ("google", "caldav", "outlook"),
+           "targets.task_provider": ("todoist", "microsoft_todo", "caldav", "apple_reminders")}
 
 
 def lookup(raw, dotted):
@@ -106,6 +114,7 @@ class SetupSite:
         state, csrf = service.state(), self.site.auth.csrf_token(session.id)
         body = ""
         for name in fields:
+            # _raw() is validated: settings missing in an older config.yaml show their default.
             value = lookup(raw, name)
             choices = CHOICES.get(name)
             if name in {"imap.primary_folder", "imap.drafts_folder"}:

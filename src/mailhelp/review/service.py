@@ -159,7 +159,7 @@ class ReviewService:
             handler = self.controller.relevance_handler
             configured = getattr(handler, "targets", None)
             if configured is not None:
-                targets.add(configured.todoist_project if previous.kind.value == "task" else configured.google_calendar)
+                targets.add(configured.task_target if previous.kind.value == "task" else configured.calendar_target)
             revised = edit_proposal(previous, command.patch, self.controller.configured_timezone, targets)
             self.controller.persist(revised)
             record_event(self.controller.store, revised, "edit", command.source.value, command.idempotency_key)

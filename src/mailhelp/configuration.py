@@ -75,14 +75,17 @@ class SenderChange(BaseModel):
 
 SETTINGS_FIELDS = {
     "poll_interval_seconds", "timezone", "test_mode", "personal_info",
-    "targets.todoist_project", "targets.google_calendar",
+    "targets.todoist_project", "targets.google_calendar", "targets.calendar_provider", "targets.task_provider",
+    "targets.caldav_calendar_url", "targets.caldav_task_url", "targets.outlook_calendar",
+    "targets.microsoft_todo_list", "targets.microsoft_tenant",
+    "attachments.store_originals", "attachments.max_original_bytes", "attachments.max_total_bytes",
     "limits.llm_calls_per_minute", "limits.max_mail_bytes", "limits.max_llm_payload_bytes",
     "retention.full_mail_days", "retention.debug_llm_days", "retention.analysis_days", "retention.history_days",
     "logging.console.level", "logging.file.level", "logging.llm.include_requests", "logging.llm.include_responses",
     "metrics.enabled", "metrics.retention_days", "metrics.usd_per_eur", "metrics.exchange_rate_date",
     "metrics.ollama_power_watts", "metrics.electricity_eur_per_kwh",
 }
-for service in ("imap", "telegram", "openrouter", "ollama", "todoist", "google_calendar"):
+for service in ("imap", "telegram", "openrouter", "ollama", "todoist", "google_calendar", "caldav", "microsoft"):
     SETTINGS_FIELDS.update(f"timeouts.{service}.{field}" for field in
                            ("timeout_seconds", "retries", "initial_backoff_seconds", "max_backoff_seconds"))
 for field in ("interpretation_attempts", "interpretation_backoff_seconds", "revision_attempts",
@@ -92,7 +95,10 @@ for field in ("interpretation_attempts", "interpretation_backoff_seconds", "revi
 LIVE_FIELDS = {"poll_interval_seconds", "retention", "metrics", "personal_info", "notifications"}
 SETUP_FIELDS = {"timezone", "imap.host", "imap.port", "imap.connection_mode", "imap.folders",
                 "imap.primary_folder", "imap.drafts_folder", "telegram.enabled", "push.enabled",
-                "targets.todoist_project", "targets.google_calendar", "daily_briefing.enabled", "daily_briefing.time"}
+                "targets.todoist_project", "targets.google_calendar", "targets.calendar_provider",
+                "targets.task_provider", "targets.caldav_calendar_url", "targets.caldav_task_url",
+                "targets.outlook_calendar", "targets.microsoft_todo_list", "targets.microsoft_tenant",
+                "daily_briefing.enabled", "daily_briefing.time"}
 for section, fields in {
     "quiet_hours": ("enabled", "start", "end", "allow_system_errors"),
     "batching": ("enabled", "window_seconds"),
