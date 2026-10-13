@@ -8,9 +8,10 @@ from pydantic import ValidationError
 
 from ..models import Proposal, ProposalKind
 from .contracts import PreparedWrite, TodoistTaskListResponse, TodoistTaskResponse, validation_path
+from .transport import HttpTransport
 
 
-class TodoistOperations:
+class TodoistOperations(HttpTransport):
     def _reconcile_todoist(self, key: str) -> dict[str, Any] | None:
         cursor = None
         seen_cursors: set[str] = set()
@@ -18,7 +19,7 @@ class TodoistOperations:
             params = {"project_id": self.target}
             if cursor is not None:
                 params["cursor"] = cursor
-            response = self.policy.run(lambda: self._get("/tasks", params))
+            response = self.policy.run(lambda params=params: self._get("/tasks", params))
             try: page = TodoistTaskListResponse.model_validate(response.json())
             except (ValueError, ValidationError) as exc: raise ValueError(f"Todoist tasks: ungültige Antwort am Schlüsselpfad {validation_path(exc)}") from exc
             found = next((item for item in page.results if f"[{key}]" in item.description), None)
@@ -57,7 +58,7 @@ class TodoistOperations:
                 params = {"project_id": self.target}
                 if cursor is not None:
                     params["cursor"] = cursor
-                response = self.policy.run(lambda: self._get("/tasks", params))
+                response = self.policy.run(lambda params=params: self._get("/tasks", params))
                 page = TodoistTaskListResponse.model_validate(response.json())
                 tasks.extend(page.results)
                 cursor = page.next_cursor

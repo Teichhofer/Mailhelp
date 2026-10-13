@@ -48,7 +48,8 @@ def _split_comment(rest: str) -> tuple[str, str]:
 
 def _paths(lines: list[str]) -> list[tuple[int, str, int]]:
     """(line index, dotted path, indent) of every block mapping key."""
-    result, stack = [], []
+    result: list[tuple[int, str, int]] = []
+    stack: list[tuple[int, str]] = []
     for index, line in enumerate(lines):
         if not line.strip() or line.lstrip().startswith(("#", "-")):
             continue

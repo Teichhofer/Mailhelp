@@ -90,8 +90,9 @@ class Notify:
 class _MailQuestionAnalyzer(AnalyzerStub):
     """Answers selected questions from the mail; the revision is configurable."""
 
-    def __init__(self, answers, revision=AssertionError("LLM-Revision darf nicht laufen")):
+    def __init__(self, answers, revision=None):
         super().__init__("relevant")
+        revision = AssertionError("LLM-Revision darf nicht laufen") if revision is None else revision
         self.answers, self.revision, self.revisions = answers, revision, 0
 
     def answer_question_from_mail(self, mail, proposal, question):

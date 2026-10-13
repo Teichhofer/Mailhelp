@@ -4,8 +4,9 @@ from __future__ import annotations
 from datetime import date
 from zoneinfo import ZoneInfo
 
-from ..activity.export import event_rows, without_events
+from ..activity.export import without_events
 from ..activity.models import ActivityReport, ReportEvent, ReportMail, ReportStatus
+from ..activity.presentation import ReportFilter, fingerprint, highlighted_text
 from .actions import new_key
 from .pages import e, layout, notice
 
@@ -111,14 +112,14 @@ def _mail_link(report: ActivityReport, index: int, mail: ReportMail) -> str:
     return f'<a href="/berichte/{report.id}/mail/{index}">{e(mail.subject or "(ohne Betreff)")}</a>'
 
 
-def _results(report: ActivityReport, mails: list[ReportMail], csrf: str) -> str:
+def _results(report: ActivityReport, mails: list[ReportMail], csrf: str, filters: ReportFilter) -> str:
     position = {mail.key: index for index, mail in enumerate(mails)}
     rows = "".join(
         f"<tr><td>{number}</td><td>{_day(event.day)}</td><td>{e(event.start_time or '')}"
         f"{e('–' + event.end_time) if event.end_time else ''}</td><td>{e(event.title)}</td>"
         f"<td>{e(event.location or '')}</td><td>{_mail_link(report, position[mail.key], mail)}<br>"
         f'<span class="meta">{e(mail.sender)}</span></td><td>{e(_flags(event, mail))}</td></tr>'
-        for number, event, mail in event_rows(mails))
+        for number, event, mail in filters.rows(mails))
     table = (f'<div class="table-scroll"><table><thead><tr><th>Nr.</th><th>Datum</th><th>Uhrzeit</th><th>Termin</th>'
              f'<th>Ort</th><th>Quelle</th><th>Hinweis</th></tr></thead><tbody>{rows}</tbody></table></div>'
              if rows else '<p class="meta">Noch keine Termine erkannt.</p>')
@@ -140,6 +141,10 @@ def _results(report: ActivityReport, mails: list[ReportMail], csrf: str) -> str:
 
 def _flags(event: ReportEvent, mail: ReportMail) -> str:
     flags = []
+    if event.excluded or not mail.counts_as_relevant:
+        flags.append("ausgeschlossen")
+    if event.cancelled:
+        flags.append("abgesagt")
     if mail.confidence == "low" and mail.user_relevant is None:
         flags.append("unsicher")
     if event.out_of_range:
@@ -151,16 +156,36 @@ def _flags(event: ReportEvent, mail: ReportMail) -> str:
     return ", ".join(flags)
 
 
-def report_page(report: ActivityReport, mails: list[ReportMail], csrf: str) -> str:
+def report_page(report: ActivityReport, mails: list[ReportMail], csrf: str,
+                filters: ReportFilter | None = None, costs: str = "") -> str:
+    filters = filters or ReportFilter()
     message = notice(report.message, "warn") if report.message else ""
     body = (f'<p><a href="/berichte">← Alle Berichte</a></p><h1>{e(report.definition.title)}</h1>'
             f'<p class="meta">{e(report.definition.topic)}</p>'
             f'<section class="card"><h2>{e(STATUS_LABELS[report.status])}</h2>{message}{_estimate(report)}'
-            f'{_facts(report)}{_actions(report, csrf)}</section>'
-            + _results(report, mails, csrf))
+            f'{_facts(report)}<p class="meta">{e(costs)}</p>{_actions(report, csrf)}</section>'
+            + _filters(filters) + _results(report, mails, csrf, filters)
+            + f'<details><summary>Mit anderem Thema neu bewerten</summary>'
+            f'<form method="post" action="/berichte/{report.id}/aktion" class="stack">'
+            f'{_hidden(csrf, report.version, action="repeat")}'
+            '<label>Neues Thema<textarea name="topic" minlength="10" maxlength="2000" required>'
+            f'{e(report.definition.topic)}</textarea></label>'
+            '<p>Geladene Mailtexte werden wiederverwendet. Die neue KI-Analyse beginnt erst nach deiner Bestätigung.</p>'
+            '<button class="button">Neuen Bericht vorbereiten</button></form></details>')
     # Without JavaScript the page reloads itself while the report counts or reads.
     refresh = 15 if report.status in {ReportStatus.COUNTING, ReportStatus.RUNNING} else None
-    return layout(report.definition.title, body, active="/berichte", refresh=refresh)
+    return layout(report.definition.title, body, active="/berichte", refresh=refresh,
+                  fingerprint=fingerprint(report, mails), state_url=f"/api/stand?bericht={report.id}")
+
+
+def _filters(filters: ReportFilter) -> str:
+    return ('<form method="get" class="filters">'
+            f'<label>Monat<input type="month" name="month" value="{e(filters.month)}"></label>'
+            f'<label>Absender<input name="sender" value="{e(filters.sender)}"></label>'
+            f'<label><input type="checkbox" name="uncertain"{" checked" if filters.uncertain else ""}>'
+            ' Nur unsichere</label>'
+            f'<label><input type="checkbox" name="excluded"{" checked" if filters.excluded else ""}>'
+            ' Ausgeschlossene anzeigen</label><button class="button">Filtern</button></form>')
 
 
 def _event_form(report: ActivityReport, index: int, event: ReportEvent | None, csrf: str) -> str:
@@ -209,7 +234,7 @@ def mail_page(report: ActivityReport, index: int, mail: ReportMail, csrf: str, z
         events = notice("Die KI konnte die Termine nicht auslesen. Bitte von Hand ergänzen.", "warn") + events
     adding = _event_form(report, index, None, csrf) if mail.skipped is None else ""
     text = ("<p class=\"meta\">Volltext nach Ablauf der Aufbewahrungsfrist entfernt.</p>" if mail.text_removed
-            else f'<pre class="mail-text">{e(mail.text)}</pre>')
+            else f'<pre class="mail-text">{highlighted_text(mail)}</pre>')
     attachments = (f'<p class="meta">Anhänge: {e(", ".join(mail.attachments))}</p>' if mail.attachments else "")
     body = (f'<p><a href="/berichte/{report.id}">← Zum Bericht</a></p><h1>{e(mail.subject or "(ohne Betreff)")}</h1>'
             f'<dl class="facts"><dt>Absender</dt><dd>{e(mail.sender)}</dd><dt>Eingang</dt><dd>{e(received)}</dd>'

@@ -1,5 +1,20 @@
 # Änderungen
 
+## 2.2.2 – Beta (Branch `beta`), Anforderungsprüfung 2.2
+
+Behebt die Befunde aus [Pruefung-2.2.md](docs/Pruefung-2.2.md); jede Korrektur hat einen Regressionstest.
+
+- **Korrekturen während der Analyse:** Eine laufende Terminsuche überschrieb danach gespeicherte Nutzerentscheidungen und von Hand ergänzte Termine. Ergebnisse werden jetzt mit dem aktuellen Stand zusammengeführt (`test_live_corrections_survive_the_in_flight_event_analysis`).
+- **Harte KI-Grenze:** `max_llm_calls` wurde nur vor jeder Mail geprüft; Relevanz plus Terminsuche, Reparaturversuche und nachgeforderte Terminsuchen konnten sie überschreiten. Die Grenze gilt jetzt vor jedem Provideraufruf (`test_call_limit_stops_between_steps_and_resume_does_not_repeat_relevance`, `test_model_repair_also_consumes_the_hard_call_budget`, `test_requested_extraction_cannot_bypass_the_call_limit`).
+- **Zählfehler und UIDVALIDITY:** Ein nicht erreichbares Postfach ließ einen Bericht endlos zählen; jetzt „fehlgeschlagen“ nach drei Versuchen. Eine geänderte UIDVALIDITY ließ den Bericht scheitern; jetzt wird der Ordner neu aufgelistet und Ergebnisse werden über die Message-ID wiederverwendet.
+- **Gesendet-Ordner:** Ein ausdrücklich gewählter Gesendet-Ordner prüfte den Absender statt der Empfänger gegen die Ignorierliste.
+- **Datumsprüfung:** Ein Modelldatum, das dem Belegzitat widerspricht (Zitat „20. Januar“, Datum 21.01.), wurde übernommen; jetzt verworfen (`test_model_date_must_agree_with_its_quote`).
+- **Reihenfolge und Sitzung:** Wartende Berichte in Anlagereihenfolge; vor jedem KI-Aufruf wird die auslösende Sitzung erneut geprüft; Löschen verlangt einen Idempotenzschlüssel; die Ignorierliste wird beim kostenpflichtigen Start gesichert; nur Ordner aus der Serverliste.
+- **Neu (Planung 2.2):** Filter, hervorgehobene Belege, Kostenschätzung aus Messwerten, „Mit anderem Thema neu bewerten“, Fortschritt über `/api/stand?bericht=<id>` (ungültige IDs: 404, Regressionstest `test_progress_signal_rejects_malformed_report_ids`).
+- **Schema-Verträge:** `ActivityReport` und `ReportMail` sind Teil der Persistenzgrenze und der Schema-Snapshots.
+- **Browsertests:** Die JavaScript-Abdeckung las CRLF-Dateien mit verschobenen Offsets und meldete fälschlich Lücken; Messung jetzt auf den ausgelieferten Bytes, auch vor Reload, Zurück und dem Schließen eigener Kontexte.
+- **Paket:** Doku 2.1 und 2.2 im sdist.
+
 ## 2.2.1 – Beta (Branch `beta`)
 
 - **Bugfix – Ordnervorschlag im Tätigkeitsbericht:** Konfigurierte Ordner, die der Server nicht kennt (z. B. `Trash` und `Sent`, wenn das Postfach `Papierkorb` und `Gesendet` nutzt), wurden vorgeschlagen, weil ihre Rolle unbekannt war, und beim Zählen als „nicht lesbar“ gemeldet. Vorgeschlagen werden jetzt nur vom Server gelistete Ordner; Regressionstest `test_suggested_folders_exist_on_the_server`. Gefunden beim ersten echten Bericht.

@@ -1,0 +1,311 @@
+{
+  "$defs": {
+    "FolderProgress": {
+      "additionalProperties": false,
+      "description": "The mail of one folder within the period, processed in UID order.",
+      "properties": {
+        "done": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Done",
+          "type": "integer"
+        },
+        "folder": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Folder",
+          "type": "string"
+        },
+        "sent": {
+          "default": false,
+          "title": "Sent",
+          "type": "boolean"
+        },
+        "uids": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Uids",
+          "type": "array"
+        },
+        "uidvalidity": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uidvalidity"
+        }
+      },
+      "required": [
+        "folder"
+      ],
+      "title": "FolderProgress",
+      "type": "object"
+    },
+    "ReportCounters": {
+      "additionalProperties": false,
+      "properties": {
+        "duplicates": {
+          "default": 0,
+          "title": "Duplicates",
+          "type": "integer"
+        },
+        "evaluated": {
+          "default": 0,
+          "title": "Evaluated",
+          "type": "integer"
+        },
+        "events": {
+          "default": 0,
+          "title": "Events",
+          "type": "integer"
+        },
+        "failed": {
+          "default": 0,
+          "title": "Failed",
+          "type": "integer"
+        },
+        "listed": {
+          "default": 0,
+          "title": "Listed",
+          "type": "integer"
+        },
+        "llm_calls": {
+          "default": 0,
+          "title": "Llm Calls",
+          "type": "integer"
+        },
+        "read": {
+          "default": 0,
+          "title": "Read",
+          "type": "integer"
+        },
+        "relevant": {
+          "default": 0,
+          "title": "Relevant",
+          "type": "integer"
+        },
+        "skipped_other": {
+          "default": 0,
+          "title": "Skipped Other",
+          "type": "integer"
+        },
+        "skipped_sender": {
+          "default": 0,
+          "title": "Skipped Sender",
+          "type": "integer"
+        }
+      },
+      "title": "ReportCounters",
+      "type": "object"
+    },
+    "ReportDefinition": {
+      "additionalProperties": false,
+      "description": "What the user asked for; fixed once the report has started.",
+      "properties": {
+        "folders": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 50,
+          "minItems": 1,
+          "title": "Folders",
+          "type": "array"
+        },
+        "include_sent": {
+          "default": true,
+          "title": "Include Sent",
+          "type": "boolean"
+        },
+        "since": {
+          "format": "date",
+          "title": "Since",
+          "type": "string"
+        },
+        "skip_automated": {
+          "default": false,
+          "title": "Skip Automated",
+          "type": "boolean"
+        },
+        "title": {
+          "maxLength": 120,
+          "minLength": 1,
+          "pattern": "^[^\\x00-\\x08\\x0b-\\x1f\\x7f]*$",
+          "title": "Title",
+          "type": "string"
+        },
+        "topic": {
+          "maxLength": 2000,
+          "minLength": 10,
+          "pattern": "^[^\\x00-\\x08\\x0b-\\x1f\\x7f]*$",
+          "title": "Topic",
+          "type": "string"
+        },
+        "until": {
+          "format": "date",
+          "title": "Until",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "topic",
+        "since",
+        "until",
+        "folders"
+      ],
+      "title": "ReportDefinition",
+      "type": "object"
+    },
+    "ReportStatus": {
+      "enum": [
+        "counting",
+        "ready",
+        "running",
+        "paused",
+        "done",
+        "cancelled",
+        "failed"
+      ],
+      "title": "ReportStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "authorized_actor": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Authorized Actor"
+    },
+    "blocked_addresses": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Blocked Addresses",
+      "type": "array"
+    },
+    "blocked_domains": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Blocked Domains",
+      "type": "array"
+    },
+    "counters": {
+      "$ref": "#/$defs/ReportCounters"
+    },
+    "counting_failures": {
+      "default": 0,
+      "title": "Counting Failures",
+      "type": "integer"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "definition": {
+      "$ref": "#/$defs/ReportDefinition"
+    },
+    "finished_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Finished At"
+    },
+    "folders": {
+      "items": {
+        "$ref": "#/$defs/FolderProgress"
+      },
+      "title": "Folders",
+      "type": "array"
+    },
+    "id": {
+      "pattern": "^[a-f0-9]{32}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "message": {
+      "default": "",
+      "maxLength": 500,
+      "title": "Message",
+      "type": "string"
+    },
+    "operations": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Operations",
+      "type": "object"
+    },
+    "pending_extractions": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Pending Extractions",
+      "type": "array"
+    },
+    "repetitions": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Repetitions",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "started_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Started At"
+    },
+    "status": {
+      "$ref": "#/$defs/ReportStatus",
+      "default": "counting"
+    },
+    "version": {
+      "default": 1,
+      "minimum": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "id",
+    "definition"
+  ],
+  "title": "ActivityReport",
+  "type": "object"
+}

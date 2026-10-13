@@ -49,7 +49,7 @@ def test_learning_mount_preserves_filter_topics_and_folders_across_restart(tmp_p
             mode = LearningMode(Imap(), Analyzer(), ["INBOX"], 100_000,
                 topics("topics.yaml"), config / "topics.yaml",
                 topics("irrelevant_topics.yaml"), config / "irrelevant_topics.yaml",
-                store=JsonStore(config), input_fn=lambda _: next(answers), output_fn=lambda _: None,
+                store=JsonStore(config), input_fn=lambda _, answers=answers: next(answers), output_fn=lambda _: None,
                 global_newest_first=False, config_path=config / "config.yaml")
             assert mode.run(1) == 1
         assert "SyntheticLearnedFolder" in yaml.safe_load((config / "config.yaml").read_text(encoding="utf-8"))["imap"]["folders"]

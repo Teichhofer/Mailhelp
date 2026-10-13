@@ -1261,7 +1261,7 @@ def test_startup_help_once_before_work_and_again_after_restart(tmp_path, max_mai
         service = app(tmp_path, Imap([]), Telegram([]), Orch(), store=store)
         cycles = []
 
-        def poll_imap(_limit=None):
+        def poll_imap(_limit=None, service=service, cycles=cycles):
             assert service.telegram.sent == [(2, STARTUP)]
             cycles.append(1)
             if len(cycles) == 2:

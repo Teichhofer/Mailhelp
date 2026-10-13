@@ -114,6 +114,8 @@ class ReportMail(StrictModel):
     text_removed: bool = False
     # An unusable model answer is recorded, never retried automatically (cost).
     failed_step: Literal["relevance", "events"] | None = None
+    accounted: bool = False
+    cached_input: bool = False
 
     @property
     def counts_as_relevant(self) -> bool:
@@ -137,6 +139,9 @@ class ActivityReport(StrictModel):
     # Mails the user marked relevant after a negative verdict; their dates are extracted next.
     pending_extractions: list[str] = Field(default_factory=list)
     operations: dict[str, str] = Field(default_factory=dict)
+    counting_failures: int = 0
+    authorized_actor: str | None = None
+    repetitions: dict[str, str] = Field(default_factory=dict)
 
     @property
     def total(self) -> int:

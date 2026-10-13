@@ -1,5 +1,6 @@
 """Architecture checks for domain and persistence model boundaries."""
 from mailhelp import models
+from mailhelp.activity import models as activity_models
 from mailhelp.domain import duplicate, extraction, mail, processing, proposal, relevance, run, temporal
 from mailhelp.persistence import schemas
 
@@ -25,5 +26,8 @@ def test_persistence_boundary_is_explicit_and_preserves_json_schemas():
         "MailRunState", "MailState", "ProposalClarificationState", "RelevanceDialog",
         "TelegramDialogState", "TelegramOffset", "TelegramOutboxState",
     }
-    assert set(schemas.__all__) == expected
+    # 2.2: activity reports are persisted as well; their models live in activity.models.
+    assert set(schemas.__all__) == expected | {"ActivityReport", "ReportMail"}
     assert all(getattr(schemas, name) is getattr(models, name) for name in expected)
+    assert schemas.ActivityReport is activity_models.ActivityReport
+    assert schemas.ReportMail is activity_models.ReportMail

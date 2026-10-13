@@ -11,6 +11,7 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from threading import RLock
+from typing import Any
 
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, FiniteFloat, model_validator
 
@@ -73,7 +74,7 @@ def server_electricity(records: list[dict]) -> Decimal:
     for index, row in enumerate(records):
         if row["end"] > row["start"]:
             events.extend([(row["start"], True, index), (row["end"], False, index)])
-    active = {}
+    active: dict[int, dict[str, Any]] = {}
     previous = 0
     total = Decimal(0)
     for point, begin, index in sorted(events):
@@ -142,9 +143,9 @@ class MetricsRecorder:
         self._lock = RLock()
         self._pending: dict[str, dict] = {}
         self._cache: list[dict] | None = None
-        self._cache_signature = None
-        self.activity = {"stage": "idle", "mail_id": None, "started": time.monotonic()}
-        self.contacts = {}
+        self._cache_signature: tuple[int, int] | None = None
+        self.activity: dict[str, Any] = {"stage": "idle", "mail_id": None, "started": time.monotonic()}
+        self.contacts: dict[str, str] = {}
         self.failures = 0
         self.run_id = secrets.token_hex(16)
         self.test_mail_hash = None
@@ -176,7 +177,7 @@ class MetricsRecorder:
             self.activity = {"stage": "idle", "mail_id": None, "started": time.monotonic(),
                              "next_poll": (datetime.now(UTC) + timedelta(seconds=context["delay_seconds"])).isoformat()}
             self.changed()
-        contact = CONTACT_EVENTS.get((context.get("service"), event))
+        contact = CONTACT_EVENTS.get((context.get("service", ""), event))
         if event == "response_received":
             contact = LLM_CONTACT[self.mode]
         if contact is not None:
@@ -297,7 +298,7 @@ class MetricsRecorder:
         local = [item for item in records if item["provider"] == "ollama"]
         energy = sum((server_electricity([row for row in local if row["server"] == server])
                       for server in {row["server"] for row in local}), Decimal(0))
-        groups = {}
+        groups: dict[tuple[str, str, str, str], list[dict[str, Any]]] = {}
         for row in records:
             groups.setdefault((row["mode"], row["model"], row["stage"], row["provider"]), []).append(row)
         summaries = []
@@ -337,6 +338,7 @@ class MetricsRecorder:
             records, _ = self.records()
             # records() intentionally filters expired data; read its validated cache
             # here to aggregate those records before physically removing them.
+            assert self._cache is not None  # records() has populated the validated cache.
             expired = [item for item in self._cache if item not in records]
             if not expired:
                 return

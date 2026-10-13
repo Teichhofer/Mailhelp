@@ -7,8 +7,10 @@ from time import time
 
 import httpx
 import pytest
+from pydantic import ValidationError
 from shared_core import proposal
 
+from mailhelp.adapter import PermanentError, RetryableError, UncertainWriteError
 from mailhelp.analysis import Analyzer
 from mailhelp.config import LlmRoute, LoggingSettings, PromptConfig, PromptStep
 from mailhelp.integrations import HttpWriter
@@ -70,14 +72,14 @@ def test_logging_settings_module_level_validation():
             "telegram": {"filename": "telegram/messages.jsonl", "max_bytes": 100, "backup_count": 1, "retention_days": 1}}
     assert LoggingSettings.model_validate({**base, "modules": {"imap": "ERROR"}}).modules["imap"] == "ERROR"
     for bad in ({"": "INFO"}, {"imap": "TRACE"}):
-        with pytest.raises(Exception): LoggingSettings.model_validate({**base, "modules": bad})
+        with pytest.raises(ValidationError): LoggingSettings.model_validate({**base, "modules": bad})
     for field, value in (("filename", "../bad"), ("filename", "/absolute"),
                          ("filename", "C:/absolute"), ("filename", "C:relative"),
                          ("filename", r"\rooted"), ("filename", r"\\server\share\log"), ("max_bytes", 0),
                          ("filename", 4), ("backup_count", -1), ("retention_days", 0)):
         candidate = json.loads(json.dumps(base))
         candidate["file"][field] = value
-        with pytest.raises(Exception): LoggingSettings.model_validate(candidate)
+        with pytest.raises(ValidationError): LoggingSettings.model_validate(candidate)
 
 
 def test_independent_targets_levels_console_and_module_inheritance(tmp_path):
@@ -183,7 +185,7 @@ def test_openrouter_logs_unavailable_token_usage_per_call(tmp_path):
 
     capture = Capture()
     failing = OpenRouterClient("secret", 1, 0, 10, httpx.MockTransport(lambda request: httpx.Response(400, text="token=leak", request=request)), logger=capture)
-    with pytest.raises(Exception): failing.complete("model", {}, "system", {"mail_id": "m"})
+    with pytest.raises(PermanentError): failing.complete("model", {}, "system", {"mail_id": "m"})
     failing.close()
     assert [event[2] for event in capture.events] == ["request_started", "retry_failed", "request_failed"]
     assert capture.events[-1][3]["attempt"] == 1 and "Traceback" in capture.events[-1][3]["stacktrace"]
@@ -260,7 +262,7 @@ def test_llm_logger_drops_content_aliases_without_explicit_opt_in(tmp_path):
 def test_network_adapter_failure_events():
     capture = Capture()
     telegram = TelegramClient("secret", 1, httpx.MockTransport(lambda request: (_ for _ in ()).throw(httpx.ConnectError("token=bad", request=request))), logger=capture)
-    with pytest.raises(Exception): telegram.poll(0)
+    with pytest.raises(RetryableError): telegram.poll(0)
     telegram.close()
     assert capture.events[-1][2] == "poll_failed"
 
@@ -287,7 +289,7 @@ def test_telegram_poll_shutdown_interrupted_emits_no_error_event():
 
     writer = HttpWriter("todoist", "secret", "target", transport=httpx.MockTransport(
         lambda request: httpx.Response(503, text="secret", request=request)), logger=capture)
-    with pytest.raises(Exception): writer.create(proposal(target='target', status="confirmed"), "request-id")
+    with pytest.raises(UncertainWriteError): writer.create(proposal(target='target', status="confirmed"), "request-id")
     writer.close()
     failed = capture.events[-1]
     assert failed[2] == "create_failed" and failed[3]["proposal_id"] == "p1"

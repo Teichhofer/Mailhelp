@@ -2005,6 +2005,29 @@ ausdrücklich auch vergangene.
   Mail vermerkt und nie automatisch wiederholt; der Nutzer entscheidet selbst bzw.
   ergänzt Termine von Hand. Ist der KI-Dienst dreimal in Folge nicht erreichbar,
   pausiert der Bericht vor der betroffenen Mail.
+- **Harte Grenzen:** `max_llm_calls` wird vor jedem einzelnen Provideraufruf
+  geprüft, auch vor Reparaturversuchen und nachgeforderten Terminsuchen. Jeder
+  Aufruf prüft außerdem erneut, ob die auslösende Websitzung noch gültig ist;
+  sonst pausiert der Bericht. Zählfehler des Postfachs enden nach drei Versuchen
+  im Status „fehlgeschlagen“, eine geänderte UIDVALIDITY führt zu einer neuen
+  Auflistung des Ordners, bereits bewertete Mails werden über die Message-ID
+  wiederverwendet. Wartende Berichte werden in Anlagereihenfolge bearbeitet.
+- **Datumsprüfung:** Ein Termin wird nur übernommen, wenn das Datum zu
+  ausdrücklichen oder relativen Datumsangaben im Belegzitat passt (Wochentag,
+  Tag/Monat, „morgen“ bezogen auf das Mail-Datum).
+- **Gesendet-Ordner:** Auch ein ausdrücklich gewählter Gesendet-Ordner prüft die
+  Empfänger gegen die Ignorierliste. Die Ignorierliste wird beim kostenpflichtigen
+  Start gesichert; Ordner müssen in der Ordnerliste des Servers stehen.
+- **Ansicht:** Filter nach Monat, Absender, „nur unsichere“ und „ausgeschlossene
+  anzeigen“; Belegzitate sind im Volltext hervorgehoben; Fortschritt über
+  `/api/stand?bericht=<id>`. Die Kostenschätzung nutzt gemessene Kosten
+  früherer Berichtsschritte (lokal: Stromkosten), sonst nur die Aufrufzahl.
+- **Neu bewerten:** „Mit anderem Thema neu bewerten“ legt einen neuen Bericht an,
+  der die geladenen Mailtexte wiederverwendet, aber keine KI-Ergebnisse; er
+  startet ebenfalls erst nach ausdrücklicher Bestätigung.
+- **Korrekturen während der Analyse:** Nutzerentscheidungen und von Hand ergänzte
+  Termine bleiben erhalten, auch wenn eine laufende KI-Analyse derselben Mail
+  danach endet. Löschen verlangt ebenfalls einen Idempotenzschlüssel.
 - **Korrekturen:** Relevanz umstellen, Termine bearbeiten, ausschließen oder
   ergänzen. Jede Aktion prüft Sitzung, CSRF-Token, Berichtsversion und
   Idempotenzschlüssel; auch das Anlegen ist idempotent. Der Fortschritt des

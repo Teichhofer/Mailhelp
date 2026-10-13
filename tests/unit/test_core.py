@@ -790,22 +790,22 @@ def test_imap_connection_and_exact_historical_boundary():
     for response in valid_responses:
         direct=BoundaryImap()
         original=direct.uid
-        direct.uid=lambda action,*args,response=response: ("OK",response) if action=="fetch" else original(action,*args)
-        assert ImapReader("h",143,"u","p",factory=lambda *a,**k:direct).determine_start_uid("INBOX",datetime(2025,1,2,4,0,tzinfo=UTC)) == 1
+        direct.uid=lambda action,*args,response=response,original=original: ("OK",response) if action=="fetch" else original(action,*args)
+        assert ImapReader("h",143,"u","p",factory=lambda *a,direct=direct,**k:direct).determine_start_uid("INBOX",datetime(2025,1,2,4,0,tzinfo=UTC)) == 1
 
     for rejected_status in ("NO", "BAD"):
         rejected=BoundaryImap()
         original=rejected.uid
-        rejected.uid=lambda action,*args,status=rejected_status: (status,[]) if action=="fetch" else original(action,*args)
+        rejected.uid=lambda action,*args,status=rejected_status,original=original: (status,[]) if action=="fetch" else original(action,*args)
         with pytest.raises(RuntimeError,match=f"abgelehnt: {rejected_status}"):
-            ImapReader("h",143,"u","p",factory=lambda *a,**k:rejected).determine_start_uid("INBOX",datetime.now(UTC))
+            ImapReader("h",143,"u","p",factory=lambda *a,rejected=rejected,**k:rejected).determine_start_uid("INBOX",datetime.now(UTC))
 
     for response in (None, [], [b")"], [b"bad"], [(b"bad",b"")]):
         malformed=BoundaryImap()
         original=malformed.uid
-        malformed.uid=lambda action,*args,response=response: ("OK",response) if action=="fetch" else original(action,*args)
+        malformed.uid=lambda action,*args,response=response,original=original: ("OK",response) if action=="fetch" else original(action,*args)
         with pytest.raises(RuntimeError,match="leer oder strukturell unbrauchbar"):
-            ImapReader("h",143,"u","p",factory=lambda *a,**k:malformed).determine_start_uid("INBOX",datetime.now(UTC))
+            ImapReader("h",143,"u","p",factory=lambda *a,malformed=malformed,**k:malformed).determine_start_uid("INBOX",datetime.now(UTC))
 
     invalid=BoundaryImap()
     original=invalid.uid

@@ -44,6 +44,18 @@ bzw. „Termine von Hand ergänzen“) und nicht automatisch wiederholt. Ist der
 KI-Dienst dreimal in Folge nicht erreichbar, pausiert der Bericht; Fortsetzen
 versucht dieselbe Mail erneut.
 
+## Ergänzungen in 2.2.2
+
+- **Filter** auf der Berichtsseite: Monat, Absender, nur unsichere Termine,
+  ausgeschlossene und abgesagte Termine anzeigen.
+- **Hervorgehobene Belege** im Volltext der Mailseite.
+- **Kostenschätzung** vor dem Start aus gemessenen Kosten früherer Berichtsschritte
+  (lokales Ollama: Stromkosten); ohne Messwerte nur die Zahl der Aufrufe.
+- **Mit anderem Thema neu bewerten:** neuer Bericht mit denselben, bereits geladenen
+  Mailtexten, aber ohne frühere KI-Ergebnisse; Start wieder nur nach Bestätigung.
+- Die Seite aktualisiert sich über den bestehenden Fingerprint-Endpunkt, sobald sich
+  der Bericht ändert.
+
 ## Sicherheit und Datenschutz
 
 - Ein Bericht schreibt nichts in Postfach, Kalender oder Todoist und erzeugt keine
@@ -54,6 +66,11 @@ versucht dieselbe Mail erneut.
 - Jede Aktion prüft Sitzung, CSRF-Token, Berichtsversion und Idempotenzschlüssel;
   ein doppelt gesendetes Formular legt keinen zweiten Bericht an.
 - Der Download ist `Cache-Control: no-store` und ein Anhang.
+- `max_llm_calls` ist eine harte Grenze je Provideraufruf, auch für Reparaturversuche
+  und nachträglich angeforderte Terminsuchen. Vor jedem Aufruf wird erneut geprüft,
+  ob die Sitzung, die den Bericht gestartet hat, noch gültig ist.
+- Ein Termin wird verworfen, wenn sein Datum dem Belegzitat widerspricht.
+- Korrekturen, die du während einer laufenden Analyse speicherst, bleiben erhalten.
 - Volltexte und Belegzitate abgeschlossener Berichte werden nach
   `retention.activity_report_days` (Standard 365) entfernt; Termine, Absender und
   Betreffe bleiben. `mailhelp --clear` löscht alle Berichte.

@@ -248,7 +248,7 @@ def test_action_router_accepts_all_states(state, tasks, events):
     {"action_state": "none", "task_count": 0, "event_count": 0, "reason": "x", "extra": True},
 ])
 def test_action_router_rejects_inconsistent_counts_and_unknown_fields(raw):
-    with pytest.raises(Exception):
+    with pytest.raises(ValidationError):
         ActionRoute.model_validate(raw)
 
 
@@ -1593,7 +1593,7 @@ def test_orchestrator_resolves_versioned_relevance_both_ways(tmp_path):
 
 
 def test_relevance_dialog_schema_consistency():
-    with pytest.raises(Exception): RelevanceDialog(mail_id="a"*24,decision="relevant")
+    with pytest.raises(ValidationError): RelevanceDialog(mail_id="a"*24,decision="relevant")
     with pytest.raises(Exception,match="gehört nicht"):
         MailState(id="a"*24,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":1,"uid":1},awaiting_relevance=True,relevance_dialog=RelevanceDialog(mail_id="b"*24))
     with pytest.raises(Exception,match="benötigt"):
@@ -1645,7 +1645,7 @@ def test_orchestrator_resumes_each_persisted_analysis_step(tmp_path):
 
     with JsonStore(tmp_path/"invalid") as store:
         store.save("mail-"+"a"*24,{"schema_version":3,"id":"bad","imap":{},"steps":{}})
-        with pytest.raises(Exception): MailState.model_validate(store.load("mail-"+"a"*24))
+        with pytest.raises(ValidationError): MailState.model_validate(store.load("mail-"+"a"*24))
 
 
 def test_gemeinderat_action_failure_preserves_summary_and_retries_only_actions(tmp_path):

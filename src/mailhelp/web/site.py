@@ -278,6 +278,9 @@ class MailhelpSite:
 
     def state(self, request: Request, session: WebSession) -> Response:
         """Fingerprint of the overview (or the status page); the page reloads when it changes."""
+        report_id = parse_qs(request.query, max_num_fields=5).get("bericht")
+        if report_id:
+            return self.activity.state(report_id[0])
         overview = self.views.overview()
         if parse_qs(request.query, max_num_fields=5).get("seite") == ["status"]:
             metrics = self.archive.metrics

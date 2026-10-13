@@ -69,6 +69,38 @@ class ActivityReportStore:
         blocks[-1].append(mail)
         self._save_block(report_id, len(blocks) - 1, blocks[-1])
 
+    def save_analysis(self, report_id: str, mail: ReportMail) -> None:
+        """Merge model results with current user edits; caller holds the service lock."""
+        current = self.mail(report_id, mail.key)
+        if current is not None:
+            mail.user_relevant = current.user_relevant
+            if current.text_removed:
+                mail.text, mail.text_removed = "", True
+                for event in mail.events:
+                    event.evidence = ""
+            preserved = {event.id: event for event in current.events if not event.manual}
+            manual = {event.id: event for event in current.events if event.manual}
+            mail.events = [preserved.get(event.id, event) for event in mail.events if not event.manual]
+            next_id = max((int(event.id[1:]) for event in [*mail.events, *current.events]), default=0)
+            for event in mail.events:
+                if event.id in manual:
+                    next_id += 1
+                    event.id = f"e{next_id}"
+            mail.events.extend(manual.values())
+        self.save_mail(report_id, mail)
+
+    def reidentify(self, report_id: str, mail: ReportMail) -> ReportMail:
+        """Keep cached results and corrections when the same folder changes UID generation."""
+        for number, block in enumerate(self._blocks(report_id)):
+            for position, old in enumerate(block):
+                if (mail.message_id and old.message_id == mail.message_id and old.folder == mail.folder
+                        and old.key.rsplit(":", 2)[1] != mail.key.rsplit(":", 2)[1]):
+                    updated = old.model_copy(update={"key": mail.key, "uid": mail.uid})
+                    block[position] = updated
+                    self._save_block(report_id, number, block)
+                    return updated
+        return mail
+
     def _save_block(self, report_id: str, number: int, block: list[ReportMail]) -> None:
         self.store.save(mails_name(report_id, number), [item.model_dump(mode="json") for item in block])
 

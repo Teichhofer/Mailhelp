@@ -18,7 +18,7 @@ class Lifecycle:
         self.process = secrets.token_hex(16)
         self.stop, self.authorize, self.log = stop, authorize, log
         self.state = "running"
-        self._key = None
+        self._key: str | None = None
         self._lock = RLock()
 
     def _set(self, state: str) -> None:

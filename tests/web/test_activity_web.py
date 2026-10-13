@@ -27,6 +27,7 @@ def reports(web):
     service = ActivityService(ActivityReportStore(web.store), clock=lambda: RECEIVED)
     web.site.activity.service = service
     web.site.activity.suggest_folders = lambda: ["INBOX", "Schule"]
+    web.site.activity.available_folders = lambda: ["INBOX", "Schule", "Archiv"]
     return service
 
 
@@ -93,6 +94,8 @@ def test_switched_off_reports_explain_how_to_enable_them(web):
     assert web.site.activity.service is None
     status, html = page(web, "/berichte")
     assert status == 200 and "activity_report.enabled" in html
+
+
     report_id = "a" * 32
     for path in ("/berichte/neu", f"/berichte/{report_id}", f"/berichte/{report_id}/mail/0",
                  f"/berichte/{report_id}/export.xlsx"):
@@ -100,6 +103,36 @@ def test_switched_off_reports_explain_how_to_enable_them(web):
     for path in ("/berichte", f"/berichte/{report_id}/aktion", f"/berichte/{report_id}/mail/0"):
         response = post(web, path, {"csrf": csrf(web)})
         assert response.status == 404 and b"activity_report.enabled" in response.body
+
+
+def test_delete_requires_an_idempotency_key(web, reports):
+    report = filled(reports)
+    response = post(web, f"/berichte/{report.id}/aktion",
+                    {"csrf": csrf(web), "version": str(report.version), "action": "delete"})
+    assert response.status == 409
+    assert reports.store.load(report.id) is not None
+
+
+def test_report_filters_fingerprint_repeat_and_unknown_folders(web, reports):
+    report = filled(reports)
+    url = f"/berichte/{report.id}"
+    status, html = page(web, url + "?month=2026-01&excluded=on")
+    assert status == 200 and "ausgeschlossen" in html
+    first = web.browser.request("GET", f"/api/stand?bericht={report.id}").body
+    report.message = "Fortschritt"
+    reports.store.save(report)
+    assert web.browser.request("GET", f"/api/stand?bericht={report.id}").body != first
+    assert web.browser.request("GET", "/api/stand?bericht=" + "f" * 32).status == 404
+    fields = {"csrf": csrf(web), "key": "repeat-web-001", "version": str(report.version),
+              "action": "repeat", "topic": "Ein anderes Thema fuer diese Mails"}
+    result = post(web, url + "/aktion", fields)
+    assert result.status == 303 and result.headers["Location"] != url
+    assert post(web, url + "/aktion", fields).headers == result.headers
+    assert post(web, "/berichte", new_form(web) | NEW | {"folders": "Unknown"}).status == 422
+    web.site.activity.available_folders = lambda: (_ for _ in ()).throw(OSError("offline"))
+    assert post(web, "/berichte", new_form(web) | NEW).status == 503
+    web.site.activity.service = None
+    assert web.browser.request("GET", f"/api/stand?bericht={report.id}").status == 404
 
 
 def test_create_counts_first_and_a_replayed_form_creates_nothing_twice(web, reports):
@@ -314,3 +347,22 @@ def test_failed_model_answers_ask_the_user_to_decide(web, reports):
     form = _hidden_of(web, f"/berichte/{report.id}/mail/0", f"/berichte/{report.id}/mail/0", mode="relevant")
     post(web, f"/berichte/{report.id}/mail/0", form)
     assert "Relevant (von dir festgelegt)" in page(web, f"/berichte/{report.id}/mail/0")[1]
+
+
+def test_excluded_view_marks_cancelled_and_excluded_dates(web, reports):
+    report = reports.create(definition(), [], [])
+    reports.store.save_mail(report.id, mail(1, "Absage", [
+        ReportEvent(id="e1", title="Treffen", day=date(2026, 1, 20), cancelled=True),
+        ReportEvent(id="e2", title="Ersatz", day=date(2026, 1, 21), excluded=True)]))
+    status, html = page(web, f"/berichte/{report.id}")
+    assert "Noch keine Termine erkannt." in html
+    status, html = page(web, f"/berichte/{report.id}?excluded=on")
+    table = html[html.index("<tbody>"):html.index("</tbody>")]
+    assert "abgesagt" in table and "ausgeschlossen" in table
+
+
+@pytest.mark.parametrize("value", ["../activity-report-x", "kurz", "A" * 32])
+def test_progress_signal_rejects_malformed_report_ids(web, reports, value):
+    # Regression: an id outside the report format reached the state store and failed with a server error.
+    response = web.browser.request("GET", f"/api/stand?bericht={value}")
+    assert response.status == 404

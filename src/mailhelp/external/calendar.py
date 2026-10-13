@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from ..adapter import uncertain_write
 from ..models import CalendarDuplicateDecision, Proposal, ProposalKind
 from .contracts import CalendarEventResponse, CalendarListResponse, CalendarOverlapEvent, PreparedWrite, validation_path
+from .transport import HttpTransport
 
 
 def _now(configured_timezone: str | None) -> datetime:
@@ -17,7 +18,7 @@ def _now(configured_timezone: str | None) -> datetime:
     return datetime.now(ZoneInfo(configured_timezone or "UTC"))
 
 
-class CalendarOperations:
+class CalendarOperations(HttpTransport):
     def _reconcile_calendar(self, key: str) -> dict[str, Any] | None:
         response = self.policy.run(lambda: self._get(f"/calendars/{self.target}/events", {"privateExtendedProperty": f"mailhelp_key={key}"}))
         try: items = CalendarListResponse.model_validate(response.json()).items

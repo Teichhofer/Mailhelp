@@ -4,7 +4,7 @@ from __future__ import annotations
 from playwright.sync_api import expect
 
 from checks import audit
-from conftest import DEVICES, Page, sign_in
+from conftest import COVERAGE, DEVICES, Page, sign_in
 
 SHELL = ["/offline.html", "/static/app.css", "/static/icon-192.png", "/static/icon-512.png"]
 
@@ -109,6 +109,7 @@ def test_service_worker_rules(browser, mailhelp):
         assert offline == "offline-seite"
     finally:
         page.context.close()
+    assert "sw.js" in COVERAGE.counts
 
 
 def test_push_notifications_show_fixed_texts_and_open_the_app(browser, mailhelp):

@@ -219,7 +219,7 @@ class TelegramClient:
             if reply_markup is not None and index == len(parts) - 1:
                 payload["reply_markup"] = reply_markup
 
-            def request() -> httpx.Response:
+            def request(payload: dict[str, Any] = payload) -> httpx.Response:
                 response = self.client.post("/sendMessage", json=payload)
                 self._raise_for_status(response, "sendMessage")
                 return response

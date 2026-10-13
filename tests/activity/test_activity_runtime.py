@@ -4,9 +4,11 @@ from __future__ import annotations
 from types import SimpleNamespace as NS
 
 import pytest
+from activity_fakes import Model, activity_prompts
 from pydantic import SecretStr
 from shared_application import Log, settings
 
+from mailhelp.analysis import Analyzer
 from mailhelp.experience import ExperienceRuntime
 from mailhelp.imap import ListedMailbox
 
@@ -17,8 +19,10 @@ def application(web, tmp_path, prompts):
     cfg = settings(tmp_path)
     cfg.activity_report.enabled = True
     cfg.imap.folders = ["INBOX", "Papierkorb", "Schule"]
+    configuration = activity_prompts()
+    configuration.prompts = {name: value for name, value in configuration.prompts.items() if name in prompts}
     return NS(settings=cfg, store=web.store, logger=Log(), calendar=None, todoist=None,
-              telegram=NS(send=lambda *a: None), analyzer=NS(prompts=NS(prompts=dict.fromkeys(prompts))))
+              telegram=NS(send=lambda *a: None), analyzer=Analyzer(Model(), configuration))
 
 
 @pytest.mark.parametrize("prompts", [[], ["activity_relevance"], ["activity_events"]])
@@ -59,6 +63,7 @@ def test_runtime_runs_reports_and_suggests_folders_from_a_closed_session(web, tm
     runtime.tick()
     assert runtime.activity.settings.activity_report.max_mails == 5 and pages.with_unscheduled is True
     assert runtime.activity.llm_calls_per_minute() == changed.limits.llm_calls_per_minute
+    assert pages.available_folders() == ["INBOX", "Papierkorb", "Schule"]
     assert runtime.activity.analyzer.personal_info() == changed.personal_info
     runtime.activity.tick = lambda: False
     runtime.tick = runtime.stop_event.set

@@ -187,7 +187,7 @@ class Coverage:
             name = script["url"].rsplit("/", 1)[-1]
             if name not in COVERED_SCRIPTS or not script["url"].startswith("http"):
                 continue
-            source = (STATIC / name).read_text(encoding="utf-8")
+            source = (STATIC / name).read_bytes().decode("utf-8")
             counts = [0] * len(source)
             ranges = sorted((item for function in script["functions"] for item in function["ranges"]),
                             key=lambda item: (item["startOffset"], -item["endOffset"]))
@@ -200,7 +200,7 @@ class Coverage:
     def uncovered(self) -> dict[str, list[int]]:
         report = {}
         for name in COVERED_SCRIPTS:
-            source = (STATIC / name).read_text(encoding="utf-8")
+            source = (STATIC / name).read_bytes().decode("utf-8")
             counts = self.counts.get(name)
             if counts is None:
                 report[name] = ["nie geladen"]
@@ -224,6 +224,20 @@ def browser():
         instance.close()
 
 
+class MeasuredContext:
+    """Collect before a manually owned context destroys its pages and counters."""
+
+    def __init__(self, context, collect):
+        self.context, self.collect = context, collect
+
+    def close(self):
+        self.collect()
+        self.context.close()
+
+    def __getattr__(self, name):
+        return getattr(self.context, name)
+
+
 class Page:
     """A Playwright page that records console errors and script coverage."""
 
@@ -240,9 +254,12 @@ class Page:
         self.cdp.send("Network.setCacheDisabled", {"cacheDisabled": True})
         self.cdp.send("Page.enable")
         self.cdp.send("Profiler.enable")
-        self.cdp.send("Profiler.startPreciseCoverage", {"callCount": True, "detailed": True})
+        self.cdp.on("Profiler.preciseCoverageDeltaUpdate", COVERAGE.add)
+        self.cdp.send("Profiler.startPreciseCoverage", {
+            "callCount": True, "detailed": True, "allowTriggeredUpdates": True})
         self.cdp.on("Page.frameRequestedNavigation", lambda event: self.collect())
         self.cdp.on("Page.frameStartedLoading", lambda event: self.collect())
+        self.context = MeasuredContext(page.context, self.collect)
 
     def collect(self) -> None:
         COVERAGE.add(self.cdp.send("Profiler.takePreciseCoverage"))
@@ -251,6 +268,14 @@ class Page:
         # Coverage of the current document is lost once it is replaced.
         self.collect()
         return self.page.goto(url, **kwargs)
+
+    def reload(self, **kwargs):
+        self.collect()
+        return self.page.reload(**kwargs)
+
+    def go_back(self, **kwargs):
+        self.collect()
+        return self.page.go_back(**kwargs)
 
     def __getattr__(self, name):
         return getattr(self.page, name)
@@ -297,7 +322,6 @@ def item(page: Page, selector: str):
 
 def act(page: Page, control, text: str) -> None:
     """Click and wait for the next result page (confirm and reject after the undo time)."""
-    page.collect()  # The result page replaces this document and its script coverage.
     with page.expect_event("framenavigated", timeout=20000,
                            predicate=lambda frame: frame == page.main_frame and "?ergebnis=" in frame.url):
         control.click()

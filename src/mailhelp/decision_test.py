@@ -162,7 +162,7 @@ class DecisionTestMode:
                 elif count == 0:
                     result["stages"][stage] = {"status": "skipped", "reason": "no_candidates"}
                 else:
-                    self._stage(result, stage, lambda: extract(mail, expected_count=count))
+                    self._stage(result, stage, lambda extract=extract, count=count: extract(mail, expected_count=count))
         result["status"] = ("failed" if any(stage["status"] == "failed"
                                              for stage in result["stages"].values()) else "completed")
         self._save()

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mailhelp"
-version = "2.2.1"
+version = "2.2.2"
 description = "Persönlicher, bestätigungspflichtiger E-Mail-Assistent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -36,6 +36,8 @@ src = ["src", "tests", "ui_tests"]
 [tool.ruff.lint]
 # Pyflakes, isort, pyupgrade, bugbear and the line length.
 select = ["F", "I", "UP", "B", "E501"]
+# UP038 is deprecated in ruff itself (X | Y in isinstance is slower than a tuple).
+ignore = ["UP038"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["mailhelp"]
@@ -45,6 +47,9 @@ known-first-party = ["mailhelp"]
 "src/mailhelp/telegram/_core.py" = ["F401", "F403"]
 "src/mailhelp/telegram/__init__.py" = ["F401"]
 "src/mailhelp/integrations.py" = ["F401"]
+# Compatibility facades re-export the domain contexts.
+"src/mailhelp/models.py" = ["F401", "F403"]
+"src/mailhelp/domain/__init__.py" = ["F401", "F403"]
 "tests/*" = ["F811", "E501", "F401", "F403"]
 
 [tool.mypy]
@@ -92,5 +97,7 @@ include = [
   "/docs/Release-1.6.md", "/docs/Architektur-1.6.md", "/docs/Planung-1.6.md",
   "/docs/Web-Einstellungen.md",
   "/docs/Release-2.0.md", "/docs/Planung-2.0.md", "/docs/Konzept-2.0-Redesign-und-Web-Push.md",
+  "/docs/Release-2.1.md", "/docs/Architektur-2.1.md", "/docs/Planung-2.1.md",
+  "/docs/Release-2.2.md", "/docs/Planung-2.2.md",
 ]
 

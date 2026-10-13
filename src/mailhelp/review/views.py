@@ -12,7 +12,7 @@ import hashlib
 import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
@@ -83,7 +83,7 @@ class ProposalView:
     updated_at: datetime | None
     duplicate_match: Any | None = None
     target_event_id: str | None = None
-    time_changes: dict[str, Any] | None = None
+    time_changes: list[str] | None = None
     is_cancellation: bool = False
 
 

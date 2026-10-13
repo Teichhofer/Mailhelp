@@ -14,9 +14,10 @@ from threading import Event, Thread
 from typing import Any
 
 from ..analysis import TechnicalRevisionError
-from ..imap import FolderNotReadable
+from ..imap import FolderNotReadable, UIDValidityChanged
 from ..logging import log_and_continue
 from ..openrouter import RateLimitExceeded
+from .budget import ReportPaused
 from .llm import ActivityAnalyzer
 from .models import ActivityReport, FolderProgress, ReportMail, ReportStatus
 from .scan import default_folders, list_folder, period, read_mail, received_day, sent_folders
@@ -73,17 +74,29 @@ class ActivityRunner:
 
     def tick(self) -> bool:
         """One unit of work; ``False`` when nothing is to be done."""
-        reports = self.service.store.reports()
+        reports = list(reversed(self.service.store.reports()))
         for report in reports:
             if report.status == ReportStatus.COUNTING:
-                self.count(report.id)
+                try:
+                    self.count(report.id)
+                except Exception as exc:
+                    log_and_continue(self.logger, "activity", "count_failed", exc)
+                    error_name = type(exc).__name__
+                    def failed(current: ActivityReport, error_name: str = error_name) -> None:
+                        if current.status == ReportStatus.COUNTING:
+                            current.counting_failures += 1
+                            if current.counting_failures >= MAX_FAILURES:
+                                current.status = ReportStatus.FAILED
+                                current.message = f"Postfach wiederholt nicht lesbar ({error_name})."
+                                current.finished_at = datetime.now(UTC)
+                    self._settle(report.id, failed)
                 return True
         for report in reports:
             if report.status == ReportStatus.RUNNING:
                 self.process(report.id)
                 return True
         for report in reports:
-            if report.pending_extractions:
+            if report.pending_extractions and report.status not in {ReportStatus.PAUSED, ReportStatus.CANCELLED}:
                 self.extract_requested(report.id)
                 return True
         return False
@@ -98,7 +111,8 @@ class ActivityRunner:
         progress, missing = [], []
         with self.open_reader() as reader:
             listed = reader.list_folders()
-            folders = [(folder, False) for folder in report.definition.folders]
+            sent_names = sent_folders(listed)
+            folders = [(folder, folder in sent_names) for folder in report.definition.folders]
             if report.definition.include_sent:
                 folders += [(folder, True) for folder in sent_folders(listed)
                             if folder not in report.definition.folders]
@@ -112,6 +126,7 @@ class ActivityRunner:
             if current is None or current.status != ReportStatus.COUNTING:
                 return
             current.folders = progress
+            current.counting_failures = 0
             current.counters.listed = current.total
             current.status = ReportStatus.READY
             current.message = (f"Nicht lesbar und übersprungen: {', '.join(missing)}." if missing else "")
@@ -165,12 +180,24 @@ class ActivityRunner:
             return False
         progress, uid = following
         try:
-            fetched = reader.fetch_uid(progress.folder, uid, progress.uidvalidity)
+            cached = self.service.store.mail(report_id, f"{progress.folder}:{progress.uidvalidity}:{uid}")
+            fetched = (cached if cached is not None and cached.cached_input
+                       else reader.fetch_uid(progress.folder, uid, progress.uidvalidity))
+        except UIDValidityChanged:
+            start, end = period(report, self.settings.timezone)
+            renewed = list_folder(reader, progress.folder, progress.sent, start, end)
+            def renew(current: ActivityReport) -> None:
+                current.folders = [renewed if item.folder == progress.folder else item for item in current.folders]
+                current.counters.listed = current.total
+            self._settle(report_id, renew)
+            return False
         except Exception as exc:
             return self._fetch_failed(report_id, progress, exc)
         self._failures = 0
         try:
             mail = self._judge(report, progress, fetched)
+        except ReportPaused:
+            return False
         except Exception as exc:
             return self._model_unavailable(report_id, exc)
         self._model_failures = 0
@@ -210,8 +237,17 @@ class ActivityRunner:
         if stored is not None and stored.relevant is not None:
             mail = stored
         else:
-            mail, prepared = read_mail(report, progress, fetched, self.settings.limits, self.settings.timezone,
-                                       self.settings.activity_report.max_fulltext_chars)
+            if stored is not None and stored.cached_input:
+                mail = stored
+            else:
+                mail, _prepared = read_mail(report, progress, fetched, self.settings.limits, self.settings.timezone,
+                                            self.settings.activity_report.max_fulltext_chars)
+            with self.service.lock:
+                mail = self.service.store.reidentify(report.id, mail)
+            if mail.relevant is not None or mail.failed_step is not None:
+                if mail.relevant and not mail.events_extracted:
+                    self._extract(report, mail)
+                return mail
             if mail.skipped is None and mail.message_id and any(
                     other.message_id == mail.message_id and other.key != mail.key and other.skipped is None
                     for other in self.service.store.mails(report.id)):
@@ -222,7 +258,7 @@ class ActivityRunner:
                 return mail
             try:
                 call, verdict = self._call(lambda: self.analyzer.relevance(
-                    report, mail, received_day(mail, self.settings.timezone)))
+                    report, mail, received_day(mail, self.settings.timezone)), report.id)
             except TechnicalRevisionError as exc:
                 log_and_continue(self.logger, "activity", "model_answer_unusable", exc)
                 mail.failed_step = "relevance"
@@ -238,7 +274,7 @@ class ActivityRunner:
     def _extract(self, report: ActivityReport, mail: ReportMail) -> None:
         try:
             call, events = self._call(lambda: self.analyzer.events(
-                report, mail, received_day(mail, self.settings.timezone), self.logger))
+                report, mail, received_day(mail, self.settings.timezone), self.logger), report.id)
         except TechnicalRevisionError as exc:
             # The user adds the dates by hand; a repetition would cost again.
             log_and_continue(self.logger, "activity", "model_answer_unusable", exc)
@@ -249,8 +285,7 @@ class ActivityRunner:
 
     def _record_partial(self, report_id: str, mail: ReportMail) -> None:
         def count(report: ActivityReport) -> None:
-            report.counters.llm_calls += 1
-            self.service.store.save_mail(report_id, mail)
+            self.service.store.save_analysis(report_id, mail)
         self._settle(report_id, count)
 
     def _record(self, report_id: str, folder: str, mail: ReportMail) -> None:
@@ -258,6 +293,10 @@ class ActivityRunner:
             # The run is the only writer of progress; the mail is the folder's next one.
             progress = next(item for item in report.folders if item.folder == folder)
             progress.done += 1
+            if mail.accounted:
+                self.service.store.save_analysis(report_id, mail)
+                return
+            mail.accounted = True
             counters = report.counters
             counters.read += 1
             if mail.skipped == "sender":
@@ -270,13 +309,10 @@ class ActivityRunner:
                 counters.evaluated += 1
             if mail.failed_step is not None:
                 counters.failed += 1
-                if mail.failed_step == "relevance":
-                    counters.llm_calls += 1
             if mail.relevant:
                 counters.relevant += 1
                 counters.events += len(mail.events)
-                counters.llm_calls += 1
-            self.service.store.save_mail(report_id, mail)
+            self.service.store.save_analysis(report_id, mail)
         self._settle(report_id, advance)
 
     # --- dates on request ----------------------------------------------------------------
@@ -290,6 +326,9 @@ class ActivityRunner:
         if mail is not None and not mail.events_extracted and not mail.text_removed:
             try:
                 self._extract(report, mail)
+            except ReportPaused:
+                # Keep the request, but do not spin while the limit is unchanged.
+                return
             except Exception as exc:
                 # The request is dropped, not repeated every few seconds; the user may ask again.
                 log_and_continue(self.logger, "activity", "model_unavailable", exc)
@@ -297,10 +336,9 @@ class ActivityRunner:
         def done(current: ActivityReport) -> None:
             current.pending_extractions = [item for item in current.pending_extractions if item != key]
             if mail is not None and mail.events_extracted:
-                current.counters.llm_calls += 1
                 current.counters.events += len(mail.events)
                 current.counters.failed += mail.failed_step == "events"
-                self.service.store.save_mail(report_id, mail)
+                self.service.store.save_analysis(report_id, mail)
         self._settle(report_id, done)
 
     # --- language-model budget -----------------------------------------------------------
@@ -317,12 +355,35 @@ class ActivityRunner:
                 return
             self.stop_event.wait(min(5.0, 60 - (now - self._calls[0])))
 
-    def _call(self, call: Callable[[], Any]) -> Any:
+    def _call(self, call: Callable[[], Any], report_id: str | None = None) -> Any:
         """Wait for the report's budget share; the shared budget defers, it never fails a mail."""
         while True:
-            self._wait_for_budget()
+            if report_id is None:
+                self._wait_for_budget()
             try:
-                return call()
+                def reserve() -> None:
+                    if report_id is None:
+                        return
+                    self._wait_for_budget()
+                    with self.service.lock:
+                        current = self.service.store.load(report_id)
+                        if current is None or current.status in {ReportStatus.PAUSED, ReportStatus.CANCELLED}:
+                            raise ReportPaused()
+                        if self.stop_event.is_set() or not self.service.authorized(current):
+                            current.status = ReportStatus.PAUSED
+                            current.message = "Angehalten. Bitte mit gültiger Sitzung fortsetzen."
+                            self.service.store.save(current)
+                            raise ReportPaused()
+                        limit = self.settings.activity_report.max_llm_calls
+                        if current.counters.llm_calls >= limit:
+                            current.status = ReportStatus.PAUSED
+                            current.message = f"Höchstzahl von {limit} KI-Aufrufen erreicht."
+                            self.service.store.save(current)
+                            raise ReportPaused()
+                        current.counters.llm_calls += 1
+                        self.service.store.save(current)
+                with self.analyzer.client.limited(reserve):
+                    return call()
             except RateLimitExceeded as exc:
                 self.stop_event.wait(max(1.0, min(60.0, exc.next_allowed_at - time.time())))
                 if self.stop_event.is_set():
@@ -336,4 +397,9 @@ def default_report_folders(open_reader: Callable[[], AbstractContextManager[Any]
         return default_folders(reader.list_folders(), configured)
 
 
-__all__ = ["BATCH", "MAX_FAILURES", "ActivityRunner", "default_report_folders"]
+def available_report_folders(open_reader: Callable[[], AbstractContextManager[Any]]) -> list[str]:
+    with open_reader() as reader:
+        return [folder.name for folder in reader.list_folders()]
+
+
+__all__ = ["BATCH", "MAX_FAILURES", "ActivityRunner", "default_report_folders", "available_report_folders"]

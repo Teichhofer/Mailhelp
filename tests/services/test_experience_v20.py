@@ -20,6 +20,7 @@ from shared_web_actions import MAIL1
 from shared_web_details import with_mail
 from web_scenario import mail_id, populate
 
+from mailhelp.adapter import RetryableError
 from mailhelp.attachments import AttachmentCache
 from mailhelp.briefing import DailyBriefingService
 from mailhelp.config import DailyBriefingSettings, Settings
@@ -584,7 +585,7 @@ def test_strict_briefing_calendar_query_propagates_failure():
     writer = HttpWriter("google_calendar", "fake", "primary",
         calendar_timezone="UTC",
         transport=httpx.MockTransport(lambda request: httpx.Response(503)))
-    with pytest.raises(Exception): writer.fetch_events_in_window(datetime.now(UTC), datetime.now(UTC), strict=True)
+    with pytest.raises(RetryableError): writer.fetch_events_in_window(datetime.now(UTC), datetime.now(UTC), strict=True)
     writer.close()
 
 

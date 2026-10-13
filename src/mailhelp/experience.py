@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from threading import Event, Thread
 
 from .activity.llm import ActivityAnalyzer
-from .activity.runner import ActivityRunner, default_report_folders
+from .activity.runner import ActivityRunner, available_report_folders, default_report_folders
 from .activity.service import ActivityService
 from .activity.store import ActivityReportStore
 from .briefing import DailyBriefingService
@@ -55,12 +55,17 @@ class ExperienceRuntime:
             def open_reader():
                 return _reader(app.settings, secrets)
             service = ActivityService(ActivityReportStore(app.store))
+            service.active = components.auth.active
+            service.blocked_senders = lambda: (
+                list(self.site.archive.configuration.blocked_senders().addresses),
+                list(self.site.archive.configuration.blocked_senders().domains))
             self.activity = ActivityRunner(
                 service, ActivityAnalyzer(app.analyzer, lambda: app.settings.personal_info), open_reader,
                 settings, app.logger, llm_calls_per_minute=lambda: app.settings.limits.llm_calls_per_minute)
             pages = self.site.activity
             pages.service = service
             pages.suggest_folders = lambda: default_report_folders(open_reader, app.settings.imap.folders)
+            pages.available_folders = lambda: available_report_folders(open_reader)
             pages.with_unscheduled = settings.activity_report.export_mails_without_events
         channels = {"local": lambda _text: None}
         if settings.telegram.enabled:

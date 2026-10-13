@@ -7,6 +7,7 @@ der Invarianten verbleibt in den jeweiligen Domain-Kontexten.
 
 from __future__ import annotations
 
+from ..activity.models import ActivityReport, ReportMail
 from ..domain.duplicate import DuplicateIndex
 from ..domain.mail import MailState
 from ..domain.processing import (
@@ -19,6 +20,7 @@ from ..domain.relevance import IrrelevantSenders, RelevanceDialog
 from ..domain.run import ImapCheckpoint, MailRunState, TelegramOffset
 
 __all__ = [
+    "ActivityReport",
     "ActionLedger",
     "DuplicateIndex",
     "ImapCheckpoint",
@@ -27,6 +29,7 @@ __all__ = [
     "MailState",
     "ProposalClarificationState",
     "RelevanceDialog",
+    "ReportMail",
     "TelegramDialogState",
     "TelegramOffset",
     "TelegramOutboxState",

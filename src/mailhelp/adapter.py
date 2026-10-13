@@ -96,7 +96,7 @@ class RetryPolicy:
         )
 
 
-def uncertain_write(operation: Callable[[], T]) -> T:
+def uncertain_write[R](operation: Callable[[], R]) -> R:
     """Schreibzugriffe nie blind wiederholen; unklare Ergebnisse markieren."""
     try:
         return operation()

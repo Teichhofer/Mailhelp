@@ -327,7 +327,7 @@ class ImapReader:
         uidvalidity = int(validity[0])
         self.last_uidvalidity = uidvalidity
         if uidvalidity != expected_uidvalidity:
-            raise RuntimeError(f"IMAP-UIDVALIDITY hat sich geändert: {folder}")
+            raise UIDValidityChanged(folder, expected_uidvalidity, uidvalidity)
         status, body = self.connection.uid("fetch", str(uid).encode(), "(BODY.PEEK[] INTERNALDATE)")
         if status != "OK":
             raise RuntimeError(f"IMAP-Abruf fehlgeschlagen: UID {uid}")
