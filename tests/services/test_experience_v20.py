@@ -434,6 +434,7 @@ def test_disabled_telegram_never_uses_network(monkeypatch):
     waits = []
     monkeypatch.setattr(client.stopped, "wait", waits.append)
     assert client.send(1, "text") is None and client.check_access() is None
+    assert client.started_chats(1) == [] and client.answer_callback("cb", "ok") is None
     assert client.poll(0) == [] and client.poll(0, 0) == []
     assert waits == [30, 0]
     client.close()

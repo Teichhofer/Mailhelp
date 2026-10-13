@@ -174,7 +174,8 @@ class TelegramReceiver(Thread):
             self.logger.event("ERROR", "telegram", "receiver_inbox_failed",
                               error_class=type(exc).__name__)
             return False
-        self.offset = max(self.offset, max(update_id(raw) for raw in valid) + 1)  # type: ignore[type-var]
+        identifiers = [identifier for raw in valid if (identifier := update_id(raw)) is not None]
+        self.offset = max(self.offset, max(identifiers) + 1)
         self.logger.event("INFO", "telegram", "receiver_updates_stored",
                           count=len(valid), acknowledged=len(acknowledged), next_offset=self.offset)
         return True

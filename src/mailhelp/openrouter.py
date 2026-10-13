@@ -9,7 +9,7 @@ import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime
 from threading import Lock
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urlsplit
 
 import httpx
@@ -51,7 +51,7 @@ def _raise_for_status(response: httpx.Response) -> None:
         response.raise_for_status()
     except httpx.HTTPStatusError as exc:
         if response.status_code == 401:
-            exc.safe_detail = (
+            cast(Any, exc).safe_detail = (
                 "OpenRouter: Authentifizierungsfehler "
                 "(OPENROUTER_API_KEY wurde abgelehnt)"
             )
@@ -97,7 +97,10 @@ class OpenRouterClient:
         self.logger = logger or NullLogger()
         self._observations: dict[str, dict[str, Any]] = {}
         self._state_lock = Lock()
-        wait = stopped or (lambda delay: (sleep(delay), False)[1])
+        def uninterrupted(delay: float) -> bool:
+            sleep(delay)
+            return False
+        wait = stopped or uninterrupted
         self.policy = RetryPolicy(retries, initial_backoff, max_backoff, wait, clock)
 
     def check_access(self) -> None:

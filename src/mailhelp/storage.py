@@ -11,7 +11,7 @@ from collections.abc import Iterator
 from contextlib import AbstractContextManager, contextmanager
 from pathlib import Path
 from threading import RLock
-from typing import Any, Protocol, runtime_checkable
+from typing import Any, Protocol, overload, runtime_checkable
 
 from pydantic import BaseModel, ValidationError
 
@@ -52,8 +52,15 @@ class StateStore(Protocol):
 
     def load(self, name: str, default: Any = None) -> Any: ...
     def save(self, name: str, value: Any) -> None: ...
-    def load_model[M: BaseModel](self, name: str, model: type[M], default: M | None = None) -> M | None: ...
-    def peek_model[M: BaseModel](self, name: str, model: type[M], default: M | None = None) -> M | None: ...
+    # With a default the result is never None.
+    @overload
+    def load_model[M: BaseModel](self, name: str, model: type[M], default: None = None) -> M | None: ...
+    @overload
+    def load_model[M: BaseModel](self, name: str, model: type[M], default: M) -> M: ...
+    @overload
+    def peek_model[M: BaseModel](self, name: str, model: type[M], default: None = None) -> M | None: ...
+    @overload
+    def peek_model[M: BaseModel](self, name: str, model: type[M], default: M) -> M: ...
     def names(self, prefix: str = "") -> list[str]: ...
     def delete(self, name: str) -> None: ...
     def locked(self) -> AbstractContextManager[Any]: ...
@@ -126,18 +133,22 @@ class JsonStore:
     @staticmethod
     def _acquire_lock(descriptor: int) -> None:
         """Acquire a process-bound, non-blocking lock on an open lock file."""
+        # The type stubs of msvcrt and fcntl are complete only on their own platform;
+        # each module is used untyped so the check gives the same result everywhere.
         if os.name == "nt":
             import msvcrt
 
+            windows: Any = msvcrt
             # Windows byte-range locks require a byte to exist in the file.
             if os.fstat(descriptor).st_size == 0:
                 os.write(descriptor, b"\0")
             os.lseek(descriptor, 0, os.SEEK_SET)
-            msvcrt.locking(descriptor, msvcrt.LK_NBLCK, 1)
+            windows.locking(descriptor, windows.LK_NBLCK, 1)
         else:
             import fcntl
 
-            fcntl.flock(descriptor, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            posix: Any = fcntl
+            posix.flock(descriptor, posix.LOCK_EX | posix.LOCK_NB)
 
     def load(self, name: str, default: Any = None) -> Any:
         with self._thread_lock:
@@ -163,6 +174,10 @@ class JsonStore:
             os.replace(path, isolated)
             raise CorruptState(f"Beschädigter Zustand isoliert: {isolated.name}") from exc
 
+    @overload
+    def peek_model[M: BaseModel](self, name: str, model: type[M], default: None = None) -> M | None: ...
+    @overload
+    def peek_model[M: BaseModel](self, name: str, model: type[M], default: M) -> M: ...
     def peek_model[M: BaseModel](self, name: str, model: type[M], default: M | None = None) -> M | None:
         """Validate a state object read-only; migrations apply in memory only."""
         value = self.peek(name, None)
@@ -174,6 +189,10 @@ class JsonStore:
         except ValidationError as exc:
             raise CorruptState(f"Schemawidriger Zustand: {name}.json") from exc
 
+    @overload
+    def load_model[M: BaseModel](self, name: str, model: type[M], default: None = None) -> M | None: ...
+    @overload
+    def load_model[M: BaseModel](self, name: str, model: type[M], default: M) -> M: ...
     def load_model[M: BaseModel](self, name: str, model: type[M], default: M | None = None) -> M | None:
         """Load and validate a state object, quarantining invalid schemas too."""
         with self._thread_lock:

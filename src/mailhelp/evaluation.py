@@ -8,15 +8,16 @@ import os
 import re
 import sys
 from collections.abc import Callable
-from datetime import UTC, datetime, time
+from datetime import UTC, date, datetime, time
 from pathlib import Path
-from typing import Any
+from typing import Any, overload
 
 import yaml
 
 from .action_normalization import (
     DEADLINE_DATE_PATTERN,
     MailDateContext,
+    TemporalValue,
     _parse_time,
     deadline_core,
     normalize_event,
@@ -90,8 +91,11 @@ class UsageRecorder:
                     setattr(self, field, getattr(self, field) + value)
         elif event == "response_received":
             cost = context.get("reported_cost")
-            if type(cost) in (int, float):
+            if type(cost) in (int, float) and cost is not None:
                 self.cost += cost
+
+    def telegram_event(self, direction: str, **context: Any) -> None:
+        return None
 
     def report(self) -> dict[str, Any]:
         return {"prompt_tokens": self.prompt_tokens,
@@ -104,7 +108,7 @@ class UsageRecorder:
 class BoundedDecider:
     """Jev and its generative fallback consume the same explicit call budget."""
 
-    def __init__(self, client: object, budget: BoundedCompleter):
+    def __init__(self, client: DecisionClient, budget: BoundedCompleter):
         self.client, self.budget, self.logger = client, budget, client.logger
 
     def decide(self, *args, **kwargs):
@@ -114,6 +118,10 @@ class BoundedDecider:
         return self.client.decide(*args, **kwargs)
 
 
+@overload
+def _text(value: str) -> str: ...
+@overload
+def _text(value: None) -> None: ...
 def _text(value: str | None) -> str | None:
     """Compare free text independent of case and whitespace."""
     return " ".join(value.split()).casefold() if value is not None else None
@@ -131,19 +139,25 @@ _DATE_TOKEN = re.compile(rf"(?i)(?<![\d.])({DEADLINE_DATE_PATTERN})(?![\d.-]?\d)
 WITHOUT_DATE = "<ohne Datum>"
 
 
+def _iso(value: object) -> str:
+    """ISO form of a resolved due date (date or datetime)."""
+    assert isinstance(value, date)
+    return value.isoformat()
+
+
 def _deadline_keys(value: str, context: MailDateContext) -> set[str]:
     """Reduce a summary deadline or appointment to the calendar dates it names.
 
     Free wording ("24.09.2026, 09:00–10:00 Uhr", "bis 24.09.2026") is not
     compared; an entry without a supported date only counts as such.
     """
-    keys = set()
+    keys: set[str] = set()
     for token in _DATE_TOKEN.findall(value):
         task = TaskExtraction.model_validate({"tasks": [{
             "title": "Frist", "description": "", "evidence": token, "responsibility": "user",
             "certainty": "certain", "classification": "new", "due_text": token}]}).tasks[0]
         result = normalize_task_due(task, context)
-        keys.add(result.value.isoformat() if result.resolved else _text(token))
+        keys.add(_iso(result.value) if result.resolved else _text(token))
     return keys or {WITHOUT_DATE}
 
 
@@ -166,13 +180,13 @@ def semantic_result(stage: str, value: dict, context: MailDateContext) -> dict:
     if stage == "action_router":
         return {key: value[key] for key in ("action_state", "task_count", "event_count")}
     if stage == "task_extraction":
-        result = []
+        result: list[dict[str, Any]] = []
         for task in TaskExtraction.model_validate(value).tasks:
             task = recover_task_due(task)
             due = None
             if task.due_text is not None:
                 normalized = normalize_task_due(task, context)
-                due = (normalized.value.isoformat() if normalized.resolved
+                due = (_iso(normalized.value) if normalized.resolved
                        else _text(deadline_core(task.due_text)))
             result.append({"classification": task.classification,
                            "responsibility": task.responsibility,
@@ -182,9 +196,9 @@ def semantic_result(stage: str, value: dict, context: MailDateContext) -> dict:
     for event in EventExtraction.model_validate(value).events:
         normalized = normalize_event(event, context)
         if normalized.resolved:
-            when = {"start": normalized.value.start.isoformat(),
-                    "end": normalized.value.end.isoformat(),
-                    "all_day": normalized.value.all_day}
+            span = normalized.value
+            assert isinstance(span, TemporalValue)  # a resolved event is always a span
+            when = {"start": span.start.isoformat(), "end": span.end.isoformat(), "all_day": span.all_day}
         else:
             when = {"date": _text(event.date_text), "time": _clock(event.time_text),
                     "end_time": _clock(event.end_time_text)}
@@ -215,18 +229,19 @@ def _context(mail: dict) -> MailDateContext:
 def evaluate(corpus: dict, prompts: PromptConfig, client: object, max_calls: int,
              progress: Callable[[dict], None] | None = None, *,
              decision_prompts: DecisionPrompts | None = None,
-             decision_client: object = None) -> dict:
+             decision_client: DecisionClient | None = None) -> dict:
     bounded = BoundedCompleter(client, max_calls)
     if decision_prompts is None:
         analyzer = Analyzer(bounded, prompts, validation_retries=0, provider_retries=0)
     else:
+        assert decision_client is not None  # Jev relevance always comes with its client
         decisions = DecisionAnalyzer(BoundedDecider(decision_client, bounded),
                                      decision_prompts, 500_000)
         analyzer = JevRelevanceAnalyzer(bounded, prompts, decisions=decisions,
                                        validation_retries=0, provider_retries=0)
     topics = [Topic.model_validate(item) for item in corpus["topics"]]
     timezone_name = corpus.get("user_timezone", "UTC")
-    results = []
+    results: list[dict[str, Any]] = []
     report = {
         "schema_version": 3, "created_at": datetime.now(UTC).isoformat(),
         "relevance_mode": "legacy" if decision_prompts is None else "jev_unclear_fallback",

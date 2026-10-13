@@ -45,7 +45,7 @@ class ArchiveQueries:
         self._items: list[dict] = []
         self.damaged = 0
         self._history_revision = -1
-        self._history = []
+        self._history: list[dict[str, Any]] = []
 
     def items(self) -> list[dict]:
         with self.store.locked():

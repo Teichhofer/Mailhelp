@@ -146,7 +146,9 @@ def mailhelp(tmp_path):
         from mailhelp.metrics import MetricsRecorder, MetricsSettings
         cfg = application_settings(tmp_path)
         (tmp_path / "config.yaml").write_text(yaml.safe_dump(cfg.model_dump(mode="json")), encoding="utf-8")
-        (tmp_path / "topics.yaml").write_text("topics:\n- id: school\n  name: Schule\n  description: Schule\n  enabled: true\n  examples: []\n  exclusions: []\n", encoding="utf-8")
+        (tmp_path / "topics.yaml").write_text(
+            "topics:\n- id: school\n  name: Schule\n  description: Schule\n  enabled: true\n"
+            "  examples: []\n  exclusions: []\n", encoding="utf-8")
         (tmp_path / "irrelevant_topics.yaml").write_text("topics: []\n", encoding="utf-8")
         configuration = ConfigurationService(tmp_path, store, cfg, dialog.review.web_authorizer, lambda value: None)
         dialog.review.configuration = site.archive.configuration = configuration

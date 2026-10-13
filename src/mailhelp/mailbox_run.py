@@ -9,11 +9,12 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from threading import Event
+from typing import Literal
 from uuid import uuid4
 
 from . import state_names
 from .config import Settings
-from .imap import ImapReader, UIDValidityChanged
+from .imap import FetchedMail, ImapReader, UIDValidityChanged
 from .logging import EventLogger
 from .models import ImapCheckpoint, MailRunCounters, MailRunEntry, MailRunEntryStatus, MailRunState, MailState
 from .orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
@@ -128,7 +129,7 @@ class MailboxRunService:
     imap: ImapReader
     orchestrator: Orchestrator
     stop_event: Event
-    process_mail: Callable[[object], ProcessingResult]
+    process_mail: Callable[[FetchedMail], ProcessingResult]
     _mail_processing_halted: bool = False
 
     def poll(self, max_mails: int | None = None, *,
@@ -322,6 +323,7 @@ class MailboxRunService:
         waiting = set()
         for name in mail_state_names(self.store):
             state = self.store.load_model(name, MailState)
+            assert state is not None  # the name was just listed by the store
             if state.awaiting_relevance:
                 identity = state.imap
                 waiting.add(f"{identity.account_id}\0{identity.folder}\0{identity.uidvalidity}\0{identity.uid}")
@@ -360,7 +362,7 @@ class MailboxRunService:
         """The newest candidates as a durable, deduplicated queue."""
         candidates.sort(key=lambda item: item.received_at, reverse=True)
         limit = budget.remaining if budget.remaining is not None else self.settings.imap.batch_size
-        unique = {}
+        unique: dict[str, MailRunEntry] = {}
         for candidate in candidates:
             entry = MailRunEntry(
                 account_id=candidate.account_id, folder=candidate.folder,
@@ -442,6 +444,8 @@ class MailboxRunService:
     def _finish_entry(self, run_name: str, queued: MailRunEntry, current: MailRunEntry,
                       result: ProcessingResult) -> None:
         """Persist the terminal queue status of one processed mail."""
+        terminal_analysis: Literal["completed", "irrelevant", "duplicate", "failed", "skipped"]
+        failure_code: Literal["imap_read_exhausted", "processing_failed"] | None
         if result.outcome is ProcessingOutcome.FAILED:
             # The mail state already contains the safe failure details.
             # Record the failed attempt in the durable run before

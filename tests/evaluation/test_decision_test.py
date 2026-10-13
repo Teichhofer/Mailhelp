@@ -514,3 +514,10 @@ def test_intermediate_reports_are_throttled_but_the_final_state_is_always_writte
         now[0] = moment
         mode._save(force=force)
     assert writes == [0.0, 60.0, 60.5]
+
+
+def test_imap_retries_of_the_decision_test_wait_without_interruption(monkeypatch):
+    from mailhelp import decision_test
+    waited = []
+    monkeypatch.setattr(decision_test.time, "sleep", waited.append)
+    assert decision_test._pause(1.5) is False and waited == [1.5]

@@ -3,8 +3,10 @@ from __future__ import annotations
 
 import json
 import secrets
+from collections.abc import Sequence
 from datetime import datetime
 from decimal import Decimal
+from typing import SupportsFloat
 from urllib.parse import parse_qs, urlencode
 from zoneinfo import ZoneInfo
 
@@ -53,16 +55,16 @@ PERIODS = ((1, "Heute (24 Std.)"), (7, "7 Tage"), (30, "30 Tage"), (90, "90 Tage
 PROPOSAL_PATH = r"/vorschlag/(?P<mail_id>[a-f0-9]{24})/(?P<proposal_id>[A-Za-z0-9_-]{1,64})"
 
 
-def _number(value: object, digits: int = 2) -> str:
+def _number(value: SupportsFloat | str, digits: int = 2) -> str:
     """German number format; callers show missing figures as "—" or "unbekannt"."""
     return f"{float(value):,.{digits}f}".replace(",", " ").replace(".", ",").replace(" ", ".")
 
 
-def _money(value: object, currency: str) -> str:
+def _money(value: SupportsFloat | str | None, currency: str) -> str:
     return "unbekannt" if value is None else f"{_number(value, 4)} {currency}"
 
 
-def select(name: str, label: str, value: object, options: list[tuple[object, str]]) -> str:
+def select(name: str, label: str, value: object, options: Sequence[tuple[object, str]]) -> str:
     rendered = "".join(f'<option value="{e(key)}"{" selected" if str(key) == str(value) else ""}>{e(text)}</option>'
                        for key, text in options)
     return f'<label>{e(label)}<select name="{e(name)}">{rendered}</select></label>'

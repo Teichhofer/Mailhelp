@@ -11,7 +11,7 @@ from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
 from threading import Lock
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
 import httpx
@@ -29,6 +29,9 @@ from .ollama import LocalLlm, OllamaClient
 from .openrouter import OpenRouterClient
 from .paths import runtime_path
 
+if TYPE_CHECKING:
+    from .metrics import MetricsRecorder
+
 
 class ComparisonRecorder(NullLogger):
     """Retain content only inside this explicitly selected comparison run."""
@@ -36,7 +39,7 @@ class ComparisonRecorder(NullLogger):
     def __init__(self, log_path: Path, secrets: tuple[str, ...]):
         self.path, self.secrets = log_path, secrets
         self.entries: list[dict[str, Any]] = []
-        self.metrics = None
+        self.metrics: MetricsRecorder | None = None
 
     def event(self, level: str, module: str, event: str, **context: Any) -> None:
         self._record(event, {"level": level, "module": module, **context})
@@ -116,7 +119,7 @@ class DecisionTestMode:
         self.saved_at = now
 
     def _stage(self, result: dict, name: str, operation) -> Any:
-        stage = {"status": "running", "events": []}
+        stage: dict[str, Any] = {"status": "running", "events": []}
         result["stages"][name] = stage
         start = len(self.recorder.entries)
         self._save()
@@ -132,7 +135,7 @@ class DecisionTestMode:
             self._save()
 
     def _pipeline(self, record: dict, name: str, mail: dict[str, Any], classifier) -> None:
-        result = {"status": "running", "stages": {}}
+        result: dict[str, Any] = {"status": "running", "stages": {}}
         record["paths"][name] = result
         if self.recorder.metrics is not None:
             self.recorder.metrics.test_mail_hash = record.get("mail_sha256")
@@ -198,7 +201,7 @@ class DecisionTestMode:
                 if fingerprint in seen:
                     continue
                 seen.add(fingerprint)
-                record = {"mail_sha256": fingerprint, "folder": fetched.folder,
+                record: dict[str, Any] = {"mail_sha256": fingerprint, "folder": fetched.folder,
                           "uidvalidity": fetched.uidvalidity, "uid": fetched.uid,
                           "received_at": fetched.received_at.isoformat(),
                           "raw_rfc822_base64": _raw_mail(fetched.raw, self.recorder.secrets),
@@ -249,6 +252,17 @@ def _create_output(settings: Settings, output: Path | None, directory: Path) -> 
     return output
 
 
+def _laya_url(laya: tuple[str, int] | None, model: str) -> str:
+    assert laya is not None  # Laya prompts are only loaded together with a Laya server
+    return LocalLlm(*laya, model).base_url
+
+
+def _pause(delay: float) -> bool:
+    """Retry wait of the decision test: sleep, never interrupted."""
+    time.sleep(delay)
+    return False
+
+
 def _initial_report(settings: Settings, topics: list[Topic], prompts: PromptConfig, count: int,
                     decision_prompts: Any, local_llm: LocalLlm, laya: tuple[str, int] | None,
                     laya_prompts: Any, relevance_only: bool, ignore_historical_start: bool,
@@ -258,7 +272,7 @@ def _initial_report(settings: Settings, topics: list[Topic], prompts: PromptConf
             "pipeline_policy": "relevance_only" if relevance_only else "relevant_only",
             "ollama": asdict(local_llm),
             "ollama_relevance": (None if laya_prompts is None else {
-                "engine": "laya", "base_url": LocalLlm(*laya, laya_prompts.model).base_url,
+                "engine": "laya", "base_url": _laya_url(laya, laya_prompts.model),
                 "model": laya_prompts.model}),
             "laya_prompts": None if laya_prompts is None else laya_prompts.model_dump(mode="json"),
             # Laya builds its questions from these categories as well.
@@ -285,7 +299,7 @@ def _comparison_reader(settings: Settings, secrets: Secrets, recorder: Compariso
         secrets.imap_password.get_secret_value(), cfg.timeout_seconds,
         factory=imaplib.IMAP4_SSL if settings.imap.connection_mode == "ssl" else imaplib.IMAP4,
         policy=RetryPolicy(cfg.retries, cfg.initial_backoff_seconds, cfg.max_backoff_seconds,
-                           lambda delay: (time.sleep(delay), False)[1]),
+                           _pause),
         starttls=settings.imap.connection_mode == "starttls", batch_size=settings.imap.batch_size,
         logger=recorder)
     stack.callback(reader.close)
@@ -314,7 +328,7 @@ def _comparison_analyzers(settings: Settings, secrets: Secrets, prompts: PromptC
         client.client.event_hooks["response"].append(recorder.http_response)
         clients.append(client)
     cfg = settings.timeouts.ollama
-    local = dict(initial_backoff=cfg.initial_backoff_seconds,
+    local: dict[str, Any] = dict(initial_backoff=cfg.initial_backoff_seconds,
                  max_backoff=cfg.max_backoff_seconds, logger=recorder)
     local_client = OllamaClient(local_llm, cfg.timeout_seconds, cfg.retries,
                                 settings.limits.llm_calls_per_minute, **local)
@@ -332,9 +346,11 @@ def _comparison_analyzers(settings: Settings, secrets: Secrets, prompts: PromptC
     options = dict(provider_retries=settings.retries.provider_retry,
                    json_repair_retries=settings.retries.json_repair,
                    schema_repair_retries=settings.retries.schema_repair)
+    # The loop above created the DecisionClient second.
+    decision_client = cast(DecisionClient, clients[1])
     standard = JevRelevanceAnalyzer(
         clients[0], prompts, decisions=DecisionAnalyzer(
-            clients[1], decision_prompts, settings.limits.max_llm_payload_bytes), **options)
+            decision_client, decision_prompts, settings.limits.max_llm_payload_bytes), **options)
     ollama: Any = Analyzer(local_client, prompts, **options)
     if laya_prompts is not None:
         ollama = LocalPipeline(ollama, LayaRelevanceAnalyzer(
@@ -369,14 +385,15 @@ def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
     recorder = ComparisonRecorder(log_path, known_secrets)
     from .metrics import DECISION_TEST_FILE, MetricsRecorder, metrics_directory
     # Content-free metrics of every comparison run in one log, separate from production.
-    recorder.metrics = MetricsRecorder(
+    metrics = MetricsRecorder(
         metrics_directory(runtime_path(settings.logging.directory, directory)) / DECISION_TEST_FILE,
         settings.metrics, "decision_test")
+    recorder.metrics = metrics
     report = _initial_report(settings, topics, prompts, count, decision_prompts, local_llm, laya,
                              laya_prompts, relevance_only, ignore_historical_start, irrelevant_topics)
     write_report(output, redact(report, known_secrets))
     print(f"Decision-Testdatei: {output}", flush=True)
-    recorder.metrics.run_id = report["run_id"]
+    metrics.run_id = report["run_id"]
     try:
         with ExitStack() as stack:
             reader = _comparison_reader(settings, secrets, recorder, stack)

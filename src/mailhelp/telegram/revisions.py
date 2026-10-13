@@ -83,7 +83,7 @@ class ProposalRevisionProcessor:
                               "„Klären“, „Ändern“ oder „Manuell prüfen“ wählen."
             )
             return
-        assert dialog.mail_id is not None
+        mail_id, proposal_id, version = dialog.reference()
         proposal = self._dialog_proposal(dialog)
         if proposal is None:
             return
@@ -92,9 +92,7 @@ class ProposalRevisionProcessor:
             if proposal.open_questions
             else "Welche Änderung soll übernommen werden?"
         )
-        clarification_record_name = clarification_name(
-            dialog.mail_id, dialog.proposal_id, dialog.version
-        )
+        clarification_record_name = clarification_name(mail_id, proposal_id, version)
         if self._already_answered(clarification_record_name):
             return
         normalized_answer = " ".join(answer.casefold().strip().rstrip(".!?").split())
@@ -109,9 +107,9 @@ class ProposalRevisionProcessor:
                 "ERROR",
                 "telegram.dialog",
                 "answer_revision_unavailable",
-                mail_id=dialog.mail_id,
-                proposal_id=dialog.proposal_id,
-                version=dialog.version,
+                mail_id=mail_id,
+                proposal_id=proposal_id,
+                version=version,
             )
             self.telegram.send(
                 self.chat_id,
@@ -122,9 +120,9 @@ class ProposalRevisionProcessor:
         # atomically before the first fallible interpretation call.  The raw
         # answer exists only in this state file and is never added to logs.
         pending = ProposalClarificationState(
-            mail_id=dialog.mail_id,
-            proposal_id=dialog.proposal_id,
-            version=dialog.version,
+            mail_id=mail_id,
+            proposal_id=proposal_id,
+            version=version,
             question=question,
             authorized_answer=answer,
         )
@@ -133,9 +131,8 @@ class ProposalRevisionProcessor:
 
     def _dialog_proposal(self, dialog: TelegramDialogState) -> Proposal | None:
         """The proposal the open question belongs to; ``None`` ends a missing or stale dialog."""
-        proposal = self.store.load_model(
-            proposal_name(dialog.mail_id, dialog.proposal_id), Proposal
-        )
+        mail_id, proposal_id, _version = dialog.reference()
+        proposal = self.store.load_model(proposal_name(mail_id, proposal_id), Proposal)
         if proposal is None:
             self.logger.event(
                 "WARNING",
@@ -205,10 +202,11 @@ class ProposalRevisionProcessor:
         """"Nein" to a non-binding hint rejects it without any language model."""
         rejected = proposal.model_copy(update={"status": ProposalStatus.REJECTED})
         self.persistence.persist(rejected)
+        mail_id, proposal_id, version = dialog.reference()
         answered = ProposalClarificationState(
-            mail_id=dialog.mail_id,
-            proposal_id=dialog.proposal_id,
-            version=dialog.version,
+            mail_id=mail_id,
+            proposal_id=proposal_id,
+            version=version,
             question=question,
             authorized_answer=answer,
             interpretation_status=ProposalRevisionStatus.COMPLETED,
@@ -245,6 +243,7 @@ class ProposalRevisionProcessor:
 
     def _revise_answered(self, state: ProposalClarificationState) -> None:
         """Retry a revision solely from its already validated durable answer."""
+        assert state.normalized_answer is not None  # an answered clarification keeps its normalized answer
         name = clarification_name(state.mail_id, state.proposal_id, state.version)
         current = self.store.load_model(
             proposal_name(state.mail_id, state.proposal_id), Proposal

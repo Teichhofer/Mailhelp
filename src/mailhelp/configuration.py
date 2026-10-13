@@ -178,6 +178,7 @@ class ConfigurationService:
                 message = (f"„{change.entries}“ wird bereits ignoriert." if change.action == "add"
                            else f"„{change.entries}“ stand nicht auf der Liste.")
             else:
+                assert self.senders is not None  # _current_senders() refused a missing list
                 self.senders.save("irrelevant-senders", updated.model_dump(mode="json"))
                 message = (f"„{change.entries}“ wird ab sofort ignoriert: neue Mails werden ohne "
                            "KI-Aufruf und ohne Benachrichtigung aussortiert."

@@ -81,7 +81,8 @@ class _TextHTML(HTMLParser):
 
     def __init__(self, limits: MimeLimits) -> None:
         super().__init__(convert_charrefs=True)
-        self.limits, self.parts, self.depth, self.tags = limits, [], 0, 0
+        self.limits, self.depth, self.tags = limits, 0, 0
+        self.parts: list[str] = []
         self.ignored_depth = 0
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
@@ -130,6 +131,7 @@ def _decode(part: Message) -> str:
     if payload is None:
         raw = part.get_payload()
         return raw if isinstance(raw, str) else ""
+    assert isinstance(payload, bytes)  # a decoded leaf part is always bytes
     charset = part.get_content_charset() or "utf-8"
     try:
         return payload.decode(charset, errors="replace")
@@ -183,9 +185,10 @@ def _omit_attachments(part: Message) -> int:
     if not part.is_multipart():
         return 0
     assert isinstance(payload, list)
-    retained: list[Message] = []
+    retained: list[Message | str] = []
     attachments = 0
     for child in payload:
+        assert isinstance(child, Message)  # children of a multipart part are messages
         is_attachment = (
             child.get_content_disposition() == "attachment"
             or child.get_filename() is not None
@@ -216,9 +219,11 @@ def attachment_parts(message: Message) -> Iterator[tuple[str, str, bytes]]:
         )
         if not is_attachment:
             continue
+        content = child.get_payload(decode=True)
+        assert content is None or isinstance(content, bytes)  # leaf parts decode to bytes
         yield (child.get_filename() or "unnamed",
                child.get_content_type() or "application/octet-stream",
-               child.get_payload(decode=True) or b"")
+               content or b"")
 
 
 def _collect_and_extract_attachments(

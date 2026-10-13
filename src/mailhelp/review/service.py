@@ -15,7 +15,7 @@ from typing import Any
 from pydantic import ValidationError
 
 from .. import state_names
-from ..configuration import AdminCommand
+from ..configuration import AdminCommand, ConfigurationService
 from ..domain.processing import ProposalClarificationState
 from ..models import MailState, Proposal, ProposalStatus, RelevanceDialogStatus, TelegramDialogState
 from .archive import record_event, record_relevance
@@ -59,9 +59,9 @@ class ReviewService:
         # Confirms that a web session is still valid when the command runs,
         # so a session revoked after submitting cannot act any more.
         self.web_authorizer = web_authorizer
-        self.configuration = None
+        self.configuration: ConfigurationService | None = None
 
-    def execute(self, command: ReviewCommand, *, raise_errors: bool = False) -> ReviewResult:
+    def execute(self, command: ReviewCommand | AdminCommand, *, raise_errors: bool = False) -> ReviewResult:
         """Apply *command*; with *raise_errors*, a rejected command raises instead."""
         if isinstance(command, AdminCommand):
             if self.configuration is None:
@@ -89,7 +89,7 @@ class ReviewService:
             record_event(self.controller.store, current, command.kind.value, command.source.value,
                          command.idempotency_key)
 
-    def reconcile(self, command: ReviewCommand) -> ReviewResult:
+    def reconcile(self, command: ReviewCommand | AdminCommand) -> ReviewResult:
         """Result of a command interrupted by a restart, judged from the current state.
 
         The command is never executed again: if its effect is visible it
@@ -141,6 +141,7 @@ class ReviewService:
 
     def _execute(self, command: ReviewCommand) -> ReviewResult:
         if command.kind == CommandKind.EDIT:
+            assert command.patch is not None  # ReviewCommand requires a patch for EDIT
             previous = self._target(command)
             targets = {previous.target}
             handler = self.controller.relevance_handler
@@ -167,6 +168,7 @@ class ReviewService:
         if command.source == CommandSource.WEB:
             # Named in web terms; Telegram's own check speaks of buttons.
             self._target(command)
+        assert command.proposal_id is not None  # decisions always name a proposal
         decision = Decision(
             mail_id=command.mail_id, proposal_id=command.proposal_id,
             version=command.version,

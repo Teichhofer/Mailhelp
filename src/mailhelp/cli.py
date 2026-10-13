@@ -6,6 +6,7 @@ import json
 import shutil
 import signal
 import sys
+from collections.abc import Callable, Set
 from contextlib import ExitStack
 from pathlib import Path
 
@@ -26,7 +27,7 @@ class _SignalShutdown:
     """Route signals to a running service or abort the current one-shot mode."""
 
     def __init__(self) -> None:
-        self.stop = None
+        self.stop: Callable[[], None] | None = None
 
     def __call__(self, _signum: int, _frame: object) -> None:
         if self.stop is None:
@@ -60,7 +61,7 @@ def _positive_int(value: str) -> int:
     return parsed
 
 
-def _remove_directory_contents(directory: Path, *, keep: set[str] = frozenset()) -> None:
+def _remove_directory_contents(directory: Path, *, keep: Set[str] = frozenset()) -> None:
     """Remove entries without following directory symlinks."""
     if not directory.exists():
         return
@@ -226,7 +227,8 @@ def _local_llm(parser: argparse.ArgumentParser, args: argparse.Namespace, prompt
         model = args.ollama_model or (prompts.ollama.model if prompts.ollama else None)
         if not model:
             parser.error("--ollama benötigt ein Modell: --ollama-model NAME oder ollama.model in prompts.yaml")
-        local_llm = LocalLlm(*args.ollama, model=model,
+        host, port = args.ollama
+        local_llm = LocalLlm(host, port, model=model,
                              num_ctx=prompts.ollama.num_ctx if prompts.ollama else LOCAL_NUM_CTX,
                              num_thread=prompts.ollama.num_thread if prompts.ollama else None,
                              think=prompts.ollama.think if prompts.ollama else None)
@@ -322,6 +324,7 @@ def _main() -> int:
     _check_mode_options(parser, args)
     local_llm = _local_llm(parser, args, prompts)
     if args.decision_test is not None:
+        assert local_llm is not None  # _check_mode_options requires --ollama for decision tests
         return run_decision_test(
             settings, secrets, topics, prompts, args.decision_test, args.config_directory,
             args.decision_test_file, local_llm=local_llm,

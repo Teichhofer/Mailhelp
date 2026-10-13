@@ -1,5 +1,18 @@
 # Änderungen
 
+## 2.2.4 – Beta (Branch `beta`), statische Prüfung: mypy fehlerfrei und verbindlich
+
+- **mypy (Planung 2.1, A1):** Von 339 Fehlern auf 0, unter Windows und Linux (`--platform linux`). Der CI-Job `static-analysis` bricht jetzt bei jedem ruff- oder mypy-Befund ab (kein `continue-on-error` mehr).
+  - `JsonStore.load_model`/`peek_model` liefern mit Default nie `None` (Overloads); `logger.metrics`, Metrics-Vergleich, Orchestrator-Themenpolitik und Review-Konfiguration sind typisiert.
+  - Protokolle passen zu ihren Implementierungen: `Completer` mit den tatsächlichen Schlüsselwortparametern, `Decider` für Jev-Entscheidungen, `RelevanceHandler` mit `telegram_offset`, eine gemeinsame `EventLogger`-Definition.
+  - pydantic-Plugin für mypy: Konstruktoren nehmen wie zur Laufzeit Strings für Enum-, Literal- und URL-Felder an.
+  - `DisabledTelegram` erfüllt den Transportvertrag vollständig (`started_chats`, `answer_callback`).
+  - `TelegramDialogState.reference()` liefert Mail, Vorschlag und Version eines offenen Dialogs typisiert.
+  - Abweichende Typstubs von `imaplib` (bytes-Ordnernamen, `None` als Zeichensatz) und plattformabhängige Stubs von `fcntl`/`msvcrt` sind an je einer Stelle gekapselt.
+- **Klassengröße (A4):** Minutenanteil und harte Aufrufgrenze eines Tätigkeitsberichts liegen in `activity.budget.ReportCalls`; `ActivityRunner` hat damit 19 statt 21 Methoden. Keine Klasse über 20 Methoden, keine Funktion über 80 Zeilen.
+- **Bugfix – Telegram-Zeitantworten:** Eine unmögliche Uhrzeit oder ein unmögliches Datum („30“, „heute 25 Uhr“, „31.02.2026“) löste im deterministischen Zeitparser einen `ValueError` aus, statt wie jede freie Antwort an die Interpretation zu gehen. Gefunden durch den Eigenschaftstest; Regressionstest `test_impossible_times_and_dates_are_no_deterministic_answer`.
+- **Bugfix – Rückfrage ohne validiertes Datum:** Widersprach eine Antwort auf die Frage nach dem Terminende einem Termin ohne validierte Datumsfakten (etwa aus einer Kalendereinladung), stürzte die Antwortverarbeitung mit `None + 1 Tag` ab, statt nachzufragen. Regressionstest `test_contradictory_end_without_validated_date_gets_a_question`.
+
 ## 2.2.3 – Beta (Branch `beta`), statische Prüfung: ruff fehlerfrei
 
 Keine Verhaltensänderung.

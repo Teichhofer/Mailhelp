@@ -7,6 +7,7 @@ import os
 import secrets
 import statistics
 import time
+from collections.abc import Callable
 from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -148,9 +149,9 @@ class MetricsRecorder:
         self.contacts: dict[str, str] = {}
         self.failures = 0
         self.run_id = secrets.token_hex(16)
-        self.test_mail_hash = None
-        self.comparison = None
-        self.changed = lambda: None
+        self.test_mail_hash: str | None = None
+        self.comparison: MetricsRecorder | None = None
+        self.changed: Callable[[], None] = lambda: None
 
     def runtime(self) -> dict:
         with self._lock:

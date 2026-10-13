@@ -9,7 +9,10 @@ from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from threading import RLock
-from typing import Any, Protocol, TextIO
+from typing import TYPE_CHECKING, Any, Protocol, TextIO
+
+if TYPE_CHECKING:
+    from .metrics import MetricsRecorder
 
 LEVELS = {"DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40, "CRITICAL": 50}
 SENSITIVE_KEYS = ("token", "password", "authorization", "api_key", "apikey", "secret", "cookie")
@@ -121,7 +124,7 @@ class JsonlLogger:
         self.llm = directory / llm_name
         self.telegram = directory / telegram_name
         self.include_requests, self.include_responses = include_llm_requests, include_llm_responses
-        self.metrics = None
+        self.metrics: MetricsRecorder | None = None
         self.level = _validate_level(level)
         self.module_levels = {str(module): _validate_level(item) for module, item in (module_levels or {}).items()}
         self.secrets = tuple(secret for secret in secrets if secret)

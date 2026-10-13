@@ -3,8 +3,17 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Sequence, Set
+from typing import Any
 
-from .action_normalization import MailDateContext, TemporalValue, normalize_event, normalize_task_due, recover_task_due
+from .action_normalization import (
+    MailDateContext,
+    NormalizationResult,
+    TemporalValue,
+    normalize_event,
+    normalize_task_due,
+    recover_task_due,
+)
 from .config import TargetSettings
 from .domain.extraction import ParsedCalendarEvent
 from .models import (
@@ -13,7 +22,9 @@ from .models import (
     ExtractionCountConflict,
     KnownTemporalFacts,
     Proposal,
+    ProposalCertainty,
     ProposalClassification,
+    ProposalKind,
     ProposalResponsibility,
     ProposalStatus,
 )
@@ -89,7 +100,7 @@ class ProposalBuilder:
 
     def build(self, tasks: list[ExtractedTask], events: list[ExtractedEvent],
               count_conflicts: list[ExtractionCountConflict] | None = None,
-              calendar_events: list[ParsedCalendarEvent | dict] | None = None) -> list[Proposal]:
+              calendar_events: Sequence[ParsedCalendarEvent | dict[str, Any]] | None = None) -> list[Proposal]:
         """Build deterministic proposals without changing the extracted cardinality."""
         used_ids: set[str] = set()
         conflicted = {item.category for item in count_conflicts or []}
@@ -102,7 +113,7 @@ class ProposalBuilder:
             proposals.append(self._extracted_proposal(kind, item, position, conflicted, used_ids))
         return proposals
 
-    def _calendar_proposals(self, calendar_events: list[ParsedCalendarEvent | dict] | None,
+    def _calendar_proposals(self, calendar_events: Sequence[ParsedCalendarEvent | dict[str, Any]] | None,
                             used_ids: set[str]) -> tuple[list[Proposal], set[str]]:
         """Complete proposals from calendar attachments and their titles."""
         proposals: list[Proposal] = []
@@ -132,9 +143,9 @@ class ProposalBuilder:
                 schema_version=2,
                 id=cand_id,
                 version=1,
-                kind="event",
+                kind=ProposalKind.EVENT,
                 responsibility=ProposalResponsibility.USER,
-                certainty="certain",
+                certainty=ProposalCertainty.CERTAIN,
                 classification=classification,
                 title=cal.summary,
                 description=self._description(cal.description),
@@ -142,7 +153,7 @@ class ProposalBuilder:
                 source_mail_id=self.source_mail_id,
                 open_questions=[],
                 location=cal.location,
-                video_link=str(cal.video_link) if cal.video_link else None,
+                video_link=cal.video_link,
                 target=self.targets.google_calendar,
                 status=ProposalStatus.PENDING_CONFIRMATION,
                 start=cal.start,
@@ -153,21 +164,23 @@ class ProposalBuilder:
         return proposals, ics_summaries
 
     def _extracted_proposal(self, kind: str, item: ExtractedTask | ExtractedEvent, position: int,
-                            conflicted: set[str], used_ids: set[str]) -> Proposal:
+                            conflicted: Set[str], used_ids: set[str]) -> Proposal:
         """One proposal from an extracted task or event, with its open questions."""
         # A deadline missing from due_text but unambiguous in the verbatim
         # evidence is recovered; the identity still uses the raw extraction.
-        due_item = recover_task_due(item) if isinstance(item, ExtractedTask) else item
-        temporal = (normalize_task_due(due_item, self.context)
-                    if kind == "task" and due_item.due_text is not None
-                    else normalize_event(item, self.context) if kind == "event" else None)
+        temporal: NormalizationResult | None
+        if isinstance(item, ExtractedTask):
+            due_item = recover_task_due(item)
+            temporal = normalize_task_due(due_item, self.context) if due_item.due_text is not None else None
+        else:
+            temporal = normalize_event(item, self.context)
         question = temporal.question if temporal is not None else None
         questions = self._questions(item, question)
         if kind in conflicted:
             questions.append(
                 f"Wie viele {'Aufgaben' if kind == 'task' else 'Termine'} enthält diese Mail tatsächlich?"
             )
-        values: dict[str, object] = {}
+        values: dict[str, Any] = {}
         if temporal is not None and temporal.resolved:
             if kind == "task":
                 values["due"] = temporal.value
@@ -190,8 +203,9 @@ class ProposalBuilder:
                   else ProposalStatus.NEEDS_CLARIFICATION)
         return Proposal(
             schema_version=2, id=self._identity(kind, item, position, used_ids), version=1,
-            kind=kind, responsibility=item.responsibility, certainty=item.certainty,
-            classification=item.classification, title=item.title,
+            kind=ProposalKind(kind), responsibility=ProposalResponsibility(item.responsibility),
+            certainty=ProposalCertainty(item.certainty),
+            classification=ProposalClassification(item.classification), title=item.title,
             description=self._description(item.description), evidence=item.evidence,
             source_mail_id=self.source_mail_id, open_questions=questions,
             location=item.location if isinstance(item, ExtractedEvent) else None,

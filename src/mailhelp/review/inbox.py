@@ -140,7 +140,7 @@ class CommandInbox:
                   else CommandStatus.DONE)
         self._update(entry_id, status=status, result=result, finished_at=self.clock())
 
-    def recover(self, reconcile: Callable[[ReviewCommand], ReviewResult]) -> int:
+    def recover(self, reconcile: Callable[[ReviewCommand | AdminCommand], ReviewResult]) -> int:
         """Reconcile entries interrupted while running; returns their number."""
         interrupted = [entry for entry in self._entries() if entry.status == CommandStatus.RUNNING]
         for entry in interrupted:

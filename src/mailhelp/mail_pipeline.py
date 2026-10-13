@@ -14,6 +14,7 @@ from .analysis import (
     LlmProviderResponseInvalid,
     LlmSchemaValidationExceeded,
 )
+from .domain.prepared import PreparedMail
 from .domain.proposal import ProposalStatus
 from .imap import FetchedMail
 from .mime import MimeLimitExceeded, extract_display_headers, prepare
@@ -34,6 +35,17 @@ from .sender_filter import is_irrelevant_sender
 
 if TYPE_CHECKING:
     from .orchestrator import Orchestrator
+
+
+def _content(state: MailState) -> dict[str, Any]:
+    """The mail being processed; retention removes content only from finished mails."""
+    assert state.mail is not None
+    return state.mail
+
+
+def _prepared(state: MailState) -> PreparedMail:
+    assert state.prepared is not None  # prepared together with the content
+    return state.prepared
 
 
 class ProcessingOutcome(StrEnum):
@@ -87,8 +99,10 @@ class MailPipeline:
         state = run.state
         assert state.mail is not None
         if self.o.duplicates.check(run.name, state):
+            duplicate = state.duplicate
+            assert duplicate is not None  # check() recorded the decision
             self.o.logger.event("INFO", "orchestrator", "duplicate_skipped", mail_id=state.id,
-                              previous_mail_id=state.duplicate.previous_mail_id)
+                              previous_mail_id=duplicate.previous_mail_id)
             return ProcessingResult(ProcessingOutcome.COMPLETED, state.model_dump(mode="json"))
         if self.o.vision is not None and state.steps.relevance == "pending":
             self.o.read_images(run.name, state, fetched.raw)
@@ -124,7 +138,7 @@ class MailPipeline:
         run.stage = ProcessingStage.RELEVANCE
         state = run.state
         if state.steps.relevance == "pending":
-            if is_irrelevant_sender(state.prepared.headers.sender, self.o.blocked_senders()):
+            if is_irrelevant_sender(_prepared(state).headers.sender, self.o.blocked_senders()):
                 state.relevance = Relevance(
                     decision="irrelevant", topic_ids=[], reason="Absender-Vorfilter"
                 )
@@ -132,7 +146,7 @@ class MailPipeline:
                 self.o.analyzer.last_relevance_source = "prefilter"
             else:
                 topics = self.o.topics_for(state.config_fingerprint)
-                call, state.relevance = self.o.analyzer.relevance(state.mail, topics)
+                call, state.relevance = self.o.analyzer.relevance(_content(state), topics)
                 state.llm_call_ids.append(call)
             state.steps.relevance = "completed"
             self.o.save(run.name, state)
@@ -154,7 +168,7 @@ class MailPipeline:
             state.relevance_dialog = RelevanceDialog(mail_id=state.id)
             state.awaiting_relevance = True
             self.o.save(name, state)
-            headers = state.prepared.headers
+            headers = _prepared(state).headers
             self.o.notifier.send_relevance(
                 state.relevance_dialog,
                 headers.sender or "—",
@@ -169,7 +183,7 @@ class MailPipeline:
         state, name = run.state, run.name
         run.stage = ProcessingStage.SUMMARY
         if state.steps.summary == "pending":
-            call, summary = self.o.analyzer.summary(state.mail)
+            call, summary = self.o.analyzer.summary(_content(state))
             state.summary = summary
             state.llm_call_ids.append(call)
             state.steps.summary = "completed"
@@ -192,7 +206,7 @@ class MailPipeline:
             return
         if state.steps.action_router in {"pending", "failed"}:
             run.stage = ProcessingStage.ACTION_ROUTER
-            call, route = self.o.analyzer.action_route(state.mail)
+            call, route = self.o.analyzer.action_route(_content(state))
             state.action_route = route
             state.action_router_call_id = call
             state.llm_call_ids.append(call)
@@ -210,7 +224,7 @@ class MailPipeline:
         # router is unsure whether the message is an invitation.  The
         # extractor and proposal boundary preserve that uncertainty,
         # while Telegram still receives the detected appointment.
-        has_cal_events = bool(state.prepared.calendar_events)
+        has_cal_events = bool(_prepared(state).calendar_events)
         wants_llm_events = (route.action_state in {"event", "task_and_event"}
                             or route.event_count > 0)
         wants_events = wants_llm_events or has_cal_events
@@ -235,7 +249,7 @@ class MailPipeline:
         if wants_tasks and state.steps.task_extraction in {"pending", "failed"}:
             run.stage = ProcessingStage.TASK_EXTRACTION
             call, extraction = self.o.analyzer.extract_tasks(
-                state.mail, expected_count=route.task_count)
+                _content(state), expected_count=route.task_count)
             state.task_extraction = extraction
             state.llm_call_ids.append(call)
             state.steps.task_extraction = "completed"
@@ -248,14 +262,14 @@ class MailPipeline:
             self.o.save(name, state)
         if wants_llm_events and state.steps.event_extraction in {"pending", "failed"}:
             run.stage = ProcessingStage.EVENT_EXTRACTION
-            call, extraction = self.o.analyzer.extract_events(
-                state.mail, expected_count=route.event_count)
-            state.event_extraction = extraction
+            call, events = self.o.analyzer.extract_events(
+                _content(state), expected_count=route.event_count)
+            state.event_extraction = events
             state.llm_call_ids.append(call)
             state.steps.event_extraction = "completed"
             self.o.save(name, state)
             self.o.record_count_conflict(name, state, "event", route.event_count,
-                                        len(extraction.events),
+                                        len(events.events),
                                         state.action_router_call_id, call)
         elif not wants_llm_events:
             state.steps.event_extraction = "skipped"

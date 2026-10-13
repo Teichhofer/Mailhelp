@@ -72,7 +72,8 @@ def test_quick_answer_and_relevance_buttons(page, mailhelp):
     sign_in(page, mailhelp)
     act(page, card(page, 3, "fest").get_by_role("button", name="Ja", exact=True), "Antwort übernommen")
     expect(card(page, 3, "fest").get_by_role("button", name="Im Kalender anlegen")).to_be_visible()
-    act(page, item(page, f"#r-{mail_id(7)}").get_by_role("button", name="Irrelevant"), "Mail als irrelevant eingestuft.")
+    act(page, item(page, f"#r-{mail_id(7)}").get_by_role("button", name="Irrelevant"),
+        "Mail als irrelevant eingestuft.")
     expect(page.locator(f"#r-{mail_id(7)}")).to_have_count(0)
     assert "🌐 Im Web: Mail als irrelevant eingestuft." in mailhelp.telegram.sent
     assert page.errors == []

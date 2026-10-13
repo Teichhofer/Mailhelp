@@ -80,7 +80,7 @@ class DuplicateMailCheck:
                           if set(same_identity.message_ids) & set(message_ids)
                           else "fingerprint_collision")
             elif message_id_headers != 1 or len(message_ids) != 1:
-                candidate = (matching_ids or matching_fingerprints or [None])[0]
+                candidate = next(iter(matching_ids or matching_fingerprints), None)
                 if candidate is not None:
                     outcome = "ambiguous"
                 reason = "multiple_message_ids" if message_id_headers > 1 else "missing_message_id"

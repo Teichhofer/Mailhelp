@@ -21,6 +21,8 @@ from zoneinfo import ZoneInfo
 from pydantic import BaseModel, ConfigDict
 
 from ..analysis import ContradictoryRevision
+from ..domain.proposal import ProposalRevisionChanges
+from ..domain.temporal import TemporalResolutionStatus, YearSource
 from ..models import (
     Proposal,
     ProposalKind,
@@ -107,7 +109,20 @@ def relative_end_answer(
 def parse_deterministic_temporal_answer(
     answer: str, reference_date: calendar_date | None = None
 ) -> DeterministicTemporalAnswer | None:
-    """Parse narrow date/time forms, resolving ``heute`` only with an explicit day."""
+    """Parse narrow date/time forms, resolving ``heute`` only with an explicit day.
+
+    An impossible day or time ("31.02.2026", "30 Uhr") is no deterministic answer;
+    like any other free answer it is left to the interpretation step.
+    """
+    try:
+        return _parse_temporal_answer(answer, reference_date)
+    except ValueError:
+        return None
+
+
+def _parse_temporal_answer(
+    answer: str, reference_date: calendar_date | None
+) -> DeterministicTemporalAnswer | None:
     relative = _RELATIVE_TODAY.fullmatch(answer)
     if relative is not None:
         if reference_date is None:
@@ -215,7 +230,7 @@ def _localize(value: clock_time | None, value_day: date | None, zone: ZoneInfo) 
     if value is None or value_day is None:
         return None
     naive = datetime.combine(value_day, value)
-    candidates = []
+    candidates: list[datetime] = []
     for fold in (0, 1):
         candidate = naive.replace(tzinfo=zone, fold=fold)
         if (
@@ -261,6 +276,7 @@ def _interval(proposal: Proposal, parsed: DeterministicTemporalAnswer, day: date
     ):
         # ``day`` is guaranteed above whenever a clock value exists.  A range
         # whose end clock is not later therefore explicitly crosses midnight.
+        assert day is not None
         end = _localize(end_time, day + timedelta(days=1), zone)
     elif end is not None and reference_start is not None and end <= reference_start:
         raise ContradictoryRevision("Das Terminende muss nach dem Beginn liegen")
@@ -328,7 +344,8 @@ def deterministic_temporal_revision(
     start, end = _interval(proposal, parsed, day, start_time, end_time, ZoneInfo(configured_timezone))
     changes = _temporal_changes(proposal, parsed, expected, start, end)
     revised = apply_proposal_revision(
-        proposal, ProposalRevisionDelta(answered_question=question, changes=changes)
+        proposal, ProposalRevisionDelta(answered_question=question,
+                                        changes=ProposalRevisionChanges.model_validate(changes))
     )
     if parsed.date is not None and (
         proposal.temporal_fact is None or proposal.temporal_fact.normalized_date is None
@@ -339,8 +356,8 @@ def deterministic_temporal_revision(
                     "temporal_fact": TemporalFact(
                         raw_text=normalized_answer,
                         normalized_date=parsed.date,
-                        year_source="telegram",
-                        status="resolved",
+                        year_source=YearSource.TELEGRAM,
+                        status=TemporalResolutionStatus.RESOLVED,
                     )
                 }
             ).model_dump()
@@ -378,7 +395,7 @@ def deterministic_classification_revision(
             proposal,
             ProposalRevisionDelta(
                 answered_question=question,
-                changes={"explicit_non_binding_create_confirmed": True},
+                changes=ProposalRevisionChanges(explicit_non_binding_create_confirmed=True),
             ),
             allow_create_fallback=True,
         )
@@ -397,7 +414,7 @@ def deterministic_classification_revision(
         proposal,
         ProposalRevisionDelta(
             answered_question=question,
-            changes={"explicit_create_fallback_confirmed": True},
+            changes=ProposalRevisionChanges(explicit_create_fallback_confirmed=True),
         ),
         allow_create_fallback=True,
     )

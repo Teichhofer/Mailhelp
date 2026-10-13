@@ -2,6 +2,16 @@
 
 Stand: 13.10.2026. Geprüfter Commit: `edb3df8`, Anwendungsversion 2.2.1.
 
+> **Nachtrag (Stand 2.2.4):** Die Befunde 1–6, die offenen 2.2-Anforderungen der Tabelle
+> und Befund 7 (ruff 0, mypy 0 unter Windows und Linux, CI-Gate verbindlich) sind behoben,
+> jeweils mit Regressionstests; Details im CHANGELOG (2.2.2–2.2.4). Die gemeldete
+> JavaScript-Lücke war ein Messfehler (CRLF-Offsets) und ist behoben; alle Browsertests
+> enden mit Exitcode 0. `ActivityRunner` liegt wieder unter 20 Methoden.
+> **Weiterhin offen:** Mutationstests (`mutmut`, Wochenjob, ≥ 90 %), `axe-core` und
+> Browser-Seitenobjekte (T4/T7), `composition.py` (A4), Activity-Tests ohne Importe aus
+> `test_application`/`test_core` (T1/T2) sowie die beiden fachlichen Entscheidungen aus
+> Planung 2.1, Abschnitt 5 (Tagesüberblick bei spätem Start, Push-Operationen je Gerät).
+
 **Ergebnis: Die Anforderungen sind noch nicht vollständig erreicht.** Die
 Grundfunktionen sind umfangreich implementiert; insbesondere bestehen sämtliche
 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung. Es bleiben jedoch fachliche

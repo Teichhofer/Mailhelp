@@ -2,8 +2,9 @@
 from __future__ import annotations
 
 from datetime import date as calendar_date
-from typing import Any, Protocol
+from typing import Protocol
 
+from ..logging import EventLogger
 from ..models import Proposal, TelegramAnswerInterpretation, TelegramClarification
 
 
@@ -24,6 +25,5 @@ class ProposalRevisionService(Protocol):
     ) -> tuple[str, Proposal]: ...
 
 
-class EventLogger(Protocol):
-    def event(self, level: str, module: str, event: str, **fields: Any) -> None: ...
+__all__ = ["EventLogger", "ProposalRevisionService"]
 

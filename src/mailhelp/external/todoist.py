@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from functools import partial
 from typing import Any
 
 from pydantic import ValidationError
@@ -19,7 +20,7 @@ class TodoistOperations(HttpTransport):
             params = {"project_id": self.target}
             if cursor is not None:
                 params["cursor"] = cursor
-            response = self.policy.run(lambda params=params: self._get("/tasks", params))
+            response = self.policy.run(partial(self._get, "/tasks", params))
             try: page = TodoistTaskListResponse.model_validate(response.json())
             except (ValueError, ValidationError) as exc:
                 raise ValueError(f"Todoist tasks: ungültige Antwort am Schlüsselpfad {validation_path(exc)}") from exc
@@ -61,7 +62,7 @@ class TodoistOperations(HttpTransport):
                 params = {"project_id": self.target}
                 if cursor is not None:
                     params["cursor"] = cursor
-                response = self.policy.run(lambda params=params: self._get("/tasks", params))
+                response = self.policy.run(partial(self._get, "/tasks", params))
                 page = TodoistTaskListResponse.model_validate(response.json())
                 tasks.extend(page.results)
                 cursor = page.next_cursor

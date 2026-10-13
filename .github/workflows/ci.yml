@@ -23,10 +23,8 @@ jobs:
       - run: python -m pytest --cov=mailhelp --cov-branch --cov-fail-under=100 --durations=20
 
   static-analysis:
-    # Planung 2.1, A1: findings are reported until the code base is clean;
-    # from release 2.1.0 on both steps fail the build.
+    # Planung 2.1, A1: ruff and mypy are clean since 2.2.4; every finding fails the build.
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5

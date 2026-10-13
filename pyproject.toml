@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mailhelp"
-version = "2.2.3"
+version = "2.2.4"
 description = "Persönlicher, bestätigungspflichtiger E-Mail-Assistent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -54,6 +54,8 @@ known-first-party = ["mailhelp"]
 
 [tool.mypy]
 python_version = "3.12"
+# pydantic validates and converts constructor arguments at runtime (str to enum, URL ...).
+plugins = ["pydantic.mypy"]
 mypy_path = "src"
 packages = ["mailhelp"]
 warn_unused_configs = true

@@ -8,13 +8,14 @@ import re
 import time
 import uuid
 from pathlib import Path
-from typing import Annotated, Any, Literal
+from typing import Annotated, Any, Literal, Protocol
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
 
 from .analysis import Analyzer
 from .config import ConfigModel, Topic, read_yaml, validated_file
+from .logging import EventLogger
 from .models import ActionRoute, Relevance
 from .openrouter import OpenRouterClient, RateLimitExceeded
 
@@ -206,10 +207,18 @@ def jev_mail(mail: dict[str, Any], limit: int) -> dict[str, str]:
     return {key: headers.get(key, "") for key in ("from", "subject", "date")} | {"text": text}
 
 
+class Decider(Protocol):
+    logger: EventLogger
+
+    def decide(self, model: str, state: Any, questions: dict[str, Any],
+               *, stage: str, max_payload_bytes: int) -> tuple[str, dict[str, Any]]:
+        """Call id and the validated answers to the closed questions."""
+
+
 class DecisionAnalyzer:
     """Only classification/routing; generative stages stay with Analyzer."""
 
-    def __init__(self, client: DecisionClient, prompts: DecisionPrompts,
+    def __init__(self, client: Decider, prompts: DecisionPrompts,
                  max_payload_bytes: int):
         self.client, self.prompts, self.max_payload_bytes = client, prompts, max_payload_bytes
 

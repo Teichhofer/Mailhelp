@@ -35,8 +35,9 @@ class CalendarOperations(HttpTransport):
             body = self._calendar_event_body(proposal, key)
             if proposal.is_cancellation:
                 body["status"] = "cancelled"
+            event_id = proposal.target_event_id
             return PreparedWrite(lambda: self._update_calendar_event(
-                proposal.target_event_id, body, key, proposal, proposal.time_changes))
+                event_id, body, key, proposal, proposal.time_changes))
         duplicate = (None if proposal.explicit_duplicate_create_confirmed_version == proposal.version
                      else self._matching_calendar_event(proposal))
         if duplicate is not None:
@@ -196,6 +197,7 @@ class CalendarOperations(HttpTransport):
                                     ("Ende", existing.end, validated.end)):
             old = parse(old_raw)
             # An unknown existing time cannot be compared and is left alone.
+            assert new is not None  # a validated event always has start and end
             if old is not None and not (type(old) is type(new) and old == new):
                 changes.append(f"{label} {display(old, label == 'Ende')} → "
                                f"{display(new, label == 'Ende')}")
@@ -238,6 +240,7 @@ class CalendarOperations(HttpTransport):
     def _all_day_interval(proposal: Proposal) -> dict[str, Any]:
         # Google interprets end.date as exclusive: a one-day event therefore
         # has end equal to the calendar day after start.
+        assert proposal.start is not None and proposal.end is not None  # validated before the write
         return {"start": {"date": proposal.start.isoformat()}, "end": {"date": proposal.end.isoformat()}}
 
 
@@ -245,6 +248,7 @@ class CalendarOperations(HttpTransport):
         # dateTime already identifies the instant through its mandatory UTC
         # offset.  Supplying the configured calendar zone as well could make a
         # different zone appear authoritative and reinterpret the wall time.
+        assert proposal.start is not None and proposal.end is not None  # validated before the write
         return {
             "start": {"dateTime": proposal.start.isoformat()},
             "end": {"dateTime": proposal.end.isoformat()},

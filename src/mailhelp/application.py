@@ -10,7 +10,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from pathlib import Path
 from threading import Event, Lock
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
 from . import state_names
@@ -45,6 +45,11 @@ from .vision import VisionExtractor
 from .web import WebServer, WebServerError
 from .web.factory import create_web
 
+if TYPE_CHECKING:
+    from .experience import ExperienceRuntime
+    from .imap import FetchedMail
+    from .standalone import DisabledTelegram
+
 _TELEGRAM_ERROR_BACKOFF_SECONDS = 5.0
 
 
@@ -66,7 +71,7 @@ class Application:
     imap: ImapReader
     openrouter: OpenRouterClient
     analyzer: Analyzer
-    telegram: TelegramClient
+    telegram: TelegramClient | DisabledTelegram
     todoist: HttpWriter
     calendar: HttpWriter
     orchestrator: Orchestrator
@@ -80,7 +85,7 @@ class Application:
     # Web stop handshake; its final state is set when the run loop ends.
     lifecycle: Any = None
     configuration: object | None = None
-    experience: object | None = None
+    experience: ExperienceRuntime | None = None
 
     mailbox: MailboxRunService = field(init=False, repr=False)
 
@@ -163,9 +168,11 @@ class Application:
         """Main-thread activation of the explicitly live configuration subset."""
         self.settings = settings
         self.mailbox.settings = settings
-        self.logger.metrics.settings = settings.metrics
-        if self.logger.metrics.comparison is not None:
-            self.logger.metrics.comparison.settings = settings.metrics
+        metrics = self.logger.metrics
+        assert metrics is not None  # attached together with the logger (_attach_metrics)
+        metrics.settings = settings.metrics
+        if metrics.comparison is not None:
+            metrics.comparison.settings = settings.metrics
 
     def stop(self) -> None:
         self.stop_event.set()
@@ -286,7 +293,7 @@ class Application:
             )
         self.stop_event.set()
 
-    def _process_mail(self, mail: object) -> ProcessingResult:
+    def _process_mail(self, mail: FetchedMail) -> ProcessingResult:
         """Wait only for relevance; proposals are independent of mail analysis."""
         if self._receiver is not None:
             # Button presses received during the previous mail come first.
@@ -494,9 +501,10 @@ def _attach_metrics(logger: JsonlLogger, settings: Settings, base_directory: Pat
     comparison = metrics_root / DECISION_TEST_FILE
     adopt_legacy(data / "metrics" / "llm.jsonl", production)
     adopt_legacy(data.parent / "decision-tests" / "metrics" / "llm.jsonl", comparison)
-    logger.metrics = MetricsRecorder(production, settings.metrics, "local" if local_llm else "standard")
-    logger.metrics.comparison = MetricsRecorder(comparison, settings.metrics, "decision_test")
-    logger.metrics.changed = store.touch
+    recorder = MetricsRecorder(production, settings.metrics, "local" if local_llm else "standard")
+    recorder.comparison = MetricsRecorder(comparison, settings.metrics, "decision_test")
+    recorder.changed = store.touch
+    logger.metrics = recorder
 
 
 def _build_imap(settings: Settings, secrets: Secrets, policy: Callable[[str], RetryPolicy],
@@ -544,10 +552,9 @@ def _build_llm(settings: Settings, secrets: Secrets, local_llm: LocalLlm | None,
 def _build_telegram(settings: Settings, secrets: Secrets, policy: Callable[[str], RetryPolicy],
                     logger: JsonlLogger, stack: ExitStack) -> Any:
     if settings.telegram.enabled:
-        telegram = TelegramClient(secrets.telegram_bot_token.get_secret_value(),
-                                  settings.timeouts.telegram.timeout_seconds,
-                                  poll_timeout=settings.timeouts.telegram_poll_seconds, policy=policy("telegram"),
-                                  logger=logger)
+        telegram: TelegramClient | DisabledTelegram = TelegramClient(
+            secrets.telegram_bot_token.get_secret_value(), settings.timeouts.telegram.timeout_seconds,
+            poll_timeout=settings.timeouts.telegram_poll_seconds, policy=policy("telegram"), logger=logger)
     else:
         from .standalone import DisabledTelegram
         telegram = DisabledTelegram()
@@ -558,7 +565,7 @@ def _build_telegram(settings: Settings, secrets: Secrets, policy: Callable[[str]
 def _build_analyzer(settings: Settings, secrets: Secrets, prompts: PromptConfig, openrouter: OpenRouterClient,
                     jev_prompts: Any, llm_budget: dict[str, Any], stop_event: Event, stack: ExitStack) -> Analyzer:
     analyzer_options: dict[str, Any] = {}
-    analyzer_type = Analyzer
+    analyzer_type: Callable[..., Analyzer] = Analyzer
     if jev_prompts is not None:
         llm_cfg = settings.timeouts.openrouter
         decision_client = DecisionClient(
@@ -636,6 +643,8 @@ def _build_orchestrator(settings: Settings, prompts: PromptConfig, topics: list[
 def _attach_web(application: Application, settings: Settings, secrets: Secrets, prompts: PromptConfig,
                 jev_prompts: Any, local_llm: LocalLlm | None, base_directory: Path, sender_store: JsonStore) -> None:
     store, logger, dialog = application.store, application.logger, application.dialog
+    # build_application always creates the dialog and its command inbox before the web interface.
+    assert dialog is not None and dialog.commands is not None
     telegram, orchestrator, stop_event = application.telegram, application.orchestrator, application.stop_event
     secret = secrets.mailhelp_web_secret
     if settings.telegram.enabled:

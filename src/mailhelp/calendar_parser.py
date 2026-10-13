@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import re
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, tzinfo
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -65,6 +65,7 @@ def _parse_ical_datetime(raw_val: str, params: dict[str, str],
     minute = int(time_digits[2:4])
     second = int(time_digits[4:6]) if len(time_digits) >= 6 else 0
 
+    tz: tzinfo
     if is_utc:
         tz = UTC
     elif "TZID" in params:

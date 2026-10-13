@@ -5,7 +5,7 @@ from __future__ import annotations
 import time
 import traceback
 import uuid
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
 import httpx
 from pydantic import ValidationError
@@ -390,7 +390,7 @@ class TelegramClient:
             if detail is not None:
                 # Retry code consumes this explicit safe field instead of rendering
                 # the exception URL, because that URL contains the bot token.
-                exc.safe_detail = detail
+                cast(Any, exc).safe_detail = detail
                 if detail == TelegramClient._CHAT_NOT_FOUND_HELP.format(
                     operation=operation
                 ):

@@ -57,7 +57,8 @@ _AUDIT = r"""
     };
     return 0.2126 * channel(rgb[0]) + 0.7152 * channel(rgb[1]) + 0.0722 * channel(rgb[2]);
   };
-  const textNodes = document.querySelectorAll("h1, h2, h3, p, li, label, a, button, summary, span, strong, blockquote, code");
+  const textNodes = document.querySelectorAll(
+    "h1, h2, h3, p, li, label, a, button, summary, span, strong, blockquote, code");
   for (const element of textNodes) {
     if (!visible(element) || !element.innerText.trim()) continue;
     const ownText = [...element.childNodes].some((node) => node.nodeType === 3 && node.textContent.trim());

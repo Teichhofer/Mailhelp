@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import traceback
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 from pydantic import ValidationError
 
@@ -80,6 +80,7 @@ class TelegramUpdateHandler:
             raw_id = raw.get("update_id") if isinstance(raw, dict) else None
             if self._stale(raw, raw_id, offset):
                 continue
+            assert isinstance(raw_id, int)  # _stale() rejected every other id
             self._process_one(raw, raw_id, acknowledged)
             offset = raw_id + 1
             self.o.store.save(
@@ -224,6 +225,7 @@ class TelegramUpdateHandler:
 
     def _callback(self, update: TelegramUpdate, acknowledged: bool) -> None:
         callback = update.callback_query
+        assert callback is not None  # only callback updates are routed here
         # Stop Telegram's loading indicator before potentially slow state,
         # LLM, or external-service work begins, unless the receiver thread
         # already did so when the update arrived.
@@ -267,7 +269,8 @@ class TelegramUpdateHandler:
                 confirmation = self.o.review.execute(ReviewCommand(
                     kind=CommandKind.RELEVANCE, source=CommandSource.TELEGRAM,
                     actor=actor, mail_id=relevance.mail_id, version=relevance.version,
-                    decision=relevance.decision, idempotency_key=key,
+                    # The callback pattern only admits these two values.
+                    decision=cast(Literal["relevant", "irrelevant"], relevance.decision), idempotency_key=key,
                     replay_offset=update.update_id + 1,
                 ), raise_errors=True).message
             else:

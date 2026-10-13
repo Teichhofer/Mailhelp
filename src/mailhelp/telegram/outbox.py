@@ -88,13 +88,16 @@ class TelegramOutbox:
         return {
             (entry.mail_id, entry.proposal_id, entry.version)
             for entry in self.load().entries
-            if entry.kind == "proposal"
+            # The entry validator sets all three for a proposal; the checks narrow the types.
+            if entry.kind == "proposal" and entry.mail_id is not None and entry.proposal_id is not None
+            and entry.version is not None
         }
 
     def queued_relevance(self) -> set[tuple[str, int]]:
         """Relevance questions not yet attempted must not pause other mail."""
         return {(entry.mail_id, entry.version) for entry in self.load().entries
-                if entry.kind == "relevance" and entry.status == "queued"}
+                if entry.kind == "relevance" and entry.status == "queued"
+                and entry.mail_id is not None and entry.version is not None}
 
     @staticmethod
     def _uncertain_gate(entry: TelegramOutboxEntry) -> TelegramOutboxGate | None:

@@ -12,7 +12,7 @@ from __future__ import annotations
 import ipaddress
 import re
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, cast
 
 import httpx
 
@@ -183,7 +183,7 @@ def raise_for_ollama_status(response: httpx.Response) -> None:
     try:
         response.raise_for_status()
     except httpx.HTTPStatusError as exc:
-        exc.safe_detail = f"Ollama: HTTP {response.status_code}" + (
+        cast(Any, exc).safe_detail = f"Ollama: HTTP {response.status_code}" + (
             " (Modell auf dem Ollama-Server nicht gefunden)"
             if response.status_code == 404 else "")
         raise

@@ -187,8 +187,8 @@ def test_the_report_uses_only_its_share_and_waits_for_the_shared_budget(setup, m
     runner = ActivityRunner(setup.service, setup.runner.analyzer, setup.box.connection, setup.cfg, setup.log,
                             lambda: 2, lambda: clock[0])
     monkeypatch.setattr(runner.stop_event, "wait", wait)
-    runner._wait_for_budget()
-    runner._wait_for_budget()  # 50 % of 2 per minute: the second call waits
+    runner.calls.wait_for_share()
+    runner.calls.wait_for_share()  # 50 % of 2 per minute: the second call waits
     assert waits and sum(waits) >= 5
     attempts = []
     def limited():
@@ -196,10 +196,10 @@ def test_the_report_uses_only_its_share_and_waits_for_the_shared_budget(setup, m
         if len(attempts) == 1:
             raise RateLimitExceeded(0)
         return "ok"
-    assert runner._call(limited) == "ok" and len(attempts) == 2
+    assert runner.calls.call(limited) == "ok" and len(attempts) == 2
     runner.stop_event.is_set = lambda: True
     with pytest.raises(RateLimitExceeded):
-        runner._call(lambda: (_ for _ in ()).throw(RateLimitExceeded(0)))
+        runner.calls.call(lambda: (_ for _ in ()).throw(RateLimitExceeded(0)))
 
 
 def test_user_corrections_and_dates_on_request(setup):
@@ -671,7 +671,7 @@ def test_budget_scope_preserves_direct_analysis_and_provider_metrics(setup):
     report = setup.service.create(definition(), [], [])
     from mailhelp.activity.models import ReportMail
     mail = ReportMail(key="INBOX:7:1", folder="INBOX", uid=1, received_at=JAN, subject="Elternabend")
-    call, answer = setup.runner._call(lambda: setup.runner.analyzer.relevance(report, mail, JAN.date()))
+    call, answer = setup.runner.calls.call(lambda: setup.runner.analyzer.relevance(report, mail, JAN.date()))
     assert answer.relevant and recorded[0]["call_id"] == call
 
 

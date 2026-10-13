@@ -6,6 +6,7 @@ import unicodedata
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import Any, cast
 
 import yaml
 
@@ -99,7 +100,7 @@ class LearningMode:
     def _refresh_folders(self) -> None:
         if self.config_path is None:
             return
-        discovered = [getattr(mailbox, "name", mailbox)
+        discovered = [str(getattr(mailbox, "name", mailbox))
                       for mailbox in self.imap.list_folders()]
         previous = set(self.folders)
         self.folders = add_discovered_folders(
@@ -126,7 +127,7 @@ class LearningMode:
             candidates.sort(key=lambda item: (
                 item.received_at, item.uid, -folder_rank[item.folder]
             ), reverse=True)
-            mails = []
+            mails: list[FetchedMail] = []
             for candidate in candidates[:count]:
                 try:
                     mails.append(self.imap.fetch_uid(
@@ -135,7 +136,7 @@ class LearningMode:
                     self.output(f'IMAP-Ordner "{_safe_terminal(candidate.folder)}" ist '
                                 "nicht mehr lesbar; die Nachricht wird übersprungen.")
             return mails
-        mails: list[FetchedMail] = []
+        mails = []
         for folder in self.folders:
             try:
                 after_uid = 0
@@ -210,7 +211,8 @@ class LearningMode:
         def classify(mail: FetchedMail) -> tuple[MailClassification | None, dict[str, object] | None, bool]:
             try:
                 payload = prepare(mail.raw, self.limits, mail.received_at, self.timezone)
-                if is_irrelevant_sender(payload["headers"].get("from", ""), blocked):
+                headers = cast(dict[str, Any], payload["headers"])
+                if is_irrelevant_sender(headers.get("from", ""), blocked):
                     return None, None, False
                 if self._known(payload, known_topics):
                     return None, None, False
@@ -282,6 +284,7 @@ class LearningMode:
             # Persist the union calculated above: learning must never
             # replace addresses or manually maintained domains that
             # were already present when this run started.
+            assert self.store is not None  # rejected senders are only learned with a store
             self.store.save("irrelevant-senders", updated.model_dump(mode="json"))
 
     def _known(self, payload: dict[str, object], topics: list[Topic]) -> bool:

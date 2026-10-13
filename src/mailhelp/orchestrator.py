@@ -6,7 +6,7 @@ import json
 import time
 from datetime import UTC, datetime
 from threading import Event
-from typing import Any, Protocol
+from typing import Any, Literal, Protocol, cast
 
 from . import state_names
 from .action_normalization import MailDateContext
@@ -20,6 +20,7 @@ from .mail_questions import MailQuestions
 from .models import (
     ExtractionCountConflict,
     IrrelevantSenders,
+    MailImapIdentity,
     MailState,
     ProcessingError,
     ProcessingErrorCode,
@@ -57,7 +58,7 @@ class Orchestrator:
         self.logger = logger or NullLogger()
         self.clock = clock
         self.config_fingerprint = config_fingerprint
-        self.topic_policy = None
+        self.topic_policy: str | None = None
         # Normal application construction always supplies validated settings;
         # these defaults retain the small dependency-injected test surface.
         self.targets = targets or TargetSettings(todoist_project="inbox", google_calendar="primary")
@@ -93,11 +94,12 @@ class Orchestrator:
             calendar_events=mail.calendar_events,
         )
 
-    def record_count_conflict(self, name: str, state: MailState, category: str,
-                               expected: int, actual: int, router_call_id: str,
+    def record_count_conflict(self, name: str, state: MailState, category: Literal["task", "event"],
+                               expected: int, actual: int, router_call_id: str | None,
                                extractor_call_id: str) -> None:
         if expected == actual:
             return
+        assert router_call_id is not None  # a count comes from the router's own call
         key = (category, router_call_id, extractor_call_id)
         if any((item.category, item.router_call_id, item.extractor_call_id) == key
                for item in state.extraction_count_conflicts):
@@ -121,6 +123,7 @@ class Orchestrator:
     def cache_previews(self, state: MailState, raw: bytes) -> None:
         """Image previews are optional; a failure never stops the analysis."""
         from .attachments import AttachmentCache
+        assert state.mail is not None  # previews are cached while the mail is prepared
         try:
             AttachmentCache(self.store).prepare(state.id, raw, state.mail["extracted_attachments"])
         except (OSError, ValueError) as exc:
@@ -142,7 +145,7 @@ class Orchestrator:
         It runs at most once per mail, never for a blocked sender and only while
         the original message is available (a resumed mail has no raw bytes).
         """
-        assert state.mail is not None and self.vision is not None
+        assert state.mail is not None and state.prepared is not None and self.vision is not None
         metadata = state.mail["metadata"]
         if "vision" in metadata:
             return
@@ -167,7 +170,7 @@ class Orchestrator:
 
     def notification_text(self, state: MailState) -> str:
         """Format the compact mail notification from validated display values."""
-        assert state.mail is not None and state.relevance is not None and state.summary is not None
+        assert state.prepared is not None and state.relevance is not None and state.summary is not None
         headers = state.prepared.headers
         sentences = "\n".join(f"• {sentence}" for sentence in state.summary.sentences)
         return f"{mail_line(headers.sender or '—', headers.subject or '—')}\n{sentences}"
@@ -211,13 +214,13 @@ class Orchestrator:
                  stage: ProcessingStage, text: str, retryable: bool | None = None) -> None:
         """Mark before sending, and retain a matching generation across restarts."""
         now = datetime.now(UTC)
-        previous = state.error
-        if previous is None or previous.code != code or previous.stage != stage:
-            state.error = ProcessingError(code=code, stage=stage, occurred_at=now, retryable=retryable)
-        if state.error.notification_marked_at is not None:
+        error = state.error
+        if error is None or error.code != code or error.stage != stage:
+            error = state.error = ProcessingError(code=code, stage=stage, occurred_at=now, retryable=retryable)
+        if error.notification_marked_at is not None:
             self.save(name, state)
             return
-        state.error.notification_marked_at = now
+        error.notification_marked_at = now
         self.save(name, state)
         if state.prepared is not None:
             sender, subject = state.prepared.headers.sender, state.prepared.headers.subject
@@ -243,7 +246,7 @@ class Orchestrator:
         if decision not in {"relevant", "irrelevant"}:
             raise ValueError("Ungültige Relevanzentscheidung")
         state.relevance = Relevance(
-            decision=decision, topic_ids=[], reason="Telegram-Entscheidung"
+            decision=cast(Literal["relevant", "irrelevant"], decision), topic_ids=[], reason="Telegram-Entscheidung"
         )
         state.awaiting_relevance = False
         state.relevance_dialog = dialog.model_copy(update={
@@ -294,8 +297,8 @@ class Orchestrator:
         existing = self.store.load_model(name, MailState)
         state = existing if isinstance(existing, MailState) else MailState(
             id=internal_id,
-            imap={"account_id": fetched.account_id, "folder": fetched.folder, "uidvalidity": fetched.uidvalidity,
-                  "uid": fetched.uid},
+            imap=MailImapIdentity(account_id=fetched.account_id, folder=fetched.folder,
+                                  uidvalidity=fetched.uidvalidity, uid=fetched.uid),
             config_fingerprint=self.config_fingerprint,
         )
         if state.steps.completion != "completed" and not self.accepts_configuration(state.config_fingerprint):

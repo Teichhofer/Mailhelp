@@ -11,7 +11,7 @@ import traceback
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import TypeVar
+from typing import Any, TypeVar, cast
 
 from .adapter import RetryPolicy
 from .logging import EventLogger, NullLogger
@@ -219,6 +219,14 @@ class ImapReader:
             self.close()
             raise
 
+    # imaplib accepts the quoted bytes form of a mailbox and None as search charset at
+    # runtime; its type stubs only declare str. These two calls carry that difference.
+    def _select(self, folder: str) -> tuple[str, list[Any]]:
+        return cast(Any, self.connection).select(mailbox_argument(folder), readonly=True)
+
+    def _uid(self, command: str, *args: str | bytes | None) -> tuple[str, list[Any]]:
+        return cast(Any, self.connection).uid(command, *args)
+
     def _connect(self) -> imaplib.IMAP4:
         return self._factory(self._host, self._port, timeout=self._timeout)
 
@@ -282,7 +290,7 @@ class ImapReader:
 
     def _check_access(self, folders: list[str]) -> None:
         for folder in folders:
-            status, _ = self.connection.select(mailbox_argument(folder), readonly=True)
+            status, _ = self._select(folder)
             if status != "OK":
                 raise FolderNotReadable(folder)
 
@@ -325,7 +333,7 @@ class ImapReader:
             folder, uid, expected_uidvalidity))
 
     def _fetch_uid(self, folder: str, uid: int, expected_uidvalidity: int) -> FetchedMail:
-        status, _data = self.connection.select(mailbox_argument(folder), readonly=True)
+        status, _data = self._select(folder)
         if status != "OK": raise FolderNotReadable(folder)
         status, validity = self.connection.response("UIDVALIDITY")
         if status != "UIDVALIDITY" or not validity: raise RuntimeError("IMAP lieferte keine UIDVALIDITY")
@@ -333,7 +341,7 @@ class ImapReader:
         self.last_uidvalidity = uidvalidity
         if uidvalidity != expected_uidvalidity:
             raise UIDValidityChanged(folder, expected_uidvalidity, uidvalidity)
-        status, body = self.connection.uid("fetch", str(uid).encode(), "(BODY.PEEK[] INTERNALDATE)")
+        status, body = self._uid("fetch", str(uid).encode(), "(BODY.PEEK[] INTERNALDATE)")
         if status != "OK":
             raise RuntimeError(f"IMAP-Abruf fehlgeschlagen: UID {uid}")
         return _fetched_mail(folder, uidvalidity, uid, body, self.account_id)
@@ -353,7 +361,7 @@ class ImapReader:
                         completed_uid_ranges: tuple[tuple[int, int], ...] = (),
                         max_count: int | None = None,
                         historical_start: datetime | None = None) -> list[MailCandidate]:
-        status, _data = self.connection.select(mailbox_argument(folder), readonly=True)
+        status, _data = self._select(folder)
         if status != "OK":
             raise FolderNotReadable(folder)
         status, validity = self.connection.response("UIDVALIDITY")
@@ -369,7 +377,7 @@ class ImapReader:
             # the configured instant exactly to the returned INTERNALDATE values.
             since = (historical_start.astimezone(UTC) - timedelta(days=1))
             search.extend(("SINCE", since.strftime("%d-%b-%Y")))
-        status, matches = self.connection.uid("search", None, *search)
+        status, matches = self._uid("search", None, *search)
         if status != "OK":
             raise RuntimeError("IMAP-Suche fehlgeschlagen")
         tokens = matches[0].split() if matches else []
@@ -386,7 +394,7 @@ class ImapReader:
             return []
         # One sequence-set FETCH replaces one request per UID.  Only the newest
         # per-folder window needed for a global N-result can contribute to it.
-        status, data = self.connection.uid(
+        status, data = self._uid(
             "fetch", b",".join(selected), "(UID INTERNALDATE)"
         )
         if status != "OK":
@@ -431,7 +439,7 @@ class ImapReader:
         return self._operation("historical_boundary", lambda: self._determine_start_uid(folder, start))
 
     def _determine_start_uid(self, folder: str, start: datetime) -> int:
-        status, _ = self.connection.select(mailbox_argument(folder), readonly=True)
+        status, _ = self._select(folder)
         if status != "OK": raise FolderNotReadable(folder)
         status, validity = self.connection.response("UIDVALIDITY")
         if status != "UIDVALIDITY" or not validity: raise RuntimeError("IMAP lieferte keine UIDVALIDITY")
@@ -440,11 +448,11 @@ class ImapReader:
         # INTERNALDATE so the configured instant remains exact and timezone-safe.
         utc_start = start.astimezone(UTC)
         since = (utc_start - timedelta(days=1)).strftime("%d-%b-%Y")
-        status, matches = self.connection.uid("search", None, "SINCE", since)
+        status, matches = self._uid("search", None, "SINCE", since)
         if status != "OK": raise RuntimeError("IMAP-Suche nach Startgrenze fehlgeschlagen")
         candidates = matches[0].split() if matches else []
         for token in candidates:
-            status, data = self.connection.uid("fetch", token, "(INTERNALDATE)")
+            status, data = self._uid("fetch", token, "(INTERNALDATE)")
             if status != "OK":
                 raise RuntimeError(f"IMAP-INTERNALDATE-Abruf abgelehnt: {status}")
             metadata = []
@@ -465,7 +473,7 @@ class ImapReader:
                 raise RuntimeError("IMAP lieferte ungültigen INTERNALDATE-Datumswert") from exc
             if instant >= utc_start:
                 return max(0, int(token) - 1)
-        status, all_matches = self.connection.uid("search", None, "ALL")
+        status, all_matches = self._uid("search", None, "ALL")
         if status != "OK": raise RuntimeError("IMAP-Suche fehlgeschlagen")
         all_uids = all_matches[0].split() if all_matches else []
         return int(all_uids[-1]) if all_uids else 0
@@ -474,7 +482,7 @@ class ImapReader:
                      expected_uidvalidity: int | None,
                      max_count: int | None,
                      completed_uid_ranges: tuple[tuple[int, int], ...] = ()) -> list[FetchedMail]:
-        status, data = self.connection.select(mailbox_argument(folder), readonly=True)
+        status, data = self._select(folder)
         if status != "OK": raise FolderNotReadable(folder)
         status, validity = self.connection.response("UIDVALIDITY")
         if status != "UIDVALIDITY" or not validity: raise RuntimeError("IMAP lieferte keine UIDVALIDITY")
@@ -484,7 +492,7 @@ class ImapReader:
             # Do not search or fetch in a UID generation whose durable boundary
             # has not been resolved yet.  In particular, BODY.PEEK must not run.
             raise UIDValidityChanged(folder, expected_uidvalidity, uidvalidity)
-        status, matches = self.connection.uid("search", None, f"UID {after_uid + 1}:*")
+        status, matches = self._uid("search", None, f"UID {after_uid + 1}:*")
         if status != "OK": raise RuntimeError("IMAP-Suche fehlgeschlagen")
         tokens = matches[0].split() if matches else []
         def completed(uid: int) -> bool:
@@ -500,7 +508,7 @@ class ImapReader:
         result = []
         for token in selected:
             uid = int(token)
-            status, body = self.connection.uid("fetch", token, "(BODY.PEEK[] INTERNALDATE)")
+            status, body = self._uid("fetch", token, "(BODY.PEEK[] INTERNALDATE)")
             if status != "OK": raise RuntimeError(f"IMAP-Abruf fehlgeschlagen: UID {uid}")
             result.append(_fetched_mail(folder, uidvalidity, uid, body, self.account_id))
             self.logger.event("INFO", "imap", "message_fetched", folder=folder, uid=uid,
