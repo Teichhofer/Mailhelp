@@ -1,7 +1,7 @@
 """Activity reports in the state store: one report file and blocks of up to 500 mails."""
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Literal
 from uuid import uuid4
 
@@ -25,17 +25,21 @@ class ActivityReportStore:
     def __init__(self, store: StateStore):
         self.store = store
 
-    def create(self, definition: ReportDefinition, addresses: list[str], domains: list[str]) -> ActivityReport:
+    def create(self, definition: ReportDefinition, addresses: list[str], domains: list[str],
+               created_at: datetime | None = None) -> ActivityReport:
+        """A new report; its sequence number keeps FIFO order even within one clock tick."""
+        sequence = max((report.sequence for report in self.reports()), default=0) + 1
         report = ActivityReport(id=uuid4().hex, definition=definition,
+                                created_at=created_at or datetime.now(UTC), sequence=sequence,
                                 blocked_addresses=addresses, blocked_domains=domains)
         self.save(report)
         return report
 
     def reports(self) -> list[ActivityReport]:
-        """Every report, newest first."""
+        """Every report, newest first; equal timestamps by creation order, then by id."""
         found = [self.store.load_model(name, ActivityReport) for name in self.store.names(REPORT_PREFIX)]
         return sorted((report for report in found if report is not None),
-                      key=lambda report: report.created_at, reverse=True)
+                      key=lambda report: (report.created_at, report.sequence, report.id), reverse=True)
 
     def load(self, report_id: str) -> ActivityReport | None:
         return self.store.load_model(report_name(report_id), ActivityReport)

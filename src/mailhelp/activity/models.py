@@ -130,6 +130,9 @@ class ActivityReport(StrictModel):
     status: ReportStatus = ReportStatus.COUNTING
     message: str = Field(default="", max_length=500)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    # Creation order for reports with the same created_at (coarse Windows clock);
+    # 0 for reports written before 2.3.1.
+    sequence: int = Field(default=0, ge=0)
     started_at: datetime | None = None
     finished_at: datetime | None = None
     blocked_addresses: list[str] = Field(default_factory=list)

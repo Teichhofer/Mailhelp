@@ -278,6 +278,12 @@
       "title": "Schema Version",
       "type": "integer"
     },
+    "sequence": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Sequence",
+      "type": "integer"
+    },
     "started_at": {
       "anyOf": [
         {

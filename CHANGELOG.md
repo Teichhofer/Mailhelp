@@ -20,6 +20,18 @@
 - Ungültige Unicode-Werte in Kopplungssignaturen und CSRF-Tokens werden mit HTTP 403
   abgewiesen; Regressionstests belegen beide zuvor ausgelösten Serverfehler.
 
+## 2.3.1 – Beta (Branch `beta`), Tätigkeitsberichte in fester Reihenfolge
+
+- **Fehler behoben:** Zwei kurz nacheinander angelegte Tätigkeitsberichte konnten unter Windows denselben
+  Anlagezeitpunkt erhalten (Uhrauflösung etwa 15 ms); die Bearbeitungsreihenfolge hing dann von den
+  zufälligen Dateinamen ab, und der spätere Bericht konnte vor dem früheren gezählt werden. Berichte tragen
+  jetzt eine fortlaufende Nummer (`sequence`, ältere Dateien 0) als zweites Sortierkriterium, danach die
+  Kennung. Der Anlagezeitpunkt kommt aus der Uhr des Dienstes.
+- Regressionstest `test_reports_created_in_the_same_clock_tick_stay_fifo` friert die Uhr ein und lässt das
+  Dateisystem beide Reihenfolgen liefern; er scheiterte vor der Korrektur zuverlässig. Damit ist auch der
+  gelegentlich fehlschlagende `test_report_counting_is_fifo` stabil. Schema-Snapshot `ActivityReport`
+  um das optionale Feld ergänzt; alte Berichtsdateien bleiben ohne Migration lesbar.
+
 ## 2.3.0 – Beta (Branch `beta`), weitere Kalender- und Aufgabendienste, Volltextsuche, Originaldokumente
 
 Planung: [docs/Planung-2.3.md](docs/Planung-2.3.md).

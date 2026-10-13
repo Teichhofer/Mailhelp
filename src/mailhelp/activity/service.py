@@ -67,7 +67,7 @@ class ActivityService:
                         if done != digest:
                             raise ReportConflict("Idempotenzkonflikt")
                         return existing
-            report = self.store.create(definition, addresses, domains)
+            report = self.store.create(definition, addresses, domains, self.clock())
             report.authorized_actor = self.actor.get()
             if key is not None:
                 report.operations[key] = digest

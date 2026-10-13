@@ -2025,6 +2025,10 @@ ausdrücklich auch vergangene.
   auch nach Neustarts; ein laufender Bericht ist nach einem Neustart pausiert.
   Höchstwerte `max_mails` und `max_llm_calls` pausieren den Bericht; er nutzt
   höchstens `max_share_of_llm_budget` von `limits.llm_calls_per_minute`.
+  Berichte werden in der Reihenfolge ihrer Anlage bearbeitet. Eine fortlaufende
+  Nummer (`sequence`) hält diese Reihenfolge auch bei gleichem Anlagezeitpunkt
+  (grobe Uhrauflösung unter Windows) ein; ältere Berichte ohne Nummer werden nach
+  Zeitpunkt und Kennung geordnet.
   Eine unbrauchbare KI-Antwort (Tokenlimit, ungültiges JSON, Schema) wird an der
   Mail vermerkt und nie automatisch wiederholt; der Nutzer entscheidet selbst bzw.
   ergänzt Termine von Hand. Ist der KI-Dienst dreimal in Folge nicht erreichbar,

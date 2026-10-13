@@ -509,6 +509,32 @@ def test_report_counting_is_fifo(setup):
     assert setup.service.store.load(second.id).status == ReportStatus.COUNTING
 
 
+@pytest.mark.parametrize("listing", ["oldest_file_first", "newest_file_first"])
+def test_reports_created_in_the_same_clock_tick_stay_fifo(setup, monkeypatch, listing):
+    """Regression: on Windows two reports can get the same created_at (about 15 ms clock
+    resolution); the order then depended on the random file names."""
+    import mailhelp.activity.models as models
+
+    class SameTick(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return JAN
+
+    monkeypatch.setattr(models, "datetime", SameTick)
+    first = setup.service.create(definition(title="first"), [], [])
+    second = setup.service.create(definition(title="second"), [], [])
+    assert first.created_at == second.created_at == JAN
+    # The file system may list the two report files in either order.
+    created = [first.id, second.id] if listing == "oldest_file_first" else [second.id, first.id]
+    names = setup.store.names
+    monkeypatch.setattr(setup.store, "names", lambda prefix="": sorted(
+        names(prefix), key=lambda name: next((i for i, rid in enumerate(created) if rid in name), -1)))
+    setup.runner.tick()
+    assert setup.service.store.load(first.id).status == ReportStatus.READY
+    assert setup.service.store.load(second.id).status == ReportStatus.COUNTING
+    assert [report.id for report in setup.service.store.reports()] == [second.id, first.id]
+
+
 def test_counting_failure_is_bounded_and_persisted(setup, monkeypatch):
     report = setup.service.create(definition(), [], [])
 
