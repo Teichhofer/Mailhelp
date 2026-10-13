@@ -2,7 +2,7 @@ services:
   mailhelp:
     network_mode: none
     entrypoint: [python, -m, pytest]
-    command: ["-q", "--no-cov", "-p", "no:cacheprovider", "/tests/test_container_learning.py"]
+    command: ["-q", "--no-cov", "-p", "no:cacheprovider", "/tests/e2e/test_container_learning.py"]
     environment:
       MAILHELP_LEARNING_CONFIG: /config
     volumes:

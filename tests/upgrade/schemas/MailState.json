@@ -1,0 +1,1810 @@
+{
+  "$defs": {
+    "ActionRoute": {
+      "additionalProperties": false,
+      "description": "Bounded action classification before detailed extraction.\n\nFor ``unclear`` the counters are the number of possible task/event\ncandidates seen by the router.  One of them may be zero.  A counted\ncandidate is still extracted so that its uncertainty can be reviewed in a\nconcrete proposal instead of being hidden behind a generic message.  An\n``unclear`` route without any candidate has nothing to review and is\ntreated as ``none``; otherwise it only produced an unanswerable hint.",
+      "properties": {
+        "action_state": {
+          "enum": [
+            "none",
+            "task",
+            "event",
+            "task_and_event",
+            "unclear"
+          ],
+          "title": "Action State",
+          "type": "string"
+        },
+        "event_count": {
+          "maximum": 20,
+          "minimum": 0,
+          "title": "Event Count",
+          "type": "integer"
+        },
+        "reason": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "task_count": {
+          "maximum": 20,
+          "minimum": 0,
+          "title": "Task Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "action_state",
+        "task_count",
+        "event_count",
+        "reason"
+      ],
+      "title": "ActionRoute",
+      "type": "object"
+    },
+    "DisplayHeaders": {
+      "additionalProperties": false,
+      "description": "Sanitized, bounded headers retained for user-facing notifications.",
+      "properties": {
+        "sender": {
+          "maxLength": 500,
+          "title": "Sender",
+          "type": "string"
+        },
+        "subject": {
+          "maxLength": 500,
+          "title": "Subject",
+          "type": "string"
+        }
+      },
+      "required": [
+        "sender",
+        "subject"
+      ],
+      "title": "DisplayHeaders",
+      "type": "object"
+    },
+    "DuplicateDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "outcome": {
+          "enum": [
+            "new",
+            "duplicate",
+            "ambiguous"
+          ],
+          "title": "Outcome",
+          "type": "string"
+        },
+        "previous_mail_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{24}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Previous Mail Id"
+        },
+        "reason": {
+          "enum": [
+            "no_match",
+            "same_message",
+            "missing_message_id",
+            "multiple_message_ids",
+            "message_id_reused",
+            "fingerprint_collision",
+            "candidate_incomplete"
+          ],
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "outcome",
+        "reason"
+      ],
+      "title": "DuplicateDecision",
+      "type": "object"
+    },
+    "DuplicateMatchInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "checked_at": {
+          "format": "date-time",
+          "title": "Checked At",
+          "type": "string"
+        },
+        "details": {
+          "default": "",
+          "maxLength": 1000,
+          "title": "Details",
+          "type": "string"
+        },
+        "external_id": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Id"
+        },
+        "external_link": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Link"
+        },
+        "matched_time": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Matched Time"
+        },
+        "matched_title": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Matched Title",
+          "type": "string"
+        },
+        "similarity_score": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Similarity Score"
+        },
+        "source": {
+          "$ref": "#/$defs/DuplicateSource"
+        }
+      },
+      "required": [
+        "source",
+        "matched_title"
+      ],
+      "title": "DuplicateMatchInfo",
+      "type": "object"
+    },
+    "DuplicateSource": {
+      "enum": [
+        "action_ledger",
+        "google_calendar",
+        "todoist"
+      ],
+      "title": "DuplicateSource",
+      "type": "string"
+    },
+    "EventExtraction": {
+      "additionalProperties": false,
+      "properties": {
+        "events": {
+          "items": {
+            "$ref": "#/$defs/ExtractedEvent"
+          },
+          "maxItems": 20,
+          "title": "Events",
+          "type": "array"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "events"
+      ],
+      "title": "EventExtraction",
+      "type": "object"
+    },
+    "ExtractedEvent": {
+      "additionalProperties": false,
+      "description": "Unnormalised event facts; missing facts remain explicitly absent.",
+      "properties": {
+        "certainty": {
+          "enum": [
+            "certain",
+            "uncertain",
+            "contradictory"
+          ],
+          "title": "Certainty",
+          "type": "string"
+        },
+        "classification": {
+          "enum": [
+            "new",
+            "non_binding",
+            "already_completed",
+            "change",
+            "cancellation",
+            "recurring",
+            "unsupported"
+          ],
+          "title": "Classification",
+          "type": "string"
+        },
+        "date_text": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date Text"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "duration_is_upper_bound": {
+          "default": false,
+          "title": "Duration Is Upper Bound",
+          "type": "boolean"
+        },
+        "duration_minutes": {
+          "anyOf": [
+            {
+              "maximum": 1440,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration Minutes"
+        },
+        "end_time_text": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End Time Text"
+        },
+        "evidence": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Evidence",
+          "type": "string"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "maxLength": 1000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Location"
+        },
+        "responsibility": {
+          "enum": [
+            "user",
+            "other",
+            "unclear"
+          ],
+          "title": "Responsibility",
+          "type": "string"
+        },
+        "time_requirement": {
+          "$ref": "#/$defs/TimeRequirement"
+        },
+        "time_text": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Time Text"
+        },
+        "timezone_offset_text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timezone Offset Text"
+        },
+        "title": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "video_link": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Video Link"
+        }
+      },
+      "required": [
+        "title",
+        "evidence",
+        "time_requirement",
+        "responsibility",
+        "certainty",
+        "classification"
+      ],
+      "title": "ExtractedEvent",
+      "type": "object"
+    },
+    "ExtractedTask": {
+      "additionalProperties": false,
+      "description": "Unnormalised task facts copied from an untrusted message.",
+      "properties": {
+        "certainty": {
+          "enum": [
+            "certain",
+            "uncertain",
+            "contradictory"
+          ],
+          "title": "Certainty",
+          "type": "string"
+        },
+        "classification": {
+          "enum": [
+            "new",
+            "non_binding",
+            "already_completed",
+            "change",
+            "cancellation",
+            "recurring",
+            "unsupported"
+          ],
+          "title": "Classification",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 4000,
+          "title": "Description",
+          "type": "string"
+        },
+        "due_text": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Due Text"
+        },
+        "evidence": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Evidence",
+          "type": "string"
+        },
+        "responsibility": {
+          "enum": [
+            "user",
+            "other",
+            "unclear"
+          ],
+          "title": "Responsibility",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "description",
+        "evidence",
+        "responsibility",
+        "certainty",
+        "classification"
+      ],
+      "title": "ExtractedTask",
+      "type": "object"
+    },
+    "ExtractionCountConflict": {
+      "additionalProperties": false,
+      "description": "Durable evidence that a router count disagreed with an extraction.",
+      "properties": {
+        "actual_count": {
+          "maximum": 20,
+          "minimum": 0,
+          "title": "Actual Count",
+          "type": "integer"
+        },
+        "category": {
+          "enum": [
+            "task",
+            "event"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "expected_count": {
+          "maximum": 20,
+          "minimum": 0,
+          "title": "Expected Count",
+          "type": "integer"
+        },
+        "extractor_call_id": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Extractor Call Id",
+          "type": "string"
+        },
+        "notification_marked_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notification Marked At"
+        },
+        "router_call_id": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Router Call Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "category",
+        "expected_count",
+        "actual_count",
+        "router_call_id",
+        "extractor_call_id"
+      ],
+      "title": "ExtractionCountConflict",
+      "type": "object"
+    },
+    "KnownTemporalFacts": {
+      "additionalProperties": false,
+      "description": "Valid temporal facts retained while an event interval is incomplete.",
+      "properties": {
+        "date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start"
+        },
+        "start_time": {
+          "anyOf": [
+            {
+              "format": "time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Time"
+        }
+      },
+      "title": "KnownTemporalFacts",
+      "type": "object"
+    },
+    "MailImapIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "account_id": {
+          "pattern": "^[a-f0-9]{24}$",
+          "title": "Account Id",
+          "type": "string"
+        },
+        "folder": {
+          "minLength": 1,
+          "title": "Folder",
+          "type": "string"
+        },
+        "uid": {
+          "minimum": 1,
+          "title": "Uid",
+          "type": "integer"
+        },
+        "uidvalidity": {
+          "minimum": 1,
+          "title": "Uidvalidity",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "account_id",
+        "folder",
+        "uidvalidity",
+        "uid"
+      ],
+      "title": "MailImapIdentity",
+      "type": "object"
+    },
+    "ProcessingError": {
+      "additionalProperties": false,
+      "description": "Persistierbarer Fehler ohne Inhalte oder technische Ausnahmeinformationen.",
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/ProcessingErrorCode"
+        },
+        "notification_marked_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notification Marked At"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "title": "Occurred At",
+          "type": "string"
+        },
+        "retryable": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Retryable"
+        },
+        "stage": {
+          "$ref": "#/$defs/ProcessingStage"
+        }
+      },
+      "required": [
+        "code",
+        "stage",
+        "occurred_at"
+      ],
+      "title": "ProcessingError",
+      "type": "object"
+    },
+    "ProcessingErrorCode": {
+      "enum": [
+        "mime_limit_exceeded",
+        "llm_schema_validation_exhausted",
+        "provider_response_invalid",
+        "invalid_json",
+        "schema_validation_failed",
+        "permanent_adapter_error",
+        "llm_rate_limited",
+        "internal_error"
+      ],
+      "title": "ProcessingErrorCode",
+      "type": "string"
+    },
+    "ProcessingStage": {
+      "enum": [
+        "preparation",
+        "relevance",
+        "summary",
+        "summary_notification",
+        "action_detection",
+        "action_router",
+        "task_extraction",
+        "event_extraction",
+        "normalization",
+        "proposal_building",
+        "duplicate_precheck",
+        "proposal_notification",
+        "completion"
+      ],
+      "title": "ProcessingStage",
+      "type": "string"
+    },
+    "ProcessingSteps": {
+      "additionalProperties": false,
+      "properties": {
+        "action_detection": {
+          "default": "pending",
+          "enum": [
+            "pending",
+            "completed",
+            "failed",
+            "skipped"
+          ],
+          "title": "Action Detection",
+          "type": "string"
+        },
+        "action_router": {
+          "default": "pending",
+          "enum": [
+            "pending",
+            "completed",
+            "failed",
+            "skipped"
+          ],
+          "title": "Action Router",
+          "type": "string"
+        },
+        "completion": {
+          "default": "pending",
+          "enum": [
+            "pending",
+            "completed",
+            "skipped"
+          ],
+          "title": "Completion",
+          "type": "string"
+        },
+        "duplicate_precheck": {
+          "default": "pending",
+          "enum": [
+            "pending",
+            "completed",
+            "failed",
+            "skipped"
+          ],
+          "title": "Duplicate Precheck",
+          "type": "string"
+        },
+        "event_extraction": {
+          "default": "pending",
+          "enum": [
+            "pending",
+            "completed",
+            "failed",
+            "skipped"
+          ],
+          "title": "Event Extraction",
+          "type": "string"
+        },
+        "normalization": {
+          "default": "pending",
+          "enum": [
+            "pending",
+            "completed",
+            "failed",
+            "skipped"
+          ],
+          "title": "Normalization",
+          "type": "string"
+        },
+        "preparation": {
+          "default": "pending",
+          "enum": [
+            "pending",
+            "completed",
+            "skipped"
+          ],
+          "title": "Preparation",
+          "type": "string"
+        },
+        "proposal_building": {
+          "default": "pending",
+          "enum": [
+            "pending",
+            "completed",
+            "failed",
+            "skipped"
+          ],
+          "title": "Proposal Building",
+          "type": "string"
+        },
+        "proposal_notification": {
+          "default": "pending",
+          "enum": [
+            "pending",
+            "sending",
+            "completed",
+            "skipped"
+          ],
+          "title": "Proposal Notification",
+          "type": "string"
+        },
+        "relevance": {
+          "default": "pending",
+          "enum": [
+            "pending",
+            "completed",
+            "skipped"
+          ],
+          "title": "Relevance",
+          "type": "string"
+        },
+        "summary": {
+          "default": "pending",
+          "enum": [
+            "pending",
+            "completed",
+            "skipped"
+          ],
+          "title": "Summary",
+          "type": "string"
+        },
+        "summary_notification": {
+          "default": "pending",
+          "enum": [
+            "pending",
+            "sending",
+            "completed",
+            "skipped"
+          ],
+          "title": "Summary Notification",
+          "type": "string"
+        },
+        "task_extraction": {
+          "default": "pending",
+          "enum": [
+            "pending",
+            "completed",
+            "failed",
+            "skipped"
+          ],
+          "title": "Task Extraction",
+          "type": "string"
+        }
+      },
+      "title": "ProcessingSteps",
+      "type": "object"
+    },
+    "Proposal": {
+      "additionalProperties": false,
+      "properties": {
+        "all_day": {
+          "default": false,
+          "title": "All Day",
+          "type": "boolean"
+        },
+        "certainty": {
+          "$ref": "#/$defs/ProposalCertainty"
+        },
+        "classification": {
+          "$ref": "#/$defs/ProposalClassification"
+        },
+        "description": {
+          "default": "",
+          "maxLength": 4000,
+          "title": "Description",
+          "type": "string"
+        },
+        "due": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Due"
+        },
+        "duplicate_match": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DuplicateMatchInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "duration_is_upper_bound": {
+          "default": false,
+          "title": "Duration Is Upper Bound",
+          "type": "boolean"
+        },
+        "duration_minutes": {
+          "anyOf": [
+            {
+              "maximum": 1440,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration Minutes"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "evidence": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Evidence",
+          "type": "string"
+        },
+        "explicit_create_fallback_confirmed": {
+          "default": false,
+          "title": "Explicit Create Fallback Confirmed",
+          "type": "boolean"
+        },
+        "explicit_duplicate_create_confirmed_version": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Explicit Duplicate Create Confirmed Version"
+        },
+        "explicit_non_binding_create_confirmed": {
+          "default": false,
+          "title": "Explicit Non Binding Create Confirmed",
+          "type": "boolean"
+        },
+        "external_id": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Id"
+        },
+        "external_link": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Link"
+        },
+        "id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "is_cancellation": {
+          "default": false,
+          "title": "Is Cancellation",
+          "type": "boolean"
+        },
+        "kind": {
+          "$ref": "#/$defs/ProposalKind"
+        },
+        "known_temporal_facts": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/KnownTemporalFacts"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "location": {
+          "anyOf": [
+            {
+              "maxLength": 1000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Location"
+        },
+        "open_questions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Open Questions",
+          "type": "array"
+        },
+        "responsibility": {
+          "$ref": "#/$defs/ProposalResponsibility"
+        },
+        "schema_version": {
+          "const": 2,
+          "default": 2,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "simulation_notified": {
+          "default": false,
+          "title": "Simulation Notified",
+          "type": "boolean"
+        },
+        "source_mail_id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Source Mail Id",
+          "type": "string"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start"
+        },
+        "status": {
+          "$ref": "#/$defs/ProposalStatus",
+          "default": "pending_confirmation"
+        },
+        "target": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Target",
+          "type": "string"
+        },
+        "target_event_id": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Event Id"
+        },
+        "temporal_fact": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TemporalFact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "time_changes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Time Changes",
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "uncertain_notified": {
+          "default": false,
+          "title": "Uncertain Notified",
+          "type": "boolean"
+        },
+        "version": {
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "video_link": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Video Link"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "kind",
+        "responsibility",
+        "certainty",
+        "classification",
+        "title",
+        "evidence",
+        "source_mail_id",
+        "target"
+      ],
+      "title": "Proposal",
+      "type": "object"
+    },
+    "ProposalCertainty": {
+      "enum": [
+        "certain",
+        "uncertain",
+        "contradictory"
+      ],
+      "title": "ProposalCertainty",
+      "type": "string"
+    },
+    "ProposalClassification": {
+      "enum": [
+        "new",
+        "non_binding",
+        "already_completed",
+        "change",
+        "cancellation",
+        "recurring",
+        "unsupported"
+      ],
+      "title": "ProposalClassification",
+      "type": "string"
+    },
+    "ProposalKind": {
+      "enum": [
+        "task",
+        "event"
+      ],
+      "title": "ProposalKind",
+      "type": "string"
+    },
+    "ProposalNotification": {
+      "additionalProperties": false,
+      "description": "Durable Telegram delivery state for one immutable proposal version.",
+      "properties": {
+        "proposal_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "proposal_version": {
+          "minimum": 1,
+          "title": "Proposal Version",
+          "type": "integer"
+        },
+        "status": {
+          "default": "pending",
+          "enum": [
+            "pending",
+            "queued",
+            "sending",
+            "completed"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "proposal_id",
+        "proposal_version"
+      ],
+      "title": "ProposalNotification",
+      "type": "object"
+    },
+    "ProposalResponsibility": {
+      "enum": [
+        "user",
+        "other",
+        "unclear"
+      ],
+      "title": "ProposalResponsibility",
+      "type": "string"
+    },
+    "ProposalStatus": {
+      "enum": [
+        "needs_clarification",
+        "pending_confirmation",
+        "already_exists",
+        "confirmed",
+        "writing",
+        "created",
+        "simulated",
+        "rejected",
+        "failed",
+        "uncertain"
+      ],
+      "title": "ProposalStatus",
+      "type": "string"
+    },
+    "Relevance": {
+      "additionalProperties": false,
+      "properties": {
+        "decision": {
+          "enum": [
+            "relevant",
+            "irrelevant",
+            "unclear"
+          ],
+          "title": "Decision",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "topic_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Topic Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "decision",
+        "topic_ids",
+        "reason"
+      ],
+      "title": "Relevance",
+      "type": "object"
+    },
+    "RelevanceDialog": {
+      "additionalProperties": false,
+      "properties": {
+        "decision": {
+          "anyOf": [
+            {
+              "enum": [
+                "relevant",
+                "irrelevant"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Decision"
+        },
+        "mail_id": {
+          "pattern": "^[a-f0-9]{24}$",
+          "title": "Mail Id",
+          "type": "string"
+        },
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "status": {
+          "$ref": "#/$defs/RelevanceDialogStatus",
+          "default": "open"
+        },
+        "telegram_offset": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Telegram Offset"
+        },
+        "version": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "mail_id"
+      ],
+      "title": "RelevanceDialog",
+      "type": "object"
+    },
+    "RelevanceDialogStatus": {
+      "enum": [
+        "open",
+        "decided"
+      ],
+      "title": "RelevanceDialogStatus",
+      "type": "string"
+    },
+    "Summary": {
+      "additionalProperties": false,
+      "properties": {
+        "deadlines": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Deadlines",
+          "type": "array"
+        },
+        "sentences": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 2,
+          "minItems": 1,
+          "title": "Sentences",
+          "type": "array"
+        }
+      },
+      "required": [
+        "sentences"
+      ],
+      "title": "Summary",
+      "type": "object"
+    },
+    "TaskExtraction": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": 1,
+          "default": 1,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "tasks": {
+          "items": {
+            "$ref": "#/$defs/ExtractedTask"
+          },
+          "maxItems": 20,
+          "title": "Tasks",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tasks"
+      ],
+      "title": "TaskExtraction",
+      "type": "object"
+    },
+    "TemporalFact": {
+      "additionalProperties": false,
+      "description": "Structured date fact created at the raw-extraction trust boundary.",
+      "properties": {
+        "normalized_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Normalized Date"
+        },
+        "raw_text": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Raw Text"
+        },
+        "status": {
+          "$ref": "#/$defs/TemporalResolutionStatus"
+        },
+        "year_source": {
+          "$ref": "#/$defs/YearSource",
+          "default": "unknown"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "TemporalFact",
+      "type": "object"
+    },
+    "TemporalResolutionStatus": {
+      "description": "Application-owned resolution state for an extracted date expression.",
+      "enum": [
+        "resolved",
+        "unresolved",
+        "conflicting"
+      ],
+      "title": "TemporalResolutionStatus",
+      "type": "string"
+    },
+    "TimeRequirement": {
+      "description": "Explicit mail evidence about whether an event needs clock times.",
+      "enum": [
+        "all_day",
+        "timed",
+        "required_unknown"
+      ],
+      "title": "TimeRequirement",
+      "type": "string"
+    },
+    "ValidationIssue": {
+      "additionalProperties": false,
+      "description": "Content-free, durable description of a rejected validation boundary.",
+      "properties": {
+        "code": {
+          "maxLength": 100,
+          "minLength": 1,
+          "pattern": "^[a-z0-9_]+$",
+          "title": "Code",
+          "type": "string"
+        },
+        "occurred_at": {
+          "format": "date-time",
+          "title": "Occurred At",
+          "type": "string"
+        },
+        "path": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ]
+          },
+          "maxItems": 20,
+          "title": "Path",
+          "type": "array"
+        },
+        "stage": {
+          "$ref": "#/$defs/ProcessingStage"
+        }
+      },
+      "required": [
+        "stage",
+        "code",
+        "occurred_at"
+      ],
+      "title": "ValidationIssue",
+      "type": "object"
+    },
+    "WriteAttemptReference": {
+      "additionalProperties": false,
+      "description": "Stable reference from a mail to a separately persisted write generation.",
+      "properties": {
+        "idempotency_key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "mail_id": {
+          "pattern": "^[a-f0-9]{24}$",
+          "title": "Mail Id",
+          "type": "string"
+        },
+        "proposal_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "proposal_version": {
+          "minimum": 1,
+          "title": "Proposal Version",
+          "type": "integer"
+        },
+        "service": {
+          "enum": [
+            "todoist",
+            "google_calendar"
+          ],
+          "title": "Service",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mail_id",
+        "proposal_id",
+        "proposal_version",
+        "service",
+        "idempotency_key"
+      ],
+      "title": "WriteAttemptReference",
+      "type": "object"
+    },
+    "YearSource": {
+      "description": "Why a normalized date has the year that it has.",
+      "enum": [
+        "explicit_mail",
+        "mail_context",
+        "telegram",
+        "unknown"
+      ],
+      "title": "YearSource",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "action_route": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ActionRoute"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "action_router_call_id": {
+      "anyOf": [
+        {
+          "maxLength": 500,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Action Router Call Id"
+    },
+    "awaiting_relevance": {
+      "default": false,
+      "title": "Awaiting Relevance",
+      "type": "boolean"
+    },
+    "config_fingerprint": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Config Fingerprint",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "deferred_until": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Deferred Until"
+    },
+    "display_headers": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DisplayHeaders"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "duplicate": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/DuplicateDecision"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "error": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProcessingError"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "event_extraction": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/EventExtraction"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "extraction_count_conflicts": {
+      "items": {
+        "$ref": "#/$defs/ExtractionCountConflict"
+      },
+      "title": "Extraction Count Conflicts",
+      "type": "array"
+    },
+    "id": {
+      "pattern": "^[a-f0-9]{24}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "imap": {
+      "$ref": "#/$defs/MailImapIdentity"
+    },
+    "llm_call_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Llm Call Ids",
+      "type": "array"
+    },
+    "mail": {
+      "anyOf": [
+        {
+          "additionalProperties": true,
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Mail"
+    },
+    "normalized_proposals": {
+      "items": {
+        "$ref": "#/$defs/Proposal"
+      },
+      "title": "Normalized Proposals",
+      "type": "array"
+    },
+    "proposal_notifications": {
+      "items": {
+        "$ref": "#/$defs/ProposalNotification"
+      },
+      "title": "Proposal Notifications",
+      "type": "array"
+    },
+    "proposals": {
+      "items": {
+        "$ref": "#/$defs/Proposal"
+      },
+      "title": "Proposals",
+      "type": "array"
+    },
+    "relevance": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Relevance"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "relevance_dialog": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/RelevanceDialog"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "schema_version": {
+      "const": 9,
+      "default": 9,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "steps": {
+      "$ref": "#/$defs/ProcessingSteps"
+    },
+    "summary": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Summary"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "task_extraction": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/TaskExtraction"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    },
+    "validation_errors": {
+      "items": {
+        "$ref": "#/$defs/ValidationIssue"
+      },
+      "title": "Validation Errors",
+      "type": "array"
+    },
+    "write_attempts": {
+      "items": {
+        "$ref": "#/$defs/WriteAttemptReference"
+      },
+      "title": "Write Attempts",
+      "type": "array"
+    }
+  },
+  "required": [
+    "id",
+    "imap",
+    "config_fingerprint"
+  ],
+  "title": "MailState",
+  "type": "object"
+}

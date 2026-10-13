@@ -1,17 +1,18 @@
 """Bounded, defensive MIME preparation without fetching external resources."""
 from __future__ import annotations
 
-from dataclasses import dataclass
-from email import policy
-from email.message import Message
-from email.parser import BytesParser
-from email.parser import BytesHeaderParser
-from email.utils import parsedate_to_datetime
-from datetime import datetime, timezone
-from html.parser import HTMLParser
 import json
 import re
 import unicodedata
+from collections.abc import Iterator
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from email import policy
+from email.message import Message
+from email.parser import BytesHeaderParser, BytesParser
+from email.utils import parsedate_to_datetime
+from html.parser import HTMLParser
+from typing import Any
 
 
 @dataclass(frozen=True)
@@ -167,7 +168,7 @@ def _date_context(message: Message, received_at: datetime, user_timezone: str) -
                 status = "naive"
             else:
                 parsed, status = candidate, "valid"
-                if abs((candidate.astimezone(timezone.utc) - received_at.astimezone(timezone.utc)).total_seconds()) > 7 * 86400:
+                if abs((candidate.astimezone(UTC) - received_at.astimezone(UTC)).total_seconds()) > 7 * 86400:
                     status = "conflicting"
     return {"date_header_original": original, "date_header_parsed": parsed.isoformat() if parsed else None,
             "imap_received_at": received_at.isoformat(), "user_timezone": user_timezone,
@@ -197,11 +198,75 @@ def _omit_attachments(part: Message) -> int:
     return attachments
 
 
+def attachment_parts(message: Message) -> Iterator[tuple[str, str, bytes]]:
+    """Yield every attachment leaf in a stable order with its decoded payload.
+
+    Vision OCR (``mailhelp.vision``) walks the same parts later; the shared
+    order maps each part to its entry in ``extracted_attachments``.
+    """
+    for child in message.walk():
+        if child.is_multipart():
+            continue
+        is_attachment = (
+            child.get_content_disposition() == "attachment"
+            or child.get_filename() is not None
+            or child.get_content_type() not in {"text/plain", "text/html"}
+        )
+        if not is_attachment:
+            continue
+        yield (child.get_filename() or "unnamed",
+               child.get_content_type() or "application/octet-stream",
+               child.get_payload(decode=True) or b"")
+
+
+def _collect_and_extract_attachments(
+    message: Message, user_timezone: str
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+    """Collect attachment parts and extract calendar events and document texts."""
+    from .attachment_extractor import extract_attachment_text
+    from .calendar_parser import parse_icalendar
+
+    calendar_events: list[dict[str, Any]] = []
+    extracted_attachments: list[dict[str, Any]] = []
+
+    for filename, content_type, payload in attachment_parts(message):
+        lower_name = filename.lower()
+        lower_type = content_type.lower()
+        if lower_name.endswith(".ics") or "calendar" in lower_type:
+            try:
+                events = parse_icalendar(payload, default_timezone=user_timezone)
+                for ev in events:
+                    calendar_events.append(ev.model_dump(mode="json"))
+                extracted_attachments.append({
+                    "filename": filename[:500],
+                    "content_type": content_type[:200],
+                    "size_bytes": len(payload),
+                    "text": f"Kalendereinladung mit {len(events)} Termin(en) geparst.",
+                    "extraction_status": "success",
+                    "character_count": 0,
+                })
+            except Exception:
+                extracted_attachments.append({
+                    "filename": filename[:500],
+                    "content_type": content_type[:200],
+                    "size_bytes": len(payload),
+                    "text": "",
+                    "extraction_status": "error",
+                    "character_count": 0,
+                })
+        else:
+            extracted = extract_attachment_text(filename, content_type, payload)
+            extracted_attachments.append(extracted.model_dump(mode="json"))
+
+    return extracted_attachments, calendar_events
+
+
 def prepare(raw: bytes, limits: int | MimeLimits | object,
             received_at: datetime | None = None, user_timezone: str = "UTC") -> dict[str, object]:
     """Return distinct untrusted header/text fields plus non-sensitive preparation metadata."""
     configured = _limits(limits)
     message = BytesParser(policy=policy.default).parsebytes(raw)
+    extracted_attachments, calendar_events = _collect_and_extract_attachments(message, user_timezone)
     attachments = _omit_attachments(message)
     # Large transfer-encoded attachments must not prevent processing the mail
     # body.  For an oversized raw message, enforce the limit again after all
@@ -209,7 +274,7 @@ def prepare(raw: bytes, limits: int | MimeLimits | object,
     if (len(raw) > configured.max_mail_bytes
             and len(message.as_bytes(policy=policy.default)) > configured.max_mail_bytes):
         raise MimeLimitExceeded("max_mail_bytes")
-    received = received_at or datetime.min.replace(tzinfo=timezone.utc)
+    received = received_at or datetime.min.replace(tzinfo=UTC)
     if received.tzinfo is None or received.utcoffset() is None:
         raise ValueError("IMAP-Empfangszeitpunkt muss zeitzonenbehaftet sein")
     leaves = [part for part in message.walk() if not part.is_multipart()]
@@ -233,9 +298,12 @@ def prepare(raw: bytes, limits: int | MimeLimits | object,
     text = re.split(r"\n(?:-- ?$|On .+ wrote:$|Am .+ schrieb .+:$)", text, maxsplit=1, flags=re.MULTILINE)[0].strip()
     result: dict[str, object] = {
         "headers": {name: _clean(str(message.get(source, ""))) for name, source in (
-            ("from", "From"), ("subject", "Subject"), ("date", "Date"), ("message_id", "Message-ID"))},
+            ("from", "From"), ("subject", "Subject"), ("date", "Date"), ("message_id", "Message-ID"),
+            ("reply_to", "Reply-To"), ("references", "References"))},
         "text": text,
         "metadata": {"attachments_omitted": attachments, "text_shortened": shortened},
+        "extracted_attachments": extracted_attachments,
+        "calendar_events": calendar_events,
         **_date_context(message, received, user_timezone),
     }
     # Preserve all occurrences for conservative duplicate handling.  They are

@@ -3,6 +3,7 @@
 Die [Release-Anleitung](docs/Release-1.0.md) beschreibt Installation aus den
 Distributionspaketen, Aktualisierung, Sicherung und Rückkehr zur vorherigen Version.
 Änderungen stehen im [Changelog](CHANGELOG.md).
+Alle Web-Einstellungen mit Wirkung und Wertebeispielen: [Einstellungsreferenz](docs/Web-Einstellungen.md).
 Die geplante Weboberfläche für Version 1.1 beschreibt das
 [Konzept mit Umsetzungsplan](docs/Konzept-1.1-Web-PWA.md).
 
@@ -125,7 +126,7 @@ gehört in `config.yaml`, Zustandsdateien oder Logs.
 
 ### Google Kalender einrichten
 
-Nach der versionsbezogenen Telegram-Bestätigung legt Mailhelp den Termin direkt im
+Nach der versionsbezogenen Bestätigung über Telegram oder die authentifizierte Weboberfläche legt Mailhelp den Termin direkt im
 unter `targets.google_calendar` konfigurierten Google Kalender an. Dafür müssen
 `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` und
 `GOOGLE_OAUTH_REFRESH_TOKEN` ausschließlich in `.env` oder als Prozessvariablen
@@ -486,7 +487,7 @@ entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
   Aufgabenvorschlag und kein fachlich unklarer Aktionsfall. Der Vorschlag bewahrt
   die Freiwilligkeit und den Link, erhält ohne ausdrücklich genannte Frist keine
   Fälligkeit und erzeugt ohne gebuchten Zeitpunkt keinen Kalendertermin. Auch
-  dieser Vorschlag wird erst nach versionsbezogener Telegram-Bestätigung in
+  dieser Vorschlag wird erst nach versionsbezogener Bestätigung über Telegram oder die authentifizierte Weboberfläche in
   Todoist geschrieben.
 * Vorschläge werden zusätzlich zur Maildatei versionsweise und als aktueller Stand
   gespeichert. Bestätigte Schreibvorgänge werden nach Neustarts wiederaufgenommen;
@@ -1212,6 +1213,40 @@ Mailhelp wie 1.0.
 Einrichtung, Tailscale, iPhone-Installation und Sicherheitsdetails:
 [Release-1.1.md](docs/Release-1.1.md).
 
+Ab 1.2 zeigt die Weboberfläche außerdem:
+
+- **Mails:** Suche und Filter über alle gespeicherten Mails mit ihrer Analyse.
+- **Verlauf:** Entscheidungen und ältere Vorschlagsversionen.
+- **Status:** laufender Schritt und letzte erfolgreiche Dienstkontakte.
+- **Auswertung:** Kosten und Zeiten der KI-Aufrufe.
+- **Einstellungen:** wichtige Werte, gespeichert kommentarerhaltend in `config.yaml`.
+- **Themen** und **Mailhelp beenden**.
+
+Vorschläge lassen sich in Formularfeldern ändern; die neue Version wird wie immer
+erst nach eigener Bestätigung angelegt. Details: [Release-1.2.md](docs/Release-1.2.md).
+
+Ab 2.0 ist die Weboberfläche eine eigenständige App:
+
+- **Desktop:** Liste und Details nebeneinander, Tastenkürzel `J`/`K` (navigieren),
+  `C` (bestätigen), `E` (bearbeiten), `X` (verwerfen), `?` (Hilfe).
+- **Smartphone:** Aktionen am unteren Rand in der Daumenzone.
+- **Rückgängig:** Nach Bestätigen oder Verwerfen bleiben 5 Sekunden, bevor etwas
+  gesendet wird.
+- **Schnellfilter** für Termine, Aufgaben, Klärung, Anhänge und Duplikate.
+- **Bildanhänge** als Vorschau mit Vergrößerung und erkanntem Text.
+- Optional **Web-Push** (`push.enabled`), **Antwort-Entwürfe** im Entwurfsordner
+  des Postfachs (`smart_reply`; Mailhelp sendet nie selbst), ein morgendlicher
+  **Tagesüberblick** (`daily_briefing`) und Betrieb **ohne Telegram**
+  (`telegram.enabled: false`).
+
+Einrichtung und Upgrade: [Release-2.0.md](docs/Release-2.0.md).
+
+Ab 2.2 erstellt Mailhelp auf Wunsch **Tätigkeitsberichte** (`activity_report.enabled`):
+Unter „Berichte“ ein Thema und einen Zeitraum angeben; Mailhelp liest die Mails
+schreibfrei, lässt sie per KI auf das Thema prüfen, findet alle – auch vergangene –
+Termine und erstellt nach deiner Prüfung eine xlsx-Liste mit Termin, Datum,
+Betreff, Absender und Volltext. Details: [Release-2.2.md](docs/Release-2.2.md).
+
 ## Docker
 
 ```sh
@@ -1276,6 +1311,25 @@ python -m pip install playwright==1.62.0
 python -m pytest ui_tests --no-cov -p no:cacheprovider
 ```
 
+Die Tests liegen nach Fachgebiet geordnet unter `tests/`: `unit/` (Parser,
+Modelle, Konfiguration), `services/` (Verarbeitung, Review, Entwürfe, Push,
+Aufbewahrung), `telegram/`, `web/`, `external/` (Kalender, Todoist, OAuth,
+LLM-Clients), `evaluation/` (Qualitätskorpus, Decision-Test), `upgrade/`
+(Fingerprints, Altzustände, Renderer-Verträge), `e2e/`, `release/` (Paket,
+Dokumentation, CLI, Abhängigkeiten) und `scenarios/` (synthetische Daten).
+`tests/release/test_dependency_lock.py` prüft, dass `requirements.lock` und
+`requirements-lint.lock` die vollständige installierte Abhängigkeitshülle aus
+`pyproject.toml` exakt festschreiben.
+
+Statische Prüfung (die CI meldet die Befunde; ab 2.1.0 lassen sie den Lauf
+scheitern). `requirements-lint.lock` gelangt nicht ins Container-Image:
+
+```sh
+python -m pip install -r requirements-lint.lock
+python -m ruff check
+python -m mypy
+```
+
 Temporäre Testdateien liegen nicht im Projekt: `tmp_path`, `tempfile` und
 gestartete Kindprozesse verwenden `<System-Temp>/mailhelp-tests`
 (abweichend über die Umgebungsvariable `MAILHELP_TEST_TEMP`). Unter `Documents`
@@ -1297,13 +1351,13 @@ benötigen keine Geheimnisse:
 python -m pytest --cov=mailhelp --cov-branch --cov-fail-under=100
 
 # Versionierter deutscher Qualitätskorpus mit simuliertem OpenRouter-Adapter
-python -m pytest tests/test_quality_corpus.py --cov=mailhelp --cov-branch --cov-fail-under=100
+python -m pytest tests/evaluation/test_quality_corpus.py --cov=mailhelp --cov-branch --cov-fail-under=100
 
-# Simulierter Ablauf IMAP → LLM → Telegram-Bestätigung → Todoist/Calendar
-python -m pytest tests/test_e2e_simulated.py --cov=mailhelp --cov-branch --cov-fail-under=100
+# Simulierter Ablauf IMAP → LLM → Bestätigung über Telegram oder die authentifizierte Weboberfläche → Todoist/Calendar
+python -m pytest tests/e2e/test_e2e_simulated.py --cov=mailhelp --cov-branch --cov-fail-under=100
 
 # CLI- und POSIX-/Windows-Pfadvarianten
-python -m pytest tests/test_cli_paths.py --cov=mailhelp --cov-branch --cov-fail-under=100
+python -m pytest tests/release/test_cli_paths.py --cov=mailhelp --cov-branch --cov-fail-under=100
 
 # Windows PowerShell (dieselbe Suite und Coverage-Grenze)
 py -3.12 -m pytest --cov=mailhelp --cov-branch --cov-fail-under=100
@@ -1417,3 +1471,11 @@ die [Nutzungsbedingungen](NUTZUNGSBEDINGUNGEN.md). Beide sind Vorlagen: Platzhal
 in eckigen Klammern ersetzen und bei abweichender Konfiguration (Modelle, Anbieter,
 Aufbewahrung, Logging) anpassen. Für die Google-OAuth-Prüfung müssen beide Seiten
 öffentlich erreichbar sein.
+
+
+## Interne Architektur ab 1.6
+
+Version 1.6 trennt Webstatus und Review-Renderer, Mailbox-Laufsteuerung, externe
+Integrationen sowie Telegram-Interpretation und Recovery. Nutzerabläufe,
+Konfiguration, JSON-Schemas und Schreibschutz bleiben unverändert. Details:
+[Architektur](docs/Architektur-1.6.md), [Upgrade und Release](docs/Release-1.6.md).

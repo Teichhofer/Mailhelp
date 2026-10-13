@@ -21,10 +21,10 @@ from typing import Any
 import httpx
 from pydantic import Field, model_validator
 
-from .config import ConfigModel, Topic, _validated_file, _yaml
+from .config import ConfigModel, Topic, read_yaml, validated_file
 from .decisions import DecisionClient, Probability, Question, validate_answers
 from .models import Relevance
-from .ollama import LocalLlm, OllamaClient, require_installed_model
+from .ollama import LocalLlm, raise_for_ollama_status, require_installed_model
 
 _LINK = re.compile(r"https?://\S+")
 # Lines left over from link footnotes and separators, e.g. "[1]", "Links:", "-----".
@@ -60,7 +60,7 @@ class LayaPrompts(ConfigModel):
     topic_threshold: Probability = 0.2
 
     @model_validator(mode="after")
-    def ordered_thresholds(self) -> "LayaPrompts":
+    def ordered_thresholds(self) -> LayaPrompts:
         if self.irrelevant_threshold > self.relevant_threshold:
             raise ValueError("irrelevant_threshold darf relevant_threshold nicht übersteigen")
         return self
@@ -71,7 +71,7 @@ def load_laya_prompts(directory: Path) -> LayaPrompts:
     path = directory / "laya_prompts.yaml"
     if not path.exists():
         path = Path(__file__).parent / "defaults" / "laya_prompts.yaml"
-    return _validated_file(path, LayaPrompts, _yaml(path))
+    return validated_file(path, LayaPrompts, read_yaml(path))
 
 
 class LayaClient(DecisionClient):
@@ -99,7 +99,7 @@ class LayaClient(DecisionClient):
             match = _STATE_TOO_LONG.search(message)
             if match:
                 raise LayaStateTooLong(int(match.group(1)), int(match.group(2)))
-        OllamaClient._raise_for_status(response)
+        raise_for_ollama_status(response)
 
     @staticmethod
     def _validate_answers(raw: Any, questions: dict[str, Question]) -> None:

@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 from playwright.sync_api import expect
+from web_scenario import mail_id, proposal, save_mail
 
 from checks import audit
-from conftest import sign_in
-from web_scenario import mail_id, proposal, save_mail
+from conftest import item, sign_in
 
 
 def test_overview_is_readable_and_mail_content_stays_inert(page, mailhelp):
@@ -20,7 +20,7 @@ def test_overview_is_readable_and_mail_content_stays_inert(page, mailhelp):
     malicious = page.locator(f"#v-{mail_id(4)}-boese")
     expect(malicious).to_contain_text('Rechnung <script>alert("x")</script> prüfen')
     assert malicious.locator("a[href^='https://evil']").count() == 0
-    long_card = page.locator(f"#v-{mail_id(1)}-elternabend")
+    long_card = item(page, f"#v-{mail_id(1)}-elternabend")
     long_card.get_by_text("Beleg vollständig anzeigen").click()
     expect(long_card.locator("details .full")).to_be_visible()
     assert dialogs == [] and page.errors == []
@@ -29,8 +29,10 @@ def test_overview_is_readable_and_mail_content_stays_inert(page, mailhelp):
 def test_detail_and_status_pages(page, mailhelp):
     sign_in(page, mailhelp)
     page.get_by_role("link", name="Elternabend Klasse 4b").click()
-    expect(page.get_by_role("heading", name="Termin")).to_be_visible()
-    page.get_by_text("Beleg vollständig anzeigen").click()
+    # On the desktop the detail page appears in the split view next to the list.
+    scope = page.locator(".detail-pane") if page.device == "desktop" else page
+    expect(scope.get_by_role("heading", name="Termin")).to_be_visible()
+    scope.get_by_text("Beleg vollständig anzeigen").click()
     assert audit(page, f"detail-{page.device}", page.mobile) == []
     page.get_by_role("link", name="Status").click()
     expect(page.locator(".stat").filter(has_text="Warten auf dich")).to_contain_text("4")
@@ -49,15 +51,28 @@ def refresh(page):
 def test_overview_refreshes_itself_but_never_discards_typed_text(page, mailhelp):
     sign_in(page, mailhelp)
     badge = page.locator("#verbindung")
-    # Unchanged state: nothing happens.
-    refresh(page)
+    # Wait for the state request as well as health before simulating the next event.
+    with page.expect_response("**/api/stand") as unchanged:
+        refresh(page)
+    assert unchanged.value.json()["fingerprint"] == page.locator("body").get_attribute("data-fingerprint")
     expect(badge).to_have_text("● Verbunden")
     # A failing or refused state request does not reload.
+    # The PC is unreachable: both requests of the foreground check fail. (Failing only
+    # /api/stand raced with a successful /health that rightly shows "Verbunden".)
     page.route("**/api/stand", lambda route: route.abort())
+    page.route("**/health", lambda route: route.abort())
     refresh(page)
     expect(badge).to_have_text("PC nicht erreichbar")
+    page.wait_for_timeout(200)
+    expect(badge).to_have_text("PC nicht erreichbar")
     page.unroute("**/api/stand")
-    assert page.errors == ["Failed to load resource: net::ERR_FAILED"]  # the abort above
+    page.unroute("**/health")
+    # Chrome reports each aborted request, sometimes late or only once.
+    for _ in range(20):
+        if len(page.errors) >= 2:
+            break
+        page.wait_for_timeout(100)
+    assert page.errors and set(page.errors) == {"Failed to load resource: net::ERR_FAILED"}
     page.errors.clear()
     page.route("**/api/stand", lambda route: route.fulfill(status=401, body="{}"))
     with page.expect_response("**/api/stand"):
@@ -96,7 +111,6 @@ def test_overview_refreshes_itself_but_never_discards_typed_text(page, mailhelp)
     page.wait_for_timeout(300)
     assert reloads == [f"{mailhelp.url}/"]
     page.unroute(f"{mailhelp.url}/")
-    page.collect()
     page.reload()
     expect(page.get_by_text("Anmeldung Ferienbetreuung abgeben")).to_be_visible()
     assert page.errors == []

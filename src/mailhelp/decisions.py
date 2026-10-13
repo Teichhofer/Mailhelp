@@ -7,14 +7,14 @@ import math
 import re
 import time
 import uuid
-from typing import Annotated, Any, Literal
 from pathlib import Path
+from typing import Annotated, Any, Literal
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
 
 from .analysis import Analyzer
-from .config import ConfigModel, Topic, _yaml, _validated_file
+from .config import ConfigModel, Topic, read_yaml, validated_file
 from .models import ActionRoute, Relevance
 from .openrouter import OpenRouterClient, RateLimitExceeded
 
@@ -125,7 +125,7 @@ class DecisionClient(OpenRouterClient):
 
         def begin(number: int) -> None:
             self.logger.llm_event("request_started", request=request, stage=stage,
-                                  model=model, call_id=call_id, attempt=number)
+                                  model=model, call_id=call_id, attempt=number, backend="OpenRouter Decisions")
 
         try:
             response = self.policy.run(invoke, begin)
@@ -181,7 +181,7 @@ class DecisionPrompts(ConfigModel):
 
 
 def load_decision_prompts(path: Path) -> DecisionPrompts:
-    return _validated_file(path, DecisionPrompts, _yaml(path))
+    return validated_file(path, DecisionPrompts, read_yaml(path))
 
 
 _LINK = re.compile(r"https?://\S+")
@@ -298,9 +298,11 @@ class JevRelevanceAnalyzer(Analyzer):
         logger.event("INFO", "decisions", "jev_relevance_completed",
                      call_id=call, decision=result.decision)
         if result.decision != "unclear":
+            self.last_relevance_source = "JEV"
             return call, result
         logger.event("INFO", "decisions", "relevance_fallback_started", jev_call_id=call)
         fallback_call, fallback = super().relevance(mail, topics)
         logger.event("INFO", "decisions", "relevance_fallback_completed",
                      jev_call_id=call, call_id=fallback_call, decision=fallback.decision)
+        self.last_relevance_source = "JEV → Standard-LLM-Fallback"
         return fallback_call, fallback

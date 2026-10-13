@@ -7,10 +7,10 @@ import imaplib
 import json
 import time
 from contextlib import ExitStack
-from datetime import datetime, timezone
 from dataclasses import asdict
-from threading import Lock
+from datetime import UTC, datetime
 from pathlib import Path
+from threading import Lock
 from typing import Any
 from uuid import uuid4
 
@@ -19,15 +19,14 @@ import httpx
 from .adapter import RetryPolicy
 from .analysis import Analyzer
 from .config import PromptConfig, Secrets, Settings, Topic
-from .decisions import (DecisionAnalyzer, DecisionClient, JevRelevanceAnalyzer,
-                        load_relevance_prompts)
+from .decisions import DecisionAnalyzer, DecisionClient, JevRelevanceAnalyzer, load_relevance_prompts
 from .evaluation import write_report
 from .imap import FolderNotReadable, ImapReader
+from .laya import LayaClient, LayaRelevanceAnalyzer, load_laya_prompts
 from .logging import NullLogger, redact
 from .mime import prepare
-from .openrouter import OpenRouterClient
-from .laya import LayaClient, LayaRelevanceAnalyzer, load_laya_prompts
 from .ollama import LocalLlm, OllamaClient
+from .openrouter import OpenRouterClient
 from .paths import runtime_path
 
 
@@ -37,6 +36,7 @@ class ComparisonRecorder(NullLogger):
     def __init__(self, log_path: Path, secrets: tuple[str, ...]):
         self.path, self.secrets = log_path, secrets
         self.entries: list[dict[str, Any]] = []
+        self.metrics = None
 
     def event(self, level: str, module: str, event: str, **context: Any) -> None:
         self._record(event, {"level": level, "module": module, **context})
@@ -46,7 +46,12 @@ class ComparisonRecorder(NullLogger):
         self._record(event, {"request": request, "response": response, **context})
 
     def _record(self, event: str, context: dict[str, Any]) -> None:
-        entry = redact({"timestamp": datetime.now(timezone.utc).isoformat(),
+        if self.metrics is not None:
+            try:
+                self.metrics.observe(event, redact(context, self.secrets))
+            except OSError:
+                self.metrics.failures += 1
+        entry = redact({"timestamp": datetime.now(UTC).isoformat(),
                         "event": event, **context}, self.secrets)
         self.entries.append(entry)
         with self.path.open("a", encoding="utf-8") as stream:
@@ -129,6 +134,8 @@ class DecisionTestMode:
     def _pipeline(self, record: dict, name: str, mail: dict[str, Any], classifier) -> None:
         result = {"status": "running", "stages": {}}
         record["paths"][name] = result
+        if self.recorder.metrics is not None:
+            self.recorder.metrics.test_mail_hash = record.get("mail_sha256")
         relevance = self._stage(result, "relevance", lambda: classifier.relevance(mail, self.topics))
         result["would_process_in_normal_mode"] = relevance is not None and relevance.decision == "relevant"
         if self.relevance_only:
@@ -222,6 +229,119 @@ class DecisionTestMode:
         return 1 if not self.report["count_satisfied"] or self.report["selection_errors"] or failed else 0
 
 
+def _create_output(settings: Settings, output: Path | None, directory: Path) -> Path:
+    """A new comparison file outside the normal state; existing files are never replaced."""
+    if output is None:
+        output = runtime_path(settings.data_directory, directory) / "decision-tests" / f"decision-test-{uuid4()}.json"
+    else:
+        output = runtime_path(output, directory)
+    output = output.resolve()
+    data_root = runtime_path(settings.data_directory, directory)
+    protected = (data_root / "test", data_root / "production")
+    if any(output.is_relative_to(path.resolve()) for path in protected):
+        raise ValueError("Decision-Testdatei darf nicht im normalen Zustandsverzeichnis liegen")
+    output.parent.mkdir(parents=True, exist_ok=True)
+    # Exclusive creation protects prior comparisons and configuration/state files.
+    # It also fails before connecting to IMAP or making a paid model call.
+    with output.open("x", encoding="utf-8") as stream:
+        stream.write("{}\n")
+    return output
+
+
+def _initial_report(settings: Settings, topics: list[Topic], prompts: PromptConfig, count: int,
+                    decision_prompts: Any, local_llm: LocalLlm, laya: tuple[str, int] | None,
+                    laya_prompts: Any, relevance_only: bool, ignore_historical_start: bool,
+                    irrelevant_topics: list[Topic] | None) -> dict[str, Any]:
+    return {"schema_version": 2, "mode": "decision_test",
+            "comparison": "standard_vs_ollama",
+            "pipeline_policy": "relevance_only" if relevance_only else "relevant_only",
+            "ollama": asdict(local_llm),
+            "ollama_relevance": (None if laya_prompts is None else {
+                "engine": "laya", "base_url": LocalLlm(*laya, laya_prompts.model).base_url,
+                "model": laya_prompts.model}),
+            "laya_prompts": None if laya_prompts is None else laya_prompts.model_dump(mode="json"),
+            # Laya builds its questions from these categories as well.
+            "laya_irrelevant_topics": (None if laya_prompts is None else
+                                       [topic.model_dump() for topic in irrelevant_topics or []]),
+            "timeouts": {"openrouter": settings.timeouts.openrouter.model_dump(),
+                         "ollama": settings.timeouts.ollama.model_dump()}, "run_id": str(uuid4()),
+            "started_at": datetime.now(UTC).isoformat(), "complete": False,
+            "requested_mail_count": count, "selection": "global_newest_first_unique_raw_mail",
+            "historical_start": (None if ignore_historical_start or settings.imap.historical_start is None
+                                 else settings.imap.historical_start.isoformat()),
+            "timezone": settings.timezone,
+            "prompts": prompts.model_dump(mode="json"),
+            "decisions_prompts": decision_prompts.model_dump(mode="json"),
+            "topics": [topic.model_dump() for topic in topics],
+            "selection_errors": [], "mails": []}
+
+
+def _comparison_reader(settings: Settings, secrets: Secrets, recorder: ComparisonRecorder,
+                       stack: ExitStack) -> ImapReader:
+    cfg = settings.timeouts.imap
+    reader = ImapReader(
+        settings.imap.host, settings.imap.port, secrets.imap_username,
+        secrets.imap_password.get_secret_value(), cfg.timeout_seconds,
+        factory=imaplib.IMAP4_SSL if settings.imap.connection_mode == "ssl" else imaplib.IMAP4,
+        policy=RetryPolicy(cfg.retries, cfg.initial_backoff_seconds, cfg.max_backoff_seconds,
+                           lambda delay: (time.sleep(delay), False)[1]),
+        starttls=settings.imap.connection_mode == "starttls", batch_size=settings.imap.batch_size,
+        logger=recorder)
+    stack.callback(reader.close)
+    return reader
+
+
+def _comparison_analyzers(settings: Settings, secrets: Secrets, prompts: PromptConfig, decision_prompts: Any,
+                          local_llm: LocalLlm, laya: tuple[str, int] | None, laya_prompts: Any,
+                          irrelevant_topics: list[Topic] | None, recorder: ComparisonRecorder,
+                          stack: ExitStack) -> tuple[Any, Any]:
+    """The standard path and the local Ollama (optionally Laya) path, both read-only."""
+    cfg = settings.timeouts.openrouter
+    # Both clients share one isolated in-memory rate budget. No production checkpoint is loaded.
+    calls: list[float] = []
+    def save_calls(values):
+        calls[:] = values
+    clients = []
+    shared_lock = Lock()
+    for client_type in (OpenRouterClient, DecisionClient):
+        client = client_type(secrets.openrouter_api_key.get_secret_value(), cfg.timeout_seconds,
+                             cfg.retries, settings.limits.llm_calls_per_minute,
+                             initial_backoff=cfg.initial_backoff_seconds, max_backoff=cfg.max_backoff_seconds,
+                             load_calls=lambda: calls, save_calls=save_calls, logger=recorder)
+        stack.callback(client.close)
+        client._state_lock = shared_lock
+        client.client.event_hooks["response"].append(recorder.http_response)
+        clients.append(client)
+    cfg = settings.timeouts.ollama
+    local = dict(initial_backoff=cfg.initial_backoff_seconds,
+                 max_backoff=cfg.max_backoff_seconds, logger=recorder)
+    local_client = OllamaClient(local_llm, cfg.timeout_seconds, cfg.retries,
+                                settings.limits.llm_calls_per_minute, **local)
+    stack.callback(local_client.close)
+    local_clients: list[Any] = [local_client]
+    if laya is not None and laya_prompts is not None:
+        laya_client = LayaClient(*laya, laya_prompts.model, cfg.timeout_seconds, cfg.retries,
+                                 settings.limits.llm_calls_per_minute, **local)
+        stack.callback(laya_client.close)
+        local_clients.append(laya_client)
+    for client in local_clients:
+        # Fail before any mail is read if a local model is not installed.
+        client.check_access()
+        client.client.event_hooks["response"].append(recorder.http_response)
+    options = dict(provider_retries=settings.retries.provider_retry,
+                   json_repair_retries=settings.retries.json_repair,
+                   schema_repair_retries=settings.retries.schema_repair)
+    standard = JevRelevanceAnalyzer(
+        clients[0], prompts, decisions=DecisionAnalyzer(
+            clients[1], decision_prompts, settings.limits.max_llm_payload_bytes), **options)
+    ollama: Any = Analyzer(local_client, prompts, **options)
+    if laya_prompts is not None:
+        ollama = LocalPipeline(ollama, LayaRelevanceAnalyzer(
+            local_clients[1], laya_prompts, settings.limits.max_llm_payload_bytes,
+            irrelevant_topics or []))
+    return standard, ollama
+
+
 def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
                       prompts: PromptConfig, count: int, directory: Path,
                       output: Path | None = None, *, local_llm: LocalLlm,
@@ -237,20 +357,7 @@ def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
         laya_prompts = load_laya_prompts(directory)
         if laya_model:
             laya_prompts = laya_prompts.model_copy(update={"model": laya_model})
-    if output is None:
-        output = runtime_path(settings.data_directory, directory) / "decision-tests" / f"decision-test-{uuid4()}.json"
-    else:
-        output = runtime_path(output, directory)
-    output = output.resolve()
-    data_root = runtime_path(settings.data_directory, directory)
-    protected = (data_root / "test", data_root / "production")
-    if any(output.is_relative_to(path.resolve()) for path in protected):
-        raise ValueError("Decision-Testdatei darf nicht im normalen Zustandsverzeichnis liegen")
-    output.parent.mkdir(parents=True, exist_ok=True)
-    # Exclusive creation protects prior comparisons and configuration/state files.
-    # It also fails before connecting to IMAP or making a paid model call.
-    with output.open("x", encoding="utf-8") as stream:
-        stream.write("{}\n")
+    output = _create_output(settings, output, directory)
     log_path = output.with_suffix(output.suffix + ".jsonl")
     with log_path.open("x", encoding="utf-8"):
         pass
@@ -259,85 +366,21 @@ def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
         secrets.todoist_token, secrets.todoist_client_id, secrets.todoist_client_secret,
         secrets.google_oauth_client_id, secrets.google_oauth_client_secret, secrets.google_oauth_refresh_token))
     recorder = ComparisonRecorder(log_path, known_secrets)
-    report = {"schema_version": 2, "mode": "decision_test",
-              "comparison": "standard_vs_ollama",
-              "pipeline_policy": "relevance_only" if relevance_only else "relevant_only",
-              "ollama": asdict(local_llm),
-              "ollama_relevance": (None if laya_prompts is None else {
-                  "engine": "laya", "base_url": LocalLlm(*laya, laya_prompts.model).base_url,
-                  "model": laya_prompts.model}),
-              "laya_prompts": None if laya_prompts is None else laya_prompts.model_dump(mode="json"),
-              # Laya builds its questions from these categories as well.
-              "laya_irrelevant_topics": (None if laya_prompts is None else
-                                         [topic.model_dump() for topic in irrelevant_topics or []]),
-              "timeouts": {"openrouter": settings.timeouts.openrouter.model_dump(),
-                           "ollama": settings.timeouts.ollama.model_dump()}, "run_id": str(uuid4()),
-              "started_at": datetime.now(timezone.utc).isoformat(), "complete": False,
-              "requested_mail_count": count, "selection": "global_newest_first_unique_raw_mail",
-              "historical_start": (None if ignore_historical_start or settings.imap.historical_start is None
-                                   else settings.imap.historical_start.isoformat()),
-              "timezone": settings.timezone,
-              "prompts": prompts.model_dump(mode="json"),
-              "decisions_prompts": decision_prompts.model_dump(mode="json"),
-              "topics": [topic.model_dump() for topic in topics],
-              "selection_errors": [], "mails": []}
+    from .metrics import DECISION_TEST_FILE, MetricsRecorder, metrics_directory
+    # Content-free metrics of every comparison run in one log, separate from production.
+    recorder.metrics = MetricsRecorder(
+        metrics_directory(runtime_path(settings.logging.directory, directory)) / DECISION_TEST_FILE,
+        settings.metrics, "decision_test")
+    report = _initial_report(settings, topics, prompts, count, decision_prompts, local_llm, laya,
+                             laya_prompts, relevance_only, ignore_historical_start, irrelevant_topics)
     write_report(output, redact(report, known_secrets))
     print(f"Decision-Testdatei: {output}", flush=True)
+    recorder.metrics.run_id = report["run_id"]
     try:
         with ExitStack() as stack:
-            cfg = settings.timeouts.imap
-            reader = ImapReader(
-                settings.imap.host, settings.imap.port, secrets.imap_username,
-                secrets.imap_password.get_secret_value(), cfg.timeout_seconds,
-                factory=imaplib.IMAP4_SSL if settings.imap.connection_mode == "ssl" else imaplib.IMAP4,
-                policy=RetryPolicy(cfg.retries, cfg.initial_backoff_seconds, cfg.max_backoff_seconds,
-                                   lambda delay: (time.sleep(delay), False)[1]),
-                starttls=settings.imap.connection_mode == "starttls", batch_size=settings.imap.batch_size,
-                logger=recorder)
-            stack.callback(reader.close)
-            cfg = settings.timeouts.openrouter
-            # Both clients share one isolated in-memory rate budget. No production checkpoint is loaded.
-            calls: list[float] = []
-            def save_calls(values):
-                calls[:] = values
-            clients = []
-            shared_lock = Lock()
-            for client_type in (OpenRouterClient, DecisionClient):
-                client = client_type(secrets.openrouter_api_key.get_secret_value(), cfg.timeout_seconds,
-                                     cfg.retries, settings.limits.llm_calls_per_minute,
-                                     initial_backoff=cfg.initial_backoff_seconds, max_backoff=cfg.max_backoff_seconds,
-                                     load_calls=lambda: calls, save_calls=save_calls, logger=recorder)
-                stack.callback(client.close)
-                client._state_lock = shared_lock
-                client.client.event_hooks["response"].append(recorder.http_response)
-                clients.append(client)
-            cfg = settings.timeouts.ollama
-            local = dict(initial_backoff=cfg.initial_backoff_seconds,
-                         max_backoff=cfg.max_backoff_seconds, logger=recorder)
-            local_client = OllamaClient(local_llm, cfg.timeout_seconds, cfg.retries,
-                                        settings.limits.llm_calls_per_minute, **local)
-            stack.callback(local_client.close)
-            local_clients: list[Any] = [local_client]
-            if laya is not None and laya_prompts is not None:
-                laya_client = LayaClient(*laya, laya_prompts.model, cfg.timeout_seconds, cfg.retries,
-                                         settings.limits.llm_calls_per_minute, **local)
-                stack.callback(laya_client.close)
-                local_clients.append(laya_client)
-            for client in local_clients:
-                # Fail before any mail is read if a local model is not installed.
-                client.check_access()
-                client.client.event_hooks["response"].append(recorder.http_response)
-            options = dict(provider_retries=settings.retries.provider_retry,
-                           json_repair_retries=settings.retries.json_repair,
-                           schema_repair_retries=settings.retries.schema_repair)
-            standard = JevRelevanceAnalyzer(
-                clients[0], prompts, decisions=DecisionAnalyzer(
-                    clients[1], decision_prompts, settings.limits.max_llm_payload_bytes), **options)
-            ollama: Any = Analyzer(local_client, prompts, **options)
-            if laya_prompts is not None:
-                ollama = LocalPipeline(ollama, LayaRelevanceAnalyzer(
-                    local_clients[1], laya_prompts, settings.limits.max_llm_payload_bytes,
-                    irrelevant_topics or []))
+            reader = _comparison_reader(settings, secrets, recorder, stack)
+            standard, ollama = _comparison_analyzers(settings, secrets, prompts, decision_prompts, local_llm,
+                                                     laya, laya_prompts, irrelevant_topics, recorder, stack)
             return DecisionTestMode(reader, standard, ollama, settings, topics, report, output,
                                     recorder, ignore_historical_start=ignore_historical_start,
                                     relevance_only=relevance_only).run(count)

@@ -1,13 +1,19 @@
 """Laden und Validieren von Konfiguration und Geheimnissen."""
 from __future__ import annotations
-import hashlib, ipaddress, json, os, re
+
+import ipaddress
+import os
+import re
+from datetime import datetime
 from importlib.resources import files
 from pathlib import Path, PureWindowsPath
 from typing import Annotated, Any, Literal
-from datetime import datetime
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
+
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError, field_validator, model_validator
+
+from .metrics import MetricsSettings
 
 
 class ConfigModel(BaseModel):
@@ -23,6 +29,7 @@ class ImapSettings(ConfigModel):
     historical_start: datetime | None = None
     batch_size: int = Field(default=25, ge=1, le=1000)
     global_newest_first: bool = False
+    drafts_folder: str = Field(default="Drafts", min_length=1, max_length=500, pattern=r"^[^\x00-\x1f\x7f]+$")
 
     @model_validator(mode="before")
     @classmethod
@@ -60,7 +67,7 @@ class ImapSettings(ConfigModel):
         return folders
 
     @model_validator(mode="after")
-    def primary_is_configured(self) -> "ImapSettings":
+    def primary_is_configured(self) -> ImapSettings:
         """The primary inbox is required; every other configured folder is optional."""
         if self.primary_folder not in self.folders:
             raise ValueError("primary_folder muss in folders enthalten sein")
@@ -76,8 +83,9 @@ class ImapSettings(ConfigModel):
 
 
 class TelegramSettings(ConfigModel):
-    user_id: int = Field(gt=0)
-    chat_id: int
+    enabled: bool = True
+    user_id: int = Field(default=1, gt=0)
+    chat_id: int = 1
     sequential_questions: bool = True
 
 
@@ -106,7 +114,7 @@ class AdapterPolicySettings(ConfigModel):
     max_backoff_seconds: float = Field(ge=0, le=60)
 
     @model_validator(mode="after")
-    def valid_backoff(self) -> "AdapterPolicySettings":
+    def valid_backoff(self) -> AdapterPolicySettings:
         if self.max_backoff_seconds < self.initial_backoff_seconds:
             raise ValueError("max_backoff_seconds muss mindestens initial_backoff_seconds sein")
         return self
@@ -226,6 +234,11 @@ class RetentionSettings(ConfigModel):
 
     full_mail_days: RetentionPeriod = 30
     debug_llm_days: RetentionPeriod = "disabled"
+    # None preserves the earlier debug retention for existing installations.
+    analysis_days: RetentionPeriod | None = None
+    history_days: RetentionPeriod = 90
+    # Activity reports (2.2): full texts are removed, dates and senders stay.
+    activity_report_days: RetentionPeriod = 365
 
 
 class LearningSettings(ConfigModel):
@@ -254,7 +267,7 @@ class WebSettings(ConfigModel):
     lan_access: bool = False
 
     @model_validator(mode="after")
-    def lan_needs_all_interfaces(self) -> "WebSettings":
+    def lan_needs_all_interfaces(self) -> WebSettings:
         if self.lan_access and ipaddress.ip_address(self.host).is_loopback:
             raise ValueError("lan_access benötigt host 0.0.0.0")
         return self
@@ -276,6 +289,46 @@ class WebSettings(ConfigModel):
         return value
 
 
+class VisionSettings(ConfigModel):
+    """Multimodal OCR for image attachments and scanned PDFs (1.4).
+
+    Model and prompt are the ``vision_ocr`` step in ``prompts.yaml``; without
+    that step no image is sent.  The limits bound cost and data transfer.
+    """
+
+    enabled: bool = True
+    max_images_per_mail: int = Field(default=3, ge=1, le=10)
+    max_image_bytes: int = Field(default=10_485_760, ge=10_240, le=50_000_000)
+    max_edge_pixels: int = Field(default=1600, ge=512, le=4096)
+
+
+class PushSettings(ConfigModel):
+    enabled: bool = False
+    subject: str = Field(default="mailto:admin@example.invalid", pattern=r"^mailto:[^\s@]+@[^\s@]+$")
+
+
+class ActivityReportSettings(ConfigModel):
+    """Activity reports (2.2): read-only scans of the mailbox for one topic."""
+
+    enabled: bool = False
+    # A report pauses when one of these limits is reached.
+    max_mails: int = Field(default=2000, ge=1, le=20000)
+    max_llm_calls: int = Field(default=3000, ge=1, le=50000)
+    # Share of limits.llm_calls_per_minute a running report may use.
+    max_share_of_llm_budget: float = Field(default=0.5, gt=0, le=1)
+    # Excel allows 32,767 characters per cell; the marker "… gekürzt" must fit as well.
+    max_fulltext_chars: int = Field(default=30000, ge=1000, le=32000)
+    export_mails_without_events: bool = True
+
+
+class DailyBriefingSettings(ConfigModel):
+    enabled: bool = False
+    time: str = Field(default="07:30", pattern=r"^(?:[01][0-9]|2[0-3]):[0-5][0-9]$")
+    include_calendar: bool = True
+    include_tasks: bool = True
+    include_open: bool = True
+
+
 class Settings(ConfigModel):
     timezone: str
     poll_interval_seconds: int = Field(ge=5, le=86400)
@@ -291,6 +344,21 @@ class Settings(ConfigModel):
     retention: RetentionSettings = Field(default_factory=RetentionSettings)
     learning: LearningSettings = Field(default_factory=LearningSettings)
     web: WebSettings = Field(default_factory=WebSettings)
+    metrics: MetricsSettings = Field(default_factory=MetricsSettings)
+    vision: VisionSettings = Field(default_factory=VisionSettings)
+    push: PushSettings = Field(default_factory=lambda: PushSettings())
+    daily_briefing: DailyBriefingSettings = Field(default_factory=lambda: DailyBriefingSettings())
+    smart_reply: bool = False
+    # Name, role, signature and similar facts the user wants in reply drafts.
+    # Trusted context for draft_reply only; tab and line breaks are the only control characters.
+    personal_info: str = Field(default="", max_length=2000, pattern=r"^[^\x00-\x08\x0b-\x1f\x7f]*$")
+    activity_report: ActivityReportSettings = Field(default_factory=lambda: ActivityReportSettings())
+
+    @model_validator(mode="after")
+    def standalone_needs_web(self):
+        if not self.telegram.enabled and not self.web.enabled:
+            raise ValueError("Ohne Telegram muss web.enabled aktiviert sein")
+        return self
 
     @field_validator("timezone")
     @classmethod
@@ -317,7 +385,7 @@ class Secrets(BaseModel):
     imap_username: str
     imap_password: SecretStr
     openrouter_api_key: SecretStr
-    telegram_bot_token: SecretStr
+    telegram_bot_token: SecretStr = SecretStr("")
     todoist_token: SecretStr
     todoist_client_id: SecretStr
     todoist_client_secret: SecretStr
@@ -344,7 +412,7 @@ class TopicsConfig(ConfigModel):
     topics: list[Topic] = Field(min_length=1)
 
     @model_validator(mode="after")
-    def unique_enabled_topics(self) -> "TopicsConfig":
+    def unique_enabled_topics(self) -> TopicsConfig:
         identifiers = [topic.id for topic in self.topics]
         if len(identifiers) != len(set(identifiers)):
             raise ValueError("Themen-IDs dürfen nicht doppelt vorkommen")
@@ -359,7 +427,7 @@ class IrrelevantTopicsConfig(ConfigModel):
     topics: list[Topic] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def unique_topic_ids(self) -> "IrrelevantTopicsConfig":
+    def unique_topic_ids(self) -> IrrelevantTopicsConfig:
         identifiers = [topic.id for topic in self.topics]
         if len(identifiers) != len(set(identifiers)):
             raise ValueError("Themen-IDs dürfen nicht doppelt vorkommen")
@@ -371,15 +439,15 @@ class PromptStep(BaseModel):
     system_prompt: str = Field(min_length=1)
     model: str | None = None
     parameters: dict[str, Any] = Field(default_factory=dict)
-    routes: list["LlmRoute"] | None = None
+    routes: list[LlmRoute] | None = None
     # Provider routing for the default route; keeps model and parameters from
     # ``defaults``/``parameters`` instead of duplicating them in ``routes``.
-    provider_preferences: "OpenRouterProviderPreferences | None" = None
+    provider_preferences: OpenRouterProviderPreferences | None = None
     provider_retries: int = Field(default=1, ge=0, le=10)
-    output_token_retry: "OutputTokenRetry | None" = None
+    output_token_retry: OutputTokenRetry | None = None
 
     @model_validator(mode="after")
-    def valid_routes(self) -> "PromptStep":
+    def valid_routes(self) -> PromptStep:
         if self.routes is not None and self.provider_preferences is not None:
             raise ValueError("provider_preferences gilt nur ohne routes; dort je Route angeben")
         if self.routes is not None:
@@ -496,6 +564,10 @@ class OllamaPromptSettings(ConfigModel):
     think: bool | None = None
 
 
+# Steps a prompts.yaml from an earlier release may lack; the feature is then off.
+OPTIONAL_PROMPT_STEPS = frozenset({"vision_ocr", "draft_reply", "activity_relevance", "activity_events"})
+
+
 class PromptConfig(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
     defaults: dict[str, Any]
@@ -505,12 +577,12 @@ class PromptConfig(BaseModel):
     suspicious_link_phrases: list[Annotated[str, Field(min_length=1, max_length=250)]] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def required_steps(self) -> "PromptConfig":
+    def required_steps(self) -> PromptConfig:
         required = {"relevance", "summary", "action_router", "task_extraction",
                     "event_extraction", "mail_question_resolution", "telegram_answer_interpretation",
                     "telegram_answer_clarification", "proposal_revision", "learning_classification",
                     "learning_abstraction", "calendar_duplicate"}
-        if set(self.prompts) != required:
+        if not required <= set(self.prompts) <= required | OPTIONAL_PROMPT_STEPS:
             raise ValueError("prompts enthält nicht genau die erforderlichen Schritte")
         default_model = self.defaults.get("model")
         for name, step in self.prompts.items():
@@ -549,7 +621,7 @@ def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any
     return result
 
 
-def _yaml(path: Path) -> Any:
+def read_yaml(path: Path) -> Any:
     with path.open(encoding="utf-8") as stream:
         value = yaml.safe_load(stream)
     if not isinstance(value, dict):
@@ -599,18 +671,21 @@ def _create_missing_topic_files(directory: Path) -> None:
 
 def load_all(directory: Path, environ: dict[str, str] | None = None) -> tuple[Settings, Secrets, list[Topic], list[Topic], PromptConfig, str]:
     env = {**_dotenv(directory / ".env"), **(os.environ if environ is None else environ)}
-    settings = _validated_file(directory / "config.yaml", Settings, _yaml(directory / "config.yaml"))
-    prompts = _validated_file(directory / "prompts.yaml", PromptConfig, _yaml(directory / "prompts.yaml"))
+    settings = validated_file(directory / "config.yaml", Settings, read_yaml(directory / "config.yaml"))
+    prompts = validated_file(directory / "prompts.yaml", PromptConfig, read_yaml(directory / "prompts.yaml"))
     _create_missing_topic_files(directory)
-    topics = _validated_file(directory / "topics.yaml", TopicsConfig, _yaml(directory / "topics.yaml")).topics
-    irrelevant_topics = _validated_file(
+    topics = validated_file(directory / "topics.yaml", TopicsConfig, read_yaml(directory / "topics.yaml")).topics
+    irrelevant_topics = validated_file(
         directory / "irrelevant_topics.yaml", IrrelevantTopicsConfig,
-        _yaml(directory / "irrelevant_topics.yaml"),
+        read_yaml(directory / "irrelevant_topics.yaml"),
     ).topics
     names = ["IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN", "TODOIST_TOKEN",
              "TODOIST_CLIENT_ID", "TODOIST_CLIENT_SECRET", "GOOGLE_OAUTH_CLIENT_ID",
              "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"]
     missing = [name for name in names if not env.get(name)]
+    if not settings.telegram.enabled:
+        names.remove("TELEGRAM_BOT_TOKEN")
+        missing = [name for name in missing if name != "TELEGRAM_BOT_TOKEN"]
     if missing:
         raise ValueError("Fehlende Geheimnisse: " + ", ".join(missing))
     values = {name.lower(): env[name] for name in names}
@@ -622,14 +697,14 @@ def load_all(directory: Path, environ: dict[str, str] | None = None) -> tuple[Se
             raise ValueError("MAILHELP_WEB_SECRET muss mindestens 32 Zeichen lang sein")
         values["mailhelp_web_secret"] = web_secret
     secrets = Secrets.model_validate(values)
-    # The web interface does not influence mail analysis; changing it must not
-    # hold back mails that are still being processed.
-    analysis_settings = settings.model_dump(mode="json", exclude={"web"})
-    fingerprint = hashlib.sha256(json.dumps([analysis_settings, prompts.model_dump(), [x.model_dump() for x in topics]], sort_keys=True).encode()).hexdigest()
+    # Only analysis-relevant settings: operational changes (web, polling, logging,
+    # retention, timeouts, metrics) must not hold back mails that are running.
+    from .fingerprints import config_fingerprint
+    fingerprint = config_fingerprint(settings, prompts, topics)
     return settings, secrets, topics, irrelevant_topics, prompts, fingerprint
 
 
-def _validated_file(path: Path, model: type[BaseModel], value: Any, prefix: str = "") -> Any:
+def validated_file(path: Path, model: type[BaseModel], value: Any, prefix: str = "") -> Any:
     try: return model.model_validate(value)
     except ValidationError as exc:
         locations = []

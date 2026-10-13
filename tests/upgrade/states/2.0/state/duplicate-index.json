@@ -1,0 +1,18 @@
+{
+  "entries": [
+    {
+      "content_fingerprint": "f1da62693888202050dc03a78c1583ce6c559a758e59bc211242dc4aab5e6737",
+      "imap": {
+        "account_id": "111111111111111111111111",
+        "folder": "INBOX",
+        "uid": 1,
+        "uidvalidity": 7
+      },
+      "mail_id": "86c07d83d81795c32d592dbc",
+      "message_ids": [
+        "<e2e@example.test>"
+      ]
+    }
+  ],
+  "schema_version": 1
+}

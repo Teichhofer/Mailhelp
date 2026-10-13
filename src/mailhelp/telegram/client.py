@@ -10,11 +10,10 @@ from typing import Any, Protocol
 import httpx
 from pydantic import ValidationError
 
-from ..adapter import PermanentError, RetryPolicy, uncertain_write
-from ..logging import NullLogger
-
-from .formatting import split_message
+from ..adapter import PermanentError, RetryInterrupted, RetryPolicy, uncertain_write
+from ..logging import EventLogger, NullLogger
 from .callbacks import validate_callback_markup
+from .formatting import split_message
 from .models import (
     TelegramBotResponse,
     TelegramUpdate,
@@ -55,10 +54,7 @@ class TelegramClient:
         self.logger = logger or NullLogger()
 
     def _log_message(self, direction: str, **context: Any) -> None:
-        """Keep third-party logger implementations backward compatible."""
-        record = getattr(self.logger, "telegram_event", None)
-        if record is not None:
-            record(direction, **context)
+        self.logger.telegram_event(direction, **context)
 
     def check_access(self) -> None:
         """Validate the bot token without reading updates."""
@@ -69,7 +65,7 @@ class TelegramClient:
             TelegramBotResponse.model_validate(response.json())
         except (ValueError, ValidationError) as exc:
             raise ValueError(
-                f"Telegram getMe: ungültige Antwort am Schlüsselpfad {_validation_path(exc)}"
+                f"Telegram getMe: ungültige Antwort am Schlüsselpfad {validation_path(exc)}"
             ) from exc
 
     def started_chats(self, user_id: int) -> list[int]:
@@ -90,7 +86,7 @@ class TelegramClient:
             parsed = TelegramUpdatesResponse.model_validate(response.json())
         except (ValueError, ValidationError) as exc:
             raise ValueError(
-                f"Telegram getUpdates: ungültige Antwort am Schlüsselpfad {_validation_path(exc)}"
+                f"Telegram getUpdates: ungültige Antwort am Schlüsselpfad {validation_path(exc)}"
             ) from exc
         chats = set()
         for item in parsed.result:
@@ -141,6 +137,16 @@ class TelegramClient:
                     error=exc,
                 ),
             )
+        except RetryInterrupted as exc:
+            self.logger.event(
+                "INFO",
+                "telegram",
+                "poll_interrupted",
+                call_id=call_id,
+                error=exc,
+                duration_ms=round((time.perf_counter() - started) * 1000, 3),
+            )
+            raise
         except Exception as exc:
             self.logger.event(
                 "ERROR",
@@ -157,13 +163,27 @@ class TelegramClient:
             parsed = TelegramUpdatesResponse.model_validate(response.json())
         except (ValueError, ValidationError) as exc:
             raise ValueError(
-                f"Telegram getUpdates: ungültige Antwort am Schlüsselpfad {_validation_path(exc)}"
+                f"Telegram getUpdates: ungültige Antwort am Schlüsselpfad {validation_path(exc)}"
             ) from exc
         result = [
             item.model_dump(by_alias=True) if isinstance(item, TelegramUpdate) else item
             for item in parsed.result
         ]
-        for item in parsed.result:
+        self._log_received(parsed.result)
+        self.logger.event(
+            "INFO",
+            "telegram",
+            "poll_completed",
+            call_id=call_id,
+            count=len(result),
+            status=response.status_code,
+            duration_ms=round((time.perf_counter() - started) * 1000, 3),
+        )
+        return result
+
+    def _log_received(self, items: list[Any]) -> None:
+        """Record each received message or button press (content only if enabled)."""
+        for item in items:
             if not isinstance(item, TelegramUpdate):
                 continue
             if item.message is not None:
@@ -186,16 +206,6 @@ class TelegramClient:
                     chat_id=callback.message.chat.id,
                     callback_data=callback.data,
                 )
-        self.logger.event(
-            "INFO",
-            "telegram",
-            "poll_completed",
-            call_id=call_id,
-            count=len(result),
-            status=response.status_code,
-            duration_ms=round((time.perf_counter() - started) * 1000, 3),
-        )
-        return result
 
     def send(
         self, chat_id: int, text: str, reply_markup: dict[str, Any] | None = None
@@ -346,7 +356,7 @@ class TelegramClient:
             TelegramWriteResponse.model_validate(response.json())
         except (ValueError, ValidationError) as exc:
             raise ValueError(
-                f"Telegram {operation}: ungültige Antwort am Schlüsselpfad {_validation_path(exc)}"
+                f"Telegram {operation}: ungültige Antwort am Schlüsselpfad {validation_path(exc)}"
             ) from exc
 
     @staticmethod
@@ -410,7 +420,7 @@ class TelegramClient:
         self.client.close()
 
 
-def _validation_path(exc: Exception) -> str:
+def validation_path(exc: Exception) -> str:
     if isinstance(exc, ValidationError):
         return ", ".join(
             ".".join(str(part) for part in item["loc"]) or "<root>"

@@ -1,0 +1,195 @@
+{
+  "$defs": {
+    "MailRunCounters": {
+      "additionalProperties": false,
+      "properties": {
+        "completed": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Completed",
+          "type": "integer"
+        },
+        "discovered": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Discovered",
+          "type": "integer"
+        },
+        "failed": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Failed",
+          "type": "integer"
+        },
+        "processing": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Processing",
+          "type": "integer"
+        },
+        "queued": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Queued",
+          "type": "integer"
+        },
+        "skipped": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Skipped",
+          "type": "integer"
+        },
+        "waiting_for_user": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Waiting For User",
+          "type": "integer"
+        }
+      },
+      "title": "MailRunCounters",
+      "type": "object"
+    },
+    "MailRunEntry": {
+      "additionalProperties": false,
+      "description": "One immutable IMAP identity and its durable processing state.",
+      "properties": {
+        "account_id": {
+          "minLength": 1,
+          "title": "Account Id",
+          "type": "string"
+        },
+        "analysis_terminal": {
+          "anyOf": [
+            {
+              "enum": [
+                "completed",
+                "irrelevant",
+                "duplicate",
+                "failed",
+                "skipped"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Analysis Terminal"
+        },
+        "failure_code": {
+          "anyOf": [
+            {
+              "enum": [
+                "imap_read_exhausted",
+                "processing_failed"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Failure Code"
+        },
+        "folder": {
+          "minLength": 1,
+          "title": "Folder",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/MailRunEntryStatus",
+          "default": "discovered"
+        },
+        "uid": {
+          "minimum": 1,
+          "title": "Uid",
+          "type": "integer"
+        },
+        "uidvalidity": {
+          "minimum": 1,
+          "title": "Uidvalidity",
+          "type": "integer"
+        },
+        "user_action_open": {
+          "default": false,
+          "title": "User Action Open",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "account_id",
+        "folder",
+        "uidvalidity",
+        "uid"
+      ],
+      "title": "MailRunEntry",
+      "type": "object"
+    },
+    "MailRunEntryStatus": {
+      "enum": [
+        "discovered",
+        "queued",
+        "processing",
+        "completed",
+        "waiting_for_user",
+        "failed",
+        "skipped"
+      ],
+      "title": "MailRunEntryStatus",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Versioned, completely materialised queue for one bounded mail run.",
+  "properties": {
+    "counters": {
+      "$ref": "#/$defs/MailRunCounters"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/MailRunEntry"
+      },
+      "title": "Entries",
+      "type": "array"
+    },
+    "max_mails": {
+      "anyOf": [
+        {
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Max Mails"
+    },
+    "run_id": {
+      "format": "uuid",
+      "title": "Run Id",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "run_id",
+    "created_at",
+    "entries",
+    "counters"
+  ],
+  "title": "MailRunState",
+  "type": "object"
+}

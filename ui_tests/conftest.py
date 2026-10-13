@@ -12,19 +12,22 @@ import re
 import socket
 import sys
 import threading
-import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
 import pytest
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import expect, sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "ui_tests"))
-sys.path.insert(0, str(ROOT / "tests"))
+# Synthetic scenarios and shared helpers of the Python suite (tests/<area>/).
+for _folder in sorted((ROOT / "tests").iterdir()):
+    if _folder.is_dir() and _folder.name not in {"fixtures", "__pycache__"}:
+        sys.path.insert(0, str(_folder))
+
+from web_scenario import Revisions, populate  # noqa: E402
 
 from mailhelp.config import WebSettings  # noqa: E402
-from mailhelp.models import Proposal  # noqa: E402
 from mailhelp.review.inbox import CommandInbox  # noqa: E402
 from mailhelp.review.views import ReviewViews  # noqa: E402
 from mailhelp.storage import JsonStore  # noqa: E402
@@ -32,7 +35,6 @@ from mailhelp.telegram import TelegramDialogController  # noqa: E402
 from mailhelp.web import WebApp, WebServer  # noqa: E402
 from mailhelp.web.auth import WebAuth  # noqa: E402
 from mailhelp.web.site import MailhelpSite  # noqa: E402
-from web_scenario import Revisions, populate  # noqa: E402
 
 STATIC = ROOT / "src/mailhelp/web/static"
 COVERED_SCRIPTS = tuple(name for name in ("app.js", "sw.js") if (STATIC / name).exists())
@@ -43,6 +45,9 @@ DEVICES = {
                    user_agent=("Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) "
                                "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 "
                                "Mobile/15E148 Safari/604.1")),
+    # Small phones (e.g. iPhone SE first generation) and large zoom levels.
+    "narrow": dict(viewport={"width": 320, "height": 640}, device_scale_factor=2, is_mobile=True,
+                   has_touch=True),
 }
 
 
@@ -98,7 +103,7 @@ class Mailhelp:
 
     def pairing_code(self) -> str:
         message = next(text for text in reversed(self.telegram.sent) if "Code " in text)
-        return re.search(r"Code (\d{4} \d{4})", message).group(1)
+        return re.search(r"\bCode (\d{4})\b", message).group(1)
 
 
 def _free_port() -> int:
@@ -121,18 +126,46 @@ def mailhelp(tmp_path):
         auth = WebAuth(store, "u" * 40, 30, lambda text: telegram.send(2, text))
         dialog.review.web_authorizer = lambda actor: auth.active(actor.removeprefix("web:"))
         app = WebApp(settings.allowed_hosts)
-        MailhelpSite(app, auth, settings, "Europe/Berlin", logger,
+        site = MailhelpSite(app, auth, settings, "Europe/Berlin", logger,
                      ReviewViews(store, "Europe/Berlin"), commands)
-        server = WebServer("127.0.0.1", port, app, logger)
+        def test_app(request):
+            response = app(request)
+            if response.content_type.startswith("text/html"):
+                response.body = response.body.replace(b"<body", b'<body data-undo-ms="1000"', 1)
+            return response
+        server = WebServer("127.0.0.1", port, test_app, logger)
         server.start()
         instance = Mailhelp(f"http://127.0.0.1:{port}", store, telegram, writer, dialog)
         instance.auth = auth
+        instance.site = site
+        import yaml
+        from shared_application import settings as application_settings
+
+        from mailhelp.configuration import ConfigurationService
+        from mailhelp.lifecycle import Lifecycle
+        from mailhelp.metrics import MetricsRecorder, MetricsSettings
+        cfg = application_settings(tmp_path)
+        (tmp_path / "config.yaml").write_text(yaml.safe_dump(cfg.model_dump(mode="json")), encoding="utf-8")
+        (tmp_path / "topics.yaml").write_text("topics:\n- id: school\n  name: Schule\n  description: Schule\n  enabled: true\n  examples: []\n  exclusions: []\n", encoding="utf-8")
+        (tmp_path / "irrelevant_topics.yaml").write_text("topics: []\n", encoding="utf-8")
+        configuration = ConfigurationService(tmp_path, store, cfg, dialog.review.web_authorizer, lambda value: None)
+        dialog.review.configuration = site.archive.configuration = configuration
+        site.archive.metrics = MetricsRecorder(tmp_path / "metrics.jsonl", MetricsSettings())
+        site.lifecycle = site.archive.lifecycle = Lifecycle(instance.stop.set, dialog.review.web_authorizer)
 
         def main_thread():
             # Mailhelp's main thread executes web commands between mails.
             while not instance.stop.wait(0.1):
-                dialog.poll_once()
+                # This synthetic Telegram port never receives updates. Execute
+                # real queued web commands, but keep idle rendering tests idle.
+                # Production recovery rewrites projections on every poll and
+                # would invalidate a fingerprint even without a new decision.
+                if commands.queued():
+                    dialog.poll_once()
 
+        # Finish startup recovery before the first browser reads a fingerprint.
+        # Otherwise a foreground check can legitimately reload during the test.
+        dialog.poll_once()
         worker = threading.Thread(target=main_thread, daemon=True)
         worker.start()
         try:
@@ -162,7 +195,7 @@ class Coverage:
                 for offset in range(item["startOffset"], min(item["endOffset"], len(source))):
                     counts[offset] = item["count"]
             merged = self.counts.setdefault(name, [0] * len(source))
-            self.counts[name] = [max(a, b) for a, b in zip(merged, counts)]
+            self.counts[name] = [max(a, b) for a, b in zip(merged, counts, strict=False)]
 
     def uncovered(self) -> dict[str, list[int]]:
         report = {}
@@ -196,7 +229,7 @@ class Page:
 
     def __init__(self, page, device: str):
         self.page, self.device, self.errors = page, device, []
-        self.mobile = device == "mobile"
+        self.mobile = device != "desktop"
         page.on("console", lambda message: self.errors.append(message.text)
                 if message.type == "error" else None)
         page.on("pageerror", lambda error: self.errors.append(str(error)))
@@ -205,8 +238,11 @@ class Page:
         # every load compiles app.js afresh with block coverage.
         self.cdp.send("Network.enable")
         self.cdp.send("Network.setCacheDisabled", {"cacheDisabled": True})
+        self.cdp.send("Page.enable")
         self.cdp.send("Profiler.enable")
         self.cdp.send("Profiler.startPreciseCoverage", {"callCount": True, "detailed": True})
+        self.cdp.on("Page.frameRequestedNavigation", lambda event: self.collect())
+        self.cdp.on("Page.frameStartedLoading", lambda event: self.collect())
 
     def collect(self) -> None:
         COVERAGE.add(self.cdp.send("Profiler.takePreciseCoverage"))
@@ -245,6 +281,30 @@ def sign_in(page: Page, mailhelp: Mailhelp, device_label: str = "") -> None:
     page.wait_for_url(f"{mailhelp.url}/")
 
 
+def item(page: Page, selector: str):
+    """An open item with its actions.
+
+    On the desktop the item is selected in the master list and operated in the
+    detail pane, whose ids carry the prefix ``detail-``; on phones it is the card.
+    """
+    if page.device != "desktop":
+        return page.locator(selector)
+    page.locator(".master-pane " + selector).click(position={"x": 12, "y": 12})
+    shown = page.locator(".detail-pane #detail-" + selector.removeprefix("#"))
+    expect(shown).to_be_visible()
+    return shown
+
+
+def act(page: Page, control, text: str) -> None:
+    """Click and wait for the next result page (confirm and reject after the undo time)."""
+    page.collect()  # The result page replaces this document and its script coverage.
+    with page.expect_event("framenavigated", timeout=20000,
+                           predicate=lambda frame: frame == page.main_frame and "?ergebnis=" in frame.url):
+        control.click()
+    expect(page.get_by_role("heading", name="Offene Entscheidungen")).to_be_visible(timeout=10000)
+    expect(page.locator("main > .notice").first).to_contain_text(text)
+
+
 def pytest_sessionfinish(session, exitstatus):
     """Fail the run if a block of the application scripts never ran."""
     if exitstatus != 0 or session.config.option.keyword or session.config.option.markexpr:
@@ -259,4 +319,4 @@ def pytest_sessionfinish(session, exitstatus):
         print("\nJavaScript-Abdeckung: 100 % der Blöcke in " + ", ".join(COVERED_SCRIPTS))
 
 
-__all__ = ["DEVICES", "Mailhelp", "Page", "sign_in"]
+__all__ = ["DEVICES", "Mailhelp", "Page", "act", "item", "sign_in"]

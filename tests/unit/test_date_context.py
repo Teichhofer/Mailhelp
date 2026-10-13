@@ -1,0 +1,66 @@
+from datetime import UTC, datetime, timedelta, timezone
+
+import pytest
+
+from mailhelp.imap import ImapReader
+from mailhelp.mime import prepare
+
+
+class Connection:
+    def __init__(self, response):
+        self.response_value = response
+        self.commands = []
+
+    def login(self, *_args): pass
+    def logout(self): pass
+    def select(self, *_args, **_kwargs): return "OK", []
+    def response(self, _key): return "UIDVALIDITY", [b"8"]
+    def uid(self, command, *args):
+        self.commands.append((command, args))
+        if command == "search": return "OK", [b"12"]
+        return self.response_value
+
+
+@pytest.mark.parametrize("targeted", [False, True])
+def test_combined_peek_fetch_transports_internaldate(targeted):
+    connection = Connection(("OK", [None, (b'12 (INTERNALDATE "27-Oct-2024 02:30:00 +0200" BODY[] {3})', b"raw"), b")"]))
+    reader = ImapReader("host", 993, "user", "password", factory=lambda *_a, **_k: connection)
+    mail = reader.fetch_uid("INBOX", 12, 8) if targeted else reader.fetch_since("INBOX", 0, 8)[0]
+    assert mail.raw == b"raw"
+    assert mail.received_at.isoformat() == "2024-10-27T02:30:00+02:00"
+    assert any(args[-1] == "(BODY.PEEK[] INTERNALDATE)" for command, args in connection.commands if command == "fetch")
+
+
+@pytest.mark.parametrize("response", [
+    ("OK", None), ("OK", [b"not a tuple"]), ("OK", [("text", b"raw")]),
+    ("OK", [(b"metadata", b"raw")]),
+    ("OK", [(b'1 (INTERNALDATE "not-a-date")', b"raw")]),
+])
+def test_malformed_combined_fetch_is_rejected(response):
+    reader = ImapReader("host", 993, "user", "password", factory=lambda *_a, **_k: Connection(response))
+    with pytest.raises(RuntimeError, match="IMAP"):
+        reader.fetch_uid("INBOX", 12, 8)
+
+
+def test_mail_date_context_valid_invalid_naive_conflicting_and_dst():
+    received = datetime(2024, 10, 27, 2, 45, tzinfo=timezone(timedelta(hours=1)))
+    valid = prepare(b"Date: Sun, 27 Oct 2024 02:30:00 +0100\r\n\r\nx", 10000, received, "Europe/Berlin")
+    assert valid["date_context_status"] == "valid"
+    assert valid["date_header_original"].endswith("+0100")
+    assert valid["date_header_parsed"] == "2024-10-27T02:30:00+01:00"
+    assert valid["imap_received_at"] == received.isoformat()
+    assert valid["user_timezone"] == "Europe/Berlin"
+    for header, status in ((b"", "missing"), (b"Date: nonsense\r\n", "invalid"),
+                           (b"Date: Sun, 27 Oct 2024 02:30:00\r\n", "naive"),
+                           (b"Date: Mon, 01 Jan 2024 10:00:00 +0000\r\n", "conflicting")):
+        assert prepare(header + b"\r\nx", 10000, received, "Europe/Berlin")["date_context_status"] == status
+    with pytest.raises(ValueError, match="zeitzonenbehaftet"):
+        prepare(b"\r\nx", 10000, received.replace(tzinfo=None))
+
+
+def test_prepared_mail_exposes_context_independently_of_summary_text():
+    mail = prepare(b"Date: Fri, 18 Sep 2026 12:00:00 +0200\r\nSubject: 21. Oktober\r\n\r\nTermin",
+                   10000, datetime(2026, 9, 18, 10, 1, tzinfo=UTC), "Europe/Berlin")
+    assert mail["date_context_status"] == "valid"
+    assert mail["date_header_parsed"].startswith("2026-")
+    assert "summary" not in mail

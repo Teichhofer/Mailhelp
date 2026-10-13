@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable
 from importlib.resources import files
-from typing import Callable
 
 from .http import Request, Response, rejected
 

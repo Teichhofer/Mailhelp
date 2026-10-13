@@ -6,11 +6,11 @@ from datetime import datetime
 from typing import Protocol
 from zoneinfo import ZoneInfo
 
-
-from ..integrations import ExternalWriter, execute_confirmed, proposal_is_writable
+from .. import state_names
+from ..external.confirmed import execute_confirmed
+from ..external.contracts import ExternalWriter, proposal_is_writable
 from ..models import Proposal, ProposalKind, ProposalStatus
 from ..storage import JsonStore
-
 from .client import TelegramTransport
 from .ledger import ActionLedgerPort
 
@@ -132,10 +132,7 @@ class ConfirmedWriteExecutor:
         return changed
 
     def resume(self) -> None:
-        names = getattr(self.store, "names", None)
-        if names is None:
-            return
-        for name in names("proposal-"):
+        for name in self.store.names(state_names.PROPOSAL_PREFIX):
             if "-v" in name:
                 continue
             proposal = self.store.load_model(name, Proposal)

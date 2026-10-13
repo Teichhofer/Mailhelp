@@ -663,7 +663,7 @@ ausführbare Handlung ist eine vorhandene Aufgabe und kein `unclear`-Fall. Dazu
 gehört insbesondere das Angebot, über einen vorhandenen Buchungslink ein Gespräch
 zu vereinbaren. Ein solcher Vorschlag bleibt in Titel und Beschreibung als
 freiwillig erkennbar, übernimmt den Link, erhält ohne ausdrücklich genannte Frist
-keine Fälligkeit und darf erst nach versionsbezogener Telegram-Bestätigung in
+keine Fälligkeit und darf erst nach versionsbezogener Bestätigung über Telegram oder die authentifizierte Weboberfläche in
 Todoist geschrieben werden. Solange keine Buchungsbestätigung mit konkretem
 Zeitpunkt vorliegt, entsteht daraus kein Kalendertermin.
 
@@ -770,7 +770,7 @@ Replay-Grenze fort.
   Rohdaten noch als Validierungsinhalt protokolliert. Interne Vorschlags- und
   Relevanzentscheidungen bleiben geschlossene Schemata. Der Offset wird nach jedem
   identifizierbaren Update atomar gespeichert; ältere oder doppelte Updates werden
-  nach Neustarts ignoriert. Ist ausschließlich die Telegram-Bestätigung einer
+  nach Neustarts ignoriert. Ist ausschließlich die Bestätigung über Telegram oder die authentifizierte Weboberfläche einer
   Callback-Query bereits abgelaufen, bleibt die fachliche Verarbeitung wirksam und
   der Offset wird fortgeschrieben; andere technische Antwortfehler verhindern die
   Quittierung weiterhin.
@@ -1278,7 +1278,7 @@ Folgender Inhalt ist bei der Projektinitialisierung in `AGENTS.md` im Repository
 - Halte Prompts/Modelle/LLM-Parameter in prompts.yaml, Themen in topics.yaml,
   Anwendungseinstellungen in config.yaml und Geheimnisse außerhalb des Codes.
 - Verwende lesbare JSON-Dateien für den Zustand und separate JSONL-Logs.
-- Erzwinge ausdrückliche, versionsbezogene Telegram-Bestätigung vor jedem
+- Erzwinge ausdrückliche, versionsbezogene Bestätigung über Telegram oder die authentifizierte Weboberfläche vor jedem
   Schreibzugriff auf Todoist oder Google Kalender.
 - Behandle Mailinhalte und LLM-Ausgaben als nicht vertrauenswürdige Eingaben.
 - Verhindere doppelte Aktionen; gleiche unklare Schreibresultate vor Wiederholung ab.
@@ -1351,7 +1351,7 @@ Refresh-Token liegen ausschließlich als Geheimnisse außerhalb der YAML-Dateien
 Vor jedem Schreiben wird mit dem privaten `mailhelp_key` abgeglichen. Derselbe
 Schlüssel wird beim Event gespeichert, damit Neustarts und unklare Ergebnisse
 ohne doppelten Termin aufgelöst werden können. Schreibzugriffe erfolgen nur nach
-einer ausdrücklichen, versionsbezogenen Telegram-Bestätigung.
+einer ausdrücklichen, versionsbezogenen Bestätigung über Telegram oder die authentifizierte Weboberfläche.
 
 Vor der Anlage fragt der Adapter ausschließlich die zeitlich überschneidenden
 Kalendereinträge auf sämtlichen Ergebnisseiten ab. Eine Seitengröße von 50 ist
@@ -1729,7 +1729,10 @@ Telegram-Schaltflächen laufen ebenfalls über ihn. Eine Web-Antwort setzt den
 Rückfragezeiger `telegram-dialog` auf ihre Zielversion; eine laufende, gespeicherte
 Antwort eines anderen Vorschlags wird dabei nicht überschrieben (Ergebnis „busy“).
 Lesemodelle lesen ohne Migration und ohne Quarantäne; beschädigte Datensätze werden
-übersprungen und gezählt.
+übersprungen und gezählt. Die Statusseite zeigt zusätzlich Betriebszahlen aus dem
+gespeicherten Zustand (Durchlauffortschritt, Analyseergebnisse, Mails mit Fehler ohne
+Inhalte, Vorschläge je Zustand, Telegram-Warteschlangen, Web-Aktionen, KI-Aufrufe der
+letzten Minute) sowie Version, Modus, Laufzeit und Adresse der Weboberfläche.
 
 **Ein Zustandsbesitzer:** Web-Threads schreiben nie Review-Zustand. Sie legen Befehle
 in die dauerhafte `command-inbox` (Status `queued`, `running`, `done`, `rejected`,
@@ -1779,3 +1782,241 @@ ohne Verbindung erscheint die Offline-Seite. POST-Anfragen, Daten und API-Antwor
 werden weder gespeichert noch später gesendet.
 
 Einrichtung und Betrieb: [docs/Release-1.1.md](docs/Release-1.1.md).
+
+## 19. Weboberfläche 1.2: Archiv, Verlauf, Auswertung und Einstellungen
+
+Version 1.2 erweitert Abschnitt 18; alle Regeln dort (Anmeldung, CSRF, Host-Prüfung,
+Hauptthread als einziger Zustandsbesitzer, versionsgebundene Befehle) gelten auch hier.
+
+**Mails und Analyse.** `/mails` durchsucht ausschließlich gespeicherte Vorgänge
+(Absender, Betreff, Zusammenfassung) mit validierten Filtern und höchstens 100 Einträgen
+je Seite über einen nur bei Zustandsänderungen neu aufgebauten Speicherindex. `/mail/<id>`
+zeigt Zusammenfassung, Relevanz mit Begründung, Themen zum Analysezeitpunkt,
+Entscheidungsquelle und Originalmail. Die Analyse wird beim Speichern des Mailzustands
+als `analysis-<id>` festgehalten und mit `retention.analysis_days` bereinigt (fehlt der
+Schlüssel, gilt `debug_llm_days`). Beim Öffnen einer Seite findet kein KI-Aufruf statt.
+
+**Verlauf.** Ereignisse (`history-<id>`) entstehen bei Zustandsänderungen von Vorschlägen
+und bei Befehlen aus Telegram und Web, mit aus Vorgang und Ereignis abgeleitetem
+Schlüssel, ohne Mailtext oder Tokens. Historische Versionen sind lesend und zeigen die
+Feldänderungen gegenüber der Vorgängerversion. Vorgänge vor 1.2 werden als nicht
+vollständig erfasst gekennzeichnet. `retention.history_days` entfernt Ereignisse und
+Inhalte alter Versionen, nicht die Sicherheitsreferenzen gegen Doppelanlagen.
+Vorschlagsdateien werden nur unter der Identität geladen, die ihr Dateiname angibt.
+
+**Strukturierte Bearbeitung.** `ProposalEditPatch` ist geschlossen. Speichern erzeugt eine
+neue Version über die gemeinsame Revisionslogik und schreibt nie extern; die neue Version
+benötigt eine eigene Bestätigung. Für `writing`, `uncertain` und angelegte Vorschläge gibt
+es kein Formular. Zeiten gelten in der konfigurierten Zone; nicht existierende oder
+doppeldeutige Zeiten werden abgewiesen.
+
+**Betriebsstatus.** Ein Laufzeitschnappschuss (Schritt, Dauer, Mail, nächster Abruf) und
+der letzte belegte erfolgreiche Kontakt je Dienst stammen aus ohnehin protokollierten
+Ereignissen; die Statusseite löst keinen Dienstaufruf aus und aktualisiert sich über ein
+eigenes Signal (`/api/stand?seite=status`).
+
+**Metriken.** Jeder KI-Versuch wird inhaltsfrei in `logs/metrics/llm.jsonl` (Betrieb) bzw.
+`logs/metrics/decision-tests.jsonl` (Vergleichsläufe) festgehalten, mit Schritt, Modell,
+Anbieter, Dauer, Status, Tokenzahlen und gemeldeten Kosten. Doppelte Zeilen zählen einmal;
+abgelaufene Einzelwerte werden über ein Journal in Tagesaggregate ohne Mailbezug
+überführt. Fehlende Kosten sind „unbekannt“, nicht null; Euro nur mit Wechselkurs und
+Datum; Stromkosten sind eine gekennzeichnete Schätzung aus `metrics.ollama_power_watts` und
+`metrics.electricity_eur_per_kwh`, überlappende Aufrufe zählen einmal.
+
+**Einstellungen und Themen.** Bearbeitbar ist nur eine Positivliste von Einstellungen;
+Geheimnisse, Web-Bindung, Datenverzeichnis und IMAP-Konten nicht. Änderungen sind
+`AdminCommand`s mit erwartetem Dateihash und ausdrücklicher Bestätigung, laufen im
+Hauptthread, werden journalisiert und atomar geschrieben. `config.yaml` wird
+kommentarerhaltend geändert (nur betroffene Zeilen); weicht die geparste Datei vom
+validierten Kandidaten ab, wird nichts geschrieben. Abrufintervall, Aufbewahrung und
+Metrikannahmen werden an einer sicheren Stelle übernommen, alles andere nach einem
+Neustart. Themenänderungen gelten für neue Mails; begonnene Mails behalten ihren
+Themenstand. Der Lernmodus ergänzt IMAP-Ordner ebenfalls kommentarerhaltend.
+
+**Konfigurations-Fingerprint.** Er umfasst nur analyserelevante Einstellungen sowie
+Prompts und Themen; Polling, Logging, Aufbewahrung, Zeitlimits, Wiederholungen, Lernmodus,
+Metriken und Web gehören nicht dazu. Fingerprints, die 1.1 oder die 1.2-Beta für dieselbe
+Konfiguration berechnet hätten, werden beim Start als gleichwertig registriert.
+
+**Programmstopp.** Ein bestätigter POST mit Prozesskennung fordert den Stopp an; danach
+werden keine Analysen und Web-Befehle mehr ausgeführt. Nach Auslieferung der Antwort ruft
+der Lebenszyklus `Application.stop()` auf – denselben Weg wie SIGINT/SIGTERM. Zustände:
+`running → stop_requested → stopping → stopped`, jeweils protokolliert. Eine
+Stoppanforderung gilt nur für ihren Prozess und wird nie wiederholt.
+
+Einrichtung, Upgrade und Rollback: [docs/Release-1.2.md](docs/Release-1.2.md).
+
+## 20. Version 1.3: Intelligenter Workflow & Dokumenten-Anhänge (Smart Engine)
+
+Version 1.3 erweitert Mailhelp um eine smarte Workflow-Engine und Dokumenten-Extraktion:
+
+- **Kalender-Vorabprüfung & Reschedule (Stufe 2):** Vor einer Benachrichtigung wird Google Kalender im relevanten Zeitfenster (±7 Tage) lesend abgefragt (mit 60s In-Memory Cache). Exakte Duplikate erhalten den Status `already_exists` und werden weder auf Telegram noch unter `/offen` gemeldet. Terminverschiebungen erkennen den bestehenden Termin (`target_event_id`), stellen Differenzen (`time_changes`) dar und aktualisieren den Termin bei Bestätigung per HTTP `PATCH` anstelle eines Neuanlage-`POST`.
+- **Todoist-Vorabprüfung (Stufe 3):** Aktive Aufgaben werden im konfigurierten Projekt abgefragt und bei identischem/ähnlichem Titel als Duplikat erkannt.
+- **Dokumenten-Anhänge (PDF, DOCX, TXT):** Text wird aus Anhängen bis 10 MB sicher und ressourcenschonend lokal extrahiert (via `pypdf`, `zipfile`/XML für Word sowie Plaintext) und auf max. 20.000 Zeichen begrenzt. Der Text wird mit Quellenbeleg in den Analysekontext für Relevanz, Router und Extraktion eingebunden.
+- **RFC 5545 Kalenderanhänge (.ics):** Termine und Stornierungen (`VEVENT`) aus `text/calendar` und Dateianhängen werden deterministisch in Vorschläge überführt und LLM-Textextraktionen bei gleicher Einladung unterdrückt.
+- **Web- und Telegram-Erweiterungen:** Anzeige von Terminänderungs-Diff-Boxen, Duplikat-Badges mit externen Links, Extraktionsstatus-Badges bei Dokumenten sowie spezifischen Bestätigungsaktionen ("Termin aktualisieren", "Termin absagen").
+
+
+
+## Interne Verantwortlichkeiten ab Version 1.6
+
+Version 1.6 verändert keine fachlichen Abläufe, Routen, API-Verträge oder
+Zustandsschemas. `Application` bleibt Composition Root und Lifecycle-Koordinator;
+`MailboxRunService` übernimmt Discovery, durable Queue, Checkpoints und Recovery.
+Review- und Betriebsstatusrenderer sind getrennt. Die Integrationsfassade delegiert
+an OAuth-, Kalender-, Todoist-, ICS-, Transport- und bestätigte Schreibmodule.
+Telegram-Antwortinterpretation, validierter Nachfolge-Vorschlag und Recovery
+erhalten explizite Abhängigkeiten; Persistenz und Zustellung bleiben koordiniert.
+Die bestehende Bestätigungsschranke und Reihenfolge dauerhafter Zustandsübergänge
+bleiben verpflichtend. Die vollständige Zuordnung ist in
+[Architektur-1.6.md](docs/Architektur-1.6.md) beschrieben.
+
+
+## 21. Version 2.0: Eigenständige App, Web-Push, Antwort-Entwürfe und Tagesüberblick
+
+Alle 2.0-Funktionen sind optional; die Standardwerte schalten sie aus. Die
+Bestätigungsschranke gilt unverändert: Bearbeiten und Speichern allein lösen keine
+externe Anlage und keine Ablage im Postfach aus.
+
+**Weboberfläche.** Ab 1024 px Breite zeigt `/` bzw. `/offen` die offenen Vorgänge
+als Liste und den ausgewählten Vorgang daneben (geladen aus derselben Detailseite,
+eindeutige IDs mit Präfix `detail-`). Die Vorschlagsseite zeigt Quellbeleg,
+Revisionshistorie und technische Analyse als einklappbare Abschnitte; mit
+Bildvorschauen ist der Quellbeleg geöffnet. Schnellfilter (`filter` = `events`,
+`tasks`, `clarification`, `attachments`, `duplicates`) werden serverseitig
+ausgewertet; unbekannte Werte ergeben 422. Bestätigen und Verwerfen werden im
+Browser 5 Sekunden zurückgehalten und dann als normales Formular gesendet; der
+Server prüft Sitzung, CSRF, Version und Idempotenzschlüssel. Tastenkürzel sind in
+Eingabefeldern und bei geöffneten Dialogen inaktiv. Ohne JavaScript funktionieren
+alle Funktionen über normale Links und Formulare. Ohne offene Entscheidungen zeigt
+die Übersicht die heutigen Ergebnisse in der konfigurierten Zeitzone.
+
+**Bildvorschau.** Bei der Vorbereitung werden Rasterbilder (JPEG, PNG, WebP,
+bis 10 MB) unabhängig von der Bilderkennung als JPEG mit höchstens 1.600 px unter
+`data/attachments/<mail_id>/<index>.jpg` abgelegt. `GET /mail/<id>/anhang/<index>`
+verlangt eine Sitzung und liefert nur Vorschauen, die in der gespeicherten Mail
+verzeichnet sind, mit `Content-Type: image/jpeg`, `X-Content-Type-Options: nosniff`,
+`Content-Security-Policy: default-src 'none'` und `Cache-Control: private,
+max-age=3600`; sonst 404. SVG wird nie ausgeliefert. Fehler beim Anlegen werden
+protokolliert (`preview_failed`) und halten die Analyse nicht auf. Die
+Aufbewahrung löscht Vorschauen und Entwurfstext zusammen mit dem Mailtext.
+
+**Web-Push.** `push.enabled` erzeugt einmalig ein P-256-VAPID-Schlüsselpaar
+(`web-vapid.json`, nie protokolliert). `GET /api/push/public-key`,
+`POST /api/push/subscribe` und `POST /api/push/unsubscribe` verlangen Sitzung und
+CSRF; An- und Abmeldung tragen einen Idempotenzschlüssel. Je Gerätesitzung wird
+höchstens ein Abo gespeichert (`push-subscriptions.json`); erlaubt sind nur
+HTTPS-Endpunkte von Google, Mozilla, Apple und Microsoft (Port 443, ohne
+Zugangsdaten und Fragment) mit gültigem P-256-Schlüssel. Payloads enthalten nur
+eine Art (`decisions`, `briefing`); Texte und Ziele legt der Service Worker fest.
+Abos abgemeldeter Sitzungen sowie mit 404/410 beantwortete Abos werden entfernt.
+Ein Hintergrundthread prüft minütlich, ob neue offene Entscheidungen hinzugekommen
+sind. Netzwerkzugriffe laufen nie unter der globalen Zustandssperre.
+
+**Antwort-Entwürfe.** Mit `smart_reply: true` und dem Prompt `draft_reply` zeigt
+die Mail- und die Vorschlagsdetailseite jeder Mail mit gespeichertem Mailtext immer
+die Schaltflächen „Zusagen“, „Absagen“ und „Rückfrage“ (`intent` = `accept`,
+`decline`, `question`). Erst ein Klick löst genau einen LLM-Aufruf aus; der
+Hintergrunddienst erzeugt keine Entwürfe. Das LLM erhält `intent`,
+`personal_info` und unter `mail` nur Absender, Betreff, Datum, Mailtext,
+`attachments` (Dateiname und Text jedes erfolgreich extrahierten oder per OCR
+gelesenen Anhangs, je einmal) sowie `calendar_events`, aber keine technischen
+Metadaten. Es antwortet mit `{"text": "..."}` (1–8.000 Zeichen; Mailinhalt und
+Ausgabe gelten als nicht vertrauenswürdig). `personal_info` (höchstens 2.000
+Zeichen, Zeilenumbrüche und Tabulatoren als einzige Steuerzeichen) enthält
+eigene Angaben des Nutzers wie Name, Rolle oder Signatur. Es ist vertrauenswürdiger
+Kontext ausschließlich für `draft_reply`, gehört zu keinem Analyse-Fingerprint und
+ist unter Einstellungen → Antworten als mehrzeiliges Textfeld bearbeitbar. Die
+Änderung wird nach der Bestätigung als einzeiliger, doppelt gequoteter YAML-Wert
+in `config.yaml` geschrieben und gilt sofort für den nächsten Klick. Der Entwurf
+(`draft-<mail_id>.json`, je Mail einer) erscheint mit neuer Version in einem
+bearbeitbaren Textfeld. „Abbrechen“ verwirft ihn lokal ohne Postfachzugriff; ein
+erneuter Klick auf eine Antwortart ersetzt ihn durch eine neue Version. Jede
+Aktion verlangt Sitzung, CSRF-Token, die aktuelle Version und einen
+Idempotenzschlüssel; ein wiederholter Klick mit demselben Schlüssel löst keinen
+zweiten LLM-Aufruf aus. Die Sitzung wird nach dem LLM-Aufruf erneut geprüft.
+„Als Entwurf im Postfach speichern“ bestätigt genau den abgeschickten Text dieser
+Version; er wird vor dem Postfachzugriff lokal gesichert und per `APPEND` in
+`imap.drafts_folder` (modifiziertes UTF-7) als RFC-5322-Nachricht abgelegt: `From` = IMAP-Benutzer, `To` = `Reply-To` oder `From`
+der Quelle, `Re:`-Betreff, `In-Reply-To`, `References` (höchstens 20 frühere IDs),
+eindeutige `Message-ID`, Flags `\Draft \Seen`. Vor jedem `APPEND` wird über die
+Message-ID abgeglichen; ein unklares Ergebnis bleibt `uncertain` und wird nur
+wiederholt, wenn der Abgleich das Fehlen belegt; solange sind Text,
+Antwortarten und „Abbrechen“ gesperrt. Eine eindeutige Ablehnung gibt den Entwurf
+zur Bearbeitung frei. Die Sitzung wird unmittelbar vor dem `APPEND`
+erneut geprüft. `test_mode` simuliert die Ablage. Es gibt keinen SMTP-Versand.
+
+**Tagesüberblick.** Mit `daily_briefing.enabled` erstellt Mailhelp ab `time`
+(lokale Zeit) einmal je Kalendertag einen Überblick aus heutigen Terminen,
+Aufgaben mit Fälligkeit bis heute und offenen Entscheidungen (je höchstens 10
+Einträge, höchstens 4.000 Zeichen). Ausfälle einzelner Quellen werden vermerkt.
+Jeder Kanal wird je Tag höchstens einmal versucht; ein beim Senden unterbrochener
+Kanal bleibt `uncertain` und wird nicht wiederholt. Telegram erhält den Text,
+Web-Push einen neutralen Hinweis, `/briefing` zeigt den letzten Überblick.
+
+**Betrieb ohne Telegram.** `telegram.enabled: false` setzt `web.enabled: true`
+voraus; `TELEGRAM_BOT_TOKEN`, `telegram.user_id` und `telegram.chat_id` entfallen.
+Kopplungscodes werden nur auf der Konsole ausgegeben. Die 2.0-Einstellungen sind
+nicht Teil des Konfigurations-Fingerprints, auch nicht der Legacy-Fingerprints.
+
+Details und Upgrade: [Release-2.0.md](docs/Release-2.0.md).
+
+
+### Auswahl bei Aktualisierung der Webübersicht
+
+Die Split-View behält den ausgewählten Vorgang bei automatischem und manuellem Neuladen über seine stabile Karten-ID im aktuellen Browser-Verlaufseintrag bei. Ist der Vorgang nicht mehr in der angezeigten Liste vorhanden, wird der erste verbleibende Vorgang ausgewählt. Eine leere Übersicht bleibt ohne Auswahl. Ein neu gewählter Schnellfilter beginnt mit dem ersten passenden Vorgang. Die Wiederherstellung gilt auch beim Wechsel von schmaler zu breiter Ansicht und führt keine Bestätigung oder externe Schreibaktion aus. Dafür ist keine zusätzliche Konfiguration erforderlich.
+
+
+### Erläuterungen zu Web-Einstellungen
+
+Jede angebotene Konfigurationseinstellung erhält eine kleine Info-Schaltfläche mit Erläuterungen zu Wirkung, Wertebereich und Folgen unterschiedlicher Werte. Die Hinweise sind über Hover, Tastaturfokus und Antippen erreichbar; Escape blendet sie aus. Sie stehen außerhalb des Bearbeitungsformulars und lösen keine Speicherung aus. Modelle und Browser-Push erhalten ergänzende Erklärungen. Der zentrale Hilfetextkatalog und die [Einstellungsreferenz](docs/Web-Einstellungen.md) müssen vollständig und inhaltlich identisch bleiben; automatisierte Tests prüfen dies sowie Bedienbarkeit und sichere HTML-Ausgabe.
+
+
+## 22. Version 2.2: Tätigkeitsbericht
+
+Mit `activity_report.enabled: true` und den Prompts `activity_relevance` und
+`activity_events` bietet die Weboberfläche unter `/berichte` Tätigkeitsberichte:
+Für ein Thema und einen Zeitraum (höchstens drei Jahre) liest Mailhelp die Mails
+der gewählten Ordner und standardmäßig der gesendeten Ordner, prüft jede per LLM
+auf das Thema und extrahiert aus relevanten Mails alle datierten Termine,
+ausdrücklich auch vergangene.
+
+- **Schreibfrei:** IMAP nur lesend (`BODY.PEEK`), keine Vorschläge, keine Einträge
+  in Kalender oder Todoist, keine Telegram-Nachrichten oder Pushes, keine
+  Änderung an `mail-*.json`, Duplikatindex oder UID-Checkpoints.
+- **Zweistufiger Start:** Ein neuer Bericht zählt nur die Mails des Zeitraums.
+  Inhalte werden erst nach der ausdrücklichen Aktion „Bericht kostenpflichtig
+  starten“ gelesen; die Seite nennt vorher die Mailzahl.
+- **Ausschlüsse ohne LLM-Aufruf:** ignorierte Absender (Stand bei Anlage; eine
+  gesendete Mail nur, wenn alle Empfänger ignoriert sind), Duplikate nach
+  Message-ID, zu große und unlesbare Mails, Mails mit verdächtigen Links und
+  optional automatische Mails (`Auto-Submitted`, `List-Unsubscribe`).
+- **Relevanz:** Prompt `activity_relevance` mit Berichtstitel, Thema und
+  `personal_info` als vertrauenswürdigem Kontext; die Mail ist nicht
+  vertrauenswürdig. Ergebnis: `relevant`, `confidence`, `reason`.
+- **Termine:** Prompt `activity_events`; jeder Termin braucht ein wörtliches Zitat
+  aus Betreff oder Text, sonst wird er verworfen. Termine außerhalb des Zeitraums
+  werden markiert, abgesagte nicht exportiert.
+- **Fortschritt und Kosten:** Jede Mail wird je Schritt höchstens einmal bewertet,
+  auch nach Neustarts; ein laufender Bericht ist nach einem Neustart pausiert.
+  Höchstwerte `max_mails` und `max_llm_calls` pausieren den Bericht; er nutzt
+  höchstens `max_share_of_llm_budget` von `limits.llm_calls_per_minute`.
+  Eine unbrauchbare KI-Antwort (Tokenlimit, ungültiges JSON, Schema) wird an der
+  Mail vermerkt und nie automatisch wiederholt; der Nutzer entscheidet selbst bzw.
+  ergänzt Termine von Hand. Ist der KI-Dienst dreimal in Folge nicht erreichbar,
+  pausiert der Bericht vor der betroffenen Mail.
+- **Korrekturen:** Relevanz umstellen, Termine bearbeiten, ausschließen oder
+  ergänzen. Jede Aktion prüft Sitzung, CSRF-Token, Berichtsversion und
+  Idempotenzschlüssel; auch das Anlegen ist idempotent. Der Fortschritt des
+  Hintergrundlaufs erhöht die Version nicht.
+- **xlsx-Export:** Blätter „Termine“ (eine Zeile je Quellmail, gleiche Termine
+  teilen die Termin-Nr.), „Ohne Termin“ (`export_mails_without_events`) und
+  „Bericht“. Textzellen sind nie Formeln; Steuerzeichen werden entfernt, Werte auf
+  Excels Zellgrenze gekürzt.
+- **Zustand und Aufbewahrung:** `activity-report-<id>.json` und Blöcke zu je 500
+  Mails `activity-mails-<id>-<n>.json`. Nach `retention.activity_report_days`
+  (Standard 365) entfernt die Aufbewahrung Volltexte und Belegzitate
+  abgeschlossener Berichte. Die Einstellungen und Prompts sind nicht Teil der
+  Analyse- oder Legacy-Fingerprints.
+
+Details: [Release-2.2.md](docs/Release-2.2.md).

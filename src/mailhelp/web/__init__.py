@@ -1,5 +1,7 @@
 """Optional web interface (Mailhelp 1.1): server, application and pages."""
 
+from __future__ import annotations
+
 from .app import WebApp
 from .http import Request, Response
 from .server import WebServer, WebServerError

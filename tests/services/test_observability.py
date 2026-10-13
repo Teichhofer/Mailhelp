@@ -1,0 +1,365 @@
+from __future__ import annotations
+
+import json
+import os
+from io import StringIO
+from time import time
+
+import httpx
+import pytest
+from shared_core import proposal
+
+from mailhelp.analysis import Analyzer
+from mailhelp.config import LlmRoute, LoggingSettings, PromptConfig, PromptStep
+from mailhelp.integrations import HttpWriter
+from mailhelp.logging import JsonlLogger, NullLogger, redact
+from mailhelp.openrouter import OpenRouterClient, ProviderResponseInvalid
+from mailhelp.telegram import TelegramClient
+
+
+class Capture:
+    def __init__(self):
+        self.events = []
+
+    def event(self, level, module, event, **context):
+        self.events.append((level, module, event, context))
+
+    def llm_event(self, event, request=None, response=None, **context):
+        self.events.append(("LLM", "openrouter", event, {"request": request, "response": response, **context}))
+
+    def telegram_event(self, direction, **context):
+        self.events.append(("TELEGRAM", "telegram", direction, context))
+
+
+def test_levels_jsonl_and_recursive_redaction(tmp_path):
+    logger = JsonlLogger(tmp_path, True, True, "WARNING", {"worker": "DEBUG"}, {"known-value", ""})
+    logger.event("INFO", "other", "hidden")
+    logger.event("DEBUG", "worker", "visible", nested=[{"Authorization": "Bearer abc"}],
+                 error=RuntimeError("password=bad known-value"), raw=b"token=bytes", odd=object())
+    logger.llm_event("done", request={"prompt": "known-value"}, response=("api_key=x",), level="WARNING")
+    app = [json.loads(line) for line in logger.app.read_text(encoding="utf-8").splitlines()]
+    llm = json.loads(logger.llm.read_text(encoding="utf-8"))
+    assert [item["event"] for item in app] == ["visible"]
+    serialized = json.dumps([app, llm])
+    assert "known-value" not in serialized and "bad" not in serialized and "bytes" not in serialized
+    assert app[0]["nested"][0]["Authorization"] == "***"
+    with pytest.raises(ValueError): JsonlLogger(tmp_path, level="TRACE")
+    with pytest.raises(ValueError): JsonlLogger(tmp_path, module_levels={"x": "TRACE"})
+    with pytest.raises(ValueError): logger.event("TRACE", "x", "bad")
+    NullLogger().event("INFO", "x", "ignored")
+    NullLogger().llm_event("ignored")
+    with pytest.raises(ValueError): NullLogger().event("TRACE", "x", "bad")
+    assert redact(None) is None and redact({"items": {"a", "b"}})["items"]
+
+
+def test_failure_details_and_stacktraces_are_redacted_in_structured_log(tmp_path):
+    logger = JsonlLogger(tmp_path, secrets={"mail body marker"})
+    logger.event("ERROR", "orchestrator", "processing_failed",
+                 error=RuntimeError("password=bad mail body marker"),
+                 stacktrace="Traceback: token=raw mail body marker")
+    record = json.loads(logger.app.read_text(encoding="utf-8"))
+    serialized = json.dumps(record)
+    assert record["event"] == "processing_failed"
+    assert "bad" not in serialized and "raw" not in serialized and "mail body marker" not in serialized
+
+
+def test_logging_settings_module_level_validation():
+    base = {"directory": "logs", "console": {},
+            "file": {"filename": "application.jsonl", "max_bytes": 100, "backup_count": 1, "retention_days": 1},
+            "llm": {"filename": "llm/requests.jsonl", "max_bytes": 100, "backup_count": 1, "retention_days": 1},
+            "telegram": {"filename": "telegram/messages.jsonl", "max_bytes": 100, "backup_count": 1, "retention_days": 1}}
+    assert LoggingSettings.model_validate({**base, "modules": {"imap": "ERROR"}}).modules["imap"] == "ERROR"
+    for bad in ({"": "INFO"}, {"imap": "TRACE"}):
+        with pytest.raises(Exception): LoggingSettings.model_validate({**base, "modules": bad})
+    for field, value in (("filename", "../bad"), ("filename", "/absolute"),
+                         ("filename", "C:/absolute"), ("filename", "C:relative"),
+                         ("filename", r"\rooted"), ("filename", r"\\server\share\log"), ("max_bytes", 0),
+                         ("filename", 4), ("backup_count", -1), ("retention_days", 0)):
+        candidate = json.loads(json.dumps(base))
+        candidate["file"][field] = value
+        with pytest.raises(Exception): LoggingSettings.model_validate(candidate)
+
+
+def test_independent_targets_levels_console_and_module_inheritance(tmp_path):
+    console = StringIO()
+    logger = JsonlLogger(
+        tmp_path, True, True, "WARNING", {"quiet": "ERROR", "openrouter": "CRITICAL"},
+        {"synthetic-secret"}, console_enabled=True, console_level="DEBUG", console=console,
+        llm_level="DEBUG",
+    )
+    for level in ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"):
+        logger.event(level, "inherited", level.lower(), value="synthetic-secret")
+    logger.event("WARNING", "quiet", "filtered")
+    logger.event("ERROR", "quiet.child", "module-visible")
+    logger.event("INFO", "inherited", "console-only")
+    logger.llm_event("llm-debug", request="raw synthetic-secret", response="raw", level="DEBUG")
+    app = [json.loads(row) for row in logger.app.read_text().splitlines()]
+    llm = json.loads(logger.llm.read_text())
+    assert [row["event"] for row in app] == ["warning", "error", "critical", "module-visible"]
+    assert llm["event"] == "llm-debug"  # independent of the openrouter CRITICAL filter
+    output = console.getvalue()
+    assert "module-visible" in output and "console-only" in output and "llm-debug" not in output
+    assert "synthetic-secret" not in output and "raw" not in output
+
+    disabled = JsonlLogger(tmp_path / "disabled", file_enabled=False, console_enabled=False, llm_enabled=False)
+    disabled.event("CRITICAL", "x", "no-file")
+    disabled.llm_event("no-llm")
+    assert not disabled.app.exists() and not disabled.llm.exists()
+    with pytest.raises(ValueError, match="Logformat"):
+        JsonlLogger(tmp_path / "bad-format", file_format="xml")
+    with pytest.raises(ValueError, match="Loggröße"):
+        JsonlLogger(tmp_path / "bad-size", llm_retention_days=0)
+
+
+def test_rotation_backup_limit_retention_and_restart(tmp_path):
+    options = dict(file_max_bytes=180, file_backup_count=2, file_retention_days=1,
+                   llm_max_bytes=180, llm_backup_count=1, llm_retention_days=1)
+    logger = JsonlLogger(tmp_path, **options)
+    for number in range(8):
+        logger.event("INFO", "test", "rotating", number=number, padding="x" * 80)
+    assert logger.app.exists() and logger.app.with_name("application.jsonl.1").exists()
+    assert logger.app.with_name("application.jsonl.2").exists()
+    assert not logger.app.with_name("application.jsonl.3").exists()
+
+    stale = logger.llm.with_name("requests.jsonl.1")
+    stale.parent.mkdir(parents=True, exist_ok=True)
+    stale.write_text("old")
+    old = time() - 3 * 86400
+    os.utime(stale, (old, old))
+    JsonlLogger(tmp_path, **options)  # restart performs bounded cleanup
+    assert not stale.exists()
+
+    no_backups = JsonlLogger(tmp_path / "none", file_max_bytes=1, file_backup_count=0)
+    no_backups.event("INFO", "test", "first")
+    no_backups.event("INFO", "test", "second")
+    assert no_backups.app.exists() and not no_backups.app.with_name("application.jsonl.1").exists()
+
+
+def test_separate_telegram_log_records_content_and_honours_policy(tmp_path):
+    logger = JsonlLogger(tmp_path, telegram_level="WARNING")
+    logger.telegram_event("sent", chat_id=2, text="synthetic outbound")
+    logger.telegram_event("received", chat_id=2, user_id=3, text="synthetic inbound")
+    rows = [json.loads(line) for line in logger.telegram.read_text().splitlines()]
+    assert [(row["direction"], row["text"]) for row in rows] == [
+        ("sent", "synthetic outbound"), ("received", "synthetic inbound")]
+    assert all(row["level"] == "WARNING" and row["event"] == "message" for row in rows)
+    with pytest.raises(ValueError, match="Richtung"):
+        logger.telegram_event("sideways", text="no")
+    disabled = JsonlLogger(tmp_path / "disabled-telegram", telegram_enabled=False)
+    disabled.telegram_event("sent", text="not written")
+    assert not disabled.telegram.exists()
+
+
+def test_openrouter_correlated_response_raw_switch_and_error(tmp_path):
+    good = {"id": "call", "choices": [{"message": {"content": "{}"}}], "usage": {"prompt_tokens": 3, "completion_tokens": 1, "total_tokens": 4, "cost": 0.2}}
+    logger = JsonlLogger(tmp_path / "raw", True, True)
+    client = OpenRouterClient("known", 1, 0, 10, httpx.MockTransport(lambda request: httpx.Response(200, json=good, request=request)), logger=logger)
+    call_id, _ = client.complete("model", {"temperature": 0}, "system", {"internal_id": "mail", "proposal_id": "proposal"})
+    client.close()
+    rows = [json.loads(line) for line in logger.llm.read_text().splitlines()]
+    assert [row["event"] for row in rows] == ["request_started", "token_usage_recorded", "response_received"]
+    assert all(row["call_id"] == call_id and row["mail_id"] == "mail" and row["proposal_id"] == "proposal" for row in rows)
+    assert rows[1]["token_usage"] == good["usage"] and rows[1]["token_usage_available"] is True
+    assert rows[2]["token_usage"]["total_tokens"] == 4 and rows[2]["reported_cost"] == .2
+    assert rows[0]["request"]["messages"] == [
+        {"role": "system", "content": "system"},
+        {"role": "user", "content": '{"internal_id": "mail", "proposal_id": "proposal"}'},
+    ]
+    assert rows[2]["response"] == good
+
+
+def test_openrouter_logs_unavailable_token_usage_per_call(tmp_path):
+    response = {"id": "call", "choices": [{"message": {"content": "{}"}}]}
+    logger = JsonlLogger(tmp_path)
+    client = OpenRouterClient("known", 1, 0, 10, httpx.MockTransport(
+        lambda request: httpx.Response(200, json=response, request=request)), logger=logger)
+    call_id, _ = client.complete("model", {}, "system", {}, stage="action_router")
+    client.close()
+
+    usage = next(row for row in map(json.loads, logger.llm.read_text().splitlines())
+                 if row["event"] == "token_usage_recorded")
+    assert usage["call_id"] == call_id and usage["stage"] == "action_router"
+    assert usage["token_usage"] is None and usage["token_usage_available"] is False
+
+    capture = Capture()
+    failing = OpenRouterClient("secret", 1, 0, 10, httpx.MockTransport(lambda request: httpx.Response(400, text="token=leak", request=request)), logger=capture)
+    with pytest.raises(Exception): failing.complete("model", {}, "system", {"mail_id": "m"})
+    failing.close()
+    assert [event[2] for event in capture.events] == ["request_started", "retry_failed", "request_failed"]
+    assert capture.events[-1][3]["attempt"] == 1 and "Traceback" in capture.events[-1][3]["stacktrace"]
+
+
+def test_llm_attempt_observability_covers_all_repairs_and_safe_default_logs(tmp_path):
+    responses = iter([
+        {"id": "null", "provider": "backend-a", "choices": [{"finish_reason": "error", "message": {"content": None}}]},
+        {"id": "json", "provider": "backend-b", "choices": [{"finish_reason": "stop", "message": {"content": "mail body marker"}}]},
+        {"id": "schema", "provider": "backend-c", "choices": [{"finish_reason": "length", "message": {"content": "{}"}}]},
+        {"id": "ok", "choices": [{"finish_reason": "stop", "message": {"content": '{"sentences":["Synthetic one.","Synthetic two."],"deadlines":[]}'}}]},
+    ])
+
+    def handler(request):
+        assert request.headers["Authorization"] == "Bearer api-key-marker"
+        return httpx.Response(200, json=next(responses), request=request)
+
+    logger = JsonlLogger(tmp_path, include_llm_requests=False,
+                         include_llm_responses=False, secrets={"api-key-marker"})
+    client = OpenRouterClient("api-key-marker", 1, 0, 20,
+                              httpx.MockTransport(handler), logger=logger)
+    prompt_names = ("relevance", "summary", "action_router", "task_extraction",
+                    "event_extraction", "mail_question_resolution", "telegram_answer_interpretation", "telegram_answer_clarification", "proposal_revision", "learning_classification", "learning_abstraction", "calendar_duplicate")
+    prompts = PromptConfig(defaults={"model": "model-x", "parameters": {}}, prompts={
+        name: PromptStep(system_prompt=("full prompt marker" if name == "summary" else name))
+        for name in prompt_names
+    })
+    _, result = Analyzer(client, prompts, provider_retries=1,
+                         json_repair_retries=1,
+                         schema_repair_retries=1).summary({"text": "mail body marker"})
+    client.close()
+    assert result.sentences == ["Synthetic one.", "Synthetic two."]
+
+    rows = [json.loads(line) for line in logger.llm.read_text().splitlines()]
+    terminal = [row for row in rows if row["event"] in {
+        "provider_response_invalid", "invalid_json",
+        "schema_validation_failed", "schema_validation_succeeded",
+    }]
+    assert [row["event"] for row in terminal] == [
+        "provider_response_invalid", "invalid_json", "provider_response_invalid",
+        "schema_validation_succeeded",
+    ]
+    assert [(row["retry_type"], row["retry_number"]) for row in terminal] == [
+        ("initial", 0), ("provider_retry", 1), ("json_repair", 1),
+        ("provider_retry", 2),
+    ]
+    required = {"stage", "model", "provider", "call_id", "http_status",
+                "finish_reason", "content_present", "content_length",
+                "json_parse_success", "schema_validation_success", "retry_type",
+                "retry_number"}
+    assert all(required <= row.keys() and row["stage"] == "summary" for row in terminal)
+    assert terminal[0]["reason"] == "message_content_null"
+    assert terminal[0]["retryable"] is True and terminal[0]["provider"] == "backend-a"
+    assert terminal[1]["provider"] == "backend-b" and terminal[1]["json_parse_success"] is False
+    assert terminal[2]["provider"] == "backend-c" and terminal[2]["finish_reason"] == "length"
+    assert terminal[2]["reason"] == "output_token_limit"
+    assert terminal[3]["provider"] is None  # missing documented provider metadata is not a content error
+    serialized = logger.llm.read_text()
+    for secret in ("api-key-marker", "full prompt marker", "mail body marker", "Synthetic one"):
+        assert secret not in serialized
+
+
+def test_llm_logger_drops_content_aliases_without_explicit_opt_in(tmp_path):
+    logger = JsonlLogger(tmp_path, include_llm_requests=False,
+                         include_llm_responses=False)
+    logger.llm_event("safe", request="prompt", response="answer",
+                     prompt="prompt-alias", content="answer-alias",
+                     content_length=12, content_present=True)
+    row = json.loads(logger.llm.read_text())
+    assert row["content_length"] == 12 and row["content_present"] is True
+    assert not ({"request", "response", "prompt", "content"} & row.keys())
+
+
+def test_network_adapter_failure_events():
+    capture = Capture()
+    telegram = TelegramClient("secret", 1, httpx.MockTransport(lambda request: (_ for _ in ()).throw(httpx.ConnectError("token=bad", request=request))), logger=capture)
+    with pytest.raises(Exception): telegram.poll(0)
+    telegram.close()
+    assert capture.events[-1][2] == "poll_failed"
+
+
+def test_telegram_poll_shutdown_interrupted_emits_no_error_event():
+    """Regression test for 1.5: RetryInterrupted during adapter backoff must not log poll_failed as ERROR."""
+    from mailhelp.adapter import RetryInterrupted, RetryPolicy
+    capture = Capture()
+    policy = RetryPolicy(retries=2, initial_backoff_seconds=1.0, max_backoff_seconds=2.0,
+                         wait=lambda delay: True)
+    def flaky(request):
+        raise httpx.RemoteProtocolError("Server disconnected without sending a response.", request=request)
+
+    client = TelegramClient("secret", 1, httpx.MockTransport(flaky), policy=policy, logger=capture)
+    with pytest.raises(RetryInterrupted):
+        client.poll(0)
+    client.close()
+
+    error_events = [e for e in capture.events if e[0] == "ERROR"]
+    assert not error_events, f"Unerwartetes ERROR-Event beim Shutdown: {error_events}"
+    interrupted_events = [e for e in capture.events if e[2] == "poll_interrupted"]
+    assert len(interrupted_events) == 1
+    assert interrupted_events[0][0] == "INFO"
+
+    writer = HttpWriter("todoist", "secret", "target", transport=httpx.MockTransport(
+        lambda request: httpx.Response(503, text="secret", request=request)), logger=capture)
+    with pytest.raises(Exception): writer.create(proposal(target='target', status="confirmed"), "request-id")
+    writer.close()
+    failed = capture.events[-1]
+    assert failed[2] == "create_failed" and failed[3]["proposal_id"] == "p1"
+
+
+def test_telegram_client_records_sent_and_received_messages_separately():
+    capture = Capture()
+    responses = [{"ok": True, "result": [
+        {"update_id": 1, "message": {"message_id": 10, "from": {"id": 3},
+                                      "chat": {"id": 2}, "text": "inbound"}},
+        {"update_id": 2, "callback_query": {"id": "callback", "from": {"id": 3},
+         "message": {"message_id": 11, "from": {"id": 4}, "chat": {"id": 2},
+                     "text": "buttons"}, "data": "choice"}},
+        {"update_id": 3, "poll_answer": {"option_ids": [0]}},
+    ]}, {"ok": True, "result": {"message_id": 12}}]
+
+    def handler(request):
+        return httpx.Response(200, json=responses.pop(0), request=request)
+
+    client = TelegramClient("secret", 1, httpx.MockTransport(handler), logger=capture)
+    client.poll(0)
+    client.send(2, "outbound", {"inline_keyboard": []})
+    client.close()
+    messages = [event for event in capture.events if event[0] == "TELEGRAM"]
+    assert [(event[2], event[3].get("text"), event[3].get("callback_data"))
+            for event in messages] == [
+        ("received", "inbound", None),
+        ("received", None, "choice"),
+        ("sent", "outbound", None),
+    ]
+    assert messages[-1][3]["reply_markup"] == {"inline_keyboard": []}
+
+
+def test_openrouter_uses_strict_schema_or_validated_json_fallback():
+    requests=[]
+    response={"id":"x","choices":[{"message":{"content":'{"decision":"irrelevant","topic_ids":[],"reason":"X"}'}}]}
+    def handler(request):
+        requests.append(json.loads(request.content))
+        return httpx.Response(200,json=response,request=request)
+    client=OpenRouterClient("key",1,0,10,httpx.MockTransport(handler))
+    from mailhelp.models import Relevance
+    client.complete("m",{},"s",{},response_schema=Relevance,supports_json_schema=True)
+    client.complete("m",{},"s",{},response_schema=Relevance,supports_json_schema=False)
+    client.close()
+    strict=requests[0]["response_format"]
+    assert strict["type"] == "json_schema"
+    assert strict["json_schema"]["strict"] is True
+    assert strict["json_schema"]["schema"]["additionalProperties"] is False
+    assert strict["json_schema"]["schema"]["required"] == [
+        "decision", "topic_ids", "reason"
+    ]
+    assert requests[1]["response_format"] == {"type":"json_object"}
+
+
+def test_routing_retry_fallback_and_shared_correlation_with_unique_attempts():
+    class RoutedClient:
+        def __init__(self): self.calls=[]
+        def complete(self, model, parameters, system, payload, **metadata):
+            self.calls.append((model, metadata))
+            if len(self.calls) < 3:
+                raise ProviderResponseInvalid("choice_missing")
+            return f"attempt-{len(self.calls)}", {"sentences":["One.", "Two."], "deadlines":[]}
+    steps = ("relevance", "summary", "action_router", "task_extraction",
+             "event_extraction", "mail_question_resolution", "telegram_answer_interpretation", "telegram_answer_clarification", "proposal_revision", "learning_classification", "learning_abstraction", "calendar_duplicate")
+    prompts = PromptConfig(defaults={}, prompts={name: PromptStep(
+        system_prompt=name,
+        routes=[LlmRoute(provider="openrouter", model="primary"),
+                LlmRoute(provider="openrouter", model="fallback")],
+        provider_retries=1,
+    ) for name in steps})
+    client = RoutedClient()
+    call_id, result = Analyzer(client, prompts).summary({"text":"synthetic"})
+    assert call_id == "attempt-3" and result.sentences == ["One.", "Two."]
+    assert [call[0] for call in client.calls] == ["primary", "primary", "fallback"]
+    assert len({call[1]["correlation_id"] for call in client.calls}) == 1

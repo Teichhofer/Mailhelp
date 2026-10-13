@@ -1,13 +1,9 @@
 """Fachmodelle für den Kontext Datum und Zeit."""
 from __future__ import annotations
 
-from datetime import date, datetime, time, timedelta, timezone
 from enum import StrEnum
-from typing import Annotated, Any, Literal
-from uuid import UUID
-import re
 
-from pydantic import AnyHttpUrl, Field, field_validator, model_validator
+from pydantic import Field, model_validator
 
 from ._base import CalendarDate, StrictModel
 
@@ -46,7 +42,7 @@ class TemporalFact(StrictModel):
     status: TemporalResolutionStatus
 
     @model_validator(mode="after")
-    def consistent_resolution(self) -> "TemporalFact":
+    def consistent_resolution(self) -> TemporalFact:
         if (self.status == TemporalResolutionStatus.RESOLVED) != (self.normalized_date is not None):
             raise ValueError("Nur ein aufgelöster Zeitfakt darf ein normalisiertes Datum enthalten")
         if self.normalized_date is None and self.year_source != YearSource.UNKNOWN:

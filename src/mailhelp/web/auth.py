@@ -25,9 +25,10 @@ import hashlib
 import hmac
 import re
 import secrets
-from datetime import datetime, timedelta, timezone
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 from threading import Lock
-from typing import Callable, Literal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -93,7 +94,7 @@ def _sha256(value: str) -> str:
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 def device_name(user_agent: str | None, chosen: str | None = None) -> str:
@@ -117,6 +118,8 @@ class WebAuth:
     def __init__(self, store: JsonStore, secret: str, session_days: int,
                  notify: Callable[[str], None], clock: Callable[[], datetime] = _now):
         self.store, self.notify, self.clock = store, notify, clock
+        # "telegram", or "console" when Mailhelp runs without Telegram (standalone, 2.0).
+        self.channel = "telegram"
         self._key = secret.encode("utf-8")
         self.session_lifetime = timedelta(days=session_days)
         self._lock = Lock()
@@ -124,7 +127,7 @@ class WebAuth:
     # --- tokens ------------------------------------------------------------------
 
     def _mac(self, purpose: str, value: str) -> str:
-        return hmac.new(self._key, f"{purpose}:{value}".encode("utf-8"), hashlib.sha256).hexdigest()
+        return hmac.new(self._key, f"{purpose}:{value}".encode(), hashlib.sha256).hexdigest()
 
     def csrf_token(self, binding: str) -> str:
         """CSRF token for a session id or a browser pairing nonce."""
@@ -159,14 +162,14 @@ class WebAuth:
             state = self._pairing()
             if len(state.failures) >= FAILURE_LIMIT or len(state.requests) >= CODE_REQUESTS:
                 raise PairingLimited("Zu viele Anfragen – bitte später erneut versuchen.")
-            code = f"{secrets.randbelow(10 ** 8):08d}"
+            code = f"{secrets.randbelow(10 ** 4):04d}"
             browser = _sha256(browser_nonce)
             state.codes = [item for item in state.codes if item.browser_hash != browser]
             state.codes.append(PendingCode(browser_hash=browser, code_hmac=self._mac("code", code),
                                            expires_at=self.clock() + CODE_LIFETIME))
             state.requests.append(self.clock())
             self.store.save(PAIRING, state.model_dump(mode="json"))
-        self.notify(f"🔐 Mailhelp-Webanmeldung für „{device}“: Code {code[:4]} {code[4:]}\n"
+        self.notify(f"🔐 Mailhelp-Webanmeldung für „{device}“: Code {code}\n"
                     "Gültig 10 Minuten. Nur eingeben, wenn du die Anmeldung selbst gestartet hast.")
 
     def issue_code(self) -> str:
@@ -178,7 +181,7 @@ class WebAuth:
             state = self._pairing()
             if len(state.failures) >= FAILURE_LIMIT or len(state.requests) >= CODE_REQUESTS:
                 raise PairingLimited("Zu viele Codes angefordert – bitte später erneut versuchen.")
-            code = f"{secrets.randbelow(10 ** 8):08d}"
+            code = f"{secrets.randbelow(10 ** 4):04d}"
             state.codes = [item for item in state.codes if item.browser_hash is not None]
             state.codes.append(PendingCode(code_hmac=self._mac("code", code),
                                            expires_at=self.clock() + CODE_LIFETIME))

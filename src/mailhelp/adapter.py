@@ -1,13 +1,14 @@
 """Gemeinsame, begrenzte Wiederholungsregeln fuer externe Adapter."""
 from __future__ import annotations
 
+import imaplib
+from collections.abc import Callable
 from dataclasses import dataclass
 from email.utils import parsedate_to_datetime
 from time import time
-from typing import Callable, TypeVar
+from typing import TypeVar
 
 import httpx
-import imaplib
 
 T = TypeVar("T")
 RETRYABLE_STATUS = frozenset({408, 425, 429, 500, 502, 503, 504})

@@ -1,0 +1,51 @@
+{
+  "entries": [
+    {
+      "command": {
+        "actor": "web:6961d521c839043b",
+        "decision": null,
+        "idempotency_key": "ded136ef1d56d44a57cb39f3dba00b8f",
+        "kind": "answer",
+        "mail_id": "c286a74641b79923fb227ec4",
+        "patch": null,
+        "proposal_id": "p_fee0dc073a32b8be7b1a483b",
+        "replay_offset": null,
+        "source": "web",
+        "text": "23.09.2026 9:00 bis 10uhr",
+        "version": 1
+      },
+      "finished_at": "2026-10-12T14:30:03.273870Z",
+      "id": "7cb23955ad856f6ed40176b457704d53",
+      "received_at": "2026-10-12T14:30:03.198439Z",
+      "result": {
+        "message": "Antwort übernommen – der Vorschlag wird aktualisiert.",
+        "status": "done"
+      },
+      "status": "done"
+    },
+    {
+      "command": {
+        "actor": "web:6961d521c839043b",
+        "decision": null,
+        "idempotency_key": "ac216fa18ff384bc0ea7a4aeb7b861f7",
+        "kind": "confirm",
+        "mail_id": "c286a74641b79923fb227ec4",
+        "patch": null,
+        "proposal_id": "p_fee0dc073a32b8be7b1a483b",
+        "replay_offset": null,
+        "source": "web",
+        "text": null,
+        "version": 2
+      },
+      "finished_at": "2026-10-12T14:30:03.379172Z",
+      "id": "51b4f786a7f4c359153fa7d288a2e294",
+      "received_at": "2026-10-12T14:30:03.298161Z",
+      "result": {
+        "message": "Bestätigt; die externe Anlage ist noch unklar und wird abgeglichen.",
+        "status": "write_uncertain"
+      },
+      "status": "done"
+    }
+  ],
+  "schema_version": 1
+}

@@ -18,13 +18,15 @@ offsets and acknowledgements that web commands do not have.
 from __future__ import annotations
 
 import secrets
-from datetime import datetime, timedelta, timezone
+from collections.abc import Callable
+from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from threading import Lock
-from typing import Callable, Literal
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from ..configuration import AdminCommand
 from ..storage import JsonStore
 from .commands import ReviewCommand
 from .results import REJECTED_STATUSES, ResultStatus, ReviewResult
@@ -48,7 +50,7 @@ FINISHED = frozenset({CommandStatus.DONE, CommandStatus.REJECTED, CommandStatus.
 class CommandEntry(BaseModel):
     model_config = ConfigDict(extra="forbid")
     id: str = Field(pattern=r"^[a-f0-9]{32}$")
-    command: ReviewCommand
+    command: ReviewCommand | AdminCommand
     received_at: datetime
     status: CommandStatus = CommandStatus.QUEUED
     result: ReviewResult | None = None
@@ -70,7 +72,7 @@ class CommandInboxFull(RuntimeError):
 
 
 def _now() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class CommandInbox:
@@ -87,9 +89,13 @@ class CommandInbox:
         return state
 
     def _save(self, state: CommandInboxState) -> None:
-        self.store.save(COMMAND_INBOX, state.model_dump(mode="json"))
+        value = state.model_dump(mode="json")
+        for entry, record in zip(state.entries, value["entries"], strict=False):
+            if isinstance(entry.command, ReviewCommand) and entry.command.patch is not None:
+                record["command"]["patch"] = entry.command.patch.model_dump(mode="json", exclude_unset=True)
+        self.store.save(COMMAND_INBOX, value)
 
-    def submit(self, command: ReviewCommand) -> tuple[CommandEntry, bool]:
+    def submit(self, command: ReviewCommand | AdminCommand) -> tuple[CommandEntry, bool]:
         """Queue *command*; returns the entry and whether it is new."""
         with self._lock:
             state = self._load()
@@ -116,6 +122,13 @@ class CommandInbox:
     def queued(self) -> list[CommandEntry]:
         with self._lock:
             return [entry for entry in self._load().entries if entry.status == CommandStatus.QUEUED]
+
+    def counts(self) -> dict[CommandStatus, int]:
+        """Entries per status; finished ones are kept for one day."""
+        result: dict[CommandStatus, int] = {}
+        for entry in self._entries():
+            result[entry.status] = result.get(entry.status, 0) + 1
+        return result
 
     def start(self, entry_id: str) -> None:
         """Mark the entry running; persisted before the command has any effect."""

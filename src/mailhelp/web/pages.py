@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import html
 from datetime import datetime
-from zoneinfo import ZoneInfo
 
+from ..formatting import format_datetime_local
 from .auth import WebSession
 
 
@@ -19,12 +19,17 @@ def e(value: object) -> str:
     return html.escape(str(value), quote=True)
 
 
-NAVIGATION = (("/", "Offen"), ("/status", "Status"), ("/geraete", "Geräte"))
+NAVIGATION = (("/", "Offen"), ("/mails", "Mails"), ("/verlauf", "Verlauf"),
+              ("/status", "Status"), ("/auswertung", "Auswertung"), ("/berichte", "Berichte"), ("/einstellungen", "Einstellungen"), ("/geraete", "Geräte"))
 
 
 def layout(title: str, content: str, *, active: str | None = None, signed_in: bool = True,
-           refresh: int | None = None, fingerprint: str | None = None) -> str:
-    """Page frame; *refresh* adds a no-JavaScript reload for pending commands."""
+           refresh: int | None = None, fingerprint: str | None = None,
+           state_url: str | None = None, before: str = "", after: str = "") -> str:
+    """Page frame; *refresh* adds a no-JavaScript reload for pending commands.
+
+    *before* and *after* are further sections at the start and end of ``main``.
+    """
     navigation = ""
     if signed_in:
         links = "".join(
@@ -33,6 +38,9 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
         navigation = f'<nav class="nav" aria-label="Hauptnavigation">{links}</nav>'
     meta_refresh = f'<meta http-equiv="refresh" content="{refresh}">' if refresh else ""
     data = f' data-fingerprint="{e(fingerprint)}"' if fingerprint else ""
+    if state_url:
+        # Pages with their own refresh signal (e.g. the status page).
+        data += f' data-state-url="{e(state_url)}"'
     return f"""<!doctype html>
 <html lang="de">
 <head>
@@ -56,9 +64,9 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
 <span class="connection" id="verbindung" role="status" aria-live="polite" hidden></span>
 {navigation}
 </header>
-<main id="inhalt">
+<main id="inhalt">{before}
 {content}
-</main>
+{after}</main>
 </body>
 </html>
 """
@@ -69,31 +77,44 @@ def notice(text: str, kind: str = "info") -> str:
     return f'<p class="notice notice-{kind}" role="{role}">{e(text)}</p>'
 
 
+# Where pairing codes appear: the Telegram chat or, without Telegram (2.0), the PC console.
+LOGIN_CHANNELS = {
+    "telegram": {"sent": "Der Code wurde an deinen Telegram-Chat gesendet.", "label": "Code aus Telegram",
+                 "intro": "Mailhelp sendet dir einen einmaligen Code in deinen Telegram-Chat.",
+                 "button": "Code per Telegram senden", "again": "Neuen Code senden"},
+    "console": {"sent": "Der Code steht im Konsolenfenster von Mailhelp auf dem PC "
+                        "(bei Docker: <code>docker compose logs mailhelp</code>).",
+                "label": "Code aus der Mailhelp-Konsole",
+                "intro": "Mailhelp zeigt einen einmaligen Code im Konsolenfenster auf dem PC an.",
+                "button": "Code in der Konsole anzeigen", "again": "Neuen Code anzeigen"},
+}
+
+
 def login_page(csrf: str, code_requested: bool, error: str | None = None,
-               code: str = "") -> str:
+               code: str = "", channel: str = "telegram") -> str:
     """Login; *code* pre-fills the field when the page was opened from the /web link."""
     message = notice(error, "error") if error else ""
+    text = LOGIN_CHANNELS[channel]
     if code_requested or code:
-        body = f"""<p>Der Code wurde an deinen Telegram-Chat gesendet. Er gilt 10 Minuten.</p>
+        body = f"""<p>{text["sent"]} Er gilt 10 Minuten.</p>
 <form method="post" action="/anmelden" class="stack">
 <input type="hidden" name="csrf" value="{e(csrf)}">
-<label for="code">Code aus Telegram</label>
-<input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{{8,9}}"
- maxlength="9" required autofocus value="{e(code)}">
+<label for="code">{text["label"]}</label>
+<input id="code" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]{{4,5}}"
+ maxlength="5" required autofocus value="{e(code)}">
 <label for="geraet">Gerätename <span class="hint">(optional)</span></label>
 <input id="geraet" name="geraet" maxlength="60" autocomplete="off" placeholder="z. B. iPhone">
 <button class="button primary" type="submit">Gerät koppeln</button>
 </form>
 <form method="post" action="/anmelden/code" class="secondary-form">
 <input type="hidden" name="csrf" value="{e(csrf)}">
-<button class="button link" type="submit">Neuen Code senden</button>
+<button class="button link" type="submit">{text["again"]}</button>
 </form>"""
     else:
-        body = f"""<p>Dieses Gerät ist noch nicht gekoppelt. Mailhelp sendet dir einen einmaligen
-Code in deinen Telegram-Chat.</p>
+        body = f"""<p>Dieses Gerät ist noch nicht gekoppelt. {text["intro"]}</p>
 <form method="post" action="/anmelden/code" class="stack">
 <input type="hidden" name="csrf" value="{e(csrf)}">
-<button class="button primary" type="submit">Code per Telegram senden</button>
+<button class="button primary" type="submit">{text["button"]}</button>
 </form>"""
     return layout("Anmelden", f"""<section class="card narrow">
 <h1>Gerät koppeln</h1>
@@ -102,7 +123,7 @@ Code in deinen Telegram-Chat.</p>
 
 
 def _local(value: datetime, configured_timezone: str) -> str:
-    return value.astimezone(ZoneInfo(configured_timezone)).strftime("%d.%m.%Y, %H:%M Uhr")
+    return format_datetime_local(value, configured_timezone)
 
 
 def devices_page(sessions: list[WebSession], current: WebSession, csrf: str,

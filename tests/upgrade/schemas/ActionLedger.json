@@ -1,0 +1,123 @@
+{
+  "$defs": {
+    "ActionLedgerEntry": {
+      "additionalProperties": false,
+      "description": "Human-readable record of an action successfully created externally.",
+      "properties": {
+        "action_key": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Action Key",
+          "type": "string"
+        },
+        "action_key_version": {
+          "default": 1,
+          "enum": [
+            1,
+            2
+          ],
+          "title": "Action Key Version",
+          "type": "integer"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "external_id": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Id"
+        },
+        "external_link": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Link"
+        },
+        "kind": {
+          "$ref": "#/$defs/ProposalKind"
+        },
+        "mail_id": {
+          "pattern": "^[a-f0-9]{24}$",
+          "title": "Mail Id",
+          "type": "string"
+        },
+        "proposal_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "proposal_version": {
+          "minimum": 1,
+          "title": "Proposal Version",
+          "type": "integer"
+        },
+        "target": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Target",
+          "type": "string"
+        },
+        "title": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action_key",
+        "mail_id",
+        "proposal_id",
+        "proposal_version",
+        "kind",
+        "title",
+        "target"
+      ],
+      "title": "ActionLedgerEntry",
+      "type": "object"
+    },
+    "ProposalKind": {
+      "enum": [
+        "task",
+        "event"
+      ],
+      "title": "ProposalKind",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Durable, validated bookkeeping for completed calendar/task writes.",
+  "properties": {
+    "entries": {
+      "items": {
+        "$ref": "#/$defs/ActionLedgerEntry"
+      },
+      "title": "Entries",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "title": "ActionLedger",
+  "type": "object"
+}

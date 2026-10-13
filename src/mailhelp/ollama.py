@@ -9,9 +9,9 @@ OpenRouter models, provider preferences and reasoning settings do not apply.
 """
 from __future__ import annotations
 
-from dataclasses import dataclass
 import ipaddress
 import re
+from dataclasses import dataclass
 from typing import Any
 
 import httpx
@@ -90,17 +90,11 @@ class OllamaClient(OpenRouterClient):
 
     @staticmethod
     def _raise_for_status(response: httpx.Response) -> None:
-        try:
-            response.raise_for_status()
-        except httpx.HTTPStatusError as exc:
-            exc.safe_detail = f"Ollama: HTTP {response.status_code}" + (
-                " (Modell auf dem Ollama-Server nicht gefunden)"
-                if response.status_code == 404 else "")
-            raise
+        raise_for_ollama_status(response)
 
     def _prepare_request(self, request: dict[str, Any]) -> dict[str, Any]:
         response_format = request["response_format"]
-        messages = request["messages"]
+        messages = [self._native_message(message) for message in request["messages"]]
         if "max_tokens" in request:
             # Local models often ignore the hard num_predict limit until it
             # cuts the JSON off; the stage budget is stated in the prompt too.
@@ -123,6 +117,17 @@ class OllamaClient(OpenRouterClient):
         if self.think is not None:
             body["think"] = self.think
         return body
+
+    @staticmethod
+    def _native_message(message: dict[str, Any]) -> dict[str, Any]:
+        """Move multimodal image parts into Ollama's ``images`` (bare Base64)."""
+        content = message["content"]
+        if isinstance(content, str):
+            return message
+        text = "\n".join(part["text"] for part in content if part["type"] == "text")
+        images = [part["image_url"]["url"].split(",", 1)[1]
+                  for part in content if part["type"] == "image_url"]
+        return {**message, "content": text, "images": images}
 
     @classmethod
     def _grammar_schema(cls, node: Any) -> Any:
@@ -173,11 +178,22 @@ class OllamaClient(OpenRouterClient):
         require_installed_model(self, self.model)
 
 
+def raise_for_ollama_status(response: httpx.Response) -> None:
+    """Raise for an HTTP error with a content-free detail naming a missing model."""
+    try:
+        response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        exc.safe_detail = f"Ollama: HTTP {response.status_code}" + (
+            " (Modell auf dem Ollama-Server nicht gefunden)"
+            if response.status_code == 404 else "")
+        raise
+
+
 def require_installed_model(client: OpenRouterClient, model: str) -> None:
     """Fail unless the Ollama server behind *client* lists *model* in /api/tags."""
     def invoke() -> httpx.Response:
         response = client.client.get("/api/tags")
-        OllamaClient._raise_for_status(response)
+        raise_for_ollama_status(response)
         return response
 
     value = client.policy.run(invoke).json()

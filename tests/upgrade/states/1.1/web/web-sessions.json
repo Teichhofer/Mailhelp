@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "sessions": [
+    {
+      "created_at": "2026-10-12T14:29:55.483248Z",
+      "device": "iPhone · Safari",
+      "expires_at": "2026-11-11T14:29:55.483248Z",
+      "id": "9bfea3bd0b2ee938",
+      "last_used_at": "2026-10-12T14:29:55.483248Z",
+      "token_hash": "46898ced5e358b0454175fe4b2747ff344fec75299b572b024a5d0a43b4b7068"
+    }
+  ]
+}

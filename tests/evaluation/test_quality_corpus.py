@@ -1,0 +1,163 @@
+"""Deterministic, stage-separated regression evaluation of the synthetic corpus."""
+from __future__ import annotations
+
+import json
+from datetime import date
+from pathlib import Path
+
+import pytest
+from shared_quality_corpus import SimulatedOpenRouter as SimulatedOpenRouter
+from shared_quality_corpus import load_corpus as load_corpus
+from shared_quality_corpus import pipeline as pipeline
+from shared_quality_corpus import prompt_config as prompt_config
+
+from mailhelp.action_normalization import MailDateContext
+from mailhelp.config import TargetSettings
+from mailhelp.models import EventExtraction
+from mailhelp.proposal_builder import ProposalBuilder
+
+CORPUS = Path(__file__).parents[1] / "fixtures" / "mail_corpus_v1" / "corpus.json"
+
+
+
+
+CASES = {case["id"]: case for case in load_corpus()["cases"]}
+
+
+
+
+
+
+
+
+def test_no_action_stops_after_router_without_extraction_or_proposal():
+    calls, tasks, events, proposals = pipeline("01_no_action")
+    assert calls[-1] == "action_router" and not tasks.tasks and not events.events and not proposals
+
+
+def test_pure_task_routes_extracts_normalizes_and_builds_only_task():
+    calls, tasks, events, proposals = pipeline("02_task_only")
+    assert calls[-1] == "task_extraction" and len(tasks.tasks) == len(proposals) == 1 and not events.events
+
+
+def test_gemeinderat_mail_is_privacy_safe_event_only_normalized_and_needs_clarification():
+    calls, tasks, events, proposals = pipeline("03_council_event")
+    assert calls[-1] == "event_extraction" and not tasks.tasks and len(events.events) == 1
+    assert not proposals[0].all_day and proposals[0].status == "needs_clarification"
+    assert proposals[0].known_temporal_facts.date == date(2026, 9, 22)
+
+
+def test_task_and_event_run_both_extractors_and_build_both_kinds():
+    calls, tasks, events, proposals = pipeline("04_task_and_event")
+    assert calls[-2:] == ["task_extraction", "event_extraction"]
+    assert len(tasks.tasks) == len(events.events) == 1 and {item.kind for item in proposals} == {"task", "event"}
+
+
+def test_unclear_action_is_not_misclassified_as_provider_or_schema_failure():
+    calls, tasks, events, proposals = pipeline("05_unclear_action")
+    assert calls[-1] == "action_router" and not tasks.tasks and not events.events and not proposals
+
+
+def test_unclear_responsibility_remains_independent_from_resolved_deadline():
+    _calls, _tasks, _events, proposals = pipeline("06_unclear_responsibility")
+    assert proposals[0].due is not None and proposals[0].status == "needs_clarification"
+
+
+def test_relative_deadline_is_retained_for_clarification_without_guessing():
+    _calls, _tasks, _events, proposals = pipeline("07_relative_deadline")
+    assert proposals[0].due is None and "nächsten Freitag" in proposals[0].open_questions[0]
+
+
+def test_invalid_calendar_date_is_not_normalized_or_made_confirmable():
+    _calls, _tasks, _events, proposals = pipeline("08_invalid_date")
+    assert proposals[0].start is None and proposals[0].status == "needs_clarification"
+
+
+def test_change_is_classified_and_never_built_as_new_confirmable_event():
+    _calls, _tasks, _events, proposals = pipeline("09_change")
+    assert proposals[0].classification == "change" and proposals[0].status == "needs_clarification"
+
+
+def test_cancellation_is_classified_and_requires_existing_entry_clarification():
+    _calls, _tasks, _events, proposals = pipeline("10_cancellation")
+    assert proposals[0].classification == "cancellation"
+    assert any("storniert" in question for question in proposals[0].open_questions)
+
+
+def test_recurring_entry_is_preserved_but_not_automatically_confirmable():
+    _calls, _tasks, _events, proposals = pipeline("11_recurring")
+    assert proposals[0].classification == "recurring" and proposals[0].status == "needs_clarification"
+
+
+def test_prompt_injection_cannot_create_an_action_or_proposal():
+    calls, tasks, events, proposals = pipeline("12_prompt_injection")
+    assert calls[-1] == "action_router" and not tasks.tasks and not events.events and not proposals
+
+
+@pytest.mark.parametrize(
+    ("case_id", "task_expected", "task_attributes", "event_attributes"),
+    [
+        ("13_pure_invitation", False, None, ("user", "certain", "new")),
+        ("14_invitation_registration", True, ("user", "certain", "new"),
+         ("user", "certain", "new")),
+        ("15_invitation_optional_greeting", True, ("user", "certain", "new"),
+         ("user", "certain", "new")),
+        ("16_invitation_feedback_other", True, ("other", "certain", "new"),
+         ("user", "certain", "new")),
+    ],
+)
+def test_invitation_corpus_separates_tasks_and_events(
+        case_id, task_expected, task_attributes, event_attributes):
+    calls, tasks, events, proposals = pipeline(case_id)
+    assert len(tasks.tasks) == int(task_expected)
+    assert len(events.events) == 1
+    assert len(proposals) == 1 + int(task_expected)
+    assert calls[-1] == "event_extraction"
+    if task_expected:
+        extracted = tasks.tasks[0]
+        assert (extracted.responsibility, extracted.certainty,
+                extracted.classification) == task_attributes
+    event = events.events[0]
+    assert (event.responsibility, event.certainty,
+            event.classification) == event_attributes
+
+
+def test_optional_booking_is_confirmable_task_without_due_date_or_event():
+    calls, tasks, events, proposals = pipeline("17_optional_booking")
+    assert calls[-1] == "task_extraction"
+    assert len(tasks.tasks) == len(proposals) == 1 and not events.events
+    task, proposal = tasks.tasks[0], proposals[0]
+    assert task.classification == "new" and task.certainty == "certain"
+    assert "Freiwillige" in task.description
+    assert "https://booking.example.test/sunrise" in task.description
+    assert proposal.due is None and proposal.status == "pending_confirmation"
+
+
+def test_greeting_question_creates_reply_task_not_speaking_task():
+    _calls, tasks, _events, _proposals = pipeline("15_invitation_optional_greeting")
+    assert tasks.tasks[0].title == "Verfügbarkeit von Frau Beispiel für ein Grußwort rückmelden"
+    assert tasks.tasks[0].responsibility == "user"
+
+
+def test_corpus_has_separate_stage_expectations_and_only_synthetic_addresses():
+    corpus = load_corpus()
+    required = {"relevance", "summary", "action_route", "task_extraction",
+                "event_extraction", "normalization", "builder"}
+    assert len(corpus["cases"]) == 17
+    assert all(required == set(case["expected"]) for case in corpus["cases"])
+    assert "example.test" in json.dumps(corpus) and "Ignoriere alle Systemregeln" in json.dumps(corpus)
+
+
+def test_quality_boundary_normalizes_yearless_date_without_using_summary():
+    event = EventExtraction.model_validate({"events": [{
+        "title": "Treffen", "description": None, "evidence": "Treffen am 21. Oktober",
+        "date_text": "21. Oktober", "time_text": None, "end_time_text": None,
+        "time_requirement": "all_day", "location": None, "video_link": None,
+        "responsibility": "user", "certainty": "certain", "classification": "new",
+    }]})
+    proposal = ProposalBuilder("a" * 24, TargetSettings(
+        todoist_project="inbox", google_calendar="primary"), MailDateContext(
+        date_context_status="valid", date_header_parsed="2026-09-18T12:00:00+02:00",
+        imap_received_at="2026-09-18T10:01:00+00:00",
+        user_timezone="Europe/Berlin")).build([], event.events)[0]
+    assert proposal.temporal_fact.normalized_date == date(2026, 10, 21)

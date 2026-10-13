@@ -1,0 +1,78 @@
+{
+  "events": [
+    {
+      "at": "2026-10-12T14:30:08.439858Z",
+      "id": "a11137f2ab124eacc496765776be988b",
+      "kind": "state",
+      "proposal_id": "p_fee0dc073a32b8be7b1a483b",
+      "source": "system",
+      "status": "needs_clarification",
+      "version": 1
+    },
+    {
+      "at": "2026-10-12T14:30:08.566653Z",
+      "id": "b5c4f26ee32484408fb67b2689331e31",
+      "kind": "state",
+      "proposal_id": "p_fee0dc073a32b8be7b1a483b",
+      "source": "system",
+      "status": "pending_confirmation",
+      "version": 2
+    },
+    {
+      "at": "2026-10-12T14:30:08.596931Z",
+      "id": "7c99a3a7dd137667542a31a86b1480a6",
+      "kind": "answer",
+      "proposal_id": "p_fee0dc073a32b8be7b1a483b",
+      "source": "web",
+      "status": "pending_confirmation",
+      "version": 2
+    },
+    {
+      "at": "2026-10-12T14:30:08.651710Z",
+      "id": "eedf4bf7ab323d7d83d2a68c3ee8a4be",
+      "kind": "state",
+      "proposal_id": "p_fee0dc073a32b8be7b1a483b",
+      "source": "system",
+      "status": "confirmed",
+      "version": 2
+    },
+    {
+      "at": "2026-10-12T14:30:08.655868Z",
+      "id": "617195627c344cb5c2f1e0a2a516e268",
+      "kind": "state",
+      "proposal_id": "p_fee0dc073a32b8be7b1a483b",
+      "source": "system",
+      "status": "writing",
+      "version": 2
+    },
+    {
+      "at": "2026-10-12T14:30:08.674867Z",
+      "id": "b24a1cacdea33ed501180a3ce100b43e",
+      "kind": "state",
+      "proposal_id": "p_fee0dc073a32b8be7b1a483b",
+      "source": "system",
+      "status": "uncertain",
+      "version": 2
+    },
+    {
+      "at": "2026-10-12T14:30:08.708062Z",
+      "id": "98fc82162f172265b66522708970ab07",
+      "kind": "confirm",
+      "proposal_id": "p_fee0dc073a32b8be7b1a483b",
+      "source": "web",
+      "status": "uncertain",
+      "version": 2
+    },
+    {
+      "at": "2026-10-12T14:30:08.740220Z",
+      "id": "e3720571f4833ef62209da1d4d632ffe",
+      "kind": "state",
+      "proposal_id": "p_fee0dc073a32b8be7b1a483b",
+      "source": "system",
+      "status": "created",
+      "version": 2
+    }
+  ],
+  "removed": false,
+  "schema_version": 1
+}

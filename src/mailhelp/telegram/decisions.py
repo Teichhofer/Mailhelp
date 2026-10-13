@@ -2,16 +2,16 @@
 
 from __future__ import annotations
 
-from ..models import ProposalKind, ProposalStatus, TelegramDialogState
+from ..models import ActionLedgerEntry, Proposal, ProposalKind, ProposalStatus, TelegramDialogState
 from ..review.errors import AnswerRequired, StaleCommand
 from ..review.results import ResultStatus
 from ..storage import JsonStore
 from .callbacks import Decision, DecisionAction, apply_decision
 from .client import TelegramTransport
-from .ledger import ActionLedgerPort
-from .writes import ProposalPersistence, WriteExecution
-from .persistence import ProposalRepository
 from .formatting import clarification_prompt
+from .ledger import ActionLedgerPort
+from .persistence import ProposalRepository
+from .writes import ProposalPersistence, WriteExecution
 
 
 class ProposalDecisionService:
@@ -43,46 +43,9 @@ class ProposalDecisionService:
         """Apply the decision; stale or premature decisions raise a ReviewError."""
         if (user_id, chat_id) != (self.allowed_user, self.allowed_chat):
             raise PermissionError("Nicht autorisierte Telegram-Anfrage")
-        proposal = self.repository.load_current(decision.mail_id, decision.proposal_id)
-        if proposal is None:
-            raise StaleCommand("Vorschlag wurde nicht gefunden")
-        if (proposal.source_mail_id, proposal.id, proposal.version) != (
-            decision.mail_id,
-            decision.proposal_id,
-            decision.version,
-        ) or proposal.status not in {
-            ProposalStatus.PENDING_CONFIRMATION,
-            ProposalStatus.NEEDS_CLARIFICATION,
-        }:
-            raise StaleCommand("Diese Schaltfläche ist veraltet")
+        proposal = self._open_proposal(decision)
         if decision.action == DecisionAction.EDIT:
-            active = TelegramDialogState.model_validate(
-                self.store.load("telegram-dialog", TelegramDialogState().model_dump()))
-            if (
-                (active.mail_id, active.proposal_id, active.version)
-                == (proposal.source_mail_id, proposal.id, proposal.version)
-                and proposal.status == ProposalStatus.NEEDS_CLARIFICATION
-                and active.question is None
-                and not active.retry_required
-            ):
-                return (ResultStatus.DONE,
-                        "✏️ Änderungsmodus läuft bereits – bitte die Rückfrage oben beantworten.")
-            changed = proposal.model_copy(
-                update={"status": ProposalStatus.NEEDS_CLARIFICATION}
-            )
-            self.persistence.persist(changed)
-            self.store.save(
-                "telegram-dialog",
-                TelegramDialogState(
-                    mail_id=proposal.source_mail_id,
-                    proposal_id=proposal.id,
-                    version=proposal.version,
-                ).model_dump(),
-            )
-            prompt = clarification_prompt(proposal, self.configured_timezone)
-            self.telegram.send(self.allowed_chat, prompt)
-            # The question itself is the confirmation; no second message.
-            return ResultStatus.DONE, ""
+            return self._start_edit(proposal)
         if (
             decision.action
             in {DecisionAction.CONFIRM, DecisionAction.CONFIRM_DUPLICATE}
@@ -95,39 +58,7 @@ class ProposalDecisionService:
         }
         duplicates = self.ledger.prior_actions(proposal) if confirming else []
         if decision.action == DecisionAction.CONFIRM and duplicates:
-            previous = duplicates[-1]
-            source = self.repository.load_mail(previous.mail_id)
-            headers = source.display_headers if source is not None else None
-            source_text = (f"Absender: {headers.sender}\nBetreff: {headers.subject}"
-                           if headers is not None else "Quellangaben nicht mehr verfügbar.")
-            duplicate = decision.model_copy(
-                update={"action": DecisionAction.CONFIRM_DUPLICATE}
-            )
-            reject = decision.model_copy(update={"action": DecisionAction.REJECT})
-            self.telegram.send(
-                self.allowed_chat,
-                "\n".join(
-                    [
-                        f"Bereits angelegt: {'Aufgabe' if previous.kind == ProposalKind.TASK else 'Termin'} „{previous.title}“.",
-                        f"Frühere Quelle (Version {previous.proposal_version}):\n{source_text}",
-                        "Soll die Aktion wirklich ein zweites Mal angelegt bzw. versendet werden?",
-                    ]
-                ),
-                {
-                    "inline_keyboard": [
-                        [
-                            {
-                                "text": "Erneut anlegen",
-                                "callback_data": duplicate.encode(self.store),
-                            },
-                            {
-                                "text": "Nicht erneut",
-                                "callback_data": reject.encode(self.store),
-                            },
-                        ]
-                    ]
-                },
-            )
+            self._ask_about_duplicate(decision, duplicates[-1])
             return (ResultStatus.NEEDS_DUPLICATE_CONFIRMATION,
                     "✅ Doppelanlage-Prüfung wurde entgegengenommen.")
         if decision.action == DecisionAction.CONFIRM_DUPLICATE and not duplicates:
@@ -150,19 +81,103 @@ class ProposalDecisionService:
             })
         self.persistence.persist(changed)
         if changed.status == ProposalStatus.CONFIRMED:
-            result = self.writes.execute(changed)
-            if result.status in {ProposalStatus.CREATED, ProposalStatus.SIMULATED}:
-                # The write result message already reports the outcome.
-                return ResultStatus.WRITTEN, ""
-            if result.status == ProposalStatus.UNCERTAIN:
-                return (ResultStatus.WRITE_UNCERTAIN,
-                        "⚠️ Vorschlag bestätigt; externe Anlage ist noch unklar.")
-            if result.status == ProposalStatus.FAILED:
-                return (ResultStatus.WRITE_FAILED,
-                        "❌ Vorschlag bestätigt; externe Anlage fehlgeschlagen.")
-            return (ResultStatus.NOT_WRITTEN,
-                    "⚠️ Vorschlag intern bestätigt; keine externe Anlage ausgeführt.")
+            return self._write(changed)
         return ResultStatus.DONE, "✅ Vorschlag wurde verworfen."
 
+    def _open_proposal(self, decision: Decision) -> Proposal:
+        """The exact proposal version the button belongs to, while it still awaits a decision."""
+        proposal = self.repository.load_current(decision.mail_id, decision.proposal_id)
+        if proposal is None:
+            raise StaleCommand("Vorschlag wurde nicht gefunden")
+        if (proposal.source_mail_id, proposal.id, proposal.version) != (
+            decision.mail_id,
+            decision.proposal_id,
+            decision.version,
+        ) or proposal.status not in {
+            ProposalStatus.PENDING_CONFIRMATION,
+            ProposalStatus.NEEDS_CLARIFICATION,
+        }:
+            raise StaleCommand("Diese Schaltfläche ist veraltet")
+        return proposal
+
+    def _start_edit(self, proposal: Proposal) -> tuple[ResultStatus, str]:
+        """Open the clarification dialog; repeating it while it waits sends nothing new."""
+        active = TelegramDialogState.model_validate(
+            self.store.load("telegram-dialog", TelegramDialogState().model_dump()))
+        if (
+            (active.mail_id, active.proposal_id, active.version)
+            == (proposal.source_mail_id, proposal.id, proposal.version)
+            and proposal.status == ProposalStatus.NEEDS_CLARIFICATION
+            and active.question is None
+            and not active.retry_required
+        ):
+            return (ResultStatus.DONE,
+                    "✏️ Änderungsmodus läuft bereits – bitte die Rückfrage oben beantworten.")
+        changed = proposal.model_copy(
+            update={"status": ProposalStatus.NEEDS_CLARIFICATION}
+        )
+        self.persistence.persist(changed)
+        self.store.save(
+            "telegram-dialog",
+            TelegramDialogState(
+                mail_id=proposal.source_mail_id,
+                proposal_id=proposal.id,
+                version=proposal.version,
+            ).model_dump(),
+        )
+        prompt = clarification_prompt(proposal, self.configured_timezone)
+        self.telegram.send(self.allowed_chat, prompt)
+        # The question itself is the confirmation; no second message.
+        return ResultStatus.DONE, ""
+
+    def _ask_about_duplicate(self, decision: Decision, previous: ActionLedgerEntry) -> None:
+        """An action like this was created before: ask before doing it twice."""
+        source = self.repository.load_mail(previous.mail_id)
+        headers = source.display_headers if source is not None else None
+        source_text = (f"Absender: {headers.sender}\nBetreff: {headers.subject}"
+                       if headers is not None else "Quellangaben nicht mehr verfügbar.")
+        duplicate = decision.model_copy(
+            update={"action": DecisionAction.CONFIRM_DUPLICATE}
+        )
+        reject = decision.model_copy(update={"action": DecisionAction.REJECT})
+        self.telegram.send(
+            self.allowed_chat,
+            "\n".join(
+                [
+                    f"Bereits angelegt: {'Aufgabe' if previous.kind == ProposalKind.TASK else 'Termin'} „{previous.title}“.",
+                    f"Frühere Quelle (Version {previous.proposal_version}):\n{source_text}",
+                    "Soll die Aktion wirklich ein zweites Mal angelegt bzw. versendet werden?",
+                ]
+            ),
+            {
+                "inline_keyboard": [
+                    [
+                        {
+                            "text": "Erneut anlegen",
+                            "callback_data": duplicate.encode(self.store),
+                        },
+                        {
+                            "text": "Nicht erneut",
+                            "callback_data": reject.encode(self.store),
+                        },
+                    ]
+                ]
+            },
+        )
+
+    def _write(self, changed: Proposal) -> tuple[ResultStatus, str]:
+        """Execute the confirmed write and translate its outcome."""
+        result = self.writes.execute(changed)
+        if result.status in {ProposalStatus.CREATED, ProposalStatus.SIMULATED}:
+            # The write result message already reports the outcome.
+            return ResultStatus.WRITTEN, ""
+        if result.status == ProposalStatus.UNCERTAIN:
+            return (ResultStatus.WRITE_UNCERTAIN,
+                    "⚠️ Vorschlag bestätigt; externe Anlage ist noch unklar.")
+        if result.status == ProposalStatus.FAILED:
+            return (ResultStatus.WRITE_FAILED,
+                    "❌ Vorschlag bestätigt; externe Anlage fehlgeschlagen.")
+        return (ResultStatus.NOT_WRITTEN,
+                "⚠️ Vorschlag intern bestätigt; keine externe Anlage ausgeführt.")
 
 __all__ = ["ProposalDecisionService"]

@@ -28,7 +28,6 @@ from ..review.cards import (
     shorten,
 )
 
-
 _VERSION = re.compile(r" \(Version \d+\)")
 
 
@@ -88,6 +87,13 @@ def format_proposal(
         lines.append(f"Sicherheit: {card.certainty}")
     if card.classification:
         lines.append(f"Einordnung: {card.classification}")
+    if proposal.target_event_id is not None:
+        if proposal.is_cancellation:
+            lines.append("❌ Status: Bestehender Termin soll abgesagt werden")
+        elif proposal.time_changes:
+            lines.append(f"🔄 Terminänderung gegenüber Kalender ({', '.join(proposal.time_changes)})")
+        else:
+            lines.append("🔄 Terminänderung gegenüber Kalender")
     if not card.writable:
         lines.append("⚠️ Kann nicht automatisch angelegt werden – bitte manuell prüfen.")
     elif test_mode:

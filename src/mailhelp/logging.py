@@ -6,7 +6,7 @@ import os
 import re
 import sys
 from collections.abc import Mapping
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from threading import RLock
 from typing import Any, Protocol, TextIO
@@ -120,6 +120,7 @@ class JsonlLogger:
         self.llm = directory / llm_name
         self.telegram = directory / telegram_name
         self.include_requests, self.include_responses = include_llm_requests, include_llm_responses
+        self.metrics = None
         self.level = _validate_level(level)
         self.module_levels = {str(module): _validate_level(item) for module, item in (module_levels or {}).items()}
         self.secrets = tuple(secret for secret in secrets if secret)
@@ -156,7 +157,7 @@ class JsonlLogger:
 
     def _record(self, level: str, module: str, event: str, context: Mapping[str, Any]) -> dict[str, Any]:
         return redact({
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
             "level": level,
             "module": module,
             "event": event,
@@ -173,7 +174,7 @@ class JsonlLogger:
 
     @staticmethod
     def _prune(path: Path, retention_days: int) -> None:
-        cutoff = datetime.now(timezone.utc).timestamp() - timedelta(days=retention_days).total_seconds()
+        cutoff = datetime.now(UTC).timestamp() - timedelta(days=retention_days).total_seconds()
         parent = path.parent
         if not parent.exists():
             return
@@ -209,6 +210,11 @@ class JsonlLogger:
                 stream.write(rendered)
 
     def event(self, level: str, module: str, event: str, **context: Any) -> None:
+        if self.metrics is not None:
+            try:
+                self.metrics.observe(event, redact({"service": module, **context}, self.secrets))
+            except OSError:
+                self.metrics.failures += 1
         level = _validate_level(level)
         write_file = self.file_enabled and self.enabled(level, module)
         write_console = self.console_enabled and LEVELS[level] >= LEVELS[self.console_level]
@@ -223,6 +229,16 @@ class JsonlLogger:
                 self.console.flush()
 
     def llm_event(self, event: str, request: Any = None, response: Any = None, **context: Any) -> None:
+        if self.metrics is not None:
+            selected = dict(context)
+            if isinstance(response, dict):
+                selected.setdefault("token_usage", response.get("usage"))
+                selected.setdefault("reported_cost", response.get("cost"))
+                selected["provider"] = selected.get("provider") or response.get("provider")
+            try:
+                self.metrics.observe(event, redact(selected, self.secrets))
+            except OSError:
+                self.metrics.failures += 1
         level = _validate_level(context.pop("level", "INFO"))
         if not self.llm_enabled or LEVELS[level] < LEVELS[self.llm_level]:
             return
@@ -247,6 +263,9 @@ class JsonlLogger:
         """Write one successfully sent or validated received Telegram message."""
         if direction not in {"sent", "received"}:
             raise ValueError("Telegram-Richtung muss sent oder received sein")
+        if self.metrics is not None:
+            # Only the fact of a successful contact; no message content.
+            self.metrics.observe(f"message_{direction}", {"service": "telegram"})
         if not self.telegram_enabled:
             return
         record = self._record(self.telegram_level, "telegram", "message", {
@@ -261,3 +280,12 @@ def _validate_format(value: str) -> str:
     if value not in {"text", "jsonl"}:
         raise ValueError("Logformat muss text oder jsonl sein")
     return value
+
+
+def log_and_continue(logger: EventLogger | Any, module: str, event: str, exc: BaseException | None = None, **fields: Any) -> None:
+    """Log an exception at a process boundary and continue without propagating."""
+    context = dict(fields)
+    if exc is not None and "error_class" not in context:
+        context["error_class"] = type(exc).__name__
+    logger.event("ERROR", module, event, **context)
+

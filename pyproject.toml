@@ -4,16 +4,18 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mailhelp"
-version = "1.1.0"
+version = "2.2.1"
 description = "Persönlicher, bestätigungspflichtiger E-Mail-Assistent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
-dependencies = ["httpx==0.28.1", "pydantic==2.11.7", "PyYAML==6.0.2", "tzdata==2026.4"]
+dependencies = ["httpx==0.28.1", "pillow==12.2.0", "pydantic==2.11.7", "pypdf==6.20.0", "PyYAML==6.0.2", "tzdata==2026.4", "pywebpush==2.5.0", "openpyxl==3.1.5"]
 
 [project.optional-dependencies]
-test = ["pytest==8.4.1", "pytest-cov==6.2.1"]
+test = ["pytest==8.4.1", "pytest-cov==6.2.1", "hypothesis==6.131.0"]
 # Browser tests of the web interface (ui_tests/), using the installed Chrome.
 ui = ["playwright==1.62.0"]
+# Static checks (Planung 2.1, A1); reported in CI, enforced from 2.1.0.
+lint = ["ruff==0.12.12", "mypy==1.17.1", "types-PyYAML==6.0.12.20250809"]
 
 [project.scripts]
 mailhelp = "mailhelp.cli:main"
@@ -25,6 +27,50 @@ testpaths = ["tests"]
 # Temporary test files live in .test-tmp; see tests/conftest.py.
 cache_dir = ".test-tmp/pytest-cache"
 tmp_path_retention_policy = "failed"
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+src = ["src", "tests", "ui_tests"]
+
+[tool.ruff.lint]
+# Pyflakes, isort, pyupgrade, bugbear and the line length.
+select = ["F", "I", "UP", "B", "E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["mailhelp"]
+
+[tool.ruff.lint.per-file-ignores]
+"src/mailhelp/web/setting_help.py" = ["E501"]
+"src/mailhelp/telegram/_core.py" = ["F401", "F403"]
+"src/mailhelp/telegram/__init__.py" = ["F401"]
+"src/mailhelp/integrations.py" = ["F401"]
+"tests/*" = ["F811", "E501", "F401", "F403"]
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "src"
+packages = ["mailhelp"]
+warn_unused_configs = true
+warn_redundant_casts = true
+
+[[tool.mypy.overrides]]
+# Third-party packages without type information.
+module = ["pywebpush.*", "py_vapid.*", "http_ece.*", "pypdf.*", "openpyxl.*"]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# Strict core (Planung 2.1, A1); extended step by step.
+module = ["mailhelp.domain.*", "mailhelp.external.contracts", "mailhelp.drafts", "mailhelp.webpush",
+          "mailhelp.briefing", "mailhelp.attachments"]
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+disallow_untyped_calls = true
+disallow_any_generics = true
+check_untyped_defs = true
+warn_return_any = true
+no_implicit_reexport = true
+strict_equality = true
 
 [tool.coverage.run]
 branch = true
@@ -38,10 +84,13 @@ skip_covered = true
 
 [tool.hatch.build.targets.sdist]
 include = [
-  "/src", "/README.md", "/LICENSE", "/pyproject.toml", "/requirements.lock",
+  "/src", "/README.md", "/LICENSE", "/pyproject.toml", "/requirements.lock", "/requirements-lint.lock",
   "/config.example.yaml", "/.env.example", "/prompts.yaml", "/decisions_prompts.yaml",
   "/topics.yaml", "/irrelevant_topics.yaml", "/irrelevant-senders.example.json",
   "/compose.yaml", "/Dockerfile", "/.dockerignore", "/CHANGELOG.md", "/docs/Release-1.0.md",
-  "/docs/Release-1.1.md",
+  "/docs/Release-1.1.md", "/docs/Release-1.2.md",
+  "/docs/Release-1.6.md", "/docs/Architektur-1.6.md", "/docs/Planung-1.6.md",
+  "/docs/Web-Einstellungen.md",
+  "/docs/Release-2.0.md", "/docs/Planung-2.0.md", "/docs/Konzept-2.0-Redesign-und-Web-Push.md",
 ]
 

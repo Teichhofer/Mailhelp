@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Callable
 
-from ..integrations import proposal_is_writable
+from ..external.contracts import proposal_is_writable
 from ..models import Proposal, ProposalKind
 from .callbacks import Decision, DecisionAction, validate_callback_markup
 from .formatting import format_proposal, numbered_message_parts, revision_summary
@@ -72,7 +72,7 @@ class ProposalPresenter:
                 (
                     "Simulieren"
                     if self.test_mode
-                    else "Im Kalender anlegen" if proposal.kind == ProposalKind.EVENT else "In Todoist anlegen"
+                    else ("Termin absagen" if proposal.is_cancellation else "Termin aktualisieren") if proposal.target_event_id is not None else "Im Kalender anlegen" if proposal.kind == ProposalKind.EVENT else "In Todoist anlegen"
                 ),
                 DecisionAction.CONFIRM,
             )

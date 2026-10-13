@@ -1,15 +1,13 @@
 """Fachmodelle für den Kontext LLM-Extraktion."""
 from __future__ import annotations
 
-from datetime import date, datetime, time, timedelta, timezone
-from enum import StrEnum
-from typing import Annotated, Any, Literal
-from uuid import UUID
 import re
+from datetime import date, datetime
+from typing import Any, Literal
 
 from pydantic import AnyHttpUrl, Field, field_validator, model_validator
 
-from ._base import CalendarDate, StrictModel
+from ._base import StrictModel
 from .temporal import TimeRequirement
 
 
@@ -26,7 +24,7 @@ class TelegramAnswerInterpretation(StrictModel):
     reason: str = Field(min_length=1, max_length=1000)
 
     @model_validator(mode="after")
-    def answer_matches_decision(self) -> "TelegramAnswerInterpretation":
+    def answer_matches_decision(self) -> TelegramAnswerInterpretation:
         if self.usable != (self.normalized_answer is not None):
             raise ValueError("Nur eine verwendbare Antwort darf einen normalisierten Wert enthalten")
         return self
@@ -48,7 +46,7 @@ class CalendarDuplicateDecision(StrictModel):
     reason: str = Field(min_length=1, max_length=1000)
 
     @model_validator(mode="after")
-    def fields_require_same_event(self) -> "CalendarDuplicateDecision":
+    def fields_require_same_event(self) -> CalendarDuplicateDecision:
         if not self.same_event and self.missing_fields:
             raise ValueError("Fehlende Felder sind nur beim gleichen Termin zulässig")
         if len(self.missing_fields) != len(set(self.missing_fields)):
@@ -97,7 +95,7 @@ class ActionRoute(StrictModel):
         return value
 
     @model_validator(mode="after")
-    def consistent_counts(self) -> "ActionRoute":
+    def consistent_counts(self) -> ActionRoute:
         expected = {
             "none": self.task_count == 0 and self.event_count == 0,
             "task": self.task_count > 0 and self.event_count == 0,
@@ -178,7 +176,7 @@ class ExtractionCountConflict(StrictModel):
     notification_marked_at: datetime | None = None
 
     @model_validator(mode="after")
-    def validates_real_conflict(self) -> "ExtractionCountConflict":
+    def validates_real_conflict(self) -> ExtractionCountConflict:
         if self.expected_count == self.actual_count:
             raise ValueError("Ein Zählerkonflikt benötigt unterschiedliche Werte")
         if (self.notification_marked_at is not None
@@ -186,3 +184,50 @@ class ExtractionCountConflict(StrictModel):
                      or self.notification_marked_at.utcoffset() is None)):
             raise ValueError("Der Benachrichtigungszeitpunkt benötigt einen UTC-Offset")
         return self
+
+
+class ExtractedAttachment(StrictModel):
+    """Structured text extract and metadata from an email attachment."""
+
+    filename: str = Field(min_length=1, max_length=500)
+    content_type: str = Field(min_length=1, max_length=200)
+    size_bytes: int = Field(ge=0)
+    text: str = Field(default="", max_length=50000)
+    extraction_status: Literal[
+        "success", "no_text_found", "encrypted", "skipped_oversized", "error", "unsupported_format"
+    ] = "success"
+    character_count: int = Field(default=0, ge=0)
+    # Outcome of the multimodal OCR (1.4); ``None`` when no image was involved.
+    vision: Literal[
+        "read", "no_text", "failed", "skipped_small", "skipped_limit",
+        "skipped_oversized", "skipped_unreadable",
+    ] | None = None
+
+
+class VisionExtractionResult(StrictModel):
+    """Bounded answer of the vision model for one image or scanned document."""
+
+    legible: bool
+    # Longer texts are shortened to the attachment limit like digital documents.
+    text: str = Field(default="", max_length=50000)
+
+    @model_validator(mode="after")
+    def text_requires_legibility(self) -> VisionExtractionResult:
+        if not self.legible and self.text.strip():
+            raise ValueError("Ein unlesbares Dokument darf keinen Text enthalten")
+        return self
+
+
+class ParsedCalendarEvent(StrictModel):
+    """Deterministic event extracted from an RFC 5545 iCalendar stream."""
+
+    uid: str | None = Field(default=None, max_length=500)
+    sequence: int = Field(default=0, ge=0)
+    summary: str = Field(min_length=1, max_length=500)
+    description: str = Field(default="", max_length=4000)
+    start: datetime | date
+    end: datetime | date
+    all_day: bool = False
+    location: str | None = Field(default=None, max_length=1000)
+    video_link: AnyHttpUrl | None = None
+    status: Literal["CONFIRMED", "TENTATIVE", "CANCELLED"] = "CONFIRMED"

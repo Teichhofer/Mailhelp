@@ -25,6 +25,8 @@ der Datei `LICENSE`.
 
 Die Instanz ist ausschließlich für die private Nutzung durch den Betreiber bestimmt.
 Nur das in der Konfiguration hinterlegte Telegram-Konto darf den Bot bedienen.
+Die zugehörige Person darf außerdem über per Telegram gekoppelte Webgeräte
+Vorschläge bearbeiten und ausdrücklich bestätigen.
 Ein öffentlicher Zugang, eine Registrierung oder eine Nutzung durch Dritte ist nicht
 vorgesehen.
 
@@ -36,7 +38,8 @@ Telegram), erklärt, zur Nutzung dieser Konten berechtigt zu sein.
 - Zusammenfassungen, Relevanzeinschätzungen sowie Aufgaben- und Terminvorschläge
   werden von KI-Modellen erzeugt. Sie können unvollständig, ungenau oder falsch sein,
   etwa bei Datum, Uhrzeit, Ort oder Zuständigkeit.
-- Jeder Vorschlag ist vor der Bestätigung zu prüfen. Mit der Bestätigung in Telegram
+- Jeder Vorschlag ist vor der Bestätigung zu prüfen. Mit der versionsbezogenen
+  Bestätigung in Telegram oder der authentifizierten Weboberfläche
   übernimmt die bestätigende Person die Verantwortung für den angelegten Eintrag.
 - Mailhelp legt nur bestätigte Vorschläge an, versendet keine E-Mails und verändert
   das Postfach nicht.

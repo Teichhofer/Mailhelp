@@ -1,3 +1,4 @@
+# Erläuterungen aller Web-Einstellungen: docs/Web-Einstellungen.md (auch als Info-Blasen in der Weboberfläche).
 # Optionaler Vergleich: mailhelp --decision-test 20 --ollama localhost:11434
 # Standard (Jev-Relevanz + LLM-Rückfall) gegen Ollama; nur relevante Mails weiter.
 # Standardrelevanz: Jev aus decisions_prompts.yaml; nur unclear nutzt prompts.yaml.
@@ -6,7 +7,7 @@
 # Bericht und JSONL unter data_directory/decision-tests; keine Schreibdienste.
 # Für lokale Nutzung nach config.yaml kopieren und Verbindungen/Ziele anpassen.
 # Geheimnisse ausschließlich in .env oder in der Prozessumgebung hinterlegen.
-# Auch non_binding und "Erneut anlegen" erfordern versionsbezogene Telegram-Bestätigung.
+# Auch non_binding und "Erneut anlegen" erfordern versionsbezogene Bestätigung über Telegram oder die authentifizierte Weboberfläche.
 # test_mode simuliert Todoist und Google Kalender ohne Zugriff auf die Schreibdienste.
 # Relative Daten-/Logpfade gelten relativ zu --config-directory, auch bei --clear.
 # Docker bindet data und logs unter /config/data bzw. /config/logs ein.
@@ -14,15 +15,82 @@
 # Lernen im Container: compose.learn.yaml bindet learning-config als Verzeichnis ein.
 # Offene Vorschläge blockieren die Analyse nicht; nur unklare Relevanz wartet auf Telegram.
 timezone: Europe/Berlin
+# 2.0: Schaltflächen Zusagen/Absagen/Rückfrage auf der Mailseite; ein Klick lässt das
+# LLM (Prompt draft_reply) einen Entwurf formulieren. Gespeichert wird nur nach
+# ausdrücklichem Klick per IMAP APPEND in imap.drafts_folder; Mailhelp sendet nie.
+smart_reply: false
+# Eigene Angaben für Antwort-Entwürfe (Name, Rolle, Signatur, Anrede-/Stilwünsche),
+# höchstens 2.000 Zeichen. Gehen an die Prompts draft_reply und (ab 2.2) activity_relevance;
+# auch unter Einstellungen → Antworten bearbeitbar und dort sofort wirksam.
+personal_info: ""
+activity_report:
+  # 2.2: Tätigkeitsberichte unter /berichte. Ein Bericht liest die Mails eines Zeitraums
+  # nur (IMAP BODY.PEEK, keine Flags), prüft sie per LLM auf das Berichtsthema, findet
+  # Termine und erstellt eine xlsx-Liste. Nichts wird in Postfach, Kalender oder Todoist
+  # geschrieben. Benötigt die Prompts activity_relevance und activity_events.
+  enabled: false
+  max_mails: 2000                  # Bericht pausiert bei Erreichen
+  max_llm_calls: 3000              # Bericht pausiert bei Erreichen
+  max_share_of_llm_budget: 0.5     # Anteil von limits.llm_calls_per_minute
+  max_fulltext_chars: 30000        # Volltext je Mail in Bericht und xlsx (1000–32000)
+  export_mails_without_events: true  # Blatt „Ohne Termin“ in der xlsx-Liste
+push:
+  # Web-Push (VAPID) für die App; nur über HTTPS oder localhost. Jedes Gerät schaltet
+  # Push zusätzlich unter Einstellungen ein. Meldungen enthalten keine Mailinhalte.
+  enabled: false
+  subject: mailto:admin@example.invalid  # Kontaktadresse des Betreibers für VAPID
+daily_briefing:
+  # Tagesüberblick (Termine, fällige Aufgaben, offene Entscheidungen), nur lesend.
+  # Telegram erhält den Text, Web-Push nur einen neutralen Hinweis; /briefing zeigt ihn.
+  enabled: false
+  time: "07:30"  # HH:MM in der Zeitzone oben; einmal je lokalem Kalendertag
+  include_calendar: true
+  include_tasks: true
+  include_open: true
 poll_interval_seconds: 60
 test_mode: false
 data_directory: data
 retention:
   full_mail_days: 30
   debug_llm_days: disabled
+  # Ab 1.2: kompakte Analyse (Relevanz, Begründung, Themen, Zusammenfassung) für die
+  # Weboberfläche. Fehlt der Schlüssel, gilt wie bisher debug_llm_days. 30 bewusst setzen,
+  # damit Analysen nach Abschluss eines Vorgangs 30 Tage sichtbar bleiben.
+  # analysis_days: 30
+  # Ab 1.2: angezeigter Entscheidungsverlauf (Ereignisse, ältere Vorschlagsversionen).
+  history_days: 90
+  # Ab 2.2: Volltexte und Belegzitate abgeschlossener Tätigkeitsberichte; Termine,
+  # Absender und Betreffe bleiben. Zahl, disabled (sofort) oder unlimited.
+  activity_report_days: 365
+metrics:
+  # Ab 1.2: inhaltsfreie Messung von KI-Aufrufen (Dauer, Modell, Schritt, Kosten) für
+  # die Seite „Auswertung“. Gespeichert in logs/metrics/.
+  enabled: true
+  retention_days: 90
+  # Annahmen für die Stromschätzung im Ollama-Betrieb (keine Messung):
+  # Leistung des ganzen Servers in Watt und Strompreis in EUR je kWh.
+  ollama_power_watts: 300
+  electricity_eur_per_kwh: 0.30
+  # Standard-Wechselkurs für die Umrechnung von USD-Kosten in Euro (1 € = 1,10 $).
+  usd_per_eur: 1.1
+  # Optional mit Bezugsdatum:
+  # exchange_rate_date: 2026-10-11
+vision:
+  # Ab 1.4: Bildanhänge (JPG, PNG, WebP) und gescannte PDFs werden per
+  # Bilderkennung gelesen (Schritt vision_ocr in prompts.yaml). Dabei gehen die
+  # Bilder an den KI-Anbieter. Symbole und Logos (unter 150 × 150 Pixel oder
+  # 10 KB) werden nie gesendet. false schaltet die Bilderkennung ab.
+  enabled: true
+  # Höchstens so viele Bilder bzw. Scanseiten je Mail.
+  max_images_per_mail: 3
+  # Größere Anhänge werden nicht gelesen (10 MB).
+  max_image_bytes: 10485760
+  # Längste Bildkante nach dem Verkleinern; spart Tokens.
+  max_edge_pixels: 1600
 learning:
   parallel_llm_calls: 10
 imap:
+  drafts_folder: Drafts  # Unicode erlaubt; muss auf dem IMAP-Server existieren
   host: imap.example.test
   port: 993
   connection_mode: ssl
@@ -37,6 +105,9 @@ imap:
   - Spam
   - Trash
 telegram:
+  # false (2.0): Betrieb nur mit Weboberfläche/App, web.enabled muss true sein,
+  # TELEGRAM_BOT_TOKEN entfällt; Kopplungscodes erscheinen in der Konsole des PCs.
+  enabled: true
   # Bei jedem normalen Start wird die Befehlsübersicht automatisch gesendet,
   # auch mit --max-mails und bei Wiederaufnahme offener Entscheidungen.
   # Nur dieser Nutzer in diesem Chat darf auch /hilfe, /status, /offen und
@@ -149,6 +220,7 @@ logging:
     backup_count: 5
     retention_days: 30
 web:
+  # Die Webübersicht behält die Auswahl beim Neuladen automatisch bei; keine Option n?tig.
   # Optionale Weboberfläche (ab 1.1). Standard: aus – Mailhelp verhält sich dann wie 1.0.
   # Mit enabled: true wird MAILHELP_WEB_SECRET (mindestens 32 Zeichen) in .env benötigt.
   enabled: false

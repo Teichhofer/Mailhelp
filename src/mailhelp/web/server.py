@@ -11,9 +11,10 @@ from __future__ import annotations
 import socket
 import sys
 import time
+from collections.abc import Callable
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Thread
-from typing import Callable, Protocol
+from typing import Protocol
 
 from .http import MAX_BODY_BYTES, STATUS_TEXT, Request, Response
 
@@ -96,6 +97,8 @@ class _RequestHandler(BaseHTTPRequestHandler):
                                          error_class=type(exc).__name__)
                 response = Response.text(500, "Interner Fehler.")
         self._send(response)
+        if response.after_send is not None:
+            response.after_send()
         self.server.logger.event("INFO", "web", "request", method=self.command,
                                  path=path[:200], status=response.status,
                                  duration_ms=round((time.perf_counter() - started) * 1000))

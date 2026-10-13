@@ -1,26 +1,62 @@
 """Atomare, menschenlesbare JSON-Ablage mit Einzelinstanz-Sperre."""
 from __future__ import annotations
+
 import errno
-import json, os
+import json
+import os
 import re
+import tempfile
 import time
-from contextlib import contextmanager
+from collections.abc import Iterator
+from contextlib import AbstractContextManager, contextmanager
 from pathlib import Path
 from threading import RLock
-from typing import Any, Iterator
+from typing import Any, Protocol, runtime_checkable
+
 from pydantic import BaseModel, ValidationError
 
 from .persistence.migrations import migrate_document
+
+# Re-exported for existing callers; the name patterns live in state_names.
+from .state_names import mail_state_names  # noqa: F401
 
 
 class CorruptState(RuntimeError): pass
 class AlreadyRunning(RuntimeError): pass
 
 
-def mail_state_names(store: "JsonStore") -> list[str]:
-    """Return only per-mail state names, excluding the ``mail-run-*`` queue."""
-    return [name for name in store.names("mail-")
-            if not name.startswith("mail-run-")]
+def atomic_replace(path: Path, content: str) -> None:
+    """Durably replace one user-editable text file (configuration, topics, metrics) without partial writes."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    descriptor, temporary = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
+    try:
+        with os.fdopen(descriptor, "w", encoding="utf-8", newline="\n") as stream:
+            stream.write(content)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    except BaseException:
+        Path(temporary).unlink(missing_ok=True)
+        raise
+
+
+@runtime_checkable
+class StateStore(Protocol):
+    """What Mailhelp's services need from the state store; ``JsonStore`` in production.
+
+    Test doubles implement the whole protocol (usually by delegating to a real
+    ``JsonStore``), so production code never has to check for missing methods.
+    """
+
+    directory: Path
+
+    def load(self, name: str, default: Any = None) -> Any: ...
+    def save(self, name: str, value: Any) -> None: ...
+    def load_model[M: BaseModel](self, name: str, model: type[M], default: M | None = None) -> M | None: ...
+    def peek_model[M: BaseModel](self, name: str, model: type[M], default: M | None = None) -> M | None: ...
+    def names(self, prefix: str = "") -> list[str]: ...
+    def delete(self, name: str) -> None: ...
+    def locked(self) -> AbstractContextManager[Any]: ...
 
 
 class JsonStore:
@@ -33,17 +69,21 @@ class JsonStore:
     """
 
     def __init__(self, directory: Path):
-        self.directory, self.lock = directory, None
+        self.directory = directory
+        self.lock: int | None = None
         self._thread_lock = RLock()
+        self.revision = 0
+        self.archive_revision = 0
 
     @contextmanager
-    def locked(self) -> Iterator["JsonStore"]:
+    def locked(self) -> Iterator[JsonStore]:
         """Hold the thread lock across several reads for a consistent view."""
         with self._thread_lock:
             yield self
 
-    def __enter__(self) -> "JsonStore":
-        self.directory.mkdir(parents=True, exist_ok=True); path = self.directory / ".lock"
+    def __enter__(self) -> JsonStore:
+        self.directory.mkdir(parents=True, exist_ok=True)
+        path = self.directory / ".lock"
         descriptor = os.open(path, os.O_CREAT | os.O_RDWR, 0o600)
         try:
             attempt = 0
@@ -119,10 +159,11 @@ class JsonStore:
         except (OSError, json.JSONDecodeError) as exc:
             if not quarantine:
                 raise CorruptState(f"Beschädigter Zustand: {path.name}") from exc
-            isolated = path.with_suffix(".corrupt"); os.replace(path, isolated)
+            isolated = path.with_suffix(".corrupt")
+            os.replace(path, isolated)
             raise CorruptState(f"Beschädigter Zustand isoliert: {isolated.name}") from exc
 
-    def peek_model(self, name: str, model: type[BaseModel], default: BaseModel | None = None) -> BaseModel | None:
+    def peek_model[M: BaseModel](self, name: str, model: type[M], default: M | None = None) -> M | None:
         """Validate a state object read-only; migrations apply in memory only."""
         value = self.peek(name, None)
         if value is None:
@@ -133,13 +174,13 @@ class JsonStore:
         except ValidationError as exc:
             raise CorruptState(f"Schemawidriger Zustand: {name}.json") from exc
 
-    def load_model(self, name: str, model: type[BaseModel], default: BaseModel | None = None) -> BaseModel | None:
+    def load_model[M: BaseModel](self, name: str, model: type[M], default: M | None = None) -> M | None:
         """Load and validate a state object, quarantining invalid schemas too."""
         with self._thread_lock:
             value = self._load_model(name, model, default)
         return value
 
-    def _load_model(self, name: str, model: type[BaseModel], default: BaseModel | None) -> BaseModel | None:
+    def _load_model[M: BaseModel](self, name: str, model: type[M], default: M | None) -> M | None:
         value = self.load(name, None)
         if value is None:
             return default
@@ -156,19 +197,37 @@ class JsonStore:
             self.save(name, result.model_dump(mode="json"))
         return result
 
+    def delete(self, name: str) -> None:
+        """Remove one state file; a missing file is already the desired state."""
+        self._validate_name(name)
+        with self._thread_lock:
+            (self.directory / f"{name}.json").unlink(missing_ok=True)
+            self.revision += 1
+
     def save(self, name: str, value: Any) -> None:
         self._validate_name(name)
-        path = self.directory / f"{name}.json"; temporary = path.with_suffix(".tmp")
+        path = self.directory / f"{name}.json"
+        temporary = path.with_suffix(".tmp")
         with self._thread_lock:
             self.directory.mkdir(parents=True, exist_ok=True)
             with temporary.open("w", encoding="utf-8", newline="\n") as stream:
-                json.dump(value, stream, ensure_ascii=False, indent=2, sort_keys=True); stream.write("\n"); stream.flush(); os.fsync(stream.fileno())
+                json.dump(value, stream, ensure_ascii=False, indent=2, sort_keys=True)
+                stream.write("\n")
+                stream.flush()
+                os.fsync(stream.fileno())
             os.replace(temporary, path)
+            self.revision += not name.startswith("web-")
+            self.archive_revision += name.startswith(("mail-", "analysis-", "history-", "proposal-"))
             # Make the directory entry durable as well as the file contents.
             if os.name != "nt":
                 descriptor = os.open(self.directory, os.O_RDONLY)
                 try: os.fsync(descriptor)
                 finally: os.close(descriptor)
+
+    def touch(self) -> None:
+        """Invalidate operational fingerprints without rebuilding mail metadata."""
+        with self._thread_lock:
+            self.revision += 1
 
     def names(self, prefix: str = "") -> list[str]:
         """Return stable state names without exposing temporary/corrupt files."""

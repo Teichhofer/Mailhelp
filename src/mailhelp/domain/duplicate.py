@@ -1,15 +1,11 @@
 """Fachmodelle für den Kontext Duplikaterkennung."""
 from __future__ import annotations
 
-from datetime import date, datetime, time, timedelta, timezone
-from enum import StrEnum
-from typing import Annotated, Any, Literal
-from uuid import UUID
-import re
+from typing import Annotated, Literal
 
-from pydantic import AnyHttpUrl, Field, field_validator, model_validator
+from pydantic import Field, model_validator
 
-from ._base import CalendarDate, StrictModel
+from ._base import StrictModel
 
 
 class MailImapIdentity(StrictModel):
@@ -30,7 +26,7 @@ class DuplicateIndexEntry(StrictModel):
     content_fingerprint: str = Field(pattern=r"^[a-f0-9]{64}$")
 
     @model_validator(mode="after")
-    def unique_message_ids(self) -> "DuplicateIndexEntry":
+    def unique_message_ids(self) -> DuplicateIndexEntry:
         if len(self.message_ids) != len(set(self.message_ids)):
             raise ValueError("Normalisierte Message-IDs dürfen nicht doppelt vorkommen")
         return self
@@ -41,7 +37,7 @@ class DuplicateIndex(StrictModel):
     entries: list[DuplicateIndexEntry] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def unique_technical_identity(self) -> "DuplicateIndex":
+    def unique_technical_identity(self) -> DuplicateIndex:
         identities = [(entry.imap.account_id, entry.imap.folder, entry.imap.uidvalidity, entry.imap.uid)
                       for entry in self.entries]
         if len(identities) != len(set(identities)):
@@ -56,7 +52,7 @@ class DuplicateDecision(StrictModel):
     previous_mail_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{24}$")
 
     @model_validator(mode="after")
-    def reference_matches_outcome(self) -> "DuplicateDecision":
+    def reference_matches_outcome(self) -> DuplicateDecision:
         if (self.outcome == "new") == (self.previous_mail_id is not None):
             raise ValueError("Nur Treffer benötigen einen früheren Mailbezug")
         return self

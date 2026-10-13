@@ -1,19 +1,16 @@
 """Fachmodelle für den Kontext vollständige Mailzustände."""
 from __future__ import annotations
 
-from datetime import date, datetime, time, timedelta, timezone
-from enum import StrEnum
-from typing import Annotated, Any, Literal
-from uuid import UUID
-import re
+from datetime import UTC, datetime
+from typing import Any, Literal
 
-from pydantic import AnyHttpUrl, Field, field_validator, model_validator
+from pydantic import Field, model_validator
 
-from ._base import CalendarDate, StrictModel
+from ._base import StrictModel
 from .duplicate import DuplicateDecision, MailImapIdentity
 from .extraction import ActionRoute, EventExtraction, ExtractionCountConflict, Summary, TaskExtraction
-from .processing import (ProcessingError, ProcessingSteps, ProposalNotification,
-                         ValidationIssue, WriteAttemptReference)
+from .prepared import PreparedMail
+from .processing import ProcessingError, ProcessingSteps, ProposalNotification, ValidationIssue, WriteAttemptReference
 from .proposal import Proposal
 from .relevance import Relevance, RelevanceDialog, RelevanceDialogStatus
 
@@ -29,8 +26,8 @@ class MailState(StrictModel):
     schema_version: Literal[9] = 9
     id: str = Field(pattern=r"^[a-f0-9]{24}$")
     imap: MailImapIdentity
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
-    updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     config_fingerprint: str = Field(pattern=r"^[a-f0-9]{64}$")
     steps: ProcessingSteps = Field(default_factory=ProcessingSteps)
     mail: dict[str, Any] | None = None
@@ -54,8 +51,13 @@ class MailState(StrictModel):
     deferred_until: datetime | None = None
     duplicate: DuplicateDecision | None = None
 
+    @property
+    def prepared(self) -> PreparedMail | None:
+        """Typed read view of ``mail``; the stored dict itself stays unchanged."""
+        return None if self.mail is None else PreparedMail.model_validate(self.mail)
+
     @model_validator(mode="after")
-    def consistent_relevance_dialog(self) -> "MailState":
+    def consistent_relevance_dialog(self) -> MailState:
         """Keep a dialog bound to this mail and its explicit waiting state."""
         if self.created_at.tzinfo is None or self.updated_at.tzinfo is None:
             raise ValueError("Zeitstempel müssen eine Zeitzone enthalten")

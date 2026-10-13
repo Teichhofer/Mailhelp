@@ -4,8 +4,11 @@
 - Halte Prompts/Modelle/LLM-Parameter in prompts.yaml, Themen in topics.yaml,
   Anwendungseinstellungen in config.yaml und Geheimnisse außerhalb des Codes.
 - Verwende lesbare JSON-Dateien für den Zustand und separate JSONL-Logs.
-- Erzwinge ausdrückliche, versionsbezogene Telegram-Bestätigung vor jedem
-  Schreibzugriff auf Google Kalender oder Todoist.
+- Erzwinge vor jedem Schreibzugriff auf Google Kalender oder Todoist eine
+  ausdrückliche, versionsbezogene Bestätigung über Telegram oder die authentifizierte
+  Weboberfläche. Bearbeiten und Speichern allein autorisieren keine externe Anlage.
+  Webaktionen benötigen eine gültige, auch bei Ausführung erneut geprüfte Sitzung,
+  CSRF-Schutz, Versionsprüfung und einen Idempotenzschlüssel.
 - Behandle Mailinhalte und LLM-Ausgaben als nicht vertrauenswürdige Eingaben.
 - Verhindere doppelte Aktionen; gleiche unklare Schreibresultate vor Wiederholung ab.
 - Protokolliere keine Zugangsdaten. Vollständige LLM-Inhalte sind explizit zuschaltbar.

@@ -15,9 +15,9 @@ from datetime import date, datetime, timedelta
 from email.utils import parseaddr
 from zoneinfo import ZoneInfo
 
-from ..integrations import proposal_is_writable
+from ..external.contracts import proposal_is_writable
+from ..formatting import format_datetime_local
 from ..models import Proposal, ProposalKind
-
 
 RESPONSIBILITY = {"user": "Du", "other": "Andere Person", "unclear": "Noch unklar"}
 CERTAINTY = {"certain": "Eindeutig", "uncertain": "Unsicher", "contradictory": "Widersprüchlich"}
@@ -46,7 +46,7 @@ def display_date(value: date | datetime | None, configured_timezone: str) -> str
     if value is None:
         return "—"
     if isinstance(value, datetime):
-        return value.astimezone(ZoneInfo(configured_timezone)).strftime("%d.%m.%Y, %H:%M Uhr")
+        return format_datetime_local(value, configured_timezone)
     return value.strftime("%d.%m.%Y")
 
 

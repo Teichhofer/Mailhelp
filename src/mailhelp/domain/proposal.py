@@ -1,13 +1,11 @@
 """Fachmodelle für den Kontext Vorschläge und Revisionen."""
 from __future__ import annotations
 
-from datetime import date, datetime, time, timedelta, timezone
+from datetime import UTC, date, datetime, time, timedelta
 from enum import StrEnum
-from typing import Annotated, Any, Literal
-from uuid import UUID
-import re
+from typing import Any, Literal
 
-from pydantic import AnyHttpUrl, Field, field_validator, model_validator
+from pydantic import AnyHttpUrl, Field, model_validator
 
 from ._base import CalendarDate, StrictModel
 from .temporal import TemporalFact
@@ -43,6 +41,7 @@ class ProposalClassification(StrEnum):
 class ProposalStatus(StrEnum):
     NEEDS_CLARIFICATION = "needs_clarification"
     PENDING_CONFIRMATION = "pending_confirmation"
+    ALREADY_EXISTS = "already_exists"
     CONFIRMED = "confirmed"
     WRITING = "writing"
     CREATED = "created"
@@ -50,6 +49,23 @@ class ProposalStatus(StrEnum):
     REJECTED = "rejected"
     FAILED = "failed"
     UNCERTAIN = "uncertain"
+
+
+class DuplicateSource(StrEnum):
+    ACTION_LEDGER = "action_ledger"
+    GOOGLE_CALENDAR = "google_calendar"
+    TODOIST = "todoist"
+
+
+class DuplicateMatchInfo(StrictModel):
+    source: DuplicateSource
+    external_id: str | None = Field(default=None, max_length=500)
+    external_link: str | None = Field(default=None, max_length=2000)
+    matched_title: str = Field(min_length=1, max_length=500)
+    matched_time: datetime | date | None = None
+    similarity_score: float | None = Field(default=None, ge=0.0, le=1.0)
+    details: str = Field(default="", max_length=1000)
+    checked_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class KnownTemporalFacts(StrictModel):
@@ -62,7 +78,7 @@ class KnownTemporalFacts(StrictModel):
     start_time: time | None = None
 
     @model_validator(mode="after")
-    def validate_facts(self) -> "KnownTemporalFacts":
+    def validate_facts(self) -> KnownTemporalFacts:
         if self.start is not None and (self.start.tzinfo is None or self.start.utcoffset() is None):
             raise ValueError("Eine bekannte Beginnzeit benötigt einen eindeutigen UTC-Offset")
         if self.date is None and self.start is None and self.start_time is None:
@@ -87,7 +103,7 @@ class ActionLedgerEntry(StrictModel):
     target: str = Field(min_length=1, max_length=500)
     external_id: str | None = Field(default=None, max_length=500)
     external_link: str | None = Field(default=None, max_length=2000)
-    created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class ActionLedger(StrictModel):
@@ -97,7 +113,7 @@ class ActionLedger(StrictModel):
     entries: list[ActionLedgerEntry] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def unique_proposal_versions(self) -> "ActionLedger":
+    def unique_proposal_versions(self) -> ActionLedger:
         keys = [(item.mail_id, item.proposal_id, item.proposal_version) for item in self.entries]
         if len(keys) != len(set(keys)):
             raise ValueError("Angelegte Aktionen dürfen nicht doppelt verbucht werden")
@@ -146,6 +162,10 @@ class Proposal(StrictModel):
     explicit_non_binding_create_confirmed: bool = False
     # Application-owned, version-bound authorization for a deliberate duplicate.
     explicit_duplicate_create_confirmed_version: int | None = Field(default=None, ge=1)
+    duplicate_match: DuplicateMatchInfo | None = None
+    target_event_id: str | None = Field(default=None, max_length=500)
+    time_changes: list[str] = Field(default_factory=list)
+    is_cancellation: bool = False
 
     @property
     def is_creatable(self) -> bool:
@@ -153,7 +173,9 @@ class Proposal(StrictModel):
         classification_allowed = (
             self.classification == ProposalClassification.NEW or
             (self.classification == ProposalClassification.CHANGE and
-             self.explicit_create_fallback_confirmed) or
+             (self.explicit_create_fallback_confirmed or self.target_event_id is not None)) or
+            (self.classification == ProposalClassification.CANCELLATION and
+             self.target_event_id is not None) or
             (self.classification == ProposalClassification.NON_BINDING and
              self.explicit_non_binding_create_confirmed)
         )
@@ -162,14 +184,24 @@ class Proposal(StrictModel):
                 self.certainty == ProposalCertainty.CERTAIN)
 
     @model_validator(mode="after")
-    def validate_consistency(self) -> "Proposal":
+    def validate_consistency(self) -> Proposal:
         if self.status == ProposalStatus.SIMULATED and (self.external_id is not None or self.external_link is not None):
             raise ValueError("Ein simulierter Vorschlag darf kein externes Ergebnis enthalten")
         if self.simulation_notified and self.status != ProposalStatus.SIMULATED:
             raise ValueError("Eine Simulation darf nur im simulierten Zustand als gemeldet markiert werden")
+        if self.kind == ProposalKind.TASK and self.target_event_id is not None:
+            raise ValueError("Nur Termine unterstützen Terminaktualisierungen")
+        if self.is_cancellation and self.target_event_id is None:
+            raise ValueError("Eine Stornierung erfordert eine Ziel-Event-ID")
+        if self.status == ProposalStatus.ALREADY_EXISTS and self.open_questions:
+            raise ValueError("Ein bereits vorhandener Eintrag darf keine offenen Fragen enthalten")
+        if self.status == ProposalStatus.ALREADY_EXISTS and self.duplicate_match is None:
+            raise ValueError("Ein bereits vorhandener Eintrag benötigt Duplikat-Informationen")
         ready = self.is_creatable and not self.open_questions
         if self.status == ProposalStatus.PENDING_CONFIRMATION and not ready:
             raise ValueError("Nur vollständige neue Vorschläge dürfen bestätigt werden")
+
+
         if self.kind == ProposalKind.TASK and (self.start is not None or self.end is not None or self.all_day):
             raise ValueError("Aufgaben dürfen keine Kalenderzeit enthalten")
         if self.kind != ProposalKind.EVENT and (self.duration_minutes is not None or
@@ -225,6 +257,9 @@ class ProposalRevisionChanges(StrictModel):
     target: str | None = Field(default=None, min_length=1, max_length=500)
     explicit_create_fallback_confirmed: bool | None = None
     explicit_non_binding_create_confirmed: bool | None = None
+    target_event_id: str | None = Field(default=None, max_length=500)
+    time_changes: list[str] | None = None
+    is_cancellation: bool | None = None
 
 
 class ProposalRevisionDelta(StrictModel):
@@ -234,7 +269,7 @@ class ProposalRevisionDelta(StrictModel):
     changes: ProposalRevisionChanges
 
 
-def _required_revision_questions(proposal: Proposal) -> list[str]:
+def required_revision_questions(proposal: Proposal) -> list[str]:
     """Derive invariant clarification questions from the revised business facts."""
     questions: list[str] = []
     if proposal.kind == ProposalKind.EVENT:
@@ -256,9 +291,10 @@ def _required_revision_questions(proposal: Proposal) -> list[str]:
             else "Soll der nicht bindende Hinweis dennoch als neuer Eintrag angelegt werden?"
         ),
         ProposalClassification.ALREADY_COMPLETED: "Der Eintrag ist bereits abgeschlossen und nicht direkt ausführbar.",
-        ProposalClassification.CHANGE: (None if proposal.explicit_create_fallback_confirmed
+        ProposalClassification.CHANGE: (None if (proposal.explicit_create_fallback_confirmed or proposal.target_event_id is not None)
                                         else "Welcher bestehende Eintrag soll geändert werden?"),
-        ProposalClassification.CANCELLATION: "Welcher bestehende Eintrag soll storniert werden?",
+        ProposalClassification.CANCELLATION: (None if proposal.target_event_id is not None
+                                              else "Welcher bestehende Eintrag soll storniert werden?"),
         ProposalClassification.RECURRING: "Wiederkehrende Einträge werden nicht automatisch angelegt.",
         ProposalClassification.UNSUPPORTED: "Diese Art von Eintrag wird nicht unterstützt.",
     }.get(proposal.classification)
@@ -267,12 +303,8 @@ def _required_revision_questions(proposal: Proposal) -> list[str]:
     return questions
 
 
-def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta, *,
-                            allow_create_fallback: bool = False) -> Proposal:
-    """Apply a validated delta locally; identity, lifecycle and version stay authoritative."""
-    if delta.answered_question not in previous.open_questions:
-        raise ValueError("Die beantwortete Frage ist im Vorschlag nicht offen")
-    changes = delta.changes.model_dump(exclude_unset=True)
+def _check_revision_permissions(previous: Proposal, changes: dict[str, Any],
+                                allow_create_fallback: bool) -> None:
     if "explicit_create_fallback_confirmed" in changes and not allow_create_fallback:
         raise ValueError("Die Ersatz-Neuanlage erfordert eine deterministische ausdrückliche Bestätigung")
     if "explicit_non_binding_create_confirmed" in changes and not allow_create_fallback:
@@ -280,6 +312,10 @@ def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta, *,
     if (previous.classification == ProposalClassification.CHANGE and
             changes.get("classification") == ProposalClassification.NEW):
         raise ValueError("Eine Terminänderung darf nicht als neuer Termin eingestuft werden")
+
+
+def _revision_day(previous: Proposal, changes: dict[str, Any]) -> KnownTemporalFacts | None:
+    """Fix the validated event day and check every changed date against it."""
     temporal_date = changes.pop("temporal_date", None)
     resolved_day = (previous.temporal_fact.normalized_date
                     if previous.temporal_fact is not None else None)
@@ -312,7 +348,11 @@ def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta, *,
         if end_day not in allowed_end_days:
             raise ValueError(
                 f"end widerspricht dem validierten Datum {resolved_day.isoformat()}")
+    return known
 
+
+def _revision_interval(previous: Proposal, changes: dict[str, Any], known: KnownTemporalFacts | None) -> None:
+    """Keep a confirmed start, and half intervals in ``known_temporal_facts``."""
     confirmed_start = (known.start if known is not None else previous.start)
     if previous.all_day and isinstance(confirmed_start, date) and not isinstance(
         confirmed_start, datetime
@@ -340,10 +380,21 @@ def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta, *,
             changes.pop("start")
             changes["known_temporal_facts"] = known.model_copy(
                 update={"start": start, "start_time": None})
+
+
+def apply_proposal_revision(previous: Proposal, delta: ProposalRevisionDelta, *,
+                            allow_create_fallback: bool = False) -> Proposal:
+    """Apply a validated delta locally; identity, lifecycle and version stay authoritative."""
+    if delta.answered_question not in previous.open_questions:
+        raise ValueError("Die beantwortete Frage ist im Vorschlag nicht offen")
+    changes = delta.changes.model_dump(exclude_unset=True)
+    _check_revision_permissions(previous, changes, allow_create_fallback)
+    known = _revision_day(previous, changes)
+    _revision_interval(previous, changes, known)
     remaining = list(previous.open_questions)
     remaining.remove(delta.answered_question)
     provisional = previous.model_copy(update=changes)
-    for question in _required_revision_questions(provisional):
+    for question in required_revision_questions(provisional):
         if question not in remaining:
             remaining.append(question)
     changes.update(

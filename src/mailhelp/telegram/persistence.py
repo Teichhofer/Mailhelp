@@ -1,27 +1,40 @@
 """Named, crash-safe persistence operations for Telegram proposals."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Protocol
 
+from .. import state_names
 from ..models import (
-    MailState, MailRunState, MailRunCounters, MailRunEntryStatus,
-    Proposal, ProposalNotification, ProposalStatus,
+    MailRunCounters,
+    MailRunEntryStatus,
+    MailRunState,
+    MailState,
+    Proposal,
+    ProposalNotification,
+    ProposalStatus,
     WriteAttemptReference,
 )
 from ..storage import JsonStore
 
 
 def proposal_name(mail_id: str, proposal_id: str) -> str:
-    return f"proposal-{mail_id}-{proposal_id}"
+    return state_names.proposal(mail_id, proposal_id)
 
 
 def proposal_version_name(mail_id: str, proposal_id: str, version: int) -> str:
-    return f"proposal-{mail_id}-{proposal_id}-v{version}"
+    return state_names.proposal(mail_id, proposal_id, version)
 
 
 def clarification_name(mail_id: str, proposal_id: str, version: int) -> str:
-    return f"clarification-{mail_id}-{proposal_id}-v{version}"
+    return state_names.clarification(mail_id, proposal_id, version)
+
+
+def _bound(value: object, mail_id: str, proposal_id: str, version: int | None = None) -> bool:
+    """A stored proposal is only actionable under the identity its file name claims."""
+    return (isinstance(value, Proposal)
+            and (value.source_mail_id, value.id) == (mail_id, proposal_id)
+            and version in {None, value.version})
 
 
 class ProposalPersistence(Protocol):
@@ -45,16 +58,16 @@ class ProposalRepository:
 
     def load_current(self, mail_id: str, proposal_id: str) -> Proposal | None:
         value = self.store.load_model(proposal_name(mail_id, proposal_id), Proposal)
-        return value if isinstance(value, Proposal) else None
+        return value if _bound(value, mail_id, proposal_id) else None
 
     def load_version(self, mail_id: str, proposal_id: str,
                      version: int) -> Proposal | None:
         value = self.store.load_model(
             proposal_version_name(mail_id, proposal_id, version), Proposal)
-        return value if isinstance(value, Proposal) else None
+        return value if _bound(value, mail_id, proposal_id, version) else None
 
     def load_mail(self, mail_id: str) -> MailState | None:
-        value = self.store.load_model(f"mail-{mail_id}", MailState)
+        value = self.store.load_model(state_names.mail(mail_id), MailState)
         return value if isinstance(value, MailState) else None
 
     def save_revision(self, proposal: Proposal) -> None:
@@ -64,6 +77,8 @@ class ProposalRepository:
         if self.store.load(version) is None:
             self.store.save(version, value)
         self.store.save(proposal_name(proposal.source_mail_id, proposal.id), value)
+        from ..review.archive import record_event
+        record_event(self.store, proposal, "state")
         state = self.load_mail(proposal.source_mail_id)
         if state is None:
             return
@@ -90,15 +105,15 @@ class ProposalRepository:
             "proposals": proposals,
             "proposal_notifications": notifications,
             "write_attempts": attempts,
-            "updated_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(UTC),
         })
-        self.store.save(f"mail-{proposal.source_mail_id}",
+        self.store.save(state_names.mail(proposal.source_mail_id),
                         changed.model_dump(mode="json"))
         self._sync_run(changed)
 
     def _sync_run(self, state: MailState) -> None:
         """Repair the run's user-action projection after persisting the mail."""
-        name = f"mail-run-{state.imap.account_id}"
+        name = state_names.mail_run(state.imap.account_id)
         run = self.store.load_model(name, MailRunState)
         if run is None:
             return
@@ -132,9 +147,9 @@ class ProposalRepository:
             return
         changed = state.model_copy(update={
             "write_attempts": attempts,
-            "updated_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(UTC),
         })
-        self.store.save(f"mail-{proposal.source_mail_id}",
+        self.store.save(state_names.mail(proposal.source_mail_id),
                         changed.model_dump(mode="json"))
 
     def mark_notification_sending(self, proposal: Proposal) -> bool:
@@ -174,9 +189,9 @@ class ProposalRepository:
         if changed:
             updated = state.model_copy(update={
                 "proposal_notifications": notifications,
-                "updated_at": datetime.now(timezone.utc),
+                "updated_at": datetime.now(UTC),
             })
-            self.store.save(f"mail-{proposal.source_mail_id}",
+            self.store.save(state_names.mail(proposal.source_mail_id),
                             updated.model_dump(mode="json"))
         return changed
 

@@ -1,15 +1,13 @@
 """Fachmodelle für den Kontext Relevanz."""
 from __future__ import annotations
 
-from datetime import date, datetime, time, timedelta, timezone
-from enum import StrEnum
-from typing import Annotated, Any, Literal
-from uuid import UUID
 import re
+from enum import StrEnum
+from typing import Literal
 
-from pydantic import AnyHttpUrl, Field, field_validator, model_validator
+from pydantic import Field, model_validator
 
-from ._base import CalendarDate, StrictModel
+from ._base import StrictModel
 
 
 class IrrelevantSenders(StrictModel):
@@ -20,7 +18,7 @@ class IrrelevantSenders(StrictModel):
     domains: list[str] = Field(default_factory=list)
 
     @model_validator(mode="after")
-    def valid_entries(self) -> "IrrelevantSenders":
+    def valid_entries(self) -> IrrelevantSenders:
         address_pattern = re.compile(r"^[^@\s<>]+@[^@\s<>]+$")
         domain_pattern = re.compile(
             r"^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+"
@@ -46,7 +44,7 @@ class Relevance(StrictModel):
     reason: str = Field(min_length=1, max_length=1000)
 
     @model_validator(mode="after")
-    def consistent_topics(self) -> "Relevance":
+    def consistent_topics(self) -> Relevance:
         if self.decision == "irrelevant" and self.topic_ids:
             raise ValueError("Irrelevante Nachrichten dürfen keine Themen enthalten")
         if len(self.topic_ids) != len(set(self.topic_ids)):
@@ -68,7 +66,7 @@ class RelevanceDialog(StrictModel):
     telegram_offset: int | None = Field(default=None, ge=1)
 
     @model_validator(mode="after")
-    def consistent_decision(self) -> "RelevanceDialog":
+    def consistent_decision(self) -> RelevanceDialog:
         decided = self.status == RelevanceDialogStatus.DECIDED
         has_complete_decision = self.decision is not None and self.telegram_offset is not None
         has_partial_decision = (self.decision is None) != (self.telegram_offset is None)

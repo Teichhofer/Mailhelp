@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
 import hashlib
 import json
 import re
+from datetime import date, datetime
 from typing import Protocol
 
-
+from .. import state_names
 from ..models import ActionLedger, ActionLedgerEntry, Proposal, ProposalKind
 from ..storage import JsonStore
 
@@ -89,7 +89,7 @@ class ActionLedgerService:
         for item in ledger.entries:
             if item.action_key_version == 2:
                 continue
-            name = f"proposal-{item.mail_id}-{item.proposal_id}"
+            name = state_names.proposal(item.mail_id, item.proposal_id)
             previous = self.store.load_model(f"{name}-v{item.proposal_version}", Proposal)
             if previous is None:
                 previous = self.store.load_model(name, Proposal)

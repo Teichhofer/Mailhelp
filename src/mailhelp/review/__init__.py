@@ -4,6 +4,8 @@ Only lightweight modules are imported here; ``service`` and ``views`` are
 imported by their module path to keep the Telegram package free of cycles.
 """
 
+from __future__ import annotations
+
 from .commands import CommandKind, CommandSource, ReviewCommand
 from .errors import AnswerRequired, ReviewBusy, ReviewError, StaleCommand
 from .results import REJECTED_STATUSES, ResultStatus, ReviewResult

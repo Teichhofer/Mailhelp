@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
 import secrets
+from enum import StrEnum
 from typing import Any
 
 from pydantic import Field
 
 from ..models import Proposal, ProposalStatus
 from ..storage import JsonStore
-
 from .models import InternalTelegramModel
 
 
@@ -30,7 +29,7 @@ class RelevanceDecision(InternalTelegramModel):
         return f"relevance:{self.mail_id}:{self.version}:{self.decision}"
 
     @classmethod
-    def parse(cls, value: str) -> "RelevanceDecision":
+    def parse(cls, value: str) -> RelevanceDecision:
         parts = value.split(":")
         if (
             len(parts) != 4
@@ -66,7 +65,7 @@ class Decision(InternalTelegramModel):
                 return f"decision:{token}"
 
     @classmethod
-    def parse(cls, value: str, store: JsonStore | None = None) -> "Decision":
+    def parse(cls, value: str, store: JsonStore | None = None) -> Decision:
         validate_callback_data(value)
         if value.startswith("decision:"):
             token = value.removeprefix("decision:")
