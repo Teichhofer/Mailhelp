@@ -378,9 +378,12 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; }
   .master-pane { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto; padding: 4px; }
   .master-pane .card { cursor: pointer; }
   .master-pane .card.selected { outline: 3px solid var(--accent); }
+  /* Only the selection is framed; "Aktuell in Telegram" stays a badge in the list. */
+  .master-pane .card.current { border: 1px solid var(--border); }
   .master-pane .card :is(blockquote, details, .actions, .questions, .notice, form, .card-links, p:not(.kind, .source, .labels)) { display: none; }
   .detail-pane { display: block; padding: 4px; }
-  .detail-pane[aria-busy="true"] { opacity: .6; }
+  /* Quick loads (e.g. a background refresh) finish before the pane dims. */
+  .detail-pane[aria-busy="true"] { opacity: .6; transition: opacity .15s ease .3s; }
   .detail-pane[inert] { opacity: .4; }
 }
 @media (max-width: 1023px) {

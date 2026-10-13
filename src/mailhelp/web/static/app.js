@@ -44,7 +44,10 @@
           setConnection("update");
           return;
         }
-        window.location.reload();
+        // The split view updates itself in place; every other page is reloaded.
+        if (document.dispatchEvent(new CustomEvent("mailhelp:stale", { cancelable: true }))) {
+          window.location.reload();
+        }
       })
       .catch(function () { setConnection("offline"); });
   }
@@ -168,7 +171,9 @@
   }
 
   // On wide screens the open items become a master list with a detail pane.
-  function enhance() {
+  // *previous* is the pane before a background refresh: it stays visible until
+  // the selected item is loaded again, so the page does not flash.
+  function enhance(previous) {
     items = main.querySelector(".open-items");
     pane = selected = null;
     if (!items) return;
@@ -182,8 +187,30 @@
     items.setAttribute("aria-label", "Offene Vorgänge");
     items.before(split);
     split.append(items, pane);
+    if (previous) pane.replaceChildren.apply(pane, Array.from(previous.childNodes));
     if (desktop.matches) restoreSelection();
   }
+
+  // New data replaces the open items without reloading the page. A running
+  // undo countdown or unsaved input in the pane waits for the next check.
+  document.addEventListener("mailhelp:stale", function (event) {
+    if (!pane || !desktop.matches) return;
+    event.preventDefault();
+    fetch(location.href, {credentials: "same-origin", cache: "no-store"})
+      .then(function (response) {
+        if (!response.ok || response.redirected) throw new Error("not loaded");
+        return response.text();
+      })
+      .then(function (html) {
+        if (pending || pane.dataset.dirty === "yes") return;
+        var page = new DOMParser().parseFromString(html, "text/html"), scroll = items.scrollTop;
+        main.replaceChildren.apply(main, Array.from(page.querySelector("main").childNodes));
+        document.body.dataset.fingerprint = page.body.dataset.fingerprint;
+        enhance(pane);
+        if (items) items.scrollTop = scroll;
+      })
+      .catch(function () { location.reload(); });
+  });
 
   desktop.addEventListener("change", function () {
     if (pane && desktop.matches && !selected) restoreSelection();

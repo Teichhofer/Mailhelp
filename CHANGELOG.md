@@ -20,6 +20,16 @@
 - Ungültige Unicode-Werte in Kopplungssignaturen und CSRF-Tokens werden mit HTTP 403
   abgewiesen; Regressionstests belegen beide zuvor ausgelösten Serverfehler.
 
+## 2.2.6 – Beta (Branch `beta`), Split-View ohne Flackern
+
+- **Split-View:** Neue Daten ersetzen Liste und Detailbereich ohne Neuladen der Seite; kein Flackern
+  mehr, Auswahl und Scrollposition bleiben. Ein laufender Rückgängig-Countdown wird nicht gestört.
+  Der in Telegram aktuelle Vorgang ist in der Liste nicht mehr zusätzlich umrandet, nur noch die
+  Auswahl. Regressionstests in `ui_tests/test_ui_v20.py` scheiterten vor der Korrektur.
+- **Versionierung:** Auch jeder Commit in `beta` erhöht die Patch-Version (AGENTS.md, Spezifikation).
+- WSL-Browserabnahme: Der Fehlerpfad der Hintergrundaktualisierung wird vor einer weiteren
+  Navigation vermessen, damit seine ausgeführten JavaScript-Blöcke im Coverage-Gate erhalten bleiben.
+
 ## 2.2.5 – Beta (Branch `beta`), Entscheidungen aus Planung 2.1 und Testinfrastruktur
 
 - **Web-Push je Gerät (Planung 2.1, 5.3):** Die Idempotenzschlüssel der An- und Abmeldung werden je Gerät begrenzt (500); ein aktives Gerät verdrängt nicht mehr die Schlüssel eines anderen. Test `test_push_operations_are_bounded_per_device`.

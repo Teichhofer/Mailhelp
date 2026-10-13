@@ -35,7 +35,7 @@ def test_package_resources_and_fresh_configuration(tmp_path):
     parts = mailhelp.__version__.split(".")
     assert len(parts) == 3 and all(p.isdigit() for p in parts)
     agents_rules = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    assert "Jeder Commit in `main` erhöht die Versionsnummer" in agents_rules
+    assert "Jeder Commit in `main` und `beta` erhöht die Versionsnummer" in agents_rules
     if os.environ.get("MAILHELP_INSTALLED_WHEEL"):
         assert ROOT / "src" not in package.parents
 
