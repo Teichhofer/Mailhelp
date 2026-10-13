@@ -670,7 +670,8 @@ def test_standalone_config_loading_and_composition(tmp_path, monkeypatch, capsys
         monkeypatch.setattr("mailhelp.composition." + name, Resource)
     with build_application(loaded[0], loaded[1], loaded[2], loaded[4], loaded[5], tmp_path, use_jev_relevance=False) as app:
         assert isinstance(app.telegram, DisabledTelegram)
-        assert "Code:" in capsys.readouterr().out
+        assert "Code:" not in capsys.readouterr().out
+        assert app.store.load("web-pairing") is None
         # Further devices request their code on the login page; it appears in the console.
         auth = app.experience.site.auth
         assert auth.channel == "console"
@@ -726,7 +727,7 @@ def test_experience_settings_preserve_16_analysis_fingerprint(tmp_path):
     prompts.prompts["draft_reply"] = PromptStep(system_prompt="Draft")
     assert config_fingerprint(cfg, prompts, []) == before
     legacy = cfg.model_dump(mode="json")
-    for name in ("push", "smart_reply", "personal_info", "activity_report", "daily_briefing", "vision", "web", "metrics", "retention", "logging", "learning", "poll_interval_seconds", "timeouts", "retries"):
+    for name in ("push", "smart_reply", "personal_info", "activity_report", "notifications", "daily_briefing", "vision", "web", "metrics", "retention", "logging", "learning", "poll_interval_seconds", "timeouts", "retries"):
         legacy.pop(name)
     legacy["imap"].pop("drafts_folder")
     legacy["telegram"].pop("enabled")
@@ -865,7 +866,7 @@ def test_login_page_names_the_console_without_telegram():
     first = login_page("csrf", False, channel="console")
     assert "Code in der Konsole anzeigen" in first and "Telegram" not in first
     requested = login_page("csrf", True, channel="console")
-    assert "Code aus der Mailhelp-Konsole" in requested and "docker compose logs mailhelp" in requested
+    assert "Code aus der Mailhelp-Konsole" in requested and "docker compose exec mailhelp mailhelp --pair" in requested
     assert "Telegram" not in requested and "Code per Telegram senden" in login_page("csrf", False)
 
 

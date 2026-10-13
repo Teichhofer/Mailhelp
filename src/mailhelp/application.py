@@ -58,6 +58,7 @@ class Application:
     lifecycle: Any = None
     configuration: object | None = None
     experience: ExperienceRuntime | None = None
+    notifications: Any = None
 
     mailbox: MailboxRunService = field(init=False, repr=False)
 
@@ -173,6 +174,8 @@ class Application:
     def _start_web(self) -> None:
         """Start the optional web interface; mail processing continues without it."""
         if self.web is None:
+            if self.notifications is not None:
+                self.notifications.start()
             return
         try:
             self.web.start()
@@ -188,6 +191,8 @@ class Application:
                 log_and_continue(self.logger, "telegram", "web_start_notice_failed", notification_error)
 
     def _stop_web(self) -> None:
+        if self.notifications is not None:
+            self.notifications.stop()
         if self.experience is not None:
             self.experience.stop()
         web, self.web = self.web, None
@@ -316,6 +321,8 @@ class Application:
 
     def _announce_start(self) -> None:
         """Greeting, open decisions and held messages; no failure blocks the start."""
+        if self.notifications is not None:
+            return
         try:
             self.telegram.send(self.settings.telegram.chat_id, STARTUP)
         except Exception as exc:

@@ -18,6 +18,7 @@ from .. import state_names
 from ..configuration import AdminCommand, ConfigurationService
 from ..domain.processing import ProposalClarificationState
 from ..models import MailState, Proposal, ProposalStatus, RelevanceDialogStatus, TelegramDialogState
+from ..notification_context import web_reply
 from .archive import record_event, record_relevance
 from .commands import CommandKind, CommandSource, ReviewCommand
 from .editing import edit_proposal
@@ -60,8 +61,19 @@ class ReviewService:
         # so a session revoked after submitting cannot act any more.
         self.web_authorizer = web_authorizer
         self.configuration: ConfigurationService | None = None
+        self.completed: Callable[[ReviewCommand | AdminCommand, ReviewResult], None] | None = None
 
     def execute(self, command: ReviewCommand | AdminCommand, *, raise_errors: bool = False) -> ReviewResult:
+        token = web_reply.set(command.source == CommandSource.WEB)
+        try:
+            result = self._execute_command(command, raise_errors=raise_errors)
+            if self.completed is not None:
+                self.completed(command, result)
+            return result
+        finally:
+            web_reply.reset(token)
+
+    def _execute_command(self, command: ReviewCommand | AdminCommand, *, raise_errors: bool = False) -> ReviewResult:
         """Apply *command*; with *raise_errors*, a rejected command raises instead."""
         if isinstance(command, AdminCommand):
             if self.configuration is None:

@@ -32,13 +32,14 @@ from .config import PromptConfig, Settings, Topic
 from .storage import JsonStore
 
 # Sections and fields introduced by 2.0 and later; they never influence an analysis.
-EXPERIENCE = frozenset({"push", "daily_briefing", "smart_reply", "personal_info", "activity_report"})
+EXPERIENCE = frozenset({"push", "daily_briefing", "smart_reply", "personal_info", "activity_report", "notifications"})
 EXPERIENCE_FIELDS = (("imap", "drafts_folder"), ("telegram", "enabled"), ("retention", "activity_report_days"))
 OPERATIONAL = frozenset({"web", "metrics", "retention", "logging", "learning", "poll_interval_seconds",
                          "timeouts", "retries", *EXPERIENCE})
 # Preparation-only settings and prompt steps (see module documentation).
 PREPARATION = frozenset({"vision"})
-PREPARATION_PROMPTS = frozenset({"vision_ocr", "draft_reply", "activity_relevance", "activity_events"})
+PREPARATION_PROMPTS = frozenset({
+    "vision_ocr", "draft_reply", "activity_relevance", "activity_events", "diagnostic_test"})
 
 
 def _hash(value: Any) -> str:

@@ -120,11 +120,14 @@ def _block(parts: list[str], rendered: str, indent: int) -> list[str]:
 __all__ = ["YamlEditError", "render", "set_list", "set_scalars"]
 
 
-def set_list(text: str, dotted: str, items: list[Any]) -> str:
+def set_list(text: str, dotted: str, items: list[Any], *, allow_missing: bool = False) -> str:
     """Replace the block sequence under *dotted* (``key:`` followed by ``- item`` lines)."""
     lines = text.splitlines()
     found = next(((index, indent) for index, path, indent in _paths(lines) if path == dotted), None)
     if found is None:
+        if allow_missing:
+            flow = yaml.safe_dump(items, default_flow_style=True, allow_unicode=True, width=10**6).strip()
+            return "\n".join(_insert(lines, _paths(lines), dotted.split("."), flow)) + "\n"
         raise YamlEditError(f"{dotted} fehlt in der Datei")
     index, indent = found
     match = _KEY.match(lines[index])

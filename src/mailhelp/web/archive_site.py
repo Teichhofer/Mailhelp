@@ -541,6 +541,7 @@ class ArchiveSite:
             revision = file_hash(path)
         page = settings_page(self.models, raw, active, revision, self.site.auth.csrf_token(session.id))
         page += self.site.experience.controls(self.site.auth.csrf_token(session.id))
+        page += self.site.setup_page.links()
         return Response.html(200, layout("Einstellungen", page, active="/einstellungen"))
 
     def save_settings(self, request, session, form):

@@ -262,7 +262,7 @@ def test_build_application_creates_the_web_server_only_when_enabled(tmp_path, mo
     with build_application(cfg, secrets, [Topic(id="x", name="x", enabled=True, description="x")],
                            prompt_config(), "f" * 64, base_directory=tmp_path) as made:
         assert isinstance(made.web, WebServer) is enabled
-        assert (made.dialog.commands is not None) is enabled
+        assert made.dialog.commands is not None  # Also records completed Telegram results for the shared queue.
         if enabled:
             assert (made.web.host, made.web.port) == ("127.0.0.1", 8765)
             # With Telegram, pairing codes are sent to the authorized chat.

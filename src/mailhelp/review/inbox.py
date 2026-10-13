@@ -47,6 +47,11 @@ class CommandStatus(StrEnum):
 FINISHED = frozenset({CommandStatus.DONE, CommandStatus.REJECTED, CommandStatus.FAILED})
 
 
+def _finished_status(result: ReviewResult) -> CommandStatus:
+    return (CommandStatus.FAILED if result.status == ResultStatus.FAILED
+            else CommandStatus.REJECTED if result.status in REJECTED_STATUSES else CommandStatus.DONE)
+
+
 class CommandEntry(BaseModel):
     model_config = ConfigDict(extra="forbid")
     id: str = Field(pattern=r"^[a-f0-9]{32}$")
@@ -97,6 +102,15 @@ class CommandInbox:
 
     def submit(self, command: ReviewCommand | AdminCommand) -> tuple[CommandEntry, bool]:
         """Queue *command*; returns the entry and whether it is new."""
+        return self._submit(command, None)
+
+    def record_completed(self, command: ReviewCommand, result: ReviewResult) -> CommandEntry:
+        """Record an already executed Telegram command; never enqueue it for execution."""
+        entry, _ = self._submit(command, result)
+        return entry
+
+    def _submit(self, command: ReviewCommand | AdminCommand,
+                result: ReviewResult | None) -> tuple[CommandEntry, bool]:
         with self._lock:
             state = self._load()
             existing = next((entry for entry in state.entries
@@ -105,13 +119,16 @@ class CommandInbox:
                 if existing.command != command:
                     raise CommandConflict("Idempotenzschlüssel gehört zu einem anderen Befehl")
                 return existing, False
-            if sum(entry.status == CommandStatus.QUEUED for entry in state.entries) >= MAX_QUEUED:
+            if result is None and sum(entry.status == CommandStatus.QUEUED for entry in state.entries) >= MAX_QUEUED:
                 raise CommandInboxFull("Zu viele wartende Befehle")
             entry = CommandEntry(id=secrets.token_hex(16), command=command,
                                  received_at=self.clock())
+            if result is not None:
+                entry.result, entry.finished_at = result, self.clock()
+                entry.status = _finished_status(result)
             state.entries.append(entry)
             self._save(state)
-        if self.wake is not None:
+        if self.wake is not None and result is None:
             self.wake()
         return entry, True
 
@@ -135,9 +152,7 @@ class CommandInbox:
         self._update(entry_id, status=CommandStatus.RUNNING)
 
     def finish(self, entry_id: str, result: ReviewResult) -> None:
-        status = (CommandStatus.FAILED if result.status == ResultStatus.FAILED
-                  else CommandStatus.REJECTED if result.status in REJECTED_STATUSES
-                  else CommandStatus.DONE)
+        status = _finished_status(result)
         self._update(entry_id, status=status, result=result, finished_at=self.clock())
 
     def recover(self, reconcile: Callable[[ReviewCommand | AdminCommand], ReviewResult]) -> int:

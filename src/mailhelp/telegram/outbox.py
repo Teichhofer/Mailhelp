@@ -72,6 +72,7 @@ class TelegramOutbox:
         self.logger, self.repository = logger, repository
         self.send_proposal, self.send_relevance = send_proposal, send_relevance
         self.relevance, self.enabled = relevance, enabled
+        self.background = None
 
     def load(self) -> TelegramOutboxState:
         state = self.store.load_model(
@@ -133,6 +134,8 @@ class TelegramOutbox:
         return self._enqueue(kind="message", text=text)
 
     def _enqueue(self, **reference: object) -> str:
+        if self.background is not None:
+            return self.background(reference)
         state = self.load()
         if reference["kind"] != "message":
             # Referenced items are idempotent: a repeated enqueue after a

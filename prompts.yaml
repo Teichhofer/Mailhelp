@@ -717,3 +717,9 @@ prompts:
       Antworte ausschließlich mit einem JSON-Objekt mit genau "legible"
       (Boolean) und "text" (String). Enthält das Bild keinen lesbaren Text, ist
       legible false und text leer.
+  diagnostic_test:
+    # Nur auf ausdrücklichen Klick unter /diagnose. Keine Mailinhalte.
+    parameters: {temperature: 0.0, max_tokens: 128}
+    system_prompt: |
+      Dies ist ein synthetischer Verbindungstest ohne Maildaten.
+      Antworte ausschließlich mit dem JSON-Objekt {"ok": true}.

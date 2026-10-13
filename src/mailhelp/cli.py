@@ -131,6 +131,7 @@ def _parser() -> argparse.ArgumentParser:
         help="Logverzeichnis aus config.yaml für diesen Aufruf überschreiben",
     )
     parser.add_argument("--check", action="store_true", help="Konfiguration validieren und beenden")
+    parser.add_argument("--pair", action="store_true", help="Lokalen Einmalcode zur Webanmeldung anzeigen")
     parser.add_argument(
         "--check-access", action="store_true",
         help="Zugänge prüfen, Telegram-Testnachricht senden und beenden",
@@ -320,6 +321,10 @@ def _main() -> int:
     shutdown = _SignalShutdown()
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
+    if args.pair:
+        from .local_pairing import request_local_code
+        request_local_code(args.config_directory)
+        return 0
     settings, secrets, topics, irrelevant_topics, prompts, fingerprint = load_all(args.config_directory)
     _check_mode_options(parser, args)
     local_llm = _local_llm(parser, args, prompts)

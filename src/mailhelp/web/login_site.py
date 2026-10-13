@@ -65,6 +65,11 @@ class LoginSite:
         if isinstance(checked, Response):
             return checked
         nonce, _ = checked
+        if self.site.auth.channel == "console":
+            return Response.html(200, error_page(
+                "Lokalen Code anfordern", "Am Host mailhelp --pair starten; in Docker docker compose exec "
+                "mailhelp mailhelp --pair --config-directory /config. Einmalcode anschließend hier eingeben.",
+                signed_in=False))
         try:
             self.site.auth.request_code(nonce, device_name(request.header("user-agent")))
         except PairingLimited as exc:

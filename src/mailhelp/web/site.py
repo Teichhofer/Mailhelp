@@ -14,7 +14,7 @@ import time
 from collections.abc import Callable
 from dataclasses import replace
 from datetime import UTC, datetime
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 from urllib.parse import parse_qs
 
 from pydantic import ValidationError
@@ -47,6 +47,8 @@ class EventLogger(Protocol):
 
 
 Handler = Callable[..., Response]
+if TYPE_CHECKING:
+    from ..notification_runtime import NotificationRuntime
 
 
 class MailhelpSite:
@@ -95,6 +97,9 @@ class MailhelpSite:
         self.experience = ExperienceSite(self)
         from .activity_site import ActivitySite
         self.activity = ActivitySite(self)
+        from .setup_site import SetupSite
+        self.setup_page = SetupSite(self)
+        self.notification_runtime: NotificationRuntime | None = None
 
     # --- helpers ------------------------------------------------------------------
 

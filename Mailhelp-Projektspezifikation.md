@@ -1,5 +1,25 @@
 # Mailhelp – Projektspezifikation
 
+## Einrichtung und Benachrichtigungssteuerung (Planung 3.0)
+
+Die verbindlichen Feldgrenzen, Einrichtungsabläufe und Upgrade-/Rollback-Verträge stehen in
+[Release-3.0.md](docs/Release-3.0.md). `/einrichtung` speichert einen schema-versionierten,
+versionsgebundenen Entwurf separat von der bestätigten Konfigurationsübernahme. Webübernahme
+verwendet Sitzung, CSRF, Dateihash, Idempotenz und erneute Autorisierung bei Ausführung.
+`mailhelp --pair` fordert einen Einmalcode über eine host-authentifizierte, kurzlebige lokale
+Anfrage an; ohne Telegram erzeugen Browseranfragen und Dienststart keine Codes.
+Diagnosen lesen Dienste unabhängig, verwenden begrenzte Antwortzeiten und zeigen sichere
+Fehlercodes. Testnachrichten und synthetische kostenpflichtige LLM-Tests besitzen eigene Aktionen.
+Diagnoseexporte enthalten keine Zugangsdaten oder Mailinhalte.
+
+Die Hintergrundzustellung verwendet eine dauerhafte gemeinsame Queue je Kategorie und Kanal.
+Aktuelle Relevanz, Einstellungen und Geräteberechtigung werden vor dem Versand geprüft.
+Ruhezeiten folgen lokaler IANA-Zeit; Bündelung besitzt eine feste Frist ab erstem Ereignis.
+Unklare Zustellungen werden ohne belastbaren Abgleich nicht wiederholt. Providerannahme
+ist kein Lesenachweis. Profile sind operativ und verändern keine Analyse-Fingerprints.
+Bestehende Kanalwahlen und Zustellmarker bleiben beim Upgrade erhalten. Weitere Regeln
+zu direkten Dialogen und externen Fachaktionen gelten unverändert.
+
 Der produktive CLI-Pfad startet IMAP- und Telegram-Polling. Pro IMAP-Ordner
 werden UIDVALIDITY und die zuletzt abgeschlossene UID atomar gespeichert; bei
 geänderter UIDVALIDITY wird eine konfigurierte absolute historische Grenze in

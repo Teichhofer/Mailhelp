@@ -21,7 +21,7 @@ from .decisions import (
 )
 from .external.http_writer import HttpWriter
 from .external.oauth import GoogleOAuthTokenProvider
-from .imap import ImapReader
+from .imap import ImapReader, account_id
 from .logging import JsonlLogger
 from .ollama import LocalLlm, OllamaClient
 from .openrouter import OpenRouterClient
@@ -38,11 +38,19 @@ from .web.factory import create_web
 class _FailedAccessAdapter:
     """Expose an adapter construction failure to the aggregated access check."""
 
-    def __init__(self, error: Exception):
+    def __init__(self, error: Exception, mailbox_id: str = "0" * 24):
         self.error = error
+        self.account_id, self.last_uidvalidity = mailbox_id, None
 
     def check_access(self, *_args: object) -> None:
         raise self.error
+
+    def discover_since(self, *_args, **_kwargs):
+        raise RuntimeError("IMAP nicht bereit; Zugang unter /diagnose prüfen und Mailhelp neu starten.")
+
+    fetch_uid = discover_since
+    fetch_since = discover_since
+    determine_start_uid = discover_since
 
 
 def _state_directory(settings: Settings, base_directory: Path) -> Path:
@@ -118,12 +126,12 @@ def _build_imap(settings: Settings, secrets: Secrets, policy: Callable[[str], Re
                           policy=policy("imap"), logger=logger, starttls=settings.imap.connection_mode == "starttls",
                           batch_size=settings.imap.batch_size)
     except Exception as exc:
-        if not access_diagnostics:
+        if not access_diagnostics and not settings.web.enabled:
             raise
         # IMAP connects and authenticates in its constructor, unlike the
         # HTTP adapters. Preserve that failure as one diagnostic result so
         # constructing the application cannot prevent the other checks.
-        return _FailedAccessAdapter(exc)
+        return _FailedAccessAdapter(exc, account_id(settings.imap.host, settings.imap.port, secrets.imap_username))
     stack.callback(imap.close)
     return imap
 
@@ -284,8 +292,26 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
         prompts, jev_prompts.model if jev_prompts else None, local_llm.model if local_llm else None)
     from .experience import ExperienceRuntime
     application.experience = ExperienceRuntime(application, components, secrets)
-    if not settings.telegram.enabled:
-        print(components.invite())
+    from .notification_runtime import NotificationRuntime
+    from .setup_runtime import SetupRuntime
+    components.site.setup_page.runtime = SetupRuntime(application, components.site, secrets)
+    from .diagnostics import DiagnosticResult, error_code
+    health = store.load("service-health", {"schema_version": 1, "version": 0, "errors": {}})
+    errors: dict[str, Any] = (
+        {"imap": error_code(application.imap.error)} if isinstance(application.imap, _FailedAccessAdapter) else {})
+    health["version"] += int(errors != health["errors"])
+    health["errors"] = errors
+    store.save("service-health", health)
+    if errors:
+        service = components.site.setup_page.runtime.diagnostics
+        state = service.state()
+        state.results["imap"] = DiagnosticResult(status="failed", code=errors["imap"], checked_at=service.clock(),
+            config_revision=components.site.setup_page.runtime.setup.fingerprint())
+        service._save(state)
+    notifications = NotificationRuntime(application, components.site)
+    application.experience.notifications = notifications
+    components.site.notification_runtime = notifications
+    application.notifications = notifications
 
 
 @contextmanager
@@ -358,4 +384,7 @@ def build_application(
                                   orchestrator, stop_event, dialog, sender_store)
         if web_enabled:
             _attach_web(application, settings, secrets, prompts, jev_prompts, local_llm, base_directory, sender_store)
+        elif not access_diagnostics:
+            from .notification_runtime import NotificationRuntime
+            application.notifications = NotificationRuntime.without_web(application)
         yield application

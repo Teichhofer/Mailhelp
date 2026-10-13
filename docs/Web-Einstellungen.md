@@ -1,5 +1,12 @@
 # Einstellungen der Weboberfläche
 
+Einrichtungsentwürfe unter `/einrichtung` und das neue Versandprofil unter
+`/einstellungen/benachrichtigungen` bearbeiten ebenfalls `config.yaml`.
+Speichern erhält zunächst den Entwurf. Erst die gezeigte, versionsbezogene Übernahme aktiviert
+Änderungen; Verbindungs- und Zieländerungen benötigen eine aktuelle erfolgreiche Diagnose.
+Feldnamen, Grenzwerte, Kanalwahl und Sofort-/Neustartwirkung:
+[Betriebsanleitung 3.0](Release-3.0.md#konfigurationsvertrag).
+
 Jedes Info-Symbol erklärt, was die Einstellung verändert und welche Folgen andere Werte haben. Mit der Maus darüberfahren, per Tab fokussieren oder auf dem Handy antippen. Escape blendet die Blase aus. Das Lesen verändert keine Einstellung.
 
 Die folgende Liste enthält dieselben Hilfetexte wie die Weboberfläche. Änderungen werden erst nach der separaten Bestätigung gespeichert. „Im laufenden Betrieb“ bedeutet Übernahme an der nächsten sicheren Stelle; andere Einstellungen erfordern einen Neustart. Zahlen mit Dezimalpunkt eingeben, z. B. `0.30`. `null`, `disabled` und `unlimited` nur verwenden, wo sie unten erlaubt sind. Bei Zahlenfeldern lassen sich Sonderwerte gegebenenfalls nur direkt in `config.yaml` setzen.

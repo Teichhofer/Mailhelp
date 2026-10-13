@@ -14,6 +14,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError, field_validator, model_validator
 
 from .metrics import MetricsSettings
+from .notification_config import NotificationSettings
 
 
 class ConfigModel(BaseModel):
@@ -330,6 +331,7 @@ class DailyBriefingSettings(ConfigModel):
 
 
 class Settings(ConfigModel):
+    notifications: NotificationSettings | None = None
     timezone: str
     poll_interval_seconds: int = Field(ge=5, le=86400)
     test_mode: bool = False
@@ -565,7 +567,8 @@ class OllamaPromptSettings(ConfigModel):
 
 
 # Steps a prompts.yaml from an earlier release may lack; the feature is then off.
-OPTIONAL_PROMPT_STEPS = frozenset({"vision_ocr", "draft_reply", "activity_relevance", "activity_events"})
+OPTIONAL_PROMPT_STEPS = frozenset({
+    "vision_ocr", "draft_reply", "activity_relevance", "activity_events", "diagnostic_test"})
 
 
 class PromptConfig(BaseModel):

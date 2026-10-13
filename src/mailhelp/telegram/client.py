@@ -12,6 +12,7 @@ from pydantic import ValidationError
 
 from ..adapter import PermanentError, RetryInterrupted, RetryPolicy, uncertain_write
 from ..logging import EventLogger, NullLogger
+from ..notification_context import web_reply
 from .callbacks import validate_callback_markup
 from .formatting import split_message
 from .models import (
@@ -52,6 +53,7 @@ class TelegramClient:
         )
         self.policy = policy or RetryPolicy(0, 0, 0, lambda _delay: False)
         self.logger = logger or NullLogger()
+        self.route_background = False
 
     def _log_message(self, direction: str, **context: Any) -> None:
         self.logger.telegram_event(direction, **context)
@@ -213,6 +215,8 @@ class TelegramClient:
         validate_callback_markup(reply_markup)
         call_id = str(uuid.uuid4())
         self.logger.event("INFO", "telegram", "send_started", call_id=call_id)
+        if self.route_background and web_reply.get():
+            return
         parts = split_message(text)
         for index, part in enumerate(parts):
             payload: dict[str, Any] = {"chat_id": chat_id, "text": part}

@@ -134,7 +134,9 @@ class WebAuth:
         return self._mac("csrf", binding)
 
     def csrf_valid(self, binding: str, token: str | None) -> bool:
-        return token is not None and hmac.compare_digest(self.csrf_token(binding), token)
+        return token is not None and hmac.compare_digest(
+            self.csrf_token(binding).encode("utf-8"), token.encode("utf-8")
+        )
 
     @staticmethod
     def new_browser_nonce() -> str:

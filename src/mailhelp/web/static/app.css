@@ -435,3 +435,9 @@ th { color: var(--muted); font-weight: 600; }
 label.check { display: flex; align-items: center; gap: 8px; font-weight: 400; }
 .event-list { list-style: none; padding: 0; display: grid; gap: 10px; }
 .event-list .filters { align-items: end; }
+/* 3.0 setup and diagnosis: desktop and phone touch controls. */
+.setup-page .button, .setup-page input:not([type="hidden"]), .setup-page select { min-height: 48px; }
+.setup-page form { margin-bottom: 16px; }
+.setup-page summary h2 { display: inline; }
+.setup-page label:has(input[type="checkbox"]) { display: flex; align-items: center; gap: 12px; min-height: 48px; }
+.setup-page input[type="checkbox"] { width: 24px; min-height: 24px; flex: 0 0 24px; }

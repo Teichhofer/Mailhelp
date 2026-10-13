@@ -15,6 +15,30 @@
 # Lernen im Container: compose.learn.yaml bindet learning-config als Verzeichnis ein.
 # Offene Vorschläge blockieren die Analyse nicht; nur unklare Relevanz wartet auf Telegram.
 timezone: Europe/Berlin
+# 3.0: Neues Profil bewusst neutral. Bestehende Installationen ohne diesen
+# Abschnitt behalten ihre Kanäle/Inhaltsfreigaben; Ruhezeit und Bündelung bleiben aus.
+# Profil und Entwürfe unter /einrichtung bzw. /einstellungen/benachrichtigungen.
+notifications:
+  quiet_hours:
+    enabled: false
+    start: "22:00"
+    end: "07:30"
+    allow_system_errors: false
+  batching:
+    enabled: false
+    window_seconds: 300
+  categories:
+    decisions: [telegram]
+    action_results: [telegram]
+    daily_briefing: [telegram]
+    system_errors: [telegram]
+  telegram_content: neutral  # summary übermittelt Betreffzeilen/Tagesüberblick
+  delivery:
+    max_attempts: 3
+    initial_backoff_seconds: 30
+    max_backoff_seconds: 900
+    history_days: 30
+    max_pending: 1000
 # 2.0: Schaltflächen Zusagen/Absagen/Rückfrage auf der Mailseite; ein Klick lässt das
 # LLM (Prompt draft_reply) einen Entwurf formulieren. Gespeichert wird nur nach
 # ausdrücklichem Klick per IMAP APPEND in imap.drafts_folder; Mailhelp sendet nie.

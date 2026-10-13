@@ -1,0 +1,119 @@
+"""Read-only integration probes and explicitly requested synthetic test messages."""
+from __future__ import annotations
+
+import tempfile
+from contextlib import ExitStack
+from pathlib import Path
+
+from .diagnostics import DiagnosticsService
+from .experience import _reader
+from .external.http_writer import HttpWriter
+from .external.oauth import GoogleOAuthTokenProvider
+from .setup import SetupService
+from .storage import atomic_replace
+
+
+class SetupRuntime:
+    def __init__(self, app, site, secrets, target_probe=None):
+        self.app, self.site, self.secrets = app, site, secrets
+        self.target_probe = target_probe or self._check_target
+        self.setup = SetupService(app.configuration)
+        self.diagnostics = DiagnosticsService(app.store, site.auth.active, {
+            "imap": self.imap, "calendar": self.calendar, "todoist": self.todoist,
+            "llm": self.llm, "filesystem": self.filesystem, "telegram": self.telegram,
+            "web_push": self.push, "telegram_test": self.telegram_test,
+            "push_test": self.push_test, "llm_test": self.llm_test}, revision=self.setup.fingerprint)
+
+    def secret_status(self):
+        names = ("imap_password", "openrouter_api_key", "telegram_bot_token", "todoist_token",
+                 "google_oauth_refresh_token")
+        return {name: "vorhanden" if self.secrets is not None and
+                getattr(self.secrets, name).get_secret_value() else "fehlt" for name in names}
+
+    def imap(self, actor):
+        cfg = self.setup.draft_settings()
+        with _reader(cfg, self.secrets) as reader:
+            folders = [item.name for item in reader.list_folders()]
+            self.app.store.save("setup-folders", {"schema_version": 1, "folders": folders})
+            required = [*cfg.imap.folders, cfg.imap.drafts_folder]
+            if not set(required) <= set(folders):
+                return "failed", "configuration"
+            reader.check_access(required)
+        return "limited", "draft_readonly"
+
+    def calendar(self, actor):
+        self.target_probe("google_calendar", self.setup.draft_settings())
+        return "ready", ""
+
+    def todoist(self, actor):
+        self.target_probe("todoist", self.setup.draft_settings())
+        return "ready", ""
+
+    def _check_target(self, service, cfg):
+        with ExitStack() as stack:
+            timeout = min(10, getattr(cfg.timeouts, service).timeout_seconds)
+            if service == "google_calendar":
+                token = GoogleOAuthTokenProvider(self.secrets.google_oauth_client_id.get_secret_value(),
+                    self.secrets.google_oauth_client_secret.get_secret_value(),
+                    self.secrets.google_oauth_refresh_token.get_secret_value(), timeout)
+                stack.callback(token.close)
+            else:
+                token = self.secrets.todoist_token.get_secret_value()
+            target = cfg.targets.google_calendar if service == "google_calendar" else cfg.targets.todoist_project
+            adapter = HttpWriter(service, token, target, timeout,
+                                 calendar_timezone=cfg.timezone)
+            stack.callback(adapter.close)
+            adapter.check_access()
+
+    def llm(self, actor):
+        for step in self.app.analyzer.prompts.prompts:
+            self.app.analyzer.prompts.resolved_routes(step)
+        return "ready", ""
+
+    def filesystem(self, actor):
+        with tempfile.TemporaryDirectory(prefix="diagnostic-", dir=self.app.store.directory) as folder:
+            path = Path(folder) / "synthetic.json"
+            atomic_replace(path, '{"synthetic": true}\n')
+            if path.read_text(encoding="utf-8") != '{"synthetic": true}\n':
+                return "failed", "service"
+        return "ready", ""
+
+    def telegram(self, actor):
+        if not self.app.settings.telegram.enabled:
+            return "disabled", ""
+        self.app.telegram.check_access()
+        return "ready", ""
+
+    def push(self, actor):
+        if not self.app.settings.push.enabled:
+            return "disabled", ""
+        if self.site.experience.push is None or not any(
+                device.startswith(actor + ":") for device in self.site.experience.push.destinations()):
+            return "limited", "browser"
+        return "ready", ""
+
+    def telegram_test(self, actor):
+        if not self.app.settings.telegram.enabled:
+            return "disabled", ""
+        self.app.telegram.send(self.app.settings.telegram.chat_id, "Mailhelp: neutrale Testnachricht.")
+        return "ready", ""
+
+    def push_test(self, actor):
+        push = self.site.experience.push
+        if not self.app.settings.push.enabled or push is None:
+            return "disabled", ""
+        device = next((device for device in push.destinations() if device.startswith(actor + ":")), None)
+        if device is None:
+            return "limited", "browser"
+        push.deliver(device, "test")
+        return "ready", ""
+
+    def llm_test(self, actor):
+        prompts = self.app.analyzer.prompts
+        if "diagnostic_test" not in prompts.prompts:
+            return "disabled", "configuration"
+        routes, system, _ = prompts.resolved_routes("diagnostic_test")
+        route = routes[0]
+        self.app.openrouter.complete(route.model, route.parameters, system, {"synthetic": True},
+                                     stage="diagnostic_test")
+        return "ready", ""

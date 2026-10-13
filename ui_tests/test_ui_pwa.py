@@ -78,6 +78,7 @@ def test_service_worker_rules(browser, mailhelp):
         page.page.goto(f"{mailhelp.url}/__sw")
         result = page.evaluate("""async () => {
           await caches.open("mailhelp-alt");
+          await caches.open("mailhelp-shell-v3");
           const waits = [];
           const event = { waitUntil: (promise) => waits.push(promise) };
           handlers.install(event);
@@ -89,7 +90,7 @@ def test_service_worker_rules(browser, mailhelp):
           const foreign = await respond(fetchHandler, new Request("https://example.test/x"));
           const data = await respond(fetchHandler, new Request("/api/stand"));
           const cachedShell = await respond(fetchHandler, new Request("/static/app.css"));
-          await caches.delete("mailhelp-shell-v3");
+          await caches.delete("mailhelp-shell-v4");
           const uncachedShell = await respond(fetchHandler, new Request("/static/app.css"));
           const page = await respond(fetchHandler, navigation("/health"));
           return { installed, keys, post, foreign, data,
@@ -97,7 +98,7 @@ def test_service_worker_rules(browser, mailhelp):
                    page: page.status };
         }""")
         assert result["installed"] == ["skipped", "claimed"]
-        assert result["keys"] == ["mailhelp-shell-v3"]
+        assert result["keys"] == ["mailhelp-shell-v4"]
         assert (result["post"], result["foreign"], result["data"]) == ("network",) * 3
         assert (result["cachedShell"], result["uncachedShell"], result["page"]) == (200, 200, 200)
         page.context.set_offline(True)

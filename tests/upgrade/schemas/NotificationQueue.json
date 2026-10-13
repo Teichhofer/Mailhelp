@@ -1,0 +1,129 @@
+{
+  "$defs": {
+    "Delivery": {
+      "additionalProperties": false,
+      "properties": {
+        "attempts": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Attempts",
+          "type": "integer"
+        },
+        "category": {
+          "enum": [
+            "decisions",
+            "action_results",
+            "daily_briefing",
+            "system_errors"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "channel": {
+          "enum": [
+            "telegram",
+            "web_push"
+          ],
+          "title": "Channel",
+          "type": "string"
+        },
+        "created_at": {
+          "format": "date-time",
+          "title": "Created At",
+          "type": "string"
+        },
+        "device": {
+          "default": "",
+          "maxLength": 100,
+          "pattern": "^[a-f0-9:]*$",
+          "title": "Device",
+          "type": "string"
+        },
+        "due_at": {
+          "format": "date-time",
+          "title": "Due At",
+          "type": "string"
+        },
+        "error": {
+          "default": "",
+          "enum": [
+            "",
+            "retryable",
+            "refused",
+            "unknown",
+            "interrupted",
+            "obsolete"
+          ],
+          "title": "Error",
+          "type": "string"
+        },
+        "id": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "reference": {
+          "maxLength": 200,
+          "minLength": 1,
+          "pattern": "^[A-Za-z0-9:_-]+$",
+          "title": "Reference",
+          "type": "string"
+        },
+        "status": {
+          "default": "pending",
+          "enum": [
+            "pending",
+            "deferred",
+            "sending",
+            "sent",
+            "failed",
+            "uncertain",
+            "cancelled"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "updated_at": {
+          "format": "date-time",
+          "title": "Updated At",
+          "type": "string"
+        },
+        "version": {
+          "minimum": 0,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "category",
+        "reference",
+        "version",
+        "channel",
+        "created_at",
+        "due_at",
+        "updated_at"
+      ],
+      "title": "Delivery",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "entries": {
+      "additionalProperties": {
+        "$ref": "#/$defs/Delivery"
+      },
+      "title": "Entries",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "title": "NotificationQueue",
+  "type": "object"
+}

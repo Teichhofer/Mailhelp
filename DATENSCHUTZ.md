@@ -155,6 +155,13 @@ bis sie dort gelöscht werden.
 
 ## 8. Sicherheit
 
+Einrichtung und Benachrichtigungssteuerung (3.0-Arbeitsstand): Diagnoseberichte enthalten nur
+Version, Betriebssystemklasse, Komponentenstatus, Prüfdauer und sichere Fehlercodes. Queue und
+Zustelllogs enthalten Referenzen statt Nachrichtentexten. Telegram-Inhaltsmeldungen werden im
+Profil bewusst gewählt; Web-Push bleibt neutral. Erstkopplung ohne Telegram erfolgt durch
+`mailhelp --pair` am lokalen Host, ohne Codeausgabe in Dienstlogs. Ausstehende Meldungen prüfen
+Gerätesitzung und Abonnement erneut. Details: [Betriebsanleitung 3.0](docs/Release-3.0.md).
+
 - Zugangsdaten (Postfach, OpenRouter, Telegram, Todoist, Google) liegen nur in
   Umgebungsvariablen beziehungsweise einer lokalen `.env`-Datei, nicht im Code, und
   werden nicht protokolliert.

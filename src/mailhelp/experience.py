@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from threading import Event, Thread
+from typing import TYPE_CHECKING
 
 from .activity.llm import ActivityAnalyzer
 from .activity.runner import ActivityRunner, available_report_folders, default_report_folders
@@ -15,6 +16,8 @@ from .imap import ImapReader
 from .webpush import PushService
 
 ACTIVITY_PROMPTS = {"activity_relevance", "activity_events"}
+if TYPE_CHECKING:
+    from .notification_runtime import NotificationRuntime
 
 
 @contextmanager
@@ -34,6 +37,7 @@ def _reader(settings, secrets):
 class ExperienceRuntime:
     def __init__(self, app, components, secrets):
         self.app, self.site = app, components.site
+        self.notifications: NotificationRuntime | None = None
         self.stop_event, self.thread = Event(), None
         settings = app.settings
         feature = self.site.experience
@@ -93,14 +97,17 @@ class ExperienceRuntime:
 
     def tick(self):
         feature = self.site.experience
-        if feature.push is not None:
+        if self.notifications is not None:
+            self._section("notifications", self.notifications.tick)
+        elif feature.push is not None:
             self._section("push", self._push)
         self.briefing.settings = self.app.settings.daily_briefing
         if self.activity is not None:
             # Limits changed in the settings apply to the next mail of a running report.
             self.activity.settings = self.app.settings
             self.site.activity.with_unscheduled = self.app.settings.activity_report.export_mails_without_events
-        self._section("briefing", self.briefing.tick)
+        if self.notifications is None:
+            self._section("briefing", self.briefing.tick)
 
     def run(self):
         while not self.stop_event.is_set():
@@ -109,7 +116,7 @@ class ExperienceRuntime:
             except Exception as exc:
                 self.app.logger.event("WARNING", "experience", "background_failed",
                                       error_class=type(exc).__name__)
-            self.stop_event.wait(60)
+            self.stop_event.wait(5)
 
     def start(self):
         if self.activity is not None:

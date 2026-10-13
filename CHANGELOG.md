@@ -1,5 +1,25 @@
 # Änderungen
 
+## Unveröffentlicht – Umsetzung der Planung 3.0
+
+- Einrichtung unter `/einrichtung`: wiederaufnehmbare Entwürfe, Dateihash und Entwurfsversion,
+  getrennte bestätigte Übernahme über die vorhandene, erneut autorisierte Kommando-Warteschlange.
+- Unabhängige Diagnosen unter `/diagnose`, sichere Fehlercodes und bereinigter JSON-Export.
+  Lesende IMAP-, Kalender- und Todoist-Prüfungen; separate Aktionen für Testnachrichten und synthetische LLM-Tests.
+- Lokaler Erstzugang mit `mailhelp --pair`; ohne Telegram erzeugen Webanfragen und Dienststart keine Codes mehr.
+- Gemeinsame persistente Benachrichtigungswarteschlange, Kategorie- und Kanalwahl,
+  lokale Ruhezeiten einschließlich Zeitumstellung, Bündelung, begrenzter Backoff und sichtbare unklare Zustellungen.
+  Pro Push-Gerät gelten Sitzung und Abonnementrevision; Web-Push bleibt neutral.
+- Upgrade erhält vorhandene Inhaltsfreigaben und berücksichtigt alte Zustellmarker.
+  Neue Profile beginnen mit neutralen Telegram-Hinweisen. Operative Profile ändern keine Analyse-Fingerprints.
+- Synthetische Autorisierungs-, Zustell-, Neustart-, Upgrade- und Datenschutztests; neue Schema-Snapshots.
+  Die Versionsfreigabe erfolgt nach Abschluss der Plattformmatrix; es wurde kein Release veröffentlicht.
+- In der Abnahme abgesichert: unterbrochene alte Outbox-Zustellungen bleiben unklar, eine volle
+  Queue wird weiter entleert, endgültige Fehler belegen keine ausstehenden Plätze und Migrationsdaten
+  enthalten keine Kopien alter Mailtexte. Die Regressionstests scheiterten vor den jeweiligen Korrekturen.
+- Ungültige Unicode-Werte in Kopplungssignaturen und CSRF-Tokens werden mit HTTP 403
+  abgewiesen; Regressionstests belegen beide zuvor ausgelösten Serverfehler.
+
 ## 2.2.5 – Beta (Branch `beta`), Entscheidungen aus Planung 2.1 und Testinfrastruktur
 
 - **Web-Push je Gerät (Planung 2.1, 5.3):** Die Idempotenzschlüssel der An- und Abmeldung werden je Gerät begrenzt (500); ein aktives Gerät verdrängt nicht mehr die Schlüssel eines anderen. Test `test_push_operations_are_bounded_per_device`.

@@ -101,5 +101,7 @@ include = [
   "/docs/Release-2.0.md", "/docs/Planung-2.0.md", "/docs/Konzept-2.0-Redesign-und-Web-Push.md",
   "/docs/Release-2.1.md", "/docs/Architektur-2.1.md", "/docs/Planung-2.1.md",
   "/docs/Release-2.2.md", "/docs/Planung-2.2.md",
+  "/docs/Release-3.0.md", "/docs/Planung-3.0.md",
+  "/Mailhelp-Projektspezifikation.md", "/DATENSCHUTZ.md", "/NUTZUNGSBEDINGUNGEN.md",
 ]
 
