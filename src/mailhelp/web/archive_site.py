@@ -381,10 +381,10 @@ def field(name: str, label: str, value: object = "", *, hidden: bool = False) ->
             'maxlength="4000"></label>')
 
 
-def post_form(action: str, csrf: str, body: str, label: str = "Speichern", **hidden) -> str:
+def post_form(route: str, csrf: str, body: str, label: str = "Speichern", **hidden) -> str:
     inputs = field("csrf", "", csrf, hidden=True) + field("key", "", secrets.token_hex(16), hidden=True)
     inputs += "".join(field(name, "", value, hidden=True) for name, value in hidden.items())
-    return (f'<form method="post" action="{e(action)}" class="stack">{inputs}{body}'
+    return (f'<form method="post" action="{e(route)}" class="stack">{inputs}{body}'
             f'<button class="button">{e(label)}</button></form>')
 
 

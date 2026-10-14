@@ -46,6 +46,9 @@ class TelegramCommands:
     def overview(self, *, interactive: bool = False, compact: bool = False) -> None:
         """List open decisions; *compact* counts held-back proposals instead of listing them."""
         lines = []
+        profiles = self.presenter.profiles_status()
+        if profiles:
+            lines.append(profiles)
         presentations = []
         active_prompt = None
         labels = {}

@@ -24,10 +24,14 @@ class NotificationRuntime:
         app.telegram.route_background = True
         self.stop_event, self.thread = Event(), None
         self.queue = NotificationService(app.store, lambda: app.settings, self.destinations,
-                                         self.relevant, self.send, logger=app.logger)
+                                         self.relevant, self.send, logger=app.logger,
+                                         settings_for_mailbox=self.settings_for_mailbox)
         self.briefing = DailyBriefingService(app.store, app.settings.daily_briefing, app.settings.timezone,
             app.calendar, app.todoist, site.views, {"local": lambda text: None})
+        from .mailbox_briefing import configure
+        configure(app, self.briefing, site.views)
         self._migrate()
+        self._migrate_mailboxes()
         app.dialog.outbox.background = self.background
         # Old queued references are transferred before the old outbox is drained.
         old = app.dialog.outbox.load()
@@ -51,8 +55,37 @@ class NotificationRuntime:
         return {(f"{row.mail_id}:{row.proposal_id}", row.version): row for row in overview.open} | {
             (f"{row.mail_id}:relevance", row.version): row for row in overview.relevance}
 
-    def destinations(self, category):
-        cfg = self.app.settings
+    def settings_for_mailbox(self, number):
+        from .mailbox_settings import effective_settings
+        return (effective_settings(self.app.settings, number) if self.app.settings.imap.mailbox(number) is not None
+                else self.app.settings)
+
+    def mailbox_of(self, reference):
+        from .models import MailState
+        mail = self.app.store.peek_model("mail-" + reference.split(":", 1)[0], MailState)
+        if mail is None:
+            return 1
+        return ((mail.proposal_policy or {}).get("mailbox_id")
+                or self.app.orchestrator.mailbox_number(mail.imap.account_id))
+
+    def _migrate_mailboxes(self):
+        if self.app.store.load("notifications-mailboxes") is not None:
+            return
+        with self.app.store.locked():
+            state = self.queue.state()
+            self.app.store.save("notifications-mailboxes-backup", state.model_dump(mode="json"))
+            for item in state.entries.values():
+                if item.category == "decisions":
+                    item.mailbox_id = self.mailbox_of(item.reference)
+                elif item.category == "action_results":
+                    entry = self.site.commands.get(item.reference)
+                    if entry is not None and isinstance(entry.command, ReviewCommand):
+                        item.mailbox_id = self.mailbox_of(entry.command.mail_id)
+            self.app.store.save("notification-queue", state.model_dump(mode="json"))
+            self.app.store.save("notifications-mailboxes", {"schema_version": 1})
+
+    def destinations(self, category, mailbox_id=1):
+        cfg = self.settings_for_mailbox(mailbox_id)
         channels = getattr(effective_profile(cfg).categories, category)
         result = []
         if "telegram" in channels and cfg.telegram.enabled:
@@ -66,8 +99,16 @@ class NotificationRuntime:
         if item.category == "decisions":
             return (item.reference, item.version) in self.decisions()
         if item.category == "daily_briefing":
+            if ":" in item.reference:
+                box = self.app.settings.imap.mailbox(item.mailbox_id)
+                if box is None or not box.enabled or not box.daily_briefing:
+                    return False
             now = self.queue.clock().astimezone(ZoneInfo(self.app.settings.timezone))
-            return self.app.settings.daily_briefing.enabled and item.reference == now.date().isoformat()
+            return (
+                self.app.settings.daily_briefing.enabled
+                and item.reference.split(":", 1)[0] == now.date().isoformat()
+                and (self.briefing.mailboxes is None or ":" in item.reference)
+            )
         if item.category == "action_results":
             entry = self.site.commands.get(item.reference)
             return entry is not None and entry.result is not None
@@ -88,7 +129,8 @@ class NotificationRuntime:
                 "system_errors": "Betriebsproblem in Mailhelp. Bitte Diagnose prüfen."}[first.category]
         if profile.telegram_content == "summary":
             if first.category == "daily_briefing":
-                text = self.app.store.load("briefing-latest", {}).get("text", text)
+                latest = self.app.store.load("briefing-latest", {})
+                text = latest.get("sections", {}).get(str(first.mailbox_id), latest.get("text", text))
             elif first.category == "decisions":
                 rows = self.decisions()
                 text = "Entscheidungen in Mailhelp:\n" + "\n".join(
@@ -166,34 +208,46 @@ class NotificationRuntime:
         for entry in commands.entries:
             if entry.id not in marked and entry.result is not None and isinstance(entry.command, ReviewCommand):
                 exclude = ("telegram",) if entry.command.source == CommandSource.TELEGRAM else ()
-                self.queue.enqueue("action_results", entry.id, exclude_channels=exclude)
+                self.queue.enqueue("action_results", entry.id, exclude_channels=exclude,
+                                   mailbox_id=self.mailbox_of(entry.command.mail_id))
                 marked.add(entry.id)
         self.app.store.save("notification-results", sorted(marked & current))
         for row in self.site.views.system(self.queue.clock()).errors:
-            self.queue.enqueue("system_errors", f"{row.mail_id}:{row.stage}:{row.cause}")
+            self.queue.enqueue("system_errors", f"{row.mail_id}:{row.stage}:{row.cause}",
+                               mailbox_id=self.mailbox_of(row.mail_id))
         health = self.app.store.load("service-health", {"errors": {}, "version": 0})
         for name in health["errors"]:
-            self.queue.enqueue("system_errors", "service:" + name, health["version"])
+            number = next((box.id for box in self.app.settings.imap.enabled_mailboxes()
+                if name.rsplit(":", 1)[-1] == str(box.target_profile)), 1)
+            self.queue.enqueue("system_errors", "service:" + name, health["version"], mailbox_id=number)
         self.briefing.settings = self.app.settings.daily_briefing
         self.briefing.zone = ZoneInfo(self.app.settings.timezone)
         previous = self.app.store.load("daily-briefing", {})
         self.briefing.tick()
         latest = self.app.store.load("briefing-latest")
         if latest is not None and self.app.settings.daily_briefing.enabled:
-            self.queue.enqueue("daily_briefing", latest["day"])
+            if self.briefing.mailboxes is not None and "sections" not in latest:
+                latest["text"] = self.briefing.build(self.queue.clock().astimezone(self.briefing.zone))
+                latest["sections"] = self.briefing.sections
+                self.app.store.save("briefing-latest", latest)
+            if "sections" in latest:
+                for number in latest["sections"]:
+                    self.queue.enqueue("daily_briefing", f"{latest['day']}:{number}", mailbox_id=int(number))
+            else:
+                self.queue.enqueue("daily_briefing", latest["day"])
             # Existing 2.x markers survive an upgrade before today's briefing.
             if previous.get("day") == latest["day"]:
                 state = self.queue.state()
                 for item in state.entries.values():
                     old = "push" if item.channel == "web_push" else "telegram"
-                    if (item.category == "daily_briefing" and item.reference == latest["day"]
+                    if (item.category == "daily_briefing" and item.reference.split(":", 1)[0] == latest["day"]
                             and item.status == "pending" and old in previous.get("channels", {})):
                         item.status = previous["channels"][old]
                 self.app.store.save("notification-queue", state.model_dump(mode="json"))
 
     def enqueue_decision(self, reference, version):
         try:
-            self.queue.enqueue("decisions", reference, version)
+            self.queue.enqueue("decisions", reference, version, mailbox_id=self.mailbox_of(reference))
         finally:
             markers = self.app.store.load("notifications-backup", {}).get("decision_markers", {})
             statuses = markers.get(f"{reference}:{version}", {})

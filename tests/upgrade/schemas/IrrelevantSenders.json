@@ -1,4 +1,34 @@
 {
+  "$defs": {
+    "SenderRules": {
+      "additionalProperties": false,
+      "properties": {
+        "addresses": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Addresses",
+          "type": "array"
+        },
+        "allow": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Allow",
+          "type": "array"
+        },
+        "domains": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Domains",
+          "type": "array"
+        }
+      },
+      "title": "SenderRules",
+      "type": "object"
+    }
+  },
   "additionalProperties": false,
   "description": "Durable, human-readable sender prefilter learned from rejected topics.",
   "properties": {
@@ -16,9 +46,17 @@
       "title": "Domains",
       "type": "array"
     },
+    "mailboxes": {
+      "additionalProperties": {
+        "$ref": "#/$defs/SenderRules"
+      },
+      "maxProperties": 99,
+      "title": "Mailboxes",
+      "type": "object"
+    },
     "schema_version": {
-      "const": 1,
-      "default": 1,
+      "const": 2,
+      "default": 2,
       "title": "Schema Version",
       "type": "integer"
     }

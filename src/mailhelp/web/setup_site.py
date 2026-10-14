@@ -107,6 +107,8 @@ class SetupSite:
     @staticmethod
     def links():
         return ('<p class="card-links"><a class="button" href="/einrichtung">Einrichtung</a> '
+                '<a class="button" href="/einstellungen/postfaecher">Postfächer</a> '
+                '<a class="button" href="/einstellungen/zielprofile">Zielprofile</a> '
                 '<a class="button" href="/diagnose">Diagnose</a> '
                 '<a class="button" href="/einstellungen/benachrichtigungen">Benachrichtigungsprofil</a> '
                 '<a class="button" href="/benachrichtigungen">Zustellhistorie</a></p>')
@@ -125,7 +127,8 @@ class SetupSite:
             # Show the effective values, including defaults that config.yaml leaves out.
             result["imap"].update(cfg.imap.configured_mailboxes()[0].model_dump(
                 mode="json", include=set(MAILBOX_SETUP_FIELDS)))
-        for name, value in (service.state().patch.items() if with_patch else ()):
+        state = service.state()
+        for name, value in (state.patch.items() if with_patch and state.kind == "settings" else ()):
             set_dotted(result, name, value)
         return result
 
@@ -254,6 +257,7 @@ class SetupSite:
         if self.runtime is None:
             return self._unavailable()
         service = self.runtime.diagnostics
+        self.runtime.update_profile_checks()
         state = service.state()
         body = '<h1>Diagnose</h1>' + self.links() + '<p>Unabhängige Prüfungen mit Zeitlimit. Zugangsdaten '
         body += 'werden nicht angezeigt. Kalender, Todoist und IMAP werden ausschließlich gelesen.</p>'
@@ -276,6 +280,7 @@ class SetupSite:
         if self.runtime is None:
             return self._unavailable()
         try:
+            self.runtime.update_profile_checks()
             self.runtime.diagnostics.run(session.id, form["name"], int(form["version"]), form["key"])
         except (ValueError, KeyError, PermissionError):
             return Response.text(409, "Prüfung nicht gestartet; Seite neu laden und Sitzung prüfen.")

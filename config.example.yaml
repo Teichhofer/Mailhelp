@@ -47,6 +47,21 @@ smart_reply: false
 # höchstens 2.000 Zeichen. Gehen an die Prompts draft_reply und (ab 2.2) activity_relevance;
 # auch unter Einstellungen → Antworten bearbeitbar und dort sofort wirksam.
 personal_info: ""
+# 3.2: sparse Überschreibungen unter imap.mailboxes (legacy imap bleibt gültig).
+# target_profile: 2; personal_info: 'Arbeitsrolle'; smart_reply: false
+# daily_briefing: false; activity_report_folder: Projekte
+# retention: {full_mail_days: 7}  # nur kürzer als global
+# event_defaults: {video_duration_minutes: 90}
+# notifications: {quiet_hours: {enabled: true}, categories: {decisions: []}}
+# Themenzuordnung in topics.yaml/irrelevant_topics.yaml: mailboxes: [2].
+# Ohne Zuordnung gilt ein Thema global. Details: docs/Release-3.2.md.
+target_profiles: []  # Standardprofil 1 bleibt targets; weitere IDs 2–99
+# - id: 2
+#   label: Arbeit
+#   calendar_provider: outlook
+#   task_provider: microsoft_todo
+#   outlook_calendar: default
+#   microsoft_todo_list: default
 activity_report:
   # 2.2: Tätigkeitsberichte unter /berichte. Ein Bericht liest die Mails eines Zeitraums
   # nur (IMAP BODY.PEEK, keine Flags), prüft sie per LLM auf das Berichtsthema, findet
@@ -167,6 +182,8 @@ telegram:
   # Noch zurückgehaltene Relevanzfragen pausieren nur ihre eigene Mailanalyse.
   sequential_questions: true
 targets:
+  # Ziele ändern keinen Analyse-Fingerprint. Das Upgrade registriert bisherige Hashes
+  # als gleichwertig; dafür zunächst mit den bisherigen Zielen starten.
   # Bestätigungen gelten für das im Vorschlag gespeicherte Ziel. Bei Abweichung
   # bleiben Schreiben und Abgleich gesperrt (auch nach Neustart/im Testmodus).
   # Ursprüngliches Ziel wiederherstellen oder neuen Vorschlag bestätigen.

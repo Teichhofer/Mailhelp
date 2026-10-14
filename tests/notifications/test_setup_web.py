@@ -1,3 +1,5 @@
+from mailhelp.config import Secrets
+
 """Authenticated no-JavaScript forms, explicit probes and local CLI entry."""
 import json
 import time
@@ -162,7 +164,7 @@ def test_runtime_readonly_probes_and_synthetic_tests(configured, monkeypatch):
     monkeypatch.setattr("mailhelp.setup_runtime._reader", reader)
     # Credentials are read at start; a mailbox without them cannot be checked yet.
     assert runtime.imap(session) == ("failed", "auth") and calls == []
-    runtime.secrets = NS(imap={1: object()})
+    runtime.secrets = Secrets(imap={1: {"username": "u", "password": "p"}}, openrouter_api_key="o")
     assert runtime.imap(session) == ("limited", "draft_readonly")
     assert calls == [["INBOX", "Drafts"]]
     assert configured.app.store.load("setup-folders")["mailboxes"] == {"1": ["INBOX", "Drafts"]}
@@ -369,7 +371,7 @@ def test_diagnosis_checks_every_mailbox_and_offers_its_own_folders(configured, m
                  check_access=lambda required: checked.append((mailbox.id, required)))
     monkeypatch.setattr("mailhelp.setup_runtime._reader", reader)
     from pydantic import SecretStr
-    runtime.secrets = NS(imap={1: object(), 2: object()}, openrouter_api_key=SecretStr("o"),
+    runtime.secrets = Secrets(imap={1: {"username": "u", "password": "p"}, 2: {"username": "v", "password": "q"}}, openrouter_api_key=SecretStr("o"),
                          telegram_bot_token=SecretStr(""), todoist_token=SecretStr("t"),
                          google_oauth_refresh_token=SecretStr("g"))
     assert runtime.imap("device") == ("limited", "draft_readonly")

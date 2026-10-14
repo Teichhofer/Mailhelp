@@ -72,6 +72,8 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
                 if link else e(card.video_link))
         facts.append(_fact("🔗", text, "Videolink"))
     labels = [f'<span class="badge {_STATE_BADGE[view.status]}">{e(view.state)}</span>']
+    if card.profile_label:
+        labels.append(f'<span class="badge">Zielprofil: {e(card.profile_label)} · {e(card.target)}</span>')
     if view.current:
         labels.append('<span class="badge accent">Aktuell in Telegram</span>')
     if view.queued:

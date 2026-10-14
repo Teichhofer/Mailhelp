@@ -51,12 +51,13 @@ def _clean(text: str | None, limit: int) -> str | None:
 class ActivityAnalyzer:
     """Relevance and date extraction for one report mail; nothing is written anywhere."""
 
-    def __init__(self, analyzer: Analyzer, personal_info: Any = lambda: ""):
+    def __init__(self, analyzer: Analyzer, personal_info: Any = lambda: "", *, mailbox_personal_info=None):
         self.analyzer = copy(analyzer)
         self.client = BudgetedCompleter(analyzer.client)
         self.analyzer.client = self.client
         # Read on every call, so a changed setting applies without a restart.
         self.personal_info = personal_info
+        self.mailbox_personal_info = mailbox_personal_info
 
     def _mail(self, mail: ReportMail, received: date) -> dict[str, Any]:
         return {"from_or_to": mail.sender, "subject": mail.subject, "received": received.isoformat(),
@@ -67,7 +68,9 @@ class ActivityAnalyzer:
 
     def relevance(self, report: ActivityReport, mail: ReportMail, received: date) -> tuple[str, ActivityRelevance]:
         payload = {"report": {"title": report.definition.title, "topic": report.definition.topic},
-                   "personal_info": self.personal_info(), "mail": self._mail(mail, received)}
+                   "personal_info": (self.mailbox_personal_info(report.definition.mailbox)
+                                     if self.mailbox_personal_info else self.personal_info()),
+                   "mail": self._mail(mail, received)}
         return ClassifiedRun(self.analyzer, "activity_relevance", payload, ActivityRelevance.model_validate,
                              ActivityRelevance, None, None).run()
 

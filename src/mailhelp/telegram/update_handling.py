@@ -27,6 +27,7 @@ STALE_BUTTON = ("ℹ️ Bereits entschieden oder geändert (z. B. in der Webober
                 "diese Schaltfläche ist veraltet. Aktueller Stand: /offen")
 # Telegram buttons translated into channel-neutral review commands.
 _COMMAND_KINDS = {
+    DecisionAction.RETARGET: CommandKind.RETARGET,
     DecisionAction.CONFIRM: CommandKind.CONFIRM,
     DecisionAction.CONFIRM_DUPLICATE: CommandKind.CONFIRM_DUPLICATE,
     DecisionAction.EDIT: CommandKind.START_CLARIFICATION,
@@ -284,6 +285,8 @@ class TelegramUpdateHandler:
                     return None
                 association = decision.action in {DecisionAction.MERGE_SOURCE, DecisionAction.SEPARATE_SOURCE}
                 extra: dict[str, Any] = {}
+                if decision.action == DecisionAction.RETARGET:
+                    extra = {"target_profile": decision.target_profile, "proposal_hash": decision.profile_hash}
                 identity = decision.mail_id, decision.proposal_id, decision.version
                 if association:
                     assert decision.additional_ref is not None and decision.additional_version is not None

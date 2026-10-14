@@ -54,12 +54,19 @@ class ExperienceRuntime:
             feature.push = PushService(app.store, components.auth, settings.push.subject)
         # Drafts are generated only on request in the web interface; without the
         # draft_reply prompt (prompts.yaml of an earlier release) they stay off.
-        if settings.smart_reply and "draft_reply" in app.analyzer.prompts.prompts:
+        from .mailbox_settings import effective_settings
+
+        if (
+            any(effective_settings(settings, box.id).smart_reply for box in settings.imap.enabled_mailboxes())
+            and "draft_reply" in app.analyzer.prompts.prompts
+        ):
+            self.mailbox_numbers = {mailbox_account_id(box, secrets.imap_credentials(box.id)): box.id
+                                    for box in settings.imap.enabled_mailboxes()}
             targets = _draft_targets(settings, secrets)
             first = next(iter(targets.values()))
             feature.drafts = DraftService(app.store, components.auth.active, first.connection, first.sender,
                 first.folder, settings.test_mode, app.analyzer, lambda: app.settings.personal_info,
-                targets=targets.get)
+                targets=targets.get, mailbox_policy=self.draft_policy)
         self.activity = None
         # Activity reports only read the mailbox; without both prompts they stay off.
         if settings.activity_report.enabled and ACTIVITY_PROMPTS <= set(app.analyzer.prompts.prompts):
@@ -73,14 +80,28 @@ class ExperienceRuntime:
             service.blocked_senders = lambda: (
                 list(self.site.archive.configuration.blocked_senders().addresses),
                 list(self.site.archive.configuration.blocked_senders().domains))
+            service.mailbox_senders = lambda number: self.site.archive.configuration.blocked_senders()
             self.activity = ActivityRunner(
-                service, ActivityAnalyzer(app.analyzer, lambda: app.settings.personal_info), open_reader,
-                settings, app.logger, llm_calls_per_minute=lambda: app.settings.limits.llm_calls_per_minute)
+                service,
+                ActivityAnalyzer(
+                    app.analyzer,
+                    lambda: app.settings.personal_info,
+                    mailbox_personal_info=lambda number: effective_settings(app.settings, number).personal_info,
+                ),
+                open_reader,
+                settings,
+                app.logger,
+                llm_calls_per_minute=lambda: app.settings.limits.llm_calls_per_minute,
+            )
             pages = self.site.activity
             pages.service = service
             pages.mailboxes = lambda: [(item.id, item.label) for item in app.settings.imap.enabled_mailboxes()]
-            pages.suggest_folders = lambda mailbox: default_report_folders(
-                lambda: open_reader(mailbox), app.settings.imap.mailbox(mailbox).folders)
+            def suggested(mailbox):
+                configured = app.settings.imap.mailbox(mailbox)
+                if configured.activity_report_folder is not None:
+                    return [configured.activity_report_folder]
+                return default_report_folders(lambda: open_reader(mailbox), configured.folders)
+            pages.suggest_folders = suggested
             pages.available_folders = lambda mailbox: available_report_folders(lambda: open_reader(mailbox))
             pages.with_unscheduled = settings.activity_report.export_mails_without_events
         channels = {"local": lambda _text: None}
@@ -90,6 +111,14 @@ class ExperienceRuntime:
             channels["push"] = lambda _text: feature.push.notify("briefing")
         self.briefing = DailyBriefingService(app.store, settings.daily_briefing, settings.timezone,
             app.calendar, app.todoist, self.site.views, channels)
+        from .mailbox_briefing import configure
+        configure(app, self.briefing, self.site.views)
+
+    def draft_policy(self, account):
+        from .mailbox_settings import effective_settings
+        number = self.mailbox_numbers.get(account, 1)
+        cfg = effective_settings(self.app.settings, number)
+        return cfg.smart_reply, cfg.personal_info
 
     def _section(self, name, step):
         """Push and briefing fail independently of each other."""

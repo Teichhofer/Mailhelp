@@ -14,7 +14,7 @@ from typing import Any
 from zoneinfo import ZoneInfo
 
 from ..domain.prepared import PreparedMail
-from ..domain.relevance import IrrelevantSenders
+from ..domain.relevance import IrrelevantSenders, SenderRules
 from ..imap import FetchedMail
 from ..mime import MimeLimitExceeded, prepare
 from ..sender_filter import is_irrelevant_sender, sender_addresses
@@ -107,7 +107,8 @@ def read_mail(report: ActivityReport, progress: FolderProgress, fetched: Fetched
     shown = f"An: {_recipients(headers)}" if progress.sent else sender
     base.update(sender=shown[:500], subject=prepared.headers.subject[:500])
     mail = ReportMail(**base, message_id=normalized_message_id(prepared.headers.message_id))
-    blocked = IrrelevantSenders(addresses=report.blocked_addresses, domains=report.blocked_domains)
+    blocked = IrrelevantSenders(addresses=report.blocked_addresses, domains=report.blocked_domains,
+                               mailboxes={"1": SenderRules(allow=report.allowed_addresses)})
     if (_all_blocked(_recipients(headers), blocked) if progress.sent
             else is_irrelevant_sender(sender, blocked)):
         mail.skipped = "sender"

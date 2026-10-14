@@ -18,10 +18,73 @@ def setup_server(mailhelp):
              dialog=mailhelp.dialog, store=mailhelp.store, telegram=mailhelp.telegram, logger=site.logger,
              analyzer=NS(prompts=prompt_config()), calendar=None, todoist=None)
     app.configuration.activate = lambda cfg: setattr(app, "settings", cfg)
+    from mailhelp.orchestrator import Orchestrator
+    app.orchestrator = Orchestrator(app.analyzer, app.store, object(), 2, [], 1024)
+    app.orchestrator.configure_mailboxes(app.settings, app.analyzer.prompts, {"0" * 24: 1})
     app.settings.web.enabled = True
     site.setup_page.runtime = SetupRuntime(app, site, None, target_probe=lambda *args: None)
     site.notification_runtime = NotificationRuntime(app, site)
     return mailhelp
+
+
+def test_mailbox_tabs_show_inheritance_and_preserve_a_local_draft(page, setup_server):
+    sign_in(page, setup_server)
+    for tab in ("targets", "filters", "topics", "replies", "notifications"):
+        page.goto(setup_server.url + "/einstellungen/postfaecher/1?tab=" + tab)
+        expect(page.get_by_role("heading", name="Postfach", exact=True)).to_be_visible()
+        assert audit(page, "mailbox-" + tab + "-" + page.device, page.mobile) == []
+    page.goto(setup_server.url + "/einstellungen/postfaecher/1?tab=replies")
+    value = page.get_by_label("Signatur, Rolle und Anrede", exact=True)
+    value.fill("Synthetische Signatur")
+    value.locator("..").get_by_role("button", name="Im Entwurf speichern", exact=True).click()
+    expect(page.get_by_role("heading", name="Entwurf prüfen", exact=True)).to_be_visible()
+    assert setup_server.site.archive.configuration.active.personal_info == ""
+    page.get_by_role("button", name="Entwurf verwerfen", exact=True).click()
+    expect(page.get_by_role("heading", name="Entwurf prüfen", exact=True)).to_have_count(0)
+
+
+def test_target_profile_controls_are_labelled_and_accessible(page, setup_server):
+    import yaml
+
+    from mailhelp.config import TargetProfileSettings
+    runtime = setup_server.site.setup_page.runtime
+    cfg = runtime.app.settings
+    cfg.target_profiles = [TargetProfileSettings(
+        id=2, label="Arbeit", google_calendar="primary", todoist_project="inbox")]
+    path = runtime.app.configuration.directory / "config.yaml"
+    path.write_text(yaml.safe_dump(cfg.model_dump(mode="json")), encoding="utf-8")
+    sign_in(page, setup_server)
+    page.goto(setup_server.url + "/einstellungen/zielprofile")
+    expect(page.get_by_role("heading", name="Zielprofile", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name="Arbeit · 2", exact=True)).to_be_visible()
+    assert audit(page, "target-profiles-" + page.device, page.mobile) == []
+    assert page.locator("[id]").evaluate_all("items => new Set(items.map(item => item.id)).size === items.length")
+
+
+def test_profile_switch_card_stays_unconfirmed_and_visible_on_small_phones(page, setup_server):
+    from web_scenario import proposal, save_mail
+
+    from mailhelp import profile_binding
+    from mailhelp.config import TargetProfileSettings
+    runtime = setup_server.site.setup_page.runtime
+    cfg = runtime.app.settings
+    cfg.target_profiles = [TargetProfileSettings(id=2, label="Arbeit", calendar_provider="outlook",
+                                                 task_provider="microsoft_todo")]
+    item = proposal(88, "profile-switch", kind="event", title="Synthetischer Profilwechsel",
+        start="2030-11-20T14:00:00+01:00", end="2030-11-20T15:00:00+01:00",
+        target=cfg.targets.calendar_target, target_provider="google")
+    save_mail(setup_server.store, 88, "synthetic@example.test", "Profilwechsel", [item])
+    setup_server.dialog.relevance_handler = runtime.app.orchestrator
+    setup_server.site.views.profile_label = lambda p: profile_binding.label(cfg, p)
+    sign_in(page, setup_server)
+    page.goto(setup_server.url + f"/vorschlag/{item.source_mail_id}/{item.id}")
+    page.get_by_role("button", name="Auf Zielprofil Arbeit umstellen", exact=True).click()
+    expect(page.locator(".notice[role=status]")).to_contain_text("neue Version separat bestätigen", timeout=10000)
+    current = setup_server.dialog.repository.load_current(item.source_mail_id, item.id)
+    assert current.target_profile == 2 and current.version == 2 and current.status == "pending_confirmation"
+    assert setup_server.writer.created == []
+    expect(page.locator(".badge").filter(has_text="Outlook-Kalender · Arbeit")).to_be_visible()
+    assert audit(page, "profile-switch-" + page.device, page.mobile) == []
 
 
 def test_setup_pages_are_accessible_and_touch_controls_have_48_pixels(page, setup_server):

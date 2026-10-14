@@ -101,6 +101,7 @@ class TargetWriter(ABC):
     """
 
     service: str
+    target_profile: int = 1
     role: str
     target: str
     label: str

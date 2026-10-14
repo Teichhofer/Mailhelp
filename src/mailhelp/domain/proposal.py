@@ -123,7 +123,15 @@ class ActionLedger(StrictModel):
 
 
 class Proposal(StrictModel):
-    schema_version: Literal[2] = 2
+    schema_version: Literal[3] = 3
+    target_profile: int = Field(default=1, ge=1, le=99)
+
+    @model_validator(mode="before")
+    @classmethod
+    def upgrade_profile(cls, value: object) -> object:
+        if isinstance(value, dict) and value.get("schema_version") == 2:
+            return {**value, "schema_version": 3, "target_profile": 1}
+        return value
     id: str = Field(pattern=r"^[a-zA-Z0-9_-]{1,64}$")
     version: int = Field(ge=1)
     kind: ProposalKind

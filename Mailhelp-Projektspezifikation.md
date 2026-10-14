@@ -2287,3 +2287,41 @@ Bestehende Zustände bleiben mit additiven Standardfeldern lesbar. Neue Beziehun
 Vergleichscaches und Journale besitzen eigene Schemas. Vor produktiver Nutzung ist
 eine vollständige Zustandssicherung erforderlich; ein Rollback benötigt den Stand
 vor dem Upgrade. Bedienung und Grenzen stehen in [Release-2.4](docs/Release-2.4.md).
+
+## Version 3.2: Einstellungen je Postfach
+
+Wirksame Regeln entstehen ausschließlich aus globalen Einstellungen und den sparsamen
+Überschreibungen des konfigurierten Ursprungspostfachs. Stabile Postfachnummern, keine Mailinhalte,
+bestimmen die Zuordnung. Zulässig sind Zielprofil, persönliche Angaben, Antwortentwürfe,
+Ruhezeiten/Kategoriekanäle, Teilnahme am Tagesüberblick, Berichtsordner, kürzere Volltextaufbewahrung
+und Standardtermindauern. Prompts, Modelle, Budgets und Relevanzschwellen bleiben gemeinsam.
+
+`targets` bleibt Profil 1; zusätzliche `target_profiles` besitzen IDs 2–99. Geheimnisse werden nach
+Profilnummer getrennt; nur OAuth-Client-ID/-Secret dürfen global geerbt werden. Aktive Postfachverweise
+bestimmen erforderliche Geheimnisse. OAuth-Einrichtung unterstützt `--profile`; Google verwendet einen
+lokalen zeitbegrenzten State-/PKCE-Rückruf, Microsoft getrennte Token-Dateien.
+
+Vorschläge in Schema 3 enthalten `target_profile`. Migrationen setzen ältere Vorschläge atomar und
+wiederholbar auf Profil 1. Profile bestimmen Writer, lesenden Vorabgleich und Wiederanlauf nach unklarem
+Schreibergebnis. Fehler eines Profils isolieren dessen Vorschläge. Ein ausdrücklicher Zielwechsel
+erzeugt eine neue unbestätigte Version, löscht alte Anlageberechtigungen und löst keine externe Aktion aus.
+Offene Vorschläge unterschiedlicher Profile werden nicht zusammengeführt; identische Mailkopien werden
+weiterhin einmal verarbeitet. Profile mit offenen Vorschlägen oder Postfachverweisen sind nicht entfernbar.
+
+Absenderfilter Schema 2 kombiniert globale und lokale Sperren mit exakten lokalen `allow`-Ausnahmen.
+Schema 1 wird erst beim nächsten Schreiben mit `.json.v1`-Sicherung umgestellt. Themen und ausgeschlossene
+Themen besitzen optional `mailboxes`; ohne Feld gelten sie global. Lernen ordnet standardmäßig dem
+Ursprung zu und bietet globale Zuordnung. Normale Verarbeitung, Decision-Test und Berichte berücksichtigen
+die wirksamen Regeln. Antwortentwürfe bleiben im Ursprungspostfach.
+
+Die gemeinsame Benachrichtigungsqueue speichert Postfachnummern, verwendet je Ereignis dessen Richtlinie
+und bündelt nach Postfach. Der Tagesüberblick enthält Abschnitte der eingeschlossenen Postfächer;
+Upgrade-Marker verhindern wiederholten Versand. Vererbung und Rücksetzen sind in den fünf Postfach-Tabs
+sichtbar. Änderungen benötigen Sitzung, CSRF, Entwurfsversion, Dateihash und Idempotenz sowie erneute
+Autorisierung bei Ausführung. Die Vorschau nennt betroffene laufende Mails. Sämtliche Ziele einschließlich
+der Standardziele, Provider und Profilzuordnungen bleiben außerhalb des Analyse-Fingerprints. Das Upgrade
+registriert die bisherigen Fingerprints und Themenrichtlinien bis 3.1 für dieselbe Analysekonfiguration
+als gleichwertig, ohne gespeicherte Vorschläge oder ihre Bestätigungen zu verändern. Diese Registrierung
+ist wiederholbar und übersteht Neustarts. Themen- und andere Analyseänderungen bleiben wirksam.
+Details, Fingerprint-Kompatibilität
+und Rückkehr aus einer vorher angelegten Sicherung stehen in [Release-3.2](docs/Release-3.2.md).

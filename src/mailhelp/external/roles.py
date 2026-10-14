@@ -13,6 +13,15 @@ CALENDAR_SLOT = "google_calendar"
 TASK_SLOT = "todoist"
 
 
+def profile_slot(role: str, profile: int) -> str:
+    return role if profile == 1 else f"{role}:{profile}"
+
+
+def writer_for(writers, proposal):
+    role = TASK_SLOT if proposal.kind == "task" else CALENDAR_SLOT
+    return writers.get(profile_slot(role, proposal.target_profile))
+
+
 def provider_key(writer: TargetWriter) -> str:
     return {"google_calendar": "google", "outlook_calendar": "outlook",
             "caldav_calendar": "caldav", "caldav_tasks": "caldav"}.get(writer.service, writer.service)

@@ -14,7 +14,7 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError, field_validator, model_validator
 
 from .metrics import MetricsSettings
-from .notification_config import NotificationSettings
+from .notification_config import NotificationOverrides, NotificationSettings
 
 
 class ConfigModel(BaseModel):
@@ -76,6 +76,14 @@ class MailboxSettings(ConfigModel):
     connection_mode: ConnectionMode = "ssl"
     historical_start: datetime | None = None
     drafts_folder: DraftsFolder = "Drafts"
+    target_profile: int = Field(default=1, ge=1, le=99)
+    personal_info: str | None = Field(default=None, max_length=2000, pattern=r"^[^\x00-\x08\x0b-\x1f\x7f]*$")
+    smart_reply: bool | None = None
+    notifications: NotificationOverrides | None = None
+    daily_briefing: bool = True
+    activity_report_folder: DraftsFolder | None = None
+    retention: MailboxRetention | None = None
+    event_defaults: MailboxEventDefaults | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -194,6 +202,11 @@ class EventDefaultsSettings(ConfigModel):
     in_person_duration_minutes: int = Field(default=180, ge=1, le=1440)
 
 
+class MailboxEventDefaults(ConfigModel):
+    video_duration_minutes: int | None = Field(default=None, ge=1, le=1440)
+    in_person_duration_minutes: int | None = Field(default=None, ge=1, le=1440)
+
+
 class ProposalReconciliationSettings(ConfigModel):
     max_semantic_candidates: int = Field(default=8, ge=1, le=50)
 
@@ -213,7 +226,7 @@ ICLOUD_CALDAV = re.compile(r"https://(p\d{1,3}-)?caldav\.icloud\.com/")
 
 def _dav_url(value: str) -> bool:
     """CalDAV collections need TLS; plain HTTP only on the local machine."""
-    match = re.fullmatch(r"(https?)://([^/:?#\s]+)(:\d{1,5})?(/[^\s?#]*)?", value)
+    match = re.fullmatch(r"(https?)://([^/@:?#\s]+)(:\d{1,5})?(/[^\s?#]*)?", value)
     if match is None:
         return False
     return match.group(1) == "https" or match.group(2) in {"localhost", "127.0.0.1"}
@@ -265,6 +278,11 @@ class TargetSettings(ConfigModel):
     @property
     def uses_caldav(self) -> bool:
         return self.calendar_provider == "caldav" or self.task_provider in {"caldav", "apple_reminders"}
+
+
+class TargetProfileSettings(TargetSettings):
+    id: int = Field(ge=2, le=99)
+    label: str = Field(min_length=1, max_length=40, pattern=r"^[^\x00-\x1f\x7f]+$")
 
 
 class OriginalAttachmentSettings(ConfigModel):
@@ -426,6 +444,10 @@ class RetentionSettings(ConfigModel):
     activity_report_days: RetentionPeriod = 365
 
 
+class MailboxRetention(ConfigModel):
+    full_mail_days: RetentionPeriod
+
+
 class LearningSettings(ConfigModel):
     """Concurrency controls for the interactive learning workflow."""
 
@@ -523,6 +545,7 @@ class Settings(ConfigModel):
     imap: ImapSettings
     telegram: TelegramSettings
     targets: TargetSettings
+    target_profiles: list[TargetProfileSettings] = Field(default_factory=list, max_length=98)
     limits: LimitSettings
     retries: RetrySettings
     timeouts: TimeoutSettings
@@ -542,6 +565,12 @@ class Settings(ConfigModel):
     attachments: OriginalAttachmentSettings = Field(default_factory=lambda: OriginalAttachmentSettings())
     event_defaults: EventDefaultsSettings = Field(default_factory=EventDefaultsSettings)
     proposal_reconciliation: ProposalReconciliationSettings = Field(default_factory=ProposalReconciliationSettings)
+
+    @model_validator(mode="after")
+    def valid_mailbox_policies(self) -> Settings:
+        from .mailbox_settings import validate_policies
+        validate_policies(self)
+        return self
 
     @model_validator(mode="after")
     def standalone_needs_web(self):
@@ -596,14 +625,20 @@ class Secrets(BaseModel):
     microsoft_refresh_token: SecretStr = SecretStr("")
     # Signs web sessions and CSRF tokens; required only with web.enabled.
     mailhelp_web_secret: SecretStr | None = None
+    profiles: dict[int, dict[str, SecretStr]] = Field(default_factory=dict)
 
     def imap_credentials(self, mailbox_id: int) -> ImapCredentials:
         return self.imap[mailbox_id]
+
+    def for_profile(self, profile_id: int) -> Secrets:
+        from .target_profiles import profile_secrets
+        return profile_secrets(self, profile_id)
 
     def known_values(self) -> tuple[str, ...]:
         """Every secret value, for redaction in logs."""
         values = [credentials.password.get_secret_value() for credentials in self.imap.values()]
         values += [value.get_secret_value() for name, value in self if isinstance(value, SecretStr)]
+        values += [value.get_secret_value() for profile in self.profiles.values() for value in profile.values()]
         return tuple(value for value in values if value)
 
 
@@ -615,6 +650,14 @@ class Topic(BaseModel):
     description: str
     examples: list[str] = Field(default_factory=list)
     exclusions: list[str] = Field(default_factory=list)
+    mailboxes: list[int] | None = Field(default=None, max_length=10)
+
+    @field_validator("mailboxes")
+    @classmethod
+    def valid_mailboxes(cls, value: list[int] | None) -> list[int] | None:
+        if value is not None and (len(value) != len(set(value)) or any(not 1 <= item <= 99 for item in value)):
+            raise ValueError("Themen benötigen eindeutige Postfachnummern zwischen 1 und 99")
+        return value
 
 
 class TopicsConfig(ConfigModel):
@@ -942,7 +985,7 @@ def _distinct_accounts(imap: ImapSettings, credentials: dict[int, dict[str, str]
         seen[account] = mailbox.id
 
 
-def load_all(directory: Path, environ: dict[str, str] | None = None
+def load_all(directory: Path, environ: dict[str, str] | None = None, *, oauth_profile: int | None = None
              ) -> tuple[Settings, Secrets, list[Topic], list[Topic], PromptConfig, str]:
     env = {**_dotenv(directory / ".env"), **(os.environ if environ is None else environ)}
     settings = validated_file(directory / "config.yaml", Settings, read_yaml(directory / "config.yaml"))
@@ -954,17 +997,33 @@ def load_all(directory: Path, environ: dict[str, str] | None = None
         read_yaml(directory / "irrelevant_topics.yaml"),
     ).topics
     credentials, missing = imap_secret_values(settings.imap, env)
-    names = ["OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN", *provider_secret_names(settings.targets)]
+    from .mailbox_settings import active_profiles
+    from .target_profiles import load_profile_secrets
+    used = active_profiles(settings)
+    names = [
+        "OPENROUTER_API_KEY",
+        "TELEGRAM_BOT_TOKEN",
+        *(provider_secret_names(settings.targets) if 1 in used else []),
+    ]
+    profile_values, absent = load_profile_secrets(settings, env)
+    missing += absent
     missing += [name for name in names if not env.get(name)]
+    if oauth_profile is not None:
+        from .target_profiles import secret_name
+        refresh = ("GOOGLE_OAUTH_REFRESH_TOKEN" if oauth_profile == 1
+                   else secret_name("GOOGLE_OAUTH_REFRESH_TOKEN", oauth_profile))
+        missing = [name for name in missing if name != refresh]
     if not settings.telegram.enabled:
         names.remove("TELEGRAM_BOT_TOKEN")
         missing = [name for name in missing if name != "TELEGRAM_BOT_TOKEN"]
     if missing:
         raise ValueError("Fehlende Geheimnisse: " + ", ".join(missing))
-    values: dict[str, Any] = {name.lower(): env[name] for name in names}
+    values: dict[str, Any] = {name.lower(): env.get(name, "") for name in names}
     values["imap"] = credentials
+    values["profiles"] = profile_values
     _distinct_accounts(settings.imap, credentials)
-    values.update({name.lower(): env[name] for name in OPTIONAL_PROVIDER_SECRETS if env.get(name)})
+    from .target_profiles import PROVIDER_FIELDS
+    values.update({name: env[name.upper()] for name in PROVIDER_FIELDS if env.get(name.upper())})
     if settings.web.enabled:
         web_secret = env.get("MAILHELP_WEB_SECRET", "")
         if not web_secret:

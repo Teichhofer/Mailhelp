@@ -6,6 +6,7 @@ from shared_application import settings
 from shared_core import prompt_config
 
 from mailhelp.configuration import ConfigurationService
+from mailhelp.orchestrator import Orchestrator
 from mailhelp.setup_runtime import SetupRuntime
 
 
@@ -18,6 +19,8 @@ def configured(web, tmp_path):
              calendar=NS(check_access=lambda: None), todoist=NS(check_access=lambda: None),
              analyzer=NS(prompts=prompt_config()), openrouter=NS(complete=lambda *args, **kw: None))
     app.telegram.check_access = lambda: None
+    app.orchestrator = Orchestrator(app.analyzer, web.store, object(), 2, [], 1024)
+    app.orchestrator.configure_mailboxes(cfg, app.analyzer.prompts, {"0" * 24: 1})
     app.configuration = ConfigurationService(tmp_path, web.store, cfg,
         lambda actor: web.auth.active(actor.removeprefix("web:")), lambda value: setattr(app, "settings", value))
     web.site.archive.configuration = web.dialog.review.configuration = app.configuration

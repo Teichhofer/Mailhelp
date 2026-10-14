@@ -59,6 +59,7 @@ class Application:
     configuration: object | None = None
     experience: ExperienceRuntime | None = None
     notifications: Any = None
+    profile_writers: Any = None
     # Every enabled mailbox with its reader (3.1); ``imap`` is the reader of the first one.
     sources: list[MailboxSource] = field(default_factory=list)
 
@@ -96,6 +97,12 @@ class Application:
             (getattr(self.todoist, "label", "Todoist"), self.todoist.check_access),
             (getattr(self.calendar, "label", "Google Kalender"), self.calendar.check_access),
         )
+        from .target_profiles import ProfileWriters
+        if isinstance(getattr(self, "profile_writers", None), ProfileWriters):
+            from .mailbox_settings import active_profiles, profile_label
+            checks = (*checks[:-2], *((f"{role}:{number} ({profile_label(self.settings, number)})", writer.check_access)
+                for number, pair in self.profile_writers.profiles.items() if number in active_profiles(self.settings)
+                for role, writer in pair.slots.items()))
         results: dict[str, str | None] = {}
         logger = getattr(self, "logger", NullLogger())
         for name, check in checks:
@@ -148,6 +155,7 @@ class Application:
         self.settings = settings
         self.mailbox.settings = settings
         self.orchestrator.event_defaults = settings.event_defaults
+        self.orchestrator.mailbox_settings = settings
         self.orchestrator.reconciliation_settings = settings.proposal_reconciliation
         self.orchestrator.reconciliation.max_candidates = settings.proposal_reconciliation.max_semantic_candidates
         metrics = self.logger.metrics
@@ -353,7 +361,19 @@ class Application:
 
     def _maintain(self) -> None:
         try:
-            RetentionService(self.store, self.settings.retention, self.logger).run()
+            def period(state):
+                cfg = self.orchestrator.mailbox_settings
+                number = (state.proposal_policy or {}).get(
+                    "mailbox_id", self.orchestrator.mailbox_number(state.imap.account_id)
+                )
+                from .mailbox_settings import effective_settings
+                return (
+                    effective_settings(cfg, number).retention.full_mail_days
+                    if cfg is not None and cfg.imap.mailbox(number) is not None
+                    else self.settings.retention.full_mail_days
+                )
+
+            RetentionService(self.store, self.settings.retention, self.logger, full_mail_period=period).run()
             metrics = getattr(self.logger, "metrics", None)
             if metrics is not None:
                 metrics.maintain()

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import re
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from typing import Any, TypeVar
 
@@ -216,6 +216,8 @@ class ReviewViews:
         self.store, self.configured_timezone, self.test_mode = store, configured_timezone, test_mode
         # Account id -> (number, label) of every enabled mailbox; empty with a single mailbox (3.1).
         self.mailboxes: dict[str, tuple[int, str]] = {}
+        self.profile_label = lambda proposal: ""
+        self.profile_available = lambda proposal: True
 
     def overview(self) -> Overview:
         with self.store.locked():
@@ -403,6 +405,9 @@ class ReviewViews:
         paused = clarification is not None and ProposalRevisionStatus.PAUSED in {
             clarification.interpretation_status, clarification.proposal_revision_status}
         card = card_content(proposal, self.configured_timezone, self.test_mode)
+        label = self.profile_label(proposal)
+        if label:
+            card = replace(card, profile_label=label, target=proposal.target)
         question = example = None
         if open_ and proposal.open_questions:
             question = display_question(proposal.open_questions[0])
@@ -424,6 +429,9 @@ class ReviewViews:
             state = "Rückfrage offen"
         else:
             state = STATUS_LABELS[proposal.status]
+        if not self.profile_available(proposal):
+            actions.discard(CommandKind.CONFIRM)
+            state = "Zielprofil nicht verfügbar – Zugriff prüfen oder Ziel umstellen"
         headers = mail.display_headers if mail is not None else None
         target = "Als Aufgabe anlegen" if proposal.kind == ProposalKind.TASK else "Im Kalender anlegen"
         if proposal.target_event_id is not None:

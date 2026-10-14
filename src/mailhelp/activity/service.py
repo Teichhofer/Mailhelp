@@ -40,6 +40,7 @@ class ActivityService:
         self.actor: ContextVar[str | None] = ContextVar("activity_actor", default=None)
         self.active: Callable[[str], bool] = lambda _actor: False
         self.blocked_senders: Callable[[], tuple[list[str], list[str]]] | None = None
+        self.mailbox_senders = None
 
     def check_actor(self) -> None:
         actor = self.actor.get()
@@ -115,6 +116,12 @@ class ActivityService:
                 report.started_at = self.clock()
                 if self.blocked_senders is not None:
                     report.blocked_addresses, report.blocked_domains = self.blocked_senders()
+                if self.mailbox_senders is not None:
+                    rules = self.mailbox_senders(report.definition.mailbox)
+                    own = rules.mailboxes.get(str(report.definition.mailbox))
+                    report.blocked_addresses = sorted(set(rules.addresses) | set(own.addresses if own else []))
+                    report.blocked_domains = sorted(set(rules.domains) | set(own.domains if own else []))
+                    report.allowed_addresses = list(own.allow) if own else []
             if target == ReportStatus.CANCELLED:
                 report.finished_at = self.clock()
         return self._change(report_id, version, key, ("act", action, version), change)

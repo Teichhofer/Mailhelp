@@ -6,7 +6,7 @@ import hashlib
 import json
 import re
 from datetime import date, datetime
-from typing import Protocol
+from typing import Any, Protocol
 
 from .. import state_names
 from ..models import ActionLedger, ActionLedgerEntry, Proposal, ProposalKind
@@ -37,7 +37,7 @@ class ActionLedgerService:
                 r"(?:\n\n|^)Absender: [^\n]*\nBetreff: [^\n]*\nMail-Datum: [^\n]*\Z",
                 "", description,
             )
-        identity = {
+        identity: dict[str, Any] = {
             "kind": proposal.kind.value,
             "title": proposal.title.strip().casefold(),
             "description": description.strip().casefold(),
@@ -51,6 +51,8 @@ class ActionLedgerService:
             if proposal.video_link is not None
             else None,
         }
+        if proposal.target_profile != 1:
+            identity["target_profile"] = proposal.target_profile
         return hashlib.sha256(
             json.dumps(
                 identity, ensure_ascii=False, sort_keys=True, separators=(",", ":")

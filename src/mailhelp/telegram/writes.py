@@ -9,6 +9,7 @@ from zoneinfo import ZoneInfo
 from .. import state_names
 from ..external.confirmed import execute_confirmed
 from ..external.contracts import ExternalWriter, proposal_is_writable
+from ..external.roles import writer_for
 from ..models import Proposal, ProposalKind, ProposalStatus
 from ..storage import JsonStore
 from .client import TelegramTransport
@@ -58,9 +59,7 @@ class ConfirmedWriteExecutor:
         return f" · {start:%d.%m.%Y}, ganztägig"
 
     def writer_for(self, proposal: Proposal) -> ExternalWriter | None:
-        return self.writers.get(
-            "todoist" if proposal.kind == ProposalKind.TASK else "google_calendar"
-        )
+        return writer_for(self.writers, proposal)
 
     def execute(self, proposal: Proposal) -> Proposal:
         if not proposal_is_writable(proposal):
@@ -70,9 +69,16 @@ class ConfirmedWriteExecutor:
         writer = self.writer_for(proposal)
         if writer is None:
             return proposal
-        changed, result = execute_confirmed(
-            proposal, writer, self.persistence.persist, self.test_mode
-        )
+        try:
+            changed, result = execute_confirmed(proposal, writer, self.persistence.persist, self.test_mode)
+        except Exception as exc:
+            if not any(":" in name for name in self.writers):
+                raise
+            from ..diagnostics import error_code
+            self._profile_health(proposal, error_code(exc))
+            current = self.store.load_model(state_names.proposal(proposal.source_mail_id, proposal.id), Proposal)
+            return current if current is not None else proposal
+        self._profile_health(proposal, "")
         if result.get("target_mismatch"):
             reference = (proposal.source_mail_id, proposal.id, proposal.version)
             if reference not in self._reported_target_mismatches:
@@ -131,6 +137,21 @@ class ConfirmedWriteExecutor:
                 changed.model_copy(update={"simulation_notified": True})
             )
         return changed
+
+    def _profile_health(self, proposal: Proposal, code: str) -> None:
+        if not any(":" in name for name in self.writers):
+            return
+        name = f"{'tasks' if proposal.kind == ProposalKind.TASK else 'calendar'}:{proposal.target_profile}"
+        with self.store.locked():
+            health = self.store.load("service-health", {"schema_version": 1, "errors": {}, "version": 0})
+            if health["errors"].get(name, "") == code:
+                return
+            if code:
+                health["errors"][name] = code
+            else:
+                health["errors"].pop(name, None)
+            health["version"] += 1
+            self.store.save("service-health", health)
 
     def resume(self) -> None:
         from ..proposal_reconciliation import ProposalReconciliationService

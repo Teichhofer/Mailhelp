@@ -11,14 +11,14 @@ from typing import Any, Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from .config import IrrelevantTopicsConfig, Settings, Topic, TopicsConfig
+from .config import MAILBOX_FIELDS, IrrelevantTopicsConfig, Settings, Topic, TopicsConfig, read_yaml
 from .domain.relevance import IrrelevantSenders
 from .learning import topics_document
 from .review.commands import CommandSource
 from .review.results import ResultStatus, ReviewResult
-from .sender_filter import change_irrelevant_senders
+from .sender_filter import change_irrelevant_senders, save_sender_filter
 from .storage import JsonStore, atomic_replace
-from .yaml_edit import YamlEditError, set_list, set_scalars
+from .yaml_edit import YamlEditError, replace_block, set_list, set_scalars
 
 
 class ConfigurationConflict(ValueError):
@@ -44,6 +44,7 @@ class AdminCommand(BaseModel):
     category: str = Field(default="relevant", pattern=r"^(relevant|irrelevant)$")
     patch: dict = Field(max_length=60)
     acknowledged: bool = False
+    context_hash: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
 
     @model_validator(mode="after")
     def file_edits_need_a_hash(self) -> AdminCommand:
@@ -56,13 +57,16 @@ class SenderChange(BaseModel):
     """Add or remove ignored senders; ``mail_id`` names the mail it came from."""
 
     model_config = ConfigDict(extra="forbid", frozen=True)
-    action: Literal["add", "remove"]
+    action: Literal["add", "remove", "allow", "unallow"]
+    mailbox_id: int | None = Field(default=None, ge=1, le=99)
     addresses: list[str] = Field(default_factory=list, max_length=10)
     domains: list[str] = Field(default_factory=list, max_length=10)
     mail_id: str | None = Field(default=None, pattern=r"^[a-f0-9]{24}$")
 
     @model_validator(mode="after")
     def valid_entries(self) -> SenderChange:
+        if self.action in {"allow", "unallow"} and (self.mailbox_id is None or self.domains):
+            raise ValueError("Ausnahmen benötigen ein Postfach und genaue Adressen")
         if not self.addresses and not self.domains:
             raise ValueError("Mindestens eine Adresse oder Domain angeben")
         IrrelevantSenders(addresses=sorted(set(self.addresses)), domains=sorted(set(self.domains)))
@@ -114,12 +118,35 @@ SETUP_FIELDS.add("notifications.telegram_content")
 # Mailbox fields of the 3.1 format; the index is the position in imap.mailboxes.
 MAILBOX_SETUP_FIELDS = ("label", "enabled", "host", "port", "connection_mode", "folders", "primary_folder",
                         "drafts_folder")
+MAILBOX_POLICY_FIELDS = {
+    "target_profile",
+    "personal_info",
+    "smart_reply",
+    "daily_briefing",
+    "activity_report_folder",
+    "retention",
+    "retention.full_mail_days",
+    "event_defaults.video_duration_minutes",
+    "event_defaults.in_person_duration_minutes",
+    "notifications.quiet_hours.enabled",
+    "notifications.quiet_hours.start",
+    "notifications.quiet_hours.end",
+    "notifications.quiet_hours.allow_system_errors",
+    *(
+        f"notifications.categories.{name}"
+        for name in ("decisions", "action_results", "daily_briefing", "system_errors")
+    ),
+}
 _MAILBOX_SETUP_FIELD = re.compile(r"^imap\.mailboxes\.[0-9]\.(?:" + "|".join(MAILBOX_SETUP_FIELDS) + r")$")
 
 
 def offered(name: str, setup: bool) -> bool:
     """Whether the web interface offers *name* for editing."""
     if setup and _MAILBOX_SETUP_FIELD.match(name):
+        return True
+    if setup and (name in {"imap.mailboxes", "target_profiles"} or
+            re.fullmatch(r"imap\.mailboxes\.[0-9]\.(.+)", name)
+            and name.split(".", 3)[3] in MAILBOX_POLICY_FIELDS):
         return True
     return name in (SETUP_FIELDS if setup else SETTINGS_FIELDS)
 
@@ -129,6 +156,8 @@ def set_dotted(document: dict, dotted: str, value: object) -> None:
     *parents, name = dotted.split(".")
     target: Any = document
     for part in parents:
+        if isinstance(target, dict) and target.get(part) is None:
+            target[part] = {}
         target = target[int(part)] if isinstance(target, list) else target.setdefault(part, {})
     target[int(name) if isinstance(target, list) else name] = value
 
@@ -164,7 +193,7 @@ def effective_models(prompts, jev_model: str | None, local_model: str | None) ->
 
 
 def file_hash(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+    return hashlib.sha256(path.read_bytes() if path.exists() else b"").hexdigest()
 
 
 def apply_settings(raw: dict, patch: dict, acknowledged: bool, *, setup: bool = False) -> dict:
@@ -181,6 +210,9 @@ def apply_settings(raw: dict, patch: dict, acknowledged: bool, *, setup: bool = 
             set_dotted(candidate, dotted, value)
         except (IndexError, TypeError) as exc:
             raise ValueError("Nicht angebotene Einstellung") from exc
+    if "imap.mailboxes" in patch and raw.get("imap", {}).get("mailboxes") is None:
+        for name in MAILBOX_FIELDS:
+            candidate["imap"].pop(name, None)
     Settings.model_validate(candidate)
     return candidate
 
@@ -214,26 +246,41 @@ class ConfigurationService:
     def change_senders(self, command: AdminCommand) -> ReviewResult:
         """Apply an idempotent sender change; it takes effect with the next mail."""
         try:
+            if command.expected_hash is not None and command.expected_hash != file_hash(self.path(command)):
+                raise ConfigurationConflict("Absenderfilter inzwischen geändert")
             change = SenderChange.model_validate(command.patch)
+            if change.mailbox_id is not None:
+                path = self.directory / "config.yaml"
+                active = Settings.model_validate(read_yaml(path)) if path.exists() else self.active
+                if active.imap.mailbox(change.mailbox_id) is None:
+                    raise ValueError("Postfach nicht konfiguriert")
             current = self._current_senders()
-            updated = change_irrelevant_senders(current, change.action == "add",
-                                                change.addresses, change.domains)
+            updated = change_irrelevant_senders(current, change.action in {"add", "allow"},
+                change.addresses, change.domains, change.mailbox_id, allow=change.action in {"allow", "unallow"})
             if updated == current:
                 message = (f"„{change.entries}“ wird bereits ignoriert." if change.action == "add"
                            else f"„{change.entries}“ stand nicht auf der Liste.")
             else:
                 assert self.senders is not None  # _current_senders() refused a missing list
-                self.senders.save("irrelevant-senders", updated.model_dump(mode="json"))
+                if not self.authorize(command.actor):
+                    return ReviewResult(status=ResultStatus.UNAUTHORIZED, message="Sitzung inzwischen abgelaufen.")
+                save_sender_filter(self.senders, updated)
                 message = (f"„{change.entries}“ wird ab sofort ignoriert: neue Mails werden ohne "
                            "KI-Aufruf und ohne Benachrichtigung aussortiert."
                            if change.action == "add" else
                            f"„{change.entries}“ wird künftig wieder normal verarbeitet.")
+            if change.action in {"allow", "unallow"}:
+                message = f"Absender-Ausnahme für Postfach {change.mailbox_id} gespeichert."
             return ReviewResult(status=ResultStatus.DONE, message=message)
+        except ConfigurationConflict:
+            return ReviewResult(status=ResultStatus.STALE, message="Absenderfilter inzwischen geändert.")
         except (ValueError, OSError):
             return ReviewResult(status=ResultStatus.INVALID,
                                 message="Absenderliste nicht geändert: ungültig oder nicht schreibbar.")
 
     def path(self, command: AdminCommand) -> Path:
+        if command.kind == AdminKind.SENDERS:
+            return self.directory / "irrelevant-senders.json"
         filename = "config.yaml" if command.kind in {AdminKind.SETTINGS, AdminKind.SETUP} else (
             "topics.yaml" if command.category == "relevant" else "irrelevant_topics.yaml")
         return self.directory / filename
@@ -244,10 +291,21 @@ class ConfigurationService:
             raise ConfigurationConflict("Datei wurde inzwischen geändert; bitte neu laden")
         raw = yaml.safe_load(path.read_text(encoding="utf-8"))
         if command.kind in {AdminKind.SETTINGS, AdminKind.SETUP}:
-            return apply_settings(raw, command.patch, command.acknowledged, setup=command.kind == AdminKind.SETUP)
+            candidate = apply_settings(raw, command.patch, command.acknowledged, setup=command.kind == AdminKind.SETUP)
+            if "target_profiles" in command.patch:
+                from .profile_usage import profile_references
+                proposed = {item["id"] for item in candidate["target_profiles"]}
+                for profile in raw.get("target_profiles", []):
+                    if profile["id"] not in proposed and profile_references(self.store, self.active, profile["id"]):
+                        raise ValueError("Zielprofil wird noch verwendet")
+            return candidate
         if not command.acknowledged:
             raise ValueError("Themenänderung muss bestätigt werden")
         topic = Topic.model_validate(command.patch)
+        if topic.mailboxes is not None:
+            configured = Settings.model_validate(read_yaml(self.directory / "config.yaml")).imap.configured_mailboxes()
+            if not set(topic.mailboxes) <= {box.id for box in configured}:
+                raise ValueError("Thema verweist auf ein nicht konfiguriertes Postfach")
         existing = [Topic.model_validate(item) for item in raw["topics"]]
         topics = [topic if item.id == topic.id else item for item in existing]
         if not any(item.id == topic.id for item in existing):
@@ -259,10 +317,27 @@ class ConfigurationService:
         """New file content; config.yaml keeps its comments and layout."""
         if command.kind not in {AdminKind.SETTINGS, AdminKind.SETUP}:
             return topics_document([Topic.model_validate(item) for item in candidate["topics"]])
-        scalars = {name: value for name, value in command.patch.items() if not isinstance(value, list)}
         source = self.path(command).read_text(encoding="utf-8")
         if any(name.startswith("notifications.") for name in command.patch):
             source = re.sub(r"(?m)^(notifications:)[ \t]*(?:null|~)([ \t]*(?:#.*)?)$", r"\1\2", source)
+        complex_roots = {"imap" if name.startswith("imap.mailboxes") else "target_profiles"
+                         for name in command.patch if name in {"imap.mailboxes", "target_profiles"}}
+        if complex_roots:
+            simple = {name: value for name, value in command.patch.items()
+                      if name.split(".", 1)[0] not in complex_roots}
+            content = source
+            content = set_scalars(
+                content, {name: value for name, value in simple.items() if not isinstance(value, list)}
+            )
+            for name, value in simple.items():
+                if isinstance(value, list):
+                    content = set_list(content, name, value, allow_missing=True)
+            for root in sorted(complex_roots):
+                content = replace_block(content, root, candidate[root])
+            if yaml.safe_load(content) != candidate:
+                raise YamlEditError("Konfiguration und geprüfter Entwurf unterscheiden sich")
+            return content
+        scalars = {name: value for name, value in command.patch.items() if not isinstance(value, list)}
         content = set_scalars(source, scalars)
         for name, value in command.patch.items():
             if isinstance(value, list):
@@ -275,11 +350,18 @@ class ConfigurationService:
     def execute(self, command: AdminCommand) -> ReviewResult:
         if not self.authorize(command.actor):
             return ReviewResult(status=ResultStatus.UNAUTHORIZED, message="Nicht autorisiert.")
+        if command.context_hash is not None and command.context_hash != file_hash(self.directory / "config.yaml"):
+            return ReviewResult(status=ResultStatus.STALE, message="Postfachkonfiguration inzwischen geändert.")
         if command.kind == AdminKind.SENDERS:
-            return self.change_senders(command)
+            result = self.change_senders(command)
+            if result.status == ResultStatus.DONE:
+                self.clear_local_draft(command)
+            return result
         try:
             candidate = self.candidate(command)
             content = self.render(command, candidate)
+            if not self.authorize(command.actor):
+                return ReviewResult(status=ResultStatus.UNAUTHORIZED, message="Sitzung inzwischen abgelaufen.")
             journal = {"schema_version": 1, "command": command.model_dump(mode="json"),
                        "candidate_hash": hashlib.sha256(content.encode()).hexdigest(), "status": "prepared"}
             self.store.save(f"configuration-{command.idempotency_key}", journal)
@@ -291,6 +373,17 @@ class ConfigurationService:
                 live = self.active.model_dump(mode="json")
                 for field in LIVE_FIELDS:
                     live[field] = candidate.get(field, live[field])
+                configured = Settings.model_validate(candidate)
+                # Operative overrides become effective at the next safe processing point.
+                # Connection changes and the adapter set are rebuilt on restart.
+                if not self.active.imap.legacy_format:
+                    boxes = []
+                    for box in self.active.imap.configured_mailboxes():
+                        changed = configured.imap.mailbox(box.id)
+                        policy = {name.split(".")[0] for name in MAILBOX_POLICY_FIELDS} - {"target_profile"}
+                        update = ({name: getattr(changed, name) for name in policy} if changed is not None else {})
+                        boxes.append(box.model_copy(update=update).model_dump(mode="json"))
+                    live["imap"]["mailboxes"] = boxes
                 self.active = Settings.model_validate(live)
                 self.activate(self.active)
                 message = ("Gespeichert. Pollintervall, Aufbewahrung, Metrikannahmen, Benachrichtigungsprofil "
@@ -300,6 +393,7 @@ class ConfigurationService:
                 if command.category == "relevant":
                     self.activate_topics([Topic.model_validate(item) for item in candidate["topics"]])
                 message = "Themen gespeichert; neue Analysen übernehmen sie am nächsten sicheren Verarbeitungspunkt."
+            self.clear_local_draft(command)
             return ReviewResult(status=ResultStatus.DONE, message=message)
         except ConfigurationConflict:
             return ReviewResult(status=ResultStatus.STALE, message="Datei inzwischen geändert; bitte neu laden.")
@@ -307,17 +401,26 @@ class ConfigurationService:
             return ReviewResult(status=ResultStatus.INVALID,
                                 message="Konfiguration nicht übernommen: ungültig, geändert oder nicht schreibbar.")
 
+    def clear_local_draft(self, command: AdminCommand) -> None:
+        from .setup import SetupState
+        draft = self.store.load_model("setup-state", SetupState)
+        if draft is not None and draft.kind != "settings" and draft.patch == command.patch:
+            draft.kind, draft.patch, draft.base_hash, draft.configuration_hash = "settings", {}, "", ""
+            draft.version += 1
+            self.store.save("setup-state", draft.model_dump(mode="json"))
+
     def reconcile(self, command: AdminCommand) -> ReviewResult:
         if command.kind == AdminKind.SENDERS:
             # Never repeated: done if the list already shows the requested state.
             try:
                 change = SenderChange.model_validate(command.patch)
                 current = self._current_senders()
-                done = change_irrelevant_senders(current, change.action == "add", change.addresses,
-                                                 change.domains) == current
+                done = change_irrelevant_senders(current, change.action in {"add", "allow"}, change.addresses,
+                    change.domains, change.mailbox_id, allow=change.action in {"allow", "unallow"}) == current
             except (ValueError, OSError):
                 done = False
             if done:
+                self.clear_local_draft(command)
                 return ReviewResult(status=ResultStatus.DONE,
                                     message="Absenderliste nach Neustart abgeglichen.")
             return ReviewResult(status=ResultStatus.FAILED,

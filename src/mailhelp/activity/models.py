@@ -139,6 +139,7 @@ class ActivityReport(StrictModel):
     finished_at: datetime | None = None
     blocked_addresses: list[str] = Field(default_factory=list)
     blocked_domains: list[str] = Field(default_factory=list)
+    allowed_addresses: list[str] = Field(default_factory=list)
     folders: list[FolderProgress] = Field(default_factory=list)
     counters: ReportCounters = Field(default_factory=ReportCounters)
     # Mails the user marked relevant after a negative verdict; their dates are extracted next.

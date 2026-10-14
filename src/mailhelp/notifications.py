@@ -37,6 +37,7 @@ class Delivery(BaseModel):
     status: DeliveryStatus = "pending"
     attempts: int = Field(default=0, ge=0)
     error: DeliveryError = ""
+    mailbox_id: int = Field(default=1, ge=1, le=99)
 
 
 class NotificationQueue(BaseModel):
@@ -62,10 +63,17 @@ def quiet_now(profile, zone: str, now: datetime, category: str) -> bool:
 
 class NotificationService:
     def __init__(self, store, settings, destinations, relevant, sender,
-                 clock=lambda: datetime.now(UTC), logger=None):
+                 clock=lambda: datetime.now(UTC), logger=None, settings_for_mailbox=None):
         self.store, self.settings, self.destinations = store, settings, destinations
         self.relevant, self.sender, self.clock, self.logger = relevant, sender, clock, logger
         self._runner = Lock()
+        self.settings_for_mailbox = settings_for_mailbox
+
+    def configuration(self, number):
+        return self.settings() if self.settings_for_mailbox is None else self.settings_for_mailbox(number)
+
+    def destination_list(self, category, number):
+        return self.destinations(category) if self.settings_for_mailbox is None else self.destinations(category, number)
 
     def state(self) -> NotificationQueue:
         return self.store.load_model(STATE, NotificationQueue, NotificationQueue())
@@ -73,26 +81,42 @@ class NotificationService:
     def _save(self, state: NotificationQueue) -> None:
         self.store.save(STATE, state.model_dump(mode="json"))
 
-    def enqueue(self, category: Category, reference: str, version: int = 0, *, exclude_channels=()) -> None:
+    def enqueue(
+        self, category: Category, reference: str, version: int = 0, *, exclude_channels=(), mailbox_id=1
+    ) -> None:
         """No text, endpoints or authorization is copied into a delivery record."""
-        settings, now = self.settings(), self.clock()
+        settings, now = self.configuration(mailbox_id), self.clock()
         profile = effective_profile(settings)
         with self.store.locked():
             state = self.state()
             pending = sum(waiting(item, profile.delivery.max_attempts) for item in state.entries.values())
             additions = []
-            for channel, device in self.destinations(category):
+            for channel, device in self.destination_list(category, mailbox_id):
                 if channel in exclude_channels:
                     continue
-                identity = hashlib.sha256(f"{category}:{reference}:{version}:{channel}:{device}".encode()).hexdigest()
-                if identity in state.entries:
+                scoped = "" if mailbox_id == 1 else f":mailbox:{mailbox_id}"
+                identity = hashlib.sha256(
+                    f"{category}:{reference}:{version}:{channel}:{device}{scoped}".encode()
+                ).hexdigest()
+                if identity in state.entries or any(
+                    (item.category, item.reference, item.version, item.channel, item.device, item.mailbox_id)
+                    == (category, reference, version, channel, device, mailbox_id) for item in state.entries.values()):
                     continue
                 group = [item for item in state.entries.values() if waiting(item, profile.delivery.max_attempts)
-                         and (item.category, item.channel, item.device) == (category, channel, device)]
+                         and (item.category, item.channel, item.device, item.mailbox_id)
+                         == (category, channel, device, mailbox_id)]
                 delay = profile.batching.window_seconds if profile.batching.enabled else 0
                 due = min((item.due_at for item in group), default=now + timedelta(seconds=delay))
-                additions.append(Delivery(id=identity, category=category, reference=reference, version=version,
-                    channel=channel, device=device, created_at=now, due_at=due, updated_at=now))
+                addition = Delivery(id=identity, category=category, reference=reference, version=version,
+                    channel=channel, device=device, created_at=now, due_at=due, updated_at=now, mailbox_id=mailbox_id)
+                if category == "daily_briefing" and ":" in reference:
+                    old = next((item for item in state.entries.values()
+                        if (item.category, item.reference, item.channel, item.device)
+                        == (category, reference.split(":", 1)[0], channel, device)
+                        and item.status in {"sent", "uncertain", "sending"}), None)
+                    if old is not None:
+                        addition.status = "uncertain" if old.status == "sending" else old.status
+                additions.append(addition)
             available = max(0, profile.delivery.max_pending - pending)
             state.entries.update((item.id, item) for item in additions[:available])
             self._save(state)
@@ -112,8 +136,10 @@ class NotificationService:
         profile = effective_profile(settings)
         with self.store.locked():
             state = self.state()
-            groups: dict[tuple[str, str, str], list[Delivery]] = {}
+            groups: dict[tuple[str, str, str, int], list[Delivery]] = {}
             for item in list(state.entries.values()):
+                settings = self.configuration(item.mailbox_id)
+                profile = effective_profile(settings)
                 if item.status == "sending":
                     # Neither Telegram nor browser push offers a reliable receipt lookup.
                     item.status, item.error, item.updated_at = "uncertain", "interrupted", now
@@ -124,7 +150,7 @@ class NotificationService:
                             and not self.relevant(item)):
                         del state.entries[item.id]
                     continue
-                if ((item.channel, item.device) not in self.destinations(item.category)
+                if ((item.channel, item.device) not in self.destination_list(item.category, item.mailbox_id)
                         or not self.relevant(item)):
                     item.status, item.error, item.updated_at = "cancelled", "obsolete", now
                     continue
@@ -132,13 +158,13 @@ class NotificationService:
                     item.status, item.updated_at = "deferred", now
                     continue
                 if item.status == "deferred" or item.due_at <= now:
-                    groups.setdefault((item.category, item.channel, item.device), []).append(item)
+                    groups.setdefault((item.category, item.channel, item.device, item.mailbox_id), []).append(item)
             self._save(state)
         for items in groups.values():
             self._deliver(items)
 
     def _deliver(self, candidates: list[Delivery]) -> None:
-        now, settings = self.clock(), self.settings()
+        now, settings = self.clock(), self.configuration(candidates[0].mailbox_id)
         profile = effective_profile(settings)
         with self.store.locked():
             state = self.state()
@@ -148,7 +174,7 @@ class NotificationService:
                 if not waiting(item, profile.delivery.max_attempts):
                     item.status = "failed"
                     continue
-                if ((item.channel, item.device) not in self.destinations(item.category)
+                if ((item.channel, item.device) not in self.destination_list(item.category, item.mailbox_id)
                         or not self.relevant(item)):
                     item.status, item.error, item.updated_at = "cancelled", "obsolete", now
                     continue

@@ -1,10 +1,10 @@
 # Mailhelp 3.2 – Einstellungen je Postfach
 
-**Zielversion:** 3.2.0
+**Zielversion:** 3.2.1
 
 **Stand:** 14. Oktober 2026
 
-**Status:** Planung; setzt die Umsetzung von [Planung 3.1](Planung-3.1.md) voraus
+**Status:** Umsetzung und lokale Abnahme abgeschlossen (3.2.1); baut auf [Planung 3.1](Planung-3.1.md) auf
 **Grundlage:** [Planung 3.1](Planung-3.1.md), [Planung 3.0](Planung-3.0.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Entwicklungsregeln](../AGENTS.md)
 
 ## 1. Ziel und Umfang
@@ -20,8 +20,8 @@ Postfächer fachlich unterscheiden, zum Beispiel:
 - Für das Arbeitspostfach gelten abends Ruhezeiten, für das private nicht.
 
 Das Prinzip: **Überschreiben statt kopieren.** Alles bleibt global konfiguriert; ein Postfach
-überschreibt nur, was bei ihm abweicht. Ohne Überschreibungen verhält sich 3.2 exakt wie 3.1,
-einschließlich identischer Analyse-Fingerprints.
+überschreibt nur, was bei ihm abweicht. Ohne Überschreibungen verhält sich 3.2 wie 3.1;
+die bisherigen Analyse-Fingerprints werden beim Upgrade als gleichwertig registriert.
 
 **Nicht Teil dieses Plans:** Mehrbenutzerbetrieb, eigene Telegram-Chats oder Bots je Postfach,
 getrennte Weboberflächen/Anmeldungen je Postfach, eigene Prompts oder Modelle je Postfach,
@@ -102,7 +102,8 @@ imap:
 - Ändert der Nutzer das Profil eines Postfachs, gilt das nur für neu erzeugte Vorschläge. Bestehende
   offene Vorschläge können in Web/Telegram ausdrücklich „auf neues Ziel umstellen“ – das erzeugt eine
   neue Version, die erneut bestätigt werden muss.
-- Ziele sind wie bisher nicht Teil des Analyse-Fingerprints.
+- Sämtliche Ziele sind nicht Teil des Analyse-Fingerprints, einschließlich der bisher enthaltenen
+  Standardfelder `google_calendar` und `todoist_project`.
 
 ## 4. Ignorierlisten und Absenderfilter
 
@@ -158,8 +159,10 @@ Einstellungen berechnet. Bündel werden nicht über Postfächer mit unterschiedl
 
 - Wirksamer Analyse-Fingerprint einer Mail = Hash aus globaler Analysekonfiguration, den für ihr Postfach
   wirksamen Themen und den analyserelevanten Überschreibungen (§5).
-- **Gleichheitsregel:** Ohne analyserelevante Überschreibungen und ohne `mailboxes`-Felder an Themen ist der
-  Fingerprint bitgleich zu 3.1. Pflichttest mit synthetischem 3.1-Zustand und offener Entscheidung.
+- **Gleichwertigkeitsregel (Nutzerentscheidung):** Alle Ziele werden aus dem Hash entfernt. Die bisherigen
+  Fingerprints und Themenrichtlinien werden beim Upgrade für dieselbe Analysekonfiguration als gleichwertig
+  registriert. Bitgleichheit zu 3.1 ist nicht erforderlich. Pflichttest mit synthetischem 3.1-Zustand,
+  offener Entscheidung und Neustart; bestehende Vorschläge behalten ihre Zielbindung.
 - Ändert sich nur die Themenzuordnung von Postfach 2, werden nur noch nicht abgeschlossene Mails von
   Postfach 2 mit `configuration_changed` zurückgehalten.
 
@@ -184,7 +187,7 @@ Betriebsproblem-Meldungen mit Postfach-Label und gegebenenfalls Diagnosekomponen
 
 | Phase | Schwerpunkt | Fertig, wenn … |
 | :--- | :--- | :--- |
-| 1 | Verträge | Schema für Profile, Überschreibungen, Filter Schema 2, Themenfeld; Fingerprint-Gleichheitsregel getestet; Spezifikation und `config.example.yaml` aktualisiert |
+| 1 | Verträge | Schema für Profile, Überschreibungen, Filter Schema 2, Themenfeld; Fingerprint-Gleichwertigkeit getestet; Spezifikation und `config.example.yaml` aktualisiert |
 | 2 | Zielprofile | Geheimnisse, Adapter je Profil, Proposal-Schema + Migration, Writer/Abgleich/Bestandsvorschau profilbezogen, OAuth-Abläufe mit `--profile` |
 | 3 | Filter und Themen | wirksame Filter/Themen je Postfach in Relevanz, Lernmodus und Decision-Test |
 | 4 | Operative Überschreibungen | Entwürfe, Benachrichtigungen, Tagesüberblick, Berichte, Aufbewahrung |
@@ -200,7 +203,7 @@ Betriebsproblem-Meldungen mit Postfach-Label und gegebenenfalls Diagnosekomponen
   Schreibresultate werden im richtigen Profil abgeglichen.
 - **Abgleich:** gleiche Einladung in beiden Postfächern mit unterschiedlichen Profilen wird nicht zusammengeführt.
 - **Filter:** globale Sperre, Postfachsperre, `allow`-Ausnahme, Schema-1-Migration, beschädigte Datei je Ebene.
-- **Themen/Fingerprint:** Gleichheitsregel, Änderung nur an Postfach 2 hält nur Postfach-2-Mails zurück.
+- **Themen/Fingerprint:** Gleichwertigkeitsregel, Änderung nur an Postfach 2 hält nur Postfach-2-Mails zurück.
 - **Benachrichtigungen:** Ruhezeit nur für Postfach 2; Bündel mischen keine Richtlinien; Neustart in Ruhezeit.
 - **Autorisierung:** alle neuen Webänderungen ohne Sitzung, mit falschem CSRF, veralteter Version,
   wiederholtem Schlüssel und widerrufener Sitzung bei Ausführung; „auf neues Ziel umstellen“ erteilt keine Freigabe.
@@ -221,3 +224,33 @@ für 3.1 nicht lesbar; Release-3.2.md beschreibt die Wiederherstellung aus der S
 2. Lernmodus-Standard für neue Absender/Themen: nur Ursprungspostfach (empfohlen) oder global.
 3. Sollen Postfächer auch eigene Relevanzschwellen (Jev) erhalten? Empfehlung: nein, erst bei konkretem Bedarf.
 4. Zielprofile auch für Antwortentwürfe nutzbar machen (Entwurf in anderem Postfach ablegen)? Empfehlung: nein.
+
+## 11. Umsetzung und Abnahme
+
+Alle sechs Phasen sind umgesetzt. Es gelten die vier empfohlenen Entscheidungen aus §10.
+Bedienung, Konfiguration, OAuth, Sicherung und Rückkehr sind in [Release 3.2](Release-3.2.md) beschrieben.
+
+Die ausdrückliche Nutzerentscheidung präzisiert §3.3/§6: Sämtliche Ziele einschließlich der bisher
+enthaltenen Standardfelder `google_calendar` und `todoist_project` sind aus dem Analyse-Hash entfernt.
+Die bisherigen Fingerprints und Themenrichtlinien bis einschließlich 3.1 werden beim Upgrade als
+gleichwertig registriert. Diese Gleichwertigkeit übersteht Neustarts und spätere Zieländerungen;
+gespeicherte Vorschläge werden dabei nicht umgestellt. Globale Dauern liegen im Vorschlagskontext;
+lokale Dauerregeln ergänzen den Postfach-Hash.
+
+Abnahme mit synthetischen Daten und simulierten externen Diensten am 14. Oktober 2026:
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Windows, Python 3.12.10 | 2.357 Tests bestanden; 100 % Zeilen- und 100 % Branch-Abdeckung |
+| WSL/Linux, Python 3.12.10, ohne Root-Rechte | 2.357 Tests bestanden; 100 % Zeilen- und 100 % Branch-Abdeckung |
+| Chrome/Playwright, Windows und WSL | Je 146 Tests bestanden; Desktop, Mobil und 320-px-Ansicht; JavaScript-Abdeckung vollständig |
+| Ruff und Mypy | Erfolgreich; 169 Anwendungsmodule geprüft |
+| Wheel/Quellpaket und installiertes Paket | Je zwei Paketprüfungen unter Windows und Linux bestanden; Profilmodule und Release-Dateien enthalten |
+| Docker/Linux, UID 65532 | Frischer Build, Konfigurationsprüfung, Verarbeitung/Neustart sowie Lernen/Neustart bestanden |
+
+Regressionen prüfen unter anderem die Ablehnung eingebetteter CalDAV-Benutzernamen, das Erhalten von
+YAML-Kommentaren, die Trennung der Zielprofile, neue Bestätigung nach Zielumstellung, lokale Filter und
+Aufbewahrung sowie das Verwerfen bereits eingereihter Tagesabschnitte nach Ausschluss eines Postfachs.
+Weitere Regressionen prüfen sämtliche Ziele außerhalb des Analyse-Hashs, die Gleichwertigkeitsmigration
+offener 3.1-Mails mit und ohne JEV sowie die Einstellungs-Vorschau für migrierte laufende Mails.
+Neue Themenbeschränkungen halten auch bei diesen migrierten Mails nur tatsächlich betroffene Postfächer zurück.

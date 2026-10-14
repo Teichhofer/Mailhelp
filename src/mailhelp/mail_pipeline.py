@@ -123,10 +123,17 @@ class MailPipeline:
     def _prepare(self, run: ProcessingRun, fetched: FetchedMail) -> None:
         state, name = run.state, run.name
         if state.steps.preparation == "pending":
+            cfg = self.o.effective_settings(state.imap.account_id) if self.o.mailbox_settings is not None else None
             state.proposal_policy = {
                 "schema_version": 1, "normalization_version": "2.4-v1",
                 "matching_policy": self.o.reconciliation.policy, "event_defaults": self.o.event_defaults.model_dump(),
                 "max_semantic_candidates": self.o.reconciliation_settings.max_semantic_candidates}
+            if cfg is not None:
+                assert self.o.mailbox_settings is not None
+                mailbox = self.o.mailbox_settings.imap.mailbox(self.o.mailbox_number(state.imap.account_id))
+                assert mailbox is not None
+                state.proposal_policy.update(targets=cfg.targets.model_dump(), target_profile=mailbox.target_profile,
+                    event_defaults=cfg.event_defaults.model_dump(), mailbox_id=mailbox.id)
             if state.display_headers is None:
                 display = extract_display_headers(fetched.raw, self.o.max_bytes)
                 state.display_headers = DisplayHeaders(sender=display["from"], subject=display["subject"])
@@ -143,16 +150,24 @@ class MailPipeline:
         run.stage = ProcessingStage.RELEVANCE
         state = run.state
         if state.steps.relevance == "pending":
-            if is_irrelevant_sender(_prepared(state).headers.sender, self.o.blocked_senders()):
+            if is_irrelevant_sender(_prepared(state).headers.sender, self.o.blocked_senders(),
+                                    self.o.mailbox_number(state.imap.account_id)):
                 state.relevance = Relevance(
                     decision="irrelevant", topic_ids=[], reason="Absender-Vorfilter"
                 )
                 call = None
                 self.o.analyzer.last_relevance_source = "prefilter"
             else:
-                topics = self.o.topics_for(state.config_fingerprint)
-                call, state.relevance = self.o.analyzer.relevance(_content(state), topics)
-                state.llm_call_ids.append(call)
+                topics = self.o.topics_for(state.config_fingerprint, state.imap.account_id)
+                if self.o.mailbox_settings is not None and not any(topic.enabled for topic in topics):
+                    call = None
+                    state.relevance = Relevance(
+                        decision="irrelevant", topic_ids=[], reason="Kein relevantes Thema für dieses Postfach"
+                    )
+                    self.o.analyzer.last_relevance_source = "prefilter"
+                else:
+                    call, state.relevance = self.o.analyzer.relevance(_content(state), topics)
+                    state.llm_call_ids.append(call)
             state.steps.relevance = "completed"
             self.o.save(run.name, state)
             self.o.logger.event("INFO", "orchestrator", "relevance_completed", mail_id=state.id,

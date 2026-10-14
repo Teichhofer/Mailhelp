@@ -35,8 +35,11 @@ class ReconciliationSite:
         for method, path, handler in (("GET", "/abgleich", self.preview), ("POST", "/abgleich", self.apply)):
             site.app.route(method, path, site.signed_in(handler))
 
-    def defaults(self):
+    def defaults(self, proposal=None):
         configuration = self.site.archive.configuration
+        if configuration and proposal is not None:
+            from ..mailbox_settings import event_defaults_for
+            return event_defaults_for(configuration.active, self.site.views.store, proposal, self.site.views.mailboxes)
         return configuration.active.event_defaults if configuration else EventDefaultsSettings()
 
     def fragment(self, mail_id, proposal_id):
@@ -71,6 +74,13 @@ class ReconciliationSite:
         if mail is None:
             return ""
         body = '<section><h2>Erkannte Vorgänge</h2><ul>'
+        if mail.duplicate is not None:
+            previous = self.site.views.store.peek_model(f"mail-{mail.duplicate.previous_mail_id}", MailState)
+            if previous is not None and (previous.proposal_policy or {}).get("target_profile", 1) != (
+                mail.proposal_policy or {}
+            ).get("target_profile", 1):
+                body += ('<li>Die Kopie gehört zu einem anderen Zielprofil. Es gilt die zuerst verarbeitete Mail; '
+                         'hier wurde kein weiterer Vorschlag erzeugt.</li>')
         for item in mail.proposals:
             status = STATUS_LABELS[item.status]
             body += f'<li><a href="{e(proposal_link(item))}">{e(item.title)}</a> · {e(status)}</li>'
@@ -84,6 +94,7 @@ class ReconciliationSite:
             body = ('<div class="setup-page"><h1>Vorschlagsabgleich</h1><p>Lokale Vorschläge und Quellen vergleichen. '
                     'Übernehmen legt nichts extern an; eine neue Version muss separat bestätigt werden.</p>')
             for item in items:
+                defaults = self.defaults(item)
                 body += (f'<section class="card"><h2><a class="button" href="{e(proposal_link(item))}">'
                          f'{e(item.title)}</a></h2>')
                 body += f'<p>Version {item.version} · {e(STATUS_LABELS[item.status])}</p>'

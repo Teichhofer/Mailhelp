@@ -16,7 +16,7 @@ from .config import IrrelevantTopicsConfig, Topic, TopicsConfig
 from .imap import FetchedMail, FolderNotReadable, ImapReader, MailCandidate
 from .mime import prepare
 from .models import IrrelevantSenders, LearnedCategory, MailClassification
-from .sender_filter import add_irrelevant_senders, is_irrelevant_sender
+from .sender_filter import is_irrelevant_sender
 from .storage import CorruptState, JsonStore, atomic_replace
 from .yaml_edit import set_list
 
@@ -41,12 +41,13 @@ def _topic_id(name: str, used: set[str]) -> str:
 
 
 def save_topics(path: Path, existing: list[Topic], accepted: list[LearnedCategory],
-                *, allow_empty: bool = False) -> list[Topic]:
+                *, allow_empty: bool = False, scopes: list[list[int] | None] | None = None) -> list[Topic]:
     """Validate and atomically replace a topic file with accepted candidates."""
     used = {topic.id for topic in existing}
     additions = [Topic(id=_topic_id(item.name, used), name=item.name, enabled=True,
-                       description=item.description, examples=item.examples)
-                 for item in accepted]
+                       description=item.description, examples=item.examples,
+                       mailboxes=scopes[index] if scopes is not None else None)
+                 for index, item in enumerate(accepted)]
     model = IrrelevantTopicsConfig if allow_empty else TopicsConfig
     result = model(topics=[*existing, *additions]).topics
     atomic_replace(path, topics_document(result))
@@ -55,7 +56,7 @@ def save_topics(path: Path, existing: list[Topic], accepted: list[LearnedCategor
 
 def topics_document(topics: list[Topic]) -> str:
     """The one serialization of topic files, shared by learning mode and web."""
-    return yaml.safe_dump({"topics": [topic.model_dump() for topic in topics]}, allow_unicode=True,
+    return yaml.safe_dump({"topics": [topic.model_dump(exclude_none=True) for topic in topics]}, allow_unicode=True,
                           sort_keys=False, default_flow_style=False)
 
 
@@ -96,6 +97,7 @@ class LearningSource:
     imap: Any
     folders: list[str]
     folders_path: str = "imap.folders"
+    mailbox_id: int = 1
 
 
 class LearningMode:
@@ -108,7 +110,7 @@ class LearningMode:
                  timezone: str = "UTC", parallel_llm_calls: int = 4,
                  global_newest_first: bool = False,
                  config_path: Path | None = None, folders_path: str = "imap.folders",
-                 sources: list[LearningSource] | None = None):
+                 sources: list[LearningSource] | None = None, scoped_learning: bool = False):
         # Several mailboxes form one selection of the newest mail (3.1); otherwise just this one.
         self.sources = sources or [LearningSource(imap, folders, folders_path)]
         self.analyzer = analyzer
@@ -120,6 +122,9 @@ class LearningMode:
         self.parallel_llm_calls = parallel_llm_calls
         self.global_newest_first = global_newest_first
         self.config_path = config_path
+        self.scoped_learning = scoped_learning
+        self.scopes: dict[int, list[int] | None] = {}
+        self.origins: dict[int, int] = {}
 
     def _refresh_folders(self) -> None:
         if self.config_path is None:
@@ -197,13 +202,25 @@ class LearningMode:
         if not classifications:
             self.output("Keine unbekannten Mails zum Lernen gefunden; Themendateien wurden nicht geändert.")
             return 0
-        accepted, rejected = self._ask(self._categories(classifications))
+        categories = [] if self.scoped_learning else self._categories(classifications)
+        if self.scoped_learning:
+            categories = []
+            for number in sorted({int(cast(int, payload["mailbox_id"]))
+                                  for _, payload, _ in results if payload is not None}):
+                group = [item for item, payload, _ in results
+                         if item is not None and payload is not None and payload["mailbox_id"] == number]
+                for category in self._categories(group):
+                    self.origins[id(category)] = number
+                    categories.append(category)
+        accepted, rejected = self._ask(categories)
         if accepted:
-            self.topics = save_topics(self.topics_path, self.topics, accepted)
+            self.topics = save_topics(self.topics_path, self.topics, accepted,
+                scopes=[self.scopes.get(id(item)) for item in accepted])
         if rejected:
             self.irrelevant_topics = save_topics(
                 self.irrelevant_topics_path, self.irrelevant_topics, rejected,
                 allow_empty=True,
+                scopes=[self.scopes.get(id(item)) for item in rejected],
             )
             if self.store is not None:
                 self._block_rejected_senders(results, rejected, blocked)
@@ -237,8 +254,11 @@ class LearningMode:
         def classify(mail: FetchedMail) -> tuple[MailClassification | None, dict[str, object] | None, bool]:
             try:
                 payload = prepare(mail.raw, self.limits, mail.received_at, self.timezone)
+                number = next((source.mailbox_id for source in self.sources
+                               if getattr(source.imap, "account_id", None) == mail.account_id), 1)
+                payload["mailbox_id"] = number
                 headers = cast(dict[str, Any], payload["headers"])
-                if is_irrelevant_sender(headers.get("from", ""), blocked):
+                if is_irrelevant_sender(headers.get("from", ""), blocked, number):
                     return None, None, False
                 if self._known(payload, known_topics):
                     return None, None, False
@@ -284,6 +304,14 @@ class LearningMode:
                     rejected.append(category)
                     break
                 self.output("Bitte mit j oder n antworten.")
+            if self.scoped_learning:
+                number = self.origins[id(category)]
+                while True:
+                    scope = self.input(f"Nur Postfach {number} [Enter] oder alle Postfächer [a]? ").strip().lower()
+                    if scope in {"", "n", "nur", "a", "alle", "all"}:
+                        self.scopes[id(category)] = None if scope in {"a", "alle", "all"} else [number]
+                        break
+                    self.output("Bitte Enter für das Ursprungspostfach oder a für alle eingeben.")
         return accepted, rejected
 
     def _block_rejected_senders(self, results: list, rejected: list[LearnedCategory],
@@ -291,31 +319,44 @@ class LearningMode:
         """Ignore the senders of mails that belong to a rejected category."""
         rejected_names = {item.name.casefold() for item in rejected}
         rejected_topics = self.irrelevant_topics[-len(rejected):]
-        headers: list[object] = []
+        headers: dict[int | None, list[object]] = {}
         for classification, payload, _failed in results:
             if classification is None or payload is None:
                 continue
+            from .mailbox_settings import effective_topics
+            number = int(payload.get("mailbox_id", 1))
+            local_topics = effective_topics(rejected_topics, number)
+            names = {topic.name.casefold() for topic in local_topics}
             directly_matched = any(
-                category.name.casefold() in rejected_names
+                category.name.casefold() in rejected_names & names
                 for category in classification.categories
             )
             try:
-                matched = directly_matched or self._known(payload, rejected_topics)
+                matched = directly_matched or self._known(payload, local_topics)
             except Exception:
                 matched = directly_matched
             if matched:
-                headers.append(payload["headers"].get("from", ""))
-        updated = add_irrelevant_senders(blocked, headers)
+                global_names = {topic.name.casefold() for topic in local_topics if topic.mailboxes is None}
+                global_match = any(item.name.casefold() in global_names for item in classification.categories)
+                scope = number if self.scoped_learning and not global_match else None
+                headers.setdefault(scope, []).append(payload["headers"].get("from", ""))
+        from .sender_filter import change_irrelevant_senders, save_sender_filter, sender_addresses
+        updated = blocked
+        for scope, values in headers.items():
+            addresses = sorted(set().union(*(sender_addresses(header) for header in values)))
+            updated = change_irrelevant_senders(updated, True, addresses, [], scope)
         if updated != blocked:
             # Persist the union calculated above: learning must never
             # replace addresses or manually maintained domains that
             # were already present when this run started.
             assert self.store is not None  # rejected senders are only learned with a store
-            self.store.save("irrelevant-senders", updated.model_dump(mode="json"))
+            save_sender_filter(self.store, updated)
 
     def _known(self, payload: dict[str, object], topics: list[Topic]) -> bool:
         """Return whether a mail matches an enabled topic in the supplied category set."""
-        enabled = [topic for topic in topics if topic.enabled]
+        from .mailbox_settings import effective_topics
+        enabled = [topic for topic in effective_topics(topics, int(cast(int, payload.get("mailbox_id", 1))))
+                   if topic.enabled]
         if not enabled:
             return False
         _call_id, relevance = self.analyzer.relevance(payload, enabled)

@@ -62,6 +62,13 @@
           "title": "Id",
           "type": "string"
         },
+        "mailbox_id": {
+          "default": 1,
+          "maximum": 99,
+          "minimum": 1,
+          "title": "Mailbox Id",
+          "type": "integer"
+        },
         "reference": {
           "maxLength": 200,
           "minLength": 1,

@@ -242,7 +242,7 @@ def test_cli_runs_terminal_learning_mode(monkeypatch):
                           {'timezone': 'Europe/Berlin', 'parallel_llm_calls': 7,
                            'global_newest_first': False,
                            'config_path': Path('cfg/config.yaml'),
-                           'sources': [LearningSource('imap', ['INBOX'], 'imap.folders')]}), 3]
+                           'sources': [LearningSource('imap', ['INBOX'], 'imap.folders')], 'scoped_learning': True}), 3]
 
 
 def test_signal_shutdown_interrupts_one_shot_modes_and_stops_service():
@@ -463,4 +463,4 @@ def test_cli_learns_from_all_mailboxes(monkeypatch):
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--learn", "3", "--mailbox", "alle"])
     assert main() == 0
     assert captured == [[LearningSource("a", ["INBOX"], "imap.mailboxes.0.folders"),
-                         LearningSource("b", ["INBOX", "Projekte"], "imap.mailboxes.2.folders")]]
+                         LearningSource("b", ["INBOX", "Projekte"], "imap.mailboxes.2.folders", mailbox_id=2)]]

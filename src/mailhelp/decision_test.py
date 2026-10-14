@@ -6,6 +6,7 @@ import hashlib
 import json
 import time
 from contextlib import ExitStack
+from copy import copy
 from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
@@ -103,7 +104,7 @@ class DecisionTestMode:
                  *, ignore_historical_start: bool = False, relevance_only: bool = False,
                  save_interval: float = SAVE_INTERVAL_SECONDS, clock=time.monotonic,
                  mailbox: MailboxSettings | None = None,
-                 sources: list[tuple[MailboxSettings, Any]] | None = None):
+                 sources: list[tuple[MailboxSettings, Any]] | None = None, blocked_senders=None):
         self.imap, self.standard, self.ollama = imap, standard, ollama
         self.settings, self.topics = settings, topics
         self.mailbox = mailbox or settings.imap.enabled_mailboxes()[0]
@@ -114,6 +115,7 @@ class DecisionTestMode:
         self.relevance_only = relevance_only
         self.save_interval, self.clock = save_interval, clock
         self.saved_at: float | None = None
+        self.blocked_senders = blocked_senders
 
     def _save(self, *, force: bool = False) -> None:
         now = self.clock()
@@ -143,7 +145,23 @@ class DecisionTestMode:
         record["paths"][name] = result
         if self.recorder.metrics is not None:
             self.recorder.metrics.test_mail_hash = record.get("mail_sha256")
-        relevance = self._stage(result, "relevance", lambda: classifier.relevance(mail, self.topics))
+        from .mailbox_settings import effective_topics
+        from .sender_filter import is_irrelevant_sender
+        topics = effective_topics(self.topics, record.get("mailbox", self.mailbox.id))
+        number = record.get("mailbox", self.mailbox.id)
+        if isinstance(classifier, LocalPipeline):
+            classifier = LocalPipeline(classifier.main, copy(classifier.relevance_analyzer))
+            classifier.relevance_analyzer.irrelevant = effective_topics(
+                classifier.relevance_analyzer.irrelevant, number
+            )
+        blocked = self.blocked_senders is not None and is_irrelevant_sender(
+            mail.get("headers", {}).get("from", ""), self.blocked_senders, number)
+        if blocked or not any(topic.enabled for topic in topics):
+            from .models import Relevance
+            operation = lambda: ("prefilter", Relevance(decision="irrelevant", topic_ids=[], reason="Postfachfilter"))
+        else:
+            operation = lambda: classifier.relevance(mail, topics)
+        relevance = self._stage(result, "relevance", operation)
         result["would_process_in_normal_mode"] = relevance is not None and relevance.decision == "relevant"
         if self.relevance_only:
             # Only the relevance decision is compared; no follow-up stage runs.
@@ -214,6 +232,7 @@ class DecisionTestMode:
                           "received_at": fetched.received_at.isoformat(),
                           "raw_rfc822_base64": _raw_mail(fetched.raw, self.recorder.secrets),
                           "raw_credentials_redacted": True, "paths": {}, "status": "running"}
+                record["mailbox"] = self.sources[-_source_rank][0].id
                 self.report["mails"].append(record)
                 self._save()
                 try:
@@ -411,10 +430,14 @@ def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
                        for mailbox in mailboxes]
             standard, ollama = _comparison_analyzers(settings, secrets, prompts, decision_prompts, local_llm,
                                                      laya, laya_prompts, irrelevant_topics, recorder, stack)
+            from .models import IrrelevantSenders
+            sender_file = directory / "irrelevant-senders.json"
+            blocked = (IrrelevantSenders.model_validate(json.loads(sender_file.read_text(encoding="utf-8")))
+                       if sender_file.exists() else IrrelevantSenders())
             return DecisionTestMode(sources[0][1], standard, ollama, settings, topics, report, output,
                                     recorder, ignore_historical_start=ignore_historical_start,
                                     relevance_only=relevance_only, mailbox=mailboxes[0],
-                                    sources=sources).run(count)
+                                    sources=sources, blocked_senders=blocked).run(count)
     except BaseException as exc:
         report["error_type"] = type(exc).__name__
         write_report(output, redact(report, known_secrets))

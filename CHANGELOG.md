@@ -1,5 +1,32 @@
 # Änderungen
 
+## 3.2.1 – Einstellungen je Postfach
+
+- Sparsame Postfachüberschreibungen mit globaler Vererbung für persönliche Angaben, Antwortentwürfe,
+  Ruhezeiten/Kategoriekanäle, Tagesüberblick, Berichtsordner, kürzere Volltextaufbewahrung und Termindauern.
+- Zielprofile 2–99 mit getrennten Geheimnissen und Adaptern; nur OAuth-App-Zugangsdaten dürfen gemeinsam
+  genutzt werden. Google-Browseranmeldung und Microsoft-Gerätecode unterstützen `--profile`.
+- Vorschläge Schema 3 binden ihr Profil dauerhaft. Lesender Vorabgleich und Wiederanlauf nach unklarem
+  Schreibergebnis verwenden dieses Profil. Zielumstellen in Web/Telegram erzeugt eine neue unbestätigte
+  Version; Profilfehler beeinträchtigen andere Profile nicht.
+- Themen und ausgeschlossene Themen unterstützen `mailboxes`. Filter Schema 2 kombiniert globale und
+  lokale Sperren mit lokalen `allow`-Ausnahmen; Schema 1 wird erst beim Schreiben mit Sicherung migriert.
+  Lernen schlägt das Ursprungspostfach vor; Decision-Test und Berichte verwenden die wirksamen Filter.
+- Fünf Postfach-Tabs, Profilverwaltung mit Verweisprüfung, versionierte Einrichtungsentwürfe und Vorschau
+  betroffener laufender Mails. Profilgebundene Diagnosen und Anzeige in Telegram und Web.
+- Postfachbezogene Benachrichtigungsrichtlinien und Tagesabschnitte erhalten Versandmarker beim Upgrade.
+  Bereits eingereihte Abschnitte werden verworfen, wenn ihr Postfach inzwischen ausgeschlossen wurde.
+- Sämtliche Ziele sind aus dem Analyse-Fingerprint entfernt. Beim Upgrade werden die bisherigen
+  Fingerprints und Themenrichtlinien bis 3.1 als gleichwertig registriert; laufende Mails und gebundene
+  Vorschlagsziele bleiben erhalten. Details zu Upgrade/Backup/Rollback stehen in
+  [Release 3.2](docs/Release-3.2.md).
+- Regression: CalDAV-URLs mit eingebetteten Benutzernamen werden abgewiesen. Kleine YAML-Feldänderungen
+  behalten Kommentare; Mischentwürfe mit Listen und Benachrichtigungsregeln werden sicher bearbeitet.
+  Die Einstellungs-Vorschau berücksichtigt registrierte Alt-Hashes und hält bei reinen Zieländerungen
+  keine laufenden Mails zurück.
+  Themenbeschränkungen halten auch bei migrierten 3.1-Mails nur Postfächer mit veränderten wirksamen
+  Themen zurück.
+
 ## 3.1.3 – beta: Telefonansicht, Release-Texte und CI-Actions
 
 - **Fehler behoben:** Auf Telefonen bricht die Navigation auf mehrere Zeilen um; als klebende Kopfleiste

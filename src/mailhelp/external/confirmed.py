@@ -22,7 +22,8 @@ def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Calla
     if (proposal.status not in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN}
             or proposal.open_questions):
         raise ValueError("Schreiben erfordert vollständige, bestätigte Vorschlagsversion")
-    if isinstance(writer, TargetWriter) and (proposal.target != writer.target or
+    if isinstance(writer, TargetWriter) and (proposal.target_profile != getattr(writer, "target_profile", 1)
+            or proposal.target != writer.target or
             proposal.target_provider and proposal.target_provider != provider_key(writer)):
         # Even reconciliation must not search a newly configured target for an
         # action authorized against a different project/calendar.

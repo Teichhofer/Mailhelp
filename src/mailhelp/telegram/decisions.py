@@ -41,6 +41,7 @@ class ProposalDecisionService:
         self.allowed_user, self.allowed_chat = allowed_user, allowed_chat
         self.configured_timezone = configured_timezone
         self.precheck: DuplicatePreCheckService | None = None
+        self.profile_available: Callable[[Proposal], bool] = lambda proposal: True
 
     def decide(self, decision: Decision, user_id: int, chat_id: int) -> str:
         """Apply the decision and return the confirmation text ("" if none)."""
@@ -66,6 +67,8 @@ class ProposalDecisionService:
             DecisionAction.CONFIRM,
             DecisionAction.CONFIRM_DUPLICATE,
         }
+        if confirming and not self.profile_available(proposal):
+            raise AnswerRequired("Zielprofil nicht mehr konfiguriert oder nicht verfügbar")
         if confirming:
             candidates = ProposalReconciliationService(self.store).confirmation_candidates(proposal)
             if candidates:

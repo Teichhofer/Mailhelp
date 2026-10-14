@@ -161,6 +161,8 @@ class CardContent:
     description_full: str | None
     evidence: str
     evidence_full: str
+    profile_label: str | None = None
+    target: str | None = None
 
 
 def card_content(proposal: Proposal, configured_timezone: str,

@@ -1131,8 +1131,8 @@
           "$ref": "#/$defs/ProposalResponsibility"
         },
         "schema_version": {
-          "const": 2,
-          "default": 2,
+          "const": 3,
+          "default": 3,
           "title": "Schema Version",
           "type": "integer"
         },
@@ -1202,6 +1202,13 @@
           ],
           "default": null,
           "title": "Target Event Id"
+        },
+        "target_profile": {
+          "default": 1,
+          "maximum": 99,
+          "minimum": 1,
+          "title": "Target Profile",
+          "type": "integer"
         },
         "target_provider": {
           "default": "",

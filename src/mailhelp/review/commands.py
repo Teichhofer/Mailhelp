@@ -35,6 +35,7 @@ class CommandKind(StrEnum):
     RESTORE = "restore_proposal"
     DEFAULTS = "reapply_defaults"
     RECHECK = "recheck_proposal"
+    RETARGET = "retarget_proposal"
 
 
 PROPOSAL_KINDS = frozenset(set(CommandKind) - {CommandKind.RELEVANCE})
@@ -58,6 +59,7 @@ class ReviewCommand(BaseModel):
     target_ref: ProposalReference | None = None
     target_version: int | None = Field(default=None, ge=1)
     proposal_hash: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
+    target_profile: int | None = Field(default=None, ge=1, le=99)
 
     @model_validator(mode="after")
     def complete(self) -> ReviewCommand:
@@ -66,8 +68,12 @@ class ReviewCommand(BaseModel):
                 raise ValueError("Zusammenführung benötigt die Zielversion")
         elif self.target_ref is not None or self.target_version is not None:
             raise ValueError("Nur Zusammenführung enthält ein Ziel")
-        if (self.kind in {CommandKind.RESTORE, CommandKind.DEFAULTS}) != (self.proposal_hash is not None):
+        if (self.kind in {CommandKind.RESTORE, CommandKind.DEFAULTS, CommandKind.RETARGET}) != (
+            self.proposal_hash is not None
+        ):
             raise ValueError("Wiederherstellung und Dauerannahme benötigen den geprüften Hash")
+        if (self.kind == CommandKind.RETARGET) != (self.target_profile is not None):
+            raise ValueError("Zielwechsel benötigt die gewählte Profilnummer")
         if (self.kind == CommandKind.EDIT) != (self.patch is not None):
             raise ValueError("Nur strukturierte Bearbeitung enthält Felder")
         if (self.kind in PROPOSAL_KINDS) != (self.proposal_id is not None):

@@ -1,5 +1,7 @@
 # Mailhelp
 
+Versionsstand: **3.2.1**.
+
 Die [Release-Anleitung](docs/Release-1.0.md) beschreibt Installation aus den
 Distributionspaketen, Aktualisierung, Sicherung und Rückkehr zur vorherigen Version.
 Änderungen stehen im [Changelog](CHANGELOG.md).
@@ -9,6 +11,12 @@ Offene Vorschläge zusammenführen und Standarddauern aus der Planung 2.4:
 Einrichtungsassistent, Diagnose und Benachrichtigungsprofil aus der Planung 3.0:
 [Betriebs- und Upgrade-Anleitung](docs/Release-3.0.md).
 Mehrere Postfächer ab 3.1: [Einrichtung, Upgrade und Rückkehr](docs/Release-3.1.md).
+Einstellungen je Postfach für 3.2: [Zielprofile, Vererbung und Upgrade](docs/Release-3.2.md).
+Lokale Themen, Absenderausnahmen, Signaturen, Ruhezeiten und kürzere Aufbewahrung lassen sich
+unter Einstellungen → Postfächer bearbeiten. Zusätzliche Ziele bleiben an die jeweilige
+Vorschlagsversion gebunden; eine Zielumstellung benötigt erneut eine ausdrückliche Bestätigung.
+Alle Ziele bleiben außerhalb des Analyse-Fingerprints. Das Upgrade registriert bisherige
+Fingerprints automatisch als gleichwertig, damit offene Entscheidungen weiterbearbeitet werden.
 Die geplante Weboberfläche für Version 1.1 beschreibt das
 [Konzept mit Umsetzungsplan](docs/Konzept-1.1-Web-PWA.md).
 

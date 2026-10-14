@@ -134,6 +134,26 @@ def _block(parts: list[str], rendered: str, indent: int) -> list[str]:
 __all__ = ["YamlEditError", "render", "set_list", "set_scalars"]
 
 
+def replace_block(text: str, dotted: str, value: Any) -> str:
+    """Replace one collection, preserving comments and content outside that collection."""
+    lines = text.splitlines()
+    paths = _paths(lines)
+    found = next(((index, indent) for index, path, indent in paths if path == dotted), None)
+    if found is None:
+        flow = yaml.safe_dump(value, default_flow_style=True, allow_unicode=True, width=10**6).strip()
+        return "\n".join(_insert(lines, paths, dotted.split("."), flow)) + "\n"
+    index, indent = found
+    end = index + 1
+    while end < len(lines):
+        stripped = lines[end].lstrip()
+        depth = len(lines[end]) - len(stripped)
+        if stripped and depth <= indent and not stripped.startswith("- "):
+            break
+        end += 1
+    replacement = yaml.safe_dump({dotted.split(".")[-1]: value}, allow_unicode=True, sort_keys=False).splitlines()
+    return "\n".join([*lines[:index], *(" " * indent + line for line in replacement), *lines[end:]]) + "\n"
+
+
 def set_list(text: str, dotted: str, items: list[Any], *, allow_missing: bool = False) -> str:
     """Replace the block sequence under *dotted* (``key:`` followed by ``- item`` lines)."""
     lines = text.splitlines()

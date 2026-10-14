@@ -114,6 +114,7 @@ class ReviewSite:
         link = f'<p><a class="button" href="/vorschlag/{mail_id}/{proposal_id}/bearbeiten">Felder bearbeiten</a></p>'
         from .review_pages import disclosure
         extra = (link + self.site.reconciliation_page.fragment(mail_id, proposal_id)
+                 + (self.site.mailbox_page.target_forms(proposal, session) if proposal is not None else "")
                  + self.site.experience.editor(mail_id, self.site.auth.csrf_token(session.id))
                  + disclosure("Revisionshistorie &amp; Differenzen", self.site.archive.revisions(mail_id, proposal_id))
                  + disclosure("Technische LLM-Analyse &amp; Metriken", self.site.archive.analysis(mail_id)))

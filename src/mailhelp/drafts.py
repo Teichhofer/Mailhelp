@@ -71,11 +71,13 @@ class DraftService:
                  connection: Callable[[], AbstractContextManager[imaplib.IMAP4]], sender: str,
                  folder: str = "Drafts", test_mode: bool = False, analyzer: DraftAnalyzer | None = None,
                  personal_info: Callable[[], str] = lambda: "",
-                 targets: Callable[[str], DraftTarget | None] | None = None) -> None:
+                 targets: Callable[[str], DraftTarget | None] | None = None,
+                 mailbox_policy: Callable[[str], tuple[bool, str]] | None = None) -> None:
         self.store, self.authorize, self.connection = store, authorize, connection
         self.sender, self.folder, self.test_mode = sender, folder, test_mode
         # With several mailboxes (3.1): the target of the mailbox a mail came from, by account id.
         self.targets = targets
+        self.mailbox_policy = mailbox_policy
         # Read on every click, so a changed setting applies without a restart.
         self.analyzer, self.personal_info = analyzer, personal_info
         # Serializes draft actions including the LLM and IMAP access, without the store lock.
@@ -96,7 +98,8 @@ class DraftService:
     def available(self, mail_id: str) -> bool:
         """Replies need the mail text; retention removes it together with the draft text."""
         source = self.store.load_model(state_names.mail(mail_id), MailState)
-        return source is not None and source.mail is not None
+        return (source is not None and source.mail is not None
+                and (self.mailbox_policy is None or self.mailbox_policy(source.imap.account_id)[0]))
 
     def _save(self, mail_id: str, draft: dict[str, Any]) -> None:
         """Retention may have removed the mail meanwhile; its text never comes back."""
@@ -120,6 +123,12 @@ class DraftService:
         if not self.authorize(actor):
             raise PermissionError("Sitzung abgelaufen")
         source = self.store.load_model(state_names.mail(mail_id), MailState)
+        if (
+            source is not None
+            and self.mailbox_policy is not None
+            and not self.mailbox_policy(source.imap.account_id)[0]
+        ):
+            raise ValueError("Antwortentwürfe sind für dieses Postfach ausgeschaltet")
         draft = self.get(mail_id)
         if draft is None and created:
             draft = {"version": 0, "text": "", "status": "discarded", "operations": {}}
@@ -148,7 +157,8 @@ class DraftService:
                     raise ValueError("Schreibresultat unklar; zuerst den Entwurf erneut speichern")
             # The paid call runs without the store lock; the session is checked again afterwards.
             call, reply = cast(DraftAnalyzer, self.analyzer).draft_reply(cast(dict[str, Any], source.mail),
-                                                                         intent, self.personal_info())
+                intent, self.personal_info() if self.mailbox_policy is None
+                else self.mailbox_policy(source.imap.account_id)[1])
             if not self.authorize(actor):
                 raise PermissionError("Sitzung abgelaufen")
             draft.update(version=version + 1, text=reply.text, intent=intent, status="editing",
