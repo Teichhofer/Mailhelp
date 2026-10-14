@@ -7,7 +7,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from threading import Event
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from . import state_names
@@ -21,16 +21,21 @@ from .models import MailRunState, TelegramOffset
 from .openrouter import OpenRouterClient
 from .orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
 from .retention import RetentionService
+from .service_coordinator import ServiceCoordinator
 from .storage import JsonStore
 from .telegram import TelegramChatNotFoundError, TelegramClient, TelegramDialogController
 from .telegram.commands import STARTUP
-from .telegram.receiver import TelegramInbox, TelegramReceiver
-from .web import WebServer, WebServerError
+from .web import WebServer
 
 if TYPE_CHECKING:
+    from .configuration import ConfigurationService
     from .experience import ExperienceRuntime
+    from .external.providers import Writers
     from .imap import FetchedMail
+    from .lifecycle import Lifecycle
+    from .notification_runtime import NotificationRuntime
     from .standalone import DisabledTelegram
+    from .target_profiles import ProfileWriters
 
 _TELEGRAM_ERROR_BACKOFF_SECONDS = 5.0
 
@@ -52,14 +57,13 @@ class Application:
     sender_store: JsonStore | None = None
     _wait_for_user: bool = False
     _fatal_error: str | None = None
-    _receiver: TelegramReceiver | None = None
-    web: WebServer | None = None
     # Web stop handshake; its final state is set when the run loop ends.
-    lifecycle: Any = None
-    configuration: object | None = None
-    experience: ExperienceRuntime | None = None
-    notifications: Any = None
-    profile_writers: Any = None
+    lifecycle: Lifecycle | None = None
+    configuration: ConfigurationService | None = None
+    # One writer pair, or one per target profile (3.2).
+    profile_writers: Writers | ProfileWriters | None = None
+    # Receiver thread, web interface, experience and notification runtimes beside the loop.
+    services: ServiceCoordinator = field(default_factory=ServiceCoordinator)
     # Every enabled mailbox with its reader (3.1); ``imap`` is the reader of the first one.
     sources: list[MailboxSource] = field(default_factory=list)
 
@@ -98,10 +102,11 @@ class Application:
             (getattr(self.calendar, "label", "Google Kalender"), self.calendar.check_access),
         )
         from .target_profiles import ProfileWriters
-        if isinstance(getattr(self, "profile_writers", None), ProfileWriters):
+        profile_writers = getattr(self, "profile_writers", None)
+        if isinstance(profile_writers, ProfileWriters):
             from .mailbox_settings import active_profiles, profile_label
             checks = (*checks[:-2], *((f"{role}:{number} ({profile_label(self.settings, number)})", writer.check_access)
-                for number, pair in self.profile_writers.profiles.items() if number in active_profiles(self.settings)
+                for number, pair in profile_writers.profiles.items() if number in active_profiles(self.settings)
                 for role, writer in pair.slots.items()))
         results: dict[str, str | None] = {}
         logger = getattr(self, "logger", NullLogger())
@@ -164,62 +169,50 @@ class Application:
         if metrics.comparison is not None:
             metrics.comparison.settings = settings.metrics
 
+    @property
+    def web(self) -> WebServer | None:
+        return self.services.web
+
+    @web.setter
+    def web(self, web: WebServer | None) -> None:
+        self.services.web = web
+
+    @property
+    def experience(self) -> ExperienceRuntime | None:
+        return self.services.experience
+
+    @experience.setter
+    def experience(self, experience: ExperienceRuntime | None) -> None:
+        self.services.experience = experience
+
+    @property
+    def notifications(self) -> NotificationRuntime | None:
+        return self.services.notifications
+
+    @notifications.setter
+    def notifications(self, notifications: NotificationRuntime | None) -> None:
+        self.services.notifications = notifications
+
     def stop(self) -> None:
         self.stop_event.set()
         self.orchestrator.stop()
-        if self._receiver is not None:
-            self._receiver.stop()
+        if self.services.receiver is not None:
+            self.services.receiver.stop()
 
     def _start_receiver(self) -> None:
-        """Receive Telegram input in its own thread if the dialog has an inbox."""
-        inbox = getattr(self.dialog, "inbox", None)
-        if not isinstance(inbox, TelegramInbox):
-            return
-        assert self.dialog is not None
-        self._receiver = TelegramReceiver(
-            self.telegram, inbox, self.dialog.receive_offset(), self.logger,
-            _TELEGRAM_ERROR_BACKOFF_SECONDS)
-        self._receiver.start()
-
-    def _stop_receiver(self) -> None:
-        receiver, self._receiver = self._receiver, None
-        if receiver is not None:
-            receiver.stop()
-            # A long-poll in flight ends with the Telegram client; never block exit.
-            receiver.join(timeout=1)
+        dialog = self.dialog
+        if dialog is not None:
+            # The offset is read only once the dialog proves to have an inbox.
+            self.services.start_receiver(getattr(dialog, "inbox", None), self.telegram,
+                                         lambda: dialog.receive_offset(), self.logger, _TELEGRAM_ERROR_BACKOFF_SECONDS)
 
     def _start_web(self) -> None:
-        """Start the optional web interface; mail processing continues without it."""
-        if self.web is None:
-            if self.notifications is not None:
-                self.notifications.start()
-            return
-        try:
-            self.web.start()
-            if self.experience is not None:
-                self.experience.start()
-        except WebServerError as exc:
-            self.logger.event("ERROR", "web", "server_start_failed", error=str(exc))
-            self.web = None
-            try:
-                self.telegram.send(self.settings.telegram.chat_id,
-                                   f"⚠️ {exc}. Mailhelp läuft ohne Weboberfläche weiter.")
-            except Exception as notification_error:
-                log_and_continue(self.logger, "telegram", "web_start_notice_failed", notification_error)
-
-    def _stop_web(self) -> None:
-        if self.notifications is not None:
-            self.notifications.stop()
-        if self.experience is not None:
-            self.experience.stop()
-        web, self.web = self.web, None
-        if web is not None:
-            web.stop()
+        self.services.start_web(self.logger, lambda text: self.telegram.send(self.settings.telegram.chat_id, text))
 
     def _idle(self, delay: float) -> None:
         """Wait for the next mail cycle while handling Telegram input as it arrives."""
         getattr(self, "logger", NullLogger()).event("DEBUG", "application", "idle_started", delay_seconds=delay)
-        if self._receiver is None:
+        if self.services.receiver is None:
             self.stop_event.wait(delay)
             return
         deadline = time.monotonic() + delay
@@ -227,7 +220,7 @@ class Application:
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 return
-            if self._receiver.inbox.wait(remaining):
+            if self.services.receiver.inbox.wait(remaining):
                 self._poll_telegram(timeout=0)
 
     def _poll_imap(self, max_mails: int | None = None, *,
@@ -241,8 +234,8 @@ class Application:
         With a receiver thread, wait up to *timeout* (default: the Telegram
         long-poll time) for its inbox and then process what arrived.
         """
-        if self._receiver is not None:
-            self._receiver.inbox.wait(self.settings.timeouts.telegram_poll_seconds
+        if self.services.receiver is not None:
+            self.services.receiver.inbox.wait(self.settings.timeouts.telegram_poll_seconds
                                       if timeout is None else timeout)
         if self.dialog is not None:
             try:
@@ -289,7 +282,7 @@ class Application:
 
     def _process_mail(self, mail: FetchedMail) -> ProcessingResult:
         """Wait only for relevance; proposals are independent of mail analysis."""
-        if self._receiver is not None:
+        if self.services.receiver is not None:
             # Button presses received during the previous mail come first.
             self._poll_telegram(timeout=0)
         while True:
@@ -407,7 +400,7 @@ class Application:
             return False
         # The receiver already waited for input; only process what arrived.
         telegram_poll_succeeded = (self._poll_telegram(timeout=0)
-                                   if self._receiver is not None
+                                   if self.services.receiver is not None
                                    else self._poll_telegram())
         if (not self.stop_event.is_set() and self.dialog is not None
                 and self.dialog.awaiting_relevance_decision()):
@@ -421,8 +414,8 @@ class Application:
 
     def _finish(self, max_mails: int | None) -> None:
         """Stop the helpers and report the run, unless a relevance question still blocks it."""
-        self._stop_web()
-        self._stop_receiver()
+        self.services.stop_web()
+        self.services.stop_receiver()
         if self.lifecycle is not None:
             self.lifecycle.finished()
         runs = [self.store.load_model(state_names.mail_run(source.account_id), MailRunState)

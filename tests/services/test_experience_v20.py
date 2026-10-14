@@ -717,7 +717,7 @@ def test_standalone_config_loading_and_composition(tmp_path, monkeypatch, capsys
         events = []
         app.experience = NS(start=lambda: events.append("start"), stop=lambda: events.append("stop"))
         app._start_web()
-        app._stop_web()
+        app.services.stop_web()
         assert events == ["start", "stop"]
 
 

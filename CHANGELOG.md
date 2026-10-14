@@ -1,5 +1,16 @@
 # Änderungen
 
+## 3.2.7 – beta: Planung 3.3, Phase 4 – Parser und Konfiguration konsolidiert
+
+- `config.py` ist das Paket `mailhelp.config`: Modelle und Validierungsregeln in `config/models.py`,
+  Datei- und Umgebungszugriff in `config/loader.py`; alle bisherigen Namen bleiben über `mailhelp.config` importierbar.
+- Deutsche Monats- und Wochentagsnamen, Jahreserkennung und Wochentagsprüfung liegen einmalig in
+  `mailhelp.german_dates`; die Datumsnormalisierung nutzt sie mit unveränderten Mustern und ist in benannte
+  Schritte zerlegt (numerisch, ausgeschrieben, ohne Jahr).
+- Telegram-Receiver, Weboberfläche, Erlebnis- und Benachrichtigungslaufzeit starten und stoppen über den neuen
+  `ServiceCoordinator`; `Application` führt `lifecycle`, `configuration` und `profile_writers` typisiert statt als `Any`/`object`.
+- Verhalten unverändert; der Empfangsoffset wird weiterhin nur für Dialoge mit Telegram-Eingang gelesen (eigener Test).
+
 ## 3.2.6 – beta: Planung 3.3, Phase 3 – Weboberfläche entflochten
 
 - `ArchiveSite` ist in fünf Seitenklassen zerlegt (Mailarchiv, Verlauf/Auswertung, Vorschlagsbearbeitung,

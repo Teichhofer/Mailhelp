@@ -128,17 +128,8 @@ def _parse_temporal_answer(
         if reference_date is None:
             return None
         values = relative.groupdict()
-
-        def relative_time(name: str) -> clock_time | None:
-            hour = values.get(f"{name}_hour")
-            return (
-                clock_time(int(hour), int(values.get(f"{name}_minute") or 0))
-                if hour is not None
-                else None
-            )
-
         return DeterministicTemporalAnswer(
-            date=reference_date, start=relative_time("start"), end=relative_time("end")
+            date=reference_date, start=_clock(values, "start"), end=_clock(values, "end")
         )
     match = next(
         (
@@ -168,17 +159,15 @@ def _parse_temporal_answer(
             int(values["iso_year"]), int(values["iso_month"]), int(values["iso_day"])
         )
 
-    def parsed_time(name: str) -> clock_time | None:
-        hour = values.get(f"{name}_hour")
-        return (
-            clock_time(int(hour), int(values.get(f"{name}_minute") or 0))
-            if hour is not None
-            else None
-        )
-
     return DeterministicTemporalAnswer(
-        date=parsed_date, start=parsed_time("start"), end=parsed_time("end")
+        date=parsed_date, start=_clock(values, "start"), end=_clock(values, "end")
     )
+
+
+def _clock(values: dict[str, str | None], name: str) -> clock_time | None:
+    """The clock of the named group pair (``start_hour``/``start_minute``), if present."""
+    hour = values.get(f"{name}_hour")
+    return clock_time(int(hour), int(values.get(f"{name}_minute") or 0)) if hour is not None else None
 
 
 def normalize_deterministic_temporal_answer(parsed: DeterministicTemporalAnswer) -> str:

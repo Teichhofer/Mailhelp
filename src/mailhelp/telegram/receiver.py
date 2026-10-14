@@ -122,7 +122,7 @@ class TelegramInbox:
         self._arrived.set()
 
 
-class _UpdateSource(Protocol):
+class UpdateSource(Protocol):
     def poll(self, offset: int, timeout: int | None = None) -> list[dict[str, Any]]: ...
     def answer_callback(self, callback_id: str, text: str) -> None: ...
 
@@ -130,7 +130,7 @@ class _UpdateSource(Protocol):
 class TelegramReceiver(Thread):
     """Long-poll Telegram, acknowledge button presses and fill the inbox."""
 
-    def __init__(self, telegram: _UpdateSource, inbox: TelegramInbox, offset: int,
+    def __init__(self, telegram: UpdateSource, inbox: TelegramInbox, offset: int,
                  logger: EventLogger, error_backoff_seconds: float):
         # Daemon: a long-poll in flight must not keep a stopping process alive.
         super().__init__(name="telegram-receiver", daemon=True)

@@ -222,7 +222,7 @@ def test_web_start_failure_keeps_mail_processing_running(tmp_path):
     assert service.web is None
     assert telegram.sent == ["⚠️ Weboberfläche konnte nicht starten. Mailhelp läuft ohne Weboberfläche weiter."]
     assert service.logger.events[0][0][2] == "server_start_failed"
-    service._stop_web()
+    service.services.stop_web()
     assert web.calls == ["start"]
 
 
@@ -237,8 +237,8 @@ def test_web_runs_with_the_application_and_stops_with_it(tmp_path):
     web = FakeWeb()
     service = lifecycle_app(tmp_path, web, Telegram())
     service._start_web()
-    service._stop_web()
-    service._stop_web()
+    service.services.stop_web()
+    service.services.stop_web()
     assert web.calls == ["start", "stop"]
     lifecycle_app(tmp_path, None, Telegram())._start_web()
 
