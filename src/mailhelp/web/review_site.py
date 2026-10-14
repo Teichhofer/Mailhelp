@@ -63,7 +63,8 @@ class ReviewSite:
                          sender_actions=self.site.senders.actions(mail_id, view.sender, csrf),
                          message=message, message_kind=kind,
                          after=self.site.reconciliation_page.mail_summary(mail_id)
-                         + self.site.experience.editor(mail_id, csrf) + self.site.archive.analysis(mail_id))
+                         + self.site.experience.editor(mail_id, csrf)
+                         + self.site.archive.mail_archive.analysis(mail_id))
         return Response.html(200, page)
 
     def attachment(self, request, session, mail_id, index):
@@ -113,11 +114,12 @@ class ReviewSite:
                 "Nicht gefunden", "Dieser Vorschlag ist nicht (mehr) vorhanden."))
         link = f'<p><a class="button" href="/vorschlag/{mail_id}/{proposal_id}/bearbeiten">Felder bearbeiten</a></p>'
         from .review_pages import disclosure
+        archive = self.site.archive.mail_archive
         extra = (link + self.site.reconciliation_page.fragment(mail_id, proposal_id)
                  + (self.site.mailbox_page.target_forms(proposal, session) if proposal is not None else "")
                  + self.site.experience.editor(mail_id, self.site.auth.csrf_token(session.id))
-                 + disclosure("Revisionshistorie &amp; Differenzen", self.site.archive.revisions(mail_id, proposal_id))
-                 + disclosure("Technische LLM-Analyse &amp; Metriken", self.site.archive.analysis(mail_id)))
+                 + disclosure("Revisionshistorie &amp; Differenzen", archive.revisions(mail_id, proposal_id))
+                 + disclosure("Technische LLM-Analyse &amp; Metriken", archive.analysis(mail_id)))
         page = detail_page(view, actions=proposal_actions(self.site.auth.csrf_token(session.id)),
                            mail=self.site.views.mail(mail_id), after=extra)
         return Response.html(200, page)

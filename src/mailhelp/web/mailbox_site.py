@@ -10,7 +10,7 @@ from ..profile_binding import choices
 from ..profile_usage import profile_references
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..sender_filter import sender_entry
-from .archive_site import post_form
+from .forms import post_form
 from .http import Response
 from .pages import e, layout
 

@@ -7,25 +7,26 @@ from ..config import EventDefaultsSettings
 from ..domain.proposal import Proposal
 from ..domain.proposal_sources import ProposalReference, ProposalRelation
 from ..event_defaults import reapply_defaults
-from ..external.providers import CALENDAR_LABELS, TASK_LABELS
 from ..models import MailState
 from ..proposal_matching import compatible, relationship
 from ..proposal_reconciliation import OPEN, ProposalReconciliationService
-from ..review.cards import event_time
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
-from ..review.views import STATUS_LABELS
 from ..storage import CorruptState
 from .http import Response
-from .pages import e, layout
-from .setup_site import post_form
+from .pages import layout
+from .reconciliation_pages import (
+    INTRO,
+    comparison,
+    defaults_offer,
+    mail_summary,
+    missing_record,
+    section_head,
+    sources_fragment,
+)
 
 
 def digest(value):
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
-
-
-def proposal_link(proposal):
-    return f"/vorschlag/{proposal.source_mail_id}/{proposal.id}"
 
 
 class ReconciliationSite:
@@ -47,52 +48,40 @@ class ReconciliationSite:
         proposal = store.peek_model(f"proposal-{mail_id}-{proposal_id}", Proposal)
         if proposal is None:
             return ""
-        body = '<section><h2>Quellen und zugehörige Vorgänge</h2><ul>'
-        for source in proposal.sources:
-            body += (f'<li><a href="/mail/{e(source.mail_id)}">Quellenmail</a> · {e(source.subject)} '
-                     f'· {e(source.sent_at or "Zeit nicht mehr gespeichert")}</li>')
+        return sources_fragment(proposal, self._linked(mail_id, proposal_id), self.site.configured_timezone)
+
+    def _linked(self, mail_id, proposal_id):
+        """Proposals related to this one by a stored relation, in either direction."""
+        store, ref = self.site.views.store, ProposalReference(mail_id=mail_id, proposal_id=proposal_id)
+        linked = []
         for name in store.names("reconciliation-relation-"):
             relation = store.peek_model(name, ProposalRelation)
             if relation is None:
                 raise ValueError("Verknüpfung inzwischen geändert")
-            ref = ProposalReference(mail_id=mail_id, proposal_id=proposal_id)
-            if relation.source == ref:
-                other = relation.target
-            elif relation.target == ref:
-                other = relation.source
-            else:
+            if ref not in (relation.source, relation.target):
                 continue
-            linked = self.service.resolve(other)
-            if linked is not None:
-                status = "bereits im Kalender/bei den Aufgaben" if linked.status == "already_exists" else "Vorschlag"
-                body += (f'<li><a href="{e(proposal_link(linked))}">{e(linked.title)}</a> · '
-                         f'{e(event_time(linked, self.site.configured_timezone) or "Aufgabe")} · {status}</li>')
-        return body + '</ul><p><a href="/abgleich">Zusammenführungen und Dauerannahmen prüfen</a></p></section>'
+            other = self.service.resolve(relation.target if relation.source == ref else relation.source)
+            if other is not None:
+                linked.append(other)
+        return linked
 
     def mail_summary(self, mail_id):
-        mail = self.site.views.store.peek_model(f"mail-{mail_id}", MailState)
+        store = self.site.views.store
+        mail = store.peek_model(f"mail-{mail_id}", MailState)
         if mail is None:
             return ""
-        body = '<section><h2>Erkannte Vorgänge</h2><ul>'
+        other_profile = False
         if mail.duplicate is not None:
-            previous = self.site.views.store.peek_model(f"mail-{mail.duplicate.previous_mail_id}", MailState)
-            if previous is not None and (previous.proposal_policy or {}).get("target_profile", 1) != (
-                mail.proposal_policy or {}
-            ).get("target_profile", 1):
-                body += ('<li>Die Kopie gehört zu einem anderen Zielprofil. Es gilt die zuerst verarbeitete Mail; '
-                         'hier wurde kein weiterer Vorschlag erzeugt.</li>')
-        for item in mail.proposals:
-            status = STATUS_LABELS[item.status]
-            body += f'<li><a href="{e(proposal_link(item))}">{e(item.title)}</a> · {e(status)}</li>'
-        return body + '</ul><p><a href="/abgleich">Gespeicherte Befunde prüfen</a></p></section>'
+            previous = store.peek_model(f"mail-{mail.duplicate.previous_mail_id}", MailState)
+            other_profile = previous is not None and (previous.proposal_policy or {}).get("target_profile", 1) != (
+                mail.proposal_policy or {}).get("target_profile", 1)
+        return mail_summary(mail, other_profile)
 
     def preview(self, request, session):
         try:
             items = self.service.current()
             csrf = self.site.auth.csrf_token(session.id)
-            body = ('<div class="setup-page"><h1>Vorschlagsabgleich</h1><p>Lokale Vorschläge und Quellen vergleichen. '
-                    'Übernehmen legt nichts extern an; eine neue Version muss separat bestätigt werden.</p>')
-            body += "".join(self._proposal_section(item, items, csrf) for item in items)
+            body = INTRO + "".join(self._proposal_section(item, items, csrf) for item in items)
             body += self._missing_records(items, csrf)
             return Response.html(200, layout("Vorschlagsabgleich", body + '</div>'))
         except (CorruptState, ValueError):
@@ -100,19 +89,14 @@ class ReconciliationSite:
 
     def _proposal_section(self, item, items, csrf):
         defaults = self.defaults(item)
-        body = (f'<section class="card"><h2><a class="button" href="{e(proposal_link(item))}">'
-                f'{e(item.title)}</a></h2>')
-        body += f'<p>Version {item.version} · {e(STATUS_LABELS[item.status])}</p>'
-        labels = CALENDAR_LABELS if item.kind == "event" else TASK_LABELS
-        provider = labels.get(item.target_provider, item.target_provider or "Anbieter nicht gespeichert")
-        body += f'<p>Ziel: {e(provider)} · {e(item.target)}</p>'
-        if item.duplicate_check_failed and item.status in OPEN:
-            body += post_form("/abgleich", csrf, '', 'Dublettenprüfung wiederholen',
-                kind="recheck_proposal", mail_id=item.source_mail_id, proposal_id=item.id, version=item.version)
-        body += "".join(self._comparison(item, target, csrf)
+        zone = self.site.configured_timezone
+        body = section_head(item, csrf)
+        body += "".join(comparison(item, target, zone, csrf)
                         for target in self._targets(item, items) if target is not None)
         if item.status in OPEN:
-            body += self._defaults_offer(item, defaults, csrf)
+            candidate = reapply_defaults(item, defaults)
+            if candidate.version != item.version:
+                body += defaults_offer(item, candidate, digest(defaults.model_dump()), zone, csrf)
         return body + '</section>'
 
     def _targets(self, item, items):
@@ -127,34 +111,6 @@ class ReconciliationSite:
                 (p.source_mail_id, p.id) in remembered or p.status in OPEN
                 and relationship(self.service.store, item, p) != "different")]
 
-    def _comparison(self, item, target, csrf):
-        zone = self.site.configured_timezone
-        fields = dict(mail_id=item.source_mail_id, proposal_id=item.id, version=item.version,
-                      target_mail_id=target.source_mail_id, target_proposal_id=target.id,
-                      target_version=target.version)
-        body = ('<p>Vergleich mit <a href="' + e(proposal_link(target)) + '">' + e(target.title)
-                + f'</a> · Zielversion {target.version}</p><dl><dt>Quelle</dt><dd>{e(item.description)} '
-                + e(event_time(item, zone) or item.due or "")
-                + f'</dd><dt>Bisher</dt><dd>{e(target.description)} '
-                + e(event_time(target, zone) or target.due or "") + '</dd></dl>')
-        if target.status in OPEN:
-            body += post_form("/abgleich", csrf, '', 'Zusatz ausdrücklich zuordnen',
-                              kind="merge_proposals", **fields)
-        if item.merge_review_required or item.matching_candidates:
-            body += post_form("/abgleich", csrf, '', 'Als eigenen Vorschlag behalten',
-                              kind="separate_proposals", **fields)
-        return body
-
-    def _defaults_offer(self, item, defaults, csrf):
-        """A changed default duration is offered for explicit adoption, never applied silently."""
-        candidate = reapply_defaults(item, defaults)
-        if candidate.version == item.version:
-            return ""
-        return ('<p>Dauerannahme: ' + e(event_time(candidate, self.site.configured_timezone)) + '</p>'
-                + post_form("/abgleich", csrf, '', 'Dauerannahme ausdrücklich übernehmen',
-                            kind="reapply_defaults", mail_id=item.source_mail_id, proposal_id=item.id,
-                            version=item.version, proposal_hash=digest(defaults.model_dump())))
-
     def _missing_records(self, items, csrf):
         """Findings stored in a mail state whose separate proposal file is missing."""
         known = {(p.source_mail_id, p.id) for p in items}
@@ -163,14 +119,8 @@ class ReconciliationSite:
             mail = self.site.views.store.peek_model(name, MailState)
             if mail is None:
                 raise ValueError("Mailzustand fehlt")
-            for item in mail.proposals:
-                if (item.source_mail_id, item.id) in known:
-                    continue
-                body += (f'<section class="card"><h2>{e(item.title)}</h2>'
-                         f'<p>Einzelakte fehlt; Befund {e(STATUS_LABELS[item.status])}.</p>')
-                body += post_form("/abgleich", csrf, '', 'Gespeicherten Befund wiederherstellen',
-                    kind="restore_proposal", mail_id=item.source_mail_id, proposal_id=item.id,
-                    version=item.version, proposal_hash=digest(item.model_dump(mode="json"))) + '</section>'
+            body += "".join(missing_record(item, digest(item.model_dump(mode="json")), csrf)
+                            for item in mail.proposals if (item.source_mail_id, item.id) not in known)
         return body
 
     def apply(self, request, session, form):

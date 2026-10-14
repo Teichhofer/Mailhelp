@@ -1,5 +1,13 @@
 # Änderungen
 
+## 3.2.6 – beta: Planung 3.3, Phase 3 – Weboberfläche entflochten
+
+- `ArchiveSite` ist in fünf Seitenklassen zerlegt (Mailarchiv, Verlauf/Auswertung, Vorschlagsbearbeitung,
+  Einstellungen/Themen, Beenden); der verbleibende Knoten hält nur noch gemeinsam genutzte Dienste.
+- HTML-Erzeugung und Routing sind getrennt: `archive_pages`, `settings_pages`, `reconciliation_pages`,
+  `sender_pages`; gemeinsame Formularbausteine (`post_form`, `field`, `select`) in `web/forms.py`.
+- Routen, Seiten und Formulare unverändert; 146 Browsertests und 100 % JavaScript-Abdeckung bestätigt.
+
 ## 3.2.5 – beta: Planung 3.3, Phase 2 – Komplexitätsabbau
 
 - Die verschachteltsten Funktionen sind in benannte Schritte zerlegt, ohne Verhaltensänderung:

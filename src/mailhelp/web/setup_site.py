@@ -10,8 +10,8 @@ from ..configuration import LIVE_FIELDS, MAILBOX_SETUP_FIELDS, ConfigurationConf
 from ..diagnostics import HELP, STATES, DiagnosticResult
 from ..local_pairing import issue
 from ..notification_config import CATEGORIES, effective_profile
-from .archive_site import post_form
 from .auth import PairingLimited
+from .forms import post_form
 from .http import Response
 from .pages import e, layout
 
