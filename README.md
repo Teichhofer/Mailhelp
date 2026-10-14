@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.3.1 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.3.2 · **Python:** 3.12.x · **Lizenz:** MIT
 
 [Installation](#installation) · [Konfiguration](#konfiguration) ·
 [Betrieb](#betrieb) · [Docker](#docker) ·
@@ -181,6 +181,12 @@ In `config.yaml` `web.enabled: true` setzen und in `.env` einen zufälligen
 `MAILHELP_WEB_SECRET` mit mindestens 32 Zeichen hinterlegen. Nach dem Dienststart
 ist die Oberfläche standardmäßig unter **http://127.0.0.1:8765** erreichbar.
 
+Auf großen Bildschirmen ordnet eine Seitenleiste die Navigation nach Arbeitsbereich,
+Einblicken und Verwaltung. Auf dem Handy ist die kompakte Navigationsleiste horizontal
+wischbar. Vorschlagskarten zeigen die wichtigsten Angaben zuerst; Beschreibung und
+Beleg lassen sich aufklappen. Direkte Bereichslinks erleichtern die Suche in den
+globalen Einstellungen.
+
 Ein zweiter Terminalaufruf erzeugt einen lokalen Einmalcode:
 
 ```sh
@@ -253,6 +259,10 @@ Neustarts erhalten. Zugangsdaten werden nicht protokolliert; vollständige
 LLM-Inhalte sind nur nach ausdrücklicher Aktivierung des entsprechenden Loggings
 enthalten. Aufbewahrungsfristen sind konfigurierbar.
 
+Die ausgelieferte `config.example.yaml` aktiviert vollständige KI-Anfrage- und
+Antwortlogs ausdrücklich. Für einen Betrieb ohne diese Inhaltslogs
+`logging.llm.include_requests` und `logging.llm.include_responses` auf `false` setzen.
+
 Vor einer Sicherung oder Wiederherstellung den Dienst stoppen. Das vollständige
 Datenverzeichnis einschließlich `test/` und `production/` sowie Konfiguration,
 `.env` und OAuth-Token-Dateien sichern. Die
@@ -310,6 +320,7 @@ Entwicklungsregeln stehen in [AGENTS.md](AGENTS.md), technische Verträge in der
 | Installation, Updates und Paketbetrieb | [Release-Anleitung](docs/Release-1.0.md) |
 | Einrichtung, OAuth und Qualitätsprüfung | [Betriebsanleitung](docs/Einrichtung-und-Qualitaetspruefung.md) |
 | Web-Einstellungen und Beispiele | [Einstellungsreferenz](docs/Web-Einstellungen.md) |
+| Aktuelle Weboberfläche und technische Konsolidierung | [Release 3.3](docs/Release-3.3.md) |
 | Postfachregeln, Zielprofile und Migration | [Zielprofile und Upgrade](docs/Release-3.2.md) |
 | Mehrere Postfächer einrichten | [Postfachkonfiguration](docs/Release-3.1.md) |
 | Vorschläge abgleichen und ergänzen | [Bedienung und Abgleich](docs/Release-2.4.md) |

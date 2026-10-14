@@ -2,7 +2,7 @@
 
 **Zielversion:** 3.3.0  
 **Stand:** 14. Oktober 2026  
-**Status:** Umgesetzt in 3.3.0 (Phasen 1–5 in 3.2.4–3.3.0; Messwerte vom 14. Oktober 2026 auf Stand 3.2.1)  
+**Status:** Phasen 1–5 in 3.2.4–3.3.0 umgesetzt; weitergehende Architekturziele bleiben teilweise offen (Abschnitt 5). Ausgangsmesswerte: 3.2.1.
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 3.0](Planung-3.0.md), [Planung 3.1](Planung-3.1.md), [Planung 3.2](Planung-3.2.md)
 
 ---
@@ -47,7 +47,7 @@ flowchart TD
 
 ### Pfeiler 1: Bereinigung der Schichtenarchitektur & invertierter Abhängigkeiten
 
-| Bereich | Ist-Zustand (Architektur-Bruch) | Soll-Zustand (Version 3.3) |
+| Bereich | Ausgangszustand vor der Konsolidierung | Ursprüngliches Ziel |
 | :--- | :--- | :--- |
 | **Analyse hängt an Telegram** | `analysis.py` und `mail_questions.py` importieren die deterministische Zeitauflösung spät aus `telegram.temporal`; dieses importiert `analysis.ContradictoryRevision` (Importkreis). | Neutrales Modul `mailhelp.temporal_answers`; `ContradictoryRevision` liegt in der Domäne; normale Importe ohne Kreis. Kein Modul außerhalb von `telegram/` importiert `mailhelp.telegram.*` außer den Kompositions- und Weboberflächen-Modulen. |
 | **Fehlplatzierte Persistenz & Business-Logik** | `ActionLedger` liegt in `telegram/ledger.py`, wird aber auch von `precheck.py` und der Weboberfläche genutzt.<br>`ProposalRepository` liegt in `telegram/persistence.py`, wird aber von `storage.py` und `proposal_reconciliation.py` benötigt. | Umzug von `ActionLedger` und `ProposalRepository` in das Paket `mailhelp.persistence`. Das Modul `telegram/` kümmert sich ausschließlich um Telegram-spezifische Anliegen (Bot-API, Nachrichtenformatierung, Chat-Status). |
@@ -140,7 +140,7 @@ Stand 3.3.0: Phase A und B (ohne das nicht existierende Paket `pipeline`, dafür
 ### Pfeiler 6: Deduplizierung & Test-Suite-Hygiene
 
 1. **Konsolidierung deutscher Zeit- und Datums-Parser**:
-   - Zusammenführung redundanter Parsing-Muster aus [`action_normalization.py`](../src/mailhelp/action_normalization.py) und [`telegram/temporal.py`](../src/mailhelp/telegram/temporal.py) in ein zentrales, deterministisches Parsing-Modul.
+   - Zusammenführung redundanter Parsing-Muster aus [`action_normalization.py`](../src/mailhelp/action_normalization.py) und dem früheren `telegram/temporal.py` (heute [`temporal_answers.py`](../src/mailhelp/temporal_answers.py)) in ein zentrales, deterministisches Parsing-Modul.
 2. **Bereinigung von Laufzeitwarnungen**:
    - **Pydantic-Serialisierung:** Behebung der `PydanticSerializationUnexpectedValue`-Warnung in [`tests/web/test_activity_web.py`](../tests/web/test_activity_web.py#L189) durch Erzeugung valider `FolderProgress`-Instanzen anstelle unstrukturierter Dictionaries.
    - **Pytest-Rewrite-Warnung:** Saubere Paketierung der Test-Fakes in `tests/fakes/` zur Vermeidung von `PytestAssertRewriteWarning`.

@@ -1,5 +1,10 @@
 # Mailhelp 2.0 – The New Experience & Standalone PWA
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 Mailhelp 2.0.0 macht die Weboberfläche zur eigenständigen App für Smartphone und
 Desktop. Alle neuen Funktionen sind optional und standardmäßig ausgeschaltet;
 ohne Konfigurationsänderung verhält sich Mailhelp nach dem Upgrade wie 1.6 – mit

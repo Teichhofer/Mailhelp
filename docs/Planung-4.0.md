@@ -14,13 +14,19 @@
 Mit den Versionen 1.0 bis 3.3 wurde Mailhelp zu einer zuverlässigen, deterministischen E-Mail-Assistenz ausgebaut: bis zu zehn IMAP-Postfächer, flexible Zielprofile (Google Kalender, CalDAV, Todoist, Microsoft 365), Anhangsauswertung, Dubletten-Vorabprüfung, Zusammenführen offener Vorschläge und Web-Push.
 
 Bisher erforderte die Ersteinrichtung und der Betrieb jedoch an mehreren Stellen den Rückgriff auf die Kommandozeile (CLI):
-1. **Erstanmeldung:** Zur ersten Browser-Kopplung musste `mailhelp --pair` im Terminal aufgerufen werden.
+1. **Erstanmeldung:** Die Browser-Kopplung benötigt derzeit `mailhelp --pair` am lokalen Host oder einen über Telegram angeforderten Code; es gibt keinen ungekoppelten Browser-Erststart.
 2. **Geheimnisse:** `.env` musste manuell per Texteditor angelegt werden (`MAILHELP_WEB_SECRET`, Passwörter, API-Keys).
 3. **OAuth-Autorisierung:** Google- und Microsoft-Tokens erforderten CLI-Aufrufe (`mailhelp --google-auth` oder Device-Code im Terminal).
 4. **Lernmodus:** Der Lernmodus zur Ersteinmessung (`--learn`) lief ausschließlich im Terminal mit Einzelfragen (`j/n`).
 
 **Version 4.0 beseitigt alle Terminal-Schritte vollständig:**  
 Nach der Programminstallation (`pip install` oder `docker compose up`) öffnet der Nutzer einfach `http://localhost:8765` im Browser. Ein geführter Onboarding-Assistent richtet Postfächer, Passwörter und Dienste ein. Der Lernmodus wird zu einer interaktiven, visuellen Webanwendung mit Fortschrittsanzeige und komfortabler Kartenauswahl.
+
+Das beschreibt das geplante Ziel, keine Funktion des aktuellen 3.3.1-Stands.
+Die bestehende authentifizierte Einrichtung unter `/einrichtung`, Diagnose,
+Postfachverwaltung und das Web-Facelift sind bereits verfügbar. Geheimnisverwaltung,
+Web-Lernmodus, browsergesteuerte OAuth-Einrichtung und ein Erststart ohne gültige
+Basiskonfiguration bleiben zukünftige Arbeiten.
 
 ---
 

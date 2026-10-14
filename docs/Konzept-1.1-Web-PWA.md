@@ -1,5 +1,10 @@
 # Mailhelp 1.1 – Konzept und Umsetzungsplan Web/PWA
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 **Zielversion:** 1.1
 
 **Status:** Phasen 0–8 umgesetzt im Branch `beta` (Version 1.1.0, Beta). Offen ist

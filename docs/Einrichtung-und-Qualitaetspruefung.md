@@ -1,5 +1,9 @@
 # Einrichtung und Qualitätsprüfung
 
+Stand: 14. Oktober 2026, Anwendungsversion 3.3.2. Die Einrichtungshinweise gelten
+für den aktuellen Stand. Datierte Qualitätsberichte weiter unten dokumentieren
+jeweils den damaligen Code und die damals geprüften Modelle.
+
 <p align="center">
   <img src="../src/mailhelp/assets/logo.png" alt="Mailhelp" width="200">
 </p>
@@ -20,77 +24,85 @@ ist nicht erforderlich. Die Kommandozeilenoberfläche benötigt kein Bildbanner.
 
 ## Aktualisierung einer bestehenden Installation
 
-Nach Übernahme der Änderungen die Installation mit `python -m pip install -e ".[test]"`
-aktualisieren, damit auch `mailhelp-evaluate` als neuer Befehl eingerichtet wird.
-Die geänderten Extraktionsprompts verändern den Konfigurationsfingerprint.
-Noch unvollständige Mailzustände mit altem Fingerprint werden deshalb weiterhin
-sichtbar gesperrt. Solche Vorgänge mit der ursprünglichen Konfiguration abschließen
-oder nach dem dokumentierten Verfahren bewusst neu verarbeiten; den gespeicherten
-Fingerprint nicht manuell überschreiben. Bereits abgeschlossene Zustände und
-versionsbezogene Schreibreferenzen erhalten.
+Den Dienst stoppen und Konfiguration, Geheimnisse, Token-Dateien und den vollständigen
+Zustandsordner sichern. Bei einer Repository-Installation zunächst die Abhängigkeiten
+mit `python -m pip install -r requirements.lock` und dann die Anwendung mit
+`python -m pip install --no-deps -e .` aktualisieren. Eine Entwicklungsinstallation
+verwendet stattdessen `python -m pip install --no-deps -e ".[test]"`.
+Für Paketinstallation und Docker gelten die Schritte in der [README](../README.md).
+
+`mailhelp --check` vor dem Start ausführen. Die Konsolidierung und das Facelift
+benötigen keine Promptänderung. Tatsächliche Änderungen an Prompts oder wirksamen
+Analysethemen können unvollständige Mails zurückhalten; Fingerprints niemals manuell
+überschreiben. Reine Zieländerungen verändern seit 3.2 den Analyse-Fingerprint nicht.
+Bei einem Upgrade von älteren Versionen zunächst die bisherigen Ziele beibehalten,
+damit Alt-Fingerprints registriert werden. Details zu Migration und Rückkehr:
+[Release 3.2](Release-3.2.md) und [Release 3.3](Release-3.3.md).
 
 ## Weboberfläche und Tailscale (ab 1.1)
 
 Einrichtung der optionalen Weboberfläche, Tailscale Serve für das iPhone,
 Installation als App und Verhalten bei Schlaf oder Neustart des PCs beschreibt
 [Release-1.1.md](Release-1.1.md). Kurzfassung: `web.enabled: true` und
-`MAILHELP_WEB_SECRET` setzen, am PC `http://127.0.0.1:8765` öffnen und per
-Telegram-Code koppeln; für das iPhone `tailscale serve --bg --https=443
+`MAILHELP_WEB_SECRET` setzen und am PC `http://127.0.0.1:8765` öffnen. Einen Code mit
+`mailhelp --pair` am lokalen Host oder über Telegram anfordern und damit koppeln.
+Für das iPhone `tailscale serve --bg --https=443
 http://127.0.0.1:8765` ausführen und den Tailnet-Namen in `web.allowed_hosts`
 eintragen.
 
+Für den Betrieb ohne Telegram `telegram.enabled: false` setzen. Die Erstkopplung
+benötigt einen laufenden Dienst und den lokalen `--pair`-Aufruf; Codes erscheinen
+ausschließlich im aufrufenden Terminal. Nach der Anmeldung bietet `/einrichtung`
+versionsbezogene Konfigurationsentwürfe und `/diagnose` sichere Einzelprüfungen.
+Passwörter und Tokens bleiben in `.env` oder der Prozessumgebung. Ein vollständig
+browserbasierter Erststart und Web-Lernmodus sind noch nicht implementiert.
+
 ## Google OAuth erstmals einrichten
 
-Stand der verlinkten Google-Dokumentation: geprüft am 7. Oktober 2026.
+Stand: 14. Oktober 2026. Mailhelp unterstützt eine lokale Browseranmeldung.
+Der verwendete OAuth-Client ist eine **Desktop-App** mit lokalem Rückruf und PKCE,
+entsprechend Googles [Desktop-OAuth-Ablauf](https://developers.google.com/identity/protocols/oauth2/native-app).
 
 1. In der [Google Cloud Console](https://console.cloud.google.com/) ein eigenes
-   Projekt auswählen und die Google Calendar API aktivieren. Den OAuth-
-   Zustimmungsbildschirm mit passender Zielgruppe konfigurieren. Bei externem
-   Testbetrieb das eigene Google-Konto als Testnutzer hinzufügen.
-2. Einen OAuth-Client vom Typ Webanwendung anlegen. Als autorisierte Redirect-URI
-   exakt `https://developers.google.com/oauthplayground` eintragen.
-3. Im [Google OAuth Playground](https://developers.google.com/oauthplayground/)
-   die Einstellungen öffnen: eigene OAuth-Zugangsdaten aktivieren, Client-ID und
-   Client-Secret eintragen, Google-Endpunkte, Server-side, Offline und Consent
-   Screen auswählen. Eigene Zugangsdaten vermeiden den besonderen automatischen
-   24-Stunden-Widerruf der Playground-Standardtokens. Der Playground vermittelt
-   die Autorisierungsanfragen über Google; keine Freigabelinks mit Tokens erstellen.
-4. Diese beiden Scopes autorisieren:
+   Projekt wählen, Google Calendar API aktivieren und den Zustimmungsbildschirm
+   einrichten. Bei externem Testbetrieb das eigene Konto als Testnutzer hinzufügen.
+2. Einen OAuth-Client vom Typ **Desktop-App** anlegen. Client-ID und Client-Secret
+   ausschließlich in `.env` oder der Prozessumgebung als `GOOGLE_OAUTH_CLIENT_ID`
+   und `GOOGLE_OAUTH_CLIENT_SECRET` hinterlegen. Für zusätzliche Profile gelten
+   die nummerierten Geheimnisnamen aus [Release 3.2](Release-3.2.md).
+3. Am Host `mailhelp --google-auth --config-directory .` ausführen; für Profil 2
+   zusätzlich `--profile 2` angeben. Mailhelp öffnet den Browser und nimmt den
+   State-/PKCE-geschützten Rückruf an `127.0.0.1` auf einem freien Port entgegen.
+   Die Anmeldung läuft nach fünf Minuten ab. Der Refresh-Token wird atomar im
+   passenden Eintrag der lokalen `.env` gespeichert, nicht im Terminal ausgegeben.
+4. Mit einem Konto zustimmen, das Schreibrechte im Zielkalender besitzt. Mailhelp
+   fordert `calendar.events` für Termine sowie `calendar.calendars.readonly` für
+   Kalendermetadaten an. Die [Calendar-Scope-Referenz](https://developers.google.com/workspace/calendar/api/auth)
+   erläutert diese Berechtigungen. Eine Zustimmung zur OAuth-Anmeldung bestätigt
+   keine Aufgaben- oder Terminanlage.
+5. `targets.google_calendar` beziehungsweise den Kalender des Zielprofils auf die
+   gewünschte ID setzen; `primary` bezeichnet den Hauptkalender. Danach
+   `mailhelp --check-access` ausführen. Die Prüfung erstellt keine Termine oder
+   Aufgaben; bei aktiviertem Telegram sendet sie eine Testnachricht.
 
-   - `https://www.googleapis.com/auth/calendar.events` für Termine und Duplikatabgleich.
-   - `https://www.googleapis.com/auth/calendar.calendars.readonly` für die Prüfung
-     der Kalender-Metadaten durch `--check-access`.
+Für Docker die Erstanmeldung auf dem Host durchführen und die geschützte `.env`
+einbinden. Ein Container ohne Hostbrowser ist kein geeigneter Ort für diesen
+Loopback-Ablauf. Vorhandene Prozessvariablen haben Vorrang vor `.env`; einen alten
+Refresh-Token dort ebenfalls ersetzen oder entfernen.
 
-   Der zweite Scope ist erforderlich, weil ein reiner Event-Scope nicht den
-   verwendeten Aufruf `calendars.get` erlaubt. Siehe
-   [Calendar-Scopes](https://developers.google.com/workspace/calendar/api/auth) und
-   [calendars.get](https://developers.google.com/workspace/calendar/api/v3/reference/calendars/get).
-5. Mit dem Konto zustimmen, das Schreibrechte im Zielkalender besitzt. Im
-   Playground den Autorisierungscode gegen Tokens tauschen. Den **Refresh-Token**
-   verwenden, nicht den kurzlebigen Access-Token.
-6. Client-ID, Client-Secret und Refresh-Token ausschließlich in `.env` unter
-   `GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` und
-   `GOOGLE_OAUTH_REFRESH_TOKEN` speichern. Die Werte nicht in Befehlszeilen,
-   Screenshots, Git oder Berichte übernehmen. Vorhandene Prozessvariablen haben
-   Vorrang vor `.env` und müssen gegebenenfalls ebenfalls aktualisiert werden.
-7. `targets.google_calendar` auf die Kalender-ID setzen (`primary` für den
-   Hauptkalender des autorisierten Kontos). Dann `mailhelp --check-access`
-   ausführen. Dieser Test legt keine Aufgaben oder Termine an, sendet jedoch die
-   dokumentierte Telegram-Testnachricht.
+Externe OAuth-Apps im Veröffentlichungsstatus „Testing“ erhalten für diese Scopes
+normalerweise nur sieben Tage gültige Refresh-Tokens. Vor dauerhaftem Betrieb den
+passenden Veröffentlichungsstatus und gegebenenfalls Verifizierung klären;
+Workspace-Richtlinien können zusätzlich gelten. Siehe Googles
+[Token-Lebensdauer und Widerrufsgründe](https://developers.google.com/identity/protocols/oauth2#expiration).
 
-Der zugrunde liegende Austausch und Offline-Zugriff sind in Googles
-[OAuth-Webserverablauf](https://developers.google.com/identity/protocols/oauth2/web-server)
-beschrieben. Externe Apps im Veröffentlichungsstatus „Testing“ erhalten für diese
-Scopes normalerweise nur sieben Tage gültige Refresh-Tokens. Vor dauerhaftem
-Betrieb den passenden Veröffentlichungsstatus und gegebenenfalls notwendige
-Verifizierung klären; Workspace-Richtlinien können zusätzlich gelten.
-[Token-Lebensdauer und Widerrufsgründe](https://developers.google.com/identity/protocols/oauth2#expiration)
-
-Bei `invalid_grant`, widerrufener Zustimmung oder abgelaufenem Refresh-Token:
-Mailhelp stoppen, denselben Autorisierungsablauf mit den eigenen Clientdaten
-wiederholen, die Geheimnisse ersetzen und `--check-access` erneut ausführen.
-Erst nach erfolgreicher Prüfung neu starten. Den Zustand erhalten: Schreibzustände
-`writing` und `uncertain` werden abgeglichen, nicht zur erneuten Anlage freigegeben.
+Bei `invalid_grant` oder widerrufener Zustimmung die lokale Anmeldung für das
+betroffene Profil wiederholen und den Zugriff erneut prüfen. Gespeicherte
+Schreibreferenzen erhalten: `writing` und `uncertain` werden abgeglichen, nicht
+zur ungeprüften erneuten Anlage freigegeben. Andere Zielprofile bleiben unabhängig.
+Ein früher manuell beschaffter Refresh-Token kann weiter verwendet werden, solange
+er gültig ist und zu seinen OAuth-Clientdaten passt. Für die integrierte Anmeldung
+muss der Client den Desktop-Ablauf unterstützen.
 
 ## Docker: Filter und Lernmodus
 
@@ -143,7 +155,7 @@ Kalenderadapter. Den API-Key ausdrücklich als `OPENROUTER_API_KEY` in der
 Prozessumgebung bereitstellen; der Befehl liest keine persönliche `.env` automatisch.
 
 ```sh
-mailhelp-evaluate --allow-network --max-calls 100 --corpus tests/fixtures/mail_corpus_v2/corpus.json --prompts prompts.yaml --output evaluation-report.json
+mailhelp-evaluate --allow-network --max-calls 100 --corpus tests/fixtures/mail_corpus_v3/corpus.json --prompts prompts.yaml --output evaluation-report.json
 ```
 
 Der Aufruf ist kostenpflichtige OpenRouter-Nutzung. Ohne `--allow-network`,
@@ -154,10 +166,11 @@ in `prompts.yaml` ein `max_tokens` von 1 bis 16.000 haben. Das begrenzt Aufrufe 
 Ausgabetokens, garantiert aber keinen Eurobetrag: Eingabetokens und Modellpreise
 kommen hinzu. Das Aufrufbudget vor dem Start passend wählen.
 
-Für reale Modellläufe ist `mail_corpus_v2` vorgesehen: realistische Mails mit
+Für aktuelle reale Modellläufe ist `mail_corpus_v3` vorgesehen: realistische Mails mit
 Empfangszeitpunkt, aussagekräftige Themenbeschreibungen und für fachliche
 Grenzfälle ausdrücklich erlaubte Alternativen (`accept`). `mail_corpus_v1` bleibt
-unverändert die Grundlage der simulierten Standardtests.
+unverändert die Grundlage der simulierten Standardtests. `mail_corpus_v2` bleibt
+für die Wiederholung der historischen Läufe vom 7. und 8. Oktober erhalten.
 
 Der Zielpfad des Berichts wird vor dem ersten kostenpflichtigen Aufruf geprüft.
 Nach jedem Fall schreibt der Befehl den Zwischenstand atomar in die Ausgabedatei
@@ -204,8 +217,9 @@ In beiden damaligen Läufen gleiche Abweichungen (keine vollständige Spec-Abnah
   nicht den Termin des Fachtags. Auch dies ist eine Spec-Abweichung: `deadlines`
   muss sowohl Anmeldefrist als auch Veranstaltungstermin enthalten.
 
-Die manuelle Bewertung von Zusammenfassung, Titel, Beschreibung und Evidenz steht
-weiterhin aus.
+Zum damaligen Prüfdatum stand die manuelle Bewertung von Zusammenfassung, Titel,
+Beschreibung und Evidenz noch aus. Spätere Befunde stehen im
+[manuellen Prüfbericht für Release 1.0](../quality-reports/manuelle-llm-qualitaetspruefung-release-1.0.md).
 
 ### Nachbesserung und Prüfstand (8. Oktober 2026)
 
@@ -230,12 +244,16 @@ Nach wiederhergestelltem OpenRouter-Zugang denselben Korpus erneut ausführen un
 Zusammenfassungen, Titel, Beschreibungen und Evidenz anhand der Rohantworten
 manuell prüfen. Ohne solche Antworten bleibt diese manuelle Abnahme offen.
 
-Die lokale Windows-Prüfung besteht mit **892 Tests**, **6.565/6.565 Statements**
+Die damalige lokale Windows-Prüfung bestand mit **892 Tests**, **6.565/6.565 Statements**
 und **2.034/2.034 Branches**, Exit-Code 0. Ausgeführt mit Python 3.12.14 und
 vorhandenen Projektpaketen; die alte virtuelle Umgebung wurde nicht verändert.
-Docker ist lokal nicht verfügbar; die GitHub-CLI ist nicht angemeldet. Die
-vorhandenen Linux-/Container-CI-Prüfungen müssen noch für den endgültigen Commit
+Docker war für diesen damaligen Lauf nicht verfügbar; die GitHub-CLI war nicht angemeldet. Die
+damals vorhandenen Linux-/Container-CI-Prüfungen mussten noch für den endgültigen Commit
 erfolgreich ausgeführt werden. Kalender und Todoist wurden nicht beschrieben.
+
+Dieser Bericht vom 8. Oktober beschreibt nicht die heutige Plattformverfügbarkeit
+oder Abnahme. Die spätere lokale Facelift-Prüfung unter Windows, WSL und Docker
+steht in [Release 3.3](Release-3.3.md); reale Modellqualität bleibt separat zu prüfen.
 
 Die Telegram-Korrekturen bewahren Rückfragesperren bei unklarem Versand und nach
 Neustart. Zurückgehaltene Relevanzfragen pausieren nur ihre eigene Mail. Diese

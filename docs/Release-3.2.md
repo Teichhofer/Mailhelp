@@ -1,5 +1,10 @@
 # Mailhelp 3.2 – Einstellungen je Postfach
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 Die Umsetzung erweitert 3.1 um vererbte Postfacheinstellungen und getrennte Kalender-/Aufgabenziele.
 Die bisherige Einzelpostfachkonfiguration bleibt gültig. Die [Planung](Planung-3.2.md) beschreibt den Umfang.
 

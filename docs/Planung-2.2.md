@@ -1,5 +1,10 @@
 # Mailhelp 2.2 – Planung: Tätigkeitsbericht
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 **Zielversion:** 2.2.0
 **Stand:** 12. Oktober 2026
 **Status:** Umgesetzt in 2.2.0 ([Release-2.2.md](Release-2.2.md))

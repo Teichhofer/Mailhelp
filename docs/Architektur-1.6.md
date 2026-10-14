@@ -1,5 +1,10 @@
 # Architektur ab Mailhelp 1.6
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 Version 1.6 trennt bestehende Verantwortlichkeiten. Sie führt weder neue
 Nutzerfunktionen noch neue Zustandsformate oder Konfigurationswerte ein.
 

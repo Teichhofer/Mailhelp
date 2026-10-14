@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mailhelp"
-version = "3.3.1"
+version = "3.3.2"
 description = "Persönlicher, bestätigungspflichtiger E-Mail-Assistent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -118,6 +118,7 @@ include = [
   "/docs/Release-3.0.md", "/docs/Planung-3.0.md", "/docs/Planung-3.1.md", "/docs/Planung-3.2.md",
   "/docs/Planung-3.3.md", "/docs/Release-3.1.md",
   "/docs/Release-3.2.md",
+  "/docs/Release-3.3.md",
   "/docs/Planung-4.0.md",
   "/Mailhelp-Projektspezifikation.md", "/DATENSCHUTZ.md", "/NUTZUNGSBEDINGUNGEN.md",
 ]

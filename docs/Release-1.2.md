@@ -1,5 +1,10 @@
 # Mailhelp 1.2 – Nachvollziehbarkeit, Auswertung und Einstellungen im Web
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 Mailhelp 1.2 erweitert die Weboberfläche aus 1.1. Sie zeigt nicht mehr nur offene
 Vorschläge, sondern den ganzen gespeicherten Ablauf: Mails mit ihrer Analyse, den
 Entscheidungsverlauf, Kosten und Zeiten der KI-Aufrufe. Wichtige Einstellungen und

@@ -8,10 +8,11 @@ mailhelp@email.de. Das Angebot ist ein privates Open-Source-Projekt zum Selbstho
 ## Lokal ansehen
 
 ```powershell
-python -m http.server 8765 --bind 127.0.0.1 --directory website
+python -m http.server 8000 --bind 127.0.0.1 --directory website
 ```
 
-Im Browser `http://127.0.0.1:8765/` öffnen. Relative Verweise funktionieren auch
+Im Browser `http://127.0.0.1:8000/` öffnen. Dieser Port lässt den Standardport 8765
+der laufenden Mailhelp-Anwendung frei. Relative Verweise funktionieren auch
 unter dem GitHub-Pages-Projektpfad `/Mailhelp/`.
 
 ## Veröffentlichen

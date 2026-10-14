@@ -1,5 +1,10 @@
 # Mailhelp 1.6 – Stabilisieren und Entflechten
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 Mailhelp 1.6.0 ordnet die interne Architektur für die Arbeiten an Version 2.0.
 Der Funktionsumfang und die Nutzerabläufe aus 1.5 bleiben erhalten.
 

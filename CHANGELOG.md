@@ -1,8 +1,24 @@
 # Änderungen
 
+## 3.3.2 – beta: Dokumentation geprüft und aktualisiert
+
+- README, Changelog, Projektspezifikation, Einrichtungsanleitung, Datenschutzerklärung,
+  Nutzungsbedingungen und Projektwebsite auf den Stand 3.3 gebracht: optionale
+  Telegram-Nutzung, lokale Webkopplung, mehrere Postfächer und Zielprofile,
+  Google-Desktop-OAuth mit Profilnummer, aktivierte Inhaltslogs im Beispiel.
+- Neue [Release-Anleitung 3.3](docs/Release-3.3.md) (im Quellarchiv enthalten) und
+  [Prüfbericht zur Dokumentation](docs/Pruefung-Dokumentation.md).
+- 35 ältere Pläne, Konzepte und Release-Dokumente sind als historisch gekennzeichnet;
+  Planung 3.3 trennt umgesetzte Phasen von offenen Architekturzielen.
+- Keine Änderung am Anwendungsverhalten.
+
 ## 3.3.1 – beta: Entwicklungsregel für README-Aktualisierung
 
 - Entwicklungsregeln in `AGENTS.md` um die Vorgabe ergänzt, bei jeder neuen Version auch die Datei `README.md` zu aktualisieren.
+- Weboberfläche mit gruppierter Desktop-Seitenleiste, kompakter Handy-Navigation,
+  klarerer Seitenhierarchie, aufklappbaren Vorschlagsbelegen und Einstellungs-Bereichslinks.
+  Der Shell-Cache wird beim Update erneuert. Das Facelift wurde zunächst als 3.3.2
+  committet; der folgende Versionskorrektur-Commit führt denselben Funktionsstand als 3.3.1.
 
 ## 3.3.0 – beta: Technische Konsolidierung (Planung 3.3)
 

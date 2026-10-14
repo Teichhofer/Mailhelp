@@ -1,6 +1,10 @@
 # Mailhelp – Projektspezifikation
 
-## Einrichtung und Benachrichtigungssteuerung (Planung 3.0)
+Stand: 14. Oktober 2026, Anwendungsversion 3.3.2. Die folgenden Verträge beschreiben
+den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
+einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
+
+## Einrichtung und Benachrichtigungssteuerung (seit 3.0)
 
 Die verbindlichen Feldgrenzen, Einrichtungsabläufe und Upgrade-/Rollback-Verträge stehen in
 [Release-3.0.md](docs/Release-3.0.md). `/einrichtung` speichert einen schema-versionierten,
@@ -1924,7 +1928,10 @@ Datum; Stromkosten sind eine gekennzeichnete Schätzung aus `metrics.ollama_powe
 `metrics.electricity_eur_per_kwh`, überlappende Aufrufe zählen einmal.
 
 **Einstellungen und Themen.** Bearbeitbar ist nur eine Positivliste von Einstellungen;
-Geheimnisse, Web-Bindung, Datenverzeichnis und IMAP-Konten nicht. Änderungen sind
+in der globalen Einzelfeldansicht sind Geheimnisse, Web-Bindung, Datenverzeichnis und
+IMAP-Konten nicht bearbeitbar. Die getrennte Einrichtung und die Postfachverwaltung
+seit 3.2 unterstützen IMAP-Konfigurationsentwürfe; Geheimnisse bleiben außerhalb des Webs.
+Änderungen sind
 `AdminCommand`s mit erwartetem Dateihash und ausdrücklicher Bestätigung, laufen im
 Hauptthread, werden journalisiert und atomar geschrieben. `config.yaml` wird
 kommentarerhaltend geändert (nur betroffene Zeilen); weicht die geparste Datei vom
@@ -2326,7 +2333,7 @@ ist wiederholbar und übersteht Neustarts. Themen- und andere Analyseänderungen
 Details, Fingerprint-Kompatibilität
 und Rückkehr aus einer vorher angelegten Sicherung stehen in [Release-3.2](docs/Release-3.2.md).
 
-## Darstellung der Weboberfläche (3.3.2)
+## Darstellung der Weboberfläche (3.3.1)
 
 Ab 1200 Pixeln Breite bündelt eine feste Seitenleiste die Navigation in Arbeitsbereich, Einblicke
 und Verwaltung. Auf schmaleren Bildschirmen bleibt die Navigationsleiste horizontal scrollbar;

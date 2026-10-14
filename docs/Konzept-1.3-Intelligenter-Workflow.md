@@ -1,8 +1,13 @@
 # Mailhelp 1.3 – Konzept und detaillierter Umsetzungsplan: Smart Engine, Kalenderabgleich und Anhangsauswertung
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 **Stand:** 11. Oktober 2026  
 **Zielversion:** 1.3.0  
-**Status:** In Planung (Spezifikation und Umsetzungsplan)  
+**Status:** Historischer Entwurf; Kernfunktionen seit 1.3 implementiert. Maßgeblich für das aktuelle Verhalten ist die Projektspezifikation.
 **Grundlage:** [Mailhelp-Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Entwicklungsregeln](../AGENTS.md), [Konzept-1.2-Web-Ausbau.md](Konzept-1.2-Web-Ausbau.md), [Planung-1.3.md](Planung-1.3.md)  
 **Nachfolge-Konzept:** [Konzept-2.0-Redesign-und-Web-Push.md](Konzept-2.0-Redesign-und-Web-Push.md)
 

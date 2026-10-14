@@ -1,5 +1,10 @@
 # Anforderungsprüfung bis Mailhelp 2.2
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 Stand: 13.10.2026. Geprüfter Commit: `edb3df8`, Anwendungsversion 2.2.1.
 
 > **Nachtrag (Stand 2.2.4):** Die Befunde 1–6, die offenen 2.2-Anforderungen der Tabelle

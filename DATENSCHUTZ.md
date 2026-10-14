@@ -1,7 +1,7 @@
 <!--
 Hinweise für Betreibende (vor Veröffentlichung entfernen):
 - Platzhalter in [eckigen Klammern] ersetzen (Name, Anschrift, Kontakt).
-- Die Angaben unten entsprechen der Konfiguration im Repository (Stand 10.10.2026).
+- Die technischen Angaben entsprechen dem Repository-Stand 3.3.2 (14.10.2026).
   Bei abweichender Konfiguration (andere Modelle, Anbieter, Aufbewahrungsfristen,
   Logging) diese Erklärung anpassen.
 - Für eine Google-OAuth-Prüfung muss diese Seite öffentlich erreichbar sein und zur
@@ -11,21 +11,23 @@ Hinweise für Betreibende (vor Veröffentlichung entfernen):
 
 # Datenschutzerklärung für Mailhelp
 
-Stand: 10. Oktober 2026
+Stand: 14. Oktober 2026 · technische Beschreibung für Mailhelp 3.3.2
 
 ## 1. Worum es geht
 
 Mailhelp ist eine selbst betriebene Software. Sie liest E-Mails aus einem oder mehreren Postfächern derselben Person,
-lässt sie mit KI-Modellen auswerten und schlägt daraus Aufgaben (Todoist) und Termine
-(Google Kalender) vor. Die Vorschläge werden über einen Telegram-Bot oder die
+lässt sie mit KI-Modellen auswerten und schlägt daraus Aufgaben und Termine vor.
+Als Ziele stehen Google Kalender, Todoist, Outlook / Microsoft 365, Microsoft To Do
+und CalDAV zur Verfügung. Die Vorschläge werden über einen optionalen Telegram-Bot oder die
 authentifizierte Weboberfläche zur Bestätigung vorgelegt. Mailhelp legt **nichts**
-in Todoist oder Google Kalender an, solange die berechtigte Person die konkrete
+im Kalender oder in der Aufgabenliste an, solange die berechtigte Person die konkrete
 Vorschlagsversion nicht ausdrücklich über einen dieser beiden Kanäle bestätigt hat.
 Das Speichern einer Bearbeitung allein ist keine Bestätigung.
 
 Mailhelp ist kein öffentlicher Dienst. Eine Instanz wird von einer Person für ihr
-eigenen Postfächer (ab Version 3.1 bis zu zehn) betrieben und von genau einem berechtigten
-Telegram-Konto bedient. Jedes eingetragene Postfach wird gleich verarbeitet.
+eigenen Postfächer (bis zu zehn) betrieben. Bei aktiviertem Telegram ist genau ein Konto
+berechtigt; alternativ ist ein Betrieb ausschließlich über gekoppelte Webgeräte möglich.
+Postfächer können eigene Themen, Filter, Zielprofile und Benachrichtigungsregeln besitzen.
 Diese Erklärung beschreibt die Instanz der unten genannten verantwortlichen Person.
 
 ## 2. Verantwortliche Person
@@ -39,18 +41,30 @@ E-Mail: [Kontakt-E-Mail-Adresse]
 
 | Daten | Herkunft | Zweck |
 |---|---|---|
-| E-Mails: Absender, Empfänger, Betreff, Datum, Nachrichten-IDs und Textinhalt (Anhänge werden nicht ausgewertet) | eigenes Postfach per IMAP | Relevanzprüfung, Zusammenfassung, Erkennung von Aufgaben und Terminen |
+| E-Mails: Absender, Empfänger, Betreff, Datum, Nachrichten-IDs, Textinhalt und unterstützte Dokumenten-, Kalender- und Bildanhänge | eigene Postfächer per IMAP | Relevanzprüfung, Zusammenfassung, Erkennung von Aufgaben und Terminen; optional Bild-/Scan-Auswertung |
 | Telegram-Nachrichten und Schaltflächen-Eingaben des berechtigten Kontos | Telegram | Bestätigung, Änderung oder Verwerfen von Vorschlägen; Rückfragen |
 | Aufgaben- und Terminvorschläge mit Belegstelle aus der Mail | von Mailhelp erzeugt | Vorlage zur Bestätigung, Anlage nach Bestätigung |
 | Quellenreferenzen mit Nachrichtenzeit, Betreff und gehashten Gesprächsankern; Vorschlagsbeziehungen, Vergleichscache und Merge-Journal | lokale Mail- und Vorschlagsakten | Zusammengehörige offene Entscheidungen erkennen, Ergänzungen nachvollziehen und unterbrochene lokale Änderungen wiederaufnehmen |
-| Bestehende Termine im Zeitraum eines Terminvorschlags: Titel, Beschreibung, Ort, Beginn, Ende, Link | Google Kalender | Erkennen von Duplikaten vor dem Anlegen |
-| Aufgaben im konfigurierten Todoist-Projekt | Todoist | Erkennen bereits angelegter Aufgaben vor dem Anlegen |
+| Bestehende Termine im Zeitraum eines Terminvorschlags: Titel, Beschreibung, Ort, Beginn, Ende, Link | gewählter Kalenderdienst des Zielprofils | Erkennen von Duplikaten; optional Tagesüberblick |
+| Aufgaben in der konfigurierten Aufgabenliste | gewählter Aufgabendienst des Zielprofils | Erkennen bereits angelegter Aufgaben; optional Tagesüberblick |
+| Antwortentwürfe mit persönlichen Angaben und Signatur | Mailinhalt und eigene Vorgaben | Entwurf durch KI, lokales Prüfen und ausschließlich ausdrücklich bestätigtes Speichern im IMAP-Entwurfsordner |
+| Tätigkeitsberichte mit Mailbelegen und XLSX-Exporten | ausgewählte Mails des Ursprungspostfachs | ausdrücklich gestartete Berichtsauswertung |
+| Web-Push-Abonnements einschließlich Endpunkt und öffentlicher Schlüssel | freigegebener Browser | inhaltsneutrale Hinweise; Widerruf je Gerät |
+| Postfachnummern, Zielprofilbindungen, Einrichtungsentwürfe und Diagnoseberichte | lokale Konfiguration und Prüfungen | getrennte Zugänge, Vererbung von Einstellungen und sichere Betriebsprüfung |
 | Gelernte Absender- und Themenfilter | aus bestätigten Entscheidungen | künftige Relevanzprüfung |
 | Technische Protokolle (Zeitpunkte, Status, Fehler) | Mailhelp | Betrieb und Fehlersuche |
 | Nur bei aktivierter Weboberfläche: gekoppelte Geräte (selbst gewählter oder aus dem Browser abgeleiteter Gerätename, Zeitpunkte der Kopplung und letzten Nutzung, Sitzungsschlüssel nur als Hash), Kopplungscodes nur als Hash, Web-Aktionen mit Ergebnis | Browser der berechtigten Person | Anmeldung und Bedienung über das Web |
 
 Von Absenderinnen und Absendern verarbeitet Mailhelp nur, was in den empfangenen
-E-Mails steht. Mailhelp versendet keine E-Mails und verändert das Postfach nicht.
+E-Mails steht. Der reguläre Abruf verändert weder Nachrichten noch Lesestatus.
+Mailhelp versendet keine E-Mails. Die optionale Entwurfsfunktion kann nach gesonderter
+Bestätigung einen neuen Entwurf im Ursprungspostfach speichern.
+
+Unterstützte Anhangstexte und bei aktivierter Bilderkennung ausgewählte Bild-/Scan-Daten
+können an den konfigurierten KI-Dienst übermittelt werden. Optionale Originalanhänge und
+Bildvorschauen werden lokal abgelegt und durch die Aufbewahrung des Mailvolltexts bereinigt.
+Tätigkeitsberichte besitzen eine eigene Volltextfrist. Persönliche Angaben können auch
+in die KI-Auswertung für diese Berichte eingehen.
 
 Beim optionalen KI-Abgleich offener Vorschläge werden begrenzte Vorschlagsfelder
 und die letzten drei Quellenbetreffe je Kandidat an den konfigurierten KI-Dienst
@@ -74,7 +88,7 @@ nicht. Soweit sie anwendbar ist, erfolgt die Verarbeitung:
 
 Es findet kein Profiling zu Werbezwecken, kein Verkauf und keine Weitergabe zu
 Marketingzwecken statt. Automatisierte Entscheidungen mit rechtlicher Wirkung
-(Art. 22 DSGVO) trifft Mailhelp nicht: Jede Aktion in Todoist oder Google Kalender
+(Art. 22 DSGVO) trifft Mailhelp nicht: Jede externe Kalender- oder Aufgabenaktion
 erfordert eine ausdrückliche, versionsbezogene Bestätigung durch einen Menschen.
 
 ## 5. Empfänger und eingesetzte Dienste
@@ -83,18 +97,23 @@ Für die Funktion werden Daten an folgende Dienste übermittelt:
 
 | Dienst | Übermittelte Daten | Zweck | Sitz |
 |---|---|---|---|
-| E-Mail-Anbieter des Postfachs (konfiguriert: WEB.DE, 1&1 Mail & Media GmbH) | Abruf per IMAP | Lesen der E-Mails | Deutschland |
-| OpenRouter, Inc. und die dort gewählten Modellanbieter (konfiguriert: DeepSeek-Modell über Together AI oder Parasail; Entscheidungsmodell Jev von TypeSafe) | Mailinhalt, Vorschläge, bestehende Termine zur Duplikatprüfung, Antworten aus Telegram | KI-Auswertung | USA |
-| Telegram Messenger | Zusammenfassungen, Vorschläge mit Mailauszügen, Rückfragen | Bedienung und Bestätigung | Vereinigte Arabische Emirate / Vereinigtes Königreich |
+| E-Mail-Anbieter der eingerichteten Postfächer | Abruf per IMAP, optional ausdrücklich gespeicherte Antwortentwürfe | Lesen der E-Mails und Entwurfsablage | abhängig vom Anbieter |
+| OpenRouter und die tatsächlich gewählten Modellanbieter | Mail- und Anhangsinhalte, Vorschlagsfelder, bestehende Termine zur Duplikatprüfung, Klärungsantworten, optional persönliche Angaben | KI-Auswertung; Modelle und Routen gemäß `prompts.yaml` und `decisions_prompts.yaml` | abhängig vom Anbieter |
+| Telegram Messenger, falls aktiviert | Hinweise gemäß Inhaltsprofil; direkte Vorschläge, Rückfragen und Antworten können Mailauszüge enthalten | Bedienung und Bestätigung | gemäß Anbieterangaben |
 | Todoist (Doist Inc.) | bestätigte Aufgaben; Lesen des Zielprojekts | Aufgabenanlage | USA |
 | Google Kalender (Google LLC / Google Ireland Ltd.) | bestätigte Termine; Lesen von Terminen im betroffenen Zeitraum | Terminanlage, Duplikatprüfung | Irland / USA |
+| Microsoft 365 / Outlook / Microsoft To Do, falls gewählt | bestätigte Termine oder Aufgaben; lesender Abgleich | Kalender- und Aufgabenfunktionen | abhängig vom Konto und Anbieter |
+| CalDAV-Anbieter, falls gewählt | bestätigte Termine oder Aufgaben; lesender Abgleich | Kalender- und Aufgabenfunktionen | abhängig vom Anbieter |
+| Push-Dienst des Browsers, falls freigegeben | Abonnement-Endpunkt und verschlüsselter inhaltsneutraler Hinweis | Web-Push | abhängig vom Browseranbieter |
 
 Die optionale Weboberfläche (ab Version 1.1) läuft auf dem eigenen PC und ist
 standardmäßig ausgeschaltet. Sie ist lokal unter `127.0.0.1` und – falls
 eingerichtet – über Tailscale Serve im eigenen Tailnet erreichbar. Tailscale
 (Tailscale Inc., USA) vermittelt dabei die verschlüsselte Verbindung zwischen den
 eigenen Geräten; die Inhalte werden Ende-zu-Ende verschlüsselt übertragen.
-Kopplungscodes und Hinweise auf neue Geräte werden über Telegram gesendet.
+Kopplungscodes können bei aktiviertem Telegram über den Bot angefordert werden;
+`mailhelp --pair` zeigt einen lokal autorisierten Code ausschließlich im aufrufenden
+Terminal. Hinweise auf neue Geräte werden bei aktiviertem Telegram dorthin gesendet.
 
 Optional kann statt OpenRouter ein lokaler KI-Server (Ollama) im eigenen Netz
 genutzt werden. Dann verlassen die Mailinhalte für die KI-Auswertung das eigene Netz
@@ -124,7 +143,9 @@ Insbesondere gilt:
   Duplikate vermeiden.
 - Zur Duplikatprüfung werden Titel, Beschreibung, Ort und Zeitraum bestehender,
   zeitlich überlappender Termine zusammen mit dem Terminvorschlag an das
-  KI-Modell übermittelt (siehe Abschnitt 5). Andere Übermittlungen finden nicht statt.
+  KI-Modell übermittelt (siehe Abschnitt 5). Ein aktivierter Tagesüberblick kann
+  gelesene Terminangaben anzeigen und bei ausdrücklich gewähltem Telegram-
+  Inhaltsprofil `summary` auch dorthin übermitteln. Web-Push bleibt inhaltsneutral.
 - Kalenderdaten werden nicht verkauft, nicht für Werbung genutzt und nicht zum
   Training allgemeiner KI-Modelle verwendet oder dafür weitergegeben.
 - Menschen lesen diese Daten nur, wenn die Nutzerin oder der Nutzer zustimmt, es
@@ -140,7 +161,7 @@ widerrufen werden. Danach kann Mailhelp keine Termine mehr lesen oder anlegen.
 Mailhelp speichert Daten ausschließlich lokal auf dem Rechner oder Server der
 verantwortlichen Person, als lesbare JSON-Dateien und Protokolle.
 
-| Daten | Speicherdauer (aktuelle Konfiguration) |
+| Daten | Speicherdauer (ausgeliefertes Beispiel; für die eigene Instanz anpassen) |
 |---|---|
 | Vollständiger Mailinhalt in abgeschlossenen Vorgängen | 30 Tage, danach automatisch entfernt |
 | Zwischenergebnisse der KI-Auswertung (Relevanz, Zusammenfassung, Diagnosen) | beim nächsten Lauf entfernt |
@@ -157,6 +178,15 @@ verantwortlichen Person, als lesbare JSON-Dateien und Protokolle.
 | Kopplungscodes | 10 Minuten |
 | Web-Aktionen und deren Ergebnis | ein Tag nach Abschluss |
 | Vergleichs- und Testberichte, sofern manuell erzeugt (enthalten vollständige Mails) | bis zur manuellen Löschung |
+| Volltexte und Belege abgeschlossener Tätigkeitsberichte | `retention.activity_report_days`, im Beispiel 365 Tage; kompakte Termin-, Absender- und Betreffangaben bleiben |
+| Benachrichtigungsqueue und Zustellhistorie | ausstehende Meldungen bis zur Verarbeitung; Historie nach `notifications.delivery.history_days`, im Beispiel 30 Tage, ohne Nachrichtenvolltext |
+| Web-Push-Abonnements | bis zum Widerruf oder zur Entfernung ungültiger Abonnements |
+
+Vollständige KI-Inhalte werden nur bei explizit gesetzten `logging.llm.include_requests`
+und `logging.llm.include_responses` protokolliert. Die ausgelieferte Beispielkonfiguration
+setzt beide Werte auf `true`; für einen Betrieb ohne diese Inhalte auf `false` setzen.
+Logs können außerdem durch Größenrotation früher entfernt werden. Postfachbezogene
+Volltextfristen dürfen die globale Frist verkürzen.
 
 Offene Vorgänge (etwa eine unbeantwortete Rückfrage) werden erst nach ihrem Abschluss
 bereinigt. Mit `mailhelp --clear` lassen sich alle Zustandsdaten und Protokolle
@@ -165,7 +195,7 @@ bis sie dort gelöscht werden.
 
 ## 8. Sicherheit
 
-Einrichtung und Benachrichtigungssteuerung (3.0-Arbeitsstand): Diagnoseberichte enthalten nur
+Einrichtung und Benachrichtigungssteuerung (seit 3.0): Diagnoseberichte enthalten nur
 Version, Betriebssystemklasse, Komponentenstatus, Prüfdauer und sichere Fehlercodes. Queue und
 Zustelllogs enthalten Referenzen statt Nachrichtentexten. Telegram-Inhaltsmeldungen werden im
 Profil bewusst gewählt; Web-Push bleibt neutral. Erstkopplung ohne Telegram erfolgt durch
@@ -175,10 +205,13 @@ Gerätesitzung und Abonnement erneut. Details: [Betriebsanleitung 3.0](docs/Rele
 - Zugangsdaten (Postfach, OpenRouter, Telegram, Todoist, Google) liegen nur in
   Umgebungsvariablen beziehungsweise einer lokalen `.env`-Datei, nicht im Code, und
   werden nicht protokolliert.
-- Alle Verbindungen zu externen Diensten sind verschlüsselt (TLS).
+- Cloud-Adapter verwenden TLS. IMAP sollte mit `ssl` oder `starttls` betrieben werden;
+  eine ausdrücklich konfigurierte `plain`-Verbindung ist unverschlüsselt. Ein lokaler
+  Ollama-Server kann über HTTP angesprochen werden und gehört in ein vertrauenswürdiges Netz.
 - Nur ein konfiguriertes Telegram-Konto in einem konfigurierten Chat darf den Bot
   bedienen; andere Eingaben werden abgewiesen.
-- Die Weboberfläche ist nur nach Kopplung per einmaligem Telegram-Code nutzbar.
+- Die Weboberfläche ist nur nach Kopplung per einmaligem lokal oder über Telegram
+  angefordertem Code nutzbar.
   Sitzungs-Cookies sind `HttpOnly` und `SameSite=Strict`, über Tailscale zusätzlich
   `Secure`; schreibende Anfragen benötigen ein CSRF-Token, fremde Host-Namen werden
   abgewiesen. Mailinhalte werden ohne aktive Inhalte dargestellt; die installierbare
