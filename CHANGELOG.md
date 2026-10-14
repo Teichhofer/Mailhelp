@@ -1,5 +1,15 @@
 # Änderungen
 
+## 3.0.4 – beta: Planung 3.1, Phase 4 – postfachbezogene Funktionen
+
+- Antwortentwürfe gehen nur in den Entwurfsordner des Ursprungspostfachs (eigene Verbindung und
+  Absender); ein nicht mehr eingerichtetes Postfach wird abgelehnt, der Text bleibt erhalten.
+- Tätigkeitsberichte gehören zu einem Postfach: Auswahl ohne JavaScript, Ordnervorschläge und -prüfung je
+  Postfach, Zählen und Lesen nur dort. Schema-Snapshot `ActivityReport` um `mailbox` (Standard 1) ergänzt;
+  ältere Berichte bleiben ohne Migration lesbar.
+- `--learn` und `--decision-test` lesen genau ein Postfach; bei mehreren aktivierten Postfächern ist
+  `--mailbox <n>` Pflicht. Der Lernmodus liest mit dem Reader dieses Postfachs.
+
 ## 3.0.3 – beta: Planung 3.1, Phase 3 – Duplikate über Postfächer hinweg
 
 - Der Duplikatindex vergleicht mit den Einträgen aller Postfächer: Dieselbe Mail in zwei konfigurierten

@@ -57,7 +57,7 @@ class Mailbox:
         return FetchedMail(folder, uidvalidity, uid, raw, "0" * 24, received)
 
     @contextmanager
-    def connection(self):
+    def connection(self, _mailbox: int = 1):
         self.calls.append(("open",))
         yield self
 

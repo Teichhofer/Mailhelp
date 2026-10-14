@@ -218,3 +218,51 @@ def test_learning_adds_folders_to_the_mailbox_of_the_3_1_format(tmp_path):
     for missing in ("imap.mailboxes.3.folders", "imap.mailboxes.x.folders", "imap.batch_size.folders"):
         with pytest.raises(RuntimeError, match="IMAP-Abschnitt"):
             add_discovered_folders(path, ["INBOX"], ["Neu"], missing)
+
+
+def test_learning_and_decision_tests_read_one_named_mailbox(tmp_path, monkeypatch, capsys):
+    from mailhelp.cli import _parser, _selected_mailbox
+    monkeypatch.setattr("mailhelp.config.MAX_MAILBOXES", 10)
+    one = former(tmp_path)
+    two = mailboxes(tmp_path, {"id": 1, **FORMER}, {"id": 4, "label": "Arbeit", **FORMER, "host": "b.test"},
+                    {"id": 5, **FORMER, "host": "c.test", "enabled": False})
+    parser = _parser()
+
+    def selected(cfg, *arguments):
+        return _selected_mailbox(parser, parser.parse_args(list(arguments)), cfg)
+
+    assert selected(one) is None
+    assert selected(one, "--learn", "3").id == 1
+    assert selected(two, "--learn", "3", "--mailbox", "4").label == "Arbeit"
+    assert selected(two, "--decision-test", "2", "--mailbox", "1").id == 1
+    for cfg, arguments, message in (
+            (two, ["--learn", "3"], "--mailbox NUMMER angeben"),
+            (two, ["--learn", "3", "--mailbox", "5"], "kein aktiviertes Postfach"),
+            (two, ["--mailbox", "4"], "nur zusammen mit --learn")):
+        with pytest.raises(SystemExit):
+            selected(cfg, *arguments)
+        assert message in capsys.readouterr().err
+
+
+def test_the_decision_test_reads_the_selected_mailbox(tmp_path, monkeypatch):
+    from mailhelp.decision_test import DecisionTestMode, _comparison_reader, _initial_report
+    monkeypatch.setattr("mailhelp.config.MAX_MAILBOXES", 10)
+    cfg = mailboxes(tmp_path, {"id": 1, **FORMER}, {"id": 2, **FORMER, "host": "b.test", "folders": ["Projekte"],
+                                                    "primary_folder": "Projekte", "historical_start": None})
+    second = cfg.imap.mailbox(2)
+    opened = []
+    monkeypatch.setattr("mailhelp.decision_test.ImapReader", lambda *args, **kwargs: opened.append(args[:3]) or
+                        type("Reader", (), {"close": lambda self: None})())
+    secrets = Secrets(imap={1: {"username": "a", "password": "p"}, 2: {"username": "b", "password": "q"}},
+                      openrouter_api_key="o")
+    from contextlib import ExitStack
+    with ExitStack() as stack:
+        _comparison_reader(cfg, secrets, None, stack, second)
+    assert opened == [("b.test", 143, "b")]
+    from mailhelp.ollama import LocalLlm
+    report = _initial_report(cfg, [], prompt_config(), 1, type("P", (), {"model_dump": lambda self, **k: {}})(),
+                             LocalLlm("localhost", 11434, "lokal"), None, None, False, False, None, second)
+    assert report["historical_start"] is None
+    mode = DecisionTestMode(None, None, None, cfg, [], {}, tmp_path / "r.json", None, mailbox=second)
+    assert mode.mailbox is second
+    assert DecisionTestMode(None, None, None, cfg, [], {}, tmp_path / "r.json", None).mailbox == cfg.imap.mailbox(1)

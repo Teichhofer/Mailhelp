@@ -28,7 +28,7 @@ MAX_FAILURES = 3
 
 class ActivityRunner:
     def __init__(self, service: ActivityService, analyzer: ActivityAnalyzer,
-                 open_reader: Callable[[], AbstractContextManager[Any]], settings: Any, logger: Any,
+                 open_reader: Callable[[int], AbstractContextManager[Any]], settings: Any, logger: Any,
                  llm_calls_per_minute: Callable[[], int] = lambda: 60,
                  clock: Callable[[], float] = time.monotonic):
         self.service, self.analyzer, self.open_reader = service, analyzer, open_reader
@@ -93,7 +93,7 @@ class ActivityRunner:
                 return True
         for report in reports:
             if report.status == ReportStatus.RUNNING:
-                self.process(report.id)
+                self.process(report.id, report.definition.mailbox)
                 return True
         for report in reports:
             if report.pending_extractions and report.status not in {ReportStatus.PAUSED, ReportStatus.CANCELLED}:
@@ -109,7 +109,7 @@ class ActivityRunner:
         assert report is not None
         start, end = period(report, self.settings.timezone)
         progress, missing = [], []
-        with self.open_reader() as reader:
+        with self.open_reader(report.definition.mailbox) as reader:
             listed = reader.list_folders()
             sent_names = sent_folders(listed)
             folders = [(folder, folder in sent_names) for folder in report.definition.folders]
@@ -157,9 +157,9 @@ class ActivityRunner:
             self.service.store.save(report)
             return report
 
-    def process(self, report_id: str) -> None:
-        """Read and judge up to one batch of mail with one IMAP connection."""
-        with self.open_reader() as reader:
+    def process(self, report_id: str, mailbox: int) -> None:
+        """Read and judge up to one batch of mail with one IMAP connection to the report's mailbox."""
+        with self.open_reader(mailbox) as reader:
             for _ in range(BATCH):
                 if self.stop_event.is_set() or not self._process_one(report_id, reader):
                     return

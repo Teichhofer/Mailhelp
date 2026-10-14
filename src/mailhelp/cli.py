@@ -197,6 +197,11 @@ def _parser() -> argparse.ArgumentParser:
         "--decision-test-relevance-only", action="store_true",
         help="im --decision-test ausschließlich die Relevanzprüfung beider Pfade vergleichen",
     )
+    parser.add_argument(
+        "--mailbox", type=int, metavar="NUMMER",
+        help="Postfach (imap.mailboxes.id) für --learn und --decision-test; "
+             "bei mehreren aktivierten Postfächern erforderlich",
+    )
     return parser
 
 
@@ -223,6 +228,24 @@ def _check_mode_options(parser: argparse.ArgumentParser, args: argparse.Namespac
         parser.error("--yes ist nur zusammen mit --clear zulässig")
     if args.show_imap_credentials and not args.check_access:
         parser.error("--show-imap-credentials ist nur zusammen mit --check-access zulässig")
+
+
+def _selected_mailbox(parser: argparse.ArgumentParser, args: argparse.Namespace, settings):
+    """The one mailbox --learn and --decision-test read; never guessed among several (3.1)."""
+    reads_one = args.learn is not None or args.decision_test is not None
+    if args.mailbox is None and not reads_one:
+        return None
+    if not reads_one:
+        parser.error("--mailbox ist nur zusammen mit --learn oder --decision-test zulässig")
+    enabled = settings.imap.enabled_mailboxes()
+    if args.mailbox is None:
+        if len(enabled) > 1:
+            parser.error("Mehrere Postfächer aktiviert: --mailbox NUMMER angeben")
+        return enabled[0]
+    selected = next((mailbox for mailbox in enabled if mailbox.id == args.mailbox), None)
+    if selected is None:
+        parser.error(f"--mailbox {args.mailbox}: kein aktiviertes Postfach mit dieser Nummer")
+    return selected
 
 
 def _local_llm(parser: argparse.ArgumentParser, args: argparse.Namespace, prompts) -> LocalLlm | None:
@@ -301,7 +324,7 @@ def _show_imap_credentials(secrets) -> None:
 
 
 def _run(args: argparse.Namespace, settings, secrets, topics, irrelevant_topics, prompts, fingerprint,
-         logger, local_llm: LocalLlm | None, shutdown: _SignalShutdown) -> int:
+         logger, local_llm: LocalLlm | None, shutdown: _SignalShutdown, mailbox=None) -> int:
     with build_application(
         settings, secrets, topics, prompts, fingerprint,
         base_directory=args.config_directory,
@@ -314,9 +337,9 @@ def _run(args: argparse.Namespace, settings, secrets, topics, irrelevant_topics,
                 print(f"{'OK' if error is None else 'FEHLER'}: {name}" + (f" – {error}" if error else ""))
             return 1 if any(error is not None for error in results.values()) else 0
         if args.learn is not None:
-            mailbox = settings.imap.enabled_mailboxes()[0]
+            reader = next(source.reader for source in application.sources if source.mailbox.id == mailbox.id)
             LearningMode(
-                application.imap, application.analyzer, mailbox.folders,
+                reader, application.analyzer, mailbox.folders,
                 settings.limits, topics, args.config_directory / "topics.yaml",
                 irrelevant_topics, args.config_directory / "irrelevant_topics.yaml",
                 application.sender_store,
@@ -357,6 +380,7 @@ def _main() -> int:
     if args.microsoft_login:
         return _microsoft_login(settings, secrets, args.config_directory)
     _check_mode_options(parser, args)
+    mailbox = _selected_mailbox(parser, args, settings)
     local_llm = _local_llm(parser, args, prompts)
     if args.decision_test is not None:
         assert local_llm is not None  # _check_mode_options requires --ollama for decision tests
@@ -366,6 +390,7 @@ def _main() -> int:
             ignore_historical_start=args.ignore_historical_start,
             laya=args.decision_test_laya, laya_model=args.decision_test_laya_model,
             relevance_only=args.decision_test_relevance_only, irrelevant_topics=irrelevant_topics,
+            mailbox=mailbox,
         )
     if args.clear:
         return _clear(args, settings)
@@ -380,4 +405,4 @@ def _main() -> int:
     if args.show_imap_credentials:
         _show_imap_credentials(secrets)
     return _run(args, settings, secrets, topics, irrelevant_topics, prompts, fingerprint,
-                logger, local_llm, shutdown)
+                logger, local_llm, shutdown, mailbox)

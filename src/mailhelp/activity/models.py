@@ -24,6 +24,8 @@ class ReportDefinition(StrictModel):
     since: date
     until: date
     folders: list[str] = Field(min_length=1, max_length=50)
+    # The configured mailbox the folders belong to (3.1); reports before 3.1 read mailbox 1.
+    mailbox: int = Field(default=1, ge=1, le=99)
     include_sent: bool = True
     skip_automated: bool = False
 

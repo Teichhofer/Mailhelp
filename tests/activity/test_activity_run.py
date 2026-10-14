@@ -278,7 +278,7 @@ def test_background_loop_and_vanishing_reports(setup, monkeypatch):
     assert setup.service.store.load(report.id) is None and not runner.tick()
     # Counting a report that was cancelled meanwhile keeps the cancellation.
     counting = setup.service.create(definition(), [], [])
-    def cancel_meanwhile():
+    def cancel_meanwhile(_mailbox):
         setup.service.act(counting.id, 1, "cancel-001", "cancel")
         return setup.box.connection()
     runner.open_reader = cancel_meanwhile
@@ -748,3 +748,18 @@ def test_a_new_uid_generation_completes_a_pending_extraction(setup, monkeypatch)
     mail = setup.service.store.mail(report.id, "INBOX:8:1")
     assert mail is not None and mail.events_extracted and [event.day for event in mail.events]
     assert [stage for stage, _ in setup.model.requests].count("activity_relevance") == 1
+
+
+def test_counting_and_reading_use_the_mailbox_of_the_report(setup):
+    """Planung 3.1: a report of mailbox 2 opens only mailbox 2."""
+    opened = []
+
+    def open_reader(mailbox):
+        opened.append(mailbox)
+        return setup.box.connection()
+    setup.runner.open_reader = open_reader
+    report = setup.service.create(definition(mailbox=2), [], [])
+    assert setup.runner.tick()
+    setup.service.act(report.id, setup.service.store.load(report.id).version, "start-0001", "start")
+    assert setup.runner.tick()
+    assert opened == [2, 2]

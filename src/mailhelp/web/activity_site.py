@@ -8,6 +8,7 @@ from __future__ import annotations
 import re
 from collections.abc import Callable
 from datetime import date
+from urllib.parse import parse_qs
 from zoneinfo import ZoneInfo
 
 from pydantic import ValidationError
@@ -31,8 +32,10 @@ class ActivitySite:
         self.site = site
         # Set by the runtime when activity_report.enabled and both prompts exist.
         self.service: ActivityService | None = None
-        self.suggest_folders: Callable[[], list[str]] = lambda: ["INBOX"]
-        self.available_folders: Callable[[], list[str]] = lambda: ["INBOX"]
+        # Per mailbox number (3.1); the runtime replaces them with the configured mailboxes.
+        self.mailboxes: Callable[[], list[tuple[int, str]]] = lambda: [(1, "Postfach")]
+        self.suggest_folders: Callable[[int], list[str]] = lambda mailbox: ["INBOX"]
+        self.available_folders: Callable[[int], list[str]] = lambda mailbox: ["INBOX"]
         self.with_unscheduled = True
         route = site.app.route
         route("GET", "/berichte", site.signed_in(self.reports))
@@ -71,33 +74,42 @@ class ActivitySite:
             return Response.html(200, disabled_page())
         return Response.html(200, list_page(self.service.store.reports()))
 
+    def _mailbox(self, value: str) -> int:
+        """A configured mailbox number; anything else selects the first mailbox."""
+        numbers = [number for number, _ in self.mailboxes()]
+        return int(value) if value.isdigit() and int(value) in numbers else numbers[0]
+
     def new(self, request: Request, session) -> Response:
         if self.service is None:
             return self._disabled()
+        mailbox = self._mailbox(parse_qs(request.query).get("postfach", [""])[0])
         try:
-            folders = self.suggest_folders()
+            folders = self.suggest_folders(mailbox)
         except Exception as exc:
             # The mailbox may be unreachable; the user can still type the folders.
             self.site.logger.event("WARNING", "activity", "folder_suggestion_failed",
                                    error_class=type(exc).__name__)
             folders = ["INBOX"]
-        return Response.html(200, new_page(self._csrf(session), folders))
+        return Response.html(200, new_page(self._csrf(session), folders, mailboxes=self.mailboxes(),
+                                           mailbox=mailbox))
 
     def create(self, request: Request, session, form: dict[str, str]) -> Response:
         assert self.service is not None  # secured() establishes the enabled service.
+        mailbox = self._mailbox(form.get("mailbox", ""))
         try:
             folders = [line.strip() for line in form.get("folders", "").splitlines() if line.strip()]
             definition = ReportDefinition(
                 title=form.get("title", "").strip(), topic=form.get("topic", "").strip(),
                 since=date.fromisoformat(form.get("since", "")), until=date.fromisoformat(form.get("until", "")),
-                folders=folders, include_sent=form.get("include_sent") == "on",
+                folders=folders, mailbox=mailbox, include_sent=form.get("include_sent") == "on",
                 skip_automated=form.get("skip_automated") == "on")
-            if not set(folders) <= set(self.available_folders()):
+            if not set(folders) <= set(self.available_folders(mailbox)):
                 raise ValueError("Unbekannter Ordner")
         except (ValueError, ValidationError):
             message = ("Bitte Titel, ein Thema mit mindestens 10 Zeichen, einen Zeitraum von höchstens drei "
                        "Jahren und jeden Ordner nur einmal angeben.")
-            return Response.html(422, new_page(self._csrf(session), [], form, message))
+            return Response.html(422, new_page(self._csrf(session), [], form, message, mailboxes=self.mailboxes(),
+                                               mailbox=mailbox))
         except OSError:
             return self.site._reply(request, 503,
                                     "Die Ordnerliste ist gerade nicht erreichbar. Bitte erneut versuchen.")

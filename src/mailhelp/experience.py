@@ -11,8 +11,8 @@ from .activity.runner import ActivityRunner, available_report_folders, default_r
 from .activity.service import ActivityService
 from .activity.store import ActivityReportStore
 from .briefing import DailyBriefingService
-from .drafts import DraftService
-from .imap import ImapReader, reader_arguments
+from .drafts import DraftService, DraftTarget
+from .imap import ImapReader, mailbox_account_id, reader_arguments
 from .webpush import PushService
 
 ACTIVITY_PROMPTS = {"activity_relevance", "activity_events"}
@@ -21,20 +21,32 @@ if TYPE_CHECKING:
 
 
 def _mailbox(settings):
-    """The mailbox of drafts, reports and setup probes; 3.1 phase 1 has exactly one enabled mailbox."""
+    """The first enabled mailbox: the default of reports and setup probes."""
     return settings.imap.enabled_mailboxes()[0]
 
 
 @contextmanager
-def _reader(settings, secrets):
-    """One IMAP session; closed again on every exit."""
-    mailbox = _mailbox(settings)
+def _reader(settings, secrets, mailbox=None):
+    """One IMAP session of *mailbox* (default: the first enabled one); closed again on every exit."""
+    mailbox = mailbox or _mailbox(settings)
     address, options = reader_arguments(mailbox, secrets.imap_credentials(mailbox.id))
     reader = ImapReader(*address, settings.timeouts.imap.timeout_seconds, **options)
     try:
         yield reader
     finally:
         reader.close()
+
+
+def _draft_targets(settings, secrets):
+    """Drafts go to the mailbox the mail came from, keyed by its account id (3.1)."""
+    def target(mailbox):
+        @contextmanager
+        def connection():
+            with _reader(settings, secrets, mailbox) as reader:
+                yield reader.connection
+        return DraftTarget(connection, secrets.imap_credentials(mailbox.id).username, mailbox.drafts_folder)
+    return {mailbox_account_id(mailbox, secrets.imap_credentials(mailbox.id)): target(mailbox)
+            for mailbox in settings.imap.enabled_mailboxes()}
 
 
 class ExperienceRuntime:
@@ -49,19 +61,19 @@ class ExperienceRuntime:
         # Drafts are generated only on request in the web interface; without the
         # draft_reply prompt (prompts.yaml of an earlier release) they stay off.
         if settings.smart_reply and "draft_reply" in app.analyzer.prompts.prompts:
-            @contextmanager
-            def connection():
-                with _reader(settings, secrets) as reader:
-                    yield reader.connection
-            feature.drafts = DraftService(app.store, components.auth.active, connection,
-                secrets.imap_credentials(_mailbox(settings).id).username, _mailbox(settings).drafts_folder,
-                settings.test_mode, app.analyzer,
-                lambda: app.settings.personal_info)
+            targets = _draft_targets(settings, secrets)
+            first = next(iter(targets.values()))
+            feature.drafts = DraftService(app.store, components.auth.active, first.connection, first.sender,
+                first.folder, settings.test_mode, app.analyzer, lambda: app.settings.personal_info,
+                targets=targets.get)
         self.activity = None
         # Activity reports only read the mailbox; without both prompts they stay off.
         if settings.activity_report.enabled and ACTIVITY_PROMPTS <= set(app.analyzer.prompts.prompts):
-            def open_reader():
-                return _reader(app.settings, secrets)
+            def open_reader(mailbox):
+                configured = app.settings.imap.mailbox(mailbox)
+                if configured is None or not configured.enabled:
+                    raise LookupError("Postfach des Berichts ist nicht mehr eingerichtet")
+                return _reader(app.settings, secrets, configured)
             service = ActivityService(ActivityReportStore(app.store))
             service.active = components.auth.active
             service.blocked_senders = lambda: (
@@ -72,8 +84,10 @@ class ExperienceRuntime:
                 settings, app.logger, llm_calls_per_minute=lambda: app.settings.limits.llm_calls_per_minute)
             pages = self.site.activity
             pages.service = service
-            pages.suggest_folders = lambda: default_report_folders(open_reader, _mailbox(app.settings).folders)
-            pages.available_folders = lambda: available_report_folders(open_reader)
+            pages.mailboxes = lambda: [(item.id, item.label) for item in app.settings.imap.enabled_mailboxes()]
+            pages.suggest_folders = lambda mailbox: default_report_folders(
+                lambda: open_reader(mailbox), app.settings.imap.mailbox(mailbox).folders)
+            pages.available_folders = lambda mailbox: available_report_folders(lambda: open_reader(mailbox))
             pages.with_unscheduled = settings.activity_report.export_mails_without_events
         channels = {"local": lambda _text: None}
         if settings.telegram.enabled:

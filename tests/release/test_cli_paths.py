@@ -15,6 +15,7 @@ from mailhelp.cli import (
     main,
 )
 from mailhelp.config import ImapSettings
+from mailhelp.mailbox_run import MailboxSource
 
 
 class CaptureLogger:
@@ -206,12 +207,12 @@ def test_cli_reports_fatal_runtime_error_and_returns_failure(monkeypatch, capsys
 
 
 def test_cli_runs_terminal_learning_mode(monkeypatch):
-    application = SimpleNamespace(
-        imap="imap", analyzer="analyzer", store="store", sender_store="sender-store"
-    )
     settings = SimpleNamespace(
         imap=ImapSettings.model_validate({"host": "h", "port": 993, "folders": ["INBOX"]}), limits="limits", timezone="Europe/Berlin",
         learning=SimpleNamespace(parallel_llm_calls=7))
+    application = SimpleNamespace(
+        imap="first", analyzer="analyzer", store="store", sender_store="sender-store",
+        sources=[MailboxSource(settings.imap.enabled_mailboxes()[0], "imap")])
     logger = CaptureLogger()
     captured = []
 
@@ -265,6 +266,7 @@ def test_ctrl_c_exits_cleanly_in_learning_mode(monkeypatch, capsys):
             yield SimpleNamespace(
                 imap="imap", analyzer="analyzer", store="store",
                 sender_store="sender-store",
+                sources=[MailboxSource(settings.imap.enabled_mailboxes()[0], "imap")],
             )
 
     class InterruptedLearning:

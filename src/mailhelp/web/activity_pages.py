@@ -51,7 +51,18 @@ def list_page(reports: list[ActivityReport]) -> str:
     return layout("Berichte", body, active="/berichte")
 
 
-def new_page(csrf: str, folders: list[str], values: dict[str, str] | None = None, error: str = "") -> str:
+def _mailbox_choice(mailboxes: list[tuple[int, str]], mailbox: int) -> str:
+    """With several mailboxes: links that reload the folder suggestions of another one (no JavaScript)."""
+    if len(mailboxes) < 2:
+        return ""
+    links = " · ".join(f"<strong>{e(label)}</strong>" if number == mailbox
+                       else f'<a href="/berichte/neu?postfach={number}">{e(label)}</a>'
+                       for number, label in mailboxes)
+    return f'<p class="meta">Postfach: {links}</p>'
+
+
+def new_page(csrf: str, folders: list[str], values: dict[str, str] | None = None, error: str = "", *,
+             mailboxes: list[tuple[int, str]] | None = None, mailbox: int = 1) -> str:
     """Folders are one per line: a checkbox per folder could exceed the form field limit."""
     if values is None:
         values = {"folders": "\n".join(folders), "include_sent": "on"}
@@ -60,8 +71,10 @@ def new_page(csrf: str, folders: list[str], values: dict[str, str] | None = None
         return " checked" if values.get(name) == "on" else ""
 
     body = (f'<h1>Neuer Tätigkeitsbericht</h1>{notice(error, "error") if error else ""}'
+            f'{_mailbox_choice(mailboxes or [], mailbox)}'
             '<form method="post" action="/berichte" class="stack card">'
             f'<input type="hidden" name="csrf" value="{e(csrf)}"><input type="hidden" name="key" value="{new_key()}">'
+            f'<input type="hidden" name="mailbox" value="{mailbox}">'
             f'<label>Titel<input name="title" maxlength="120" required value="{e(values.get("title", ""))}"></label>'
             '<label>Thema – worum es geht, was dazugehört, was nicht<textarea name="topic" rows="5" '
             f'maxlength="2000" required>{e(values.get("topic", ""))}</textarea></label>'

@@ -4,7 +4,7 @@
 
 **Stand:** 14. Oktober 2026
 
-**Status:** In Umsetzung – Phase 1 (Verträge) in 3.0.1, Phase 2 (Laufzeitkern) in 3.0.2, Phase 3 (Duplikate) in 3.0.3 umgesetzt; Entscheidungen vom 14. Oktober 2026 eingearbeitet
+**Status:** In Umsetzung – Phase 1 (Verträge) in 3.0.1, Phase 2 (Laufzeitkern) in 3.0.2, Phase 3 (Duplikate) in 3.0.3, Phase 4 (zugeordnete Funktionen) in 3.0.4 umgesetzt; Entscheidungen vom 14. Oktober 2026 eingearbeitet
 **Grundlage:** [Planung 3.0](Planung-3.0.md), [Planung 3.2](Planung-3.2.md), [Release 3.0](Release-3.0.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Entwicklungsregeln](../AGENTS.md)
 
 ## 1. Ziel und Umfang
@@ -185,9 +185,9 @@ nur bei mehr als einem Postfach. Postfachfehler erscheinen als eigene Zeile.
 | :--- | :--- |
 | Antwortentwürfe | APPEND in den `drafts_folder` **des Postfachs, aus dem die Mail stammt**; Absender = Benutzername dieses Postfachs (optional späteres Feld `address`). Kein Rückfall auf ein anderes Postfach. |
 | Originaldokumente / Volltextsuche | Unverändert lokal; Suche erhält Filter „Postfach“. |
-| Tätigkeitsberichte | Auswahl von Postfach und Ordnern im Formular; Bericht speichert `mailbox_id` je Quelle; Ordnervorschläge je Postfach. |
-| Lernmodus `--learn N` | Liest alle aktivierten Postfächer (Option `--mailbox <n>`); ergänzt neue Ordner im jeweiligen `mailboxes`-Eintrag. Absenderfilter und Themen bleiben gemeinsam. |
-| Decision-Test | Optional `--mailbox <n>`, sonst über alle Postfächer mit gemeinsamem Kontingent. |
+| Tätigkeitsberichte | Postfachwahl im Formular (Links ohne JavaScript, `?postfach=<n>`); der Bericht speichert `mailbox` (Berichte vor 3.1: Postfach 1); Ordnervorschläge und -prüfung je Postfach; Zählen und Lesen öffnen nur dieses Postfach. |
+| Lernmodus `--learn N` | Liest genau ein Postfach; bei mehreren aktivierten Postfächern ist `--mailbox <n>` Pflicht (umgesetzt in 3.0.4 statt „alle Postfächer“, damit `N` eindeutig bleibt). Ergänzt neue Ordner im Eintrag dieses Postfachs. Absenderfilter und Themen bleiben gemeinsam. |
+| Decision-Test | Wie der Lernmodus genau ein Postfach; `--mailbox <n>` bei mehreren aktivierten Postfächern Pflicht. |
 | Tagesüberblick | Offene Entscheidungen mit Postfach-Label; sonst unverändert. |
 | Benachrichtigungen | Neutrale Push-Texte ohne Postfachnamen; Telegram `summary` darf das Label nennen. |
 

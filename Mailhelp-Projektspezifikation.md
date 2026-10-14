@@ -1127,6 +1127,19 @@ Laufzusammenfassung zählt über alle Postfächer und ergänzt bei mehreren Post
 Postfach eine Zeile. Bis zum Abschluss von Phase 4 bleibt die Konfiguration auf ein Postfach begrenzt,
 damit postfachbezogene Funktionen wie Antwortentwürfe nicht das falsche Postfach verwenden.
 
+### Postfachbezogene Funktionen (3.1, Phase 4)
+
+Antwortentwürfe werden ausschließlich im Entwurfsordner des Postfachs gespeichert, aus dem die Mail
+stammt, mit dessen IMAP-Benutzernamen als Absender und über dessen eigene Verbindung; auch der
+Abgleich unklarer Schreibresultate erfolgt dort. Ist das Postfach der Mail nicht mehr aktiviert,
+wird das Speichern abgelehnt, der bearbeitete Text bleibt erhalten; es gibt kein Ausweichen auf ein
+anderes Postfach. Ein Tätigkeitsbericht gehört zu genau einem Postfach (`mailbox`, ältere Berichte:
+Postfach 1). Bei mehreren Postfächern wählt das Formular das Postfach über Links
+(`/berichte/neu?postfach=<n>`); Ordnervorschläge, Ordnerprüfung, Zählen und Lesen verwenden nur
+dieses Postfach, ein nicht mehr aktiviertes Postfach gilt als nicht lesbar. `--learn` und
+`--decision-test` lesen genau ein Postfach; sind mehrere aktiviert, ist `--mailbox <n>` erforderlich,
+`--mailbox` ohne einen dieser Modi oder mit einer unbekannten bzw. deaktivierten Nummer ist ungültig.
+
 ## 10. JSON-Zustand und Neustartverhalten
 
 Der Zustand wird als eingerücktes UTF-8-JSON gespeichert. `data_directory` ist dabei nur das Stammverzeichnis: Im Testmodus liegt der vollständige Zustand unter `<data_directory>/test/`, im Produktivmodus unter `<data_directory>/production/`. Jeder Modus besitzt dort seine eigene `.lock`-Datei. IMAP-Checkpoints, Mailzustände, Telegram-Offsets und -Dialoge, Vorschläge einschließlich externer Ergebniszustände sowie das persistierte LLM-Zeitfenster liegen ausschließlich im jeweiligen Verzeichnis; auch identische Mail- und Vorschlags-IDs werden nicht modusübergreifend aufgezählt oder gesperrt. Pro Mail existiert eine Datei. Weitere JSON-Dateien speichern Abrufpositionen und nötige Betriebsinformationen. Dateinamen verwenden interne IDs statt Betreff oder Absender.

@@ -26,8 +26,8 @@ NEW = {"title": "Elternbeirat", "topic": "Termine des Elternbeirats der Klasse 4
 def reports(web):
     service = ActivityService(ActivityReportStore(web.store), clock=lambda: RECEIVED)
     web.site.activity.service = service
-    web.site.activity.suggest_folders = lambda: ["INBOX", "Schule"]
-    web.site.activity.available_folders = lambda: ["INBOX", "Schule", "Archiv"]
+    web.site.activity.suggest_folders = lambda mailbox: ["INBOX", "Schule"]
+    web.site.activity.available_folders = lambda mailbox: ["INBOX", "Schule", "Archiv"]
     return service
 
 
@@ -129,7 +129,7 @@ def test_report_filters_fingerprint_repeat_and_unknown_folders(web, reports):
     assert result.status == 303 and result.headers["Location"] != url
     assert post(web, url + "/aktion", fields).headers == result.headers
     assert post(web, "/berichte", new_form(web) | NEW | {"folders": "Unknown"}).status == 422
-    web.site.activity.available_folders = lambda: (_ for _ in ()).throw(OSError("offline"))
+    web.site.activity.available_folders = lambda mailbox: (_ for _ in ()).throw(OSError("offline"))
     assert post(web, "/berichte", new_form(web) | NEW).status == 503
     web.site.activity.service = None
     assert web.browser.request("GET", f"/api/stand?bericht={report.id}").status == 404
@@ -172,7 +172,7 @@ def test_invalid_definitions_keep_the_input(web, reports, change):
 
 
 def test_unreachable_mailbox_still_offers_the_form(web, reports):
-    def broken():
+    def broken(_mailbox):
         raise OSError("imap down")
     web.site.activity.suggest_folders = broken
     status, html = page(web, "/berichte/neu")
@@ -366,3 +366,28 @@ def test_progress_signal_rejects_malformed_report_ids(web, reports, value):
     # Regression: an id outside the report format reached the state store and failed with a server error.
     response = web.browser.request("GET", f"/api/stand?bericht={value}")
     assert response.status == 404
+
+
+def test_a_report_reads_the_mailbox_chosen_for_it(web, reports):
+    """Planung 3.1: with several mailboxes the form offers each one; folders are checked per mailbox."""
+    web.site.activity.mailboxes = lambda: [(1, "Privat"), (2, "Arbeit")]
+    web.site.activity.suggest_folders = lambda mailbox: {1: ["INBOX"], 2: ["Projekte"]}[mailbox]
+    web.site.activity.available_folders = lambda mailbox: {1: ["INBOX"], 2: ["INBOX", "Projekte"]}[mailbox]
+    status, html = page(web, "/berichte/neu?postfach=2")
+    assert status == 200 and '<a href="/berichte/neu?postfach=1">Privat</a>' in html
+    assert "<strong>Arbeit</strong>" in html and "Projekte</textarea>" in html
+    assert 'name="mailbox" value="2"' in html
+    for query in ("?postfach=7", "?postfach=x", ""):
+        assert 'name="mailbox" value="1"' in page(web, "/berichte/neu" + query)[1]
+    fields = {**new_form(web), **NEW, "folders": "Projekte", "mailbox": "2"}
+    assert post(web, "/berichte", fields).status == 303
+    (report,) = reports.store.reports()
+    assert report.definition.mailbox == 2
+    # Folders of another mailbox are refused, the form keeps the chosen mailbox.
+    refused = post(web, "/berichte", {**new_form(web), **NEW, "folders": "Projekte", "mailbox": "1"})
+    assert refused.status == 422 and 'name="mailbox" value="1"' in refused.body.decode()
+
+
+def test_a_single_mailbox_shows_no_mailbox_choice(web, reports):
+    status, html = page(web, "/berichte/neu")
+    assert status == 200 and "Postfach:" not in html and 'name="mailbox" value="1"' in html

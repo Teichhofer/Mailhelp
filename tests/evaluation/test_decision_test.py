@@ -250,7 +250,8 @@ def test_cli_decision_test_bypasses_normal_builder_and_logger(monkeypatch, file,
                           Path(file) if file is not None else None), {"ignore_historical_start": ignore,
                           "local_llm": LocalLlm("localhost", 11434, "synthetic/local"),
                           "laya": None, "laya_model": None, "relevance_only": False,
-                          "irrelevant_topics": [ADS]})]
+                          "irrelevant_topics": [ADS],
+                          "mailbox": loaded[0].imap.enabled_mailboxes()[0]})]
 
 
 @pytest.mark.parametrize("namespace", ["test", "production"])

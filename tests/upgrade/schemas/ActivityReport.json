@@ -122,6 +122,13 @@
           "title": "Include Sent",
           "type": "boolean"
         },
+        "mailbox": {
+          "default": 1,
+          "maximum": 99,
+          "minimum": 1,
+          "title": "Mailbox",
+          "type": "integer"
+        },
         "since": {
           "format": "date",
           "title": "Since",

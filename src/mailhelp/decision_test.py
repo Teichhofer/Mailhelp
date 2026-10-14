@@ -17,7 +17,7 @@ import httpx
 
 from .adapter import RetryPolicy
 from .analysis import Analyzer
-from .config import PromptConfig, Secrets, Settings, Topic
+from .config import MailboxSettings, PromptConfig, Secrets, Settings, Topic
 from .decisions import DecisionAnalyzer, DecisionClient, JevRelevanceAnalyzer, load_relevance_prompts
 from .evaluation import write_report
 from .imap import FolderNotReadable, ImapReader, reader_arguments
@@ -101,10 +101,11 @@ class DecisionTestMode:
                  settings: Settings, topics: list[Topic], report: dict[str, Any],
                  output: Path, recorder: ComparisonRecorder,
                  *, ignore_historical_start: bool = False, relevance_only: bool = False,
-                 save_interval: float = SAVE_INTERVAL_SECONDS, clock=time.monotonic):
+                 save_interval: float = SAVE_INTERVAL_SECONDS, clock=time.monotonic,
+                 mailbox: MailboxSettings | None = None):
         self.imap, self.standard, self.ollama = imap, standard, ollama
         self.settings, self.topics = settings, topics
-        self.mailbox = settings.imap.enabled_mailboxes()[0]
+        self.mailbox = mailbox or settings.imap.enabled_mailboxes()[0]
         self.report, self.output, self.recorder = report, output, recorder
         self.ignore_historical_start = ignore_historical_start
         self.relevance_only = relevance_only
@@ -266,8 +267,7 @@ def _pause(delay: float) -> bool:
 def _initial_report(settings: Settings, topics: list[Topic], prompts: PromptConfig, count: int,
                     decision_prompts: Any, local_llm: LocalLlm, laya: tuple[str, int] | None,
                     laya_prompts: Any, relevance_only: bool, ignore_historical_start: bool,
-                    irrelevant_topics: list[Topic] | None) -> dict[str, Any]:
-    mailbox = settings.imap.enabled_mailboxes()[0]
+                    irrelevant_topics: list[Topic] | None, mailbox: MailboxSettings) -> dict[str, Any]:
     return {"schema_version": 2, "mode": "decision_test",
             "comparison": "standard_vs_ollama",
             "pipeline_policy": "relevance_only" if relevance_only else "relevant_only",
@@ -293,9 +293,8 @@ def _initial_report(settings: Settings, topics: list[Topic], prompts: PromptConf
 
 
 def _comparison_reader(settings: Settings, secrets: Secrets, recorder: ComparisonRecorder,
-                       stack: ExitStack) -> ImapReader:
+                       stack: ExitStack, mailbox: MailboxSettings) -> ImapReader:
     cfg = settings.timeouts.imap
-    mailbox = settings.imap.enabled_mailboxes()[0]
     address, options = reader_arguments(mailbox, secrets.imap_credentials(mailbox.id))
     reader = ImapReader(
         *address, cfg.timeout_seconds, **options,
@@ -365,8 +364,10 @@ def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
                       ignore_historical_start: bool = False,
                       laya: tuple[str, int] | None = None, laya_model: str | None = None,
                       relevance_only: bool = False,
-                      irrelevant_topics: list[Topic] | None = None) -> int:
+                      irrelevant_topics: list[Topic] | None = None,
+                      mailbox: MailboxSettings | None = None) -> int:
     """Construct only read adapters; production stores and write services do not exist here."""
+    mailbox = mailbox or settings.imap.enabled_mailboxes()[0]
     decision_prompts = load_relevance_prompts(directory)
     # With Laya, the Ollama path checks relevance with the local decision model.
     laya_prompts = None
@@ -387,18 +388,18 @@ def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
         settings.metrics, "decision_test")
     recorder.metrics = metrics
     report = _initial_report(settings, topics, prompts, count, decision_prompts, local_llm, laya,
-                             laya_prompts, relevance_only, ignore_historical_start, irrelevant_topics)
+                             laya_prompts, relevance_only, ignore_historical_start, irrelevant_topics, mailbox)
     write_report(output, redact(report, known_secrets))
     print(f"Decision-Testdatei: {output}", flush=True)
     metrics.run_id = report["run_id"]
     try:
         with ExitStack() as stack:
-            reader = _comparison_reader(settings, secrets, recorder, stack)
+            reader = _comparison_reader(settings, secrets, recorder, stack, mailbox)
             standard, ollama = _comparison_analyzers(settings, secrets, prompts, decision_prompts, local_llm,
                                                      laya, laya_prompts, irrelevant_topics, recorder, stack)
             return DecisionTestMode(reader, standard, ollama, settings, topics, report, output,
                                     recorder, ignore_historical_start=ignore_historical_start,
-                                    relevance_only=relevance_only).run(count)
+                                    relevance_only=relevance_only, mailbox=mailbox).run(count)
     except BaseException as exc:
         report["error_type"] = type(exc).__name__
         write_report(output, redact(report, known_secrets))

@@ -313,6 +313,30 @@ def test_draft_lookup_failures_keep_edits_and_reauthorize_before_append(draft):
     assert conn.writes == []
 
 
+def test_drafts_are_written_only_to_the_mailbox_the_mail_came_from(draft):
+    """Planung 3.1: sender and drafts folder of the source mailbox; no other mailbox as a fallback."""
+    from mailhelp.drafts import DraftTarget
+    service, first, source, _ = draft
+    second = Connection()
+    targets = {"a" * 24: DraftTarget(lambda: nullcontext(first), "privat@example.test", "Entwürfe"),
+               "b" * 24: DraftTarget(lambda: nullcontext(second), "arbeit@example.test", "Drafts")}
+    service.targets = targets.get
+    source.imap.account_id = "b" * 24
+    service.store.save(f"mail-{MAIL1}", source.model_dump(mode="json"))
+    assert service.act("valid", MAIL1, 1, "save-0001", "Danke.")["status"] == "saved"
+    assert first.writes == [] and second.folder == "Drafts"
+    (_folder, _flags, _date, content), = second.writes
+    assert b"From: arbeit@example.test" in content
+    source.imap.account_id = "c" * 24
+    service.store.save(f"mail-{MAIL1}", source.model_dump(mode="json"))
+    draft_state = service.get(MAIL1)
+    draft_state.update(status="editing", operations={})
+    service.store.save(f"draft-{MAIL1}", draft_state)
+    with pytest.raises(ValueError, match="nicht mehr eingerichtet"):
+        service.act("valid", MAIL1, 1, "save-0002", "Geändert.")
+    assert service.get(MAIL1)["text"] == "Geändert." and len(first.writes + second.writes) == 1
+
+
 def sub():
     key = ec.generate_private_key(ec.SECP256R1()).public_key().public_bytes(serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint)
     return {"endpoint": "https://fcm.googleapis.com/fcm/send/synthetic", "keys": {"p256dh": b64(key), "auth": b64(b"x" * 16)}}
@@ -622,6 +646,11 @@ def test_runtime_composes_services_and_ticks_without_external_io(web, tmp_path, 
     assert pushes == [(), ("briefing",)] and len(sent) == 1 and sent[0].startswith("Guten Morgen!")
     session = web.auth.sessions()[0]
     assert web.store.load(f"draft-{MAIL1}") is None  # Drafts are generated only on request.
+    # The draft belongs to the configured mailbox the mail came from (3.1).
+    from mailhelp.imap import account_id
+    stored = web.store.load(f"mail-{MAIL1}")
+    stored["imap"]["account_id"] = account_id("h", 993, "me@test")
+    web.store.save(f"mail-{MAIL1}", stored)
     web.site.experience.drafts.generate(session.id, MAIL1, 0, "gen-0001", "accept")
     result = web.site.experience.drafts.act(session.id, MAIL1, 1, "save-0001", "Danke")
     assert result["status"] == "simulated" and not connections
