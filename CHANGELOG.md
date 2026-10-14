@@ -1,5 +1,13 @@
 # Änderungen
 
+## 3.1.1 – Übernahme von beta nach main
+
+- Den committierten beta-Stand mit offenem Vorschlagsabgleich, Standarddauern,
+  Einrichtung, Diagnose, Benachrichtigungen und mehreren Postfächern für main vorbereiten.
+- Patchversion in Paketmetadaten und Anwendung gemäß den Commit-Regeln erhöhen.
+- Die Übernahme erfolgt nach erfolgreicher vollständiger GitHub-CI einschließlich
+  Coverage-, Browser-, Paket- und Containerprüfungen.
+
 ## 3.1.0 – beta: Mehrere Postfächer
 
 Planung: [docs/Planung-3.1.md](docs/Planung-3.1.md); Einrichtung, Upgrade und Rückkehr:
