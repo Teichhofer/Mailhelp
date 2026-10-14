@@ -17,7 +17,7 @@ from .decisions import load_relevance_prompts
 from .learning import LearningMode, LearningSource
 from .ollama import LocalLlm, parse_address
 from .paths import runtime_path
-from .storage import JsonStore
+from .storage import AlreadyRunning, JsonStore
 
 CLEAR_CONFIRMATION = "ALLE DATEN LOESCHEN"
 CONFIGURATION_FILES = ("config.yaml", "prompts.yaml", "topics.yaml", "irrelevant_topics.yaml")
@@ -110,13 +110,22 @@ def clear_runtime_data(settings: Settings, log_directory: Path | None = None,
         logs.rmdir()
 
 
+ALREADY_RUNNING = ("Mailhelp läuft bereits mit diesem Datenverzeichnis: {directory}\n"
+                   "Die laufende Instanz zuerst beenden (Weboberfläche: Beenden, oder Strg+C in "
+                   "ihrem Terminal) und Mailhelp dann erneut starten.")
+
+
 def main() -> int:
-    """Run the CLI and turn Ctrl+C into a quiet, consistent process exit."""
+    """Run the CLI; Ctrl+C and a second instance end quietly instead of with a traceback."""
     try:
         return _main()
     except KeyboardInterrupt:
         print("\nBeenden angefordert.")
         return 130
+    except AlreadyRunning as exc:
+        # An expected operating situation, not a crash.
+        print(ALREADY_RUNNING.format(directory=exc.directory), file=sys.stderr)
+        return 1
 
 
 def _parser() -> argparse.ArgumentParser:

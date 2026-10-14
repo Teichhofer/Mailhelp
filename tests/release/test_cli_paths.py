@@ -468,3 +468,18 @@ def test_cli_learns_from_all_mailboxes(monkeypatch):
     assert main() == 0
     assert captured == [[LearningSource("a", ["INBOX"], "imap.mailboxes.0.folders"),
                          LearningSource("b", ["INBOX", "Projekte"], "imap.mailboxes.2.folders", mailbox_id=2)]]
+
+
+def test_second_instance_reports_the_running_service_without_traceback(tmp_path, monkeypatch, capsys):
+    """Regression: a second start on a locked data directory ended with a raw traceback."""
+    from mailhelp.cli import main
+    from mailhelp.storage import JsonStore
+
+    directory = tmp_path / "production"
+    with JsonStore(directory):
+        monkeypatch.setattr("mailhelp.cli._main", lambda: JsonStore(directory).__enter__())
+        assert main() == 1
+    output = capsys.readouterr()
+    assert output.out == ""
+    assert output.err.startswith(f"Mailhelp läuft bereits mit diesem Datenverzeichnis: {directory}\n")
+    assert "Beenden" in output.err and "Traceback" not in output.err

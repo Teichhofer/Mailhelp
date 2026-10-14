@@ -1,5 +1,12 @@
 # Änderungen
 
+## 3.3.5 – beta: Verständliche Meldung bei bereits laufender Instanz
+
+- Fehler behoben: Ein zweiter Start mit demselben Datenverzeichnis endete mit einem
+  Python-Traceback. Mailhelp meldet jetzt in einer klaren Zeile, dass bereits eine
+  Instanz läuft, nennt das Verzeichnis und erklärt, wie die laufende Instanz beendet
+  wird; der Exit-Code ist 1. Die Sperre selbst ist unverändert.
+
 ## 3.3.4 – beta: IMAP-Abruffehler und sichere UID-Grenzen
 
 - Aktuelle Fehler beim Lesen eines Haupt- oder zusätzlichen Ordners erscheinen auf

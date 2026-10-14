@@ -1,7 +1,7 @@
 <!--
 Hinweise für Betreibende (vor Veröffentlichung entfernen):
 - Platzhalter in [eckigen Klammern] ersetzen (Name, Anschrift, Kontakt).
-- Die technischen Angaben entsprechen dem Repository-Stand 3.3.3 (14.10.2026).
+- Die technischen Angaben entsprechen dem Repository-Stand 3.3.5 (14.10.2026).
   Bei abweichender Konfiguration (andere Modelle, Anbieter, Aufbewahrungsfristen,
   Logging) diese Erklärung anpassen.
 - Für eine Google-OAuth-Prüfung muss diese Seite öffentlich erreichbar sein und zur
@@ -11,7 +11,7 @@ Hinweise für Betreibende (vor Veröffentlichung entfernen):
 
 # Datenschutzerklärung für Mailhelp
 
-Stand: 14. Oktober 2026 · technische Beschreibung für Mailhelp 3.3.3
+Stand: 14. Oktober 2026 · technische Beschreibung für Mailhelp 3.3.5
 
 ## 1. Worum es geht
 
