@@ -1,5 +1,12 @@
 # Änderungen
 
+## 3.2.2 – Überarbeitete README
+
+- README als Produkt- und Betriebsdokumentation neu strukturiert: Funktionen, Installation,
+  Konfiguration, Betrieb, Datenschutz und Qualitätssicherung übersichtlich zusammengefasst.
+- Direkte Verweise auf Planungs- und Konzeptdokumente entfernt. Weiterführende Anleitungen
+  sind nach Anliegen geordnet; Links und dokumentierte Schemaversion wurden geprüft.
+
 ## 3.2.1 – Einstellungen je Postfach
 
 - Sparsame Postfachüberschreibungen mit globaler Vererbung für persönliche Angaben, Antwortentwürfe,
