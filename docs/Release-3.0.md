@@ -1,7 +1,8 @@
 # Mailhelp 3.0 – Einrichtung, Diagnose und Benachrichtigungen
 
-Stand: 13. Oktober 2026. Implementierung im Arbeitsstand; Releasefreigabe nach vollständiger
-Windows-/Linux-/Docker- und Browser-Abnahme. Die aktuell veröffentlichte Paketversion bleibt bis dahin bestehen.
+Stand: 14. Oktober 2026. Version 3.0.0. Die Veröffentlichung als Release-Tag `v3.0.0` erfolgt erst,
+wenn die CI-Matrix (Windows, Linux, Docker, Browser) für diesen Stand erfolgreich war.
+Mehrere Postfächer folgen mit 3.1 ([Planung 3.1](Planung-3.1.md)).
 
 ## Einstieg
 

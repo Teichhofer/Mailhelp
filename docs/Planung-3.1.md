@@ -1,11 +1,11 @@
-# Mailhelp 3.0 – Mehrere Postfächer
+# Mailhelp 3.1 – Mehrere Postfächer
 
-**Zielversion:** 3.0.0
+**Zielversion:** 3.1.0
 
 **Stand:** 14. Oktober 2026
 
-**Status:** Planung
-**Grundlage:** [Planung 3.0](Planung-3.0.md), [Release 3.0](Release-3.0.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Entwicklungsregeln](../AGENTS.md)
+**Status:** Planung (Entscheidungen vom 14. Oktober 2026 eingearbeitet; Umsetzung nach Release 3.0.0)
+**Grundlage:** [Planung 3.0](Planung-3.0.md), [Planung 3.2](Planung-3.2.md), [Release 3.0](Release-3.0.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Entwicklungsregeln](../AGENTS.md)
 
 ## 1. Ziel und Umfang
 
@@ -15,7 +15,9 @@ Telegram-Chat, dieselben Themen, Prompts, Ziele und Benachrichtigungsregeln.
 
 **Nicht Teil dieses Plans:** Mehrbenutzerbetrieb, getrennte Themen/Prompts/Ziele je Postfach,
 OAuth-Anmeldung an IMAP (Gmail/Microsoft XOAUTH2), SMTP-Versand, Verschieben oder Markieren von
-Mails. Postfachbezogene Kalender-/Todoist-Ziele sind eine mögliche spätere Erweiterung (§10).
+Mails. **Alles, was je Postfach unterschiedlich konfiguriert wird** – eigene Kalender-/Aufgabenziele,
+Ignorierlisten, Themen, Benachrichtigungen, Angaben für Antwortentwürfe – folgt in
+[Planung 3.2](Planung-3.2.md). 3.1 legt dafür nur die stabile Postfachnummer als Grundlage.
 
 ## 2. Ausgangslage im Code
 
@@ -67,7 +69,7 @@ imap:
   batch_size: 25
   global_newest_first: true
   mailboxes:
-    - id: privat                  # ^[a-z0-9_]{1,32}$, eindeutig, stabil
+    - id: 1                       # Ganzzahl 1–99, eindeutig, stabil; bestimmt IMAP_1_…
       label: Privat               # Anzeige in Web/Telegram, max. 40 Zeichen
       enabled: true
       host: imap.web.de
@@ -77,7 +79,7 @@ imap:
       primary_folder: INBOX
       folders: [INBOX, Sent, Spam]
       drafts_folder: Entwürfe
-    - id: arbeit
+    - id: 2
       label: Arbeit
       host: imap.example.org
       port: 993
@@ -87,7 +89,12 @@ imap:
       drafts_folder: Drafts
 ```
 
-- 1–10 Postfächer, `id` eindeutig; Kombination Host/Port/Benutzername eindeutig (sonst
+- 1–10 Postfächer, `id` eindeutig. Die Einrichtung vergibt beim Anlegen die höchste
+  vorhandene Nummer + 1 und verschiebt Nummern danach nie: Wird Postfach 1 entfernt, behält
+  Postfach 2 seine Nummer und seine Geheimnisse. Vor einer Wiederverwendung einer frei
+  gewordenen Nummer warnt die Einrichtung, falls dafür noch `IMAP_<n>_…`-Variablen gesetzt sind.
+  Reihenfolge der Liste = Anzeige- und Abrufreihenfolge, unabhängig von der Nummer.
+- Kombination Host/Port/Benutzername eindeutig (sonst
   identische `account_id` → Startfehler mit Schlüsselpfad).
 - `enabled: false` hält ein Postfach konfiguriert, ohne es abzurufen (z. B. bei Kennwortwechsel).
 - Grenzen wie bisher (Ports, Ordner, `historical_start`, `drafts_folder`).
@@ -95,7 +102,7 @@ imap:
 ### 4.2 Rückwärtskompatibilität
 
 - Ein bisheriger `imap`-Block **ohne** `mailboxes` wird beim Laden als genau ein Postfach mit
-  `id: default` und `label: Postfach` interpretiert. Datei wird nicht automatisch umgeschrieben.
+  `id: 1` und `label: Postfach` interpretiert. Datei wird nicht automatisch umgeschrieben.
 - `mailboxes` zusammen mit Host/Port/Ordnern auf oberster `imap`-Ebene ist ein Validierungsfehler.
 - Die Weboberfläche schreibt erst bei der ersten bewussten Übernahme im Assistenten das neue Schema.
 
@@ -103,14 +110,17 @@ imap:
 
 | Postfach | Variablen |
 | :--- | :--- |
-| `id: <x>` | `IMAP_<X>_USERNAME`, `IMAP_<X>_PASSWORD` (Großbuchstaben) |
-| `id: default` oder einziges Postfach | zusätzlich Rückfall auf `IMAP_USERNAME` / `IMAP_PASSWORD` |
+| `id: <n>` | `IMAP_<n>_USERNAME`, `IMAP_<n>_PASSWORD`, z. B. `IMAP_1_USERNAME`, `IMAP_2_PASSWORD` |
+| `id: 1` | zusätzlich Rückfall auf `IMAP_USERNAME` / `IMAP_PASSWORD`, damit Bestandsinstallationen ohne `.env`-Änderung starten |
+
+Sind für Postfach 1 sowohl nummerierte als auch alte Variablen gesetzt, gelten die nummerierten;
+ein Hinweis (ohne Werte) erscheint in `--check` und `/diagnose`.
 
 - `.env.example`, `config.py`-Geheimnisliste und Fehlermeldungen nennen die konkreten Namen.
 - Fehlende Zugangsdaten eines **aktivierten** Postfachs: Start mit Fehler wie heute; bei
   `web.enabled` bleibt die Einrichtung erreichbar (bestehendes 3.0-Verhalten je Postfach).
 - `--check-access --show-imap-credentials` gibt je Postfach Benutzername/Passwort aus;
-  optional `--mailbox <id>` zur Einschränkung.
+  optional `--mailbox <n>` zur Einschränkung.
 
 ### 4.4 Fingerprint
 
@@ -150,7 +160,7 @@ imap:
   protokolliert. Bereits erzeugte Vorschläge bleiben bestätigbar, da Schreibdienste kein IMAP benötigen.
 - Verbindungs-/Anmeldefehler eines Postfachs: Backoff nur für dieses Postfach; Betriebsproblem-Meldung
   über die 3.0-Kategorie `system_errors` mit Postfach-Label, identische Dauerfehler zusammengefasst.
-- UIDVALIDITY-Wechsel und `--ignore-historical-start` wirken je Postfach (Option auf `--mailbox <id>` einschränkbar).
+- UIDVALIDITY-Wechsel und `--ignore-historical-start` wirken je Postfach (Option auf `--mailbox <n>` einschränkbar).
 
 ### 5.4 Duplikate über Postfächer hinweg
 
@@ -174,8 +184,8 @@ nur bei mehr als einem Postfach. Postfachfehler erscheinen als eigene Zeile.
 | Antwortentwürfe | APPEND in den `drafts_folder` **des Postfachs, aus dem die Mail stammt**; Absender = Benutzername dieses Postfachs (optional späteres Feld `address`). Kein Rückfall auf ein anderes Postfach. |
 | Originaldokumente / Volltextsuche | Unverändert lokal; Suche erhält Filter „Postfach“. |
 | Tätigkeitsberichte | Auswahl von Postfach und Ordnern im Formular; Bericht speichert `mailbox_id` je Quelle; Ordnervorschläge je Postfach. |
-| Lernmodus `--learn N` | Liest alle aktivierten Postfächer (Option `--mailbox <id>`); ergänzt neue Ordner im jeweiligen `mailboxes`-Eintrag. Absenderfilter und Themen bleiben gemeinsam. |
-| Decision-Test | Optional `--mailbox <id>`, sonst über alle Postfächer mit gemeinsamem Kontingent. |
+| Lernmodus `--learn N` | Liest alle aktivierten Postfächer (Option `--mailbox <n>`); ergänzt neue Ordner im jeweiligen `mailboxes`-Eintrag. Absenderfilter und Themen bleiben gemeinsam. |
+| Decision-Test | Optional `--mailbox <n>`, sonst über alle Postfächer mit gemeinsamem Kontingent. |
 | Tagesüberblick | Offene Entscheidungen mit Postfach-Label; sonst unverändert. |
 | Benachrichtigungen | Neutrale Push-Texte ohne Postfachnamen; Telegram `summary` darf das Label nennen. |
 
@@ -191,8 +201,8 @@ nur bei mehr als einem Postfach. Postfachfehler erscheinen als eigene Zeile.
   „Deaktivieren“, „Entfernen“. Jede Änderung landet im Entwurf `setup-state.json` und gilt erst nach
   „Einstellungen übernehmen“ (Sitzung, CSRF, Dateihash, Entwurfsversion, Idempotenz, Neuprüfung bei
   Ausführung). Entfernen zeigt die Zahl betroffener offener Vorgänge. Anzeige des benötigten
-  Variablennamens (`IMAP_ARBEIT_PASSWORD`) und Status „vorhanden/fehlt“.
-- **Diagnose `/diagnose`:** Eine IMAP-Komponente je Postfach (`imap:<id>`), einzeln startbar, eigener
+  Variablennamens (`IMAP_2_PASSWORD`) und Status „vorhanden/fehlt“.
+- **Diagnose `/diagnose`:** Eine IMAP-Komponente je Postfach (`imap:<n>`), einzeln startbar, eigener
   Timeout und eigene Sperre bei hängender Prüfung. Bericht enthält Postfach-ID, aber keinen Host,
   Benutzernamen oder Ordnernamen.
 - **Einstellungshilfe:** `setting_help.py` und [Web-Einstellungen.md](Web-Einstellungen.md) um neue Felder ergänzen.
@@ -251,11 +261,9 @@ Release-3.0.md beschreibt das.
 `account_id` und das Postfach wird neu eingelesen (begrenzt durch `historical_start`). Die
 Einrichtung warnt vor dieser Folge, bevor die Änderung übernommen wird.
 
-**Offene Entscheidungen:**
+**Entscheidungen (14. Oktober 2026):**
 
-1. Geheimnisnamen per Konvention (`IMAP_<ID>_…`, empfohlen) oder frei wählbar per `username_env`/`password_env`.
-2. Kontoübergreifende Duplikaterkennung standardmäßig an (empfohlen) oder abschaltbar.
-3. Postfachbezogene Ziele (z. B. Arbeitsmails → eigenes Todoist-Projekt/Kalender) – empfohlen erst 3.1,
-   da sie Proposal-Builder und Fingerprint berühren.
-4. Release-Zuschnitt: Mehrpostfach als Teil von 3.0.0 (verzögert die bereits implementierte
-   Einrichtung/Benachrichtigung) oder 3.0.0 wie geplant und Mehrpostfach als 3.1.
+1. Release-Zuschnitt: 3.0.0 erscheint ohne Mehrpostfach; diese Planung wird als 3.1 umgesetzt.
+2. Geheimnisse: nummeriert nach dem Muster `IMAP_<n>_USERNAME` / `IMAP_<n>_PASSWORD`.
+3. Kontoübergreifende Duplikaterkennung: Empfehlung „immer aktiv, kein Schalter“ – vor Phase 3 bestätigen.
+4. Postfachbezogene Ziele, Ignorierlisten und weitere Einstellungen je Postfach: [Planung 3.2](Planung-3.2.md).

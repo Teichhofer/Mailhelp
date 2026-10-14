@@ -37,7 +37,16 @@
 Die beta-Patchnummer folgt `AGENTS.md`; die fachliche Zielversion des Plans bleibt 2.4.
 Dieser Commit erstellt keinen Release und keinen Tag.
 
-## Unveröffentlicht – Umsetzung der Planung 3.0
+## 3.0.0 – beta: Einrichtung, Diagnose und Benachrichtigungen
+
+Planung: [docs/Planung-3.0.md](docs/Planung-3.0.md), Betrieb und Upgrade: [docs/Release-3.0.md](docs/Release-3.0.md).
+Abnahme auf diesem Stand unter Windows 11: 2173 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung,
+134 Browsertests mit 100 % JavaScript-Abdeckung, ruff und mypy ohne Befund. Der Release-Tag `v3.0.0`
+wird erst nach erfolgreicher CI-Matrix (Linux, Docker, Paketinstallation) gesetzt.
+
+- Neue Planungen: mehrere Postfächer ([docs/Planung-3.1.md](docs/Planung-3.1.md), Geheimnisse
+  `IMAP_<n>_USERNAME`/`IMAP_<n>_PASSWORD`) und Einstellungen je Postfach
+  ([docs/Planung-3.2.md](docs/Planung-3.2.md)). Beide gehören nicht zu 3.0.
 
 - Einrichtung unter `/einrichtung`: wiederaufnehmbare Entwürfe, Dateihash und Entwurfsversion,
   getrennte bestätigte Übernahme über die vorhandene, erneut autorisierte Kommando-Warteschlange.

@@ -2,9 +2,9 @@
 
 **Zielversion:** 3.0.0
 
-**Stand:** 13. Oktober 2026
+**Stand:** 14. Oktober 2026
 
-**Status:** Implementiert und lokal geprüft; Linux-/Docker-Plattformmatrix vor Releasefreigabe erforderlich
+**Status:** Umgesetzt in 3.0.0; Release-Tag nach erfolgreicher CI-Plattformmatrix
 **Grundlage:** [Release 2.0](Release-2.0.md), [Planung 2.0](Planung-2.0.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Entwicklungsregeln](../AGENTS.md)
 
 ## 1. Ziel und Umfang
@@ -16,7 +16,7 @@ Mailhelp 3.0 soll sich verständlich einrichten und im Alltag mit weniger Unterb
 
 Version 2.0 bringt bereits Web-Push, Gerätekopplung ohne Telegram, Antwortentwürfe und einen Tagesüberblick mit. Version 3.0 baut darauf auf. Der Assistent verwendet dieselben Konfigurations- und Sicherheitsmechanismen wie der übrige Betrieb.
 
-**Nicht Teil dieses Releases:** neue KI-Analysefunktionen, automatische Freigabe von Kalender- oder Todoist-Aktionen, SMTP-Versand, Mehrbenutzerbetrieb und zusätzliche Benachrichtigungskanäle. Passkeys und eine allgemeine Wiedervorlage bleiben eigenständige spätere Erweiterungen.
+**Nicht Teil dieses Releases:** neue KI-Analysefunktionen, automatische Freigabe von Kalender- oder Todoist-Aktionen, SMTP-Versand, Mehrbenutzerbetrieb und zusätzliche Benachrichtigungskanäle. Mehrere Postfächer folgen in [Planung 3.1](Planung-3.1.md), Einstellungen je Postfach in [Planung 3.2](Planung-3.2.md). Passkeys und eine allgemeine Wiedervorlage bleiben eigenständige spätere Erweiterungen.
 
 ## 2. Verbindliche Grundsätze
 
