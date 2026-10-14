@@ -23,6 +23,38 @@ NAVIGATION = (("/", "Offen"), ("/mails", "Mails"), ("/verlauf", "Verlauf"),
               ("/status", "Status"), ("/auswertung", "Auswertung"), ("/berichte", "Berichte"),
               ("/einstellungen", "Einstellungen"), ("/geraete", "Geräte"), ("/abgleich", "Vorschlagsabgleich"))
 
+NAVIGATION_GROUPS = (
+    ("Arbeitsbereich", ("/", "/mails", "/abgleich")),
+    ("Einblicke", ("/verlauf", "/berichte", "/auswertung", "/status")),
+    ("Verwaltung", ("/einstellungen", "/geraete")),
+)
+NAVIGATION_ICONS = {
+    "/": "M4 4h16v16H4z M8 12l3 3 5-6",
+    "/mails": "M3 6h18v12H3z M3 6l9 7 9-7",
+    "/abgleich": "M4 7h14l-3-3 M20 17H6l3 3 M18 7l-3 3 M6 17l3-3",
+    "/verlauf": "M12 7v5l3 2 M4 4v5h5 M4 9a8 8 0 1 1 1 8",
+    "/berichte": "M5 3h10l4 4v14H5z M14 3v5h5 M8 12h8 M8 16h6",
+    "/auswertung": "M4 3v17h17 M8 16v-5 M13 16V6 M18 16v-8",
+    "/status": "M3 12h4l3-7 4 14 3-7h4",
+    "/einstellungen": "M4 7h16 M4 17h16 M9 4v6 M15 14v6",
+    "/geraete": "M7 2h10v20H7z M10 18h4",
+}
+
+
+def _navigation(active: str | None) -> str:
+    labels = dict(NAVIGATION)
+    groups = []
+    for title, routes in NAVIGATION_GROUPS:
+        links = []
+        for href in routes:
+            current = ' aria-current="page"' if href == active else ""
+            icon = (f'<svg class="nav-icon" viewBox="0 0 24 24" aria-hidden="true" focusable="false">'
+                    f'<path d="{NAVIGATION_ICONS[href]}"/></svg>')
+            links.append(f'<a href="{href}"{current}>{icon}<span>{labels[href]}</span></a>')
+        groups.append(f'<div class="nav-section"><p class="nav-section-label">{title}</p>'
+                      f'{"".join(links)}</div>')
+    return '<nav class="nav" aria-label="Hauptnavigation">' + "".join(groups) + "</nav>"
+
 
 def layout(title: str, content: str, *, active: str | None = None, signed_in: bool = True,
            refresh: int | None = None, fingerprint: str | None = None,
@@ -33,10 +65,7 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
     """
     navigation = ""
     if signed_in:
-        links = "".join(
-            f'<a href="{href}"{" aria-current=\"page\"" if href == active else ""}>{label}</a>'
-            for href, label in NAVIGATION)
-        navigation = f'<nav class="nav" aria-label="Hauptnavigation">{links}</nav>'
+        navigation = _navigation(active)
     meta_refresh = f'<meta http-equiv="refresh" content="{refresh}">' if refresh else ""
     data = f' data-fingerprint="{e(fingerprint)}"' if fingerprint else ""
     if state_url:
@@ -59,7 +88,8 @@ def layout(title: str, content: str, *, active: str | None = None, signed_in: bo
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <script src="/static/app.js" defer></script>
 </head>
-<body{data}>
+<body class="{"app-shell" if signed_in else "guest-shell"}"{data}>
+<a class="skip-link" href="#inhalt">Zum Inhalt springen</a>
 <header class="top">
 <a class="brand" href="/"><img src="/static/icon-192.png" alt="" width="28" height="28">Mailhelp</a>
 <span class="connection" id="verbindung" role="status" aria-live="polite" hidden></span>

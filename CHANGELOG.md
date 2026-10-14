@@ -1,5 +1,18 @@
 # Änderungen
 
+## 3.3.2 – Facelift der Weboberfläche
+
+- Gruppierte Seitenleiste auf großen Bildschirmen, kompakte horizontal wischbare Navigation
+  auf dem Handy und ein Tastatur-Sprunglink zum Inhalt.
+- Seitenüberschrift und Kontext stehen vor den Filtern. Ruhigere Farben, klarere Abstände,
+  kompaktere Arbeitslisten und eine deutlich markierte Auswahl verbessern die Übersicht.
+- Beschreibung und Beleg sind in Vorschlagskarten aufklappbar; die Detailansicht bleibt vollständig.
+  Globale Einstellungen besitzen direkte Bereichslinks und eine aufklappbare Modellübersicht.
+- Service-Worker-Shell-Cache erneuert. Gespeicherte Vorschlagsdaten, Links und Formularziele
+  werden mit einem Inhaltsvertrag aus dem Stand vor dem Facelift geprüft.
+- Regressionstests für Desktop-Seitenleiste, Platzbedarf auf schmalen Telefonen, Reihenfolge
+  von Überschrift und Filtern sowie unverdeckte Aktionen; Licht- und Dunkeldesign geprüft.
+
 ## 3.3.1 – beta: Entwicklungsregel für README-Aktualisierung
 
 - Entwicklungsregeln in `AGENTS.md` um die Vorgabe ergänzt, bei jeder neuen Version auch die Datei `README.md` zu aktualisieren.

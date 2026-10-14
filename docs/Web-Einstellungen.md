@@ -1,5 +1,10 @@
 # Einstellungen der Weboberfläche
 
+Die globalen Einstellungen bieten eine Bereichsübersicht mit direkten Sprunglinks, beispielsweise
+zu Antworten, Zielen, Aufbewahrung und Protokollierung. Die verwendeten KI-Modelle stehen in einer
+aufklappbaren, nur lesenden Übersicht. Auf großen Bildschirmen bleiben die Bereichslinks neben den
+Werten erreichbar; auf dem Handy stehen sie oberhalb der Einstellungsgruppen.
+
 Einrichtungsentwürfe unter `/einrichtung` und das neue Versandprofil unter
 `/einstellungen/benachrichtigungen` bearbeiten ebenfalls `config.yaml`.
 Speichern erhält zunächst den Entwurf. Erst die gezeigte, versionsbezogene Übernahme aktiviert

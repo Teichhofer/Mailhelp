@@ -1,4 +1,5 @@
 # Erläuterungen aller Web-Einstellungen: docs/Web-Einstellungen.md (auch als Info-Blasen in der Weboberfläche).
+# Direkte Bereichslinks in den Einstellungen führen zu den jeweiligen globalen Regeln.
 # Optionaler Vergleich: mailhelp --decision-test 20 --ollama localhost:11434
 # Standard (Jev-Relevanz + LLM-Rückfall) gegen Ollama; nur relevante Mails weiter.
 # Standardrelevanz: Jev aus decisions_prompts.yaml; nur unclear nutzt prompts.yaml.

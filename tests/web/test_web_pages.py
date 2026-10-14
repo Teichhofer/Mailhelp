@@ -30,7 +30,7 @@ def test_overview_lists_relevance_current_queue_and_recent(browser):
     html = page(browser, "/")
     assert '<span class="count">6</span>' in html
     assert "Folgt in Telegram" in html
-    assert html.index("Relevanz klären") < html.index("Vorschläge") < html.index("Zuletzt erledigt")
+    assert html.index("<h2>Relevanz klären</h2>") < html.index("<h2>Vorschläge</h2>") < html.index("<h2>Zuletzt erledigt</h2>")
     assert html.index("Elternabend Klasse 4b") < html.index("Zahnarzt Kontrolle")
     assert "Aktuell in Telegram" in html and "Vereinsnachrichten Oktober" in html
     assert "21.10.2026, 19:00–20:30 Uhr" in html and "Fällig: 17.10.2026" in html

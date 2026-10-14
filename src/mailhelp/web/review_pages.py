@@ -132,6 +132,8 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
     description = (_expandable(card.description, card.description_full or card.description,
                                "Beschreibung", False) if card.description else "")
     evidence = _expandable(card.evidence, card.evidence_full, "Beleg", True)
+    context = (f'<details class="card-context"><summary class="context-label">Beschreibung und Beleg</summary>'
+               f'{description}{evidence}</details>' if detail_link else description + evidence)
     created = https_link(view.external_link)
     created_link = (f'<p><a href="{e(created)}" rel="noopener noreferrer" target="_blank">'
                     f'{"Im Kalender öffnen" if event else "Aufgabe öffnen"}</a></p>'
@@ -150,7 +152,7 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
 <p class="source">✉️ {e(view.sender)} · {e(view.subject)}</p>
 <p class="labels">{" ".join(_card_labels(view))}</p>
 <ul class="facts">{"".join(_card_facts(card))}</ul>
-{_card_warning(view)}{_diff_box(view)}{_card_questions(card.questions)}{description}{evidence}{created_link}{details}
+{_card_warning(view)}{_diff_box(view)}{_card_questions(card.questions)}{context}{created_link}{details}
 {actions(view) if actions else ""}
 </article>"""
 
@@ -173,9 +175,11 @@ def overview_page(overview: Overview, *, actions: Actions | None = None,
                   relevance_actions: RelevanceActions | None = None,
                   message: str | None = None, message_kind: str = "ok",
                   before: str = "", empty: str | None = None) -> str:
-    """*before* precedes the heading (filters); *empty* replaces the default empty state."""
+    """*before* places filters below the heading; *empty* replaces the default empty state."""
     count = len(overview.open) + len(overview.relevance)
-    parts = [f'<h1>Offene Entscheidungen <span class="count">{count}</span></h1>']
+    parts = [f'<div class="page-heading"><p class="eyebrow">Arbeitsübersicht</p>'
+             f'<h1>Offene Entscheidungen <span class="count">{count}</span></h1>'
+             '<p class="page-intro">Vorschläge prüfen, Rückfragen klären und Entscheidungen treffen.</p></div>', before]
     if message:
         parts.append(notice(message, message_kind))
     if overview.damaged:
@@ -202,7 +206,7 @@ def overview_page(overview: Overview, *, actions: Actions | None = None,
                 f'{e(view.card.title)}</a></span>'
                 f'<span class="badge {_STATE_BADGE[view.status]}">{e(view.state)}</span></li>')
         parts.append(f'<h2>Zuletzt erledigt</h2><ul class="recent">{"".join(items)}</ul>')
-    return layout("Offen", "\n".join(parts), active="/", fingerprint=overview.fingerprint, before=before)
+    return layout("Offen", "\n".join(parts), active="/", fingerprint=overview.fingerprint)
 
 
 VISION_LABELS = {

@@ -47,7 +47,7 @@ def test_phone_header_scrolls_away_and_never_covers_actions(page, mailhelp):
     sign_in(page, mailhelp)
     header = page.locator("header.top")
     position = header.evaluate("(node) => getComputedStyle(node).position")
-    assert position == ("sticky" if page.device == "desktop" else "static")
+    assert position == ("fixed" if page.device == "desktop" else "static")
     if page.device == "desktop":
         return
     page.goto(f"{mailhelp.url}/mail/{mail_id(7)}")

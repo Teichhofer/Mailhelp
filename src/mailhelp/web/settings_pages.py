@@ -152,23 +152,31 @@ def _setting_row(name: str, raw: dict, active: dict | None, revision: str, csrf:
 
 
 def settings_page(models: list, raw: dict | None, active: dict | None, revision: str, csrf: str) -> str:
-    body = ('<h1>Einstellungen</h1><p class="card-links"><a class="button small" href="/themen">Themen</a> '
+    body = ('<div class="page-heading"><p class="eyebrow">Verwaltung</p><h1>Einstellungen</h1>'
+            '<p class="page-intro">Globale Regeln verwalten und gezielt je Postfach anpassen.</p></div>'
+            '<p class="settings-shortcuts"><a class="button small" href="/themen">Themen</a> '
             '<a class="button small" href="/einstellungen/ignorierte-absender">Ignorierte Absender</a> '
             '<a class="button small" href="/geraete">Geräte</a> '
             '<a class="button small danger" href="/einstellungen/beenden">Mailhelp beenden</a></p>')
-    body += ('<div class="setting-row"><h2>Modelle (nur lesend)</h2>'
+    body += ('<details class="model-overview"><summary>Verwendete KI-Modelle</summary>'
+             '<div class="setting-row"><h2>Modelle (nur lesend)</h2>'
              + help_bubble("models", "Modelle", EXTRA_HELP["models"]) + "</div>")
-    body += _models_table(models)
+    body += _models_table(models) + "</details>"
     if raw is None:
         return body + notice("Konfigurationsdienst nicht verfügbar.", "warn")
     body += ('<p class="meta">Quelle aller folgenden Werte: <code>config.yaml</code>. Gespeichert wird nur der '
              "geänderte Wert; Kommentare und Aufbau der Datei bleiben erhalten. Vor dem Speichern wird die "
              "Änderung noch einmal angezeigt.</p>")
-    for title, prefixes in SETTING_GROUPS:
+    links = "".join(f'<a href="#settings-{index}">{e(title)}</a>'
+                    for index, (title, _) in enumerate(SETTING_GROUPS))
+    body += ('<div class="settings-layout"><nav class="settings-index" aria-label="Einstellungsbereiche">'
+             '<p class="eyebrow">Bereiche</p>' + links + '</nav><div class="settings-values">')
+    for index, (title, prefixes) in enumerate(SETTING_GROUPS):
         names = sorted(name for name in SETTINGS_FIELDS
                        if any(name == prefix or name.startswith(prefix) for prefix in prefixes))
-        body += f"<h2>{e(title)}</h2>" + "".join(_setting_row(name, raw, active, revision, csrf) for name in names)
-    return body
+        body += f'<section class="settings-section" id="settings-{index}"><h2>{e(title)}</h2>'
+        body += "".join(_setting_row(name, raw, active, revision, csrf) for name in names) + "</section>"
+    return body + "</div></div>"
 
 
 def settings_confirmation(form: dict[str, str], route: str, csrf: str) -> str:

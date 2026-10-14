@@ -57,7 +57,9 @@ def test_built_artifacts_exclude_private_runtime_files():
                        "domain/proposal_sources.py", "domain/reconciliation.py", "web/reconciliation_site.py",
                        "mailbox_settings.py", "mailbox_briefing.py", "target_profiles.py", "profile_binding.py",
                        "profile_usage.py", "google_login.py", "web/mailbox_site.py", "notification_runtime.py",
-                       "fingerprints.py", "composition.py", "orchestrator.py"):
+                       "fingerprints.py", "composition.py", "orchestrator.py",
+                       "web/pages.py", "web/review_pages.py", "web/settings_pages.py",
+                       "web/static/app.css", "web/static/sw.js"):
             assert archive.read("mailhelp/" + module) == (ROOT / "src/mailhelp" / module).read_bytes()
         assert "mailhelp/assets/logo.png" in names
         assert {"mailhelp/web/static/app.js", "mailhelp/web/static/sw.js",

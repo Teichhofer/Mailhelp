@@ -2325,3 +2325,19 @@ als gleichwertig, ohne gespeicherte Vorschläge oder ihre Bestätigungen zu ver�
 ist wiederholbar und übersteht Neustarts. Themen- und andere Analyseänderungen bleiben wirksam.
 Details, Fingerprint-Kompatibilität
 und Rückkehr aus einer vorher angelegten Sicherung stehen in [Release-3.2](docs/Release-3.2.md).
+
+## Darstellung der Weboberfläche (3.3.2)
+
+Ab 1200 Pixeln Breite bündelt eine feste Seitenleiste die Navigation in Arbeitsbereich, Einblicke
+und Verwaltung. Auf schmaleren Bildschirmen bleibt die Navigationsleiste horizontal scrollbar;
+auf Telefonen scrollt der Kopfbereich mit der Seite und verdeckt keine Aktionen. Ein Tastatur-Link
+führt direkt zum Hauptinhalt. Die Seitenüberschrift steht vor den Filtern.
+
+Vorschlagskarten bewahren Titel, Zeitangaben, Zielprofil, Status, Warnungen und offene Fragen sichtbar.
+Beschreibung und Beleg stehen in einer aufklappbaren Sektion; in der Detailansicht bleiben sie direkt
+zugänglich. Große Bildschirme zeigen die kompakte Arbeitsliste neben der Detailansicht. Die globalen
+Einstellungen besitzen Bereichs-Sprunglinks und eine aufklappbare Übersicht der verwendeten Modelle.
+
+Alle Inhalte werden weiterhin escaped. Daten, Formularziele, versionsbezogene Bestätigungen,
+CSRF-Prüfung und Idempotenz bleiben erhalten. Der Service Worker aktualisiert ausschließlich den
+Shell-Cache; Mailinhalte und Aktionen werden weder offline gespeichert noch wiederholt.

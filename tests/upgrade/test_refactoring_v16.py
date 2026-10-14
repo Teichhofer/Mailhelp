@@ -102,34 +102,23 @@ def renderer_contract_pages(store, renderer):
     }
 
 
-def test_renderer_output_is_byte_identical_to_release_15(tmp_path):
-    import hashlib
+def test_renderer_preserves_existing_content_and_interaction_targets(tmp_path):
     import json
     from pathlib import Path
 
+    from shared_render_contract import content_contract
+
     from mailhelp.storage import JsonStore
-    expected = json.loads(Path(__file__).with_name("renderer_v15_hashes.json").read_text(encoding="utf-8"))
+    expected = json.loads(Path(__file__).with_name("renderer_content_contract.json").read_text(encoding="utf-8"))
     with JsonStore(tmp_path) as store:
         pages = renderer_contract_pages(store, review_pages)
-    # 2.0 only wraps existing content: the open items (master list of the split view)
-    # and the mail of a proposal (collapsed source section). Without the wrappers
-    # every byte is still the same as in release 1.5.
     overview, proposal = pages["overview"], pages["proposal"]
     assert overview.count('<div class="open-items">') == 1
-    pages["overview"] = overview.replace('<div class="open-items">', "", 1).replace(
-        "</div>\n<h2>Zuletzt erledigt</h2>", "\n<h2>Zuletzt erledigt</h2>", 1)
     wrapper = '<details class="disclosure"><summary>Quellbeleg aus E-Mail / Anhang</summary>'
     assert proposal.count(wrapper) == 1 and proposal.count("</section></details>") == 1
-    pages["proposal"] = proposal.replace(wrapper, "", 1).replace("</section></details>", "</section>", 1)
-    # 2.2 adds one navigation entry for activity reports.
-    berichte = '<a href="/berichte">Berichte</a>'
-    assert all(html.count(berichte) == 1 for html in pages.values())
-    pages = {name: html.replace(berichte, "", 1) for name, html in pages.items()}
-    abgleich = '<a href="/abgleich">Vorschlagsabgleich</a>'
-    assert all(html.count(abgleich) == 1 for html in pages.values())
-    pages = {name: html.replace(abgleich, "", 1) for name, html in pages.items()}
-    assert {name: hashlib.sha256(html.encode("utf-8")).hexdigest()
-            for name, html in pages.items()} == expected
+    # The fixture comes from the committed renderer before the facelift, not from the new output.
+    # User data, links, ids and form targets survive; decorative navigation and copy may change.
+    assert {name: content_contract(html) for name, html in pages.items()} == expected
 
 
 def test_successor_builder_rejects_changed_identity_without_persisting(tmp_path):
