@@ -117,7 +117,7 @@ learning:
 # (= Postfach 1): Liste imap.mailboxes mit stabiler Nummer id (1–99), Anzeigename label
 # und enabled. Abruf, Kontingent und Duplikaterkennung gelten über alle Postfächer; Entwürfe
 # und Tätigkeitsberichte bleiben im jeweiligen Postfach. --learn/--decision-test brauchen
-# dann --mailbox <id>. Beispiel:
+# dann --mailbox <id> oder --mailbox alle. Beispiel:
 #   imap:
 #     batch_size: 25
 #     global_newest_first: true

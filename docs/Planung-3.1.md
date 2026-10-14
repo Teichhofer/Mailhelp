@@ -186,8 +186,8 @@ nur bei mehr als einem Postfach. Postfachfehler erscheinen als eigene Zeile.
 | Antwortentwürfe | APPEND in den `drafts_folder` **des Postfachs, aus dem die Mail stammt**; Absender = Benutzername dieses Postfachs (optional späteres Feld `address`). Kein Rückfall auf ein anderes Postfach. |
 | Originaldokumente / Volltextsuche | Unverändert lokal; Suche erhält Filter „Postfach“. |
 | Tätigkeitsberichte | Postfachwahl im Formular (Links ohne JavaScript, `?postfach=<n>`); der Bericht speichert `mailbox` (Berichte vor 3.1: Postfach 1); Ordnervorschläge und -prüfung je Postfach; Zählen und Lesen öffnen nur dieses Postfach. |
-| Lernmodus `--learn N` | Liest genau ein Postfach; bei mehreren aktivierten Postfächern ist `--mailbox <n>` Pflicht (umgesetzt in 3.0.4 statt „alle Postfächer“, damit `N` eindeutig bleibt). Ergänzt neue Ordner im Eintrag dieses Postfachs. Absenderfilter und Themen bleiben gemeinsam. |
-| Decision-Test | Wie der Lernmodus genau ein Postfach; `--mailbox <n>` bei mehreren aktivierten Postfächern Pflicht. |
+| Lernmodus `--learn N` | `--mailbox <n>` liest ein Postfach, `--mailbox alle` alle aktivierten (3.1.2, Wunsch vom 14.10.2026): die `N` neuesten Mails über alle gewählten Postfächer zusammen. Bei mehreren aktivierten Postfächern ist die Angabe Pflicht. Ergänzt neue Ordner im Eintrag des jeweiligen Postfachs. Absenderfilter und Themen bleiben gemeinsam. |
+| Decision-Test | Wie der Lernmodus (`--mailbox <n>` oder `alle`); identische Rohmails aus mehreren Postfächern werden einmal verglichen. |
 | Tagesüberblick | Offene Entscheidungen mit Postfach-Label; sonst unverändert. |
 | Benachrichtigungen | Neutrale Push-Texte ohne Postfachnamen; Telegram `summary` darf das Label nennen. |
 

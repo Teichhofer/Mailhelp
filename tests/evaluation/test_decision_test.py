@@ -251,7 +251,7 @@ def test_cli_decision_test_bypasses_normal_builder_and_logger(monkeypatch, file,
                           "local_llm": LocalLlm("localhost", 11434, "synthetic/local"),
                           "laya": None, "laya_model": None, "relevance_only": False,
                           "irrelevant_topics": [ADS],
-                          "mailbox": loaded[0].imap.enabled_mailboxes()[0]})]
+                          "mailboxes": loaded[0].imap.enabled_mailboxes()})]
 
 
 @pytest.mark.parametrize("namespace", ["test", "production"])

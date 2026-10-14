@@ -15,6 +15,7 @@ from mailhelp.cli import (
     main,
 )
 from mailhelp.config import ImapSettings
+from mailhelp.learning import LearningSource
 from mailhelp.mailbox_run import MailboxSource
 
 
@@ -240,7 +241,8 @@ def test_cli_runs_terminal_learning_mode(monkeypatch):
                            Path('cfg/irrelevant_topics.yaml'), 'sender-store'),
                           {'timezone': 'Europe/Berlin', 'parallel_llm_calls': 7,
                            'global_newest_first': False,
-                           'config_path': Path('cfg/config.yaml'), 'folders_path': 'imap.folders'}), 3]
+                           'config_path': Path('cfg/config.yaml'),
+                           'sources': [LearningSource('imap', ['INBOX'], 'imap.folders')]}), 3]
 
 
 def test_signal_shutdown_interrupts_one_shot_modes_and_stops_service():
@@ -428,3 +430,37 @@ def test_cli_check_rejects_invalid_jev_configuration(tmp_path, monkeypatch):
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--check", "--config-directory", str(tmp_path)])
     with pytest.raises(ValueError, match="Wurzel"):
         main()
+
+
+def test_cli_learns_from_all_mailboxes(monkeypatch):
+    """Planung 3.1: --mailbox alle passes every enabled mailbox with its own folder path."""
+    imap = ImapSettings.model_validate({"mailboxes": [
+        {"id": 1, "host": "a", "port": 993, "folders": ["INBOX"]},
+        {"id": 3, "host": "c", "port": 993, "folders": ["INBOX"], "enabled": False},
+        {"id": 2, "host": "b", "port": 993, "folders": ["INBOX", "Projekte"]}]})
+    settings = SimpleNamespace(imap=imap, limits="limits", timezone="UTC",
+                               learning=SimpleNamespace(parallel_llm_calls=1))
+    enabled = imap.enabled_mailboxes()
+    application = SimpleNamespace(imap="a", analyzer="analyzer", store="store", sender_store="sender-store",
+                                  sources=[MailboxSource(enabled[0], "a"), MailboxSource(enabled[1], "b")])
+    captured = []
+
+    @contextmanager
+    def builder(*_args, **_kwargs):
+        yield application
+
+    class Learning:
+        def __init__(self, *args, **kwargs):
+            captured.append(kwargs["sources"])
+        def run(self, count):
+            pass
+
+    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (
+        settings, object(), [], [], object(), "fingerprint"))
+    monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args, **_kwargs: CaptureLogger())
+    monkeypatch.setattr("mailhelp.cli.build_application", builder)
+    monkeypatch.setattr("mailhelp.cli.LearningMode", Learning)
+    monkeypatch.setattr(sys, "argv", ["mailhelp", "--learn", "3", "--mailbox", "alle"])
+    assert main() == 0
+    assert captured == [[LearningSource("a", ["INBOX"], "imap.mailboxes.0.folders"),
+                         LearningSource("b", ["INBOX", "Projekte"], "imap.mailboxes.2.folders")]]

@@ -1,5 +1,17 @@
 # Änderungen
 
+## 3.1.2 – beta: Lernmodus und Decision-Test über alle Postfächer
+
+- `--mailbox alle` (auch `all`) wählt für `--learn` und `--decision-test` alle aktivierten Postfächer:
+  `N` begrenzt die neuesten Mails über alle Postfächer zusammen (Reihenfolge wie beim Abruf; ohne
+  globale Sortierung Postfach für Postfach). `--mailbox <n>` wählt weiterhin ein einzelnes Postfach;
+  bei mehreren aktivierten Postfächern bleibt eine der beiden Angaben Pflicht.
+- Der Decision-Test vergleicht identische Rohmails aus mehreren Postfächern nur einmal; der Bericht nennt
+  `mailboxes` und bei mehreren Postfächern `historical_start` je Postfach.
+- Der Lernmodus ergänzt neue Ordner im Eintrag des jeweiligen Postfachs.
+- Spezifikation, Release-Anleitung 3.1, Planung 3.1 und `config.example.yaml` angepasst; neue Tests für
+  Auswahl, Reihenfolge, Duplikate und CLI.
+
 ## 3.1.1 – Übernahme von beta nach main
 
 - Den committierten beta-Stand mit offenem Vorschlagsabgleich, Standarddauern,

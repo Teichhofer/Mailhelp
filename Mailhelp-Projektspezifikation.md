@@ -1136,8 +1136,15 @@ anderes Postfach. Ein Tätigkeitsbericht gehört zu genau einem Postfach (`mailb
 Postfach 1). Bei mehreren Postfächern wählt das Formular das Postfach über Links
 (`/berichte/neu?postfach=<n>`); Ordnervorschläge, Ordnerprüfung, Zählen und Lesen verwenden nur
 dieses Postfach, ein nicht mehr aktiviertes Postfach gilt als nicht lesbar. `--learn` und
-`--decision-test` lesen genau ein Postfach; sind mehrere aktiviert, ist `--mailbox <n>` erforderlich,
-`--mailbox` ohne einen dieser Modi oder mit einer unbekannten bzw. deaktivierten Nummer ist ungültig.
+`--decision-test` lesen das mit `--mailbox <n>` gewählte Postfach oder mit `--mailbox alle` (auch `all`)
+alle aktivierten Postfächer. Bei mehreren Postfächern bilden deren Mails eine gemeinsame Auswahl der
+neuesten Nachrichten (gleicher Empfangszeitpunkt: höhere UID, dann Postfach-, dann Ordnerreihenfolge);
+`N` begrenzt die Gesamtzahl. Ohne globale Sortierung werden die Postfächer nacheinander gelesen, bis `N`
+erreicht ist. Der Decision-Test vergleicht identische Rohmails aus mehreren Postfächern nur einmal; sein
+Bericht nennt die gelesenen Postfachnummern (`mailboxes`) und bei mehreren Postfächern
+`historical_start` je Postfachnummer. Der Lernmodus ergänzt neue Ordner im Eintrag des jeweiligen
+Postfachs. Sind mehrere Postfächer aktiviert, ist `--mailbox` erforderlich; `--mailbox` ohne einen dieser
+Modi oder mit einer unbekannten bzw. deaktivierten Nummer ist ungültig.
 
 ### Weboberfläche und Telegram bei mehreren Postfächern (3.1, Phase 5)
 

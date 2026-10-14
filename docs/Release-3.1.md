@@ -16,8 +16,9 @@ Benachrichtigungsregeln.
 - **Antwortentwürfe:** nur im Entwurfsordner des Postfachs, aus dem die Mail stammt, mit dessen
   Benutzernamen als Absender. Ist dieses Postfach nicht mehr aktiviert, wird nicht gespeichert.
 - **Tätigkeitsberichte:** gehören zu genau einem Postfach; Auswahl im Formular.
-- **Lernmodus und Decision-Test:** lesen genau ein Postfach; bei mehreren aktivierten Postfächern
-  `--mailbox <Nummer>` angeben.
+- **Lernmodus und Decision-Test:** bei mehreren aktivierten Postfächern `--mailbox <Nummer>` für ein
+  Postfach oder `--mailbox alle` für alle angeben. Mit „alle“ sind es die `N` neuesten Mails über alle
+  Postfächer zusammen, z. B. `mailhelp --learn 50 --mailbox alle`.
 - **Anzeige:** Maildetail, Archiv (mit Filter „Postfach“) und Telegram-Karten nennen das Postfach,
   sobald mehr als eines aktiviert ist. Web-Push bleibt neutral.
 - **Diagnose:** `/diagnose` → `imap` prüft alle aktivierten Postfächer lesend.

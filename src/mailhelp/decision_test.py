@@ -20,7 +20,7 @@ from .analysis import Analyzer
 from .config import MailboxSettings, PromptConfig, Secrets, Settings, Topic
 from .decisions import DecisionAnalyzer, DecisionClient, JevRelevanceAnalyzer, load_relevance_prompts
 from .evaluation import write_report
-from .imap import FolderNotReadable, ImapReader, reader_arguments
+from .imap import FolderNotReadable, ImapReader, MailCandidate, reader_arguments
 from .laya import LayaClient, LayaRelevanceAnalyzer, load_laya_prompts
 from .logging import NullLogger, redact
 from .mime import prepare
@@ -102,10 +102,13 @@ class DecisionTestMode:
                  output: Path, recorder: ComparisonRecorder,
                  *, ignore_historical_start: bool = False, relevance_only: bool = False,
                  save_interval: float = SAVE_INTERVAL_SECONDS, clock=time.monotonic,
-                 mailbox: MailboxSettings | None = None):
+                 mailbox: MailboxSettings | None = None,
+                 sources: list[tuple[MailboxSettings, Any]] | None = None):
         self.imap, self.standard, self.ollama = imap, standard, ollama
         self.settings, self.topics = settings, topics
         self.mailbox = mailbox or settings.imap.enabled_mailboxes()[0]
+        # Several mailboxes form one selection of the newest unique mail (3.1).
+        self.sources = sources or [(self.mailbox, imap)]
         self.report, self.output, self.recorder = report, output, recorder
         self.ignore_historical_start = ignore_historical_start
         self.relevance_only = relevance_only
@@ -174,25 +177,29 @@ class DecisionTestMode:
 
     def run(self, count: int) -> int:
         try:
-            candidates = []
-            for folder in self.mailbox.folders:
-                try:
-                    candidates.extend(self.imap.discover_since(
-                        folder, max_count=count,
-                        historical_start=(None if self.ignore_historical_start
-                                          else self.mailbox.historical_start)))
-                except FolderNotReadable:
-                    if folder == self.mailbox.primary_folder:
-                        raise
-                    self.report["selection_errors"].append({"folder": folder, "error_type": "FolderNotReadable"})
-            ranks = {folder: index for index, folder in enumerate(self.mailbox.folders)}
-            candidates.sort(key=lambda item: (item.received_at, item.uid, -ranks[item.folder]), reverse=True)
+            candidates: list[tuple[MailCandidate, int, int, Any]] = []
+            for source_rank, (mailbox, reader) in enumerate(self.sources):
+                for folder_rank, folder in enumerate(mailbox.folders):
+                    try:
+                        found = reader.discover_since(
+                            folder, max_count=count,
+                            historical_start=(None if self.ignore_historical_start
+                                              else mailbox.historical_start))
+                    except FolderNotReadable:
+                        if folder == mailbox.primary_folder:
+                            raise
+                        self.report["selection_errors"].append({"folder": folder, "error_type": "FolderNotReadable"})
+                        continue
+                    candidates.extend((item, -source_rank, -folder_rank, reader) for item in found)
+            # Mailbox and then folder order break ties of equal receive times and UIDs.
+            candidates.sort(key=lambda entry: (entry[0].received_at, entry[0].uid, entry[1], entry[2]),
+                            reverse=True)
             seen = set()
-            for candidate in candidates:
+            for candidate, _source_rank, _folder_rank, reader in candidates:
                 if len(self.report["mails"]) >= count:
                     break
                 try:
-                    fetched = self.imap.fetch_uid(candidate.folder, candidate.uid, candidate.uidvalidity)
+                    fetched = reader.fetch_uid(candidate.folder, candidate.uid, candidate.uidvalidity)
                 except Exception as exc:
                     self.report["selection_errors"].append({"folder": candidate.folder, "uid": candidate.uid,
                                                             "error_type": type(exc).__name__})
@@ -267,7 +274,11 @@ def _pause(delay: float) -> bool:
 def _initial_report(settings: Settings, topics: list[Topic], prompts: PromptConfig, count: int,
                     decision_prompts: Any, local_llm: LocalLlm, laya: tuple[str, int] | None,
                     laya_prompts: Any, relevance_only: bool, ignore_historical_start: bool,
-                    irrelevant_topics: list[Topic] | None, mailbox: MailboxSettings) -> dict[str, Any]:
+                    irrelevant_topics: list[Topic] | None, mailboxes: list[MailboxSettings]) -> dict[str, Any]:
+    def start(mailbox: MailboxSettings) -> str | None:
+        if ignore_historical_start or mailbox.historical_start is None:
+            return None
+        return mailbox.historical_start.isoformat()
     return {"schema_version": 2, "mode": "decision_test",
             "comparison": "standard_vs_ollama",
             "pipeline_policy": "relevance_only" if relevance_only else "relevant_only",
@@ -283,8 +294,10 @@ def _initial_report(settings: Settings, topics: list[Topic], prompts: PromptConf
                          "ollama": settings.timeouts.ollama.model_dump()}, "run_id": str(uuid4()),
             "started_at": datetime.now(UTC).isoformat(), "complete": False,
             "requested_mail_count": count, "selection": "global_newest_first_unique_raw_mail",
-            "historical_start": (None if ignore_historical_start or mailbox.historical_start is None
-                                 else mailbox.historical_start.isoformat()),
+            # One value for one mailbox (as before 3.1), otherwise one per mailbox number.
+            "historical_start": (start(mailboxes[0]) if len(mailboxes) == 1
+                                 else {str(mailbox.id): start(mailbox) for mailbox in mailboxes}),
+            "mailboxes": [mailbox.id for mailbox in mailboxes],
             "timezone": settings.timezone,
             "prompts": prompts.model_dump(mode="json"),
             "decisions_prompts": decision_prompts.model_dump(mode="json"),
@@ -365,9 +378,9 @@ def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
                       laya: tuple[str, int] | None = None, laya_model: str | None = None,
                       relevance_only: bool = False,
                       irrelevant_topics: list[Topic] | None = None,
-                      mailbox: MailboxSettings | None = None) -> int:
+                      mailboxes: list[MailboxSettings] | None = None) -> int:
     """Construct only read adapters; production stores and write services do not exist here."""
-    mailbox = mailbox or settings.imap.enabled_mailboxes()[0]
+    mailboxes = mailboxes or settings.imap.enabled_mailboxes()[:1]
     decision_prompts = load_relevance_prompts(directory)
     # With Laya, the Ollama path checks relevance with the local decision model.
     laya_prompts = None
@@ -388,18 +401,20 @@ def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
         settings.metrics, "decision_test")
     recorder.metrics = metrics
     report = _initial_report(settings, topics, prompts, count, decision_prompts, local_llm, laya,
-                             laya_prompts, relevance_only, ignore_historical_start, irrelevant_topics, mailbox)
+                             laya_prompts, relevance_only, ignore_historical_start, irrelevant_topics, mailboxes)
     write_report(output, redact(report, known_secrets))
     print(f"Decision-Testdatei: {output}", flush=True)
     metrics.run_id = report["run_id"]
     try:
         with ExitStack() as stack:
-            reader = _comparison_reader(settings, secrets, recorder, stack, mailbox)
+            sources = [(mailbox, _comparison_reader(settings, secrets, recorder, stack, mailbox))
+                       for mailbox in mailboxes]
             standard, ollama = _comparison_analyzers(settings, secrets, prompts, decision_prompts, local_llm,
                                                      laya, laya_prompts, irrelevant_topics, recorder, stack)
-            return DecisionTestMode(reader, standard, ollama, settings, topics, report, output,
+            return DecisionTestMode(sources[0][1], standard, ollama, settings, topics, report, output,
                                     recorder, ignore_historical_start=ignore_historical_start,
-                                    relevance_only=relevance_only, mailbox=mailbox).run(count)
+                                    relevance_only=relevance_only, mailbox=mailboxes[0],
+                                    sources=sources).run(count)
     except BaseException as exc:
         report["error_type"] = type(exc).__name__
         write_report(output, redact(report, known_secrets))

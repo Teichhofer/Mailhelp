@@ -1,6 +1,8 @@
 """Mailboxes in config.yaml (Planung 3.1, phase 1): both formats, secrets and fingerprints."""
 from __future__ import annotations
 
+from types import SimpleNamespace as NS
+
 import pytest
 import yaml
 from pydantic import SecretStr, ValidationError
@@ -219,34 +221,44 @@ def test_learning_adds_folders_to_the_mailbox_of_the_3_1_format(tmp_path):
             add_discovered_folders(path, ["INBOX"], ["Neu"], missing)
 
 
-def test_learning_and_decision_tests_read_one_named_mailbox(tmp_path, monkeypatch, capsys):
-    from mailhelp.cli import _parser, _selected_mailbox
+def test_learning_and_decision_tests_read_named_or_all_mailboxes(tmp_path, capsys):
+    from mailhelp.cli import _parser, _selected_mailboxes
     one = former(tmp_path)
     two = mailboxes(tmp_path, {"id": 1, **FORMER}, {"id": 4, "label": "Arbeit", **FORMER, "host": "b.test"},
                     {"id": 5, **FORMER, "host": "c.test", "enabled": False})
     parser = _parser()
 
     def selected(cfg, *arguments):
-        return _selected_mailbox(parser, parser.parse_args(list(arguments)), cfg)
+        found = _selected_mailboxes(parser, parser.parse_args(list(arguments)), cfg)
+        return None if found is None else [mailbox.id for mailbox in found]
 
     assert selected(one) is None
-    assert selected(one, "--learn", "3").id == 1
-    assert selected(two, "--learn", "3", "--mailbox", "4").label == "Arbeit"
-    assert selected(two, "--decision-test", "2", "--mailbox", "1").id == 1
+    assert selected(one, "--learn", "3") == [1]
+    assert selected(two, "--learn", "3", "--mailbox", "4") == [4]
+    assert selected(two, "--decision-test", "2", "--mailbox", "1") == [1]
+    # "alle" (or "all") reads every enabled mailbox; disabled ones stay out.
+    for word in ("alle", "ALL", " Alle "):
+        assert selected(two, "--learn", "3", "--mailbox", word) == [1, 4]
+    assert selected(one, "--decision-test", "2", "--mailbox", "alle") == [1]
     for cfg, arguments, message in (
-            (two, ["--learn", "3"], "--mailbox NUMMER angeben"),
+            (two, ["--learn", "3"], "--mailbox NUMMER oder --mailbox alle angeben"),
             (two, ["--learn", "3", "--mailbox", "5"], "kein aktiviertes Postfach"),
-            (two, ["--mailbox", "4"], "nur zusammen mit --learn")):
+            (two, ["--mailbox", "4"], "nur zusammen mit --learn"),
+            (two, ["--mailbox", "alle"], "nur zusammen mit --learn")):
         with pytest.raises(SystemExit):
             selected(cfg, *arguments)
         assert message in capsys.readouterr().err
+    with pytest.raises(SystemExit):
+        parser.parse_args(["--learn", "3", "--mailbox", "zwei"])
+    assert "Nummer eines Postfachs oder „alle“ erwartet" in capsys.readouterr().err
 
 
-def test_the_decision_test_reads_the_selected_mailbox(tmp_path, monkeypatch):
+def test_the_decision_test_reads_the_selected_mailboxes(tmp_path, monkeypatch):
     from mailhelp.decision_test import DecisionTestMode, _comparison_reader, _initial_report
+    from mailhelp.ollama import LocalLlm
     cfg = mailboxes(tmp_path, {"id": 1, **FORMER}, {"id": 2, **FORMER, "host": "b.test", "folders": ["Projekte"],
                                                     "primary_folder": "Projekte", "historical_start": None})
-    second = cfg.imap.mailbox(2)
+    first, second = cfg.imap.mailbox(1), cfg.imap.mailbox(2)
     opened = []
     monkeypatch.setattr("mailhelp.decision_test.ImapReader", lambda *args, **kwargs: opened.append(args[:3]) or
                         type("Reader", (), {"close": lambda self: None})())
@@ -256,13 +268,86 @@ def test_the_decision_test_reads_the_selected_mailbox(tmp_path, monkeypatch):
     with ExitStack() as stack:
         _comparison_reader(cfg, secrets, None, stack, second)
     assert opened == [("b.test", 143, "b")]
-    from mailhelp.ollama import LocalLlm
-    report = _initial_report(cfg, [], prompt_config(), 1, type("P", (), {"model_dump": lambda self, **k: {}})(),
-                             LocalLlm("localhost", 11434, "lokal"), None, None, False, False, None, second)
-    assert report["historical_start"] is None
+
+    def report(selected, ignore=False):
+        return _initial_report(cfg, [], prompt_config(), 1, type("P", (), {"model_dump": lambda self, **k: {}})(),
+                               LocalLlm("localhost", 11434, "lokal"), None, None, False, ignore, None, selected)
+    assert report([second])["historical_start"] is None and report([second])["mailboxes"] == [2]
+    assert report([first, second])["historical_start"] == {"1": first.historical_start.isoformat(), "2": None}
+    assert report([first, second], ignore=True)["historical_start"] == {"1": None, "2": None}
     mode = DecisionTestMode(None, None, None, cfg, [], {}, tmp_path / "r.json", None, mailbox=second)
-    assert mode.mailbox is second
-    assert DecisionTestMode(None, None, None, cfg, [], {}, tmp_path / "r.json", None).mailbox == cfg.imap.mailbox(1)
+    assert mode.mailbox is second and mode.sources == [(second, None)]
+    assert DecisionTestMode(None, None, None, cfg, [], {}, tmp_path / "r.json", None).mailbox == first
+
+
+class Box:
+    """Read double of one mailbox for the shared selection of learning and decision tests."""
+
+    def __init__(self, account, messages, unreadable=()):
+        from mailhelp.imap import FolderNotReadable
+        self.account, self.messages, self.unreadable, self.error = account, messages, set(unreadable), FolderNotReadable
+        self.fetched = []
+
+    def list_folders(self):
+        return []
+
+    def discover_since(self, folder, **_options):
+        from datetime import UTC, datetime, timedelta
+
+        from mailhelp.imap import MailCandidate
+        if folder in self.unreadable:
+            raise self.error(folder)
+        stamp = datetime(2026, 10, 1, tzinfo=UTC)
+        return [MailCandidate(folder, 7, uid, self.account, stamp + timedelta(hours=hour))
+                for name, uid, hour in self.messages if name == folder]
+
+    def fetch_uid(self, folder, uid, uidvalidity):
+        from mailhelp.imap import FetchedMail
+        self.fetched.append((folder, uid))
+        # The raw mail depends on the UID only: equal UIDs in two mailboxes are the same mail.
+        return FetchedMail(folder, uidvalidity, uid, f"Subject: Nr. {uid}\n\nx".encode(), self.account)
+
+    def fetch_since(self, folder, after_uid, uidvalidity, limit, ranges):
+        from mailhelp.imap import FetchedMail
+        done = {low for low, _high in ranges}
+        return [FetchedMail(folder, 7, uid, b"x", self.account) for name, uid, _hour in self.messages
+                if name == folder and uid not in done][:limit]
+
+
+def test_learning_selects_the_newest_mail_of_all_chosen_mailboxes(tmp_path):
+    from mailhelp.learning import LearningMode, LearningSource
+    private = Box("a", [("INBOX", 1, 1), ("INBOX", 2, 4), ("Sent", 3, 4)])
+    work = Box("b", [("INBOX", 1, 3), ("INBOX", 2, 5)], unreadable={"Archiv"})
+    output = []
+    sources = [LearningSource(private, ["INBOX", "Sent"]), LearningSource(work, ["INBOX", "Archiv"])]
+    mode = LearningMode(private, None, ["INBOX"], None, [], tmp_path / "t.yaml", [], tmp_path / "i.yaml",
+                        output_fn=output.append, global_newest_first=True, sources=sources)
+    mails = mode._fetch(4)
+    # b2 (5 h); then a3 before a2 at 4 h (greater UID); then b1 (3 h).
+    assert [(mail.account_id, mail.uid) for mail in mails] == [("b", 2), ("a", 3), ("a", 2), ("b", 1)]
+    assert any("Archiv" in line for line in output)
+    # Without global ordering the mailboxes are read one after the other until the count is reached.
+    mode.global_newest_first = False
+    assert [(mail.account_id, mail.uid) for mail in mode._fetch(4)] == [("a", 1), ("a", 2), ("a", 3), ("b", 1)]
+    assert len(mode._fetch(10)) == 5
+
+
+def test_the_decision_test_selects_unique_mail_of_all_chosen_mailboxes(tmp_path):
+    from mailhelp.decision_test import DecisionTestMode
+    cfg = mailboxes(tmp_path, {"id": 1, **FORMER, "folders": ["INBOX"], "primary_folder": "INBOX"},
+                    {"id": 2, **FORMER, "host": "b.test", "folders": ["INBOX", "Archiv"], "primary_folder": "INBOX"})
+    private = Box("a", [("INBOX", 1, 1), ("INBOX", 2, 3)])
+    work = Box("b", [("INBOX", 1, 2)], unreadable={"Archiv"})
+    report = {"mails": [], "selection_errors": []}
+    mode = DecisionTestMode(private, None, None, cfg, [], report, tmp_path / "r.json", NS(secrets=()),
+                            sources=[(cfg.imap.mailbox(1), private), (cfg.imap.mailbox(2), work)])
+    mode._pipeline = lambda record, name, mail, analyzer: None
+    mode._save = lambda force=False: None
+    mode.run(5)
+    # Newest first over both mailboxes; mail 1 of mailbox 1 equals the one already taken from mailbox 2.
+    assert private.fetched == [("INBOX", 2), ("INBOX", 1)] and work.fetched == [("INBOX", 1)]
+    assert [item["uid"] for item in report["mails"]] == [2, 1] and report["selected_mail_count"] == 2
+    assert report["selection_errors"] == [{"folder": "Archiv", "error_type": "FolderNotReadable"}]
 
 
 def test_two_mailboxes_may_not_share_one_account(tmp_path):

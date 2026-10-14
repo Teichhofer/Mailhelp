@@ -5,6 +5,7 @@ import re
 import unicodedata
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 
@@ -12,7 +13,7 @@ import yaml
 
 from .analysis import Analyzer
 from .config import IrrelevantTopicsConfig, Topic, TopicsConfig
-from .imap import FetchedMail, FolderNotReadable, ImapReader
+from .imap import FetchedMail, FolderNotReadable, ImapReader, MailCandidate
 from .mime import prepare
 from .models import IrrelevantSenders, LearnedCategory, MailClassification
 from .sender_filter import add_irrelevant_senders, is_irrelevant_sender
@@ -88,6 +89,15 @@ def add_discovered_folders(path: Path, configured: list[str], discovered: list[s
     return merged
 
 
+@dataclass
+class LearningSource:
+    """One mailbox the learning run reads: its reader, folders and their place in config.yaml (3.1)."""
+
+    imap: Any
+    folders: list[str]
+    folders_path: str = "imap.folders"
+
+
 class LearningMode:
     def __init__(self, imap: ImapReader, analyzer: Analyzer, folders: list[str],
                  limits: object, topics: list[Topic], topics_path: Path,
@@ -97,8 +107,11 @@ class LearningMode:
                  output_fn: Callable[[str], None] = print,
                  timezone: str = "UTC", parallel_llm_calls: int = 4,
                  global_newest_first: bool = False,
-                 config_path: Path | None = None, folders_path: str = "imap.folders"):
-        self.imap, self.analyzer, self.folders = imap, analyzer, folders
+                 config_path: Path | None = None, folders_path: str = "imap.folders",
+                 sources: list[LearningSource] | None = None):
+        # Several mailboxes form one selection of the newest mail (3.1); otherwise just this one.
+        self.sources = sources or [LearningSource(imap, folders, folders_path)]
+        self.analyzer = analyzer
         self.limits, self.topics, self.topics_path = limits, topics, topics_path
         self.irrelevant_topics = irrelevant_topics
         self.irrelevant_topics_path = irrelevant_topics_path
@@ -106,64 +119,66 @@ class LearningMode:
         self.input, self.output, self.timezone = input_fn, output_fn, timezone
         self.parallel_llm_calls = parallel_llm_calls
         self.global_newest_first = global_newest_first
-        self.config_path, self.folders_path = config_path, folders_path
+        self.config_path = config_path
 
     def _refresh_folders(self) -> None:
         if self.config_path is None:
             return
-        discovered = [str(getattr(mailbox, "name", mailbox))
-                      for mailbox in self.imap.list_folders()]
-        previous = set(self.folders)
-        self.folders = add_discovered_folders(
-            self.config_path, self.folders, discovered, self.folders_path
-        )
-        additions = [folder for folder in self.folders if folder not in previous]
-        if additions:
-            names = ", ".join(f'"{_safe_terminal(folder)}"' for folder in additions)
-            self.output(f"Neue IMAP-Ordner wurden in config.yaml eingetragen: {names}")
+        for source in self.sources:
+            discovered = [str(getattr(mailbox, "name", mailbox))
+                          for mailbox in source.imap.list_folders()]
+            previous = set(source.folders)
+            source.folders = add_discovered_folders(
+                self.config_path, source.folders, discovered, source.folders_path
+            )
+            additions = [folder for folder in source.folders if folder not in previous]
+            if additions:
+                names = ", ".join(f'"{_safe_terminal(folder)}"' for folder in additions)
+                self.output(f"Neue IMAP-Ordner wurden in config.yaml eingetragen: {names}")
 
     def _fetch(self, count: int) -> list[FetchedMail]:
         if self.global_newest_first:
-            candidates = []
-            for folder in self.folders:
-                try:
-                    candidates.extend(self.imap.discover_since(
-                        folder, max_count=count, historical_start=None))
-                except FolderNotReadable:
-                    self.output(f'IMAP-Ordner "{_safe_terminal(folder)}" ist nicht lesbar '
-                                "und wird im Lernlauf übersprungen.")
-            # Folder order is the stable final tie-breaker; within a folder the
-            # greater UID wins when servers report identical INTERNALDATE values.
-            folder_rank = {folder: index for index, folder in enumerate(self.folders)}
-            candidates.sort(key=lambda item: (
-                item.received_at, item.uid, -folder_rank[item.folder]
-            ), reverse=True)
+            candidates: list[tuple[MailCandidate, int, int, LearningSource]] = []
+            for source_rank, source in enumerate(self.sources):
+                for folder_rank, folder in enumerate(source.folders):
+                    try:
+                        found = source.imap.discover_since(folder, max_count=count, historical_start=None)
+                    except FolderNotReadable:
+                        self.output(f'IMAP-Ordner "{_safe_terminal(folder)}" ist nicht lesbar '
+                                    "und wird im Lernlauf übersprungen.")
+                        continue
+                    candidates.extend((item, -source_rank, -folder_rank, source) for item in found)
+            # Mailbox and then folder order are the stable final tie-breakers; within a
+            # folder the greater UID wins when servers report identical INTERNALDATE values.
+            candidates.sort(key=lambda entry: (entry[0].received_at, entry[0].uid, entry[1], entry[2]),
+                            reverse=True)
             mails: list[FetchedMail] = []
-            for candidate in candidates[:count]:
+            for candidate, _source_rank, _folder_rank, source in candidates[:count]:
                 try:
-                    mails.append(self.imap.fetch_uid(
+                    mails.append(source.imap.fetch_uid(
                         candidate.folder, candidate.uid, candidate.uidvalidity))
                 except FolderNotReadable:
                     self.output(f'IMAP-Ordner "{_safe_terminal(candidate.folder)}" ist '
                                 "nicht mehr lesbar; die Nachricht wird übersprungen.")
             return mails
         mails = []
-        for folder in self.folders:
-            try:
-                after_uid = 0
-                ranges: list[tuple[int, int]] = []
-                while len(mails) < count:
-                    batch = self.imap.fetch_since(
-                        folder, after_uid, None, count - len(mails), tuple(ranges))
-                    if not batch:
-                        break
-                    mails.extend(batch)
-                    ranges.extend((mail.uid, mail.uid) for mail in batch)
-            except FolderNotReadable:
-                self.output(f'IMAP-Ordner "{_safe_terminal(folder)}" ist nicht lesbar '
-                            "und wird im Lernlauf übersprungen.")
-            if len(mails) == count:
-                break
+        for source in self.sources:
+            for folder in source.folders:
+                try:
+                    after_uid = 0
+                    ranges: list[tuple[int, int]] = []
+                    while len(mails) < count:
+                        batch = source.imap.fetch_since(
+                            folder, after_uid, None, count - len(mails), tuple(ranges))
+                        if not batch:
+                            break
+                        mails.extend(batch)
+                        ranges.extend((mail.uid, mail.uid) for mail in batch)
+                except FolderNotReadable:
+                    self.output(f'IMAP-Ordner "{_safe_terminal(folder)}" ist nicht lesbar '
+                                "und wird im Lernlauf übersprungen.")
+                if len(mails) == count:
+                    return mails
         return mails
 
     def run(self, count: int) -> int:
