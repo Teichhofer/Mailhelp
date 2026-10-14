@@ -8,6 +8,7 @@ Offene Vorschläge zusammenführen und Standarddauern aus der Planung 2.4:
 [Bedienung und Upgrade](docs/Release-2.4.md), [Architektur](docs/Architektur-2.4.md).
 Einrichtungsassistent, Diagnose und Benachrichtigungsprofil aus der Planung 3.0:
 [Betriebs- und Upgrade-Anleitung](docs/Release-3.0.md).
+Mehrere Postfächer ab 3.1: [Einrichtung, Upgrade und Rückkehr](docs/Release-3.1.md).
 Die geplante Weboberfläche für Version 1.1 beschreibt das
 [Konzept mit Umsetzungsplan](docs/Konzept-1.1-Web-PWA.md).
 

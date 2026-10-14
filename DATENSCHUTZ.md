@@ -15,7 +15,7 @@ Stand: 10. Oktober 2026
 
 ## 1. Worum es geht
 
-Mailhelp ist eine selbst betriebene Software. Sie liest E-Mails aus einem Postfach,
+Mailhelp ist eine selbst betriebene Software. Sie liest E-Mails aus einem oder mehreren Postfächern derselben Person,
 lässt sie mit KI-Modellen auswerten und schlägt daraus Aufgaben (Todoist) und Termine
 (Google Kalender) vor. Die Vorschläge werden über einen Telegram-Bot oder die
 authentifizierte Weboberfläche zur Bestätigung vorgelegt. Mailhelp legt **nichts**
@@ -24,7 +24,8 @@ Vorschlagsversion nicht ausdrücklich über einen dieser beiden Kanäle bestäti
 Das Speichern einer Bearbeitung allein ist keine Bestätigung.
 
 Mailhelp ist kein öffentlicher Dienst. Eine Instanz wird von einer Person für ihr
-eigenes Postfach betrieben und von genau einem berechtigten Telegram-Konto bedient.
+eigenen Postfächer (ab Version 3.1 bis zu zehn) betrieben und von genau einem berechtigten
+Telegram-Konto bedient. Jedes eingetragene Postfach wird gleich verarbeitet.
 Diese Erklärung beschreibt die Instanz der unten genannten verantwortlichen Person.
 
 ## 2. Verantwortliche Person

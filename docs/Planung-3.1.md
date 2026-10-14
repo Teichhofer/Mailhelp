@@ -4,7 +4,7 @@
 
 **Stand:** 14. Oktober 2026
 
-**Status:** In Umsetzung – Phase 1 (Verträge) in 3.0.1, Phase 2 (Laufzeitkern) in 3.0.2, Phase 3 (Duplikate) in 3.0.3, Phase 4 (zugeordnete Funktionen) in 3.0.4, Phase 5 (Web und Telegram, Teilumfang) in 3.0.5 umgesetzt; Entscheidungen vom 14. Oktober 2026 eingearbeitet
+**Status:** Umgesetzt in 3.1.0 (Release-Tag nach CI-Matrix) – Phase 1 (Verträge) in 3.0.1, Phase 2 (Laufzeitkern) in 3.0.2, Phase 3 (Duplikate) in 3.0.3, Phase 4 (zugeordnete Funktionen) in 3.0.4, Phase 5 (Web und Telegram, Teilumfang) in 3.0.5 umgesetzt; Entscheidungen vom 14. Oktober 2026 eingearbeitet
 **Grundlage:** [Planung 3.0](Planung-3.0.md), [Planung 3.2](Planung-3.2.md), [Release 3.0](Release-3.0.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Entwicklungsregeln](../AGENTS.md)
 
 ## 1. Ziel und Umfang

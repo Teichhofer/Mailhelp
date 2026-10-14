@@ -1,5 +1,19 @@
 # Änderungen
 
+## 3.1.0 – beta: Mehrere Postfächer
+
+Planung: [docs/Planung-3.1.md](docs/Planung-3.1.md); Einrichtung, Upgrade und Rückkehr:
+[docs/Release-3.1.md](docs/Release-3.1.md). Umgesetzt schrittweise in 3.0.1 bis 3.0.5 (Einträge unten).
+
+- Bis zu zehn IMAP-Postfächer (`imap.mailboxes`, Zugangsdaten `IMAP_<n>_USERNAME`/`IMAP_<n>_PASSWORD`);
+  das bisherige Format bleibt als Postfach 1 gültig.
+- Gemeinsamer Abruf mit globaler Auswahl und gemeinsamem Kontingent, Fehler je Postfach isoliert,
+  postfachübergreifende Duplikaterkennung, laufende Mails überstehen Upgrade und Umstellung.
+- Entwürfe und Tätigkeitsberichte im jeweiligen Postfach; `--mailbox` für Lernmodus und Decision-Test.
+- Postfach-Labels und -Filter in Weboberfläche und Telegram; Diagnose aller Postfächer.
+- Release-Anleitung 3.1, Datenschutzhinweis und README ergänzt. Der Release-Tag `v3.1.0` wird erst nach
+  erfolgreicher CI-Matrix (Linux, Docker, Paketinstallation) gesetzt.
+
 ## 3.0.5 – beta: Planung 3.1, Phase 5 – Weboberfläche, Telegram, bis zu 10 Postfächer
 
 - Bis zu 10 Postfächer; zwei aktivierte Postfächer mit demselben Server, Port und Benutzer werden beim
@@ -10,7 +24,7 @@
   Postfach; Anzeigename und Aktivierung sind dort bearbeitbar.
 - Verschoben nach 3.2: Postfächer im Web hinzufügen/entfernen, Labels in Entscheidungsübersicht und
   Tagesüberblick, Telegram `/status` je Postfach.
-- Abnahme: 2224 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung, 134 Browsertests.
+- Abnahme: 2223 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung, 134 Browsertests.
 
 ## 3.0.4 – beta: Planung 3.1, Phase 4 – postfachbezogene Funktionen
 
