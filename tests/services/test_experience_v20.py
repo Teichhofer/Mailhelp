@@ -13,21 +13,25 @@ import requests
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from PIL import Image
-from pydantic import ValidationError
+from pydantic import SecretStr, ValidationError
 from pywebpush import WebPushException
 from shared_vision import image_bytes, mail
 from shared_web_actions import MAIL1
 from shared_web_details import with_mail
 from web_scenario import mail_id, populate
 
+from mailhelp.adapter import RetryableError
 from mailhelp.attachments import AttachmentCache
 from mailhelp.briefing import DailyBriefingService
-from mailhelp.config import DailyBriefingSettings, Settings
+from mailhelp.config import DailyBriefingSettings, ImapCredentials, Secrets, Settings
 from mailhelp.drafts import DraftService, ReplyDraft, message
 from mailhelp.models import MailState
 from mailhelp.standalone import DisabledTelegram
 from mailhelp.storage import JsonStore
 from mailhelp.webpush import NoRedirectSession, PushService, b64, subscription
+
+# Since 2.3 the writers are built in mailhelp.external.providers.
+MOVED_WRITERS = ("HttpWriter", "GoogleOAuthTokenProvider")
 
 NEWLINE = chr(10)
 
@@ -309,6 +313,30 @@ def test_draft_lookup_failures_keep_edits_and_reauthorize_before_append(draft):
     assert conn.writes == []
 
 
+def test_drafts_are_written_only_to_the_mailbox_the_mail_came_from(draft):
+    """Planung 3.1: sender and drafts folder of the source mailbox; no other mailbox as a fallback."""
+    from mailhelp.drafts import DraftTarget
+    service, first, source, _ = draft
+    second = Connection()
+    targets = {"a" * 24: DraftTarget(lambda: nullcontext(first), "privat@example.test", "Entwürfe"),
+               "b" * 24: DraftTarget(lambda: nullcontext(second), "arbeit@example.test", "Drafts")}
+    service.targets = targets.get
+    source.imap.account_id = "b" * 24
+    service.store.save(f"mail-{MAIL1}", source.model_dump(mode="json"))
+    assert service.act("valid", MAIL1, 1, "save-0001", "Danke.")["status"] == "saved"
+    assert first.writes == [] and second.folder == "Drafts"
+    (_folder, _flags, _date, content), = second.writes
+    assert b"From: arbeit@example.test" in content
+    source.imap.account_id = "c" * 24
+    service.store.save(f"mail-{MAIL1}", source.model_dump(mode="json"))
+    draft_state = service.get(MAIL1)
+    draft_state.update(status="editing", operations={})
+    service.store.save(f"draft-{MAIL1}", draft_state)
+    with pytest.raises(ValueError, match="nicht mehr eingerichtet"):
+        service.act("valid", MAIL1, 1, "save-0002", "Geändert.")
+    assert service.get(MAIL1)["text"] == "Geändert." and len(first.writes + second.writes) == 1
+
+
 def sub():
     key = ec.generate_private_key(ec.SECP256R1()).public_key().public_bytes(serialization.Encoding.X962, serialization.PublicFormat.UncompressedPoint)
     return {"endpoint": "https://fcm.googleapis.com/fcm/send/synthetic", "keys": {"p256dh": b64(key), "auth": b64(b"x" * 16)}}
@@ -433,6 +461,7 @@ def test_disabled_telegram_never_uses_network(monkeypatch):
     waits = []
     monkeypatch.setattr(client.stopped, "wait", waits.append)
     assert client.send(1, "text") is None and client.check_access() is None
+    assert client.started_chats(1) == [] and client.answer_callback("cb", "ok") is None
     assert client.poll(0) == [] and client.poll(0, 0) == []
     assert waits == [30, 0]
     client.close()
@@ -584,7 +613,7 @@ def test_strict_briefing_calendar_query_propagates_failure():
     writer = HttpWriter("google_calendar", "fake", "primary",
         calendar_timezone="UTC",
         transport=httpx.MockTransport(lambda request: httpx.Response(503)))
-    with pytest.raises(Exception): writer.fetch_events_in_window(datetime.now(UTC), datetime.now(UTC), strict=True)
+    with pytest.raises(RetryableError): writer.fetch_events_in_window(datetime.now(UTC), datetime.now(UTC), strict=True)
     writer.close()
 
 
@@ -609,7 +638,7 @@ def test_runtime_composes_services_and_ticks_without_external_io(web, tmp_path, 
         calendar=NS(fetch_events_in_window=lambda *a, **kw: []), todoist=NS(fetch_active_tasks=lambda: []),
         analyzer=NS(draft_reply=lambda mail, intent, info: ("call", ReplyDraft(text="Danke")),
                     prompts=NS(prompts={"draft_reply": object()})), logger=Log())
-    runtime = ExperienceRuntime(app, NS(site=web.site, auth=web.auth), NS(imap_username="me@test", imap_password=SecretStr("fake")))
+    runtime = ExperienceRuntime(app, NS(site=web.site, auth=web.auth), Secrets.model_construct(imap={1: ImapCredentials(username="me@test", password=SecretStr("fake"))}))
     pushes = []
     web.site.experience.push.notify = lambda *a: pushes.append(a)
     runtime.tick()
@@ -617,6 +646,11 @@ def test_runtime_composes_services_and_ticks_without_external_io(web, tmp_path, 
     assert pushes == [(), ("briefing",)] and len(sent) == 1 and sent[0].startswith("Guten Morgen!")
     session = web.auth.sessions()[0]
     assert web.store.load(f"draft-{MAIL1}") is None  # Drafts are generated only on request.
+    # The draft belongs to the configured mailbox the mail came from (3.1).
+    from mailhelp.imap import account_id
+    stored = web.store.load(f"mail-{MAIL1}")
+    stored["imap"]["account_id"] = account_id("h", 993, "me@test")
+    web.store.save(f"mail-{MAIL1}", stored)
     web.site.experience.drafts.generate(session.id, MAIL1, 0, "gen-0001", "accept")
     result = web.site.experience.drafts.act(session.id, MAIL1, 1, "save-0001", "Danke")
     assert result["status"] == "simulated" and not connections
@@ -657,7 +691,8 @@ def test_standalone_config_loading_and_composition(tmp_path, monkeypatch, capsys
     (tmp_path / "config.yaml").write_text(yaml.safe_dump(cfg.model_dump(mode="json")), encoding="utf8")
     (tmp_path / "prompts.yaml").write_text(yaml.safe_dump(prompt_config().model_dump(mode="json")), encoding="utf8")
     (tmp_path / "topics.yaml").write_text("topics:\n- id: x\n  name: x\n  enabled: true\n  description: x\n", encoding="utf8")
-    env = {name.upper(): "synthetic" for name in Secrets.model_fields if name not in {"mailhelp_web_secret", "telegram_bot_token"}}
+    env = {name.upper(): "synthetic" for name in Secrets.model_fields if name not in {"mailhelp_web_secret", "telegram_bot_token", "imap"}}
+    env.update(IMAP_USERNAME="synthetic", IMAP_PASSWORD="synthetic")
     env["MAILHELP_WEB_SECRET"] = "s" * 40
     loaded = load_all(tmp_path, env)
     assert loaded[1].telegram_bot_token.get_secret_value() == ""
@@ -665,10 +700,11 @@ def test_standalone_config_loading_and_composition(tmp_path, monkeypatch, capsys
         def __init__(self, *a, **kw): pass
         def close(self): pass
     for name in ("ImapReader", "OpenRouterClient", "HttpWriter", "GoogleOAuthTokenProvider"):
-        monkeypatch.setattr("mailhelp.application." + name, Resource)
+        monkeypatch.setattr(("mailhelp.external.providers." if name in MOVED_WRITERS else "mailhelp.composition.") + name, Resource)
     with build_application(loaded[0], loaded[1], loaded[2], loaded[4], loaded[5], tmp_path, use_jev_relevance=False) as app:
         assert isinstance(app.telegram, DisabledTelegram)
-        assert "Code:" in capsys.readouterr().out
+        assert "Code:" not in capsys.readouterr().out
+        assert app.store.load("web-pairing") is None
         # Further devices request their code on the login page; it appears in the console.
         auth = app.experience.site.auth
         assert auth.channel == "console"
@@ -713,9 +749,14 @@ def test_experience_settings_preserve_16_analysis_fingerprint(tmp_path):
     from shared_core import prompt_config
 
     from mailhelp.config import PromptStep
-    from mailhelp.fingerprints import _hash, analysis_prompts, config_fingerprint
+    from mailhelp.fingerprints import _hash, analysis_prompts, config_fingerprint, legacy_fingerprints
     cfg, prompts = settings(tmp_path), prompt_config()
     before = config_fingerprint(cfg, prompts, [])
+    legacy = cfg.model_dump(mode="json")
+    # The imap section as 1.6 dumped it (3.1 made it operational).
+    legacy["imap"] = {"host": "h", "port": 993, "folders": ["INBOX"], "primary_folder": "INBOX",
+                      "connection_mode": "ssl", "historical_start": None, "batch_size": 25,
+                      "global_newest_first": False}
     cfg.push.enabled = cfg.smart_reply = cfg.daily_briefing.enabled = True
     cfg.web.enabled = True
     cfg.telegram.enabled = False
@@ -723,12 +764,17 @@ def test_experience_settings_preserve_16_analysis_fingerprint(tmp_path):
     cfg.personal_info = "Max Mustermann"
     prompts.prompts["draft_reply"] = PromptStep(system_prompt="Draft")
     assert config_fingerprint(cfg, prompts, []) == before
-    legacy = cfg.model_dump(mode="json")
-    for name in ("push", "smart_reply", "personal_info", "activity_report", "daily_briefing", "vision", "web", "metrics", "retention", "logging", "learning", "poll_interval_seconds", "timeouts", "retries"):
+    for name in ("push", "smart_reply", "personal_info", "activity_report", "notifications", "daily_briefing", "vision", "web", "metrics", "retention", "logging", "learning", "poll_interval_seconds", "timeouts", "retries"):
         legacy.pop(name)
-    legacy["imap"].pop("drafts_folder")
     legacy["telegram"].pop("enabled")
-    assert before == _hash([legacy, analysis_prompts(prompts), []])
+    # 2.3 fields did not exist in 1.6 either.
+    legacy.pop("attachments")
+    legacy.pop("event_defaults")
+    legacy.pop("proposal_reconciliation")
+    for name in ("calendar_provider", "task_provider", "caldav_calendar_url", "caldav_task_url",
+                 "outlook_calendar", "microsoft_todo_list", "microsoft_tenant"):
+        legacy["targets"].pop(name)
+    assert _hash([legacy, analysis_prompts(prompts), []]) in legacy_fingerprints(cfg, prompts, [])
 
 
 def usable_from_another_thread(store):
@@ -863,7 +909,7 @@ def test_login_page_names_the_console_without_telegram():
     first = login_page("csrf", False, channel="console")
     assert "Code in der Konsole anzeigen" in first and "Telegram" not in first
     requested = login_page("csrf", True, channel="console")
-    assert "Code aus der Mailhelp-Konsole" in requested and "docker compose logs mailhelp" in requested
+    assert "Code aus der Mailhelp-Konsole" in requested and "docker compose exec mailhelp mailhelp --pair" in requested
     assert "Telegram" not in requested and "Code per Telegram senden" in login_page("csrf", False)
 
 
@@ -881,7 +927,7 @@ def test_background_never_calls_the_model_for_drafts_and_sections_stay_isolated(
              analyzer=NS(draft_reply=lambda *a: pytest.fail("no background draft"),
                          prompts=NS(prompts={"draft_reply": object()})))
     runtime = ExperienceRuntime(app, NS(site=web.site, auth=web.auth),
-                                NS(imap_username="me@test", imap_password=None))
+                                Secrets.model_construct(imap={1: ImapCredentials(username="me@test", password=SecretStr("unused"))}))
     assert web.site.experience.drafts.analyzer is app.analyzer
     # The personal information is read on every click, so a live change applies at once.
     assert web.site.experience.drafts.personal_info() == ""
@@ -920,3 +966,34 @@ def test_push_section_failure_is_logged(web, tmp_path):
     web.site.experience.push.notify = lambda *a: (_ for _ in ()).throw(OSError("provider"))
     runtime.tick()
     assert app.logger.events[-1] == (("WARNING", "experience", "push_failed"), {"error_class": "OSError"})
+
+
+def test_push_operations_are_bounded_per_device(tmp_path, monkeypatch):
+    # Decision (Planung 2.1, 5.3): every device keeps its own recent keys; a busy
+    # device no longer evicts another device's keys from one shared list.
+    monkeypatch.setattr("mailhelp.webpush.MAX_OPERATIONS", 2)
+    store = JsonStore(tmp_path)
+    service = PushService(store, NS(active=lambda _: True), "mailto:me@test", lambda **kw: None)
+    service.change("phone", "key-phone-0", sub())
+    for number in range(3):
+        service.change("laptop", f"key-lap-{number}", sub())
+    operations = set(store.load("push-subscriptions")["operations"])
+    assert operations == {"phone:key-phone-0", "laptop:key-lap-1", "laptop:key-lap-2"}
+    # The phone's replay with other content is still recognized as a conflict.
+    with pytest.raises(ValueError, match="Idempotenzkonflikt"):
+        service.change("phone", "key-phone-0", None)
+
+
+def test_briefing_is_still_sent_after_a_late_start(tmp_path):
+    # Decision (Planung 2.1, 5.1): a start long after the configured time (07:30)
+    # still sends today's overview once; there is deliberately no time window.
+    store = JsonStore(tmp_path)
+    sent = []
+    late = datetime(2026, 10, 25, 22, 30, tzinfo=UTC)  # 23:30 in Berlin
+    svc = DailyBriefingService(
+        store, DailyBriefingSettings(enabled=True, include_calendar=False, include_tasks=False),
+        "Europe/Berlin", None, None, NS(overview=lambda: NS(open=[], relevance=[])),
+        {"telegram": sent.append}, lambda: late)
+    svc.tick()
+    svc.tick()
+    assert len(sent) == 1 and store.load("daily-briefing")["day"] == "2026-10-25"

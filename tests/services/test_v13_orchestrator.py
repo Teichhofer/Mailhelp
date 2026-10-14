@@ -626,7 +626,7 @@ def presented(**changes):
 def test_web_card_shows_the_time_change_against_the_calendar():
     html = proposal_card(presented(duplicate_match=CALENDAR_MATCH, target_event_id="ev-123",
                                    time_changes=["Beginn 14:00 → 10:00 Uhr"]))
-    assert "Terminänderung gegenüber Google Kalender" in html
+    assert "Terminänderung gegenüber dem Kalender" in html
     assert "Beginn 14:00 → 10:00 Uhr" in html
 
 

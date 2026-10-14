@@ -26,4 +26,15 @@ def build_revision_successor(original: Proposal, question: str, normalized_answe
             original, question, normalized_answer
         )
     revised = validate_revision_successor(original, candidate)
-    return revised, deterministic
+    return protect_revision(original, revised), deterministic
+
+
+def protect_revision(original: Proposal, revised: Proposal) -> Proposal:
+    changed = [field for field in ("title", "description", "due", "start", "end", "known_temporal_facts",
+                                   "location", "video_link", "classification", "responsibility", "certainty")
+               if getattr(original, field) != getattr(revised, field)]
+    protected = list(dict.fromkeys([*original.protected_fields, *changed]))
+    revised = revised.model_copy(update={"protected_fields": protected})
+    if "end" in changed:
+        revised = revised.model_copy(update={"end_origin": "manual", "default_duration_minutes": None})
+    return revised

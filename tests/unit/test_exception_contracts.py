@@ -22,12 +22,12 @@ from mailhelp.logging import log_and_continue
 def find_all_mailhelp_exceptions() -> list[type[BaseException]]:
     exceptions: list[type[BaseException]] = []
     prefix = mailhelp.__name__ + "."
-    for _, module_name, is_pkg in pkgutil.walk_packages(mailhelp.__path__, prefix):
+    for _, module_name, _is_pkg in pkgutil.walk_packages(mailhelp.__path__, prefix):
         try:
             mod = importlib.import_module(module_name)
         except Exception:
             continue
-        for name, obj in inspect.getmembers(mod, inspect.isclass):
+        for _name, obj in inspect.getmembers(mod, inspect.isclass):
             if issubclass(obj, BaseException) and obj.__module__.startswith("mailhelp"):
                 if obj not in exceptions:
                     exceptions.append(obj)

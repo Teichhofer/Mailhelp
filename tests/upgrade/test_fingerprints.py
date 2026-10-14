@@ -23,19 +23,36 @@ from mailhelp.storage import JsonStore
 TOPICS = [Topic(id="schule", name="Schule", enabled=True, description="Schule")]
 
 
-def before_2_0(dump: dict) -> dict:
+def imap_before_3_1(settings) -> dict:
+    """The imap section as every release before 3.1 dumped it (one mailbox, no ``mailboxes``)."""
+    imap = settings.imap
+    return {"host": imap.host, "port": imap.port, "folders": imap.folders, "primary_folder": imap.primary_folder,
+            "connection_mode": imap.connection_mode or "ssl", "historical_start": None,
+            "batch_size": imap.batch_size, "global_newest_first": imap.global_newest_first,
+            "drafts_folder": imap.drafts_folder or "Drafts"}
+
+
+def before_2_0(dump: dict, settings) -> dict:
     """A configuration as releases before 2.0 knew it (no 2.0 sections and fields)."""
-    for name in ("push", "daily_briefing", "smart_reply", "personal_info", "activity_report"):
+    dump["imap"] = imap_before_3_1(settings)
+    for name in ("push", "daily_briefing", "smart_reply", "personal_info", "activity_report", "notifications"):
         dump.pop(name, None)
     dump["imap"].pop("drafts_folder")
     dump.get("retention", {}).pop("activity_report_days", None)
     dump["telegram"].pop("enabled")
+    # 2.3: original attachments and further write targets.
+    dump.pop("attachments", None)
+    dump.pop("event_defaults", None)
+    dump.pop("proposal_reconciliation", None)
+    for name in ("calendar_provider", "task_provider", "caldav_calendar_url", "caldav_task_url",
+                 "outlook_calendar", "microsoft_todo_list", "microsoft_tenant"):
+        dump["targets"].pop(name)
     return dump
 
 
 def fingerprint_1_1(settings, prompts, topics) -> str:
     """The algorithm of release 1.1 (all settings except then non-existing sections)."""
-    dump = before_2_0(settings.model_dump(mode="json", exclude={"web", "metrics", "vision"}))
+    dump = before_2_0(settings.model_dump(mode="json", exclude={"web", "metrics", "vision"}), settings)
     dump["retention"] = {key: value for key, value in dump["retention"].items()
                          if key in {"full_mail_days", "debug_llm_days"}}
     return hashlib.sha256(json.dumps([dump, prompts.model_dump(), [t.model_dump() for t in topics]],
@@ -74,7 +91,7 @@ def fingerprint_1_3(settings, prompts, topics) -> str:
     """The algorithm of release 1.3: no vision section and no vision_ocr prompt existed."""
     operational = {"web", "metrics", "retention", "logging", "learning", "poll_interval_seconds",
                    "timeouts", "retries"}
-    dump = before_2_0(settings.model_dump(mode="json", exclude=operational | {"vision"}))
+    dump = before_2_0(settings.model_dump(mode="json", exclude=operational | {"vision"}), settings)
     return hashlib.sha256(json.dumps([dump, prompts.model_dump(), [t.model_dump() for t in topics]],
                                      sort_keys=True).encode()).hexdigest()
 
@@ -84,11 +101,12 @@ def test_the_vision_prompt_keeps_the_1_3_fingerprint(tmp_path):
     from mailhelp.config import PromptConfig
     settings, prompts = app_settings(tmp_path), prompt_config()
     before = fingerprint_1_3(settings, prompts, TOPICS)
-    assert config_fingerprint(settings, prompts, TOPICS) == before
+    assert before in legacy_fingerprints(settings, prompts, TOPICS)
     data = prompts.model_dump()
     data["prompts"]["vision_ocr"] = {"system_prompt": "Lies den Text."}
     with_vision = PromptConfig.model_validate(data)
-    assert config_fingerprint(settings, with_vision, TOPICS) == before
+    assert config_fingerprint(settings, with_vision, TOPICS) == config_fingerprint(settings, prompts, TOPICS)
+    assert before in legacy_fingerprints(settings, with_vision, TOPICS)
     assert topic_policy(settings, with_vision) == topic_policy(settings, prompts)
     assert legacy_policies(settings, with_vision) == legacy_policies(settings, prompts)
     assert legacy_fingerprints(settings, with_vision, TOPICS) == legacy_fingerprints(
@@ -117,7 +135,7 @@ def test_a_mail_waiting_under_1_1_continues_after_the_upgrade(tmp_path):
         added = adopt_legacy_configuration(store, run.config_fingerprint,
                                            legacy_fingerprints(settings, prompts, TOPICS), run.topic_policy,
                                            legacy_policies(settings, prompts), TOPICS)
-        assert added == 2
+        assert added == 3
         assert run.accepts_configuration(old) and run.topics_for(old) == TOPICS
         # A second start registers nothing again.
         assert adopt_legacy_configuration(store, run.config_fingerprint,
@@ -150,3 +168,42 @@ def test_beta_topic_records_get_the_new_policy(tmp_path):
                                    legacy_policies(settings, prompts), TOPICS)
         assert run.accepts_configuration("b" * 64)
         assert not run.accepts_configuration("c" * 64)
+
+
+def fingerprint_3_0(settings, prompts, topics) -> str:
+    """The algorithm of 1.2 to 3.0: operational sections excluded, the imap section included."""
+    operational = {"web", "metrics", "retention", "logging", "learning", "poll_interval_seconds", "timeouts",
+                   "retries", "vision", "attachments", "push", "daily_briefing", "smart_reply", "personal_info",
+                   "activity_report", "notifications", "event_defaults", "proposal_reconciliation"}
+    dump = settings.model_dump(mode="json", exclude=operational)
+    dump["imap"] = imap_before_3_1(settings)
+    dump["imap"].pop("drafts_folder")
+    dump["telegram"].pop("enabled")
+    dump.get("retention", {}).pop("activity_report_days", None)
+    for name in ("calendar_provider", "task_provider", "caldav_calendar_url", "caldav_task_url",
+                 "outlook_calendar", "microsoft_todo_list", "microsoft_tenant"):
+        dump["targets"].pop(name)
+    step_prompts = prompts.model_dump(exclude={"prompts": {"vision_ocr", "draft_reply", "activity_relevance",
+                                                           "activity_events", "diagnostic_test",
+                                                           "open_proposal_match"}})
+    return hashlib.sha256(json.dumps([dump, step_prompts, [t.model_dump() for t in topics]],
+                                     sort_keys=True).encode()).hexdigest()
+
+
+def test_a_mail_waiting_under_3_0_continues_with_mailboxes(tmp_path):
+    """Planung 3.1: imap became operational; a 3.0 relevance question must not be held back."""
+    from mailhelp.config import Settings
+    settings, prompts = app_settings(tmp_path), prompt_config()
+    old = fingerprint_3_0(settings, prompts, TOPICS)
+    assert config_fingerprint(settings, prompts, TOPICS) != old
+    # The operator switches to the 3.1 format in the same step as the upgrade.
+    data = settings.model_dump(mode="json")
+    data["imap"] = {"batch_size": 25, "global_newest_first": False,
+                    "mailboxes": [{"id": 1, "label": "Privat", "host": "h", "port": 993, "folders": ["INBOX"]}]}
+    upgraded = Settings.model_validate(data)
+    with JsonStore(tmp_path / "data") as store:
+        run = orchestrator(store, upgraded, prompts)
+        assert not run.accepts_configuration(old)
+        adopt_legacy_configuration(store, run.config_fingerprint, legacy_fingerprints(upgraded, prompts, TOPICS),
+                                   run.topic_policy, legacy_policies(upgraded, prompts), TOPICS)
+        assert run.accepts_configuration(old) and run.topics_for(old) == TOPICS

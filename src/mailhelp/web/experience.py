@@ -44,7 +44,8 @@ class ExperienceSite:
             value = json.loads(form["subscription"]) if subscribe else None
             self.push.change(session.id, form.get("key", ""), value)
         except (ValueError, KeyError, TypeError, PermissionError):
-            return Response.json(400, {"error": "Abonnement nicht gespeichert. Bitte neu anmelden und erneut versuchen."})
+            return Response.json(400, {"error": "Abonnement nicht gespeichert. "
+                                                "Bitte neu anmelden und erneut versuchen."})
         return Response.json(200, {"ok": True})
 
     def controls(self, csrf):
@@ -52,7 +53,8 @@ class ExperienceSite:
                 + help_bubble('push', 'Benachrichtigungen', EXTRA_HELP['push']) + '</div>'
                 +
                 f'<div id="push-controls" data-csrf="{e(csrf)}">'
-                '<div class="actions"><button type="button" class="button primary" id="push-enable">Push aktivieren</button>'
+                '<div class="actions">'
+                '<button type="button" class="button primary" id="push-enable">Push aktivieren</button>'
                 '<button type="button" class="button" id="push-disable">Push deaktivieren</button></div>'
                 '<p id="push-status" role="status">HTTPS oder localhost erforderlich. '
                 'Auf iOS zuerst zum Home-Bildschirm hinzufügen.</p></div>'

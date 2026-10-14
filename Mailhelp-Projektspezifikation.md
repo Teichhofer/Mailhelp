@@ -1,5 +1,25 @@
 # Mailhelp – Projektspezifikation
 
+## Einrichtung und Benachrichtigungssteuerung (Planung 3.0)
+
+Die verbindlichen Feldgrenzen, Einrichtungsabläufe und Upgrade-/Rollback-Verträge stehen in
+[Release-3.0.md](docs/Release-3.0.md). `/einrichtung` speichert einen schema-versionierten,
+versionsgebundenen Entwurf separat von der bestätigten Konfigurationsübernahme. Webübernahme
+verwendet Sitzung, CSRF, Dateihash, Idempotenz und erneute Autorisierung bei Ausführung.
+`mailhelp --pair` fordert einen Einmalcode über eine host-authentifizierte, kurzlebige lokale
+Anfrage an; ohne Telegram erzeugen Browseranfragen und Dienststart keine Codes.
+Diagnosen lesen Dienste unabhängig, verwenden begrenzte Antwortzeiten und zeigen sichere
+Fehlercodes. Testnachrichten und synthetische kostenpflichtige LLM-Tests besitzen eigene Aktionen.
+Diagnoseexporte enthalten keine Zugangsdaten oder Mailinhalte.
+
+Die Hintergrundzustellung verwendet eine dauerhafte gemeinsame Queue je Kategorie und Kanal.
+Aktuelle Relevanz, Einstellungen und Geräteberechtigung werden vor dem Versand geprüft.
+Ruhezeiten folgen lokaler IANA-Zeit; Bündelung besitzt eine feste Frist ab erstem Ereignis.
+Unklare Zustellungen werden ohne belastbaren Abgleich nicht wiederholt. Providerannahme
+ist kein Lesenachweis. Profile sind operativ und verändern keine Analyse-Fingerprints.
+Bestehende Kanalwahlen und Zustellmarker bleiben beim Upgrade erhalten. Weitere Regeln
+zu direkten Dialogen und externen Fachaktionen gelten unverändert.
+
 Der produktive CLI-Pfad startet IMAP- und Telegram-Polling. Pro IMAP-Ordner
 werden UIDVALIDITY und die zuletzt abgeschlossene UID atomar gespeichert; bei
 geänderter UIDVALIDITY wird eine konfigurierte absolute historische Grenze in
@@ -530,8 +550,10 @@ ganztägiges Intervall dargestellt; die unten beschriebenen eindeutigen
 mehrtägigen Bereiche bleiben gesondert geregelt. Wurde eine Uhrzeitspanne wie „13:00 bis 14:00 Uhr“ vollständig als Beginn extrahiert, teilt die Normalisierung sie deterministisch in Beginn und Ende auf, sofern beide Teile unterstützte Uhrzeiten sind und ein separat extrahiertes Ende dieselbe Uhrzeit nennt; jede andere Kombination bleibt eine Rückfrage. Eine Uhrzeit wird nur bei vorhandenem Datum, Beginn, Ende und
 entweder einem expliziten festen Offset oder einer eindeutigen IANA-Nutzerzeitzone
 normalisiert; nicht existente oder doppelte Ortszeiten an DST-Übergängen erfordern
-eine Rückfrage. Es werden weder eine Standarduhrzeit,
-eine Dauer noch ein UTC-Offset erfunden. Eine ausdrücklich belegte Dauer wird als
+eine Rückfrage. Es werden keine Standarduhrzeit und kein UTC-Offset erfunden.
+Bei fehlendem Ende gelten zusätzlich die ausdrücklich gekennzeichneten Standarddauern
+der Erweiterung 2.4 (siehe unten); Rohextraktionen bleiben unverändert.
+Eine ausdrücklich belegte Dauer wird als
 `duration_minutes` (1 bis 1440 ganze Minuten) im Vorschlag erhalten. Das getrennte
 Flag `duration_is_upper_bound` kennzeichnet Formulierungen wie „höchstens“; aus
 einer solchen Obergrenze wird kein gesichertes Ende berechnet. Nur bei einer
@@ -775,7 +797,7 @@ Replay-Grenze fort.
   der Offset wird fortgeschrieben; andere technische Antwortfehler verhindern die
   Quittierung weiterhin.
 - Nur konfigurierte Nutzer- und Chat-IDs dürfen Nachrichten erhalten und Aktionen auslösen.
-- Vollständige Aufgabenvorschläge bieten `In Todoist anlegen`, `Ändern` und `Verwerfen`
+- Vollständige Aufgabenvorschläge bieten `Als Aufgabe anlegen`, `Ändern` und `Verwerfen`
   (im Testmodus `Simulieren` für beide Ziele).
   Vollständige Terminvorschläge bieten `Im Kalender anlegen`, `Ändern` und `Verwerfen`;
   `Im Kalender anlegen` schreibt den Termin über die Google Calendar API in den konfigurierten Kalender.
@@ -793,7 +815,7 @@ Replay-Grenze fort.
   eine offene Entscheidung sichtbar. Offene Entscheidung ist jede Nachricht mit
   Entscheidungsschaltflächen: eine Relevanzfrage, ein Vorschlag mit offenen Fragen
   („Klären“) und ebenso ein vollständiger Vorschlag mit Bestätigung („Im Kalender
-  anlegen“ bzw. „In Todoist anlegen“, „Ändern“, „Verwerfen“). Wurde eine solche
+  anlegen“ bzw. „Als Aufgabe anlegen“, „Ändern“, „Verwerfen“). Wurde eine solche
   Nachricht gesendet, werden alle späteren Nachrichten zurückgehalten, bis diese
   Entscheidung erledigt ist; das gilt auch für weitere Vorschläge derselben Mail.
   Erledigt ist eine Relevanzfrage mit ihrer Entscheidung und ein Vorschlag erst,
@@ -1058,11 +1080,89 @@ weder Token oder Authorization-Header noch vollständige Antwortinhalte.
 
 Die Bereiche `imap`, `telegram`, `targets`, `limits`, `retries`, `timeouts` und `logging` besitzen geschlossene Modelle. `imap.connection_mode` akzeptiert ausschließlich `ssl`, `starttls` und `plain`; `imap.historical_start` akzeptiert ausschließlich `null` oder einen ISO-8601-Zeitpunkt mit Offset und `imap.global_newest_first` ausschließlich einen booleschen Wert. IMAP, Telegram, OpenRouter und Todoist konfigurieren Timeout, Retry-Anzahl, initialen Backoff und Backoff-Obergrenze getrennt. Google Calendar besitzt eine eigene Timeout- und Retry-Konfiguration. Ports (1–65535), Polling (5–86400 Sekunden), Adaptertimeouts (1–300 Sekunden, für den lokalen Ollama-Modus 1–1.800 Sekunden), Telegram-Long-Polling (1–50 Sekunden), Mailgröße (1.024–100.000.000 Bytes), LLM-Rate (1–600/min), Wiederholungen (0–10) und Backoff (0–60 Sekunden) sind begrenzt. Zeitzonen müssen IANA-Namen sein; Ordner sind eindeutig und nicht leer, Pfade sicher, Log-Level sind `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Dieselbe Transportauswahl und UTC-Auswertung gilt unter Windows 11 und im Linux-Docker-Container; die Host-Zeitzone beeinflusst die Grenze nicht. Die CLI-Option `--log-directory` überschreibt das konfigurierte Logverzeichnis für einen einzelnen Aufruf, sodass insbesondere Prüfungen aus einem schreibgeschützten Arbeitsverzeichnis in ein beschreibbares temporäres Verzeichnis loggen können. Im Dauerbetrieb ist ein persistentes Logverzeichnis zu verwenden.
 
+### Postfächer (3.1, Phase 1)
+
+`imap` enthält entweder die Postfachfelder direkt (Format bis 3.0, gilt als Postfach 1 mit
+Anzeigename „Postfach“) oder die Liste `imap.mailboxes`; beide Schreibweisen zusammen sind
+ungültig. `batch_size` und `global_newest_first` gelten für alle Postfächer. Ein Postfach besitzt
+eine stabile Nummer `id` (1–99, eindeutig), einen Anzeigenamen `label` (1–40 Zeichen ohne
+Steuerzeichen), `enabled` sowie Server, Port, Verbindungsart, Ordner, Hauptordner,
+`historical_start` und Entwurfsordner mit den bisherigen Grenzen; mindestens ein Postfach ist
+aktiviert; höchstens 10 Postfächer. Zwei aktivierte Postfächer mit demselben Server, Port und
+Benutzernamen werden beim Start abgelehnt, weil sie denselben Verarbeitungszustand teilen würden.
+
+Zugangsdaten eines aktivierten Postfachs stehen in `IMAP_<id>_USERNAME` und `IMAP_<id>_PASSWORD`.
+Für Postfach 1 gelten ersatzweise `IMAP_USERNAME`/`IMAP_PASSWORD`, solange keine nummerierte
+Variable gesetzt ist und das Altformat verwendet wird oder die alten Variablen vorhanden sind;
+gesetzte nummerierte Namen haben Vorrang. Fehlermeldungen nennen die erwarteten Variablennamen,
+nie Werte. Alle Geheimnisse einschließlich jedes IMAP-Passworts werden in Logs und
+Vergleichsberichten unkenntlich gemacht.
+
+`imap` gehört nicht mehr zum Analyse-Fingerprint: Postfachangaben bestimmen die Herkunft einer
+Mail, nicht ihre Analyse. Für eine Konfiguration mit Postfach 1 werden die Fingerprints und
+Themenrichtlinien früherer Versionen (bis 3.0 mit `imap`-Abschnitt in seiner damaligen Form)
+beim Start als gleichwertig registriert, sodass bereits laufende Mails weiterlaufen, auch wenn
+gleichzeitig auf `imap.mailboxes` umgestellt wird. Ohne Postfach 1 gibt es keine früheren
+Fingerprints. Die Weboberfläche bearbeitet im Einrichtungsschritt „Postfach“ die Felder jedes
+Postfachs unter `imap.mailboxes.<Position>.<Feld>`; Kommentare und Layout von `config.yaml`
+bleiben dabei erhalten, auch innerhalb von Listeneinträgen. Der Lernmodus ergänzt neue Ordner
+in der Ordnerliste des verwendeten Postfachs.
+
+### Abruf mehrerer Postfächer (3.1, Phase 2)
+
+Für jedes aktivierte Postfach wird beim Start ein eigener schreibfreier Reader aufgebaut; scheitert
+dessen Verbindung, bleibt nur dieses Postfach ohne Abruf, alle anderen werden verarbeitet und der
+Ordnerfehler wird mit der Postfachnummer protokolliert. Ein regulärer Zyklus und ein begrenzter
+Einmallauf wählen die zu verarbeitenden Mails über alle Ordner aller Postfächer nach
+IMAP-Empfangszeitpunkt aus (neueste zuerst; bei Gleichstand Postfach-, dann Ordnerreihenfolge).
+`batch_size` und `--max-mails` sind gemeinsame Kontingente. Die Auswahl wird vor dem ersten
+Inhaltsabruf als je ein `MailRunState` pro Postfach (`mail-run-<account_id>`) gespeichert und Postfach
+für Postfach in Konfigurationsreihenfolge bearbeitet. Solange ein Postfach noch einen unfertigen Run
+hat, werden ausschließlich die unfertigen Runs fortgesetzt und kein Postfach neu durchsucht.
+Wiederaufgenommene Mailzustände werden über den Reader des Postfachs ihrer `account_id` gelesen;
+gehört die `account_id` zu keinem aktivierten Postfach, bleibt der Zustand unverändert liegen und
+`mailbox_unavailable` wird einmal je Prozess und Konto protokolliert. `--check-access` prüft jedes
+Postfach getrennt und benennt es bei mehreren Postfächern mit Nummer und Anzeigename. Die
+Laufzusammenfassung zählt über alle Postfächer und ergänzt bei mehreren Postfächern je beteiligtem
+Postfach eine Zeile.
+
+### Postfachbezogene Funktionen (3.1, Phase 4)
+
+Antwortentwürfe werden ausschließlich im Entwurfsordner des Postfachs gespeichert, aus dem die Mail
+stammt, mit dessen IMAP-Benutzernamen als Absender und über dessen eigene Verbindung; auch der
+Abgleich unklarer Schreibresultate erfolgt dort. Ist das Postfach der Mail nicht mehr aktiviert,
+wird das Speichern abgelehnt, der bearbeitete Text bleibt erhalten; es gibt kein Ausweichen auf ein
+anderes Postfach. Ein Tätigkeitsbericht gehört zu genau einem Postfach (`mailbox`, ältere Berichte:
+Postfach 1). Bei mehreren Postfächern wählt das Formular das Postfach über Links
+(`/berichte/neu?postfach=<n>`); Ordnervorschläge, Ordnerprüfung, Zählen und Lesen verwenden nur
+dieses Postfach, ein nicht mehr aktiviertes Postfach gilt als nicht lesbar. `--learn` und
+`--decision-test` lesen das mit `--mailbox <n>` gewählte Postfach oder mit `--mailbox alle` (auch `all`)
+alle aktivierten Postfächer. Bei mehreren Postfächern bilden deren Mails eine gemeinsame Auswahl der
+neuesten Nachrichten (gleicher Empfangszeitpunkt: höhere UID, dann Postfach-, dann Ordnerreihenfolge);
+`N` begrenzt die Gesamtzahl. Ohne globale Sortierung werden die Postfächer nacheinander gelesen, bis `N`
+erreicht ist. Der Decision-Test vergleicht identische Rohmails aus mehreren Postfächern nur einmal; sein
+Bericht nennt die gelesenen Postfachnummern (`mailboxes`) und bei mehreren Postfächern
+`historical_start` je Postfachnummer. Der Lernmodus ergänzt neue Ordner im Eintrag des jeweiligen
+Postfachs. Sind mehrere Postfächer aktiviert, ist `--mailbox` erforderlich; `--mailbox` ohne einen dieser
+Modi oder mit einer unbekannten bzw. deaktivierten Nummer ist ungültig.
+
+### Weboberfläche und Telegram bei mehreren Postfächern (3.1, Phase 5)
+
+Sind mehrere Postfächer aktiviert, nennen Maildetail und Archivliste den Anzeigenamen des Postfachs
+(eine nicht mehr konfigurierte `account_id` erscheint als „Entferntes Postfach“), und das Archiv bietet
+den Filter `postfach=<n>`. Telegram-Vorschlagskarten setzen den Anzeigenamen in die Mailzeile
+(`✉️ [Arbeit] Absender · Betreff`); Web-Push bleibt neutral. Mit einem Postfach ändert sich die
+Darstellung nicht. Die Diagnose `imap` prüft alle aktivierten Postfächer des Entwurfs lesend und
+scheitert, sobald eines scheitert; fehlen für ein neu eingetragenes Postfach die beim Start geladenen
+Zugangsdaten, lautet der Code `auth`. Der Einrichtungsschritt „Postfach“ bearbeitet Anzeigename,
+Aktivierung und Verbindungsfelder jedes Postfachs und bietet dessen zuletzt ermittelte Ordner zur Auswahl.
+Postfächer werden in `config.yaml` hinzugefügt oder entfernt.
+
 ## 10. JSON-Zustand und Neustartverhalten
 
 Der Zustand wird als eingerücktes UTF-8-JSON gespeichert. `data_directory` ist dabei nur das Stammverzeichnis: Im Testmodus liegt der vollständige Zustand unter `<data_directory>/test/`, im Produktivmodus unter `<data_directory>/production/`. Jeder Modus besitzt dort seine eigene `.lock`-Datei. IMAP-Checkpoints, Mailzustände, Telegram-Offsets und -Dialoge, Vorschläge einschließlich externer Ergebniszustände sowie das persistierte LLM-Zeitfenster liegen ausschließlich im jeweiligen Verzeichnis; auch identische Mail- und Vorschlags-IDs werden nicht modusübergreifend aufgezählt oder gesperrt. Pro Mail existiert eine Datei. Weitere JSON-Dateien speichern Abrufpositionen und nötige Betriebsinformationen. Dateinamen verwenden interne IDs statt Betreff oder Absender.
 
-Maildateien tragen Schemaversion 9; Abrufpositionen, Telegram-Offset/-Dialog und der Duplikatindex tragen Schemaversion 1, Vorschläge wegen der verpflichtenden fachlichen Einordnung Schemaversion 2. Der Duplikatindex enthält nur technische IMAP-Identität, interne Mail-ID, normalisierte Message-IDs und einen SHA-256-Fingerprint aus normalisiertem Absender, Betreff, Datum und bereinigtem Text. Eine einzelne gleiche Message-ID zusammen mit gleichem Fingerprint und abgeschlossenem früheren Zustand gilt als Duplikat; der neue Zustand verweist darauf und beendet sich ohne LLM- oder Aktionsaufruf. Fehlende oder mehrfache Message-ID-Header, wiederverwendete IDs mit abweichendem Fingerprint, unvollständige Kandidaten und reine Fingerprinttreffer sind unsicher: Sie werden nachvollziehbar als `ambiguous` gespeichert und niemals still übersprungen. Logs enthalten dabei weder Mailmerkmale noch Fingerprint oder Inhalt. Version 4 ergänzt verpflichtend `created_at`, `updated_at` (jeweils zeitzonenbehaftetes ISO 8601), den 64-stelligen SHA-256-`config_fingerprint` sowie die geschlossenen Listen `validation_errors` und `write_attempts`. Ein Validierungsfehler enthält Stufe, maschinenlesbaren Code, Schlüsselpfad und Zeitpunkt, aber keinen nicht vertrauenswürdigen Inhalt. Eine Schreibreferenz enthält Vorschlags-ID und -Version, Zieldienst und Idempotenzschlüssel; sie verweist nachvollziehbar auf die separat persistierte Vorschlagsversion. Ein offener Relevanzdialog ist über die stabile interne Mail-ID genau seiner Mail zugeordnet; sein Dialogstatus muss zum wartenden Mailzustand passen. Jede Datei wird vor fachlicher Verwendung validiert. Syntaktisch defekte Dateien werden nach `.corrupt`, schemawidrige nach `.invalid` verschoben und sichtbar mit Dateiname und Schlüsselpfad gemeldet, ohne Inhalte preiszugeben.
+Maildateien tragen Schemaversion 9; Abrufpositionen, Telegram-Offset/-Dialog und der Duplikatindex tragen Schemaversion 1, Vorschläge wegen der verpflichtenden fachlichen Einordnung Schemaversion 2. Der Duplikatindex enthält nur technische IMAP-Identität, interne Mail-ID, normalisierte Message-IDs und einen SHA-256-Fingerprint aus normalisiertem Absender, Betreff, Datum und bereinigtem Text. Eine einzelne gleiche Message-ID zusammen mit gleichem Fingerprint und abgeschlossenem früheren Zustand gilt als Duplikat; der neue Zustand verweist darauf und beendet sich ohne LLM- oder Aktionsaufruf. Ab 3.1 zählen dabei die Einträge aller Postfächer: Dieselbe Mail in zwei konfigurierten Postfächern wird nur einmal analysiert, unsichere Fälle bleiben auch postfachübergreifend `ambiguous`. Fehlende oder mehrfache Message-ID-Header, wiederverwendete IDs mit abweichendem Fingerprint, unvollständige Kandidaten und reine Fingerprinttreffer sind unsicher: Sie werden nachvollziehbar als `ambiguous` gespeichert und niemals still übersprungen. Logs enthalten dabei weder Mailmerkmale noch Fingerprint oder Inhalt. Version 4 ergänzt verpflichtend `created_at`, `updated_at` (jeweils zeitzonenbehaftetes ISO 8601), den 64-stelligen SHA-256-`config_fingerprint` sowie die geschlossenen Listen `validation_errors` und `write_attempts`. Ein Validierungsfehler enthält Stufe, maschinenlesbaren Code, Schlüsselpfad und Zeitpunkt, aber keinen nicht vertrauenswürdigen Inhalt. Eine Schreibreferenz enthält Vorschlags-ID und -Version, Zieldienst und Idempotenzschlüssel; sie verweist nachvollziehbar auf die separat persistierte Vorschlagsversion. Ein offener Relevanzdialog ist über die stabile interne Mail-ID genau seiner Mail zugeordnet; sein Dialogstatus muss zum wartenden Mailzustand passen. Jede Datei wird vor fachlicher Verwendung validiert. Syntaktisch defekte Dateien werden nach `.corrupt`, schemawidrige nach `.invalid` verschoben und sichtbar mit Dateiname und Schlüsselpfad gemeldet, ohne Inhalte preiszugeben.
 
 Die Änderung von Version 3 auf 4 ist bewusst inkompatibel und besitzt keine automatische Migration: Die fehlenden historischen Zeitpunkte, Fingerprints und Schreibreferenzen können nicht zuverlässig rekonstruiert werden. Eine Datei der Version 3 wird deshalb wie jeder alte oder schemawidrige Zustand nach `.invalid` isoliert. Schema 6 wird dagegen ausdrücklich über die Zwischenversionen nach Schema 9 migriert: Der gemeinsame Benachrichtigungsstatus wird konservativ auf `summary_notification` und `proposal_notification` übertragen und die migrierte Datei atomar gespeichert. Für eine erneute Verarbeitung eines Zustands aus Schema 3 muss der Betreiber die isolierte Datei sichern, den zugehörigen IMAP-Abrufpunkt kontrolliert zurücksetzen und die Mail unter Schema 9 neu einlesen; alternativ kann die Arbeit mit der vorherigen Programmversion abgeschlossen werden.
 
@@ -1290,7 +1390,7 @@ Folgender Inhalt ist bei der Projektinitialisierung in `AGENTS.md` im Repository
 - Prüfe Erfolgsfälle, Fehlerfälle, Wiederholungen, Neustarts und Autorisierung.
 - Automatisierte Tests verwenden simulierte externe Dienste und synthetische Daten.
 - Aktualisiere bei Verhaltensänderungen Spezifikation und Konfigurationsbeispiele.
-- Jeder Commit in `main` erhöht die Versionsnummer (Patch-Version `X.X.+1`) in `pyproject.toml` und `src/mailhelp/__init__.py` und führt die Änderungen in `CHANGELOG.md` auf.
+- Jeder Commit in `main` und `beta` erhöht die Versionsnummer (Patch-Version `X.X.+1`) in `pyproject.toml` und `src/mailhelp/__init__.py` und führt die Änderungen in `CHANGELOG.md` auf.
 ```
 
 ## 14. Abnahmekriterien
@@ -1904,7 +2004,8 @@ Aufbewahrung löscht Vorschauen und Entwurfstext zusammen mit dem Mailtext.
 **Web-Push.** `push.enabled` erzeugt einmalig ein P-256-VAPID-Schlüsselpaar
 (`web-vapid.json`, nie protokolliert). `GET /api/push/public-key`,
 `POST /api/push/subscribe` und `POST /api/push/unsubscribe` verlangen Sitzung und
-CSRF; An- und Abmeldung tragen einen Idempotenzschlüssel. Je Gerätesitzung wird
+CSRF; An- und Abmeldung tragen einen Idempotenzschlüssel (je Gerät die letzten
+500 Schlüssel; ein Gerät verdrängt nie die eines anderen). Je Gerätesitzung wird
 höchstens ein Abo gespeichert (`push-subscriptions.json`); erlaubt sind nur
 HTTPS-Endpunkte von Google, Mozilla, Apple und Microsoft (Port 443, ohne
 Zugangsdaten und Fragment) mit gültigem P-256-Schlüssel. Payloads enthalten nur
@@ -1950,7 +2051,8 @@ erneut geprüft. `test_mode` simuliert die Ablage. Es gibt keinen SMTP-Versand.
 (lokale Zeit) einmal je Kalendertag einen Überblick aus heutigen Terminen,
 Aufgaben mit Fälligkeit bis heute und offenen Entscheidungen (je höchstens 10
 Einträge, höchstens 4.000 Zeichen). Ausfälle einzelner Quellen werden vermerkt.
-Jeder Kanal wird je Tag höchstens einmal versucht; ein beim Senden unterbrochener
+Startet Mailhelp erst nach `time`, wird der Überblick desselben Tages trotzdem
+gesendet (bewusst ohne Zeitfenster). Jeder Kanal wird je Tag höchstens einmal versucht; ein beim Senden unterbrochener
 Kanal bleibt `uncertain` und wird nicht wiederholt. Telegram erhält den Text,
 Web-Push einen neutralen Hinweis, `/briefing` zeigt den letzten Überblick.
 
@@ -1965,6 +2067,8 @@ Details und Upgrade: [Release-2.0.md](docs/Release-2.0.md).
 ### Auswahl bei Aktualisierung der Webübersicht
 
 Die Split-View behält den ausgewählten Vorgang bei automatischem und manuellem Neuladen über seine stabile Karten-ID im aktuellen Browser-Verlaufseintrag bei. Ist der Vorgang nicht mehr in der angezeigten Liste vorhanden, wird der erste verbleibende Vorgang ausgewählt. Eine leere Übersicht bleibt ohne Auswahl. Ein neu gewählter Schnellfilter beginnt mit dem ersten passenden Vorgang. Die Wiederherstellung gilt auch beim Wechsel von schmaler zu breiter Ansicht und führt keine Bestätigung oder externe Schreibaktion aus. Dafür ist keine zusätzliche Konfiguration erforderlich.
+
+Neue Daten aktualisieren die Split-View ohne Neuladen der Seite: Liste und Detailbereich werden an Ort und Stelle ersetzt, der bisherige Detailinhalt bleibt bis zum Eintreffen des neuen sichtbar, und die Scrollposition der Liste bleibt erhalten. Während eines laufenden Rückgängig-Countdowns oder bei ungespeicherten Eingaben im Detailbereich wird die Aktualisierung bis zur nächsten Prüfung zurückgestellt. Kann die Seite nicht geladen werden, wird sie normal neu geladen; in der schmalen Ansicht und auf anderen Seiten bleibt es beim Neuladen. In der Liste ist nur der ausgewählte Vorgang umrandet; der in Telegram aktuelle Vorgang ist dort allein am Hinweis „Aktuell in Telegram“ erkennbar.
 
 
 ### Erläuterungen zu Web-Einstellungen
@@ -2001,10 +2105,37 @@ ausdrücklich auch vergangene.
   auch nach Neustarts; ein laufender Bericht ist nach einem Neustart pausiert.
   Höchstwerte `max_mails` und `max_llm_calls` pausieren den Bericht; er nutzt
   höchstens `max_share_of_llm_budget` von `limits.llm_calls_per_minute`.
+  Berichte werden in der Reihenfolge ihrer Anlage bearbeitet. Eine fortlaufende
+  Nummer (`sequence`) hält diese Reihenfolge auch bei gleichem Anlagezeitpunkt
+  (grobe Uhrauflösung unter Windows) ein; ältere Berichte ohne Nummer werden nach
+  Zeitpunkt und Kennung geordnet.
   Eine unbrauchbare KI-Antwort (Tokenlimit, ungültiges JSON, Schema) wird an der
   Mail vermerkt und nie automatisch wiederholt; der Nutzer entscheidet selbst bzw.
   ergänzt Termine von Hand. Ist der KI-Dienst dreimal in Folge nicht erreichbar,
   pausiert der Bericht vor der betroffenen Mail.
+- **Harte Grenzen:** `max_llm_calls` wird vor jedem einzelnen Provideraufruf
+  geprüft, auch vor Reparaturversuchen und nachgeforderten Terminsuchen. Jeder
+  Aufruf prüft außerdem erneut, ob die auslösende Websitzung noch gültig ist;
+  sonst pausiert der Bericht. Zählfehler des Postfachs enden nach drei Versuchen
+  im Status „fehlgeschlagen“, eine geänderte UIDVALIDITY führt zu einer neuen
+  Auflistung des Ordners, bereits bewertete Mails werden über die Message-ID
+  wiederverwendet. Wartende Berichte werden in Anlagereihenfolge bearbeitet.
+- **Datumsprüfung:** Ein Termin wird nur übernommen, wenn das Datum zu
+  ausdrücklichen oder relativen Datumsangaben im Belegzitat passt (Wochentag,
+  Tag/Monat, „morgen“ bezogen auf das Mail-Datum).
+- **Gesendet-Ordner:** Auch ein ausdrücklich gewählter Gesendet-Ordner prüft die
+  Empfänger gegen die Ignorierliste. Die Ignorierliste wird beim kostenpflichtigen
+  Start gesichert; Ordner müssen in der Ordnerliste des Servers stehen.
+- **Ansicht:** Filter nach Monat, Absender, „nur unsichere“ und „ausgeschlossene
+  anzeigen“; Belegzitate sind im Volltext hervorgehoben; Fortschritt über
+  `/api/stand?bericht=<id>`. Die Kostenschätzung nutzt gemessene Kosten
+  früherer Berichtsschritte (lokal: Stromkosten), sonst nur die Aufrufzahl.
+- **Neu bewerten:** „Mit anderem Thema neu bewerten“ legt einen neuen Bericht an,
+  der die geladenen Mailtexte wiederverwendet, aber keine KI-Ergebnisse; er
+  startet ebenfalls erst nach ausdrücklicher Bestätigung.
+- **Korrekturen während der Analyse:** Nutzerentscheidungen und von Hand ergänzte
+  Termine bleiben erhalten, auch wenn eine laufende KI-Analyse derselben Mail
+  danach endet. Löschen verlangt ebenfalls einen Idempotenzschlüssel.
 - **Korrekturen:** Relevanz umstellen, Termine bearbeiten, ausschließen oder
   ergänzen. Jede Aktion prüft Sitzung, CSRF-Token, Berichtsversion und
   Idempotenzschlüssel; auch das Anlegen ist idempotent. Der Fortschritt des
@@ -2020,3 +2151,139 @@ ausdrücklich auch vergangene.
   Analyse- oder Legacy-Fingerprints.
 
 Details: [Release-2.2.md](docs/Release-2.2.md).
+
+## 23. Version 2.3: Weitere Kalender- und Aufgabendienste, Volltextsuche, Originaldokumente
+
+Planung und Entscheidungen: [docs/Planung-2.3.md](docs/Planung-2.3.md).
+
+### 23.1 Anbieter
+
+Je Installation ist genau ein Kalenderdienst (`targets.calendar_provider`: `google`,
+`caldav`, `outlook`) und genau ein Aufgabendienst (`targets.task_provider`:
+`todoist`, `microsoft_todo`, `caldav`, `apple_reminders`) aktiv. Standard ist
+`google`/`todoist`; bestehende Konfigurationen bleiben unverändert gültig und
+behalten ihren Analyse-Fingerprint. Das aktive Ziel (`calendar_target`,
+`task_target`) wird wie bisher in jedem Vorschlag gespeichert; ein Anbieter- oder
+Zielwechsel schreibt bereits bestätigte Vorschläge nicht in das neue Ziel.
+
+Für alle Anbieter gelten unverändert: Schreiben nur nach versionsbezogener
+Bestätigung, Abgleich über den Idempotenzschlüssel vor jedem Schreiben, kein
+blindes Wiederholen unklarer Ergebnisse, Testmodus ohne externen Kontakt,
+Vorabprüfung auf vorhandene Einträge, Duplikatergänzung, Zeitänderung und Absage.
+
+- **CalDAV-Kalender und -Aufgaben** (Nextcloud, iCloud, mailbox.org, Radicale …):
+  HTTP Basic mit App-Passwort (`CALDAV_USERNAME`, `CALDAV_PASSWORD`), nur
+  `https://` (Ausnahme `localhost`). Jede Vorschlagsversion entspricht genau einer
+  Ressource `<uid>.ics`, deren Name aus dem Idempotenzschlüssel abgeleitet ist;
+  Anlage per `PUT` mit `If-None-Match: *` (`412` gilt als bereits vorhanden),
+  Abgleich per `GET`. Änderungen und Absagen (`STATUS:CANCELLED`) erfolgen per
+  `GET` und `PUT` mit `If-Match`; unbekannte Eigenschaften bleiben erhalten,
+  `SEQUENCE` steigt. Wiederkehrende Termine werden nicht verändert und nicht als
+  Duplikat herangezogen. XML-Antworten mit DTD werden abgewiesen.
+- **Apple Erinnerungen**: CalDAV-VTODO-Voreinstellung für Listen unter
+  `caldav.icloud.com`. Auf die neuen iCloud-Erinnerungen aktualisierte Listen sind
+  über CalDAV nicht erreichbar; die Zugriffsprüfung meldet das ausdrücklich.
+- **Outlook / Microsoft 365 und Microsoft To Do** über Microsoft Graph mit
+  OAuth-Refresh-Token (`MICROSOFT_CLIENT_ID`, optional `MICROSOFT_CLIENT_SECRET`,
+  `targets.microsoft_tenant`). Jeder rotierte Refresh-Token wird sofort in
+  `microsoft-token.json` neben `.env` gespeichert (unter Linux Dateirechte 0600) und
+  bevorzugt; `MICROSOFT_REFRESH_TOKEN` dient nur als Startwert.
+  `mailhelp --microsoft-login` meldet per Gerätecode an und zeigt nur Code und
+  Adresse. Outlook-Termine tragen den Idempotenzschlüssel als erweiterte
+  Eigenschaft und als `transactionId`; Absagen löschen den Termin. To-Do-Aufgaben
+  tragen ihn als `linkedResources.externalId` und als Marker im Text.
+- Geheimnisse werden nur für gewählte Anbieter verlangt. Die Web-Einstellungen
+  und der Einrichtungsschritt „Analyse und Ziele“ bieten Anbieter und Ziele an;
+  Ziel- und Anbieteränderungen benötigen eine aktuelle erfolgreiche Diagnose.
+- Schaltflächen und Meldungen sind anbieterneutral („Im Kalender anlegen“,
+  „Als Aufgabe anlegen“, „Angelegt als Aufgabe“); Verbindungsstatus und
+  Zugriffsprüfung nennen den konfigurierten Dienst.
+
+### 23.2 Volltextsuche
+
+Die Suche unter `/mails` durchsucht Absender, Betreff, Zusammenfassung, Mailtext,
+Anhangnamen und erkannten Anhangtext. Alle Wörter müssen vorkommen; Begriffe in
+Anführungszeichen suchen die genaue Wortfolge. Groß-/Kleinschreibung, Akzente und
+die Schreibweisen ä/ae, ö/oe, ü/ue, ß/ss sind gleichwertig. „Suchen in: nur
+Absender, Betreff und Zusammenfassung“ beschränkt die Suche. Jeder Treffer nennt
+die Fundstelle mit einem maskierten Ausschnitt. Der Index liegt im Speicher, ist je
+Mail auf 200.000 Zeichen begrenzt und wird nur bei geänderter Archivrevision neu
+aufgebaut. Nach Ablauf von `retention.full_mail_days` finden Suchen nur noch die
+Metadaten. Suchbegriffe werden nicht protokolliert.
+
+### 23.3 Originaldokumente
+
+Für neu verarbeitete Mails speichert Mailhelp Originalanhänge der Typen PDF, DOC,
+DOCX, XLS, XLSX, PPT, PPTX, ODT, ODS, ODP, RTF, TXT, CSV, ICS, JPG, PNG, GIF, WEBP
+und HEIC – nur wenn Dateiendung und Inhaltssignatur passen – bis
+`attachments.max_original_bytes` je Datei und `attachments.max_total_bytes` je Mail
+(`attachments.store_originals` schaltet das ab). Metadaten stehen in einem eigenen
+Manifest; die für die Analyse gespeicherte Mail bleibt unverändert. Die
+Maildetailseite bietet „Original herunterladen“. `GET /mail/<id>/original/<index>`
+verlangt eine gültige Sitzung, liefert nur bei unveränderter Prüfsumme und stets
+mit `Content-Disposition: attachment`, festem Inhaltstyp aus der Allowlist,
+`X-Content-Type-Options: nosniff`, `Content-Security-Policy: default-src 'none';
+sandbox` und `Cache-Control: private, no-store`. Protokolliert werden nur Mail-ID,
+Index und Größe. Originale werden mit dem Mailinhalt nach
+`retention.full_mail_days` und durch `mailhelp --clear` gelöscht.
+
+## 24. Offene Entscheidungen und Standarddauern (Planung 2.4)
+
+### 24.1 Abgleich und Ergänzung
+
+Erkannte Termine und Aufgaben werden zusätzlich zu vorhandenen externen Einträgen
+mit den aktuellen offenen Vorschlägen verglichen. Art, Ziel und bekannter Anbieter
+müssen passen. Gesprächsanker, Zeitpunkt und konkrete Aktion liefern den Kontext;
+Titelähnlichkeit allein rechtfertigt keine automatische Zusammenführung. Der optionale
+Prompt `open_proposal_match` prüft eine begrenzte Kandidatenmenge. Unklare Zuordnungen
+und widersprüchliche Fakten benötigen eine Entscheidung.
+
+Ergänzungen schreiben den vorhandenen kanonischen Vorschlag fort. Quellen und
+Revisionen bleiben nachvollziehbar; Aliasakten sind nicht ausführbar. Ältere Mails
+setzen konkrete neuere Absprachen nicht zurück. Manuelle Werte bleiben geschützt;
+ein geschütztes Datum kann durch eine passende, fehlende Uhrzeit präzisiert werden.
+Materielle Änderungen entziehen bisherige Anlagefreigaben. Merge-Journale erlauben
+die idempotente Wiederaufnahme nach Unterbrechung und werden vor weiteren Aktionen
+abgeschlossen. Anbieter- und LLM-Abgleiche liegen außerhalb des Store-Locks.
+
+### 24.2 Standarddauern
+
+`event_defaults.video_duration_minutes` beträgt standardmäßig 60,
+`event_defaults.in_person_duration_minutes` 180. Nur eine belegte Teilnahmeart mit
+eindeutigem Beginn und fehlendem Ende erlaubt diese Annahme. Explizite Endzeiten,
+Dauern und obere Zeitgrenzen haben Vorrang; unklare oder hybride Teilnahmeformen
+erhalten keine Standarddauer. Die Berechnung verwendet verstrichene Minuten auch
+über Mitternacht und Zeitumstellungen. Herkunft und verwendete Minuten erscheinen
+in der Vorschlagsansicht und der externen Beschreibung.
+
+Geänderte Einstellungen verändern bestehende Vorschläge nicht automatisch. Unter
+`/abgleich` zeigt eine lokale Vorschau fehlende Enden und überholte Standardannahmen.
+Die Übernahme bindet Vorschlagsversion und Einstellungshash. Eine manuell gesetzte
+Endzeit entfernt die bisherige Standardannahme. Normalisierungs- und Matchingpolicy
+werden separat erfasst; alte Rohanalyse-Fingerprints bleiben erhalten.
+
+### 24.3 Bestandsvorschau und Autorisierung
+
+Bereits vorhandene Termine werden unabhängig von einer Telegram-Zustellung als
+Einzelakten gespeichert. Eine eindeutig zugehörige Rückmeldeaufgabe zeigt die
+bidirektionale Beziehung zur Sitzung. Die untersuchte Beiratssitzung war bereits
+als vorhandener 90-Minuten-Termin erkannt worden; die bisher an die Benachrichtigung
+gekoppelte Speicherung machte diesen Befund unsichtbar.
+
+`/abgleich` erlaubt Zuordnen, getrennt Behalten, erneuten externen Leseabgleich und
+Wiederherstellen fehlender Einzelakten aus gespeicherten Befunden. Wiederherstellung
+bindet Befundhash und Version, erhält die ursprüngliche Version und den
+Idempotenzschlüssel und öffnet abgeschlossene Vorgänge nicht erneut. Ein bestätigter
+Altbefund wird als unklarer Schreibzustand wiederhergestellt und ausschließlich mit
+dem Anbieter abgeglichen. Lokale Änderungen erteilen keine externe Schreibfreigabe.
+
+Jede externe Anlage verlangt weiterhin eine ausdrückliche versionsbezogene Bestätigung.
+Webaktionen prüfen Sitzung, CSRF, Version und Idempotenz, die Sitzung erneut nach
+dem lesenden Vorabgleich. Neue offene Kandidaten, geänderte Ziele und fehlgeschlagene
+Dublettenprüfungen verhindern eine Anlage mit veralteter Freigabe. Ein unklarer
+Schreibausgang wird vor jeder Wiederholung abgeglichen.
+
+Bestehende Zustände bleiben mit additiven Standardfeldern lesbar. Neue Beziehungen,
+Vergleichscaches und Journale besitzen eigene Schemas. Vor produktiver Nutzung ist
+eine vollständige Zustandssicherung erforderlich; ein Rollback benötigt den Stand
+vor dem Upgrade. Bedienung und Grenzen stehen in [Release-2.4](docs/Release-2.4.md).

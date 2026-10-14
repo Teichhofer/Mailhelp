@@ -197,12 +197,12 @@ def test_settings_reject_missing_extra_types_ranges_and_semantics(tmp_path):
     base = valid_settings(tmp_path)
     parsed_default = Settings.model_validate(base)
     assert parsed_default.timezone == "UTC"
-    assert parsed_default.imap.required_folders == ("INBOX",)
-    assert parsed_default.imap.optional_folders == ()
+    assert parsed_default.imap.configured_mailboxes()[0].required_folders == ("INBOX",)
+    assert parsed_default.imap.configured_mailboxes()[0].optional_folders == ()
     explicit = copy.deepcopy(base)
     explicit["imap"].update(folders=["Posteingang", "Papierkorb"],
                             primary_folder="Posteingang")
-    assert Settings.model_validate(explicit).imap.optional_folders == ("Papierkorb",)
+    assert Settings.model_validate(explicit).imap.configured_mailboxes()[0].optional_folders == ("Papierkorb",)
     invalid_primary = copy.deepcopy(base)
     invalid_primary["imap"]["primary_folder"] = "Missing"
     with pytest.raises(ValidationError, match="primary_folder"):

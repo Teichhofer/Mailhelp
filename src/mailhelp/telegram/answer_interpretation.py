@@ -108,11 +108,13 @@ class AuthorizedAnswerInterpreter:
             return
         # The validated value is the recovery record.  It must reach disk before
         # removing the active user question or making another fallible LLM call.
+        assert interpretation.normalized_answer is not None  # a usable interpretation carries it
         self._answered(name, state, interpretation.normalized_answer)
 
     def _deterministic_answer(self, proposal: Proposal, state: ProposalClarificationState,
                               temporal_answer: str, current_date) -> str | None:
         """The normalized answer when no language model is needed, else ``None``."""
+        assert state.authorized_answer is not None  # checked by interpret_pending
         deterministic = deterministic_classification_revision(
             proposal, state.question, state.authorized_answer
         )
@@ -185,6 +187,7 @@ class AuthorizedAnswerInterpreter:
         """An unusable answer: keep the question open and ask more concretely."""
         incomplete = IncompleteUserAnswer(reason)
         self._mark_invalid(name, state)
+        assert self.revision_service is not None and state.authorized_answer is not None  # see interpret_pending
         _, clarification = self.revision_service.clarify_telegram_answer(
             state.question,
             state.authorized_answer,
@@ -202,9 +205,10 @@ class AuthorizedAnswerInterpreter:
         """Explain which validated fact a deterministic time answer contradicts."""
         expected = expected_event_date(proposal)
         parsed = parse_deterministic_temporal_answer(temporal_answer, current_date)
+        # Without a validated date there is nothing the answer could contradict.
         allowed_dates = (
-            {expected, expected + timedelta(days=1)}
-            if "ende" in state.question.casefold()
+            set() if expected is None
+            else {expected, expected + timedelta(days=1)} if "ende" in state.question.casefold()
             else {expected}
         )
         wrong_date = (
@@ -219,6 +223,7 @@ class AuthorizedAnswerInterpreter:
             else proposal.start
         )
         if wrong_date:
+            assert expected is not None  # part of wrong_date
             return (
                 "Das genannte Datum widerspricht dem bereits validierten "
                 f"Termindatum. Erwartet wird {expected.isoformat()}. "
@@ -267,7 +272,8 @@ class AuthorizedAnswerInterpreter:
             state.mail_id, state.proposal_id, state.version, exc, status
         )
         if exhausted:
-            message = "Die Interpretation wurde nach mehreren Versuchen pausiert. Die gespeicherte Antwort bleibt erhalten."
+            message = ("Die Interpretation wurde nach mehreren Versuchen pausiert. "
+                       "Die gespeicherte Antwort bleibt erhalten.")
         elif contradictory:
             message = "Die Antwort widerspricht möglicherweise dem bestehenden Vorschlag und wird erneut geprüft."
         else:

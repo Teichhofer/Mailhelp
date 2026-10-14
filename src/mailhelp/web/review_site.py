@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     from .site import MailhelpSite
 import re
 from dataclasses import replace
-from urllib.parse import parse_qs
+from urllib.parse import parse_qs, quote
 
 from .actions import proposal_actions, relevance_actions, result_kind
 from .pages import error_page
@@ -62,7 +62,8 @@ class ReviewSite:
         page = mail_page(view, question, relevance_actions(csrf),
                          sender_actions=self.site.senders.actions(mail_id, view.sender, csrf),
                          message=message, message_kind=kind,
-                         after=self.site.experience.editor(mail_id, csrf) + self.site.archive.analysis(mail_id))
+                         after=self.site.reconciliation_page.mail_summary(mail_id)
+                         + self.site.experience.editor(mail_id, csrf) + self.site.archive.analysis(mail_id))
         return Response.html(200, page)
 
     def attachment(self, request, session, mail_id, index):
@@ -78,15 +79,42 @@ class ReviewSite:
             "Content-Security-Policy": "default-src 'none'",
             "X-Content-Type-Options": "nosniff"}, cache="private, max-age=3600")
 
+    def original(self, request, session, mail_id, index):
+        """The original document, only as a download and never rendered by the browser."""
+        from ..attachments import AttachmentCache, download_name
+        mail = self.site.views.mail(mail_id)
+        found = (AttachmentCache(self.site.views.store).original(mail_id, int(index))
+                 if mail is not None and mail.text is not None else None)
+        if found is None:
+            return Response.text(404, "Original nicht vorhanden.")
+        original, data = found
+        name, fallback = download_name(original.filename, original.index)
+        self.site.logger.event("INFO", "web", "attachment_downloaded", mail_id=mail_id, index=original.index,
+                               size_bytes=len(data))
+        return Response(200, data, original.content_type, headers={
+            "Content-Disposition": f"attachment; filename=\"{fallback}\"; filename*=UTF-8''{quote(name, safe='')}",
+            "Content-Security-Policy": "default-src 'none'; sandbox",
+            "X-Content-Type-Options": "nosniff"}, cache="private, no-store")
+
     def detail(self, request: Request, session: WebSession, mail_id: str,
                proposal_id: str) -> Response:
+        from ..domain.proposal_sources import ProposalReference
+        from ..storage import CorruptState
+        try:
+            proposal = self.site.reconciliation_page.service.resolve(
+                ProposalReference(mail_id=mail_id, proposal_id=proposal_id))
+        except (ValueError, CorruptState):
+            return self.site._reply(request, 409, "Ungültige kanonische Vorschlagsreferenz.")
+        if proposal is not None and (proposal.source_mail_id, proposal.id) != (mail_id, proposal_id):
+            return Response.redirect(f"/vorschlag/{proposal.source_mail_id}/{proposal.id}")
         view = self.site.views.proposal(mail_id, proposal_id)
         if view is None:
             return Response.html(404, error_page(
                 "Nicht gefunden", "Dieser Vorschlag ist nicht (mehr) vorhanden."))
         link = f'<p><a class="button" href="/vorschlag/{mail_id}/{proposal_id}/bearbeiten">Felder bearbeiten</a></p>'
         from .review_pages import disclosure
-        extra = (link + self.site.experience.editor(mail_id, self.site.auth.csrf_token(session.id))
+        extra = (link + self.site.reconciliation_page.fragment(mail_id, proposal_id)
+                 + self.site.experience.editor(mail_id, self.site.auth.csrf_token(session.id))
                  + disclosure("Revisionshistorie &amp; Differenzen", self.site.archive.revisions(mail_id, proposal_id))
                  + disclosure("Technische LLM-Analyse &amp; Metriken", self.site.archive.analysis(mail_id)))
         page = detail_page(view, actions=proposal_actions(self.site.auth.csrf_token(session.id)),

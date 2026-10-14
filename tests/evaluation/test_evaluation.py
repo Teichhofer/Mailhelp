@@ -309,3 +309,10 @@ def test_cli_writes_progress_and_partial_reports(tmp_path, monkeypatch, capsys):
     main(["--allow-network", "--legacy-relevance", "--corpus", str(source), "--prompts", str(prompt_file),
           "--output", str(output), "--max-calls", "50"])
     assert "[1/2] 01_no_action: abweichend" in capsys.readouterr().err
+
+
+def test_usage_recorder_is_a_complete_event_logger():
+    # The evaluation passes it as logger to the clients; Telegram events carry no usage.
+    recorder = UsageRecorder()
+    assert recorder.telegram_event("sent", chat_id=1) is None
+    assert recorder.report()["responses_without_usage"] == 0

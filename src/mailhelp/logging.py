@@ -9,7 +9,10 @@ from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from threading import RLock
-from typing import Any, Protocol, TextIO
+from typing import TYPE_CHECKING, Any, Protocol, TextIO
+
+if TYPE_CHECKING:
+    from .metrics import MetricsRecorder
 
 LEVELS = {"DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40, "CRITICAL": 50}
 SENSITIVE_KEYS = ("token", "password", "authorization", "api_key", "apikey", "secret", "cookie")
@@ -73,7 +76,8 @@ def redact(value: Any, secrets: tuple[str, ...] | list[str] | set[str] = ()) -> 
 
 def _sensitive_key(key: str) -> bool:
     normalized = key.lower().replace("-", "_")
-    if normalized in SENSITIVE_KEYS or normalized.endswith(("_password", "_secret", "_api_key", "_apikey", "_authorization", "_cookie")):
+    if normalized in SENSITIVE_KEYS or normalized.endswith(("_password", "_secret", "_api_key", "_apikey",
+                                                            "_authorization", "_cookie")):
         return True
     return normalized.endswith("_token") and normalized not in {"input_token", "output_token"}
 
@@ -120,7 +124,7 @@ class JsonlLogger:
         self.llm = directory / llm_name
         self.telegram = directory / telegram_name
         self.include_requests, self.include_responses = include_llm_requests, include_llm_responses
-        self.metrics = None
+        self.metrics: MetricsRecorder | None = None
         self.level = _validate_level(level)
         self.module_levels = {str(module): _validate_level(item) for module, item in (module_levels or {}).items()}
         self.secrets = tuple(secret for secret in secrets if secret)
@@ -180,7 +184,8 @@ class JsonlLogger:
             return
         pattern = re.compile(re.escape(path.name) + r"(?:\.\d+)?$")
         for candidate in parent.iterdir():
-            if pattern.fullmatch(candidate.name) and candidate.is_file() and not candidate.is_symlink() and candidate.stat().st_mtime < cutoff:
+            if (pattern.fullmatch(candidate.name) and candidate.is_file() and not candidate.is_symlink()
+                    and candidate.stat().st_mtime < cutoff):
                 candidate.unlink()
 
     @staticmethod
@@ -199,7 +204,8 @@ class JsonlLogger:
                 os.replace(source, path.with_name(f"{path.name}.{number + 1}"))
         os.replace(path, path.with_name(f"{path.name}.1"))
 
-    def _write_file(self, path: Path, record: Mapping[str, Any], format_name: str, policy: tuple[int, int, int]) -> None:
+    def _write_file(self, path: Path, record: Mapping[str, Any], format_name: str,
+                    policy: tuple[int, int, int]) -> None:
         rendered = self._render(record, format_name)
         encoded_size = len(rendered.encode("utf-8"))
         with self._lock:
@@ -282,7 +288,8 @@ def _validate_format(value: str) -> str:
     return value
 
 
-def log_and_continue(logger: EventLogger | Any, module: str, event: str, exc: BaseException | None = None, **fields: Any) -> None:
+def log_and_continue(logger: EventLogger | Any, module: str, event: str, exc: BaseException | None = None,
+                     **fields: Any) -> None:
     """Log an exception at a process boundary and continue without propagating."""
     context = dict(fields)
     if exc is not None and "error_class" not in context:

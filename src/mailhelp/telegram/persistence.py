@@ -94,7 +94,9 @@ class ProposalRepository:
             elif item.id == proposal.id and any(
                     old.id == proposal.id for old in state.proposals):
                 notifications.append(ProposalNotification(
-                    proposal_id=item.id, proposal_version=item.version))
+                    proposal_id=item.id, proposal_version=item.version,
+                    status="completed" if item.status in {ProposalStatus.ALREADY_EXISTS, ProposalStatus.MERGED}
+                    else "pending"))
         attempts = self._write_attempts(state, proposal)
         if (proposals, notifications, attempts) == (
                 state.proposals, state.proposal_notifications,

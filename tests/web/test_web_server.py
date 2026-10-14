@@ -22,6 +22,9 @@ from mailhelp.web import Request, Response, WebApp, WebServer, WebServerError
 from mailhelp.web import server as server_module
 from mailhelp.web.http import CONTENT_SECURITY_POLICY, MAX_BODY_BYTES
 
+# Since 2.3 the writers are built in mailhelp.external.providers.
+MOVED_WRITERS = ("HttpWriter", "GoogleOAuthTokenProvider")
+
 HOST = "127.0.0.1:8765"
 
 
@@ -251,18 +254,18 @@ def test_build_application_creates_the_web_server_only_when_enabled(tmp_path, mo
 
     for name in ("ImapReader", "OpenRouterClient", "DecisionClient", "TelegramClient",
                  "HttpWriter", "GoogleOAuthTokenProvider"):
-        monkeypatch.setattr(f"mailhelp.application.{name}", Resource)
+        monkeypatch.setattr(f"mailhelp.{'external.providers' if name in MOVED_WRITERS else 'composition'}.{name}", Resource)
     cfg = app_settings(tmp_path)
     cfg.logging.file.enabled = cfg.logging.console.enabled = False
     cfg.web.enabled = enabled
-    secrets = Secrets(imap_username="u", imap_password="p", openrouter_api_key="o", telegram_bot_token="t",
+    secrets = Secrets(imap={1: {"username": "u", "password": "p"}}, openrouter_api_key="o", telegram_bot_token="t",
                       todoist_token="d", todoist_client_id="ti", todoist_client_secret="ts",
                       google_oauth_client_id="i", google_oauth_client_secret="s",
                       google_oauth_refresh_token="r", mailhelp_web_secret="w" * 32)
     with build_application(cfg, secrets, [Topic(id="x", name="x", enabled=True, description="x")],
                            prompt_config(), "f" * 64, base_directory=tmp_path) as made:
         assert isinstance(made.web, WebServer) is enabled
-        assert (made.dialog.commands is not None) is enabled
+        assert made.dialog.commands is not None  # Also records completed Telegram results for the shared queue.
         if enabled:
             assert (made.web.host, made.web.port) == ("127.0.0.1", 8765)
             # With Telegram, pairing codes are sent to the authorized chat.

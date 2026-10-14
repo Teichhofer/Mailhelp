@@ -2,13 +2,16 @@
 from __future__ import annotations
 
 import re
+from copy import copy
 from datetime import date
 from typing import Any, Literal
 
 from pydantic import Field
 
+from ..action_normalization import evidence_date_matches
 from ..analysis import Analyzer, ClassifiedRun
 from ..domain._base import StrictModel
+from .budget import BudgetedCompleter
 from .models import ActivityReport, ReportEvent, ReportMail
 
 MAX_EVENTS = 20
@@ -49,7 +52,9 @@ class ActivityAnalyzer:
     """Relevance and date extraction for one report mail; nothing is written anywhere."""
 
     def __init__(self, analyzer: Analyzer, personal_info: Any = lambda: ""):
-        self.analyzer = analyzer
+        self.analyzer = copy(analyzer)
+        self.client = BudgetedCompleter(analyzer.client)
+        self.analyzer.client = self.client
         # Read on every call, so a changed setting applies without a restart.
         self.personal_info = personal_info
 
@@ -81,6 +86,9 @@ class ActivityAnalyzer:
             if _compact(candidate.evidence) not in source:
                 # An invented quote invents the date as well; the user can add it manually.
                 log.event("WARNING", "activity", "event_evidence_missing", report_id=report.id, call_id=call)
+                continue
+            if not evidence_date_matches(candidate.day, candidate.evidence, received):
+                log.event("WARNING", "activity", "event_date_conflict", report_id=report.id, call_id=call)
                 continue
             events.append(ReportEvent(
                 id=f"e{len(events) + 1}", title=_clean(candidate.title, 200) or "Termin", day=candidate.day,

@@ -2,10 +2,11 @@
 from __future__ import annotations
 
 import hashlib
+import re
 from collections.abc import Callable
 from enum import StrEnum
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -17,7 +18,7 @@ from .review.commands import CommandSource
 from .review.results import ResultStatus, ReviewResult
 from .sender_filter import change_irrelevant_senders
 from .storage import JsonStore, atomic_replace
-from .yaml_edit import YamlEditError, set_scalars
+from .yaml_edit import YamlEditError, set_list, set_scalars
 
 
 class ConfigurationConflict(ValueError):
@@ -26,6 +27,7 @@ class ConfigurationConflict(ValueError):
 
 class AdminKind(StrEnum):
     SETTINGS = "settings"
+    SETUP = "setup"
     TOPICS = "topics"
     SENDERS = "senders"
 
@@ -40,7 +42,7 @@ class AdminCommand(BaseModel):
     # changes are idempotent and commutative and need no such binding.
     expected_hash: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
     category: str = Field(default="relevant", pattern=r"^(relevant|irrelevant)$")
-    patch: dict = Field(max_length=30)
+    patch: dict = Field(max_length=60)
     acknowledged: bool = False
 
     @model_validator(mode="after")
@@ -72,19 +74,63 @@ class SenderChange(BaseModel):
 
 
 SETTINGS_FIELDS = {
-    "poll_interval_seconds", "timezone", "test_mode", "personal_info", "targets.todoist_project", "targets.google_calendar",
+    "poll_interval_seconds", "timezone", "test_mode", "personal_info",
+    "event_defaults.video_duration_minutes", "event_defaults.in_person_duration_minutes",
+    "proposal_reconciliation.max_semantic_candidates",
+    "targets.todoist_project", "targets.google_calendar", "targets.calendar_provider", "targets.task_provider",
+    "targets.caldav_calendar_url", "targets.caldav_task_url", "targets.outlook_calendar",
+    "targets.microsoft_todo_list", "targets.microsoft_tenant",
+    "attachments.store_originals", "attachments.max_original_bytes", "attachments.max_total_bytes",
     "limits.llm_calls_per_minute", "limits.max_mail_bytes", "limits.max_llm_payload_bytes",
     "retention.full_mail_days", "retention.debug_llm_days", "retention.analysis_days", "retention.history_days",
     "logging.console.level", "logging.file.level", "logging.llm.include_requests", "logging.llm.include_responses",
-    "metrics.enabled", "metrics.retention_days", "metrics.usd_per_eur", "metrics.exchange_rate_date", "metrics.ollama_power_watts", "metrics.electricity_eur_per_kwh",
+    "metrics.enabled", "metrics.retention_days", "metrics.usd_per_eur", "metrics.exchange_rate_date",
+    "metrics.ollama_power_watts", "metrics.electricity_eur_per_kwh",
 }
-for service in ("imap", "telegram", "openrouter", "ollama", "todoist", "google_calendar"):
+for service in ("imap", "telegram", "openrouter", "ollama", "todoist", "google_calendar", "caldav", "microsoft"):
     SETTINGS_FIELDS.update(f"timeouts.{service}.{field}" for field in
                            ("timeout_seconds", "retries", "initial_backoff_seconds", "max_backoff_seconds"))
-for field in ("interpretation_attempts", "interpretation_backoff_seconds", "revision_attempts", "revision_backoff_seconds"):
+for field in ("interpretation_attempts", "interpretation_backoff_seconds", "revision_attempts",
+              "revision_backoff_seconds"):
     SETTINGS_FIELDS.add(f"retries.{field}")
 
-LIVE_FIELDS = {"poll_interval_seconds", "retention", "metrics", "personal_info"}
+LIVE_FIELDS = {"poll_interval_seconds", "retention", "metrics", "personal_info", "notifications",
+               "event_defaults", "proposal_reconciliation"}
+SETUP_FIELDS = {"timezone", "imap.host", "imap.port", "imap.connection_mode", "imap.folders",
+                "event_defaults.video_duration_minutes", "event_defaults.in_person_duration_minutes",
+                "imap.primary_folder", "imap.drafts_folder", "telegram.enabled", "push.enabled",
+                "targets.todoist_project", "targets.google_calendar", "targets.calendar_provider",
+                "targets.task_provider", "targets.caldav_calendar_url", "targets.caldav_task_url",
+                "targets.outlook_calendar", "targets.microsoft_todo_list", "targets.microsoft_tenant",
+                "daily_briefing.enabled", "daily_briefing.time"}
+for section, fields in {
+    "quiet_hours": ("enabled", "start", "end", "allow_system_errors"),
+    "batching": ("enabled", "window_seconds"),
+    "categories": ("decisions", "action_results", "daily_briefing", "system_errors"),
+    "delivery": ("max_attempts", "initial_backoff_seconds", "max_backoff_seconds", "history_days", "max_pending"),
+}.items():
+    SETUP_FIELDS.update(f"notifications.{section}.{name}" for name in fields)
+SETUP_FIELDS.add("notifications.telegram_content")
+# Mailbox fields of the 3.1 format; the index is the position in imap.mailboxes.
+MAILBOX_SETUP_FIELDS = ("label", "enabled", "host", "port", "connection_mode", "folders", "primary_folder",
+                        "drafts_folder")
+_MAILBOX_SETUP_FIELD = re.compile(r"^imap\.mailboxes\.[0-9]\.(?:" + "|".join(MAILBOX_SETUP_FIELDS) + r")$")
+
+
+def offered(name: str, setup: bool) -> bool:
+    """Whether the web interface offers *name* for editing."""
+    if setup and _MAILBOX_SETUP_FIELD.match(name):
+        return True
+    return name in (SETUP_FIELDS if setup else SETTINGS_FIELDS)
+
+
+def set_dotted(document: dict, dotted: str, value: object) -> None:
+    """Set *dotted* in *document*; numeric parts index lists (``imap.mailboxes.0.host``)."""
+    *parents, name = dotted.split(".")
+    target: Any = document
+    for part in parents:
+        target = target[int(part)] if isinstance(target, list) else target.setdefault(part, {})
+    target[int(name) if isinstance(target, list) else name] = value
 
 
 STEP_LABELS = {
@@ -121,19 +167,20 @@ def file_hash(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def apply_settings(raw: dict, patch: dict, acknowledged: bool) -> dict:
+def apply_settings(raw: dict, patch: dict, acknowledged: bool, *, setup: bool = False) -> dict:
     import copy
     candidate = copy.deepcopy(raw)
-    if set(patch) - SETTINGS_FIELDS:
+    if candidate.get("notifications") is None and any(name.startswith("notifications.") for name in patch):
+        candidate.pop("notifications", None)
+    if not all(offered(name, setup) for name in patch):
         raise ValueError("Nicht angebotene Einstellung")
     if patch and not acknowledged:
         raise ValueError("Änderungen und ihre Folgen müssen bestätigt werden")
     for dotted, value in patch.items():
-        parts = dotted.split(".")
-        target = candidate
-        for part in parts[:-1]:
-            target = target.setdefault(part, {})
-        target[parts[-1]] = value
+        try:
+            set_dotted(candidate, dotted, value)
+        except (IndexError, TypeError) as exc:
+            raise ValueError("Nicht angebotene Einstellung") from exc
     Settings.model_validate(candidate)
     return candidate
 
@@ -175,6 +222,7 @@ class ConfigurationService:
                 message = (f"„{change.entries}“ wird bereits ignoriert." if change.action == "add"
                            else f"„{change.entries}“ stand nicht auf der Liste.")
             else:
+                assert self.senders is not None  # _current_senders() refused a missing list
                 self.senders.save("irrelevant-senders", updated.model_dump(mode="json"))
                 message = (f"„{change.entries}“ wird ab sofort ignoriert: neue Mails werden ohne "
                            "KI-Aufruf und ohne Benachrichtigung aussortiert."
@@ -186,7 +234,7 @@ class ConfigurationService:
                                 message="Absenderliste nicht geändert: ungültig oder nicht schreibbar.")
 
     def path(self, command: AdminCommand) -> Path:
-        filename = "config.yaml" if command.kind == AdminKind.SETTINGS else (
+        filename = "config.yaml" if command.kind in {AdminKind.SETTINGS, AdminKind.SETUP} else (
             "topics.yaml" if command.category == "relevant" else "irrelevant_topics.yaml")
         return self.directory / filename
 
@@ -195,8 +243,8 @@ class ConfigurationService:
         if file_hash(path) != command.expected_hash:
             raise ConfigurationConflict("Datei wurde inzwischen geändert; bitte neu laden")
         raw = yaml.safe_load(path.read_text(encoding="utf-8"))
-        if command.kind == AdminKind.SETTINGS:
-            return apply_settings(raw, command.patch, command.acknowledged)
+        if command.kind in {AdminKind.SETTINGS, AdminKind.SETUP}:
+            return apply_settings(raw, command.patch, command.acknowledged, setup=command.kind == AdminKind.SETUP)
         if not command.acknowledged:
             raise ValueError("Themenänderung muss bestätigt werden")
         topic = Topic.model_validate(command.patch)
@@ -209,9 +257,16 @@ class ConfigurationService:
 
     def render(self, command: AdminCommand, candidate: dict) -> str:
         """New file content; config.yaml keeps its comments and layout."""
-        if command.kind != AdminKind.SETTINGS:
+        if command.kind not in {AdminKind.SETTINGS, AdminKind.SETUP}:
             return topics_document([Topic.model_validate(item) for item in candidate["topics"]])
-        content = set_scalars(self.path(command).read_text(encoding="utf-8"), command.patch)
+        scalars = {name: value for name, value in command.patch.items() if not isinstance(value, list)}
+        source = self.path(command).read_text(encoding="utf-8")
+        if any(name.startswith("notifications.") for name in command.patch):
+            source = re.sub(r"(?m)^(notifications:)[ \t]*(?:null|~)([ \t]*(?:#.*)?)$", r"\1\2", source)
+        content = set_scalars(source, scalars)
+        for name, value in command.patch.items():
+            if isinstance(value, list):
+                content = set_list(content, name, value, allow_missing=True)
         if yaml.safe_load(content) != candidate:
             # Never write a file whose meaning differs from the validated candidate.
             raise YamlEditError("config.yaml lässt sich hier nicht sicher ändern")
@@ -231,14 +286,16 @@ class ConfigurationService:
             atomic_replace(self.path(command), content)
             journal["status"] = "saved"
             self.store.save(f"configuration-{command.idempotency_key}", journal)
-            if command.kind == AdminKind.SETTINGS:
+            if command.kind in {AdminKind.SETTINGS, AdminKind.SETUP}:
                 Settings.model_validate(candidate)
                 live = self.active.model_dump(mode="json")
                 for field in LIVE_FIELDS:
                     live[field] = candidate.get(field, live[field])
                 self.active = Settings.model_validate(live)
                 self.activate(self.active)
-                message = "Gespeichert. Pollintervall, Aufbewahrung, Metrikannahmen und persönliche Angaben übernommen; übrige Änderungen beim nächsten Start."
+                message = ("Gespeichert. Pollintervall, Aufbewahrung, Metrikannahmen, Benachrichtigungsprofil "
+                           "und persönliche Angaben "
+                           "übernommen; übrige Änderungen beim nächsten Start.")
             else:
                 if command.category == "relevant":
                     self.activate_topics([Topic.model_validate(item) for item in candidate["topics"]])
@@ -247,7 +304,8 @@ class ConfigurationService:
         except ConfigurationConflict:
             return ReviewResult(status=ResultStatus.STALE, message="Datei inzwischen geändert; bitte neu laden.")
         except (ValueError, OSError):
-            return ReviewResult(status=ResultStatus.INVALID, message="Konfiguration nicht übernommen: ungültig, geändert oder nicht schreibbar.")
+            return ReviewResult(status=ResultStatus.INVALID,
+                                message="Konfiguration nicht übernommen: ungültig, geändert oder nicht schreibbar.")
 
     def reconcile(self, command: AdminCommand) -> ReviewResult:
         if command.kind == AdminKind.SENDERS:
@@ -266,5 +324,7 @@ class ConfigurationService:
                                 message="Absenderänderung unterbrochen; bitte erneut auslösen.")
         journal = self.store.load(f"configuration-{command.idempotency_key}", {})
         if journal.get("candidate_hash") == file_hash(self.path(command)):
-            return ReviewResult(status=ResultStatus.DONE, message="Gespeicherte Konfiguration nach Neustart abgeglichen.")
-        return ReviewResult(status=ResultStatus.FAILED, message="Konfigurationsänderung unterbrochen; bitte neu prüfen.")
+            return ReviewResult(status=ResultStatus.DONE,
+                                message="Gespeicherte Konfiguration nach Neustart abgeglichen.")
+        return ReviewResult(status=ResultStatus.FAILED,
+                            message="Konfigurationsänderung unterbrochen; bitte neu prüfen.")

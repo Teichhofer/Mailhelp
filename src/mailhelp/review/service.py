@@ -15,9 +15,11 @@ from typing import Any
 from pydantic import ValidationError
 
 from .. import state_names
-from ..configuration import AdminCommand
+from ..configuration import AdminCommand, ConfigurationService
 from ..domain.processing import ProposalClarificationState
+from ..domain.proposal import invalidate_creation_permissions, required_revision_questions
 from ..models import MailState, Proposal, ProposalStatus, RelevanceDialogStatus, TelegramDialogState
+from ..notification_context import web_reply
 from .archive import record_event, record_relevance
 from .commands import CommandKind, CommandSource, ReviewCommand
 from .editing import edit_proposal
@@ -59,9 +61,20 @@ class ReviewService:
         # Confirms that a web session is still valid when the command runs,
         # so a session revoked after submitting cannot act any more.
         self.web_authorizer = web_authorizer
-        self.configuration = None
+        self.configuration: ConfigurationService | None = None
+        self.completed: Callable[[ReviewCommand | AdminCommand, ReviewResult], None] | None = None
 
-    def execute(self, command: ReviewCommand, *, raise_errors: bool = False) -> ReviewResult:
+    def execute(self, command: ReviewCommand | AdminCommand, *, raise_errors: bool = False) -> ReviewResult:
+        token = web_reply.set(command.source == CommandSource.WEB)
+        try:
+            result = self._execute_command(command, raise_errors=raise_errors)
+            if self.completed is not None:
+                self.completed(command, result)
+            return result
+        finally:
+            web_reply.reset(token)
+
+    def _execute_command(self, command: ReviewCommand | AdminCommand, *, raise_errors: bool = False) -> ReviewResult:
         """Apply *command*; with *raise_errors*, a rejected command raises instead."""
         if isinstance(command, AdminCommand):
             if self.configuration is None:
@@ -89,7 +102,7 @@ class ReviewService:
             record_event(self.controller.store, current, command.kind.value, command.source.value,
                          command.idempotency_key)
 
-    def reconcile(self, command: ReviewCommand) -> ReviewResult:
+    def reconcile(self, command: ReviewCommand | AdminCommand) -> ReviewResult:
         """Result of a command interrupted by a restart, judged from the current state.
 
         The command is never executed again: if its effect is visible it
@@ -99,6 +112,8 @@ class ReviewService:
             if self.configuration is None:
                 return ReviewResult(status=ResultStatus.FAILED, message="Konfigurationsdienst nicht verfügbar.")
             return self.configuration.reconcile(command)
+        from ..proposal_reconciliation import ProposalReconciliationService
+        ProposalReconciliationService(self.controller.store).recover()
         if self._took_effect(command):
             self._record(command)
             return ReviewResult(status=ResultStatus.DONE,
@@ -116,6 +131,8 @@ class ReviewService:
         current = self.controller.repository.load_current(command.mail_id, command.proposal_id)
         if current is None:
             return False
+        if command.kind == CommandKind.RESTORE:
+            return True
         if current.version != command.version or current.status not in _OPEN:
             return True
         pointer = self._pointer()
@@ -140,13 +157,37 @@ class ReviewService:
                 and self.web_authorizer(command.actor))
 
     def _execute(self, command: ReviewCommand) -> ReviewResult:
+        from ..proposal_reconciliation import ProposalReconciliationService
+        ProposalReconciliationService(self.controller.store).recover()
+        if command.kind == CommandKind.RECHECK:
+            previous = self._target(command)
+            precheck = self.controller.decision_service.precheck
+            if precheck is None:
+                raise ValueError("Dublettenprüfung nicht verfügbar")
+            result = precheck.check_proposal(previous.model_copy(update={"duplicate_check_failed": False,
+                "open_questions": [q for q in previous.open_questions
+                    if q != "Dublettenprüfung nicht verfügbar; vor einer Anlage erneut prüfen."]}))
+            with self.controller.store.locked():
+                if self._target(command) != previous:
+                    raise StaleCommand("Vorschlag inzwischen geändert")
+                questions = required_revision_questions(result)
+                status = (result.status if result.status == ProposalStatus.ALREADY_EXISTS else
+                          ProposalStatus.NEEDS_CLARIFICATION if questions else ProposalStatus.PENDING_CONFIRMATION)
+                result = result.model_copy(update={"version": previous.version + 1,
+                    "open_questions": list(dict.fromkeys([*result.open_questions, *questions])), "status": status})
+                result = invalidate_creation_permissions(result)
+                self.controller.persist(result)
+            return ReviewResult(status=ResultStatus.DONE, message="Erneut geprüft; separat bestätigen.")
+        if command.kind in {CommandKind.MERGE, CommandKind.SEPARATE, CommandKind.RESTORE, CommandKind.DEFAULTS}:
+            return self._reconcile_proposal(command)
         if command.kind == CommandKind.EDIT:
+            assert command.patch is not None  # ReviewCommand requires a patch for EDIT
             previous = self._target(command)
             targets = {previous.target}
             handler = self.controller.relevance_handler
             configured = getattr(handler, "targets", None)
             if configured is not None:
-                targets.add(configured.todoist_project if previous.kind.value == "task" else configured.google_calendar)
+                targets.add(configured.task_target if previous.kind.value == "task" else configured.calendar_target)
             revised = edit_proposal(previous, command.patch, self.controller.configured_timezone, targets)
             self.controller.persist(revised)
             record_event(self.controller.store, revised, "edit", command.source.value, command.idempotency_key)
@@ -161,19 +202,71 @@ class ReviewService:
             return self._cancel(command)
         return self._decide(command)
 
+    def _reconcile_proposal(self, command: ReviewCommand) -> ReviewResult:
+        import hashlib
+        import json
+
+        from ..config import EventDefaultsSettings
+        from ..event_defaults import reapply_defaults
+        from ..proposal_reconciliation import ProposalReconciliationService
+        service = ProposalReconciliationService(self.controller.store)
+        with self.controller.store.locked():
+            if command.kind == CommandKind.RESTORE:
+                state = self.controller.repository.load_mail(command.mail_id)
+                item = next((p for p in state.proposals if p.id == command.proposal_id), None) if state else None
+                if item is None or item.version != command.version or item.source_mail_id != command.mail_id:
+                    raise StaleCommand("Mailbefund inzwischen geändert")
+                digest = hashlib.sha256(json.dumps(item.model_dump(mode="json"), sort_keys=True).encode()).hexdigest()
+                if digest != command.proposal_hash or self.controller.repository.load_current(command.mail_id, item.id):
+                    raise StaleCommand("Mailbefund inzwischen geändert oder wiederhergestellt")
+                # Preserve the original action key; a projection cannot prove
+                # whether a confirmed request already reached the provider.
+                if item.status == ProposalStatus.CONFIRMED:
+                    item = item.model_copy(update={"status": ProposalStatus.UNCERTAIN})
+                self.controller.repository.save_revision(item)
+                return ReviewResult(status=ResultStatus.DONE, message="Gespeicherten Befund wiederhergestellt.")
+            source = service.required(command.mail_id, command.proposal_id)
+            if source.version != command.version:
+                raise StaleCommand("Quellversion inzwischen geändert")
+            if command.kind == CommandKind.DEFAULTS:
+                if source.status not in _OPEN:
+                    raise StaleCommand("Vorschlag nicht mehr offen")
+                defaults = self.configuration.active.event_defaults if self.configuration else EventDefaultsSettings()
+                digest = hashlib.sha256(json.dumps(defaults.model_dump(), sort_keys=True).encode()).hexdigest()
+                if digest != command.proposal_hash:
+                    raise StaleCommand("Standarddauer inzwischen geändert")
+                changed = reapply_defaults(source, defaults)
+                self.controller.repository.save_revision(changed)
+                notifications = [changed] if changed.version != source.version else []
+            else:
+                assert command.target_ref is not None
+                target = service.required(command.target_ref.mail_id, command.target_ref.proposal_id)
+                if target.version != command.target_version:
+                    raise StaleCommand("Zielversion inzwischen geändert")
+                changed = service.manual(source, target, separate=command.kind == CommandKind.SEPARATE)
+                target_current = service.required(target.source_mail_id, target.id)
+                notifications = [target_current] if target_current.status in _OPEN else []
+                if changed.status in _OPEN:
+                    notifications.append(changed)
+        for proposal in notifications:
+            self.controller.send_proposal(proposal)
+        return ReviewResult(status=ResultStatus.DONE, message="Vorschlagsversion gespeichert; separat bestätigen.")
+
     def _decide(self, command: ReviewCommand) -> ReviewResult:
         from ..telegram.callbacks import Decision, DecisionAction
 
         if command.source == CommandSource.WEB:
             # Named in web terms; Telegram's own check speaks of buttons.
             self._target(command)
+        assert command.proposal_id is not None  # decisions always name a proposal
         decision = Decision(
             mail_id=command.mail_id, proposal_id=command.proposal_id,
             version=command.version,
             action=DecisionAction(_DECISION_ACTIONS[command.kind]),
         )
         status, text = self.controller.decision_service.decide_with_status(
-            decision, self.controller.user_id, self.controller.chat_id)
+            decision, self.controller.user_id, self.controller.chat_id,
+            write_authorizer=lambda: self._authorized(command))
         if command.source == CommandSource.TELEGRAM:
             return ReviewResult(status=status, message=text)
         message = _STATUS_MESSAGES.get(status) or _DONE_MESSAGES[command.kind]

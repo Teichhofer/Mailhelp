@@ -15,7 +15,7 @@ Stand: 10. Oktober 2026
 
 ## 1. Worum es geht
 
-Mailhelp ist eine selbst betriebene Software. Sie liest E-Mails aus einem Postfach,
+Mailhelp ist eine selbst betriebene Software. Sie liest E-Mails aus einem oder mehreren Postfächern derselben Person,
 lässt sie mit KI-Modellen auswerten und schlägt daraus Aufgaben (Todoist) und Termine
 (Google Kalender) vor. Die Vorschläge werden über einen Telegram-Bot oder die
 authentifizierte Weboberfläche zur Bestätigung vorgelegt. Mailhelp legt **nichts**
@@ -24,7 +24,8 @@ Vorschlagsversion nicht ausdrücklich über einen dieser beiden Kanäle bestäti
 Das Speichern einer Bearbeitung allein ist keine Bestätigung.
 
 Mailhelp ist kein öffentlicher Dienst. Eine Instanz wird von einer Person für ihr
-eigenes Postfach betrieben und von genau einem berechtigten Telegram-Konto bedient.
+eigenen Postfächer (ab Version 3.1 bis zu zehn) betrieben und von genau einem berechtigten
+Telegram-Konto bedient. Jedes eingetragene Postfach wird gleich verarbeitet.
 Diese Erklärung beschreibt die Instanz der unten genannten verantwortlichen Person.
 
 ## 2. Verantwortliche Person
@@ -41,6 +42,7 @@ E-Mail: [Kontakt-E-Mail-Adresse]
 | E-Mails: Absender, Empfänger, Betreff, Datum, Nachrichten-IDs und Textinhalt (Anhänge werden nicht ausgewertet) | eigenes Postfach per IMAP | Relevanzprüfung, Zusammenfassung, Erkennung von Aufgaben und Terminen |
 | Telegram-Nachrichten und Schaltflächen-Eingaben des berechtigten Kontos | Telegram | Bestätigung, Änderung oder Verwerfen von Vorschlägen; Rückfragen |
 | Aufgaben- und Terminvorschläge mit Belegstelle aus der Mail | von Mailhelp erzeugt | Vorlage zur Bestätigung, Anlage nach Bestätigung |
+| Quellenreferenzen mit Nachrichtenzeit, Betreff und gehashten Gesprächsankern; Vorschlagsbeziehungen, Vergleichscache und Merge-Journal | lokale Mail- und Vorschlagsakten | Zusammengehörige offene Entscheidungen erkennen, Ergänzungen nachvollziehen und unterbrochene lokale Änderungen wiederaufnehmen |
 | Bestehende Termine im Zeitraum eines Terminvorschlags: Titel, Beschreibung, Ort, Beginn, Ende, Link | Google Kalender | Erkennen von Duplikaten vor dem Anlegen |
 | Aufgaben im konfigurierten Todoist-Projekt | Todoist | Erkennen bereits angelegter Aufgaben vor dem Anlegen |
 | Gelernte Absender- und Themenfilter | aus bestätigten Entscheidungen | künftige Relevanzprüfung |
@@ -49,6 +51,14 @@ E-Mail: [Kontakt-E-Mail-Adresse]
 
 Von Absenderinnen und Absendern verarbeitet Mailhelp nur, was in den empfangenen
 E-Mails steht. Mailhelp versendet keine E-Mails und verändert das Postfach nicht.
+
+Beim optionalen KI-Abgleich offener Vorschläge werden begrenzte Vorschlagsfelder
+und die letzten drei Quellenbetreffe je Kandidat an den konfigurierten KI-Dienst
+übergeben. Der lokale Vergleichscache speichert das strukturierte Vergleichsergebnis
+mit Versions- und Policybezug. Quellenreferenzen kopieren keinen vollständigen
+Mailtext. Ein laufendes Merge-Journal enthält die für die Wiederaufnahme nötigen
+Revisionen; nach Abschluss wird sein Inhaltsanteil gelöscht. Ungeklärte Zusatzquellen
+bleiben bis zur Entscheidung vor der Inhaltsbereinigung geschützt.
 
 ## 4. Zwecke und Rechtsgrundlagen
 
@@ -154,6 +164,13 @@ sofort löschen. In Todoist und Google Kalender angelegte Einträge verbleiben d
 bis sie dort gelöscht werden.
 
 ## 8. Sicherheit
+
+Einrichtung und Benachrichtigungssteuerung (3.0-Arbeitsstand): Diagnoseberichte enthalten nur
+Version, Betriebssystemklasse, Komponentenstatus, Prüfdauer und sichere Fehlercodes. Queue und
+Zustelllogs enthalten Referenzen statt Nachrichtentexten. Telegram-Inhaltsmeldungen werden im
+Profil bewusst gewählt; Web-Push bleibt neutral. Erstkopplung ohne Telegram erfolgt durch
+`mailhelp --pair` am lokalen Host, ohne Codeausgabe in Dienstlogs. Ausstehende Meldungen prüfen
+Gerätesitzung und Abonnement erneut. Details: [Betriebsanleitung 3.0](docs/Release-3.0.md).
 
 - Zugangsdaten (Postfach, OpenRouter, Telegram, Todoist, Google) liegen nur in
   Umgebungsvariablen beziehungsweise einer lokalen `.env`-Datei, nicht im Code, und

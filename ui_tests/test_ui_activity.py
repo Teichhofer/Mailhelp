@@ -13,7 +13,7 @@ from mailhelp.activity.store import ActivityReportStore
 def _report(mailhelp):
     service = ActivityService(ActivityReportStore(mailhelp.store))
     mailhelp.site.activity.service = service
-    mailhelp.site.activity.suggest_folders = lambda: ["INBOX"]
+    mailhelp.site.activity.suggest_folders = lambda mailbox: ["INBOX"]
     return service
 
 

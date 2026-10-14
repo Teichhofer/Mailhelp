@@ -905,7 +905,7 @@ def test_callback_data_byte_validation_and_legacy_limit():
 
 
 @pytest.mark.parametrize(("changes", "labels", "actions"), [
-    ({}, ["In Todoist anlegen", "Ändern", "Verwerfen"],
+    ({}, ["Als Aufgabe anlegen", "Ändern", "Verwerfen"],
      [DecisionAction.CONFIRM, DecisionAction.EDIT, DecisionAction.REJECT]),
     ({"open_questions": ["Bitte klären"]}, ["Klären", "Verwerfen"],
      [DecisionAction.EDIT, DecisionAction.REJECT]),
@@ -2032,7 +2032,7 @@ def test_telegram_client_sends_calendar_document_and_validates_filename():
 
 def test_confirmation_executes_and_reports_all_results(tmp_path):
     cases=[
-        (Writer(),False,"created","✅ Angelegt in Todoist"),
+        (Writer(),False,"created","✅ Angelegt als Aufgabe"),
         (Writer(error=httpx.ReadTimeout("timeout")),False,"uncertain","Unklarer"),
         (Writer(error=httpx.HTTPStatusError("bad",request=httpx.Request("POST","https://x"),response=httpx.Response(400))),False,"failed","fehlgeschlagen"),
         (Writer(),True,"simulated","Testmodus"),
@@ -2050,7 +2050,7 @@ def test_confirmation_executes_and_reports_all_results(tmp_path):
             if status == "simulated":
                 assert callback_message.startswith("🧪 Testmodus: Aufgabe „Aufgabe“ bestätigt")
             elif status == "created":
-                assert callback_message == "✅ Angelegt in Todoist: „Aufgabe“\nhttps://example.test/item"
+                assert callback_message == "✅ Angelegt als Aufgabe: „Aufgabe“\nhttps://example.test/item"
             if status=="created": assert saved["external_id"]=="external-1" and saved["external_link"]=="https://example.test/item"
 
 
@@ -2300,3 +2300,30 @@ def test_regression_messages_after_open_question_are_held_until_resolved(tmp_pat
         later = [text for _, text, _ in t.sent]
         assert later.index("Zusammenfassung C") > max(
             i for i, text in enumerate(later) if "Aufgabe B" in text)
+
+
+def test_contradictory_end_without_validated_date_gets_a_question(tmp_path):
+    # Regression: an event without validated date facts (e.g. from an invitation) made
+    # the contradiction message compute None + 1 day for an "Ende" question and crash.
+    service = RevisionService()
+    with JsonStore(tmp_path) as store:
+        item = proposal(
+            kind="event", status="needs_clarification",
+            open_questions=["Wann endet der Termin?"],
+            start="2026-09-23T18:00:00+02:00", end="2026-09-23T19:00:00+02:00",
+        )
+        assert item.known_temporal_facts is None and item.temporal_fact is None
+        c, transport, _ = controller(store, revision_service=service)
+        c.revisions.configured_timezone = "Europe/Berlin"
+        c.persist(item)
+        store.save("telegram-dialog", TelegramDialogState(
+            mail_id=item.source_mail_id, proposal_id=item.id,
+            version=item.version).model_dump(mode="json"))
+
+        c.revisions.answer("2026-09-23 17 Uhr")
+
+        assert service.calls == []
+        state = store.load("clarification-aaaaaaaaaaaaaaaaaaaaaaaa-p1-v1")
+        assert state["answer_status"] == "invalid"
+        assert "Bitte" in transport.sent[-1][1]
+        assert store.load("proposal-aaaaaaaaaaaaaaaaaaaaaaaa-p1")["version"] == 1

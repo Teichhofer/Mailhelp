@@ -72,6 +72,7 @@ class TelegramOutbox:
         self.logger, self.repository = logger, repository
         self.send_proposal, self.send_relevance = send_proposal, send_relevance
         self.relevance, self.enabled = relevance, enabled
+        self.background = None
 
     def load(self) -> TelegramOutboxState:
         state = self.store.load_model(
@@ -88,13 +89,16 @@ class TelegramOutbox:
         return {
             (entry.mail_id, entry.proposal_id, entry.version)
             for entry in self.load().entries
-            if entry.kind == "proposal"
+            # The entry validator sets all three for a proposal; the checks narrow the types.
+            if entry.kind == "proposal" and entry.mail_id is not None and entry.proposal_id is not None
+            and entry.version is not None
         }
 
     def queued_relevance(self) -> set[tuple[str, int]]:
         """Relevance questions not yet attempted must not pause other mail."""
         return {(entry.mail_id, entry.version) for entry in self.load().entries
-                if entry.kind == "relevance" and entry.status == "queued"}
+                if entry.kind == "relevance" and entry.status == "queued"
+                and entry.mail_id is not None and entry.version is not None}
 
     @staticmethod
     def _uncertain_gate(entry: TelegramOutboxEntry) -> TelegramOutboxGate | None:
@@ -130,6 +134,8 @@ class TelegramOutbox:
         return self._enqueue(kind="message", text=text)
 
     def _enqueue(self, **reference: object) -> str:
+        if self.background is not None:
+            return self.background(reference)
         state = self.load()
         if reference["kind"] != "message":
             # Referenced items are idempotent: a repeated enqueue after a

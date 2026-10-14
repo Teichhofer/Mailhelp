@@ -14,7 +14,7 @@ import time
 from collections.abc import Callable
 from dataclasses import replace
 from datetime import UTC, datetime
-from typing import Protocol
+from typing import TYPE_CHECKING, Protocol
 from urllib.parse import parse_qs
 
 from pydantic import ValidationError
@@ -47,6 +47,8 @@ class EventLogger(Protocol):
 
 
 Handler = Callable[..., Response]
+if TYPE_CHECKING:
+    from ..notification_runtime import NotificationRuntime
 
 
 class MailhelpSite:
@@ -84,6 +86,8 @@ class MailhelpSite:
         app.route("GET", r"/mail/(?P<mail_id>[a-f0-9]{24})", self.signed_in(self.review.mail))
         app.route("GET", r"/mail/(?P<mail_id>[a-f0-9]{24})/anhang/(?P<index>[0-9]{1,5})",
                   self.signed_in(self.review.attachment))
+        app.route("GET", r"/mail/(?P<mail_id>[a-f0-9]{24})/original/(?P<index>[0-9]{1,5})",
+                  self.signed_in(self.review.original))
         app.route("GET", "/status", self.signed_in(self.status))
         app.route("GET", "/api/stand", self.signed_in(self.state))
         app.route("POST", "/aktion", self.signed_in(self.act))
@@ -95,6 +99,11 @@ class MailhelpSite:
         self.experience = ExperienceSite(self)
         from .activity_site import ActivitySite
         self.activity = ActivitySite(self)
+        from .setup_site import SetupSite
+        self.setup_page = SetupSite(self)
+        from .reconciliation_site import ReconciliationSite
+        self.reconciliation_page = ReconciliationSite(self)
+        self.notification_runtime: NotificationRuntime | None = None
 
     # --- helpers ------------------------------------------------------------------
 
@@ -278,6 +287,9 @@ class MailhelpSite:
 
     def state(self, request: Request, session: WebSession) -> Response:
         """Fingerprint of the overview (or the status page); the page reloads when it changes."""
+        report_id = parse_qs(request.query, max_num_fields=5).get("bericht")
+        if report_id:
+            return self.activity.state(report_id[0])
         overview = self.views.overview()
         if parse_qs(request.query, max_num_fields=5).get("seite") == ["status"]:
             metrics = self.archive.metrics

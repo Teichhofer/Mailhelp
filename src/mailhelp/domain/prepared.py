@@ -46,6 +46,7 @@ class MailHeaders(_ReadModel):
     message_id: str = ""
     reply_to: str = ""
     references: str = ""
+    in_reply_to: str = ""
 
 
 class ImagePreview(_ReadModel):

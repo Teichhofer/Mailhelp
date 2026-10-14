@@ -134,7 +134,7 @@ def test_still_open_after_revision_keeps_holding(tmp_path):
 def test_regression_complete_proposal_holds_until_decided(tmp_path):
     """Regression 2026-10-08: confirmation proposals were sent back to back.
 
-    A complete proposal ("Im Kalender anlegen"/"In Todoist anlegen") is an open
+    A complete proposal ("Im Kalender anlegen"/"Als Aufgabe anlegen") is an open
     decision as well and must hold every later message until it is decided.
     """
     with JsonStore(tmp_path) as store:

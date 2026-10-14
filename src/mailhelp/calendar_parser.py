@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import re
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, tzinfo
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -38,7 +38,8 @@ def _unescape_text(value: str) -> str:
     return result.strip()
 
 
-def _parse_ical_datetime(raw_val: str, params: dict[str, str], default_timezone: str = "UTC") -> tuple[date | datetime, bool]:
+def _parse_ical_datetime(raw_val: str, params: dict[str, str],
+                         default_timezone: str = "UTC") -> tuple[date | datetime, bool]:
     """Parse an iCalendar DATE or DATE-TIME value into date or timezone-aware datetime."""
     val = raw_val.strip()
     is_date_value = params.get("VALUE", "").upper() == "DATE" or (len(val) == 8 and val.isdigit())
@@ -64,6 +65,7 @@ def _parse_ical_datetime(raw_val: str, params: dict[str, str], default_timezone:
     minute = int(time_digits[2:4])
     second = int(time_digits[4:6]) if len(time_digits) >= 6 else 0
 
+    tz: tzinfo
     if is_utc:
         tz = UTC
     elif "TZID" in params:

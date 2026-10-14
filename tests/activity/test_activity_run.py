@@ -7,7 +7,7 @@ from types import SimpleNamespace as NS
 import pytest
 from activity_fakes import Mailbox, Model, activity_prompts, definition, raw_mail
 from log_fakes import RecordingLogger
-from test_application import settings as app_settings
+from shared_application import settings as app_settings
 
 from mailhelp.activity.llm import ActivityAnalyzer
 from mailhelp.activity.models import ReportEvent, ReportStatus
@@ -187,8 +187,8 @@ def test_the_report_uses_only_its_share_and_waits_for_the_shared_budget(setup, m
     runner = ActivityRunner(setup.service, setup.runner.analyzer, setup.box.connection, setup.cfg, setup.log,
                             lambda: 2, lambda: clock[0])
     monkeypatch.setattr(runner.stop_event, "wait", wait)
-    runner._wait_for_budget()
-    runner._wait_for_budget()  # 50 % of 2 per minute: the second call waits
+    runner.calls.wait_for_share()
+    runner.calls.wait_for_share()  # 50 % of 2 per minute: the second call waits
     assert waits and sum(waits) >= 5
     attempts = []
     def limited():
@@ -196,10 +196,10 @@ def test_the_report_uses_only_its_share_and_waits_for_the_shared_budget(setup, m
         if len(attempts) == 1:
             raise RateLimitExceeded(0)
         return "ok"
-    assert runner._call(limited) == "ok" and len(attempts) == 2
+    assert runner.calls.call(limited) == "ok" and len(attempts) == 2
     runner.stop_event.is_set = lambda: True
     with pytest.raises(RateLimitExceeded):
-        runner._call(lambda: (_ for _ in ()).throw(RateLimitExceeded(0)))
+        runner.calls.call(lambda: (_ for _ in ()).throw(RateLimitExceeded(0)))
 
 
 def test_user_corrections_and_dates_on_request(setup):
@@ -278,7 +278,7 @@ def test_background_loop_and_vanishing_reports(setup, monkeypatch):
     assert setup.service.store.load(report.id) is None and not runner.tick()
     # Counting a report that was cancelled meanwhile keeps the cancellation.
     counting = setup.service.create(definition(), [], [])
-    def cancel_meanwhile():
+    def cancel_meanwhile(_mailbox):
         setup.service.act(counting.id, 1, "cancel-001", "cancel")
         return setup.box.connection()
     runner.open_reader = cancel_meanwhile
@@ -458,3 +458,308 @@ def test_a_report_cancelled_during_failing_calls_stays_cancelled(setup):
     for _ in range(MAX_FAILURES):
         setup.runner.tick()
     assert setup.service.store.load(report.id).status == ReportStatus.CANCELLED
+
+
+def test_live_corrections_survive_the_in_flight_event_analysis(setup):
+    report = started(setup, include_sent=False)
+
+    def correct_while_analyzing(payload):
+        current = setup.service.store.load(report.id)
+        mail = setup.service.store.mails(report.id)[0]
+        current = setup.service.set_relevance(report.id, current.version, "correct-relevance", mail.key, False)
+        setup.service.set_event(report.id, current.version, "correct-new-event", mail.key, None,
+                                event_values("Manuell", "2026-01-22", "", "", ""))
+        return events_answer(payload)
+
+    setup.model.answers["activity_events"] = correct_while_analyzing
+    setup.runner.tick()
+    mail = setup.service.store.mails(report.id)[0]
+    assert mail.user_relevant is False
+    assert any(event.manual and event.title == "Manuell" for event in mail.events)
+    assert len({event.id for event in mail.events}) == len(mail.events)
+
+
+def test_call_limit_stops_between_steps_and_resume_does_not_repeat_relevance(setup):
+    setup.cfg.activity_report.max_llm_calls = 1
+    report = started(setup, include_sent=False)
+    setup.runner.tick()
+    current = setup.service.store.load(report.id)
+    assert len(setup.model.requests) == current.counters.llm_calls == 1
+    assert current.status == ReportStatus.PAUSED and current.processed == 0
+    setup.cfg.activity_report.max_llm_calls = 2
+    setup.service.act(report.id, current.version, "resume-budget-001", "resume")
+    setup.runner.tick()
+    assert [stage for stage, _ in setup.model.requests] == ["activity_relevance", "activity_events"]
+    assert setup.service.store.load(report.id).counters.llm_calls == 2
+
+
+def test_explicit_sent_folder_still_filters_recipients(setup):
+    report = started(setup, folders=["Gesendet"])
+    setup.runner.tick()
+    mails = setup.service.store.mails(report.id)
+    assert mails[0].skipped == "sender"
+    assert mails[1].sender.startswith("An:")
+
+
+def test_report_counting_is_fifo(setup):
+    first = setup.service.create(definition(title="first"), [], [])
+    second = setup.service.create(definition(title="second"), [], [])
+    setup.runner.tick()
+    assert setup.service.store.load(first.id).status == ReportStatus.READY
+    assert setup.service.store.load(second.id).status == ReportStatus.COUNTING
+
+
+@pytest.mark.parametrize("listing", ["oldest_file_first", "newest_file_first"])
+def test_reports_created_in_the_same_clock_tick_stay_fifo(setup, monkeypatch, listing):
+    """Regression: on Windows two reports can get the same created_at (about 15 ms clock
+    resolution); the order then depended on the random file names."""
+    import mailhelp.activity.models as models
+
+    class SameTick(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return JAN
+
+    monkeypatch.setattr(models, "datetime", SameTick)
+    first = setup.service.create(definition(title="first"), [], [])
+    second = setup.service.create(definition(title="second"), [], [])
+    assert first.created_at == second.created_at == JAN
+    # The file system may list the two report files in either order.
+    created = [first.id, second.id] if listing == "oldest_file_first" else [second.id, first.id]
+    names = setup.store.names
+    monkeypatch.setattr(setup.store, "names", lambda prefix="": sorted(
+        names(prefix), key=lambda name: next((i for i, rid in enumerate(created) if rid in name), -1)))
+    setup.runner.tick()
+    assert setup.service.store.load(first.id).status == ReportStatus.READY
+    assert setup.service.store.load(second.id).status == ReportStatus.COUNTING
+    assert [report.id for report in setup.service.store.reports()] == [second.id, first.id]
+
+
+def test_counting_failure_is_bounded_and_persisted(setup, monkeypatch):
+    report = setup.service.create(definition(), [], [])
+
+    def offline():
+        raise OSError("synthetic offline")
+
+    monkeypatch.setattr(setup.box, "list_folders", offline)
+    for _ in range(MAX_FAILURES):
+        setup.runner.tick()
+        setup.runner.recover()
+    current = setup.service.store.load(report.id)
+    assert current.status == ReportStatus.FAILED
+    assert "OSError" in current.message
+    assert not setup.runner.tick()
+
+
+def test_model_date_must_agree_with_its_quote(setup):
+    report = started(setup, include_sent=False)
+    setup.model.answers["activity_events"] = {"events": [
+        {"title": "Falscher Tag", "date": "2026-01-21", "evidence": "am 20. Januar um 19 Uhr"}]}
+    setup.runner.tick()
+    assert setup.service.store.mails(report.id)[0].events == []
+    assert any(event[0][2] == "event_date_conflict" for event in setup.log.events)
+
+
+def test_requested_extraction_cannot_bypass_the_call_limit(setup):
+    report = started(setup)
+    run_all(setup)
+    report = setup.service.store.load(report.id)
+    mail = next(item for item in setup.service.store.mails(report.id) if item.subject == "Werbung")
+    setup.cfg.activity_report.max_llm_calls = report.counters.llm_calls
+    setup.service.set_relevance(report.id, report.version, "request-at-limit", mail.key, True)
+    calls = len(setup.model.requests)
+    setup.runner.tick()
+    assert len(setup.model.requests) == calls
+    assert not setup.runner.tick()
+    report = setup.service.store.load(report.id)
+    assert report.status == ReportStatus.PAUSED and report.pending_extractions == [mail.key]
+
+
+def test_uidvalidity_change_reenumerates_and_reuses_saved_results(setup, monkeypatch):
+    from mailhelp.imap import UIDValidityChanged
+    monkeypatch.setattr("mailhelp.activity.runner.BATCH", 1)
+    report = started(setup, include_sent=False)
+    setup.runner.tick()
+    calls = len(setup.model.requests)
+    setup.box.fetch_errors = [UIDValidityChanged("INBOX", 7, 8)]
+    original = setup.box.discover_since
+
+    def new_generation(*args, **kwargs):
+        found = original(*args, **kwargs)
+        setup.box.last_uidvalidity = 8
+        return found
+
+    monkeypatch.setattr(setup.box, "discover_since", new_generation)
+    setup.runner.tick()
+    setup.runner.tick()
+    current = setup.service.store.load(report.id)
+    assert current.folders[0].uidvalidity == 8
+    assert len(setup.model.requests) == calls
+    mails = setup.service.store.mails(report.id)
+    assert len(mails) == 1 and mails[0].key == "INBOX:8:1"
+
+
+def test_repeated_report_reuses_text_but_not_previous_model_results(setup):
+    report = started(setup, include_sent=False)
+    run_all(setup)
+    current = setup.service.store.load(report.id)
+    target = setup.service.repeat(report.id, current.version, "repeat-00001", "Anderes Thema fuer den Bericht")
+    assert target.status == ReportStatus.COUNTING
+    assert all(mail.relevant is None and mail.events == [] for mail in setup.service.store.mails(target.id))
+    assert setup.service.repeat(report.id, current.version, "repeat-00001", target.definition.topic).id == target.id
+    setup.runner.tick()
+    setup.service.act(target.id, 1, "start-repeat", "start")
+    setup.box.calls.clear()
+    calls = len(setup.model.requests)
+    run_all(setup)
+    assert len(setup.model.requests) > calls
+    assert not any(call[:3] == ("fetch", "INBOX", 1) for call in setup.box.calls)
+    setup.service.delete(target.id, 2)
+    with pytest.raises(ReportConflict, match="gelöscht"):
+        setup.service.repeat(report.id, current.version, "repeat-00001", target.definition.topic)
+
+
+def test_session_is_checked_again_before_each_model_call(setup):
+    active = [True]
+    setup.service.active = lambda actor: actor == "session" and active[0]
+    setup.service.actor.set("session")
+    report = started(setup, include_sent=False)
+
+    def expire(payload):
+        active[0] = False
+        return RELEVANT
+
+    setup.model.answers["activity_relevance"] = expire
+    setup.runner.tick()
+    current = setup.service.store.load(report.id)
+    assert current.status == ReportStatus.PAUSED and len(setup.model.requests) == 1
+    with pytest.raises(ReportConflict, match="Sitzung"):
+        setup.service.act(report.id, current.version, "resume-expired", "resume")
+    with pytest.raises(ReportConflict, match="Sitzung"):
+        setup.service.create(definition(), [], [])
+    with pytest.raises(ReportConflict, match="Sitzung"):
+        setup.service.delete(report.id, current.version)
+
+
+def test_model_repair_also_consumes_the_hard_call_budget(setup):
+    setup.cfg.activity_report.max_llm_calls = 1
+    setup.runner.analyzer.analyzer.schema_repair_retries = 2
+    setup.model.answers["activity_relevance"] = {"invalid": True}
+    report = started(setup)
+    setup.runner.tick()
+    assert len(setup.model.requests) == 1
+    assert setup.service.store.load(report.id).status == ReportStatus.PAUSED
+
+
+def test_start_captures_the_current_sender_filter_and_delete_rejects_conflicting_keys(setup):
+    setup.service.blocked_senders = lambda: (["new@example.test"], ["new.test"])
+    report = started(setup)
+    assert report.blocked_addresses == ["new@example.test"] and report.blocked_domains == ["new.test"]
+    report = setup.service.act(report.id, report.version, "pause-0001", "pause")
+    with pytest.raises(ReportConflict, match="Idempotenzkonflikt"):
+        setup.service.delete(report.id, report.version, "pause-0001")
+    setup.service.delete(report.id, report.version, "delete-0001")
+    setup.service.delete(report.id, report.version, "delete-0001")
+    with pytest.raises(ReportConflict, match="Idempotenzkonflikt"):
+        setup.service.delete(report.id, report.version + 1, "delete-0001")
+
+
+def test_retention_while_analyzing_cannot_restore_fulltext_or_evidence(setup):
+    report = started(setup, include_sent=False)
+
+    def remove_text(payload):
+        mail = setup.service.store.mails(report.id)[0]
+        mail.text, mail.text_removed = "", True
+        setup.service.store.save_mail(report.id, mail)
+        return events_answer(payload)
+
+    setup.model.answers["activity_events"] = remove_text
+    setup.runner.tick()
+    mail = setup.service.store.mails(report.id)[0]
+    assert mail.text_removed and not mail.text and all(not event.evidence for event in mail.events)
+
+
+def test_cancellation_during_failed_count_is_not_replaced_by_failed_status(setup, monkeypatch):
+    report = setup.service.create(definition(), [], [])
+
+    def cancel_then_fail():
+        setup.service.act(report.id, 1, "cancel-count", "cancel")
+        raise OSError("offline")
+
+    monkeypatch.setattr(setup.box, "list_folders", cancel_then_fail)
+    setup.runner.tick()
+    assert setup.service.store.load(report.id).status == ReportStatus.CANCELLED
+
+
+def test_budget_scope_preserves_direct_analysis_and_provider_metrics(setup):
+    recorded = []
+    setup.model.record_schema_validation = lambda **values: recorded.append(values)
+    report = setup.service.create(definition(), [], [])
+    from mailhelp.activity.models import ReportMail
+    mail = ReportMail(key="INBOX:7:1", folder="INBOX", uid=1, received_at=JAN, subject="Elternabend")
+    call, answer = setup.runner.calls.call(lambda: setup.runner.analyzer.relevance(report, mail, JAN.date()))
+    assert answer.relevant and recorded[0]["call_id"] == call
+
+
+def test_a_report_paused_or_deleted_during_a_call_stops_the_batch(setup):
+    report = started(setup, include_sent=False)
+
+    def pause_during_call(payload):
+        current = setup.service.store.load(report.id)
+        if current.status == ReportStatus.RUNNING:
+            setup.service.act(report.id, current.version, "pause-in-call", "pause")
+        return IRRELEVANT
+    setup.model.answers["activity_relevance"] = pause_during_call
+    setup.runner.tick()
+    # The answer in flight is kept; the batch ends before the next mail.
+    current = setup.service.store.load(report.id)
+    assert current.status == ReportStatus.PAUSED and current.counters.read == 1
+    other = started(setup, include_sent=False)
+
+    def delete_during_call(payload):
+        current = setup.service.store.load(other.id)
+        current = setup.service.act(other.id, current.version, "cancel-in-call", "cancel")
+        setup.service.delete(other.id, current.version, "delete-in-call")
+        return RELEVANT
+    setup.model.answers["activity_relevance"] = delete_during_call
+    setup.runner.tick()
+    assert setup.service.store.load(other.id) is None and setup.service.store.mails(other.id) == []
+
+
+def test_a_new_uid_generation_completes_a_pending_extraction(setup, monkeypatch):
+    from mailhelp.imap import UIDValidityChanged
+    monkeypatch.setattr("mailhelp.activity.runner.BATCH", 1)
+    report = started(setup, include_sent=False)
+    setup.model.answers["activity_events"] = RuntimeError("offline")
+    setup.runner.tick()
+    stored = setup.service.store.mails(report.id)
+    assert stored[0].relevant and not stored[0].events_extracted
+    setup.model.answers["activity_events"] = events_answer
+    setup.box.fetch_errors = [UIDValidityChanged("INBOX", 7, 8)]
+    original = setup.box.discover_since
+
+    def new_generation(*args, **kwargs):
+        found = original(*args, **kwargs)
+        setup.box.last_uidvalidity = 8
+        return found
+    monkeypatch.setattr(setup.box, "discover_since", new_generation)
+    setup.runner.tick()
+    setup.runner.tick()
+    mail = setup.service.store.mail(report.id, "INBOX:8:1")
+    assert mail is not None and mail.events_extracted and [event.day for event in mail.events]
+    assert [stage for stage, _ in setup.model.requests].count("activity_relevance") == 1
+
+
+def test_counting_and_reading_use_the_mailbox_of_the_report(setup):
+    """Planung 3.1: a report of mailbox 2 opens only mailbox 2."""
+    opened = []
+
+    def open_reader(mailbox):
+        opened.append(mailbox)
+        return setup.box.connection()
+    setup.runner.open_reader = open_reader
+    report = setup.service.create(definition(mailbox=2), [], [])
+    assert setup.runner.tick()
+    setup.service.act(report.id, setup.service.store.load(report.id).version, "start-0001", "start")
+    assert setup.runner.tick()
+    assert opened == [2, 2]

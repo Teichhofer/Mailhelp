@@ -28,6 +28,11 @@ class TelegramDialogState(StrictModel):
             raise ValueError("Ein Revisions-Retry benötigt Referenz, Frage und normalisierte Antwort")
         return self
 
+    def reference(self) -> tuple[str, str, int]:
+        """Mail, proposal and version of an open dialog; the validator sets all three together."""
+        assert self.mail_id is not None and self.proposal_id is not None and self.version is not None
+        return self.mail_id, self.proposal_id, self.version
+
 
 class QuestionStatus(StrEnum):
     OPEN = "open"

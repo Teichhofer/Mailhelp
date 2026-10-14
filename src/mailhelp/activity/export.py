@@ -61,10 +61,10 @@ def _identity(event: ReportEvent) -> tuple[date, str, str]:
     return event.day, event.start_time or "", " ".join(event.title.split()).casefold()
 
 
-def event_rows(mails: list[ReportMail]) -> list[tuple[int, ReportEvent, ReportMail]]:
+def event_rows(mails: list[ReportMail], include_excluded: bool = False) -> list[tuple[int, ReportEvent, ReportMail]]:
     """Exported dates in date order; the same date from several mails shares one number."""
-    rows = [(event, mail) for mail in mails if mail.counts_as_relevant and mail.skipped is None
-            for event in mail.events if not event.excluded and not event.cancelled]
+    rows = [(event, mail) for mail in mails if (mail.counts_as_relevant or include_excluded) and mail.skipped is None
+            for event in mail.events if include_excluded or not event.excluded and not event.cancelled]
     rows.sort(key=lambda item: (item[0].day, item[0].start_time or "", item[1].received_at))
     numbers: dict[tuple[date, str, str], int] = {}
     return [(numbers.setdefault(_identity(event), len(numbers) + 1), event, mail) for event, mail in rows]

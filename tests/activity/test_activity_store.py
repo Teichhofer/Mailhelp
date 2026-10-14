@@ -54,6 +54,19 @@ def test_report_progress_relevance_override_and_range():
         ReportEvent(id="e1", title="T", day=date(2026, 1, 1), start_time="25:00")
 
 
+def test_reports_from_before_the_sequence_number_still_load_and_sort(tmp_path):
+    """2.3.1 added ``sequence``; older report files lack it and keep a stable order."""
+    with JsonStore(tmp_path) as store:
+        reports = ActivityReportStore(store)
+        for report_id in ("b" * 32, "a" * 32):
+            old = ActivityReport(id=report_id, definition=definition(), created_at=NOW).model_dump(mode="json")
+            old.pop("sequence")
+            store.save(report_name(report_id), old)
+        assert [(item.id, item.sequence) for item in reports.reports()] == [("b" * 32, 0), ("a" * 32, 0)]
+        new = reports.create(definition(), [], [], NOW)
+        assert new.sequence == 1 and reports.reports()[0].id == new.id
+
+
 def test_reports_and_mails_survive_restart_in_blocks(tmp_path, monkeypatch):
     monkeypatch.setattr(store_module, "CHUNK", 2)
     with JsonStore(tmp_path) as store:
@@ -102,7 +115,7 @@ def test_retention_removes_only_expired_full_texts(tmp_path):
 
 
 def test_retention_service_runs_the_activity_cleanup(tmp_path):
-    from test_application import Log, settings
+    from shared_application import Log, settings
     with JsonStore(tmp_path) as store:
         reports = ActivityReportStore(store)
         report = reports.create(definition(), [], [])
@@ -117,8 +130,8 @@ def test_retention_service_runs_the_activity_cleanup(tmp_path):
 
 def test_activity_settings_never_change_an_analysis_fingerprint(tmp_path):
     """The report and its prompts act outside the analysis; mails in progress must not wait."""
-    from test_application import settings
-    from test_core import prompt_config
+    from shared_application import settings
+    from shared_core import prompt_config
 
     from mailhelp.config import PromptStep
     cfg, prompts = settings(tmp_path), prompt_config()

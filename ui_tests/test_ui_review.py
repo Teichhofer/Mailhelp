@@ -102,14 +102,24 @@ def test_overview_refreshes_itself_but_never_discards_typed_text(page, mailhelp)
     reloads = []
 
     def hold(route):
+        if route.request.resource_type == "fetch":
+            route.fallback()
+            return
         reloads.append(route.request.url)
         route.fulfill(status=204)
 
     page.route(f"{mailhelp.url}/", hold)
     refresh(page)
-    expect(page.get_by_label("Notiz")).to_have_count(1)
-    page.wait_for_timeout(300)
-    assert reloads == [f"{mailhelp.url}/"]
+    if page.device == "desktop":
+        # The split view loads the new item in place instead of reloading.
+        expect(page.locator(".master-pane").get_by_text("Anmeldung Ferienbetreuung abgeben")).to_be_visible()
+        expect(page.get_by_label("Notiz")).to_have_count(0)
+        page.wait_for_timeout(300)
+        assert reloads == []
+    else:
+        expect(page.get_by_label("Notiz")).to_have_count(1)
+        page.wait_for_timeout(300)
+        assert reloads == [f"{mailhelp.url}/"]
     page.unroute(f"{mailhelp.url}/")
     page.reload()
     expect(page.get_by_text("Anmeldung Ferienbetreuung abgeben")).to_be_visible()

@@ -3,8 +3,10 @@ from __future__ import annotations
 
 import json
 import secrets
+from collections.abc import Sequence
 from datetime import datetime
 from decimal import Decimal
+from typing import SupportsFloat
 from urllib.parse import parse_qs, urlencode
 from zoneinfo import ZoneInfo
 
@@ -28,7 +30,7 @@ from .setting_help import EXTRA_HELP, SETTING_HELP, help_bubble
 
 EDIT_LABELS = {"title": "Titel", "description": "Beschreibung", "target": "Ziel", "due": "Frist",
                "start": "Beginn", "end": "Ende", "all_day": "Ganztägig (true/false)", "location": "Ort",
-               "video_link": "Videolink (HTTPS)"}
+               "video_link": "Videolink (HTTPS)", "meeting_mode": "Teilnahmeart"}
 SETTING_LABELS = {"poll_interval_seconds": "Abrufintervall (Sekunden)", "timezone": "Zeitzone",
                   "test_mode": "Trockenlauf", "limits.llm_calls_per_minute": "KI-Aufrufe pro Minute",
                   "limits.max_mail_bytes": "Maximale Mailgröße (Bytes)",
@@ -50,18 +52,19 @@ TEXT_SETTINGS = {"personal_info": ("Zum Beispiel Name, Rolle, Signatur oder gew�
 MODE_LABELS = {"production": "Betrieb (Standard und Ollama)", "standard": "Betrieb mit Standard-KI",
                "local": "Betrieb mit Ollama", "decision_test": "Vergleichsläufe (Decision-Tests)"}
 PERIODS = ((1, "Heute (24 Std.)"), (7, "7 Tage"), (30, "30 Tage"), (90, "90 Tage"))
+PROPOSAL_PATH = r"/vorschlag/(?P<mail_id>[a-f0-9]{24})/(?P<proposal_id>[A-Za-z0-9_-]{1,64})"
 
 
-def _number(value: object, digits: int = 2) -> str:
+def _number(value: SupportsFloat | str, digits: int = 2) -> str:
     """German number format; callers show missing figures as "—" or "unbekannt"."""
     return f"{float(value):,.{digits}f}".replace(",", " ").replace(".", ",").replace(" ", ".")
 
 
-def _money(value: object, currency: str) -> str:
+def _money(value: SupportsFloat | str | None, currency: str) -> str:
     return "unbekannt" if value is None else f"{_number(value, 4)} {currency}"
 
 
-def select(name: str, label: str, value: object, options: list[tuple[object, str]]) -> str:
+def select(name: str, label: str, value: object, options: Sequence[tuple[object, str]]) -> str:
     rendered = "".join(f'<option value="{e(key)}"{" selected" if str(key) == str(value) else ""}>{e(text)}</option>'
                        for key, text in options)
     return f'<label>{e(label)}<select name="{e(name)}">{rendered}</select></label>'
@@ -111,8 +114,9 @@ def statistics_page(params: dict, report: dict, everything: list[dict]) -> str:
         for group in report["groups"]:
             model_short = group["model"].rsplit("/", 1)[-1]
             cent = Decimal(str(group["usd"])) * 100
-            body += (f'<tr><td title="{e(group["model"])}">{e(model_short)}</td><td>{e(group["stage"])}</td><td>{e(group["provider"])}</td>'
-                     f'<td>{group["count"]}</td><td>{group["failed"]}</td><td>{_number(group["seconds"], 1)} s</td>'
+            body += (f'<tr><td title="{e(group["model"])}">{e(model_short)}</td><td>{e(group["stage"])}</td>'
+                     f'<td>{e(group["provider"])}</td><td>{group["count"]}</td><td>{group["failed"]}</td>'
+                     f'<td>{_number(group["seconds"], 1)} s</td>'
                      f'<td>{_number(group["median"], 2)} s</td><td>{_number(group["p95"], 2)} s</td>'
                      f'<td title="{_number(group["usd"], 4)} USD">{_number(cent, 2)}</td></tr>')
         body += "</tbody></table></div>"
@@ -124,7 +128,9 @@ def statistics_page(params: dict, report: dict, everything: list[dict]) -> str:
 SETTING_GROUPS = (
     ("Mailabruf und Betrieb", ("poll_interval_seconds", "timezone", "test_mode")),
     ("Antworten", ("personal_info",)),
+    ("Termindauern und Vorschlagsabgleich", ("event_defaults.", "proposal_reconciliation.")),
     ("Ziele", ("targets.",)),
+    ("Originalanhänge", ("attachments.",)),
     ("Aufrufbudget und Mailgrenzen", ("limits.",)),
     ("Zeitlimits und Wiederholungen", ("timeouts.", "retries.")),
     ("Aufbewahrung", ("retention.",)),
@@ -132,20 +138,40 @@ SETTING_GROUPS = (
     ("Kosten und Messung", ("metrics.",)),
 )
 SERVICE_LABELS = {"imap": "IMAP", "telegram": "Telegram", "openrouter": "OpenRouter", "ollama": "Ollama",
-                  "todoist": "Todoist", "google_calendar": "Google Kalender"}
+                  "todoist": "Todoist", "google_calendar": "Google Kalender", "caldav": "CalDAV",
+                  "microsoft": "Microsoft 365"}
 TIMEOUT_LABELS = {"timeout_seconds": "Zeitlimit (s)", "retries": "Wiederholungen",
                   "initial_backoff_seconds": "erste Wartezeit (s)", "max_backoff_seconds": "längste Wartezeit (s)"}
 EXTRA_LABELS = {
+    "event_defaults.video_duration_minutes": "Standarddauer Videokonferenz (Minuten)",
+    "event_defaults.in_person_duration_minutes": "Standarddauer Präsenztermin (Minuten)",
+    "proposal_reconciliation.max_semantic_candidates": "Abgleich: höchstens KI-Kandidaten",
     "targets.todoist_project": "Todoist-Projekt", "targets.google_calendar": "Google-Kalender",
+    "targets.calendar_provider": "Kalenderdienst", "targets.task_provider": "Aufgabendienst",
+    "targets.caldav_calendar_url": "CalDAV-Kalender (Adresse)",
+    "targets.caldav_task_url": "CalDAV-Aufgabenliste (Adresse)",
+    "targets.outlook_calendar": "Outlook-Kalender", "targets.microsoft_todo_list": "Microsoft-To-Do-Liste",
+    "targets.microsoft_tenant": "Microsoft-Mandant",
+    "attachments.store_originals": "Originale speichern",
+    "attachments.max_original_bytes": "Höchstgröße je Datei (Bytes)",
+    "attachments.max_total_bytes": "Höchstgröße je Mail (Bytes)",
     "logging.console.level": "Konsole: Mindeststufe", "logging.file.level": "Logdatei: Mindeststufe",
     "logging.llm.include_requests": "KI-Anfragen vollständig protokollieren",
     "logging.llm.include_responses": "KI-Antworten vollständig protokollieren",
     "metrics.usd_per_eur": "Wechselkurs (USD je EUR)", "metrics.exchange_rate_date": "Wechselkurs vom",
     "retries.interpretation_attempts": "Antworten verstehen: Versuche",
     "retries.interpretation_backoff_seconds": "Antworten verstehen: Wartezeit (s)",
-    "retries.revision_attempts": "Überarbeitung: Versuche", "retries.revision_backoff_seconds": "Überarbeitung: Wartezeit (s)",
+    "retries.revision_attempts": "Überarbeitung: Versuche",
+    "retries.revision_backoff_seconds": "Überarbeitung: Wartezeit (s)",
 }
 LEVEL_CHOICES = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
+PROVIDER_CHOICES = {
+    "targets.calendar_provider": (("google", "Google Kalender"), ("caldav", "CalDAV (Nextcloud, iCloud, …)"),
+                                  ("outlook", "Outlook / Microsoft 365")),
+    "targets.task_provider": (("todoist", "Todoist"), ("microsoft_todo", "Microsoft To Do"),
+                              ("caldav", "CalDAV-Aufgaben (VTODO)"),
+                              ("apple_reminders", "Apple Erinnerungen (iCloud)")),
+}
 
 
 def setting_label(name: str) -> str:
@@ -171,6 +197,8 @@ def _shown(name: str, value: object) -> str:
     if isinstance(value, bool):
         return "ja" if value else "nein"
     text = str(value)
+    if name in PROVIDER_CHOICES:
+        return dict(PROVIDER_CHOICES[name]).get(text, text)
     if name.startswith("targets.") and len(text) > 8:
         return f"{text[:3]}…{text[-3:]}"
     return text
@@ -185,6 +213,8 @@ def _input(name: str, saved: object) -> str:
         return select("value", label, json.dumps(saved), [("true", "ja"), ("false", "nein")])
     if name.endswith(".level"):
         return select("value", label, saved, [(level, level) for level in LEVEL_CHOICES])
+    if name in PROVIDER_CHOICES:
+        return select("value", label, saved, list(PROVIDER_CHOICES[name]))
     kind = "number" if isinstance(saved, (int, float)) else "text"
     step = ' step="any"' if kind == "number" else ""
     shown = "" if saved is None else saved
@@ -197,11 +227,13 @@ def settings_page(models: list, raw: dict | None, active: dict | None, revision:
             '<a class="button small" href="/einstellungen/ignorierte-absender">Ignorierte Absender</a> '
             '<a class="button small" href="/geraete">Geräte</a> '
             '<a class="button small danger" href="/einstellungen/beenden">Mailhelp beenden</a></p>')
-    body += '<div class="setting-row"><h2>Modelle (nur lesend)</h2>' + help_bubble("models", "Modelle", EXTRA_HELP["models"]) + "</div>"
+    body += ('<div class="setting-row"><h2>Modelle (nur lesend)</h2>'
+             + help_bubble("models", "Modelle", EXTRA_HELP["models"]) + "</div>")
     if models:
         body += ('<div class="table-scroll"><table><thead><tr><th>Schritt</th>'
                  "<th>Modell</th><th>Parameter</th><th>Quelle</th></tr></thead><tbody>"
-                 + "".join(f"<tr><td>{e(step)}</td><td>{e(model)}</td><td>{e(parameters or '—')}</td><td>{e(source)}</td></tr>"
+                 + "".join(f"<tr><td>{e(step)}</td><td>{e(model)}</td><td>{e(parameters or '—')}</td>"
+                           f"<td>{e(source)}</td></tr>"
                            for step, model, parameters, source in models)
                  + "</tbody></table></div>")
     else:
@@ -226,7 +258,8 @@ def settings_page(models: list, raw: dict | None, active: dict | None, revision:
             timing = "sofort nach dem Speichern" if live else "beim nächsten Start"
             form = post_form("/einstellungen/speichern", csrf, _input(name, saved), "Prüfen",
                              name=name, expected_hash=revision)
-            body += (f'<div class="setting-row"><details class="setting"><summary><span>{e(setting_label(name))}</span>'
+            body += ('<div class="setting-row"><details class="setting">'
+                     f'<summary><span>{e(setting_label(name))}</span>'
                      f'<strong>{e(_shown(name, current))}</strong></summary>'
                      f'<p class="meta">Gespeichert: {e(_shown(name, saved))} · {e(state)} · '
                      f'Änderungen wirken {e(timing)}.</p>{form}</details>'
@@ -239,6 +272,16 @@ RELEVANCE_LABELS = {"relevant": "relevant", "irrelevant": "irrelevant", "unclear
 STATE_FILTERS = (("", "alle"), ("waiting", "wartet auf dich"), ("failed", "mit Fehler"),
                  ("completed", "abgeschlossen"), ("no_action", "ohne Vorschlag"))
 SORTS = (("received", "Empfangszeit"), ("updated", "zuletzt bearbeitet"))
+SEARCH_SCOPES = (("all", "allem – auch Mailtext und Anhänge"),
+                 ("meta", "nur Absender, Betreff und Zusammenfassung"))
+
+
+def _hit(hit) -> str:
+    """Where the first search word was found, with the match highlighted (all text escaped)."""
+    if hit is None:
+        return ""
+    return (f'<p class="search-hit"><span class="meta">Gefunden in {e(hit.where)}:</span> '
+            f'{e(hit.before)}<mark>{e(hit.match)}</mark>{e(hit.after)}</p>')
 
 
 def _local_time(value: str | None, zone: str) -> str:
@@ -247,7 +290,8 @@ def _local_time(value: str | None, zone: str) -> str:
     return format_datetime_local(datetime.fromisoformat(value), zone)
 
 
-def mail_list_page(query, items: list[dict], total: int, damaged: int, topics: list[str], zone: str) -> str:
+def mail_list_page(query, items: list[dict], total: int, damaged: int, topics: list[str], zone: str,
+                   mailboxes: dict[str, tuple[int, str]] | None = None) -> str:
     """Search and filters for stored mails; works without JavaScript."""
     from ..review.cards import sender_name
     from ..review.views import STATUS_LABELS
@@ -262,11 +306,18 @@ def mail_list_page(query, items: list[dict], total: int, damaged: int, topics: l
                + f'<label>Von<input type="date" name="since" value="{e(query.since or "")}"></label>'
                + f'<label>Bis<input type="date" name="until" value="{e(query.until or "")}"></label>'
                + select("sort", "Sortierung", query.sort, list(SORTS)))
+    mailboxes = mailboxes or {}
+    if mailboxes:
+        filters += select("postfach", "Postfach", "" if query.postfach is None else str(query.postfach),
+                          [("", "alle"), *((str(number), label) for number, label in sorted(mailboxes.values()))])
     active = any((query.relevance, query.topic, query.state, status, query.since, query.until,
-                  query.sort != "received"))
+                  query.sort != "received", query.postfach))
     body = ('<h1>Mails</h1><form method="get" class="stack">'
-            f'<label>Suche (Absender, Betreff, Zusammenfassung)<input type="search" name="q" '
-            f'value="{e(query.q)}" maxlength="200"></label>'
+            f'<label>Suche<input type="search" name="q" value="{e(query.q)}" maxlength="200" '
+            'aria-describedby="suche-hinweis"></label>'
+            '<p class="meta" id="suche-hinweis">Alle Wörter müssen vorkommen; „genaue Wortfolge“ in '
+            'Anführungszeichen. Groß-/Kleinschreibung und ä/ae, ö/oe, ü/ue, ß/ss sind gleichwertig.</p>'
+            + select("scope", "Suchen in", query.scope, list(SEARCH_SCOPES)) +
             f'<details class="filter-box"{" open" if active else ""}><summary>Filter</summary>'
             f'<div class="filters">{filters}</div></details>'
             '<button class="button primary">Suchen</button></form>')
@@ -276,6 +327,9 @@ def mail_list_page(query, items: list[dict], total: int, damaged: int, topics: l
     rows = []
     for item in items:
         badges = [f'<span class="badge">{e(RELEVANCE_LABELS.get(item["relevance"], item["relevance"]))}</span>']
+        if mailboxes:
+            label = mailboxes.get(item["account"], (0, "Entferntes Postfach"))[1]
+            badges.insert(0, f'<span class="badge">{e(label)}</span>')
         if item["waiting"]:
             badges.append('<span class="badge warn">wartet auf dich</span>')
         if item["failed"]:
@@ -288,8 +342,9 @@ def mail_list_page(query, items: list[dict], total: int, damaged: int, topics: l
             badges.append(f'<span class="badge accent">{count} × {e(label)}</span>')
         summary = f'<p>{e(item["summary"])}</p>' if item["summary"] else ""
         rows.append(f'<li class="card"><h3><a href="/mail/{e(item["id"])}">{e(item["subject"])}</a></h3>'
-                    f'<p class="source">{e(sender_name(item["sender"]))} · {e(_local_time(item["received"], zone))}</p>'
-                    f'<p class="labels">{" ".join(badges)}</p>{summary}</li>')
+                    f'<p class="source">{e(sender_name(item["sender"]))} · '
+                    f'{e(_local_time(item["received"], zone))}</p>'
+                    f'<p class="labels">{" ".join(badges)}</p>{summary}{_hit(item.get("hit"))}</li>')
     body += f'<ul class="archive-list">{"".join(rows)}</ul>'
     pages = []
     for number, label in ((query.page - 1, "Vorherige Seite"), (query.page + 1, "Nächste Seite")):
@@ -302,12 +357,26 @@ def mail_list_page(query, items: list[dict], total: int, damaged: int, topics: l
         body += f'<p class="actions">{" ".join(pages)}</p>'
     if damaged:
         body += notice(f"{damaged} gespeicherte Datensätze sind beschädigt und werden nicht angezeigt.", "warn")
-    return body + '<p class="meta">Gezeigt werden nur Mails, die Mailhelp noch gespeichert hat – nicht der ganze Posteingang.</p>'
+    return body + ('<p class="meta">Gezeigt werden nur Mails, die Mailhelp noch gespeichert hat – '
+                   'nicht der ganze Posteingang. Nach Ablauf der Aufbewahrungsfrist für Mailinhalte '
+                   'findet die Suche nur noch Absender, Betreff und Zusammenfassung.</p>')
+
+
+def _topic_value(value: object) -> object:
+    """Topic lists as "a; b", booleans as "true"/"false", everything else unchanged."""
+    if isinstance(value, list):
+        return "; ".join(value)
+    return str(value).lower() if isinstance(value, bool) else value
 
 
 def field(name: str, label: str, value: object = "", *, hidden: bool = False) -> str:
     if hidden:
         return f'<input type="hidden" name="{e(name)}" value="{e(value)}">'
+    if name == "meeting_mode":
+        choices = {"unknown": "Unklar", "video": "Videokonferenz", "in_person": "Präsenz", "hybrid": "Hybrid"}
+        options = "".join(f'<option value="{key}"' + (' selected' if key == value else '') + f'>{text}</option>'
+                          for key, text in choices.items())
+        return f'<label>{e(label)}<select name="meeting_mode">{options}</select></label>'
     return (f'<label>{e(label)}<input type="text" name="{e(name)}" value="{e(value)}" '
             'maxlength="4000"></label>')
 
@@ -315,7 +384,8 @@ def field(name: str, label: str, value: object = "", *, hidden: bool = False) ->
 def post_form(action: str, csrf: str, body: str, label: str = "Speichern", **hidden) -> str:
     inputs = field("csrf", "", csrf, hidden=True) + field("key", "", secrets.token_hex(16), hidden=True)
     inputs += "".join(field(name, "", value, hidden=True) for name, value in hidden.items())
-    return f'<form method="post" action="{e(action)}" class="stack">{inputs}{body}<button class="button">{e(label)}</button></form>'
+    return (f'<form method="post" action="{e(action)}" class="stack">{inputs}{body}'
+            f'<button class="button">{e(label)}</button></form>')
 
 
 class ArchiveSite:
@@ -329,9 +399,9 @@ class ArchiveSite:
                   ("GET", "/themen", self.topics), ("POST", "/themen/speichern", self.save_topic),
                   ("GET", "/einstellungen/beenden", self.stop_page),
                   ("POST", "/einstellungen/beenden", self.stop),
-                  ("GET", r"/vorschlag/(?P<mail_id>[a-f0-9]{24})/(?P<proposal_id>[A-Za-z0-9_-]{1,64})/version/(?P<version>[1-9][0-9]{0,5})", self.version),
-                  ("GET", r"/vorschlag/(?P<mail_id>[a-f0-9]{24})/(?P<proposal_id>[A-Za-z0-9_-]{1,64})/bearbeiten", self.edit),
-                  ("POST", r"/vorschlag/(?P<mail_id>[a-f0-9]{24})/(?P<proposal_id>[A-Za-z0-9_-]{1,64})/bearbeiten", self.save_edit)]
+                  ("GET", PROPOSAL_PATH + r"/version/(?P<version>[1-9][0-9]{0,5})", self.version),
+                  ("GET", PROPOSAL_PATH + "/bearbeiten", self.edit),
+                  ("POST", PROPOSAL_PATH + "/bearbeiten", self.save_edit)]
         for method, path, handler in routes:
             site.app.route(method, path, site.signed_in(handler))
 
@@ -348,7 +418,8 @@ class ArchiveSite:
             return self.site._reply(request, 422, "Ungültige Suche oder Filter.")
         items, total = self.queries.search(query)
         topics = sorted({topic for item in self.queries.items() for topic in item["topics"]})
-        page = mail_list_page(query, items, total, self.queries.damaged, topics, self.site.configured_timezone)
+        page = mail_list_page(query, items, total, self.queries.damaged, topics, self.site.configured_timezone,
+                              self.queries.mailboxes)
         from .filters import chips
         page = chips("/mails", query.filter) + page
         return Response.html(200, layout("Mails", page, active="/mails"))
@@ -363,20 +434,26 @@ class ArchiveSite:
             return notice("Analyse beschädigt; bitte Protokolle prüfen.", "error")
         if state is None:
             return ""
-        relevance = {} if record.get("removed") else record.get("relevance") or (state.relevance.model_dump(mode="json") if state.relevance else {})
-        summary = {} if record.get("removed") else record.get("summary") or (state.summary.model_dump(mode="json") if state.summary else {})
+        stored_relevance = state.relevance.model_dump(mode="json") if state.relevance else {}
+        stored_summary = state.summary.model_dump(mode="json") if state.summary else {}
+        relevance = {} if record.get("removed") else record.get("relevance") or stored_relevance
+        summary = {} if record.get("removed") else record.get("summary") or stored_summary
         text = " ".join(summary.get("sentences", []))
         if not text:
-            text = "Nicht erforderlich (irrelevant)." if relevance.get("decision") == "irrelevant" else "Nicht vorhanden, noch nicht erstellt oder nach Aufbewahrung entfernt."
+            text = ("Nicht erforderlich (irrelevant)." if relevance.get("decision") == "irrelevant"
+                    else "Nicht vorhanden, noch nicht erstellt oder nach Aufbewahrung entfernt.")
         human = state.relevance_dialog.decision if state.relevance_dialog else None
         topics = record.get("topics", {})
         names = [topics.get(identifier, identifier) for identifier in relevance.get("topic_ids", [])]
         body = f'<section class="card"><h2>Zusammenfassung</h2><p>{e(text)}</p>'
         body += f'<p>Fristen: {e("; ".join(summary.get("deadlines", [])))}</p><h2>Relevanz und Themen</h2>'
-        body += f'<p>Modellbewertung: {e(relevance.get("decision", "unbekannt"))} · Quelle: {e(record.get("source", "unbekannt"))}</p>'
-        body += f'<p>{e(relevance.get("reason", "Keine Begründung mehr verfügbar"))}</p><p>Themen: {e(", ".join(names))}</p>'
+        body += (f'<p>Modellbewertung: {e(relevance.get("decision", "unbekannt"))} · '
+                 f'Quelle: {e(record.get("source", "unbekannt"))}</p>')
+        body += (f'<p>{e(relevance.get("reason", "Keine Begründung mehr verfügbar"))}</p>'
+                 f'<p>Themen: {e(", ".join(names))}</p>')
         body += f'<p>Menschliche Entscheidung: {e(human or "keine")}</p><h2>Erkannte Aktionen</h2><ul>'
-        body += "".join(f'<li><a href="/vorschlag/{mail_id}/{e(p.id)}">{e(p.title)}</a> · {e(p.status.value)}</li>' for p in state.proposals)
+        body += "".join(f'<li><a href="/vorschlag/{mail_id}/{e(p.id)}">{e(p.title)}</a> · {e(p.status.value)}</li>'
+                        for p in state.proposals)
         return body + f'</ul><a class="button" href="/verlauf?q={mail_id}">Verlauf dieser Mail</a></section>'
 
     def revisions(self, mail_id, proposal_id):
@@ -403,11 +480,13 @@ class ArchiveSite:
         sources = {item["id"]: item for item in self.queries.items()}
         for row in self.queries.history():
             source = sources[row["mail_id"]]
-            if not matches(query.filter, [row["proposal_kind"]], [row["status"]], source["attachments"], source["duplicate"]):
+            if not matches(query.filter, [row["proposal_kind"]], [row["status"]], source["attachments"],
+                           source["duplicate"]):
                 continue
             if query.q and query.q.casefold() not in (row["mail_id"] + row["title"]).casefold():
                 continue
-            day = datetime.fromisoformat(row["at"]).astimezone(ZoneInfo(self.site.configured_timezone)).date().isoformat()
+            zone = ZoneInfo(self.site.configured_timezone)
+            day = datetime.fromisoformat(row["at"]).astimezone(zone).date().isoformat()
             if query.since and day < query.since.isoformat() or query.until and day > query.until.isoformat():
                 continue
             if query.status and str(query.status) != row["status"]:
@@ -420,15 +499,20 @@ class ArchiveSite:
         rows.sort(key=lambda row: row["at"], reverse=True)
         total = len(rows)
         rows = rows[(query.page - 1)*query.size:query.page*query.size]
-        body = '<h1>Verlauf</h1><form method="get" class="stack">' + field("q", "Betreff, Absender oder Mail-ID", query.q)
+        body = ('<h1>Verlauf</h1><form method="get" class="stack">'
+                + field("q", "Betreff, Absender oder Mail-ID", query.q))
         from .filters import chips
         body = chips("/verlauf", query.filter) + body
-        body += field("status", "Vorschlagsstatus", query.status or "") + field("kind", "Ereignisart", query.kind) + field("proposal_kind", "Aufgabe (task) oder Termin (event)", query.proposal_kind) + field("since", "Von", query.since or "") + field("until", "Bis", query.until or "")
-        body += '<button class="button">Filtern</button></form>' + f'<p>{total} Ereignisse · Seite {query.page}</p><ul class="archive-list">'
+        body += (field("status", "Vorschlagsstatus", query.status or "") + field("kind", "Ereignisart", query.kind)
+                 + field("proposal_kind", "Aufgabe (task) oder Termin (event)", query.proposal_kind)
+                 + field("since", "Von", query.since or "") + field("until", "Bis", query.until or ""))
+        body += ('<button class="button">Filtern</button></form>'
+                 f'<p>{total} Ereignisse · Seite {query.page}</p><ul class="archive-list">')
         for row in rows:
             link = (f'/vorschlag/{row["mail_id"]}/{row["proposal_id"]}/version/{row["version"]}'
                     if row["proposal_id"] else f'/mail/{row["mail_id"]}')
-            body += f'<li class="card"><a href="{e(link)}">{e(row["title"])}</a><p>{e(row["at"])} · {e(row["status"])} · {e(row["source"])} · Version {e(row["version"])}</p></li>'
+            body += (f'<li class="card"><a href="{e(link)}">{e(row["title"])}</a><p>{e(row["at"])} · '
+                     f'{e(row["status"])} · {e(row["source"])} · Version {e(row["version"])}</p></li>')
         body += '</ul>'
         if query.page > 1:
             params["page"] = query.page - 1
@@ -445,15 +529,18 @@ class ArchiveSite:
         view = self.site.views.proposal(mail_id, proposal_id, int(version))
         if view is None:
             return self.site._reply(request, 404, "Version nicht mehr vorhanden.")
-        previous = self.site.views.store.peek_model(state_names.proposal(mail_id, proposal_id, int(version)-1), Proposal)
+        previous = self.site.views.store.peek_model(state_names.proposal(mail_id, proposal_id, int(version)-1),
+                                                    Proposal)
         current = self.site.views.store.peek_model(state_names.proposal(mail_id, proposal_id, version), Proposal)
         diff = '<section class="card"><h2>Änderungen gegenüber vorheriger Version</h2>'
         if previous is None:
             diff += '<p>Vorherige Version nicht vorhanden.</p>'
         else:
             before, after = previous.model_dump(mode="json"), current.model_dump(mode="json")
+            keys = ('title', 'description', 'target', 'due', 'start', 'end', 'all_day', 'location', 'video_link',
+                    'status', 'open_questions')
             diff += '<dl>' + ''.join(f'<dt>{e(key)}</dt><dd>{e(before[key])} → {e(after[key])}</dd>'
-                                    for key in ('title', 'description', 'target', 'due', 'start', 'end', 'all_day', 'location', 'video_link', 'status', 'open_questions') if before[key] != after[key]) + '</dl>'
+                                    for key in keys if before[key] != after[key]) + '</dl>'
         read_only = '<p>Historische Version – ausschließlich lesend.</p>'
         return Response.html(200, detail_page(view, after=diff + '</section>' + read_only))
 
@@ -464,9 +551,10 @@ class ArchiveSite:
         if proposal.status not in {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}:
             return self.site._reply(request, 409, "Nur offene Vorschläge sind bearbeitbar.")
         names = ["title", "description", "target"] + (["due"] if proposal.kind.value == "task" else
-                 ["start", "end", "all_day", "location", "video_link"])
+                 ["start", "end", "all_day", "location", "video_link", "meeting_mode"])
         data = values if values is not None else proposal.model_dump(mode="json")
-        body = '<h1>Vorschlag bearbeiten</h1><p>Zeiten als ISO-Datum oder ISO-Datum mit Uhrzeit eingeben. Bei Zeitumstellungen UTC-Offset angeben. Speichern legt nichts extern an.</p>'
+        body = ('<h1>Vorschlag bearbeiten</h1><p>Zeiten als ISO-Datum oder ISO-Datum mit Uhrzeit eingeben. '
+                'Bei Zeitumstellungen UTC-Offset angeben. Speichern legt nichts extern an.</p>')
         body += notice(message, "warn") if message else ""
         inputs = "".join(field(name, EDIT_LABELS[name], data.get(name) or "") for name in names)
         body += post_form(request.path, self.site.auth.csrf_token(session.id), inputs, version=proposal.version)
@@ -506,6 +594,7 @@ class ArchiveSite:
             revision = file_hash(path)
         page = settings_page(self.models, raw, active, revision, self.site.auth.csrf_token(session.id))
         page += self.site.experience.controls(self.site.auth.csrf_token(session.id))
+        page += self.site.setup_page.links()
         return Response.html(200, layout("Einstellungen", page, active="/einstellungen"))
 
     def save_settings(self, request, session, form):
@@ -521,32 +610,40 @@ class ArchiveSite:
                 except json.JSONDecodeError:
                     value = form["value"]
             command = AdminCommand(kind=AdminKind.SETTINGS, actor=f"web:{session.id}", idempotency_key=form["key"],
-                                   expected_hash=form["expected_hash"], patch={form["name"]: value}, acknowledged=True)
+                                   expected_hash=form["expected_hash"], patch={form["name"]: value},
+                                   acknowledged=True)
             self.configuration.candidate(command)
         except ConfigurationConflict:
             return self.site._reply(request, 409, "Einstellungsdatei geändert; bitte neu laden.")
         except (ValueError, KeyError, OSError):
-            return self.site._reply(request, 422, "Ungültige oder inzwischen geänderte Einstellung; bitte neu prüfen.")
+            return self.site._reply(request, 422,
+                                    "Ungültige oder inzwischen geänderte Einstellung; bitte neu prüfen.")
         if form.get("confirm") != "yes":
-            body = '<h1>Änderung bestätigen</h1>' + notice('Aufbewahrung kann Inhalte unwiderruflich entfernen; Inhaltslogging speichert Maildaten. Echter Betrieb kann bestätigte Aktionen extern anlegen. Übrige Einstellungen benötigen teilweise einen Neustart.', "warn")
+            body = '<h1>Änderung bestätigen</h1>' + notice(
+                'Aufbewahrung kann Inhalte unwiderruflich entfernen; Inhaltslogging speichert Maildaten. '
+                'Echter Betrieb kann bestätigte Aktionen extern anlegen. Übrige Einstellungen benötigen '
+                'teilweise einen Neustart.', "warn")
             hidden = {key: value for key, value in form.items() if key not in {"csrf", "key", "confirm"}}
             body += f'<p>{e(form["name"])} →</p><pre>{e(form["value"])}</pre>'
-            body += post_form(request.path, self.site.auth.csrf_token(session.id), "", "Änderung ausdrücklich speichern", confirm="yes", **hidden)
+            body += post_form(request.path, self.site.auth.csrf_token(session.id), "",
+                              "Änderung ausdrücklich speichern", confirm="yes", **hidden)
             return Response.html(200, layout("Bestätigen", body))
         return self.queue(request, command)
 
     def topics(self, request, session):
         if self.configuration is None:
             return self.site._reply(request, 503, "Themenverwaltung nicht verfügbar.")
-        body = '<h1>Themen</h1><p>IDs bleiben stabil. Deaktivieren statt löschen. Änderungen gelten für neue Analysen; unabhängige Absender-Vorfilter bleiben erhalten.</p>'
+        body = ('<h1>Themen</h1><p>IDs bleiben stabil. Deaktivieren statt löschen. Änderungen gelten für neue '
+                'Analysen; unabhängige Absender-Vorfilter bleiben erhalten.</p>')
+        empty = {"id": "", "name": "", "enabled": True, "description": "", "examples": [], "exclusions": []}
         for category, filename in (("relevant", "topics.yaml"), ("irrelevant", "irrelevant_topics.yaml")):
             path = self.configuration.directory / filename
             raw = yaml.safe_load(path.read_text(encoding="utf-8"))
             body += f'<h2>{e(filename)}</h2>'
-            for topic in [*raw["topics"], {"id": "", "name": "", "enabled": True, "description": "", "examples": [], "exclusions": []}]:
-                fields = "".join(field(key, key, "; ".join(value) if isinstance(value, list) else str(value).lower() if isinstance(value, bool) else value)
-                                 for key, value in topic.items())
-                fields += '<label><input type="checkbox" name="confirm" value="yes" required> Änderung ausdrücklich speichern</label>'
+            for topic in [*raw["topics"], empty]:
+                fields = "".join(field(key, key, _topic_value(value)) for key, value in topic.items())
+                fields += ('<label><input type="checkbox" name="confirm" value="yes" required> '
+                           'Änderung ausdrücklich speichern</label>')
                 body += post_form("/themen/speichern", self.site.auth.csrf_token(session.id), fields,
                                   category=category, expected_hash=file_hash(path), original_id=topic["id"])
         return Response.html(200, layout("Themen", body, active="/einstellungen"))
@@ -557,7 +654,8 @@ class ArchiveSite:
                 raise ValueError("IDs dürfen nicht geändert werden")
             topic = {key: form[key] for key in ("id", "name", "description")}
             topic["enabled"] = {"true": True, "false": False}[form["enabled"].lower()]
-            topic.update({key: [v.strip() for v in form[key].split(";") if v.strip()] for key in ("examples", "exclusions")})
+            topic.update({key: [v.strip() for v in form[key].split(";") if v.strip()]
+                          for key in ("examples", "exclusions")})
             command = AdminCommand(kind=AdminKind.TOPICS, actor=f"web:{session.id}", idempotency_key=form["key"],
                                    expected_hash=form["expected_hash"], category=form["category"], patch=topic,
                                    acknowledged=form.get("confirm") == "yes")
@@ -570,14 +668,16 @@ class ArchiveSite:
 
     def statistics(self, request, session):
         if self.metrics is None:
-            return Response.html(200, layout("Auswertung", '<h1>Auswertung</h1><p>Noch keine Metrikerfassung verfügbar.</p>'))
+            return Response.html(200, layout("Auswertung",
+                                             '<h1>Auswertung</h1><p>Noch keine Metrikerfassung verfügbar.</p>'))
         try:
             params = self.parameters(request)
             params["days"] = int(params.get("days", 30))
             params.setdefault("mode", "production")
             if params["mode"] not in MODE_LABELS:
                 raise ValueError("Unbekannter Modus")
-            selected = self.metrics.comparison if params["mode"] == "decision_test" and self.metrics.comparison is not None else self.metrics
+            comparison = params["mode"] == "decision_test" and self.metrics.comparison is not None
+            selected = self.metrics.comparison if comparison else self.metrics
             report = selected.report(**params)
         except (ValueError, TypeError):
             return self.site._reply(request, 422, "Ungültige Auswertungsfilter.")
@@ -588,8 +688,12 @@ class ArchiveSite:
     def stop_page(self, request, session):
         if self.lifecycle is None:
             return self.site._reply(request, 503, "Beenden ist in dieser Instanz nicht verfügbar.")
-        body = '<h1>Mailhelp beenden?</h1>' + notice('Danach ist diese Weboberfläche nicht erreichbar. Laufende Requests können bis zum Timeout dauern. Offene Vorgänge bleiben gespeichert. Neustart erfolgt am PC oder über den Container/Dienst; ein Supervisor kann automatisch neu starten. Windows und andere Prozesse werden nicht beendet.', "warn")
-        body += post_form(request.path, self.site.auth.csrf_token(session.id), '', 'Mailhelp ausdrücklich beenden', process=self.lifecycle.process, confirm="yes")
+        body = '<h1>Mailhelp beenden?</h1>' + notice(
+            'Danach ist diese Weboberfläche nicht erreichbar. Laufende Requests können bis zum Timeout dauern. '
+            'Offene Vorgänge bleiben gespeichert. Neustart erfolgt am PC oder über den Container/Dienst; '
+            'ein Supervisor kann automatisch neu starten. Windows und andere Prozesse werden nicht beendet.', "warn")
+        body += post_form(request.path, self.site.auth.csrf_token(session.id), '', 'Mailhelp ausdrücklich beenden',
+                          process=self.lifecycle.process, confirm="yes")
         return Response.html(200, layout("Beenden", body))
 
     def stop(self, request, session, form):
@@ -599,6 +703,8 @@ class ArchiveSite:
             callback = self.lifecycle.request(form["process"], form["key"], f"web:{session.id}")
         except (ValueError, KeyError):
             return self.site._reply(request, 409, "Beenden nicht bestätigt oder Anforderung veraltet.")
-        response = Response.html(202, layout("Beenden angefordert", '<h1>Beenden angefordert</h1><p>Mailhelp stoppt kontrolliert. Ein späterer Verbindungsabbruch bestätigt allein nicht den erfolgreichen Abschluss.</p>'))
+        response = Response.html(202, layout(
+            "Beenden angefordert", '<h1>Beenden angefordert</h1><p>Mailhelp stoppt kontrolliert. Ein späterer '
+            'Verbindungsabbruch bestätigt allein nicht den erfolgreichen Abschluss.</p>'))
         response.after_send = callback
         return response

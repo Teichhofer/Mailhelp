@@ -1,5 +1,263 @@
 # Änderungen
 
+## 3.1.2 – beta: Lernmodus und Decision-Test über alle Postfächer
+
+- `--mailbox alle` (auch `all`) wählt für `--learn` und `--decision-test` alle aktivierten Postfächer:
+  `N` begrenzt die neuesten Mails über alle Postfächer zusammen (Reihenfolge wie beim Abruf; ohne
+  globale Sortierung Postfach für Postfach). `--mailbox <n>` wählt weiterhin ein einzelnes Postfach;
+  bei mehreren aktivierten Postfächern bleibt eine der beiden Angaben Pflicht.
+- Der Decision-Test vergleicht identische Rohmails aus mehreren Postfächern nur einmal; der Bericht nennt
+  `mailboxes` und bei mehreren Postfächern `historical_start` je Postfach.
+- Der Lernmodus ergänzt neue Ordner im Eintrag des jeweiligen Postfachs.
+- Spezifikation, Release-Anleitung 3.1, Planung 3.1 und `config.example.yaml` angepasst; neue Tests für
+  Auswahl, Reihenfolge, Duplikate und CLI.
+
+## 3.1.1 – Übernahme von beta nach main
+
+- Den committierten beta-Stand mit offenem Vorschlagsabgleich, Standarddauern,
+  Einrichtung, Diagnose, Benachrichtigungen und mehreren Postfächern für main vorbereiten.
+- Patchversion in Paketmetadaten und Anwendung gemäß den Commit-Regeln erhöhen.
+- Die Übernahme erfolgt nach erfolgreicher vollständiger GitHub-CI einschließlich
+  Coverage-, Browser-, Paket- und Containerprüfungen.
+
+## 3.1.0 – beta: Mehrere Postfächer
+
+Planung: [docs/Planung-3.1.md](docs/Planung-3.1.md); Einrichtung, Upgrade und Rückkehr:
+[docs/Release-3.1.md](docs/Release-3.1.md). Umgesetzt schrittweise in 3.0.1 bis 3.0.5 (Einträge unten).
+
+- Bis zu zehn IMAP-Postfächer (`imap.mailboxes`, Zugangsdaten `IMAP_<n>_USERNAME`/`IMAP_<n>_PASSWORD`);
+  das bisherige Format bleibt als Postfach 1 gültig.
+- Gemeinsamer Abruf mit globaler Auswahl und gemeinsamem Kontingent, Fehler je Postfach isoliert,
+  postfachübergreifende Duplikaterkennung, laufende Mails überstehen Upgrade und Umstellung.
+- Entwürfe und Tätigkeitsberichte im jeweiligen Postfach; `--mailbox` für Lernmodus und Decision-Test.
+- Postfach-Labels und -Filter in Weboberfläche und Telegram; Diagnose aller Postfächer.
+- Release-Anleitung 3.1, Datenschutzhinweis und README ergänzt. Der Release-Tag `v3.1.0` wird erst nach
+  erfolgreicher CI-Matrix (Linux, Docker, Paketinstallation) gesetzt.
+
+## 3.0.5 – beta: Planung 3.1, Phase 5 – Weboberfläche, Telegram, bis zu 10 Postfächer
+
+- Bis zu 10 Postfächer; zwei aktivierte Postfächer mit demselben Server, Port und Benutzer werden beim
+  Start abgelehnt.
+- Maildetail und Archivliste nennen das Postfach, das Archiv filtert nach `postfach=<n>`; Telegram-Karten
+  zeigen `✉️ [Label] Absender · Betreff`. Mit einem Postfach bleibt die Darstellung unverändert.
+- Diagnose `imap` prüft alle aktivierten Postfächer des Entwurfs; Ordnerauswahl im Einrichtungsschritt je
+  Postfach; Anzeigename und Aktivierung sind dort bearbeitbar.
+- Verschoben nach 3.2: Postfächer im Web hinzufügen/entfernen, Labels in Entscheidungsübersicht und
+  Tagesüberblick, Telegram `/status` je Postfach.
+- Abnahme: 2223 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung, 134 Browsertests.
+
+## 3.0.4 – beta: Planung 3.1, Phase 4 – postfachbezogene Funktionen
+
+- Antwortentwürfe gehen nur in den Entwurfsordner des Ursprungspostfachs (eigene Verbindung und
+  Absender); ein nicht mehr eingerichtetes Postfach wird abgelehnt, der Text bleibt erhalten.
+- Tätigkeitsberichte gehören zu einem Postfach: Auswahl ohne JavaScript, Ordnervorschläge und -prüfung je
+  Postfach, Zählen und Lesen nur dort. Schema-Snapshot `ActivityReport` um `mailbox` (Standard 1) ergänzt;
+  ältere Berichte bleiben ohne Migration lesbar.
+- `--learn` und `--decision-test` lesen genau ein Postfach; bei mehreren aktivierten Postfächern ist
+  `--mailbox <n>` Pflicht. Der Lernmodus liest mit dem Reader dieses Postfachs.
+
+## 3.0.3 – beta: Planung 3.1, Phase 3 – Duplikate über Postfächer hinweg
+
+- Der Duplikatindex vergleicht mit den Einträgen aller Postfächer: Dieselbe Mail in zwei konfigurierten
+  Postfächern wird nur einmal analysiert und verweist auf die zuerst verarbeitete Mail. Wiederverwendete
+  Message-IDs mit anderem Inhalt bleiben auch postfachübergreifend `ambiguous`. Regressionstest
+  `test_the_same_message_in_a_second_mailbox_is_skipped` scheiterte vor der Änderung.
+- Sortierung offener Vorschläge geprüft: durch die Mail-ID als zweites Kriterium auch bei gleicher UID in
+  zwei Postfächern eindeutig; unverändert.
+
+## 3.0.2 – beta: Planung 3.1, Phase 2 – Laufzeitkern für mehrere Postfächer
+
+- Ein Reader je aktiviertem Postfach (`MailboxSource`); ein nicht erreichbares Postfach hält die
+  anderen nicht auf. Ordnerfehler werden mit Postfachnummer protokolliert.
+- Gemeinsame Auswahl über alle Postfächer nach Empfangszeitpunkt mit gemeinsamem `batch_size`/`--max-mails`;
+  ein dauerhafter Run je Postfach, Bearbeitung in Konfigurationsreihenfolge; unfertige Runs werden vor
+  jeder neuen Suche fortgesetzt.
+- Wiederaufnahme liest über das Postfach der gespeicherten `account_id`; Zustände entfernter oder
+  deaktivierter Postfächer bleiben liegen (`mailbox_unavailable`, einmal je Prozess protokolliert).
+  Abgeschlossene Wiederaufnahmen schreiben Run und Checkpoint ihres eigenen Kontos fort.
+- `--check-access` und Laufzusammenfassung je Postfach. Die Konfiguration bleibt bis Phase 4 auf ein
+  Postfach begrenzt.
+
+## 3.0.1 – beta: Planung 3.1, Phase 1 – Postfächer im Konfigurationsvertrag
+
+- `imap.mailboxes` mit stabiler Nummer `id`, Anzeigename `label` und `enabled`; das bisherige Format
+  bleibt gültig und gilt als Postfach 1. Beide Schreibweisen zusammen werden abgelehnt.
+  Bis Phase 2 wird genau ein Postfach unterstützt.
+- Zugangsdaten je Postfach als `IMAP_<id>_USERNAME`/`IMAP_<id>_PASSWORD`; Postfach 1 startet weiterhin
+  mit `IMAP_USERNAME`/`IMAP_PASSWORD`. Logs und Vergleichsberichte maskieren jedes IMAP-Passwort.
+- `imap` ist nicht mehr Teil des Analyse-Fingerprints. Fingerprints und Themenrichtlinien bis 3.0
+  werden für Postfach 1 exakt rekonstruiert und als gleichwertig registriert; laufende Mails werden
+  durch das Upgrade oder die Umstellung auf `imap.mailboxes` nicht zurückgehalten (gegen 3.0.0
+  nachgerechnet, Regressionstest mit unabhängig nachgebautem 3.0-Algorithmus).
+- Kommentarerhaltende YAML-Bearbeitung versteht Listeneinträge (`imap.mailboxes.0.host`), auch beim
+  Ergänzen fehlender Schlüssel. Einrichtungsschritt „Postfach“ und Lernmodus arbeiten mit beiden Formaten;
+  der Assistent zeigt im Altformat wieder die wirksamen Standardwerte (z. B. `Drafts`, `ssl`).
+- Gemeinsame Verbindungsargumente für alle IMAP-Leser (Betrieb, Entwürfe, Berichte, Decision-Test).
+- Spezifikation, `config.example.yaml` und `.env.example` ergänzt; neue Tests für Formate, Grenzen,
+  Geheimnisnamen, Fingerprint-Gleichwertigkeit, YAML-Listenpfade und den Assistenten.
+
+## 2.3.3 – beta: Abschlussdokumentation zur Planung 2.4
+
+- Umsetzung, Bedienung und Upgrade des offenen Vorschlagsabgleichs sowie der
+  Standarddauern in Spezifikation, README und Betriebsanleitung dokumentiert.
+- Wiederherstellung fehlender Akten erhält die ursprüngliche Version und den
+  Idempotenzschlüssel; bestätigte Altbefunde werden ausschließlich abgeglichen.
+- Technische Datenschutzhinweise für Quellen, Vergleichscache und Merge-Journal ergänzt.
+- Paketprüfung wählt ausdrücklich die aktuelle Version, auch wenn ältere Builds
+  im Distributionsverzeichnis liegen.
+- Browserprüfung wartet nach der Gerätenavigation auf die sichtbare Sitzung,
+  statt den noch laufenden Dokumentwechsel als Fehler zu werten.
+
+## 2.3.2 – beta: Umsetzung der Planung 2.4
+
+- Termine und Aufgaben werden vor Benachrichtigung auch gegen offene Entscheidungen
+  abgeglichen. Kanonische IDs, versionierte Quellen und nicht ausführbare Aliasakten
+  verhindern mehrere offene Vorschläge für denselben Vorgang.
+- Neue Fakten ergänzen bestehende Vorschläge; ältere Mails ändern konkrete Absprachen
+  nicht zurück. Manuelle Werte bleiben geschützt, Widersprüche und mehrere mögliche
+  Treffer erfordern Klärung. Ungeprüfte Zusätze lassen sich in Web und Telegram
+  zuordnen oder getrennt behalten, ohne externe Anlage.
+- Standarddauern für belegte Videokonferenzen (60 Minuten) und Präsenztermine
+  (180 Minuten), einstellbar in Einrichtung und Einstellungen. Explizite Zeiten und
+  Dauern haben Vorrang; Annahmen sind sichtbar und werden als verstrichene Minuten berechnet.
+- Bereits vorhandene Termine werden unabhängig von der Telegram-Zustellung gespeichert.
+  Rückmeldeaufgaben zeigen die verknüpfte Sitzung. Fehlende Altakten und Dauerannahmen
+  werden unter `/abgleich` nur nach ausdrücklich übernommener Vorschau aktualisiert.
+- Wiederaufnehmbares Merge-Journal, versions- und policygebundener Vergleichscache,
+  separate Normalisierungspolicy und erneute Sitzungs-/Zielprüfung vor einer Anlage.
+  Fehlgeschlagene externe Abgleiche sperren die Anlage und können erneut geprüft werden.
+- Synthetische Regressionen für die beobachteten Doppelvorschläge, fehlende Endzeiten
+  und die nicht sichtbare bereits vorhandene Beiratssitzung; zusätzliche Konflikt-,
+  Wiederanlauf-, Autorisierungs- und Browserprüfungen. Spezifikation und Beispiele ergänzt.
+
+Die beta-Patchnummer folgt `AGENTS.md`; die fachliche Zielversion des Plans bleibt 2.4.
+Dieser Commit erstellt keinen Release und keinen Tag.
+
+## 3.0.0 – beta: Einrichtung, Diagnose und Benachrichtigungen
+
+Planung: [docs/Planung-3.0.md](docs/Planung-3.0.md), Betrieb und Upgrade: [docs/Release-3.0.md](docs/Release-3.0.md).
+Abnahme auf diesem Stand unter Windows 11: 2173 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung,
+134 Browsertests mit 100 % JavaScript-Abdeckung, ruff und mypy ohne Befund. Der Release-Tag `v3.0.0`
+wird erst nach erfolgreicher CI-Matrix (Linux, Docker, Paketinstallation) gesetzt.
+
+- Neue Planungen: mehrere Postfächer ([docs/Planung-3.1.md](docs/Planung-3.1.md), Geheimnisse
+  `IMAP_<n>_USERNAME`/`IMAP_<n>_PASSWORD`) und Einstellungen je Postfach
+  ([docs/Planung-3.2.md](docs/Planung-3.2.md)). Beide gehören nicht zu 3.0.
+
+- Einrichtung unter `/einrichtung`: wiederaufnehmbare Entwürfe, Dateihash und Entwurfsversion,
+  getrennte bestätigte Übernahme über die vorhandene, erneut autorisierte Kommando-Warteschlange.
+- Unabhängige Diagnosen unter `/diagnose`, sichere Fehlercodes und bereinigter JSON-Export.
+  Lesende IMAP-, Kalender- und Todoist-Prüfungen; separate Aktionen für Testnachrichten und synthetische LLM-Tests.
+- Lokaler Erstzugang mit `mailhelp --pair`; ohne Telegram erzeugen Webanfragen und Dienststart keine Codes mehr.
+- Gemeinsame persistente Benachrichtigungswarteschlange, Kategorie- und Kanalwahl,
+  lokale Ruhezeiten einschließlich Zeitumstellung, Bündelung, begrenzter Backoff und sichtbare unklare Zustellungen.
+  Pro Push-Gerät gelten Sitzung und Abonnementrevision; Web-Push bleibt neutral.
+- Upgrade erhält vorhandene Inhaltsfreigaben und berücksichtigt alte Zustellmarker.
+  Neue Profile beginnen mit neutralen Telegram-Hinweisen. Operative Profile ändern keine Analyse-Fingerprints.
+- Synthetische Autorisierungs-, Zustell-, Neustart-, Upgrade- und Datenschutztests; neue Schema-Snapshots.
+  Die Versionsfreigabe erfolgt nach Abschluss der Plattformmatrix; es wurde kein Release veröffentlicht.
+- In der Abnahme abgesichert: unterbrochene alte Outbox-Zustellungen bleiben unklar, eine volle
+  Queue wird weiter entleert, endgültige Fehler belegen keine ausstehenden Plätze und Migrationsdaten
+  enthalten keine Kopien alter Mailtexte. Die Regressionstests scheiterten vor den jeweiligen Korrekturen.
+- Ungültige Unicode-Werte in Kopplungssignaturen und CSRF-Tokens werden mit HTTP 403
+  abgewiesen; Regressionstests belegen beide zuvor ausgelösten Serverfehler.
+
+## 2.3.1 – Beta (Branch `beta`), Tätigkeitsberichte in fester Reihenfolge
+
+- **Fehler behoben:** Zwei kurz nacheinander angelegte Tätigkeitsberichte konnten unter Windows denselben
+  Anlagezeitpunkt erhalten (Uhrauflösung etwa 15 ms); die Bearbeitungsreihenfolge hing dann von den
+  zufälligen Dateinamen ab, und der spätere Bericht konnte vor dem früheren gezählt werden. Berichte tragen
+  jetzt eine fortlaufende Nummer (`sequence`, ältere Dateien 0) als zweites Sortierkriterium, danach die
+  Kennung. Der Anlagezeitpunkt kommt aus der Uhr des Dienstes.
+- Regressionstest `test_reports_created_in_the_same_clock_tick_stay_fifo` friert die Uhr ein und lässt das
+  Dateisystem beide Reihenfolgen liefern; er scheiterte vor der Korrektur zuverlässig. Damit ist auch der
+  gelegentlich fehlschlagende `test_report_counting_is_fifo` stabil. Schema-Snapshot `ActivityReport`
+  um das optionale Feld ergänzt; alte Berichtsdateien bleiben ohne Migration lesbar.
+
+## 2.3.0 – Beta (Branch `beta`), weitere Kalender- und Aufgabendienste, Volltextsuche, Originaldokumente
+
+Planung: [docs/Planung-2.3.md](docs/Planung-2.3.md).
+
+- **Kalender:** zusätzlich CalDAV (Nextcloud, iCloud, mailbox.org, Radicale …) und Outlook /
+  Microsoft 365 (`targets.calendar_provider`). Duplikatprüfung, Ergänzung, Zeitänderung und Absage
+  laufen für alle Kalender über denselben Ablauf (`TargetWriter`, `CalendarOperations`).
+- **Aufgaben:** zusätzlich Microsoft To Do, CalDAV-Aufgabenlisten (VTODO) und Apple Erinnerungen über
+  iCloud-CalDAV (`targets.task_provider`). Auf die neuen iCloud-Erinnerungen aktualisierte Listen sind
+  über CalDAV nicht erreichbar; die Zugriffsprüfung meldet das.
+- **Idempotenz je Anbieter:** CalDAV über einen aus dem Schlüssel abgeleiteten Ressourcennamen mit
+  `If-None-Match: *`; Outlook über eine erweiterte Eigenschaft und `transactionId`; To Do über
+  `linkedResources.externalId`. Unklare Ergebnisse werden wie bisher nur abgeglichen.
+- **Microsoft-Anmeldung:** `mailhelp --microsoft-login` (Gerätecode); rotierte Refresh-Tokens werden in
+  `microsoft-token.json` neben `.env` gespeichert.
+- **Geheimnisse** werden nur noch für die gewählten Anbieter verlangt; neue Variablen `CALDAV_*`, `MICROSOFT_*`.
+- **Volltextsuche** unter `/mails` über Mailtext, Anhangnamen und Anhangtext mit Fundstelle, UND-Verknüpfung,
+  Phrasen und Umlaut-Gleichwertigkeit; Auswahl „nur Absender, Betreff und Zusammenfassung“.
+- **Originaldokumente** (PDF, Office, OpenDocument, Text, Bilder) neu verarbeiteter Mails zum Herunterladen;
+  Allowlist mit Signaturprüfung, Prüfsumme, Download-only-Header, Aufbewahrung wie Mailinhalte
+  (`attachments.*`).
+- Web-Einstellungen und Einrichtungsschritt „Analyse und Ziele“ bieten Anbieter und Ziele an; neue Zeitlimits
+  `timeouts.caldav` und `timeouts.microsoft`. Bestehende Konfigurationen behalten ihren Analyse-Fingerprint.
+- Anbieterneutrale Texte: „Als Aufgabe anlegen“, „Angelegt als Aufgabe“, „Aufgabe öffnen“,
+  „Terminänderung gegenüber dem Kalender“.
+- Tests mit simuliertem CalDAV-Server und simuliertem Microsoft Graph; 100 % Zeilen- und Branch-Abdeckung.
+
+## 2.2.6 – Beta (Branch `beta`), Split-View ohne Flackern
+
+- **Split-View:** Neue Daten ersetzen Liste und Detailbereich ohne Neuladen der Seite; kein Flackern
+  mehr, Auswahl und Scrollposition bleiben. Ein laufender Rückgängig-Countdown wird nicht gestört.
+  Der in Telegram aktuelle Vorgang ist in der Liste nicht mehr zusätzlich umrandet, nur noch die
+  Auswahl. Regressionstests in `ui_tests/test_ui_v20.py` scheiterten vor der Korrektur.
+- **Versionierung:** Auch jeder Commit in `beta` erhöht die Patch-Version (AGENTS.md, Spezifikation).
+- WSL-Browserabnahme: Der Fehlerpfad der Hintergrundaktualisierung wird vor einer weiteren
+  Navigation vermessen, damit seine ausgeführten JavaScript-Blöcke im Coverage-Gate erhalten bleiben.
+
+## 2.2.5 – Beta (Branch `beta`), Entscheidungen aus Planung 2.1 und Testinfrastruktur
+
+- **Web-Push je Gerät (Planung 2.1, 5.3):** Die Idempotenzschlüssel der An- und Abmeldung werden je Gerät begrenzt (500); ein aktives Gerät verdrängt nicht mehr die Schlüssel eines anderen. Test `test_push_operations_are_bounded_per_device`.
+- **Tagesüberblick nach spätem Start (Planung 2.1, 5.1):** Entschieden, kein Zeitfenster – der Überblick wird auch nach einem Start lange nach der eingestellten Uhrzeit noch am selben Tag gesendet. Festgehalten mit `test_briefing_is_still_sent_after_a_late_start`.
+- **`composition.py` (A4):** Der Aufbau der Anwendung (Logger, Metriken, IMAP, LLM, Telegram, Analyzer, Dialog, Orchestrator, Weboberfläche) liegt in eigenen Fabriken in `composition.py`; `application.py` enthält nur noch die Polling-Schleife und exportiert `build_application` weiter.
+- **Tests ohne Querimporte (T1/T2):** Activity-Tests nutzen die gemeinsamen Fakes; ein Architekturtest verbietet Importe aus anderen `test_*`-Modulen.
+- **Browsertests (T7):**
+  - `axe-core` (WCAG 2.1 A/AA) läuft bei jedem Seiten-Audit, ohne Befund auf allen Seiten; ein Test belegt, dass axe Verstöße tatsächlich meldet.
+  - Seitenobjekte `Overview`, `DetailPane`, `SettingsPage` in `ui_tests/pages.py`.
+  - Der Test der echten 5-Sekunden-Rückgängig-Frist lud wegen einer Weiterleitung die verkürzte Testfrist und prüfte die 5 Sekunden nicht; er lädt die Seite jetzt selbst und stellt sicher, dass nach 3 Sekunden noch nichts gesendet ist.
+
+## 2.2.4 – Beta (Branch `beta`), statische Prüfung: mypy fehlerfrei und verbindlich
+
+- **mypy (Planung 2.1, A1):** Von 339 Fehlern auf 0, unter Windows und Linux (`--platform linux`). Der CI-Job `static-analysis` bricht jetzt bei jedem ruff- oder mypy-Befund ab (kein `continue-on-error` mehr).
+  - `JsonStore.load_model`/`peek_model` liefern mit Default nie `None` (Overloads); `logger.metrics`, Metrics-Vergleich, Orchestrator-Themenpolitik und Review-Konfiguration sind typisiert.
+  - Protokolle passen zu ihren Implementierungen: `Completer` mit den tatsächlichen Schlüsselwortparametern, `Decider` für Jev-Entscheidungen, `RelevanceHandler` mit `telegram_offset`, eine gemeinsame `EventLogger`-Definition.
+  - pydantic-Plugin für mypy: Konstruktoren nehmen wie zur Laufzeit Strings für Enum-, Literal- und URL-Felder an.
+  - `DisabledTelegram` erfüllt den Transportvertrag vollständig (`started_chats`, `answer_callback`).
+  - `TelegramDialogState.reference()` liefert Mail, Vorschlag und Version eines offenen Dialogs typisiert.
+  - Abweichende Typstubs von `imaplib` (bytes-Ordnernamen, `None` als Zeichensatz) und plattformabhängige Stubs von `fcntl`/`msvcrt` sind an je einer Stelle gekapselt.
+- **Klassengröße (A4):** Minutenanteil und harte Aufrufgrenze eines Tätigkeitsberichts liegen in `activity.budget.ReportCalls`; `ActivityRunner` hat damit 19 statt 21 Methoden. Keine Klasse über 20 Methoden, keine Funktion über 80 Zeilen.
+- **Bugfix – Telegram-Zeitantworten:** Eine unmögliche Uhrzeit oder ein unmögliches Datum („30“, „heute 25 Uhr“, „31.02.2026“) löste im deterministischen Zeitparser einen `ValueError` aus, statt wie jede freie Antwort an die Interpretation zu gehen. Gefunden durch den Eigenschaftstest; Regressionstest `test_impossible_times_and_dates_are_no_deterministic_answer`.
+- **Bugfix – Rückfrage ohne validiertes Datum:** Widersprach eine Antwort auf die Frage nach dem Terminende einem Termin ohne validierte Datumsfakten (etwa aus einer Kalendereinladung), stürzte die Antwortverarbeitung mit `None + 1 Tag` ab, statt nachzufragen. Regressionstest `test_contradictory_end_without_validated_date_gets_a_question`.
+
+## 2.2.3 – Beta (Branch `beta`), statische Prüfung: ruff fehlerfrei
+
+Keine Verhaltensänderung.
+
+- **ruff (Planung 2.1, A1):** Von 236 Befunden auf 0. Zu lange Zeilen von Hand im Stil des Codes umbrochen (Texte als implizit verkettete Literale, sodass Seiten und Meldungen byte-gleich bleiben; der Renderer-Vertragstest bestätigt das). Closures binden ihre Schleifenwerte ausdrücklich; Tests erwarten konkrete Ausnahmen (`ValidationError`, `RetryableError`, `PermanentError`, `UncertainWriteError`) statt `Exception`.
+- **Konfiguration:** UP038 ist in ruff selbst veraltet und wird ignoriert; die Kompatibilitätsfassaden `models.py` und `domain/__init__.py` dürfen wie `telegram/_core.py` per Stern importieren.
+- Protokollmethoden mit mehrzeiliger Signatur tragen einen Docstring statt `...`.
+
+## 2.2.2 – Beta (Branch `beta`), Anforderungsprüfung 2.2
+
+Behebt die Befunde aus [Pruefung-2.2.md](docs/Pruefung-2.2.md); jede Korrektur hat einen Regressionstest.
+
+- **Korrekturen während der Analyse:** Eine laufende Terminsuche überschrieb danach gespeicherte Nutzerentscheidungen und von Hand ergänzte Termine. Ergebnisse werden jetzt mit dem aktuellen Stand zusammengeführt (`test_live_corrections_survive_the_in_flight_event_analysis`).
+- **Harte KI-Grenze:** `max_llm_calls` wurde nur vor jeder Mail geprüft; Relevanz plus Terminsuche, Reparaturversuche und nachgeforderte Terminsuchen konnten sie überschreiten. Die Grenze gilt jetzt vor jedem Provideraufruf (`test_call_limit_stops_between_steps_and_resume_does_not_repeat_relevance`, `test_model_repair_also_consumes_the_hard_call_budget`, `test_requested_extraction_cannot_bypass_the_call_limit`).
+- **Zählfehler und UIDVALIDITY:** Ein nicht erreichbares Postfach ließ einen Bericht endlos zählen; jetzt „fehlgeschlagen“ nach drei Versuchen. Eine geänderte UIDVALIDITY ließ den Bericht scheitern; jetzt wird der Ordner neu aufgelistet und Ergebnisse werden über die Message-ID wiederverwendet.
+- **Gesendet-Ordner:** Ein ausdrücklich gewählter Gesendet-Ordner prüfte den Absender statt der Empfänger gegen die Ignorierliste.
+- **Datumsprüfung:** Ein Modelldatum, das dem Belegzitat widerspricht (Zitat „20. Januar“, Datum 21.01.), wurde übernommen; jetzt verworfen (`test_model_date_must_agree_with_its_quote`).
+- **Reihenfolge und Sitzung:** Wartende Berichte in Anlagereihenfolge; vor jedem KI-Aufruf wird die auslösende Sitzung erneut geprüft; Löschen verlangt einen Idempotenzschlüssel; die Ignorierliste wird beim kostenpflichtigen Start gesichert; nur Ordner aus der Serverliste.
+- **Neu (Planung 2.2):** Filter, hervorgehobene Belege, Kostenschätzung aus Messwerten, „Mit anderem Thema neu bewerten“, Fortschritt über `/api/stand?bericht=<id>` (ungültige IDs: 404, Regressionstest `test_progress_signal_rejects_malformed_report_ids`).
+- **Schema-Verträge:** `ActivityReport` und `ReportMail` sind Teil der Persistenzgrenze und der Schema-Snapshots.
+- **Browsertests:** Die JavaScript-Abdeckung las CRLF-Dateien mit verschobenen Offsets und meldete fälschlich Lücken; Messung jetzt auf den ausgelieferten Bytes, auch vor Reload, Zurück und dem Schließen eigener Kontexte.
+- **Paket:** Doku 2.1 und 2.2 im sdist.
+
 ## 2.2.1 – Beta (Branch `beta`)
 
 - **Bugfix – Ordnervorschlag im Tätigkeitsbericht:** Konfigurierte Ordner, die der Server nicht kennt (z. B. `Trash` und `Sent`, wenn das Postfach `Papierkorb` und `Gesendet` nutzt), wurden vorgeschlagen, weil ihre Rolle unbekannt war, und beim Zählen als „nicht lesbar“ gemeldet. Vorgeschlagen werden jetzt nur vom Server gelistete Ordner; Regressionstest `test_suggested_folders_exist_on_the_server`. Gefunden beim ersten echten Bericht.

@@ -24,6 +24,8 @@ class ReportDefinition(StrictModel):
     since: date
     until: date
     folders: list[str] = Field(min_length=1, max_length=50)
+    # The configured mailbox the folders belong to (3.1); reports before 3.1 read mailbox 1.
+    mailbox: int = Field(default=1, ge=1, le=99)
     include_sent: bool = True
     skip_automated: bool = False
 
@@ -114,6 +116,8 @@ class ReportMail(StrictModel):
     text_removed: bool = False
     # An unusable model answer is recorded, never retried automatically (cost).
     failed_step: Literal["relevance", "events"] | None = None
+    accounted: bool = False
+    cached_input: bool = False
 
     @property
     def counts_as_relevant(self) -> bool:
@@ -128,6 +132,9 @@ class ActivityReport(StrictModel):
     status: ReportStatus = ReportStatus.COUNTING
     message: str = Field(default="", max_length=500)
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    # Creation order for reports with the same created_at (coarse Windows clock);
+    # 0 for reports written before 2.3.1.
+    sequence: int = Field(default=0, ge=0)
     started_at: datetime | None = None
     finished_at: datetime | None = None
     blocked_addresses: list[str] = Field(default_factory=list)
@@ -137,6 +144,9 @@ class ActivityReport(StrictModel):
     # Mails the user marked relevant after a negative verdict; their dates are extracted next.
     pending_extractions: list[str] = Field(default_factory=list)
     operations: dict[str, str] = Field(default_factory=dict)
+    counting_failures: int = 0
+    authorized_actor: str | None = None
+    repetitions: dict[str, str] = Field(default_factory=dict)
 
     @property
     def total(self) -> int:

@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import imaplib
 import json
 import time
 from contextlib import ExitStack
@@ -11,23 +10,26 @@ from dataclasses import asdict
 from datetime import UTC, datetime
 from pathlib import Path
 from threading import Lock
-from typing import Any
+from typing import TYPE_CHECKING, Any, cast
 from uuid import uuid4
 
 import httpx
 
 from .adapter import RetryPolicy
 from .analysis import Analyzer
-from .config import PromptConfig, Secrets, Settings, Topic
+from .config import MailboxSettings, PromptConfig, Secrets, Settings, Topic
 from .decisions import DecisionAnalyzer, DecisionClient, JevRelevanceAnalyzer, load_relevance_prompts
 from .evaluation import write_report
-from .imap import FolderNotReadable, ImapReader
+from .imap import FolderNotReadable, ImapReader, MailCandidate, reader_arguments
 from .laya import LayaClient, LayaRelevanceAnalyzer, load_laya_prompts
 from .logging import NullLogger, redact
 from .mime import prepare
 from .ollama import LocalLlm, OllamaClient
 from .openrouter import OpenRouterClient
 from .paths import runtime_path
+
+if TYPE_CHECKING:
+    from .metrics import MetricsRecorder
 
 
 class ComparisonRecorder(NullLogger):
@@ -36,7 +38,7 @@ class ComparisonRecorder(NullLogger):
     def __init__(self, log_path: Path, secrets: tuple[str, ...]):
         self.path, self.secrets = log_path, secrets
         self.entries: list[dict[str, Any]] = []
-        self.metrics = None
+        self.metrics: MetricsRecorder | None = None
 
     def event(self, level: str, module: str, event: str, **context: Any) -> None:
         self._record(event, {"level": level, "module": module, **context})
@@ -99,9 +101,14 @@ class DecisionTestMode:
                  settings: Settings, topics: list[Topic], report: dict[str, Any],
                  output: Path, recorder: ComparisonRecorder,
                  *, ignore_historical_start: bool = False, relevance_only: bool = False,
-                 save_interval: float = SAVE_INTERVAL_SECONDS, clock=time.monotonic):
+                 save_interval: float = SAVE_INTERVAL_SECONDS, clock=time.monotonic,
+                 mailbox: MailboxSettings | None = None,
+                 sources: list[tuple[MailboxSettings, Any]] | None = None):
         self.imap, self.standard, self.ollama = imap, standard, ollama
         self.settings, self.topics = settings, topics
+        self.mailbox = mailbox or settings.imap.enabled_mailboxes()[0]
+        # Several mailboxes form one selection of the newest unique mail (3.1).
+        self.sources = sources or [(self.mailbox, imap)]
         self.report, self.output, self.recorder = report, output, recorder
         self.ignore_historical_start = ignore_historical_start
         self.relevance_only = relevance_only
@@ -116,7 +123,7 @@ class DecisionTestMode:
         self.saved_at = now
 
     def _stage(self, result: dict, name: str, operation) -> Any:
-        stage = {"status": "running", "events": []}
+        stage: dict[str, Any] = {"status": "running", "events": []}
         result["stages"][name] = stage
         start = len(self.recorder.entries)
         self._save()
@@ -132,7 +139,7 @@ class DecisionTestMode:
             self._save()
 
     def _pipeline(self, record: dict, name: str, mail: dict[str, Any], classifier) -> None:
-        result = {"status": "running", "stages": {}}
+        result: dict[str, Any] = {"status": "running", "stages": {}}
         record["paths"][name] = result
         if self.recorder.metrics is not None:
             self.recorder.metrics.test_mail_hash = record.get("mail_sha256")
@@ -158,36 +165,41 @@ class DecisionTestMode:
                 ("event_extraction", None if route is None else route.event_count, classifier.extract_events),
             ):
                 if count is None:
-                    result["stages"][stage] = {"status": "skipped", "reason": "summary_failed" if summary is None else "routing_failed"}
+                    reason = "summary_failed" if summary is None else "routing_failed"
+                    result["stages"][stage] = {"status": "skipped", "reason": reason}
                 elif count == 0:
                     result["stages"][stage] = {"status": "skipped", "reason": "no_candidates"}
                 else:
-                    self._stage(result, stage, lambda: extract(mail, expected_count=count))
+                    self._stage(result, stage, lambda extract=extract, count=count: extract(mail, expected_count=count))
         result["status"] = ("failed" if any(stage["status"] == "failed"
                                              for stage in result["stages"].values()) else "completed")
         self._save()
 
     def run(self, count: int) -> int:
         try:
-            candidates = []
-            for folder in self.settings.imap.folders:
-                try:
-                    candidates.extend(self.imap.discover_since(
-                        folder, max_count=count,
-                        historical_start=(None if self.ignore_historical_start
-                                          else self.settings.imap.historical_start)))
-                except FolderNotReadable:
-                    if folder == self.settings.imap.primary_folder:
-                        raise
-                    self.report["selection_errors"].append({"folder": folder, "error_type": "FolderNotReadable"})
-            ranks = {folder: index for index, folder in enumerate(self.settings.imap.folders)}
-            candidates.sort(key=lambda item: (item.received_at, item.uid, -ranks[item.folder]), reverse=True)
+            candidates: list[tuple[MailCandidate, int, int, Any]] = []
+            for source_rank, (mailbox, reader) in enumerate(self.sources):
+                for folder_rank, folder in enumerate(mailbox.folders):
+                    try:
+                        found = reader.discover_since(
+                            folder, max_count=count,
+                            historical_start=(None if self.ignore_historical_start
+                                              else mailbox.historical_start))
+                    except FolderNotReadable:
+                        if folder == mailbox.primary_folder:
+                            raise
+                        self.report["selection_errors"].append({"folder": folder, "error_type": "FolderNotReadable"})
+                        continue
+                    candidates.extend((item, -source_rank, -folder_rank, reader) for item in found)
+            # Mailbox and then folder order break ties of equal receive times and UIDs.
+            candidates.sort(key=lambda entry: (entry[0].received_at, entry[0].uid, entry[1], entry[2]),
+                            reverse=True)
             seen = set()
-            for candidate in candidates:
+            for candidate, _source_rank, _folder_rank, reader in candidates:
                 if len(self.report["mails"]) >= count:
                     break
                 try:
-                    fetched = self.imap.fetch_uid(candidate.folder, candidate.uid, candidate.uidvalidity)
+                    fetched = reader.fetch_uid(candidate.folder, candidate.uid, candidate.uidvalidity)
                 except Exception as exc:
                     self.report["selection_errors"].append({"folder": candidate.folder, "uid": candidate.uid,
                                                             "error_type": type(exc).__name__})
@@ -197,7 +209,7 @@ class DecisionTestMode:
                 if fingerprint in seen:
                     continue
                 seen.add(fingerprint)
-                record = {"mail_sha256": fingerprint, "folder": fetched.folder,
+                record: dict[str, Any] = {"mail_sha256": fingerprint, "folder": fetched.folder,
                           "uidvalidity": fetched.uidvalidity, "uid": fetched.uid,
                           "received_at": fetched.received_at.isoformat(),
                           "raw_rfc822_base64": _raw_mail(fetched.raw, self.recorder.secrets),
@@ -248,16 +260,31 @@ def _create_output(settings: Settings, output: Path | None, directory: Path) -> 
     return output
 
 
+def _laya_url(laya: tuple[str, int] | None, model: str) -> str:
+    assert laya is not None  # Laya prompts are only loaded together with a Laya server
+    return LocalLlm(*laya, model).base_url
+
+
+def _pause(delay: float) -> bool:
+    """Retry wait of the decision test: sleep, never interrupted."""
+    time.sleep(delay)
+    return False
+
+
 def _initial_report(settings: Settings, topics: list[Topic], prompts: PromptConfig, count: int,
                     decision_prompts: Any, local_llm: LocalLlm, laya: tuple[str, int] | None,
                     laya_prompts: Any, relevance_only: bool, ignore_historical_start: bool,
-                    irrelevant_topics: list[Topic] | None) -> dict[str, Any]:
+                    irrelevant_topics: list[Topic] | None, mailboxes: list[MailboxSettings]) -> dict[str, Any]:
+    def start(mailbox: MailboxSettings) -> str | None:
+        if ignore_historical_start or mailbox.historical_start is None:
+            return None
+        return mailbox.historical_start.isoformat()
     return {"schema_version": 2, "mode": "decision_test",
             "comparison": "standard_vs_ollama",
             "pipeline_policy": "relevance_only" if relevance_only else "relevant_only",
             "ollama": asdict(local_llm),
             "ollama_relevance": (None if laya_prompts is None else {
-                "engine": "laya", "base_url": LocalLlm(*laya, laya_prompts.model).base_url,
+                "engine": "laya", "base_url": _laya_url(laya, laya_prompts.model),
                 "model": laya_prompts.model}),
             "laya_prompts": None if laya_prompts is None else laya_prompts.model_dump(mode="json"),
             # Laya builds its questions from these categories as well.
@@ -267,8 +294,10 @@ def _initial_report(settings: Settings, topics: list[Topic], prompts: PromptConf
                          "ollama": settings.timeouts.ollama.model_dump()}, "run_id": str(uuid4()),
             "started_at": datetime.now(UTC).isoformat(), "complete": False,
             "requested_mail_count": count, "selection": "global_newest_first_unique_raw_mail",
-            "historical_start": (None if ignore_historical_start or settings.imap.historical_start is None
-                                 else settings.imap.historical_start.isoformat()),
+            # One value for one mailbox (as before 3.1), otherwise one per mailbox number.
+            "historical_start": (start(mailboxes[0]) if len(mailboxes) == 1
+                                 else {str(mailbox.id): start(mailbox) for mailbox in mailboxes}),
+            "mailboxes": [mailbox.id for mailbox in mailboxes],
             "timezone": settings.timezone,
             "prompts": prompts.model_dump(mode="json"),
             "decisions_prompts": decision_prompts.model_dump(mode="json"),
@@ -277,16 +306,14 @@ def _initial_report(settings: Settings, topics: list[Topic], prompts: PromptConf
 
 
 def _comparison_reader(settings: Settings, secrets: Secrets, recorder: ComparisonRecorder,
-                       stack: ExitStack) -> ImapReader:
+                       stack: ExitStack, mailbox: MailboxSettings) -> ImapReader:
     cfg = settings.timeouts.imap
+    address, options = reader_arguments(mailbox, secrets.imap_credentials(mailbox.id))
     reader = ImapReader(
-        settings.imap.host, settings.imap.port, secrets.imap_username,
-        secrets.imap_password.get_secret_value(), cfg.timeout_seconds,
-        factory=imaplib.IMAP4_SSL if settings.imap.connection_mode == "ssl" else imaplib.IMAP4,
+        *address, cfg.timeout_seconds, **options,
         policy=RetryPolicy(cfg.retries, cfg.initial_backoff_seconds, cfg.max_backoff_seconds,
-                           lambda delay: (time.sleep(delay), False)[1]),
-        starttls=settings.imap.connection_mode == "starttls", batch_size=settings.imap.batch_size,
-        logger=recorder)
+                           _pause),
+        batch_size=settings.imap.batch_size, logger=recorder)
     stack.callback(reader.close)
     return reader
 
@@ -313,7 +340,7 @@ def _comparison_analyzers(settings: Settings, secrets: Secrets, prompts: PromptC
         client.client.event_hooks["response"].append(recorder.http_response)
         clients.append(client)
     cfg = settings.timeouts.ollama
-    local = dict(initial_backoff=cfg.initial_backoff_seconds,
+    local: dict[str, Any] = dict(initial_backoff=cfg.initial_backoff_seconds,
                  max_backoff=cfg.max_backoff_seconds, logger=recorder)
     local_client = OllamaClient(local_llm, cfg.timeout_seconds, cfg.retries,
                                 settings.limits.llm_calls_per_minute, **local)
@@ -331,9 +358,11 @@ def _comparison_analyzers(settings: Settings, secrets: Secrets, prompts: PromptC
     options = dict(provider_retries=settings.retries.provider_retry,
                    json_repair_retries=settings.retries.json_repair,
                    schema_repair_retries=settings.retries.schema_repair)
+    # The loop above created the DecisionClient second.
+    decision_client = cast(DecisionClient, clients[1])
     standard = JevRelevanceAnalyzer(
         clients[0], prompts, decisions=DecisionAnalyzer(
-            clients[1], decision_prompts, settings.limits.max_llm_payload_bytes), **options)
+            decision_client, decision_prompts, settings.limits.max_llm_payload_bytes), **options)
     ollama: Any = Analyzer(local_client, prompts, **options)
     if laya_prompts is not None:
         ollama = LocalPipeline(ollama, LayaRelevanceAnalyzer(
@@ -348,8 +377,10 @@ def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
                       ignore_historical_start: bool = False,
                       laya: tuple[str, int] | None = None, laya_model: str | None = None,
                       relevance_only: bool = False,
-                      irrelevant_topics: list[Topic] | None = None) -> int:
+                      irrelevant_topics: list[Topic] | None = None,
+                      mailboxes: list[MailboxSettings] | None = None) -> int:
     """Construct only read adapters; production stores and write services do not exist here."""
+    mailboxes = mailboxes or settings.imap.enabled_mailboxes()[:1]
     decision_prompts = load_relevance_prompts(directory)
     # With Laya, the Ollama path checks relevance with the local decision model.
     laya_prompts = None
@@ -361,29 +392,29 @@ def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
     log_path = output.with_suffix(output.suffix + ".jsonl")
     with log_path.open("x", encoding="utf-8"):
         pass
-    known_secrets = tuple(value.get_secret_value() for value in (
-        secrets.imap_password, secrets.openrouter_api_key, secrets.telegram_bot_token,
-        secrets.todoist_token, secrets.todoist_client_id, secrets.todoist_client_secret,
-        secrets.google_oauth_client_id, secrets.google_oauth_client_secret, secrets.google_oauth_refresh_token))
+    known_secrets = secrets.known_values()
     recorder = ComparisonRecorder(log_path, known_secrets)
     from .metrics import DECISION_TEST_FILE, MetricsRecorder, metrics_directory
     # Content-free metrics of every comparison run in one log, separate from production.
-    recorder.metrics = MetricsRecorder(
+    metrics = MetricsRecorder(
         metrics_directory(runtime_path(settings.logging.directory, directory)) / DECISION_TEST_FILE,
         settings.metrics, "decision_test")
+    recorder.metrics = metrics
     report = _initial_report(settings, topics, prompts, count, decision_prompts, local_llm, laya,
-                             laya_prompts, relevance_only, ignore_historical_start, irrelevant_topics)
+                             laya_prompts, relevance_only, ignore_historical_start, irrelevant_topics, mailboxes)
     write_report(output, redact(report, known_secrets))
     print(f"Decision-Testdatei: {output}", flush=True)
-    recorder.metrics.run_id = report["run_id"]
+    metrics.run_id = report["run_id"]
     try:
         with ExitStack() as stack:
-            reader = _comparison_reader(settings, secrets, recorder, stack)
+            sources = [(mailbox, _comparison_reader(settings, secrets, recorder, stack, mailbox))
+                       for mailbox in mailboxes]
             standard, ollama = _comparison_analyzers(settings, secrets, prompts, decision_prompts, local_llm,
                                                      laya, laya_prompts, irrelevant_topics, recorder, stack)
-            return DecisionTestMode(reader, standard, ollama, settings, topics, report, output,
+            return DecisionTestMode(sources[0][1], standard, ollama, settings, topics, report, output,
                                     recorder, ignore_historical_start=ignore_historical_start,
-                                    relevance_only=relevance_only).run(count)
+                                    relevance_only=relevance_only, mailbox=mailboxes[0],
+                                    sources=sources).run(count)
     except BaseException as exc:
         report["error_type"] = type(exc).__name__
         write_report(output, redact(report, known_secrets))

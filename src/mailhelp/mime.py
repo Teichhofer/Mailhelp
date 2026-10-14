@@ -74,12 +74,15 @@ def _clean_display(value: str) -> str:
 
 class _TextHTML(HTMLParser):
     _ignored = frozenset({"script", "style", "noscript", "object", "embed", "iframe", "svg", "canvas"})
-    _breaks = frozenset({"address", "article", "br", "div", "footer", "h1", "h2", "h3", "h4", "h5", "h6", "header", "li", "p", "section", "tr"})
-    _void = frozenset({"area", "base", "br", "col", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"})
+    _breaks = frozenset({"address", "article", "br", "div", "footer", "h1", "h2", "h3", "h4", "h5", "h6",
+                         "header", "li", "p", "section", "tr"})
+    _void = frozenset({"area", "base", "br", "col", "hr", "img", "input", "link", "meta", "param", "source",
+                       "track", "wbr"})
 
     def __init__(self, limits: MimeLimits) -> None:
         super().__init__(convert_charrefs=True)
-        self.limits, self.parts, self.depth, self.tags = limits, [], 0, 0
+        self.limits, self.depth, self.tags = limits, 0, 0
+        self.parts: list[str] = []
         self.ignored_depth = 0
 
     def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
@@ -128,6 +131,7 @@ def _decode(part: Message) -> str:
     if payload is None:
         raw = part.get_payload()
         return raw if isinstance(raw, str) else ""
+    assert isinstance(payload, bytes)  # a decoded leaf part is always bytes
     charset = part.get_content_charset() or "utf-8"
     try:
         return payload.decode(charset, errors="replace")
@@ -181,9 +185,10 @@ def _omit_attachments(part: Message) -> int:
     if not part.is_multipart():
         return 0
     assert isinstance(payload, list)
-    retained: list[Message] = []
+    retained: list[Message | str] = []
     attachments = 0
     for child in payload:
+        assert isinstance(child, Message)  # children of a multipart part are messages
         is_attachment = (
             child.get_content_disposition() == "attachment"
             or child.get_filename() is not None
@@ -214,9 +219,11 @@ def attachment_parts(message: Message) -> Iterator[tuple[str, str, bytes]]:
         )
         if not is_attachment:
             continue
+        content = child.get_payload(decode=True)
+        assert content is None or isinstance(content, bytes)  # leaf parts decode to bytes
         yield (child.get_filename() or "unnamed",
                child.get_content_type() or "application/octet-stream",
-               child.get_payload(decode=True) or b"")
+               content or b"")
 
 
 def _collect_and_extract_attachments(
@@ -299,7 +306,7 @@ def prepare(raw: bytes, limits: int | MimeLimits | object,
     result: dict[str, object] = {
         "headers": {name: _clean(str(message.get(source, ""))) for name, source in (
             ("from", "From"), ("subject", "Subject"), ("date", "Date"), ("message_id", "Message-ID"),
-            ("reply_to", "Reply-To"), ("references", "References"))},
+            ("reply_to", "Reply-To"), ("references", "References"), ("in_reply_to", "In-Reply-To"))},
         "text": text,
         "metadata": {"attachments_omitted": attachments, "text_shortened": shortened},
         "extracted_attachments": extracted_attachments,
@@ -309,6 +316,7 @@ def prepare(raw: bytes, limits: int | MimeLimits | object,
     # Preserve all occurrences for conservative duplicate handling.  They are
     # untrusted input and are normalized only at the duplicate-index boundary.
     result["message_ids"] = [_clean(str(value)) for value in message.get_all("Message-ID", [])]
-    if len(json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode("utf-8")) > configured.max_llm_payload_bytes:
+    encoded = json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    if len(encoded) > configured.max_llm_payload_bytes:
         raise MimeLimitExceeded("max_llm_payload_bytes")
     return result

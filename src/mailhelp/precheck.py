@@ -12,8 +12,9 @@ from .domain.proposal import (
     ProposalKind,
     ProposalStatus,
 )
-from .external.contracts import ExternalWriter
-from .external.http_writer import HttpWriter
+from .external.calendar import CalendarOperations
+from .external.contracts import ExternalWriter, TargetWriter
+from .external.roles import CALENDAR_SLOT, TASK_SLOT, provider_key, slot
 from .logging import EventLogger, NullLogger
 from .telegram.ledger import ActionLedgerPort
 
@@ -23,15 +24,15 @@ class DuplicatePreCheckService:
 
     def __init__(
         self,
-        writer: ExternalWriter | HttpWriter | None = None,
+        writer: ExternalWriter | TargetWriter | None = None,
         ledger: ActionLedgerPort | None = None,
         logger: EventLogger | None = None,
         writers: dict[str, ExternalWriter] | None = None,
     ):
         self.writer = writer
         self.writers: dict[str, ExternalWriter] = dict(writers) if writers is not None else {}
-        if writer is not None and isinstance(writer, HttpWriter):
-            self.writers[writer.service] = writer
+        if isinstance(writer, TargetWriter):
+            self.writers[slot(writer)] = writer
         self.ledger = ledger
         self.logger = logger or NullLogger()
 
@@ -39,6 +40,10 @@ class DuplicatePreCheckService:
         self, proposal: Proposal, mail_context: dict[str, Any] | None = None
     ) -> Proposal:
         """Inspect proposal against local and external sources, returning updated proposal."""
+        bound = self.writers.get(CALENDAR_SLOT if proposal.kind == ProposalKind.EVENT else TASK_SLOT)
+        if isinstance(bound, TargetWriter) and (proposal.target != bound.target or
+                proposal.target_provider and proposal.target_provider != provider_key(bound)):
+            return self._failed(proposal, "target", ValueError("Zielbindung geändert"))
         # Stufe 1: Lokales ActionLedger
         if self.ledger is not None:
             try:
@@ -56,20 +61,19 @@ class DuplicatePreCheckService:
                             external_id=entry.external_id,
                             external_link=entry.external_link,
                             matched_title=entry.title,
-                            details=f"Bereits erfolgreich über Mailhelp angelegt ({entry.created_at.date().isoformat()})",
+                            details="Bereits erfolgreich über Mailhelp angelegt "
+                                    f"({entry.created_at.date().isoformat()})",
                         ),
                     })
             except Exception as exc:
-                self.logger.event("WARNING", "precheck", "ledger_check_failed", error=str(exc))
+                return self._failed(proposal, "ledger", exc)
 
-        # Stufe 2: Google Kalender
-        cal_writer = self.writers.get("google_calendar") or (
-            self.writer if isinstance(self.writer, HttpWriter) and self.writer.service == "google_calendar" else None
-        )
+        # Stufe 2: Kalender (Google, CalDAV oder Outlook)
+        cal_writer = self.writers.get(CALENDAR_SLOT)
         if (
             proposal.kind == ProposalKind.EVENT
-            and isinstance(cal_writer, HttpWriter)
-            and cal_writer.service == "google_calendar"
+            and isinstance(cal_writer, CalendarOperations)
+            and cal_writer.role == "calendar"
             and proposal.start is not None
             and proposal.end is not None
         ):
@@ -78,37 +82,43 @@ class DuplicatePreCheckService:
                 if result is not None:
                     return result
             except Exception as exc:
-                self.logger.event("WARNING", "precheck", "calendar_check_failed", error=str(exc))
+                return self._failed(proposal, "calendar", exc)
 
-        # Stufe 3: Todoist
-        todo_writer = self.writers.get("todoist") or (
-            self.writer if isinstance(self.writer, HttpWriter) and self.writer.service == "todoist" else None
-        )
+        # Stufe 3: Aufgaben (Todoist, Microsoft To Do oder CalDAV)
+        todo_writer = self.writers.get(TASK_SLOT)
         if (
             proposal.kind == ProposalKind.TASK
-            and isinstance(todo_writer, HttpWriter)
-            and todo_writer.service == "todoist"
+            and isinstance(todo_writer, TargetWriter)
+            and todo_writer.role == "tasks"
         ):
             try:
                 result = self._check_todoist(proposal, todo_writer)
                 if result is not None:
                     return result
             except Exception as exc:
-                self.logger.event("WARNING", "precheck", "todoist_check_failed", error=str(exc))
+                return self._failed(proposal, "todoist", exc)
 
         return proposal
 
-    def _check_calendar(self, proposal: Proposal, writer: HttpWriter) -> Proposal | None:
-        assert isinstance(writer, HttpWriter)
+    def _failed(self, proposal: Proposal, service: str, exc: Exception) -> Proposal:
+        self.logger.event("WARNING", "precheck", f"{service}_check_failed", error=type(exc).__name__)
+        return proposal.model_copy(update={"duplicate_check_failed": True,
+            "status": ProposalStatus.NEEDS_CLARIFICATION,
+            "open_questions": list(dict.fromkeys([*proposal.open_questions,
+                "Dublettenprüfung nicht verfügbar; vor einer Anlage erneut prüfen."]))})
+
+    def _check_calendar(self, proposal: Proposal, writer: CalendarOperations) -> Proposal | None:
         assert proposal.start is not None and proposal.end is not None
 
-        start_dt = proposal.start if isinstance(proposal.start, datetime) else datetime.combine(proposal.start, datetime.min.time(), UTC)
-        end_dt = proposal.end if isinstance(proposal.end, datetime) else datetime.combine(proposal.end, datetime.min.time(), UTC)
+        start_dt = (proposal.start if isinstance(proposal.start, datetime)
+                    else datetime.combine(proposal.start, datetime.min.time(), UTC))
+        end_dt = (proposal.end if isinstance(proposal.end, datetime)
+                  else datetime.combine(proposal.end, datetime.min.time(), UTC))
 
         search_start = start_dt - timedelta(days=1)
         search_end = end_dt + timedelta(days=1)
 
-        events = writer.fetch_events_in_window(search_start, search_end)
+        events = writer.fetch_events_in_window(search_start, search_end, strict=True)
         for item in events:
             is_match = False
             if writer.calendar_matcher is not None:
@@ -121,7 +131,7 @@ class DuplicatePreCheckService:
                 )
 
             if is_match:
-                changes, _interval = writer._time_changes(proposal, item)
+                changes, _interval = writer.time_changes(proposal, item)
                 is_reschedule_or_cancel = bool(changes) or proposal.classification in {
                     ProposalClassification.CHANGE,
                     ProposalClassification.CANCELLATION,
@@ -148,14 +158,13 @@ class DuplicatePreCheckService:
                             external_id=item.id,
                             external_link=item.htmlLink,
                             matched_title=item.summary or proposal.title,
-                            details="Bereits im Google Kalender eingetragen",
+                            details=f"Bereits im Kalender eingetragen ({writer.label})",
                         ),
                     })
         return None
 
-    def _check_todoist(self, proposal: Proposal, writer: HttpWriter) -> Proposal | None:
-        assert isinstance(writer, HttpWriter)
-        tasks = writer.fetch_active_tasks()
+    def _check_todoist(self, proposal: Proposal, writer: TargetWriter) -> Proposal | None:
+        tasks = writer.fetch_active_tasks(strict=True)
         norm_title = proposal.title.strip().casefold()
         for task in tasks:
             if task.content.strip().casefold() == norm_title:
@@ -170,7 +179,7 @@ class DuplicatePreCheckService:
                         external_id=str(task.id),
                         external_link=task.url,
                         matched_title=task.content or proposal.title,
-                        details="Bereits in Todoist vorhanden",
+                        details=f"Bereits als Aufgabe vorhanden ({writer.label})",
                     ),
                 })
         return None

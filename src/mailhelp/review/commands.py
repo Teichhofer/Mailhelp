@@ -12,6 +12,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from ..domain.proposal_sources import ProposalReference
 from .editing import ProposalEditPatch
 
 
@@ -29,6 +30,11 @@ class CommandKind(StrEnum):
     CANCEL_CLARIFICATION = "cancel"
     RELEVANCE = "relevance"
     EDIT = "edit_fields"
+    MERGE = "merge_proposals"
+    SEPARATE = "separate_proposals"
+    RESTORE = "restore_proposal"
+    DEFAULTS = "reapply_defaults"
+    RECHECK = "recheck_proposal"
 
 
 PROPOSAL_KINDS = frozenset(set(CommandKind) - {CommandKind.RELEVANCE})
@@ -49,9 +55,19 @@ class ReviewCommand(BaseModel):
     # Telegram update offset that makes a replayed relevance answer detectable.
     replay_offset: int | None = Field(default=None, ge=1)
     patch: ProposalEditPatch | None = None
+    target_ref: ProposalReference | None = None
+    target_version: int | None = Field(default=None, ge=1)
+    proposal_hash: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
 
     @model_validator(mode="after")
     def complete(self) -> ReviewCommand:
+        if self.kind in {CommandKind.MERGE, CommandKind.SEPARATE}:
+            if self.target_ref is None or self.target_version is None:
+                raise ValueError("Zusammenführung benötigt die Zielversion")
+        elif self.target_ref is not None or self.target_version is not None:
+            raise ValueError("Nur Zusammenführung enthält ein Ziel")
+        if (self.kind in {CommandKind.RESTORE, CommandKind.DEFAULTS}) != (self.proposal_hash is not None):
+            raise ValueError("Wiederherstellung und Dauerannahme benötigen den geprüften Hash")
         if (self.kind == CommandKind.EDIT) != (self.patch is not None):
             raise ValueError("Nur strukturierte Bearbeitung enthält Felder")
         if (self.kind in PROPOSAL_KINDS) != (self.proposal_id is not None):

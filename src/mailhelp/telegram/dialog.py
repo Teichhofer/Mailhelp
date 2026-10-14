@@ -340,7 +340,8 @@ class TelegramDialogController:
                               status=result.status.value)
             # Writes, revisions and clarifications report in Telegram by
             # themselves; a rejection or relevance decision is mirrored here.
-            if (command.source == CommandSource.WEB and result.status == ResultStatus.DONE
+            if (self.outbox.background is None and command.source == CommandSource.WEB
+                    and result.status == ResultStatus.DONE
                     and command.kind in {CommandKind.REJECT, CommandKind.RELEVANCE}):
                 try:
                     self.telegram.send(self.chat_id, f"🌐 Im Web: {result.message}")

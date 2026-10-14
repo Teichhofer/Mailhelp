@@ -31,8 +31,10 @@ from ..review.cards import (
 _VERSION = re.compile(r" \(Version \d+\)")
 
 
-def mail_line(sender: str, subject: str) -> str:
-    return f"✉️ {sender_name(sender)} · {shorten(subject, SUBJECT_LIMIT)}"
+def mail_line(sender: str, subject: str, mailbox: str = "") -> str:
+    """One line of mail context; *mailbox* is the label shown with several mailboxes (3.1)."""
+    prefix = f"[{mailbox}] " if mailbox else ""
+    return f"✉️ {prefix}{sender_name(sender)} · {shorten(subject, SUBJECT_LIMIT)}"
 
 
 def split_message(text: str, limit: int = 4000) -> list[str]:
@@ -42,7 +44,7 @@ def split_message(text: str, limit: int = 4000) -> list[str]:
 
 
 def numbered_message_parts(
-    sender: str, subject: str, text: str, limit: int = 4000
+    sender: str, subject: str, text: str, limit: int = 4000, mailbox: str = ""
 ) -> list[str]:
     """Split text and repeat a one-line mail context on every part.
 
@@ -52,7 +54,7 @@ def numbered_message_parts(
         raise ValueError("Absender und Betreff werden benötigt")
     if limit < 32:
         raise ValueError("limit ist zu klein für eine sichere Zuordnung")
-    header = mail_line(sender, subject)
+    header = mail_line(sender, subject, mailbox)
     count = 1
     while True:
         prefix = f"{header} · Teil {count}/{count}\n" if count > 1 else f"{header}\n"

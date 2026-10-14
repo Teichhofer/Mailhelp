@@ -1,6 +1,7 @@
 """Calendar lookup, duplicate matching, merge payloads and event updates."""
 from __future__ import annotations
 
+from collections.abc import Iterator
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -10,6 +11,7 @@ from pydantic import ValidationError
 from ..adapter import uncertain_write
 from ..models import CalendarDuplicateDecision, Proposal, ProposalKind
 from .contracts import CalendarEventResponse, CalendarListResponse, CalendarOverlapEvent, PreparedWrite, validation_path
+from .transport import HttpTransport
 
 
 def _now(configured_timezone: str | None) -> datetime:
@@ -17,11 +19,14 @@ def _now(configured_timezone: str | None) -> datetime:
     return datetime.now(ZoneInfo(configured_timezone or "UTC"))
 
 
-class CalendarOperations:
+class CalendarOperations(HttpTransport):
     def _reconcile_calendar(self, key: str) -> dict[str, Any] | None:
-        response = self.policy.run(lambda: self._get(f"/calendars/{self.target}/events", {"privateExtendedProperty": f"mailhelp_key={key}"}))
+        query = {"privateExtendedProperty": f"mailhelp_key={key}"}
+        response = self.policy.run(lambda: self._get(f"/calendars/{self.target}/events", query))
         try: items = CalendarListResponse.model_validate(response.json()).items
-        except (ValueError, ValidationError) as exc: raise ValueError(f"Google Calendar events: ungültige Antwort am Schlüsselpfad {validation_path(exc)}") from exc
+        except (ValueError, ValidationError) as exc:
+            raise ValueError("Google Calendar events: ungültige Antwort am Schlüsselpfad "
+                             f"{validation_path(exc)}") from exc
         return items[0].model_dump() if items else None
 
 
@@ -31,13 +36,14 @@ class CalendarOperations:
             body = self._calendar_event_body(proposal, key)
             if proposal.is_cancellation:
                 body["status"] = "cancelled"
+            event_id = proposal.target_event_id
             return PreparedWrite(lambda: self._update_calendar_event(
-                proposal.target_event_id, body, key, proposal, proposal.time_changes))
+                event_id, body, key, proposal, proposal.time_changes))
         duplicate = (None if proposal.explicit_duplicate_create_confirmed_version == proposal.version
                      else self._matching_calendar_event(proposal))
         if duplicate is not None:
             existing, decision = duplicate
-            changes, interval = self._time_changes(proposal, existing)
+            changes, interval = self.time_changes(proposal, existing)
             if decision.missing_fields or changes:
                 body = self._calendar_merge_body(proposal, key, existing, decision)
                 if changes:
@@ -53,14 +59,18 @@ class CalendarOperations:
                     existing.id, body, key, proposal, changes))
             return PreparedWrite(lambda: {"id": existing.id, "htmlLink": existing.htmlLink,
                     "operation": "duplicate_skipped"}, requires_write=False)
-        url, body = f"/calendars/{self.target}/events", self._calendar_event_body(proposal, key)
-        return PreparedWrite(lambda: self._create_prepared(proposal, key, url, body))
+        body = self._calendar_event_body(proposal, key)
+        return PreparedWrite(lambda: self._insert_calendar_event(proposal, key, body))
+
+    def _insert_calendar_event(self, proposal: Proposal, key: str, body: dict[str, Any]) -> dict[str, Any]:
+        """Create a new event from the provider-neutral body (Google format)."""
+        return self._create_prepared(proposal, key, f"/calendars/{self.target}/events", body)
 
     def fetch_events_in_window(
         self, start: datetime | date, end: datetime | date, *, strict: bool = False
     ) -> list[CalendarOverlapEvent]:
         """Fetch existing Google Calendar events in the given window with caching and fallback."""
-        if self.service != "google_calendar":
+        if self.role != "calendar":
             return []
         if isinstance(start, date) and not isinstance(start, datetime):
             time_min = datetime.combine(start, datetime.min.time(), UTC).isoformat()
@@ -72,7 +82,7 @@ class CalendarOperations:
             time_max = end.isoformat()
 
         cache_key = (self.service, self.target, time_min, time_max)
-        cached = self._get_cached(cache_key)
+        cached = None if strict else self._get_cached(cache_key)
         if cached is not None:
             return cached
 
@@ -109,8 +119,9 @@ class CalendarOperations:
             return []
 
 
-    def _matching_calendar_event(self, proposal: Proposal) -> tuple[CalendarOverlapEvent, CalendarDuplicateDecision] | None:
-        if self.service != "google_calendar" or self.calendar_matcher is None:
+    def _matching_calendar_event(self, proposal: Proposal
+                                 ) -> tuple[CalendarOverlapEvent, CalendarDuplicateDecision] | None:
+        if self.role != "calendar" or self.calendar_matcher is None:
             return None
         assert proposal.start is not None and proposal.end is not None
         if proposal.all_day:
@@ -119,6 +130,15 @@ class CalendarOperations:
         else:
             assert isinstance(proposal.start, datetime) and isinstance(proposal.end, datetime)
             time_min, time_max = proposal.start.isoformat(), proposal.end.isoformat()
+        for item in self._calendar_candidates(time_min, time_max):
+            safe = item.model_dump(mode="json", exclude={"htmlLink"})
+            _call_id, decision = self.calendar_matcher(proposal, safe)
+            if decision.same_event:
+                return item, decision
+        return None
+
+    def _calendar_candidates(self, time_min: str, time_max: str) -> Iterator[CalendarOverlapEvent]:
+        """Existing events overlapping the interval, page by page; invalid answers raise."""
         params = {"timeMin": time_min, "timeMax": time_max, "singleEvents": "true",
                   "maxResults": "50"}
         seen_tokens: set[str] = set()
@@ -138,14 +158,11 @@ class CalendarOperations:
                         raise ValueError("nextPageToken")
                     seen_tokens.add(next_token)
             except (AttributeError, ValueError, ValidationError) as exc:
-                raise ValueError(f"Google Calendar events: ungültige Antwort am Schlüsselpfad {validation_path(exc)}") from exc
-            for item in items:
-                safe = item.model_dump(mode="json", exclude={"htmlLink"})
-                _call_id, decision = self.calendar_matcher(proposal, safe)
-                if decision.same_event:
-                    return item, decision
+                raise ValueError("Google Calendar events: ungültige Antwort am Schlüsselpfad "
+                                 f"{validation_path(exc)}") from exc
+            yield from items
             if next_token is None:
-                return None
+                return
             params["pageToken"] = next_token
 
 
@@ -166,8 +183,8 @@ class CalendarOperations:
         return body
 
 
-    def _time_changes(self, proposal: Proposal,
-                      existing: CalendarOverlapEvent) -> tuple[list[str], dict[str, Any]]:
+    def time_changes(self, proposal: Proposal,
+                     existing: CalendarOverlapEvent) -> tuple[list[str], dict[str, Any]]:
         """Compare start and end deterministically; the LLM only decides identity."""
         validated = Proposal.model_validate(proposal.model_dump())
         interval = (self._all_day_interval(validated) if validated.all_day
@@ -190,6 +207,7 @@ class CalendarOperations:
                                     ("Ende", existing.end, validated.end)):
             old = parse(old_raw)
             # An unknown existing time cannot be compared and is left alone.
+            assert new is not None  # a validated event always has start and end
             if old is not None and not (type(old) is type(new) and old == new):
                 changes.append(f"{label} {display(old, label == 'Ende')} → "
                                f"{display(new, label == 'Ende')}")
@@ -218,6 +236,8 @@ class CalendarOperations:
         validated = Proposal.model_validate(proposal.model_dump())
         interval = self._all_day_interval(validated) if validated.all_day else self._timed_interval(validated)
         description = validated.description
+        if validated.default_duration_minutes is not None:
+            description += f"\n\nEndzeit angenommen: Standarddauer {validated.default_duration_minutes} Minuten."
         if validated.video_link is not None:
             video_section = f"[Mailhelp-Videolink]\n{validated.video_link}"
             description = f"{description}\n\n{video_section}" if description else video_section
@@ -232,6 +252,7 @@ class CalendarOperations:
     def _all_day_interval(proposal: Proposal) -> dict[str, Any]:
         # Google interprets end.date as exclusive: a one-day event therefore
         # has end equal to the calendar day after start.
+        assert proposal.start is not None and proposal.end is not None  # validated before the write
         return {"start": {"date": proposal.start.isoformat()}, "end": {"date": proposal.end.isoformat()}}
 
 
@@ -239,6 +260,7 @@ class CalendarOperations:
         # dateTime already identifies the instant through its mandatory UTC
         # offset.  Supplying the configured calendar zone as well could make a
         # different zone appear authoritative and reinterpret the wall time.
+        assert proposal.start is not None and proposal.end is not None  # validated before the write
         return {
             "start": {"dateTime": proposal.start.isoformat()},
             "end": {"dateTime": proposal.end.isoformat()},

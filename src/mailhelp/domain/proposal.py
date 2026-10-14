@@ -8,6 +8,7 @@ from typing import Any, Literal
 from pydantic import AnyHttpUrl, Field, model_validator
 
 from ._base import CalendarDate, StrictModel
+from .proposal_sources import ProposalReference, ProposalSource
 from .temporal import TemporalFact
 
 
@@ -49,6 +50,7 @@ class ProposalStatus(StrEnum):
     REJECTED = "rejected"
     FAILED = "failed"
     UNCERTAIN = "uncertain"
+    MERGED = "merged"
 
 
 class DuplicateSource(StrEnum):
@@ -166,10 +168,24 @@ class Proposal(StrictModel):
     target_event_id: str | None = Field(default=None, max_length=500)
     time_changes: list[str] = Field(default_factory=list)
     is_cancellation: bool = False
+    meeting_mode: Literal["video", "in_person", "hybrid", "unknown"] = "unknown"
+    end_origin: Literal["unknown", "mail_end", "mail_duration", "calendar", "standard", "manual"] = "unknown"
+    default_duration_minutes: int | None = Field(default=None, ge=1, le=1440)
+    sources: list[ProposalSource] = Field(default_factory=list, max_length=1000)
+    protected_fields: list[str] = Field(default_factory=list, max_length=30)
+    canonical_ref: ProposalReference | None = None
+    target_provider: str = Field(default="", max_length=30)
+    matching_candidates: list[ProposalReference] = Field(default_factory=list, max_length=50)
+    pending_sources: list[ProposalReference] = Field(default_factory=list, max_length=50)
+    merge_review_required: bool = False
+    duplicate_check_failed: bool = False
+    separated_from: list[ProposalReference] = Field(default_factory=list, max_length=50)
 
     @property
     def is_creatable(self) -> bool:
         """Shared business authorization rule for validation and write adapters."""
+        if self.duplicate_check_failed:
+            return False
         classification_allowed = (
             self.classification == ProposalClassification.NEW or
             (self.classification == ProposalClassification.CHANGE and
@@ -179,12 +195,24 @@ class Proposal(StrictModel):
             (self.classification == ProposalClassification.NON_BINDING and
              self.explicit_non_binding_create_confirmed)
         )
-        return (classification_allowed and
+        return (self.status != ProposalStatus.MERGED and not self.pending_sources
+                and not self.matching_candidates and classification_allowed and
                 self.responsibility == ProposalResponsibility.USER and
                 self.certainty == ProposalCertainty.CERTAIN)
 
     @model_validator(mode="after")
     def validate_consistency(self) -> Proposal:
+        if self.merge_review_required and self.canonical_ref is None:
+            raise ValueError("Ein ungeprüfter Zusatz benötigt seine kanonische Referenz")
+        if self.default_duration_minutes is not None and (
+                self.end_origin != "standard" or self.kind != ProposalKind.EVENT or
+                self.start is None or self.end is None or self.all_day):
+            raise ValueError("Standarddauer benötigt ein zeitgebundenes Terminintervall und Herkunft")
+        if (self.status == ProposalStatus.MERGED) != (self.canonical_ref is not None):
+            raise ValueError("Zusammengeführte Vorschläge benötigen eine kanonische Referenz")
+        if self.canonical_ref is not None and (self.canonical_ref.mail_id, self.canonical_ref.proposal_id) == (
+                self.source_mail_id, self.id):
+            raise ValueError("Ein Vorschlag darf nicht auf sich selbst verweisen")
         if self.status == ProposalStatus.SIMULATED and (self.external_id is not None or self.external_link is not None):
             raise ValueError("Ein simulierter Vorschlag darf kein externes Ergebnis enthalten")
         if self.simulation_notified and self.status != ProposalStatus.SIMULATED:
@@ -229,7 +257,8 @@ class Proposal(StrictModel):
         else:
             if any(not isinstance(value, datetime) for value in values if value is not None):
                 raise ValueError("Zeitgebundene Termine benötigen Datums- und Zeitwerte")
-            if any(value.tzinfo is None or value.utcoffset() is None for value in values if isinstance(value, datetime)):
+            if any(value.tzinfo is None or value.utcoffset() is None
+                   for value in values if isinstance(value, datetime)):
                 raise ValueError("Zeitgebundene Termine benötigen einen eindeutigen UTC-Offset")
         if self.end is not None and self.start is not None and self.end <= self.start:
             raise ValueError("Terminende muss nach dem Beginn liegen")
@@ -272,6 +301,10 @@ class ProposalRevisionDelta(StrictModel):
 def required_revision_questions(proposal: Proposal) -> list[str]:
     """Derive invariant clarification questions from the revised business facts."""
     questions: list[str] = []
+    if proposal.duplicate_check_failed:
+        questions.append("Dublettenprüfung nicht verfügbar; vor einer Anlage erneut prüfen.")
+    if proposal.pending_sources or proposal.matching_candidates:
+        questions.append("Zuordnung der zusätzlichen Quelle prüfen.")
     if proposal.kind == ProposalKind.EVENT:
         known_start = (proposal.known_temporal_facts.start
                        if proposal.known_temporal_facts is not None else None)
@@ -291,7 +324,8 @@ def required_revision_questions(proposal: Proposal) -> list[str]:
             else "Soll der nicht bindende Hinweis dennoch als neuer Eintrag angelegt werden?"
         ),
         ProposalClassification.ALREADY_COMPLETED: "Der Eintrag ist bereits abgeschlossen und nicht direkt ausführbar.",
-        ProposalClassification.CHANGE: (None if (proposal.explicit_create_fallback_confirmed or proposal.target_event_id is not None)
+        ProposalClassification.CHANGE: (None if (proposal.explicit_create_fallback_confirmed
+                                                 or proposal.target_event_id is not None)
                                         else "Welcher bestehende Eintrag soll geändert werden?"),
         ProposalClassification.CANCELLATION: (None if proposal.target_event_id is not None
                                               else "Welcher bestehende Eintrag soll storniert werden?"),
@@ -301,6 +335,17 @@ def required_revision_questions(proposal: Proposal) -> list[str]:
     if classification:
         questions.append(classification)
     return questions
+
+
+def invalidate_creation_permissions(proposal: Proposal) -> Proposal:
+    """A material local revision needs fresh consent for every special creation."""
+    candidate = proposal.model_copy(update={"explicit_create_fallback_confirmed": False,
+        "explicit_non_binding_create_confirmed": False, "explicit_duplicate_create_confirmed_version": None})
+    if candidate.status in {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}:
+        questions = list(dict.fromkeys([*candidate.open_questions, *required_revision_questions(candidate)]))
+        candidate = candidate.model_copy(update={"open_questions": questions,
+            "status": ProposalStatus.NEEDS_CLARIFICATION if questions else ProposalStatus.PENDING_CONFIRMATION})
+    return Proposal.model_validate(candidate.model_dump())
 
 
 def _check_revision_permissions(previous: Proposal, changes: dict[str, Any],

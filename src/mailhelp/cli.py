@@ -6,6 +6,7 @@ import json
 import shutil
 import signal
 import sys
+from collections.abc import Callable, Set
 from contextlib import ExitStack
 from pathlib import Path
 
@@ -13,7 +14,7 @@ from .application import build_application, build_logger
 from .config import LOCAL_NUM_CTX, Settings, load_all
 from .decision_test import run_decision_test
 from .decisions import load_relevance_prompts
-from .learning import LearningMode
+from .learning import LearningMode, LearningSource
 from .ollama import LocalLlm, parse_address
 from .paths import runtime_path
 from .storage import JsonStore
@@ -26,7 +27,7 @@ class _SignalShutdown:
     """Route signals to a running service or abort the current one-shot mode."""
 
     def __init__(self) -> None:
-        self.stop = None
+        self.stop: Callable[[], None] | None = None
 
     def __call__(self, _signum: int, _frame: object) -> None:
         if self.stop is None:
@@ -60,7 +61,7 @@ def _positive_int(value: str) -> int:
     return parsed
 
 
-def _remove_directory_contents(directory: Path, *, keep: set[str] = frozenset()) -> None:
+def _remove_directory_contents(directory: Path, *, keep: Set[str] = frozenset()) -> None:
     """Remove entries without following directory symlinks."""
     if not directory.exists():
         return
@@ -130,6 +131,7 @@ def _parser() -> argparse.ArgumentParser:
         help="Logverzeichnis aus config.yaml für diesen Aufruf überschreiben",
     )
     parser.add_argument("--check", action="store_true", help="Konfiguration validieren und beenden")
+    parser.add_argument("--pair", action="store_true", help="Lokalen Einmalcode zur Webanmeldung anzeigen")
     parser.add_argument(
         "--check-access", action="store_true",
         help="Zugänge prüfen, Telegram-Testnachricht senden und beenden",
@@ -138,6 +140,11 @@ def _parser() -> argparse.ArgumentParser:
         "--show-imap-credentials", action="store_true",
         help=("bei --check-access den tatsächlich verwendeten IMAP-Benutzernamen "
               "und das Passwort im Terminal ausgeben"),
+    )
+    parser.add_argument(
+        "--microsoft-login", action="store_true",
+        help=("bei Microsoft (Outlook-Kalender, Microsoft To Do) per Gerätecode anmelden und den "
+              "Refresh-Token in microsoft-token.json neben .env speichern"),
     )
     parser.add_argument(
         "--max-mails", type=_positive_int, metavar="ANZAHL",
@@ -190,6 +197,11 @@ def _parser() -> argparse.ArgumentParser:
         "--decision-test-relevance-only", action="store_true",
         help="im --decision-test ausschließlich die Relevanzprüfung beider Pfade vergleichen",
     )
+    parser.add_argument(
+        "--mailbox", type=_mailbox_choice, metavar="NUMMER|alle",
+        help="Postfach (imap.mailboxes.id) oder alle aktivierten Postfächer für --learn und "
+             "--decision-test; bei mehreren aktivierten Postfächern erforderlich",
+    )
     return parser
 
 
@@ -218,6 +230,39 @@ def _check_mode_options(parser: argparse.ArgumentParser, args: argparse.Namespac
         parser.error("--show-imap-credentials ist nur zusammen mit --check-access zulässig")
 
 
+ALL_MAILBOXES = "alle"
+
+
+def _mailbox_choice(value: str) -> int | str:
+    """A mailbox number, or "alle"/"all" for every enabled mailbox."""
+    if value.strip().casefold() in {"alle", "all"}:
+        return ALL_MAILBOXES
+    try:
+        return int(value)
+    except ValueError as exc:
+        raise argparse.ArgumentTypeError("Nummer eines Postfachs oder „alle“ erwartet") from exc
+
+
+def _selected_mailboxes(parser: argparse.ArgumentParser, args: argparse.Namespace, settings):
+    """The mailboxes --learn and --decision-test read; never guessed among several (3.1)."""
+    reads_mail = args.learn is not None or args.decision_test is not None
+    if args.mailbox is None and not reads_mail:
+        return None
+    if not reads_mail:
+        parser.error("--mailbox ist nur zusammen mit --learn oder --decision-test zulässig")
+    enabled = settings.imap.enabled_mailboxes()
+    if args.mailbox == ALL_MAILBOXES:
+        return enabled
+    if args.mailbox is None:
+        if len(enabled) > 1:
+            parser.error("Mehrere Postfächer aktiviert: --mailbox NUMMER oder --mailbox alle angeben")
+        return enabled
+    selected = [mailbox for mailbox in enabled if mailbox.id == args.mailbox]
+    if not selected:
+        parser.error(f"--mailbox {args.mailbox}: kein aktiviertes Postfach mit dieser Nummer")
+    return selected
+
+
 def _local_llm(parser: argparse.ArgumentParser, args: argparse.Namespace, prompts) -> LocalLlm | None:
     local_llm = None
     if args.ollama_model is not None and args.ollama is None:
@@ -226,7 +271,8 @@ def _local_llm(parser: argparse.ArgumentParser, args: argparse.Namespace, prompt
         model = args.ollama_model or (prompts.ollama.model if prompts.ollama else None)
         if not model:
             parser.error("--ollama benötigt ein Modell: --ollama-model NAME oder ollama.model in prompts.yaml")
-        local_llm = LocalLlm(*args.ollama, model=model,
+        host, port = args.ollama
+        local_llm = LocalLlm(host, port, model=model,
                              num_ctx=prompts.ollama.num_ctx if prompts.ollama else LOCAL_NUM_CTX,
                              num_thread=prompts.ollama.num_thread if prompts.ollama else None,
                              think=prompts.ollama.think if prompts.ollama else None)
@@ -245,6 +291,24 @@ def _clear(args: argparse.Namespace, settings) -> int:
             return 1
     clear_runtime_data(settings, args.log_directory, args.config_directory)
     print("Alle Zustandsdaten, Decision-Test-Berichte und Logs wurden gelöscht.")
+    return 0
+
+
+def _microsoft_login(settings, secrets, directory: Path) -> int:
+    """Device-code sign-in; the terminal shows only the code and address, never a token."""
+    from .external.contracts import OAuthTokenError
+    from .external.providers import microsoft_tokens
+    if not secrets.microsoft_client_id.get_secret_value():
+        print("MICROSOFT_CLIENT_ID fehlt in .env oder der Prozessumgebung.", file=sys.stderr)
+        return 1
+    tokens = microsoft_tokens(settings, secrets, directory, settings.timeouts.microsoft.timeout_seconds)
+    try:
+        tokens.device_login(print)
+    except OAuthTokenError as exc:
+        print(f"FEHLER: {exc}", file=sys.stderr)
+        return 1
+    finally:
+        tokens.close()
     return 0
 
 
@@ -268,12 +332,14 @@ def _show_imap_credentials(secrets) -> None:
     # JSON quoting makes control characters visible instead of allowing a
     # secret loaded from the environment to manipulate the terminal.
     print("ACHTUNG: IMAP-Zugangsdaten werden nur in diesem Terminal ausgegeben.")
-    print(f"IMAP-Benutzername: {json.dumps(secrets.imap_username, ensure_ascii=False)}")
-    print(f"IMAP-Passwort: {json.dumps(secrets.imap_password.get_secret_value(), ensure_ascii=False)}")
+    for number, credentials in sorted(secrets.imap.items()):
+        prefix = "" if len(secrets.imap) == 1 else f"Postfach {number} – "
+        print(f"{prefix}IMAP-Benutzername: {json.dumps(credentials.username, ensure_ascii=False)}")
+        print(f"{prefix}IMAP-Passwort: {json.dumps(credentials.password.get_secret_value(), ensure_ascii=False)}")
 
 
 def _run(args: argparse.Namespace, settings, secrets, topics, irrelevant_topics, prompts, fingerprint,
-         logger, local_llm: LocalLlm | None, shutdown: _SignalShutdown) -> int:
+         logger, local_llm: LocalLlm | None, shutdown: _SignalShutdown, mailboxes=None) -> int:
     with build_application(
         settings, secrets, topics, prompts, fingerprint,
         base_directory=args.config_directory,
@@ -286,15 +352,21 @@ def _run(args: argparse.Namespace, settings, secrets, topics, irrelevant_topics,
                 print(f"{'OK' if error is None else 'FEHLER'}: {name}" + (f" – {error}" if error else ""))
             return 1 if any(error is not None for error in results.values()) else 0
         if args.learn is not None:
+            readers = {source.mailbox.id: source.reader for source in application.sources}
+            configured = settings.imap.configured_mailboxes()
+            sources = [LearningSource(readers[mailbox.id], mailbox.folders,
+                                      "imap.folders" if settings.imap.legacy_format
+                                      else f"imap.mailboxes.{configured.index(mailbox)}.folders")
+                       for mailbox in mailboxes]
             LearningMode(
-                application.imap, application.analyzer, settings.imap.folders,
+                sources[0].imap, application.analyzer, sources[0].folders,
                 settings.limits, topics, args.config_directory / "topics.yaml",
                 irrelevant_topics, args.config_directory / "irrelevant_topics.yaml",
                 application.sender_store,
                 timezone=settings.timezone,
                 parallel_llm_calls=settings.learning.parallel_llm_calls,
                 global_newest_first=getattr(settings.imap, "global_newest_first", False),
-                config_path=args.config_directory / "config.yaml",
+                config_path=args.config_directory / "config.yaml", sources=sources,
             ).run(args.learn)
             return 0
         shutdown.stop = application.stop
@@ -318,16 +390,25 @@ def _main() -> int:
     shutdown = _SignalShutdown()
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
+    if args.pair:
+        from .local_pairing import request_local_code
+        request_local_code(args.config_directory)
+        return 0
     settings, secrets, topics, irrelevant_topics, prompts, fingerprint = load_all(args.config_directory)
+    if args.microsoft_login:
+        return _microsoft_login(settings, secrets, args.config_directory)
     _check_mode_options(parser, args)
+    mailboxes = _selected_mailboxes(parser, args, settings)
     local_llm = _local_llm(parser, args, prompts)
     if args.decision_test is not None:
+        assert local_llm is not None  # _check_mode_options requires --ollama for decision tests
         return run_decision_test(
             settings, secrets, topics, prompts, args.decision_test, args.config_directory,
             args.decision_test_file, local_llm=local_llm,
             ignore_historical_start=args.ignore_historical_start,
             laya=args.decision_test_laya, laya_model=args.decision_test_laya_model,
             relevance_only=args.decision_test_relevance_only, irrelevant_topics=irrelevant_topics,
+            mailboxes=mailboxes,
         )
     if args.clear:
         return _clear(args, settings)
@@ -342,4 +423,4 @@ def _main() -> int:
     if args.show_imap_credentials:
         _show_imap_credentials(secrets)
     return _run(args, settings, secrets, topics, irrelevant_topics, prompts, fingerprint,
-                logger, local_llm, shutdown)
+                logger, local_llm, shutdown, mailboxes)

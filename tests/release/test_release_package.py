@@ -35,7 +35,7 @@ def test_package_resources_and_fresh_configuration(tmp_path):
     parts = mailhelp.__version__.split(".")
     assert len(parts) == 3 and all(p.isdigit() for p in parts)
     agents_rules = (ROOT / "AGENTS.md").read_text(encoding="utf-8")
-    assert "Jeder Commit in `main` erhöht die Versionsnummer" in agents_rules
+    assert "Jeder Commit in `main` und `beta` erhöht die Versionsnummer" in agents_rules
     if os.environ.get("MAILHELP_INSTALLED_WHEEL"):
         assert ROOT / "src" not in package.parents
 
@@ -47,8 +47,15 @@ def test_built_artifacts_exclude_private_runtime_files():
         if os.environ.get("MAILHELP_INSTALLED_WHEEL"):
             pytest.fail("Release artifacts must exist in the package smoke job")
         pytest.skip("Artifact build is verified in package-smoke on both target platforms")
-    with zipfile.ZipFile(wheels[-1]) as archive:
+    version = tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["version"]
+    wheel = dist / f"mailhelp-{version}-py3-none-any.whl"
+    source = dist / f"mailhelp-{version}.tar.gz"
+    assert wheel.is_file() and source.is_file(), "Build artifacts for the current version must exist"
+    with zipfile.ZipFile(wheel) as archive:
         names = archive.namelist()
+        for module in ("event_defaults.py", "proposal_matching.py", "proposal_merge.py", "proposal_reconciliation.py",
+                       "domain/proposal_sources.py", "domain/reconciliation.py", "web/reconciliation_site.py"):
+            assert archive.read("mailhelp/" + module) == (ROOT / "src/mailhelp" / module).read_bytes()
         assert "mailhelp/assets/logo.png" in names
         assert {"mailhelp/web/static/app.js", "mailhelp/web/static/sw.js",
                 "mailhelp/web/static/manifest.webmanifest"} <= set(names)
@@ -66,12 +73,13 @@ def test_built_artifacts_exclude_private_runtime_files():
                 "mailhelp/attachments.py", "mailhelp/experience.py", "mailhelp/standalone.py",
                 "mailhelp/web/experience.py", "mailhelp/web/filters.py"} <= set(names)
         assert not any(name.endswith(".env") for name in names)
-    with tarfile.open(sources[-1]) as archive:
+    with tarfile.open(source) as archive:
         names = {name.split("/", 1)[-1] for name in archive.getnames()}
         assert {"config.example.yaml", ".env.example", "prompts.yaml", "requirements.lock",
                 "docs/Release-1.0.md", "docs/Release-1.1.md", "docs/Release-1.2.md",
                 "docs/Release-1.6.md", "docs/Architektur-1.6.md", "docs/Planung-1.6.md",
                 "docs/Release-2.0.md", "docs/Planung-2.0.md",
+                "docs/Planung-2.4.md", "docs/Architektur-2.4.md", "docs/Release-2.4.md",
                 "docs/Konzept-2.0-Redesign-und-Web-Push.md",
                 "src/mailhelp/assets/logo.png"} <= names
         assert "config.yaml" not in names and ".env" not in names

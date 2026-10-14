@@ -11,7 +11,7 @@ from email.message import EmailMessage
 from email.policy import SMTP
 from email.utils import format_datetime, parseaddr
 from threading import Lock
-from typing import Any, Protocol, cast
+from typing import Any, NamedTuple, Protocol, cast
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -56,19 +56,39 @@ class DraftAnalyzer(Protocol):
     def draft_reply(self, mail: dict[str, Any], intent: str, personal_info: str) -> tuple[str, ReplyDraft]: ...
 
 
+class DraftTarget(NamedTuple):
+    """Where drafts of one mailbox are written: its own connection, sender and drafts folder."""
+
+    connection: Callable[[], AbstractContextManager[imaplib.IMAP4]]
+    sender: str
+    folder: str
+
+
 class DraftService:
     """One reply draft per mail, generated on request for a chosen reply intent."""
 
     def __init__(self, store: StateStore, authorize: Callable[[str], bool],
                  connection: Callable[[], AbstractContextManager[imaplib.IMAP4]], sender: str,
                  folder: str = "Drafts", test_mode: bool = False, analyzer: DraftAnalyzer | None = None,
-                 personal_info: Callable[[], str] = lambda: "") -> None:
+                 personal_info: Callable[[], str] = lambda: "",
+                 targets: Callable[[str], DraftTarget | None] | None = None) -> None:
         self.store, self.authorize, self.connection = store, authorize, connection
         self.sender, self.folder, self.test_mode = sender, folder, test_mode
+        # With several mailboxes (3.1): the target of the mailbox a mail came from, by account id.
+        self.targets = targets
         # Read on every click, so a changed setting applies without a restart.
         self.analyzer, self.personal_info = analyzer, personal_info
         # Serializes draft actions including the LLM and IMAP access, without the store lock.
         self._lock = Lock()
+
+    def _target(self, source: MailState) -> DraftTarget:
+        """The mailbox of the mail; never another one, so a reply cannot leave the wrong account."""
+        if self.targets is None:
+            return DraftTarget(self.connection, self.sender, self.folder)
+        target = self.targets(source.imap.account_id)
+        if target is None:
+            raise ValueError("Das Postfach dieser Mail ist nicht mehr eingerichtet")
+        return target
 
     def get(self, mail_id: str) -> dict[str, Any] | None:
         return cast(dict[str, Any] | None, self.store.load(state_names.draft(mail_id)))
@@ -127,7 +147,8 @@ class DraftService:
                 if draft["status"] == "uncertain":
                     raise ValueError("Schreibresultat unklar; zuerst den Entwurf erneut speichern")
             # The paid call runs without the store lock; the session is checked again afterwards.
-            call, reply = cast(DraftAnalyzer, self.analyzer).draft_reply(cast(dict[str, Any], source.mail), intent, self.personal_info())
+            call, reply = cast(DraftAnalyzer, self.analyzer).draft_reply(cast(dict[str, Any], source.mail),
+                                                                         intent, self.personal_info())
             if not self.authorize(actor):
                 raise PermissionError("Sitzung abgelaufen")
             draft.update(version=version + 1, text=reply.text, intent=intent, status="editing",
@@ -173,23 +194,24 @@ class DraftService:
                 # Kept before the mailbox access so a failure never loses the edits.
                 draft["text"] = text
                 self.store.save(state_names.draft(mail_id), draft)
+                target = self._target(source)
                 message_id = f"<mailhelp-{mail_id}-v{version}@draft.local>"
-                content = message(cast(PreparedMail, source.prepared).headers, self.sender, text, message_id)
+                content = message(cast(PreparedMail, source.prepared).headers, target.sender, text, message_id)
                 if self.test_mode:
                     draft.update(status="simulated", error=None)
                     self._remember(draft, key, digest)
                     self.store.save(state_names.draft(mail_id), draft)
                     return draft
-            with self.connection() as connection:
-                self._append(connection, actor, mail_id, key, digest, draft, message_id, content)
+            with target.connection() as connection:
+                self._append(connection, target.folder, actor, mail_id, key, digest, draft, message_id, content)
             self._remember(draft, key, digest)
             self._save(mail_id, draft)
             return draft
 
-    def _append(self, connection: imaplib.IMAP4, actor: str, mail_id: str, key: str, digest: str,
-                draft: dict[str, Any], message_id: str, content: bytes) -> None:
+    def _append(self, connection: imaplib.IMAP4, drafts_folder: str, actor: str, mail_id: str, key: str,
+                digest: str, draft: dict[str, Any], message_id: str, content: bytes) -> None:
         """Reconcile first; append only if the draft is provably missing from the folder."""
-        folder = mailbox_argument(self.folder)
+        folder = mailbox_argument(drafts_folder)
         conn = cast(Any, connection)
         status, _ = conn.select(folder, readonly=True)
         if status != "OK":

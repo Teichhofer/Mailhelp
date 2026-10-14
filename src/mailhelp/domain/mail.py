@@ -40,6 +40,7 @@ class MailState(StrictModel):
     event_extraction: EventExtraction | None = None
     extraction_count_conflicts: list[ExtractionCountConflict] = Field(default_factory=list)
     normalized_proposals: list[Proposal] = Field(default_factory=list)
+    proposal_policy: dict[str, Any] | None = None
     proposals: list[Proposal] = Field(default_factory=list)
     proposal_notifications: list[ProposalNotification] = Field(default_factory=list)
     llm_call_ids: list[str] = Field(default_factory=list)

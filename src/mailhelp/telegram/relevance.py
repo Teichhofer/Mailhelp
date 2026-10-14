@@ -12,9 +12,9 @@ from .client import TelegramTransport
 
 class RelevanceHandler(Protocol):
     def resolve_relevance(
-        self, mail_id: str, version: int, decision: str, offset: int
+        self, mail_id: str, version: int, decision: str, telegram_offset: int
     ) -> MailState: ...
-    def resume_mail(self, state: MailState) -> None: ...
+    def resume_mail(self, state: MailState) -> object: ...
 
 
 class RelevanceDialogs(Protocol):

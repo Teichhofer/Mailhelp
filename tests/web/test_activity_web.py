@@ -26,7 +26,8 @@ NEW = {"title": "Elternbeirat", "topic": "Termine des Elternbeirats der Klasse 4
 def reports(web):
     service = ActivityService(ActivityReportStore(web.store), clock=lambda: RECEIVED)
     web.site.activity.service = service
-    web.site.activity.suggest_folders = lambda: ["INBOX", "Schule"]
+    web.site.activity.suggest_folders = lambda mailbox: ["INBOX", "Schule"]
+    web.site.activity.available_folders = lambda mailbox: ["INBOX", "Schule", "Archiv"]
     return service
 
 
@@ -93,6 +94,8 @@ def test_switched_off_reports_explain_how_to_enable_them(web):
     assert web.site.activity.service is None
     status, html = page(web, "/berichte")
     assert status == 200 and "activity_report.enabled" in html
+
+
     report_id = "a" * 32
     for path in ("/berichte/neu", f"/berichte/{report_id}", f"/berichte/{report_id}/mail/0",
                  f"/berichte/{report_id}/export.xlsx"):
@@ -100,6 +103,36 @@ def test_switched_off_reports_explain_how_to_enable_them(web):
     for path in ("/berichte", f"/berichte/{report_id}/aktion", f"/berichte/{report_id}/mail/0"):
         response = post(web, path, {"csrf": csrf(web)})
         assert response.status == 404 and b"activity_report.enabled" in response.body
+
+
+def test_delete_requires_an_idempotency_key(web, reports):
+    report = filled(reports)
+    response = post(web, f"/berichte/{report.id}/aktion",
+                    {"csrf": csrf(web), "version": str(report.version), "action": "delete"})
+    assert response.status == 409
+    assert reports.store.load(report.id) is not None
+
+
+def test_report_filters_fingerprint_repeat_and_unknown_folders(web, reports):
+    report = filled(reports)
+    url = f"/berichte/{report.id}"
+    status, html = page(web, url + "?month=2026-01&excluded=on")
+    assert status == 200 and "ausgeschlossen" in html
+    first = web.browser.request("GET", f"/api/stand?bericht={report.id}").body
+    report.message = "Fortschritt"
+    reports.store.save(report)
+    assert web.browser.request("GET", f"/api/stand?bericht={report.id}").body != first
+    assert web.browser.request("GET", "/api/stand?bericht=" + "f" * 32).status == 404
+    fields = {"csrf": csrf(web), "key": "repeat-web-001", "version": str(report.version),
+              "action": "repeat", "topic": "Ein anderes Thema fuer diese Mails"}
+    result = post(web, url + "/aktion", fields)
+    assert result.status == 303 and result.headers["Location"] != url
+    assert post(web, url + "/aktion", fields).headers == result.headers
+    assert post(web, "/berichte", new_form(web) | NEW | {"folders": "Unknown"}).status == 422
+    web.site.activity.available_folders = lambda mailbox: (_ for _ in ()).throw(OSError("offline"))
+    assert post(web, "/berichte", new_form(web) | NEW).status == 503
+    web.site.activity.service = None
+    assert web.browser.request("GET", f"/api/stand?bericht={report.id}").status == 404
 
 
 def test_create_counts_first_and_a_replayed_form_creates_nothing_twice(web, reports):
@@ -139,7 +172,7 @@ def test_invalid_definitions_keep_the_input(web, reports, change):
 
 
 def test_unreachable_mailbox_still_offers_the_form(web, reports):
-    def broken():
+    def broken(_mailbox):
         raise OSError("imap down")
     web.site.activity.suggest_folders = broken
     status, html = page(web, "/berichte/neu")
@@ -314,3 +347,47 @@ def test_failed_model_answers_ask_the_user_to_decide(web, reports):
     form = _hidden_of(web, f"/berichte/{report.id}/mail/0", f"/berichte/{report.id}/mail/0", mode="relevant")
     post(web, f"/berichte/{report.id}/mail/0", form)
     assert "Relevant (von dir festgelegt)" in page(web, f"/berichte/{report.id}/mail/0")[1]
+
+
+def test_excluded_view_marks_cancelled_and_excluded_dates(web, reports):
+    report = reports.create(definition(), [], [])
+    reports.store.save_mail(report.id, mail(1, "Absage", [
+        ReportEvent(id="e1", title="Treffen", day=date(2026, 1, 20), cancelled=True),
+        ReportEvent(id="e2", title="Ersatz", day=date(2026, 1, 21), excluded=True)]))
+    status, html = page(web, f"/berichte/{report.id}")
+    assert "Noch keine Termine erkannt." in html
+    status, html = page(web, f"/berichte/{report.id}?excluded=on")
+    table = html[html.index("<tbody>"):html.index("</tbody>")]
+    assert "abgesagt" in table and "ausgeschlossen" in table
+
+
+@pytest.mark.parametrize("value", ["../activity-report-x", "kurz", "A" * 32])
+def test_progress_signal_rejects_malformed_report_ids(web, reports, value):
+    # Regression: an id outside the report format reached the state store and failed with a server error.
+    response = web.browser.request("GET", f"/api/stand?bericht={value}")
+    assert response.status == 404
+
+
+def test_a_report_reads_the_mailbox_chosen_for_it(web, reports):
+    """Planung 3.1: with several mailboxes the form offers each one; folders are checked per mailbox."""
+    web.site.activity.mailboxes = lambda: [(1, "Privat"), (2, "Arbeit")]
+    web.site.activity.suggest_folders = lambda mailbox: {1: ["INBOX"], 2: ["Projekte"]}[mailbox]
+    web.site.activity.available_folders = lambda mailbox: {1: ["INBOX"], 2: ["INBOX", "Projekte"]}[mailbox]
+    status, html = page(web, "/berichte/neu?postfach=2")
+    assert status == 200 and '<a href="/berichte/neu?postfach=1">Privat</a>' in html
+    assert "<strong>Arbeit</strong>" in html and "Projekte</textarea>" in html
+    assert 'name="mailbox" value="2"' in html
+    for query in ("?postfach=7", "?postfach=x", ""):
+        assert 'name="mailbox" value="1"' in page(web, "/berichte/neu" + query)[1]
+    fields = {**new_form(web), **NEW, "folders": "Projekte", "mailbox": "2"}
+    assert post(web, "/berichte", fields).status == 303
+    (report,) = reports.store.reports()
+    assert report.definition.mailbox == 2
+    # Folders of another mailbox are refused, the form keeps the chosen mailbox.
+    refused = post(web, "/berichte", {**new_form(web), **NEW, "folders": "Projekte", "mailbox": "1"})
+    assert refused.status == 422 and 'name="mailbox" value="1"' in refused.body.decode()
+
+
+def test_a_single_mailbox_shows_no_mailbox_choice(web, reports):
+    status, html = page(web, "/berichte/neu")
+    assert status == 200 and "Postfach:" not in html and 'name="mailbox" value="1"' in html

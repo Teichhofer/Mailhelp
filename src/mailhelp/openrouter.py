@@ -9,7 +9,7 @@ import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime
 from threading import Lock
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urlsplit
 
 import httpx
@@ -22,7 +22,8 @@ from .logging import EventLogger, NullLogger
 class RateLimitExceeded(RuntimeError):
     def __init__(self, next_allowed_at: float):
         self.next_allowed_at = next_allowed_at
-        super().__init__(f"OpenRouter-Aufruflimit erreicht; naechster Aufruf {datetime.fromtimestamp(next_allowed_at, UTC).isoformat()}")
+        moment = datetime.fromtimestamp(next_allowed_at, UTC).isoformat()
+        super().__init__(f"OpenRouter-Aufruflimit erreicht; naechster Aufruf {moment}")
 
 
 class OpenRouterResponseError(ValueError):
@@ -50,7 +51,7 @@ def _raise_for_status(response: httpx.Response) -> None:
         response.raise_for_status()
     except httpx.HTTPStatusError as exc:
         if response.status_code == 401:
-            exc.safe_detail = (
+            cast(Any, exc).safe_detail = (
                 "OpenRouter: Authentifizierungsfehler "
                 "(OPENROUTER_API_KEY wurde abgelehnt)"
             )
@@ -81,7 +82,13 @@ class OpenRouterClient:
     service_name = "OpenRouter"
     endpoint = "/chat/completions"
 
-    def __init__(self, key: str, timeout: float, retries: int, calls_per_minute: int, transport: httpx.BaseTransport | None = None, sleep: Callable[[float], None] = time.sleep, *, initial_backoff: float = 1, max_backoff: float = 8, clock: Callable[[], float] = time.time, load_calls: Callable[[], list[float]] | None = None, save_calls: Callable[[list[float]], None] | None = None, stopped: Callable[[float], bool] | None = None, logger: EventLogger | None = None, base_url: str = "https://openrouter.ai/api/v1"):
+    def __init__(self, key: str, timeout: float, retries: int, calls_per_minute: int,
+                 transport: httpx.BaseTransport | None = None, sleep: Callable[[float], None] = time.sleep, *,
+                 initial_backoff: float = 1, max_backoff: float = 8, clock: Callable[[], float] = time.time,
+                 load_calls: Callable[[], list[float]] | None = None,
+                 save_calls: Callable[[list[float]], None] | None = None,
+                 stopped: Callable[[float], bool] | None = None, logger: EventLogger | None = None,
+                 base_url: str = "https://openrouter.ai/api/v1"):
         self.calls: list[float] = []
         self.key, self.limit, self.clock = key, calls_per_minute, clock
         self.load_calls = load_calls or (lambda: self.calls)
@@ -90,7 +97,10 @@ class OpenRouterClient:
         self.logger = logger or NullLogger()
         self._observations: dict[str, dict[str, Any]] = {}
         self._state_lock = Lock()
-        wait = stopped or (lambda delay: (sleep(delay), False)[1])
+        def uninterrupted(delay: float) -> bool:
+            sleep(delay)
+            return False
+        wait = stopped or uninterrupted
         self.policy = RetryPolicy(retries, initial_backoff, max_backoff, wait, clock)
 
     def check_access(self) -> None:
@@ -125,11 +135,13 @@ class OpenRouterClient:
         request, response_format = self._request(model, parameters, system, payload, response_schema,
                                                  supports_json_schema, provider_preferences, images)
         started = time.perf_counter()
-        fingerprint = hashlib.sha256(json.dumps(request["messages"], ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+        messages = json.dumps(request["messages"], ensure_ascii=False, sort_keys=True)
+        fingerprint = hashlib.sha256(messages.encode()).hexdigest()
         correlation = _correlation(payload)
         attempt = 0
+        server = urlsplit(str(getattr(self.client, "base_url", ""))).hostname or "unknown"
         metadata = dict(stage=stage, model=model, provider=None, call_id=call_id,
-                        backend=self.service_name, server=urlsplit(str(getattr(self.client, "base_url", ""))).hostname or "unknown",
+                        backend=self.service_name, server=server,
                         correlation_id=correlation_id, attempt_id=call_id,
                         http_status=None, finish_reason=None, content_present=False,
                         content_length=0, json_parse_success=False,
@@ -157,18 +169,21 @@ class OpenRouterClient:
                                                       fingerprint, attempt)
             with self._state_lock:
                 self._observations[call_id] = metadata
+            usage_cost = raw.get("usage", {}).get("cost") if isinstance(raw.get("usage"), dict) else None
             self.logger.llm_event("response_received", response=raw, parameters=parameters,
-                                  prompt_fingerprint=fingerprint, duration_ms=round((time.perf_counter() - started) * 1000, 3),
+                                  prompt_fingerprint=fingerprint,
+                                  duration_ms=round((time.perf_counter() - started) * 1000, 3),
                                   status=response.status_code, attempt=attempt, token_usage=token_usage,
-                                  reported_cost=raw.get("cost", raw.get("usage", {}).get("cost") if isinstance(raw.get("usage"), dict) else None),
-                                  **metadata, **correlation)
+                                  reported_cost=raw.get("cost", usage_cost), **metadata, **correlation)
             return call_id, content
         except Exception as exc:
             if not isinstance(exc, (ProviderResponseInvalid, InvalidJson)):
-                metadata["http_status"] = getattr(getattr(exc, "response", None), "status_code", None)
+                failed_response = getattr(exc, "response", None)
+                metadata["http_status"] = getattr(failed_response, "status_code", None)
                 self.logger.llm_event("request_failed", parameters=parameters,
-                                      prompt_fingerprint=fingerprint, duration_ms=round((time.perf_counter() - started) * 1000, 3),
-                                      status=getattr(getattr(exc, "response", None), "status_code", "error"), attempt=attempt,
+                                      prompt_fingerprint=fingerprint,
+                                      duration_ms=round((time.perf_counter() - started) * 1000, 3),
+                                      status=getattr(failed_response, "status_code", "error"), attempt=attempt,
                                       error=exc, stacktrace=traceback.format_exc(), **metadata, **correlation)
             raise
 
@@ -196,7 +211,9 @@ class OpenRouterClient:
         if images:
             user = [{"type": "text", "text": user},
                     *({"type": "image_url", "image_url": {"url": url}} for url in images)]
-        request = {**parameters, "model": model, "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}], "response_format": response_format}
+        request = {**parameters, "model": model,
+                   "messages": [{"role": "system", "content": system}, {"role": "user", "content": user}],
+                   "response_format": response_format}
         if provider_preferences is not None:
             request["provider"] = provider_preferences
         return self._prepare_request(request), response_format
@@ -212,13 +229,15 @@ class OpenRouterClient:
                               reason="invalid_provider_envelope", retryable=True,
                               **correlation)
             raise ProviderResponseInvalid("invalid_provider_envelope") from exc
-        metadata.update(http_status=response.status_code,
-                        provider=raw.get("provider") if isinstance(raw, dict) and isinstance(raw.get("provider"), str) else None)
+        provider = raw.get("provider") if isinstance(raw, dict) else None
+        metadata.update(http_status=response.status_code, provider=provider if isinstance(provider, str) else None)
         reason = _provider_error_reason(raw)
         if reason is not None:
-            choice = raw.get("choices", [{}])[0] if isinstance(raw, dict) and isinstance(raw.get("choices"), list) and raw.get("choices") else {}
+            choices = raw.get("choices") if isinstance(raw, dict) else None
+            choice = choices[0] if isinstance(choices, list) and choices else {}
             if isinstance(choice, dict):
-                metadata["finish_reason"] = choice.get("finish_reason") if isinstance(choice.get("finish_reason"), str) else None
+                finish = choice.get("finish_reason")
+                metadata["finish_reason"] = finish if isinstance(finish, str) else None
             self._log_attempt("provider_response_invalid", metadata,
                               reason=reason, retryable=True, **correlation)
             raise ProviderResponseInvalid(reason)
@@ -279,7 +298,8 @@ class OpenRouterClient:
 
 def _path(exc: Exception) -> str:
     if isinstance(exc, ValidationError):
-        return ", ".join(".".join(str(value) for value in item["loc"]) or "<root>" for item in exc.errors(include_input=False))
+        return ", ".join(".".join(str(value) for value in item["loc"]) or "<root>"
+                         for item in exc.errors(include_input=False))
     return "<json>"
 
 
@@ -330,7 +350,8 @@ def _without_image_data(value: Any) -> Any:
 
 def _correlation(payload: dict[str, Any]) -> dict[str, Any]:
     result = {}
-    for source, target in (("internal_id", "mail_id"), ("mail_id", "mail_id"), ("source_mail_id", "mail_id"), ("proposal_id", "proposal_id")):
+    for source, target in (("internal_id", "mail_id"), ("mail_id", "mail_id"), ("source_mail_id", "mail_id"),
+                           ("proposal_id", "proposal_id")):
         if source in payload and target not in result:
             result[target] = payload[source]
     return result

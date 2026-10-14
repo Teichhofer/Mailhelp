@@ -1,0 +1,45 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "base_hash": {
+      "default": "",
+      "pattern": "^(?:[a-f0-9]{64})?$",
+      "title": "Base Hash",
+      "type": "string"
+    },
+    "operations": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Operations",
+      "type": "object"
+    },
+    "patch": {
+      "additionalProperties": true,
+      "maxProperties": 60,
+      "title": "Patch",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "step": {
+      "default": 1,
+      "maximum": 6,
+      "minimum": 1,
+      "title": "Step",
+      "type": "integer"
+    },
+    "version": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "title": "SetupState",
+  "type": "object"
+}

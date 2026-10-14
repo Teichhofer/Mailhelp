@@ -116,7 +116,8 @@ class ExtractedTask(StrictModel):
     evidence: str = Field(min_length=1, max_length=2000)
     responsibility: Literal["user", "other", "unclear"]
     certainty: Literal["certain", "uncertain", "contradictory"]
-    classification: Literal["new", "non_binding", "already_completed", "change", "cancellation", "recurring", "unsupported"]
+    classification: Literal["new", "non_binding", "already_completed", "change", "cancellation",
+                            "recurring", "unsupported"]
     due_text: str | None = Field(default=None, min_length=1, max_length=500)
 
 
@@ -142,7 +143,8 @@ class ExtractedEvent(StrictModel):
     video_link: AnyHttpUrl | None = Field(default=None, max_length=2000)
     responsibility: Literal["user", "other", "unclear"]
     certainty: Literal["certain", "uncertain", "contradictory"]
-    classification: Literal["new", "non_binding", "already_completed", "change", "cancellation", "recurring", "unsupported"]
+    classification: Literal["new", "non_binding", "already_completed", "change", "cancellation",
+                            "recurring", "unsupported"]
 
     @field_validator("timezone_offset_text")
     @classmethod

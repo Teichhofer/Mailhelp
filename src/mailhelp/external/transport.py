@@ -2,15 +2,33 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Callable
 from typing import Any
 
 import httpx
 
-from ..adapter import PermanentError
-from .contracts import AuthenticationError, CalendarAccessError
+from ..adapter import PermanentError, RetryPolicy
+from ..logging import EventLogger
+from ..models import CalendarDuplicateDecision, Proposal
+from .contracts import AccessTokenProvider, AuthenticationError, CalendarAccessError
 
 
 class HttpTransport:
+    client: httpx.Client
+    logger: EventLogger
+    service: str
+    role: str
+    label: str
+    target: str
+    policy: RetryPolicy
+    calendar_timezone: str | None
+    calendar_matcher: Callable[[Proposal, dict[str, Any]], tuple[str, CalendarDuplicateDecision]] | None
+    _token_provider: AccessTokenProvider | None
+    _static_token: str | None
+    _read_cache: dict[tuple[Any, ...], tuple[float, Any]]
+    _cache_ttl: float
+    _create_prepared: Callable[[Proposal, str, str, dict[str, Any]], dict[str, Any]]
+
     def _get_cached(self, key: tuple[Any, ...]) -> Any | None:
         if key in self._read_cache:
             ts, val = self._read_cache[key]
@@ -53,6 +71,7 @@ class HttpTransport:
 
 
     def _raise_for_status(self, response: httpx.Response) -> None:
+        message: str | None
         if self.service == "google_calendar" and response.status_code in {401, 403, 404}:
             status = response.status_code
             reason = _google_error_reason(response) if status == 403 else None
@@ -62,7 +81,8 @@ class HttpTransport:
                 message = "Google Calendar: ausgestellter Access-Token wurde vom Calendar-Endpunkt abgelehnt"
                 error: type[PermanentError] = AuthenticationError
             elif status == 404:
-                message = "Google Calendar: Zielkalender existiert nicht oder ist für das authentifizierte Konto nicht sichtbar"
+                message = ("Google Calendar: Zielkalender existiert nicht oder ist für das authentifizierte "
+                           "Konto nicht sichtbar")
                 error = CalendarAccessError
             elif reason in {"insufficientPermissions", "forbidden"}:
                 message = "Google Calendar: OAuth-Token bezogen, aber Berechtigung für den Zielkalender fehlt"

@@ -126,7 +126,8 @@ def test_precheck_ledger_exception_resilience():
     prop = make_event_proposal()
     # Does not crash, continues
     res = service.check_proposal(prop)
-    assert res.status == ProposalStatus.PENDING_CONFIRMATION
+    assert res.status == ProposalStatus.NEEDS_CLARIFICATION
+    assert res.duplicate_check_failed and not res.is_creatable
 
 
 def test_precheck_calendar_exact_duplicate():
@@ -158,7 +159,7 @@ def test_precheck_calendar_exact_duplicate():
     assert res.duplicate_match.source == DuplicateSource.GOOGLE_CALENDAR
     assert res.duplicate_match.external_id == "cal-evt-1"
     assert res.duplicate_match.external_link == "https://calendar.google.com/event?id=cal-evt-1"
-    assert "Bereits im Google Kalender eingetragen" in res.duplicate_match.details
+    assert res.duplicate_match.details == "Bereits im Kalender eingetragen (Google Kalender)"
 
 
 def test_precheck_calendar_reschedule_detected():
@@ -274,7 +275,8 @@ def test_precheck_calendar_exception_resilience():
     service = DuplicatePreCheckService(writer=writer)
     prop = make_event_proposal()
     res = service.check_proposal(prop)
-    assert res.status == ProposalStatus.PENDING_CONFIRMATION
+    assert res.status == ProposalStatus.NEEDS_CLARIFICATION
+    assert res.duplicate_check_failed and not res.is_creatable
 
 
 def test_precheck_calendar_date_only_branch():
@@ -335,7 +337,7 @@ def test_precheck_todoist_match_and_exception():
     assert res.duplicate_match.source == DuplicateSource.TODOIST
     assert res.duplicate_match.external_id == "12345"
     assert res.duplicate_match.external_link == "https://todoist.com/showTask?id=12345"
-    assert "Bereits in Todoist vorhanden" in res.duplicate_match.details
+    assert res.duplicate_match.details == "Bereits als Aufgabe vorhanden (Todoist)"
 
     # Todoist error resilience
     err_writer = HttpWriter(
@@ -347,7 +349,8 @@ def test_precheck_todoist_match_and_exception():
     # when fetch_active_tasks returns empty list on 500 error
     service_err = DuplicatePreCheckService(writer=err_writer)
     res2 = service_err.check_proposal(prop)
-    assert res2.status == ProposalStatus.PENDING_CONFIRMATION
+    assert res2.status == ProposalStatus.NEEDS_CLARIFICATION
+    assert res2.duplicate_check_failed and not res2.is_creatable
 
 
 def test_precheck_writers_dict_multi_service():
@@ -399,7 +402,8 @@ def test_precheck_calendar_check_internal_exception(monkeypatch):
     monkeypatch.setattr(service, "_check_calendar", lambda _p, _w: (_ for _ in ()).throw(RuntimeError("cal boom")))
     prop = make_event_proposal()
     res = service.check_proposal(prop)
-    assert res.status == ProposalStatus.PENDING_CONFIRMATION
+    assert res.status == ProposalStatus.NEEDS_CLARIFICATION
+    assert res.duplicate_check_failed and not res.is_creatable
 
 
 def test_precheck_todoist_check_internal_exception(monkeypatch):
@@ -408,7 +412,8 @@ def test_precheck_todoist_check_internal_exception(monkeypatch):
     monkeypatch.setattr(service, "_check_todoist", lambda _p, _w: (_ for _ in ()).throw(RuntimeError("todo boom")))
     prop = make_task_proposal()
     res = service.check_proposal(prop)
-    assert res.status == ProposalStatus.PENDING_CONFIRMATION
+    assert res.status == ProposalStatus.NEEDS_CLARIFICATION
+    assert res.duplicate_check_failed and not res.is_creatable
 
 
 def test_precheck_todoist_tasks_no_match():

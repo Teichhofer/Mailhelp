@@ -66,6 +66,7 @@ class Orch:
         self.seen=[]
         self._stop=stop
         self.config_fingerprint=config_fingerprint
+        self.reconciliation=SimpleNamespace(max_candidates=8)
     def stop(self): self.stop_called=True
     def process(self, mail):
         self.seen.append(mail.uid)
@@ -89,3 +90,10 @@ def _persisted_run(entries):
         created_at=datetime.now(UTC), entries=entries,
         counters=MailboxRunService.run_counters(entries),
     )
+
+
+def with_sources(application):
+    """An application double whose first enabled mailbox reads with its ``imap`` (3.1)."""
+    from mailhelp.mailbox_run import MailboxSource
+    application.sources = [MailboxSource(application.settings.imap.enabled_mailboxes()[0], application.imap)]
+    return application

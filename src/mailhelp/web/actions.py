@@ -149,4 +149,5 @@ def stale_page(message: str, current: ProposalView | None) -> str:
 <p><a class="button primary" href="/">Aktuellen Stand anzeigen</a></p>""")
 
 
-__all__ = ["command_page", "needs_choice", "new_key", "result_kind", "proposal_actions", "relevance_actions", "stale_page"]
+__all__ = ["command_page", "needs_choice", "new_key", "result_kind", "proposal_actions", "relevance_actions",
+           "stale_page"]

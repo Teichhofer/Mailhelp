@@ -17,16 +17,15 @@ from conftest import item, sign_in
 from mailhelp.attachments import AttachmentCache
 from mailhelp.models import MailState, Proposal
 from mailhelp.webpush import PushService
-
-MASTER, PANE = ".master-pane", ".detail-pane"
+from pages import MASTER, PANE, Overview, SettingsPage
 
 
 def selected(page):
-    return page.locator(f"{MASTER} article.selected")
+    return Overview(page).selected
 
 
 def toast(page):
-    return page.locator(".undo-toast")
+    return Overview(page).toast
 
 
 def without_load_errors(page, *fragments):
@@ -99,6 +98,9 @@ def test_shortcut_confirm_can_be_undone_and_reject_is_sent_after_five_seconds(pa
     page.route("**/", lambda route: route.fulfill(response=route.fetch(),
                body=route.fetch().text().replace(' data-undo-ms="1000"', '')))
     sign_in(page, mailhelp)
+    # The login ends with a redirect, which the route does not see: load the page itself.
+    page.goto(f"{mailhelp.url}/")
+    assert page.evaluate("document.body.dataset.undoMs") is None
     item(page, f"#v-{mail_id(1)}-elternabend")
     page.locator("body").focus()
     page.keyboard.press("c")
@@ -116,7 +118,10 @@ def test_shortcut_confirm_can_be_undone_and_reject_is_sent_after_five_seconds(pa
     with page.expect_event("framenavigated", timeout=20000,
                            predicate=lambda frame: "?ergebnis=" in frame.url):
         page.keyboard.press("x")
-    expect(page.locator("main > .notice").first).to_contain_text("Vorschlag verworfen.")
+        # Still nothing sent after three seconds: the real default is five.
+        page.wait_for_timeout(3000)
+        assert "/?ergebnis=" not in page.url
+    expect(Overview(page).notice).to_contain_text("Vorschlag verworfen.")
     expect(page.locator(f"#v-{mail_id(1)}-elternabend")).to_have_count(0)
     assert mailhelp.writer.created == [] and page.errors == []
 
@@ -244,14 +249,17 @@ def test_image_preview_opens_in_a_zoomable_lightbox(page, mailhelp):
     assert page.errors == []
 
 
-def test_inbox_zero_is_shown_when_everything_is_decided(page, mailhelp):
-    store = mailhelp.store
+def decide_everything(store):
     for number, pid in ((1, "elternabend"), (1, "formular"), (2, "zahnarzt"), (3, "fest"), (4, "boese")):
         name = f"proposal-{mail_id(number)}-{pid}"
         store.save(name, {**store.load_model(name, Proposal).model_dump(mode="json"), "status": "rejected"})
     state = store.load_model(f"mail-{mail_id(7)}", MailState)
     state.awaiting_relevance, state.relevance_dialog = False, None
     store.save(f"mail-{mail_id(7)}", state.model_dump(mode="json"))
+
+
+def test_inbox_zero_is_shown_when_everything_is_decided(page, mailhelp):
+    decide_everything(mailhelp.store)
     sign_in(page, mailhelp)
     expect(page.get_by_role("heading", name="Alles erledigt! Keine offenen Entscheidungen.")).to_be_visible()
     expect(page.locator(".inbox-zero")).to_contain_text("Letzte verarbeitete Mail")
@@ -443,7 +451,7 @@ def test_every_2_0_function_works_without_javascript(browser, mailhelp):
         page.get_by_role("link", name="Alle").click()
         card = page.locator(f"#v-{mail_id(1)}-elternabend")
         card.get_by_role("button", name="Im Kalender anlegen").click()
-        expect(page.locator("main > .notice").first).to_contain_text("Angelegt.", timeout=15000)
+        expect(Overview(page).notice).to_contain_text("Angelegt.", timeout=15000)
         assert mailhelp.writer.created == ["Elternabend Klasse 4b"]
         page.goto(f"{mailhelp.url}/vorschlag/{mail_id(1)}/formular")
         page.get_by_text("Technische LLM-Analyse & Metriken").click()
@@ -509,33 +517,60 @@ def test_script_steps_that_end_in_a_navigation(page, mailhelp):
 def test_personal_information_is_saved_with_line_breaks(page, mailhelp):
     """The text area keeps line breaks through the confirmation step into config.yaml."""
     sign_in(page, mailhelp)
-    page.goto(f"{mailhelp.url}/einstellungen")
-    setting = page.locator("details.setting").filter(has_text="Persönliche Angaben für Antworten")
-    setting.locator("summary").click()
+    settings = SettingsPage(page, mailhelp.url).open()
+    setting = settings.expand("Persönliche Angaben für Antworten")
     assert audit(page, f"v20-persoenlich-{page.device}", page.mobile) == []
-    setting.get_by_label("Neuer Wert").fill("Max Mustermann\nElternbeirat Klasse 4b")
-    setting.get_by_role("button", name="Prüfen").click()
-    expect(page.get_by_role("heading", name="Änderung bestätigen")).to_be_visible()
+    settings.propose(setting, "Max Mustermann\nElternbeirat Klasse 4b")
     expect(page.locator("main pre")).to_have_text("Max Mustermann\nElternbeirat Klasse 4b")
-    page.get_by_role("button", name="Änderung ausdrücklich speichern").click()
+    settings.confirm()
     expect(page.locator("main")).to_contain_text("persönliche Angaben übernommen", timeout=10000)
     assert mailhelp.site.archive.configuration.active.personal_info == "Max Mustermann\nElternbeirat Klasse 4b"
     assert page.errors == []
 
 
+def background_change(page, mailhelp, revision):
+    """Change the store and let the page check at once instead of after 15 seconds."""
+    mailhelp.store.save("synthetic-background-state", {"revision": revision})
+    page.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
+
+
+def page_fetch(mailhelp):
+    """The script's own request for the overview, not a navigation."""
+    return lambda response: response.url == f"{mailhelp.url}/" and response.request.resource_type == "fetch"
+
+
+def refresh_in_background(page, mailhelp, revision):
+    """A background change that the split view loads in place; returns once the list is new."""
+    page.evaluate("document.querySelector('.master-pane').dataset.old = 'yes'")
+    with page.expect_response(page_fetch(mailhelp)):
+        background_change(page, mailhelp, revision)
+    expect(page.locator(f"{MASTER}[data-old]")).to_have_count(0)
+
+
 def test_split_selection_survives_background_refresh_and_missing_item(page, mailhelp):
-    """Regression: a changed store revision used to jump back to the first card."""
+    """Regression: a changed store revision used to jump back to the first card,
+    and reloading the whole document made the page flash."""
     if page.device != "desktop":
         return
     sign_in(page, mailhelp)
     identity = f"v-{mail_id(1)}-formular"
     item(page, "#" + identity)
+    page.evaluate("window.sameDocument = true")
     for revision in range(2):
-        mailhelp.store.save("synthetic-background-state", {"revision": revision})
-        with page.expect_event("framenavigated", predicate=lambda frame: frame == page.main_frame):
-            page.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
+        page.evaluate("document.querySelector('.master-pane').scrollTop = 40")
+        refresh_in_background(page, mailhelp, revision)
         expect(selected(page)).to_have_attribute("id", identity)
         expect(page.locator(f"{PANE} #detail-{identity}")).to_be_visible()
+        assert page.evaluate("document.querySelector('.master-pane').scrollTop") == 40
+        # The page now carries the new revision: the next check finds nothing new.
+        stand = page.evaluate("fetch('/api/stand').then(response => response.json())")
+        assert page.evaluate("document.body.dataset.fingerprint") == stand["fingerprint"]
+    assert page.evaluate("window.sameDocument") is True
+    # Only the selection is framed; the item shown in Telegram keeps just its badge.
+    current = page.locator(f"{MASTER} article.current")
+    expect(current).to_contain_text("Aktuell in Telegram")
+    assert current.evaluate("card => getComputedStyle(card).borderTopWidth") == "1px"
+    assert current.evaluate("card => getComputedStyle(card).outlineStyle") == "none"
     # A manual reload also retains the selection, including after resizing.
     page.set_viewport_size({"width": 900, "height": 900})
     page.reload()
@@ -549,6 +584,69 @@ def test_split_selection_survives_background_refresh_and_missing_item(page, mail
     page.reload()
     expect(selected(page)).to_have_attribute("id", f"r-{mail_id(7)}")
     assert mailhelp.writer.created == [] and page.errors == []
+
+
+def test_background_refresh_waits_for_undo_and_falls_back_to_a_reload(page, mailhelp):
+    if page.device != "desktop":
+        return
+    # The real five-second undo time leaves room for a refresh during the countdown.
+    page.route("**/", lambda route: route.fulfill(response=route.fetch(),
+               body=route.fetch().text().replace(' data-undo-ms="1000"', '')))
+    sign_in(page, mailhelp)
+    page.goto(f"{mailhelp.url}/")
+    item(page, f"#v-{mail_id(1)}-elternabend")
+    page.locator("body").focus()
+    page.keyboard.press("x")
+    expect(selected(page)).to_have_class(re.compile("leaving"))
+    with page.expect_response(page_fetch(mailhelp)):
+        background_change(page, mailhelp, 0)
+    page.wait_for_timeout(300)
+    # The pending action keeps its card and form; the list is not replaced meanwhile.
+    expect(selected(page)).to_have_class(re.compile("leaving"))
+    toast(page).get_by_role("button", name="Rückgängig").click()
+    refresh_in_background(page, mailhelp, 1)
+    expect(selected(page)).to_have_attribute("id", f"v-{mail_id(1)}-elternabend")
+    expect(selected(page)).not_to_have_class(re.compile("leaving"))
+    # A refresh that cannot be loaded (e.g. a server error) becomes a normal reload.
+    # That reload is answered with 204, so the document and its script coverage stay.
+    reloads = []
+
+    def hold(route):
+        if route.request.resource_type == "fetch":
+            route.fulfill(status=503, body="weg")
+            return
+        reloads.append(route.request.url)
+        route.fulfill(status=204)
+
+    page.route(f"{mailhelp.url}/", hold)
+    background_change(page, mailhelp, 2)
+    for _ in range(50):
+        if reloads:
+            break
+        page.wait_for_timeout(100)
+    assert reloads == [f"{mailhelp.url}/"]
+    # Preserve the failed fetch and reload counters before the next navigation.
+    page.collect()
+    page.unroute(f"{mailhelp.url}/")
+    # Without the detail pane (narrow window) new data reloads the page as before.
+    page.set_viewport_size({"width": 900, "height": 900})
+    with page.expect_event("framenavigated", predicate=lambda frame: frame == page.main_frame):
+        background_change(page, mailhelp, 3)
+    without_load_errors(page, "503")
+    assert mailhelp.writer.created == [] and page.errors == []
+
+
+def test_background_refresh_to_inbox_zero(page, mailhelp):
+    if page.device != "desktop":
+        return
+    sign_in(page, mailhelp)
+    item(page, f"#v-{mail_id(1)}-formular")
+    decide_everything(mailhelp.store)
+    with page.expect_response(page_fetch(mailhelp)):
+        page.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
+    expect(page.get_by_role("heading", name="Alles erledigt! Keine offenen Entscheidungen.")).to_be_visible()
+    expect(page.locator(".split-view")).to_have_count(0)
+    assert page.errors == []
 
 
 def test_setting_help_hover_keyboard_touch_and_escape(page, mailhelp):

@@ -38,7 +38,8 @@ def settings():
     return Settings.model_validate(data)
 
 def secrets():
-    return Secrets.model_validate({name: "synthetic-" + name for name in Secrets.model_fields})
+    return Secrets.model_validate({**{name: "synthetic-" + name for name in Secrets.model_fields if name != "imap"},
+                                   "imap": {1: {"username": "synthetic-user", "password": "synthetic-imap"}}})
 
 def topics():
     return [Topic(id="billing", name="Abrechnung", enabled=True, description="Synthetic")]

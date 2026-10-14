@@ -26,6 +26,9 @@ from mailhelp.review.commands import CommandKind
 from mailhelp.review.editing import ProposalEditPatch, edit_proposal
 from mailhelp.review.results import ResultStatus
 
+# Since 2.3 the writers are built in mailhelp.external.providers.
+MOVED_WRITERS = ("HttpWriter", "GoogleOAuthTokenProvider")
+
 
 def test_exchange_rate_needs_its_date():
     assert MetricsSettings().usd_per_eur == 1.1
@@ -201,7 +204,7 @@ def test_telegram_messages_count_as_contacts_without_content(tmp_path):
     from mailhelp.application import build_logger
     from mailhelp.config import Secrets
     from mailhelp.logging import JsonlLogger
-    secrets = Secrets(imap_username="u", imap_password="p", openrouter_api_key="o", telegram_bot_token="t",
+    secrets = Secrets(imap={1: {"username": "u", "password": "p"}}, openrouter_api_key="o", telegram_bot_token="t",
                       todoist_token="d", todoist_client_id="ti", todoist_client_secret="ts",
                       google_oauth_client_id="i", google_oauth_client_secret="s", google_oauth_refresh_token="r")
     logger = build_logger(app_settings(tmp_path), secrets, tmp_path)
@@ -345,13 +348,13 @@ def test_application_writes_metrics_into_the_log_directory(tmp_path, monkeypatch
 
     for name in ("ImapReader", "OpenRouterClient", "DecisionClient", "TelegramClient",
                  "HttpWriter", "GoogleOAuthTokenProvider"):
-        monkeypatch.setattr(f"mailhelp.application.{name}", Resource)
+        monkeypatch.setattr(f"mailhelp.{'external.providers' if name in MOVED_WRITERS else 'composition'}.{name}", Resource)
     cfg = app_settings(tmp_path)
     cfg.logging.file.enabled = cfg.logging.console.enabled = False
     legacy = tmp_path / "data" / "test" / "metrics" / "llm.jsonl"
     legacy.parent.mkdir(parents=True)
     legacy.write_text("", encoding="utf-8")
-    secrets = Secrets(imap_username="u", imap_password="p", openrouter_api_key="o", telegram_bot_token="t",
+    secrets = Secrets(imap={1: {"username": "u", "password": "p"}}, openrouter_api_key="o", telegram_bot_token="t",
                       todoist_token="d", todoist_client_id="ti", todoist_client_secret="ts",
                       google_oauth_client_id="i", google_oauth_client_secret="s", google_oauth_refresh_token="r")
     with build_application(cfg, secrets, [Topic(id="x", name="x", enabled=True, description="x")],
@@ -362,7 +365,7 @@ def test_application_writes_metrics_into_the_log_directory(tmp_path, monkeypatch
         assert (logs / "llm.jsonl").exists() and not legacy.exists()
         # Former fingerprints of this configuration are registered as equivalent.
         registered = made.store.names("processing-topics-")
-        assert len(registered) == 2
+        assert len(registered) == 3
         assert all(made.store.load(name)["policy"] == made.orchestrator.topic_policy for name in registered)
 
 

@@ -35,6 +35,7 @@ from mailhelp.telegram import TelegramDialogController  # noqa: E402
 from mailhelp.web import WebApp, WebServer  # noqa: E402
 from mailhelp.web.auth import WebAuth  # noqa: E402
 from mailhelp.web.site import MailhelpSite  # noqa: E402
+from pages import Overview  # noqa: E402
 
 STATIC = ROOT / "src/mailhelp/web/static"
 COVERED_SCRIPTS = tuple(name for name in ("app.js", "sw.js") if (STATIC / name).exists())
@@ -146,7 +147,9 @@ def mailhelp(tmp_path):
         from mailhelp.metrics import MetricsRecorder, MetricsSettings
         cfg = application_settings(tmp_path)
         (tmp_path / "config.yaml").write_text(yaml.safe_dump(cfg.model_dump(mode="json")), encoding="utf-8")
-        (tmp_path / "topics.yaml").write_text("topics:\n- id: school\n  name: Schule\n  description: Schule\n  enabled: true\n  examples: []\n  exclusions: []\n", encoding="utf-8")
+        (tmp_path / "topics.yaml").write_text(
+            "topics:\n- id: school\n  name: Schule\n  description: Schule\n  enabled: true\n"
+            "  examples: []\n  exclusions: []\n", encoding="utf-8")
         (tmp_path / "irrelevant_topics.yaml").write_text("topics: []\n", encoding="utf-8")
         configuration = ConfigurationService(tmp_path, store, cfg, dialog.review.web_authorizer, lambda value: None)
         dialog.review.configuration = site.archive.configuration = configuration
@@ -187,7 +190,7 @@ class Coverage:
             name = script["url"].rsplit("/", 1)[-1]
             if name not in COVERED_SCRIPTS or not script["url"].startswith("http"):
                 continue
-            source = (STATIC / name).read_text(encoding="utf-8")
+            source = (STATIC / name).read_bytes().decode("utf-8")
             counts = [0] * len(source)
             ranges = sorted((item for function in script["functions"] for item in function["ranges"]),
                             key=lambda item: (item["startOffset"], -item["endOffset"]))
@@ -200,7 +203,7 @@ class Coverage:
     def uncovered(self) -> dict[str, list[int]]:
         report = {}
         for name in COVERED_SCRIPTS:
-            source = (STATIC / name).read_text(encoding="utf-8")
+            source = (STATIC / name).read_bytes().decode("utf-8")
             counts = self.counts.get(name)
             if counts is None:
                 report[name] = ["nie geladen"]
@@ -224,6 +227,20 @@ def browser():
         instance.close()
 
 
+class MeasuredContext:
+    """Collect before a manually owned context destroys its pages and counters."""
+
+    def __init__(self, context, collect):
+        self.context, self.collect = context, collect
+
+    def close(self):
+        self.collect()
+        self.context.close()
+
+    def __getattr__(self, name):
+        return getattr(self.context, name)
+
+
 class Page:
     """A Playwright page that records console errors and script coverage."""
 
@@ -240,9 +257,12 @@ class Page:
         self.cdp.send("Network.setCacheDisabled", {"cacheDisabled": True})
         self.cdp.send("Page.enable")
         self.cdp.send("Profiler.enable")
-        self.cdp.send("Profiler.startPreciseCoverage", {"callCount": True, "detailed": True})
+        self.cdp.on("Profiler.preciseCoverageDeltaUpdate", COVERAGE.add)
+        self.cdp.send("Profiler.startPreciseCoverage", {
+            "callCount": True, "detailed": True, "allowTriggeredUpdates": True})
         self.cdp.on("Page.frameRequestedNavigation", lambda event: self.collect())
         self.cdp.on("Page.frameStartedLoading", lambda event: self.collect())
+        self.context = MeasuredContext(page.context, self.collect)
 
     def collect(self) -> None:
         COVERAGE.add(self.cdp.send("Profiler.takePreciseCoverage"))
@@ -251,6 +271,14 @@ class Page:
         # Coverage of the current document is lost once it is replaced.
         self.collect()
         return self.page.goto(url, **kwargs)
+
+    def reload(self, **kwargs):
+        self.collect()
+        return self.page.reload(**kwargs)
+
+    def go_back(self, **kwargs):
+        self.collect()
+        return self.page.go_back(**kwargs)
 
     def __getattr__(self, name):
         return getattr(self.page, name)
@@ -282,22 +310,12 @@ def sign_in(page: Page, mailhelp: Mailhelp, device_label: str = "") -> None:
 
 
 def item(page: Page, selector: str):
-    """An open item with its actions.
-
-    On the desktop the item is selected in the master list and operated in the
-    detail pane, whose ids carry the prefix ``detail-``; on phones it is the card.
-    """
-    if page.device != "desktop":
-        return page.locator(selector)
-    page.locator(".master-pane " + selector).click(position={"x": 12, "y": 12})
-    shown = page.locator(".detail-pane #detail-" + selector.removeprefix("#"))
-    expect(shown).to_be_visible()
-    return shown
+    """An open item with its actions (see ``pages.Overview.item``)."""
+    return Overview(page).item(selector)
 
 
 def act(page: Page, control, text: str) -> None:
     """Click and wait for the next result page (confirm and reject after the undo time)."""
-    page.collect()  # The result page replaces this document and its script coverage.
     with page.expect_event("framenavigated", timeout=20000,
                            predicate=lambda frame: frame == page.main_frame and "?ergebnis=" in frame.url):
         control.click()

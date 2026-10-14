@@ -5,13 +5,15 @@ import re
 import unicodedata
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, cast
 
 import yaml
 
 from .analysis import Analyzer
 from .config import IrrelevantTopicsConfig, Topic, TopicsConfig
-from .imap import FetchedMail, FolderNotReadable, ImapReader
+from .imap import FetchedMail, FolderNotReadable, ImapReader, MailCandidate
 from .mime import prepare
 from .models import IrrelevantSenders, LearnedCategory, MailClassification
 from .sender_filter import add_irrelevant_senders, is_irrelevant_sender
@@ -57,23 +59,43 @@ def topics_document(topics: list[Topic]) -> str:
                           sort_keys=False, default_flow_style=False)
 
 
-def add_discovered_folders(path: Path, configured: list[str], discovered: list[str]) -> list[str]:
-    """Add newly advertised selectable mailboxes to config.yaml atomically."""
+def add_discovered_folders(path: Path, configured: list[str], discovered: list[str],
+                           folders_path: str = "imap.folders") -> list[str]:
+    """Add newly advertised selectable mailboxes to config.yaml atomically.
+
+    *folders_path* is the folder list of the mailbox (``imap.mailboxes.0.folders`` since 3.1).
+    """
     merged = [*configured, *(folder for folder in discovered if folder not in configured)]
     if len(merged) > 100:
         raise RuntimeError("IMAP meldet mehr als 100 unterschiedliche Ordner")
     if merged == configured:
         return merged
     document = yaml.safe_load(path.read_text(encoding="utf-8"))
-    if not isinstance(document, dict) or not isinstance(document.get("imap"), dict):
+    *parents, name = folders_path.split(".")
+    section: Any = document
+    try:
+        for part in parents:
+            section = section[int(part)] if isinstance(section, list) else section[part]
+    except (KeyError, IndexError, TypeError, ValueError):
+        section = None
+    if not isinstance(section, dict):
         raise RuntimeError("config.yaml enthält keinen gültigen IMAP-Abschnitt")
-    document["imap"]["folders"] = merged
+    section[name] = merged
     # Only the folder list changes; comments and layout of config.yaml stay.
-    content = set_list(path.read_text(encoding="utf-8"), "imap.folders", merged)
+    content = set_list(path.read_text(encoding="utf-8"), folders_path, merged)
     if yaml.safe_load(content) != document:
         raise RuntimeError("config.yaml lässt sich nicht sicher ergänzen; Ordner bitte von Hand eintragen")
     atomic_replace(path, content)
     return merged
+
+
+@dataclass
+class LearningSource:
+    """One mailbox the learning run reads: its reader, folders and their place in config.yaml (3.1)."""
+
+    imap: Any
+    folders: list[str]
+    folders_path: str = "imap.folders"
 
 
 class LearningMode:
@@ -85,8 +107,11 @@ class LearningMode:
                  output_fn: Callable[[str], None] = print,
                  timezone: str = "UTC", parallel_llm_calls: int = 4,
                  global_newest_first: bool = False,
-                 config_path: Path | None = None):
-        self.imap, self.analyzer, self.folders = imap, analyzer, folders
+                 config_path: Path | None = None, folders_path: str = "imap.folders",
+                 sources: list[LearningSource] | None = None):
+        # Several mailboxes form one selection of the newest mail (3.1); otherwise just this one.
+        self.sources = sources or [LearningSource(imap, folders, folders_path)]
+        self.analyzer = analyzer
         self.limits, self.topics, self.topics_path = limits, topics, topics_path
         self.irrelevant_topics = irrelevant_topics
         self.irrelevant_topics_path = irrelevant_topics_path
@@ -99,59 +124,61 @@ class LearningMode:
     def _refresh_folders(self) -> None:
         if self.config_path is None:
             return
-        discovered = [getattr(mailbox, "name", mailbox)
-                      for mailbox in self.imap.list_folders()]
-        previous = set(self.folders)
-        self.folders = add_discovered_folders(
-            self.config_path, self.folders, discovered
-        )
-        additions = [folder for folder in self.folders if folder not in previous]
-        if additions:
-            names = ", ".join(f'"{_safe_terminal(folder)}"' for folder in additions)
-            self.output(f"Neue IMAP-Ordner wurden in config.yaml eingetragen: {names}")
+        for source in self.sources:
+            discovered = [str(getattr(mailbox, "name", mailbox))
+                          for mailbox in source.imap.list_folders()]
+            previous = set(source.folders)
+            source.folders = add_discovered_folders(
+                self.config_path, source.folders, discovered, source.folders_path
+            )
+            additions = [folder for folder in source.folders if folder not in previous]
+            if additions:
+                names = ", ".join(f'"{_safe_terminal(folder)}"' for folder in additions)
+                self.output(f"Neue IMAP-Ordner wurden in config.yaml eingetragen: {names}")
 
     def _fetch(self, count: int) -> list[FetchedMail]:
         if self.global_newest_first:
-            candidates = []
-            for folder in self.folders:
+            candidates: list[tuple[MailCandidate, int, int, LearningSource]] = []
+            for source_rank, source in enumerate(self.sources):
+                for folder_rank, folder in enumerate(source.folders):
+                    try:
+                        found = source.imap.discover_since(folder, max_count=count, historical_start=None)
+                    except FolderNotReadable:
+                        self.output(f'IMAP-Ordner "{_safe_terminal(folder)}" ist nicht lesbar '
+                                    "und wird im Lernlauf übersprungen.")
+                        continue
+                    candidates.extend((item, -source_rank, -folder_rank, source) for item in found)
+            # Mailbox and then folder order are the stable final tie-breakers; within a
+            # folder the greater UID wins when servers report identical INTERNALDATE values.
+            candidates.sort(key=lambda entry: (entry[0].received_at, entry[0].uid, entry[1], entry[2]),
+                            reverse=True)
+            mails: list[FetchedMail] = []
+            for candidate, _source_rank, _folder_rank, source in candidates[:count]:
                 try:
-                    candidates.extend(self.imap.discover_since(
-                        folder, max_count=count, historical_start=None))
-                except FolderNotReadable:
-                    self.output(f'IMAP-Ordner "{_safe_terminal(folder)}" ist nicht lesbar '
-                                "und wird im Lernlauf übersprungen.")
-            # Folder order is the stable final tie-breaker; within a folder the
-            # greater UID wins when servers report identical INTERNALDATE values.
-            folder_rank = {folder: index for index, folder in enumerate(self.folders)}
-            candidates.sort(key=lambda item: (
-                item.received_at, item.uid, -folder_rank[item.folder]
-            ), reverse=True)
-            mails = []
-            for candidate in candidates[:count]:
-                try:
-                    mails.append(self.imap.fetch_uid(
+                    mails.append(source.imap.fetch_uid(
                         candidate.folder, candidate.uid, candidate.uidvalidity))
                 except FolderNotReadable:
                     self.output(f'IMAP-Ordner "{_safe_terminal(candidate.folder)}" ist '
                                 "nicht mehr lesbar; die Nachricht wird übersprungen.")
             return mails
-        mails: list[FetchedMail] = []
-        for folder in self.folders:
-            try:
-                after_uid = 0
-                ranges: list[tuple[int, int]] = []
-                while len(mails) < count:
-                    batch = self.imap.fetch_since(
-                        folder, after_uid, None, count - len(mails), tuple(ranges))
-                    if not batch:
-                        break
-                    mails.extend(batch)
-                    ranges.extend((mail.uid, mail.uid) for mail in batch)
-            except FolderNotReadable:
-                self.output(f'IMAP-Ordner "{_safe_terminal(folder)}" ist nicht lesbar '
-                            "und wird im Lernlauf übersprungen.")
-            if len(mails) == count:
-                break
+        mails = []
+        for source in self.sources:
+            for folder in source.folders:
+                try:
+                    after_uid = 0
+                    ranges: list[tuple[int, int]] = []
+                    while len(mails) < count:
+                        batch = source.imap.fetch_since(
+                            folder, after_uid, None, count - len(mails), tuple(ranges))
+                        if not batch:
+                            break
+                        mails.extend(batch)
+                        ranges.extend((mail.uid, mail.uid) for mail in batch)
+                except FolderNotReadable:
+                    self.output(f'IMAP-Ordner "{_safe_terminal(folder)}" ist nicht lesbar '
+                                "und wird im Lernlauf übersprungen.")
+                if len(mails) == count:
+                    return mails
         return mails
 
     def run(self, count: int) -> int:
@@ -210,7 +237,8 @@ class LearningMode:
         def classify(mail: FetchedMail) -> tuple[MailClassification | None, dict[str, object] | None, bool]:
             try:
                 payload = prepare(mail.raw, self.limits, mail.received_at, self.timezone)
-                if is_irrelevant_sender(payload["headers"].get("from", ""), blocked):
+                headers = cast(dict[str, Any], payload["headers"])
+                if is_irrelevant_sender(headers.get("from", ""), blocked):
                     return None, None, False
                 if self._known(payload, known_topics):
                     return None, None, False
@@ -282,6 +310,7 @@ class LearningMode:
             # Persist the union calculated above: learning must never
             # replace addresses or manually maintained domains that
             # were already present when this run started.
+            assert self.store is not None  # rejected senders are only learned with a store
             self.store.save("irrelevant-senders", updated.model_dump(mode="json"))
 
     def _known(self, payload: dict[str, object], topics: list[Topic]) -> bool:

@@ -1,8 +1,10 @@
 # Mailhelp 3.0 – Einfache Einrichtung und gezielte Benachrichtigungen
 
-**Zielversion:** 3.0.0  
-**Stand:** 12. Oktober 2026  
-**Status:** Geplant – noch nicht umgesetzt  
+**Zielversion:** 3.0.0
+
+**Stand:** 14. Oktober 2026
+
+**Status:** Umgesetzt in 3.0.0; Release-Tag nach erfolgreicher CI-Plattformmatrix
 **Grundlage:** [Release 2.0](Release-2.0.md), [Planung 2.0](Planung-2.0.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Entwicklungsregeln](../AGENTS.md)
 
 ## 1. Ziel und Umfang
@@ -14,7 +16,7 @@ Mailhelp 3.0 soll sich verständlich einrichten und im Alltag mit weniger Unterb
 
 Version 2.0 bringt bereits Web-Push, Gerätekopplung ohne Telegram, Antwortentwürfe und einen Tagesüberblick mit. Version 3.0 baut darauf auf. Der Assistent verwendet dieselben Konfigurations- und Sicherheitsmechanismen wie der übrige Betrieb.
 
-**Nicht Teil dieses Releases:** neue KI-Analysefunktionen, automatische Freigabe von Kalender- oder Todoist-Aktionen, SMTP-Versand, Mehrbenutzerbetrieb und zusätzliche Benachrichtigungskanäle. Passkeys und eine allgemeine Wiedervorlage bleiben eigenständige spätere Erweiterungen.
+**Nicht Teil dieses Releases:** neue KI-Analysefunktionen, automatische Freigabe von Kalender- oder Todoist-Aktionen, SMTP-Versand, Mehrbenutzerbetrieb und zusätzliche Benachrichtigungskanäle. Mehrere Postfächer folgen in [Planung 3.1](Planung-3.1.md), Einstellungen je Postfach in [Planung 3.2](Planung-3.2.md). Passkeys und eine allgemeine Wiedervorlage bleiben eigenständige spätere Erweiterungen.
 
 ## 2. Verbindliche Grundsätze
 
@@ -145,7 +147,7 @@ Eine persistente Benachrichtigungswarteschlange ersetzt voneinander unabhängige
 
 ### 4.5 Konfiguration
 
-**Entwurf für neue Felder; noch keine gültige 2.0-Konfiguration.** Bestehende Felder wie `telegram.enabled`, `push.enabled` und `daily_briefing.time` bleiben die technischen beziehungsweise zeitlichen Voraussetzungen.
+**Verbindliches 3.0-Schema im Arbeitsstand.** Bestehende Felder wie `telegram.enabled`, `push.enabled` und `daily_briefing.time` bleiben die technischen beziehungsweise zeitlichen Voraussetzungen. Feldgrenzen und Betriebsabläufe: [Release-3.0.md](Release-3.0.md).
 
 ```yaml
 notifications:
@@ -172,7 +174,7 @@ notifications:
     max_pending: 1000
 ```
 
-Das Beispiel stellt eine bewusst gewählte Einstellung dar, nicht eine automatische Upgrade-Änderung. Schema, Grenzwerte und Kanalnamen werden vor Implementierung verbindlich festgelegt. Die Weboberfläche bearbeitet dieselben YAML-Felder und zeigt an, welche Änderungen sofort gelten.
+Das Beispiel stellt eine bewusst gewählte Einstellung dar, nicht eine automatische Upgrade-Änderung. Schema, Grenzwerte und Kanalnamen sind in der Betriebsanleitung verbindlich festgelegt. Die Weboberfläche bearbeitet dieselben YAML-Felder und zeigt an, welche Änderungen sofort gelten.
 
 ### 4.6 Abnahmekriterien
 

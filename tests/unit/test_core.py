@@ -211,7 +211,7 @@ def test_yaml_and_dotenv_parsing(tmp_path):
 def test_load_all_reads_the_shipped_configuration_and_validates_topics(tmp_path):
     env = shipped_configuration(tmp_path)
     settings, secrets, topics, irrelevant_topics, prompts, fingerprint = load_all(tmp_path, env)
-    assert not settings.test_mode and secrets.imap_password.get_secret_value() == "secret" and topics[0].enabled and len(fingerprint) == 64
+    assert not settings.test_mode and secrets.imap_credentials(1).password.get_secret_value() == "secret" and topics[0].enabled and len(fingerprint) == 64
     expected_irrelevant_topics = IrrelevantTopicsConfig.model_validate(
         read_yaml(Path("irrelevant_topics.yaml"))
     ).topics
@@ -221,7 +221,7 @@ def test_load_all_reads_the_shipped_configuration_and_validates_topics(tmp_path)
     assert settings.logging.llm.include_responses is True
     with pytest.raises(ValueError, match="Fehlende"): load_all(tmp_path, {})
     (tmp_path / ".env").write_text("\n".join(f"{key}=from-file" for key in env), encoding="utf8")
-    assert load_all(tmp_path, {"IMAP_USERNAME": "runtime"})[1].imap_username == "runtime"
+    assert load_all(tmp_path, {"IMAP_USERNAME": "runtime"})[1].imap_credentials(1).username == "runtime"
     (tmp_path / ".env").unlink()
     (tmp_path / "topics.yaml").write_text("topics: []", encoding="utf8")
     with pytest.raises(ValueError, match="topics"): load_all(tmp_path, env)
@@ -790,22 +790,22 @@ def test_imap_connection_and_exact_historical_boundary():
     for response in valid_responses:
         direct=BoundaryImap()
         original=direct.uid
-        direct.uid=lambda action,*args,response=response: ("OK",response) if action=="fetch" else original(action,*args)
-        assert ImapReader("h",143,"u","p",factory=lambda *a,**k:direct).determine_start_uid("INBOX",datetime(2025,1,2,4,0,tzinfo=UTC)) == 1
+        direct.uid=lambda action,*args,response=response,original=original: ("OK",response) if action=="fetch" else original(action,*args)
+        assert ImapReader("h",143,"u","p",factory=lambda *a,direct=direct,**k:direct).determine_start_uid("INBOX",datetime(2025,1,2,4,0,tzinfo=UTC)) == 1
 
     for rejected_status in ("NO", "BAD"):
         rejected=BoundaryImap()
         original=rejected.uid
-        rejected.uid=lambda action,*args,status=rejected_status: (status,[]) if action=="fetch" else original(action,*args)
+        rejected.uid=lambda action,*args,status=rejected_status,original=original: (status,[]) if action=="fetch" else original(action,*args)
         with pytest.raises(RuntimeError,match=f"abgelehnt: {rejected_status}"):
-            ImapReader("h",143,"u","p",factory=lambda *a,**k:rejected).determine_start_uid("INBOX",datetime.now(UTC))
+            ImapReader("h",143,"u","p",factory=lambda *a,rejected=rejected,**k:rejected).determine_start_uid("INBOX",datetime.now(UTC))
 
     for response in (None, [], [b")"], [b"bad"], [(b"bad",b"")]):
         malformed=BoundaryImap()
         original=malformed.uid
-        malformed.uid=lambda action,*args,response=response: ("OK",response) if action=="fetch" else original(action,*args)
+        malformed.uid=lambda action,*args,response=response,original=original: ("OK",response) if action=="fetch" else original(action,*args)
         with pytest.raises(RuntimeError,match="leer oder strukturell unbrauchbar"):
-            ImapReader("h",143,"u","p",factory=lambda *a,**k:malformed).determine_start_uid("INBOX",datetime.now(UTC))
+            ImapReader("h",143,"u","p",factory=lambda *a,malformed=malformed,**k:malformed).determine_start_uid("INBOX",datetime.now(UTC))
 
     invalid=BoundaryImap()
     original=invalid.uid

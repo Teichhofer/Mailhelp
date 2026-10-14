@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 import yaml
-from shared_application import Imap, Orch, Telegram, app
+from shared_application import Imap, Orch, Telegram, app, with_sources
 from shared_core import prompt_config
 from shared_quality_corpus import load_corpus
 from shared_quality_corpus import prompt_config as quality_prompts
@@ -15,7 +15,7 @@ from shared_telegram_dialog import callback, controller
 
 from mailhelp.analysis import Analyzer
 from mailhelp.application import Application
-from mailhelp.config import Topic
+from mailhelp.config import ImapSettings, Topic
 from mailhelp.imap import FetchedMail
 from mailhelp.logging import NullLogger
 from mailhelp.models import ProposalStatus
@@ -62,12 +62,13 @@ def test_access_check_reports_unreadable_secondary_folder_and_checks_remaining()
             raise RuntimeError("synthetic failure")
     noop = SimpleNamespace(check_access=lambda: None, service_name="OpenRouter")
     service = SimpleNamespace(
-        settings=SimpleNamespace(imap=SimpleNamespace(folders=["INBOX", "Archive", "Sent"]),
+        settings=SimpleNamespace(imap=ImapSettings.model_validate({"host": "h", "port": 993,
+                                                                   "folders": ["INBOX", "Archive", "Sent"]}),
                                  timezone="UTC", telegram=SimpleNamespace(chat_id=1)),
         logger=NullLogger(), imap=SimpleNamespace(check_access=check),
         openrouter=noop, todoist=noop, calendar=noop,
         telegram=SimpleNamespace(check_access=lambda: None, send=lambda *args: None))
-    results = Application.check_access(service)
+    results = Application.check_access(with_sources(service))
     assert results["IMAP"] is not None and "Archive" in results["IMAP"]
     assert seen == ["INBOX", "Archive", "Sent"]
     assert results["Google Kalender"] is None
@@ -199,7 +200,7 @@ def test_real_bounded_batch_sends_proposals_one_at_a_time_and_counts_open_action
                                 version=proposal.version, action=DecisionAction.REJECT)
             telegram.updates = [callback(index * 2 + 1, decision.encode(store), user=999)]
             dialog.poll_once()
-            assert dialog.repository.load_current(proposal.source_mail_id, proposal.id).status == ProposalStatus.PENDING_CONFIRMATION
+            assert dialog.repository.load_current(proposal.source_mail_id, proposal.id).status == proposal.status
             telegram.updates = [callback(index * 2 + 2, decision.encode(store))]
             dialog.poll_once()
         assert dialog.outbox.load().entries == []

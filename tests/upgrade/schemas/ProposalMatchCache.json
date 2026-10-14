@@ -1,0 +1,67 @@
+{
+  "$defs": {
+    "ProposalMatchDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "candidate": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate"
+        },
+        "reason": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "relation": {
+          "enum": [
+            "same_occurrence",
+            "related_action",
+            "different",
+            "unclear"
+          ],
+          "title": "Relation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "relation",
+        "reason"
+      ],
+      "title": "ProposalMatchDecision",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "call_id": {
+      "maxLength": 200,
+      "title": "Call Id",
+      "type": "string"
+    },
+    "decision": {
+      "$ref": "#/$defs/ProposalMatchDecision"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "call_id",
+    "decision"
+  ],
+  "title": "ProposalMatchCache",
+  "type": "object"
+}

@@ -24,6 +24,9 @@ from mailhelp.models import MailRunCounters, MailRunEntry, MailRunState, MailSta
 from mailhelp.orchestrator import ProcessingOutcome, ProcessingResult
 from mailhelp.telegram.commands import HELP, STARTUP
 
+# Since 2.3 the writers are built in mailhelp.external.providers.
+MOVED_WRITERS = ("HttpWriter", "GoogleOAuthTokenProvider")
+
 
 def test_global_mailbox_order_and_max_mail_budget(tmp_path):
     stamp = datetime(2026, 1, 1, tzinfo=UTC)
@@ -1261,7 +1264,7 @@ def test_startup_help_once_before_work_and_again_after_restart(tmp_path, max_mai
         service = app(tmp_path, Imap([]), Telegram([]), Orch(), store=store)
         cycles = []
 
-        def poll_imap(_limit=None):
+        def poll_imap(_limit=None, service=service, cycles=cycles):
             assert service.telegram.sent == [(2, STARTUP)]
             cycles.append(1)
             if len(cycles) == 2:
@@ -1587,12 +1590,12 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
     class FakeOAuth(Resource):
         calls=[]
         def __init__(self,*args,**kwargs): type(self).calls.append((args,kwargs))
-    monkeypatch.setattr("mailhelp.application.ImapReader",FakeImap)
-    monkeypatch.setattr("mailhelp.application.OpenRouterClient",FakeOpen)
-    monkeypatch.setattr("mailhelp.application.DecisionClient",FakeDecision)
-    monkeypatch.setattr("mailhelp.application.TelegramClient",FakeTelegram)
-    monkeypatch.setattr("mailhelp.application.HttpWriter",FakeWriter)
-    monkeypatch.setattr("mailhelp.application.GoogleOAuthTokenProvider",FakeOAuth)
+    monkeypatch.setattr("mailhelp.composition.ImapReader",FakeImap)
+    monkeypatch.setattr("mailhelp.composition.OpenRouterClient",FakeOpen)
+    monkeypatch.setattr("mailhelp.composition.DecisionClient",FakeDecision)
+    monkeypatch.setattr("mailhelp.composition.TelegramClient",FakeTelegram)
+    monkeypatch.setattr("mailhelp.external.providers.HttpWriter",FakeWriter)
+    monkeypatch.setattr("mailhelp.external.providers.GoogleOAuthTokenProvider",FakeOAuth)
     cfg=settings(tmp_path)
     cfg.imap.connection_mode=mode
     cfg.logging.file.enabled = False
@@ -1600,7 +1603,7 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
     cfg.logging.console.enabled = False
     cfg.logging.console.level = "ERROR"
     cfg.logging.modules = {"access_check": "CRITICAL"}
-    sec=Secrets(imap_username="u",imap_password="p",openrouter_api_key="o",telegram_bot_token="t",todoist_token="d",todoist_client_id="ti",todoist_client_secret="ts",google_oauth_client_id="i",google_oauth_client_secret="s",google_oauth_refresh_token="r")
+    sec=Secrets(imap={1:{"username":"u","password":"p"}},openrouter_api_key="o",telegram_bot_token="t",todoist_token="d",todoist_client_id="ti",todoist_client_secret="ts",google_oauth_client_id="i",google_oauth_client_secret="s",google_oauth_refresh_token="r")
     topic=[Topic(id="x",name="x",enabled=True,description="x")]
     diagnostics = mode == "ssl"
     supplied_logger = build_logger(cfg, sec, tmp_path) if mode == "starttls" else None
@@ -1640,7 +1643,7 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
     closed.clear()
     class BrokenImap(Resource):
         def __init__(self,*args,**kwargs): raise RuntimeError("authentication failed")
-    monkeypatch.setattr("mailhelp.application.ImapReader",BrokenImap)
+    monkeypatch.setattr("mailhelp.composition.ImapReader",BrokenImap)
     with build_application(
         cfg, sec, topic, prompt_config(), "f" * 64,
         base_directory=tmp_path, access_diagnostics=True,
@@ -1659,10 +1662,10 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
 
     cfg.data_directory=Path("relative")
     cfg.logging.directory=Path("relative-logs")
-    monkeypatch.setattr("mailhelp.application.ImapReader",FakeImap)
+    monkeypatch.setattr("mailhelp.composition.ImapReader",FakeImap)
     class BrokenTelegram(Resource):
         def __init__(self,*args,**kwargs): raise RuntimeError("build")
-    monkeypatch.setattr("mailhelp.application.TelegramClient",BrokenTelegram)
+    monkeypatch.setattr("mailhelp.composition.TelegramClient",BrokenTelegram)
     with pytest.raises(RuntimeError,match="build"):
         with build_application(cfg,sec,topic,prompt_config(),"f"*64,base_directory=tmp_path): pass
     assert (tmp_path/"relative/test/.lock").exists()
@@ -1688,15 +1691,15 @@ def test_local_ollama_mode_replaces_openrouter(tmp_path, monkeypatch):
     class FakeTelegram(Resource):
         def send(self, *args): pass
 
-    monkeypatch.setattr("mailhelp.application.ImapReader", Resource)
-    monkeypatch.setattr("mailhelp.application.OpenRouterClient", NoOpenRouter)
-    monkeypatch.setattr("mailhelp.application.OllamaClient", FakeOllama)
-    monkeypatch.setattr("mailhelp.application.TelegramClient", FakeTelegram)
-    monkeypatch.setattr("mailhelp.application.HttpWriter", Resource)
-    monkeypatch.setattr("mailhelp.application.GoogleOAuthTokenProvider", Resource)
+    monkeypatch.setattr("mailhelp.composition.ImapReader", Resource)
+    monkeypatch.setattr("mailhelp.composition.OpenRouterClient", NoOpenRouter)
+    monkeypatch.setattr("mailhelp.composition.OllamaClient", FakeOllama)
+    monkeypatch.setattr("mailhelp.composition.TelegramClient", FakeTelegram)
+    monkeypatch.setattr("mailhelp.external.providers.HttpWriter", Resource)
+    monkeypatch.setattr("mailhelp.external.providers.GoogleOAuthTokenProvider", Resource)
     cfg = settings(tmp_path)
     cfg.logging.file.enabled = cfg.logging.console.enabled = False
-    sec = Secrets(imap_username="u", imap_password="p", openrouter_api_key="o",
+    sec = Secrets(imap={1: {"username": "u", "password": "p"}}, openrouter_api_key="o",
                   telegram_bot_token="t", todoist_token="d", todoist_client_id="ti",
                   todoist_client_secret="ts", google_oauth_client_id="i",
                   google_oauth_client_secret="s", google_oauth_refresh_token="r")
@@ -1732,11 +1735,11 @@ def test_vision_ocr_is_wired_only_when_enabled_and_prompted(tmp_path, monkeypatc
 
     for name in ("ImapReader", "OpenRouterClient", "TelegramClient", "HttpWriter",
                  "GoogleOAuthTokenProvider"):
-        monkeypatch.setattr(f"mailhelp.application.{name}", Resource)
+        monkeypatch.setattr(f"mailhelp.{'external.providers' if name in MOVED_WRITERS else 'composition'}.{name}", Resource)
     cfg = settings(tmp_path)
     cfg.logging.file.enabled = cfg.logging.console.enabled = False
     cfg.vision.enabled = enabled
-    sec = Secrets(imap_username="u", imap_password="p", openrouter_api_key="o",
+    sec = Secrets(imap={1: {"username": "u", "password": "p"}}, openrouter_api_key="o",
                   telegram_bot_token="t", todoist_token="d", todoist_client_id="ti",
                   todoist_client_secret="ts", google_oauth_client_id="i",
                   google_oauth_client_secret="s", google_oauth_refresh_token="r")

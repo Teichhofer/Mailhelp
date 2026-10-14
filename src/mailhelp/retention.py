@@ -8,6 +8,7 @@ from typing import Literal
 
 from . import state_names
 from .config import RetentionSettings
+from .logging import EventLogger
 from .models import MailState, ProposalStatus
 from .storage import JsonStore, mail_state_names
 
@@ -34,7 +35,7 @@ class RetentionService:
     """Scrub content without deleting restart and duplicate-protection records."""
 
     def __init__(self, store: JsonStore, settings: RetentionSettings,
-                 logger: object, clock: Callable[[], datetime] | None = None):
+                 logger: EventLogger, clock: Callable[[], datetime] | None = None):
         self.store = store
         self.settings = settings
         self.logger = logger
@@ -52,7 +53,7 @@ class RetentionService:
     def _protected(state: MailState) -> bool:
         if state.steps.completion != "completed" or state.awaiting_relevance:
             return True
-        return any(proposal.status in _OPEN_PROPOSALS for proposal in state.proposals)
+        return any(proposal.status in _OPEN_PROPOSALS or proposal.merge_review_required for proposal in state.proposals)
 
     def run(self) -> CleanupResult:
         now = self.clock()
@@ -76,13 +77,17 @@ class RetentionService:
                     self.store.save(f"{prefix}-{state.id}", {"schema_version": 1, "removed": True})
                     if prefix == "history":
                         for snapshot in self.store.names(state_names.proposals_of(state.id)):
-                            if snapshot.rsplit("-", 1)[-1].startswith("v") and snapshot.rsplit("-", 1)[-1][1:].isdigit():
+                            suffix = snapshot.rsplit("-", 1)[-1]
+                            if suffix.startswith("v") and suffix[1:].isdigit():
                                 old = self.store.load(snapshot)
-                                old.update(title="Historischer Vorschlag", description="", evidence="Nach Aufbewahrung entfernt", location=None, video_link=None)
+                                old.update(title="Historischer Vorschlag", description="",
+                                           evidence="Nach Aufbewahrung entfernt", location=None,
+                                           video_link=None)
                                 self.store.save(snapshot, old)
             mail_changed = self._expired(self.settings.full_mail_days, state.updated_at, now) and state.mail is not None
             debug_changed = self._expired(self.settings.debug_llm_days, state.updated_at, now) and any(
-                (state.relevance is not None, state.summary is not None, bool(state.llm_call_ids), bool(state.validation_errors))
+                (state.relevance is not None, state.summary is not None, bool(state.llm_call_ids),
+                 bool(state.validation_errors))
             )
             if not mail_changed and not debug_changed:
                 continue

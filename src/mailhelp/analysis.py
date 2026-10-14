@@ -92,7 +92,17 @@ class LlmSchemaValidationFailed(LlmSchemaValidationExceeded):
 
 
 class Completer(Protocol):
-    def complete(self, model: str, parameters: dict[str, Any], system: str, payload: dict[str, Any], **metadata: Any) -> tuple[str, Any]: ...
+    def complete(self, model: str, parameters: dict[str, Any], system: str,
+                 payload: dict[str, Any], *, stage: str = ...,
+                 retry_type: str = ..., retry_number: int = ...,
+                 provider_preferences: dict[str, Any] | None = ...,
+                 correlation_id: str | None = ...,
+                 attempt_id: str | None = ...,
+                 response_schema: type[BaseModel] | None = ...,
+                 supports_json_schema: bool = ...,
+                 revision_route: str = ...,
+                 images: list[str] | None = ...) -> tuple[str, Any]:
+        """Return the call id and the parsed JSON answer."""
 
 
 def validate_revision_successor(previous: Proposal, candidate: Any, *,
@@ -107,6 +117,11 @@ def validate_revision_successor(previous: Proposal, candidate: Any, *,
         raise ContradictoryRevision("Die Vorschlagsversion muss exakt um eins erhöht werden")
     if revised.explicit_duplicate_create_confirmed_version is not None:
         raise ContradictoryRevision("Eine Revision darf keine Doppelanlage freigeben")
+    for field in ("sources", "protected_fields", "canonical_ref", "target_provider", "matching_candidates",
+                  "pending_sources", "merge_review_required", "end_origin", "default_duration_minutes", "meeting_mode",
+                  "separated_from", "duplicate_check_failed"):
+        if getattr(previous, field) != getattr(revised, field):
+            raise ContradictoryRevision("Eine KI-Revision darf Abgleich- oder Herkunftsfelder nicht ändern")
     known = previous.known_temporal_facts
     resolved_all_day = (
         known is not None
@@ -129,8 +144,9 @@ def validate_revision_successor(previous: Proposal, candidate: Any, *,
     if known is not None and revised.known_temporal_facts is None:
         complete_timed = (isinstance(revised.start, datetime)
                           and isinstance(revised.end, datetime))
+        start_day = revised.start.date() if isinstance(revised.start, datetime) else None
         if (not complete_timed and not resolved_all_day) or (
-            complete_timed and known.date is not None and revised.start.date() != known.date
+            complete_timed and known.date is not None and start_day != known.date
         ):
             raise ContradictoryRevision("Bekannte Zeitfakten dürfen nicht verloren gehen")
         if known.start is not None and revised.start != known.start:
@@ -229,8 +245,12 @@ class ClassifiedRun:
             supports_json_schema=route.supports_json_schema,
             revision_route=("token_limit_retry" if self.token_retry_used else "initial_revision")
             if self.step == "proposal_revision" else "standard",
-            **({"images": self.images} if self.images else {}),
+            **self._image_arguments(),
         )
+
+    def _image_arguments(self) -> dict[str, Any]:
+        # Only vision steps pass images; other completers need not know the parameter.
+        return {"images": self.images} if self.images else {}
 
     def _provider_failed(self, exc: Exception, route: LlmRoute) -> None:
         """Choose the next attempt after a provider failure, or raise when none is left."""
@@ -426,6 +446,15 @@ class Analyzer:
             CalendarDuplicateDecision.model_validate, schema=CalendarDuplicateDecision,
         )
 
+    def open_proposal_match(self, proposal: Proposal, candidates: list[Proposal]):
+        from .domain.proposal_sources import ProposalMatchDecision
+        fields = {"kind", "title", "description", "start", "end", "due", "known_temporal_facts", "evidence"}
+        payload = {"incoming": proposal.model_dump(mode="json", include=fields),
+                   "candidates": [item.model_dump(mode="json", include=fields) for item in candidates]}
+        payload["subjects"] = [[s.subject for s in item.sources[-3:]] for item in [proposal, *candidates]]
+        return self._classified_run("open_proposal_match", payload, ProposalMatchDecision.model_validate,
+                                    schema=ProposalMatchDecision)
+
     def answer_question_from_mail(self, mail: dict[str, Any], proposal: Proposal,
                                   question: str) -> tuple[str, TelegramAnswerInterpretation]:
         """Check whether one open proposal question is answered by its source mail."""
@@ -465,7 +494,7 @@ class Analyzer:
         retry = self.prompts.prompts["proposal_revision"].output_token_retry
         retry_fields = [] if retry is None else [
             field for field in (retry.change_fields or []) if field in allowed]
-        retry_payload = None if retry is None else {
+        retry_payload: dict[str, Any] | None = None if retry is None else {
             "proposal_fields": {key: context[key] for key in retry_fields if key in context},
             "question": question, "normalized_answer": authorized_answer,
             "allowed_changes": retry_fields,
@@ -564,10 +593,8 @@ class Analyzer:
         # Imported lazily because telegram owns the conservative parser while
         # its controller depends on Analyzer's exception types.
         from .telegram.temporal import parse_deterministic_temporal_answer
-        try:
-            temporal = parse_deterministic_temporal_answer(authorized_answer)
-        except ValueError:
-            temporal = None
+        # An impossible day or time is no deterministic answer (the parser returns None).
+        temporal = parse_deterministic_temporal_answer(authorized_answer)
         question_lower = question.casefold()
         asks_date = "datum" in question_lower or "frist" in question_lower
         asks_time = any(word in question_lower for word in ("uhrzeit", "beginn", "ende"))
@@ -609,7 +636,7 @@ class Analyzer:
                                 reason: str, *,
                                 current_date: date | None = None) -> tuple[str, TelegramClarification]:
         """Generate a concrete follow-up without changing the proposal."""
-        payload = {
+        payload: dict[str, Any] = {
             "question": question,
             "authorized_answer": authorized_answer,
             "interpretation_reason": reason,

@@ -63,8 +63,11 @@ def calendar_file(proposal: Proposal, key: str) -> bytes:
         lines.extend((f"DTSTART:{_ical_datetime(item.start)}", f"DTEND:{_ical_datetime(item.end)}"))
     lines.append(f"SUMMARY:{_ical_text(item.title)}")
     description = item.description
+    if item.default_duration_minutes is not None:
+        description += f"\n\nEnde angenommen: Standarddauer {item.default_duration_minutes} Minuten."
     if item.video_link is not None:
-        description = f"{description}\n\nVideolink: {item.video_link}" if description else f"Videolink: {item.video_link}"
+        link = f"Videolink: {item.video_link}"
+        description = f"{description}\n\n{link}" if description else link
     if description:
         lines.append(f"DESCRIPTION:{_ical_text(description)}")
     if item.location:

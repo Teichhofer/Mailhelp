@@ -1,0 +1,98 @@
+{
+  "$defs": {
+    "DiagnosticResult": {
+      "additionalProperties": false,
+      "properties": {
+        "checked_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Checked At"
+        },
+        "code": {
+          "default": "",
+          "enum": [
+            "",
+            "network",
+            "tls",
+            "auth",
+            "permission",
+            "configuration",
+            "service",
+            "timeout",
+            "interrupted",
+            "draft_readonly",
+            "browser",
+            "unauthorized"
+          ],
+          "title": "Code",
+          "type": "string"
+        },
+        "config_revision": {
+          "default": "",
+          "pattern": "^(?:[a-f0-9]{64})?$",
+          "title": "Config Revision",
+          "type": "string"
+        },
+        "duration_ms": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Duration Ms",
+          "type": "integer"
+        },
+        "status": {
+          "default": "unchecked",
+          "enum": [
+            "unchecked",
+            "running",
+            "ready",
+            "limited",
+            "failed",
+            "disabled"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "title": "DiagnosticResult",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "operations": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Operations",
+      "type": "object"
+    },
+    "results": {
+      "additionalProperties": {
+        "$ref": "#/$defs/DiagnosticResult"
+      },
+      "title": "Results",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "version": {
+      "default": 0,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "title": "DiagnosticsState",
+  "type": "object"
+}

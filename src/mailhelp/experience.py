@@ -4,36 +4,49 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from threading import Event, Thread
+from typing import TYPE_CHECKING
 
 from .activity.llm import ActivityAnalyzer
-from .activity.runner import ActivityRunner, default_report_folders
+from .activity.runner import ActivityRunner, available_report_folders, default_report_folders
 from .activity.service import ActivityService
 from .activity.store import ActivityReportStore
 from .briefing import DailyBriefingService
-from .drafts import DraftService
-from .imap import ImapReader
+from .drafts import DraftService, DraftTarget
+from .imap import ImapReader, mailbox_account_id, reader_arguments
 from .webpush import PushService
 
 ACTIVITY_PROMPTS = {"activity_relevance", "activity_events"}
+if TYPE_CHECKING:
+    from .notification_runtime import NotificationRuntime
 
 
 @contextmanager
-def _reader(settings, secrets):
-    """One IMAP session; closed again on every exit."""
-    import imaplib
-    factory = imaplib.IMAP4_SSL if settings.imap.connection_mode == "ssl" else imaplib.IMAP4
-    reader = ImapReader(settings.imap.host, settings.imap.port, secrets.imap_username,
-        secrets.imap_password.get_secret_value(), settings.timeouts.imap.timeout_seconds,
-        factory=factory, starttls=settings.imap.connection_mode == "starttls")
+def _reader(settings, secrets, mailbox):
+    """One IMAP session of *mailbox*; closed again on every exit."""
+    address, options = reader_arguments(mailbox, secrets.imap_credentials(mailbox.id))
+    reader = ImapReader(*address, settings.timeouts.imap.timeout_seconds, **options)
     try:
         yield reader
     finally:
         reader.close()
 
 
+def _draft_targets(settings, secrets):
+    """Drafts go to the mailbox the mail came from, keyed by its account id (3.1)."""
+    def target(mailbox):
+        @contextmanager
+        def connection():
+            with _reader(settings, secrets, mailbox) as reader:
+                yield reader.connection
+        return DraftTarget(connection, secrets.imap_credentials(mailbox.id).username, mailbox.drafts_folder)
+    return {mailbox_account_id(mailbox, secrets.imap_credentials(mailbox.id)): target(mailbox)
+            for mailbox in settings.imap.enabled_mailboxes()}
+
+
 class ExperienceRuntime:
     def __init__(self, app, components, secrets):
         self.app, self.site = app, components.site
+        self.notifications: NotificationRuntime | None = None
         self.stop_event, self.thread = Event(), None
         settings = app.settings
         feature = self.site.experience
@@ -42,25 +55,33 @@ class ExperienceRuntime:
         # Drafts are generated only on request in the web interface; without the
         # draft_reply prompt (prompts.yaml of an earlier release) they stay off.
         if settings.smart_reply and "draft_reply" in app.analyzer.prompts.prompts:
-            @contextmanager
-            def connection():
-                with _reader(settings, secrets) as reader:
-                    yield reader.connection
-            feature.drafts = DraftService(app.store, components.auth.active, connection,
-                secrets.imap_username, settings.imap.drafts_folder, settings.test_mode, app.analyzer,
-                lambda: app.settings.personal_info)
+            targets = _draft_targets(settings, secrets)
+            first = next(iter(targets.values()))
+            feature.drafts = DraftService(app.store, components.auth.active, first.connection, first.sender,
+                first.folder, settings.test_mode, app.analyzer, lambda: app.settings.personal_info,
+                targets=targets.get)
         self.activity = None
         # Activity reports only read the mailbox; without both prompts they stay off.
         if settings.activity_report.enabled and ACTIVITY_PROMPTS <= set(app.analyzer.prompts.prompts):
-            def open_reader():
-                return _reader(app.settings, secrets)
+            def open_reader(mailbox):
+                configured = app.settings.imap.mailbox(mailbox)
+                if configured is None or not configured.enabled:
+                    raise LookupError("Postfach des Berichts ist nicht mehr eingerichtet")
+                return _reader(app.settings, secrets, configured)
             service = ActivityService(ActivityReportStore(app.store))
+            service.active = components.auth.active
+            service.blocked_senders = lambda: (
+                list(self.site.archive.configuration.blocked_senders().addresses),
+                list(self.site.archive.configuration.blocked_senders().domains))
             self.activity = ActivityRunner(
                 service, ActivityAnalyzer(app.analyzer, lambda: app.settings.personal_info), open_reader,
                 settings, app.logger, llm_calls_per_minute=lambda: app.settings.limits.llm_calls_per_minute)
             pages = self.site.activity
             pages.service = service
-            pages.suggest_folders = lambda: default_report_folders(open_reader, app.settings.imap.folders)
+            pages.mailboxes = lambda: [(item.id, item.label) for item in app.settings.imap.enabled_mailboxes()]
+            pages.suggest_folders = lambda mailbox: default_report_folders(
+                lambda: open_reader(mailbox), app.settings.imap.mailbox(mailbox).folders)
+            pages.available_folders = lambda mailbox: available_report_folders(lambda: open_reader(mailbox))
             pages.with_unscheduled = settings.activity_report.export_mails_without_events
         channels = {"local": lambda _text: None}
         if settings.telegram.enabled:
@@ -88,14 +109,17 @@ class ExperienceRuntime:
 
     def tick(self):
         feature = self.site.experience
-        if feature.push is not None:
+        if self.notifications is not None:
+            self._section("notifications", self.notifications.tick)
+        elif feature.push is not None:
             self._section("push", self._push)
         self.briefing.settings = self.app.settings.daily_briefing
         if self.activity is not None:
             # Limits changed in the settings apply to the next mail of a running report.
             self.activity.settings = self.app.settings
             self.site.activity.with_unscheduled = self.app.settings.activity_report.export_mails_without_events
-        self._section("briefing", self.briefing.tick)
+        if self.notifications is None:
+            self._section("briefing", self.briefing.tick)
 
     def run(self):
         while not self.stop_event.is_set():
@@ -104,7 +128,7 @@ class ExperienceRuntime:
             except Exception as exc:
                 self.app.logger.event("WARNING", "experience", "background_failed",
                                       error_class=type(exc).__name__)
-            self.stop_event.wait(60)
+            self.stop_event.wait(5)
 
     def start(self):
         if self.activity is not None:

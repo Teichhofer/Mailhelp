@@ -1,6 +1,7 @@
 """Stage sequence of one mail (prepare → relevance → summary → actions → notification)."""
 from __future__ import annotations
 
+import re
 import time
 import traceback
 from dataclasses import dataclass
@@ -14,6 +15,7 @@ from .analysis import (
     LlmProviderResponseInvalid,
     LlmSchemaValidationExceeded,
 )
+from .domain.prepared import PreparedMail
 from .domain.proposal import ProposalStatus
 from .imap import FetchedMail
 from .mime import MimeLimitExceeded, extract_display_headers, prepare
@@ -34,6 +36,17 @@ from .sender_filter import is_irrelevant_sender
 
 if TYPE_CHECKING:
     from .orchestrator import Orchestrator
+
+
+def _content(state: MailState) -> dict[str, Any]:
+    """The mail being processed; retention removes content only from finished mails."""
+    assert state.mail is not None
+    return state.mail
+
+
+def _prepared(state: MailState) -> PreparedMail:
+    assert state.prepared is not None  # prepared together with the content
+    return state.prepared
 
 
 class ProcessingOutcome(StrEnum):
@@ -87,8 +100,10 @@ class MailPipeline:
         state = run.state
         assert state.mail is not None
         if self.o.duplicates.check(run.name, state):
+            duplicate = state.duplicate
+            assert duplicate is not None  # check() recorded the decision
             self.o.logger.event("INFO", "orchestrator", "duplicate_skipped", mail_id=state.id,
-                              previous_mail_id=state.duplicate.previous_mail_id)
+                              previous_mail_id=duplicate.previous_mail_id)
             return ProcessingResult(ProcessingOutcome.COMPLETED, state.model_dump(mode="json"))
         if self.o.vision is not None and state.steps.relevance == "pending":
             self.o.read_images(run.name, state, fetched.raw)
@@ -108,6 +123,10 @@ class MailPipeline:
     def _prepare(self, run: ProcessingRun, fetched: FetchedMail) -> None:
         state, name = run.state, run.name
         if state.steps.preparation == "pending":
+            state.proposal_policy = {
+                "schema_version": 1, "normalization_version": "2.4-v1",
+                "matching_policy": self.o.reconciliation.policy, "event_defaults": self.o.event_defaults.model_dump(),
+                "max_semantic_candidates": self.o.reconciliation_settings.max_semantic_candidates}
             if state.display_headers is None:
                 display = extract_display_headers(fetched.raw, self.o.max_bytes)
                 state.display_headers = DisplayHeaders(sender=display["from"], subject=display["subject"])
@@ -124,14 +143,15 @@ class MailPipeline:
         run.stage = ProcessingStage.RELEVANCE
         state = run.state
         if state.steps.relevance == "pending":
-            if is_irrelevant_sender(state.prepared.headers.sender, self.o.blocked_senders()):
+            if is_irrelevant_sender(_prepared(state).headers.sender, self.o.blocked_senders()):
                 state.relevance = Relevance(
                     decision="irrelevant", topic_ids=[], reason="Absender-Vorfilter"
                 )
                 call = None
                 self.o.analyzer.last_relevance_source = "prefilter"
             else:
-                call, state.relevance = self.o.analyzer.relevance(state.mail, self.o.topics_for(state.config_fingerprint))
+                topics = self.o.topics_for(state.config_fingerprint)
+                call, state.relevance = self.o.analyzer.relevance(_content(state), topics)
                 state.llm_call_ids.append(call)
             state.steps.relevance = "completed"
             self.o.save(run.name, state)
@@ -153,7 +173,7 @@ class MailPipeline:
             state.relevance_dialog = RelevanceDialog(mail_id=state.id)
             state.awaiting_relevance = True
             self.o.save(name, state)
-            headers = state.prepared.headers
+            headers = _prepared(state).headers
             self.o.notifier.send_relevance(
                 state.relevance_dialog,
                 headers.sender or "—",
@@ -168,7 +188,7 @@ class MailPipeline:
         state, name = run.state, run.name
         run.stage = ProcessingStage.SUMMARY
         if state.steps.summary == "pending":
-            call, summary = self.o.analyzer.summary(state.mail)
+            call, summary = self.o.analyzer.summary(_content(state))
             state.summary = summary
             state.llm_call_ids.append(call)
             state.steps.summary = "completed"
@@ -191,7 +211,7 @@ class MailPipeline:
             return
         if state.steps.action_router in {"pending", "failed"}:
             run.stage = ProcessingStage.ACTION_ROUTER
-            call, route = self.o.analyzer.action_route(state.mail)
+            call, route = self.o.analyzer.action_route(_content(state))
             state.action_route = route
             state.action_router_call_id = call
             state.llm_call_ids.append(call)
@@ -209,7 +229,7 @@ class MailPipeline:
         # router is unsure whether the message is an invitation.  The
         # extractor and proposal boundary preserve that uncertainty,
         # while Telegram still receives the detected appointment.
-        has_cal_events = bool(state.prepared.calendar_events)
+        has_cal_events = bool(_prepared(state).calendar_events)
         wants_llm_events = (route.action_state in {"event", "task_and_event"}
                             or route.event_count > 0)
         wants_events = wants_llm_events or has_cal_events
@@ -234,7 +254,7 @@ class MailPipeline:
         if wants_tasks and state.steps.task_extraction in {"pending", "failed"}:
             run.stage = ProcessingStage.TASK_EXTRACTION
             call, extraction = self.o.analyzer.extract_tasks(
-                state.mail, expected_count=route.task_count)
+                _content(state), expected_count=route.task_count)
             state.task_extraction = extraction
             state.llm_call_ids.append(call)
             state.steps.task_extraction = "completed"
@@ -247,14 +267,14 @@ class MailPipeline:
             self.o.save(name, state)
         if wants_llm_events and state.steps.event_extraction in {"pending", "failed"}:
             run.stage = ProcessingStage.EVENT_EXTRACTION
-            call, extraction = self.o.analyzer.extract_events(
-                state.mail, expected_count=route.event_count)
-            state.event_extraction = extraction
+            call, events = self.o.analyzer.extract_events(
+                _content(state), expected_count=route.event_count)
+            state.event_extraction = events
             state.llm_call_ids.append(call)
             state.steps.event_extraction = "completed"
             self.o.save(name, state)
             self.o.record_count_conflict(name, state, "event", route.event_count,
-                                        len(extraction.events),
+                                        len(events.events),
                                         state.action_router_call_id, call)
         elif not wants_llm_events:
             state.steps.event_extraction = "skipped"
@@ -282,6 +302,15 @@ class MailPipeline:
             ]
             state.steps.duplicate_precheck = "completed"
             self.o.save(name, state)
+        limit = (state.proposal_policy["max_semantic_candidates"] if state.proposal_policy is not None else None)
+        state.proposals = [self.o.reconciliation.reconcile(p, limit) for p in state.proposals]
+        state.proposals = [self.o.reconciliation.required(p.source_mail_id, p.id)
+                           for p in state.proposals]
+        self.o.save(name, state)
+        events = [p for p in state.proposals if p.kind == "event"]
+        for task in (p for p in state.proposals if p.kind == "task"):
+            if len(events) == 1 and re.search(r"teilnahme|zurückmeld|anmeld|zusag|absag", task.title.casefold()):
+                self.o.reconciliation.relate(task, events[0])
 
     def _notify_proposals(self, run: ProcessingRun) -> None:
         name = run.name
@@ -316,6 +345,19 @@ class MailPipeline:
         for proposal, notification in zip(state.proposals, state.proposal_notifications, strict=True):
             if notification.status != "pending":
                 continue
+            if proposal.status == ProposalStatus.MERGED:
+                # The alias belongs to this mail; delivery belongs to the canonical
+                # revision. Mark first so an uncertain delivery is never repeated.
+                notification.status = "sending"
+                self.o.save(name, state)
+                assert proposal.canonical_ref is not None
+                canonical = self.o.reconciliation.resolve(proposal.canonical_ref)
+                if canonical is None:
+                    raise ValueError("Zusammengeführter Vorschlag fehlt")
+                self.o.notifier.send_proposal(canonical)
+                notification.status = "completed"
+                self.o.save(name, state)
+                continue
             dedicated_delivery = bool(getattr(
                 self.o.notifier, "manages_proposal_delivery", False))
             if not dedicated_delivery:
@@ -345,14 +387,17 @@ class MailPipeline:
         name, state, stage, started = run.name, run.state, run.stage, run.started
         if isinstance(exc, RateLimitExceeded):
             state.deferred_until = datetime.fromtimestamp(exc.next_allowed_at, UTC)
+            retry_at = state.deferred_until.isoformat()
             self.o.failure(name, state, ProcessingErrorCode.LLM_RATE_LIMITED, stage,
-                          f"LLM-Limit erreicht. Automatischer neuer Versuch nach {state.deferred_until.isoformat()}.", True)
-            self.o.logger.event("WARNING", "orchestrator", "llm_rate_limited", mail_id=state.id, next_allowed_at=state.deferred_until.isoformat(),
-                              duration_ms=round((time.perf_counter() - started) * 1000, 3), error=exc, stacktrace=traceback.format_exc())
+                          f"LLM-Limit erreicht. Automatischer neuer Versuch nach {retry_at}.", True)
+            self.o.logger.event("WARNING", "orchestrator", "llm_rate_limited", mail_id=state.id,
+                              next_allowed_at=retry_at, duration_ms=round((time.perf_counter() - started) * 1000, 3),
+                              error=exc, stacktrace=traceback.format_exc())
             return ProcessingOutcome.WAITING
         if isinstance(exc, MimeLimitExceeded):
             self.o.failure(name, state, ProcessingErrorCode.MIME_LIMIT_EXCEEDED, stage,
-                          "Die Nachricht überschreitet ein Sicherheitslimit. Bitte Anhänge oder Nachrichtengröße reduzieren.", False)
+                          "Die Nachricht überschreitet ein Sicherheitslimit. "
+                          "Bitte Anhänge oder Nachrichtengröße reduzieren.", False)
             self.o.logger.event("WARNING", "orchestrator", "mime_limit_exceeded", mail_id=state.id, stage=stage.value,
                               limit=exc.limit, error=exc, stacktrace=traceback.format_exc())
             return ProcessingOutcome.FAILED
@@ -371,9 +416,10 @@ class MailPipeline:
                 stage=stage, code="schema_validation_failed", occurred_at=datetime.now(UTC)
             ))
             self.o.failure(name, state, ProcessingErrorCode.SCHEMA_VALIDATION_FAILED, stage,
-                          "Die automatische Auswertung war nicht zuverlässig. Bitte die Nachricht manuell prüfen.", True)
-            self.o.logger.event("ERROR", "orchestrator", "schema_validation_failed", mail_id=state.id, stage=stage.value,
-                              error=exc, stacktrace=traceback.format_exc())
+                          "Die automatische Auswertung war nicht zuverlässig. "
+                          "Bitte die Nachricht manuell prüfen.", True)
+            self.o.logger.event("ERROR", "orchestrator", "schema_validation_failed", mail_id=state.id,
+                              stage=stage.value, error=exc, stacktrace=traceback.format_exc())
         elif isinstance(exc, PermanentError):
             detail = getattr(exc, "safe_detail", None)
             suffix = f" {detail}" if detail else ""
@@ -385,6 +431,7 @@ class MailPipeline:
         else:
             self.o.failure(name, state, ProcessingErrorCode.INTERNAL_ERROR, stage,
                           "Ein interner Fehler ist aufgetreten. Bitte Protokoll und Konfiguration prüfen.")
-            self.o.logger.event("ERROR", "orchestrator", "processing_failed", mail_id=state.id, stage=stage.value, error=exc,
-                              duration_ms=round((time.perf_counter() - started) * 1000, 3), stacktrace=traceback.format_exc())
+            self.o.logger.event("ERROR", "orchestrator", "processing_failed", mail_id=state.id, stage=stage.value,
+                              error=exc, duration_ms=round((time.perf_counter() - started) * 1000, 3),
+                              stacktrace=traceback.format_exc())
         return self.o.failure_outcome(name, state, stage)

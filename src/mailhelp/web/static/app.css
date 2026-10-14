@@ -378,9 +378,12 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; }
   .master-pane { position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow-y: auto; padding: 4px; }
   .master-pane .card { cursor: pointer; }
   .master-pane .card.selected { outline: 3px solid var(--accent); }
+  /* Only the selection is framed; "Aktuell in Telegram" stays a badge in the list. */
+  .master-pane .card.current { border: 1px solid var(--border); }
   .master-pane .card :is(blockquote, details, .actions, .questions, .notice, form, .card-links, p:not(.kind, .source, .labels)) { display: none; }
   .detail-pane { display: block; padding: 4px; }
-  .detail-pane[aria-busy="true"] { opacity: .6; }
+  /* Quick loads (e.g. a background refresh) finish before the pane dims. */
+  .detail-pane[aria-busy="true"] { opacity: .6; transition: opacity .15s ease .3s; }
   .detail-pane[inert] { opacity: .4; }
 }
 @media (max-width: 1023px) {
@@ -435,3 +438,9 @@ th { color: var(--muted); font-weight: 600; }
 label.check { display: flex; align-items: center; gap: 8px; font-weight: 400; }
 .event-list { list-style: none; padding: 0; display: grid; gap: 10px; }
 .event-list .filters { align-items: end; }
+/* 3.0 setup and diagnosis: desktop and phone touch controls. */
+.setup-page .button, .setup-page input:not([type="hidden"]), .setup-page select { min-height: 48px; }
+.setup-page form { margin-bottom: 16px; }
+.setup-page summary h2 { display: inline; }
+.setup-page label:has(input[type="checkbox"]) { display: flex; align-items: center; gap: 12px; min-height: 48px; }
+.setup-page input[type="checkbox"] { width: 24px; min-height: 24px; flex: 0 0 24px; }

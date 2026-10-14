@@ -18,6 +18,7 @@ from ..models import (
 from ..storage import JsonStore
 from .persistence import proposal_name
 from .revision_contracts import EventLogger, ProposalRevisionService
+from .revision_successor import protect_revision
 from .writes import ProposalPersistence
 
 
@@ -86,6 +87,7 @@ class RevisionRecovery:
                 proposal, dialog.question, dialog.normalized_answer
             )
             revised = validate_revision_successor(proposal, revised)
+            revised = protect_revision(proposal, revised)
         except Exception as exc:
             self.logger.event(
                 "WARNING",

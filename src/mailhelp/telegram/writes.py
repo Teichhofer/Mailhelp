@@ -108,7 +108,7 @@ class ConfirmedWriteExecutor:
                 "Kein neuer Termin wurde angelegt."
             )
         elif changed.status == ProposalStatus.CREATED:
-            where = "in Todoist" if proposal.kind == ProposalKind.TASK else "im Kalender"
+            where = "als Aufgabe" if proposal.kind == ProposalKind.TASK else "im Kalender"
             text = f"✅ Angelegt {where}: „{proposal.title}“"
             if proposal.kind == ProposalKind.EVENT:
                 text += self._event_time_details(changed)
@@ -117,7 +117,8 @@ class ConfirmedWriteExecutor:
         elif changed.status == ProposalStatus.UNCERTAIN:
             if changed.uncertain_notified:
                 return changed
-            text = f"Unklarer Schreiberfolg bei „{proposal.title}“; wird weiter abgeglichen und nicht automatisch wiederholt."
+            text = (f"Unklarer Schreiberfolg bei „{proposal.title}“; wird weiter abgeglichen und nicht "
+                    "automatisch wiederholt.")
         else:
             text = f"Erstellen von „{proposal.title}“ fehlgeschlagen."
         self.telegram.send(self.chat_id, text)
@@ -132,6 +133,8 @@ class ConfirmedWriteExecutor:
         return changed
 
     def resume(self) -> None:
+        from ..proposal_reconciliation import ProposalReconciliationService
+        ProposalReconciliationService(self.store).recover()
         for name in self.store.names(state_names.PROPOSAL_PREFIX):
             if "-v" in name:
                 continue

@@ -250,7 +250,8 @@ def test_cli_decision_test_bypasses_normal_builder_and_logger(monkeypatch, file,
                           Path(file) if file is not None else None), {"ignore_historical_start": ignore,
                           "local_llm": LocalLlm("localhost", 11434, "synthetic/local"),
                           "laya": None, "laya_model": None, "relevance_only": False,
-                          "irrelevant_topics": [ADS]})]
+                          "irrelevant_topics": [ADS],
+                          "mailboxes": loaded[0].imap.enabled_mailboxes()})]
 
 
 @pytest.mark.parametrize("namespace", ["test", "production"])
@@ -514,3 +515,10 @@ def test_intermediate_reports_are_throttled_but_the_final_state_is_always_writte
         now[0] = moment
         mode._save(force=force)
     assert writes == [0.0, 60.0, 60.5]
+
+
+def test_imap_retries_of_the_decision_test_wait_without_interruption(monkeypatch):
+    from mailhelp import decision_test
+    waited = []
+    monkeypatch.setattr(decision_test.time, "sleep", waited.append)
+    assert decision_test._pause(1.5) is False and waited == [1.5]

@@ -15,6 +15,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from py_vapid import Vapid
 from pywebpush import WebPushException, webpush
 
+from .adapter import PermanentError, RetryableError
 from .storage import StateStore
 
 
@@ -47,7 +48,7 @@ def subscription(value: dict[str, Any]) -> dict[str, Any]:
     return {"endpoint": endpoint, "keys": decoded}
 
 
-MAX_OPERATIONS = 500
+MAX_OPERATIONS = 500  # per device
 
 
 class AuthSessionManager(Protocol):
@@ -98,12 +99,52 @@ class PushService:
             else:
                 state["devices"][actor] = checked
             state["operations"][operation] = digest
-            # Replays are only expected shortly after a request; old keys are dropped.
-            state["operations"] = dict(list(state["operations"].items())[-MAX_OPERATIONS:])
+            # Replays are only expected shortly after a request; old keys are dropped,
+            # counted per device so that one busy device never evicts another's keys.
+            own = [name for name in state["operations"] if name.startswith(f"{actor}:")]
+            for name in own[:-MAX_OPERATIONS]:
+                del state["operations"][name]
             self.store.save("push-subscriptions", state)
 
     def _state(self) -> dict[str, Any]:
         return cast(dict[str, Any], self.store.load("push-subscriptions", {"devices": {}, "operations": {}}))
+
+    def destinations(self) -> list[str]:
+        """Opaque subscription revisions keep provider addresses out of the queue."""
+        with self._lock:
+            return [f"{actor}:{hashlib.sha256(json.dumps(item, sort_keys=True).encode()).hexdigest()}"
+                    for actor, item in self._state()["devices"].items() if self.auth.active(actor)]
+
+    def deliver(self, device: str, tag: str) -> None:
+        actor, _, revision = device.partition(":")
+        with self._lock:
+            item = self._state()["devices"].get(actor)
+            if (item is None or not self.auth.active(actor)
+                    or hashlib.sha256(json.dumps(item, sort_keys=True).encode()).hexdigest() != revision):
+                raise PermanentError("Geräteabonnement nicht mehr gültig")
+        try:
+            with NoRedirectSession() as transport:
+                self.sender(subscription_info=item,
+                    data=json.dumps({"title": "Mailhelp", "body": "Neue Informationen in Mailhelp.",
+                                     "url": "/offen", "tag": tag}),
+                    vapid_private_key=self.private, vapid_claims={"sub": self.subject},
+                    content_encoding="aes128gcm", ttl=3600, timeout=10, requests_session=transport)
+        except WebPushException as exc:
+            if exc.response is None:
+                raise
+            status = exc.response.status_code
+            if status in (404, 410):
+                with self._lock:
+                    state = self._state()
+                    if state["devices"].get(actor) == item:
+                        del state["devices"][actor]
+                        self.store.save("push-subscriptions", state)
+                raise PermanentError("Push-Abonnement abgelaufen") from exc
+            if status == 429:
+                raise RetryableError("Push-Dienst begrenzt Anfragen") from exc
+            if 400 <= status < 500:
+                raise PermanentError("Push-Dienst hat die Zustellung abgelehnt") from exc
+            raise
 
     def notify(self, tag: str = "decisions") -> None:
         """Never put subjects, mail text, calendar titles or tokens on lock screens.

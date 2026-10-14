@@ -12,11 +12,12 @@ import hashlib
 import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from pydantic import BaseModel
 
 from .. import state_names
+from ..attachments import AttachmentCache, OriginalFile
 from ..domain.prepared import PreparedAttachment, PreparedMail
 from ..domain.processing import (
     AnswerStatus,
@@ -55,6 +56,7 @@ STATUS_LABELS = {
     ProposalStatus.FAILED: "Anlage fehlgeschlagen",
     ProposalStatus.UNCERTAIN: "Wird abgeglichen",
     ProposalStatus.ALREADY_EXISTS: "Bereits vorhanden",
+    ProposalStatus.MERGED: "Zusammengeführt",
 }
 Model = TypeVar("Model", bound=BaseModel)
 
@@ -83,7 +85,7 @@ class ProposalView:
     updated_at: datetime | None
     duplicate_match: Any | None = None
     target_event_id: str | None = None
-    time_changes: dict[str, Any] | None = None
+    time_changes: list[str] | None = None
     is_cancellation: bool = False
 
 
@@ -109,6 +111,10 @@ class MailView:
     text_shortened: bool
     extracted_attachments: tuple[PreparedAttachment, ...] = ()
     calendar_events: tuple[dict[str, Any], ...] = ()
+    # Attachment index → stored original document (2.3); empty for older mails.
+    originals: dict[int, OriginalFile] = field(default_factory=dict)
+    # Label of its mailbox; empty with a single mailbox (3.1).
+    mailbox: str = ""
 
 
 @dataclass(frozen=True)
@@ -208,6 +214,8 @@ class ReviewViews:
 
     def __init__(self, store: JsonStore, configured_timezone: str, test_mode: bool = False):
         self.store, self.configured_timezone, self.test_mode = store, configured_timezone, test_mode
+        # Account id -> (number, label) of every enabled mailbox; empty with a single mailbox (3.1).
+        self.mailboxes: dict[str, tuple[int, str]] = {}
 
     def overview(self) -> Overview:
         with self.store.locked():
@@ -256,7 +264,8 @@ class ReviewViews:
             outbox = reader.model("telegram-outbox", TelegramOutboxState) or TelegramOutboxState()
             inbox = reader.raw("telegram-inbox")
             budget = reader.raw("llm-budget")
-            proposals = [proposal for name in self.store.names(state_names.PROPOSAL_PREFIX) if not _SNAPSHOT.search(name)
+            proposals = [proposal for name in self.store.names(state_names.PROPOSAL_PREFIX)
+                         if not _SNAPSHOT.search(name)
                          if (proposal := reader.model(name, Proposal)) is not None]
         analysis: dict[str, int] = {}
         for run in runs:
@@ -294,6 +303,12 @@ class ReviewViews:
                                        for value in calls) if isinstance(calls, list) else 0),
         )
 
+    def mailbox_label(self, account: str) -> str:
+        """The configured label, "Entferntes Postfach" for an unknown account; empty with one mailbox."""
+        if not self.mailboxes:
+            return ""
+        return self.mailboxes.get(account, (0, "Entferntes Postfach"))[1]
+
     def mail(self, mail_id: str) -> MailView | None:
         """The mail with its complete text, or None if no such mail is known."""
         with self.store.locked():
@@ -312,12 +327,14 @@ class ReviewViews:
             except ValueError:
                 received = None
         omitted = content.metadata.get("attachments_omitted")
+        originals = AttachmentCache(self.store).originals(mail_id) if content.text is not None else {}
         return MailView(
             mail_id=mail_id, sender=sender, subject=subject, received=received, text=content.text,
             attachments_omitted=omitted if isinstance(omitted, int) else 0,
             text_shortened=content.metadata.get("text_shortened") is True,
             extracted_attachments=tuple(content.extracted_attachments),
-            calendar_events=tuple(content.calendar_events))
+            calendar_events=tuple(content.calendar_events), originals=originals,
+            mailbox=self.mailbox_label(state.imap.account_id))
 
     def _relevance(self, reader: _Reader) -> list[RelevanceView]:
         result = []
@@ -408,7 +425,7 @@ class ReviewViews:
         else:
             state = STATUS_LABELS[proposal.status]
         headers = mail.display_headers if mail is not None else None
-        target = "In Todoist anlegen" if proposal.kind == ProposalKind.TASK else "Im Kalender anlegen"
+        target = "Als Aufgabe anlegen" if proposal.kind == ProposalKind.TASK else "Im Kalender anlegen"
         if proposal.target_event_id is not None:
             target = "Termin absagen" if proposal.is_cancellation else "Bestehenden Termin aktualisieren"
         return ProposalView(

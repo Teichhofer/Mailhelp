@@ -26,6 +26,7 @@ from datetime import UTC, date, datetime, time, timedelta, timezone
 from enum import StrEnum
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
+from .domain.temporal import TemporalResolutionStatus, YearSource
 from .models import ExtractedEvent, ExtractedTask, TemporalFact, TimeRequirement
 
 
@@ -128,6 +129,38 @@ _WEEKDAYS.update({name: number for number, name in enumerate(
     ("mo", "di", "mi", "do", "fr", "sa", "so"))})
 
 
+def evidence_date_matches(day: date, evidence: str, received: date) -> bool:
+    """Reject dates contradicting explicit or relative dates in a quoted mail passage.
+
+    Yearless dates constrain month/day, not a guessed year: reports include past
+    events. Unknown wording remains for human review rather than being invented.
+    """
+    weekday = r"(?:(montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag),?\s+)?"
+    pattern = re.compile(
+        rf"(?<!\w){weekday}(?:den\s+)?(\d{{1,2}})\.?\s+({_MONTH_PATTERN})(?:\s+(\d{{4}}))?(?!\w)"
+        rf"|(?<!\d)(\d{{4}}-\d{{2}}-\d{{2}})(?!\d)"
+        rf"|(?<!\d){weekday}(\d{{1,2}})\.(\d{{1,2}})\.(\d{{4}})?(?!\d)", re.IGNORECASE)
+    matches = list(pattern.finditer(evidence))
+    for match in matches:
+        if match.group(5):
+            raw = match.group(5)
+        else:
+            named = match.group(2) is not None
+            number = int(match.group(2) if named else match.group(7))
+            month = _MONTHS[match.group(3).casefold()] if named else int(match.group(8))
+            year = int((match.group(4) if named else match.group(9)) or day.year)
+            label = match.group(1) if named else match.group(6)
+            raw = f"{label + ' ' if label else ''}{number:02}.{month:02}.{year:04}"
+        parsed = _parse_date(raw, "user")
+        if isinstance(parsed, tuple) and parsed[0] == day:
+            return True
+    if matches:
+        return False
+    relative = {"vorgestern": -2, "gestern": -1, "heute": 0, "morgen": 1, "übermorgen": 2}
+    words = re.findall(r"\b(?:vorgestern|gestern|heute|morgen|übermorgen)\b", evidence.casefold())
+    return not words or any(day == received + timedelta(days=relative[word]) for word in words)
+
+
 def _date_ranges(raw: str) -> list[tuple[str, date, date]]:
     """Return the distinct, explicit German date ranges contained in *raw*."""
     ranges: list[tuple[str, date, date]] = []
@@ -184,13 +217,14 @@ def _parse_date(raw: str | None, responsibility: str, context: MailDateContext |
                 return _failure(NormalizationReason.INVALID_DATE, raw, responsibility,
                                 "Wochentag und Kalenderdatum widersprechen sich.")
             return candidate, TemporalFact(raw_text=raw, normalized_date=candidate,
-                                           year_source="explicit_mail", status="resolved")
+                                           year_source=YearSource.EXPLICIT_MAIL,
+                                           status=TemporalResolutionStatus.RESOLVED)
         match = _DATE_YEARLESS.fullmatch(raw.strip())
         if match is not None and context is not None:
             checked = _context_zone(context, responsibility)
             if isinstance(checked, NormalizationResult):
                 return replace(checked, raw_value=raw,
-                               temporal_fact=TemporalFact(raw_text=raw, status="unresolved"))
+                               temporal_fact=TemporalFact(raw_text=raw, status=TemporalResolutionStatus.UNRESOLVED))
             header = _aware_timestamp(context.date_header_parsed)
             assert header is not None
             local_day = header.astimezone(checked).date()
@@ -198,9 +232,9 @@ def _parse_date(raw: str | None, responsibility: str, context: MailDateContext |
             if len(years) > 1:
                 return replace(_failure(NormalizationReason.CONFLICTING_CONTEXT, raw, responsibility,
                                "Welche der widersprüchlichen Jahreszahlen gilt?"),
-                               temporal_fact=TemporalFact(raw_text=raw, status="conflicting"))
+                               temporal_fact=TemporalFact(raw_text=raw, status=TemporalResolutionStatus.CONFLICTING))
             year = int(next(iter(years))) if years else local_day.year
-            source = "explicit_mail" if years else "mail_context"
+            source = YearSource.EXPLICIT_MAIL if years else YearSource.MAIL_CONTEXT
             try:
                 candidate = date(year, _MONTHS[match.group(2).casefold()], int(match.group(1)))
                 if not years and candidate < local_day:
@@ -209,7 +243,7 @@ def _parse_date(raw: str | None, responsibility: str, context: MailDateContext |
                 return _failure(NormalizationReason.INVALID_DATE, raw, responsibility,
                                 "Bitte ein gültiges Kalenderdatum angeben.")
             return candidate, TemporalFact(raw_text=raw, normalized_date=candidate,
-                                           year_source=source, status="resolved")
+                                           year_source=source, status=TemporalResolutionStatus.RESOLVED)
         return _failure(NormalizationReason.UNSUPPORTED_DATE, raw, responsibility,
                         f"Welches konkrete Datum ist mit „{raw}“ gemeint?")
     try:
@@ -225,9 +259,9 @@ def _parse_date(raw: str | None, responsibility: str, context: MailDateContext |
         if len(years) > 1:
             return replace(_failure(NormalizationReason.CONFLICTING_CONTEXT, raw, responsibility,
                            "Welche der widersprüchlichen Jahreszahlen gilt?"),
-                           temporal_fact=TemporalFact(raw_text=raw, status="conflicting"))
+                           temporal_fact=TemporalFact(raw_text=raw, status=TemporalResolutionStatus.CONFLICTING))
         return parsed, TemporalFact(raw_text=raw, normalized_date=parsed,
-                                    year_source="explicit_mail", status="resolved")
+                                    year_source=YearSource.EXPLICIT_MAIL, status=TemporalResolutionStatus.RESOLVED)
     except ValueError:
         return _failure(NormalizationReason.INVALID_DATE, raw, responsibility,
                         "Bitte ein gültiges Kalenderdatum angeben.")
@@ -360,7 +394,7 @@ def _normalize_date_range(event: ExtractedEvent, context: MailDateContext,
     raw_range, start_day, inclusive_end = date_range
     checked = _context_zone(context, responsibility)
     fact = TemporalFact(raw_text=raw_range, normalized_date=start_day,
-                        year_source="explicit_mail", status="resolved")
+                        year_source=YearSource.EXPLICIT_MAIL, status=TemporalResolutionStatus.RESOLVED)
     if isinstance(checked, NormalizationResult):
         return replace(checked, temporal_fact=fact)
     return NormalizationResult(
@@ -427,8 +461,8 @@ def _normalize_timed(event: ExtractedEvent, context: MailDateContext, day: date,
         return replace(start, temporal_fact=fact)
     if event.end_time_text is None:
         if event.duration_minutes is not None and not event.duration_is_upper_bound:
-            end = start + timedelta(minutes=event.duration_minutes)
-            return NormalizationResult(TemporalValue(start, end, False), None,
+            duration_end = start + timedelta(minutes=event.duration_minutes)
+            return NormalizationResult(TemporalValue(start, duration_end, False), None,
                                        f"{event.date_text} {event.time_text}", None,
                                        responsibility, temporal_fact=fact)
         result = _failure(NormalizationReason.MISSING_END_TIME, event.time_text, responsibility,
@@ -510,10 +544,10 @@ def normalize_task_due(task: ExtractedTask, context: MailDateContext) -> Normali
         parsed = _parse_date(task.due_text, responsibility, context, task.evidence)
     if isinstance(parsed, NormalizationResult):
         return parsed
-    parsed, fact = parsed
+    parsed_day, fact = parsed
     fact = fact.model_copy(update={"raw_text": task.due_text})
     checked = _context_zone(context, responsibility)
     if isinstance(checked, NormalizationResult):
         return replace(checked, temporal_fact=fact)
-    return NormalizationResult(parsed, None, task.due_text, None, responsibility,
+    return NormalizationResult(parsed_day, None, task.due_text, None, responsibility,
                                temporal_fact=fact)

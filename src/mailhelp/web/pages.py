@@ -20,7 +20,8 @@ def e(value: object) -> str:
 
 
 NAVIGATION = (("/", "Offen"), ("/mails", "Mails"), ("/verlauf", "Verlauf"),
-              ("/status", "Status"), ("/auswertung", "Auswertung"), ("/berichte", "Berichte"), ("/einstellungen", "Einstellungen"), ("/geraete", "Geräte"))
+              ("/status", "Status"), ("/auswertung", "Auswertung"), ("/berichte", "Berichte"),
+              ("/einstellungen", "Einstellungen"), ("/geraete", "Geräte"), ("/abgleich", "Vorschlagsabgleich"))
 
 
 def layout(title: str, content: str, *, active: str | None = None, signed_in: bool = True,
@@ -82,10 +83,11 @@ LOGIN_CHANNELS = {
     "telegram": {"sent": "Der Code wurde an deinen Telegram-Chat gesendet.", "label": "Code aus Telegram",
                  "intro": "Mailhelp sendet dir einen einmaligen Code in deinen Telegram-Chat.",
                  "button": "Code per Telegram senden", "again": "Neuen Code senden"},
-    "console": {"sent": "Der Code steht im Konsolenfenster von Mailhelp auf dem PC "
-                        "(bei Docker: <code>docker compose logs mailhelp</code>).",
+    "console": {"sent": "Der Code steht im aufrufenden Terminal von <code>mailhelp --pair</code> "
+                        "(bei Docker: <code>docker compose exec mailhelp mailhelp --pair "
+                        "--config-directory /config</code>).",
                 "label": "Code aus der Mailhelp-Konsole",
-                "intro": "Mailhelp zeigt einen einmaligen Code im Konsolenfenster auf dem PC an.",
+                "intro": "Am lokalen Host mailhelp --pair starten und den Einmalcode hier eingeben.",
                 "button": "Code in der Konsole anzeigen", "again": "Neuen Code anzeigen"},
 }
 

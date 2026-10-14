@@ -6,6 +6,7 @@ from email import policy
 from email.message import EmailMessage
 from email.parser import BytesParser
 
+import pytest
 from hypothesis import HealthCheck, example, given, settings
 from hypothesis import strategies as st
 
@@ -117,3 +118,11 @@ def test_explicit_dates_parse_back_to_the_same_day(day, layout):
 def test_free_answers_never_break_the_temporal_parser(answer, reference):
     parsed = parse_deterministic_temporal_answer(answer, reference)
     assert parsed is None or parsed.__class__.__name__ == "DeterministicTemporalAnswer"
+
+
+@pytest.mark.parametrize("answer, reference", [("30", None), ("heute 25 Uhr", date(2026, 1, 10)),
+                                               ("31.02.2026", None), ("2026-13-01", None)])
+def test_impossible_times_and_dates_are_no_deterministic_answer(answer, reference):
+    # Regression (found by the property test above): "30" was read as 30 o'clock and
+    # raised ValueError instead of leaving the answer to the interpretation step.
+    assert parse_deterministic_temporal_answer(answer, reference) is None

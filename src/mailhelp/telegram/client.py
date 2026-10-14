@@ -5,13 +5,14 @@ from __future__ import annotations
 import time
 import traceback
 import uuid
-from typing import Any, Protocol
+from typing import Any, Protocol, cast
 
 import httpx
 from pydantic import ValidationError
 
 from ..adapter import PermanentError, RetryInterrupted, RetryPolicy, uncertain_write
 from ..logging import EventLogger, NullLogger
+from ..notification_context import web_reply
 from .callbacks import validate_callback_markup
 from .formatting import split_message
 from .models import (
@@ -52,6 +53,7 @@ class TelegramClient:
         )
         self.policy = policy or RetryPolicy(0, 0, 0, lambda _delay: False)
         self.logger = logger or NullLogger()
+        self.route_background = False
 
     def _log_message(self, direction: str, **context: Any) -> None:
         self.logger.telegram_event(direction, **context)
@@ -213,13 +215,15 @@ class TelegramClient:
         validate_callback_markup(reply_markup)
         call_id = str(uuid.uuid4())
         self.logger.event("INFO", "telegram", "send_started", call_id=call_id)
+        if self.route_background and web_reply.get():
+            return
         parts = split_message(text)
         for index, part in enumerate(parts):
             payload: dict[str, Any] = {"chat_id": chat_id, "text": part}
             if reply_markup is not None and index == len(parts) - 1:
                 payload["reply_markup"] = reply_markup
 
-            def request() -> httpx.Response:
+            def request(payload: dict[str, Any] = payload) -> httpx.Response:
                 response = self.client.post("/sendMessage", json=payload)
                 self._raise_for_status(response, "sendMessage")
                 return response
@@ -390,7 +394,7 @@ class TelegramClient:
             if detail is not None:
                 # Retry code consumes this explicit safe field instead of rendering
                 # the exception URL, because that URL contains the bot token.
-                exc.safe_detail = detail
+                cast(Any, exc).safe_detail = detail
                 if detail == TelegramClient._CHAT_NOT_FOUND_HELP.format(
                     operation=operation
                 ):

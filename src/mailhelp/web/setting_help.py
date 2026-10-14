@@ -5,6 +5,9 @@ from __future__ import annotations
 from .pages import e
 
 SETTING_HELP = {
+    "event_defaults.video_duration_minutes": "Standarddauer Videokonferenz: 1–1440 Minuten; Standard 60. Ergänzt ein fehlendes Ende nur bei eindeutigem Beginn und belegter Online-Teilnahme. Explizite Endzeiten und Dauern haben Vorrang. Bestehende Vorschläge werden nicht automatisch umgerechnet; Speichern autorisiert keine Kalenderaktion.",
+    "event_defaults.in_person_duration_minutes": "Standarddauer Präsenztermin: 1–1440 Minuten; Standard 180. Ergänzt ein fehlendes Ende bei belegter Präsenz und eindeutigem Beginn. Eine Anschrift in der Signatur belegt keine Präsenz. Explizite Zeitangaben haben Vorrang; die Annahme wird im Vorschlag angezeigt.",
+    "proposal_reconciliation.max_semantic_candidates": "1–50 mögliche offene Vorschläge je semantischem KI-Vergleich; Standard 8. Weitere plausible Treffer blockieren die automatische Zuordnung, statt als fehlende Dublette zu gelten. Ein fehlender Vergleichsprompt erfordert bei unklaren Fällen eine manuelle Zuordnung.",
     "poll_interval_seconds": "Abstand zwischen Mailabrufen: 5–86400 Sekunden. 60 prüft etwa jede Minute, 300 etwa alle fünf Minuten. Kleinere Werte erkennen neue Mails früher, größere entlasten den Mailserver. Ein laufender Durchlauf kann den nächsten Abruf verzögern.",
     "timezone": "Zeitzone für lokale Datums- und Zeitangaben, z. B. Europe/Berlin mit automatischer Sommerzeit oder UTC ohne Zeitumstellung. Verwende einen gültigen IANA-Zeitzonennamen. Eine andere Zone verändert die Interpretation lokaler Terminzeiten und deren Anzeige.",
     "test_mode": "ja (true) aktiviert den Trockenlauf: bestätigte Kalender- und Todoist-Aktionen werden simuliert; Testdaten werden getrennt gespeichert. nein (false) aktiviert echte Schreibaktionen nach ausdrücklicher Bestätigung. Der Trockenlauf verhindert nicht sämtliche Netzwerkzugriffe, etwa Mailabruf und KI-Aufrufe.",
@@ -38,8 +41,22 @@ for _name, _text in {
 }.items():
     SETTING_HELP["retention." + _name] = _text + _RETENTION
 
+SETTING_HELP.update({
+    "targets.calendar_provider": "Dienst für neue Terminvorschläge: google (Google Kalender), caldav (z. B. Nextcloud, iCloud, mailbox.org) oder outlook (Outlook / Microsoft 365). Der Wechsel wirkt nach einem Neustart; bereits bestätigte Vorschläge für das bisherige Ziel werden nicht in das neue geschrieben. Zuerst das passende Ziel eintragen, dann den Dienst wechseln. Zugangsdaten stehen in der .env-Datei.",
+    "targets.task_provider": "Dienst für neue Aufgabenvorschläge: todoist, microsoft_todo (Microsoft To Do), caldav (Aufgabenliste mit VTODO, z. B. Nextcloud Tasks) oder apple_reminders (iCloud-Erinnerungen über CalDAV; auf die neuen iCloud-Erinnerungen aktualisierte Listen sind dort nicht erreichbar). Der Wechsel wirkt nach einem Neustart. Zuerst das passende Ziel eintragen, dann den Dienst wechseln.",
+    "targets.caldav_calendar_url": "Vollständige https-Adresse der CalDAV-Kalendersammlung, z. B. https://cloud.example.org/remote.php/dav/calendars/anna/personal/. Nur bei Kalenderdienst caldav benötigt; Anmeldung mit CALDAV_USERNAME und App-Passwort CALDAV_PASSWORD. Bestehende Einträge werden nicht verschoben. Die Anlage erfordert weiterhin deine ausdrückliche Bestätigung.",
+    "targets.caldav_task_url": "Vollständige https-Adresse der CalDAV-Aufgabenliste (VTODO), z. B. https://cloud.example.org/remote.php/dav/calendars/anna/tasks/. Bei Apple Erinnerungen eine Adresse unter https://caldav.icloud.com. Bestehende Einträge werden nicht verschoben. Die Anlage erfordert weiterhin deine ausdrückliche Bestätigung.",
+    "targets.outlook_calendar": "ID des Outlook-Kalenders oder default für den Standardkalender des angemeldeten Microsoft-Kontos. Nur bei Kalenderdienst outlook benötigt. Bestehende Einträge werden nicht verschoben. Die Anlage erfordert weiterhin deine ausdrückliche Bestätigung.",
+    "targets.microsoft_todo_list": "ID der Microsoft-To-Do-Liste oder default für die Standardliste „Aufgaben“. Nur bei Aufgabendienst microsoft_todo benötigt. Bestehende Einträge werden nicht verschoben. Die Anlage erfordert weiterhin deine ausdrückliche Bestätigung.",
+    "targets.microsoft_tenant": "Microsoft-Mandant für die Anmeldung: common (private und geschäftliche Konten), consumers, organizations oder die Mandanten-ID. Gilt für Outlook-Kalender und Microsoft To Do.",
+    "attachments.store_originals": "ja (true) speichert Originaldokumente (PDF, Word, Excel, OpenDocument, Text, Bilder) neu verarbeiteter Mails zum Herunterladen in der Weboberfläche. nein (false) speichert nur Bildvorschauen. Gespeicherte Originale werden mit der Aufbewahrungsfrist für Mailinhalte gelöscht.",
+    "attachments.max_original_bytes": "Größte Datei, die als Original gespeichert wird: 1024–104857600 Bytes (Standard 25 MB). Größere Anhänge bleiben nur im Postfach.",
+    "attachments.max_total_bytes": "Höchstens so viele Bytes an Originalen je Mail: 1024–524288000 (Standard 50 MB). Weitere Anhänge derselben Mail werden nicht gespeichert.",
+})
+
 for _service, _label in {"imap": "IMAP", "telegram": "Telegram", "openrouter": "OpenRouter", "ollama": "Ollama",
-                         "todoist": "Todoist", "google_calendar": "Google Kalender"}.items():
+                         "todoist": "Todoist", "google_calendar": "Google Kalender", "caldav": "CalDAV",
+                         "microsoft": "Microsoft 365"}.items():
     _maximum = 1800 if _service == "ollama" else 300
     for _name, _text in {
         "timeout_seconds": f"Zeitlimit eines Aufrufversuchs: 1–{_maximum} Sekunden. Kleine Werte erkennen nicht antwortende Dienste schneller, können aber langsame Antworten abbrechen. Große Werte geben dem Dienst mehr Zeit und verlängern mögliche Wartezeiten.",
