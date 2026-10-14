@@ -1,0 +1,261 @@
+# Mailhelp 3.0 – Mehrere Postfächer
+
+**Zielversion:** 3.0.0
+
+**Stand:** 14. Oktober 2026
+
+**Status:** Planung
+**Grundlage:** [Planung 3.0](Planung-3.0.md), [Release 3.0](Release-3.0.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Entwicklungsregeln](../AGENTS.md)
+
+## 1. Ziel und Umfang
+
+Eine Mailhelp-Instanz verarbeitet die Mails **mehrerer IMAP-Postfächer desselben Nutzers**
+(z. B. privat und beruflich) in einem gemeinsamen Betrieb: eine Weboberfläche, ein
+Telegram-Chat, dieselben Themen, Prompts, Ziele und Benachrichtigungsregeln.
+
+**Nicht Teil dieses Plans:** Mehrbenutzerbetrieb, getrennte Themen/Prompts/Ziele je Postfach,
+OAuth-Anmeldung an IMAP (Gmail/Microsoft XOAUTH2), SMTP-Versand, Verschieben oder Markieren von
+Mails. Postfachbezogene Kalender-/Todoist-Ziele sind eine mögliche spätere Erweiterung (§10).
+
+## 2. Ausgangslage im Code
+
+Vieles ist bereits kontobezogen und muss nicht neu erfunden werden:
+
+| Bereich | Heutiger Stand |
+| :--- | :--- |
+| Technische Mailidentität | `(account_id, folder, uidvalidity, uid)`; `account_id` = SHA-256 aus Host, Port, Benutzername ([imap.py](../src/mailhelp/imap.py)) |
+| Checkpoints | Dateiname aus `account_id` und Ordner ([mailbox_run.py](../src/mailhelp/mailbox_run.py)) |
+| Verarbeitungslauf | `mail-run-<account_id>` ([state_names.py](../src/mailhelp/state_names.py)) |
+| Mail-ID / Duplikatindex | enthalten `account_id` |
+
+Einzelpostfach-Annahmen, die aufgelöst werden müssen:
+
+| Stelle | Annahme |
+| :--- | :--- |
+| `config.py` `ImapSettings`, `Secrets.imap_username/password` | genau ein `imap`-Block, genau ein Zugangsdatenpaar |
+| `composition.py` | baut genau einen `ImapReader` bzw. `_FailedAccessAdapter` |
+| `Application` / `MailboxRunService` | ein `self.imap`; `resume_pending` überspringt Zustände fremder Konten |
+| `Application._finish` | Laufzusammenfassung nur für ein Konto |
+| `experience.py` | Entwürfe und Tätigkeitsberichte öffnen das eine Postfach; Absender = `IMAP_USERNAME` |
+| `learning.py`, `decision_test.py`, `cli.py --check-access` | lesen genau ein Postfach |
+| `setup_runtime.py`, `setup.py`, `diagnostics.py`, `/einrichtung`, `/diagnose` | ein IMAP-Schritt, eine IMAP-Prüfung |
+| `mail_duplicates.py` | Duplikate nur innerhalb desselben Kontos |
+| `telegram/outbox.py`, `review/views.py` | Sortierschlüssel `mail.imap.uid` – über Konten hinweg nicht eindeutig |
+| **`fingerprints.py`** | **Der gesamte `imap`-Abschnitt (außer `drafts_folder`) ist Teil des Analyse-Fingerprints.** Jede Umstellung auf ein neues Schema würde alle laufenden Mails mit `configuration_changed` blockieren. |
+
+## 3. Verbindliche Grundsätze
+
+- Bestehende Installationen laufen **ohne Konfigurationsänderung** weiter; vorhandene Zustände,
+  Checkpoints, offene Vorschläge und Fingerprints bleiben gültig.
+- Die technische Identität bleibt `account_id` aus Host, Port und Benutzername. Dadurch behält
+  das bisherige Postfach nach der Umstellung alle Checkpoints und Mailzustände.
+- Ein ausgefallenes Postfach blockiert weder andere Postfächer noch Telegram, Web oder Schreibdienste.
+- Postfachkonfiguration ist **operativ**: Hinzufügen, Entfernen oder Ändern eines Postfachs
+  verändert keinen Analyse-Fingerprint.
+- Zugangsdaten bleiben in `.env`/Prozessumgebung; Weboberfläche zeigt nur „vorhanden/fehlt“.
+- Mailinhalte bleiben nicht vertrauenswürdig; Postfachbezeichnungen stammen ausschließlich
+  aus `config.yaml`, nie aus Mailinhalten.
+- Externe Schreibzugriffe erfordern unverändert eine versionsbezogene Bestätigung.
+
+## 4. Konfiguration
+
+### 4.1 Neues Schema
+
+```yaml
+imap:
+  # Gemeinsame Abrufparameter für alle Postfächer
+  batch_size: 25
+  global_newest_first: true
+  mailboxes:
+    - id: privat                  # ^[a-z0-9_]{1,32}$, eindeutig, stabil
+      label: Privat               # Anzeige in Web/Telegram, max. 40 Zeichen
+      enabled: true
+      host: imap.web.de
+      port: 993
+      connection_mode: ssl
+      historical_start: '2026-09-15T00:00:00+02:00'
+      primary_folder: INBOX
+      folders: [INBOX, Sent, Spam]
+      drafts_folder: Entwürfe
+    - id: arbeit
+      label: Arbeit
+      host: imap.example.org
+      port: 993
+      connection_mode: ssl
+      historical_start: null
+      folders: [INBOX]
+      drafts_folder: Drafts
+```
+
+- 1–10 Postfächer, `id` eindeutig; Kombination Host/Port/Benutzername eindeutig (sonst
+  identische `account_id` → Startfehler mit Schlüsselpfad).
+- `enabled: false` hält ein Postfach konfiguriert, ohne es abzurufen (z. B. bei Kennwortwechsel).
+- Grenzen wie bisher (Ports, Ordner, `historical_start`, `drafts_folder`).
+
+### 4.2 Rückwärtskompatibilität
+
+- Ein bisheriger `imap`-Block **ohne** `mailboxes` wird beim Laden als genau ein Postfach mit
+  `id: default` und `label: Postfach` interpretiert. Datei wird nicht automatisch umgeschrieben.
+- `mailboxes` zusammen mit Host/Port/Ordnern auf oberster `imap`-Ebene ist ein Validierungsfehler.
+- Die Weboberfläche schreibt erst bei der ersten bewussten Übernahme im Assistenten das neue Schema.
+
+### 4.3 Geheimnisse
+
+| Postfach | Variablen |
+| :--- | :--- |
+| `id: <x>` | `IMAP_<X>_USERNAME`, `IMAP_<X>_PASSWORD` (Großbuchstaben) |
+| `id: default` oder einziges Postfach | zusätzlich Rückfall auf `IMAP_USERNAME` / `IMAP_PASSWORD` |
+
+- `.env.example`, `config.py`-Geheimnisliste und Fehlermeldungen nennen die konkreten Namen.
+- Fehlende Zugangsdaten eines **aktivierten** Postfachs: Start mit Fehler wie heute; bei
+  `web.enabled` bleibt die Einrichtung erreichbar (bestehendes 3.0-Verhalten je Postfach).
+- `--check-access --show-imap-credentials` gibt je Postfach Benutzername/Passwort aus;
+  optional `--mailbox <id>` zur Einschränkung.
+
+### 4.4 Fingerprint
+
+- `imap` (bzw. `imap.mailboxes`, `batch_size`, `global_newest_first`) wird zu `OPERATIONAL`
+  in [fingerprints.py](../src/mailhelp/fingerprints.py) verschoben.
+- Für unveränderte Bestandskonfigurationen wird der bisherige Fingerprint (mit `imap`) als
+  äquivalent registriert – derselbe Mechanismus wie beim 1.x→1.2-Übergang. Pflichttest:
+  synthetischer 2.3-Zustand mit offener Entscheidung läuft nach dem Upgrade weiter.
+
+## 5. Abruf und Verarbeitung
+
+### 5.1 Laufzeitmodell
+
+- Neuer Baustein **`MailboxRegistry`**: `id → (Einstellungen, account_id, Reader | Fehleradapter, Label)`;
+  lazy Verbindungsaufbau, eigener Reconnect und eigener Fehlerzustand je Postfach.
+- `MailboxRunService` arbeitet pro Postfach mit dessen Reader; Checkpoints und `mail-run-<account_id>`
+  bleiben unverändert getrennt.
+- Analyse bleibt **sequentiell im Hauptthread** (ein LLM-Budget, eine Store-Sperre). Keine parallelen
+  IMAP-Abrufe im ersten Umfang.
+
+### 5.2 Reihenfolge und Kontingente
+
+- `global_newest_first: true`: Das bestehende Verfahren (Top-N-Fenster je Ordner, Sortierung nach
+  `INTERNALDATE`) wird auf **alle Ordner aller Postfächer** erweitert. Gleichstand: höhere UID,
+  dann Postfach-Reihenfolge, dann Ordner-Reihenfolge.
+- `false`: Postfächer in Konfigurationsreihenfolge, darin Ordner wie bisher.
+- `batch_size` und `--max-mails N` sind **gemeinsame** Kontingente über alle Postfächer.
+- Ein Run-Zustand je Postfach bleibt bestehen; ein Einmallauf legt für jedes beteiligte Postfach
+  seinen Run an. Das Kontingent `N` wird beim Anlegen einmalig auf die Postfächer verteilt
+  (globale Sortierung entscheidet) und persistiert, damit Wiederaufnahmen deterministisch bleiben.
+
+### 5.3 Wiederaufnahme und Fehler
+
+- `resume_pending` holt Mails über den Reader des Postfachs mit passender `account_id`.
+- Zustand eines **nicht mehr konfigurierten oder deaktivierten** Postfachs: Analyse bleibt mit neuem
+  Ergebnis `mailbox_unavailable` zurückgestellt (kein `failed`, kein Checkpoint), einmal pro Start
+  protokolliert. Bereits erzeugte Vorschläge bleiben bestätigbar, da Schreibdienste kein IMAP benötigen.
+- Verbindungs-/Anmeldefehler eines Postfachs: Backoff nur für dieses Postfach; Betriebsproblem-Meldung
+  über die 3.0-Kategorie `system_errors` mit Postfach-Label, identische Dauerfehler zusammengefasst.
+- UIDVALIDITY-Wechsel und `--ignore-historical-start` wirken je Postfach (Option auf `--mailbox <id>` einschränkbar).
+
+### 5.4 Duplikate über Postfächer hinweg
+
+Typischer Fall: Eine Mail geht an beide Adressen oder wird weitergeleitet.
+
+- Der Duplikatindex prüft **kontoübergreifend**. Gleiche Message-ID **und** gleicher
+  Inhaltsfingerprint mit abgeschlossenem Vorgänger → `duplicate`, kein LLM-Aufruf, Verweis auf
+  die zuerst verarbeitete Mail (Postfach-Label sichtbar).
+- Weitergeleitete Mails mit neuer Message-ID bleiben neue Mails; unsichere Fälle wie bisher `ambiguous`.
+- Bestehende Einträge bleiben gültig (Schema unverändert, nur Kandidatenauswahl erweitert).
+
+### 5.5 Laufzusammenfassung
+
+Telegram-Zusammenfassung am Laufende aggregiert über alle Postfächer, mit Zeile je Postfach
+nur bei mehr als einem Postfach. Postfachfehler erscheinen als eigene Zeile.
+
+## 6. Zugeordnete Funktionen
+
+| Funktion | Verhalten |
+| :--- | :--- |
+| Antwortentwürfe | APPEND in den `drafts_folder` **des Postfachs, aus dem die Mail stammt**; Absender = Benutzername dieses Postfachs (optional späteres Feld `address`). Kein Rückfall auf ein anderes Postfach. |
+| Originaldokumente / Volltextsuche | Unverändert lokal; Suche erhält Filter „Postfach“. |
+| Tätigkeitsberichte | Auswahl von Postfach und Ordnern im Formular; Bericht speichert `mailbox_id` je Quelle; Ordnervorschläge je Postfach. |
+| Lernmodus `--learn N` | Liest alle aktivierten Postfächer (Option `--mailbox <id>`); ergänzt neue Ordner im jeweiligen `mailboxes`-Eintrag. Absenderfilter und Themen bleiben gemeinsam. |
+| Decision-Test | Optional `--mailbox <id>`, sonst über alle Postfächer mit gemeinsamem Kontingent. |
+| Tagesüberblick | Offene Entscheidungen mit Postfach-Label; sonst unverändert. |
+| Benachrichtigungen | Neutrale Push-Texte ohne Postfachnamen; Telegram `summary` darf das Label nennen. |
+
+## 7. Weboberfläche und Telegram
+
+- **Anzeige:** Mailkarten, Maildetail, Archiv, Entscheidungsliste und Telegram-Vorschläge zeigen das
+  Postfach-Label, sobald mehr als ein Postfach konfiguriert ist. Unbekannte `account_id` → „Entferntes Postfach“.
+  Label wird zur Laufzeit aus `account_id` aufgelöst, **kein** neues Feld im Mailzustand.
+- **Filter:** Archiv und Suche filtern nach Postfach (GET-Parameter, ohne JavaScript bedienbar).
+- **Sortierung:** Sortierschlüssel in `telegram/outbox.py` und `review/views.py` von `mail.imap.uid` auf
+  `(received_at, account_id, uid)` umstellen (Regressionstest mit gleicher UID in zwei Postfächern).
+- **Einrichtung `/einrichtung`, Schritt 2:** Liste der Postfächer mit „Hinzufügen“, „Bearbeiten“,
+  „Deaktivieren“, „Entfernen“. Jede Änderung landet im Entwurf `setup-state.json` und gilt erst nach
+  „Einstellungen übernehmen“ (Sitzung, CSRF, Dateihash, Entwurfsversion, Idempotenz, Neuprüfung bei
+  Ausführung). Entfernen zeigt die Zahl betroffener offener Vorgänge. Anzeige des benötigten
+  Variablennamens (`IMAP_ARBEIT_PASSWORD`) und Status „vorhanden/fehlt“.
+- **Diagnose `/diagnose`:** Eine IMAP-Komponente je Postfach (`imap:<id>`), einzeln startbar, eigener
+  Timeout und eigene Sperre bei hängender Prüfung. Bericht enthält Postfach-ID, aber keinen Host,
+  Benutzernamen oder Ordnernamen.
+- **Einstellungshilfe:** `setting_help.py` und [Web-Einstellungen.md](Web-Einstellungen.md) um neue Felder ergänzen.
+- **Telegram `/status`:** Status je Postfach (bereit / Fehler / deaktiviert).
+
+## 8. Umsetzungsphasen
+
+| Phase | Schwerpunkt | Fertig, wenn … |
+| :--- | :--- | :--- |
+| 1 | Verträge | Konfigurationsschema inkl. Altformat, Geheimnisnamen, Fingerprint-Umstellung mit Äquivalenz, Spezifikation und `config.example.yaml` aktualisiert und getestet |
+| 2 | Laufzeitkern | `MailboxRegistry`, `composition.py`, `MailboxRunService` je Postfach, gemeinsames Kontingent, globale Sortierung, Wiederaufnahme und `mailbox_unavailable` |
+| 3 | Duplikate und Sortierung | kontoübergreifender Duplikatindex, Sortierschlüssel, Laufzusammenfassung |
+| 4 | Zugeordnete Funktionen | Entwürfe, Tätigkeitsberichte, Lernmodus, Decision-Test, `--check-access`, `--mailbox` |
+| 5 | Web und Telegram | Labels, Filter, Einrichtungsschritt, Diagnose je Postfach, `/status` |
+| 6 | Abnahme | Upgrade-Tests aus 2.3-Zuständen, Plattformmatrix, Playwright, Dokumentation, Release-Notizen |
+
+Phase 1 und 2 sind der Kern. Phase 4/5 lassen sich bei Zeitdruck teilweise auf 3.1 verschieben,
+**nicht** aber die Postfachzuordnung von Entwürfen (sonst falscher Entwurfsordner/Absender).
+
+## 9. Teststrategie
+
+- **Verbindlich:** 100 % Zeilen- und Branch-Abdeckung, keine neuen Ausschlüsse, Regressionstest je Bugfix.
+- Simulierte IMAP-Server je Postfach (Fakes in `tests/fakes/`) mit synthetischen Mails; gleiche
+  Ordner und gleiche UIDs in zwei Postfächern als Standardfall.
+- **Konfiguration:** Altformat, neues Format, Mischformat (Fehler), doppelte `id`, doppelte
+  `account_id`, fehlende Geheimnisse je Postfach, Rückfallvariablen, `enabled: false`.
+- **Fingerprint:** Hinzufügen/Entfernen/Ändern eines Postfachs ändert den Fingerprint nicht;
+  unveränderte 2.3-Konfiguration bleibt äquivalent; offene Entscheidung läuft weiter.
+- **Abruf:** globale Sortierung über Postfächer, Gleichstandsregeln, gemeinsames `--max-mails`,
+  deterministische Wiederaufnahme nach Abbruch, UIDVALIDITY-Wechsel in nur einem Postfach.
+- **Fehler:** Anmeldefehler, Timeout, TLS-Fehler und Verbindungsabbruch in einem Postfach,
+  während das andere vollständig verarbeitet wird; Neustart in jedem Zwischenzustand.
+- **Duplikate:** gleiche Mail in zwei Postfächern, Weiterleitung mit neuer Message-ID,
+  gleiche Message-ID mit abweichendem Inhalt (`ambiguous`).
+- **Entfernte Postfächer:** offene Vorschläge bleiben bestätigbar, keine Wiederholungsschleife.
+- **Entwürfe:** Entwurf landet im richtigen Postfach; Fehler im Zielpostfach führt nicht zu
+  Ausweichen auf ein anderes.
+- **Autorisierung:** Einrichtungsänderungen an Postfächern ohne Sitzung, mit falschem CSRF,
+  veralteter Entwurfsversion, wiederholtem Idempotenzschlüssel und widerrufener Sitzung bei Ausführung.
+- **Datenschutz:** Logs, Diagnosebericht und Push-Payloads enthalten keine Hosts, Benutzernamen
+  oder Passwörter; `account_id` und `id` sind zulässig.
+- **Playwright:** Postfachliste im Assistenten, Filter im Archiv, Labels auf Smartphone und Desktop,
+  Bedienung ohne JavaScript.
+
+## 10. Upgrade, Rollback und offene Punkte
+
+**Upgrade:** Ohne Konfigurationsänderung identisches Verhalten. Erst das Hinzufügen eines zweiten
+Postfachs aktiviert Labels, Filter und Mehrpostfach-Zusammenfassung. Der erste Abruf eines neuen
+Postfachs beginnt bei dessen `historical_start` (ohne Grenze bei UID 1 – die Oberfläche warnt davor).
+
+**Rollback auf 2.3:** Nur möglich, solange `config.yaml` noch im Altformat vorliegt. Zustände eines
+zusätzlichen Postfachs werden von 2.3 ignoriert (andere `account_id`), aber nicht beschädigt.
+Release-3.0.md beschreibt das.
+
+**Geänderte Zugangsdaten:** Ändert sich Host, Port oder Benutzername eines Postfachs, entsteht eine neue
+`account_id` und das Postfach wird neu eingelesen (begrenzt durch `historical_start`). Die
+Einrichtung warnt vor dieser Folge, bevor die Änderung übernommen wird.
+
+**Offene Entscheidungen:**
+
+1. Geheimnisnamen per Konvention (`IMAP_<ID>_…`, empfohlen) oder frei wählbar per `username_env`/`password_env`.
+2. Kontoübergreifende Duplikaterkennung standardmäßig an (empfohlen) oder abschaltbar.
+3. Postfachbezogene Ziele (z. B. Arbeitsmails → eigenes Todoist-Projekt/Kalender) – empfohlen erst 3.1,
+   da sie Proposal-Builder und Fingerprint berühren.
+4. Release-Zuschnitt: Mehrpostfach als Teil von 3.0.0 (verzögert die bereits implementierte
+   Einrichtung/Benachrichtigung) oder 3.0.0 wie geplant und Mehrpostfach als 3.1.
