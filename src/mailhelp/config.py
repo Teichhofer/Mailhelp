@@ -83,6 +83,15 @@ class ImapSettings(ConfigModel):
         return tuple(folder for folder in self.folders if folder != self.primary_folder)
 
 
+class EventDefaultsSettings(ConfigModel):
+    video_duration_minutes: int = Field(default=60, ge=1, le=1440)
+    in_person_duration_minutes: int = Field(default=180, ge=1, le=1440)
+
+
+class ProposalReconciliationSettings(ConfigModel):
+    max_semantic_candidates: int = Field(default=8, ge=1, le=50)
+
+
 class TelegramSettings(ConfigModel):
     enabled: bool = True
     user_id: int = Field(default=1, gt=0)
@@ -425,6 +434,8 @@ class Settings(ConfigModel):
     personal_info: str = Field(default="", max_length=2000, pattern=r"^[^\x00-\x08\x0b-\x1f\x7f]*$")
     activity_report: ActivityReportSettings = Field(default_factory=lambda: ActivityReportSettings())
     attachments: OriginalAttachmentSettings = Field(default_factory=lambda: OriginalAttachmentSettings())
+    event_defaults: EventDefaultsSettings = Field(default_factory=EventDefaultsSettings)
+    proposal_reconciliation: ProposalReconciliationSettings = Field(default_factory=ProposalReconciliationSettings)
 
     @model_validator(mode="after")
     def standalone_needs_web(self):
@@ -645,7 +656,7 @@ class OllamaPromptSettings(ConfigModel):
 
 # Steps a prompts.yaml from an earlier release may lack; the feature is then off.
 OPTIONAL_PROMPT_STEPS = frozenset({
-    "vision_ocr", "draft_reply", "activity_relevance", "activity_events", "diagnostic_test"})
+    "vision_ocr", "draft_reply", "activity_relevance", "activity_events", "diagnostic_test", "open_proposal_match"})
 
 
 class PromptConfig(BaseModel):

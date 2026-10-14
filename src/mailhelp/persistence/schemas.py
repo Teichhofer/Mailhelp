@@ -17,6 +17,8 @@ from ..domain.processing import (
     TelegramOutboxState,
 )
 from ..domain.proposal import ActionLedger
+from ..domain.proposal_sources import ProposalRelation
+from ..domain.reconciliation import ProposalMatchCache, ProposalMergeJournal
 from ..domain.relevance import IrrelevantSenders, RelevanceDialog
 from ..domain.run import ImapCheckpoint, MailRunState, TelegramOffset
 from ..notifications import NotificationQueue
@@ -33,6 +35,9 @@ __all__ = [
     "MailState",
     "NotificationQueue",
     "ProposalClarificationState",
+    "ProposalMatchCache",
+    "ProposalMergeJournal",
+    "ProposalRelation",
     "RelevanceDialog",
     "ReportMail",
     "SetupState",

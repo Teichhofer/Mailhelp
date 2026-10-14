@@ -282,11 +282,22 @@ class TelegramUpdateHandler:
                         "❌ Aktion ist syntaktisch ungültig; bitte erneut versuchen.",
                     )
                     return None
+                association = decision.action in {DecisionAction.MERGE_SOURCE, DecisionAction.SEPARATE_SOURCE}
+                extra: dict[str, Any] = {}
+                identity = decision.mail_id, decision.proposal_id, decision.version
+                if association:
+                    assert decision.additional_ref is not None and decision.additional_version is not None
+                    identity = (decision.additional_ref.mail_id, decision.additional_ref.proposal_id,
+                                decision.additional_version)
+                    extra = {"target_ref": {"mail_id": decision.mail_id, "proposal_id": decision.proposal_id},
+                             "target_version": decision.version}
                 confirmation = self.o.review.execute(ReviewCommand(
-                    kind=_COMMAND_KINDS[decision.action], source=CommandSource.TELEGRAM,
-                    actor=actor, mail_id=decision.mail_id,
-                    proposal_id=decision.proposal_id, version=decision.version,
+                    kind=(CommandKind.MERGE if decision.action == DecisionAction.MERGE_SOURCE else CommandKind.SEPARATE)
+                         if association else _COMMAND_KINDS[decision.action], source=CommandSource.TELEGRAM,
+                    actor=actor, mail_id=identity[0],
+                    proposal_id=identity[1], version=identity[2],
                     idempotency_key=key,
+                    **extra,
                 ), raise_errors=True).message
         except StaleCommand:
             # Typically decided in the web interface after this card was sent.

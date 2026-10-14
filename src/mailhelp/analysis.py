@@ -117,6 +117,11 @@ def validate_revision_successor(previous: Proposal, candidate: Any, *,
         raise ContradictoryRevision("Die Vorschlagsversion muss exakt um eins erhöht werden")
     if revised.explicit_duplicate_create_confirmed_version is not None:
         raise ContradictoryRevision("Eine Revision darf keine Doppelanlage freigeben")
+    for field in ("sources", "protected_fields", "canonical_ref", "target_provider", "matching_candidates",
+                  "pending_sources", "merge_review_required", "end_origin", "default_duration_minutes", "meeting_mode",
+                  "separated_from", "duplicate_check_failed"):
+        if getattr(previous, field) != getattr(revised, field):
+            raise ContradictoryRevision("Eine KI-Revision darf Abgleich- oder Herkunftsfelder nicht ändern")
     known = previous.known_temporal_facts
     resolved_all_day = (
         known is not None
@@ -440,6 +445,15 @@ class Analyzer:
             "calendar_duplicate", {"proposed_event": proposed, "existing_event": existing},
             CalendarDuplicateDecision.model_validate, schema=CalendarDuplicateDecision,
         )
+
+    def open_proposal_match(self, proposal: Proposal, candidates: list[Proposal]):
+        from .domain.proposal_sources import ProposalMatchDecision
+        fields = {"kind", "title", "description", "start", "end", "due", "known_temporal_facts", "evidence"}
+        payload = {"incoming": proposal.model_dump(mode="json", include=fields),
+                   "candidates": [item.model_dump(mode="json", include=fields) for item in candidates]}
+        payload["subjects"] = [[s.subject for s in item.sources[-3:]] for item in [proposal, *candidates]]
+        return self._classified_run("open_proposal_match", payload, ProposalMatchDecision.model_validate,
+                                    schema=ProposalMatchDecision)
 
     def answer_question_from_mail(self, mail: dict[str, Any], proposal: Proposal,
                                   question: str) -> tuple[str, TelegramAnswerInterpretation]:

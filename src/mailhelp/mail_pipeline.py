@@ -1,6 +1,7 @@
 """Stage sequence of one mail (prepare → relevance → summary → actions → notification)."""
 from __future__ import annotations
 
+import re
 import time
 import traceback
 from dataclasses import dataclass
@@ -122,6 +123,10 @@ class MailPipeline:
     def _prepare(self, run: ProcessingRun, fetched: FetchedMail) -> None:
         state, name = run.state, run.name
         if state.steps.preparation == "pending":
+            state.proposal_policy = {
+                "schema_version": 1, "normalization_version": "2.4-v1",
+                "matching_policy": self.o.reconciliation.policy, "event_defaults": self.o.event_defaults.model_dump(),
+                "max_semantic_candidates": self.o.reconciliation_settings.max_semantic_candidates}
             if state.display_headers is None:
                 display = extract_display_headers(fetched.raw, self.o.max_bytes)
                 state.display_headers = DisplayHeaders(sender=display["from"], subject=display["subject"])
@@ -297,6 +302,15 @@ class MailPipeline:
             ]
             state.steps.duplicate_precheck = "completed"
             self.o.save(name, state)
+        limit = (state.proposal_policy["max_semantic_candidates"] if state.proposal_policy is not None else None)
+        state.proposals = [self.o.reconciliation.reconcile(p, limit) for p in state.proposals]
+        state.proposals = [self.o.reconciliation.required(p.source_mail_id, p.id)
+                           for p in state.proposals]
+        self.o.save(name, state)
+        events = [p for p in state.proposals if p.kind == "event"]
+        for task in (p for p in state.proposals if p.kind == "task"):
+            if len(events) == 1 and re.search(r"teilnahme|zurückmeld|anmeld|zusag|absag", task.title.casefold()):
+                self.o.reconciliation.relate(task, events[0])
 
     def _notify_proposals(self, run: ProcessingRun) -> None:
         name = run.name
@@ -330,6 +344,19 @@ class MailPipeline:
             )
         for proposal, notification in zip(state.proposals, state.proposal_notifications, strict=True):
             if notification.status != "pending":
+                continue
+            if proposal.status == ProposalStatus.MERGED:
+                # The alias belongs to this mail; delivery belongs to the canonical
+                # revision. Mark first so an uncertain delivery is never repeated.
+                notification.status = "sending"
+                self.o.save(name, state)
+                assert proposal.canonical_ref is not None
+                canonical = self.o.reconciliation.resolve(proposal.canonical_ref)
+                if canonical is None:
+                    raise ValueError("Zusammengeführter Vorschlag fehlt")
+                self.o.notifier.send_proposal(canonical)
+                notification.status = "completed"
+                self.o.save(name, state)
                 continue
             dedicated_delivery = bool(getattr(
                 self.o.notifier, "manages_proposal_delivery", False))

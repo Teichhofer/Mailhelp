@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import TYPE_CHECKING
+
+from ..domain.proposal import invalidate_creation_permissions
 from ..models import ActionLedgerEntry, Proposal, ProposalKind, ProposalStatus, TelegramDialogState
 from ..review.errors import AnswerRequired, StaleCommand
 from ..review.results import ResultStatus
@@ -12,6 +16,9 @@ from .formatting import clarification_prompt
 from .ledger import ActionLedgerPort
 from .persistence import ProposalRepository
 from .writes import ProposalPersistence, WriteExecution
+
+if TYPE_CHECKING:
+    from ..precheck import DuplicatePreCheckService
 
 
 class ProposalDecisionService:
@@ -33,16 +40,19 @@ class ProposalDecisionService:
         self.ledger, self.writes, self.telegram = ledger, writes, telegram
         self.allowed_user, self.allowed_chat = allowed_user, allowed_chat
         self.configured_timezone = configured_timezone
+        self.precheck: DuplicatePreCheckService | None = None
 
     def decide(self, decision: Decision, user_id: int, chat_id: int) -> str:
         """Apply the decision and return the confirmation text ("" if none)."""
         return self.decide_with_status(decision, user_id, chat_id)[1]
 
-    def decide_with_status(self, decision: Decision, user_id: int,
-                           chat_id: int) -> tuple[ResultStatus, str]:
+    def decide_with_status(self, decision: Decision, user_id: int, chat_id: int,
+                           write_authorizer: Callable[[], bool] | None = None) -> tuple[ResultStatus, str]:
         """Apply the decision; stale or premature decisions raise a ReviewError."""
         if (user_id, chat_id) != (self.allowed_user, self.allowed_chat):
             raise PermissionError("Nicht autorisierte Telegram-Anfrage")
+        from ..proposal_reconciliation import ProposalReconciliationService
+        ProposalReconciliationService(self.store).recover()
         proposal = self._open_proposal(decision)
         if decision.action == DecisionAction.EDIT:
             return self._start_edit(proposal)
@@ -56,6 +66,25 @@ class ProposalDecisionService:
             DecisionAction.CONFIRM,
             DecisionAction.CONFIRM_DUPLICATE,
         }
+        if confirming:
+            candidates = ProposalReconciliationService(self.store).confirmation_candidates(proposal)
+            if candidates:
+                revised = proposal.model_copy(update={"version": proposal.version + 1,
+                    "status": ProposalStatus.NEEDS_CLARIFICATION, "matching_candidates": candidates,
+                    "explicit_duplicate_create_confirmed_version": None,
+                    "open_questions": ["Zuordnung zu bestehenden Entscheidungen prüfen; keine Neuanlage freigegeben."]})
+                revised = invalidate_creation_permissions(revised)
+                self.persistence.persist(revised)
+                raise StaleCommand("Offene Entscheidungen haben sich geändert; neue Version prüfen")
+        if confirming and self.precheck is not None:
+            checked = self.precheck.check_proposal(proposal)
+            fields = ("status", "duplicate_check_failed", "target_event_id", "time_changes", "is_cancellation")
+            if any(getattr(checked, field) != getattr(proposal, field) for field in fields):
+                checked = checked.model_copy(update={"version": proposal.version + 1,
+                    "explicit_duplicate_create_confirmed_version": None})
+                checked = invalidate_creation_permissions(checked)
+                self.persistence.persist(checked)
+                raise StaleCommand("Dublettenprüfung hat den Vorschlag geändert; neue Version prüfen")
         duplicates = self.ledger.prior_actions(proposal) if confirming else []
         if decision.action == DecisionAction.CONFIRM and duplicates:
             self._ask_about_duplicate(decision, duplicates[-1])
@@ -63,6 +92,8 @@ class ProposalDecisionService:
                     "✅ Doppelanlage-Prüfung wurde entgegengenommen.")
         if decision.action == DecisionAction.CONFIRM_DUPLICATE and not duplicates:
             raise StaleCommand("Die Doppelanlage-Bestätigung ist veraltet")
+        if confirming and write_authorizer is not None and not write_authorizer():
+            raise StaleCommand("Websitzung vor Ausführung ungültig geworden")
         changed = (
             proposal.model_copy(update={"status": ProposalStatus.REJECTED})
             if decision.action == DecisionAction.REJECT

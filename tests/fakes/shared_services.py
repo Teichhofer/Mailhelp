@@ -87,12 +87,14 @@ class Notify:
     def send_proposal(self,p): self.messages.append(p.id)
     def send_relevance(self,d,sender,subject): self.messages.append((d.mail_id,sender,subject))
 
+_NO_LLM_REVISION = AssertionError("LLM-Revision darf nicht laufen")
+
+
 class _MailQuestionAnalyzer(AnalyzerStub):
     """Answers selected questions from the mail; the revision is configurable."""
 
-    def __init__(self, answers, revision=None):
+    def __init__(self, answers, revision=_NO_LLM_REVISION):
         super().__init__("relevant")
-        revision = AssertionError("LLM-Revision darf nicht laufen") if revision is None else revision
         self.answers, self.revision, self.revisions = answers, revision, 0
 
     def answer_question_from_mail(self, mail, proposal, question):

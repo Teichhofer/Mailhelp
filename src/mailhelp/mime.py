@@ -306,7 +306,7 @@ def prepare(raw: bytes, limits: int | MimeLimits | object,
     result: dict[str, object] = {
         "headers": {name: _clean(str(message.get(source, ""))) for name, source in (
             ("from", "From"), ("subject", "Subject"), ("date", "Date"), ("message_id", "Message-ID"),
-            ("reply_to", "Reply-To"), ("references", "References"))},
+            ("reply_to", "Reply-To"), ("references", "References"), ("in_reply_to", "In-Reply-To"))},
         "text": text,
         "metadata": {"attachments_omitted": attachments, "text_shortened": shortened},
         "extracted_attachments": extracted_attachments,

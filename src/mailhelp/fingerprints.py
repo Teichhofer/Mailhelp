@@ -32,7 +32,8 @@ from .config import PromptConfig, Settings, Topic
 from .storage import JsonStore
 
 # Sections and fields introduced by 2.0 and later; they never influence an analysis.
-EXPERIENCE = frozenset({"push", "daily_briefing", "smart_reply", "personal_info", "activity_report", "notifications"})
+EXPERIENCE = frozenset({"push", "daily_briefing", "smart_reply", "personal_info", "activity_report", "notifications",
+                        "event_defaults", "proposal_reconciliation"})
 EXPERIENCE_FIELDS = (("imap", "drafts_folder"), ("telegram", "enabled"), ("retention", "activity_report_days"),
                      # 2.3: further write targets; an unchanged Google/Todoist configuration keeps its fingerprint.
                      *(("targets", name) for name in ("calendar_provider", "task_provider", "caldav_calendar_url",
@@ -43,7 +44,7 @@ OPERATIONAL = frozenset({"web", "metrics", "retention", "logging", "learning", "
 # Preparation-only settings and prompt steps (see module documentation).
 PREPARATION = frozenset({"vision", "attachments"})
 PREPARATION_PROMPTS = frozenset({
-    "vision_ocr", "draft_reply", "activity_relevance", "activity_events", "diagnostic_test"})
+    "vision_ocr", "draft_reply", "activity_relevance", "activity_events", "diagnostic_test", "open_proposal_match"})
 
 
 def _hash(value: Any) -> str:
@@ -75,6 +76,11 @@ def config_fingerprint(settings: Settings, prompts: PromptConfig, topics: list[T
 def topic_policy(settings: Settings, prompts: PromptConfig) -> str:
     """Everything but the topics; equal policies may exchange topic lists."""
     return _hash([analysis_settings(settings), analysis_prompts(prompts)])
+
+
+def proposal_match_policy(prompts: PromptConfig) -> str:
+    step = prompts.prompts.get("open_proposal_match")
+    return _hash([prompts.defaults, step.model_dump() if step is not None else None])
 
 
 def legacy_fingerprints(settings: Settings, prompts: PromptConfig, topics: list[Topic]) -> set[str]:

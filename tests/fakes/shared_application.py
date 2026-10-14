@@ -66,6 +66,7 @@ class Orch:
         self.seen=[]
         self._stop=stop
         self.config_fingerprint=config_fingerprint
+        self.reconciliation=SimpleNamespace(max_candidates=8)
     def stop(self): self.stop_called=True
     def process(self, mail):
         self.seen.append(mail.uid)

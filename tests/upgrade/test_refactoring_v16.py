@@ -124,6 +124,9 @@ def test_renderer_output_is_byte_identical_to_release_15(tmp_path):
     berichte = '<a href="/berichte">Berichte</a>'
     assert all(html.count(berichte) == 1 for html in pages.values())
     pages = {name: html.replace(berichte, "", 1) for name, html in pages.items()}
+    abgleich = '<a href="/abgleich">Vorschlagsabgleich</a>'
+    assert all(html.count(abgleich) == 1 for html in pages.values())
+    pages = {name: html.replace(abgleich, "", 1) for name, html in pages.items()}
     assert {name: hashlib.sha256(html.encode("utf-8")).hexdigest()
             for name, html in pages.items()} == expected
 

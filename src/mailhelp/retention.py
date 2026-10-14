@@ -53,7 +53,7 @@ class RetentionService:
     def _protected(state: MailState) -> bool:
         if state.steps.completion != "completed" or state.awaiting_relevance:
             return True
-        return any(proposal.status in _OPEN_PROPOSALS for proposal in state.proposals)
+        return any(proposal.status in _OPEN_PROPOSALS or proposal.merge_review_required for proposal in state.proposals)
 
     def run(self) -> CleanupResult:
         now = self.clock()

@@ -82,7 +82,7 @@ class CalendarOperations(HttpTransport):
             time_max = end.isoformat()
 
         cache_key = (self.service, self.target, time_min, time_max)
-        cached = self._get_cached(cache_key)
+        cached = None if strict else self._get_cached(cache_key)
         if cached is not None:
             return cached
 
@@ -236,6 +236,8 @@ class CalendarOperations(HttpTransport):
         validated = Proposal.model_validate(proposal.model_dump())
         interval = self._all_day_interval(validated) if validated.all_day else self._timed_interval(validated)
         description = validated.description
+        if validated.default_duration_minutes is not None:
+            description += f"\n\nEndzeit angenommen: Standarddauer {validated.default_duration_minutes} Minuten."
         if validated.video_link is not None:
             video_section = f"[Mailhelp-Videolink]\n{validated.video_link}"
             description = f"{description}\n\n{video_section}" if description else video_section

@@ -30,7 +30,7 @@ from .setting_help import EXTRA_HELP, SETTING_HELP, help_bubble
 
 EDIT_LABELS = {"title": "Titel", "description": "Beschreibung", "target": "Ziel", "due": "Frist",
                "start": "Beginn", "end": "Ende", "all_day": "Ganztägig (true/false)", "location": "Ort",
-               "video_link": "Videolink (HTTPS)"}
+               "video_link": "Videolink (HTTPS)", "meeting_mode": "Teilnahmeart"}
 SETTING_LABELS = {"poll_interval_seconds": "Abrufintervall (Sekunden)", "timezone": "Zeitzone",
                   "test_mode": "Trockenlauf", "limits.llm_calls_per_minute": "KI-Aufrufe pro Minute",
                   "limits.max_mail_bytes": "Maximale Mailgröße (Bytes)",
@@ -128,6 +128,7 @@ def statistics_page(params: dict, report: dict, everything: list[dict]) -> str:
 SETTING_GROUPS = (
     ("Mailabruf und Betrieb", ("poll_interval_seconds", "timezone", "test_mode")),
     ("Antworten", ("personal_info",)),
+    ("Termindauern und Vorschlagsabgleich", ("event_defaults.", "proposal_reconciliation.")),
     ("Ziele", ("targets.",)),
     ("Originalanhänge", ("attachments.",)),
     ("Aufrufbudget und Mailgrenzen", ("limits.",)),
@@ -142,6 +143,9 @@ SERVICE_LABELS = {"imap": "IMAP", "telegram": "Telegram", "openrouter": "OpenRou
 TIMEOUT_LABELS = {"timeout_seconds": "Zeitlimit (s)", "retries": "Wiederholungen",
                   "initial_backoff_seconds": "erste Wartezeit (s)", "max_backoff_seconds": "längste Wartezeit (s)"}
 EXTRA_LABELS = {
+    "event_defaults.video_duration_minutes": "Standarddauer Videokonferenz (Minuten)",
+    "event_defaults.in_person_duration_minutes": "Standarddauer Präsenztermin (Minuten)",
+    "proposal_reconciliation.max_semantic_candidates": "Abgleich: höchstens KI-Kandidaten",
     "targets.todoist_project": "Todoist-Projekt", "targets.google_calendar": "Google-Kalender",
     "targets.calendar_provider": "Kalenderdienst", "targets.task_provider": "Aufgabendienst",
     "targets.caldav_calendar_url": "CalDAV-Kalender (Adresse)",
@@ -360,6 +364,11 @@ def _topic_value(value: object) -> object:
 def field(name: str, label: str, value: object = "", *, hidden: bool = False) -> str:
     if hidden:
         return f'<input type="hidden" name="{e(name)}" value="{e(value)}">'
+    if name == "meeting_mode":
+        choices = {"unknown": "Unklar", "video": "Videokonferenz", "in_person": "Präsenz", "hybrid": "Hybrid"}
+        options = "".join(f'<option value="{key}"' + (' selected' if key == value else '') + f'>{text}</option>'
+                          for key, text in choices.items())
+        return f'<label>{e(label)}<select name="meeting_mode">{options}</select></label>'
     return (f'<label>{e(label)}<input type="text" name="{e(name)}" value="{e(value)}" '
             'maxlength="4000"></label>')
 
@@ -533,7 +542,7 @@ class ArchiveSite:
         if proposal.status not in {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}:
             return self.site._reply(request, 409, "Nur offene Vorschläge sind bearbeitbar.")
         names = ["title", "description", "target"] + (["due"] if proposal.kind.value == "task" else
-                 ["start", "end", "all_day", "location", "video_link"])
+                 ["start", "end", "all_day", "location", "video_link", "meeting_mode"])
         data = values if values is not None else proposal.model_dump(mode="json")
         body = ('<h1>Vorschlag bearbeiten</h1><p>Zeiten als ISO-Datum oder ISO-Datum mit Uhrzeit eingeben. '
                 'Bei Zeitumstellungen UTC-Offset angeben. Speichern legt nichts extern an.</p>')

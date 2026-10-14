@@ -5,6 +5,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 
+from ..domain.proposal_sources import ProposalReference
 from ..external.contracts import proposal_is_writable
 from ..models import Proposal, ProposalKind
 from .callbacks import Decision, DecisionAction, validate_callback_markup
@@ -33,6 +34,7 @@ class ProposalPresenter:
     def present(
         self, proposal: Proposal, sender: str = "—", subject: str = "—",
         previous: Proposal | None = None,
+        additional: Proposal | None = None,
     ) -> ProposalPresentation:
         parts = tuple(
             numbered_message_parts(
@@ -40,7 +42,8 @@ class ProposalPresenter:
                 subject,
                 ((revision_summary(previous, proposal, self.configured_timezone) + "\n\n")
                  if previous is not None else "")
-                + format_proposal(proposal, self.configured_timezone, self.test_mode),
+                + format_proposal(proposal, self.configured_timezone, self.test_mode)
+                + (f"\n\nUngeprüfter Zusatz: {additional.title}\n{additional.evidence}" if additional else ""),
             )
         )
 
@@ -82,6 +85,16 @@ class ProposalPresenter:
             reject = button("Verwerfen", DecisionAction.REJECT)
             buttons = [[confirm, button("Ändern", DecisionAction.EDIT), reject]]
         markup: dict[str, object] = {"inline_keyboard": buttons}
+        if additional is not None:
+            choices = []
+            for label, action in (("Zusatz zuordnen", DecisionAction.MERGE_SOURCE),
+                                  ("Separat behalten", DecisionAction.SEPARATE_SOURCE)):
+                decision = Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id,
+                    version=proposal.version, action=action,
+                    additional_ref=ProposalReference(mail_id=additional.source_mail_id, proposal_id=additional.id),
+                    additional_version=additional.version)
+                choices.append({"text": label, "callback_data": self.encode(decision)})
+            buttons.insert(0, choices)
         validate_callback_markup(markup)
         return ProposalPresentation(parts=parts, reply_markup=markup)
 

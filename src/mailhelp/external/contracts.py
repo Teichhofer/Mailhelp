@@ -124,7 +124,7 @@ class TargetWriter(ABC):
         """Existing calendar entries for the duplicate pre-check; task lists have none."""
         return []
 
-    def fetch_active_tasks(self) -> list[TodoistTaskResponse]:
+    def fetch_active_tasks(self, *, strict: bool = False) -> list[TodoistTaskResponse]:
         """Open tasks for the duplicate pre-check; calendars have none."""
         return []
 

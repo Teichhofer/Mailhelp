@@ -75,6 +75,8 @@ class SenderChange(BaseModel):
 
 SETTINGS_FIELDS = {
     "poll_interval_seconds", "timezone", "test_mode", "personal_info",
+    "event_defaults.video_duration_minutes", "event_defaults.in_person_duration_minutes",
+    "proposal_reconciliation.max_semantic_candidates",
     "targets.todoist_project", "targets.google_calendar", "targets.calendar_provider", "targets.task_provider",
     "targets.caldav_calendar_url", "targets.caldav_task_url", "targets.outlook_calendar",
     "targets.microsoft_todo_list", "targets.microsoft_tenant",
@@ -92,8 +94,10 @@ for field in ("interpretation_attempts", "interpretation_backoff_seconds", "revi
               "revision_backoff_seconds"):
     SETTINGS_FIELDS.add(f"retries.{field}")
 
-LIVE_FIELDS = {"poll_interval_seconds", "retention", "metrics", "personal_info", "notifications"}
+LIVE_FIELDS = {"poll_interval_seconds", "retention", "metrics", "personal_info", "notifications",
+               "event_defaults", "proposal_reconciliation"}
 SETUP_FIELDS = {"timezone", "imap.host", "imap.port", "imap.connection_mode", "imap.folders",
+                "event_defaults.video_duration_minutes", "event_defaults.in_person_duration_minutes",
                 "imap.primary_folder", "imap.drafts_folder", "telegram.enabled", "push.enabled",
                 "targets.todoist_project", "targets.google_calendar", "targets.calendar_provider",
                 "targets.task_provider", "targets.caldav_calendar_url", "targets.caldav_task_url",

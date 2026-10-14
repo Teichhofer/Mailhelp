@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import UTC, date, datetime
+from typing import Literal
 from zoneinfo import ZoneInfo
 
 from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field
@@ -21,6 +22,7 @@ class ProposalEditPatch(BaseModel):
     all_day: bool | None = None
     location: str | None = Field(default=None, max_length=1000)
     video_link: str | None = Field(default=None, max_length=2000)
+    meeting_mode: Literal["video", "in_person", "hybrid", "unknown"] | None = None
 
 
 def local_time(value: str | None, zone: str, date_only: bool = False):
@@ -49,7 +51,8 @@ def edit_proposal(previous: Proposal, patch: ProposalEditPatch, zone: str, targe
     changes = patch.model_dump(exclude_unset=True)
     if "target" in changes and changes["target"] not in targets:
         raise ValueError("Unzulässiges Ziel")
-    if previous.kind == ProposalKind.TASK and set(changes) & {"start", "end", "all_day", "location", "video_link"}:
+    calendar_fields = {"start", "end", "all_day", "location", "video_link", "meeting_mode"}
+    if previous.kind == ProposalKind.TASK and set(changes) & calendar_fields:
         raise ValueError("Aufgaben haben keine Kalenderfelder")
     if previous.kind == ProposalKind.EVENT and "due" in changes:
         raise ValueError("Termine haben keine Aufgabenfrist")
@@ -67,7 +70,11 @@ def edit_proposal(previous: Proposal, patch: ProposalEditPatch, zone: str, targe
     if {"due", "start", "end"} & changes.keys():
         changes.update(known_temporal_facts=None, temporal_fact=None, duration_minutes=None,
                        duration_is_upper_bound=False)
-    changes.update(explicit_create_fallback_confirmed=False, explicit_non_binding_create_confirmed=False)
+    protected = list(dict.fromkeys([*previous.protected_fields, *changes]))
+    if {"start", "end"} & changes.keys():
+        changes.update(end_origin="manual", default_duration_minutes=None)
+    changes.update(protected_fields=protected, explicit_create_fallback_confirmed=False,
+                   explicit_non_binding_create_confirmed=False)
     candidate = previous.model_copy(update=changes)
     questions = required_revision_questions(candidate)
     # Preserve unresolved questions not replaced by the directly entered facts.

@@ -550,8 +550,10 @@ ganztägiges Intervall dargestellt; die unten beschriebenen eindeutigen
 mehrtägigen Bereiche bleiben gesondert geregelt. Wurde eine Uhrzeitspanne wie „13:00 bis 14:00 Uhr“ vollständig als Beginn extrahiert, teilt die Normalisierung sie deterministisch in Beginn und Ende auf, sofern beide Teile unterstützte Uhrzeiten sind und ein separat extrahiertes Ende dieselbe Uhrzeit nennt; jede andere Kombination bleibt eine Rückfrage. Eine Uhrzeit wird nur bei vorhandenem Datum, Beginn, Ende und
 entweder einem expliziten festen Offset oder einer eindeutigen IANA-Nutzerzeitzone
 normalisiert; nicht existente oder doppelte Ortszeiten an DST-Übergängen erfordern
-eine Rückfrage. Es werden weder eine Standarduhrzeit,
-eine Dauer noch ein UTC-Offset erfunden. Eine ausdrücklich belegte Dauer wird als
+eine Rückfrage. Es werden keine Standarduhrzeit und kein UTC-Offset erfunden.
+Bei fehlendem Ende gelten zusätzlich die ausdrücklich gekennzeichneten Standarddauern
+der Erweiterung 2.4 (siehe unten); Rohextraktionen bleiben unverändert.
+Eine ausdrücklich belegte Dauer wird als
 `duration_minutes` (1 bis 1440 ganze Minuten) im Vorschlag erhalten. Das getrennte
 Flag `duration_is_upper_bound` kennzeichnet Formulierungen wie „höchstens“; aus
 einer solchen Obergrenze wird kein gesichertes Ende berechnet. Nur bei einer

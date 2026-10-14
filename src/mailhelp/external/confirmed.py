@@ -9,6 +9,7 @@ import httpx
 from ..adapter import PermanentError, UncertainWriteError
 from ..models import Proposal, ProposalStatus
 from .contracts import ExternalWriter, PreparedWrite, TargetWriter, proposal_is_writable
+from .roles import provider_key
 
 
 def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Callable[[Proposal], None],
@@ -21,7 +22,8 @@ def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Calla
     if (proposal.status not in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN}
             or proposal.open_questions):
         raise ValueError("Schreiben erfordert vollständige, bestätigte Vorschlagsversion")
-    if isinstance(writer, TargetWriter) and proposal.target != writer.target:
+    if isinstance(writer, TargetWriter) and (proposal.target != writer.target or
+            proposal.target_provider and proposal.target_provider != provider_key(writer)):
         # Even reconciliation must not search a newly configured target for an
         # action authorized against a different project/calendar.
         return proposal, {"target_mismatch": True}

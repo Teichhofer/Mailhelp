@@ -65,7 +65,13 @@ class ProposalDeliveryService:
         previous = (self.repository.load_version(
             proposal.source_mail_id, proposal.id, proposal.version - 1)
             if proposal.version > 1 else None)
-        presentation = self.presenter.present(proposal, sender, subject, previous)
+        additional = None
+        if proposal.pending_sources:
+            ref = proposal.pending_sources[0]
+            additional = self.repository.load_current(ref.mail_id, ref.proposal_id)
+            if additional is None:
+                raise ValueError("Zusätzliche Quelle fehlt; Abgleich prüfen")
+        presentation = self.presenter.present(proposal, sender, subject, previous, additional)
         for part in presentation.parts[:-1]:
             self.telegram.send(self.chat_id, part)
         self.telegram.send(

@@ -62,7 +62,8 @@ class ReviewSite:
         page = mail_page(view, question, relevance_actions(csrf),
                          sender_actions=self.site.senders.actions(mail_id, view.sender, csrf),
                          message=message, message_kind=kind,
-                         after=self.site.experience.editor(mail_id, csrf) + self.site.archive.analysis(mail_id))
+                         after=self.site.reconciliation_page.mail_summary(mail_id)
+                         + self.site.experience.editor(mail_id, csrf) + self.site.archive.analysis(mail_id))
         return Response.html(200, page)
 
     def attachment(self, request, session, mail_id, index):
@@ -97,13 +98,23 @@ class ReviewSite:
 
     def detail(self, request: Request, session: WebSession, mail_id: str,
                proposal_id: str) -> Response:
+        from ..domain.proposal_sources import ProposalReference
+        from ..storage import CorruptState
+        try:
+            proposal = self.site.reconciliation_page.service.resolve(
+                ProposalReference(mail_id=mail_id, proposal_id=proposal_id))
+        except (ValueError, CorruptState):
+            return self.site._reply(request, 409, "Ungültige kanonische Vorschlagsreferenz.")
+        if proposal is not None and (proposal.source_mail_id, proposal.id) != (mail_id, proposal_id):
+            return Response.redirect(f"/vorschlag/{proposal.source_mail_id}/{proposal.id}")
         view = self.site.views.proposal(mail_id, proposal_id)
         if view is None:
             return Response.html(404, error_page(
                 "Nicht gefunden", "Dieser Vorschlag ist nicht (mehr) vorhanden."))
         link = f'<p><a class="button" href="/vorschlag/{mail_id}/{proposal_id}/bearbeiten">Felder bearbeiten</a></p>'
         from .review_pages import disclosure
-        extra = (link + self.site.experience.editor(mail_id, self.site.auth.csrf_token(session.id))
+        extra = (link + self.site.reconciliation_page.fragment(mail_id, proposal_id)
+                 + self.site.experience.editor(mail_id, self.site.auth.csrf_token(session.id))
                  + disclosure("Revisionshistorie &amp; Differenzen", self.site.archive.revisions(mail_id, proposal_id))
                  + disclosure("Technische LLM-Analyse &amp; Metriken", self.site.archive.analysis(mail_id)))
         page = detail_page(view, actions=proposal_actions(self.site.auth.csrf_token(session.id)),

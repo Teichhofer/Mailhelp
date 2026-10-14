@@ -45,12 +45,12 @@ class TodoistOperations(HttpTransport):
             body["due_date"] = proposal.due.isoformat()
         return PreparedWrite(lambda: self._create_prepared(proposal, key, url, body))
 
-    def fetch_active_tasks(self) -> list[TodoistTaskResponse]:
+    def fetch_active_tasks(self, *, strict: bool = False) -> list[TodoistTaskResponse]:
         """Fetch active tasks in configured project with caching and graceful fallback."""
         if self.service != "todoist":
             return []
         cache_key = (self.service, self.target, "tasks")
-        cached = self._get_cached(cache_key)
+        cached = None if strict else self._get_cached(cache_key)
         if cached is not None:
             return cached
 
@@ -72,6 +72,8 @@ class TodoistOperations(HttpTransport):
             self._set_cached(cache_key, tasks)
             return tasks
         except Exception as exc:
+            if strict:
+                raise
             self.logger.event("WARNING", self.service, "fetch_tasks_failed", error=str(exc))
             return []
 

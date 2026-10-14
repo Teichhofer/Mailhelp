@@ -89,6 +89,13 @@ def yes_no_question(question: str) -> bool:
 
 
 def event_time(proposal: Proposal, configured_timezone: str) -> str | None:
+    text = _event_time(proposal, configured_timezone)
+    if proposal.default_duration_minutes is not None:
+        text = f"{text} · Ende angenommen: Standarddauer {proposal.default_duration_minutes} Min."
+    return text
+
+
+def _event_time(proposal: Proposal, configured_timezone: str) -> str | None:
     """One line for the event time; None if nothing about it is known yet."""
     zone = ZoneInfo(configured_timezone)
     start = proposal.start or (

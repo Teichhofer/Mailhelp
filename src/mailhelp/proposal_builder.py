@@ -10,12 +10,12 @@ from .action_normalization import (
     MailDateContext,
     NormalizationResult,
     TemporalValue,
-    normalize_event,
     normalize_task_due,
     recover_task_due,
 )
-from .config import TargetSettings
+from .config import EventDefaultsSettings, TargetSettings
 from .domain.extraction import ParsedCalendarEvent
+from .event_defaults import normalized_event
 from .models import (
     ExtractedEvent,
     ExtractedTask,
@@ -49,12 +49,14 @@ class ProposalBuilder:
     """The sole trust boundary for proposal identity, routing, and initial status."""
 
     def __init__(self, source_mail_id: str, targets: TargetSettings, context: MailDateContext,
-                 source_sender: str = "—", source_subject: str = "—"):
+                 source_sender: str = "—", source_subject: str = "—",
+                 event_defaults: EventDefaultsSettings | None = None):
         self.source_mail_id = source_mail_id
         self.targets = targets
         self.context = context
         self.source_sender = source_sender
         self.source_subject = source_subject
+        self.event_defaults = event_defaults
 
     def _description(self, value: str | None) -> str:
         """Add bounded, application-owned source details to every external description."""
@@ -160,6 +162,7 @@ class ProposalBuilder:
                 end=cal.end,
                 all_day=cal.all_day,
                 is_cancellation=cal.status == "CANCELLED",
+                end_origin="calendar", target_provider=self.targets.calendar_provider,
             ))
         return proposals, ics_summaries
 
@@ -169,11 +172,12 @@ class ProposalBuilder:
         # A deadline missing from due_text but unambiguous in the verbatim
         # evidence is recovered; the identity still uses the raw extraction.
         temporal: NormalizationResult | None
+        mode, origin, applied = "unknown", "unknown", None
         if isinstance(item, ExtractedTask):
             due_item = recover_task_due(item)
             temporal = normalize_task_due(due_item, self.context) if due_item.due_text is not None else None
         else:
-            temporal = normalize_event(item, self.context)
+            temporal, mode, origin, applied = normalized_event(item, self.context, self.event_defaults)
         question = temporal.question if temporal is not None else None
         questions = self._questions(item, question)
         if kind in conflicted:
@@ -181,6 +185,8 @@ class ProposalBuilder:
                 f"Wie viele {'Aufgaben' if kind == 'task' else 'Termine'} enthält diese Mail tatsächlich?"
             )
         values: dict[str, Any] = {}
+        values.update(meeting_mode=mode, end_origin=origin, default_duration_minutes=applied,
+                      target_provider=self.targets.task_provider if kind == "task" else self.targets.calendar_provider)
         if temporal is not None and temporal.resolved:
             if kind == "task":
                 values["due"] = temporal.value

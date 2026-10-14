@@ -1,5 +1,30 @@
 # Änderungen
 
+## 2.3.2 – beta: Umsetzung der Planung 2.4
+
+- Termine und Aufgaben werden vor Benachrichtigung auch gegen offene Entscheidungen
+  abgeglichen. Kanonische IDs, versionierte Quellen und nicht ausführbare Aliasakten
+  verhindern mehrere offene Vorschläge für denselben Vorgang.
+- Neue Fakten ergänzen bestehende Vorschläge; ältere Mails ändern konkrete Absprachen
+  nicht zurück. Manuelle Werte bleiben geschützt, Widersprüche und mehrere mögliche
+  Treffer erfordern Klärung. Ungeprüfte Zusätze lassen sich in Web und Telegram
+  zuordnen oder getrennt behalten, ohne externe Anlage.
+- Standarddauern für belegte Videokonferenzen (60 Minuten) und Präsenztermine
+  (180 Minuten), einstellbar in Einrichtung und Einstellungen. Explizite Zeiten und
+  Dauern haben Vorrang; Annahmen sind sichtbar und werden als verstrichene Minuten berechnet.
+- Bereits vorhandene Termine werden unabhängig von der Telegram-Zustellung gespeichert.
+  Rückmeldeaufgaben zeigen die verknüpfte Sitzung. Fehlende Altakten und Dauerannahmen
+  werden unter `/abgleich` nur nach ausdrücklich übernommener Vorschau aktualisiert.
+- Wiederaufnehmbares Merge-Journal, versions- und policygebundener Vergleichscache,
+  separate Normalisierungspolicy und erneute Sitzungs-/Zielprüfung vor einer Anlage.
+  Fehlgeschlagene externe Abgleiche sperren die Anlage und können erneut geprüft werden.
+- Synthetische Regressionen für die beobachteten Doppelvorschläge, fehlende Endzeiten
+  und die nicht sichtbare bereits vorhandene Beiratssitzung; zusätzliche Konflikt-,
+  Wiederanlauf-, Autorisierungs- und Browserprüfungen. Spezifikation und Beispiele ergänzt.
+
+Die beta-Patchnummer folgt `AGENTS.md`; die fachliche Zielversion des Plans bleibt 2.4.
+Dieser Commit erstellt keinen Release und keinen Tag.
+
 ## Unveröffentlicht – Umsetzung der Planung 3.0
 
 - Einrichtung unter `/einrichtung`: wiederaufnehmbare Entwürfe, Dateihash und Entwurfsversion,

@@ -6,8 +6,9 @@ import secrets
 from enum import StrEnum
 from typing import Any
 
-from pydantic import Field
+from pydantic import Field, model_validator
 
+from ..domain.proposal_sources import ProposalReference
 from ..models import Proposal, ProposalStatus
 from ..storage import JsonStore
 from .models import InternalTelegramModel
@@ -18,6 +19,8 @@ class DecisionAction(StrEnum):
     CONFIRM_DUPLICATE = "confirm_duplicate"
     EDIT = "edit"
     REJECT = "reject"
+    MERGE_SOURCE = "merge_source"
+    SEPARATE_SOURCE = "separate_source"
 
 
 class RelevanceDecision(InternalTelegramModel):
@@ -46,6 +49,17 @@ class Decision(InternalTelegramModel):
     proposal_id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,32}$")
     version: int = Field(ge=1)
     action: DecisionAction
+    additional_ref: ProposalReference | None = None
+    additional_version: int | None = Field(default=None, ge=1)
+
+    @model_validator(mode="after")
+    def validate_additional(self):
+        needs = self.action in {DecisionAction.MERGE_SOURCE, DecisionAction.SEPARATE_SOURCE}
+        if needs != (self.additional_ref is not None and self.additional_version is not None):
+            raise ValueError("Quellenentscheidung benötigt beide Vorschlagsversionen")
+        if not needs and (self.additional_ref is not None or self.additional_version is not None):
+            raise ValueError("Nur Quellenentscheidungen enthalten eine zusätzliche Quelle")
+        return self
 
     def encode(self, store: JsonStore | None = None) -> str:
         """Encode a decision, preferably as an opaque, durable callback token.
@@ -54,6 +68,8 @@ class Decision(InternalTelegramModel):
         callbacks and deliberately refuses values Telegram could not transport.
         """
         if store is None:
+            if self.additional_ref is not None:
+                raise ValueError("Quellenentscheidung benötigt einen dauerhaften Callback-Token")
             value = f"proposal:{self.mail_id}:{self.proposal_id}:{self.version}:{self.action.value}"
             validate_callback_data(value)
             return value

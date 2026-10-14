@@ -174,6 +174,27 @@
       "title": "ProposalKind",
       "type": "string"
     },
+    "ProposalReference": {
+      "additionalProperties": false,
+      "properties": {
+        "mail_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+          "title": "Mail Id",
+          "type": "string"
+        },
+        "proposal_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+          "title": "Proposal Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mail_id",
+        "proposal_id"
+      ],
+      "title": "ProposalReference",
+      "type": "object"
+    },
     "ProposalResponsibility": {
       "enum": [
         "user",
@@ -182,6 +203,54 @@
       ],
       "title": "ProposalResponsibility",
       "type": "string"
+    },
+    "ProposalSource": {
+      "additionalProperties": false,
+      "properties": {
+        "anchors": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Anchors",
+          "type": "array"
+        },
+        "mail_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+          "title": "Mail Id",
+          "type": "string"
+        },
+        "proposal_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "sent_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sent At"
+        },
+        "subject": {
+          "default": "",
+          "maxLength": 500,
+          "title": "Subject",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mail_id",
+        "proposal_id"
+      ],
+      "title": "ProposalSource",
+      "type": "object"
     },
     "ProposalStatus": {
       "enum": [
@@ -194,7 +263,8 @@
         "simulated",
         "rejected",
         "failed",
-        "uncertain"
+        "uncertain",
+        "merged"
       ],
       "title": "ProposalStatus",
       "type": "string"
@@ -272,11 +342,36 @@
       "title": "All Day",
       "type": "boolean"
     },
+    "canonical_ref": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ProposalReference"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "certainty": {
       "$ref": "#/$defs/ProposalCertainty"
     },
     "classification": {
       "$ref": "#/$defs/ProposalClassification"
+    },
+    "default_duration_minutes": {
+      "anyOf": [
+        {
+          "maximum": 1440,
+          "minimum": 1,
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Default Duration Minutes"
     },
     "description": {
       "default": "",
@@ -300,6 +395,11 @@
       ],
       "default": null,
       "title": "Due"
+    },
+    "duplicate_check_failed": {
+      "default": false,
+      "title": "Duplicate Check Failed",
+      "type": "boolean"
     },
     "duplicate_match": {
       "anyOf": [
@@ -347,6 +447,19 @@
       ],
       "default": null,
       "title": "End"
+    },
+    "end_origin": {
+      "default": "unknown",
+      "enum": [
+        "unknown",
+        "mail_end",
+        "mail_duration",
+        "calendar",
+        "standard",
+        "manual"
+      ],
+      "title": "End Origin",
+      "type": "string"
     },
     "evidence": {
       "maxLength": 2000,
@@ -440,11 +553,51 @@
       "default": null,
       "title": "Location"
     },
+    "matching_candidates": {
+      "items": {
+        "$ref": "#/$defs/ProposalReference"
+      },
+      "maxItems": 50,
+      "title": "Matching Candidates",
+      "type": "array"
+    },
+    "meeting_mode": {
+      "default": "unknown",
+      "enum": [
+        "video",
+        "in_person",
+        "hybrid",
+        "unknown"
+      ],
+      "title": "Meeting Mode",
+      "type": "string"
+    },
+    "merge_review_required": {
+      "default": false,
+      "title": "Merge Review Required",
+      "type": "boolean"
+    },
     "open_questions": {
       "items": {
         "type": "string"
       },
       "title": "Open Questions",
+      "type": "array"
+    },
+    "pending_sources": {
+      "items": {
+        "$ref": "#/$defs/ProposalReference"
+      },
+      "maxItems": 50,
+      "title": "Pending Sources",
+      "type": "array"
+    },
+    "protected_fields": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 30,
+      "title": "Protected Fields",
       "type": "array"
     },
     "responsibility": {
@@ -456,6 +609,14 @@
       "title": "Schema Version",
       "type": "integer"
     },
+    "separated_from": {
+      "items": {
+        "$ref": "#/$defs/ProposalReference"
+      },
+      "maxItems": 50,
+      "title": "Separated From",
+      "type": "array"
+    },
     "simulation_notified": {
       "default": false,
       "title": "Simulation Notified",
@@ -466,6 +627,14 @@
       "minLength": 1,
       "title": "Source Mail Id",
       "type": "string"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/ProposalSource"
+      },
+      "maxItems": 1000,
+      "title": "Sources",
+      "type": "array"
     },
     "start": {
       "anyOf": [
@@ -506,6 +675,12 @@
       ],
       "default": null,
       "title": "Target Event Id"
+    },
+    "target_provider": {
+      "default": "",
+      "maxLength": 30,
+      "title": "Target Provider",
+      "type": "string"
     },
     "temporal_fact": {
       "anyOf": [

@@ -374,4 +374,6 @@ def test_todo_named_list_missing_default_and_failures():
     with pytest.raises(ValueError, match="Schlüsselpfad"):
         named.reconcile("k")
     assert named.fetch_active_tasks() == []
+    with pytest.raises(ValueError):
+        named.fetch_active_tasks(strict=True)
     assert logger.events[-1][0] == ("WARNING", "microsoft_todo", "fetch_tasks_failed")

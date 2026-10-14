@@ -371,7 +371,7 @@ class OutlookCalendar(GraphResource, ProviderWriter, CalendarOperations):
             return value.isoformat()
 
         cache_key = (self.service, self.target, moment(start), moment(end))
-        cached = self._get_cached(cache_key)
+        cached = None if strict else self._get_cached(cache_key)
         if cached is not None:
             return cached
         try:
@@ -440,9 +440,9 @@ class MicrosoftTodo(GraphResource, ProviderWriter):
         return PreparedWrite(lambda: self._logged(proposal, key, lambda: {"id": self._task(uncertain_write(
             lambda: self._send("POST", tasks, body=payload, key=key)).json()).id}))
 
-    def fetch_active_tasks(self) -> list[TodoistTaskResponse]:
+    def fetch_active_tasks(self, *, strict: bool = False) -> list[TodoistTaskResponse]:
         cache_key = (self.service, self.target, "tasks")
-        cached = self._get_cached(cache_key)
+        cached = None if strict else self._get_cached(cache_key)
         if cached is not None:
             return cached
         try:
@@ -452,6 +452,8 @@ class MicrosoftTodo(GraphResource, ProviderWriter):
                                                                              "$top": "100"}))]
         except Exception as exc:
             self.logger.event("WARNING", self.service, "fetch_tasks_failed", error=str(exc))
+            if strict:
+                raise
             return []
         self._set_cached(cache_key, tasks)
         return tasks

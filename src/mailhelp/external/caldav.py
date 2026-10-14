@@ -212,7 +212,7 @@ class CalDavCalendar(DavResource, ProviderWriter, CalendarOperations):
             return value.isoformat()
 
         cache_key = (self.service, self.target, moment(start), moment(end))
-        cached = self._get_cached(cache_key)
+        cached = None if strict else self._get_cached(cache_key)
         if cached is not None:
             return cached
         try:
@@ -238,9 +238,9 @@ class CalDavTasks(DavResource, ProviderWriter):
                                 f"{proposal.description}\n\n[{key}]".strip(), proposal.due, key)
         return PreparedWrite(lambda: self._logged(proposal, key, lambda: self._put_new(key, content)))
 
-    def fetch_active_tasks(self) -> list[TodoistTaskResponse]:
+    def fetch_active_tasks(self, *, strict: bool = False) -> list[TodoistTaskResponse]:
         cache_key = (self.service, self.target, "tasks")
-        cached = self._get_cached(cache_key)
+        cached = None if strict else self._get_cached(cache_key)
         if cached is not None:
             return cached
         try:
@@ -252,6 +252,8 @@ class CalDavTasks(DavResource, ProviderWriter):
                                                      description=fields["description"]))
         except Exception as exc:
             self.logger.event("WARNING", self.service, "fetch_tasks_failed", error=str(exc))
+            if strict:
+                raise
             return []
         self._set_cached(cache_key, tasks)
         return tasks

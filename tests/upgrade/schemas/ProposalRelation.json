@@ -1,0 +1,55 @@
+{
+  "$defs": {
+    "ProposalReference": {
+      "additionalProperties": false,
+      "properties": {
+        "mail_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+          "title": "Mail Id",
+          "type": "string"
+        },
+        "proposal_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+          "title": "Proposal Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mail_id",
+        "proposal_id"
+      ],
+      "title": "ProposalReference",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "kind": {
+      "enum": [
+        "related",
+        "rsvp_for"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "source": {
+      "$ref": "#/$defs/ProposalReference"
+    },
+    "target": {
+      "$ref": "#/$defs/ProposalReference"
+    }
+  },
+  "required": [
+    "source",
+    "target",
+    "kind"
+  ],
+  "title": "ProposalRelation",
+  "type": "object"
+}

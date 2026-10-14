@@ -297,6 +297,8 @@ def test_tasks_are_created_with_due_dates_and_open_tasks_listed():
     server_down = FakeDav(collection=TASKS)
     server_down.fail["REPORT"] = lambda request: httpx.Response(500)
     assert tasks(server_down, logger=logger).fetch_active_tasks() == []
+    with pytest.raises(RetryableError):
+        tasks(server_down, logger=logger).fetch_active_tasks(strict=True)
     assert logger.events[-1][0] == ("WARNING", "caldav_tasks", "fetch_tasks_failed")
     assert writer.reconcile("unbekannt") is None
     writer.close()

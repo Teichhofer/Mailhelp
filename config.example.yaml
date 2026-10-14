@@ -273,6 +273,14 @@ logging:
     max_bytes: 10000000
     backup_count: 5
     retention_days: 30
+event_defaults:
+  # Nur fehlendes Ende bei belegter Teilnahmeart und eindeutigem Beginn ergänzen.
+  # Explizite Endzeiten/Dauern haben Vorrang. Alte Vorschläge bleiben unverändert.
+  video_duration_minutes: 60
+  in_person_duration_minutes: 180
+proposal_reconciliation:
+  # Mehr mögliche Treffer blockieren die automatische Zuordnung.
+  max_semantic_candidates: 8
 web:
   # Die Webübersicht behält die Auswahl beim Neuladen automatisch bei; keine Option n?tig.
   # Optionale Weboberfläche (ab 1.1). Standard: aus – Mailhelp verhält sich dann wie 1.0.

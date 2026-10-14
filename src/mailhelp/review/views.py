@@ -56,6 +56,7 @@ STATUS_LABELS = {
     ProposalStatus.FAILED: "Anlage fehlgeschlagen",
     ProposalStatus.UNCERTAIN: "Wird abgeglichen",
     ProposalStatus.ALREADY_EXISTS: "Bereits vorhanden",
+    ProposalStatus.MERGED: "Zusammengeführt",
 }
 Model = TypeVar("Model", bound=BaseModel)
 

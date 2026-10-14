@@ -28,7 +28,8 @@ def test_persistence_boundary_is_explicit_and_preserves_json_schemas():
     }
     # 2.2: activity reports are persisted as well; their models live in activity.models.
     assert set(schemas.__all__) == expected | {
-        "ActivityReport", "ReportMail", "DiagnosticsState", "NotificationQueue", "SetupState"}
+        "ActivityReport", "ReportMail", "DiagnosticsState", "NotificationQueue", "SetupState",
+        "ProposalMatchCache", "ProposalMergeJournal", "ProposalRelation"}
     assert all(getattr(schemas, name) is getattr(models, name) for name in expected)
     assert schemas.ActivityReport is activity_models.ActivityReport
     assert schemas.ReportMail is activity_models.ReportMail

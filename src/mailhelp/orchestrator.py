@@ -11,7 +11,13 @@ from typing import Any, Literal, Protocol, cast
 from . import state_names
 from .action_normalization import MailDateContext
 from .analysis import Analyzer
-from .config import OriginalAttachmentSettings, TargetSettings, Topic
+from .config import (
+    EventDefaultsSettings,
+    OriginalAttachmentSettings,
+    ProposalReconciliationSettings,
+    TargetSettings,
+    Topic,
+)
 from .imap import FetchedMail
 from .logging import EventLogger, NullLogger
 from .mail_duplicates import DuplicateMailCheck
@@ -51,7 +57,8 @@ class Orchestrator:
                  mime_limits: object | None = None, config_fingerprint: str = "0" * 64,
                  targets: TargetSettings | None = None, user_timezone: str = "UTC",
                  sender_store: JsonStore | None = None, precheck: DuplicatePreCheckService | None = None,
-                 vision: VisionExtractor | None = None):
+                 vision: VisionExtractor | None = None, event_defaults: EventDefaultsSettings | None = None,
+                 reconciliation_settings: ProposalReconciliationSettings | None = None, proposal_matcher=None):
         self.analyzer, self.store, self.notifier, self.chat_id = analyzer, store, notifier, chat_id
         self.topics, self.max_bytes = topics, mime_limits or max_mail_bytes
         self.stop_event = Event()
@@ -68,6 +75,12 @@ class Orchestrator:
         self.sender_store = sender_store or store
         self.precheck = precheck or DuplicatePreCheckService(logger=self.logger)
         self.vision = vision
+        self.event_defaults = event_defaults or EventDefaultsSettings()
+        self.reconciliation_settings = reconciliation_settings or ProposalReconciliationSettings()
+        self.proposal_matcher = proposal_matcher
+        from .proposal_reconciliation import ProposalReconciliationService
+        self.reconciliation = ProposalReconciliationService(
+            store, proposal_matcher, self.reconciliation_settings.max_semantic_candidates)
         self.pipeline = MailPipeline(self)
         self.duplicates = DuplicateMailCheck(self)
         self.questions = MailQuestions(self)
@@ -87,6 +100,8 @@ class Orchestrator:
             state.id, self.targets, context,
             source_sender=headers.sender if headers else "—",
             source_subject=headers.subject if headers else "—",
+            event_defaults=(EventDefaultsSettings.model_validate(state.proposal_policy["event_defaults"])
+                            if state.proposal_policy is not None else None),
         ).build(
             state.task_extraction.tasks if state.task_extraction else [],
             state.event_extraction.events if state.event_extraction else [],

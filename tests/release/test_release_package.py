@@ -49,6 +49,9 @@ def test_built_artifacts_exclude_private_runtime_files():
         pytest.skip("Artifact build is verified in package-smoke on both target platforms")
     with zipfile.ZipFile(wheels[-1]) as archive:
         names = archive.namelist()
+        for module in ("event_defaults.py", "proposal_matching.py", "proposal_merge.py", "proposal_reconciliation.py",
+                       "domain/proposal_sources.py", "domain/reconciliation.py", "web/reconciliation_site.py"):
+            assert archive.read("mailhelp/" + module) == (ROOT / "src/mailhelp" / module).read_bytes()
         assert "mailhelp/assets/logo.png" in names
         assert {"mailhelp/web/static/app.js", "mailhelp/web/static/sw.js",
                 "mailhelp/web/static/manifest.webmanifest"} <= set(names)
@@ -72,6 +75,7 @@ def test_built_artifacts_exclude_private_runtime_files():
                 "docs/Release-1.0.md", "docs/Release-1.1.md", "docs/Release-1.2.md",
                 "docs/Release-1.6.md", "docs/Architektur-1.6.md", "docs/Planung-1.6.md",
                 "docs/Release-2.0.md", "docs/Planung-2.0.md",
+                "docs/Planung-2.4.md", "docs/Architektur-2.4.md",
                 "docs/Konzept-2.0-Redesign-und-Web-Push.md",
                 "src/mailhelp/assets/logo.png"} <= names
         assert "config.yaml" not in names and ".env" not in names

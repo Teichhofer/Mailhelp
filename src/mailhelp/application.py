@@ -140,6 +140,9 @@ class Application:
         """Main-thread activation of the explicitly live configuration subset."""
         self.settings = settings
         self.mailbox.settings = settings
+        self.orchestrator.event_defaults = settings.event_defaults
+        self.orchestrator.reconciliation_settings = settings.proposal_reconciliation
+        self.orchestrator.reconciliation.max_candidates = settings.proposal_reconciliation.max_semantic_candidates
         metrics = self.logger.metrics
         assert metrics is not None  # attached together with the logger (_attach_metrics)
         metrics.settings = settings.metrics

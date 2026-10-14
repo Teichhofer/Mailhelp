@@ -199,7 +199,7 @@ def test_real_bounded_batch_sends_proposals_one_at_a_time_and_counts_open_action
                                 version=proposal.version, action=DecisionAction.REJECT)
             telegram.updates = [callback(index * 2 + 1, decision.encode(store), user=999)]
             dialog.poll_once()
-            assert dialog.repository.load_current(proposal.source_mail_id, proposal.id).status == ProposalStatus.PENDING_CONFIRMATION
+            assert dialog.repository.load_current(proposal.source_mail_id, proposal.id).status == proposal.status
             telegram.updates = [callback(index * 2 + 2, decision.encode(store))]
             dialog.poll_once()
         assert dialog.outbox.load().entries == []

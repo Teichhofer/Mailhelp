@@ -226,6 +226,7 @@ def _build_orchestrator(settings: Settings, prompts: PromptConfig, topics: list[
         logger=logger,
     )
     vision = None
+    dialog.decision_service.precheck = precheck
     if settings.vision.enabled and "vision_ocr" in prompts.prompts:
         vision = VisionExtractor(analyzer, settings.vision)
     elif settings.vision.enabled:
@@ -235,8 +236,19 @@ def _build_orchestrator(settings: Settings, prompts: PromptConfig, topics: list[
                                 settings.limits.max_mail_bytes, logger, mime_limits=settings.limits,
                                 config_fingerprint=fingerprint, targets=settings.targets,
                                 user_timezone=settings.timezone, sender_store=sender_store, precheck=precheck,
-                                vision=vision)
-    from .fingerprints import adopt_legacy_configuration, legacy_fingerprints, legacy_policies, topic_policy
+                                vision=vision, event_defaults=settings.event_defaults,
+                                reconciliation_settings=settings.proposal_reconciliation,
+                                proposal_matcher=(analyzer.open_proposal_match
+                                                  if "open_proposal_match" in prompts.prompts else None))
+    from .fingerprints import (
+        adopt_legacy_configuration,
+        legacy_fingerprints,
+        legacy_policies,
+        proposal_match_policy,
+        topic_policy,
+    )
+    orchestrator.reconciliation.policy = proposal_match_policy(prompts)
+    orchestrator.reconciliation.recover()
     orchestrator.topic_policy = topic_policy(settings, prompts)
     if not access_diagnostics:
         legacy = legacy_fingerprints(settings, prompts, topics)

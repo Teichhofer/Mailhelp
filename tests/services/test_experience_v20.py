@@ -736,6 +736,8 @@ def test_experience_settings_preserve_16_analysis_fingerprint(tmp_path):
     legacy["telegram"].pop("enabled")
     # 2.3 fields did not exist in 1.6 either.
     legacy.pop("attachments")
+    legacy.pop("event_defaults")
+    legacy.pop("proposal_reconciliation")
     for name in ("calendar_provider", "task_provider", "caldav_calendar_url", "caldav_task_url",
                  "outlook_calendar", "microsoft_todo_list", "microsoft_tenant"):
         legacy["targets"].pop(name)

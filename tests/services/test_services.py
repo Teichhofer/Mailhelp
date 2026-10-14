@@ -397,19 +397,19 @@ def test_mail_question_resolution_prompt_requires_one_local_value():
 
 
 def test_proposal_builder_forwards_time_requirement_to_event_normalization(monkeypatch):
-    import mailhelp.proposal_builder as proposal_builder
+    import mailhelp.event_defaults as event_defaults
     from mailhelp.action_normalization import MailDateContext
     from mailhelp.models import ExtractedEvent
     from mailhelp.proposal_builder import ProposalBuilder
 
     seen = []
-    original = proposal_builder.normalize_event
+    original = event_defaults.normalize_event
 
     def recording_normalize_event(event, context):
         seen.append(event)
         return original(event, context)
 
-    monkeypatch.setattr(proposal_builder, "normalize_event", recording_normalize_event)
+    monkeypatch.setattr(event_defaults, "normalize_event", recording_normalize_event)
     extracted = ExtractedEvent(
         title="Termin", evidence="Termin am 1. Oktober", date_text="2026-10-01",
         time_requirement="required_unknown", responsibility="user", certainty="certain",

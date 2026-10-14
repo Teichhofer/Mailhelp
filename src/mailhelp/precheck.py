@@ -14,7 +14,7 @@ from .domain.proposal import (
 )
 from .external.calendar import CalendarOperations
 from .external.contracts import ExternalWriter, TargetWriter
-from .external.roles import CALENDAR_SLOT, TASK_SLOT, slot
+from .external.roles import CALENDAR_SLOT, TASK_SLOT, provider_key, slot
 from .logging import EventLogger, NullLogger
 from .telegram.ledger import ActionLedgerPort
 
@@ -40,6 +40,10 @@ class DuplicatePreCheckService:
         self, proposal: Proposal, mail_context: dict[str, Any] | None = None
     ) -> Proposal:
         """Inspect proposal against local and external sources, returning updated proposal."""
+        bound = self.writers.get(CALENDAR_SLOT if proposal.kind == ProposalKind.EVENT else TASK_SLOT)
+        if isinstance(bound, TargetWriter) and (proposal.target != bound.target or
+                proposal.target_provider and proposal.target_provider != provider_key(bound)):
+            return self._failed(proposal, "target", ValueError("Zielbindung geändert"))
         # Stufe 1: Lokales ActionLedger
         if self.ledger is not None:
             try:
@@ -62,7 +66,7 @@ class DuplicatePreCheckService:
                         ),
                     })
             except Exception as exc:
-                self.logger.event("WARNING", "precheck", "ledger_check_failed", error=str(exc))
+                return self._failed(proposal, "ledger", exc)
 
         # Stufe 2: Kalender (Google, CalDAV oder Outlook)
         cal_writer = self.writers.get(CALENDAR_SLOT)
@@ -78,7 +82,7 @@ class DuplicatePreCheckService:
                 if result is not None:
                     return result
             except Exception as exc:
-                self.logger.event("WARNING", "precheck", "calendar_check_failed", error=str(exc))
+                return self._failed(proposal, "calendar", exc)
 
         # Stufe 3: Aufgaben (Todoist, Microsoft To Do oder CalDAV)
         todo_writer = self.writers.get(TASK_SLOT)
@@ -92,9 +96,16 @@ class DuplicatePreCheckService:
                 if result is not None:
                     return result
             except Exception as exc:
-                self.logger.event("WARNING", "precheck", "todoist_check_failed", error=str(exc))
+                return self._failed(proposal, "todoist", exc)
 
         return proposal
+
+    def _failed(self, proposal: Proposal, service: str, exc: Exception) -> Proposal:
+        self.logger.event("WARNING", "precheck", f"{service}_check_failed", error=type(exc).__name__)
+        return proposal.model_copy(update={"duplicate_check_failed": True,
+            "status": ProposalStatus.NEEDS_CLARIFICATION,
+            "open_questions": list(dict.fromkeys([*proposal.open_questions,
+                "Dublettenprüfung nicht verfügbar; vor einer Anlage erneut prüfen."]))})
 
     def _check_calendar(self, proposal: Proposal, writer: CalendarOperations) -> Proposal | None:
         assert proposal.start is not None and proposal.end is not None
@@ -107,7 +118,7 @@ class DuplicatePreCheckService:
         search_start = start_dt - timedelta(days=1)
         search_end = end_dt + timedelta(days=1)
 
-        events = writer.fetch_events_in_window(search_start, search_end)
+        events = writer.fetch_events_in_window(search_start, search_end, strict=True)
         for item in events:
             is_match = False
             if writer.calendar_matcher is not None:
@@ -153,7 +164,7 @@ class DuplicatePreCheckService:
         return None
 
     def _check_todoist(self, proposal: Proposal, writer: TargetWriter) -> Proposal | None:
-        tasks = writer.fetch_active_tasks()
+        tasks = writer.fetch_active_tasks(strict=True)
         norm_title = proposal.title.strip().casefold()
         for task in tasks:
             if task.content.strip().casefold() == norm_title:
