@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.3.3 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.3.4 · **Python:** 3.12.x · **Lizenz:** MIT
 
 [Installation](#installation) · [Konfiguration](#konfiguration) ·
 [Betrieb](#betrieb) · [Docker](#docker) ·
@@ -205,6 +205,16 @@ ist auch über Telegram möglich. Für den Betrieb ausschließlich mit Weboberfl
 
 Die [Einrichtungs- und Betriebsanleitung](docs/Einrichtung-und-Qualitaetspruefung.md)
 beschreibt auch den mobilen Zugriff und die Einrichtung des Telegram-Bots.
+
+Die Statusseite zeigt IMAP-Abruffehler je Postfach und Ordner auch dann, wenn noch
+keine Mail zur Analyse geladen werden konnte. Erst ein erfolgreicher Abruf desselben
+Ordners entfernt den Hinweis. „Keine Fehler bei gespeicherten Mails“ betrifft nur
+die Mailanalyse.
+
+Bereits ausgeschlossene UIDs werden auch dann vor dem Abruf gefiltert, wenn der
+IMAP-Server seine höchste vorhandene UID erneut zurückgibt. Alte Warteschlangeneinträge
+können nach einem Neustart abgeschlossen werden, ohne die gespeicherte Startgrenze
+zu verändern.
 
 ### Themen lernen und Entscheidungen abgleichen
 

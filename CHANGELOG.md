@@ -1,5 +1,22 @@
 # Änderungen
 
+## 3.3.4 – beta: IMAP-Abruffehler und sichere UID-Grenzen
+
+- Aktuelle Fehler beim Lesen eines Haupt- oder zusätzlichen Ordners erscheinen auf
+  der Statusseite, auch wenn der Durchlauf keine Mail für die Analyse laden konnte.
+  Hinweise bleiben je Postfach und Ordner erhalten, bis dieser wieder erfolgreich
+  gelesen wird. Provider-Fehlertexte und Zugangsdaten werden nicht im Web angezeigt.
+- Regressionstests für leere Durchläufe mit Ordnerfehlern, Status-Aktualisierung,
+  erneute Fehler, isolierte Postfächer, erfolgreiche Wiederholung und sichere Darstellung.
+- Lokale Ordnernamen und der Entwurfsordner anhand der lesenden IMAP-Liste korrigiert;
+  Anleitung und Beispiel weisen auf anbieterspezifische Namen hin.
+- Absturz bei Checkpoints behoben: Die IMAP-Suche kann bei `UID Start+1:*` die
+  höchste vorhandene UID erneut liefern. Treffer an oder unter der gespeicherten
+  Startgrenze werden vor dem Abruf ausgeschlossen. Der Abschluss alter
+  Warteschlangeneinträge und separater Wiederaufnahmen verändert diese Grenze nicht.
+  Regressionstests prüfen Wiederholungen, neue Mails und dauerhaft lesbare
+  Checkpoints nach Neustarts.
+
 ## 3.3.3 – beta: Dienststatus sofort nach dem Start
 
 - Fehler behoben: Ein Mailabruf ohne neue Mail ließ das IMAP-Postfach auf der Statusseite

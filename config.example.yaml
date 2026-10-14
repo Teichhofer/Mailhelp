@@ -146,10 +146,16 @@ learning:
 # Beide Schreibweisen gleichzeitig sind ungültig. Postfachangaben ändern keinen
 # Analyse-Fingerprint; laufende Mails werden dadurch nicht zurückgehalten.
 imap:
+  # Exakte Namen aus der IMAP-Ordnerliste unter /einrichtung verwenden.
+  # Beispielsweise heißen WEB.DE-Ordner Entwurf, Gesendet, Unerwünscht und Papierkorb;
+  # generische Namen wie Drafts/Sent/Spam/Trash existieren dort nicht automatisch.
+  # drafts_folder muss ebenfalls auf einen tatsächlich vorhandenen Ordner zeigen.
   drafts_folder: Drafts  # Unicode erlaubt; muss auf dem IMAP-Server existieren
   host: imap.example.test
   port: 993
   connection_mode: ssl
+  # Suchtreffer an/unter der gespeicherten Start-UID bleiben auch bei leeren
+  # Folgeabrufen ausgeschlossen. --ignore-historical-start öffnet die Grenze explizit.
   historical_start: '2026-09-15T00:00:00+02:00'
   batch_size: 25
   global_newest_first: true

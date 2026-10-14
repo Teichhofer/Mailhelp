@@ -312,11 +312,16 @@ class MailboxRunService:
 
     def _folder_failed(self, source: MailboxSource, folder: str, exc: Exception) -> None:
         event = "poll_failed" if folder == source.mailbox.primary_folder else "optional_folder_failed"
-        self.logger.event("ERROR", "imap", event, mailbox=source.mailbox.id, folder=folder, error=str(exc))
+        self.logger.event("ERROR", "imap", event, mailbox=source.mailbox.id, account_id=source.account_id,
+                          folder=folder, error=str(exc))
 
     def _complete_uid(self, checkpoint_name: str, checkpoint: dict[str, Any], ranges: list[tuple[int, int]],
                       uid: int, uidvalidity: int) -> list[tuple[int, int]]:
         """Record one finished UID in the folder checkpoint."""
+        # A durable queue created before boundary filtering may still contain
+        # an excluded UID. Finish its entry without reopening the checkpoint.
+        if uid <= (checkpoint["start_uid"] or 0):
+            return ranges
         ranges = _add_uid(ranges, uid)
         checkpoint["uid"] = max(checkpoint["uid"], uid)
         checkpoint["uidvalidity"] = uidvalidity
@@ -598,10 +603,8 @@ class MailboxRunService:
         if (not ranges and checkpoint.start_uid is not None
                 and checkpoint.uid > checkpoint.start_uid):
             ranges = [(checkpoint.start_uid + 1, checkpoint.uid)]
-        checkpoint.uidvalidity = state.imap.uidvalidity
-        checkpoint.uid = max(checkpoint.uid, state.imap.uid)
-        checkpoint.completed_uid_ranges = _add_uid(ranges, state.imap.uid)
-        self.store.save(checkpoint_name, checkpoint.model_dump())
+        self._complete_uid(checkpoint_name, checkpoint.model_dump(exclude={"schema_version"}),
+                           ranges, state.imap.uid, state.imap.uidvalidity)
 
 
     def resume_pending(self, budget: _MailBudget | None = None) -> list[ProcessingResult]:

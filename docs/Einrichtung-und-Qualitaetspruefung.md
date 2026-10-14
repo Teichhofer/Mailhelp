@@ -1,6 +1,6 @@
 # Einrichtung und Qualitätsprüfung
 
-Stand: 14. Oktober 2026, Anwendungsversion 3.3.3. Die Einrichtungshinweise gelten
+Stand: 14. Oktober 2026, Anwendungsversion 3.3.4. Die Einrichtungshinweise gelten
 für den aktuellen Stand. Datierte Qualitätsberichte weiter unten dokumentieren
 jeweils den damaligen Code und die damals geprüften Modelle.
 
@@ -105,6 +105,16 @@ er gültig ist und zu seinen OAuth-Clientdaten passt. Für die integrierte Anmel
 muss der Client den Desktop-Ablauf unterstützen.
 
 ## Docker: Filter und Lernmodus
+
+Die Quellordner und `imap.drafts_folder` benötigen die exakten Namen des jeweiligen
+IMAP-Servers. Unter `/einrichtung` die lesende Ordnerliste prüfen. Bezeichnungen
+wie `Drafts`, `Sent`, `Spam` und `Trash` sind keine universellen IMAP-Namen; bei
+WEB.DE können die Ordner `Entwurf`, `Gesendet`, `Unerwünscht` und `Papierkorb` heißen.
+Das Beispiel muss daher vor dem Start an das eigene Postfach angepasst werden.
+Ein zusätzlicher Ordner mit Lesefehler verhindert den Abruf von INBOX nicht, wird
+aber ausgelassen. Die Statusseite zeigt solche Abruffehler getrennt von Fehlern
+bereits gespeicherter Mails. Ein erfolgreicher Abruf des betroffenen Ordners hebt
+den Fehlerhinweis auf; ein erfolgreicher Abruf eines anderen Postfachs tut das nicht.
 
 Vor dem ersten Normalstart eine fehlende `irrelevant-senders.json` aus
 `irrelevant-senders.example.json` kopieren. Eine vorhandene Filterdatei behalten.

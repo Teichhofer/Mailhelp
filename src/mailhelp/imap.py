@@ -398,14 +398,14 @@ class ImapReader:
             raise ValueError("max_count darf nicht negativ sein")
         selected = available if max_count is None else available[-max_count:] if max_count else []
         if not selected:
-            self.logger.event("INFO", "imap", "messages_discovered", folder=folder,
+            self.logger.event("INFO", "imap", "messages_discovered", folder=folder, account_id=self.account_id,
                               available_count=len(available), batch_count=0,
                               historical_excluded_count=0)
             return []
         candidates = [MailCandidate(folder, uidvalidity, uid, self.account_id, received_at)
                       for uid, received_at in self._internal_dates(selected)
                       if historical_start is None or received_at >= historical_start]
-        self.logger.event("INFO", "imap", "messages_discovered", folder=folder,
+        self.logger.event("INFO", "imap", "messages_discovered", folder=folder, account_id=self.account_id,
                           available_count=len(available), batch_count=len(candidates),
                           historical_excluded_count=len(selected) - len(candidates))
         return candidates
@@ -434,7 +434,9 @@ class ImapReader:
         status, matches = self._uid("search", None, *search)
         if status != "OK":
             raise RuntimeError("IMAP-Suche fehlgeschlagen")
-        return matches[0].split() if matches else []
+        # RFC 3501: x:* also includes the highest assigned UID when x is
+        # larger than it. Enforce our exclusive boundary before any FETCH.
+        return [token for token in matches[0].split() if int(token) > after_uid] if matches else []
 
     def _internal_dates(self, selected: list[bytes]) -> list[tuple[int, datetime]]:
         """UID and INTERNALDATE of exactly the selected messages, in one sequence-set FETCH.
@@ -520,9 +522,7 @@ class ImapReader:
             # Do not search or fetch in a UID generation whose durable boundary
             # has not been resolved yet.  In particular, BODY.PEEK must not run.
             raise UIDValidityChanged(folder, expected_uidvalidity, uidvalidity)
-        status, matches = self._uid("search", None, f"UID {after_uid + 1}:*")
-        if status != "OK": raise RuntimeError("IMAP-Suche fehlgeschlagen")
-        tokens = matches[0].split() if matches else []
+        tokens = self._search_uids(after_uid, None)
         def completed(uid: int) -> bool:
             return any(start <= uid <= end for start, end in completed_uid_ranges)
         available = [token for token in reversed(tokens) if not completed(int(token))]
@@ -531,7 +531,7 @@ class ImapReader:
         # can use ``--max-mails`` to test more than one normal batch at once.
         fetch_count = self.batch_size if max_count is None else max_count
         selected = available[:fetch_count]
-        self.logger.event("INFO", "imap", "messages_discovered", folder=folder,
+        self.logger.event("INFO", "imap", "messages_discovered", folder=folder, account_id=self.account_id,
                           available_count=len(available), batch_count=len(selected))
         result = []
         for token in selected:

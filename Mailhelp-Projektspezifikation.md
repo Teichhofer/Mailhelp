@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 14. Oktober 2026, Anwendungsversion 3.3.3. Die folgenden Verträge beschreiben
+Stand: 14. Oktober 2026, Anwendungsversion 3.3.4. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -233,6 +233,7 @@ verfügbar.
 - Der Lesestatus dient nicht als Verarbeitungsmarker. Mailhelp verändert die Originalnachrichten und ihren Lesestatus nicht absichtlich.
 - `historical_start` ist optional (`null`) oder ein zeitzonenbehafteter ISO-8601-Zeitpunkt mit explizitem Offset. Seine absolute UTC-Grenze wird über schreibfreie `UID SEARCH`-/`UID FETCH INTERNALDATE`-Abfragen sekundengenau aufgelöst. Der resultierende Start-UID wird vor der Verarbeitung konto- und ordnerbezogen zusammen mit der UIDVALIDITY gespeichert und nach Neustarts derselben UID-Generation nicht neu interpretiert. Bei einem UIDVALIDITY-Wechsel wird die Grenze vor einem `BODY.PEEK[]`-Abruf in der neuen Generation erneut aufgelöst.
 - Die Startoption `--ignore-historical-start` hebt die konfigurierte Grenze für diesen Start auf und setzt bereits gespeicherte historische Start-UIDs aller konfigurierten Ordner in ihrer aktuellen UID-Generation auf UID 0 zurück. Bereits abgeschlossene UID-Bereiche bleiben erhalten, sodass nur zuvor von der Grenze ausgeschlossene Nachrichten zusätzlich auswählbar werden. Ein späterer UIDVALIDITY-Wechsel ohne den Schalter wendet die konfigurierte absolute Grenze in der neuen UID-Generation wieder an.
+- Ergebnisse von `UID SEARCH Start-UID+1:*` werden vor jedem Metadaten- oder Nachrichtenabruf zusätzlich auf UIDs strikt oberhalb der gespeicherten Start-UID gefiltert. IMAP darf bei dieser Suche die höchste vorhandene UID auch dann zurückgeben, wenn sie unterhalb der angefragten Untergrenze liegt. Bereits gespeicherte Warteschlangenpositionen an oder unter der Start-UID können abgeschlossen werden, ohne den Checkpoint zu verändern; dies gilt auch bei einer separaten Wiederaufnahme nach Neustart. Die Validierung der abgeschlossenen UID-Bereiche bleibt unverändert streng.
 - Die ausgelieferte Konfiguration setzt `historical_start` auf `2026-09-15T00:00:00+02:00` (15. September 2026, 00:00 Uhr in `Europe/Berlin`); Nachrichten mit einem früheren IMAP-Empfangszeitpunkt gehören damit beim erstmaligen Aufbau des Abrufpunkts nicht zum zu verarbeitenden Bestand.
 - `batch_size` begrenzt den Abruf pro regulärem Polling-Zyklus auf `1..1000` Nachrichten (Standard `25`). Bei einem begrenzten Einmallauf ersetzt das nach Wiederaufnahmen verbleibende `--max-mails`-Budget diese Batchgröße; dadurch kann der Testlauf mehr als 25 Mails bearbeiten und lädt dennoch keine Nachrichten über sein Restbudget hinaus. Nach der Suche werden die gefundene und ausgewählte Anzahl sowie nach jedem schreibfreien Nachrichtenabruf der Fortschritt ohne Mailinhalt protokolliert; der persistierte UID-Checkpoint setzt den nächsten Zyklus fort.
 - `global_newest_first` ist ein boolescher Schalter. Bei `true` wird pro Ordner zunächst ein auf das gemeinsame Kontingent `N` begrenztes Fenster der höchsten noch offenen UIDs gebildet. Dessen höchstens `N` UID-/`INTERNALDATE`-Metadatensätze werden schreibfrei in einem Sequence-Set-`UID FETCH` statt durch Einzelabrufe aller UIDs ermittelt und anschließend als gemeinsame, nach Empfangszeitpunkt absteigend sortierte Warteschlange behandelt. Diese Begrenzung verliert keinen Kandidaten der globalen Top `N`, sofern die IMAP-konforme UID-Vergabe die Ankunftsreihenfolge abbildet. Bei identischem `INTERNALDATE` entscheiden höhere UID und danach die konfigurierte Ordnerreihenfolge. Erst danach werden die durch das gemeinsame `batch_size`-, `--max-mails`- oder `--learn`-Kontingent ausgewählten Nachrichten mit `BODY.PEEK[]` geladen. Die ordnerspezifischen Checkpoints und der dauerhafte Backlog bleiben erhalten. `historical_start` begrenzt den regulären Abruf, wird im Lernmodus jedoch ignoriert. Bei `false` werden die Ordner weiterhin in Konfigurationsreihenfolge und jeweils neueste UID zuerst verarbeitet.
@@ -1924,6 +1925,14 @@ ohne Testnachricht) und die Ziele der aktiven Zielprofile; die Mailverarbeitung 
 darauf. Die OpenRouter-Schlüsselprüfung belegt auch „Jev (Relevanz)“, das dasselbe Konto nutzt.
 IMAP belegt der erste Mailabruf. Fehlgeschlagene Prüfungen werden nur als Warnung protokolliert;
 der Dienst bleibt „unbekannt“, bis ein späterer Kontakt gelingt.
+
+Aktuelle IMAP-Ordnerfehler werden unabhängig von Mailzuständen und Durchlaufzählern
+nach gehashter Kontoidentität und Ordner getrennt im Laufzeitsnapshot geführt. Die
+Statusseite zeigt Postfachnummer, Ordner, sicheren Fehlergrund und Zeitpunkt.
+Rohfehler und Geheimnisse fehlen. Wiederholte Fehler ersetzen denselben Eintrag;
+nur eine erfolgreiche Suche im selben Konto und Ordner entfernt ihn. Änderungen
+an diesen Hinweisen verändern den Status-Fingerprint. Ein Neustart beginnt mit
+einem leeren Snapshot; der nächste Abruf ermittelt den aktuellen Zustand erneut.
 
 **Metriken.** Jeder KI-Versuch wird inhaltsfrei in `logs/metrics/llm.jsonl` (Betrieb) bzw.
 `logs/metrics/decision-tests.jsonl` (Vergleichsläufe) festgehalten, mit Schritt, Modell,

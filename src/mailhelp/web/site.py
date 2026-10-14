@@ -189,7 +189,8 @@ class MailhelpSite:
                  system.mails_waiting_relevance, sorted(system.analysis.items()),
                  sorted((str(key), value) for key, value in system.proposals.items())]
         if runtime is not None:
-            parts += [runtime["stage"], runtime.get("mail_id"), runtime.get("next_poll")]
+            parts += [runtime["stage"], runtime.get("mail_id"), runtime.get("next_poll"),
+                      runtime.get("imap_errors", [])]
         return hashlib.sha256(json.dumps(parts, default=str).encode("utf-8")).hexdigest()[:16]
 
     def act(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:

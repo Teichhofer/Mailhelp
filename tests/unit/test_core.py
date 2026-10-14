@@ -605,7 +605,7 @@ def test_imap_discovery_fetches_only_a_bounded_newest_metadata_window():
     assert len(connection.requests) == 2
     assert logger.events[-1] == (
         "INFO", "imap", "messages_discovered",
-        {"folder": "INBOX", "available_count": 10000, "batch_count": 3,
+        {"folder": "INBOX", "account_id": reader.account_id, "available_count": 10000, "batch_count": 3,
          "historical_excluded_count": 0},
     )
 
@@ -646,7 +646,7 @@ def test_imap_discovery_fetches_only_a_bounded_newest_metadata_window():
     ) == []
     assert logger.events[-1] == (
         "INFO", "imap", "messages_discovered",
-        {"folder": "INBOX", "available_count": 1, "batch_count": 0,
+        {"folder": "INBOX", "account_id": reader.account_id, "available_count": 1, "batch_count": 0,
          "historical_excluded_count": 1},
     )
 
@@ -700,17 +700,18 @@ def test_imap_fetch_is_batched_and_reports_progress():
     reader=ImapReader("h",1,"u","p",factory=ManyImap,logger=logger,batch_size=2)
     assert [mail.uid for mail in reader.fetch_since("INBOX")] == [6,5]
     progress=[event for event in logger.events if event[2] in {"messages_discovered","message_fetched"}]
-    assert progress[0] == ("INFO","imap","messages_discovered",{"folder":"INBOX","available_count":3,"batch_count":2})
+    assert progress[0] == ("INFO","imap","messages_discovered",{"folder":"INBOX","account_id":reader.account_id,
+                                                              "available_count":3,"batch_count":2})
     assert progress[1][2:] == ("message_fetched",{"folder":"INBOX","uid":6,"batch_index":1,"batch_count":2})
     assert progress[2][2:] == ("message_fetched",{"folder":"INBOX","uid":5,"batch_index":2,"batch_count":2})
 
     assert [mail.uid for mail in reader.fetch_since("INBOX", max_count=1)] == [6]
     limited=[event for event in logger.events if event[2] == "messages_discovered"][-1]
-    assert limited[3] == {"folder":"INBOX","available_count":3,"batch_count":1}
+    assert limited[3] == {"folder":"INBOX","account_id":reader.account_id,"available_count":3,"batch_count":1}
 
     assert [mail.uid for mail in reader.fetch_since("INBOX", max_count=3)] == [6,5,4]
     expanded=[event for event in logger.events if event[2] == "messages_discovered"][-1]
-    assert expanded[3] == {"folder":"INBOX","available_count":3,"batch_count":3}
+    assert expanded[3] == {"folder":"INBOX","account_id":reader.account_id,"available_count":3,"batch_count":3}
 
     reader.connection.uid=lambda *_args: ("OK", [])
     assert reader.fetch_since("INBOX") == []

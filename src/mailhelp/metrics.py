@@ -156,6 +156,7 @@ class MetricsRecorder:
         self._cache_signature: tuple[int, int] | None = None
         self.activity: dict[str, Any] = {"stage": "idle", "mail_id": None, "started": time.monotonic()}
         self.contacts: dict[str, str] = {}
+        self.imap_errors: dict[tuple[str, str], dict[str, Any]] = {}
         # Calendar, task list and their sign-in; replaced by the configured providers.
         self.write_services: list[str] = ["Todoist", "Google Kalender", "Google-Anmeldung"]
         self.failures = 0
@@ -167,7 +168,8 @@ class MetricsRecorder:
     def runtime(self) -> dict:
         with self._lock:
             return {**self.activity, "elapsed": time.monotonic() - self.activity["started"],
-                    "contacts": dict(self.contacts)}
+                    "contacts": dict(self.contacts),
+                    "imap_errors": [dict(item) for _, item in sorted(self.imap_errors.items())]}
 
     def expected_services(self) -> list[str]:
         """The services this process talks to, in display order."""
@@ -181,6 +183,7 @@ class MetricsRecorder:
 
     def _observe(self, event: str, context: dict) -> None:
         self._track_state(event, context)
+        self._track_imap_errors(event, context)
         self._track_contact(event, context)
         self._track_processing(event, context)
         if self.settings.enabled and isinstance(context.get("call_id"), str):
@@ -198,6 +201,29 @@ class MetricsRecorder:
             self.activity = {"stage": "idle", "mail_id": None, "started": time.monotonic(),
                              "next_poll": (datetime.now(UTC) + timedelta(seconds=context["delay_seconds"])).isoformat()}
             self.changed()
+
+    def _track_imap_errors(self, event: str, context: dict) -> None:
+        """Keep current folder failures without provider text or credentials."""
+        if context.get("service") != "imap" or event not in {
+            "poll_failed", "optional_folder_failed", "messages_discovered"
+        }:
+            return
+        folder = context.get("folder")
+        if not isinstance(folder, str):
+            return
+        account = str(context.get("account_id", ""))
+        key = account, folder
+        if event == "messages_discovered":
+            if self.imap_errors.pop(key, None) is not None:
+                self.changed()
+            return
+        self.imap_errors[key] = {
+            "account_id": account, "mailbox": context.get("mailbox", "?"), "folder": folder,
+            "required": event == "poll_failed", "occurred_at": datetime.now(UTC).isoformat(),
+            "cause": ("Ordner nicht lesbar" if str(context.get("error", "")).startswith("IMAP-Ordner nicht lesbar:")
+                      else "IMAP-Abruf fehlgeschlagen"),
+        }
+        self.changed()
 
     def _track_contact(self, event: str, context: dict) -> None:
         """When each external service last answered."""
