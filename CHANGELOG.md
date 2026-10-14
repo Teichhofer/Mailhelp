@@ -1,5 +1,14 @@
 # Änderungen
 
+## 3.0.3 – beta: Planung 3.1, Phase 3 – Duplikate über Postfächer hinweg
+
+- Der Duplikatindex vergleicht mit den Einträgen aller Postfächer: Dieselbe Mail in zwei konfigurierten
+  Postfächern wird nur einmal analysiert und verweist auf die zuerst verarbeitete Mail. Wiederverwendete
+  Message-IDs mit anderem Inhalt bleiben auch postfachübergreifend `ambiguous`. Regressionstest
+  `test_the_same_message_in_a_second_mailbox_is_skipped` scheiterte vor der Änderung.
+- Sortierung offener Vorschläge geprüft: durch die Mail-ID als zweites Kriterium auch bei gleicher UID in
+  zwei Postfächern eindeutig; unverändert.
+
 ## 3.0.2 – beta: Planung 3.1, Phase 2 – Laufzeitkern für mehrere Postfächer
 
 - Ein Reader je aktiviertem Postfach (`MailboxSource`); ein nicht erreichbares Postfach hält die

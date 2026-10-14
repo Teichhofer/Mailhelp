@@ -56,9 +56,9 @@ class DuplicateMailCheck:
         # The index is the durable processed-mail marker.  Include an entry for
         # this technical identity when its MailState no longer exists (for
         # example after an operator cleanup); excluding it would incorrectly
-        # turn the same stable mail id into a new message.
-        candidates = [entry for entry in index.entries
-                      if entry.imap.account_id == state.imap.account_id]
+        # turn the same stable mail id into a new message.  Entries of every
+        # mailbox count (3.1): a mail sent to two configured mailboxes is one mail.
+        candidates = index.entries
         others = [entry for entry in candidates if entry.mail_id != state.id]
         same_identity = next((entry for entry in candidates if entry.mail_id == state.id), None)
         matching_ids = [entry for entry in others if set(entry.message_ids) & set(message_ids)]

@@ -151,3 +151,20 @@ def test_duplicate_of_mail_with_external_action_keeps_original_action(tmp_path):
         assert duplicate["duplicate"]["previous_mail_id"] == first["id"]
         assert duplicate["proposals"] == []
         assert persisted.proposals[0].external_id == "external-1"
+
+
+def test_the_same_message_in_a_second_mailbox_is_skipped(tmp_path):
+    """Planung 3.1: a mail sent to two configured mailboxes is analysed only once."""
+    with JsonStore(tmp_path) as store:
+        first = Orchestrator(CountingAnalyzer(), store, Notify(), 1, TOPICS, 10000).process(
+            FetchedMail("INBOX", 1, 5, raw(), "a" * 24))
+        analyzer = CountingAnalyzer()
+        second = Orchestrator(analyzer, store, Notify(), 1, TOPICS, 10000).process(
+            FetchedMail("INBOX", 1, 5, raw(), "b" * 24))
+        assert second["id"] != first["id"] and analyzer.calls == 0
+        assert second["duplicate"] == {"outcome": "duplicate", "reason": "same_message",
+                                       "previous_mail_id": first["id"]}
+        # A reused Message-ID with other content stays visible in the other mailbox, too.
+        changed = Orchestrator(CountingAnalyzer(), store, Notify(), 1, TOPICS, 10000).process(
+            FetchedMail("INBOX", 1, 6, raw(body="Anders"), "c" * 24))
+        assert changed["duplicate"]["outcome"] == "ambiguous"

@@ -4,7 +4,7 @@
 
 **Stand:** 14. Oktober 2026
 
-**Status:** In Umsetzung – Phase 1 (Verträge) in 3.0.1, Phase 2 (Laufzeitkern) in 3.0.2 umgesetzt; Entscheidungen vom 14. Oktober 2026 eingearbeitet
+**Status:** In Umsetzung – Phase 1 (Verträge) in 3.0.1, Phase 2 (Laufzeitkern) in 3.0.2, Phase 3 (Duplikate) in 3.0.3 umgesetzt; Entscheidungen vom 14. Oktober 2026 eingearbeitet
 **Grundlage:** [Planung 3.0](Planung-3.0.md), [Planung 3.2](Planung-3.2.md), [Release 3.0](Release-3.0.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Entwicklungsregeln](../AGENTS.md)
 
 ## 1. Ziel und Umfang
@@ -197,8 +197,10 @@ nur bei mehr als einem Postfach. Postfachfehler erscheinen als eigene Zeile.
   Postfach-Label, sobald mehr als ein Postfach konfiguriert ist. Unbekannte `account_id` → „Entferntes Postfach“.
   Label wird zur Laufzeit aus `account_id` aufgelöst, **kein** neues Feld im Mailzustand.
 - **Filter:** Archiv und Suche filtern nach Postfach (GET-Parameter, ohne JavaScript bedienbar).
-- **Sortierung:** Sortierschlüssel in `telegram/outbox.py` und `review/views.py` von `mail.imap.uid` auf
-  `(received_at, account_id, uid)` umstellen (Regressionstest mit gleicher UID in zwei Postfächern).
+- **Sortierung (geprüft in 3.0.3, keine Änderung):** Die Schlüssel in `telegram/outbox.py` und
+  `review/views.py` enthalten nach der UID die Mail-ID und bleiben damit auch bei gleicher UID in zwei
+  Postfächern eindeutig. Eine Umstellung auf den Empfangszeitpunkt würde die Telegram-Reihenfolge
+  bestehender Installationen verändern und ist kein Fehler im Sinne dieser Planung.
 - **Einrichtung `/einrichtung`, Schritt 2:** Liste der Postfächer mit „Hinzufügen“, „Bearbeiten“,
   „Deaktivieren“, „Entfernen“. Jede Änderung landet im Entwurf `setup-state.json` und gilt erst nach
   „Einstellungen übernehmen“ (Sitzung, CSRF, Dateihash, Entwurfsversion, Idempotenz, Neuprüfung bei
