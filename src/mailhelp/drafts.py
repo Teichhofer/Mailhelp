@@ -34,10 +34,12 @@ class ReplyDraft(BaseModel):
 def message(headers: MailHeaders, sender: str, text: str, message_id: str) -> bytes:
     result = EmailMessage(policy=SMTP)
     address = parseaddr(headers.reply_to or headers.sender)[1]
-    if not address or "@" not in address or any(c in address + sender for c in "\r\n\x00"):
+    local, _, domain = address.rpartition("@")
+    if not local or not domain or any(c in address + sender for c in "\r\n\x00"):
         raise ValueError("Ungültiger Empfänger oder Absender")
     result["From"], result["To"] = sender, address
-    subject = headers.subject
+    # Untrusted subjects of older mail states may still contain line breaks; a header has one line.
+    subject = " ".join(headers.subject.split())
     result["Subject"] = subject if subject.lower().startswith("re:") else "Re: " + subject
     parent = headers.message_id
     ids = re.findall(r"<[^<>\s]+@[^<>\s]+>", headers.references)[-20:]

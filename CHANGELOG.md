@@ -1,5 +1,17 @@
 # Änderungen
 
+## 3.2.3 – beta: Planung 3.3 aktualisiert, Fehler in Antwortentwürfen behoben
+
+- **Fehler behoben:** Ein Betreff mit Zeilenumbrüchen gelangte unverändert in die `Subject`-Kopfzeile
+  eines Antwortentwurfs; mit `\r\n` scheiterte das Speichern. Der Betreff wird jetzt auf eine Zeile
+  normalisiert (eingeschleuste Kopfzeilen bleiben ausgeschlossen). Eine Antwortadresse ohne Teil vor oder
+  nach dem `@` (z. B. `@0`) wird abgelehnt statt als leerer Empfänger übernommen. Gefunden vom
+  Eigenschaftstest `test_reply_drafts_never_carry_injected_headers`; Regressionstest
+  `test_draft_subject_stays_one_line_and_recipients_need_both_address_parts` scheiterte vor der Korrektur.
+- [Planung 3.3](docs/Planung-3.3.md) (technische Konsolidierung, Nachfolger der früheren Planung 2.5) mit
+  gemessenen Ausgangswerten: 18 mypy-Befunde unter `--check-untyped-defs`, 8 Funktionen über
+  McCabe-Komplexität 15. Planung 4.0 in das Repository aufgenommen.
+
 ## 3.2.2 – Überarbeitete README
 
 - README als Produkt- und Betriebsdokumentation neu strukturiert: Funktionen, Installation,

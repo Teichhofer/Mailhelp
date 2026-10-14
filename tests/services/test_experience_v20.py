@@ -148,9 +148,12 @@ def test_draft_mime_headers_and_input_rejection():
     parsed = BytesParser(policy=policy.default).parsebytes(
         message(H({"from": "a@test", "subject": "Re: Test"}), "me@test", "Text", "<new@test>"))
     assert parsed["Subject"] == "Re: Test" and "In-Reply-To" not in parsed
-    for headers, sender in (({}, "a@test"), ({"from": "bad"}, "a@test"), ({"from": "a@test"}, "a@test\r\nBcc:evil@test"),
-                            ({"from": "a@test", "subject": "Test\r\nBcc:evil@test"}, "me@test")):
+    for headers, sender in (({}, "a@test"), ({"from": "bad"}, "a@test"), ({"from": "a@test"}, "a@test\r\nBcc:evil@test")):
         with pytest.raises(ValueError): message(H(headers), sender, "Text", "<new@test>")
+    # A line break in the untrusted subject cannot inject a header; the subject stays one line.
+    injected = BytesParser(policy=policy.default).parsebytes(
+        message(H({"from": "a@test", "subject": "Test\r\nBcc:evil@test"}), "me@test", "Text", "<new@test>"))
+    assert "Bcc" not in injected and injected["Subject"] == "Re: Test Bcc:evil@test"
 
 
 def test_draft_generate_edit_save_replay_and_restart(draft):
@@ -997,3 +1000,20 @@ def test_briefing_is_still_sent_after_a_late_start(tmp_path):
     svc.tick()
     svc.tick()
     assert len(sent) == 1 and store.load("daily-briefing")["day"] == "2026-10-25"
+
+
+def test_draft_subject_stays_one_line_and_recipients_need_both_address_parts():
+    """Regression (property test, 14.10.2026): a subject of line breaks reached the Subject header,
+    and "@0" without a local part became an empty recipient."""
+    from mailhelp.domain.prepared import MailHeaders
+    data = message(MailHeaders.model_validate({"from": "a@example.test", "subject": "\n Termin \r\n morgen \n"}),
+                   "me@test", "Text", "<new@test>")
+    parsed = BytesParser(policy=policy.default).parsebytes(data)
+    assert str(parsed["Subject"]) == "Re: Termin morgen"
+    assert str(BytesParser(policy=policy.default).parsebytes(message(
+        MailHeaders.model_validate({"from": "a@example.test", "subject": "\n"}), "me@test", "T", "<n@t>"))["Subject"]
+               ) == "Re: "
+    for address in ("@0", "x@", "@"):
+        with pytest.raises(ValueError, match="Ungültiger Empfänger"):
+            message(MailHeaders.model_validate({"from": "", "reply_to": address, "subject": "s"}),
+                    "me@test", "T", "<n@t>")

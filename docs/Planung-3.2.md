@@ -4,7 +4,7 @@
 
 **Stand:** 14. Oktober 2026
 
-**Status:** Umsetzung und lokale Abnahme abgeschlossen (3.2.1); baut auf [Planung 3.1](Planung-3.1.md) auf
+**Status:** Umsetzung und lokale Abnahme abgeschlossen (3.2.1); baut auf [Planung 3.1](Planung-3.1.md) auf; Nachfolge-Release: [Planung 3.3](Planung-3.3.md) (Architektur-Refactoring & Konsolidierung)
 **Grundlage:** [Planung 3.1](Planung-3.1.md), [Planung 3.0](Planung-3.0.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Entwicklungsregeln](../AGENTS.md)
 
 ## 1. Ziel und Umfang
