@@ -92,9 +92,11 @@ def test_cli_forwards_posix_and_windows_path_spellings(monkeypatch, capsys, spel
 
 def test_cli_forwards_mail_limit_and_rejects_non_positive_values(monkeypatch):
     class App:
-        def __init__(self): self.limit = None
+        def __init__(self): self.limit, self.confirmed = None, 0
         def stop(self): pass
+        def confirm_access_in_background(self): self.confirmed += 1
         def run(self, max_mails=None, *, ignore_historical_start=False):
+            assert self.confirmed == 1  # the access check starts before the mail loop
             self.limit = (max_mails, ignore_historical_start)
             return None
 
@@ -144,6 +146,7 @@ def test_cli_starts_experimental_local_ollama_mode(monkeypatch, arguments, confi
 
     class App:
         def stop(self): pass
+        def confirm_access_in_background(self): pass
         def run(self, max_mails=None): return None
 
     @contextmanager
@@ -187,6 +190,7 @@ def test_cli_rejects_incomplete_local_ollama_mode(monkeypatch, capsys, arguments
 def test_cli_reports_fatal_runtime_error_and_returns_failure(monkeypatch, capsys):
     class App:
         def stop(self): pass
+        def confirm_access_in_background(self): pass
         def run(self, max_mails=None, *, ignore_historical_start=False):
             return "Google OAuth-Anmeldung abgelehnt; check-access ausführen."
 

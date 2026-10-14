@@ -256,6 +256,7 @@ def test_cli_check_and_graceful_signal_shutdown(tmp_path, monkeypatch, capsys):
     class App:
         def __init__(self): self.stopped=False
         def stop(self): self.stopped=True
+        def confirm_access_in_background(self): pass
         def run(self, max_mails=None):
             assert max_mails is None
             signal_handlers[signal.SIGINT](signal.SIGINT, None)

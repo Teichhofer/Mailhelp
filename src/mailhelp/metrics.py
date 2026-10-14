@@ -91,23 +91,27 @@ def server_electricity(records: list[dict]) -> Decimal:
 
 
 # Successful contacts are taken from events that are logged anyway; showing the
-# status never triggers a request.  Keys are (module, event).
+# status never triggers a request.  Keys are (module, event).  ``access_confirmed``
+# comes from the read-only access check at service start (Application.confirm_access).
+_WRITE_SERVICES = (("todoist", "Todoist"), ("google_calendar", "Google Kalender"),
+                   ("caldav_calendar", "CalDAV-Kalender"), ("caldav_tasks", "CalDAV-Aufgaben"),
+                   ("apple_reminders", "Apple Erinnerungen"), ("outlook_calendar", "Outlook-Kalender"),
+                   ("microsoft_todo", "Microsoft To Do"))
 CONTACT_EVENTS = {
     ("imap", "request_completed"): "IMAP-Postfach",
     ("imap", "message_fetched"): "IMAP-Postfach",
+    # The run loop discovers mail with discover_since; an empty answer is a successful contact too.
+    ("imap", "messages_discovered"): "IMAP-Postfach",
     ("decisions", "jev_relevance_completed"): "Jev (Relevanz)",
     ("telegram", "message_sent"): "Telegram",
     ("telegram", "message_received"): "Telegram",
-    ("todoist", "create_completed"): "Todoist",
-    ("todoist", "duplicate_updated"): "Todoist",
-    ("google_calendar", "create_completed"): "Google Kalender",
-    ("google_calendar", "duplicate_updated"): "Google Kalender",
+    # Every completed getUpdates long-poll, with or without new messages.
+    ("telegram", "poll_completed"): "Telegram",
+    ("telegram", "access_confirmed"): "Telegram",
     ("google_oauth", "token_credentials_accepted"): "Google-Anmeldung",
     ("microsoft_oauth", "token_credentials_accepted"): "Microsoft-Anmeldung",
-    **{(service, event): label for service, label in (
-        ("caldav_calendar", "CalDAV-Kalender"), ("caldav_tasks", "CalDAV-Aufgaben"),
-        ("apple_reminders", "Apple Erinnerungen"), ("outlook_calendar", "Outlook-Kalender"),
-        ("microsoft_todo", "Microsoft To Do")) for event in ("create_completed", "duplicate_updated")},
+    **{(service, event): label for service, label in _WRITE_SERVICES
+       for event in ("create_completed", "duplicate_updated", "access_confirmed")},
 }
 LLM_CONTACT = {"standard": "KI-Modelle (OpenRouter)", "local": "Ollama", "decision_test": "KI-Vergleichslauf"}
 
@@ -198,10 +202,16 @@ class MetricsRecorder:
     def _track_contact(self, event: str, context: dict) -> None:
         """When each external service last answered."""
         contact = CONTACT_EVENTS.get((context.get("service", ""), event))
+        now = datetime.now(UTC).isoformat()
         if event == "response_received":
             contact = LLM_CONTACT[self.mode]
+        elif event == "access_confirmed" and context.get("service") == "llm":
+            # Jev uses the same OpenRouter account; the key check confirms both.
+            contact = LLM_CONTACT[self.mode]
+            if self.mode == "standard":
+                self.contacts["Jev (Relevanz)"] = now
         if contact is not None:
-            self.contacts[contact] = datetime.now(UTC).isoformat()
+            self.contacts[contact] = now
 
     def _track_processing(self, event: str, context: dict) -> None:
         if event == "processing_started":

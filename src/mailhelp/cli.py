@@ -383,6 +383,8 @@ def _run(args: argparse.Namespace, settings, secrets, topics, irrelevant_topics,
             ).run(args.learn)
             return 0
         shutdown.stop = application.stop
+        # Status page: confirm each service at once instead of after its first use.
+        application.confirm_access_in_background()
         if args.ignore_historical_start:
             fatal_error = application.run(
                 max_mails=args.max_mails,

@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 14. Oktober 2026, Anwendungsversion 3.3.2. Die folgenden Verträge beschreiben
+Stand: 14. Oktober 2026, Anwendungsversion 3.3.3. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -1917,7 +1917,13 @@ doppeldeutige Zeiten werden abgewiesen.
 **Betriebsstatus.** Ein Laufzeitschnappschuss (Schritt, Dauer, Mail, nächster Abruf) und
 der letzte belegte erfolgreiche Kontakt je Dienst stammen aus ohnehin protokollierten
 Ereignissen; die Statusseite löst keinen Dienstaufruf aus und aktualisiert sich über ein
-eigenes Signal (`/api/stand?seite=status`).
+eigenes Signal (`/api/stand?seite=status`). Als Kontakt zählen auch ein IMAP-Abruf ohne neue
+Mail und jede abgeschlossene Telegram-Abfrage ohne Nachricht (seit 3.3.3). Beim Dienststart
+prüft Mailhelp im Hintergrund lesend OpenRouter bzw. Ollama, Telegram (nur wenn aktiviert,
+ohne Testnachricht) und die Ziele der aktiven Zielprofile; die Mailverarbeitung wartet nicht
+darauf. Die OpenRouter-Schlüsselprüfung belegt auch „Jev (Relevanz)“, das dasselbe Konto nutzt.
+IMAP belegt der erste Mailabruf. Fehlgeschlagene Prüfungen werden nur als Warnung protokolliert;
+der Dienst bleibt „unbekannt“, bis ein späterer Kontakt gelingt.
 
 **Metriken.** Jeder KI-Versuch wird inhaltsfrei in `logs/metrics/llm.jsonl` (Betrieb) bzw.
 `logs/metrics/decision-tests.jsonl` (Vergleichsläufe) festgehalten, mit Schritt, Modell,

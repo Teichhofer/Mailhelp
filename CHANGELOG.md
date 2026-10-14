@@ -1,5 +1,15 @@
 # Änderungen
 
+## 3.3.3 – beta: Dienststatus sofort nach dem Start
+
+- Fehler behoben: Ein Mailabruf ohne neue Mail ließ das IMAP-Postfach auf der Statusseite
+  „unbekannt“, weil der Abruf seit 3.1 über `discover_since` läuft und dessen Ereignis nicht
+  als Kontakt zählte. Ebenso zählt jede erfolgreiche Telegram-Abfrage, auch ohne Nachricht.
+- Beim Dienststart prüft Mailhelp im Hintergrund lesend OpenRouter bzw. Ollama, Telegram
+  (ohne Testnachricht) und die Ziele der aktiven Zielprofile. Die Statusseite zeigt diese
+  Dienste damit sofort als erreichbar; die Mailverarbeitung wartet nicht auf die Prüfung.
+  Fehlschläge werden nur als Warnung protokolliert.
+
 ## 3.3.2 – beta: Dokumentation geprüft und aktualisiert
 
 - README, Changelog, Projektspezifikation, Einrichtungsanleitung, Datenschutzerklärung,

@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.3.2 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.3.3 · **Python:** 3.12.x · **Lizenz:** MIT
 
 [Installation](#installation) · [Konfiguration](#konfiguration) ·
 [Betrieb](#betrieb) · [Docker](#docker) ·
@@ -186,6 +186,11 @@ Einblicken und Verwaltung. Auf dem Handy ist die kompakte Navigationsleiste hori
 wischbar. Vorschlagskarten zeigen die wichtigsten Angaben zuerst; Beschreibung und
 Beleg lassen sich aufklappen. Direkte Bereichslinks erleichtern die Suche in den
 globalen Einstellungen.
+
+Die Seite **Status** zeigt den aktuellen Verarbeitungsschritt und je Dienst den letzten
+erfolgreichen Kontakt. Beim Start prüft Mailhelp OpenRouter, Telegram und die
+Kalender- und Aufgabenziele im Hintergrund nur lesend; das IMAP-Postfach erscheint
+nach dem ersten Mailabruf.
 
 Ein zweiter Terminalaufruf erzeugt einen lokalen Einmalcode:
 

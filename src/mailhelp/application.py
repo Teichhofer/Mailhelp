@@ -6,8 +6,8 @@ import traceback
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from threading import Event
-from typing import TYPE_CHECKING
+from threading import Event, Thread
+from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
 from . import state_names
@@ -128,6 +128,46 @@ class Application:
                 results[name] = None
                 logger.event("DEBUG", "access_check", "check_completed", service=name)
         return results
+
+    def confirm_access_in_background(self) -> Thread:
+        """Run :meth:`confirm_access` beside the mail loop; a slow service never delays it."""
+        thread = Thread(target=self.confirm_access, name="mailhelp-access-check", daemon=True)
+        thread.start()
+        return thread
+
+    def confirm_access(self) -> None:
+        """Read-only access check at service start, so the status page knows each service at once.
+
+        Unlike :meth:`check_access` it sends no Telegram test message and leaves IMAP to the
+        first mail cycle.  A failure is only logged; the service shows as unknown until a
+        later contact succeeds.
+        """
+        from .target_profiles import UnavailableWriter
+        checks: list[tuple[str, Any]] = [("llm", self.openrouter)]
+        if self.settings.telegram.enabled:
+            checks.append(("telegram", self.telegram))
+        checks += [(writer.service, writer) for writer in self._active_writers()
+                   if not isinstance(writer, UnavailableWriter)]
+        for service, client in checks:
+            if self.stop_event.is_set():
+                return
+            try:
+                # Looked up inside the guard: a client without a check counts as unconfirmed.
+                client.check_access()
+            except Exception as exc:
+                self.logger.event("WARNING", service, "access_check_failed", error=exc)
+            else:
+                self.logger.event("INFO", service, "access_confirmed")
+
+    def _active_writers(self) -> list[TargetWriter]:
+        from .target_profiles import ProfileWriters
+        profile_writers = self.profile_writers
+        if isinstance(profile_writers, ProfileWriters):
+            from .mailbox_settings import active_profiles
+            active = active_profiles(self.settings)
+            return [writer for number, pair in profile_writers.profiles.items() if number in active
+                    for writer in pair.slots.values()]
+        return [self.todoist, self.calendar]
 
     def _check_telegram_access(self) -> None:
         """Validate the bot and visibly prove access to the configured chat."""
