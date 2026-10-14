@@ -181,3 +181,9 @@ flowchart TD
    - `ruff check --select C901` mit `max-complexity = 15` meldet 0 Funktionen.
    - Pytest läuft ohne Serialisierungs- oder Import-Warnungen durch.
 
+
+## 5. Umsetzungsstand
+
+| Phase | Version | Ergebnis |
+| :--- | :--- | :--- |
+| 1 | 3.2.4 | `mypy --check-untyped-defs` ohne Befund und als `check_untyped_defs` in `pyproject.toml` dauerhaft aktiv. Zeitauflösung als neutrales Modul `mailhelp.temporal_answers` ohne Importkreis; Revisionsfehler in `domain/revision_errors.py`; `ActionLedger` und `ProposalRepository` in `mailhelp.persistence.ledger` bzw. `.proposals`. Architekturtest: außerhalb von `telegram/` importieren nur `application`, `composition`, `orchestrator` und `review/service` das Telegram-Paket. Testsuite ohne Warnungen. |

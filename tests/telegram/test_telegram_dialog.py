@@ -25,7 +25,6 @@ from shared_telegram_dialog import relevance_state as relevance_state
 from mailhelp.adapter import PermanentError, UncertainWriteError
 from mailhelp.analysis import (
     Analyzer,
-    ContradictoryRevision,
     LlmInvalidJson,
     LlmProviderResponseInvalid,
     LlmSchemaValidationFailed,
@@ -34,6 +33,7 @@ from mailhelp.analysis import (
 )
 from mailhelp.application import _state_directory
 from mailhelp.config import OutputTokenRetry, Settings
+from mailhelp.domain.revision_errors import ContradictoryRevision
 from mailhelp.integrations import CalendarFileWriter
 from mailhelp.models import (
     ActionLedger,
@@ -53,6 +53,7 @@ from mailhelp.models import (
     apply_proposal_revision,
 )
 from mailhelp.openrouter import ProviderResponseInvalid
+from mailhelp.persistence.proposals import proposal_version_name
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import (
     Decision,
@@ -72,7 +73,6 @@ from mailhelp.telegram import (
     validate_callback_data,
     validate_callback_markup,
 )
-from mailhelp.telegram.persistence import proposal_version_name
 
 
 def test_telegram_date_only_successor_cannot_become_all_day():

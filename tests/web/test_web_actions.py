@@ -12,11 +12,11 @@ from web_scenario import mail_id, proposal, save_mail
 
 from mailhelp.domain.processing import ProposalClarificationState, ProposalRevisionStatus
 from mailhelp.models import ActionLedger, ActionLedgerEntry, Proposal, TelegramDialogState
+from mailhelp.persistence.ledger import ActionLedgerService
 from mailhelp.review.commands import CommandKind
 from mailhelp.review.inbox import MAX_QUEUED, CommandStatus
 from mailhelp.review.views import ReviewViews
 from mailhelp.telegram.dialog import STALE_BUTTON
-from mailhelp.telegram.ledger import ActionLedgerService
 from mailhelp.web.actions import proposal_actions
 
 MAIL1 = mail_id(1)

@@ -10,7 +10,7 @@ import sys
 from collections.abc import Callable
 from datetime import UTC, date, datetime, time
 from pathlib import Path
-from typing import Any, overload
+from typing import Any, Protocol, overload
 
 import yaml
 
@@ -42,12 +42,19 @@ _STAGES = ("relevance", "summary", "action_router", "task_extraction", "event_ex
 _EXPECTED_KEY = {"action_router": "action_route"}
 
 
+class LlmCompleter(Protocol):
+    """The paid completion call an evaluation may make (OpenRouter or a simulation)."""
+
+    # Any argument list: OpenRouter, Ollama and test doubles differ in their keyword metadata.
+    def complete(self, *args: Any, **kwargs: Any) -> Any: ...
+
+
 class EvaluationBudgetExceeded(RuntimeError):
     """No further paid call is authorized by this evaluation run."""
 
 
 class BoundedCompleter:
-    def __init__(self, client: object, max_calls: int):
+    def __init__(self, client: LlmCompleter, max_calls: int):
         if max_calls < 1:
             raise ValueError("max_calls muss positiv sein")
         self.client, self.max_calls, self.calls = client, max_calls, 0
@@ -226,7 +233,7 @@ def _context(mail: dict) -> MailDateContext:
     )
 
 
-def evaluate(corpus: dict, prompts: PromptConfig, client: object, max_calls: int,
+def evaluate(corpus: dict, prompts: PromptConfig, client: LlmCompleter, max_calls: int,
              progress: Callable[[dict], None] | None = None, *,
              decision_prompts: DecisionPrompts | None = None,
              decision_client: DecisionClient | None = None) -> dict:

@@ -40,7 +40,8 @@ class ActivityService:
         self.actor: ContextVar[str | None] = ContextVar("activity_actor", default=None)
         self.active: Callable[[str], bool] = lambda _actor: False
         self.blocked_senders: Callable[[], tuple[list[str], list[str]]] | None = None
-        self.mailbox_senders = None
+        # The sender rules of one mailbox (3.2); without them only the global list applies.
+        self.mailbox_senders: Callable[[int], Any] | None = None
 
     def check_actor(self) -> None:
         actor = self.actor.get()

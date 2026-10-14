@@ -1,5 +1,19 @@
 # Änderungen
 
+## 3.2.4 – beta: Planung 3.3, Phase 1 – Typprüfung und Entkopplung von Telegram
+
+- `mypy --check-untyped-defs` meldet keine Befunde mehr (vorher 18) und ist über `check_untyped_defs`
+  dauerhaft Teil der CI-Typprüfung. Dafür u. a. ein `LlmCompleter`-Protokoll für die Evaluation und
+  eindeutige Variablen in der Postfachseite.
+- Die deterministische Zeitauflösung liegt als `mailhelp.temporal_answers` außerhalb des Telegram-Pakets;
+  `analysis` und `mail_questions` importieren sie ohne späten Import. Die Revisionsfehler liegen in
+  `mailhelp.domain.revision_errors`; der Importkreis Analyse ↔ Telegram ist aufgelöst.
+- `ActionLedger` und `ProposalRepository` liegen in `mailhelp.persistence.ledger` bzw.
+  `mailhelp.persistence.proposals`. Ein Architekturtest begrenzt Telegram-Importe außerhalb des Pakets auf
+  Anwendung, Komposition, Orchestrator und Prüfdienst.
+- Testsuite ohne Warnungen (Pydantic-Serialisierung, Assertion-Rewrite der gemeinsamen Fakes).
+- Verhalten unverändert.
+
 ## 3.2.3 – beta: Planung 3.3 aktualisiert, Fehler in Antwortentwürfen behoben
 
 - **Fehler behoben:** Ein Betreff mit Zeilenumbrüchen gelangte unverändert in die `Subject`-Kopfzeile

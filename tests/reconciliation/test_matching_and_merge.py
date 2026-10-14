@@ -352,8 +352,9 @@ def test_manual_partial_date_is_not_overridden_and_invalid_interval_becomes_conf
 def test_analyzer_only_receives_bounded_comparison_fields_and_revisions_cannot_change_provenance():
     from shared_core import prompt_config
 
-    from mailhelp.analysis import Analyzer, ContradictoryRevision, validate_revision_successor
+    from mailhelp.analysis import Analyzer, validate_revision_successor
     from mailhelp.config import PromptStep
+    from mailhelp.domain.revision_errors import ContradictoryRevision
     first, second = candidate(1), candidate(2)
     payloads = []
     class Provider:

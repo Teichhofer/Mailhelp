@@ -20,10 +20,10 @@ from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict
 
-from ..analysis import ContradictoryRevision
-from ..domain.proposal import ProposalRevisionChanges
-from ..domain.temporal import TemporalResolutionStatus, YearSource
-from ..models import (
+from .domain.proposal import ProposalRevisionChanges
+from .domain.revision_errors import ContradictoryRevision
+from .domain.temporal import TemporalResolutionStatus, YearSource
+from .models import (
     Proposal,
     ProposalKind,
     ProposalRevisionDelta,

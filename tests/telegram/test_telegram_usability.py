@@ -12,10 +12,10 @@ from mailhelp.models import (
     RelevanceDialog,
     TelegramDialogState,
 )
+from mailhelp.persistence.proposals import clarification_name
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import Decision, DecisionAction, TelegramUpdate
 from mailhelp.telegram.formatting import clarification_prompt, display_date, format_proposal, revision_summary
-from mailhelp.telegram.persistence import clarification_name
 
 
 def deliver(c, update):

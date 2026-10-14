@@ -25,7 +25,6 @@ from mailhelp.analysis import (
     JSON_REPAIR_INSTRUCTION,
     SCHEMA_REPAIR_INSTRUCTION,
     Analyzer,
-    ContradictoryRevision,
     LlmInvalidJson,
     LlmProviderResponseInvalid,
     LlmSchemaValidationExceeded,
@@ -33,6 +32,7 @@ from mailhelp.analysis import (
     validate_revision_successor,
 )
 from mailhelp.config import OutputTokenRetry, TargetSettings, Topic
+from mailhelp.domain.revision_errors import ContradictoryRevision
 from mailhelp.imap import FetchedMail
 from mailhelp.integrations import CalendarFileWriter, HttpWriter, calendar_file, execute_confirmed
 from mailhelp.mime import MimeLimits

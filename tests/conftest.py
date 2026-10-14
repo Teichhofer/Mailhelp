@@ -29,7 +29,8 @@ for _folder in sorted(Path(__file__).resolve().parent.iterdir()):
     if _folder.is_dir() and _folder.name not in {"fixtures", "__pycache__"} and str(_folder) not in sys.path:
         sys.path.insert(0, str(_folder))
 
-pytest_plugins = ("shared_web_actions", "shared_web_auth", "shared_web_server", "shared_setup", "shared_profiles")
+# Plugins that others import come first, so pytest rewrites their assertions before the import.
+pytest_plugins = ("shared_web_auth", "shared_web_actions", "shared_web_server", "shared_setup", "shared_profiles")
 
 TEST_TEMP_ROOT = Path(
     os.environ.get("MAILHELP_TEST_TEMP")

@@ -391,7 +391,7 @@ def post_form(route: str, csrf: str, body: str, label: str = "Speichern", **hidd
 class ArchiveSite:
     def __init__(self, site, configuration=None, metrics=None, lifecycle=None, models=None):
         self.site, self.configuration, self.metrics, self.lifecycle = site, configuration, metrics, lifecycle
-        self.models = models or {}
+        self.models = models or []
         self.queries = ArchiveQueries(site.views.store, site.configured_timezone)
         routes = [("GET", "/mails", self.mails), ("GET", "/verlauf", self.history),
                   ("GET", "/auswertung", self.statistics), ("GET", "/einstellungen", self.settings),

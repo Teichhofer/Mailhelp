@@ -13,8 +13,8 @@ from mailhelp.domain.proposal import (
     ProposalStatus,
 )
 from mailhelp.integrations import HttpWriter
+from mailhelp.persistence.ledger import ActionLedgerEntry, ActionLedgerPort
 from mailhelp.precheck import DuplicatePreCheckService
-from mailhelp.telegram.ledger import ActionLedgerEntry, ActionLedgerPort
 
 
 class DummyLedger(ActionLedgerPort):

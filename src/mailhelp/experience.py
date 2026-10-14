@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from contextlib import contextmanager
 from threading import Event, Thread
 from typing import TYPE_CHECKING
@@ -104,7 +105,7 @@ class ExperienceRuntime:
             pages.suggest_folders = suggested
             pages.available_folders = lambda mailbox: available_report_folders(lambda: open_reader(mailbox))
             pages.with_unscheduled = settings.activity_report.export_mails_without_events
-        channels = {"local": lambda _text: None}
+        channels: dict[str, Callable[[str], object]] = {"local": lambda _text: None}
         if settings.telegram.enabled:
             channels["telegram"] = lambda text: app.telegram.send(settings.telegram.chat_id, text)
         if feature.push is not None:

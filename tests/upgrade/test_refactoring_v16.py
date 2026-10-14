@@ -136,7 +136,7 @@ def test_successor_builder_rejects_changed_identity_without_persisting(tmp_path)
     import pytest
     from web_scenario import Revisions, proposal
 
-    from mailhelp.analysis import ContradictoryRevision
+    from mailhelp.domain.revision_errors import ContradictoryRevision
     from mailhelp.telegram.revision_successor import build_revision_successor
     original = proposal(1, "edit")
     revised, deterministic = build_revision_successor(original, "Welche Änderung?", "Titel: Neuer Titel", "UTC", Revisions())

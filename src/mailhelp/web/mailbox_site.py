@@ -211,9 +211,9 @@ class MailboxSite:
         topics = app.orchestrator.topics
         state = self.runtime.setup.state()
         if state.kind == "topics" and state.category == "relevant":
-            changed = Topic.model_validate(state.patch)
-            topics = [changed if topic.id == changed.id else topic for topic in topics]
-        result = {}
+            edited = Topic.model_validate(state.patch)
+            topics = [edited if topic.id == edited.id else topic for topic in topics]
+        result: dict[int, int] = {}
         for name in mail_state_names(app.store):
             mail = app.store.peek_model(name, MailState)
             if mail is None or mail.steps.completion == "completed":

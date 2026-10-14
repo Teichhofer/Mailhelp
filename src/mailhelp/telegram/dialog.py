@@ -13,6 +13,7 @@ from ..domain.processing import (
 )
 from ..external.contracts import ExternalWriter
 from ..models import Proposal, ProposalStatus, RelevanceDialog, TelegramOffset
+from ..persistence.ledger import ActionLedgerPort, ActionLedgerService
 from ..review.commands import CommandKind, CommandSource
 from ..review.inbox import CommandInbox
 from ..review.results import ResultStatus, ReviewResult
@@ -20,7 +21,6 @@ from ..storage import JsonStore
 from .authorization import AuthorizedUpdateValidator, UpdateValidation
 from .callbacks import RelevanceDecision
 from .client import TelegramTransport
-from .ledger import ActionLedgerPort, ActionLedgerService
 from .models import TelegramUpdate
 from .outbox import TelegramOutbox, revision_paused
 from .receiver import TelegramInbox
@@ -108,9 +108,9 @@ class TelegramDialogController:
 
     def _compose(self, sequential_questions: bool) -> None:
         """Wire the services that share this dialog's state and transport."""
+        from ..persistence.proposals import ProposalRepository
         from .decisions import ProposalDecisionService
         from .delivery import ProposalDeliveryService
-        from .persistence import ProposalRepository
         from .presenter import ProposalPresenter
 
         store, telegram, user_id, chat_id = self.store, self.telegram, self.user_id, self.chat_id

@@ -10,15 +10,8 @@ import httpx
 from pydantic import ValidationError
 
 from ..adapter import RetryableError
-from ..analysis import (
-    ContradictoryRevision,
-    IncompleteUserAnswer,
-    LlmInvalidJson,
-    LlmProviderResponseInvalid,
-    LlmSchemaValidationFailed,
-    LlmTokenLimitExceeded,
-    TechnicalRevisionError,
-)
+from ..analysis import LlmInvalidJson, LlmProviderResponseInvalid, LlmSchemaValidationFailed, LlmTokenLimitExceeded
+from ..domain.revision_errors import ContradictoryRevision, IncompleteUserAnswer, TechnicalRevisionError
 from ..models import (
     AnswerStatus,
     Proposal,
@@ -28,11 +21,9 @@ from ..models import (
     QuestionStatus,
     TelegramDialogState,
 )
+from ..persistence.proposals import clarification_name, proposal_name
 from ..storage import JsonStore
-from .client import TelegramTransport
-from .persistence import clarification_name, proposal_name
-from .revision_contracts import EventLogger, ProposalRevisionService
-from .temporal import (
+from ..temporal_answers import (
     deterministic_classification_revision,
     deterministic_temporal_revision,
     expected_event_date,
@@ -40,6 +31,8 @@ from .temporal import (
     parse_deterministic_temporal_answer,
     relative_end_answer,
 )
+from .client import TelegramTransport
+from .revision_contracts import EventLogger, ProposalRevisionService
 
 
 @dataclass

@@ -24,9 +24,9 @@ from ..domain.processing import (
     TelegramOutboxState,
 )
 from ..models import Proposal, ProposalStatus, RelevanceDialog, RelevanceDialogStatus
+from ..persistence.proposals import ProposalRepository, clarification_name, proposal_name
 from ..storage import JsonStore
 from .client import TelegramTransport
-from .persistence import ProposalRepository, clarification_name, proposal_name
 from .revisions import EventLogger
 
 OUTBOX_NAME = "telegram-outbox"

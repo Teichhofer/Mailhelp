@@ -7,14 +7,14 @@ from typing import TYPE_CHECKING
 
 from ..domain.proposal import invalidate_creation_permissions
 from ..models import ActionLedgerEntry, Proposal, ProposalKind, ProposalStatus, TelegramDialogState
+from ..persistence.ledger import ActionLedgerPort
+from ..persistence.proposals import ProposalRepository
 from ..review.errors import AnswerRequired, StaleCommand
 from ..review.results import ResultStatus
 from ..storage import JsonStore
 from .callbacks import Decision, DecisionAction, apply_decision
 from .client import TelegramTransport
 from .formatting import clarification_prompt
-from .ledger import ActionLedgerPort
-from .persistence import ProposalRepository
 from .writes import ProposalPersistence, WriteExecution
 
 if TYPE_CHECKING:

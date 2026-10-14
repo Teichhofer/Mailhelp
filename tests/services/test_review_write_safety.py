@@ -13,8 +13,8 @@ from mailhelp.adapter import RetryableError
 from mailhelp.integrations import HttpWriter, execute_confirmed
 from mailhelp.models import ActionLedger, Proposal, ProposalStatus
 from mailhelp.openrouter import RateLimitExceeded
+from mailhelp.persistence.ledger import ActionLedgerService
 from mailhelp.storage import JsonStore
-from mailhelp.telegram.ledger import ActionLedgerService
 
 
 @pytest.mark.parametrize("kind", ["task", "event"])

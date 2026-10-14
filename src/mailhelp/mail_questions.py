@@ -3,14 +3,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .analysis import (
-    LlmSchemaValidationExceeded,
-    TechnicalRevisionError,
-)
+from .analysis import LlmSchemaValidationExceeded
+from .domain.revision_errors import TechnicalRevisionError
 from .models import (
     MailState,
     Proposal,
 )
+from .temporal_answers import deterministic_temporal_revision
 
 if TYPE_CHECKING:
     from .orchestrator import Orchestrator
@@ -86,8 +85,6 @@ class MailQuestions:
     def _revise_from_mail(self, state: MailState, proposal: Proposal, question: str,
                           answer: str) -> tuple[str | None, Proposal]:
         """Apply clear date and clock answers deterministically before the LLM."""
-        # Imported lazily: the telegram package owns the conservative parser.
-        from .telegram.temporal import deterministic_temporal_revision
         mail = state.prepared
         assert mail is not None
         deterministic = deterministic_temporal_revision(

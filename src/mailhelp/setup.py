@@ -4,7 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -15,7 +15,7 @@ from .notification_config import effective_profile
 
 
 def profile_patch(settings):
-    result = {}
+    result: dict[str, Any] = {}
     for section, value in effective_profile(settings).model_dump().items():
         if isinstance(value, dict):
             result.update((f"notifications.{section}.{name}", item) for name, item in value.items())

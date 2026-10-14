@@ -11,9 +11,9 @@ from ..external.confirmed import execute_confirmed
 from ..external.contracts import ExternalWriter, proposal_is_writable
 from ..external.roles import writer_for
 from ..models import Proposal, ProposalKind, ProposalStatus
+from ..persistence.ledger import ActionLedgerPort
 from ..storage import JsonStore
 from .client import TelegramTransport
-from .ledger import ActionLedgerPort
 
 
 class ProposalPersistence(Protocol):

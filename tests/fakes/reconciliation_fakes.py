@@ -8,10 +8,10 @@ from mailhelp.domain.proposal import DuplicateMatchInfo, DuplicateSource, Propos
 from mailhelp.imap import FetchedMail
 from mailhelp.models import ActionRoute, EventExtraction, ExtractedEvent, ExtractedTask, TaskExtraction
 from mailhelp.orchestrator import Orchestrator
+from mailhelp.persistence.proposals import ProposalRepository
 from mailhelp.precheck import DuplicatePreCheckService
 from mailhelp.review.views import ReviewViews
 from mailhelp.storage import JsonStore
-from mailhelp.telegram.persistence import ProposalRepository
 
 
 class Events(AnalyzerStub):

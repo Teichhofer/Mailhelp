@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from .. import state_names
 from ..models import AnswerStatus, Proposal, ProposalClarificationState, ProposalStatus, TelegramDialogState
+from ..persistence.proposals import clarification_name, proposal_name
 from .formatting import clarification_prompt
-from .persistence import clarification_name, proposal_name
 
 HELP = (
     "Mailhelp – Befehle\n"

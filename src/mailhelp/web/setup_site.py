@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any, cast
 
 import yaml
 
@@ -94,7 +95,8 @@ def input_field(name, value, choices=None, label=None):
 
 class SetupSite:
     def __init__(self, site):
-        self.site, self.runtime = site, None
+        # The SetupRuntime, attached once the services exist.
+        self.site, self.runtime = site, cast(Any, None)
         for method, path, handler in (
             ("GET", "/einrichtung", self.setup), ("POST", "/einrichtung/speichern", self.save),
             ("POST", "/einrichtung/uebernehmen", self.apply), ("GET", "/diagnose", self.diagnose),
@@ -150,13 +152,14 @@ class SetupSite:
                 else:
                     choices = listed.get("folders") or None
             if name.startswith("notifications.categories."):
-                choices = ["[]"]
+                channels = ["[]"]
                 if raw["telegram"]["enabled"]:
-                    choices.append('["telegram"]')
+                    channels.append('["telegram"]')
                 if raw["push"]["enabled"]:
-                    choices.append('["web_push"]')
+                    channels.append('["web_push"]')
                 if raw["telegram"]["enabled"] and raw["push"]["enabled"]:
-                    choices.append('["telegram", "web_push"]')
+                    channels.append('["telegram", "web_push"]')
+                choices = tuple(channels)
             body += post_form("/einrichtung/speichern", csrf, input_field(name, value, choices,
                                                                         field_label(raw, name)),
                               "Entwurf speichern", name=name, version=state.version, step=step)
