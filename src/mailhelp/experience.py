@@ -12,7 +12,7 @@ from .activity.service import ActivityService
 from .activity.store import ActivityReportStore
 from .briefing import DailyBriefingService
 from .drafts import DraftService
-from .imap import ImapReader
+from .imap import ImapReader, reader_arguments
 from .webpush import PushService
 
 ACTIVITY_PROMPTS = {"activity_relevance", "activity_events"}
@@ -20,14 +20,17 @@ if TYPE_CHECKING:
     from .notification_runtime import NotificationRuntime
 
 
+def _mailbox(settings):
+    """The mailbox of drafts, reports and setup probes; 3.1 phase 1 has exactly one enabled mailbox."""
+    return settings.imap.enabled_mailboxes()[0]
+
+
 @contextmanager
 def _reader(settings, secrets):
     """One IMAP session; closed again on every exit."""
-    import imaplib
-    factory = imaplib.IMAP4_SSL if settings.imap.connection_mode == "ssl" else imaplib.IMAP4
-    reader = ImapReader(settings.imap.host, settings.imap.port, secrets.imap_username,
-        secrets.imap_password.get_secret_value(), settings.timeouts.imap.timeout_seconds,
-        factory=factory, starttls=settings.imap.connection_mode == "starttls")
+    mailbox = _mailbox(settings)
+    address, options = reader_arguments(mailbox, secrets.imap_credentials(mailbox.id))
+    reader = ImapReader(*address, settings.timeouts.imap.timeout_seconds, **options)
     try:
         yield reader
     finally:
@@ -51,7 +54,8 @@ class ExperienceRuntime:
                 with _reader(settings, secrets) as reader:
                     yield reader.connection
             feature.drafts = DraftService(app.store, components.auth.active, connection,
-                secrets.imap_username, settings.imap.drafts_folder, settings.test_mode, app.analyzer,
+                secrets.imap_credentials(_mailbox(settings).id).username, _mailbox(settings).drafts_folder,
+                settings.test_mode, app.analyzer,
                 lambda: app.settings.personal_info)
         self.activity = None
         # Activity reports only read the mailbox; without both prompts they stay off.
@@ -68,7 +72,7 @@ class ExperienceRuntime:
                 settings, app.logger, llm_calls_per_minute=lambda: app.settings.limits.llm_calls_per_minute)
             pages = self.site.activity
             pages.service = service
-            pages.suggest_folders = lambda: default_report_folders(open_reader, app.settings.imap.folders)
+            pages.suggest_folders = lambda: default_report_folders(open_reader, _mailbox(app.settings).folders)
             pages.available_folders = lambda: available_report_folders(open_reader)
             pages.with_unscheduled = settings.activity_report.export_mails_without_events
         channels = {"local": lambda _text: None}

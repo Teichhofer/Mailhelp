@@ -90,6 +90,10 @@ class SettingsStub:
     class Imap:
         folders = ["INBOX"]
         historical_start = None
+        primary_folder = "INBOX"
+
+        def enabled_mailboxes(self):
+            return [self]
     imap = Imap()
 
 def raw_mail():

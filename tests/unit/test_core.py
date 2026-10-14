@@ -211,7 +211,7 @@ def test_yaml_and_dotenv_parsing(tmp_path):
 def test_load_all_reads_the_shipped_configuration_and_validates_topics(tmp_path):
     env = shipped_configuration(tmp_path)
     settings, secrets, topics, irrelevant_topics, prompts, fingerprint = load_all(tmp_path, env)
-    assert not settings.test_mode and secrets.imap_password.get_secret_value() == "secret" and topics[0].enabled and len(fingerprint) == 64
+    assert not settings.test_mode and secrets.imap_credentials(1).password.get_secret_value() == "secret" and topics[0].enabled and len(fingerprint) == 64
     expected_irrelevant_topics = IrrelevantTopicsConfig.model_validate(
         read_yaml(Path("irrelevant_topics.yaml"))
     ).topics
@@ -221,7 +221,7 @@ def test_load_all_reads_the_shipped_configuration_and_validates_topics(tmp_path)
     assert settings.logging.llm.include_responses is True
     with pytest.raises(ValueError, match="Fehlende"): load_all(tmp_path, {})
     (tmp_path / ".env").write_text("\n".join(f"{key}=from-file" for key in env), encoding="utf8")
-    assert load_all(tmp_path, {"IMAP_USERNAME": "runtime"})[1].imap_username == "runtime"
+    assert load_all(tmp_path, {"IMAP_USERNAME": "runtime"})[1].imap_credentials(1).username == "runtime"
     (tmp_path / ".env").unlink()
     (tmp_path / "topics.yaml").write_text("topics: []", encoding="utf8")
     with pytest.raises(ValueError, match="topics"): load_all(tmp_path, env)

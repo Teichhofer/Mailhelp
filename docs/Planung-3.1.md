@@ -4,7 +4,7 @@
 
 **Stand:** 14. Oktober 2026
 
-**Status:** Planung (Entscheidungen vom 14. Oktober 2026 eingearbeitet; Umsetzung nach Release 3.0.0)
+**Status:** In Umsetzung – Phase 1 (Verträge) umgesetzt in 3.0.1; Entscheidungen vom 14. Oktober 2026 eingearbeitet
 **Grundlage:** [Planung 3.0](Planung-3.0.md), [Planung 3.2](Planung-3.2.md), [Release 3.0](Release-3.0.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Entwicklungsregeln](../AGENTS.md)
 
 ## 1. Ziel und Umfang

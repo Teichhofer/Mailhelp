@@ -19,6 +19,10 @@ stays the same after the upgrade.
 The 2.0 sections (Web-Push, reply drafts, daily briefing, standalone mode) act
 only after the analysis.  They are removed from every fingerprint, including the
 legacy ones, so an unchanged 1.x configuration keeps all of its fingerprints.
+
+Mailboxes (3.1) decide where mail comes from, not how it is analysed: ``imap`` is
+operational. Until 3.0 it was part of the fingerprint; for mailbox 1 the former
+``imap`` section is reproduced exactly, so mails started before the upgrade continue.
 """
 
 from __future__ import annotations
@@ -28,7 +32,7 @@ import hashlib
 import json
 from typing import Any
 
-from .config import PromptConfig, Settings, Topic
+from .config import MAILBOX_FIELDS, PromptConfig, Settings, Topic
 from .storage import JsonStore
 
 # Sections and fields introduced by 2.0 and later; they never influence an analysis.
@@ -39,8 +43,9 @@ EXPERIENCE_FIELDS = (("imap", "drafts_folder"), ("telegram", "enabled"), ("reten
                      *(("targets", name) for name in ("calendar_provider", "task_provider", "caldav_calendar_url",
                                                       "caldav_task_url", "outlook_calendar", "microsoft_todo_list",
                                                       "microsoft_tenant")))
-OPERATIONAL = frozenset({"web", "metrics", "retention", "logging", "learning", "poll_interval_seconds",
-                         "timeouts", "retries", *EXPERIENCE})
+OPERATIONAL_BEFORE_3_1 = frozenset({"web", "metrics", "retention", "logging", "learning", "poll_interval_seconds",
+                                    "timeouts", "retries", *EXPERIENCE})
+OPERATIONAL = OPERATIONAL_BEFORE_3_1 | {"imap"}
 # Preparation-only settings and prompt steps (see module documentation).
 PREPARATION = frozenset({"vision", "attachments"})
 PREPARATION_PROMPTS = frozenset({
@@ -51,8 +56,20 @@ def _hash(value: Any) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
 
 
+def _imap_before_3_1(settings: Settings) -> dict[str, Any] | None:
+    """The ``imap`` section as releases before 3.1 dumped it, built from mailbox 1."""
+    mailbox = settings.imap.mailbox(1)
+    if mailbox is None:
+        return None
+    return {**mailbox.model_dump(mode="json", include=set(MAILBOX_FIELDS)),
+            "batch_size": settings.imap.batch_size, "global_newest_first": settings.imap.global_newest_first}
+
+
 def _settings(settings: Settings, exclude: set[str]) -> dict[str, Any]:
     value = settings.model_dump(mode="json", exclude=exclude | EXPERIENCE)
+    if "imap" in value:
+        # Only the fingerprints of former releases still contain the section.
+        value["imap"] = _imap_before_3_1(settings)
     for section, name in EXPERIENCE_FIELDS:
         # A section may itself be excluded (retention is operational for the analysis).
         if section in value:
@@ -84,20 +101,28 @@ def proposal_match_policy(prompts: PromptConfig) -> str:
 
 
 def legacy_fingerprints(settings: Settings, prompts: PromptConfig, topics: list[Topic]) -> set[str]:
-    """Fingerprints that 1.1 and the 1.2 beta computed for this same configuration."""
+    """Fingerprints that 1.1, the 1.2 beta and 1.2 to 3.0 computed for this same configuration.
+
+    Without a mailbox 1 there is no former ``imap`` section and no former fingerprint.
+    """
+    if _imap_before_3_1(settings) is None:
+        return set()
     beta = _settings(settings, {"web", *PREPARATION})
     release_1_1 = copy.deepcopy(beta)
     release_1_1.pop("metrics")
     release_1_1["retention"] = {key: value for key, value in release_1_1["retention"].items()
                                 if key not in {"analysis_days", "history_days"}}
+    release_3_0 = _settings(settings, set(OPERATIONAL_BEFORE_3_1 | PREPARATION))
     rest = [analysis_prompts(prompts), [topic.model_dump() for topic in topics]]
-    return {_hash([release_1_1, *rest]), _hash([beta, *rest])}
+    return {_hash([release_1_1, *rest]), _hash([beta, *rest]), _hash([release_3_0, *rest])}
 
 
 def legacy_policies(settings: Settings, prompts: PromptConfig) -> set[str]:
-    """Topic policies written by the 1.2 beta."""
-    return {_hash([_settings(settings, {"web", "metrics", "retention", *PREPARATION}),
-                   analysis_prompts(prompts)])}
+    """Topic policies written by the 1.2 beta and by 1.2 to 3.0."""
+    if _imap_before_3_1(settings) is None:
+        return set()
+    return {_hash([_settings(settings, {"web", "metrics", "retention", *PREPARATION}), analysis_prompts(prompts)]),
+            _hash([_settings(settings, set(OPERATIONAL_BEFORE_3_1 | PREPARATION)), analysis_prompts(prompts)])}
 
 
 def adopt_legacy_configuration(store: JsonStore, fingerprint: str, legacy: set[str], policy: str,

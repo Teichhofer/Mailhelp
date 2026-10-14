@@ -394,7 +394,8 @@ def test_setup_remains_available_when_the_mailbox_cannot_authenticate(tmp_path, 
     cfg = settings(tmp_path)
     cfg.web.enabled = True
     (tmp_path / "config.yaml").write_text(yaml.safe_dump(cfg.model_dump(mode="json")), encoding="utf-8")
-    secret = Secrets(**{name: "s" * 40 for name in Secrets.model_fields})
+    secret = Secrets(**{name: "s" * 40 for name in Secrets.model_fields if name != "imap"},
+                     imap={1: {"username": "s" * 40, "password": "s" * 40}})
     class Resource:
         def __init__(self, *args, **kw):
             pass

@@ -11,6 +11,7 @@ from pydantic import SecretStr
 from mailhelp.adapter import RetryPolicy
 from mailhelp.application import Application
 from mailhelp.cli import main
+from mailhelp.config import ImapSettings
 from mailhelp.imap import ImapReader
 from mailhelp.integrations import GoogleOAuthTokenProvider, HttpWriter
 from mailhelp.logging import JsonlLogger, NullLogger
@@ -103,7 +104,7 @@ def test_todoist_access_errors_reach_cli_without_secrets(
         logger=logger,
     )
     application = SimpleNamespace(
-        settings=SimpleNamespace(imap=SimpleNamespace(folders=["INBOX"])),
+        settings=SimpleNamespace(imap=ImapSettings.model_validate({"host": "h", "port": 993, "folders": ["INBOX"]})),
         imap=Check(), openrouter=Check(), telegram=Check(), todoist=writer,
         calendar=Check(),
     )
@@ -160,7 +161,7 @@ def test_application_access_check_runs_every_check_after_errors():
     telegram, todoist, calendar = Check(), Check(), Check()
     application = SimpleNamespace(
         settings=SimpleNamespace(
-            imap=SimpleNamespace(folders=["INBOX"]),
+            imap=ImapSettings.model_validate({"host": "h", "port": 993, "folders": ["INBOX"]}),
             telegram=SimpleNamespace(chat_id=12345), timezone="Europe/Berlin",
         ),
         imap=imap, openrouter=openrouter, telegram=telegram,
@@ -190,9 +191,9 @@ def test_optional_imap_access_failure_does_not_hide_primary_success():
     imap.check_access = selective
     application = SimpleNamespace(
         settings=SimpleNamespace(
-            imap=SimpleNamespace(
-                folders=["Posteingang", "Entwürfe", "Gesendet"],
-                primary_folder="Posteingang"),
+            imap=ImapSettings.model_validate({
+                "host": "h", "port": 993, "folders": ["Posteingang", "Entwürfe", "Gesendet"],
+                "primary_folder": "Posteingang"}),
             telegram=SimpleNamespace(chat_id=1), timezone="UTC"),
         logger=NullLogger(), imap=imap, openrouter=Check(), telegram=Check(),
         todoist=Check(), calendar=Check(),
@@ -208,7 +209,7 @@ def test_application_reports_telegram_test_message_failure_and_skips_send_if_bot
     ):
         application = SimpleNamespace(
             settings=SimpleNamespace(
-                imap=SimpleNamespace(folders=["INBOX"]),
+                imap=ImapSettings.model_validate({"host": "h", "port": 993, "folders": ["INBOX"]}),
                 telegram=SimpleNamespace(chat_id=7), timezone="UTC",
             ),
             imap=Check(), openrouter=Check(), telegram=telegram,
@@ -236,7 +237,7 @@ def test_application_explains_chat_id_mismatch_from_start_update():
     ):
         application = SimpleNamespace(
             settings=SimpleNamespace(
-                imap=SimpleNamespace(folders=["INBOX"]),
+                imap=ImapSettings.model_validate({"host": "h", "port": 993, "folders": ["INBOX"]}),
                 telegram=SimpleNamespace(user_id=42, chat_id=7), timezone="UTC",
             ),
             imap=Check(), openrouter=Check(), telegram=MissingChat(chats),
@@ -262,7 +263,7 @@ def test_application_distinguishes_oauth_failure_without_logging_response_secret
         transport=response_transport({}), calendar_timezone="UTC",
     )
     application = SimpleNamespace(
-        settings=SimpleNamespace(imap=SimpleNamespace(folders=["INBOX"])),
+        settings=SimpleNamespace(imap=ImapSettings.model_validate({"host": "h", "port": 993, "folders": ["INBOX"]})),
         logger=logger, imap=Check(), openrouter=Check(), telegram=Check(),
         todoist=Check(), calendar=calendar,
     )
@@ -310,7 +311,7 @@ def test_cli_access_check_can_explicitly_show_exact_imap_credentials(monkeypatch
     username = "user.name@example.test"
     password = "line one\nline two\tä"
     secrets = SimpleNamespace(
-        imap_username=username, imap_password=SecretStr(password),
+        imap={1: SimpleNamespace(username=username, password=SecretStr(password))},
     )
     logger = type("Logger", (), {"event": lambda *_args, **_kwargs: None})()
 

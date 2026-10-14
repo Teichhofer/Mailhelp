@@ -113,6 +113,19 @@ vision:
   max_edge_pixels: 1600
 learning:
   parallel_llm_calls: 10
+# 3.1: Alternativ zu den Postfachfeldern direkt unter imap (Postfach 1) eine Liste
+# imap.mailboxes mit stabiler Nummer id (1–99) und Anzeigename label, z. B.
+#   imap:
+#     batch_size: 25
+#     global_newest_first: true
+#     mailboxes:
+#     - id: 1                 # Zugangsdaten IMAP_1_USERNAME/IMAP_1_PASSWORD
+#       label: Privat
+#       host: imap.example.test
+#       port: 993
+#       folders: [INBOX]
+# Beide Schreibweisen gleichzeitig sind ungültig. Postfachangaben ändern keinen
+# Analyse-Fingerprint; laufende Mails werden dadurch nicht zurückgehalten.
 imap:
   drafts_folder: Drafts  # Unicode erlaubt; muss auf dem IMAP-Server existieren
   host: imap.example.test

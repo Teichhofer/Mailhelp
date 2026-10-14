@@ -6,7 +6,7 @@ import re
 from collections.abc import Callable
 from enum import StrEnum
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
@@ -111,6 +111,25 @@ for section, fields in {
 }.items():
     SETUP_FIELDS.update(f"notifications.{section}.{name}" for name in fields)
 SETUP_FIELDS.add("notifications.telegram_content")
+# Mailbox fields of the 3.1 format; the index is the position in imap.mailboxes.
+MAILBOX_SETUP_FIELDS = ("host", "port", "connection_mode", "folders", "primary_folder", "drafts_folder")
+_MAILBOX_SETUP_FIELD = re.compile(r"^imap\.mailboxes\.[0-9]\.(?:" + "|".join(MAILBOX_SETUP_FIELDS) + r")$")
+
+
+def offered(name: str, setup: bool) -> bool:
+    """Whether the web interface offers *name* for editing."""
+    if setup and _MAILBOX_SETUP_FIELD.match(name):
+        return True
+    return name in (SETUP_FIELDS if setup else SETTINGS_FIELDS)
+
+
+def set_dotted(document: dict, dotted: str, value: object) -> None:
+    """Set *dotted* in *document*; numeric parts index lists (``imap.mailboxes.0.host``)."""
+    *parents, name = dotted.split(".")
+    target: Any = document
+    for part in parents:
+        target = target[int(part)] if isinstance(target, list) else target.setdefault(part, {})
+    target[int(name) if isinstance(target, list) else name] = value
 
 
 STEP_LABELS = {
@@ -152,16 +171,15 @@ def apply_settings(raw: dict, patch: dict, acknowledged: bool, *, setup: bool = 
     candidate = copy.deepcopy(raw)
     if candidate.get("notifications") is None and any(name.startswith("notifications.") for name in patch):
         candidate.pop("notifications", None)
-    if set(patch) - (SETUP_FIELDS if setup else SETTINGS_FIELDS):
+    if not all(offered(name, setup) for name in patch):
         raise ValueError("Nicht angebotene Einstellung")
     if patch and not acknowledged:
         raise ValueError("Änderungen und ihre Folgen müssen bestätigt werden")
     for dotted, value in patch.items():
-        parts = dotted.split(".")
-        target = candidate
-        for part in parts[:-1]:
-            target = target.setdefault(part, {})
-        target[parts[-1]] = value
+        try:
+            set_dotted(candidate, dotted, value)
+        except (IndexError, TypeError) as exc:
+            raise ValueError("Nicht angebotene Einstellung") from exc
     Settings.model_validate(candidate)
     return candidate
 

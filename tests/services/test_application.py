@@ -1603,7 +1603,7 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
     cfg.logging.console.enabled = False
     cfg.logging.console.level = "ERROR"
     cfg.logging.modules = {"access_check": "CRITICAL"}
-    sec=Secrets(imap_username="u",imap_password="p",openrouter_api_key="o",telegram_bot_token="t",todoist_token="d",todoist_client_id="ti",todoist_client_secret="ts",google_oauth_client_id="i",google_oauth_client_secret="s",google_oauth_refresh_token="r")
+    sec=Secrets(imap={1:{"username":"u","password":"p"}},openrouter_api_key="o",telegram_bot_token="t",todoist_token="d",todoist_client_id="ti",todoist_client_secret="ts",google_oauth_client_id="i",google_oauth_client_secret="s",google_oauth_refresh_token="r")
     topic=[Topic(id="x",name="x",enabled=True,description="x")]
     diagnostics = mode == "ssl"
     supplied_logger = build_logger(cfg, sec, tmp_path) if mode == "starttls" else None
@@ -1699,7 +1699,7 @@ def test_local_ollama_mode_replaces_openrouter(tmp_path, monkeypatch):
     monkeypatch.setattr("mailhelp.external.providers.GoogleOAuthTokenProvider", Resource)
     cfg = settings(tmp_path)
     cfg.logging.file.enabled = cfg.logging.console.enabled = False
-    sec = Secrets(imap_username="u", imap_password="p", openrouter_api_key="o",
+    sec = Secrets(imap={1: {"username": "u", "password": "p"}}, openrouter_api_key="o",
                   telegram_bot_token="t", todoist_token="d", todoist_client_id="ti",
                   todoist_client_secret="ts", google_oauth_client_id="i",
                   google_oauth_client_secret="s", google_oauth_refresh_token="r")
@@ -1739,7 +1739,7 @@ def test_vision_ocr_is_wired_only_when_enabled_and_prompted(tmp_path, monkeypatc
     cfg = settings(tmp_path)
     cfg.logging.file.enabled = cfg.logging.console.enabled = False
     cfg.vision.enabled = enabled
-    sec = Secrets(imap_username="u", imap_password="p", openrouter_api_key="o",
+    sec = Secrets(imap={1: {"username": "u", "password": "p"}}, openrouter_api_key="o",
                   telegram_bot_token="t", todoist_token="d", todoist_client_id="ti",
                   todoist_client_secret="ts", google_oauth_client_id="i",
                   google_oauth_client_secret="s", google_oauth_refresh_token="r")

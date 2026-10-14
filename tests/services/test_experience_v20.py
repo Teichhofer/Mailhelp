@@ -13,7 +13,7 @@ import requests
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from PIL import Image
-from pydantic import ValidationError
+from pydantic import SecretStr, ValidationError
 from pywebpush import WebPushException
 from shared_vision import image_bytes, mail
 from shared_web_actions import MAIL1
@@ -23,7 +23,7 @@ from web_scenario import mail_id, populate
 from mailhelp.adapter import RetryableError
 from mailhelp.attachments import AttachmentCache
 from mailhelp.briefing import DailyBriefingService
-from mailhelp.config import DailyBriefingSettings, Settings
+from mailhelp.config import DailyBriefingSettings, ImapCredentials, Secrets, Settings
 from mailhelp.drafts import DraftService, ReplyDraft, message
 from mailhelp.models import MailState
 from mailhelp.standalone import DisabledTelegram
@@ -614,7 +614,7 @@ def test_runtime_composes_services_and_ticks_without_external_io(web, tmp_path, 
         calendar=NS(fetch_events_in_window=lambda *a, **kw: []), todoist=NS(fetch_active_tasks=lambda: []),
         analyzer=NS(draft_reply=lambda mail, intent, info: ("call", ReplyDraft(text="Danke")),
                     prompts=NS(prompts={"draft_reply": object()})), logger=Log())
-    runtime = ExperienceRuntime(app, NS(site=web.site, auth=web.auth), NS(imap_username="me@test", imap_password=SecretStr("fake")))
+    runtime = ExperienceRuntime(app, NS(site=web.site, auth=web.auth), Secrets.model_construct(imap={1: ImapCredentials(username="me@test", password=SecretStr("fake"))}))
     pushes = []
     web.site.experience.push.notify = lambda *a: pushes.append(a)
     runtime.tick()
@@ -662,7 +662,8 @@ def test_standalone_config_loading_and_composition(tmp_path, monkeypatch, capsys
     (tmp_path / "config.yaml").write_text(yaml.safe_dump(cfg.model_dump(mode="json")), encoding="utf8")
     (tmp_path / "prompts.yaml").write_text(yaml.safe_dump(prompt_config().model_dump(mode="json")), encoding="utf8")
     (tmp_path / "topics.yaml").write_text("topics:\n- id: x\n  name: x\n  enabled: true\n  description: x\n", encoding="utf8")
-    env = {name.upper(): "synthetic" for name in Secrets.model_fields if name not in {"mailhelp_web_secret", "telegram_bot_token"}}
+    env = {name.upper(): "synthetic" for name in Secrets.model_fields if name not in {"mailhelp_web_secret", "telegram_bot_token", "imap"}}
+    env.update(IMAP_USERNAME="synthetic", IMAP_PASSWORD="synthetic")
     env["MAILHELP_WEB_SECRET"] = "s" * 40
     loaded = load_all(tmp_path, env)
     assert loaded[1].telegram_bot_token.get_secret_value() == ""
@@ -719,9 +720,14 @@ def test_experience_settings_preserve_16_analysis_fingerprint(tmp_path):
     from shared_core import prompt_config
 
     from mailhelp.config import PromptStep
-    from mailhelp.fingerprints import _hash, analysis_prompts, config_fingerprint
+    from mailhelp.fingerprints import _hash, analysis_prompts, config_fingerprint, legacy_fingerprints
     cfg, prompts = settings(tmp_path), prompt_config()
     before = config_fingerprint(cfg, prompts, [])
+    legacy = cfg.model_dump(mode="json")
+    # The imap section as 1.6 dumped it (3.1 made it operational).
+    legacy["imap"] = {"host": "h", "port": 993, "folders": ["INBOX"], "primary_folder": "INBOX",
+                      "connection_mode": "ssl", "historical_start": None, "batch_size": 25,
+                      "global_newest_first": False}
     cfg.push.enabled = cfg.smart_reply = cfg.daily_briefing.enabled = True
     cfg.web.enabled = True
     cfg.telegram.enabled = False
@@ -729,10 +735,8 @@ def test_experience_settings_preserve_16_analysis_fingerprint(tmp_path):
     cfg.personal_info = "Max Mustermann"
     prompts.prompts["draft_reply"] = PromptStep(system_prompt="Draft")
     assert config_fingerprint(cfg, prompts, []) == before
-    legacy = cfg.model_dump(mode="json")
     for name in ("push", "smart_reply", "personal_info", "activity_report", "notifications", "daily_briefing", "vision", "web", "metrics", "retention", "logging", "learning", "poll_interval_seconds", "timeouts", "retries"):
         legacy.pop(name)
-    legacy["imap"].pop("drafts_folder")
     legacy["telegram"].pop("enabled")
     # 2.3 fields did not exist in 1.6 either.
     legacy.pop("attachments")
@@ -741,7 +745,7 @@ def test_experience_settings_preserve_16_analysis_fingerprint(tmp_path):
     for name in ("calendar_provider", "task_provider", "caldav_calendar_url", "caldav_task_url",
                  "outlook_calendar", "microsoft_todo_list", "microsoft_tenant"):
         legacy["targets"].pop(name)
-    assert before == _hash([legacy, analysis_prompts(prompts), []])
+    assert _hash([legacy, analysis_prompts(prompts), []]) in legacy_fingerprints(cfg, prompts, [])
 
 
 def usable_from_another_thread(store):
@@ -894,7 +898,7 @@ def test_background_never_calls_the_model_for_drafts_and_sections_stay_isolated(
              analyzer=NS(draft_reply=lambda *a: pytest.fail("no background draft"),
                          prompts=NS(prompts={"draft_reply": object()})))
     runtime = ExperienceRuntime(app, NS(site=web.site, auth=web.auth),
-                                NS(imap_username="me@test", imap_password=None))
+                                Secrets.model_construct(imap={1: ImapCredentials(username="me@test", password=SecretStr("unused"))}))
     assert web.site.experience.drafts.analyzer is app.analyzer
     # The personal information is read on every click, so a live change applies at once.
     assert web.site.experience.drafts.personal_info() == ""

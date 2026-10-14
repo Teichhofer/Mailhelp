@@ -21,54 +21,80 @@ class ConfigModel(BaseModel):
     model_config = ConfigDict(extra="forbid", strict=True)
 
 
-class ImapSettings(ConfigModel):
+def _default_primary_to_first_folder(value: object) -> object:
+    # Backwards-compatible loading gives old configurations the same clear
+    # semantics: their first source is required, all following ones optional.
+    if isinstance(value, dict) and "primary_folder" not in value:
+        folders = value.get("folders")
+        if isinstance(folders, list) and folders:
+            value = {**value, "primary_folder": folders[0]}
+    return value
+
+
+def _valid_historical_start(value: object) -> datetime | None:
+    if isinstance(value, str):
+        value = re.sub(r"^(\d{4}-\d{2}-\d{2})\s*T\s*", r"\1T", value.strip())
+        try:
+            value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError as exc:
+            raise ValueError("historical_start muss ISO 8601 entsprechen") from exc
+    if value is not None and not isinstance(value, datetime):
+        raise ValueError("historical_start muss ein Zeitpunkt oder null sein")
+    if value is not None and value.tzinfo is None:
+        raise ValueError("historical_start muss einen UTC-Offset enthalten")
+    return value
+
+
+def _valid_folders(folders: list[str] | None) -> list[str] | None:
+    if folders is None:
+        return None
+    if any(not folder.strip() or "\x00" in folder for folder in folders):
+        raise ValueError("Ordnernamen dürfen nicht leer sein oder NUL enthalten")
+    if len(folders) != len(set(folders)):
+        raise ValueError("Ordnernamen dürfen nicht doppelt vorkommen")
+    return folders
+
+
+ConnectionMode = Literal["ssl", "starttls", "plain"]
+DraftsFolder = Annotated[str, Field(min_length=1, max_length=500, pattern=r"^[^\x00-\x1f\x7f]+$")]
+# Fields of one mailbox; before 3.1 they were written directly below ``imap``.
+MAILBOX_FIELDS = ("host", "port", "folders", "primary_folder", "connection_mode", "historical_start",
+                  "drafts_folder")
+# Upper bound of configured mailboxes; 3.1 phase 1 still processes exactly one.
+MAX_MAILBOXES = 1
+
+
+class MailboxSettings(ConfigModel):
+    """One IMAP mailbox (3.1). ``id`` is stable and names its secrets ``IMAP_<id>_…``."""
+
+    id: int = Field(ge=1, le=99)
+    label: str = Field(default="Postfach", min_length=1, max_length=40, pattern=r"^[^\x00-\x1f\x7f]+$")
+    enabled: bool = True
     host: str = Field(min_length=1, max_length=253)
     port: int = Field(ge=1, le=65535)
     folders: list[str] = Field(min_length=1, max_length=100)
     primary_folder: str = "INBOX"
-    connection_mode: Literal["ssl", "starttls", "plain"] = "ssl"
+    connection_mode: ConnectionMode = "ssl"
     historical_start: datetime | None = None
-    batch_size: int = Field(default=25, ge=1, le=1000)
-    global_newest_first: bool = False
-    drafts_folder: str = Field(default="Drafts", min_length=1, max_length=500, pattern=r"^[^\x00-\x1f\x7f]+$")
+    drafts_folder: DraftsFolder = "Drafts"
 
     @model_validator(mode="before")
     @classmethod
     def default_primary_to_first_folder(cls, value: object) -> object:
-        # Backwards-compatible loading gives old configurations the same clear
-        # semantics: their first source is required, all following ones optional.
-        if isinstance(value, dict) and "primary_folder" not in value:
-            folders = value.get("folders")
-            if isinstance(folders, list) and folders:
-                value = {**value, "primary_folder": folders[0]}
-        return value
+        return _default_primary_to_first_folder(value)
 
     @field_validator("historical_start", mode="before")
     @classmethod
     def valid_historical_start(cls, value: object) -> datetime | None:
-        if isinstance(value, str):
-            value = re.sub(r"^(\d{4}-\d{2}-\d{2})\s*T\s*", r"\1T", value.strip())
-            try:
-                value = datetime.fromisoformat(value.replace("Z", "+00:00"))
-            except ValueError as exc:
-                raise ValueError("historical_start muss ISO 8601 entsprechen") from exc
-        if value is not None and not isinstance(value, datetime):
-            raise ValueError("historical_start muss ein Zeitpunkt oder null sein")
-        if value is not None and value.tzinfo is None:
-            raise ValueError("historical_start muss einen UTC-Offset enthalten")
-        return value
+        return _valid_historical_start(value)
 
     @field_validator("folders")
     @classmethod
-    def valid_folders(cls, folders: list[str]) -> list[str]:
-        if any(not folder.strip() or "\x00" in folder for folder in folders):
-            raise ValueError("Ordnernamen dürfen nicht leer sein oder NUL enthalten")
-        if len(folders) != len(set(folders)):
-            raise ValueError("Ordnernamen dürfen nicht doppelt vorkommen")
-        return folders
+    def valid_folders(cls, folders: list[str]) -> list[str] | None:
+        return _valid_folders(folders)
 
     @model_validator(mode="after")
-    def primary_is_configured(self) -> ImapSettings:
+    def primary_is_configured(self) -> MailboxSettings:
         """The primary inbox is required; every other configured folder is optional."""
         if self.primary_folder not in self.folders:
             raise ValueError("primary_folder muss in folders enthalten sein")
@@ -81,6 +107,87 @@ class ImapSettings(ConfigModel):
     @property
     def optional_folders(self) -> tuple[str, ...]:
         return tuple(folder for folder in self.folders if folder != self.primary_folder)
+
+    @property
+    def secret_names(self) -> tuple[str, str]:
+        return f"IMAP_{self.id}_USERNAME", f"IMAP_{self.id}_PASSWORD"
+
+
+class ImapSettings(ConfigModel):
+    """Shared fetch parameters and either ``mailboxes`` (3.1) or one mailbox in the format before 3.1.
+
+    The former format keeps its exact field paths in error messages and its exact
+    fingerprint; :meth:`configured_mailboxes` presents both formats uniformly.
+    """
+
+    batch_size: int = Field(default=25, ge=1, le=1000)
+    global_newest_first: bool = False
+    mailboxes: list[MailboxSettings] | None = Field(default=None, min_length=1)
+    host: str | None = Field(default=None, min_length=1, max_length=253)
+    port: int | None = Field(default=None, ge=1, le=65535)
+    folders: list[str] | None = Field(default=None, min_length=1, max_length=100)
+    primary_folder: str | None = None
+    connection_mode: ConnectionMode | None = None
+    historical_start: datetime | None = None
+    drafts_folder: DraftsFolder | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def separate_formats(cls, value: object) -> object:
+        # A dump of the former format carries ``mailboxes: null``; that is not the new format.
+        if isinstance(value, dict) and value.get("mailboxes") is not None:
+            mixed = [name for name in MAILBOX_FIELDS if value.get(name) is not None]
+            if mixed:
+                raise ValueError("imap.mailboxes und Postfachfelder direkt unter imap schließen sich aus: "
+                                 + ", ".join(mixed))
+            return value
+        return _default_primary_to_first_folder(value)
+
+    @field_validator("historical_start", mode="before")
+    @classmethod
+    def valid_historical_start(cls, value: object) -> datetime | None:
+        return _valid_historical_start(value)
+
+    @field_validator("folders")
+    @classmethod
+    def valid_folders(cls, folders: list[str] | None) -> list[str] | None:
+        return _valid_folders(folders)
+
+    @model_validator(mode="after")
+    def complete_mailboxes(self) -> ImapSettings:
+        if self.mailboxes is None:
+            missing = [name for name in ("host", "port", "folders") if getattr(self, name) is None]
+            if missing:
+                raise ValueError("imap benötigt mailboxes oder " + ", ".join(missing))
+            assert self.folders is not None
+            if self.primary_folder not in self.folders:
+                raise ValueError("primary_folder muss in folders enthalten sein")
+            return self
+        if len(self.mailboxes) > MAX_MAILBOXES:
+            raise ValueError(f"höchstens {MAX_MAILBOXES} Postfach wird unterstützt")
+        ids = [mailbox.id for mailbox in self.mailboxes]
+        if len(ids) != len(set(ids)):
+            raise ValueError("Postfachnummern (id) dürfen nicht doppelt vorkommen")
+        if not any(mailbox.enabled for mailbox in self.mailboxes):
+            raise ValueError("mindestens ein Postfach muss aktiviert sein")
+        return self
+
+    @property
+    def legacy_format(self) -> bool:
+        return self.mailboxes is None
+
+    def configured_mailboxes(self) -> list[MailboxSettings]:
+        """Every configured mailbox in configuration order; the former format is mailbox 1."""
+        if self.mailboxes is not None:
+            return list(self.mailboxes)
+        return [MailboxSettings.model_validate({
+            "id": 1, **{name: getattr(self, name) for name in MAILBOX_FIELDS if getattr(self, name) is not None}})]
+
+    def enabled_mailboxes(self) -> list[MailboxSettings]:
+        return [mailbox for mailbox in self.configured_mailboxes() if mailbox.enabled]
+
+    def mailbox(self, mailbox_id: int) -> MailboxSettings | None:
+        return next((item for item in self.configured_mailboxes() if item.id == mailbox_id), None)
 
 
 class EventDefaultsSettings(ConfigModel):
@@ -463,10 +570,16 @@ def _valid_path(value: Path) -> Path:
     return value
 
 
+class ImapCredentials(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    username: str = Field(min_length=1)
+    password: SecretStr
+
+
 class Secrets(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    imap_username: str
-    imap_password: SecretStr
+    # Credentials of every enabled mailbox by its stable number (3.1).
+    imap: dict[int, ImapCredentials] = Field(min_length=1)
     openrouter_api_key: SecretStr
     telegram_bot_token: SecretStr = SecretStr("")
     # Each provider's secrets are only required while it is configured (2.3).
@@ -484,6 +597,15 @@ class Secrets(BaseModel):
     microsoft_refresh_token: SecretStr = SecretStr("")
     # Signs web sessions and CSRF tokens; required only with web.enabled.
     mailhelp_web_secret: SecretStr | None = None
+
+    def imap_credentials(self, mailbox_id: int) -> ImapCredentials:
+        return self.imap[mailbox_id]
+
+    def known_values(self) -> tuple[str, ...]:
+        """Every secret value, for redaction in logs."""
+        values = [credentials.password.get_secret_value() for credentials in self.imap.values()]
+        values += [value.get_secret_value() for name, value in self if isinstance(value, SecretStr)]
+        return tuple(value for value in values if value)
 
 
 class Topic(BaseModel):
@@ -778,6 +900,37 @@ def provider_secret_names(targets: TargetSettings) -> list[str]:
     return names
 
 
+# Names of mailbox 1 before 3.1; still accepted when its numbered names are not set.
+LEGACY_IMAP_SECRETS = ("IMAP_USERNAME", "IMAP_PASSWORD")
+
+
+def imap_secret_names(mailbox: MailboxSettings, env: dict[str, str], legacy_format: bool) -> tuple[str, str]:
+    """The environment names that hold this mailbox's credentials.
+
+    Mailbox 1 falls back to the names before 3.1 while its numbered names are unset, so an
+    existing installation starts without changing ``.env``.
+    """
+    numbered = mailbox.secret_names
+    if (mailbox.id == 1 and not any(env.get(name) for name in numbered)
+            and (legacy_format or any(env.get(name) for name in LEGACY_IMAP_SECRETS))):
+        return LEGACY_IMAP_SECRETS
+    return numbered
+
+
+def imap_secret_values(imap: ImapSettings, env: dict[str, str]
+                       ) -> tuple[dict[int, dict[str, str]], list[str]]:
+    """Credentials of every enabled mailbox and the names that are missing."""
+    credentials, missing = {}, []
+    for mailbox in imap.enabled_mailboxes():
+        user, password = imap_secret_names(mailbox, env, imap.legacy_format)
+        absent = [name for name in (user, password) if not env.get(name)]
+        if absent:
+            missing += absent
+        else:
+            credentials[mailbox.id] = {"username": env[user], "password": env[password]}
+    return credentials, missing
+
+
 def load_all(directory: Path, environ: dict[str, str] | None = None
              ) -> tuple[Settings, Secrets, list[Topic], list[Topic], PromptConfig, str]:
     env = {**_dotenv(directory / ".env"), **(os.environ if environ is None else environ)}
@@ -789,15 +942,16 @@ def load_all(directory: Path, environ: dict[str, str] | None = None
         directory / "irrelevant_topics.yaml", IrrelevantTopicsConfig,
         read_yaml(directory / "irrelevant_topics.yaml"),
     ).topics
-    names = ["IMAP_USERNAME", "IMAP_PASSWORD", "OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN",
-             *provider_secret_names(settings.targets)]
-    missing = [name for name in names if not env.get(name)]
+    credentials, missing = imap_secret_values(settings.imap, env)
+    names = ["OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN", *provider_secret_names(settings.targets)]
+    missing += [name for name in names if not env.get(name)]
     if not settings.telegram.enabled:
         names.remove("TELEGRAM_BOT_TOKEN")
         missing = [name for name in missing if name != "TELEGRAM_BOT_TOKEN"]
     if missing:
         raise ValueError("Fehlende Geheimnisse: " + ", ".join(missing))
-    values = {name.lower(): env[name] for name in names}
+    values: dict[str, Any] = {name.lower(): env[name] for name in names}
+    values["imap"] = credentials
     values.update({name.lower(): env[name] for name in OPTIONAL_PROVIDER_SECRETS if env.get(name)})
     if settings.web.enabled:
         web_secret = env.get("MAILHELP_WEB_SECRET", "")

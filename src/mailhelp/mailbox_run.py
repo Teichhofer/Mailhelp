@@ -13,7 +13,7 @@ from typing import Literal
 from uuid import uuid4
 
 from . import state_names
-from .config import Settings
+from .config import MailboxSettings, Settings
 from .imap import FetchedMail, ImapReader, UIDValidityChanged
 from .logging import EventLogger
 from .models import ImapCheckpoint, MailRunCounters, MailRunEntry, MailRunEntryStatus, MailRunState, MailState
@@ -132,6 +132,11 @@ class MailboxRunService:
     process_mail: Callable[[FetchedMail], ProcessingResult]
     _mail_processing_halted: bool = False
 
+    @property
+    def mailbox(self) -> MailboxSettings:
+        """The mailbox of ``imap``; 3.1 phase 1 processes exactly one enabled mailbox."""
+        return self.settings.imap.enabled_mailboxes()[0]
+
     def poll(self, max_mails: int | None = None, *,
                    ignore_historical_start: bool = False) -> list[ProcessingResult]:
         """Resume durable work and process new mail, returning every outcome."""
@@ -151,7 +156,7 @@ class MailboxRunService:
                 budget, ignore_historical_start=ignore_historical_start
             ))
             return results
-        for folder in self.settings.imap.folders:
+        for folder in self.mailbox.folders:
             if self.stop_event.is_set() or budget.remaining == 0:
                 break
             self._poll_folder_directly(folder, budget, ignore_historical_start, results)
@@ -213,9 +218,9 @@ class MailboxRunService:
         checkpoint_model = self.store.load_model(checkpoint_name, ImapCheckpoint, ImapCheckpoint())
         checkpoint = checkpoint_model.model_dump(exclude={"schema_version"})
         if checkpoint["start_uid"] is None:
-            if (self.settings.imap.historical_start is not None
+            if (self.mailbox.historical_start is not None
                     and not ignore_historical_start):
-                start_uid = self.imap.determine_start_uid(folder, self.settings.imap.historical_start)
+                start_uid = self.imap.determine_start_uid(folder, self.mailbox.historical_start)
                 initial_uidvalidity = self.imap.last_uidvalidity
             else:
                 start_uid = checkpoint["uid"]
@@ -244,10 +249,10 @@ class MailboxRunService:
             previous_uidvalidity=changed.previous,
             uidvalidity=changed.current,
         )
-        if (self.settings.imap.historical_start is not None
+        if (self.mailbox.historical_start is not None
                 and not ignore_historical_start):
             start_uid = self.imap.determine_start_uid(
-                folder, self.settings.imap.historical_start
+                folder, self.mailbox.historical_start
             )
             # Guard against a second generation change while the
             # absolute boundary was being resolved.
@@ -268,7 +273,7 @@ class MailboxRunService:
         return checkpoint, start_uid
 
     def _folder_failed(self, folder: str, exc: Exception) -> None:
-        primary = self.settings.imap.primary_folder
+        primary = self.mailbox.primary_folder
         event = "poll_failed" if folder == primary else "optional_folder_failed"
         self.logger.event("ERROR", "imap", event, folder=folder, error=str(exc))
 
@@ -302,7 +307,7 @@ class MailboxRunService:
         ) else None
         contexts: dict[str, tuple[str, dict[str, object], list[tuple[int, int]]]] = {}
         candidates: list = []
-        for folder in self.settings.imap.folders:
+        for folder in self.mailbox.folders:
             if self.stop_event.is_set() or budget.remaining == 0:
                 break
             self._discover_folder(folder, active is not None, ignore_historical_start, contexts, candidates)

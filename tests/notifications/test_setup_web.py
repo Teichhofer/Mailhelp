@@ -35,12 +35,13 @@ def test_all_new_routes_require_authentication_and_csrf(web):
 
 def test_wizard_draft_review_queue_and_session_recheck(configured):
     web, runtime = configured.web, configured.runtime
+    original = (configured.tmp_path / "config.yaml").read_text(encoding="utf-8")
     for path in ("/einrichtung", "/diagnose", "/einstellungen/benachrichtigungen"):
         response = web.browser.request("GET", path)
         assert response.status == 200 and "secret" not in response.body.decode().lower()
     form = web.form("/einrichtung", action="/einrichtung/speichern", name="imap.drafts_folder")
     assert web.browser.request("POST", "/einrichtung/speichern", {**form, "value": "Entwürfe"}).status == 303
-    assert runtime.setup.configuration.active.imap.drafts_folder == "Drafts"
+    assert runtime.setup.configuration.active.imap.configured_mailboxes()[0].drafts_folder == "Drafts"
     runtime.diagnostics.checks["imap"] = lambda actor: ("limited", "draft_readonly")
     check = web.form("/diagnose", action="/diagnose/pruefen", name="imap")
     assert web.browser.request("POST", "/diagnose/pruefen", check).status == 303
@@ -54,8 +55,48 @@ def test_wizard_draft_review_queue_and_session_recheck(configured):
     assert len(web.commands.queued()) == 1
     web.auth.revoke_all()
     web.run()
-    assert yaml.safe_load((configured.tmp_path / "config.yaml").read_text(encoding="utf-8"))["imap"]["drafts_folder"] == "Drafts"
+    # The session was revoked before execution: config.yaml stays exactly as it was.
+    assert (configured.tmp_path / "config.yaml").read_text(encoding="utf-8") == original
     assert web.writer.created == 0 and web.writer.reconciled == 0
+
+
+MAILBOX_CONFIG = """imap:
+  mailboxes:
+  - id: 1   # privat
+    label: Privat
+    host: h
+    port: 993
+    folders: [INBOX]
+"""
+
+
+def test_wizard_edits_the_mailboxes_of_the_3_1_format(configured):
+    """Planung 3.1: the setup step shows every mailbox and writes into its list entry."""
+    web, runtime = configured.web, configured.runtime
+    path = configured.tmp_path / "config.yaml"
+    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    raw.pop("imap")
+    path.write_text(MAILBOX_CONFIG + yaml.safe_dump(raw), encoding="utf-8")
+    page = web.browser.request("GET", "/einrichtung").body.decode()
+    assert "Entwurfsordner – Postfach 1 (Privat)" in page and 'value="Drafts"' in page
+    assert '<option value="starttls">' in page
+    form = web.form("/einrichtung", action="/einrichtung/speichern", name="imap.mailboxes.0.drafts_folder")
+    assert web.browser.request("POST", "/einrichtung/speichern", {**form, "value": "Entwürfe"}).status == 303
+    assert runtime.setup.draft_settings().imap.mailboxes[0].drafts_folder == "Entwürfe"
+    # A list position that does not exist is not offered, even with a valid field name.
+    state = runtime.setup.state()
+    actor = "web:" + web.auth.sessions()[0].id
+    with pytest.raises(ValueError, match="Nicht angebotene"):
+        runtime.setup.save(actor, state.version, "missing-mailbox", 2, {"imap.mailboxes.4.host": "x"})
+    runtime.diagnostics.checks["imap"] = lambda actor: ("limited", "draft_readonly")
+    check = web.form("/diagnose", action="/diagnose/pruefen", name="imap")
+    assert web.browser.request("POST", "/diagnose/pruefen", check).status == 303
+    form = web.form("/einrichtung", action="/einrichtung/uebernehmen")
+    assert web.browser.request("POST", "/einrichtung/uebernehmen", {**form, "confirm": "yes"}).status == 303
+    web.run()
+    content = path.read_text(encoding="utf-8")
+    assert "# privat" in content
+    assert yaml.safe_load(content)["imap"]["mailboxes"][0]["drafts_folder"] == "Entwürfe"
 
 
 def test_form_errors_and_conflicts_do_not_activate_settings(configured):
@@ -263,8 +304,8 @@ def test_target_probes_use_draft_targets_own_clients_and_close_on_failure(config
         return Writers(Adapter("calendar"), Adapter("tasks"), [Token()])
 
     monkeypatch.setattr("mailhelp.setup_runtime.build_writers", build)
-    secrets = NS(**{name: SecretStr("synthetic") for name in (
-        "imap_password", "openrouter_api_key", "telegram_bot_token", "todoist_token", "todoist_client_id",
+    secrets = NS(imap={1: object()}, **{name: SecretStr("synthetic") for name in (
+        "openrouter_api_key", "telegram_bot_token", "todoist_token", "todoist_client_id",
         "todoist_client_secret", "google_oauth_refresh_token", "google_oauth_client_id",
         "google_oauth_client_secret", "caldav_username", "caldav_password", "microsoft_client_id")})
     runtime = SetupRuntime(configured.app, configured.web.site, secrets)

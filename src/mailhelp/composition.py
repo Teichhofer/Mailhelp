@@ -1,7 +1,6 @@
 """Construction of the application: one factory per part (Planung 2.1, A4)."""
 from __future__ import annotations
 
-import imaplib
 from collections.abc import Callable, Iterator
 from contextlib import ExitStack, contextmanager
 from pathlib import Path
@@ -11,7 +10,7 @@ from typing import Any
 from .adapter import RetryPolicy
 from .analysis import Analyzer
 from .application import Application
-from .config import PromptConfig, Secrets, Settings, Topic
+from .config import MailboxSettings, PromptConfig, Secrets, Settings, Topic
 from .decisions import (
     DecisionAnalyzer,
     DecisionClient,
@@ -20,7 +19,7 @@ from .decisions import (
     relevance_fingerprint,
 )
 from .external.providers import build_writers, provider_services
-from .imap import ImapReader, account_id
+from .imap import ImapReader, mailbox_account_id, reader_arguments
 from .logging import JsonlLogger
 from .ollama import LocalLlm, OllamaClient
 from .openrouter import OpenRouterClient
@@ -69,12 +68,7 @@ def build_logger(
     """Construct the configured logger with every known secret redacted."""
     log_dir = log_directory if log_directory is not None else settings.logging.directory
     log_dir = runtime_path(log_dir, base_directory)
-    known_secrets = tuple(value.get_secret_value() for value in (
-        secrets.imap_password, secrets.openrouter_api_key, secrets.telegram_bot_token,
-        secrets.todoist_token, secrets.todoist_client_id, secrets.todoist_client_secret,
-        secrets.google_oauth_client_id, secrets.google_oauth_client_secret,
-        secrets.google_oauth_refresh_token,
-    ) if value is not None)
+    known_secrets = secrets.known_values()
     log = settings.logging
     return JsonlLogger(
         log_dir, log.llm.include_requests, log.llm.include_responses,
@@ -115,22 +109,20 @@ def _attach_metrics(logger: JsonlLogger, settings: Settings, base_directory: Pat
     logger.metrics = recorder
 
 
-def _build_imap(settings: Settings, secrets: Secrets, policy: Callable[[str], RetryPolicy],
+def _build_imap(mailbox: MailboxSettings, settings: Settings, secrets: Secrets, policy: Callable[[str], RetryPolicy],
                 logger: JsonlLogger, access_diagnostics: bool, stack: ExitStack) -> Any:
-    imap_cfg = settings.timeouts.imap
-    factory = imaplib.IMAP4_SSL if settings.imap.connection_mode == "ssl" else imaplib.IMAP4
+    credentials = secrets.imap_credentials(mailbox.id)
+    address, options = reader_arguments(mailbox, credentials)
     try:
-        imap = ImapReader(settings.imap.host, settings.imap.port, secrets.imap_username,
-                          secrets.imap_password.get_secret_value(), imap_cfg.timeout_seconds, factory=factory,
-                          policy=policy("imap"), logger=logger, starttls=settings.imap.connection_mode == "starttls",
-                          batch_size=settings.imap.batch_size)
+        imap = ImapReader(*address, settings.timeouts.imap.timeout_seconds, **options,
+                          policy=policy("imap"), logger=logger, batch_size=settings.imap.batch_size)
     except Exception as exc:
         if not access_diagnostics and not settings.web.enabled:
             raise
         # IMAP connects and authenticates in its constructor, unlike the
         # HTTP adapters. Preserve that failure as one diagnostic result so
         # constructing the application cannot prevent the other checks.
-        return _FailedAccessAdapter(exc, account_id(settings.imap.host, settings.imap.port, secrets.imap_username))
+        return _FailedAccessAdapter(exc, mailbox_account_id(mailbox, credentials))
     stack.callback(imap.close)
     return imap
 
@@ -358,7 +350,9 @@ def build_application(
         def policy(name: str) -> RetryPolicy:
             item = getattr(settings.timeouts, name)
             return RetryPolicy(item.retries, item.initial_backoff_seconds, item.max_backoff_seconds, stop_event.wait)
-        imap = _build_imap(settings, secrets, policy, logger, access_diagnostics, stack)
+        # 3.1 phase 1: exactly one enabled mailbox; phase 2 builds one reader per mailbox.
+        imap = _build_imap(settings.imap.enabled_mailboxes()[0], settings, secrets, policy, logger,
+                           access_diagnostics, stack)
         llm_budget: dict[str, Any] = dict(
             load_calls=lambda: store.load("llm-budget", {}).get("calls", []),
             save_calls=lambda calls: store.save("llm-budget", {"calls": calls}), logger=logger)

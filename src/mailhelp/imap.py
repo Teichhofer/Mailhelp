@@ -11,10 +11,13 @@ import traceback
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from typing import Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 from .adapter import RetryPolicy
 from .logging import EventLogger, NullLogger
+
+if TYPE_CHECKING:
+    from .config import ImapCredentials, MailboxSettings
 
 T = TypeVar("T")
 
@@ -195,6 +198,18 @@ def account_id(host: str, port: int, username: str) -> str:
     """Return a stable, non-secret identifier for one configured mailbox."""
     normalized = f"{host.strip().rstrip('.').lower()}\n{port}\n{username.strip().lower()}"
     return hashlib.sha256(normalized.encode("utf-8")).hexdigest()[:24]
+
+
+def reader_arguments(mailbox: MailboxSettings, credentials: ImapCredentials
+                     ) -> tuple[tuple[str, int, str, str], dict[str, Any]]:
+    """Connection arguments of :class:`ImapReader` for one configured mailbox (3.1)."""
+    address = (mailbox.host, mailbox.port, credentials.username, credentials.password.get_secret_value())
+    return address, {"factory": imaplib.IMAP4_SSL if mailbox.connection_mode == "ssl" else imaplib.IMAP4,
+                     "starttls": mailbox.connection_mode == "starttls"}
+
+
+def mailbox_account_id(mailbox: MailboxSettings, credentials: ImapCredentials) -> str:
+    return account_id(mailbox.host, mailbox.port, credentials.username)
 
 
 class ImapReader:

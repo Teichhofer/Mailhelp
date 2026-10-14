@@ -15,7 +15,7 @@ from shared_telegram_dialog import callback, controller
 
 from mailhelp.analysis import Analyzer
 from mailhelp.application import Application
-from mailhelp.config import Topic
+from mailhelp.config import ImapSettings, Topic
 from mailhelp.imap import FetchedMail
 from mailhelp.logging import NullLogger
 from mailhelp.models import ProposalStatus
@@ -62,7 +62,8 @@ def test_access_check_reports_unreadable_secondary_folder_and_checks_remaining()
             raise RuntimeError("synthetic failure")
     noop = SimpleNamespace(check_access=lambda: None, service_name="OpenRouter")
     service = SimpleNamespace(
-        settings=SimpleNamespace(imap=SimpleNamespace(folders=["INBOX", "Archive", "Sent"]),
+        settings=SimpleNamespace(imap=ImapSettings.model_validate({"host": "h", "port": 993,
+                                                                   "folders": ["INBOX", "Archive", "Sent"]}),
                                  timezone="UTC", telegram=SimpleNamespace(chat_id=1)),
         logger=NullLogger(), imap=SimpleNamespace(check_access=check),
         openrouter=noop, todoist=noop, calendar=noop,

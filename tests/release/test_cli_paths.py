@@ -14,6 +14,7 @@ from mailhelp.cli import (
     clear_runtime_data,
     main,
 )
+from mailhelp.config import ImapSettings
 
 
 class CaptureLogger:
@@ -209,9 +210,8 @@ def test_cli_runs_terminal_learning_mode(monkeypatch):
         imap="imap", analyzer="analyzer", store="store", sender_store="sender-store"
     )
     settings = SimpleNamespace(
-        imap=SimpleNamespace(folders=["INBOX"]), limits="limits", timezone="Europe/Berlin",
+        imap=ImapSettings.model_validate({"host": "h", "port": 993, "folders": ["INBOX"]}), limits="limits", timezone="Europe/Berlin",
         learning=SimpleNamespace(parallel_llm_calls=7))
-    settings.imap.historical_start = None
     logger = CaptureLogger()
     captured = []
 
@@ -239,7 +239,7 @@ def test_cli_runs_terminal_learning_mode(monkeypatch):
                            Path('cfg/irrelevant_topics.yaml'), 'sender-store'),
                           {'timezone': 'Europe/Berlin', 'parallel_llm_calls': 7,
                            'global_newest_first': False,
-                           'config_path': Path('cfg/config.yaml')}), 3]
+                           'config_path': Path('cfg/config.yaml'), 'folders_path': 'imap.folders'}), 3]
 
 
 def test_signal_shutdown_interrupts_one_shot_modes_and_stops_service():
@@ -255,7 +255,7 @@ def test_signal_shutdown_interrupts_one_shot_modes_and_stops_service():
 
 def test_ctrl_c_exits_cleanly_in_learning_mode(monkeypatch, capsys):
     settings = SimpleNamespace(
-        imap=SimpleNamespace(folders=["INBOX"]), limits="limits", timezone="UTC",
+        imap=ImapSettings.model_validate({"host": "h", "port": 993, "folders": ["INBOX"]}), limits="limits", timezone="UTC",
         learning=SimpleNamespace(parallel_llm_calls=1),
     )
     logger = CaptureLogger()

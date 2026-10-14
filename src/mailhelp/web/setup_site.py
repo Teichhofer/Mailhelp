@@ -5,7 +5,7 @@ import json
 
 import yaml
 
-from ..configuration import LIVE_FIELDS, ConfigurationConflict, file_hash
+from ..configuration import LIVE_FIELDS, MAILBOX_SETUP_FIELDS, ConfigurationConflict, file_hash, set_dotted
 from ..diagnostics import HELP, STATES, DiagnosticResult
 from ..local_pairing import issue
 from ..notification_config import CATEGORIES, effective_profile
@@ -56,12 +56,28 @@ CHOICES = {"telegram.enabled": ("true", "false"), "push.enabled": ("true", "fals
 
 def lookup(raw, dotted):
     for part in dotted.split("."):
-        raw = raw[part]
+        raw = raw[int(part)] if isinstance(raw, list) else raw[part]
     return raw
 
 
-def input_field(name, value, choices=None):
-    label = LABELS.get(name, name)
+def step_fields(raw, step):
+    """Fields of one step; the 3.1 format shows the mailbox fields of every configured mailbox."""
+    mailboxes = raw["imap"].get("mailboxes")
+    if step != 2 or mailboxes is None:
+        return FIELDS[step]
+    return tuple(f"imap.mailboxes.{index}.{name}" for index in range(len(mailboxes)) for name in MAILBOX_SETUP_FIELDS)
+
+
+def field_label(raw, name):
+    parts = name.split(".")
+    if parts[:2] != ["imap", "mailboxes"]:
+        return LABELS.get(name, name)
+    mailbox = raw["imap"]["mailboxes"][int(parts[2])]
+    return f'{LABELS["imap." + parts[3]]} – Postfach {mailbox["id"]} ({mailbox["label"]})'
+
+
+def input_field(name, value, choices=None, label=None):
+    label = label or LABELS.get(name, name)
     identity = "setting-" + name.replace(".", "-")
     shown = json.dumps(value, ensure_ascii=False) if not isinstance(value, str) else value
     if choices is None and isinstance(value, bool):
@@ -104,12 +120,12 @@ class SetupSite:
         cfg = Settings.model_validate(raw)
         result = cfg.model_dump(mode="json")
         result["notifications"] = effective_profile(cfg).model_dump()
+        if cfg.imap.legacy_format:
+            # Show the effective values, including defaults that config.yaml leaves out.
+            result["imap"].update(cfg.imap.configured_mailboxes()[0].model_dump(
+                mode="json", include=set(MAILBOX_SETUP_FIELDS)))
         for name, value in (service.state().patch.items() if with_patch else ()):
-            target = result
-            parts = name.split(".")
-            for part in parts[:-1]:
-                target = target[part]
-            target[parts[-1]] = value
+            set_dotted(result, name, value)
         return result
 
     def _fields(self, session, fields, step):
@@ -120,7 +136,9 @@ class SetupSite:
             # _raw() is validated: settings missing in an older config.yaml show their default.
             value = lookup(raw, name)
             choices = CHOICES.get(name)
-            if name in {"imap.primary_folder", "imap.drafts_folder"}:
+            if name.startswith("imap.mailboxes."):
+                choices = CHOICES.get("imap." + name.rsplit(".", 1)[-1])
+            if name.endswith((".primary_folder", ".drafts_folder")):
                 choices = self.site.views.store.load("setup-folders", {}).get("folders") or None
             if name.startswith("notifications.categories."):
                 choices = ["[]"]
@@ -130,7 +148,8 @@ class SetupSite:
                     choices.append('["web_push"]')
                 if raw["telegram"]["enabled"] and raw["push"]["enabled"]:
                     choices.append('["telegram", "web_push"]')
-            body += post_form("/einrichtung/speichern", csrf, input_field(name, value, choices),
+            body += post_form("/einrichtung/speichern", csrf, input_field(name, value, choices,
+                                                                        field_label(raw, name)),
                               "Entwurf speichern", name=name, version=state.version, step=step)
         return body
 
@@ -147,7 +166,7 @@ class SetupSite:
         for index, title in enumerate(STEPS, 1):
             opened = " open" if index in {state.step, 6} else ""
             body += (f'<section class="card"><details{opened}><summary><h2>{index}. {title}</h2></summary>'
-                     + self._fields(session, FIELDS[index], index))
+                     + self._fields(session, step_fields(self._raw(), index), index))
             if index == 2:
                 folders = self.site.views.store.load("setup-folders", {}).get("folders", [])
                 body += '<p>Vorhandene Ordner aus der letzten Diagnose: ' + e(

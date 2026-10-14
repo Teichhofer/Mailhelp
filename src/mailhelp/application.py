@@ -71,7 +71,7 @@ class Application:
         """Check every external credential and target without processing mail."""
         def check_imap() -> None:
             failures = []
-            for folder in self.settings.imap.folders:
+            for folder in self.settings.imap.enabled_mailboxes()[0].folders:
                 try:
                     self.imap.check_access([folder])
                 except Exception as exc:

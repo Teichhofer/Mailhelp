@@ -1,5 +1,23 @@
 # Änderungen
 
+## 3.0.1 – beta: Planung 3.1, Phase 1 – Postfächer im Konfigurationsvertrag
+
+- `imap.mailboxes` mit stabiler Nummer `id`, Anzeigename `label` und `enabled`; das bisherige Format
+  bleibt gültig und gilt als Postfach 1. Beide Schreibweisen zusammen werden abgelehnt.
+  Bis Phase 2 wird genau ein Postfach unterstützt.
+- Zugangsdaten je Postfach als `IMAP_<id>_USERNAME`/`IMAP_<id>_PASSWORD`; Postfach 1 startet weiterhin
+  mit `IMAP_USERNAME`/`IMAP_PASSWORD`. Logs und Vergleichsberichte maskieren jedes IMAP-Passwort.
+- `imap` ist nicht mehr Teil des Analyse-Fingerprints. Fingerprints und Themenrichtlinien bis 3.0
+  werden für Postfach 1 exakt rekonstruiert und als gleichwertig registriert; laufende Mails werden
+  durch das Upgrade oder die Umstellung auf `imap.mailboxes` nicht zurückgehalten (gegen 3.0.0
+  nachgerechnet, Regressionstest mit unabhängig nachgebautem 3.0-Algorithmus).
+- Kommentarerhaltende YAML-Bearbeitung versteht Listeneinträge (`imap.mailboxes.0.host`), auch beim
+  Ergänzen fehlender Schlüssel. Einrichtungsschritt „Postfach“ und Lernmodus arbeiten mit beiden Formaten;
+  der Assistent zeigt im Altformat wieder die wirksamen Standardwerte (z. B. `Drafts`, `ssl`).
+- Gemeinsame Verbindungsargumente für alle IMAP-Leser (Betrieb, Entwürfe, Berichte, Decision-Test).
+- Spezifikation, `config.example.yaml` und `.env.example` ergänzt; neue Tests für Formate, Grenzen,
+  Geheimnisnamen, Fingerprint-Gleichwertigkeit, YAML-Listenpfade und den Assistenten.
+
 ## 2.3.3 – beta: Abschlussdokumentation zur Planung 2.4
 
 - Umsetzung, Bedienung und Upgrade des offenen Vorschlagsabgleichs sowie der

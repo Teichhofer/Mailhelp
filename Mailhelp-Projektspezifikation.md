@@ -1080,6 +1080,34 @@ weder Token oder Authorization-Header noch vollständige Antwortinhalte.
 
 Die Bereiche `imap`, `telegram`, `targets`, `limits`, `retries`, `timeouts` und `logging` besitzen geschlossene Modelle. `imap.connection_mode` akzeptiert ausschließlich `ssl`, `starttls` und `plain`; `imap.historical_start` akzeptiert ausschließlich `null` oder einen ISO-8601-Zeitpunkt mit Offset und `imap.global_newest_first` ausschließlich einen booleschen Wert. IMAP, Telegram, OpenRouter und Todoist konfigurieren Timeout, Retry-Anzahl, initialen Backoff und Backoff-Obergrenze getrennt. Google Calendar besitzt eine eigene Timeout- und Retry-Konfiguration. Ports (1–65535), Polling (5–86400 Sekunden), Adaptertimeouts (1–300 Sekunden, für den lokalen Ollama-Modus 1–1.800 Sekunden), Telegram-Long-Polling (1–50 Sekunden), Mailgröße (1.024–100.000.000 Bytes), LLM-Rate (1–600/min), Wiederholungen (0–10) und Backoff (0–60 Sekunden) sind begrenzt. Zeitzonen müssen IANA-Namen sein; Ordner sind eindeutig und nicht leer, Pfade sicher, Log-Level sind `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Dieselbe Transportauswahl und UTC-Auswertung gilt unter Windows 11 und im Linux-Docker-Container; die Host-Zeitzone beeinflusst die Grenze nicht. Die CLI-Option `--log-directory` überschreibt das konfigurierte Logverzeichnis für einen einzelnen Aufruf, sodass insbesondere Prüfungen aus einem schreibgeschützten Arbeitsverzeichnis in ein beschreibbares temporäres Verzeichnis loggen können. Im Dauerbetrieb ist ein persistentes Logverzeichnis zu verwenden.
 
+### Postfächer (3.1, Phase 1)
+
+`imap` enthält entweder die Postfachfelder direkt (Format bis 3.0, gilt als Postfach 1 mit
+Anzeigename „Postfach“) oder die Liste `imap.mailboxes`; beide Schreibweisen zusammen sind
+ungültig. `batch_size` und `global_newest_first` gelten für alle Postfächer. Ein Postfach besitzt
+eine stabile Nummer `id` (1–99, eindeutig), einen Anzeigenamen `label` (1–40 Zeichen ohne
+Steuerzeichen), `enabled` sowie Server, Port, Verbindungsart, Ordner, Hauptordner,
+`historical_start` und Entwurfsordner mit den bisherigen Grenzen; mindestens ein Postfach ist
+aktiviert. Bis zum Abschluss von Phase 2 der [Planung 3.1](docs/Planung-3.1.md) wird genau ein
+Postfach unterstützt; weitere Einträge werden beim Laden abgelehnt.
+
+Zugangsdaten eines aktivierten Postfachs stehen in `IMAP_<id>_USERNAME` und `IMAP_<id>_PASSWORD`.
+Für Postfach 1 gelten ersatzweise `IMAP_USERNAME`/`IMAP_PASSWORD`, solange keine nummerierte
+Variable gesetzt ist und das Altformat verwendet wird oder die alten Variablen vorhanden sind;
+gesetzte nummerierte Namen haben Vorrang. Fehlermeldungen nennen die erwarteten Variablennamen,
+nie Werte. Alle Geheimnisse einschließlich jedes IMAP-Passworts werden in Logs und
+Vergleichsberichten unkenntlich gemacht.
+
+`imap` gehört nicht mehr zum Analyse-Fingerprint: Postfachangaben bestimmen die Herkunft einer
+Mail, nicht ihre Analyse. Für eine Konfiguration mit Postfach 1 werden die Fingerprints und
+Themenrichtlinien früherer Versionen (bis 3.0 mit `imap`-Abschnitt in seiner damaligen Form)
+beim Start als gleichwertig registriert, sodass bereits laufende Mails weiterlaufen, auch wenn
+gleichzeitig auf `imap.mailboxes` umgestellt wird. Ohne Postfach 1 gibt es keine früheren
+Fingerprints. Die Weboberfläche bearbeitet im Einrichtungsschritt „Postfach“ die Felder jedes
+Postfachs unter `imap.mailboxes.<Position>.<Feld>`; Kommentare und Layout von `config.yaml`
+bleiben dabei erhalten, auch innerhalb von Listeneinträgen. Der Lernmodus ergänzt neue Ordner
+in der Ordnerliste des verwendeten Postfachs.
+
 ## 10. JSON-Zustand und Neustartverhalten
 
 Der Zustand wird als eingerücktes UTF-8-JSON gespeichert. `data_directory` ist dabei nur das Stammverzeichnis: Im Testmodus liegt der vollständige Zustand unter `<data_directory>/test/`, im Produktivmodus unter `<data_directory>/production/`. Jeder Modus besitzt dort seine eigene `.lock`-Datei. IMAP-Checkpoints, Mailzustände, Telegram-Offsets und -Dialoge, Vorschläge einschließlich externer Ergebniszustände sowie das persistierte LLM-Zeitfenster liegen ausschließlich im jeweiligen Verzeichnis; auch identische Mail- und Vorschlags-IDs werden nicht modusübergreifend aufgezählt oder gesperrt. Pro Mail existiert eine Datei. Weitere JSON-Dateien speichern Abrufpositionen und nötige Betriebsinformationen. Dateinamen verwenden interne IDs statt Betreff oder Absender.

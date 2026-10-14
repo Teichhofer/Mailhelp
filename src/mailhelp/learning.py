@@ -58,19 +58,30 @@ def topics_document(topics: list[Topic]) -> str:
                           sort_keys=False, default_flow_style=False)
 
 
-def add_discovered_folders(path: Path, configured: list[str], discovered: list[str]) -> list[str]:
-    """Add newly advertised selectable mailboxes to config.yaml atomically."""
+def add_discovered_folders(path: Path, configured: list[str], discovered: list[str],
+                           folders_path: str = "imap.folders") -> list[str]:
+    """Add newly advertised selectable mailboxes to config.yaml atomically.
+
+    *folders_path* is the folder list of the mailbox (``imap.mailboxes.0.folders`` since 3.1).
+    """
     merged = [*configured, *(folder for folder in discovered if folder not in configured)]
     if len(merged) > 100:
         raise RuntimeError("IMAP meldet mehr als 100 unterschiedliche Ordner")
     if merged == configured:
         return merged
     document = yaml.safe_load(path.read_text(encoding="utf-8"))
-    if not isinstance(document, dict) or not isinstance(document.get("imap"), dict):
+    *parents, name = folders_path.split(".")
+    section: Any = document
+    try:
+        for part in parents:
+            section = section[int(part)] if isinstance(section, list) else section[part]
+    except (KeyError, IndexError, TypeError, ValueError):
+        section = None
+    if not isinstance(section, dict):
         raise RuntimeError("config.yaml enthält keinen gültigen IMAP-Abschnitt")
-    document["imap"]["folders"] = merged
+    section[name] = merged
     # Only the folder list changes; comments and layout of config.yaml stay.
-    content = set_list(path.read_text(encoding="utf-8"), "imap.folders", merged)
+    content = set_list(path.read_text(encoding="utf-8"), folders_path, merged)
     if yaml.safe_load(content) != document:
         raise RuntimeError("config.yaml lässt sich nicht sicher ergänzen; Ordner bitte von Hand eintragen")
     atomic_replace(path, content)
@@ -86,7 +97,7 @@ class LearningMode:
                  output_fn: Callable[[str], None] = print,
                  timezone: str = "UTC", parallel_llm_calls: int = 4,
                  global_newest_first: bool = False,
-                 config_path: Path | None = None):
+                 config_path: Path | None = None, folders_path: str = "imap.folders"):
         self.imap, self.analyzer, self.folders = imap, analyzer, folders
         self.limits, self.topics, self.topics_path = limits, topics, topics_path
         self.irrelevant_topics = irrelevant_topics
@@ -95,7 +106,7 @@ class LearningMode:
         self.input, self.output, self.timezone = input_fn, output_fn, timezone
         self.parallel_llm_calls = parallel_llm_calls
         self.global_newest_first = global_newest_first
-        self.config_path = config_path
+        self.config_path, self.folders_path = config_path, folders_path
 
     def _refresh_folders(self) -> None:
         if self.config_path is None:
@@ -104,7 +115,7 @@ class LearningMode:
                       for mailbox in self.imap.list_folders()]
         previous = set(self.folders)
         self.folders = add_discovered_folders(
-            self.config_path, self.folders, discovered
+            self.config_path, self.folders, discovered, self.folders_path
         )
         additions = [folder for folder in self.folders if folder not in previous]
         if additions:

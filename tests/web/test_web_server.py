@@ -258,7 +258,7 @@ def test_build_application_creates_the_web_server_only_when_enabled(tmp_path, mo
     cfg = app_settings(tmp_path)
     cfg.logging.file.enabled = cfg.logging.console.enabled = False
     cfg.web.enabled = enabled
-    secrets = Secrets(imap_username="u", imap_password="p", openrouter_api_key="o", telegram_bot_token="t",
+    secrets = Secrets(imap={1: {"username": "u", "password": "p"}}, openrouter_api_key="o", telegram_bot_token="t",
                       todoist_token="d", todoist_client_id="ti", todoist_client_secret="ts",
                       google_oauth_client_id="i", google_oauth_client_secret="s",
                       google_oauth_refresh_token="r", mailhelp_web_secret="w" * 32)

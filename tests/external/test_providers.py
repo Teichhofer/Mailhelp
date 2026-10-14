@@ -17,7 +17,7 @@ from mailhelp.external.providers import Writers, build_writers, provider_service
 from mailhelp.external.roles import CALENDAR_SLOT, TASK_SLOT, slot
 
 DAV = "https://dav.example.test/calendars/anna/"
-SECRETS = Secrets(imap_username="u", imap_password="p", openrouter_api_key="o", todoist_token="t",
+SECRETS = Secrets(imap={1: {"username": "u", "password": "p"}}, openrouter_api_key="o", todoist_token="t",
                   google_oauth_client_id="gi", google_oauth_client_secret="gs", google_oauth_refresh_token="gr",
                   caldav_username="anna", caldav_password="app", microsoft_client_id="mi")
 
@@ -166,7 +166,7 @@ def run_cli(monkeypatch, tmp_path, secrets):
 
 
 def test_cli_microsoft_login(monkeypatch, tmp_path, capsys):
-    assert run_cli(monkeypatch, tmp_path, Secrets(imap_username="u", imap_password="p",
+    assert run_cli(monkeypatch, tmp_path, Secrets(imap={1: {"username": "u", "password": "p"}},
                                                   openrouter_api_key="o")) == 1
     assert "MICROSOFT_CLIENT_ID fehlt" in capsys.readouterr().err
     logins = []

@@ -4,8 +4,9 @@ from __future__ import annotations
 import tempfile
 from pathlib import Path
 
+from .config import LEGACY_IMAP_SECRETS
 from .diagnostics import DiagnosticsService
-from .experience import _reader
+from .experience import _mailbox, _reader
 from .external.providers import build_writers
 from .setup import SetupService
 from .storage import atomic_replace
@@ -24,21 +25,27 @@ class SetupRuntime:
 
     def secret_status(self):
         """Presence of the secrets the configured providers need; never their values."""
-        targets = self.setup.draft_settings().targets
-        names = ["imap_password", "openrouter_api_key", "telegram_bot_token"]
+        draft = self.setup.draft_settings()
+        targets = draft.targets
+        status = {}
+        for mailbox in draft.imap.enabled_mailboxes():
+            names = LEGACY_IMAP_SECRETS if draft.imap.legacy_format else mailbox.secret_names
+            status["/".join(names)] = ("vorhanden" if self.secrets is not None and mailbox.id in self.secrets.imap
+                                       else "fehlt")
+        names = ["openrouter_api_key", "telegram_bot_token"]
         names += ["todoist_token"] if targets.task_provider == "todoist" else []
         names += ["google_oauth_refresh_token"] if targets.calendar_provider == "google" else []
         names += ["caldav_username", "caldav_password"] if targets.uses_caldav else []
         names += ["microsoft_client_id"] if targets.uses_microsoft else []
-        return {name: "vorhanden" if self.secrets is not None and
-                getattr(self.secrets, name).get_secret_value() else "fehlt" for name in names}
+        return {**status, **{name: "vorhanden" if self.secrets is not None and
+                             getattr(self.secrets, name).get_secret_value() else "fehlt" for name in names}}
 
     def imap(self, actor):
         cfg = self.setup.draft_settings()
         with _reader(cfg, self.secrets) as reader:
             folders = [item.name for item in reader.list_folders()]
             self.app.store.save("setup-folders", {"schema_version": 1, "folders": folders})
-            required = [*cfg.imap.folders, cfg.imap.drafts_folder]
+            required = [*_mailbox(cfg).folders, _mailbox(cfg).drafts_folder]
             if not set(required) <= set(folders):
                 return "failed", "configuration"
             reader.check_access(required)

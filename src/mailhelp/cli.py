@@ -294,8 +294,10 @@ def _show_imap_credentials(secrets) -> None:
     # JSON quoting makes control characters visible instead of allowing a
     # secret loaded from the environment to manipulate the terminal.
     print("ACHTUNG: IMAP-Zugangsdaten werden nur in diesem Terminal ausgegeben.")
-    print(f"IMAP-Benutzername: {json.dumps(secrets.imap_username, ensure_ascii=False)}")
-    print(f"IMAP-Passwort: {json.dumps(secrets.imap_password.get_secret_value(), ensure_ascii=False)}")
+    for number, credentials in sorted(secrets.imap.items()):
+        prefix = "" if len(secrets.imap) == 1 else f"Postfach {number} – "
+        print(f"{prefix}IMAP-Benutzername: {json.dumps(credentials.username, ensure_ascii=False)}")
+        print(f"{prefix}IMAP-Passwort: {json.dumps(credentials.password.get_secret_value(), ensure_ascii=False)}")
 
 
 def _run(args: argparse.Namespace, settings, secrets, topics, irrelevant_topics, prompts, fingerprint,
@@ -312,8 +314,9 @@ def _run(args: argparse.Namespace, settings, secrets, topics, irrelevant_topics,
                 print(f"{'OK' if error is None else 'FEHLER'}: {name}" + (f" – {error}" if error else ""))
             return 1 if any(error is not None for error in results.values()) else 0
         if args.learn is not None:
+            mailbox = settings.imap.enabled_mailboxes()[0]
             LearningMode(
-                application.imap, application.analyzer, settings.imap.folders,
+                application.imap, application.analyzer, mailbox.folders,
                 settings.limits, topics, args.config_directory / "topics.yaml",
                 irrelevant_topics, args.config_directory / "irrelevant_topics.yaml",
                 application.sender_store,
@@ -321,6 +324,8 @@ def _run(args: argparse.Namespace, settings, secrets, topics, irrelevant_topics,
                 parallel_llm_calls=settings.learning.parallel_llm_calls,
                 global_newest_first=getattr(settings.imap, "global_newest_first", False),
                 config_path=args.config_directory / "config.yaml",
+                folders_path=("imap.folders" if settings.imap.legacy_format else
+                              f"imap.mailboxes.{settings.imap.configured_mailboxes().index(mailbox)}.folders"),
             ).run(args.learn)
             return 0
         shutdown.stop = application.stop

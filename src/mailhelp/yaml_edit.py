@@ -14,7 +14,8 @@ from typing import Any
 
 import yaml
 
-_KEY = re.compile(r"^(?P<indent> *)(?P<key>[A-Za-z0-9_]+):(?P<rest>.*)$")
+# A block mapping key, possibly the first key of a sequence item (``- id: 1``).
+_KEY = re.compile(r"^(?P<indent> *(?:- +)*)(?P<key>[A-Za-z0-9_]+):(?P<rest>.*)$")
 
 
 class YamlEditError(ValueError):
@@ -47,20 +48,33 @@ def _split_comment(rest: str) -> tuple[str, str]:
 
 
 def _paths(lines: list[str]) -> list[tuple[int, str, int]]:
-    """(line index, dotted path, indent) of every block mapping key."""
+    """(line index, dotted path, column) of every block mapping key.
+
+    Items of a sequence contribute their index (``imap.mailboxes.0.host``). Keys
+    inside flow collections (``{a: 1}``) are not editable and are left out.
+    """
     result: list[tuple[int, str, int]] = []
-    stack: list[tuple[int, str]] = []
-    for index, line in enumerate(lines):
-        if not line.strip() or line.lstrip().startswith(("#", "-")):
-            continue
-        match = _KEY.match(line)
-        if match is None:
-            continue
-        indent = len(match["indent"])
-        while stack and stack[-1][0] >= indent:
-            stack.pop()
-        stack.append((indent, match["key"]))
-        result.append((index, ".".join(key for _, key in stack), indent))
+
+    def walk(node: yaml.Node | None, prefix: str) -> None:
+        if isinstance(node, yaml.MappingNode):
+            for key, value in node.value:
+                path = f"{prefix}.{key.value}" if prefix else str(key.value)
+                line, column = key.start_mark.line, key.start_mark.column
+                match = _KEY.match(lines[line])
+                if match is not None and len(match["indent"]) == column:
+                    result.append((line, path, column))
+                walk(value, path)
+        elif isinstance(node, yaml.SequenceNode):
+            for position, item in enumerate(node.value):
+                path = f"{prefix}.{position}"
+                if isinstance(item, yaml.MappingNode) and not item.flow_style:
+                    # A section of its own whose indent is the one of its dash, so a missing
+                    # key is added inside the item and the next item ends the section.
+                    line = lines[item.start_mark.line]
+                    result.append((item.start_mark.line, path, len(line) - len(line.lstrip())))
+                walk(item, path)
+
+    walk(yaml.compose("\n".join(lines)), "")
     return result
 
 
@@ -80,7 +94,7 @@ def set_scalars(text: str, changes: dict[str, Any]) -> str:
                 raise YamlEditError(f"{dotted} ist ein Abschnitt, kein einzelner Wert")
             # Keep the original gap before an inline comment (at least one space).
             gap = (current[len(current.rstrip()):] or " ") if comment else ""
-            lines[index] = f"{' ' * indent}{match['key']}: {rendered}{gap}{comment}"
+            lines[index] = f"{match['indent']}{match['key']}: {rendered}{gap}{comment}"
             continue
         lines = _insert(lines, paths, dotted.split("."), rendered)
     return "\n".join(lines) + "\n"
@@ -139,7 +153,7 @@ def set_list(text: str, dotted: str, items: list[Any], *, allow_missing: bool = 
             raise YamlEditError(f"{dotted} ist keine Liste")
         flow = yaml.safe_dump(list(items), default_flow_style=True, allow_unicode=True, width=10**6).strip()
         gap = (current[len(current.rstrip()):] or " ") if comment else ""
-        lines[index] = f"{' ' * indent}{match['key']}: {flow}{gap}{comment}"
+        lines[index] = f"{match['indent']}{match['key']}: {flow}{gap}{comment}"
         return "\n".join(lines) + "\n"
     end, item_indent = index, indent + 2
     for position in range(index + 1, len(lines)):

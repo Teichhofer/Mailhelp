@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import base64
 import hashlib
-import imaplib
 import json
 import time
 from contextlib import ExitStack
@@ -21,7 +20,7 @@ from .analysis import Analyzer
 from .config import PromptConfig, Secrets, Settings, Topic
 from .decisions import DecisionAnalyzer, DecisionClient, JevRelevanceAnalyzer, load_relevance_prompts
 from .evaluation import write_report
-from .imap import FolderNotReadable, ImapReader
+from .imap import FolderNotReadable, ImapReader, reader_arguments
 from .laya import LayaClient, LayaRelevanceAnalyzer, load_laya_prompts
 from .logging import NullLogger, redact
 from .mime import prepare
@@ -105,6 +104,7 @@ class DecisionTestMode:
                  save_interval: float = SAVE_INTERVAL_SECONDS, clock=time.monotonic):
         self.imap, self.standard, self.ollama = imap, standard, ollama
         self.settings, self.topics = settings, topics
+        self.mailbox = settings.imap.enabled_mailboxes()[0]
         self.report, self.output, self.recorder = report, output, recorder
         self.ignore_historical_start = ignore_historical_start
         self.relevance_only = relevance_only
@@ -174,17 +174,17 @@ class DecisionTestMode:
     def run(self, count: int) -> int:
         try:
             candidates = []
-            for folder in self.settings.imap.folders:
+            for folder in self.mailbox.folders:
                 try:
                     candidates.extend(self.imap.discover_since(
                         folder, max_count=count,
                         historical_start=(None if self.ignore_historical_start
-                                          else self.settings.imap.historical_start)))
+                                          else self.mailbox.historical_start)))
                 except FolderNotReadable:
-                    if folder == self.settings.imap.primary_folder:
+                    if folder == self.mailbox.primary_folder:
                         raise
                     self.report["selection_errors"].append({"folder": folder, "error_type": "FolderNotReadable"})
-            ranks = {folder: index for index, folder in enumerate(self.settings.imap.folders)}
+            ranks = {folder: index for index, folder in enumerate(self.mailbox.folders)}
             candidates.sort(key=lambda item: (item.received_at, item.uid, -ranks[item.folder]), reverse=True)
             seen = set()
             for candidate in candidates:
@@ -267,6 +267,7 @@ def _initial_report(settings: Settings, topics: list[Topic], prompts: PromptConf
                     decision_prompts: Any, local_llm: LocalLlm, laya: tuple[str, int] | None,
                     laya_prompts: Any, relevance_only: bool, ignore_historical_start: bool,
                     irrelevant_topics: list[Topic] | None) -> dict[str, Any]:
+    mailbox = settings.imap.enabled_mailboxes()[0]
     return {"schema_version": 2, "mode": "decision_test",
             "comparison": "standard_vs_ollama",
             "pipeline_policy": "relevance_only" if relevance_only else "relevant_only",
@@ -282,8 +283,8 @@ def _initial_report(settings: Settings, topics: list[Topic], prompts: PromptConf
                          "ollama": settings.timeouts.ollama.model_dump()}, "run_id": str(uuid4()),
             "started_at": datetime.now(UTC).isoformat(), "complete": False,
             "requested_mail_count": count, "selection": "global_newest_first_unique_raw_mail",
-            "historical_start": (None if ignore_historical_start or settings.imap.historical_start is None
-                                 else settings.imap.historical_start.isoformat()),
+            "historical_start": (None if ignore_historical_start or mailbox.historical_start is None
+                                 else mailbox.historical_start.isoformat()),
             "timezone": settings.timezone,
             "prompts": prompts.model_dump(mode="json"),
             "decisions_prompts": decision_prompts.model_dump(mode="json"),
@@ -294,14 +295,13 @@ def _initial_report(settings: Settings, topics: list[Topic], prompts: PromptConf
 def _comparison_reader(settings: Settings, secrets: Secrets, recorder: ComparisonRecorder,
                        stack: ExitStack) -> ImapReader:
     cfg = settings.timeouts.imap
+    mailbox = settings.imap.enabled_mailboxes()[0]
+    address, options = reader_arguments(mailbox, secrets.imap_credentials(mailbox.id))
     reader = ImapReader(
-        settings.imap.host, settings.imap.port, secrets.imap_username,
-        secrets.imap_password.get_secret_value(), cfg.timeout_seconds,
-        factory=imaplib.IMAP4_SSL if settings.imap.connection_mode == "ssl" else imaplib.IMAP4,
+        *address, cfg.timeout_seconds, **options,
         policy=RetryPolicy(cfg.retries, cfg.initial_backoff_seconds, cfg.max_backoff_seconds,
                            _pause),
-        starttls=settings.imap.connection_mode == "starttls", batch_size=settings.imap.batch_size,
-        logger=recorder)
+        batch_size=settings.imap.batch_size, logger=recorder)
     stack.callback(reader.close)
     return reader
 
@@ -378,10 +378,7 @@ def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
     log_path = output.with_suffix(output.suffix + ".jsonl")
     with log_path.open("x", encoding="utf-8"):
         pass
-    known_secrets = tuple(value.get_secret_value() for value in (
-        secrets.imap_password, secrets.openrouter_api_key, secrets.telegram_bot_token,
-        secrets.todoist_token, secrets.todoist_client_id, secrets.todoist_client_secret,
-        secrets.google_oauth_client_id, secrets.google_oauth_client_secret, secrets.google_oauth_refresh_token))
+    known_secrets = secrets.known_values()
     recorder = ComparisonRecorder(log_path, known_secrets)
     from .metrics import DECISION_TEST_FILE, MetricsRecorder, metrics_directory
     # Content-free metrics of every comparison run in one log, separate from production.

@@ -9,10 +9,11 @@ from pydantic import SecretStr
 from shared_application import Log, settings
 
 from mailhelp.analysis import Analyzer
+from mailhelp.config import ImapCredentials, Secrets
 from mailhelp.experience import ExperienceRuntime
 from mailhelp.imap import ListedMailbox
 
-SECRETS = NS(imap_username="me@test", imap_password=SecretStr("fake"))
+SECRETS = Secrets.model_construct(imap={1: ImapCredentials(username="me@test", password=SecretStr("fake"))})
 
 
 def application(web, tmp_path, prompts):
