@@ -1,5 +1,19 @@
 # Änderungen
 
+## 3.1.3 – beta: Telefonansicht, Release-Texte und CI-Actions
+
+- **Fehler behoben:** Auf Telefonen bricht die Navigation auf mehrere Zeilen um; als klebende Kopfleiste
+  verdeckte sie einen großen Teil des Bildschirms, und Schaltflächen wie „Relevant“ rutschten beim
+  Scrollen darunter. Der Browsertest `test_details_show_the_complete_mail[mobile]` scheiterte deshalb
+  in der CI zufällig. Unter 720 px Breite scrollt die Kopfleiste jetzt mit der Seite. Regressionstest
+  `test_phone_header_scrolls_away_and_never_covers_actions` scheiterte vor der Korrektur.
+- **Fehler behoben:** Jedes GitHub-Release erhielt den Text von Release 1.0. Der Release-Workflow
+  erzeugt den Text jetzt aus dem Changelog-Abschnitt der getaggten Version mit absoluten Links und dem
+  Verweis auf `docs/Release-X.Y.md`; fehlt der Abschnitt, scheitert die Veröffentlichung. Tests in
+  `tests/release/test_release_notes.py`.
+- GitHub-Actions auf Node.js 24 umgestellt: `actions/checkout@v6`, `actions/setup-python@v6`,
+  `actions/upload-artifact@v6`.
+
 ## 3.1.2 – beta: Lernmodus und Decision-Test über alle Postfächer
 
 - `--mailbox alle` (auch `all`) wählt für `--learn` und `--decision-test` alle aktivierten Postfächer:

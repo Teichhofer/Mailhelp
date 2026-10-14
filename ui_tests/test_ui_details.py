@@ -39,3 +39,24 @@ def test_details_show_the_complete_mail(page, mailhelp):
     relevance.get_by_role("button", name="Relevant", exact=True).click()
     expect(page.get_by_role("heading", name="Offene Entscheidungen")).to_be_visible(timeout=10000)
     assert page.errors == []
+
+
+def test_phone_header_scrolls_away_and_never_covers_actions(page, mailhelp):
+    """Regression (CI 14.10.2026): the wrapped navigation stuck at the top covered a large part of the
+    phone screen; a tap on "Relevant" hit the header or another bar instead of the button."""
+    sign_in(page, mailhelp)
+    header = page.locator("header.top")
+    position = header.evaluate("(node) => getComputedStyle(node).position")
+    assert position == ("sticky" if page.device == "desktop" else "static")
+    if page.device == "desktop":
+        return
+    page.goto(f"{mailhelp.url}/mail/{mail_id(7)}")
+    button = page.get_by_role("button", name="Relevant", exact=True)
+    for block in ("start", "center", "end"):
+        button.evaluate(f"(node) => node.scrollIntoView({{block: '{block}'}})")
+        hit = button.evaluate("""(node) => {
+            const box = node.getBoundingClientRect();
+            const top = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2);
+            return top === node || node.contains(top);
+        }""")
+        assert hit, f"Button bei scrollIntoView({block}) verdeckt"

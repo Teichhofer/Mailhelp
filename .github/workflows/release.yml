@@ -16,8 +16,8 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12.10'
       - run: python -m pip install hatchling==1.27.0
@@ -27,8 +27,12 @@ jobs:
         run: |
           python -c "import os,tomllib; from pathlib import Path; v=tomllib.loads(Path('pyproject.toml').read_text())['project']['version']; assert os.environ['RELEASE_TAG']=='v'+v; assert '__version__ = '+repr(v).replace(chr(39),chr(34)) in Path('src/mailhelp/__init__.py').read_text()"
       - run: python -m hatchling build
+      - name: Release notes from the changelog section of this version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: python .github/scripts/release_notes.py "$RELEASE_TAG" > release-notes.md
       - name: Publish the verified wheel and source archive
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASE_TAG: ${{ github.ref_name }}
-        run: gh release create "$RELEASE_TAG" dist/* --verify-tag --title "Mailhelp $RELEASE_TAG" --notes-file docs/Release-1.0.md
+        run: gh release create "$RELEASE_TAG" dist/* --verify-tag --title "Mailhelp $RELEASE_TAG" --notes-file release-notes.md

@@ -73,6 +73,12 @@ a { color: var(--accent); }
   border-bottom: 1px solid var(--border);
 }
 
+/* On phones the wrapped navigation takes several rows. Fixed at the top it would cover a large
+   part of the screen and the actions scrolled underneath it, so there it scrolls away with the page. */
+@media (max-width: 719px) {
+  .top { position: static; }
+}
+
 .brand {
   display: inline-flex;
   align-items: center;
