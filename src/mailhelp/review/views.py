@@ -113,6 +113,8 @@ class MailView:
     calendar_events: tuple[dict[str, Any], ...] = ()
     # Attachment index → stored original document (2.3); empty for older mails.
     originals: dict[int, OriginalFile] = field(default_factory=dict)
+    # Label of its mailbox; empty with a single mailbox (3.1).
+    mailbox: str = ""
 
 
 @dataclass(frozen=True)
@@ -212,6 +214,8 @@ class ReviewViews:
 
     def __init__(self, store: JsonStore, configured_timezone: str, test_mode: bool = False):
         self.store, self.configured_timezone, self.test_mode = store, configured_timezone, test_mode
+        # Account id -> (number, label) of every enabled mailbox; empty with a single mailbox (3.1).
+        self.mailboxes: dict[str, tuple[int, str]] = {}
 
     def overview(self) -> Overview:
         with self.store.locked():
@@ -299,6 +303,12 @@ class ReviewViews:
                                        for value in calls) if isinstance(calls, list) else 0),
         )
 
+    def mailbox_label(self, account: str) -> str:
+        """The configured label, "Entferntes Postfach" for an unknown account; empty with one mailbox."""
+        if not self.mailboxes:
+            return ""
+        return self.mailboxes.get(account, (0, "Entferntes Postfach"))[1]
+
     def mail(self, mail_id: str) -> MailView | None:
         """The mail with its complete text, or None if no such mail is known."""
         with self.store.locked():
@@ -323,7 +333,8 @@ class ReviewViews:
             attachments_omitted=omitted if isinstance(omitted, int) else 0,
             text_shortened=content.metadata.get("text_shortened") is True,
             extracted_attachments=tuple(content.extracted_attachments),
-            calendar_events=tuple(content.calendar_events), originals=originals)
+            calendar_events=tuple(content.calendar_events), originals=originals,
+            mailbox=self.mailbox_label(state.imap.account_id))
 
     def _relevance(self, reader: _Reader) -> list[RelevanceView]:
         result = []

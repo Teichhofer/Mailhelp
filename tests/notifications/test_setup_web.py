@@ -156,12 +156,16 @@ def test_runtime_readonly_probes_and_synthetic_tests(configured, monkeypatch):
     session = configured.web.auth.sessions()[0].id
     calls = []
     @contextmanager
-    def reader(settings, secrets):
+    def reader(settings, secrets, mailbox):
         yield NS(list_folders=lambda: [NS(name=name) for name in ["INBOX", "Drafts"]],
                  check_access=lambda folders: calls.append(folders))
     monkeypatch.setattr("mailhelp.setup_runtime._reader", reader)
+    # Credentials are read at start; a mailbox without them cannot be checked yet.
+    assert runtime.imap(session) == ("failed", "auth") and calls == []
+    runtime.secrets = NS(imap={1: object()})
     assert runtime.imap(session) == ("limited", "draft_readonly")
     assert calls == [["INBOX", "Drafts"]]
+    assert configured.app.store.load("setup-folders")["mailboxes"] == {"1": ["INBOX", "Drafts"]}
     cfg.imap.drafts_folder = "missing"
     (configured.tmp_path / "config.yaml").write_text(yaml.safe_dump(cfg.model_dump(mode="json")), encoding="utf-8")
     assert runtime.imap(session) == ("failed", "configuration")
@@ -340,3 +344,40 @@ def test_regression_non_ascii_authentication_tokens_are_rejected_without_server_
     else:
         assert web.browser.request("POST", "/einrichtung/speichern", {"csrf": "ungültig"}).status == 403
         assert web.auth.csrf_valid(web.auth.sessions()[0].id, "ungültig") is False
+
+
+TWO_MAILBOXES = MAILBOX_CONFIG + """  - id: 2
+    label: Arbeit
+    host: b
+    port: 993
+    folders: [INBOX, Projekte]
+"""
+
+
+def test_diagnosis_checks_every_mailbox_and_offers_its_own_folders(configured, monkeypatch):
+    web, runtime = configured.web, configured.runtime
+    path = configured.tmp_path / "config.yaml"
+    raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+    raw.pop("imap")
+    path.write_text(TWO_MAILBOXES + yaml.safe_dump(raw), encoding="utf-8")
+    folders = {"h": ["INBOX", "Drafts"], "b": ["INBOX", "Drafts", "Projekte", "Archiv"]}
+    checked = []
+
+    @contextmanager
+    def reader(settings, secrets, mailbox):
+        yield NS(list_folders=lambda: [NS(name=name) for name in folders[mailbox.host]],
+                 check_access=lambda required: checked.append((mailbox.id, required)))
+    monkeypatch.setattr("mailhelp.setup_runtime._reader", reader)
+    from pydantic import SecretStr
+    runtime.secrets = NS(imap={1: object(), 2: object()}, openrouter_api_key=SecretStr("o"),
+                         telegram_bot_token=SecretStr(""), todoist_token=SecretStr("t"),
+                         google_oauth_refresh_token=SecretStr("g"))
+    assert runtime.imap("device") == ("limited", "draft_readonly")
+    assert checked == [(1, ["INBOX", "Drafts"]), (2, ["INBOX", "Projekte", "Drafts"])]
+    page = web.browser.request("GET", "/einrichtung").body.decode()
+    assert "Postfach 1: INBOX, Drafts; Postfach 2: INBOX, Drafts, Projekte, Archiv" in page
+    assert '<option value="Archiv">' in page and "Anzeigename – Postfach 2 (Arbeit)" in page
+    # A failing second mailbox fails the check, the folders of the first stay offered.
+    folders["b"] = ["INBOX"]
+    assert runtime.imap("device") == ("failed", "configuration")
+    assert configured.app.store.load("setup-folders")["mailboxes"] == {"1": ["INBOX", "Drafts"], "2": ["INBOX"]}

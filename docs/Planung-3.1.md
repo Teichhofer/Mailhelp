@@ -4,7 +4,7 @@
 
 **Stand:** 14. Oktober 2026
 
-**Status:** In Umsetzung – Phase 1 (Verträge) in 3.0.1, Phase 2 (Laufzeitkern) in 3.0.2, Phase 3 (Duplikate) in 3.0.3, Phase 4 (zugeordnete Funktionen) in 3.0.4 umgesetzt; Entscheidungen vom 14. Oktober 2026 eingearbeitet
+**Status:** In Umsetzung – Phase 1 (Verträge) in 3.0.1, Phase 2 (Laufzeitkern) in 3.0.2, Phase 3 (Duplikate) in 3.0.3, Phase 4 (zugeordnete Funktionen) in 3.0.4, Phase 5 (Web und Telegram, Teilumfang) in 3.0.5 umgesetzt; Entscheidungen vom 14. Oktober 2026 eingearbeitet
 **Grundlage:** [Planung 3.0](Planung-3.0.md), [Planung 3.2](Planung-3.2.md), [Release 3.0](Release-3.0.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Entwicklungsregeln](../AGENTS.md)
 
 ## 1. Ziel und Umfang
@@ -193,24 +193,27 @@ nur bei mehr als einem Postfach. Postfachfehler erscheinen als eigene Zeile.
 
 ## 7. Weboberfläche und Telegram
 
-- **Anzeige:** Mailkarten, Maildetail, Archiv, Entscheidungsliste und Telegram-Vorschläge zeigen das
-  Postfach-Label, sobald mehr als ein Postfach konfiguriert ist. Unbekannte `account_id` → „Entferntes Postfach“.
-  Label wird zur Laufzeit aus `account_id` aufgelöst, **kein** neues Feld im Mailzustand.
-- **Filter:** Archiv und Suche filtern nach Postfach (GET-Parameter, ohne JavaScript bedienbar).
+- **Anzeige (3.0.5):** Maildetail, Archivliste und Telegram-Vorschläge (`✉️ [Label] Absender · Betreff`)
+  zeigen das Postfach-Label, sobald mehr als ein Postfach aktiviert ist. Unbekannte `account_id` →
+  „Entferntes Postfach“. Das Label wird zur Laufzeit aus `account_id` aufgelöst, **kein** neues Feld im
+  Mailzustand. Offen für 3.2: Label auf den Karten der Entscheidungsübersicht und im Tagesüberblick.
+- **Filter (3.0.5):** Archiv und Suche filtern nach Postfach (`postfach=<n>`, ohne JavaScript bedienbar).
 - **Sortierung (geprüft in 3.0.3, keine Änderung):** Die Schlüssel in `telegram/outbox.py` und
   `review/views.py` enthalten nach der UID die Mail-ID und bleiben damit auch bei gleicher UID in zwei
   Postfächern eindeutig. Eine Umstellung auf den Empfangszeitpunkt würde die Telegram-Reihenfolge
   bestehender Installationen verändern und ist kein Fehler im Sinne dieser Planung.
-- **Einrichtung `/einrichtung`, Schritt 2:** Liste der Postfächer mit „Hinzufügen“, „Bearbeiten“,
-  „Deaktivieren“, „Entfernen“. Jede Änderung landet im Entwurf `setup-state.json` und gilt erst nach
-  „Einstellungen übernehmen“ (Sitzung, CSRF, Dateihash, Entwurfsversion, Idempotenz, Neuprüfung bei
-  Ausführung). Entfernen zeigt die Zahl betroffener offener Vorgänge. Anzeige des benötigten
-  Variablennamens (`IMAP_2_PASSWORD`) und Status „vorhanden/fehlt“.
-- **Diagnose `/diagnose`:** Eine IMAP-Komponente je Postfach (`imap:<n>`), einzeln startbar, eigener
-  Timeout und eigene Sperre bei hängender Prüfung. Bericht enthält Postfach-ID, aber keinen Host,
-  Benutzernamen oder Ordnernamen.
-- **Einstellungshilfe:** `setting_help.py` und [Web-Einstellungen.md](Web-Einstellungen.md) um neue Felder ergänzen.
-- **Telegram `/status`:** Status je Postfach (bereit / Fehler / deaktiviert).
+- **Einrichtung `/einrichtung`, Schritt 2 (3.0.5):** Bearbeiten aller Felder jedes konfigurierten
+  Postfachs einschließlich Anzeigename und Aktivierung über den bestehenden Entwurf (Sitzung, CSRF,
+  Dateihash, Entwurfsversion, Idempotenz, Neuprüfung bei Ausführung); Ordnerauswahl je Postfach aus der
+  letzten Diagnose; Anzeige der benötigten Variablennamen (`IMAP_2_USERNAME/IMAP_2_PASSWORD`) mit
+  „vorhanden/fehlt“. **Verschoben nach 3.2** (Oberfläche „Einstellungen → Postfächer“): Hinzufügen und
+  Entfernen ganzer Postfächer im Web; bis dahin in `config.yaml` (`imap.mailboxes`).
+- **Diagnose `/diagnose` (3.0.5, abweichend):** Die Komponente `imap` prüft **alle** aktivierten
+  Postfächer des Entwurfs nacheinander und scheitert, sobald eines scheitert; ein im Entwurf neues
+  Postfach ohne geladene Zugangsdaten ergibt `auth`. Damit setzt die Übernahme von Postfachänderungen
+  weiterhin eine aktuelle erfolgreiche Prüfung aller Postfächer voraus. Einzelkomponenten je Postfach
+  folgen gegebenenfalls in 3.2. Der Bericht enthält weiterhin keine Hosts, Benutzer oder Ordner.
+- **Telegram `/status`:** Status je Postfach – verschoben nach 3.2.
 
 ## 8. Umsetzungsphasen
 

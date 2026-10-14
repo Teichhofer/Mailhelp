@@ -6,7 +6,7 @@ from pathlib import Path
 
 from .config import LEGACY_IMAP_SECRETS
 from .diagnostics import DiagnosticsService
-from .experience import _mailbox, _reader
+from .experience import _reader
 from .external.providers import build_writers
 from .setup import SetupService
 from .storage import atomic_replace
@@ -41,14 +41,24 @@ class SetupRuntime:
                              getattr(self.secrets, name).get_secret_value() else "fehlt" for name in names}}
 
     def imap(self, actor):
+        """Every enabled mailbox of the draft; one failing mailbox fails the check (3.1)."""
         cfg = self.setup.draft_settings()
-        with _reader(cfg, self.secrets) as reader:
-            folders = [item.name for item in reader.list_folders()]
-            self.app.store.save("setup-folders", {"schema_version": 1, "folders": folders})
-            required = [*_mailbox(cfg).folders, _mailbox(cfg).drafts_folder]
-            if not set(required) <= set(folders):
-                return "failed", "configuration"
-            reader.check_access(required)
+        listed = {}
+        try:
+            for mailbox in cfg.imap.enabled_mailboxes():
+                if self.secrets is None or mailbox.id not in self.secrets.imap:
+                    # Credentials of a newly added mailbox are read at the next start.
+                    return "failed", "auth"
+                with _reader(cfg, self.secrets, mailbox) as reader:
+                    folders = listed[str(mailbox.id)] = [item.name for item in reader.list_folders()]
+                    required = [*mailbox.folders, mailbox.drafts_folder]
+                    if not set(required) <= set(folders):
+                        return "failed", "configuration"
+                    reader.check_access(required)
+        finally:
+            # The folder choices of the setup step, also when a later mailbox fails.
+            self.app.store.save("setup-folders", {"schema_version": 1, "mailboxes": listed,
+                                                  "folders": next(iter(listed.values()), [])})
         return "limited", "draft_readonly"
 
     def calendar(self, actor):

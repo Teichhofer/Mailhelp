@@ -35,7 +35,8 @@ LABELS = {"event_defaults.video_duration_minutes": "Standarddauer Videokonferenz
           "timezone": "Zeitzone (IANA)", "telegram.enabled": "Telegram verwenden",
           "imap.host": "IMAP-Server", "imap.port": "IMAP-Port", "imap.connection_mode": "IMAP-Verbindungsart",
           "imap.folders": "Quellordner (JSON-Liste)", "imap.primary_folder": "Hauptordner",
-          "imap.drafts_folder": "Entwurfsordner", "targets.google_calendar": "Google-Kalender",
+          "imap.drafts_folder": "Entwurfsordner", "imap.label": "Anzeigename", "imap.enabled": "Postfach abrufen",
+          "targets.google_calendar": "Google-Kalender",
           "targets.todoist_project": "Todoist-Projekt", "targets.calendar_provider": "Kalenderdienst",
           "targets.task_provider": "Aufgabendienst", "targets.caldav_calendar_url": "CalDAV-Kalender (Adresse)",
           "targets.caldav_task_url": "CalDAV-Aufgabenliste (Adresse)", "targets.outlook_calendar": "Outlook-Kalender",
@@ -139,7 +140,12 @@ class SetupSite:
             if name.startswith("imap.mailboxes."):
                 choices = CHOICES.get("imap." + name.rsplit(".", 1)[-1])
             if name.endswith((".primary_folder", ".drafts_folder")):
-                choices = self.site.views.store.load("setup-folders", {}).get("folders") or None
+                listed = self.site.views.store.load("setup-folders", {})
+                if name.startswith("imap.mailboxes."):
+                    number = str(raw["imap"]["mailboxes"][int(name.split(".")[2])]["id"])
+                    choices = listed.get("mailboxes", {}).get(number) or None
+                else:
+                    choices = listed.get("folders") or None
             if name.startswith("notifications.categories."):
                 choices = ["[]"]
                 if raw["telegram"]["enabled"]:
@@ -152,6 +158,20 @@ class SetupSite:
                                                                         field_label(raw, name)),
                               "Entwurf speichern", name=name, version=state.version, step=step)
         return body
+
+    def _listed_folders(self):
+        """Folders of the last diagnosis, per mailbox for the 3.1 format."""
+        listed = self.site.views.store.load("setup-folders", {})
+        mailboxes = self._raw()["imap"].get("mailboxes")
+        if mailboxes is None:
+            parts = [", ".join(listed.get("folders", [])) or "noch nicht geprüft"]
+        else:
+            parts = [f'Postfach {item["id"]}: '
+                     + (", ".join(listed.get("mailboxes", {}).get(str(item["id"]), [])) or "noch nicht geprüft")
+                     for item in mailboxes]
+        return ('<p>Vorhandene Ordner aus der letzten Diagnose: ' + e("; ".join(parts))
+                + '. Lesbarkeit beweist keine Schreibberechtigung. Postfächer hinzufügen oder entfernen: '
+                  'imap.mailboxes in config.yaml, Zugangsdaten IMAP_&lt;Nummer&gt;_USERNAME/_PASSWORD.</p>')
 
     def setup(self, request, session):
         if self.runtime is None:
@@ -168,10 +188,7 @@ class SetupSite:
             body += (f'<section class="card"><details{opened}><summary><h2>{index}. {title}</h2></summary>'
                      + self._fields(session, step_fields(self._raw(), index), index))
             if index == 2:
-                folders = self.site.views.store.load("setup-folders", {}).get("folders", [])
-                body += '<p>Vorhandene Ordner aus der letzten Diagnose: ' + e(
-                    ", ".join(folders) or "noch nicht geprüft")
-                body += '. Lesbarkeit beweist keine Schreibberechtigung.</p>'
+                body += self._listed_folders()
             if index == 3:
                 body += '<p>Modelle und Parameter werden in prompts.yaml gepflegt. Tests unter Diagnose starten.</p>'
             if index == 4:

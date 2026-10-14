@@ -1,5 +1,17 @@
 # Änderungen
 
+## 3.0.5 – beta: Planung 3.1, Phase 5 – Weboberfläche, Telegram, bis zu 10 Postfächer
+
+- Bis zu 10 Postfächer; zwei aktivierte Postfächer mit demselben Server, Port und Benutzer werden beim
+  Start abgelehnt.
+- Maildetail und Archivliste nennen das Postfach, das Archiv filtert nach `postfach=<n>`; Telegram-Karten
+  zeigen `✉️ [Label] Absender · Betreff`. Mit einem Postfach bleibt die Darstellung unverändert.
+- Diagnose `imap` prüft alle aktivierten Postfächer des Entwurfs; Ordnerauswahl im Einrichtungsschritt je
+  Postfach; Anzeigename und Aktivierung sind dort bearbeitbar.
+- Verschoben nach 3.2: Postfächer im Web hinzufügen/entfernen, Labels in Entscheidungsübersicht und
+  Tagesüberblick, Telegram `/status` je Postfach.
+- Abnahme: 2224 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung, 134 Browsertests.
+
 ## 3.0.4 – beta: Planung 3.1, Phase 4 – postfachbezogene Funktionen
 
 - Antwortentwürfe gehen nur in den Entwurfsordner des Ursprungspostfachs (eigene Verbindung und

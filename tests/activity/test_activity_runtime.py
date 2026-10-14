@@ -77,7 +77,6 @@ def test_reports_and_drafts_are_wired_per_mailbox(web, tmp_path, monkeypatch):
     """Planung 3.1: each mailbox opens with its own server and credentials; a removed one is refused."""
     from mailhelp.config import Settings
     from mailhelp.imap import account_id
-    monkeypatch.setattr("mailhelp.config.MAX_MAILBOXES", 10)
     opened = []
 
     class Reader:

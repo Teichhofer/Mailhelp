@@ -20,15 +20,9 @@ if TYPE_CHECKING:
     from .notification_runtime import NotificationRuntime
 
 
-def _mailbox(settings):
-    """The first enabled mailbox: the default of reports and setup probes."""
-    return settings.imap.enabled_mailboxes()[0]
-
-
 @contextmanager
-def _reader(settings, secrets, mailbox=None):
-    """One IMAP session of *mailbox* (default: the first enabled one); closed again on every exit."""
-    mailbox = mailbox or _mailbox(settings)
+def _reader(settings, secrets, mailbox):
+    """One IMAP session of *mailbox*; closed again on every exit."""
     address, options = reader_arguments(mailbox, secrets.imap_credentials(mailbox.id))
     reader = ImapReader(*address, settings.timeouts.imap.timeout_seconds, **options)
     try:

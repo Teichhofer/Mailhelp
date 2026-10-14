@@ -30,6 +30,8 @@ class ProposalPresenter:
         self.configured_timezone = configured_timezone
         self.encode = encode
         self.test_mode = test_mode
+        # Label of the mailbox a proposal came from; set only with several mailboxes (3.1).
+        self.mailbox_of: Callable[[Proposal], str] = lambda proposal: ""
 
     def present(
         self, proposal: Proposal, sender: str = "—", subject: str = "—",
@@ -44,6 +46,7 @@ class ProposalPresenter:
                  if previous is not None else "")
                 + format_proposal(proposal, self.configured_timezone, self.test_mode)
                 + (f"\n\nUngeprüfter Zusatz: {additional.title}\n{additional.evidence}" if additional else ""),
+                mailbox=self.mailbox_of(proposal),
             )
         )
 

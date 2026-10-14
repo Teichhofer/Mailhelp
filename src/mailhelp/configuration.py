@@ -112,7 +112,8 @@ for section, fields in {
     SETUP_FIELDS.update(f"notifications.{section}.{name}" for name in fields)
 SETUP_FIELDS.add("notifications.telegram_content")
 # Mailbox fields of the 3.1 format; the index is the position in imap.mailboxes.
-MAILBOX_SETUP_FIELDS = ("host", "port", "connection_mode", "folders", "primary_folder", "drafts_folder")
+MAILBOX_SETUP_FIELDS = ("label", "enabled", "host", "port", "connection_mode", "folders", "primary_folder",
+                        "drafts_folder")
 _MAILBOX_SETUP_FIELD = re.compile(r"^imap\.mailboxes\.[0-9]\.(?:" + "|".join(MAILBOX_SETUP_FIELDS) + r")$")
 
 

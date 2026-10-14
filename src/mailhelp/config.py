@@ -60,8 +60,7 @@ DraftsFolder = Annotated[str, Field(min_length=1, max_length=500, pattern=r"^[^\
 # Fields of one mailbox; before 3.1 they were written directly below ``imap``.
 MAILBOX_FIELDS = ("host", "port", "folders", "primary_folder", "connection_mode", "historical_start",
                   "drafts_folder")
-# Upper bound of configured mailboxes; 3.1 phase 1 still processes exactly one.
-MAX_MAILBOXES = 1
+MAX_MAILBOXES = 10
 
 
 class MailboxSettings(ConfigModel):
@@ -164,7 +163,7 @@ class ImapSettings(ConfigModel):
                 raise ValueError("primary_folder muss in folders enthalten sein")
             return self
         if len(self.mailboxes) > MAX_MAILBOXES:
-            raise ValueError(f"höchstens {MAX_MAILBOXES} Postfach wird unterstützt")
+            raise ValueError(f"höchstens {MAX_MAILBOXES} Postfächer werden unterstützt")
         ids = [mailbox.id for mailbox in self.mailboxes]
         if len(ids) != len(set(ids)):
             raise ValueError("Postfachnummern (id) dürfen nicht doppelt vorkommen")
@@ -931,6 +930,18 @@ def imap_secret_values(imap: ImapSettings, env: dict[str, str]
     return credentials, missing
 
 
+def _distinct_accounts(imap: ImapSettings, credentials: dict[int, dict[str, str]]) -> None:
+    """Two mailboxes with the same server, port and user would share their whole processing state."""
+    from .imap import account_id
+    seen: dict[str, int] = {}
+    for mailbox in imap.enabled_mailboxes():
+        account = account_id(mailbox.host, mailbox.port, credentials[mailbox.id]["username"])
+        if account in seen:
+            raise ValueError(f"Postfächer {seen[account]} und {mailbox.id} verwenden dasselbe Konto "
+                             "(Server, Port und Benutzername)")
+        seen[account] = mailbox.id
+
+
 def load_all(directory: Path, environ: dict[str, str] | None = None
              ) -> tuple[Settings, Secrets, list[Topic], list[Topic], PromptConfig, str]:
     env = {**_dotenv(directory / ".env"), **(os.environ if environ is None else environ)}
@@ -952,6 +963,7 @@ def load_all(directory: Path, environ: dict[str, str] | None = None
         raise ValueError("Fehlende Geheimnisse: " + ", ".join(missing))
     values: dict[str, Any] = {name.lower(): env[name] for name in names}
     values["imap"] = credentials
+    _distinct_accounts(settings.imap, credentials)
     values.update({name.lower(): env[name] for name in OPTIONAL_PROVIDER_SECRETS if env.get(name)})
     if settings.web.enabled:
         web_secret = env.get("MAILHELP_WEB_SECRET", "")

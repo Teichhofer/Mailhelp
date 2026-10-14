@@ -30,6 +30,8 @@ class ArchiveQuery(BaseModel):
     since: date | None = None
     until: date | None = None
     sort: Literal["received", "updated"] = "received"
+    # Mailbox number (3.1); only offered with several mailboxes.
+    postfach: int | None = Field(default=None, ge=1, le=99)
     page: int = Field(default=1, ge=1, le=1000000)
     size: int = Field(default=25, ge=1, le=100)
 
@@ -49,6 +51,8 @@ class ArchiveQueries:
         self.damaged = 0
         self._history_revision = -1
         self._history: list[dict[str, Any]] = []
+        # Account id -> (number, label) of every enabled mailbox; empty with a single mailbox (3.1).
+        self.mailboxes: dict[str, tuple[int, str]] = {}
 
     def items(self) -> list[dict]:
         with self.store.locked():
@@ -88,7 +92,7 @@ class ArchiveQueries:
             content = bounded([("Mailtext", mail.text or ""), *(
                 (f"Anhang „{item.filename}“", f"{item.filename}\n{item.text}")
                 for item in mail.extracted_attachments)] if mail is not None else [])
-            items.append({"id": state.id, "sender": sender, "subject": subject,
+            items.append({"id": state.id, "account": state.imap.account_id, "sender": sender, "subject": subject,
                           "received": received, "updated": state.updated_at.isoformat(),
                           "relevance": (state.relevance_dialog.decision if state.relevance_dialog else None)
                                        or relevance.get("decision", "unknown"),
@@ -131,6 +135,8 @@ class ArchiveQueries:
             if query.status and str(query.status) not in item["statuses"]:
                 continue
             if query.since and day < query.since or query.until and day > query.until:
+                continue
+            if query.postfach is not None and self.mailboxes.get(item["account"], (None,))[0] != query.postfach:
                 continue
             items.append(item)
         def order(item: dict[str, Any]) -> tuple[float, str]:

@@ -478,3 +478,49 @@ def test_regression_migration_metadata_does_not_keep_old_mail_content_forever(co
     NotificationRuntime(app, web.site)
     assert private not in json.dumps(web.store.load("notifications-backup"))
     assert private not in json.dumps(web.store.load("notification-queue"))
+
+
+def test_several_mailboxes_are_built_labelled_and_fail_independently(tmp_path, monkeypatch):
+    """Planung 3.1: one reader per mailbox; labels in web and Telegram; one failure stays local."""
+    import imaplib
+
+    import yaml
+    from shared_application import settings
+    from shared_core import prompt_config
+
+    from mailhelp.application import build_application
+    from mailhelp.config import Secrets, Settings
+    from mailhelp.imap import account_id
+    data = settings(tmp_path).model_dump(mode="json")
+    data["web"]["enabled"] = True
+    data["imap"] = {"mailboxes": [
+        {"id": 1, "label": "Privat", "host": "a.test", "port": 993, "folders": ["INBOX"]},
+        {"id": 2, "label": "Arbeit", "host": "b.test", "port": 993, "folders": ["INBOX"]}]}
+    cfg = Settings.model_validate(data)
+    (tmp_path / "config.yaml").write_text(yaml.safe_dump(cfg.model_dump(mode="json")), encoding="utf-8")
+    secret = Secrets(**{name: "s" * 40 for name in Secrets.model_fields if name != "imap"},
+                     imap={1: {"username": "privat", "password": "p" * 8}, 2: {"username": "arbeit", "password": "q" * 8}})
+
+    class Resource:
+        def __init__(self, *args, **kw):
+            pass
+
+        def close(self):
+            pass
+
+    class Reader(Resource):
+        def __init__(self, host, port, user, *args, **kw):
+            if host == "a.test":
+                raise imaplib.IMAP4.error("private provider answer")
+            self.account_id = account_id(host, port, user)
+    for name in ("OpenRouterClient", "HttpWriter", "GoogleOAuthTokenProvider"):
+        monkeypatch.setattr(("mailhelp.external.providers." if name in MOVED_WRITERS else "mailhelp.composition.") + name, Resource)
+    monkeypatch.setattr("mailhelp.composition.ImapReader", Reader)
+    with build_application(cfg, secret, [], prompt_config(), "a" * 64, tmp_path, use_jev_relevance=False) as app:
+        assert [source.mailbox.label for source in app.sources] == ["Privat", "Arbeit"]
+        assert app.imap is app.sources[0].reader and isinstance(app.sources[1].reader, Reader)
+        site = app.experience.site
+        expected = {account_id("a.test", 993, "privat"): (1, "Privat"), account_id("b.test", 993, "arbeit"): (2, "Arbeit")}
+        assert site.views.mailboxes == site.archive.queries.mailboxes == expected
+        assert app.dialog.presenter.mailbox_of(NS(source_mail_id="f" * 24)) == ""
+        assert app.store.load("service-health")["errors"] == {"imap": "auth"}

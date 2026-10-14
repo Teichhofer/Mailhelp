@@ -50,7 +50,6 @@ class SeenOrch(Orch):
 
 @pytest.fixture
 def two_mailboxes(tmp_path, monkeypatch):
-    monkeypatch.setattr("mailhelp.config.MAX_MAILBOXES", 10)
     data = app_settings(tmp_path).model_dump(mode="json")
     data["imap"] = {"batch_size": 25, "global_newest_first": True, "mailboxes": [
         {"id": 1, "label": "Privat", "host": "a", "port": 993, "folders": ["INBOX"]},

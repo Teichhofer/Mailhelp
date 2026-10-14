@@ -290,7 +290,8 @@ def _local_time(value: str | None, zone: str) -> str:
     return format_datetime_local(datetime.fromisoformat(value), zone)
 
 
-def mail_list_page(query, items: list[dict], total: int, damaged: int, topics: list[str], zone: str) -> str:
+def mail_list_page(query, items: list[dict], total: int, damaged: int, topics: list[str], zone: str,
+                   mailboxes: dict[str, tuple[int, str]] | None = None) -> str:
     """Search and filters for stored mails; works without JavaScript."""
     from ..review.cards import sender_name
     from ..review.views import STATUS_LABELS
@@ -305,8 +306,12 @@ def mail_list_page(query, items: list[dict], total: int, damaged: int, topics: l
                + f'<label>Von<input type="date" name="since" value="{e(query.since or "")}"></label>'
                + f'<label>Bis<input type="date" name="until" value="{e(query.until or "")}"></label>'
                + select("sort", "Sortierung", query.sort, list(SORTS)))
+    mailboxes = mailboxes or {}
+    if mailboxes:
+        filters += select("postfach", "Postfach", "" if query.postfach is None else str(query.postfach),
+                          [("", "alle"), *((str(number), label) for number, label in sorted(mailboxes.values()))])
     active = any((query.relevance, query.topic, query.state, status, query.since, query.until,
-                  query.sort != "received"))
+                  query.sort != "received", query.postfach))
     body = ('<h1>Mails</h1><form method="get" class="stack">'
             f'<label>Suche<input type="search" name="q" value="{e(query.q)}" maxlength="200" '
             'aria-describedby="suche-hinweis"></label>'
@@ -322,6 +327,9 @@ def mail_list_page(query, items: list[dict], total: int, damaged: int, topics: l
     rows = []
     for item in items:
         badges = [f'<span class="badge">{e(RELEVANCE_LABELS.get(item["relevance"], item["relevance"]))}</span>']
+        if mailboxes:
+            label = mailboxes.get(item["account"], (0, "Entferntes Postfach"))[1]
+            badges.insert(0, f'<span class="badge">{e(label)}</span>')
         if item["waiting"]:
             badges.append('<span class="badge warn">wartet auf dich</span>')
         if item["failed"]:
@@ -410,7 +418,8 @@ class ArchiveSite:
             return self.site._reply(request, 422, "Ungültige Suche oder Filter.")
         items, total = self.queries.search(query)
         topics = sorted({topic for item in self.queries.items() for topic in item["topics"]})
-        page = mail_list_page(query, items, total, self.queries.damaged, topics, self.site.configured_timezone)
+        page = mail_list_page(query, items, total, self.queries.damaged, topics, self.site.configured_timezone,
+                              self.queries.mailboxes)
         from .filters import chips
         page = chips("/mails", query.filter) + page
         return Response.html(200, layout("Mails", page, active="/mails"))

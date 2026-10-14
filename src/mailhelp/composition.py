@@ -52,6 +52,18 @@ class _FailedAccessAdapter:
     determine_start_uid = discover_since
 
 
+def _mailbox_labels(store: JsonStore, sources: list[MailboxSource]) -> Callable[[Any], str]:
+    """The label of the mailbox a proposal's mail came from (3.1)."""
+    from . import state_names
+    from .models import MailState
+    labels = {source.account_id: source.mailbox.label for source in sources}
+
+    def label(proposal: Any) -> str:
+        mail = store.peek_model(state_names.mail(proposal.source_mail_id), MailState)
+        return labels.get(mail.imap.account_id, "Entferntes Postfach") if mail is not None else ""
+    return label
+
+
 def _state_directory(settings: Settings, base_directory: Path) -> Path:
     """Return the fully isolated state namespace for the selected mode."""
     root = runtime_path(settings.data_directory, base_directory)
@@ -290,6 +302,10 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
     components.site.archive.lifecycle = components.site.lifecycle
     dialog.stop_requested = lambda: components.site.lifecycle.state != "running" or stop_event.is_set()
     components.site.archive.configuration = configuration
+    if len(application.sources) > 1:
+        # Labels and the mailbox filter appear only with several mailboxes (3.1).
+        labels = {source.account_id: (source.mailbox.id, source.mailbox.label) for source in application.sources}
+        components.site.views.mailboxes = components.site.archive.queries.mailboxes = labels
     components.site.archive.metrics = logger.metrics
     from .configuration import effective_models
     components.site.archive.models = effective_models(
@@ -374,6 +390,8 @@ def build_application(
         orchestrator = _build_orchestrator(settings, prompts, topics, fingerprint, jev_prompts, store, sender_store,
                                            logger, analyzer, dialog, writers, access_diagnostics)
         dialog.relevance_handler = orchestrator
+        if len(sources) > 1:
+            dialog.presenter.mailbox_of = _mailbox_labels(store, sources)
         orchestrator.original_attachments = settings.attachments
         orchestrator.stop_event = stop_event
         application = Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar,

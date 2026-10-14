@@ -197,6 +197,8 @@ def mail_section(mail: MailView | None, sender_actions: str = "") -> str:
     if mail is None:
         return ""
     facts = [("Von", mail.sender), ("Betreff", mail.subject)]
+    if mail.mailbox:
+        facts.append(("Postfach", mail.mailbox))
     if mail.received:
         facts.append(("Datum", mail.received))
     rows = "".join(f"<dt>{label}</dt><dd>{e(value)}</dd>" for label, value in facts)

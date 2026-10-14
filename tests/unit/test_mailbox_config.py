@@ -68,8 +68,8 @@ def test_the_3_1_format_holds_the_same_mailbox(tmp_path):
     ({"mailboxes": [{"id": 1, "host": "h", "port": 993, "folders": ["INBOX", "INBOX"]}]}, "doppelt"),
     ({"mailboxes": [{"id": 1, "host": "h", "port": 993, "folders": ["INBOX"], "enabled": False}]},
      "mindestens ein Postfach"),
-    ({"mailboxes": [{"id": 1, "host": "h", "port": 993, "folders": ["INBOX"]},
-                    {"id": 2, "host": "h", "port": 993, "folders": ["INBOX"]}]}, "höchstens 1 Postfach"),
+    ({"mailboxes": [{"id": number, "host": "h", "port": 993, "folders": ["INBOX"]} for number in range(1, 12)]},
+     "höchstens 10 Postfächer"),
     ({"mailboxes": []}, "at least 1"),
 ])
 def test_invalid_mailbox_configurations_are_rejected(imap, message):
@@ -86,7 +86,6 @@ def test_mailbox_fields_are_closed_and_bounded(mailbox):
 
 
 def test_duplicate_mailbox_numbers_are_rejected(monkeypatch):
-    monkeypatch.setattr("mailhelp.config.MAX_MAILBOXES", 10)
     mailbox = {"id": 1, "host": "h", "port": 993, "folders": ["INBOX"]}
     with pytest.raises(ValidationError, match="doppelt"):
         ImapSettings.model_validate({"mailboxes": [mailbox, {**mailbox, "host": "other"}]})
@@ -222,7 +221,6 @@ def test_learning_adds_folders_to_the_mailbox_of_the_3_1_format(tmp_path):
 
 def test_learning_and_decision_tests_read_one_named_mailbox(tmp_path, monkeypatch, capsys):
     from mailhelp.cli import _parser, _selected_mailbox
-    monkeypatch.setattr("mailhelp.config.MAX_MAILBOXES", 10)
     one = former(tmp_path)
     two = mailboxes(tmp_path, {"id": 1, **FORMER}, {"id": 4, "label": "Arbeit", **FORMER, "host": "b.test"},
                     {"id": 5, **FORMER, "host": "c.test", "enabled": False})
@@ -246,7 +244,6 @@ def test_learning_and_decision_tests_read_one_named_mailbox(tmp_path, monkeypatc
 
 def test_the_decision_test_reads_the_selected_mailbox(tmp_path, monkeypatch):
     from mailhelp.decision_test import DecisionTestMode, _comparison_reader, _initial_report
-    monkeypatch.setattr("mailhelp.config.MAX_MAILBOXES", 10)
     cfg = mailboxes(tmp_path, {"id": 1, **FORMER}, {"id": 2, **FORMER, "host": "b.test", "folders": ["Projekte"],
                                                     "primary_folder": "Projekte", "historical_start": None})
     second = cfg.imap.mailbox(2)
@@ -266,3 +263,11 @@ def test_the_decision_test_reads_the_selected_mailbox(tmp_path, monkeypatch):
     mode = DecisionTestMode(None, None, None, cfg, [], {}, tmp_path / "r.json", None, mailbox=second)
     assert mode.mailbox is second
     assert DecisionTestMode(None, None, None, cfg, [], {}, tmp_path / "r.json", None).mailbox == cfg.imap.mailbox(1)
+
+
+def test_two_mailboxes_may_not_share_one_account(tmp_path):
+    from mailhelp.config import _distinct_accounts
+    cfg = mailboxes(tmp_path, {"id": 1, **FORMER}, {"id": 2, **FORMER, "host": "IMAP.example.test."})
+    with pytest.raises(ValueError, match="Postfächer 1 und 2 verwenden dasselbe Konto"):
+        _distinct_accounts(cfg.imap, {1: {"username": "u"}, 2: {"username": "U "}})
+    _distinct_accounts(cfg.imap, {1: {"username": "u"}, 2: {"username": "v"}})

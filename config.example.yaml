@@ -113,8 +113,11 @@ vision:
   max_edge_pixels: 1600
 learning:
   parallel_llm_calls: 10
-# 3.1: Alternativ zu den Postfachfeldern direkt unter imap (Postfach 1) eine Liste
-# imap.mailboxes mit stabiler Nummer id (1–99) und Anzeigename label, z. B.
+# 3.1: Mehrere Postfächer (höchstens 10) statt der Postfachfelder direkt unter imap
+# (= Postfach 1): Liste imap.mailboxes mit stabiler Nummer id (1–99), Anzeigename label
+# und enabled. Abruf, Kontingent und Duplikaterkennung gelten über alle Postfächer; Entwürfe
+# und Tätigkeitsberichte bleiben im jeweiligen Postfach. --learn/--decision-test brauchen
+# dann --mailbox <id>. Beispiel:
 #   imap:
 #     batch_size: 25
 #     global_newest_first: true

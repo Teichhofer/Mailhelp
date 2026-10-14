@@ -1088,8 +1088,8 @@ ungültig. `batch_size` und `global_newest_first` gelten für alle Postfächer. 
 eine stabile Nummer `id` (1–99, eindeutig), einen Anzeigenamen `label` (1–40 Zeichen ohne
 Steuerzeichen), `enabled` sowie Server, Port, Verbindungsart, Ordner, Hauptordner,
 `historical_start` und Entwurfsordner mit den bisherigen Grenzen; mindestens ein Postfach ist
-aktiviert. Bis zum Abschluss von Phase 2 der [Planung 3.1](docs/Planung-3.1.md) wird genau ein
-Postfach unterstützt; weitere Einträge werden beim Laden abgelehnt.
+aktiviert; höchstens 10 Postfächer. Zwei aktivierte Postfächer mit demselben Server, Port und
+Benutzernamen werden beim Start abgelehnt, weil sie denselben Verarbeitungszustand teilen würden.
 
 Zugangsdaten eines aktivierten Postfachs stehen in `IMAP_<id>_USERNAME` und `IMAP_<id>_PASSWORD`.
 Für Postfach 1 gelten ersatzweise `IMAP_USERNAME`/`IMAP_PASSWORD`, solange keine nummerierte
@@ -1124,8 +1124,7 @@ gehört die `account_id` zu keinem aktivierten Postfach, bleibt der Zustand unve
 `mailbox_unavailable` wird einmal je Prozess und Konto protokolliert. `--check-access` prüft jedes
 Postfach getrennt und benennt es bei mehreren Postfächern mit Nummer und Anzeigename. Die
 Laufzusammenfassung zählt über alle Postfächer und ergänzt bei mehreren Postfächern je beteiligtem
-Postfach eine Zeile. Bis zum Abschluss von Phase 4 bleibt die Konfiguration auf ein Postfach begrenzt,
-damit postfachbezogene Funktionen wie Antwortentwürfe nicht das falsche Postfach verwenden.
+Postfach eine Zeile.
 
 ### Postfachbezogene Funktionen (3.1, Phase 4)
 
@@ -1139,6 +1138,18 @@ Postfach 1). Bei mehreren Postfächern wählt das Formular das Postfach über Li
 dieses Postfach, ein nicht mehr aktiviertes Postfach gilt als nicht lesbar. `--learn` und
 `--decision-test` lesen genau ein Postfach; sind mehrere aktiviert, ist `--mailbox <n>` erforderlich,
 `--mailbox` ohne einen dieser Modi oder mit einer unbekannten bzw. deaktivierten Nummer ist ungültig.
+
+### Weboberfläche und Telegram bei mehreren Postfächern (3.1, Phase 5)
+
+Sind mehrere Postfächer aktiviert, nennen Maildetail und Archivliste den Anzeigenamen des Postfachs
+(eine nicht mehr konfigurierte `account_id` erscheint als „Entferntes Postfach“), und das Archiv bietet
+den Filter `postfach=<n>`. Telegram-Vorschlagskarten setzen den Anzeigenamen in die Mailzeile
+(`✉️ [Arbeit] Absender · Betreff`); Web-Push bleibt neutral. Mit einem Postfach ändert sich die
+Darstellung nicht. Die Diagnose `imap` prüft alle aktivierten Postfächer des Entwurfs lesend und
+scheitert, sobald eines scheitert; fehlen für ein neu eingetragenes Postfach die beim Start geladenen
+Zugangsdaten, lautet der Code `auth`. Der Einrichtungsschritt „Postfach“ bearbeitet Anzeigename,
+Aktivierung und Verbindungsfelder jedes Postfachs und bietet dessen zuletzt ermittelte Ordner zur Auswahl.
+Postfächer werden in `config.yaml` hinzugefügt oder entfernt.
 
 ## 10. JSON-Zustand und Neustartverhalten
 

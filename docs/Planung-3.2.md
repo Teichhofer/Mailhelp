@@ -165,6 +165,10 @@ Einstellungen berechnet. Bündel werden nicht über Postfächer mit unterschiedl
 
 ## 7. Weboberfläche und Telegram
 
+Aus 3.1 übernommen: Postfächer im Web hinzufügen und entfernen (bis dahin `config.yaml`), Postfach-Label
+auf den Karten der Entscheidungsübersicht und im Tagesüberblick, Telegram `/status` je Postfach,
+Betriebsproblem-Meldungen mit Postfach-Label und gegebenenfalls Diagnosekomponenten je Postfach.
+
 - **Einstellungen → Postfächer → <Label>:** Tabs „Ziele“, „Filter“, „Themen“, „Antworten“,
   „Benachrichtigungen“. Jedes Feld zeigt „erbt global“ oder den überschriebenen Wert mit „Zurücksetzen“.
 - **Zielprofile:** eigene Seite unter Einstellungen; Anlegen, Bearbeiten, Entfernen (nur wenn kein
