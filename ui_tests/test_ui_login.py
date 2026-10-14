@@ -31,8 +31,8 @@ def test_pairing_flow_is_usable(page, mailhelp):
 def test_devices_page_and_sign_out(page, mailhelp):
     sign_in(page, mailhelp, f"Mein {page.device}")
     page.get_by_role("link", name="Geräte").click()
-    assert page.get_by_text(f"Mein {page.device}").is_visible()
-    assert page.get_by_text("dieses Gerät").is_visible()
+    expect(page.get_by_text(f"Mein {page.device}")).to_be_visible()
+    expect(page.get_by_text("dieses Gerät")).to_be_visible()
     assert audit(page, f"geraete-{page.device}", page.mobile) == []
     page.get_by_role("button", name="Abmelden", exact=True).click()
     page.wait_for_url(f"{mailhelp.url}/anmelden")

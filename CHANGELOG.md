@@ -1,5 +1,17 @@
 # Änderungen
 
+## 2.3.3 – beta: Abschlussdokumentation zur Planung 2.4
+
+- Umsetzung, Bedienung und Upgrade des offenen Vorschlagsabgleichs sowie der
+  Standarddauern in Spezifikation, README und Betriebsanleitung dokumentiert.
+- Wiederherstellung fehlender Akten erhält die ursprüngliche Version und den
+  Idempotenzschlüssel; bestätigte Altbefunde werden ausschließlich abgeglichen.
+- Technische Datenschutzhinweise für Quellen, Vergleichscache und Merge-Journal ergänzt.
+- Paketprüfung wählt ausdrücklich die aktuelle Version, auch wenn ältere Builds
+  im Distributionsverzeichnis liegen.
+- Browserprüfung wartet nach der Gerätenavigation auf die sichtbare Sitzung,
+  statt den noch laufenden Dokumentwechsel als Fehler zu werten.
+
 ## 2.3.2 – beta: Umsetzung der Planung 2.4
 
 - Termine und Aufgaben werden vor Benachrichtigung auch gegen offene Entscheidungen

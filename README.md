@@ -4,6 +4,8 @@ Die [Release-Anleitung](docs/Release-1.0.md) beschreibt Installation aus den
 Distributionspaketen, Aktualisierung, Sicherung und Rückkehr zur vorherigen Version.
 Änderungen stehen im [Changelog](CHANGELOG.md).
 Alle Web-Einstellungen mit Wirkung und Wertebeispielen: [Einstellungsreferenz](docs/Web-Einstellungen.md).
+Offene Vorschläge zusammenführen und Standarddauern aus der Planung 2.4:
+[Bedienung und Upgrade](docs/Release-2.4.md), [Architektur](docs/Architektur-2.4.md).
 Einrichtungsassistent, Diagnose und Benachrichtigungsprofil aus der Planung 3.0:
 [Betriebs- und Upgrade-Anleitung](docs/Release-3.0.md).
 Die geplante Weboberfläche für Version 1.1 beschreibt das

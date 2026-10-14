@@ -2,9 +2,13 @@
 
 **Zielversion:** 2.4.0
 
-**Stand:** 13. Oktober 2026
+**Stand:** 14. Oktober 2026
 
-**Status:** Planung auf Grundlage des aktuellen 2.3-Arbeitsstands und lesend untersuchter Bestandsdaten.
+**Status:** Auf `beta` umgesetzt; Implementierung in 2.3.2, Abschlussdokumentation in
+2.3.3. Die Zielversion 2.4.0 ist noch nicht als Release veröffentlicht.
+Die folgenden Abschnitte erhalten die ursprünglichen Planungsentscheidungen.
+Den realisierten Ablauf beschreiben die [Architektur](Architektur-2.4.md) und
+die [Betriebs- und Upgrade-Anleitung](Release-2.4.md).
 
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md),
 [Planung 2.3](Planung-2.3.md), [Web-Einstellungen](Web-Einstellungen.md).

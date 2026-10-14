@@ -1,7 +1,8 @@
 # Offene Vorschläge und Termindauern – Umsetzung 2.4
 
 Die fachliche Erweiterung wird auf `beta` mit der nach `AGENTS.md` erhöhten
-Patchversion 2.3.2 entwickelt. Ein Release oder Tag wird damit nicht erstellt.
+Patchversionen 2.3.2 (Implementierung) und 2.3.3 (Abschlussdokumentation) entwickelt.
+Ein Release oder Tag wird damit nicht erstellt.
 Die ursprüngliche [Planung](Planung-2.4.md) beschreibt die fachlichen Entscheidungen
 und die Untersuchung der drei beobachteten Fälle.
 
@@ -101,7 +102,12 @@ Beiratssitzung nicht hinter ihrer Rückmeldeaufgabe.
 
 `/abgleich` ist zunächst lesend. Fehlende Einzelakten aus gespeicherten Mailbefunden
 werden nur mit gebundenem Befundhash und Version wiederhergestellt. Geschlossene
-Befunde werden nicht geöffnet. Es werden weder reale Bestandsdaten automatisch
+Befunde werden nicht geöffnet. Die ursprüngliche Vorschlagsversion und damit der
+Idempotenzschlüssel bleiben erhalten. Ein eingebetteter `confirmed`-Befund wird
+als `uncertain` wiederhergestellt, weil die Projektion keinen Nachweis einer noch
+ausstehenden Anlage liefert. Er wird ausschließlich mit dem Anbieter abgeglichen;
+die Wiederherstellung erteilt keine neue Schreibfreigabe.
+Es werden weder reale Bestandsdaten automatisch
 zusammengeführt noch externe Termine neu angelegt.
 
 Bestehende Proposal-/MailState-Schemas bleiben mit additiven Standardfeldern lesbar.

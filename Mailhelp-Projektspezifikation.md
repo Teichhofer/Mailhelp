@@ -2148,3 +2148,64 @@ mit `Content-Disposition: attachment`, festem Inhaltstyp aus der Allowlist,
 sandbox` und `Cache-Control: private, no-store`. Protokolliert werden nur Mail-ID,
 Index und Größe. Originale werden mit dem Mailinhalt nach
 `retention.full_mail_days` und durch `mailhelp --clear` gelöscht.
+
+## 24. Offene Entscheidungen und Standarddauern (Planung 2.4)
+
+### 24.1 Abgleich und Ergänzung
+
+Erkannte Termine und Aufgaben werden zusätzlich zu vorhandenen externen Einträgen
+mit den aktuellen offenen Vorschlägen verglichen. Art, Ziel und bekannter Anbieter
+müssen passen. Gesprächsanker, Zeitpunkt und konkrete Aktion liefern den Kontext;
+Titelähnlichkeit allein rechtfertigt keine automatische Zusammenführung. Der optionale
+Prompt `open_proposal_match` prüft eine begrenzte Kandidatenmenge. Unklare Zuordnungen
+und widersprüchliche Fakten benötigen eine Entscheidung.
+
+Ergänzungen schreiben den vorhandenen kanonischen Vorschlag fort. Quellen und
+Revisionen bleiben nachvollziehbar; Aliasakten sind nicht ausführbar. Ältere Mails
+setzen konkrete neuere Absprachen nicht zurück. Manuelle Werte bleiben geschützt;
+ein geschütztes Datum kann durch eine passende, fehlende Uhrzeit präzisiert werden.
+Materielle Änderungen entziehen bisherige Anlagefreigaben. Merge-Journale erlauben
+die idempotente Wiederaufnahme nach Unterbrechung und werden vor weiteren Aktionen
+abgeschlossen. Anbieter- und LLM-Abgleiche liegen außerhalb des Store-Locks.
+
+### 24.2 Standarddauern
+
+`event_defaults.video_duration_minutes` beträgt standardmäßig 60,
+`event_defaults.in_person_duration_minutes` 180. Nur eine belegte Teilnahmeart mit
+eindeutigem Beginn und fehlendem Ende erlaubt diese Annahme. Explizite Endzeiten,
+Dauern und obere Zeitgrenzen haben Vorrang; unklare oder hybride Teilnahmeformen
+erhalten keine Standarddauer. Die Berechnung verwendet verstrichene Minuten auch
+über Mitternacht und Zeitumstellungen. Herkunft und verwendete Minuten erscheinen
+in der Vorschlagsansicht und der externen Beschreibung.
+
+Geänderte Einstellungen verändern bestehende Vorschläge nicht automatisch. Unter
+`/abgleich` zeigt eine lokale Vorschau fehlende Enden und überholte Standardannahmen.
+Die Übernahme bindet Vorschlagsversion und Einstellungshash. Eine manuell gesetzte
+Endzeit entfernt die bisherige Standardannahme. Normalisierungs- und Matchingpolicy
+werden separat erfasst; alte Rohanalyse-Fingerprints bleiben erhalten.
+
+### 24.3 Bestandsvorschau und Autorisierung
+
+Bereits vorhandene Termine werden unabhängig von einer Telegram-Zustellung als
+Einzelakten gespeichert. Eine eindeutig zugehörige Rückmeldeaufgabe zeigt die
+bidirektionale Beziehung zur Sitzung. Die untersuchte Beiratssitzung war bereits
+als vorhandener 90-Minuten-Termin erkannt worden; die bisher an die Benachrichtigung
+gekoppelte Speicherung machte diesen Befund unsichtbar.
+
+`/abgleich` erlaubt Zuordnen, getrennt Behalten, erneuten externen Leseabgleich und
+Wiederherstellen fehlender Einzelakten aus gespeicherten Befunden. Wiederherstellung
+bindet Befundhash und Version, erhält die ursprüngliche Version und den
+Idempotenzschlüssel und öffnet abgeschlossene Vorgänge nicht erneut. Ein bestätigter
+Altbefund wird als unklarer Schreibzustand wiederhergestellt und ausschließlich mit
+dem Anbieter abgeglichen. Lokale Änderungen erteilen keine externe Schreibfreigabe.
+
+Jede externe Anlage verlangt weiterhin eine ausdrückliche versionsbezogene Bestätigung.
+Webaktionen prüfen Sitzung, CSRF, Version und Idempotenz, die Sitzung erneut nach
+dem lesenden Vorabgleich. Neue offene Kandidaten, geänderte Ziele und fehlgeschlagene
+Dublettenprüfungen verhindern eine Anlage mit veralteter Freigabe. Ein unklarer
+Schreibausgang wird vor jeder Wiederholung abgeglichen.
+
+Bestehende Zustände bleiben mit additiven Standardfeldern lesbar. Neue Beziehungen,
+Vergleichscaches und Journale besitzen eigene Schemas. Vor produktiver Nutzung ist
+eine vollständige Zustandssicherung erforderlich; ein Rollback benötigt den Stand
+vor dem Upgrade. Bedienung und Grenzen stehen in [Release-2.4](docs/Release-2.4.md).

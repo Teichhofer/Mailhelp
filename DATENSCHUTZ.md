@@ -41,6 +41,7 @@ E-Mail: [Kontakt-E-Mail-Adresse]
 | E-Mails: Absender, Empfänger, Betreff, Datum, Nachrichten-IDs und Textinhalt (Anhänge werden nicht ausgewertet) | eigenes Postfach per IMAP | Relevanzprüfung, Zusammenfassung, Erkennung von Aufgaben und Terminen |
 | Telegram-Nachrichten und Schaltflächen-Eingaben des berechtigten Kontos | Telegram | Bestätigung, Änderung oder Verwerfen von Vorschlägen; Rückfragen |
 | Aufgaben- und Terminvorschläge mit Belegstelle aus der Mail | von Mailhelp erzeugt | Vorlage zur Bestätigung, Anlage nach Bestätigung |
+| Quellenreferenzen mit Nachrichtenzeit, Betreff und gehashten Gesprächsankern; Vorschlagsbeziehungen, Vergleichscache und Merge-Journal | lokale Mail- und Vorschlagsakten | Zusammengehörige offene Entscheidungen erkennen, Ergänzungen nachvollziehen und unterbrochene lokale Änderungen wiederaufnehmen |
 | Bestehende Termine im Zeitraum eines Terminvorschlags: Titel, Beschreibung, Ort, Beginn, Ende, Link | Google Kalender | Erkennen von Duplikaten vor dem Anlegen |
 | Aufgaben im konfigurierten Todoist-Projekt | Todoist | Erkennen bereits angelegter Aufgaben vor dem Anlegen |
 | Gelernte Absender- und Themenfilter | aus bestätigten Entscheidungen | künftige Relevanzprüfung |
@@ -49,6 +50,14 @@ E-Mail: [Kontakt-E-Mail-Adresse]
 
 Von Absenderinnen und Absendern verarbeitet Mailhelp nur, was in den empfangenen
 E-Mails steht. Mailhelp versendet keine E-Mails und verändert das Postfach nicht.
+
+Beim optionalen KI-Abgleich offener Vorschläge werden begrenzte Vorschlagsfelder
+und die letzten drei Quellenbetreffe je Kandidat an den konfigurierten KI-Dienst
+übergeben. Der lokale Vergleichscache speichert das strukturierte Vergleichsergebnis
+mit Versions- und Policybezug. Quellenreferenzen kopieren keinen vollständigen
+Mailtext. Ein laufendes Merge-Journal enthält die für die Wiederaufnahme nötigen
+Revisionen; nach Abschluss wird sein Inhaltsanteil gelöscht. Ungeklärte Zusatzquellen
+bleiben bis zur Entscheidung vor der Inhaltsbereinigung geschützt.
 
 ## 4. Zwecke und Rechtsgrundlagen
 
