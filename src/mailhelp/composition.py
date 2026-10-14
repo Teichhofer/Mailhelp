@@ -21,6 +21,7 @@ from .decisions import (
 from .external.providers import build_writers, provider_services
 from .imap import ImapReader, mailbox_account_id, reader_arguments
 from .logging import JsonlLogger
+from .mailbox_run import MailboxSource
 from .ollama import LocalLlm, OllamaClient
 from .openrouter import OpenRouterClient
 from .orchestrator import Orchestrator
@@ -300,8 +301,8 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
     components.site.setup_page.runtime = SetupRuntime(application, components.site, secrets)
     from .diagnostics import DiagnosticResult, error_code
     health = store.load("service-health", {"schema_version": 1, "version": 0, "errors": {}})
-    errors: dict[str, Any] = (
-        {"imap": error_code(application.imap.error)} if isinstance(application.imap, _FailedAccessAdapter) else {})
+    failed = [source.reader for source in application.sources if isinstance(source.reader, _FailedAccessAdapter)]
+    errors: dict[str, Any] = {"imap": error_code(failed[0].error)} if failed else {}
     health["version"] += int(errors != health["errors"])
     health["errors"] = errors
     store.save("service-health", health)
@@ -350,9 +351,11 @@ def build_application(
         def policy(name: str) -> RetryPolicy:
             item = getattr(settings.timeouts, name)
             return RetryPolicy(item.retries, item.initial_backoff_seconds, item.max_backoff_seconds, stop_event.wait)
-        # 3.1 phase 1: exactly one enabled mailbox; phase 2 builds one reader per mailbox.
-        imap = _build_imap(settings.imap.enabled_mailboxes()[0], settings, secrets, policy, logger,
-                           access_diagnostics, stack)
+        # One reader per enabled mailbox; a mailbox that cannot connect does not stop the others.
+        sources = [MailboxSource(mailbox, _build_imap(mailbox, settings, secrets, policy, logger,
+                                                     access_diagnostics, stack))
+                   for mailbox in settings.imap.enabled_mailboxes()]
+        imap = sources[0].reader
         llm_budget: dict[str, Any] = dict(
             load_calls=lambda: store.load("llm-budget", {}).get("calls", []),
             save_calls=lambda calls: store.save("llm-budget", {"calls": calls}), logger=logger)
@@ -374,7 +377,7 @@ def build_application(
         orchestrator.original_attachments = settings.attachments
         orchestrator.stop_event = stop_event
         application = Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar,
-                                  orchestrator, stop_event, dialog, sender_store)
+                                  orchestrator, stop_event, dialog, sender_store, sources=sources)
         if web_enabled:
             _attach_web(application, settings, secrets, prompts, jev_prompts, local_llm, base_directory, sender_store)
         elif not access_diagnostics:

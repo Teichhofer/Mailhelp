@@ -4,7 +4,7 @@
 
 **Stand:** 14. Oktober 2026
 
-**Status:** In Umsetzung – Phase 1 (Verträge) umgesetzt in 3.0.1; Entscheidungen vom 14. Oktober 2026 eingearbeitet
+**Status:** In Umsetzung – Phase 1 (Verträge) in 3.0.1, Phase 2 (Laufzeitkern) in 3.0.2 umgesetzt; Entscheidungen vom 14. Oktober 2026 eingearbeitet
 **Grundlage:** [Planung 3.0](Planung-3.0.md), [Planung 3.2](Planung-3.2.md), [Release 3.0](Release-3.0.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Entwicklungsregeln](../AGENTS.md)
 
 ## 1. Ziel und Umfang
@@ -134,8 +134,9 @@ ein Hinweis (ohne Werte) erscheint in `--check` und `/diagnose`.
 
 ### 5.1 Laufzeitmodell
 
-- Neuer Baustein **`MailboxRegistry`**: `id → (Einstellungen, account_id, Reader | Fehleradapter, Label)`;
-  lazy Verbindungsaufbau, eigener Reconnect und eigener Fehlerzustand je Postfach.
+- Umgesetzt (3.0.2) als **`MailboxSource`** (Postfacheinstellungen + Reader bzw. Fehleradapter) je
+  aktiviertem Postfach; `Application.sources` hält alle, `Application.imap` bleibt der Reader des ersten.
+  Jeder Reader verbindet sich beim Start; ein Verbindungsfehler betrifft nur sein Postfach.
 - `MailboxRunService` arbeitet pro Postfach mit dessen Reader; Checkpoints und `mail-run-<account_id>`
   bleiben unverändert getrennt.
 - Analyse bleibt **sequentiell im Hauptthread** (ein LLM-Budget, eine Store-Sperre). Keine parallelen
@@ -143,23 +144,24 @@ ein Hinweis (ohne Werte) erscheint in `--check` und `/diagnose`.
 
 ### 5.2 Reihenfolge und Kontingente
 
-- `global_newest_first: true`: Das bestehende Verfahren (Top-N-Fenster je Ordner, Sortierung nach
-  `INTERNALDATE`) wird auf **alle Ordner aller Postfächer** erweitert. Gleichstand: höhere UID,
-  dann Postfach-Reihenfolge, dann Ordner-Reihenfolge.
-- `false`: Postfächer in Konfigurationsreihenfolge, darin Ordner wie bisher.
+- Die **Auswahl** eines Laufs erfolgt über alle Ordner aller Postfächer nach IMAP-Empfangszeitpunkt
+  (neueste zuerst). Gleichstand behält die Ermittlungsreihenfolge: Postfach-, dann Ordnerreihenfolge
+  (für ein Postfach unverändert gegenüber 3.0).
 - `batch_size` und `--max-mails N` sind **gemeinsame** Kontingente über alle Postfächer.
-- Ein Run-Zustand je Postfach bleibt bestehen; ein Einmallauf legt für jedes beteiligte Postfach
-  seinen Run an. Das Kontingent `N` wird beim Anlegen einmalig auf die Postfächer verteilt
-  (globale Sortierung entscheidet) und persistiert, damit Wiederaufnahmen deterministisch bleiben.
+- Die ausgewählten Mails werden als ein Run-Zustand **je Postfach** gespeichert, bevor ein Inhalt
+  geladen wird, und **je Postfach in Konfigurationsreihenfolge** bearbeitet.
+- Solange irgendein Postfach noch einen unfertigen Run hat, werden nur diese Runs fortgesetzt; erst
+  danach werden alle Postfächer neu durchsucht. Das hält Wiederaufnahmen deterministisch.
 
 ### 5.3 Wiederaufnahme und Fehler
 
 - `resume_pending` holt Mails über den Reader des Postfachs mit passender `account_id`.
-- Zustand eines **nicht mehr konfigurierten oder deaktivierten** Postfachs: Analyse bleibt mit neuem
-  Ergebnis `mailbox_unavailable` zurückgestellt (kein `failed`, kein Checkpoint), einmal pro Start
+- Zustand eines **nicht mehr konfigurierten oder deaktivierten** Postfachs: bleibt unverändert liegen
+  (kein `failed`, kein Checkpoint); das Ereignis `mailbox_unavailable` wird einmal pro Prozess und Konto
   protokolliert. Bereits erzeugte Vorschläge bleiben bestätigbar, da Schreibdienste kein IMAP benötigen.
-- Verbindungs-/Anmeldefehler eines Postfachs: Backoff nur für dieses Postfach; Betriebsproblem-Meldung
-  über die 3.0-Kategorie `system_errors` mit Postfach-Label, identische Dauerfehler zusammengefasst.
+- Verbindungs-/Anmeldefehler eines Postfachs: Ordnerfehler werden mit Postfachnummer protokolliert,
+  die übrigen Postfächer laufen weiter. Offen für Phase 5: Betriebsproblem-Meldung über die
+  3.0-Kategorie `system_errors` mit Postfach-Label.
 - UIDVALIDITY-Wechsel und `--ignore-historical-start` wirken je Postfach (Option auf `--mailbox <n>` einschränkbar).
 
 ### 5.4 Duplikate über Postfächer hinweg

@@ -6,7 +6,7 @@ from types import SimpleNamespace
 
 import pytest
 import yaml
-from shared_application import Imap, Orch, Telegram, app
+from shared_application import Imap, Orch, Telegram, app, with_sources
 from shared_core import prompt_config
 from shared_quality_corpus import load_corpus
 from shared_quality_corpus import prompt_config as quality_prompts
@@ -68,7 +68,7 @@ def test_access_check_reports_unreadable_secondary_folder_and_checks_remaining()
         logger=NullLogger(), imap=SimpleNamespace(check_access=check),
         openrouter=noop, todoist=noop, calendar=noop,
         telegram=SimpleNamespace(check_access=lambda: None, send=lambda *args: None))
-    results = Application.check_access(service)
+    results = Application.check_access(with_sources(service))
     assert results["IMAP"] is not None and "Archive" in results["IMAP"]
     assert seen == ["INBOX", "Archive", "Sent"]
     assert results["Google Kalender"] is None

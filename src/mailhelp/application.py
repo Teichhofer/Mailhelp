@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import time
 import traceback
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from threading import Event
@@ -15,7 +16,7 @@ from .config import Settings
 from .external.contracts import OAuthTokenError, TargetWriter
 from .imap import ImapReader
 from .logging import JsonlLogger, NullLogger, log_and_continue
-from .mailbox_run import MailboxRunService, _RunSummary
+from .mailbox_run import MailboxRunService, MailboxSource, _RunSummary
 from .models import MailRunState, TelegramOffset
 from .openrouter import OpenRouterClient
 from .orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
@@ -58,32 +59,38 @@ class Application:
     configuration: object | None = None
     experience: ExperienceRuntime | None = None
     notifications: Any = None
+    # Every enabled mailbox with its reader (3.1); ``imap`` is the reader of the first one.
+    sources: list[MailboxSource] = field(default_factory=list)
 
     mailbox: MailboxRunService = field(init=False, repr=False)
 
     def __post_init__(self) -> None:
+        if not self.sources:
+            self.sources = [MailboxSource(self.settings.imap.enabled_mailboxes()[0], self.imap)]
         self.mailbox = MailboxRunService(
-            self.settings, self.store, self.logger, self.imap, self.orchestrator,
+            self.settings, self.store, self.logger, self.sources, self.orchestrator,
             self.stop_event, self._process_mail,
         )
 
     def check_access(self) -> dict[str, str | None]:
         """Check every external credential and target without processing mail."""
-        def check_imap() -> None:
+        def check_imap(source: MailboxSource) -> None:
             failures = []
-            for folder in self.settings.imap.enabled_mailboxes()[0].folders:
+            for folder in source.mailbox.folders:
                 try:
-                    self.imap.check_access([folder])
+                    source.reader.check_access([folder])
                 except Exception as exc:
                     failures.append(f"{folder}: {str(exc) or type(exc).__name__}")
                 else:
                     getattr(self, "logger", NullLogger()).event(
-                        "DEBUG", "access_check", "imap_folder_accessible", folder=folder)
+                        "DEBUG", "access_check", "imap_folder_accessible", mailbox=source.mailbox.id, folder=folder)
             if failures:
                 raise RuntimeError("IMAP: " + "; ".join(failures))
 
-        checks = (
-            ("IMAP", check_imap),
+        several = len(self.sources) > 1
+        checks: tuple[tuple[str, Callable[[], None]], ...] = (
+            *((f"IMAP Postfach {source.mailbox.id} ({source.mailbox.label})" if several else "IMAP",
+               lambda source=source: check_imap(source)) for source in self.sources),
             (self.openrouter.service_name, self.openrouter.check_access),
             ("Telegram", lambda: Application._check_telegram_access(self)),
             (getattr(self.todoist, "label", "Todoist"), self.todoist.check_access),
@@ -398,9 +405,9 @@ class Application:
         self._stop_receiver()
         if self.lifecycle is not None:
             self.lifecycle.finished()
-        run_name = state_names.mail_run(self.imap.account_id)
-        run = self.store.load_model(run_name, MailRunState)
-        summary = _RunSummary.from_run(run)
+        runs = [self.store.load_model(state_names.mail_run(source.account_id), MailRunState)
+                for source in self.sources]
+        summary = _RunSummary.from_runs(runs)
         # Relevance still blocks analysis. Proposal buttons remain usable
         # independently of the run summary and of subsequent mail runs.
         if self.dialog is not None and self.dialog.awaiting_relevance_decision():
@@ -411,7 +418,7 @@ class Application:
             try:
                 self.telegram.send(
                     self.settings.telegram.chat_id,
-                    summary.message(bounded=max_mails is not None),
+                    summary.message(bounded=max_mails is not None) + self._mailbox_lines(runs),
                 )
             except Exception as exc:
                 self.logger.event("ERROR", "telegram", "run_summary_failed", error=str(exc))
@@ -423,6 +430,16 @@ class Application:
                                   waiting_for_user=summary.waiting_for_user,
                                   failed=summary.failed, skipped=summary.skipped,
                                   run_complete=summary.run_complete)
+
+
+    def _mailbox_lines(self, runs: list[MailRunState | None]) -> str:
+        """With several mailboxes, one line per mailbox that took part in the run."""
+        if len(self.sources) < 2:
+            return ""
+        lines = [f"\n{source.mailbox.label}: {_RunSummary.from_run(run).processed} von "
+                 f"{len(run.entries)} Mails geprüft"
+                 for source, run in zip(self.sources, runs, strict=True) if run is not None and run.entries]
+        return "".join(lines)
 
 
 # Construction lives in composition.py; these names stay importable from here.

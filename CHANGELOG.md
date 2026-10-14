@@ -1,5 +1,18 @@
 # Änderungen
 
+## 3.0.2 – beta: Planung 3.1, Phase 2 – Laufzeitkern für mehrere Postfächer
+
+- Ein Reader je aktiviertem Postfach (`MailboxSource`); ein nicht erreichbares Postfach hält die
+  anderen nicht auf. Ordnerfehler werden mit Postfachnummer protokolliert.
+- Gemeinsame Auswahl über alle Postfächer nach Empfangszeitpunkt mit gemeinsamem `batch_size`/`--max-mails`;
+  ein dauerhafter Run je Postfach, Bearbeitung in Konfigurationsreihenfolge; unfertige Runs werden vor
+  jeder neuen Suche fortgesetzt.
+- Wiederaufnahme liest über das Postfach der gespeicherten `account_id`; Zustände entfernter oder
+  deaktivierter Postfächer bleiben liegen (`mailbox_unavailable`, einmal je Prozess protokolliert).
+  Abgeschlossene Wiederaufnahmen schreiben Run und Checkpoint ihres eigenen Kontos fort.
+- `--check-access` und Laufzusammenfassung je Postfach. Die Konfiguration bleibt bis Phase 4 auf ein
+  Postfach begrenzt.
+
 ## 3.0.1 – beta: Planung 3.1, Phase 1 – Postfächer im Konfigurationsvertrag
 
 - `imap.mailboxes` mit stabiler Nummer `id`, Anzeigename `label` und `enabled`; das bisherige Format

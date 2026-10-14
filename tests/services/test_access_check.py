@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import httpx
 import pytest
 from pydantic import SecretStr
+from shared_application import with_sources
 
 from mailhelp.adapter import RetryPolicy
 from mailhelp.application import Application
@@ -109,7 +110,7 @@ def test_todoist_access_errors_reach_cli_without_secrets(
         calendar=Check(),
     )
 
-    results = Application.check_access(application)
+    results = Application.check_access(with_sources(application))
 
     assert results["Todoist"] == message
     assert seen[0].headers["authorization"] == f"Bearer {token}"
@@ -167,7 +168,7 @@ def test_application_access_check_runs_every_check_after_errors():
         imap=imap, openrouter=openrouter, telegram=telegram,
         todoist=todoist, calendar=calendar,
     )
-    results = Application.check_access(application)
+    results = Application.check_access(with_sources(application))
 
     assert results == {
         "IMAP": "IMAP: INBOX: RuntimeError", "OpenRouter": "bad key", "Telegram": None,
@@ -198,7 +199,7 @@ def test_optional_imap_access_failure_does_not_hide_primary_success():
         logger=NullLogger(), imap=imap, openrouter=Check(), telegram=Check(),
         todoist=Check(), calendar=Check(),
     )
-    assert "Entwürfe" in Application.check_access(application)["IMAP"]
+    assert "Entwürfe" in Application.check_access(with_sources(application))["IMAP"]
     assert imap.calls == [(["Posteingang"],), (["Entwürfe"],), (["Gesendet"],)]
 
 
@@ -215,7 +216,7 @@ def test_application_reports_telegram_test_message_failure_and_skips_send_if_bot
             imap=Check(), openrouter=Check(), telegram=telegram,
             todoist=Check(), calendar=Check(),
         )
-        results = Application.check_access(application)
+        results = Application.check_access(with_sources(application))
 
         assert results["Telegram"] == expected_error
         assert [(chat_id,) for chat_id, _message in telegram.sent] == expected_sent
@@ -244,7 +245,7 @@ def test_application_explains_chat_id_mismatch_from_start_update():
             todoist=Check(), calendar=Check(),
         )
 
-        result = Application.check_access(application)["Telegram"]
+        result = Application.check_access(with_sources(application))["Telegram"]
 
         assert expected in result
 
@@ -268,7 +269,7 @@ def test_application_distinguishes_oauth_failure_without_logging_response_secret
         todoist=Check(), calendar=calendar,
     )
 
-    results = Application.check_access(application)
+    results = Application.check_access(with_sources(application))
 
     assert results["Google Kalender"].startswith("Google OAuth-Anmeldung abgelehnt")
     logs = (tmp_path / "application.jsonl").read_text(encoding="utf-8")

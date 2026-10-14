@@ -10,7 +10,7 @@ from mailhelp.external.http_writer import HttpWriter
 from mailhelp.external.ical import CalendarFileWriter, calendar_file
 from mailhelp.external.oauth import GoogleOAuthTokenProvider
 from mailhelp.imap import FetchedMail, MailCandidate
-from mailhelp.mailbox_run import MailboxRunService
+from mailhelp.mailbox_run import MailboxRunService, MailboxSource
 from mailhelp.models import MailRunState
 from mailhelp.orchestrator import ProcessingOutcome, ProcessingResult
 from mailhelp.web import review_pages, status_pages
@@ -60,11 +60,12 @@ def test_mailbox_service_materializes_batch_before_bodies_and_resumes_without_ap
         return ProcessingResult(ProcessingOutcome.COMPLETED, {})
 
     configured = settings(tmp_path)
-    first = MailboxRunService(configured, store, Log(), reader, Orch(), stopped, process)
+    sources = [MailboxSource(configured.imap.enabled_mailboxes()[0], reader)]
+    first = MailboxRunService(configured, store, Log(), sources, Orch(), stopped, process)
     assert len(first.poll(2)) == 1
     assert reader.bodies == processed == [2]
     stopped.clear()
-    restarted = MailboxRunService(configured, store, Log(), reader, Orch(), stopped, process)
+    restarted = MailboxRunService(configured, store, Log(), sources, Orch(), stopped, process)
     assert len(restarted.poll(2)) == 1
     assert reader.bodies == processed == [2, 1]
     assert reader.discoveries == 1  # resume uses the saved batch, no rediscovery

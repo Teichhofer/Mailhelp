@@ -1108,6 +1108,25 @@ Postfachs unter `imap.mailboxes.<Position>.<Feld>`; Kommentare und Layout von `c
 bleiben dabei erhalten, auch innerhalb von Listeneinträgen. Der Lernmodus ergänzt neue Ordner
 in der Ordnerliste des verwendeten Postfachs.
 
+### Abruf mehrerer Postfächer (3.1, Phase 2)
+
+Für jedes aktivierte Postfach wird beim Start ein eigener schreibfreier Reader aufgebaut; scheitert
+dessen Verbindung, bleibt nur dieses Postfach ohne Abruf, alle anderen werden verarbeitet und der
+Ordnerfehler wird mit der Postfachnummer protokolliert. Ein regulärer Zyklus und ein begrenzter
+Einmallauf wählen die zu verarbeitenden Mails über alle Ordner aller Postfächer nach
+IMAP-Empfangszeitpunkt aus (neueste zuerst; bei Gleichstand Postfach-, dann Ordnerreihenfolge).
+`batch_size` und `--max-mails` sind gemeinsame Kontingente. Die Auswahl wird vor dem ersten
+Inhaltsabruf als je ein `MailRunState` pro Postfach (`mail-run-<account_id>`) gespeichert und Postfach
+für Postfach in Konfigurationsreihenfolge bearbeitet. Solange ein Postfach noch einen unfertigen Run
+hat, werden ausschließlich die unfertigen Runs fortgesetzt und kein Postfach neu durchsucht.
+Wiederaufgenommene Mailzustände werden über den Reader des Postfachs ihrer `account_id` gelesen;
+gehört die `account_id` zu keinem aktivierten Postfach, bleibt der Zustand unverändert liegen und
+`mailbox_unavailable` wird einmal je Prozess und Konto protokolliert. `--check-access` prüft jedes
+Postfach getrennt und benennt es bei mehreren Postfächern mit Nummer und Anzeigename. Die
+Laufzusammenfassung zählt über alle Postfächer und ergänzt bei mehreren Postfächern je beteiligtem
+Postfach eine Zeile. Bis zum Abschluss von Phase 4 bleibt die Konfiguration auf ein Postfach begrenzt,
+damit postfachbezogene Funktionen wie Antwortentwürfe nicht das falsche Postfach verwenden.
+
 ## 10. JSON-Zustand und Neustartverhalten
 
 Der Zustand wird als eingerücktes UTF-8-JSON gespeichert. `data_directory` ist dabei nur das Stammverzeichnis: Im Testmodus liegt der vollständige Zustand unter `<data_directory>/test/`, im Produktivmodus unter `<data_directory>/production/`. Jeder Modus besitzt dort seine eigene `.lock`-Datei. IMAP-Checkpoints, Mailzustände, Telegram-Offsets und -Dialoge, Vorschläge einschließlich externer Ergebniszustände sowie das persistierte LLM-Zeitfenster liegen ausschließlich im jeweiligen Verzeichnis; auch identische Mail- und Vorschlags-IDs werden nicht modusübergreifend aufgezählt oder gesperrt. Pro Mail existiert eine Datei. Weitere JSON-Dateien speichern Abrufpositionen und nötige Betriebsinformationen. Dateinamen verwenden interne IDs statt Betreff oder Absender.
