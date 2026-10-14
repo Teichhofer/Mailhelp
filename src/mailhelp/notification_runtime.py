@@ -268,11 +268,11 @@ class NotificationRuntime:
                                       error_class=type(exc).__name__)
             self.stop_event.wait(5)
 
-    def start(self):
+    def start(self) -> None:
         self.thread = Thread(target=self.run, name="mailhelp-notifications", daemon=True)
         self.thread.start()
 
-    def stop(self):
+    def stop(self) -> None:
         self.stop_event.set()
         if self.thread is not None:
             self.thread.join(timeout=15)

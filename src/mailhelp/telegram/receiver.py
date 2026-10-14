@@ -40,7 +40,8 @@ class InboxEntry(BaseModel):
 
     @property
     def update_id(self) -> int:
-        return self.update["update_id"]
+        update_id: int = self.update["update_id"]
+        return update_id
 
 
 class InboxState(BaseModel):

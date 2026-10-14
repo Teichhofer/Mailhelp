@@ -1,11 +1,17 @@
 """Read-only references used to explain why a target profile cannot be removed."""
+from __future__ import annotations
 
 import re
+from typing import TYPE_CHECKING
 
 from .models import Proposal
 
+if TYPE_CHECKING:
+    from .config import Settings
+    from .storage import JsonStore
 
-def profile_references(store, settings, number):
+
+def profile_references(store: JsonStore, settings: Settings, number: int) -> list[str]:
     references = [
         f"Postfach {box.id} ({box.label})"
         for box in settings.imap.configured_mailboxes()

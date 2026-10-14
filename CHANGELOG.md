@@ -1,5 +1,18 @@
 # Änderungen
 
+## 3.3.0 – beta: Technische Konsolidierung (Planung 3.3)
+
+Abschluss von Planung 3.3 (Phasen 1–4 in 3.2.4–3.2.7). Verhalten, CLI, Telegram-Befehle und Web-Routen sind unverändert.
+
+- Strikte Typprüfung zusätzlich für Persistenz, Normalisierung, Zusammenführung, Vorprüfung, Evaluation,
+  Konfiguration, Laufschleife, Dienstkoordination, Telegram und Review; `mailhelp.telegram` exportiert eine
+  ausdrückliche Namensliste.
+- `writer_for`, `retarget`, `profile_references` und `TelegramCommands` sind vollständig annotiert. Die Abbruchlogik
+  liest die Dialogreferenz über `TelegramDialogState.reference()`.
+- Gesamtabnahme: 2360 Tests mit 100 % Zeilen- und Branch-Abdeckung, 146 Browsertests, ruff und mypy ohne Befund.
+- Noch offen sind die Strictness für `mailhelp.web.*` und die Bündelung der Wurzelmodule in Unterpakete
+  (siehe Planung 3.3, Abschnitt 5).
+
 ## 3.2.7 – beta: Planung 3.3, Phase 4 – Parser und Konfiguration konsolidiert
 
 - `config.py` ist das Paket `mailhelp.config`: Modelle und Validierungsregeln in `config/models.py`,

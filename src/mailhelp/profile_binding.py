@@ -3,6 +3,7 @@
 import hashlib
 import json
 
+from .config import Settings
 from .external.contracts import TargetWriter
 from .external.providers import CALENDAR_LABELS, TASK_LABELS
 from .external.roles import provider_key, writer_for
@@ -64,7 +65,7 @@ def choices(settings, proposal):
     return result
 
 
-def retarget(settings, proposal, number, digest):
+def retarget(settings: Settings, proposal: Proposal, number: int, digest: str) -> Proposal:
     if not any(candidate == number and bound == digest for candidate, _, bound in choices(settings, proposal)):
         raise ValueError("Zielwahl inzwischen geändert oder Vorschlag nicht umstellbar")
     target = target_profiles(settings)[number]

@@ -7,7 +7,13 @@ in ``write_attempts`` and therefore keep their historical spelling.
 """
 from __future__ import annotations
 
+from collections.abc import Mapping
+from typing import TYPE_CHECKING
+
 from .contracts import TargetWriter
+
+if TYPE_CHECKING:
+    from ..models import Proposal
 
 CALENDAR_SLOT = "google_calendar"
 TASK_SLOT = "todoist"
@@ -17,7 +23,7 @@ def profile_slot(role: str, profile: int) -> str:
     return role if profile == 1 else f"{role}:{profile}"
 
 
-def writer_for(writers, proposal):
+def writer_for[W](writers: Mapping[str, W], proposal: Proposal) -> W | None:
     role = TASK_SLOT if proposal.kind == "task" else CALENDAR_SLOT
     return writers.get(profile_slot(role, proposal.target_profile))
 

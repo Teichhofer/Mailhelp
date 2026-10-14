@@ -184,6 +184,8 @@ class ReviewService:
             cfg = getattr(self.controller.relevance_handler, "mailbox_settings", None)
             if cfg is None:
                 raise ValueError("Zielprofile nicht verfügbar")
+            # The command validator requires both values for a retarget.
+            assert command.target_profile is not None and command.proposal_hash is not None
             changed = retarget(cfg, previous, command.target_profile, command.proposal_hash)
             self.controller.persist(changed)
             self.controller.send_proposal(changed)
@@ -309,7 +311,7 @@ class ReviewService:
 
     def _target(self, command: ReviewCommand) -> Proposal:
         assert command.proposal_id is not None
-        proposal = self.controller.repository.load_current(command.mail_id, command.proposal_id)
+        proposal: Proposal | None = self.controller.repository.load_current(command.mail_id, command.proposal_id)
         if proposal is None:
             raise StaleCommand("Vorschlag wurde nicht gefunden")
         if proposal.version != command.version or proposal.status not in _OPEN:

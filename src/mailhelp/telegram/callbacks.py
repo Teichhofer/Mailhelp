@@ -56,7 +56,7 @@ class Decision(InternalTelegramModel):
     profile_hash: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
 
     @model_validator(mode="after")
-    def validate_additional(self):
+    def validate_additional(self) -> Decision:
         if (self.action == DecisionAction.RETARGET) != (
             self.target_profile is not None and self.profile_hash is not None
         ):

@@ -12,12 +12,12 @@ from zoneinfo import ZoneInfo
 
 from . import state_names
 from .analysis import Analyzer
-from .config import Settings
+from .config import RetentionPeriod, Settings
 from .external.contracts import OAuthTokenError, TargetWriter
 from .imap import ImapReader
 from .logging import JsonlLogger, NullLogger, log_and_continue
 from .mailbox_run import MailboxRunService, MailboxSource, _RunSummary
-from .models import MailRunState, TelegramOffset
+from .models import MailRunState, MailState, TelegramOffset
 from .openrouter import OpenRouterClient
 from .orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
 from .retention import RetentionService
@@ -354,7 +354,7 @@ class Application:
 
     def _maintain(self) -> None:
         try:
-            def period(state):
+            def period(state: MailState) -> RetentionPeriod:
                 cfg = self.orchestrator.mailbox_settings
                 number = (state.proposal_policy or {}).get(
                     "mailbox_id", self.orchestrator.mailbox_number(state.imap.account_id)

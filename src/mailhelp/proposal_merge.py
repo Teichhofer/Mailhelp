@@ -158,7 +158,7 @@ def _answered_questions(candidate: Proposal) -> tuple[str, ...]:
     return ()
 
 
-def merge_facts(previous: Proposal, incoming: Proposal, *, uncertain=False) -> Proposal:
+def merge_facts(previous: Proposal, incoming: Proposal, *, uncertain: bool = False) -> Proposal:
     merge = _Merge(previous, incoming)
     if uncertain:
         merge.hold_for_review()

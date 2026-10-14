@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Protocol
+from typing import Any, Protocol
 from zoneinfo import ZoneInfo
 
 from .. import state_names
@@ -110,7 +110,7 @@ class ConfirmedWriteExecutor:
         )
         self._reported_target_mismatches.add(reference)
 
-    def _result_text(self, proposal: Proposal, changed: Proposal, result: dict) -> str | None:
+    def _result_text(self, proposal: Proposal, changed: Proposal, result: dict[str, Any]) -> str | None:
         """The message about the write; ``None`` when an unclear result was reported before."""
         operation = result.get("operation")
         if result.get("simulation"):

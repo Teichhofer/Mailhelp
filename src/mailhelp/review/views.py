@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from typing import Any, TypeVar
@@ -199,7 +200,7 @@ class _Reader:
             return None
         return value  # type: ignore[return-value]
 
-    def raw(self, name: str) -> dict:
+    def raw(self, name: str) -> dict[str, Any]:
         """An unvalidated state object; damaged or missing ones read as empty."""
         try:
             value = self.store.peek(name, {})
@@ -216,8 +217,8 @@ class ReviewViews:
         self.store, self.configured_timezone, self.test_mode = store, configured_timezone, test_mode
         # Account id -> (number, label) of every enabled mailbox; empty with a single mailbox (3.1).
         self.mailboxes: dict[str, tuple[int, str]] = {}
-        self.profile_label = lambda proposal: ""
-        self.profile_available = lambda proposal: True
+        self.profile_label: Callable[[Proposal], str] = lambda proposal: ""
+        self.profile_available: Callable[[Proposal], bool] = lambda proposal: True
 
     def overview(self) -> Overview:
         with self.store.locked():

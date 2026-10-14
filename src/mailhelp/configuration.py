@@ -11,7 +11,15 @@ from typing import Any, Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from .config import MAILBOX_FIELDS, IrrelevantTopicsConfig, Settings, Topic, TopicsConfig, read_yaml
+from .config import (
+    MAILBOX_FIELDS,
+    IrrelevantTopicsConfig,
+    PromptConfig,
+    Settings,
+    Topic,
+    TopicsConfig,
+    read_yaml,
+)
 from .domain.relevance import IrrelevantSenders
 from .learning import topics_document
 from .review.commands import CommandSource
@@ -42,7 +50,7 @@ class AdminCommand(BaseModel):
     # changes are idempotent and commutative and need no such binding.
     expected_hash: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
     category: str = Field(default="relevant", pattern=r"^(relevant|irrelevant)$")
-    patch: dict = Field(max_length=60)
+    patch: dict[str, Any] = Field(max_length=60)
     acknowledged: bool = False
     context_hash: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
 
@@ -151,7 +159,7 @@ def offered(name: str, setup: bool) -> bool:
     return name in (SETUP_FIELDS if setup else SETTINGS_FIELDS)
 
 
-def set_dotted(document: dict, dotted: str, value: object) -> None:
+def set_dotted(document: dict[str, Any], dotted: str, value: object) -> None:
     """Set *dotted* in *document*; numeric parts index lists (``imap.mailboxes.0.host``)."""
     *parents, name = dotted.split(".")
     target: Any = document
@@ -172,7 +180,8 @@ STEP_LABELS = {
 }
 
 
-def effective_models(prompts, jev_model: str | None, local_model: str | None) -> list[tuple[str, str, str, str]]:
+def effective_models(prompts: PromptConfig, jev_model: str | None,
+                     local_model: str | None) -> list[tuple[str, str, str, str]]:
     """(step, model, parameters, source) of the running process, read-only.
 
     No prompt texts, provider addresses or secrets are included.
@@ -196,7 +205,8 @@ def file_hash(path: Path) -> str:
     return hashlib.sha256(path.read_bytes() if path.exists() else b"").hexdigest()
 
 
-def apply_settings(raw: dict, patch: dict, acknowledged: bool, *, setup: bool = False) -> dict:
+def apply_settings(raw: dict[str, Any], patch: dict[str, Any], acknowledged: bool, *,
+                   setup: bool = False) -> dict[str, Any]:
     import copy
     candidate = copy.deepcopy(raw)
     if candidate.get("notifications") is None and any(name.startswith("notifications.") for name in patch):
@@ -285,7 +295,7 @@ class ConfigurationService:
             "topics.yaml" if command.category == "relevant" else "irrelevant_topics.yaml")
         return self.directory / filename
 
-    def candidate(self, command: AdminCommand) -> dict:
+    def candidate(self, command: AdminCommand) -> dict[str, Any]:
         path = self.path(command)
         if file_hash(path) != command.expected_hash:
             raise ConfigurationConflict("Datei wurde inzwischen geändert; bitte neu laden")
@@ -313,7 +323,7 @@ class ConfigurationService:
         model = TopicsConfig if command.category == "relevant" else IrrelevantTopicsConfig
         return model(topics=topics).model_dump(mode="json")
 
-    def render(self, command: AdminCommand, candidate: dict) -> str:
+    def render(self, command: AdminCommand, candidate: dict[str, Any]) -> str:
         """New file content; config.yaml keeps its comments and layout."""
         if command.kind not in {AdminKind.SETTINGS, AdminKind.SETUP}:
             return topics_document([Topic.model_validate(item) for item in candidate["topics"]])

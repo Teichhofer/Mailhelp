@@ -25,12 +25,8 @@ from .models import TelegramUpdate
 from .outbox import TelegramOutbox, revision_paused
 from .receiver import TelegramInbox
 from .relevance import RelevanceDialogProcessor, RelevanceHandler
-from .revisions import (
-    EventLogger,
-    ProposalRevisionProcessor,
-    ProposalRevisions,
-    ProposalRevisionService,
-)
+from .revision_contracts import EventLogger, ProposalRevisionService
+from .revisions import ProposalRevisionProcessor, ProposalRevisions
 from .update_handling import (  # noqa: F401
     INBOX_MAX_ATTEMPTS,
     INBOX_RETRY_SECONDS,
@@ -181,7 +177,7 @@ class TelegramDialogController:
         from ..review.service import ReviewService
 
         self.review = ReviewService(self)
-        self.stop_requested = lambda: False
+        self.stop_requested: Callable[[], bool] = lambda: False
 
     @property
     def relevance_handler(self) -> RelevanceHandler | None:

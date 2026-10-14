@@ -26,10 +26,10 @@ from .callbacks import (
     validate_callback_data,
     validate_callback_markup,
 )
-from .client import TelegramChatNotFoundError, TelegramClient, validation_path
+from .client import TelegramChatNotFoundError, TelegramClient, TelegramTransport, validation_path
 from .decisions import ProposalDecisionService
 from .delivery import ProposalDeliveryService
-from .dialog import EventLogger, TelegramDialogController, TelegramTransport
+from .dialog import TelegramDialogController
 from .formatting import format_proposal, numbered_message_parts, split_message
 from .models import (
     InternalTelegramModel,
@@ -48,11 +48,20 @@ from .models import (
 from .outbox import TelegramOutbox
 from .presenter import ProposalPresentation, ProposalPresenter
 from .relevance import RelevanceDialogProcessor, RelevanceDialogs
-from .revisions import (
-    ProposalRevisionProcessor,
-    ProposalRevisions,
-    ProposalRevisionService,
-)
+from .revision_contracts import EventLogger, ProposalRevisionService
+from .revisions import ProposalRevisionProcessor, ProposalRevisions
 from .writes import ConfirmedWriteExecutor, WriteExecution
 
-__all__ = [name for name in globals() if not name.startswith("_")]
+__all__ = ["ActionLedgerPort", "ActionLedgerService", "AuthorizedUpdateValidator", "ConfirmedWriteExecutor",
+           "Decision", "DecisionAction", "DeterministicTemporalAnswer", "EventLogger", "InternalTelegramModel",
+           "ProposalDecisionService", "ProposalDeliveryService", "ProposalPersistence", "ProposalPresentation",
+           "ProposalPresenter", "ProposalRepository", "ProposalRevisionProcessor", "ProposalRevisionService",
+           "ProposalRevisions", "RelevanceDecision", "RelevanceDialogProcessor", "RelevanceDialogs", "TelegramBot",
+           "TelegramBotResponse", "TelegramCallbackQuery", "TelegramChat", "TelegramChatNotFoundError",
+           "TelegramClient", "TelegramDialogController", "TelegramMessage", "TelegramOutbox", "TelegramTransport",
+           "TelegramTransportModel", "TelegramUpdate", "TelegramUpdatesResponse", "TelegramUser",
+           "TelegramWriteResponse", "TelegramWriteResult", "UpdateValidation", "WriteExecution", "apply_decision",
+           "clarification_name", "deterministic_classification_revision", "deterministic_temporal_revision",
+           "format_proposal", "normalize_deterministic_temporal_answer", "numbered_message_parts",
+           "parse_deterministic_temporal_answer", "proposal_name", "proposal_version_name", "split_message",
+           "validate_callback_data", "validate_callback_markup", "validation_path"]

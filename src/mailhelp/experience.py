@@ -160,13 +160,13 @@ class ExperienceRuntime:
                                       error_class=type(exc).__name__)
             self.stop_event.wait(5)
 
-    def start(self):
+    def start(self) -> None:
         if self.activity is not None:
             self.activity.start()
         self.thread = Thread(target=self.run, name="mailhelp-experience", daemon=True)
         self.thread.start()
 
-    def stop(self):
+    def stop(self) -> None:
         self.stop_event.set()
         if self.activity is not None:
             self.activity.stop()

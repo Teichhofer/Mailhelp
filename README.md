@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.2.7 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.3.0 · **Python:** 3.12.x · **Lizenz:** MIT
 
 [Installation](#installation) · [Konfiguration](#konfiguration) ·
 [Betrieb](#betrieb) · [Docker](#docker) ·
@@ -283,6 +283,11 @@ python -m pip install -r requirements-lint.lock
 python -m ruff check src tests ui_tests
 python -m mypy src/mailhelp
 ```
+
+ruff begrenzt die McCabe-Komplexität jeder Funktion auf 15. mypy prüft alle
+Funktionsrümpfe; für die Kernpakete (Domäne, Persistenz, Normalisierung,
+Konfiguration, Laufschleife, Telegram, Review) gelten strikte Typregeln,
+die in `pyproject.toml` aufgeführt sind.
 
 Mit installiertem Chrome und den Browser-Testabhängigkeiten:
 

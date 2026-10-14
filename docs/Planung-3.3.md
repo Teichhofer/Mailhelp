@@ -2,7 +2,7 @@
 
 **Zielversion:** 3.3.0  
 **Stand:** 14. Oktober 2026  
-**Status:** In Umsetzung (ab 3.2.3; Messwerte vom 14. Oktober 2026 auf Stand 3.2.1)  
+**Status:** Umgesetzt in 3.3.0 (Phasen 1–5 in 3.2.4–3.3.0; Messwerte vom 14. Oktober 2026 auf Stand 3.2.1)  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 3.0](Planung-3.0.md), [Planung 3.1](Planung-3.1.md), [Planung 3.2](Planung-3.2.md)
 
 ---
@@ -62,7 +62,7 @@ flowchart TD
 | :--- | :---: | :--- |
 | **`ArchiveSite`**<br>([`web/archive_site.py`](../src/mailhelp/web/archive_site.py)) | 641 Zeilen<br>17 Methoden | Bündelt Mail-Archiv (`/mails`, `/mail/<id>`), Verlauf (`/verlauf`, `/aktion/<id>`), Vorschlagsbearbeitung (`/vorschlag/...`), Systemeinstellungen (`/einstellungen`), Themen (`/themen`) und Shutdown (`/beenden`).<br>**Lösung:** Zerlegung in 5 Einheiten: `MailArchiveSite`, `AuditHistorySite`, `ProposalEditSite`, `SettingsSite` und `ShutdownSite`. |
 | **`Application`**<br>([`application.py`](../src/mailhelp/application.py)) | 398 Zeilen<br>20+ Attribute | Vermischt IMAP-Polling mehrerer Postfächer, Telegram-Receiver-Thread, Webserver-Lebenszyklus, OAuth-Recovery und Live-Settings.<br>Enthält schwach typisierte Felder (`lifecycle: Any`, `configuration: object`, `notifications: Any`).<br>**Lösung:** Entkopplung der Lebenszyklus-Steuerung in einen `ServiceCoordinator` und Einführung typisierter Protokolle. |
-| **`config.py`**<br>([`config.py`](../src/mailhelp/config.py)) | 825 Zeilen | Vermengt 15+ Pydantic-Modelle, Pfadauflösungen, Secret-Dekodierungen und YAML-Parsing.<br>**Lösung:** Aufteilung in `config/models.py` (reine Datenmodelle/Schemas) und `config/loader.py` (Umgebungsvariablen, Pfade und Dateioperationen). |
+| **`config.py`**<br>([`config/`](../src/mailhelp/config/__init__.py), bis 3.2.6 `config.py`) | 825 Zeilen | Vermengt 15+ Pydantic-Modelle, Pfadauflösungen, Secret-Dekodierungen und YAML-Parsing.<br>**Lösung:** Aufteilung in `config/models.py` (reine Datenmodelle/Schemas) und `config/loader.py` (Umgebungsvariablen, Pfade und Dateioperationen). |
 | **`Analyzer`**<br>([`analysis.py`](../src/mailhelp/analysis.py)) | 595 Zeilen<br>21 Methoden | Handhabt Prompt-Zusammenbau, LLM-Aufruf, Formatvalidierung, Fallback-Schleifen und Revisionsübergänge.<br>**Lösung:** Trennung in Prompt-Builder, LLM-Invoker/Validator und Revisions-Controller. |
 
 ---
@@ -122,6 +122,8 @@ In [`pyproject.toml`](../pyproject.toml) wird die Liste der strikt geprüften Mo
 - **Phase A:** `mailhelp.persistence.*`, `mailhelp.action_normalization`, `mailhelp.proposal_merge`, `mailhelp.precheck`.
 - **Phase B:** `mailhelp.pipeline.*`, `mailhelp.evaluation`, `mailhelp.configuration`.
 - **Phase C:** `mailhelp.web.*` und `mailhelp.telegram.*`.
+
+Stand 3.3.0: Phase A und B (ohne das nicht existierende Paket `pipeline`, dafür `mailbox_run`, `application`, `service_coordinator`, `lifecycle`, `config.*`, `german_dates`, `temporal_answers`, `profile_usage`) sowie aus Phase C `mailhelp.telegram.*` und zusätzlich `mailhelp.review.*` sind strikt geprüft. `mailhelp.web.*` bleibt offen: 248 Befunde, überwiegend unannotierte Request-Handler; das ist ein eigener Schritt nach 3.3.
 
 ---
 
@@ -190,3 +192,4 @@ flowchart TD
 | 2 | 3.2.5 | McCabe-Komplexität: `merge_facts` 29 → 6 (Arbeitsklasse `_Merge` mit benannten Schritten), `validate_consistency` 26 → 2 (vier Prüfer in unveränderter Reihenfolge), `overview` 21 → 8, `execute` 19 → 9, `proposal_card` 17 → 2, `_observe` 17 → 2, `_discover_since` 17 → 3, `preview` 16 → 3. ruff `C90` mit `max-complexity = 15` ist dauerhaft aktiv; `validate_revision_successor` liegt mit 15 an der Grenze. |
 | 3 | 3.2.6 | `ArchiveSite` (710 Zeilen) ist nur noch der gemeinsame Knoten (43 Zeilen: Konfiguration, Metriken, Beenden-Handshake, Modellübersicht, Archivabfragen, Befehlswarteschlange). Die Seiten liegen in `MailArchiveSite`, `HistorySite` (Verlauf, Versionen, Auswertung), `ProposalEditSite`, `SettingsSite` (Einstellungen, Themen) und `ShutdownSite`. HTML ohne Routing in `archive_pages.py`, `settings_pages.py`, `reconciliation_pages.py` und `sender_pages.py`; gemeinsame Formularbausteine in `forms.py`. `login_site.py` enthält kein HTML (Planpunkt entfällt). |
 | 4 | 3.2.7 | `config.py` → Paket `config/` mit `models.py` (Modelle, Regeln) und `loader.py` (YAML, `.env`, Geheimnisse), Namen über `mailhelp.config` unverändert. Gemeinsames Vokabular der Datumsparser in `german_dates.py`; `_parse_date` in `_numeric_date`, `_named_date`, `_yearless_date` zerlegt, Muster zeichengleich; doppelte Uhrzeit-Helfer in `temporal_answers` zu `_clock` vereint. Lebenszyklus von Receiver, Web, Erlebnis und Benachrichtigungen in `ServiceCoordinator`; `lifecycle: Lifecycle`, `configuration: ConfigurationService`, `profile_writers: Writers \| ProfileWriters` statt `Any`/`object`. |
+| 5 | 3.3.0 | Strikte mypy-Prüfung (`disallow_untyped_defs`, `disallow_untyped_calls`, `disallow_any_generics`, `warn_return_any`, `no_implicit_reexport`, `strict_equality`) zusätzlich für `persistence.*`, `action_normalization`, `proposal_merge`, `precheck`, `evaluation`, `configuration`, `config.*`, `mailbox_run`, `application`, `service_coordinator`, `lifecycle`, `german_dates`, `temporal_answers`, `profile_usage`, `telegram.*` und `review.*`; `mailhelp.telegram` exportiert eine ausdrückliche Namensliste. Gesamtabnahme: 2360 Tests mit 100 % Zeilen- und Branch-Abdeckung, 146 Browsertests, ruff (inkl. C90 ≤ 15) und mypy ohne Befund, Wheel-Bau unter Windows 11; Linux/Docker über die CI. Offen nach 3.3: Strictness für `web.*` (siehe 4.2) und die Bündelung der Wurzelmodule in Unterpakete; die Bündelung verschiebt über 50 Module und damit fast jeden Import, bringt aber kein Verhalten und wurde zugunsten eines risikoarmen Releases zurückgestellt. |

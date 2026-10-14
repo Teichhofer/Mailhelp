@@ -571,7 +571,7 @@ class Settings(ConfigModel):
         return self
 
     @model_validator(mode="after")
-    def standalone_needs_web(self):
+    def standalone_needs_web(self) -> Settings:
         if not self.telegram.enabled and not self.web.enabled:
             raise ValueError("Ohne Telegram muss web.enabled aktiviert sein")
         return self

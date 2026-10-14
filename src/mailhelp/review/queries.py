@@ -36,7 +36,7 @@ class ArchiveQuery(BaseModel):
     size: int = Field(default=25, ge=1, le=100)
 
     @model_validator(mode="after")
-    def interval(self):
+    def interval(self) -> ArchiveQuery:
         if self.since and self.until and self.since > self.until:
             raise ValueError("Datumsbereich ist umgekehrt")
         return self
@@ -47,14 +47,14 @@ class ArchiveQueries:
         self.store = store
         self.zone = ZoneInfo(zone)
         self._revision = -1
-        self._items: list[dict] = []
+        self._items: list[dict[str, Any]] = []
         self.damaged = 0
         self._history_revision = -1
         self._history: list[dict[str, Any]] = []
         # Account id -> (number, label) of every enabled mailbox; empty with a single mailbox (3.1).
         self.mailboxes: dict[str, tuple[int, str]] = {}
 
-    def items(self) -> list[dict]:
+    def items(self) -> list[dict[str, Any]]:
         with self.store.locked():
             if self._revision != self.store.archive_revision:
                 self._rebuild()
@@ -112,7 +112,7 @@ class ArchiveQueries:
                           "content_folded": SEPARATOR.join(fold(text) for _, text in content)})
         self._items, self._revision = items, self.store.archive_revision
 
-    def search(self, query: ArchiveQuery) -> tuple[list[dict], int]:
+    def search(self, query: ArchiveQuery) -> tuple[list[dict[str, Any]], int]:
         """Matching mails, newest first; each page item carries where the first term matched."""
         items = []
         wanted = terms(query.q)
@@ -144,10 +144,12 @@ class ArchiveQueries:
         items.sort(key=order, reverse=True)
         start = (query.page - 1) * query.size
         page = items[start:start + query.size]
-        fields = (lambda item: item["fields"][:3]) if query.scope == "meta" else (lambda item: item["fields"])
+        def fields(item: dict[str, Any]) -> list[tuple[str, str]]:
+            values: list[tuple[str, str]] = item["fields"]
+            return values[:3] if query.scope == "meta" else values
         return [{**item, "hit": excerpt(fields(item), wanted)} for item in page], len(items)
 
-    def history(self) -> list[dict]:
+    def history(self) -> list[dict[str, Any]]:
         with self.store.locked():
             if self._history_revision == self.store.archive_revision:
                 return list(self._history)

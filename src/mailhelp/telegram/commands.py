@@ -2,14 +2,22 @@
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .. import state_names
 from ..models import AnswerStatus, Proposal, ProposalClarificationState, ProposalStatus, TelegramDialogState
 from ..persistence.proposals import clarification_name, proposal_name
 from .formatting import clarification_prompt
+
+if TYPE_CHECKING:
+    from ..persistence.proposals import ProposalRepository
+    from ..storage import JsonStore
+    from .client import TelegramTransport
+    from .outbox import TelegramOutbox
+    from .presenter import ProposalPresenter
+    from .relevance import RelevanceDialogProcessor
 
 HELP = (
     "Mailhelp – Befehle\n"
@@ -43,8 +51,10 @@ class _Overview:
 
 
 class TelegramCommands:
-    def __init__(self, store, repository, presenter, telegram, chat_id, relevance,
-                 outbox=None, web_logout=None, web_invite=None):
+    def __init__(self, store: JsonStore, repository: ProposalRepository, presenter: ProposalPresenter,
+                 telegram: TelegramTransport, chat_id: int, relevance: RelevanceDialogProcessor,
+                 outbox: TelegramOutbox | None = None, web_logout: Callable[[], int] | None = None,
+                 web_invite: Callable[[], str] | None = None):
         self.store, self.repository, self.presenter = store, repository, presenter
         self.telegram, self.chat_id, self.relevance = telegram, chat_id, relevance
         self.outbox, self.web_logout, self.web_invite = outbox, web_logout, web_invite
@@ -72,8 +82,9 @@ class TelegramCommands:
         report.active = self.store.load_model("telegram-dialog", TelegramDialogState)
         report.queued = self.outbox.queued_proposals() if self.outbox is not None else set()
         # With sequential questions only the current decision gets buttons.
-        sequential = self.outbox is not None and self.outbox.enabled
-        current = self.outbox.current_decision() if sequential else None
+        outbox = self.outbox if self.outbox is not None and self.outbox.enabled else None
+        sequential = outbox is not None
+        current = outbox.current_decision() if outbox is not None else None
         self._relevance_lines(report)
         for proposal, state in self._open_proposals():
             self._proposal_line(report, proposal, state)
@@ -101,6 +112,7 @@ class TelegramCommands:
         """Current versions that wait for a decision, with the state of their clarification."""
         for name in self.store.names(state_names.PROPOSAL_PREFIX):
             proposal = self.store.load_model(name, Proposal)
+            assert proposal is not None  # listed by names() just before
             if name != proposal_name(proposal.source_mail_id, proposal.id):
                 continue
             if proposal.status not in {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}:
@@ -186,21 +198,21 @@ class TelegramCommands:
         if dialog is None or dialog.proposal_id is None:
             self.telegram.send(self.chat_id, "Keine aktive Bearbeitung. Offene Entscheidungen: /offen")
             return
-        proposal = self.repository.load_current(dialog.mail_id, dialog.proposal_id)
-        if (proposal is None or proposal.version != dialog.version or
+        mail_id, proposal_id, version = dialog.reference()
+        proposal = self.repository.load_current(mail_id, proposal_id)
+        if (proposal is None or proposal.version != version or
                 proposal.status not in {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}):
             self.store.save("telegram-dialog", TelegramDialogState().model_dump(mode="json"))
             self.telegram.send(self.chat_id, "Die Bearbeitung ist nicht mehr aktuell. Offene Entscheidungen: /offen")
             return
-        state = self.store.load_model(clarification_name(
-            dialog.mail_id, dialog.proposal_id, dialog.version), ProposalClarificationState)
+        state = self.store.load_model(clarification_name(mail_id, proposal_id, version), ProposalClarificationState)
         if dialog.retry_required or (state is not None and state.authorized_answer is not None
                                      and state.answer_status != AnswerStatus.INVALID):
             self.telegram.send(self.chat_id, "Die Antwort ist bereits gespeichert. Die Verarbeitung kann hier "
                                              "nicht abgebrochen werden. Status: /status")
             return
         # Only the editing mode changes. Questions, content and version are preserved.
-        snapshot = self.repository.load_version(dialog.mail_id, dialog.proposal_id, dialog.version)
+        snapshot = self.repository.load_version(mail_id, proposal_id, version)
         if snapshot is not None:
             proposal = proposal.model_copy(update={"status": snapshot.status})
         self.repository.save_revision(proposal)

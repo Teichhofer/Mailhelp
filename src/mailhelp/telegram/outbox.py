@@ -27,7 +27,7 @@ from ..models import Proposal, ProposalStatus, RelevanceDialog, RelevanceDialogS
 from ..persistence.proposals import ProposalRepository, clarification_name, proposal_name
 from ..storage import JsonStore
 from .client import TelegramTransport
-from .revisions import EventLogger
+from .revision_contracts import EventLogger
 
 OUTBOX_NAME = "telegram-outbox"
 _OPEN = {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}
