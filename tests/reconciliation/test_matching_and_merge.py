@@ -70,6 +70,17 @@ def test_protected_and_conflicting_fields_remain_reviewable():
     assert changed.start == new.start
 
 
+def test_uncertain_sources_keep_their_open_time_questions():
+    """Only a certain candidate's settled times answer the time questions (Planung 3.3 refactoring)."""
+    question = "Wann beginnt der Termin?"
+    old = candidate(1, certainty="uncertain", status="needs_clarification", open_questions=[question])
+    merged = merge_facts(old, candidate(2, certainty="uncertain", status="needs_clarification",
+                                        open_questions=[question], description="Weitere Angaben"))
+    assert merged.certainty == "uncertain" and question in merged.open_questions
+    certain = merge_facts(old, candidate(2, description="Weitere Angaben"))
+    assert certain.certainty == "certain" and question not in certain.open_questions
+
+
 def test_target_scope_thread_dates_and_explicit_separation(service):
     first, second = candidate(1), candidate(2)
     assert relationship(service.store, second, first) == "same"

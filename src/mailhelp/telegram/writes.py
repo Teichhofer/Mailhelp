@@ -72,71 +72,77 @@ class ConfirmedWriteExecutor:
         try:
             changed, result = execute_confirmed(proposal, writer, self.persistence.persist, self.test_mode)
         except Exception as exc:
-            if not any(":" in name for name in self.writers):
-                raise
-            from ..diagnostics import error_code
-            self._profile_health(proposal, error_code(exc))
-            current = self.store.load_model(state_names.proposal(proposal.source_mail_id, proposal.id), Proposal)
-            return current if current is not None else proposal
+            return self._write_failed(proposal, exc)
         self._profile_health(proposal, "")
         if result.get("target_mismatch"):
-            reference = (proposal.source_mail_id, proposal.id, proposal.version)
-            if reference not in self._reported_target_mismatches:
-                self.telegram.send(
-                    self.chat_id,
-                    f"Ziel geändert: „{proposal.title}“ bleibt gesperrt. "
-                    "Das konfigurierte Ziel stimmt nicht mit dem angezeigten Vorschlagsziel überein. "
-                    "Ursprüngliches Ziel wiederherstellen oder einen neuen Vorschlag "
-                    "für das neue Ziel ausdrücklich bestätigen.",
-                )
-                self._reported_target_mismatches.add(reference)
+            self._report_target_mismatch(proposal)
             return changed
-        if result.get("simulation"):
-            kind = "Aufgabe" if proposal.kind == ProposalKind.TASK else "Kalendertermin"
-            text = (
-                f"🧪 Testmodus: {kind} „{proposal.title}“ bestätigt, "
-                "aber nicht angelegt (nur simuliert)."
-            )
-        elif result.get("operation") == "duplicate_updated" and result.get("time_changes"):
-            text = (
-                f"✅ Bestehender Termin „{proposal.title}“ aktualisiert: "
-                f"{'; '.join(result['time_changes'])}. "
-                "Die Änderung ist in der Terminbeschreibung vermerkt."
-            )
-        elif result.get("operation") == "duplicate_updated":
-            text = (
-                f"Bereits vorhandener gleicher Termin „{proposal.title}“ wurde erkannt; "
-                "fehlende Informationen wurden ergänzt. Kein neuer Termin wurde angelegt."
-            )
-        elif result.get("operation") == "duplicate_skipped":
-            text = (
-                f"Bereits vorhandener gleicher Termin „{proposal.title}“ wurde erkannt. "
-                "Kein neuer Termin wurde angelegt."
-            )
-        elif changed.status == ProposalStatus.CREATED:
-            where = "als Aufgabe" if proposal.kind == ProposalKind.TASK else "im Kalender"
-            text = f"✅ Angelegt {where}: „{proposal.title}“"
-            if proposal.kind == ProposalKind.EVENT:
-                text += self._event_time_details(changed)
-            if changed.external_link:
-                text += f"\n{changed.external_link}"
-        elif changed.status == ProposalStatus.UNCERTAIN:
-            if changed.uncertain_notified:
-                return changed
-            text = (f"Unklarer Schreiberfolg bei „{proposal.title}“; wird weiter abgeglichen und nicht "
-                    "automatisch wiederholt.")
-        else:
-            text = f"Erstellen von „{proposal.title}“ fehlgeschlagen."
+        text = self._result_text(proposal, changed, result)
+        if text is None:
+            return changed
         self.telegram.send(self.chat_id, text)
         if changed.status == ProposalStatus.UNCERTAIN:
-            self.persistence.persist(
-                changed.model_copy(update={"uncertain_notified": True})
-            )
+            self.persistence.persist(changed.model_copy(update={"uncertain_notified": True}))
         elif changed.status == ProposalStatus.SIMULATED:
-            self.persistence.persist(
-                changed.model_copy(update={"simulation_notified": True})
-            )
+            self.persistence.persist(changed.model_copy(update={"simulation_notified": True}))
         return changed
+
+    def _write_failed(self, proposal: Proposal, exc: Exception) -> Proposal:
+        """With target profiles a failing profile is recorded and the stored version stays; else raise."""
+        if not any(":" in name for name in self.writers):
+            raise exc
+        from ..diagnostics import error_code
+        self._profile_health(proposal, error_code(exc))
+        current = self.store.load_model(state_names.proposal(proposal.source_mail_id, proposal.id), Proposal)
+        return current if current is not None else proposal
+
+    def _report_target_mismatch(self, proposal: Proposal) -> None:
+        """Once per version: the configured target no longer matches the confirmed one."""
+        reference = (proposal.source_mail_id, proposal.id, proposal.version)
+        if reference in self._reported_target_mismatches:
+            return
+        self.telegram.send(
+            self.chat_id,
+            f"Ziel geändert: „{proposal.title}“ bleibt gesperrt. "
+            "Das konfigurierte Ziel stimmt nicht mit dem angezeigten Vorschlagsziel überein. "
+            "Ursprüngliches Ziel wiederherstellen oder einen neuen Vorschlag "
+            "für das neue Ziel ausdrücklich bestätigen.",
+        )
+        self._reported_target_mismatches.add(reference)
+
+    def _result_text(self, proposal: Proposal, changed: Proposal, result: dict) -> str | None:
+        """The message about the write; ``None`` when an unclear result was reported before."""
+        operation = result.get("operation")
+        if result.get("simulation"):
+            kind = "Aufgabe" if proposal.kind == ProposalKind.TASK else "Kalendertermin"
+            return f"🧪 Testmodus: {kind} „{proposal.title}“ bestätigt, aber nicht angelegt (nur simuliert)."
+        if operation == "duplicate_updated" and result.get("time_changes"):
+            return (f"✅ Bestehender Termin „{proposal.title}“ aktualisiert: "
+                    f"{'; '.join(result['time_changes'])}. "
+                    "Die Änderung ist in der Terminbeschreibung vermerkt.")
+        if operation == "duplicate_updated":
+            return (f"Bereits vorhandener gleicher Termin „{proposal.title}“ wurde erkannt; "
+                    "fehlende Informationen wurden ergänzt. Kein neuer Termin wurde angelegt.")
+        if operation == "duplicate_skipped":
+            return (f"Bereits vorhandener gleicher Termin „{proposal.title}“ wurde erkannt. "
+                    "Kein neuer Termin wurde angelegt.")
+        if changed.status == ProposalStatus.CREATED:
+            return self._created_text(proposal, changed)
+        if changed.status == ProposalStatus.UNCERTAIN:
+            if changed.uncertain_notified:
+                return None
+            return (f"Unklarer Schreiberfolg bei „{proposal.title}“; wird weiter abgeglichen und nicht "
+                    "automatisch wiederholt.")
+        return f"Erstellen von „{proposal.title}“ fehlgeschlagen."
+
+    def _created_text(self, proposal: Proposal, changed: Proposal) -> str:
+        where = "als Aufgabe" if proposal.kind == ProposalKind.TASK else "im Kalender"
+        text = f"✅ Angelegt {where}: „{proposal.title}“"
+        if proposal.kind == ProposalKind.EVENT:
+            text += self._event_time_details(changed)
+        if changed.external_link:
+            text += f"\n{changed.external_link}"
+        return text
 
     def _profile_health(self, proposal: Proposal, code: str) -> None:
         if not any(":" in name for name in self.writers):

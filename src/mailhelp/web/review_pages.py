@@ -9,6 +9,7 @@ Mailhelp created itself are clickable.
 from __future__ import annotations
 
 from collections.abc import Callable
+from typing import Any
 from urllib.parse import urlsplit
 
 from ..models import ProposalKind, ProposalStatus
@@ -55,10 +56,7 @@ def _expandable(short: str, full: str, label: str, quote: bool) -> str:
             f'<p class="full">{e(full)}</p></details>')
 
 
-def proposal_card(view: ProposalView, *, actions: Actions | None = None,
-                  detail_link: bool = True) -> str:
-    card = view.card
-    event = card.kind == ProposalKind.EVENT
+def _card_facts(card: Any) -> list[str]:
     facts = []
     if card.when:
         facts.append(_fact("🕒", e(card.when), "Zeit"))
@@ -71,6 +69,11 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
         text = (f'<a href="{e(link)}" rel="noopener noreferrer" target="_blank">{e(link)}</a>'
                 if link else e(card.video_link))
         facts.append(_fact("🔗", text, "Videolink"))
+    return facts
+
+
+def _card_labels(view: ProposalView) -> list[str]:
+    card = view.card
     labels = [f'<span class="badge {_STATE_BADGE[view.status]}">{e(view.state)}</span>']
     if card.profile_label:
         labels.append(f'<span class="badge">Zielprofil: {e(card.profile_label)} · {e(card.target)}</span>')
@@ -82,17 +85,50 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
                           (card.classification, "Einordnung")):
         if value:
             labels.append(f'<span class="badge warn">{prefix}: {e(value)}</span>')
-    warnings = []
+    if view.duplicate_match is not None:
+        labels.append(_duplicate_label(view.duplicate_match))
+    return labels
+
+
+def _duplicate_label(match: Any) -> str:
+    url = https_link(getattr(match, "external_link", None))
+    text = e(getattr(match, "details", "Bereits vorhanden"))
+    if url:
+        return (f'<span class="badge info"><a href="{e(url)}" target="_blank" '
+                f'rel="noopener noreferrer">{text} ↗</a></span>')
+    return f'<span class="badge info">{text}</span>'
+
+
+def _card_warning(view: ProposalView) -> str:
+    card = view.card
     # With open questions the answers decide whether it can be created.
     if not card.writable and not card.questions and view.status in {
             ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}:
-        warnings.append(notice("Kann nicht automatisch angelegt werden – bitte manuell prüfen.", "warn"))
-    elif card.test_mode:
-        warnings.append(notice("Testmodus: Der Eintrag wird nur simuliert.", "info"))
-    questions = ""
-    if card.questions:
-        items = "".join(f"<li>{e(question)}</li>" for question in card.questions)
-        questions = f'<div class="questions"><p>Offene Fragen</p><ul>{items}</ul></div>'
+        return notice("Kann nicht automatisch angelegt werden – bitte manuell prüfen.", "warn")
+    if card.test_mode:
+        return notice("Testmodus: Der Eintrag wird nur simuliert.", "info")
+    return ""
+
+
+def _card_questions(questions: Any) -> str:
+    if not questions:
+        return ""
+    items = "".join(f"<li>{e(question)}</li>" for question in questions)
+    return f'<div class="questions"><p>Offene Fragen</p><ul>{items}</ul></div>'
+
+
+def _diff_box(view: ProposalView) -> str:
+    if not view.time_changes:
+        return ""
+    lines = [f"<li>{e(str(change))}</li>" for change in view.time_changes]
+    return ('<div class="diff-box"><p>🔄 <strong>Terminänderung gegenüber dem Kalender:</strong></p>'
+            f'<ul>{"".join(lines)}</ul></div>')
+
+
+def proposal_card(view: ProposalView, *, actions: Actions | None = None,
+                  detail_link: bool = True) -> str:
+    card = view.card
+    event = card.kind == ProposalKind.EVENT
     description = (_expandable(card.description, card.description_full or card.description,
                                "Beschreibung", False) if card.description else "")
     evidence = _expandable(card.evidence, card.evidence_full, "Beleg", True)
@@ -104,20 +140,6 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
     title = e(card.title)
     if detail_link:
         title = f'<a href="/vorschlag/{e(view.mail_id)}/{e(view.proposal_id)}">{title}</a>'
-    diff_box = ""
-    if view.time_changes:
-        diff_lines = [f"<li>{e(str(change))}</li>" for change in view.time_changes]
-        diff_box = ('<div class="diff-box"><p>🔄 <strong>Terminänderung gegenüber dem Kalender:</strong></p>'
-                    f'<ul>{"".join(diff_lines)}</ul></div>')
-    if view.duplicate_match is not None:
-        dm = view.duplicate_match
-        dup_url = https_link(getattr(dm, "external_link", None))
-        dup_text = e(getattr(dm, "details", "Bereits vorhanden"))
-        if dup_url:
-            labels.append(f'<span class="badge info"><a href="{e(dup_url)}" target="_blank" '
-                          f'rel="noopener noreferrer">{dup_text} ↗</a></span>')
-        else:
-            labels.append(f'<span class="badge info">{dup_text}</span>')
     current = " current" if view.current else ""
     details = (f'<p class="card-links"><a class="button small" '
                f'href="/vorschlag/{e(view.mail_id)}/{e(view.proposal_id)}">Details</a></p>'
@@ -126,9 +148,9 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
 <p class="kind">{"📅 Termin" if event else "✅ Aufgabe"}{version}</p>
 <div class="card-head"><h3>{title}</h3></div>
 <p class="source">✉️ {e(view.sender)} · {e(view.subject)}</p>
-<p class="labels">{" ".join(labels)}</p>
-<ul class="facts">{"".join(facts)}</ul>
-{"".join(warnings)}{diff_box}{questions}{description}{evidence}{created_link}{details}
+<p class="labels">{" ".join(_card_labels(view))}</p>
+<ul class="facts">{"".join(_card_facts(card))}</ul>
+{_card_warning(view)}{_diff_box(view)}{_card_questions(card.questions)}{description}{evidence}{created_link}{details}
 {actions(view) if actions else ""}
 </article>"""
 

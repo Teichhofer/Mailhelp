@@ -210,6 +210,16 @@ class Proposal(StrictModel):
 
     @model_validator(mode="after")
     def validate_consistency(self) -> Proposal:
+        # The checks run in this order; with several violations the first message is reported.
+        self._check_merge_and_defaults()
+        self._check_results()
+        self._check_kind_fields()
+        if self.kind == ProposalKind.EVENT:
+            self._check_event_interval()
+        return self
+
+    def _check_merge_and_defaults(self) -> None:
+        """Merge references, self references and the origin of an assumed default duration."""
         if self.merge_review_required and self.canonical_ref is None:
             raise ValueError("Ein ungeprüfter Zusatz benötigt seine kanonische Referenz")
         if self.default_duration_minutes is not None and (
@@ -221,6 +231,9 @@ class Proposal(StrictModel):
         if self.canonical_ref is not None and (self.canonical_ref.mail_id, self.canonical_ref.proposal_id) == (
                 self.source_mail_id, self.id):
             raise ValueError("Ein Vorschlag darf nicht auf sich selbst verweisen")
+
+    def _check_results(self) -> None:
+        """Simulation, cancellation, existing entries and readiness for confirmation."""
         if self.status == ProposalStatus.SIMULATED and (self.external_id is not None or self.external_link is not None):
             raise ValueError("Ein simulierter Vorschlag darf kein externes Ergebnis enthalten")
         if self.simulation_notified and self.status != ProposalStatus.SIMULATED:
@@ -233,11 +246,11 @@ class Proposal(StrictModel):
             raise ValueError("Ein bereits vorhandener Eintrag darf keine offenen Fragen enthalten")
         if self.status == ProposalStatus.ALREADY_EXISTS and self.duplicate_match is None:
             raise ValueError("Ein bereits vorhandener Eintrag benötigt Duplikat-Informationen")
-        ready = self.is_creatable and not self.open_questions
-        if self.status == ProposalStatus.PENDING_CONFIRMATION and not ready:
+        if self.status == ProposalStatus.PENDING_CONFIRMATION and not (self.is_creatable and not self.open_questions):
             raise ValueError("Nur vollständige neue Vorschläge dürfen bestätigt werden")
 
-
+    def _check_kind_fields(self) -> None:
+        """Calendar times belong to events, due dates and durations to their kind."""
         if self.kind == ProposalKind.TASK and (self.start is not None or self.end is not None or self.all_day):
             raise ValueError("Aufgaben dürfen keine Kalenderzeit enthalten")
         if self.kind != ProposalKind.EVENT and (self.duration_minutes is not None or
@@ -252,26 +265,28 @@ class Proposal(StrictModel):
             raise ValueError("Termine dürfen keine Aufgabenfrist enthalten")
         if self.kind != ProposalKind.EVENT and self.known_temporal_facts is not None:
             raise ValueError("Nur Termine dürfen bekannte Zeitfakten enthalten")
-        if self.kind != ProposalKind.EVENT:
-            return self
+
+    def _check_event_interval(self) -> None:
+        """A complete event has a start and an end of one kind, the end after the start."""
         if not self.open_questions and (self.start is None or self.end is None):
             raise ValueError("Ein vollständiger Termin benötigt Beginn und Ende")
         if self.known_temporal_facts is not None and (self.start is not None or self.end is not None):
             raise ValueError("Unvollständige Zeitfakten dürfen nicht mit Terminintervallen gemischt werden")
-        values = (self.start, self.end)
-        if self.all_day:
-            if any(isinstance(value, datetime) for value in values if value is not None):
-                raise ValueError("Ganztägige Termine benötigen reine Datumswerte")
-        else:
-            if any(not isinstance(value, datetime) for value in values if value is not None):
-                raise ValueError("Zeitgebundene Termine benötigen Datums- und Zeitwerte")
-            if any(value.tzinfo is None or value.utcoffset() is None
-                   for value in values if isinstance(value, datetime)):
-                raise ValueError("Zeitgebundene Termine benötigen einen eindeutigen UTC-Offset")
+        self._check_event_values()
         if self.end is not None and self.start is not None and self.end <= self.start:
             raise ValueError("Terminende muss nach dem Beginn liegen")
-        return self
 
+    def _check_event_values(self) -> None:
+        values = [value for value in (self.start, self.end) if value is not None]
+        if self.all_day:
+            if any(isinstance(value, datetime) for value in values):
+                raise ValueError("Ganztägige Termine benötigen reine Datumswerte")
+            return
+        if any(not isinstance(value, datetime) for value in values):
+            raise ValueError("Zeitgebundene Termine benötigen Datums- und Zeitwerte")
+        if any(value.tzinfo is None or value.utcoffset() is None
+               for value in values if isinstance(value, datetime)):
+            raise ValueError("Zeitgebundene Termine benötigen einen eindeutigen UTC-Offset")
 
 class ProposalRevisionChanges(StrictModel):
     """Closed set of business fields which an LLM may change in a revision."""

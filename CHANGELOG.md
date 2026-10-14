@@ -1,5 +1,14 @@
 # Änderungen
 
+## 3.2.5 – beta: Planung 3.3, Phase 2 – Komplexitätsabbau
+
+- Die verschachteltsten Funktionen sind in benannte Schritte zerlegt, ohne Verhaltensänderung:
+  `merge_facts` (McCabe 29 → 6), `validate_consistency` (26 → 2, Prüfreihenfolge unverändert),
+  Telegram-`overview` (21 → 8) und Schreib-`execute` (19 → 9), Vorschlagskarte (17 → 2),
+  Metrikbeobachtung (17 → 2), IMAP-Ermittlung (17 → 3) und Abgleichvorschau (16 → 3).
+- ruff prüft die McCabe-Komplexität dauerhaft (`C90`, höchstens 15 je Funktion).
+- Zusätzlicher Test: unsichere Quellen behalten ihre offenen Zeitfragen.
+
 ## 3.2.4 – beta: Planung 3.3, Phase 1 – Typprüfung und Entkopplung von Telegram
 
 - `mypy --check-untyped-defs` meldet keine Befunde mehr (vorher 18) und ist über `check_untyped_defs`

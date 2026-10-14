@@ -90,71 +90,88 @@ class ReconciliationSite:
         try:
             items = self.service.current()
             csrf = self.site.auth.csrf_token(session.id)
-            defaults = self.defaults()
             body = ('<div class="setup-page"><h1>Vorschlagsabgleich</h1><p>Lokale Vorschläge und Quellen vergleichen. '
                     'Übernehmen legt nichts extern an; eine neue Version muss separat bestätigt werden.</p>')
-            for item in items:
-                defaults = self.defaults(item)
-                body += (f'<section class="card"><h2><a class="button" href="{e(proposal_link(item))}">'
-                         f'{e(item.title)}</a></h2>')
-                body += f'<p>Version {item.version} · {e(STATUS_LABELS[item.status])}</p>'
-                labels = CALENDAR_LABELS if item.kind == "event" else TASK_LABELS
-                provider = labels.get(item.target_provider, item.target_provider or "Anbieter nicht gespeichert")
-                body += f'<p>Ziel: {e(provider)} · {e(item.target)}</p>'
-                if item.duplicate_check_failed and item.status in OPEN:
-                    body += post_form("/abgleich", csrf, '', 'Dublettenprüfung wiederholen',
-                        kind="recheck_proposal", mail_id=item.source_mail_id, proposal_id=item.id, version=item.version)
-                if item.merge_review_required:
-                    assert item.canonical_ref is not None
-                    targets = [self.service.resolve(item.canonical_ref)]
-                elif item.status in OPEN:
-                    remembered = {(r.mail_id, r.proposal_id) for r in item.matching_candidates}
-                    targets = [p for p in items if compatible(item, p) and (
-                               (p.source_mail_id, p.id) in remembered or p.status in OPEN
-                               and relationship(self.service.store, item, p) != "different")]
-                else:
-                    targets = []
-                for target in targets:
-                    if target is None:
-                        continue
-                    fields = dict(mail_id=item.source_mail_id, proposal_id=item.id, version=item.version,
-                                  target_mail_id=target.source_mail_id, target_proposal_id=target.id,
-                                  target_version=target.version)
-                    body += ('<p>Vergleich mit <a href="' + e(proposal_link(target)) + '">' + e(target.title)
-                             + f'</a> · Zielversion {target.version}</p><dl><dt>Quelle</dt><dd>{e(item.description)} '
-                             + e(event_time(item, self.site.configured_timezone) or item.due or "")
-                             + f'</dd><dt>Bisher</dt><dd>{e(target.description)} '
-                             + e(event_time(target, self.site.configured_timezone) or target.due or "") + '</dd></dl>')
-                    if target.status in OPEN:
-                        body += post_form("/abgleich", csrf, '', 'Zusatz ausdrücklich zuordnen',
-                                          kind="merge_proposals", **fields)
-                    if item.merge_review_required or item.matching_candidates:
-                        body += post_form("/abgleich", csrf, '', 'Als eigenen Vorschlag behalten',
-                                          kind="separate_proposals", **fields)
-                if item.status in OPEN:
-                    candidate = reapply_defaults(item, defaults)
-                    if candidate.version != item.version:
-                        body += '<p>Dauerannahme: ' + e(event_time(candidate, self.site.configured_timezone)) + '</p>'
-                        body += post_form("/abgleich", csrf, '', 'Dauerannahme ausdrücklich übernehmen',
-                            kind="reapply_defaults", mail_id=item.source_mail_id, proposal_id=item.id,
-                            version=item.version, proposal_hash=digest(defaults.model_dump()))
-                body += '</section>'
-            known = {(p.source_mail_id, p.id) for p in items}
-            for name in state_names.mail_state_names(self.site.views.store):
-                mail = self.site.views.store.peek_model(name, MailState)
-                if mail is None:
-                    raise ValueError("Mailzustand fehlt")
-                for item in mail.proposals:
-                    if (item.source_mail_id, item.id) in known:
-                        continue
-                    body += (f'<section class="card"><h2>{e(item.title)}</h2>'
-                             f'<p>Einzelakte fehlt; Befund {e(STATUS_LABELS[item.status])}.</p>')
-                    body += post_form("/abgleich", csrf, '', 'Gespeicherten Befund wiederherstellen',
-                        kind="restore_proposal", mail_id=item.source_mail_id, proposal_id=item.id,
-                        version=item.version, proposal_hash=digest(item.model_dump(mode="json"))) + '</section>'
+            body += "".join(self._proposal_section(item, items, csrf) for item in items)
+            body += self._missing_records(items, csrf)
             return Response.html(200, layout("Vorschlagsabgleich", body + '</div>'))
         except (CorruptState, ValueError):
             return self.site._reply(request, 409, "Bestand beschädigt oder inzwischen geändert; Abgleich blockiert.")
+
+    def _proposal_section(self, item, items, csrf):
+        defaults = self.defaults(item)
+        body = (f'<section class="card"><h2><a class="button" href="{e(proposal_link(item))}">'
+                f'{e(item.title)}</a></h2>')
+        body += f'<p>Version {item.version} · {e(STATUS_LABELS[item.status])}</p>'
+        labels = CALENDAR_LABELS if item.kind == "event" else TASK_LABELS
+        provider = labels.get(item.target_provider, item.target_provider or "Anbieter nicht gespeichert")
+        body += f'<p>Ziel: {e(provider)} · {e(item.target)}</p>'
+        if item.duplicate_check_failed and item.status in OPEN:
+            body += post_form("/abgleich", csrf, '', 'Dublettenprüfung wiederholen',
+                kind="recheck_proposal", mail_id=item.source_mail_id, proposal_id=item.id, version=item.version)
+        body += "".join(self._comparison(item, target, csrf)
+                        for target in self._targets(item, items) if target is not None)
+        if item.status in OPEN:
+            body += self._defaults_offer(item, defaults, csrf)
+        return body + '</section>'
+
+    def _targets(self, item, items):
+        """The canonical proposal of an unchecked addition, or the open matching candidates."""
+        if item.merge_review_required:
+            assert item.canonical_ref is not None
+            return [self.service.resolve(item.canonical_ref)]
+        if item.status not in OPEN:
+            return []
+        remembered = {(r.mail_id, r.proposal_id) for r in item.matching_candidates}
+        return [p for p in items if compatible(item, p) and (
+                (p.source_mail_id, p.id) in remembered or p.status in OPEN
+                and relationship(self.service.store, item, p) != "different")]
+
+    def _comparison(self, item, target, csrf):
+        zone = self.site.configured_timezone
+        fields = dict(mail_id=item.source_mail_id, proposal_id=item.id, version=item.version,
+                      target_mail_id=target.source_mail_id, target_proposal_id=target.id,
+                      target_version=target.version)
+        body = ('<p>Vergleich mit <a href="' + e(proposal_link(target)) + '">' + e(target.title)
+                + f'</a> · Zielversion {target.version}</p><dl><dt>Quelle</dt><dd>{e(item.description)} '
+                + e(event_time(item, zone) or item.due or "")
+                + f'</dd><dt>Bisher</dt><dd>{e(target.description)} '
+                + e(event_time(target, zone) or target.due or "") + '</dd></dl>')
+        if target.status in OPEN:
+            body += post_form("/abgleich", csrf, '', 'Zusatz ausdrücklich zuordnen',
+                              kind="merge_proposals", **fields)
+        if item.merge_review_required or item.matching_candidates:
+            body += post_form("/abgleich", csrf, '', 'Als eigenen Vorschlag behalten',
+                              kind="separate_proposals", **fields)
+        return body
+
+    def _defaults_offer(self, item, defaults, csrf):
+        """A changed default duration is offered for explicit adoption, never applied silently."""
+        candidate = reapply_defaults(item, defaults)
+        if candidate.version == item.version:
+            return ""
+        return ('<p>Dauerannahme: ' + e(event_time(candidate, self.site.configured_timezone)) + '</p>'
+                + post_form("/abgleich", csrf, '', 'Dauerannahme ausdrücklich übernehmen',
+                            kind="reapply_defaults", mail_id=item.source_mail_id, proposal_id=item.id,
+                            version=item.version, proposal_hash=digest(defaults.model_dump())))
+
+    def _missing_records(self, items, csrf):
+        """Findings stored in a mail state whose separate proposal file is missing."""
+        known = {(p.source_mail_id, p.id) for p in items}
+        body = ""
+        for name in state_names.mail_state_names(self.site.views.store):
+            mail = self.site.views.store.peek_model(name, MailState)
+            if mail is None:
+                raise ValueError("Mailzustand fehlt")
+            for item in mail.proposals:
+                if (item.source_mail_id, item.id) in known:
+                    continue
+                body += (f'<section class="card"><h2>{e(item.title)}</h2>'
+                         f'<p>Einzelakte fehlt; Befund {e(STATUS_LABELS[item.status])}.</p>')
+                body += post_form("/abgleich", csrf, '', 'Gespeicherten Befund wiederherstellen',
+                    kind="restore_proposal", mail_id=item.source_mail_id, proposal_id=item.id,
+                    version=item.version, proposal_hash=digest(item.model_dump(mode="json"))) + '</section>'
+        return body
 
     def apply(self, request, session, form):
         try:
