@@ -22,4 +22,5 @@
 - Prüfe Erfolgsfälle, Fehlerfälle, Wiederholungen, Neustarts und Autorisierung.
 - Automatisierte Tests verwenden simulierte externe Dienste und synthetische Daten.
 - Aktualisiere bei Verhaltensänderungen Spezifikation und Konfigurationsbeispiele.
-- Jeder Commit in `main` und `beta` erhöht die Versionsnummer (Patch-Version `X.X.+1`) in `pyproject.toml` und `src/mailhelp/__init__.py` und führt die Änderungen in `CHANGELOG.md` auf.
+- Bei jeder neuen Version muss auch die Datei `README.md` aktualisiert werden (z. B. Versionsstand, neue Funktionen und geänderte Abläufe).
+- Jeder Commit in `main` und `beta` erhöht die Versionsnummer (Patch-Version `X.X.+1`) in `pyproject.toml` und `src/mailhelp/__init__.py`, führt die Änderungen in `CHANGELOG.md` auf und hält `README.md` aktuell.

@@ -1,5 +1,9 @@
 # Änderungen
 
+## 3.3.1 – beta: Entwicklungsregel für README-Aktualisierung
+
+- Entwicklungsregeln in `AGENTS.md` um die Vorgabe ergänzt, bei jeder neuen Version auch die Datei `README.md` zu aktualisieren.
+
 ## 3.3.0 – beta: Technische Konsolidierung (Planung 3.3)
 
 Abschluss von Planung 3.3 (Phasen 1–4 in 3.2.4–3.2.7). Verhalten, CLI, Telegram-Befehle und Web-Routen sind unverändert.
