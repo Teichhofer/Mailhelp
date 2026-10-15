@@ -143,6 +143,13 @@ def load_all(directory: Path, environ: dict[str, str] | None = None, *, oauth_pr
         read_yaml(directory / "irrelevant_topics.yaml"),
     ).topics
     credentials, missing = imap_secret_values(settings.imap, env)
+    iserv: dict[int, dict[str, str]] = {}
+    for account in settings.iserv.enabled_accounts():
+        absent = [name for name in account.secret_names if not env.get(name)]
+        missing += absent
+        if not absent:
+            user, password = account.secret_names
+            iserv[account.id] = {"username": env[user], "password": env[password]}
     from ..mailbox_settings import active_profiles
     from ..target_profiles import load_profile_secrets
     used = active_profiles(settings)
@@ -166,6 +173,7 @@ def load_all(directory: Path, environ: dict[str, str] | None = None, *, oauth_pr
         raise ValueError("Fehlende Geheimnisse: " + ", ".join(missing))
     values: dict[str, Any] = {name.lower(): env.get(name, "") for name in names}
     values["imap"] = credentials
+    values["iserv"] = iserv
     values["profiles"] = profile_values
     _distinct_accounts(settings.imap, credentials)
     from ..target_profiles import PROVIDER_FIELDS

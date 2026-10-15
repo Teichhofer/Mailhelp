@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 14. Oktober 2026, Anwendungsversion 3.3.6. Die folgenden Verträge beschreiben
+Stand: 14. Oktober 2026, Anwendungsversion 3.3.7. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2349,6 +2349,35 @@ als gleichwertig, ohne gespeicherte Vorschläge oder ihre Bestätigungen zu ver�
 ist wiederholbar und übersteht Neustarts. Themen- und andere Analyseänderungen bleiben wirksam.
 Details, Fingerprint-Kompatibilität
 und Rückkehr aus einer vorher angelegten Sicherung stehen in [Release-3.2](docs/Release-3.2.md).
+
+## IServ-Elternbriefe (seit 3.3.7)
+
+`iserv.accounts` nennt Elternkonten (`id` 1–10, `server` als HTTPS-Ursprung ohne Pfad und
+Zugangsdaten, `mailbox` als aktives IMAP-Postfach, optional `label`, `enabled` und
+`historical_start`). Zugangsdaten liegen ausschließlich in `ISERV_<id>_USERNAME` und
+`ISERV_<id>_PASSWORD`; sie werden in Logs maskiert. Der Abschnitt gehört nicht zum
+Analyse-Fingerprint.
+
+Je Mailzyklus meldet sich Mailhelp nach dem IMAP-Abruf bei Bedarf über das IServ-Anmeldeformular
+an, liest die Elternbrief-Übersicht (`/iserv/parentletter/parent/index`) und verarbeitet neue
+Briefe ab `historical_start` (sonst der Grenze des Postfachs) in Veröffentlichungsreihenfolge.
+Weiterleitungen und Meta-Refresh werden nur innerhalb des konfigurierten Ursprungs verfolgt;
+Antworten über `limits.max_mail_bytes` und als HTML gelieferte Anhänge brechen den Abruf ab.
+Eine Übersicht, deren Eintragsanzahl nicht der gelesenen entspricht (Seitenaufteilung),
+wird nicht teilweise verarbeitet. URLs und Anbietertexte werden nicht protokolliert.
+
+Jeder Brief wird zu einer MIME-Nachricht (Absender `label`, Betreff Brieftitel, Datum der
+Veröffentlichung, Text mit Datum und Kind, Anhänge mit Medientyp) mit dem Ordner
+`Elternbriefe`, UIDVALIDITY 1 und einer stabilen Ersatz-UID aus den Kennungen der Briefadresse.
+Die Kontokennung ist ein Hash aus Server und Benutzername. Die Relevanz ist ohne Modellaufruf
+und ohne Absender-Vorfilter `relevant` („IServ-Elternbrief: immer relevant“); alle weiteren
+Schritte, Zielprofil und Standards folgen dem Postfach `mailbox`. Antwortentwürfe gibt es
+für Elternbriefe nicht. Verarbeitete Briefe stehen in `iserv-<konto>.json`; ein
+fehlgeschlagener Brief wird nicht vermerkt und wie eine fehlgeschlagene Mail erneut versucht,
+unvollständige Verarbeitungen werden über denselben Abruf wiederaufgenommen. Ein Fehler eines
+Kontos hält weder andere Konten noch den Mailzyklus an. Die Statusseite zeigt den letzten
+erfolgreichen Kontakt als „IServ-Elternbriefe“; `--check-access` und die Startprüfung melden
+sich bei jedem Konto an. In IServ wird nichts bestätigt, beantwortet oder archiviert.
 
 ## Darstellung der Weboberfläche (3.3.1)
 

@@ -87,6 +87,8 @@ class Orchestrator:
         self.questions = MailQuestions(self)
         self.mailbox_settings: Settings | None = None
         self.mailbox_numbers: dict[str, int] = {}
+        # Accounts whose mail is relevant without a check: IServ parent letters (3.3.7).
+        self.always_relevant: frozenset[str] = frozenset()
         self.mailbox_prompts = self.mailbox_jev = None
 
     def configure_mailboxes(self, settings, prompts, numbers, jev=None):

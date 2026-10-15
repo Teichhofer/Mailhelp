@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.3.6 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.3.7 · **Python:** 3.12.x · **Lizenz:** MIT
 
 [Installation](#installation) · [Konfiguration](#konfiguration) ·
 [Betrieb](#betrieb) · [Docker](#docker) ·
@@ -33,6 +33,8 @@ einem lokalen Ollama-Server ist ebenfalls verfügbar.
   Benachrichtigungen, Termindauern und Aufbewahrungsregeln mit globaler Vererbung.
 - **Telegram und Web-App:** Vorschläge prüfen, klären, bearbeiten, bestätigen oder
   verwerfen. Die installierbare Web-App unterstützt auch den Betrieb ohne Telegram.
+- **IServ-Elternbriefe:** Briefe aus dem IServ-Elternbriefmodul werden wie Mails
+  verarbeitet, einschließlich Anhängen, und gelten immer als relevant.
 - **Optionale Unterstützung:** Antwortentwürfe im Ursprungspostfach, Tagesüberblicke,
   Web-Push und Tätigkeitsberichte mit XLSX-Export.
 
@@ -44,6 +46,7 @@ abgelegt. Mailhelp versendet keine E-Mails.
 | Bereich | Dienste |
 | --- | --- |
 | E-Mail | IMAP-Postfächer |
+| Schule | IServ-Elternbriefe (Lesezugriff über die Weboberfläche, keine offizielle API) |
 | Kalender | Google Kalender, Outlook / Microsoft 365, CalDAV |
 | Aufgaben | Todoist, Microsoft To Do, CalDAV-Aufgabenlisten |
 | Zusätzlicher Aufgabenadapter | Apple Erinnerungen über iCloud-CalDAV, soweit die Liste dort verfügbar ist |
@@ -179,6 +182,18 @@ mailhelp --config-directory .
 Relative Daten- und Logpfade beziehen sich auf `--config-directory`.
 Fehlende Themen-Dateien werden aus den Paketvorlagen angelegt; vorhandene Dateien
 werden nicht überschrieben.
+
+### IServ-Elternbriefe
+
+In `config.yaml` unter `iserv.accounts` je Elternkonto `id`, `server` (HTTPS-Adresse
+der Schule) und `mailbox` eintragen. Die Zugangsdaten stehen in `.env` als
+`ISERV_<id>_USERNAME` und `ISERV_<id>_PASSWORD`. Mailhelp meldet sich wie ein Browser
+an, liest neue Briefe samt Anhängen und verarbeitet sie mit Zielprofil und Standards
+des angegebenen Postfachs, ohne Relevanzprüfung. Briefe vor `historical_start` (ohne
+Angabe: die Grenze des Postfachs) bleiben unberührt. Mailhelp bestätigt, beantwortet
+oder archiviert in IServ nichts. Zwei-Faktor-Anmeldung und auf mehrere Seiten verteilte
+Briefübersichten werden noch nicht unterstützt; der Abruf meldet sie als Fehler.
+`--check-access` prüft auch die IServ-Anmeldung.
 
 ### Weboberfläche
 

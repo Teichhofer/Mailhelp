@@ -44,6 +44,8 @@ def before_2_0(dump: dict, settings) -> dict:
     dump.pop("attachments", None)
     dump.pop("event_defaults", None)
     dump.pop("proposal_reconciliation", None)
+    # 3.3.7: IServ accounts are a further mail source, never part of the analysis.
+    dump.pop("iserv", None)
     for name in ("calendar_provider", "task_provider", "caldav_calendar_url", "caldav_task_url",
                  "outlook_calendar", "microsoft_todo_list", "microsoft_tenant"):
         dump["targets"].pop(name)
@@ -174,7 +176,8 @@ def fingerprint_3_0(settings, prompts, topics) -> str:
     """The algorithm of 1.2 to 3.0: operational sections excluded, the imap section included."""
     operational = {"web", "metrics", "retention", "logging", "learning", "poll_interval_seconds", "timeouts",
                    "retries", "vision", "attachments", "push", "daily_briefing", "smart_reply", "personal_info",
-                   "activity_report", "notifications", "event_defaults", "proposal_reconciliation", "target_profiles"}
+                   "activity_report", "notifications", "event_defaults", "proposal_reconciliation", "target_profiles",
+                   "iserv"}
     dump = settings.model_dump(mode="json", exclude=operational)
     dump["imap"] = imap_before_3_1(settings)
     dump["imap"].pop("drafts_folder")
@@ -214,7 +217,7 @@ def configuration_3_1(settings, prompts):
     excluded = {"web", "metrics", "retention", "logging", "learning", "poll_interval_seconds", "timeouts",
                 "retries", "vision", "attachments", "push", "daily_briefing", "smart_reply", "personal_info",
                 "activity_report", "notifications", "event_defaults", "proposal_reconciliation", "target_profiles",
-                "imap"}
+                "imap", "iserv"}
     dump = settings.model_dump(mode="json", exclude=excluded)
     dump["telegram"].pop("enabled")
     dump["targets"] = {key: dump["targets"][key] for key in ("google_calendar", "todoist_project")}

@@ -39,7 +39,7 @@ def settings():
 
 def secrets():
     return Secrets.model_validate({**{name: "synthetic-" + name for name in Secrets.model_fields
-                                      if name not in {"imap", "profiles"}},
+                                      if name not in {"imap", "profiles", "iserv"}},
                                    "imap": {1: {"username": "synthetic-user", "password": "synthetic-imap"}}})
 
 def topics():
