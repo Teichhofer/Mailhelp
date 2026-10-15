@@ -694,7 +694,7 @@ def test_standalone_config_loading_and_composition(tmp_path, monkeypatch, capsys
     (tmp_path / "config.yaml").write_text(yaml.safe_dump(cfg.model_dump(mode="json")), encoding="utf8")
     (tmp_path / "prompts.yaml").write_text(yaml.safe_dump(prompt_config().model_dump(mode="json")), encoding="utf8")
     (tmp_path / "topics.yaml").write_text("topics:\n- id: x\n  name: x\n  enabled: true\n  description: x\n", encoding="utf8")
-    env = {name.upper(): "synthetic" for name in Secrets.model_fields if name not in {"mailhelp_web_secret", "telegram_bot_token", "imap", "profiles"}}
+    env = {name.upper(): "synthetic" for name in Secrets.model_fields if name not in {"mailhelp_web_secret", "telegram_bot_token", "imap", "profiles", "iserv"}}
     env.update(IMAP_USERNAME="synthetic", IMAP_PASSWORD="synthetic")
     env["MAILHELP_WEB_SECRET"] = "s" * 40
     loaded = load_all(tmp_path, env)
@@ -755,7 +755,7 @@ def test_experience_settings_preserve_16_analysis_fingerprint(tmp_path):
     from mailhelp.fingerprints import _hash, analysis_prompts, config_fingerprint, legacy_fingerprints
     cfg, prompts = settings(tmp_path), prompt_config()
     before = config_fingerprint(cfg, prompts, [])
-    legacy = cfg.model_dump(mode="json", exclude={"target_profiles"})
+    legacy = cfg.model_dump(mode="json", exclude={"target_profiles", "iserv"})
     # The imap section as 1.6 dumped it (3.1 made it operational).
     legacy["imap"] = {"host": "h", "port": 993, "folders": ["INBOX"], "primary_folder": "INBOX",
                       "connection_mode": "ssl", "historical_start": None, "batch_size": 25,

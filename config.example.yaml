@@ -166,6 +166,20 @@ imap:
   - Sent
   - Spam
   - Trash
+# IServ-Elternbriefe (3.3.7): Briefe aus dem IServ-Elternbriefmodul werden wie Mails
+# verarbeitet und gelten immer als relevant (keine Relevanzprüfung, kein Absenderfilter).
+# Zugangsdaten in .env: ISERV_<id>_USERNAME und ISERV_<id>_PASSWORD (Elternkonto).
+# mailbox: dessen Zielprofil und Standards gelten für die Briefe. Ältere Briefe als
+# historical_start (ohne Angabe: die Grenze dieses Postfachs) werden nicht verarbeitet.
+# Mailhelp liest die IServ-Weboberfläche wie ein Browser; eine offizielle API gibt es nicht.
+iserv:
+  accounts: []
+#  accounts:
+#  - id: 1
+#    label: Elternbriefe
+#    server: https://schule.example
+#    mailbox: 1
+#    historical_start: '2026-10-01T00:00:00+02:00'
 telegram:
   # false: Betrieb nur mit Weboberfläche/App, web.enabled muss true sein.
   # TELEGRAM_BOT_TOKEN entfällt; mailhelp --pair zeigt den Code im aufrufenden Terminal.

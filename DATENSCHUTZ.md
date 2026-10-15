@@ -1,7 +1,7 @@
 <!--
 Hinweise für Betreibende (vor Veröffentlichung entfernen):
 - Platzhalter in [eckigen Klammern] ersetzen (Name, Anschrift, Kontakt).
-- Die technischen Angaben entsprechen dem Repository-Stand 3.3.5 (14.10.2026).
+- Die technischen Angaben entsprechen dem Repository-Stand 3.3.7 (14.10.2026).
   Bei abweichender Konfiguration (andere Modelle, Anbieter, Aufbewahrungsfristen,
   Logging) diese Erklärung anpassen.
 - Für eine Google-OAuth-Prüfung muss diese Seite öffentlich erreichbar sein und zur
@@ -11,7 +11,7 @@ Hinweise für Betreibende (vor Veröffentlichung entfernen):
 
 # Datenschutzerklärung für Mailhelp
 
-Stand: 14. Oktober 2026 · technische Beschreibung für Mailhelp 3.3.5
+Stand: 14. Oktober 2026 · technische Beschreibung für Mailhelp 3.3.7
 
 ## 1. Worum es geht
 
@@ -42,6 +42,7 @@ E-Mail: [Kontakt-E-Mail-Adresse]
 | Daten | Herkunft | Zweck |
 |---|---|---|
 | E-Mails: Absender, Empfänger, Betreff, Datum, Nachrichten-IDs, Textinhalt und unterstützte Dokumenten-, Kalender- und Bildanhänge | eigene Postfächer per IMAP | Relevanzprüfung, Zusammenfassung, Erkennung von Aufgaben und Terminen; optional Bild-/Scan-Auswertung |
+| IServ-Elternbriefe (optional): Titel, Veröffentlichungsdatum, Name des Kindes, Brieftext und Anhänge | eigenes Elternkonto der Schule über die IServ-Weboberfläche | wie E-Mails, ohne Relevanzprüfung (Elternbriefe gelten immer als relevant) |
 | Telegram-Nachrichten und Schaltflächen-Eingaben des berechtigten Kontos | Telegram | Bestätigung, Änderung oder Verwerfen von Vorschlägen; Rückfragen |
 | Aufgaben- und Terminvorschläge mit Belegstelle aus der Mail | von Mailhelp erzeugt | Vorlage zur Bestätigung, Anlage nach Bestätigung |
 | Quellenreferenzen mit Nachrichtenzeit, Betreff und gehashten Gesprächsankern; Vorschlagsbeziehungen, Vergleichscache und Merge-Journal | lokale Mail- und Vorschlagsakten | Zusammengehörige offene Entscheidungen erkennen, Ergänzungen nachvollziehen und unterbrochene lokale Änderungen wiederaufnehmen |
@@ -98,6 +99,7 @@ Für die Funktion werden Daten an folgende Dienste übermittelt:
 | Dienst | Übermittelte Daten | Zweck | Sitz |
 |---|---|---|---|
 | E-Mail-Anbieter der eingerichteten Postfächer | Abruf per IMAP, optional ausdrücklich gespeicherte Antwortentwürfe | Lesen der E-Mails und Entwurfsablage | abhängig vom Anbieter |
+| IServ-Server der Schule (optional) | Anmeldung mit dem Elternkonto und Lesen der Elternbriefe | Abruf von Briefen und Anhängen; in IServ wird nichts bestätigt oder beantwortet | abhängig von der Schule |
 | OpenRouter und die tatsächlich gewählten Modellanbieter | Mail- und Anhangsinhalte, Vorschlagsfelder, bestehende Termine zur Duplikatprüfung, Klärungsantworten, optional persönliche Angaben | KI-Auswertung; Modelle und Routen gemäß `prompts.yaml` und `decisions_prompts.yaml` | abhängig vom Anbieter |
 | Telegram Messenger, falls aktiviert | Hinweise gemäß Inhaltsprofil; direkte Vorschläge, Rückfragen und Antworten können Mailauszüge enthalten | Bedienung und Bestätigung | gemäß Anbieterangaben |
 | Todoist (Doist Inc.) | bestätigte Aufgaben; Lesen des Zielprojekts | Aufgabenanlage | USA |

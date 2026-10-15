@@ -49,6 +49,8 @@ EXPERIENCE_FIELDS = (("imap", "drafts_folder"), ("telegram", "enabled"), ("reten
 OPERATIONAL_BEFORE_3_1 = frozenset({"web", "metrics", "retention", "logging", "learning", "poll_interval_seconds",
                                     "timeouts", "retries", *EXPERIENCE})
 OPERATIONAL = OPERATIONAL_BEFORE_3_1 | {"imap"}
+# Further mail sources (3.3.7): their letters use the fingerprint of the mailbox they belong to.
+SOURCES = frozenset({"iserv"})
 # Preparation-only settings and prompt steps (see module documentation).
 PREPARATION = frozenset({"vision", "attachments"})
 PREPARATION_PROMPTS = frozenset({
@@ -69,7 +71,7 @@ def _imap_before_3_1(settings: Settings) -> dict[str, Any] | None:
 
 
 def _settings(settings: Settings, exclude: set[str]) -> dict[str, Any]:
-    value = settings.model_dump(mode="json", exclude=exclude | EXPERIENCE)
+    value = settings.model_dump(mode="json", exclude=exclude | EXPERIENCE | SOURCES)
     if "imap" in value:
         # Only the fingerprints of former releases still contain the section.
         value["imap"] = _imap_before_3_1(settings)

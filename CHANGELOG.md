@@ -1,5 +1,28 @@
 # Änderungen
 
+## 3.3.7 – beta: IServ-Elternbriefe als Quelle
+
+- Neu: Elternbriefe aus dem IServ-Elternbriefmodul werden wie Mails verarbeitet.
+  Mailhelp meldet sich mit dem Elternkonto an der IServ-Weboberfläche an, liest neue
+  Briefe samt Anhängen und behandelt sie immer als relevant, ohne Modellaufruf und
+  ohne Absenderfilter. Zielprofil und Standards folgen dem angegebenen Postfach.
+- Konfiguration unter `iserv.accounts`, Zugangsdaten als `ISERV_<id>_USERNAME` und
+  `ISERV_<id>_PASSWORD`; der Abschnitt ändert den Analyse-Fingerprint nicht.
+- Abruf nur innerhalb der HTTPS-Adresse der Schule, Größengrenzen wie bei Mails,
+  keine URLs oder Zugangsdaten in Logs. Unvollständige Briefe werden nach Fehlern
+  wiederaufgenommen; Statusseite, `--check-access` und Startprüfung kennen IServ.
+- Für Elternbriefe gibt es keine Antwortentwürfe; Mailhelp verändert in IServ nichts.
+  Zwei-Faktor-Anmeldung und mehrseitige Übersichten werden noch nicht unterstützt.
+
+## 3.3.6 – beta: Weboberfläche bleibt nach einem Code-Wechsel konsistent
+
+- Fehler behoben: Der Webserver las Stylesheet, Skript, Service Worker und Offline-Seite
+  bei jeder Anfrage von der Platte. Wechselte bei laufendem Dienst der Codestand im
+  Installationsverzeichnis (Update, Branch-Wechsel einer editierbaren Installation),
+  kombinierte ein Neuladen neue Seiten mit altem CSS, und das Layout zerfiel.
+  Diese Dateien werden jetzt einmal beim Start geladen und passen bis zum Neustart
+  zur laufenden Version.
+
 ## 3.3.5 – beta: Verständliche Meldung bei bereits laufender Instanz
 
 - Fehler behoben: Ein zweiter Start mit demselben Datenverzeichnis endete mit einem

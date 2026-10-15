@@ -117,7 +117,10 @@ class ExperienceRuntime:
 
     def draft_policy(self, account):
         from .mailbox_settings import effective_settings
-        number = self.mailbox_numbers.get(account, 1)
+        number = self.mailbox_numbers.get(account)
+        if number is None:
+            # Mail of no configured IMAP mailbox (IServ letters) has no account to reply from.
+            return False, ""
         cfg = effective_settings(self.app.settings, number)
         return cfg.smart_reply, cfg.personal_info
 

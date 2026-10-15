@@ -35,6 +35,10 @@ class WebApp:
 
     def __init__(self, allowed_hosts: list[str], lan_port: int | None = None):
         self.allowed_hosts, self.lan_port = frozenset(allowed_hosts), lan_port
+        # Read once at start: the pages come from the code loaded in this process, so
+        # stylesheet and scripts must too, even if the files on disk change meanwhile
+        # (update, branch switch of an editable install).
+        self.assets = {name: static_file(name) for name in (*STATIC_FILES, *ROOT_FILES)}
         self._routes: list[tuple[str, re.Pattern[str], Route]] = []
         self.route("GET", "/health", self.health)
         self.route("GET", r"/static/(?P<name>[a-z0-9.-]+)", self.static)
@@ -68,15 +72,13 @@ class WebApp:
         """Liveness only: no data, no authentication."""
         return Response.json(200, {"status": "ok"})
 
-    @staticmethod
-    def static(_request: Request, name: str) -> Response:
+    def static(self, _request: Request, name: str) -> Response:
         if name not in STATIC_FILES:
             return Response.text(404, "Nicht gefunden.")
-        return Response(200, static_file(name), STATIC_FILES[name], cache="no-cache")
+        return Response(200, self.assets[name], STATIC_FILES[name], cache="no-cache")
 
-    @staticmethod
-    def root_file(_request: Request, name: str) -> Response:
-        return Response(200, static_file(name), ROOT_FILES[name], cache="no-cache")
+    def root_file(self, _request: Request, name: str) -> Response:
+        return Response(200, self.assets[name], ROOT_FILES[name], cache="no-cache")
 
 
 __all__ = ["ROOT_FILES", "STATIC_FILES", "WebApp", "static_file"]

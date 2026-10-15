@@ -150,7 +150,13 @@ class MailPipeline:
         run.stage = ProcessingStage.RELEVANCE
         state = run.state
         if state.steps.relevance == "pending":
-            if is_irrelevant_sender(_prepared(state).headers.sender, self.o.blocked_senders(),
+            if state.imap.account_id in self.o.always_relevant:
+                state.relevance = Relevance(
+                    decision="relevant", topic_ids=[], reason="IServ-Elternbrief: immer relevant"
+                )
+                call = None
+                self.o.analyzer.last_relevance_source = "iserv"
+            elif is_irrelevant_sender(_prepared(state).headers.sender, self.o.blocked_senders(),
                                     self.o.mailbox_number(state.imap.account_id)):
                 state.relevance = Relevance(
                     decision="irrelevant", topic_ids=[], reason="Absender-Vorfilter"

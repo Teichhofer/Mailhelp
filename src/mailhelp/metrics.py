@@ -109,6 +109,8 @@ CONTACT_EVENTS = {
     ("telegram", "poll_completed"): "Telegram",
     ("telegram", "access_confirmed"): "Telegram",
     ("google_oauth", "token_credentials_accepted"): "Google-Anmeldung",
+    ("iserv", "letters_listed"): "IServ-Elternbriefe",
+    ("iserv", "access_confirmed"): "IServ-Elternbriefe",
     ("microsoft_oauth", "token_credentials_accepted"): "Microsoft-Anmeldung",
     **{(service, event): label for service, label in _WRITE_SERVICES
        for event in ("create_completed", "duplicate_updated", "access_confirmed")},
