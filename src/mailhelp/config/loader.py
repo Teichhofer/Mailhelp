@@ -13,6 +13,7 @@ from pydantic import BaseModel, ValidationError
 from .models import (
     ImapSettings,
     IrrelevantTopicsConfig,
+    IServSettings,
     MailboxSettings,
     PromptConfig,
     Secrets,
@@ -119,6 +120,20 @@ def imap_secret_values(imap: ImapSettings, env: dict[str, str]
     return credentials, missing
 
 
+def iserv_secret_values(iserv: IServSettings, env: dict[str, str]
+                        ) -> tuple[dict[int, dict[str, str]], list[str]]:
+    """Credentials of every enabled IServ account (3.3.7) and the names that are missing."""
+    credentials, missing = {}, []
+    for account in iserv.enabled_accounts():
+        absent = [name for name in account.secret_names if not env.get(name)]
+        if absent:
+            missing += absent
+        else:
+            user, password = account.secret_names
+            credentials[account.id] = {"username": env[user], "password": env[password]}
+    return credentials, missing
+
+
 def _distinct_accounts(imap: ImapSettings, credentials: dict[int, dict[str, str]]) -> None:
     """Two mailboxes with the same server, port and user would share their whole processing state."""
     from ..imap import account_id
@@ -143,13 +158,8 @@ def load_all(directory: Path, environ: dict[str, str] | None = None, *, oauth_pr
         read_yaml(directory / "irrelevant_topics.yaml"),
     ).topics
     credentials, missing = imap_secret_values(settings.imap, env)
-    iserv: dict[int, dict[str, str]] = {}
-    for account in settings.iserv.enabled_accounts():
-        absent = [name for name in account.secret_names if not env.get(name)]
-        missing += absent
-        if not absent:
-            user, password = account.secret_names
-            iserv[account.id] = {"username": env[user], "password": env[password]}
+    iserv, absent_iserv = iserv_secret_values(settings.iserv, env)
+    missing += absent_iserv
     from ..mailbox_settings import active_profiles
     from ..target_profiles import load_profile_secrets
     used = active_profiles(settings)
@@ -204,4 +214,5 @@ def validated_file(path: Path, model: type[BaseModel], value: Any, prefix: str =
 
 
 __all__ = ["DEFAULT_TOPIC_FILES", "LEGACY_IMAP_SECRETS", "OPTIONAL_PROVIDER_SECRETS", "imap_secret_names",
-           "imap_secret_values", "load_all", "provider_secret_names", "read_yaml", "validated_file"]
+           "imap_secret_values", "iserv_secret_values", "load_all", "provider_secret_names", "read_yaml",
+           "validated_file"]

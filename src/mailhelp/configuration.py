@@ -102,6 +102,38 @@ SETTINGS_FIELDS = {
 for service in ("imap", "telegram", "openrouter", "ollama", "todoist", "google_calendar", "caldav", "microsoft"):
     SETTINGS_FIELDS.update(f"timeouts.{service}.{field}" for field in
                            ("timeout_seconds", "retries", "initial_backoff_seconds", "max_backoff_seconds"))
+# 3.3.12 (Planung 3.4): further operational settings; not data_directory, log paths, web host/port/hosts.
+SETTINGS_FIELDS.update({
+    "activity_report.enabled",
+    "activity_report.export_mails_without_events",
+    "activity_report.max_fulltext_chars",
+    "activity_report.max_llm_calls",
+    "activity_report.max_mails",
+    "activity_report.max_share_of_llm_budget",
+    "daily_briefing.include_calendar",
+    "daily_briefing.include_open",
+    "daily_briefing.include_tasks",
+    "imap.batch_size",
+    "imap.global_newest_first",
+    "learning.parallel_llm_calls",
+    "logging.console.enabled",
+    "logging.file.enabled",
+    "logging.llm.enabled",
+    "logging.llm.level",
+    "logging.telegram.enabled",
+    "logging.telegram.level",
+    "retention.activity_report_days",
+    "smart_reply",
+    "telegram.chat_id",
+    "telegram.sequential_questions",
+    "telegram.user_id",
+    "vision.enabled",
+    "vision.max_edge_pixels",
+    "vision.max_image_bytes",
+    "vision.max_images_per_mail",
+    "web.lan_access",
+    "web.session_days",
+})
 for field in ("interpretation_attempts", "interpretation_backoff_seconds", "revision_attempts",
               "revision_backoff_seconds"):
     SETTINGS_FIELDS.add(f"retries.{field}")
@@ -110,7 +142,8 @@ LIVE_FIELDS = {"poll_interval_seconds", "retention", "metrics", "personal_info",
                "event_defaults", "proposal_reconciliation"}
 SETUP_FIELDS = {"timezone", "imap.host", "imap.port", "imap.connection_mode", "imap.folders",
                 "event_defaults.video_duration_minutes", "event_defaults.in_person_duration_minutes",
-                "imap.primary_folder", "imap.drafts_folder", "telegram.enabled", "push.enabled",
+                "imap.primary_folder", "imap.drafts_folder", "imap.historical_start", "telegram.enabled",
+                "push.enabled",
                 "targets.todoist_project", "targets.google_calendar", "targets.calendar_provider",
                 "targets.task_provider", "targets.caldav_calendar_url", "targets.caldav_task_url",
                 "targets.outlook_calendar", "targets.microsoft_todo_list", "targets.microsoft_tenant",
@@ -125,7 +158,7 @@ for section, fields in {
 SETUP_FIELDS.add("notifications.telegram_content")
 # Mailbox fields of the 3.1 format; the index is the position in imap.mailboxes.
 MAILBOX_SETUP_FIELDS = ("label", "enabled", "host", "port", "connection_mode", "folders", "primary_folder",
-                        "drafts_folder")
+                        "drafts_folder", "historical_start")
 MAILBOX_POLICY_FIELDS = {
     "target_profile",
     "personal_info",
@@ -152,7 +185,7 @@ def offered(name: str, setup: bool) -> bool:
     """Whether the web interface offers *name* for editing."""
     if setup and _MAILBOX_SETUP_FIELD.match(name):
         return True
-    if setup and (name in {"imap.mailboxes", "target_profiles"} or
+    if setup and (name in {"imap.mailboxes", "target_profiles", "iserv.accounts"} or
             re.fullmatch(r"imap\.mailboxes\.[0-9]\.(.+)", name)
             and name.split(".", 3)[3] in MAILBOX_POLICY_FIELDS):
         return True
@@ -330,8 +363,8 @@ class ConfigurationService:
         source = self.path(command).read_text(encoding="utf-8")
         if any(name.startswith("notifications.") for name in command.patch):
             source = re.sub(r"(?m)^(notifications:)[ \t]*(?:null|~)([ \t]*(?:#.*)?)$", r"\1\2", source)
-        complex_roots = {"imap" if name.startswith("imap.mailboxes") else "target_profiles"
-                         for name in command.patch if name in {"imap.mailboxes", "target_profiles"}}
+        roots = {"imap.mailboxes": "imap", "target_profiles": "target_profiles", "iserv.accounts": "iserv"}
+        complex_roots = {roots[name] for name in command.patch if name in roots}
         if complex_roots:
             simple = {name: value for name, value in command.patch.items()
                       if name.split(".", 1)[0] not in complex_roots}
@@ -414,7 +447,10 @@ class ConfigurationService:
     def clear_local_draft(self, command: AdminCommand) -> None:
         from .setup import SetupState
         draft = self.store.load_model("setup-state", SetupState)
-        if draft is not None and draft.kind != "settings" and draft.patch == command.patch:
+        # Setup drafts (mailboxes, IServ accounts, profiles) share kind "settings"; once approved they
+        # are part of config.yaml, and a stale draft on the old file would block every later change.
+        if (draft is not None and draft.patch == command.patch
+                and (draft.kind != "settings" or command.kind == AdminKind.SETUP)):
             draft.kind, draft.patch, draft.base_hash, draft.configuration_hash = "settings", {}, "", ""
             draft.version += 1
             self.store.save("setup-state", draft.model_dump(mode="json"))

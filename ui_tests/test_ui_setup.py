@@ -131,3 +131,34 @@ def test_no_javascript_setup_and_diagnosis_remain_operable(browser, setup_server
         expect(page.get_by_label("Zeitzone (IANA)")).to_have_value("Europe/Berlin")
     finally:
         context.close()
+
+
+def test_iserv_accounts_are_added_as_an_accessible_draft(page, setup_server):
+    sign_in(page, setup_server)
+    page.goto(setup_server.url + "/einstellungen/iserv")
+    expect(page.get_by_role("heading", name="IServ-Konten", exact=True)).to_be_visible()
+    assert audit(page, "iserv-empty-" + page.device, page.mobile) == []
+    page.get_by_label("IServ-Adresse der Schule (https://…)", exact=True).fill("https://schule.example")
+    page.get_by_role("button", name="IServ-Konto als Entwurf hinzufügen", exact=True).click()
+    expect(page.get_by_role("heading", name="Entwurf prüfen", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name="Elternbriefe · 1", exact=True)).to_be_visible()
+    assert audit(page, "iserv-draft-" + page.device, page.mobile) == []
+    assert setup_server.site.archive.configuration.active.iserv.accounts == []
+    page.get_by_role("button", name="Entwurf verwerfen", exact=True).click()
+    expect(page.get_by_role("heading", name="Entwurf prüfen", exact=True)).to_have_count(0)
+
+
+def test_credentials_are_write_only_and_accessible(page, setup_server, monkeypatch):
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    sign_in(page, setup_server)
+    page.goto(setup_server.url + "/einstellungen/zugangsdaten")
+    expect(page.get_by_role("heading", name="Zugangsdaten", exact=True)).to_be_visible()
+    assert audit(page, "credentials-" + page.device, page.mobile) == []
+    field = page.get_by_label("Neuer Wert für OPENROUTER_API_KEY", exact=True)
+    expect(field).to_have_attribute("type", "password")
+    field.fill("sk-synthetisch")
+    form = field.locator("xpath=ancestor::form")
+    form.get_by_label("Wert ausdrücklich in .env speichern").check()
+    form.get_by_role("button", name="Speichern", exact=True).click()
+    expect(page.get_by_text("OPENROUTER_API_KEY gespeichert", exact=False)).to_be_visible()
+    assert "sk-synthetisch" not in page.content()

@@ -50,6 +50,10 @@ class IServError(RuntimeError):
     """A sign-in, page or attachment problem; the message never contains URLs or provider text."""
 
 
+class IServSignInError(IServError):
+    """IServ rejected the credentials or asks for a sign-in step Mailhelp does not know."""
+
+
 @dataclass
 class Node:
     """A minimal, tolerant HTML element tree built with the standard library parser."""
@@ -226,7 +230,7 @@ class IServReader:
         username = next((node for node in form.find_all("input") if node.attrs.get("name") == "_username"),
                         None) if form is not None else None
         if form is None or username is None or not password.attrs.get("name"):
-            raise IServError("Unbekanntes IServ-Anmeldeformular")
+            raise IServSignInError("Unbekanntes IServ-Anmeldeformular")
         data = {node.attrs["name"]: node.attrs.get("value", "") for node in form.find_all("input")
                 if node.attrs.get("name") and node.attrs.get("type", "").lower() == "hidden"}
         data[username.attrs["name"]] = self._username
@@ -244,7 +248,7 @@ class IServReader:
             response = self._request("GET", target)
             page = parse_html(response.content)
             if _password_input(page) is not None:
-                raise IServError("IServ-Anmeldung fehlgeschlagen oder weiterer Anmeldeschritt erforderlich")
+                raise IServSignInError("IServ-Anmeldung fehlgeschlagen oder weiterer Anmeldeschritt erforderlich")
         if not page.find_all("table", id="crud-table"):
             raise IServError("Kein Elternbrief-Postfach gefunden; Berechtigung oder Seitenstruktur prüfen")
         return response, page
@@ -386,5 +390,6 @@ class IServRunService:
             self.store.save(name, state.model_dump(mode="json"))
 
 
-__all__ = ["FOLDER", "IServError", "IServReader", "IServRunService", "IServSource", "IServState", "Letter",
+__all__ = ["FOLDER", "IServError", "IServReader", "IServRunService", "IServSignInError", "IServSource", "IServState",
+           "Letter",
            "Node", "UIDVALIDITY", "account_id", "parse_html", "state_name"]

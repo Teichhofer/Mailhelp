@@ -54,6 +54,39 @@ SETTING_HELP.update({
     "attachments.max_total_bytes": "Höchstens so viele Bytes an Originalen je Mail: 1024–524288000 (Standard 50 MB). Weitere Anhänge derselben Mail werden nicht gespeichert.",
 })
 
+# 3.3.12 (Planung 3.4): further operational settings.
+SETTING_HELP.update({
+    "imap.batch_size": "Höchstens so viele neue Mails nimmt ein Abrufdurchlauf über alle Postfächer auf: 1–1000; Standard 25. Größere Werte arbeiten Rückstände schneller ab, verlängern aber einen einzelnen Durchlauf; kleinere verteilen die Arbeit auf mehr Durchläufe. --max-mails ersetzt den Wert für einen einzelnen Lauf.",
+    "imap.global_newest_first": "ja (true) wählt je Durchlauf die neuesten Mails über alle Postfächer und Ordner nach Empfangszeit. nein (false) arbeitet Postfach für Postfach und Ordner für Ordner in der konfigurierten Reihenfolge. Die Einstellung bestimmt nur die Reihenfolge, nicht welche Mails verarbeitet werden.",
+    "telegram.user_id": "Numerische Telegram-ID des einzigen Kontos, dessen Eingaben Mailhelp annimmt; größer als 0. Nachrichten anderer Konten werden ignoriert. Eine falsche ID sperrt die Bedienung über Telegram aus; die Weboberfläche bleibt nutzbar.",
+    "telegram.chat_id": "Numerische ID des Chats, in den Mailhelp schreibt; bei einem Privatchat meist gleich der Benutzer-ID. Eine falsche ID führt zu Zustellfehlern; Diagnose und --check-access melden sie und nennen gefundene Chats.",
+    "telegram.sequential_questions": "ja (true) zeigt jeweils nur die aktuelle Entscheidung mit Schaltflächen; weitere folgen nacheinander. nein (false) sendet alle offenen Vorschläge sofort. Nacheinander verhindert verwechselte Antworten, wenn viele Fragen gleichzeitig offen sind.",
+    "smart_reply": "ja (true) bietet in der Weboberfläche KI-Antwortentwürfe an; sie werden nur nach ausdrücklichem Speichern im Entwurfsordner des Postfachs abgelegt, Mailhelp versendet nie selbst. nein (false) blendet die Funktion aus. Postfächer können den Wert einzeln überschreiben; benötigt den Schritt draft_reply in prompts.yaml.",
+    "vision.enabled": "ja (true) lässt Bildanhänge und gescannte PDFs vom KI-Modell lesen (Schritt vision_ocr in prompts.yaml), damit Termine und Aufgaben darin erkannt werden; die Bilder werden dafür übertragen und verursachen Kosten. nein (false) wertet nur Text aus.",
+    "vision.max_images_per_mail": "Höchstens so viele Bilder je Mail werden ausgewertet: 1–10; Standard 3. Mehr Bilder erfassen umfangreiche Scans vollständiger und erhöhen Kosten und Laufzeit.",
+    "vision.max_image_bytes": "Größere Bilder werden nicht ausgewertet: 10240–50000000 Bytes; Standard 10485760 (10 MB). Größere Werte erlauben hochaufgelöste Scans und erhöhen Speicher- und Übertragungsbedarf.",
+    "vision.max_edge_pixels": "Bilder werden vor der Übertragung auf diese längste Kante verkleinert: 512–4096 Pixel; Standard 1600. Größere Werte erhalten feine Schrift besser und erhöhen Datenmenge und Kosten.",
+    "daily_briefing.include_calendar": "ja (true) nimmt die heutigen Termine des Zielkalenders in den Tagesüberblick auf. nein (false) lässt sie weg. Wirkt nur bei aktiviertem Tagesüberblick.",
+    "daily_briefing.include_tasks": "ja (true) nimmt fällige Aufgaben der Aufgabenliste in den Tagesüberblick auf. nein (false) lässt sie weg. Wirkt nur bei aktiviertem Tagesüberblick.",
+    "daily_briefing.include_open": "ja (true) nennt im Tagesüberblick die offenen Vorschläge und Rückfragen. nein (false) lässt sie weg. Wirkt nur bei aktiviertem Tagesüberblick.",
+    "activity_report.enabled": "ja (true) erlaubt Tätigkeitsberichte in der Weboberfläche: ein reiner Lesedurchlauf durch ein Postfach zu einem Thema mit XLSX-Export; benötigt die Schritte activity_relevance und activity_events in prompts.yaml. nein (false) blendet die Funktion aus.",
+    "activity_report.max_mails": "Ein Bericht pausiert nach so vielen gelesenen Mails: 1–20000; Standard 2000. Größere Werte erfassen längere Zeiträume und erhöhen Laufzeit und KI-Kosten.",
+    "activity_report.max_llm_calls": "Ein Bericht pausiert nach so vielen KI-Aufrufen: 1–50000; Standard 3000. Die Grenze schützt vor unerwartet hohen Kosten; ein pausierter Bericht lässt sich fortsetzen.",
+    "activity_report.max_share_of_llm_budget": "Anteil von limits.llm_calls_per_minute, den ein laufender Bericht nutzen darf: größer als 0 bis 1; Standard 0.5. Kleinere Werte lassen der normalen Mailverarbeitung mehr Spielraum und verlangsamen den Bericht.",
+    "activity_report.max_fulltext_chars": "Volltexte im Export werden auf so viele Zeichen gekürzt: 1000–32000; Standard 30000, passend zur Zellgrenze von Excel.",
+    "activity_report.export_mails_without_events": "ja (true) exportiert auch relevante Mails ohne erkannte Termine. nein (false) exportiert nur Mails mit erkannten Terminen.",
+    "learning.parallel_llm_calls": "Gleichzeitige KI-Aufrufe im Lernmodus (--learn): 1–100; Standard 4. Mehr parallele Aufrufe beschleunigen das Lernen und erhöhen Lastspitzen; das Minutenbudget limits.llm_calls_per_minute gilt weiterhin.",
+    "web.session_days": "So lange bleibt ein gekoppeltes Gerät angemeldet, bevor es neu gekoppelt werden muss: 1–365 Tage; Standard 30. Kürzere Werte verringern das Risiko verlorener Geräte, längere ersparen Kopplungen.",
+    "web.lan_access": "ja (true) macht die Weboberfläche im eigenen WLAN unter der privaten IP-Adresse des PCs erreichbar (unverschlüsseltes HTTP); erfordert web.host 0.0.0.0, sonst wird die Änderung abgelehnt. nein (false) beschränkt den Zugriff auf diesen PC und die freigegebenen Adressen.",
+    "logging.console.enabled": "ja (true) schreibt Meldungen ins Terminal bzw. in das Containerprotokoll. nein (false) unterdrückt die Konsolenausgabe; die Logdatei bleibt davon unberührt.",
+    "logging.file.enabled": "ja (true) schreibt die allgemeine Logdatei im Logverzeichnis. nein (false) schreibt keine allgemeine Logdatei; die Fehlersuche wird dadurch erschwert.",
+    "logging.llm.enabled": "ja (true) schreibt das separate KI-Log mit Aufrufmetadaten; vollständige Inhalte nur, wenn zusätzlich Anfragen oder Antworten freigegeben sind. nein (false) schreibt kein KI-Log.",
+    "logging.llm.level": "Mindeststufe des KI-Logs: DEBUG enthält Diagnoseangaben, INFO den normalen Ablauf, WARNING Warnungen und schwerere Meldungen, ERROR Fehler und CRITICAL nur schwerste Fehler. Höhere Stufen reduzieren die Datenmenge.",
+    "logging.telegram.enabled": "ja (true) schreibt ein separates Prüfprotokoll der Telegram-Nachrichten einschließlich Inhalten. nein (false) verzichtet darauf; Zustellungen bleiben im allgemeinen Log ohne Inhalte sichtbar.",
+    "logging.telegram.level": "Mindeststufe des Telegram-Logs: DEBUG enthält Diagnoseangaben, INFO den normalen Ablauf, WARNING Warnungen und schwerere Meldungen, ERROR Fehler und CRITICAL nur schwerste Fehler.",
+})
+SETTING_HELP["retention.activity_report_days"] = "Aufbewahrung gespeicherter Tätigkeitsberichte und ihrer Exporte; das Postfach bleibt unverändert." + _RETENTION
+
 for _service, _label in {"imap": "IMAP", "telegram": "Telegram", "openrouter": "OpenRouter", "ollama": "Ollama",
                          "todoist": "Todoist", "google_calendar": "Google Kalender", "caldav": "CalDAV",
                          "microsoft": "Microsoft 365"}.items():

@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 14. Oktober 2026, Anwendungsversion 3.3.7. Die folgenden Verträge beschreiben
+Stand: 14. Oktober 2026, Anwendungsversion 3.4.0. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -1020,6 +1020,16 @@ Todoist-Aufrufe verwenden die aktuelle API unter `/api/v1`. Listen von Aufgaben
 werden cursorbasiert bis zum Fund der Idempotenzkennung oder bis zum Listenende
 gelesen, damit auch nach einem Neustart keine doppelte Aufgabe entsteht.
 
+Seit 3.3.11 schreibt `/einstellungen/zugangsdaten` einzelne Werte in `.env`: angeboten werden nur die
+Namen, die die Entwurfskonfiguration benötigt (IMAP je Postfach, IServ je Konto, OpenRouter, Telegram
+bei aktivem Telegram, Zielanbieter je aktivem Zielprofil), nie `MAILHELP_WEB_SECRET`. Die Seite zeigt
+nur „hinterlegt“ oder „fehlt“ und weist auf überdeckende Prozessvariablen hin. Speichern verlangt
+Sitzung (vor dem Schreiben erneut geprüft), CSRF-Token, Idempotenzschlüssel, Bestätigung und den
+unveränderten Dateistand; Werte ohne Steuerzeichen, höchstens 4096 Zeichen. Nur die Zeilen des Namens
+werden ersetzt (sonst angehängt), atomar; Protokolle nennen nur den Namen, der Wert wird sofort in
+die Log-Maskierung aufgenommen. Diagnose und Einrichtung lesen neue Werte sofort, der Abruf nach
+dem nächsten Start.
+
 Alle Dateien werden beim Start geprüft. Fehlermeldungen nennen betroffene Datei und Schlüssel, niemals geheime Werte. `.env`, Zustandsdaten und Logs werden aus Git und Docker-Build-Kontext ausgeschlossen. Eine private Beispieldatei mit echten Zugangsdaten gehört nicht ins Projekt.
 
 Der gesonderte Start mit `--check-access` prüft alle konfigurierten externen
@@ -1944,7 +1954,19 @@ abgelaufene Einzelwerte werden über ein Journal in Tagesaggregate ohne Mailbezu
 Datum; Stromkosten sind eine gekennzeichnete Schätzung aus `metrics.ollama_power_watts` und
 `metrics.electricity_eur_per_kwh`, überlappende Aufrufe zählen einmal.
 
-**Einstellungen und Themen.** Bearbeitbar ist nur eine Positivliste von Einstellungen;
+**Diagramme der Auswertung (seit 3.3.9).** Für die gefilterte Auswahl zeigt `/auswertung` die
+KI-Aufrufe (erfolgreich/fehlgeschlagen) und die gemeldeten Cloudkosten je Tag (bei „Heute“ je
+Stunde, in der konfigurierten Zeitzone), die Verteilung der Aufrufdauer in Klassen sowie die
+summierte Dauer je Verarbeitungsschritt und die gemeldeten Kosten je Modell (höchstens acht
+Balken, der Rest als „Weitere“). Die Diagramme sind serverseitiges SVG ohne Skripte und
+Inline-Styles, mit Titel und Beschreibung für Hilfstechnik und ihren Werten als aufklappbare
+Tabelle. Aufrufe ohne Kostenangabe fehlen in den Kostendiagrammen, statt als null zu zählen.
+
+**Einstellungen und Themen.** Bearbeitbar ist nur eine Positivliste von Einstellungen (seit 3.3.12
+einschließlich Stapelgröße und Reihenfolge des Abrufs, Telegram-Bindung, Antwortentwürfen,
+Bildauswertung, Tagesüberblick, Tätigkeitsberichten, Lernmodus, Sitzungsdauer, LAN-Zugriff und
+Protokollschaltern; Datenverzeichnis, Logpfade, `web.host`, `web.port`, `web.enabled`,
+`web.allowed_hosts` und Parser-Sicherheitsgrenzen bleiben ausgenommen);
 in der globalen Einzelfeldansicht sind Geheimnisse, Web-Bindung, Datenverzeichnis und
 IMAP-Konten nicht bearbeitbar. Die getrennte Einrichtung und die Postfachverwaltung
 seit 3.2 unterstützen IMAP-Konfigurationsentwürfe; Geheimnisse bleiben außerhalb des Webs.
@@ -2377,7 +2399,16 @@ fehlgeschlagener Brief wird nicht vermerkt und wie eine fehlgeschlagene Mail ern
 unvollständige Verarbeitungen werden über denselben Abruf wiederaufgenommen. Ein Fehler eines
 Kontos hält weder andere Konten noch den Mailzyklus an. Die Statusseite zeigt den letzten
 erfolgreichen Kontakt als „IServ-Elternbriefe“; `--check-access` und die Startprüfung melden
-sich bei jedem Konto an. In IServ wird nichts bestätigt, beantwortet oder archiviert.
+sich bei jedem Konto an. In IServ wird nichts bestätigt, beantwortet oder archiviert. Die Einrichtung zeigt
+je aktivem Konto, ob seine Zugangsdaten vorhanden sind; die Diagnose `iserv` meldet sich an und
+öffnet nur die Briefübersicht (seit 3.3.8).
+
+Seit 3.3.10 verwaltet `/einstellungen/iserv` die Konten im Web: Hinzufügen (nächste freie
+Nummer), Ändern, Aktivieren/Deaktivieren und Entfernen ändern den Einrichtungsentwurf als ganzen
+Block `iserv.accounts` in geprüfter, normalisierter Form. Übernommen wird wie bei Postfächern nur
+ausdrücklich, versionsbezogen und nach einer aktuellen Diagnose `iserv` („bereit“; ohne aktive
+Konten genügt „deaktiviert“); `config.yaml` wird kommentarerhaltend geschrieben. Ein übernommener
+Einrichtungsentwurf wird danach geleert, damit weitere Änderungen auf dem neuen Dateistand beginnen.
 
 ## Darstellung der Weboberfläche (3.3.1)
 
