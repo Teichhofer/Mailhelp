@@ -322,6 +322,8 @@ proposal_reconciliation:
   # Mehr mögliche Treffer blockieren die automatische Zuordnung.
   max_semantic_candidates: 8
 web:
+  # Bestätigen/Verwerfen: 5 Sekunden Rückgängig-Frist; bis zum Versand oder
+  # Rückgängig bleibt die Vorgangsauswahl per Maus und Tastatur gesperrt.
   # Die Webübersicht behält die Auswahl beim Neuladen automatisch bei; keine Option nötig.
   # Optionale Weboberfläche (ab 1.1). Standard: aus – Mailhelp verhält sich dann wie 1.0.
   # Mit enabled: true wird MAILHELP_WEB_SECRET (mindestens 32 Zeichen) in .env benötigt.

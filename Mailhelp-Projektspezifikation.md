@@ -2007,8 +2007,11 @@ Revisionshistorie und technische Analyse als einklappbare Abschnitte; mit
 Bildvorschauen ist der Quellbeleg geöffnet. Schnellfilter (`filter` = `events`,
 `tasks`, `clarification`, `attachments`, `duplicates`) werden serverseitig
 ausgewertet; unbekannte Werte ergeben 422. Bestätigen und Verwerfen werden im
-Browser 5 Sekunden zurückgehalten und dann als normales Formular gesendet; der
-Server prüft Sitzung, CSRF, Version und Idempotenzschlüssel. Tastenkürzel sind in
+Browser 5 Sekunden zurückgehalten und dann als normales Formular gesendet. Bis
+zum Versand oder Rückgängigmachen bleiben Auswahlwechsel per Maus und Tastatur
+gesperrt. So bleibt das ursprüngliche Formular mit seiner Vorschlagsversion verbunden.
+Nach Rückgängig ist die Auswahl sofort wieder frei, ohne einen Befehl zu senden.
+Der Server prüft Sitzung, CSRF, Version und Idempotenzschlüssel. Tastenkürzel sind in
 Eingabefeldern und bei geöffneten Dialogen inaktiv. Ohne JavaScript funktionieren
 alle Funktionen über normale Links und Formulare. Ohne offene Entscheidungen zeigt
 die Übersicht die heutigen Ergebnisse in der konfigurierten Zeitzone.

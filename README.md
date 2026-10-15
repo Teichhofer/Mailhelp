@@ -190,6 +190,10 @@ wischbar. Vorschlagskarten zeigen die wichtigsten Angaben zuerst; Beschreibung u
 Beleg lassen sich aufklappen. Direkte Bereichslinks erleichtern die Suche in den
 globalen Einstellungen.
 
+Bestätigen und Verwerfen lassen sich 5 Sekunden rückgängig machen. Währenddessen
+bleibt die Vorgangsauswahl per Maus und Tastatur gesperrt; nach dem Rückgängigmachen
+ist sie sofort wieder verfügbar.
+
 Die Seite **Status** zeigt den aktuellen Verarbeitungsschritt und je Dienst den letzten
 erfolgreichen Kontakt. Beim Start prüft Mailhelp OpenRouter, Telegram und die
 Kalender- und Aufgabenziele im Hintergrund nur lesend; das IMAP-Postfach erscheint

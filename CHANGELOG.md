@@ -1,5 +1,14 @@
 # Änderungen
 
+## Unveröffentlicht – Verwerfen nach Auswahlwechsel
+
+- Während der Rückgängig-Frist von Bestätigen und Verwerfen bleibt die Auswahl
+  auch bei Mausklicks gesperrt. Das ursprüngliche Formular bleibt erhalten und
+  wird genau einmal gesendet, statt dauerhaft „wird verworfen …“ anzuzeigen.
+- Browser-Regressionstests prüfen Bestätigen, Verwerfen, die unveränderte
+  Vorschlagszuordnung und die Freigabe der Auswahl nach Rückgängig, ohne dabei
+  einen Befehl zu senden. Sie reproduzieren den Fehler vor der Korrektur.
+
 ## 3.3.5 – beta: Verständliche Meldung bei bereits laufender Instanz
 
 - Fehler behoben: Ein zweiter Start mit demselben Datenverzeichnis endete mit einem

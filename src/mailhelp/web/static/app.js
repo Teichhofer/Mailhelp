@@ -144,6 +144,8 @@
   }
 
   function select(card) {
+    // Keep the pending form connected until it is submitted or undone.
+    if (pending) return;
     if (pane.dataset.dirty === "yes") {
       announce("Ungespeicherte Änderungen zuerst speichern oder die Seite neu laden.");
       return;
