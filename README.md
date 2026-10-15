@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.3.8 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.3.9 · **Python:** 3.12.x · **Lizenz:** MIT
 
 [Installation](#installation) · [Konfiguration](#konfiguration) ·
 [Betrieb](#betrieb) · [Docker](#docker) ·
@@ -220,7 +220,8 @@ mailhelp --pair --config-directory .
 ```
 
 Den Code auf der Anmeldeseite eingeben. Die Oberfläche bietet offene Entscheidungen,
-Mailansichten, Suche, Verlauf, Auswertung, Berichte und Einstellungen. Die Anmeldung
+Mailansichten, Suche, Verlauf, Auswertung, Berichte und Einstellungen. Die Auswertung zeigt
+KI-Aufrufe, Kosten und Dauer auch als Diagramme je Tag, Schritt und Modell. Die Anmeldung
 ist auch über Telegram möglich. Für den Betrieb ausschließlich mit Weboberfläche
 `telegram.enabled: false` setzen.
 

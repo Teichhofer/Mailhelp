@@ -84,5 +84,6 @@ class HistorySite:
         except (ValueError, TypeError):
             return self.site._reply(request, 422, "Ungültige Auswertungsfilter.")
         everything = selected.report(days=params["days"], mode=params["mode"])["records"]
-        return Response.html(200, layout("Auswertung", statistics_page(params, report, everything),
+        return Response.html(200, layout("Auswertung", statistics_page(params, report, everything,
+                                                                         self.site.configured_timezone),
                                          active="/auswertung"))

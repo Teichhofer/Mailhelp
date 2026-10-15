@@ -35,8 +35,12 @@ def _money(value: SupportsFloat | str | None, currency: str) -> str:
     return "unbekannt" if value is None else f"{_number(value, 4)} {currency}"
 
 
-def statistics_page(params: dict, report: dict, everything: list[dict]) -> str:
-    """Costs and durations with readable labels; unknown values are never shown as zero."""
+def statistics_page(params: dict, report: dict, everything: list[dict], zone: str = "UTC",
+                    now: datetime | None = None) -> str:
+    """Costs and durations with readable labels and charts; unknown values are never shown as zero."""
+    from datetime import UTC
+
+    from .charts import statistics_charts
     def choices(key: str) -> list[tuple[str, str]]:
         return [("", "alle")] + [(value, value) for value in sorted({row[key] for row in everything})]
 
@@ -72,7 +76,8 @@ def statistics_page(params: dict, report: dict, everything: list[dict]) -> str:
               "unbekannt, nicht null. Stromkosten sind eine Schätzung aus der eingestellten Leistung und dem "
               "Strompreis (überlappende Aufrufe einmal gezählt); Leerlauf, Hardware und andere Serverlast sind "
               "nicht enthalten. Die summierte Aufrufdauer ist keine Durchlaufzeit.</p>")
-    return body + _statistics_groups(report["groups"])
+    charts = statistics_charts(report["records"], params["days"], zone, now or datetime.now(UTC))
+    return body + charts + _statistics_groups(report["groups"])
 
 
 def _statistics_groups(groups: list[dict]) -> str:

@@ -1,5 +1,14 @@
 # Änderungen
 
+## 3.3.9 – beta: Diagramme in der Auswertung
+
+- Die Auswertungsseite zeigt für die gewählten Filter Diagramme: KI-Aufrufe je Tag
+  (erfolgreich und fehlgeschlagen), gemeldete Cloudkosten je Tag, die Verteilung der
+  Aufrufdauer, die summierte Dauer je Verarbeitungsschritt und die Kosten je Modell.
+  Bei „Heute“ gilt die Einteilung je Stunde in der konfigurierten Zeitzone.
+- Die Diagramme sind serverseitiges SVG ohne Skripte, passen sich hellem und dunklem
+  Design an und bieten ihre Werte zusätzlich als aufklappbare Tabelle für Screenreader.
+
 ## 3.3.8 – beta: IServ in Einrichtung und Diagnose
 
 - Fehler behoben: Die Zugangsdatenübersicht der Einrichtung nannte die IServ-Zugangsdaten

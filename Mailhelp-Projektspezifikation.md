@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 14. Oktober 2026, Anwendungsversion 3.3.8. Die folgenden Verträge beschreiben
+Stand: 14. Oktober 2026, Anwendungsversion 3.3.9. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -1943,6 +1943,14 @@ abgelaufene Einzelwerte werden über ein Journal in Tagesaggregate ohne Mailbezu
 überführt. Fehlende Kosten sind „unbekannt“, nicht null; Euro nur mit Wechselkurs und
 Datum; Stromkosten sind eine gekennzeichnete Schätzung aus `metrics.ollama_power_watts` und
 `metrics.electricity_eur_per_kwh`, überlappende Aufrufe zählen einmal.
+
+**Diagramme der Auswertung (seit 3.3.9).** Für die gefilterte Auswahl zeigt `/auswertung` die
+KI-Aufrufe (erfolgreich/fehlgeschlagen) und die gemeldeten Cloudkosten je Tag (bei „Heute“ je
+Stunde, in der konfigurierten Zeitzone), die Verteilung der Aufrufdauer in Klassen sowie die
+summierte Dauer je Verarbeitungsschritt und die gemeldeten Kosten je Modell (höchstens acht
+Balken, der Rest als „Weitere“). Die Diagramme sind serverseitiges SVG ohne Skripte und
+Inline-Styles, mit Titel und Beschreibung für Hilfstechnik und ihren Werten als aufklappbare
+Tabelle. Aufrufe ohne Kostenangabe fehlen in den Kostendiagrammen, statt als null zu zählen.
 
 **Einstellungen und Themen.** Bearbeitbar ist nur eine Positivliste von Einstellungen;
 in der globalen Einzelfeldansicht sind Geheimnisse, Web-Bindung, Datenverzeichnis und

@@ -1,6 +1,6 @@
 # Mailhelp 3.3 – Konsolidierung und Weboberfläche
 
-Stand: 14. Oktober 2026. Aktueller Repository-Stand: 3.3.8.
+Stand: 14. Oktober 2026. Aktueller Repository-Stand: 3.3.9.
 Die technische Konsolidierung wurde mit 3.3.0 abgeschlossen. Das nachfolgende
 Facelift ist seit 3.3.1 enthalten; sein ursprünglicher Commit
 verwendete vor der anschließenden Versionskorrektur die Nummer 3.3.2.
