@@ -15,8 +15,8 @@ from ..models import (
     QuestionStatus,
     TelegramDialogState,
 )
+from ..persistence.proposals import proposal_name
 from ..storage import JsonStore
-from .persistence import proposal_name
 from .revision_contracts import EventLogger, ProposalRevisionService
 from .revision_successor import protect_revision
 from .writes import ProposalPersistence

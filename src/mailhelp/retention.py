@@ -35,11 +35,12 @@ class RetentionService:
     """Scrub content without deleting restart and duplicate-protection records."""
 
     def __init__(self, store: JsonStore, settings: RetentionSettings,
-                 logger: EventLogger, clock: Callable[[], datetime] | None = None):
+                 logger: EventLogger, clock: Callable[[], datetime] | None = None, full_mail_period=None):
         self.store = store
         self.settings = settings
         self.logger = logger
         self.clock = clock or (lambda: datetime.now(UTC))
+        self.full_mail_period = full_mail_period
 
     @staticmethod
     def _expired(period: Period, updated_at: datetime, now: datetime) -> bool:
@@ -84,7 +85,8 @@ class RetentionService:
                                            evidence="Nach Aufbewahrung entfernt", location=None,
                                            video_link=None)
                                 self.store.save(snapshot, old)
-            mail_changed = self._expired(self.settings.full_mail_days, state.updated_at, now) and state.mail is not None
+            period = self.settings.full_mail_days if self.full_mail_period is None else self.full_mail_period(state)
+            mail_changed = self._expired(period, state.updated_at, now) and state.mail is not None
             debug_changed = self._expired(self.settings.debug_llm_days, state.updated_at, now) and any(
                 (state.relevance is not None, state.summary is not None, bool(state.llm_call_ids),
                  bool(state.validation_errors))

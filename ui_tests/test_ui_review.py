@@ -21,6 +21,8 @@ def test_overview_is_readable_and_mail_content_stays_inert(page, mailhelp):
     expect(malicious).to_contain_text('Rechnung <script>alert("x")</script> prüfen')
     assert malicious.locator("a[href^='https://evil']").count() == 0
     long_card = item(page, f"#v-{mail_id(1)}-elternabend")
+    if page.mobile:
+        long_card.locator(".card-context > summary").click()
     long_card.get_by_text("Beleg vollständig anzeigen").click()
     expect(long_card.locator("details .full")).to_be_visible()
     assert dialogs == [] and page.errors == []

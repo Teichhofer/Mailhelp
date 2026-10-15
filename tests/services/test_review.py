@@ -25,11 +25,11 @@ from mailhelp.models import (
     MailRunState,
     TelegramDialogState,
 )
+from mailhelp.persistence.ledger import ActionLedgerService
 from mailhelp.review import CommandKind, CommandSource, ResultStatus, ReviewCommand, StaleCommand
 from mailhelp.review.cards import card_content, yes_no_question
 from mailhelp.review.views import RECENT_LIMIT, ReviewViews
 from mailhelp.storage import CorruptState, JsonStore
-from mailhelp.telegram.ledger import ActionLedgerService
 
 action_key = ActionLedgerService.action_key
 from shared_review import command as command

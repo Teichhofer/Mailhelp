@@ -1,5 +1,174 @@
 # Änderungen
 
+## 3.3.5 – beta: Verständliche Meldung bei bereits laufender Instanz
+
+- Fehler behoben: Ein zweiter Start mit demselben Datenverzeichnis endete mit einem
+  Python-Traceback. Mailhelp meldet jetzt in einer klaren Zeile, dass bereits eine
+  Instanz läuft, nennt das Verzeichnis und erklärt, wie die laufende Instanz beendet
+  wird; der Exit-Code ist 1. Die Sperre selbst ist unverändert.
+
+## 3.3.4 – beta: IMAP-Abruffehler und sichere UID-Grenzen
+
+- Aktuelle Fehler beim Lesen eines Haupt- oder zusätzlichen Ordners erscheinen auf
+  der Statusseite, auch wenn der Durchlauf keine Mail für die Analyse laden konnte.
+  Hinweise bleiben je Postfach und Ordner erhalten, bis dieser wieder erfolgreich
+  gelesen wird. Provider-Fehlertexte und Zugangsdaten werden nicht im Web angezeigt.
+- Regressionstests für leere Durchläufe mit Ordnerfehlern, Status-Aktualisierung,
+  erneute Fehler, isolierte Postfächer, erfolgreiche Wiederholung und sichere Darstellung.
+- Lokale Ordnernamen und der Entwurfsordner anhand der lesenden IMAP-Liste korrigiert;
+  Anleitung und Beispiel weisen auf anbieterspezifische Namen hin.
+- Absturz bei Checkpoints behoben: Die IMAP-Suche kann bei `UID Start+1:*` die
+  höchste vorhandene UID erneut liefern. Treffer an oder unter der gespeicherten
+  Startgrenze werden vor dem Abruf ausgeschlossen. Der Abschluss alter
+  Warteschlangeneinträge und separater Wiederaufnahmen verändert diese Grenze nicht.
+  Regressionstests prüfen Wiederholungen, neue Mails und dauerhaft lesbare
+  Checkpoints nach Neustarts.
+
+## 3.3.3 – beta: Dienststatus sofort nach dem Start
+
+- Fehler behoben: Ein Mailabruf ohne neue Mail ließ das IMAP-Postfach auf der Statusseite
+  „unbekannt“, weil der Abruf seit 3.1 über `discover_since` läuft und dessen Ereignis nicht
+  als Kontakt zählte. Ebenso zählt jede erfolgreiche Telegram-Abfrage, auch ohne Nachricht.
+- Beim Dienststart prüft Mailhelp im Hintergrund lesend OpenRouter bzw. Ollama, Telegram
+  (ohne Testnachricht) und die Ziele der aktiven Zielprofile. Die Statusseite zeigt diese
+  Dienste damit sofort als erreichbar; die Mailverarbeitung wartet nicht auf die Prüfung.
+  Fehlschläge werden nur als Warnung protokolliert.
+
+## 3.3.2 – beta: Dokumentation geprüft und aktualisiert
+
+- README, Changelog, Projektspezifikation, Einrichtungsanleitung, Datenschutzerklärung,
+  Nutzungsbedingungen und Projektwebsite auf den Stand 3.3 gebracht: optionale
+  Telegram-Nutzung, lokale Webkopplung, mehrere Postfächer und Zielprofile,
+  Google-Desktop-OAuth mit Profilnummer, aktivierte Inhaltslogs im Beispiel.
+- Neue [Release-Anleitung 3.3](docs/Release-3.3.md) (im Quellarchiv enthalten) und
+  [Prüfbericht zur Dokumentation](docs/Pruefung-Dokumentation.md).
+- 35 ältere Pläne, Konzepte und Release-Dokumente sind als historisch gekennzeichnet;
+  Planung 3.3 trennt umgesetzte Phasen von offenen Architekturzielen.
+- Keine Änderung am Anwendungsverhalten.
+
+## 3.3.1 – beta: Entwicklungsregel für README-Aktualisierung
+
+- Entwicklungsregeln in `AGENTS.md` um die Vorgabe ergänzt, bei jeder neuen Version auch die Datei `README.md` zu aktualisieren.
+- Weboberfläche mit gruppierter Desktop-Seitenleiste, kompakter Handy-Navigation,
+  klarerer Seitenhierarchie, aufklappbaren Vorschlagsbelegen und Einstellungs-Bereichslinks.
+  Der Shell-Cache wird beim Update erneuert. Das Facelift wurde zunächst als 3.3.2
+  committet; der folgende Versionskorrektur-Commit führt denselben Funktionsstand als 3.3.1.
+
+## 3.3.0 – beta: Technische Konsolidierung (Planung 3.3)
+
+Abschluss von Planung 3.3 (Phasen 1–4 in 3.2.4–3.2.7). Verhalten, CLI, Telegram-Befehle und Web-Routen sind unverändert.
+
+- Strikte Typprüfung zusätzlich für Persistenz, Normalisierung, Zusammenführung, Vorprüfung, Evaluation,
+  Konfiguration, Laufschleife, Dienstkoordination, Telegram und Review; `mailhelp.telegram` exportiert eine
+  ausdrückliche Namensliste.
+- `writer_for`, `retarget`, `profile_references` und `TelegramCommands` sind vollständig annotiert. Die Abbruchlogik
+  liest die Dialogreferenz über `TelegramDialogState.reference()`.
+- Gesamtabnahme: 2360 Tests mit 100 % Zeilen- und Branch-Abdeckung, 146 Browsertests, ruff und mypy ohne Befund.
+- Noch offen sind die Strictness für `mailhelp.web.*` und die Bündelung der Wurzelmodule in Unterpakete
+  (siehe Planung 3.3, Abschnitt 5).
+
+## 3.2.7 – beta: Planung 3.3, Phase 4 – Parser und Konfiguration konsolidiert
+
+- `config.py` ist das Paket `mailhelp.config`: Modelle und Validierungsregeln in `config/models.py`,
+  Datei- und Umgebungszugriff in `config/loader.py`; alle bisherigen Namen bleiben über `mailhelp.config` importierbar.
+- Deutsche Monats- und Wochentagsnamen, Jahreserkennung und Wochentagsprüfung liegen einmalig in
+  `mailhelp.german_dates`; die Datumsnormalisierung nutzt sie mit unveränderten Mustern und ist in benannte
+  Schritte zerlegt (numerisch, ausgeschrieben, ohne Jahr).
+- Telegram-Receiver, Weboberfläche, Erlebnis- und Benachrichtigungslaufzeit starten und stoppen über den neuen
+  `ServiceCoordinator`; `Application` führt `lifecycle`, `configuration` und `profile_writers` typisiert statt als `Any`/`object`.
+- Verhalten unverändert; der Empfangsoffset wird weiterhin nur für Dialoge mit Telegram-Eingang gelesen (eigener Test).
+
+## 3.2.6 – beta: Planung 3.3, Phase 3 – Weboberfläche entflochten
+
+- `ArchiveSite` ist in fünf Seitenklassen zerlegt (Mailarchiv, Verlauf/Auswertung, Vorschlagsbearbeitung,
+  Einstellungen/Themen, Beenden); der verbleibende Knoten hält nur noch gemeinsam genutzte Dienste.
+- HTML-Erzeugung und Routing sind getrennt: `archive_pages`, `settings_pages`, `reconciliation_pages`,
+  `sender_pages`; gemeinsame Formularbausteine (`post_form`, `field`, `select`) in `web/forms.py`.
+- Routen, Seiten und Formulare unverändert; 146 Browsertests und 100 % JavaScript-Abdeckung bestätigt.
+
+## 3.2.5 – beta: Planung 3.3, Phase 2 – Komplexitätsabbau
+
+- Die verschachteltsten Funktionen sind in benannte Schritte zerlegt, ohne Verhaltensänderung:
+  `merge_facts` (McCabe 29 → 6), `validate_consistency` (26 → 2, Prüfreihenfolge unverändert),
+  Telegram-`overview` (21 → 8) und Schreib-`execute` (19 → 9), Vorschlagskarte (17 → 2),
+  Metrikbeobachtung (17 → 2), IMAP-Ermittlung (17 → 3) und Abgleichvorschau (16 → 3).
+- ruff prüft die McCabe-Komplexität dauerhaft (`C90`, höchstens 15 je Funktion).
+- Zusätzlicher Test: unsichere Quellen behalten ihre offenen Zeitfragen.
+
+## 3.2.4 – beta: Planung 3.3, Phase 1 – Typprüfung und Entkopplung von Telegram
+
+- `mypy --check-untyped-defs` meldet keine Befunde mehr (vorher 18) und ist über `check_untyped_defs`
+  dauerhaft Teil der CI-Typprüfung. Dafür u. a. ein `LlmCompleter`-Protokoll für die Evaluation und
+  eindeutige Variablen in der Postfachseite.
+- Die deterministische Zeitauflösung liegt als `mailhelp.temporal_answers` außerhalb des Telegram-Pakets;
+  `analysis` und `mail_questions` importieren sie ohne späten Import. Die Revisionsfehler liegen in
+  `mailhelp.domain.revision_errors`; der Importkreis Analyse ↔ Telegram ist aufgelöst.
+- `ActionLedger` und `ProposalRepository` liegen in `mailhelp.persistence.ledger` bzw.
+  `mailhelp.persistence.proposals`. Ein Architekturtest begrenzt Telegram-Importe außerhalb des Pakets auf
+  Anwendung, Komposition, Orchestrator und Prüfdienst.
+- Testsuite ohne Warnungen (Pydantic-Serialisierung, Assertion-Rewrite der gemeinsamen Fakes).
+- Verhalten unverändert.
+
+## 3.2.3 – beta: Planung 3.3 aktualisiert, Fehler in Antwortentwürfen behoben
+
+- **Fehler behoben:** Ein Betreff mit Zeilenumbrüchen gelangte unverändert in die `Subject`-Kopfzeile
+  eines Antwortentwurfs; mit `\r\n` scheiterte das Speichern. Der Betreff wird jetzt auf eine Zeile
+  normalisiert (eingeschleuste Kopfzeilen bleiben ausgeschlossen). Eine Antwortadresse ohne Teil vor oder
+  nach dem `@` (z. B. `@0`) wird abgelehnt statt als leerer Empfänger übernommen. Gefunden vom
+  Eigenschaftstest `test_reply_drafts_never_carry_injected_headers`; Regressionstest
+  `test_draft_subject_stays_one_line_and_recipients_need_both_address_parts` scheiterte vor der Korrektur.
+- [Planung 3.3](docs/Planung-3.3.md) (technische Konsolidierung, Nachfolger der früheren Planung 2.5) mit
+  gemessenen Ausgangswerten: 18 mypy-Befunde unter `--check-untyped-defs`, 8 Funktionen über
+  McCabe-Komplexität 15. Planung 4.0 in das Repository aufgenommen.
+
+## 3.2.2 – Überarbeitete README
+
+- README als Produkt- und Betriebsdokumentation neu strukturiert: Funktionen, Installation,
+  Konfiguration, Betrieb, Datenschutz und Qualitätssicherung übersichtlich zusammengefasst.
+- Direkte Verweise auf Planungs- und Konzeptdokumente entfernt. Weiterführende Anleitungen
+  sind nach Anliegen geordnet; Links und dokumentierte Schemaversion wurden geprüft.
+
+## 3.2.1 – Einstellungen je Postfach
+
+- Sparsame Postfachüberschreibungen mit globaler Vererbung für persönliche Angaben, Antwortentwürfe,
+  Ruhezeiten/Kategoriekanäle, Tagesüberblick, Berichtsordner, kürzere Volltextaufbewahrung und Termindauern.
+- Zielprofile 2–99 mit getrennten Geheimnissen und Adaptern; nur OAuth-App-Zugangsdaten dürfen gemeinsam
+  genutzt werden. Google-Browseranmeldung und Microsoft-Gerätecode unterstützen `--profile`.
+- Vorschläge Schema 3 binden ihr Profil dauerhaft. Lesender Vorabgleich und Wiederanlauf nach unklarem
+  Schreibergebnis verwenden dieses Profil. Zielumstellen in Web/Telegram erzeugt eine neue unbestätigte
+  Version; Profilfehler beeinträchtigen andere Profile nicht.
+- Themen und ausgeschlossene Themen unterstützen `mailboxes`. Filter Schema 2 kombiniert globale und
+  lokale Sperren mit lokalen `allow`-Ausnahmen; Schema 1 wird erst beim Schreiben mit Sicherung migriert.
+  Lernen schlägt das Ursprungspostfach vor; Decision-Test und Berichte verwenden die wirksamen Filter.
+- Fünf Postfach-Tabs, Profilverwaltung mit Verweisprüfung, versionierte Einrichtungsentwürfe und Vorschau
+  betroffener laufender Mails. Profilgebundene Diagnosen und Anzeige in Telegram und Web.
+- Postfachbezogene Benachrichtigungsrichtlinien und Tagesabschnitte erhalten Versandmarker beim Upgrade.
+  Bereits eingereihte Abschnitte werden verworfen, wenn ihr Postfach inzwischen ausgeschlossen wurde.
+- Sämtliche Ziele sind aus dem Analyse-Fingerprint entfernt. Beim Upgrade werden die bisherigen
+  Fingerprints und Themenrichtlinien bis 3.1 als gleichwertig registriert; laufende Mails und gebundene
+  Vorschlagsziele bleiben erhalten. Details zu Upgrade/Backup/Rollback stehen in
+  [Release 3.2](docs/Release-3.2.md).
+- Regression: CalDAV-URLs mit eingebetteten Benutzernamen werden abgewiesen. Kleine YAML-Feldänderungen
+  behalten Kommentare; Mischentwürfe mit Listen und Benachrichtigungsregeln werden sicher bearbeitet.
+  Die Einstellungs-Vorschau berücksichtigt registrierte Alt-Hashes und hält bei reinen Zieländerungen
+  keine laufenden Mails zurück.
+  Themenbeschränkungen halten auch bei migrierten 3.1-Mails nur Postfächer mit veränderten wirksamen
+  Themen zurück.
+
+## 3.1.3 – beta: Telefonansicht, Release-Texte und CI-Actions
+
+- **Fehler behoben:** Auf Telefonen bricht die Navigation auf mehrere Zeilen um; als klebende Kopfleiste
+  verdeckte sie einen großen Teil des Bildschirms, und Schaltflächen wie „Relevant“ rutschten beim
+  Scrollen darunter. Der Browsertest `test_details_show_the_complete_mail[mobile]` scheiterte deshalb
+  in der CI zufällig. Unter 720 px Breite scrollt die Kopfleiste jetzt mit der Seite. Regressionstest
+  `test_phone_header_scrolls_away_and_never_covers_actions` scheiterte vor der Korrektur.
+- **Fehler behoben:** Jedes GitHub-Release erhielt den Text von Release 1.0. Der Release-Workflow
+  erzeugt den Text jetzt aus dem Changelog-Abschnitt der getaggten Version mit absoluten Links und dem
+  Verweis auf `docs/Release-X.Y.md`; fehlt der Abschnitt, scheitert die Veröffentlichung. Tests in
+  `tests/release/test_release_notes.py`.
+- GitHub-Actions auf Node.js 24 umgestellt: `actions/checkout@v6`, `actions/setup-python@v6`,
+  `actions/upload-artifact@v6`.
+
 ## 3.1.2 – beta: Lernmodus und Decision-Test über alle Postfächer
 
 - `--mailbox alle` (auch `all`) wählt für `--learn` und `--decision-test` alle aktivierten Postfächer:

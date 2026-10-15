@@ -46,6 +46,7 @@ def same_thread(left: list[ProposalSource], right: list[ProposalSource]) -> bool
 
 def compatible(left: Proposal, right: Proposal) -> bool:
     return (reference_key(left) != reference_key(right) and left.kind == right.kind
+            and left.target_profile == right.target_profile
             and left.target == right.target and (not left.target_provider or not right.target_provider
                                                or left.target_provider == right.target_provider)
             and reference_key(left) not in {(r.mail_id, r.proposal_id) for r in right.separated_from}

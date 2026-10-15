@@ -3,22 +3,15 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import httpx
 from pydantic import ValidationError
 
 from ..adapter import RetryableError
-from ..analysis import (
-    ContradictoryRevision,
-    IncompleteUserAnswer,
-    LlmInvalidJson,
-    LlmProviderResponseInvalid,
-    LlmSchemaValidationFailed,
-    LlmTokenLimitExceeded,
-    TechnicalRevisionError,
-)
+from ..analysis import LlmInvalidJson, LlmProviderResponseInvalid, LlmSchemaValidationFailed, LlmTokenLimitExceeded
+from ..domain.revision_errors import ContradictoryRevision, IncompleteUserAnswer, TechnicalRevisionError
 from ..models import (
     AnswerStatus,
     Proposal,
@@ -28,11 +21,9 @@ from ..models import (
     QuestionStatus,
     TelegramDialogState,
 )
+from ..persistence.proposals import clarification_name, proposal_name
 from ..storage import JsonStore
-from .client import TelegramTransport
-from .persistence import clarification_name, proposal_name
-from .revision_contracts import EventLogger, ProposalRevisionService
-from .temporal import (
+from ..temporal_answers import (
     deterministic_classification_revision,
     deterministic_temporal_revision,
     expected_event_date,
@@ -40,6 +31,8 @@ from .temporal import (
     parse_deterministic_temporal_answer,
     relative_end_answer,
 )
+from .client import TelegramTransport
+from .revision_contracts import EventLogger, ProposalRevisionService
 
 
 @dataclass
@@ -112,7 +105,7 @@ class AuthorizedAnswerInterpreter:
         self._answered(name, state, interpretation.normalized_answer)
 
     def _deterministic_answer(self, proposal: Proposal, state: ProposalClarificationState,
-                              temporal_answer: str, current_date) -> str | None:
+                              temporal_answer: str, current_date: date) -> str | None:
         """The normalized answer when no language model is needed, else ``None``."""
         assert state.authorized_answer is not None  # checked by interpret_pending
         deterministic = deterministic_classification_revision(
@@ -183,7 +176,7 @@ class AuthorizedAnswerInterpreter:
         )
 
     def _ask_again(self, name: str, state: ProposalClarificationState, proposal: Proposal,
-                   reason: str, current_date) -> None:
+                   reason: str, current_date: date) -> None:
         """An unusable answer: keep the question open and ask more concretely."""
         incomplete = IncompleteUserAnswer(reason)
         self._mark_invalid(name, state)
@@ -201,7 +194,7 @@ class AuthorizedAnswerInterpreter:
 
     @staticmethod
     def _contradiction_message(state: ProposalClarificationState, proposal: Proposal,
-                               temporal_answer: str, current_date) -> str:
+                               temporal_answer: str, current_date: date) -> str:
         """Explain which validated fact a deterministic time answer contradicts."""
         expected = expected_event_date(proposal)
         parsed = parse_deterministic_temporal_answer(temporal_answer, current_date)

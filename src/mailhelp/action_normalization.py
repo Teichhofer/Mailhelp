@@ -27,6 +27,14 @@ from enum import StrEnum
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from .domain.temporal import TemporalResolutionStatus, YearSource
+from .german_dates import (
+    MONTH_PATTERN,
+    MONTHS,
+    WEEKDAY_OR_ABBREVIATION_PATTERN,
+    WEEKDAY_PATTERN,
+    explicit_years,
+    weekday_contradicts,
+)
 from .models import ExtractedEvent, ExtractedTask, TemporalFact, TimeRequirement
 
 
@@ -88,20 +96,13 @@ class NormalizationResult:
 
 _DATE_ISO = re.compile(r"\d{4}-\d{2}-\d{2}\Z")
 _DATE_DE = re.compile(
-    r"(?i)(?:(montag|mo|dienstag|di|mittwoch|mi|donnerstag|do|freitag|fr|"
-    r"samstag|sa|sonntag|so)(?:,\s*|\s+))?(\d{2})\.(\d{2})\.(\d{4})\Z")
-_DATE_YEARLESS = re.compile(
-    r"(?i)(\d{1,2})\.?\s+(januar|februar|märz|maerz|april|mai|juni|juli|august|"
-    r"september|oktober|november|dezember)\Z")
+    rf"(?i)(?:({WEEKDAY_OR_ABBREVIATION_PATTERN})(?:,\s*|\s+))?(\d{{2}})\.(\d{{2}})\.(\d{{4}})\Z")
+_DATE_YEARLESS = re.compile(rf"(?i)(\d{{1,2}})\.?\s+({MONTH_PATTERN})\Z")
 _DATE_NAMED = re.compile(
-    r"(?i)(?:(montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag),?\s+)?"
-    r"(?:den\s+)?(\d{1,2})\.?\s+(januar|februar|märz|maerz|april|mai|juni|juli|august|"
-    r"september|oktober|november|dezember)\s+(\d{4})\Z")
-_MONTH_PATTERN = (r"januar|februar|märz|maerz|april|mai|juni|juli|august|"
-                  r"september|oktober|november|dezember")
+    rf"(?i)(?:({WEEKDAY_PATTERN}),?\s+)?(?:den\s+)?(\d{{1,2}})\.?\s+({MONTH_PATTERN})\s+(\d{{4}})\Z")
 _DATE_RANGE_NAMED = re.compile(
     rf"(?i)(?:vom\s+)?(\d{{1,2}})\.?\s*(?:-|\u2013|\u2014|bis|und)\s*"
-    rf"(\d{{1,2}})\.?\s+({_MONTH_PATTERN})\s+(\d{{4}})")
+    rf"(\d{{1,2}})\.?\s+({MONTH_PATTERN})\s+(\d{{4}})")
 _DATE_RANGE_NUMERIC = re.compile(
     r"(?<!\d)(\d{1,2})\.(\d{1,2})\.(\d{4})\s*(?:-|\u2013|\u2014|bis)\s*"
     r"(\d{1,2})\.(\d{1,2})\.(\d{4})(?!\d)", re.IGNORECASE)
@@ -120,24 +121,15 @@ def _failure(reason: NormalizationReason, raw: str | None, responsibility: str,
     return NormalizationResult(None, reason, raw, question, responsibility)
 
 
-_MONTHS = {name: number for number, names in enumerate(((), ("januar",), ("februar",),
-    ("märz", "maerz"), ("april",), ("mai",), ("juni",), ("juli",), ("august",),
-    ("september",), ("oktober",), ("november",), ("dezember",))) for name in names}
-_WEEKDAYS = {name: number for number, name in enumerate(
-    ("montag", "dienstag", "mittwoch", "donnerstag", "freitag", "samstag", "sonntag"))}
-_WEEKDAYS.update({name: number for number, name in enumerate(
-    ("mo", "di", "mi", "do", "fr", "sa", "so"))})
-
-
 def evidence_date_matches(day: date, evidence: str, received: date) -> bool:
     """Reject dates contradicting explicit or relative dates in a quoted mail passage.
 
     Yearless dates constrain month/day, not a guessed year: reports include past
     events. Unknown wording remains for human review rather than being invented.
     """
-    weekday = r"(?:(montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag),?\s+)?"
+    weekday = rf"(?:({WEEKDAY_PATTERN}),?\s+)?"
     pattern = re.compile(
-        rf"(?<!\w){weekday}(?:den\s+)?(\d{{1,2}})\.?\s+({_MONTH_PATTERN})(?:\s+(\d{{4}}))?(?!\w)"
+        rf"(?<!\w){weekday}(?:den\s+)?(\d{{1,2}})\.?\s+({MONTH_PATTERN})(?:\s+(\d{{4}}))?(?!\w)"
         rf"|(?<!\d)(\d{{4}}-\d{{2}}-\d{{2}})(?!\d)"
         rf"|(?<!\d){weekday}(\d{{1,2}})\.(\d{{1,2}})\.(\d{{4}})?(?!\d)", re.IGNORECASE)
     matches = list(pattern.finditer(evidence))
@@ -147,7 +139,7 @@ def evidence_date_matches(day: date, evidence: str, received: date) -> bool:
         else:
             named = match.group(2) is not None
             number = int(match.group(2) if named else match.group(7))
-            month = _MONTHS[match.group(3).casefold()] if named else int(match.group(8))
+            month = MONTHS[match.group(3).casefold()] if named else int(match.group(8))
             year = int((match.group(4) if named else match.group(9)) or day.year)
             label = match.group(1) if named else match.group(6)
             raw = f"{label + ' ' if label else ''}{number:02}.{month:02}.{year:04}"
@@ -166,10 +158,8 @@ def _date_ranges(raw: str) -> list[tuple[str, date, date]]:
     ranges: list[tuple[str, date, date]] = []
     for match in _DATE_RANGE_NAMED.finditer(raw):
         try:
-            start = date(int(match.group(4)), _MONTHS[match.group(3).casefold()],
-                         int(match.group(1)))
-            end = date(int(match.group(4)), _MONTHS[match.group(3).casefold()],
-                       int(match.group(2)))
+            start = date(int(match.group(4)), MONTHS[match.group(3).casefold()], int(match.group(1)))
+            end = date(int(match.group(4)), MONTHS[match.group(3).casefold()], int(match.group(2)))
         except ValueError:
             continue
         ranges.append((match.group(0), start, end))
@@ -197,74 +187,88 @@ def _unambiguous_date_range(event: ExtractedEvent) -> tuple[str, date, date] | N
     return None
 
 
+_INVALID_DATE = "Bitte ein gültiges Kalenderdatum angeben."
+_WEEKDAY_MISMATCH = "Wochentag und Kalenderdatum widersprechen sich."
+_CONFLICTING_YEARS = "Welche der widersprüchlichen Jahreszahlen gilt?"
+_DateResult = tuple[date, TemporalFact] | NormalizationResult
+
+
+def _resolved(raw: str, day: date, source: YearSource) -> tuple[date, TemporalFact]:
+    return day, TemporalFact(raw_text=raw, normalized_date=day, year_source=source,
+                             status=TemporalResolutionStatus.RESOLVED)
+
+
+def _conflicting_years(raw: str, responsibility: str) -> NormalizationResult:
+    return replace(_failure(NormalizationReason.CONFLICTING_CONTEXT, raw, responsibility, _CONFLICTING_YEARS),
+                   temporal_fact=TemporalFact(raw_text=raw, status=TemporalResolutionStatus.CONFLICTING))
+
+
 def _parse_date(raw: str | None, responsibility: str, context: MailDateContext | None = None,
-                evidence: str = "") -> tuple[date, TemporalFact] | NormalizationResult:
+                evidence: str = "") -> _DateResult:
     if raw is None:
         return _failure(NormalizationReason.MISSING_DATE, raw, responsibility,
                         "Welches Datum ist gemeint?")
     numeric = _DATE_DE.fullmatch(raw)
-    fmt = "%Y-%m-%d" if _DATE_ISO.fullmatch(raw) else "%d.%m.%Y" if numeric else None
-    if fmt is None:
-        named = _DATE_NAMED.fullmatch(raw.strip())
-        if named is not None:
-            try:
-                candidate = date(int(named.group(4)), _MONTHS[named.group(3).casefold()],
-                                 int(named.group(2)))
-            except ValueError:
-                return _failure(NormalizationReason.INVALID_DATE, raw, responsibility,
-                                "Bitte ein gültiges Kalenderdatum angeben.")
-            if named.group(1) is not None and candidate.weekday() != _WEEKDAYS[named.group(1).casefold()]:
-                return _failure(NormalizationReason.INVALID_DATE, raw, responsibility,
-                                "Wochentag und Kalenderdatum widersprechen sich.")
-            return candidate, TemporalFact(raw_text=raw, normalized_date=candidate,
-                                           year_source=YearSource.EXPLICIT_MAIL,
-                                           status=TemporalResolutionStatus.RESOLVED)
-        match = _DATE_YEARLESS.fullmatch(raw.strip())
-        if match is not None and context is not None:
-            checked = _context_zone(context, responsibility)
-            if isinstance(checked, NormalizationResult):
-                return replace(checked, raw_value=raw,
-                               temporal_fact=TemporalFact(raw_text=raw, status=TemporalResolutionStatus.UNRESOLVED))
-            header = _aware_timestamp(context.date_header_parsed)
-            assert header is not None
-            local_day = header.astimezone(checked).date()
-            years = set(re.findall(r"(?<!\d)(?:19|20)\d{2}(?!\d)", evidence))
-            if len(years) > 1:
-                return replace(_failure(NormalizationReason.CONFLICTING_CONTEXT, raw, responsibility,
-                               "Welche der widersprüchlichen Jahreszahlen gilt?"),
-                               temporal_fact=TemporalFact(raw_text=raw, status=TemporalResolutionStatus.CONFLICTING))
-            year = int(next(iter(years))) if years else local_day.year
-            source = YearSource.EXPLICIT_MAIL if years else YearSource.MAIL_CONTEXT
-            try:
-                candidate = date(year, _MONTHS[match.group(2).casefold()], int(match.group(1)))
-                if not years and candidate < local_day:
-                    candidate = candidate.replace(year=year + 1)
-            except ValueError:
-                return _failure(NormalizationReason.INVALID_DATE, raw, responsibility,
-                                "Bitte ein gültiges Kalenderdatum angeben.")
-            return candidate, TemporalFact(raw_text=raw, normalized_date=candidate,
-                                           year_source=source, status=TemporalResolutionStatus.RESOLVED)
-        return _failure(NormalizationReason.UNSUPPORTED_DATE, raw, responsibility,
-                        f"Welches konkrete Datum ist mit „{raw}“ gemeint?")
+    if numeric is not None or _DATE_ISO.fullmatch(raw):
+        return _numeric_date(raw, responsibility, numeric, evidence)
+    named = _DATE_NAMED.fullmatch(raw.strip())
+    if named is not None:
+        return _named_date(raw, responsibility, named)
+    yearless = _DATE_YEARLESS.fullmatch(raw.strip())
+    if yearless is not None and context is not None:
+        return _yearless_date(raw, responsibility, yearless, context, evidence)
+    return _failure(NormalizationReason.UNSUPPORTED_DATE, raw, responsibility,
+                    f"Welches konkrete Datum ist mit „{raw}“ gemeint?")
+
+
+def _numeric_date(raw: str, responsibility: str, numeric: re.Match[str] | None, evidence: str) -> _DateResult:
+    """``TT.MM.JJJJ`` with an optional weekday, or ISO ``JJJJ-MM-TT``."""
     try:
         if numeric is None:
-            parsed = datetime.strptime(raw, fmt).date()
+            parsed = datetime.strptime(raw, "%Y-%m-%d").date()
         else:
             parsed = date(int(numeric.group(4)), int(numeric.group(3)), int(numeric.group(2)))
-            if (numeric.group(1) is not None
-                    and parsed.weekday() != _WEEKDAYS[numeric.group(1).casefold()]):
-                return _failure(NormalizationReason.INVALID_DATE, raw, responsibility,
-                                "Wochentag und Kalenderdatum widersprechen sich.")
-        years = set(re.findall(r"(?<!\d)(?:19|20)\d{2}(?!\d)", f"{raw} {evidence}"))
-        if len(years) > 1:
-            return replace(_failure(NormalizationReason.CONFLICTING_CONTEXT, raw, responsibility,
-                           "Welche der widersprüchlichen Jahreszahlen gilt?"),
-                           temporal_fact=TemporalFact(raw_text=raw, status=TemporalResolutionStatus.CONFLICTING))
-        return parsed, TemporalFact(raw_text=raw, normalized_date=parsed,
-                                    year_source=YearSource.EXPLICIT_MAIL, status=TemporalResolutionStatus.RESOLVED)
     except ValueError:
-        return _failure(NormalizationReason.INVALID_DATE, raw, responsibility,
-                        "Bitte ein gültiges Kalenderdatum angeben.")
+        return _failure(NormalizationReason.INVALID_DATE, raw, responsibility, _INVALID_DATE)
+    if numeric is not None and weekday_contradicts(parsed, numeric.group(1)):
+        return _failure(NormalizationReason.INVALID_DATE, raw, responsibility, _WEEKDAY_MISMATCH)
+    if len(explicit_years(f"{raw} {evidence}")) > 1:
+        return _conflicting_years(raw, responsibility)
+    return _resolved(raw, parsed, YearSource.EXPLICIT_MAIL)
+
+
+def _named_date(raw: str, responsibility: str, named: re.Match[str]) -> _DateResult:
+    """``[Wochentag,] [den] 1. Oktober 2026``."""
+    try:
+        candidate = date(int(named.group(4)), MONTHS[named.group(3).casefold()], int(named.group(2)))
+    except ValueError:
+        return _failure(NormalizationReason.INVALID_DATE, raw, responsibility, _INVALID_DATE)
+    if weekday_contradicts(candidate, named.group(1)):
+        return _failure(NormalizationReason.INVALID_DATE, raw, responsibility, _WEEKDAY_MISMATCH)
+    return _resolved(raw, candidate, YearSource.EXPLICIT_MAIL)
+
+
+def _yearless_date(raw: str, responsibility: str, match: re.Match[str], context: MailDateContext,
+                   evidence: str) -> _DateResult:
+    """``1. Oktober``: the year written in the evidence, else the next such day after the mail."""
+    checked = _context_zone(context, responsibility)
+    if isinstance(checked, NormalizationResult):
+        return replace(checked, raw_value=raw,
+                       temporal_fact=TemporalFact(raw_text=raw, status=TemporalResolutionStatus.UNRESOLVED))
+    header = _aware_timestamp(context.date_header_parsed)
+    assert header is not None
+    local_day = header.astimezone(checked).date()
+    years = explicit_years(evidence)
+    if len(years) > 1:
+        return _conflicting_years(raw, responsibility)
+    year = int(next(iter(years))) if years else local_day.year
+    try:
+        candidate = date(year, MONTHS[match.group(2).casefold()], int(match.group(1)))
+        if not years and candidate < local_day:
+            candidate = candidate.replace(year=year + 1)
+    except ValueError:
+        return _failure(NormalizationReason.INVALID_DATE, raw, responsibility, _INVALID_DATE)
+    return _resolved(raw, candidate, YearSource.EXPLICIT_MAIL if years else YearSource.MAIL_CONTEXT)
 
 
 def _parse_time(raw: str, responsibility: str) -> time | NormalizationResult:
@@ -506,7 +510,7 @@ _DEADLINE_LEAD = re.compile(
     r"(?i)^(?:(?:bis|spätestens|spaetestens|zum|am|einschließlich|einschliesslich|den)\s+)+")
 _DEADLINE_TAIL = re.compile(r"\s*(?:\([^()]*\))?\s*[.,;:]?\s*\Z")
 DEADLINE_DATE_PATTERN = (r"\d{4}-\d{2}-\d{2}|\d{2}\.\d{2}\.\d{4}|"
-                  rf"\d{{1,2}}\.?\s+(?:{_MONTH_PATTERN})\s+\d{{4}}")
+                  rf"\d{{1,2}}\.?\s+(?:{MONTH_PATTERN})\s+\d{{4}}")
 _EVIDENCE_DEADLINE = re.compile(
     r"(?i)(?:\bbis(?:\s+(?:zum|spätestens|einschließlich))?|\bspätestens(?:\s+(?:am|zum|bis))?|"
     r"\bfrist\s*:?|\banmeldeschluss\s*:?)\s+(?:(?:den|am|zum)\s+)?"

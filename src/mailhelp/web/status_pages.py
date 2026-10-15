@@ -85,6 +85,23 @@ def _when(value: datetime | None, zone: ZoneInfo) -> str:
     return format_datetime_local(value, zone) if value else "—"
 
 
+def _imap_error_section(info: ServiceInfo, zone: ZoneInfo) -> str:
+    errors = (info.runtime or {}).get("imap_errors", [])
+    if not errors:
+        return ""
+    items = []
+    for error in errors:
+        kind = "Hauptordner" if error["required"] else "zusätzlicher Ordner"
+        label = f'Postfach {error["mailbox"]} · {kind}: {error["folder"]}'
+        when = _when(datetime.fromisoformat(error["occurred_at"]), zone)
+        items.append(f'<li><strong>{e(label)}</strong><br><span class="meta">'
+                     f'{e(error["cause"])} · {e(when)}</span></li>')
+    return ("<h2>Aktuelle IMAP-Abruffehler</h2>"
+            + notice("Mindestens ein Mailordner konnte nicht gelesen werden. "
+                     "Der letzte Durchlauf kann deshalb unvollständig sein.", "error")
+            + '<ul class="recent">' + "".join(items) + "</ul>")
+
+
 def _duration(seconds: float) -> str:
     minutes = int(seconds // 60)
     days, minutes = divmod(minutes, 24 * 60)
@@ -171,6 +188,7 @@ def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
     ]))
 
     parts.append(_runtime_section(info, zone))
+    parts.append(_imap_error_section(info, zone))
 
     parts.extend(_run_section(run, system, zone))
 

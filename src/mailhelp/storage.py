@@ -22,7 +22,12 @@ from .state_names import mail_state_names  # noqa: F401
 
 
 class CorruptState(RuntimeError): pass
-class AlreadyRunning(RuntimeError): pass
+class AlreadyRunning(RuntimeError):
+    """Another process holds the lock of this data directory."""
+
+    def __init__(self, directory: Path):
+        super().__init__(f"Datenverzeichnis wird bereits verwendet: {directory}")
+        self.directory = directory
 
 
 def atomic_replace(path: Path, content: str) -> None:
@@ -102,7 +107,7 @@ class JsonStore:
                     if exc.errno not in (errno.EACCES, errno.EAGAIN, errno.EDEADLK):
                         raise
                     if attempt == 3:
-                        raise AlreadyRunning(f"Datenverzeichnis wird bereits verwendet: {self.directory}") from exc
+                        raise AlreadyRunning(self.directory) from exc
                     # Windows can report process exit before its byte-range lock
                     # is released. Never delete the lock or trust a stored PID.
                     attempt += 1

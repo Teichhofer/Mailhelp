@@ -1,0 +1,231 @@
+{
+  "overview": {
+    "text": "Offene Entscheidungen 6 Relevanz klären ❔ Relevanz Vereinsnachrichten Oktober ✉️ Sportverein Ist diese Mail für dich relevant? Bis zur Antwort wartet die Mailanalyse. Details Vorschläge 📅 Termin Elternabend Klasse 4b ✉️ Klassenleitung 4b · Elternabend und Klassenfahrt Wartet auf Bestätigung Aktuell in Telegram 🕒 Zeit: 21.10.2026, 19:00–20:30 Uhr 📍 Ort: Grundschule am Park, Raum 12 Testmodus: Der Eintrag wird nur simuliert. Themen: Klassenfahrt, Sportfest und die neue Hausaufgabenregel. Bitte die unterschriebene Einverständniserklärung mitbringen. Liebe Eltern, unser Elternabend findet am Dienstag, 21.10., um 19 Uhr in Raum 12 statt. Wir besprechen die Klassenfahrt, das Sportfest und die neue Regel zu den Hausaufgaben. Bitte bringen Sie die… Beleg vollständig anzeigen Liebe Eltern, unser Elternabend findet am Dienstag, 21.10., um 19 Uhr in Raum 12 statt. Wir besprechen die Klassenfahrt, das Sportfest und die neue Regel zu den Hausaufgaben. Bitte bringen Sie die unterschriebene Einverständniserklärung mit. Details ✅ Aufgabe Einverständniserklärung Klassenfahrt zurückgeben ✉️ Klassenleitung 4b · Elternabend und Klassenfahrt Wartet auf Bestätigung 🕒 Frist: Fällig: 17.10.2026 Testmodus: Der Eintrag wird nur simuliert. Bitte die Erklärung bis Freitag, 17.10., zurückgeben. Details 📅 Termin Zahnarzt Kontrolle ✉️ Praxis Dr. Weiß · Ihr Kontrolltermin Klärung nötig 🕒 Zeit: 23.10.2026 Testmodus: Der Eintrag wird nur simuliert. Offene Fragen Wann beginnt der Termin? Ihr Kontrolltermin ist am 23.10. – die Uhrzeit teilen wir Ihnen noch mit. Details 📅 Termin Herbstfest des Fördervereins ✉️ Förderverein · Einladung zum Herbstfest Klärung nötig Folgt in Telegram Zuständig: Noch unklar 🕒 Zeit: 25.10.2026, 13:00–17:00 Uhr Testmodus: Der Eintrag wird nur simuliert. Offene Fragen Bist du dafür zuständig? Der Förderverein lädt alle Familien zum Herbstfest am 25.10. von 14 bis 18 Uhr ein. Details ✅ Aufgabe Rechnung <script>alert(\"x\")</script> prüfen ✉️ Buchhaltung · Offene Rechnung <b>dringend</b> Wartet auf Bestätigung Testmodus: Der Eintrag wird nur simuliert. Siehe https://evil.test/login?token=1 Zahlung über <a href=\"https://evil.test\">diesen Link</a> javascript:alert(1) Details Zuletzt erledigt Gutschein einlösen Verworfen Kinderturnen Angelegt",
+    "targets": [
+      [
+        "main",
+        {
+          "id": "inhalt"
+        }
+      ],
+      [
+        "article",
+        {
+          "id": "r-000000000000000000000007"
+        }
+      ],
+      [
+        "a",
+        {
+          "href": "/mail/000000000000000000000007"
+        }
+      ],
+      [
+        "article",
+        {
+          "id": "v-000000000000000000000001-elternabend"
+        }
+      ],
+      [
+        "a",
+        {
+          "href": "/vorschlag/000000000000000000000001/elternabend"
+        }
+      ],
+      [
+        "a",
+        {
+          "href": "/vorschlag/000000000000000000000001/elternabend"
+        }
+      ],
+      [
+        "article",
+        {
+          "id": "v-000000000000000000000001-formular"
+        }
+      ],
+      [
+        "a",
+        {
+          "href": "/vorschlag/000000000000000000000001/formular"
+        }
+      ],
+      [
+        "a",
+        {
+          "href": "/vorschlag/000000000000000000000001/formular"
+        }
+      ],
+      [
+        "article",
+        {
+          "id": "v-000000000000000000000002-zahnarzt"
+        }
+      ],
+      [
+        "a",
+        {
+          "href": "/vorschlag/000000000000000000000002/zahnarzt"
+        }
+      ],
+      [
+        "a",
+        {
+          "href": "/vorschlag/000000000000000000000002/zahnarzt"
+        }
+      ],
+      [
+        "article",
+        {
+          "id": "v-000000000000000000000003-fest"
+        }
+      ],
+      [
+        "a",
+        {
+          "href": "/vorschlag/000000000000000000000003/fest"
+        }
+      ],
+      [
+        "a",
+        {
+          "href": "/vorschlag/000000000000000000000003/fest"
+        }
+      ],
+      [
+        "article",
+        {
+          "id": "v-000000000000000000000004-boese"
+        }
+      ],
+      [
+        "a",
+        {
+          "href": "/vorschlag/000000000000000000000004/boese"
+        }
+      ],
+      [
+        "a",
+        {
+          "href": "/vorschlag/000000000000000000000004/boese"
+        }
+      ],
+      [
+        "a",
+        {
+          "href": "/vorschlag/000000000000000000000006/werbung"
+        }
+      ],
+      [
+        "a",
+        {
+          "href": "/vorschlag/000000000000000000000005/turnen"
+        }
+      ]
+    ]
+  },
+  "proposal": {
+    "text": "← Zur Übersicht Aufgabe ✅ Aufgabe Rechnung <script>alert(\"x\")</script> prüfen ✉️ Buchhaltung · Offene Rechnung <b>dringend</b> Wartet auf Bestätigung Testmodus: Der Eintrag wird nur simuliert. Siehe https://evil.test/login?token=1 Zahlung über <a href=\"https://evil.test\">diesen Link</a> javascript:alert(1) Quellbeleg aus E-Mail / Anhang Mail Von \"Buchhaltung\" <rechnung@evil.test> Betreff Offene Rechnung <b>dringend</b> Der vollständige Mailtext ist nicht mehr gespeichert (automatische Löschung nach Abschluss und Aufbewahrungsfrist).",
+    "targets": [
+      [
+        "main",
+        {
+          "id": "inhalt"
+        }
+      ],
+      [
+        "a",
+        {
+          "href": "/"
+        }
+      ],
+      [
+        "article",
+        {
+          "id": "v-000000000000000000000004-boese"
+        }
+      ],
+      [
+        "section",
+        {
+          "id": "mail"
+        }
+      ],
+      [
+        "h2",
+        {
+          "id": "mail-titel"
+        }
+      ]
+    ]
+  },
+  "mail": {
+    "text": "← Zur Übersicht Mail Mail Von Klassenleitung 4b <klasse4b@schule.test> Betreff Elternabend und Klassenfahrt Datum 11.10.2026, 10:30 Uhr Liebe Eltern, unser Elternabend findet am Dienstag, 21.10., um 19 Uhr in Raum 12 der Grundschule am Park statt. Wir besprechen die Klassenfahrt, das Sportfest und die neue Regel zu den Hausaufgaben. Bitte bringen Sie die unterschriebene Einverständniserklärung mit oder geben Sie sie bis Freitag, 17.10., Ihrem Kind mit. Mehr Infos: https://schule.test/elternabend Viele Grüße Klassenleitung 4b",
+    "targets": [
+      [
+        "main",
+        {
+          "id": "inhalt"
+        }
+      ],
+      [
+        "a",
+        {
+          "href": "/"
+        }
+      ],
+      [
+        "section",
+        {
+          "id": "mail"
+        }
+      ],
+      [
+        "h2",
+        {
+          "id": "mail-titel"
+        }
+      ]
+    ]
+  },
+  "status_runtime": {
+    "text": "Status 5 Offene Vorschläge 1 Relevanzfragen 0 Mails mit Fehler 1 Wartende Web-Aktionen Mailhelp Version 1.5.0 Modus Testmodus – Einträge werden nur simuliert Läuft seit 11.10.2026, 11:30 Uhr (0 Min.) Weboberfläche http://127.0.0.1:8765 Gekoppelte Geräte 2 Aktuelle Verarbeitung Schritt Relevanzprüfung Seit 2 Min. Nächster Mailabruf 11.10.2026, 11:30 Uhr Bearbeitete Mail öffnen Dienste imap zuletzt erfolgreich 11.10.2026, 11:30 Uhr telegram unbekannt <script> zuletzt erfolgreich 11.10.2026, 11:30 Uhr „Unbekannt“: seit dem Start kein belegter erfolgreicher Kontakt. Die Seite selbst prüft keinen Dienst. Letzter Mail-Durchlauf Gestartet 11.10.2026, 11:30 Uhr Stand läuft noch · 7 von 9 Mails analysiert 7 von 9 0 Gefunden 1 In Warteschlange 1 In Bearbeitung 3 Abgeschlossen 4 Warten auf dich 0 Fehlgeschlagen 0 Übersprungen Ergebnis der Analyse 6 Relevant und ausgewertet 1 Irrelevant 0 Doppelt erhalten 0 Fehlgeschlagen 0 Übersprungen Mails Gespeichert 7 Zuletzt verarbeitet 11.10.2026, 11:37 Uhr Warten auf Relevanzentscheidung 1 Zurückgestellt (neuer Versuch später) 0 Vorschläge 3 Wartet auf Bestätigung 2 Klärung nötig 1 Angelegt 1 Verworfen Letzte Fehler Keine Fehler bei gespeicherten Mails. Telegram, Web und KI Zurückgehaltene Telegram-Nachrichten 1 Unverarbeitete Telegram-Eingänge 0 Web-Aktionen (letzte 24 Std.) 1 wartend, 0 laufend, 0 erledigt, 0 abgelehnt, 0 fehlgeschlagen KI-Aufrufe in der letzten Minute 0 von höchstens 20 Die Seite zeigt den gespeicherten Stand dieses PCs und aktualisiert sich, sobald sich offene Entscheidungen ändern. Schläft der PC oder läuft Mailhelp nicht, ist die Weboberfläche nicht erreichbar.",
+    "targets": [
+      [
+        "main",
+        {
+          "id": "inhalt"
+        }
+      ],
+      [
+        "a",
+        {
+          "href": "/mail/000000000000000000000004"
+        }
+      ],
+      [
+        "progress",
+        {
+          "value": "7"
+        }
+      ]
+    ]
+  },
+  "status_no_runtime": {
+    "text": "Status 5 Offene Vorschläge 1 Relevanzfragen 0 Mails mit Fehler 1 Wartende Web-Aktionen Mailhelp Version 1.5.0 Modus Testmodus – Einträge werden nur simuliert Läuft seit 11.10.2026, 11:30 Uhr (0 Min.) Weboberfläche http://127.0.0.1:8765 Gekoppelte Geräte 2 Letzter Mail-Durchlauf Gestartet 11.10.2026, 11:30 Uhr Stand läuft noch · 7 von 9 Mails analysiert 7 von 9 0 Gefunden 1 In Warteschlange 1 In Bearbeitung 3 Abgeschlossen 4 Warten auf dich 0 Fehlgeschlagen 0 Übersprungen Ergebnis der Analyse 6 Relevant und ausgewertet 1 Irrelevant 0 Doppelt erhalten 0 Fehlgeschlagen 0 Übersprungen Mails Gespeichert 7 Zuletzt verarbeitet 11.10.2026, 11:37 Uhr Warten auf Relevanzentscheidung 1 Zurückgestellt (neuer Versuch später) 0 Vorschläge 3 Wartet auf Bestätigung 2 Klärung nötig 1 Angelegt 1 Verworfen Letzte Fehler Keine Fehler bei gespeicherten Mails. Telegram, Web und KI Zurückgehaltene Telegram-Nachrichten 1 Unverarbeitete Telegram-Eingänge 0 Web-Aktionen (letzte 24 Std.) 1 wartend, 0 laufend, 0 erledigt, 0 abgelehnt, 0 fehlgeschlagen KI-Aufrufe in der letzten Minute 0 von höchstens 20 Die Seite zeigt den gespeicherten Stand dieses PCs und aktualisiert sich, sobald sich offene Entscheidungen ändern. Schläft der PC oder läuft Mailhelp nicht, ist die Weboberfläche nicht erreichbar.",
+    "targets": [
+      [
+        "main",
+        {
+          "id": "inhalt"
+        }
+      ],
+      [
+        "progress",
+        {
+          "value": "7"
+        }
+      ]
+    ]
+  }
+}

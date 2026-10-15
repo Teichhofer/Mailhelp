@@ -50,6 +50,8 @@ class DailyBriefingService:
         self.store, self.settings, self.zone = store, settings, ZoneInfo(zone)
         self.calendar, self.tasks, self.views = calendar, tasks, views
         self.channels, self.clock = channels, clock
+        self.mailboxes = None
+        self.sections: dict[str, str] = {}
 
     def _start(self, item: CalendarOverlapEvent) -> tuple[str, str]:
         """Local start time of an event; all-day events come first."""
@@ -59,6 +61,13 @@ class DailyBriefingService:
         return "", "ganztägig"
 
     def build(self, now: datetime) -> str:
+        if self.mailboxes is not None:
+            self.sections = {}
+            for number, label, calendar, tasks, views in self.mailboxes():
+                reader = DailyBriefingService(self.store, self.settings, str(self.zone), calendar, tasks, views, {})
+                self.sections[str(number)] = f"{label}\n" + reader.build(now).removeprefix("Guten Morgen! ☀️\n")
+            text = "Guten Morgen! ☀️\n" + "\n\n".join(self.sections.values())
+            return text[:MAX_LENGTH]
         lines = ["Guten Morgen! ☀️"]
         start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         if self.settings.include_calendar:
@@ -100,7 +109,10 @@ class DailyBriefingService:
         if not pending:
             return
         text = self.build(now)
-        self.store.save("briefing-latest", {"day": day, "text": text})
+        latest = {"day": day, "text": text}
+        if self.mailboxes is not None:
+            latest["sections"] = self.sections
+        self.store.save("briefing-latest", latest)
         for name in pending:
             state["channels"][name] = "uncertain"
             self.store.save("daily-briefing", state)

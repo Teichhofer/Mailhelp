@@ -1,5 +1,10 @@
 # Mailhelp 3.1 – Mehrere Postfächer
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 Stand: 14. Oktober 2026. Version 3.1.0. Planung und Entscheidungen: [Planung 3.1](Planung-3.1.md).
 Einstellungen je Postfach (eigene Ziele, Ignorierlisten, Themen) folgen mit [Planung 3.2](Planung-3.2.md).
 

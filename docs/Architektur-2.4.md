@@ -1,5 +1,10 @@
 # Offene Vorschläge und Termindauern – Umsetzung 2.4
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 Die fachliche Erweiterung wird auf `beta` mit der nach `AGENTS.md` erhöhten
 Patchversionen 2.3.2 (Implementierung) und 2.3.3 (Abschlussdokumentation) entwickelt.
 Ein Release oder Tag wird damit nicht erstellt.

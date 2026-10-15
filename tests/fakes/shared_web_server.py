@@ -79,5 +79,7 @@ class FakeWeb:
         self.calls.append("stop")
 
 def lifecycle_app(tmp_path, web, telegram):
-    return Application(app_settings(tmp_path), object(), Log(), object(), object(), object(),
-                       telegram, object(), object(), Orch(), Event(), web=web)
+    application = Application(app_settings(tmp_path), object(), Log(), object(), object(), object(),
+                              telegram, object(), object(), Orch(), Event())
+    application.web = web
+    return application

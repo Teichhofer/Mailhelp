@@ -1,5 +1,10 @@
 # Mailhelp 3.0 – Einrichtung, Diagnose und Benachrichtigungen
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 Stand: 14. Oktober 2026. Version 3.0.0. Die Veröffentlichung als Release-Tag `v3.0.0` erfolgt erst,
 wenn die CI-Matrix (Windows, Linux, Docker, Browser) für diesen Stand erfolgreich war.
 Mehrere Postfächer folgen mit 3.1 ([Planung 3.1](Planung-3.1.md)).

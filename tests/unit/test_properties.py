@@ -16,7 +16,7 @@ from mailhelp.domain.prepared import MailHeaders
 from mailhelp.drafts import message
 from mailhelp.external.ical import _fold_ical_line, _ical_text
 from mailhelp.mime import MimeLimitExceeded, MimeLimits, extract_display_headers, prepare
-from mailhelp.telegram.temporal import parse_deterministic_temporal_answer
+from mailhelp.temporal_answers import parse_deterministic_temporal_answer
 from mailhelp.webpush import subscription
 
 RECEIVED = datetime(2026, 10, 12, 8, 0, tzinfo=UTC)

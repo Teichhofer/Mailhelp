@@ -25,7 +25,7 @@ class ProposalEditPatch(BaseModel):
     meeting_mode: Literal["video", "in_person", "hybrid", "unknown"] | None = None
 
 
-def local_time(value: str | None, zone: str, date_only: bool = False):
+def local_time(value: str | None, zone: str, date_only: bool = False) -> date | datetime | None:
     if not value:
         return None
     if len(value) == 10:

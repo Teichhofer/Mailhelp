@@ -178,6 +178,18 @@ class ReviewService:
                 result = invalidate_creation_permissions(result)
                 self.controller.persist(result)
             return ReviewResult(status=ResultStatus.DONE, message="Erneut geprüft; separat bestätigen.")
+        if command.kind == CommandKind.RETARGET:
+            from ..profile_binding import retarget
+            previous = self._target(command)
+            cfg = getattr(self.controller.relevance_handler, "mailbox_settings", None)
+            if cfg is None:
+                raise ValueError("Zielprofile nicht verfügbar")
+            # The command validator requires both values for a retarget.
+            assert command.target_profile is not None and command.proposal_hash is not None
+            changed = retarget(cfg, previous, command.target_profile, command.proposal_hash)
+            self.controller.persist(changed)
+            self.controller.send_proposal(changed)
+            return ReviewResult(status=ResultStatus.DONE, message="Ziel umgestellt; neue Version separat bestätigen.")
         if command.kind in {CommandKind.MERGE, CommandKind.SEPARATE, CommandKind.RESTORE, CommandKind.DEFAULTS}:
             return self._reconcile_proposal(command)
         if command.kind == CommandKind.EDIT:
@@ -231,7 +243,13 @@ class ReviewService:
             if command.kind == CommandKind.DEFAULTS:
                 if source.status not in _OPEN:
                     raise StaleCommand("Vorschlag nicht mehr offen")
-                defaults = self.configuration.active.event_defaults if self.configuration else EventDefaultsSettings()
+                if self.configuration is not None:
+                    from ..mailbox_settings import event_defaults_for
+                    handler = self.controller.relevance_handler
+                    defaults = event_defaults_for(self.configuration.active, self.controller.store, source,
+                                                  getattr(handler, "mailbox_numbers", {}))
+                else:
+                    defaults = EventDefaultsSettings()
                 digest = hashlib.sha256(json.dumps(defaults.model_dump(), sort_keys=True).encode()).hexdigest()
                 if digest != command.proposal_hash:
                     raise StaleCommand("Standarddauer inzwischen geändert")
@@ -293,7 +311,7 @@ class ReviewService:
 
     def _target(self, command: ReviewCommand) -> Proposal:
         assert command.proposal_id is not None
-        proposal = self.controller.repository.load_current(command.mail_id, command.proposal_id)
+        proposal: Proposal | None = self.controller.repository.load_current(command.mail_id, command.proposal_id)
         if proposal is None:
             raise StaleCommand("Vorschlag wurde nicht gefunden")
         if proposal.version != command.version or proposal.status not in _OPEN:

@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 from ..models import Proposal
+from ..persistence.proposals import ProposalRepository
 from .client import TelegramTransport
 from .outbox import TelegramOutbox
-from .persistence import ProposalRepository
 from .presenter import ProposalPresenter
 
 

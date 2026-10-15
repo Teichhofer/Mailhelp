@@ -1,20 +1,18 @@
-"""Laden und Validieren von Konfiguration und Geheimnissen."""
+"""Configuration models and their validation rules (no file or environment access)."""
+
 from __future__ import annotations
 
 import ipaddress
-import os
 import re
 from datetime import datetime
-from importlib.resources import files
 from pathlib import Path, PureWindowsPath
 from typing import Annotated, Any, Literal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-import yaml
-from pydantic import BaseModel, ConfigDict, Field, SecretStr, ValidationError, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
 
-from .metrics import MetricsSettings
-from .notification_config import NotificationSettings
+from ..metrics import MetricsSettings
+from ..notification_config import NotificationOverrides, NotificationSettings
 
 
 class ConfigModel(BaseModel):
@@ -76,6 +74,14 @@ class MailboxSettings(ConfigModel):
     connection_mode: ConnectionMode = "ssl"
     historical_start: datetime | None = None
     drafts_folder: DraftsFolder = "Drafts"
+    target_profile: int = Field(default=1, ge=1, le=99)
+    personal_info: str | None = Field(default=None, max_length=2000, pattern=r"^[^\x00-\x08\x0b-\x1f\x7f]*$")
+    smart_reply: bool | None = None
+    notifications: NotificationOverrides | None = None
+    daily_briefing: bool = True
+    activity_report_folder: DraftsFolder | None = None
+    retention: MailboxRetention | None = None
+    event_defaults: MailboxEventDefaults | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -194,6 +200,11 @@ class EventDefaultsSettings(ConfigModel):
     in_person_duration_minutes: int = Field(default=180, ge=1, le=1440)
 
 
+class MailboxEventDefaults(ConfigModel):
+    video_duration_minutes: int | None = Field(default=None, ge=1, le=1440)
+    in_person_duration_minutes: int | None = Field(default=None, ge=1, le=1440)
+
+
 class ProposalReconciliationSettings(ConfigModel):
     max_semantic_candidates: int = Field(default=8, ge=1, le=50)
 
@@ -213,7 +224,7 @@ ICLOUD_CALDAV = re.compile(r"https://(p\d{1,3}-)?caldav\.icloud\.com/")
 
 def _dav_url(value: str) -> bool:
     """CalDAV collections need TLS; plain HTTP only on the local machine."""
-    match = re.fullmatch(r"(https?)://([^/:?#\s]+)(:\d{1,5})?(/[^\s?#]*)?", value)
+    match = re.fullmatch(r"(https?)://([^/@:?#\s]+)(:\d{1,5})?(/[^\s?#]*)?", value)
     if match is None:
         return False
     return match.group(1) == "https" or match.group(2) in {"localhost", "127.0.0.1"}
@@ -265,6 +276,11 @@ class TargetSettings(ConfigModel):
     @property
     def uses_caldav(self) -> bool:
         return self.calendar_provider == "caldav" or self.task_provider in {"caldav", "apple_reminders"}
+
+
+class TargetProfileSettings(TargetSettings):
+    id: int = Field(ge=2, le=99)
+    label: str = Field(min_length=1, max_length=40, pattern=r"^[^\x00-\x1f\x7f]+$")
 
 
 class OriginalAttachmentSettings(ConfigModel):
@@ -426,6 +442,10 @@ class RetentionSettings(ConfigModel):
     activity_report_days: RetentionPeriod = 365
 
 
+class MailboxRetention(ConfigModel):
+    full_mail_days: RetentionPeriod
+
+
 class LearningSettings(ConfigModel):
     """Concurrency controls for the interactive learning workflow."""
 
@@ -523,6 +543,7 @@ class Settings(ConfigModel):
     imap: ImapSettings
     telegram: TelegramSettings
     targets: TargetSettings
+    target_profiles: list[TargetProfileSettings] = Field(default_factory=list, max_length=98)
     limits: LimitSettings
     retries: RetrySettings
     timeouts: TimeoutSettings
@@ -544,7 +565,13 @@ class Settings(ConfigModel):
     proposal_reconciliation: ProposalReconciliationSettings = Field(default_factory=ProposalReconciliationSettings)
 
     @model_validator(mode="after")
-    def standalone_needs_web(self):
+    def valid_mailbox_policies(self) -> Settings:
+        from ..mailbox_settings import validate_policies
+        validate_policies(self)
+        return self
+
+    @model_validator(mode="after")
+    def standalone_needs_web(self) -> Settings:
         if not self.telegram.enabled and not self.web.enabled:
             raise ValueError("Ohne Telegram muss web.enabled aktiviert sein")
         return self
@@ -596,14 +623,20 @@ class Secrets(BaseModel):
     microsoft_refresh_token: SecretStr = SecretStr("")
     # Signs web sessions and CSRF tokens; required only with web.enabled.
     mailhelp_web_secret: SecretStr | None = None
+    profiles: dict[int, dict[str, SecretStr]] = Field(default_factory=dict)
 
     def imap_credentials(self, mailbox_id: int) -> ImapCredentials:
         return self.imap[mailbox_id]
+
+    def for_profile(self, profile_id: int) -> Secrets:
+        from ..target_profiles import profile_secrets
+        return profile_secrets(self, profile_id)
 
     def known_values(self) -> tuple[str, ...]:
         """Every secret value, for redaction in logs."""
         values = [credentials.password.get_secret_value() for credentials in self.imap.values()]
         values += [value.get_secret_value() for name, value in self if isinstance(value, SecretStr)]
+        values += [value.get_secret_value() for profile in self.profiles.values() for value in profile.values()]
         return tuple(value for value in values if value)
 
 
@@ -615,6 +648,14 @@ class Topic(BaseModel):
     description: str
     examples: list[str] = Field(default_factory=list)
     exclusions: list[str] = Field(default_factory=list)
+    mailboxes: list[int] | None = Field(default=None, max_length=10)
+
+    @field_validator("mailboxes")
+    @classmethod
+    def valid_mailboxes(cls, value: list[int] | None) -> list[int] | None:
+        if value is not None and (len(value) != len(set(value)) or any(not 1 <= item <= 99 for item in value)):
+            raise ValueError("Themen benötigen eindeutige Postfachnummern zwischen 1 und 99")
+        return value
 
 
 class TopicsConfig(ConfigModel):
@@ -834,157 +875,15 @@ def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any
     return result
 
 
-def read_yaml(path: Path) -> Any:
-    with path.open(encoding="utf-8") as stream:
-        value = yaml.safe_load(stream)
-    if not isinstance(value, dict):
-        raise ValueError(f"{path}: Wurzel muss ein Objekt sein")
-    return value
-
-
-def _dotenv(path: Path) -> dict[str, str]:
-    """Read the deliberately small, non-expanding KEY=VALUE .env format."""
-    if not path.exists():
-        return {}
-    result: dict[str, str] = {}
-    for number, original in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
-        line = original.strip()
-        if not line or line.startswith("#"):
-            continue
-        if "=" not in line:
-            raise ValueError(f"{path}: ungültige Zeile {number}")
-        key, value = line.split("=", 1)
-        key, value = key.strip(), value.strip()
-        if not re.fullmatch(r"[A-Z][A-Z0-9_]*", key):
-            raise ValueError(f"{path}: ungültiger Schlüssel in Zeile {number}")
-        if len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
-            value = value[1:-1]
-        result[key] = value
-    return result
-
-
-DEFAULT_TOPIC_FILES = ("topics.yaml", "irrelevant_topics.yaml")
-
-
-def _create_missing_topic_files(directory: Path) -> None:
-    """Restore distributed topic files without replacing user configuration."""
-    defaults = files("mailhelp").joinpath("defaults")
-    for name in DEFAULT_TOPIC_FILES:
-        path = directory / name
-        if path.exists():
-            continue
-        content = defaults.joinpath(name).read_text(encoding="utf-8")
-        try:
-            with path.open("x", encoding="utf-8", newline="\n") as stream:
-                stream.write(content)
-        except FileExistsError:
-            # A concurrently starting process already restored the file.
-            pass
-
-
-OPTIONAL_PROVIDER_SECRETS = ("MICROSOFT_CLIENT_SECRET", "MICROSOFT_REFRESH_TOKEN")
-
-
-def provider_secret_names(targets: TargetSettings) -> list[str]:
-    """Environment names the configured calendar and task providers require."""
-    names = []
-    if targets.task_provider == "todoist":
-        names += ["TODOIST_TOKEN", "TODOIST_CLIENT_ID", "TODOIST_CLIENT_SECRET"]
-    if targets.calendar_provider == "google":
-        names += ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"]
-    if targets.uses_caldav:
-        names += ["CALDAV_USERNAME", "CALDAV_PASSWORD"]
-    if targets.uses_microsoft:
-        names.append("MICROSOFT_CLIENT_ID")
-    return names
-
-
-# Names of mailbox 1 before 3.1; still accepted when its numbered names are not set.
-LEGACY_IMAP_SECRETS = ("IMAP_USERNAME", "IMAP_PASSWORD")
-
-
-def imap_secret_names(mailbox: MailboxSettings, env: dict[str, str], legacy_format: bool) -> tuple[str, str]:
-    """The environment names that hold this mailbox's credentials.
-
-    Mailbox 1 falls back to the names before 3.1 while its numbered names are unset, so an
-    existing installation starts without changing ``.env``.
-    """
-    numbered = mailbox.secret_names
-    if (mailbox.id == 1 and not any(env.get(name) for name in numbered)
-            and (legacy_format or any(env.get(name) for name in LEGACY_IMAP_SECRETS))):
-        return LEGACY_IMAP_SECRETS
-    return numbered
-
-
-def imap_secret_values(imap: ImapSettings, env: dict[str, str]
-                       ) -> tuple[dict[int, dict[str, str]], list[str]]:
-    """Credentials of every enabled mailbox and the names that are missing."""
-    credentials, missing = {}, []
-    for mailbox in imap.enabled_mailboxes():
-        user, password = imap_secret_names(mailbox, env, imap.legacy_format)
-        absent = [name for name in (user, password) if not env.get(name)]
-        if absent:
-            missing += absent
-        else:
-            credentials[mailbox.id] = {"username": env[user], "password": env[password]}
-    return credentials, missing
-
-
-def _distinct_accounts(imap: ImapSettings, credentials: dict[int, dict[str, str]]) -> None:
-    """Two mailboxes with the same server, port and user would share their whole processing state."""
-    from .imap import account_id
-    seen: dict[str, int] = {}
-    for mailbox in imap.enabled_mailboxes():
-        account = account_id(mailbox.host, mailbox.port, credentials[mailbox.id]["username"])
-        if account in seen:
-            raise ValueError(f"Postfächer {seen[account]} und {mailbox.id} verwenden dasselbe Konto "
-                             "(Server, Port und Benutzername)")
-        seen[account] = mailbox.id
-
-
-def load_all(directory: Path, environ: dict[str, str] | None = None
-             ) -> tuple[Settings, Secrets, list[Topic], list[Topic], PromptConfig, str]:
-    env = {**_dotenv(directory / ".env"), **(os.environ if environ is None else environ)}
-    settings = validated_file(directory / "config.yaml", Settings, read_yaml(directory / "config.yaml"))
-    prompts = validated_file(directory / "prompts.yaml", PromptConfig, read_yaml(directory / "prompts.yaml"))
-    _create_missing_topic_files(directory)
-    topics = validated_file(directory / "topics.yaml", TopicsConfig, read_yaml(directory / "topics.yaml")).topics
-    irrelevant_topics = validated_file(
-        directory / "irrelevant_topics.yaml", IrrelevantTopicsConfig,
-        read_yaml(directory / "irrelevant_topics.yaml"),
-    ).topics
-    credentials, missing = imap_secret_values(settings.imap, env)
-    names = ["OPENROUTER_API_KEY", "TELEGRAM_BOT_TOKEN", *provider_secret_names(settings.targets)]
-    missing += [name for name in names if not env.get(name)]
-    if not settings.telegram.enabled:
-        names.remove("TELEGRAM_BOT_TOKEN")
-        missing = [name for name in missing if name != "TELEGRAM_BOT_TOKEN"]
-    if missing:
-        raise ValueError("Fehlende Geheimnisse: " + ", ".join(missing))
-    values: dict[str, Any] = {name.lower(): env[name] for name in names}
-    values["imap"] = credentials
-    _distinct_accounts(settings.imap, credentials)
-    values.update({name.lower(): env[name] for name in OPTIONAL_PROVIDER_SECRETS if env.get(name)})
-    if settings.web.enabled:
-        web_secret = env.get("MAILHELP_WEB_SECRET", "")
-        if not web_secret:
-            raise ValueError("Fehlende Geheimnisse: MAILHELP_WEB_SECRET (benötigt für web.enabled)")
-        if len(web_secret) < 32:
-            raise ValueError("MAILHELP_WEB_SECRET muss mindestens 32 Zeichen lang sein")
-        values["mailhelp_web_secret"] = web_secret
-    secrets = Secrets.model_validate(values)
-    # Only analysis-relevant settings: operational changes (web, polling, logging,
-    # retention, timeouts, metrics) must not hold back mails that are running.
-    from .fingerprints import config_fingerprint
-    fingerprint = config_fingerprint(settings, prompts, topics)
-    return settings, secrets, topics, irrelevant_topics, prompts, fingerprint
-
-
-def validated_file(path: Path, model: type[BaseModel], value: Any, prefix: str = "") -> Any:
-    try: return model.model_validate(value)
-    except ValidationError as exc:
-        locations = []
-        for error in exc.errors(include_input=False):
-            location = ".".join(str(part) for part in error["loc"]) or "<root>"
-            locations.append(f"{prefix}.{location}" if prefix else location)
-        raise ValueError(f"{path}: ungültige Schlüsselpfade: {', '.join(locations)}") from exc
+__all__ = ["ActivityReportSettings", "AdapterPolicySettings", "CALENDAR_PROVIDERS", "ConfigModel",
+           "ConnectionMode", "ConsoleLoggingSettings", "DailyBriefingSettings", "DraftsFolder",
+           "EventDefaultsSettings", "ICLOUD_CALDAV", "ImapCredentials", "ImapSettings", "IrrelevantTopicsConfig",
+           "LOCAL_NUM_CTX", "LOG_LEVELS", "LearningSettings", "LimitSettings", "LlmLoggingSettings", "LlmRoute",
+           "LocalLlmPolicySettings", "LogTargetSettings", "LoggingSettings", "MAILBOX_FIELDS", "MAX_MAILBOXES",
+           "MailboxEventDefaults", "MailboxRetention", "MailboxSettings", "OPENROUTER_PARAMETER_KEYS",
+           "OPTIONAL_PROMPT_STEPS", "OllamaPromptSettings", "OpenRouterProviderPreferences",
+           "OriginalAttachmentSettings", "OutputTokenRetry", "PromptConfig", "PromptStep",
+           "ProposalReconciliationSettings", "PushSettings", "REASONING_EFFORTS", "RetentionPeriod",
+           "RetentionSettings", "RetrySettings", "RotatingLogSettings", "Secrets", "Settings", "TASK_PROVIDERS",
+           "TargetProfileSettings", "TargetSettings", "TelegramLoggingSettings", "TelegramSettings",
+           "TimeoutSettings", "Topic", "TopicsConfig", "VisionSettings", "WebSettings", "checked_parameters"]

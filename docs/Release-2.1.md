@@ -1,5 +1,10 @@
 # Mailhelp 2.1 – Aufräumen und bessere Tests
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 Mailhelp 2.1.0 ist ein reines Qualitäts- und Refactoring-Release. Es bringt keine
 neuen Endnutzerfunktionen, sondern konsolidiert die Architektur nach fünf
 Funktionsreleases und erhöht die Aussagekraft der Testsuite erheblich.

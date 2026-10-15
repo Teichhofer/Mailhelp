@@ -50,13 +50,14 @@ class ProposalBuilder:
 
     def __init__(self, source_mail_id: str, targets: TargetSettings, context: MailDateContext,
                  source_sender: str = "—", source_subject: str = "—",
-                 event_defaults: EventDefaultsSettings | None = None):
+                 event_defaults: EventDefaultsSettings | None = None, target_profile: int = 1):
         self.source_mail_id = source_mail_id
         self.targets = targets
         self.context = context
         self.source_sender = source_sender
         self.source_subject = source_subject
         self.event_defaults = event_defaults
+        self.target_profile = target_profile
 
     def _description(self, value: str | None) -> str:
         """Add bounded, application-owned source details to every external description."""
@@ -113,7 +114,9 @@ class ProposalBuilder:
         ]
         for position, (kind, item) in enumerate(entries):
             proposals.append(self._extracted_proposal(kind, item, position, conflicted, used_ids))
-        return proposals
+        return [
+            item.model_copy(update={"schema_version": 3, "target_profile": self.target_profile}) for item in proposals
+        ]
 
     def _calendar_proposals(self, calendar_events: Sequence[ParsedCalendarEvent | dict[str, Any]] | None,
                             used_ids: set[str]) -> tuple[list[Proposal], set[str]]:

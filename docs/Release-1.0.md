@@ -1,5 +1,10 @@
 # Mailhelp 1.0
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 Mailhelp verarbeitet ein persönliches IMAP-Postfach und zeigt Zusammenfassungen,
 Rückfragen sowie Aufgaben- und Terminvorschläge in Telegram. Externe Änderungen
 benötigen weiterhin eine ausdrückliche Bestätigung der angezeigten Version.

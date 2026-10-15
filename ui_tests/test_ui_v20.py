@@ -491,9 +491,13 @@ def test_script_steps_that_end_in_a_navigation(page, mailhelp):
     page.goto(f"{mailhelp.url}/")
     page.get_by_role("link", name="Termine").click()
     page.wait_for_url("**/offen?filter=events")
-    page.route(f"{mailhelp.url}/", lambda route: route.abort("aborted"))
-    with page.expect_request(f"{mailhelp.url}/"):
+    # A 204 keeps the document alive until the popstate callback has returned.
+    # Collecting only at navigation start can miss that callback on Windows.
+    page.route(f"{mailhelp.url}/", lambda route: route.fulfill(status=204))
+    with page.expect_response(f"{mailhelp.url}/") as back:
         page.go_back()
+    assert back.value.status == 204 and page.url == f"{mailhelp.url}/"
+    page.collect()
     page.unroute(f"{mailhelp.url}/")
     # A filter answered with an error status (e.g. an expired session) is reported.
     page.goto(f"{mailhelp.url}/")

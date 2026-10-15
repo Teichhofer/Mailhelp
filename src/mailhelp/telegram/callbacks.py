@@ -21,6 +21,7 @@ class DecisionAction(StrEnum):
     REJECT = "reject"
     MERGE_SOURCE = "merge_source"
     SEPARATE_SOURCE = "separate_source"
+    RETARGET = "retarget"
 
 
 class RelevanceDecision(InternalTelegramModel):
@@ -51,9 +52,19 @@ class Decision(InternalTelegramModel):
     action: DecisionAction
     additional_ref: ProposalReference | None = None
     additional_version: int | None = Field(default=None, ge=1)
+    target_profile: int | None = Field(default=None, ge=1, le=99)
+    profile_hash: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
 
     @model_validator(mode="after")
-    def validate_additional(self):
+    def validate_additional(self) -> Decision:
+        if (self.action == DecisionAction.RETARGET) != (
+            self.target_profile is not None and self.profile_hash is not None
+        ):
+            raise ValueError("Zielwechsel benötigt Profil und geprüfte Zielkonfiguration")
+        if self.action != DecisionAction.RETARGET and (
+            self.target_profile is not None or self.profile_hash is not None
+        ):
+            raise ValueError("Nur Zielwechsel enthält ein Profil")
         needs = self.action in {DecisionAction.MERGE_SOURCE, DecisionAction.SEPARATE_SOURCE}
         if needs != (self.additional_ref is not None and self.additional_version is not None):
             raise ValueError("Quellenentscheidung benötigt beide Vorschlagsversionen")

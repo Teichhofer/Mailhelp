@@ -52,4 +52,21 @@ def migrate_document(model_name: str, value: dict[str, Any]) -> bool:
             for proposal in value.get("proposals", [])
         ]
         value["schema_version"] = 9
+    if model_name in {"Proposal", "MailState", "ProposalMergeJournal", "ProposalClarificationState"}:
+        migrated = _profiles(value) or migrated
     return migrated
+
+
+def _profiles(value: Any) -> bool:
+    changed = False
+    if isinstance(value, dict):
+        if (value.get("schema_version") == 2 and "source_mail_id" in value
+                and "target" in value and "kind" in value):
+            value.update(schema_version=3, target_profile=1)
+            changed = True
+        for item in value.values():
+            changed = _profiles(item) or changed
+    elif isinstance(value, list):
+        for item in value:
+            changed = _profiles(item) or changed
+    return changed

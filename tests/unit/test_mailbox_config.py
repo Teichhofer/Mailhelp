@@ -151,11 +151,13 @@ def test_mailboxes_are_operational_for_the_fingerprint(tmp_path):
     assert fingerprints(changed)[2] != fingerprints(former(tmp_path))[2]
 
 
-def test_without_mailbox_1_no_former_fingerprint_exists(tmp_path):
+def test_without_mailbox_1_only_the_3_1_fingerprint_exists(tmp_path):
     cfg = mailboxes(tmp_path, {"id": 2, **FORMER})
     current, policy, legacy, policies = fingerprints(cfg)
     assert (current, policy) == fingerprints(former(tmp_path))[:2]
-    assert legacy == set() and policies == set()
+    assert len(legacy) == len(policies) == 1
+    assert legacy <= fingerprints(former(tmp_path))[2]
+    assert policies <= fingerprints(former(tmp_path))[3]
 
 
 CONFIG = """# Postfächer
@@ -286,6 +288,7 @@ class Box:
     def __init__(self, account, messages, unreadable=()):
         from mailhelp.imap import FolderNotReadable
         self.account, self.messages, self.unreadable, self.error = account, messages, set(unreadable), FolderNotReadable
+        self.account_id = account
         self.fetched = []
 
     def list_folders(self):

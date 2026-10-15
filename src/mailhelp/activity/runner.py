@@ -13,7 +13,7 @@ from datetime import UTC, datetime
 from threading import Event, Thread
 from typing import Any
 
-from ..analysis import TechnicalRevisionError
+from ..domain.revision_errors import TechnicalRevisionError
 from ..imap import FolderNotReadable, UIDValidityChanged
 from ..logging import log_and_continue
 from .budget import ReportCalls, ReportPaused

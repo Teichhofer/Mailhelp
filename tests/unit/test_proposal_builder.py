@@ -108,7 +108,7 @@ def test_trusted_fields_targets_stable_ids_duplicates_and_restart():
     assert proposal.model_dump(include={"schema_version", "version", "source_mail_id", "target",
                                         "external_id", "external_link", "uncertain_notified",
                                         "simulation_notified"}) == {
-        "schema_version": 2, "version": 1, "source_mail_id": "a" * 24,
+        "schema_version": 3, "version": 1, "source_mail_id": "a" * 24,
         "target": "todoist-1", "external_id": None, "external_link": None,
         "uncertain_notified": False, "simulation_notified": False,
     }

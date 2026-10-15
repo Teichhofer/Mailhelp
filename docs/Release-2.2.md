@@ -1,5 +1,10 @@
 # Mailhelp 2.2 – Tätigkeitsbericht
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 Mailhelp 2.2.0 beantwortet die Frage *„An welchen Terminen war ich im Zeitraum X
 für das Thema Y tätig?“* – etwa für den Jahresbericht eines Ehrenamts oder einen
 Nachweis. Die Funktion ist optional und standardmäßig ausgeschaltet; ohne

@@ -14,7 +14,7 @@ from uuid import uuid4
 
 from . import state_names
 from .config import MailboxSettings, Settings
-from .imap import FetchedMail, UIDValidityChanged
+from .imap import FetchedMail, MailCandidate, UIDValidityChanged
 from .logging import EventLogger
 from .models import ImapCheckpoint, MailRunCounters, MailRunEntry, MailRunEntryStatus, MailRunState, MailState
 from .orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
@@ -144,11 +144,14 @@ class MailboxSource:
 
     @property
     def account_id(self) -> str:
-        return self.reader.account_id
+        account_id: str = self.reader.account_id
+        return account_id
 
 
 # The durable queue of one mailbox: its source, state name and snapshot.
 _Run = tuple[MailboxSource, str, MailRunState]
+# Per (account, folder): checkpoint name, checkpoint document and the UID ranges done in this run.
+_Contexts = dict[tuple[str, str], tuple[str, dict[str, Any], list[tuple[int, int]]]]
 
 
 @dataclass
@@ -248,7 +251,7 @@ class MailboxRunService:
             self._remember_generation(source, checkpoint_name, checkpoint)
 
     def _start_checkpoint(self, source: MailboxSource, folder: str, checkpoint_name: str,
-                          ignore_historical_start: bool) -> tuple[dict, list[tuple[int, int]]]:
+                          ignore_historical_start: bool) -> tuple[dict[str, Any], list[tuple[int, int]]]:
         """Load the folder checkpoint, fixing its start boundary on first use."""
         checkpoint_model = self.store.load_model(checkpoint_name, ImapCheckpoint, ImapCheckpoint())
         checkpoint = checkpoint_model.model_dump(exclude={"schema_version"})
@@ -276,7 +279,7 @@ class MailboxRunService:
         return checkpoint, ranges
 
     def _restart_generation(self, source: MailboxSource, folder: str, checkpoint_name: str,
-                            changed: UIDValidityChanged, ignore_historical_start: bool) -> tuple[dict, int]:
+                            changed: UIDValidityChanged, ignore_historical_start: bool) -> tuple[dict[str, Any], int]:
         """A new UIDVALIDITY: persist the new generation and its boundary first."""
         self.logger.event(
             "WARNING", "imap", "uidvalidity_changed",
@@ -309,11 +312,16 @@ class MailboxRunService:
 
     def _folder_failed(self, source: MailboxSource, folder: str, exc: Exception) -> None:
         event = "poll_failed" if folder == source.mailbox.primary_folder else "optional_folder_failed"
-        self.logger.event("ERROR", "imap", event, mailbox=source.mailbox.id, folder=folder, error=str(exc))
+        self.logger.event("ERROR", "imap", event, mailbox=source.mailbox.id, account_id=source.account_id,
+                          folder=folder, error=str(exc))
 
-    def _complete_uid(self, checkpoint_name: str, checkpoint: dict, ranges: list[tuple[int, int]],
+    def _complete_uid(self, checkpoint_name: str, checkpoint: dict[str, Any], ranges: list[tuple[int, int]],
                       uid: int, uidvalidity: int) -> list[tuple[int, int]]:
         """Record one finished UID in the folder checkpoint."""
+        # A durable queue created before boundary filtering may still contain
+        # an excluded UID. Finish its entry without reopening the checkpoint.
+        if uid <= (checkpoint["start_uid"] or 0):
+            return ranges
         ranges = _add_uid(ranges, uid)
         checkpoint["uid"] = max(checkpoint["uid"], uid)
         checkpoint["uidvalidity"] = uidvalidity
@@ -321,7 +329,7 @@ class MailboxRunService:
         self.store.save(checkpoint_name, ImapCheckpoint(**checkpoint).model_dump())
         return ranges
 
-    def _remember_generation(self, source: MailboxSource, checkpoint_name: str, checkpoint: dict) -> None:
+    def _remember_generation(self, source: MailboxSource, checkpoint_name: str, checkpoint: dict[str, Any]) -> None:
         """An empty folder still records the UIDVALIDITY the server reported."""
         if source.reader.last_uidvalidity is not None:
             if checkpoint["uidvalidity"] is None:
@@ -339,8 +347,8 @@ class MailboxRunService:
         waiting = self._waiting_identities()
         active = [run for run in (self._unfinished_run(source, waiting) for source in self.sources)
                   if run is not None]
-        contexts: dict[tuple[str, str], tuple[str, dict[str, object], list[tuple[int, int]]]] = {}
-        candidates: list = []
+        contexts: _Contexts = {}
+        candidates: list[MailCandidate] = []
         for source, folder in self._folders():
             if self.stop_event.is_set() or budget.remaining == 0:
                 break
@@ -382,7 +390,7 @@ class MailboxRunService:
         return waiting
 
     def _discover_folder(self, source: MailboxSource, folder: str, resuming: bool, ignore_historical_start: bool,
-                         contexts: dict, candidates: list) -> None:
+                         contexts: _Contexts, candidates: list[MailCandidate]) -> None:
         """Prepare the folder checkpoint and, for a new batch, list its new mail."""
         checkpoint_name = _checkpoint_name(source.account_id, folder)
         try:
@@ -410,7 +418,7 @@ class MailboxRunService:
         if not discovered:
             self._remember_generation(source, checkpoint_name, checkpoint)
 
-    def _new_runs(self, candidates: list, waiting: set[str], budget: _MailBudget) -> list[_Run]:
+    def _new_runs(self, candidates: list[MailCandidate], waiting: set[str], budget: _MailBudget) -> list[_Run]:
         """The newest candidates of all mailboxes as one durable, deduplicated queue per mailbox.
 
         Equal receive times keep the discovery order: mailbox, then folder configuration order.
@@ -444,7 +452,7 @@ class MailboxRunService:
         return runs
 
     def _process_queued(self, source: MailboxSource, run_name: str, queued: MailRunEntry, waiting: set[str],
-                        budget: _MailBudget, contexts: dict, results: list[ProcessingResult]) -> bool:
+                        budget: _MailBudget, contexts: _Contexts, results: list[ProcessingResult]) -> bool:
         """Process one queue entry; ``False`` halts the batch."""
         # Reload before every transition: repeated invocations must observe
         # another worker/restart having completed this identity already.
@@ -595,10 +603,8 @@ class MailboxRunService:
         if (not ranges and checkpoint.start_uid is not None
                 and checkpoint.uid > checkpoint.start_uid):
             ranges = [(checkpoint.start_uid + 1, checkpoint.uid)]
-        checkpoint.uidvalidity = state.imap.uidvalidity
-        checkpoint.uid = max(checkpoint.uid, state.imap.uid)
-        checkpoint.completed_uid_ranges = _add_uid(ranges, state.imap.uid)
-        self.store.save(checkpoint_name, checkpoint.model_dump())
+        self._complete_uid(checkpoint_name, checkpoint.model_dump(exclude={"schema_version"}),
+                           ranges, state.imap.uid, state.imap.uidvalidity)
 
 
     def resume_pending(self, budget: _MailBudget | None = None) -> list[ProcessingResult]:

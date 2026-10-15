@@ -1,5 +1,10 @@
 # Mailhelp 1.2 – Konzept und detaillierter Umsetzungsplan
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 **Stand:** 11. Oktober 2026  
 **Zielversion:** 1.2.0  
 **Status:** Umgesetzt im Branch `beta` (Version 1.2.0, Beta). Abgleich und Restarbeiten: [1.2-Restplan.md](1.2-Restplan.md); Betrieb: [Release-1.2.md](Release-1.2.md).

@@ -1,5 +1,10 @@
 # Offene Entscheidungen und Standarddauern – Bedienung und Upgrade
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 Die Planung 2.4 ist auf `beta` umgesetzt: 2.3.2 enthält die Implementierung,
 2.3.3 die Abschlussdokumentation. Die Patchnummern folgen den Entwicklungsregeln.
 Ein Release 2.4.0 oder ein Tag wird dadurch nicht veröffentlicht.

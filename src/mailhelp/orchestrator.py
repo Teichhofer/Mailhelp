@@ -15,6 +15,7 @@ from .config import (
     EventDefaultsSettings,
     OriginalAttachmentSettings,
     ProposalReconciliationSettings,
+    Settings,
     TargetSettings,
     Topic,
 )
@@ -84,6 +85,36 @@ class Orchestrator:
         self.pipeline = MailPipeline(self)
         self.duplicates = DuplicateMailCheck(self)
         self.questions = MailQuestions(self)
+        self.mailbox_settings: Settings | None = None
+        self.mailbox_numbers: dict[str, int] = {}
+        self.mailbox_prompts = self.mailbox_jev = None
+
+    def configure_mailboxes(self, settings, prompts, numbers, jev=None):
+        self.mailbox_settings, self.mailbox_prompts = settings, prompts
+        self.mailbox_numbers, self.mailbox_jev = numbers, jev
+
+    def mailbox_number(self, account_id: str) -> int:
+        return self.mailbox_numbers.get(account_id, 1)
+
+    def effective_settings(self, account_id: str):
+        from .mailbox_settings import effective_settings
+        assert self.mailbox_settings is not None
+        return effective_settings(self.mailbox_settings, self.mailbox_number(account_id))
+
+    def fingerprint_for(self, account_id: str) -> str:
+        if self.mailbox_settings is None:
+            return self.config_fingerprint
+        from .decisions import relevance_fingerprint
+        from .mailbox_settings import mailbox_fingerprint
+        value = mailbox_fingerprint(self.mailbox_settings, self.mailbox_prompts, self.topics,
+                                    self.mailbox_number(account_id))
+        return relevance_fingerprint(value, self.mailbox_jev) if self.mailbox_jev is not None else value
+
+    def policy_for(self, account_id: str) -> str | None:
+        if self.mailbox_settings is None:
+            return self.topic_policy
+        from .mailbox_settings import mailbox_topic_policy
+        return mailbox_topic_policy(self.mailbox_settings, self.mailbox_prompts, self.mailbox_number(account_id))
 
     def build_proposals(self, state: MailState) -> list[Proposal]:
         """Cross from untrusted extracted facts into application-owned proposals."""
@@ -97,11 +128,21 @@ class Orchestrator:
         )
         headers = state.display_headers
         return ProposalBuilder(
-            state.id, self.targets, context,
+            state.id,
+            (
+                TargetSettings.model_validate(state.proposal_policy["targets"])
+                if state.proposal_policy is not None and "targets" in state.proposal_policy
+                else self.targets
+            ),
+            context,
             source_sender=headers.sender if headers else "—",
             source_subject=headers.subject if headers else "—",
-            event_defaults=(EventDefaultsSettings.model_validate(state.proposal_policy["event_defaults"])
-                            if state.proposal_policy is not None else None),
+            event_defaults=(
+                EventDefaultsSettings.model_validate(state.proposal_policy["event_defaults"])
+                if state.proposal_policy is not None
+                else None
+            ),
+            target_profile=(state.proposal_policy.get("target_profile", 1) if state.proposal_policy is not None else 1),
         ).build(
             state.task_extraction.tasks if state.task_extraction else [],
             state.event_extraction.events if state.event_extraction else [],
@@ -170,7 +211,8 @@ class Orchestrator:
             return
         if not raw:
             metadata["vision"] = "unavailable"
-        elif is_irrelevant_sender(state.prepared.headers.sender, self.blocked_senders()):
+        elif is_irrelevant_sender(state.prepared.headers.sender, self.blocked_senders(),
+                                  self.mailbox_number(state.imap.account_id)):
             metadata["vision"] = "skipped_sender"
         else:
             attachments = state.mail.get("extracted_attachments", [])
@@ -194,15 +236,29 @@ class Orchestrator:
         sentences = "\n".join(f"• {sentence}" for sentence in state.summary.sentences)
         return f"{mail_line(headers.sender or '—', headers.subject or '—')}\n{sentences}"
 
-    def accepts_configuration(self, fingerprint: str) -> bool:
-        if fingerprint == self.config_fingerprint:
+    def accepts_configuration(self, fingerprint: str, account_id: str | None = None) -> bool:
+        current = self.fingerprint_for(account_id) if account_id is not None else self.config_fingerprint
+        policy = self.policy_for(account_id) if account_id is not None else self.topic_policy
+        if fingerprint == current:
             return True
-        if self.topic_policy is None:
+        if policy is None:
             return False
         record = self.store.load(f"processing-topics-{fingerprint}", {})
-        return record.get("policy") == self.topic_policy
+        if account_id is not None and any(topic.mailboxes is not None for topic in self.topics):
+            from .mailbox_settings import effective_topics
 
-    def topics_for(self, fingerprint: str) -> list[Topic]:
+            previous = [Topic.model_validate(item).model_copy(update={"mailboxes": None})
+                        for item in record.get("topics", [])]
+            selected = [topic.model_copy(update={"mailboxes": None})
+                        for topic in effective_topics(self.topics, self.mailbox_number(account_id))]
+            if previous != selected:
+                return False
+        return record.get("policy") == policy
+
+    def topics_for(self, fingerprint: str, account_id: str | None = None) -> list[Topic]:
+        if account_id is not None and fingerprint == self.fingerprint_for(account_id):
+            from .mailbox_settings import effective_topics
+            return effective_topics(self.topics, self.mailbox_number(account_id))
         if fingerprint == self.config_fingerprint:
             return self.topics
         record = self.store.load(f"processing-topics-{fingerprint}", {})
@@ -318,9 +374,22 @@ class Orchestrator:
             id=internal_id,
             imap=MailImapIdentity(account_id=fetched.account_id, folder=fetched.folder,
                                   uidvalidity=fetched.uidvalidity, uid=fetched.uid),
-            config_fingerprint=self.config_fingerprint,
+            config_fingerprint=self.fingerprint_for(fetched.account_id),
         )
-        if state.steps.completion != "completed" and not self.accepts_configuration(state.config_fingerprint):
+        if existing is None and self.mailbox_settings is not None:
+            self.store.save(
+                f"processing-topics-{state.config_fingerprint}",
+                {
+                    "schema_version": 1,
+                    "policy": self.policy_for(fetched.account_id),
+                    "topics": [
+                        topic.model_dump() for topic in self.topics_for(state.config_fingerprint, fetched.account_id)
+                    ],
+                },
+            )
+        if state.steps.completion != "completed" and not self.accepts_configuration(
+            state.config_fingerprint, fetched.account_id
+        ):
             self.logger.event("WARNING", "orchestrator", "configuration_changed", mail_id=state.id,
                               state_fingerprint=state.config_fingerprint, active_fingerprint=self.config_fingerprint)
             return ProcessingResult(ProcessingOutcome.WAITING, state.model_dump(mode="json"))

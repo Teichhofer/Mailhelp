@@ -1,8 +1,13 @@
 # Mailhelp 1.4 – Konzept und detaillierter Umsetzungsplan: Multimodal, OCR und Absender-Filterung
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 **Stand:** 11. Oktober 2026  
 **Zielversion:** 1.4.0  
-**Status:** In Planung (Folgt auf Version 1.3 und bereitet Version 2.0 vor)  
+**Status:** Historischer Entwurf; Bild-/Scan-Auswertung seit 1.4 implementiert. Maßgeblich für Grenzen und unterstützte Formate ist die Projektspezifikation.
 **Grundlage:** [Mailhelp-Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Entwicklungsregeln](../AGENTS.md), [Planung-1.4.md](Planung-1.4.md)  
 **Vorausgehendes Release:** [Konzept-1.3-Intelligenter-Workflow.md](Konzept-1.3-Intelligenter-Workflow.md)  
 **Nachfolgendes Release:** [Konzept-2.0-Redesign-und-Web-Push.md](Konzept-2.0-Redesign-und-Web-Push.md)

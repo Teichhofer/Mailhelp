@@ -13,12 +13,22 @@ from ._base import StrictModel
 class IrrelevantSenders(StrictModel):
     """Durable, human-readable sender prefilter learned from rejected topics."""
 
-    schema_version: Literal[1] = 1
+    schema_version: Literal[2] = 2
     addresses: list[str] = Field(default_factory=list)
     domains: list[str] = Field(default_factory=list)
+    mailboxes: dict[str, SenderRules] = Field(default_factory=dict, max_length=99)
+
+    @model_validator(mode="before")
+    @classmethod
+    def upgrade_sender_scope(cls, value: object) -> object:
+        if isinstance(value, dict) and value.get("schema_version") == 1:
+            return {**value, "schema_version": 2}
+        return value
 
     @model_validator(mode="after")
     def valid_entries(self) -> IrrelevantSenders:
+        if any(not re.fullmatch(r"[1-9][0-9]?", key) for key in self.mailboxes):
+            raise ValueError("Absenderfilter benötigen Postfachnummern zwischen 1 und 99")
         address_pattern = re.compile(r"^[^@\s<>]+@[^@\s<>]+$")
         domain_pattern = re.compile(
             r"^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+"
@@ -33,6 +43,21 @@ class IrrelevantSenders(StrictModel):
                        for domain in self.domains)):
             raise ValueError("Absenderdomains müssen gültig, kleingeschrieben und eindeutig sein")
         return self
+
+
+class SenderRules(StrictModel):
+    addresses: list[str] = Field(default_factory=list)
+    domains: list[str] = Field(default_factory=list)
+    allow: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def valid_entries(self) -> SenderRules:
+        IrrelevantSenders(addresses=self.addresses, domains=self.domains)
+        IrrelevantSenders(addresses=self.allow)
+        return self
+
+
+IrrelevantSenders.model_rebuild()
 
 
 class Relevance(StrictModel):

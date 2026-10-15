@@ -7,6 +7,30 @@
       "title": "Base Hash",
       "type": "string"
     },
+    "category": {
+      "default": "relevant",
+      "enum": [
+        "relevant",
+        "irrelevant"
+      ],
+      "title": "Category",
+      "type": "string"
+    },
+    "configuration_hash": {
+      "default": "",
+      "title": "Configuration Hash",
+      "type": "string"
+    },
+    "kind": {
+      "default": "settings",
+      "enum": [
+        "settings",
+        "topics",
+        "senders"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
     "operations": {
       "additionalProperties": {
         "type": "string"

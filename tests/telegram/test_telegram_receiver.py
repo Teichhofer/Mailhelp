@@ -15,6 +15,7 @@ from shared_telegram_dialog import Logger, RevisionService, Telegram, callback, 
 from mailhelp.adapter import PermanentError
 from mailhelp.imap import FetchedMail
 from mailhelp.logging import JsonlLogger
+from mailhelp.service_coordinator import ServiceCoordinator
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import TelegramClient, TelegramDialogController
 from mailhelp.telegram.receiver import ACKNOWLEDGEMENT, TelegramInbox, TelegramReceiver
@@ -224,7 +225,7 @@ def test_button_press_during_a_mail_batch_is_processed_before_the_next_mail(tmp_
         orchestrator.process = process
         service = app(tmp_path, Imap([(7, mails)]), AppTelegram([]), orchestrator)
         service.dialog = InboxDialog(inbox, order)
-        service._receiver = SimpleNamespace(inbox=inbox, stop=lambda: None)
+        service.services.receiver = SimpleNamespace(inbox=inbox, stop=lambda: None)
         service.mailbox.poll()
     assert order == [("mail", 1), ("telegram", 9), ("mail", 2)]
 
@@ -236,7 +237,7 @@ def test_input_arriving_while_idle_is_processed_at_once(tmp_path):
         inbox = TelegramInbox(store)
         service = app(tmp_path, Imap([]), AppTelegram([]), Orch())
         service.dialog = InboxDialog(inbox, order, on_poll=lambda: order and service.stop_event.set())
-        service._receiver = SimpleNamespace(inbox=inbox, stop=lambda: None)
+        service.services.receiver = SimpleNamespace(inbox=inbox, stop=lambda: None)
         arrival = threading.Timer(0.05, lambda: inbox.add([message(4)], set()))
         started = time.monotonic()
         arrival.start()
@@ -257,13 +258,13 @@ def test_application_starts_and_stops_the_receiver_thread(tmp_path):
         service = app(tmp_path, Imap([]), source, Orch())
         service.dialog = InboxDialog(inbox, [])
         service._start_receiver()
-        thread = service._receiver
+        thread = service.services.receiver
         assert thread.is_alive() and thread.offset == 5
         service.stop()
         assert thread.stop_event.is_set() and service.orchestrator.stop_called
-        service._stop_receiver()
-        assert not thread.is_alive() and service._receiver is None
-        service._stop_receiver()
+        service.services.stop_receiver()
+        assert not thread.is_alive() and service.services.receiver is None
+        service.services.stop_receiver()
 
 
 def test_logger_writes_whole_lines_from_concurrent_threads(tmp_path):
@@ -390,3 +391,14 @@ def test_transient_failures_are_retried_with_backoff_then_dropped(tmp_path, monk
         controller.poll_once()  # third failure: dropped with a notice, then 5 follows
         assert handled == [4, 4, 4, 5] and inbox.pending() == []
         assert sum("wurde verworfen" in text for _, text, _ in transport.sent) == 1
+
+
+def test_coordinator_reads_the_offset_only_for_a_dialog_with_inbox(tmp_path):
+    """Dialogs without a Telegram inbox need not offer a receive offset at all."""
+    def offset():
+        raise AssertionError("offset read without inbox")
+
+    services = ServiceCoordinator()
+    services.start_receiver(None, Source([]), offset, JsonlLogger(tmp_path / "logs"), 0)
+    assert services.receiver is None
+    services.stop_receiver()

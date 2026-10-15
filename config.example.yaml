@@ -1,4 +1,5 @@
 # Erläuterungen aller Web-Einstellungen: docs/Web-Einstellungen.md (auch als Info-Blasen in der Weboberfläche).
+# Direkte Bereichslinks in den Einstellungen führen zu den jeweiligen globalen Regeln.
 # Optionaler Vergleich: mailhelp --decision-test 20 --ollama localhost:11434
 # Standard (Jev-Relevanz + LLM-Rückfall) gegen Ollama; nur relevante Mails weiter.
 # Standardrelevanz: Jev aus decisions_prompts.yaml; nur unclear nutzt prompts.yaml.
@@ -47,6 +48,21 @@ smart_reply: false
 # höchstens 2.000 Zeichen. Gehen an die Prompts draft_reply und (ab 2.2) activity_relevance;
 # auch unter Einstellungen → Antworten bearbeitbar und dort sofort wirksam.
 personal_info: ""
+# 3.2: sparse Überschreibungen unter imap.mailboxes (legacy imap bleibt gültig).
+# target_profile: 2; personal_info: 'Arbeitsrolle'; smart_reply: false
+# daily_briefing: false; activity_report_folder: Projekte
+# retention: {full_mail_days: 7}  # nur kürzer als global
+# event_defaults: {video_duration_minutes: 90}
+# notifications: {quiet_hours: {enabled: true}, categories: {decisions: []}}
+# Themenzuordnung in topics.yaml/irrelevant_topics.yaml: mailboxes: [2].
+# Ohne Zuordnung gilt ein Thema global. Details: docs/Release-3.2.md.
+target_profiles: []  # Standardprofil 1 bleibt targets; weitere IDs 2–99
+# - id: 2
+#   label: Arbeit
+#   calendar_provider: outlook
+#   task_provider: microsoft_todo
+#   outlook_calendar: default
+#   microsoft_todo_list: default
 activity_report:
   # 2.2: Tätigkeitsberichte unter /berichte. Ein Bericht liest die Mails eines Zeitraums
   # nur (IMAP BODY.PEEK, keine Flags), prüft sie per LLM auf das Berichtsthema, findet
@@ -130,10 +146,16 @@ learning:
 # Beide Schreibweisen gleichzeitig sind ungültig. Postfachangaben ändern keinen
 # Analyse-Fingerprint; laufende Mails werden dadurch nicht zurückgehalten.
 imap:
+  # Exakte Namen aus der IMAP-Ordnerliste unter /einrichtung verwenden.
+  # Beispielsweise heißen WEB.DE-Ordner Entwurf, Gesendet, Unerwünscht und Papierkorb;
+  # generische Namen wie Drafts/Sent/Spam/Trash existieren dort nicht automatisch.
+  # drafts_folder muss ebenfalls auf einen tatsächlich vorhandenen Ordner zeigen.
   drafts_folder: Drafts  # Unicode erlaubt; muss auf dem IMAP-Server existieren
   host: imap.example.test
   port: 993
   connection_mode: ssl
+  # Suchtreffer an/unter der gespeicherten Start-UID bleiben auch bei leeren
+  # Folgeabrufen ausgeschlossen. --ignore-historical-start öffnet die Grenze explizit.
   historical_start: '2026-09-15T00:00:00+02:00'
   batch_size: 25
   global_newest_first: true
@@ -145,8 +167,8 @@ imap:
   - Spam
   - Trash
 telegram:
-  # false (2.0): Betrieb nur mit Weboberfläche/App, web.enabled muss true sein,
-  # TELEGRAM_BOT_TOKEN entfällt; Kopplungscodes erscheinen in der Konsole des PCs.
+  # false: Betrieb nur mit Weboberfläche/App, web.enabled muss true sein.
+  # TELEGRAM_BOT_TOKEN entfällt; mailhelp --pair zeigt den Code im aufrufenden Terminal.
   enabled: true
   # Bei jedem normalen Start wird die Befehlsübersicht automatisch gesendet,
   # auch mit --max-mails und bei Wiederaufnahme offener Entscheidungen.
@@ -167,6 +189,8 @@ telegram:
   # Noch zurückgehaltene Relevanzfragen pausieren nur ihre eigene Mailanalyse.
   sequential_questions: true
 targets:
+  # Ziele ändern keinen Analyse-Fingerprint. Das Upgrade registriert bisherige Hashes
+  # als gleichwertig; dafür zunächst mit den bisherigen Zielen starten.
   # Bestätigungen gelten für das im Vorschlag gespeicherte Ziel. Bei Abweichung
   # bleiben Schreiben und Abgleich gesperrt (auch nach Neustart/im Testmodus).
   # Ursprüngliches Ziel wiederherstellen oder neuen Vorschlag bestätigen.
@@ -298,7 +322,7 @@ proposal_reconciliation:
   # Mehr mögliche Treffer blockieren die automatische Zuordnung.
   max_semantic_candidates: 8
 web:
-  # Die Webübersicht behält die Auswahl beim Neuladen automatisch bei; keine Option n?tig.
+  # Die Webübersicht behält die Auswahl beim Neuladen automatisch bei; keine Option nötig.
   # Optionale Weboberfläche (ab 1.1). Standard: aus – Mailhelp verhält sich dann wie 1.0.
   # Mit enabled: true wird MAILHELP_WEB_SECRET (mindestens 32 Zeichen) in .env benötigt.
   enabled: false

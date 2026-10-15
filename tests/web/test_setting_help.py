@@ -3,8 +3,8 @@ from html import escape
 from pathlib import Path
 
 from mailhelp.configuration import SETTINGS_FIELDS
-from mailhelp.web.archive_site import setting_label, settings_page
 from mailhelp.web.setting_help import EXTRA_HELP, SETTING_HELP, help_bubble
+from mailhelp.web.settings_pages import setting_label, settings_page
 
 
 def test_all_settings_have_matching_documentation_and_connected_help():

@@ -131,7 +131,7 @@ class ExperienceSite:
             cancel = ("" if status == "uncertain" else
                       '<button class="button" name="mode" value="cancel" formnovalidate>Abbrechen</button>')
             html += (f'<form method="post" action="/mail/{mail_id}/entwurf">{hidden()}'
-                     f'<h3>Entwurf: {e(INTENTS.get(draft.get("intent"), "Antwort"))}</h3>'
+                     f'<h3>Entwurf: {e(INTENTS.get(draft.get("intent") or "", "Antwort"))}</h3>'
                      f'<label for="draft-editor">Antworttext</label><textarea id="draft-editor" name="text" '
                      f'rows="10" maxlength="8000" required{readonly}>{e(draft["text"])}</textarea>'
                      '<div class="actions"><button class="button primary" name="mode" value="save">'

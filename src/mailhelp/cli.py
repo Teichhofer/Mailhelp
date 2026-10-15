@@ -17,7 +17,7 @@ from .decisions import load_relevance_prompts
 from .learning import LearningMode, LearningSource
 from .ollama import LocalLlm, parse_address
 from .paths import runtime_path
-from .storage import JsonStore
+from .storage import AlreadyRunning, JsonStore
 
 CLEAR_CONFIRMATION = "ALLE DATEN LOESCHEN"
 CONFIGURATION_FILES = ("config.yaml", "prompts.yaml", "topics.yaml", "irrelevant_topics.yaml")
@@ -110,13 +110,22 @@ def clear_runtime_data(settings: Settings, log_directory: Path | None = None,
         logs.rmdir()
 
 
+ALREADY_RUNNING = ("Mailhelp läuft bereits mit diesem Datenverzeichnis: {directory}\n"
+                   "Die laufende Instanz zuerst beenden (Weboberfläche: Beenden, oder Strg+C in "
+                   "ihrem Terminal) und Mailhelp dann erneut starten.")
+
+
 def main() -> int:
-    """Run the CLI and turn Ctrl+C into a quiet, consistent process exit."""
+    """Run the CLI; Ctrl+C and a second instance end quietly instead of with a traceback."""
     try:
         return _main()
     except KeyboardInterrupt:
         print("\nBeenden angefordert.")
         return 130
+    except AlreadyRunning as exc:
+        # An expected operating situation, not a crash.
+        print(ALREADY_RUNNING.format(directory=exc.directory), file=sys.stderr)
+        return 1
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -132,6 +141,8 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--check", action="store_true", help="Konfiguration validieren und beenden")
     parser.add_argument("--pair", action="store_true", help="Lokalen Einmalcode zur Webanmeldung anzeigen")
+    parser.add_argument("--google-auth", action="store_true", help="Google-Anmeldung im lokalen Browser")
+    parser.add_argument("--profile", type=_profile_choice, help="Zielprofil (1–99) für die OAuth-Einrichtung")
     parser.add_argument(
         "--check-access", action="store_true",
         help="Zugänge prüfen, Telegram-Testnachricht senden und beenden",
@@ -233,6 +244,13 @@ def _check_mode_options(parser: argparse.ArgumentParser, args: argparse.Namespac
 ALL_MAILBOXES = "alle"
 
 
+def _profile_choice(value: str) -> int:
+    number = int(value)
+    if not 1 <= number <= 99:
+        raise argparse.ArgumentTypeError("Profilnummer muss zwischen 1 und 99 liegen")
+    return number
+
+
 def _mailbox_choice(value: str) -> int | str:
     """A mailbox number, or "alle"/"all" for every enabled mailbox."""
     if value.strip().casefold() in {"alle", "all"}:
@@ -294,14 +312,18 @@ def _clear(args: argparse.Namespace, settings) -> int:
     return 0
 
 
-def _microsoft_login(settings, secrets, directory: Path) -> int:
+def _microsoft_login(settings, secrets, directory: Path, profile_id=1) -> int:
     """Device-code sign-in; the terminal shows only the code and address, never a token."""
     from .external.contracts import OAuthTokenError
     from .external.providers import microsoft_tokens
+    from .mailbox_settings import target_profiles
+    settings = settings.model_copy(update={"targets": target_profiles(settings)[profile_id]})
+    secrets = secrets.for_profile(profile_id)
     if not secrets.microsoft_client_id.get_secret_value():
         print("MICROSOFT_CLIENT_ID fehlt in .env oder der Prozessumgebung.", file=sys.stderr)
         return 1
-    tokens = microsoft_tokens(settings, secrets, directory, settings.timeouts.microsoft.timeout_seconds)
+    options = {"profile_id": profile_id} if profile_id != 1 else {}
+    tokens = microsoft_tokens(settings, secrets, directory, settings.timeouts.microsoft.timeout_seconds, **options)
     try:
         tokens.device_login(print)
     except OAuthTokenError as exc:
@@ -356,7 +378,7 @@ def _run(args: argparse.Namespace, settings, secrets, topics, irrelevant_topics,
             configured = settings.imap.configured_mailboxes()
             sources = [LearningSource(readers[mailbox.id], mailbox.folders,
                                       "imap.folders" if settings.imap.legacy_format
-                                      else f"imap.mailboxes.{configured.index(mailbox)}.folders")
+                                    else f"imap.mailboxes.{configured.index(mailbox)}.folders", mailbox_id=mailbox.id)
                        for mailbox in mailboxes]
             LearningMode(
                 sources[0].imap, application.analyzer, sources[0].folders,
@@ -366,10 +388,12 @@ def _run(args: argparse.Namespace, settings, secrets, topics, irrelevant_topics,
                 timezone=settings.timezone,
                 parallel_llm_calls=settings.learning.parallel_llm_calls,
                 global_newest_first=getattr(settings.imap, "global_newest_first", False),
-                config_path=args.config_directory / "config.yaml", sources=sources,
+                config_path=args.config_directory / "config.yaml", sources=sources, scoped_learning=True,
             ).run(args.learn)
             return 0
         shutdown.stop = application.stop
+        # Status page: confirm each service at once instead of after its first use.
+        application.confirm_access_in_background()
         if args.ignore_historical_start:
             fatal_error = application.run(
                 max_mails=args.max_mails,
@@ -386,6 +410,10 @@ def _run(args: argparse.Namespace, settings, secrets, topics, irrelevant_topics,
 def _main() -> int:
     parser = _parser()
     args = parser.parse_args()
+    if args.profile is not None and not (args.microsoft_login or args.google_auth):
+        parser.error("--profile benötigt --google-auth oder --microsoft-login")
+    if args.microsoft_login and args.google_auth:
+        parser.error("Nur einen OAuth-Einrichtungsmodus wählen")
     _check_decision_test_options(parser, args)
     shutdown = _SignalShutdown()
     signal.signal(signal.SIGINT, shutdown)
@@ -394,9 +422,27 @@ def _main() -> int:
         from .local_pairing import request_local_code
         request_local_code(args.config_directory)
         return 0
-    settings, secrets, topics, irrelevant_topics, prompts, fingerprint = load_all(args.config_directory)
+    loaded = (load_all(args.config_directory, oauth_profile=args.profile or 1)
+              if args.google_auth else load_all(args.config_directory))
+    settings, secrets, topics, irrelevant_topics, prompts, fingerprint = loaded
+    if args.google_auth or args.microsoft_login:
+        from .mailbox_settings import target_profiles
+        number = args.profile or 1
+        if number not in target_profiles(settings):
+            parser.error("Zielprofil ist nicht konfiguriert")
+    if args.google_auth:
+        from .external.contracts import OAuthTokenError
+        from .google_login import login
+        try:
+            login(secrets.for_profile(number), args.config_directory, number)
+        except OAuthTokenError as exc:
+            print(f"FEHLER: {exc}", file=sys.stderr)
+            return 1
+        print(f"Google-Anmeldung für Profil {number} gespeichert.")
+        return 0
     if args.microsoft_login:
-        return _microsoft_login(settings, secrets, args.config_directory)
+        return (_microsoft_login(settings, secrets, args.config_directory, args.profile)
+                if args.profile is not None else _microsoft_login(settings, secrets, args.config_directory))
     _check_mode_options(parser, args)
     mailboxes = _selected_mailboxes(parser, args, settings)
     local_llm = _local_llm(parser, args, prompts)

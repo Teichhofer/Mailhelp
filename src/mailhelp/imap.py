@@ -194,6 +194,19 @@ def _fetched_mail(folder: str, uidvalidity: int, uid: int, data: object,
     return FetchedMail(folder, uidvalidity, uid, item[1], mailbox, received_at)
 
 
+def _uid_and_date(metadata: bytes) -> tuple[int, datetime]:
+    """UID and receive time of one ``(UID INTERNALDATE)`` response item."""
+    uid_match = re.search(rb'\bUID\s+(\d+)\b', metadata, re.IGNORECASE)
+    match = re.search(rb'\bINTERNALDATE\s+"([^"]+)"', metadata, re.IGNORECASE)
+    if uid_match is None or match is None:
+        raise RuntimeError("IMAP-INTERNALDATE-Antwort leer oder strukturell unbrauchbar")
+    try:
+        received_at = datetime.strptime(match.group(1).decode("ascii"), "%d-%b-%Y %H:%M:%S %z")
+    except (UnicodeDecodeError, ValueError) as exc:
+        raise RuntimeError("IMAP lieferte ungültigen INTERNALDATE-Datumswert") from exc
+    return int(uid_match.group(1)), received_at
+
+
 def account_id(host: str, port: int, username: str) -> str:
     """Return a stable, non-secret identifier for one configured mailbox."""
     normalized = f"{host.strip().rstrip('.').lower()}\n{port}\n{username.strip().lower()}"
@@ -376,6 +389,29 @@ class ImapReader:
                         completed_uid_ranges: tuple[tuple[int, int], ...] = (),
                         max_count: int | None = None,
                         historical_start: datetime | None = None) -> list[MailCandidate]:
+        uidvalidity = self._select_generation(folder, expected_uidvalidity)
+        tokens = self._search_uids(after_uid, historical_start)
+        available = [token for token in tokens
+                     if not any(start <= int(token) <= end
+                                for start, end in completed_uid_ranges)]
+        if max_count is not None and max_count < 0:
+            raise ValueError("max_count darf nicht negativ sein")
+        selected = available if max_count is None else available[-max_count:] if max_count else []
+        if not selected:
+            self.logger.event("INFO", "imap", "messages_discovered", folder=folder, account_id=self.account_id,
+                              available_count=len(available), batch_count=0,
+                              historical_excluded_count=0)
+            return []
+        candidates = [MailCandidate(folder, uidvalidity, uid, self.account_id, received_at)
+                      for uid, received_at in self._internal_dates(selected)
+                      if historical_start is None or received_at >= historical_start]
+        self.logger.event("INFO", "imap", "messages_discovered", folder=folder, account_id=self.account_id,
+                          available_count=len(available), batch_count=len(candidates),
+                          historical_excluded_count=len(selected) - len(candidates))
+        return candidates
+
+    def _select_generation(self, folder: str, expected_uidvalidity: int | None) -> int:
+        """Select read-only and return the UID generation; a changed one is reported, never mixed."""
         status, _data = self._select(folder)
         if status != "OK":
             raise FolderNotReadable(folder)
@@ -386,6 +422,9 @@ class ImapReader:
         self.last_uidvalidity = uidvalidity
         if expected_uidvalidity is not None and expected_uidvalidity != uidvalidity:
             raise UIDValidityChanged(folder, expected_uidvalidity, uidvalidity)
+        return uidvalidity
+
+    def _search_uids(self, after_uid: int, historical_start: datetime | None) -> list[bytes]:
         search: list[str] = [f"UID {after_uid + 1}:*"]
         if historical_start is not None:
             # SEARCH has day precision.  Include the preceding UTC day and apply
@@ -395,59 +434,35 @@ class ImapReader:
         status, matches = self._uid("search", None, *search)
         if status != "OK":
             raise RuntimeError("IMAP-Suche fehlgeschlagen")
-        tokens = matches[0].split() if matches else []
-        available = [token for token in tokens
-                     if not any(start <= int(token) <= end
-                                for start, end in completed_uid_ranges)]
-        if max_count is not None and max_count < 0:
-            raise ValueError("max_count darf nicht negativ sein")
-        selected = available if max_count is None else available[-max_count:] if max_count else []
-        if not selected:
-            self.logger.event("INFO", "imap", "messages_discovered", folder=folder,
-                              available_count=len(available), batch_count=0,
-                              historical_excluded_count=0)
-            return []
-        # One sequence-set FETCH replaces one request per UID.  Only the newest
-        # per-folder window needed for a global N-result can contribute to it.
-        status, data = self._uid(
-            "fetch", b",".join(selected), "(UID INTERNALDATE)"
-        )
+        # RFC 3501: x:* also includes the highest assigned UID when x is
+        # larger than it. Enforce our exclusive boundary before any FETCH.
+        return [token for token in matches[0].split() if int(token) > after_uid] if matches else []
+
+    def _internal_dates(self, selected: list[bytes]) -> list[tuple[int, datetime]]:
+        """UID and INTERNALDATE of exactly the selected messages, in one sequence-set FETCH.
+
+        One sequence-set FETCH replaces one request per UID.  Only the newest
+        per-folder window needed for a global N-result can contribute to it.
+        """
+        status, data = self._uid("fetch", b",".join(selected), "(UID INTERNALDATE)")
         if status != "OK":
             raise RuntimeError(f"IMAP-INTERNALDATE-Abruf abgelehnt: {status}")
         metadata_items = [part[0] if isinstance(part, tuple) and part else part
                           for part in data or []]
         selected_uids = {int(token) for token in selected}
-        returned_uids: set[int] = set()
-        candidates: list[MailCandidate] = []
+        result: list[tuple[int, datetime]] = []
+        returned: set[int] = set()
         for metadata in metadata_items:
             if not isinstance(metadata, bytes) or metadata.strip() == b")":
                 continue
-            uid_match = re.search(rb'\bUID\s+(\d+)\b', metadata, re.IGNORECASE)
-            match = re.search(rb'\bINTERNALDATE\s+"([^"]+)"', metadata, re.IGNORECASE)
-            if uid_match is None or match is None:
+            uid, received_at = _uid_and_date(metadata)
+            if uid not in selected_uids or uid in returned:
                 raise RuntimeError("IMAP-INTERNALDATE-Antwort leer oder strukturell unbrauchbar")
-            try:
-                received_at = datetime.strptime(
-                    match.group(1).decode("ascii"), "%d-%b-%Y %H:%M:%S %z"
-                )
-            except (UnicodeDecodeError, ValueError) as exc:
-                raise RuntimeError("IMAP lieferte ungültigen INTERNALDATE-Datumswert") from exc
-            uid = int(uid_match.group(1))
-            if uid not in selected_uids:
-                raise RuntimeError("IMAP-INTERNALDATE-Antwort leer oder strukturell unbrauchbar")
-            if uid in returned_uids:
-                raise RuntimeError("IMAP-INTERNALDATE-Antwort leer oder strukturell unbrauchbar")
-            returned_uids.add(uid)
-            if historical_start is None or received_at >= historical_start:
-                candidates.append(MailCandidate(
-                    folder, uidvalidity, uid, self.account_id, received_at
-                ))
-        if returned_uids != selected_uids:
+            returned.add(uid)
+            result.append((uid, received_at))
+        if returned != selected_uids:
             raise RuntimeError("IMAP-INTERNALDATE-Antwort leer oder strukturell unbrauchbar")
-        self.logger.event("INFO", "imap", "messages_discovered", folder=folder,
-                          available_count=len(available), batch_count=len(candidates),
-                          historical_excluded_count=len(selected) - len(candidates))
-        return candidates
+        return result
 
     def determine_start_uid(self, folder: str, start: datetime) -> int:
         """Resolve an absolute historical boundary once, without changing flags."""
@@ -507,9 +522,7 @@ class ImapReader:
             # Do not search or fetch in a UID generation whose durable boundary
             # has not been resolved yet.  In particular, BODY.PEEK must not run.
             raise UIDValidityChanged(folder, expected_uidvalidity, uidvalidity)
-        status, matches = self._uid("search", None, f"UID {after_uid + 1}:*")
-        if status != "OK": raise RuntimeError("IMAP-Suche fehlgeschlagen")
-        tokens = matches[0].split() if matches else []
+        tokens = self._search_uids(after_uid, None)
         def completed(uid: int) -> bool:
             return any(start <= uid <= end for start, end in completed_uid_ranges)
         available = [token for token in reversed(tokens) if not completed(int(token))]
@@ -518,7 +531,7 @@ class ImapReader:
         # can use ``--max-mails`` to test more than one normal batch at once.
         fetch_count = self.batch_size if max_count is None else max_count
         selected = available[:fetch_count]
-        self.logger.event("INFO", "imap", "messages_discovered", folder=folder,
+        self.logger.event("INFO", "imap", "messages_discovered", folder=folder, account_id=self.account_id,
                           available_count=len(available), batch_count=len(selected))
         result = []
         for token in selected:

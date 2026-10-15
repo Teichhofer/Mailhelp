@@ -14,9 +14,9 @@ from .domain.proposal import (
 )
 from .external.calendar import CalendarOperations
 from .external.contracts import ExternalWriter, TargetWriter
-from .external.roles import CALENDAR_SLOT, TASK_SLOT, provider_key, slot
+from .external.roles import CALENDAR_SLOT, TASK_SLOT, profile_slot, provider_key, slot
 from .logging import EventLogger, NullLogger
-from .telegram.ledger import ActionLedgerPort
+from .persistence.ledger import ActionLedgerPort
 
 
 class DuplicatePreCheckService:
@@ -40,7 +40,10 @@ class DuplicatePreCheckService:
         self, proposal: Proposal, mail_context: dict[str, Any] | None = None
     ) -> Proposal:
         """Inspect proposal against local and external sources, returning updated proposal."""
-        bound = self.writers.get(CALENDAR_SLOT if proposal.kind == ProposalKind.EVENT else TASK_SLOT)
+        bound = self.writers.get(profile_slot(
+            CALENDAR_SLOT if proposal.kind == ProposalKind.EVENT else TASK_SLOT, proposal.target_profile))
+        if proposal.target_profile != 1 and bound is None:
+            return self._failed(proposal, "target", LookupError("Zielprofil nicht mehr konfiguriert"))
         if isinstance(bound, TargetWriter) and (proposal.target != bound.target or
                 proposal.target_provider and proposal.target_provider != provider_key(bound)):
             return self._failed(proposal, "target", ValueError("Zielbindung geändert"))
@@ -69,7 +72,7 @@ class DuplicatePreCheckService:
                 return self._failed(proposal, "ledger", exc)
 
         # Stufe 2: Kalender (Google, CalDAV oder Outlook)
-        cal_writer = self.writers.get(CALENDAR_SLOT)
+        cal_writer = self.writers.get(profile_slot(CALENDAR_SLOT, proposal.target_profile))
         if (
             proposal.kind == ProposalKind.EVENT
             and isinstance(cal_writer, CalendarOperations)
@@ -85,7 +88,7 @@ class DuplicatePreCheckService:
                 return self._failed(proposal, "calendar", exc)
 
         # Stufe 3: Aufgaben (Todoist, Microsoft To Do oder CalDAV)
-        todo_writer = self.writers.get(TASK_SLOT)
+        todo_writer = self.writers.get(profile_slot(TASK_SLOT, proposal.target_profile))
         if (
             proposal.kind == ProposalKind.TASK
             and isinstance(todo_writer, TargetWriter)

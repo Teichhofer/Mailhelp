@@ -22,6 +22,8 @@ MOVED_WRITERS = ("HttpWriter", "GoogleOAuthTokenProvider")
 
 
 class OfflineResource:
+    service = "offline"
+
     def __init__(self, *_args, **_kwargs):
         pass
 

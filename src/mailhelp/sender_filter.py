@@ -18,11 +18,16 @@ def sender_addresses(header: object) -> set[str]:
     return result
 
 
-def is_irrelevant_sender(header: object, blocked: IrrelevantSenders) -> bool:
+def is_irrelevant_sender(header: object, blocked: IrrelevantSenders, mailbox_id: int = 1) -> bool:
     """Match an exact mailbox or its whole domain without using message content."""
     addresses = sender_addresses(header)
-    return bool(addresses.intersection(blocked.addresses) or any(
-        address.rsplit("@", 1)[1].rstrip(".") in blocked.domains for address in addresses
+    rules = blocked.mailboxes.get(str(mailbox_id))
+    allowed = set(rules.allow) if rules is not None else set()
+    denied = set(blocked.addresses) | (set(rules.addresses) if rules is not None else set())
+    domains = set(blocked.domains) | (set(rules.domains) if rules is not None else set())
+    addresses -= allowed
+    return bool(addresses.intersection(denied) or any(
+        address.rsplit("@", 1)[1].rstrip(".") in domains for address in addresses
     ))
 
 
@@ -48,10 +53,28 @@ def sender_entry(text: str) -> tuple[str, str]:
 
 
 def change_irrelevant_senders(blocked: IrrelevantSenders, add: bool, addresses: list[str],
-                              domains: list[str]) -> IrrelevantSenders:
+                              domains: list[str], mailbox_id: int | None = None, *, allow=False) -> IrrelevantSenders:
     """Add or remove entries idempotently; the result is validated and sorted."""
     def changed(current: list[str], entries: list[str]) -> list[str]:
         return sorted(set(current) | set(entries) if add else set(current) - set(entries))
 
-    return IrrelevantSenders(addresses=changed(blocked.addresses, addresses),
-                             domains=changed(blocked.domains, domains))
+    if mailbox_id is None:
+        return blocked.model_copy(update={"addresses": changed(blocked.addresses, addresses),
+                                           "domains": changed(blocked.domains, domains)})
+    from .domain.relevance import SenderRules
+    rules = blocked.mailboxes.get(str(mailbox_id), SenderRules())
+    patch = {"allow": changed(rules.allow, addresses)} if allow else {
+        "addresses": changed(rules.addresses, addresses), "domains": changed(rules.domains, domains)}
+    updated = SenderRules.model_validate({**rules.model_dump(), **patch})
+    return blocked.model_copy(update={"mailboxes": {**blocked.mailboxes, str(mailbox_id): updated}})
+
+
+def save_sender_filter(store, blocked: IrrelevantSenders) -> None:
+    from .storage import atomic_replace
+    with store.locked():
+        previous = store.load("irrelevant-senders", {})
+        path = store.directory / "irrelevant-senders.json"
+        backup = path.with_name("irrelevant-senders.json.v1")
+        if previous.get("schema_version") == 1 and not backup.exists():
+            atomic_replace(backup, path.read_text(encoding="utf-8"))
+        store.save("irrelevant-senders", blocked.model_dump(mode="json"))

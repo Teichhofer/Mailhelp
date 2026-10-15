@@ -1,6 +1,7 @@
 """Read-only integration probes and explicitly requested synthetic test messages."""
 from __future__ import annotations
 
+import os
 import tempfile
 from pathlib import Path
 
@@ -23,6 +24,62 @@ class SetupRuntime:
             "web_push": self.push, "telegram_test": self.telegram_test,
             "push_test": self.push_test, "llm_test": self.llm_test}, revision=self.setup.fingerprint)
 
+    def update_profile_checks(self):
+        from .mailbox_settings import target_profiles
+        configured = target_profiles(self.setup.draft_settings())
+        for name in list(self.diagnostics.checks):
+            if name.startswith(("calendar:", "tasks:")):
+                del self.diagnostics.checks[name]
+        for number in configured:
+            if self.setup.draft_settings().target_profiles:
+                self.diagnostics.checks[f"calendar:{number}"] = lambda actor, number=number: self.profile_check(
+                    number, "calendar"
+                )
+                self.diagnostics.checks[f"tasks:{number}"] = lambda actor, number=number: self.profile_check(
+                    number, "tasks"
+                )
+
+    def credentials(self, cfg):
+        from pydantic import SecretStr
+
+        from .config import ImapCredentials, _dotenv, imap_secret_values
+        from .target_profiles import load_profile_secrets
+        if self.secrets is None:
+            return None
+        env = {**_dotenv(self.app.configuration.directory / ".env"), **os.environ}
+        seed = {name.upper(): value.get_secret_value() for name, value in self.secrets if isinstance(value, SecretStr)}
+        env = {**seed, **env}
+        profiles, _missing = load_profile_secrets(cfg, env)
+        profiles = {
+            number: {name: SecretStr(value) for name, value in values.items()} for number, values in profiles.items()
+        }
+        for number, previous in self.secrets.profiles.items():
+            profiles[number] = {**previous, **profiles.get(number, {})}
+        values, _missing = imap_secret_values(cfg.imap, env)
+        imap = {
+            **self.secrets.imap,
+            **{number: ImapCredentials.model_validate(value) for number, value in values.items()},
+        }
+        result = self.secrets.model_copy(update={"profiles": profiles, "imap": imap})
+        if hasattr(self.app.logger, "secrets"):
+            self.app.logger.secrets = (*self.app.logger.secrets, *result.known_values())
+        return result
+
+    def profile_check(self, number, role):
+        from .mailbox_settings import target_profiles
+        cfg = self.setup.draft_settings()
+        cfg = cfg.model_copy(update={"targets": target_profiles(cfg)[number]})
+        secrets = self.credentials(self.setup.draft_settings())
+        if secrets is None:
+            return "failed", "auth"
+        writers = build_writers(cfg, secrets.for_profile(number), self.app.configuration.directory,
+                                timeout_cap=10, profile_id=number)
+        try:
+            (writers.calendar if role == "calendar" else writers.tasks).check_access()
+        finally:
+            writers.close()
+        return "ready", ""
+
     def secret_status(self):
         """Presence of the secrets the configured providers need; never their values."""
         draft = self.setup.draft_settings()
@@ -37,19 +94,31 @@ class SetupRuntime:
         names += ["google_oauth_refresh_token"] if targets.calendar_provider == "google" else []
         names += ["caldav_username", "caldav_password"] if targets.uses_caldav else []
         names += ["microsoft_client_id"] if targets.uses_microsoft else []
-        return {**status, **{name: "vorhanden" if self.secrets is not None and
-                             getattr(self.secrets, name).get_secret_value() else "fehlt" for name in names}}
+        status.update({name: "vorhanden" if self.secrets is not None and
+                       getattr(self.secrets, name).get_secret_value() else "fehlt" for name in names})
+        if draft.target_profiles:
+            from .config import provider_secret_names
+            from .mailbox_settings import active_profiles
+            from .target_profiles import secret_name
+            credentials = self.credentials(draft)
+            for number, target in active_profiles(draft).items():
+                for name in provider_secret_names(target):
+                    value = credentials.for_profile(number) if credentials is not None else None
+                    key = name if number == 1 else secret_name(name, number)
+                    status[key] = "vorhanden" if value and getattr(value, name.lower()).get_secret_value() else "fehlt"
+        return status
 
     def imap(self, actor):
         """Every enabled mailbox of the draft; one failing mailbox fails the check (3.1)."""
         cfg = self.setup.draft_settings()
+        credentials = self.credentials(cfg)
         listed = {}
         try:
             for mailbox in cfg.imap.enabled_mailboxes():
-                if self.secrets is None or mailbox.id not in self.secrets.imap:
+                if credentials is None or mailbox.id not in credentials.imap:
                     # Credentials of a newly added mailbox are read at the next start.
                     return "failed", "auth"
-                with _reader(cfg, self.secrets, mailbox) as reader:
+                with _reader(cfg, credentials, mailbox) as reader:
                     folders = listed[str(mailbox.id)] = [item.name for item in reader.list_folders()]
                     required = [*mailbox.folders, mailbox.drafts_folder]
                     if not set(required) <= set(folders):

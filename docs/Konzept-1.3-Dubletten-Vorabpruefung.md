@@ -1,7 +1,12 @@
 # Mailhelp 1.3 – Konzept und Umsetzungsplan: Dubletten-Vorabprüfung für Aufgaben und Termine
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 **Zielversion:** 1.3.0  
-**Status:** In Planung (Spezifikation und Umsetzungsplan)  
+**Status:** Historischer Entwurf; der lesende Vorabgleich ist seit 1.3 implementiert. Maßgeblich für das aktuelle Verhalten ist die Projektspezifikation.
 **Stand:** 11. Oktober 2026  
 **Bezug:** [Entwicklungsregeln](../AGENTS.md), [Mailhelp-Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Konzept-1.2-Web-Ausbau.md](Konzept-1.2-Web-Ausbau.md)
 

@@ -1,8 +1,13 @@
 # Mailhelp 1.3 – Release-Planung: „Smart Engine & Attachments“
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 **Zielversion:** 1.3.0  
 **Stand:** 11. Oktober 2026  
-**Status:** In Planung (Folgt auf den Abschluss von Version 1.2)  
+**Status:** Historischer Plan; Vorabgleich, Terminänderungen und Dokumentenextraktion sind seit 1.3 implementiert. Einzelne ursprüngliche Detailziele sind keine Zusage des aktuellen Funktionsumfangs.
 **Detailkonzept:** [Konzept-1.3-Intelligenter-Workflow.md](Konzept-1.3-Intelligenter-Workflow.md)  
 **Nachfolge-Release:** [Planung-1.4.md](Planung-1.4.md) (Multimodal & OCR) → [Planung-2.0.md](Planung-2.0.md) (Großes UI-Redesign & Web-Push)
 

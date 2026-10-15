@@ -68,6 +68,25 @@ class NotificationSettings(ProfileModel):
     delivery: DeliverySettings = Field(default_factory=DeliverySettings)
 
 
+class QuietHoursOverrides(ProfileModel):
+    enabled: bool | None = None
+    start: str | None = Field(default=None, pattern=TIME_PATTERN)
+    end: str | None = Field(default=None, pattern=TIME_PATTERN)
+    allow_system_errors: bool | None = None
+
+
+class CategoryOverrides(ProfileModel):
+    decisions: list[Channel] | None = Field(default=None, max_length=2)
+    action_results: list[Channel] | None = Field(default=None, max_length=2)
+    daily_briefing: list[Channel] | None = Field(default=None, max_length=2)
+    system_errors: list[Channel] | None = Field(default=None, max_length=2)
+
+
+class NotificationOverrides(ProfileModel):
+    quiet_hours: QuietHoursOverrides | None = None
+    categories: CategoryOverrides | None = None
+
+
 def effective_profile(settings) -> NotificationSettings:
     if settings.notifications is not None:
         return settings.notifications

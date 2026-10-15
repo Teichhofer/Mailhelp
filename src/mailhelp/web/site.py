@@ -101,6 +101,8 @@ class MailhelpSite:
         self.activity = ActivitySite(self)
         from .setup_site import SetupSite
         self.setup_page = SetupSite(self)
+        from .mailbox_site import MailboxSite
+        self.mailbox_page = MailboxSite(self)
         from .reconciliation_site import ReconciliationSite
         self.reconciliation_page = ReconciliationSite(self)
         self.notification_runtime: NotificationRuntime | None = None
@@ -187,7 +189,8 @@ class MailhelpSite:
                  system.mails_waiting_relevance, sorted(system.analysis.items()),
                  sorted((str(key), value) for key, value in system.proposals.items())]
         if runtime is not None:
-            parts += [runtime["stage"], runtime.get("mail_id"), runtime.get("next_poll")]
+            parts += [runtime["stage"], runtime.get("mail_id"), runtime.get("next_poll"),
+                      runtime.get("imap_errors", [])]
         return hashlib.sha256(json.dumps(parts, default=str).encode("utf-8")).hexdigest()[:16]
 
     def act(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:

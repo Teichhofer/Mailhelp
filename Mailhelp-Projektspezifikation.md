@@ -1,6 +1,10 @@
 # Mailhelp – Projektspezifikation
 
-## Einrichtung und Benachrichtigungssteuerung (Planung 3.0)
+Stand: 14. Oktober 2026, Anwendungsversion 3.3.5. Die folgenden Verträge beschreiben
+den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
+einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
+
+## Einrichtung und Benachrichtigungssteuerung (seit 3.0)
 
 Die verbindlichen Feldgrenzen, Einrichtungsabläufe und Upgrade-/Rollback-Verträge stehen in
 [Release-3.0.md](docs/Release-3.0.md). `/einrichtung` speichert einen schema-versionierten,
@@ -229,6 +233,7 @@ verfügbar.
 - Der Lesestatus dient nicht als Verarbeitungsmarker. Mailhelp verändert die Originalnachrichten und ihren Lesestatus nicht absichtlich.
 - `historical_start` ist optional (`null`) oder ein zeitzonenbehafteter ISO-8601-Zeitpunkt mit explizitem Offset. Seine absolute UTC-Grenze wird über schreibfreie `UID SEARCH`-/`UID FETCH INTERNALDATE`-Abfragen sekundengenau aufgelöst. Der resultierende Start-UID wird vor der Verarbeitung konto- und ordnerbezogen zusammen mit der UIDVALIDITY gespeichert und nach Neustarts derselben UID-Generation nicht neu interpretiert. Bei einem UIDVALIDITY-Wechsel wird die Grenze vor einem `BODY.PEEK[]`-Abruf in der neuen Generation erneut aufgelöst.
 - Die Startoption `--ignore-historical-start` hebt die konfigurierte Grenze für diesen Start auf und setzt bereits gespeicherte historische Start-UIDs aller konfigurierten Ordner in ihrer aktuellen UID-Generation auf UID 0 zurück. Bereits abgeschlossene UID-Bereiche bleiben erhalten, sodass nur zuvor von der Grenze ausgeschlossene Nachrichten zusätzlich auswählbar werden. Ein späterer UIDVALIDITY-Wechsel ohne den Schalter wendet die konfigurierte absolute Grenze in der neuen UID-Generation wieder an.
+- Ergebnisse von `UID SEARCH Start-UID+1:*` werden vor jedem Metadaten- oder Nachrichtenabruf zusätzlich auf UIDs strikt oberhalb der gespeicherten Start-UID gefiltert. IMAP darf bei dieser Suche die höchste vorhandene UID auch dann zurückgeben, wenn sie unterhalb der angefragten Untergrenze liegt. Bereits gespeicherte Warteschlangenpositionen an oder unter der Start-UID können abgeschlossen werden, ohne den Checkpoint zu verändern; dies gilt auch bei einer separaten Wiederaufnahme nach Neustart. Die Validierung der abgeschlossenen UID-Bereiche bleibt unverändert streng.
 - Die ausgelieferte Konfiguration setzt `historical_start` auf `2026-09-15T00:00:00+02:00` (15. September 2026, 00:00 Uhr in `Europe/Berlin`); Nachrichten mit einem früheren IMAP-Empfangszeitpunkt gehören damit beim erstmaligen Aufbau des Abrufpunkts nicht zum zu verarbeitenden Bestand.
 - `batch_size` begrenzt den Abruf pro regulärem Polling-Zyklus auf `1..1000` Nachrichten (Standard `25`). Bei einem begrenzten Einmallauf ersetzt das nach Wiederaufnahmen verbleibende `--max-mails`-Budget diese Batchgröße; dadurch kann der Testlauf mehr als 25 Mails bearbeiten und lädt dennoch keine Nachrichten über sein Restbudget hinaus. Nach der Suche werden die gefundene und ausgewählte Anzahl sowie nach jedem schreibfreien Nachrichtenabruf der Fortschritt ohne Mailinhalt protokolliert; der persistierte UID-Checkpoint setzt den nächsten Zyklus fort.
 - `global_newest_first` ist ein boolescher Schalter. Bei `true` wird pro Ordner zunächst ein auf das gemeinsame Kontingent `N` begrenztes Fenster der höchsten noch offenen UIDs gebildet. Dessen höchstens `N` UID-/`INTERNALDATE`-Metadatensätze werden schreibfrei in einem Sequence-Set-`UID FETCH` statt durch Einzelabrufe aller UIDs ermittelt und anschließend als gemeinsame, nach Empfangszeitpunkt absteigend sortierte Warteschlange behandelt. Diese Begrenzung verliert keinen Kandidaten der globalen Top `N`, sofern die IMAP-konforme UID-Vergabe die Ankunftsreihenfolge abbildet. Bei identischem `INTERNALDATE` entscheiden höhere UID und danach die konfigurierte Ordnerreihenfolge. Erst danach werden die durch das gemeinsame `batch_size`-, `--max-mails`- oder `--learn`-Kontingent ausgewählten Nachrichten mit `BODY.PEEK[]` geladen. Die ordnerspezifischen Checkpoints und der dauerhafte Backlog bleiben erhalten. `historical_start` begrenzt den regulären Abruf, wird im Lernmodus jedoch ignoriert. Bei `false` werden die Ordner weiterhin in Konfigurationsreihenfolge und jeweils neueste UID zuerst verarbeitet.
@@ -1160,7 +1165,7 @@ Postfächer werden in `config.yaml` hinzugefügt oder entfernt.
 
 ## 10. JSON-Zustand und Neustartverhalten
 
-Der Zustand wird als eingerücktes UTF-8-JSON gespeichert. `data_directory` ist dabei nur das Stammverzeichnis: Im Testmodus liegt der vollständige Zustand unter `<data_directory>/test/`, im Produktivmodus unter `<data_directory>/production/`. Jeder Modus besitzt dort seine eigene `.lock`-Datei. IMAP-Checkpoints, Mailzustände, Telegram-Offsets und -Dialoge, Vorschläge einschließlich externer Ergebniszustände sowie das persistierte LLM-Zeitfenster liegen ausschließlich im jeweiligen Verzeichnis; auch identische Mail- und Vorschlags-IDs werden nicht modusübergreifend aufgezählt oder gesperrt. Pro Mail existiert eine Datei. Weitere JSON-Dateien speichern Abrufpositionen und nötige Betriebsinformationen. Dateinamen verwenden interne IDs statt Betreff oder Absender.
+Der Zustand wird als eingerücktes UTF-8-JSON gespeichert. `data_directory` ist dabei nur das Stammverzeichnis: Im Testmodus liegt der vollständige Zustand unter `<data_directory>/test/`, im Produktivmodus unter `<data_directory>/production/`. Jeder Modus besitzt dort seine eigene `.lock`-Datei. Ist sie bereits von einem anderen Prozess gesperrt, beendet sich ein weiterer Start ohne Traceback mit Exit-Code 1 und dem Hinweis, die laufende Instanz zuerst zu beenden. IMAP-Checkpoints, Mailzustände, Telegram-Offsets und -Dialoge, Vorschläge einschließlich externer Ergebniszustände sowie das persistierte LLM-Zeitfenster liegen ausschließlich im jeweiligen Verzeichnis; auch identische Mail- und Vorschlags-IDs werden nicht modusübergreifend aufgezählt oder gesperrt. Pro Mail existiert eine Datei. Weitere JSON-Dateien speichern Abrufpositionen und nötige Betriebsinformationen. Dateinamen verwenden interne IDs statt Betreff oder Absender.
 
 Maildateien tragen Schemaversion 9; Abrufpositionen, Telegram-Offset/-Dialog und der Duplikatindex tragen Schemaversion 1, Vorschläge wegen der verpflichtenden fachlichen Einordnung Schemaversion 2. Der Duplikatindex enthält nur technische IMAP-Identität, interne Mail-ID, normalisierte Message-IDs und einen SHA-256-Fingerprint aus normalisiertem Absender, Betreff, Datum und bereinigtem Text. Eine einzelne gleiche Message-ID zusammen mit gleichem Fingerprint und abgeschlossenem früheren Zustand gilt als Duplikat; der neue Zustand verweist darauf und beendet sich ohne LLM- oder Aktionsaufruf. Ab 3.1 zählen dabei die Einträge aller Postfächer: Dieselbe Mail in zwei konfigurierten Postfächern wird nur einmal analysiert, unsichere Fälle bleiben auch postfachübergreifend `ambiguous`. Fehlende oder mehrfache Message-ID-Header, wiederverwendete IDs mit abweichendem Fingerprint, unvollständige Kandidaten und reine Fingerprinttreffer sind unsicher: Sie werden nachvollziehbar als `ambiguous` gespeichert und niemals still übersprungen. Logs enthalten dabei weder Mailmerkmale noch Fingerprint oder Inhalt. Version 4 ergänzt verpflichtend `created_at`, `updated_at` (jeweils zeitzonenbehaftetes ISO 8601), den 64-stelligen SHA-256-`config_fingerprint` sowie die geschlossenen Listen `validation_errors` und `write_attempts`. Ein Validierungsfehler enthält Stufe, maschinenlesbaren Code, Schlüsselpfad und Zeitpunkt, aber keinen nicht vertrauenswürdigen Inhalt. Eine Schreibreferenz enthält Vorschlags-ID und -Version, Zieldienst und Idempotenzschlüssel; sie verweist nachvollziehbar auf die separat persistierte Vorschlagsversion. Ein offener Relevanzdialog ist über die stabile interne Mail-ID genau seiner Mail zugeordnet; sein Dialogstatus muss zum wartenden Mailzustand passen. Jede Datei wird vor fachlicher Verwendung validiert. Syntaktisch defekte Dateien werden nach `.corrupt`, schemawidrige nach `.invalid` verschoben und sichtbar mit Dateiname und Schlüsselpfad gemeldet, ohne Inhalte preiszugeben.
 
@@ -1913,7 +1918,21 @@ doppeldeutige Zeiten werden abgewiesen.
 **Betriebsstatus.** Ein Laufzeitschnappschuss (Schritt, Dauer, Mail, nächster Abruf) und
 der letzte belegte erfolgreiche Kontakt je Dienst stammen aus ohnehin protokollierten
 Ereignissen; die Statusseite löst keinen Dienstaufruf aus und aktualisiert sich über ein
-eigenes Signal (`/api/stand?seite=status`).
+eigenes Signal (`/api/stand?seite=status`). Als Kontakt zählen auch ein IMAP-Abruf ohne neue
+Mail und jede abgeschlossene Telegram-Abfrage ohne Nachricht (seit 3.3.3). Beim Dienststart
+prüft Mailhelp im Hintergrund lesend OpenRouter bzw. Ollama, Telegram (nur wenn aktiviert,
+ohne Testnachricht) und die Ziele der aktiven Zielprofile; die Mailverarbeitung wartet nicht
+darauf. Die OpenRouter-Schlüsselprüfung belegt auch „Jev (Relevanz)“, das dasselbe Konto nutzt.
+IMAP belegt der erste Mailabruf. Fehlgeschlagene Prüfungen werden nur als Warnung protokolliert;
+der Dienst bleibt „unbekannt“, bis ein späterer Kontakt gelingt.
+
+Aktuelle IMAP-Ordnerfehler werden unabhängig von Mailzuständen und Durchlaufzählern
+nach gehashter Kontoidentität und Ordner getrennt im Laufzeitsnapshot geführt. Die
+Statusseite zeigt Postfachnummer, Ordner, sicheren Fehlergrund und Zeitpunkt.
+Rohfehler und Geheimnisse fehlen. Wiederholte Fehler ersetzen denselben Eintrag;
+nur eine erfolgreiche Suche im selben Konto und Ordner entfernt ihn. Änderungen
+an diesen Hinweisen verändern den Status-Fingerprint. Ein Neustart beginnt mit
+einem leeren Snapshot; der nächste Abruf ermittelt den aktuellen Zustand erneut.
 
 **Metriken.** Jeder KI-Versuch wird inhaltsfrei in `logs/metrics/llm.jsonl` (Betrieb) bzw.
 `logs/metrics/decision-tests.jsonl` (Vergleichsläufe) festgehalten, mit Schritt, Modell,
@@ -1924,7 +1943,10 @@ Datum; Stromkosten sind eine gekennzeichnete Schätzung aus `metrics.ollama_powe
 `metrics.electricity_eur_per_kwh`, überlappende Aufrufe zählen einmal.
 
 **Einstellungen und Themen.** Bearbeitbar ist nur eine Positivliste von Einstellungen;
-Geheimnisse, Web-Bindung, Datenverzeichnis und IMAP-Konten nicht. Änderungen sind
+in der globalen Einzelfeldansicht sind Geheimnisse, Web-Bindung, Datenverzeichnis und
+IMAP-Konten nicht bearbeitbar. Die getrennte Einrichtung und die Postfachverwaltung
+seit 3.2 unterstützen IMAP-Konfigurationsentwürfe; Geheimnisse bleiben außerhalb des Webs.
+Änderungen sind
 `AdminCommand`s mit erwartetem Dateihash und ausdrücklicher Bestätigung, laufen im
 Hauptthread, werden journalisiert und atomar geschrieben. `config.yaml` wird
 kommentarerhaltend geändert (nur betroffene Zeilen); weicht die geparste Datei vom
@@ -2287,3 +2309,57 @@ Bestehende Zustände bleiben mit additiven Standardfeldern lesbar. Neue Beziehun
 Vergleichscaches und Journale besitzen eigene Schemas. Vor produktiver Nutzung ist
 eine vollständige Zustandssicherung erforderlich; ein Rollback benötigt den Stand
 vor dem Upgrade. Bedienung und Grenzen stehen in [Release-2.4](docs/Release-2.4.md).
+
+## Version 3.2: Einstellungen je Postfach
+
+Wirksame Regeln entstehen ausschließlich aus globalen Einstellungen und den sparsamen
+Überschreibungen des konfigurierten Ursprungspostfachs. Stabile Postfachnummern, keine Mailinhalte,
+bestimmen die Zuordnung. Zulässig sind Zielprofil, persönliche Angaben, Antwortentwürfe,
+Ruhezeiten/Kategoriekanäle, Teilnahme am Tagesüberblick, Berichtsordner, kürzere Volltextaufbewahrung
+und Standardtermindauern. Prompts, Modelle, Budgets und Relevanzschwellen bleiben gemeinsam.
+
+`targets` bleibt Profil 1; zusätzliche `target_profiles` besitzen IDs 2–99. Geheimnisse werden nach
+Profilnummer getrennt; nur OAuth-Client-ID/-Secret dürfen global geerbt werden. Aktive Postfachverweise
+bestimmen erforderliche Geheimnisse. OAuth-Einrichtung unterstützt `--profile`; Google verwendet einen
+lokalen zeitbegrenzten State-/PKCE-Rückruf, Microsoft getrennte Token-Dateien.
+
+Vorschläge in Schema 3 enthalten `target_profile`. Migrationen setzen ältere Vorschläge atomar und
+wiederholbar auf Profil 1. Profile bestimmen Writer, lesenden Vorabgleich und Wiederanlauf nach unklarem
+Schreibergebnis. Fehler eines Profils isolieren dessen Vorschläge. Ein ausdrücklicher Zielwechsel
+erzeugt eine neue unbestätigte Version, löscht alte Anlageberechtigungen und löst keine externe Aktion aus.
+Offene Vorschläge unterschiedlicher Profile werden nicht zusammengeführt; identische Mailkopien werden
+weiterhin einmal verarbeitet. Profile mit offenen Vorschlägen oder Postfachverweisen sind nicht entfernbar.
+
+Absenderfilter Schema 2 kombiniert globale und lokale Sperren mit exakten lokalen `allow`-Ausnahmen.
+Schema 1 wird erst beim nächsten Schreiben mit `.json.v1`-Sicherung umgestellt. Themen und ausgeschlossene
+Themen besitzen optional `mailboxes`; ohne Feld gelten sie global. Lernen ordnet standardmäßig dem
+Ursprung zu und bietet globale Zuordnung. Normale Verarbeitung, Decision-Test und Berichte berücksichtigen
+die wirksamen Regeln. Antwortentwürfe bleiben im Ursprungspostfach.
+
+Die gemeinsame Benachrichtigungsqueue speichert Postfachnummern, verwendet je Ereignis dessen Richtlinie
+und bündelt nach Postfach. Der Tagesüberblick enthält Abschnitte der eingeschlossenen Postfächer;
+Upgrade-Marker verhindern wiederholten Versand. Vererbung und Rücksetzen sind in den fünf Postfach-Tabs
+sichtbar. Änderungen benötigen Sitzung, CSRF, Entwurfsversion, Dateihash und Idempotenz sowie erneute
+Autorisierung bei Ausführung. Die Vorschau nennt betroffene laufende Mails. Sämtliche Ziele einschließlich
+der Standardziele, Provider und Profilzuordnungen bleiben außerhalb des Analyse-Fingerprints. Das Upgrade
+registriert die bisherigen Fingerprints und Themenrichtlinien bis 3.1 für dieselbe Analysekonfiguration
+als gleichwertig, ohne gespeicherte Vorschläge oder ihre Bestätigungen zu verändern. Diese Registrierung
+ist wiederholbar und übersteht Neustarts. Themen- und andere Analyseänderungen bleiben wirksam.
+Details, Fingerprint-Kompatibilität
+und Rückkehr aus einer vorher angelegten Sicherung stehen in [Release-3.2](docs/Release-3.2.md).
+
+## Darstellung der Weboberfläche (3.3.1)
+
+Ab 1200 Pixeln Breite bündelt eine feste Seitenleiste die Navigation in Arbeitsbereich, Einblicke
+und Verwaltung. Auf schmaleren Bildschirmen bleibt die Navigationsleiste horizontal scrollbar;
+auf Telefonen scrollt der Kopfbereich mit der Seite und verdeckt keine Aktionen. Ein Tastatur-Link
+führt direkt zum Hauptinhalt. Die Seitenüberschrift steht vor den Filtern.
+
+Vorschlagskarten bewahren Titel, Zeitangaben, Zielprofil, Status, Warnungen und offene Fragen sichtbar.
+Beschreibung und Beleg stehen in einer aufklappbaren Sektion; in der Detailansicht bleiben sie direkt
+zugänglich. Große Bildschirme zeigen die kompakte Arbeitsliste neben der Detailansicht. Die globalen
+Einstellungen besitzen Bereichs-Sprunglinks und eine aufklappbare Übersicht der verwendeten Modelle.
+
+Alle Inhalte werden weiterhin escaped. Daten, Formularziele, versionsbezogene Bestätigungen,
+CSRF-Prüfung und Idempotenz bleiben erhalten. Der Service Worker aktualisiert ausschließlich den
+Shell-Cache; Mailinhalte und Aktionen werden weder offline gespeichert noch wiederholt.

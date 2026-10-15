@@ -23,6 +23,9 @@ legacy ones, so an unchanged 1.x configuration keeps all of its fingerprints.
 Mailboxes (3.1) decide where mail comes from, not how it is analysed: ``imap`` is
 operational. Until 3.0 it was part of the fingerprint; for mailbox 1 the former
 ``imap`` section is reproduced exactly, so mails started before the upgrade continue.
+
+Write targets (3.2) are operational as well. The 3.1 hashes and topic policies
+are registered as equivalent on upgrade without changing saved proposal bindings.
 """
 
 from __future__ import annotations
@@ -37,7 +40,7 @@ from .storage import JsonStore
 
 # Sections and fields introduced by 2.0 and later; they never influence an analysis.
 EXPERIENCE = frozenset({"push", "daily_briefing", "smart_reply", "personal_info", "activity_report", "notifications",
-                        "event_defaults", "proposal_reconciliation"})
+                        "event_defaults", "proposal_reconciliation", "target_profiles"})
 EXPERIENCE_FIELDS = (("imap", "drafts_folder"), ("telegram", "enabled"), ("retention", "activity_report_days"),
                      # 2.3: further write targets; an unchanged Google/Todoist configuration keeps its fingerprint.
                      *(("targets", name) for name in ("calendar_provider", "task_provider", "caldav_calendar_url",
@@ -78,7 +81,7 @@ def _settings(settings: Settings, exclude: set[str]) -> dict[str, Any]:
 
 
 def analysis_settings(settings: Settings) -> dict[str, Any]:
-    return _settings(settings, set(OPERATIONAL | PREPARATION))
+    return _settings(settings, set(OPERATIONAL | PREPARATION | {"targets"}))
 
 
 def analysis_prompts(prompts: PromptConfig) -> dict[str, Any]:
@@ -87,7 +90,7 @@ def analysis_prompts(prompts: PromptConfig) -> dict[str, Any]:
 
 def config_fingerprint(settings: Settings, prompts: PromptConfig, topics: list[Topic]) -> str:
     return _hash([analysis_settings(settings), analysis_prompts(prompts),
-                  [topic.model_dump() for topic in topics]])
+                  [topic.model_dump(exclude_none=True) for topic in topics]])
 
 
 def topic_policy(settings: Settings, prompts: PromptConfig) -> str:
@@ -101,28 +104,32 @@ def proposal_match_policy(prompts: PromptConfig) -> str:
 
 
 def legacy_fingerprints(settings: Settings, prompts: PromptConfig, topics: list[Topic]) -> set[str]:
-    """Fingerprints that 1.1, the 1.2 beta and 1.2 to 3.0 computed for this same configuration.
+    """Fingerprints that releases through 3.1 computed for this same configuration.
 
-    Without a mailbox 1 there is no former ``imap`` section and no former fingerprint.
+    Without mailbox 1 only the 3.1 fingerprint can be reconstructed.
     """
+    rest = [analysis_prompts(prompts), [topic.model_dump(exclude_none=True) for topic in topics]]
+    former = {_hash([_settings(settings, set(OPERATIONAL | PREPARATION)), *rest])}
     if _imap_before_3_1(settings) is None:
-        return set()
+        return former
     beta = _settings(settings, {"web", *PREPARATION})
     release_1_1 = copy.deepcopy(beta)
     release_1_1.pop("metrics")
     release_1_1["retention"] = {key: value for key, value in release_1_1["retention"].items()
                                 if key not in {"analysis_days", "history_days"}}
     release_3_0 = _settings(settings, set(OPERATIONAL_BEFORE_3_1 | PREPARATION))
-    rest = [analysis_prompts(prompts), [topic.model_dump() for topic in topics]]
-    return {_hash([release_1_1, *rest]), _hash([beta, *rest]), _hash([release_3_0, *rest])}
+    return former | {_hash([release_1_1, *rest]), _hash([beta, *rest]), _hash([release_3_0, *rest])}
 
 
 def legacy_policies(settings: Settings, prompts: PromptConfig) -> set[str]:
-    """Topic policies written by the 1.2 beta and by 1.2 to 3.0."""
+    """Topic policies written by the 1.2 beta and by 1.2 through 3.1."""
+    former = {_hash([_settings(settings, set(OPERATIONAL | PREPARATION)), analysis_prompts(prompts)])}
     if _imap_before_3_1(settings) is None:
-        return set()
-    return {_hash([_settings(settings, {"web", "metrics", "retention", *PREPARATION}), analysis_prompts(prompts)]),
-            _hash([_settings(settings, set(OPERATIONAL_BEFORE_3_1 | PREPARATION)), analysis_prompts(prompts)])}
+        return former
+    return former | {
+        _hash([_settings(settings, {"web", "metrics", "retention", *PREPARATION}), analysis_prompts(prompts)]),
+        _hash([_settings(settings, set(OPERATIONAL_BEFORE_3_1 | PREPARATION)), analysis_prompts(prompts)]),
+    }
 
 
 def adopt_legacy_configuration(store: JsonStore, fingerprint: str, legacy: set[str], policy: str,

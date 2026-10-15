@@ -12,7 +12,7 @@ from activity_fakes import definition
 from openpyxl import load_workbook
 from shared_web_auth import Browser
 
-from mailhelp.activity.models import ReportEvent, ReportMail, ReportStatus
+from mailhelp.activity.models import FolderProgress, ReportEvent, ReportMail, ReportStatus
 from mailhelp.activity.service import ActivityService
 from mailhelp.activity.store import ActivityReportStore
 from mailhelp.domain.relevance import IrrelevantSenders
@@ -186,7 +186,7 @@ def test_start_pause_cancel_and_delete_are_version_checked(web, reports):
     assert status == 200 and "Zählt die Mails" in html and 'http-equiv="refresh"' in html
     assert "kostenpflichtig" not in html
     report.status = ReportStatus.READY
-    report.folders = [{"folder": "INBOX", "uids": [1, 2, 3]}]
+    report.folders = [FolderProgress(folder="INBOX", uids=[1, 2, 3])]
     reports.store.save(report)
     status, html = page(web, f"/berichte/{report.id}")
     assert "3 Mails im Zeitraum" in html and 'http-equiv="refresh"' not in html

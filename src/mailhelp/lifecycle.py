@@ -36,7 +36,7 @@ class Lifecycle:
             self._key = key
             self._set("stop_requested")
 
-        def after_response():
+        def after_response() -> None:
             with self._lock:
                 if self.state != "stop_requested":
                     return

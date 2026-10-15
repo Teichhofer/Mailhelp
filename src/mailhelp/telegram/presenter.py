@@ -32,6 +32,10 @@ class ProposalPresenter:
         self.test_mode = test_mode
         # Label of the mailbox a proposal came from; set only with several mailboxes (3.1).
         self.mailbox_of: Callable[[Proposal], str] = lambda proposal: ""
+        self.profile_of: Callable[[Proposal], str] = lambda proposal: ""
+        self.profile_available: Callable[[Proposal], bool] = lambda proposal: True
+        self.profiles_status: Callable[[], str] = lambda: ""
+        self.retarget_choices: Callable[[Proposal], list[tuple[int, str, str]]] = lambda proposal: []
 
     def present(
         self, proposal: Proposal, sender: str = "—", subject: str = "—",
@@ -42,9 +46,17 @@ class ProposalPresenter:
             numbered_message_parts(
                 sender,
                 subject,
-                ((revision_summary(previous, proposal, self.configured_timezone) + "\n\n")
-                 if previous is not None else "")
+                (
+                    (revision_summary(previous, proposal, self.configured_timezone) + "\n\n")
+                    if previous is not None
+                    else ""
+                )
                 + format_proposal(proposal, self.configured_timezone, self.test_mode)
+                + (
+                    f"\n\nZielprofil: {self.profile_of(proposal)} · {proposal.target}"
+                    if self.profile_of(proposal)
+                    else ""
+                )
                 + (f"\n\nUngeprüfter Zusatz: {additional.title}\n{additional.evidence}" if additional else ""),
                 mailbox=self.mailbox_of(proposal),
             )
@@ -59,7 +71,7 @@ class ProposalPresenter:
             )
             return {"text": text, "callback_data": self.encode(decision)}
 
-        if not proposal_is_writable(proposal):
+        if not self.profile_available(proposal) or not proposal_is_writable(proposal):
             buttons = [
                 [
                     button("Manuell prüfen", DecisionAction.EDIT),
@@ -87,6 +99,10 @@ class ProposalPresenter:
             )
             reject = button("Verwerfen", DecisionAction.REJECT)
             buttons = [[confirm, button("Ändern", DecisionAction.EDIT), reject]]
+        for number, name, digest in self.retarget_choices(proposal):
+            decision = Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version,
+                action=DecisionAction.RETARGET, target_profile=number, profile_hash=digest)
+            buttons.append([{"text": f"Auf Zielprofil {name} umstellen", "callback_data": self.encode(decision)}])
         markup: dict[str, object] = {"inline_keyboard": buttons}
         if additional is not None:
             choices = []

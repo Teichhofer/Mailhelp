@@ -148,9 +148,12 @@ def test_draft_mime_headers_and_input_rejection():
     parsed = BytesParser(policy=policy.default).parsebytes(
         message(H({"from": "a@test", "subject": "Re: Test"}), "me@test", "Text", "<new@test>"))
     assert parsed["Subject"] == "Re: Test" and "In-Reply-To" not in parsed
-    for headers, sender in (({}, "a@test"), ({"from": "bad"}, "a@test"), ({"from": "a@test"}, "a@test\r\nBcc:evil@test"),
-                            ({"from": "a@test", "subject": "Test\r\nBcc:evil@test"}, "me@test")):
+    for headers, sender in (({}, "a@test"), ({"from": "bad"}, "a@test"), ({"from": "a@test"}, "a@test\r\nBcc:evil@test")):
         with pytest.raises(ValueError): message(H(headers), sender, "Text", "<new@test>")
+    # A line break in the untrusted subject cannot inject a header; the subject stays one line.
+    injected = BytesParser(policy=policy.default).parsebytes(
+        message(H({"from": "a@test", "subject": "Test\r\nBcc:evil@test"}), "me@test", "Text", "<new@test>"))
+    assert "Bcc" not in injected and injected["Subject"] == "Re: Test Bcc:evil@test"
 
 
 def test_draft_generate_edit_save_replay_and_restart(draft):
@@ -691,7 +694,7 @@ def test_standalone_config_loading_and_composition(tmp_path, monkeypatch, capsys
     (tmp_path / "config.yaml").write_text(yaml.safe_dump(cfg.model_dump(mode="json")), encoding="utf8")
     (tmp_path / "prompts.yaml").write_text(yaml.safe_dump(prompt_config().model_dump(mode="json")), encoding="utf8")
     (tmp_path / "topics.yaml").write_text("topics:\n- id: x\n  name: x\n  enabled: true\n  description: x\n", encoding="utf8")
-    env = {name.upper(): "synthetic" for name in Secrets.model_fields if name not in {"mailhelp_web_secret", "telegram_bot_token", "imap"}}
+    env = {name.upper(): "synthetic" for name in Secrets.model_fields if name not in {"mailhelp_web_secret", "telegram_bot_token", "imap", "profiles"}}
     env.update(IMAP_USERNAME="synthetic", IMAP_PASSWORD="synthetic")
     env["MAILHELP_WEB_SECRET"] = "s" * 40
     loaded = load_all(tmp_path, env)
@@ -714,7 +717,7 @@ def test_standalone_config_loading_and_composition(tmp_path, monkeypatch, capsys
         events = []
         app.experience = NS(start=lambda: events.append("start"), stop=lambda: events.append("stop"))
         app._start_web()
-        app._stop_web()
+        app.services.stop_web()
         assert events == ["start", "stop"]
 
 
@@ -752,7 +755,7 @@ def test_experience_settings_preserve_16_analysis_fingerprint(tmp_path):
     from mailhelp.fingerprints import _hash, analysis_prompts, config_fingerprint, legacy_fingerprints
     cfg, prompts = settings(tmp_path), prompt_config()
     before = config_fingerprint(cfg, prompts, [])
-    legacy = cfg.model_dump(mode="json")
+    legacy = cfg.model_dump(mode="json", exclude={"target_profiles"})
     # The imap section as 1.6 dumped it (3.1 made it operational).
     legacy["imap"] = {"host": "h", "port": 993, "folders": ["INBOX"], "primary_folder": "INBOX",
                       "connection_mode": "ssl", "historical_start": None, "batch_size": 25,
@@ -997,3 +1000,20 @@ def test_briefing_is_still_sent_after_a_late_start(tmp_path):
     svc.tick()
     svc.tick()
     assert len(sent) == 1 and store.load("daily-briefing")["day"] == "2026-10-25"
+
+
+def test_draft_subject_stays_one_line_and_recipients_need_both_address_parts():
+    """Regression (property test, 14.10.2026): a subject of line breaks reached the Subject header,
+    and "@0" without a local part became an empty recipient."""
+    from mailhelp.domain.prepared import MailHeaders
+    data = message(MailHeaders.model_validate({"from": "a@example.test", "subject": "\n Termin \r\n morgen \n"}),
+                   "me@test", "Text", "<new@test>")
+    parsed = BytesParser(policy=policy.default).parsebytes(data)
+    assert str(parsed["Subject"]) == "Re: Termin morgen"
+    assert str(BytesParser(policy=policy.default).parsebytes(message(
+        MailHeaders.model_validate({"from": "a@example.test", "subject": "\n"}), "me@test", "T", "<n@t>"))["Subject"]
+               ) == "Re: "
+    for address in ("@0", "x@", "@"):
+        with pytest.raises(ValueError, match="Ungültiger Empfänger"):
+            message(MailHeaders.model_validate({"from": "", "reply_to": address, "subject": "s"}),
+                    "me@test", "T", "<n@t>")

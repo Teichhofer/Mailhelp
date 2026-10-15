@@ -226,7 +226,7 @@ def _build_orchestrator(settings: Settings, prompts: PromptConfig, topics: list[
                         access_diagnostics: bool) -> Orchestrator:
     from .precheck import DuplicatePreCheckService
     precheck = DuplicatePreCheckService(
-        writers={"google_calendar": writers["google_calendar"], "todoist": writers["todoist"]},
+        writers=writers,
         ledger=dialog.ledger,
         logger=logger,
     )
@@ -259,7 +259,7 @@ def _build_orchestrator(settings: Settings, prompts: PromptConfig, topics: list[
         legacy = legacy_fingerprints(settings, prompts, topics)
         if jev_prompts is not None:
             legacy = {relevance_fingerprint(item, jev_prompts) for item in legacy}
-        # Mails started under 1.1 or the 1.2 beta with this same configuration continue.
+        # Mails started through 3.1 with this same analysis configuration continue.
         adopt_legacy_configuration(store, fingerprint, legacy, orchestrator.topic_policy,
                                    legacy_policies(settings, prompts), topics)
     return orchestrator
@@ -302,6 +302,8 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
     components.site.archive.lifecycle = components.site.lifecycle
     dialog.stop_requested = lambda: components.site.lifecycle.state != "running" or stop_event.is_set()
     components.site.archive.configuration = configuration
+    components.site.views.profile_label = dialog.presenter.profile_of
+    components.site.views.profile_available = dialog.presenter.profile_available
     if len(application.sources) > 1:
         # Labels and the mailbox filter appear only with several mailboxes (3.1).
         labels = {source.account_id: (source.mailbox.id, source.mailbox.label) for source in application.sources}
@@ -378,8 +380,10 @@ def build_application(
         openrouter = _build_llm(settings, secrets, local_llm, llm_budget, logger, stack)
         telegram = _build_telegram(settings, secrets, policy, logger, stack)
         analyzer = _build_analyzer(settings, secrets, prompts, openrouter, jev_prompts, llm_budget, stop_event, stack)
-        built = build_writers(settings, secrets, base_directory, policy=policy, logger=logger,
-                              calendar_matcher=analyzer.calendar_duplicate)
+        from .target_profiles import build_profile_writers
+        factory = build_profile_writers if settings.target_profiles else build_writers
+        built = factory(settings, secrets, base_directory, policy=policy, logger=logger,
+                        calendar_matcher=analyzer.calendar_duplicate)
         stack.callback(built.close)
         assert logger.metrics is not None  # _attach_metrics above always sets the recorder
         logger.metrics.write_services = provider_services(settings.targets)
@@ -396,6 +400,17 @@ def build_application(
         orchestrator.stop_event = stop_event
         application = Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar,
                                   orchestrator, stop_event, dialog, sender_store, sources=sources)
+        orchestrator.configure_mailboxes(settings, prompts,
+            {mailbox_account_id(source.mailbox, secrets.imap_credentials(source.mailbox.id)): source.mailbox.id
+             for source in sources}, jev_prompts)
+        application.profile_writers = built
+        from . import profile_binding
+        dialog.decision_service.profile_available = lambda proposal: profile_binding.available(
+            application.settings, writers, proposal)
+        dialog.presenter.profile_of = lambda proposal: profile_binding.label(application.settings, proposal)
+        dialog.presenter.profile_available = dialog.decision_service.profile_available
+        dialog.presenter.profiles_status = lambda: profile_binding.summary(application.settings, writers)
+        dialog.presenter.retarget_choices = lambda proposal: profile_binding.choices(application.settings, proposal)
         if web_enabled:
             _attach_web(application, settings, secrets, prompts, jev_prompts, local_llm, base_directory, sender_store)
         elif not access_diagnostics:

@@ -1,47 +1,74 @@
 # Mailhelp
 
-Die [Release-Anleitung](docs/Release-1.0.md) beschreibt Installation aus den
-Distributionspaketen, Aktualisierung, Sicherung und Rückkehr zur vorherigen Version.
-Änderungen stehen im [Changelog](CHANGELOG.md).
-Alle Web-Einstellungen mit Wirkung und Wertebeispielen: [Einstellungsreferenz](docs/Web-Einstellungen.md).
-Offene Vorschläge zusammenführen und Standarddauern aus der Planung 2.4:
-[Bedienung und Upgrade](docs/Release-2.4.md), [Architektur](docs/Architektur-2.4.md).
-Einrichtungsassistent, Diagnose und Benachrichtigungsprofil aus der Planung 3.0:
-[Betriebs- und Upgrade-Anleitung](docs/Release-3.0.md).
-Mehrere Postfächer ab 3.1: [Einrichtung, Upgrade und Rückkehr](docs/Release-3.1.md).
-Die geplante Weboberfläche für Version 1.1 beschreibt das
-[Konzept mit Umsetzungsplan](docs/Konzept-1.1-Web-PWA.md).
-
-Die Projektwebsite mit Einrichtung, Konfiguration, Datenschutz, Impressum und
-Nutzungsbedingungen liegt unter [`website/`](website/). Die
-[GitHub-Pages-Anleitung](docs/GitHub-Pages.md) beschreibt Vorschau und Veröffentlichung.
-
 <p align="center">
-  <img src="src/mailhelp/assets/logo.png" alt="Mailhelp – vom Posteingang zum Aktionsplan" width="320">
+  <img src="src/mailhelp/assets/logo.png" alt="Mailhelp" width="280">
 </p>
 
-Die [ergänzende Betriebsanleitung](docs/Einrichtung-und-Qualitaetspruefung.md)
-beschreibt Google-OAuth-Ersteinrichtung und Wiederautorisierung, Docker-Filter,
-den beschreibbaren Lernmodus sowie den optionalen realen Qualitätsprüflauf.
+Mailhelp analysiert E-Mails und erstellt überprüfbare Vorschläge für Aufgaben und
+Termine. Die Freigabe erfolgt über Telegram oder die authentifizierte Weboberfläche.
+Erst eine ausdrückliche Bestätigung der jeweiligen Vorschlagsversion erlaubt das
+Schreiben in den Kalender oder die Aufgabenliste.
 
-`config.example.yaml` enthält die geprüfte Konfiguration mit synthetischen
-Verbindungsdaten. Für die Einrichtung nach `config.yaml` kopieren und die Ziele
-anpassen. Die CI prüft das Beispiel unabhängig von persönlichen Änderungen.
-Die vollständige Testsuite läuft unter Ubuntu und Windows mit verbindlichen
-100 % Zeilen- und 100 % Branch-Abdeckung.
+Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
+Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
+einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-Python-Assistent zur LLM-basierten Auswertung von IMAP-Mails über OpenRouter. Telegram zeigt Zusammenfassungen und versionsgebundene Einzelvorschläge; erst eine ausdrückliche Bestätigung erlaubt einen Schreibzugriff auf Todoist oder Google Kalender.
+**Version:** 3.3.5 · **Python:** 3.12.x · **Lizenz:** MIT
 
-## Installation (Windows 11 und Linux)
+[Installation](#installation) · [Konfiguration](#konfiguration) ·
+[Betrieb](#betrieb) · [Docker](#docker) ·
+[Datenschutz und Sicherung](#datenschutz-und-sicherung) · [Dokumentation](#dokumentation)
 
-Das Anwendungslogo liegt unter [`src/mailhelp/assets/logo.png`](src/mailhelp/assets/logo.png)
-und wird mit dem Python-Paket und Docker-Image ausgeliefert. Es dient auch als
-Profilbild des Telegram-Bots; Hinweise dazu stehen in der
-[Einrichtungsanleitung](docs/Einrichtung-und-Qualitaetspruefung.md#anwendungslogo-und-telegram-profilbild).
+## Funktionen
 
-Voraussetzung ist exakt Python **3.12.x**; `.python-version` legt für Versionsmanager 3.12.10 fest und `pyproject.toml` verhindert versehentliche Installation unter einer anderen Minor-Version.
-Direkte und transitive Laufzeit-/Testabhängigkeiten sind in `requirements.lock`
-festgeschrieben; das Container-Image installiert genau diese Versionen.
+- **Mehrere Postfächer:** IMAP-Abruf mit getrennten Kontoidentitäten und Wiederaufnahme
+  gespeicherter Verarbeitungsschritte nach einem Neustart.
+- **Gezielte Analyse:** Themen, ausgeschlossene Themen und Absenderfilter bestimmen,
+  welche Nachrichten verarbeitet werden. Dokumente und Bildanhänge können in die
+  Analyse einbezogen werden.
+- **Aufgaben und Termine:** Vorschläge enthalten Belege und Rückfragen bei fehlenden
+  oder widersprüchlichen Angaben. Der Abgleich berücksichtigt vorhandene Einträge
+  und offene Entscheidungen, um doppelte Aktionen zu vermeiden.
+- **Einstellungen je Postfach:** Eigene Zielprofile, Themen, Signaturen, Ruhezeiten,
+  Benachrichtigungen, Termindauern und Aufbewahrungsregeln mit globaler Vererbung.
+- **Telegram und Web-App:** Vorschläge prüfen, klären, bearbeiten, bestätigen oder
+  verwerfen. Die installierbare Web-App unterstützt auch den Betrieb ohne Telegram.
+- **Optionale Unterstützung:** Antwortentwürfe im Ursprungspostfach, Tagesüberblicke,
+  Web-Push und Tätigkeitsberichte mit XLSX-Export.
+
+Antwortentwürfe werden nur nach ausdrücklichem Speichern im IMAP-Entwurfsordner
+abgelegt. Mailhelp versendet keine E-Mails.
+
+### Unterstützte Dienste
+
+| Bereich | Dienste |
+| --- | --- |
+| E-Mail | IMAP-Postfächer |
+| Kalender | Google Kalender, Outlook / Microsoft 365, CalDAV |
+| Aufgaben | Todoist, Microsoft To Do, CalDAV-Aufgabenlisten |
+| Zusätzlicher Aufgabenadapter | Apple Erinnerungen über iCloud-CalDAV, soweit die Liste dort verfügbar ist |
+| KI-Auswertung | OpenRouter; experimentell Ollama |
+| Bedienung | Telegram, lokale Weboberfläche und PWA |
+
+Kalender- und Aufgabendienst werden pro Zielprofil gewählt. Zugangstokens bleiben
+zwischen den Profilen getrennt.
+
+## Installation
+
+### Voraussetzungen
+
+- Python **3.12.x** für die native Installation oder Docker mit Compose.
+- Ein IMAP-Postfach und Zugangsdaten für die verwendeten Analyse- und Zieldienste.
+- Für Telegram: ein Bot sowie die zulässige Nutzer- und Chat-ID.
+- Für die Weboberfläche: ein eigener Sitzungsschlüssel in `MAILHELP_WEB_SECRET`.
+
+Die folgenden Schritte gelten für eine Erstinstallation aus diesem Repository.
+Für eine Paketinstallation oder ein Update siehe die
+[Installations- und Release-Anleitung](docs/Release-1.0.md).
+
+### Windows 11
+
+Im Repository-Verzeichnis mit PowerShell ausführen:
 
 ```powershell
 py -3.12 -m venv .venv
@@ -49,1477 +76,278 @@ py -3.12 -m venv .venv
 .venv\Scripts\python -m pip install --no-deps -e .
 Copy-Item config.example.yaml config.yaml
 Copy-Item .env.example .env
+Copy-Item irrelevant-senders.example.json irrelevant-senders.json
 ```
 
-Unter Linux werden die letzten beiden Befehle mit `.venv/bin/python` und `cp` ausgeführt. `config.yaml`, `prompts.yaml`, `topics.yaml` und `irrelevant_topics.yaml` anpassen; echte Geheimnisse ausschließlich in `.env` oder der Prozessumgebung setzen. Laufzeitvariablen haben Vorrang. Danach validiert `mailhelp --check` alle Dateien, ohne Netzwerkzugriff. Ohne `--config-directory` verwendet Mailhelp ein vollständiges Konfigurationsset im aktuellen Arbeitsverzeichnis. Fehlt dort eine der vier Dateien, wird bei einer editierbaren Installation zusätzlich die Wurzel des Checkouts geprüft. Ein ausdrücklich angegebenes Konfigurationsverzeichnis wird nie ersetzt. Fehlen `topics.yaml` oder `irrelevant_topics.yaml`, werden sie aus den mitgelieferten Vorlagen neu angelegt; vorhandene Dateien werden nie überschrieben.
+### Linux
 
-Mit `mailhelp --check-access` lässt sich anschließend ein reiner Zugriffstest
-starten. Er prüft nacheinander die Anmeldung bei IMAP und den Nur-Lese-Zugriff auf
-alle konfigurierten Ordner, den OpenRouter-Key über dessen authentifizierten Status, den
-Telegram-Bot über `getMe` sowie den Zugriff auf das konfigurierte Todoist-Projekt.
-Der Zugriffstest prüft außerdem OAuth-Anmeldung und Nur-Lese-Zugriff auf den konfigurierten Google Kalender. Nach erfolgreichem `getMe` sendet die Telegram-Prüfung
-eine Nachricht mit `Test`, Datum, Uhrzeit und konfigurierter Zeitzone an den
-konfigurierten Chat. Der Test ruft keine Mails ab, liest keine Telegram-Updates,
-führt keinen LLM-Auftrag aus und erzeugt weder Aufgaben noch Termine. Für jeden
-Dienst erscheint `OK` oder `FEHLER`; sobald mindestens eine
-Prüfung fehlschlägt, endet der Prozess mit Status 1. Im Container kann derselbe
-Test mit `docker compose run --rm mailhelp --check-access` ausgeführt werden.
-Auch wenn bereits die Verbindung oder Anmeldung bei IMAP fehlschlägt, werden die
-übrigen Dienste geprüft und anschließend alle Einzelergebnisse ausgegeben.
-Zur gezielten Fehlersuche zeigt
-`mailhelp --check-access --show-imap-credentials` den nach Auswertung von `.env`
-und Prozessumgebung tatsächlich an IMAP übergebenen Benutzernamen und das Passwort
-einmalig im Terminal an. Die Werte werden JSON-quotiert, damit auch Leer- und
-Steuerzeichen erkennbar sind, und niemals in die Logs geschrieben. Dieser Schalter
-legt das Passwort im Terminal offen und darf deshalb nur bewusst in einer privaten
-Sitzung verwendet werden; ohne `--check-access` wird er abgelehnt.
-Punkte und Bindestriche im IMAP-Benutzernamen werden unverändert an den Server
-übergeben und sind für sich genommen kein Anmeldehindernis. Eine erfolgreiche
-Webmail-Anmeldung beweist nicht, dass IMAP für dasselbe Postfach freigeschaltet ist
-oder dass der IMAP-Server dieselbe Anmeldekennung akzeptiert. Bei
-`IMAP-Anmeldung vom Server abgelehnt` sind deshalb **für das betroffene Postfach**
-insbesondere die primäre vollständige E-Mail-Adresse statt eines Alias, ein
-möglicherweise separates App-Passwort sowie eine postfachbezogene
-IMAP-Freischaltung zu prüfen. Funktioniert ein anderes Postfach beim selben
-Anbieter, bestätigt das lediglich Host, Port und Verbindungsmodus; die Ablehnung
-bleibt postfach- beziehungsweise zugangsdatenbezogen.
-
-Unter PowerShell sollte außerdem geprüft werden, ob eine ältere Prozessvariable
-den gerade in `.env` eingetragenen Wert überschreibt:
-
-```powershell
-Test-Path Env:IMAP_USERNAME
-Test-Path Env:IMAP_PASSWORD
-Remove-Item Env:IMAP_USERNAME, Env:IMAP_PASSWORD -ErrorAction SilentlyContinue
+```sh
+python3.12 -m venv .venv
+.venv/bin/python -m pip install -r requirements.lock
+.venv/bin/python -m pip install --no-deps -e .
+cp config.example.yaml config.yaml
+cp .env.example .env
+cp irrelevant-senders.example.json irrelevant-senders.json
 ```
 
-Die beiden `Test-Path`-Befehle zeigen nur an, ob ein Override existiert, und geben
-keine Zugangsdaten aus. Nach `Remove-Item` liest ein neuer Mailhelp-Aufruf die Werte
-aus `.env`. Sollen Prozessvariablen absichtlich verwendet werden, müssen sie im
-selben PowerShell-Prozess auf die gewünschten Werte gesetzt sein.
-Für diesen Diagnosebefehl aktiviert Mailhelp unabhängig von der Logging-Konfiguration
-das Datei- und Konsolenlogging auf `DEBUG`. Beginn, Erfolg und Fehler jeder einzelnen
-Prüfung werden protokolliert; Fehler enthalten einen bereinigten Stacktrace. Die
-Geheimnisbereinigung bleibt dabei uneingeschränkt aktiv.
-Meldet die Telegram-Prüfung `Chat nicht erreichbar`, fragt der Diagnosebefehl
-einmalig die letzten Telegram-Updates ab. Hat die konfigurierte `telegram.user_id`
-dort `/start` gesendet, nennt die Fehlermeldung die dabei erkannte numerische
-Chat-ID und den abweichenden Konfigurationswert. Andernfalls weist sie gezielt auf
-einen falschen Bot-Token oder eine falsche User-ID hin. Der konfigurierte Bot muss
-im Zielchat zunächst mit `/start` gestartet werden; bei Gruppen muss er außerdem
-Mitglied sein. Die Bot-ID aus `getMe`, ein Nutzername oder eine Telefonnummer sind
-keine Chat-ID. Im normalen Zugriffstest werden weiterhin keine Telegram-Updates
-abgerufen; diese eingeschränkte Diagnose erfolgt ausschließlich nach `chat not found`.
-`targets.todoist_project` erwartet dabei die echte Todoist-Projekt-ID, nicht den
-Projektnamen, eine URL oder einen Alias. Bei Todoist bedeutet HTTP 401, dass das
-Token abgelehnt wurde (Authentifizierungsfehler), HTTP 403, dass dem Token die
-Berechtigung für das Zielprojekt fehlt, und HTTP 404, dass das konfigurierte
-Zielprojekt nicht erreichbar ist. Diese Diagnosen geben weder Token oder
-Authorization-Header noch vollständige Antwortinhalte aus.
-Mailhelp verwendet dafür die aktuelle Todoist-API unter `/api/v1`; der frühere
-REST-v2-Endpunkt wird von Todoist nicht mehr verwendet.
+Die nachfolgenden Beispiele verwenden `mailhelp` aus der virtuellen Umgebung.
+Ohne Aktivierung lautet der Aufruf unter Windows `.venv\Scripts\mailhelp` und
+unter Linux `.venv/bin/mailhelp`.
 
-### Todoist-Zugangsdaten einrichten
+## Konfiguration
 
-Die Todoist-Anwendungsdaten werden ausschließlich über die `.env` oder gleichnamige
-Prozessumgebungsvariablen eingelesen. Nach dem Kopieren von `.env.example` sind dort
-`TODOIST_CLIENT_ID` und `TODOIST_CLIENT_SECRET` mit der Client-ID beziehungsweise
-dem Client-Schlüssel der Todoist-Anwendung zu befüllen. Das für die REST-API als
-Bearer-Token verwendete `TODOIST_TOKEN` wird ebenfalls dort gespeichert; Client-ID
-und Client-Schlüssel ersetzen dieses Zugriffstoken nicht. Keiner dieser Werte
-gehört in `config.yaml`, Zustandsdateien oder Logs.
+Einstellungen und Geheimnisse liegen getrennt vom Anwendungscode:
 
-### Andere Kalender- und Aufgabendienste (ab 2.3)
+| Datei | Inhalt |
+| --- | --- |
+| `config.yaml` | Postfächer, Ziele, Betriebsart, Zeitzone, Limits, Benachrichtigungen und Aufbewahrung |
+| `prompts.yaml` | Prompts, Modelle und LLM-Parameter für die Analyseschritte |
+| `decisions_prompts.yaml` | Konfiguration der Standard-Relevanzprüfung |
+| `topics.yaml` | Relevante Themen, optional auf einzelne Postfächer begrenzt |
+| `irrelevant_topics.yaml` | Ausgeschlossene Themen |
+| `irrelevant-senders.json` | Globale und postfachbezogene Absenderfilter |
+| `.env` | Zugangsdaten, Tokens und Sitzungsschlüssel; alternativ Prozessumgebung |
 
-Statt Google Kalender und Todoist lassen sich in `config.yaml` unter `targets`
-andere Dienste wählen – je ein Kalender- und ein Aufgabendienst:
+[config.example.yaml](config.example.yaml) und [.env.example](.env.example) zeigen
+die verfügbaren Einstellungen und Geheimnisnamen. Prozessvariablen haben Vorrang
+vor den Werten aus `.env`.
 
-| Dienst | `config.yaml` | `.env` |
-| --- | --- | --- |
-| Nextcloud, mailbox.org, Radicale … (CalDAV-Kalender) | `calendar_provider: caldav`, `caldav_calendar_url: https://…/calendars/<name>/<kalender>/` | `CALDAV_USERNAME`, `CALDAV_PASSWORD` (App-Passwort) |
-| CalDAV-Aufgabenliste (z. B. Nextcloud Tasks) | `task_provider: caldav`, `caldav_task_url: https://…/` | wie oben |
-| Apple Erinnerungen (iCloud) | `task_provider: apple_reminders`, `caldav_task_url: https://pNN-caldav.icloud.com/…/` | Apple-ID und app-spezifisches Passwort als `CALDAV_*` |
-| Outlook / Microsoft 365 | `calendar_provider: outlook`, `outlook_calendar: default` | `MICROSOFT_CLIENT_ID` |
-| Microsoft To Do | `task_provider: microsoft_todo`, `microsoft_todo_list: default` | `MICROSOFT_CLIENT_ID` |
+Vor dem ersten Lauf:
 
-Für Microsoft wird eine App-Registrierung im Azure-Portal mit den delegierten
-Berechtigungen `Calendars.ReadWrite`, `Tasks.ReadWrite` und `offline_access` sowie
-„Öffentliche Clientflows zulassen“ benötigt. Danach einmalig
-`mailhelp --microsoft-login` ausführen: Mailhelp zeigt eine Adresse und einen Code,
-nach der Bestätigung im Browser liegt der Refresh-Token in `microsoft-token.json`
-neben `.env` (nicht im Repository, nicht im Docker-Image). Jede Erneuerung
-überschreibt ihn; `mailhelp --clear` lässt ihn stehen.
+1. IMAP-Server, Ordner, Zugangsdaten und den gewünschten historischen Startpunkt
+   in `imap.historical_start` festlegen.
+2. Kalender, Aufgabenliste und die erforderlichen Providerzugänge einrichten.
+3. Themen, Zeitzone und Benachrichtigungskanäle anpassen.
+4. Für eine Erprobung `test_mode: true` setzen. Der Testmodus simuliert Kalender-
+   und Aufgabenaktionen; Postfachabruf und KI-Auswertung verwenden weiterhin die
+   konfigurierten Dienste.
 
-Apple bietet für Erinnerungen keine offizielle Schnittstelle. Erreichbar sind nur
-Listen über iCloud-CalDAV; Listen, die auf die neuen iCloud-Erinnerungen
-aktualisiert wurden, sind dort nicht sichtbar. `mailhelp --check-access` und die
-Diagnose melden diesen Fall ausdrücklich.
+Das Konfigurationsbeispiel verwendet `test_mode: false`. Auch im Produktivbetrieb
+erfordert jede Kalender- oder Aufgabenaktion eine ausdrückliche Bestätigung.
 
-Für alle Dienste gelten dieselben Regeln wie für Google und Todoist: Anlage nur
-nach versionsbezogener Bestätigung, Abgleich vor jedem Schreiben, keine blinde
-Wiederholung unklarer Ergebnisse, kein externer Kontakt im Testmodus. Einzelheiten
-stehen in [docs/Planung-2.3.md](docs/Planung-2.3.md).
+### Anmeldung bei Google und Microsoft
 
-### Google Kalender einrichten
-
-Nach der versionsbezogenen Bestätigung über Telegram oder die authentifizierte Weboberfläche legt Mailhelp den Termin direkt im
-unter `targets.google_calendar` konfigurierten Google Kalender an. Dafür müssen
-`GOOGLE_OAUTH_CLIENT_ID`, `GOOGLE_OAUTH_CLIENT_SECRET` und
-`GOOGLE_OAUTH_REFRESH_TOKEN` ausschließlich in `.env` oder als Prozessvariablen
-vorliegen. Der Refresh-Token benötigt Schreibzugriff auf Google Calendar. Ort,
-Beschreibung, Videolink, ganztägige Intervalle und Zeitpunkte werden über die
-Calendar API übertragen. Ein privater Idempotenzschlüssel erlaubt den Abgleich vor
-dem Schreiben und nach unklaren Resultaten; ein unklarer Schreibzugriff wird nicht
-automatisch wiederholt. Im Testmodus werden bestätigte Termine und Aufgaben
-simuliert; Google Kalender und Todoist werden dabei weder gelesen noch beschrieben.
-
-Lehnt Google den OAuth-Token-Abruf dauerhaft ab, beendet Mailhelp den laufenden
-Prozess sofort mit Status 1, statt den bestätigten Kalenderauftrag fortlaufend neu
-abzugleichen. Eine verständliche Fehlermeldung wird im Terminal, im strukturierten
-Log und – soweit Telegram noch erreichbar ist – im konfigurierten Chat ausgegeben.
-Nach dem Erneuern der Google-Zugangsdaten muss zuerst `mailhelp --check-access`
-erfolgreich sein; anschließend kann Mailhelp neu gestartet werden.
-
-Vor dem Kalender-Schreibzugriff lädt Mailhelp zeitlich überschneidende Einträge und
-lässt ein LLM konservativ prüfen, ob sie dasselbe reale Ereignis bezeichnen. Beim
-gleichen Ereignis wird kein zweiter Termin erzeugt. Ausschließlich im neuen
-Vorschlag vorhandene Beschreibung, Ort oder Videolink werden in den bestehenden
-Eintrag übernommen; Telegram meldet sowohl die erkannte Doppelung als auch, ob
-Informationen ergänzt wurden. Die Ergänzung ist durch dieselbe ausdrückliche,
-versionsbezogene Bestätigung des angezeigten Terminvorschlags gedeckt.
-
-Die Duplikatsuche berücksichtigt sämtliche Ergebnisseiten, auch bei mehr als
-50 überschneidenden Einträgen, entsprechend der
-[Google-Calendar-Paginierung](https://developers.google.com/workspace/calendar/api/v3/reference/events/list).
-Eine zusätzliche Bestätigung „Erneut anlegen“
-erlaubt eine neue Kalenderanlage ausdrücklich für genau die bestätigte Version.
-Diese Freigabe bleibt bei Neustarts erhalten und entfällt bei einer Revision.
-Auch dabei wird vor jedem Schreibversuch der Idempotenzschlüssel abgeglichen;
-ein unklarer Schreiberfolg löst keine automatische Wiederholung aus.
-Todoist-Schlüssel werden als vollständige Marker `[mailhelp:…:vN]` verglichen,
-damit etwa Version 1 nicht mit Version 10 verwechselt wird.
-
-Ein unverbindlicher Hinweis bleibt als `non_binding` klassifiziert. Nach der
-ausdrücklichen Zustimmung zur Anlage und der anschließenden Bestätigung der
-neuen Vorschlagsversion darf er in Todoist oder Google Kalender angelegt werden.
-Hierfür sind keine zusätzlichen Einstellungen in `config.yaml` erforderlich;
-die Beispiele für `test_mode` und die konfigurierten Ziele gelten unverändert.
-
-Eine Bestätigung gilt ausschließlich für das im Vorschlag angezeigte und
-gespeicherte Ziel. Weicht `targets.todoist_project` beziehungsweise
-`targets.google_calendar` davon ab, erfolgen weder Abgleich noch Schreibzugriff
-für diesen Vorschlag. Sein bisheriger Zustand bleibt erhalten; Telegram meldet
-die Sperre einmal je Vorschlagsversion und Prozessstart und verarbeitet weitere
-Eingaben weiter. Das gilt auch im Testmodus und nach Neustarts. Zur Fortsetzung
-muss das ursprüngliche Ziel wiederhergestellt oder ein neuer Vorschlag für das
-neue Ziel ausdrücklich bestätigt werden; ein Konfigurationswechsel überträgt
-keine vorhandene Freigabe auf ein anderes Ziel.
-
-Erkennt der Abgleich einen bestehenden Termin als dasselbe Ereignis, vergleicht Mailhelp Beginn und Ende deterministisch (gleiche Zeitpunkte unabhängig vom UTC-Offset gelten als gleich, unbekannte bestehende Zeiten werden nicht verglichen). Weichen sie ab, übernimmt der bestehende Termin die Zeiten der bestätigten Vorschlagsversion; seine Beschreibung erhält den Hinweis „[Mailhelp TT.MM.JJJJ HH:MM] Zeit aktualisiert: Ende … → … (bestätigte Vorschlagsversion N).“ und Telegram meldet „Bestehender Termin … aktualisiert“. Ohne Zeitabweichung werden wie bisher nur fehlende Beschreibung, Ort oder Videolink ergänzt oder der Termin unverändert übernommen. Uhrzeiten wie „13.00 Uhr“ und „ca. 15:30 Uhr“ werden ohne Rückfrage verstanden.
-
-Die Kalender-Duplikatsuche, LLM-Vergleiche und die Vorbereitung des API-Inhalts
-laufen vor dem Schreibversuch, während der Vorschlag weiterhin `confirmed` ist.
-Scheitern diese Vorprüfungen, kann die bestätigte Version nach Behebung des Fehlers
-auch nach einem Neustart erneut geprüft werden. Erst nach erfolgreicher
-Vorbereitung wird unmittelbar vor POST oder PATCH `writing` dauerhaft gespeichert.
-Ein unverändert vorhandener Termin wird direkt als `created` übernommen, ohne
-einen Schreibversuch zu markieren. Nach tatsächlich möglichen Schreibzugriffen
-bleibt der Schutz unverändert: `writing`/`uncertain` werden nur abgeglichen und
-nicht automatisch erneut geschrieben. Bereits gespeicherte unklare Altfälle
-werden nicht nachträglich als reine Vorprüfungsfehler umgedeutet.
-
-Beim Vergleich von Todoist-Aufgaben zählt der von Mailhelp angehängte abschließende
-Herkunftsblock (`Absender`, `Betreff`, `Mail-Datum`) nicht zur Aufgabenidentität.
-Die eigentliche Beschreibung, Titel, Ziel und Fälligkeit bleiben Vergleichsmerkmale.
-Eine Erinnerungsmail kann dadurch die zusätzliche Bestätigung „Erneut anlegen“
-auslösen, obwohl Betreff oder Mail-Datum abweichen. Kalendervergleiche bleiben
-unverändert. Aktionsbucheinträge verwenden `action_key_version: 2`; alte Einträge
-werden beim Vergleich aus dem gespeicherten Vorschlag derselben Version
-aktualisiert. Fehlt dieser, bleiben der alte Schlüssel und die Referenz erhalten.
-
-`config.yaml` besitzt geschlossene Modelle für IMAP, Telegram, Ziele, Limits, Wiederholungen, Timeouts und Logging. `poll_interval_seconds` steuert den Abstand zwischen regulären Verarbeitungszyklen. Beim Start und in jedem regulären Zyklus beginnt Mailhelp sofort mit der IMAP-Verarbeitung; erst danach folgt der Telegram-Long-Poll. Ein begrenzter Einmallauf mit `--max-mails` beendet sich nach seinem IMAP-Durchlauf ohne einen zusätzlichen regulären Telegram-Poll. Telegram-Eingaben empfängt ein eigener Empfangs-Thread per Long-Poll (`telegram_poll_seconds`), sobald ein Lauf beginnt – auch während der Mailanalyse und bei `--max-mails`. Er quittiert jede Schaltflächenbetätigung sofort mit „Eingegangen – wird bearbeitet …“, sodass Telegram keinen Ladeindikator mehr zeigt, und speichert jedes Update in `telegram-inbox.json`, bevor der nächste `getUpdates`-Aufruf es gegenüber Telegram bestätigt; ein Absturz verliert daher keine Eingabe. Verarbeitet werden Eingaben ausschließlich im Hauptthread: vor jeder Mail, während eine analyseblockierende Relevanzfrage offen ist, und in der Wartezeit zwischen zwei Zyklen sofort bei Eingang. Eine Eingabe wartet damit höchstens auf das Ende der gerade laufenden Mailanalyse. Der Empfangs-Thread verändert keine Mail-, Vorschlags- oder Dialogzustände; bereits quittierte Schaltflächen werden bei der Verarbeitung nicht erneut quittiert. Nach dem Ende eines Laufs gespeicherte Eingaben werden beim nächsten Start verarbeitet. Scheitert die Verarbeitung einer Eingabe, wird sie nach 30 und 60 Sekunden erneut versucht; nachfolgende Eingaben warten so lange, damit die Reihenfolge erhalten bleibt. Nach dem dritten Fehlversuch oder sofort bei einem dauerhaften Fehler wird die Eingabe verworfen und einmalig in Telegram gemeldet; eine unbegrenzte Wiederholung würde ihre Nebenwirkungen, etwa eine erneut gesendete Rückfrage, vor jeder Mail wiederholen. Ein wiederholtes „Manuell prüfen“ für die Vorschlagsversion, deren Änderungsmodus bereits auf eine Antwort wartet, sendet die Rückfrage nicht erneut, sondern meldet „Änderungsmodus läuft bereits“. Das Entfernen bereits entfernter Schaltflächen (Telegram: „message is not modified“) gilt als erfolgreich. Je Bot-Token darf nur ein Prozess `getUpdates` abrufen. Beim Neustart werden offene Entscheidungen erneut angezeigt. Nur bereits versandte oder versandunsichere Relevanzfragen halten die weitere Analyse bis zur Antwort an. Noch zurückgehaltene Relevanzfragen pausieren ausschließlich ihre eigene Mail und verbrauchen bei späteren Abrufen kein Verarbeitungskontingent. Mit `telegram.sequential_questions: true` (Standard) ist immer höchstens eine offene Entscheidung sichtbar: Nach einer Telegram-Nachricht mit Entscheidungsschaltflächen (Relevanzfrage, Vorschlag mit „Klären“ oder vollständiger Vorschlag mit „Im Kalender anlegen“/„In Todoist anlegen“) hält Mailhelp alle weiteren Nachrichten – auch weitere Vorschläge derselben Mail – in `telegram-outbox.json` zurück, bis diese Entscheidung erledigt ist (Vorschlag bestätigt, verworfen oder sonst nicht mehr offen; eine beantwortete Rückfrage mit vollständiger neuer Version hält bis zu deren Bestätigung weiter zurück). Danach folgen die Nachrichten der Reihe nach bis zur nächsten Entscheidung; `/status` nennt die aktuelle Entscheidung und die Anzahl zurückgehaltener Nachrichten. Aufgaben- und Terminvorschläge bleiben asynchron offen, auch bei `--max-mails` und nach Neustarts. Jeder Vorschlag muss weiterhin einzeln und versionsbezogen bestätigt werden. Bei einem Absturz oder unklaren Versandfehler bleibt die Sperre einer möglicherweise zugestellten Rückfrage erhalten; es erfolgt kein automatischer Neuversand. Die Laufzusammenfassung wird nur bei bereits versandter oder versandunsicherer offener Relevanzfrage zurückgestellt. Fehlgeschlagene Telegram-Polls erhalten einen begrenzten, durch Shutdown unterbrechbaren Backoff. Die LLM-Wiederholungen für ungültige Providerantworten, JSON-Reparatur und Schema-Reparatur sind getrennt begrenzt. IMAP, Telegram, OpenRouter, Todoist und Google Kalender haben jeweils eigene Werte für Timeout, Retry-Anzahl sowie initialen und maximalen Backoff. Validiert werden insbesondere Port, Polling, Adaptertimeouts, Mailgröße, LLM-Rate, Wiederholungszahlen, IANA-Zeitzone, eindeutige nichtleere Ordner, sichere Pfade und die Log-Level `DEBUG`, `INFO`, `WARNING`, `ERROR`, `CRITICAL`. Unbekannte Schlüssel und falsche Typen werden abgelehnt.
-Auch die Wurzel von `topics.yaml` ist geschlossen: Sie enthält ausschließlich die
-Liste `topics`; diese muss mindestens ein aktiviertes Thema besitzen und alle
-stabilen Themen-IDs müssen eindeutig sein.
-`irrelevant_topics.yaml` hat dasselbe geschlossene Format und eindeutige IDs, darf
-aber anfangs eine leere Themenliste enthalten.
-
-Für `imap.connection_mode` sind ausschließlich `ssl` (TLS ab dem ersten Byte,
-typischerweise Port 993), `starttls` (zunächst IMAP, dann zwingendes STARTTLS,
-typischerweise Port 143) und `plain` (unverschlüsselt) erlaubt. `plain` ist nur für
-gezielt abgesicherte lokale Netze gedacht. Die Auswahl wirkt unter Windows und im
-Linux-Docker-Container identisch und benötigt keine betriebssystemspezifischen
-Schalter. `imap.historical_start` ist entweder `null` (bestehendes Verhalten: alle
-verfügbaren UIDs) oder ein ISO-8601-Zeitpunkt **mit explizitem UTC-Offset**, etwa
-`2025-01-15T08:30:00+01:00`. Führende und abschließende Leerzeichen sowie
-zusätzliche Leerzeichen um das `T` werden beim Laden entfernt; beispielsweise
-wird `2026-10-01 T00:00:00+02:00` als `2026-10-01T00:00:00+02:00` gelesen.
-Der Server wird ausschließlich mit Nur-Lese-`SELECT`,
-`UID SEARCH` und `UID FETCH INTERNALDATE` abgefragt. Die sekundengenaue Grenze wird
-in UTC verglichen und ihr ermittelter UID-Ausgangspunkt sofort je Konto und Ordner
-persistiert; ein Neustart deutet den Zeitpunkt daher innerhalb derselben
-UIDVALIDITY nicht anhand einer geänderten Windows-/Container-Zeitzone oder eines
-inzwischen gewachsenen Postfachs neu aus. Nach einem UIDVALIDITY-Wechsel wird die
-absolute Grenze dagegen mit `INTERNALDATE` in der neuen UID-Generation erneut
-ermittelt und zusammen mit ihr gespeichert, bevor ein `BODY.PEEK[]` erfolgt.
-Die mitgelieferte `config.example.yaml` setzt diese Grenze auf den 15. September 2026 um
-00:00 Uhr in `Europe/Berlin` (`2026-09-15T00:00:00+02:00`), sodass ältere
-Nachrichten beim erstmaligen Aufbau des Abrufpunkts nicht verarbeitet werden.
-Mit `imap.batch_size` (Standard `25`, erlaubt `1..1000`) lädt Mailhelp pro
-Ordner und Polling-Zyklus nur eine begrenzte Zahl von Nachrichten. Der Abruf
-arbeitet fest **neueste zuerst mit dauerhaftem Backlog**: Noch offene UIDs werden
-absteigend gewählt, und neu eingetroffene höhere UIDs haben beim nächsten Poll
-Vorrang, ohne dass ältere Lücken verloren gehen. Die Ereignisse
-`messages_discovered` und `message_fetched` zeigen Anzahl und Fortschritt, sodass
-insbesondere der erste Abruf eines großen Postfachs nicht mehr still erscheint.
-Bei einem einmaligen Lauf mit `--max-mails N` ersetzt das nach Wiederaufnahmen
-noch verbleibende Budget für diesen Abruf `imap.batch_size`. Damit kann ein
-begrenzter Testlauf ausdrücklich auch mehr als die regulären 25 Nachrichten
-verarbeiten; zugleich werden keine vollständigen Nachrichten geladen, die der
-aktuelle Lauf anschließend gar nicht verarbeitet.
-Mehrere Einmalläufe setzen den persistenten Backlog fort: Zwei unmittelbar
-aufeinanderfolgende Aufrufe mit `--max-mails 100` wählen zuerst die neuesten 100
-und danach die nächsten 100 noch offenen Nachrichten. Neu eingetroffene Mails
-haben dabei weiterhin Vorrang. Falls ein Folgelauf keine älteren Nachrichten
-lädt, sind deshalb insbesondere die konfigurierte `historical_start`-Grenze,
-noch fällige Wiederaufnahmen innerhalb desselben Mailkontingents und
-`poll_failed`-/`mail_failed`-Ereignisse im Anwendungslog zu prüfen.
-
-Mit `mailhelp --max-mails 1000 --ignore-historical-start` wird die konfigurierte
-historische Grenze für diesen Start ausdrücklich aufgehoben. Der Schalter setzt
-zugleich den gespeicherten Startpunkt aller konfigurierten Ordner in der aktuellen
-UID-Generation auf UID 0 zurück, behält aber die Bereiche bereits verarbeiteter
-Nachrichten bei. Damit werden zuvor von der Grenze ausgeschlossene Mails
-nachgeladen, ohne bereits erledigte Mails erneut auszuführen; `--max-mails`
-begrenzt den aktuellen Lauf weiterhin.
-
-Mit `imap.global_newest_first: true` werden alle unter `imap.folders`
-konfigurierten Ordner als ein gemeinsames Postfach behandelt. Mailhelp ermittelt
-dafür zunächst pro Ordner nur ein auf das gemeinsame Kontingent begrenztes Fenster
-der höchsten noch offenen UIDs und lädt dessen `INTERNALDATE`-Metadaten mit einem
-einzigen Sequence-Set-`UID FETCH`; bei `N` werden also höchstens `N` Metadatensätze
-je Ordner statt jeder UID des Ordners abgefragt. Beim regulären Abruf wird die
-UID-Suche, falls `historical_start` gesetzt ist, zusätzlich mit `SINCE`
-serverseitig auf den Grenztag (einschließlich eines Sicherheitstags für
-Zeitzonen) eingegrenzt; der sekundengenaue Vergleich erfolgt anschließend lokal.
-Der Lernmodus verwendet diese Grenze nicht. Mailhelp sortiert die so
-begrenzten Metadaten ordnerübergreifend absteigend und lädt nur
-die für den aktuellen Lauf ausgewählten vollständigen Nachrichten. Im
-Dauerbetrieb gilt `imap.batch_size` dann als gemeinsames Kontingent für das ganze
-Postfach; `--max-mails N` und `--learn N` wählen ebenfalls die global neuesten
-`N` Nachrichten. Eigene Checkpoints je Ordner bleiben erhalten. Bei `false`
-bleibt das bisherige Verhalten bestehen: Die Ordner werden in
-Konfigurationsreihenfolge jeweils neueste UID zuerst bearbeitet.
-Die mitgelieferte WEB.DE-Konfiguration umfasst mit `INBOX`, `Drafts`, `Sent`,
-`Spam` und `Trash` alle Standardordner und verarbeitet damit nicht nur den
-Posteingang. `imap.primary_folder` bezeichnet dabei den verpflichtend lesbaren
-Eingangsordner; alle anderen Einträge in `imap.folders` sind optional und ein
-Fehler in ihnen hält weder den Posteingang noch weitere Ordner auf. IMAP-
-Special-Use-Flags (`\\Inbox`, `\\Drafts`, `\\Sent`, `\\Junk`, `\\Trash`) liefern
-die Standardrolle unabhängig vom lokalisierten Ordnernamen. Der Lernmodus erkennt
-selbst angelegte, auswählbare Ordner und trägt
-deren exakte IMAP-Namen automatisch in `imap.folders` ein.
-
-`logging.console`, `logging.file`, `logging.llm` und `logging.telegram` besitzen eigene Aktivierungs- und
-Level-Schalter; `logging.modules` überschreibt das Datei-Grundlevel für einzelne
-Anwendungsmodule. Dateiname, Format (`text` oder `jsonl`), maximale Dateigröße,
-Backup-Anzahl und Aufbewahrung in Tagen sind konfigurierbar. Das LLM-Log filtert
-unabhängig von `logging.modules.openrouter`. Die mitgelieferte `config.example.yaml` aktiviert
-`logging.llm.include_requests` und `include_responses` ausdrücklich: Das LLM-Log enthält
-damit die vollständige Anfrage einschließlich Systemprompt und Usernachricht sowie die
-vollständige Modellantwort. Wer diese Inhalte nicht protokollieren möchte, setzt beide
-Schalter auf `false`; sie werden niemals auf die Konsole gespiegelt.
-Das separate Telegram-Log enthält den vollständigen Text jeder erfolgreich
-gesendeten und jeder von Telegram validiert empfangenen Nachricht sowie empfangene
-Callback-Daten. Es wird nicht in das Anwendungslog oder auf die Konsole gespiegelt
-und sollte wegen dieser vertraulichen Inhalte entsprechend geschützt werden. Alle
-Logfelder, einschließlich Fehler und Stacktraces, durchlaufen die rekursive
-Geheimnisbereinigung. Alte aktive Logs und nummerierte Rotationen werden beim Start
-und vor Schreibzugriffen ausschließlich innerhalb ihres konfigurierten Verzeichnisses
-entfernt.
-Nach erfolgreichem Laden der Konfiguration schreibt jeder Programmstart das
-Ereignis `application_started` einschließlich der wirksamen CLI-Parameter
-(`config_directory`, `log_directory`, `check`, `check_access`,
-`show_imap_credentials`, `max_mails`, `ignore_historical_start`, `learn` und
-`clear`) in das Anwendungslog.
-Dabei werden ausschließlich die geparsten, bekannten Optionen und keine rohe
-Befehlszeile oder Umgebungsvariablen protokolliert.
-
-Unter `retention` steuern `full_mail_days` und `debug_llm_days` getrennt die
-Aufbewahrung vollständiger Maildaten beziehungsweise abgeleiteter Debug-/LLM-Daten
-(Relevanzbegründung, Zusammenfassung, LLM-Aufruf-IDs und Validierungsdiagnosen).
-Erlaubt sind `1` bis `3650` volle Tage, `disabled` für die sofortige Minimierung
-beim nächsten Bereinigungslauf und `unlimited` für unbegrenzte Aufbewahrung.
-Die Frist läuft ab `updated_at`; die Bereinigung läuft einmal pro Polling-Zyklus
-und ist bei Wiederholung wirkungsgleich.
-
-Nur Transportfehler sowie HTTP 408, 425, 429, 500, 502, 503 und 504 werden bei lesenden beziehungsweise idempotenten Zugriffen begrenzt wiederholt. `Retry-After` wird bis zur konfigurierten Backoff-Obergrenze berücksichtigt. Schreibzugriffe werden vorab persistiert und bei Transportfehlern oder vorübergehenden HTTP-Antworten als unklar behandelt. Ein unklarer Schreibzugriff wird bei Neustarts nur abgeglichen und niemals automatisch erneut geschrieben; dafür wäre eine ausdrückliche Betreiberentscheidung erforderlich. Das OpenRouter-Minutenbudget wird im Datenverzeichnis persistiert, bleibt deshalb über Neustarts erhalten und stellt betroffene Mails bis zum nächsten zulässigen Zeitpunkt zurück.
-Eine reguläre Mail benötigt typischerweise mindestens zwei LLM-Aufrufe (Relevanz
-und anschließende Analyse). Deshalb verwendet die mitgelieferte Konfiguration
-`limits.llm_calls_per_minute: 600`: Der frühere Wert `100` stellte einen Lauf mit
-`--max-mails 100` schon nach ungefähr 50 vollständig analysierten Mails zurück,
-obwohl das Mail-Kontingent noch nicht ausgeschöpft war. Ein niedrigerer Wert ist
-weiterhin zulässig, begrenzt aber die innerhalb einer Minute vollständig
-analysierbare Mailanzahl unabhängig von `--max-mails`.
-
-### Fehlerdiagnose im Testlauf
-
-* `openrouter` / `retry_failed` mit HTTP `401 Unauthorized` bedeutet, dass
-  OpenRouter den Wert von `OPENROUTER_API_KEY` abgelehnt hat. Der Schlüssel muss
-  in der `.env` im verwendeten Konfigurationsverzeichnis oder in der Umgebung des
-  tatsächlich gestarteten Prozesses beziehungsweise Containers korrigiert und der
-  Dienst danach neu gestartet werden. `mailhelp --check` prüft nur, ob das
-  Geheimnis vorhanden ist; der Befehl führt bewusst keinen Netzwerkaufruf aus und
-  kann daher weder Gültigkeit noch Guthaben des Schlüssels bestätigen. Ein 401 ist
-  nicht wiederholbar, weshalb trotz des allgemeinen Ereignisnamens nur
-  `attempt: 1` erscheint. `Permanente Adapterantwort` ist die zusammengefasste
-  Folge dieses Authentifizierungsfehlers, nicht ein zusätzlicher Telegram-Fehler.
-  Die Telegram-Fehlermeldung nennt OpenRouter und `OPENROUTER_API_KEY` ausdrücklich,
-  gibt aber weder den Schlüssel noch Antwortinhalte des Dienstes aus.
-* `mime_limit_exceeded` mit `max_mail_bytes` bedeutet, dass die MIME-Nachricht
-  nach dem Entfernen erkannter Anhänge größer als `limits.max_mail_bytes` ist.
-  Große Anhänge und deren Transferkodierung verhindern die Verarbeitung des
-  verbleibenden Mailtexts nicht. Den Wert nur dann in
-  `config.yaml` erhöhen, wenn diese Nachrichten bewusst verarbeitet werden sollen;
-  die zusätzlichen MIME-, Text-, HTML- und LLM-Nutzlastgrenzen bleiben weiterhin
-  wirksam. Alternativ muss der eigentliche Nachrichtentext vor der Verarbeitung
-  verkleinert werden.
-  Vor der vollständigen MIME-Aufbereitung liest Mailhelp ausschließlich den bis
-  `limits.max_header_bytes` begrenzten, vollständig abgeschlossenen Headerblock,
-  um `From` und `Subject` sicher in der Telegram-Fehlermeldung anzuzeigen. Diese
-  eingeschränkte Headeranzeige ist **keine** erfolgreiche oder vollständige
-  MIME-Verarbeitung und gelangt nicht an das LLM; fehlende, abgeschnittene oder
-  überlange Werte erscheinen als `—`. Das Ereignis `mime_limit_exceeded` enthält
-  weiterhin im Feld `limit` die konkret überschrittene Grenze, etwa
-  `max_mime_parts` oder `max_decoded_text_bytes`.
-* Wiederholte `configuration_changed`-Ereignisse sind eine absichtliche
-  Schutzsperre: Offene Zustände wurden mit einer anderen Kombination aus
-  `config.yaml`, `prompts.yaml` und `topics.yaml` erzeugt. Nicht durch Löschen
-  einzelner Zustandsdateien umgehen, sondern entweder die ursprüngliche
-  Konfiguration wiederherstellen oder nach Sicherung des gesamten
-  Zustandsverzeichnisses eine bewusste Neuverarbeitung beginnen. Die beiden
-  Fingerprints im Ereignis erlauben dabei die eindeutige Zuordnung.
-* `cleanup_completed` mit einem hohen `protected_count` ist in einem solchen Lauf
-  erwartbar: Nicht abgeschlossene oder fehlgeschlagene Zustände werden von der
-  Aufbewahrungsbereinigung geschützt. `mail_count: 0` sagt deshalb nicht aus, dass
-  keine Nachrichten gefunden wurden, sondern dass in diesem Lauf keine
-  vollständigen Mailinhalte minimiert wurden.
-* `telegram` / `send_started` direkt nach einem Verarbeitungsfehler ist die
-  beabsichtigte einmalige Fehlerbenachrichtigung. Erst ein nachfolgendes
-  `send_failed` oder `poll_failed` weist auf ein Telegram-Problem hin.
-
-Vor Änderungen oder einer Bereinigung den Dienst stoppen und das vollständige
-`data`-Verzeichnis sichern. Zustandsdateien nicht einzeln löschen: Abrufstände,
-Fehlermarkierungen und Idempotenzinformationen gehören zusammen. Für einen bewusst
-frischen Testlauf darf nach der Sicherung ausschließlich der gesamte isolierte
-`data/test`-Zustand entfernt werden; `data/production` bleibt unberührt.
-
-### Migration älterer Vorschlagszustände
-
-Vorschläge werden nun unter `proposal-<mail-id>-<proposal-id>.json` (und versioniert
-mit `-v<version>`) gespeichert. Callback, Rückfragedialog und Idempotenzschlüssel
-enthalten ebenfalls Mail-ID, Vorschlags-ID und Version. Alte `proposal-<id>.json`,
-`proposal-<id>-v<version>.json`, alte `telegram-dialog.json`-Referenzen und
-Schreibreferenzen ohne `mail_id` dürfen deshalb **nicht automatisch übernommen
-oder bestätigt** werden.
-
-Für eine sichere Umstellung: Mailhelp stoppen, das Datenverzeichnis sichern und
-alle bereits abgeschlossenen externen Schreibvorgänge anhand Todoist abgleichen und bereits angelegte Google-Kalendertermine anhand ihres Idempotenzschlüssels prüfen. Danach alte Vorschlagsdateien und einen alten
-`telegram-dialog.json` in ein schreibgeschütztes Archiv außerhalb des aktiven
-Zustandsverzeichnisses verschieben. Betroffene, noch nicht ausgeführte Mails werden
-anschließend aus ihrer unveränderten Quelle neu eingelesen und erhalten neue interne
-Vorschlags-IDs; sie müssen in Telegram erneut in der angezeigten Version bestätigt
-werden. Einen Status `writing` oder `uncertain` niemals in `confirmed` umschreiben:
-erst den alten Idempotenzschlüssel extern abgleichen, damit kein doppelter Eintrag
-entsteht. Test- und Produktionszustände bleiben dabei getrennt zu behandeln.
-
-## Betrieb und Sicherheit
-
-* IMAP wird im Nur-Lese-Modus mit einem gemeinsamen `BODY.PEEK[] INTERNALDATE`-Abruf gelesen; die nicht geheime Konto-ID, Ordner, UIDVALIDITY und UID bilden die technische Identität. `INTERNALDATE` wird strikt als zeitzonenbehafteter Empfangszeitpunkt geparst. Die Konto-ID ist ein gekürzter SHA-256-Hash aus normalisiertem Server, Port und Benutzernamen und trennt auch gleichnamige Ordner verschiedener Konten.
-* Die Analyse erhält vier getrennte Datumsinformationen: den unveränderten, bereinigten `Date`-Header (`date_header_original`), seine nur bei explizitem Offset verfügbare Parseform (`date_header_parsed`), `imap_received_at` sowie die konfigurierte IANA-`user_timezone`. `date_context_status` kennzeichnet fehlende, ungültige, naive und um mehr als sieben Tage vom Empfang abweichende Angaben. Ein solcher Kontext erzwingt bei Terminen und Aufgaben mit Frist eine offene Rückfrage und verhindert damit die Bestätigung und Speicherung; Aufgaben ohne Frist bleiben davon unberührt.
-* Die Terminextraktion kann zusätzlich `timezone_offset_text` ausschließlich aus einer ausdrücklichen Mailangabe im Format `UTC+HH:MM` oder `UTC-HH:MM` übernehmen. Zulässig ist der Bereich `UTC-14:00` bis `UTC+14:00` (an den Grenzen nur `:00`). Dieser feste Offset hat bei Uhrzeiten Vorrang vor `user_timezone`; ohne expliziten Offset gilt weiterhin die konfigurierte IANA-Zone. Zeitzonenbezeichnungen von Kalendersystemen wie „(UTC+01:00) Amsterdam, Berlin, …“ sind kein Offset: Entspricht ein extrahierter Offset dem Standardversatz der `user_timezone`, während dort Sommerzeit gilt, wird die Uhrzeit als Ortszeit der `user_timezone` behandelt („16:00 Uhr (UTC+01:00)“ am 07.10.2026 ergibt 16:00 MESZ statt 17:00 MESZ). Aus Ortsnamen, Mail-Headern oder Weltwissen wird kein Offset abgeleitet. Der offsetbehaftete ISO-Zeitpunkt wird unverändert persistiert und ohne ein konkurrierendes Google-Calendar-`timeZone`-Feld übertragen.
-* Eine ausdrücklich belegte Termindauer wird als `duration_minutes` erhalten.
-  `duration_is_upper_bound` unterscheidet dabei eine Formulierung wie „höchstens
-  30 Minuten“ von einer exakten Dauer. Nur aus einer exakten Dauer berechnet
-  Mailhelp nach Klärung des Beginns das Ende; eine Obergrenze bleibt sichtbar und
-  führt zu einer gezielten Frage nach dem Ende.
-* Nach der schema-validierten Roh-Extraktion entsteht an der Proposal-Grenze ein
-  `temporal_fact`: `raw_text` bewahrt die Mailformulierung, `normalized_date` ein
-  sicher aufgelöstes ISO-Datum, `year_source` dessen Herkunft und `status` den
-  Auflösungszustand. Ein fehlendes Jahr wird nur aus validiertem Mailkontext
-  abgeleitet; liegt Monat/Tag bereits zurück, gilt das unmittelbar folgende Jahr.
-  Ein explizites vierstelliges Mailjahr hat Vorrang, widersprechende explizite
-  Jahre bleiben unbestätigbar. Zusammenfassungen sind keine Datumsquelle. Der
-  Fakt wird Telegram-Interpretation und Revision begrenzt weitergereicht, sodass
-  `2026-10-21` nicht wieder zu `21. Oktober` degradiert wird.
-* `Proposal.due` ist eine streng validierte Union: `YYYY-MM-DD` bezeichnet ein reines Fälligkeitsdatum und wird unverändert als Todoist-`due_date` übertragen. Ein Fälligkeitszeitpunkt enthält Datum und Uhrzeit samt explizitem UTC-Offset (zum Beispiel `2026-10-01T17:00:00+02:00`) und wird als `due_datetime` übertragen. Naive Zeitpunkte werden abgelehnt und reine Daten niemals stillschweigend in Mitternacht umgewandelt.
-* Der JSON-Zustand wird atomar ersetzt und durch eine betriebssystemseitige, an den laufenden Prozess gebundene Einzelinstanz-Sperre geschützt. Die `.lock`-Datei bleibt nach dem Schließen als Diagnoseinformation erhalten; ausschließlich die vom Betriebssystem gehaltene Sperre entscheidet, ob eine Instanz aktiv ist. Syntaktisch beschädigte Dateien werden als `.corrupt`, schemawidrige Dateien als `.invalid` isoliert; Meldungen nennen Datei und Schlüsselpfad, nicht den Inhalt. Mailzustände (Schema 9), Abrufpositionen, Telegram-Dialoge, Telegram-Warteschlange und Duplikatindex (Schema 1) sowie Vorschläge (Schema 2) werden vor jeder Verwendung validiert.
-* OpenRouter-, Telegram-, Todoist- und Google-Calendar-Antworten werden nach HTTP-Erfolg strikt auf JSON-Struktur, Pflichtfelder und IDs geprüft. Bei OpenRouter werden eine ungültige Provider-Hülle (`provider_response_invalid` samt inhaltsfreiem Grund), ungültige JSON-Syntax (`invalid_json`) und ein Verstoß gegen das stufenspezifische Pydantic-Schema (`schema_validation_failed`) getrennt behandelt und jeweils unabhängig begrenzt wiederholt. Provider-Retries senden den unveränderten fachlichen Payload, JSON-Reparaturen nur einen JSON-Formathinweis und ausschließlich Schema-Reparaturen die konkrete vorherige Validierungsabweichung. Die flache Steuerung begrenzt die Gesamtzahl auf einen Erstaufruf plus die drei konfigurierten Retry-Zahlen. Providerfehler werden nicht als Schemafehler in `validation_errors` gespeichert. Reservierte OpenRouter-Felder können nicht über YAML überschrieben werden.
-* Jeder LLM-Versuch trägt die vom Analyzer fest vorgegebene Stufe, Modell,
-  OpenRouter-Backend-Provider (bei fehlender Metadatenangabe `null`), Call-ID,
-  HTTP-Status, Finish-Reason, ausschließlich Länge und Vorhandensein des Inhalts,
-  JSON-/Schemaergebnis sowie Retry-Typ und -Nummer. Das Schemaergebnis wird erst
-  nach der Analyzer-Validierung als eigenes Abschlussereignis protokolliert;
-  `content: null`, ungültiges JSON und Schemafehler bleiben getrennte Ereignisse.
-  Zusätzlich hält `token_usage_recorded` den vom Provider gemeldeten Tokenverbrauch
-  je Call-ID fest; `token_usage_available: false` kennzeichnet fehlende Angaben.
-* Bei Terminen bleiben der physische Ort und ein optionaler, ausschließlich per HTTP/HTTPS erlaubter Videolink getrennte Vorschlagsfelder und werden vor der Bestätigung beide in Telegram angezeigt. Google Calendar erhält Ort, Beschreibung und Videolink; zeitgebundene Werte behalten ihren eindeutigen Offset und ganztägige Enddaten bleiben exklusiv.
-* Externe Aktionen verlangen eine Persistenzfunktion: `writing` wird vor dem API-Aufruf dauerhaft gespeichert. Unklare Resultate werden als `uncertain` angehalten und nur abgeglichen. Ausschließlich ein externer Treffer überführt sie in `created`; ein neuer Schreibversuch setzt eine ausdrücklich modellierte manuelle Betreiberentscheidung voraus.
-* Jede Mail besitzt die schema-validierten Schritte `preparation`, `relevance`,
-  `summary`, `summary_notification`, `action_detection`, `action_router`,
-  `task_extraction`, `event_extraction`, `normalization`, `proposal_building`, `proposal_notification`
-  und `completion`. Nach jedem Schritt
-  wird atomar gespeichert; nach einem Neustart laufen ausschließlich ausstehende
-  Schritte. Relevante Mails speichern und versenden die Summary vor der
-  Action-Erkennung. Router-Zähler sind dabei nur Diagnosehinweise: Abweichende
-  schema-valide Extraktionen werden vollständig gespeichert und nicht abgeschnitten.
-  Der persistierte Zählerkonflikt stellt betroffene Vorschläge bis zu einer neuen,
-  ausdrücklich zu bestätigenden Klärungsversion auf `needs_clarification`; Call-IDs
-  und Konfliktmeldungen werden bei Wiederaufnahme nicht dupliziert. Ein erschöpfter Action-Fehler
-  beendet die Mail als Teilfehler und bleibt gezielt wiederholbar; Summary und deren
-  Versand werden dabei nicht wiederholt. Versand wird vor dem Telegram-Aufruf als
-  `sending` markiert, damit ein Abbruch danach keinen unkontrollierten Doppelversand
-  auslöst. Nicht benötigte Schritte sind ausdrücklich `skipped`.
-  **Abgeschlossen mit Action-Fehler** bedeutet daher nicht, dass alle Aktionen
-  verarbeitet wurden: Die Mail und ihre Zusammenfassung sind abgeschlossen, die
-  betroffene Action-Teilstufe bleibt jedoch `failed` und gezielt wiederaufnehmbar.
-  Beim Wiederaufnehmen werden weder Relevanz und Zusammenfassung noch eine bereits
-  versandte Zusammenfassung oder eine erfolgreiche Schwester-Extraktion wiederholt.
-* Jeder Vorschlag trägt die streng validierten Felder `responsibility` (`user`, `other`, `unclear`), `certainty` (`certain`, `uncertain`, `contradictory`) und `classification` (`new`, `non_binding`, `already_completed`, `change`, `cancellation`, `recurring`, `unsupported`). Ausschließlich `new` + `user` + `certain` ist unmittelbar bestätigbar und extern anlegbar. Eine als `change` erkannte Terminänderung bleibt dagegen als solche erhalten und darf niemals durch eine allgemeine Bestätigung zur Neuanlage werden. Erst die ausdrückliche Telegram-Antwort, stattdessen einen neuen Termin anzulegen, setzt das separate, persistierte Fallback-Flag. Entsprechend hält eine ausdrückliche Zustimmung zur Anlage eines `non_binding`-Hinweises die Klassifikation unverändert und speichert sie im separaten Flag `explicit_non_binding_create_confirmed`. Beide neuen Vorschlagsversionen müssen anschließend versionsbezogen bestätigt werden. Alle anderen Einordnungen erscheinen als manuell zu prüfende Information; offene Zuständigkeit, Unsicherheit und Widerspruch erzwingen `needs_clarification`.
-* Jedes extrahierte Terminobjekt muss `time_requirement` ausdrücklich enthalten;
-  zulässig sind ausschließlich `all_day`, `timed` und `required_unknown`. Nur
-  explizite Mail-Evidenz darf `all_day` setzen; `timed` bezeichnet einen
-  zeitgebundenen Termin und `required_unknown` die konservative Wahl bei unklarer
-  Zeitsemantik. Ein bekanntes Datum ohne Uhrzeit wird in `known_temporal_facts`
-  bewahrt und löst eine konkrete Frage nach dem Beginn aus, statt stillschweigend
-  einen Ganztagstermin zu erzeugen. Eine bereits in der Mail erkannte Beginnuhrzeit
-  bleibt auch bei einem noch ungeklärten Datum separat erhalten und wird nach der
-  Datumsantwort in der Nutzerzeitzone zusammengesetzt. Ein bekannter Beginn löst nur noch die Frage
-  nach dem Ende aus; Uhrzeit, Ende und Dauer werden niemals ergänzt.
-* Eindeutige Datumsbereiche ohne Uhrzeit (zum Beispiel `5.–6. November 2026`)
-  werden vor einer Rückfrage deterministisch als mehrtägige Ganztagstermine
-  erkannt. Das intern gespeicherte Enddatum ist dabei exklusiv; für den 5. und
-  6. November lautet es daher `2026-11-07`.
-  Eine an die Nutzerin oder den Nutzer gerichtete, noch auszuführende einmalige
-  Bitte, Aufforderung oder Verpflichtung wird als `new` klassifiziert. Eine
-  sachliche, automatisch erzeugte oder indirekte Formulierung macht die Aufgabe
-  nicht `non_binding` oder `unsupported`.
-  Ein ausdrücklich angekündigter, einmaliger künftiger Termin oder eine
-  Einladung dazu wird als `new` klassifiziert. Der reine Informationscharakter
-  oder der Versand durch ein externes Veranstaltungssystem macht den Termin
-  nicht `non_binding` oder `unsupported`.
-* Bei Einladungen verwenden Router, Aufgaben- und Terminextraktion dieselbe
-  Abgrenzung: Eine reine Einladung oder Veranstaltungsinformation erzeugt einen
-  Terminkandidaten, aber keine Aufgabe. Eine ausdrücklich verlangte Anmeldung,
-  Zu- oder Absage, Rückmeldung, Vorbereitung oder andere Handlung erzeugt
-  zusätzlich einen getrennten Aufgabenkandidaten. Die Frage, ob eine benannte
-  Person ein Grußwort halten kann, wird als verlangte Rückmeldung verstanden und
-  nicht als Auftrag, das Grußwort zu halten. Bedingte oder an andere Personen
-  gerichtete Handlungen werden weder der nutzenden Person sicher zugewiesen noch
-  als unbedingte Verpflichtung dargestellt. Kandidaten werden nicht erfunden
-  oder entfernt, um Router-Zähler einzuhalten.
-* Eine freiwillige, konkret an die empfangende Person gerichtete Handlung wie
-  die Buchung eines Gesprächs über einen vorhandenen Link ist ein prüfbarer
-  Aufgabenvorschlag und kein fachlich unklarer Aktionsfall. Der Vorschlag bewahrt
-  die Freiwilligkeit und den Link, erhält ohne ausdrücklich genannte Frist keine
-  Fälligkeit und erzeugt ohne gebuchten Zeitpunkt keinen Kalendertermin. Auch
-  dieser Vorschlag wird erst nach versionsbezogener Bestätigung über Telegram oder die authentifizierte Weboberfläche in
-  Todoist geschrieben.
-* Vorschläge werden zusätzlich zur Maildatei versionsweise und als aktueller Stand
-  gespeichert. Bestätigte Schreibvorgänge werden nach Neustarts wiederaufgenommen;
-  externe ID und Link sowie `created`, `failed` oder `uncertain` werden im
-  konfigurierten Telegram-Chat sichtbar gemeldet. Die Erfolgsmeldung für einen
-  Kalendertermin nennt zusätzlich Datum und Uhrzeit in der konfigurierten Zeitzone
-  beziehungsweise kennzeichnet einen ganztägigen Termin. Aufgaben und Termine werden im Testmodus
-  stattdessen vor der Meldung mit dem Abschlusszustand `simulated` ohne externe ID
-  oder Link atomar gespeichert. Bereits der Vorschlag bezeichnet dann die fehlende
-  externe Anlegbarkeit als Simulation und die Schaltfläche lautet `Simulieren`;
-  die Callback-Antwort unterscheidet die interne Bestätigung ausdrücklich von einer
-  externen Anlage. Für beide Ziele wird `simulated` gespeichert. `simulation_notified`
-  hält anschließend dauerhaft fest, dass die
-  eindeutig als Simulation bezeichnete Meldung versandt wurde. Mehrfach-Polls und
-  Neustarts führen deshalb weder die Simulation erneut aus noch melden sie erneut;
-  ein zwischen Speichern und Meldung erfolgter Abbruch kann die noch ungemeldete
-  Simulation dagegen sicher zu Ende melden. Entsprechend wird auch die Meldung eines
-  unverändert unklaren Ergebnisses dauerhaft markiert.
-* Erfolgreich angelegte Termine und Aufgaben werden zusätzlich im validierten,
-  menschenlesbaren `action-ledger.json` verbucht. Erkennt Mailhelp bei einer späteren
-  Bestätigung dieselbe fachliche Aktion, bleibt der Vorschlag zunächst offen und
-  Telegram verlangt über eine eigene versionsgebundene Schaltfläche eine zweite,
-  ausdrückliche Freigabe. Ohne diese Freigabe erfolgt kein erneuter Schreibzugriff.
-* `data_directory` bezeichnet das gemeinsame Stammverzeichnis. Mailhelp verwendet darunter automatisch `test/` bei `test_mode: true` und `production/` bei `test_mode: false`. Beide Namensräume besitzen eine eigene `.lock`-Datei und enthalten jeweils sämtliche IMAP-Checkpoints, Mailzustände, Telegram-Offsets und -Dialoge, Vorschläge, externe Ergebniszustände sowie das persistierte LLM-Zeitfenster. Identische IDs können deshalb nicht zwischen Test- und Produktivbetrieb kollidieren.
-* Ein schema-validierter `duplicate-index.json` hält ausschließlich technische
-  IMAP-Identitäten, normalisierte Message-IDs, interne Mail-IDs und SHA-256-
-  Inhaltsfingerprints aus stabilen Absender-, Betreff-, Datums- und Textmerkmalen.
-  Gleiche einzelne Message-ID plus gleicher Fingerprint wird vor einem LLM-Aufruf
-  übersprungen. Fehlende/mehrfache Message-IDs, wiederverwendete IDs, noch offene
-  Kandidaten und reine Fingerprinttreffer werden als `ambiguous` gespeichert und
-  weiterhin verarbeitet. Das Ereignis enthält nur Entscheidung und interne IDs.
-* Die Inhaltsbereinigung arbeitet ausschließlich im ausgewählten Namensraum und
-  an abgeschlossenen Vorgängen. Offene Relevanzdialoge, Rückfragen und
-  Bestätigungen sowie `confirmed`, `writing` oder `uncertain` werden geschützt.
-  Bei bereinigten Abschlüssen bleiben IMAP-Identität, Zeitpunkte, Schritte,
-  Vorschlagsversionen, externe IDs/Links und Schreibreferenzen samt
-  Idempotenzschlüsseln erhalten. Ein Restore kann so weiterhin Ergebnisse
-  zuordnen und Duplikate verhindern; entfernte Inhalte sind nicht
-  wiederherstellbar. Logs nennen nur Mail-ID, Laufzeitpunkt und Zähler.
-* Die mitgelieferte `config.example.yaml` verwendet `test_mode: false`, damit eine über
-  Telegram ausdrücklich bestätigte Aufgabe tatsächlich in Todoist angelegt wird.
-  Wird `test_mode` für einen gezielten Testlauf auf `true` gesetzt, findet kein
-  Zugriff auf Todoist oder Google Kalender statt; Aufgaben und Termine werden
-  als Simulation abgeschlossen. IMAP, LLM und Telegram bleiben online.
-* JSONL-Anwendungs- und LLM-Logs sind getrennt. Die Beispielkonfiguration protokolliert vollständige LLM-Anfragen und -Antworten; beide Inhaltsarten lassen sich unabhängig abschalten und Geheimnisfelder werden stets maskiert.
-* `.env` unterstützt einfache `NAME=WERT`-Zeilen und einfache/doppelte Anführungszeichen, aber bewusst keine Shell-Erweiterung. Prozessvariablen überschreiben gleichnamige Werte aus der Datei.
-
-### Alte Mailzustände kontrolliert verarbeiten
-
-Mailzustands-Schema 9 migriert Schema 6, 7 und 8 ausdrücklich, indem der früher gemeinsame
-Benachrichtigungsstatus konservativ auf Summary- und Vorschlagsversand abgebildet
-die getrennten Extraktions-Teilstatus ergänzt und vorhandene Vorschläge mit versionierten Versandmarkern übernommen werden; die Datei wird sofort
-atomar als Schema 9 gespeichert. Schema 9 bleibt gegenüber
-Schema 3 bewusst inkompatibel. **Für Schema 3 findet keine automatische Migration
-statt.** Beim Laden wird eine solche Datei
-als schemawidrig erkannt und neben den Zustandsdateien mit der Endung `.invalid`
-isoliert. Mailhelp rekonstruiert insbesondere die in neueren Schemata erforderlichen
-Zeitpunkte, Konfigurations-Fingerprints und Schreibreferenzen nicht, weil dies
-bereits ausgeführte Aktionen fälschlich wiederholen könnte.
-
-Betreiber führen eine erneute Verarbeitung deshalb ausschließlich kontrolliert
-durch:
-
-1. Mailhelp stoppen und eine vollständige Sicherung des betroffenen
-   Modusverzeichnisses (`data/test/` oder `data/production/`) einschließlich der
-   `.invalid`-Datei und der IMAP-Checkpoints erstellen.
-2. Anhand von Konto, Ordner, UIDVALIDITY und UID der gesicherten Datei die
-   Ursprungsmail sowie den zugehörigen IMAP-Checkpoint eindeutig bestimmen und
-   prüfen, ob bereits Todoist-Aufgaben oder Kalendertermine erzeugt wurden.
-3. Den Checkpoint für genau dieses Konto und diesen Ordner bei gestopptem Dienst
-   bewusst auf eine UID vor der betroffenen Mail zurücksetzen. Die
-   `.invalid`-Datei als Nachweis gesichert lassen und nicht in Schema 9
-   umetikettieren oder manuell mit erfundenen Pflichtfeldern ergänzen.
-4. Mailhelp mit der aktuellen Version starten, die Mail neu als Schema 9 einlesen
-   lassen und alle neu vorgeschlagenen Schreibaktionen erneut über Telegram
-   prüfen und versionsbezogen bestätigen. Anschließend kontrollieren, dass der
-   Checkpoint wieder vorgerückt ist und keine doppelte externe Aktion entstand.
-
-Wenn diese Prüfung oder ein sicherer Checkpoint-Rücklauf nicht möglich ist, darf
-die Datei nicht erneut verarbeitet werden. Stattdessen kann der Vorgang mit der
-vorherigen, Schema 3 unterstützenden Programmversion in einer gesicherten
-Umgebung abgeschlossen werden.
-
-Ohne `--check` startet der CLI-Einstieg den Dienst. Er liest alle konfigurierten
-IMAP-Ordner und Telegram per Long-Polling. Abrufstände werden pro Ordner mit
-Konto-ID, UIDVALIDITY, einmaligem Start-UID, informativer höchster UID und
-normalisierten Bereichen der bereits dauerhaft übernommenen UIDs persistiert.
-Deshalb kann eine hohe neue UID eine ältere offene UID nicht überspringen; nach
-einem Neustart werden sowohl Backlog als auch Lücken fortgesetzt. Ein
-UIDVALIDITY-Wechsel verwirft nur die Bereiche des betroffenen Ordners und löst
-eine konfigurierte historische Zeitgrenze in der neuen UID-Namenswelt erneut
-auf. Er erscheint als eigenes strukturiertes Ereignis `uidvalidity_changed`. SIGINT und
-SIGTERM fordern ein kontrolliertes Ende an; Netzwerkclients und die
-Einzelinstanz-Sperre werden auch bei Fehlern geschlossen. `Strg+C` beendet auch
-die Einmalmodi (`--check`, `--check-access`, `--learn` und `--clear`) kontrolliert
-mit Exit-Code 130 und ohne Python-Traceback. Unmittelbar vor dem
-Beenden sendet der Bot in den konfigurierten Telegram-Chat eine Laufzusammenfassung
-aus dem persistenten initialen Batch. Vor dem Beenden sendet Mailhelp eine einzeilige Laufzusammenfassung, etwa „✅ Lauf abgeschlossen: 25 von 25 Mails geprüft · 3 relevant · 14 irrelevant · 3 warten auf dich“ bzw. „⏸ Lauf unterbrochen: …“; Zähler mit dem Wert 0 entfallen. Ein vollständiger Lauf ohne entdeckte Mail sendet keine Zusammenfassung (`run_summary_skipped`). Sie bezeichnet den Lauf nur dann als
-abgeschlossen, wenn jede Batchposition einen terminalen Analysezustand erreicht hat. Ist noch eine Relevanzentscheidung offen, wird die Laufzusammenfassung
-zurückgestellt. Offene Vorschläge bleiben auch nach der Zusammenfassung bedienbar. Andernfalls wird sie auch bei einem Laufzeitfehler versucht; ein
-Versandfehler wird protokolliert und verdeckt einen bereits aufgetretenen Fehler
-nicht.
-
-Für einen begrenzten Testlauf verarbeitet beispielsweise `mailhelp --max-mails 50`
-in genau einem Abrufdurchlauf höchstens 50 Mails, auch wenn `imap.batch_size` auf
-dem Standardwert 25 steht (einschließlich fälliger, nach einem
-Neustart fortzusetzender Mails). Nicht verbrauchtes Kontingent führt nicht zu
-einem weiteren IMAP-Abruf;
-`--max-mails` muss mindestens `1` sein. Nur eine unklare Relevanzfrage unterbricht
-in diesem Modus die Analyse derselben Mail bis zur Antwort. Aufgaben- und
-Terminvorschläge bleiben unabhängig davon offen und halten die Verarbeitung
-weiterer Mails nicht an. Bereits bestätigte externe Schreibaktionen
-behalten auch in diesem Modus ihre normalen Sicherheits- und Abgleichsregeln.
-Ein Stoppsignal beendet auch dieses Warten kontrolliert; der dauerhafte Zustand
-wird beim nächsten Start wieder aufgenommen.
-Offene Bestandszustände mit einem anderen Konfigurationsfingerprint werden ohne
-IMAP-Abruf und ohne Fortsetzung als blockiert gemeldet. Sie verbrauchen das
-Verarbeitungskontingent nicht; pro Lauf werden zusätzlich höchstens
-`--max-mails` solcher Zustände gescannt und gemeldet, damit ein großer alter
-Bestand weder neue Mails verdrängt noch den Lauf unbegrenzt verlängert.
-Im dauerhaften Betrieb ohne `--max-mails` endet dieser zusätzliche Scan nach
-1.000 blockierten Zuständen je Abrufdurchlauf.
-
-### Alle Laufzeitdaten löschen
-
-`mailhelp --clear` löscht die vollständigen Zustände der Test- und
-Produktionsnamensräume, die Decision-Test-Berichte in `data/decision-tests`
-(sie enthalten vollständige Rohmails) sowie sämtliche Dateien im konfigurierten
-Logverzeichnis. Ein verlinktes Berichtsverzeichnis wird nur entkoppelt, nicht
-verfolgt.
-Der Dienst muss dafür beendet sein; eine noch aktive Instanz verhindert das
-Löschen über ihre Datensperre. Da auch Checkpoints, offene Bestätigungen,
-Duplikatschutz und externe Ergebnisreferenzen unwiderruflich verloren gehen,
-verlangt der Befehl im Terminal die exakte Eingabe `ALLE DATEN LOESCHEN`.
-Ein leerer oder abweichender Text bricht ohne Änderung mit Status 1 ab.
-
-Für einen bewusst nicht interaktiven Aufruf steht `mailhelp --clear --yes` zur
-Verfügung. `--yes` ist ohne `--clear` unzulässig. `--log-directory PFAD`
-überschreibt auch beim Löschen das konfigurierte Logverzeichnis. Konfiguration,
-Prompts, Themen und Geheimnisse werden nicht gelöscht.
-
-### Experimenteller lokaler Modus (Ollama)
-
-Statt OpenRouter kann ein lokaler [Ollama](https://ollama.com)-Server alle
-LLM-Schritte ausführen. Der Modus ist experimentell: Lokale Modelle sind
-langsamer und in der Regel weniger zuverlässig als das konfigurierte
-OpenRouter-Modell; Ergebnisse vor produktiver Nutzung mit `--max-mails`
-prüfen.
-
-```powershell
-# Modell aus prompts.yaml (ollama.model) verwenden
-mailhelp --ollama 192.168.1.20:11434 --max-mails 5
-# Modell für diesen Aufruf überschreiben; IPv6 in eckigen Klammern
-mailhelp --ollama [::1]:11434 --ollama-model llama3.1:8b --check-access
+```sh
+mailhelp --google-auth --config-directory .
+mailhelp --microsoft-login --config-directory .
 ```
 
-- `--ollama HOST:PORT` leitet jeden LLM-Schritt (Relevanz, Zusammenfassung,
-  Router, Extraktionen, Rückfragen, Revisionen, Kalenderduplikate, Lernmodus)
-  an `http://HOST:PORT/api/chat`. Modelle, `routes`, `provider_preferences` und
-  `reasoning` aus `prompts.yaml` gelten dann nicht; Temperatur, `max_tokens`
-  (als `num_predict`) und weitere Sampling-Parameter werden übernommen.
-- Das Modell steht in `prompts.yaml` unter `ollama.model` (Standard
-  `gemma4:31b`); `--ollama-model NAME` überschreibt es. Ohne Modell
-  bricht der Start ab. Das Modell muss auf dem Server installiert sein
-  (`ollama pull <modell>`); `--check-access` prüft das über `/api/tags`.
-- `ollama.num_ctx` (Standard 65.536) setzt das Kontextfenster passend zur auf
-  dem Server vorgeladenen Instanz. Ein abweichender Wert lässt Ollama ein
-  bereits geladenes Modell neu laden, bei sehr großen Modellen mehrere Minuten.
-- `ollama.num_thread` setzt optional die CPU-Threadzahl für jeden lokalen
-  Aufruf, etwa `16` für Gemma4. Ohne Angabe verwendet Ollama seine automatische
-  Auswahl. Der Parameter gilt auch im Decision-Test und wird dort gespeichert.
-- `ollama.think: false` sendet bei jedem lokalen Aufruf ausdrücklich
-  `think: false`, um Thinking bei unterstützten Modellen abzuschalten.
-  `true` aktiviert es; ohne Angabe bleibt der Modellstandard erhalten.
-  Die Einstellung wird ebenfalls im Decision-Testbericht gespeichert.
-- An den System-Prompt jedes lokalen Aufrufs wird „Antworte in maximal N
-  Token.“ angehängt; N ist das `max_tokens` der jeweiligen Stufe aus
-  `prompts.yaml`, das zusätzlich als `num_predict` begrenzt.
-- Strukturierte Antworten werden über Ollamas `format` mit dem JSON-Schema der
-  jeweiligen Stufe erzwungen. Zeichenlängen (`maxLength`/`minLength`) werden
-  dabei weggelassen, weil Ollama lange Grenzen nicht in eine Grammatik
-  übersetzen kann („failed to parse grammar“); sie werden anschließend lokal
-  geprüft. Außerdem sind in dieser Grammatik alle Felder Pflicht (leere Werte
-  weiter als `null`), weil das Modell optionale Felder sonst weglässt – Hy3
-  lieferte so trotz gelesener Angaben nie `date_text` und `time_text`.
-  Ausgenommen ist das Änderungsobjekt der Revision (`changes`): Dort bedeutet
-  ein fehlendes Feld „unverändert“. JSON- und Schemaprüfung, Reparaturversuche,
-  Rate-Limit und LLM-Logs (`provider: "ollama"`) bleiben unverändert.
-- Timeout und Wiederholungen stehen in `config.yaml` unter `timeouts.ollama`
-  (Standard und Höchstwert 1.800 s, 1 Wiederholung). Es wird kein API-Schlüssel an den lokalen
-  Server gesendet; `OPENROUTER_API_KEY` muss für die Konfigurationsprüfung
-  trotzdem gesetzt sein.
-- Der Start im lokalen Modus wird als `local_llm_experimental` (WARNING) mit
-  Host, Port und Modell protokolliert. Ollama ist nur über HTTP erreichbar;
-  den Server deshalb nur im vertrauenswürdigen lokalen Netz betreiben.
+Nur den Befehl für den jeweils verwendeten Anbieter ausführen. Google verwendet
+eine Browseranmeldung mit lokalem Rückruf; Microsoft eine Anmeldung per Gerätecode.
+Mit `--profile 2` wird ein zusätzliches Zielprofil eingerichtet. Die erstmalige
+Google-Anmeldung für Docker auf dem Host durchführen.
 
+Die [Anleitung zu Zielprofilen und OAuth](docs/Release-3.2.md) beschreibt
+Voraussetzungen, Geheimnisnamen und die sichere Tokenablage.
 
-### Standard-Relevanzprüfung mit Jev
+### Einstellungen je Postfach
 
-Im regulären Ablauf (auch `--max-mails` und `test_mode`) prüft Jev nach den
-bestehenden Absender- und Duplikatfiltern die Relevanz anhand der aktivierten Themen.
-Bei `relevant` oder `irrelevant` wird das Ergebnis direkt übernommen. Ausschließlich
-bei `unclear` folgt die bisherige Relevanzstufe aus `prompts.yaml` mit ihren bisherigen
-Modellen, Parametern, Providerwechseln und Validierungswiederholungen. Das Ergebnis
-dieser zweiten Prüfung ist maßgeblich; bleibt es unklar, gilt der bisherige
-Telegram-Relevanzdialog. Jev-Timeouts, API-, Validierungs- und Rate-Limit-Fehler sind
-keine fachliche Unsicherheit und laufen durch die bestehende Fehlerbehandlung;
-sie lösen keinen zusätzlichen LLM-Rückfall aus.
+Unter **Einstellungen → Postfächer** lassen sich globale Werte gezielt
+überschreiben. Themen und Absenderausnahmen können auf einzelne Postfächer
+begrenzt werden. Zusätzliche Kalender- und Aufgabenziele werden über Zielprofile
+zugeordnet.
 
-Alle späteren Stufen – Zusammenfassung, Aktionsrouting, Extraktion, Revision,
-Telegram-Auswertung und Kalender-Duplikatprüfung – verwenden weiterhin unverändert
-`prompts.yaml`. Jevs Aktionsrouter wird im Standardablauf nicht aufgerufen.
-Bestätigungen und externe Schreibzugriffe bleiben unverändert versionsbezogen.
-Der experimentelle lokale `--ollama`-Modus bleibt vollständig lokal. `--learn`,
-`--check-access` behält seinen bisherigen Pfad. Der isolierte `--decision-test`
-vergleicht den Standard einschließlich Rückfall gegen Ollama, ohne Schreibdienste.
+Bestehende Vorschläge behalten ihr gespeichertes Ziel. Eine ausdrückliche
+Zielumstellung erzeugt eine neue, erneut zu bestätigende Version. Zieländerungen
+verändern den Analyse-Fingerprint nicht.
 
-`decisions_prompts.yaml` im Konfigurationsverzeichnis enthält Jevs Modell,
-Relevanzfragen, Schwelle und Themenpräzisierungen. Fehlt die Datei, wird die
-mitgelieferte Vorlage aus `mailhelp/defaults` gelesen, ohne die Konfiguration zu
-beschreiben. Eine vorhandene fehlerhafte Datei wird nicht durch Defaults ersetzt.
-`--check` validiert auch die Jev-Vorlage, außer im lokalen Ollama-Modus. Docker bindet
-sie zusätzlich schreibgeschützt unter `/config/decisions_prompts.yaml` ein.
+Alle Felder und ihre Wirkung erläutert die
+[Einstellungsreferenz](docs/Web-Einstellungen.md).
 
-Jev und der bisherige LLM-Client teilen sich dasselbe persistente Aufrufbudget und
-dessen Sperre. Jev nutzt die bestehenden OpenRouter-Timeouts und HTTP-Retries;
-Backoff kann durch Shutdown unterbrochen werden. Logs kennzeichnen Jevs Entscheidung
-und verknüpfen im Rückfall Jev- und LLM-Aufruf-IDs ohne Mailinhalte. Im Mailzustand
-steht wie bisher die Aufruf-ID der übernommenen Entscheidung. Die bestehende
-Protokollierungsoption für vollständige LLM-Inhalte gilt weiterhin für beide Clients.
+## Betrieb
 
-Der Konfigurationsfingerprint umfasst nun zusätzlich Jevs Modell, Relevanzfragen,
-Schwelle, Mailkürzung, Präzisierungen und die Rückfallregel; Änderungen des experimentellen
-Jev-Aktionsrouters allein beeinflussen ihn nicht. Bereits abgeschlossene Mails werden
-nicht erneut analysiert. Für noch nicht abgeschlossene Mailzustände mit altem
-Fingerprint bleibt der vorhandene Schutz bei Konfigurationsänderung aktiv: Sie
-werden zurückgehalten und nicht stillschweigend auf die neue Analyse migriert.
+### Prüfen und starten
 
-
-Jev erhält als Zustand nur eine schlanke Mail (Absender, Betreff, Datum und den
-Mailtext ohne Links und Linkfußnoten, gekürzt auf `max_mail_characters`, Standard
-8000 Zeichen, mit Hinweis `[gekürzt]`) sowie die aktivierten Themen. Jev erlaubt
-höchstens 32.000 Token für Zustand und längste Frage; ungekürzte Newsletter
-scheiterten sonst mit HTTP 400 `max_tokens_exceeded`, und unnötiger Inhalt senkt
-laut TypeSafe die Genauigkeit. Die nachfolgenden LLM-Stufen und der Rückfall
-erhalten weiterhin die vollständig vorbereitete Mail.
-
-Jevs `topic_guidance` präzisiert ausschließlich dessen Themenfragen und steht nur
-dort, nicht zusätzlich im Zustand: persönliche Einladungen und Zeremonien, die
-Abgrenzung der Termin-Koordination gegenüber offenen Seminar-, Event- und
-Messeangeboten, Newsletter-Anmeldeaufrufen und Terminbuchungswerbung,
-Hochschulbeiräte sowie die Abgrenzung von Landfrauen gegenüber anderen
-landwirtschaftlichen Verbänden. Die gemeinsame `topics.yaml`
-bleibt maßgeblich; explizite Ausschlüsse haben Vorrang. Mehrere Themen dürfen
-unabhängig passen. Jev fragt pro Thema `match`, `no_match` oder `unclear`.
-Die unveränderte Schwelle `topic_threshold: 0.5` gilt für die Wahrscheinlichkeit
-der gewählten eindeutigen Themenantwort; darunter oder bei unklaren Themen wird
-die Gesamtentscheidung unklar. Auch Widersprüche zwischen Gesamtentscheidung und
-sicheren Themen erzeugen `unclear`. Bestätigte Themen bleiben dabei sichtbar.
-Im Standard und im Standardpfad des Vergleichs löst dieses Ergebnis die bisherige
-LLM-Relevanzprüfung aus. Alte binäre Jev-Themenvorlagen werden mit einem
-Konfigurationsfehler abgelehnt und müssen auf die drei Auswahlkriterien migriert werden.
-
-### Decision-Vergleich: Standard gegen Ollama
-
-Der separate Einmallauf vergleicht bis zu N Mails zwischen dem aktuellen Standard
-und einem angegebenen Ollama-Server. Die Relevanz wird in beiden Pfaden geprüft;
-ausschließlich die im jeweiligen Pfad relevanten Mails werden weiter analysiert.
-N bezeichnet die Anzahl ausgewählter Mails, nicht die Anzahl relevanter Mails.
-Der Aufruf aktiviert reale IMAP-, OpenRouter- und Ollama-Anfragen sowie ausdrücklich
-die Speicherung vollständiger Mail- und Modellinhalte.
-
-```powershell
-mailhelp --decision-test 20 --ollama localhost:11434
-mailhelp --decision-test 40 --ollama localhost:11434 --decision-test-file data/decision-tests/standard-vs-ollama.json
-mailhelp --decision-test 20 --ollama 192.168.1.20:11434 --ollama-model qwen2.5:7b-instruct --ignore-historical-start
-mailhelp --decision-test 100 --ollama 192.168.1.20:11434 --decision-test-relevance-only
-mailhelp --decision-test 50 --ollama 192.168.1.20:11434 --decision-test-laya 192.168.1.30:11434
-mailhelp --decision-test 50 --ollama 192.168.1.20:11434 --decision-test-laya 192.168.1.30:11434 --decision-test-laya-model laya:latest --decision-test-relevance-only
+```sh
+mailhelp --check --config-directory .
+mailhelp --check-access --config-directory .
+mailhelp --max-mails 10 --config-directory .
+mailhelp --config-directory .
 ```
 
-`--ollama HOST:PORT` ist für diesen Modus erforderlich. Das Modell kommt aus
-`prompts.yaml` unter `ollama.model`; `--ollama-model NAME` überschreibt es für den
-Test. `ollama.num_ctx` gilt wie im lokalen Modus. Fehlende Adresse oder fehlendes
-Modell werden vor dem Teststart abgelehnt.
+- `--check` validiert die Konfiguration ohne Netzwerkzugriff.
+- `--check-access` prüft die eingerichteten Zugänge und sendet bei aktiviertem
+  Telegram eine Testnachricht. Es erzeugt keine Aufgaben oder Termine.
+- `--max-mails 10` begrenzt einen einzelnen Abrufdurchlauf auf höchstens zehn Mails.
+- Ohne diese Optionen läuft Mailhelp als Dienst mit regelmäßigen Abrufzyklen.
+- Pro Datenverzeichnis läuft nur eine Instanz. Ein weiterer Start meldet
+  „Mailhelp läuft bereits …“; die laufende Instanz zuerst über **Beenden** in der
+  Weboberfläche oder mit Strg+C in ihrem Terminal beenden.
 
-Experimentell prüft `--decision-test-laya HOST:PORT` die Relevanz des
-Ollama-Pfads mit dem typisierten Entscheidungsmodell Laya. Laya läuft auf einem
-eigenen Ollama-Server mit MLX-Unterstützung (Apple Silicon) und wird über
-`/v1/systemone` angesprochen. Alle übrigen lokalen Stufen nutzen weiter
-`ollama.model` auf dem `--ollama`-Server; ohne `--decision-test-laya` prüft dieses
-Modell auch die Relevanz. Laya erhält nicht die langen Jev-Fragen. Die Frage
-entsteht zur Laufzeit aus den Relevanzkriterien und folgt den Empfehlungen der
-Laya-Modellkarte: eine `choice`-Frage (statt Ja/Nein-Fragen mit bekanntem
-Label-Bias), deren Optionen die aktivierten Themen aus `topics.yaml` (höchstens
-25) plus eine Sammeloption „keines davon“ sind, mit neutralen Buchstaben als
-Schlüsseln und kurzen Optionstexten. Laya hat einen Positions-Bias; dieselbe
-Frage wird daher in `rotations` Optionsreihenfolgen im selben Aufruf gestellt
-und die Wahrscheinlichkeiten werden gemittelt. `laya_prompts.yaml` (fehlt die
-Datei, gilt die mitgelieferte Vorlage) enthält Anweisung, die Optionsvorlagen
-`topic_option` (`{name}`, `{description}`) und `other_option` (optional
-`{irrelevant}` mit den Namen aus `irrelevant_topics.yaml`), die Kürzungen
-`max_option_characters` und `max_state_characters` sowie die Schwellen. Mit
-P(Thema) = 1 − P(keines davon) gilt: `relevant` ab `relevant_threshold` mit
-mindestens einem Thema ab `topic_threshold`, `irrelevant` unter
-`irrelevant_threshold`, sonst `unclear`. Die Begründung nennt P(Thema) und die
-Themenwahrscheinlichkeiten. Vor der Prüfung werden Links, zitierte Zeilen (`>`)
-und Linkfußnoten entfernt; lehnt Laya den Text als zu lang ab, wird er einmal
-anteilig gekürzt und erneut gesendet.
-`--decision-test-laya-model NAME` überschreibt das Laya-Modell für einen Test.
-Ollama- und Laya-Modell werden über `/api/tags` geprüft, bevor eine Mail gelesen
-wird; ein nicht installiertes Modell bricht mit Hinweis auf `ollama pull` ab. An
-keinen der beiden lokalen Server werden Zugangsdaten gesendet. Der Bericht
-enthält `ollama_relevance` (`engine: laya`, Adresse, Modell oder `null`) und die
-verwendeten `laya_prompts` und `laya_irrelevant_topics` (sonst jeweils `null`).
+Relative Daten- und Logpfade beziehen sich auf `--config-directory`.
+Fehlende Themen-Dateien werden aus den Paketvorlagen angelegt; vorhandene Dateien
+werden nicht überschrieben.
 
-`--decision-test-relevance-only` vergleicht ausschließlich die Relevanzprüfung beider
-Pfade. Zusammenfassung, Aktionsrouting und Extraktionen werden dann nie ausgeführt
-und als `skipped` mit Grund `relevance_only` dokumentiert; der Bericht trägt
-`pipeline_policy: relevance_only`. `--decision-test-laya` und
-`--decision-test-relevance-only` sind nur zusammen mit `--decision-test` zulässig.
+### Weboberfläche
 
-Die zwei Berichtspfade sind:
+In `config.yaml` `web.enabled: true` setzen und in `.env` einen zufälligen
+`MAILHELP_WEB_SECRET` mit mindestens 32 Zeichen hinterlegen. Nach dem Dienststart
+ist die Oberfläche standardmäßig unter **http://127.0.0.1:8765** erreichbar.
 
-- `standard`: Jev-Relevanz aus `decisions_prompts.yaml`, nur bei `unclear` die
-  bisherige LLM-Relevanz aus `prompts.yaml`. Das Ergebnis der Rückfallprüfung ist
-  maßgeblich. Alle weiteren Analysestufen laufen über das bisherige Standard-LLM.
-  Eine fehlende Jev-Datei verwendet wie im Standard die mitgelieferte Vorlage;
-  eine vorhandene fehlerhafte Datei wird nicht ersetzt. Jevs Aktionsrouter bleibt ungenutzt.
-- `ollama`: Relevanz, Zusammenfassung, Aktionsrouting und Aufgaben-/Terminextraktion
-  laufen vollständig über den angegebenen lokalen Server und das gewählte Modell.
-  Dieser Pfad verwendet die bisherigen Vorlagen und Schemas aus `prompts.yaml`;
-  er ruft weder Jev noch das Standard-LLM auf. OpenRouter-Zugangsdaten werden nicht
-  an Ollama gesendet.
+Auf großen Bildschirmen ordnet eine Seitenleiste die Navigation nach Arbeitsbereich,
+Einblicken und Verwaltung. Auf dem Handy ist die kompakte Navigationsleiste horizontal
+wischbar. Vorschlagskarten zeigen die wichtigsten Angaben zuerst; Beschreibung und
+Beleg lassen sich aufklappen. Direkte Bereichslinks erleichtern die Suche in den
+globalen Einstellungen.
 
-Bei `relevant` folgen Zusammenfassung, Aktionsrouting und Extraktion entsprechend
-der Kandidatenzahlen. Bei `irrelevant` oder weiterhin `unclear` werden alle vier
-Folgestufen mit einem ausdrücklichen Grund als `skipped` dokumentiert. Im Test wird
-kein Telegram-Relevanzdialog geöffnet. Auch nach einem Fehler der Relevanz werden
-keine Folgestufen gestartet. Ein Zusammenfassungsfehler stoppt Routing und Extraktion;
-ein Routingfehler stoppt beide Extraktionen. Fehler eines Pfads verhindern nicht
-die Auswertung des anderen. Unterschiedliche Relevanzentscheidungen führen somit
-bewusst zu unterschiedlichen Mengen nachgelagerter Modellanfragen.
+Die Seite **Status** zeigt den aktuellen Verarbeitungsschritt und je Dienst den letzten
+erfolgreichen Kontakt. Beim Start prüft Mailhelp OpenRouter, Telegram und die
+Kalender- und Aufgabenziele im Hintergrund nur lesend; das IMAP-Postfach erscheint
+nach dem ersten Mailabruf.
 
-`would_process_in_normal_mode` nennt je Pfad, ob dessen endgültige Entscheidung
-`relevant` ist. Die Standard-Relevanzereignisse enthalten gegebenenfalls Jev und
-LLM-Rückfall samt verknüpften Aufruf-IDs. Es gibt keine automatische Qualitätsbewertung.
-Normale Verarbeitung, Lernmodus und der eigenständige lokale Ollama-Modus bleiben
-von dieser Teständerung unberührt.
+Ein zweiter Terminalaufruf erzeugt einen lokalen Einmalcode:
 
-Die Auswahl erfolgt ordnerübergreifend nach neuestem IMAP-Empfangszeitpunkt;
-höhere UID und konfigurierte Ordnerreihenfolge entscheiden Gleichstände.
-`imap.historical_start` gilt bis `--ignore-historical-start`. Identische Rohmails in
-mehreren Ordnern werden einmal verglichen. Je Ordner wird ein auf N begrenztes
-Metadatenfenster untersucht. Duplikate, nicht lesbare Ordner oder kleine Postfächer
-können die erreichte Anzahl reduzieren. Wie bisher werden keine Produktions-
-checkpoints oder Absenderfilter verwendet; verglichen werden die Analysepfade
-auf identischen ausgewählten Eingaben, nicht Kalender-/Todoist-Aktionen.
-
-Standardausgabe: `<data_directory>/decision-tests/decision-test-<UUID>.json` plus
-`<Testdatei>.jsonl`. Relative `--decision-test-file`-Pfade gelten relativ zu
-`--config-directory`. Das neue Berichtsschema ist **Version 2**, mit
-`comparison: standard_vs_ollama`, `pipeline_policy: relevant_only`, den Pfaden
-`standard`/`ollama`, der lokalen Adresse, Modell und Kontextfenster. Alte Berichte
-mit `llm`/`decision` bleiben erhalten, sind aber wegen anderer Pfade und der früheren
-Verarbeitung aller Mails nicht unmittelbar mit neuen Gesamtkosten vergleichbar.
-
-Gespeichert werden Vorlagen, Themen, Mailidentität, Empfangszeit, Original-SHA-256,
-geheimnisbereinigte RFC822-Rohdaten als Base64, aufbereitete Eingaben, validierte
-Ergebnisse und Request-/Response-Ereignisse einschließlich Nutzung und Fehlerstatus.
-Zugangsdaten werden vor der Base64-Codierung entfernt; die Rohmail kann deshalb vom
-Original abweichen. HTTP-Header werden nicht aufgezeichnet. Die normalen Log-Schalter
-begrenzen die ausdrücklich aktivierte Testausgabe nicht.
-
-Ollama-Antworten enthalten üblicherweise keine API-Kosten. Fehlende Kosten dürfen
-bei der späteren Auswertung nicht mit nachgewiesenen Gesamtkosten von null verwechselt
-werden; lokale Hardware-, Strom- und Betriebsaufwendungen sind nicht gemessen.
-Cloud-Aufrufe teilen sich ein isoliertes gemeinsames Budget und eine Sperre.
-Ollama hat sein eigenes isoliertes Budget sowie `timeouts.ollama`; der Standard nutzt
-`timeouts.openrouter`. Keine normalen Budgets oder Zustandsdateien werden verändert.
-
-Der Bericht wird während des Laufs höchstens einmal pro Minute atomar
-aktualisiert, weil er alle Rohmails enthält und ein Neuschreiben nach jeder Stufe
-bei großen Läufen quadratisch wüchse. Am Ende und bei Abbruch wird er sofort
-geschrieben und bleibt lesbar
-(`complete: false`). Vorhandene Dateien werden vor Netzwerkzugriff abgelehnt;
-Ausgaben in normalen Test-/Produktivzuständen sind gesperrt, auch bei
-Verzeichnisumleitungen. Ein Neustart verwendet eine neue Datei und setzt alte
-Vergleiche nicht fort. Exitcode 0 bedeutet vollständigen Vergleich ohne technische
-Fehler; 1 kennzeichnet Fehler, Ordnerfehler oder eine kleinere Mailanzahl; Ctrl+C
-ergibt 130. Abweichungen und unklare Entscheidungen sind keine technischen Fehler.
-
-Der Modus konstruiert nur IMAP- und Modelladapter. Telegram, Todoist und Kalender
-werden nicht angesteuert. Kombinierbar sind `--config-directory`, `--decision-test-file`,
-`--ignore-historical-start`, `--ollama`, `--ollama-model`,
-`--decision-test-laya`, `--decision-test-laya-model` und
-`--decision-test-relevance-only`. `--decision-test-laya-model` setzt
-`--decision-test-laya` voraus. Andere Modi,
-`--max-mails` und `--log-directory` werden abgelehnt.
-
-Docker verwendet standardmäßig `host.docker.internal:11434`. Für einen anderen
-Server wird `DECISION_TEST_OLLAMA` gesetzt; das Modell bleibt in `prompts.yaml`.
-
-```powershell
-$env:DECISION_TEST_MAILS = "40"
-$env:DECISION_TEST_OLLAMA = "192.168.1.20:11434"
-docker compose -f compose.decision-test.yaml run --rm mailhelp-decision-test
+```sh
+mailhelp --pair --config-directory .
 ```
 
-### Interaktiver Lernmodus
+Den Code auf der Anmeldeseite eingeben. Die Oberfläche bietet offene Entscheidungen,
+Mailansichten, Suche, Verlauf, Auswertung, Berichte und Einstellungen. Die Anmeldung
+ist auch über Telegram möglich. Für den Betrieb ausschließlich mit Weboberfläche
+`telegram.enabled: false` setzen.
 
-`mailhelp --learn 20` ruft bis zu 20 der neuesten Mails schreibfrei mit
-`BODY.PEEK[]` aus den konfigurierten Ordnern ab. Bei aktiviertem
-`global_newest_first` wird dafür je Ordner dasselbe auf 20 Kandidaten begrenzte
-Metadatenfenster wie beim regulären Abruf verwendet, global nach `INTERNALDATE`
-absteigend sortiert und erst danach werden höchstens 20 Mailinhalte geladen.
-Identische Empfangszeitpunkte werden deterministisch durch höhere UID und danach
-durch die konfigurierte Ordnerreihenfolge aufgelöst. Der Lernmodus ignoriert
-`historical_start`, damit er auch ältere Nachrichten zur Themenfindung verwenden
-kann. Bei deaktiviertem `global_newest_first`
-bleibt die Ordnerreihenfolge maßgeblich und der bereits begrenzte Inhaltsabruf
-holt pro Ordner neueste UIDs, bis das gemeinsame Kontingent ausgeschöpft ist.
-Zu Beginn lädt der Lernmodus die vollständige Liste der auswählbaren IMAP-Ordner.
-Noch nicht unter `imap.folders` aufgeführte Ordner werden atomar in `config.yaml`
-ergänzt und bereits im selben Lernlauf berücksichtigt. Nicht auswählbare
-Containerordner mit dem IMAP-Attribut `\\Noselect` werden nicht eingetragen.
-Ordnernamen mit Leerzeichen, Anführungszeichen oder Nicht-ASCII-Zeichen werden
-für `SELECT`/`EXAMINE` IMAP-konform maskiert und in Modified UTF-7 übertragen.
-`--learn N` bleibt eine Obergrenze und keine Zusage, genau `N` Nachrichten zu
-laden.
-Kann der Server einen konfigurierten Ordner nicht auswählen (beispielsweise weil
-sein IMAP-Name beim Anbieter abweicht), meldet und überspringt der Lernmodus nur
-diesen Ordner. Lesbare Ordner werden weiterhin verarbeitet; mit
-`mailhelp --check-access` lassen sich die konfigurierten Namen gezielt prüfen.
-Jede Mail wird zuerst in einer
-gemeinsamen LLM-Anfrage gegen die aktivierten Einträge aus `topics.yaml` und
-`irrelevant_topics.yaml` geprüft. Bereits
-zuordenbare Mails werden übersprungen. Nur Mails, die zu keiner der beiden Listen
-gehören, werden ohne vorgegebene Themenliste durch den in `prompts.yaml` konfigurierten Schritt
-`learning_classification` klassifiziert. Die unabhängigen Relevanzprüfungen und
-Einzelklassifikationen dieser ersten Stufe laufen mit der in `config.yaml` unter
-`learning.parallel_llm_calls` eingestellten maximalen Parallelität. Die Reihenfolge
-der Ergebnisse bleibt dabei stabil. Ein einzelner weiterer Aufruf über
-`learning_abstraction` fasst die Ergebnisse zu höchstens 20 allgemeineren Themen
-zusammen. Kurze Beschreibungen und höchstens zwei Beispiele je Thema begrenzen die
-JSON-Ausgabe. Für die vorgeschaltete Relevanzprüfung sowie für Einzelklassifikation und
-Abstraktion überschreibt `prompts.yaml` das globale Ausgabelimit mit größeren
-Budgets, damit Reasoning-Provider ihre interne Verarbeitung und das abschließende
-JSON nicht vorzeitig bei `finish_reason=length` abbrechen. Die Abstraktion erhält
-mit 16.000 Tokens das größte Budget. Zusätzlich begrenzt der globale Block
-`reasoning: {effort: low}` das verborgene Reasoning aller Schritte; ohne ihn
-verbrauchte das Modell im Betrieb schon für einfache Extraktionen über 1.000
-Reasoning-Tokens und erreichte kleine Limits regelmäßig vor der JSON-Ausgabe.
-Der Router nutzt `medium`, weil er entscheidet, ob überhaupt ein Vorschlag entsteht.
-`reasoning` erlaubt genau eines von `effort` oder `max_tokens` sowie optional
-`exclude`; `enabled: false` wird abgewiesen.
-Mit `provider_preferences` legt ein Schritt ohne `routes` feste OpenRouter-Provider
-fest (z. B. `{order: [together, parasail], allow_fallbacks: false}`), ohne Modell und
-Parameter zu duplizieren. Router, Aufgaben- und Terminextraktion, Rückfrageauflösung
-und Vorschlagsrevision sind so fixiert, weil freies Routing bei identischen Prompts
-unterschiedliche Entscheidungen lieferte. Die Providernamen sind OpenRouter-Slugs;
-nach einer Änderung einen kurzen Lauf mit `--max-mails` prüfen.
-Antwortet ein Provider dennoch mit syntaktisch ungültigem JSON, wird der
-begrenzte Reparaturversuch zusätzlich durch eine Systemanweisung erzwungen;
-die Anweisung im Nutzdatenobjekt allein könnte sonst als nicht vertrauenswürdiger
-Mailinhalt behandelt und ignoriert werden.
-Anschließend zeigt das Programm jede vorgeschlagene Kategorie ausschließlich im
-Terminal an und verlangt dort eine Antwort mit `j` oder `n`. Bestätigte
-Kategorien werden aktiviert und atomar in `topics.yaml`, abgelehnte Kategorien
-atomar in `irrelevant_topics.yaml` ergänzt; IMAP-Checkpoints
-und Telegram werden in diesem Modus nicht verwendet. `--learn` muss mindestens
-`1` sein.
+Die [Einrichtungs- und Betriebsanleitung](docs/Einrichtung-und-Qualitaetspruefung.md)
+beschreibt auch den mobilen Zugriff und die Einrichtung des Telegram-Bots.
 
-Zusätzlich führt Mailhelp im Konfigurationsverzeichnis neben `topics.yaml` und
-`irrelevant_topics.yaml` die lesbare Datei `irrelevant-senders.json`. Sie gilt
-gemeinsam für Test- und Produktivmodus. Ihre `addresses` werden im Lernlauf
-automatisch um die Absender von Nachrichten ergänzt, die einer abgelehnten Kategorie zugeordnet
-wurden. Bereits vorhandene Adressen werden dabei nicht ersetzt, und manuell
-gepflegte Domains bleiben unverändert erhalten. Unter `domains` können vollständige Absenderdomains ohne `@` eingetragen
-werden, etwa `newsletter.example`. Exakte Adressen und Domains werden bereits vor
-der inhaltlichen LLM-Relevanzprüfung verglichen; passende Nachrichten gelten ohne
-Übermittlung ihres Inhalts an das LLM als irrelevant. Alle Einträge sind
-kleingeschrieben, sortiert und eindeutig. `--clear` entfernt nur Laufzeit- und
-Logdaten, nicht diese gemeinsame Filterkonfiguration. Ist der optionale
-Absenderfilter syntaktisch beschädigt oder schemawidrig, isoliert der Lernlauf
-ihn als `.corrupt` beziehungsweise `.invalid`, meldet dies ohne seinen Inhalt
-auszugeben und setzt mit einem leeren Filter fort. Bei einer späteren Ablehnung
-wird die JSON-Datei atomar neu angelegt.
+Die Statusseite zeigt IMAP-Abruffehler je Postfach und Ordner auch dann, wenn noch
+keine Mail zur Analyse geladen werden konnte. Erst ein erfolgreicher Abruf desselben
+Ordners entfernt den Hinweis. „Keine Fehler bei gespeicherten Mails“ betrifft nur
+die Mailanalyse.
 
-Fehler werden im Mail-Zustand ausschließlich mit sicherem Fehlercode, betroffener
-Verarbeitungsstufe, Zeitstempel und optionaler Wiederholbarkeit gespeichert. Eine vor
-dem Telegram-Versand persistierte Markierung verhindert doppelte Fehlermeldungen nach
-einem Neustart; technische Details und Stacktraces erscheinen nur redigiert im JSONL-Log.
+Bereits ausgeschlossene UIDs werden auch dann vor dem Abruf gefiltert, wenn der
+IMAP-Server seine höchste vorhandene UID erneut zurückgibt. Alte Warteschlangeneinträge
+können nach einem Neustart abgeschlossen werden, ohne die gespeicherte Startgrenze
+zu verändern.
 
-Noch nicht abgeschlossene `mail-*.json`-Zustände bleiben unabhängig vom
-IMAP-Abrufstand erreichbar. Beim Start und vor jedem regulären IMAP-Poll werden
-fällige Zustände per gezieltem, schreibfreiem `BODY.PEEK[]`-Abruf fortgesetzt;
-`deferred_until` verschiebt diesen Versuch. Das Verarbeitungsergebnis unterscheidet
-explizit zwischen `completed`, `waiting` und `failed`. Auch bewusst wartende und
-fehlgeschlagene Versuche besitzen bereits einen dauerhaften Mailzustand, sodass
-der IMAP-Abrufstand weiterlaufen und spätere UIDs verarbeiten kann; ein unerwartet
-abgebrochener Versuch ohne garantiert gespeicherten Zustand hält den Abrufstand
-dagegen fest. Polling- und Wiederaufnahme-Durchläufe geben ihre Einzelergebnisse
-an den Aufrufer zurück.
+### Themen lernen und Entscheidungen abgleichen
 
-IMAP-Leseoperationen (`SELECT`, `RESPONSE`, `UID SEARCH`, `UID FETCH`, `LIST`
-und die historische Grenzermittlung) verwenden die unter `timeouts.imap`
-konfigurierte Retryzahl und den exponentiellen Backoff. Bei Timeout, EOF,
-Socketfehler, `IMAP4.abort` oder einer bereits geschlossenen Verbindung wird die
-defekte Sitzung bestmöglich abgemeldet und eine neue Sitzung einschließlich
-STARTTLS und Anmeldung aufgebaut. Der gezielte Abruf eines Queueeintrags
-wiederholt dabei ausschließlich dessen bereits gespeicherte UID und prüft zuvor
-erneut UIDVALIDITY; die Batchentdeckung wird nicht wiederholt. Nach ausgeschöpften
-Versuchen wird der Eintrag mit dem inhaltsfreien Fehlermerkmal
-`imap_read_exhausted` als `failed` gespeichert und die nächste Queueposition
-bearbeitet. Verbindungsparameter und Passwort bleiben hierfür nur im Speicher
-des Adapters und werden weder in JSON-Zustände noch in Logs übernommen.
+```sh
+mailhelp --learn 20 --mailbox 1 --config-directory .
+```
 
-Telegram-Transportantworten werden an der Eingangsgrenze durch Pydantic-Schemata
-validiert: Die von Mailhelp verwendeten Pflichtfelder bleiben streng typisiert,
-während zusätzliche Telegram-Felder ignoriert und insbesondere nicht in interne
-Zustände übernommen werden. Bei Telegram-API-Fehlern wird
-das dokumentierte `description`-Feld vollständig in die Fehlermeldung übernommen;
-Antwortkörper und Bot-Token werden dabei nicht ausgegeben. Die internen Modelle für
-Vorschlags- und Relevanzentscheidungen bleiben dagegen geschlossen und lehnen
-unbekannte Felder ab. Der atomar gespeicherte Offset verhindert nach einem Neustart
-die erneute Verarbeitung bereits behandelter Updates. Vorschlagsaktionen verwenden
-einen kryptografisch zufälligen, kurzen Callback-Token. Seine atomar gespeicherte
-Zuordnung enthält ausschließlich Mail-ID, Vorschlags-ID, Version und Aktion und
-bleibt nach einem Neustart auflösbar; insbesondere fließen keine LLM-Inhalte in den
-Token ein. Vor jedem Telegram-Aufruf prüft Mailhelp jedes `callback_data` auf die
-zulässigen 1 bis 64 UTF-8-Bytes. Alte, eindeutig validierbare Vorschlagscallbacks
-werden innerhalb derselben Bytegrenze weiterhin angenommen. Nur der konfigurierte
-Nutzer im konfigurierten Chat darf eine Aktion auslösen. Jede angezeigte Version
-wird vor ihren Schaltflächen gespeichert. Aufgabenvorschläge bieten `In Todoist anlegen`,
-`Ändern` und `Verwerfen`; vollständige Terminvorschläge bieten
-`Im Kalender anlegen`, `Ändern` und `Verwerfen`. `Im Kalender anlegen` schreibt den Termin über die Google Calendar API in den konfigurierten Zielkalender. Im Testmodus heißt die Bestätigung für beide Ziele `Simulieren`. Die Aktionen werden getrennt behandelt,
-während veraltete oder fehlerhafte Schaltflächen keinen Zustand verändern.
-Callback-Klicks werden sofort bei Telegram quittiert. Erst nach erfolgreicher
-fachlicher Annahme entfernt Mailhelp zentral die gesamte Inline-Tastatur der
-ursprünglichen Nachricht mit `editMessageReplyMarkup` und sendet anschließend
-eine kurze Bestätigung der gewählten Aktion in den Chat. Erzeugt die Aktion selbst eine Antwort – die Rückfrage nach „Klären“, „Ändern“ oder „Manuell prüfen“ oder die Ergebnismeldung einer Anlage („✅ Angelegt im Kalender: „Titel“ · Datum, Uhrzeit“ mit Link) –, entfällt die zusätzliche Bestätigung, damit jede Aktion genau eine Nachricht auslöst. Bei einem Fehler wird
-stattdessen eine kurze Fehlermeldung gesendet; die Schaltflächen bleiben für
-einen erneuten Versuch erhalten.
-Die Ausführung bestätigter Schreibaktionen und die Verarbeitung von Revisionen sind als eigenständige Dienste verdrahtet. Sie erhalten Store, externe Ports, Transport, Chat-ID, Testmodus beziehungsweise Zeitzone und Retry-Konfiguration explizit; sie greifen nicht auf private Controller-Methoden zu. Dadurch bleibt die sicherheitskritische Reihenfolge auch bei Wiederaufnahme eindeutig: Bestätigung vor externem Schreiben persistieren, unklare Ergebnisse nur abgleichen und eine neue Vorschlagsversion vor den zugehörigen Schaltflächen speichern.
+Der interaktive Lernmodus liest Nachrichten zur Themen- und Filterpflege.
+Bei mehreren aktivierten Postfächern ist `--mailbox NUMMER` oder `--mailbox alle`
+erforderlich. Änderungen werden lokal gespeichert; Kalender und Aufgabenlisten
+werden dabei nicht beschrieben.
 
-Vorschläge erscheinen als kompakte Karte, damit sie auf dem Handy auf einen Blick lesbar sind: zuerst eine Zeile mit Absendername und Betreff (`✉️ Name · Betreff`), dann Art und Titel (`📅 Termin` bzw. `✅ Aufgabe`, ab Version 2 mit Versionsnummer), die Zeit in einer Zeile in der konfigurierten Zeitzone (`🕒 21.10.2026, 12:30–14:30 Uhr`, über Mitternacht mit beiden Daten, ganztägig mit letztem tatsächlichem Tag, bei Aufgaben die Fälligkeit), Ort und Videolink. Zuständigkeit, Sicherheit und Einordnung erscheinen nur, wenn sie vom Normalfall (du, eindeutig, neu) abweichen; ein nicht automatisch anlegbarer Vorschlag trägt einen Warnhinweis. Offene Fragen werden einzeln aufgeführt. Die Beschreibung erscheint ohne den angehängten Herkunftsblock (Absender, Betreff, Mail-Datum) und nur, wenn sie nicht bloß Titel oder Beleg wiederholt; sie wird auf 300, der Beleg auf 200 Zeichen gekürzt. Leere Felder, Ziel und interne Kennungen werden nicht angezeigt; gespeicherte und extern geschriebene Inhalte bleiben vollständig. Nach einer Antwort beginnt die Karte mit „Übernommen:“ und den geänderten Zeilen.
-
-Rückfragen stellen genau eine Frage („❓ …“), nennen Titel und bekannte Zeit und geben ein zur Frage passendes, als solches erkennbares Beispiel (etwa „16:00“ oder „nach 2 Stunden“ für das Ende, „ja“ oder „nein“ für die Zuständigkeit). Interne Fragetexte werden für die Anzeige an die Person gerichtet (etwa „Bist du dafür zuständig?“). Die Wahl von „Klären“, „Ändern“ oder „Manuell prüfen“ beantwortet Mailhelp nur mit dieser Rückfrage. Nach jeder Antwort folgt die überarbeitete Karte; sind noch Fragen offen und wurde die neue Version angezeigt, stellt Mailhelp die nächste Frage sofort, ohne erneuten Klick. Eine Dauer als Antwort auf das Ende („nach 3h“, „2 Stunden“, „+90 min“, „1,5 h nach Beginn“) wird bei bekanntem Beginn ohne LLM in eine Endzeit umgerechnet. Beispiele bewirken keine Änderung; jede neue Version muss erneut ausdrücklich bestätigt werden.
-
-Jeder normale Programmstart sendet vor Mailverarbeitung und Dialogwiederaufnahme die kurze Zeile „👋 Mailhelp gestartet. Befehle: /hilfe“; `/hilfe` zeigt die Befehlsübersicht. Danach wird die aktuelle offene Entscheidung erneut gezeigt; weitere zurückgehaltene Vorschläge erscheinen nur als Anzahl („N weitere Vorschläge folgen nacheinander.“), `/status` listet sie einzeln.
-Dies gilt auch für `--max-mails` und Neustarts mit einer offenen Entscheidung;
-die Übersicht bestätigt oder beendet diese Entscheidung nicht. Pro Start gibt
-es einen Versandaufruf vor der Mailverarbeitung und der Wiederaufnahme offener
-Dialoge, nicht pro Polling-Zyklus. Schlägt der Versand trotz der konfigurierten
-Transportwiederholungen fehl, protokolliert Mailhelp `startup_help_failed` ohne
-Providerinhalte und setzt den normalen Ablauf fort. Ein erfolgreicher Versand
-wird als `startup_help_sent` protokolliert. Diagnose- und Lernbefehle starten
-diesen normalen Programmlauf nicht und senden daher keine Startübersicht.
-
-Im konfigurierten Chat stehen dem autorisierten Nutzer folgende lokale Befehle zur Verfügung:
-
-- `/hilfe` (auch `/start`): Bedienhinweise und Befehle anzeigen.
-- `/status`: offene Relevanzentscheidungen und aktuelle Vorschläge mit
-  Warte-, Verarbeitungs- oder Pausenstatus anzeigen.
-- `/offen`: alle offenen Entscheidungen auflisten und nur die aktuelle
-  Entscheidung erneut mit ihren versionsgebundenen Schaltflächen anzeigen (mit
-  `telegram.sequential_questions: false` alle). Eine aktive unbeantwortete
-  Rückfrage ist die aktuelle Entscheidung und erscheint mit ihrer Frage. Ohne aktiven Dialog zuerst beim gewünschten Vorschlag „Klären“,
-  „Ändern“ oder „Manuell prüfen“ wählen. Gespeicherte Antworten werden weiter
-  verarbeitet und nicht erneut angefordert. Nach einem Neustart erfolgt diese
-  Wiederanzeige einmal nach der Starthilfe. Bei Versandfehlern kann `/offen`
-  erneut verwendet werden. Zustellnachweise, Versionen und Bestätigungen bleiben
-  unverändert; Polling allein wiederholt die Anzeige nicht.
-- `/abbrechen`: eine noch unbeantwortete Bearbeitung schließen und den
-  unveränderten Vorschlag erneut mit seinen Schaltflächen anzeigen. Offene Fragen
-  bleiben offen. Bereits zur Verarbeitung gespeicherte Antworten, einschließlich
-  älterer Retry-Dialoge, werden nicht gelöscht. Nach einer als unbrauchbar erkannten
-  Antwort ist das Schließen der Rückfrage möglich; die Antwort bleibt gespeichert.
-
-Diese Befehle werden vor der Freitextinterpretation erkannt und rufen weder das
-LLM noch externe Schreibdienste auf. Unbekannte Slash-Befehle verweisen auf
-`/hilfe`. Hilfe und Status beenden keine Rückfrage. Es gibt keine neue YAML-Option.
-
-Bevor Mailhelp eine offene Vorschlagsfrage über Telegram stellt, prüft ein eigener
-LLM-Schritt die Frage zusammen mit der Ursprungsmail. Ist die erfragte Information
-dort eindeutig belegt, wird sie normalisiert, über die bestehende geschlossene
-Vorschlagsrevision übernommen und die nächste offene Frage auf dieselbe Weise
-geprüft. Die Schleife endet beim ersten nicht eindeutig aus der Mail beantwortbaren
-Punkt; nur dann wird der bisherige, versionsgebundene Telegram-Rückfragepfad
-verwendet. Mailtext und Frage bleiben dabei nicht vertrauenswürdige Daten, und jede
-automatische Revision wird vor einer Benachrichtigung gespeichert.
-
-Autorisierte Antworten auf Rückfragen werden vor dem ersten LLM-Aufruf atomar mit
-Mail-ID, Vorschlags-ID, Version und konkreter Frage im versionsgebundenen
-Klärungszustand (Schema 4) gespeichert. Der Telegram-Offset wird erst nach diesem
-erfolgreichen Schreiben fortgeschrieben. Der Antworttext steht ausschließlich in
-dieser zustandsführenden JSON-Datei und weder in Ereignislogs noch Fehlermeldungen.
-Danach wird die Antwort in einem eigenen LLM-Schritt mit der konkret erfragten
-Information verglichen und bei eindeutiger Zuordnung in die für die Überarbeitung
-benötigte Form normalisiert. Erst danach entsteht eine neue, erneut zu bestätigende
-Version. Ist die Antwort nicht eindeutig nutzbar, erzeugt
-ein zweiter, getrennt schematisierter LLM-Aufruf eine konkrete Rückfrage; Vorschlag
-und Dialog bleiben dabei unverändert.
-Vor diesem LLM-Schritt erkennt ein eng begrenzter lokaler Parser ausschließlich
-numerische deutsche und ISO-Daten sowie Uhrzeiten und Zeitspannen (zum Beispiel
-`23.09.2026 9:00 bis 10 Uhr`). Zusätzlich löst er `heute` anhand des aktuellen
-Kalendertags in der konfigurierten Nutzerzeitzone auf. Der Klärungs-Prompt erhält
-dieses Tagesdatum als separates Kontextfeld, damit auch dort relative Angaben
-nicht mangels Referenzdatum abgelehnt werden. Der Parser liefert Datum, Beginn und
-Ende als getrennte typisierte Fakten, ergänzt nur ausdrücklich belegte Werte und
-erhält bereits
-bekannte Zeitfakten. Ein Datum, das dem validierten Termindatum widerspricht,
-wird pausiert und mit einer konkreten Bestätigungsfrage zurückgewiesen; ein Ende
-muss nach dem Beginn und höchstens am erlaubten Folgetag liegen. Für eindeutig
-lokal erkannte Antworten wird kein Interpretations- oder Revisions-LLM aufgerufen.
-Der Klärungszustand unterscheidet `interpretation_status`, `question_status`,
-`answer_status` und `proposal_revision_status`. Interpretation und Revision haben
-getrennte, konfigurierte Versuchszähler und persistente nächste Versuchstermine.
-Nach Ausschöpfung des jeweiligen Budgets wird die Stufe pausiert, ohne autorisierte
-oder normalisierte Antwort zu löschen. Die konkrete Frage gilt erst mit dem atomaren
-Schreiben des normalisierten Werts
-dauerhaft als beantwortet; erst danach wird der aktive Telegram-Dialog geschlossen
-und die Revision aufgerufen. Provider-, Tokenlimit-, JSON- oder Schemafehler ändern
-den Status der betroffenen Stufe in `retry_required`. Beim nächsten Lauf werden
-zunächst noch nicht interpretierte Antworten und anschließend Revisionen aus dem
-gespeicherten Zustand wiederaufgenommen, ohne erneut nach einer Telegram-Antwort zu
-fragen. Auch ein Absturz zwischen Antwortpersistenz, Interpretation und Revision
-verliert die Antwort daher nicht; doppelt zugestellte Updates oder spätere
-Nachrichten wie „Ok“ werden nicht nochmals als neue Eingabe behandelt. Ein bereits
-erzeugter Nachfolger wird anhand seiner Version erkannt und nicht erneut erzeugt.
-Die Fehlergrenze unterscheidet dabei ausdrücklich unvollständige Benutzereingaben,
-fachlich widersprüchliche Revisionen und technische Revisionsfehler. Nur eine als
-unvollständig validierte Eingabe erhält eine konkrete fachliche Rückfrage. Provider-,
-Transport-, Retry-, Tokenlimit-, JSON- und Schemafehler erhalten höchstens einen
-neutralen Verzögerungshinweis; ein gemeinsamer `ValueError` dient nicht als
-fachliche Entscheidungsgrenze. Das strukturierte, inhaltsfreie Ereignis nennt
-Fehlerklasse, versionsgebundene Proposal-Referenz und Revisionsstatus.
-Erreicht die Telegram-Interpretation das Ausgabe-Tokenlimit, verwendet sie genau
-einmal den in `prompts.yaml` konfigurierten kompakten Fallback mit geändertem
-Tokenbudget und einem ausschließlich auf `usable`, `normalized_answer` und
-`reason` beschränkten Systemprompt. Ein erneuter Tokenlimit-Abbruch wird nicht mit
-demselben Request wiederholt, sondern durch die persistente Wiederaufnahme bis zum
-konfigurierten Versuchslimit als `retry_required` beziehungsweise `paused`
-behandelt; `authorized_answer` bleibt dabei erhalten.
-Ein autorisiertes, syntaktisch verarbeitetes Telegram-Update wird durch Fortschreiben
-des Offsets konsumiert. Ist seine semantisch gültige normalisierte Antwort bereits
-persistiert, bleibt sie auch bei einem späteren technischen Revisionsfehler beantwortet
-und wird nach Neustart aus dem Zustand wiederholt; die Chatnachricht wird nie nochmals
-als neue Antwort ausgewertet. Ein vorausgehender erfolgreicher Telegram-HTTP-Aufruf
-bleibt dabei ein separater Erfolg und wird nicht als Revisionsfehler protokolliert.
-Eine technisch pausierte Revision gilt nicht als unbeantwortete
-Telegram-Entscheidung und löst deshalb keine endlose Long-Poll-Warteschleife aus.
-Sie blockiert weder die weitere Mail-Queue noch andere Vorschläge. Mailhelp nennt im Chat die notwendige
-Betreiberaktion: den gespeicherten `proposal_revision_status` kontrolliert auf
-`retry_required` setzen und Mailhelp neu starten.
-Bei binären Rückfragen zur Belegsicherheit oder Zuständigkeit normalisiert die
-Anwendung neben `Ja` und `Nein` auch die geschlossenen Bestätigungsformulierungen
-`Es passt alles` und `Alles passt` deterministisch zu `Ja`; dadurch hängt eine
-eindeutige Bestätigung nicht von einer erneuten Modellbewertung ab.
-Telegram wird ausschließlich für Nachrichten und Callback-Aktionen abgefragt;
-bereits wartende, nicht unterstützte Update-Arten werden einzeln verworfen und
-blockieren nachfolgende Antworten nicht. Meldet Telegram dagegen, dass
-nur die kurzlebige Callback-Bestätigung bereits abgelaufen ist, gilt das fachlich
-verarbeitete Update als abgeschlossen: Der Offset wird fortgeschrieben, damit die
-alte Callback-Query nicht dauerhaft alle neueren Antworten blockiert. Inhaltsfreie
-strukturierte Ereignisse unter `telegram.dialog` dokumentieren Update-Art,
-Verarbeitungsphase, Dialogreferenz und Ablehnungs- oder Fehlergrund, ohne
-Nachrichtentext oder Callback-Inhalt zu protokollieren.
-Die kompakte Mailnachricht nennt ohne interne Mail-ID zuerst den Absender, direkt
-darunter den Betreff und danach einen oder höchstens zwei Zusammenfassungssätze. Jeder
-Zusammenfassungsaufruf verlangt ausschließlich ein JSON-Objekt mit den beiden
-Feldern `sentences` (ein bis zwei deutsche Sätze) und `deadlines` (immer eine
-Liste, gegebenenfalls leer); Markdown, Begleittext und weitere Felder sind nicht
-zulässig. Die Sätze verdichten zusammengehörige Einzelheiten zu Oberbegriffen und
-geben nur Anlass, Kernaussage sowie wesentliche Folgen oder Handlungen wieder.
-Namen, Unterpunkte, Anlagen und andere Details erscheinen nur, wenn sie dafür
-unverzichtbar sind; bloße Betreff-Paraphrasen und unbelegte Aussagen zum
-Handlungsbedarf bleiben ausgeschlossen. Mailinhalte bleiben dabei ausdrücklich
-nicht vertrauenswürdige Daten.
-Jeder Vorschlag nennt in jedem Nachrichtenteil Absendername und Betreff der
-Ursprungsmail, zeigt aber keine internen Mail- oder Vorschlags-IDs. Lange
-Vorschläge tragen in jedem Teil zusätzlich die Teilnummer. Mail-Zusammenfassungen
-beginnen mit derselben Zeile, gefolgt von Stichpunkten (`• …`); die
-Zusammenfassungs-Prompts begrenzen Sätze auf 25 Wörter, Titel auf etwa 8 Wörter
-und Beschreibungen auf einen kurzen Satz. Solange
-offene Fragen bestehen, werden nur Klären und Verwerfen angeboten.
-Unklare Relevanz wird vor dem Senden als schema-versionierter Dialog direkt im
-Mailzustand gespeichert. Die sichtbare Rückfrage nennt Absender und Betreff, aber
-keine interne Mail-ID. Erst nach der Auswahl `Relevant` werden Zusammenfassung und
-Aktionserkennung erzeugt und die kompakte Mailnachricht versendet. Die unsichtbaren
-Callback-Daten enthalten ausschließlich die stabile interne Mail-ID, Dialogversion
-und `relevant` beziehungsweise `irrelevant`; Mailtext wird nicht in Callback-Daten
-übernommen. Entscheidung und verarbeiteter Telegram-Offset stehen
-atomar im selben Mailzustand. Freitext wird nur bei genau einem offenen
-Relevanzdialog zugeordnet, veraltete und doppelte Antworten werden sichtbar
-abgelehnt. `relevant` setzt die Verarbeitung bei Zusammenfassung und
-Aktionserkennung fort; `irrelevant` markiert diese Schritte und die Benachrichtigung
-als `skipped` sowie den Abschluss als `completed`.
-
-## Weboberfläche und App (ab 1.1)
-
-Optional bietet Mailhelp eine Weboberfläche mit denselben Entscheidungen wie
-Telegram: Vorschläge bestätigen oder verwerfen, Rückfragen beantworten (bei Ja/Nein
-per Schaltfläche) und Relevanz klären. Sie läuft im Mailhelp-Prozess, am PC unter
-`http://127.0.0.1:8765` und auf dem iPhone über Tailscale Serve als installierbare
-App. Telegram bleibt Benachrichtigungskanal; ohne `web.enabled: true` verhält sich
-Mailhelp wie 1.0.
-
-Ab 2.3 durchsucht die Suche unter „Mails“ auch den Mailtext und den erkannten Text
-der Anhänge (alle Wörter müssen vorkommen, „genaue Wortfolge“ in Anführungszeichen,
-ä/ae usw. gleichwertig) und zeigt die Fundstelle. Originaldokumente (PDF, Word,
-Excel, OpenDocument, Text, Bilder) neu verarbeiteter Mails lassen sich in der
-Maildetailansicht herunterladen; sie werden mit `retention.full_mail_days` gelöscht
-und sind über `attachments.store_originals` abschaltbar.
-
-- Aktivierung: Abschnitt `web:` in `config.yaml` und `MAILHELP_WEB_SECRET`
-  (mindestens 32 Zeichen) in `.env`; `mailhelp --check` prüft beides.
-- Anmeldung: einmaliger Kopplungscode über Telegram, danach eine Sitzung je Gerät
-  (`session_days`). `/web` in Telegram sendet den Link mit bereits eingetragenem
-  Code – mit `web.lan_access: true` und `web.host: 0.0.0.0` über die aktuelle IP des
-  PCs im Heimnetz. Abmelden unter „Geräte“ oder mit `/web_abmelden` in Telegram.
-- Jede Web-Aktion gilt für genau die angezeigte Vorschlagsversion und wird vom
-  Hauptthread ausgeführt wie eine Telegram-Eingabe. Veraltete Versionen werden
-  abgewiesen; eine wiederholte Anfrage (z. B. nach einem Browser-Timeout) hat keine
-  zweite Wirkung. Eine Telegram-Schaltfläche zu einem im Web entschiedenen
-  Vorschlag meldet „Bereits entschieden“.
-- Offline zeigt die App „PC nicht erreichbar“ und speichert keine Daten.
-
-Einrichtung, Tailscale, iPhone-Installation und Sicherheitsdetails:
-[Release-1.1.md](docs/Release-1.1.md).
-
-Ab 1.2 zeigt die Weboberfläche außerdem:
-
-- **Mails:** Suche und Filter über alle gespeicherten Mails mit ihrer Analyse.
-- **Verlauf:** Entscheidungen und ältere Vorschlagsversionen.
-- **Status:** laufender Schritt und letzte erfolgreiche Dienstkontakte.
-- **Auswertung:** Kosten und Zeiten der KI-Aufrufe.
-- **Einstellungen:** wichtige Werte, gespeichert kommentarerhaltend in `config.yaml`.
-- **Themen** und **Mailhelp beenden**.
-
-Vorschläge lassen sich in Formularfeldern ändern; die neue Version wird wie immer
-erst nach eigener Bestätigung angelegt. Details: [Release-1.2.md](docs/Release-1.2.md).
-
-Ab 2.0 ist die Weboberfläche eine eigenständige App:
-
-- **Desktop:** Liste und Details nebeneinander, Tastenkürzel `J`/`K` (navigieren),
-  `C` (bestätigen), `E` (bearbeiten), `X` (verwerfen), `?` (Hilfe).
-- **Smartphone:** Aktionen am unteren Rand in der Daumenzone.
-- **Rückgängig:** Nach Bestätigen oder Verwerfen bleiben 5 Sekunden, bevor etwas
-  gesendet wird.
-- **Schnellfilter** für Termine, Aufgaben, Klärung, Anhänge und Duplikate.
-- **Bildanhänge** als Vorschau mit Vergrößerung und erkanntem Text.
-- Optional **Web-Push** (`push.enabled`), **Antwort-Entwürfe** im Entwurfsordner
-  des Postfachs (`smart_reply`; Mailhelp sendet nie selbst), ein morgendlicher
-  **Tagesüberblick** (`daily_briefing`) und Betrieb **ohne Telegram**
-  (`telegram.enabled: false`).
-
-Einrichtung und Upgrade: [Release-2.0.md](docs/Release-2.0.md).
-
-Ab 2.2 erstellt Mailhelp auf Wunsch **Tätigkeitsberichte** (`activity_report.enabled`):
-Unter „Berichte“ ein Thema und einen Zeitraum angeben; Mailhelp liest die Mails
-schreibfrei, lässt sie per KI auf das Thema prüfen, findet alle – auch vergangene –
-Termine und erstellt nach deiner Prüfung eine xlsx-Liste mit Termin, Datum,
-Betreff, Absender und Volltext. Details: [Release-2.2.md](docs/Release-2.2.md).
+Offene Entscheidungen lassen sich über die Weboberfläche oder Telegram bearbeiten.
+Der Abgleich von Vorschlägen und vorhandenen Einträgen ist in der
+[Bedienungsanleitung](docs/Release-2.4.md) beschrieben.
 
 ## Docker
 
+Die Compose-Konfiguration baut das Image aus diesem Repository. Vor dem Start
+`config.yaml`, `.env` und `irrelevant-senders.json` aus den Vorlagen anlegen und
+wie oben beschrieben konfigurieren.
+
+Unter Linux die Datenverzeichnisse für den Containerbenutzer vorbereiten:
+
 ```sh
-cp .env.example .env
-cp config.example.yaml config.yaml
-# Nur wenn noch kein eigener Absenderfilter existiert:
-cp -n irrelevant-senders.example.json irrelevant-senders.json
-# Unter Linux: Schreibrechte für den Containerbenutzer vorbereiten.
 mkdir -p data logs
 sudo chown 65532:65532 data logs
 docker compose build
-docker compose run --rm mailhelp
+docker compose run --rm mailhelp --check --config-directory /config
+docker compose up -d
 ```
 
-Der Container startet standardmäßig den Dienst. Für eine reine Prüfung kann
-`docker compose run --rm mailhelp --check --config-directory /config` verwendet
-werden.
-Ein begrenzter Testlauf ist beispielsweise mit
-`docker compose run --rm mailhelp --max-mails 10 --config-directory /config`
-möglich.
+Die Konfiguration wird schreibgeschützt eingebunden; Daten und Logs bleiben in
+persistenten Host-Verzeichnissen. Der Webport wird nur auf `127.0.0.1` des Hosts
+veröffentlicht. Für die Weboberfläche im Container `web.host: 0.0.0.0` setzen.
 
-Konfiguration wird schreibgeschützt eingebunden, Daten und Logs bleiben in getrennten persistenten Host-Verzeichnissen. `.env`, Zustand und Logs gelangen dank `.dockerignore` nicht in den Build-Kontext.
-Relative Daten- und Logpfade aus `config.yaml` beziehen sich auf das mit
-`--config-directory` gewählte Verzeichnis, unabhängig vom Arbeitsverzeichnis.
-Das gilt auch für `--clear` und relative `--log-directory`-Overrides.
-Absolute Pfade bleiben absolut. Docker bindet die Host-Verzeichnisse `data` und
-`logs` deshalb unter `/config/data` und `/config/logs` ein. Bestehende Daten
-müssen vor einer Umstellung aus einem früher genutzten Pfad übernommen werden.
-Mit `--log-directory PFAD` lässt sich das konfigurierte Logverzeichnis pro Aufruf
-überschreiben. Das ist insbesondere bei schreibgeschütztem Arbeitsverzeichnis
-nötig. Unter Linux müssen die Host-Verzeichnisse für UID/GID `65532:65532`
-beschreibbar sein; bei vorhandenen Dateien sind auch deren Rechte zu prüfen.
-Die CI verwendet dieselben Volumes wie Compose und startet über
-`compose.smoke.yaml` zwei frische Container mit simulierten externen Diensten
-und abgeschaltetem Netzwerk. Sie prüft den echten CLI-Start, Zustandsdateien,
-Logs und die Wiederaufnahme der IMAP-Checkpoints nach dem Containerneustart.
+```sh
+docker compose logs -f mailhelp
+docker compose exec mailhelp mailhelp --pair --config-directory /config
+docker compose down
+```
 
-Das fest versionierte Paket `tzdata` stellt IANA-Zeitzonen auch ohne
-Systemdatenbank bereit, insbesondere unter Windows. Ein Regressionstest prüft
-Winter- und Sommerzeit für `Europe/Berlin` ohne System-Zeitzonenpfade.
-Beim Todoist-Abgleich werden leere oder wiederholte Seitencursor als fehlerhafte
-Antwort abgewiesen. Der Abgleich stoppt vor einer externen Schreibaktion und kann
-nach Behebung des Providerfehlers erneut ausgeführt werden.
+Für den Lernmodus mit schreibbarer Konfiguration ist
+[compose.learn.yaml](compose.learn.yaml) vorgesehen. Dort werden die
+Konfigurationsdateien im Verzeichnis `learning-config` eingebunden.
 
-## Zustand sichern
+## Datenschutz und Sicherung
 
-Mailhelp stoppen und anschließend das gesamte konfigurierte Datenverzeichnis einschließlich der Unterverzeichnisse `test/` und `production/` kopieren. Zur Wiederherstellung den Dienst stoppen, das komplette Verzeichnis zurückspielen und erst danach starten. Offene Vorgänge dürfen nicht einzeln bereinigt werden.
+Die normale Mailanalyse liest das Postfach ohne Änderungen an Nachrichten oder
+Lesestatus. Bei Verwendung externer KI-Dienste werden ausgewählte Mailinhalte an
+die konfigurierten Anbieter übertragen. Die lokale Ausführung der Anwendung
+bedeutet daher nicht automatisch eine ausschließlich lokale Datenverarbeitung.
 
-## Tests
+Zustände werden als lesbare JSON-Dateien, Ereignisse als separate JSONL-Logs
+gespeichert. Mailzustände (Schema 9) und offene Entscheidungen bleiben über
+Neustarts erhalten. Zugangsdaten werden nicht protokolliert; vollständige
+LLM-Inhalte sind nur nach ausdrücklicher Aktivierung des entsprechenden Loggings
+enthalten. Aufbewahrungsfristen sind konfigurierbar.
+
+Die ausgelieferte `config.example.yaml` aktiviert vollständige KI-Anfrage- und
+Antwortlogs ausdrücklich. Für einen Betrieb ohne diese Inhaltslogs
+`logging.llm.include_requests` und `logging.llm.include_responses` auf `false` setzen.
+
+Vor einer Sicherung oder Wiederherstellung den Dienst stoppen. Das vollständige
+Datenverzeichnis einschließlich `test/` und `production/` sowie Konfiguration,
+`.env` und OAuth-Token-Dateien sichern. Die
+[Upgrade-Anleitung](docs/Release-3.2.md) beschreibt Migration und Rückkehr zur
+vorherigen Version. Beim ersten Start nach dem Upgrade zunächst die bisherigen
+Ziele beibehalten, damit alte Analyse-Fingerprints als gleichwertig registriert
+werden können.
+
+Externe Schreibaktionen sind an Vorschlagsversion, Ziel und ausdrückliche Freigabe
+gebunden. Unklare Schreibresultate werden vor einer Wiederholung abgeglichen.
+Webaktionen prüfen Sitzung, CSRF-Schutz, Version und Idempotenz; die Sitzung wird
+bei der Ausführung erneut geprüft.
+
+Hinweise für betriebene Instanzen stehen in der
+[Datenschutzerklärung](DATENSCHUTZ.md) und den
+[Nutzungsbedingungen](NUTZUNGSBEDINGUNGEN.md). Die Vorlagen müssen an den jeweiligen
+Betrieb angepasst werden.
+
+## Entwicklung und Qualitätssicherung
+
+Automatisierte Tests verwenden synthetische Daten und simulierte externe Dienste.
+Die vollständige Python-Suite erzwingt **100 % Zeilen- und Branch-Abdeckung** des
+eigenen Anwendungscodes:
 
 ```sh
 python -m pytest
+python -m pip install -r requirements-lint.lock
+python -m ruff check src tests ui_tests
+python -m mypy src/mailhelp
 ```
 
-Die Standardkonfiguration erzwingt ohne Rundung 100 % Zeilen- **und** Branch-Abdeckung für `src/mailhelp`.
+ruff begrenzt die McCabe-Komplexität jeder Funktion auf 15. mypy prüft alle
+Funktionsrümpfe; für die Kernpakete (Domäne, Persistenz, Normalisierung,
+Konfiguration, Laufschleife, Telegram, Review) gelten strikte Typregeln,
+die in `pyproject.toml` aufgeführt sind.
 
-Browsertests der Weboberfläche (Chrome, Desktop- und iPhone-Format, Screenshots in
-`.test-tmp/ui-screens`, 100 % Blockabdeckung von `app.js` und `sw.js`, WCAG-2.1-AA-Regeln
-von axe-core auf jeder geprüften Seite):
+Mit installiertem Chrome und den Browser-Testabhängigkeiten:
 
 ```sh
-python -m pip install playwright==1.62.0 axe-playwright-python==0.1.8
+python -m pip install -e ".[ui]"
 python -m pytest ui_tests --no-cov -p no:cacheprovider
 ```
 
-Die Tests liegen nach Fachgebiet geordnet unter `tests/`: `unit/` (Parser,
-Modelle, Konfiguration), `services/` (Verarbeitung, Review, Entwürfe, Push,
-Aufbewahrung), `telegram/`, `web/`, `external/` (Kalender, Todoist, OAuth,
-LLM-Clients), `evaluation/` (Qualitätskorpus, Decision-Test), `upgrade/`
-(Fingerprints, Altzustände, Renderer-Verträge), `e2e/`, `release/` (Paket,
-Dokumentation, CLI, Abhängigkeiten) und `scenarios/` (synthetische Daten).
-`tests/release/test_dependency_lock.py` prüft, dass `requirements.lock` und
-`requirements-lint.lock` die vollständige installierte Abhängigkeitshülle aus
-`pyproject.toml` exakt festschreiben.
+Die Browserprüfungen umfassen Desktop-, Mobil- und schmale Telefonansichten,
+Barrierefreiheitsprüfungen und vollständige JavaScript-Blockabdeckung. Die CI prüft
+Windows, Linux, Distributionspakete und Docker-Wiederanläufe.
 
-Statische Prüfung (die CI meldet die Befunde; ab 2.1.0 lassen sie den Lauf
-scheitern). `requirements-lint.lock` gelangt nicht ins Container-Image:
+Entwicklungsregeln stehen in [AGENTS.md](AGENTS.md), technische Verträge in der
+[Projektspezifikation](Mailhelp-Projektspezifikation.md).
 
-```sh
-python -m pip install -r requirements-lint.lock
-python -m ruff check
-python -m mypy
-```
+## Dokumentation
 
-Temporäre Testdateien liegen nicht im Projekt: `tmp_path`, `tempfile` und
-gestartete Kindprozesse verwenden `<System-Temp>/mailhelp-tests`
-(abweichend über die Umgebungsvariable `MAILHELP_TEST_TEMP`). Unter `Documents`
-können Virenscanner frisch geschriebene Dateien kurz sperren; das ließ atomare
-Zustandsschreibvorgänge in Tests sporadisch scheitern. pytest-Cache und
-Coverage-Daten liegen im ignorierten Projektordner `.test-tmp/`. Dateien
-bestandener Tests werden sofort gelöscht. Nach einem vollständig erfolgreichen
-Lauf entfernt `tests/conftest.py` zusätzlich dessen Laufordner, die
-Coverage-Daten und leer gewordene Ordner. Dateien fehlgeschlagener Tests bleiben
-zur Analyse erhalten; pytest behält davon höchstens die letzten drei Läufe.
+| Anliegen | Anleitung |
+| --- | --- |
+| Installation, Updates und Paketbetrieb | [Release-Anleitung](docs/Release-1.0.md) |
+| Einrichtung, OAuth und Qualitätsprüfung | [Betriebsanleitung](docs/Einrichtung-und-Qualitaetspruefung.md) |
+| Web-Einstellungen und Beispiele | [Einstellungsreferenz](docs/Web-Einstellungen.md) |
+| Aktuelle Weboberfläche und technische Konsolidierung | [Release 3.3](docs/Release-3.3.md) |
+| Postfachregeln, Zielprofile und Migration | [Zielprofile und Upgrade](docs/Release-3.2.md) |
+| Mehrere Postfächer einrichten | [Postfachkonfiguration](docs/Release-3.1.md) |
+| Vorschläge abgleichen und ergänzen | [Bedienung und Abgleich](docs/Release-2.4.md) |
+| Technische Schnittstellen und Datenmodelle | [Projektspezifikation](Mailhelp-Projektspezifikation.md) |
+| Änderungen veröffentlichter Versionen | [Changelog](CHANGELOG.md) |
 
-### Reproduzierbare Qualitätsprüfungen
+Die statische Projektwebsite liegt unter [website/](website/).
+Die [GitHub-Pages-Anleitung](docs/GitHub-Pages.md) beschreibt ihre Veröffentlichung.
 
-Alle folgenden Standardläufe sind offline, verwenden nur synthetische Daten und
-benötigen keine Geheimnisse:
+## Lizenz
 
-```sh
-# Gesamtsuite: 100 % Zeilen- und Branch-Abdeckung des eigenen Anwendungscodes
-python -m pytest --cov=mailhelp --cov-branch --cov-fail-under=100
-
-# Versionierter deutscher Qualitätskorpus mit simuliertem OpenRouter-Adapter
-python -m pytest tests/evaluation/test_quality_corpus.py --cov=mailhelp --cov-branch --cov-fail-under=100
-
-# Simulierter Ablauf IMAP → LLM → Bestätigung über Telegram oder die authentifizierte Weboberfläche → Todoist/Calendar
-python -m pytest tests/e2e/test_e2e_simulated.py --cov=mailhelp --cov-branch --cov-fail-under=100
-
-# CLI- und POSIX-/Windows-Pfadvarianten
-python -m pytest tests/release/test_cli_paths.py --cov=mailhelp --cov-branch --cov-fail-under=100
-
-# Windows PowerShell (dieselbe Suite und Coverage-Grenze)
-py -3.12 -m pytest --cov=mailhelp --cov-branch --cov-fail-under=100
-
-# Reine Konfigurationsprüfung im Container (ohne Laufzeit-/Neustarttest)
-docker build --tag mailhelp:smoke .
-docker run --rm --env-file .env \
-  -v "$PWD/config.yaml:/config/config.yaml:ro" \
-  -v "$PWD/prompts.yaml:/config/prompts.yaml:ro" \
-  -v "$PWD/topics.yaml:/config/topics.yaml:ro" \
-  -v "$PWD/irrelevant_topics.yaml:/config/irrelevant_topics.yaml:ro" \
-  mailhelp:smoke --check --config-directory /config \
-  --log-directory /tmp/mailhelp/logs
-```
-
-Die fokussierten Pytest-Befehle behalten die produktweit verbindlichen Optionen
-`--cov-branch --cov-fail-under=100` bei. Weil ein fokussierter Test naturgemäß nicht
-den gesamten Anwendungscode ausführt, kann er allein an der globalen
-100-%-Schwelle scheitern; das fachliche Ergebnis steht dann dennoch im Testbericht,
-während die Gesamtsuite der maßgebliche Coverage-Gate ist.
-
-Eine reale Modellbewertung ist über `mailhelp-evaluate` ausdrücklich aktivierbar.
-Die Standardtests bleiben simuliert. Einrichtung, Aufrufbudgets, Bericht und
-Grenzen der Qualitätsbewertung beschreibt `docs/Einrichtung-und-Qualitaetspruefung.md`.
-
-### Sichere Proposal-Revision
-
-Proposal-Überarbeitungen verwenden ein geschlossenes, minimales Delta statt eines
-erneut vom Modell erzeugten Gesamt-Proposals. IDs, Version, Status, unveränderte
-Felder und offene Fragen bleiben unter Kontrolle der Anwendung. Nach einem
-eindeutigen, lokal erkannten Datum-und-Uhrzeit-Ergebnis baut Mailhelp Beginn und
-Ende direkt aus den belegten beziehungsweise bereits bekannten Fakten und der
-konfigurierten IANA-Zeitzone; ein LLM-Aufruf ist dafür nicht erforderlich.
-Abweichende Modelldaten werden vor
-dem Anwenden abgewiesen. Nach einem
-`output_token_limit` wird eine kürzere, feldreduzierte Route verwendet, deren
-Ausgabetokenbudget nie kleiner als das der fehlgeschlagenen Route ist. Eindeutige
-Antworten `Ja` und `Nein` auf die anwendungseigenen Fragen nach Zuständigkeit oder
-sicherer Beleglage werden lokal normalisiert und benötigen keinen Provideraufruf. Scheitern
-alle technischen Versuche, speichert Mailhelp die normalisierte Antwort als
-`retry_required` und setzt sie nach einem Neustart fort, ohne erneut zu fragen.
-
-### Dauerhaftes Run-Modell und `--max-mails`
-
-Jeder Verarbeitungslauf besitzt eine UUID, einen UTC-Erstellungszeitpunkt und
-eine vollständig materialisierte Queue in der lesbaren Datei
-`mail-run-<account_id>.json`. Ein Queue-Schlüssel besteht unveränderlich aus
-Account, Ordner, UIDVALIDITY und UID; dadurch werden doppelte Treffer innerhalb
-eines Runs verworfen. Mailhelp speichert **zuerst** die gesamte ausgewählte
-UID-Liste und lädt erst danach Mailinhalte. Vor der Analyse wird der Eintrag
-atomar auf `processing`, anschließend auf `completed`, `waiting_for_user`,
-`failed` oder `skipped` gesetzt. Ein Neustart setzt ausschließlich `queued` und
-unterbrochene `processing`-Einträge anhand ihrer gespeicherten UID fort.
-Ein verbindungsbezogener Timeout wird dabei nicht als Analysefehler verbucht:
-Der Eintrag bleibt `processing`, sodass eine neu aufgebaute IMAP-Verbindung
-dieselbe materialisierte Queue ohne erneute Entdeckung und ohne doppelte Analyse
-fortsetzt. Nicht lesbare zusätzliche Ordner verkürzen einen bereits entdeckten
-INBOX-Batch nicht.
-Wird eine bereits gespeicherte Mail vor der Queue über ihren Einzelzustand
-wiederaufgenommen, übernimmt Mailhelp ihren Abschluss zugleich in den Run und
-den UID-Checkpoint. Damit verbraucht sie in einem begrenzten Lauf zwar genau
-einen Platz, wird beim nächsten `--max-mails`-Aufruf aber nicht erneut analysiert;
-dieser fährt mit dem nächsten noch offenen Queue-Eintrag fort.
-
-Ein terminaler, im Mailzustand gespeicherter Analysefehler ist auf diese Mail
-begrenzt. Ihre Run-Position wird als `failed` abgeschlossen und ihr
-IMAP-Checkpoint nicht vorgezogen, damit sie in einem späteren Lauf erneut versucht
-werden kann; der aktuelle Lauf verarbeitet jedoch sofort die nächste
-Queueposition. Insbesondere beendet ein ausgeschöpftes LLM-Ausgabetokenlimit den
-restlichen Batch nicht. Dasselbe gilt für eine dauerhaft gespeicherte, technisch
-`paused` gesetzte Proposal-Revision: Sie bleibt an ihre Quellmail gebunden und
-blockiert weder die nächste Queueposition noch die Wiederaufnahme anderer Mails.
-Nur ein unerwarteter Fehler ohne garantiert dauerhaften
-Mailzustand lässt die Position auf `processing` stehen und unterbricht den Batch,
-damit ein möglicherweise postfachweiter Ausfall nicht auf jede Mail vervielfacht
-wird.
-
-Run-Dateien gehören zu einem eigenen Zustandstyp. Scans nach einzelnen
-`mail-<id>.json`-Zuständen (Wiederaufnahme, Aufbewahrung und Telegram-Dialoge)
-schließen `mail-run-<account_id>.json` ausdrücklich aus, damit die dauerhafte
-Queue weder als schemawidrige Mail isoliert noch ein laufender Batch abgebrochen
-wird.
-
-`--max-mails N` bedeutet exakt: Der neu angelegte Run enthält höchstens `N` der
-zum Entdeckungszeitpunkt verfügbaren, noch nicht abgeschlossenen eindeutigen
-Mails. Sind nur 86 verfügbar, enthält `--max-mails 100` genau 86; bei 150
-verfügbaren Mails genau 100. Das Limit wird nicht durch Neustarts aufgefüllt.
-Erst nach Abschluss dieser festen Queue darf ein späterer Aufruf einen neuen Run
-mit inzwischen verfügbaren oder übrig gebliebenen Mails anlegen. Der terminale
-Analysezustand (`completed`, `failed` oder `skipped`) wird getrennt davon
-gespeichert, ob bei `waiting_for_user` noch eine Benutzeraktion offen ist.
-
-### Mengenabweichungen bei der Extraktion
-
-Routerzahlen sind Diagnosewerte. Schema-gültige Extraktionen bleiben erhalten;
-Abweichungen stoppen weder die andere Extraktion noch die Mail-Queue. Betroffene
-Vorschläge erhalten eine ausschließlich vom Nutzer zu klärende Mengenfrage.
-Bei leerer Extraktion weist die Telegram-Meldung auf manuelle Prüfung der
-Ursprungsmail und gegebenenfalls manuelle Anlage im Zieldienst hin; Mailhelp
-erfindet keine fehlenden Aufgaben oder Termine. Konflikt und Benachrichtigung
-bleiben dauerhaft gespeichert und werden nach Neustarts nicht dupliziert.
-
-`--check-access` prüft jeden konfigurierten IMAP-Ordner und meldet auch Fehler
-von Nebenordnern im Gesamtergebnis mit Exit-Code 1. Erfolgreiche Ordner stehen
-im Diagnoseprotokoll; die übrigen Dienste werden trotzdem geprüft.
-
-## Datenschutz und Nutzungsbedingungen
-
-Für eine betriebene Instanz gelten die [Datenschutzerklärung](DATENSCHUTZ.md) und
-die [Nutzungsbedingungen](NUTZUNGSBEDINGUNGEN.md). Beide sind Vorlagen: Platzhalter
-in eckigen Klammern ersetzen und bei abweichender Konfiguration (Modelle, Anbieter,
-Aufbewahrung, Logging) anpassen. Für die Google-OAuth-Prüfung müssen beide Seiten
-öffentlich erreichbar sein.
-
-
-## Interne Architektur ab 1.6
-
-Version 1.6 trennt Webstatus und Review-Renderer, Mailbox-Laufsteuerung, externe
-Integrationen sowie Telegram-Interpretation und Recovery. Nutzerabläufe,
-Konfiguration, JSON-Schemas und Schreibschutz bleiben unverändert. Details:
-[Architektur](docs/Architektur-1.6.md), [Upgrade und Release](docs/Release-1.6.md).
+Mailhelp wird unter der [MIT-Lizenz](LICENSE) bereitgestellt.

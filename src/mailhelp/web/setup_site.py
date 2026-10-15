@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any, cast
 
 import yaml
 
@@ -9,8 +10,8 @@ from ..configuration import LIVE_FIELDS, MAILBOX_SETUP_FIELDS, ConfigurationConf
 from ..diagnostics import HELP, STATES, DiagnosticResult
 from ..local_pairing import issue
 from ..notification_config import CATEGORIES, effective_profile
-from .archive_site import post_form
 from .auth import PairingLimited
+from .forms import post_form
 from .http import Response
 from .pages import e, layout
 
@@ -94,7 +95,8 @@ def input_field(name, value, choices=None, label=None):
 
 class SetupSite:
     def __init__(self, site):
-        self.site, self.runtime = site, None
+        # The SetupRuntime, attached once the services exist.
+        self.site, self.runtime = site, cast(Any, None)
         for method, path, handler in (
             ("GET", "/einrichtung", self.setup), ("POST", "/einrichtung/speichern", self.save),
             ("POST", "/einrichtung/uebernehmen", self.apply), ("GET", "/diagnose", self.diagnose),
@@ -107,6 +109,8 @@ class SetupSite:
     @staticmethod
     def links():
         return ('<p class="card-links"><a class="button" href="/einrichtung">Einrichtung</a> '
+                '<a class="button" href="/einstellungen/postfaecher">Postfächer</a> '
+                '<a class="button" href="/einstellungen/zielprofile">Zielprofile</a> '
                 '<a class="button" href="/diagnose">Diagnose</a> '
                 '<a class="button" href="/einstellungen/benachrichtigungen">Benachrichtigungsprofil</a> '
                 '<a class="button" href="/benachrichtigungen">Zustellhistorie</a></p>')
@@ -125,7 +129,8 @@ class SetupSite:
             # Show the effective values, including defaults that config.yaml leaves out.
             result["imap"].update(cfg.imap.configured_mailboxes()[0].model_dump(
                 mode="json", include=set(MAILBOX_SETUP_FIELDS)))
-        for name, value in (service.state().patch.items() if with_patch else ()):
+        state = service.state()
+        for name, value in (state.patch.items() if with_patch and state.kind == "settings" else ()):
             set_dotted(result, name, value)
         return result
 
@@ -147,13 +152,14 @@ class SetupSite:
                 else:
                     choices = listed.get("folders") or None
             if name.startswith("notifications.categories."):
-                choices = ["[]"]
+                channels = ["[]"]
                 if raw["telegram"]["enabled"]:
-                    choices.append('["telegram"]')
+                    channels.append('["telegram"]')
                 if raw["push"]["enabled"]:
-                    choices.append('["web_push"]')
+                    channels.append('["web_push"]')
                 if raw["telegram"]["enabled"] and raw["push"]["enabled"]:
-                    choices.append('["telegram", "web_push"]')
+                    channels.append('["telegram", "web_push"]')
+                choices = tuple(channels)
             body += post_form("/einrichtung/speichern", csrf, input_field(name, value, choices,
                                                                         field_label(raw, name)),
                               "Entwurf speichern", name=name, version=state.version, step=step)
@@ -254,6 +260,7 @@ class SetupSite:
         if self.runtime is None:
             return self._unavailable()
         service = self.runtime.diagnostics
+        self.runtime.update_profile_checks()
         state = service.state()
         body = '<h1>Diagnose</h1>' + self.links() + '<p>Unabhängige Prüfungen mit Zeitlimit. Zugangsdaten '
         body += 'werden nicht angezeigt. Kalender, Todoist und IMAP werden ausschließlich gelesen.</p>'
@@ -276,6 +283,7 @@ class SetupSite:
         if self.runtime is None:
             return self._unavailable()
         try:
+            self.runtime.update_profile_checks()
             self.runtime.diagnostics.run(session.id, form["name"], int(form["version"]), form["key"])
         except (ValueError, KeyError, PermissionError):
             return Response.text(409, "Prüfung nicht gestartet; Seite neu laden und Sitzung prüfen.")

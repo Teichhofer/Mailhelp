@@ -47,3 +47,34 @@ def test_test_modules_share_helpers_only_through_fakes():
                      else [alias.name for alias in node.names] if isinstance(node, ast.Import) else [])
             offenders += [f"{path.name}: {name}" for name in names if name.split(".")[0].startswith("test_")]
     assert offenders == []
+
+
+# Planung 3.3, pillar 1: modules outside the Telegram package that may use it (channel integration).
+TELEGRAM_CLIENTS = {"application.py", "composition.py", "orchestrator.py", "review/service.py",
+                    "service_coordinator.py"}
+
+
+def telegram_importers() -> set[str]:
+    import ast
+    from pathlib import Path
+
+    import mailhelp
+    root = Path(mailhelp.__file__).parent
+    found = set()
+    for path in root.rglob("*.py"):
+        relative = path.relative_to(root).as_posix()
+        if relative.startswith("telegram/"):
+            continue
+        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
+            module = node.module or "" if isinstance(node, ast.ImportFrom) else ""
+            level = node.level if isinstance(node, ast.ImportFrom) else 0
+            names = [alias.name for alias in node.names] if isinstance(node, ast.Import) else []
+            if (level and module.split(".")[0] == "telegram") or module.startswith("mailhelp.telegram") or any(
+                    name.startswith("mailhelp.telegram") for name in names):
+                found.add(relative)
+    return found
+
+
+def test_only_the_channel_integration_imports_telegram():
+    """Domain, analysis, persistence and the remaining services stay free of the Telegram channel."""
+    assert telegram_importers() == TELEGRAM_CLIENTS

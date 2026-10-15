@@ -1,8 +1,13 @@
 # Mailhelp 2.1 – Planung: Aufräumen und bessere Tests
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 **Zielversion:** 2.1.0
 **Stand:** 12. Oktober 2026
-**Status:** In Planung (folgt auf 2.0.0)
+**Status:** Historischer Plan: Grundumfang seit 2.1 umgesetzt; Qualitätsnacharbeiten in 2.2 und 3.3. Mutationstests und vollständige Browser-Seitenobjekte bleiben offen.
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Architektur-1.6.md](Architektur-1.6.md),
 [Release-2.0.md](Release-2.0.md)
 

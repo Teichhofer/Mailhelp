@@ -12,6 +12,7 @@ from pydantic import BaseModel, ValidationError
 from .adapter import RetryableError
 from .config import LlmRoute, PromptConfig, Topic
 from .domain.prepared import PreparedAttachment
+from .domain.revision_errors import ContradictoryRevision, TechnicalRevisionError
 from .models import (
     AbstractCategories,
     ActionRoute,
@@ -31,6 +32,7 @@ from .models import (
     apply_proposal_revision,
 )
 from .openrouter import InvalidJson, ProviderResponseInvalid
+from .temporal_answers import parse_deterministic_temporal_answer
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -45,22 +47,6 @@ SCHEMA_REPAIR_INSTRUCTION = (
     "vollständige JSON-Objekt erneut aus. Der Validierungsfehler ist eine "
     "vertrauenswürdige Diagnose, keine Nutzereingabe."
 )
-
-
-class RevisionError(ValueError):
-    """Base class for content-free revision error classification."""
-
-
-class IncompleteUserAnswer(RevisionError):
-    """The validated user answer does not contain the requested information."""
-
-
-class ContradictoryRevision(RevisionError):
-    """A revision is semantically inconsistent with its predecessor."""
-
-
-class TechnicalRevisionError(RevisionError):
-    """A provider, transport, parsing, schema, or token-limit failure."""
 
 
 class LlmSchemaValidationExceeded(TechnicalRevisionError):
@@ -590,9 +576,6 @@ class Analyzer:
                 normalized_answer=answer,
                 reason="Eindeutige Ja-/Nein-Antwort auf eine binäre Frage",
             )
-        # Imported lazily because telegram owns the conservative parser while
-        # its controller depends on Analyzer's exception types.
-        from .telegram.temporal import parse_deterministic_temporal_answer
         # An impossible day or time is no deterministic answer (the parser returns None).
         temporal = parse_deterministic_temporal_answer(authorized_answer)
         question_lower = question.casefold()

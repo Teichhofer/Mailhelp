@@ -1,5 +1,10 @@
 # Mailhelp 2.0 – Konzept und detaillierter Umsetzungsplan: The New Experience & Standalone PWA
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 **Stand:** 11. Oktober 2026  
 **Zielversion:** 2.0.0  
 **Status:** Umgesetzt in 2.0.0 – siehe [Release-2.0.md](Release-2.0.md)

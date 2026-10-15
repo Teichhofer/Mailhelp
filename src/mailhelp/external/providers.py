@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from contextlib import ExitStack
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -53,17 +54,31 @@ def provider_services(targets: TargetSettings) -> list[str]:
 
 def microsoft_tokens(settings: Settings, secrets: Secrets, base_directory: Path, timeout: float,
                      transport: httpx.BaseTransport | None = None,
-                     logger: EventLogger | None = None) -> MicrosoftTokenProvider:
+                     logger: EventLogger | None = None, profile_id: int = 1) -> MicrosoftTokenProvider:
     return MicrosoftTokenProvider(
         secrets.microsoft_client_id.get_secret_value(), secrets.microsoft_client_secret.get_secret_value(),
         secrets.microsoft_refresh_token.get_secret_value(), settings.targets.microsoft_tenant,
-        TokenFile(base_directory / TOKEN_FILE), timeout, transport, logger=logger)
+        TokenFile(base_directory / (TOKEN_FILE if profile_id == 1 else f"microsoft-token-{profile_id}.json")),
+        timeout, transport, logger=logger)
 
 
 def build_writers(settings: Settings, secrets: Secrets, base_directory: Path, *,
                   policy: Callable[[str], RetryPolicy] | None = None, logger: EventLogger | None = None,
                   calendar_matcher: Callable[..., Any] | None = None, timeout_cap: float | None = None,
-                  transport: httpx.BaseTransport | None = None) -> Writers:
+                  transport: httpx.BaseTransport | None = None, profile_id: int = 1) -> Writers:
+    """Create each adapter once; close partial constructions on any failure."""
+    with ExitStack() as stack:
+        writers = _build_writers(settings, secrets, base_directory, policy=policy, logger=logger,
+            calendar_matcher=calendar_matcher, timeout_cap=timeout_cap, transport=transport,
+            profile_id=profile_id, stack=stack)
+        stack.pop_all()
+        return writers
+
+
+def _build_writers(settings: Settings, secrets: Secrets, base_directory: Path, *,
+                  policy: Callable[[str], RetryPolicy] | None = None, logger: EventLogger | None = None,
+                  calendar_matcher: Callable[..., Any] | None = None, timeout_cap: float | None = None,
+                  transport: httpx.BaseTransport | None = None, profile_id: int = 1, stack: ExitStack) -> Writers:
     """The writers of ``targets.calendar_provider`` and ``targets.task_provider``."""
     targets, resources = settings.targets, list[Any]()
 
@@ -77,8 +92,11 @@ def build_writers(settings: Settings, secrets: Secrets, base_directory: Path, *,
     caldav = (secrets.caldav_username.get_secret_value(), secrets.caldav_password.get_secret_value())
     microsoft: MicrosoftTokenProvider | None = None
     if targets.uses_microsoft:
-        microsoft = microsoft_tokens(settings, secrets, base_directory, timeout("microsoft"), transport, logger)
+        microsoft = microsoft_tokens(
+            settings, secrets, base_directory, timeout("microsoft"), transport, logger, profile_id
+        )
         resources.append(microsoft)
+        stack.callback(microsoft.close)
 
     tasks: TargetWriter
     if targets.task_provider == "todoist":
@@ -92,6 +110,7 @@ def build_writers(settings: Settings, secrets: Secrets, base_directory: Path, *,
         kind = AppleReminders if targets.task_provider == "apple_reminders" else CalDavTasks
         tasks = kind(targets.caldav_task_url, *caldav, timeout("caldav"), transport, retry("caldav"), logger)
 
+    stack.callback(tasks.close)
     calendar: TargetWriter
     if targets.calendar_provider == "google":
         oauth = GoogleOAuthTokenProvider(
@@ -99,6 +118,7 @@ def build_writers(settings: Settings, secrets: Secrets, base_directory: Path, *,
             secrets.google_oauth_refresh_token.get_secret_value(), timeout("google_calendar"), transport,
             logger=logger)
         resources.append(oauth)
+        stack.callback(oauth.close)
         calendar = HttpWriter("google_calendar", oauth, targets.google_calendar, timeout("google_calendar"), transport,
                               policy=retry("google_calendar"), logger=logger, calendar_timezone=settings.timezone,
                               calendar_matcher=calendar_matcher)
@@ -109,4 +129,6 @@ def build_writers(settings: Settings, secrets: Secrets, base_directory: Path, *,
     else:
         calendar = CalDavCalendar(targets.caldav_calendar_url, *caldav, timeout("caldav"), transport,
                                   retry("caldav"), logger, settings.timezone, calendar_matcher)
+    stack.callback(calendar.close)
+    calendar.target_profile = tasks.target_profile = profile_id
     return Writers(calendar, tasks, resources)

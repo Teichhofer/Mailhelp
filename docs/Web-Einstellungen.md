@@ -1,6 +1,13 @@
 # Einstellungen der Weboberfläche
 
-Einrichtungsentwürfe unter `/einrichtung` und das neue Versandprofil unter
+Stand: 14. Oktober 2026, Anwendungsversion 3.3.1.
+
+Die globalen Einstellungen bieten eine Bereichsübersicht mit direkten Sprunglinks, beispielsweise
+zu Antworten, Zielen, Aufbewahrung und Protokollierung. Die verwendeten KI-Modelle stehen in einer
+aufklappbaren, nur lesenden Übersicht. Auf großen Bildschirmen bleiben die Bereichslinks neben den
+Werten erreichbar; auf dem Handy stehen sie oberhalb der Einstellungsgruppen.
+
+Einrichtungsentwürfe unter `/einrichtung` und das Versandprofil unter
 `/einstellungen/benachrichtigungen` bearbeiten ebenfalls `config.yaml`.
 Speichern erhält zunächst den Entwurf. Erst die gezeigte, versionsbezogene Übernahme aktiviert
 Änderungen; Verbindungs- und Zieländerungen benötigen eine aktuelle erfolgreiche Diagnose.
@@ -140,3 +147,27 @@ Die folgende Liste enthält dieselben Hilfetexte wie die Weboberfläche. Änderu
 | `event_defaults.video_duration_minutes` · Standarddauer Videokonferenz (Minuten) | Standarddauer Videokonferenz: 1–1440 Minuten; Standard 60. Ergänzt ein fehlendes Ende nur bei eindeutigem Beginn und belegter Online-Teilnahme. Explizite Endzeiten und Dauern haben Vorrang. Bestehende Vorschläge werden nicht automatisch umgerechnet; Speichern autorisiert keine Kalenderaktion. |
 | `event_defaults.in_person_duration_minutes` · Standarddauer Präsenztermin (Minuten) | Standarddauer Präsenztermin: 1–1440 Minuten; Standard 180. Ergänzt ein fehlendes Ende bei belegter Präsenz und eindeutigem Beginn. Eine Anschrift in der Signatur belegt keine Präsenz. Explizite Zeitangaben haben Vorrang; die Annahme wird im Vorschlag angezeigt. |
 | `proposal_reconciliation.max_semantic_candidates` · Abgleich: höchstens KI-Kandidaten | 1–50 mögliche offene Vorschläge je semantischem KI-Vergleich; Standard 8. Weitere plausible Treffer blockieren die automatische Zuordnung, statt als fehlende Dublette zu gelten. Ein fehlender Vergleichsprompt erfordert bei unklaren Fällen eine manuelle Zuordnung. |
+
+## Postfächer und Zielprofile (3.2)
+
+Unter `/einstellungen/postfaecher` zeigt jedes Postfach die Tabs Ziele, Filter, Themen, Antworten
+und Benachrichtigungen. Nicht belegte Felder erben global; Zurücksetzen entfernt die lokale Regel.
+Profil 1 ist der bestehende `targets`-Abschnitt; weitere Profile verwaltet `/einstellungen/zielprofile`.
+Verwendete Profile lassen sich erst nach Auflösen aller angezeigten Verweise entfernen.
+
+| Lokale Einstellung | Wirkung |
+| --- | --- |
+| `target_profile` | ID 1–99 eines konfigurierten Profils; gilt nach Neustart für neue Vorschläge. Bestehende Vorschläge bleiben gebunden. |
+| `personal_info`, `smart_reply` | Eigene Rolle/Signatur und Antwortentwürfe für dieses Postfach; Speicherung bleibt im Ursprungspostfach. |
+| `notifications.quiet_hours`, `notifications.categories` | Vererbte Ruhezeiten und Kategoriekanäle; gemeinsame Queue mit getrennten Postfachbündeln. |
+| `daily_briefing` | Dieses Postfach als eigenen Abschnitt ein-/ausschließen. |
+| `activity_report_folder` | Vorausgewählter Ordner für Tätigkeitsberichte. |
+| `retention.full_mail_days` | Volltexte kürzer aufbewahren als global; `disabled` entfernt Inhalte, `unlimited` nur bei global unbegrenzter Aufbewahrung. |
+| `event_defaults` | Lokale Standarddauern in Minuten, 1–1440; explizite Mailzeiten haben Vorrang. |
+| Themen-Geltungsbereich | Global, nur dieses Postfach oder hier ausschließen; eigene Fingerprints nur betroffener Postfächer. |
+| Filter | Lokale Adress-/Domainsperren und exakte Ausnahmen von globalen Sperren. |
+
+Speichern erstellt einen Einrichtungsentwurf. Die Übernahme benötigt eine erneute ausdrückliche lokale
+Bestätigung. Ziel-/Verbindungsänderungen verlangen aktuelle lesende Diagnosen. Der Entwurf zeigt laufende
+Mails, die durch eine relevante Änderung zurückgehalten werden. Geheimnisse werden nicht im Web bearbeitet.
+Anleitung: [Release 3.2](Release-3.2.md).

@@ -34,9 +34,9 @@ from mailhelp.models import (
     TelegramOutboxGate,
     TelegramOutboxState,
 )
+from mailhelp.persistence.proposals import clarification_name, proposal_name
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import ProposalDeliveryService, TelegramDialogController
-from mailhelp.telegram.persistence import clarification_name, proposal_name
 
 A, B, C, D = "a" * 24, "b" * 24, "c" * 24, "d" * 24
 

@@ -2,7 +2,7 @@
 // Pages, data and actions always go to the network and are never stored or replayed.
 "use strict";
 
-var CACHE = "mailhelp-shell-v4";
+var CACHE = "mailhelp-shell-v5";
 var SHELL = ["/offline.html", "/static/app.css", "/static/icon-192.png", "/static/icon-512.png"];
 
 self.addEventListener("install", function (event) {

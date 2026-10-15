@@ -1,5 +1,10 @@
 # Architektur ab Mailhelp 2.1
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 Version 2.1 führt keine neuen Endnutzerfunktionen ein, sondern konsolidiert die
 Architektur nach fünf Funktionsreleases. Sie macht den Anwendungscode modularer,
 beseitigt technische Schulden und erhöht die Aussagekraft der Testsuite.

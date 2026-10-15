@@ -10,7 +10,7 @@ from pydantic import ValidationError
 
 from .. import state_names
 from ..adapter import RetryableError
-from ..analysis import ContradictoryRevision, TechnicalRevisionError
+from ..domain.revision_errors import ContradictoryRevision, TechnicalRevisionError
 from ..models import (
     AnswerStatus,
     MailState,
@@ -22,11 +22,11 @@ from ..models import (
     QuestionStatus,
     TelegramDialogState,
 )
+from ..persistence.proposals import clarification_name, proposal_name, proposal_version_name
 from ..storage import JsonStore
 from .answer_interpretation import AuthorizedAnswerInterpreter
 from .client import TelegramTransport
 from .formatting import clarification_prompt
-from .persistence import clarification_name, proposal_name, proposal_version_name
 from .revision_contracts import EventLogger, ProposalRevisionService
 from .revision_recovery import RevisionRecovery
 from .revision_successor import build_revision_successor

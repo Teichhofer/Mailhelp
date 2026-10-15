@@ -62,7 +62,7 @@ def test_archive_cache_retention_and_bad_files(web, tmp_path, monkeypatch):
     state.proposals = []
     web.store.save(f'mail-{state.id}', state.model_dump(mode='json'))
     record_analysis(web.store, state, {}, 'JEV')
-    assert 'Nicht erforderlich' in web.site.archive.analysis(state.id)
+    assert 'Nicht erforderlich' in web.site.archive.mail_archive.analysis(state.id)
     record_analysis(web.store, state, {}, 'JEV')
     record_event(web.store, proposal(1, 'old'), 'state')
     record_event(web.store, proposal(1, 'old'), 'state')
@@ -71,11 +71,11 @@ def test_archive_cache_retention_and_bad_files(web, tmp_path, monkeypatch):
     (web.store.directory / ('mail-' + 'b'*24 + '.json')).unlink()
     RetentionService(web.store, RetentionSettings(analysis_days='disabled', history_days='disabled'),
                      web.logger).run()
-    assert 'Nicht vorhanden' in web.site.archive.analysis(state.id)
+    assert 'Nicht vorhanden' in web.site.archive.mail_archive.analysis(state.id)
     assert queries.search(ArchiveQuery(q='Werbung'))[1] == 0
-    assert web.site.archive.analysis('e'*24) == ''
+    assert web.site.archive.mail_archive.analysis('e'*24) == ''
     (web.store.directory / ('analysis-' + state.id + '.json')).write_text('broken')
-    assert 'beschädigt' in web.site.archive.analysis(state.id)
+    assert 'beschädigt' in web.site.archive.mail_archive.analysis(state.id)
     assert queries.items()  # cache remains independent of a direct external file edit
     other = web.store.load_model(f'mail-{mail_id(2)}', MailState)
     other.mail = {'date_header_parsed': 'invalid'}

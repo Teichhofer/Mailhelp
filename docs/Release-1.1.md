@@ -1,5 +1,10 @@
 # Mailhelp 1.1 – Weboberfläche und App
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 Mailhelp 1.1 ergänzt Telegram um eine Weboberfläche. Sie läuft im Mailhelp-Prozess
 auf dem eigenen PC und bietet dieselben Entscheidungen wie Telegram:
 

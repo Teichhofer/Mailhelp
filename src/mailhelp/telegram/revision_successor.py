@@ -3,8 +3,8 @@ from __future__ import annotations
 
 from ..analysis import validate_revision_successor
 from ..models import Proposal
+from ..temporal_answers import deterministic_classification_revision, deterministic_temporal_revision
 from .revision_contracts import ProposalRevisionService
-from .temporal import deterministic_classification_revision, deterministic_temporal_revision
 
 
 def build_revision_successor(original: Proposal, question: str, normalized_answer: str,

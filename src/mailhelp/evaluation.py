@@ -10,7 +10,7 @@ import sys
 from collections.abc import Callable
 from datetime import UTC, date, datetime, time
 from pathlib import Path
-from typing import Any, overload
+from typing import Any, Protocol, overload
 
 import yaml
 
@@ -42,12 +42,19 @@ _STAGES = ("relevance", "summary", "action_router", "task_extraction", "event_ex
 _EXPECTED_KEY = {"action_router": "action_route"}
 
 
+class LlmCompleter(Protocol):
+    """The paid completion call an evaluation may make (OpenRouter or a simulation)."""
+
+    # Any argument list: OpenRouter, Ollama and test doubles differ in their keyword metadata.
+    def complete(self, *args: Any, **kwargs: Any) -> Any: ...
+
+
 class EvaluationBudgetExceeded(RuntimeError):
     """No further paid call is authorized by this evaluation run."""
 
 
 class BoundedCompleter:
-    def __init__(self, client: object, max_calls: int):
+    def __init__(self, client: LlmCompleter, max_calls: int):
         if max_calls < 1:
             raise ValueError("max_calls muss positiv sein")
         self.client, self.max_calls, self.calls = client, max_calls, 0
@@ -56,7 +63,7 @@ class BoundedCompleter:
     def service_name(self) -> str:
         return getattr(self.client, "service_name", "OpenRouter")
 
-    def complete(self, model, parameters, system, payload, **metadata):
+    def complete(self, model: str, parameters: dict[str, Any], system: str, payload: Any, **metadata: Any) -> Any:
         if self.calls >= self.max_calls:
             raise EvaluationBudgetExceeded("Aufrufbudget ausgeschöpft")
         # Limits remain in prompts.yaml. Refuse an unbounded configuration.
@@ -111,7 +118,7 @@ class BoundedDecider:
     def __init__(self, client: DecisionClient, budget: BoundedCompleter):
         self.client, self.budget, self.logger = client, budget, client.logger
 
-    def decide(self, *args, **kwargs):
+    def decide(self, *args: Any, **kwargs: Any) -> Any:
         if self.budget.calls >= self.budget.max_calls:
             raise EvaluationBudgetExceeded("Aufrufbudget ausgeschöpft")
         self.budget.calls += 1
@@ -161,11 +168,11 @@ def _deadline_keys(value: str, context: MailDateContext) -> set[str]:
     return keys or {WITHOUT_DATE}
 
 
-def _sorted(items: list[dict]) -> list[dict]:
+def _sorted(items: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sorted(items, key=lambda item: json.dumps(item, sort_keys=True, ensure_ascii=False))
 
 
-def semantic_result(stage: str, value: dict, context: MailDateContext) -> dict:
+def semantic_result(stage: str, value: dict[str, Any], context: MailDateContext) -> dict[str, Any]:
     """Compare independent factual expectations, not incidental wording.
 
     Dates are compared after the same deterministic normalization the
@@ -211,12 +218,12 @@ def semantic_result(stage: str, value: dict, context: MailDateContext) -> dict:
     return {"events": _sorted(result)}
 
 
-def _received_at(case: dict) -> datetime | None:
+def _received_at(case: dict[str, Any]) -> datetime | None:
     value = case.get("received_at")
     return datetime.fromisoformat(value) if value else None
 
 
-def _context(mail: dict) -> MailDateContext:
+def _context(mail: dict[str, Any]) -> MailDateContext:
     """The same mail date context the orchestrator passes to the builder."""
     return MailDateContext(
         date_context_status=str(mail.get("date_context_status", "missing")),
@@ -226,10 +233,10 @@ def _context(mail: dict) -> MailDateContext:
     )
 
 
-def evaluate(corpus: dict, prompts: PromptConfig, client: object, max_calls: int,
-             progress: Callable[[dict], None] | None = None, *,
+def evaluate(corpus: dict[str, Any], prompts: PromptConfig, client: LlmCompleter, max_calls: int,
+             progress: Callable[[dict[str, Any]], None] | None = None, *,
              decision_prompts: DecisionPrompts | None = None,
-             decision_client: DecisionClient | None = None) -> dict:
+             decision_client: DecisionClient | None = None) -> dict[str, Any]:
     bounded = BoundedCompleter(client, max_calls)
     if decision_prompts is None:
         analyzer = Analyzer(bounded, prompts, validation_retries=0, provider_retries=0)
@@ -307,7 +314,7 @@ def evaluate(corpus: dict, prompts: PromptConfig, client: object, max_calls: int
     return report
 
 
-def write_report(path: Path, report: dict) -> None:
+def write_report(path: Path, report: dict[str, Any]) -> None:
     """Replace the report atomically so an interrupted run leaves valid JSON."""
     temporary = path.with_name(path.name + ".tmp")
     temporary.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -345,7 +352,7 @@ def main(argv: list[str] | None = None) -> int:
     decision_client = None
     total = len(corpus["cases"])
 
-    def progress(report: dict) -> None:
+    def progress(report: dict[str, Any]) -> None:
         latest = report["cases"][-1]
         report["usage"] = usage.report()
         write_report(args.output, report)

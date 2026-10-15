@@ -1,5 +1,10 @@
 # Mailhelp 1.5 – Release-Planung: „UX-Feinschliff, Kostenübersicht & sauberes Shutdown-Logging“
 
+> Historischer Versionsstand: Dieses Dokument beschreibt die genannte Version oder
+> deren damaligen Plan. Ursprüngliche Ziele und Prüfergebnisse sind kein Nachweis
+> des heutigen Umfangs. Aktueller Betrieb: [README](../README.md),
+> [Release 3.3](Release-3.3.md) und [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
+
 **Zielversion:** 1.5.0  
 **Stand:** 11. Oktober 2026  
 **Status:** Vollständig umgesetzt (100 % Coverage, Phasen 1–5 abgeschlossen)  

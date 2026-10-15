@@ -6,8 +6,8 @@ from datetime import UTC, datetime, timedelta
 from mailhelp.models import (
     MailState,
 )
+from mailhelp.persistence.ledger import ActionLedgerService
 from mailhelp.review import CommandKind, CommandSource, ReviewCommand
-from mailhelp.telegram.ledger import ActionLedgerService
 
 action_key = ActionLedgerService.action_key
 
