@@ -89,14 +89,34 @@ def test_connection_changes_need_a_current_diagnosis_but_removal_of_all_does_not
 
 
 def test_invalid_or_stale_changes_keep_the_draft(profiled):
-    for values in ({**NEW, "server": "http://schule.example"}, {**NEW, "mailbox": "7"},
-                   {**NEW, "historical_start": "gestern"}):
-        assert submit(profiled, "add", **values).status == 409
+    for values, cause in (({**NEW, "server": "http://schule.example"}, "IServ-Adresse: Die IServ-Adresse muss mit"),
+                          ({**NEW, "mailbox": "7"}, "kein aktives Postfach"),
+                          ({**NEW, "historical_start": "gestern"}, "Startgrenze: historical_start muss ISO 8601"),
+                          ({**NEW, "historical_start": "31.02.2026"}, "Die Startgrenze ist kein gültiges Datum")):
+        response = submit(profiled, "add", **values)
+        assert response.status == 422 and cause in response.body.decode()
+        assert 'role="alert"' in response.body.decode()
     assert submit(profiled, "add", **NEW).status == 303
     form = _form(profiled, "add")
-    for changes in ({"id": "1"}, {"action": "rename"}, {"action": "update", "id": "9"}, {"action": "toggle", "id": "9"}):
-        assert profiled.web.browser.request("POST", SAVE, {**form, **NEW, **changes}).status == 409
+    for changes, status in (({"id": "1"}, 422), ({"action": "rename"}, 422), ({"action": "update", "id": "9"}, 409),
+                            ({"action": "toggle", "id": "9"}, 409)):
+        assert profiled.web.browser.request("POST", SAVE, {**form, **NEW, **changes}).status == status
     assert profiled.runtime.setup.draft_settings().iserv.accounts[0].label == "Grundschule"
+
+
+def test_regression_copied_links_and_german_dates_are_accepted(profiled):
+    """Regression: a pasted IServ link, a host without https:// or a date like 01.10.2026 was rejected
+    with only "Entwurf nicht gespeichert; Angaben, Version und Sitzung prüfen."."""
+    link = {**NEW, "server": "https://Schule.example/iserv/parentletter/parent/index",
+            "historical_start": "01.10.2026"}
+    assert submit(profiled, "add", **link).status == 303
+    account = profiled.runtime.setup.draft_settings().iserv.accounts[0]
+    assert account.server == "https://schule.example"
+    assert account.historical_start.isoformat() == "2026-10-01T00:00:00+00:00"  # the profiled zone is UTC
+    assert submit(profiled, "update", **{**NEW, "server": "schule.example", "historical_start": "1.10.2026 07:30"}
+                  ).status == 303
+    account = profiled.runtime.setup.draft_settings().iserv.accounts[0]
+    assert account.server == "https://schule.example" and account.historical_start.hour == 7
 
 
 def test_ten_accounts_fill_every_number_and_labels_default(profiled):

@@ -1,6 +1,6 @@
 # Einstellungen der Weboberfläche
 
-Stand: 15. Oktober 2026, Anwendungsversion 3.4.1.
+Stand: 15. Oktober 2026, Anwendungsversion 3.4.2.
 
 Die globalen Einstellungen bieten eine Bereichsübersicht mit direkten Sprunglinks, beispielsweise
 zu Antworten, Zielen, Aufbewahrung und Protokollierung. Die verwendeten KI-Modelle stehen in einer
@@ -210,8 +210,10 @@ Die folgende Liste enthält dieselben Hilfetexte wie die Weboberfläche. Änderu
 ## IServ-Konten (3.3.10)
 
 Unter `/einstellungen/iserv` werden IServ-Konten für Elternbriefe angelegt, geändert, aktiviert,
-deaktiviert und entfernt. Je Konto: Anzeigename, HTTPS-Adresse der Schule, das Postfach, dessen
-Zielprofil und Standards gelten, und optional die Startgrenze (ISO 8601; leer: die des Postfachs).
+deaktiviert und entfernt. Je Konto: Anzeigename, HTTPS-Adresse der Schule (ein kopierter IServ-Link
+oder die Adresse ohne `https://` wird auf die Schuladresse gekürzt), das Postfach, dessen Zielprofil
+und Standards gelten, und optional die Startgrenze (`TT.MM.JJJJ [HH:MM]` oder ISO 8601; leer: die des
+Postfachs). Ungültige Angaben nennt die Seite mit ihrer Ursache.
 Jede Änderung ist ein Entwurf; übernommen wird nach aktueller Diagnose `iserv` und ausdrücklicher
 Bestätigung. Elternbriefe gelten immer als relevant. Die Zugangsdaten gehören auf die Seite
 Zugangsdaten. Wirkung nach dem nächsten Neustart.

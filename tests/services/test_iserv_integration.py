@@ -31,12 +31,18 @@ def with_iserv(settings: Settings, **account) -> Settings:
     return Settings.model_validate(data)
 
 
-@pytest.mark.parametrize("server", ["http://schule.example", "https://schule.example/iserv",
-                                    "https://u:p@schule.example", "https://schule.example?x=1",
-                                    "https://schule.example#a", "schule.example"])
-def test_server_must_be_a_plain_https_origin(server):
-    with pytest.raises(ValidationError):
+@pytest.mark.parametrize("server", ["http://schule.example", "https://u:p@schule.example", "https://",
+                                    "ftp://schule.example", "https://user@schule.example/iserv"])
+def test_server_must_be_https_without_credentials(server):
+    with pytest.raises(ValidationError, match="https://"):
         IServAccountSettings(id=1, server=server)
+
+
+@pytest.mark.parametrize("server", ["https://Schule.example/iserv/parentletter/parent/index",
+                                    "https://schule.example/?x=1#a", " schule.example ", "Schule.example/iserv/"])
+def test_regression_a_pasted_link_or_bare_host_becomes_the_school_origin(server):
+    """Regression: a link copied from the browser or a host without https:// was rejected."""
+    assert IServAccountSettings(id=1, server=server).server == "https://schule.example"
 
 
 def test_accounts_need_distinct_ids_and_an_enabled_mailbox(tmp_path):

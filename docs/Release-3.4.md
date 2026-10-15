@@ -1,6 +1,6 @@
 # Mailhelp 3.4 – IServ-Elternbriefe, Zugangsdaten und Einstellungen im Web
 
-Stand: 15. Oktober 2026. Aktueller Repository-Stand: 3.4.1.
+Stand: 15. Oktober 2026. Aktueller Repository-Stand: 3.4.2.
 Diese Anleitung fasst die Änderungen von 3.3.2 bis 3.4.1 für den Betrieb zusammen. Die
 technische Planung steht in [Planung 3.4](Planung-3.4.md), die Verträge in der
 [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
@@ -21,8 +21,10 @@ und Zugangsdaten erscheinen nicht in Protokollen.
 ### Einrichten über die Weboberfläche
 
 1. **Einstellungen → IServ-Konten**: Anzeigename, IServ-Adresse der Schule
-   (z. B. `https://schule.example`), Postfach und optional eine Startgrenze eintragen und
-   „IServ-Konto als Entwurf hinzufügen“ wählen.
+   (z. B. `https://schule.example`; ein aus dem Browser kopierter IServ-Link oder die Adresse ohne
+   `https://` genügt), Postfach und optional eine Startgrenze (`TT.MM.JJJJ` oder ISO 8601) eintragen
+   und „IServ-Konto als Entwurf hinzufügen“ wählen. Ungültige Angaben werden mit ihrer Ursache
+   angezeigt.
 2. **Einstellungen → Zugangsdaten**: bei `ISERV_<n>_USERNAME` die IServ-Anmeldung und bei
    `ISERV_<n>_PASSWORD` das Passwort eintragen, jeweils ausdrücklich bestätigen.
 3. **Diagnose → iserv**: Die Prüfung meldet sich an und öffnet nur die Briefübersicht.

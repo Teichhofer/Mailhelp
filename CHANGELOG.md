@@ -1,5 +1,16 @@
 # Änderungen
 
+## 3.4.2 – beta: IServ-Konto anlegen mit kopiertem Link und deutschem Datum
+
+- Fehler behoben: Das Anlegen eines IServ-Kontos scheiterte mit „Entwurf nicht gespeichert;
+  Angaben, Version und Sitzung prüfen.“, wenn die Adresse als kopierter IServ-Link (mit Pfad),
+  ohne `https://` oder die Startgrenze als `01.10.2026` eingegeben wurde. Die Adresse wird jetzt
+  auf die Schuladresse gekürzt, die Startgrenze nimmt `TT.MM.JJJJ [HH:MM]` in der konfigurierten
+  Zeitzone an. `http://` und Adressen mit Zugangsdaten bleiben abgelehnt.
+- Ungültige Eingaben zeigt die Seite jetzt mit ihrer Ursache an (z. B. „IServ-Adresse: …“ oder
+  „Startgrenze: …“) statt der allgemeinen Meldung.
+- Regressionstests einschließlich eines Browsertests für Desktop, Telefon und schmale Ansicht.
+
 ## 3.4.1 – beta: Dokumentation für IServ, Zugangsdaten und Einstellungen vervollständigt
 
 - Neue [Release-Anleitung 3.4](docs/Release-3.4.md) mit Einrichtung der IServ-Elternbriefe über

@@ -162,3 +162,28 @@ def test_credentials_are_write_only_and_accessible(page, setup_server, monkeypat
     form.get_by_role("button", name="Speichern", exact=True).click()
     expect(page.get_by_text("OPENROUTER_API_KEY gespeichert", exact=False)).to_be_visible()
     assert "sk-synthetisch" not in page.content()
+
+
+def test_regression_iserv_account_from_a_copied_link_and_german_date(page, setup_server):
+    """Regression: adding an IServ account with a link copied from the browser or a date like 01.10.2026
+    failed with only "Entwurf nicht gespeichert; Angaben, Version und Sitzung prüfen."."""
+    sign_in(page, setup_server)
+    page.goto(setup_server.url + "/einstellungen/iserv")
+    address = page.get_by_label("IServ-Adresse der Schule (https://…)", exact=True)
+    # An invalid entry explains itself on the page and keeps the form usable.
+    address.fill("http://schule.example")
+    page.get_by_role("button", name="IServ-Konto als Entwurf hinzufügen", exact=True).click()
+    expect(page.get_by_role("alert")).to_contain_text("IServ-Adresse: Die IServ-Adresse muss mit https://")
+    assert audit(page, "iserv-error-" + page.device, page.mobile) == []
+    page.get_by_label("IServ-Adresse der Schule (https://…)", exact=True).fill(
+        "https://schule.example/iserv/parentletter/parent/index")
+    page.get_by_label("Ältere Briefe nicht verarbeiten vor (TT.MM.JJJJ oder ISO 8601, leer: Grenze des Postfachs)",
+                      exact=True).fill("01.10.2026")
+    page.get_by_role("button", name="IServ-Konto als Entwurf hinzufügen", exact=True).click()
+    expect(page.get_by_role("heading", name="Entwurf prüfen", exact=True)).to_be_visible()
+    expect(page.get_by_text("https://schule.example · Postfach 1 · aktiv", exact=True)).to_be_visible()
+    expect(page.get_by_role("alert")).to_have_count(0)
+    account = setup_server.site.setup_page.runtime.setup.draft_settings().iserv.accounts[0]
+    assert account.server == "https://schule.example" and account.historical_start.day == 1
+    assert setup_server.site.archive.configuration.active.iserv.accounts == []
+    page.get_by_role("button", name="Entwurf verwerfen", exact=True).click()
