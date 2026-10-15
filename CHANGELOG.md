@@ -1,5 +1,13 @@
 # Änderungen
 
+## 3.3.8 – beta: IServ in Einrichtung und Diagnose
+
+- Fehler behoben: Die Zugangsdatenübersicht der Einrichtung nannte die IServ-Zugangsdaten
+  nicht. Sie zeigt jetzt je aktivem IServ-Konto `ISERV_<id>_USERNAME/ISERV_<id>_PASSWORD`
+  als vorhanden oder fehlend; neu in `.env` eingetragene Werte erscheinen ohne Neustart.
+- Die Diagnose hat eine eigene IServ-Prüfung: Anmeldung und Öffnen der Briefübersicht,
+  ohne Briefe zu lesen. Eine abgelehnte Anmeldung wird als Zugangsdatenproblem gemeldet.
+
 ## 3.3.7 – beta: IServ-Elternbriefe als Quelle
 
 - Neu: Elternbriefe aus dem IServ-Elternbriefmodul werden wie Mails verarbeitet.

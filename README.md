@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.3.7 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.3.8 · **Python:** 3.12.x · **Lizenz:** MIT
 
 [Installation](#installation) · [Konfiguration](#konfiguration) ·
 [Betrieb](#betrieb) · [Docker](#docker) ·
@@ -193,7 +193,8 @@ des angegebenen Postfachs, ohne Relevanzprüfung. Briefe vor `historical_start` 
 Angabe: die Grenze des Postfachs) bleiben unberührt. Mailhelp bestätigt, beantwortet
 oder archiviert in IServ nichts. Zwei-Faktor-Anmeldung und auf mehrere Seiten verteilte
 Briefübersichten werden noch nicht unterstützt; der Abruf meldet sie als Fehler.
-`--check-access` prüft auch die IServ-Anmeldung.
+`--check-access` und die Diagnose der Weboberfläche prüfen auch die IServ-Anmeldung;
+die Einrichtung zeigt, ob die Zugangsdaten hinterlegt sind.
 
 ### Weboberfläche
 

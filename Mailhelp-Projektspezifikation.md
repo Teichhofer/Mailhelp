@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 14. Oktober 2026, Anwendungsversion 3.3.7. Die folgenden Verträge beschreiben
+Stand: 14. Oktober 2026, Anwendungsversion 3.3.8. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2377,7 +2377,9 @@ fehlgeschlagener Brief wird nicht vermerkt und wie eine fehlgeschlagene Mail ern
 unvollständige Verarbeitungen werden über denselben Abruf wiederaufgenommen. Ein Fehler eines
 Kontos hält weder andere Konten noch den Mailzyklus an. Die Statusseite zeigt den letzten
 erfolgreichen Kontakt als „IServ-Elternbriefe“; `--check-access` und die Startprüfung melden
-sich bei jedem Konto an. In IServ wird nichts bestätigt, beantwortet oder archiviert.
+sich bei jedem Konto an. In IServ wird nichts bestätigt, beantwortet oder archiviert. Die Einrichtung zeigt
+je aktivem Konto, ob seine Zugangsdaten vorhanden sind; die Diagnose `iserv` meldet sich an und
+öffnet nur die Briefübersicht (seit 3.3.8).
 
 ## Darstellung der Weboberfläche (3.3.1)
 
