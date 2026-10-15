@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 14. Oktober 2026, Anwendungsversion 3.3.11. Die folgenden Verträge beschreiben
+Stand: 14. Oktober 2026, Anwendungsversion 3.3.12. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -1962,7 +1962,11 @@ Balken, der Rest als „Weitere“). Die Diagramme sind serverseitiges SVG ohne 
 Inline-Styles, mit Titel und Beschreibung für Hilfstechnik und ihren Werten als aufklappbare
 Tabelle. Aufrufe ohne Kostenangabe fehlen in den Kostendiagrammen, statt als null zu zählen.
 
-**Einstellungen und Themen.** Bearbeitbar ist nur eine Positivliste von Einstellungen;
+**Einstellungen und Themen.** Bearbeitbar ist nur eine Positivliste von Einstellungen (seit 3.3.12
+einschließlich Stapelgröße und Reihenfolge des Abrufs, Telegram-Bindung, Antwortentwürfen,
+Bildauswertung, Tagesüberblick, Tätigkeitsberichten, Lernmodus, Sitzungsdauer, LAN-Zugriff und
+Protokollschaltern; Datenverzeichnis, Logpfade, `web.host`, `web.port`, `web.enabled`,
+`web.allowed_hosts` und Parser-Sicherheitsgrenzen bleiben ausgenommen);
 in der globalen Einzelfeldansicht sind Geheimnisse, Web-Bindung, Datenverzeichnis und
 IMAP-Konten nicht bearbeitbar. Die getrennte Einrichtung und die Postfachverwaltung
 seit 3.2 unterstützen IMAP-Konfigurationsentwürfe; Geheimnisse bleiben außerhalb des Webs.

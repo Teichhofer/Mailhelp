@@ -1,5 +1,16 @@
 # Änderungen
 
+## 3.3.12 – beta: Weitere Einstellungen in der Weboberfläche (Planung 3.4, Phase 3)
+
+- Unter Einstellungen sind 29 weitere Werte änderbar, jeweils mit Hilfetext: Stapelgröße und
+  Reihenfolge des Mailabrufs, Telegram-Benutzer, -Chat und Fragen nacheinander, Antwortentwürfe,
+  Bildauswertung, Inhalte des Tagesüberblicks, Tätigkeitsberichte, parallele Aufrufe im
+  Lernmodus, Aufbewahrung von Tätigkeitsberichten, Sitzungsdauer, Zugriff im eigenen Netzwerk
+  sowie Schalter und Stufen der Protokollierung.
+- Die Einrichtung bietet je Postfach die Startgrenze `historical_start` an.
+- Bewusst weiterhin nur in `config.yaml`: Datenverzeichnis, Logpfade, Adresse, Port und
+  zugelassene Hostnamen der Weboberfläche sowie die Parser-Sicherheitsgrenzen.
+
 ## 3.3.11 – beta: Zugangsdaten in der Weboberfläche (Planung 3.4, Phase 2)
 
 - Neu: Einstellungen → Zugangsdaten (`/einstellungen/zugangsdaten`) listet alle Zugangsdaten,

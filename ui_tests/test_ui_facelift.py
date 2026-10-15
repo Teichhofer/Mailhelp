@@ -55,9 +55,11 @@ def test_settings_categories_can_be_reached_directly_in_both_themes(page, mailhe
     sign_in(page, mailhelp)
     page.goto(mailhelp.url + "/einstellungen")
     categories = page.get_by_role("navigation", name="Einstellungsbereiche")
-    expect(categories.get_by_role("link")).to_have_count(10)
+    from mailhelp.web.settings_pages import SETTING_GROUPS
+    expect(categories.get_by_role("link")).to_have_count(len(SETTING_GROUPS))
     categories.get_by_role("link", name="Aufbewahrung", exact=True).click()
-    expect(page.locator("#settings-7")).to_be_in_viewport()
+    retention = [title for title, _ in SETTING_GROUPS].index("Aufbewahrung")
+    expect(page.locator(f"#settings-{retention}")).to_be_in_viewport()
     assert audit(page, "facelift-settings-" + page.device, page.mobile) == []
     page.emulate_media(color_scheme="dark")
     assert audit(page, "facelift-settings-dark-" + page.device, page.mobile) == []

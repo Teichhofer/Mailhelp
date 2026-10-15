@@ -25,7 +25,7 @@ Browser (Google, Microsoft), Web-Lernmodus und Neustart ohne Prozesswechsel.
 | Postfächer | Anlegen (id, Name, Server, Port, Ordner), Richtlinien je Postfach, Entfernen; Entwurf → Diagnose → Übernahme | `historical_start`, Verbindungsart und Aktivierung nur über die Einrichtung; Zugangsdaten nur in `.env` |
 | IServ-Konten | Anzeige, ob Zugangsdaten vorhanden sind; Diagnose | Anlegen, Ändern, Entfernen fehlen |
 | Zugangsdaten | Liste „vorhanden/fehlt“ in der Einrichtung | Eintragen und Ersetzen fehlen |
-| Einstellungen | Positivliste in Einrichtung und `/einstellungen` | u. a. `imap.historical_start`, `imap.batch_size`, `imap.global_newest_first`, `telegram.user_id/chat_id/sequential_questions`, `smart_reply`, `vision.*`, `daily_briefing.include_*`, `activity_report.*`, `learning.parallel_llm_calls`, `retention.activity_report_days`, `web.session_days`, `web.lan_access`, `web.allowed_hosts`, Protokollstufen |
+| Einstellungen | Positivliste in Einrichtung und `/einstellungen` | u. a. `imap.historical_start`, `imap.batch_size`, `imap.global_newest_first`, `telegram.user_id/chat_id/sequential_questions`, `smart_reply`, `vision.*`, `daily_briefing.include_*`, `activity_report.*`, `learning.parallel_llm_calls`, `retention.activity_report_days`, `web.session_days`, `web.lan_access`, Protokollstufen |
 
 ## 3. Umsetzung
 
@@ -66,7 +66,7 @@ Browser (Google, Microsoft), Web-Lernmodus und Neustart ohne Prozesswechsel.
 - `/einstellungen` erhält die fehlenden Betriebseinstellungen aus Abschnitt 2 mit Beschriftung,
   Auswahllisten und Hilfetexten (`docs/Web-Einstellungen.md`).
 - Bewusst nicht im Web: `data_directory`, Logpfade, Dateigrößen der Logrotation, `web.host`,
-  `web.port`, `web.enabled` (Gefahr, sich selbst auszusperren) und die technischen
+  `web.port`, `web.enabled`, `web.allowed_hosts` (Gefahr, sich selbst auszusperren) und die technischen
   Parser-Sicherheitsgrenzen unter `limits.max_html_*`, `max_mime_parts` u. ä.
 
 ### Phase 4 – Abnahme und Release (3.4.0)
@@ -90,3 +90,4 @@ Browser (Google, Microsoft), Web-Lernmodus und Neustart ohne Prozesswechsel.
 | :--- | :--- | :--- |
 | 1 | 3.3.10 | `/einstellungen/iserv`: IServ-Konten anlegen, ändern, (de)aktivieren und entfernen als Entwurf des Blocks `iserv.accounts`; Übernahme nur nach aktueller Diagnose `iserv`. Nebenbei behoben: Ein übernommener Einrichtungsentwurf blieb auf dem alten Dateistand stehen, und die Postfachseite brach danach ab. |
 | 2 | 3.3.11 | `/einstellungen/zugangsdaten`: alle von der Entwurfskonfiguration benötigten Zugangsdaten nur schreibend, mit Sitzungsprüfung vor dem Schreiben, CSRF, Idempotenzschlüssel, Bestätigung und Dateistandsprüfung; `.env` wird zeilengenau und atomar geändert, `MAILHELP_WEB_SECRET` ausgenommen. |
+| 3 | 3.3.12 | 29 weitere Einstellungen mit Beschriftung, Hilfetext und Dokumentation in sechs neuen Bereichen (Telegram, Bildauswertung, Tagesüberblick, Tätigkeitsberichte, Lernmodus, Weboberfläche) sowie Abruf, Antworten, Aufbewahrung und Protokollierung; `historical_start` je Postfach in der Einrichtung. `web.allowed_hosts` bleibt abweichend vom Plan ausgenommen (Aussperrgefahr). |
