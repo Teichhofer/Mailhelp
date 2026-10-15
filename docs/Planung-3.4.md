@@ -2,7 +2,7 @@
 
 **Zielversion:** 3.4.0  
 **Stand:** 15. Oktober 2026  
-**Status:** In Umsetzung (ab 3.3.10)  
+**Status:** Umgesetzt in 3.4.0 (Phasen 1–3 in 3.3.10–3.3.12)  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md),
 [Planung 3.2](Planung-3.2.md), [Planung 4.0](Planung-4.0.md) (Pfeiler 4 wird vorgezogen)
 
@@ -91,3 +91,4 @@ Browser (Google, Microsoft), Web-Lernmodus und Neustart ohne Prozesswechsel.
 | 1 | 3.3.10 | `/einstellungen/iserv`: IServ-Konten anlegen, ändern, (de)aktivieren und entfernen als Entwurf des Blocks `iserv.accounts`; Übernahme nur nach aktueller Diagnose `iserv`. Nebenbei behoben: Ein übernommener Einrichtungsentwurf blieb auf dem alten Dateistand stehen, und die Postfachseite brach danach ab. |
 | 2 | 3.3.11 | `/einstellungen/zugangsdaten`: alle von der Entwurfskonfiguration benötigten Zugangsdaten nur schreibend, mit Sitzungsprüfung vor dem Schreiben, CSRF, Idempotenzschlüssel, Bestätigung und Dateistandsprüfung; `.env` wird zeilengenau und atomar geändert, `MAILHELP_WEB_SECRET` ausgenommen. |
 | 3 | 3.3.12 | 29 weitere Einstellungen mit Beschriftung, Hilfetext und Dokumentation in sechs neuen Bereichen (Telegram, Bildauswertung, Tagesüberblick, Tätigkeitsberichte, Lernmodus, Weboberfläche) sowie Abruf, Antworten, Aufbewahrung und Protokollierung; `historical_start` je Postfach in der Einrichtung. `web.allowed_hosts` bleibt abweichend vom Plan ausgenommen (Aussperrgefahr). |
+| 4 | 3.4.0 | Gesamtabnahme: 2478 Tests mit 100 % Zeilen- und Branch-Abdeckung, 167 Browsertests einschließlich Barrierefreiheit für IServ-Konten, Zugangsdaten und Einstellungen (Desktop, Telefon, schmal), ruff und mypy ohne Befund; Linux/Docker über die CI. Offen für 4.0: Erststart ohne Konfiguration, OAuth im Browser, Web-Lernmodus und Neustart ohne Prozesswechsel. |

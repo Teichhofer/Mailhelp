@@ -1,5 +1,18 @@
 # Änderungen
 
+## 3.4.0 – beta: Quellen, Zugangsdaten und Einstellungen im Web (Planung 3.4)
+
+Abschluss von Planung 3.4 (Phasen 1–3 in 3.3.10–3.3.12):
+
+- Postfächer und IServ-Konten lassen sich vollständig über die Weboberfläche anlegen,
+  ändern, deaktivieren und entfernen – als geprüfter Entwurf mit Diagnose und ausdrücklicher
+  Übernahme.
+- Zugangsdaten werden unter Einstellungen → Zugangsdaten nur schreibend gepflegt; gespeicherte
+  Werte erscheinen nie in der Oberfläche oder in Protokollen.
+- Alle für den Betrieb relevanten Einstellungen sind im Web änderbar; ausgenommen bleiben nur
+  Werte, deren Fehlbedienung den Zugang zur Weboberfläche oder die Datenablage gefährdet.
+- Gesamtabnahme: 2478 Tests mit 100 % Abdeckung, 167 Browsertests, ruff und mypy ohne Befund.
+
 ## 3.3.12 – beta: Weitere Einstellungen in der Weboberfläche (Planung 3.4, Phase 3)
 
 - Unter Einstellungen sind 29 weitere Werte änderbar, jeweils mit Hilfetext: Stapelgröße und
