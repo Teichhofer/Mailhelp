@@ -110,6 +110,7 @@ class SetupSite:
     def links():
         return ('<p class="card-links"><a class="button" href="/einrichtung">Einrichtung</a> '
                 '<a class="button" href="/einstellungen/postfaecher">Postfächer</a> '
+                '<a class="button" href="/einstellungen/iserv">IServ-Konten</a> '
                 '<a class="button" href="/einstellungen/zielprofile">Zielprofile</a> '
                 '<a class="button" href="/diagnose">Diagnose</a> '
                 '<a class="button" href="/einstellungen/benachrichtigungen">Benachrichtigungsprofil</a> '

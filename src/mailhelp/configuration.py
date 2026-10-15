@@ -152,7 +152,7 @@ def offered(name: str, setup: bool) -> bool:
     """Whether the web interface offers *name* for editing."""
     if setup and _MAILBOX_SETUP_FIELD.match(name):
         return True
-    if setup and (name in {"imap.mailboxes", "target_profiles"} or
+    if setup and (name in {"imap.mailboxes", "target_profiles", "iserv.accounts"} or
             re.fullmatch(r"imap\.mailboxes\.[0-9]\.(.+)", name)
             and name.split(".", 3)[3] in MAILBOX_POLICY_FIELDS):
         return True
@@ -330,8 +330,8 @@ class ConfigurationService:
         source = self.path(command).read_text(encoding="utf-8")
         if any(name.startswith("notifications.") for name in command.patch):
             source = re.sub(r"(?m)^(notifications:)[ \t]*(?:null|~)([ \t]*(?:#.*)?)$", r"\1\2", source)
-        complex_roots = {"imap" if name.startswith("imap.mailboxes") else "target_profiles"
-                         for name in command.patch if name in {"imap.mailboxes", "target_profiles"}}
+        roots = {"imap.mailboxes": "imap", "target_profiles": "target_profiles", "iserv.accounts": "iserv"}
+        complex_roots = {roots[name] for name in command.patch if name in roots}
         if complex_roots:
             simple = {name: value for name, value in command.patch.items()
                       if name.split(".", 1)[0] not in complex_roots}
@@ -414,7 +414,10 @@ class ConfigurationService:
     def clear_local_draft(self, command: AdminCommand) -> None:
         from .setup import SetupState
         draft = self.store.load_model("setup-state", SetupState)
-        if draft is not None and draft.kind != "settings" and draft.patch == command.patch:
+        # Setup drafts (mailboxes, IServ accounts, profiles) share kind "settings"; once approved they
+        # are part of config.yaml, and a stale draft on the old file would block every later change.
+        if (draft is not None and draft.patch == command.patch
+                and (draft.kind != "settings" or command.kind == AdminKind.SETUP)):
             draft.kind, draft.patch, draft.base_hash, draft.configuration_hash = "settings", {}, "", ""
             draft.version += 1
             self.store.save("setup-state", draft.model_dump(mode="json"))

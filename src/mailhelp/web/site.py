@@ -103,6 +103,8 @@ class MailhelpSite:
         self.setup_page = SetupSite(self)
         from .mailbox_site import MailboxSite
         self.mailbox_page = MailboxSite(self)
+        from .iserv_site import IServSite
+        self.iserv_page = IServSite(self)
         from .reconciliation_site import ReconciliationSite
         self.reconciliation_page = ReconciliationSite(self)
         self.notification_runtime: NotificationRuntime | None = None

@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.3.9 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.3.10 · **Python:** 3.12.x · **Lizenz:** MIT
 
 [Installation](#installation) · [Konfiguration](#konfiguration) ·
 [Betrieb](#betrieb) · [Docker](#docker) ·
@@ -185,8 +185,10 @@ werden nicht überschrieben.
 
 ### IServ-Elternbriefe
 
-In `config.yaml` unter `iserv.accounts` je Elternkonto `id`, `server` (HTTPS-Adresse
-der Schule) und `mailbox` eintragen. Die Zugangsdaten stehen in `.env` als
+In der Weboberfläche unter **Einstellungen → IServ-Konten** (`/einstellungen/iserv`) je
+Elternkonto Adresse der Schule und Postfach eintragen, als Entwurf prüfen und übernehmen;
+alternativ in `config.yaml` unter `iserv.accounts` `id`, `server` (HTTPS-Adresse der Schule)
+und `mailbox` eintragen. Die Zugangsdaten stehen in `.env` als
 `ISERV_<id>_USERNAME` und `ISERV_<id>_PASSWORD`. Mailhelp meldet sich wie ein Browser
 an, liest neue Briefe samt Anhängen und verarbeitet sie mit Zielprofil und Standards
 des angegebenen Postfachs, ohne Relevanzprüfung. Briefe vor `historical_start` (ohne

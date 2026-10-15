@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 14. Oktober 2026, Anwendungsversion 3.3.9. Die folgenden Verträge beschreiben
+Stand: 14. Oktober 2026, Anwendungsversion 3.3.10. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2388,6 +2388,13 @@ erfolgreichen Kontakt als „IServ-Elternbriefe“; `--check-access` und die Sta
 sich bei jedem Konto an. In IServ wird nichts bestätigt, beantwortet oder archiviert. Die Einrichtung zeigt
 je aktivem Konto, ob seine Zugangsdaten vorhanden sind; die Diagnose `iserv` meldet sich an und
 öffnet nur die Briefübersicht (seit 3.3.8).
+
+Seit 3.3.10 verwaltet `/einstellungen/iserv` die Konten im Web: Hinzufügen (nächste freie
+Nummer), Ändern, Aktivieren/Deaktivieren und Entfernen ändern den Einrichtungsentwurf als ganzen
+Block `iserv.accounts` in geprüfter, normalisierter Form. Übernommen wird wie bei Postfächern nur
+ausdrücklich, versionsbezogen und nach einer aktuellen Diagnose `iserv` („bereit“; ohne aktive
+Konten genügt „deaktiviert“); `config.yaml` wird kommentarerhaltend geschrieben. Ein übernommener
+Einrichtungsentwurf wird danach geleert, damit weitere Änderungen auf dem neuen Dateistand beginnen.
 
 ## Darstellung der Weboberfläche (3.3.1)
 

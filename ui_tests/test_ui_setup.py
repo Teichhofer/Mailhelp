@@ -131,3 +131,18 @@ def test_no_javascript_setup_and_diagnosis_remain_operable(browser, setup_server
         expect(page.get_by_label("Zeitzone (IANA)")).to_have_value("Europe/Berlin")
     finally:
         context.close()
+
+
+def test_iserv_accounts_are_added_as_an_accessible_draft(page, setup_server):
+    sign_in(page, setup_server)
+    page.goto(setup_server.url + "/einstellungen/iserv")
+    expect(page.get_by_role("heading", name="IServ-Konten", exact=True)).to_be_visible()
+    assert audit(page, "iserv-empty-" + page.device, page.mobile) == []
+    page.get_by_label("IServ-Adresse der Schule (https://…)", exact=True).fill("https://schule.example")
+    page.get_by_role("button", name="IServ-Konto als Entwurf hinzufügen", exact=True).click()
+    expect(page.get_by_role("heading", name="Entwurf prüfen", exact=True)).to_be_visible()
+    expect(page.get_by_role("heading", name="Elternbriefe · 1", exact=True)).to_be_visible()
+    assert audit(page, "iserv-draft-" + page.device, page.mobile) == []
+    assert setup_server.site.archive.configuration.active.iserv.accounts == []
+    page.get_by_role("button", name="Entwurf verwerfen", exact=True).click()
+    expect(page.get_by_role("heading", name="Entwurf prüfen", exact=True)).to_have_count(0)

@@ -1,5 +1,16 @@
 # Änderungen
 
+## 3.3.10 – beta: IServ-Konten in der Weboberfläche (Planung 3.4, Phase 1)
+
+- Neu: Unter Einstellungen → IServ-Konten (`/einstellungen/iserv`) lassen sich IServ-Konten
+  hinzufügen, ändern, aktivieren, deaktivieren und entfernen. Jede Änderung ist ein Entwurf,
+  der geprüft und erst nach aktueller Diagnose und ausdrücklicher Übernahme in `config.yaml`
+  geschrieben wird.
+- Fehler behoben: Nach dem Übernehmen eines Einrichtungsentwurfs (etwa eines neuen Postfachs)
+  blieb der Entwurf auf dem alten Dateistand stehen; die Postfachseite brach danach ab und
+  weitere Änderungen waren blockiert. Übernommene Entwürfe werden jetzt geleert.
+- Neue Planung 3.4: Quellen, Zugangsdaten und Einstellungen vollständig im Web.
+
 ## 3.3.9 – beta: Diagramme in der Auswertung
 
 - Die Auswertungsseite zeigt für die gewählten Filter Diagramme: KI-Aufrufe je Tag
