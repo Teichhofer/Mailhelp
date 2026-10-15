@@ -1,5 +1,14 @@
 # Änderungen
 
+## 3.3.6 – beta: Weboberfläche bleibt nach einem Code-Wechsel konsistent
+
+- Fehler behoben: Der Webserver las Stylesheet, Skript, Service Worker und Offline-Seite
+  bei jeder Anfrage von der Platte. Wechselte bei laufendem Dienst der Codestand im
+  Installationsverzeichnis (Update, Branch-Wechsel einer editierbaren Installation),
+  kombinierte ein Neuladen neue Seiten mit altem CSS, und das Layout zerfiel.
+  Diese Dateien werden jetzt einmal beim Start geladen und passen bis zum Neustart
+  zur laufenden Version.
+
 ## 3.3.5 – beta: Verständliche Meldung bei bereits laufender Instanz
 
 - Fehler behoben: Ein zweiter Start mit demselben Datenverzeichnis endete mit einem

@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 14. Oktober 2026, Anwendungsversion 3.3.5. Die folgenden Verträge beschreiben
+Stand: 14. Oktober 2026, Anwendungsversion 3.3.6. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -1853,7 +1853,9 @@ Request-Bodies höchstens 16 KB, POST nur als Formulardaten. Antworten tragen ei
 Content-Security-Policy ohne Inline-Skripte, `X-Frame-Options: DENY`,
 `Referrer-Policy: no-referrer` und `Cache-Control: no-store` (statische Dateien
 `no-cache`). `/health`, statische Dateien, Manifest, Service Worker und Offline-Seite
-sind ohne Anmeldung erreichbar und enthalten keine Daten.
+sind ohne Anmeldung erreichbar und enthalten keine Daten. Diese Dateien liest der
+Webserver einmal beim Start; bis zum Neustart passen sie damit zur laufenden Version, auch
+wenn sich die Dateien auf der Platte ändern (seit 3.3.6).
 
 **Anmeldung:** Kopplung per achtstelligem Telegram-Code (10 Minuten, an den Browser
 gebunden, Ratenbegrenzung), Sitzungen als gehashte Zufallstoken mit

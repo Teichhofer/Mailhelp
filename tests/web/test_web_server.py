@@ -283,6 +283,17 @@ def test_static_application_files_are_served_from_the_package(name):
     assert response.body == (Path("src/mailhelp/web/static") / name).read_bytes()
 
 
+@pytest.mark.parametrize("path", ["/static/app.css", "/sw.js", "/offline.html"])
+def test_assets_stay_those_of_the_running_version_when_files_change(path, monkeypatch):
+    """Regression: after a branch switch of the editable install, a reload combined new pages
+    with the old stylesheet from disk and broke the layout."""
+    app = WebApp([HOST])
+    before = get(app, path).body
+    monkeypatch.setattr("mailhelp.web.app.static_file", lambda name: b"/* other version */")
+    assert get(app, path).body == before != b"/* other version */"
+    assert get(WebApp([HOST]), path).body == b"/* other version */"  # a restart serves the new files
+
+
 @pytest.mark.parametrize("path", ["/static/unbekannt.css", "/static/..", "/static/pages.py",
                                   "/static/APP.CSS"])
 def test_only_listed_static_files_are_readable(path):

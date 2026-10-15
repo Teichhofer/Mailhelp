@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.3.5 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.3.6 · **Python:** 3.12.x · **Lizenz:** MIT
 
 [Installation](#installation) · [Konfiguration](#konfiguration) ·
 [Betrieb](#betrieb) · [Docker](#docker) ·
@@ -173,6 +173,8 @@ mailhelp --config-directory .
 - Pro Datenverzeichnis läuft nur eine Instanz. Ein weiterer Start meldet
   „Mailhelp läuft bereits …“; die laufende Instanz zuerst über **Beenden** in der
   Weboberfläche oder mit Strg+C in ihrem Terminal beenden.
+- Nach einem Update oder Wechsel des Codestands Mailhelp neu starten. Bis dahin
+  liefert die Weboberfläche weiter Seiten und Dateien der laufenden Version aus.
 
 Relative Daten- und Logpfade beziehen sich auf `--config-directory`.
 Fehlende Themen-Dateien werden aus den Paketvorlagen angelegt; vorhandene Dateien
