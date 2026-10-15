@@ -1,6 +1,14 @@
 # Änderungen
 
-## Unveröffentlicht – Verwerfen nach Auswahlwechsel
+## Unveröffentlicht – Zugangsdaten und sichere Webaktionen
+
+- Eigener Bereich „Zugangsdaten“ in den Einstellungen mit direkter Bearbeitung
+  für Postfächer, OpenRouter, Telegram und die eingerichteten Zielprofile.
+  Bestehende Werte bleiben verborgen; ein neuer Wert ersetzt nur den gewählten
+  Schlüssel in `.env`. Prozessvariablen behalten Vorrang, Änderungen wirken nach Neustart.
+- Sitzungs- und CSRF-Prüfung, Versionsabgleich und wiederaufnehmbare,
+  idempotente Speichervorgänge. Geheimnisse gelangen weder in die Befehlswarteschlange
+  noch in HTML, Logs oder JSON-Belege. Tests verwenden ausschließlich synthetische Werte.
 
 - Während der Rückgängig-Frist von Bestätigen und Verwerfen bleibt die Auswahl
   auch bei Mausklicks gesperrt. Das ursprüngliche Formular bleibt erhalten und

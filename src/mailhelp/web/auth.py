@@ -16,7 +16,8 @@ entering it creates a long-lived session.
 * CSRF tokens are HMACs of the session (or pairing) identifier.
 
 Web threads write only these web-owned records (``web-sessions``,
-``web-pairing``), under a lock, never review state.
+``web-pairing``), under a lock, never review state. The separate credential
+editor writes only .env and its value-free, keyed receipts under the same lock.
 """
 
 from __future__ import annotations

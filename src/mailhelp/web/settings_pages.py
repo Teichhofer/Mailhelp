@@ -4,6 +4,8 @@ from __future__ import annotations
 import json
 
 from ..configuration import LIVE_FIELDS, SETTINGS_FIELDS
+from ..credentials import CredentialSnapshot
+from .credential_pages import credentials_section
 from .forms import field, post_form, select
 from .pages import e, notice
 from .setting_help import EXTRA_HELP, SETTING_HELP, help_bubble
@@ -151,7 +153,8 @@ def _setting_row(name: str, raw: dict, active: dict | None, revision: str, csrf:
             + help_bubble(name, setting_label(name), SETTING_HELP[name]) + '</div>')
 
 
-def settings_page(models: list, raw: dict | None, active: dict | None, revision: str, csrf: str) -> str:
+def settings_page(models: list, raw: dict | None, active: dict | None, revision: str, csrf: str,
+                  credentials: CredentialSnapshot | None = None) -> str:
     body = ('<div class="page-heading"><p class="eyebrow">Verwaltung</p><h1>Einstellungen</h1>'
             '<p class="page-intro">Globale Regeln verwalten und gezielt je Postfach anpassen.</p></div>'
             '<p class="settings-shortcuts"><a class="button small" href="/themen">Themen</a> '
@@ -163,14 +166,15 @@ def settings_page(models: list, raw: dict | None, active: dict | None, revision:
              + help_bubble("models", "Modelle", EXTRA_HELP["models"]) + "</div>")
     body += _models_table(models) + "</details>"
     if raw is None:
-        return body + notice("Konfigurationsdienst nicht verfügbar.", "warn")
-    body += ('<p class="meta">Quelle aller folgenden Werte: <code>config.yaml</code>. Gespeichert wird nur der '
+        return body + credentials_section(credentials, csrf) + notice("Konfigurationsdienst nicht verfügbar.", "warn")
+    body += ('<p class="meta">Quelle der allgemeinen Einstellungen: <code>config.yaml</code>. Gespeichert wird nur der '
              "geänderte Wert; Kommentare und Aufbau der Datei bleiben erhalten. Vor dem Speichern wird die "
              "Änderung noch einmal angezeigt.</p>")
     links = "".join(f'<a href="#settings-{index}">{e(title)}</a>'
                     for index, (title, _) in enumerate(SETTING_GROUPS))
     body += ('<div class="settings-layout"><nav class="settings-index" aria-label="Einstellungsbereiche">'
-             '<p class="eyebrow">Bereiche</p>' + links + '</nav><div class="settings-values">')
+             '<p class="eyebrow">Bereiche</p><a href="#settings-credentials">Zugangsdaten</a>'
+             + links + '</nav><div class="settings-values">' + credentials_section(credentials, csrf))
     for index, (title, prefixes) in enumerate(SETTING_GROUPS):
         names = sorted(name for name in SETTINGS_FIELDS
                        if any(name == prefix or name.startswith(prefix) for prefix in prefixes))

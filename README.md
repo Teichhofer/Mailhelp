@@ -213,6 +213,11 @@ ist auch über Telegram möglich. Für den Betrieb ausschließlich mit Weboberfl
 Die [Einrichtungs- und Betriebsanleitung](docs/Einrichtung-und-Qualitaetspruefung.md)
 beschreibt auch den mobilen Zugriff und die Einrichtung des Telegram-Bots.
 
+Unter **Einstellungen → Zugangsdaten** lassen sich Passwörter und API-Schlüssel
+für Postfächer und Dienste direkt ändern. Bestehende Werte bleiben verborgen.
+Gespeichert wird nur der gewählte Zugang in `.env`; die Änderung wirkt nach einem
+Neustart. Werte aus der Prozessumgebung haben weiterhin Vorrang.
+
 Die Statusseite zeigt IMAP-Abruffehler je Postfach und Ordner auch dann, wenn noch
 keine Mail zur Analyse geladen werden konnte. Erst ein erfolgreicher Abruf desselben
 Ordners entfernt den Hinweis. „Keine Fehler bei gespeicherten Mails“ betrifft nur

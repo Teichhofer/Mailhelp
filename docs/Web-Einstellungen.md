@@ -1,6 +1,6 @@
 # Einstellungen der Weboberfläche
 
-Stand: 14. Oktober 2026, Anwendungsversion 3.3.1.
+Stand: 15. Oktober 2026.
 
 Die globalen Einstellungen bieten eine Bereichsübersicht mit direkten Sprunglinks, beispielsweise
 zu Antworten, Zielen, Aufbewahrung und Protokollierung. Die verwendeten KI-Modelle stehen in einer
@@ -17,6 +17,29 @@ Feldnamen, Grenzwerte, Kanalwahl und Sofort-/Neustartwirkung:
 Jedes Info-Symbol erklärt, was die Einstellung verändert und welche Folgen andere Werte haben. Mit der Maus darüberfahren, per Tab fokussieren oder auf dem Handy antippen. Escape blendet die Blase aus. Das Lesen verändert keine Einstellung.
 
 Die folgende Liste enthält dieselben Hilfetexte wie die Weboberfläche. Änderungen werden erst nach der separaten Bestätigung gespeichert. „Im laufenden Betrieb“ bedeutet Übernahme an der nächsten sicheren Stelle; andere Einstellungen erfordern einen Neustart. Zahlen mit Dezimalpunkt eingeben, z. B. `0.30`. `null`, `disabled` und `unlimited` nur verwenden, wo sie unten erlaubt sind. Bei Zahlenfeldern lassen sich Sonderwerte gegebenenfalls nur direkt in `config.yaml` setzen.
+
+## Zugangsdaten
+
+Der separate Bereich **Zugangsdaten** ist über die Bereichsübersicht erreichbar.
+Er gruppiert Postfächer, OpenRouter, Telegram und die eingerichteten Zielprofile.
+Jeder Eintrag zeigt nur „vorhanden“ oder „fehlt“ und bietet ein leeres Passwortfeld
+für einen neuen Wert. Bestehende Werte werden auch nach dem Speichern nicht angezeigt.
+
+„Zugang speichern“ ersetzt ausschließlich den gewählten Schlüssel in `.env`;
+Kommentare und andere Schlüssel bleiben erhalten. Die Werte gelten nach einem Neustart.
+Prozessvariablen haben Vorrang und werden gesondert gekennzeichnet. Bei zusätzlichen
+Zielprofilen wird eine geerbte Client-ID bzw. ein geerbter Client-Schlüssel angezeigt;
+ein dort gespeicherter Wert ist eine eigene Überschreibung für dieses Profil.
+Gespeicherte Microsoft-Anmeldungen werden über `mailhelp --microsoft-login` erneuert,
+Google-Anmeldungen über `mailhelp --google-auth` (für zusätzliche Profile mit `--profile`).
+
+Die Formulare prüfen Sitzung, CSRF, Konfigurations- und `.env`-Version sowie einen
+Idempotenzschlüssel. Ein veraltetes Formular überschreibt keine neueren Änderungen.
+Unterbrochene Speichervorgänge werden bei einer Wiederholung anhand des Dateistands
+abgeglichen. Die Belege unter `credential-edits.json` enthalten nur schlüsselgebundene
+HMACs und Statusdaten; Zugangswerte werden weder in HTML noch in Logs oder der
+Befehlswarteschlange gespeichert. Das Bearbeiten löst keine externe Anlage aus.
+Die Oberfläche funktioniert auch ohne JavaScript.
 
 ## Mailabruf und Betrieb
 
@@ -169,5 +192,6 @@ Verwendete Profile lassen sich erst nach Auflösen aller angezeigten Verweise en
 
 Speichern erstellt einen Einrichtungsentwurf. Die Übernahme benötigt eine erneute ausdrückliche lokale
 Bestätigung. Ziel-/Verbindungsänderungen verlangen aktuelle lesende Diagnosen. Der Entwurf zeigt laufende
-Mails, die durch eine relevante Änderung zurückgehalten werden. Geheimnisse werden nicht im Web bearbeitet.
+Mails, die durch eine relevante Änderung zurückgehalten werden. Zugangsdaten werden
+getrennt unter **Einstellungen → Zugangsdaten** direkt in `.env` bearbeitet.
 Anleitung: [Release 3.2](Release-3.2.md).

@@ -499,6 +499,9 @@ label.check { display: flex; align-items: center; gap: 8px; font-weight: 400; }
 .settings-index a:hover { background: var(--accent-soft); color: var(--accent); }
 .settings-section { scroll-margin-top: 28px; margin-bottom: 32px; }
 .settings-section h2 { color: var(--text); margin-top: 12px; font-size: 1.15rem; }
+.credential-group { margin-top: 20px; }
+.credential-group h3 { margin-bottom: 10px; }
+.credential-setting { margin-bottom: 10px; }
 .guest-shell main { max-width: 620px; padding-top: 40px; }
 
 @media (min-width: 900px) {

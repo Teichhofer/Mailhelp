@@ -55,7 +55,7 @@ def test_settings_categories_can_be_reached_directly_in_both_themes(page, mailhe
     sign_in(page, mailhelp)
     page.goto(mailhelp.url + "/einstellungen")
     categories = page.get_by_role("navigation", name="Einstellungsbereiche")
-    expect(categories.get_by_role("link")).to_have_count(10)
+    expect(categories.get_by_role("link")).to_have_count(11)
     categories.get_by_role("link", name="Aufbewahrung", exact=True).click()
     expect(page.locator("#settings-7")).to_be_in_viewport()
     assert audit(page, "facelift-settings-" + page.device, page.mobile) == []

@@ -1853,7 +1853,9 @@ Request-Bodies höchstens 16 KB, POST nur als Formulardaten. Antworten tragen ei
 Content-Security-Policy ohne Inline-Skripte, `X-Frame-Options: DENY`,
 `Referrer-Policy: no-referrer` und `Cache-Control: no-store` (statische Dateien
 `no-cache`). `/health`, statische Dateien, Manifest, Service Worker und Offline-Seite
-sind ohne Anmeldung erreichbar und enthalten keine Daten.
+sind ohne Anmeldung erreichbar und enthalten keine Daten. Diese Dateien liest der
+Webserver einmal beim Start; bis zum Neustart passen sie damit zur laufenden Version, auch
+wenn sich die Dateien auf der Platte ändern (seit 3.3.6).
 
 **Anmeldung:** Kopplung per achtstelligem Telegram-Code (10 Minuten, an den Browser
 gebunden, Ratenbegrenzung), Sitzungen als gehashte Zufallstoken mit
@@ -1942,11 +1944,36 @@ abgelaufene Einzelwerte werden über ein Journal in Tagesaggregate ohne Mailbezu
 Datum; Stromkosten sind eine gekennzeichnete Schätzung aus `metrics.ollama_power_watts` und
 `metrics.electricity_eur_per_kwh`, überlappende Aufrufe zählen einmal.
 
+**Zugangsdaten.** Unter `/einstellungen#settings-credentials` gibt es einen eigenen
+Bereich mit leeren Passwortfeldern je angebotenem Zugang. Postfächer, OpenRouter,
+Telegram und eingerichtete Zielprofile sind getrennt gruppiert. Vorhandene Werte
+werden niemals angezeigt oder als HTML-Feldwerte ausgegeben. Die Positivliste
+ergibt sich aus den konfigurierten Postfächern und Zieldiensten; der Web-Sitzungsschlüssel
+und beliebige Prozessvariablen sind darüber nicht bearbeitbar.
+`POST /einstellungen/zugangsdaten/speichern` verlangt eine gültige Sitzung, CSRF,
+einen Idempotenzschlüssel sowie die beim Anzeigen ermittelten Konfigurations- und
+`.env`-Versionen. Vor dem Dateischreiben werden Sitzung und Versionen erneut geprüft.
+Die `.env`-Version und die Änderungsbelege sind HMACs mit dem Webschlüssel, keine
+ungeheimen Passwort-Hashes. Ein vorbereiteter Beleg wird vor der atomaren Ersetzung
+gespeichert; nach einem Abbruch wird anhand der erwarteten Vorher-/Nachher-Version
+abgeglichen, sodass eine Wiederholung bereits abgeschlossene Änderungen nicht
+zurücksetzt. Höchstens 100 wertfreie Belege bleiben unter `credential-edits.json`.
+Veraltete Formulare scheitern auch nach dem Entfernen älterer Belege am Versionsabgleich.
+Es wird ausschließlich der gewählte `.env`-Schlüssel ersetzt; andere Schlüssel und
+Kommentare bleiben erhalten. Mehrzeilige Werte, Steuerzeichen und leere Werte werden
+abgelehnt. Zugangswerte werden nicht in Review-/Admin-Befehlen, JSON-Belegen, Antworten
+oder Logs gespeichert. Webthreads dürfen für diese lokale Operation `.env` und die
+zugehörigen Belege unter der Zustandssperre schreiben; Review-Zustand bleibt unverändert.
+Prozessvariablen behalten Vorrang und werden angezeigt, geerbte Profilzugänge werden
+gekennzeichnet. Neue Werte wirken nach Neustart; vorhandene Microsoft-Anmeldungen
+werden über den Host-Anmeldebefehl erneuert. Es findet kein externer Schreibzugriff statt.
+
 **Einstellungen und Themen.** Bearbeitbar ist nur eine Positivliste von Einstellungen;
 in der globalen Einzelfeldansicht sind Geheimnisse, Web-Bindung, Datenverzeichnis und
 IMAP-Konten nicht bearbeitbar. Die getrennte Einrichtung und die Postfachverwaltung
-seit 3.2 unterstützen IMAP-Konfigurationsentwürfe; Geheimnisse bleiben außerhalb des Webs.
-Änderungen sind
+seit 3.2 unterstützen IMAP-Konfigurationsentwürfe. Der separate Einstellungsbereich
+„Zugangsdaten“ bearbeitet einzelne Zugangswerte ausschließlich in `.env`.
+Konfigurations- und Themenänderungen sind
 `AdminCommand`s mit erwartetem Dateihash und ausdrücklicher Bestätigung, laufen im
 Hauptthread, werden journalisiert und atomar geschrieben. `config.yaml` wird
 kommentarerhaltend geändert (nur betroffene Zeilen); weicht die geparste Datei vom

@@ -7,8 +7,10 @@ from typing import TYPE_CHECKING
 import yaml
 
 from ..configuration import AdminCommand, AdminKind, ConfigurationConflict, file_hash
+from ..credentials import CredentialService, CredentialUnauthorized
+from ..storage import CorruptState
 from .http import Response
-from .pages import layout
+from .pages import layout, notice
 from .settings_pages import TEXT_SETTINGS, settings_confirmation, settings_page, topics_page
 
 if TYPE_CHECKING:
@@ -22,6 +24,7 @@ class SettingsSite:
         self.archive, self.site = archive, archive.site
         for method, path, handler in (
                 ("GET", "/einstellungen", self.settings), ("POST", "/einstellungen/speichern", self.save_settings),
+                ("POST", "/einstellungen/zugangsdaten/speichern", self.save_credentials),
                 ("GET", "/themen", self.topics), ("POST", "/themen/speichern", self.save_topic)):
             self.site.app.route(method, path, self.site.signed_in(handler))
 
@@ -35,10 +38,48 @@ class SettingsSite:
             active = configuration.active.model_dump(mode="json")
             revision = file_hash(path)
         csrf = self.site.auth.csrf_token(session.id)
-        page = settings_page(self.archive.models, raw, active, revision, csrf)
+        service = self.credential_service()
+        try:
+            credentials = service.snapshot() if service is not None else None
+        except (OSError, ValueError):
+            credentials = None
+        page = settings_page(self.archive.models, raw, active, revision, csrf, credentials)
         page += self.site.experience.controls(csrf)
         page += self.site.setup_page.links()
         return Response.html(200, layout("Einstellungen", page, active="/einstellungen"))
+
+    def credential_service(self):
+        configuration = self.archive.configuration
+        if configuration is None:
+            return None
+        return CredentialService(configuration.directory, self.site.views.store, self.site.auth.active,
+                                 lambda payload: self.site.auth.csrf_token("credential-edit:" + payload))
+
+    def save_credentials(self, request, session, form):
+        service = self.credential_service()
+        if service is None:
+            return self.site._reply(request, 503, "Zugangsdatenverwaltung nicht verfügbar.")
+        try:
+            value = form["value"]
+            service.save(session.id, form["key"], form["name"], value, form["expected"], form["config_revision"])
+            if hasattr(self.site.logger, "secrets") and value not in self.site.logger.secrets:
+                self.site.logger.secrets = (*self.site.logger.secrets, value)
+        except CredentialUnauthorized:
+            return self.site._reply(request, 403, "Sitzung nicht mehr gültig. Bitte erneut anmelden.")
+        except ConfigurationConflict:
+            return self.site._reply(request, 409, "Die Änderung ist veraltet oder wurde bereits anders gesendet. "
+                                    "Bitte die Einstellungen neu laden.")
+        except (ValueError, KeyError):
+            return self.site._reply(request, 422, "Ungültige Zugangsdatenänderung. "
+                                    "Bitte einen angebotenen Zugang und einen einzeiligen neuen Wert verwenden.")
+        except (OSError, CorruptState):
+            return self.site._reply(request, 503, "Zugangsdaten konnten nicht sicher gespeichert werden. "
+                                    "Bitte Dateizugriff prüfen und mit demselben Formular erneut versuchen.")
+        return Response.html(200, layout("Zugangsdaten gespeichert", '<h1>Zugangsdaten gespeichert</h1>' + notice(
+            "Zugangsdaten in .env gespeichert. Sie werden nach einem Neustart verwendet; "
+            "Prozessvariablen haben weiterhin Vorrang.", "ok")
+            + '<p><a class="button" href="/einstellungen#settings-credentials">Zurück zu Zugangsdaten</a></p>',
+            active="/einstellungen"))
 
     def save_settings(self, request, session, form):
         configuration = self.archive.configuration
