@@ -1,6 +1,15 @@
 # Änderungen
 
-## Unveröffentlicht – Zugangsdaten und sichere Webaktionen
+## 3.4.1 – Zusammenführung der lokalen Änderungen mit 3.4.0
+
+- Lokale Korrekturen und den Stand 3.4.0 zusammengeführt; IServ-Elternbriefe,
+  Web-Einstellungen und Auswertungsdiagramme bleiben erhalten.
+- Die gemeinsame Speicherroute für Zugangsdaten ist eindeutig registriert und
+  unterstützt beide Formulararten samt ihrer Bestätigungs- und Versionsprüfungen.
+  Die vollständige Kontenübersicht für IServ und neue Konten ist im Bereich verlinkt.
+- Prüfung unter WSL: 2532 Python-Tests mit 100 % Zeilen- und Branch-Abdeckung,
+  180 Browsertests mit 100 % JavaScript-Blockabdeckung, Ruff und Mypy ohne Befund
+  sowie Paketbau und zwei Smoke-Tests des installierten Wheels.
 
 - Eigener Bereich „Zugangsdaten“ in den Einstellungen mit direkter Bearbeitung
   für Postfächer, OpenRouter, Telegram und die eingerichteten Zielprofile.
@@ -16,6 +25,92 @@
 - Browser-Regressionstests prüfen Bestätigen, Verwerfen, die unveränderte
   Vorschlagszuordnung und die Freigabe der Auswahl nach Rückgängig, ohne dabei
   einen Befehl zu senden. Sie reproduzieren den Fehler vor der Korrektur.
+
+## 3.4.0 – beta: Quellen, Zugangsdaten und Einstellungen im Web (Planung 3.4)
+
+Abschluss von Planung 3.4 (Phasen 1–3 in 3.3.10–3.3.12):
+
+- Postfächer und IServ-Konten lassen sich vollständig über die Weboberfläche anlegen,
+  ändern, deaktivieren und entfernen – als geprüfter Entwurf mit Diagnose und ausdrücklicher
+  Übernahme.
+- Zugangsdaten werden unter Einstellungen → Zugangsdaten nur schreibend gepflegt; gespeicherte
+  Werte erscheinen nie in der Oberfläche oder in Protokollen.
+- Alle für den Betrieb relevanten Einstellungen sind im Web änderbar; ausgenommen bleiben nur
+  Werte, deren Fehlbedienung den Zugang zur Weboberfläche oder die Datenablage gefährdet.
+- Gesamtabnahme: 2478 Tests mit 100 % Abdeckung, 167 Browsertests, ruff und mypy ohne Befund.
+
+## 3.3.12 – beta: Weitere Einstellungen in der Weboberfläche (Planung 3.4, Phase 3)
+
+- Unter Einstellungen sind 29 weitere Werte änderbar, jeweils mit Hilfetext: Stapelgröße und
+  Reihenfolge des Mailabrufs, Telegram-Benutzer, -Chat und Fragen nacheinander, Antwortentwürfe,
+  Bildauswertung, Inhalte des Tagesüberblicks, Tätigkeitsberichte, parallele Aufrufe im
+  Lernmodus, Aufbewahrung von Tätigkeitsberichten, Sitzungsdauer, Zugriff im eigenen Netzwerk
+  sowie Schalter und Stufen der Protokollierung.
+- Die Einrichtung bietet je Postfach die Startgrenze `historical_start` an.
+- Bewusst weiterhin nur in `config.yaml`: Datenverzeichnis, Logpfade, Adresse, Port und
+  zugelassene Hostnamen der Weboberfläche sowie die Parser-Sicherheitsgrenzen.
+
+## 3.3.11 – beta: Zugangsdaten in der Weboberfläche (Planung 3.4, Phase 2)
+
+- Neu: Einstellungen → Zugangsdaten (`/einstellungen/zugangsdaten`) listet alle Zugangsdaten,
+  die die Konfiguration benötigt – je Postfach, je IServ-Konto, OpenRouter, Telegram und die
+  Zielanbieter je Zielprofil – und erlaubt, sie einzutragen oder zu ersetzen.
+- Nur schreibend: gespeicherte Werte werden nie angezeigt. Speichern braucht eine gültige,
+  vor dem Schreiben erneut geprüfte Sitzung, CSRF-Schutz, Idempotenzschlüssel, ausdrückliche
+  Bestätigung und den unveränderten Stand von `.env`; nur die betroffene Zeile wird ersetzt.
+- Protokolle nennen nur den Namen; neue Werte werden sofort maskiert. `MAILHELP_WEB_SECRET`
+  bleibt ausgenommen, weil eine Änderung alle Sitzungen beenden würde.
+
+## 3.3.10 – beta: IServ-Konten in der Weboberfläche (Planung 3.4, Phase 1)
+
+- Neu: Unter Einstellungen → IServ-Konten (`/einstellungen/iserv`) lassen sich IServ-Konten
+  hinzufügen, ändern, aktivieren, deaktivieren und entfernen. Jede Änderung ist ein Entwurf,
+  der geprüft und erst nach aktueller Diagnose und ausdrücklicher Übernahme in `config.yaml`
+  geschrieben wird.
+- Fehler behoben: Nach dem Übernehmen eines Einrichtungsentwurfs (etwa eines neuen Postfachs)
+  blieb der Entwurf auf dem alten Dateistand stehen; die Postfachseite brach danach ab und
+  weitere Änderungen waren blockiert. Übernommene Entwürfe werden jetzt geleert.
+- Neue Planung 3.4: Quellen, Zugangsdaten und Einstellungen vollständig im Web.
+
+## 3.3.9 – beta: Diagramme in der Auswertung
+
+- Die Auswertungsseite zeigt für die gewählten Filter Diagramme: KI-Aufrufe je Tag
+  (erfolgreich und fehlgeschlagen), gemeldete Cloudkosten je Tag, die Verteilung der
+  Aufrufdauer, die summierte Dauer je Verarbeitungsschritt und die Kosten je Modell.
+  Bei „Heute“ gilt die Einteilung je Stunde in der konfigurierten Zeitzone.
+- Die Diagramme sind serverseitiges SVG ohne Skripte, passen sich hellem und dunklem
+  Design an und bieten ihre Werte zusätzlich als aufklappbare Tabelle für Screenreader.
+
+## 3.3.8 – beta: IServ in Einrichtung und Diagnose
+
+- Fehler behoben: Die Zugangsdatenübersicht der Einrichtung nannte die IServ-Zugangsdaten
+  nicht. Sie zeigt jetzt je aktivem IServ-Konto `ISERV_<id>_USERNAME/ISERV_<id>_PASSWORD`
+  als vorhanden oder fehlend; neu in `.env` eingetragene Werte erscheinen ohne Neustart.
+- Die Diagnose hat eine eigene IServ-Prüfung: Anmeldung und Öffnen der Briefübersicht,
+  ohne Briefe zu lesen. Eine abgelehnte Anmeldung wird als Zugangsdatenproblem gemeldet.
+
+## 3.3.7 – beta: IServ-Elternbriefe als Quelle
+
+- Neu: Elternbriefe aus dem IServ-Elternbriefmodul werden wie Mails verarbeitet.
+  Mailhelp meldet sich mit dem Elternkonto an der IServ-Weboberfläche an, liest neue
+  Briefe samt Anhängen und behandelt sie immer als relevant, ohne Modellaufruf und
+  ohne Absenderfilter. Zielprofil und Standards folgen dem angegebenen Postfach.
+- Konfiguration unter `iserv.accounts`, Zugangsdaten als `ISERV_<id>_USERNAME` und
+  `ISERV_<id>_PASSWORD`; der Abschnitt ändert den Analyse-Fingerprint nicht.
+- Abruf nur innerhalb der HTTPS-Adresse der Schule, Größengrenzen wie bei Mails,
+  keine URLs oder Zugangsdaten in Logs. Unvollständige Briefe werden nach Fehlern
+  wiederaufgenommen; Statusseite, `--check-access` und Startprüfung kennen IServ.
+- Für Elternbriefe gibt es keine Antwortentwürfe; Mailhelp verändert in IServ nichts.
+  Zwei-Faktor-Anmeldung und mehrseitige Übersichten werden noch nicht unterstützt.
+
+## 3.3.6 – beta: Weboberfläche bleibt nach einem Code-Wechsel konsistent
+
+- Fehler behoben: Der Webserver las Stylesheet, Skript, Service Worker und Offline-Seite
+  bei jeder Anfrage von der Platte. Wechselte bei laufendem Dienst der Codestand im
+  Installationsverzeichnis (Update, Branch-Wechsel einer editierbaren Installation),
+  kombinierte ein Neuladen neue Seiten mit altem CSS, und das Layout zerfiel.
+  Diese Dateien werden jetzt einmal beim Start geladen und passen bis zum Neustart
+  zur laufenden Version.
 
 ## 3.3.5 – beta: Verständliche Meldung bei bereits laufender Instanz
 

@@ -22,7 +22,8 @@ class SetupRuntime:
             "imap": self.imap, "calendar": self.calendar, "todoist": self.todoist,
             "llm": self.llm, "filesystem": self.filesystem, "telegram": self.telegram,
             "web_push": self.push, "telegram_test": self.telegram_test,
-            "push_test": self.push_test, "llm_test": self.llm_test}, revision=self.setup.fingerprint)
+            "push_test": self.push_test, "llm_test": self.llm_test, "iserv": self.iserv},
+            revision=self.setup.fingerprint)
 
     def update_profile_checks(self):
         from .mailbox_settings import target_profiles
@@ -42,7 +43,7 @@ class SetupRuntime:
     def credentials(self, cfg):
         from pydantic import SecretStr
 
-        from .config import ImapCredentials, _dotenv, imap_secret_values
+        from .config import ImapCredentials, _dotenv, imap_secret_values, iserv_secret_values
         from .target_profiles import load_profile_secrets
         if self.secrets is None:
             return None
@@ -60,7 +61,12 @@ class SetupRuntime:
             **self.secrets.imap,
             **{number: ImapCredentials.model_validate(value) for number, value in values.items()},
         }
-        result = self.secrets.model_copy(update={"profiles": profiles, "imap": imap})
+        found, _missing = iserv_secret_values(cfg.iserv, env)
+        iserv = {
+            **self.secrets.iserv,
+            **{number: ImapCredentials.model_validate(value) for number, value in found.items()},
+        }
+        result = self.secrets.model_copy(update={"profiles": profiles, "imap": imap, "iserv": iserv})
         if hasattr(self.app.logger, "secrets"):
             self.app.logger.secrets = (*self.app.logger.secrets, *result.known_values())
         return result
@@ -96,6 +102,12 @@ class SetupRuntime:
         names += ["microsoft_client_id"] if targets.uses_microsoft else []
         status.update({name: "vorhanden" if self.secrets is not None and
                        getattr(self.secrets, name).get_secret_value() else "fehlt" for name in names})
+        if draft.iserv.enabled_accounts():
+            # Read from .env now, so newly added IServ credentials show without a restart.
+            found = self.credentials(draft)
+            for account in draft.iserv.enabled_accounts():
+                status["/".join(account.secret_names)] = (
+                    "vorhanden" if found is not None and account.id in found.iserv else "fehlt")
         if draft.target_profiles:
             from .config import provider_secret_names
             from .mailbox_settings import active_profiles
@@ -107,6 +119,31 @@ class SetupRuntime:
                     key = name if number == 1 else secret_name(name, number)
                     status[key] = "vorhanden" if value and getattr(value, name.lower()).get_secret_value() else "fehlt"
         return status
+
+    def environment(self):
+        """.env merged with the process environment, which takes precedence (as at start)."""
+        from .config import _dotenv
+        return {**_dotenv(self.app.configuration.directory / ".env"), **os.environ}
+
+    def secret_fields(self):
+        """(group, name) of every credential the draft configuration uses; never their values (3.3.11)."""
+        from .config import imap_secret_names, provider_secret_names
+        from .mailbox_settings import active_profiles
+        from .target_profiles import secret_name
+        draft, env = self.setup.draft_settings(), self.environment()
+        fields = [(f"Postfach {mailbox.id} ({mailbox.label})", name)
+                  for mailbox in draft.imap.configured_mailboxes()
+                  for name in imap_secret_names(mailbox, env, draft.imap.legacy_format)]
+        fields += [(f"IServ-Konto {account.id} ({account.label})", name)
+                   for account in draft.iserv.accounts for name in account.secret_names]
+        fields.append(("KI-Anbieter", "OPENROUTER_API_KEY"))
+        if draft.telegram.enabled:
+            fields.append(("Telegram", "TELEGRAM_BOT_TOKEN"))
+        for number, targets in active_profiles(draft).items():
+            group = "Kalender und Aufgaben" if number == 1 else f"Zielprofil {number}"
+            fields += [(group, name if number == 1 else secret_name(name, number))
+                       for name in provider_secret_names(targets)]
+        return fields
 
     def imap(self, actor):
         """Every enabled mailbox of the draft; one failing mailbox fails the check (3.1)."""
@@ -129,6 +166,26 @@ class SetupRuntime:
             self.app.store.save("setup-folders", {"schema_version": 1, "mailboxes": listed,
                                                   "folders": next(iter(listed.values()), [])})
         return "limited", "draft_readonly"
+
+    def iserv(self, actor):
+        """Sign in to every enabled IServ account of the draft and open its letter overview."""
+        from .iserv import IServReader, IServSignInError
+        cfg = self.setup.draft_settings()
+        accounts = cfg.iserv.enabled_accounts()
+        if not accounts:
+            return "disabled", ""
+        credentials = self.credentials(cfg)
+        for account in accounts:
+            if credentials is None or account.id not in credentials.iserv:
+                return "failed", "auth"
+            reader = IServReader(account, credentials.iserv[account.id], cfg.timezone, cfg.limits.max_mail_bytes)
+            try:
+                reader.check_access()
+            except IServSignInError:
+                return "failed", "auth"
+            finally:
+                reader.close()
+        return "ready", ""
 
     def calendar(self, actor):
         self.target_probe("google_calendar", self.setup.draft_settings())

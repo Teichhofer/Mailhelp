@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.3.5 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.4.1 · **Python:** 3.12.x · **Lizenz:** MIT
 
 [Installation](#installation) · [Konfiguration](#konfiguration) ·
 [Betrieb](#betrieb) · [Docker](#docker) ·
@@ -33,6 +33,8 @@ einem lokalen Ollama-Server ist ebenfalls verfügbar.
   Benachrichtigungen, Termindauern und Aufbewahrungsregeln mit globaler Vererbung.
 - **Telegram und Web-App:** Vorschläge prüfen, klären, bearbeiten, bestätigen oder
   verwerfen. Die installierbare Web-App unterstützt auch den Betrieb ohne Telegram.
+- **IServ-Elternbriefe:** Briefe aus dem IServ-Elternbriefmodul werden wie Mails
+  verarbeitet, einschließlich Anhängen, und gelten immer als relevant.
 - **Optionale Unterstützung:** Antwortentwürfe im Ursprungspostfach, Tagesüberblicke,
   Web-Push und Tätigkeitsberichte mit XLSX-Export.
 
@@ -44,6 +46,7 @@ abgelegt. Mailhelp versendet keine E-Mails.
 | Bereich | Dienste |
 | --- | --- |
 | E-Mail | IMAP-Postfächer |
+| Schule | IServ-Elternbriefe (Lesezugriff über die Weboberfläche, keine offizielle API) |
 | Kalender | Google Kalender, Outlook / Microsoft 365, CalDAV |
 | Aufgaben | Todoist, Microsoft To Do, CalDAV-Aufgabenlisten |
 | Zusätzlicher Aufgabenadapter | Apple Erinnerungen über iCloud-CalDAV, soweit die Liste dort verfügbar ist |
@@ -173,10 +176,27 @@ mailhelp --config-directory .
 - Pro Datenverzeichnis läuft nur eine Instanz. Ein weiterer Start meldet
   „Mailhelp läuft bereits …“; die laufende Instanz zuerst über **Beenden** in der
   Weboberfläche oder mit Strg+C in ihrem Terminal beenden.
+- Nach einem Update oder Wechsel des Codestands Mailhelp neu starten. Bis dahin
+  liefert die Weboberfläche weiter Seiten und Dateien der laufenden Version aus.
 
 Relative Daten- und Logpfade beziehen sich auf `--config-directory`.
 Fehlende Themen-Dateien werden aus den Paketvorlagen angelegt; vorhandene Dateien
 werden nicht überschrieben.
+
+### IServ-Elternbriefe
+
+In der Weboberfläche unter **Einstellungen → IServ-Konten** (`/einstellungen/iserv`) je
+Elternkonto Adresse der Schule und Postfach eintragen, als Entwurf prüfen und übernehmen;
+alternativ in `config.yaml` unter `iserv.accounts` `id`, `server` (HTTPS-Adresse der Schule)
+und `mailbox` eintragen. Die Zugangsdaten stehen in `.env` als
+`ISERV_<id>_USERNAME` und `ISERV_<id>_PASSWORD`. Mailhelp meldet sich wie ein Browser
+an, liest neue Briefe samt Anhängen und verarbeitet sie mit Zielprofil und Standards
+des angegebenen Postfachs, ohne Relevanzprüfung. Briefe vor `historical_start` (ohne
+Angabe: die Grenze des Postfachs) bleiben unberührt. Mailhelp bestätigt, beantwortet
+oder archiviert in IServ nichts. Zwei-Faktor-Anmeldung und auf mehrere Seiten verteilte
+Briefübersichten werden noch nicht unterstützt; der Abruf meldet sie als Fehler.
+`--check-access` und die Diagnose der Weboberfläche prüfen auch die IServ-Anmeldung;
+die Einrichtung zeigt, ob die Zugangsdaten hinterlegt sind.
 
 ### Weboberfläche
 
@@ -205,18 +225,30 @@ Ein zweiter Terminalaufruf erzeugt einen lokalen Einmalcode:
 mailhelp --pair --config-directory .
 ```
 
+Unter **Einstellungen** sind auch Abrufreihenfolge und -menge, Telegram-Bindung, Antwortentwürfe,
+Bildauswertung, Tagesüberblick, Tätigkeitsberichte, Lernmodus, Sitzungsdauer und Protokollierung
+änderbar; die Einrichtung enthält je Postfach die Startgrenze `historical_start`.
+
+Zugangsdaten (IMAP, IServ, OpenRouter, Telegram, Kalender- und Aufgabendienste) lassen sich
+unter **Einstellungen → Zugangsdaten** eintragen oder ersetzen. Die Seite zeigt nur, ob ein
+Wert hinterlegt ist, nie den Wert selbst; jede Änderung wird ausdrücklich bestätigt und nur
+die betroffene Zeile in `.env` ersetzt. In Docker muss `.env` dafür beschreibbar eingebunden
+sein. Der Mailabruf verwendet neue Werte nach dem nächsten Neustart.
+
 Den Code auf der Anmeldeseite eingeben. Die Oberfläche bietet offene Entscheidungen,
-Mailansichten, Suche, Verlauf, Auswertung, Berichte und Einstellungen. Die Anmeldung
+Mailansichten, Suche, Verlauf, Auswertung, Berichte und Einstellungen. Die Auswertung zeigt
+KI-Aufrufe, Kosten und Dauer auch als Diagramme je Tag, Schritt und Modell. Die Anmeldung
 ist auch über Telegram möglich. Für den Betrieb ausschließlich mit Weboberfläche
 `telegram.enabled: false` setzen.
 
 Die [Einrichtungs- und Betriebsanleitung](docs/Einrichtung-und-Qualitaetspruefung.md)
 beschreibt auch den mobilen Zugriff und die Einrichtung des Telegram-Bots.
 
-Unter **Einstellungen → Zugangsdaten** lassen sich Passwörter und API-Schlüssel
-für Postfächer und Dienste direkt ändern. Bestehende Werte bleiben verborgen.
-Gespeichert wird nur der gewählte Zugang in `.env`; die Änderung wirkt nach einem
-Neustart. Werte aus der Prozessumgebung haben weiterhin Vorrang.
+Der Bereich **Zugangsdaten** auf der Einstellungsseite bietet einen Schnellzugriff
+auf die eingerichteten Dienste. **Alle Zugangsdaten und neue Konten** öffnet die
+vollständige Kontenübersicht einschließlich IServ und noch nicht übernommener
+Einrichtungsentwürfe. Dort gespeicherte Werte stehen der Diagnose sofort zur Verfügung;
+Werte aus der Prozessumgebung haben weiterhin Vorrang.
 
 Die Statusseite zeigt IMAP-Abruffehler je Postfach und Ordner auch dann, wenn noch
 keine Mail zur Analyse geladen werden konnte. Erst ein erfolgreicher Abruf desselben

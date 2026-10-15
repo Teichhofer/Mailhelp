@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mailhelp"
-version = "3.3.5"
+version = "3.4.1"
 description = "Persönlicher, bestätigungspflichtiger E-Mail-Assistent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -82,7 +82,7 @@ module = ["mailhelp.domain.*", "mailhelp.external.contracts", "mailhelp.drafts",
           "mailhelp.precheck", "mailhelp.german_dates", "mailhelp.temporal_answers",
           "mailhelp.evaluation", "mailhelp.configuration", "mailhelp.config.*",
           "mailhelp.mailbox_run", "mailhelp.application", "mailhelp.service_coordinator",
-          "mailhelp.lifecycle", "mailhelp.profile_usage", "mailhelp.telegram.*", "mailhelp.review.*"]
+          "mailhelp.lifecycle", "mailhelp.profile_usage", "mailhelp.iserv", "mailhelp.telegram.*", "mailhelp.review.*"]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 disallow_untyped_calls = true
@@ -116,7 +116,7 @@ include = [
   "/docs/Release-2.2.md", "/docs/Planung-2.2.md",
   "/docs/Planung-2.4.md", "/docs/Architektur-2.4.md", "/docs/Release-2.4.md",
   "/docs/Release-3.0.md", "/docs/Planung-3.0.md", "/docs/Planung-3.1.md", "/docs/Planung-3.2.md",
-  "/docs/Planung-3.3.md", "/docs/Release-3.1.md",
+  "/docs/Planung-3.3.md", "/docs/Planung-3.4.md", "/docs/Release-3.1.md",
   "/docs/Release-3.2.md",
   "/docs/Release-3.3.md",
   "/docs/Planung-4.0.md",

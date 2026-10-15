@@ -166,12 +166,15 @@ class SetupService:
                                    "targets.caldav_calendar_url", "targets.outlook_calendar",
                                    "targets.microsoft_tenant"),
                       "todoist": ("targets.todoist_project", "targets.task_provider", "targets.caldav_task_url",
-                                  "targets.microsoft_todo_list")}
+                                  "targets.microsoft_todo_list"),
+                      "iserv": ("iserv.",)}
             diagnostics = self.store.load_model("diagnostics-state", DiagnosticsState, DiagnosticsState())
             for name, prefixes in checks.items():
                 if any(field.startswith(prefixes) for field in state.patch):
                     result = diagnostics.results.get(name)
-                    if (result is None or result.status not in {"ready", "limited"}
+                    # Without enabled IServ accounts the check reports "disabled", e.g. after removing the last.
+                    accepted = {"ready", "limited", "disabled"} if name == "iserv" else {"ready", "limited"}
+                    if (result is None or result.status not in accepted
                             or result.config_revision != self.fingerprint()):
                         raise ValueError("Verbindungsänderungen benötigen eine aktuelle erfolgreiche Diagnose")
             if "target_profiles" in state.patch or "imap.mailboxes" in state.patch or any(

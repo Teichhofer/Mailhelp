@@ -52,16 +52,30 @@ class _FailedAccessAdapter:
     determine_start_uid = discover_since
 
 
-def _mailbox_labels(store: JsonStore, sources: list[MailboxSource]) -> Callable[[Any], str]:
-    """The label of the mailbox a proposal's mail came from (3.1)."""
+def _mailbox_labels(store: JsonStore, sources: list[MailboxSource],
+                    further: dict[str, str] | None = None) -> Callable[[Any], str]:
+    """The label of the mailbox (or IServ account) a proposal's mail came from (3.1)."""
     from . import state_names
     from .models import MailState
-    labels = {source.account_id: source.mailbox.label for source in sources}
+    labels = {source.account_id: source.mailbox.label for source in sources} | (further or {})
 
     def label(proposal: Any) -> str:
         mail = store.peek_model(state_names.mail(proposal.source_mail_id), MailState)
         return labels.get(mail.imap.account_id, "Entferntes Postfach") if mail is not None else ""
     return label
+
+
+def _build_iserv(settings: Settings, secrets: Secrets, stack: ExitStack) -> list[Any]:
+    """One reader per enabled IServ account (3.3.7); it signs in on first use, not here."""
+    from .iserv import IServReader, IServSource
+    result = []
+    for account in settings.iserv.enabled_accounts():
+        reader = IServReader(account, secrets.iserv[account.id], settings.timezone, settings.limits.max_mail_bytes)
+        stack.callback(reader.close)
+        mailbox = settings.imap.mailbox(account.mailbox)
+        assert mailbox is not None  # Settings validates that the mailbox is enabled
+        result.append(IServSource(account, reader, account.historical_start or mailbox.historical_start))
+    return result
 
 
 def _state_directory(settings: Settings, base_directory: Path) -> Path:
@@ -394,15 +408,24 @@ def build_application(
         orchestrator = _build_orchestrator(settings, prompts, topics, fingerprint, jev_prompts, store, sender_store,
                                            logger, analyzer, dialog, writers, access_diagnostics)
         dialog.relevance_handler = orchestrator
-        if len(sources) > 1:
-            dialog.presenter.mailbox_of = _mailbox_labels(store, sources)
+        iserv = _build_iserv(settings, secrets, stack)
+        if len(sources) + len(iserv) > 1:
+            dialog.presenter.mailbox_of = _mailbox_labels(
+                store, sources, {source.reader.account_id: source.account.label for source in iserv})
         orchestrator.original_attachments = settings.attachments
         orchestrator.stop_event = stop_event
         application = Application(settings, store, logger, imap, openrouter, analyzer, telegram, todoist, calendar,
                                   orchestrator, stop_event, dialog, sender_store, sources=sources)
-        orchestrator.configure_mailboxes(settings, prompts,
-            {mailbox_account_id(source.mailbox, secrets.imap_credentials(source.mailbox.id)): source.mailbox.id
-             for source in sources}, jev_prompts)
+        numbers = {mailbox_account_id(source.mailbox, secrets.imap_credentials(source.mailbox.id)): source.mailbox.id
+                   for source in sources}
+        # IServ letters use the settings of the mailbox their account names.
+        numbers |= {source.reader.account_id: source.account.mailbox for source in iserv}
+        orchestrator.configure_mailboxes(settings, prompts, numbers, jev_prompts)
+        if iserv:
+            from .iserv import IServRunService
+            orchestrator.always_relevant = frozenset(source.reader.account_id for source in iserv)
+            application.iserv = IServRunService(store, logger, iserv, application._process_mail, stop_event)
+            application.mailbox.resume_readers = application.iserv.readers()
         application.profile_writers = built
         from . import profile_binding
         dialog.decision_service.profile_available = lambda proposal: profile_binding.available(

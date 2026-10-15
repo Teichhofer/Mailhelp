@@ -19,7 +19,8 @@ STEPS = ("Betriebsart", "Postfach", "Analyse und Ziele", "Web und Geräte", "Ben
          "Prüfen und übernehmen")
 FIELDS = {
     1: ("timezone", "telegram.enabled"),
-    2: ("imap.host", "imap.port", "imap.connection_mode", "imap.folders", "imap.primary_folder", "imap.drafts_folder"),
+    2: ("imap.host", "imap.port", "imap.connection_mode", "imap.folders", "imap.primary_folder", "imap.drafts_folder",
+        "imap.historical_start"),
     3: ("targets.calendar_provider", "targets.google_calendar", "targets.caldav_calendar_url",
         "targets.outlook_calendar", "targets.task_provider", "targets.todoist_project", "targets.caldav_task_url",
         "targets.microsoft_todo_list", "targets.microsoft_tenant",
@@ -36,7 +37,9 @@ LABELS = {"event_defaults.video_duration_minutes": "Standarddauer Videokonferenz
           "timezone": "Zeitzone (IANA)", "telegram.enabled": "Telegram verwenden",
           "imap.host": "IMAP-Server", "imap.port": "IMAP-Port", "imap.connection_mode": "IMAP-Verbindungsart",
           "imap.folders": "Quellordner (JSON-Liste)", "imap.primary_folder": "Hauptordner",
-          "imap.drafts_folder": "Entwurfsordner", "imap.label": "Anzeigename", "imap.enabled": "Postfach abrufen",
+          "imap.drafts_folder": "Entwurfsordner",
+          "imap.historical_start": "Ältere Mails nicht verarbeiten vor (ISO 8601; null: keine Grenze)",
+          "imap.label": "Anzeigename", "imap.enabled": "Postfach abrufen",
           "targets.google_calendar": "Google-Kalender",
           "targets.todoist_project": "Todoist-Projekt", "targets.calendar_provider": "Kalenderdienst",
           "targets.task_provider": "Aufgabendienst", "targets.caldav_calendar_url": "CalDAV-Kalender (Adresse)",
@@ -110,6 +113,8 @@ class SetupSite:
     def links():
         return ('<p class="card-links"><a class="button" href="/einrichtung">Einrichtung</a> '
                 '<a class="button" href="/einstellungen/postfaecher">Postfächer</a> '
+                '<a class="button" href="/einstellungen/iserv">IServ-Konten</a> '
+                '<a class="button" href="/einstellungen/zugangsdaten">Zugangsdaten</a> '
                 '<a class="button" href="/einstellungen/zielprofile">Zielprofile</a> '
                 '<a class="button" href="/diagnose">Diagnose</a> '
                 '<a class="button" href="/einstellungen/benachrichtigungen">Benachrichtigungsprofil</a> '
@@ -187,8 +192,9 @@ class SetupSite:
         body += f'<p>Aktueller Schritt: {state.step} · Entwurfsversion: {state.version}</p>'
         body += '<ul>' + "".join(f'<li>{e(name)}: {status}</li>'
                                   for name, status in self.runtime.secret_status().items()) + '</ul>'
-        body += ('<p>Windows 11 oder Docker unter Linux. Zugangsdaten lokal in .env oder der Prozessumgebung '
-                 'einrichten. Entwurf speichern verändert die aktive Konfiguration noch nicht.</p>')
+        body += ('<p>Windows 11 oder Docker unter Linux. Zugangsdaten unter '
+                 '<a href="/einstellungen/zugangsdaten">Zugangsdaten</a> eintragen (oder in .env bzw. der '
+                 'Prozessumgebung). Entwurf speichern verändert die aktive Konfiguration noch nicht.</p>')
         for index, title in enumerate(STEPS, 1):
             opened = " open" if index in {state.step, 6} else ""
             body += (f'<section class="card"><details{opened}><summary><h2>{index}. {title}</h2></summary>'

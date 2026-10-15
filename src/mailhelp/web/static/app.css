@@ -538,3 +538,20 @@ label.check { display: flex; align-items: center; gap: 8px; font-weight: 400; }
   .card { padding: 16px; }
   .page-heading { margin-bottom: 16px; }
 }
+
+/* Charts of the evaluation page (3.3.9): server-side SVG, colours from the theme variables. */
+.chart-grid-layout { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); }
+.chart { margin: 0; padding: 14px 16px; background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow); min-width: 0; }
+.chart figcaption { font-weight: 600; margin-bottom: 8px; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart details { margin-top: 8px; font-size: .9rem; }
+.chart-grid { stroke: var(--border); stroke-width: 1; }
+.chart-axis, .chart-legend { fill: var(--muted); font-size: 11px; font-family: var(--font); }
+.chart-ok, .chart-bar { fill: var(--accent); }
+.chart-failed { fill: var(--danger); }
+.chart-cost { fill: var(--warn); }
+.chart-ok-text { fill: var(--accent); }
+.chart-failed-text { fill: var(--danger); }
+.chart-cost-text { fill: var(--warn); }
+.chart-bar-text { fill: var(--accent); }

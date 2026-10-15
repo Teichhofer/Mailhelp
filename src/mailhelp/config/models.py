@@ -195,6 +195,58 @@ class ImapSettings(ConfigModel):
         return next((item for item in self.configured_mailboxes() if item.id == mailbox_id), None)
 
 
+MAX_ISERV_ACCOUNTS = 10
+
+
+class IServAccountSettings(ConfigModel):
+    """An IServ parent account whose parent letters are processed as always relevant mail.
+
+    ``id`` names its secrets ``ISERV_<id>_USERNAME``/``ISERV_<id>_PASSWORD``. The letters use the
+    settings of IMAP mailbox ``mailbox`` (target profile, defaults).
+    """
+
+    id: int = Field(ge=1, le=MAX_ISERV_ACCOUNTS)
+    label: str = Field(default="Elternbriefe", min_length=1, max_length=40, pattern=r"^[^\x00-\x1f\x7f]+$")
+    enabled: bool = True
+    server: str = Field(min_length=1, max_length=253)
+    mailbox: int = Field(default=1, ge=1, le=99)
+    # Older letters are not processed; without a value the mailbox's historical_start applies.
+    historical_start: datetime | None = None
+
+    @field_validator("server")
+    @classmethod
+    def valid_server(cls, value: str) -> str:
+        from urllib.parse import urlsplit
+        parts = urlsplit(value.strip())
+        if (parts.scheme != "https" or not parts.hostname or parts.username or parts.password
+                or parts.query or parts.fragment or parts.path not in {"", "/"}):
+            raise ValueError("server muss eine HTTPS-Adresse ohne Pfad und ohne Zugangsdaten sein")
+        return f"https://{parts.netloc.lower()}"
+
+    @field_validator("historical_start", mode="before")
+    @classmethod
+    def valid_historical_start(cls, value: object) -> datetime | None:
+        return _valid_historical_start(value)
+
+    @property
+    def secret_names(self) -> tuple[str, str]:
+        return f"ISERV_{self.id}_USERNAME", f"ISERV_{self.id}_PASSWORD"
+
+
+class IServSettings(ConfigModel):
+    accounts: list[IServAccountSettings] = Field(default_factory=list, max_length=MAX_ISERV_ACCOUNTS)
+
+    @field_validator("accounts")
+    @classmethod
+    def distinct_ids(cls, accounts: list[IServAccountSettings]) -> list[IServAccountSettings]:
+        if len({account.id for account in accounts}) != len(accounts):
+            raise ValueError("IServ-Konten brauchen verschiedene id")
+        return accounts
+
+    def enabled_accounts(self) -> list[IServAccountSettings]:
+        return [account for account in self.accounts if account.enabled]
+
+
 class EventDefaultsSettings(ConfigModel):
     video_duration_minutes: int = Field(default=60, ge=1, le=1440)
     in_person_duration_minutes: int = Field(default=180, ge=1, le=1440)
@@ -563,6 +615,15 @@ class Settings(ConfigModel):
     attachments: OriginalAttachmentSettings = Field(default_factory=lambda: OriginalAttachmentSettings())
     event_defaults: EventDefaultsSettings = Field(default_factory=EventDefaultsSettings)
     proposal_reconciliation: ProposalReconciliationSettings = Field(default_factory=ProposalReconciliationSettings)
+    iserv: IServSettings = Field(default_factory=IServSettings)
+
+    @model_validator(mode="after")
+    def iserv_uses_enabled_mailboxes(self) -> Settings:
+        enabled = {mailbox.id for mailbox in self.imap.enabled_mailboxes()}
+        for account in self.iserv.enabled_accounts():
+            if account.mailbox not in enabled:
+                raise ValueError(f"iserv.accounts: Konto {account.id} verweist auf kein aktives Postfach")
+        return self
 
     @model_validator(mode="after")
     def valid_mailbox_policies(self) -> Settings:
@@ -624,6 +685,8 @@ class Secrets(BaseModel):
     # Signs web sessions and CSRF tokens; required only with web.enabled.
     mailhelp_web_secret: SecretStr | None = None
     profiles: dict[int, dict[str, SecretStr]] = Field(default_factory=dict)
+    # Credentials of every enabled IServ account by its number.
+    iserv: dict[int, ImapCredentials] = Field(default_factory=dict)
 
     def imap_credentials(self, mailbox_id: int) -> ImapCredentials:
         return self.imap[mailbox_id]
@@ -634,7 +697,8 @@ class Secrets(BaseModel):
 
     def known_values(self) -> tuple[str, ...]:
         """Every secret value, for redaction in logs."""
-        values = [credentials.password.get_secret_value() for credentials in self.imap.values()]
+        values = [credentials.password.get_secret_value()
+                  for credentials in (*self.imap.values(), *self.iserv.values())]
         values += [value.get_secret_value() for name, value in self if isinstance(value, SecretStr)]
         values += [value.get_secret_value() for profile in self.profiles.values() for value in profile.values()]
         return tuple(value for value in values if value)
@@ -877,7 +941,8 @@ def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any
 
 __all__ = ["ActivityReportSettings", "AdapterPolicySettings", "CALENDAR_PROVIDERS", "ConfigModel",
            "ConnectionMode", "ConsoleLoggingSettings", "DailyBriefingSettings", "DraftsFolder",
-           "EventDefaultsSettings", "ICLOUD_CALDAV", "ImapCredentials", "ImapSettings", "IrrelevantTopicsConfig",
+           "EventDefaultsSettings", "ICLOUD_CALDAV", "IServAccountSettings", "IServSettings", "ImapCredentials",
+           "ImapSettings", "IrrelevantTopicsConfig", "MAX_ISERV_ACCOUNTS",
            "LOCAL_NUM_CTX", "LOG_LEVELS", "LearningSettings", "LimitSettings", "LlmLoggingSettings", "LlmRoute",
            "LocalLlmPolicySettings", "LogTargetSettings", "LoggingSettings", "MAILBOX_FIELDS", "MAX_MAILBOXES",
            "MailboxEventDefaults", "MailboxRetention", "MailboxSettings", "OPENROUTER_PARAMETER_KEYS",

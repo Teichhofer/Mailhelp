@@ -38,5 +38,7 @@ def credentials_section(snapshot: CredentialSnapshot | None, csrf: str) -> str:
                               name=item.name, expected=snapshot.revision, config_revision=snapshot.config_revision)
             body += '</details>'
         body += '</section>'
-    return body + ('<p class="card-links"><a class="button" href="/einrichtung">Verbindungen einrichten</a> '
+    return body + ('<p class="card-links"><a class="button" href="/einstellungen/zugangsdaten">'
+                   'Alle Zugangsdaten und neue Konten</a> '
+                   '<a class="button" href="/einrichtung">Verbindungen einrichten</a> '
                    '<a class="button" href="/diagnose">Zugriffe prüfen</a></p></section>')

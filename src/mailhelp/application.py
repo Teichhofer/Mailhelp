@@ -32,6 +32,7 @@ if TYPE_CHECKING:
     from .experience import ExperienceRuntime
     from .external.providers import Writers
     from .imap import FetchedMail
+    from .iserv import IServRunService
     from .lifecycle import Lifecycle
     from .notification_runtime import NotificationRuntime
     from .standalone import DisabledTelegram
@@ -62,6 +63,8 @@ class Application:
     configuration: ConfigurationService | None = None
     # One writer pair, or one per target profile (3.2).
     profile_writers: Writers | ProfileWriters | None = None
+    # Parent letters of IServ accounts (3.3.7); ``None`` without configured accounts.
+    iserv: IServRunService | None = None
     # Receiver thread, web interface, experience and notification runtimes beside the loop.
     services: ServiceCoordinator = field(default_factory=ServiceCoordinator)
     # Every enabled mailbox with its reader (3.1); ``imap`` is the reader of the first one.
@@ -101,6 +104,10 @@ class Application:
             (getattr(self.todoist, "label", "Todoist"), self.todoist.check_access),
             (getattr(self.calendar, "label", "Google Kalender"), self.calendar.check_access),
         )
+        iserv = getattr(self, "iserv", None)
+        if iserv is not None:
+            checks = (*checks, *((f"IServ {source.account.label}", source.reader.check_access)
+                                 for source in iserv.sources))
         from .target_profiles import ProfileWriters
         profile_writers = getattr(self, "profile_writers", None)
         if isinstance(profile_writers, ProfileWriters):
@@ -148,6 +155,8 @@ class Application:
             checks.append(("telegram", self.telegram))
         checks += [(writer.service, writer) for writer in self._active_writers()
                    if not isinstance(writer, UnavailableWriter)]
+        if self.iserv is not None:
+            checks += [("iserv", source.reader) for source in self.iserv.sources]
         for service, client in checks:
             if self.stop_event.is_set():
                 return
@@ -434,6 +443,8 @@ class Application:
                 )
             else:
                 self._poll_imap(max_mails)
+        if not self.stop_event.is_set() and self.iserv is not None:
+            self.iserv.poll(max_mails)
         if self.stop_event.is_set():
             return False
         if max_mails is not None:

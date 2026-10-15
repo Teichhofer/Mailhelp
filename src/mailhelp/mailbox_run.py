@@ -165,6 +165,8 @@ class MailboxRunService:
     process_mail: Callable[[FetchedMail], ProcessingResult]
     _mail_processing_halted: bool = False
     _unavailable_reported: set[str] = field(default_factory=set)
+    # Readers of further sources by account id (IServ, 3.3.7); unfinished letters resume through them.
+    resume_readers: dict[str, Any] = field(default_factory=dict)
 
     def _source(self, account: str) -> MailboxSource | None:
         return next((source for source in self.sources if source.account_id == account), None)
@@ -623,7 +625,8 @@ class MailboxRunService:
                 if state.awaiting_relevance:
                     continue
                 source = self._source(state.imap.account_id)
-                if source is None:
+                reader = source.reader if source is not None else self.resume_readers.get(state.imap.account_id)
+                if reader is None:
                     self._report_unavailable(state.imap.account_id)
                     continue
                 if not getattr(self.orchestrator, "accepts_configuration",
@@ -643,7 +646,7 @@ class MailboxRunService:
                     continue
                 if budget.remaining is not None:
                     budget.take()
-                mail = source.reader.fetch_uid(state.imap.folder, state.imap.uid, state.imap.uidvalidity)
+                mail = reader.fetch_uid(state.imap.folder, state.imap.uid, state.imap.uidvalidity)
                 result = self.process_mail(mail)
                 results.append(result)
                 self.complete_resumed_entry(state, result)

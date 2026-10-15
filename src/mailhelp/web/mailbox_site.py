@@ -166,6 +166,13 @@ class MailboxSite:
                             )
                             + "</dd>"
                         )
+                if "iserv.accounts" in state.patch:
+                    for account in cfg.iserv.accounts:
+                        text += f"<dt>IServ-Konto {account.id} ({e(account.label)})</dt><dd>"
+                        text += e(f"{account.server} · Postfach {account.mailbox} · "
+                                  + ("aktiv" if account.enabled else "deaktiviert")) + "</dd>"
+                    if not cfg.iserv.accounts:
+                        text += "<dt>IServ-Konten</dt><dd>keine</dd>"
                 if "target_profiles" in state.patch:
                     for profile in cfg.target_profiles:
                         text += f"<dt>Zielprofil {profile.id} ({e(profile.label)})</dt><dd>"
@@ -238,6 +245,7 @@ class MailboxSite:
         cfg = self.runtime.setup.draft_settings()
         body = (
             '<p><a href="/einstellungen/zielprofile">Zielprofile verwalten</a> · '
+            '<a href="/einstellungen/iserv">IServ-Konten</a> · '
             '<a href="/einstellungen/absender">Globale Absenderfilter</a></p><ul>'
         )
         for box in cfg.imap.configured_mailboxes():

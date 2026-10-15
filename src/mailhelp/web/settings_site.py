@@ -56,6 +56,8 @@ class SettingsSite:
                                  lambda payload: self.site.auth.csrf_token("credential-edit:" + payload))
 
     def save_credentials(self, request, session, form):
+        if "expected_hash" in form:
+            return self.site.secrets_page.save(request, session, form)
         service = self.credential_service()
         if service is None:
             return self.site._reply(request, 503, "Zugangsdatenverwaltung nicht verfügbar.")

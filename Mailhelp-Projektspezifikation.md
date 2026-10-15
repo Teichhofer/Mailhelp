@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 14. Oktober 2026, Anwendungsversion 3.3.5. Die folgenden Verträge beschreiben
+Stand: 14. Oktober 2026, Anwendungsversion 3.4.0. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -1020,6 +1020,16 @@ Todoist-Aufrufe verwenden die aktuelle API unter `/api/v1`. Listen von Aufgaben
 werden cursorbasiert bis zum Fund der Idempotenzkennung oder bis zum Listenende
 gelesen, damit auch nach einem Neustart keine doppelte Aufgabe entsteht.
 
+Seit 3.3.11 schreibt `/einstellungen/zugangsdaten` einzelne Werte in `.env`: angeboten werden nur die
+Namen, die die Entwurfskonfiguration benötigt (IMAP je Postfach, IServ je Konto, OpenRouter, Telegram
+bei aktivem Telegram, Zielanbieter je aktivem Zielprofil), nie `MAILHELP_WEB_SECRET`. Die Seite zeigt
+nur „hinterlegt“ oder „fehlt“ und weist auf überdeckende Prozessvariablen hin. Speichern verlangt
+Sitzung (vor dem Schreiben erneut geprüft), CSRF-Token, Idempotenzschlüssel, Bestätigung und den
+unveränderten Dateistand; Werte ohne Steuerzeichen, höchstens 4096 Zeichen. Nur die Zeilen des Namens
+werden ersetzt (sonst angehängt), atomar; Protokolle nennen nur den Namen, der Wert wird sofort in
+die Log-Maskierung aufgenommen. Diagnose und Einrichtung lesen neue Werte sofort, der Abruf nach
+dem nächsten Start.
+
 Alle Dateien werden beim Start geprüft. Fehlermeldungen nennen betroffene Datei und Schlüssel, niemals geheime Werte. `.env`, Zustandsdaten und Logs werden aus Git und Docker-Build-Kontext ausgeschlossen. Eine private Beispieldatei mit echten Zugangsdaten gehört nicht ins Projekt.
 
 Der gesonderte Start mit `--check-access` prüft alle konfigurierten externen
@@ -1968,7 +1978,29 @@ Prozessvariablen behalten Vorrang und werden angezeigt, geerbte Profilzugänge w
 gekennzeichnet. Neue Werte wirken nach Neustart; vorhandene Microsoft-Anmeldungen
 werden über den Host-Anmeldebefehl erneuert. Es findet kein externer Schreibzugriff statt.
 
-**Einstellungen und Themen.** Bearbeitbar ist nur eine Positivliste von Einstellungen;
+Die verlinkte vollständige Kontenübersicht `/einstellungen/zugangsdaten` berücksichtigt
+auch IServ-Konten und neue Postfächer im Einrichtungsentwurf. Ihre Formulare verlangen
+eine ausdrückliche Bestätigung und den erwarteten `.env`-Dateihash; wertfreie
+Idempotenzbelege liegen unter `secret-operations.json`. Die Diagnose liest die neuen
+Werte sofort ein. Die gemeinsame Speicherroute ist genau einmal registriert und
+ordnet diese Formulare anhand von `expected_hash` der Kontenübersicht zu; die
+HMAC-versionierten Schnellzugriffsformulare verwenden `expected` und `config_revision`.
+Beide Wege behalten ihre jeweilige Validierung und verlangen eine gültige Sitzung
+und CSRF-Prüfung. Das verhindert, dass ein Formular beim jeweils anderen Handler ankommt.
+
+**Diagramme der Auswertung (seit 3.3.9).** Für die gefilterte Auswahl zeigt `/auswertung` die
+KI-Aufrufe (erfolgreich/fehlgeschlagen) und die gemeldeten Cloudkosten je Tag (bei „Heute“ je
+Stunde, in der konfigurierten Zeitzone), die Verteilung der Aufrufdauer in Klassen sowie die
+summierte Dauer je Verarbeitungsschritt und die gemeldeten Kosten je Modell (höchstens acht
+Balken, der Rest als „Weitere“). Die Diagramme sind serverseitiges SVG ohne Skripte und
+Inline-Styles, mit Titel und Beschreibung für Hilfstechnik und ihren Werten als aufklappbare
+Tabelle. Aufrufe ohne Kostenangabe fehlen in den Kostendiagrammen, statt als null zu zählen.
+
+**Einstellungen und Themen.** Bearbeitbar ist nur eine Positivliste von Einstellungen (seit 3.3.12
+einschließlich Stapelgröße und Reihenfolge des Abrufs, Telegram-Bindung, Antwortentwürfen,
+Bildauswertung, Tagesüberblick, Tätigkeitsberichten, Lernmodus, Sitzungsdauer, LAN-Zugriff und
+Protokollschaltern; Datenverzeichnis, Logpfade, `web.host`, `web.port`, `web.enabled`,
+`web.allowed_hosts` und Parser-Sicherheitsgrenzen bleiben ausgenommen);
 in der globalen Einzelfeldansicht sind Geheimnisse, Web-Bindung, Datenverzeichnis und
 IMAP-Konten nicht bearbeitbar. Die getrennte Einrichtung und die Postfachverwaltung
 seit 3.2 unterstützen IMAP-Konfigurationsentwürfe. Der separate Einstellungsbereich
@@ -2377,6 +2409,44 @@ als gleichwertig, ohne gespeicherte Vorschläge oder ihre Bestätigungen zu ver�
 ist wiederholbar und übersteht Neustarts. Themen- und andere Analyseänderungen bleiben wirksam.
 Details, Fingerprint-Kompatibilität
 und Rückkehr aus einer vorher angelegten Sicherung stehen in [Release-3.2](docs/Release-3.2.md).
+
+## IServ-Elternbriefe (seit 3.3.7)
+
+`iserv.accounts` nennt Elternkonten (`id` 1–10, `server` als HTTPS-Ursprung ohne Pfad und
+Zugangsdaten, `mailbox` als aktives IMAP-Postfach, optional `label`, `enabled` und
+`historical_start`). Zugangsdaten liegen ausschließlich in `ISERV_<id>_USERNAME` und
+`ISERV_<id>_PASSWORD`; sie werden in Logs maskiert. Der Abschnitt gehört nicht zum
+Analyse-Fingerprint.
+
+Je Mailzyklus meldet sich Mailhelp nach dem IMAP-Abruf bei Bedarf über das IServ-Anmeldeformular
+an, liest die Elternbrief-Übersicht (`/iserv/parentletter/parent/index`) und verarbeitet neue
+Briefe ab `historical_start` (sonst der Grenze des Postfachs) in Veröffentlichungsreihenfolge.
+Weiterleitungen und Meta-Refresh werden nur innerhalb des konfigurierten Ursprungs verfolgt;
+Antworten über `limits.max_mail_bytes` und als HTML gelieferte Anhänge brechen den Abruf ab.
+Eine Übersicht, deren Eintragsanzahl nicht der gelesenen entspricht (Seitenaufteilung),
+wird nicht teilweise verarbeitet. URLs und Anbietertexte werden nicht protokolliert.
+
+Jeder Brief wird zu einer MIME-Nachricht (Absender `label`, Betreff Brieftitel, Datum der
+Veröffentlichung, Text mit Datum und Kind, Anhänge mit Medientyp) mit dem Ordner
+`Elternbriefe`, UIDVALIDITY 1 und einer stabilen Ersatz-UID aus den Kennungen der Briefadresse.
+Die Kontokennung ist ein Hash aus Server und Benutzername. Die Relevanz ist ohne Modellaufruf
+und ohne Absender-Vorfilter `relevant` („IServ-Elternbrief: immer relevant“); alle weiteren
+Schritte, Zielprofil und Standards folgen dem Postfach `mailbox`. Antwortentwürfe gibt es
+für Elternbriefe nicht. Verarbeitete Briefe stehen in `iserv-<konto>.json`; ein
+fehlgeschlagener Brief wird nicht vermerkt und wie eine fehlgeschlagene Mail erneut versucht,
+unvollständige Verarbeitungen werden über denselben Abruf wiederaufgenommen. Ein Fehler eines
+Kontos hält weder andere Konten noch den Mailzyklus an. Die Statusseite zeigt den letzten
+erfolgreichen Kontakt als „IServ-Elternbriefe“; `--check-access` und die Startprüfung melden
+sich bei jedem Konto an. In IServ wird nichts bestätigt, beantwortet oder archiviert. Die Einrichtung zeigt
+je aktivem Konto, ob seine Zugangsdaten vorhanden sind; die Diagnose `iserv` meldet sich an und
+öffnet nur die Briefübersicht (seit 3.3.8).
+
+Seit 3.3.10 verwaltet `/einstellungen/iserv` die Konten im Web: Hinzufügen (nächste freie
+Nummer), Ändern, Aktivieren/Deaktivieren und Entfernen ändern den Einrichtungsentwurf als ganzen
+Block `iserv.accounts` in geprüfter, normalisierter Form. Übernommen wird wie bei Postfächern nur
+ausdrücklich, versionsbezogen und nach einer aktuellen Diagnose `iserv` („bereit“; ohne aktive
+Konten genügt „deaktiviert“); `config.yaml` wird kommentarerhaltend geschrieben. Ein übernommener
+Einrichtungsentwurf wird danach geleert, damit weitere Änderungen auf dem neuen Dateistand beginnen.
 
 ## Darstellung der Weboberfläche (3.3.1)
 
