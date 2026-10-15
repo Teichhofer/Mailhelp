@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 14. Oktober 2026, Anwendungsversion 3.3.10. Die folgenden Verträge beschreiben
+Stand: 14. Oktober 2026, Anwendungsversion 3.3.11. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -1019,6 +1019,16 @@ bei fehlender oder leerer Angabe bereits beim Start abgelehnt.
 Todoist-Aufrufe verwenden die aktuelle API unter `/api/v1`. Listen von Aufgaben
 werden cursorbasiert bis zum Fund der Idempotenzkennung oder bis zum Listenende
 gelesen, damit auch nach einem Neustart keine doppelte Aufgabe entsteht.
+
+Seit 3.3.11 schreibt `/einstellungen/zugangsdaten` einzelne Werte in `.env`: angeboten werden nur die
+Namen, die die Entwurfskonfiguration benötigt (IMAP je Postfach, IServ je Konto, OpenRouter, Telegram
+bei aktivem Telegram, Zielanbieter je aktivem Zielprofil), nie `MAILHELP_WEB_SECRET`. Die Seite zeigt
+nur „hinterlegt“ oder „fehlt“ und weist auf überdeckende Prozessvariablen hin. Speichern verlangt
+Sitzung (vor dem Schreiben erneut geprüft), CSRF-Token, Idempotenzschlüssel, Bestätigung und den
+unveränderten Dateistand; Werte ohne Steuerzeichen, höchstens 4096 Zeichen. Nur die Zeilen des Namens
+werden ersetzt (sonst angehängt), atomar; Protokolle nennen nur den Namen, der Wert wird sofort in
+die Log-Maskierung aufgenommen. Diagnose und Einrichtung lesen neue Werte sofort, der Abruf nach
+dem nächsten Start.
 
 Alle Dateien werden beim Start geprüft. Fehlermeldungen nennen betroffene Datei und Schlüssel, niemals geheime Werte. `.env`, Zustandsdaten und Logs werden aus Git und Docker-Build-Kontext ausgeschlossen. Eine private Beispieldatei mit echten Zugangsdaten gehört nicht ins Projekt.
 

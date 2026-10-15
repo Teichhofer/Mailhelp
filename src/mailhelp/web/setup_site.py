@@ -111,6 +111,7 @@ class SetupSite:
         return ('<p class="card-links"><a class="button" href="/einrichtung">Einrichtung</a> '
                 '<a class="button" href="/einstellungen/postfaecher">Postfächer</a> '
                 '<a class="button" href="/einstellungen/iserv">IServ-Konten</a> '
+                '<a class="button" href="/einstellungen/zugangsdaten">Zugangsdaten</a> '
                 '<a class="button" href="/einstellungen/zielprofile">Zielprofile</a> '
                 '<a class="button" href="/diagnose">Diagnose</a> '
                 '<a class="button" href="/einstellungen/benachrichtigungen">Benachrichtigungsprofil</a> '
@@ -188,8 +189,9 @@ class SetupSite:
         body += f'<p>Aktueller Schritt: {state.step} · Entwurfsversion: {state.version}</p>'
         body += '<ul>' + "".join(f'<li>{e(name)}: {status}</li>'
                                   for name, status in self.runtime.secret_status().items()) + '</ul>'
-        body += ('<p>Windows 11 oder Docker unter Linux. Zugangsdaten lokal in .env oder der Prozessumgebung '
-                 'einrichten. Entwurf speichern verändert die aktive Konfiguration noch nicht.</p>')
+        body += ('<p>Windows 11 oder Docker unter Linux. Zugangsdaten unter '
+                 '<a href="/einstellungen/zugangsdaten">Zugangsdaten</a> eintragen (oder in .env bzw. der '
+                 'Prozessumgebung). Entwurf speichern verändert die aktive Konfiguration noch nicht.</p>')
         for index, title in enumerate(STEPS, 1):
             opened = " open" if index in {state.step, 6} else ""
             body += (f'<section class="card"><details{opened}><summary><h2>{index}. {title}</h2></summary>'

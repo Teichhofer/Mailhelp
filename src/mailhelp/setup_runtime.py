@@ -120,6 +120,31 @@ class SetupRuntime:
                     status[key] = "vorhanden" if value and getattr(value, name.lower()).get_secret_value() else "fehlt"
         return status
 
+    def environment(self):
+        """.env merged with the process environment, which takes precedence (as at start)."""
+        from .config import _dotenv
+        return {**_dotenv(self.app.configuration.directory / ".env"), **os.environ}
+
+    def secret_fields(self):
+        """(group, name) of every credential the draft configuration uses; never their values (3.3.11)."""
+        from .config import imap_secret_names, provider_secret_names
+        from .mailbox_settings import active_profiles
+        from .target_profiles import secret_name
+        draft, env = self.setup.draft_settings(), self.environment()
+        fields = [(f"Postfach {mailbox.id} ({mailbox.label})", name)
+                  for mailbox in draft.imap.configured_mailboxes()
+                  for name in imap_secret_names(mailbox, env, draft.imap.legacy_format)]
+        fields += [(f"IServ-Konto {account.id} ({account.label})", name)
+                   for account in draft.iserv.accounts for name in account.secret_names]
+        fields.append(("KI-Anbieter", "OPENROUTER_API_KEY"))
+        if draft.telegram.enabled:
+            fields.append(("Telegram", "TELEGRAM_BOT_TOKEN"))
+        for number, targets in active_profiles(draft).items():
+            group = "Kalender und Aufgaben" if number == 1 else f"Zielprofil {number}"
+            fields += [(group, name if number == 1 else secret_name(name, number))
+                       for name in provider_secret_names(targets)]
+        return fields
+
     def imap(self, actor):
         """Every enabled mailbox of the draft; one failing mailbox fails the check (3.1)."""
         cfg = self.setup.draft_settings()

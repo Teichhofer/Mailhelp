@@ -1,5 +1,16 @@
 # Änderungen
 
+## 3.3.11 – beta: Zugangsdaten in der Weboberfläche (Planung 3.4, Phase 2)
+
+- Neu: Einstellungen → Zugangsdaten (`/einstellungen/zugangsdaten`) listet alle Zugangsdaten,
+  die die Konfiguration benötigt – je Postfach, je IServ-Konto, OpenRouter, Telegram und die
+  Zielanbieter je Zielprofil – und erlaubt, sie einzutragen oder zu ersetzen.
+- Nur schreibend: gespeicherte Werte werden nie angezeigt. Speichern braucht eine gültige,
+  vor dem Schreiben erneut geprüfte Sitzung, CSRF-Schutz, Idempotenzschlüssel, ausdrückliche
+  Bestätigung und den unveränderten Stand von `.env`; nur die betroffene Zeile wird ersetzt.
+- Protokolle nennen nur den Namen; neue Werte werden sofort maskiert. `MAILHELP_WEB_SECRET`
+  bleibt ausgenommen, weil eine Änderung alle Sitzungen beenden würde.
+
 ## 3.3.10 – beta: IServ-Konten in der Weboberfläche (Planung 3.4, Phase 1)
 
 - Neu: Unter Einstellungen → IServ-Konten (`/einstellungen/iserv`) lassen sich IServ-Konten

@@ -89,3 +89,4 @@ Browser (Google, Microsoft), Web-Lernmodus und Neustart ohne Prozesswechsel.
 | Phase | Version | Ergebnis |
 | :--- | :--- | :--- |
 | 1 | 3.3.10 | `/einstellungen/iserv`: IServ-Konten anlegen, ändern, (de)aktivieren und entfernen als Entwurf des Blocks `iserv.accounts`; Übernahme nur nach aktueller Diagnose `iserv`. Nebenbei behoben: Ein übernommener Einrichtungsentwurf blieb auf dem alten Dateistand stehen, und die Postfachseite brach danach ab. |
+| 2 | 3.3.11 | `/einstellungen/zugangsdaten`: alle von der Entwurfskonfiguration benötigten Zugangsdaten nur schreibend, mit Sitzungsprüfung vor dem Schreiben, CSRF, Idempotenzschlüssel, Bestätigung und Dateistandsprüfung; `.env` wird zeilengenau und atomar geändert, `MAILHELP_WEB_SECRET` ausgenommen. |

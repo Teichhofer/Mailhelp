@@ -1,7 +1,7 @@
 <!--
 Hinweise für Betreibende (vor Veröffentlichung entfernen):
 - Platzhalter in [eckigen Klammern] ersetzen (Name, Anschrift, Kontakt).
-- Die technischen Angaben entsprechen dem Repository-Stand 3.3.10 (14.10.2026).
+- Die technischen Angaben entsprechen dem Repository-Stand 3.3.11 (14.10.2026).
   Bei abweichender Konfiguration (andere Modelle, Anbieter, Aufbewahrungsfristen,
   Logging) diese Erklärung anpassen.
 - Für eine Google-OAuth-Prüfung muss diese Seite öffentlich erreichbar sein und zur
@@ -11,7 +11,7 @@ Hinweise für Betreibende (vor Veröffentlichung entfernen):
 
 # Datenschutzerklärung für Mailhelp
 
-Stand: 14. Oktober 2026 · technische Beschreibung für Mailhelp 3.3.10
+Stand: 14. Oktober 2026 · technische Beschreibung für Mailhelp 3.3.11
 
 ## 1. Worum es geht
 
@@ -203,6 +203,11 @@ Zustelllogs enthalten Referenzen statt Nachrichtentexten. Telegram-Inhaltsmeldun
 Profil bewusst gewählt; Web-Push bleibt neutral. Erstkopplung ohne Telegram erfolgt durch
 `mailhelp --pair` am lokalen Host, ohne Codeausgabe in Dienstlogs. Ausstehende Meldungen prüfen
 Gerätesitzung und Abonnement erneut. Details: [Betriebsanleitung 3.0](docs/Release-3.0.md).
+
+Zugangsdaten lassen sich seit 3.3.11 über die angemeldete Weboberfläche in `.env` speichern. Die
+Weboberfläche gibt gespeicherte Werte nie aus, auch nicht maskiert; Protokolle enthalten nur den
+Namen des geänderten Eintrags. Wer die Weboberfläche nutzen kann, kann Zugangsdaten ersetzen –
+gekoppelte Geräte sollten daher geschützt und nicht mehr genutzte Sitzungen abgemeldet werden.
 
 - Zugangsdaten (Postfach, OpenRouter, Telegram, Todoist, Google) liegen nur in
   Umgebungsvariablen beziehungsweise einer lokalen `.env`-Datei, nicht im Code, und

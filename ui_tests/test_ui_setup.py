@@ -146,3 +146,19 @@ def test_iserv_accounts_are_added_as_an_accessible_draft(page, setup_server):
     assert setup_server.site.archive.configuration.active.iserv.accounts == []
     page.get_by_role("button", name="Entwurf verwerfen", exact=True).click()
     expect(page.get_by_role("heading", name="Entwurf prüfen", exact=True)).to_have_count(0)
+
+
+def test_credentials_are_write_only_and_accessible(page, setup_server, monkeypatch):
+    monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
+    sign_in(page, setup_server)
+    page.goto(setup_server.url + "/einstellungen/zugangsdaten")
+    expect(page.get_by_role("heading", name="Zugangsdaten", exact=True)).to_be_visible()
+    assert audit(page, "credentials-" + page.device, page.mobile) == []
+    field = page.get_by_label("Neuer Wert für OPENROUTER_API_KEY", exact=True)
+    expect(field).to_have_attribute("type", "password")
+    field.fill("sk-synthetisch")
+    form = field.locator("xpath=ancestor::form")
+    form.get_by_label("Wert ausdrücklich in .env speichern").check()
+    form.get_by_role("button", name="Speichern", exact=True).click()
+    expect(page.get_by_text("OPENROUTER_API_KEY gespeichert", exact=False)).to_be_visible()
+    assert "sk-synthetisch" not in page.content()
