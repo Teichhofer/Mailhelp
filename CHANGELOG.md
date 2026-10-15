@@ -1,5 +1,17 @@
 # Änderungen
 
+## 3.4.1 – beta: Dokumentation für IServ, Zugangsdaten und Einstellungen vervollständigt
+
+- Neue [Release-Anleitung 3.4](docs/Release-3.4.md) mit Einrichtung der IServ-Elternbriefe über
+  die Weboberfläche und über Dateien, der Zugangsdatenseite, den neuen Einstellungen und den
+  Änderungen seit 3.3.2; im Quellarchiv enthalten und in der README verlinkt.
+- Einrichtungsanleitung um einen Abschnitt zu IServ-Elternbriefen und die Zugangsdaten im Web
+  ergänzt; Web-Einstellungen beschreiben die Seiten IServ-Konten und Zugangsdaten.
+- Hilfetext zum Kalenderdienst nennt die Zugangsdatenseite; Planung 4.0 vermerkt die vorgezogene
+  Zugangsdatenverwaltung.
+- Projektwebsite: IServ-Elternbriefe, Zugangsdaten im Web und weitere Einstellungen auf Start-,
+  Einrichtungs-, Konfigurations- und Datenschutzseite.
+
 ## 3.4.0 – beta: Quellen, Zugangsdaten und Einstellungen im Web (Planung 3.4)
 
 Abschluss von Planung 3.4 (Phasen 1–3 in 3.3.10–3.3.12):

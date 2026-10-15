@@ -1,6 +1,6 @@
 # Einrichtung und Qualitätsprüfung
 
-Stand: 14. Oktober 2026, Anwendungsversion 3.4.0. Die Einrichtungshinweise gelten
+Stand: 15. Oktober 2026, Anwendungsversion 3.4.1. Die Einrichtungshinweise gelten
 für den aktuellen Stand. Datierte Qualitätsberichte weiter unten dokumentieren
 jeweils den damaligen Code und die damals geprüften Modelle.
 
@@ -37,7 +37,7 @@ Analysethemen können unvollständige Mails zurückhalten; Fingerprints niemals 
 überschreiben. Reine Zieländerungen verändern seit 3.2 den Analyse-Fingerprint nicht.
 Bei einem Upgrade von älteren Versionen zunächst die bisherigen Ziele beibehalten,
 damit Alt-Fingerprints registriert werden. Details zu Migration und Rückkehr:
-[Release 3.2](Release-3.2.md) und [Release 3.3](Release-3.3.md).
+[Release 3.2](Release-3.2.md), [Release 3.3](Release-3.3.md) und [Release 3.4](Release-3.4.md).
 
 ## Weboberfläche und Tailscale (ab 1.1)
 
@@ -54,8 +54,30 @@ Für den Betrieb ohne Telegram `telegram.enabled: false` setzen. Die Erstkopplun
 benötigt einen laufenden Dienst und den lokalen `--pair`-Aufruf; Codes erscheinen
 ausschließlich im aufrufenden Terminal. Nach der Anmeldung bietet `/einrichtung`
 versionsbezogene Konfigurationsentwürfe und `/diagnose` sichere Einzelprüfungen.
-Passwörter und Tokens bleiben in `.env` oder der Prozessumgebung. Ein vollständig
-browserbasierter Erststart und Web-Lernmodus sind noch nicht implementiert.
+Passwörter und Tokens liegen in `.env` oder der Prozessumgebung; seit 3.3.11 lassen sie sich unter
+**Einstellungen → Zugangsdaten** nur schreibend eintragen. Postfächer und IServ-Konten werden unter
+**Einstellungen → Postfächer** bzw. **→ IServ-Konten** als Entwurf angelegt. Ein vollständig
+browserbasierter Erststart, OAuth-Anmeldung im Browser und ein Web-Lernmodus sind noch nicht
+implementiert.
+
+## IServ-Elternbriefe einrichten (ab 3.3.7)
+
+Elternbriefe aus dem IServ-Elternbriefmodul werden wie Mails verarbeitet und gelten immer als
+relevant. Benötigt werden die HTTPS-Adresse der Schule (z. B. `https://schule.example`) und die
+Anmeldedaten des Elternkontos.
+
+1. **Einstellungen → IServ-Konten**: Adresse, Anzeigename und das Postfach eintragen, dessen
+   Zielprofil gelten soll; „IServ-Konto als Entwurf hinzufügen“.
+2. **Einstellungen → Zugangsdaten**: `ISERV_<n>_USERNAME` und `ISERV_<n>_PASSWORD` eintragen.
+3. **Diagnose → iserv** starten. „bereit“ bestätigt Anmeldung und Briefübersicht; ein
+   Zugangsdatenproblem bedeutet falsche Anmeldedaten oder einen zweiten Anmeldeschritt, den
+   Mailhelp noch nicht unterstützt.
+4. Den Entwurf übernehmen und Mailhelp neu starten.
+
+Ohne Weboberfläche: in `config.yaml` unter `iserv.accounts` ein Konto mit `id`, `server` und
+`mailbox` eintragen, in `.env` `ISERV_<id>_USERNAME` und `ISERV_<id>_PASSWORD` setzen und
+`mailhelp --check-access` ausführen. Briefe vor der Startgrenze (ohne Angabe: die des Postfachs)
+bleiben unberührt. Mailhelp verändert in IServ nichts. Details: [Release 3.4](Release-3.4.md).
 
 ## Google OAuth erstmals einrichten
 
