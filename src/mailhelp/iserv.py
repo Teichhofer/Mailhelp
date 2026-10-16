@@ -171,8 +171,9 @@ class IServReader:
     """Sign in to one IServ account and read its parent letters."""
 
     def __init__(self, account: IServAccountSettings, credentials: ImapCredentials, timezone: str, max_bytes: int,
-                 *, transport: httpx.BaseTransport | None = None):
+                 *, transport: httpx.BaseTransport | None = None, max_attachment_bytes: int = 5_000_000):
         self.account, self.timezone, self.max_bytes = account, ZoneInfo(timezone), max_bytes
+        self.max_attachment_bytes = max_attachment_bytes
         self._username, self._password = credentials.username, credentials.password
         self.base = account.server + "/"
         self.origin = urlsplit(self.base)[:2]
@@ -191,11 +192,30 @@ class IServReader:
             raise IServError("IServ leitete auf einen anderen Server um; Abruf abgebrochen")
         return target
 
-    def _request(self, method: str, url: str, data: dict[str, str] | None = None) -> httpx.Response:
+    def _attachment_response(self, method: str, url: str, data: dict[str, str] | None) -> httpx.Response:
+        """Read a bounded prefix; never cache a truncated file as an original."""
+        with self.client.stream(method, url, data=data) as response:
+            # iter_bytes already decodes HTTP compression; the new response carries decoded bytes.
+            headers = response.headers.copy()
+            headers.pop("Content-Encoding", None)
+            headers.pop("Content-Length", None)
+            headers.pop("Transfer-Encoding", None)
+            content = bytearray()
+            for chunk in response.iter_bytes(chunk_size=64_000):
+                if len(content) + len(chunk) > self.max_attachment_bytes:
+                    return httpx.Response(response.status_code, headers=headers, request=response.request,
+                                          extensions={"mailhelp_oversized": self.max_attachment_bytes + 1})
+                content.extend(chunk)
+            return httpx.Response(response.status_code, headers=headers, request=response.request,
+                                  content=bytes(content))
+
+    def _request(self, method: str, url: str, data: dict[str, str] | None = None,
+                 *, attachment: bool = False) -> httpx.Response:
         """Follow redirects and meta refreshes by hand, each checked before cookies or data go along."""
         for _ in range(MAX_REDIRECTS):
             url = self._checked(url)
-            response = self.client.request(method, url, data=data)
+            response = (self._attachment_response(method, url, data) if attachment
+                        else self.client.request(method, url, data=data))
             if response.is_redirect:
                 url = self._checked(response.headers.get("Location", ""), str(response.url))
                 if response.status_code in (301, 302, 303):
@@ -203,7 +223,7 @@ class IServReader:
                 continue
             if response.status_code >= 400:
                 raise IServError(f"IServ antwortete mit HTTP-Status {response.status_code}")
-            if len(response.content) > self.max_bytes:
+            if not attachment and len(response.content) > self.max_bytes:
                 raise IServError("IServ-Antwort überschreitet limits.max_mail_bytes")
             refresh = self._refresh_target(response)
             if refresh is not None:
@@ -302,21 +322,24 @@ class IServReader:
         message["Message-ID"] = f"<{re.sub(r'[^A-Za-z0-9._-]', '-', letter.key)}.parentletter@{host}>"
         intro = f"Elternbrief vom {letter.published:%d.%m.%Y %H:%M}"
         message.set_content(intro + (f"\nKind: {letter.child}" if letter.child else "") + "\n\n" + body.text("\n"))
-        total = len(response.content)
+        oversized: list[tuple[str, str, int]] = []
         for number, (name, url) in enumerate(attachments, 1):
-            data = self._request("GET", url)
+            data = self._request("GET", url, attachment=True)
             if _is_html(data):
                 raise IServError("IServ lieferte anstelle eines Anhangs eine HTML-Seite")
-            total += len(data.content)
-            if total > self.max_bytes:
-                raise IServError("Elternbrief mit Anhängen überschreitet limits.max_mail_bytes")
+            size = data.extensions.get("mailhelp_oversized")
+            if size is not None:
+                oversized.append((name or f"anhang-{number}", data.headers.get("Content-Type")
+                                  or "application/octet-stream", size))
+                continue
             maintype, _, subtype = (data.headers.get("Content-Type", "application/octet-stream")
                                     .split(";")[0].strip().lower().partition("/"))
             if not maintype or not subtype or maintype in {"text", "multipart", "message"}:
                 maintype, subtype = "application", "octet-stream"
             message.add_attachment(data.content, maintype=maintype, subtype=subtype,
                                    filename=_one_line(name, 120) if name.strip() else f"anhang-{number}")
-        return FetchedMail(FOLDER, UIDVALIDITY, letter.uid, message.as_bytes(), self.account_id, letter.published)
+        return FetchedMail(FOLDER, UIDVALIDITY, letter.uid, message.as_bytes(), self.account_id, letter.published,
+                           tuple(oversized))
 
     def fetch_uid(self, folder: str, uid: int, uidvalidity: int) -> FetchedMail:
         """A letter again by its stand-in UID, for the resumption of unfinished processing."""

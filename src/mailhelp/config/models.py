@@ -346,6 +346,7 @@ class OriginalAttachmentSettings(ConfigModel):
 
 class LimitSettings(ConfigModel):
     max_mail_bytes: int = Field(ge=1024, le=100_000_000)
+    max_attachment_bytes: int = Field(default=5_000_000, ge=1024, le=100_000_000)
     max_header_bytes: int = Field(default=64_000, ge=256, le=1_000_000)
     max_display_header_characters: int = Field(default=500, ge=1, le=10_000)
     max_mime_parts: int = Field(default=100, ge=1, le=10_000)
@@ -556,7 +557,7 @@ class VisionSettings(ConfigModel):
 
     enabled: bool = True
     max_images_per_mail: int = Field(default=3, ge=1, le=10)
-    max_image_bytes: int = Field(default=10_485_760, ge=10_240, le=50_000_000)
+    max_image_bytes: int = Field(default=5_000_000, ge=10_240, le=50_000_000)
     max_edge_pixels: int = Field(default=1600, ge=512, le=4096)
 
 

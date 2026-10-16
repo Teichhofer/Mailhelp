@@ -189,6 +189,15 @@ werden nicht überschrieben.
 
 ### IServ-Elternbriefe
 
+Anhänge werden bis einschließlich **5 MB (5.000.000 Bytes) je Datei** automatisch
+ausgewertet (`limits.max_attachment_bytes`). Bei größeren Anhängen erscheint die
+Nachricht immer als Vorschlag **„Nachricht manuell prüfen“** in der Vorschlagsliste,
+auch bei sonst irrelevanten Nachrichten und ohne KI-Aufruf. Der Vorschlag nennt die
+betroffenen Dateien. Er wird lokal gespeichert und erzeugt erst nach ausdrücklicher
+Bestätigung eine Aufgabe im Zieldienst. Weitere Nachrichten werden weiter abgerufen.
+Bei IServ werden zu große Dateien nicht vollständig heruntergeladen; die Originale
+bleiben dort verfügbar. Die Grenze für den Nachrichtentext ist davon unabhängig.
+
 In der Weboberfläche unter **Einstellungen → IServ-Konten** (`/einstellungen/iserv`) je
 Elternkonto Adresse der Schule und Postfach eintragen, als Entwurf prüfen und übernehmen;
 alternativ in `config.yaml` unter `iserv.accounts` `id`, `server` (HTTPS-Adresse der Schule)

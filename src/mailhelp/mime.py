@@ -18,6 +18,7 @@ from typing import Any
 @dataclass(frozen=True)
 class MimeLimits:
     max_mail_bytes: int
+    max_attachment_bytes: int = 5_000_000
     max_header_bytes: int = 64_000
     max_display_header_characters: int = 500
     max_mime_parts: int = 100
@@ -227,7 +228,7 @@ def attachment_parts(message: Message) -> Iterator[tuple[str, str, bytes]]:
 
 
 def _collect_and_extract_attachments(
-    message: Message, user_timezone: str
+    message: Message, user_timezone: str, max_attachment_bytes: int
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Collect attachment parts and extract calendar events and document texts."""
     from .attachment_extractor import extract_attachment_text
@@ -239,7 +240,10 @@ def _collect_and_extract_attachments(
     for filename, content_type, payload in attachment_parts(message):
         lower_name = filename.lower()
         lower_type = content_type.lower()
-        if lower_name.endswith(".ics") or "calendar" in lower_type:
+        if len(payload) > max_attachment_bytes:
+            extracted = extract_attachment_text(filename, content_type, payload, max_bytes=max_attachment_bytes)
+            extracted_attachments.append(extracted.model_dump(mode="json"))
+        elif lower_name.endswith(".ics") or "calendar" in lower_type:
             try:
                 events = parse_icalendar(payload, default_timezone=user_timezone)
                 for ev in events:
@@ -262,7 +266,7 @@ def _collect_and_extract_attachments(
                     "character_count": 0,
                 })
         else:
-            extracted = extract_attachment_text(filename, content_type, payload)
+            extracted = extract_attachment_text(filename, content_type, payload, max_bytes=max_attachment_bytes)
             extracted_attachments.append(extracted.model_dump(mode="json"))
 
     return extracted_attachments, calendar_events
@@ -273,7 +277,8 @@ def prepare(raw: bytes, limits: int | MimeLimits | object,
     """Return distinct untrusted header/text fields plus non-sensitive preparation metadata."""
     configured = _limits(limits)
     message = BytesParser(policy=policy.default).parsebytes(raw)
-    extracted_attachments, calendar_events = _collect_and_extract_attachments(message, user_timezone)
+    extracted_attachments, calendar_events = _collect_and_extract_attachments(
+        message, user_timezone, configured.max_attachment_bytes)
     attachments = _omit_attachments(message)
     # Large transfer-encoded attachments must not prevent processing the mail
     # body.  For an oversized raw message, enforce the limit again after all

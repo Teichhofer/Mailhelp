@@ -49,7 +49,7 @@ class Reader:
     error: Exception | None = None
     seen: list = []
 
-    def __init__(self, account, credentials, timezone, max_bytes):
+    def __init__(self, account, credentials, timezone, max_bytes, *, max_attachment_bytes):
         Reader.seen.append((account.id, credentials.username, timezone, max_bytes))
 
     def check_access(self):

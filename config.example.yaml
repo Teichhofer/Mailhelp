@@ -124,8 +124,8 @@ vision:
   enabled: true
   # Höchstens so viele Bilder bzw. Scanseiten je Mail.
   max_images_per_mail: 3
-  # Größere Anhänge werden nicht gelesen (10 MB).
-  max_image_bytes: 10485760
+  # Größere Anhänge werden nicht gelesen (5 MB).
+  max_image_bytes: 5000000
   # Längste Bildkante nach dem Verkleinern; spart Tokens.
   max_edge_pixels: 1600
 learning:
@@ -235,6 +235,8 @@ attachments:
   max_original_bytes: 26214400
   max_total_bytes: 52428800
 limits:
+  # 5 MB je Anhang für Textextraktion und OCR. Größere Dateien erzeugen eine manuelle Prüfaufgabe.
+  max_attachment_bytes: 5000000
   max_mail_bytes: 1000000
   max_header_bytes: 64000
   max_display_header_characters: 500

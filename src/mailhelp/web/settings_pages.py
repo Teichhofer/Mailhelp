@@ -13,6 +13,7 @@ from .setting_help import EXTRA_HELP, SETTING_HELP, help_bubble
 SETTING_LABELS = {"poll_interval_seconds": "Abrufintervall (Sekunden)", "timezone": "Zeitzone",
                   "test_mode": "Trockenlauf", "limits.llm_calls_per_minute": "KI-Aufrufe pro Minute",
                   "limits.max_mail_bytes": "Maximale Mailgröße (Bytes)",
+                  "limits.max_attachment_bytes": "Texterkennung: maximale Anhanggröße (Bytes)",
                   "limits.max_llm_payload_bytes": "Maximale KI-Anfragegröße (Bytes)",
                   "retention.full_mail_days": "Mailtexte aufbewahren (Tage)",
                   "retention.debug_llm_days": "KI-Diagnosedaten aufbewahren (Tage)",

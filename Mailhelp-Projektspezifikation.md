@@ -2042,7 +2042,8 @@ Version 1.3 erweitert Mailhelp um eine smarte Workflow-Engine und Dokumenten-Ext
 
 - **Kalender-Vorabprüfung & Reschedule (Stufe 2):** Vor einer Benachrichtigung wird Google Kalender im relevanten Zeitfenster (±7 Tage) lesend abgefragt (mit 60s In-Memory Cache). Exakte Duplikate erhalten den Status `already_exists` und werden weder auf Telegram noch unter `/offen` gemeldet. Terminverschiebungen erkennen den bestehenden Termin (`target_event_id`), stellen Differenzen (`time_changes`) dar und aktualisieren den Termin bei Bestätigung per HTTP `PATCH` anstelle eines Neuanlage-`POST`.
 - **Todoist-Vorabprüfung (Stufe 3):** Aktive Aufgaben werden im konfigurierten Projekt abgefragt und bei identischem/ähnlichem Titel als Duplikat erkannt.
-- **Dokumenten-Anhänge (PDF, DOCX, TXT):** Text wird aus Anhängen bis 10 MB sicher und ressourcenschonend lokal extrahiert (via `pypdf`, `zipfile`/XML für Word sowie Plaintext) und auf max. 20.000 Zeichen begrenzt. Der Text wird mit Quellenbeleg in den Analysekontext für Relevanz, Router und Extraktion eingebunden.
+- **Dokumenten-Anhänge (PDF, DOCX, TXT):** Text wird aus Anhängen bis einschließlich 5 MB (5.000.000 Bytes je Datei, `limits.max_attachment_bytes`) sicher und ressourcenschonend lokal extrahiert (via `pypdf`, `zipfile`/XML für Word sowie Plaintext) und auf max. 20.000 Zeichen begrenzt. Der Text wird mit Quellenbeleg in den Analysekontext für Relevanz, Router und Extraktion eingebunden.
+- **Zu große Anhänge:** Die Nachricht erhält vor Relevanzfilter, Dublettenprüfung und KI-Aufrufen einen deterministischen lokalen Aufgabenvorschlag „Nachricht manuell prüfen“. Dieser nennt die betroffenen Dateien, bleibt nach Wiederholung und Neustart erhalten und benötigt für die externe Anlage die normale ausdrückliche Bestätigung. Eine unvollständige Nachricht wird nicht automatisch auf Termine ausgewertet. IServ bricht den Download der betroffenen Datei nach Überschreiten der Grenze ab, speichert keine gekürzten Originale und verarbeitet die übrigen Briefe weiter. `limits.max_mail_bytes` begrenzt unabhängig davon den Nachrichtentext.
 - **RFC 5545 Kalenderanhänge (.ics):** Termine und Stornierungen (`VEVENT`) aus `text/calendar` und Dateianhängen werden deterministisch in Vorschläge überführt und LLM-Textextraktionen bei gleicher Einladung unterdrückt.
 - **Web- und Telegram-Erweiterungen:** Anzeige von Terminänderungs-Diff-Boxen, Duplikat-Badges mit externen Links, Extraktionsstatus-Badges bei Dokumenten sowie spezifischen Bestätigungsaktionen ("Termin aktualisieren", "Termin absagen").
 
@@ -2085,7 +2086,7 @@ alle Funktionen über normale Links und Formulare. Ohne offene Entscheidungen ze
 die Übersicht die heutigen Ergebnisse in der konfigurierten Zeitzone.
 
 **Bildvorschau.** Bei der Vorbereitung werden Rasterbilder (JPEG, PNG, WebP,
-bis 10 MB) unabhängig von der Bilderkennung als JPEG mit höchstens 1.600 px unter
+bis 5 MB) unabhängig von der Bilderkennung als JPEG mit höchstens 1.600 px unter
 `data/attachments/<mail_id>/<index>.jpg` abgelegt. `GET /mail/<id>/anhang/<index>`
 verlangt eine Sitzung und liefert nur Vorschauen, die in der gespeicherten Mail
 verzeichnet sind, mit `Content-Type: image/jpeg`, `X-Content-Type-Options: nosniff`,
@@ -2431,7 +2432,10 @@ Je Mailzyklus meldet sich Mailhelp nach dem IMAP-Abruf bei Bedarf über das ISer
 an, liest die Elternbrief-Übersicht (`/iserv/parentletter/parent/index`) und verarbeitet neue
 Briefe ab `historical_start` (sonst der Grenze des Postfachs) in Veröffentlichungsreihenfolge.
 Weiterleitungen und Meta-Refresh werden nur innerhalb des konfigurierten Ursprungs verfolgt;
-Antworten über `limits.max_mail_bytes` und als HTML gelieferte Anhänge brechen den Abruf ab.
+HTML-Antworten über `limits.max_mail_bytes` und als HTML gelieferte Anhänge brechen den Abruf ab.
+Anhänge haben die separate Grenze `limits.max_attachment_bytes` (5 MB): größere Dateien werden
+nicht vollständig heruntergeladen und führen zu einem lokalen Vorschlag zur manuellen Prüfung;
+die nachfolgenden Elternbriefe werden weiter verarbeitet.
 Eine Übersicht, deren Eintragsanzahl nicht der gelesenen entspricht (Seitenaufteilung),
 wird nicht teilweise verarbeitet. URLs und Anbietertexte werden nicht protokolliert.
 

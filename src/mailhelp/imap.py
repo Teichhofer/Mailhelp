@@ -30,6 +30,8 @@ class FetchedMail:
     raw: bytes
     account_id: str = "0" * 24
     received_at: datetime = datetime.min.replace(tzinfo=UTC)
+    # IServ stops downloading oversized files; retain their metadata for local review.
+    oversized_attachments: tuple[tuple[str, str, int], ...] = ()
 
 
 @dataclass(frozen=True)

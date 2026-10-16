@@ -1,5 +1,15 @@
 # Änderungen
 
+## Noch nicht veröffentlicht – Große Anhänge manuell prüfen
+
+- Textextraktion und OCR sind standardmäßig auf 5.000.000 Bytes je Anhang begrenzt.
+  `limits.max_attachment_bytes` ist unabhängig von der Textgröße der Nachricht.
+- Nachrichten mit größeren Anhängen erhalten zuverlässig einen lokalen Vorschlag
+  „Nachricht manuell prüfen“, unabhängig von Relevanz und KI-Verfügbarkeit. Wiederholungen
+  und Neustarts erzeugen keine weiteren Einträge; externe Aufgaben bleiben bestätigungspflichtig.
+- IServ lädt größere Anhänge nur bis zur Erkennung der Überschreitung und verarbeitet
+  anschließend die übrigen Elternbriefe weiter. Große Anhänge unterbrechen den Abruf nicht mehr.
+
 ## 3.4.6 – Interaktive Diagramme in der Auswertung
 
 - Ein Klick auf ein Diagramm oder „Vergrößern“ öffnet die große Dialogansicht. Auf kleinen

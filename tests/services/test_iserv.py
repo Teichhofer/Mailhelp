@@ -5,6 +5,7 @@ A simulated IServ server answers through httpx.MockTransport; all names and text
 from __future__ import annotations
 
 import email
+import gzip
 from datetime import UTC, datetime
 from email.policy import default
 from threading import Event
@@ -204,16 +205,74 @@ def test_letter_without_child_and_by_its_stand_in_uid():
     ({"/iserv/parentletter/parent/show/1/9": httpx.Response(200, html=LOGIN)}, "Sitzung abgelaufen"),
     ({"/iserv/parentletter/parent/show/1/9": httpx.Response(200, html="<p>leer</p>")}, "Inhaltsbereich"),
     ({"/iserv/parentletter/attachment/77": httpx.Response(200, html="<p>Fehler</p>")}, "HTML-Seite"),
-    ({"/iserv/parentletter/attachment/77": httpx.Response(200, content=b"x" * 4900)}, "Anhängen überschreitet"),
-    ({"/iserv/parentletter/attachment/77": httpx.Response(200, content=b"x" * 6000)}, "Antwort überschreitet"),
 ])
-def test_broken_letters_and_oversized_attachments_are_errors(change, message):
+def test_broken_letters_are_errors(change, message):
     server = Server()
     client = reader(server, max_bytes=5000)
     letter = client.letters()[1]
     server.overrides.update(change)
     with pytest.raises(IServError, match=message):
         client.fetch(letter)
+
+
+@pytest.mark.parametrize("size", [4900, 6000, 5_000_000, 5_000_001])
+def test_attachment_limits_are_separate_from_the_letter_body_limit(size):
+    server = Server()
+    client = reader(server, max_bytes=5000)
+    server.files["/iserv/parentletter/attachment/77"] = (b"x" * size, "application/pdf")
+    fetched = client.fetch(client.letters()[1])
+    attachments = list(email.message_from_bytes(fetched.raw, policy=default).iter_attachments())
+    if size > 5_000_000:
+        assert attachments == []
+        assert fetched.oversized_attachments == (("Plan & Liste.pdf", "application/pdf", 5_000_001),)
+    else:
+        assert attachments[0].get_payload(decode=True) == b"x" * size
+        assert fetched.oversized_attachments == ()
+
+
+def test_the_html_response_size_limit_still_applies():
+    server = Server()
+    server.overrides[INDEX] = httpx.Response(200, content=b"x" * 5001)
+    with pytest.raises(IServError, match="Antwort überschreitet"):
+        reader(server, max_bytes=5000).letters()
+
+
+def test_compressed_attachment_is_decoded_once_and_uses_the_decoded_size():
+    server = Server()
+    payload = b"synthetic text " * 100
+    server.overrides["/iserv/parentletter/attachment/77"] = httpx.Response(
+        200, content=gzip.compress(payload), headers={"Content-Encoding": "gzip", "Content-Type": "text/plain"})
+    client = reader(server)
+    fetched = client.fetch(client.letters()[1])
+    attachment, = email.message_from_bytes(fetched.raw, policy=default).iter_attachments()
+    assert attachment.get_payload(decode=True) == payload
+    client.max_attachment_bytes = 1024
+    fetched = client.fetch(client.letters()[1])
+    assert fetched.oversized_attachments[0][2] == 1025
+
+
+def test_oversized_unnamed_attachment_has_safe_metadata_and_no_cached_original():
+    server = Server()
+    server.pages["/iserv/parentletter/parent/show/1/9"] = LETTER.replace("Plan &amp; Liste.pdf", " ")
+    server.files["/iserv/parentletter/attachment/77"] = (b"x" * 1025, "")
+    client = reader(server)
+    client.max_attachment_bytes = 1024
+    fetched = client.fetch(client.letters()[1])
+    assert fetched.oversized_attachments == (("anhang-1", "application/octet-stream", 1025),)
+    assert list(email.message_from_bytes(fetched.raw, policy=default).iter_attachments()) == []
+
+
+def test_oversized_letter_does_not_stop_later_letters_or_repeat_after_restart(tmp_path):
+    server = Server()
+    server.pages["/iserv/parentletter/parent/show/2/9"] = LETTER
+    server.files["/iserv/parentletter/attachment/77"] = (b"x" * 5_000_001, "application/pdf")
+    process = Results()
+    run, store, source = service(tmp_path, server, process)
+    assert len(run.poll()) == 2
+    assert process.seen == ["Elternabend", "Wandertag"]
+    restarted = IServRunService(store, Log(), [source], process, Event())
+    assert restarted.poll() == []
+    assert len(process.seen) == 2
 
 
 @pytest.mark.parametrize(("response", "message"), [

@@ -11,7 +11,7 @@ import pypdf
 
 from .domain.extraction import ExtractedAttachment
 
-MAX_ATTACHMENT_BYTES = 10_000_000
+MAX_ATTACHMENT_BYTES = 5_000_000
 MAX_TEXT_CHARACTERS = 20_000
 _TRUNCATION_MARKER = "\n[... Text nach 20.000 Zeichen gekürzt ...]"
 

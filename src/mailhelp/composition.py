@@ -70,7 +70,8 @@ def _build_iserv(settings: Settings, secrets: Secrets, stack: ExitStack) -> list
     from .iserv import IServReader, IServSource
     result = []
     for account in settings.iserv.enabled_accounts():
-        reader = IServReader(account, secrets.iserv[account.id], settings.timezone, settings.limits.max_mail_bytes)
+        reader = IServReader(account, secrets.iserv[account.id], settings.timezone, settings.limits.max_mail_bytes,
+                             max_attachment_bytes=settings.limits.max_attachment_bytes)
         stack.callback(reader.close)
         mailbox = settings.imap.mailbox(account.mailbox)
         assert mailbox is not None  # Settings validates that the mailbox is enabled

@@ -128,7 +128,8 @@ aktualisieren die Seite automatisch; laufende erfolgreiche Abrufe allein laden s
 | --- | --- | --- |
 | KI-Aufrufe pro Minute (`limits.llm_calls_per_minute`) | Budget von 1–600 KI-Aufrufen pro Minute. Ein kleinerer Wert bremst die Verarbeitung und reduziert Lastspitzen; ein größerer erlaubt mehr Aufrufe, soweit Anbieter und übrige Grenzen dies zulassen. Dies ist keine feste Geld- oder Tageskostengrenze. | Nach Neustart |
 | Maximale KI-Anfragegröße (Bytes) (`limits.max_llm_payload_bytes`) | Größengrenze für aufbereitete Maildaten an die KI: 1–100000000 Bytes, keine Tokenzahl. Größere Werte erlauben mehr Inhalt und können Kosten und Laufzeit erhöhen. Zu große aufbereitete Inhalte werden abgewiesen; ein kleinerer Wert ist keine automatische Zusammenfassung. | Nach Neustart |
-| Maximale Mailgröße (Bytes) (`limits.max_mail_bytes`) | Größengrenze für die Mailverarbeitung: 1024–100000000 Bytes. 1000000 entspricht ungefähr 1 MB. Größere Werte erlauben größere Mails und erhöhen den Ressourcenbedarf; kleinere können zur Ablehnung zu großer Inhalte führen. Anhänge und weitere MIME-Grenzen werden zusätzlich geprüft. | Nach Neustart |
+| Maximale Mailgröße (Bytes) (`limits.max_mail_bytes`) | Größengrenze für den Nachrichtentext ohne Anhänge: 1024–100000000 Bytes. Anhänge haben eine eigene Grenze für die Texterkennung. | Nach Neustart |
+| Texterkennung: maximale Anhanggröße (Bytes) (`limits.max_attachment_bytes`) | Maximale Größe je Anhang für lokale Textextraktion und OCR: Standard 5000000 Bytes (5 MB). Größere Anhänge werden nicht ausgewertet. Die Nachricht erhält immer einen Vorschlag zur manuellen Prüfung; weitere Nachrichten werden weiter abgerufen. | Nach Neustart |
 
 ## Zeitlimits und Wiederholungen
 
@@ -229,7 +230,7 @@ aktualisieren die Seite automatisch; laufende erfolgreiche Abrufe allein laden s
 | --- | --- | --- |
 | Bildanhänge und Scans auswerten (`vision.enabled`) | ja (true) lässt Bildanhänge und gescannte PDFs vom KI-Modell lesen (Schritt vision_ocr in prompts.yaml), damit Termine und Aufgaben darin erkannt werden; die Bilder werden dafür übertragen und verursachen Kosten. nein (false) wertet nur Text aus. | Nach Neustart |
 | Bildauswertung: Bilder je Mail (`vision.max_images_per_mail`) | Höchstens so viele Bilder je Mail werden ausgewertet: 1–10; Standard 3. Mehr Bilder erfassen umfangreiche Scans vollständiger und erhöhen Kosten und Laufzeit. | Nach Neustart |
-| Bildauswertung: Höchstgröße je Bild (Bytes) (`vision.max_image_bytes`) | Größere Bilder werden nicht ausgewertet: 10240–50000000 Bytes; Standard 10485760 (10 MB). Größere Werte erlauben hochaufgelöste Scans und erhöhen Speicher- und Übertragungsbedarf. | Nach Neustart |
+| Bildauswertung: Höchstgröße je Bild (Bytes) (`vision.max_image_bytes`) | Zusätzliche Größengrenze für die Bildauswertung: 10240–50000000 Bytes; Standard 5000000 (5 MB). Die Texterkennungsgrenze limits.max_attachment_bytes gilt zusätzlich; bei ihrer Überschreitung entsteht eine manuelle Prüfaufgabe. | Nach Neustart |
 | Bildauswertung: längste Kante (Pixel) (`vision.max_edge_pixels`) | Bilder werden vor der Übertragung auf diese längste Kante verkleinert: 512–4096 Pixel; Standard 1600. Größere Werte erhalten feine Schrift besser und erhöhen Datenmenge und Kosten. | Nach Neustart |
 
 ## Tagesüberblick

@@ -7,7 +7,7 @@ import traceback
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import StrEnum
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from .adapter import PermanentError
 from .analysis import (
@@ -15,6 +15,7 @@ from .analysis import (
     LlmProviderResponseInvalid,
     LlmSchemaValidationExceeded,
 )
+from .config import TargetSettings
 from .domain.prepared import PreparedMail
 from .domain.proposal import ProposalStatus
 from .imap import FetchedMail
@@ -29,6 +30,7 @@ from .models import (
     ProposalNotification,
     Relevance,
     RelevanceDialog,
+    Summary,
     ValidationIssue,
 )
 from .openrouter import RateLimitExceeded
@@ -99,6 +101,11 @@ class MailPipeline:
         self._prepare(run, fetched)
         state = run.state
         assert state.mail is not None
+        if any(item["extraction_status"] == "skipped_oversized"
+               for item in state.mail.get("extracted_attachments", [])):
+            self._manual_attachment_review(run)
+            self._notify_proposals(run)
+            return None
         if self.o.duplicates.check(run.name, state):
             duplicate = state.duplicate
             assert duplicate is not None  # check() recorded the decision
@@ -139,12 +146,49 @@ class MailPipeline:
                 state.display_headers = DisplayHeaders(sender=display["from"], subject=display["subject"])
                 self.o.save(name, state)
             state.mail = prepare(fetched.raw, self.o.max_bytes, fetched.received_at, self.o.user_timezone)
+            cast(list[dict[str, Any]], state.mail["extracted_attachments"]).extend(
+                {"filename": filename[:500], "content_type": content_type[:200], "size_bytes": size,
+                 "text": "", "extraction_status": "skipped_oversized", "character_count": 0}
+                for filename, content_type, size in fetched.oversized_attachments)
             state.mail["internal_id"] = state.id
             self.o.cache_previews(state, fetched.raw)
             state.steps.preparation = "completed"
             self.o.save(name, state)
             self.o.logger.event("INFO", "orchestrator", "preparation_completed", mail_id=state.id,
                               preparation_metadata=state.mail["metadata"])
+
+    def _manual_attachment_review(self, run: ProcessingRun) -> None:
+        """A deterministic review task survives relevance filtering, LLM failures and restarts."""
+        state = run.state
+        if state.proposals:
+            return
+        attachments = _prepared(state).extracted_attachments
+        filenames = ", ".join(item.filename for item in attachments if item.extraction_status == "skipped_oversized")
+        description = ("Mindestens ein Anhang überschreitet die Grenze für die automatische Texterkennung. "
+                       "Bitte die Originalnachricht und ihre Anhänge manuell auf Termine und Aufgaben prüfen. "
+                       f"Betroffene Anhänge: {filenames}")[:4000]
+        state.relevance = Relevance(decision="relevant", topic_ids=[], reason="Großer Anhang: manuelle Prüfung nötig")
+        state.summary = Summary(sentences=["Die Nachricht muss wegen eines zu großen Anhangs manuell geprüft werden."])
+        policy = state.proposal_policy or {}
+        targets = (TargetSettings.model_validate(policy["targets"]) if "targets" in policy else self.o.targets)
+        profile = policy.get("target_profile", 1)
+        proposal = Proposal(
+            id=f"manual_attachment_{state.id}", version=1, kind="task", responsibility="user", certainty="certain",
+            classification="new", title=("Nachricht manuell prüfen: " + _prepared(state).headers.subject)[:500],
+            description=description, evidence="Anhang überschreitet die konfigurierte Texterkennungsgrenze.",
+            source_mail_id=state.id, target=targets.task_target,
+            target_profile=profile, target_provider=targets.task_provider)
+        proposal = self.o.reconciliation.save(proposal)
+        state.proposals = [proposal]
+        state.proposal_notifications = [ProposalNotification(
+            proposal_id=proposal.id, proposal_version=proposal.version)]
+        state.steps.relevance = state.steps.summary = state.steps.action_detection = "completed"
+        state.steps.normalization = state.steps.proposal_building = "completed"
+        state.steps.action_router = state.steps.task_extraction = state.steps.event_extraction = "skipped"
+        state.steps.duplicate_precheck = state.steps.summary_notification = "skipped"
+        self.o.save(run.name, state)
+        self.o.logger.event("WARNING", "orchestrator", "attachment_manual_review", mail_id=state.id,
+                          proposal_id=proposal.id)
 
     def _relevance(self, run: ProcessingRun) -> None:
         run.stage = ProcessingStage.RELEVANCE

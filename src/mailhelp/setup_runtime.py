@@ -178,7 +178,8 @@ class SetupRuntime:
         for account in accounts:
             if credentials is None or account.id not in credentials.iserv:
                 return "failed", "auth"
-            reader = IServReader(account, credentials.iserv[account.id], cfg.timezone, cfg.limits.max_mail_bytes)
+            reader = IServReader(account, credentials.iserv[account.id], cfg.timezone, cfg.limits.max_mail_bytes,
+                                 max_attachment_bytes=cfg.limits.max_attachment_bytes)
             try:
                 reader.check_access()
             except IServSignInError:
