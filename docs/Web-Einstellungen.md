@@ -1,6 +1,6 @@
 # Einstellungen der Weboberfläche
 
-Stand: 16. Oktober 2026, Anwendungsversion 3.4.4.
+Stand: 16. Oktober 2026, Anwendungsversion 3.4.5.
 
 Die globalen Einstellungen bieten eine Bereichsübersicht mit direkten Sprunglinks, beispielsweise
 zu Antworten, Zielen, Aufbewahrung und Protokollierung. Die verwendeten KI-Modelle stehen in einer

@@ -1,5 +1,17 @@
 # Änderungen
 
+## 3.4.5 – Diagrammfarben und Stylesheet-Cache der Weboberfläche
+
+- Fehler behoben: In der Auswertung hatten die Balken für erfolgreiche und fehlgeschlagene
+  Aufrufe dieselbe schwarze Farbe, die Diagramme erschienen ohne Formatierung. Ursache war der
+  Service Worker: Sein Cache-Name blieb seit 3.3.2 gleich, daher lieferte er nach Updates weiter
+  das alte Stylesheet ohne Diagrammregeln. Der Cache-Name enthält jetzt einen Hash der
+  zwischengespeicherten Dateien und erneuert sich mit jeder Änderung.
+- Diagrammbalken, Legende und Achsen tragen zusätzlich eigene Farben und Schriftgröße als
+  Rückfall; das Design (hell und dunkel) hat weiterhin Vorrang.
+- Regressionstests für Cache-Erneuerung und Balkenfarben; der PWA-Browsertest prüft den
+  versionierten Cache-Namen.
+
 ## 3.4.4 – Gemeinsamer Stand von Kontenstatus und IServ-Korrekturen
 
 - Die vollständige Kontenübersicht der Statusseite mit den IServ- und Dokumentationsänderungen

@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 16. Oktober 2026, Anwendungsversion 3.4.4. Die folgenden Verträge beschreiben
+Stand: 16. Oktober 2026, Anwendungsversion 3.4.5. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2484,4 +2484,8 @@ Einstellungen besitzen Bereichs-Sprunglinks und eine aufklappbare Übersicht der
 
 Alle Inhalte werden weiterhin escaped. Daten, Formularziele, versionsbezogene Bestätigungen,
 CSRF-Prüfung und Idempotenz bleiben erhalten. Der Service Worker aktualisiert ausschließlich den
-Shell-Cache; Mailinhalte und Aktionen werden weder offline gespeichert noch wiederholt.
+Shell-Cache; Mailinhalte und Aktionen werden weder offline gespeichert noch wiederholt. Seit 3.4.5
+trägt der Cache-Name einen Hash der zwischengespeicherten Dateien (`offline.html`, `app.css`,
+Icons), den der Server beim Start in `sw.js` einsetzt: Jede Änderung dieser Dateien erneuert den
+Worker und verwirft den alten Cache. Diagrammbalken tragen zusätzlich eigene Füllfarben, damit
+die Reihen auch ohne Stylesheet unterscheidbar bleiben; die Klassen des Designs haben Vorrang.

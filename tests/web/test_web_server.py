@@ -341,3 +341,19 @@ def test_compose_publishes_the_web_port_only_on_localhost():
     service = yaml.safe_load(Path("compose.yaml").read_text(encoding="utf-8"))["services"]["mailhelp"]
     assert service["ports"] == ["127.0.0.1:8765:8765"]
     assert "EXPOSE 8765" in Path("Dockerfile").read_text(encoding="utf-8")
+
+
+def test_regression_a_changed_stylesheet_renews_the_service_worker_cache(monkeypatch):
+    """Regression: the cache name stayed "mailhelp-shell-v5" while app.css changed, so browsers kept
+    serving an outdated stylesheet (charts without colours) from the worker's cache."""
+    import re
+
+    from mailhelp.web.app import static_file
+    worker = get(WebApp([HOST]), "/sw.js").body
+    first = re.search(rb'var CACHE = "mailhelp-shell-([0-9a-f]{16})";', worker)
+    assert first is not None and b"__SHELL_VERSION__" not in worker
+    assert get(WebApp([HOST]), "/sw.js").body == worker  # stable for unchanged files
+    changed = {"app.css": b"/* neuer Stil */"}
+    monkeypatch.setattr("mailhelp.web.app.static_file", lambda name: changed.get(name) or static_file(name))
+    renewed = re.search(rb'"mailhelp-shell-([0-9a-f]{16})"', get(WebApp([HOST]), "/sw.js").body)
+    assert renewed is not None and renewed.group(1) != first.group(1)

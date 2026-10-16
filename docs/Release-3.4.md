@@ -1,6 +1,6 @@
 # Mailhelp 3.4 – IServ-Elternbriefe, Zugangsdaten und Einstellungen im Web
 
-Stand: 16. Oktober 2026. Aktueller Repository-Stand: 3.4.4.
+Stand: 16. Oktober 2026. Aktueller Repository-Stand: 3.4.5.
 Diese Anleitung fasst die Änderungen von 3.3.2 bis 3.4.4 für den Betrieb zusammen. Die
 technische Planung steht in [Planung 3.4](Planung-3.4.md), die Verträge in der
 [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
@@ -87,6 +87,9 @@ Einrichtung verwenden neue Werte sofort, der Mailabruf nach dem nächsten Neusta
 - **Weboberfläche (3.3.6):** Stylesheet, Skripte und Service Worker werden beim Start geladen;
   ein Update oder Branch-Wechsel bei laufendem Dienst mischt nicht mehr alte und neue Dateien.
   Nach einem Update Mailhelp neu starten.
+- **Stylesheet im Browser (3.4.5):** Der Service Worker hielt nach Updates ein veraltetes
+  Stylesheet im Cache, sodass etwa die Diagramme ohne Farben erschienen. Der Cache wird jetzt bei
+  jeder Änderung der Shell-Dateien erneuert; nach dem Update genügt ein Neuladen der Seite.
 
 ## Aktualisieren
 

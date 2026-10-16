@@ -75,3 +75,11 @@ def test_evaluation_page_places_the_charts_before_the_groups():
     page = statistics_page({"days": 30, "mode": "production"}, report, report["records"], "UTC", NOW)
     assert page.index("Verlauf und Verteilung") < page.index("Nach Modell und Schritt")
     assert statistics_page({"days": 30, "mode": "production"}, report, report["records"]).count("<figure") == 5
+
+
+def test_regression_bars_keep_distinct_colours_without_the_stylesheet():
+    """Regression: with an outdated stylesheet both series were drawn in the same (black) fill."""
+    html = statistics_charts([record(1), record(2, status="failed")], 7, "UTC", NOW)
+    fills = dict(re.findall(r'<rect class="(chart-[a-z]+)" fill="(#[0-9a-f]{6})"', html))
+    assert fills["chart-ok"] != fills["chart-failed"] and fills["chart-cost"] not in {fills["chart-ok"], "#000000"}
+    assert 'font-size="11"' in html and "<tspan" in html and 'fill="#a3262b" dx' in html

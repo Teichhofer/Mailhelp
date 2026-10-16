@@ -20,6 +20,9 @@ WIDTH, HEIGHT, LEFT, BOTTOM, TOP = 640, 220, 56, 28, 12
 DURATION_CLASSES = ((1, "< 1 s"), (2, "1–2 s"), (5, "2–5 s"), (10, "5–10 s"), (30, "10–30 s"), (60, "30–60 s"),
                     (None, "> 60 s"))
 MAX_BARS = 8
+# Presentation attributes as fallback; class rules in app.css (light and dark theme) take precedence.
+FILLS = {"chart-ok": "#176b4d", "chart-bar": "#176b4d", "chart-failed": "#a3262b", "chart-cost": "#7a5200"}
+AXIS = 'fill="#526577" font-size="11"'
 BAR_ROW = 28
 
 Series = tuple[str, str, list[float]]
@@ -59,8 +62,9 @@ def column_chart(ident: str, title: str, description: str, labels: list[str], se
     svg = ""
     for step in range(5):
         y = TOP + plot_height - plot_height * step / 4
-        svg += (f'<line class="chart-grid" x1="{LEFT}" x2="{WIDTH - 8}" y1="{y:.1f}" y2="{y:.1f}"/>'
-                f'<text class="chart-axis" x="{LEFT - 6}" y="{y + 4:.1f}" text-anchor="end">{e(fmt(top * step / 4))}'
+        svg += (f'<line class="chart-grid" stroke="#dae3eb" x1="{LEFT}" x2="{WIDTH - 8}" y1="{y:.1f}" y2="{y:.1f}"/>'
+                f'<text class="chart-axis" {AXIS} x="{LEFT - 6}" y="{y + 4:.1f}" text-anchor="end">'
+                f'{e(fmt(top * step / 4))}'
                 "</text>")
     every = max(1, round(len(labels) / 10))
     for index, label in enumerate(labels):
@@ -69,14 +73,14 @@ def column_chart(ident: str, title: str, description: str, labels: list[str], se
             height = plot_height * values[index] / top
             if height > 0:
                 base -= height
-                svg += (f'<rect class="{css}" x="{x:.1f}" y="{base:.1f}" width="{slot * 0.7:.1f}" '
+                svg += (f'<rect class="{css}" fill="{FILLS[css]}" x="{x:.1f}" y="{base:.1f}" width="{slot * 0.7:.1f}" '
                         f'height="{height:.1f}"><title>{e(label)}: {e(name)} {e(fmt(values[index]))}</title></rect>')
         if index % every == 0:
-            svg += (f'<text class="chart-axis" x="{x + slot * 0.35:.1f}" y="{HEIGHT - 8}" '
+            svg += (f'<text class="chart-axis" {AXIS} x="{x + slot * 0.35:.1f}" y="{HEIGHT - 8}" '
                     f'text-anchor="middle">{e(label)}</text>')
-    legend = "".join(f'<tspan class="{css}-text" dx="{12 if position else 0}">■ {e(name)}</tspan>'
+    legend = "".join(f'<tspan class="{css}-text" fill="{FILLS[css]}" dx="{12 if position else 0}">■ {e(name)}</tspan>'
                      for position, (name, css, _) in enumerate(series))
-    svg += f'<text class="chart-legend" x="{WIDTH - 8}" y="{TOP + 2}" text-anchor="end">{legend}</text>'
+    svg += f'<text class="chart-legend" {AXIS} x="{WIDTH - 8}" y="{TOP + 2}" text-anchor="end">{legend}</text>'
     rows = [[label, *(fmt(values[index]) for _, _, values in series)] for index, label in enumerate(labels)]
     return _figure(ident, title, description, svg, ["", *(name for name, _, _ in series)], rows)
 
@@ -95,11 +99,12 @@ def bar_list(ident: str, title: str, description: str, items: list[tuple[str, fl
         y = TOP + row_height * index
         width = (WIDTH - label_width - 90) * value / top
         short = label if len(label) <= 28 else label[:27] + "…"
-        svg += (f'<text class="chart-axis" x="{label_width - 8}" y="{y + row_height * 0.62:.1f}" '
+        svg += (f'<text class="chart-axis" {AXIS} x="{label_width - 8}" y="{y + row_height * 0.62:.1f}" '
                 f'text-anchor="end">{e(short)}</text>'
-                f'<rect class="{css}" x="{label_width}" y="{y + row_height * 0.18:.1f}" width="{width:.1f}" '
+                f'<rect class="{css}" fill="{FILLS[css]}" x="{label_width}" y="{y + row_height * 0.18:.1f}" '
+                f'width="{width:.1f}" '
                 f'height="{row_height * 0.64:.1f}"><title>{e(label)}: {e(fmt(value))}</title></rect>'
-                f'<text class="chart-axis" x="{label_width + width + 6:.1f}" y="{y + row_height * 0.62:.1f}">'
+                f'<text class="chart-axis" {AXIS} x="{label_width + width + 6:.1f}" y="{y + row_height * 0.62:.1f}">'
                 f'{e(fmt(value))}</text>')
     return _figure(ident, title, description, svg, ["", title], [[label, fmt(value)] for label, value in items],
                    height=TOP + 4 + row_height * max(len(items), 1))

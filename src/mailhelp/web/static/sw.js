@@ -2,7 +2,9 @@
 // Pages, data and actions always go to the network and are never stored or replayed.
 "use strict";
 
-var CACHE = "mailhelp-shell-v5";
+// Replaced by the server with a hash of the shell files: a changed stylesheet changes this file,
+// so browsers install the new worker and drop the stale shell cache.
+var CACHE = "mailhelp-shell-__SHELL_VERSION__";
 var SHELL = ["/offline.html", "/static/app.css", "/static/icon-192.png", "/static/icon-512.png"];
 
 self.addEventListener("install", function (event) {

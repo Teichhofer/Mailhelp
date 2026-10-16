@@ -1,6 +1,8 @@
 """Installable app: service worker, shell cache and offline page."""
 from __future__ import annotations
 
+import re
+
 from playwright.sync_api import expect
 
 from checks import audit
@@ -91,15 +93,17 @@ def test_service_worker_rules(browser, mailhelp):
           const foreign = await respond(fetchHandler, new Request("https://example.test/x"));
           const data = await respond(fetchHandler, new Request("/api/stand"));
           const cachedShell = await respond(fetchHandler, new Request("/static/app.css"));
-          await caches.delete("mailhelp-shell-v5");
+          await caches.delete(CACHE);
           const uncachedShell = await respond(fetchHandler, new Request("/static/app.css"));
           const page = await respond(fetchHandler, navigation("/health"));
-          return { installed, keys, post, foreign, data,
+          return { installed, keys, post, foreign, data, cache: CACHE,
                    cachedShell: cachedShell.status, uncachedShell: uncachedShell.status,
                    page: page.status };
         }""")
         assert result["installed"] == ["skipped", "claimed"]
-        assert result["keys"] == ["mailhelp-shell-v5"]
+        # Versioned by the shell files (regression: a fixed "v5" kept an outdated stylesheet cached).
+        assert re.fullmatch(r"mailhelp-shell-[0-9a-f]{16}", result["cache"])
+        assert result["keys"] == [result["cache"]]
         assert (result["post"], result["foreign"], result["data"]) == ("network",) * 3
         assert (result["cachedShell"], result["uncachedShell"], result["page"]) == (200, 200, 200)
         page.context.set_offline(True)

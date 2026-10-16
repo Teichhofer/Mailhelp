@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import re
 from collections.abc import Callable
 from importlib.resources import files
@@ -24,6 +25,9 @@ ROOT_FILES = {
     "sw.js": "text/javascript; charset=utf-8",
     "offline.html": "text/html; charset=utf-8",
 }
+# The files the service worker caches (SHELL in sw.js) and the placeholder for their version.
+SHELL_FILES = ("offline.html", "app.css", "icon-192.png", "icon-512.png")
+SHELL_VERSION = b"__SHELL_VERSION__"
 
 
 def static_file(name: str) -> bytes:
@@ -39,6 +43,9 @@ class WebApp:
         # stylesheet and scripts must too, even if the files on disk change meanwhile
         # (update, branch switch of an editable install).
         self.assets = {name: static_file(name) for name in (*STATIC_FILES, *ROOT_FILES)}
+        # Without a new cache name a cache-first worker kept serving an outdated stylesheet forever.
+        version = hashlib.sha256(b"\0".join(self.assets[name] for name in SHELL_FILES)).hexdigest()[:16]
+        self.assets["sw.js"] = self.assets["sw.js"].replace(SHELL_VERSION, version.encode())
         self._routes: list[tuple[str, re.Pattern[str], Route]] = []
         self.route("GET", "/health", self.health)
         self.route("GET", r"/static/(?P<name>[a-z0-9.-]+)", self.static)
@@ -81,4 +88,4 @@ class WebApp:
         return Response(200, self.assets[name], ROOT_FILES[name], cache="no-cache")
 
 
-__all__ = ["ROOT_FILES", "STATIC_FILES", "WebApp", "static_file"]
+__all__ = ["ROOT_FILES", "SHELL_FILES", "STATIC_FILES", "WebApp", "static_file"]
