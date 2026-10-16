@@ -24,9 +24,10 @@ Nach der Programminstallation (`pip install` oder `docker compose up`) öffnet d
 
 Das beschreibt das geplante Ziel, keine Funktion des aktuellen 3.3.1-Stands.
 Die bestehende authentifizierte Einrichtung unter `/einrichtung`, Diagnose,
-Postfachverwaltung und das Web-Facelift sind bereits verfügbar. Geheimnisverwaltung,
-Web-Lernmodus, browsergesteuerte OAuth-Einrichtung und ein Erststart ohne gültige
-Basiskonfiguration bleiben zukünftige Arbeiten.
+Postfachverwaltung und das Web-Facelift sind bereits verfügbar. Seit 3.4 sind außerdem
+Postfächer, IServ-Konten und Zugangsdaten (Pfeiler 4, nur schreibend, ohne
+`MAILHELP_WEB_SECRET`) im Web pflegbar. Web-Lernmodus, browsergesteuerte OAuth-Einrichtung
+und ein Erststart ohne gültige Basiskonfiguration bleiben zukünftige Arbeiten.
 
 ---
 

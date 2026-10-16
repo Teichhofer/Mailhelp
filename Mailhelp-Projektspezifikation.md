@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 14. Oktober 2026, Anwendungsversion 3.4.0. Die folgenden Verträge beschreiben
+Stand: 16. Oktober 2026, Anwendungsversion 3.4.4. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2412,8 +2412,8 @@ und Rückkehr aus einer vorher angelegten Sicherung stehen in [Release-3.2](docs
 
 ## IServ-Elternbriefe (seit 3.3.7)
 
-`iserv.accounts` nennt Elternkonten (`id` 1–10, `server` als HTTPS-Ursprung ohne Pfad und
-Zugangsdaten, `mailbox` als aktives IMAP-Postfach, optional `label`, `enabled` und
+`iserv.accounts` nennt Elternkonten (`id` 1–10, `server` als HTTPS-Ursprung ohne Zugangsdaten; seit
+3.4.2 wird ein eingefügter Link oder ein Hostname ohne Schema auf `https://<host>` gekürzt, `mailbox` als aktives IMAP-Postfach, optional `label`, `enabled` und
 `historical_start`). Zugangsdaten liegen ausschließlich in `ISERV_<id>_USERNAME` und
 `ISERV_<id>_PASSWORD`; sie werden in Logs maskiert. Der Abschnitt gehört nicht zum
 Analyse-Fingerprint.
@@ -2441,7 +2441,9 @@ sich bei jedem Konto an. In IServ wird nichts bestätigt, beantwortet oder archi
 je aktivem Konto, ob seine Zugangsdaten vorhanden sind; die Diagnose `iserv` meldet sich an und
 öffnet nur die Briefübersicht (seit 3.3.8).
 
-Seit 3.3.10 verwaltet `/einstellungen/iserv` die Konten im Web: Hinzufügen (nächste freie
+Seit 3.3.10 verwaltet `/einstellungen/iserv` die Konten im Web (die Startgrenze auch als
+`TT.MM.JJJJ [HH:MM]` in der konfigurierten Zeitzone; ungültige Eingaben werden seit 3.4.2 mit ihrer
+Ursache auf der Seite gemeldet): Hinzufügen (nächste freie
 Nummer), Ändern, Aktivieren/Deaktivieren und Entfernen ändern den Einrichtungsentwurf als ganzen
 Block `iserv.accounts` in geprüfter, normalisierter Form. Übernommen wird wie bei Postfächern nur
 ausdrücklich, versionsbezogen und nach einer aktuellen Diagnose `iserv` („bereit“; ohne aktive

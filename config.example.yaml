@@ -171,7 +171,7 @@ imap:
 # Zugangsdaten in .env: ISERV_<id>_USERNAME und ISERV_<id>_PASSWORD (Elternkonto).
 # mailbox: dessen Zielprofil und Standards gelten für die Briefe. Ältere Briefe als
 # historical_start (ohne Angabe: die Grenze dieses Postfachs) werden nicht verarbeitet.
-# Im IServ-Webformular auch TT.MM.JJJJ oder JJJJ-MM-TT: Tagesbeginn in timezone.
+# Im IServ-Webformular auch TT.MM.JJJJ [HH:MM] oder JJJJ-MM-TT: ohne Uhrzeit Tagesbeginn in timezone.
 # In YAML bleibt historical_start ein ISO-8601-Zeitpunkt mit explizitem UTC-Offset.
 # Mailhelp liest die IServ-Weboberfläche wie ein Browser; eine offizielle API gibt es nicht.
 iserv:
@@ -180,7 +180,7 @@ iserv:
 #  accounts:
 #  - id: 1
 #    label: Elternbriefe
-#    server: https://schule.example
+#    server: https://schule.example   # ein kopierter IServ-Link wird auf die Schuladresse gekürzt
 #    mailbox: 1
 #    historical_start: '2026-10-01T00:00:00+02:00'
 telegram:

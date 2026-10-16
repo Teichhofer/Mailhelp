@@ -1,6 +1,6 @@
 # Einstellungen der Weboberfläche
 
-Stand: 16. Oktober 2026, Anwendungsversion 3.4.3.
+Stand: 16. Oktober 2026, Anwendungsversion 3.4.4.
 
 Die globalen Einstellungen bieten eine Bereichsübersicht mit direkten Sprunglinks, beispielsweise
 zu Antworten, Zielen, Aufbewahrung und Protokollierung. Die verwendeten KI-Modelle stehen in einer
@@ -53,14 +53,17 @@ gelten für den Schnellzugriff innerhalb der allgemeinen Einstellungsseite.
 ## IServ-Konten
 
 Unter `/einstellungen/iserv` lassen sich Konten als Einrichtungsentwurf anlegen und ändern.
-„Ältere Briefe nicht verarbeiten vor“ akzeptiert `TT.MM.JJJJ` (z. B. `01.09.2026`),
+„Ältere Briefe nicht verarbeiten vor“ akzeptiert `TT.MM.JJJJ [HH:MM]` (z. B. `01.09.2026 07:30`),
 `JJJJ-MM-TT` (z. B. `2026-09-01`) oder einen ISO-8601-Zeitpunkt mit UTC-Offset.
 Ein reines Datum gilt ab 00:00 Uhr in der Zeitzone des Konfigurationsentwurfs;
 für `Europe/Berlin` wird `01.09.2026` als `2026-09-01T00:00:00+02:00` gespeichert.
 Im Winter gilt der entsprechende Winterzeit-Offset. Ein leeres Feld erbt die Grenze des
-zugeordneten Postfachs. Ungültige Daten und Zeitpunkte ohne Offset werden abgewiesen.
+zugeordneten Postfachs. Deutsche Angaben mit Uhrzeit gelten in der konfigurierten Zeitzone.
+Ungültige Daten und ISO-Zeitpunkte ohne Offset werden abgewiesen.
 Zugangsdaten werden separat unter **Zugangsdaten** gespeichert. Erst nach Diagnose und
 ausdrücklicher, versionsbezogener Übernahme wird die Konfiguration geändert.
+Ein Versionskonflikt antwortet mit HTTP 409; Konfiguration und Entwurf bleiben unverändert.
+Dann die Konfiguration in der Einrichtung neu einlesen und die Änderungen erneut prüfen.
 
 ## Kontenstatus
 
@@ -103,7 +106,7 @@ aktualisieren die Seite automatisch; laufende erfolgreiche Abrufe allein laden s
 | CalDAV-Aufgabenliste (Adresse) (`targets.caldav_task_url`) | Vollständige https-Adresse der CalDAV-Aufgabenliste (VTODO), z. B. https://cloud.example.org/remote.php/dav/calendars/anna/tasks/. Bei Apple Erinnerungen eine Adresse unter https://caldav.icloud.com. Bestehende Einträge werden nicht verschoben. Die Anlage erfordert weiterhin deine ausdrückliche Bestätigung. | Nach Neustart |
 | CalDAV-Kalender (Adresse) (`targets.caldav_calendar_url`) | Vollständige https-Adresse der CalDAV-Kalendersammlung, z. B. https://cloud.example.org/remote.php/dav/calendars/anna/personal/. Nur bei Kalenderdienst caldav benötigt; Anmeldung mit CALDAV_USERNAME und App-Passwort CALDAV_PASSWORD. Bestehende Einträge werden nicht verschoben. Die Anlage erfordert weiterhin deine ausdrückliche Bestätigung. | Nach Neustart |
 | Google-Kalender (`targets.google_calendar`) | ID des Zielkalenders für neue Terminvorschläge. primary bezeichnet den Hauptkalender; eine konkrete Kalender-ID wählt einen anderen zugänglichen Kalender. Bestehende Termine werden nicht verschoben. Nicht leer, höchstens 500 Zeichen. Die Anlage erfordert weiterhin deine ausdrückliche Bestätigung. | Nach Neustart |
-| Kalenderdienst (`targets.calendar_provider`) | Dienst für neue Terminvorschläge: google (Google Kalender), caldav (z. B. Nextcloud, iCloud, mailbox.org) oder outlook (Outlook / Microsoft 365). Der Wechsel wirkt nach einem Neustart; bereits bestätigte Vorschläge für das bisherige Ziel werden nicht in das neue geschrieben. Zuerst das passende Ziel eintragen, dann den Dienst wechseln. Zugangsdaten stehen in der .env-Datei. | Nach Neustart |
+| Kalenderdienst (`targets.calendar_provider`) | Dienst für neue Terminvorschläge: google (Google Kalender), caldav (z. B. Nextcloud, iCloud, mailbox.org) oder outlook (Outlook / Microsoft 365). Der Wechsel wirkt nach einem Neustart; bereits bestätigte Vorschläge für das bisherige Ziel werden nicht in das neue geschrieben. Zuerst das passende Ziel eintragen, dann den Dienst wechseln. Zugangsdaten unter Einstellungen → Zugangsdaten oder in der .env-Datei eintragen. | Nach Neustart |
 | Microsoft-Mandant (`targets.microsoft_tenant`) | Microsoft-Mandant für die Anmeldung: common (private und geschäftliche Konten), consumers, organizations oder die Mandanten-ID. Gilt für Outlook-Kalender und Microsoft To Do. | Nach Neustart |
 | Microsoft-To-Do-Liste (`targets.microsoft_todo_list`) | ID der Microsoft-To-Do-Liste oder default für die Standardliste „Aufgaben“. Nur bei Aufgabendienst microsoft_todo benötigt. Bestehende Einträge werden nicht verschoben. Die Anlage erfordert weiterhin deine ausdrückliche Bestätigung. | Nach Neustart |
 | Outlook-Kalender (`targets.outlook_calendar`) | ID des Outlook-Kalenders oder default für den Standardkalender des angemeldeten Microsoft-Kontos. Nur bei Kalenderdienst outlook benötigt. Bestehende Einträge werden nicht verschoben. Die Anlage erfordert weiterhin deine ausdrückliche Bestätigung. | Nach Neustart |
@@ -266,6 +269,28 @@ aktualisieren die Seite automatisch; laufende erfolgreiche Abrufe allein laden s
 | `event_defaults.video_duration_minutes` · Standarddauer Videokonferenz (Minuten) | Standarddauer Videokonferenz: 1–1440 Minuten; Standard 60. Ergänzt ein fehlendes Ende nur bei eindeutigem Beginn und belegter Online-Teilnahme. Explizite Endzeiten und Dauern haben Vorrang. Bestehende Vorschläge werden nicht automatisch umgerechnet; Speichern autorisiert keine Kalenderaktion. |
 | `event_defaults.in_person_duration_minutes` · Standarddauer Präsenztermin (Minuten) | Standarddauer Präsenztermin: 1–1440 Minuten; Standard 180. Ergänzt ein fehlendes Ende bei belegter Präsenz und eindeutigem Beginn. Eine Anschrift in der Signatur belegt keine Präsenz. Explizite Zeitangaben haben Vorrang; die Annahme wird im Vorschlag angezeigt. |
 | `proposal_reconciliation.max_semantic_candidates` · Abgleich: höchstens KI-Kandidaten | 1–50 mögliche offene Vorschläge je semantischem KI-Vergleich; Standard 8. Weitere plausible Treffer blockieren die automatische Zuordnung, statt als fehlende Dublette zu gelten. Ein fehlender Vergleichsprompt erfordert bei unklaren Fällen eine manuelle Zuordnung. |
+
+## IServ-Konten (3.3.10)
+
+Unter `/einstellungen/iserv` werden IServ-Konten für Elternbriefe angelegt, geändert, aktiviert,
+deaktiviert und entfernt. Je Konto: Anzeigename, HTTPS-Adresse der Schule (ein kopierter IServ-Link
+oder die Adresse ohne `https://` wird auf die Schuladresse gekürzt), das Postfach, dessen Zielprofil
+und Standards gelten, und optional die Startgrenze (`TT.MM.JJJJ [HH:MM]` oder ISO 8601; leer: die des
+Postfachs). Ungültige Angaben nennt die Seite mit ihrer Ursache.
+Jede Änderung ist ein Entwurf; übernommen wird nach aktueller Diagnose `iserv` und ausdrücklicher
+Bestätigung. Elternbriefe gelten immer als relevant. Die Zugangsdaten gehören auf die Seite
+Zugangsdaten. Wirkung nach dem nächsten Neustart.
+
+## Zugangsdaten (3.3.11)
+
+`/einstellungen/zugangsdaten` zeigt für jeden benötigten Eintrag nur „hinterlegt“ oder „fehlt“ und
+nimmt neue Werte nur schreibend an: `IMAP_<n>_USERNAME/_PASSWORD` je Postfach (bei Postfach 1 im
+älteren Format `IMAP_USERNAME/_PASSWORD`), `ISERV_<n>_USERNAME/_PASSWORD` je IServ-Konto,
+`OPENROUTER_API_KEY`, `TELEGRAM_BOT_TOKEN` bei aktivem Telegram und die Geheimnisse der Kalender- und
+Aufgabendienste je Zielprofil. Jede Änderung wird ausdrücklich bestätigt; ersetzt wird nur die
+betroffene Zeile in `.env`. `MAILHELP_WEB_SECRET` bleibt ausgenommen. Werte aus der Prozessumgebung
+haben Vorrang und werden als solche gekennzeichnet. Diagnose und Einrichtung lesen neue Werte
+sofort, der Mailabruf nach dem nächsten Neustart.
 
 ## Postfächer und Zielprofile (3.2)
 

@@ -71,7 +71,7 @@ def test_regression_calendar_date_is_saved_as_local_midnight(profiled, start, zo
     assert state.patch["iserv.accounts"][0]["historical_start"] == expected
     # After a restart the saved draft remains intact; a repeated add creates no duplicate.
     profiled.runtime.setup = SetupService(profiled.app.configuration)
-    assert browser.request("POST", SAVE, form).status == 409
+    assert browser.request("POST", SAVE, form).status == 422
     assert profiled.runtime.setup.state() == state
     assert (profiled.tmp_path / "config.yaml").read_bytes() == before
     assert approve(profiled) == 303
@@ -120,20 +120,25 @@ def test_connection_changes_need_a_current_diagnosis_but_removal_of_all_does_not
 
 
 def test_invalid_or_stale_changes_keep_the_draft(profiled):
-    for values in ({**NEW, "server": "http://schule.example"}, {**NEW, "mailbox": "7"},
-                   {**NEW, "historical_start": "gestern"}):
-        assert submit(profiled, "add", **values).status == 409
+    for values, cause in (({**NEW, "server": "http://schule.example"}, "IServ-Adresse: Die IServ-Adresse muss mit"),
+                          ({**NEW, "mailbox": "7"}, "kein aktives Postfach"),
+                          ({**NEW, "historical_start": "gestern"}, "Startgrenze: historical_start muss ISO 8601"),
+                          ({**NEW, "historical_start": "31.02.2026"}, "Die Startgrenze ist kein gültiges Datum")):
+        response = submit(profiled, "add", **values)
+        assert response.status == 422 and cause in response.body.decode()
+        assert 'role="alert"' in response.body.decode()
     assert submit(profiled, "add", **NEW).status == 303
     form = _form(profiled, "add")
-    for changes in ({"id": "1"}, {"action": "rename"}, {"action": "update", "id": "9"}, {"action": "toggle", "id": "9"}):
-        assert profiled.web.browser.request("POST", SAVE, {**form, **NEW, **changes}).status == 409
+    for changes, status in (({"id": "1"}, 422), ({"action": "rename"}, 422), ({"action": "update", "id": "9"}, 409),
+                            ({"action": "toggle", "id": "9"}, 409)):
+        assert profiled.web.browser.request("POST", SAVE, {**form, **NEW, **changes}).status == status
     assert profiled.runtime.setup.draft_settings().iserv.accounts[0].label == "Grundschule"
 
 
 @pytest.mark.parametrize("start", ["31.09.2026", "2026-02-29", "01.09.26", "2026-09-01T12:00:00"])
 def test_invalid_calendar_dates_and_naive_timestamps_keep_the_draft(profiled, start):
     before = profiled.runtime.setup.state()
-    assert submit(profiled, "add", **{**NEW, "historical_start": start}).status == 409
+    assert submit(profiled, "add", **{**NEW, "historical_start": start}).status == 422
     assert profiled.runtime.setup.state() == before
     assert config(profiled)["iserv"]["accounts"] == []
 
@@ -150,8 +155,39 @@ def test_calendar_date_changes_still_require_csrf_version_and_session(profiled, 
     assert profiled.runtime.setup.state() == before
     assert web.browser.request("POST", SAVE, form).status == 303
     state = profiled.runtime.setup.state()
-    assert web.browser.request("POST", SAVE, {**form, "historical_start": "02.09.2026"}).status == 409
+    assert web.browser.request("POST", SAVE, {**form, "historical_start": "02.09.2026"}).status == 422
     assert profiled.runtime.setup.state() == state
+
+
+def test_regression_copied_links_and_german_dates_are_accepted(profiled):
+    """Regression: a pasted IServ link, a host without https:// or a date like 01.10.2026 was rejected
+    with only "Entwurf nicht gespeichert; Angaben, Version und Sitzung prüfen."."""
+    link = {**NEW, "server": "https://Schule.example/iserv/parentletter/parent/index",
+            "historical_start": "01.10.2026"}
+    assert submit(profiled, "add", **link).status == 303
+    account = profiled.runtime.setup.draft_settings().iserv.accounts[0]
+    assert account.server == "https://schule.example"
+    assert account.historical_start.isoformat() == "2026-10-01T00:00:00+00:00"  # the profiled zone is UTC
+    assert submit(profiled, "update", **{**NEW, "server": "schule.example", "historical_start": "1.10.2026 07:30"}
+                  ).status == 303
+    account = profiled.runtime.setup.draft_settings().iserv.accounts[0]
+    assert account.server == "https://schule.example" and account.historical_start.hour == 7
+
+
+def test_regression_changed_configuration_returns_conflict_without_rendering_a_stale_draft(profiled):
+    """A conflict must not try to render the same outdated draft again and return HTTP 500."""
+    assert submit(profiled, "add", **NEW).status == 303
+    form = {**_form(profiled, "update"), **NEW}
+    path = profiled.tmp_path / "config.yaml"
+    raw = config(profiled)
+    raw["poll_interval_seconds"] += 1
+    path.write_text(yaml.safe_dump(raw), encoding="utf-8")
+    before_file, before_state = path.read_bytes(), profiled.runtime.setup.state()
+    response = profiled.web.browser.request("POST", SAVE, form)
+    assert response.status == 409
+    assert "Konfiguration oder Entwurf geändert" in response.body.decode()
+    assert profiled.runtime.setup.state() == before_state and path.read_bytes() == before_file
+    assert profiled.web.writer.created == 0
 
 
 def test_ten_accounts_fill_every_number_and_labels_default(profiled):

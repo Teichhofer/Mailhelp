@@ -11,22 +11,43 @@ from datetime import datetime
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from pydantic import ValidationError
+
 from ..config import IServAccountSettings
+from ..configuration import ConfigurationConflict
 from .forms import post_form
 from .http import Response
-from .pages import e
+from .pages import e, notice
 
 ROUTE = "/einstellungen/iserv"
+_GERMAN_DATE = re.compile(r"(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{2}))?")
 
 
-def _historical_start(value: str, timezone: str) -> str | None:
-    """Resolve calendar dates at midnight in the draft's zone; preserve explicit instants."""
-    value = value.strip()
-    for pattern, date_format in ((r"\d{2}\.\d{2}\.\d{4}", "%d.%m.%Y"),
-                                 (r"\d{4}-\d{2}-\d{2}", "%Y-%m-%d")):
-        if re.fullmatch(pattern, value):
-            return datetime.strptime(value, date_format).replace(tzinfo=ZoneInfo(timezone)).isoformat()
-    return value or None
+def start_boundary(text: str, zone: str) -> str | None:
+    """ISO 8601 as entered, or TT.MM.JJJJ [HH:MM] in the configured time zone; empty means none."""
+    text = text.strip()
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", text):
+        return datetime.fromisoformat(text).replace(tzinfo=ZoneInfo(zone)).isoformat()
+    match = _GERMAN_DATE.fullmatch(text)
+    if match is None:
+        return text or None
+    day, month, year, hour, minute = match.groups()
+    try:
+        moment = datetime(int(year), int(month), int(day), int(hour or 0), int(minute or 0),
+                          tzinfo=ZoneInfo(zone))
+    except ValueError as exc:
+        raise ValueError("Die Startgrenze ist kein gültiges Datum") from exc
+    return moment.isoformat()
+
+
+def reason(exc: Exception) -> str:
+    """A readable cause for the page; never a stack trace or form contents."""
+    if isinstance(exc, ValidationError):
+        error = exc.errors(include_input=False)[0]
+        field = {"server": "IServ-Adresse", "historical_start": "Startgrenze", "mailbox": "Postfach",
+                 "label": "Anzeigename"}.get(str(error["loc"][-1]) if error["loc"] else "", "Eingabe")
+        return f"{field}: {str(error['msg']).removeprefix('Value error, ')}"
+    return str(exc) or "Angaben, Version und Sitzung prüfen."
 
 
 def _input(name: str, label: str, value: object, suffix: str, kind: str = "text", **attrs: str) -> str:
@@ -41,12 +62,12 @@ def _account_fields(account: dict[str, Any], mailboxes: list[tuple[int, str]], s
                       f'{number} · {e(label)}</option>' for number, label in mailboxes)
     start = account.get("historical_start") or ""
     return (_input("label", "Anzeigename", account.get("label", "Elternbriefe"), suffix, maxlength="40")
-            + _input("server", "IServ-Adresse der Schule (https://…)", account.get("server", ""), suffix, "url",
-                     required="required", maxlength="253")
+            + _input("server", "IServ-Adresse der Schule (https://…)", account.get("server", ""), suffix,
+                     required="required", maxlength="2000", inputmode="url")
             + f'<label for="iserv-mailbox-{suffix}">Einstellungen und Zielprofil von Postfach</label>'
             f'<select id="iserv-mailbox-{suffix}" name="mailbox">{options}</select>'
             + _input("historical_start",
-                     "Ältere Briefe nicht verarbeiten vor (TT.MM.JJJJ oder ISO 8601; leer: Postfachgrenze)",
+                     "Ältere Briefe nicht verarbeiten vor (TT.MM.JJJJ [HH:MM] oder ISO 8601; leer: Postfachgrenze)",
                      start, suffix, maxlength="40"))
 
 
@@ -60,14 +81,15 @@ class IServSite:
     def runtime(self):
         return self.site.setup_page.runtime
 
-    def index(self, request, session):
+    def index(self, request, session, problem: str = ""):
         mailboxes_page = self.site.mailbox_page
         if self.runtime is None:
             return mailboxes_page.unavailable()
         cfg = self.runtime.setup.draft_settings()
         csrf, version = self.site.auth.csrf_token(session.id), self.runtime.setup.state().version
         mailboxes = [(box.id, box.label) for box in cfg.imap.enabled_mailboxes()]
-        body = ('<p>Elternbriefe aus IServ werden wie Mails verarbeitet und gelten immer als relevant. '
+        body = notice("Entwurf nicht gespeichert. " + problem, "error") if problem else ""
+        body += ('<p>Elternbriefe aus IServ werden wie Mails verarbeitet und gelten immer als relevant. '
                 'Zugangsdaten unter <a href="/einstellungen/zugangsdaten">Zugangsdaten</a> eintragen, danach unter '
                 '<a href="/diagnose">Diagnose</a> „iserv“ prüfen und den Entwurf übernehmen. Änderungen wirken '
                 'nach dem nächsten Dienststart.</p>'
@@ -107,7 +129,7 @@ class IServSite:
             if action in {"add", "update"}:
                 entry = {"id": number, "label": form["label"].strip() or "Elternbriefe",
                          "server": form["server"].strip(), "mailbox": int(form["mailbox"]),
-                         "historical_start": _historical_start(form["historical_start"], cfg.timezone)}
+                         "historical_start": start_boundary(form["historical_start"], cfg.timezone)}
                 if action == "add":
                     if any(account["id"] == number for account in accounts):
                         raise ValueError("IServ-Konto existiert bereits")
@@ -127,7 +149,14 @@ class IServSite:
             self.runtime.setup.save(
                 f"web:{session.id}", int(form["version"]), form["key"], 6, {"iserv.accounts": accounts},
                 request_signature={name: value for name, value in form.items() if name not in {"csrf", "key"}})
-        except (ValueError, KeyError, StopIteration, PermissionError):
+        except ConfigurationConflict:
+            return Response.text(409, "Konfiguration oder Entwurf geändert; neu einlesen und Änderungen prüfen.")
+        except ValueError as exc:
+            # Shown on the page itself, so the cause (e.g. an invalid address) is visible at once.
+            page = self.index(request, session, reason(exc))
+            page.status = 422
+            return page
+        except (KeyError, StopIteration, PermissionError):
             return Response.text(409, "Entwurf nicht gespeichert; Angaben, Version und Sitzung prüfen.")
         return Response.redirect(ROUTE)
 
