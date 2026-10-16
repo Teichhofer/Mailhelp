@@ -1,6 +1,6 @@
 # Einstellungen der Weboberfläche
 
-Stand: 15. Oktober 2026, Anwendungsversion 3.4.1.
+Stand: 16. Oktober 2026, Anwendungsversion 3.4.3.
 
 Die globalen Einstellungen bieten eine Bereichsübersicht mit direkten Sprunglinks, beispielsweise
 zu Antworten, Zielen, Aufbewahrung und Protokollierung. Die verwendeten KI-Modelle stehen in einer
@@ -49,6 +49,34 @@ die Formulare prüfen den `.env`-Dateistand und verhindern wiederholte Schreibvo
 gespeicherte Werte sofort. So lässt sich ein neues Konto prüfen, bevor sein
 Konfigurationsentwurf übernommen wird. Die im vorigen Absatz beschriebenen HMAC-Belege
 gelten für den Schnellzugriff innerhalb der allgemeinen Einstellungsseite.
+
+## IServ-Konten
+
+Unter `/einstellungen/iserv` lassen sich Konten als Einrichtungsentwurf anlegen und ändern.
+„Ältere Briefe nicht verarbeiten vor“ akzeptiert `TT.MM.JJJJ` (z. B. `01.09.2026`),
+`JJJJ-MM-TT` (z. B. `2026-09-01`) oder einen ISO-8601-Zeitpunkt mit UTC-Offset.
+Ein reines Datum gilt ab 00:00 Uhr in der Zeitzone des Konfigurationsentwurfs;
+für `Europe/Berlin` wird `01.09.2026` als `2026-09-01T00:00:00+02:00` gespeichert.
+Im Winter gilt der entsprechende Winterzeit-Offset. Ein leeres Feld erbt die Grenze des
+zugeordneten Postfachs. Ungültige Daten und Zeitpunkte ohne Offset werden abgewiesen.
+Zugangsdaten werden separat unter **Zugangsdaten** gespeichert. Erst nach Diagnose und
+ausdrücklicher, versionsbezogener Übernahme wird die Konfiguration geändert.
+
+## Kontenstatus
+
+Die Statusseite zeigt unter **Konfigurierte Konten** alle gespeicherten IMAP- und IServ-Konten,
+Kalender und Aufgaben je Zielprofil sowie Telegram. Kontonummer und Anzeigename unterscheiden
+die Zugänge. Auch deaktivierte Konten und nicht verwendete Zielprofile bleiben sichtbar.
+Ein Konto beginnt nach jedem Dienststart mit „noch nicht geprüft“. Ein belegter erfolgreicher
+Kontakt zeigt seinen Zeitpunkt; ein fehlgeschlagener Versuch zeigt „Fehler“. Die Ergebnisse
+eines Kontos bestätigen kein anderes Konto. Offene IMAP-Ordnerfehler halten den Kontostatus
+auf „Fehler“, auch wenn ein anderer Ordner erfolgreich gelesen wurde.
+
+Bereits übernommene Verbindungsänderungen zeigen bis zum Dienstneustart „Neustart erforderlich“;
+unbestätigte Entwürfe werden nicht aufgeführt. Ist die gespeicherte Konfiguration vorübergehend
+nicht lesbar oder ungültig, zeigt die Seite die Konten des laufenden Dienstes.
+Der Seitenaufruf startet weder eine Anmeldung noch eine externe Schreibaktion. Statuswechsel
+aktualisieren die Seite automatisch; laufende erfolgreiche Abrufe allein laden sie nicht ständig neu.
 
 ## Mailabruf und Betrieb
 

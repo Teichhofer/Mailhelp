@@ -16,6 +16,7 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Protocol
 from urllib.parse import parse_qs
+from zoneinfo import ZoneInfo
 
 from pydantic import ValidationError
 
@@ -172,6 +173,7 @@ class MailhelpSite:
 
 
     def status(self, request: Request, session: WebSession) -> Response:
+        from .status_accounts import account_rows
         overview = self.views.overview()
         now = self.clock()
         info = ServiceInfo(
@@ -181,20 +183,37 @@ class MailhelpSite:
         system = self.views.system(now)
         metrics = self.archive.metrics
         runtime = metrics.runtime() if metrics is not None else None
+        accounts = self._status_accounts()
         info = replace(info, runtime=runtime,
                        services=tuple(metrics.expected_services()) if metrics is not None else (),
-                       fingerprint=self._status_fingerprint(overview, system, runtime))
+                       accounts=tuple(account_rows(accounts, runtime or {}, ZoneInfo(self.configured_timezone))),
+                       fingerprint=self._status_fingerprint(overview, system, runtime, accounts))
         return Response.html(200, status_page(overview.run, overview, self.configured_timezone, system, info))
 
+    def _status_accounts(self):
+        from ..config import Settings, read_yaml
+        from .status_accounts import configured_accounts
+        configuration = self.archive.configuration
+        if configuration is None:
+            return ()
+        running = configured_accounts(configuration.active)
+        try:
+            saved = configured_accounts(Settings.model_validate(read_yaml(configuration.directory / "config.yaml")))
+        except (OSError, ValueError):
+            return running
+        previous = {account.key: account for account in running}
+        return tuple(replace(account, pending_restart=previous.get(account.key) != account) for account in saved)
+
     @staticmethod
-    def _status_fingerprint(overview, system, runtime) -> str:
+    def _status_fingerprint(overview, system, runtime, accounts=()) -> str:
         """Changes when anything the status page shows changes (contact times excluded)."""
         parts = [overview.fingerprint, system.run_finished, system.run_total, system.mails_failed,
                  system.mails_waiting_relevance, sorted(system.analysis.items()),
-                 sorted((str(key), value) for key, value in system.proposals.items())]
+                 sorted((str(key), value) for key, value in system.proposals.items()), accounts]
         if runtime is not None:
             parts += [runtime["stage"], runtime.get("mail_id"), runtime.get("next_poll"),
-                      runtime.get("imap_errors", [])]
+                      runtime.get("imap_errors", []),
+                      sorted((key, value["status"]) for key, value in runtime.get("accounts", {}).items())]
         return hashlib.sha256(json.dumps(parts, default=str).encode("utf-8")).hexdigest()[:16]
 
     def act(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
@@ -302,7 +321,7 @@ class MailhelpSite:
             metrics = self.archive.metrics
             return Response.json(200, {"fingerprint": self._status_fingerprint(
                 overview, self.views.system(self.clock()),
-                metrics.runtime() if metrics is not None else None)})
+                metrics.runtime() if metrics is not None else None, self._status_accounts())})
         return Response.json(200, {"fingerprint": overview.fingerprint})
 
 

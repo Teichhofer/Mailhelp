@@ -108,6 +108,7 @@ def test_status_page_knows_the_iserv_contact(tmp_path):
 class Reader:
     def __init__(self, error=None):
         self.error, self.account_id, self.calls = error, ACCOUNT, []
+        self.account = SimpleNamespace(id=1)
 
     def check_access(self):
         self.calls.append("check")
@@ -146,9 +147,15 @@ def test_access_checks_include_every_iserv_account(tmp_path, monkeypatch):
     results = service.check_access()
     assert results["IServ Grundschule"] == "IServ-Anmeldung fehlgeschlagen"
     events = []
-    service.logger = SimpleNamespace(event=lambda level, module, event, **context: events.append((module, event)))
+    contexts = []
+    service.logger = SimpleNamespace(event=lambda level, module, event, **context:
+                                     (events.append((module, event)), contexts.append(context)))
     service.confirm_access()
     assert ("iserv", "access_check_failed") in events
+    assert contexts[-1]["account"] == 1
+    service.iserv.sources[0].reader.error = None
+    service.confirm_access()
+    assert events[-1] == ("iserv", "access_confirmed") and contexts[-1]["account"] == 1
 
 
 def test_unfinished_letters_resume_through_their_reader(tmp_path):

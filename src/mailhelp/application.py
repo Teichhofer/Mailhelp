@@ -160,13 +160,15 @@ class Application:
         for service, client in checks:
             if self.stop_event.is_set():
                 return
+            context = ({"account": client.account.id} if service == "iserv"
+                       else {"profile": getattr(client, "target_profile", 1)})
             try:
                 # Looked up inside the guard: a client without a check counts as unconfirmed.
                 client.check_access()
             except Exception as exc:
-                self.logger.event("WARNING", service, "access_check_failed", error=exc)
+                self.logger.event("WARNING", service, "access_check_failed", error=exc, **context)
             else:
-                self.logger.event("INFO", service, "access_confirmed")
+                self.logger.event("INFO", service, "access_confirmed", **context)
 
     def _active_writers(self) -> list[TargetWriter]:
         from .target_profiles import ProfileWriters

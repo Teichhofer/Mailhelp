@@ -1,5 +1,26 @@
 # Änderungen
 
+## 3.4.3 – Vollständige Kontenübersicht auf der Statusseite
+
+- Die Statusseite zeigt alle konfigurierten IMAP- und IServ-Konten, Kalender und Aufgaben
+  je Zielprofil sowie Telegram auch vor dem ersten erfolgreichen Kontakt an.
+- Erfolg und Fehler werden je Konto getrennt erfasst; deaktivierte Konten, ungenutzte
+  Zielprofile und übernommene Änderungen mit ausstehendem Neustart sind gekennzeichnet.
+  Unbestätigte Entwürfe bleiben ausgeschlossen. Der Seitenaufruf prüft keine externen Dienste.
+- Konten- und Statuswechsel aktualisieren die Seite, wiederholte erfolgreiche Abrufe allein
+  lösen keinen ständigen Neuaufbau aus. Regressionstests prüfen Isolation, Wiederholung,
+  Neustart, Fehlerbehebung, HTML-Escaping und die Ansicht in drei Browsergrößen.
+
+## 3.4.2 – Datumsangaben für IServ-Konten im Web
+
+- Fehler beim Anlegen und Ändern eines IServ-Kontos mit einer Startgrenze wie
+  `01.09.2026` behoben: Das Webformular akzeptiert `TT.MM.JJJJ` und `JJJJ-MM-TT`
+  und speichert den Tagesbeginn mit dem Offset der konfigurierten Zeitzone.
+  ISO-8601-Zeitpunkte mit explizitem Offset und die leere Postfach-Vererbung bleiben gültig.
+- Feldbeschriftung und Hilfe erklären die Eingaben. Regressionstests prüfen Datumsformate,
+  Sommer-/Winterzeit, andere Zeitzonen, ungültige Daten, Neustart, Wiederholung,
+  Sitzung, CSRF, Version und ausdrückliche Übernahme; der Browsertest füllt die Startgrenze aus.
+
 ## 3.4.1 – Zusammenführung der lokalen Änderungen mit 3.4.0
 
 - Lokale Korrekturen und den Stand 3.4.0 zusammengeführt; IServ-Elternbriefe,

@@ -139,13 +139,41 @@ def test_iserv_accounts_are_added_as_an_accessible_draft(page, setup_server):
     expect(page.get_by_role("heading", name="IServ-Konten", exact=True)).to_be_visible()
     assert audit(page, "iserv-empty-" + page.device, page.mobile) == []
     page.get_by_label("IServ-Adresse der Schule (https://…)", exact=True).fill("https://schule.example")
+    page.get_by_label("Ältere Briefe nicht verarbeiten vor", exact=False).fill("01.09.2026")
     page.get_by_role("button", name="IServ-Konto als Entwurf hinzufügen", exact=True).click()
     expect(page.get_by_role("heading", name="Entwurf prüfen", exact=True)).to_be_visible()
     expect(page.get_by_role("heading", name="Elternbriefe · 1", exact=True)).to_be_visible()
     assert audit(page, "iserv-draft-" + page.device, page.mobile) == []
     assert setup_server.site.archive.configuration.active.iserv.accounts == []
+    account = setup_server.site.setup_page.runtime.setup.draft_settings().iserv.accounts[0]
+    assert account.historical_start.isoformat() == "2026-09-01T00:00:00+00:00"  # fixture timezone: UTC
     page.get_by_role("button", name="Entwurf verwerfen", exact=True).click()
     expect(page.get_by_role("heading", name="Entwurf prüfen", exact=True)).to_have_count(0)
+
+
+def test_status_lists_iserv_and_other_configured_accounts(page, setup_server):
+    from mailhelp.config import IServAccountSettings
+    setup_server.site.archive.configuration.active.iserv.accounts = [
+        IServAccountSettings(id=1, label="Grundschule", server="https://schule.example"),
+        IServAccountSettings(id=2, label="Pausiert", server="https://pause.example", enabled=False)]
+    import yaml
+    configuration = setup_server.site.archive.configuration
+    (configuration.directory / "config.yaml").write_text(
+        yaml.safe_dump(configuration.active.model_dump(mode="json")), encoding="utf-8")
+    sign_in(page, setup_server)
+    page.goto(setup_server.url + "/status")
+    expect(page.get_by_role("heading", name="Konfigurierte Konten", exact=True)).to_be_visible()
+    expect(page.get_by_text("IServ 1 · Grundschule", exact=True)).to_be_visible()
+    expect(page.get_by_text("IServ 2 · Pausiert", exact=True)).to_be_visible()
+    assert audit(page, "status-accounts-" + page.device, page.mobile) == []
+    metrics = setup_server.site.archive.metrics
+    metrics.observe("poll_failed", {"service": "iserv", "account": 1, "error": "private"})
+    page.reload()
+    expect(page.get_by_text("Fehler beim letzten Verbindungsversuch", exact=True)).to_be_visible()
+    metrics.observe("letters_listed", {"service": "iserv", "account": 1})
+    page.reload()
+    expect(page.get_by_text("Fehler beim letzten Verbindungsversuch", exact=True)).to_have_count(0)
+    assert setup_server.writer.created == []
 
 
 def test_credentials_are_write_only_and_accessible(page, setup_server, monkeypatch):

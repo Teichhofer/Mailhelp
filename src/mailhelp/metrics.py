@@ -159,6 +159,8 @@ class MetricsRecorder:
         self.activity: dict[str, Any] = {"stage": "idle", "mail_id": None, "started": time.monotonic()}
         self.contacts: dict[str, str] = {}
         self.imap_errors: dict[tuple[str, str], dict[str, Any]] = {}
+        self.mailbox_numbers: dict[str, int] = {}
+        self.accounts: dict[str, dict[str, str]] = {}
         # Calendar, task list and their sign-in; replaced by the configured providers.
         self.write_services: list[str] = ["Todoist", "Google Kalender", "Google-Anmeldung"]
         self.failures = 0
@@ -171,6 +173,7 @@ class MetricsRecorder:
         with self._lock:
             return {**self.activity, "elapsed": time.monotonic() - self.activity["started"],
                     "contacts": dict(self.contacts),
+                    "accounts": {key: dict(value) for key, value in self.accounts.items()},
                     "imap_errors": [dict(item) for _, item in sorted(self.imap_errors.items())]}
 
     def expected_services(self) -> list[str]:
@@ -187,6 +190,7 @@ class MetricsRecorder:
         self._track_state(event, context)
         self._track_imap_errors(event, context)
         self._track_contact(event, context)
+        self._track_account(event, context)
         self._track_processing(event, context)
         if self.settings.enabled and isinstance(context.get("call_id"), str):
             self._track_call(event, context)
@@ -240,6 +244,31 @@ class MetricsRecorder:
                 self.contacts["Jev (Relevanz)"] = now
         if contact is not None:
             self.contacts[contact] = now
+
+    def _track_account(self, event: str, context: dict) -> None:
+        """Keep account-specific outcomes without credentials or provider error text."""
+        service = context.get("service")
+        if service == "imap":
+            number = context.get("mailbox", self.mailbox_numbers.get(str(context.get("account_id", ""))))
+        elif service == "iserv":
+            number = context.get("account")
+        elif service in dict(_WRITE_SERVICES):
+            number = context.get("profile", 1)
+        elif service == "telegram":
+            number = ""
+        else:
+            return
+        if number is None:
+            return
+        key = "telegram" if service == "telegram" else f"{service}:{number}"
+        if (service, event) in CONTACT_EVENTS:
+            status = "ready"
+        elif event in {"access_check_failed", "poll_failed", "optional_folder_failed", "request_failed",
+                       "create_failed"}:
+            status = "failed"
+        else:
+            return
+        self.accounts[key] = {"status": status, "checked_at": datetime.now(UTC).isoformat()}
 
     def _track_processing(self, event: str, context: dict) -> None:
         if event == "processing_started":

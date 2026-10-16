@@ -401,6 +401,9 @@ def build_application(
         stack.callback(built.close)
         assert logger.metrics is not None  # _attach_metrics above always sets the recorder
         logger.metrics.write_services = provider_services(settings.targets)
+        logger.metrics.mailbox_numbers = {
+            mailbox_account_id(source.mailbox, secrets.imap_credentials(source.mailbox.id)): source.mailbox.id
+            for source in sources}
         todoist, calendar = built.tasks, built.calendar
         writers = built.slots
         web_enabled = settings.web.enabled and not access_diagnostics

@@ -5,7 +5,10 @@ import re
 from html import unescape
 from uuid import uuid4
 
+import pytest
 import yaml
+
+from mailhelp.setup import SetupService
 
 ROUTE = "/einstellungen/iserv"
 SAVE = ROUTE + "/speichern"
@@ -47,6 +50,34 @@ def approve(profiled, diagnosed: bool = True):
 
 NEW = {"label": "Grundschule", "server": "https://Schule.example/", "mailbox": "2",
        "historical_start": "2026-10-01T00:00:00+02:00"}
+
+
+@pytest.mark.parametrize(("start", "zone", "expected"), [
+    ("01.09.2026", "Europe/Berlin", "2026-09-01T00:00:00+02:00"),
+    ("2026-09-01", "Europe/Berlin", "2026-09-01T00:00:00+02:00"),
+    (" 01.12.2026 ", "Europe/Berlin", "2026-12-01T00:00:00+01:00"),
+    ("01.09.2026", "America/New_York", "2026-09-01T00:00:00-04:00"),
+])
+def test_regression_calendar_date_is_saved_as_local_midnight(profiled, start, zone, expected):
+    """A calendar date used to fail with the generic draft/session error (HTTP 409)."""
+    raw = config(profiled)
+    raw["timezone"] = zone
+    (profiled.tmp_path / "config.yaml").write_text(yaml.safe_dump(raw), encoding="utf-8")
+    before = (profiled.tmp_path / "config.yaml").read_bytes()
+    form = {**_form(profiled, "add"), **NEW, "historical_start": start}
+    browser = profiled.web.browser
+    assert browser.request("POST", SAVE, form).status == 303
+    state = profiled.runtime.setup.state()
+    assert state.patch["iserv.accounts"][0]["historical_start"] == expected
+    # After a restart the saved draft remains intact; a repeated add creates no duplicate.
+    profiled.runtime.setup = SetupService(profiled.app.configuration)
+    assert browser.request("POST", SAVE, form).status == 409
+    assert profiled.runtime.setup.state() == state
+    assert (profiled.tmp_path / "config.yaml").read_bytes() == before
+    assert approve(profiled) == 303
+    assert config(profiled)["iserv"]["accounts"][0]["historical_start"] == expected
+    assert submit(profiled, "update", **{**NEW, "historical_start": start}).status == 303
+    assert profiled.runtime.setup.draft_settings().iserv.accounts[0].historical_start.isoformat() == expected
 
 
 def test_add_change_deactivate_and_remove_an_account_only_after_approval(profiled):
@@ -97,6 +128,30 @@ def test_invalid_or_stale_changes_keep_the_draft(profiled):
     for changes in ({"id": "1"}, {"action": "rename"}, {"action": "update", "id": "9"}, {"action": "toggle", "id": "9"}):
         assert profiled.web.browser.request("POST", SAVE, {**form, **NEW, **changes}).status == 409
     assert profiled.runtime.setup.draft_settings().iserv.accounts[0].label == "Grundschule"
+
+
+@pytest.mark.parametrize("start", ["31.09.2026", "2026-02-29", "01.09.26", "2026-09-01T12:00:00"])
+def test_invalid_calendar_dates_and_naive_timestamps_keep_the_draft(profiled, start):
+    before = profiled.runtime.setup.state()
+    assert submit(profiled, "add", **{**NEW, "historical_start": start}).status == 409
+    assert profiled.runtime.setup.state() == before
+    assert config(profiled)["iserv"]["accounts"] == []
+
+
+def test_calendar_date_changes_still_require_csrf_version_and_session(profiled, monkeypatch):
+    web = profiled.web
+    form = {**_form(profiled, "add"), **NEW, "historical_start": "01.09.2026"}
+    before = profiled.runtime.setup.state()
+    assert web.browser.request("POST", SAVE, {**form, "csrf": "invalid"}).status == 403
+    assert web.browser.request("POST", SAVE, {**form, "version": "99"}).status == 409
+    with monkeypatch.context() as patch:
+        patch.setattr(web.auth, "active", lambda session: False)
+        assert web.browser.request("POST", SAVE, form).status == 409
+    assert profiled.runtime.setup.state() == before
+    assert web.browser.request("POST", SAVE, form).status == 303
+    state = profiled.runtime.setup.state()
+    assert web.browser.request("POST", SAVE, {**form, "historical_start": "02.09.2026"}).status == 409
+    assert profiled.runtime.setup.state() == state
 
 
 def test_ten_accounts_fill_every_number_and_labels_default(profiled):

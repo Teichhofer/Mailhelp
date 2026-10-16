@@ -2448,7 +2448,27 @@ ausdrücklich, versionsbezogen und nach einer aktuellen Diagnose `iserv` („ber
 Konten genügt „deaktiviert“); `config.yaml` wird kommentarerhaltend geschrieben. Ein übernommener
 Einrichtungsentwurf wird danach geleert, damit weitere Änderungen auf dem neuen Dateistand beginnen.
 
+Seit 3.4.2 akzeptiert die Startgrenze im IServ-Webformular zusätzlich reine Datumsangaben
+als `TT.MM.JJJJ` oder `JJJJ-MM-TT`. Sie werden als 00:00 Uhr in `timezone` des aktuellen
+Konfigurationsentwurfs ausgewertet und vor der Validierung in einen ISO-8601-Zeitpunkt mit
+dem an diesem Tag gültigen UTC-Offset umgewandelt. `01.09.2026` wird bei `Europe/Berlin`
+zu `2026-09-01T00:00:00+02:00`. Zeitpunkte benötigen weiterhin einen expliziten Offset;
+ein leeres Feld erbt die Postfachgrenze. Der YAML-Konfigurationsvertrag bleibt unverändert.
+
 ## Darstellung der Weboberfläche (3.3.1)
+
+Seit 3.4.3 enthält `/status` eine vollständige Kontenübersicht aus der gespeicherten Konfiguration:
+IMAP, IServ, Kalender und Aufgaben je Zielprofil sowie Telegram. Nummer und Anzeigename
+identifizieren jedes Konto; deaktivierte Konten und ungenutzte Zielprofile bleiben sichtbar.
+Erfolgs- und Fehlermeldungen werden anhand der Konto-/Postfach-/Profilnummer zugeordnet,
+ohne Zugangsdaten oder rohe Fehlermeldungen in den Status zu übernehmen. Erfolg eines Kontos
+bestätigt kein anderes Konto. Offene IMAP-Ordnerfehler haben Vorrang vor einem erfolgreichen
+Kontakt zu einem anderen Ordner. Ohne Kontakt seit Dienststart ist der Status unbekannt;
+nach Neustart werden frühere Verbindungszustände nicht als aktuelle Bestätigung ausgegeben.
+Übernommene Verbindungsänderungen gegenüber den geladenen Konten zeigen „Neustart erforderlich“.
+Unbestätigte Entwürfe sind nicht enthalten; bei nicht lesbarer oder ungültiger Konfiguration
+dient die geladene Konfiguration als Rückfall. Die Ansicht löst keine externen Aufrufe aus.
+Konten- und Zustandswechsel ändern den Status-Fingerprint; reine Kontaktzeitänderungen nicht.
 
 Ab 1200 Pixeln Breite bündelt eine feste Seitenleiste die Navigation in Arbeitsbereich, Einblicke
 und Verwaltung. Auf schmaleren Bildschirmen bleibt die Navigationsleiste horizontal scrollbar;

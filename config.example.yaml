@@ -171,8 +171,11 @@ imap:
 # Zugangsdaten in .env: ISERV_<id>_USERNAME und ISERV_<id>_PASSWORD (Elternkonto).
 # mailbox: dessen Zielprofil und Standards gelten für die Briefe. Ältere Briefe als
 # historical_start (ohne Angabe: die Grenze dieses Postfachs) werden nicht verarbeitet.
+# Im IServ-Webformular auch TT.MM.JJJJ oder JJJJ-MM-TT: Tagesbeginn in timezone.
+# In YAML bleibt historical_start ein ISO-8601-Zeitpunkt mit explizitem UTC-Offset.
 # Mailhelp liest die IServ-Weboberfläche wie ein Browser; eine offizielle API gibt es nicht.
 iserv:
+  # Alle Konten erscheinen einzeln auf /status; enabled: false bleibt als deaktiviert sichtbar.
   accounts: []
 #  accounts:
 #  - id: 1

@@ -43,6 +43,7 @@ class ServiceInfo:
     runtime: dict | None = None
     services: tuple[str, ...] = ()
     fingerprint: str | None = None
+    accounts: tuple[tuple[str, str], ...] = ()
 
 
 RUNTIME_STAGES = {
@@ -188,6 +189,11 @@ def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
     ]))
 
     parts.append(_runtime_section(info, zone))
+    if info.accounts:
+        parts.append("<h2>Konfigurierte Konten</h2>" + _facts(list(info.accounts)))
+        parts.append('<p class="meta">Beobachteter Stand seit Dienststart; diese Seite führt keine '
+                     'Verbindungsprüfung aus. Übernommene Verbindungsänderungen benötigen einen Neustart; '
+                     'nicht übernommene Einrichtungsentwürfe sind nicht enthalten.</p>')
     parts.append(_imap_error_section(info, zone))
 
     parts.extend(_run_section(run, system, zone))

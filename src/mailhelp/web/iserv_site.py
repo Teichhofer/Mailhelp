@@ -6,7 +6,10 @@ never part of this page; they are entered under Einstellungen → Zugangsdaten.
 """
 from __future__ import annotations
 
+import re
+from datetime import datetime
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from ..config import IServAccountSettings
 from .forms import post_form
@@ -14,6 +17,16 @@ from .http import Response
 from .pages import e
 
 ROUTE = "/einstellungen/iserv"
+
+
+def _historical_start(value: str, timezone: str) -> str | None:
+    """Resolve calendar dates at midnight in the draft's zone; preserve explicit instants."""
+    value = value.strip()
+    for pattern, date_format in ((r"\d{2}\.\d{2}\.\d{4}", "%d.%m.%Y"),
+                                 (r"\d{4}-\d{2}-\d{2}", "%Y-%m-%d")):
+        if re.fullmatch(pattern, value):
+            return datetime.strptime(value, date_format).replace(tzinfo=ZoneInfo(timezone)).isoformat()
+    return value or None
 
 
 def _input(name: str, label: str, value: object, suffix: str, kind: str = "text", **attrs: str) -> str:
@@ -32,7 +45,8 @@ def _account_fields(account: dict[str, Any], mailboxes: list[tuple[int, str]], s
                      required="required", maxlength="253")
             + f'<label for="iserv-mailbox-{suffix}">Einstellungen und Zielprofil von Postfach</label>'
             f'<select id="iserv-mailbox-{suffix}" name="mailbox">{options}</select>'
-            + _input("historical_start", "Ältere Briefe nicht verarbeiten vor (ISO 8601, leer: Grenze des Postfachs)",
+            + _input("historical_start",
+                     "Ältere Briefe nicht verarbeiten vor (TT.MM.JJJJ oder ISO 8601; leer: Postfachgrenze)",
                      start, suffix, maxlength="40"))
 
 
@@ -56,7 +70,9 @@ class IServSite:
         body = ('<p>Elternbriefe aus IServ werden wie Mails verarbeitet und gelten immer als relevant. '
                 'Zugangsdaten unter <a href="/einstellungen/zugangsdaten">Zugangsdaten</a> eintragen, danach unter '
                 '<a href="/diagnose">Diagnose</a> „iserv“ prüfen und den Entwurf übernehmen. Änderungen wirken '
-                'nach dem nächsten Dienststart.</p>')
+                'nach dem nächsten Dienststart.</p>'
+                f'<p>Ein Datum wie 01.09.2026 oder 2026-09-01 gilt ab 00:00 Uhr in {e(cfg.timezone)}. '
+                'Ein ISO-8601-Zeitpunkt benötigt einen UTC-Offset, z. B. 2026-09-01T00:00:00+02:00.</p>')
         for account in cfg.iserv.accounts:
             data = account.model_dump(mode="json")
             state = "aktiv" if account.enabled else "deaktiviert"
@@ -91,7 +107,7 @@ class IServSite:
             if action in {"add", "update"}:
                 entry = {"id": number, "label": form["label"].strip() or "Elternbriefe",
                          "server": form["server"].strip(), "mailbox": int(form["mailbox"]),
-                         "historical_start": form["historical_start"].strip() or None}
+                         "historical_start": _historical_start(form["historical_start"], cfg.timezone)}
                 if action == "add":
                     if any(account["id"] == number for account in accounts):
                         raise ValueError("IServ-Konto existiert bereits")

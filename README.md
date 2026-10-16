@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.4.1 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.4.3 · **Python:** 3.12.x · **Lizenz:** MIT
 
 [Installation](#installation) · [Konfiguration](#konfiguration) ·
 [Betrieb](#betrieb) · [Docker](#docker) ·
@@ -33,8 +33,12 @@ einem lokalen Ollama-Server ist ebenfalls verfügbar.
   Benachrichtigungen, Termindauern und Aufbewahrungsregeln mit globaler Vererbung.
 - **Telegram und Web-App:** Vorschläge prüfen, klären, bearbeiten, bestätigen oder
   verwerfen. Die installierbare Web-App unterstützt auch den Betrieb ohne Telegram.
+  Die Statusseite führt alle konfigurierten IMAP-, IServ-, Kalender-, Aufgaben- und
+  Telegram-Konten einzeln auf, einschließlich deaktivierter Konten und noch ausstehender Neustarts.
 - **IServ-Elternbriefe:** Briefe aus dem IServ-Elternbriefmodul werden wie Mails
   verarbeitet, einschließlich Anhängen, und gelten immer als relevant.
+  Die Startgrenze im IServ-Webformular akzeptiert auch `01.09.2026` oder `2026-09-01`;
+  reine Datumsangaben gelten ab 00:00 Uhr in der konfigurierten Zeitzone.
 - **Optionale Unterstützung:** Antwortentwürfe im Ursprungspostfach, Tagesüberblicke,
   Web-Push und Tätigkeitsberichte mit XLSX-Export.
 
