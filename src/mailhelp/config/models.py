@@ -216,11 +216,12 @@ class IServAccountSettings(ConfigModel):
     @field_validator("server")
     @classmethod
     def valid_server(cls, value: str) -> str:
+        """The school's HTTPS origin; a pasted link (path, query) or a bare host name is reduced to it."""
         from urllib.parse import urlsplit
-        parts = urlsplit(value.strip())
-        if (parts.scheme != "https" or not parts.hostname or parts.username or parts.password
-                or parts.query or parts.fragment or parts.path not in {"", "/"}):
-            raise ValueError("server muss eine HTTPS-Adresse ohne Pfad und ohne Zugangsdaten sein")
+        text = value.strip()
+        parts = urlsplit(text if "://" in text else "https://" + text)
+        if parts.scheme != "https" or not parts.hostname or parts.username or parts.password:
+            raise ValueError("Die IServ-Adresse muss mit https:// beginnen und darf keine Zugangsdaten enthalten")
         return f"https://{parts.netloc.lower()}"
 
     @field_validator("historical_start", mode="before")

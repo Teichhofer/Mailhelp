@@ -177,7 +177,7 @@ iserv:
 #  accounts:
 #  - id: 1
 #    label: Elternbriefe
-#    server: https://schule.example
+#    server: https://schule.example   # ein kopierter IServ-Link wird auf die Schuladresse gekürzt
 #    mailbox: 1
 #    historical_start: '2026-10-01T00:00:00+02:00'
 telegram:

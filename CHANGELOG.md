@@ -1,6 +1,38 @@
 # Änderungen
 
-## 3.4.1 – Zusammenführung der lokalen Änderungen mit 3.4.0
+## 3.4.3 – Zusammenführung von beta 3.4.2 mit main 3.4.1
+
+- Die Dokumentationsergänzung (beta 3.4.1) und die Korrektur beim Anlegen von IServ-Konten
+  (beta 3.4.2) mit den lokalen Web-Korrekturen von main 3.4.1 zusammengeführt: Rückgängig-Sperre
+  der Auswahl, Bereich „Zugangsdaten“ in den Einstellungen und die gemeinsame Speicherroute, die
+  beide Zugangsdatenformulare unterstützt.
+- Die Versionsnummer 3.4.1 wurde auf beiden Zweigen unabhängig vergeben; die beiden Abschnitte
+  sind unten als „beta“ und „main“ gekennzeichnet.
+
+## 3.4.2 – beta: IServ-Konto anlegen mit kopiertem Link und deutschem Datum
+
+- Fehler behoben: Das Anlegen eines IServ-Kontos scheiterte mit „Entwurf nicht gespeichert;
+  Angaben, Version und Sitzung prüfen.“, wenn die Adresse als kopierter IServ-Link (mit Pfad),
+  ohne `https://` oder die Startgrenze als `01.10.2026` eingegeben wurde. Die Adresse wird jetzt
+  auf die Schuladresse gekürzt, die Startgrenze nimmt `TT.MM.JJJJ [HH:MM]` in der konfigurierten
+  Zeitzone an. `http://` und Adressen mit Zugangsdaten bleiben abgelehnt.
+- Ungültige Eingaben zeigt die Seite jetzt mit ihrer Ursache an (z. B. „IServ-Adresse: …“ oder
+  „Startgrenze: …“) statt der allgemeinen Meldung.
+- Regressionstests einschließlich eines Browsertests für Desktop, Telefon und schmale Ansicht.
+
+## 3.4.1 – beta: Dokumentation für IServ, Zugangsdaten und Einstellungen vervollständigt
+
+- Neue [Release-Anleitung 3.4](docs/Release-3.4.md) mit Einrichtung der IServ-Elternbriefe über
+  die Weboberfläche und über Dateien, der Zugangsdatenseite, den neuen Einstellungen und den
+  Änderungen seit 3.3.2; im Quellarchiv enthalten und in der README verlinkt.
+- Einrichtungsanleitung um einen Abschnitt zu IServ-Elternbriefen und die Zugangsdaten im Web
+  ergänzt; Web-Einstellungen beschreiben die Seiten IServ-Konten und Zugangsdaten.
+- Hilfetext zum Kalenderdienst nennt die Zugangsdatenseite; Planung 4.0 vermerkt die vorgezogene
+  Zugangsdatenverwaltung.
+- Projektwebsite: IServ-Elternbriefe, Zugangsdaten im Web und weitere Einstellungen auf Start-,
+  Einrichtungs-, Konfigurations- und Datenschutzseite.
+
+## 3.4.1 – main: Zusammenführung der lokalen Änderungen mit 3.4.0
 
 - Lokale Korrekturen und den Stand 3.4.0 zusammengeführt; IServ-Elternbriefe,
   Web-Einstellungen und Auswertungsdiagramme bleiben erhalten.

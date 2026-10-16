@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.4.1 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.4.3 · **Python:** 3.12.x · **Lizenz:** MIT
 
 [Installation](#installation) · [Konfiguration](#konfiguration) ·
 [Betrieb](#betrieb) · [Docker](#docker) ·
@@ -379,7 +379,8 @@ Entwicklungsregeln stehen in [AGENTS.md](AGENTS.md), technische Verträge in der
 | Installation, Updates und Paketbetrieb | [Release-Anleitung](docs/Release-1.0.md) |
 | Einrichtung, OAuth und Qualitätsprüfung | [Betriebsanleitung](docs/Einrichtung-und-Qualitaetspruefung.md) |
 | Web-Einstellungen und Beispiele | [Einstellungsreferenz](docs/Web-Einstellungen.md) |
-| Aktuelle Weboberfläche und technische Konsolidierung | [Release 3.3](docs/Release-3.3.md) |
+| IServ-Elternbriefe, Zugangsdaten und Einstellungen im Web | [Release 3.4](docs/Release-3.4.md) |
+| Weboberfläche und technische Konsolidierung | [Release 3.3](docs/Release-3.3.md) |
 | Postfachregeln, Zielprofile und Migration | [Zielprofile und Upgrade](docs/Release-3.2.md) |
 | Mehrere Postfächer einrichten | [Postfachkonfiguration](docs/Release-3.1.md) |
 | Vorschläge abgleichen und ergänzen | [Bedienung und Abgleich](docs/Release-2.4.md) |
