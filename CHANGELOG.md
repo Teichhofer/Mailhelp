@@ -1,5 +1,16 @@
 # Änderungen
 
+## 3.4.6 – Interaktive Diagramme in der Auswertung
+
+- Ein Klick auf ein Diagramm oder „Vergrößern“ öffnet die große Dialogansicht. Auf kleinen
+  Bildschirmen lässt sich das vergrößerte Diagramm innerhalb des Dialogs horizontal verschieben.
+- Balkendetails erscheinen sofort beim Darüberfahren, bei Tastaturfokus oder beim Antippen:
+  Zeitraum bzw. Kategorie, Datenreihe und formatierter Wert mit Einheit.
+- Escape und „Schließen“ schließen den Dialog und geben den Fokus zurück. Tabellen und
+  SVG-Beschreibungen bleiben ohne JavaScript nutzbar; Inhalte werden nur als Text übernommen.
+- Python- und Browserfälle prüfen Daten-Escaping, beide Balkenarten, Maus, Tastatur, Touch,
+  Fokuswiederherstellung, eindeutige SVG-IDs, helle/dunkle Ansicht und den Betrieb ohne Skripte.
+
 ## 3.4.5 – Diagrammfarben und Stylesheet-Cache der Weboberfläche
 
 - Fehler behoben: In der Auswertung hatten die Balken für erfolgreiche und fehlgeschlagene

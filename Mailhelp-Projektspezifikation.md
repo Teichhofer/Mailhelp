@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 16. Oktober 2026, Anwendungsversion 3.4.5. Die folgenden Verträge beschreiben
+Stand: 16. Oktober 2026, Anwendungsversion 3.4.6. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -1995,6 +1995,15 @@ summierte Dauer je Verarbeitungsschritt und die gemeldeten Kosten je Modell (hö
 Balken, der Rest als „Weitere“). Die Diagramme sind serverseitiges SVG ohne Skripte und
 Inline-Styles, mit Titel und Beschreibung für Hilfstechnik und ihren Werten als aufklappbare
 Tabelle. Aufrufe ohne Kostenangabe fehlen in den Kostendiagrammen, statt als null zu zählen.
+Seit 3.4.6 ergänzt das externe Anwendungsskript eine Dialogansicht per Klick auf SVG oder
+„Vergrößern“. Der Dialog verwendet eine Kopie mit eindeutigen IDs und konsistenten
+ARIA-Verweisen, enthält weiterhin die Wertetabelle und stellt nach Escape oder „Schließen“
+den Fokus wieder her. Kleine Bildschirme können die große Grafik im Dialog horizontal
+verschieben. Mauszeiger, Tastaturfokus und Antippen eines Balkens zeigen dessen vollständige
+Kategorie, Datenreihe und formatierten Wert. Hinweise sind per Escape ausblendbar und per
+Maus erreichbar. Alle Inhalte werden escaped bzw. über textContent eingesetzt; weder
+Inline-Skripte noch Inline-Styles, externe Anfragen oder Schreibaktionen werden benötigt.
+Ohne JavaScript bleiben SVG-Titel und Tabellen verfügbar, die Vergrößerungsschaltflächen verborgen.
 
 **Einstellungen und Themen.** Bearbeitbar ist nur eine Positivliste von Einstellungen (seit 3.3.12
 einschließlich Stapelgröße und Reihenfolge des Abrufs, Telegram-Bindung, Antwortentwürfen,

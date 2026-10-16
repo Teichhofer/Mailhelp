@@ -105,6 +105,7 @@ retention:
 metrics:
   # Ab 1.2: inhaltsfreie Messung von KI-Aufrufen (Dauer, Modell, Schritt, Kosten) für
   # die Seite „Auswertung“. Gespeichert in logs/metrics/.
+  # Diagramme lassen sich anklicken und vergrößern; Balken zeigen Details per Maus/Fokus/Touch.
   enabled: true
   retention_days: 90
   # Annahmen für die Stromschätzung im Ollama-Betrieb (keine Messung):

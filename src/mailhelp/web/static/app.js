@@ -269,6 +269,54 @@
     return dialog;
   }
 
+  function chartDetails(figure) {
+    var plot = figure.querySelector(".chart-plot"), tip = figure.querySelector(".chart-tooltip");
+    figure.classList.add("chart-interactive");
+    tip.hidden = true;
+    function reveal(event) {
+      var point = event.target.closest("[data-chart-detail]");
+      if (!point) return;
+      tip.textContent = point.dataset.chartDetail;
+      tip.hidden = false;
+    }
+    function leave(event) {
+      if (!plot.contains(event.relatedTarget) && !plot.contains(document.activeElement)) tip.hidden = true;
+    }
+    plot.addEventListener("pointerover", reveal);
+    plot.addEventListener("focusin", reveal);
+    plot.addEventListener("click", reveal);
+    plot.addEventListener("pointerleave", leave);
+    plot.addEventListener("focusout", leave);
+    plot.addEventListener("keydown", function (event) {
+      if (event.key === "Escape") tip.hidden = true;
+    });
+  }
+
+  function zoomChart(figure) {
+    var opener = figure.querySelector(".chart-zoom"), copy = figure.cloneNode(true);
+    figure.querySelector(".chart-tooltip").hidden = true;
+    copy.classList.add("chart-expanded");
+    copy.querySelector(".chart-zoom").remove();
+    copy.setAttribute("aria-labelledby", "zoom-" + copy.getAttribute("aria-labelledby"));
+    // Keep every SVG title, description and caption reference unique in the document.
+    copy.querySelectorAll("[id]").forEach(function (node) { node.id = "zoom-" + node.id; });
+    copy.querySelectorAll("[aria-labelledby]").forEach(function (node) {
+      node.setAttribute("aria-labelledby", node.getAttribute("aria-labelledby").split(" ").map(function (id) {
+        return "zoom-" + id;
+      }).join(" "));
+    });
+    chartDetails(copy);
+    var title = figure.querySelector("figcaption span").textContent;
+    var dialog = modal(title + " – vergrößert", [copy]);
+    dialog.classList.add("chart-modal");
+    dialog.addEventListener("close", function () { opener.focus(); });
+  }
+
+  document.querySelectorAll("figure.chart").forEach(function (figure) {
+    figure.querySelector(".chart-zoom").hidden = false;
+    chartDetails(figure);
+  });
+
   function help() {
     var list = document.createElement("dl");
     [["J / ↓", "Nächster Vorgang"], ["K / ↑", "Vorheriger Vorgang"], ["C / Enter", "Bestätigen"],
@@ -346,6 +394,11 @@
   }
 
   document.addEventListener("click", function (event) {
+    var chart = event.target.closest(".chart:not(.chart-expanded)");
+    if (chart && event.target.closest("svg, .chart-zoom")) {
+      zoomChart(chart);
+      return;
+    }
     var chip = event.target.closest("a[data-filter]");
     if (chip) {
       event.preventDefault();

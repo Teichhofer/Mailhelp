@@ -1,6 +1,6 @@
 # Mailhelp 3.4 – IServ-Elternbriefe, Zugangsdaten und Einstellungen im Web
 
-Stand: 16. Oktober 2026. Aktueller Repository-Stand: 3.4.5.
+Stand: 16. Oktober 2026. Aktueller Repository-Stand: 3.4.6.
 Diese Anleitung fasst die Änderungen von 3.3.2 bis 3.4.4 für den Betrieb zusammen. Die
 technische Planung steht in [Planung 3.4](Planung-3.4.md), die Verträge in der
 [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
@@ -75,6 +75,9 @@ Einrichtung verwenden neue Werte sofort, der Mailabruf nach dem nächsten Neusta
 
 ## Weitere Änderungen
 
+- **Interaktive Diagramme (3.4.6):** Diagramme per Klick vergrößern, Balkendetails per Maus,
+  Tastaturfokus oder Touch lesen. Große Ansichten schließen mit Escape oder „Schließen“;
+  Tabellen und SVG-Beschreibungen bleiben ohne JavaScript verfügbar.
 - **Auswertung (3.3.9):** Diagramme zu KI-Aufrufen und Kosten je Tag oder Stunde, zur
   Verteilung der Aufrufdauer sowie zu Dauer je Verarbeitungsschritt und Kosten je Modell.
 - **Statusseite (3.3.3):** Beim Start prüft Mailhelp OpenRouter, Telegram und die Ziele im

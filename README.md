@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.4.5 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.4.6 · **Python:** 3.12.x · **Lizenz:** MIT
 
 [Installation](#installation) · [Konfiguration](#konfiguration) ·
 [Betrieb](#betrieb) · [Docker](#docker) ·
@@ -241,7 +241,9 @@ sein. Der Mailabruf verwendet neue Werte nach dem nächsten Neustart.
 
 Den Code auf der Anmeldeseite eingeben. Die Oberfläche bietet offene Entscheidungen,
 Mailansichten, Suche, Verlauf, Auswertung, Berichte und Einstellungen. Die Auswertung zeigt
-KI-Aufrufe, Kosten und Dauer auch als Diagramme je Tag, Schritt und Modell. Die Anmeldung
+KI-Aufrufe, Kosten und Dauer auch als Diagramme je Tag, Schritt und Modell. Ein Klick auf ein
+Diagramm öffnet eine große Ansicht. Balken zeigen ihre Details beim Darüberfahren, Fokussieren
+oder Antippen; Escape oder „Schließen“ beendet die große Ansicht. Die Anmeldung
 ist auch über Telegram möglich. Für den Betrieb ausschließlich mit Weboberfläche
 `telegram.enabled: false` setzen.
 

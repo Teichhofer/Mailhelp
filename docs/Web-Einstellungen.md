@@ -1,6 +1,6 @@
 # Einstellungen der Weboberfläche
 
-Stand: 16. Oktober 2026, Anwendungsversion 3.4.5.
+Stand: 16. Oktober 2026, Anwendungsversion 3.4.6.
 
 Die globalen Einstellungen bieten eine Bereichsübersicht mit direkten Sprunglinks, beispielsweise
 zu Antworten, Zielen, Aufbewahrung und Protokollierung. Die verwendeten KI-Modelle stehen in einer
@@ -64,6 +64,16 @@ Zugangsdaten werden separat unter **Zugangsdaten** gespeichert. Erst nach Diagno
 ausdrücklicher, versionsbezogener Übernahme wird die Konfiguration geändert.
 Ein Versionskonflikt antwortet mit HTTP 409; Konfiguration und Entwurf bleiben unverändert.
 Dann die Konfiguration in der Einrichtung neu einlesen und die Änderungen erneut prüfen.
+
+## Diagramme der Auswertung
+
+Ein Klick auf ein Diagramm oder seine Schaltfläche **Vergrößern** öffnet eine große Ansicht.
+Bei kleinen Bildschirmen lässt sich die Grafik darin horizontal verschieben. **Schließen**
+oder Escape beendet die Ansicht und setzt den Tastaturfokus auf **Vergrößern** zurück.
+Beim Darüberfahren, Fokussieren mit Tab oder Antippen eines Balkens werden Zeitraum bzw.
+Kategorie, Datenreihe und Wert mit Einheit angezeigt. Die Details bleiben auch beim Bewegen
+der Maus auf den Hinweis lesbar; Escape blendet sie aus. Die Daten ändern sich dadurch nicht.
+Tabellen und SVG-Beschreibungen sind weiterhin ohne JavaScript verfügbar.
 
 ## Kontenstatus
 

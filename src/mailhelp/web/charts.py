@@ -42,14 +42,28 @@ def _scale(maximum: float) -> float:
 
 def _figure(ident: str, title: str, description: str, svg: str, header: list[str], rows: list[list[str]],
             height: float = HEIGHT) -> str:
-    table = ("<details><summary>Werte als Tabelle</summary><div class=\"table-scroll\"><table><thead><tr>"
+    table = ('<details><summary>Werte als Tabelle</summary><div class="table-scroll" tabindex="0" '
+             f'role="region" aria-label="Wertetabelle: {e(title)}"><table><thead><tr>'
              + "".join(f"<th>{e(cell)}</th>" for cell in header) + "</tr></thead><tbody>"
              + "".join("<tr>" + "".join(f"<td>{e(cell)}</td>" for cell in row) + "</tr>" for row in rows)
              + "</tbody></table></div></details>")
-    return (f'<figure class="chart" aria-labelledby="{ident}-title"><figcaption id="{ident}-title">{e(title)}'
-            f'</figcaption><svg viewBox="0 0 {WIDTH} {height:.0f}" role="img" aria-labelledby="{ident}-svg-title '
+    return (f'<figure class="chart" aria-labelledby="{ident}-title"><figcaption>'
+            f'<span id="{ident}-title">{e(title)}</span><button type="button" class="button small chart-zoom" '
+            f'aria-label="{e(title)} vergrößern" aria-haspopup="dialog" hidden>Vergrößern</button></figcaption>'
+            f'<div class="chart-plot" tabindex="0" role="group" aria-label="Diagramm: {e(title)}">'
+            f'<svg viewBox="0 0 {WIDTH} {height:.0f}" role="group" '
+            f'aria-labelledby="{ident}-svg-title '
             f'{ident}-svg-desc" preserveAspectRatio="xMidYMid meet"><title id="{ident}-svg-title">{e(title)}</title>'
-            f'<desc id="{ident}-svg-desc">{e(description)}</desc>{svg}</svg>{table}</figure>')
+            f'<desc id="{ident}-svg-desc">{e(description)}</desc>{svg}</svg>'
+            '<div class="chart-detail" tabindex="0" role="group" aria-label="Balkendetails">'
+            '<p class="chart-hint" aria-hidden="true">'
+            'Balken für Details berühren, mit der Maus zeigen oder per Tab fokussieren.</p>'
+            f'<p class="chart-tooltip" role="tooltip" hidden></p></div></div>{table}</figure>')
+
+
+def _point(detail: str) -> str:
+    """Escaped details are readable with SVG titles, keyboard focus and the optional tooltip."""
+    return f'data-chart-detail="{e(detail)}" tabindex="0" role="img" aria-label="{e(detail)}"'
 
 
 def column_chart(ident: str, title: str, description: str, labels: list[str], series: list[Series],
@@ -73,8 +87,9 @@ def column_chart(ident: str, title: str, description: str, labels: list[str], se
             height = plot_height * values[index] / top
             if height > 0:
                 base -= height
+                detail = f"{label}: {name} {fmt(values[index])}"
                 svg += (f'<rect class="{css}" fill="{FILLS[css]}" x="{x:.1f}" y="{base:.1f}" width="{slot * 0.7:.1f}" '
-                        f'height="{height:.1f}"><title>{e(label)}: {e(name)} {e(fmt(values[index]))}</title></rect>')
+                        f'height="{height:.1f}" {_point(detail)}><title>{e(detail)}</title></rect>')
         if index % every == 0:
             svg += (f'<text class="chart-axis" {AXIS} x="{x + slot * 0.35:.1f}" y="{HEIGHT - 8}" '
                     f'text-anchor="middle">{e(label)}</text>')
@@ -99,11 +114,12 @@ def bar_list(ident: str, title: str, description: str, items: list[tuple[str, fl
         y = TOP + row_height * index
         width = (WIDTH - label_width - 90) * value / top
         short = label if len(label) <= 28 else label[:27] + "…"
+        detail = f"{label}: {fmt(value)}"
         svg += (f'<text class="chart-axis" {AXIS} x="{label_width - 8}" y="{y + row_height * 0.62:.1f}" '
                 f'text-anchor="end">{e(short)}</text>'
                 f'<rect class="{css}" fill="{FILLS[css]}" x="{label_width}" y="{y + row_height * 0.18:.1f}" '
                 f'width="{width:.1f}" '
-                f'height="{row_height * 0.64:.1f}"><title>{e(label)}: {e(fmt(value))}</title></rect>'
+                f'height="{row_height * 0.64:.1f}" {_point(detail)}><title>{e(detail)}</title></rect>'
                 f'<text class="chart-axis" {AXIS} x="{label_width + width + 6:.1f}" y="{y + row_height * 0.62:.1f}">'
                 f'{e(fmt(value))}</text>')
     return _figure(ident, title, description, svg, ["", title], [[label, fmt(value)] for label, value in items],

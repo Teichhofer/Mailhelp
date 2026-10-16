@@ -83,3 +83,16 @@ def test_regression_bars_keep_distinct_colours_without_the_stylesheet():
     fills = dict(re.findall(r'<rect class="(chart-[a-z]+)" fill="(#[0-9a-f]{6})"', html))
     assert fills["chart-ok"] != fills["chart-failed"] and fills["chart-cost"] not in {fills["chart-ok"], "#000000"}
     assert 'font-size="11"' in html and "<tspan" in html and 'fill="#a3262b" dx' in html
+
+
+def test_interactive_chart_metadata_escapes_labels_and_preserves_no_script_values():
+    html = column_chart("detail", 'Aufrufe "privat"', "Beschreibung", ['Tag "1" <script>'],
+                        [("ok & mehr", "chart-ok", [2])], count)
+    detail = 'Tag &quot;1&quot; &lt;script&gt;: ok &amp; mehr 2'
+    assert f'data-chart-detail="{detail}"' in html and f'aria-label="{detail}"' in html
+    assert 'tabindex="0" role="img"' in html and 'role="group"' in html
+    assert 'aria-haspopup="dialog" hidden>Vergrößern</button>' in html
+    assert "<script>" not in html and "<title>" + detail + "</title>" in html
+    horizontal = bar_list("model", "Modellkosten", "Beschreibung", [('Modell "A" <img>', 1)], count)
+    assert 'data-chart-detail="Modell &quot;A&quot; &lt;img&gt;: 1"' in horizontal
+    assert "Werte als Tabelle" in horizontal and "style=" not in horizontal
