@@ -342,6 +342,8 @@ proposal_reconciliation:
   # Mehr mögliche Treffer blockieren die automatische Zuordnung.
   max_semantic_candidates: 8
 web:
+  # Einstellungen → Mailhelp neu starten lädt nach ausdrücklicher Bestätigung
+  # gespeicherte Konfiguration und Zugangsdaten neu (Windows und Docker).
   # Einstellungen → Zugangsdaten bearbeitet einzelne Schlüssel in .env.
   # Bestehende Werte bleiben verborgen; Änderungen wirken nach Neustart.
   # Prozessvariablen haben Vorrang und werden im Zugangsdatenbereich gekennzeichnet.

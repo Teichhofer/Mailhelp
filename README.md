@@ -182,6 +182,11 @@ mailhelp --config-directory .
   Weboberfläche oder mit Strg+C in ihrem Terminal beenden.
 - Nach einem Update oder Wechsel des Codestands Mailhelp neu starten. Bis dahin
   liefert die Weboberfläche weiter Seiten und Dateien der laufenden Version aus.
+- Unter **Einstellungen → Mailhelp neu starten** steht neben „Mailhelp beenden“
+  ein Neustart mit eigener Bestätigungsseite bereit. Er stoppt den laufenden Dienst
+  kontrolliert und startet denselben Python-Interpreter mit denselben Startoptionen
+  neu. Gespeicherte Konfiguration, Zugangsdaten und aktualisierter Code werden neu
+  geladen; offene Vorgänge bleiben erhalten. Danach die Weboberfläche erneut öffnen.
 
 Relative Daten- und Logpfade beziehen sich auf `--config-directory`.
 Fehlende Themen-Dateien werden aus den Paketvorlagen angelegt; vorhandene Dateien

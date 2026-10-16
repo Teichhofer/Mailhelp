@@ -142,7 +142,7 @@ class MailhelpSite:
                 return self._forbidden()
             if request.method == "POST":
                 if (self.lifecycle is not None and self.lifecycle.state != "running"
-                        and request.path != "/einstellungen/beenden"):
+                        and request.path not in {"/einstellungen/beenden", "/einstellungen/neustarten"}):
                     return self._reply(request, 503, "Mailhelp wird beendet; keine neuen Aktionen möglich.")
                 form = self._form(request)
                 if isinstance(form, Response):

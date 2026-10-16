@@ -1,5 +1,16 @@
 # Änderungen
 
+## Noch nicht veröffentlicht – Neustart über die Weboberfläche
+
+- Neben „Mailhelp beenden“ steht „Mailhelp neu starten“ mit eigener Bestätigungsseite.
+  Sitzung, CSRF, aktuelle Prozesskennung und aktionsgebundener Idempotenzschlüssel werden geprüft;
+  die Sitzung wird nach Auslieferung der Antwort nochmals geprüft.
+- Nach kontrolliertem Stopp und Freigabe aller Ressourcen ersetzt sich Mailhelp durch
+  denselben Python-Interpreter mit denselben Startoptionen. Code, Konfiguration und
+  Zugangsdaten werden unter Windows und Docker neu geladen; offene Vorgänge bleiben erhalten.
+- Doppelte Anforderungen lösen keinen zweiten Stopp oder Neustart aus. Veraltete
+  Rückrufe können keine zwischenzeitlich neu erteilte Anforderung ausführen.
+
 ## Noch nicht veröffentlicht – Große Anhänge manuell prüfen
 
 - Textextraktion und OCR sind standardmäßig auf 5.000.000 Bytes je Anhang begrenzt.

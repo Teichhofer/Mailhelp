@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import signal
 import sys
@@ -21,6 +22,7 @@ from .storage import AlreadyRunning, JsonStore
 
 CLEAR_CONFIRMATION = "ALLE DATEN LOESCHEN"
 CONFIGURATION_FILES = ("config.yaml", "prompts.yaml", "topics.yaml", "irrelevant_topics.yaml")
+RESTART_EXIT_CODE = 75
 
 
 class _SignalShutdown:
@@ -118,7 +120,15 @@ ALREADY_RUNNING = ("Mailhelp läuft bereits mit diesem Datenverzeichnis: {direct
 def main() -> int:
     """Run the CLI; Ctrl+C and a second instance end quietly instead of with a traceback."""
     try:
-        return _main()
+        result = _main()
+        if result == RESTART_EXIT_CODE:
+            try:
+                os.execv(sys.executable, [sys.executable, "-c",
+                         "from mailhelp.cli import main; raise SystemExit(main())", *sys.argv[1:]])
+            except OSError as exc:
+                print(f"Neustart fehlgeschlagen: {exc}", file=sys.stderr)
+                return 1
+        return result
     except KeyboardInterrupt:
         print("\nBeenden angefordert.")
         return 130
@@ -404,7 +414,10 @@ def _run(args: argparse.Namespace, settings, secrets, topics, irrelevant_topics,
         if fatal_error is not None:
             print(f"FATALER FEHLER: {fatal_error}", file=sys.stderr)
             return 1
-    return 0
+        lifecycle = getattr(application, "lifecycle", None)
+        restart = lifecycle is not None and lifecycle.restart_requested
+    # All adapters, the HTTP listener and state locks are closed before exec.
+    return RESTART_EXIT_CODE if restart else 0
 
 
 def _main() -> int:

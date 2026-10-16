@@ -2034,6 +2034,24 @@ der Lebenszyklus `Application.stop()` auf – denselben Weg wie SIGINT/SIGTERM. 
 `running → stop_requested → stopping → stopped`, jeweils protokolliert. Eine
 Stoppanforderung gilt nur für ihren Prozess und wird nie wiederholt.
 
+Neben „Mailhelp beenden“ steht in den Einstellungen „Mailhelp neu starten“.
+`GET /einstellungen/neustarten` zeigt die Bestätigungsseite; der bestätigte POST
+prüft Sitzung, CSRF, aktuelle Prozesskennung und einen an die Aktion gebundenen
+Idempotenzschlüssel. GET allein löst keinen Neustart aus. Nach Versand der Antwort
+wird die Sitzung erneut geprüft. Der Ablauf protokolliert
+`running → restart_requested → restarting → stopped`. Doppelklicks und wiederholte
+Antwort-Rückrufe lösen die Aktion höchstens einmal aus; Beenden und Neustarten
+dürfen denselben Schlüssel nicht gegenseitig wiederverwenden.
+Nach kontrolliertem Ende des Laufs, Schließen der Adapter und Freigabe von
+HTTP-Listener und Zustandslocks ersetzt `os.execv` den Prozess durch denselben
+Python-Interpreter mit unveränderten Anwendungsargumenten und Arbeitsverzeichnis.
+Dies gilt unter Windows 11 und Linux/Docker, unabhängig von einem Supervisor.
+Code, gespeicherte Einstellungen und Zugangsdaten werden neu geladen; Entwürfe
+bleiben Entwürfe, offene Entscheidungen und bestehende Freigaben bleiben im
+persistierten Zustand. Ein fehlgeschlagener Prozessstart wird am Terminal als
+Fehler gemeldet und nicht automatisch erneut versucht. Danach öffnet der Benutzer
+die Weboberfläche erneut.
+
 Einrichtung, Upgrade und Rollback: [docs/Release-1.2.md](docs/Release-1.2.md).
 
 ## 20. Version 1.3: Intelligenter Workflow & Dokumenten-Anhänge (Smart Engine)
