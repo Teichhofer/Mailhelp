@@ -33,6 +33,7 @@ if TYPE_CHECKING:
     from .external.providers import Writers
     from .imap import FetchedMail
     from .iserv import IServRunService
+    from .iserv_runtime import IServRuntime
     from .lifecycle import Lifecycle
     from .notification_runtime import NotificationRuntime
     from .standalone import DisabledTelegram
@@ -65,6 +66,7 @@ class Application:
     profile_writers: Writers | ProfileWriters | None = None
     # Parent letters of IServ accounts (3.3.7); ``None`` without configured accounts.
     iserv: IServRunService | None = None
+    iserv_runtime: IServRuntime | None = None
     # Receiver thread, web interface, experience and notification runtimes beside the loop.
     services: ServiceCoordinator = field(default_factory=ServiceCoordinator)
     # Every enabled mailbox with its reader (3.1); ``imap`` is the reader of the first one.
@@ -428,6 +430,8 @@ class Application:
 
     def _cycle(self, max_mails: int | None, ignore_historical_start: bool) -> bool:
         """One pass: maintenance, mail, Telegram input and idle time; ``False`` ends the run."""
+        if self.iserv_runtime is not None:
+            self.iserv_runtime.apply_pending()
         self._maintain()
         # Only an already open, durable relevance decision precedes mailbox
         # work.  An unconditional Telegram long-poll here used to make

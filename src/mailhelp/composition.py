@@ -412,7 +412,8 @@ def build_application(
         orchestrator = _build_orchestrator(settings, prompts, topics, fingerprint, jev_prompts, store, sender_store,
                                            logger, analyzer, dialog, writers, access_diagnostics)
         dialog.relevance_handler = orchestrator
-        iserv = _build_iserv(settings, secrets, stack)
+        iserv_resources = stack.enter_context(ExitStack())
+        iserv = _build_iserv(settings, secrets, iserv_resources)
         if len(sources) + len(iserv) > 1:
             dialog.presenter.mailbox_of = _mailbox_labels(
                 store, sources, {source.reader.account_id: source.account.label for source in iserv})
@@ -431,6 +432,10 @@ def build_application(
             application.iserv = IServRunService(store, logger, iserv, application._process_mail, stop_event)
             application.mailbox.resume_readers = application.iserv.readers()
         application.profile_writers = built
+        if web_enabled:
+            from .iserv_runtime import IServRuntime
+            application.iserv_runtime = IServRuntime(application, iserv_resources)
+            stack.callback(application.iserv_runtime.close)
         from . import profile_binding
         dialog.decision_service.profile_available = lambda proposal: profile_binding.available(
             application.settings, writers, proposal)

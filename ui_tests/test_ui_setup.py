@@ -138,8 +138,10 @@ def test_iserv_accounts_are_added_as_an_accessible_draft(page, setup_server):
     page.goto(setup_server.url + "/einstellungen/iserv")
     expect(page.get_by_role("heading", name="IServ-Konten", exact=True)).to_be_visible()
     assert audit(page, "iserv-empty-" + page.device, page.mobile) == []
-    page.get_by_label("IServ-Adresse der Schule (https://…)", exact=True).fill("https://schule.example")
-    page.get_by_label("Ältere Briefe nicht verarbeiten vor", exact=False).fill("01.09.2026")
+    page.get_by_text("Stattdessen als Entwurf speichern", exact=True).click()
+    draft = page.locator('form[action="/einstellungen/iserv/speichern"]')
+    draft.get_by_label("IServ-Adresse der Schule (https://…)", exact=True).fill("https://schule.example")
+    draft.get_by_label("Ältere Briefe nicht verarbeiten vor", exact=False).fill("01.09.2026")
     page.get_by_role("button", name="IServ-Konto als Entwurf hinzufügen", exact=True).click()
     expect(page.get_by_role("heading", name="Entwurf prüfen", exact=True)).to_be_visible()
     expect(page.get_by_role("heading", name="Elternbriefe · 1", exact=True)).to_be_visible()
@@ -197,15 +199,19 @@ def test_regression_iserv_account_from_a_copied_link_and_german_date(page, setup
     failed with only "Entwurf nicht gespeichert; Angaben, Version und Sitzung prüfen."."""
     sign_in(page, setup_server)
     page.goto(setup_server.url + "/einstellungen/iserv")
-    address = page.get_by_label("IServ-Adresse der Schule (https://…)", exact=True)
+    page.get_by_text("Stattdessen als Entwurf speichern", exact=True).click()
+    draft = page.locator('form[action="/einstellungen/iserv/speichern"]')
+    address = draft.get_by_label("IServ-Adresse der Schule (https://…)", exact=True)
     # An invalid entry explains itself on the page and keeps the form usable.
     address.fill("http://schule.example")
     page.get_by_role("button", name="IServ-Konto als Entwurf hinzufügen", exact=True).click()
     expect(page.get_by_role("alert")).to_contain_text("IServ-Adresse: Die IServ-Adresse muss mit https://")
     assert audit(page, "iserv-error-" + page.device, page.mobile) == []
-    page.get_by_label("IServ-Adresse der Schule (https://…)", exact=True).fill(
+    page.get_by_text("Stattdessen als Entwurf speichern", exact=True).click()
+    draft = page.locator('form[action="/einstellungen/iserv/speichern"]')
+    draft.get_by_label("IServ-Adresse der Schule (https://…)", exact=True).fill(
         "https://schule.example/iserv/parentletter/parent/index")
-    page.get_by_label("Ältere Briefe nicht verarbeiten vor", exact=False).fill("01.10.2026")
+    draft.get_by_label("Ältere Briefe nicht verarbeiten vor", exact=False).fill("01.10.2026")
     page.get_by_role("button", name="IServ-Konto als Entwurf hinzufügen", exact=True).click()
     expect(page.get_by_role("heading", name="Entwurf prüfen", exact=True)).to_be_visible()
     expect(page.get_by_text("https://schule.example · Postfach 1 · aktiv", exact=True)).to_be_visible()
@@ -214,3 +220,45 @@ def test_regression_iserv_account_from_a_copied_link_and_german_date(page, setup
     assert account.server == "https://schule.example" and account.historical_start.day == 1
     assert setup_server.site.archive.configuration.active.iserv.accounts == []
     page.get_by_role("button", name="Entwurf verwerfen", exact=True).click()
+
+
+def test_iserv_connection_is_activated_on_one_page(page, setup_server, monkeypatch):
+    """A failed login stays on the form; success persists and requests a live reload."""
+    from shared_decision_test import secrets
+
+    from mailhelp.iserv import IServSignInError
+    runtime = setup_server.site.setup_page.runtime
+    runtime.secrets = secrets()
+    activated = []
+    runtime.app.iserv_runtime = NS(request=lambda cfg, keys: activated.append((cfg, keys)))
+    for name in ("ISERV_1_USERNAME", "ISERV_1_PASSWORD"):
+        monkeypatch.delenv(name, raising=False)
+    class Reader:
+        fail = True
+        def __init__(self, *args, **kwargs): pass
+        def close(self): pass
+        def check_access(self):
+            if self.fail:
+                raise IServSignInError("private")
+    monkeypatch.setattr("mailhelp.iserv.IServReader", Reader)
+    sign_in(page, setup_server)
+    page.goto(setup_server.url + "/einstellungen/iserv")
+    def fill():
+        form = page.locator('form[action="/einstellungen/iserv/aktivieren"]').last
+        form.get_by_label("IServ-Adresse der Schule (https://…)", exact=True).fill("schule.example")
+        form.get_by_label("Ältere Briefe nicht verarbeiten vor", exact=False).fill("01.09.2026")
+        form.get_by_label("Benutzername (leer: vorhandenen verwenden)", exact=True).fill("synthetic-parent")
+        form.get_by_label("Passwort (leer: vorhandenes verwenden)", exact=True).fill("synthetic-password")
+        return form
+    form = fill()
+    assert audit(page, "iserv-activation-" + page.device, page.mobile) == []
+    form.get_by_role("button", name="Verbindung prüfen und Konto aktivieren").click()
+    expect(page.get_by_role("alert")).to_contain_text("Anmeldung fehlgeschlagen")
+    assert "synthetic-password" not in page.content() and not activated
+    assert audit(page, "iserv-activation-failed-" + page.device, page.mobile) == []
+    Reader.fail = False
+    fill().get_by_role("button", name="Verbindung prüfen und Konto aktivieren").click()
+    expect(page.get_by_text("Verbindung geprüft und Konto gespeichert.", exact=False)).to_be_visible()
+    assert len(activated) == 1 and activated[0][0].iserv.accounts[0].server == "https://schule.example"
+    assert setup_server.writer.created == []
+    assert audit(page, "iserv-activated-" + page.device, page.mobile) == []

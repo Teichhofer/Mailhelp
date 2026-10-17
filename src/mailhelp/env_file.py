@@ -41,16 +41,26 @@ def _encoded(value: str) -> str:
 
 def set_value(path: Path, name: str, value: str, expected_hash: str) -> None:
     """Replace every assignment of *name*, or append one; comments and other lines stay as they are."""
-    validate(name, value)
+    set_values(path, {name: value}, expected_hash)
+
+
+def set_values(path: Path, values: dict[str, str], expected_hash: str) -> None:
+    """Validate and replace a credential pair in one atomic file write."""
+    if not values:
+        raise ValueError("Keine Zugangsdaten angegeben")
+    for name, value in values.items():
+        validate(name, value)
     if file_hash(path) != expected_hash:
         raise EnvFileConflict(".env wurde inzwischen geändert")
     lines = path.read_text(encoding="utf-8").splitlines() if path.exists() else []
-    assignment = f"{name}={_encoded(value)}"
-    pattern = re.compile(rf"\s*{name}\s*=")
-    replaced = [assignment if pattern.match(line) else line for line in lines]
-    if not any(pattern.match(line) for line in lines):
-        replaced.append(assignment)
-    atomic_replace(path, "\n".join(replaced) + "\n")
+    for name, value in values.items():
+        assignment = f"{name}={_encoded(value)}"
+        pattern = re.compile(rf"\s*{name}\s*=")
+        replaced = [assignment if pattern.match(line) else line for line in lines]
+        if not any(pattern.match(line) for line in lines):
+            replaced.append(assignment)
+        lines = replaced
+    atomic_replace(path, "\n".join(lines) + "\n")
 
 
-__all__ = ["EnvFileConflict", "MAX_VALUE", "PROTECTED", "file_hash", "set_value", "validate"]
+__all__ = ["EnvFileConflict", "MAX_VALUE", "PROTECTED", "file_hash", "set_value", "set_values", "validate"]

@@ -1,5 +1,16 @@
 # Änderungen
 
+## 3.4.7 – IServ gemeinsam prüfen und aktivieren
+
+- Auf der IServ-Seite Schuladresse, Startgrenze, Postfach und Zugangsdaten gemeinsam
+  eingeben und mit „Verbindung prüfen und Konto aktivieren“ übernehmen. Bereits hinterlegte
+  Zugangsdaten können verwendet werden. Fehler bleiben direkt auf der Seite sichtbar.
+- Nach erfolgreicher Prüfung wird nur das ausgewählte Konto aktiviert; andere Entwürfe
+  bleiben erhalten. Neue Adapter werden im nächsten sicheren Mailzyklus geladen und alte
+  Verbindungen geschlossen. Kein manueller Neustart und keine separate Diagnose nötig.
+- Aktivierung prüft Sitzung, CSRF, Entwurfs- und Dateiversionen sowie Idempotenz; Zugangsdaten
+  bleiben außerhalb von Konfiguration und Journal. Kalender- und Aufgabenfreigaben bleiben separat.
+
 ## Noch nicht veröffentlicht – Neustart über die Weboberfläche
 
 - Neben „Mailhelp beenden“ steht „Mailhelp neu starten“ mit eigener Bestätigungsseite.

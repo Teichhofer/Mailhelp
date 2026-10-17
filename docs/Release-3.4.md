@@ -1,7 +1,7 @@
 # Mailhelp 3.4 – IServ-Elternbriefe, Zugangsdaten und Einstellungen im Web
 
-Stand: 16. Oktober 2026. Aktueller Repository-Stand: 3.4.6.
-Diese Anleitung fasst die Änderungen von 3.3.2 bis 3.4.4 für den Betrieb zusammen. Die
+Stand: 17. Oktober 2026. Aktueller Repository-Stand: 3.4.7.
+Diese Anleitung fasst die Änderungen von 3.3.2 bis 3.4.7 für den Betrieb zusammen. Die
 technische Planung steht in [Planung 3.4](Planung-3.4.md), die Verträge in der
 [Projektspezifikation](../Mailhelp-Projektspezifikation.md).
 
@@ -23,13 +23,16 @@ und Zugangsdaten erscheinen nicht in Protokollen.
 1. **Einstellungen → IServ-Konten**: Anzeigename, IServ-Adresse der Schule
    (z. B. `https://schule.example`; ein aus dem Browser kopierter IServ-Link oder die Adresse ohne
    `https://` genügt), Postfach und optional eine Startgrenze (`TT.MM.JJJJ [HH:MM]`, `JJJJ-MM-TT`
-   oder ISO-8601-Zeitpunkt mit Offset) eintragen
-   und „IServ-Konto als Entwurf hinzufügen“ wählen. Ungültige Angaben werden mit ihrer Ursache
-   angezeigt.
-2. **Einstellungen → Zugangsdaten**: bei `ISERV_<n>_USERNAME` die IServ-Anmeldung und bei
-   `ISERV_<n>_PASSWORD` das Passwort eintragen, jeweils ausdrücklich bestätigen.
-3. **Diagnose → iserv**: Die Prüfung meldet sich an und öffnet nur die Briefübersicht.
-4. Den Entwurf übernehmen und Mailhelp neu starten.
+   oder ISO-8601-Zeitpunkt mit Offset) sowie Benutzername und Passwort eintragen.
+2. **Verbindung prüfen und Konto aktivieren** wählen. Leere Zugangsfelder verwenden
+   gespeicherte Zugangsdaten. Bei Erfolg speichert Mailhelp das ausgewählte Konto und
+   beide Zugangswerte; der Abruf beginnt im nächsten sicheren Mailzyklus ohne manuellen
+   Neustart. Offene Relevanzrückfragen gegebenenfalls zuerst beantworten.
+
+Dieser gemeinsame Ablauf gilt ab 3.4.7. Die Prüfung meldet sich an und öffnet nur die
+Briefübersicht. Andere Entwürfe werden nicht übernommen. Der bisherige Ablauf mit separater
+Zugangsdaten-Seite, Diagnose, Entwurfsübernahme und Neustart bleibt unter den zusätzlichen
+Entwurfsaktionen verfügbar. Das Speichern einzelner Zugangswerte aktiviert kein Konto.
 
 Alternativ in `config.yaml` unter `iserv.accounts` (`id`, `label`, `server`, `mailbox`, optional
 `enabled` und `historical_start`) und in `.env` als `ISERV_<id>_USERNAME`/`ISERV_<id>_PASSWORD`.

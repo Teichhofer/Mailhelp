@@ -68,6 +68,7 @@ def test_built_artifacts_exclude_private_runtime_files():
                 "mailhelp/web/static/manifest.webmanifest"} <= set(names)
         assert "mailhelp/defaults/decisions_prompts.yaml" in names
         assert {"mailhelp/mailbox_run.py", "mailhelp/web/status_pages.py",
+                "mailhelp/iserv_activation.py", "mailhelp/iserv_runtime.py",
                 "mailhelp/external/oauth.py", "mailhelp/external/calendar.py",
                 "mailhelp/external/todoist.py", "mailhelp/external/ical.py",
                 "mailhelp/external/transport.py", "mailhelp/external/http_writer.py",

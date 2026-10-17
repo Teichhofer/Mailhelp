@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.4.6 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.4.7 · **Python:** 3.12.x · **Lizenz:** MIT
 
 [Installation](#installation) · [Konfiguration](#konfiguration) ·
 [Betrieb](#betrieb) · [Docker](#docker) ·
@@ -37,6 +37,8 @@ einem lokalen Ollama-Server ist ebenfalls verfügbar.
   Telegram-Konten einzeln auf, einschließlich deaktivierter Konten und noch ausstehender Neustarts.
 - **IServ-Elternbriefe:** Briefe aus dem IServ-Elternbriefmodul werden wie Mails
   verarbeitet, einschließlich Anhängen, und gelten immer als relevant.
+  Schuladresse und Zugangsdaten lassen sich gemeinsam prüfen und aktivieren; der Abruf
+  beginnt im nächsten sicheren Mailzyklus ohne manuellen Dienstneustart.
   Die Startgrenze im IServ-Webformular akzeptiert auch `01.09.2026` oder `2026-09-01`;
   reine Datumsangaben gelten ab 00:00 Uhr in der konfigurierten Zeitzone.
 - **Optionale Unterstützung:** Antwortentwürfe im Ursprungspostfach, Tagesüberblicke,
@@ -204,7 +206,14 @@ Bei IServ werden zu große Dateien nicht vollständig heruntergeladen; die Origi
 bleiben dort verfügbar. Die Grenze für den Nachrichtentext ist davon unabhängig.
 
 In der Weboberfläche unter **Einstellungen → IServ-Konten** (`/einstellungen/iserv`) je
-Elternkonto Adresse der Schule und Postfach eintragen, als Entwurf prüfen und übernehmen;
+Elternkonto Adresse der Schule, Postfach, Startgrenze und Zugangsdaten eintragen und
+**Verbindung prüfen und Konto aktivieren** wählen. Leere Zugangsfelder verwenden die
+bereits hinterlegten Werte. Erst nach erfolgreicher Anmeldung werden das Konto und
+die Zugangsdaten gespeichert. Der laufende Dienst lädt die IServ-Verbindungen im
+nächsten sicheren Mailzyklus; offene Relevanzrückfragen gegebenenfalls zuerst beantworten.
+Andere offene Änderungen bleiben als Entwurf erhalten. Verbindungsfehler erscheinen direkt
+auf der Seite; Kennwörter werden nie wieder angezeigt. Unter **Weitere Aktionen und Entwurf**
+bleibt der bisherige Ablauf mit separater Diagnose und Übernahme verfügbar;
 alternativ in `config.yaml` unter `iserv.accounts` `id`, `server` (HTTPS-Adresse der Schule)
 und `mailbox` eintragen. Die Zugangsdaten stehen in `.env` als
 `ISERV_<id>_USERNAME` und `ISERV_<id>_PASSWORD`. Mailhelp meldet sich wie ein Browser

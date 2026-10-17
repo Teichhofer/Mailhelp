@@ -2440,6 +2440,25 @@ und Rückkehr aus einer vorher angelegten Sicherung stehen in [Release-3.2](docs
 
 ## IServ-Elternbriefe (seit 3.3.7)
 
+Seit 3.4.7 bietet `/einstellungen/iserv` zusätzlich die gemeinsame Aktion **Verbindung prüfen
+und Konto aktivieren**: Schuladresse, Postfach, Startgrenze und Zugangsdaten in einem Formular;
+leere Zugangsfelder verwenden vorhandene Werte. Eine erfolgreiche lesende Verbindungsprüfung
+geht dem Speichern voraus. Sitzung, CSRF, Entwurfsversion, Konfigurations- und Zugangsdatenstand
+sowie Idempotenz werden geprüft; die Sitzung wird unmittelbar vor dem Schreiben erneut geprüft.
+Nur das ausgewählte Konto wird übernommen; andere offene Einrichtungsänderungen bleiben erhalten
+und werden auf den gespeicherten Konfigurationsstand bezogen. Zugangsdaten werden atomar als Paar
+in `.env` gespeichert und weder angezeigt noch in Konfigurationsjournalen abgelegt.
+Prozessvariablen haben Vorrang; widersprechende Eingaben werden abgelehnt. Ein unterbrochener
+Schreibvorgang wird mit demselben Schlüssel nicht blind wiederholt; der gespeicherte Stand ist
+nach Neuladen zu prüfen. Ein Neustart verwendet die gespeicherten Konten und Zugangsdaten.
+
+Der laufende Dienst tauscht die IServ-Adapter ausschließlich zwischen Mailzyklen, schließt alte
+Verbindungen und aktualisiert Konto-Zuordnung, Relevanzregel, Wiederaufnahme und Statusanzeige.
+Offene Relevanzrückfragen oder laufende Verarbeitung können den ersten Abruf verzögern. Fehler
+beim Nachladen lassen den bisherigen Abruf bestehen und werden ohne Zugangsdaten protokolliert;
+ein späterer Mailzyklus versucht das Nachladen erneut. Die Aktivierung erteilt keine Freigabe für
+Kalender- oder Aufgabenanlagen. Der bisherige Entwurfsablauf bleibt alternativ verfügbar.
+
 `iserv.accounts` nennt Elternkonten (`id` 1–10, `server` als HTTPS-Ursprung ohne Zugangsdaten; seit
 3.4.2 wird ein eingefügter Link oder ein Hostname ohne Schema auf `https://<host>` gekürzt, `mailbox` als aktives IMAP-Postfach, optional `label`, `enabled` und
 `historical_start`). Zugangsdaten liegen ausschließlich in `ISERV_<id>_USERNAME` und

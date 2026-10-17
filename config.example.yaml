@@ -170,6 +170,9 @@ imap:
 # IServ-Elternbriefe (3.3.7): Briefe aus dem IServ-Elternbriefmodul werden wie Mails
 # verarbeitet und gelten immer als relevant (keine Relevanzprüfung, kein Absenderfilter).
 # Zugangsdaten in .env: ISERV_<id>_USERNAME und ISERV_<id>_PASSWORD (Elternkonto).
+# Web: /einstellungen/iserv → Verbindung prüfen und Konto aktivieren; Konto und Zugangsdaten
+# werden gemeinsam geprüft und gespeichert, der Abruf startet im nächsten sicheren Mailzyklus ohne Neustart.
+# Reines Speichern einzelner Zugangsdaten auf der allgemeinen Zugangsdaten-Seite aktiviert kein Konto.
 # mailbox: dessen Zielprofil und Standards gelten für die Briefe. Ältere Briefe als
 # historical_start (ohne Angabe: die Grenze dieses Postfachs) werden nicht verarbeitet.
 # Im IServ-Webformular auch TT.MM.JJJJ [HH:MM] oder JJJJ-MM-TT: ohne Uhrzeit Tagesbeginn in timezone.

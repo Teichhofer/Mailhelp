@@ -4,7 +4,7 @@ from __future__ import annotations
 import pytest
 
 from mailhelp.config import _dotenv
-from mailhelp.env_file import EnvFileConflict, file_hash, set_value, validate
+from mailhelp.env_file import EnvFileConflict, file_hash, set_value, set_values, validate
 
 
 def test_replaces_or_appends_one_name_and_keeps_every_other_line(tmp_path):
@@ -45,3 +45,15 @@ def test_a_changed_file_is_never_overwritten(tmp_path):
 def test_names_and_values_are_validated(name, value):
     with pytest.raises(ValueError):
         validate(name, value)
+
+
+def test_a_credential_pair_is_validated_before_either_value_is_saved(tmp_path):
+    path = tmp_path / ".env"
+    path.write_text("# keep\nISERV_1_USERNAME=old\nISERV_1_PASSWORD=old-password\n")
+    before = path.read_bytes()
+    for values in ({}, {"ISERV_1_USERNAME": "new", "ISERV_1_PASSWORD": "bad\nvalue"}):
+        with pytest.raises(ValueError):
+            set_values(path, values, file_hash(path))
+        assert path.read_bytes() == before
+    set_values(path, {"ISERV_1_USERNAME": "new", "ISERV_1_PASSWORD": "new-password"}, file_hash(path))
+    assert _dotenv(path) == {"ISERV_1_USERNAME": "new", "ISERV_1_PASSWORD": "new-password"}

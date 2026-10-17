@@ -67,6 +67,8 @@ class SecretsSite:
                 f'Wert ausdrücklich in .env speichern</label>',
                 "Speichern", name=name, expected_hash=current)
         body += "</section>" if group is not None else ""
+        body += ('<p><a class="button" href="/einstellungen/iserv">'
+                 'IServ-Verbindung prüfen und aktivieren</a></p>')
         return Response.html(200, layout("Zugangsdaten", '<div class="setup-page">' + body + "</div>"))
 
     def save(self, request, session, form):
