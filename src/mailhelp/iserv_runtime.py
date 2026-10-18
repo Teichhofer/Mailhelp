@@ -2,31 +2,12 @@
 from __future__ import annotations
 
 from contextlib import ExitStack
-from threading import Lock
+
+from .connection_runtime import PendingConnections
 
 
-class IServRuntime:
-    def __init__(self, app, resources):
-        self.app, self.resources = app, resources
-        self.lock = Lock()
-        self.pending = None
-
-    def request(self, settings, secrets):
-        with self.lock:
-            self.pending = settings, secrets
-
-    def apply_pending(self) -> None:
-        with self.lock:
-            pending, self.pending = self.pending, None
-        if pending is None:
-            return
-        try:
-            self._apply(pending)
-        except Exception:
-            with self.lock:
-                if self.pending is None:
-                    self.pending = pending
-            self.app.logger.event("ERROR", "iserv", "activation_failed")
+class IServRuntime(PendingConnections):
+    area = "iserv"
 
     def _apply(self, pending):
         from .composition import _build_iserv, _mailbox_labels
@@ -54,6 +35,3 @@ class IServRuntime:
             self.resources = resources.pop_all()
             previous.close()
         app.logger.event("INFO", "iserv", "accounts_activated", count=len(sources))
-
-    def close(self):
-        self.resources.close()

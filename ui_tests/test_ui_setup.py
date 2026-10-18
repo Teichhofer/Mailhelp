@@ -1,30 +1,10 @@
 """Setup forms, safe diagnostics and profiles on desktop, narrow phones and without JS."""
 from types import SimpleNamespace as NS
 
-import pytest
 from playwright.sync_api import expect
-from shared_core import prompt_config
 
 from checks import audit
 from conftest import sign_in
-from mailhelp.notification_runtime import NotificationRuntime
-from mailhelp.setup_runtime import SetupRuntime
-
-
-@pytest.fixture
-def setup_server(mailhelp):
-    site = mailhelp.site
-    app = NS(settings=site.archive.configuration.active, configuration=site.archive.configuration,
-             dialog=mailhelp.dialog, store=mailhelp.store, telegram=mailhelp.telegram, logger=site.logger,
-             analyzer=NS(prompts=prompt_config()), calendar=None, todoist=None)
-    app.configuration.activate = lambda cfg: setattr(app, "settings", cfg)
-    from mailhelp.orchestrator import Orchestrator
-    app.orchestrator = Orchestrator(app.analyzer, app.store, object(), 2, [], 1024)
-    app.orchestrator.configure_mailboxes(app.settings, app.analyzer.prompts, {"0" * 24: 1})
-    app.settings.web.enabled = True
-    site.setup_page.runtime = SetupRuntime(app, site, None, target_probe=lambda *args: None)
-    site.notification_runtime = NotificationRuntime(app, site)
-    return mailhelp
 
 
 def test_mailbox_tabs_show_inheritance_and_preserve_a_local_draft(page, setup_server):

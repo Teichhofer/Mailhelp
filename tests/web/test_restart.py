@@ -11,7 +11,7 @@ PATH = "/einstellungen/neustarten"
 def test_restart_button_and_confirmed_restart_after_response(web, tmp_path):
     _, _, lifecycle, _, calls = configure(web, tmp_path)
     page = web.browser.request("GET", "/einstellungen").body.decode()
-    assert f'href="{PATH}">Mailhelp neu starten</a>' in page
+    assert f'href="{PATH}"><strong>Mailhelp neu starten</strong>' in page
     form = web.form(PATH, action=PATH)
     assert calls == [] and not lifecycle.restart_requested
     assert web.browser.request("POST", PATH, {**form, "process": "old"}).status == 409

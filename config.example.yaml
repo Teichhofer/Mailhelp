@@ -1,5 +1,11 @@
 # Erläuterungen aller Web-Einstellungen: docs/Web-Einstellungen.md (auch als Info-Blasen in der Weboberfläche).
-# Direkte Bereichslinks in den Einstellungen führen zu den jeweiligen globalen Regeln.
+# 3.5: /einstellungen zeigt Kacheln und Suche, ?bereich=abruf z. B. die Abrufregeln.
+# Neue Postfächer: /einstellungen/postfaecher → Verbindung prüfen und Postfach aktivieren.
+# Prüfung liest nur; danach werden config.yaml und IMAP_<id>_USERNAME/PASSWORD in .env
+# gespeichert und der Abruf im nächsten sicheren Mailzyklus ohne Neustart ergänzt.
+# config.yaml und .env müssen beschreibbar sein (Docker: Konfigurationsverzeichnis einbinden).
+# Web-Startgrenze: heute 00:00 Uhr in timezone; leer verarbeitet auch den Altbestand.
+# Bestehende Postfächer ändern/entfernen bleibt ein Entwurf mit Übernahme und Neustart.
 # Optionaler Vergleich: mailhelp --decision-test 20 --ollama localhost:11434
 # Standard (Jev-Relevanz + LLM-Rückfall) gegen Ollama; nur relevante Mails weiter.
 # Standardrelevanz: Jev aus decisions_prompts.yaml; nur unclear nutzt prompts.yaml.

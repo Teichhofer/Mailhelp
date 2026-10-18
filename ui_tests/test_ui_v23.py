@@ -62,7 +62,7 @@ def test_original_document_is_offered_as_a_download(page, mailhelp):
 
 def test_provider_choice_in_the_settings(page, mailhelp):
     sign_in(page, mailhelp)
-    settings = SettingsPage(page, mailhelp.url).open()
+    settings = SettingsPage(page, mailhelp.url).open("antworten")
     calendar = settings.expand("Kalenderdienst")
     choice = calendar.get_by_label("Neuer Wert")
     expect(choice.locator("option")).to_have_text(["Google Kalender", "CalDAV (Nextcloud, iCloud, …)",

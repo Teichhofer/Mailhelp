@@ -40,12 +40,15 @@ def start_boundary(text: str, zone: str) -> str | None:
     return moment.isoformat()
 
 
-def reason(exc: Exception) -> str:
+FIELD_NAMES = {"server": "IServ-Adresse", "historical_start": "Startgrenze", "mailbox": "Postfach",
+               "label": "Anzeigename"}
+
+
+def reason(exc: Exception, names: dict[str, str] = FIELD_NAMES) -> str:
     """A readable cause for the page; never a stack trace or form contents."""
     if isinstance(exc, ValidationError):
         error = exc.errors(include_input=False)[0]
-        field = {"server": "IServ-Adresse", "historical_start": "Startgrenze", "mailbox": "Postfach",
-                 "label": "Anzeigename"}.get(str(error["loc"][-1]) if error["loc"] else "", "Eingabe")
+        field = names.get(str(error["loc"][-1]) if error["loc"] else "", "Eingabe")
         return f"{field}: {str(error['msg']).removeprefix('Value error, ')}"
     return str(exc) or "Angaben, Version und Sitzung prüfen."
 

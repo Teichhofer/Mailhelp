@@ -1,5 +1,22 @@
 # Änderungen
 
+## 3.5.0 – Einstellungsbereiche und Postfächer im Betrieb aktivieren
+
+- Einstellungen zeigen eine Kachelübersicht mit Kontenzahlen, thematischen Bereichen,
+  Suchfunktion und Hinweisen auf gespeicherte, noch nicht aktive Änderungen.
+  Zugangsdaten, KI-Modelle und Push-Steuerung stehen im jeweiligen Bereich.
+- Neue IMAP-Postfächer in einem Formular prüfen und aktivieren: Server, Verbindungsart,
+  Anmeldung, Quell- und Entwurfsordner sowie Startgrenze. Erst nach erfolgreicher lesender
+  Prüfung werden Konfiguration und Zugangsdaten gespeichert. Der Abruf beginnt im nächsten
+  sicheren Mailzyklus ohne Neustart; bestehende Reader und ihre Fortschritte bleiben erhalten.
+- Sitzungen werden vor Ausführung und Schreiben erneut geprüft; CSRF, Entwurfs- und
+  Dateiversionen sowie Idempotenz sichern den Ablauf. Unterbrochene Schreibvorgänge erfordern
+  die Prüfung des gespeicherten Stands. Andere Entwürfe bleiben erhalten.
+- Doppelte Konten werden auch bei deaktivierten Postfächern zurückgewiesen.
+  Fehler zeigen sichere Meldungen, erhalten die übrigen Eingaben und leeren das Passwortfeld.
+- Anleitung, Konfigurationsbeispiel und Paketinhalt aktualisiert:
+  [Planung 3.5](docs/Planung-3.5.md), [Betriebsanleitung 3.5](docs/Release-3.5.md).
+
 ## 3.4.7 – IServ gemeinsam prüfen und aktivieren
 
 - Auf der IServ-Seite Schuladresse, Startgrenze, Postfach und Zugangsdaten gemeinsam

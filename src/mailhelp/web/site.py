@@ -104,6 +104,8 @@ class MailhelpSite:
         self.setup_page = SetupSite(self)
         from .mailbox_site import MailboxSite
         self.mailbox_page = MailboxSite(self)
+        from .mailbox_add_site import MailboxAddSite
+        self.mailbox_add = MailboxAddSite(self)
         from .iserv_site import IServSite
         self.iserv_page = IServSite(self)
         from .secrets_site import SecretsSite

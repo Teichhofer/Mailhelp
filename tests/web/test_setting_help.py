@@ -4,13 +4,13 @@ from pathlib import Path
 
 from mailhelp.configuration import SETTINGS_FIELDS
 from mailhelp.web.setting_help import EXTRA_HELP, SETTING_HELP, help_bubble
-from mailhelp.web.settings_pages import setting_label, settings_page
+from mailhelp.web.settings_pages import AREAS, setting_label, settings_page
 
 
 def test_all_settings_have_matching_documentation_and_connected_help():
     assert set(SETTING_HELP) == SETTINGS_FIELDS
     document = (Path(__file__).resolve().parents[2] / "docs/Web-Einstellungen.md").read_text(encoding="utf-8")
-    page = settings_page([], {}, {}, "revision", "csrf")
+    page = "".join(settings_page([], {}, {}, "revision", "csrf", area=key) for key, *_ in AREAS)
     for name, explanation in SETTING_HELP.items():
         assert f"`{name}`" in document and explanation in document
         assert setting_label(name) in document

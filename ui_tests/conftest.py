@@ -218,6 +218,30 @@ class Coverage:
 COVERAGE = Coverage()
 
 
+@pytest.fixture
+def setup_server(mailhelp):
+    """A synthetic configuration runtime shared by setup and connection-form tests."""
+    from types import SimpleNamespace as NS
+
+    from shared_core import prompt_config
+
+    from mailhelp.notification_runtime import NotificationRuntime
+    from mailhelp.orchestrator import Orchestrator
+    from mailhelp.setup_runtime import SetupRuntime
+
+    site = mailhelp.site
+    app = NS(settings=site.archive.configuration.active, configuration=site.archive.configuration,
+             dialog=mailhelp.dialog, store=mailhelp.store, telegram=mailhelp.telegram, logger=site.logger,
+             analyzer=NS(prompts=prompt_config()), calendar=None, todoist=None)
+    app.configuration.activate = lambda cfg: setattr(app, "settings", cfg)
+    app.orchestrator = Orchestrator(app.analyzer, app.store, object(), 2, [], 1024)
+    app.orchestrator.configure_mailboxes(app.settings, app.analyzer.prompts, {"0" * 24: 1})
+    app.settings.web.enabled = True
+    site.setup_page.runtime = SetupRuntime(app, site, None, target_probe=lambda *args: None)
+    site.notification_runtime = NotificationRuntime(app, site)
+    return mailhelp
+
+
 @pytest.fixture(scope="session")
 def browser():
     with sync_playwright() as playwright:

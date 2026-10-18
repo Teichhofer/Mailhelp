@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any
 
 from ..configuration import LIVE_FIELDS, SETTINGS_FIELDS
 from ..credentials import CredentialSnapshot
@@ -189,35 +190,147 @@ def _setting_row(name: str, raw: dict, active: dict | None, revision: str, csrf:
             + help_bubble(name, setting_label(name), SETTING_HELP[name]) + '</div>')
 
 
-def settings_page(models: list, raw: dict | None, active: dict | None, revision: str, csrf: str,
-                  credentials: CredentialSnapshot | None = None) -> str:
-    body = ('<div class="page-heading"><p class="eyebrow">Verwaltung</p><h1>Einstellungen</h1>'
-            '<p class="page-intro">Globale Regeln verwalten und gezielt je Postfach anpassen.</p></div>'
-            '<p class="settings-shortcuts"><a class="button small" href="/themen">Themen</a> '
-            '<a class="button small" href="/einstellungen/ignorierte-absender">Ignorierte Absender</a> '
-            '<a class="button small" href="/geraete">Geräte</a> '
-            '<a class="button small" href="/einstellungen/neustarten">Mailhelp neu starten</a> '
-            '<a class="button small danger" href="/einstellungen/beenden">Mailhelp beenden</a></p>')
-    body += ('<details class="model-overview"><summary>Verwendete KI-Modelle</summary>'
-             '<div class="setting-row"><h2>Modelle (nur lesend)</h2>'
-             + help_bubble("models", "Modelle", EXTRA_HELP["models"]) + "</div>")
-    body += _models_table(models) + "</details>"
+# Areas of /einstellungen?bereich=…: (key, title, description, groups of SETTING_GROUPS).
+AREAS = (
+    ("abruf", "Mailabruf", "Abrufintervall, Zeitzone, Mailgrenzen, Zeitlimits und Wiederholungen",
+     ("Mailabruf und Betrieb", "Aufrufbudget und Mailgrenzen", "Zeitlimits und Wiederholungen")),
+    ("benachrichtigungen", "Benachrichtigungen", "Telegram, Push und Tagesüberblick",
+     ("Telegram", "Tagesüberblick")),
+    ("antworten", "Antworten und Termine", "Antwortentwürfe, persönliche Angaben, Termindauern und Ziele",
+     ("Antworten", "Termindauern und Vorschlagsabgleich", "Ziele")),
+    ("ki", "KI und Auswertung", "Modelle, Bildauswertung, Lernmodus, Tätigkeitsberichte und Kosten",
+     ("Bildauswertung", "Lernmodus", "Tätigkeitsberichte", "Kosten und Messung")),
+    ("daten", "Daten und Protokolle", "Originalanhänge, Aufbewahrung und Protokollierung",
+     ("Originalanhänge", "Aufbewahrung", "Protokollierung")),
+    ("system", "Weboberfläche und System", "Sitzungen, Netzwerkzugriff, Geräte, Neustart und Beenden",
+     ("Weboberfläche",)),
+)
+CREDENTIALS_AREA = "zugangsdaten"
+AREA_KEYS = frozenset({key for key, *_ in AREAS} | {CREDENTIALS_AREA})
+_GROUPS = dict(SETTING_GROUPS)
+
+
+def _names(group: str) -> list[str]:
+    return sorted(name for name in SETTINGS_FIELDS
+                  if any(name == prefix or name.startswith(prefix) for prefix in _GROUPS[group]))
+
+
+def _tile(href: str, title: str, text: str, extra: str = "", kind: str = "") -> str:
+    return (f'<a class="settings-tile{" " + kind if kind else ""}" href="{e(href)}"><strong>{e(title)}</strong>'
+            f'<span>{e(text)}</span>{extra}</a>')
+
+
+def _tiles(title: str, tiles: str) -> str:
+    return f'<section class="settings-section"><h2>{e(title)}</h2><div class="settings-tiles">{tiles}</div></section>'
+
+
+def _nav(current: str) -> str:
+    entries = [("/einstellungen", "Übersicht", "")] + [
+        (f"/einstellungen?bereich={key}", title, key) for key, title, *_ in AREAS]
+    entries.append((f"/einstellungen?bereich={CREDENTIALS_AREA}", "Zugangsdaten", CREDENTIALS_AREA))
+    links = "".join(f'<a href="{href}"{' aria-current="page"' if key == current else ""}>{e(title)}</a>'
+                    for href, title, key in entries)
+    return ('<nav class="settings-index" aria-label="Einstellungsbereiche"><p class="eyebrow">Bereiche</p>'
+            + links + "</nav>")
+
+
+def _search(query: str) -> str:
+    return ('<form method="get" action="/einstellungen" class="settings-search" role="search">'
+            '<label for="settings-search">Einstellung suchen</label><div class="settings-search-row">'
+            f'<input id="settings-search" type="search" name="suche" value="{e(query)}" maxlength="80" '
+            'placeholder="z. B. Zeitzone, Aufbewahrung, Telegram"><button class="button">Suchen</button></div></form>')
+
+
+def _overview(raw: dict | None, active: dict | None) -> str:
+    counted = active is not None
+    mailboxes: Any = _lookup(active, "imap.mailboxes") or [None]
+    accounts: Any = _lookup(active, "iserv.accounts") or []
+    body = _tiles("Konten und Verbindungen", (
+        _tile("/einstellungen/postfaecher", "Postfächer",
+              (f"{len(mailboxes)} eingerichtet · " if counted else "")
+              + "hinzufügen, prüfen und anpassen")
+        + _tile("/einstellungen/iserv", "IServ-Konten",
+                (f"{len(accounts)} eingerichtet · " if counted else "") + "Elternbriefe abrufen")
+        + _tile("/einstellungen/zielprofile", "Zielprofile", "Kalender und Aufgabenlisten je Postfach")
+        + _tile(f"/einstellungen?bereich={CREDENTIALS_AREA}", "Zugangsdaten", "Passwörter und API-Schlüssel")
+        + _tile("/einrichtung", "Einrichtung", "Verbindungen Schritt für Schritt einrichten")
+        + _tile("/diagnose", "Diagnose", "Zugriffe lesend prüfen")))
+    tiles = ""
+    for key, title, text, groups in AREAS:
+        names = [name for group in groups for name in _names(group)]
+        changed = sum(_lookup(active, name) != _lookup(raw, name) for name in names) if raw is not None else 0
+        badge = (f'<em class="badge warn">{changed} {"Änderung" if changed == 1 else "Änderungen"} ausstehend</em>'
+                 if changed else "")
+        tiles += _tile(f"/einstellungen?bereich={key}", title, text, badge)
+    body += _tiles("Allgemeine Einstellungen", tiles)
+    body += _tiles("Inhalte und Benachrichtigungen", (
+        _tile("/themen", "Themen", "Relevante und irrelevante Themen")
+        + _tile("/einstellungen/ignorierte-absender", "Ignorierte Absender", "Absender und Domains ausblenden")
+        + _tile("/einstellungen/benachrichtigungen", "Benachrichtigungsprofil", "Ruhezeiten und Kanäle")
+        + _tile("/benachrichtigungen", "Zustellhistorie", "Gesendete Benachrichtigungen")))
+    body += _tiles("System", (
+        _tile("/geraete", "Geräte", "Angemeldete Browser verwalten")
+        + _tile("/einstellungen/neustarten", "Mailhelp neu starten", "Kontrollierter Neustart mit Bestätigung")
+        + _tile("/einstellungen/beenden", "Mailhelp beenden", "Dienst kontrolliert anhalten", kind="danger")))
+    return body
+
+
+def _area(key: str, raw: dict | None, active: dict | None, revision: str, csrf: str, models: list,
+          push: str) -> str:
+    title, text, groups = next((title, text, groups) for name, title, text, groups in AREAS if name == key)
+    body = f'<div class="area-heading"><h2>{e(title)}</h2><p class="meta">{e(text)}</p></div>'
+    if key == "benachrichtigungen":
+        body += push
+    elif key == "ki":
+        body += ('<section class="settings-section"><div class="setting-row"><h2>Modelle (nur lesend)</h2>'
+                 + help_bubble("models", "Modelle", EXTRA_HELP["models"]) + "</div>" + _models_table(models)
+                 + "</section>")
+    elif key == "system":
+        body += ('<p class="settings-shortcuts"><a class="button small" href="/geraete">Geräte</a> '
+                 '<a class="button small" href="/einstellungen/neustarten">Mailhelp neu starten</a> '
+                 '<a class="button small danger" href="/einstellungen/beenden">Mailhelp beenden</a></p>')
     if raw is None:
-        return body + credentials_section(credentials, csrf) + notice("Konfigurationsdienst nicht verfügbar.", "warn")
-    body += ('<p class="meta">Quelle der allgemeinen Einstellungen: <code>config.yaml</code>. Gespeichert wird nur der '
-             "geänderte Wert; Kommentare und Aufbau der Datei bleiben erhalten. Vor dem Speichern wird die "
-             "Änderung noch einmal angezeigt.</p>")
-    links = "".join(f'<a href="#settings-{index}">{e(title)}</a>'
-                    for index, (title, _) in enumerate(SETTING_GROUPS))
-    body += ('<div class="settings-layout"><nav class="settings-index" aria-label="Einstellungsbereiche">'
-             '<p class="eyebrow">Bereiche</p><a href="#settings-credentials">Zugangsdaten</a>'
-             + links + '</nav><div class="settings-values">' + credentials_section(credentials, csrf))
-    for index, (title, prefixes) in enumerate(SETTING_GROUPS):
-        names = sorted(name for name in SETTINGS_FIELDS
-                       if any(name == prefix or name.startswith(prefix) for prefix in prefixes))
-        body += f'<section class="settings-section" id="settings-{index}"><h2>{e(title)}</h2>'
-        body += "".join(_setting_row(name, raw, active, revision, csrf) for name in names) + "</section>"
-    return body + "</div></div>"
+        return body + notice("Konfigurationsdienst nicht verfügbar.", "warn")
+    for group in groups:
+        body += f'<section class="settings-section"><h2>{e(group)}</h2>'
+        body += "".join(_setting_row(name, raw, active, revision, csrf) for name in _names(group)) + "</section>"
+    return body
+
+
+def _found(query: str, raw: dict | None, active: dict | None, revision: str, csrf: str) -> str:
+    if raw is None:
+        return notice("Konfigurationsdienst nicht verfügbar.", "warn")
+    words = query.casefold().split()
+    body = ""
+    for key, title, _text, groups in AREAS:
+        for group in groups:
+            names = [name for name in _names(group)
+                     if all(word in f"{setting_label(name)} {name} {group} {title}".casefold() for word in words)]
+            if names:
+                body += (f'<section class="settings-section"><h2>{e(group)}</h2>'
+                         f'<p class="meta">Bereich <a href="/einstellungen?bereich={key}">{e(title)}</a></p>'
+                         + "".join(_setting_row(name, raw, active, revision, csrf) for name in names) + "</section>")
+    return body or notice(f"Keine Einstellung zu „{query}“ gefunden.", "info")
+
+
+def settings_page(models: list, raw: dict | None, active: dict | None, revision: str, csrf: str,
+                  credentials: CredentialSnapshot | None = None, area: str = "", query: str = "",
+                  push: str = "") -> str:
+    """The overview, one area or search results; *area* is empty or one of :data:`AREA_KEYS`."""
+    query = query.strip()
+    body = ('<div class="page-heading"><p class="eyebrow">Verwaltung</p><h1>Einstellungen</h1>'
+            '<p class="page-intro">Konten verbinden, allgemeine Regeln festlegen und gezielt je Postfach '
+            'anpassen. Jede Änderung wird vor dem Speichern noch einmal angezeigt.</p></div>')
+    if query:
+        content = _search(query) + _found(query, raw, active, revision, csrf)
+    elif area == CREDENTIALS_AREA:
+        content = credentials_section(credentials, csrf)
+    elif area:
+        content = _area(area, raw, active, revision, csrf, models, push)
+    else:
+        content = _search("") + _overview(raw, active)
+    return (body + '<div class="settings-layout">' + _nav("" if query else area)
+            + '<div class="settings-values">' + content + "</div></div>")
 
 
 def settings_confirmation(form: dict[str, str], route: str, csrf: str) -> str:

@@ -114,7 +114,7 @@ def test_the_list_page_adds_normalized_entries_and_removes_them(web, senders):
     page = web.browser.request("GET", LIST_PATH).body.decode()
     assert "Derzeit wird kein Absender ignoriert." in page
     settings_page = web.browser.request("GET", "/einstellungen").body.decode()
-    assert f'href="{LIST_PATH}">Ignorierte Absender</a>' in settings_page
+    assert f'href="{LIST_PATH}"><strong>Ignorierte Absender</strong>' in settings_page
     for entry in ("Newsletter <News@Shop.EXAMPLE>", "Werbung.Example.COM."):
         fields = {**web.form(LIST_PATH, action=LIST_PATH), "eintrag": entry}
         location, page = finish(web, web.browser.request("POST", LIST_PATH, fields))

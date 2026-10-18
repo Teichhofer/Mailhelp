@@ -150,9 +150,10 @@ def test_web_edit_saves_new_version_without_external_write(web):
 
 def test_settings_confirm_queue_restart_and_conflict(web, tmp_path):
     service, metrics, lifecycle, active, calls = configure(web, tmp_path)
-    page = web.browser.request('GET', '/einstellungen').body.decode()
-    assert 'poll_interval_seconds' in page and 'include_requests' in page
-    form = web.form('/einstellungen', action='/einstellungen/speichern', name='poll_interval_seconds')
+    page = web.browser.request('GET', '/einstellungen?bereich=abruf').body.decode()
+    assert 'poll_interval_seconds' in page
+    assert 'include_requests' in web.browser.request('GET', '/einstellungen?bereich=daten').body.decode()
+    form = web.form('/einstellungen?bereich=abruf', action='/einstellungen/speichern', name='poll_interval_seconds')
     form['value'] = '10'
     preview = web.browser.request('POST', '/einstellungen/speichern', form)
     assert preview.status == 200 and 'ausdrücklich' in preview.body.decode()
@@ -164,7 +165,7 @@ def test_settings_confirm_queue_restart_and_conflict(web, tmp_path):
     assert active[-1].poll_interval_seconds == 10
     assert 'Gespeichert' in web.browser.request('GET', accepted.headers['Location']).body.decode()
     assert web.browser.request('POST', '/einstellungen/speichern', {**form, 'confirm': 'yes'}).status == 409
-    form = web.form('/einstellungen', action='/einstellungen/speichern', name='timezone')
+    form = web.form('/einstellungen?bereich=abruf', action='/einstellungen/speichern', name='timezone')
     assert web.browser.request('POST', '/einstellungen/speichern', {**form, 'value': 'Bad/Zone', 'confirm': 'yes'}).status == 422
     form['value'] = 'Europe/Berlin'
     result = web.browser.request('POST', '/einstellungen/speichern', {**form, 'confirm': 'yes'})

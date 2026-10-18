@@ -25,7 +25,7 @@ def test_settings_link_to_credentials_for_unapproved_iserv_accounts(profiled):
     runtime.setup.save("web:" + web.auth.sessions()[0].id, runtime.setup.state().version,
                        "merge-iserv-draft", 6,
                        {"iserv.accounts": [{"id": 1, "server": "https://schule.example", "mailbox": 1}]})
-    page = web.browser.request("GET", "/einstellungen").body.decode()
+    page = web.browser.request("GET", "/einstellungen?bereich=zugangsdaten").body.decode()
     assert 'href="/einstellungen/zugangsdaten">Alle Zugangsdaten und neue Konten</a>' in page
     form = web.form("/einstellungen/zugangsdaten", action="/einstellungen/zugangsdaten/speichern",
                     name="ISERV_1_PASSWORD")

@@ -3,7 +3,7 @@
 import json
 from urllib.parse import parse_qs
 
-from ..config import TargetProfileSettings, Topic, read_yaml
+from ..config import Settings, TargetProfileSettings, Topic, read_yaml
 from ..configuration import MAILBOX_POLICY_FIELDS
 from ..mailbox_settings import effective_settings, mailbox_fingerprint
 from ..profile_binding import choices
@@ -12,7 +12,7 @@ from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..sender_filter import sender_entry
 from .forms import post_form
 from .http import Response
-from .pages import e, layout
+from .pages import e, layout, notice
 
 TABS = {
     "targets": "Ziele",
@@ -239,20 +239,39 @@ class MailboxSite:
                 result[number] = result.get(number, 0) + 1
         return result
 
-    def index(self, request, session):
+    def index(self, request, session, problem="", values=None):
         if self.runtime is None:
             return self.unavailable()
         cfg = self.runtime.setup.draft_settings()
-        body = (
-            '<p><a href="/einstellungen/zielprofile">Zielprofile verwalten</a> · '
-            '<a href="/einstellungen/iserv">IServ-Konten</a> · '
-            '<a href="/einstellungen/absender">Globale Absenderfilter</a></p><ul>'
+        saved = {box.id: box for box in Settings.model_validate(
+            read_yaml(self.runtime.app.configuration.directory / "config.yaml")).imap.configured_mailboxes()}
+        running = {box.id for box in self.runtime.app.configuration.active.imap.configured_mailboxes()}
+        body = notice("Postfach nicht aktiviert. " + problem, "error") if problem else ""
+        if parse_qs(request.query).get("aktiviert"):
+            body += notice("Verbindung geprüft und Postfach gespeichert. Der Abruf startet ohne Neustart im "
+                           "nächsten sicheren Mailzyklus.")
+        body += (
+            '<p class="settings-shortcuts">'
+            '<a class="button small" href="#postfach-hinzufuegen">Postfach hinzufügen</a> '
+            '<a class="button small" href="/einstellungen/iserv">IServ-Konten</a> '
+            '<a class="button small" href="/einstellungen/zielprofile">Zielprofile</a> '
+            '<a class="button small" href="/einstellungen/absender">Globale Absenderfilter</a> '
+            '<a class="button small" href="/einstellungen/zugangsdaten">Zugangsdaten</a></p>'
         )
         for box in cfg.imap.configured_mailboxes():
+            if box.id not in saved:
+                state = "Entwurf – noch nicht aktiviert"
+            elif box.id not in running:
+                state = "gespeichert – Aktivierung ausstehend"
+            else:
+                state = "aktiv" if box.enabled else "deaktiviert"
+                state += " · Änderungen im Entwurf" if box != saved[box.id] else ""
             body += (
-                f'<li><a class="button" href="/einstellungen/postfaecher/{box.id}">{e(box.label)} · {box.id}</a></li>'
+                f'<section class="card"><h2><a href="/einstellungen/postfaecher/{box.id}">{e(box.label)}</a> · '
+                f'{box.id}</h2><p class="meta">{e(box.host)}:{box.port} · {e(", ".join(box.folders))} · {state}</p>'
+                f'<p><a class="button small" href="/einstellungen/postfaecher/{box.id}">Einstellungen</a></p></section>'
             )
-        body += '</ul><section class="card"><h2>Postfach hinzufügen</h2>'
+        body += self.site.mailbox_add.section(session, cfg, values)
         fields = "".join(
             control(name, value)
             for name, value in (("id", ""), ("label", ""), ("host", ""), ("port", 993), ("folders", "INBOX"))
@@ -260,6 +279,9 @@ class MailboxSite:
         # Each control has a separate name in this multi-field form.
         for name in ("id", "label", "host", "port", "folders"):
             fields = fields.replace(f'id="mailbox-{name}" name="value"', f'id="mailbox-{name}" name="{name}"')
+        body += ('<details class="card"><summary>Stattdessen nur als Entwurf hinzufügen</summary>'
+                 '<p class="meta">Ohne Verbindungsprüfung; Zugangsdaten danach unter Zugangsdaten eintragen, '
+                 'den Entwurf übernehmen und Mailhelp neu starten.</p>')
         body += post_form(
             "/einstellungen/postfaecher/speichern",
             self.site.auth.csrf_token(session.id),
@@ -268,7 +290,7 @@ class MailboxSite:
             action="add",
             version=self.runtime.setup.state().version,
         )
-        return self.page("Postfächer", body + "</section>" + self.preview(session))
+        return self.page("Postfächer", body + "</details>" + self.preview(session))
 
     def mailbox(self, request, session, number):
         if self.runtime is None:

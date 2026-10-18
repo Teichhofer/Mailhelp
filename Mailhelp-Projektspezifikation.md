@@ -1,8 +1,37 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 16. Oktober 2026, Anwendungsversion 3.4.6. Die folgenden Verträge beschreiben
+Stand: 17. Oktober 2026, Anwendungsversion 3.5.0. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
+
+## Einstellungsbereiche und Postfachaktivierung (3.5)
+
+`/einstellungen` zeigt eine Kachelübersicht mit Kontenzahlen und gespeicherten, noch nicht
+aktiven Änderungen. `?bereich=abruf|benachrichtigungen|antworten|ki|daten|system|zugangsdaten`
+zeigt ausschließlich den gewählten Bereich; unbekannte Bereiche liefern 404.
+`?suche=…` sucht alle Wörter ohne Beachtung der Groß-/Kleinschreibung in Bezeichnung,
+Feldname, Gruppe und Bereich. Speichern bleibt ein separat bestätigter Konfigurationsbefehl.
+
+`POST /einstellungen/postfaecher/aktivieren` ergänzt höchstens zehn IMAP-Postfächer.
+Das Formular bindet Sitzung, CSRF, Entwurfsversion, Konfigurations- und `.env`-Hash und einen
+Idempotenzschlüssel. Die Autorisierung wird bei Ausführung und unmittelbar vor dem Schreiben
+erneut geprüft. Doppelte Konten werden anhand Server, Port und Benutzername erkannt,
+auch unter deaktivierten Postfächern. Prüfung der Anmeldung, Ordnerliste und des Lesezugriffs
+erfolgt vor Persistenz. Serverantworten und Zugangsdaten werden weder angezeigt noch geloggt.
+Fehler liefern 422 mit erhaltenen Eingaben ohne Passwort; veraltete Formulare 409,
+abgelaufene Sitzungen 403. Die Startgrenze ist mit heute in der konfigurierten Zeitzone
+vorbelegt; leer erlaubt auch den Altbestand.
+
+Ein erfolgreich geprüftes Postfach wird in `config.yaml`, seine Zugangsdaten in `.env`
+gespeichert. Ein vorbereitetes oder abgeschlossenes Journal verhindert doppelte Ausführung;
+unklare Schreibstände benötigen eine erneute Prüfung des gespeicherten Stands.
+Unabhängige Einrichtungsentwürfe bleiben erhalten. Neue Reader werden im nächsten sicheren
+Mailzyklus ergänzt; alte Reader und Fortschritte bleiben bestehen. Fehlgeschlagener Aufbau
+schließt neue Verbindungen und wird im nächsten Zyklus erneut versucht. Zuordnungen für
+Orchestrator, Metriken, Labels, Antwortentwürfe und Filter berücksichtigen neue Postfächer.
+Bestehende Postfächer ändern oder entfernen bleibt ein Entwurf mit Übernahme und Neustart.
+Kalender- und Aufgabenaktionen benötigen weiterhin ihre eigene versionsbezogene Bestätigung.
+Details und Betriebsgrenzen: [Release 3.5](docs/Release-3.5.md).
 
 ## Einrichtung und Benachrichtigungssteuerung (seit 3.0)
 

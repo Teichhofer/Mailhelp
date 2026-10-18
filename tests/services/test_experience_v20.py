@@ -559,7 +559,7 @@ def test_briefing_and_filters_work_without_javascript(web):
     web.store.save("briefing-latest", {"text": "<private>"})
     assert "&lt;private&gt;" in web.browser.request("GET", "/briefing").body.decode()
     assert web.browser.request("GET", "/offen?filter=invalid").status == 422
-    assert "push-controls" in web.browser.request("GET", "/einstellungen").body.decode()
+    assert "push-controls" in web.browser.request("GET", "/einstellungen?bereich=benachrichtigungen").body.decode()
     with_mail(web.store, 1, extracted_attachments=[{"filename": "a.pdf"}])
     for path in ("/offen", "/mails", "/verlauf"):
         for value in ("", "events", "tasks", "clarification", "attachments", "duplicates"):

@@ -1,11 +1,51 @@
 # Einstellungen der Weboberfläche
 
-Stand: 16. Oktober 2026, Anwendungsversion 3.4.6.
+Stand: 17. Oktober 2026, Anwendungsversion 3.5.0.
 
-Die globalen Einstellungen bieten eine Bereichsübersicht mit direkten Sprunglinks, beispielsweise
-zu Antworten, Zielen, Aufbewahrung und Protokollierung. Die verwendeten KI-Modelle stehen in einer
-aufklappbaren, nur lesenden Übersicht. Auf großen Bildschirmen bleiben die Bereichslinks neben den
-Werten erreichbar; auf dem Handy stehen sie oberhalb der Einstellungsgruppen.
+`/einstellungen` zeigt Kacheln für Konten, allgemeine Regeln, Inhalte und Systemaktionen.
+Kontenkacheln nennen die Anzahl der im laufenden Dienst eingerichteten Konten. Bereichskacheln
+markieren gespeicherte, noch nicht aktive Änderungen. Die Suche (`?suche=…`) findet Einstellungen,
+deren Bezeichnung, Feldname, Gruppe oder Bereich alle eingegebenen Wörter enthält.
+Ein unbekannter Bereich liefert HTTP 404. Die Oberfläche funktioniert ohne JavaScript.
+
+| Bereich | Adresse | Inhalt |
+| --- | --- | --- |
+| Mailabruf | `?bereich=abruf` | Abruf, Mailgrenzen, Zeitlimits, Wiederholungen |
+| Benachrichtigungen | `?bereich=benachrichtigungen` | Telegram, Tagesüberblick, Push-Steuerung |
+| Antworten und Termine | `?bereich=antworten` | Antworten, Termindauern, Abgleich, Ziele |
+| KI und Auswertung | `?bereich=ki` | Modelltabelle (nur lesend), Bilder, Lernen, Berichte, Kosten |
+| Daten und Protokolle | `?bereich=daten` | Anhänge, Aufbewahrung, Protokollierung |
+| Weboberfläche und System | `?bereich=system` | Sitzungen, Netzwerk, Geräte, Neustart, Beenden |
+| Zugangsdaten | `?bereich=zugangsdaten` | Passwörter und API-Schlüssel |
+
+Auf großen Bildschirmen bleibt die Bereichsnavigation neben den Werten erreichbar;
+auf dem Handy steht sie oberhalb der Einstellungsgruppen. Speichern und Bestätigung
+laufen weiterhin über `/einstellungen/speichern` und die Befehlswarteschlange.
+
+## Postfach hinzufügen (3.5)
+
+Unter `/einstellungen/postfaecher` Server, Port, SSL/TLS, STARTTLS oder unverschlüsselte Verbindung,
+Benutzername, Passwort, Quellordner und Entwurfsordner gemeinsam eingeben. Der erste Quellordner
+ist der Posteingang. Die Startgrenze ist mit heute vorbelegt (00:00 Uhr in der konfigurierten
+Zeitzone); leer bedeutet alle vorhandenen Mails. **Verbindung prüfen und Postfach aktivieren**
+prüft Anmeldung, Ordnerliste und lesenden Zugriff. Doppelte Konten (auch deaktivierte) werden
+abgewiesen. Fehlermeldungen enthalten keine Serverantworten oder Zugangsdaten; übrige Eingaben
+bleiben erhalten, das Passwortfeld wird geleert.
+
+Erst nach erfolgreicher Prüfung werden `config.yaml` und `.env` gespeichert. Neue Reader werden
+zwischen Mailzyklen ergänzt, einschließlich Postfachlabels, Metriken, Antwortentwürfen und
+Postfachfiltern. Verbindungsfehler beim Nachladen lassen die bisherigen Reader weiterlaufen und
+werden im nächsten Zyklus erneut versucht. Gespeicherte Konten sind auch nach einem Neustart aktiv.
+Leere Zugangsfelder verwenden bereits hinterlegte `IMAP_<id>_USERNAME`/`IMAP_<id>_PASSWORD`.
+Prozessvariablen haben Vorrang; widersprechende Eingaben werden zurückgewiesen.
+
+Sitzung, CSRF, Entwurfsversion, Konfigurations- und `.env`-Hash sowie Idempotenzschlüssel werden
+geprüft; die Sitzung erneut unmittelbar vor dem Schreiben. Unterbrochene Aktivierungen werden
+mit demselben Schlüssel nicht erneut ausgeführt: Seite neu laden und gespeicherten Stand prüfen.
+Andere Entwürfe bleiben erhalten. Die Karten unterscheiden aktiv, deaktiviert, Entwurf,
+gespeichert mit ausstehender Aktivierung und Änderungen im Entwurf. Die eingeklappte Alternative
+**Stattdessen nur als Entwurf hinzufügen** bleibt verfügbar. Änderungen und Entfernen bestehender
+Postfächer benötigen weiterhin Entwurfsübernahme und Neustart.
 
 Einrichtungsentwürfe unter `/einrichtung` und das Versandprofil unter
 `/einstellungen/benachrichtigungen` bearbeiten ebenfalls `config.yaml`.

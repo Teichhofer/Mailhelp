@@ -434,8 +434,10 @@ def build_application(
         application.profile_writers = built
         if web_enabled:
             from .iserv_runtime import IServRuntime
+            from .mailbox_runtime import MailboxRuntime
             application.iserv_runtime = IServRuntime(application, iserv_resources)
             stack.callback(application.iserv_runtime.close)
+            application.mailbox_runtime = MailboxRuntime(application, stack.enter_context(ExitStack()), secrets)
         from . import profile_binding
         dialog.decision_service.profile_available = lambda proposal: profile_binding.available(
             application.settings, writers, proposal)

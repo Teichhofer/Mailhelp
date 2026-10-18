@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.4.7 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.5.0 · **Python:** 3.12.x · **Lizenz:** MIT
 
 [Installation](#installation) · [Konfiguration](#konfiguration) ·
 [Betrieb](#betrieb) · [Docker](#docker) ·
@@ -23,6 +23,9 @@ einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
 - **Mehrere Postfächer:** IMAP-Abruf mit getrennten Kontoidentitäten und Wiederaufnahme
   gespeicherter Verarbeitungsschritte nach einem Neustart.
+  Neue Postfächer lassen sich mit Server, Ordnern und Zugangsdaten gemeinsam prüfen und
+  aktivieren. Nach erfolgreicher Prüfung beginnt der Abruf ohne Dienstneustart.
+  Die Startgrenze ist mit dem heutigen Datum vorbelegt; leer bedeutet alle Mails.
 - **Gezielte Analyse:** Themen, ausgeschlossene Themen und Absenderfilter bestimmen,
   welche Nachrichten verarbeitet werden. Dokumente und Bildanhänge können in die
   Analyse einbezogen werden.
@@ -31,6 +34,8 @@ einem lokalen Ollama-Server ist ebenfalls verfügbar.
   und offene Entscheidungen, um doppelte Aktionen zu vermeiden.
 - **Einstellungen je Postfach:** Eigene Zielprofile, Themen, Signaturen, Ruhezeiten,
   Benachrichtigungen, Termindauern und Aufbewahrungsregeln mit globaler Vererbung.
+  Die globale Einstellungsübersicht bietet Kacheln, thematische Bereiche und eine Suche.
+  Gespeicherte, noch nicht aktive Änderungen werden an den Bereichskacheln angezeigt.
 - **Telegram und Web-App:** Vorschläge prüfen, klären, bearbeiten, bestätigen oder
   verwerfen. Die installierbare Web-App unterstützt auch den Betrieb ohne Telegram.
   Die Statusseite führt alle konfigurierten IMAP-, IServ-, Kalender-, Aufgaben- und
@@ -408,6 +413,7 @@ Entwicklungsregeln stehen in [AGENTS.md](AGENTS.md), technische Verträge in der
 | Installation, Updates und Paketbetrieb | [Release-Anleitung](docs/Release-1.0.md) |
 | Einrichtung, OAuth und Qualitätsprüfung | [Betriebsanleitung](docs/Einrichtung-und-Qualitaetspruefung.md) |
 | Web-Einstellungen und Beispiele | [Einstellungsreferenz](docs/Web-Einstellungen.md) |
+| Einstellungsbereiche und Postfächer im Betrieb aktivieren | [Release 3.5](docs/Release-3.5.md) |
 | IServ-Elternbriefe, Zugangsdaten und Einstellungen im Web | [Release 3.4](docs/Release-3.4.md) |
 | Weboberfläche und technische Konsolidierung | [Release 3.3](docs/Release-3.3.md) |
 | Postfachregeln, Zielprofile und Migration | [Zielprofile und Upgrade](docs/Release-3.2.md) |

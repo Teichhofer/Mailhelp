@@ -397,7 +397,8 @@ def test_settings_page_groups_values_and_marks_pending_restarts(web, tmp_path):
     data["timeouts"]["imap"]["retries"] = 7
     data["targets"]["google_calendar"] = "familie@group.calendar.google.com"
     path.write_text(yaml.safe_dump(data), encoding="utf-8")
-    page = web.browser.request("GET", "/einstellungen").body.decode()
+    from mailhelp.web.settings_pages import AREAS
+    page = "".join(web.browser.request("GET", "/einstellungen?bereich=" + key).body.decode() for key, *_ in AREAS)
     for title in ("Mailabruf und Betrieb", "Ziele", "Zeitlimits und Wiederholungen", "Aufbewahrung",
                   "Protokollierung", "Kosten und Messung"):
         assert f"<h2>{title}</h2>" in page
@@ -409,7 +410,7 @@ def test_settings_page_groups_values_and_marks_pending_restarts(web, tmp_path):
     assert "<span>Wechselkurs (USD je EUR)</span><strong>1.1</strong>" in page
     assert "<span>Wechselkurs vom</span><strong>nicht gesetzt</strong>" in page
     web.site.archive.configuration = None
-    unavailable = web.browser.request("GET", "/einstellungen").body.decode()
+    unavailable = web.browser.request("GET", "/einstellungen?bereich=ki").body.decode()
     assert "Konfigurationsdienst nicht verfügbar." in unavailable and "<h2>Modelle (nur lesend)</h2>" in unavailable
 
 
@@ -419,7 +420,7 @@ def test_live_settings_saved_but_not_yet_taken_over(web, tmp_path):
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     data["poll_interval_seconds"] = 33
     path.write_text(yaml.safe_dump(data), encoding="utf-8")
-    page = web.browser.request("GET", "/einstellungen").body.decode()
+    page = web.browser.request("GET", "/einstellungen?bereich=abruf").body.decode()
     assert "Gespeichert: 33 · gespeichert – wird an der nächsten sicheren Stelle übernommen" in page
 
 
@@ -428,9 +429,9 @@ def test_settings_page_shows_the_model_table_or_says_there_is_none(web, tmp_path
 
     from mailhelp.configuration import effective_models
     configure(web, tmp_path)
-    assert "Keine Modellangaben verfügbar." in web.browser.request("GET", "/einstellungen").body.decode()
+    assert "Keine Modellangaben verfügbar." in web.browser.request("GET", "/einstellungen?bereich=ki").body.decode()
     web.site.archive.models = effective_models(prompt_config(), "typesafe/jev", None)
-    page = web.browser.request("GET", "/einstellungen").body.decode()
+    page = web.browser.request("GET", "/einstellungen?bereich=ki").body.decode()
     assert "<td>Relevanz</td><td>typesafe/jev</td>" in page and "<td>decisions_prompts.yaml</td>" in page
 
 
@@ -439,7 +440,7 @@ def test_no_secret_appears_in_any_web_page_or_answer(web, tmp_path):
     service, metrics, *_ = configure(web, tmp_path)
     path = tmp_path / "config.yaml"
     # Secrets must never be in config.yaml; even a misplaced one is not echoed by a refused field.
-    form = web.form("/einstellungen", action="/einstellungen/speichern", name="timezone")
+    form = web.form("/einstellungen?bereich=abruf", action="/einstellungen/speichern", name="timezone")
     refused = web.browser.request("POST", "/einstellungen/speichern",
                                   {**form, "name": "imap_password", "value": secret_values[0], "confirm": "yes"})
     assert refused.status == 422 and secret_values[0] not in refused.body.decode()
@@ -455,7 +456,7 @@ def test_no_secret_appears_in_any_web_page_or_answer(web, tmp_path):
 def test_a_lower_call_limit_keeps_the_counted_budget(web, tmp_path):
     service, *_ = configure(web, tmp_path)
     web.store.save("llm-budget", {"calls": [1.0, 2.0, 3.0]})
-    form = web.form("/einstellungen", action="/einstellungen/speichern", name="limits.llm_calls_per_minute")
+    form = web.form("/einstellungen?bereich=abruf", action="/einstellungen/speichern", name="limits.llm_calls_per_minute")
     response = web.browser.request("POST", "/einstellungen/speichern", {**form, "value": "1", "confirm": "yes"})
     assert response.status == 303
     web.run()
@@ -465,7 +466,7 @@ def test_a_lower_call_limit_keeps_the_counted_budget(web, tmp_path):
 
 def test_shorter_retention_is_not_saved_without_explicit_confirmation(web, tmp_path):
     service, *_ = configure(web, tmp_path)
-    form = web.form("/einstellungen", action="/einstellungen/speichern", name="retention.full_mail_days")
+    form = web.form("/einstellungen?bereich=daten", action="/einstellungen/speichern", name="retention.full_mail_days")
     preview = web.browser.request("POST", "/einstellungen/speichern", {**form, "value": "1"})
     assert preview.status == 200 and "unwiderruflich" in preview.body.decode()
     web.run()

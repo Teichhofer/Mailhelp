@@ -227,10 +227,10 @@ def test_activation_failures_are_safe_and_recoverable(activation, monkeypatch, f
     elif failure == "probe":
         Reader.error = RuntimeError("never-display-secret")
     elif failure == "write":
-        monkeypatch.setattr("mailhelp.iserv_activation.set_values", lambda *args: (_ for _ in ()).throw(OSError()))
+        monkeypatch.setattr("mailhelp.connection_activation.set_values", lambda *args: (_ for _ in ()).throw(OSError()))
     elif failure == "config":
         from mailhelp.review.results import ResultStatus, ReviewResult
-        monkeypatch.setattr("mailhelp.iserv_activation.ConfigurationService.execute",
+        monkeypatch.setattr("mailhelp.connection_activation.ConfigurationService.execute",
                             lambda *args: ReviewResult(status=ResultStatus.STALE, message="changed"))
     else:
         from mailhelp.setup import SetupState

@@ -59,8 +59,8 @@ class SettingsPage:
     def __init__(self, page, url: str):
         self.page, self.url = page, url
 
-    def open(self) -> SettingsPage:
-        self.page.goto(f"{self.url}/einstellungen")
+    def open(self, area: str = "abruf") -> SettingsPage:
+        self.page.goto(f"{self.url}/einstellungen?bereich={area}")
         return self
 
     def expand(self, label: str):

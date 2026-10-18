@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 from typing import TYPE_CHECKING
+from urllib.parse import parse_qs
 
 import yaml
 
@@ -11,7 +12,7 @@ from ..credentials import CredentialService, CredentialUnauthorized
 from ..storage import CorruptState
 from .http import Response
 from .pages import layout, notice
-from .settings_pages import TEXT_SETTINGS, settings_confirmation, settings_page, topics_page
+from .settings_pages import AREA_KEYS, TEXT_SETTINGS, settings_confirmation, settings_page, topics_page
 
 if TYPE_CHECKING:
     from .archive_site import ArchiveSite
@@ -29,6 +30,10 @@ class SettingsSite:
             self.site.app.route(method, path, self.site.signed_in(handler))
 
     def settings(self, request, session):
+        query = parse_qs(request.query)
+        area = query.get("bereich", [""])[0]
+        if area and area not in AREA_KEYS:
+            return self.site._reply(request, 404, "Unbekannter Einstellungsbereich.")
         configuration = self.archive.configuration
         raw = active = None
         revision = ""
@@ -43,9 +48,8 @@ class SettingsSite:
             credentials = service.snapshot() if service is not None else None
         except (OSError, ValueError):
             credentials = None
-        page = settings_page(self.archive.models, raw, active, revision, csrf, credentials)
-        page += self.site.experience.controls(csrf)
-        page += self.site.setup_page.links()
+        page = settings_page(self.archive.models, raw, active, revision, csrf, credentials, area,
+                             query.get("suche", [""])[0][:80], self.site.experience.controls(csrf))
         return Response.html(200, layout("Einstellungen", page, active="/einstellungen"))
 
     def credential_service(self):
@@ -80,7 +84,7 @@ class SettingsSite:
         return Response.html(200, layout("Zugangsdaten gespeichert", '<h1>Zugangsdaten gespeichert</h1>' + notice(
             "Zugangsdaten in .env gespeichert. Sie werden nach einem Neustart verwendet; "
             "Prozessvariablen haben weiterhin Vorrang.", "ok")
-            + '<p><a class="button" href="/einstellungen#settings-credentials">Zurück zu Zugangsdaten</a></p>',
+            + '<p><a class="button" href="/einstellungen?bereich=zugangsdaten">Zurück zu Zugangsdaten</a></p>',
             active="/einstellungen"))
 
     def save_settings(self, request, session, form):

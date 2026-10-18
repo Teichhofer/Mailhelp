@@ -294,7 +294,7 @@ def test_web_push_opt_in_on_the_settings_page(page, mailhelp):
         return
     page.add_init_script(PUSH_STUB)
     sign_in(page, mailhelp)
-    page.goto(f"{mailhelp.url}/einstellungen")
+    page.goto(f"{mailhelp.url}/einstellungen?bereich=benachrichtigungen")
     status = page.locator("#push-status")
     enable = page.get_by_role("button", name="Push aktivieren")
     disable = page.get_by_role("button", name="Push deaktivieren")
@@ -521,7 +521,7 @@ def test_script_steps_that_end_in_a_navigation(page, mailhelp):
 def test_personal_information_is_saved_with_line_breaks(page, mailhelp):
     """The text area keeps line breaks through the confirmation step into config.yaml."""
     sign_in(page, mailhelp)
-    settings = SettingsPage(page, mailhelp.url).open()
+    settings = SettingsPage(page, mailhelp.url).open("antworten")
     setting = settings.expand("Persönliche Angaben für Antworten")
     assert audit(page, f"v20-persoenlich-{page.device}", page.mobile) == []
     settings.propose(setting, "Max Mustermann\nElternbeirat Klasse 4b")
@@ -656,9 +656,11 @@ def test_background_refresh_to_inbox_zero(page, mailhelp):
 def test_setting_help_hover_keyboard_touch_and_escape(page, mailhelp):
     from mailhelp.web.setting_help import SETTING_HELP
     sign_in(page, mailhelp)
-    page.goto(f"{mailhelp.url}/einstellungen")
+    page.goto(f"{mailhelp.url}/einstellungen?bereich=abruf")
     controls = page.locator(".info-trigger")
-    expect(controls).to_have_count(len(SETTING_HELP) + 2)
+    from mailhelp.web.settings_pages import AREAS, _names
+    groups = next(groups for key, _, _, groups in AREAS if key == "abruf")
+    expect(controls).to_have_count(sum(len(_names(group)) for group in groups))
     trigger = page.get_by_role("button", name="Info zu Abrufintervall (Sekunden)", exact=True)
     tip = page.locator("#help-poll_interval_seconds")
     expect(tip).to_be_hidden()

@@ -6,7 +6,7 @@ import yaml
 from shared_web_v12 import configure
 
 from mailhelp.configuration import SETTINGS_FIELDS, SETUP_FIELDS, AdminCommand, AdminKind, file_hash
-from mailhelp.web.settings_pages import SETTING_GROUPS
+from mailhelp.web.settings_pages import AREAS, SETTING_GROUPS
 
 VALID = {
     "imap.batch_size": 40, "imap.global_newest_first": True, "telegram.user_id": 42, "telegram.chat_id": -100,
@@ -53,11 +53,11 @@ def test_every_new_setting_is_offered_grouped_and_validated(web, tmp_path):
 
 def test_settings_page_shows_the_new_groups_with_their_controls(web, tmp_path):
     configure(web, tmp_path)
-    page = web.browser.request("GET", "/einstellungen").body.decode()
+    page = "".join(web.browser.request("GET", "/einstellungen?bereich=" + key).body.decode() for key, *_ in AREAS)
     for group in ("Telegram", "Bildauswertung", "Tagesüberblick", "Tätigkeitsberichte", "Lernmodus", "Weboberfläche"):
         assert f">{group}<" in page
     assert "Mails je Abrufdurchlauf" in page and "Antwortentwürfe anbieten" in page
-    form = web.form("/einstellungen", action="/einstellungen/speichern", name="imap.batch_size")
+    form = web.form("/einstellungen?bereich=abruf", action="/einstellungen/speichern", name="imap.batch_size")
     accepted = web.browser.request("POST", "/einstellungen/speichern", {**form, "value": "60", "confirm": "yes"})
     assert accepted.status == 303
     web.run()

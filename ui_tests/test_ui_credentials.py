@@ -52,7 +52,7 @@ def test_credential_editing_works_without_javascript(browser, mailhelp):
     page = context.new_page()
     try:
         sign_in(page, mailhelp)
-        page.goto(mailhelp.url + "/einstellungen#settings-credentials")
+        page.goto(mailhelp.url + "/einstellungen?bereich=zugangsdaten")
         form = credential_form(page, "OPENROUTER_API_KEY")
         form.locator("..").locator("summary").click()
         form.get_by_label("Neuer Wert für OpenRouter API-Schlüssel", exact=True).fill("synthetic-api-key")

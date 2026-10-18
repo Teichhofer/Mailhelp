@@ -57,13 +57,14 @@ class ExperienceRuntime:
         # draft_reply prompt (prompts.yaml of an earlier release) they stay off.
         from .mailbox_settings import effective_settings
 
+        self.draft_targets: dict | None = None
         if (
             any(effective_settings(settings, box.id).smart_reply for box in settings.imap.enabled_mailboxes())
             and "draft_reply" in app.analyzer.prompts.prompts
         ):
             self.mailbox_numbers = {mailbox_account_id(box, secrets.imap_credentials(box.id)): box.id
                                     for box in settings.imap.enabled_mailboxes()}
-            targets = _draft_targets(settings, secrets)
+            targets = self.draft_targets = _draft_targets(settings, secrets)
             first = next(iter(targets.values()))
             feature.drafts = DraftService(app.store, components.auth.active, first.connection, first.sender,
                 first.folder, settings.test_mode, app.analyzer, lambda: app.settings.personal_info,
@@ -114,6 +115,16 @@ class ExperienceRuntime:
             app.calendar, app.todoist, self.site.views, channels)
         from .mailbox_briefing import configure
         configure(app, self.briefing, self.site.views)
+
+    def add_mailboxes(self, settings, secrets):
+        """Mailboxes activated while running (3.5): reply drafts and the mailbox filter include them."""
+        if self.draft_targets is not None:
+            self.mailbox_numbers.update({mailbox_account_id(box, secrets.imap_credentials(box.id)): box.id
+                                         for box in settings.imap.enabled_mailboxes()})
+            self.draft_targets.update(_draft_targets(settings, secrets))
+        if len(self.app.sources) > 1:
+            labels = {source.account_id: (source.mailbox.id, source.mailbox.label) for source in self.app.sources}
+            self.site.views.mailboxes = self.site.archive.queries.mailboxes = labels
 
     def draft_policy(self, account):
         from .mailbox_settings import effective_settings
