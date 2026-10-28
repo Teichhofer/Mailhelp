@@ -1,5 +1,15 @@
 # Änderungen
 
+## 3.5.1 – Betriebsproblem-Benachrichtigungen bei fehlgeschlagenen Mails
+
+- Fehlerbehebung: Sobald eine Mail mit einem Verarbeitungsfehler endete (z. B. abgelehnter
+  OpenRouter-Schlüssel), brach jeder Benachrichtigungsdurchlauf mit
+  `notifications_failed` / `ValidationError` ab. Die Zustellreferenz wurde aus den deutschen
+  Anzeigetexten („Zusammenfassung:Dienst lehnt dauerhaft ab“) gebildet und verletzte das
+  Referenzformat. Dadurch blieben Betriebsproblem-Meldungen, Dienstfehler und der
+  Tagesüberblick aus. Die Referenz verwendet jetzt Verarbeitungsschritt und Fehlercode
+  (`<mail_id>:summary:permanent_adapter_error`); ein Regressionstest deckt den Fall ab.
+
 ## 3.5.0 – Einstellungsbereiche und Postfächer im Betrieb aktivieren
 
 - Einstellungen zeigen eine Kachelübersicht mit Kontenzahlen, thematischen Bereichen,

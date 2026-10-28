@@ -129,6 +129,13 @@ class ErrorView:
     occurred_at: datetime
     retryable: bool | None
     next_attempt: datetime | None = None
+    # Technical codes for identities (notification references); labels are display only.
+    stage_code: str = ""
+    cause_code: str = ""
+
+    @property
+    def reference(self) -> str:
+        return f"{self.mail_id}:{self.stage_code}:{self.cause_code}"
 
 
 @dataclass(frozen=True)
@@ -299,6 +306,7 @@ class ReviewViews:
                 stage=STAGE_LABELS[error.stage.value], cause=ERROR_LABELS[error.code.value],
                 occurred_at=error.occurred_at, retryable=error.retryable,
                 next_attempt=state.deferred_until,
+                stage_code=error.stage.value, cause_code=error.code.value,
             ) for state, error in failed[:ERROR_LIMIT]),
             telegram_held=len(outbox.entries),
             telegram_unprocessed=len(entries) if isinstance(entries, list) else 0,

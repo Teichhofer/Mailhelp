@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 17. Oktober 2026, Anwendungsversion 3.5.0. Die folgenden Verträge beschreiben
+Stand: 27. Oktober 2026, Anwendungsversion 3.5.1. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -49,7 +49,9 @@ Die Hintergrundzustellung verwendet eine dauerhafte gemeinsame Queue je Kategori
 Aktuelle Relevanz, Einstellungen und Geräteberechtigung werden vor dem Versand geprüft.
 Ruhezeiten folgen lokaler IANA-Zeit; Bündelung besitzt eine feste Frist ab erstem Ereignis.
 Unklare Zustellungen werden ohne belastbaren Abgleich nicht wiederholt. Providerannahme
-ist kein Lesenachweis. Profile sind operativ und verändern keine Analyse-Fingerprints.
+ist kein Lesenachweis. Betriebsprobleme einer Mail werden über Mail-ID, technischen
+Verarbeitungsschritt und Fehlercode identifiziert (`<mail_id>:<stage>:<code>`), nie über
+die deutschen Anzeigetexte. Profile sind operativ und verändern keine Analyse-Fingerprints.
 Bestehende Kanalwahlen und Zustellmarker bleiben beim Upgrade erhalten. Weitere Regeln
 zu direkten Dialogen und externen Fachaktionen gelten unverändert.
 

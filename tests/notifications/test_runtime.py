@@ -313,13 +313,29 @@ def test_migration_after_a_prepared_backup_keeps_the_original_backup(configured)
 
 def test_system_errors_are_deduplicated_and_follow_the_same_policy(runtime, monkeypatch):
     svc, web = runtime.runtime, runtime.web
-    error = NS(mail_id=MAIL1, stage="relevance", cause="network")
+    error = NS(mail_id=MAIL1, reference=f"{MAIL1}:relevance:network")
     monkeypatch.setattr(web.site.views, "system", lambda now: NS(errors=[error]))
     svc.tick()
     svc.tick()
     entries = [item for item in svc.queue.state().entries.values() if item.category == "system_errors"]
     assert len(entries) == 1 and entries[0].status == "sent" and entries[0].attempts == 1
     assert not svc.relevant(entries[0].model_copy(update={"reference": "different"}))
+
+
+def test_failed_mail_is_queued_by_codes_not_by_german_labels(runtime):
+    # Regression: the reference was built from the display labels
+    # ("Zusammenfassung:Dienst lehnt dauerhaft ab"), which violate the Delivery
+    # pattern; every tick then failed with a ValidationError.
+    from mailhelp.models import ProcessingError
+    svc, web = runtime.runtime, runtime.web
+    state = web.store.load_model("mail-" + MAIL1, MailState)
+    state.error = ProcessingError(code="permanent_adapter_error", stage="summary",
+                                  occurred_at=datetime(2026, 10, 27, 5, 44, tzinfo=UTC), retryable=False)
+    web.store.save("mail-" + MAIL1, state.model_dump(mode="json"))
+    svc.tick()
+    entries = [item for item in svc.queue.state().entries.values() if item.category == "system_errors"]
+    assert [item.reference for item in entries] == [f"{MAIL1}:summary:permanent_adapter_error"]
+    assert entries[0].status == "sent" and svc.relevant(entries[0])
 
 
 def test_experience_uses_shared_delivery_without_running_old_schedulers(runtime):

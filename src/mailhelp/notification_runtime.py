@@ -115,8 +115,7 @@ class NotificationRuntime:
         health = self.app.store.load("service-health", {"errors": {}, "version": 0})
         if item.reference.startswith("service:"):
             return item.reference.removeprefix("service:") in health["errors"] and item.version == health["version"]
-        return any(f"{row.mail_id}:{row.stage}:{row.cause}" == item.reference
-                   for row in self.site.views.system(self.queue.clock()).errors)
+        return any(row.reference == item.reference for row in self.site.views.system(self.queue.clock()).errors)
 
     def send(self, items, profile):
         first = items[0]
@@ -213,8 +212,7 @@ class NotificationRuntime:
                 marked.add(entry.id)
         self.app.store.save("notification-results", sorted(marked & current))
         for row in self.site.views.system(self.queue.clock()).errors:
-            self.queue.enqueue("system_errors", f"{row.mail_id}:{row.stage}:{row.cause}",
-                               mailbox_id=self.mailbox_of(row.mail_id))
+            self.queue.enqueue("system_errors", row.reference, mailbox_id=self.mailbox_of(row.mail_id))
         health = self.app.store.load("service-health", {"errors": {}, "version": 0})
         for name in health["errors"]:
             number = next((box.id for box in self.app.settings.imap.enabled_mailboxes()
