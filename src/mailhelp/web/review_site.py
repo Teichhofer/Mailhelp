@@ -30,7 +30,8 @@ class ReviewSite:
             return Response.text(422, "Ungültiger Filter.")
         overview = self.site.views.overview()
         def include(view):
-            mail = self.site.views.mail(view.mail_id)
+            # Only the attachment filter needs the mail; reading it for every card cost ~1 ms each.
+            mail = self.site.views.mail(view.mail_id) if selected == "attachments" else None
             return matches(selected, [view.card.kind.value], [view.status.value],
                            mail.extracted_attachments if mail else ())
         overview = replace(overview, open=tuple(view for view in overview.open if include(view)),

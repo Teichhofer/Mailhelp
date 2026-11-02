@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 import unicodedata
 from dataclasses import dataclass
+from functools import lru_cache
 
 # Per-field and per-mail limits keep the in-memory index bounded.
 FIELD_LIMIT = 100_000
@@ -19,14 +20,16 @@ SEPARATOR = "\x1f"
 _UMLAUTS = {"ä": "ae", "ö": "oe", "ü": "ue", "ß": "ss", "æ": "ae", "œ": "oe", "ø": "oe"}
 
 
+@lru_cache(maxsize=8192)
 def _fold_char(char: str) -> str:
+    # Mail texts repeat few distinct characters; memoizing makes rebuilding the archive index fast.
     folded = "".join(_UMLAUTS.get(item, item) for item in char.casefold())
     return "".join(item for item in unicodedata.normalize("NFKD", folded) if not unicodedata.combining(item))
 
 
 def fold(text: str) -> str:
     """Comparable form: NFKC, case-folded, umlauts spelt out, accents removed, whitespace collapsed."""
-    folded = "".join(_fold_char(char) for char in unicodedata.normalize("NFKC", text))
+    folded = "".join(map(_fold_char, unicodedata.normalize("NFKC", text)))
     return " ".join(folded.split())
 
 

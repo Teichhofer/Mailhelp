@@ -91,10 +91,14 @@ def test_live_settings_reach_both_metric_recorders(tmp_path):
     comparison = SimpleNamespace(settings=None)
     logger = Log()
     logger.metrics = SimpleNamespace(settings=None, comparison=comparison)
-    app = Application(configured, object(), logger, object(), object(), object(), object(), object(),
+    store = SimpleNamespace(revision=0)
+    store.touch = lambda: setattr(store, "revision", store.revision + 1)
+    app = Application(configured, store, logger, object(), object(), object(), object(), object(),
                       object(), Orch(), Event())
     changed = configured.model_copy(update={"poll_interval_seconds": 30})
     app.apply_settings(changed)
+    # Cached web views are rebuilt with the new settings.
+    assert store.revision == 1
     assert app.settings.poll_interval_seconds == 30
     assert app.mailbox.settings is changed
     assert logger.metrics.settings is comparison.settings is changed.metrics

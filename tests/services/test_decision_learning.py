@@ -208,7 +208,7 @@ def test_live_retention_change_reaches_the_recorder(tmp_path):
         recorder = learning(store)
         app = SimpleNamespace(logger=SimpleNamespace(metrics=MetricsRecorder(tmp_path / "m.jsonl", configured.metrics)),
                               settings=configured, mailbox=SimpleNamespace(settings=configured),
-                              dialog=SimpleNamespace(learning=recorder),
+                              dialog=SimpleNamespace(learning=recorder), store=store,
                               orchestrator=SimpleNamespace(reconciliation=SimpleNamespace(max_candidates=8)))
         changed = configured.model_copy(update={"retention": configured.retention.model_copy(
             update={"decision_learning_days": "disabled"})})

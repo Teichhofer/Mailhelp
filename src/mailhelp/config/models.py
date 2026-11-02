@@ -496,6 +496,8 @@ class RetentionSettings(ConfigModel):
     activity_report_days: RetentionPeriod = 365
     # Manual decisions as learning material (3.5.3); disabled records none.
     decision_learning_days: RetentionPeriod = "unlimited"
+    # Minutes between cleanup runs (3.5.5); each run blocks the main thread. 0 runs it every cycle.
+    cleanup_interval_minutes: int = Field(default=60, ge=0, le=1440)
 
 
 class MailboxRetention(ConfigModel):

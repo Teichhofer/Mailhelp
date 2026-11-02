@@ -1,5 +1,21 @@
 # Änderungen
 
+## 3.5.5 – Schnellere Weboberfläche
+
+- Fehlerbehebung: Die Aufbewahrungsbereinigung schrieb bei jedem Abrufzyklus alle bereits
+  entfernten Analysen neu (rund 580 Dateien mit `fsync`). Sie blockierte den
+  Verarbeitungs-Thread mehrere Sekunden und machte den Archivindex jedes Mal ungültig.
+  Bereits entfernte Inhalte werden nicht mehr geschrieben; ein Regressionstest deckt das ab.
+- Neue Einstellung `retention.cleanup_interval_minutes` (Standard 60, 0 = jeder Zyklus):
+  Die Bereinigung läuft beim Start und danach in diesem Abstand. Web-Aktionen warten
+  dadurch nicht mehr bei jedem Zyklus mehrere Sekunden.
+- Die Übersicht offener Entscheidungen wird zwischengespeichert und nur nach einer
+  Zustandsänderung, Einstellungsübernahme, Änderung des Datenverzeichnisses oder nach
+  höchstens 60 Sekunden neu aufgebaut (gemessen: 2 ms statt 0,3–2 s).
+- Die Vorschlagsseite liest den Verlauf nur der eigenen Mail statt den gesamten Archivindex
+  (gemessen: ca. 10 ms statt bis zu 3 s). Der Archivindex normalisiert Texte schneller.
+- Ohne gewählten Anhangsfilter liest die Übersicht die Mails der Karten nicht mehr einzeln.
+
 ## 3.5.4 – Dublettenprüfung in der Weboberfläche wiederholen
 
 - Fehlerbehebung: War die Dublettenprüfung eines Vorschlags fehlgeschlagen (z. B. wegen

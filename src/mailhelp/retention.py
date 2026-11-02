@@ -21,6 +21,7 @@ _OPEN_PROPOSALS = {
     ProposalStatus.UNCERTAIN,
 }
 
+_REMOVED = {"schema_version": 1, "removed": True}
 
 @dataclass(frozen=True)
 class CleanupResult:
@@ -74,8 +75,9 @@ class RetentionService:
                 analysis_period = self.settings.debug_llm_days
             for prefix, period in (("analysis", analysis_period), ("history", self.settings.history_days)):
                 record = self.store.load(f"{prefix}-{state.id}")
-                if record is not None and self._expired(period, state.updated_at, now):
-                    self.store.save(f"{prefix}-{state.id}", {"schema_version": 1, "removed": True})
+                # An already removed record is not rewritten: every save costs an fsync and a store revision.
+                if record not in (None, _REMOVED) and self._expired(period, state.updated_at, now):
+                    self.store.save(f"{prefix}-{state.id}", _REMOVED)
                     if prefix == "history":
                         for snapshot in self.store.names(state_names.proposals_of(state.id)):
                             suffix = snapshot.rsplit("-", 1)[-1]

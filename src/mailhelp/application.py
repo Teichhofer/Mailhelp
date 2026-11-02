@@ -70,6 +70,8 @@ class Application:
     iserv_runtime: IServRuntime | None = None
     # Mailboxes activated in the web interface, installed between cycles (3.5).
     mailbox_runtime: MailboxRuntime | None = None
+    # Monotonic time of the last maintenance run; it blocks the main thread and runs at an interval.
+    _maintained_at: float | None = None
     # Receiver thread, web interface, experience and notification runtimes beside the loop.
     services: ServiceCoordinator = field(default_factory=ServiceCoordinator)
     # Every enabled mailbox with its reader (3.1); ``imap`` is the reader of the first one.
@@ -219,6 +221,8 @@ class Application:
         self.orchestrator.mailbox_settings = settings
         self.orchestrator.reconciliation_settings = settings.proposal_reconciliation
         self.orchestrator.reconciliation.max_candidates = settings.proposal_reconciliation.max_semantic_candidates
+        # Cached web views depend on settings such as target profiles.
+        self.store.touch()
         learning = getattr(self.dialog, "learning", None)
         if learning is not None:
             learning.period = settings.retention.decision_learning_days
@@ -412,6 +416,11 @@ class Application:
             log_and_continue(self.logger, "telegram", "startup_outbox_failed", exc)
 
     def _maintain(self) -> None:
+        now = time.monotonic()
+        last = self._maintained_at
+        if last is not None and now - last < self.settings.retention.cleanup_interval_minutes * 60:
+            return
+        self._maintained_at = now
         try:
             def period(state: MailState) -> RetentionPeriod:
                 cfg = self.orchestrator.mailbox_settings

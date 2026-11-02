@@ -112,6 +112,10 @@ retention:
   # (Mail, KI-Ergebnisse, Vorschlag vorher/nachher, Entscheidung). Zahl (Tage nach der
   # Entscheidung), disabled (nichts aufzeichnen, Bestand löschen) oder unlimited (Standard).
   decision_learning_days: unlimited
+  # Ab 3.5.5: Abstand der Bereinigung in Minuten (0–1440, Standard 60). Sie läuft im
+  # Verarbeitungsablauf und hält Mailabruf und Web-Aktionen währenddessen kurz an;
+  # 0 bereinigt wie bisher bei jedem Abrufzyklus.
+  cleanup_interval_minutes: 60
 metrics:
   # Ab 1.2: inhaltsfreie Messung von KI-Aufrufen (Dauer, Modell, Schritt, Kosten) für
   # die Seite „Auswertung“. Gespeichert in logs/metrics/.

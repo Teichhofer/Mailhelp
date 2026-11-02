@@ -868,7 +868,8 @@ def test_detail_page_discloses_evidence_revisions_and_analysis(web, monkeypatch)
     rows = [{"mail_id": MAIL1, "proposal_id": "elternabend", "version": v, "at": f"2026-10-0{v}T10:00:00+00:00",
              "status": "pending_confirmation", "source": "system"} for v in (1, 2)]
     rows.append({**rows[0], "proposal_id": "formular"})
-    monkeypatch.setattr(web.site.archive.queries, "history", lambda: rows)
+    monkeypatch.setattr(web.site.archive.queries, "history_of",
+                        lambda mail_id: [row for row in rows if row["mail_id"] == mail_id])
     page = web.browser.request("GET", f"/vorschlag/{MAIL1}/elternabend").body.decode()
     assert page.index(f"/vorschlag/{MAIL1}/elternabend/version/2") < page.index(f"/vorschlag/{MAIL1}/elternabend/version/1")
     assert "/formular/version" not in page

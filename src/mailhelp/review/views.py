@@ -10,9 +10,11 @@ from __future__ import annotations
 
 import hashlib
 import re
+import time
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any, TypeVar
 
 from pydantic import BaseModel
@@ -45,6 +47,8 @@ _SNAPSHOT = re.compile(r"-v\d+\Z")
 _CHANGE_QUESTION = "Was soll geändert werden?"
 _CHANGE_EXAMPLE = "„Titel: Elternabend“ oder „Ort: Raum 3“"
 RECENT_LIMIT = 8
+# A cached overview is rebuilt at least this often (changes from outside the process).
+OVERVIEW_MAX_AGE_SECONDS = 60
 _EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
 STATUS_LABELS = {
     ProposalStatus.PENDING_CONFIRMATION: "Wartet auf Bestätigung",
@@ -226,9 +230,23 @@ class ReviewViews:
         self.mailboxes: dict[str, tuple[int, str]] = {}
         self.profile_label: Callable[[Proposal], str] = lambda proposal: ""
         self.profile_available: Callable[[Proposal], bool] = lambda proposal: True
+        # (cache key, monotonic time, overview): reading every state took up to seconds per page view.
+        self._overview: tuple[tuple[Any, ...], float, Overview] | None = None
+        self.clock: Callable[[], float] = time.monotonic
 
     def overview(self) -> Overview:
+        """Rebuilt after a state change; the overview depends on stored state alone.
+
+        The directory time and a maximum age also catch files changed outside this
+        process, for example a restored backup.
+        """
         with self.store.locked():
+            now = self.clock()
+            key = (self.store.revision, _directory_time(self.store.directory),
+                   tuple(sorted(self.mailboxes.items())), self.profile_label, self.profile_available)
+            cached = self._overview
+            if cached is not None and cached[0] == key and now - cached[1] < OVERVIEW_MAX_AGE_SECONDS:
+                return cached[2]
             reader = _Reader(self.store)
             proposals = self._proposals(reader)
             relevance = self._relevance(reader)
@@ -238,11 +256,13 @@ class ReviewViews:
             key=lambda item: (not item[0].current, item[1], item[0].mail_id, item[0].proposal_id))]
         recent = sorted((view for view, _ in proposals if view.status not in _OPEN),
                         key=lambda view: view.updated_at or _EPOCH, reverse=True)[:RECENT_LIMIT]
-        return Overview(
+        overview = Overview(
             relevance=tuple(relevance), open=tuple(open_views), recent=tuple(recent),
             run=run, damaged=len(reader.damaged),
-            fingerprint=_fingerprint(relevance, open_views, recent) + f"-{self.store.revision}",
+            fingerprint=_fingerprint(relevance, open_views, recent) + f"-{key[0]}",
         )
+        self._overview = (key, now, overview)
+        return overview
 
     def proposal(self, mail_id: str, proposal_id: str, version: int | None = None) -> ProposalView | None:
         """Resolve by identity, independently of the recent-results window."""
@@ -473,6 +493,14 @@ def _mail_position(mail: MailState | None, proposal: Proposal) -> tuple[int, int
         return (0, 0)
     ids = [item.id for item in mail.proposals]
     return (mail.imap.uid, ids.index(proposal.id) if proposal.id in ids else 0)
+
+
+def _directory_time(directory: Path) -> int:
+    """Changes when a state file is created, replaced or removed, also by another program."""
+    try:
+        return directory.stat().st_mtime_ns
+    except OSError:
+        return 0
 
 
 def _fingerprint(relevance: list[RelevanceView], open_views: list[ProposalView],

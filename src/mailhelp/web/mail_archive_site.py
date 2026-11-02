@@ -49,7 +49,7 @@ class MailArchiveSite:
 
     def revisions(self, mail_id, proposal_id):
         """Recorded events of one proposal with links to every stored version."""
-        rows = sorted((row for row in self.archive.queries.history()
-                       if row["mail_id"] == mail_id and row["proposal_id"] == proposal_id),
+        rows = sorted((row for row in self.archive.queries.history_of(mail_id)
+                       if row["proposal_id"] == proposal_id),
                       key=lambda row: row["at"], reverse=True)
         return revisions_list(mail_id, proposal_id, rows)

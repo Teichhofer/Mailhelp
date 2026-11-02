@@ -1,6 +1,6 @@
 # Einstellungen der Weboberfläche
 
-Stand: 2. November 2026, Anwendungsversion 3.5.3.
+Stand: 2. November 2026, Anwendungsversion 3.5.5.
 
 `/einstellungen` zeigt Kacheln für Konten, allgemeine Regeln, Inhalte und Systemaktionen.
 Kontenkacheln nennen die Anzahl der im laufenden Dienst eingerichteten Konten. Bereichskacheln
@@ -236,6 +236,7 @@ aktualisieren die Seite automatisch; laufende erfolgreiche Abrufe allein laden s
 | Verlauf aufbewahren (Tage) (`retention.history_days`) | Aufbewahrung des Vorgangsverlaufs und der Inhalte historischer Vorschlagsversionen; Kennungen zum Schutz vor Doppelanlagen bleiben erhalten. 1–3650 bedeutet volle Tage seit der letzten Aktualisierung des abgeschlossenen Vorgangs. Kleinere Werte entfernen Inhalte früher. disabled entfernt sie beim nächsten Bereinigungslauf, unlimited bewahrt sie ohne Frist auf. Offene Vorgänge bleiben geschätzt. Entfernte Inhalte lassen sich durch späteres Verlängern der Frist nicht wiederherstellen. | Im laufenden Betrieb |
 | Tätigkeitsberichte aufbewahren (Tage) (`retention.activity_report_days`) | Aufbewahrung gespeicherter Tätigkeitsberichte und ihrer Exporte; das Postfach bleibt unverändert. 1–3650 bedeutet volle Tage seit der letzten Aktualisierung des abgeschlossenen Vorgangs. Kleinere Werte entfernen Inhalte früher. disabled entfernt sie beim nächsten Bereinigungslauf, unlimited bewahrt sie ohne Frist auf. Offene Vorgänge bleiben geschätzt. Entfernte Inhalte lassen sich durch späteres Verlängern der Frist nicht wiederherstellen. | Im laufenden Betrieb |
 | Lernbestand der Entscheidungen aufbewahren (Tage) (`retention.decision_learning_days`) | Aufbewahrung des Lernbestands manueller Entscheidungen (Mail, KI-Ergebnisse, Vorschlag vorher und nachher): 1–3650 bedeutet volle Tage seit der Entscheidung. unlimited (Standard) bewahrt ohne Frist auf, disabled zeichnet nichts mehr auf und leert den Bestand beim nächsten Bereinigungslauf. Entfernte Datensätze lassen sich nicht wiederherstellen. | Im laufenden Betrieb |
+| Bereinigung alle (Minuten) (`retention.cleanup_interval_minutes`) | Abstand der Aufbewahrungsbereinigung in Minuten: 0–1440; Standard 60. Die Bereinigung läuft im Verarbeitungsablauf und hält währenddessen Mailabruf und Web-Aktionen kurz an. 0 bereinigt bei jedem Abrufzyklus; größere Werte entfernen abgelaufene Inhalte entsprechend später. | Im laufenden Betrieb |
 
 ## Protokollierung
 

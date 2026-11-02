@@ -69,11 +69,12 @@ def test_maintenance_selects_captured_origin_and_only_shortens_full_mail_retenti
             mail.created_at = mail.updated_at - timedelta(days=1)
             mail.proposal_policy = {"mailbox_id": number}
             store.save("mail-" + identifier, mail.model_dump(mode="json"))
-        app = NS(settings=cfg, store=store, logger=NullLogger(),
+        app = NS(settings=cfg, store=store, logger=NullLogger(), _maintained_at=None,
             orchestrator=NS(mailbox_settings=cfg, mailbox_number=lambda _: 1))
         Application._maintain(app)
         assert store.load("mail-" + "b" * 24)["mail"] is None
         assert store.load("mail-" + "a" * 24)["mail"] is not None
         assert store.load("mail-" + "c" * 24)["mail"] is not None
         app.orchestrator.mailbox_settings = None
+        app._maintained_at = None  # the next interval is due
         Application._maintain(app)

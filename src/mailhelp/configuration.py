@@ -126,6 +126,7 @@ SETTINGS_FIELDS.update({
     "logging.telegram.level",
     "retention.activity_report_days",
     "retention.decision_learning_days",
+    "retention.cleanup_interval_minutes",
     "smart_reply",
     "telegram.chat_id",
     "telegram.sequential_questions",

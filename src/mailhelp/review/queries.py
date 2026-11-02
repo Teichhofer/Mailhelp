@@ -153,22 +153,36 @@ class ArchiveQueries:
         with self.store.locked():
             if self._history_revision == self.store.archive_revision:
                 return list(self._history)
-            rows = []
-            for item in self.items():
-                try:
-                    snapshot = self.store.peek_model(f'history-{item["id"]}', HistorySnapshot)
-                    record = snapshot.model_dump(mode="json") if snapshot is not None else {}
-                except CorruptState:
-                    continue
-                events = record.get("events", [])
-                if record.get("removed"):
-                    continue
-                if not events:
-                    rows.append({"at": item["updated"], "mail_id": item["id"], "title": item["subject"],
-                                 "proposal_id": "", "version": "", "kind": "legacy", "proposal_kind": "",
-                                 "status": "Altbestand / Ablauf nicht vollständig erfasst", "source": "unbekannt"})
-                for event in events:
-                    rows.append({**event, "mail_id": item["id"], "title": item["subject"],
-                                 "proposal_kind": item["kinds"].get(event["proposal_id"], "")})
+            rows = [row for item in self.items()
+                    for row in self._history_rows(item["id"], item["subject"], item["updated"], item["kinds"])]
             self._history, self._history_revision = rows, self.store.archive_revision
             return list(rows)
+
+    def history_of(self, mail_id: str) -> list[dict[str, Any]]:
+        """The rows of ``history()`` for one mail, without building the whole archive index."""
+        try:
+            state = self.store.peek_model(f"mail-{mail_id}", MailState)
+        except CorruptState:
+            return []
+        if state is None:
+            return []
+        subject = state.display_headers.subject if state.display_headers else "Mail ohne Betreff"
+        return self._history_rows(state.id, subject, state.updated_at.isoformat(),
+                                  {p.id: p.kind.value for p in state.proposals})
+
+    def _history_rows(self, mail_id: str, subject: str, updated: str,
+                      kinds: dict[str, str]) -> list[dict[str, Any]]:
+        try:
+            snapshot = self.store.peek_model(f"history-{mail_id}", HistorySnapshot)
+            record = snapshot.model_dump(mode="json") if snapshot is not None else {}
+        except CorruptState:
+            return []
+        events = record.get("events", [])
+        if record.get("removed"):
+            return []
+        if not events:
+            return [{"at": updated, "mail_id": mail_id, "title": subject,
+                     "proposal_id": "", "version": "", "kind": "legacy", "proposal_kind": "",
+                     "status": "Altbestand / Ablauf nicht vollständig erfasst", "source": "unbekannt"}]
+        return [{**event, "mail_id": mail_id, "title": subject,
+                 "proposal_kind": kinds.get(event["proposal_id"], "")} for event in events]

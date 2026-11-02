@@ -139,3 +139,59 @@ def test_retention_boundaries_missing_state_and_clock_validation():
     assert service.run().scanned == 1
     service.clock = lambda: datetime(2026, 1, 1)
     with pytest.raises(ValueError, match="Zeitzone"): service.run()
+
+
+def test_a_repeated_cleanup_rewrites_nothing(tmp_path):
+    """Regression: every cleanup rewrote all removed analyses (580 fsyncs, several seconds per cycle)."""
+    class RecordingStore(JsonStore):
+        saved: list[str] = []
+
+        def save(self, name, value):
+            self.saved.append(name)
+            super().save(name, value)
+
+    expired = state("a" * 24)
+    with RecordingStore(tmp_path) as store:
+        store.save(f"mail-{expired.id}", expired.model_dump(mode="json"))
+        store.save(f"analysis-{expired.id}", {"schema_version": 1, "mail_id": expired.id})
+        store.save(f"history-{expired.id}", {"schema_version": 1, "events": []})
+        settings = RetentionSettings(full_mail_days=30, debug_llm_days="disabled", history_days=1)
+        service = RetentionService(store, settings, Log(), lambda: NOW)
+        store.saved.clear()
+        service.run()
+        assert {f"analysis-{expired.id}", f"history-{expired.id}"} <= set(store.saved)
+        store.saved.clear()
+        revision = store.revision
+        service.run()
+        assert store.saved == [] and store.revision == revision
+
+
+@pytest.mark.parametrize(("interval", "runs"), [(60, [0.0, 3600.0, 7300.0]), (0, [0.0, 10.0, 3600.0, 7300.0])])
+def test_maintenance_runs_at_the_configured_interval(monkeypatch, tmp_path, interval, runs):
+    from types import SimpleNamespace
+
+    from mailhelp.application import Application
+    from mailhelp.logging import NullLogger
+
+    clock = iter([0.0, 10.0, 3600.0, 7300.0])
+    done = []
+    monkeypatch.setattr("mailhelp.application.time.monotonic", lambda: next(clock))
+
+    class Service:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        def run(self):
+            done.append(now[0])
+
+    monkeypatch.setattr("mailhelp.application.RetentionService", Service)
+    settings = SimpleNamespace(retention=RetentionSettings(cleanup_interval_minutes=interval))
+    app = SimpleNamespace(settings=settings, store=None, logger=NullLogger(), _maintained_at=None, orchestrator=None)
+    now = [0.0]
+    for moment in (0.0, 10.0, 3600.0, 7300.0):
+        now[0] = moment
+        Application._maintain(app)
+    assert done == runs
+    with pytest.raises(ValidationError):
+        RetentionSettings(cleanup_interval_minutes=1441)
+    assert RetentionSettings().cleanup_interval_minutes == 60

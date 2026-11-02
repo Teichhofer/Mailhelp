@@ -181,7 +181,10 @@ Vorschlagsversionen, Schreibreferenzen/Idempotenzschlüssel sowie externe IDs un
 Links erhalten. Neustart oder Restore kann damit externe Aktionen weiter abgleichen
 und erneut entdeckte Mails als verarbeitet erkennen; entfernte Inhalte sind
 absichtlich nicht rekonstruierbar. Der vor jedem Polling-Zyklus ausgeführte Lauf ist
-idempotent und protokolliert nur IDs, Zeitpunkte und Zähler. Fehler werden ohne
+idempotent, schreibt bereits entfernte Inhalte nicht erneut und protokolliert nur IDs,
+Zeitpunkte und Zähler. Ab 3.5.5 läuft er beim Start und danach höchstens alle
+`retention.cleanup_interval_minutes` Minuten (Standard 60, 0 = jeder Zyklus), weil er den
+Verarbeitungs-Thread und damit Web-Aktionen blockiert. Fehler werden ohne
 Inhalte lediglich als Fehlerzähler protokolliert und stoppen Polling nicht.
 
 **Lernbestand manueller Entscheidungen (ab 3.5.3).** Jede erfolgreich ausgeführte
@@ -1957,7 +1960,10 @@ Hauptthread als einziger Zustandsbesitzer, versionsgebundene Befehle) gelten auc
 (Absender, Betreff, Zusammenfassung) mit validierten Filtern und höchstens 100 Einträgen
 je Seite über einen nur bei Zustandsänderungen neu aufgebauten Speicherindex. `/mail/<id>`
 zeigt Zusammenfassung, Relevanz mit Begründung, Themen zum Analysezeitpunkt,
-Entscheidungsquelle und Originalmail. Die Analyse wird beim Speichern des Mailzustands
+Entscheidungsquelle und Originalmail. Die Übersicht offener Entscheidungen wird nur nach
+einer Zustandsänderung, einer Einstellungsübernahme, einer Änderung des Datenverzeichnisses
+oder spätestens nach 60 Sekunden neu aufgebaut; die Vorschlagsseite liest den Verlauf nur der
+eigenen Mail (ab 3.5.5). Die Analyse wird beim Speichern des Mailzustands
 als `analysis-<id>` festgehalten und mit `retention.analysis_days` bereinigt (fehlt der
 Schlüssel, gilt `debug_llm_days`). Beim Öffnen einer Seite findet kein KI-Aufruf statt.
 

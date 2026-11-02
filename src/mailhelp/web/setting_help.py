@@ -91,6 +91,10 @@ SETTING_HELP["retention.decision_learning_days"] = (
     "1–3650 bedeutet volle Tage seit der Entscheidung. unlimited (Standard) bewahrt ohne Frist auf, disabled "
     "zeichnet nichts mehr auf und leert den Bestand beim nächsten Bereinigungslauf. Entfernte Datensätze lassen "
     "sich nicht wiederherstellen.")
+SETTING_HELP["retention.cleanup_interval_minutes"] = (
+    "Abstand der Aufbewahrungsbereinigung in Minuten: 0–1440; Standard 60. Die Bereinigung läuft im "
+    "Verarbeitungsablauf und hält währenddessen Mailabruf und Web-Aktionen kurz an. 0 bereinigt bei jedem "
+    "Abrufzyklus; größere Werte entfernen abgelaufene Inhalte entsprechend später.")
 SETTING_HELP["learning.decision_llm_content"] = (
     "ja (true) übernimmt vollständige KI-Anfragen und -Antworten aus dem KI-Log in jeden Datensatz des "
     "Entscheidungs-Lernbestands; sie sind nur vorhanden, wenn das KI-Log diese Inhalte protokolliert. "
