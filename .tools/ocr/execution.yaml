@@ -1,0 +1,6 @@
+{
+  "gpu_enabled": true,
+  "gpu_python": ".tools/ocr/gpu-venv/Scripts/python.exe",
+  "gpu_timeout_seconds": 120,
+  "gpu_max_consecutive_failures": 3
+}

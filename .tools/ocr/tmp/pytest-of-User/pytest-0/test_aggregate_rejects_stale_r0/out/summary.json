@@ -1,0 +1,14 @@
+{
+  "posts": 1,
+  "posts_with_ocr_text": 1,
+  "ocr_tasks": 1,
+  "video_frames": 0,
+  "still_images": 1,
+  "errors": [
+    {
+      "file": "C:\\Users\\User\\Documents\\Projekte\\mailhelp\\Mailhelp\\.tools\\ocr\\tmp\\pytest-of-User\\pytest-0\\test_aggregate_rejects_stale_r0\\source\\post.jpg",
+      "error": "retry failed"
+    }
+  ],
+  "completed_at": "2026-10-30T15:49:49.395072+00:00"
+}

@@ -1,0 +1,18 @@
+{
+  "phase": "complete",
+  "pid": 37792,
+  "started_at": "2026-10-30T16:08:40.946199+00:00",
+  "updated_at": "2026-10-30T16:08:41.031611+00:00",
+  "fps": 2,
+  "authentication": "none",
+  "local_only": true,
+  "posts": 1,
+  "posts_with_ocr_text": 0,
+  "ocr_tasks": 1,
+  "video_frames": 0,
+  "still_images": 1,
+  "ocr_results_available": 0,
+  "posts_requiring_content_review": 0,
+  "errors": [],
+  "complete": false
+}

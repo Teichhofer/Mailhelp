@@ -1,0 +1,10 @@
+RAUS.LIFE - November bis Februar
+Auswertung 31.10.2026, Datenstand 30.10.2026
+
+472 Posts in fünf Winterfenstern 2021/22 bis 2025/26. 82 ältere Winterposts neu kategorisiert.
+Interaktionen = Likes + Kommentare; keine Reichweite oder followerbezogene Engagement-Rate.
+Winterindex = Interaktionen / Median derselben Wintersaison und desselben Formats; mindestens zehn Baselinefälle.
+455 Posts erhalten einen Index; 1 Gewinnmechanik, 1 Coauthor und 15 Posts ohne ausreichende Formatbasis sind ausgeschlossen.
+CSV-Dateien sind UTF-8 mit BOM und Semikolon. Texte mit möglichen Formelpräfixen werden maskiert.
+Die Bewertung des Tests ist deskriptiv. Zwei Profilposts fehlen gegenüber dem zuletzt gemeldeten Umfang.
+Quellen: lokaler Instaloader-Download, eingefrorene Kennzahlen und abgeschlossene OCR; keine neue Instagram-Abfrage.

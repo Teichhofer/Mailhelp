@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="511.28" height="228" preserveAspectRatio="xMinYMin meet" viewBox="0 0 511 228" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>...</title>
+	<desc>...</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="511.28" height="228"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-228)" style="clip-path: url(#clip)">
+		<g transform="">
+			<text x="0" y="211" style="font-family: ArialBold; font-size: 10px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,422) scale(1,-1)">Verzeichnete Posts pro Woche</text>
+			<path d="M 28,39 L 233,39 Z" style="stroke: rgb(85%,89%,87%); stroke-linecap: butt; stroke-width: 0.5;"/>
+			<text x="17.10693359375" y="36.0" style="font-family: Arial; font-size: 7px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,72) scale(1,-1)">0</text>
+			<path d="M 28,80.428571 L 233,80.428571 Z" style="stroke: rgb(85%,89%,87%); stroke-linecap: butt; stroke-width: 0.5;"/>
+			<text x="17.10693359375" y="77.42857142857142" style="font-family: Arial; font-size: 7px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,154) scale(1,-1)">2</text>
+			<path d="M 28,121.857143 L 233,121.857143 Z" style="stroke: rgb(85%,89%,87%); stroke-linecap: butt; stroke-width: 0.5;"/>
+			<text x="17.10693359375" y="118.85714285714285" style="font-family: Arial; font-size: 7px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,237) scale(1,-1)">4</text>
+			<path d="M 28,163.285714 L 233,163.285714 Z" style="stroke: rgb(85%,89%,87%); stroke-linecap: butt; stroke-width: 0.5;"/>
+			<text x="17.10693359375" y="160.28571428571428" style="font-family: Arial; font-size: 7px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,320) scale(1,-1)">6</text>
+			<rect x="34" y="39" width="24" height="99.08333333333331" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(10%,46%,40%); fill-rule: evenodd;"/>
+			<text x="40.439453125" y="144.08333333333331" style="font-family: ArialBold; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,288) scale(1,-1)">4,8</text>
+			<text x="33.348388671875" y="23" style="font-family: Arial; font-size: 7px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,46) scale(1,-1)">2021/22</text>
+			<rect x="74" y="39" width="24" height="122.04166666666669" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(10%,46%,40%); fill-rule: evenodd;"/>
+			<text x="80.439453125" y="167.04166666666669" style="font-family: ArialBold; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,334) scale(1,-1)">5,9</text>
+			<text x="73.348388671875" y="23" style="font-family: Arial; font-size: 7px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,46) scale(1,-1)">2022/23</text>
+			<rect x="114" y="39" width="24" height="121.03305785123968" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(10%,46%,40%); fill-rule: evenodd;"/>
+			<text x="120.439453125" y="166.03305785123968" style="font-family: ArialBold; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,332) scale(1,-1)">5,8</text>
+			<text x="113.348388671875" y="23" style="font-family: Arial; font-size: 7px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,46) scale(1,-1)">2023/24</text>
+			<rect x="154" y="39" width="24" height="119.625" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(10%,46%,40%); fill-rule: evenodd;"/>
+			<text x="160.439453125" y="164.625" style="font-family: ArialBold; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,329) scale(1,-1)">5,8</text>
+			<text x="153.348388671875" y="23" style="font-family: Arial; font-size: 7px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,46) scale(1,-1)">2024/25</text>
+			<rect x="194" y="39" width="24" height="107.54166666666666" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(69%,51%,23%); fill-rule: evenodd;"/>
+			<text x="200.439453125" y="152.54166666666666" style="font-family: ArialBold; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,305) scale(1,-1)">5,2</text>
+			<text x="193.348388671875" y="23" style="font-family: Arial; font-size: 7px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,46) scale(1,-1)">2025/26</text>
+			<text x="270" y="211" style="font-family: ArialBold; font-size: 10px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,422) scale(1,-1)">Median Likes + Kommentare</text>
+			<path d="M 298,39 L 503,39 Z" style="stroke: rgb(85%,89%,87%); stroke-linecap: butt; stroke-width: 0.5;"/>
+			<text x="287.10693359375" y="36.0" style="font-family: Arial; font-size: 7px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,72) scale(1,-1)">0</text>
+			<path d="M 298,87.333333 L 503,87.333333 Z" style="stroke: rgb(85%,89%,87%); stroke-linecap: butt; stroke-width: 0.5;"/>
+			<text x="279.32080078125" y="84.33333333333333" style="font-family: Arial; font-size: 7px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,168) scale(1,-1)">300</text>
+			<path d="M 298,135.666667 L 503,135.666667 Z" style="stroke: rgb(85%,89%,87%); stroke-linecap: butt; stroke-width: 0.5;"/>
+			<text x="279.32080078125" y="132.66666666666666" style="font-family: Arial; font-size: 7px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,265) scale(1,-1)">600</text>
+			<path d="M 298,184 L 503,184 Z" style="stroke: rgb(85%,89%,87%); stroke-linecap: butt; stroke-width: 0.5;"/>
+			<text x="279.32080078125" y="181.0" style="font-family: Arial; font-size: 7px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,362) scale(1,-1)">900</text>
+			<rect x="304" y="39" width="24" height="73.78888888888888" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(10%,46%,40%); fill-rule: evenodd;"/>
+			<text x="309.326171875" y="118.78888888888888" style="font-family: ArialBold; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,237) scale(1,-1)">458</text>
+			<text x="303.348388671875" y="23" style="font-family: Arial; font-size: 7px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,46) scale(1,-1)">2021/22</text>
+			<rect x="344" y="39" width="24" height="112.13333333333333" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(10%,46%,40%); fill-rule: evenodd;"/>
+			<text x="349.326171875" y="157.13333333333333" style="font-family: ArialBold; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,314) scale(1,-1)">696</text>
+			<text x="343.348388671875" y="23" style="font-family: Arial; font-size: 7px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,46) scale(1,-1)">2022/23</text>
+			<rect x="384" y="39" width="24" height="107.6222222222222" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(10%,46%,40%); fill-rule: evenodd;"/>
+			<text x="389.326171875" y="152.6222222222222" style="font-family: ArialBold; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,305) scale(1,-1)">668</text>
+			<text x="383.348388671875" y="23" style="font-family: Arial; font-size: 7px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,46) scale(1,-1)">2023/24</text>
+			<rect x="424" y="39" width="24" height="130.6611111111111" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(10%,46%,40%); fill-rule: evenodd;"/>
+			<text x="429.326171875" y="175.6611111111111" style="font-family: ArialBold; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,351) scale(1,-1)">811</text>
+			<text x="423.348388671875" y="23" style="font-family: Arial; font-size: 7px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,46) scale(1,-1)">2024/25</text>
+			<rect x="464" y="39" width="24" height="68.63333333333333" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(69%,51%,23%); fill-rule: evenodd;"/>
+			<text x="469.326171875" y="113.63333333333333" style="font-family: ArialBold; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,227) scale(1,-1)">426</text>
+			<text x="463.348388671875" y="23" style="font-family: Arial; font-size: 7px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,46) scale(1,-1)">2025/26</text>
+			<text x="0" y="3" style="font-family: Arial; font-size: 7.3px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,6) scale(1,-1)">Interaktionsmedian rechts ohne Gewinn-/Prämienposts und Coauthor-Beitrag.</text>
+		</g>
+	</g>
+</svg>

@@ -1,0 +1,14 @@
+raus.life - Inhaltliche Themenanalyse
+Datenstand: 30.10.2026, 15:35 Uhr (Europe/Berlin)
+1.260 Profilbeiträge vom 07.05.2022 bis 29.10.2026. Rund 89,0 % von zuletzt gemeldeten 1.415 Profilbeiträgen. 52 separat gespeicherte markierte Beiträge sind ausgeschlossen.
+
+Alle-postings-Datei: eine Zeile je Post, manuell redaktionell zugeordnetes Hauptthema, Kennzahlen und gespeicherte Original-Caption sowie Instagram-Link. Die Klassifizierung bezieht sich auf die Bildunterschriften. Bilder und Video wurden nicht flächendeckend analysiert. Nicht beurteilbare Captions bleiben ausdrücklich als solche erfasst.
+Kategorien: 13 konkrete Themen und 2 Restkategorien. Mischthemen werden nach dem dominanten Textmotiv zugeordnet; die Einordnung ist redaktionell und kann diskutiert werden.
+Engagement = Likes + Kommentare. Reichweite, Saves, Shares, Paid Media und Buchungen sind nicht vorhanden.
+
+Vergleichsindex: Interaktionen des Posts / Median der geeigneten Posts aus gleichem Veröffentlichungsquartal und Format (Mindestgröße 10). Bei 79 Posts wurde wegen kleiner Quartalsgruppen auf Jahr+Format ausgewichen. Themenindex = Median der Einzelindizes. 1,00 bezeichnet das Referenzniveau. Für 30 Posts bleibt der Index leer: Gewinn-/Prämienmechanik, Instagram-Coauthor oder jünger als 14 Tage. Diese Ausschlussmerkmale überschneiden sich. Normale Rabatte und garantierte Extras sind allein kein Ausschluss.
+Monatsindex: Sensitivitätsrechnung mit gleichem Monat und Format, Mindestgröße 5. Wegen anderer Vergleichsgruppen gelten andere Fallzahlen.
+Bootstrap-Bänder: 3.000 Resamples der Einzelindizes, nur deskriptiv. Weder Kausalität noch Unsicherheit aus Themenkodierung, Baseline oder Mehrfachvergleichen sind damit abgedeckt.
+
+CSV: UTF-8 mit BOM; Semikolon als Feldtrennzeichen; Dezimalkomma. Caption-Felder können Zeilenumbrüche enthalten. Text, der als Tabellenformel interpretiert werden könnte, wird mit einem Apostroph maskiert. Ein leerer Index ist kein Nullwert.
+Die Originaldateien und Dateiprüfsummen bleiben in der lokalen eingefrorenen Analyse erhalten. Alle Daten wurden ohne erneute Instagram-Anmeldung ausgewertet.

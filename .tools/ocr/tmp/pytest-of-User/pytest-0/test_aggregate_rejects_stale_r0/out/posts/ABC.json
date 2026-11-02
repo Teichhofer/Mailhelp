@@ -1,0 +1,19 @@
+{
+  "shortcode": "ABC",
+  "ocr_text": "Take a slow morning",
+  "ocr_lines": [
+    {
+      "text": "Take a slow morning",
+      "sources": [
+        {
+          "media": "post.jpg",
+          "timestamp_seconds": null,
+          "confidence": 0.98
+        }
+      ]
+    }
+  ],
+  "ocr_items_expected": 1,
+  "ocr_items_available": 1,
+  "german_alternatives": []
+}

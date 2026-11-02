@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="1100" height="700" preserveAspectRatio="xMinYMin meet" viewBox="0 0 1100 700" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>...</title>
+	<desc>...</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="1100" height="700"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-700)" style="clip-path: url(#clip)">
+		<g transform="">
+			<rect x="0" y="0" width="1100" height="700" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="55" y="657" style="font-family: DejaVuSans-Bold; font-size: 12px;fill: rgb(8%,47%,44%); stroke:none;" transform="translate(0,1314) scale(1,-1)">RAUS.LIFE  /  VORLÄUFIGE AUSWERTUNG  /  04</text>
+			<text x="55" y="607" style="font-family: DejaVuSans-Bold; font-size: 31px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,1214) scale(1,-1)">Videos erzielen höhere typische Interaktionen</text>
+			<text x="55" y="575" style="font-family: DejaVuSans; font-size: 15px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,1150) scale(1,-1)">Median der Likes + Kommentare pro Beitrag, nach im Download erkanntem Format.</text>
+			<path d="M 55,74 L 1045,74 Z" style="stroke: rgb(84%,89%,87%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="55" y="49" style="font-family: DejaVuSans; font-size: 11px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,98) scale(1,-1)">1.047 Profilbeiträge | 27.02.2023 - 29.10.2026 | Stand: 30.10.2026, 13:28 Uhr</text>
+			<text x="55" y="29" style="font-family: DejaVuSans; font-size: 10px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,58) scale(1,-1)">52 separat geladene markierte Beiträge ausgeschlossen. Datenquelle: lokaler JSON-Snapshot.</text>
+			<path d="M 295,209 L 295,510 Z" style="stroke: rgb(84%,89%,87%); stroke-linecap: butt; stroke-width: 0.7;"/>
+			<text x="291.1826171875" y="187" style="font-family: DejaVuSans; font-size: 12px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,374) scale(1,-1)">0</text>
+			<path d="M 470,209 L 470,510 Z" style="stroke: rgb(84%,89%,87%); stroke-linecap: butt; stroke-width: 0.7;"/>
+			<text x="458.5478515625" y="187" style="font-family: DejaVuSans; font-size: 12px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,374) scale(1,-1)">200</text>
+			<path d="M 645,209 L 645,510 Z" style="stroke: rgb(84%,89%,87%); stroke-linecap: butt; stroke-width: 0.7;"/>
+			<text x="633.5478515625" y="187" style="font-family: DejaVuSans; font-size: 12px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,374) scale(1,-1)">400</text>
+			<path d="M 820,209 L 820,510 Z" style="stroke: rgb(84%,89%,87%); stroke-linecap: butt; stroke-width: 0.7;"/>
+			<text x="808.5478515625" y="187" style="font-family: DejaVuSans; font-size: 12px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,374) scale(1,-1)">600</text>
+			<path d="M 995,209 L 995,510 Z" style="stroke: rgb(84%,89%,87%); stroke-linecap: butt; stroke-width: 0.7;"/>
+			<text x="983.5478515625" y="187" style="font-family: DejaVuSans; font-size: 12px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,374) scale(1,-1)">800</text>
+			<text x="55" y="455" style="font-family: DejaVuSans-Bold; font-size: 20px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,910) scale(1,-1)">Einzelbild</text>
+			<text x="55" y="430" style="font-family: DejaVuSans; font-size: 13px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,860) scale(1,-1)">n = 402 Beiträge</text>
+			<rect x="295" y="439" width="449.3125" height="42" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(61%,68%,67%); fill-rule: evenodd;"/>
+			<text x="758.3125" y="451" style="font-family: DejaVuSans-Bold; font-size: 21px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,902) scale(1,-1)">513,5</text>
+			<text x="55" y="355" style="font-family: DejaVuSans-Bold; font-size: 20px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,710) scale(1,-1)">Karussell</text>
+			<text x="55" y="330" style="font-family: DejaVuSans; font-size: 13px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,660) scale(1,-1)">n = 379 Beiträge</text>
+			<rect x="295" y="339" width="445.375" height="42" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(61%,68%,67%); fill-rule: evenodd;"/>
+			<text x="754.375" y="351" style="font-family: DejaVuSans-Bold; font-size: 21px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,702) scale(1,-1)">509,0</text>
+			<text x="55" y="255" style="font-family: DejaVuSans-Bold; font-size: 20px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,510) scale(1,-1)">Video / Reel</text>
+			<text x="55" y="230" style="font-family: DejaVuSans; font-size: 13px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,460) scale(1,-1)">n = 266 Beiträge</text>
+			<rect x="295" y="239" width="608.5625" height="42" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(8%,47%,44%); fill-rule: evenodd;"/>
+			<text x="917.5625" y="251" style="font-family: DejaVuSans-Bold; font-size: 21px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,502) scale(1,-1)">695,5</text>
+			<text x="55" y="143" style="font-family: DejaVuSans; font-size: 17px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,286) scale(1,-1)">Videos: rund 35 % mehr typische Interaktionen als Einzelbilder. Karussells und Einzelbilder liegen im</text>
+			<text x="55" y="118" style="font-family: DejaVuSans; font-size: 17px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,236) scale(1,-1)">Gesamtzeitraum nahezu gleichauf.</text>
+			<text x="55" y="96" style="font-family: DejaVuSans; font-size: 13px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,192) scale(1,-1)">Deskriptiver Vergleich ohne Bereinigung nach Alter, Kampagne oder Kollaboration; keine kausale Formatempfehlung.</text>
+		</g>
+	</g>
+</svg>

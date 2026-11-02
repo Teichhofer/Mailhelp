@@ -1,0 +1,11 @@
+[
+  {
+    "file": "C:\\Users\\User\\Documents\\Projekte\\mailhelp\\Mailhelp\\.tools\\ocr\\tmp\\pytest-of-User\\pytest-2\\test_run_reports_missing_resul0\\source\\post.jpg",
+    "name": "post.jpg",
+    "post": "ABC",
+    "german": false,
+    "source_media": "post.jpg",
+    "timestamp_seconds": null,
+    "result_key": "post.jpg.json"
+  }
+]

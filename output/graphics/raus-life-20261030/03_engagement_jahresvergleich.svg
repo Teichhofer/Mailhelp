@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="1100" height="700" preserveAspectRatio="xMinYMin meet" viewBox="0 0 1100 700" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>...</title>
+	<desc>...</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="1100" height="700"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-700)" style="clip-path: url(#clip)">
+		<g transform="">
+			<rect x="0" y="0" width="1100" height="700" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="55" y="657" style="font-family: DejaVuSans-Bold; font-size: 12px;fill: rgb(8%,47%,44%); stroke:none;" transform="translate(0,1314) scale(1,-1)">RAUS.LIFE  /  VORLÄUFIGE AUSWERTUNG  /  03</text>
+			<text x="55" y="607" style="font-family: DejaVuSans-Bold; font-size: 31px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,1214) scale(1,-1)">Typisches Engagement: 2026 deutlich niedriger</text>
+			<text x="55" y="575" style="font-family: DejaVuSans; font-size: 15px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,1150) scale(1,-1)">Median der Likes + Kommentare pro Beitrag. Vergleich desselben Zeitraums: Januar bis September.</text>
+			<path d="M 55,74 L 1045,74 Z" style="stroke: rgb(84%,89%,87%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="55" y="49" style="font-family: DejaVuSans; font-size: 11px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,98) scale(1,-1)">1.047 Profilbeiträge | 27.02.2023 - 29.10.2026 | Stand: 30.10.2026, 13:28 Uhr</text>
+			<text x="55" y="29" style="font-family: DejaVuSans; font-size: 10px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,58) scale(1,-1)">52 separat geladene markierte Beiträge ausgeschlossen. Datenquelle: lokaler JSON-Snapshot.</text>
+			<path d="M 105,220 L 1025,220 Z" style="stroke: rgb(84%,89%,87%); stroke-linecap: butt; stroke-width: 0.7;"/>
+			<text x="83.365234375" y="216.0" style="font-family: DejaVuSans; font-size: 12px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,432) scale(1,-1)">0</text>
+			<path d="M 105,261.428571 L 1025,261.428571 Z" style="stroke: rgb(84%,89%,87%); stroke-linecap: butt; stroke-width: 0.7;"/>
+			<text x="68.095703125" y="257.42857142857144" style="font-family: DejaVuSans; font-size: 12px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,514) scale(1,-1)">100</text>
+			<path d="M 105,302.857143 L 1025,302.857143 Z" style="stroke: rgb(84%,89%,87%); stroke-linecap: butt; stroke-width: 0.7;"/>
+			<text x="68.095703125" y="298.8571428571429" style="font-family: DejaVuSans; font-size: 12px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,597) scale(1,-1)">200</text>
+			<path d="M 105,344.285714 L 1025,344.285714 Z" style="stroke: rgb(84%,89%,87%); stroke-linecap: butt; stroke-width: 0.7;"/>
+			<text x="68.095703125" y="340.2857142857143" style="font-family: DejaVuSans; font-size: 12px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,680) scale(1,-1)">300</text>
+			<path d="M 105,385.714286 L 1025,385.714286 Z" style="stroke: rgb(84%,89%,87%); stroke-linecap: butt; stroke-width: 0.7;"/>
+			<text x="68.095703125" y="381.7142857142857" style="font-family: DejaVuSans; font-size: 12px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,763) scale(1,-1)">400</text>
+			<path d="M 105,427.142857 L 1025,427.142857 Z" style="stroke: rgb(84%,89%,87%); stroke-linecap: butt; stroke-width: 0.7;"/>
+			<text x="68.095703125" y="423.1428571428571" style="font-family: DejaVuSans; font-size: 12px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,846) scale(1,-1)">500</text>
+			<path d="M 105,468.571429 L 1025,468.571429 Z" style="stroke: rgb(84%,89%,87%); stroke-linecap: butt; stroke-width: 0.7;"/>
+			<text x="68.095703125" y="464.57142857142856" style="font-family: DejaVuSans; font-size: 12px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,929) scale(1,-1)">600</text>
+			<path d="M 105,510 L 1025,510 Z" style="stroke: rgb(84%,89%,87%); stroke-linecap: butt; stroke-width: 0.7;"/>
+			<text x="68.095703125" y="506.0" style="font-family: DejaVuSans; font-size: 12px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,1012) scale(1,-1)">700</text>
+			<rect x="178.33333333333337" y="220" width="160.0" height="257.0642857142857" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(61%,68%,67%); fill-rule: evenodd;"/>
+			<text x="221.95784505208337" y="492.0642857142857" style="font-family: DejaVuSans-Bold; font-size: 23px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,984) scale(1,-1)">620,5</text>
+			<text x="234.67610677083337" y="192" style="font-family: DejaVuSans-Bold; font-size: 17px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,384) scale(1,-1)">2024</text>
+			<text x="202.56917317708337" y="169" style="font-family: DejaVuSans; font-size: 13px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,338) scale(1,-1)">n = 202 Beiträge</text>
+			<rect x="485.0" y="220" width="160.0" height="242.3571428571429" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(61%,68%,67%); fill-rule: evenodd;"/>
+			<text x="528.62451171875" y="477.3571428571429" style="font-family: DejaVuSans-Bold; font-size: 23px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,954) scale(1,-1)">585,0</text>
+			<text x="541.3427734375" y="192" style="font-family: DejaVuSans-Bold; font-size: 17px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,384) scale(1,-1)">2025</text>
+			<text x="509.23583984375" y="169" style="font-family: DejaVuSans; font-size: 13px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,338) scale(1,-1)">n = 211 Beiträge</text>
+			<rect x="791.6666666666666" y="220" width="160.0" height="148.7285714285714" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(8%,47%,44%); fill-rule: evenodd;"/>
+			<text x="835.2911783854166" y="383.7285714285714" style="font-family: DejaVuSans-Bold; font-size: 23px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,767) scale(1,-1)">359,0</text>
+			<text x="848.0094401041666" y="192" style="font-family: DejaVuSans-Bold; font-size: 17px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,384) scale(1,-1)">2026</text>
+			<text x="815.9025065104166" y="169" style="font-family: DejaVuSans; font-size: 13px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,338) scale(1,-1)">n = 195 Beiträge</text>
+			<text x="55" y="125" style="font-family: DejaVuSans-Bold; font-size: 19px;fill: rgb(8%,47%,44%); stroke:none;" transform="translate(0,250) scale(1,-1)">2026 gegenüber 2025: -38,6 % beim Median; -7,6 % bei der Posting-Frequenz.</text>
+			<text x="55" y="100" style="font-family: DejaVuSans; font-size: 13px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,200) scale(1,-1)">Öffentliche Zähler bis zur Erfassung, keine Reichweitenwerte. Alter, Followerwachstum und Paid Media sind nicht bereinigt.</text>
+		</g>
+	</g>
+</svg>

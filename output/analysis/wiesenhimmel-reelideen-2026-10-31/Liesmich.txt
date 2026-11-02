@@ -1,0 +1,7 @@
+Wiesenhimmel - zwölf Winter-Reel-Ideen, 31.10.2026
+
+Grundlage: interne Wiesenhimmel-Gesamtübersicht Stand 30.10.2026 und lokale Raus-Reels aus November-Februar.
+Alle zwölf Vorbilder sind echte Video/Reel-Posts über dem Reel-Median ihrer jeweiligen Wintersaison.
+Interaktionen = Likes + Kommentare. Index = Interaktionen / Median gewöhnlicher Reels derselben Wintersaison.
+Gezielte Beispielsammlung, keine Wirkungsprognose für Wiesenhimmel. Leistungsangaben aus der Übersicht nicht extern verifiziert.
+Die CSV enthält eigene Hooks, Bildabläufe, CTAs, Anpassungen sowie Datum, Kennzahlen und Link jedes Vorbilds.

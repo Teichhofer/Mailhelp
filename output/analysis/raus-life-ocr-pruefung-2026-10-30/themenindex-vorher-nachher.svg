@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="511.28" height="300" preserveAspectRatio="xMinYMin meet" viewBox="0 0 511 300" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>...</title>
+	<desc>...</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="511.28" height="300"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-300)" style="clip-path: url(#clip)">
+		<g transform="">
+			<path d="M 213.77551,47 L 213.77551,269 Z" style="stroke: rgb(87%,91%,89%); stroke-linecap: butt; stroke-width: 0.6;"/>
+			<text x="205.99035395408163" y="31" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,62) scale(1,-1)">0,50</text>
+			<path d="M 282.653061,47 L 282.653061,269 Z" style="stroke: rgb(87%,91%,89%); stroke-linecap: butt; stroke-width: 0.6;"/>
+			<text x="274.8679049744898" y="31" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,62) scale(1,-1)">0,75</text>
+			<path d="M 351.530612,47 L 351.530612,269 Z" style="stroke: rgb(87%,91%,89%); stroke-linecap: butt; stroke-width: 0.6;"/>
+			<text x="343.74545599489795" y="31" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,62) scale(1,-1)">1,00</text>
+			<path d="M 420.408163,47 L 420.408163,269 Z" style="stroke: rgb(87%,91%,89%); stroke-linecap: butt; stroke-width: 0.6;"/>
+			<text x="412.62300701530614" y="31" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,62) scale(1,-1)">1,25</text>
+			<path d="M 351.530612,47 L 351.530612,269 Z" style="stroke: rgb(56%,66%,61%); stroke-linecap: butt; stroke-width: 0.8; stroke-dasharray: 3, 3;"/>
+			<circle cx="5" cy="287" r="2.8" style="stroke: rgb(72%,54%,24%); stroke-linecap: butt; stroke-width: 1.3; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="15" y="284" style="font-family: Arial; font-size: 9px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,568) scale(1,-1)">Nur Caption</text>
+			<circle cx="120" cy="287" r="2.8" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,30%,26%); fill-rule: evenodd;"/>
+			<text x="130" y="284" style="font-family: Arial; font-size: 9px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,568) scale(1,-1)">Nach OCR-Prüfung</text>
+			<text x="463.7458203125" y="284" style="font-family: Arial; font-size: 7.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,568) scale(1,-1)">Index nachher</text>
+			<text x="0" y="257" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,514) scale(1,-1)">Schlaf und langsame Morgen</text>
+			<circle cx="426.081679785078" cy="262" r="2.8" style="stroke: rgb(72%,54%,24%); stroke-linecap: butt; stroke-width: 1.2; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="426.081679785078" cy="258" r="2.6" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,30%,26%); fill-rule: evenodd;"/>
+			<text x="494.73654296875" y="257" style="font-family: Arial; font-size: 8.5px;fill: rgb(9%,30%,26%); stroke:none;" transform="translate(0,514) scale(1,-1)">1,27</text>
+			<text x="0" y="240" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,480) scale(1,-1)">Standorte und Launches</text>
+			<circle cx="398.14375543890185" cy="245" r="2.8" style="stroke: rgb(72%,54%,24%); stroke-linecap: butt; stroke-width: 1.2; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="398.14375543890185" cy="241" r="2.6" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,30%,26%); fill-rule: evenodd;"/>
+			<text x="494.73654296875" y="240" style="font-family: Arial; font-size: 8.5px;fill: rgb(9%,30%,26%); stroke:none;" transform="translate(0,480) scale(1,-1)">1,17</text>
+			<text x="0" y="223" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,446) scale(1,-1)">Zweisamkeit, Freunde, Familie</text>
+			<circle cx="374.44084243505506" cy="228" r="2.8" style="stroke: rgb(72%,54%,24%); stroke-linecap: butt; stroke-width: 1.2; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="374.44084243505506" cy="224" r="2.6" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,30%,26%); fill-rule: evenodd;"/>
+			<text x="494.73654296875" y="223" style="font-family: Arial; font-size: 8.5px;fill: rgb(9%,30%,26%); stroke:none;" transform="translate(0,446) scale(1,-1)">1,08</text>
+			<text x="0" y="206" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,412) scale(1,-1)">Natur und Jahreszeiten</text>
+			<circle cx="357.22714546741827" cy="211" r="2.8" style="stroke: rgb(72%,54%,24%); stroke-linecap: butt; stroke-width: 1.2; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="357.22714546741827" cy="207" r="2.6" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,30%,26%); fill-rule: evenodd;"/>
+			<text x="494.73654296875" y="206" style="font-family: Arial; font-size: 8.5px;fill: rgb(9%,30%,26%); stroke:none;" transform="translate(0,412) scale(1,-1)">1,02</text>
+			<text x="0" y="189" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,378) scale(1,-1)">Lesen, Kreativität, Spiele</text>
+			<circle cx="351.53061224489795" cy="194" r="2.8" style="stroke: rgb(72%,54%,24%); stroke-linecap: butt; stroke-width: 1.2; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="351.53061224489795" cy="190" r="2.6" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,30%,26%); fill-rule: evenodd;"/>
+			<text x="494.73654296875" y="189" style="font-family: Arial; font-size: 8.5px;fill: rgb(9%,30%,26%); stroke:none;" transform="translate(0,378) scale(1,-1)">1,00</text>
+			<text x="0" y="172" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,344) scale(1,-1)">Entschleunigung / Detox</text>
+			<circle cx="349.744484503688" cy="177" r="2.8" style="stroke: rgb(72%,54%,24%); stroke-linecap: butt; stroke-width: 1.2; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="349.18384730382786" cy="173" r="2.6" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,30%,26%); fill-rule: evenodd;"/>
+			<text x="494.73654296875" y="172" style="font-family: Arial; font-size: 8.5px;fill: rgb(9%,30%,26%); stroke:none;" transform="translate(0,344) scale(1,-1)">0,99</text>
+			<text x="0" y="155" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,310) scale(1,-1)">Wellness und Baden</text>
+			<circle cx="346.1222133195079" cy="160" r="2.8" style="stroke: rgb(72%,54%,24%); stroke-linecap: butt; stroke-width: 1.2; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="346.1222133195079" cy="156" r="2.6" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,30%,26%); fill-rule: evenodd;"/>
+			<text x="494.73654296875" y="155" style="font-family: Arial; font-size: 8.5px;fill: rgb(9%,30%,26%); stroke:none;" transform="translate(0,310) scale(1,-1)">0,98</text>
+			<text x="0" y="138" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,276) scale(1,-1)">Buchung und Angebote</text>
+			<circle cx="337.32905533347355" cy="143" r="2.8" style="stroke: rgb(72%,54%,24%); stroke-linecap: butt; stroke-width: 1.2; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="337.32905533347355" cy="139" r="2.6" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,30%,26%); fill-rule: evenodd;"/>
+			<text x="494.73654296875" y="138" style="font-family: Arial; font-size: 8.5px;fill: rgb(9%,30%,26%); stroke:none;" transform="translate(0,276) scale(1,-1)">0,95</text>
+			<text x="0" y="121" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,242) scale(1,-1)">Tiere und Hunde</text>
+			<circle cx="321.1464764743453" cy="126" r="2.8" style="stroke: rgb(72%,54%,24%); stroke-linecap: butt; stroke-width: 1.2; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="322.48586181460536" cy="122" r="2.6" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,30%,26%); fill-rule: evenodd;"/>
+			<text x="494.73654296875" y="121" style="font-family: Arial; font-size: 8.5px;fill: rgb(9%,30%,26%); stroke:none;" transform="translate(0,242) scale(1,-1)">0,89</text>
+			<text x="0" y="104" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,208) scale(1,-1)">Essen und Trinken</text>
+			<circle cx="313.2220778388401" cy="109" r="2.8" style="stroke: rgb(72%,54%,24%); stroke-linecap: butt; stroke-width: 1.2; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="313.2220778388401" cy="105" r="2.6" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,30%,26%); fill-rule: evenodd;"/>
+			<text x="494.73654296875" y="104" style="font-family: Arial; font-size: 8.5px;fill: rgb(9%,30%,26%); stroke:none;" transform="translate(0,208) scale(1,-1)">0,86</text>
+			<text x="0" y="87" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,174) scale(1,-1)">Design und Ausstattung</text>
+			<circle cx="312.1720116618076" cy="92" r="2.8" style="stroke: rgb(72%,54%,24%); stroke-linecap: butt; stroke-width: 1.2; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="312.1720116618076" cy="88" r="2.6" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,30%,26%); fill-rule: evenodd;"/>
+			<text x="494.73654296875" y="87" style="font-family: Arial; font-size: 8.5px;fill: rgb(9%,30%,26%); stroke:none;" transform="translate(0,174) scale(1,-1)">0,86</text>
+			<text x="0" y="70" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,140) scale(1,-1)">Outdoor und Entdecken</text>
+			<circle cx="303.61579414374444" cy="75" r="2.8" style="stroke: rgb(72%,54%,24%); stroke-linecap: butt; stroke-width: 1.2; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="303.61579414374444" cy="71" r="2.6" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,30%,26%); fill-rule: evenodd;"/>
+			<text x="494.73654296875" y="70" style="font-family: Arial; font-size: 8.5px;fill: rgb(9%,30%,26%); stroke:none;" transform="translate(0,140) scale(1,-1)">0,83</text>
+			<text x="0" y="53" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,106) scale(1,-1)">Marke, Community, Shop</text>
+			<circle cx="251.59232117408285" cy="58" r="2.8" style="stroke: rgb(72%,54%,24%); stroke-linecap: butt; stroke-width: 1.2; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<circle cx="235.72724701889996" cy="54" r="2.6" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(9%,30%,26%); fill-rule: evenodd;"/>
+			<text x="494.73654296875" y="53" style="font-family: Arial; font-size: 8.5px;fill: rgb(9%,30%,26%); stroke:none;" transform="translate(0,106) scale(1,-1)">0,58</text>
+			<text x="156.9134375" y="10" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,20) scale(1,-1)">Median des zeit- und formatbezogenen Vergleichsindex</text>
+		</g>
+	</g>
+</svg>

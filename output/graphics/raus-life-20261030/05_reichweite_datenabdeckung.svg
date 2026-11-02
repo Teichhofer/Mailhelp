@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="1100" height="700" preserveAspectRatio="xMinYMin meet" viewBox="0 0 1100 700" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>...</title>
+	<desc>...</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="1100" height="700"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-700)" style="clip-path: url(#clip)">
+		<g transform="">
+			<rect x="0" y="0" width="1100" height="700" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="55" y="657" style="font-family: DejaVuSans-Bold; font-size: 12px;fill: rgb(8%,47%,44%); stroke:none;" transform="translate(0,1314) scale(1,-1)">RAUS.LIFE  /  VORLÄUFIGE AUSWERTUNG  /  05</text>
+			<text x="55" y="607" style="font-family: DejaVuSans-Bold; font-size: 31px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,1214) scale(1,-1)">Reichweite: mit diesen Daten nicht messbar</text>
+			<text x="55" y="575" style="font-family: DejaVuSans; font-size: 15px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,1150) scale(1,-1)">Datenabdeckung je Kennzahl. Die Prozentwerte beschreiben vorhandene Messwerte, nicht erreichte Personen.</text>
+			<path d="M 55,74 L 1045,74 Z" style="stroke: rgb(84%,89%,87%); stroke-linecap: butt; stroke-width: 1;"/>
+			<text x="55" y="49" style="font-family: DejaVuSans; font-size: 11px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,98) scale(1,-1)">1.047 Profilbeiträge | 27.02.2023 - 29.10.2026 | Stand: 30.10.2026, 13:28 Uhr</text>
+			<text x="55" y="29" style="font-family: DejaVuSans; font-size: 10px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,58) scale(1,-1)">52 separat geladene markierte Beiträge ausgeschlossen. Datenquelle: lokaler JSON-Snapshot.</text>
+			<text x="55" y="463" style="font-family: DejaVuSans-Bold; font-size: 19px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,926) scale(1,-1)">Likes + Kommentare</text>
+			<text x="55" y="438" style="font-family: DejaVuSans; font-size: 13px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,876) scale(1,-1)">1.047 / 1.047 - vollständig erfasst</text>
+			<rect x="520" y="444" width="400" height="34" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(93%,96%,95%); fill-rule: evenodd;"/>
+			<rect x="520" y="444" width="400.0" height="34" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(8%,47%,44%); fill-rule: evenodd;"/>
+			<text x="958.7626953125" y="454" style="font-family: DejaVuSans-Bold; font-size: 18px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,908) scale(1,-1)">100,0 %</text>
+			<text x="55" y="364" style="font-family: DejaVuSans-Bold; font-size: 19px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,728) scale(1,-1)">Video-Aufrufzahlen</text>
+			<text x="55" y="339" style="font-family: DejaVuSans; font-size: 13px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,678) scale(1,-1)">3 / 266 - nur drei Video-Posts</text>
+			<rect x="520" y="345" width="400" height="34" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(93%,96%,95%); fill-rule: evenodd;"/>
+			<rect x="520" y="345" width="4.511278195488671" height="34" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(8%,47%,44%); fill-rule: evenodd;"/>
+			<text x="983.8115234375" y="355" style="font-family: DejaVuSans-Bold; font-size: 18px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,710) scale(1,-1)">1,1 %</text>
+			<text x="55" y="265" style="font-family: DejaVuSans-Bold; font-size: 19px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,530) scale(1,-1)">Erreichte Konten</text>
+			<text x="55" y="240" style="font-family: DejaVuSans; font-size: 13px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,480) scale(1,-1)">0 / 1.047 - keine Reichweitenwerte</text>
+			<rect x="520" y="246" width="400" height="34" style="stroke: none; stroke-linecap: butt; stroke-width: 1; fill: rgb(93%,96%,95%); fill-rule: evenodd;"/>
+			<text x="983.8115234375" y="256" style="font-family: DejaVuSans-Bold; font-size: 18px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,512) scale(1,-1)">0,0 %</text>
+			<text x="55" y="157" style="font-family: DejaVuSans; font-size: 17px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,314) scale(1,-1)">Die drei Video-Aufrufzahlen: 5.481, 7.205 und 30.590, jeweils aus April 2023. Daraus lässt sich keine allgemeine</text>
+			<text x="55" y="132" style="font-family: DejaVuSans; font-size: 17px;fill: rgb(9%,16%,16%); stroke:none;" transform="translate(0,264) scale(1,-1)">Reichweite ableiten.</text>
+			<text x="55" y="96" style="font-family: DejaVuSans; font-size: 13px;fill: rgb(32%,41%,41%); stroke:none;" transform="translate(0,192) scale(1,-1)">Saves, Shares, Impressionen und historische Followerstände fehlen ebenfalls. Followerzahl ist kein Reichweitenwert.</text>
+		</g>
+	</g>
+</svg>

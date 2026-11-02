@@ -1,0 +1,23 @@
+{
+  "offer_pdf": "E:\\Dropbox\\Dropbox\\Puffer\\Wiesenhimmel_Gesamtuebersicht.pdf",
+  "offer_sha256": "8c5120e9e0b031bb22830ea5d9bf06792db215af8ffb7b5ff3776259b2255143",
+  "inputs": {
+    "C:\\Users\\User\\Documents\\Projekte\\mailhelp\\Mailhelp\\downloads\\instagram\\analysis\\wiesenhimmel-transfer-20261031\\ideas.json": "7ca82cc8f4de825d540d6cae03eb4eebe7eb207fe8828b710a122f85b507d570",
+    "C:\\Users\\User\\Documents\\Projekte\\mailhelp\\Mailhelp\\downloads\\instagram\\analysis\\wiesenhimmel-transfer-20261031\\selected-reels.json": "e4e7d3824010eebc42f7ae1dd6c4bb791718581e65ac5919289a694eff809c1c",
+    "C:\\Users\\User\\Documents\\Projekte\\mailhelp\\Mailhelp\\downloads\\instagram\\analysis\\winter-20261031\\winter-posts-classified.json": "73d37e1070cc0b65101e1d2862767d2335ec19cf40b2eb866c76bab6cee13935"
+  },
+  "card_scales": [
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1,
+    1
+  ]
+}

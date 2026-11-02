@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE svg
+  PUBLIC '-//W3C//DTD SVG 1.0//EN'
+  'http://www.w3.org/TR/2001/REC-SVG-20010904/DTD/svg10.dtd'>
+<svg width="511.28" height="266" preserveAspectRatio="xMinYMin meet" viewBox="0 0 511 266" xmlns="http://www.w3.org/2000/svg" version="1.0" fill-rule="evenodd" xmlns:xlink="http://www.w3.org/1999/xlink">
+	<title>...</title>
+	<desc>...</desc>
+	<clipPath id="clip">
+		<rect x="0" y="0" width="511.28" height="266"/>
+	</clipPath>
+	<g id="group" transform="scale(1,-1) translate(0,-266)" style="clip-path: url(#clip)">
+		<g transform="">
+			<text x="196.7771875" y="247" style="font-family: ArialBold; font-size: 9px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,494) scale(1,-1)">November</text>
+			<text x="280.845966796875" y="247" style="font-family: ArialBold; font-size: 9px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,494) scale(1,-1)">Dezember</text>
+			<text x="371.16816406249995" y="247" style="font-family: ArialBold; font-size: 9px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,494) scale(1,-1)">Januar</text>
+			<text x="452.740849609375" y="247" style="font-family: ArialBold; font-size: 9px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,494) scale(1,-1)">Februar</text>
+			<text x="0" y="211" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,422) scale(1,-1)">Schlaf und langsame Morgen</text>
+			<rect x="179.0" y="200" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(85%,91%,90%); fill-rule: evenodd;"/>
+			<text x="210.513271484375" y="216" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,432) scale(1,-1)">1,17</text>
+			<text x="211.35194335937499" y="205" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,410) scale(1,-1)">n=18</text>
+			<rect x="262.57" y="200" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(51%,70%,67%); fill-rule: evenodd;"/>
+			<text x="294.083271484375" y="216" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,432) scale(1,-1)">1,64</text>
+			<text x="296.75724609375004" y="205" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,410) scale(1,-1)">n=6</text>
+			<rect x="346.14" y="200" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(95%,97%,97%); fill-rule: evenodd;"/>
+			<text x="377.65327148437495" y="216" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,432) scale(1,-1)">1,05</text>
+			<text x="378.49194335937494" y="205" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,410) scale(1,-1)">n=12</text>
+			<rect x="429.71" y="200" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(90%,94%,93%); fill-rule: evenodd;"/>
+			<text x="461.223271484375" y="216" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,432) scale(1,-1)">1,12</text>
+			<text x="462.061943359375" y="205" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,410) scale(1,-1)">n=10</text>
+			<text x="0" y="183" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,366) scale(1,-1)">Natur und Jahreszeiten</text>
+			<rect x="179.0" y="172" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(86%,91%,90%); fill-rule: evenodd;"/>
+			<text x="210.513271484375" y="188" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,376) scale(1,-1)">1,17</text>
+			<text x="211.35194335937499" y="177" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,354) scale(1,-1)">n=24</text>
+			<rect x="262.57" y="172" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(86%,91%,90%); fill-rule: evenodd;"/>
+			<text x="294.083271484375" y="188" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,376) scale(1,-1)">1,17</text>
+			<text x="294.921943359375" y="177" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,354) scale(1,-1)">n=34</text>
+			<rect x="346.14" y="172" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(100%,100%,100%); fill-rule: evenodd;"/>
+			<text x="377.65327148437495" y="188" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,376) scale(1,-1)">1,00</text>
+			<text x="378.49194335937494" y="177" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,354) scale(1,-1)">n=32</text>
+			<rect x="429.71" y="172" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(96%,93%,90%); fill-rule: evenodd;"/>
+			<text x="461.223271484375" y="188" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,376) scale(1,-1)">0,86</text>
+			<text x="462.061943359375" y="177" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,354) scale(1,-1)">n=21</text>
+			<text x="0" y="155" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,310) scale(1,-1)">Entschleunigung / Detox</text>
+			<rect x="179.0" y="144" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(98%,97%,95%); fill-rule: evenodd;"/>
+			<text x="210.513271484375" y="160" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,320) scale(1,-1)">0,94</text>
+			<text x="211.35194335937499" y="149" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,298) scale(1,-1)">n=19</text>
+			<rect x="262.57" y="144" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(76%,85%,84%); fill-rule: evenodd;"/>
+			<text x="294.083271484375" y="160" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,320) scale(1,-1)">1,29</text>
+			<text x="294.921943359375" y="149" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,298) scale(1,-1)">n=21</text>
+			<rect x="346.14" y="144" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(94%,91%,85%); fill-rule: evenodd;"/>
+			<text x="377.65327148437495" y="160" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,320) scale(1,-1)">0,80</text>
+			<text x="378.49194335937494" y="149" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,298) scale(1,-1)">n=21</text>
+			<rect x="429.71" y="144" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(98%,98%,98%); fill-rule: evenodd;"/>
+			<text x="461.223271484375" y="160" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,320) scale(1,-1)">1,02</text>
+			<text x="462.061943359375" y="149" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,298) scale(1,-1)">n=18</text>
+			<text x="0" y="127" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,254) scale(1,-1)">Lesen, Kreativität, Spiele</text>
+			<rect x="179.0" y="116" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(99%,99%,98%); fill-rule: evenodd;"/>
+			<text x="210.513271484375" y="132" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,264) scale(1,-1)">0,98</text>
+			<text x="211.35194335937499" y="121" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,242) scale(1,-1)">n=10</text>
+			<rect x="262.57" y="116" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(94%,91%,85%); fill-rule: evenodd;"/>
+			<text x="294.083271484375" y="132" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,264) scale(1,-1)">0,80</text>
+			<text x="294.921943359375" y="121" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,242) scale(1,-1)">n=14</text>
+			<rect x="346.14" y="116" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(75%,85%,83%); fill-rule: evenodd;"/>
+			<text x="377.65327148437495" y="132" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,264) scale(1,-1)">1,30</text>
+			<text x="378.49194335937494" y="121" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,242) scale(1,-1)">n=12</text>
+			<rect x="429.71" y="116" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(95%,92%,88%); fill-rule: evenodd;"/>
+			<text x="461.223271484375" y="132" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,264) scale(1,-1)">0,84</text>
+			<text x="463.89724609375" y="121" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,242) scale(1,-1)">n=9</text>
+			<text x="0" y="99" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,198) scale(1,-1)">Standorte und Launches</text>
+			<rect x="179.0" y="88" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(98%,99%,99%); fill-rule: evenodd;"/>
+			<text x="210.513271484375" y="104" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,208) scale(1,-1)">1,02</text>
+			<text x="211.35194335937499" y="93" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,186) scale(1,-1)">n=13</text>
+			<rect x="262.57" y="88" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(93%,95%,94%); fill-rule: evenodd;"/>
+			<text x="300.939716796875" y="104" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,208) scale(1,-1)">-</text>
+			<text x="296.75724609375004" y="93" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,186) scale(1,-1)">n=3</text>
+			<rect x="346.14" y="88" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(93%,95%,94%); fill-rule: evenodd;"/>
+			<text x="384.50971679687495" y="104" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,208) scale(1,-1)">-</text>
+			<text x="380.32724609375" y="93" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,186) scale(1,-1)">n=2</text>
+			<rect x="429.71" y="88" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(85%,91%,90%); fill-rule: evenodd;"/>
+			<text x="461.223271484375" y="104" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,208) scale(1,-1)">1,18</text>
+			<text x="463.89724609375" y="93" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,186) scale(1,-1)">n=8</text>
+			<text x="0" y="71" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,142) scale(1,-1)">Tiere und Hunde</text>
+			<rect x="179.0" y="60" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(92%,88%,82%); fill-rule: evenodd;"/>
+			<text x="210.513271484375" y="76" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,152) scale(1,-1)">0,75</text>
+			<text x="213.18724609375" y="65" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,130) scale(1,-1)">n=5</text>
+			<rect x="262.57" y="60" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(96%,97%,97%); fill-rule: evenodd;"/>
+			<text x="294.083271484375" y="76" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,152) scale(1,-1)">1,05</text>
+			<text x="296.75724609375004" y="65" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,130) scale(1,-1)">n=7</text>
+			<rect x="346.14" y="60" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(93%,95%,95%); fill-rule: evenodd;"/>
+			<text x="377.65327148437495" y="76" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,152) scale(1,-1)">1,08</text>
+			<text x="378.49194335937494" y="65" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,130) scale(1,-1)">n=11</text>
+			<rect x="429.71" y="60" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(91%,86%,79%); fill-rule: evenodd;"/>
+			<text x="461.223271484375" y="76" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,152) scale(1,-1)">0,70</text>
+			<text x="463.89724609375" y="65" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,130) scale(1,-1)">n=9</text>
+			<text x="0" y="43" style="font-family: Arial; font-size: 8px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,86) scale(1,-1)">Essen und Trinken</text>
+			<rect x="179.0" y="32" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(89%,83%,73%); fill-rule: evenodd;"/>
+			<text x="210.513271484375" y="48" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,96) scale(1,-1)">0,62</text>
+			<text x="213.18724609375" y="37" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,74) scale(1,-1)">n=6</text>
+			<rect x="262.57" y="32" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(95%,92%,88%); fill-rule: evenodd;"/>
+			<text x="294.083271484375" y="48" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,96) scale(1,-1)">0,84</text>
+			<text x="296.75724609375004" y="37" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,74) scale(1,-1)">n=7</text>
+			<rect x="346.14" y="32" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(91%,85%,77%); fill-rule: evenodd;"/>
+			<text x="377.65327148437495" y="48" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,96) scale(1,-1)">0,68</text>
+			<text x="380.32724609375" y="37" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,74) scale(1,-1)">n=5</text>
+			<rect x="429.71" y="32" width="79.57" height="25" style="stroke: rgb(100%,100%,100%); stroke-linecap: butt; stroke-width: 0.5; fill: rgb(92%,88%,81%); fill-rule: evenodd;"/>
+			<text x="461.223271484375" y="48" style="font-family: ArialBold; font-size: 8.5px;fill: rgb(12%,23%,21%); stroke:none;" transform="translate(0,96) scale(1,-1)">0,74</text>
+			<text x="463.89724609375" y="37" style="font-family: Arial; font-size: 6.6px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,74) scale(1,-1)">n=9</text>
+			<text x="0" y="20" style="font-family: Arial; font-size: 7.3px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,40) scale(1,-1)">Index innerhalb Winter und Format; n = auswertbare Posts dieser Themen-/Monatszelle.</text>
+			<text x="0" y="7" style="font-family: Arial; font-size: 7.3px;fill: rgb(38%,46%,42%); stroke:none;" transform="translate(0,14) scale(1,-1)">Werte erst ab fünf Fällen; kleine Zellen bleiben Hypothesen. Grün: über 1, Ocker: unter 1.</text>
+		</g>
+	</g>
+</svg>

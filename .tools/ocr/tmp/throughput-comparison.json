@@ -1,0 +1,51 @@
+{
+  "cpu_before": {
+    "from": "2026-10-30T16:22:15+00:00",
+    "to": "2026-10-30T16:24:15+00:00",
+    "seconds": 120.0,
+    "count": 567,
+    "per_minute": 283.5,
+    "gpu": 3,
+    "frames": 564,
+    "text_lines": 376,
+    "median_lines": 0
+  },
+  "hybrid_now": {
+    "from": "2026-10-30T16:26:16.502478+00:00",
+    "to": "2026-10-30T16:27:16.502478+00:00",
+    "seconds": 60.0,
+    "count": 389,
+    "per_minute": 389.0,
+    "gpu": 82,
+    "frames": 389,
+    "text_lines": 202,
+    "median_lines": 0
+  },
+  "ratio": 1.3721340388007055,
+  "status": {
+    "phase": "ocr_hybrid",
+    "pid": 29088,
+    "started_at": "2026-10-30T16:24:36.442144+00:00",
+    "updated_at": "2026-10-30T16:27:14.735985+00:00",
+    "fps": 2,
+    "authentication": "none",
+    "local_only": true,
+    "tasks_total": 12529,
+    "tasks_done": 6400,
+    "cache_reused": 5809,
+    "errors": 0,
+    "gpu_enabled": true,
+    "cpu_done": 461,
+    "gpu_done": 130,
+    "gpu_fallbacks": 0
+  },
+  "comparison": {
+    "metric": "completed video frames per minute",
+    "cpu_only": 282,
+    "cpu_and_gpu": 389,
+    "throughput_increase_percent": 37.94326241134751,
+    "duration_reduction_percent": 27.506426735218515,
+    "gpu_frames_per_minute": 82,
+    "note": "Three GPU pilot still images excluded from CPU-only window; different consecutive frames, indicative observation rather than an identical-workload benchmark."
+  }
+}

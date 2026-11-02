@@ -1,0 +1,8 @@
+OCR-Neubewertung, 30.10.2026
+
+Kontrollierter Vergleich derselben 1.260 Posts der bisherigen Themenanalyse.
+21 redaktionelle Hauptthemenänderungen; 11 zuvor unklare Beiträge jetzt zugeordnet.
+13 Themenränge unverändert. Interaktionen = Likes + Kommentare; keine Reichweitenmessung.
+153 neu geladene ältere Posts wurden nicht in diesen Vorher-nachher-Vergleich aufgenommen.
+Alle-postings-CSV enthält Caption, OCR, Begründung, Nebenmotive und unveränderte Kennzahlen.
+Originalanalyse und Roh-OCR bleiben separat erhalten. Keine neuen Instagram-Abfragen.

@@ -1,0 +1,244 @@
+{
+  "method": "Redaktionelle Durchsicht sämtlicher 304 OCR-positiven Beiträge der bisherigen 1260er-Stichprobe. 25 repräsentative Belegbilder/Frames visuell geprüft. Hauptthema nur bei einer belegten neuen inhaltlichen Aussage geändert. Logos, Buchtitel, Buchseiten und Verpackungstext sind allein kein neues Hauptthema. Mehrdeutige Fälle behalten das alte Hauptthema und erhalten ggf. ein Nebenmotiv. Die ursprünglichen Kennzahlen, Ausschlüsse und Baselines bleiben im Kernvergleich konstant.",
+  "changes": [
+    {
+      "id": 594,
+      "new_code": "T",
+      "reason": "Der sichtbare POV-Text benennt den Urlaub auf einer Alpakafarm als Pointe; die Caption nennt nur einen schönen Morgen.",
+      "evidence_paraphrase": "POV: you decide to book a tiny house on an alpaca farm"
+    },
+    {
+      "id": 691,
+      "new_code": "Z",
+      "reason": "Die Einblendung richtet sich ausdrücklich an eine gemeinsame Auszeit mit einer geliebten Person.",
+      "evidence_paraphrase": "a weekend getaway with your loved one"
+    },
+    {
+      "id": 720,
+      "new_code": "Z",
+      "reason": "Die Frage im Video macht die gemeinsame Auszeit zur Hauptbotschaft.",
+      "evidence_paraphrase": "you + me, a cabin in the woods?"
+    },
+    {
+      "id": 823,
+      "new_code": "R",
+      "reason": "Das Reel formuliert Zufriedenheit mit kleinen gewöhnlichen Momenten; es stellt keine konkrete Kreativ- oder Spielaktivität in den Mittelpunkt.",
+      "evidence_paraphrase": "happiness is always found in the little, ordinary moments of life"
+    },
+    {
+      "id": 888,
+      "new_code": "R",
+      "reason": "Die zuvor nichtssagende Caption wird durch eine Liste gegen Hustle, ständige Erreichbarkeit und Bildschirmzeit verständlich.",
+      "evidence_paraphrase": "Propaganda we are not falling for: hustle 24/7; screens > trees; doing less is lazy"
+    },
+    {
+      "id": 918,
+      "new_code": "T",
+      "reason": "Die sichtbare Pointe vom zurückschauenden Ausblick wird durch Rinder im geprüften Frame bestätigt.",
+      "evidence_paraphrase": "but the view is staring back at you"
+    },
+    {
+      "id": 957,
+      "new_code": "Z",
+      "reason": "Die Einblendung ist eine Einladung zu einer gemeinsamen Land-Auszeit; die Caption zählt nur gemischte Herbstideen auf.",
+      "evidence_paraphrase": "you & me escaping to the countryside this season?"
+    },
+    {
+      "id": 971,
+      "new_code": "C",
+      "reason": "Eine vollständige Tageschronik von Aufwachen bis Sonnenuntergang löst den unklaren Caption-Verweis auf; kein Einzelthema dominiert.",
+      "evidence_paraphrase": "German cabin diaries: from morning to dusk"
+    },
+    {
+      "id": 977,
+      "new_code": "C",
+      "reason": "Das Video nennt ein gemischtes Bündel von Natur, Hunden, großen Fenstern und Abschalten; kein Einzelthema dominiert.",
+      "evidence_paraphrase": "Unfortunately we do love: pristine locations; dogs; big windows; unplugging without guilt"
+    },
+    {
+      "id": 982,
+      "new_code": "C",
+      "reason": "Die Aussage benennt nun einen allgemeinen Cabin-Kurzurlaub; eine konkrete Rabatt- oder Verfügbarkeitsaktion ist nicht belegt.",
+      "evidence_paraphrase": "I am not saying we should plan a cabin trip this autumn, but..."
+    },
+    {
+      "id": 1002,
+      "new_code": "R",
+      "reason": "Die Einblendung macht den Verzicht auf Trend-Audio und die Ruhe draußen zur Botschaft.",
+      "evidence_paraphrase": "outdoors without a trending audio"
+    },
+    {
+      "id": 1010,
+      "new_code": "C",
+      "reason": "Der bisher unklare Verweis wird als allgemeine Einladung zu einem Cabin-Trip verständlich.",
+      "evidence_paraphrase": "I am not saying we should plan a cabin trip, but..."
+    },
+    {
+      "id": 1040,
+      "new_code": "C",
+      "reason": "Die Einblendung beschreibt die Geräuschkulisse eines Cabin-Aufenthalts; keine Audio-Transkription oder engere Themenbehauptung.",
+      "evidence_paraphrase": "pov: the sound of a cabin stay"
+    },
+    {
+      "id": 1106,
+      "new_code": "Z",
+      "reason": "Die Einblendung benennt eine gemeinsame Lebens- bzw. Ruhestandsvorstellung; der Morgen ist nur die bisherige Caption-Perspektive.",
+      "evidence_paraphrase": "this is how I want to retire with you"
+    },
+    {
+      "id": 1110,
+      "new_code": "R",
+      "reason": "Offline-Sein und bewusstes Nichtstun werden in mehreren Slides ausdrücklich als Botschaft genannt.",
+      "evidence_paraphrase": "Offline at Rinderweide / The art of doing absolutely nothing"
+    },
+    {
+      "id": 1128,
+      "new_code": "R",
+      "reason": "Die Ortsangabe wird durch eine ausdrückliche Ruhe-Botschaft ergänzt.",
+      "evidence_paraphrase": "my type of peace"
+    },
+    {
+      "id": 1131,
+      "new_code": "C",
+      "reason": "Die Einblendung beschreibt eine spontane zweitägige Auszeit ohne konkretes Einzelmotiv oder Verkaufsangebot.",
+      "evidence_paraphrase": "Heute hin, übermorgen zurück?"
+    },
+    {
+      "id": 1160,
+      "new_code": "C",
+      "reason": "Der Dialog löst den Ortsverweis als allgemeine Sehnsucht nach einer Auszeit auf.",
+      "evidence_paraphrase": "Ich muss mal wieder raus! / Jaaa, und wohin?"
+    },
+    {
+      "id": 1169,
+      "new_code": "R",
+      "reason": "Die Meme-Reihe handelt von der Abwesenheit von Doomscrolling, Stress, Stadtlärm und Alltagsdruck statt von Team oder Unternehmensnachrichten.",
+      "evidence_paraphrase": "wtf is doomscrolling? / rush hour? / sunday scaries?"
+    },
+    {
+      "id": 1204,
+      "new_code": "R",
+      "reason": "Das Alpaka ist der Erzähler einer Liste zum Schutz der eigenen Energie, nicht primär ein Tiererlebnis.",
+      "evidence_paraphrase": "How to protect your energy / Advice from an alpaca"
+    },
+    {
+      "id": 1220,
+      "new_code": "R",
+      "reason": "Das Pferd ist der Erzähler von Tipps gegen Reizüberflutung; das Tier bleibt als Nebenmotiv erhalten.",
+      "evidence_paraphrase": "How to survive overstimulation / Advice from a horse"
+    }
+  ],
+  "secondary_tags": {
+    "205": [
+      "Kreativität und Perspektivwechsel"
+    ],
+    "594": [
+      "Schlaf und Morgen"
+    ],
+    "691": [
+      "Entschleunigung"
+    ],
+    "720": [
+      "Entschleunigung"
+    ],
+    "865": [
+      "Schlaf und Morgen"
+    ],
+    "869": [
+      "Schlaf und Morgen"
+    ],
+    "894": [
+      "Entschleunigung"
+    ],
+    "924": [
+      "Digital Detox"
+    ],
+    "944": [
+      "Mentale Erholung"
+    ],
+    "959": [
+      "Verbindung und Gespräche"
+    ],
+    "965": [
+      "Gemeinsame Auszeit mit Hund"
+    ],
+    "1016": [
+      "Zweisamkeit"
+    ],
+    "1093": [
+      "Digital Detox"
+    ],
+    "1106": [
+      "Langsame Morgen"
+    ],
+    "1118": [
+      "Nahe Anreise statt Flugreise"
+    ],
+    "1198": [
+      "Zweisamkeit"
+    ],
+    "1204": [
+      "Tiere als Ratgeber"
+    ],
+    "1220": [
+      "Tiere als Ratgeber"
+    ]
+  },
+  "mechanism_sensitivity": [
+    {
+      "id": 1123,
+      "flag": "additional_possible_prize_mechanism",
+      "reason": "Die Brotverpackung enthält Gewinnspiel und den Hinweis auf ein Raus Land-Abo. Die Caption bewirbt nur das Brot; verwandte Kampagnenposts 1111 und 1115 nennen die Mechanik ausdrücklich. Separater Sensitivitätsausschluss, keine veränderte Baseline im Kernvergleich."
+    }
+  ],
+  "unresolved_despite_ocr": [
+    860,
+    994,
+    1140,
+    1150,
+    1239
+  ],
+  "new_earlier_posts_excluded_from_change_comparison": 153,
+  "visual_evidence_ids": [
+    594,
+    691,
+    720,
+    823,
+    918,
+    957,
+    1002,
+    1040,
+    1106,
+    1110,
+    1128,
+    1169,
+    1204,
+    1220,
+    971,
+    977,
+    982,
+    1010,
+    1131,
+    1150,
+    1160,
+    865,
+    869,
+    944,
+    256
+  ],
+  "retained_book_page_example": {
+    "id": 256,
+    "reason": "Die visuelle Kontrolle zeigt den Thoreau-Text als gedruckte Buchseite auf dem Bett, nicht als redaktionelle Videoeinblendung. Deshalb keine OCR-bedingte Änderung des Hauptthemas."
+  },
+  "ambiguous_primary_alternatives": {
+    "865": "S",
+    "869": "S",
+    "924": "R",
+    "944": "R",
+    "959": "Z",
+    "965": "Z",
+    "1016": "Z",
+    "1093": "R",
+    "1198": "Z"
+  }
+}

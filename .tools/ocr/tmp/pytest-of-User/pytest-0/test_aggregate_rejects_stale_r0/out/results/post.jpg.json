@@ -1,0 +1,38 @@
+{
+  "status": "ok",
+  "file": "C:\\Users\\User\\Documents\\Projekte\\mailhelp\\Mailhelp\\.tools\\ocr\\tmp\\pytest-of-User\\pytest-0\\test_aggregate_rejects_stale_r0\\source\\post.jpg",
+  "sha256": "7617359a87b682b44336956176587ff52cadd28d8e38feec8a9f29440d3e3c03",
+  "fingerprint": "stale",
+  "post": "ABC",
+  "source_media": "post.jpg",
+  "timestamp_seconds": null,
+  "lines": [
+    {
+      "text": "Take a slow morning",
+      "confidence": 0.98,
+      "box": [
+        [
+          10.0,
+          10.0
+        ],
+        [
+          110.0,
+          10.0
+        ],
+        [
+          110.0,
+          40.0
+        ],
+        [
+          10.0,
+          40.0
+        ]
+      ],
+      "usable": true
+    }
+  ],
+  "text": "Take a slow morning",
+  "usable_text": "Take a slow morning",
+  "german_alternative": "",
+  "completed_at": "2026-10-30T15:49:49.373204+00:00"
+}
