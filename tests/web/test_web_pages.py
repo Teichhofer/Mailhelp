@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from datetime import UTC
 
 import pytest
 from shared_web_auth import Browser, signed_in, site  # noqa: F401  (fixture)
 from web_scenario import mail_id, populate, proposal, save_mail
 
+from mailhelp.domain.proposal import ProposalStatus
 from mailhelp.review.views import ReviewViews
 from mailhelp.storage import JsonStore
 from mailhelp.web.review_pages import https_link, overview_page, proposal_card
@@ -225,3 +227,14 @@ def test_manual_warning_only_without_open_questions(tmp_path):
         views = {view.proposal_id: view for view in ReviewViews(store, "UTC").overview().open}
     assert "manuell prüfen" in proposal_card(views["manual"])
     assert "manuell prüfen" not in proposal_card(views["asked"])
+
+
+def test_merged_proposals_render_on_overview_and_card(tmp_path):
+    # Regression: a merged proposal among the recent ones raised KeyError and made "/" fail (500).
+    with JsonStore(tmp_path) as store:
+        save_mail(store, 1, "A <a@x.test>", "Termin", [proposal(1, "done", status="created")])
+        overview = ReviewViews(store, "Europe/Berlin").overview()
+    merged = replace(overview.recent[0], status=ProposalStatus.MERGED, state="Zusammengeführt")
+    html = overview_page(replace(overview, recent=(merged,)))
+    assert '<span class="badge info">Zusammengeführt</span>' in html
+    assert '<span class="badge info">Zusammengeführt</span>' in proposal_card(merged)

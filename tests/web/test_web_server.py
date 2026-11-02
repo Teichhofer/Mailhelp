@@ -146,7 +146,7 @@ def test_a_failing_route_is_an_internal_error_without_details(running):
     status, _, body = call(server, "GET", "/")
     assert (status, body) == (500, b"Interner Fehler.")
     failure = next(fields for _, _, event, fields in logger.events if event == "request_failed")
-    assert failure == {"method": "GET", "error_class": "RuntimeError"}
+    assert failure == {"method": "GET", "path": "/", "error_class": "RuntimeError"}
 
 
 def test_a_busy_port_is_reported_and_stop_is_idempotent(running):

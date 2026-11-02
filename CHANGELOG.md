@@ -1,5 +1,13 @@
 # Änderungen
 
+## 3.5.2 – Weboberfläche mit zusammengeführten Vorschlägen
+
+- Fehlerbehebung: Sobald ein zusammengeführter Vorschlag (Status `merged`) unter „Zuletzt
+  erledigt“ stand, endete der Aufruf der Weboberfläche mit „Interner Fehler.“ (HTTP 500,
+  `request_failed` / `KeyError`). Für diesen Status fehlte die Badge-Zuordnung. Er wird jetzt
+  als „Zusammengeführt“ angezeigt; ein Regressionstest deckt Übersicht und Vorschlagskarte ab.
+- `request_failed` der Weboberfläche protokolliert zusätzlich den Pfad (ohne Query-String).
+
 ## 3.5.1 – Betriebsproblem-Benachrichtigungen bei fehlgeschlagenen Mails
 
 - Fehlerbehebung: Sobald eine Mail mit einem Verarbeitungsfehler endete (z. B. abgelehnter

@@ -93,7 +93,7 @@ class _RequestHandler(BaseHTTPRequestHandler):
             try:
                 response = self.server.app(request)
             except Exception as exc:
-                self.server.logger.event("ERROR", "web", "request_failed", method=self.command,
+                self.server.logger.event("ERROR", "web", "request_failed", method=self.command, path=path[:200],
                                          error_class=type(exc).__name__)
                 response = Response.text(500, "Interner Fehler.")
         self._send(response)
