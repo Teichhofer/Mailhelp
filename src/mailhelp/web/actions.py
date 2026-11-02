@@ -59,6 +59,9 @@ def proposal_actions(csrf: str):
         if CommandKind.ANSWER in view.actions and view.question:
             parts.append(_answer(csrf, view))
         buttons = []
+        if CommandKind.RECHECK in view.actions:
+            # A failed duplicate check blocks confirmation until it ran successfully.
+            buttons.append(_button_form(csrf, view, CommandKind.RECHECK, "Dublettenprüfung wiederholen", "primary"))
         if CommandKind.CONFIRM in view.actions:
             buttons.append(_button_form(csrf, view, CommandKind.CONFIRM, view.confirm_label, "primary"))
         # Every open proposal with actions can be rejected.

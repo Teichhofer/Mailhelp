@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+from types import SimpleNamespace
 
 import pytest
 from shared_telegram_dialog import callback
@@ -11,7 +12,7 @@ from shared_web_auth import Browser, code_from
 from web_scenario import mail_id, proposal, save_mail
 
 from mailhelp.domain.processing import ProposalClarificationState, ProposalRevisionStatus
-from mailhelp.models import ActionLedger, ActionLedgerEntry, Proposal, TelegramDialogState
+from mailhelp.models import ActionLedger, ActionLedgerEntry, Proposal, ProposalStatus, TelegramDialogState
 from mailhelp.persistence.ledger import ActionLedgerService
 from mailhelp.review.commands import CommandKind
 from mailhelp.review.inbox import MAX_QUEUED, CommandStatus
@@ -242,3 +243,28 @@ def test_paused_revision_offers_no_action(web):
     assert "pausiert" in html and 'value="answer"' not in html
     assert MAX_QUEUED == 50 and CommandKind.ANSWER.value == "answer"
     save_mail(web.store, 20, "x <x@x.test>", "x", [])
+
+
+def test_a_failed_duplicate_check_can_be_repeated_from_the_card(web):
+    """Regression: after a failed duplicate check the web offered no way to retry, so it could not be confirmed."""
+    question = "Dublettenprüfung nicht verfügbar; vor einer Anlage erneut prüfen."
+    current = Proposal.model_validate(web.store.load(f"proposal-{MAIL1}-elternabend"))
+    web.dialog.persist(current.model_copy(update={"duplicate_check_failed": True, "status": ProposalStatus.NEEDS_CLARIFICATION,
+                                                  "open_questions": [question]}))
+    page = web.browser.request("GET", "/").body.decode()
+    assert "Dublettenprüfung wiederholen" in page
+    assert web.form("/", kind="confirm", proposal_id="formular")
+    with pytest.raises(IndexError):
+        web.form("/", kind="confirm", proposal_id="elternabend")
+    with pytest.raises(IndexError):
+        web.form("/", kind="recheck_proposal", proposal_id="formular")
+    checked = []
+    web.dialog.decision_service.precheck = SimpleNamespace(check_proposal=lambda p: checked.append(p) or p)
+    web.submit(web.form(f"/vorschlag/{MAIL1}/elternabend", kind="recheck_proposal", proposal_id="elternabend"))
+    web.run()
+    rechecked = web.store.load(f"proposal-{MAIL1}-elternabend")
+    assert len(checked) == 1 and not checked[0].duplicate_check_failed and question not in checked[0].open_questions
+    assert (rechecked["version"], rechecked["status"], rechecked["duplicate_check_failed"]) == (
+        2, "pending_confirmation", False)
+    assert web.form("/", kind="confirm", proposal_id="elternabend")["version"] == "2"
+    assert web.writer.created == 0

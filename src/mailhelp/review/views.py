@@ -430,6 +430,8 @@ class ReviewViews:
                 actions.add(CommandKind.CONFIRM)
             if editing:
                 actions.add(CommandKind.CANCEL_CLARIFICATION)
+            if proposal.duplicate_check_failed:
+                actions.add(CommandKind.RECHECK)
         if paused:
             state = "Verarbeitung pausiert – bitte Betreiber prüfen lassen"
         elif answer_saved:

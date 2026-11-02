@@ -1,5 +1,13 @@
 # Änderungen
 
+## 3.5.4 – Dublettenprüfung in der Weboberfläche wiederholen
+
+- Fehlerbehebung: War die Dublettenprüfung eines Vorschlags fehlgeschlagen (z. B. wegen
+  einer abgelaufenen Google-Anmeldung), bot die Weboberfläche nur Antworten und Verwerfen an;
+  die Neuprüfung war allein unter „Vorschlagsabgleich“ erreichbar. Vorschlagskarte und
+  Detailseite zeigen jetzt „Dublettenprüfung wiederholen“. Eine erfolgreiche Prüfung erzeugt
+  eine neue, separat zu bestätigende Version; ein Regressionstest deckt den Ablauf ab.
+
 ## 3.5.3 – Lernbestand manueller Entscheidungen
 
 - Jede manuelle Entscheidung aus Web oder Telegram (Bestätigen, Verwerfen, Klären,

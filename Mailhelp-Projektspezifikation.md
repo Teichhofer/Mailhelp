@@ -2441,7 +2441,11 @@ Jede externe Anlage verlangt weiterhin eine ausdrückliche versionsbezogene Best
 Webaktionen prüfen Sitzung, CSRF, Version und Idempotenz, die Sitzung erneut nach
 dem lesenden Vorabgleich. Neue offene Kandidaten, geänderte Ziele und fehlgeschlagene
 Dublettenprüfungen verhindern eine Anlage mit veralteter Freigabe. Ein unklarer
-Schreibausgang wird vor jeder Wiederholung abgeglichen.
+Schreibausgang wird vor jeder Wiederholung abgeglichen. Ist die Dublettenprüfung eines
+offenen Vorschlags fehlgeschlagen, bieten Vorschlagskarte und Detailseite (ab 3.5.4)
+„Dublettenprüfung wiederholen“ an (Befehl `recheck_proposal`, versionsgebunden über
+`/aktion`). Gelingt die Prüfung, entsteht eine neue Version, die separat zu bestätigen
+ist; die Wiederholung selbst schreibt nie extern.
 
 Bestehende Zustände bleiben mit additiven Standardfeldern lesbar. Neue Beziehungen,
 Vergleichscaches und Journale besitzen eigene Schemas. Vor produktiver Nutzung ist
