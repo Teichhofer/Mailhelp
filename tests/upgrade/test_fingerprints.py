@@ -39,6 +39,9 @@ def before_2_0(dump: dict, settings) -> dict:
         dump.pop(name, None)
     dump["imap"].pop("drafts_folder")
     dump.get("retention", {}).pop("activity_report_days", None)
+    # 3.5.3: learning records of manual decisions.
+    dump.get("retention", {}).pop("decision_learning_days", None)
+    dump.get("learning", {}).pop("decision_llm_content", None)
     dump["telegram"].pop("enabled")
     # 2.3: original attachments and further write targets.
     dump.pop("attachments", None)

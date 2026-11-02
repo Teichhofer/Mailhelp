@@ -184,6 +184,23 @@ absichtlich nicht rekonstruierbar. Der vor jedem Polling-Zyklus ausgeführte Lau
 idempotent und protokolliert nur IDs, Zeitpunkte und Zähler. Fehler werden ohne
 Inhalte lediglich als Fehlerzähler protokolliert und stoppen Polling nicht.
 
+**Lernbestand manueller Entscheidungen (ab 3.5.3).** Jede erfolgreich ausgeführte
+manuelle Entscheidung aus Web oder Telegram (Buttons, Relevanz als Freitext, akzeptierte
+Freitextantworten auf Rückfragen) erzeugt genau einen Datensatz in
+`<Datenverzeichnis>/learning/decisions.jsonl`: Art, Quelle, Operation, Vorschlagsversion,
+Relevanzentscheidung oder Antworttext, Mailkopf und Mailinhalt, KI-Ergebnisse
+(Relevanz, Zusammenfassung, Aktionsroute, Aufgaben-/Terminextraktion,
+Konfigurationsfingerabdruck, Aufruf-IDs) sowie der Vorschlag als erster Vorschlag, als
+entschiedene Version und als aktuelles Ergebnis mit Feldänderungen zwischen erstem und
+entschiedenem Vorschlag. Der Schlüssel aus Mail, Vorschlag, Version, Art, Entscheidung und
+Antwort verhindert Doppelungen auch nach Neustart und Abgleich. Vollständige KI-Anfragen
+und -Antworten werden nur mit `learning.decision_llm_content: true` aus dem KI-Protokoll
+übernommen. Ein Fehler beim Aufzeichnen wird inhaltsfrei als `decision_record_failed`
+protokolliert und hält die Entscheidung nie auf. `retention.decision_learning_days`
+(Standard `unlimited`) entfernt Datensätze nach Ablauf ab der Aufzeichnung; `disabled`
+zeichnet nichts auf und leert den Bestand beim nächsten Lauf. Fehlerhafte Zeilen werden
+übersprungen und bei der Bereinigung entfernt.
+
 ## 1. Projektziel
 
 Mailhelp ist eine persönliche, in Python entwickelte Anwendung, die ein IMAP-Postfach überwacht. Ein über OpenRouter angesprochenes LLM prüft neue E-Mails auf ihre Zugehörigkeit zu konfigurierten Themenbereichen, fasst relevante Nachrichten zusammen und erkennt Aufgaben sowie Termine. Die Kommunikation mit dem Nutzer erfolgt über Telegram.

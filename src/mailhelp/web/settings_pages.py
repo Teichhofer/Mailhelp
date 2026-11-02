@@ -101,6 +101,8 @@ EXTRA_LABELS = {
     "logging.telegram.enabled": "Telegram-Log aktivieren",
     "logging.telegram.level": "Telegram-Log: Mindeststufe",
     "retention.activity_report_days": "Tätigkeitsberichte aufbewahren (Tage)",
+    "retention.decision_learning_days": "Lernbestand der Entscheidungen aufbewahren (Tage)",
+    "learning.decision_llm_content": "Lernbestand: vollständige KI-Inhalte übernehmen",
 }
 LEVEL_CHOICES = ("DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL")
 PROVIDER_CHOICES = {

@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.5.2 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.5.3 · **Python:** 3.12.x · **Lizenz:** MIT
 
 [Installation](#installation) · [Konfiguration](#konfiguration) ·
 [Betrieb](#betrieb) · [Docker](#docker) ·
@@ -36,6 +36,9 @@ einem lokalen Ollama-Server ist ebenfalls verfügbar.
   Benachrichtigungen, Termindauern und Aufbewahrungsregeln mit globaler Vererbung.
   Die globale Einstellungsübersicht bietet Kacheln, thematische Bereiche und eine Suche.
   Gespeicherte, noch nicht aktive Änderungen werden an den Bereichskacheln angezeigt.
+- **Lernbestand:** Jede manuelle Entscheidung wird mit Mail, KI-Ergebnissen sowie
+  ursprünglichem und entschiedenem Vorschlag in `data/<Betriebsart>/learning/decisions.jsonl`
+  abgelegt. Die Frist steht in `retention.decision_learning_days` (Standard unbegrenzt).
 - **Telegram und Web-App:** Vorschläge prüfen, klären, bearbeiten, bestätigen oder
   verwerfen. Die installierbare Web-App unterstützt auch den Betrieb ohne Telegram.
   Die Statusseite führt alle konfigurierten IMAP-, IServ-, Kalender-, Aufgaben- und

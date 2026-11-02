@@ -16,6 +16,7 @@ from ..models import Proposal, ProposalStatus, RelevanceDialog, TelegramOffset
 from ..persistence.ledger import ActionLedgerPort, ActionLedgerService
 from ..review.commands import CommandKind, CommandSource
 from ..review.inbox import CommandInbox
+from ..review.learning_log import DecisionLearningLog
 from ..review.results import ResultStatus, ReviewResult
 from ..storage import JsonStore
 from .authorization import AuthorizedUpdateValidator, UpdateValidation
@@ -177,6 +178,8 @@ class TelegramDialogController:
         from ..review.service import ReviewService
 
         self.review = ReviewService(self)
+        # Set by the composition; records manual decisions as learning material.
+        self.learning: DecisionLearningLog | None = None
         self.stop_requested: Callable[[], bool] = lambda: False
 
     @property

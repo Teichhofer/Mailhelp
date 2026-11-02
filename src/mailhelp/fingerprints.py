@@ -42,6 +42,8 @@ from .storage import JsonStore
 EXPERIENCE = frozenset({"push", "daily_briefing", "smart_reply", "personal_info", "activity_report", "notifications",
                         "event_defaults", "proposal_reconciliation", "target_profiles"})
 EXPERIENCE_FIELDS = (("imap", "drafts_folder"), ("telegram", "enabled"), ("retention", "activity_report_days"),
+                     # 3.5.3: learning records of manual decisions.
+                     ("retention", "decision_learning_days"), ("learning", "decision_llm_content"),
                      # 2.3: further write targets; an unchanged Google/Todoist configuration keeps its fingerprint.
                      *(("targets", name) for name in ("calendar_provider", "task_provider", "caldav_calendar_url",
                                                       "caldav_task_url", "outlook_calendar", "microsoft_todo_list",

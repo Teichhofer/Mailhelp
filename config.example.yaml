@@ -108,6 +108,10 @@ retention:
   # Ab 2.2: Volltexte und Belegzitate abgeschlossener Tätigkeitsberichte; Termine,
   # Absender und Betreffe bleiben. Zahl, disabled (sofort) oder unlimited.
   activity_report_days: 365
+  # Ab 3.5.3: Lernbestand manueller Entscheidungen in data/<Betriebsart>/learning/decisions.jsonl
+  # (Mail, KI-Ergebnisse, Vorschlag vorher/nachher, Entscheidung). Zahl (Tage nach der
+  # Entscheidung), disabled (nichts aufzeichnen, Bestand löschen) oder unlimited (Standard).
+  decision_learning_days: unlimited
 metrics:
   # Ab 1.2: inhaltsfreie Messung von KI-Aufrufen (Dauer, Modell, Schritt, Kosten) für
   # die Seite „Auswertung“. Gespeichert in logs/metrics/.
@@ -136,6 +140,10 @@ vision:
   max_edge_pixels: 1600
 learning:
   parallel_llm_calls: 10
+  # Ab 3.5.3: true kopiert vollständige KI-Anfragen und -Antworten aus dem KI-Protokoll
+  # (nur vorhanden mit logging.llm.include_requests/include_responses) in jeden
+  # Datensatz des Entscheidungs-Lernbestands. Standard false: nur Aufruf-IDs.
+  decision_llm_content: false
 # 3.1: Mehrere Postfächer (höchstens 10) statt der Postfachfelder direkt unter imap
 # (= Postfach 1): Liste imap.mailboxes mit stabiler Nummer id (1–99), Anzeigename label
 # und enabled. Abruf, Kontingent und Duplikaterkennung gelten über alle Postfächer; Entwürfe

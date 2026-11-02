@@ -114,6 +114,8 @@ class RetentionService:
             self.logger.event("INFO", "retention", "state_scrubbed", mail_id=state.id,
                               processed_at=now.isoformat(), mail_count=int(mail_changed),
                               debug_count=int(debug_changed))
+        from .review.learning_log import prune
+        learning_removed = prune(self.store.directory, self.settings.decision_learning_days, now)
         from .activity.store import ActivityReportStore
         activity_scrubbed = ActivityReportStore(self.store).remove_expired_texts(
             self.settings.activity_report_days, now)
@@ -121,5 +123,5 @@ class RetentionService:
         self.logger.event("INFO", "retention", "cleanup_completed", processed_at=now.isoformat(),
                           scanned_count=scanned, protected_count=protected,
                           mail_count=mail_scrubbed, debug_count=debug_scrubbed,
-                          activity_count=activity_scrubbed)
+                          activity_count=activity_scrubbed, learning_count=learning_removed)
         return result

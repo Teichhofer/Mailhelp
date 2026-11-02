@@ -1,5 +1,20 @@
 # Änderungen
 
+## 3.5.3 – Lernbestand manueller Entscheidungen
+
+- Jede manuelle Entscheidung aus Web oder Telegram (Bestätigen, Verwerfen, Klären,
+  Antworten, Bearbeiten, Zusammenführen, Relevanz – auch als Telegram-Freitext) wird als
+  ein Datensatz in `data/<Betriebsart>/learning/decisions.jsonl` abgelegt: Mailkopf und
+  -inhalt, KI-Ergebnisse mit Aufruf-IDs, erster und entschiedener Vorschlag mit
+  Feldänderungen, aktuelles Ergebnis sowie Entscheidung, Quelle und Antworttext.
+  Wiederholte oder nach einem Neustart abgeglichene Entscheidungen erscheinen nur einmal.
+- Neue Einstellung `retention.decision_learning_days` (Standard `unlimited`; Zahl in Tagen
+  oder `disabled`). `learning.decision_llm_content: true` übernimmt zusätzlich vollständige
+  KI-Anfragen und -Antworten aus dem KI-Protokoll (Standard `false`).
+- Ein Fehler beim Aufzeichnen hält die Entscheidung nicht auf. Die neuen Einstellungen
+  ändern den Konfigurationsfingerabdruck nicht; laufende Vorgänge werden nicht neu analysiert.
+- Spezifikation, Datenschutzhinweise, README und Beispielkonfiguration aktualisiert.
+
 ## 3.5.2 – Weboberfläche mit zusammengeführten Vorschlägen
 
 - Fehlerbehebung: Sobald ein zusammengeführter Vorschlag (Status `merged`) unter „Zuletzt

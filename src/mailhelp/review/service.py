@@ -92,15 +92,21 @@ class ReviewService:
             return ReviewResult(status=_error_status(exc), message=_error_message(exc))
 
     def _record(self, command: ReviewCommand) -> None:
+        learning = getattr(self.controller, "learning", None)
         if command.proposal_id is None:
             state = self.controller.store.load_model(state_names.mail(command.mail_id), MailState)
             if state is not None:
                 record_relevance(self.controller.store, state, command.source.value, command.idempotency_key)
+            if learning is not None:
+                learning.relevance_decision(command.mail_id, command.source.value, command.idempotency_key)
             return
         current = self.controller.repository.load_current(command.mail_id, command.proposal_id)
         if current is not None:
             record_event(self.controller.store, current, command.kind.value, command.source.value,
                          command.idempotency_key)
+        if learning is not None:
+            learning.proposal_decision(command.mail_id, command.proposal_id, command.version, command.kind.value,
+                                       command.source.value, command.idempotency_key, command.text)
 
     def reconcile(self, command: ReviewCommand | AdminCommand) -> ReviewResult:
         """Result of a command interrupted by a restart, judged from the current state.

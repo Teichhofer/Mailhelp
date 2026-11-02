@@ -220,7 +220,7 @@ def _build_analyzer(settings: Settings, secrets: Secrets, prompts: PromptConfig,
 def _build_dialog(settings: Settings, store: JsonStore, telegram: Any, logger: JsonlLogger, writers: dict[str, Any],
                   analyzer: Analyzer, web_enabled: bool) -> TelegramDialogController:
     telegram_inbox = TelegramInbox(store)
-    return TelegramDialogController(
+    dialog = TelegramDialogController(
         store, telegram, settings.telegram.user_id, settings.telegram.chat_id, logger,
         writers, settings.test_mode,
         settings.timezone,
@@ -233,6 +233,13 @@ def _build_dialog(settings: Settings, store: JsonStore, telegram: Any, logger: J
         inbox=telegram_inbox,
         commands=CommandInbox(store, wake=telegram_inbox.wake) if web_enabled else None,
     )
+    from .review.learning_log import DecisionLearningLog
+    llm_log = logger.llm
+    llm_logs = [llm_log, *(llm_log.with_name(f"{llm_log.name}.{number}")
+                           for number in range(1, settings.logging.llm.backup_count + 1))]
+    dialog.learning = DecisionLearningLog(store, settings.retention.decision_learning_days, logger,
+                                          llm_logs=llm_logs if settings.learning.decision_llm_content else ())
+    return dialog
 
 
 def _build_orchestrator(settings: Settings, prompts: PromptConfig, topics: list[Topic], fingerprint: str,

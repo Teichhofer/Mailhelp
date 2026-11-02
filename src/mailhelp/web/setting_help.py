@@ -86,6 +86,15 @@ SETTING_HELP.update({
     "logging.telegram.enabled": "ja (true) schreibt ein separates Prüfprotokoll der Telegram-Nachrichten einschließlich Inhalten. nein (false) verzichtet darauf; Zustellungen bleiben im allgemeinen Log ohne Inhalte sichtbar.",
     "logging.telegram.level": "Mindeststufe des Telegram-Logs: DEBUG enthält Diagnoseangaben, INFO den normalen Ablauf, WARNING Warnungen und schwerere Meldungen, ERROR Fehler und CRITICAL nur schwerste Fehler.",
 })
+SETTING_HELP["retention.decision_learning_days"] = (
+    "Aufbewahrung des Lernbestands manueller Entscheidungen (Mail, KI-Ergebnisse, Vorschlag vorher und nachher): "
+    "1–3650 bedeutet volle Tage seit der Entscheidung. unlimited (Standard) bewahrt ohne Frist auf, disabled "
+    "zeichnet nichts mehr auf und leert den Bestand beim nächsten Bereinigungslauf. Entfernte Datensätze lassen "
+    "sich nicht wiederherstellen.")
+SETTING_HELP["learning.decision_llm_content"] = (
+    "ja (true) übernimmt vollständige KI-Anfragen und -Antworten aus dem KI-Log in jeden Datensatz des "
+    "Entscheidungs-Lernbestands; sie sind nur vorhanden, wenn das KI-Log diese Inhalte protokolliert. "
+    "nein (false, Standard) speichert nur die Aufruf-IDs.")
 SETTING_HELP["retention.activity_report_days"] = "Aufbewahrung gespeicherter Tätigkeitsberichte und ihrer Exporte; das Postfach bleibt unverändert." + _RETENTION
 
 for _service, _label in {"imap": "IMAP", "telegram": "Telegram", "openrouter": "OpenRouter", "ollama": "Ollama",

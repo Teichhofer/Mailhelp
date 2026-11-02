@@ -7,9 +7,11 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 from pydantic import ValidationError
 
 from ..adapter import PermanentError
-from ..models import RelevanceDialog, TelegramOffset
+from ..domain.processing import ProposalClarificationState
+from ..models import RelevanceDialog, TelegramDialogState, TelegramOffset
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.errors import StaleCommand
+from ..state_names import clarification
 from .callbacks import DecisionAction, RelevanceDecision, validate_callback_markup
 from .client import TelegramTransport, validation_path
 from .models import TelegramCallbackQuery, TelegramUpdate
@@ -221,8 +223,23 @@ class TelegramUpdateHandler:
                 update.update_id + 1,
                 notify=True,
             )
+            if self.o.learning is not None:
+                self.o.learning.relevance_decision(dialog.mail_id, "telegram", f"telegram-update-{update.update_id}")
             return
+        pointer = self.o.store.load_model("telegram-dialog", TelegramDialogState)
         self.o.revisions.answer(message.text)
+        self._record_answer(pointer, message.text, update.update_id)
+
+    def _record_answer(self, pointer: TelegramDialogState | None, text: str, update_id: int) -> None:
+        """Learning record of a free-text answer the clarification accepted."""
+        if self.o.learning is None or pointer is None or pointer.proposal_id is None:
+            return
+        mail_id, proposal_id, version = pointer.reference()
+        answered = self.o.store.load_model(clarification(mail_id, proposal_id, version),
+                                           ProposalClarificationState)
+        if isinstance(answered, ProposalClarificationState) and answered.authorized_answer == text:
+            self.o.learning.proposal_decision(mail_id, proposal_id, version, CommandKind.ANSWER.value,
+                                              "telegram", f"telegram-update-{update_id}", text)
 
     def _callback(self, update: TelegramUpdate, acknowledged: bool) -> None:
         callback = update.callback_query

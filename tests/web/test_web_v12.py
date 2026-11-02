@@ -448,7 +448,7 @@ def test_activate_application_live_subset(tmp_path):
     cfg = settings(tmp_path)
     metrics = MetricsRecorder(tmp_path/'metrics.jsonl', cfg.metrics)
     app = SimpleNamespace(logger=SimpleNamespace(metrics=metrics), settings=cfg,
-                          mailbox=SimpleNamespace(settings=cfg),
+                          mailbox=SimpleNamespace(settings=cfg), dialog=None,
                           orchestrator=SimpleNamespace(reconciliation=SimpleNamespace(max_candidates=8)))
     changed = cfg.model_copy(update={'poll_interval_seconds': 10})
     Application.apply_settings(app, changed)

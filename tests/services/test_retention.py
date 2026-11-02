@@ -1,4 +1,5 @@
 from datetime import UTC, datetime
+from pathlib import Path
 
 import pytest
 from log_fakes import RecordingLogger as Log
@@ -131,6 +132,7 @@ def test_retention_boundaries_missing_state_and_clock_validation():
     assert RetentionSettings(full_mail_days=1).full_mail_days == 1
 
     class EmptyStore:
+        directory = Path("nicht-vorhanden")
         def names(self, prefix): return ["mail-gone"]
         def load_model(self, name, model): return None
     service = RetentionService(EmptyStore(), RetentionSettings(), Log(), lambda: NOW)

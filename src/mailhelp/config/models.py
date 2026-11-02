@@ -494,6 +494,8 @@ class RetentionSettings(ConfigModel):
     history_days: RetentionPeriod = 90
     # Activity reports (2.2): full texts are removed, dates and senders stay.
     activity_report_days: RetentionPeriod = 365
+    # Manual decisions as learning material (3.5.3); disabled records none.
+    decision_learning_days: RetentionPeriod = "unlimited"
 
 
 class MailboxRetention(ConfigModel):
@@ -504,6 +506,8 @@ class LearningSettings(ConfigModel):
     """Concurrency controls for the interactive learning workflow."""
 
     parallel_llm_calls: int = Field(default=4, ge=1, le=100)
+    # Copies full prompts and responses from the LLM log into each decision record.
+    decision_llm_content: bool = False
 
 
 _WEB_HOST = re.compile(r"[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:[0-9]{1,5})?")

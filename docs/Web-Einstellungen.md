@@ -1,6 +1,6 @@
 # Einstellungen der Weboberfläche
 
-Stand: 17. Oktober 2026, Anwendungsversion 3.5.0.
+Stand: 2. November 2026, Anwendungsversion 3.5.3.
 
 `/einstellungen` zeigt Kacheln für Konten, allgemeine Regeln, Inhalte und Systemaktionen.
 Kontenkacheln nennen die Anzahl der im laufenden Dienst eingerichteten Konten. Bereichskacheln
@@ -235,6 +235,7 @@ aktualisieren die Seite automatisch; laufende erfolgreiche Abrufe allein laden s
 | Mailtexte aufbewahren (Tage) (`retention.full_mail_days`) | Aufbewahrung gespeicherter Mailtexte, Bildvorschauen und lokaler Entwurfstexte; die Originalmail im Postfach wird nicht gelöscht. 1–3650 bedeutet volle Tage seit der letzten Aktualisierung des abgeschlossenen Vorgangs. Kleinere Werte entfernen Inhalte früher. disabled entfernt sie beim nächsten Bereinigungslauf, unlimited bewahrt sie ohne Frist auf. Offene Vorgänge bleiben geschätzt. Entfernte Inhalte lassen sich durch späteres Verlängern der Frist nicht wiederherstellen. | Im laufenden Betrieb |
 | Verlauf aufbewahren (Tage) (`retention.history_days`) | Aufbewahrung des Vorgangsverlaufs und der Inhalte historischer Vorschlagsversionen; Kennungen zum Schutz vor Doppelanlagen bleiben erhalten. 1–3650 bedeutet volle Tage seit der letzten Aktualisierung des abgeschlossenen Vorgangs. Kleinere Werte entfernen Inhalte früher. disabled entfernt sie beim nächsten Bereinigungslauf, unlimited bewahrt sie ohne Frist auf. Offene Vorgänge bleiben geschätzt. Entfernte Inhalte lassen sich durch späteres Verlängern der Frist nicht wiederherstellen. | Im laufenden Betrieb |
 | Tätigkeitsberichte aufbewahren (Tage) (`retention.activity_report_days`) | Aufbewahrung gespeicherter Tätigkeitsberichte und ihrer Exporte; das Postfach bleibt unverändert. 1–3650 bedeutet volle Tage seit der letzten Aktualisierung des abgeschlossenen Vorgangs. Kleinere Werte entfernen Inhalte früher. disabled entfernt sie beim nächsten Bereinigungslauf, unlimited bewahrt sie ohne Frist auf. Offene Vorgänge bleiben geschätzt. Entfernte Inhalte lassen sich durch späteres Verlängern der Frist nicht wiederherstellen. | Im laufenden Betrieb |
+| Lernbestand der Entscheidungen aufbewahren (Tage) (`retention.decision_learning_days`) | Aufbewahrung des Lernbestands manueller Entscheidungen (Mail, KI-Ergebnisse, Vorschlag vorher und nachher): 1–3650 bedeutet volle Tage seit der Entscheidung. unlimited (Standard) bewahrt ohne Frist auf, disabled zeichnet nichts mehr auf und leert den Bestand beim nächsten Bereinigungslauf. Entfernte Datensätze lassen sich nicht wiederherstellen. | Im laufenden Betrieb |
 
 ## Protokollierung
 
@@ -303,6 +304,7 @@ aktualisieren die Seite automatisch; laufende erfolgreiche Abrufe allein laden s
 | Einstellung / Schlüssel | Wirkung und Werte | Übernahme |
 | --- | --- | --- |
 | Lernmodus: parallele KI-Aufrufe (`learning.parallel_llm_calls`) | Gleichzeitige KI-Aufrufe im Lernmodus (--learn): 1–100; Standard 4. Mehr parallele Aufrufe beschleunigen das Lernen und erhöhen Lastspitzen; das Minutenbudget limits.llm_calls_per_minute gilt weiterhin. | Nach Neustart |
+| Lernbestand: vollständige KI-Inhalte übernehmen (`learning.decision_llm_content`) | ja (true) übernimmt vollständige KI-Anfragen und -Antworten aus dem KI-Log in jeden Datensatz des Entscheidungs-Lernbestands; sie sind nur vorhanden, wenn das KI-Log diese Inhalte protokolliert. nein (false, Standard) speichert nur die Aufruf-IDs. | Nach Neustart |
 
 ## Weboberfläche
 

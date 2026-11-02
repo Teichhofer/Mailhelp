@@ -219,6 +219,9 @@ class Application:
         self.orchestrator.mailbox_settings = settings
         self.orchestrator.reconciliation_settings = settings.proposal_reconciliation
         self.orchestrator.reconciliation.max_candidates = settings.proposal_reconciliation.max_semantic_candidates
+        learning = getattr(self.dialog, "learning", None)
+        if learning is not None:
+            learning.period = settings.retention.decision_learning_days
         metrics = self.logger.metrics
         assert metrics is not None  # attached together with the logger (_attach_metrics)
         metrics.settings = settings.metrics
