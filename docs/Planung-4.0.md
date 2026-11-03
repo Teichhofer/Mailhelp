@@ -1,7 +1,7 @@
 # Mailhelp 4.0 – Browser-First Inbetriebnahme & Web-Lernmodus (Zero-CLI)
 
 **Zielversion:** 4.0.0  
-**Stand:** 14. Oktober 2026  
+**Stand:** 3. November 2026<br>
 **Status:** In Planung (Großes Haupt-Release nach Abschluss der 3.x-Reihe)  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 3.0](Planung-3.0.md), [Planung 3.1](Planung-3.1.md), [Planung 3.2](Planung-3.2.md), [Planung 3.3](Planung-3.3.md)
 
@@ -282,7 +282,7 @@ flowchart TD
 | **Phase 3** | **Lernmodus-Backend** | - Hintergrund-Jobrunner führt Mailabruf und Themenanalyse entkoppelt aus.<br>- REST-Schnittstellen für Status, Zwischenergebnisse und Kostenüberwachung aktiv.<br>- Pausieren und Abbrechen abgesichert. |
 | **Phase 4** | **Lernmodus-Frontend** | - Konfigurationsmaske und Live-Fortschrittsanzeige im Web verfügbar.<br>- Kartenbasierte Review-Maske zum Prüfen, Editieren und Auswählen von Themen und Filtern.<br>- Speichern aktualisiert `topics.yaml` und `irrelevant-senders.json`. |
 | **Phase 5** | **Hot-Reload & Dashboard** | - Klick auf `/dienst/neu-laden` reinitialisiert Reader und Adapter im laufenden Betrieb.<br>- Nahtloser Übergang: Onboarding leitet nach Abschluss direkt zum Lernmodus weiter.<br>- Playwright E2E-Tests für den gesamten Browser-Ablauf. |
-| **Phase 6** | **Qualitätssicherung** | - 100 % Zeilen- und Branch-Coverage.<br>- Verifikation auf Windows 11 und Docker.<br>- Doku in Spezifikation, Betriebsanleitung und `README.md` aktualisiert. |
+| **Phase 6** | **Qualitätssicherung** | - Arbeitspakete Q1–Q4 aus Abschnitt 7 vollständig abgenommen.<br>- 100 % Zeilen- und Branch-Coverage für sämtlichen eigenen Anwendungscode.<br>- Verifikation auf Windows 11 und Docker unter Linux.<br>- Doku in Spezifikation, Betriebsanleitung und `README.md` aktualisiert. |
 
 ---
 
@@ -300,3 +300,133 @@ flowchart TD
 4. **Fehler- und Warnungsfreiheit:**
    - `ruff check src tests` meldet 0 Fehler.
    - `mypy` meldet 0 Fehler.
+5. **Konkurrierende Bedienung und Wiederanlauf:**
+   - Die Szenarien in Abschnitt 7 sind verbindliche Releasekriterien für 4.0.
+   - Gleichzeitige Aktionen und Prozessabbrüche erzeugen weder unberechtigte Schreibzugriffe
+     noch unbeabsichtigte Doppelaktionen oder verlorene Änderungen.
+
+## 7. Verbindlicher Testausbau: Parallelbedienung und Absturzsicherheit
+
+### Ziel und Umfang
+
+Zusätzlich zu den Browserfunktionen erhält Version 4.0 reproduzierbare Tests für das
+Zusammenspiel von Web, Telegram, Vorschlagsversionen, externen Schreibaktionen und
+persistiertem Zustand. Vorhandene Tests für Wiederholungen, Sitzungsprüfung,
+Schreibunsicherheit und Merge-Journale werden erweitert und nach Möglichkeit wiederverwendet.
+Dieser Abschnitt beschreibt geplante Arbeit, keine bereits nachgewiesene Absicherung.
+
+Alle Tests verwenden synthetische Daten und simulierte externe Dienste. Produktivkonten,
+echte Zugangsdaten und externe Produktivzugriffe sind ausgeschlossen.
+
+### Q1: Zustandsregeln und Testinfrastruktur festlegen
+
+1. Die verbindlichen Zustandsübergänge und Persistenzgrenzen in Review, Command-Inbox,
+   Schreibausführung, Ledger und Merge-Journal erfassen. Insbesondere festlegen, wann
+   eine konkurrierende Entscheidung verbindlich wird und wann eine Aktion bereits läuft.
+2. Erwartete Ergebnisse für beide Reihenfolgen konkurrierender Entscheidungen in der
+   Projektspezifikation dokumentieren. Bereits laufende Schreibaktionen dürfen nicht
+   durch eine nachträgliche Bearbeitung oder Verwerfung scheinbar rückgängig gemacht werden.
+3. Eine wiederverwendbare Teststeuerung mit Events oder Barrieren einrichten.
+   Zeitabhängige Zufallstests und `sleep()` als Synchronisation sind unzulässig.
+   Warteoperationen erhalten feste Zeitgrenzen; Fehler müssen Prozesse und Ressourcen aufräumen.
+4. Einen simulierten externen Dienst bereitstellen, dessen Einträge und Aufrufhistorie
+   unabhängig vom Anwendungsprozess erhalten bleiben. Er muss eine Änderung übernehmen
+   und die Antwort anschließend gezielt zurückhalten oder abbrechen können.
+
+**Abnahme:** Die Synchronisationspunkte, erwarteten Zustandsübergänge und verwendeten
+Testhilfen sind dokumentiert. Die Infrastruktur funktioniert unter Windows und Linux.
+
+### Q2: Gleichzeitige Bedienung absichern (Priorität 1)
+
+Integrationstests an den tatsächlichen Web- und Telegram-Einstiegspunkten ergänzen.
+Die Ausführung der wartenden Befehle und die externe Schreibgrenze müssen enthalten sein.
+Die Betriebssperre nicht umgehen; konkurrierende Oberflächen innerhalb einer laufenden
+Instanz prüfen. Bei zwei konkurrierenden Entscheidungen beide Reihenfolgen erzwingen.
+
+| ID | Szenario | Erwartetes Ergebnis |
+| :--- | :--- | :--- |
+| P1 | Web und Telegram bestätigen dieselbe Version. | Höchstens eine externe Aktion; die zweite Bestätigung erzeugt keine weitere Anlage. |
+| P2 | Zwei Websitzungen bestätigen dieselbe Version mit unterschiedlichen Idempotenzschlüsseln. | Auch unterschiedliche Anfrageschlüssel umgehen die fachliche Dublettensperre nicht. |
+| P3 | Eine Oberfläche bearbeitet, die andere bestätigt die bisherige Version. | Gewinnt die Bearbeitung, ist die alte Freigabe ungültig; gewinnt die Ausführung, bleibt die Änderung gemäß Zustandsregeln gesperrt oder ausdrücklich separat prüfbar. |
+| P4 | Eine Oberfläche verwirft, die andere bestätigt. | Nur ein zulässiger Zustandsübergang gewinnt; eine bereits verworfene Version wird nicht ausgeführt. |
+| P5 | Ein Merge konkurriert mit der Bestätigung einer beteiligten bisherigen Version. | Alias, kanonische Version und Freigabe bleiben konsistent; laufende Aktionen werden nicht überschrieben. |
+| P6 | Eine angenommene Webaktion wartet; die Sitzung wird vor Ausführung widerrufen oder läuft ab. | Erneute Sitzungsprüfung verhindert die externe Aktion und liefert ein nachvollziehbares Ergebnis. |
+| P7 | Identische Anfragen werden während der Verarbeitung und nach Abschluss wiederholt. | Wiederholungen führen zu keiner weiteren externen Aktion; Ergebnis und Status bleiben nachvollziehbar. |
+
+Für jedes Szenario zusätzlich gespeicherte Vorschlagsversion, Status, Command-Inbox,
+vorhandene Journal-/Ledger-Einträge und das Ergebnis für den Nutzer prüfen. An den
+Web-Einstiegspunkten gültige sowie fehlende, falsche und sitzungsfremde CSRF-Tokens
+berücksichtigen. Bearbeiten oder Speichern allein darf keine externe Anlage autorisieren.
+Ein zusätzlicher Browsertest mit zwei getrennten Browserkontexten prüft die sichtbare
+Konfliktrückmeldung; die deterministischen Integrationstests bleiben maßgeblich.
+
+**Abnahme:** Alle P-Szenarien bestehen reproduzierbar. Keine aktuelle manuelle Änderung
+geht verloren, kein veralteter Vorschlag wird freigegeben und keine nicht mehr gültige
+Websitzung autorisiert die Ausführung.
+
+### Q3: Echte Prozessabbrüche und Wiederherstellung prüfen (Priorität 2)
+
+Den betroffenen Anwendungsablauf in einem Unterprozess ausführen und an folgenden
+kontrollierten Punkten hart beenden. Eine bloß ausgelöste Python-Exception genügt nicht,
+da sie reguläre Aufräumlogik ausführen kann.
+
+| ID | Abbruchpunkt |
+| :--- | :--- |
+| A1 | Schreibauftrag dauerhaft gespeichert, externer Aufruf noch nicht begonnen. |
+| A2 | Externer Dienst hat die Änderung übernommen, Antwort wird noch zurückgehalten. |
+| A3 | Erfolgreiche Antwort empfangen, Ergebnis lokal noch nicht gespeichert. |
+| A4 | Vorschlagsergebnis gespeichert, weitere Journal-/Ledger-Einträge noch nicht abgeschlossen, soweit diese getrennt geschrieben werden. |
+| A5 | Merge-Journal gespeichert, kanonischer Vorschlag noch nicht aktualisiert. |
+| A6 | Kanonischer Vorschlag gespeichert, Aliasakte noch nicht gespeichert. |
+| A7 | Kanonischer Vorschlag und Aliasakte gespeichert, Merge-Journal noch nicht abgeschlossen. |
+
+Nach jedem Abbruch einen frischen Anwendungsprozess mit demselben Datenverzeichnis
+und unverändertem simuliertem externem Zustand starten. Anschließend mindestens einen
+weiteren Neustart durchführen, um die Idempotenz der Wiederherstellung zu prüfen.
+Bei A1–A4 außerdem Abgleich mit Treffer, ohne Treffer, mit temporärem Fehler und mit
+ungültiger Antwort berücksichtigen, soweit der jeweilige Ablauf einen Abgleich benötigt.
+
+Verbindliche Prüfungen:
+
+- Bereits ausgeführte Aktionen werden erkannt und nicht erneut angelegt.
+- Unklare Resultate bleiben geschützt, bis ein belastbarer Abgleich möglich ist.
+  Ein fehlgeschlagener oder ergebnisloser Abgleich allein beweist keine ausgebliebene Anlage.
+- Noch nicht ausgeführte Aktionen erfolgen nur mit weiterhin gültiger Autorisierung;
+  der Neustart ersetzt weder Sitzungs- noch Versionsprüfung oder ausdrückliche Freigabe.
+- Lokale Wiederherstellung vervollständigt fehlende Schritte idempotent. Eine weitere
+  Wiederherstellung verändert ein bereits konsistentes Ergebnis nicht erneut.
+- Merge-Wiederherstellung erhält Quellen und geschützte manuelle Werte. Zwischenzeitlich
+  geänderte maßgebliche Akten werden nicht überschrieben; Konflikte bleiben sichtbar.
+- Beschädigte oder fehlende maßgebliche Akten werden nicht als leerer Bestand behandelt,
+  der eine neue externe Anlage erlauben würde.
+
+**Abnahme:** Alle A-Szenarien bestehen unter Windows und Linux. Die unabhängig
+gespeicherte externe Aufrufhistorie belegt, dass keine zusätzliche Schreibaktion erfolgt.
+Nicht vorhandene Persistenzgrenzen werden begründet dokumentiert, nicht künstlich eingeführt.
+
+### Q4: Anbietermatrix, CI und Abschluss
+
+1. Q2 und A1–A4 als gemeinsame Sicherheitsszenarien für Google Kalender, Todoist,
+   Microsoft-Kalender, Microsoft To Do sowie CalDAV-Kalender und -Aufgaben ausführen.
+   Anlage, Änderung und Löschung berücksichtigen, soweit Mailhelp diese Operation für
+   den jeweiligen Anbieter unterstützt. Nicht unterstützte Kombinationen explizit begründen.
+2. Anbieteradapter mit simuliertem Transport in die Szenarien einbeziehen, damit auch
+   Idempotenzmarker und der tatsächliche Abgleich des jeweiligen Adapters geprüft werden.
+   Merge-Abbrüche A5–A7 zusätzlich an der gemeinsamen Persistenzschicht testen.
+3. Die Tests in die bestehende CI für Windows und Linux aufnehmen. Einen repräsentativen
+   Abbruch mit Wiederanlauf zusätzlich im Docker-Betrieb unter Linux prüfen.
+4. Sämtlicher eigener Anwendungscode erreicht weiterhin 100 % Zeilen- und 100 %
+   Branch-Abdeckung; Unterschreitung eines Werts lässt die Prüfung scheitern.
+   Coverage-Ausschlüsse und wirkungslose Tests sind unzulässig. Bei Unterprozessen
+   sicherstellen, dass deren Ausführung für die Coverage-Messung korrekt erfasst wird.
+5. Jeder gefundene Bug erhält einen Regressionstest mit dokumentiertem Fehlschlag vor
+   dem Fix und Erfolg danach. Sicherheitsprüfungen nicht abschwächen, um Tests zu bestehen.
+6. Einen Abschlussbericht mit Szenario-ID, Anbieter/Operation, Plattform, Testreferenz,
+   Prüfergebnis, gefundenen Fehlern und begründeten Einschränkungen liefern.
+   Spezifikation und README aktualisieren; bei Verhaltensänderungen auch relevante
+   Konfigurationsbeispiele. Version und Changelog gemäß `AGENTS.md` pflegen.
+
+**Reihenfolge:** Q1 vor Q2/Q3 umsetzen; Q2 hat die höchste Priorität. Q4 schließt die
+Abnahme ab. Testinfrastruktur früh einführen und nach Änderungen an Onboarding,
+OAuth, Hintergrundjobs und Hot-Reload erneut prüfen. Release 4.0 bleibt bis zur
+vollständigen Abnahme dieser Arbeitspakete gesperrt.

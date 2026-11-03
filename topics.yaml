@@ -87,3 +87,16 @@ topics:
   - Ausgefülltes Serviceauftragsformular im Anhang
   - Eilige Reparaturanfrage für die Drosselklappe eines Fahrzeugs
   exclusions: []
+- id: veranstaltungen-fortbildungen-anmeldungen
+  name: Veranstaltungen, Fortbildungen und eigene Anmeldungen
+  enabled: true
+  description: Anmelde- und Buchungsbestätigungen sowie Einladungen zu Fachvorträgen,
+    Webinaren, Online-Vorträgen, Seminaren, Schulungen und Fortbildungen, etwa vom
+    Landwirtschaftsamt, von Behörden, Kammern oder Verbänden, einschließlich Zugangslinks,
+    Terminänderungen und Absagen dazu.
+  examples:
+  - Anmeldebestätigung für einen Onlinevortrag des Landwirtschaftsamts mit Beginn und Ende
+  - Aufforderung, eine Seminarbuchung per Link zu bestätigen
+  - Zugangslink zu einem gebuchten Webinar
+  exclusions:
+  - Reine Werbung für kostenpflichtige Kurse ohne eigene Anmeldung oder persönliche Einladung
