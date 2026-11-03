@@ -364,6 +364,20 @@ class Orchestrator:
             outcome = ProcessingOutcome.COMPLETED
         return ProcessingResult(outcome, run.state.model_dump(mode="json"))
 
+    def remember_topics(self, state: MailState) -> None:
+        """Keep the topics of the state's configuration, so a resumed mail uses the same ones."""
+        if self.mailbox_settings is None:
+            return
+        account = state.imap.account_id
+        self.store.save(
+            f"processing-topics-{state.config_fingerprint}",
+            {
+                "schema_version": 1,
+                "policy": self.policy_for(account),
+                "topics": [topic.model_dump() for topic in self.topics_for(state.config_fingerprint, account)],
+            },
+        )
+
     def _begin(self, fetched: FetchedMail) -> ProcessingRun | ProcessingResult:
         """Load or create the mail state; a result means nothing is to be done now."""
         identity = f"{fetched.account_id}:{fetched.folder}:{fetched.uidvalidity}:{fetched.uid}"
@@ -378,17 +392,8 @@ class Orchestrator:
                                   uidvalidity=fetched.uidvalidity, uid=fetched.uid),
             config_fingerprint=self.fingerprint_for(fetched.account_id),
         )
-        if existing is None and self.mailbox_settings is not None:
-            self.store.save(
-                f"processing-topics-{state.config_fingerprint}",
-                {
-                    "schema_version": 1,
-                    "policy": self.policy_for(fetched.account_id),
-                    "topics": [
-                        topic.model_dump() for topic in self.topics_for(state.config_fingerprint, fetched.account_id)
-                    ],
-                },
-            )
+        if existing is None:
+            self.remember_topics(state)
         if state.steps.completion != "completed" and not self.accepts_configuration(
             state.config_fingerprint, fetched.account_id
         ):

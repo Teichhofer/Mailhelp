@@ -40,7 +40,7 @@ Diese Schritte beheben bekannte Mängel und schaffen Voraussetzungen, ohne Funkt
 | Schritt | Inhalt | Fertig, wenn … | Umfang | Voraussetzung |
 | :--- | :--- | :--- | :--- | :--- |
 | 0.1 ✓ 3.6.0 | Fehlende `config.yaml` beim Start | Statt Traceback eine verständliche Meldung mit Hinweis auf `config.example.yaml` und Exitcode ≠ 0; Regressionstest. | S | – |
-| 0.2 | „Erneut prüfen“: Backend | Ein Befehl setzt eine als irrelevant abgeschlossene Mail kontrolliert auf die Relevanzprüfung zurück und verarbeitet sie mit der aktuellen Konfiguration neu; Checkpoints, Dublettenschutz und Verlauf bleiben konsistent; Wiederholung ist idempotent. | M | – |
+| 0.2 ✓ 3.6.1 | „Erneut prüfen“: Backend | Ein Befehl setzt eine als irrelevant abgeschlossene Mail kontrolliert auf die Relevanzprüfung zurück und verarbeitet sie mit der aktuellen Konfiguration neu; Checkpoints, Dublettenschutz und Verlauf bleiben konsistent; Wiederholung ist idempotent. | M | – |
 | 0.3 | „Erneut prüfen“: Web | Schaltfläche in Maildetail und Archiv mit Sitzung, CSRF, Versionsprüfung und Idempotenzschlüssel; Ergebnis im Verlauf sichtbar. | S | 0.2 |
 | 0.4 | Entkopplung B1: Analyse | Gemeinsam genutzter Zustand von Abrufzyklus und Review-Befehlen dokumentiert (Store-Sperren, Ledger, Telegram-Dialog); Liste der nötigen Sperren und Reihenfolgen. | S | – |
 | 0.5 | Entkopplung B2: Arbeitsthread | Web-Befehle laufen in einem eigenen Arbeitsthread statt im Abrufzyklus; ein laufender LLM-Aufruf verzögert Web-Aktionen nicht mehr. | M | 0.4 |

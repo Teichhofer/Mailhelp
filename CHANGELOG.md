@@ -1,5 +1,14 @@
 # Änderungen
 
+## 3.6.1 – Erneute Prüfung aussortierter Mails: Grundlage (Planung 3.6, Schritt 0.2)
+
+- Eine als irrelevant abgeschlossene Mail kann bewusst erneut geprüft werden. Ihr Zustand
+  wird dauerhaft auf eine unverarbeitete Mail der aktuellen Konfiguration zurückgesetzt;
+  die reguläre Wiederaufnahme holt sie erneut vom Server und analysiert sie vollständig,
+  auch wenn die Aufbewahrung Inhalt und Relevanzergebnis bereits entfernt hat.
+  Wiederholte Anforderungen sind wirkungslos. Die Bedienung in der Weboberfläche folgt
+  in Schritt 0.3.
+
 ## 3.6.0 – Klare Meldung bei fehlender Konfiguration (Planung 3.6, Schritt 0.1)
 
 - Fehlerbehebung: Ohne `config.yaml` brach Mailhelp mit `FileNotFoundError` und Traceback
