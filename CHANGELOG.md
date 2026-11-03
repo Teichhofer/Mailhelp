@@ -1,5 +1,14 @@
 # Änderungen
 
+## 3.5.10 – Planung in 3.6, 3.7 und 4.0 aufgeteilt
+
+- Die Planung bis 4.0 ist in drei Teilpläne aufgeteilt: `docs/Planung-3.6.md`
+  (Vorarbeiten, Testgrundlage, Parallelbedienung und Prozessabbrüche; 31 Schritte),
+  `docs/Planung-3.7.md` (Ersteinrichtung und OAuth im Browser; 18 Schritte) und
+  `docs/Planung-4.0.md` (Zielbild, Gesamtfahrplan, Lernmodus, Neuladen, Anbietermatrix und
+  Release; 28 Schritte). Schrittnummern bleiben über alle Pläne eindeutig. Keine
+  Verhaltensänderung.
+
 ## 3.5.9 – Planung 4.0 auf Stand gebracht
 
 - `docs/Planung-4.0.md` beschreibt den Ausgangsstand 3.5.8 je Pfeiler, führt die seit 3.4
