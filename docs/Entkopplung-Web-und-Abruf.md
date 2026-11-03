@@ -2,7 +2,7 @@
 
 **Stand:** 3. November 2026 (Version 3.6.3)  
 **Zweck:** Grundlage für [Planung 3.6](Planung-3.6.md), Schritte 0.5 (Arbeitsthread) und 0.6 (Nachweis)  
-**Status:** Umgesetzt in 3.6.4 (Abschnitt 7); Nachweis folgt in 3.6.5
+**Status:** Umgesetzt in 3.6.4 (Abschnitt 7); Tests in 3.6.5 (Abschnitt 8); Messung im Betrieb offen
 
 ---
 
@@ -105,3 +105,13 @@ Threads übergeben ihm Arbeit, statt ihn direkt aufzurufen.
 | Relevanzentscheidung | betrifft nur eine wartende Mail; der Hauptthread verarbeitet sie währenddessen nicht. |
 | Neuprüfung (`recheck_mail`) | betrifft nur abgeschlossene Mails; die Wiederaufnahme lädt den Zustand danach neu. |
 | Live-Einstellungen, Themen | nur im Hauptthread zwischen zwei Zyklen. |
+
+## 8. Nachweis in 3.6.5
+
+- `tests/services/test_operator_decoupling.py`: Der Hauptthread hängt an einem Ereignis mitten
+  in einer Mailanalyse; eine im Browser bestätigte Aktion wird währenddessen vom Bedien-Thread
+  ausgeführt und genau einmal extern angelegt. Eine während der Analyse gespeicherte
+  Themenänderung wirkt erst beim nächsten Zyklus. Synchronisation nur über Ereignisse mit
+  festen Zeitgrenzen; 20 aufeinanderfolgende Läufe ohne Fehlschlag.
+- Offen: Messung im Betrieb – Zeit zwischen `web.command_submitted` und
+  `review.command_finished` im Anwendungslog während eines laufenden Abrufzyklus.

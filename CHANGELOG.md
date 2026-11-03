@@ -1,5 +1,12 @@
 # Änderungen
 
+## 3.6.5 – Nachweis der Entkopplung (Planung 3.6, Schritt 0.6, Tests)
+
+- Neue Tests belegen ohne `sleep()`: Eine im Browser bestätigte Aktion wird ausgeführt und
+  genau einmal angelegt, während der Hauptthread mitten in einer Mailanalyse festgehalten
+  wird; eine währenddessen gespeicherte Themenänderung wirkt erst beim nächsten Zyklus.
+  Die Messung der Antwortzeiten im laufenden Betrieb steht noch aus.
+
 ## 3.6.4 – Web-Aktionen warten nicht mehr auf den Mailabruf (Planung 3.6, Schritt 0.5)
 
 - Telegram-Eingaben und Web-Aktionen verarbeitet ein eigener Bedien-Thread sofort bei
