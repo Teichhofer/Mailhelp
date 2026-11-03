@@ -23,14 +23,6 @@ from shared_telegram_dialog import proposal as proposal
 from shared_telegram_dialog import relevance_state as relevance_state
 
 from mailhelp.adapter import PermanentError, UncertainWriteError
-from mailhelp.analysis import (
-    Analyzer,
-    LlmInvalidJson,
-    LlmProviderResponseInvalid,
-    LlmSchemaValidationFailed,
-    LlmTokenLimitExceeded,
-    validate_revision_successor,
-)
 from mailhelp.application import _state_directory
 from mailhelp.config import OutputTokenRetry, Settings
 from mailhelp.domain.revision_errors import ContradictoryRevision
@@ -54,6 +46,14 @@ from mailhelp.models import (
 )
 from mailhelp.openrouter import ProviderResponseInvalid
 from mailhelp.persistence.proposals import proposal_version_name
+from mailhelp.processing.analysis import (
+    Analyzer,
+    LlmInvalidJson,
+    LlmProviderResponseInvalid,
+    LlmSchemaValidationFailed,
+    LlmTokenLimitExceeded,
+    validate_revision_successor,
+)
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import (
     Decision,

@@ -22,7 +22,6 @@ from shared_core import shipped_configuration as shipped_configuration
 
 from mailhelp import __version__
 from mailhelp.adapter import RetryPolicy
-from mailhelp.analysis import Analyzer
 from mailhelp.cli import main
 from mailhelp.config import (
     IrrelevantTopicsConfig,
@@ -54,6 +53,7 @@ from mailhelp.models import (
     TelegramAnswerInterpretation,
     TelegramClarification,
 )
+from mailhelp.processing.analysis import Analyzer
 from mailhelp.storage import AlreadyRunning, CorruptState, JsonStore
 
 

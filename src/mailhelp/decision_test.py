@@ -17,7 +17,6 @@ from uuid import uuid4
 import httpx
 
 from .adapter import RetryPolicy
-from .analysis import Analyzer
 from .config import MailboxSettings, PromptConfig, Secrets, Settings, Topic
 from .decisions import DecisionAnalyzer, DecisionClient, JevRelevanceAnalyzer, load_relevance_prompts
 from .evaluation import write_report
@@ -28,6 +27,7 @@ from .mailbox.mime import prepare
 from .ollama import LocalLlm, OllamaClient
 from .openrouter import OpenRouterClient
 from .paths import runtime_path
+from .processing.analysis import Analyzer
 
 if TYPE_CHECKING:
     from .metrics import MetricsRecorder

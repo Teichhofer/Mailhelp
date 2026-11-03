@@ -18,7 +18,7 @@ from mailhelp.fingerprints import config_fingerprint
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.metrics import MetricsRecorder, MetricsSettings
 from mailhelp.models import MailState
-from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
+from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.storage import JsonStore
 
 TOPIC = Topic(id="t", name="T", enabled=True, description="t")

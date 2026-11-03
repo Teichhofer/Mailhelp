@@ -59,7 +59,7 @@ def test_built_artifacts_exclude_private_runtime_files():
                        "mailbox/mailbox_runtime.py", "web/mailbox_add_site.py",
                        "mailbox/mailbox_settings.py", "mailbox/mailbox_briefing.py", "target_profiles.py", "profile_binding.py",
                        "profile_usage.py", "google_login.py", "web/mailbox_site.py", "notification_runtime.py",
-                       "fingerprints.py", "composition.py", "orchestrator.py",
+                       "fingerprints.py", "composition.py", "processing/orchestrator.py",
                        "web/pages.py", "web/review_pages.py", "web/settings_pages.py",
                        "web/status_pages.py", "web/site.py", "metrics.py", "mailbox/imap.py", "mailbox/mailbox_run.py",
                        "credentials.py", "web/credential_pages.py", "web/settings_site.py",
@@ -80,7 +80,7 @@ def test_built_artifacts_exclude_private_runtime_files():
                 "mailhelp/telegram/revision_successor.py",
                 "mailhelp/telegram/revision_contracts.py",
                 "mailhelp/webpush.py", "mailhelp/drafts.py", "mailhelp/briefing.py",
-                "mailhelp/attachments.py", "mailhelp/experience.py", "mailhelp/standalone.py",
+                "mailhelp/processing/attachments.py", "mailhelp/experience.py", "mailhelp/standalone.py",
                 "mailhelp/web/experience.py", "mailhelp/web/filters.py"} <= set(names)
         assert not any(name.endswith(".env") for name in names)
     with tarfile.open(source) as archive:

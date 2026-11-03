@@ -8,8 +8,8 @@ from contextvars import ContextVar
 from threading import Event
 from typing import TYPE_CHECKING, Any
 
-from ..analysis import Completer
 from ..openrouter import RateLimitExceeded
+from ..processing.analysis import Completer
 from .models import ReportStatus
 
 if TYPE_CHECKING:

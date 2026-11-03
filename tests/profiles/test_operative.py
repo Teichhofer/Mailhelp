@@ -13,12 +13,12 @@ from mailhelp.activity.models import FolderProgress, ReportStatus
 from mailhelp.activity.scan import read_mail
 from mailhelp.activity.service import ActivityService
 from mailhelp.activity.store import ActivityReportStore
-from mailhelp.analysis import Analyzer
 from mailhelp.application import Application
 from mailhelp.drafts import DraftService
 from mailhelp.logging import NullLogger
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.models import IrrelevantSenders
+from mailhelp.processing.analysis import Analyzer
 from mailhelp.storage import JsonStore
 
 

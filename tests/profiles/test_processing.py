@@ -12,7 +12,7 @@ from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.mailbox.mailbox_settings import effective_settings
 from mailhelp.models import IrrelevantSenders, MailState
 from mailhelp.notifications import NotificationService
-from mailhelp.orchestrator import Orchestrator
+from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.storage import JsonStore
 
 NOW = datetime(2026, 10, 14, 23, tzinfo=UTC)

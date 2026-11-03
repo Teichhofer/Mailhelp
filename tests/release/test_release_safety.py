@@ -16,9 +16,9 @@ def test_regression_shortlink_bait_cannot_become_an_action_even_if_model_says_so
 
     import yaml
 
-    from mailhelp.analysis import Analyzer
     from mailhelp.config import PromptConfig, Topic
     from mailhelp.decisions import JevRelevanceAnalyzer
+    from mailhelp.processing.analysis import Analyzer
 
     config = PromptConfig.model_validate(yaml.safe_load(
         (Path(__file__).parents[2] / "prompts.yaml").read_text(encoding="utf-8")))
@@ -112,8 +112,8 @@ def test_shortlink_policy_checks_host_and_lure_together(text, blocked):
 
     import yaml
 
-    from mailhelp.analysis import Analyzer
     from mailhelp.config import PromptConfig
+    from mailhelp.processing.analysis import Analyzer
     config = PromptConfig.model_validate(yaml.safe_load(
         (Path(__file__).parents[2] / "prompts.yaml").read_text(encoding="utf-8")))
     assert bool(Analyzer(None, config).suspicious_link_bait({"text": text})) is blocked

@@ -50,7 +50,7 @@ def test_test_modules_share_helpers_only_through_fakes():
 
 
 # Planung 3.3, pillar 1: modules outside the Telegram package that may use it (channel integration).
-TELEGRAM_CLIENTS = {"application.py", "composition.py", "orchestrator.py", "review/service.py",
+TELEGRAM_CLIENTS = {"application.py", "composition.py", "processing/orchestrator.py", "review/service.py",
                     "service_coordinator.py"}
 
 

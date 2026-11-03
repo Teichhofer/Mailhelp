@@ -13,13 +13,13 @@ from shared_quality_corpus import prompt_config as quality_prompts
 from shared_review_write_safety import reminder
 from shared_telegram_dialog import callback, controller
 
-from mailhelp.analysis import Analyzer
 from mailhelp.application import Application
 from mailhelp.config import ImapSettings, Topic
 from mailhelp.logging import NullLogger
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.models import ProposalStatus
-from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
+from mailhelp.processing.analysis import Analyzer
+from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.storage import JsonStore
 
 
@@ -299,7 +299,7 @@ def test_regression_held_relevance_keeps_queue_incomplete_and_resumes(tmp_path, 
 
 def test_regression_legacy_reader_does_not_checkpoint_unanswered_relevance(tmp_path):
     from mailhelp.mailbox.mailbox_run import _checkpoint_name
-    from mailhelp.orchestrator import ProcessingResult
+    from mailhelp.processing.orchestrator import ProcessingResult
     class Waiting(Orch):
         def process(self, mail):
             self.seen.append(mail.uid)

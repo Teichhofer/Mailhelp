@@ -24,8 +24,8 @@ from .. import __version__
 from ..config import WebSettings
 from ..configuration import AdminCommand, AdminKind, ConfigurationService
 from ..lifecycle import Lifecycle
-from ..mail_recheck import recheck_round
 from ..models import ProposalStatus
+from ..processing.mail_recheck import recheck_round
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.inbox import CommandConflict, CommandEntry, CommandInbox, CommandInboxFull
 from ..review.views import Overview, ReviewViews, SystemStatus

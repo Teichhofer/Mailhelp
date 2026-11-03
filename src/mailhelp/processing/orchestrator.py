@@ -8,10 +8,9 @@ from datetime import UTC, datetime
 from threading import Event
 from typing import Any, Literal, Protocol, cast
 
-from . import state_names
-from .action_normalization import MailDateContext
-from .analysis import Analyzer
-from .config import (
+from .. import state_names
+from ..action_normalization import MailDateContext
+from ..config import (
     EventDefaultsSettings,
     OriginalAttachmentSettings,
     ProposalReconciliationSettings,
@@ -19,13 +18,10 @@ from .config import (
     TargetSettings,
     Topic,
 )
-from .logging import EventLogger, NullLogger
-from .mail_duplicates import DuplicateMailCheck
-from .mail_pipeline import MailPipeline, ProcessingOutcome, ProcessingResult, ProcessingRun
-from .mail_questions import MailQuestions
-from .mailbox.imap import FetchedMail
-from .mailbox.sender_filter import is_irrelevant_sender
-from .models import (
+from ..logging import EventLogger, NullLogger
+from ..mailbox.imap import FetchedMail
+from ..mailbox.sender_filter import is_irrelevant_sender
+from ..models import (
     ExtractionCountConflict,
     IrrelevantSenders,
     MailImapIdentity,
@@ -38,10 +34,14 @@ from .models import (
     RelevanceDialog,
     RelevanceDialogStatus,
 )
-from .precheck import DuplicatePreCheckService
-from .proposal_builder import ProposalBuilder
-from .storage import JsonStore
-from .telegram.formatting import mail_line
+from ..precheck import DuplicatePreCheckService
+from ..proposal_builder import ProposalBuilder
+from ..storage import JsonStore
+from ..telegram.formatting import mail_line
+from .analysis import Analyzer
+from .mail_duplicates import DuplicateMailCheck
+from .mail_pipeline import MailPipeline, ProcessingOutcome, ProcessingResult, ProcessingRun
+from .mail_questions import MailQuestions
 from .vision import VisionExtractor
 
 
@@ -79,7 +79,7 @@ class Orchestrator:
         self.event_defaults = event_defaults or EventDefaultsSettings()
         self.reconciliation_settings = reconciliation_settings or ProposalReconciliationSettings()
         self.proposal_matcher = proposal_matcher
-        from .proposal_reconciliation import ProposalReconciliationService
+        from ..proposal_reconciliation import ProposalReconciliationService
         self.reconciliation = ProposalReconciliationService(
             store, proposal_matcher, self.reconciliation_settings.max_semantic_candidates)
         self.pipeline = MailPipeline(self)
@@ -99,15 +99,15 @@ class Orchestrator:
         return self.mailbox_numbers.get(account_id, 1)
 
     def effective_settings(self, account_id: str):
-        from .mailbox.mailbox_settings import effective_settings
+        from ..mailbox.mailbox_settings import effective_settings
         assert self.mailbox_settings is not None
         return effective_settings(self.mailbox_settings, self.mailbox_number(account_id))
 
     def fingerprint_for(self, account_id: str) -> str:
         if self.mailbox_settings is None:
             return self.config_fingerprint
-        from .decisions import relevance_fingerprint
-        from .mailbox.mailbox_settings import mailbox_fingerprint
+        from ..decisions import relevance_fingerprint
+        from ..mailbox.mailbox_settings import mailbox_fingerprint
         value = mailbox_fingerprint(self.mailbox_settings, self.mailbox_prompts, self.topics,
                                     self.mailbox_number(account_id))
         return relevance_fingerprint(value, self.mailbox_jev) if self.mailbox_jev is not None else value
@@ -115,7 +115,7 @@ class Orchestrator:
     def policy_for(self, account_id: str) -> str | None:
         if self.mailbox_settings is None:
             return self.topic_policy
-        from .mailbox.mailbox_settings import mailbox_topic_policy
+        from ..mailbox.mailbox_settings import mailbox_topic_policy
         return mailbox_topic_policy(self.mailbox_settings, self.mailbox_prompts, self.mailbox_number(account_id))
 
     def build_proposals(self, state: MailState) -> list[Proposal]:
@@ -247,7 +247,7 @@ class Orchestrator:
             return False
         record = self.store.load(f"processing-topics-{fingerprint}", {})
         if account_id is not None and any(topic.mailboxes is not None for topic in self.topics):
-            from .mailbox.mailbox_settings import effective_topics
+            from ..mailbox.mailbox_settings import effective_topics
 
             previous = [Topic.model_validate(item).model_copy(update={"mailboxes": None})
                         for item in record.get("topics", [])]
@@ -259,7 +259,7 @@ class Orchestrator:
 
     def topics_for(self, fingerprint: str, account_id: str | None = None) -> list[Topic]:
         if account_id is not None and fingerprint == self.fingerprint_for(account_id):
-            from .mailbox.mailbox_settings import effective_topics
+            from ..mailbox.mailbox_settings import effective_topics
             return effective_topics(self.topics, self.mailbox_number(account_id))
         if fingerprint == self.config_fingerprint:
             return self.topics
@@ -280,7 +280,7 @@ class Orchestrator:
     def save(self, name: str, state: MailState) -> None:
         state.updated_at = datetime.now(UTC)
         self.store.save(name, state.model_dump(mode="json"))
-        from .review.archive import record_analysis
+        from ..review.archive import record_analysis
         names = {topic.id: topic.name for topic in self.topics_for(state.config_fingerprint)}
         record_analysis(self.store, state, names, getattr(self.analyzer, "last_relevance_source", "unknown"))
         self.logger.event("DEBUG", "orchestrator", "state_persisted", mail_id=state.id,

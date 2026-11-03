@@ -7,10 +7,10 @@ from shared_core import proposal
 from shared_telegram_dialog import callback, controller, message
 from shared_write_improvements import event as event
 
-from mailhelp.analysis import validate_revision_successor
 from mailhelp.domain.revision_errors import ContradictoryRevision
 from mailhelp.integrations import HttpWriter
 from mailhelp.models import CalendarDuplicateDecision, ProposalRevisionDelta, apply_proposal_revision
+from mailhelp.processing.analysis import validate_revision_successor
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import Decision, DecisionAction
 

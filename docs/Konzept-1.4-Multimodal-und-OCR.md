@@ -76,7 +76,7 @@ sequenceDiagram
 
 ## 4. Detaillierte Spezifikationen: Bildvorbereitung & Vision-OCR
 
-### 4.1 Bildvorbereitung und DoS-/Kostenschutz (`src/mailhelp/vision.py`)
+### 4.1 Bildvorbereitung und DoS-/Kostenschutz (`src/mailhelp/processing/vision.py`)
 1. **Relevanz-Filter für Bilder:**
    - Bilder unter 150×150 Pixel oder unter 10 KB Dateigröße werden als Tracking-Pixel, Firmenlogos oder E-Mail-Signatur-Icons eingestuft und ignoriert.
 2. **Skalierung & Normalisierung:**

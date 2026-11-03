@@ -9,7 +9,7 @@ from mailhelp.config import Settings
 from mailhelp.mailbox.imap import FetchedMail, UIDValidityChanged
 from mailhelp.mailbox.mailbox_run import MailboxRunService
 from mailhelp.models import MailRunState
-from mailhelp.orchestrator import ProcessingOutcome, ProcessingResult
+from mailhelp.processing.orchestrator import ProcessingOutcome, ProcessingResult
 
 
 class Store:

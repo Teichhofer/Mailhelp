@@ -10,7 +10,7 @@ from mailhelp.models import (
     Relevance,
     TaskExtraction,
 )
-from mailhelp.orchestrator import MailState, Orchestrator
+from mailhelp.processing.orchestrator import MailState, Orchestrator
 from mailhelp.storage import JsonStore
 
 

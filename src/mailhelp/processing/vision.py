@@ -21,11 +21,11 @@ from typing import Any, Protocol
 import pypdf
 from PIL import Image, ImageOps
 
+from ..config import VisionSettings
+from ..domain.extraction import VisionExtractionResult
+from ..mailbox.mime import attachment_parts
+from ..openrouter import RateLimitExceeded
 from .attachment_extractor import MAX_TEXT_CHARACTERS, clean_text, truncate_text
-from .config import VisionSettings
-from .domain.extraction import VisionExtractionResult
-from .mailbox.mime import attachment_parts
-from .openrouter import RateLimitExceeded
 
 IMAGE_TYPES = frozenset({"image/jpeg", "image/jpg", "image/pjpeg", "image/png", "image/webp"})
 IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp")

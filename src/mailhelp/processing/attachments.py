@@ -21,9 +21,9 @@ from typing import Any
 
 from PIL import Image
 
-from .config import OriginalAttachmentSettings
-from .mailbox.mime import attachment_parts
-from .storage import StateStore, atomic_replace
+from ..config import OriginalAttachmentSettings
+from ..mailbox.mime import attachment_parts
+from ..storage import StateStore, atomic_replace
 from .vision import encode, is_image, open_image
 
 ZIP, OLE = b"PK\x03\x04", b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1"

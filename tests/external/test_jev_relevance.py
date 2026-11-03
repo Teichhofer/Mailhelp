@@ -11,7 +11,6 @@ from shared_decision_test import secrets
 from shared_decisions import ROOT, envelope, prompts
 
 from mailhelp.adapter import PermanentError
-from mailhelp.analysis import Analyzer
 from mailhelp.application import build_application
 from mailhelp.decisions import (
     DecisionAnalyzer,
@@ -23,7 +22,8 @@ from mailhelp.decisions import (
 )
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.openrouter import OpenRouterClient, RateLimitExceeded
-from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
+from mailhelp.processing.analysis import Analyzer
+from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.storage import JsonStore
 
 # Since 2.3 the writers are built in mailhelp.external.providers.

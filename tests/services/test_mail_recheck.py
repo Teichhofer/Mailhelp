@@ -8,11 +8,11 @@ from shared_application import settings as app_settings
 from shared_services import AnalyzerStub, Notify
 
 from mailhelp.config import Topic
-from mailhelp.mail_recheck import RecheckOutcome, filed_as_irrelevant, recheck_round, request_recheck
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.mailbox.mailbox_run import MailboxRunService
 from mailhelp.models import MailState
-from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
+from mailhelp.processing.mail_recheck import RecheckOutcome, filed_as_irrelevant, recheck_round, request_recheck
+from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.storage import JsonStore
 
 ACCOUNT = "c" * 24

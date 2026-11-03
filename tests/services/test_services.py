@@ -21,16 +21,6 @@ from shared_services import _resolve_from_mail as _resolve_from_mail
 from shared_services import mock_response as mock_response
 
 from mailhelp.adapter import PermanentError, RetryableError
-from mailhelp.analysis import (
-    JSON_REPAIR_INSTRUCTION,
-    SCHEMA_REPAIR_INSTRUCTION,
-    Analyzer,
-    LlmInvalidJson,
-    LlmProviderResponseInvalid,
-    LlmSchemaValidationExceeded,
-    LlmSchemaValidationFailed,
-    validate_revision_successor,
-)
 from mailhelp.config import OutputTokenRetry, TargetSettings, Topic
 from mailhelp.domain.revision_errors import ContradictoryRevision
 from mailhelp.integrations import CalendarFileWriter, HttpWriter, calendar_file, execute_confirmed
@@ -48,7 +38,17 @@ from mailhelp.models import (
     apply_proposal_revision,
 )
 from mailhelp.openrouter import InvalidJson, OpenRouterClient, ProviderResponseInvalid, RateLimitExceeded
-from mailhelp.orchestrator import MailState, Orchestrator, ProcessingOutcome
+from mailhelp.processing.analysis import (
+    JSON_REPAIR_INSTRUCTION,
+    SCHEMA_REPAIR_INSTRUCTION,
+    Analyzer,
+    LlmInvalidJson,
+    LlmProviderResponseInvalid,
+    LlmSchemaValidationExceeded,
+    LlmSchemaValidationFailed,
+    validate_revision_successor,
+)
+from mailhelp.processing.orchestrator import MailState, Orchestrator, ProcessingOutcome
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import Decision, DecisionAction, TelegramClient, apply_decision, split_message
 

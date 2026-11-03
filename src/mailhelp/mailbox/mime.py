@@ -207,7 +207,7 @@ def _omit_attachments(part: Message) -> int:
 def attachment_parts(message: Message) -> Iterator[tuple[str, str, bytes]]:
     """Yield every attachment leaf in a stable order with its decoded payload.
 
-    Vision OCR (``mailhelp.vision``) walks the same parts later; the shared
+    Vision OCR (``mailhelp.processing.vision``) walks the same parts later; the shared
     order maps each part to its entry in ``extracted_attachments``.
     """
     for child in message.walk():
@@ -231,8 +231,8 @@ def _collect_and_extract_attachments(
     message: Message, user_timezone: str, max_attachment_bytes: int
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Collect attachment parts and extract calendar events and document texts."""
-    from ..attachment_extractor import extract_attachment_text
-    from ..calendar_parser import parse_icalendar
+    from ..processing.attachment_extractor import extract_attachment_text
+    from ..processing.calendar_parser import parse_icalendar
 
     calendar_events: list[dict[str, Any]] = []
     extracted_attachments: list[dict[str, Any]] = []

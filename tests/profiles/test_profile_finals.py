@@ -60,7 +60,7 @@ def test_fresh_profile_credentials_join_log_redaction_and_report_default_folder(
     app.settings.activity_report.enabled = True
     from activity_fakes import activity_prompts
 
-    from mailhelp.analysis import Analyzer
+    from mailhelp.processing.analysis import Analyzer
     app.analyzer = Analyzer(object(), activity_prompts())
     app.settings.imap.mailboxes[1].activity_report_folder = "Projekte"
     ExperienceRuntime(app, NS(site=profiled.web.site, auth=profiled.web.auth), refreshed)

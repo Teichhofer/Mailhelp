@@ -7,8 +7,8 @@ from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from ..mail_recheck import filed_as_irrelevant
 from ..models import MailState, ProposalStatus
+from ..processing.mail_recheck import filed_as_irrelevant
 from ..storage import CorruptState, JsonStore, mail_state_names
 from .archive import AnalysisSnapshot, HistorySnapshot
 from .filters import matches

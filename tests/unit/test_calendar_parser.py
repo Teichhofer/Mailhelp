@@ -4,7 +4,7 @@ from zoneinfo import ZoneInfo
 
 import pytest
 
-from mailhelp.calendar_parser import MAX_CALENDAR_BYTES, parse_icalendar
+from mailhelp.processing.calendar_parser import MAX_CALENDAR_BYTES, parse_icalendar
 
 
 def test_parse_simple_timed_event():

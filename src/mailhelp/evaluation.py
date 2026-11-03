@@ -24,7 +24,6 @@ from .action_normalization import (
     normalize_task_due,
     recover_task_due,
 )
-from .analysis import Analyzer
 from .config import PromptConfig, Topic
 from .decisions import (
     DecisionAnalyzer,
@@ -37,6 +36,7 @@ from .decisions import (
 from .mailbox.mime import prepare
 from .models import EventExtraction, TaskExtraction
 from .openrouter import OpenRouterClient
+from .processing.analysis import Analyzer
 
 _STAGES = ("relevance", "summary", "action_router", "task_extraction", "event_extraction")
 _EXPECTED_KEY = {"action_router": "action_route"}

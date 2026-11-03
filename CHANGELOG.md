@@ -1,5 +1,12 @@
 # Änderungen
 
+## 3.6.12 – Paket `mailhelp.processing` (Planung 3.6, Schritt 0.10b)
+
+- Die Verarbeitung einer Mail liegt jetzt im Paket `mailhelp.processing` (`orchestrator`,
+  `mail_pipeline`, `mail_duplicates`, `mail_questions`, `mail_recheck`, `analysis`,
+  `attachment_extractor`, `attachments`, `calendar_parser`, `vision`). Importe, Testpfade und
+  Dokumentationsverweise sind angepasst; keine Verhaltensänderung.
+
 ## 3.6.11 – Paket `mailhelp.mailbox` (Planung 3.6, Schritt 0.10a)
 
 - Abruf, Postfächer, IServ und die Aktivierung im Betrieb liegen jetzt im Paket

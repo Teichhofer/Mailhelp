@@ -20,7 +20,6 @@ from typing import Any, TypeVar
 from pydantic import BaseModel
 
 from .. import state_names
-from ..attachments import AttachmentCache, OriginalFile
 from ..domain.prepared import PreparedAttachment, PreparedMail
 from ..domain.processing import (
     AnswerStatus,
@@ -38,6 +37,7 @@ from ..models import (
     RelevanceDialogStatus,
     TelegramDialogState,
 )
+from ..processing.attachments import AttachmentCache, OriginalFile
 from ..storage import CorruptState, JsonStore
 from .cards import CardContent, answer_example, card_content, display_question, sender_name, yes_no_question
 from .commands import CommandKind

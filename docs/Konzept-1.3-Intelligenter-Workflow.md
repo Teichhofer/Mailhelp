@@ -179,7 +179,7 @@ In `src/mailhelp/mailbox/mime.py` wird der Parser erweitert:
 - Prüft `Content-Type: text/calendar` (auch mit Parametern wie `method=REQUEST`) sowie Dateianhänge mit Endung `.ics`.
 - **DoS-Schutz:** Maximale Größe pro Kalenderdatei beträgt 1 MB; überschüssige Bytes werden verworfen.
 
-### Kalender-Parser (`src/mailhelp/calendar_parser.py`)
+### Kalender-Parser (`src/mailhelp/processing/calendar_parser.py`)
 Ein schlanker, robuster, standardkonformer Parser ohne schwere Drittabhängigkeiten:
 - **`VEVENT`-Extraktion:**
   - `UID`: Weltweit eindeutiger Bezeichner des Termins.
@@ -203,7 +203,7 @@ Ein schlanker, robuster, standardkonformer Parser ohne schwere Drittabhängigkei
 ## 7. Pfeiler D im Detail: Text-Extraktion aus Dokumenten-Anhängen (PDF, Word, Text)
 
 ### Unterstützte Dateiformate & Parsing-Architektur
-In `src/mailhelp/attachment_extractor.py`:
+In `src/mailhelp/processing/attachment_extractor.py`:
 1. **PDF (`application/pdf`, `.pdf`):**
    - Nutzung der etablierten, reinen Python-Bibliothek `pypdf` (keine C-Compiler-Abhängigkeiten, plattformunabhängig unter Windows 11 und Docker-Linux).
    - Extraktion des sichtbaren Textlayers (`extract_text()`) je Seite.
@@ -223,7 +223,7 @@ In `src/mailhelp/attachment_extractor.py`:
 - **Fehlerbehandlung:** Passwortgeschützte PDFs, beschädigte Archive oder reine Bilderscans (ohne Textlayer) erzeugen keinen Programmabbruch, sondern den Status `extraction_status: "no_text_found"` oder `"encrypted"`. Der Mailtext wird normal weiterverarbeitet.
 
 ### Prompt-Integration und Provenienz
-In `src/mailhelp/analysis.py` wird der analysierte Text strukturiert zusammengesetzt:
+In `src/mailhelp/processing/analysis.py` wird der analysierte Text strukturiert zusammengesetzt:
 ```text
 E-Mail-Inhalt:
 Absender: vorstand@verein.de
@@ -265,8 +265,8 @@ Nächster Sitzungstermin: 15.12.2026 19:00 Uhr im Vereinsheim.
 5. Unit-Tests für alle neuen Datenmodelle und Statusübergänge schreiben (100 % Coverage).
 
 ### Phase 2: ICS- & Dokumenten-Text-Extraktoren
-1. Modul `src/mailhelp/calendar_parser.py` implementieren (`VEVENT`, Zeitzonen, UID, SEQUENCE).
-2. Modul `src/mailhelp/attachment_extractor.py` implementieren:
+1. Modul `src/mailhelp/processing/calendar_parser.py` implementieren (`VEVENT`, Zeitzonen, UID, SEQUENCE).
+2. Modul `src/mailhelp/processing/attachment_extractor.py` implementieren:
    - PDF-Extraktion via `pypdf`.
    - DOCX-Extraktion via `zipfile` & `xml.etree.ElementTree`.
    - Textdateien mit Encoding-Fallback.

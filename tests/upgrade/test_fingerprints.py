@@ -17,7 +17,7 @@ from mailhelp.fingerprints import (
     topic_policy,
 )
 from mailhelp.models import MailState, RelevanceDialog
-from mailhelp.orchestrator import Orchestrator
+from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.storage import JsonStore
 
 TOPICS = [Topic(id="schule", name="Schule", enabled=True, description="Schule")]

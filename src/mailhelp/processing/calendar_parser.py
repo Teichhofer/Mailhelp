@@ -6,7 +6,7 @@ from datetime import UTC, date, datetime, tzinfo
 from typing import Any
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from .domain.extraction import ParsedCalendarEvent
+from ..domain.extraction import ParsedCalendarEvent
 
 MAX_CALENDAR_BYTES = 1_000_000
 

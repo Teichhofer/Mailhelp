@@ -9,19 +9,14 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, cast
 
-from .adapter import PermanentError
-from .analysis import (
-    LlmInvalidJson,
-    LlmProviderResponseInvalid,
-    LlmSchemaValidationExceeded,
-)
-from .config import TargetSettings
-from .domain.prepared import PreparedMail
-from .domain.proposal import ProposalStatus
-from .mailbox.imap import FetchedMail
-from .mailbox.mime import MimeLimitExceeded, extract_display_headers, prepare
-from .mailbox.sender_filter import is_irrelevant_sender
-from .models import (
+from ..adapter import PermanentError
+from ..config import TargetSettings
+from ..domain.prepared import PreparedMail
+from ..domain.proposal import ProposalStatus
+from ..mailbox.imap import FetchedMail
+from ..mailbox.mime import MimeLimitExceeded, extract_display_headers, prepare
+from ..mailbox.sender_filter import is_irrelevant_sender
+from ..models import (
     ActionRoute,
     DisplayHeaders,
     MailState,
@@ -34,7 +29,12 @@ from .models import (
     Summary,
     ValidationIssue,
 )
-from .openrouter import RateLimitExceeded
+from ..openrouter import RateLimitExceeded
+from .analysis import (
+    LlmInvalidJson,
+    LlmProviderResponseInvalid,
+    LlmSchemaValidationExceeded,
+)
 
 if TYPE_CHECKING:
     from .orchestrator import Orchestrator

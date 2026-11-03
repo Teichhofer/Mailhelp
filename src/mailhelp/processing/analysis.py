@@ -9,11 +9,11 @@ from typing import Any, Protocol, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
-from .adapter import RetryableError
-from .config import LlmRoute, PromptConfig, Topic
-from .domain.prepared import PreparedAttachment
-from .domain.revision_errors import ContradictoryRevision, TechnicalRevisionError
-from .models import (
+from ..adapter import RetryableError
+from ..config import LlmRoute, PromptConfig, Topic
+from ..domain.prepared import PreparedAttachment
+from ..domain.revision_errors import ContradictoryRevision, TechnicalRevisionError
+from ..models import (
     AbstractCategories,
     ActionRoute,
     CalendarDuplicateDecision,
@@ -31,8 +31,8 @@ from .models import (
     VisionExtractionResult,
     apply_proposal_revision,
 )
-from .openrouter import InvalidJson, ProviderResponseInvalid
-from .temporal_answers import parse_deterministic_temporal_answer
+from ..openrouter import InvalidJson, ProviderResponseInvalid
+from ..temporal_answers import parse_deterministic_temporal_answer
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -381,7 +381,7 @@ class Analyzer:
         The model sees the mail, every recognized attachment text (including OCR)
         and the user's own ``personal_info``, but no technical metadata.
         """
-        from .drafts import ReplyDraft
+        from ..drafts import ReplyDraft
         attachments = [{"filename": item.filename, "text": item.usable_text}
                        for item in map(PreparedAttachment.model_validate, mail.get("extracted_attachments", []))
                        if item.usable_text]
@@ -433,7 +433,7 @@ class Analyzer:
         )
 
     def open_proposal_match(self, proposal: Proposal, candidates: list[Proposal]):
-        from .domain.proposal_sources import ProposalMatchDecision
+        from ..domain.proposal_sources import ProposalMatchDecision
         fields = {"kind", "title", "description", "start", "end", "due", "known_temporal_facts", "evidence"}
         payload = {"incoming": proposal.model_dump(mode="json", include=fields),
                    "candidates": [item.model_dump(mode="json", include=fields) for item in candidates]}

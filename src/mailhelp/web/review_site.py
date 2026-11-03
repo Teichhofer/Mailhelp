@@ -12,7 +12,7 @@ import re
 from dataclasses import replace
 from urllib.parse import parse_qs, quote
 
-from ..mail_recheck import recheck_round
+from ..processing.mail_recheck import recheck_round
 from ..review.views import ProposalView
 from .actions import proposal_actions, recheck_form, relevance_actions, result_kind
 from .pages import error_page
@@ -78,7 +78,7 @@ class ReviewSite:
         return Response.html(200, page)
 
     def attachment(self, request: Request, session: WebSession, mail_id: str, index: str) -> Response:
-        from ..attachments import AttachmentCache
+        from ..processing.attachments import AttachmentCache
         mail = self.site.views.mail(mail_id)
         if mail is None or mail.text is None or not any(
                 item.preview is not None and item.preview.index == int(index) for item in mail.extracted_attachments):
@@ -92,7 +92,7 @@ class ReviewSite:
 
     def original(self, request: Request, session: WebSession, mail_id: str, index: str) -> Response:
         """The original document, only as a download and never rendered by the browser."""
-        from ..attachments import AttachmentCache, download_name
+        from ..processing.attachments import AttachmentCache, download_name
         mail = self.site.views.mail(mail_id)
         found = (AttachmentCache(self.site.views.store).original(mail_id, int(index))
                  if mail is not None and mail.text is not None else None)

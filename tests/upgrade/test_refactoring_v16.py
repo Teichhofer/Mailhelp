@@ -12,7 +12,7 @@ from mailhelp.external.oauth import GoogleOAuthTokenProvider
 from mailhelp.mailbox.imap import FetchedMail, MailCandidate
 from mailhelp.mailbox.mailbox_run import MailboxRunService, MailboxSource
 from mailhelp.models import MailRunState
-from mailhelp.orchestrator import ProcessingOutcome, ProcessingResult
+from mailhelp.processing.orchestrator import ProcessingOutcome, ProcessingResult
 from mailhelp.web import review_pages, status_pages
 
 

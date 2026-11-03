@@ -21,11 +21,11 @@ from shared_web_details import with_mail
 from web_scenario import mail_id, populate
 
 from mailhelp.adapter import RetryableError
-from mailhelp.attachments import AttachmentCache
 from mailhelp.briefing import DailyBriefingService
 from mailhelp.config import DailyBriefingSettings, ImapCredentials, Secrets, Settings
 from mailhelp.drafts import DraftService, ReplyDraft, message
 from mailhelp.models import MailState
+from mailhelp.processing.attachments import AttachmentCache
 from mailhelp.standalone import DisabledTelegram
 from mailhelp.storage import JsonStore
 from mailhelp.webpush import NoRedirectSession, PushService, b64, subscription
@@ -574,8 +574,8 @@ def test_briefing_and_filters_work_without_javascript(web):
 def test_analyzer_reply_uses_configured_prompt():
     from shared_core import prompt_config
 
-    from mailhelp.analysis import Analyzer
     from mailhelp.config import PromptStep
+    from mailhelp.processing.analysis import Analyzer
     prompts = prompt_config()
     prompts.prompts["draft_reply"] = PromptStep(system_prompt="Untrusted input; only draft.")
     calls = []

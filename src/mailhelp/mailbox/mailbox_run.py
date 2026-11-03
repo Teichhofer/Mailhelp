@@ -16,7 +16,7 @@ from .. import state_names
 from ..config import MailboxSettings, Settings
 from ..logging import EventLogger
 from ..models import ImapCheckpoint, MailRunCounters, MailRunEntry, MailRunEntryStatus, MailRunState, MailState
-from ..orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
+from ..processing.orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
 from ..storage import JsonStore, mail_state_names
 from .imap import FetchedMail, ListedMailbox, MailCandidate, UIDValidityChanged
 

@@ -6,8 +6,8 @@ import json
 import re
 from typing import TYPE_CHECKING, Any
 
-from . import state_names
-from .models import (
+from .. import state_names
+from ..models import (
     DuplicateDecision,
     DuplicateIndex,
     DuplicateIndexEntry,

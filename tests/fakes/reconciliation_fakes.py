@@ -7,9 +7,9 @@ from shared_services import AnalyzerStub, Notify
 from mailhelp.domain.proposal import DuplicateMatchInfo, DuplicateSource, Proposal, ProposalStatus
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.models import ActionRoute, EventExtraction, ExtractedEvent, ExtractedTask, TaskExtraction
-from mailhelp.orchestrator import Orchestrator
 from mailhelp.persistence.proposals import ProposalRepository
 from mailhelp.precheck import DuplicatePreCheckService
+from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.review.views import ReviewViews
 from mailhelp.storage import JsonStore
 

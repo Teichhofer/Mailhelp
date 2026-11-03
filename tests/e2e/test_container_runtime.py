@@ -14,7 +14,7 @@ from types import SimpleNamespace
 from mailhelp.cli import main
 from mailhelp.config import Topic
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.orchestrator import Orchestrator
+from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.storage import JsonStore
 
 # Since 2.3 the writers are built in mailhelp.external.providers.

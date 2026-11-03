@@ -14,7 +14,7 @@ from web_scenario import mail_id
 
 from checks import audit
 from conftest import item, sign_in
-from mailhelp.attachments import AttachmentCache
+from mailhelp.processing.attachments import AttachmentCache
 from mailhelp.models import MailState, Proposal
 from mailhelp.webpush import PushService
 from pages import MASTER, PANE, Overview, SettingsPage

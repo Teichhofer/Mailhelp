@@ -18,9 +18,9 @@ from .. import state_names
 from ..configuration import AdminCommand, ConfigurationService
 from ..domain.processing import ProposalClarificationState
 from ..domain.proposal import invalidate_creation_permissions, required_revision_questions
-from ..mail_recheck import RecheckOutcome
 from ..models import MailState, Proposal, ProposalStatus, RelevanceDialogStatus, TelegramDialogState
 from ..notification_context import web_reply
+from ..processing.mail_recheck import RecheckOutcome
 from .archive import record_event, record_recheck, record_relevance
 from .commands import CommandKind, CommandSource, ReviewCommand
 from .editing import edit_proposal

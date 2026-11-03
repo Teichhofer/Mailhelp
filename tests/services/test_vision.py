@@ -13,10 +13,10 @@ from shared_vision import noise as noise
 from shared_vision import prepared as prepared
 from shared_vision import scanned_pdf as scanned_pdf
 
-from mailhelp import vision
 from mailhelp.config import VisionSettings
 from mailhelp.models import ExtractedAttachment, VisionExtractionResult
 from mailhelp.openrouter import RateLimitExceeded
+from mailhelp.processing import vision
 
 SETTINGS = VisionSettings()
 

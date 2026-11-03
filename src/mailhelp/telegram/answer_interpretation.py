@@ -10,7 +10,6 @@ import httpx
 from pydantic import ValidationError
 
 from ..adapter import RetryableError
-from ..analysis import LlmInvalidJson, LlmProviderResponseInvalid, LlmSchemaValidationFailed, LlmTokenLimitExceeded
 from ..domain.revision_errors import ContradictoryRevision, IncompleteUserAnswer, TechnicalRevisionError
 from ..models import (
     AnswerStatus,
@@ -22,6 +21,12 @@ from ..models import (
     TelegramDialogState,
 )
 from ..persistence.proposals import clarification_name, proposal_name
+from ..processing.analysis import (
+    LlmInvalidJson,
+    LlmProviderResponseInvalid,
+    LlmSchemaValidationFailed,
+    LlmTokenLimitExceeded,
+)
 from ..storage import JsonStore
 from ..temporal_answers import (
     deterministic_classification_revision,

@@ -14,7 +14,7 @@ from mailhelp.config import Settings
 from mailhelp.mailbox.imap import FetchedMail, ListedMailbox, MailCandidate
 from mailhelp.mailbox.mailbox_run import MailboxSource, _checkpoint_name, _RunSummary
 from mailhelp.models import MailRunState, MailState
-from mailhelp.orchestrator import ProcessingOutcome, ProcessingResult
+from mailhelp.processing.orchestrator import ProcessingOutcome, ProcessingResult
 
 STAMP = datetime(2026, 10, 1, tzinfo=UTC)
 

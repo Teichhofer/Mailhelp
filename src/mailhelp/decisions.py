@@ -13,11 +13,11 @@ from typing import Annotated, Any, Literal, Protocol
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
 
-from .analysis import Analyzer
 from .config import ConfigModel, Topic, read_yaml, validated_file
 from .logging import EventLogger
 from .models import ActionRoute, Relevance
 from .openrouter import OpenRouterClient, RateLimitExceeded
+from .processing.analysis import Analyzer
 
 
 class ChoiceQuestion(ConfigModel):

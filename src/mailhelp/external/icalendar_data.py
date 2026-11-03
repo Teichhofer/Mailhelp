@@ -11,7 +11,7 @@ from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
 from typing import Any
 
-from ..calendar_parser import _parse_ical_datetime, _unescape_text, _unfold_ical
+from ..processing.calendar_parser import _parse_ical_datetime, _unescape_text, _unfold_ical
 from .ical import _fold_ical_line, _ical_datetime, _ical_text
 
 MAX_RESOURCE_BYTES = 1_000_000

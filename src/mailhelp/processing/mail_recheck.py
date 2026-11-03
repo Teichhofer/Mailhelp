@@ -11,12 +11,12 @@ import re
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
-from . import state_names
-from .models import MailState
+from .. import state_names
+from ..models import MailState
 
 if TYPE_CHECKING:
+    from ..storage import JsonStore
     from .orchestrator import Orchestrator
-    from .storage import JsonStore
 
 _MAIL_ID = re.compile(r"[a-f0-9]{24}")
 

@@ -7,9 +7,9 @@ from mailhelp.config import Topic, VisionSettings
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.models import IrrelevantSenders, Relevance, VisionExtractionResult
 from mailhelp.openrouter import RateLimitExceeded
-from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
+from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
+from mailhelp.processing.vision import VisionExtractor
 from mailhelp.storage import JsonStore
-from mailhelp.vision import VisionExtractor
 
 TOPICS = [Topic(id="schule", name="Schule", enabled=True, description="Schule")]
 RAW = mail(("flyer.png", "image", "png", image_bytes(noise())),
@@ -142,7 +142,7 @@ def test_the_mail_page_names_the_vision_outcome_per_attachment():
 
 def test_preparation_caches_private_previews_without_vision(tmp_path):
     """2.0: raster previews exist independently of OCR and are bound to the mail."""
-    from mailhelp.attachments import AttachmentCache
+    from mailhelp.processing.attachments import AttachmentCache
     with JsonStore(tmp_path) as store:
         result, _ = run(store, Reader(), vision=False)
         mail_id = result.state["id"]
@@ -153,7 +153,7 @@ def test_preparation_caches_private_previews_without_vision(tmp_path):
 def test_a_failing_preview_never_stops_the_analysis(tmp_path, monkeypatch):
     """Regression: a preview error (full disk, foreign store) must not fail the preparation."""
     def full(*args): raise OSError("disk full")
-    monkeypatch.setattr("mailhelp.attachments.AttachmentCache.prepare", full)
+    monkeypatch.setattr("mailhelp.processing.attachments.AttachmentCache.prepare", full)
     log = Log()
     with JsonStore(tmp_path) as store:
         result, analyzer = run(store, Reader(), vision=False, log=log)

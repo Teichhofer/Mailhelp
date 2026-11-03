@@ -3,13 +3,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from .analysis import LlmSchemaValidationExceeded
-from .domain.revision_errors import TechnicalRevisionError
-from .models import (
+from ..domain.revision_errors import TechnicalRevisionError
+from ..models import (
     MailState,
     Proposal,
 )
-from .temporal_answers import deterministic_temporal_revision
+from ..temporal_answers import deterministic_temporal_revision
+from .analysis import LlmSchemaValidationExceeded
 
 if TYPE_CHECKING:
     from .orchestrator import Orchestrator

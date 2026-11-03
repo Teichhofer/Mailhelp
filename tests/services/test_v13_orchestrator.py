@@ -4,7 +4,6 @@ from typing import Any
 
 import httpx
 
-from mailhelp.analysis import ActionRoute, Analyzer, Summary
 from mailhelp.config import TargetSettings, Topic
 from mailhelp.domain.extraction import (
     EventExtraction,
@@ -30,8 +29,9 @@ from mailhelp.domain.temporal import TimeRequirement
 from mailhelp.integrations import HttpWriter
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.models import MailState, ProcessingStage, Relevance
-from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.precheck import DuplicatePreCheckService
+from mailhelp.processing.analysis import ActionRoute, Analyzer, Summary
+from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.review.cards import card_content
 from mailhelp.review.views import MailView, ProposalView, ReviewViews
 from mailhelp.storage import JsonStore

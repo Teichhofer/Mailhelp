@@ -21,7 +21,7 @@ from mailhelp.integrations import OAuthTokenError
 from mailhelp.mailbox.imap import FetchedMail, MailCandidate, UIDValidityChanged
 from mailhelp.mailbox.mailbox_run import MailboxRunService, _add_uid, _checkpoint_name, _MailBudget, _RunSummary
 from mailhelp.models import MailRunCounters, MailRunEntry, MailRunState, MailState
-from mailhelp.orchestrator import ProcessingOutcome, ProcessingResult
+from mailhelp.processing.orchestrator import ProcessingOutcome, ProcessingResult
 from mailhelp.telegram.commands import HELP, STARTUP
 
 # Since 2.3 the writers are built in mailhelp.external.providers.
@@ -1727,7 +1727,7 @@ def test_local_ollama_mode_replaces_openrouter(tmp_path, monkeypatch):
 @pytest.mark.parametrize("enabled", [True, False])
 def test_vision_ocr_is_wired_only_when_enabled_and_prompted(tmp_path, monkeypatch, enabled):
     from mailhelp.config import PromptConfig
-    from mailhelp.vision import VisionExtractor
+    from mailhelp.processing.vision import VisionExtractor
 
     class Resource:
         def __init__(self, *args, **kwargs): pass

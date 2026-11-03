@@ -306,7 +306,7 @@ def test_configuration_reconcile_failure_and_closed_patch(web, tmp_path, monkeyp
 
 
 def test_topics_snapshot_survives_reconfiguration_and_restart(tmp_path):
-    from mailhelp.orchestrator import Orchestrator
+    from mailhelp.processing.orchestrator import Orchestrator
     old = [Topic(id='school', name='School', enabled=True, description='school')]
     new = [Topic(id='sport', name='Sport', enabled=True, description='sport')]
     with JsonStore(tmp_path) as store:
@@ -483,7 +483,7 @@ def test_finished_notification_is_not_sent_twice_during_resume(tmp_path):
     from shared_services import AnalyzerStub, Notify
 
     from mailhelp.mailbox.imap import FetchedMail
-    from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
+    from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
     topic = Topic(id='school', name='School', enabled=True, description='school')
     with JsonStore(tmp_path) as store:
         notifier = Notify()

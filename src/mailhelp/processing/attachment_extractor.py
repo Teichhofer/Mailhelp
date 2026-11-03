@@ -9,7 +9,7 @@ import zipfile
 
 import pypdf
 
-from .domain.extraction import ExtractedAttachment
+from ..domain.extraction import ExtractedAttachment
 
 MAX_ATTACHMENT_BYTES = 5_000_000
 MAX_TEXT_CHARACTERS = 20_000

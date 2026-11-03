@@ -9,7 +9,6 @@ from threading import Event, Lock
 from typing import Any
 
 from .adapter import RetryPolicy
-from .analysis import Analyzer
 from .application import Application
 from .config import MailboxSettings, PromptConfig, Secrets, Settings, Topic
 from .decisions import (
@@ -21,18 +20,19 @@ from .decisions import (
 )
 from .external.providers import build_writers, provider_services
 from .logging import JsonlLogger
-from .mail_recheck import request_recheck
 from .mailbox.imap import ImapReader, mailbox_account_id, reader_arguments
 from .mailbox.mailbox_run import MailboxSource
 from .ollama import LocalLlm, OllamaClient
 from .openrouter import OpenRouterClient
-from .orchestrator import Orchestrator
 from .paths import runtime_path
+from .processing.analysis import Analyzer
+from .processing.mail_recheck import request_recheck
+from .processing.orchestrator import Orchestrator
+from .processing.vision import VisionExtractor
 from .review.inbox import CommandInbox
 from .storage import JsonStore
 from .telegram import TelegramClient, TelegramDialogController
 from .telegram.receiver import TelegramInbox
-from .vision import VisionExtractor
 from .web.factory import create_web
 
 

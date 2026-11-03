@@ -28,7 +28,7 @@ from mailhelp.mailbox.iserv import (
     parse_html,
     state_name,
 )
-from mailhelp.orchestrator import ProcessingOutcome, ProcessingResult
+from mailhelp.processing.orchestrator import ProcessingOutcome, ProcessingResult
 from mailhelp.storage import JsonStore
 
 SERVER = "https://schule.example"

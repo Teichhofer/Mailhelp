@@ -12,7 +12,7 @@ from mailhelp.configuration import AdminCommand, AdminKind, ConfigurationService
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.mailbox.sender_filter import change_irrelevant_senders, sender_entry
 from mailhelp.models import IrrelevantSenders
-from mailhelp.orchestrator import Orchestrator
+from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.review.results import ResultStatus
 from mailhelp.storage import JsonStore
 from mailhelp.web.sender_site import LIST_PATH

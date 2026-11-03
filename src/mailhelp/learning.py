@@ -11,12 +11,12 @@ from typing import Any, cast
 
 import yaml
 
-from .analysis import Analyzer
 from .config import IrrelevantTopicsConfig, Topic, TopicsConfig
 from .mailbox.imap import FetchedMail, FolderNotReadable, ImapReader, MailCandidate
 from .mailbox.mime import prepare
 from .mailbox.sender_filter import is_irrelevant_sender
 from .models import IrrelevantSenders, LearnedCategory, MailClassification
+from .processing.analysis import Analyzer
 from .storage import CorruptState, JsonStore, atomic_replace
 from .yaml_edit import set_list
 

@@ -8,7 +8,7 @@ from web_scenario import mail_id
 
 from checks import audit
 from conftest import sign_in
-from mailhelp.attachments import AttachmentCache
+from mailhelp.processing.attachments import AttachmentCache
 from mailhelp.config import OriginalAttachmentSettings
 from mailhelp.models import MailState
 from pages import SettingsPage

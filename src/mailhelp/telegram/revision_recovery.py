@@ -6,7 +6,6 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 
 from .. import state_names
-from ..analysis import validate_revision_successor
 from ..models import (
     AnswerStatus,
     Proposal,
@@ -16,6 +15,7 @@ from ..models import (
     TelegramDialogState,
 )
 from ..persistence.proposals import proposal_name
+from ..processing.analysis import validate_revision_successor
 from ..storage import JsonStore
 from .revision_contracts import EventLogger, ProposalRevisionService
 from .revision_successor import protect_revision

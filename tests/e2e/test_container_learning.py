@@ -11,7 +11,7 @@ from mailhelp.config import Topic
 from mailhelp.learning import LearningMode
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.models import AbstractCategories, LearnedCategory, MailClassification, Relevance
-from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
+from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.storage import JsonStore
 
 

@@ -4,8 +4,8 @@ from shared_vision import mail
 from shared_web_actions import MAIL1
 from shared_web_details import with_mail
 
-from mailhelp.attachments import AttachmentCache, download_name, original_type
 from mailhelp.config import OriginalAttachmentSettings
+from mailhelp.processing.attachments import AttachmentCache, download_name, original_type
 from mailhelp.storage import JsonStore
 
 PDF = b"%PDF-1.7 synthetisch"

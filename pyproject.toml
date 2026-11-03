@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mailhelp"
-version = "3.6.11"
+version = "3.6.12"
 description = "Persönlicher, bestätigungspflichtiger E-Mail-Assistent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -77,7 +77,7 @@ ignore_missing_imports = true
 # Planung 3.3, Phase 5: persistence, normalisation, merge, precheck, evaluation, configuration
 # and the run loop with its service coordination.
 module = ["mailhelp.domain.*", "mailhelp.external.contracts", "mailhelp.drafts", "mailhelp.webpush",
-          "mailhelp.briefing", "mailhelp.attachments",
+          "mailhelp.briefing", "mailhelp.processing.attachments",
           "mailhelp.persistence.*", "mailhelp.action_normalization", "mailhelp.proposal_merge",
           "mailhelp.precheck", "mailhelp.german_dates", "mailhelp.temporal_answers",
           "mailhelp.evaluation", "mailhelp.configuration", "mailhelp.config.*",

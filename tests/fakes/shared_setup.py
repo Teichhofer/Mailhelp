@@ -6,7 +6,7 @@ from shared_application import settings
 from shared_core import prompt_config
 
 from mailhelp.configuration import ConfigurationService
-from mailhelp.orchestrator import Orchestrator
+from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.setup_runtime import SetupRuntime
 
 
