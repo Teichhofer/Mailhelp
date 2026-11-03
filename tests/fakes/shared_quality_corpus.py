@@ -5,12 +5,12 @@ import json
 from copy import deepcopy
 from pathlib import Path
 
-from mailhelp.action_normalization import MailDateContext
 from mailhelp.config import PromptConfig, PromptStep, TargetSettings, Topic
 from mailhelp.mailbox.mime import prepare
 from mailhelp.models import ActionRoute, EventExtraction, Relevance, Summary, TaskExtraction
 from mailhelp.processing.analysis import Analyzer
-from mailhelp.proposal_builder import ProposalBuilder
+from mailhelp.proposals.action_normalization import MailDateContext
+from mailhelp.proposals.proposal_builder import ProposalBuilder
 
 CORPUS = Path(__file__).parents[1] / "fixtures" / "mail_corpus_v1" / "corpus.json"
 

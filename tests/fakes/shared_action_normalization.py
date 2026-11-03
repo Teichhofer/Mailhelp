@@ -2,10 +2,10 @@
 
 
 
-from mailhelp.action_normalization import (
+from mailhelp.models import ExtractedEvent, ExtractedTask
+from mailhelp.proposals.action_normalization import (
     MailDateContext,
 )
-from mailhelp.models import ExtractedEvent, ExtractedTask
 
 
 def context(**changes):

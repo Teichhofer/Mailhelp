@@ -88,7 +88,7 @@ web/reconciliation_site  preview                   16
 Die Grenze 15 wird als ruff-Regel `C901` (`max-complexity = 15`) dauerhaft in die CI aufgenommen.
 
 #### 3.1 Refactoring von `merge_facts` (Komplexität 29 → < 10)
-Die Funktion [`merge_facts`](../src/mailhelp/proposal_merge.py) in `proposal_merge.py` wird in eigenständige, reine Einzelfunktionen zerlegt:
+Die Funktion [`merge_facts`](../src/mailhelp/proposals/proposal_merge.py) in `proposal_merge.py` wird in eigenständige, reine Einzelfunktionen zerlegt:
 - `_merge_sources(previous, incoming, uncertain)`: Verknüpfung bekannter und ausstehender Quellen.
 - `_merge_temporal_fields(previous, incoming, newer)`: Deterministischer Abgleich von Beginn, Ende, Frist und bekannten Zeitfakten.
 - `_merge_descriptions(previous, incoming)`: Ergänzung zusätzlicher Textfragmente unter Schutz bestehender Abschnitte.
@@ -140,7 +140,7 @@ Stand 3.3.0: Phase A und B (ohne das nicht existierende Paket `pipeline`, dafür
 ### Pfeiler 6: Deduplizierung & Test-Suite-Hygiene
 
 1. **Konsolidierung deutscher Zeit- und Datums-Parser**:
-   - Zusammenführung redundanter Parsing-Muster aus [`action_normalization.py`](../src/mailhelp/action_normalization.py) und dem früheren `telegram/temporal.py` (heute [`temporal_answers.py`](../src/mailhelp/temporal_answers.py)) in ein zentrales, deterministisches Parsing-Modul.
+   - Zusammenführung redundanter Parsing-Muster aus [`action_normalization.py`](../src/mailhelp/proposals/action_normalization.py) und dem früheren `telegram/temporal.py` (heute [`temporal_answers.py`](../src/mailhelp/temporal_answers.py)) in ein zentrales, deterministisches Parsing-Modul.
 2. **Bereinigung von Laufzeitwarnungen**:
    - **Pydantic-Serialisierung:** Behebung der `PydanticSerializationUnexpectedValue`-Warnung in [`tests/web/test_activity_web.py`](../tests/web/test_activity_web.py#L189) durch Erzeugung valider `FolderProgress`-Instanzen anstelle unstrukturierter Dictionaries.
    - **Pytest-Rewrite-Warnung:** Saubere Paketierung der Test-Fakes in `tests/fakes/` zur Vermeidung von `PytestAssertRewriteWarning`.

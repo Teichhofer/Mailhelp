@@ -3,8 +3,8 @@
 from datetime import datetime
 from typing import Any
 
-from .domain.proposal import KnownTemporalFacts, Proposal, ProposalStatus, required_revision_questions
-from .domain.proposal_sources import ProposalReference
+from ..domain.proposal import KnownTemporalFacts, Proposal, ProposalStatus, required_revision_questions
+from ..domain.proposal_sources import ProposalReference
 from .proposal_matching import day
 
 _TIME_QUESTIONS = ("Wann beginnt der Termin?", "Wann endet der Termin?",

@@ -6,17 +6,9 @@ import json
 from collections.abc import Sequence, Set
 from typing import Any
 
-from .action_normalization import (
-    MailDateContext,
-    NormalizationResult,
-    TemporalValue,
-    normalize_task_due,
-    recover_task_due,
-)
-from .config import EventDefaultsSettings, TargetSettings
-from .domain.extraction import ParsedCalendarEvent
-from .event_defaults import normalized_event
-from .models import (
+from ..config import EventDefaultsSettings, TargetSettings
+from ..domain.extraction import ParsedCalendarEvent
+from ..models import (
     ExtractedEvent,
     ExtractedTask,
     ExtractionCountConflict,
@@ -28,6 +20,14 @@ from .models import (
     ProposalResponsibility,
     ProposalStatus,
 )
+from .action_normalization import (
+    MailDateContext,
+    NormalizationResult,
+    TemporalValue,
+    normalize_task_due,
+    recover_task_due,
+)
+from .event_defaults import normalized_event
 
 _RESPONSIBILITY_QUESTION = "Ist die Nutzerin oder der Nutzer für diesen Eintrag zuständig?"
 _CERTAINTY_QUESTIONS = {

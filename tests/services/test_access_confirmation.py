@@ -10,7 +10,7 @@ from shared_application import settings as app_settings
 from mailhelp.application import Application
 from mailhelp.external.providers import Writers
 from mailhelp.metrics import MetricsRecorder, MetricsSettings
-from mailhelp.target_profiles import ProfileWriters, UnavailableWriter
+from mailhelp.proposals.target_profiles import ProfileWriters, UnavailableWriter
 
 
 class Service:

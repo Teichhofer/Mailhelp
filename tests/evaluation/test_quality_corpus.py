@@ -11,10 +11,10 @@ from shared_quality_corpus import load_corpus as load_corpus
 from shared_quality_corpus import pipeline as pipeline
 from shared_quality_corpus import prompt_config as prompt_config
 
-from mailhelp.action_normalization import MailDateContext
 from mailhelp.config import TargetSettings
 from mailhelp.models import EventExtraction
-from mailhelp.proposal_builder import ProposalBuilder
+from mailhelp.proposals.action_normalization import MailDateContext
+from mailhelp.proposals.proposal_builder import ProposalBuilder
 
 CORPUS = Path(__file__).parents[1] / "fixtures" / "mail_corpus_v1" / "corpus.json"
 

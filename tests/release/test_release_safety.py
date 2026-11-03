@@ -4,8 +4,8 @@ import os
 
 import pytest
 
-from mailhelp.integrations import execute_confirmed
 from mailhelp.models import Proposal, Relevance
+from mailhelp.proposals.integrations import execute_confirmed
 from mailhelp.storage import AlreadyRunning, JsonStore
 
 

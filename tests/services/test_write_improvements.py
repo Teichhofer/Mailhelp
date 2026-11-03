@@ -8,9 +8,9 @@ from shared_telegram_dialog import callback, controller, message
 from shared_write_improvements import event as event
 
 from mailhelp.domain.revision_errors import ContradictoryRevision
-from mailhelp.integrations import HttpWriter
 from mailhelp.models import CalendarDuplicateDecision, ProposalRevisionDelta, apply_proposal_revision
 from mailhelp.processing.analysis import validate_revision_successor
+from mailhelp.proposals.integrations import HttpWriter
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import Decision, DecisionAction
 
@@ -127,7 +127,7 @@ def test_calendar_later_page_failure_never_causes_creation(failure):
     writer = HttpWriter("google_calendar", "synthetic", "calendar", calendar_timezone="UTC",
                         calendar_matcher=lambda *_: None, transport=httpx.MockTransport(handler))
     try:
-        from mailhelp.integrations import CalendarAccessError
+        from mailhelp.proposals.integrations import CalendarAccessError
         with pytest.raises(ValueError if failure == "malformed" else CalendarAccessError):
             writer.create(event(status="confirmed"), "key")
         assert len(requests) == 2

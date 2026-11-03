@@ -44,8 +44,8 @@ def test_target_profile_controls_are_labelled_and_accessible(page, setup_server)
 def test_profile_switch_card_stays_unconfirmed_and_visible_on_small_phones(page, setup_server):
     from web_scenario import proposal, save_mail
 
-    from mailhelp import profile_binding
     from mailhelp.config import TargetProfileSettings
+    from mailhelp.proposals import profile_binding
     runtime = setup_server.site.setup_page.runtime
     cfg = runtime.app.settings
     cfg.target_profiles = [TargetProfileSettings(id=2, label="Arbeit", calendar_provider="outlook",

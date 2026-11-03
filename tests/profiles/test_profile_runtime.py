@@ -16,8 +16,8 @@ from mailhelp.mailbox.mailbox_briefing import configure, sections
 from mailhelp.mailbox.mailbox_settings import merge_policy
 from mailhelp.models import MailState
 from mailhelp.notification_runtime import NotificationRuntime
+from mailhelp.proposals.target_profiles import ProfileLogger, ProfileWriters, UnavailableWriter, build_profile_writers
 from mailhelp.review.views import ReviewViews
-from mailhelp.target_profiles import ProfileLogger, ProfileWriters, UnavailableWriter, build_profile_writers
 
 
 def test_mailbox_briefing_sections_include_only_own_decisions_and_configured_targets(profiled):

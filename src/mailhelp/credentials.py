@@ -15,8 +15,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from .config import Settings, _dotenv, imap_secret_names, provider_secret_names, read_yaml
 from .configuration import ConfigurationConflict, file_hash
 from .mailbox.mailbox_settings import profile_label, target_profiles
+from .proposals.target_profiles import secret_name
 from .storage import JsonStore, atomic_replace
-from .target_profiles import secret_name
 
 RECEIPTS = "credential-edits"
 MAX_RECEIPTS = 100

@@ -340,7 +340,7 @@ class ConfigurationService:
         if command.kind in {AdminKind.SETTINGS, AdminKind.SETUP}:
             candidate = apply_settings(raw, command.patch, command.acknowledged, setup=command.kind == AdminKind.SETUP)
             if "target_profiles" in command.patch:
-                from .profile_usage import profile_references
+                from .proposals.profile_usage import profile_references
                 proposed = {item["id"] for item in candidate["target_profiles"]}
                 for profile in raw.get("target_profiles", []):
                     if profile["id"] not in proposed and profile_references(self.store, self.active, profile["id"]):

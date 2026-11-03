@@ -12,10 +12,10 @@ from shared_core import proposal
 
 from mailhelp.adapter import PermanentError, RetryableError, UncertainWriteError
 from mailhelp.config import LlmRoute, LoggingSettings, PromptConfig, PromptStep
-from mailhelp.integrations import HttpWriter
 from mailhelp.logging import JsonlLogger, NullLogger, redact
 from mailhelp.openrouter import OpenRouterClient, ProviderResponseInvalid
 from mailhelp.processing.analysis import Analyzer
+from mailhelp.proposals.integrations import HttpWriter
 from mailhelp.telegram import TelegramClient
 
 

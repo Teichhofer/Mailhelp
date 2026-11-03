@@ -35,7 +35,7 @@ def test_regression_existing_beirat_event_has_record_and_view_without_delivery(t
 
 
 def test_missing_canonical_record_before_delivery_marks_failure_without_resending(tmp_path, monkeypatch):
-    from mailhelp.proposal_reconciliation import ProposalReconciliationService
+    from mailhelp.proposals.proposal_reconciliation import ProposalReconciliationService
     store = JsonStore(tmp_path)
     process(store, Events(end="15:30 Uhr"), 1)
     monkeypatch.setattr(ProposalReconciliationService, "resolve", lambda *args: None)

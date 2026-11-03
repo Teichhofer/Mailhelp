@@ -160,7 +160,7 @@ class ConfirmedWriteExecutor:
             self.store.save("service-health", health)
 
     def resume(self) -> None:
-        from ..proposal_reconciliation import ProposalReconciliationService
+        from ..proposals.proposal_reconciliation import ProposalReconciliationService
         ProposalReconciliationService(self.store).recover()
         for name in self.store.names(state_names.PROPOSAL_PREFIX):
             if "-v" in name:

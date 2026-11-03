@@ -3,13 +3,13 @@ import hashlib
 import json
 import re
 
-from .domain.proposal import Proposal, ProposalStatus, invalidate_creation_permissions, required_revision_questions
-from .domain.proposal_sources import ProposalMatchDecision, ProposalReference, ProposalRelation
-from .domain.reconciliation import ProposalMatchCache, ProposalMergeJournal
-from .persistence.proposals import ProposalRepository
+from ..domain.proposal import Proposal, ProposalStatus, invalidate_creation_permissions, required_revision_questions
+from ..domain.proposal_sources import ProposalMatchDecision, ProposalReference, ProposalRelation
+from ..domain.reconciliation import ProposalMatchCache, ProposalMergeJournal
+from ..persistence.proposals import ProposalRepository
+from ..storage import JsonStore
 from .proposal_matching import compatible, reference_key, relationship, same_thread, sources
 from .proposal_merge import merge_facts
-from .storage import JsonStore
 
 OPEN = {ProposalStatus.NEEDS_CLARIFICATION, ProposalStatus.PENDING_CONFIRMATION}
 PROTECTED = {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN, ProposalStatus.FAILED}

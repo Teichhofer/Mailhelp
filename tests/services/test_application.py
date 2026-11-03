@@ -17,11 +17,11 @@ from shared_core import prompt_config
 
 from mailhelp.application import Application, _state_directory, build_application, build_logger
 from mailhelp.config import Secrets, Topic
-from mailhelp.integrations import OAuthTokenError
 from mailhelp.mailbox.imap import FetchedMail, MailCandidate, UIDValidityChanged
 from mailhelp.mailbox.mailbox_run import MailboxRunService, _add_uid, _checkpoint_name, _MailBudget, _RunSummary
 from mailhelp.models import MailRunCounters, MailRunEntry, MailRunState, MailState
 from mailhelp.processing.orchestrator import ProcessingOutcome, ProcessingResult
+from mailhelp.proposals.integrations import OAuthTokenError
 from mailhelp.telegram.commands import HELP, STARTUP
 
 # Since 2.3 the writers are built in mailhelp.external.providers.

@@ -5,13 +5,13 @@ import pytest
 from shared_services import Notify, Writer
 
 from mailhelp.config import TargetSettings
-from mailhelp.integrations import execute_confirmed
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.mailbox.mime import MimeLimits
 from mailhelp.models import Proposal
 from mailhelp.processing.attachment_extractor import extract_attachment_text
 from mailhelp.processing.mail_pipeline import ProcessingRun
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
+from mailhelp.proposals.integrations import execute_confirmed
 from mailhelp.review.views import ReviewViews
 from mailhelp.storage import JsonStore
 from mailhelp.web.review_pages import proposal_card

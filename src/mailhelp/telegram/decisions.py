@@ -18,7 +18,7 @@ from .formatting import clarification_prompt
 from .writes import ProposalPersistence, WriteExecution
 
 if TYPE_CHECKING:
-    from ..precheck import DuplicatePreCheckService
+    from ..proposals.precheck import DuplicatePreCheckService
 
 
 class ProposalDecisionService:
@@ -52,7 +52,7 @@ class ProposalDecisionService:
         """Apply the decision; stale or premature decisions raise a ReviewError."""
         if (user_id, chat_id) != (self.allowed_user, self.allowed_chat):
             raise PermissionError("Nicht autorisierte Telegram-Anfrage")
-        from ..proposal_reconciliation import ProposalReconciliationService
+        from ..proposals.proposal_reconciliation import ProposalReconciliationService
         ProposalReconciliationService(self.store).recover()
         proposal = self._open_proposal(decision)
         if decision.action == DecisionAction.EDIT:

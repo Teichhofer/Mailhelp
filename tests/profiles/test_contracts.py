@@ -18,8 +18,8 @@ from mailhelp.mailbox.mailbox_settings import (
 )
 from mailhelp.mailbox.sender_filter import change_irrelevant_senders, is_irrelevant_sender, save_sender_filter
 from mailhelp.models import IrrelevantSenders
+from mailhelp.proposals.target_profiles import load_profile_secrets, secret_name
 from mailhelp.storage import JsonStore
-from mailhelp.target_profiles import load_profile_secrets, secret_name
 
 
 def test_sparse_inheritance_survives_dump_and_settings_changes(tmp_path):

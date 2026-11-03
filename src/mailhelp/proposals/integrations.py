@@ -5,8 +5,8 @@ Mailhelp itself imports from ``external/``.
 """
 from __future__ import annotations
 
-from .external.confirmed import execute_confirmed
-from .external.contracts import (
+from ..external.confirmed import execute_confirmed
+from ..external.contracts import (
     AccessTokenProvider,
     AuthenticationError,
     CalendarAccessError,
@@ -26,9 +26,9 @@ from .external.contracts import (
     proposal_is_writable,
     validation_path,
 )
-from .external.http_writer import HttpWriter
-from .external.ical import CalendarFileWriter, calendar_file
-from .external.oauth import GoogleOAuthTokenProvider, OAuthTokenResponse
+from ..external.http_writer import HttpWriter
+from ..external.ical import CalendarFileWriter, calendar_file
+from ..external.oauth import GoogleOAuthTokenProvider, OAuthTokenResponse
 
 __all__ = ['AuthenticationError', 'OAuthTokenError', 'CalendarAccessError', 'ExternalServiceError',
            'ExternalUnavailable', 'ExternalRefused', 'ExternalUncertain', 'IntegrationModel',

@@ -8,9 +8,9 @@ from typing import Any, Literal
 
 from pydantic import Field
 
-from ..action_normalization import evidence_date_matches
 from ..domain._base import StrictModel
 from ..processing.analysis import Analyzer, ClassifiedRun
+from ..proposals.action_normalization import evidence_date_matches
 from .budget import BudgetedCompleter
 from .models import ActivityReport, ReportEvent, ReportMail
 

@@ -249,7 +249,7 @@ def _build_orchestrator(settings: Settings, prompts: PromptConfig, topics: list[
                         jev_prompts: Any, store: JsonStore, sender_store: JsonStore, logger: JsonlLogger,
                         analyzer: Analyzer, dialog: TelegramDialogController, writers: dict[str, Any],
                         access_diagnostics: bool) -> Orchestrator:
-    from .precheck import DuplicatePreCheckService
+    from .proposals.precheck import DuplicatePreCheckService
     precheck = DuplicatePreCheckService(
         writers=writers,
         ledger=dialog.ledger,
@@ -404,7 +404,7 @@ def build_application(
         openrouter = _build_llm(settings, secrets, local_llm, llm_budget, logger, stack)
         telegram = _build_telegram(settings, secrets, policy, logger, stack)
         analyzer = _build_analyzer(settings, secrets, prompts, openrouter, jev_prompts, llm_budget, stop_event, stack)
-        from .target_profiles import build_profile_writers
+        from .proposals.target_profiles import build_profile_writers
         factory = build_profile_writers if settings.target_profiles else build_writers
         built = factory(settings, secrets, base_directory, policy=policy, logger=logger,
                         calendar_matcher=analyzer.calendar_duplicate)
@@ -448,7 +448,7 @@ def build_application(
             application.iserv_runtime = IServRuntime(application, iserv_resources)
             stack.callback(application.iserv_runtime.close)
             application.mailbox_runtime = MailboxRuntime(application, stack.enter_context(ExitStack()), secrets)
-        from . import profile_binding
+        from .proposals import profile_binding
         dialog.decision_service.profile_available = lambda proposal: profile_binding.available(
             application.settings, writers, proposal)
         dialog.presenter.profile_of = lambda proposal: profile_binding.label(application.settings, proposal)

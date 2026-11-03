@@ -7,7 +7,6 @@ import pytest
 import yaml
 from shared_quality_corpus import load_corpus, prompt_config
 
-from mailhelp.action_normalization import MailDateContext
 from mailhelp.evaluation import (
     BoundedCompleter,
     EvaluationBudgetExceeded,
@@ -17,6 +16,7 @@ from mailhelp.evaluation import (
     semantic_result,
     write_report,
 )
+from mailhelp.proposals.action_normalization import MailDateContext
 
 
 def prompts():

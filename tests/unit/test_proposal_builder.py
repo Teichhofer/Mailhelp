@@ -3,7 +3,6 @@ from datetime import UTC, date, datetime
 import pytest
 from pydantic import ValidationError
 
-from mailhelp.action_normalization import MailDateContext
 from mailhelp.config import TargetSettings
 from mailhelp.models import (
     ExtractedEvent,
@@ -14,7 +13,8 @@ from mailhelp.models import (
     ProposalStatus,
     TemporalFact,
 )
-from mailhelp.proposal_builder import ProposalBuilder
+from mailhelp.proposals.action_normalization import MailDateContext
+from mailhelp.proposals.proposal_builder import ProposalBuilder
 from mailhelp.storage import JsonStore
 
 
@@ -257,11 +257,11 @@ def test_identity_collision_is_rehashed_and_a_second_collision_rejected(monkeypa
         def hexdigest(self): return self.value * 64
 
     values = iter(["a", "a", "b"])
-    monkeypatch.setattr("mailhelp.proposal_builder.hashlib.sha256", lambda _value: Digest(next(values)))
+    monkeypatch.setattr("mailhelp.proposals.proposal_builder.hashlib.sha256", lambda _value: Digest(next(values)))
     proposals = builder().build([task(title="one"), task(title="two")], [])
     assert [item.id for item in proposals] == ["p_" + "a" * 24, "p_" + "b" * 24]
 
-    monkeypatch.setattr("mailhelp.proposal_builder.hashlib.sha256", lambda _value: Digest("a"))
+    monkeypatch.setattr("mailhelp.proposals.proposal_builder.hashlib.sha256", lambda _value: Digest("a"))
     with pytest.raises(ValueError, match="Kollision"):
         builder().build([task(title="one"), task(title="two")], [])
 

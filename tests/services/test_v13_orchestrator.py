@@ -26,12 +26,12 @@ from mailhelp.domain.proposal import (
     ProposalStatus,
 )
 from mailhelp.domain.temporal import TimeRequirement
-from mailhelp.integrations import HttpWriter
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.models import MailState, ProcessingStage, Relevance
-from mailhelp.precheck import DuplicatePreCheckService
 from mailhelp.processing.analysis import ActionRoute, Analyzer, Summary
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
+from mailhelp.proposals.integrations import HttpWriter
+from mailhelp.proposals.precheck import DuplicatePreCheckService
 from mailhelp.review.cards import card_content
 from mailhelp.review.views import MailView, ProposalView, ReviewViews
 from mailhelp.storage import JsonStore
@@ -796,9 +796,9 @@ def test_http_writer_calendar_cancellation_prepare():
 
 
 def test_proposal_builder_calendar_collision():
-    from mailhelp.action_normalization import MailDateContext
     from mailhelp.config import TargetSettings
-    from mailhelp.proposal_builder import ProposalBuilder
+    from mailhelp.proposals.action_normalization import MailDateContext
+    from mailhelp.proposals.proposal_builder import ProposalBuilder
     context = MailDateContext(
         date_context_status="valid",
         date_header_parsed="2026-10-14T10:00:00+00:00",

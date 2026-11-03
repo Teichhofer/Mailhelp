@@ -11,8 +11,8 @@ from ..configuration import MAILBOX_POLICY_FIELDS
 from ..mailbox.mailbox_settings import effective_settings, mailbox_fingerprint
 from ..mailbox.sender_filter import sender_entry
 from ..models import Proposal
-from ..profile_binding import choices
-from ..profile_usage import profile_references
+from ..proposals.profile_binding import choices
+from ..proposals.profile_usage import profile_references
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from .auth import WebSession
 from .forms import post_form

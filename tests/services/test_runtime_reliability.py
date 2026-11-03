@@ -11,8 +11,8 @@ from shared_core import proposal
 
 from mailhelp.application import _state_directory
 from mailhelp.cli import main
-from mailhelp.integrations import HttpWriter, execute_confirmed
 from mailhelp.paths import runtime_path
+from mailhelp.proposals.integrations import HttpWriter, execute_confirmed
 
 
 @pytest.mark.parametrize("absolute", [False, True])

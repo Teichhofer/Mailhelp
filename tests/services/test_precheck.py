@@ -12,9 +12,9 @@ from mailhelp.domain.proposal import (
     ProposalResponsibility,
     ProposalStatus,
 )
-from mailhelp.integrations import HttpWriter
 from mailhelp.persistence.ledger import ActionLedgerEntry, ActionLedgerPort
-from mailhelp.precheck import DuplicatePreCheckService
+from mailhelp.proposals.integrations import HttpWriter
+from mailhelp.proposals.precheck import DuplicatePreCheckService
 
 
 class DummyLedger(ActionLedgerPort):

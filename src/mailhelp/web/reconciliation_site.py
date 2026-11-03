@@ -9,10 +9,10 @@ from .. import state_names
 from ..config import EventDefaultsSettings
 from ..domain.proposal import Proposal
 from ..domain.proposal_sources import ProposalReference, ProposalRelation
-from ..event_defaults import reapply_defaults
 from ..models import MailState
-from ..proposal_matching import compatible, relationship
-from ..proposal_reconciliation import OPEN, ProposalReconciliationService
+from ..proposals.event_defaults import reapply_defaults
+from ..proposals.proposal_matching import compatible, relationship
+from ..proposals.proposal_reconciliation import OPEN, ProposalReconciliationService
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..storage import CorruptState
 from .auth import WebSession

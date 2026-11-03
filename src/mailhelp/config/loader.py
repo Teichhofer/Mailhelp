@@ -175,7 +175,7 @@ def load_all(directory: Path, environ: dict[str, str] | None = None, *, oauth_pr
     iserv, absent_iserv = iserv_secret_values(settings.iserv, env)
     missing += absent_iserv
     from ..mailbox.mailbox_settings import active_profiles
-    from ..target_profiles import load_profile_secrets
+    from ..proposals.target_profiles import load_profile_secrets
     used = active_profiles(settings)
     names = [
         "OPENROUTER_API_KEY",
@@ -186,7 +186,7 @@ def load_all(directory: Path, environ: dict[str, str] | None = None, *, oauth_pr
     missing += absent
     missing += [name for name in names if not env.get(name)]
     if oauth_profile is not None:
-        from ..target_profiles import secret_name
+        from ..proposals.target_profiles import secret_name
         refresh = ("GOOGLE_OAUTH_REFRESH_TOKEN" if oauth_profile == 1
                    else secret_name("GOOGLE_OAUTH_REFRESH_TOKEN", oauth_profile))
         missing = [name for name in missing if name != refresh]
@@ -200,7 +200,7 @@ def load_all(directory: Path, environ: dict[str, str] | None = None, *, oauth_pr
     values["iserv"] = iserv
     values["profiles"] = profile_values
     _distinct_accounts(settings.imap, credentials)
-    from ..target_profiles import PROVIDER_FIELDS
+    from ..proposals.target_profiles import PROVIDER_FIELDS
     values.update({name: env[name.upper()] for name in PROVIDER_FIELDS if env.get(name.upper())})
     if settings.web.enabled:
         web_secret = env.get("MAILHELP_WEB_SECRET", "")

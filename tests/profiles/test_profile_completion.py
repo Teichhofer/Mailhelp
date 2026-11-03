@@ -15,10 +15,10 @@ from mailhelp.experience import ExperienceRuntime
 from mailhelp.external.providers import Writers
 from mailhelp.models import MailState
 from mailhelp.notification_runtime import NotificationRuntime
+from mailhelp.proposals.target_profiles import ProfileWriters
 from mailhelp.review.commands import CommandKind, CommandSource, ReviewCommand
 from mailhelp.review.results import ResultStatus
 from mailhelp.setup_runtime import SetupRuntime
-from mailhelp.target_profiles import ProfileWriters
 
 
 @pytest.mark.parametrize(("method", "path"), [

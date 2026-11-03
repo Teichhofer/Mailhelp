@@ -4,11 +4,11 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from .models import Proposal
+from ..models import Proposal
 
 if TYPE_CHECKING:
-    from .config import Settings
-    from .storage import JsonStore
+    from ..config import Settings
+    from ..storage import JsonStore
 
 
 def profile_references(store: JsonStore, settings: Settings, number: int) -> list[str]:

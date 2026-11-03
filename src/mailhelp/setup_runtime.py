@@ -44,7 +44,7 @@ class SetupRuntime:
         from pydantic import SecretStr
 
         from .config import ImapCredentials, _dotenv, imap_secret_values, iserv_secret_values
-        from .target_profiles import load_profile_secrets
+        from .proposals.target_profiles import load_profile_secrets
         if self.secrets is None:
             return None
         env = {**_dotenv(self.app.configuration.directory / ".env"), **os.environ}
@@ -111,7 +111,7 @@ class SetupRuntime:
         if draft.target_profiles:
             from .config import provider_secret_names
             from .mailbox.mailbox_settings import active_profiles
-            from .target_profiles import secret_name
+            from .proposals.target_profiles import secret_name
             credentials = self.credentials(draft)
             for number, target in active_profiles(draft).items():
                 for name in provider_secret_names(target):
@@ -129,7 +129,7 @@ class SetupRuntime:
         """(group, name) of every credential the draft configuration uses; never their values (3.3.11)."""
         from .config import imap_secret_names, provider_secret_names
         from .mailbox.mailbox_settings import active_profiles
-        from .target_profiles import secret_name
+        from .proposals.target_profiles import secret_name
         draft, env = self.setup.draft_settings(), self.environment()
         fields = [(f"Postfach {mailbox.id} ({mailbox.label})", name)
                   for mailbox in draft.imap.configured_mailboxes()

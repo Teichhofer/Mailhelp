@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mailhelp"
-version = "3.6.12"
+version = "3.6.13"
 description = "Persönlicher, bestätigungspflichtiger E-Mail-Assistent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -78,11 +78,11 @@ ignore_missing_imports = true
 # and the run loop with its service coordination.
 module = ["mailhelp.domain.*", "mailhelp.external.contracts", "mailhelp.drafts", "mailhelp.webpush",
           "mailhelp.briefing", "mailhelp.processing.attachments",
-          "mailhelp.persistence.*", "mailhelp.action_normalization", "mailhelp.proposal_merge",
-          "mailhelp.precheck", "mailhelp.german_dates", "mailhelp.temporal_answers",
+          "mailhelp.persistence.*", "mailhelp.proposals.action_normalization", "mailhelp.proposals.proposal_merge",
+          "mailhelp.proposals.precheck", "mailhelp.german_dates", "mailhelp.temporal_answers",
           "mailhelp.evaluation", "mailhelp.configuration", "mailhelp.config.*",
           "mailhelp.mailbox.mailbox_run", "mailhelp.application", "mailhelp.service_coordinator",
-          "mailhelp.lifecycle", "mailhelp.profile_usage", "mailhelp.mailbox.iserv", "mailhelp.telegram.*", "mailhelp.review.*",
+          "mailhelp.lifecycle", "mailhelp.proposals.profile_usage", "mailhelp.mailbox.iserv", "mailhelp.telegram.*", "mailhelp.review.*",
           "mailhelp.web.*"]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true

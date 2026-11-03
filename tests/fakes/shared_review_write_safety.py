@@ -3,10 +3,10 @@
 
 
 
-from mailhelp.action_normalization import MailDateContext
 from mailhelp.config import TargetSettings
 from mailhelp.models import ExtractedTask
-from mailhelp.proposal_builder import ProposalBuilder
+from mailhelp.proposals.action_normalization import MailDateContext
+from mailhelp.proposals.proposal_builder import ProposalBuilder
 
 
 def reminder(mail_id, subject, day="2026-10-06", description="Unterlagen an Frau Muster senden"):

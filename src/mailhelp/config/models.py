@@ -700,7 +700,7 @@ class Secrets(BaseModel):
         return self.imap[mailbox_id]
 
     def for_profile(self, profile_id: int) -> Secrets:
-        from ..target_profiles import profile_secrets
+        from ..proposals.target_profiles import profile_secrets
         return profile_secrets(self, profile_id)
 
     def known_values(self) -> tuple[str, ...]:

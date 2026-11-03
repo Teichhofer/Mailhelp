@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from ..external.providers import CALENDAR_LABELS, TASK_LABELS
 from ..models import MailState, Proposal
-from ..proposal_reconciliation import OPEN
+from ..proposals.proposal_reconciliation import OPEN
 from ..review.cards import event_time
 from ..review.views import STATUS_LABELS
 from .forms import post_form

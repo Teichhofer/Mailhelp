@@ -7,7 +7,7 @@ from shared_action_normalization import event as event
 from shared_action_normalization import reminder as reminder
 from shared_action_normalization import task as task
 
-from mailhelp.action_normalization import (
+from mailhelp.proposals.action_normalization import (
     NormalizationReason,
     TemporalValue,
     normalize_event,

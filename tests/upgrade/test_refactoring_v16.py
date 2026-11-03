@@ -4,7 +4,6 @@ from threading import Event
 
 from shared_application import Log, Orch, Store, settings
 
-from mailhelp import integrations
 from mailhelp.external.confirmed import execute_confirmed
 from mailhelp.external.http_writer import HttpWriter
 from mailhelp.external.ical import CalendarFileWriter, calendar_file
@@ -13,6 +12,7 @@ from mailhelp.mailbox.imap import FetchedMail, MailCandidate
 from mailhelp.mailbox.mailbox_run import MailboxRunService, MailboxSource
 from mailhelp.models import MailRunState
 from mailhelp.processing.orchestrator import ProcessingOutcome, ProcessingResult
+from mailhelp.proposals import integrations
 from mailhelp.web import review_pages, status_pages
 
 

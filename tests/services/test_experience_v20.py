@@ -612,7 +612,7 @@ def test_analyzer_reply_uses_configured_prompt():
 def test_strict_briefing_calendar_query_propagates_failure():
     import httpx
 
-    from mailhelp.integrations import HttpWriter
+    from mailhelp.proposals.integrations import HttpWriter
     writer = HttpWriter("google_calendar", "fake", "primary",
         calendar_timezone="UTC",
         transport=httpx.MockTransport(lambda request: httpx.Response(503)))

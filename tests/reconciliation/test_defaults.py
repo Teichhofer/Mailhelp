@@ -5,11 +5,11 @@ import pytest
 from pydantic import ValidationError
 from web_scenario import proposal
 
-from mailhelp.action_normalization import MailDateContext
 from mailhelp.config import EventDefaultsSettings
 from mailhelp.domain.extraction import ExtractedEvent
-from mailhelp.event_defaults import meeting_mode, normalized_event, reapply_defaults
 from mailhelp.external.ical import calendar_file
+from mailhelp.proposals.action_normalization import MailDateContext
+from mailhelp.proposals.event_defaults import meeting_mode, normalized_event, reapply_defaults
 from mailhelp.review.cards import event_time
 from mailhelp.review.editing import ProposalEditPatch, edit_proposal
 
@@ -114,7 +114,7 @@ def test_video_link_is_evidence_even_when_the_title_is_generic():
 
 
 def test_google_calendar_description_records_the_actual_assumption():
-    from mailhelp.integrations import HttpWriter
+    from mailhelp.proposals.integrations import HttpWriter
     result, _, _, _ = normalized_event(extracted(), context(), EventDefaultsSettings())
     item = proposal(1, "default", kind="event", start=result.value.start, end=result.value.end,
                     end_origin="standard", default_duration_minutes=60)
@@ -128,7 +128,7 @@ def test_google_calendar_description_records_the_actual_assumption():
 
 def test_regression_manual_day_can_receive_a_confirmed_start_without_losing_protection():
     from mailhelp.domain.proposal_sources import ProposalSource
-    from mailhelp.proposal_merge import merge_facts
+    from mailhelp.proposals.proposal_merge import merge_facts
     start = datetime(2030, 11, 20, 14, tzinfo=UTC)
     old = proposal(80, "day", kind="event", title="Videokonferenz", known_temporal_facts={"date": start.date()},
         protected_fields=["known_temporal_facts"], certainty="certain",

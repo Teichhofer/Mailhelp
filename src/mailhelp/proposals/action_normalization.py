@@ -26,8 +26,8 @@ from datetime import UTC, date, datetime, time, timedelta, timezone
 from enum import StrEnum
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
-from .domain.temporal import TemporalResolutionStatus, YearSource
-from .german_dates import (
+from ..domain.temporal import TemporalResolutionStatus, YearSource
+from ..german_dates import (
     MONTH_PATTERN,
     MONTHS,
     WEEKDAY_OR_ABBREVIATION_PATTERN,
@@ -35,7 +35,7 @@ from .german_dates import (
     explicit_years,
     weekday_contradicts,
 )
-from .models import ExtractedEvent, ExtractedTask, TemporalFact, TimeRequirement
+from ..models import ExtractedEvent, ExtractedTask, TemporalFact, TimeRequirement
 
 
 class NormalizationReason(StrEnum):

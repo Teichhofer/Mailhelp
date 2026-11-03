@@ -37,8 +37,8 @@ if TYPE_CHECKING:
     from .mailbox.iserv_runtime import IServRuntime
     from .mailbox.mailbox_runtime import MailboxRuntime
     from .notification_runtime import NotificationRuntime
+    from .proposals.target_profiles import ProfileWriters
     from .standalone import DisabledTelegram
-    from .target_profiles import ProfileWriters
 
 _TELEGRAM_ERROR_BACKOFF_SECONDS = 5.0
 
@@ -119,7 +119,7 @@ class Application:
         if iserv is not None:
             checks = (*checks, *((f"IServ {source.account.label}", source.reader.check_access)
                                  for source in iserv.sources))
-        from .target_profiles import ProfileWriters
+        from .proposals.target_profiles import ProfileWriters
         profile_writers = getattr(self, "profile_writers", None)
         if isinstance(profile_writers, ProfileWriters):
             from .mailbox.mailbox_settings import active_profiles, profile_label
@@ -160,7 +160,7 @@ class Application:
         first mail cycle.  A failure is only logged; the service shows as unknown until a
         later contact succeeds.
         """
-        from .target_profiles import UnavailableWriter
+        from .proposals.target_profiles import UnavailableWriter
         checks: list[tuple[str, Any]] = [("llm", self.openrouter)]
         if self.settings.telegram.enabled:
             checks.append(("telegram", self.telegram))
@@ -182,7 +182,7 @@ class Application:
                 self.logger.event("INFO", service, "access_confirmed", **context)
 
     def _active_writers(self) -> list[TargetWriter]:
-        from .target_profiles import ProfileWriters
+        from .proposals.target_profiles import ProfileWriters
         profile_writers = self.profile_writers
         if isinstance(profile_writers, ProfileWriters):
             from .mailbox.mailbox_settings import active_profiles

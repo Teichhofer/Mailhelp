@@ -14,8 +14,8 @@ from urllib.parse import parse_qs, urlencode, urlsplit
 import httpx
 
 from .external.contracts import OAuthTokenError
+from .proposals.target_profiles import secret_name
 from .storage import atomic_replace
-from .target_profiles import secret_name
 
 SCOPES = "https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/calendar.calendars.readonly"
 

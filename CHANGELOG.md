@@ -1,5 +1,13 @@
 # Änderungen
 
+## 3.6.13 – Paket `mailhelp.proposals` (Planung 3.6, Schritt 0.10c)
+
+- Vorschläge, Abgleich und Ziele liegen jetzt im Paket `mailhelp.proposals`
+  (`proposal_builder`, `proposal_matching`, `proposal_merge`, `proposal_reconciliation`,
+  `action_normalization`, `event_defaults`, `precheck`, `profile_binding`, `profile_usage`,
+  `target_profiles`, `integrations`). Importe, Testpfade und Dokumentationsverweise sind
+  angepasst; keine Verhaltensänderung.
+
 ## 3.6.12 – Paket `mailhelp.processing` (Planung 3.6, Schritt 0.10b)
 
 - Die Verarbeitung einer Mail liegt jetzt im Paket `mailhelp.processing` (`orchestrator`,

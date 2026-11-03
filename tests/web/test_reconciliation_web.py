@@ -8,7 +8,7 @@ from web_scenario import mail_id, proposal, save_mail
 from mailhelp.config import EventDefaultsSettings
 from mailhelp.domain.proposal import ProposalStatus
 from mailhelp.domain.proposal_sources import ProposalReference, ProposalSource
-from mailhelp.proposal_reconciliation import ProposalReconciliationService
+from mailhelp.proposals.proposal_reconciliation import ProposalReconciliationService
 from mailhelp.review.commands import CommandKind, CommandSource, ReviewCommand
 from mailhelp.review.results import ResultStatus
 from mailhelp.web.reconciliation_site import digest

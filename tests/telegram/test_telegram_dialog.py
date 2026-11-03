@@ -26,7 +26,6 @@ from mailhelp.adapter import PermanentError, UncertainWriteError
 from mailhelp.application import _state_directory
 from mailhelp.config import OutputTokenRetry, Settings
 from mailhelp.domain.revision_errors import ContradictoryRevision
-from mailhelp.integrations import CalendarFileWriter
 from mailhelp.models import (
     ActionLedger,
     ActionLedgerEntry,
@@ -54,6 +53,7 @@ from mailhelp.processing.analysis import (
     LlmTokenLimitExceeded,
     validate_revision_successor,
 )
+from mailhelp.proposals.integrations import CalendarFileWriter
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import (
     Decision,
@@ -2235,7 +2235,7 @@ def test_responsibility_and_uncertainty_are_not_writable(changes, expected_statu
     assert item.status == expected_status
     writer = Writer()
     with pytest.raises(ValueError, match="neue, sichere und eigene"):
-        from mailhelp.integrations import execute_confirmed
+        from mailhelp.proposals.integrations import execute_confirmed
         execute_confirmed(item.model_copy(update={"status": ProposalStatus.CONFIRMED}), writer, lambda _: None)
     assert writer.created == 0 and writer.reconciled == 0
     decision = Decision(mail_id=item.source_mail_id, proposal_id=item.id, version=item.version, action=DecisionAction.CONFIRM)

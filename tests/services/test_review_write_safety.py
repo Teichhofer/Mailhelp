@@ -10,10 +10,10 @@ from shared_telegram_dialog import callback, controller
 from shared_write_improvements import event
 
 from mailhelp.adapter import RetryableError
-from mailhelp.integrations import HttpWriter, execute_confirmed
 from mailhelp.models import ActionLedger, Proposal, ProposalStatus
 from mailhelp.openrouter import RateLimitExceeded
 from mailhelp.persistence.ledger import ActionLedgerService
+from mailhelp.proposals.integrations import HttpWriter, execute_confirmed
 from mailhelp.storage import JsonStore
 
 

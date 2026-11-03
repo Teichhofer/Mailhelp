@@ -9,7 +9,6 @@ from threading import Event
 from typing import Any, Literal, Protocol, cast
 
 from .. import state_names
-from ..action_normalization import MailDateContext
 from ..config import (
     EventDefaultsSettings,
     OriginalAttachmentSettings,
@@ -34,8 +33,9 @@ from ..models import (
     RelevanceDialog,
     RelevanceDialogStatus,
 )
-from ..precheck import DuplicatePreCheckService
-from ..proposal_builder import ProposalBuilder
+from ..proposals.action_normalization import MailDateContext
+from ..proposals.precheck import DuplicatePreCheckService
+from ..proposals.proposal_builder import ProposalBuilder
 from ..storage import JsonStore
 from ..telegram.formatting import mail_line
 from .analysis import Analyzer
@@ -79,7 +79,7 @@ class Orchestrator:
         self.event_defaults = event_defaults or EventDefaultsSettings()
         self.reconciliation_settings = reconciliation_settings or ProposalReconciliationSettings()
         self.proposal_matcher = proposal_matcher
-        from ..proposal_reconciliation import ProposalReconciliationService
+        from ..proposals.proposal_reconciliation import ProposalReconciliationService
         self.reconciliation = ProposalReconciliationService(
             store, proposal_matcher, self.reconciliation_settings.max_semantic_candidates)
         self.pipeline = MailPipeline(self)

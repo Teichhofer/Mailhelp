@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from .domain.proposal import (
+from ..domain.proposal import (
     DuplicateMatchInfo,
     DuplicateSource,
     Proposal,
@@ -12,11 +12,11 @@ from .domain.proposal import (
     ProposalKind,
     ProposalStatus,
 )
-from .external.calendar import CalendarOperations
-from .external.contracts import ExternalWriter, TargetWriter
-from .external.roles import CALENDAR_SLOT, TASK_SLOT, profile_slot, provider_key, slot
-from .logging import EventLogger, NullLogger
-from .persistence.ledger import ActionLedgerPort
+from ..external.calendar import CalendarOperations
+from ..external.contracts import ExternalWriter, TargetWriter
+from ..external.roles import CALENDAR_SLOT, TASK_SLOT, profile_slot, provider_key, slot
+from ..logging import EventLogger, NullLogger
+from ..persistence.ledger import ActionLedgerPort
 
 
 class DuplicatePreCheckService:

@@ -53,12 +53,12 @@ def test_built_artifacts_exclude_private_runtime_files():
     assert wheel.is_file() and source.is_file(), "Build artifacts for the current version must exist"
     with zipfile.ZipFile(wheel) as archive:
         names = archive.namelist()
-        for module in ("event_defaults.py", "proposal_matching.py", "proposal_merge.py", "proposal_reconciliation.py",
+        for module in ("proposals/event_defaults.py", "proposals/proposal_matching.py", "proposals/proposal_merge.py", "proposals/proposal_reconciliation.py",
                        "domain/proposal_sources.py", "domain/reconciliation.py", "web/reconciliation_site.py",
                        "mailbox/connection_activation.py", "mailbox/connection_runtime.py", "mailbox/mailbox_activation.py",
                        "mailbox/mailbox_runtime.py", "web/mailbox_add_site.py",
-                       "mailbox/mailbox_settings.py", "mailbox/mailbox_briefing.py", "target_profiles.py", "profile_binding.py",
-                       "profile_usage.py", "google_login.py", "web/mailbox_site.py", "notification_runtime.py",
+                       "mailbox/mailbox_settings.py", "mailbox/mailbox_briefing.py", "proposals/target_profiles.py", "proposals/profile_binding.py",
+                       "proposals/profile_usage.py", "google_login.py", "web/mailbox_site.py", "notification_runtime.py",
                        "fingerprints.py", "composition.py", "processing/orchestrator.py",
                        "web/pages.py", "web/review_pages.py", "web/settings_pages.py",
                        "web/status_pages.py", "web/site.py", "metrics.py", "mailbox/imap.py", "mailbox/mailbox_run.py",

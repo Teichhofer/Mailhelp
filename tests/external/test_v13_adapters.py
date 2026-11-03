@@ -3,7 +3,7 @@ from datetime import UTC, date, datetime
 
 import httpx
 
-from mailhelp.integrations import HttpWriter
+from mailhelp.proposals.integrations import HttpWriter
 
 
 def test_fetch_events_in_window_success_and_caching():

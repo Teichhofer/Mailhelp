@@ -23,7 +23,6 @@ from shared_services import mock_response as mock_response
 from mailhelp.adapter import PermanentError, RetryableError
 from mailhelp.config import OutputTokenRetry, TargetSettings, Topic
 from mailhelp.domain.revision_errors import ContradictoryRevision
-from mailhelp.integrations import CalendarFileWriter, HttpWriter, calendar_file, execute_confirmed
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.mailbox.mime import MimeLimits
 from mailhelp.models import (
@@ -49,6 +48,7 @@ from mailhelp.processing.analysis import (
     validate_revision_successor,
 )
 from mailhelp.processing.orchestrator import MailState, Orchestrator, ProcessingOutcome
+from mailhelp.proposals.integrations import CalendarFileWriter, HttpWriter, calendar_file, execute_confirmed
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import Decision, DecisionAction, TelegramClient, apply_decision, split_message
 
@@ -397,10 +397,10 @@ def test_mail_question_resolution_prompt_requires_one_local_value():
 
 
 def test_proposal_builder_forwards_time_requirement_to_event_normalization(monkeypatch):
-    import mailhelp.event_defaults as event_defaults
-    from mailhelp.action_normalization import MailDateContext
+    import mailhelp.proposals.event_defaults as event_defaults
     from mailhelp.models import ExtractedEvent
-    from mailhelp.proposal_builder import ProposalBuilder
+    from mailhelp.proposals.action_normalization import MailDateContext
+    from mailhelp.proposals.proposal_builder import ProposalBuilder
 
     seen = []
     original = event_defaults.normalize_event
@@ -2089,7 +2089,7 @@ def test_calendar_duplicate_merge_ignores_fields_without_safe_source_and_validat
     writer=HttpWriter("google_calendar","x","primary",calendar_timezone="UTC")
     item=proposal(target='primary', kind="event",status="confirmed",start="2026-05-10T10:00:00+00:00",
                   end="2026-05-10T11:00:00+00:00",description="")
-    existing=__import__('mailhelp.integrations',fromlist=['CalendarOverlapEvent']).CalendarOverlapEvent(
+    existing=__import__('mailhelp.proposals.integrations',fromlist=['CalendarOverlapEvent']).CalendarOverlapEvent(
         id="old",summary="x",description="",location="belegt",
         start={"dateTime":"x"},end={"dateTime":"y"})
     decision=CalendarDuplicateDecision(same_event=True,

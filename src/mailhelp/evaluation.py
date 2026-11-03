@@ -14,16 +14,6 @@ from typing import Any, Protocol, overload
 
 import yaml
 
-from .action_normalization import (
-    DEADLINE_DATE_PATTERN,
-    MailDateContext,
-    TemporalValue,
-    _parse_time,
-    deadline_core,
-    normalize_event,
-    normalize_task_due,
-    recover_task_due,
-)
 from .config import PromptConfig, Topic
 from .decisions import (
     DecisionAnalyzer,
@@ -37,6 +27,16 @@ from .mailbox.mime import prepare
 from .models import EventExtraction, TaskExtraction
 from .openrouter import OpenRouterClient
 from .processing.analysis import Analyzer
+from .proposals.action_normalization import (
+    DEADLINE_DATE_PATTERN,
+    MailDateContext,
+    TemporalValue,
+    _parse_time,
+    deadline_core,
+    normalize_event,
+    normalize_task_due,
+    recover_task_due,
+)
 
 _STAGES = ("relevance", "summary", "action_router", "task_extraction", "event_extraction")
 _EXPECTED_KEY = {"action_router": "action_route"}

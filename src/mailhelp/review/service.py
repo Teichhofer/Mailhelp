@@ -131,7 +131,7 @@ class ReviewService:
             if self.configuration is None:
                 return ReviewResult(status=ResultStatus.FAILED, message="Konfigurationsdienst nicht verfügbar.")
             return self.configuration.reconcile(command)
-        from ..proposal_reconciliation import ProposalReconciliationService
+        from ..proposals.proposal_reconciliation import ProposalReconciliationService
         ProposalReconciliationService(self.controller.store).recover()
         if self._took_effect(command):
             self._record(command)
@@ -179,7 +179,7 @@ class ReviewService:
                 and self.web_authorizer(command.actor))
 
     def _execute(self, command: ReviewCommand) -> ReviewResult:
-        from ..proposal_reconciliation import ProposalReconciliationService
+        from ..proposals.proposal_reconciliation import ProposalReconciliationService
         ProposalReconciliationService(self.controller.store).recover()
         if command.kind == CommandKind.RECHECK:
             previous = self._target(command)
@@ -201,7 +201,7 @@ class ReviewService:
                 self.controller.persist(result)
             return ReviewResult(status=ResultStatus.DONE, message="Erneut geprüft; separat bestätigen.")
         if command.kind == CommandKind.RETARGET:
-            from ..profile_binding import retarget
+            from ..proposals.profile_binding import retarget
             previous = self._target(command)
             cfg = getattr(self.controller.relevance_handler, "mailbox_settings", None)
             if cfg is None:
@@ -243,8 +243,8 @@ class ReviewService:
         import json
 
         from ..config import EventDefaultsSettings
-        from ..event_defaults import reapply_defaults
-        from ..proposal_reconciliation import ProposalReconciliationService
+        from ..proposals.event_defaults import reapply_defaults
+        from ..proposals.proposal_reconciliation import ProposalReconciliationService
         service = ProposalReconciliationService(self.controller.store)
         with self.controller.store.locked():
             if command.kind == CommandKind.RESTORE:

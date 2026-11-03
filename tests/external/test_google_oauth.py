@@ -5,7 +5,8 @@ import pytest
 from log_fakes import RecordingLogger as Log
 from shared_core import proposal
 
-from mailhelp.integrations import (
+from mailhelp.logging import JsonlLogger
+from mailhelp.proposals.integrations import (
     AuthenticationError,
     CalendarAccessError,
     GoogleOAuthTokenProvider,
@@ -13,7 +14,6 @@ from mailhelp.integrations import (
     OAuthTokenError,
     execute_confirmed,
 )
-from mailhelp.logging import JsonlLogger
 
 
 def test_first_token_cached_regular_refresh_expiry_and_restart():

@@ -8,7 +8,7 @@ from web_scenario import mail_id, proposal, save_mail
 
 from mailhelp.domain.proposal import DuplicateMatchInfo, ProposalStatus
 from mailhelp.domain.proposal_sources import ProposalReference
-from mailhelp.proposal_reconciliation import ProposalReconciliationService
+from mailhelp.proposals.proposal_reconciliation import ProposalReconciliationService
 from mailhelp.review.commands import ReviewCommand
 from mailhelp.review.errors import StaleCommand
 from mailhelp.review.results import ResultStatus
@@ -141,8 +141,8 @@ def test_known_provider_change_with_same_target_name_never_reads_or_writes_the_n
     from shared_core import proposal as task
 
     from mailhelp.external.confirmed import execute_confirmed
-    from mailhelp.integrations import HttpWriter
-    from mailhelp.precheck import DuplicatePreCheckService
+    from mailhelp.proposals.integrations import HttpWriter
+    from mailhelp.proposals.precheck import DuplicatePreCheckService
     calls = []
     writer = HttpWriter("todoist", "synthetic-token", "inbox",
         transport=httpx.MockTransport(lambda req: calls.append(req)))

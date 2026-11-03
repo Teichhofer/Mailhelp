@@ -6,7 +6,7 @@ from pydantic import ValidationError
 from shared_profiles import settings
 from shared_telegram_dialog import callback, controller, proposal
 
-from mailhelp.profile_binding import choices, policy_hash
+from mailhelp.proposals.profile_binding import choices, policy_hash
 from mailhelp.review.commands import CommandKind, CommandSource, ReviewCommand
 from mailhelp.review.results import ResultStatus
 from mailhelp.storage import JsonStore

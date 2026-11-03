@@ -70,7 +70,7 @@ Es werden keine neuen Nutzerfunktionen eingeführt. Persistierte Daten, externe 
 
 ### 3.3 Integrationsadapter nach Verantwortung ordnen
 
-**Ausgangspunkt:** `src/mailhelp/integrations.py` enthält unter anderem OAuth-Tokenbezug, Todoist- und Kalender-HTTP-Zugriffe, Kalenderüberschneidungen, ICS-Dateierzeugung und bestätigte Schreibabläufe.
+**Ausgangspunkt:** `src/mailhelp/proposals/integrations.py` enthält unter anderem OAuth-Tokenbezug, Todoist- und Kalender-HTTP-Zugriffe, Kalenderüberschneidungen, ICS-Dateierzeugung und bestätigte Schreibabläufe.
 
 **Zielbild:**
 - Google-OAuth, Kalenderzugriffe, Todoist-Zugriffe und ICS-Dateierzeugung erhalten klar definierte interne Grenzen.

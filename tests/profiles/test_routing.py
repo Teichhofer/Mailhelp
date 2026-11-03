@@ -8,7 +8,6 @@ from shared_decision_test import secrets
 from shared_profiles import TOPICS, settings
 from shared_telegram_dialog import Telegram, controller, proposal
 
-from mailhelp import profile_binding
 from mailhelp.adapter import UncertainWriteError
 from mailhelp.external.confirmed import execute_confirmed
 from mailhelp.external.contracts import ExternalUnavailable, PreparedWrite, TargetWriter
@@ -18,10 +17,11 @@ from mailhelp.mailbox.mailbox_settings import event_defaults_for, mailbox_topic_
 from mailhelp.models import MailState, Proposal
 from mailhelp.persistence.ledger import ActionLedgerService
 from mailhelp.persistence.migrations import migrate_document
-from mailhelp.precheck import DuplicatePreCheckService
-from mailhelp.profile_usage import profile_references
+from mailhelp.proposals import profile_binding
+from mailhelp.proposals.precheck import DuplicatePreCheckService
+from mailhelp.proposals.profile_usage import profile_references
+from mailhelp.proposals.target_profiles import ProfileWriters, UnavailableWriter, build_profile_writers
 from mailhelp.storage import JsonStore
-from mailhelp.target_profiles import ProfileWriters, UnavailableWriter, build_profile_writers
 
 
 class Adapter(TargetWriter):
@@ -116,7 +116,7 @@ def test_adapters_are_built_once_and_failures_do_not_disable_other_profiles(tmp_
         if profile_id == 2:
             raise ValueError("secret URL https://private.test")
         return Writers(private, work)
-    monkeypatch.setattr("mailhelp.target_profiles.build_writers", build)
+    monkeypatch.setattr("mailhelp.proposals.target_profiles.build_writers", build)
     secret = secrets().model_copy(update={"profiles": {2: {"microsoft_client_id": secrets().microsoft_client_id}}})
     logger = NS(event=lambda *args, **kwargs: calls.append(kwargs))
     pairs = build_profile_writers(cfg, secret, tmp_path)
