@@ -15,7 +15,7 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from py_vapid import Vapid
 from pywebpush import WebPushException, webpush
 
-from .adapter import PermanentError, RetryableError
+from .llm.adapter import PermanentError, RetryableError
 from .storage import StateStore
 
 

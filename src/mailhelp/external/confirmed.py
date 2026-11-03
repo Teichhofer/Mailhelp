@@ -6,7 +6,7 @@ from typing import Any
 
 import httpx
 
-from ..adapter import PermanentError, UncertainWriteError
+from ..llm.adapter import PermanentError, UncertainWriteError
 from ..models import Proposal, ProposalStatus
 from .contracts import ExternalWriter, PreparedWrite, TargetWriter, proposal_is_writable
 from .roles import provider_key

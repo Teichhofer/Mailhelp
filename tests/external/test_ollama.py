@@ -7,9 +7,9 @@ import httpx
 import pytest
 from pydantic import BaseModel
 
-from mailhelp.adapter import PermanentError, RetryableError
-from mailhelp.ollama import LocalLlm, OllamaClient, parse_address
-from mailhelp.openrouter import ProviderResponseInvalid
+from mailhelp.llm.adapter import PermanentError, RetryableError
+from mailhelp.llm.ollama import LocalLlm, OllamaClient, parse_address
+from mailhelp.llm.openrouter import ProviderResponseInvalid
 
 LOCAL = LocalLlm("192.168.1.20", 11434, "qwen2.5:7b-instruct")
 

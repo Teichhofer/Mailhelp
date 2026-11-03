@@ -9,13 +9,13 @@ import pytest
 from pydantic import SecretStr
 from shared_application import with_sources
 
-from mailhelp.adapter import RetryPolicy
 from mailhelp.application import Application
 from mailhelp.cli import main
 from mailhelp.config import ImapSettings
+from mailhelp.llm.adapter import RetryPolicy
+from mailhelp.llm.openrouter import OpenRouterClient
 from mailhelp.logging import JsonlLogger, NullLogger
 from mailhelp.mailbox.imap import ImapReader
-from mailhelp.openrouter import OpenRouterClient
 from mailhelp.proposals.integrations import GoogleOAuthTokenProvider, HttpWriter
 from mailhelp.telegram import TelegramBotResponse, TelegramChatNotFoundError, TelegramClient
 

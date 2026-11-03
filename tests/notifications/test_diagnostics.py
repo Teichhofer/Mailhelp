@@ -8,8 +8,8 @@ from threading import Event
 import httpx
 import pytest
 
-from mailhelp.adapter import PermanentError
 from mailhelp.diagnostics import DiagnosticResult, DiagnosticsService, error_code
+from mailhelp.llm.adapter import PermanentError
 from mailhelp.storage import JsonStore
 
 

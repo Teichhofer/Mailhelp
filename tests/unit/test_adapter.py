@@ -4,7 +4,8 @@ import json
 import httpx
 import pytest
 
-from mailhelp.adapter import (
+from mailhelp.config import AdapterPolicySettings
+from mailhelp.llm.adapter import (
     PermanentError,
     RetryableError,
     RetryInterrupted,
@@ -12,8 +13,7 @@ from mailhelp.adapter import (
     UncertainWriteError,
     uncertain_write,
 )
-from mailhelp.config import AdapterPolicySettings
-from mailhelp.openrouter import OpenRouterClient, ProviderResponseInvalid, RateLimitExceeded
+from mailhelp.llm.openrouter import OpenRouterClient, ProviderResponseInvalid, RateLimitExceeded
 
 
 def test_provider_response_error_exposes_only_machine_readable_reason():

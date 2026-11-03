@@ -11,9 +11,9 @@ from shared_decisions import answer as answer
 from shared_decisions import envelope as envelope
 from shared_decisions import prompts as prompts
 
-from mailhelp.adapter import PermanentError, RetryableError
 from mailhelp.config import Topic
-from mailhelp.decisions import (
+from mailhelp.llm.adapter import PermanentError, RetryableError
+from mailhelp.llm.decisions import (
     QUESTIONS,
     DecisionAnalyzer,
     DecisionClient,
@@ -24,7 +24,7 @@ from mailhelp.decisions import (
     load_decision_prompts,
     validate_answers,
 )
-from mailhelp.openrouter import RateLimitExceeded
+from mailhelp.llm.openrouter import RateLimitExceeded
 
 ROOT = Path(__file__).resolve().parents[2]
 

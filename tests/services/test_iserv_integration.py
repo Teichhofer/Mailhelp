@@ -14,7 +14,7 @@ from shared_services import AnalyzerStub, Notify
 from shared_web_server import write_config
 
 from mailhelp.config import IServAccountSettings, Settings, Topic, load_all
-from mailhelp.fingerprints import config_fingerprint
+from mailhelp.llm.fingerprints import config_fingerprint
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.metrics import MetricsRecorder, MetricsSettings
 from mailhelp.models import MailState

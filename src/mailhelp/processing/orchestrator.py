@@ -106,7 +106,7 @@ class Orchestrator:
     def fingerprint_for(self, account_id: str) -> str:
         if self.mailbox_settings is None:
             return self.config_fingerprint
-        from ..decisions import relevance_fingerprint
+        from ..llm.decisions import relevance_fingerprint
         from ..mailbox.mailbox_settings import mailbox_fingerprint
         value = mailbox_fingerprint(self.mailbox_settings, self.mailbox_prompts, self.topics,
                                     self.mailbox_number(account_id))

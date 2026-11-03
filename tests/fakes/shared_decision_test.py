@@ -8,14 +8,14 @@ import yaml
 from shared_decisions import ROOT, envelope
 
 from mailhelp.config import Secrets, Settings, Topic
-from mailhelp.decision_test import ComparisonRecorder, DecisionTestMode
-from mailhelp.decision_test import run_decision_test as _run_decision_test
-from mailhelp.decisions import DecisionClient
-from mailhelp.laya import LayaClient
+from mailhelp.llm.decision_test import ComparisonRecorder, DecisionTestMode
+from mailhelp.llm.decision_test import run_decision_test as _run_decision_test
+from mailhelp.llm.decisions import DecisionClient
+from mailhelp.llm.laya import LayaClient
+from mailhelp.llm.ollama import LocalLlm, OllamaClient
+from mailhelp.llm.openrouter import OpenRouterClient
 from mailhelp.mailbox.imap import FetchedMail, MailCandidate
 from mailhelp.models import ActionRoute, EventExtraction, Relevance, Summary, TaskExtraction
-from mailhelp.ollama import LocalLlm, OllamaClient
-from mailhelp.openrouter import OpenRouterClient
 
 LOCAL = LocalLlm("ollama.example.test", 11434, "synthetic/local", 8192)
 
@@ -129,11 +129,11 @@ def configure(tmp_path, monkeypatch, *, none=False, imap_mode="ssl", fail_client
             clients.append(client)
             return client
         return construct
-    monkeypatch.setattr("mailhelp.decision_test.ImapReader", reader_factory)
-    monkeypatch.setattr("mailhelp.decision_test.OpenRouterClient", make_client(OpenRouterClient))
-    monkeypatch.setattr("mailhelp.decision_test.DecisionClient", make_client(DecisionClient))
-    monkeypatch.setattr("mailhelp.decision_test.OllamaClient", make_client(OllamaClient))
-    monkeypatch.setattr("mailhelp.decision_test.LayaClient", make_client(LayaClient))
+    monkeypatch.setattr("mailhelp.llm.decision_test.ImapReader", reader_factory)
+    monkeypatch.setattr("mailhelp.llm.decision_test.OpenRouterClient", make_client(OpenRouterClient))
+    monkeypatch.setattr("mailhelp.llm.decision_test.DecisionClient", make_client(DecisionClient))
+    monkeypatch.setattr("mailhelp.llm.decision_test.OllamaClient", make_client(OllamaClient))
+    monkeypatch.setattr("mailhelp.llm.decision_test.LayaClient", make_client(LayaClient))
     return cfg, reader, clients, requests, reader_options
 
 class AnalyzerStub:

@@ -16,7 +16,7 @@ from typing import Any, cast
 
 import httpx
 
-from .config import LOCAL_NUM_CTX
+from ..config import LOCAL_NUM_CTX
 from .openrouter import OpenRouterClient
 
 # OpenRouter request parameters with a direct counterpart in Ollama ``options``.

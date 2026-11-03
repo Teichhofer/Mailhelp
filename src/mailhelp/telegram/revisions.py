@@ -9,8 +9,8 @@ import httpx
 from pydantic import ValidationError
 
 from .. import state_names
-from ..adapter import RetryableError
 from ..domain.revision_errors import ContradictoryRevision, TechnicalRevisionError
+from ..llm.adapter import RetryableError
 from ..models import (
     AnswerStatus,
     MailState,

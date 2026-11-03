@@ -10,7 +10,7 @@ from typing import Any, Protocol, cast
 import httpx
 from pydantic import ValidationError
 
-from ..adapter import PermanentError, RetryInterrupted, RetryPolicy, uncertain_write
+from ..llm.adapter import PermanentError, RetryInterrupted, RetryPolicy, uncertain_write
 from ..logging import EventLogger, NullLogger
 from ..notification_context import web_reply
 from .callbacks import validate_callback_markup

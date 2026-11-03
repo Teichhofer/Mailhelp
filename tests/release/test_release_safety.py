@@ -17,7 +17,7 @@ def test_regression_shortlink_bait_cannot_become_an_action_even_if_model_says_so
     import yaml
 
     from mailhelp.config import PromptConfig, Topic
-    from mailhelp.decisions import JevRelevanceAnalyzer
+    from mailhelp.llm.decisions import JevRelevanceAnalyzer
     from mailhelp.processing.analysis import Analyzer
 
     config = PromptConfig.model_validate(yaml.safe_load(

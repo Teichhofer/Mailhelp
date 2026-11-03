@@ -22,10 +22,11 @@ from shared_telegram_dialog import message as message
 from shared_telegram_dialog import proposal as proposal
 from shared_telegram_dialog import relevance_state as relevance_state
 
-from mailhelp.adapter import PermanentError, UncertainWriteError
 from mailhelp.application import _state_directory
 from mailhelp.config import OutputTokenRetry, Settings
 from mailhelp.domain.revision_errors import ContradictoryRevision
+from mailhelp.llm.adapter import PermanentError, UncertainWriteError
+from mailhelp.llm.openrouter import ProviderResponseInvalid
 from mailhelp.models import (
     ActionLedger,
     ActionLedgerEntry,
@@ -43,7 +44,6 @@ from mailhelp.models import (
     TelegramDialogState,
     apply_proposal_revision,
 )
-from mailhelp.openrouter import ProviderResponseInvalid
 from mailhelp.persistence.proposals import proposal_version_name
 from mailhelp.processing.analysis import (
     Analyzer,

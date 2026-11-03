@@ -131,7 +131,7 @@ Version 1.5 widmet sich fünf gezielten Usability-, Darstellungs- und Stabilitä
 
 #### Problemstellung & Fehleranalyse:
 - Telegram-Long-Polling (`/getUpdates`) bricht bei ungenutzter TCP-Verbindung nach ca. 24–30 Sekunden serverseitig mit `RemoteProtocolError: Server disconnected without sending a response` ab. Dies ist bei HTTP-Long-Polling ein normales, wiederholbares Netzwerkereignis.
-- Die `RetryPolicy` in `src/mailhelp/adapter.py` fängt diesen Fehler und wartet den Backoff-Delay via `stop_event.wait(delay)` ab.
+- Die `RetryPolicy` in `src/mailhelp/llm/adapter.py` fängt diesen Fehler und wartet den Backoff-Delay via `stop_event.wait(delay)` ab.
 - Wurde zeitgleich die Anwendung beendet (SIGINT, Docker-Stop, Web-UI „Beenden“), ist `stop_event` gesetzt. `wait()` bricht sofort ab und wirft `RetryInterrupted("Shutdown waehrend Adapter-Backoff")`.
 - In `src/mailhelp/telegram/client.py` fing `poll()` bisher pauschal `except Exception as exc:` und protokollierte unweigerlich `ERROR telegram poll_failed` mit vollständigem Stacktrace.
 - Dies führte zu verwirrenden False-Positive-Fehlermeldungen im Log, obwohl sich der Hintergrund-Thread nur 3 ms später regulär mit `receiver_stopped` beendete.

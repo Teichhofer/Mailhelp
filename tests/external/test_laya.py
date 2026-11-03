@@ -7,10 +7,10 @@ from pathlib import Path
 import httpx
 import pytest
 
-from mailhelp.adapter import PermanentError
 from mailhelp.config import Topic
-from mailhelp.decisions import DecisionResponseError
-from mailhelp.laya import (
+from mailhelp.llm.adapter import PermanentError
+from mailhelp.llm.decisions import DecisionResponseError
+from mailhelp.llm.laya import (
     MAX_TOPICS,
     LayaClient,
     LayaPrompts,

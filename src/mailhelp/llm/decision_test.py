@@ -16,21 +16,21 @@ from uuid import uuid4
 
 import httpx
 
+from ..config import MailboxSettings, PromptConfig, Secrets, Settings, Topic
+from ..logging import NullLogger, redact
+from ..mailbox.imap import FolderNotReadable, ImapReader, MailCandidate, reader_arguments
+from ..mailbox.mime import prepare
+from ..paths import runtime_path
+from ..processing.analysis import Analyzer
 from .adapter import RetryPolicy
-from .config import MailboxSettings, PromptConfig, Secrets, Settings, Topic
 from .decisions import DecisionAnalyzer, DecisionClient, JevRelevanceAnalyzer, load_relevance_prompts
 from .evaluation import write_report
 from .laya import LayaClient, LayaRelevanceAnalyzer, load_laya_prompts
-from .logging import NullLogger, redact
-from .mailbox.imap import FolderNotReadable, ImapReader, MailCandidate, reader_arguments
-from .mailbox.mime import prepare
 from .ollama import LocalLlm, OllamaClient
 from .openrouter import OpenRouterClient
-from .paths import runtime_path
-from .processing.analysis import Analyzer
 
 if TYPE_CHECKING:
-    from .metrics import MetricsRecorder
+    from ..metrics import MetricsRecorder
 
 
 class ComparisonRecorder(NullLogger):
@@ -145,8 +145,8 @@ class DecisionTestMode:
         record["paths"][name] = result
         if self.recorder.metrics is not None:
             self.recorder.metrics.test_mail_hash = record.get("mail_sha256")
-        from .mailbox.mailbox_settings import effective_topics
-        from .mailbox.sender_filter import is_irrelevant_sender
+        from ..mailbox.mailbox_settings import effective_topics
+        from ..mailbox.sender_filter import is_irrelevant_sender
         topics = effective_topics(self.topics, record.get("mailbox", self.mailbox.id))
         number = record.get("mailbox", self.mailbox.id)
         if isinstance(classifier, LocalPipeline):
@@ -157,7 +157,7 @@ class DecisionTestMode:
         blocked = self.blocked_senders is not None and is_irrelevant_sender(
             mail.get("headers", {}).get("from", ""), self.blocked_senders, number)
         if blocked or not any(topic.enabled for topic in topics):
-            from .models import Relevance
+            from ..models import Relevance
             operation = lambda: ("prefilter", Relevance(decision="irrelevant", topic_ids=[], reason="Postfachfilter"))
         else:
             operation = lambda: classifier.relevance(mail, topics)
@@ -413,7 +413,7 @@ def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
         pass
     known_secrets = secrets.known_values()
     recorder = ComparisonRecorder(log_path, known_secrets)
-    from .metrics import DECISION_TEST_FILE, MetricsRecorder, metrics_directory
+    from ..metrics import DECISION_TEST_FILE, MetricsRecorder, metrics_directory
     # Content-free metrics of every comparison run in one log, separate from production.
     metrics = MetricsRecorder(
         metrics_directory(runtime_path(settings.logging.directory, directory)) / DECISION_TEST_FILE,
@@ -430,7 +430,7 @@ def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
                        for mailbox in mailboxes]
             standard, ollama = _comparison_analyzers(settings, secrets, prompts, decision_prompts, local_llm,
                                                      laya, laya_prompts, irrelevant_topics, recorder, stack)
-            from .models import IrrelevantSenders
+            from ..models import IrrelevantSenders
             sender_file = directory / "irrelevant-senders.json"
             blocked = (IrrelevantSenders.model_validate(json.loads(sender_file.read_text(encoding="utf-8")))
                        if sender_file.exists() else IrrelevantSenders())

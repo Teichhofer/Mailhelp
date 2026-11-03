@@ -82,7 +82,7 @@ def event_defaults_for(settings: Settings, store, proposal, numbers=None):
 
 
 def mailbox_fingerprint(settings: Settings, prompts, topics: list[Topic], mailbox_id: int) -> str:
-    from ..fingerprints import _hash, config_fingerprint
+    from ..llm.fingerprints import _hash, config_fingerprint
 
     effective = effective_settings(settings, mailbox_id)
     selected = [topic.model_copy(update={"mailboxes": None}) for topic in effective_topics(topics, mailbox_id)]
@@ -95,7 +95,7 @@ def mailbox_fingerprint(settings: Settings, prompts, topics: list[Topic], mailbo
 
 
 def mailbox_topic_policy(settings: Settings, prompts, mailbox_id: int) -> str:
-    from ..fingerprints import _hash, topic_policy
+    from ..llm.fingerprints import _hash, topic_policy
 
     cfg = effective_settings(settings, mailbox_id)
     value = topic_policy(cfg, prompts)

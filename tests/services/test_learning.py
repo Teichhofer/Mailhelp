@@ -8,7 +8,7 @@ import pytest
 import yaml
 
 from mailhelp.config import Topic
-from mailhelp.learning import LearningMode, _safe_terminal, _topic_id, add_discovered_folders, save_topics
+from mailhelp.llm.learning import LearningMode, _safe_terminal, _topic_id, add_discovered_folders, save_topics
 from mailhelp.mailbox.imap import FetchedMail, FolderNotReadable, MailCandidate
 from mailhelp.models import AbstractCategories, LearnedCategory, MailClassification, Relevance
 from mailhelp.processing.analysis import Analyzer as RealAnalyzer

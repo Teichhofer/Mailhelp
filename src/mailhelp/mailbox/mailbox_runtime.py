@@ -16,8 +16,8 @@ class MailboxRuntime(PendingConnections):
         self.secrets = secrets
 
     def _apply(self, pending):
-        from ..adapter import RetryPolicy
         from ..composition import _mailbox_labels
+        from ..llm.adapter import RetryPolicy
         from .imap import ImapReader, mailbox_account_id, reader_arguments
         from .mailbox_run import MailboxSource
         configured, secrets = pending

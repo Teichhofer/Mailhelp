@@ -5,7 +5,7 @@ from types import SimpleNamespace as NS
 import pytest
 from pydantic import ValidationError
 
-from mailhelp.adapter import PermanentError, RetryableError
+from mailhelp.llm.adapter import PermanentError, RetryableError
 from mailhelp.notification_config import (
     Batching,
     Categories,

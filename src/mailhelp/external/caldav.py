@@ -14,7 +14,7 @@ from urllib.parse import urljoin, urlsplit
 
 import httpx
 
-from ..adapter import PermanentError, RetryPolicy, uncertain_write
+from ..llm.adapter import PermanentError, RetryPolicy, uncertain_write
 from ..logging import EventLogger, NullLogger
 from ..models import Proposal, ProposalKind
 from .calendar import CalendarOperations

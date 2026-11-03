@@ -20,9 +20,10 @@ from shared_services import _MailQuestionAnalyzer as _MailQuestionAnalyzer
 from shared_services import _resolve_from_mail as _resolve_from_mail
 from shared_services import mock_response as mock_response
 
-from mailhelp.adapter import PermanentError, RetryableError
 from mailhelp.config import OutputTokenRetry, TargetSettings, Topic
 from mailhelp.domain.revision_errors import ContradictoryRevision
+from mailhelp.llm.adapter import PermanentError, RetryableError
+from mailhelp.llm.openrouter import InvalidJson, OpenRouterClient, ProviderResponseInvalid, RateLimitExceeded
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.mailbox.mime import MimeLimits
 from mailhelp.models import (
@@ -36,7 +37,6 @@ from mailhelp.models import (
     TaskExtraction,
     apply_proposal_revision,
 )
-from mailhelp.openrouter import InvalidJson, OpenRouterClient, ProviderResponseInvalid, RateLimitExceeded
 from mailhelp.processing.analysis import (
     JSON_REPAIR_INSTRUCTION,
     SCHEMA_REPAIR_INSTRUCTION,

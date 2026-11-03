@@ -4,9 +4,9 @@ from __future__ import annotations
 from shared_vision import Reader, image_bytes, mail, noise
 
 from mailhelp.config import Topic, VisionSettings
+from mailhelp.llm.openrouter import RateLimitExceeded
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.models import IrrelevantSenders, Relevance, VisionExtractionResult
-from mailhelp.openrouter import RateLimitExceeded
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.processing.vision import VisionExtractor
 from mailhelp.storage import JsonStore

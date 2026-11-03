@@ -9,8 +9,8 @@ from typing import Any
 
 import httpx
 
-from ..adapter import RetryPolicy
 from ..config import Secrets, Settings, TargetSettings
+from ..llm.adapter import RetryPolicy
 from ..logging import EventLogger
 from .caldav import AppleReminders, CalDavCalendar, CalDavTasks
 from .contracts import TargetWriter

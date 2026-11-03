@@ -153,7 +153,7 @@ def test_lists_that_cannot_be_edited_are_refused():
 
 
 def test_learning_mode_adds_folders_without_losing_comments(tmp_path):
-    from mailhelp.learning import add_discovered_folders
+    from mailhelp.llm.learning import add_discovered_folders
     path = tmp_path / "config.yaml"
     example = Path("config.example.yaml").read_text(encoding="utf-8")
     path.write_text(example, encoding="utf-8")
@@ -166,10 +166,10 @@ def test_learning_mode_adds_folders_without_losing_comments(tmp_path):
 
 
 def test_learning_mode_refuses_an_unsafe_folder_change(tmp_path, monkeypatch):
-    from mailhelp.learning import add_discovered_folders
+    from mailhelp.llm.learning import add_discovered_folders
     path = tmp_path / "config.yaml"
     path.write_text("imap:\n  folders: [INBOX]\n", encoding="utf-8")
-    monkeypatch.setattr("mailhelp.learning.set_list", lambda text, dotted, items: text)
+    monkeypatch.setattr("mailhelp.llm.learning.set_list", lambda text, dotted, items: text)
     with pytest.raises(RuntimeError, match="von Hand"):
         add_discovered_folders(path, ["INBOX"], ["INBOX", "Neu"])
     assert path.read_text(encoding="utf-8") == "imap:\n  folders: [INBOX]\n"

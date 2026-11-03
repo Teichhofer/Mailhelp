@@ -21,7 +21,7 @@ from .config import (
     read_yaml,
 )
 from .domain.relevance import IrrelevantSenders
-from .learning import topics_document
+from .llm.learning import topics_document
 from .mailbox.sender_filter import change_irrelevant_senders, save_sender_filter
 from .review.commands import CommandSource
 from .review.results import ResultStatus, ReviewResult

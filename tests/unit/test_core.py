@@ -21,7 +21,6 @@ from shared_core import proposal as proposal
 from shared_core import shipped_configuration as shipped_configuration
 
 from mailhelp import __version__
-from mailhelp.adapter import RetryPolicy
 from mailhelp.cli import main
 from mailhelp.config import (
     IrrelevantTopicsConfig,
@@ -35,6 +34,7 @@ from mailhelp.config import (
     load_all,
     read_yaml,
 )
+from mailhelp.llm.adapter import RetryPolicy
 from mailhelp.logging import JsonlLogger, redact
 from mailhelp.mailbox.imap import (
     ImapReader,

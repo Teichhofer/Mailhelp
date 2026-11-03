@@ -9,9 +9,9 @@ from shared_review_write_safety import reminder as reminder
 from shared_telegram_dialog import callback, controller
 from shared_write_improvements import event
 
-from mailhelp.adapter import RetryableError
+from mailhelp.llm.adapter import RetryableError
+from mailhelp.llm.openrouter import RateLimitExceeded
 from mailhelp.models import ActionLedger, Proposal, ProposalStatus
-from mailhelp.openrouter import RateLimitExceeded
 from mailhelp.persistence.ledger import ActionLedgerService
 from mailhelp.proposals.integrations import HttpWriter, execute_confirmed
 from mailhelp.storage import JsonStore

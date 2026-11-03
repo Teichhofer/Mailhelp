@@ -8,11 +8,11 @@ from log_fakes import RecordingLogger
 from shared_core import proposal
 from shared_write_improvements import event
 
-from mailhelp.adapter import RetryableError, RetryPolicy
 from mailhelp.external.caldav import AppleReminders, CalDavCalendar, CalDavTasks, _xml
 from mailhelp.external.confirmed import execute_confirmed
 from mailhelp.external.contracts import AuthenticationError, CalendarAccessError
 from mailhelp.external.icalendar_data import resource_uid
+from mailhelp.llm.adapter import RetryableError, RetryPolicy
 from mailhelp.models import CalendarDuplicateDecision, ProposalStatus
 
 TASKS = "https://dav.example.test/remote.php/dav/calendars/anna/tasks/"

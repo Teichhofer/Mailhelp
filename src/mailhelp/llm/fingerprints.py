@@ -35,8 +35,8 @@ import hashlib
 import json
 from typing import Any
 
-from .config import MAILBOX_FIELDS, PromptConfig, Settings, Topic
-from .storage import JsonStore
+from ..config import MAILBOX_FIELDS, PromptConfig, Settings, Topic
+from ..storage import JsonStore
 
 # Sections and fields introduced by 2.0 and later; they never influence an analysis.
 EXPERIENCE = frozenset({"push", "daily_briefing", "smart_reply", "personal_info", "activity_report", "notifications",

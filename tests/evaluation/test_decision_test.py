@@ -23,13 +23,13 @@ from shared_quality_corpus import prompt_config
 
 from mailhelp import cli
 from mailhelp.config import Topic
-from mailhelp.decision_test import ComparisonRecorder, DecisionTestMode, _raw_mail
-from mailhelp.decisions import DecisionClient, jev_mail
-from mailhelp.laya import LayaClient
+from mailhelp.llm.decision_test import ComparisonRecorder, DecisionTestMode, _raw_mail
+from mailhelp.llm.decisions import DecisionClient, jev_mail
+from mailhelp.llm.laya import LayaClient
+from mailhelp.llm.ollama import LocalLlm, OllamaClient
+from mailhelp.llm.openrouter import OpenRouterClient
 from mailhelp.mailbox.imap import FolderNotReadable
 from mailhelp.models import Summary
-from mailhelp.ollama import LocalLlm, OllamaClient
-from mailhelp.openrouter import OpenRouterClient
 
 LOCAL = LocalLlm("ollama.example.test", 11434, "synthetic/local", 8192)
 LAYA = ("laya.example.test", 11434)
@@ -193,7 +193,7 @@ def test_required_folder_failure_is_not_silently_ignored(tmp_path):
 
 def test_invalid_mail_is_retained_but_never_sent_to_models(tmp_path, monkeypatch):
     runner = mode(tmp_path)
-    monkeypatch.setattr("mailhelp.decision_test.prepare", lambda *args: (_ for _ in ()).throw(ValueError("unsafe")))
+    monkeypatch.setattr("mailhelp.llm.decision_test.prepare", lambda *args: (_ for _ in ()).throw(ValueError("unsafe")))
     assert runner.run(1) == 1
     record = runner.report["mails"][0]
     assert record["raw_rfc822_base64"] and record["paths"] == {}
@@ -337,7 +337,7 @@ def test_ollama_construction_failure_closes_cloud_clients_and_imap(tmp_path, mon
     cfg, reader, clients, *_ = configure(tmp_path, monkeypatch)
     def fail(*args, **kwargs):
         raise RuntimeError("synthetic Ollama construction failure")
-    monkeypatch.setattr("mailhelp.decision_test.OllamaClient", fail)
+    monkeypatch.setattr("mailhelp.llm.decision_test.OllamaClient", fail)
     with pytest.raises(RuntimeError, match="construction failure"):
         run_decision_test(cfg, secrets(), topics(), prompt_config(), 1, tmp_path)
     assert reader.closed and len(clients) == 2 and all(c.client.is_closed for c in clients)
@@ -508,7 +508,7 @@ def test_intermediate_reports_are_throttled_but_the_final_state_is_always_writte
     """Regression: rewriting the full report after every stage grew quadratically."""
     now = [0.0]
     writes = []
-    monkeypatch.setattr("mailhelp.decision_test.write_report", lambda path, report: writes.append(now[0]))
+    monkeypatch.setattr("mailhelp.llm.decision_test.write_report", lambda path, report: writes.append(now[0]))
     mode = DecisionTestMode(None, None, None, settings(), [], {"mails": []}, tmp_path / "r.json",
                             SimpleNamespace(secrets=[]), save_interval=60, clock=lambda: now[0])
     for moment, force in ((0.0, False), (59.9, False), (60.0, False), (60.5, True)):
@@ -518,7 +518,7 @@ def test_intermediate_reports_are_throttled_but_the_final_state_is_always_writte
 
 
 def test_imap_retries_of_the_decision_test_wait_without_interruption(monkeypatch):
-    from mailhelp import decision_test
+    from mailhelp.llm import decision_test
     waited = []
     monkeypatch.setattr(decision_test.time, "sleep", waited.append)
     assert decision_test._pause(1.5) is False and waited == [1.5]

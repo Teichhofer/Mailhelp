@@ -9,10 +9,11 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, cast
 
-from ..adapter import PermanentError
 from ..config import TargetSettings
 from ..domain.prepared import PreparedMail
 from ..domain.proposal import ProposalStatus
+from ..llm.adapter import PermanentError
+from ..llm.openrouter import RateLimitExceeded
 from ..mailbox.imap import FetchedMail
 from ..mailbox.mime import MimeLimitExceeded, extract_display_headers, prepare
 from ..mailbox.sender_filter import is_irrelevant_sender
@@ -29,7 +30,6 @@ from ..models import (
     Summary,
     ValidationIssue,
 )
-from ..openrouter import RateLimitExceeded
 from .analysis import (
     LlmInvalidJson,
     LlmProviderResponseInvalid,

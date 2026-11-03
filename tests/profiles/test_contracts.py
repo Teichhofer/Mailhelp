@@ -7,7 +7,7 @@ from shared_core import prompt_config
 from shared_profiles import TOPICS, settings
 
 from mailhelp.config import Secrets, Settings, Topic, validated_file
-from mailhelp.fingerprints import config_fingerprint, topic_policy
+from mailhelp.llm.fingerprints import config_fingerprint, topic_policy
 from mailhelp.mailbox.mailbox_settings import (
     active_profiles,
     effective_settings,

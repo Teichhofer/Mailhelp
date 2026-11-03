@@ -9,7 +9,6 @@ from log_fakes import RecordingLogger
 from shared_core import proposal
 from shared_write_improvements import event
 
-from mailhelp.adapter import RetryableError, RetryPolicy
 from mailhelp.external.confirmed import execute_confirmed
 from mailhelp.external.contracts import AuthenticationError, CalendarAccessError, ExternalUnavailable, OAuthTokenError
 from mailhelp.external.microsoft import (
@@ -20,6 +19,7 @@ from mailhelp.external.microsoft import (
     OutlookCalendar,
     TokenFile,
 )
+from mailhelp.llm.adapter import RetryableError, RetryPolicy
 from mailhelp.models import CalendarDuplicateDecision, ProposalStatus
 
 

@@ -10,9 +10,9 @@ from shared_core import prompt_config
 from shared_decision_test import secrets
 from shared_decisions import ROOT, envelope, prompts
 
-from mailhelp.adapter import PermanentError
 from mailhelp.application import build_application
-from mailhelp.decisions import (
+from mailhelp.llm.adapter import PermanentError
+from mailhelp.llm.decisions import (
     DecisionAnalyzer,
     DecisionClient,
     JevRelevanceAnalyzer,
@@ -20,8 +20,8 @@ from mailhelp.decisions import (
     load_relevance_prompts,
     relevance_fingerprint,
 )
+from mailhelp.llm.openrouter import OpenRouterClient, RateLimitExceeded
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.openrouter import OpenRouterClient, RateLimitExceeded
 from mailhelp.processing.analysis import Analyzer
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.storage import JsonStore

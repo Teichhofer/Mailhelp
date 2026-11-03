@@ -15,7 +15,7 @@ from mailhelp.cli import (
     main,
 )
 from mailhelp.config import ImapSettings
-from mailhelp.learning import LearningSource
+from mailhelp.llm.learning import LearningSource
 from mailhelp.mailbox.mailbox_run import MailboxSource
 
 
@@ -140,7 +140,7 @@ def test_cli_forwards_mail_limit_and_rejects_non_positive_values(monkeypatch):
 ])
 def test_cli_starts_experimental_local_ollama_mode(monkeypatch, arguments, configured,
                                                    expected_model, num_ctx):
-    from mailhelp.ollama import LocalLlm
+    from mailhelp.llm.ollama import LocalLlm
 
     built = []
 

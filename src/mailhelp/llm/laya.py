@@ -21,9 +21,9 @@ from typing import Any
 import httpx
 from pydantic import Field, model_validator
 
-from .config import ConfigModel, Topic, read_yaml, validated_file
+from ..config import ConfigModel, Topic, read_yaml, validated_file
+from ..models import Relevance
 from .decisions import DecisionClient, Probability, Question, validate_answers
-from .models import Relevance
 from .ollama import LocalLlm, raise_for_ollama_status, require_installed_model
 
 _LINK = re.compile(r"https?://\S+")
@@ -70,7 +70,7 @@ def load_laya_prompts(directory: Path) -> LayaPrompts:
     """Use the editable configuration, or the packaged template if absent."""
     path = directory / "laya_prompts.yaml"
     if not path.exists():
-        path = Path(__file__).parent / "defaults" / "laya_prompts.yaml"
+        path = Path(__file__).parents[1] / "defaults" / "laya_prompts.yaml"
     return validated_file(path, LayaPrompts, read_yaml(path))
 
 

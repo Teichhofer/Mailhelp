@@ -18,7 +18,7 @@ from web_scenario import mail_id, proposal
 
 from mailhelp.application import Application
 from mailhelp.configuration import AdminCommand, AdminKind, file_hash
-from mailhelp.decision_test import ComparisonRecorder
+from mailhelp.llm.decision_test import ComparisonRecorder
 from mailhelp.metrics import MetricsRecorder, MetricsSettings, server_electricity
 from mailhelp.models import MailState, ProcessingError, RelevanceDialog
 from mailhelp.review.archive import record_event, record_relevance
@@ -534,7 +534,7 @@ def test_after_a_stop_request_web_commands_wait_and_run_after_a_restart(web, tmp
 
 def test_a_parallel_learning_run_wins_over_an_open_topic_form(web, tmp_path):
     from mailhelp.config import Topic
-    from mailhelp.learning import save_topics
+    from mailhelp.llm.learning import save_topics
     from mailhelp.models import LearnedCategory
     configure(web, tmp_path)
     form = web.form("/themen", action="/themen/speichern", original_id="")
@@ -555,7 +555,7 @@ def test_a_parallel_learning_run_wins_over_an_open_topic_form(web, tmp_path):
 def test_crash_before_or_after_the_atomic_topic_swap(web, tmp_path, swapped):
     from mailhelp.config import Topic
     from mailhelp.configuration import AdminCommand, AdminKind, file_hash
-    from mailhelp.learning import topics_document
+    from mailhelp.llm.learning import topics_document
     service, *_ = configure(web, tmp_path)
     path = tmp_path / "topics.yaml"
     command = AdminCommand(kind=AdminKind.TOPICS, actor=f"web:{web.auth.sessions()[0].id}",

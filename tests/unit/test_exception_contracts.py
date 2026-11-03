@@ -6,7 +6,6 @@ import pkgutil
 from typing import Any
 
 import mailhelp
-from mailhelp.adapter import PermanentError, RetryableError, UncertainWriteError
 from mailhelp.external.contracts import (
     AuthenticationError,
     CalendarAccessError,
@@ -16,6 +15,7 @@ from mailhelp.external.contracts import (
     ExternalUncertain,
     OAuthTokenError,
 )
+from mailhelp.llm.adapter import PermanentError, RetryableError, UncertainWriteError
 from mailhelp.logging import log_and_continue
 
 

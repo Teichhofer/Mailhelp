@@ -15,10 +15,10 @@ from pathlib import Path
 from .application import build_application, build_logger
 from .config import LOCAL_NUM_CTX, Settings, load_all
 from .config.loader import MissingConfiguration
-from .decision_test import run_decision_test
-from .decisions import load_relevance_prompts
-from .learning import LearningMode, LearningSource
-from .ollama import LocalLlm, parse_address
+from .llm.decision_test import run_decision_test
+from .llm.decisions import load_relevance_prompts
+from .llm.learning import LearningMode, LearningSource
+from .llm.ollama import LocalLlm, parse_address
 from .paths import runtime_path
 from .storage import AlreadyRunning, JsonStore
 

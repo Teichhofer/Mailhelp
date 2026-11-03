@@ -8,11 +8,11 @@ from shared_decision_test import secrets
 from shared_profiles import TOPICS, settings
 from shared_telegram_dialog import Telegram, controller, proposal
 
-from mailhelp.adapter import UncertainWriteError
 from mailhelp.external.confirmed import execute_confirmed
 from mailhelp.external.contracts import ExternalUnavailable, PreparedWrite, TargetWriter
 from mailhelp.external.providers import Writers, microsoft_tokens
 from mailhelp.external.roles import writer_for
+from mailhelp.llm.adapter import UncertainWriteError
 from mailhelp.mailbox.mailbox_settings import event_defaults_for, mailbox_topic_policy
 from mailhelp.models import MailState, Proposal
 from mailhelp.persistence.ledger import ActionLedgerService

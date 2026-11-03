@@ -12,7 +12,7 @@ from shared_application import Imap, Orch, app
 from shared_application import Telegram as AppTelegram
 from shared_telegram_dialog import Logger, RevisionService, Telegram, callback, message, proposal
 
-from mailhelp.adapter import PermanentError
+from mailhelp.llm.adapter import PermanentError
 from mailhelp.logging import JsonlLogger
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.service_coordinator import ServiceCoordinator

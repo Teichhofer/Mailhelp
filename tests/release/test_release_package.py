@@ -10,7 +10,7 @@ import pytest
 
 import mailhelp
 from mailhelp.config import load_all
-from mailhelp.decisions import load_relevance_prompts
+from mailhelp.llm.decisions import load_relevance_prompts
 
 ROOT = Path(__file__).parents[2]
 
@@ -59,7 +59,7 @@ def test_built_artifacts_exclude_private_runtime_files():
                        "mailbox/mailbox_runtime.py", "web/mailbox_add_site.py",
                        "mailbox/mailbox_settings.py", "mailbox/mailbox_briefing.py", "proposals/target_profiles.py", "proposals/profile_binding.py",
                        "proposals/profile_usage.py", "google_login.py", "web/mailbox_site.py", "notification_runtime.py",
-                       "fingerprints.py", "composition.py", "processing/orchestrator.py",
+                       "llm/fingerprints.py", "composition.py", "processing/orchestrator.py",
                        "web/pages.py", "web/review_pages.py", "web/settings_pages.py",
                        "web/status_pages.py", "web/site.py", "metrics.py", "mailbox/imap.py", "mailbox/mailbox_run.py",
                        "credentials.py", "web/credential_pages.py", "web/settings_site.py",

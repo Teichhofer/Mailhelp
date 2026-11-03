@@ -3,7 +3,7 @@
 
 from pathlib import Path
 
-from mailhelp.decisions import load_decision_prompts
+from mailhelp.llm.decisions import load_decision_prompts
 
 ROOT = Path(__file__).resolve().parents[2]
 

@@ -1,5 +1,15 @@
 # Änderungen
 
+## 3.6.14 – Paket `mailhelp.llm` (Planung 3.6, Schritt 0.10d)
+
+- Sprachmodell-Clients, Entscheidungsprompts, Lernmodus, Bewertung und
+  Konfigurations-Fingerprints liegen jetzt im Paket `mailhelp.llm` (`adapter`, `openrouter`,
+  `ollama`, `decisions`, `laya`, `learning`, `evaluation`, `decision_test`, `fingerprints`).
+  Der Befehl `mailhelp-evaluate` zeigt auf `mailhelp.llm.evaluation:main`. Importe, Testpfade
+  und Dokumentationsverweise sind angepasst; keine Verhaltensänderung.
+- Die mitgelieferten Prompt-Vorlagen (`defaults/decisions_prompts.yaml`,
+  `defaults/laya_prompts.yaml`) werden vom neuen Ort aus weiterhin im Wurzelpaket gefunden.
+
 ## 3.6.13 – Paket `mailhelp.proposals` (Planung 3.6, Schritt 0.10c)
 
 - Vorschläge, Abgleich und Ziele liegen jetzt im Paket `mailhelp.proposals`

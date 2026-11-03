@@ -11,14 +11,14 @@ from typing import Any, cast
 
 import yaml
 
-from .config import IrrelevantTopicsConfig, Topic, TopicsConfig
-from .mailbox.imap import FetchedMail, FolderNotReadable, ImapReader, MailCandidate
-from .mailbox.mime import prepare
-from .mailbox.sender_filter import is_irrelevant_sender
-from .models import IrrelevantSenders, LearnedCategory, MailClassification
-from .processing.analysis import Analyzer
-from .storage import CorruptState, JsonStore, atomic_replace
-from .yaml_edit import set_list
+from ..config import IrrelevantTopicsConfig, Topic, TopicsConfig
+from ..mailbox.imap import FetchedMail, FolderNotReadable, ImapReader, MailCandidate
+from ..mailbox.mime import prepare
+from ..mailbox.sender_filter import is_irrelevant_sender
+from ..models import IrrelevantSenders, LearnedCategory, MailClassification
+from ..processing.analysis import Analyzer
+from ..storage import CorruptState, JsonStore, atomic_replace
+from ..yaml_edit import set_list
 
 
 def _safe_terminal(value: str) -> str:
@@ -323,7 +323,7 @@ class LearningMode:
         for classification, payload, _failed in results:
             if classification is None or payload is None:
                 continue
-            from .mailbox.mailbox_settings import effective_topics
+            from ..mailbox.mailbox_settings import effective_topics
             number = int(payload.get("mailbox_id", 1))
             local_topics = effective_topics(rejected_topics, number)
             names = {topic.name.casefold() for topic in local_topics}
@@ -340,7 +340,7 @@ class LearningMode:
                 global_match = any(item.name.casefold() in global_names for item in classification.categories)
                 scope = number if self.scoped_learning and not global_match else None
                 headers.setdefault(scope, []).append(payload["headers"].get("from", ""))
-        from .mailbox.sender_filter import change_irrelevant_senders, save_sender_filter, sender_addresses
+        from ..mailbox.sender_filter import change_irrelevant_senders, save_sender_filter, sender_addresses
         updated = blocked
         for scope, values in headers.items():
             addresses = sorted(set().union(*(sender_addresses(header) for header in values)))
@@ -354,7 +354,7 @@ class LearningMode:
 
     def _known(self, payload: dict[str, object], topics: list[Topic]) -> bool:
         """Return whether a mail matches an enabled topic in the supplied category set."""
-        from .mailbox.mailbox_settings import effective_topics
+        from ..mailbox.mailbox_settings import effective_topics
         enabled = [topic for topic in effective_topics(topics, int(cast(int, payload.get("mailbox_id", 1))))
                    if topic.enabled]
         if not enabled:

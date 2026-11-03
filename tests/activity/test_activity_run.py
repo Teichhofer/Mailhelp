@@ -16,7 +16,7 @@ from mailhelp.activity.scan import SHORTENED, full_text
 from mailhelp.activity.service import ActivityService, ReportConflict, event_values
 from mailhelp.activity.store import ActivityReportStore
 from mailhelp.domain.prepared import PreparedMail
-from mailhelp.openrouter import ProviderResponseInvalid, RateLimitExceeded
+from mailhelp.llm.openrouter import ProviderResponseInvalid, RateLimitExceeded
 from mailhelp.processing.analysis import Analyzer
 from mailhelp.storage import JsonStore
 

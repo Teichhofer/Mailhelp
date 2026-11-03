@@ -9,10 +9,11 @@ from typing import Any, Protocol, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
-from ..adapter import RetryableError
 from ..config import LlmRoute, PromptConfig, Topic
 from ..domain.prepared import PreparedAttachment
 from ..domain.revision_errors import ContradictoryRevision, TechnicalRevisionError
+from ..llm.adapter import RetryableError
+from ..llm.openrouter import InvalidJson, ProviderResponseInvalid
 from ..models import (
     AbstractCategories,
     ActionRoute,
@@ -31,7 +32,6 @@ from ..models import (
     VisionExtractionResult,
     apply_proposal_revision,
 )
-from ..openrouter import InvalidJson, ProviderResponseInvalid
 from ..temporal_answers import parse_deterministic_temporal_answer
 
 T = TypeVar("T", bound=BaseModel)

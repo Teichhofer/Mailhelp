@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 from pydantic import ValidationError
 
-from ..adapter import uncertain_write
+from ..llm.adapter import uncertain_write
 from ..models import CalendarDuplicateDecision, Proposal, ProposalKind
 from .contracts import CalendarEventResponse, CalendarListResponse, CalendarOverlapEvent, PreparedWrite, validation_path
 from .transport import HttpTransport

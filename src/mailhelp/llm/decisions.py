@@ -13,11 +13,11 @@ from typing import Annotated, Any, Literal, Protocol
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, model_validator
 
-from .config import ConfigModel, Topic, read_yaml, validated_file
-from .logging import EventLogger
-from .models import ActionRoute, Relevance
+from ..config import ConfigModel, Topic, read_yaml, validated_file
+from ..logging import EventLogger
+from ..models import ActionRoute, Relevance
+from ..processing.analysis import Analyzer
 from .openrouter import OpenRouterClient, RateLimitExceeded
-from .processing.analysis import Analyzer
 
 
 class ChoiceQuestion(ConfigModel):
@@ -277,7 +277,7 @@ def load_relevance_prompts(directory: Path) -> DecisionPrompts:
     """Use editable Jev configuration, or the packaged template if absent."""
     path = directory / "decisions_prompts.yaml"
     if not path.exists():
-        path = Path(__file__).parent / "defaults" / "decisions_prompts.yaml"
+        path = Path(__file__).parents[1] / "defaults" / "decisions_prompts.yaml"
     return load_decision_prompts(path)
 
 

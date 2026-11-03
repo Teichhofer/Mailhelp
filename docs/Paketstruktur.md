@@ -3,7 +3,7 @@
 **Stand:** 3. November 2026 (Version 3.6.10)  
 **Zweck:** Zielstruktur für [Planung 3.6](Planung-3.6.md), Schritt 0.10; Grundlage ist der in
 [Planung 3.3](Planung-3.3.md), Abschnitt 5, zurückgestellte Punkt.  
-**Status:** Festgelegt; umgesetzt: `mailbox` (3.6.11), `processing` (3.6.12), `proposals` (3.6.13); offen: 0.10d–0.10f
+**Status:** Festgelegt; umgesetzt: `mailbox` (3.6.11), `processing` (3.6.12), `proposals` (3.6.13), `llm` (3.6.14); offen: 0.10e–0.10f
 
 ---
 
@@ -52,3 +52,5 @@ wird in 0.10d auf `mailhelp.llm.evaluation:main` umgestellt.
 - Ein frisch gebautes Wheel enthält die neuen Pfade; der Paket-Test (`tests/release`) prüft
   die Liste der Module, die Wheel und Quellbaum identisch enthalten müssen.
 - Der Docker-Start (`compose.smoke.yaml`) in der CI bleibt grün.
+- Pfade über `Path(__file__)` (z. B. zu `mailhelp/defaults`) zeigen nach dem Umzug eine Ebene
+  tiefer; sie werden auf das Wurzelpaket umgestellt (in 3.6.14: `decisions`, `laya`).

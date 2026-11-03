@@ -8,7 +8,7 @@ from typing import Any, Protocol
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from ..adapter import PermanentError, RetryableError, UncertainWriteError
+from ..llm.adapter import PermanentError, RetryableError, UncertainWriteError
 from ..models import Proposal
 
 

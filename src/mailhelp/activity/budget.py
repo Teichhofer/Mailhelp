@@ -8,7 +8,7 @@ from contextvars import ContextVar
 from threading import Event
 from typing import TYPE_CHECKING, Any
 
-from ..openrouter import RateLimitExceeded
+from ..llm.openrouter import RateLimitExceeded
 from ..processing.analysis import Completer
 from .models import ReportStatus
 

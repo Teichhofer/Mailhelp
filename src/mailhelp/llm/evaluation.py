@@ -14,20 +14,11 @@ from typing import Any, Protocol, overload
 
 import yaml
 
-from .config import PromptConfig, Topic
-from .decisions import (
-    DecisionAnalyzer,
-    DecisionClient,
-    DecisionPrompts,
-    JevRelevanceAnalyzer,
-    load_decision_prompts,
-    load_relevance_prompts,
-)
-from .mailbox.mime import prepare
-from .models import EventExtraction, TaskExtraction
-from .openrouter import OpenRouterClient
-from .processing.analysis import Analyzer
-from .proposals.action_normalization import (
+from ..config import PromptConfig, Topic
+from ..mailbox.mime import prepare
+from ..models import EventExtraction, TaskExtraction
+from ..processing.analysis import Analyzer
+from ..proposals.action_normalization import (
     DEADLINE_DATE_PATTERN,
     MailDateContext,
     TemporalValue,
@@ -37,6 +28,15 @@ from .proposals.action_normalization import (
     normalize_task_due,
     recover_task_due,
 )
+from .decisions import (
+    DecisionAnalyzer,
+    DecisionClient,
+    DecisionPrompts,
+    JevRelevanceAnalyzer,
+    load_decision_prompts,
+    load_relevance_prompts,
+)
+from .openrouter import OpenRouterClient
 
 _STAGES = ("relevance", "summary", "action_router", "task_extraction", "event_extraction")
 _EXPECTED_KEY = {"action_router": "action_route"}

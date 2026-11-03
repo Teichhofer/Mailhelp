@@ -12,7 +12,7 @@ from shared_web_actions import MAIL1
 from shared_web_auth import SECRET
 from shared_web_details import with_mail
 
-from mailhelp.adapter import PermanentError, RetryableError
+from mailhelp.llm.adapter import PermanentError, RetryableError
 from mailhelp.models import MailState, ProposalStatus
 from mailhelp.notification_config import Categories, NotificationSettings
 from mailhelp.notification_context import web_reply

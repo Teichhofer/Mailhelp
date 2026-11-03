@@ -7,7 +7,6 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from pydantic import ValidationError
 
-from mailhelp.adapter import PermanentError, UncertainWriteError
 from mailhelp.domain.processing import (
     AnswerStatus,
     ProposalClarificationState,
@@ -16,6 +15,7 @@ from mailhelp.domain.processing import (
     TelegramOutboxGate,
     TelegramOutboxState,
 )
+from mailhelp.llm.adapter import PermanentError, UncertainWriteError
 from mailhelp.models import (
     ActionLedger,
     ActionLedgerEntry,

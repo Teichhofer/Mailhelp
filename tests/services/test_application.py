@@ -1619,7 +1619,7 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
         assert made.orchestrator.sender_store is made.sender_store
         assert made.dialog.relevance_handler is made.orchestrator
         assert made.dialog.revision_service is made.analyzer
-        from mailhelp.decisions import JevRelevanceAnalyzer, load_relevance_prompts, relevance_fingerprint
+        from mailhelp.llm.decisions import JevRelevanceAnalyzer, load_relevance_prompts, relevance_fingerprint
         assert made.orchestrator.config_fingerprint == (
             "f" * 64 if diagnostics else relevance_fingerprint("f" * 64, load_relevance_prompts(tmp_path)))
         assert isinstance(made.analyzer, JevRelevanceAnalyzer) is not diagnostics
@@ -1672,7 +1672,7 @@ def test_composition_cleanup_and_build_failure(tmp_path, monkeypatch, mode, star
 
 
 def test_local_ollama_mode_replaces_openrouter(tmp_path, monkeypatch):
-    from mailhelp.ollama import LocalLlm
+    from mailhelp.llm.ollama import LocalLlm
 
     class Resource:
         def __init__(self, *args, **kwargs): pass

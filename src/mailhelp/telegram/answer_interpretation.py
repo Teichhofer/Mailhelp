@@ -9,8 +9,8 @@ from zoneinfo import ZoneInfo
 import httpx
 from pydantic import ValidationError
 
-from ..adapter import RetryableError
 from ..domain.revision_errors import ContradictoryRevision, IncompleteUserAnswer, TechnicalRevisionError
+from ..llm.adapter import RetryableError
 from ..models import (
     AnswerStatus,
     Proposal,

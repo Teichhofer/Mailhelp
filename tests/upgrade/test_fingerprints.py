@@ -9,7 +9,7 @@ from shared_application import settings as app_settings
 from shared_core import prompt_config
 
 from mailhelp.config import Topic
-from mailhelp.fingerprints import (
+from mailhelp.llm.fingerprints import (
     adopt_legacy_configuration,
     config_fingerprint,
     legacy_fingerprints,
@@ -238,7 +238,7 @@ def test_3_1_pending_mail_upgrade_and_restart_preserve_proposal_targets(tmp_path
     from shared_profiles import settings as profile_settings
     from shared_services import AnalyzerStub, Notify
 
-    from mailhelp.decisions import load_relevance_prompts, relevance_fingerprint
+    from mailhelp.llm.decisions import load_relevance_prompts, relevance_fingerprint
     from mailhelp.mailbox.imap import FetchedMail
 
     settings, prompts = profile_settings(tmp_path), prompt_config()

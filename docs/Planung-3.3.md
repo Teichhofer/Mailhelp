@@ -109,7 +109,7 @@ Die Pydantic-Validierung in [`domain/proposal.py`](../src/mailhelp/domain/propos
 #### 4.1 Beseitigung der 18 Mypy-Fehler (`--check-untyped-defs`)
 1. **[`web/setup_site.py`](../src/mailhelp/web/setup_site.py)**: Behebung der Typinkonsistenz bei `choices` (von vornherein als `list[str]` typisieren; Vermeidung von `.append()` auf Tupel oder `None`).
 2. **[`web/archive_site.py`](../src/mailhelp/web/archive_site.py)**: Korrektur des Parameters für `settings_page`.
-3. **[`evaluation.py`](../src/mailhelp/evaluation.py)**: Ersetzung von `client: object` durch ein formales Protocol `LlmCompleter` mit `complete(...)`-Methode.
+3. **[`evaluation.py`](../src/mailhelp/llm/evaluation.py)**: Ersetzung von `client: object` durch ein formales Protocol `LlmCompleter` mit `complete(...)`-Methode.
 4. **[`experience.py`](../src/mailhelp/experience.py)**: Behebung der Varianz-Inkompatibilität (`Mapping` statt invariantem `dict` für Callbacks).
 5. **[`setup.py`](../src/mailhelp/setup.py)**: Explizite Typisierung von `result: dict[str, Any]`.
 6. **[`web/mailbox_site.py`](../src/mailhelp/web/mailbox_site.py)** (3.2): Typisierung der Ergebnisliste und

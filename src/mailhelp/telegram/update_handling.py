@@ -6,8 +6,8 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 
 from pydantic import ValidationError
 
-from ..adapter import PermanentError
 from ..domain.processing import ProposalClarificationState
+from ..llm.adapter import PermanentError
 from ..models import RelevanceDialog, TelegramDialogState, TelegramOffset
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.errors import StaleCommand

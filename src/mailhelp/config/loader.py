@@ -212,7 +212,7 @@ def load_all(directory: Path, environ: dict[str, str] | None = None, *, oauth_pr
     secrets = Secrets.model_validate(values)
     # Only analysis-relevant settings: operational changes (web, polling, logging,
     # retention, timeouts, metrics) must not hold back mails that are running.
-    from ..fingerprints import config_fingerprint
+    from ..llm.fingerprints import config_fingerprint
     fingerprint = config_fingerprint(settings, prompts, topics)
     return settings, secrets, topics, irrelevant_topics, prompts, fingerprint
 

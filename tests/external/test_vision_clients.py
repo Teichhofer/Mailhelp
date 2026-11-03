@@ -7,8 +7,8 @@ import httpx
 from shared_core import prompt_config
 
 from mailhelp.config import PromptConfig
+from mailhelp.llm.openrouter import OpenRouterClient
 from mailhelp.models import VisionExtractionResult
-from mailhelp.openrouter import OpenRouterClient
 from mailhelp.processing.analysis import Analyzer
 
 IMAGE = "data:image/jpeg;base64," + "A" * 400

@@ -11,8 +11,8 @@ from shared_core import prompt_config
 
 from mailhelp.cli import _show_imap_credentials
 from mailhelp.config import ImapCredentials, ImapSettings, Secrets, Settings, Topic, imap_secret_values
-from mailhelp.fingerprints import config_fingerprint, legacy_fingerprints, legacy_policies, topic_policy
-from mailhelp.learning import add_discovered_folders
+from mailhelp.llm.fingerprints import config_fingerprint, legacy_fingerprints, legacy_policies, topic_policy
+from mailhelp.llm.learning import add_discovered_folders
 from mailhelp.mailbox.imap import account_id, mailbox_account_id, reader_arguments
 from mailhelp.yaml_edit import _paths, set_list, set_scalars
 
@@ -256,13 +256,13 @@ def test_learning_and_decision_tests_read_named_or_all_mailboxes(tmp_path, capsy
 
 
 def test_the_decision_test_reads_the_selected_mailboxes(tmp_path, monkeypatch):
-    from mailhelp.decision_test import DecisionTestMode, _comparison_reader, _initial_report
-    from mailhelp.ollama import LocalLlm
+    from mailhelp.llm.decision_test import DecisionTestMode, _comparison_reader, _initial_report
+    from mailhelp.llm.ollama import LocalLlm
     cfg = mailboxes(tmp_path, {"id": 1, **FORMER}, {"id": 2, **FORMER, "host": "b.test", "folders": ["Projekte"],
                                                     "primary_folder": "Projekte", "historical_start": None})
     first, second = cfg.imap.mailbox(1), cfg.imap.mailbox(2)
     opened = []
-    monkeypatch.setattr("mailhelp.decision_test.ImapReader", lambda *args, **kwargs: opened.append(args[:3]) or
+    monkeypatch.setattr("mailhelp.llm.decision_test.ImapReader", lambda *args, **kwargs: opened.append(args[:3]) or
                         type("Reader", (), {"close": lambda self: None})())
     secrets = Secrets(imap={1: {"username": "a", "password": "p"}, 2: {"username": "b", "password": "q"}},
                       openrouter_api_key="o")
@@ -318,7 +318,7 @@ class Box:
 
 
 def test_learning_selects_the_newest_mail_of_all_chosen_mailboxes(tmp_path):
-    from mailhelp.learning import LearningMode, LearningSource
+    from mailhelp.llm.learning import LearningMode, LearningSource
     private = Box("a", [("INBOX", 1, 1), ("INBOX", 2, 4), ("Sent", 3, 4)])
     work = Box("b", [("INBOX", 1, 3), ("INBOX", 2, 5)], unreadable={"Archiv"})
     output = []
@@ -336,7 +336,7 @@ def test_learning_selects_the_newest_mail_of_all_chosen_mailboxes(tmp_path):
 
 
 def test_the_decision_test_selects_unique_mail_of_all_chosen_mailboxes(tmp_path):
-    from mailhelp.decision_test import DecisionTestMode
+    from mailhelp.llm.decision_test import DecisionTestMode
     cfg = mailboxes(tmp_path, {"id": 1, **FORMER, "folders": ["INBOX"], "primary_folder": "INBOX"},
                     {"id": 2, **FORMER, "host": "b.test", "folders": ["INBOX", "Archiv"], "primary_folder": "INBOX"})
     private = Box("a", [("INBOX", 1, 1), ("INBOX", 2, 3)])

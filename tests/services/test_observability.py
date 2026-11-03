@@ -10,10 +10,10 @@ import pytest
 from pydantic import ValidationError
 from shared_core import proposal
 
-from mailhelp.adapter import PermanentError, RetryableError, UncertainWriteError
 from mailhelp.config import LlmRoute, LoggingSettings, PromptConfig, PromptStep
+from mailhelp.llm.adapter import PermanentError, RetryableError, UncertainWriteError
+from mailhelp.llm.openrouter import OpenRouterClient, ProviderResponseInvalid
 from mailhelp.logging import JsonlLogger, NullLogger, redact
-from mailhelp.openrouter import OpenRouterClient, ProviderResponseInvalid
 from mailhelp.processing.analysis import Analyzer
 from mailhelp.proposals.integrations import HttpWriter
 from mailhelp.telegram import TelegramClient
@@ -269,7 +269,7 @@ def test_network_adapter_failure_events():
 
 def test_telegram_poll_shutdown_interrupted_emits_no_error_event():
     """Regression test for 1.5: RetryInterrupted during adapter backoff must not log poll_failed as ERROR."""
-    from mailhelp.adapter import RetryInterrupted, RetryPolicy
+    from mailhelp.llm.adapter import RetryInterrupted, RetryPolicy
     capture = Capture()
     policy = RetryPolicy(retries=2, initial_backoff_seconds=1.0, max_backoff_seconds=2.0,
                          wait=lambda delay: True)

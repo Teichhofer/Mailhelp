@@ -9,10 +9,10 @@ from shared_telegram_dialog import proposal
 
 from mailhelp.application import Application
 from mailhelp.configuration import AdminCommand, AdminKind, file_hash
-from mailhelp.decisions import load_relevance_prompts
 from mailhelp.drafts import DraftService
 from mailhelp.experience import ExperienceRuntime
 from mailhelp.external.providers import Writers
+from mailhelp.llm.decisions import load_relevance_prompts
 from mailhelp.models import MailState
 from mailhelp.notification_runtime import NotificationRuntime
 from mailhelp.proposals.target_profiles import ProfileWriters
@@ -159,7 +159,7 @@ def test_decision_comparison_sender_prefilter_calls_no_language_model(tmp_path):
     from shared_core import prompt_config
     from shared_decision_test import RAW, Reader, settings
 
-    from mailhelp.decision_test import ComparisonRecorder, DecisionTestMode
+    from mailhelp.llm.decision_test import ComparisonRecorder, DecisionTestMode
     from mailhelp.models import IrrelevantSenders
     output = tmp_path / "comparison.json"
     report = {"mails": [], "selection_errors": []}

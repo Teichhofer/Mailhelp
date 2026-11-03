@@ -7,7 +7,7 @@ import pytest
 import yaml
 from shared_quality_corpus import load_corpus, prompt_config
 
-from mailhelp.evaluation import (
+from mailhelp.llm.evaluation import (
     BoundedCompleter,
     EvaluationBudgetExceeded,
     UsageRecorder,
@@ -28,7 +28,7 @@ def prompts():
 def test_regression_evaluation_uses_jev_and_counts_unclear_fallback_in_one_budget():
     from shared_decisions import envelope
 
-    from mailhelp.decisions import load_relevance_prompts
+    from mailhelp.llm.decisions import load_relevance_prompts
     corpus = load_corpus_v2()
     corpus["cases"] = corpus["cases"][1:2]
 
@@ -59,7 +59,7 @@ def test_regression_evaluation_uses_jev_and_counts_unclear_fallback_in_one_budge
     decisions.mode = "relevant"
     assert evaluate(corpus, prompts(), Provider(corpus, wrong=True), 20,
                     decision_prompts=config, decision_client=decisions)["passed"]
-    from mailhelp.evaluation import BoundedDecider
+    from mailhelp.llm.evaluation import BoundedDecider
     budget = BoundedCompleter(Provider(corpus), 1)
     budget.calls = 1
     with pytest.raises(EvaluationBudgetExceeded):
@@ -99,8 +99,8 @@ def test_evaluation_cli_defaults_to_production_jev_and_closes_both_clients(tmp_p
 
     provider, decisions = Provider(corpus), Decisions()
     monkeypatch.setenv("OPENROUTER_API_KEY", "synthetic-key")
-    monkeypatch.setattr("mailhelp.evaluation.OpenRouterClient", lambda *a, **k: provider)
-    monkeypatch.setattr("mailhelp.evaluation.DecisionClient", lambda *a, **k: decisions)
+    monkeypatch.setattr("mailhelp.llm.evaluation.OpenRouterClient", lambda *a, **k: provider)
+    monkeypatch.setattr("mailhelp.llm.evaluation.DecisionClient", lambda *a, **k: decisions)
     extra = ["--decisions-prompts", str(Path(__file__).parents[2] / "decisions_prompts.yaml")] if explicit else []
     assert main(["--allow-network", "--corpus", str(source), "--prompts", str(prompt_file),
                  "--output", str(output), "--max-calls", "50", *extra]) == 0
@@ -176,7 +176,7 @@ def test_cli_requires_explicit_network_budget_and_key_and_always_closes(tmp_path
         created.append(kwargs["logger"])
         return provider
 
-    monkeypatch.setattr("mailhelp.evaluation.OpenRouterClient", client)
+    monkeypatch.setattr("mailhelp.llm.evaluation.OpenRouterClient", client)
     assert main(args) == 0 and provider.closed
     assert json.loads(output.read_text(encoding="utf-8"))["passed"]
     provider.wrong = True
@@ -294,9 +294,9 @@ def test_cli_writes_progress_and_partial_reports(tmp_path, monkeypatch, capsys):
         snapshots.append(json.loads(json.dumps(report)))
         real_write(path, report)
 
-    monkeypatch.setattr("mailhelp.evaluation.write_report", recording)
+    monkeypatch.setattr("mailhelp.llm.evaluation.write_report", recording)
     provider = Provider(corpus)
-    monkeypatch.setattr("mailhelp.evaluation.OpenRouterClient", lambda *a, **k: provider)
+    monkeypatch.setattr("mailhelp.llm.evaluation.OpenRouterClient", lambda *a, **k: provider)
     assert main(["--allow-network", "--legacy-relevance", "--corpus", str(source), "--prompts", str(prompt_file),
                  "--output", str(output), "--max-calls", "50"]) == 0
     assert [len(item["cases"]) for item in snapshots] == [0, 1, 2, 2]

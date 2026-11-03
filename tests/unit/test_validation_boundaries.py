@@ -11,6 +11,7 @@ from shared_core import proposal
 
 from mailhelp.config import Settings, validated_file
 from mailhelp.external.confirmed import _with_external_result
+from mailhelp.llm.openrouter import InvalidJson, OpenRouterClient, ProviderResponseInvalid, _path
 from mailhelp.models import (
     DuplicateDecision,
     DuplicateIndex,
@@ -26,7 +27,6 @@ from mailhelp.models import (
     ValidationIssue,
     WriteAttemptReference,
 )
-from mailhelp.openrouter import InvalidJson, OpenRouterClient, ProviderResponseInvalid, _path
 from mailhelp.proposals.integrations import HttpWriter
 from mailhelp.storage import CorruptState, JsonStore
 from mailhelp.telegram import TelegramClient, TelegramUpdatesResponse, TelegramWriteResponse, validation_path

@@ -7,7 +7,7 @@ from typing import Any
 
 import httpx
 
-from ..adapter import PermanentError, RetryPolicy
+from ..llm.adapter import PermanentError, RetryPolicy
 from ..logging import EventLogger
 from ..models import CalendarDuplicateDecision, Proposal
 from .contracts import AccessTokenProvider, AuthenticationError, CalendarAccessError

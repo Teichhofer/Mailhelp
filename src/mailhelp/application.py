@@ -13,11 +13,11 @@ from zoneinfo import ZoneInfo
 from . import state_names
 from .config import RetentionPeriod, Settings, Topic
 from .external.contracts import OAuthTokenError, TargetWriter
+from .llm.openrouter import OpenRouterClient
 from .logging import JsonlLogger, NullLogger, log_and_continue
 from .mailbox.imap import ImapReader
 from .mailbox.mailbox_run import MailboxRunService, MailboxSource, _RunSummary
 from .models import MailRunState, MailState, TelegramOffset
-from .openrouter import OpenRouterClient
 from .processing.analysis import Analyzer
 from .processing.orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
 from .retention import RetentionService

@@ -9,7 +9,7 @@ from shared_core import prompt_config
 
 from mailhelp.configuration import ConfigurationConflict, ConfigurationService, file_hash
 from mailhelp.diagnostics import DiagnosticsService
-from mailhelp.fingerprints import config_fingerprint
+from mailhelp.llm.fingerprints import config_fingerprint
 from mailhelp.notification_config import NotificationSettings
 from mailhelp.review.results import ResultStatus
 from mailhelp.setup import SetupService

@@ -8,22 +8,22 @@ from pathlib import Path
 from threading import Event, Lock
 from typing import Any
 
-from .adapter import RetryPolicy
 from .application import Application
 from .config import MailboxSettings, PromptConfig, Secrets, Settings, Topic
-from .decisions import (
+from .external.providers import build_writers, provider_services
+from .llm.adapter import RetryPolicy
+from .llm.decisions import (
     DecisionAnalyzer,
     DecisionClient,
     JevRelevanceAnalyzer,
     load_relevance_prompts,
     relevance_fingerprint,
 )
-from .external.providers import build_writers, provider_services
+from .llm.ollama import LocalLlm, OllamaClient
+from .llm.openrouter import OpenRouterClient
 from .logging import JsonlLogger
 from .mailbox.imap import ImapReader, mailbox_account_id, reader_arguments
 from .mailbox.mailbox_run import MailboxSource
-from .ollama import LocalLlm, OllamaClient
-from .openrouter import OpenRouterClient
 from .paths import runtime_path
 from .processing.analysis import Analyzer
 from .processing.mail_recheck import request_recheck
@@ -270,7 +270,7 @@ def _build_orchestrator(settings: Settings, prompts: PromptConfig, topics: list[
                                 reconciliation_settings=settings.proposal_reconciliation,
                                 proposal_matcher=(analyzer.open_proposal_match
                                                   if "open_proposal_match" in prompts.prompts else None))
-    from .fingerprints import (
+    from .llm.fingerprints import (
         adopt_legacy_configuration,
         legacy_fingerprints,
         legacy_policies,

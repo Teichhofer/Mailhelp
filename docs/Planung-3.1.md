@@ -130,7 +130,7 @@ ein Hinweis (ohne Werte) erscheint in `--check` und `/diagnose`.
 ### 4.4 Fingerprint
 
 - `imap` (bzw. `imap.mailboxes`, `batch_size`, `global_newest_first`) wird zu `OPERATIONAL`
-  in [fingerprints.py](../src/mailhelp/fingerprints.py) verschoben.
+  in [fingerprints.py](../src/mailhelp/llm/fingerprints.py) verschoben.
 - Für unveränderte Bestandskonfigurationen wird der bisherige Fingerprint (mit `imap`) als
   äquivalent registriert – derselbe Mechanismus wie beim 1.x→1.2-Übergang. Pflichttest:
   synthetischer 2.3-Zustand mit offener Entscheidung läuft nach dem Upgrade weiter.

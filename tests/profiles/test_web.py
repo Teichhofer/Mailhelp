@@ -93,7 +93,7 @@ def test_topic_scope_preview_counts_only_affected_running_mailbox(profiled):
 @pytest.mark.parametrize("field", ["google_calendar", "todoist_project"])
 def test_target_draft_never_holds_current_or_upgraded_pending_mails(profiled, legacy, field):
     """Regression: preview must respect upgrade equivalence as well as target-free hashes."""
-    from mailhelp.fingerprints import adopt_legacy_configuration, legacy_fingerprints, legacy_policies, topic_policy
+    from mailhelp.llm.fingerprints import adopt_legacy_configuration, legacy_fingerprints, legacy_policies, topic_policy
     from mailhelp.storage import mail_state_names
 
     app, web, setup = profiled.app, profiled.web, profiled.runtime.setup

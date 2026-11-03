@@ -15,8 +15,8 @@ from urllib.parse import urlsplit
 import httpx
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
+from ..logging import EventLogger, NullLogger
 from .adapter import RetryPolicy
-from .logging import EventLogger, NullLogger
 
 
 class RateLimitExceeded(RuntimeError):

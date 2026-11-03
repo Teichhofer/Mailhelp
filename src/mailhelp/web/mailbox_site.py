@@ -217,7 +217,7 @@ class MailboxSite:
         return text
 
     def affected(self) -> dict[int, int]:
-        from ..decisions import relevance_fingerprint
+        from ..llm.decisions import relevance_fingerprint
         from ..models import MailState
         from ..storage import mail_state_names
 

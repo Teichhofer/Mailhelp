@@ -53,7 +53,7 @@ Diese Schritte beheben bekannte Mängel und schaffen Voraussetzungen, ohne Funkt
 | 0.10a ✓ 3.6.11 | Paketbündelung: `mailhelp.mailbox` | Abruf, Postfächer und IServ umgezogen; Prüfung nach [Paketstruktur](Paketstruktur.md), Abschnitt 4. | S | 0.9 |
 | 0.10b ✓ 3.6.12 | Paketbündelung: `mailhelp.processing` | Verarbeitung einer Mail umgezogen. | S | 0.10a |
 | 0.10c ✓ 3.6.13 | Paketbündelung: `mailhelp.proposals` | Vorschläge, Abgleich und Ziele umgezogen. | S | 0.10b |
-| 0.10d | Paketbündelung: `mailhelp.llm` | Sprachmodelle, Lernen und Bewertung umgezogen; `mailhelp-evaluate` umgestellt. | S | 0.10c |
+| 0.10d ✓ 3.6.14 | Paketbündelung: `mailhelp.llm` | Sprachmodelle, Lernen und Bewertung umgezogen; `mailhelp-evaluate` umgestellt. | S | 0.10c |
 | 0.10e | Paketbündelung: `mailhelp.notifications` | Benachrichtigungen, Push, Tagesüberblick und Entwürfe umgezogen. | S | 0.10d |
 | 0.10f | Paketbündelung: `mailhelp.runtime` | Betrieb, Lebenszyklus, Einrichtung und Wartung umgezogen. | S | 0.10e |
 

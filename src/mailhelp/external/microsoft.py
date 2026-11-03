@@ -20,7 +20,7 @@ from urllib.parse import quote
 import httpx
 from pydantic import Field, ValidationError
 
-from ..adapter import RETRYABLE_STATUS, RetryPolicy, uncertain_write
+from ..llm.adapter import RETRYABLE_STATUS, RetryPolicy, uncertain_write
 from ..logging import EventLogger, NullLogger
 from ..models import Proposal, ProposalKind
 from ..storage import atomic_replace

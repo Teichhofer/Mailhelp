@@ -20,10 +20,10 @@ from shared_web_actions import MAIL1
 from shared_web_details import with_mail
 from web_scenario import mail_id, populate
 
-from mailhelp.adapter import RetryableError
 from mailhelp.briefing import DailyBriefingService
 from mailhelp.config import DailyBriefingSettings, ImapCredentials, Secrets, Settings
 from mailhelp.drafts import DraftService, ReplyDraft, message
+from mailhelp.llm.adapter import RetryableError
 from mailhelp.models import MailState
 from mailhelp.processing.attachments import AttachmentCache
 from mailhelp.standalone import DisabledTelegram
@@ -752,7 +752,7 @@ def test_experience_settings_preserve_16_analysis_fingerprint(tmp_path):
     from shared_core import prompt_config
 
     from mailhelp.config import PromptStep
-    from mailhelp.fingerprints import _hash, analysis_prompts, config_fingerprint, legacy_fingerprints
+    from mailhelp.llm.fingerprints import _hash, analysis_prompts, config_fingerprint, legacy_fingerprints
     cfg, prompts = settings(tmp_path), prompt_config()
     before = config_fingerprint(cfg, prompts, [])
     legacy = cfg.model_dump(mode="json", exclude={"target_profiles", "iserv"})
