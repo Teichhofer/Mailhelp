@@ -36,15 +36,15 @@ from mailhelp.config import (
     load_all,
     read_yaml,
 )
-from mailhelp.imap import (
+from mailhelp.logging import JsonlLogger, redact
+from mailhelp.mailbox.imap import (
     ImapReader,
     UIDValidityChanged,
     _decode_mailbox_name,
     _list_mailbox_name,
     account_id,
 )
-from mailhelp.logging import JsonlLogger, redact
-from mailhelp.mime import prepare
+from mailhelp.mailbox.mime import prepare
 from mailhelp.models import (
     Actions,
     ProcessingErrorCode,

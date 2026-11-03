@@ -1,5 +1,13 @@
 # Änderungen
 
+## 3.6.11 – Paket `mailhelp.mailbox` (Planung 3.6, Schritt 0.10a)
+
+- Abruf, Postfächer, IServ und die Aktivierung im Betrieb liegen jetzt im Paket
+  `mailhelp.mailbox` (`imap`, `mime`, `mailbox_run`, `mailbox_settings`, `mailbox_activation`,
+  `mailbox_runtime`, `mailbox_briefing`, `connection_activation`, `connection_runtime`, `iserv`,
+  `iserv_activation`, `iserv_runtime`, `sender_filter`). Alle Importe, Testpfade und
+  Dokumentationsverweise sind angepasst; keine Verhaltensänderung, Zustandsnamen unverändert.
+
 ## 3.6.10 – Zielstruktur der Pakete festgelegt (Planung 3.6, Schritt 0.9)
 
 - `docs/Paketstruktur.md` ordnet alle 78 Module des Wurzelpakets sechs Zielpaketen

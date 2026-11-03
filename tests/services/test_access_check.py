@@ -13,9 +13,9 @@ from mailhelp.adapter import RetryPolicy
 from mailhelp.application import Application
 from mailhelp.cli import main
 from mailhelp.config import ImapSettings
-from mailhelp.imap import ImapReader
 from mailhelp.integrations import GoogleOAuthTokenProvider, HttpWriter
 from mailhelp.logging import JsonlLogger, NullLogger
+from mailhelp.mailbox.imap import ImapReader
 from mailhelp.openrouter import OpenRouterClient
 from mailhelp.telegram import TelegramBotResponse, TelegramChatNotFoundError, TelegramClient
 

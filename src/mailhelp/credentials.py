@@ -14,7 +14,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .config import Settings, _dotenv, imap_secret_names, provider_secret_names, read_yaml
 from .configuration import ConfigurationConflict, file_hash
-from .mailbox_settings import profile_label, target_profiles
+from .mailbox.mailbox_settings import profile_label, target_profiles
 from .storage import JsonStore, atomic_replace
 from .target_profiles import secret_name
 

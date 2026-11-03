@@ -8,8 +8,8 @@ from types import SimpleNamespace
 import yaml
 
 from mailhelp.config import Topic
-from mailhelp.imap import FetchedMail
 from mailhelp.learning import LearningMode
+from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.models import AbstractCategories, LearnedCategory, MailClassification, Relevance
 from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.storage import JsonStore

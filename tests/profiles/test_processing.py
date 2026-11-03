@@ -8,8 +8,8 @@ from shared_profiles import ACCOUNT_ONE, ACCOUNT_TWO, TOPICS, settings
 from shared_services import AnalyzerStub, Notify
 
 from mailhelp.config import Settings, Topic
-from mailhelp.imap import FetchedMail
-from mailhelp.mailbox_settings import effective_settings
+from mailhelp.mailbox.imap import FetchedMail
+from mailhelp.mailbox.mailbox_settings import effective_settings
 from mailhelp.models import IrrelevantSenders, MailState
 from mailhelp.notifications import NotificationService
 from mailhelp.orchestrator import Orchestrator

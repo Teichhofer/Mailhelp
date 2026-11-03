@@ -635,7 +635,7 @@ class Settings(ConfigModel):
 
     @model_validator(mode="after")
     def valid_mailbox_policies(self) -> Settings:
-        from ..mailbox_settings import validate_policies
+        from ..mailbox.mailbox_settings import validate_policies
         validate_policies(self)
         return self
 

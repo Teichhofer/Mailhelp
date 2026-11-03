@@ -14,9 +14,9 @@ from . import state_names
 from .analysis import Analyzer
 from .config import RetentionPeriod, Settings, Topic
 from .external.contracts import OAuthTokenError, TargetWriter
-from .imap import ImapReader
 from .logging import JsonlLogger, NullLogger, log_and_continue
-from .mailbox_run import MailboxRunService, MailboxSource, _RunSummary
+from .mailbox.imap import ImapReader
+from .mailbox.mailbox_run import MailboxRunService, MailboxSource, _RunSummary
 from .models import MailRunState, MailState, TelegramOffset
 from .openrouter import OpenRouterClient
 from .orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
@@ -31,11 +31,11 @@ if TYPE_CHECKING:
     from .configuration import ConfigurationService
     from .experience import ExperienceRuntime
     from .external.providers import Writers
-    from .imap import FetchedMail
-    from .iserv import IServRunService
-    from .iserv_runtime import IServRuntime
     from .lifecycle import Lifecycle
-    from .mailbox_runtime import MailboxRuntime
+    from .mailbox.imap import FetchedMail
+    from .mailbox.iserv import IServRunService
+    from .mailbox.iserv_runtime import IServRuntime
+    from .mailbox.mailbox_runtime import MailboxRuntime
     from .notification_runtime import NotificationRuntime
     from .standalone import DisabledTelegram
     from .target_profiles import ProfileWriters
@@ -122,7 +122,7 @@ class Application:
         from .target_profiles import ProfileWriters
         profile_writers = getattr(self, "profile_writers", None)
         if isinstance(profile_writers, ProfileWriters):
-            from .mailbox_settings import active_profiles, profile_label
+            from .mailbox.mailbox_settings import active_profiles, profile_label
             checks = (*checks[:-2], *((f"{role}:{number} ({profile_label(self.settings, number)})", writer.check_access)
                 for number, pair in profile_writers.profiles.items() if number in active_profiles(self.settings)
                 for role, writer in pair.slots.items()))
@@ -185,7 +185,7 @@ class Application:
         from .target_profiles import ProfileWriters
         profile_writers = self.profile_writers
         if isinstance(profile_writers, ProfileWriters):
-            from .mailbox_settings import active_profiles
+            from .mailbox.mailbox_settings import active_profiles
             active = active_profiles(self.settings)
             return [writer for number, pair in profile_writers.profiles.items() if number in active
                     for writer in pair.slots.values()]
@@ -469,7 +469,7 @@ class Application:
                 number = (state.proposal_policy or {}).get(
                     "mailbox_id", self.orchestrator.mailbox_number(state.imap.account_id)
                 )
-                from .mailbox_settings import effective_settings
+                from .mailbox.mailbox_settings import effective_settings
                 return (
                     effective_settings(cfg, number).retention.full_mail_days
                     if cfg is not None and cfg.imap.mailbox(number) is not None

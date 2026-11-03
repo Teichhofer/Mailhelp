@@ -1,7 +1,7 @@
 """Add an IMAP mailbox from one authenticated form: check, save and start it without restart (3.5)."""
 from __future__ import annotations
 
-from .config import Settings, imap_secret_names
+from ..config import Settings, imap_secret_names
 from .connection_activation import ActivationProblem, ConnectionActivation
 
 # Folder names come from the server; only this many are listed in a message.
@@ -26,7 +26,7 @@ class MailboxActivation(ConnectionActivation):
         return keys.imap
 
     def probe(self, cfg, item, keys):
-        from .experience import _reader
+        from ..experience import _reader
         from .imap import FolderNotReadable, account_id
         own = account_id(item.host, item.port, keys.imap[item.id].username)
         environment = self.runtime.environment()

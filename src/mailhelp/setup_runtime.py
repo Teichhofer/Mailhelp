@@ -26,7 +26,7 @@ class SetupRuntime:
             revision=self.setup.fingerprint)
 
     def update_profile_checks(self):
-        from .mailbox_settings import target_profiles
+        from .mailbox.mailbox_settings import target_profiles
         configured = target_profiles(self.setup.draft_settings())
         for name in list(self.diagnostics.checks):
             if name.startswith(("calendar:", "tasks:")):
@@ -72,7 +72,7 @@ class SetupRuntime:
         return result
 
     def profile_check(self, number, role):
-        from .mailbox_settings import target_profiles
+        from .mailbox.mailbox_settings import target_profiles
         cfg = self.setup.draft_settings()
         cfg = cfg.model_copy(update={"targets": target_profiles(cfg)[number]})
         secrets = self.credentials(self.setup.draft_settings())
@@ -110,7 +110,7 @@ class SetupRuntime:
                     "vorhanden" if found is not None and account.id in found.iserv else "fehlt")
         if draft.target_profiles:
             from .config import provider_secret_names
-            from .mailbox_settings import active_profiles
+            from .mailbox.mailbox_settings import active_profiles
             from .target_profiles import secret_name
             credentials = self.credentials(draft)
             for number, target in active_profiles(draft).items():
@@ -128,7 +128,7 @@ class SetupRuntime:
     def secret_fields(self):
         """(group, name) of every credential the draft configuration uses; never their values (3.3.11)."""
         from .config import imap_secret_names, provider_secret_names
-        from .mailbox_settings import active_profiles
+        from .mailbox.mailbox_settings import active_profiles
         from .target_profiles import secret_name
         draft, env = self.setup.draft_settings(), self.environment()
         fields = [(f"Postfach {mailbox.id} ({mailbox.label})", name)
@@ -169,7 +169,7 @@ class SetupRuntime:
 
     def iserv(self, actor):
         """Sign in to every enabled IServ account of the draft and open its letter overview."""
-        from .iserv import IServReader, IServSignInError
+        from .mailbox.iserv import IServReader, IServSignInError
         cfg = self.setup.draft_settings()
         accounts = cfg.iserv.enabled_accounts()
         if not accounts:

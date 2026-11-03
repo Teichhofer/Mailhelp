@@ -10,7 +10,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from ..configuration import AdminCommand, AdminKind, ConfigurationService, SenderChange
-from ..sender_filter import sender_addresses, sender_entry
+from ..mailbox.sender_filter import sender_addresses, sender_entry
 from .auth import WebSession
 from .http import Request, Response
 from .pages import layout

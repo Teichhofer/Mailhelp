@@ -14,7 +14,7 @@ from mailhelp.external.confirmed import execute_confirmed
 from mailhelp.external.contracts import ExternalUnavailable, PreparedWrite, TargetWriter
 from mailhelp.external.providers import Writers, microsoft_tokens
 from mailhelp.external.roles import writer_for
-from mailhelp.mailbox_settings import event_defaults_for, mailbox_topic_policy
+from mailhelp.mailbox.mailbox_settings import event_defaults_for, mailbox_topic_policy
 from mailhelp.models import MailState, Proposal
 from mailhelp.persistence.ledger import ActionLedgerService
 from mailhelp.persistence.migrations import migrate_document

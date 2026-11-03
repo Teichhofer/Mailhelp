@@ -482,7 +482,7 @@ def test_remaining_retention_filters_and_config_validation(web, tmp_path):
 def test_finished_notification_is_not_sent_twice_during_resume(tmp_path):
     from shared_services import AnalyzerStub, Notify
 
-    from mailhelp.imap import FetchedMail
+    from mailhelp.mailbox.imap import FetchedMail
     from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
     topic = Topic(id='school', name='School', enabled=True, description='school')
     with JsonStore(tmp_path) as store:

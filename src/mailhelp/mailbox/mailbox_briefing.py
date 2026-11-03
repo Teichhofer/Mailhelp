@@ -3,8 +3,8 @@
 from dataclasses import replace
 from types import SimpleNamespace
 
-from . import state_names
-from .models import MailState
+from .. import state_names
+from ..models import MailState
 
 
 def sections(app, views):
@@ -20,7 +20,7 @@ def sections(app, views):
         elif mailbox.target_profile == 1:
             calendar, tasks = app.calendar, app.todoist
         else:
-            from .target_profiles import UnavailableWriter
+            from ..target_profiles import UnavailableWriter
 
             calendar = UnavailableWriter("calendar", "unavailable", mailbox.target_profile)
             tasks = UnavailableWriter("tasks", "unavailable", mailbox.target_profile)

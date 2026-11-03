@@ -29,12 +29,12 @@ from zoneinfo import ZoneInfo
 import httpx
 from pydantic import Field
 
-from .config import ImapCredentials, IServAccountSettings
-from .domain._base import StrictModel
+from ..config import ImapCredentials, IServAccountSettings
+from ..domain._base import StrictModel
+from ..logging import EventLogger
+from ..orchestrator import ProcessingOutcome, ProcessingResult
+from ..storage import JsonStore
 from .imap import FetchedMail
-from .logging import EventLogger
-from .orchestrator import ProcessingOutcome, ProcessingResult
-from .storage import JsonStore
 
 FOLDER = "Elternbriefe"
 UIDVALIDITY = 1

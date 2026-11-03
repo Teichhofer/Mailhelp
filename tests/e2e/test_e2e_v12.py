@@ -16,7 +16,7 @@ from shared_web_v12 import configure
 
 from mailhelp.analysis import Analyzer
 from mailhelp.config import PromptConfig, PromptStep, Settings, TargetSettings, Topic
-from mailhelp.imap import FetchedMail
+from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.orchestrator import Orchestrator
 from mailhelp.review.inbox import CommandStatus
 from mailhelp.storage import JsonStore

@@ -5,7 +5,7 @@ import pytest
 from shared_services import AnalyzerStub, Notify
 
 from mailhelp.domain.proposal import DuplicateMatchInfo, DuplicateSource, Proposal, ProposalStatus
-from mailhelp.imap import FetchedMail
+from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.models import ActionRoute, EventExtraction, ExtractedEvent, ExtractedTask, TaskExtraction
 from mailhelp.orchestrator import Orchestrator
 from mailhelp.persistence.proposals import ProposalRepository

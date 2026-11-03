@@ -650,7 +650,7 @@ def test_runtime_composes_services_and_ticks_without_external_io(web, tmp_path, 
     session = web.auth.sessions()[0]
     assert web.store.load(f"draft-{MAIL1}") is None  # Drafts are generated only on request.
     # The draft belongs to the configured mailbox the mail came from (3.1).
-    from mailhelp.imap import account_id
+    from mailhelp.mailbox.imap import account_id
     stored = web.store.load(f"mail-{MAIL1}")
     stored["imap"]["account_id"] = account_id("h", 993, "me@test")
     web.store.save(f"mail-{MAIL1}", stored)

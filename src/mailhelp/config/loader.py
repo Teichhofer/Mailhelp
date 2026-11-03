@@ -147,7 +147,7 @@ def iserv_secret_values(iserv: IServSettings, env: dict[str, str]
 
 def _distinct_accounts(imap: ImapSettings, credentials: dict[int, dict[str, str]]) -> None:
     """Two mailboxes with the same server, port and user would share their whole processing state."""
-    from ..imap import account_id
+    from ..mailbox.imap import account_id
     seen: dict[str, int] = {}
     for mailbox in imap.enabled_mailboxes():
         account = account_id(mailbox.host, mailbox.port, credentials[mailbox.id]["username"])
@@ -174,7 +174,7 @@ def load_all(directory: Path, environ: dict[str, str] | None = None, *, oauth_pr
     credentials, missing = imap_secret_values(settings.imap, env)
     iserv, absent_iserv = iserv_secret_values(settings.iserv, env)
     missing += absent_iserv
-    from ..mailbox_settings import active_profiles
+    from ..mailbox.mailbox_settings import active_profiles
     from ..target_profiles import load_profile_secrets
     used = active_profiles(settings)
     names = [

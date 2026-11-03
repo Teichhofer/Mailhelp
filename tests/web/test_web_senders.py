@@ -9,11 +9,11 @@ from web_scenario import mail_id, save_mail
 
 from mailhelp.config import Topic
 from mailhelp.configuration import AdminCommand, AdminKind, ConfigurationService, SenderChange
-from mailhelp.imap import FetchedMail
+from mailhelp.mailbox.imap import FetchedMail
+from mailhelp.mailbox.sender_filter import change_irrelevant_senders, sender_entry
 from mailhelp.models import IrrelevantSenders
 from mailhelp.orchestrator import Orchestrator
 from mailhelp.review.results import ResultStatus
-from mailhelp.sender_filter import change_irrelevant_senders, sender_entry
 from mailhelp.storage import JsonStore
 from mailhelp.web.sender_site import LIST_PATH
 

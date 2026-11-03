@@ -8,7 +8,7 @@ from pathlib import Path
 from mailhelp.action_normalization import MailDateContext
 from mailhelp.analysis import Analyzer
 from mailhelp.config import PromptConfig, PromptStep, TargetSettings, Topic
-from mailhelp.mime import prepare
+from mailhelp.mailbox.mime import prepare
 from mailhelp.models import ActionRoute, EventExtraction, Relevance, Summary, TaskExtraction
 from mailhelp.proposal_builder import ProposalBuilder
 

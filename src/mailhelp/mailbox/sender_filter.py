@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from email.utils import getaddresses
 
-from .models import IrrelevantSenders
+from ..models import IrrelevantSenders
 
 
 def sender_addresses(header: object) -> set[str]:
@@ -61,7 +61,7 @@ def change_irrelevant_senders(blocked: IrrelevantSenders, add: bool, addresses: 
     if mailbox_id is None:
         return blocked.model_copy(update={"addresses": changed(blocked.addresses, addresses),
                                            "domains": changed(blocked.domains, domains)})
-    from .domain.relevance import SenderRules
+    from ..domain.relevance import SenderRules
     rules = blocked.mailboxes.get(str(mailbox_id), SenderRules())
     patch = {"allow": changed(rules.allow, addresses)} if allow else {
         "addresses": changed(rules.addresses, addresses), "domains": changed(rules.domains, domains)}
@@ -70,7 +70,7 @@ def change_irrelevant_senders(blocked: IrrelevantSenders, add: bool, addresses: 
 
 
 def save_sender_filter(store, blocked: IrrelevantSenders) -> None:
-    from .storage import atomic_replace
+    from ..storage import atomic_replace
     with store.locked():
         previous = store.load("irrelevant-senders", {})
         path = store.directory / "irrelevant-senders.json"

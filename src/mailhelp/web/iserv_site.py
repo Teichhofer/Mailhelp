@@ -13,8 +13,8 @@ from ..config import IServAccountSettings, Settings, read_yaml
 from ..configuration import ConfigurationConflict, file_hash
 from ..env_file import EnvFileConflict
 from ..env_file import file_hash as env_hash
-from ..iserv import IServSignInError
-from ..iserv_activation import IServActivation
+from ..mailbox.iserv import IServSignInError
+from ..mailbox.iserv_activation import IServActivation
 from .auth import WebSession
 from .forms import post_form
 from .http import Request, Response

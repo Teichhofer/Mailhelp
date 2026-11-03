@@ -33,9 +33,9 @@ from mailhelp.analysis import (
 )
 from mailhelp.config import OutputTokenRetry, TargetSettings, Topic
 from mailhelp.domain.revision_errors import ContradictoryRevision
-from mailhelp.imap import FetchedMail
 from mailhelp.integrations import CalendarFileWriter, HttpWriter, calendar_file, execute_confirmed
-from mailhelp.mime import MimeLimits
+from mailhelp.mailbox.imap import FetchedMail
+from mailhelp.mailbox.mime import MimeLimits
 from mailhelp.models import (
     ActionRoute,
     Proposal,

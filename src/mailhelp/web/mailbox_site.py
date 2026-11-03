@@ -8,12 +8,12 @@ from urllib.parse import parse_qs
 
 from ..config import Settings, TargetProfileSettings, Topic, read_yaml
 from ..configuration import MAILBOX_POLICY_FIELDS
-from ..mailbox_settings import effective_settings, mailbox_fingerprint
+from ..mailbox.mailbox_settings import effective_settings, mailbox_fingerprint
+from ..mailbox.sender_filter import sender_entry
 from ..models import Proposal
 from ..profile_binding import choices
 from ..profile_usage import profile_references
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
-from ..sender_filter import sender_entry
 from .auth import WebSession
 from .forms import post_form
 from .http import Request, Response

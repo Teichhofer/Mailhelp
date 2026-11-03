@@ -6,8 +6,8 @@ from types import SimpleNamespace
 
 from mailhelp.application import Application
 from mailhelp.config import Settings
-from mailhelp.imap import FetchedMail, UIDValidityChanged
-from mailhelp.mailbox_run import MailboxRunService
+from mailhelp.mailbox.imap import FetchedMail, UIDValidityChanged
+from mailhelp.mailbox.mailbox_run import MailboxRunService
 from mailhelp.models import MailRunState
 from mailhelp.orchestrator import ProcessingOutcome, ProcessingResult
 
@@ -94,6 +94,6 @@ def _persisted_run(entries):
 
 def with_sources(application):
     """An application double whose first enabled mailbox reads with its ``imap`` (3.1)."""
-    from mailhelp.mailbox_run import MailboxSource
+    from mailhelp.mailbox.mailbox_run import MailboxSource
     application.sources = [MailboxSource(application.settings.imap.enabled_mailboxes()[0], application.imap)]
     return application

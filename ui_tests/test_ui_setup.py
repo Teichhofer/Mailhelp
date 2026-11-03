@@ -206,7 +206,7 @@ def test_iserv_connection_is_activated_on_one_page(page, setup_server, monkeypat
     """A failed login stays on the form; success persists and requests a live reload."""
     from shared_decision_test import secrets
 
-    from mailhelp.iserv import IServSignInError
+    from mailhelp.mailbox.iserv import IServSignInError
     runtime = setup_server.site.setup_page.runtime
     runtime.secrets = secrets()
     activated = []
@@ -220,7 +220,7 @@ def test_iserv_connection_is_activated_on_one_page(page, setup_server, monkeypat
         def check_access(self):
             if self.fail:
                 raise IServSignInError("private")
-    monkeypatch.setattr("mailhelp.iserv.IServReader", Reader)
+    monkeypatch.setattr("mailhelp.mailbox.iserv.IServReader", Reader)
     sign_in(page, setup_server)
     page.goto(setup_server.url + "/einstellungen/iserv")
     def fill():

@@ -20,10 +20,10 @@ from .decisions import (
     relevance_fingerprint,
 )
 from .external.providers import build_writers, provider_services
-from .imap import ImapReader, mailbox_account_id, reader_arguments
 from .logging import JsonlLogger
 from .mail_recheck import request_recheck
-from .mailbox_run import MailboxSource
+from .mailbox.imap import ImapReader, mailbox_account_id, reader_arguments
+from .mailbox.mailbox_run import MailboxSource
 from .ollama import LocalLlm, OllamaClient
 from .openrouter import OpenRouterClient
 from .orchestrator import Orchestrator
@@ -70,7 +70,7 @@ def _mailbox_labels(store: JsonStore, sources: list[MailboxSource],
 
 def _build_iserv(settings: Settings, secrets: Secrets, stack: ExitStack) -> list[Any]:
     """One reader per enabled IServ account (3.3.7); it signs in on first use, not here."""
-    from .iserv import IServReader, IServSource
+    from .mailbox.iserv import IServReader, IServSource
     result = []
     for account in settings.iserv.enabled_accounts():
         reader = IServReader(account, secrets.iserv[account.id], settings.timezone, settings.limits.max_mail_bytes,
@@ -437,14 +437,14 @@ def build_application(
         numbers |= {source.reader.account_id: source.account.mailbox for source in iserv}
         orchestrator.configure_mailboxes(settings, prompts, numbers, jev_prompts)
         if iserv:
-            from .iserv import IServRunService
+            from .mailbox.iserv import IServRunService
             orchestrator.always_relevant = frozenset(source.reader.account_id for source in iserv)
             application.iserv = IServRunService(store, logger, iserv, application._process_mail, stop_event)
             application.mailbox.resume_readers = application.iserv.readers()
         application.profile_writers = built
         if web_enabled:
-            from .iserv_runtime import IServRuntime
-            from .mailbox_runtime import MailboxRuntime
+            from .mailbox.iserv_runtime import IServRuntime
+            from .mailbox.mailbox_runtime import MailboxRuntime
             application.iserv_runtime = IServRuntime(application, iserv_resources)
             stack.callback(application.iserv_runtime.close)
             application.mailbox_runtime = MailboxRuntime(application, stack.enter_context(ExitStack()), secrets)

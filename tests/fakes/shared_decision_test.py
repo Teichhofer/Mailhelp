@@ -11,8 +11,8 @@ from mailhelp.config import Secrets, Settings, Topic
 from mailhelp.decision_test import ComparisonRecorder, DecisionTestMode
 from mailhelp.decision_test import run_decision_test as _run_decision_test
 from mailhelp.decisions import DecisionClient
-from mailhelp.imap import FetchedMail, MailCandidate
 from mailhelp.laya import LayaClient
+from mailhelp.mailbox.imap import FetchedMail, MailCandidate
 from mailhelp.models import ActionRoute, EventExtraction, Relevance, Summary, TaskExtraction
 from mailhelp.ollama import LocalLlm, OllamaClient
 from mailhelp.openrouter import OpenRouterClient

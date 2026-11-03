@@ -19,11 +19,12 @@ from .config import (
     TargetSettings,
     Topic,
 )
-from .imap import FetchedMail
 from .logging import EventLogger, NullLogger
 from .mail_duplicates import DuplicateMailCheck
 from .mail_pipeline import MailPipeline, ProcessingOutcome, ProcessingResult, ProcessingRun
 from .mail_questions import MailQuestions
+from .mailbox.imap import FetchedMail
+from .mailbox.sender_filter import is_irrelevant_sender
 from .models import (
     ExtractionCountConflict,
     IrrelevantSenders,
@@ -39,7 +40,6 @@ from .models import (
 )
 from .precheck import DuplicatePreCheckService
 from .proposal_builder import ProposalBuilder
-from .sender_filter import is_irrelevant_sender
 from .storage import JsonStore
 from .telegram.formatting import mail_line
 from .vision import VisionExtractor
@@ -99,7 +99,7 @@ class Orchestrator:
         return self.mailbox_numbers.get(account_id, 1)
 
     def effective_settings(self, account_id: str):
-        from .mailbox_settings import effective_settings
+        from .mailbox.mailbox_settings import effective_settings
         assert self.mailbox_settings is not None
         return effective_settings(self.mailbox_settings, self.mailbox_number(account_id))
 
@@ -107,7 +107,7 @@ class Orchestrator:
         if self.mailbox_settings is None:
             return self.config_fingerprint
         from .decisions import relevance_fingerprint
-        from .mailbox_settings import mailbox_fingerprint
+        from .mailbox.mailbox_settings import mailbox_fingerprint
         value = mailbox_fingerprint(self.mailbox_settings, self.mailbox_prompts, self.topics,
                                     self.mailbox_number(account_id))
         return relevance_fingerprint(value, self.mailbox_jev) if self.mailbox_jev is not None else value
@@ -115,7 +115,7 @@ class Orchestrator:
     def policy_for(self, account_id: str) -> str | None:
         if self.mailbox_settings is None:
             return self.topic_policy
-        from .mailbox_settings import mailbox_topic_policy
+        from .mailbox.mailbox_settings import mailbox_topic_policy
         return mailbox_topic_policy(self.mailbox_settings, self.mailbox_prompts, self.mailbox_number(account_id))
 
     def build_proposals(self, state: MailState) -> list[Proposal]:
@@ -247,7 +247,7 @@ class Orchestrator:
             return False
         record = self.store.load(f"processing-topics-{fingerprint}", {})
         if account_id is not None and any(topic.mailboxes is not None for topic in self.topics):
-            from .mailbox_settings import effective_topics
+            from .mailbox.mailbox_settings import effective_topics
 
             previous = [Topic.model_validate(item).model_copy(update={"mailboxes": None})
                         for item in record.get("topics", [])]
@@ -259,7 +259,7 @@ class Orchestrator:
 
     def topics_for(self, fingerprint: str, account_id: str | None = None) -> list[Topic]:
         if account_id is not None and fingerprint == self.fingerprint_for(account_id):
-            from .mailbox_settings import effective_topics
+            from .mailbox.mailbox_settings import effective_topics
             return effective_topics(self.topics, self.mailbox_number(account_id))
         if fingerprint == self.config_fingerprint:
             return self.topics

@@ -21,10 +21,10 @@ from .analysis import Analyzer
 from .config import MailboxSettings, PromptConfig, Secrets, Settings, Topic
 from .decisions import DecisionAnalyzer, DecisionClient, JevRelevanceAnalyzer, load_relevance_prompts
 from .evaluation import write_report
-from .imap import FolderNotReadable, ImapReader, MailCandidate, reader_arguments
 from .laya import LayaClient, LayaRelevanceAnalyzer, load_laya_prompts
 from .logging import NullLogger, redact
-from .mime import prepare
+from .mailbox.imap import FolderNotReadable, ImapReader, MailCandidate, reader_arguments
+from .mailbox.mime import prepare
 from .ollama import LocalLlm, OllamaClient
 from .openrouter import OpenRouterClient
 from .paths import runtime_path
@@ -145,8 +145,8 @@ class DecisionTestMode:
         record["paths"][name] = result
         if self.recorder.metrics is not None:
             self.recorder.metrics.test_mail_hash = record.get("mail_sha256")
-        from .mailbox_settings import effective_topics
-        from .sender_filter import is_irrelevant_sender
+        from .mailbox.mailbox_settings import effective_topics
+        from .mailbox.sender_filter import is_irrelevant_sender
         topics = effective_topics(self.topics, record.get("mailbox", self.mailbox.id))
         number = record.get("mailbox", self.mailbox.id)
         if isinstance(classifier, LocalPipeline):

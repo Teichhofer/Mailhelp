@@ -231,8 +231,8 @@ def _collect_and_extract_attachments(
     message: Message, user_timezone: str, max_attachment_bytes: int
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     """Collect attachment parts and extract calendar events and document texts."""
-    from .attachment_extractor import extract_attachment_text
-    from .calendar_parser import parse_icalendar
+    from ..attachment_extractor import extract_attachment_text
+    from ..calendar_parser import parse_icalendar
 
     calendar_events: list[dict[str, Any]] = []
     extracted_attachments: list[dict[str, Any]] = []

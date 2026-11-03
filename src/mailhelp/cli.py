@@ -369,7 +369,7 @@ def _microsoft_login(settings, secrets, directory: Path, profile_id=1) -> int:
     """Device-code sign-in; the terminal shows only the code and address, never a token."""
     from .external.contracts import OAuthTokenError
     from .external.providers import microsoft_tokens
-    from .mailbox_settings import target_profiles
+    from .mailbox.mailbox_settings import target_profiles
     settings = settings.model_copy(update={"targets": target_profiles(settings)[profile_id]})
     secrets = secrets.for_profile(profile_id)
     if not secrets.microsoft_client_id.get_secret_value():
@@ -482,7 +482,7 @@ def _main() -> int:
               if args.google_auth else load_all(args.config_directory))
     settings, secrets, topics, irrelevant_topics, prompts, fingerprint = loaded
     if args.google_auth or args.microsoft_login:
-        from .mailbox_settings import target_profiles
+        from .mailbox.mailbox_settings import target_profiles
         number = args.profile or 1
         if number not in target_profiles(settings):
             parser.error("Zielprofil ist nicht konfiguriert")

@@ -11,7 +11,7 @@ from shared_application import Log, settings
 from mailhelp.analysis import Analyzer
 from mailhelp.config import ImapCredentials, Secrets
 from mailhelp.experience import ExperienceRuntime
-from mailhelp.imap import ListedMailbox
+from mailhelp.mailbox.imap import ListedMailbox
 
 SECRETS = Secrets.model_construct(imap={1: ImapCredentials(username="me@test", password=SecretStr("fake"))})
 
@@ -76,7 +76,7 @@ def test_runtime_runs_reports_and_suggests_folders_from_a_closed_session(web, tm
 def test_reports_and_drafts_are_wired_per_mailbox(web, tmp_path, monkeypatch):
     """Planung 3.1: each mailbox opens with its own server and credentials; a removed one is refused."""
     from mailhelp.config import Settings
-    from mailhelp.imap import account_id
+    from mailhelp.mailbox.imap import account_id
     opened = []
 
     class Reader:

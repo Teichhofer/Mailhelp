@@ -12,7 +12,7 @@ from types import SimpleNamespace
 from shared_application import Imap, Orch, Telegram, app
 from shared_web_actions import web as web
 
-from mailhelp.imap import FetchedMail
+from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.review.inbox import CommandStatus
 from mailhelp.telegram.receiver import TelegramInbox
 

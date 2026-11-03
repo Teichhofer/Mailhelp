@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from contextlib import ExitStack
 
-from .config import ImapSettings
+from ..config import ImapSettings
 from .connection_runtime import PendingConnections
 
 
@@ -16,8 +16,8 @@ class MailboxRuntime(PendingConnections):
         self.secrets = secrets
 
     def _apply(self, pending):
-        from .adapter import RetryPolicy
-        from .composition import _mailbox_labels
+        from ..adapter import RetryPolicy
+        from ..composition import _mailbox_labels
         from .imap import ImapReader, mailbox_account_id, reader_arguments
         from .mailbox_run import MailboxSource
         configured, secrets = pending

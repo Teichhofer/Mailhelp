@@ -27,8 +27,8 @@ from mailhelp.domain.proposal import (
     ProposalStatus,
 )
 from mailhelp.domain.temporal import TimeRequirement
-from mailhelp.imap import FetchedMail
 from mailhelp.integrations import HttpWriter
+from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.models import MailState, ProcessingStage, Relevance
 from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.precheck import DuplicatePreCheckService

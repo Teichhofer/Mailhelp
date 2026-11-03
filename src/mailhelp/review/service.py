@@ -268,7 +268,7 @@ class ReviewService:
                 if source.status not in _OPEN:
                     raise StaleCommand("Vorschlag nicht mehr offen")
                 if self.configuration is not None:
-                    from ..mailbox_settings import event_defaults_for
+                    from ..mailbox.mailbox_settings import event_defaults_for
                     handler = self.controller.relevance_handler
                     defaults = event_defaults_for(self.configuration.active, self.controller.store, source,
                                                   getattr(handler, "mailbox_numbers", {}))

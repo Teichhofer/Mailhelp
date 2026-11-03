@@ -12,10 +12,10 @@ from pydantic import ValidationError
 
 from ..config import MAX_MAILBOXES, MailboxSettings
 from ..configuration import ConfigurationConflict, file_hash
-from ..connection_activation import ActivationProblem
 from ..env_file import EnvFileConflict
 from ..env_file import file_hash as env_hash
-from ..mailbox_activation import MailboxActivation
+from ..mailbox.connection_activation import ActivationProblem
+from ..mailbox.mailbox_activation import MailboxActivation
 from .auth import WebSession
 from .forms import post_form
 from .http import Request, Response

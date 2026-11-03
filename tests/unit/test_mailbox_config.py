@@ -12,8 +12,8 @@ from shared_core import prompt_config
 from mailhelp.cli import _show_imap_credentials
 from mailhelp.config import ImapCredentials, ImapSettings, Secrets, Settings, Topic, imap_secret_values
 from mailhelp.fingerprints import config_fingerprint, legacy_fingerprints, legacy_policies, topic_policy
-from mailhelp.imap import account_id, mailbox_account_id, reader_arguments
 from mailhelp.learning import add_discovered_folders
+from mailhelp.mailbox.imap import account_id, mailbox_account_id, reader_arguments
 from mailhelp.yaml_edit import _paths, set_list, set_scalars
 
 TOPICS = [Topic(id="schule", name="Schule", enabled=True, description="Schule")]
@@ -286,7 +286,7 @@ class Box:
     """Read double of one mailbox for the shared selection of learning and decision tests."""
 
     def __init__(self, account, messages, unreadable=()):
-        from mailhelp.imap import FolderNotReadable
+        from mailhelp.mailbox.imap import FolderNotReadable
         self.account, self.messages, self.unreadable, self.error = account, messages, set(unreadable), FolderNotReadable
         self.account_id = account
         self.fetched = []
@@ -297,7 +297,7 @@ class Box:
     def discover_since(self, folder, **_options):
         from datetime import UTC, datetime, timedelta
 
-        from mailhelp.imap import MailCandidate
+        from mailhelp.mailbox.imap import MailCandidate
         if folder in self.unreadable:
             raise self.error(folder)
         stamp = datetime(2026, 10, 1, tzinfo=UTC)
@@ -305,13 +305,13 @@ class Box:
                 for name, uid, hour in self.messages if name == folder]
 
     def fetch_uid(self, folder, uid, uidvalidity):
-        from mailhelp.imap import FetchedMail
+        from mailhelp.mailbox.imap import FetchedMail
         self.fetched.append((folder, uid))
         # The raw mail depends on the UID only: equal UIDs in two mailboxes are the same mail.
         return FetchedMail(folder, uidvalidity, uid, f"Subject: Nr. {uid}\n\nx".encode(), self.account)
 
     def fetch_since(self, folder, after_uid, uidvalidity, limit, ranges):
-        from mailhelp.imap import FetchedMail
+        from mailhelp.mailbox.imap import FetchedMail
         done = {low for low, _high in ranges}
         return [FetchedMail(folder, 7, uid, b"x", self.account) for name, uid, _hour in self.messages
                 if name == folder and uid not in done][:limit]

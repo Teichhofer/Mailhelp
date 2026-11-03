@@ -576,7 +576,7 @@ def test_requested_extraction_cannot_bypass_the_call_limit(setup):
 
 
 def test_uidvalidity_change_reenumerates_and_reuses_saved_results(setup, monkeypatch):
-    from mailhelp.imap import UIDValidityChanged
+    from mailhelp.mailbox.imap import UIDValidityChanged
     monkeypatch.setattr("mailhelp.activity.runner.BATCH", 1)
     report = started(setup, include_sent=False)
     setup.runner.tick()
@@ -727,7 +727,7 @@ def test_a_report_paused_or_deleted_during_a_call_stops_the_batch(setup):
 
 
 def test_a_new_uid_generation_completes_a_pending_extraction(setup, monkeypatch):
-    from mailhelp.imap import UIDValidityChanged
+    from mailhelp.mailbox.imap import UIDValidityChanged
     monkeypatch.setattr("mailhelp.activity.runner.BATCH", 1)
     report = started(setup, include_sent=False)
     setup.model.answers["activity_events"] = RuntimeError("offline")

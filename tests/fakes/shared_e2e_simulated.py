@@ -9,8 +9,8 @@ import httpx
 
 from mailhelp.analysis import Analyzer
 from mailhelp.config import PromptConfig, PromptStep, TargetSettings, Topic
-from mailhelp.imap import FetchedMail
 from mailhelp.logging import NullLogger
+from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.models import ActionLedger
 from mailhelp.orchestrator import Orchestrator
 from mailhelp.storage import JsonStore

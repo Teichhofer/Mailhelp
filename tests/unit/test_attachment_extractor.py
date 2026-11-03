@@ -11,7 +11,7 @@ from mailhelp.attachment_extractor import (
     extract_attachment_text,
     truncate_text,
 )
-from mailhelp.mime import MimeLimits, prepare
+from mailhelp.mailbox.mime import MimeLimits, prepare
 
 RAW_PDF_BYTES = b"""%PDF-1.4
 1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj

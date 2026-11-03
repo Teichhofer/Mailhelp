@@ -175,7 +175,7 @@ Wenn ein E-Mail-Absender mitteilt: *„Achtung, das Team-Meeting am Freitag vers
 ## 6. Pfeiler C im Detail: Deterministische ICS-Anhangsauswertung (RFC 5545)
 
 ### MIME-Extraktion und Größenbegrenzung
-In `src/mailhelp/mime.py` wird der Parser erweitert:
+In `src/mailhelp/mailbox/mime.py` wird der Parser erweitert:
 - Prüft `Content-Type: text/calendar` (auch mit Parametern wie `method=REQUEST`) sowie Dateianhänge mit Endung `.ics`.
 - **DoS-Schutz:** Maximale Größe pro Kalenderdatei beträgt 1 MB; überschüssige Bytes werden verworfen.
 
@@ -270,7 +270,7 @@ Nächster Sitzungstermin: 15.12.2026 19:00 Uhr im Vereinsheim.
    - PDF-Extraktion via `pypdf`.
    - DOCX-Extraktion via `zipfile` & `xml.etree.ElementTree`.
    - Textdateien mit Encoding-Fallback.
-3. `src/mailhelp/mime.py` um Aufrufe beider Extraktoren und DoS-Größenlimits erweitern.
+3. `src/mailhelp/mailbox/mime.py` um Aufrufe beider Extraktoren und DoS-Größenlimits erweitern.
 4. Unit-Tests für synthetische Kalender- und Dokumentdateien (Normalfälle, Truncation, defekte Dateien, Passwörter).
 
 ### Phase 3: Read-Only Query-Adapter & Caching

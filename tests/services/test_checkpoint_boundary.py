@@ -3,8 +3,8 @@ import pytest
 from shared_application import Imap, Orch, Telegram, _persisted_run, app
 from shared_core import FakeImap
 
-from mailhelp.imap import ImapReader
-from mailhelp.mailbox_run import _checkpoint_name
+from mailhelp.mailbox.imap import ImapReader
+from mailhelp.mailbox.mailbox_run import _checkpoint_name
 from mailhelp.models import ImapCheckpoint, MailRunEntry, MailRunState, MailState
 from mailhelp.orchestrator import ProcessingOutcome, ProcessingResult
 from mailhelp.storage import JsonStore

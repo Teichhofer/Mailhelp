@@ -28,7 +28,7 @@ class NotificationRuntime:
                                          settings_for_mailbox=self.settings_for_mailbox)
         self.briefing = DailyBriefingService(app.store, app.settings.daily_briefing, app.settings.timezone,
             app.calendar, app.todoist, site.views, {"local": lambda text: None})
-        from .mailbox_briefing import configure
+        from .mailbox.mailbox_briefing import configure
         configure(app, self.briefing, site.views)
         self._migrate()
         self._migrate_mailboxes()
@@ -56,7 +56,7 @@ class NotificationRuntime:
             (f"{row.mail_id}:relevance", row.version): row for row in overview.relevance}
 
     def settings_for_mailbox(self, number):
-        from .mailbox_settings import effective_settings
+        from .mailbox.mailbox_settings import effective_settings
         return (effective_settings(self.app.settings, number) if self.app.settings.imap.mailbox(number) is not None
                 else self.app.settings)
 

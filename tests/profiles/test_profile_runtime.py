@@ -12,8 +12,8 @@ from mailhelp.briefing import DailyBriefingService
 from mailhelp.config import Secrets
 from mailhelp.external.providers import Writers
 from mailhelp.logging import JsonlLogger
-from mailhelp.mailbox_briefing import configure, sections
-from mailhelp.mailbox_settings import merge_policy
+from mailhelp.mailbox.mailbox_briefing import configure, sections
+from mailhelp.mailbox.mailbox_settings import merge_policy
 from mailhelp.models import MailState
 from mailhelp.notification_runtime import NotificationRuntime
 from mailhelp.review.views import ReviewViews

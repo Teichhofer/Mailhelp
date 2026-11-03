@@ -24,8 +24,8 @@ from shared_e2e_simulated import telegram_button as telegram_button
 from mailhelp.analysis import Analyzer, LlmSchemaValidationExceeded
 from mailhelp.application import Application
 from mailhelp.config import PromptConfig, PromptStep, TargetSettings, Topic
-from mailhelp.imap import FetchedMail
 from mailhelp.logging import NullLogger
+from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.models import Proposal
 from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.storage import JsonStore

@@ -9,8 +9,8 @@ from mailhelp.external.confirmed import execute_confirmed
 from mailhelp.external.http_writer import HttpWriter
 from mailhelp.external.ical import CalendarFileWriter, calendar_file
 from mailhelp.external.oauth import GoogleOAuthTokenProvider
-from mailhelp.imap import FetchedMail, MailCandidate
-from mailhelp.mailbox_run import MailboxRunService, MailboxSource
+from mailhelp.mailbox.imap import FetchedMail, MailCandidate
+from mailhelp.mailbox.mailbox_run import MailboxRunService, MailboxSource
 from mailhelp.models import MailRunState
 from mailhelp.orchestrator import ProcessingOutcome, ProcessingResult
 from mailhelp.web import review_pages, status_pages

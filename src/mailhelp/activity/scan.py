@@ -15,9 +15,9 @@ from zoneinfo import ZoneInfo
 
 from ..domain.prepared import PreparedMail
 from ..domain.relevance import IrrelevantSenders, SenderRules
-from ..imap import FetchedMail
-from ..mime import MimeLimitExceeded, prepare
-from ..sender_filter import is_irrelevant_sender, sender_addresses
+from ..mailbox.imap import FetchedMail
+from ..mailbox.mime import MimeLimitExceeded, prepare
+from ..mailbox.sender_filter import is_irrelevant_sender, sender_addresses
 from .models import EXCLUDED_ROLES, ActivityReport, FolderProgress, ReportMail
 
 SHORTENED = "\n… gekürzt"

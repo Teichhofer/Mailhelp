@@ -8,7 +8,7 @@ from shared_application import Imap, Orch, Telegram, app
 from shared_decision_test import secrets
 
 from mailhelp.config import IServSettings, Secrets
-from mailhelp.iserv_runtime import IServRuntime
+from mailhelp.mailbox.iserv_runtime import IServRuntime
 
 
 class Reader:
@@ -31,7 +31,7 @@ class Reader:
 @pytest.fixture
 def reloadable(profiled, monkeypatch):
     Reader.instances, Reader.fail = [], False
-    monkeypatch.setattr("mailhelp.iserv.IServReader", Reader)
+    monkeypatch.setattr("mailhelp.mailbox.iserv.IServReader", Reader)
     ctx = profiled
     ctx.app.mailbox = NS(settings=ctx.cfg, resume_readers={"old": object()})
     ctx.app.orchestrator.mailbox_numbers["old"] = 1

@@ -14,8 +14,8 @@ from threading import Event, Thread
 from typing import Any
 
 from ..domain.revision_errors import TechnicalRevisionError
-from ..imap import FolderNotReadable, UIDValidityChanged
 from ..logging import log_and_continue
+from ..mailbox.imap import FolderNotReadable, UIDValidityChanged
 from .budget import ReportCalls, ReportPaused
 from .llm import ActivityAnalyzer
 from .models import ActivityReport, FolderProgress, ReportMail, ReportStatus

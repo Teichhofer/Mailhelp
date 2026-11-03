@@ -7,7 +7,7 @@ import pytest
 from pydantic import ValidationError
 
 from mailhelp.domain.prepared import ImagePreview, MailHeaders, PreparedAttachment, PreparedMail
-from mailhelp.mime import prepare
+from mailhelp.mailbox.mime import prepare
 
 RAW = (b"From: Schule <info@schule.test>\r\nSubject: Ausflug\r\nDate: Mon, 12 Oct 2026 08:00:00 +0200\r\n"
        b"Message-ID: <a@schule.test>\r\n\r\nBitte unterschreiben.")

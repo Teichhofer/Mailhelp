@@ -4,7 +4,7 @@ from __future__ import annotations
 import secrets
 
 from ..domain.relevance import IrrelevantSenders
-from ..sender_filter import is_irrelevant_sender, sender_addresses
+from ..mailbox.sender_filter import is_irrelevant_sender, sender_addresses
 from .pages import e, notice
 
 LIST_PATH = "/einstellungen/ignorierte-absender"

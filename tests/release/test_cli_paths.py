@@ -16,7 +16,7 @@ from mailhelp.cli import (
 )
 from mailhelp.config import ImapSettings
 from mailhelp.learning import LearningSource
-from mailhelp.mailbox_run import MailboxSource
+from mailhelp.mailbox.mailbox_run import MailboxSource
 
 
 class CaptureLogger:

@@ -2,8 +2,8 @@ from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
 
-from mailhelp.imap import ImapReader
-from mailhelp.mime import prepare
+from mailhelp.mailbox.imap import ImapReader
+from mailhelp.mailbox.mime import prepare
 
 
 class Connection:

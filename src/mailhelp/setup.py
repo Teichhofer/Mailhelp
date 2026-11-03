@@ -179,7 +179,7 @@ class SetupService:
                         raise ValueError("Verbindungsänderungen benötigen eine aktuelle erfolgreiche Diagnose")
             if "target_profiles" in state.patch or "imap.mailboxes" in state.patch or any(
                     name.endswith(".target_profile") for name in state.patch):
-                from .mailbox_settings import active_profiles
+                from .mailbox.mailbox_settings import active_profiles
                 for number in active_profiles(self.draft_settings()):
                     components = ("calendar", "todoist") if number == 1 else (f"calendar:{number}", f"tasks:{number}")
                     for name in components:

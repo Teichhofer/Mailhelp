@@ -34,7 +34,7 @@ from .decisions import (
     load_decision_prompts,
     load_relevance_prompts,
 )
-from .mime import prepare
+from .mailbox.mime import prepare
 from .models import EventExtraction, TaskExtraction
 from .openrouter import OpenRouterClient
 

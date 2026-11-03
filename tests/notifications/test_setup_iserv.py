@@ -6,7 +6,7 @@ import yaml
 from pydantic import SecretStr
 
 from mailhelp.config import Secrets
-from mailhelp.iserv import IServError, IServSignInError
+from mailhelp.mailbox.iserv import IServError, IServSignInError
 
 NAMES = "ISERV_1_USERNAME/ISERV_1_PASSWORD"
 
@@ -62,7 +62,7 @@ class Reader:
 
 def test_iserv_diagnosis_signs_in_without_reading_letters(configured, monkeypatch, no_env):
     runtime = configured.runtime
-    monkeypatch.setattr("mailhelp.iserv.IServReader", Reader)
+    monkeypatch.setattr("mailhelp.mailbox.iserv.IServReader", Reader)
     Reader.seen, Reader.error = [], None
     assert runtime.iserv("device") == ("disabled", "")
     with_accounts(configured, {"id": 1, "server": "https://schule.example"})

@@ -72,14 +72,14 @@ nachgeladen), Erststart ohne Konfiguration, OAuth im Browser.
 ## 4. Umsetzung
 
 Neue Module:
-- `src/mailhelp/connection_activation.py` – `ConnectionActivation` (abstrakte Basis aus dem
+- `src/mailhelp/mailbox/connection_activation.py` – `ConnectionActivation` (abstrakte Basis aus dem
   IServ-Ablauf 3.4.7 herausgelöst: Autorisierung, Versions-/Hashprüfung, Idempotenz, Journal,
   atomares `.env`-Schreiben, Rebase des Entwurfs) und `ActivationProblem` (anzeigbare Meldung).
-- `src/mailhelp/connection_runtime.py` – `PendingConnections` (Basis für „zwischen Mailzyklen
+- `src/mailhelp/mailbox/connection_runtime.py` – `PendingConnections` (Basis für „zwischen Mailzyklen
   nachladen“).
-- `src/mailhelp/mailbox_activation.py` – `MailboxActivation` (Patch `imap.mailboxes`, wandelt das
+- `src/mailhelp/mailbox/mailbox_activation.py` – `MailboxActivation` (Patch `imap.mailboxes`, wandelt das
   Format vor 3.1 um, Doppelkonto- und Ordnerprüfung).
-- `src/mailhelp/mailbox_runtime.py` – `MailboxRuntime`: baut `ImapReader` für neue Postfächer,
+- `src/mailhelp/mailbox/mailbox_runtime.py` – `MailboxRuntime`: baut `ImapReader` für neue Postfächer,
   ergänzt `app.sources`, Orchestrator-Zuordnung, Metriken, Postfachlabels und die gemeinsamen
   Zugangsdaten; laufende Postfächer bleiben unberührt; Fehler → erneuter Versuch im nächsten Zyklus.
 - `src/mailhelp/web/mailbox_add_site.py` – Formular und Handler.

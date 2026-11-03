@@ -10,8 +10,8 @@ import yaml
 from mailhelp.analysis import Analyzer as RealAnalyzer
 from mailhelp.analysis import LlmProviderResponseInvalid
 from mailhelp.config import Topic
-from mailhelp.imap import FetchedMail, FolderNotReadable, MailCandidate
 from mailhelp.learning import LearningMode, _safe_terminal, _topic_id, add_discovered_folders, save_topics
+from mailhelp.mailbox.imap import FetchedMail, FolderNotReadable, MailCandidate
 from mailhelp.models import AbstractCategories, LearnedCategory, MailClassification, Relevance
 
 

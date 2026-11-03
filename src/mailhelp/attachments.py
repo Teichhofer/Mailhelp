@@ -22,7 +22,7 @@ from typing import Any
 from PIL import Image
 
 from .config import OriginalAttachmentSettings
-from .mime import attachment_parts
+from .mailbox.mime import attachment_parts
 from .storage import StateStore, atomic_replace
 from .vision import encode, is_image, open_image
 

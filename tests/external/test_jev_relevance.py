@@ -21,7 +21,7 @@ from mailhelp.decisions import (
     load_relevance_prompts,
     relevance_fingerprint,
 )
-from mailhelp.imap import FetchedMail
+from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.openrouter import OpenRouterClient, RateLimitExceeded
 from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.storage import JsonStore

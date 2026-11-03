@@ -22,9 +22,9 @@ from .config import (
 )
 from .domain.relevance import IrrelevantSenders
 from .learning import topics_document
+from .mailbox.sender_filter import change_irrelevant_senders, save_sender_filter
 from .review.commands import CommandSource
 from .review.results import ResultStatus, ReviewResult
-from .sender_filter import change_irrelevant_senders, save_sender_filter
 from .storage import JsonStore, atomic_replace
 from .yaml_edit import YamlEditError, replace_block, set_list, set_scalars
 

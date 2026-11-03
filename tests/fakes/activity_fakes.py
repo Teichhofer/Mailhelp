@@ -11,7 +11,7 @@ from shared_core import prompt_config
 
 from mailhelp.activity.models import ReportDefinition
 from mailhelp.config import PromptStep
-from mailhelp.imap import FetchedMail, FolderNotReadable, ListedMailbox, MailCandidate
+from mailhelp.mailbox.imap import FetchedMail, FolderNotReadable, ListedMailbox, MailCandidate
 
 
 def raw_mail(subject: str, body: str, *, sender: str = "Schule <info@schule.test>",

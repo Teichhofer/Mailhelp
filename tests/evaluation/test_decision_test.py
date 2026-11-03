@@ -25,8 +25,8 @@ from mailhelp import cli
 from mailhelp.config import Topic
 from mailhelp.decision_test import ComparisonRecorder, DecisionTestMode, _raw_mail
 from mailhelp.decisions import DecisionClient, jev_mail
-from mailhelp.imap import FolderNotReadable
 from mailhelp.laya import LayaClient
+from mailhelp.mailbox.imap import FolderNotReadable
 from mailhelp.models import Summary
 from mailhelp.ollama import LocalLlm, OllamaClient
 from mailhelp.openrouter import OpenRouterClient

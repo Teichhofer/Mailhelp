@@ -6,10 +6,10 @@ from shared_services import Notify, Writer
 
 from mailhelp.attachment_extractor import extract_attachment_text
 from mailhelp.config import TargetSettings
-from mailhelp.imap import FetchedMail
 from mailhelp.integrations import execute_confirmed
 from mailhelp.mail_pipeline import ProcessingRun
-from mailhelp.mime import MimeLimits
+from mailhelp.mailbox.imap import FetchedMail
+from mailhelp.mailbox.mime import MimeLimits
 from mailhelp.models import Proposal
 from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.review.views import ReviewViews

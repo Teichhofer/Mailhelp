@@ -12,13 +12,13 @@ from threading import Event
 from typing import Any, Literal
 from uuid import uuid4
 
-from . import state_names
-from .config import MailboxSettings, Settings
+from .. import state_names
+from ..config import MailboxSettings, Settings
+from ..logging import EventLogger
+from ..models import ImapCheckpoint, MailRunCounters, MailRunEntry, MailRunEntryStatus, MailRunState, MailState
+from ..orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
+from ..storage import JsonStore, mail_state_names
 from .imap import FetchedMail, ListedMailbox, MailCandidate, UIDValidityChanged
-from .logging import EventLogger
-from .models import ImapCheckpoint, MailRunCounters, MailRunEntry, MailRunEntryStatus, MailRunState, MailState
-from .orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
-from .storage import JsonStore, mail_state_names
 
 _BLOCKED_STATE_SCAN_LIMIT = 1000
 

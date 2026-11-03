@@ -3,7 +3,7 @@
 **Stand:** 3. November 2026 (Version 3.6.10)  
 **Zweck:** Zielstruktur für [Planung 3.6](Planung-3.6.md), Schritt 0.10; Grundlage ist der in
 [Planung 3.3](Planung-3.3.md), Abschnitt 5, zurückgestellte Punkt.  
-**Status:** Festgelegt; Umsetzung je Zielpaket in 0.10a–0.10f
+**Status:** Festgelegt; umgesetzt: `mailbox` (3.6.11); offen: 0.10b–0.10f
 
 ---
 

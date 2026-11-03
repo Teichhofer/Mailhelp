@@ -1,8 +1,8 @@
 import pytest
 from pydantic import ValidationError
 
+from mailhelp.mailbox.sender_filter import add_irrelevant_senders, is_irrelevant_sender, sender_addresses
 from mailhelp.models import IrrelevantSenders
-from mailhelp.sender_filter import add_irrelevant_senders, is_irrelevant_sender, sender_addresses
 
 
 def test_sender_extraction_exact_domain_and_learning():

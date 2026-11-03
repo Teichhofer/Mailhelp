@@ -6,7 +6,7 @@ import yaml
 from shared_decision_test import secrets
 
 from mailhelp.config import Secrets
-from mailhelp.iserv import IServSignInError
+from mailhelp.mailbox.iserv import IServSignInError
 
 ROUTE = "/einstellungen/iserv"
 ACTIVATE = ROUTE + "/aktivieren"
@@ -33,7 +33,7 @@ class Reader:
 @pytest.fixture
 def activation(profiled, monkeypatch):
     Reader.calls, Reader.error = [], None
-    monkeypatch.setattr("mailhelp.iserv.IServReader", Reader)
+    monkeypatch.setattr("mailhelp.mailbox.iserv.IServReader", Reader)
     for name in ("ISERV_1_USERNAME", "ISERV_1_PASSWORD"):
         monkeypatch.delenv(name, raising=False)
     profiled.runtime.secrets = Secrets.model_validate(secrets().model_dump())
@@ -227,10 +227,10 @@ def test_activation_failures_are_safe_and_recoverable(activation, monkeypatch, f
     elif failure == "probe":
         Reader.error = RuntimeError("never-display-secret")
     elif failure == "write":
-        monkeypatch.setattr("mailhelp.connection_activation.set_values", lambda *args: (_ for _ in ()).throw(OSError()))
+        monkeypatch.setattr("mailhelp.mailbox.connection_activation.set_values", lambda *args: (_ for _ in ()).throw(OSError()))
     elif failure == "config":
         from mailhelp.review.results import ResultStatus, ReviewResult
-        monkeypatch.setattr("mailhelp.connection_activation.ConfigurationService.execute",
+        monkeypatch.setattr("mailhelp.mailbox.connection_activation.ConfigurationService.execute",
                             lambda *args: ReviewResult(status=ResultStatus.STALE, message="changed"))
     else:
         from mailhelp.setup import SetupState

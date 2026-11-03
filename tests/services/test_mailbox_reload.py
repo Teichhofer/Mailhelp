@@ -9,9 +9,9 @@ from shared_decision_test import secrets
 
 from mailhelp.config import ImapSettings, Secrets
 from mailhelp.experience import ExperienceRuntime
-from mailhelp.imap import account_id
-from mailhelp.mailbox_run import MailboxSource
-from mailhelp.mailbox_runtime import MailboxRuntime
+from mailhelp.mailbox.imap import account_id
+from mailhelp.mailbox.mailbox_run import MailboxSource
+from mailhelp.mailbox.mailbox_runtime import MailboxRuntime
 
 
 class Reader:
@@ -33,7 +33,7 @@ class Reader:
 def reloadable(profiled, monkeypatch):
     ctx = profiled
     Reader.instances, Reader.fail = [], None
-    monkeypatch.setattr("mailhelp.imap.ImapReader", Reader)
+    monkeypatch.setattr("mailhelp.mailbox.imap.ImapReader", Reader)
     keys = secrets().model_dump()
     keys["imap"] = {n: {"username": f"user-{n}", "password": f"pw-{n}"} for n in range(1, 5)}
     ctx.keys = Secrets.model_validate(keys)

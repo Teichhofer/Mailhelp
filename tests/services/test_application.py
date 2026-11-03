@@ -17,9 +17,9 @@ from shared_core import prompt_config
 
 from mailhelp.application import Application, _state_directory, build_application, build_logger
 from mailhelp.config import Secrets, Topic
-from mailhelp.imap import FetchedMail, MailCandidate, UIDValidityChanged
 from mailhelp.integrations import OAuthTokenError
-from mailhelp.mailbox_run import MailboxRunService, _add_uid, _checkpoint_name, _MailBudget, _RunSummary
+from mailhelp.mailbox.imap import FetchedMail, MailCandidate, UIDValidityChanged
+from mailhelp.mailbox.mailbox_run import MailboxRunService, _add_uid, _checkpoint_name, _MailBudget, _RunSummary
 from mailhelp.models import MailRunCounters, MailRunEntry, MailRunState, MailState
 from mailhelp.orchestrator import ProcessingOutcome, ProcessingResult
 from mailhelp.telegram.commands import HELP, STARTUP

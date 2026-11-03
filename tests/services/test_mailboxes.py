@@ -11,8 +11,8 @@ from shared_application import settings as app_settings
 from mailhelp.application import Application
 from mailhelp.composition import _FailedAccessAdapter
 from mailhelp.config import Settings
-from mailhelp.imap import FetchedMail, ListedMailbox, MailCandidate
-from mailhelp.mailbox_run import MailboxSource, _checkpoint_name, _RunSummary
+from mailhelp.mailbox.imap import FetchedMail, ListedMailbox, MailCandidate
+from mailhelp.mailbox.mailbox_run import MailboxSource, _checkpoint_name, _RunSummary
 from mailhelp.models import MailRunState, MailState
 from mailhelp.orchestrator import ProcessingOutcome, ProcessingResult
 

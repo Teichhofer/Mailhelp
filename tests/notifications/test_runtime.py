@@ -506,7 +506,7 @@ def test_several_mailboxes_are_built_labelled_and_fail_independently(tmp_path, m
 
     from mailhelp.application import build_application
     from mailhelp.config import Secrets, Settings
-    from mailhelp.imap import account_id
+    from mailhelp.mailbox.imap import account_id
     data = settings(tmp_path).model_dump(mode="json")
     data["web"]["enabled"] = True
     data["imap"] = {"mailboxes": [

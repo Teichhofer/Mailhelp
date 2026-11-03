@@ -6,7 +6,7 @@ import pytest
 from shared_web_actions import web  # noqa: F401
 from shared_web_v12 import configure
 
-from mailhelp.mailbox_run import MailboxRunService
+from mailhelp.mailbox.mailbox_run import MailboxRunService
 from mailhelp.metrics import MetricsRecorder, MetricsSettings
 
 

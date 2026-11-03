@@ -15,7 +15,7 @@ import pytest
 from pydantic import SecretStr
 
 from mailhelp.config import ImapCredentials, IServAccountSettings
-from mailhelp.iserv import (
+from mailhelp.mailbox.iserv import (
     FOLDER,
     UIDVALIDITY,
     IServError,
@@ -126,7 +126,7 @@ def test_signs_in_lists_letters_oldest_first_and_reuses_the_session():
 
 
 def test_account_id_is_stable_and_separate_from_imap_accounts():
-    from mailhelp.imap import account_id as imap_account_id
+    from mailhelp.mailbox.imap import account_id as imap_account_id
     assert account_id(SERVER, " Eltern@Example.test ") == account_id(SERVER, "eltern@example.test")
     assert account_id(SERVER, "a") != imap_account_id("schule.example", 993, "a")
 

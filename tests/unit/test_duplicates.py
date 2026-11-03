@@ -1,8 +1,8 @@
 from email.message import EmailMessage
 
 from mailhelp.config import Topic
-from mailhelp.imap import FetchedMail
 from mailhelp.mail_duplicates import DuplicateMailCheck
+from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.models import DuplicateIndex, MailState, ProposalStatus
 from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.storage import JsonStore

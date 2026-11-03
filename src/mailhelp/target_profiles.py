@@ -12,7 +12,7 @@ from .external.contracts import ExternalUnavailable, TargetWriter
 from .external.providers import Writers, build_writers
 from .external.roles import profile_slot
 from .logging import redact
-from .mailbox_settings import active_profiles, target_profiles
+from .mailbox.mailbox_settings import active_profiles, target_profiles
 
 PROVIDER_FIELDS = (
     "todoist_token",

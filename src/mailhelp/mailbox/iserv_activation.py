@@ -1,7 +1,7 @@
 """One authenticated IServ activation, isolated from unrelated configuration drafts."""
 from __future__ import annotations
 
-from .config import Settings
+from ..config import Settings
 from .connection_activation import ConnectionActivation
 
 

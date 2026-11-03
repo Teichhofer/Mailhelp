@@ -13,7 +13,7 @@ from types import SimpleNamespace
 
 from mailhelp.cli import main
 from mailhelp.config import Topic
-from mailhelp.imap import FetchedMail
+from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.orchestrator import Orchestrator
 from mailhelp.storage import JsonStore
 

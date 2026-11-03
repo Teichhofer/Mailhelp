@@ -2,8 +2,8 @@
 import yaml
 from shared_profiles import ACCOUNT_ONE, ACCOUNT_TWO
 
-from mailhelp.imap import FetchedMail
 from mailhelp.learning import LearningMode, LearningSource
+from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.models import AbstractCategories, IrrelevantSenders, LearnedCategory, MailClassification, Relevance
 from mailhelp.storage import JsonStore
 

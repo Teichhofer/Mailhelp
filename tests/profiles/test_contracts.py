@@ -8,7 +8,7 @@ from shared_profiles import TOPICS, settings
 
 from mailhelp.config import Secrets, Settings, Topic, validated_file
 from mailhelp.fingerprints import config_fingerprint, topic_policy
-from mailhelp.mailbox_settings import (
+from mailhelp.mailbox.mailbox_settings import (
     active_profiles,
     effective_settings,
     effective_topics,
@@ -16,8 +16,8 @@ from mailhelp.mailbox_settings import (
     mailbox_topic_policy,
     profile_label,
 )
+from mailhelp.mailbox.sender_filter import change_irrelevant_senders, is_irrelevant_sender, save_sender_filter
 from mailhelp.models import IrrelevantSenders
-from mailhelp.sender_filter import change_irrelevant_senders, is_irrelevant_sender, save_sender_filter
 from mailhelp.storage import JsonStore
 from mailhelp.target_profiles import load_profile_secrets, secret_name
 

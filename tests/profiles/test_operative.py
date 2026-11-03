@@ -16,8 +16,8 @@ from mailhelp.activity.store import ActivityReportStore
 from mailhelp.analysis import Analyzer
 from mailhelp.application import Application
 from mailhelp.drafts import DraftService
-from mailhelp.imap import FetchedMail
 from mailhelp.logging import NullLogger
+from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.models import IrrelevantSenders
 from mailhelp.storage import JsonStore
 

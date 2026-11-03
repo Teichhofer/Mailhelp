@@ -239,7 +239,7 @@ def test_3_1_pending_mail_upgrade_and_restart_preserve_proposal_targets(tmp_path
     from shared_services import AnalyzerStub, Notify
 
     from mailhelp.decisions import load_relevance_prompts, relevance_fingerprint
-    from mailhelp.imap import FetchedMail
+    from mailhelp.mailbox.imap import FetchedMail
 
     settings, prompts = profile_settings(tmp_path), prompt_config()
     old_settings, old_prompts = configuration_3_1(settings, prompts)

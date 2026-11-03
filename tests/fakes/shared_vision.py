@@ -8,7 +8,7 @@ from email.message import EmailMessage
 from PIL import Image
 
 from mailhelp.config import VisionSettings
-from mailhelp.mime import prepare
+from mailhelp.mailbox.mime import prepare
 
 
 def noise(width=300, height=300, mode="RGB") -> Image.Image:

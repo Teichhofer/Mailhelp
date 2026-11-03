@@ -16,8 +16,8 @@ from shared_telegram_dialog import callback, controller
 from mailhelp.analysis import Analyzer
 from mailhelp.application import Application
 from mailhelp.config import ImapSettings, Topic
-from mailhelp.imap import FetchedMail
 from mailhelp.logging import NullLogger
+from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.models import ProposalStatus
 from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.storage import JsonStore
@@ -152,7 +152,7 @@ def test_real_analyzer_count_conflict_retains_other_extraction_and_restart(tmp_p
 def test_real_bounded_batch_sends_proposals_one_at_a_time_and_counts_open_actions(tmp_path):
     from shared_e2e_simulated import FakeTelegram
 
-    from mailhelp.imap import MailCandidate
+    from mailhelp.mailbox.imap import MailCandidate
     from mailhelp.models import MailRunState
     from mailhelp.telegram import TelegramDialogController
     corpus = load_corpus()
@@ -216,8 +216,8 @@ def test_real_bounded_batch_sends_proposals_one_at_a_time_and_counts_open_action
 def test_regression_held_relevance_keeps_queue_incomplete_and_resumes(tmp_path, decision):
     from shared_telegram_outbox import A, item, shown, stored
 
-    from mailhelp.imap import MailCandidate
-    from mailhelp.mailbox_run import _checkpoint_name
+    from mailhelp.mailbox.imap import MailCandidate
+    from mailhelp.mailbox.mailbox_run import _checkpoint_name
     from mailhelp.models import ImapCheckpoint, MailRunState, MailState
     corpus = load_corpus()
     case = next(case for case in corpus["cases"] if case["id"] == "02_task_only")
@@ -298,7 +298,7 @@ def test_regression_held_relevance_keeps_queue_incomplete_and_resumes(tmp_path, 
 
 
 def test_regression_legacy_reader_does_not_checkpoint_unanswered_relevance(tmp_path):
-    from mailhelp.mailbox_run import _checkpoint_name
+    from mailhelp.mailbox.mailbox_run import _checkpoint_name
     from mailhelp.orchestrator import ProcessingResult
     class Waiting(Orch):
         def process(self, mail):
@@ -314,8 +314,8 @@ def test_regression_legacy_reader_does_not_checkpoint_unanswered_relevance(tmp_p
 def test_regression_held_relevance_does_not_consume_next_run_budget(tmp_path):
     from uuid import uuid4
 
-    from mailhelp.imap import MailCandidate
-    from mailhelp.mailbox_run import _checkpoint_name
+    from mailhelp.mailbox.imap import MailCandidate
+    from mailhelp.mailbox.mailbox_run import _checkpoint_name
     from mailhelp.models import MailRunCounters, MailRunEntry, MailRunState, MailState, RelevanceDialog
     stamp = datetime(2026, 9, 18, tzinfo=UTC)
     class Reader:

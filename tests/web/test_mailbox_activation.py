@@ -6,7 +6,7 @@ import yaml
 from shared_decision_test import secrets
 
 from mailhelp.config import MAX_MAILBOXES, ImapSettings, Secrets, Settings
-from mailhelp.imap import FolderNotReadable
+from mailhelp.mailbox.imap import FolderNotReadable
 from mailhelp.setup import SetupState
 
 ROUTE = "/einstellungen/postfaecher"
@@ -190,10 +190,10 @@ def test_failed_activation_is_safe_and_recoverable(activation, monkeypatch, fail
     elif failure == "write":
         def fail(*args):
             raise OSError("private-secret")
-        monkeypatch.setattr("mailhelp.connection_activation.set_values", fail)
+        monkeypatch.setattr("mailhelp.mailbox.connection_activation.set_values", fail)
     elif failure == "config":
         from mailhelp.review.results import ResultStatus, ReviewResult
-        monkeypatch.setattr("mailhelp.connection_activation.ConfigurationService.execute",
+        monkeypatch.setattr("mailhelp.mailbox.connection_activation.ConfigurationService.execute",
                             lambda *args: ReviewResult(status=ResultStatus.STALE, message="changed"))
     elif failure == "other_draft":
         ctx.web.store.save("setup-state", SetupState(kind="topics").model_dump(mode="json"))

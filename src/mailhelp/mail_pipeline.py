@@ -18,8 +18,9 @@ from .analysis import (
 from .config import TargetSettings
 from .domain.prepared import PreparedMail
 from .domain.proposal import ProposalStatus
-from .imap import FetchedMail
-from .mime import MimeLimitExceeded, extract_display_headers, prepare
+from .mailbox.imap import FetchedMail
+from .mailbox.mime import MimeLimitExceeded, extract_display_headers, prepare
+from .mailbox.sender_filter import is_irrelevant_sender
 from .models import (
     ActionRoute,
     DisplayHeaders,
@@ -34,7 +35,6 @@ from .models import (
     ValidationIssue,
 )
 from .openrouter import RateLimitExceeded
-from .sender_filter import is_irrelevant_sender
 
 if TYPE_CHECKING:
     from .orchestrator import Orchestrator

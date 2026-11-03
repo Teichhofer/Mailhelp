@@ -55,13 +55,13 @@ def test_built_artifacts_exclude_private_runtime_files():
         names = archive.namelist()
         for module in ("event_defaults.py", "proposal_matching.py", "proposal_merge.py", "proposal_reconciliation.py",
                        "domain/proposal_sources.py", "domain/reconciliation.py", "web/reconciliation_site.py",
-                       "connection_activation.py", "connection_runtime.py", "mailbox_activation.py",
-                       "mailbox_runtime.py", "web/mailbox_add_site.py",
-                       "mailbox_settings.py", "mailbox_briefing.py", "target_profiles.py", "profile_binding.py",
+                       "mailbox/connection_activation.py", "mailbox/connection_runtime.py", "mailbox/mailbox_activation.py",
+                       "mailbox/mailbox_runtime.py", "web/mailbox_add_site.py",
+                       "mailbox/mailbox_settings.py", "mailbox/mailbox_briefing.py", "target_profiles.py", "profile_binding.py",
                        "profile_usage.py", "google_login.py", "web/mailbox_site.py", "notification_runtime.py",
                        "fingerprints.py", "composition.py", "orchestrator.py",
                        "web/pages.py", "web/review_pages.py", "web/settings_pages.py",
-                       "web/status_pages.py", "web/site.py", "metrics.py", "imap.py", "mailbox_run.py",
+                       "web/status_pages.py", "web/site.py", "metrics.py", "mailbox/imap.py", "mailbox/mailbox_run.py",
                        "credentials.py", "web/credential_pages.py", "web/settings_site.py",
                        "web/static/app.css", "web/static/sw.js"):
             assert archive.read("mailhelp/" + module) == (ROOT / "src/mailhelp" / module).read_bytes()
@@ -69,8 +69,8 @@ def test_built_artifacts_exclude_private_runtime_files():
         assert {"mailhelp/web/static/app.js", "mailhelp/web/static/sw.js",
                 "mailhelp/web/static/manifest.webmanifest"} <= set(names)
         assert "mailhelp/defaults/decisions_prompts.yaml" in names
-        assert {"mailhelp/mailbox_run.py", "mailhelp/web/status_pages.py",
-                "mailhelp/iserv_activation.py", "mailhelp/iserv_runtime.py",
+        assert {"mailhelp/mailbox/mailbox_run.py", "mailhelp/web/status_pages.py",
+                "mailhelp/mailbox/iserv_activation.py", "mailhelp/mailbox/iserv_runtime.py",
                 "mailhelp/external/oauth.py", "mailhelp/external/calendar.py",
                 "mailhelp/external/todoist.py", "mailhelp/external/ical.py",
                 "mailhelp/external/transport.py", "mailhelp/external/http_writer.py",

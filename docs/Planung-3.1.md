@@ -30,8 +30,8 @@ Vieles ist bereits kontobezogen und muss nicht neu erfunden werden:
 
 | Bereich | Heutiger Stand |
 | :--- | :--- |
-| Technische Mailidentität | `(account_id, folder, uidvalidity, uid)`; `account_id` = SHA-256 aus Host, Port, Benutzername ([imap.py](../src/mailhelp/imap.py)) |
-| Checkpoints | Dateiname aus `account_id` und Ordner ([mailbox_run.py](../src/mailhelp/mailbox_run.py)) |
+| Technische Mailidentität | `(account_id, folder, uidvalidity, uid)`; `account_id` = SHA-256 aus Host, Port, Benutzername ([imap.py](../src/mailhelp/mailbox/imap.py)) |
+| Checkpoints | Dateiname aus `account_id` und Ordner ([mailbox_run.py](../src/mailhelp/mailbox/mailbox_run.py)) |
 | Verarbeitungslauf | `mail-run-<account_id>` ([state_names.py](../src/mailhelp/state_names.py)) |
 | Mail-ID / Duplikatindex | enthalten `account_id` |
 

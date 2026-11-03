@@ -17,7 +17,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from . import state_names
 from .domain.prepared import MailHeaders, PreparedMail
-from .imap import mailbox_argument
+from .mailbox.imap import mailbox_argument
 from .models import MailState
 from .storage import StateStore
 

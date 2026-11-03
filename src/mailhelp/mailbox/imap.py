@@ -13,11 +13,11 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
-from .adapter import RetryPolicy
-from .logging import EventLogger, NullLogger
+from ..adapter import RetryPolicy
+from ..logging import EventLogger, NullLogger
 
 if TYPE_CHECKING:
-    from .config import ImapCredentials, MailboxSettings
+    from ..config import ImapCredentials, MailboxSettings
 
 T = TypeVar("T")
 
