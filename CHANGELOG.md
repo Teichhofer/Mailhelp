@@ -1,5 +1,16 @@
 # Änderungen
 
+## 3.6.2 – „Erneut prüfen“ in der Weboberfläche (Planung 3.6, Schritt 0.3)
+
+- Als irrelevant aussortierte Mails zeigen im Maildetail und in der Archivliste die
+  Schaltfläche „Erneut prüfen“. Die Mail wird dann beim nächsten Abruf mit den aktuellen
+  Themen neu analysiert, etwa nachdem ein passendes Thema angelegt wurde.
+- Die Aktion prüft Sitzung, CSRF-Token, Idempotenzschlüssel und die angezeigte
+  Analyserunde (neues Feld `analysis_round` im Mailzustand, ältere Zustände bleiben gültig)
+  vor dem Einreihen und erneut bei der Ausführung. Der Verlauf verzeichnet jede
+  Neuprüfung; ein durch Neustart unterbrochener Befehl wird anhand der Analyserunde
+  abgeglichen und nie doppelt ausgeführt.
+
 ## 3.6.1 – Erneute Prüfung aussortierter Mails: Grundlage (Planung 3.6, Schritt 0.2)
 
 - Eine als irrelevant abgeschlossene Mail kann bewusst erneut geprüft werden. Ihr Zustand

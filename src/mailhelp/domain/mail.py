@@ -29,6 +29,8 @@ class MailState(StrictModel):
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     updated_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     config_fingerprint: str = Field(pattern=r"^[a-f0-9]{64}$")
+    # Counts deliberate re-checks; the version a re-check request refers to (3.6.2).
+    analysis_round: int = Field(default=1, ge=1)
     steps: ProcessingSteps = Field(default_factory=ProcessingSteps)
     mail: dict[str, Any] | None = None
     display_headers: DisplayHeaders | None = None

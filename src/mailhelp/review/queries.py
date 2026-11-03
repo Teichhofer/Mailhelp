@@ -7,6 +7,7 @@ from zoneinfo import ZoneInfo
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from ..mail_recheck import filed_as_irrelevant
 from ..models import MailState, ProposalStatus
 from ..storage import CorruptState, JsonStore, mail_state_names
 from .archive import AnalysisSnapshot, HistorySnapshot
@@ -24,7 +25,7 @@ class ArchiveQuery(BaseModel):
     topic: str = Field(default="", max_length=100)
     state: Literal["", "failed", "waiting", "completed", "no_action"] = ""
     kind: Literal["", "state", "edit", "edit_fields", "confirm", "confirm_duplicate", "reject", "clarify", "answer",
-                  "cancel", "relevance", "legacy"] = ""
+                  "cancel", "relevance", "recheck", "legacy"] = ""
     proposal_kind: Literal["", "task", "event"] = ""
     status: ProposalStatus | Literal["relevant", "irrelevant"] | None = None
     since: date | None = None
@@ -105,6 +106,7 @@ class ArchiveQueries:
                           "kinds": {p.id: p.kind.value for p in state.proposals},
                           "attachments": mail is not None and bool(mail.extracted_attachments),
                           "duplicate": state.duplicate is not None,
+                          "recheck_round": state.analysis_round if filed_as_irrelevant(state) else None,
                           "text_available": mail is not None and mail.text is not None,
                           # Folded copies for matching; fields for the excerpt of a hit.
                           "fields": meta + content,

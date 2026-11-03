@@ -30,7 +30,7 @@ class MailArchiveSite:
         items, total = queries.search(query)
         topics = sorted({topic for item in queries.items() for topic in item["topics"]})
         page = mail_list_page(query, items, total, queries.damaged, topics, self.site.configured_timezone,
-                              queries.mailboxes)
+                              queries.mailboxes, self.site.auth.csrf_token(session.id))
         from .filters import chips
         page = chips("/mails", query.filter) + page
         return Response.html(200, layout("Mails", page, active="/mails"))

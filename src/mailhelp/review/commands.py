@@ -36,9 +36,13 @@ class CommandKind(StrEnum):
     DEFAULTS = "reapply_defaults"
     RECHECK = "recheck_proposal"
     RETARGET = "retarget_proposal"
+    # A mail filed as irrelevant is analysed again; version is its analysis round (3.6.2).
+    RECHECK_MAIL = "recheck_mail"
 
 
-PROPOSAL_KINDS = frozenset(set(CommandKind) - {CommandKind.RELEVANCE})
+# Commands on a whole mail instead of one proposal.
+MAIL_KINDS = frozenset({CommandKind.RELEVANCE, CommandKind.RECHECK_MAIL})
+PROPOSAL_KINDS = frozenset(set(CommandKind) - MAIL_KINDS)
 
 
 class ReviewCommand(BaseModel):
@@ -85,4 +89,4 @@ class ReviewCommand(BaseModel):
         return self
 
 
-__all__ = ["CommandKind", "CommandSource", "PROPOSAL_KINDS", "ReviewCommand"]
+__all__ = ["MAIL_KINDS", "CommandKind", "CommandSource", "PROPOSAL_KINDS", "ReviewCommand"]

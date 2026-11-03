@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Callable, Iterator
 from contextlib import ExitStack, contextmanager
+from functools import partial
 from pathlib import Path
 from threading import Event, Lock
 from typing import Any
@@ -21,6 +22,7 @@ from .decisions import (
 from .external.providers import build_writers, provider_services
 from .imap import ImapReader, mailbox_account_id, reader_arguments
 from .logging import JsonlLogger
+from .mail_recheck import request_recheck
 from .mailbox_run import MailboxSource
 from .ollama import LocalLlm, OllamaClient
 from .openrouter import OpenRouterClient
@@ -420,6 +422,7 @@ def build_application(
         orchestrator = _build_orchestrator(settings, prompts, topics, fingerprint, jev_prompts, store, sender_store,
                                            logger, analyzer, dialog, writers, access_diagnostics)
         dialog.relevance_handler = orchestrator
+        dialog.review.recheck = partial(request_recheck, orchestrator)
         iserv_resources = stack.enter_context(ExitStack())
         iserv = _build_iserv(settings, secrets, iserv_resources)
         if len(sources) + len(iserv) > 1:

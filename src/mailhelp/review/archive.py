@@ -83,6 +83,14 @@ def record_relevance(store: JsonStore, state: MailState, source: str, operation:
                  kind="relevance", status=dialog.decision, source=source, at=state.updated_at))
 
 
+def record_recheck(store: JsonStore, mail_id: str, analysis_round: int, source: str, operation: str) -> None:
+    """A deliberate re-check of a mail filed as irrelevant; *analysis_round* is the round it ended."""
+    parts = json.dumps([mail_id, analysis_round, "recheck", source, operation])
+    identifier = hashlib.sha256(parts.encode()).hexdigest()[:32]
+    append_event(store, mail_id, HistoryEvent(id=identifier, version=analysis_round, kind="recheck",
+                 status="irrelevant", source=source, at=datetime.now(UTC)))
+
+
 def append_event(store: JsonStore, mail_id: str, event: HistoryEvent) -> None:
     name = f"history-{mail_id}"
     history = HistorySnapshot.model_validate(store.load(name) or {})

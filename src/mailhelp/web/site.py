@@ -23,6 +23,7 @@ from pydantic import ValidationError
 from .. import __version__
 from ..config import WebSettings
 from ..configuration import AdminCommand, AdminKind
+from ..mail_recheck import recheck_round
 from ..models import ProposalStatus
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.inbox import CommandConflict, CommandEntry, CommandInbox, CommandInboxFull
@@ -255,6 +256,10 @@ class MailhelpSite:
 
     def _stale(self, command: ReviewCommand) -> str | None:
         """Refuse an outdated version before it is queued (checked again when it runs)."""
+        if command.kind == CommandKind.RECHECK_MAIL:
+            if recheck_round(self.views.store, command.mail_id) != command.version:
+                return "Diese Mail wird bereits erneut geprüft oder ist nicht mehr aussortiert."
+            return None
         if command.kind == CommandKind.RELEVANCE:
             open_ = {(view.mail_id, view.version) for view in self.views.overview().relevance}
             if (command.mail_id, command.version) not in open_:
@@ -298,6 +303,8 @@ class MailhelpSite:
                 200, layout("Ergebnis", notice(entry.result.message, result_kind(entry.result.status))
                             + '<a href="/einstellungen">Zurück</a>')
             )
+        if entry.result is not None and command.kind == CommandKind.RECHECK_MAIL:
+            return Response.redirect(f"/mail/{command.mail_id}?ergebnis={entry.id}")
         current = (self.views.proposal(command.mail_id, command.proposal_id)
                    if command.proposal_id else None)
         if entry.result is not None and not needs_choice(entry, current):

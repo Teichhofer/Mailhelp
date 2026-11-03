@@ -8,6 +8,7 @@ from urllib.parse import urlencode
 
 from ..formatting import format_datetime_local
 from ..models import MailState, Proposal
+from .actions import recheck_form
 from .forms import field, select
 from .pages import e, notice
 
@@ -130,7 +131,7 @@ def _archive_filters(query, topics: list[str], mailboxes: dict[str, tuple[int, s
     return filters
 
 
-def _archive_row(item: dict, zone: str, mailboxes: dict[str, tuple[int, str]]) -> str:
+def _archive_row(item: dict, zone: str, mailboxes: dict[str, tuple[int, str]], csrf: str = "") -> str:
     from ..review.cards import sender_name
     from ..review.views import STATUS_LABELS
 
@@ -149,14 +150,16 @@ def _archive_row(item: dict, zone: str, mailboxes: dict[str, tuple[int, str]]) -
         label = next(text for state, text in STATUS_LABELS.items() if state.value == value)
         badges.append(f'<span class="badge accent">{count} × {e(label)}</span>')
     summary = f'<p>{e(item["summary"])}</p>' if item["summary"] else ""
+    recheck = (recheck_form(csrf, item["id"], item["recheck_round"], small=True)
+               if csrf and item.get("recheck_round") is not None else "")
     return (f'<li class="card"><h3><a href="/mail/{e(item["id"])}">{e(item["subject"])}</a></h3>'
             f'<p class="source">{e(sender_name(item["sender"]))} · '
             f'{e(_local_time(item["received"], zone))}</p>'
-            f'<p class="labels">{" ".join(badges)}</p>{summary}{_hit(item.get("hit"))}</li>')
+            f'<p class="labels">{" ".join(badges)}</p>{summary}{_hit(item.get("hit"))}{recheck}</li>')
 
 
 def mail_list_page(query, items: list[dict], total: int, damaged: int, topics: list[str], zone: str,
-                   mailboxes: dict[str, tuple[int, str]] | None = None) -> str:
+                   mailboxes: dict[str, tuple[int, str]] | None = None, csrf: str = "") -> str:
     """Search and filters for stored mails; works without JavaScript."""
     mailboxes = mailboxes or {}
     active = any((query.relevance, query.topic, query.state, query.status is not None, query.since, query.until,
@@ -173,7 +176,7 @@ def mail_list_page(query, items: list[dict], total: int, damaged: int, topics: l
     body += f'<p class="meta">{total} gespeicherte Mails · Seite {query.page}</p>'
     if not items:
         body += '<p class="empty">Keine gespeicherte Mail passt zu dieser Suche.</p>'
-    body += f'<ul class="archive-list">{"".join(_archive_row(item, zone, mailboxes) for item in items)}</ul>'
+    body += f'<ul class="archive-list">{"".join(_archive_row(item, zone, mailboxes, csrf) for item in items)}</ul>'
     pages = []
     for number, label in ((query.page - 1, "Vorherige Seite"), (query.page + 1, "Nächste Seite")):
         if 1 <= number <= max(1, (total + query.size - 1) // query.size):

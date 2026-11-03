@@ -323,13 +323,13 @@ def detail_page(view: ProposalView, *, actions: Actions | None = None,
 
 def mail_page(mail: MailView, relevance: RelevanceView | None = None,
               actions: RelevanceActions | None = None, *, sender_actions: str = "",
-              message: str | None = None, message_kind: str = "ok", after: str = "") -> str:
+              message: str | None = None, message_kind: str = "ok", after: str = "", recheck: str = "") -> str:
     """A mail on its own, with the relevance question if it is still open."""
     question = relevance_card(relevance, actions, detail_link=False) if relevance else ""
     result = notice(message, message_kind) if message else ""
     content = f"""<p><a href="/">← Zur Übersicht</a></p>
 <h1>Mail</h1>
-{result}{question}
+{result}{question}{recheck}
 {mail_section(mail, sender_actions)}"""
     return layout(mail.subject, content, active="/", after=after)
 

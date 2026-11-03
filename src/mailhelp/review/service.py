@@ -18,9 +18,10 @@ from .. import state_names
 from ..configuration import AdminCommand, ConfigurationService
 from ..domain.processing import ProposalClarificationState
 from ..domain.proposal import invalidate_creation_permissions, required_revision_questions
+from ..mail_recheck import RecheckOutcome
 from ..models import MailState, Proposal, ProposalStatus, RelevanceDialogStatus, TelegramDialogState
 from ..notification_context import web_reply
-from .archive import record_event, record_relevance
+from .archive import record_event, record_recheck, record_relevance
 from .commands import CommandKind, CommandSource, ReviewCommand
 from .editing import edit_proposal
 from .errors import AnswerRequired, ReviewBusy, ReviewError, StaleCommand
@@ -28,6 +29,12 @@ from .results import ResultStatus, ReviewResult
 
 _OPEN = {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}
 _DIALOG = "telegram-dialog"
+_RECHECK_REFUSED = {
+    RecheckOutcome.NOT_FOUND: "Diese Mail ist nicht (mehr) vorhanden.",
+    RecheckOutcome.NOT_IRRELEVANT: "Diese Mail ist nicht als irrelevant aussortiert.",
+    RecheckOutcome.STALE: "Diese Mail wird bereits erneut geprüft oder wurde inzwischen geändert.",
+    RecheckOutcome.ALREADY_PENDING: "Diese Mail wird noch verarbeitet.",
+}
 
 # Shown in the web; Telegram keeps its own confirmation texts.
 _DONE_MESSAGES = {
@@ -63,6 +70,8 @@ class ReviewService:
         self.web_authorizer = web_authorizer
         self.configuration: ConfigurationService | None = None
         self.completed: Callable[[ReviewCommand | AdminCommand, ReviewResult], None] | None = None
+        # Resets a mail filed as irrelevant for a fresh analysis: (mail id, analysis round).
+        self.recheck: Callable[[str, int], RecheckOutcome] | None = None
 
     def execute(self, command: ReviewCommand | AdminCommand, *, raise_errors: bool = False) -> ReviewResult:
         token = web_reply.set(command.source == CommandSource.WEB)
@@ -93,6 +102,10 @@ class ReviewService:
 
     def _record(self, command: ReviewCommand) -> None:
         learning = getattr(self.controller, "learning", None)
+        if command.kind == CommandKind.RECHECK_MAIL:
+            record_recheck(self.controller.store, command.mail_id, command.version, command.source.value,
+                           command.idempotency_key)
+            return
         if command.proposal_id is None:
             state = self.controller.store.load_model(state_names.mail(command.mail_id), MailState)
             if state is not None:
@@ -129,6 +142,9 @@ class ReviewService:
 
     def _took_effect(self, command: ReviewCommand) -> bool:
         store = self.controller.store
+        if command.kind == CommandKind.RECHECK_MAIL:
+            mail = store.load_model(state_names.mail(command.mail_id), MailState)
+            return isinstance(mail, MailState) and mail.analysis_round > command.version
         if command.kind == CommandKind.RELEVANCE:
             mail = store.load_model(state_names.mail(command.mail_id), MailState)
             dialog = mail.relevance_dialog if isinstance(mail, MailState) else None
@@ -214,6 +230,8 @@ class ReviewService:
             return ReviewResult(status=ResultStatus.DONE, message="Neue Version gespeichert; bitte separat bestätigen.")
         if command.kind == CommandKind.RELEVANCE:
             return self._relevance(command)
+        if command.kind == CommandKind.RECHECK_MAIL:
+            return self._recheck(command)
         if command.kind == CommandKind.ANSWER:
             return self._answer(command)
         if command.kind == CommandKind.CANCEL_CLARIFICATION:
@@ -314,6 +332,15 @@ class ReviewService:
             return ReviewResult(status=ResultStatus.DONE, message=text or "")
         label = "relevant" if command.decision == "relevant" else "irrelevant"
         return ReviewResult(status=ResultStatus.DONE, message=f"Mail als {label} eingestuft.")
+
+    def _recheck(self, command: ReviewCommand) -> ReviewResult:
+        if self.recheck is None:
+            raise ReviewError("Erneute Prüfung ist in diesem Betrieb nicht verfügbar.")
+        outcome = self.recheck(command.mail_id, command.version)
+        if outcome is not RecheckOutcome.QUEUED:
+            raise StaleCommand(_RECHECK_REFUSED[outcome])
+        return ReviewResult(status=ResultStatus.DONE,
+                            message="Die Mail wird beim nächsten Abruf mit den aktuellen Themen erneut geprüft.")
 
     def _target(self, command: ReviewCommand) -> Proposal:
         assert command.proposal_id is not None

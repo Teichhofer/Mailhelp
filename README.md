@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.6.1 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.6.2 · **Python:** 3.12.x · **Lizenz:** MIT
 
 [Installation](#installation) · [Konfiguration](#konfiguration) ·
 [Betrieb](#betrieb) · [Docker](#docker) ·
@@ -28,7 +28,8 @@ einem lokalen Ollama-Server ist ebenfalls verfügbar.
   Die Startgrenze ist mit dem heutigen Datum vorbelegt; leer bedeutet alle Mails.
 - **Gezielte Analyse:** Themen, ausgeschlossene Themen und Absenderfilter bestimmen,
   welche Nachrichten verarbeitet werden. Dokumente und Bildanhänge können in die
-  Analyse einbezogen werden.
+  Analyse einbezogen werden. Als irrelevant aussortierte Mails lassen sich nach einer
+  Themenänderung in Maildetail und Archiv mit „Erneut prüfen“ neu analysieren.
 - **Aufgaben und Termine:** Vorschläge enthalten Belege und Rückfragen bei fehlenden
   oder widersprüchlichen Angaben. Der Abgleich berücksichtigt vorhandene Einträge
   und offene Entscheidungen, um doppelte Aktionen zu vermeiden.

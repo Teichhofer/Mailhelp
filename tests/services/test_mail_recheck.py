@@ -9,7 +9,7 @@ from shared_services import AnalyzerStub, Notify
 
 from mailhelp.config import Topic
 from mailhelp.imap import FetchedMail
-from mailhelp.mail_recheck import RecheckOutcome, filed_as_irrelevant, request_recheck
+from mailhelp.mail_recheck import RecheckOutcome, filed_as_irrelevant, recheck_round, request_recheck
 from mailhelp.mailbox_run import MailboxRunService
 from mailhelp.models import MailState
 from mailhelp.orchestrator import Orchestrator, ProcessingOutcome
@@ -42,20 +42,26 @@ def test_a_mail_filed_as_irrelevant_is_analysed_again_with_the_current_configura
     with JsonStore(tmp_path) as store:
         assert orchestrator(store, "irrelevant").process(MAIL).outcome is ProcessingOutcome.COMPLETED
         before = state(store)
-        assert filed_as_irrelevant(before) and before.summary is None
+        assert filed_as_irrelevant(before) and before.summary is None and before.analysis_round == 1
+        assert recheck_round(store, before.id) == 1
         # A new topic now makes the mail relevant; its fingerprint differs from the stored one.
         current = orchestrator(store, "relevant", logger)
         current.config_fingerprint = "1" * 64
-        assert request_recheck(current, before.id) is RecheckOutcome.QUEUED
+        # The web names the round it showed; another round is refused unchanged.
+        assert request_recheck(current, before.id, expected_round=2) is RecheckOutcome.STALE
+        assert state(store) == before
+        assert request_recheck(current, before.id, expected_round=1) is RecheckOutcome.QUEUED
         queued = state(store)
         assert queued.steps.completion == queued.steps.preparation == queued.steps.relevance == "pending"
         assert queued.config_fingerprint == "1" * 64 and queued.mail is None and queued.relevance is None
         assert (queued.imap, queued.duplicate, queued.created_at) == (before.imap, before.duplicate, before.created_at)
-        assert queued.llm_call_ids == before.llm_call_ids
+        assert queued.llm_call_ids == before.llm_call_ids and queued.analysis_round == 2
+        assert recheck_round(store, before.id) is None
         ((_, fields),) = [item for item in logger.events if item[0][2] == "recheck_requested"]
-        assert fields == {"mail_id": before.id, "configuration_changed": True}
+        assert fields == {"mail_id": before.id, "round": 2, "configuration_changed": True}
         # Repeating the request before the analysis ran changes nothing.
         assert request_recheck(current, before.id) is RecheckOutcome.ALREADY_PENDING
+        assert request_recheck(current, before.id, expected_round=1) is RecheckOutcome.STALE
         assert state(store) == queued
         # The regular resumption fetches the mail again and runs the whole pipeline.
         assert current.process(MAIL).outcome is ProcessingOutcome.COMPLETED

@@ -12,7 +12,8 @@ import re
 from dataclasses import replace
 from urllib.parse import parse_qs, quote
 
-from .actions import proposal_actions, relevance_actions, result_kind
+from ..mail_recheck import recheck_round
+from .actions import proposal_actions, recheck_form, relevance_actions, result_kind
 from .pages import error_page
 from .review_pages import detail_page, mail_page, overview_page
 
@@ -60,7 +61,13 @@ class ReviewSite:
         question = next((item for item in self.site.views.overview().relevance if item.mail_id == mail_id), None)
         csrf = self.site.auth.csrf_token(session.id)
         message, kind = self._result_notice(request, session)
-        page = mail_page(view, question, relevance_actions(csrf),
+        analysis_round = recheck_round(self.site.views.store, mail_id)
+        recheck = (f'<section class="card"><h2>Aussortiert</h2><p>Mailhelp hat diese Mail als nicht relevant '
+                   f'eingestuft. Nach einer Änderung der Themen kann sie mit der aktuellen Konfiguration erneut '
+                   f'geprüft werden; das Ergebnis erscheint nach dem nächsten Abruf.</p>'
+                   f'{recheck_form(csrf, mail_id, analysis_round)}</section>'
+                   if analysis_round is not None else "")
+        page = mail_page(view, question, relevance_actions(csrf), recheck=recheck,
                          sender_actions=self.site.senders.actions(mail_id, view.sender, csrf),
                          message=message, message_kind=kind,
                          after=self.site.reconciliation_page.mail_summary(mail_id)

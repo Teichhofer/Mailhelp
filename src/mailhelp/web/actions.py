@@ -97,6 +97,14 @@ def _answer(csrf: str, view: ProposalView, change: bool = False) -> str:
 </div>"""
 
 
+def recheck_form(csrf: str, mail_id: str, analysis_round: int, *, small: bool = False) -> str:
+    """Analyse a mail filed as irrelevant again, e.g. after adding a topic (3.6.2)."""
+    hidden = _hidden(csrf, CommandKind.RECHECK_MAIL, mail_id, analysis_round)
+    size = " small" if small else ""
+    return (f'<form method="post" action="/aktion" class="recheck">{hidden}'
+            f'<button class="button{size}" type="submit">Erneut prüfen</button></form>')
+
+
 def relevance_actions(csrf: str):
     def render(view: RelevanceView) -> str:
         forms = []
