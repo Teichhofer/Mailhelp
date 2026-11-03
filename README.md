@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.5.8 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.5.9 · **Python:** 3.12.x · **Lizenz:** MIT
 
 [Installation](#installation) · [Konfiguration](#konfiguration) ·
 [Betrieb](#betrieb) · [Docker](#docker) ·
@@ -432,6 +432,7 @@ Entwicklungsregeln stehen in [AGENTS.md](AGENTS.md), technische Verträge in der
 | Vorschläge abgleichen und ergänzen | [Bedienung und Abgleich](docs/Release-2.4.md) |
 | Technische Schnittstellen und Datenmodelle | [Projektspezifikation](Mailhelp-Projektspezifikation.md) |
 | Änderungen veröffentlichter Versionen | [Changelog](CHANGELOG.md) |
+| Geplante Schritte bis Version 4.0 | [Planung 4.0](docs/Planung-4.0.md) |
 
 Die statische Projektwebsite liegt unter [website/](website/).
 Die [GitHub-Pages-Anleitung](docs/GitHub-Pages.md) beschreibt ihre Veröffentlichung.

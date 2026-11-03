@@ -1,5 +1,13 @@
 # Änderungen
 
+## 3.5.9 – Planung 4.0 auf Stand gebracht
+
+- `docs/Planung-4.0.md` beschreibt den Ausgangsstand 3.5.8 je Pfeiler, führt die seit 3.4
+  vorhandene Zugangsdatenverwaltung als weitgehend umgesetzt und ersetzt die sechs Phasen
+  durch 77 einzeln lieferbare Schritte (S ≤ 1 Tag, M ≤ 2 Tage) in neun Stufen, von den
+  Vorarbeiten in 3.6.x bis zum Release. Offene Entscheidungen zum Schutz des Erststarts und
+  zum Google-OAuth-Client sind markiert. Keine Verhaltensänderung.
+
 ## 3.5.8 – Keine falschen ausstehenden Änderungen
 
 - Fehlerbehebung: Die Einstellungsübersicht zeigte zahlreiche „Änderungen ausstehend“

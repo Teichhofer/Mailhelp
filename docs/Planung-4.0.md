@@ -3,7 +3,8 @@
 **Zielversion:** 4.0.0  
 **Stand:** 3. November 2026<br>
 **Status:** In Planung (Großes Haupt-Release nach Abschluss der 3.x-Reihe)  
-**Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 3.0](Planung-3.0.md), [Planung 3.1](Planung-3.1.md), [Planung 3.2](Planung-3.2.md), [Planung 3.3](Planung-3.3.md)
+**Ausgangsstand:** 3.5.8  
+**Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 3.0](Planung-3.0.md), [Planung 3.1](Planung-3.1.md), [Planung 3.2](Planung-3.2.md), [Planung 3.3](Planung-3.3.md), [Planung 3.4](Planung-3.4.md), [Planung 3.5](Planung-3.5.md)
 
 ---
 
@@ -22,12 +23,18 @@ Bisher erforderte die Ersteinrichtung und der Betrieb jedoch an mehreren Stellen
 **Version 4.0 beseitigt alle Terminal-Schritte vollständig:**  
 Nach der Programminstallation (`pip install` oder `docker compose up`) öffnet der Nutzer einfach `http://localhost:8765` im Browser. Ein geführter Onboarding-Assistent richtet Postfächer, Passwörter und Dienste ein. Der Lernmodus wird zu einer interaktiven, visuellen Webanwendung mit Fortschrittsanzeige und komfortabler Kartenauswahl.
 
-Das beschreibt das geplante Ziel, keine Funktion des aktuellen 3.3.1-Stands.
-Die bestehende authentifizierte Einrichtung unter `/einrichtung`, Diagnose,
-Postfachverwaltung und das Web-Facelift sind bereits verfügbar. Seit 3.4 sind außerdem
-Postfächer, IServ-Konten und Zugangsdaten (Pfeiler 4, nur schreibend, ohne
-`MAILHELP_WEB_SECRET`) im Web pflegbar. Web-Lernmodus, browsergesteuerte OAuth-Einrichtung
-und ein Erststart ohne gültige Basiskonfiguration bleiben zukünftige Arbeiten.
+Das beschreibt das geplante Ziel, keine Funktion des aktuellen Stands 3.5.8.
+
+### 1.1 Ausgangsstand 3.5.8
+
+| Bereich | Vorhanden | Offen für 4.0 |
+| :--- | :--- | :--- |
+| Pfeiler 1 Ersteinrichtung | Authentifizierte Einrichtung `/einrichtung` mit Entwurf, Übernahme und IMAP-Prüfung samt Ordnerliste; Postfächer und IServ-Konten im Web hinzufügen (3.5); lokale Kopplung über `/api/local-pair`; Ordnerliste je Postfach in `mailbox-folders.json` (3.5.6). | Start ohne `config.yaml` (bricht heute mit `FileNotFoundError` ab), Web-Passwort statt Kopplung, automatisches `MAILHELP_WEB_SECRET`, KI-Test, Ollama-Modellliste, geführter 5-Schritte-Assistent. |
+| Pfeiler 2 Web-Lernmodus | Bausteine: Themenpflege `/themen`, Absenderfilter je Postfach, Tätigkeitsberichte `/berichte`. Lernmodus nur als `--learn` im Terminal ([learning.py](../src/mailhelp/learning.py) fragt per `input()`). | Lernkern ohne Terminal, Hintergrundjob, Fortschritt, Review-Maske, gemeinsame Übernahme. |
+| Pfeiler 3 OAuth | Google nur über `--google-auth` mit lokalem Loopback-Server (`127.0.0.1:<Zufallsport>`), Microsoft nur per Device-Code im Terminal. | Beide Abläufe im Browser. |
+| Pfeiler 4 Zugangsdaten | Seit 3.4 umgesetzt: maskiert, nur schreibend unter `/einstellungen?bereich=zugangsdaten` (statt des ursprünglich geplanten `/einstellungen/geheimnisse`). | `MAILHELP_WEB_SECRET` (Pfeiler 1) und OAuth-Tokens (Pfeiler 3). |
+| Pfeiler 5 Betrieb | `/status`, `/diagnose`, `/auswertung` (Kosten), kontrollierter Neustart (seit 3.5.7 auch unter Windows), Live-Aktivierung neuer Postfächer und IServ-Konten, Live-Übernahme einzelner Einstellungen. | Neuladen geänderter/entfernter Postfächer, Zugangsdaten, Themen und Ziele ohne Neustart (in 3.5 ausdrücklich ausgeklammert); Selbsttest mit Handlungsempfehlungen. |
+| Abschnitt 7 (Q1–Q4) | Einzelne Tests zu Wiederholung, Idempotenz, Sitzungsprüfung und Merge-Journal. | Teststeuerung, persistenter Simulationsdienst, P1–P7, A1–A7, Anbietermatrix, Abschlussbericht. |
 
 ---
 
@@ -140,7 +147,10 @@ Keine Terminal-Befehle mehr für OAuth:
 
 ### Pfeiler 4: Zugangsdaten direkt im Web verwalten (`.env`)
 
-Unter `/einstellungen/geheimnisse` können Zugangsdaten direkt im Browser gepflegt werden:
+> Seit 3.4 weitgehend umgesetzt unter `/einstellungen?bereich=zugangsdaten`; offen sind
+> nur `MAILHELP_WEB_SECRET` (Schritt 2.5) und OAuth-Tokens (Pfeiler 3).
+
+Zugangsdaten können direkt im Browser gepflegt werden:
 
 * **Einfache Verwaltung:** IMAP-Passwörter, API-Keys (OpenRouter), Tokens (Todoist) und OAuth-Secrets direkt über Eingabefelder aktualisieren.
 * **Maskierte Anzeige:** Bereits hinterlegte Passwörter und Tokens werden im Formular als `••••••••••••` dargestellt.
@@ -177,8 +187,8 @@ Unter `/einstellungen/geheimnisse` können Zugangsdaten direkt im Browser gepfle
 | `GET` | `/auth/google/callback` | Nimmt Auth-Code von Google entgegen und speichert Token |
 | `POST` | `/auth/microsoft/device` | Fordert Microsoft Device-Code an |
 | `GET` | `/auth/microsoft/poll` | Pollt Microsoft Token-Status bis zur Bestätigung |
-| `GET` | `/einstellungen/geheimnisse` | Übersicht der Zugangsdaten (maskiert) |
-| `POST` | `/einstellungen/geheimnisse/speichern` | Aktualisiert Passwörter und Schlüssel in `.env` |
+| `GET` | `/einstellungen?bereich=zugangsdaten` | Übersicht der Zugangsdaten (maskiert) – **seit 3.4 vorhanden** |
+| `POST` | `/einstellungen/zugangsdaten/speichern` | Aktualisiert Passwörter und Schlüssel in `.env` – **seit 3.4 vorhanden** |
 | `POST` | `/dienst/neu-laden` | Lädt Konfiguration und Adapter im laufenden Betrieb neu |
 
 ---
@@ -264,27 +274,190 @@ Unter `/einstellungen/geheimnisse` können Zugangsdaten direkt im Browser gepfle
 
 ---
 
-## 5. Umsetzungsphasen und Meilensteine
+## 5. Umsetzungsschritte
+
+### 5.1 Regeln für die Schritte
+
+- Jeder Schritt ist für sich lieferbar: eigener Commit mit Patch-Version, Tests mit
+  100 % Zeilen- und Branch-Abdeckung, CHANGELOG, README und – bei Verhaltensänderung –
+  Spezifikation und Konfigurationsbeispiel (siehe [`AGENTS.md`](../AGENTS.md)).
+- **Umfang:** S = höchstens ein Arbeitstag, M = ein bis zwei Arbeitstage. Ein Schritt,
+  der sich bei der Umsetzung als größer erweist, wird vor dem Weiterarbeiten geteilt
+  und hier nachgetragen; es gibt keine L-Schritte.
+- **Voraussetzung** nennt die Schritte, die vorher abgeschlossen sein müssen.
+  Schritte ohne gegenseitige Abhängigkeit dürfen in beliebiger Reihenfolge laufen.
+- Ein Schritt gilt erst als erledigt, wenn sein „Fertig, wenn …“ nachweislich erfüllt
+  ist. Erledigte Schritte werden hier mit Version markiert (z. B. „✓ 3.6.2“).
 
 ```mermaid
 flowchart TD
-    M1["Phase 1: Direkter Onboarding-Wizard im Web"] --> M2["Phase 2: Browser-OAuth & Web-Geheimnisverwaltung"]
-    M2 --> M3["Phase 3: Asynchroner Hintergrund-Lernkern"]
-    M3 --> M4["Phase 4: Interaktive Web-Oberfläche für den Lernmodus (/lernen)"]
-    M4 --> M5["Phase 5: Hot-Reload, Dashboard & E2E-Tests"]
-    M5 --> M6["Phase 6: Qualitätssicherung & Release 4.0"]
+    V["Stufe 0: Vorarbeiten 3.6"] --> T["Stufe 1: Testgrundlage (Q1)"]
+    T --> E["Stufe 2: Ersteinrichtung (Pfeiler 1)"]
+    T --> O["Stufe 3: OAuth im Browser (Pfeiler 3)"]
+    E --> L["Stufe 4: Web-Lernmodus (Pfeiler 2)"]
+    O --> L
+    L --> R["Stufe 5: Neuladen und Betrieb (Pfeiler 5)"]
+    T --> P["Stufe 6: Parallelbedienung (Q2)"]
+    T --> A["Stufe 7: Prozessabbrüche (Q3)"]
+    R --> M["Stufe 8: Anbietermatrix und Release (Q4)"]
+    P --> M
+    A --> M
 ```
 
-| Phase | Schwerpunkt | Fertig, wenn … |
-| :--- | :--- | :--- |
-| **Phase 1** | **Onboarding-Wizard** | - Uninitialisierter Start öffnet direkt `/einrichtung/start`.<br>- Wizard erfasst Passwort, IMAP (mit Test), KI und Ziele.<br>- Erzeugt `config.yaml` und `.env` atomar. |
-| **Phase 2** | **OAuth & Geheimnisse** | - Google OAuth Callback-Handler im Webserver aktiv.<br>- Microsoft Device-Code Modal mit Polling im Web funktionsfähig.<br>- Zugangsdaten-Editor unter `/einstellungen/geheimnisse` maskiert Passwörter und schreibt `.env`. |
-| **Phase 3** | **Lernmodus-Backend** | - Hintergrund-Jobrunner führt Mailabruf und Themenanalyse entkoppelt aus.<br>- REST-Schnittstellen für Status, Zwischenergebnisse und Kostenüberwachung aktiv.<br>- Pausieren und Abbrechen abgesichert. |
-| **Phase 4** | **Lernmodus-Frontend** | - Konfigurationsmaske und Live-Fortschrittsanzeige im Web verfügbar.<br>- Kartenbasierte Review-Maske zum Prüfen, Editieren und Auswählen von Themen und Filtern.<br>- Speichern aktualisiert `topics.yaml` und `irrelevant-senders.json`. |
-| **Phase 5** | **Hot-Reload & Dashboard** | - Klick auf `/dienst/neu-laden` reinitialisiert Reader und Adapter im laufenden Betrieb.<br>- Nahtloser Übergang: Onboarding leitet nach Abschluss direkt zum Lernmodus weiter.<br>- Playwright E2E-Tests für den gesamten Browser-Ablauf. |
-| **Phase 6** | **Qualitätssicherung** | - Arbeitspakete Q1–Q4 aus Abschnitt 7 vollständig abgenommen.<br>- 100 % Zeilen- und Branch-Coverage für sämtlichen eigenen Anwendungscode.<br>- Verifikation auf Windows 11 und Docker unter Linux.<br>- Doku in Spezifikation, Betriebsanleitung und `README.md` aktualisiert. |
+### 5.2 Stufe 0 – Vorarbeiten in 3.6.x (vor 4.0)
 
----
+Diese Schritte beheben bekannte Mängel und schaffen Voraussetzungen, ohne 4.0-Funktionen
+vorwegzunehmen.
+
+| Schritt | Inhalt | Fertig, wenn … | Umfang | Voraussetzung |
+| :--- | :--- | :--- | :--- | :--- |
+| 0.1 | Fehlende `config.yaml` beim Start | Statt Traceback eine verständliche Meldung mit Hinweis auf `config.example.yaml` und Exitcode ≠ 0; Regressionstest. | S | – |
+| 0.2 | „Erneut prüfen“: Backend | Ein Befehl setzt eine als irrelevant abgeschlossene Mail kontrolliert auf die Relevanzprüfung zurück und verarbeitet sie mit der aktuellen Konfiguration neu; Checkpoints, Dublettenschutz und Verlauf bleiben konsistent; Wiederholung ist idempotent. | M | – |
+| 0.3 | „Erneut prüfen“: Web | Schaltfläche in Maildetail und Archiv mit Sitzung, CSRF, Versionsprüfung und Idempotenzschlüssel; Ergebnis im Verlauf sichtbar. | S | 0.2 |
+| 0.4 | Entkopplung B1: Analyse | Gemeinsam genutzter Zustand von Abrufzyklus und Review-Befehlen dokumentiert (Store-Sperren, Ledger, Telegram-Dialog); Liste der nötigen Sperren und Reihenfolgen. | S | – |
+| 0.5 | Entkopplung B2: Arbeitsthread | Web-Befehle laufen in einem eigenen Arbeitsthread statt im Abrufzyklus; ein laufender LLM-Aufruf verzögert Web-Aktionen nicht mehr. | M | 0.4 |
+| 0.6 | Entkopplung B3: Nachweis | Tests für gleichzeitigen Abruf und Web-Befehl (ohne `sleep()`); gemessene Antwortzeiten während eines Zyklus im Log belegt. | S | 0.5 |
+| 0.7 | mypy strikt für `web.*` (Teil 1) | Seiten- und Formularmodule (`pages`, `forms`, `*_pages.py`) bestehen die strikte Prüfung. | M | – |
+| 0.8 | mypy strikt für `web.*` (Teil 2) | Site-, Server- und Authentifizierungsmodule bestehen die strikte Prüfung; `pyproject.toml` erzwingt sie dauerhaft. | M | 0.7 |
+| 0.9 | Paketbündelung: Zuordnung | Zielstruktur der über 50 Wurzelmodule festgelegt (z. B. `imap/`, `mailbox/`, `notifications/`, `proposals/`), Kompatibilitätsimporte entschieden. | S | – |
+| 0.10 | Paketbündelung: je Gruppe | Je Zielpaket ein eigener Schritt (0.10a, 0.10b, …), jeweils ohne Verhaltensänderung, mit grüner Suite und unveränderten Zustandsnamen. | je S | 0.9 |
+
+### 5.3 Stufe 1 – Testgrundlage (Q1)
+
+Abschnitt 7 verlangt Q1 vor Q2/Q3; die Infrastruktur wird außerdem von den Stufen 2–5 genutzt.
+
+| Schritt | Inhalt | Fertig, wenn … | Umfang | Voraussetzung |
+| :--- | :--- | :--- | :--- | :--- |
+| 1.1 | Zustandsregeln Review und Command-Inbox | Übergänge, Persistenzgrenzen und der Zeitpunkt, ab dem eine konkurrierende Entscheidung verbindlich ist, in der Spezifikation dokumentiert. | S | – |
+| 1.2 | Zustandsregeln Schreibausführung, Ledger, Merge-Journal | Wie 1.1 für Schreibauftrag, Ledger und Merge; beide Reihenfolgen konkurrierender Entscheidungen beschrieben. | S | 1.1 |
+| 1.3 | Teststeuerung mit Barrieren | Wiederverwendbare Haltepunkte (Events/Barrieren) mit festen Zeitgrenzen und Aufräumen bei Fehlern; unter Windows und Linux lauffähig. | M | – |
+| 1.4 | Persistenter Simulationsdienst | Simulierter externer Dienst mit eigener, prozessunabhängiger Ablage und Aufrufhistorie; kann eine Änderung übernehmen und die Antwort zurückhalten oder abbrechen. | M | – |
+| 1.5 | Unterprozess-Harness | Anwendungsablauf im Unterprozess startbar, an benannten Punkten hart beendbar (kein Exception-Abbruch), Coverage der Unterprozesse wird erfasst. | M | 1.3 |
+
+### 5.4 Stufe 2 – Ersteinrichtung im Browser (Pfeiler 1)
+
+> **Offene Entscheidung (vor 2.2):** Ein ungeschützter Erststart ist gefährlich, wenn die
+> Weboberfläche im Netz erreichbar ist (`web.host: 0.0.0.0`). Vorschlag: Bis ein
+> Web-Passwort gesetzt ist, nimmt der Einrichtungsmodus Anfragen nur von `localhost` an
+> oder verlangt einen einmaligen Code aus der Konsolenausgabe. Das weicht vom Ziel
+> „kein Einrichtungs-Token“ in 1.1 ab und muss bestätigt werden.
+
+| Schritt | Inhalt | Fertig, wenn … | Umfang | Voraussetzung |
+| :--- | :--- | :--- | :--- | :--- |
+| 2.1 | Einrichtungsmodus ohne `config.yaml` | Der Start ohne Konfiguration öffnet einen minimalen Webserver, der nur Einrichtungsrouten bedient; kein Abruf, keine Adapter. | M | 0.1 |
+| 2.2 | Schutz des Erstzugangs | Umsetzung der offenen Entscheidung oben; Tests für Zugriff von außen vor und nach Passwortvergabe. | S | 2.1 |
+| 2.3 | Web-Passwort: Speicherung | Passwort als langsamer Hash (z. B. scrypt) außerhalb von `config.yaml`; Ändern und Zurücksetzen definiert. | S | 2.2 |
+| 2.4 | Web-Passwort: Anmeldung | Anmeldung per Passwort neben der Kopplung, mit bestehenden Sitzungen, CSRF und Sperre nach Fehlversuchen. | M | 2.3 |
+| 2.5 | `MAILHELP_WEB_SECRET` automatisch | Wird beim Abschluss von Schritt 1 erzeugt und atomar in `.env` geschrieben; nie angezeigt oder protokolliert. | S | 2.1 |
+| 2.6 | Assistent: Rahmen und Schritt 1 | Fünfstufige Navigation mit Zwischenspeicherung im Entwurf; Zeitzone aus dem Browser vorbelegt, ohne JavaScript manuell wählbar. | M | 2.4 |
+| 2.7 | Assistent: Postfach | Nutzt die vorhandene Postfachprüfung inklusive Ordnerliste; Vorauswahl von `INBOX` und Entwurfsordner über die Special-Use-Rollen. | S | 2.6 |
+| 2.8 | Assistent: OpenRouter | API-Schlüssel prüfen, Guthaben und Verfügbarkeit der konfigurierten Modelle anzeigen. | S | 2.6 |
+| 2.9 | Assistent: Ollama | Adresse prüfen, installierte Modelle abrufen und zur Auswahl anbieten. | S | 2.6 |
+| 2.10 | Assistent: Ziele ohne OAuth | Todoist-Token und CalDAV-Zugang eingeben und prüfen; Google und Microsoft verweisen auf Stufe 3. | S | 2.6 |
+| 2.11 | Abschluss und Übergang | `config.yaml` und `.env` atomar geschrieben; Übergang in den Normalbetrieb (zunächst per kontrolliertem Neustart, ab Stufe 5 ohne). | M | 2.7–2.10 |
+| 2.12 | Browsertest Ersteinrichtung | Playwright-Durchlauf vom leeren Verzeichnis bis zum ersten Abruf mit simulierten Diensten. | S | 2.11 |
+
+### 5.5 Stufe 3 – OAuth im Browser (Pfeiler 3)
+
+> **Offene Entscheidung (vor 3.1):** Der heutige Google-Client nutzt eine Loopback-Adresse
+> (`127.0.0.1`) und funktioniert nur, wenn Browser und Mailhelp auf demselben Rechner laufen.
+> Für den Zugriff über die Server-IP oder Docker auf einem anderen Rechner ist entweder ein
+> Webclient mit registrierter Rückleitungsadresse oder ein Device-Flow nötig. Die Wahl
+> bestimmt den Umfang von 3.1–3.3.
+
+| Schritt | Inhalt | Fertig, wenn … | Umfang | Voraussetzung |
+| :--- | :--- | :--- | :--- | :--- |
+| 3.1 | Google: Start | `/auth/google/start` erzeugt `state` und PKCE, an die Websitzung gebunden und dauerhaft gespeichert. | S | 2.4 |
+| 3.2 | Google: Rückleitung | `/auth/google/callback` prüft `state`, Sitzung und Ablauf, tauscht den Code und speichert den Refresh-Token über den Zugangsdatendienst; Fehler- und Abbruchfälle getestet. | M | 3.1 |
+| 3.3 | Google: Kalenderauswahl | Verfügbare Kalender laden und als Ziel im Zielprofil übernehmen. | S | 3.2 |
+| 3.4 | Microsoft: Device-Code | Anforderung und Abfrage laufen im Hintergrund, Status dauerhaft gespeichert; Ablauf, Ablehnung und Neustart während des Wartens getestet. | M | 2.4 |
+| 3.5 | Microsoft: Oberfläche | Code mit Kopierknopf und Link; Statusanzeige ohne JavaScript per Neuladen, mit JavaScript automatisch. | S | 3.4 |
+| 3.6 | Einbindung in Assistent und Zielprofile | Verbinden aus Schritt 4 des Assistenten und aus `/einstellungen/zielprofile`; CLI-Befehle bleiben als Alternative. | S | 2.10, 3.3, 3.5 |
+
+### 5.6 Stufe 4 – Web-Lernmodus (Pfeiler 2)
+
+| Schritt | Inhalt | Fertig, wenn … | Umfang | Voraussetzung |
+| :--- | :--- | :--- | :--- | :--- |
+| 4.1 | Lernkern ohne Terminal | Der Lernkern sammelt Ergebnisse als Datenstruktur statt per `input()` zu fragen; `--learn` nutzt denselben Kern und bleibt unverändert bedienbar. | M | – |
+| 4.2 | Lernjob: Zustandsmodell | Persistierter Job (Parameter, Fortschritt, Zwischenergebnisse, Status) als lesbare JSON-Datei; Neustart setzt fort oder schließt sauber ab. | S | 4.1 |
+| 4.3 | Lernjob: Hintergrundausführung | Ausführung in eigenem Thread, ohne Abruf und Web zu blockieren; höchstens ein Lernjob gleichzeitig. | M | 4.2, 0.5 |
+| 4.4 | Pausieren und Abbrechen | Wirksam zwischen zwei Mails, auch nach Neustart; Tests mit Barrieren aus 1.3. | S | 4.3, 1.3 |
+| 4.5 | Kostenschätzung | Geschätzte Tokens und Höchstkosten vor dem Start; Abbruch bei Erreichen des Budgets. | S | 4.2 |
+| 4.6 | Startseite `/lernen` | Auswahl von Postfach, Umfang und Ordnern (aus `mailbox-folders.json`), Anzeige der Schätzung, Start mit Bestätigung. | S | 4.3, 4.5 |
+| 4.7 | Fortschrittsseite | Fortschritt, aktueller Schritt und Zwischenstand; ohne JavaScript per Neuladen, mit JavaScript über die Status-API. | S | 4.6 |
+| 4.8 | Review: Themen | Themenkarten mit editierbarem Titel und Beschreibung, Belegmails, Postfachzuordnung und Auswahl. | M | 4.7 |
+| 4.9 | Review: Ausschlussthemen und Absender | Erkannte Newsletter und Absender zur Übernahme, global oder je Postfach. | S | 4.8 |
+| 4.10 | Review: Ordner | Erkannte, noch nicht abgerufene Ordner zur Aufnahme in `folders`; Spam- und Papierkorbordner (Rolle `junk`/`trash`) standardmäßig abgewählt. | S | 4.8 |
+| 4.11 | Atomare Übernahme | Ausgewählte Themen, Filter und Ordner gemeinsam mit Versionsprüfung, CSRF und Idempotenzschlüssel gespeichert; keine externen Schreibzugriffe. | M | 4.9, 4.10 |
+| 4.12 | Browsertest Lernmodus | Durchlauf Start → Fortschritt → Review → Übernahme mit simulierten Diensten; Weiterleitung aus dem Assistenten (2.11). | S | 4.11, 2.11 |
+
+### 5.7 Stufe 5 – Neuladen und Betrieb (Pfeiler 5)
+
+> Themen, Prompts und `config.yaml` gehen in den Konfigurations-Fingerprint ein. Neuladen
+> darf halb verarbeitete Mails nicht mit `configuration_changed` liegen lassen; 5.1 legt fest,
+> ob vor dem Wechsel laufende Mails abgeschlossen oder bewusst neu begonnen werden.
+
+| Schritt | Inhalt | Fertig, wenn … | Umfang | Voraussetzung |
+| :--- | :--- | :--- | :--- | :--- |
+| 5.1 | Neuladekonzept | Je Komponente festgelegt, was ohne Neustart getauscht werden kann, an welchem sicheren Punkt und wie mit dem Fingerprint umgegangen wird. | S | 0.5 |
+| 5.2 | Themen und Prompts neu laden | Wechsel am sicheren Punkt zwischen zwei Mails, ohne verwaiste Mails. | M | 5.1 |
+| 5.3 | Postfach ändern oder entfernen | Reader-Austausch für bestehende Postfächer, Checkpoints und Warteschlangen bleiben konsistent. | M | 5.1 |
+| 5.4 | Zugangsdaten tauschen | Neue Zugangsdaten werden ohne Neustart wirksam; alte Verbindungen werden geschlossen. | S | 5.3 |
+| 5.5 | Ziele und OAuth neu laden | Zielprofile und Tokens werden ohne Neustart übernommen; keine laufende Schreibaktion wird unterbrochen. | M | 5.1, 3.6 |
+| 5.6 | `/dienst/neu-laden` | Bestätigtes Neuladen aller Bereiche mit Ergebnisbericht; Assistent (2.11) nutzt es statt eines Neustarts. | S | 5.2–5.5 |
+| 5.7 | Selbsttest mit Empfehlungen | Ein Klick prüft alle Komponenten und nennt je Befund eine verständliche Handlungsempfehlung. | S | – |
+| 5.8 | Dashboard-Ergänzungen | Kosten des laufenden Monats und letzte Abfrage je Postfach auf `/status`. | S | – |
+
+### 5.8 Stufe 6 – Parallelbedienung (Q2)
+
+Je Szenario aus Abschnitt 7, Q2, ein Schritt mit beiden Reihenfolgen, Prüfung von Version,
+Status, Command-Inbox, Journal/Ledger und Nutzerrückmeldung sowie gültigen, fehlenden,
+falschen und sitzungsfremden CSRF-Tokens.
+
+| Schritt | Szenario | Umfang | Voraussetzung |
+| :--- | :--- | :--- | :--- |
+| 6.1 | P1 Web und Telegram bestätigen dieselbe Version | S | 1.2, 1.3, 1.4 |
+| 6.2 | P2 Zwei Websitzungen mit unterschiedlichen Idempotenzschlüsseln | S | 6.1 |
+| 6.3 | P3 Bearbeiten gegen Bestätigen | M | 6.1 |
+| 6.4 | P4 Verwerfen gegen Bestätigen | S | 6.1 |
+| 6.5 | P5 Merge gegen Bestätigen | M | 6.1 |
+| 6.6 | P6 Sitzung widerrufen oder abgelaufen vor Ausführung | S | 6.1 |
+| 6.7 | P7 Wiederholte identische Anfragen | S | 6.1 |
+| 6.8 | Browsertest mit zwei Kontexten (sichtbare Konfliktmeldung) | S | 6.3 |
+
+### 5.9 Stufe 7 – Prozessabbrüche (Q3)
+
+Je Abbruchpunkt ein Schritt: harter Abbruch im Unterprozess (1.5), Neustart mit
+unverändertem Simulationszustand (1.4), zweiter Neustart zum Nachweis der Idempotenz.
+Bei A1–A4 zusätzlich Abgleich mit Treffer, ohne Treffer, mit temporärem Fehler und mit
+ungültiger Antwort.
+
+| Schritt | Abbruchpunkt | Umfang | Voraussetzung |
+| :--- | :--- | :--- | :--- |
+| 7.1 | A1 Schreibauftrag gespeichert, Aufruf nicht begonnen | S | 1.2, 1.4, 1.5 |
+| 7.2 | A2 Änderung übernommen, Antwort zurückgehalten | M | 7.1 |
+| 7.3 | A3 Antwort empfangen, Ergebnis nicht gespeichert | S | 7.1 |
+| 7.4 | A4 Ergebnis gespeichert, Journal/Ledger unvollständig | S | 7.1 |
+| 7.5 | A5 Merge-Journal gespeichert, Vorschlag nicht aktualisiert | S | 1.5 |
+| 7.6 | A6 Vorschlag gespeichert, Aliasakte fehlt | S | 7.5 |
+| 7.7 | A7 Vorschlag und Aliasakte gespeichert, Journal offen | S | 7.5 |
+| 7.8 | Beschädigte oder fehlende maßgebliche Akten | S | 7.1 |
+
+### 5.10 Stufe 8 – Anbietermatrix, CI und Release (Q4)
+
+| Schritt | Inhalt | Umfang | Voraussetzung |
+| :--- | :--- | :--- | :--- |
+| 8.1 | Matrix Google Kalender (Q2 + A1–A4, Anlage/Änderung/Löschung soweit unterstützt) | S | Stufen 6, 7 |
+| 8.2 | Matrix Todoist | S | 8.1 |
+| 8.3 | Matrix Microsoft-Kalender und Microsoft To Do | M | 8.1 |
+| 8.4 | Matrix CalDAV-Kalender und -Aufgaben | M | 8.1 |
+| 8.5 | Nicht unterstützte Kombinationen begründet dokumentiert | S | 8.1–8.4 |
+| 8.6 | CI für Windows und Linux, ein Abbruch mit Wiederanlauf im Docker-Betrieb | M | 8.1–8.4 |
+| 8.7 | Abschlussbericht nach Q4.6 | S | 8.5, 8.6 |
+| 8.8 | Release 4.0.0: Spezifikation, README, Betriebsanleitung, Konfigurationsbeispiele, Wheel unter Windows 11 und Linux/Docker | S | alle Schritte |
+
+**Umfangsübersicht:** 77 Schritte, davon 51 S und 26 M; Stufe 0 bleibt bei offener
+Teilung von 0.10 variabel. Release 4.0 bleibt bis zum Abschluss von Stufe 8 gesperrt.
 
 ## 6. Abnahme- und Qualitätskriterien ([`AGENTS.md`](../AGENTS.md))
 
