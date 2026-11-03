@@ -1,6 +1,7 @@
 """Read-only account inventory and rendering from configuration and observed contacts."""
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from ..config import Settings
@@ -44,7 +45,7 @@ def configured_accounts(settings: Settings) -> tuple[AccountInfo, ...]:
     return tuple(accounts)
 
 
-def account_rows(accounts: tuple[AccountInfo, ...], runtime: dict, zone: ZoneInfo) -> list[tuple[str, str]]:
+def account_rows(accounts: tuple[AccountInfo, ...], runtime: dict[str, Any], zone: ZoneInfo) -> list[tuple[str, str]]:
     rows = []
     for account in accounts:
         observed = runtime.get("accounts", {}).get(account.key, {})

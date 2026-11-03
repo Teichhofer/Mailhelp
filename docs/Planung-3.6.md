@@ -46,7 +46,9 @@ Diese Schritte beheben bekannte Mängel und schaffen Voraussetzungen, ohne Funkt
 | 0.5 ✓ 3.6.4 | Entkopplung B2: Arbeitsthread | Web-Befehle laufen in einem eigenen Arbeitsthread statt im Abrufzyklus; ein laufender LLM-Aufruf verzögert Web-Aktionen nicht mehr. | M | 0.4 |
 | 0.6 (Tests ✓ 3.6.5, Messung im Betrieb offen) | Entkopplung B3: Nachweis | Tests für gleichzeitigen Abruf und Web-Befehl (ohne `sleep()`); gemessene Antwortzeiten während eines Zyklus im Log belegt. | S | 0.5 |
 | 0.7 ✓ 3.6.6 | mypy strikt für `web.*` (Teil 1) | Seiten- und Formularmodule (`pages`, `forms`, `*_pages.py`) bestehen die strikte Prüfung. | M | – |
-| 0.8 | mypy strikt für `web.*` (Teil 2) | Site-, Server- und Authentifizierungsmodule bestehen die strikte Prüfung; `pyproject.toml` erzwingt sie dauerhaft. | M | 0.7 |
+| 0.8a ✓ 3.6.7 | mypy strikt für `web.*` (Teil 2a) | Aktionen, Archiv, Verlauf, Bearbeiten, Beenden, Zugangsdaten, Kontenstatus und Einstellungen bestehen die strikte Prüfung. | M | 0.7 |
+| 0.8b | mypy strikt für `web.*` (Teil 2b) | Einrichtung, Postfächer, Postfach hinzufügen und IServ bestehen die strikte Prüfung (rund 110 Befunde). | M | 0.8a |
+| 0.8c | mypy strikt für `web.*` (Teil 2c) | Tätigkeitsberichte, Benachrichtigungen, Absender, Abgleich, Übersicht und `site.py` bestehen die strikte Prüfung; `pyproject.toml` erzwingt `mailhelp.web.*` dauerhaft. | M | 0.8b |
 | 0.9 | Paketbündelung: Zuordnung | Zielstruktur der über 50 Wurzelmodule festgelegt (z. B. `imap/`, `mailbox/`, `notifications/`, `proposals/`), Kompatibilitätsimporte entschieden. | S | – |
 | 0.10 | Paketbündelung: je Gruppe | Je Zielpaket ein eigener Schritt (0.10a, 0.10b, …), jeweils ohne Verhaltensänderung, mit grüner Suite und unveränderten Zustandsnamen. | je S | 0.9 |
 

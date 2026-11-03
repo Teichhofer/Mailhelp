@@ -277,6 +277,7 @@ def test_metrics_and_status_pages(web, tmp_path):
     assert web.browser.request('GET', '/einstellungen').status == 200
     assert web.browser.request('POST', '/einstellungen/speichern', {'csrf': web.auth.csrf_token(web.auth.sessions()[0].id)}).status == 503
     assert web.browser.request('GET', '/themen').status == 503
+    assert web.browser.request('POST', '/themen/speichern', {'csrf': web.auth.csrf_token(web.auth.sessions()[0].id)}).status == 503
     web.site.archive.lifecycle = None
     assert web.browser.request('GET', '/einstellungen/beenden').status == 503
 

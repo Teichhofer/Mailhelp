@@ -1,5 +1,14 @@
 # Änderungen
 
+## 3.6.7 – Strikte Typprüfung weiterer Web-Module (Planung 3.6, Schritt 0.8a)
+
+- Aktionen, Archiv, Verlauf, Vorschlagsbearbeitung, Beenden/Neustart, Zugangsdaten,
+  Kontenstatus und Einstellungsseiten stehen unter der strikten mypy-Prüfung.
+- Schritt 0.8 wurde wegen 262 Befunden in 0.8a–0.8c geteilt.
+- Fehlerbehebung: Das Speichern eines Themas ohne Konfigurationsdienst endete über einen
+  abgefangenen `AttributeError` mit 422; es meldet jetzt wie die Themenseite 503
+  „Themenverwaltung nicht verfügbar“.
+
 ## 3.6.6 – Strikte Typprüfung der Web-Seiten (Planung 3.6, Schritt 0.7)
 
 - `mailhelp.web.pages`, `forms` und alle `*_pages`-Module stehen unter der strikten

@@ -9,7 +9,8 @@ from ..review.archive import AnalysisSnapshot
 from ..review.queries import ArchiveQuery
 from ..storage import CorruptState
 from .archive_pages import analysis_section, mail_list_page, revisions_list
-from .http import Response
+from .auth import WebSession
+from .http import Request, Response
 from .pages import layout, notice
 
 if TYPE_CHECKING:
@@ -21,7 +22,7 @@ class MailArchiveSite:
         self.archive, self.site = archive, archive.site
         self.site.app.route("GET", "/mails", self.site.signed_in(self.mails))
 
-    def mails(self, request, session):
+    def mails(self, request: Request, session: WebSession) -> Response:
         queries = self.archive.queries
         try:
             query = ArchiveQuery.model_validate(self.archive.parameters(request))
@@ -35,7 +36,7 @@ class MailArchiveSite:
         page = chips("/mails", query.filter) + page
         return Response.html(200, layout("Mails", page, active="/mails"))
 
-    def analysis(self, mail_id):
+    def analysis(self, mail_id: str) -> str:
         store = self.site.views.store
         try:
             state = store.peek_model(state_names.mail(mail_id), MailState)
@@ -47,7 +48,7 @@ class MailArchiveSite:
             return ""
         return analysis_section(mail_id, state, record)
 
-    def revisions(self, mail_id, proposal_id):
+    def revisions(self, mail_id: str, proposal_id: str) -> str:
         """Recorded events of one proposal with links to every stored version."""
         rows = sorted((row for row in self.archive.queries.history_of(mail_id)
                        if row["proposal_id"] == proposal_id),

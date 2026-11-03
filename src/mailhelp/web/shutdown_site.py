@@ -3,8 +3,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from .auth import WebSession
 from .forms import post_form
-from .http import Response
+from .http import Request, Response
 from .pages import layout, notice
 
 if TYPE_CHECKING:
@@ -19,13 +20,13 @@ class ShutdownSite:
         for method, restart_handler in (("GET", self.restart_page), ("POST", self.restart)):
             self.site.app.route(method, "/einstellungen/neustarten", self.site.signed_in(restart_handler))
 
-    def restart_page(self, request, session):
+    def restart_page(self, request: Request, session: WebSession) -> Response:
         return self.stop_page(request, session, restart=True)
 
-    def restart(self, request, session, form):
+    def restart(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         return self.stop(request, session, form, restart=True)
 
-    def stop_page(self, request, session, *, restart=False):
+    def stop_page(self, request: Request, session: WebSession, *, restart: bool = False) -> Response:
         lifecycle = self.archive.lifecycle
         action = "Neustart" if restart else "Beenden"
         if lifecycle is None:
@@ -44,7 +45,7 @@ class ShutdownSite:
                           process=lifecycle.process, confirm="yes")
         return Response.html(200, layout(action, body))
 
-    def stop(self, request, session, form, *, restart=False):
+    def stop(self, request: Request, session: WebSession, form: dict[str, str], *, restart: bool = False) -> Response:
         lifecycle = self.archive.lifecycle
         action = "Neustart" if restart else "Beenden"
         try:

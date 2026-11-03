@@ -48,7 +48,7 @@ class ExperienceSite:
                                                 "Bitte neu anmelden und erneut versuchen."})
         return Response.json(200, {"ok": True})
 
-    def controls(self, csrf):
+    def controls(self, csrf: str) -> str:
         return ('<section class="card"><div class="setting-row"><h2>Benachrichtigungen</h2>'
                 + help_bubble('push', 'Benachrichtigungen', EXTRA_HELP['push']) + '</div>'
                 +

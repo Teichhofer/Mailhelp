@@ -6,20 +6,30 @@ command queue.
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
 from urllib.parse import parse_qs
 
+from ..configuration import AdminCommand, ConfigurationService
+from ..lifecycle import Lifecycle
+from ..metrics import MetricsRecorder
+from ..review.commands import ReviewCommand
 from ..review.inbox import CommandConflict, CommandInboxFull
 from ..review.queries import ArchiveQueries
 from .history_site import HistorySite
-from .http import Response
+from .http import Request, Response
 from .mail_archive_site import MailArchiveSite
 from .proposal_edit_site import ProposalEditSite
 from .settings_site import SettingsSite
 from .shutdown_site import ShutdownSite
 
+if TYPE_CHECKING:
+    from .site import MailhelpSite
+
 
 class ArchiveSite:
-    def __init__(self, site, configuration=None, metrics=None, lifecycle=None, models=None):
+    def __init__(self, site: MailhelpSite, configuration: ConfigurationService | None = None,
+                 metrics: MetricsRecorder | None = None, lifecycle: Lifecycle | None = None,
+                 models: list[tuple[str, str, str, str]] | None = None):
         self.site, self.configuration, self.metrics, self.lifecycle = site, configuration, metrics, lifecycle
         self.models = models or []
         self.queries = ArchiveQueries(site.views.store, site.configured_timezone)
@@ -29,13 +39,13 @@ class ArchiveSite:
         self.settings = SettingsSite(self)
         self.shutdown = ShutdownSite(self)
 
-    def parameters(self, request):
+    def parameters(self, request: Request) -> dict[str, str]:
         values = parse_qs(request.query, max_num_fields=20)
         if any(len(value) != 1 for value in values.values()):
             raise ValueError("Doppelte Filter")
         return {key: value[0] for key, value in values.items()}
 
-    def queue(self, request, command):
+    def queue(self, request: Request, command: ReviewCommand | AdminCommand) -> Response:
         try:
             entry, _ = self.site.commands.submit(command)
         except (CommandConflict, CommandInboxFull):

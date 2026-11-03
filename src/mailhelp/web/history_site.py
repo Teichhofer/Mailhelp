@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
 from .. import state_names
@@ -10,7 +10,8 @@ from ..models import Proposal
 from ..review.filters import matches
 from ..review.queries import ArchiveQuery
 from .archive_pages import MODE_LABELS, history_page, statistics_page, version_diff
-from .http import Response
+from .auth import WebSession
+from .http import Request, Response
 from .pages import layout
 from .review_pages import detail_page
 
@@ -28,7 +29,7 @@ class HistorySite:
                 ("GET", PROPOSAL_PATH + r"/version/(?P<version>[1-9][0-9]{0,5})", self.version)):
             self.site.app.route(method, path, self.site.signed_in(handler))
 
-    def _matches(self, row: dict, query: ArchiveQuery, source: dict) -> bool:
+    def _matches(self, row: dict[str, Any], query: ArchiveQuery, source: dict[str, Any]) -> bool:
         if not matches(query.filter, [row["proposal_kind"]], [row["status"]], source["attachments"],
                        source["duplicate"]):
             return False
@@ -42,7 +43,7 @@ class HistorySite:
                     or query.kind and query.kind != row["kind"]
                     or query.proposal_kind and query.proposal_kind != row["proposal_kind"])
 
-    def history(self, request, session):
+    def history(self, request: Request, session: WebSession) -> Response:
         try:
             params = self.archive.parameters(request)
             query = ArchiveQuery.model_validate(params)
@@ -56,7 +57,7 @@ class HistorySite:
         page = rows[(query.page - 1)*query.size:query.page*query.size]
         return Response.html(200, layout("Verlauf", history_page(query, page, len(rows), params), active="/verlauf"))
 
-    def version(self, request, session, mail_id, proposal_id, version):
+    def version(self, request: Request, session: WebSession, mail_id: str, proposal_id: str, version: str) -> Response:
         store = self.site.views.store
         if store.peek(f"history-{mail_id}", {}).get("removed"):
             return self.site._reply(request, 404, "Historische Inhalte nach Aufbewahrung entfernt.")
@@ -65,21 +66,22 @@ class HistorySite:
             return self.site._reply(request, 404, "Version nicht mehr vorhanden.")
         previous = store.peek_model(state_names.proposal(mail_id, proposal_id, int(version)-1), Proposal)
         current = store.peek_model(state_names.proposal(mail_id, proposal_id, version), Proposal)
+        assert current is not None  # the view above was read from this very version
         return Response.html(200, detail_page(view, after=version_diff(previous, current)))
 
-    def statistics(self, request, session):
+    def statistics(self, request: Request, session: WebSession) -> Response:
         metrics = self.archive.metrics
         if metrics is None:
             return Response.html(200, layout("Auswertung",
                                              '<h1>Auswertung</h1><p>Noch keine Metrikerfassung verfügbar.</p>'))
         try:
-            params = self.archive.parameters(request)
+            params: dict[str, Any] = dict(self.archive.parameters(request))
             params["days"] = int(params.get("days", 30))
             params.setdefault("mode", "production")
             if params["mode"] not in MODE_LABELS:
                 raise ValueError("Unbekannter Modus")
-            comparison = params["mode"] == "decision_test" and metrics.comparison is not None
-            selected = metrics.comparison if comparison else metrics
+            comparison = metrics.comparison
+            selected = comparison if params["mode"] == "decision_test" and comparison is not None else metrics
             report = selected.report(**params)
         except (ValueError, TypeError):
             return self.site._reply(request, 422, "Ungültige Auswertungsfilter.")

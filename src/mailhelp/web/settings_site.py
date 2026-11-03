@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import json
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs
 
 import yaml
@@ -11,14 +11,15 @@ from ..config import Settings
 from ..configuration import AdminCommand, AdminKind, ConfigurationConflict, file_hash
 from ..credentials import CredentialService, CredentialUnauthorized
 from ..storage import CorruptState
-from .http import Response
+from .auth import WebSession
+from .http import Request, Response
 from .pages import layout, notice
 from .settings_pages import AREA_KEYS, TEXT_SETTINGS, settings_confirmation, settings_page, topics_page
 
 if TYPE_CHECKING:
     from .archive_site import ArchiveSite
 
-def _effective(raw: dict) -> dict:
+def _effective(raw: dict[str, Any]) -> dict[str, Any]:
     """The saved values as the next start would apply them, defaults included.
 
     A setting left out of config.yaml is not a pending change; a file the
@@ -42,7 +43,7 @@ class SettingsSite:
                 ("GET", "/themen", self.topics), ("POST", "/themen/speichern", self.save_topic)):
             self.site.app.route(method, path, self.site.signed_in(handler))
 
-    def settings(self, request, session):
+    def settings(self, request: Request, session: WebSession) -> Response:
         query = parse_qs(request.query)
         area = query.get("bereich", [""])[0]
         if area and area not in AREA_KEYS:
@@ -65,14 +66,14 @@ class SettingsSite:
                              query.get("suche", [""])[0][:80], self.site.experience.controls(csrf))
         return Response.html(200, layout("Einstellungen", page, active="/einstellungen"))
 
-    def credential_service(self):
+    def credential_service(self) -> CredentialService | None:
         configuration = self.archive.configuration
         if configuration is None:
             return None
         return CredentialService(configuration.directory, self.site.views.store, self.site.auth.active,
                                  lambda payload: self.site.auth.csrf_token("credential-edit:" + payload))
 
-    def save_credentials(self, request, session, form):
+    def save_credentials(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         if "expected_hash" in form:
             return self.site.secrets_page.save(request, session, form)
         service = self.credential_service()
@@ -100,7 +101,7 @@ class SettingsSite:
             + '<p><a class="button" href="/einstellungen?bereich=zugangsdaten">Zurück zu Zugangsdaten</a></p>',
             active="/einstellungen"))
 
-    def save_settings(self, request, session, form):
+    def save_settings(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         configuration = self.archive.configuration
         if configuration is None:
             return self.site._reply(request, 503, "Konfiguration nicht verfügbar.")
@@ -127,7 +128,7 @@ class SettingsSite:
             return Response.html(200, layout("Bestätigen", body))
         return self.archive.queue(request, command)
 
-    def topics(self, request, session):
+    def topics(self, request: Request, session: WebSession) -> Response:
         configuration = self.archive.configuration
         if configuration is None:
             return self.site._reply(request, 503, "Themenverwaltung nicht verfügbar.")
@@ -138,20 +139,23 @@ class SettingsSite:
         body = topics_page(files, self.site.auth.csrf_token(session.id))
         return Response.html(200, layout("Themen", body, active="/einstellungen"))
 
-    def save_topic(self, request, session, form):
+    def save_topic(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
+        configuration = self.archive.configuration
+        if configuration is None:
+            return self.site._reply(request, 503, "Themenverwaltung nicht verfügbar.")
         try:
             if form.get("original_id") and form["id"] != form["original_id"]:
                 raise ValueError("IDs dürfen nicht geändert werden")
-            topic = {key: form[key] for key in ("id", "name", "description")}
+            topic: dict[str, Any] = {key: form[key] for key in ("id", "name", "description")}
             topic["enabled"] = {"true": True, "false": False}[form["enabled"].lower()]
             topic.update({key: [v.strip() for v in form[key].split(";") if v.strip()]
                           for key in ("examples", "exclusions")})
             command = AdminCommand(kind=AdminKind.TOPICS, actor=f"web:{session.id}", idempotency_key=form["key"],
                                    expected_hash=form["expected_hash"], category=form["category"], patch=topic,
                                    acknowledged=form.get("confirm") == "yes")
-            self.archive.configuration.candidate(command)
+            configuration.candidate(command)
         except ConfigurationConflict:
             return self.site._reply(request, 409, "Themendatei geändert; bitte neu laden.")
-        except (ValueError, KeyError, OSError, AttributeError):
+        except (ValueError, KeyError, OSError):
             return self.site._reply(request, 422, "Ungültige, unbestätigte oder inzwischen geänderte Themen.")
         return self.archive.queue(request, command)

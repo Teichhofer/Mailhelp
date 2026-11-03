@@ -9,6 +9,7 @@ therefore never have a second effect.
 from __future__ import annotations
 
 import secrets
+from collections.abc import Callable
 
 from ..models import ProposalStatus
 from ..review.commands import CommandKind
@@ -46,7 +47,7 @@ def _button_form(csrf: str, view: ProposalView, kind: CommandKind, label: str, s
             f'<button class="button {style}" type="submit">{e(label)}</button></form>')
 
 
-def proposal_actions(csrf: str):
+def proposal_actions(csrf: str) -> Callable[[ProposalView], str]:
     """Renderer for the action area of a proposal card."""
     def render(view: ProposalView) -> str:
         if view.answer_saved:
@@ -105,7 +106,7 @@ def recheck_form(csrf: str, mail_id: str, analysis_round: int, *, small: bool = 
             f'<button class="button{size}" type="submit">Erneut prüfen</button></form>')
 
 
-def relevance_actions(csrf: str):
+def relevance_actions(csrf: str) -> Callable[[RelevanceView], str]:
     def render(view: RelevanceView) -> str:
         forms = []
         for decision, label, style in (("relevant", "Relevant", "primary"),

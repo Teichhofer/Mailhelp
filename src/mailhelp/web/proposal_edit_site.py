@@ -1,15 +1,16 @@
 """Deterministic editing of an open proposal; saving creates a new unconfirmed version."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from .. import state_names
 from ..models import Proposal, ProposalStatus
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.editing import ProposalEditPatch
+from .auth import WebSession
 from .forms import field, post_form
 from .history_site import PROPOSAL_PATH
-from .http import Response
+from .http import Request, Response
 from .pages import layout, notice
 
 if TYPE_CHECKING:
@@ -26,7 +27,8 @@ class ProposalEditSite:
         for method, handler in (("GET", self.edit), ("POST", self.save_edit)):
             self.site.app.route(method, PROPOSAL_PATH + "/bearbeiten", self.site.signed_in(handler))
 
-    def edit(self, request, session, mail_id, proposal_id, values=None, message=""):
+    def edit(self, request: Request, session: WebSession, mail_id: str, proposal_id: str,
+             values: dict[str, Any] | None = None, message: str = "") -> Response:
         proposal = self.site.views.store.peek_model(state_names.proposal(mail_id, proposal_id), Proposal)
         if proposal is None:
             return self.site._reply(request, 404, "Vorschlag nicht gefunden.")
@@ -42,9 +44,10 @@ class ProposalEditSite:
         body += post_form(request.path, self.site.auth.csrf_token(session.id), inputs, version=proposal.version)
         return Response.html(422 if message else 200, layout("Bearbeiten", body))
 
-    def save_edit(self, request, session, form, mail_id, proposal_id):
+    def save_edit(self, request: Request, session: WebSession, form: dict[str, str], mail_id: str,
+                  proposal_id: str) -> Response:
         try:
-            raw = {key: value for key, value in form.items() if key not in {"csrf", "key", "version"}}
+            raw: dict[str, Any] = {key: value for key, value in form.items() if key not in {"csrf", "key", "version"}}
             if "all_day" in raw:
                 raw["all_day"] = {"true": True, "false": False, "": False}[raw["all_day"].lower()]
             patch = ProposalEditPatch.model_validate(raw)
