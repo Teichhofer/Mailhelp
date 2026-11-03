@@ -49,8 +49,13 @@ Diese Schritte beheben bekannte Mängel und schaffen Voraussetzungen, ohne Funkt
 | 0.8a ✓ 3.6.7 | mypy strikt für `web.*` (Teil 2a) | Aktionen, Archiv, Verlauf, Bearbeiten, Beenden, Zugangsdaten, Kontenstatus und Einstellungen bestehen die strikte Prüfung. | M | 0.7 |
 | 0.8b ✓ 3.6.8 | mypy strikt für `web.*` (Teil 2b) | Einrichtung, Postfächer, Postfach hinzufügen und IServ bestehen die strikte Prüfung (rund 110 Befunde). | M | 0.8a |
 | 0.8c ✓ 3.6.9 | mypy strikt für `web.*` (Teil 2c) | Tätigkeitsberichte, Benachrichtigungen, Absender, Abgleich, Übersicht und `site.py` bestehen die strikte Prüfung; `pyproject.toml` erzwingt `mailhelp.web.*` dauerhaft. | M | 0.8b |
-| 0.9 | Paketbündelung: Zuordnung | Zielstruktur der über 50 Wurzelmodule festgelegt (z. B. `imap/`, `mailbox/`, `notifications/`, `proposals/`), Kompatibilitätsimporte entschieden. | S | – |
-| 0.10 | Paketbündelung: je Gruppe | Je Zielpaket ein eigener Schritt (0.10a, 0.10b, …), jeweils ohne Verhaltensänderung, mit grüner Suite und unveränderten Zustandsnamen. | je S | 0.9 |
+| 0.9 ✓ 3.6.10 | Paketbündelung: Zuordnung ([Paketstruktur](Paketstruktur.md)) | Zielstruktur der über 50 Wurzelmodule festgelegt (z. B. `imap/`, `mailbox/`, `notifications/`, `proposals/`), Kompatibilitätsimporte entschieden. | S | – |
+| 0.10a | Paketbündelung: `mailhelp.mailbox` | Abruf, Postfächer und IServ umgezogen; Prüfung nach [Paketstruktur](Paketstruktur.md), Abschnitt 4. | S | 0.9 |
+| 0.10b | Paketbündelung: `mailhelp.processing` | Verarbeitung einer Mail umgezogen. | S | 0.10a |
+| 0.10c | Paketbündelung: `mailhelp.proposals` | Vorschläge, Abgleich und Ziele umgezogen. | S | 0.10b |
+| 0.10d | Paketbündelung: `mailhelp.llm` | Sprachmodelle, Lernen und Bewertung umgezogen; `mailhelp-evaluate` umgestellt. | S | 0.10c |
+| 0.10e | Paketbündelung: `mailhelp.notifications` | Benachrichtigungen, Push, Tagesüberblick und Entwürfe umgezogen. | S | 0.10d |
+| 0.10f | Paketbündelung: `mailhelp.runtime` | Betrieb, Lebenszyklus, Einrichtung und Wartung umgezogen. | S | 0.10e |
 
 ### 3.2 Stufe 1 – Testgrundlage (Q1)
 

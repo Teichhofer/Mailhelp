@@ -1,5 +1,13 @@
 # Änderungen
 
+## 3.6.10 – Zielstruktur der Pakete festgelegt (Planung 3.6, Schritt 0.9)
+
+- `docs/Paketstruktur.md` ordnet alle 78 Module des Wurzelpakets sechs Zielpaketen
+  (`mailbox`, `processing`, `proposals`, `llm`, `notifications`, `runtime`) oder dem
+  Wurzelpaket zu und legt die Regeln für den Umzug fest: keine Verhaltensänderung, keine
+  dauerhaften Alias-Module, `mailhelp.cli` und `mailhelp.models` bleiben. Der Umzug folgt in
+  den Schritten 0.10a–0.10f. Keine Verhaltensänderung.
+
 ## 3.6.9 – Strikte Typprüfung für die gesamte Weboberfläche (Planung 3.6, Schritt 0.8c)
 
 - `pyproject.toml` stellt `mailhelp.web.*` vollständig unter die strikte mypy-Prüfung.
