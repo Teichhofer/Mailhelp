@@ -10,6 +10,7 @@ import json
 import os
 import re
 from abc import ABC, abstractmethod
+from typing import Any
 
 from .config import ImapCredentials, Settings, read_yaml
 from .configuration import AdminCommand, AdminKind, ConfigurationConflict, ConfigurationService, file_hash
@@ -27,7 +28,7 @@ class ConnectionActivation(ABC):
     patch_key = ""
     area = ""
 
-    def __init__(self, runtime):
+    def __init__(self, runtime: Any):
         self.runtime = runtime
         original = runtime.app.configuration
         # Persist using the ordinary journal, but install adapters and settings only in the mail loop.
@@ -68,7 +69,8 @@ class ConnectionActivation(ABC):
             raise ConfigurationConflict("Anderen Entwurf zuerst übernehmen oder verwerfen.")
         return state
 
-    def activate(self, actor, version, key, revision, env_revision, item, username, password):
+    def activate(self, actor: str, version: int, key: str, revision: str, env_revision: str, item: Any,
+                 username: str, password: str) -> None:
         if not re.fullmatch(r"[A-Za-z0-9_-]{8,80}", key):
             raise ValueError("Idempotenzschlüssel fehlt")
         signature = hashlib.sha256(json.dumps([actor, version, revision, env_revision,

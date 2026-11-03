@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import re
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs
 from zoneinfo import ZoneInfo
 
@@ -15,9 +15,13 @@ from ..env_file import EnvFileConflict
 from ..env_file import file_hash as env_hash
 from ..iserv import IServSignInError
 from ..iserv_activation import IServActivation
+from .auth import WebSession
 from .forms import post_form
-from .http import Response
+from .http import Request, Response
 from .pages import e, notice
+
+if TYPE_CHECKING:
+    from .site import MailhelpSite
 
 ROUTE = "/einstellungen/iserv"
 _GERMAN_DATE = re.compile(r"(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{2}))?")
@@ -74,17 +78,17 @@ def _account_fields(account: dict[str, Any], mailboxes: list[tuple[int, str]], s
 
 
 class IServSite:
-    def __init__(self, site):
+    def __init__(self, site: MailhelpSite):
         self.site = site
         for method, path, handler in (("GET", ROUTE, self.index), ("POST", ROUTE + "/speichern", self.save),
                                       ("POST", ROUTE + "/aktivieren", self.activate)):
             site.app.route(method, path, site.signed_in(handler))
 
     @property
-    def runtime(self):
+    def runtime(self) -> Any:
         return self.site.setup_page.runtime
 
-    def index(self, request, session, problem: str = ""):
+    def index(self, request: Request, session: WebSession, problem: str = "") -> Response:
         mailboxes_page = self.site.mailbox_page
         if self.runtime is None:
             return mailboxes_page.unavailable()
@@ -135,7 +139,8 @@ class IServSite:
         body += mailboxes_page.preview(session) + '</section>'
         return mailboxes_page.page("IServ-Konten", body)
 
-    def activation_form(self, session, data, mailboxes, suffix):
+    def activation_form(self, session: WebSession, data: dict[str, Any], mailboxes: list[tuple[int, str]],
+                        suffix: str) -> str:
         path = self.runtime.app.configuration.directory
         fields = _account_fields(data, mailboxes, "aktivieren-" + suffix)
         fields += _input("username", "Benutzername (leer: vorhandenen verwenden)", "", "aktivieren-" + suffix,
@@ -147,7 +152,7 @@ class IServSite:
             "Verbindung prüfen und Konto aktivieren", id=data["id"], version=self.runtime.setup.state().version,
             revision=file_hash(path / "config.yaml"), env_revision=env_hash(path / ".env"))
 
-    def activate(self, request, session, form):
+    def activate(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         if self.runtime is None:
             return self.site.mailbox_page.unavailable()
         try:
@@ -175,14 +180,14 @@ class IServSite:
                                          "und erneut versuchen.")
         return Response.redirect(ROUTE + "?aktiviert=1")
 
-    def activation_error(self, request, session, message):
+    def activation_error(self, request: Request, session: WebSession, message: str) -> Response:
         page = self.index(request, session)
         warning = notice("Konto nicht aktiviert. " + message, "error")
         page.body = page.body.replace(b'<h1>', (warning + '<h1>').encode(), 1)
         page.status = 422
         return page
 
-    def save(self, request, session, form):
+    def save(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         if self.runtime is None:
             return self.site.mailbox_page.unavailable()
         try:

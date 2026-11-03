@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 import json
-from typing import Any, cast
+from collections.abc import Sequence
+from typing import TYPE_CHECKING, Any, cast
 
 import yaml
 
@@ -10,10 +11,13 @@ from ..configuration import LIVE_FIELDS, MAILBOX_SETUP_FIELDS, ConfigurationConf
 from ..diagnostics import HELP, STATES, DiagnosticResult
 from ..local_pairing import issue
 from ..notification_config import CATEGORIES, effective_profile
-from .auth import PairingLimited
+from .auth import PairingLimited, WebSession
 from .forms import post_form
-from .http import Response
+from .http import Request, Response
 from .pages import e, layout
+
+if TYPE_CHECKING:
+    from .site import MailhelpSite
 
 STEPS = ("Betriebsart", "Postfach", "Analyse und Ziele", "Web und Geräte", "Benachrichtigungen",
          "Prüfen und übernehmen")
@@ -59,13 +63,13 @@ CHOICES = {"telegram.enabled": ("true", "false"), "push.enabled": ("true", "fals
            "targets.task_provider": ("todoist", "microsoft_todo", "caldav", "apple_reminders")}
 
 
-def lookup(raw, dotted):
+def lookup(raw: Any, dotted: str) -> Any:
     for part in dotted.split("."):
         raw = raw[int(part)] if isinstance(raw, list) else raw[part]
     return raw
 
 
-def step_fields(raw, step):
+def step_fields(raw: dict[str, Any], step: int) -> tuple[str, ...]:
     """Fields of one step; the 3.1 format shows the mailbox fields of every configured mailbox."""
     mailboxes = raw["imap"].get("mailboxes")
     if step != 2 or mailboxes is None:
@@ -73,7 +77,7 @@ def step_fields(raw, step):
     return tuple(f"imap.mailboxes.{index}.{name}" for index in range(len(mailboxes)) for name in MAILBOX_SETUP_FIELDS)
 
 
-def field_label(raw, name):
+def field_label(raw: dict[str, Any], name: str) -> str:
     parts = name.split(".")
     if parts[:2] != ["imap", "mailboxes"]:
         return LABELS.get(name, name)
@@ -81,7 +85,7 @@ def field_label(raw, name):
     return f'{LABELS["imap." + parts[3]]} – Postfach {mailbox["id"]} ({mailbox["label"]})'
 
 
-def input_field(name, value, choices=None, label=None):
+def input_field(name: str, value: object, choices: Sequence[str] | None = None, label: str | None = None) -> str:
     label = label or LABELS.get(name, name)
     identity = "setting-" + name.replace(".", "-")
     shown = json.dumps(value, ensure_ascii=False) if not isinstance(value, str) else value
@@ -97,7 +101,7 @@ def input_field(name, value, choices=None, label=None):
 
 
 class SetupSite:
-    def __init__(self, site):
+    def __init__(self, site: MailhelpSite):
         # The SetupRuntime, attached once the services exist.
         self.site, self.runtime = site, cast(Any, None)
         for method, path, handler in (
@@ -110,7 +114,7 @@ class SetupSite:
         site.app.route("POST", "/api/local-pair", self.local_pair)
 
     @staticmethod
-    def links():
+    def links() -> str:
         return ('<p class="card-links"><a class="button" href="/einrichtung">Einrichtung</a> '
                 '<a class="button" href="/einstellungen/postfaecher">Postfächer</a> '
                 '<a class="button" href="/einstellungen/iserv">IServ-Konten</a> '
@@ -120,10 +124,10 @@ class SetupSite:
                 '<a class="button" href="/einstellungen/benachrichtigungen">Benachrichtigungsprofil</a> '
                 '<a class="button" href="/benachrichtigungen">Zustellhistorie</a></p>')
 
-    def _unavailable(self):
+    def _unavailable(self) -> Response:
         return Response.text(503, "Einrichtungsdienst nicht verfügbar.")
 
-    def _raw(self, *, with_patch=True):
+    def _raw(self, *, with_patch: bool = True) -> dict[str, Any]:
         service = self.runtime.setup
         raw = yaml.safe_load((service.configuration.directory / "config.yaml").read_text(encoding="utf-8"))
         from ..config import Settings
@@ -139,7 +143,7 @@ class SetupSite:
             set_dotted(result, name, value)
         return result
 
-    def _fields(self, session, fields, step):
+    def _fields(self, session: WebSession, fields: Sequence[str], step: int) -> str:
         service, raw = self.runtime.setup, self._raw()
         state, csrf = service.state(), self.site.auth.csrf_token(session.id)
         body = ""
@@ -170,7 +174,7 @@ class SetupSite:
                               "Entwurf speichern", name=name, version=state.version, step=step)
         return body
 
-    def _listed_folders(self):
+    def _listed_folders(self) -> str:
         """Folders of the last diagnosis, per mailbox for the 3.1 format."""
         listed = self.site.views.store.load("setup-folders", {})
         mailboxes = self._raw()["imap"].get("mailboxes")
@@ -184,7 +188,7 @@ class SetupSite:
                 + '. Lesbarkeit beweist keine Schreibberechtigung. Postfächer hinzufügen oder entfernen: '
                   'imap.mailboxes in config.yaml, Zugangsdaten IMAP_&lt;Nummer&gt;_USERNAME/_PASSWORD.</p>')
 
-    def setup(self, request, session):
+    def setup(self, request: Request, session: WebSession) -> Response:
         if self.runtime is None:
             return self._unavailable()
         state, cfg = self.runtime.setup.state(), self.runtime.setup.configuration
@@ -229,7 +233,7 @@ class SetupSite:
                           version=state.version, expected_hash=state.base_hash)
         return Response.html(200, layout("Einrichtung", '<div class="setup-page">' + body + '</div>'))
 
-    def save(self, request, session, form):
+    def save(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         if self.runtime is None:
             return self._unavailable()
         try:
@@ -248,7 +252,7 @@ class SetupSite:
             return Response.text(422, "Entwurf nicht gespeichert; Angaben und Sitzung prüfen.")
         return Response.redirect("/einrichtung")
 
-    def apply(self, request, session, form):
+    def apply(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         if self.runtime is None:
             return self._unavailable()
         try:
@@ -262,7 +266,7 @@ class SetupSite:
             return Response.text(422, "Einstellungen nicht übernommen; Bestätigung und Sitzung prüfen.")
         return self.site.archive.queue(request, command)
 
-    def diagnose(self, request, session):
+    def diagnose(self, request: Request, session: WebSession) -> Response:
         if self.runtime is None:
             return self._unavailable()
         service = self.runtime.diagnostics
@@ -285,7 +289,7 @@ class SetupSite:
         body += '<p><a href="/diagnose/bericht">Bereinigten Diagnosebericht herunterladen</a></p>'
         return Response.html(200, layout("Diagnose", '<div class="setup-page">' + body + '</div>'))
 
-    def check(self, request, session, form):
+    def check(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         if self.runtime is None:
             return self._unavailable()
         try:
@@ -295,14 +299,14 @@ class SetupSite:
             return Response.text(409, "Prüfung nicht gestartet; Seite neu laden und Sitzung prüfen.")
         return Response.redirect("/diagnose")
 
-    def report(self, request, session):
+    def report(self, request: Request, session: WebSession) -> Response:
         if self.runtime is None:
             return self._unavailable()
         response = Response.json(200, self.runtime.diagnostics.report())
         response.headers["Content-Disposition"] = 'attachment; filename="mailhelp-diagnose.json"'
         return response
 
-    def profile(self, request, session):
+    def profile(self, request: Request, session: WebSession) -> Response:
         if self.runtime is None:
             return self._unavailable()
         body = '<h1>Benachrichtigungsprofil</h1>' + self.links()
@@ -320,7 +324,7 @@ class SetupSite:
                  'Differenz prüfen und ausdrücklich übernehmen</a></p>')
         return Response.html(200, layout("Benachrichtigungsprofil", '<div class="setup-page">' + body + '</div>'))
 
-    def history(self, request, session):
+    def history(self, request: Request, session: WebSession) -> Response:
         runtime = self.site.notification_runtime
         if runtime is None:
             return self._unavailable()
@@ -332,7 +336,7 @@ class SetupSite:
             body += f'{e(item.updated_at)} · Versuche: {item.attempts} · {e(item.error)}</li>'
         return Response.html(200, layout("Zustellhistorie", body + '</ul>'))
 
-    def local_pair(self, request):
+    def local_pair(self, request: Request) -> Response:
         form = self.site._form(request)
         if isinstance(form, Response):
             return form

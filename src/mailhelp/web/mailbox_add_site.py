@@ -5,6 +5,7 @@ connection saves config.yaml and .env, and the mail loop starts the mailbox with
 """
 from __future__ import annotations
 
+from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
 from pydantic import ValidationError
@@ -15,10 +16,15 @@ from ..connection_activation import ActivationProblem
 from ..env_file import EnvFileConflict
 from ..env_file import file_hash as env_hash
 from ..mailbox_activation import MailboxActivation
+from .auth import WebSession
 from .forms import post_form
-from .http import Response
+from .http import Request, Response
 from .iserv_site import reason, start_boundary
 from .pages import e
+
+if TYPE_CHECKING:
+    from ..config import Settings
+    from .site import MailhelpSite
 
 ROUTE = "/einstellungen/postfaecher"
 ACTIVATE = ROUTE + "/aktivieren"
@@ -36,15 +42,15 @@ def _input(name: str, label: str, value: object, kind: str = "text", **attrs: st
 
 
 class MailboxAddSite:
-    def __init__(self, site):
+    def __init__(self, site: MailhelpSite):
         self.site = site
         site.app.route("POST", ACTIVATE, site.signed_in(self.activate))
 
     @property
-    def runtime(self):
+    def runtime(self) -> Any:
         return self.site.setup_page.runtime
 
-    def section(self, session, cfg, values: dict[str, str] | None = None) -> str:
+    def section(self, session: WebSession, cfg: Settings, values: dict[str, str] | None = None) -> str:
         """The card with the activation form; *values* refill it after a rejected attempt."""
         boxes = cfg.imap.configured_mailboxes()
         if len(boxes) >= MAX_MAILBOXES:
@@ -93,7 +99,7 @@ class MailboxAddSite:
                 f'<code>{user_name}</code>/<code>{password_name}</code> gespeichert. '
                 f'Ein Datum gilt ab 00:00 Uhr in {e(cfg.timezone)}.</p>' + form + '</section>')
 
-    def activate(self, request, session, form):
+    def activate(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         if self.runtime is None:
             return self.site.mailbox_page.unavailable()
         values = {name: form.get(name, "") for name in ("label", "host", "port", "connection_mode", "folders",
@@ -127,7 +133,7 @@ class MailboxAddSite:
                                  "aktiviert; gespeicherten Stand prüfen und erneut versuchen.", values)
         return Response.redirect(ROUTE + "?aktiviert=1")
 
-    def rejected(self, request, session, message, values):
+    def rejected(self, request: Request, session: WebSession, message: str, values: dict[str, str]) -> Response:
         page = self.site.mailbox_page.index(request, session, message, values)
         page.status = 422
         return page

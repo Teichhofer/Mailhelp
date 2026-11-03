@@ -7,17 +7,22 @@ import os
 import re
 import secrets
 import time
+from collections.abc import Callable
+from typing import TYPE_CHECKING
 
 import httpx
 
 from .config import Settings, _dotenv, read_yaml
+
+if TYPE_CHECKING:
+    from .web.auth import WebAuth
 
 
 def signature(secret: str, message: str) -> str:
     return hmac.new(secret.encode(), f"local-pair:{message}".encode(), hashlib.sha256).hexdigest()
 
 
-def issue(auth, message, supplied, clock=time.time):
+def issue(auth: WebAuth, message: str, supplied: str, clock: Callable[[], float] = time.time) -> str:
     try:
         stamp, nonce = message.split(":")
         valid = abs(clock() - int(stamp)) <= 60 and len(nonce) == 32

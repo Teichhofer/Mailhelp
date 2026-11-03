@@ -1,5 +1,11 @@
 # Änderungen
 
+## 3.6.8 – Strikte Typprüfung für Einrichtung, Postfächer und IServ (Planung 3.6, Schritt 0.8b)
+
+- `setup_site`, `mailbox_site`, `mailbox_add_site` und `iserv_site` stehen unter der strikten
+  mypy-Prüfung; dazu wurden die lokale Kopplung (`issue`), die Zielprofilauswahl (`choices`)
+  und die Verbindungsaktivierung (`ConnectionActivation`) annotiert. Keine Verhaltensänderung.
+
 ## 3.6.7 – Strikte Typprüfung weiterer Web-Module (Planung 3.6, Schritt 0.8a)
 
 - Aktionen, Archiv, Verlauf, Vorschlagsbearbeitung, Beenden/Neustart, Zugangsdaten,

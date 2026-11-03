@@ -48,7 +48,7 @@ def policy_hash(settings):
     ).hexdigest()
 
 
-def choices(settings, proposal):
+def choices(settings: Settings, proposal: Proposal) -> list[tuple[int, str, str]]:
     if (
         proposal.status not in {"pending_confirmation", "needs_clarification"}
         or proposal.pending_sources
@@ -56,7 +56,7 @@ def choices(settings, proposal):
     ):
         return []
     digest = policy_hash(settings)
-    result = []
+    result: list[tuple[int, str, str]] = []
     for number, target in target_profiles(settings).items():
         value = target.task_target if proposal.kind == "task" else target.calendar_target
         provider = target.task_provider if proposal.kind == "task" else target.calendar_provider

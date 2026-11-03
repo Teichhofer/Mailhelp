@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mailhelp"
-version = "3.6.7"
+version = "3.6.8"
 description = "Persönlicher, bestätigungspflichtiger E-Mail-Assistent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -89,7 +89,8 @@ module = ["mailhelp.domain.*", "mailhelp.external.contracts", "mailhelp.drafts",
           "mailhelp.web.status_pages", "mailhelp.web.actions", "mailhelp.web.archive_site",
           "mailhelp.web.mail_archive_site", "mailhelp.web.history_site", "mailhelp.web.proposal_edit_site",
           "mailhelp.web.shutdown_site", "mailhelp.web.secrets_site", "mailhelp.web.status_accounts",
-          "mailhelp.web.settings_site"]
+          "mailhelp.web.settings_site", "mailhelp.web.setup_site", "mailhelp.web.mailbox_site",
+          "mailhelp.web.mailbox_add_site", "mailhelp.web.iserv_site"]
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
 disallow_untyped_calls = true

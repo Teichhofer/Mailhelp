@@ -1,18 +1,26 @@
 """Mailbox policies and profile management through the existing authenticated draft."""
 
+from __future__ import annotations
+
 import json
+from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs
 
 from ..config import Settings, TargetProfileSettings, Topic, read_yaml
 from ..configuration import MAILBOX_POLICY_FIELDS
 from ..mailbox_settings import effective_settings, mailbox_fingerprint
+from ..models import Proposal
 from ..profile_binding import choices
 from ..profile_usage import profile_references
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..sender_filter import sender_entry
+from .auth import WebSession
 from .forms import post_form
-from .http import Response
+from .http import Request, Response
 from .pages import e, layout, notice
+
+if TYPE_CHECKING:
+    from .site import MailhelpSite
 
 TABS = {
     "targets": "Ziele",
@@ -66,7 +74,7 @@ LABELS.update(
 )
 
 
-def lookup(value, name):
+def lookup(value: Any, name: str) -> Any:
     for part in name.split("."):
         if not isinstance(value, dict):
             return None
@@ -74,7 +82,7 @@ def lookup(value, name):
     return value
 
 
-def control(name, value, prefix="mailbox"):
+def control(name: str, value: object, prefix: str = "mailbox") -> str:
     from .setup_site import CHOICES
     from .setup_site import LABELS as TARGET_LABELS
 
@@ -109,7 +117,7 @@ def control(name, value, prefix="mailbox"):
 
 
 class MailboxSite:
-    def __init__(self, site):
+    def __init__(self, site: MailhelpSite):
         self.site = site
         for method, path, handler in (
             ("GET", "/einstellungen/postfaecher", self.index),
@@ -125,16 +133,16 @@ class MailboxSite:
             site.app.route(method, path, site.signed_in(handler))
 
     @property
-    def runtime(self):
+    def runtime(self) -> Any:
         return self.site.setup_page.runtime
 
-    def page(self, title, body):
+    def page(self, title: str, body: str) -> Response:
         return Response.html(200, layout(title, '<div class="setup-page"><h1>' + e(title) + "</h1>" + body + "</div>"))
 
-    def unavailable(self):
+    def unavailable(self) -> Response:
         return Response.text(503, "Einrichtungsdienst nicht verfügbar.")
 
-    def preview(self, session):
+    def preview(self, session: WebSession) -> str:
         state = self.runtime.setup.state()
         text = (
             "<p>Speichern ändert den Entwurf. Übernehmen erteilt keine externe Anlagefreigabe. "
@@ -208,7 +216,7 @@ class MailboxSite:
             text += "</section>"
         return text
 
-    def affected(self):
+    def affected(self) -> dict[int, int]:
         from ..decisions import relevance_fingerprint
         from ..models import MailState
         from ..storage import mail_state_names
@@ -239,7 +247,8 @@ class MailboxSite:
                 result[number] = result.get(number, 0) + 1
         return result
 
-    def index(self, request, session, problem="", values=None):
+    def index(self, request: Request, session: WebSession, problem: str = "",
+              values: dict[str, str] | None = None) -> Response:
         if self.runtime is None:
             return self.unavailable()
         cfg = self.runtime.setup.draft_settings()
@@ -292,11 +301,11 @@ class MailboxSite:
         )
         return self.page("Postfächer", body + "</details>" + self.preview(session))
 
-    def mailbox(self, request, session, number):
+    def mailbox(self, request: Request, session: WebSession, number: str) -> Response:
         if self.runtime is None:
             return self.unavailable()
-        cfg, number = self.runtime.setup.draft_settings(), int(number)
-        box = cfg.imap.mailbox(number)
+        cfg, mailbox_number = self.runtime.setup.draft_settings(), int(number)
+        box = cfg.imap.mailbox(mailbox_number)
         if box is None:
             return Response.text(404, "Postfach nicht vorhanden.")
         tab = parse_qs(request.query).get("tab", ["targets"])[0]
@@ -309,7 +318,7 @@ class MailboxSite:
         )
         csrf, version = self.site.auth.csrf_token(session.id), self.runtime.setup.state().version
         if tab in FIELDS:
-            effective = effective_settings(cfg, number).model_dump(mode="json")
+            effective = effective_settings(cfg, mailbox_number).model_dump(mode="json")
             for field in FIELDS[tab]:
                 own = lookup(box.model_dump(), field)
                 value = own if own is not None else lookup(effective, field)
@@ -322,7 +331,7 @@ class MailboxSite:
                     csrf,
                     control(field, value),
                     "Im Entwurf speichern",
-                    number=number,
+                    number=mailbox_number,
                     field=field,
                     version=version,
                 )
@@ -332,7 +341,7 @@ class MailboxSite:
                         csrf,
                         "",
                         "Zurücksetzen auf global",
-                        number=number,
+                        number=mailbox_number,
                         field=field,
                         version=version,
                         action="reset",
@@ -359,7 +368,7 @@ class MailboxSite:
                             csrf,
                             "",
                             title,
-                            number=number,
+                            number=mailbox_number,
                             topic=topic.id,
                             category=category,
                             scope=scope,
@@ -368,7 +377,7 @@ class MailboxSite:
                     body += "</section>"
         else:
             blocked = self.runtime.setup.configuration.blocked_senders()
-            rules = blocked.mailboxes.get(str(number))
+            rules = blocked.mailboxes.get(str(mailbox_number))
             body += "<p>Globale Sperren: " + e([*blocked.addresses, *blocked.domains]) + "</p>"
             body += "<p>Eigene Sperren und Ausnahmen: " + e(rules.model_dump() if rules else {}) + "</p>"
             body += post_form(
@@ -381,7 +390,7 @@ class MailboxSite:
                 '<option value="unallow">Ausnahme entfernen</option>'
                 "</select>",
                 "Filteränderung vormerken",
-                number=number,
+                number=mailbox_number,
                 version=version,
             )
         body += post_form(
@@ -389,13 +398,13 @@ class MailboxSite:
             csrf,
             "",
             "Postfach entfernen",
-            number=number,
+            number=mailbox_number,
             action="remove",
             version=version,
         )
         return self.page(box.label, body + self.preview(session))
 
-    def save(self, request, session, form):
+    def save(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         if self.runtime is None:
             return self.unavailable()
         try:
@@ -419,7 +428,7 @@ class MailboxSite:
                     raise ValueError("Unbekannte Einstellung")
                 box = next(box for box in boxes if box["id"] == number)
                 if form.get("action") == "reset":
-                    value = {"target_profile": 1, "daily_briefing": True}.get(field)
+                    value: Any = {"target_profile": 1, "daily_briefing": True}.get(field)
                     field = "retention" if field == "retention.full_mail_days" else field
                 elif (
                     field.endswith(("minutes", "days"))
@@ -448,7 +457,7 @@ class MailboxSite:
             return Response.text(409, "Entwurf nicht gespeichert; Angaben, Version und Sitzung prüfen.")
         return Response.redirect("/einstellungen/postfaecher")
 
-    def topic(self, request, session, form):
+    def topic(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         if self.runtime is None:
             return self.unavailable()
         try:
@@ -485,7 +494,7 @@ class MailboxSite:
             return Response.text(409, "Themenentwurf nicht gespeichert.")
         return Response.redirect("/einstellungen/postfaecher")
 
-    def filter(self, request, session, form):
+    def filter(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         if self.runtime is None:
             return self.unavailable()
         try:
@@ -500,7 +509,7 @@ class MailboxSite:
             return Response.text(409, "Filterentwurf nicht gespeichert.")
         return Response.redirect("/einstellungen/postfaecher")
 
-    def discard(self, request, session, form):
+    def discard(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         if self.runtime is None:
             return self.unavailable()
         try:
@@ -509,7 +518,7 @@ class MailboxSite:
             return Response.text(409, "Entwurf nicht verworfen; Version und Sitzung prüfen.")
         return Response.redirect("/einstellungen/postfaecher")
 
-    def profiles(self, request, session):
+    def profiles(self, request: Request, session: WebSession) -> Response:
         if self.runtime is None:
             return self.unavailable()
         cfg = self.runtime.setup.draft_settings()
@@ -566,14 +575,14 @@ class MailboxSite:
         )
         return self.page("Zielprofile", body + "</section>" + self.preview(session))
 
-    def save_profile(self, request, session, form):
+    def save_profile(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         if self.runtime is None:
             return self.unavailable()
         try:
             cfg = self.runtime.setup.draft_settings()
             profiles = [profile.model_dump() for profile in cfg.target_profiles]
             if form.get("action") == "add":
-                profile = {
+                profile: dict[str, Any] = {
                     name: form[name]
                     for name in ("label", "calendar_provider", "google_calendar", "task_provider", "todoist_project")
                 }
@@ -598,7 +607,7 @@ class MailboxSite:
             return Response.text(409, "Profilentwurf nicht gespeichert; Verweise, Angaben und Version prüfen.")
         return Response.redirect("/einstellungen/zielprofile")
 
-    def target_forms(self, proposal, session):
+    def target_forms(self, proposal: Proposal, session: WebSession) -> str:
         if self.runtime is None:
             return ""
         cfg = self.runtime.app.settings
@@ -617,7 +626,7 @@ class MailboxSite:
             )
         return body
 
-    def retarget(self, request, session, form):
+    def retarget(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         try:
             command = ReviewCommand(
                 kind=CommandKind.RETARGET,
