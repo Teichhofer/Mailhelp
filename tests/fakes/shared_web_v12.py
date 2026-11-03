@@ -7,8 +7,8 @@ from shared_application import settings
 
 from mailhelp.config import Topic
 from mailhelp.configuration import ConfigurationService
-from mailhelp.lifecycle import Lifecycle
-from mailhelp.metrics import MetricsRecorder, MetricsSettings
+from mailhelp.runtime.lifecycle import Lifecycle
+from mailhelp.runtime.metrics import MetricsRecorder, MetricsSettings
 
 
 def configure(web, tmp_path):

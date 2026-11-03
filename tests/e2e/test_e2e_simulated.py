@@ -21,13 +21,13 @@ from shared_e2e_simulated import nachholtermin_flow as nachholtermin_flow
 from shared_e2e_simulated import raw_mail as raw_mail
 from shared_e2e_simulated import telegram_button as telegram_button
 
-from mailhelp.application import Application
 from mailhelp.config import PromptConfig, PromptStep, TargetSettings, Topic
 from mailhelp.logging import NullLogger
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.models import Proposal
 from mailhelp.processing.analysis import Analyzer, LlmSchemaValidationExceeded
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
+from mailhelp.runtime.application import Application
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import TelegramDialogController
 

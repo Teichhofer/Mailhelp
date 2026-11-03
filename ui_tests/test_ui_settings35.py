@@ -46,7 +46,7 @@ def test_mailbox_activation_form_keeps_inputs_on_error_and_then_saves(page, setu
         def check_access(self, folders):
             if self.fail:
                 raise OSError("private-server-response")
-    monkeypatch.setattr("mailhelp.experience.ImapReader", Reader)
+    monkeypatch.setattr("mailhelp.runtime.experience.ImapReader", Reader)
     sign_in(page, setup_server)
     page.goto(setup_server.url + "/einstellungen/postfaecher")
     form = page.locator('form[action="/einstellungen/postfaecher/aktivieren"]')

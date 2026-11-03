@@ -16,15 +16,15 @@ from shared_web_actions import web  # noqa: F401  (fixture)
 from shared_web_v12 import configure
 from web_scenario import mail_id, proposal
 
-from mailhelp.application import Application
 from mailhelp.configuration import AdminCommand, AdminKind, file_hash
 from mailhelp.llm.decision_test import ComparisonRecorder
-from mailhelp.metrics import MetricsRecorder, MetricsSettings, server_electricity
 from mailhelp.models import MailState, ProcessingError, RelevanceDialog
 from mailhelp.review.archive import record_event, record_relevance
 from mailhelp.review.commands import CommandKind
 from mailhelp.review.editing import ProposalEditPatch, edit_proposal
 from mailhelp.review.results import ResultStatus
+from mailhelp.runtime.application import Application
+from mailhelp.runtime.metrics import MetricsRecorder, MetricsSettings, server_electricity
 
 # Since 2.3 the writers are built in mailhelp.external.providers.
 MOVED_WRITERS = ("HttpWriter", "GoogleOAuthTokenProvider")
@@ -205,9 +205,9 @@ def test_successful_contacts_per_service_from_logged_events(tmp_path, mode, llm)
 def test_telegram_messages_count_as_contacts_without_content(tmp_path):
     from shared_application import settings as app_settings
 
-    from mailhelp.application import build_logger
     from mailhelp.config import Secrets
     from mailhelp.logging import JsonlLogger
+    from mailhelp.runtime.application import build_logger
     secrets = Secrets(imap={1: {"username": "u", "password": "p"}}, openrouter_api_key="o", telegram_bot_token="t",
                       todoist_token="d", todoist_client_id="ti", todoist_client_secret="ts",
                       google_oauth_client_id="i", google_oauth_client_secret="s", google_oauth_refresh_token="r")
@@ -266,7 +266,7 @@ def test_status_without_metrics_and_unknown_stage(web, tmp_path):
 # --- R3: metrics location, no double counting, readable report --------------------
 
 def test_legacy_metrics_move_once_with_their_aggregates(tmp_path):
-    from mailhelp.metrics import adopt_legacy, sibling
+    from mailhelp.runtime.metrics import adopt_legacy, sibling
     legacy = tmp_path / "data" / "production" / "metrics" / "llm.jsonl"
     legacy.parent.mkdir(parents=True)
     legacy.write_text('{"id": "a"}\n', encoding="utf-8")
@@ -343,8 +343,8 @@ def test_statistics_page_labels_rates_and_incomplete_capture(web, tmp_path):
 def test_application_writes_metrics_into_the_log_directory(tmp_path, monkeypatch):
     from shared_core import prompt_config
 
-    from mailhelp.application import build_application
     from mailhelp.config import Secrets, Topic
+    from mailhelp.runtime.application import build_application
 
     class Resource:
         def __init__(self, *args, **kwargs): pass
@@ -352,7 +352,7 @@ def test_application_writes_metrics_into_the_log_directory(tmp_path, monkeypatch
 
     for name in ("ImapReader", "OpenRouterClient", "DecisionClient", "TelegramClient",
                  "HttpWriter", "GoogleOAuthTokenProvider"):
-        monkeypatch.setattr(f"mailhelp.{'external.providers' if name in MOVED_WRITERS else 'composition'}.{name}", Resource)
+        monkeypatch.setattr(f"mailhelp.{'external.providers' if name in MOVED_WRITERS else 'runtime.composition'}.{name}", Resource)
     cfg = app_settings(tmp_path)
     cfg.logging.file.enabled = cfg.logging.console.enabled = False
     legacy = tmp_path / "data" / "test" / "metrics" / "llm.jsonl"
@@ -482,7 +482,7 @@ def test_shorter_retention_is_not_saved_without_explicit_confirmation(web, tmp_p
 # --- R5: controlled stop -------------------------------------------------------------
 
 def test_stop_states_are_logged_and_end_in_stopped():
-    from mailhelp.lifecycle import Lifecycle
+    from mailhelp.runtime.lifecycle import Lifecycle
     log, calls = [], []
     life = Lifecycle(lambda: calls.append("stop"), lambda actor: True, lambda state, process: log.append(state))
     after = life.request(life.process, "a" * 32, "web:x")
@@ -501,7 +501,7 @@ def test_stop_states_are_logged_and_end_in_stopped():
 def test_the_run_loop_reports_its_end_to_the_lifecycle(tmp_path):
     from shared_application import Imap, Telegram, app
 
-    from mailhelp.lifecycle import Lifecycle
+    from mailhelp.runtime.lifecycle import Lifecycle
     service = app(tmp_path, Imap([]), Telegram([]), Orch())
     service.lifecycle = Lifecycle(service.stop, lambda actor: True)
     service.stop_event.set()
@@ -510,8 +510,8 @@ def test_the_run_loop_reports_its_end_to_the_lifecycle(tmp_path):
 
 
 def test_after_a_stop_request_web_commands_wait_and_run_after_a_restart(web, tmp_path):
-    from mailhelp.lifecycle import Lifecycle
     from mailhelp.review.inbox import CommandStatus
+    from mailhelp.runtime.lifecycle import Lifecycle
     _, _, lifecycle, _, calls = configure(web, tmp_path)
     web.dialog.stop_requested = lambda: lifecycle.state != "running"
     queued = web.submit(web.form("/", kind="reject", proposal_id="formular"))

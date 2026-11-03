@@ -10,34 +10,34 @@ from threading import Event, Lock, Thread
 from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
-from . import state_names
-from .config import RetentionPeriod, Settings, Topic
-from .external.contracts import OAuthTokenError, TargetWriter
-from .llm.openrouter import OpenRouterClient
-from .logging import JsonlLogger, NullLogger, log_and_continue
-from .mailbox.imap import ImapReader
-from .mailbox.mailbox_run import MailboxRunService, MailboxSource, _RunSummary
-from .models import MailRunState, MailState, TelegramOffset
-from .processing.analysis import Analyzer
-from .processing.orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
+from .. import state_names
+from ..config import RetentionPeriod, Settings, Topic
+from ..external.contracts import OAuthTokenError, TargetWriter
+from ..llm.openrouter import OpenRouterClient
+from ..logging import JsonlLogger, NullLogger, log_and_continue
+from ..mailbox.imap import ImapReader
+from ..mailbox.mailbox_run import MailboxRunService, MailboxSource, _RunSummary
+from ..models import MailRunState, MailState, TelegramOffset
+from ..processing.analysis import Analyzer
+from ..processing.orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
+from ..storage import JsonStore
+from ..telegram import TelegramChatNotFoundError, TelegramClient, TelegramDialogController
+from ..telegram.commands import STARTUP
+from ..web import WebServer
 from .retention import RetentionService
 from .service_coordinator import ServiceCoordinator
-from .storage import JsonStore
-from .telegram import TelegramChatNotFoundError, TelegramClient, TelegramDialogController
-from .telegram.commands import STARTUP
-from .web import WebServer
 
 if TYPE_CHECKING:
-    from .configuration import ConfigurationService
+    from ..configuration import ConfigurationService
+    from ..external.providers import Writers
+    from ..mailbox.imap import FetchedMail
+    from ..mailbox.iserv import IServRunService
+    from ..mailbox.iserv_runtime import IServRuntime
+    from ..mailbox.mailbox_runtime import MailboxRuntime
+    from ..notifications.notification_runtime import NotificationRuntime
+    from ..proposals.target_profiles import ProfileWriters
     from .experience import ExperienceRuntime
-    from .external.providers import Writers
     from .lifecycle import Lifecycle
-    from .mailbox.imap import FetchedMail
-    from .mailbox.iserv import IServRunService
-    from .mailbox.iserv_runtime import IServRuntime
-    from .mailbox.mailbox_runtime import MailboxRuntime
-    from .notifications.notification_runtime import NotificationRuntime
-    from .proposals.target_profiles import ProfileWriters
     from .standalone import DisabledTelegram
 
 _TELEGRAM_ERROR_BACKOFF_SECONDS = 5.0
@@ -119,10 +119,10 @@ class Application:
         if iserv is not None:
             checks = (*checks, *((f"IServ {source.account.label}", source.reader.check_access)
                                  for source in iserv.sources))
-        from .proposals.target_profiles import ProfileWriters
+        from ..proposals.target_profiles import ProfileWriters
         profile_writers = getattr(self, "profile_writers", None)
         if isinstance(profile_writers, ProfileWriters):
-            from .mailbox.mailbox_settings import active_profiles, profile_label
+            from ..mailbox.mailbox_settings import active_profiles, profile_label
             checks = (*checks[:-2], *((f"{role}:{number} ({profile_label(self.settings, number)})", writer.check_access)
                 for number, pair in profile_writers.profiles.items() if number in active_profiles(self.settings)
                 for role, writer in pair.slots.items()))
@@ -160,7 +160,7 @@ class Application:
         first mail cycle.  A failure is only logged; the service shows as unknown until a
         later contact succeeds.
         """
-        from .proposals.target_profiles import UnavailableWriter
+        from ..proposals.target_profiles import UnavailableWriter
         checks: list[tuple[str, Any]] = [("llm", self.openrouter)]
         if self.settings.telegram.enabled:
             checks.append(("telegram", self.telegram))
@@ -182,10 +182,10 @@ class Application:
                 self.logger.event("INFO", service, "access_confirmed", **context)
 
     def _active_writers(self) -> list[TargetWriter]:
-        from .proposals.target_profiles import ProfileWriters
+        from ..proposals.target_profiles import ProfileWriters
         profile_writers = self.profile_writers
         if isinstance(profile_writers, ProfileWriters):
-            from .mailbox.mailbox_settings import active_profiles
+            from ..mailbox.mailbox_settings import active_profiles
             active = active_profiles(self.settings)
             return [writer for number, pair in profile_writers.profiles.items() if number in active
                     for writer in pair.slots.values()]
@@ -469,7 +469,7 @@ class Application:
                 number = (state.proposal_policy or {}).get(
                     "mailbox_id", self.orchestrator.mailbox_number(state.imap.account_id)
                 )
-                from .mailbox.mailbox_settings import effective_settings
+                from ..mailbox.mailbox_settings import effective_settings
                 return (
                     effective_settings(cfg, number).retention.full_mail_days
                     if cfg is not None and cfg.imap.mailbox(number) is not None

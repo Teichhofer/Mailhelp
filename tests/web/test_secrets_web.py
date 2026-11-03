@@ -85,7 +85,7 @@ def test_expired_sessions_and_read_only_files_are_reported(profiled, monkeypatch
 
     def read_only(path, content):
         raise PermissionError("read-only")
-    monkeypatch.setattr("mailhelp.env_file.atomic_replace", read_only)
+    monkeypatch.setattr("mailhelp.runtime.env_file.atomic_replace", read_only)
     assert profiled.web.browser.request("POST", SAVE, form).status == 503
     assert env(profiled) == ""
 

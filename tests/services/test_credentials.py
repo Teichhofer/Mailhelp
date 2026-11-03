@@ -9,7 +9,7 @@ from shared_application import settings
 
 from mailhelp.config import _dotenv
 from mailhelp.configuration import ConfigurationConflict
-from mailhelp.credentials import RECEIPTS, CredentialEdits, CredentialService, CredentialUnauthorized
+from mailhelp.runtime.credentials import RECEIPTS, CredentialEdits, CredentialService, CredentialUnauthorized
 from mailhelp.storage import JsonStore
 
 SESSION = "a" * 16
@@ -155,7 +155,7 @@ def test_changes_during_preparation_are_not_overwritten(credential_service, monk
 
 @pytest.mark.parametrize("after_write", [False, True])
 def test_retry_after_a_write_failure_or_crash_does_not_repeat_a_completed_replace(credential_service, monkeypatch, after_write):
-    import mailhelp.credentials as module
+    import mailhelp.runtime.credentials as module
     service = credential_service
     arguments = edit(service)
     atomic, save = module.atomic_replace, service.store.save
@@ -188,7 +188,7 @@ def test_retry_after_a_write_failure_or_crash_does_not_repeat_a_completed_replac
 
 
 def test_receipt_retention_stays_bounded_and_evicted_forms_remain_stale(credential_service, monkeypatch):
-    monkeypatch.setattr("mailhelp.credentials.MAX_RECEIPTS", 2)
+    monkeypatch.setattr("mailhelp.runtime.credentials.MAX_RECEIPTS", 2)
     service = credential_service
     old = edit(service, key="old-key-1")
     service.save(*old)

@@ -118,7 +118,7 @@ def test_session_is_checked_again_before_execution(activation, monkeypatch, when
 
 def test_saved_credentials_are_reused_and_unrelated_drafts_are_preserved(activation):
     ctx = activation
-    from mailhelp.setup import SetupState
+    from mailhelp.runtime.setup import SetupState
     pending = {"id": 2, "server": "https://other.example", "label": "Andere Schule", "mailbox": 1,
                "enabled": True, "historical_start": None}
     state = SetupState(version=3, patch={"timezone": "Europe/Berlin", "iserv.accounts": [pending]})
@@ -135,7 +135,7 @@ def test_saved_credentials_are_reused_and_unrelated_drafts_are_preserved(activat
     assert ctx.runtime.setup.draft_settings().timezone == "Europe/Berlin"
     assert "# keep\nOTHER=value" in (ctx.tmp_path / ".env").read_text()
     # A new service after restart reads the persisted config and credentials.
-    from mailhelp.setup_runtime import SetupRuntime
+    from mailhelp.runtime.setup_runtime import SetupRuntime
     restarted = SetupRuntime(ctx.app, ctx.web.site, ctx.runtime.secrets)
     assert restarted.credentials(restarted.setup.draft_settings()).iserv[1].username == "saved-user"
 
@@ -143,7 +143,7 @@ def test_saved_credentials_are_reused_and_unrelated_drafts_are_preserved(activat
 def test_activating_the_existing_iserv_draft_clears_only_that_change(activation):
     ctx = activation
     from mailhelp.config import IServAccountSettings
-    from mailhelp.setup import SetupState
+    from mailhelp.runtime.setup import SetupState
     account = IServAccountSettings(id=1, server="schule.example", label="Schule")
     state = SetupState(patch={"iserv.accounts": [account.model_dump(mode="json")]})
     ctx.web.store.save("setup-state", state.model_dump(mode="json"))
@@ -203,7 +203,7 @@ def test_changed_draft_base_is_rejected_without_rendering_the_stale_page(activat
 
 def test_the_page_distinguishes_draft_saved_and_running_accounts(activation):
     from mailhelp.config import IServSettings
-    from mailhelp.setup import SetupState
+    from mailhelp.runtime.setup import SetupState
     ctx = activation
     account = {"id": 1, "server": "https://schule.example", "label": "Schule", "mailbox": 1}
     ctx.web.store.save("setup-state", SetupState(patch={"iserv.accounts": [account]}).model_dump(mode="json"))
@@ -233,7 +233,7 @@ def test_activation_failures_are_safe_and_recoverable(activation, monkeypatch, f
         monkeypatch.setattr("mailhelp.mailbox.connection_activation.ConfigurationService.execute",
                             lambda *args: ReviewResult(status=ResultStatus.STALE, message="changed"))
     else:
-        from mailhelp.setup import SetupState
+        from mailhelp.runtime.setup import SetupState
         ctx.web.store.save("setup-state", SetupState(kind="topics").model_dump(mode="json"))
     response = ctx.web.browser.request("POST", ACTIVATE, submitted)
     assert response.status == (409 if failure in {"config", "other_draft"} else 422)
@@ -274,7 +274,7 @@ def test_double_click_during_the_probe_activates_only_once(activation, monkeypat
 
 
 def test_a_non_iserv_draft_is_preserved(activation):
-    from mailhelp.setup import SetupState
+    from mailhelp.runtime.setup import SetupState
     ctx = activation
     ctx.web.store.save("setup-state", SetupState(patch={"timezone": "Europe/Berlin"}).model_dump(mode="json"))
     assert ctx.web.browser.request("POST", ACTIVATE, form(ctx)).status == 303

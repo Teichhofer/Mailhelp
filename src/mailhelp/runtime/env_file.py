@@ -9,7 +9,7 @@ import hashlib
 import re
 from pathlib import Path
 
-from .storage import atomic_replace
+from ..storage import atomic_replace
 
 NAME = re.compile(r"[A-Z][A-Z0-9_]{0,63}")
 MAX_VALUE = 4096

@@ -23,12 +23,12 @@ from pydantic import ValidationError
 from .. import __version__
 from ..config import WebSettings
 from ..configuration import AdminCommand, AdminKind, ConfigurationService
-from ..lifecycle import Lifecycle
 from ..models import ProposalStatus
 from ..processing.mail_recheck import recheck_round
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.inbox import CommandConflict, CommandEntry, CommandInbox, CommandInboxFull
 from ..review.views import Overview, ReviewViews, SystemStatus
+from ..runtime.lifecycle import Lifecycle
 from .actions import command_page, needs_choice, result_kind, stale_page
 from .app import WebApp
 from .auth import WebAuth, WebSession
@@ -52,8 +52,8 @@ class EventLogger(Protocol):
 
 Handler = Callable[..., Response]
 if TYPE_CHECKING:
-    from ..metrics import MetricsRecorder
     from ..notifications.notification_runtime import NotificationRuntime
+    from ..runtime.metrics import MetricsRecorder
 
 
 class MailhelpSite:

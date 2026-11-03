@@ -13,8 +13,8 @@ from typing import Literal
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
-from . import __version__
-from .llm.adapter import PermanentError
+from .. import __version__
+from ..llm.adapter import PermanentError
 
 STATES = {"unchecked": "nicht geprüft", "running": "wird geprüft", "ready": "bereit",
           "limited": "eingeschränkt", "failed": "fehlgeschlagen", "disabled": "deaktiviert"}

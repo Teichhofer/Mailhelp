@@ -14,9 +14,9 @@ from shared_core import prompt_config
 from shared_web_auth import SECRET
 
 from mailhelp.configuration import ConfigurationService
-from mailhelp.local_pairing import issue, signature
 from mailhelp.notifications.notification_runtime import NotificationRuntime
-from mailhelp.setup_runtime import SetupRuntime
+from mailhelp.runtime.local_pairing import issue, signature
+from mailhelp.runtime.setup_runtime import SetupRuntime
 from mailhelp.web.auth import PairingLimited
 from mailhelp.web.setup_site import input_field
 
@@ -161,7 +161,7 @@ def test_runtime_readonly_probes_and_synthetic_tests(configured, monkeypatch):
     def reader(settings, secrets, mailbox):
         yield NS(list_folders=lambda: [NS(name=name) for name in ["INBOX", "Drafts"]],
                  check_access=lambda folders: calls.append(folders))
-    monkeypatch.setattr("mailhelp.setup_runtime._reader", reader)
+    monkeypatch.setattr("mailhelp.runtime.setup_runtime._reader", reader)
     # Credentials are read at start; a mailbox without them cannot be checked yet.
     assert runtime.imap(session) == ("failed", "auth") and calls == []
     runtime.secrets = Secrets(imap={1: {"username": "u", "password": "p"}}, openrouter_api_key="o")
@@ -192,7 +192,7 @@ def test_runtime_readonly_probes_and_synthetic_tests(configured, monkeypatch):
     configured.app.openrouter.complete = lambda *args, **kw: calls.append((args, kw))
     assert runtime.llm_test(session) == ("ready", "")
     assert calls[-1][0][3] == {"synthetic": True} and calls[-1][1] == {"stage": "diagnostic_test"}
-    monkeypatch.setattr("mailhelp.setup_runtime.Path.read_text", lambda *args, **kw: "corrupt")
+    monkeypatch.setattr("mailhelp.runtime.setup_runtime.Path.read_text", lambda *args, **kw: "corrupt")
     assert runtime.filesystem(session) == ("failed", "service")
 
 
@@ -213,7 +213,7 @@ def test_local_pairing_requires_host_secret_expiry_and_one_time_use(web, monkeyp
 
 def test_cli_pairing_uses_local_address_prints_code_and_skips_other_services(configured, monkeypatch, capsys):
     from mailhelp import cli
-    from mailhelp.local_pairing import request_local_code
+    from mailhelp.runtime.local_pairing import request_local_code
     calls = []
     class Client:
         def __init__(self, **kw):
@@ -225,7 +225,7 @@ def test_cli_pairing_uses_local_address_prints_code_and_skips_other_services(con
         def post(self, url, data):
             calls.append((url, data))
             return httpx.Response(200, json={"code": "1234"}, request=httpx.Request("POST", url))
-    monkeypatch.setattr("mailhelp.local_pairing.httpx.Client", Client)
+    monkeypatch.setattr("mailhelp.runtime.local_pairing.httpx.Client", Client)
     monkeypatch.setenv("MAILHELP_WEB_SECRET", SECRET)
     request_local_code(configured.tmp_path)
     assert "Einmalcode: 1234" in capsys.readouterr().out
@@ -309,7 +309,7 @@ def test_target_probes_use_draft_targets_own_clients_and_close_on_failure(config
         calls.append((cfg.targets.calendar_target, cfg.targets.task_target, directory, timeout_cap))
         return Writers(Adapter("calendar"), Adapter("tasks"), [Token()])
 
-    monkeypatch.setattr("mailhelp.setup_runtime.build_writers", build)
+    monkeypatch.setattr("mailhelp.runtime.setup_runtime.build_writers", build)
     secrets = NS(imap={1: object()}, **{name: SecretStr("synthetic") for name in (
         "openrouter_api_key", "telegram_bot_token", "todoist_token", "todoist_client_id",
         "todoist_client_secret", "google_oauth_refresh_token", "google_oauth_client_id",
@@ -369,7 +369,7 @@ def test_diagnosis_checks_every_mailbox_and_offers_its_own_folders(configured, m
     def reader(settings, secrets, mailbox):
         yield NS(list_folders=lambda: [NS(name=name) for name in folders[mailbox.host]],
                  check_access=lambda required: checked.append((mailbox.id, required)))
-    monkeypatch.setattr("mailhelp.setup_runtime._reader", reader)
+    monkeypatch.setattr("mailhelp.runtime.setup_runtime._reader", reader)
     from pydantic import SecretStr
     runtime.secrets = Secrets(imap={1: {"username": "u", "password": "p"}, 2: {"username": "v", "password": "q"}}, openrouter_api_key=SecretStr("o"),
                          telegram_bot_token=SecretStr(""), todoist_token=SecretStr("t"),

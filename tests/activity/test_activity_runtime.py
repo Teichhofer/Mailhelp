@@ -9,9 +9,9 @@ from pydantic import SecretStr
 from shared_application import Log, settings
 
 from mailhelp.config import ImapCredentials, Secrets
-from mailhelp.experience import ExperienceRuntime
 from mailhelp.mailbox.imap import ListedMailbox
 from mailhelp.processing.analysis import Analyzer
+from mailhelp.runtime.experience import ExperienceRuntime
 
 SECRETS = Secrets.model_construct(imap={1: ImapCredentials(username="me@test", password=SecretStr("fake"))})
 
@@ -48,7 +48,7 @@ def test_runtime_runs_reports_and_suggests_folders_from_a_closed_session(web, tm
         def close(self):
             self.closed = True
 
-    monkeypatch.setattr("mailhelp.experience.ImapReader", Reader)
+    monkeypatch.setattr("mailhelp.runtime.experience.ImapReader", Reader)
     app = application(web, tmp_path, ["activity_relevance", "activity_events"])
     app.settings.activity_report.export_mails_without_events = False
     runtime = ExperienceRuntime(app, NS(site=web.site, auth=web.auth), SECRETS)
@@ -90,7 +90,7 @@ def test_reports_and_drafts_are_wired_per_mailbox(web, tmp_path, monkeypatch):
         def close(self):
             pass
 
-    monkeypatch.setattr("mailhelp.experience.ImapReader", Reader)
+    monkeypatch.setattr("mailhelp.runtime.experience.ImapReader", Reader)
     from mailhelp.config import PromptStep
     app = application(web, tmp_path, ["activity_relevance", "activity_events"])
     app.analyzer.prompts.prompts["draft_reply"] = PromptStep(system_prompt="Entwurf")

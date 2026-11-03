@@ -12,7 +12,7 @@ from threading import RLock
 from typing import TYPE_CHECKING, Any, Protocol, TextIO
 
 if TYPE_CHECKING:
-    from .metrics import MetricsRecorder
+    from .runtime.metrics import MetricsRecorder
 
 LEVELS = {"DEBUG": 10, "INFO": 20, "WARNING": 30, "ERROR": 40, "CRITICAL": 50}
 SENSITIVE_KEYS = ("token", "password", "authorization", "api_key", "apikey", "secret", "cookie")

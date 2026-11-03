@@ -2,7 +2,7 @@
 
 The Telegram receiver thread, the optional web interface with its experience
 runtime and the notification runtime run beside the polling loop of
-:class:`~mailhelp.application.Application`; none of them may block mail processing.
+:class:`~mailhelp.runtime.application.Application`; none of them may block mail processing.
 """
 from __future__ import annotations
 
@@ -10,14 +10,14 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from .logging import JsonlLogger, log_and_continue
+from ..logging import JsonlLogger, log_and_continue
+from ..telegram.receiver import TelegramInbox, TelegramReceiver, UpdateSource
+from ..web import WebServer, WebServerError
 from .operator_thread import OperatorThread
-from .telegram.receiver import TelegramInbox, TelegramReceiver, UpdateSource
-from .web import WebServer, WebServerError
 
 if TYPE_CHECKING:
+    from ..notifications.notification_runtime import NotificationRuntime
     from .experience import ExperienceRuntime
-    from .notifications.notification_runtime import NotificationRuntime
 
 
 @dataclass

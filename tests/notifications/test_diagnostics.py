@@ -8,8 +8,8 @@ from threading import Event
 import httpx
 import pytest
 
-from mailhelp.diagnostics import DiagnosticResult, DiagnosticsService, error_code
 from mailhelp.llm.adapter import PermanentError
+from mailhelp.runtime.diagnostics import DiagnosticResult, DiagnosticsService, error_code
 from mailhelp.storage import JsonStore
 
 
@@ -45,9 +45,9 @@ def test_checks_fail_independently_and_do_not_leak_raw_content(tmp_path, monkeyp
     assert state.results["imap"].code == "configuration" and state.results["calendar"].status == "ready"
     for value in (json.dumps(svc.report()), (tmp_path / "diagnostics-state.json").read_text()):
         assert not any(secret in value for secret in ("SECRET", "mail subject", "private", "full-endpoint"))
-    monkeypatch.setattr("mailhelp.diagnostics.platform.system", lambda: "Linux")
+    monkeypatch.setattr("mailhelp.runtime.diagnostics.platform.system", lambda: "Linux")
     assert svc.report()["platform"] == "Linux"
-    monkeypatch.setattr("mailhelp.diagnostics.platform.system", lambda: "Windows")
+    monkeypatch.setattr("mailhelp.runtime.diagnostics.platform.system", lambda: "Windows")
     assert svc.report()["platform"] == "Windows"
     with pytest.raises(PermissionError):
         svc.run("revoked", "imap", 2, "probe-0003")

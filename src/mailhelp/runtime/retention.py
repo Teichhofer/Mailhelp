@@ -6,11 +6,11 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Literal
 
-from . import state_names
-from .config import RetentionSettings
-from .logging import EventLogger
-from .models import MailState, ProposalStatus
-from .storage import JsonStore, mail_state_names
+from .. import state_names
+from ..config import RetentionSettings
+from ..logging import EventLogger
+from ..models import MailState, ProposalStatus
+from ..storage import JsonStore, mail_state_names
 
 Period = int | Literal["disabled", "unlimited"]
 _OPEN_PROPOSALS = {
@@ -96,7 +96,7 @@ class RetentionService:
             if not mail_changed and not debug_changed:
                 continue
             if mail_changed:
-                from .processing.attachments import AttachmentCache
+                from ..processing.attachments import AttachmentCache
                 AttachmentCache(self.store).remove(state.id)
                 draft = self.store.load(state_names.draft(state.id))
                 if draft is not None:
@@ -116,9 +116,9 @@ class RetentionService:
             self.logger.event("INFO", "retention", "state_scrubbed", mail_id=state.id,
                               processed_at=now.isoformat(), mail_count=int(mail_changed),
                               debug_count=int(debug_changed))
-        from .review.learning_log import prune
+        from ..review.learning_log import prune
         learning_removed = prune(self.store.directory, self.settings.decision_learning_days, now)
-        from .activity.store import ActivityReportStore
+        from ..activity.store import ActivityReportStore
         activity_scrubbed = ActivityReportStore(self.store).remove_expired_texts(
             self.settings.activity_report_days, now)
         result = CleanupResult(scanned, protected, mail_scrubbed, debug_scrubbed, activity_scrubbed)

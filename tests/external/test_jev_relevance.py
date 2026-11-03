@@ -10,7 +10,6 @@ from shared_core import prompt_config
 from shared_decision_test import secrets
 from shared_decisions import ROOT, envelope, prompts
 
-from mailhelp.application import build_application
 from mailhelp.llm.adapter import PermanentError
 from mailhelp.llm.decisions import (
     DecisionAnalyzer,
@@ -24,6 +23,7 @@ from mailhelp.llm.openrouter import OpenRouterClient, RateLimitExceeded
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.processing.analysis import Analyzer
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
+from mailhelp.runtime.application import build_application
 from mailhelp.storage import JsonStore
 
 # Since 2.3 the writers are built in mailhelp.external.providers.
@@ -160,7 +160,7 @@ def simulated_resources(monkeypatch):
         def __init__(self, *args, **kwargs): self.closed = False
         def close(self): self.closed = True
     for name in ["ImapReader", "TelegramClient", "HttpWriter", "GoogleOAuthTokenProvider"]:
-        monkeypatch.setattr(("mailhelp.external.providers." if name in MOVED_WRITERS else "mailhelp.composition.") + name, Resource)
+        monkeypatch.setattr(("mailhelp.external.providers." if name in MOVED_WRITERS else "mailhelp.runtime.composition.") + name, Resource)
 
 
 def test_standard_composition_durable_shared_budget_restart_and_cleanup(tmp_path, monkeypatch):
@@ -183,8 +183,8 @@ def test_standard_composition_durable_shared_budget_restart_and_cleanup(tmp_path
             clients.append(client)
             return client
         return create
-    monkeypatch.setattr("mailhelp.composition.OpenRouterClient", construct(OpenRouterClient))
-    monkeypatch.setattr("mailhelp.composition.DecisionClient", construct(DecisionClient))
+    monkeypatch.setattr("mailhelp.runtime.composition.OpenRouterClient", construct(OpenRouterClient))
+    monkeypatch.setattr("mailhelp.runtime.composition.DecisionClient", construct(DecisionClient))
     cfg = settings(tmp_path)
     cfg.limits.llm_calls_per_minute = 3
     with build_application(cfg, secrets(), topics(), prompt_config(), "f" * 64, tmp_path) as app:
@@ -212,13 +212,13 @@ def test_unused_jev_and_invalid_config_never_construct_external_services(tmp_pat
     simulated_resources(monkeypatch)
     def no_decisions(*args, **kwargs):
         pytest.fail("Jev must not be constructed")
-    monkeypatch.setattr("mailhelp.composition.DecisionClient", no_decisions)
+    monkeypatch.setattr("mailhelp.runtime.composition.DecisionClient", no_decisions)
     with build_application(settings(tmp_path), secrets(), topics(), prompt_config(), "f" * 64,
                            tmp_path, use_jev_relevance=False) as app:
         assert type(app.analyzer) is Analyzer
         assert app.orchestrator.config_fingerprint == "f" * 64
     (tmp_path / "decisions_prompts.yaml").write_text("[]", encoding="utf-8")
-    monkeypatch.setattr("mailhelp.composition.ImapReader", no_decisions)
+    monkeypatch.setattr("mailhelp.runtime.composition.ImapReader", no_decisions)
     with pytest.raises(ValueError, match="Wurzel"):
         with build_application(settings(tmp_path), secrets(), topics(), prompt_config(), "f" * 64, tmp_path):
             pytest.fail("invalid configuration must fail before network")

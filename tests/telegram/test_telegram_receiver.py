@@ -15,7 +15,7 @@ from shared_telegram_dialog import Logger, RevisionService, Telegram, callback, 
 from mailhelp.llm.adapter import PermanentError
 from mailhelp.logging import JsonlLogger
 from mailhelp.mailbox.imap import FetchedMail
-from mailhelp.service_coordinator import ServiceCoordinator
+from mailhelp.runtime.service_coordinator import ServiceCoordinator
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import TelegramClient, TelegramDialogController
 from mailhelp.telegram.receiver import ACKNOWLEDGEMENT, TelegramInbox, TelegramReceiver

@@ -91,7 +91,7 @@ class ConfirmedWriteExecutor:
         """With target profiles a failing profile is recorded and the stored version stays; else raise."""
         if not any(":" in name for name in self.writers):
             raise exc
-        from ..diagnostics import error_code
+        from ..runtime.diagnostics import error_code
         self._profile_health(proposal, error_code(exc))
         current = self.store.load_model(state_names.proposal(proposal.source_mail_id, proposal.id), Proposal)
         return current if current is not None else proposal

@@ -58,7 +58,7 @@ Es werden keine neuen Nutzerfunktionen eingeführt. Persistierte Daten, externe 
 
 ### 3.2 IMAP-Laufsteuerung aus `Application` lösen
 
-**Ausgangspunkt:** `src/mailhelp/application.py` vereint Application-Lifecycle und Composition mit IMAP-Polling, globaler Mail-Queue, Checkpoints, Resume und Laufzusammenfassung. Die Prozessbeendigung ist bereits separat in `src/mailhelp/lifecycle.py` modelliert und soll dort bleiben.
+**Ausgangspunkt:** `src/mailhelp/runtime/application.py` vereint Application-Lifecycle und Composition mit IMAP-Polling, globaler Mail-Queue, Checkpoints, Resume und Laufzusammenfassung. Die Prozessbeendigung ist bereits separat in `src/mailhelp/runtime/lifecycle.py` modelliert und soll dort bleiben.
 
 **Zielbild:**
 - Ein zuständiger Lauf-/Mailbox-Service übernimmt die zusammenhängende Verarbeitung aus Discovery, Queue-Materialisierung, Checkpoint-Fortschritt und Wiederaufnahme.

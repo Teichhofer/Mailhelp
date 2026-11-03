@@ -143,8 +143,8 @@ def mailhelp(tmp_path):
         from shared_application import settings as application_settings
 
         from mailhelp.configuration import ConfigurationService
-        from mailhelp.lifecycle import Lifecycle
-        from mailhelp.metrics import MetricsRecorder, MetricsSettings
+        from mailhelp.runtime.lifecycle import Lifecycle
+        from mailhelp.runtime.metrics import MetricsRecorder, MetricsSettings
         cfg = application_settings(tmp_path)
         (tmp_path / "config.yaml").write_text(yaml.safe_dump(cfg.model_dump(mode="json")), encoding="utf-8")
         (tmp_path / "topics.yaml").write_text(
@@ -227,7 +227,7 @@ def setup_server(mailhelp):
 
     from mailhelp.notifications.notification_runtime import NotificationRuntime
     from mailhelp.processing.orchestrator import Orchestrator
-    from mailhelp.setup_runtime import SetupRuntime
+    from mailhelp.runtime.setup_runtime import SetupRuntime
 
     site = mailhelp.site
     app = NS(settings=site.archive.configuration.active, configuration=site.archive.configuration,

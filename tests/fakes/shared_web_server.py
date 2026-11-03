@@ -9,7 +9,7 @@ import pytest
 from shared_application import Log, Orch
 from shared_application import settings as app_settings
 
-from mailhelp.application import Application
+from mailhelp.runtime.application import Application
 from mailhelp.web import Request, WebApp, WebServer
 
 HOST = "127.0.0.1:8765"

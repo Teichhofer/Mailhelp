@@ -423,7 +423,7 @@ class MetricsRecorder:
         Daily aggregates contain no mail/call IDs. The journal is written first;
         recovery replaces both outputs instead of incrementing a sum twice.
         """
-        from .storage import atomic_replace
+        from ..storage import atomic_replace
         with self._lock:
             pending = sibling(self.path, "compaction")
             daily = sibling(self.path, "daily")

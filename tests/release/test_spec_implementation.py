@@ -13,13 +13,13 @@ from shared_quality_corpus import prompt_config as quality_prompts
 from shared_review_write_safety import reminder
 from shared_telegram_dialog import callback, controller
 
-from mailhelp.application import Application
 from mailhelp.config import ImapSettings, Topic
 from mailhelp.logging import NullLogger
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.models import ProposalStatus
 from mailhelp.processing.analysis import Analyzer
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
+from mailhelp.runtime.application import Application
 from mailhelp.storage import JsonStore
 
 

@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import pytest
 
 from mailhelp import cli
-from mailhelp.lifecycle import Lifecycle
+from mailhelp.runtime.lifecycle import Lifecycle
 
 
 @pytest.mark.parametrize("restart", [False, True])

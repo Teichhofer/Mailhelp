@@ -58,11 +58,11 @@ def test_built_artifacts_exclude_private_runtime_files():
                        "mailbox/connection_activation.py", "mailbox/connection_runtime.py", "mailbox/mailbox_activation.py",
                        "mailbox/mailbox_runtime.py", "web/mailbox_add_site.py",
                        "mailbox/mailbox_settings.py", "mailbox/mailbox_briefing.py", "proposals/target_profiles.py", "proposals/profile_binding.py",
-                       "proposals/profile_usage.py", "google_login.py", "web/mailbox_site.py", "notifications/notification_runtime.py",
-                       "llm/fingerprints.py", "composition.py", "processing/orchestrator.py",
+                       "proposals/profile_usage.py", "runtime/google_login.py", "web/mailbox_site.py", "notifications/notification_runtime.py",
+                       "llm/fingerprints.py", "runtime/composition.py", "processing/orchestrator.py",
                        "web/pages.py", "web/review_pages.py", "web/settings_pages.py",
-                       "web/status_pages.py", "web/site.py", "metrics.py", "mailbox/imap.py", "mailbox/mailbox_run.py",
-                       "credentials.py", "web/credential_pages.py", "web/settings_site.py",
+                       "web/status_pages.py", "web/site.py", "runtime/metrics.py", "mailbox/imap.py", "mailbox/mailbox_run.py",
+                       "runtime/credentials.py", "web/credential_pages.py", "web/settings_site.py",
                        "web/static/app.css", "web/static/sw.js"):
             assert archive.read("mailhelp/" + module) == (ROOT / "src/mailhelp" / module).read_bytes()
         assert "mailhelp/assets/logo.png" in names
@@ -80,7 +80,7 @@ def test_built_artifacts_exclude_private_runtime_files():
                 "mailhelp/telegram/revision_successor.py",
                 "mailhelp/telegram/revision_contracts.py",
                 "mailhelp/notifications/webpush.py", "mailhelp/notifications/drafts.py", "mailhelp/notifications/briefing.py",
-                "mailhelp/processing/attachments.py", "mailhelp/experience.py", "mailhelp/standalone.py",
+                "mailhelp/processing/attachments.py", "mailhelp/runtime/experience.py", "mailhelp/runtime/standalone.py",
                 "mailhelp/web/experience.py", "mailhelp/web/filters.py"} <= set(names)
         assert not any(name.endswith(".env") for name in names)
     with tarfile.open(source) as archive:

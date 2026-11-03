@@ -7,18 +7,18 @@ from contextlib import contextmanager
 from threading import Event, Thread
 from typing import TYPE_CHECKING
 
-from .activity.llm import ActivityAnalyzer
-from .activity.runner import ActivityRunner, available_report_folders, default_report_folders
-from .activity.service import ActivityService
-from .activity.store import ActivityReportStore
-from .mailbox.imap import ImapReader, mailbox_account_id, reader_arguments
-from .notifications.briefing import DailyBriefingService
-from .notifications.drafts import DraftService, DraftTarget
-from .notifications.webpush import PushService
+from ..activity.llm import ActivityAnalyzer
+from ..activity.runner import ActivityRunner, available_report_folders, default_report_folders
+from ..activity.service import ActivityService
+from ..activity.store import ActivityReportStore
+from ..mailbox.imap import ImapReader, mailbox_account_id, reader_arguments
+from ..notifications.briefing import DailyBriefingService
+from ..notifications.drafts import DraftService, DraftTarget
+from ..notifications.webpush import PushService
 
 ACTIVITY_PROMPTS = {"activity_relevance", "activity_events"}
 if TYPE_CHECKING:
-    from .notifications.notification_runtime import NotificationRuntime
+    from ..notifications.notification_runtime import NotificationRuntime
 
 
 @contextmanager
@@ -55,7 +55,7 @@ class ExperienceRuntime:
             feature.push = PushService(app.store, components.auth, settings.push.subject)
         # Drafts are generated only on request in the web interface; without the
         # draft_reply prompt (prompts.yaml of an earlier release) they stay off.
-        from .mailbox.mailbox_settings import effective_settings
+        from ..mailbox.mailbox_settings import effective_settings
 
         self.draft_targets: dict | None = None
         if (
@@ -113,7 +113,7 @@ class ExperienceRuntime:
             channels["push"] = lambda _text: feature.push.notify("briefing")
         self.briefing = DailyBriefingService(app.store, settings.daily_briefing, settings.timezone,
             app.calendar, app.todoist, self.site.views, channels)
-        from .mailbox.mailbox_briefing import configure
+        from ..mailbox.mailbox_briefing import configure
         configure(app, self.briefing, self.site.views)
 
     def add_mailboxes(self, settings, secrets):
@@ -127,7 +127,7 @@ class ExperienceRuntime:
             self.site.views.mailboxes = self.site.archive.queries.mailboxes = labels
 
     def draft_policy(self, account):
-        from .mailbox.mailbox_settings import effective_settings
+        from ..mailbox.mailbox_settings import effective_settings
         number = self.mailbox_numbers.get(account)
         if number is None:
             # Mail of no configured IMAP mailbox (IServ letters) has no account to reply from.

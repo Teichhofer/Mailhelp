@@ -11,15 +11,15 @@ from web_scenario import mail_id, proposal
 
 from mailhelp.config import RetentionSettings, Topic
 from mailhelp.configuration import AdminCommand, AdminKind, file_hash
-from mailhelp.lifecycle import Lifecycle
-from mailhelp.metrics import MetricsRecorder, MetricsSettings, electricity, sibling
 from mailhelp.models import MailState, Relevance, Summary
-from mailhelp.retention import RetentionService
 from mailhelp.review.archive import record_analysis, record_event
 from mailhelp.review.commands import CommandKind
 from mailhelp.review.editing import ProposalEditPatch, edit_proposal, local_time
 from mailhelp.review.queries import ArchiveQueries, ArchiveQuery
 from mailhelp.review.results import ResultStatus
+from mailhelp.runtime.lifecycle import Lifecycle
+from mailhelp.runtime.metrics import MetricsRecorder, MetricsSettings, electricity, sibling
+from mailhelp.runtime.retention import RetentionService
 from mailhelp.storage import JsonStore
 
 
@@ -445,7 +445,7 @@ def test_after_send_runs_only_after_actual_http_response(running):
 def test_activate_application_live_subset(tmp_path):
     from types import SimpleNamespace
 
-    from mailhelp.application import Application
+    from mailhelp.runtime.application import Application
     cfg = settings(tmp_path)
     metrics = MetricsRecorder(tmp_path/'metrics.jsonl', cfg.metrics)
     app = SimpleNamespace(logger=SimpleNamespace(metrics=metrics), settings=cfg,

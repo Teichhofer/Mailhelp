@@ -16,8 +16,8 @@ from shared_web_server import get as get
 from shared_web_server import lifecycle_app as lifecycle_app
 from shared_web_server import write_config as write_config
 
-from mailhelp.application import build_application
 from mailhelp.config import Secrets, Topic, WebSettings, load_all
+from mailhelp.runtime.application import build_application
 from mailhelp.web import Request, Response, WebApp, WebServer, WebServerError
 from mailhelp.web import server as server_module
 from mailhelp.web.http import CONTENT_SECURITY_POLICY, MAX_BODY_BYTES
@@ -254,7 +254,7 @@ def test_build_application_creates_the_web_server_only_when_enabled(tmp_path, mo
 
     for name in ("ImapReader", "OpenRouterClient", "DecisionClient", "TelegramClient",
                  "HttpWriter", "GoogleOAuthTokenProvider"):
-        monkeypatch.setattr(f"mailhelp.{'external.providers' if name in MOVED_WRITERS else 'composition'}.{name}", Resource)
+        monkeypatch.setattr(f"mailhelp.{'external.providers' if name in MOVED_WRITERS else 'runtime.composition'}.{name}", Resource)
     cfg = app_settings(tmp_path)
     cfg.logging.file.enabled = cfg.logging.console.enabled = False
     cfg.web.enabled = enabled

@@ -10,7 +10,7 @@ class IServRuntime(PendingConnections):
     area = "iserv"
 
     def _apply(self, pending):
-        from ..composition import _build_iserv, _mailbox_labels
+        from ..runtime.composition import _build_iserv, _mailbox_labels
         from .iserv import IServRunService
         configured, secrets = pending
         app = self.app

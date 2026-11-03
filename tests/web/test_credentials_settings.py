@@ -6,7 +6,7 @@ import yaml
 from shared_setup import configured  # noqa: F401
 
 from mailhelp.config import _dotenv
-from mailhelp.credentials import RECEIPTS, CredentialEdits, CredentialUnauthorized
+from mailhelp.runtime.credentials import RECEIPTS, CredentialEdits, CredentialUnauthorized
 from mailhelp.storage import CorruptState
 
 SAVE = "/einstellungen/zugangsdaten/speichern"
@@ -112,7 +112,7 @@ def test_execution_errors_are_sanitized_and_distinguish_revoked_sessions_from_fi
     form = web.form("/einstellungen?bereich=zugangsdaten", action=SAVE, name="IMAP_PASSWORD")
     def failed(*args):
         raise error
-    monkeypatch.setattr("mailhelp.credentials.CredentialService.save", failed)
+    monkeypatch.setattr("mailhelp.runtime.credentials.CredentialService.save", failed)
     response = web.browser.request("POST", SAVE, {**form, "value": "synthetic-new"})
     assert response.status == status and "synthetic" not in response.body.decode()
 

@@ -12,10 +12,10 @@ from typing import TYPE_CHECKING
 
 import httpx
 
-from .config import Settings, _dotenv, read_yaml
+from ..config import Settings, _dotenv, read_yaml
 
 if TYPE_CHECKING:
-    from .web.auth import WebAuth
+    from ..web.auth import WebAuth
 
 
 def signature(secret: str, message: str) -> str:

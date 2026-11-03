@@ -6,7 +6,7 @@ from types import SimpleNamespace
 import pytest
 from shared_application import Imap, Orch, Telegram, app
 
-from mailhelp.operator_thread import OperatorThread
+from mailhelp.runtime.operator_thread import OperatorThread
 from mailhelp.telegram.receiver import TelegramInbox
 
 

@@ -5,7 +5,7 @@ import json
 from typing import Any
 
 from ..configuration import LIVE_FIELDS, SETTINGS_FIELDS
-from ..credentials import CredentialSnapshot
+from ..runtime.credentials import CredentialSnapshot
 from .credential_pages import credentials_section
 from .forms import field, post_form, select
 from .pages import e, notice

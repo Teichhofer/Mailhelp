@@ -9,11 +9,11 @@ from shared_profiles import ACCOUNT_TWO
 from shared_telegram_dialog import proposal
 
 from mailhelp.config import MailboxEventDefaults
-from mailhelp.experience import ExperienceRuntime
 from mailhelp.logging import JsonlLogger
 from mailhelp.models import MailState
 from mailhelp.review.commands import CommandKind, CommandSource, ReviewCommand
 from mailhelp.review.results import ResultStatus
+from mailhelp.runtime.experience import ExperienceRuntime
 
 
 def test_default_reapplication_uses_origin_mailbox_and_bound_hash(profiled):

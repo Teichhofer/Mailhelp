@@ -35,7 +35,7 @@ def test_google_login_dispatch_never_prints_tokens_or_builds_application(tmp_pat
         assert credentials.todoist_token.get_secret_value() == ""
         if failed:
             raise OAuthTokenError("Synthetisch fehlgeschlagen")
-    monkeypatch.setattr("mailhelp.google_login.login", login)
+    monkeypatch.setattr("mailhelp.runtime.google_login.login", login)
     assert cli.main() == int(failed) and calls == [2]
     assert "synthetic" not in capsys.readouterr().out
 

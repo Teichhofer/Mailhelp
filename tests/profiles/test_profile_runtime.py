@@ -72,7 +72,7 @@ def test_diagnosis_reads_only_selected_profile_and_closes_every_adapter(profiled
     calls = []
     def adapter(role):
         return NS(check_access=lambda: calls.append((role, "read")), close=lambda: calls.append((role, "close")))
-    monkeypatch.setattr("mailhelp.setup_runtime.build_writers", lambda cfg, creds, directory, **kw: Writers(adapter("calendar"), adapter("tasks")))
+    monkeypatch.setattr("mailhelp.runtime.setup_runtime.build_writers", lambda cfg, creds, directory, **kw: Writers(adapter("calendar"), adapter("tasks")))
     assert runtime.profile_check(2, "calendar") == runtime.profile_check(2, "tasks") == ("ready", "")
     assert calls.count(("calendar", "close")) == calls.count(("tasks", "close")) == 2
     assert "MICROSOFT_2_CLIENT_ID" in runtime.secret_status()

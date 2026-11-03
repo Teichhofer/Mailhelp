@@ -8,8 +8,8 @@ from shared_telegram_dialog import RelevanceHandler, callback, controller, messa
 
 from mailhelp.config import RetentionSettings
 from mailhelp.models import MailState, RelevanceDialogStatus, TelegramDialogState
-from mailhelp.retention import RetentionService
 from mailhelp.review.learning_log import DecisionLearningLog, learning_path, prune
+from mailhelp.runtime.retention import RetentionService
 from mailhelp.storage import JsonStore
 
 MAIL = "a" * 24
@@ -200,8 +200,8 @@ def test_live_retention_change_reaches_the_recorder(tmp_path):
 
     from shared_application import settings as app_settings
 
-    from mailhelp.application import Application
-    from mailhelp.metrics import MetricsRecorder
+    from mailhelp.runtime.application import Application
+    from mailhelp.runtime.metrics import MetricsRecorder
 
     configured = app_settings(tmp_path)
     with JsonStore(tmp_path / "data") as store:

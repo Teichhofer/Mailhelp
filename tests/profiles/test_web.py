@@ -13,7 +13,7 @@ from mailhelp.config import Settings, Topic
 from mailhelp.configuration import AdminCommand, AdminKind, ConfigurationConflict, file_hash
 from mailhelp.models import MailState
 from mailhelp.review.results import ResultStatus
-from mailhelp.setup import SetupState
+from mailhelp.runtime.setup import SetupState
 from mailhelp.web.mailbox_site import FIELDS, control, lookup
 
 

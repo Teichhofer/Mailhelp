@@ -9,7 +9,7 @@ import yaml
 
 from ..config import Settings
 from ..configuration import AdminCommand, AdminKind, ConfigurationConflict, file_hash
-from ..credentials import CredentialService, CredentialUnauthorized
+from ..runtime.credentials import CredentialService, CredentialUnauthorized
 from ..storage import CorruptState
 from .auth import WebSession
 from .http import Request, Response

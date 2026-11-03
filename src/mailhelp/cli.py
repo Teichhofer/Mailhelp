@@ -12,7 +12,6 @@ from collections.abc import Callable, Set
 from contextlib import ExitStack
 from pathlib import Path
 
-from .application import build_application, build_logger
 from .config import LOCAL_NUM_CTX, Settings, load_all
 from .config.loader import MissingConfiguration
 from .llm.decision_test import run_decision_test
@@ -20,6 +19,7 @@ from .llm.decisions import load_relevance_prompts
 from .llm.learning import LearningMode, LearningSource
 from .llm.ollama import LocalLlm, parse_address
 from .paths import runtime_path
+from .runtime.application import build_application, build_logger
 from .storage import AlreadyRunning, JsonStore
 
 CLEAR_CONFIRMATION = "ALLE DATEN LOESCHEN"
@@ -475,7 +475,7 @@ def _main() -> int:
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
     if args.pair:
-        from .local_pairing import request_local_code
+        from .runtime.local_pairing import request_local_code
         request_local_code(args.config_directory)
         return 0
     loaded = (load_all(args.config_directory, oauth_profile=args.profile or 1)
@@ -488,7 +488,7 @@ def _main() -> int:
             parser.error("Zielprofil ist nicht konfiguriert")
     if args.google_auth:
         from .external.contracts import OAuthTokenError
-        from .google_login import login
+        from .runtime.google_login import login
         try:
             login(secrets.for_profile(number), args.config_directory, number)
         except OAuthTokenError as exc:

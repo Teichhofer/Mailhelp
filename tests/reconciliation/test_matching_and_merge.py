@@ -420,7 +420,7 @@ def test_multiple_unrelated_candidates_can_be_explicitly_kept_separate(service):
 def test_retention_keeps_unverified_alias_source_until_identity_is_resolved():
     from shared_retention import state
 
-    from mailhelp.retention import RetentionService
+    from mailhelp.runtime.retention import RetentionService
     item = state("a" * 24)
     alias = item.proposals[0].model_copy(update={"status": ProposalStatus.MERGED,
         "canonical_ref": ProposalReference(mail_id="b" * 24, proposal_id="canonical"), "merge_review_required": True})

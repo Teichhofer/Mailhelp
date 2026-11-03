@@ -8,7 +8,7 @@ from pydantic import SecretStr
 from shared_decision_test import secrets
 
 from mailhelp.external.contracts import OAuthTokenError
-from mailhelp.google_login import login, receive_code
+from mailhelp.runtime.google_login import login, receive_code
 
 
 def test_google_profiles_get_distinct_refresh_tokens_and_keep_other_env(tmp_path):

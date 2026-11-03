@@ -6,8 +6,8 @@ from types import SimpleNamespace as NS
 from shared_web_details import with_mail
 from web_scenario import ACCOUNT, mail_id, proposal
 
-from mailhelp.composition import _mailbox_labels
 from mailhelp.review.queries import ArchiveQueries, ArchiveQuery
+from mailhelp.runtime.composition import _mailbox_labels
 from mailhelp.telegram.presenter import ProposalPresenter
 
 WORK = "b" * 24

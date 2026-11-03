@@ -14,9 +14,9 @@ from typing import Any
 
 from ..config import ImapCredentials, Settings, read_yaml
 from ..configuration import AdminCommand, AdminKind, ConfigurationConflict, ConfigurationService, file_hash
-from ..env_file import EnvFileConflict, set_values, validate
-from ..env_file import file_hash as env_hash
 from ..review.results import ResultStatus
+from ..runtime.env_file import EnvFileConflict, set_values, validate
+from ..runtime.env_file import file_hash as env_hash
 
 
 class ActivationProblem(ValueError):

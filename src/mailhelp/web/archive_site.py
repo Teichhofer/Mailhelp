@@ -10,11 +10,11 @@ from typing import TYPE_CHECKING
 from urllib.parse import parse_qs
 
 from ..configuration import AdminCommand, ConfigurationService
-from ..lifecycle import Lifecycle
-from ..metrics import MetricsRecorder
 from ..review.commands import ReviewCommand
 from ..review.inbox import CommandConflict, CommandInboxFull
 from ..review.queries import ArchiveQueries
+from ..runtime.lifecycle import Lifecycle
+from ..runtime.metrics import MetricsRecorder
 from .history_site import HistorySite
 from .http import Request, Response
 from .mail_archive_site import MailArchiveSite

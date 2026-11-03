@@ -4,7 +4,7 @@ from __future__ import annotations
 import pytest
 
 from mailhelp.config import _dotenv
-from mailhelp.env_file import EnvFileConflict, file_hash, set_value, set_values, validate
+from mailhelp.runtime.env_file import EnvFileConflict, file_hash, set_value, set_values, validate
 
 
 def test_replaces_or_appends_one_name_and_keeps_every_other_line(tmp_path):

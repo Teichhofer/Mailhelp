@@ -27,7 +27,7 @@ from mailhelp.notifications.briefing import DailyBriefingService
 from mailhelp.notifications.drafts import DraftService, ReplyDraft, message
 from mailhelp.notifications.webpush import NoRedirectSession, PushService, b64, subscription
 from mailhelp.processing.attachments import AttachmentCache
-from mailhelp.standalone import DisabledTelegram
+from mailhelp.runtime.standalone import DisabledTelegram
 from mailhelp.storage import JsonStore
 
 # Since 2.3 the writers are built in mailhelp.external.providers.
@@ -625,7 +625,7 @@ def test_runtime_composes_services_and_ticks_without_external_io(web, tmp_path, 
     from pydantic import SecretStr
     from shared_application import Log, settings
 
-    from mailhelp.experience import ExperienceRuntime
+    from mailhelp.runtime.experience import ExperienceRuntime
     cfg = settings(tmp_path)
     cfg.push.enabled = cfg.smart_reply = cfg.daily_briefing.enabled = True
     cfg.daily_briefing.time = "00:00"
@@ -636,7 +636,7 @@ def test_runtime_composes_services_and_ticks_without_external_io(web, tmp_path, 
             connections.append(kwargs)
             self.connection = Connection()
         def close(self): closed.append(True)
-    monkeypatch.setattr("mailhelp.experience.ImapReader", Reader)
+    monkeypatch.setattr("mailhelp.runtime.experience.ImapReader", Reader)
     app = NS(settings=cfg, store=web.store, telegram=NS(send=lambda chat, text: sent.append(text)),
         calendar=NS(fetch_events_in_window=lambda *a, **kw: []), todoist=NS(fetch_active_tasks=lambda: []),
         analyzer=NS(draft_reply=lambda mail, intent, info: ("call", ReplyDraft(text="Danke")),
@@ -685,8 +685,8 @@ def test_standalone_config_loading_and_composition(tmp_path, monkeypatch, capsys
     from shared_application import settings
     from shared_core import prompt_config
 
-    from mailhelp.application import build_application
     from mailhelp.config import Secrets, load_all
+    from mailhelp.runtime.application import build_application
     cfg = settings(tmp_path)
     cfg.telegram.enabled = False
     with pytest.raises(ValueError): Settings.model_validate(cfg.model_dump())
@@ -703,7 +703,7 @@ def test_standalone_config_loading_and_composition(tmp_path, monkeypatch, capsys
         def __init__(self, *a, **kw): pass
         def close(self): pass
     for name in ("ImapReader", "OpenRouterClient", "HttpWriter", "GoogleOAuthTokenProvider"):
-        monkeypatch.setattr(("mailhelp.external.providers." if name in MOVED_WRITERS else "mailhelp.composition.") + name, Resource)
+        monkeypatch.setattr(("mailhelp.external.providers." if name in MOVED_WRITERS else "mailhelp.runtime.composition.") + name, Resource)
     with build_application(loaded[0], loaded[1], loaded[2], loaded[4], loaded[5], tmp_path, use_jev_relevance=False) as app:
         assert isinstance(app.telegram, DisabledTelegram)
         assert "Code:" not in capsys.readouterr().out
@@ -725,7 +725,7 @@ def test_retention_scrubs_draft_and_preview_together(tmp_path):
     from shared_retention import NOW, Log, state
 
     from mailhelp.config import RetentionSettings
-    from mailhelp.retention import RetentionService
+    from mailhelp.runtime.retention import RetentionService
     store = JsonStore(tmp_path)
     item = state(MAIL1)
     store.save(f"mail-{MAIL1}", item.model_dump(mode="json"))
@@ -892,7 +892,7 @@ def test_detail_page_discloses_evidence_revisions_and_analysis(web, monkeypatch)
 def test_runtime_without_optional_features_only_keeps_the_local_briefing(web, tmp_path):
     from shared_application import Log, settings
 
-    from mailhelp.experience import ExperienceRuntime
+    from mailhelp.runtime.experience import ExperienceRuntime
     cfg = settings(tmp_path)
     cfg.web.enabled, cfg.telegram.enabled = True, False
     cfg.daily_briefing.enabled, cfg.daily_briefing.time = True, "00:00"
@@ -921,7 +921,7 @@ def test_background_never_calls_the_model_for_drafts_and_sections_stay_isolated(
     """Drafts cost one LLM call per click only; the minute scheduler never creates one."""
     from shared_application import Log, settings
 
-    from mailhelp.experience import ExperienceRuntime
+    from mailhelp.runtime.experience import ExperienceRuntime
     cfg = settings(tmp_path)
     cfg.smart_reply = cfg.daily_briefing.enabled = True
     cfg.daily_briefing.time = "00:00"
@@ -949,7 +949,7 @@ def test_background_never_calls_the_model_for_drafts_and_sections_stay_isolated(
 def test_drafts_stay_off_without_the_prompt(web, tmp_path):
     from shared_application import Log, settings
 
-    from mailhelp.experience import ExperienceRuntime
+    from mailhelp.runtime.experience import ExperienceRuntime
     cfg = settings(tmp_path)
     cfg.smart_reply = True
     app = NS(settings=cfg, store=web.store, logger=Log(), calendar=None, todoist=None,
@@ -961,7 +961,7 @@ def test_drafts_stay_off_without_the_prompt(web, tmp_path):
 def test_push_section_failure_is_logged(web, tmp_path):
     from shared_application import Log, settings
 
-    from mailhelp.experience import ExperienceRuntime
+    from mailhelp.runtime.experience import ExperienceRuntime
     cfg = settings(tmp_path)
     cfg.push.enabled = True
     app = NS(settings=cfg, store=web.store, logger=Log(), calendar=None, todoist=None,

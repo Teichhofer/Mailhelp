@@ -10,7 +10,7 @@ from mailhelp.activity import store as store_module
 from mailhelp.activity.models import ActivityReport, ReportDefinition, ReportEvent, ReportMail, ReportStatus
 from mailhelp.activity.store import ActivityReportStore, mails_name, report_name
 from mailhelp.llm.fingerprints import config_fingerprint, legacy_fingerprints, legacy_policies, topic_policy
-from mailhelp.retention import RetentionService
+from mailhelp.runtime.retention import RetentionService
 from mailhelp.storage import JsonStore
 
 NOW = datetime(2026, 10, 12, 12, 0, tzinfo=UTC)

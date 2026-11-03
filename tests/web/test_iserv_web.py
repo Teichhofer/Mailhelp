@@ -8,7 +8,7 @@ from uuid import uuid4
 import pytest
 import yaml
 
-from mailhelp.setup import SetupService
+from mailhelp.runtime.setup import SetupService
 
 ROUTE = "/einstellungen/iserv"
 SAVE = ROUTE + "/speichern"

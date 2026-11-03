@@ -8,7 +8,7 @@ import pytest
 import yaml
 from shared_web_actions import web  # noqa: F401  (fixture)
 
-from mailhelp.yaml_edit import YamlEditError, render, set_scalars
+from mailhelp.runtime.yaml_edit import YamlEditError, render, set_scalars
 
 TEXT = """# Kopfkommentar
 timezone: Europe/Berlin   # Anzeigezeitzone
@@ -126,7 +126,7 @@ def test_continuation_lines_of_long_texts_are_not_keys():
 # --- lists (IMAP folders discovered by the learning mode) ---------------------------
 
 def test_new_folders_are_appended_and_comments_in_the_list_stay():
-    from mailhelp.yaml_edit import set_list
+    from mailhelp.runtime.yaml_edit import set_list
     text = "imap:\n  folders:\n  - INBOX\n  # Arbeit\n  - Sent\n\n  host: x\nlast: 1\n"
     new = set_list(text, "imap.folders", ["INBOX", "Sent", "Archiv"])
     assert "  # Arbeit\n  - Sent\n  - Archiv\n" in new
@@ -134,7 +134,7 @@ def test_new_folders_are_appended_and_comments_in_the_list_stay():
 
 
 def test_a_changed_order_rewrites_the_list_and_inline_lists_stay_inline():
-    from mailhelp.yaml_edit import set_list
+    from mailhelp.runtime.yaml_edit import set_list
     reordered = set_list("folders:\n- A\n- B\nx: 1\n", "folders", ["B", "A"])
     assert yaml.safe_load(reordered) == {"folders": ["B", "A"], "x": 1}
     inline = set_list("folders: [A]   # Ordner\n", "folders", ["A", "B"])
@@ -145,7 +145,7 @@ def test_a_changed_order_rewrites_the_list_and_inline_lists_stay_inline():
 
 
 def test_lists_that_cannot_be_edited_are_refused():
-    from mailhelp.yaml_edit import set_list
+    from mailhelp.runtime.yaml_edit import set_list
     with pytest.raises(YamlEditError, match="fehlt"):
         set_list("x: 1\n", "folders", ["A"])
     with pytest.raises(YamlEditError, match="keine Liste"):
@@ -176,7 +176,7 @@ def test_learning_mode_refuses_an_unsafe_folder_change(tmp_path, monkeypatch):
 
 
 def test_a_list_at_the_end_of_the_file():
-    from mailhelp.yaml_edit import set_list
+    from mailhelp.runtime.yaml_edit import set_list
     assert set_list("x: 1\nfolders:\n- A\n", "folders", ["A", "B"]) == "x: 1\nfolders:\n- A\n- B\n"
 
 

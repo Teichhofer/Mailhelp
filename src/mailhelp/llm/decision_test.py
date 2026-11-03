@@ -30,7 +30,7 @@ from .ollama import LocalLlm, OllamaClient
 from .openrouter import OpenRouterClient
 
 if TYPE_CHECKING:
-    from ..metrics import MetricsRecorder
+    from ..runtime.metrics import MetricsRecorder
 
 
 class ComparisonRecorder(NullLogger):
@@ -413,7 +413,7 @@ def run_decision_test(settings: Settings, secrets: Secrets, topics: list[Topic],
         pass
     known_secrets = secrets.known_values()
     recorder = ComparisonRecorder(log_path, known_secrets)
-    from ..metrics import DECISION_TEST_FILE, MetricsRecorder, metrics_directory
+    from ..runtime.metrics import DECISION_TEST_FILE, MetricsRecorder, metrics_directory
     # Content-free metrics of every comparison run in one log, separate from production.
     metrics = MetricsRecorder(
         metrics_directory(runtime_path(settings.logging.directory, directory)) / DECISION_TEST_FILE,

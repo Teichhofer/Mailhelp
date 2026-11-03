@@ -9,10 +9,10 @@ import httpx
 import pytest
 from shared_core import proposal
 
-from mailhelp.application import _state_directory
 from mailhelp.cli import main
 from mailhelp.paths import runtime_path
 from mailhelp.proposals.integrations import HttpWriter, execute_confirmed
+from mailhelp.runtime.application import _state_directory
 
 
 @pytest.mark.parametrize("absolute", [False, True])

@@ -26,7 +26,7 @@ class MailboxActivation(ConnectionActivation):
         return keys.imap
 
     def probe(self, cfg, item, keys):
-        from ..experience import _reader
+        from ..runtime.experience import _reader
         from .imap import FolderNotReadable, account_id
         own = account_id(item.host, item.port, keys.imap[item.id].username)
         environment = self.runtime.environment()

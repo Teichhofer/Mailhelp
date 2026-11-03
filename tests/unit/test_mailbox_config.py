@@ -14,7 +14,7 @@ from mailhelp.config import ImapCredentials, ImapSettings, Secrets, Settings, To
 from mailhelp.llm.fingerprints import config_fingerprint, legacy_fingerprints, legacy_policies, topic_policy
 from mailhelp.llm.learning import add_discovered_folders
 from mailhelp.mailbox.imap import account_id, mailbox_account_id, reader_arguments
-from mailhelp.yaml_edit import _paths, set_list, set_scalars
+from mailhelp.runtime.yaml_edit import _paths, set_list, set_scalars
 
 TOPICS = [Topic(id="schule", name="Schule", enabled=True, description="Schule")]
 FORMER = {"host": "imap.example.test", "port": 143, "folders": ["Posteingang", "Archiv"],

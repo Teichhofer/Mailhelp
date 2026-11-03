@@ -8,13 +8,13 @@ import pytest
 from shared_application import Log, Orch, Store, Telegram
 from shared_application import settings as app_settings
 
-from mailhelp.application import Application
-from mailhelp.composition import _FailedAccessAdapter
 from mailhelp.config import Settings
 from mailhelp.mailbox.imap import FetchedMail, ListedMailbox, MailCandidate
 from mailhelp.mailbox.mailbox_run import MailboxSource, _checkpoint_name, _RunSummary
 from mailhelp.models import MailRunState, MailState
 from mailhelp.processing.orchestrator import ProcessingOutcome, ProcessingResult
+from mailhelp.runtime.application import Application
+from mailhelp.runtime.composition import _FailedAccessAdapter
 
 STAMP = datetime(2026, 10, 1, tzinfo=UTC)
 

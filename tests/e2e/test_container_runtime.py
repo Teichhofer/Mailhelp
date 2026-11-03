@@ -67,9 +67,9 @@ def test_installed_cli_persists_state_and_logs_across_restart(tmp_path, monkeypa
                  "GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"):
         monkeypatch.setenv(name, "synthetic-smoke-value")
     for name in ("OpenRouterClient", "HttpWriter", "GoogleOAuthTokenProvider"):
-        monkeypatch.setattr(f"mailhelp.{'external.providers' if name in MOVED_WRITERS else 'composition'}.{name}", OfflineResource)
-    monkeypatch.setattr("mailhelp.composition.ImapReader", OfflineImap)
-    monkeypatch.setattr("mailhelp.composition.TelegramClient", OfflineTelegram)
+        monkeypatch.setattr(f"mailhelp.{'external.providers' if name in MOVED_WRITERS else 'runtime.composition'}.{name}", OfflineResource)
+    monkeypatch.setattr("mailhelp.runtime.composition.ImapReader", OfflineImap)
+    monkeypatch.setattr("mailhelp.runtime.composition.TelegramClient", OfflineTelegram)
     # Even an unexpected adapter path must fail instead of reaching a real service.
     def forbid_network(*_args, **_kwargs):
         raise AssertionError("External network access in simulated smoke test")

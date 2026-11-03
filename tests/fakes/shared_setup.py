@@ -7,7 +7,7 @@ from shared_core import prompt_config
 
 from mailhelp.configuration import ConfigurationService
 from mailhelp.processing.orchestrator import Orchestrator
-from mailhelp.setup_runtime import SetupRuntime
+from mailhelp.runtime.setup_runtime import SetupRuntime
 
 
 @pytest.fixture

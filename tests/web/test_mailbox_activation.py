@@ -7,7 +7,7 @@ from shared_decision_test import secrets
 
 from mailhelp.config import MAX_MAILBOXES, ImapSettings, Secrets, Settings
 from mailhelp.mailbox.imap import FolderNotReadable
-from mailhelp.setup import SetupState
+from mailhelp.runtime.setup import SetupState
 
 ROUTE = "/einstellungen/postfaecher"
 ACTIVATE = ROUTE + "/aktivieren"
@@ -39,7 +39,7 @@ class Reader:
 @pytest.fixture
 def activation(profiled, monkeypatch):
     Reader.calls, Reader.error, Reader.folders = [], None, ["INBOX", "Archiv", "Drafts"]
-    monkeypatch.setattr("mailhelp.experience.ImapReader", Reader)
+    monkeypatch.setattr("mailhelp.runtime.experience.ImapReader", Reader)
     for number in range(1, 12):
         for suffix in ("USERNAME", "PASSWORD"):
             monkeypatch.delenv(f"IMAP_{number}_{suffix}", raising=False)
@@ -66,7 +66,7 @@ def test_check_save_retry_and_restart(activation):
     assert len(ctx.reloads) == 1 and ctx.app.settings.imap.mailbox(3) is None
     assert ctx.web.browser.request("POST", ACTIVATE, submitted).status == 303
     assert len(ctx.reloads) == 1 and len(Reader.calls) == 3
-    from mailhelp.setup_runtime import SetupRuntime
+    from mailhelp.runtime.setup_runtime import SetupRuntime
     restarted = SetupRuntime(ctx.app, ctx.web.site, ctx.runtime.secrets)
     assert restarted.credentials(cfg).imap[3].username == VALUES["username"]
     for path in ctx.web.store.directory.glob("*.json"):
@@ -233,7 +233,7 @@ def test_limit_and_missing_runtime(activation):
     submitted = {**VALUES, "id": "11", "version": "1", "key": "limit-0001", "csrf": ctx.web.browser.csrf(ROUTE),
                  "revision": "", "env_revision": ""}
     from mailhelp.configuration import file_hash
-    from mailhelp.env_file import file_hash as env_hash
+    from mailhelp.runtime.env_file import file_hash as env_hash
     submitted.update(revision=file_hash(ctx.tmp_path / "config.yaml"), env_revision=env_hash(ctx.tmp_path / ".env"),
                      version=str(ctx.runtime.setup.state().version))
     assert ctx.web.browser.request("POST", ACTIVATE, submitted).status == 422
@@ -245,7 +245,7 @@ def test_legacy_configuration_is_migrated_without_losing_the_old_mailbox(configu
     from mailhelp.config import Secrets
     ctx = configured
     Reader.calls, Reader.error, Reader.folders = [], None, ["INBOX", "Archiv", "Drafts"]
-    monkeypatch.setattr("mailhelp.experience.ImapReader", Reader)
+    monkeypatch.setattr("mailhelp.runtime.experience.ImapReader", Reader)
     ctx.runtime.secrets = Secrets.model_validate(secrets().model_dump())
     ctx.app.mailbox_runtime = NS(request=lambda *args: None)
     assert ctx.web.browser.request("POST", ACTIVATE, {**form(ctx), "id": "2"}).status == 303

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from itertools import groupby
 
-from ..credentials import CredentialSnapshot
+from ..runtime.credentials import CredentialSnapshot
 from .forms import post_form
 from .pages import e, notice
 

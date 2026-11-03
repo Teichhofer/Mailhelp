@@ -1,5 +1,16 @@
 # Änderungen
 
+## 3.6.16 – Paket `mailhelp.runtime`, Bündelung abgeschlossen (Planung 3.6, Schritt 0.10f)
+
+- Betrieb, Lebenszyklus, Einrichtung, Diagnose, Wartung und Zugangsdaten liegen jetzt im
+  Paket `mailhelp.runtime` (`application`, `composition`, `service_coordinator`,
+  `operator_thread`, `lifecycle`, `retention`, `metrics`, `diagnostics`, `setup`,
+  `setup_runtime`, `standalone`, `experience`, `local_pairing`, `credentials`, `env_file`,
+  `yaml_edit`, `google_login`). Damit ist die Bündelung der Wurzelmodule abgeschlossen; im
+  Wurzelpaket bleiben `cli`, `models`, `configuration`, `state_names`, `storage`, `logging`,
+  `paths`, `formatting`, `german_dates` und `temporal_answers`. Keine Verhaltensänderung;
+  der Befehl `mailhelp` und der Neustart nutzen weiterhin `mailhelp.cli`.
+
 ## 3.6.15 – Paket `mailhelp.notifications` (Planung 3.6, Schritt 0.10e)
 
 - Benachrichtigungen, Web-Push, Tagesüberblick und Antwortentwürfe liegen jetzt im Paket

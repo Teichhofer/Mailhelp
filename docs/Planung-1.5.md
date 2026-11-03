@@ -75,7 +75,7 @@ Version 1.5 widmet sich fünf gezielten Usability-, Darstellungs- und Stabilitä
 #### Spezifikation:
 - Standardmäßig ist nun `usd_per_eur = 1.1` in `MetricsSettings` hinterlegt ($1\ \text{EUR} = 1,10\ \text{USD}$).
 - Das Bezugsdatum `exchange_rate_date` ist optional (`date | None = None`).
-- **Anpassung in `src/mailhelp/metrics.py`:**
+- **Anpassung in `src/mailhelp/runtime/metrics.py`:**
   ```python
   class MetricsSettings(BaseModel):
       model_config = ConfigDict(extra="forbid")
@@ -161,7 +161,7 @@ flowchart TD
 | Phase | Aufgaben | Betroffene Dateien |
 | :--- | :--- | :--- |
 | **Phase 1** | Umstellung Code-Länge auf 4 Stellen (`10 ** 4`), Formular-Pattern `[0-9]{4}`, URL-Prüfung `len(code) == 4`, Telegram-Meldungen anpassen. | `src/mailhelp/web/auth.py`<br>`src/mailhelp/web/factory.py`<br>`src/mailhelp/web/pages.py`<br>`src/mailhelp/web/site.py` |
-| **Phase 2** | Default `usd_per_eur = 1.1`, Anpassung `exchange_rate_pair`-Validator, Kennzahlen-Darstellung in `statistics_page()`. | `src/mailhelp/metrics.py`<br>`src/mailhelp/web/archive_site.py`<br>`config.example.yaml` |
+| **Phase 2** | Default `usd_per_eur = 1.1`, Anpassung `exchange_rate_pair`-Validator, Kennzahlen-Darstellung in `statistics_page()`. | `src/mailhelp/runtime/metrics.py`<br>`src/mailhelp/web/archive_site.py`<br>`config.example.yaml` |
 | **Phase 3** | Tabellenspalte `<th>$Cent</th>`, Umrechnung `* 100`, Modellnamenskürzung `rsplit('/', 1)[-1]` mit `title`-Tooltip. | `src/mailhelp/web/archive_site.py` |
 | **Phase 4** | Differenziertes Exception-Handling in `telegram.poll()` für `RetryInterrupted` (`poll_interrupted` auf INFO statt ERROR mit Stacktrace). | `src/mailhelp/telegram/client.py` |
 | **Phase 5** | Regressionstest für Telegram-Shutdown-Logging gemäß `AGENTS.md`, Anpassung bestehender Tests (Auth, Link, Web-V12, Gaps), 100 % Zeilen- & Branch-Coverage. | `tests/test_telegram_dialog.py`<br>`tests/test_observability.py`<br>`tests/test_web_auth.py`<br>`tests/test_web_link.py`<br>`tests/test_v12_gaps.py`<br>`tests/test_web_v12.py` |

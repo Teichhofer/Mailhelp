@@ -8,8 +8,8 @@ from shared_profiles import TOPICS
 
 from mailhelp.configuration import AdminCommand, AdminKind, ConfigurationConflict, SenderChange, file_hash
 from mailhelp.review.results import ResultStatus
-from mailhelp.setup import SetupState
-from mailhelp.yaml_edit import replace_block
+from mailhelp.runtime.setup import SetupState
+from mailhelp.runtime.yaml_edit import replace_block
 
 
 def actor(profiled):
@@ -47,7 +47,7 @@ def test_profile_changes_require_fresh_per_profile_diagnoses(profiled):
         {"target_profiles": [profile.model_dump() for profile in cfg.target_profiles]})
     with pytest.raises(ValueError, match="Zielprofil"):
         setup.command(actor(profiled), state.version, "apply-0001", state.base_hash)
-    from mailhelp.diagnostics import DiagnosticResult, DiagnosticsState
+    from mailhelp.runtime.diagnostics import DiagnosticResult, DiagnosticsState
     revision = setup.fingerprint()
     results = {name: DiagnosticResult(status="ready", config_revision=revision)
                for name in ("calendar", "todoist", "calendar:2", "tasks:2")}

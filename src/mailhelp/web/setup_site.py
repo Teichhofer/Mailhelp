@@ -8,9 +8,9 @@ from typing import TYPE_CHECKING, Any, cast
 import yaml
 
 from ..configuration import LIVE_FIELDS, MAILBOX_SETUP_FIELDS, ConfigurationConflict, file_hash, set_dotted
-from ..diagnostics import HELP, STATES, DiagnosticResult
-from ..local_pairing import issue
 from ..notifications.notification_config import CATEGORIES, effective_profile
+from ..runtime.diagnostics import HELP, STATES, DiagnosticResult
+from ..runtime.local_pairing import issue
 from .auth import PairingLimited, WebSession
 from .forms import post_form
 from .http import Request, Response

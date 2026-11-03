@@ -3,7 +3,7 @@ import pytest
 from shared_web_auth import Browser
 from shared_web_v12 import configure
 
-from mailhelp.lifecycle import Lifecycle
+from mailhelp.runtime.lifecycle import Lifecycle
 
 PATH = "/einstellungen/neustarten"
 
