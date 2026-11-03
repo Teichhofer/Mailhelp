@@ -25,7 +25,7 @@ def field(name: str, label: str, value: object = "", *, hidden: bool = False) ->
             'maxlength="4000"></label>')
 
 
-def post_form(route: str, csrf: str, body: str, label: str = "Speichern", **hidden) -> str:
+def post_form(route: str, csrf: str, body: str, label: str = "Speichern", **hidden: object) -> str:
     """A POST form with CSRF token and a fresh idempotency key."""
     inputs = field("csrf", "", csrf, hidden=True) + field("key", "", secrets.token_hex(16), hidden=True)
     inputs += "".join(field(name, "", value, hidden=True) for name, value in hidden.items())

@@ -8,6 +8,8 @@ from urllib.parse import urlencode
 
 from ..formatting import format_datetime_local
 from ..models import MailState, Proposal
+from ..review.queries import ArchiveQuery
+from ..review.search import Hit
 from .actions import recheck_form
 from .forms import field, select
 from .pages import e, notice
@@ -36,7 +38,7 @@ def _money(value: SupportsFloat | str | None, currency: str) -> str:
     return "unbekannt" if value is None else f"{_number(value, 4)} {currency}"
 
 
-def statistics_page(params: dict, report: dict, everything: list[dict], zone: str = "UTC",
+def statistics_page(params: dict[str, Any], report: dict[str, Any], everything: list[dict[str, Any]], zone: str = "UTC",
                     now: datetime | None = None) -> str:
     """Costs and durations with readable labels and charts; unknown values are never shown as zero."""
     from datetime import UTC
@@ -81,7 +83,7 @@ def statistics_page(params: dict, report: dict, everything: list[dict], zone: st
     return body + charts + _statistics_groups(report["groups"])
 
 
-def _statistics_groups(groups: list[dict]) -> str:
+def _statistics_groups(groups: list[dict[str, Any]]) -> str:
     if not groups:
         return '<p class="empty">Für diese Auswahl gibt es keine erfassten Aufrufe.</p>'
     body = ('<h2>Nach Modell und Schritt</h2><div class="table-scroll"><table><thead><tr>'
@@ -98,7 +100,7 @@ def _statistics_groups(groups: list[dict]) -> str:
     return body + "</tbody></table></div>"
 
 
-def _hit(hit) -> str:
+def _hit(hit: Hit | None) -> str:
     """Where the first search word was found, with the match highlighted (all text escaped)."""
     if hit is None:
         return ""
@@ -112,7 +114,7 @@ def _local_time(value: str | None, zone: str) -> str:
     return format_datetime_local(datetime.fromisoformat(value), zone)
 
 
-def _archive_filters(query, topics: list[str], mailboxes: dict[str, tuple[int, str]]) -> str:
+def _archive_filters(query: ArchiveQuery, topics: list[str], mailboxes: dict[str, tuple[int, str]]) -> str:
     from ..review.views import STATUS_LABELS
 
     status = "" if query.status is None else str(query.status)
@@ -131,7 +133,7 @@ def _archive_filters(query, topics: list[str], mailboxes: dict[str, tuple[int, s
     return filters
 
 
-def _archive_row(item: dict, zone: str, mailboxes: dict[str, tuple[int, str]], csrf: str = "") -> str:
+def _archive_row(item: dict[str, Any], zone: str, mailboxes: dict[str, tuple[int, str]], csrf: str = "") -> str:
     from ..review.cards import sender_name
     from ..review.views import STATUS_LABELS
 
@@ -158,8 +160,9 @@ def _archive_row(item: dict, zone: str, mailboxes: dict[str, tuple[int, str]], c
             f'<p class="labels">{" ".join(badges)}</p>{summary}{_hit(item.get("hit"))}{recheck}</li>')
 
 
-def mail_list_page(query, items: list[dict], total: int, damaged: int, topics: list[str], zone: str,
-                   mailboxes: dict[str, tuple[int, str]] | None = None, csrf: str = "") -> str:
+def mail_list_page(query: ArchiveQuery, items: list[dict[str, Any]], total: int, damaged: int,
+                   topics: list[str], zone: str, mailboxes: dict[str, tuple[int, str]] | None = None,
+                   csrf: str = "") -> str:
     """Search and filters for stored mails; works without JavaScript."""
     mailboxes = mailboxes or {}
     active = any((query.relevance, query.topic, query.state, query.status is not None, query.since, query.until,
@@ -218,7 +221,7 @@ def analysis_section(mail_id: str, state: MailState, record: dict[str, Any]) -> 
     return body + f'</ul><a class="button" href="/verlauf?q={mail_id}">Verlauf dieser Mail</a></section>'
 
 
-def revisions_list(mail_id: str, proposal_id: str, rows: list[dict]) -> str:
+def revisions_list(mail_id: str, proposal_id: str, rows: list[dict[str, Any]]) -> str:
     if not rows:
         return '<p class="meta">Noch keine Revisionen erfasst.</p>'
     items = "".join(
@@ -228,7 +231,7 @@ def revisions_list(mail_id: str, proposal_id: str, rows: list[dict]) -> str:
     return f'<ul class="archive-list">{items}</ul>'
 
 
-def history_page(query, rows: list[dict], total: int, params: dict) -> str:
+def history_page(query: ArchiveQuery, rows: list[dict[str, Any]], total: int, params: dict[str, Any]) -> str:
     from .filters import chips
     body = chips("/verlauf", query.filter) + ('<h1>Verlauf</h1><form method="get" class="stack">'
                                               + field("q", "Betreff, Absender oder Mail-ID", query.q))

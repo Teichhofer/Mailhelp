@@ -122,7 +122,7 @@ def setting_label(name: str) -> str:
     return f"{SERVICE_LABELS[service]}: {TIMEOUT_LABELS[key]}"
 
 
-def _lookup(values: dict | None, name: str) -> object:
+def _lookup(values: dict[str, Any] | None, name: str) -> object:
     for part in name.split("."):
         values = values.get(part) if isinstance(values, dict) else None
     return values
@@ -163,7 +163,7 @@ def _input(name: str, saved: object) -> str:
             'maxlength="200" required></label>')
 
 
-def _models_table(models: list) -> str:
+def _models_table(models: list[tuple[str, str, str, str]]) -> str:
     if not models:
         return '<p class="meta">Keine Modellangaben verfügbar.</p>'
     return ('<div class="table-scroll"><table><thead><tr><th>Schritt</th>'
@@ -174,7 +174,7 @@ def _models_table(models: list) -> str:
             + "</tbody></table></div>")
 
 
-def _setting_row(name: str, raw: dict, active: dict | None, revision: str, csrf: str) -> str:
+def _setting_row(name: str, raw: dict[str, Any], active: dict[str, Any] | None, revision: str, csrf: str) -> str:
     current, saved = _lookup(active, name), _lookup(raw, name)
     live = name.split(".")[0] in LIVE_FIELDS
     if current == saved:
@@ -244,7 +244,7 @@ def _search(query: str) -> str:
             'placeholder="z. B. Zeitzone, Aufbewahrung, Telegram"><button class="button">Suchen</button></div></form>')
 
 
-def _overview(raw: dict | None, active: dict | None) -> str:
+def _overview(raw: dict[str, Any] | None, active: dict[str, Any] | None) -> str:
     counted = active is not None
     mailboxes: Any = _lookup(active, "imap.mailboxes") or [None]
     accounts: Any = _lookup(active, "iserv.accounts") or []
@@ -278,8 +278,8 @@ def _overview(raw: dict | None, active: dict | None) -> str:
     return body
 
 
-def _area(key: str, raw: dict | None, active: dict | None, revision: str, csrf: str, models: list,
-          push: str) -> str:
+def _area(key: str, raw: dict[str, Any] | None, active: dict[str, Any] | None, revision: str, csrf: str,
+          models: list[tuple[str, str, str, str]], push: str) -> str:
     title, text, groups = next((title, text, groups) for name, title, text, groups in AREAS if name == key)
     body = f'<div class="area-heading"><h2>{e(title)}</h2><p class="meta">{e(text)}</p></div>'
     if key == "benachrichtigungen":
@@ -300,7 +300,7 @@ def _area(key: str, raw: dict | None, active: dict | None, revision: str, csrf: 
     return body
 
 
-def _found(query: str, raw: dict | None, active: dict | None, revision: str, csrf: str) -> str:
+def _found(query: str, raw: dict[str, Any] | None, active: dict[str, Any] | None, revision: str, csrf: str) -> str:
     if raw is None:
         return notice("Konfigurationsdienst nicht verfügbar.", "warn")
     words = query.casefold().split()
@@ -316,7 +316,8 @@ def _found(query: str, raw: dict | None, active: dict | None, revision: str, csr
     return body or notice(f"Keine Einstellung zu „{query}“ gefunden.", "info")
 
 
-def settings_page(models: list, raw: dict | None, active: dict | None, revision: str, csrf: str,
+def settings_page(models: list[tuple[str, str, str, str]], raw: dict[str, Any] | None,
+                  active: dict[str, Any] | None, revision: str, csrf: str,
                   credentials: CredentialSnapshot | None = None, area: str = "", query: str = "",
                   push: str = "") -> str:
     """The overview, one area or search results; *area* is empty or one of :data:`AREA_KEYS`."""
@@ -354,7 +355,7 @@ def _topic_value(value: object) -> object:
     return str(value).lower() if isinstance(value, bool) else value
 
 
-def topics_page(files: list[tuple[str, str, dict, str]], csrf: str) -> str:
+def topics_page(files: list[tuple[str, str, dict[str, Any], str]], csrf: str) -> str:
     """One form per topic and an empty one per file; *files* are (category, name, content, hash)."""
     body = ('<h1>Themen</h1><p>IDs bleiben stabil. Deaktivieren statt löschen. Änderungen gelten für neue '
             'Analysen; unabhängige Absender-Vorfilter bleiben erhalten.</p>')

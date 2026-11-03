@@ -8,7 +8,7 @@ from ..review.filters import FILTERS, matches  # noqa: F401  (re-exported for we
 from .pages import e
 
 
-def chips(path, selected=""):
+def chips(path: str, selected: str = "") -> str:
     return '<nav class="filter-chips" aria-label="Schnellfilter">' + "".join(
         f'<a class="button small" data-filter="{key}" aria-current="{str(selected == key).lower()}" '
         f'href="{path}?{e(urlencode({"filter": key}))}">{label}</a>' for key, label in FILTERS.items()) + '</nav>'

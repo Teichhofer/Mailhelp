@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from ..external.providers import CALENDAR_LABELS, TASK_LABELS
+from ..models import MailState, Proposal
 from ..proposal_reconciliation import OPEN
 from ..review.cards import event_time
 from ..review.views import STATUS_LABELS
@@ -12,11 +13,11 @@ INTRO = ('<div class="setup-page"><h1>Vorschlagsabgleich</h1><p>Lokale Vorschlä
          'Übernehmen legt nichts extern an; eine neue Version muss separat bestätigt werden.</p>')
 
 
-def proposal_link(proposal) -> str:
+def proposal_link(proposal: Proposal) -> str:
     return f"/vorschlag/{proposal.source_mail_id}/{proposal.id}"
 
 
-def sources_fragment(proposal, linked: list, zone: str) -> str:
+def sources_fragment(proposal: Proposal, linked: list[Proposal], zone: str) -> str:
     """Source mails and related proposals shown on a proposal's detail page."""
     body = '<section><h2>Quellen und zugehörige Vorgänge</h2><ul>'
     for source in proposal.sources:
@@ -29,7 +30,7 @@ def sources_fragment(proposal, linked: list, zone: str) -> str:
     return body + '</ul><p><a href="/abgleich">Zusammenführungen und Dauerannahmen prüfen</a></p></section>'
 
 
-def mail_summary(mail, other_profile: bool) -> str:
+def mail_summary(mail: MailState, other_profile: bool) -> str:
     body = '<section><h2>Erkannte Vorgänge</h2><ul>'
     if other_profile:
         body += ('<li>Die Kopie gehört zu einem anderen Zielprofil. Es gilt die zuerst verarbeitete Mail; '
@@ -39,7 +40,7 @@ def mail_summary(mail, other_profile: bool) -> str:
     return body + '</ul><p><a href="/abgleich">Gespeicherte Befunde prüfen</a></p></section>'
 
 
-def section_head(item, csrf: str) -> str:
+def section_head(item: Proposal, csrf: str) -> str:
     body = (f'<section class="card"><h2><a class="button" href="{e(proposal_link(item))}">'
             f'{e(item.title)}</a></h2>')
     body += f'<p>Version {item.version} · {e(STATUS_LABELS[item.status])}</p>'
@@ -52,7 +53,7 @@ def section_head(item, csrf: str) -> str:
     return body
 
 
-def comparison(item, target, zone: str, csrf: str) -> str:
+def comparison(item: Proposal, target: Proposal, zone: str, csrf: str) -> str:
     fields = dict(mail_id=item.source_mail_id, proposal_id=item.id, version=item.version,
                   target_mail_id=target.source_mail_id, target_proposal_id=target.id,
                   target_version=target.version)
@@ -68,7 +69,7 @@ def comparison(item, target, zone: str, csrf: str) -> str:
     return body
 
 
-def defaults_offer(item, candidate, defaults_hash: str, zone: str, csrf: str) -> str:
+def defaults_offer(item: Proposal, candidate: Proposal, defaults_hash: str, zone: str, csrf: str) -> str:
     """A changed default duration is offered for explicit adoption, never applied silently."""
     return ('<p>Dauerannahme: ' + e(event_time(candidate, zone)) + '</p>'
             + post_form("/abgleich", csrf, '', 'Dauerannahme ausdrücklich übernehmen',
@@ -76,7 +77,7 @@ def defaults_offer(item, candidate, defaults_hash: str, zone: str, csrf: str) ->
                         version=item.version, proposal_hash=defaults_hash))
 
 
-def missing_record(item, record_hash: str, csrf: str) -> str:
+def missing_record(item: Proposal, record_hash: str, csrf: str) -> str:
     """A finding stored in a mail state whose separate proposal file is missing."""
     return (f'<section class="card"><h2>{e(item.title)}</h2>'
             f'<p>Einzelakte fehlt; Befund {e(STATUS_LABELS[item.status])}.</p>'

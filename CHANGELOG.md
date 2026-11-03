@@ -1,5 +1,11 @@
 # Änderungen
 
+## 3.6.6 – Strikte Typprüfung der Web-Seiten (Planung 3.6, Schritt 0.7)
+
+- `mailhelp.web.pages`, `forms` und alle `*_pages`-Module stehen unter der strikten
+  mypy-Prüfung (vollständige Annotationen, parametrisierte Containertypen, keine
+  untypisierten Aufrufe). Dafür wurden 32 Typangaben ergänzt; keine Verhaltensänderung.
+
 ## 3.6.5 – Nachweis der Entkopplung (Planung 3.6, Schritt 0.6, Tests)
 
 - Neue Tests belegen ohne `sleep()`: Eine im Browser bestätigte Aktion wird ausgeführt und

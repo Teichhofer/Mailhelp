@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from ..formatting import format_datetime_local
@@ -40,7 +41,7 @@ class ServiceInfo:
     llm_calls_per_minute: int | None
     commands: dict[CommandStatus, int]
     # Live snapshot of the main thread (stage, mail, next poll, contacts) if recorded.
-    runtime: dict | None = None
+    runtime: dict[str, Any] | None = None
     services: tuple[str, ...] = ()
     fingerprint: str | None = None
     accounts: tuple[tuple[str, str], ...] = ()
