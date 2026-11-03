@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import signal
+import subprocess
 import sys
 from collections.abc import Callable, Set
 from contextlib import ExitStack
@@ -117,18 +118,49 @@ ALREADY_RUNNING = ("Mailhelp läuft bereits mit diesem Datenverzeichnis: {direct
                    "ihrem Terminal) und Mailhelp dann erneut starten.")
 
 
+# Windows has no exec: os.execv neither quotes arguments nor keeps the console.
+_WINDOWS = os.name == "nt"
+# Marks a child of the Windows restart supervisor; it hands restarts back instead of nesting.
+RESTART_CHILD = "MAILHELP_RESTART_CHILD"
+
+
+def _restart() -> int:
+    """Start Mailhelp again with the same interpreter and arguments."""
+    command = [sys.executable, "-c", "from mailhelp.cli import main; raise SystemExit(main())", *sys.argv[1:]]
+    if not _WINDOWS:
+        try:
+            os.execv(sys.executable, command)
+        except OSError as exc:
+            print(f"Neustart fehlgeschlagen: {exc}", file=sys.stderr)
+        return 1
+    if os.environ.get(RESTART_CHILD):
+        return RESTART_EXIT_CODE
+    # The first process stays in the terminal and restarts its child until it ends.
+    result = RESTART_EXIT_CODE
+    while result == RESTART_EXIT_CODE:
+        try:
+            child = subprocess.Popen(command, env={**os.environ, RESTART_CHILD: "1"})
+        except OSError as exc:
+            print(f"Neustart fehlgeschlagen: {exc}", file=sys.stderr)
+            return 1
+        result = _wait(child)
+    return result
+
+
+def _wait(child: subprocess.Popen[bytes]) -> int:
+    while True:
+        try:
+            return child.wait()
+        except KeyboardInterrupt:
+            # The child received the same Ctrl+C and shuts down by itself.
+            continue
+
+
 def main() -> int:
     """Run the CLI; Ctrl+C and a second instance end quietly instead of with a traceback."""
     try:
         result = _main()
-        if result == RESTART_EXIT_CODE:
-            try:
-                os.execv(sys.executable, [sys.executable, "-c",
-                         "from mailhelp.cli import main; raise SystemExit(main())", *sys.argv[1:]])
-            except OSError as exc:
-                print(f"Neustart fehlgeschlagen: {exc}", file=sys.stderr)
-                return 1
-        return result
+        return _restart() if result == RESTART_EXIT_CODE else result
     except KeyboardInterrupt:
         print("\nBeenden angefordert.")
         return 130

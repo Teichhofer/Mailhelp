@@ -1,5 +1,15 @@
 # Änderungen
 
+## 3.5.7 – Neustart unter Windows
+
+- Fehlerbehebung: „Mailhelp neu starten“ scheiterte unter Windows mit
+  `SyntaxError: invalid syntax`, und Mailhelp blieb beendet. `os.execv` setzt unter
+  Windows die Argumente ohne Anführungszeichen zusammen, sodass vom Startcode nur
+  `from` ankam; zudem verlor der neue Prozess die Konsole. Unter Windows startet der
+  ursprüngliche Prozess Mailhelp jetzt als Kindprozess neu und bleibt im Terminal;
+  Linux/Docker ersetzt den Prozess weiterhin mit `os.execv`. Ein Regressionstest deckt
+  das ab.
+
 ## 3.5.6 – Ordnerliste der Postfächer
 
 - Beim ersten Abruf nach jedem Start ruft Mailhelp die Ordnerliste jedes Postfachs ab und

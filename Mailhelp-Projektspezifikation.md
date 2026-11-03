@@ -2098,9 +2098,14 @@ wird die Sitzung erneut geprüft. Der Ablauf protokolliert
 Antwort-Rückrufe lösen die Aktion höchstens einmal aus; Beenden und Neustarten
 dürfen denselben Schlüssel nicht gegenseitig wiederverwenden.
 Nach kontrolliertem Ende des Laufs, Schließen der Adapter und Freigabe von
-HTTP-Listener und Zustandslocks ersetzt `os.execv` den Prozess durch denselben
-Python-Interpreter mit unveränderten Anwendungsargumenten und Arbeitsverzeichnis.
-Dies gilt unter Windows 11 und Linux/Docker, unabhängig von einem Supervisor.
+HTTP-Listener und Zustandslocks startet Mailhelp denselben Python-Interpreter mit
+unveränderten Anwendungsargumenten und Arbeitsverzeichnis neu, unabhängig von einem
+Supervisor. Unter Linux/Docker ersetzt `os.execv` den Prozess (gleiche PID). Unter
+Windows 11 bleibt der ursprüngliche Prozess als Aufpasser im Terminal und startet
+Mailhelp mit `subprocess` als Kindprozess, weil `os.execv` dort die Argumente nicht
+quotiert und die Konsole verliert; das Kind erkennt sich an `MAILHELP_RESTART_CHILD`
+und gibt weitere Neustarts mit Exitcode 75 an den Aufpasser zurück, statt Prozesse zu
+verschachteln. Strg+C erreicht beide; der Aufpasser wartet auf das Ende des Kindes.
 Code, gespeicherte Einstellungen und Zugangsdaten werden neu geladen; Entwürfe
 bleiben Entwürfe, offene Entscheidungen und bestehende Freigaben bleiben im
 persistierten Zustand. Ein fehlgeschlagener Prozessstart wird am Terminal als
