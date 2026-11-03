@@ -1,5 +1,16 @@
 # Änderungen
 
+## 3.6.4 – Web-Aktionen warten nicht mehr auf den Mailabruf (Planung 3.6, Schritt 0.5)
+
+- Telegram-Eingaben und Web-Aktionen verarbeitet ein eigener Bedien-Thread sofort bei
+  Eingang. Bisher liefen sie erst nach dem kompletten Abrufstapel mit allen KI-Analysen
+  (bis zu 25 Mails); der Hauptthread verarbeitet jetzt nur noch Mails.
+- Der Telegram-Dialog ist durch eine Sperre serialisiert. Geänderte Live-Einstellungen
+  und Themen übernimmt der Hauptthread am Beginn seines nächsten Zyklus, nie während einer
+  Mailverarbeitung. Bei einer offenen Relevanzfrage wartet die Mailverarbeitung auf die
+  Entscheidung des Bedien-Threads.
+- Details und Prüfliste der Schreibpfade: `docs/Entkopplung-Web-und-Abruf.md`.
+
 ## 3.6.3 – Analyse zur Entkopplung von Bedienung und Mailabruf (Planung 3.6, Schritt 0.4)
 
 - `docs/Entkopplung-Web-und-Abruf.md` beschreibt, wo Web-Befehle heute auf den Mailabruf

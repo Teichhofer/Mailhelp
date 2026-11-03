@@ -6,13 +6,13 @@ import traceback
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from threading import Event, Thread
+from threading import Event, Lock, Thread
 from typing import TYPE_CHECKING, Any
 from zoneinfo import ZoneInfo
 
 from . import state_names
 from .analysis import Analyzer
-from .config import RetentionPeriod, Settings
+from .config import RetentionPeriod, Settings, Topic
 from .external.contracts import OAuthTokenError, TargetWriter
 from .imap import ImapReader
 from .logging import JsonlLogger, NullLogger, log_and_continue
@@ -72,6 +72,10 @@ class Application:
     mailbox_runtime: MailboxRuntime | None = None
     # Monotonic time of the last maintenance run; it blocks the main thread and runs at an interval.
     _maintained_at: float | None = None
+    # Settings and topics saved by a web command, taken over by the mail loop at its next cycle (3.6.4).
+    _pending_settings: Settings | None = None
+    _pending_topics: list[Topic] | None = None
+    _pending_lock: Lock = field(default_factory=Lock, repr=False)
     # Receiver thread, web interface, experience and notification runtimes beside the loop.
     services: ServiceCoordinator = field(default_factory=ServiceCoordinator)
     # Every enabled mailbox with its reader (3.1); ``imap`` is the reader of the first one.
@@ -213,6 +217,25 @@ class Application:
                 "aus TELEGRAM_BOT_TOKEN gesendet wurde und telegram.user_id stimmt."
             ) from exc
 
+    def request_settings(self, settings: Settings) -> None:
+        """Remember live settings from the operator thread; the mail loop applies them."""
+        with self._pending_lock:
+            self._pending_settings = settings
+
+    def request_topics(self, topics: list[Topic]) -> None:
+        """Remember changed topics; a fingerprint never changes during a mail's processing."""
+        with self._pending_lock:
+            self._pending_topics = topics
+
+    def _apply_requested_configuration(self) -> None:
+        with self._pending_lock:
+            settings, topics = self._pending_settings, self._pending_topics
+            self._pending_settings = self._pending_topics = None
+        if settings is not None:
+            self.apply_settings(settings)
+        if topics is not None:
+            self.orchestrator.change_topics(topics)
+
     def apply_settings(self, settings: Settings) -> None:
         """Main-thread activation of the explicitly live configuration subset."""
         self.settings = settings
@@ -259,6 +282,8 @@ class Application:
     def stop(self) -> None:
         self.stop_event.set()
         self.orchestrator.stop()
+        if self.services.operator is not None:
+            self.services.operator.stop()
         if self.services.receiver is not None:
             self.services.receiver.stop()
 
@@ -272,10 +297,19 @@ class Application:
     def _start_web(self) -> None:
         self.services.start_web(self.logger, lambda text: self.telegram.send(self.settings.telegram.chat_id, text))
 
+    def _start_operator(self) -> None:
+        """From here on, Telegram input and web commands no longer wait for mail processing."""
+        if self.dialog is not None:
+            self.services.start_operator(
+                lambda: self._poll_telegram(timeout=0),
+                min(self.settings.poll_interval_seconds, _TELEGRAM_ERROR_BACKOFF_SECONDS),
+                self.settings.poll_interval_seconds)
+
     def _idle(self, delay: float) -> None:
         """Wait for the next mail cycle while handling Telegram input as it arrives."""
         getattr(self, "logger", NullLogger()).event("DEBUG", "application", "idle_started", delay_seconds=delay)
-        if self.services.receiver is None:
+        # The operator thread handles input; otherwise this loop does between cycles.
+        if self.services.receiver is None or self.services.operator is not None:
             self.stop_event.wait(delay)
             return
         deadline = time.monotonic() + delay
@@ -369,9 +403,16 @@ class Application:
         """Long-poll until the blocking relevance decision is resolved or stopped."""
         if self.dialog is None or not self.dialog.awaiting_relevance_decision():
             return False
-        while (not self.stop_event.is_set()
-               and self.dialog.awaiting_relevance_decision()):
-            if not self._poll_telegram():
+        operator = self.services.operator
+        while not self.stop_event.is_set():
+            if operator is not None:
+                # Cleared before checking: a decision served after this sets it again.
+                operator.served.clear()
+            if not self.dialog.awaiting_relevance_decision():
+                break
+            if operator is not None:
+                operator.served.wait(self.settings.poll_interval_seconds)
+            elif not self._poll_telegram():
                 self.stop_event.wait(min(
                     self.settings.poll_interval_seconds,
                     _TELEGRAM_ERROR_BACKOFF_SECONDS,
@@ -384,6 +425,7 @@ class Application:
         self._announce_start()
         self._start_receiver()
         self._start_web()
+        self._start_operator()
         try:
             while not self.stop_event.is_set():
                 if not self._cycle(max_mails, ignore_historical_start):
@@ -445,6 +487,7 @@ class Application:
 
     def _cycle(self, max_mails: int | None, ignore_historical_start: bool) -> bool:
         """One pass: maintenance, mail, Telegram input and idle time; ``False`` ends the run."""
+        self._apply_requested_configuration()
         for runtime in (self.mailbox_runtime, self.iserv_runtime):
             if runtime is not None:
                 runtime.apply_pending()
@@ -472,9 +515,12 @@ class Application:
         if max_mails is not None:
             return False
         # The receiver already waited for input; only process what arrived.
-        telegram_poll_succeeded = (self._poll_telegram(timeout=0)
-                                   if self.services.receiver is not None
-                                   else self._poll_telegram())
+        if self.services.operator is not None:
+            telegram_poll_succeeded = True
+        elif self.services.receiver is not None:
+            telegram_poll_succeeded = self._poll_telegram(timeout=0)
+        else:
+            telegram_poll_succeeded = self._poll_telegram()
         if (not self.stop_event.is_set() and self.dialog is not None
                 and self.dialog.awaiting_relevance_decision()):
             self._wait_for_telegram_decision()
@@ -487,6 +533,7 @@ class Application:
 
     def _finish(self, max_mails: int | None) -> None:
         """Stop the helpers and report the run, unless a relevance question still blocks it."""
+        self.services.stop_operator()
         self.services.stop_web()
         self.services.stop_receiver()
         if self.lifecycle is not None:

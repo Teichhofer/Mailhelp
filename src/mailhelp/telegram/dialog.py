@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import time
 from collections.abc import Callable
+from threading import RLock
 
 from .. import state_names
 from ..domain.processing import (
@@ -86,8 +87,11 @@ class TelegramDialogController:
         # With an inbox, a receiver thread fetches updates; this controller
         # only processes them (see poll_once).
         self.inbox = inbox
-        # Web commands, executed here in the main thread like Telegram updates.
+        # Web commands, executed here like Telegram updates.
         self.commands = commands
+        # The mail loop (notifications) and the operator thread (poll_once) both
+        # reach this controller; it serves one of them at a time (3.6.4).
+        self.lock = RLock()
         self._commands_recovered = False
         # Revokes every web session (Telegram command /web_abmelden).
         self.web_logout: Callable[[], int] | None = None
@@ -194,8 +198,9 @@ class TelegramDialogController:
         self, dialog: RelevanceDialog, sender: str, subject: str
     ) -> None:
         """Queue a relevance question behind a possibly open question."""
-        entry_id = self.outbox.enqueue_relevance(dialog, sender, subject)
-        self.outbox.flush(raise_for=entry_id)
+        with self.lock:
+            entry_id = self.outbox.enqueue_relevance(dialog, sender, subject)
+            self.outbox.flush(raise_for=entry_id)
 
     def persist(self, proposal: Proposal) -> None:
         """Compatibility port; persistence itself belongs to the repository."""
@@ -204,20 +209,23 @@ class TelegramDialogController:
             self.ledger.book_created(proposal)
 
     def send(self, chat_id: int, text: str) -> None:
-        if chat_id != self.chat_id:
-            raise PermissionError(
-                "Nachrichten dürfen nur an den konfigurierten Chat gesendet werden"
-            )
-        entry_id = self.outbox.enqueue_message(text)
-        self.outbox.flush(raise_for=entry_id)
+        with self.lock:
+            if chat_id != self.chat_id:
+                raise PermissionError(
+                    "Nachrichten dürfen nur an den konfigurierten Chat gesendet werden"
+                )
+            entry_id = self.outbox.enqueue_message(text)
+            self.outbox.flush(raise_for=entry_id)
 
     def send_proposal(self, proposal: Proposal) -> None:
         """Queue a new proposal; revisions are delivered directly instead."""
-        self.delivery.enqueue(proposal)
+        with self.lock:
+            self.delivery.enqueue(proposal)
 
     def flush_outbox(self) -> None:
         """Send held messages whose preceding question has been resolved."""
-        self.outbox.flush()
+        with self.lock:
+            self.outbox.flush()
 
     def awaiting_decision(self) -> bool:
         """Return whether processing must wait for an explicit Telegram answer.
@@ -244,9 +252,10 @@ class TelegramDialogController:
         """Redisplay at startup: the current decision, held-back ones only as a count."""
         from .commands import TelegramCommands
 
-        TelegramCommands(self.store, self.repository, self.presenter,
-                         self.telegram, self.chat_id, self.relevance,
-                         self.outbox, self.web_logout).overview(interactive=True, compact=True)
+        with self.lock:
+            TelegramCommands(self.store, self.repository, self.presenter,
+                             self.telegram, self.chat_id, self.relevance,
+                             self.outbox, self.web_logout).overview(interactive=True, compact=True)
 
     def processing_blocked(self) -> bool:
         """Return whether an answered revision needs an operator restart."""
@@ -283,38 +292,39 @@ class TelegramDialogController:
 
         With an inbox this never waits; *timeout* only applies to direct polling.
         """
-        if self.stop_requested():
-            return
-        self.write_executor.resume()
-        self.revisions.resume()
-        if self.commands is not None and not self._commands_recovered:
-            # Commands interrupted by a restart are reconciled, never repeated.
-            self._commands_recovered = True
-            self.commands.recover(self.review.reconcile)
-        offset = self._processed_offset()
-        if self.inbox is not None:
-            now = time.time()
-            entries = []
-            for entry in self.inbox.pending():
-                if not entry.ready(now):
-                    break  # keep the order: later input waits for this retry
-                entries.append(entry)
-            updates = [entry.update for entry in entries]
-            acknowledged = {entry.update_id for entry in entries if entry.acknowledged}
-        else:
-            updates = self.telegram.poll(offset, timeout=timeout)
-            acknowledged = set()
-        self.logger.event(
-            "DEBUG",
-            "telegram.dialog",
-            "updates_received",
-            offset=offset,
-            count=len(updates),
-        )
-        self.updates.process(updates, acknowledged, offset)
-        self._process_commands()
-        # Answers above may have resolved the question that held messages back.
-        self.outbox.flush()
+        with self.lock:
+            if self.stop_requested():
+                return
+            self.write_executor.resume()
+            self.revisions.resume()
+            if self.commands is not None and not self._commands_recovered:
+                # Commands interrupted by a restart are reconciled, never repeated.
+                self._commands_recovered = True
+                self.commands.recover(self.review.reconcile)
+            offset = self._processed_offset()
+            if self.inbox is not None:
+                now = time.time()
+                entries = []
+                for entry in self.inbox.pending():
+                    if not entry.ready(now):
+                        break  # keep the order: later input waits for this retry
+                    entries.append(entry)
+                updates = [entry.update for entry in entries]
+                acknowledged = {entry.update_id for entry in entries if entry.acknowledged}
+            else:
+                updates = self.telegram.poll(offset, timeout=timeout)
+                acknowledged = set()
+            self.logger.event(
+                "DEBUG",
+                "telegram.dialog",
+                "updates_received",
+                offset=offset,
+                count=len(updates),
+            )
+            self.updates.process(updates, acknowledged, offset)
+            self._process_commands()
+            # Answers above may have resolved the question that held messages back.
+            self.outbox.flush()
 
     def _process_commands(self) -> None:
         """Execute queued web commands in arrival order."""

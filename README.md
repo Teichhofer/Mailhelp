@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.6.3 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.6.4 · **Python:** 3.12.x · **Lizenz:** MIT
 
 [Installation](#installation) · [Konfiguration](#konfiguration) ·
 [Betrieb](#betrieb) · [Docker](#docker) ·
@@ -41,7 +41,8 @@ einem lokalen Ollama-Server ist ebenfalls verfügbar.
   ursprünglichem und entschiedenem Vorschlag in `data/<Betriebsart>/learning/decisions.jsonl`
   abgelegt. Die Frist steht in `retention.decision_learning_days` (Standard unbegrenzt).
 - **Telegram und Web-App:** Vorschläge prüfen, klären, bearbeiten, bestätigen oder
-  verwerfen. Eine fehlgeschlagene Dublettenprüfung lässt sich direkt an der Karte wiederholen. Die installierbare Web-App unterstützt auch den Betrieb ohne Telegram.
+  verwerfen; Aktionen werden sofort ausgeführt, auch während Mails analysiert werden.
+  Eine fehlgeschlagene Dublettenprüfung lässt sich direkt an der Karte wiederholen. Die installierbare Web-App unterstützt auch den Betrieb ohne Telegram.
   Die Statusseite führt alle konfigurierten IMAP-, IServ-, Kalender-, Aufgaben- und
   Telegram-Konten einzeln auf, einschließlich deaktivierter Konten und noch ausstehender Neustarts.
 - **IServ-Elternbriefe:** Briefe aus dem IServ-Elternbriefmodul werden wie Mails

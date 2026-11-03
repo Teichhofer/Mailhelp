@@ -2,7 +2,7 @@
 
 **Stand:** 3. November 2026 (Version 3.6.3)  
 **Zweck:** Grundlage für [Planung 3.6](Planung-3.6.md), Schritte 0.5 (Arbeitsthread) und 0.6 (Nachweis)  
-**Status:** Analyse; noch keine Verhaltensänderung
+**Status:** Umgesetzt in 3.6.4 (Abschnitt 7); Nachweis folgt in 3.6.5
 
 ---
 
@@ -78,3 +78,30 @@ Threads übergeben ihm Arbeit, statt ihn direkt aufzurufen.
 - Einstellungs- und Themenänderung während einer Mailverarbeitung wirkt erst beim
   nächsten Zyklus; die laufende Mail behält ihren Fingerprint.
 - Messung im Log: Zeit vom Einreihen bis `command_finished` während eines Zyklus.
+
+## 7. Umsetzung in 3.6.4
+
+- `OperatorThread` (`operator_thread.py`) bedient `poll_once`, sobald die `TelegramInbox` neue
+  Eingaben meldet oder die `CommandInbox` einen Befehl einreiht, sonst spätestens nach dem
+  Abrufintervall; nach einem fehlgeschlagenen Telegram-Abruf wartet er höchstens 30 Sekunden.
+  Er startet nach Empfänger und Weboberfläche, nur wenn ein Empfangs-Thread läuft, und wird
+  vor der Weboberfläche und den Adaptern beendet; `Application.stop` weckt ihn.
+- `TelegramDialogController.lock` (reentrant) umschließt `poll_once`, `send`, `send_relevance`,
+  `send_proposal`, `flush_outbox` und `show_open_decisions`. Benachrichtigungen aus der
+  Mailverarbeitung bleiben dadurch synchron und behalten ihre absturzsichere Buchführung;
+  die Analyse sah dafür eine Warteschlange vor, die Sperre erhält aber die bestehende
+  Reihenfolge und Fehlerbehandlung.
+- `ConfigurationService` meldet Live-Einstellungen und Themen an `Application.request_settings`
+  und `request_topics`; der Hauptthread übernimmt sie mit `_apply_requested_configuration`
+  am Beginn jedes Zyklus.
+- `_wait_for_telegram_decision` wartet auf `OperatorThread.served` statt selbst zu pollen.
+
+**Prüfliste der Schreibpfade (Abschnitt 3):**
+
+| Pfad | Ergebnis |
+| :--- | :--- |
+| Dialog aus Mailverarbeitung | Notifier-Aufrufe der Pipeline liegen außerhalb von `store.locked()`; der Abgleich ruft den Dialog nicht auf. Reihenfolge Dialog → Store ist eingehalten. |
+| Vorschläge zusammenführen/speichern | `ProposalReconciliationService.merge` und `save` prüfen Version und offenen Status in `store.locked()`; ein inzwischen bestätigter Vorschlag wird nicht überschrieben. |
+| Relevanzentscheidung | betrifft nur eine wartende Mail; der Hauptthread verarbeitet sie währenddessen nicht. |
+| Neuprüfung (`recheck_mail`) | betrifft nur abgeschlossene Mails; die Wiederaufnahme lädt den Zustand danach neu. |
+| Live-Einstellungen, Themen | nur im Hauptthread zwischen zwei Zyklen. |

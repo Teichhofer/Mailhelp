@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 from .logging import JsonlLogger, log_and_continue
+from .operator_thread import OperatorThread
 from .telegram.receiver import TelegramInbox, TelegramReceiver, UpdateSource
 from .web import WebServer, WebServerError
 
@@ -25,6 +26,7 @@ class ServiceCoordinator:
     experience: ExperienceRuntime | None = None
     notifications: NotificationRuntime | None = None
     receiver: TelegramReceiver | None = None
+    operator: OperatorThread | None = None
 
     def start_receiver(self, inbox: object, telegram: UpdateSource, offset: Callable[[], int],
                        logger: JsonlLogger, backoff_seconds: float) -> None:
@@ -33,6 +35,21 @@ class ServiceCoordinator:
             return
         self.receiver = TelegramReceiver(telegram, inbox, offset(), logger, backoff_seconds)
         self.receiver.start()
+
+    def start_operator(self, serve: Callable[[], bool], retry_seconds: float, idle_seconds: float) -> None:
+        """Serve Telegram input and web commands in their own thread; needs the receiver's inbox."""
+        if self.receiver is None:
+            return
+        inbox = self.receiver.inbox
+        self.operator = OperatorThread(serve, inbox.wait, inbox.wake, retry_seconds, idle_seconds)
+        self.operator.start()
+
+    def stop_operator(self) -> None:
+        operator, self.operator = self.operator, None
+        if operator is not None:
+            operator.stop()
+            # A running command finishes first; adapter timeouts bound it.
+            operator.join()
 
     def stop_receiver(self) -> None:
         receiver, self.receiver = self.receiver, None

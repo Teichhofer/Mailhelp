@@ -295,7 +295,7 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
     store, logger, dialog = application.store, application.logger, application.dialog
     # build_application always creates the dialog and its command inbox before the web interface.
     assert dialog is not None and dialog.commands is not None
-    telegram, orchestrator, stop_event = application.telegram, application.orchestrator, application.stop_event
+    telegram, stop_event = application.telegram, application.stop_event
     secret = secrets.mailhelp_web_secret
     if settings.telegram.enabled:
         def notify(text):
@@ -316,7 +316,7 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
     from .configuration import ConfigurationService
     from .lifecycle import Lifecycle
     configuration = ConfigurationService(base_directory, store, settings, components.authorize,
-                                          application.apply_settings, orchestrator.change_topics,
+                                          application.request_settings, application.request_topics,
                                           senders=sender_store)
     application.configuration = configuration
     dialog.review.configuration = configuration

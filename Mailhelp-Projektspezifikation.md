@@ -99,7 +99,7 @@ verbrauchen dieses Verarbeitungskontingent nicht. Ein separates, ebenfalls auf
 Ohne `--max-mails` liegt diese separate Obergrenze bei 1.000 blockierten
 Zuständen je Abrufdurchlauf.
 
-Telegram-Eingaben empfängt ein eigener Empfangs-Thread per Long-Poll (`telegram_poll_seconds`), sobald ein Lauf beginnt – auch während der Mailanalyse und bei `--max-mails`. Er quittiert jede Schaltflächenbetätigung sofort mit „Eingegangen – wird bearbeitet …“, sodass Telegram keinen Ladeindikator mehr zeigt, und speichert jedes Update in `telegram-inbox.json`, bevor der nächste `getUpdates`-Aufruf es gegenüber Telegram bestätigt; ein Absturz verliert daher keine Eingabe. Verarbeitet werden Eingaben ausschließlich im Hauptthread: vor jeder Mail, während eine analyseblockierende Relevanzfrage offen ist, und in der Wartezeit zwischen zwei Zyklen sofort bei Eingang. Eine Eingabe wartet damit höchstens auf das Ende der gerade laufenden Mailanalyse. Der Empfangs-Thread verändert keine Mail-, Vorschlags- oder Dialogzustände; bereits quittierte Schaltflächen werden bei der Verarbeitung nicht erneut quittiert. Nach dem Ende eines Laufs gespeicherte Eingaben werden beim nächsten Start verarbeitet. Scheitert die Verarbeitung einer Eingabe, wird sie nach 30 und 60 Sekunden erneut versucht; nachfolgende Eingaben warten so lange, damit die Reihenfolge erhalten bleibt. Nach dem dritten Fehlversuch oder sofort bei einem dauerhaften Fehler wird die Eingabe verworfen und einmalig in Telegram gemeldet; eine unbegrenzte Wiederholung würde ihre Nebenwirkungen, etwa eine erneut gesendete Rückfrage, vor jeder Mail wiederholen. Ein wiederholtes „Manuell prüfen“ für die Vorschlagsversion, deren Änderungsmodus bereits auf eine Antwort wartet, sendet die Rückfrage nicht erneut, sondern meldet „Änderungsmodus läuft bereits“. Das Entfernen bereits entfernter Schaltflächen (Telegram: „message is not modified“) gilt als erfolgreich. Je Bot-Token darf nur ein Prozess `getUpdates` abrufen.
+Telegram-Eingaben empfängt ein eigener Empfangs-Thread per Long-Poll (`telegram_poll_seconds`), sobald ein Lauf beginnt – auch während der Mailanalyse und bei `--max-mails`. Er quittiert jede Schaltflächenbetätigung sofort mit „Eingegangen – wird bearbeitet …“, sodass Telegram keinen Ladeindikator mehr zeigt, und speichert jedes Update in `telegram-inbox.json`, bevor der nächste `getUpdates`-Aufruf es gegenüber Telegram bestätigt; ein Absturz verliert daher keine Eingabe. Verarbeitet werden Eingaben seit 3.6.4 in einem eigenen Bedien-Thread, sofort bei Eingang und unabhängig von der Mailanalyse; der Hauptthread verarbeitet nur Mails und wartet bei einer analyseblockierenden Relevanzfrage auf die Entscheidung des Bedien-Threads. Der Telegram-Dialog ist durch eine Sperre serialisiert, auch für Benachrichtigungen aus der Mailverarbeitung. Ohne Empfangs-Thread verarbeitet weiterhin der Hauptthread die Eingaben zwischen den Zyklen. Der Empfangs-Thread verändert keine Mail-, Vorschlags- oder Dialogzustände; bereits quittierte Schaltflächen werden bei der Verarbeitung nicht erneut quittiert. Nach dem Ende eines Laufs gespeicherte Eingaben werden beim nächsten Start verarbeitet. Scheitert die Verarbeitung einer Eingabe, wird sie nach 30 und 60 Sekunden erneut versucht; nachfolgende Eingaben warten so lange, damit die Reihenfolge erhalten bleibt. Nach dem dritten Fehlversuch oder sofort bei einem dauerhaften Fehler wird die Eingabe verworfen und einmalig in Telegram gemeldet; eine unbegrenzte Wiederholung würde ihre Nebenwirkungen, etwa eine erneut gesendete Rückfrage, vor jeder Mail wiederholen. Ein wiederholtes „Manuell prüfen“ für die Vorschlagsversion, deren Änderungsmodus bereits auf eine Antwort wartet, sendet die Rückfrage nicht erneut, sondern meldet „Änderungsmodus läuft bereits“. Das Entfernen bereits entfernter Schaltflächen (Telegram: „message is not modified“) gilt als erfolgreich. Je Bot-Token darf nur ein Prozess `getUpdates` abrufen.
 
 Ein regulärer Zyklus beginnt unmittelbar mit der IMAP-Verarbeitung und führt den
 Telegram-Long-Poll erst anschließend aus. Dadurch verzögert dessen konfigurierter
@@ -1272,7 +1272,7 @@ Der beim ersten Anlegen gespeicherte Fingerprint umfasst `config.yaml`, `prompts
 
 **Erneute Prüfung aussortierter Mails (3.6.1).** Eine als irrelevant abgeschlossene Mail – Relevanzprüfung abgeschlossen, alle weiteren Schritte übersprungen, keine Vorschläge – kann bewusst erneut geprüft werden. Maßgeblich sind die Verarbeitungsschritte, nicht das gespeicherte Relevanzergebnis, da die Aufbewahrung es entfernt haben kann. Der Mailzustand wird dauerhaft auf eine unverarbeitete Mail mit dem aktuellen Fingerprint des Postfachs zurückgesetzt; erhalten bleiben Identität, Anlagezeitpunkt, Anzeige-Header, Dublettenentscheidung und die bisherigen Aufruf-IDs. Die Themen der aktuellen Konfiguration werden wie bei einer neuen Mail festgehalten. Die reguläre Wiederaufnahme unfertiger Zustände holt die Mail anschließend per `fetch_uid` erneut vom Server und durchläuft die gesamte Verarbeitung; ein Neustart dazwischen benötigt keine eigene Wiederherstellung. Eine wiederholte Anforderung vor der Verarbeitung ändert nichts (`already_pending`); unbekannte Mail-IDs ergeben `not_found`, relevante, duplizierte oder Mails mit Vorschlägen `not_irrelevant`. Das Ereignis `orchestrator.recheck_requested` nennt die neue Analyserunde und ob sich die Konfiguration seit der ersten Prüfung geändert hat.
 
-**Bedienung (3.6.2).** `MailState.analysis_round` (Standard 1, ältere Zustände bleiben gültig) zählt die Neuprüfungen und ist die Version eines Neuprüfungsbefehls. Maildetail (Abschnitt „Aussortiert“) und Archivliste bieten für aussortierte Mails „Erneut prüfen“ an. Der Befehl `recheck_mail` läuft wie jede Webaktion über `/aktion` mit Sitzung, CSRF-Token, Idempotenzschlüssel und der angezeigten Analyserunde; eine veraltete Runde wird vor dem Einreihen mit HTTP 409 abgelehnt und bei der Ausführung im Hauptthread erneut geprüft, ebenso die Gültigkeit der Sitzung. Bei Erfolg zeigt das Maildetail das Ergebnis; der Verlauf erhält das Ereignis `recheck` (Status `irrelevant`, Version = beendete Runde). Nach einem Neustart gilt ein unterbrochener Befehl als ausgeführt, wenn die Analyserunde der Mail inzwischen höher ist; er wird nie erneut ausgeführt. Fehlt der Neuprüfungsdienst, lautet das Ergebnis `invalid` mit lesbarer Meldung.
+**Bedienung (3.6.2).** `MailState.analysis_round` (Standard 1, ältere Zustände bleiben gültig) zählt die Neuprüfungen und ist die Version eines Neuprüfungsbefehls. Maildetail (Abschnitt „Aussortiert“) und Archivliste bieten für aussortierte Mails „Erneut prüfen“ an. Der Befehl `recheck_mail` läuft wie jede Webaktion über `/aktion` mit Sitzung, CSRF-Token, Idempotenzschlüssel und der angezeigten Analyserunde; eine veraltete Runde wird vor dem Einreihen mit HTTP 409 abgelehnt und bei der Ausführung erneut geprüft, ebenso die Gültigkeit der Sitzung. Bei Erfolg zeigt das Maildetail das Ergebnis; der Verlauf erhält das Ereignis `recheck` (Status `irrelevant`, Version = beendete Runde). Nach einem Neustart gilt ein unterbrochener Befehl als ausgeführt, wenn die Analyserunde der Mail inzwischen höher ist; er wird nie erneut ausgeführt. Fehlt der Neuprüfungsdienst, lautet das Ergebnis `invalid` mit lesbarer Meldung.
 
 Vorschläge werden unabhängig vom Abschluss der Mail sowohl als unveränderliche
 Version als auch als aktueller Stand gespeichert. Der Telegram-Dialog stößt einen
@@ -1909,8 +1909,9 @@ letzten Minute) sowie Version, Modus, Laufzeit und Adresse der Weboberfläche.
 in die dauerhafte `command-inbox` (Status `queued`, `running`, `done`, `rejected`,
 `failed`; erledigte Einträge einen Tag). Derselbe Schlüssel hat nie eine zweite
 Wirkung, ein anderer Befehl mit demselben Schlüssel wird abgewiesen, höchstens 50
-Befehle warten. Der Hauptthread verarbeitet sie nach den Telegram-Eingaben eines
-Zyklus in Eingangsreihenfolge; nach einem Neustart werden `running`-Einträge gegen
+Befehle warten. Der Bedien-Thread (3.6.4; ohne Empfangs-Thread der Hauptthread)
+verarbeitet sie nach den Telegram-Eingaben in Eingangsreihenfolge, ohne auf die
+Mailanalyse zu warten; nach einem Neustart werden `running`-Einträge gegen
 den aktuellen Zustand abgeglichen statt wiederholt. `JsonStore` serialisiert Lesen
 und Schreiben zusätzlich mit einer prozessinternen Sperre.
 
@@ -1959,7 +1960,7 @@ Einrichtung und Betrieb: [docs/Release-1.1.md](docs/Release-1.1.md).
 ## 19. Weboberfläche 1.2: Archiv, Verlauf, Auswertung und Einstellungen
 
 Version 1.2 erweitert Abschnitt 18; alle Regeln dort (Anmeldung, CSRF, Host-Prüfung,
-Hauptthread als einziger Zustandsbesitzer, versionsgebundene Befehle) gelten auch hier.
+ein einziger Thread führt Befehle aus, versionsgebundene Befehle) gelten auch hier.
 
 **Mails und Analyse.** `/mails` durchsucht ausschließlich gespeicherte Vorgänge
 (Absender, Betreff, Zusammenfassung) mit validierten Filtern und höchstens 100 Einträgen
@@ -2075,7 +2076,9 @@ seit 3.2 unterstützen IMAP-Konfigurationsentwürfe. Der separate Einstellungsbe
 „Zugangsdaten“ bearbeitet einzelne Zugangswerte ausschließlich in `.env`.
 Konfigurations- und Themenänderungen sind
 `AdminCommand`s mit erwartetem Dateihash und ausdrücklicher Bestätigung, laufen im
-Hauptthread, werden journalisiert und atomar geschrieben. `config.yaml` wird
+Bedien-Thread, werden journalisiert und atomar geschrieben. Live-Einstellungen und
+Themen übernimmt der Hauptthread am Beginn seines nächsten Zyklus (3.6.4), nie während
+einer Mailverarbeitung. `config.yaml` wird
 kommentarerhaltend geändert (nur betroffene Zeilen); weicht die geparste Datei vom
 validierten Kandidaten ab, wird nichts geschrieben. Abrufintervall, Aufbewahrung und
 Metrikannahmen werden an einer sicheren Stelle übernommen, alles andere nach einem
