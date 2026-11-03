@@ -48,6 +48,7 @@ class _FailedAccessAdapter:
         raise RuntimeError("IMAP nicht bereit; Zugang unter /diagnose prüfen und Mailhelp neu starten.")
 
     fetch_uid = discover_since
+    list_folders = discover_since
     fetch_since = discover_since
     determine_start_uid = discover_since
 

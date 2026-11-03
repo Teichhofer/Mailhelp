@@ -14,7 +14,7 @@ from uuid import uuid4
 
 from . import state_names
 from .config import MailboxSettings, Settings
-from .imap import FetchedMail, MailCandidate, UIDValidityChanged
+from .imap import FetchedMail, ListedMailbox, MailCandidate, UIDValidityChanged
 from .logging import EventLogger
 from .models import ImapCheckpoint, MailRunCounters, MailRunEntry, MailRunEntryStatus, MailRunState, MailState
 from .orchestrator import Orchestrator, ProcessingOutcome, ProcessingResult
@@ -167,6 +167,9 @@ class MailboxRunService:
     _unavailable_reported: set[str] = field(default_factory=set)
     # Readers of further sources by account id (IServ, 3.3.7); unfinished letters resume through them.
     resume_readers: dict[str, Any] = field(default_factory=dict)
+    # Accounts whose folder list was stored, or whose listing failure was reported, since this start.
+    _folders_listed: set[str] = field(default_factory=set)
+    _folder_list_failures: set[str] = field(default_factory=set)
 
     def _source(self, account: str) -> MailboxSource | None:
         return next((source for source in self.sources if source.account_id == account), None)
@@ -180,6 +183,7 @@ class MailboxRunService:
     def poll(self, max_mails: int | None = None, *,
                    ignore_historical_start: bool = False) -> list[ProcessingResult]:
         """Resume durable work and process new mail, returning every outcome."""
+        self.record_folder_lists()
         budget = _MailBudget(max_mails)
         results = self.resume_pending(budget)
         # A failed mail can indicate a shared provider or credential problem.  Do
@@ -311,6 +315,48 @@ class MailboxRunService:
             checkpoint_name, ImapCheckpoint(**checkpoint).model_dump()
         )
         return checkpoint, start_uid
+
+    def record_folder_lists(self) -> None:
+        """Store the folder list of every mailbox server once after each start.
+
+        A failed listing is retried at the next poll but reported only once; it
+        never delays or prevents fetching mail.
+        """
+        for source in self.sources:
+            account = source.account_id
+            if account in self._folders_listed or not hasattr(source.reader, "list_folders"):
+                continue
+            try:
+                listed = source.reader.list_folders()
+            except Exception as exc:
+                if account not in self._folder_list_failures:
+                    self._folder_list_failures.add(account)
+                    self.logger.event("WARNING", "imap", "folder_list_failed", mailbox=source.mailbox.id,
+                                      account_id=account, error=str(exc))
+                continue
+            self._folders_listed.add(account)
+            self._save_folder_list(source, listed)
+
+    def _save_folder_list(self, source: MailboxSource, listed: list[ListedMailbox]) -> None:
+        configured = set(source.mailbox.folders)
+        names = {folder.name for folder in listed}
+        missing = sorted(configured - names)
+        stored = self.store.load(state_names.MAILBOX_FOLDERS)
+        current = {str(item.mailbox.id) for item in self.sources}
+        # Entries of mailboxes that are no longer configured are dropped.
+        mailboxes = {key: value for key, value in (stored.get("mailboxes") or {}).items() if key in current
+                     } if isinstance(stored, dict) else {}
+        mailboxes[str(source.mailbox.id)] = {
+            "account_id": source.account_id, "label": source.mailbox.label,
+            "listed_at": datetime.now(UTC).isoformat(),
+            "folders": [{"name": folder.name, "role": folder.role, "flags": sorted(folder.flags),
+                         "configured": folder.name in configured}
+                        for folder in sorted(listed, key=lambda item: item.name)],
+            "missing": missing,
+        }
+        self.store.save(state_names.MAILBOX_FOLDERS, {"schema_version": 1, "mailboxes": mailboxes})
+        self.logger.event("INFO", "imap", "folders_listed", mailbox=source.mailbox.id, account_id=source.account_id,
+                          count=len(listed), unconfigured_count=len(names - configured), missing=missing)
 
     def _folder_failed(self, source: MailboxSource, folder: str, exc: Exception) -> None:
         event = "poll_failed" if folder == source.mailbox.primary_folder else "optional_folder_failed"

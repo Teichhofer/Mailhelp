@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.5.5 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.5.6 · **Python:** 3.12.x · **Lizenz:** MIT
 
 [Installation](#installation) · [Konfiguration](#konfiguration) ·
 [Betrieb](#betrieb) · [Docker](#docker) ·
@@ -291,6 +291,12 @@ Die Statusseite zeigt IMAP-Abruffehler je Postfach und Ordner auch dann, wenn no
 keine Mail zur Analyse geladen werden konnte. Erst ein erfolgreicher Abruf desselben
 Ordners entfernt den Hinweis. „Keine Fehler bei gespeicherten Mails“ betrifft nur
 die Mailanalyse.
+
+Beim ersten Abruf nach jedem Start speichert Mailhelp die Ordnerliste jedes Postfachs
+in `mailbox-folders.json` im Datenverzeichnis: Name, Rolle (z. B. `junk` für den
+Spam-Ordner), ob der Ordner abgerufen wird, und konfigurierte, aber auf dem Server
+fehlende Ordner. Ein Fehlschlag wird einmal protokolliert und beim nächsten Abruf
+wiederholt; der Mailabruf läuft davon unabhängig weiter.
 
 Bereits ausgeschlossene UIDs werden auch dann vor dem Abruf gefiltert, wenn der
 IMAP-Server seine höchste vorhandene UID erneut zurückgibt. Alte Warteschlangeneinträge

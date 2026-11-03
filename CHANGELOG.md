@@ -1,5 +1,14 @@
 # Änderungen
 
+## 3.5.6 – Ordnerliste der Postfächer
+
+- Beim ersten Abruf nach jedem Start ruft Mailhelp die Ordnerliste jedes Postfachs ab und
+  speichert sie in `mailbox-folders.json`: Name, Rolle (z. B. Spam-Ordner `junk`),
+  Flags, ob der Ordner abgerufen wird, und konfigurierte, auf dem Server fehlende Ordner.
+  Das Log meldet `folders_listed` je Postfach. Ein Fehlschlag wird einmal als
+  `folder_list_failed` gemeldet und beim nächsten Abruf wiederholt; der Mailabruf läuft
+  unabhängig davon weiter.
+
 ## 3.5.5 – Schnellere Weboberfläche
 
 - Fehlerbehebung: Die Aufbewahrungsbereinigung schrieb bei jedem Abrufzyklus alle bereits

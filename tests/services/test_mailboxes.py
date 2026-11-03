@@ -11,7 +11,7 @@ from shared_application import settings as app_settings
 from mailhelp.application import Application
 from mailhelp.composition import _FailedAccessAdapter
 from mailhelp.config import Settings
-from mailhelp.imap import FetchedMail, MailCandidate
+from mailhelp.imap import FetchedMail, ListedMailbox, MailCandidate
 from mailhelp.mailbox_run import MailboxSource, _checkpoint_name, _RunSummary
 from mailhelp.models import MailRunState, MailState
 from mailhelp.orchestrator import ProcessingOutcome, ProcessingResult
@@ -147,3 +147,64 @@ def test_one_mailbox_keeps_the_single_summary_line(tmp_path):
     app = Application(app_settings(tmp_path), Store(), Log(), Reader("a", []), object(), object(), Telegram([]),
                       object(), object(), Orch(), Event())
     assert app._mailbox_lines([None]) == ""
+
+
+class ListingReader(Reader):
+    """A mailbox whose server folder list can fail a given number of times."""
+
+    def __init__(self, account, messages, folders, failures=0):
+        super().__init__(account, messages)
+        self.folders, self.failures, self.listings = folders, failures, 0
+
+    def list_folders(self):
+        self.listings += 1
+        if self.failures:
+            self.failures -= 1
+            raise RuntimeError("LIST abgelehnt")
+        return self.folders
+
+
+def test_the_first_poll_after_a_start_stores_the_folder_list_of_every_mailbox(two_mailboxes):
+    junk = ListedMailbox("Unerwünscht", frozenset({"\\Junk", "\\HasNoChildren"}), "junk")
+    private = ListingReader("a", [(1, 1)], [ListedMailbox("INBOX", frozenset(), "inbox"), junk])
+    work = ListingReader("b", [], [ListedMailbox("Archiv", frozenset())])
+    store = Store({"mailbox-folders": {"schema_version": 1, "mailboxes": {
+        "1": {"account_id": "alt"}, "9": {"account_id": "entfernt"}}}})
+    app = service(two_mailboxes, [private, work], store=store)
+    assert len(app.mailbox.poll()) == 1
+    stored = store.values["mailbox-folders"]["mailboxes"]
+    # A stale entry is replaced; a mailbox that is no longer configured is dropped.
+    assert set(stored) == {"1", "2"}
+    assert stored["1"]["account_id"] == "a" * 24 and stored["1"]["label"] == "Privat"
+    assert stored["1"]["folders"] == [
+        {"name": "INBOX", "role": "inbox", "flags": [], "configured": True},
+        {"name": "Unerwünscht", "role": "junk", "flags": ["\\HasNoChildren", "\\Junk"], "configured": False}]
+    assert stored["1"]["missing"] == [] and stored["2"]["missing"] == ["INBOX"]
+    datetime.fromisoformat(stored["2"]["listed_at"])
+    listed = [fields for (_, _, event), fields in app.logger.events if event == "folders_listed"]
+    assert [(item["mailbox"], item["count"], item["unconfigured_count"], item["missing"]) for item in listed] == [
+        (1, 2, 1, []), (2, 1, 1, ["INBOX"])]
+    # Later polls of the same process do not ask the servers again.
+    app.mailbox.poll()
+    assert private.listings == work.listings == 1
+    # A restart lists again.
+    restarted = service(two_mailboxes, [private, work], store=store)
+    restarted.mailbox.poll()
+    assert private.listings == work.listings == 2
+
+
+def test_a_failed_folder_list_is_reported_once_retried_and_never_blocks_mail(two_mailboxes):
+    private = ListingReader("a", [(1, 1)], [ListedMailbox("INBOX", frozenset(), "inbox")], failures=2)
+    broken = _FailedAccessAdapter(RuntimeError("TLS-Fehler"), "b" * 24)
+    store = Store({"mailbox-folders": ["beschädigt"]})
+    app = service(two_mailboxes, [private, broken], store=store)
+    assert len(app.mailbox.poll()) == 1 and app.orchestrator.seen == [("a", 1)]
+    app.mailbox.poll()
+    failures = [fields for (level, _, event), fields in app.logger.events if event == "folder_list_failed"]
+    assert [(item["mailbox"], item["error"]) for item in failures] == [(1, "LIST abgelehnt"), (2, str(
+        RuntimeError("IMAP nicht bereit; Zugang unter /diagnose prüfen und Mailhelp neu starten.")))]
+    assert store.values["mailbox-folders"] == ["beschädigt"] and private.listings == 2
+    # The third poll succeeds and replaces the damaged file; the failure stays unstored.
+    app.mailbox.poll()
+    assert private.listings == 3 and set(store.values["mailbox-folders"]["mailboxes"]) == {"1"}
+    assert "abgelehnt" not in str(store.values["mailbox-folders"])

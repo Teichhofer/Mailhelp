@@ -13,6 +13,8 @@ MAIL_RUN_PREFIX = "mail-run-"
 PROPOSAL_PREFIX = "proposal-"
 CLARIFICATION_PREFIX = "clarification-"
 DRAFT_PREFIX = "draft-"
+# The folders each mailbox server reported at the first poll after a start.
+MAILBOX_FOLDERS = "mailbox-folders"
 
 
 class NamedStore(Protocol):
