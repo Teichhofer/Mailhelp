@@ -74,3 +74,22 @@ def test_unavailable_configuration_keeps_navigation_and_reports_problem(web):
     page = web.browser.request("GET", "/einstellungen?suche=Zeitzone").body.decode()
     assert "Konfigurationsdienst nicht verfügbar" in page
     assert "1 eingerichtet" in settings_page([], {}, {}, "", "")  # Former single-mailbox format.
+
+
+def test_settings_left_out_of_config_yaml_are_not_pending(profiled):
+    # Regression: settings missing in config.yaml compared "nicht gesetzt" with their active
+    # default and showed dozens of pending changes that a restart would never apply.
+    ctx = profiled
+    path = ctx.tmp_path / "config.yaml"
+    raw = yaml.safe_load(path.read_text())
+    del raw["metrics"], raw["retention"]["cleanup_interval_minutes"]
+    path.write_text(yaml.safe_dump(raw))
+    page = ctx.web.browser.request("GET", "/einstellungen").body.decode()
+    assert "ausstehend" not in page
+    area = ctx.web.browser.request("GET", "/einstellungen?bereich=daten").body.decode()
+    assert "Gespeichert: 60 · aktiv" in area and "nächsten sicheren Stelle" not in area
+    # A config.yaml the program would reject still shows its literal values as pending.
+    raw["poll_interval_seconds"] = 1
+    path.write_text(yaml.safe_dump(raw))
+    page = ctx.web.browser.request("GET", "/einstellungen").body.decode()
+    assert "Änderungen ausstehend" in page

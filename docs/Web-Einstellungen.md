@@ -4,7 +4,9 @@ Stand: 2. November 2026, Anwendungsversion 3.5.5.
 
 `/einstellungen` zeigt Kacheln für Konten, allgemeine Regeln, Inhalte und Systemaktionen.
 Kontenkacheln nennen die Anzahl der im laufenden Dienst eingerichteten Konten. Bereichskacheln
-markieren gespeicherte, noch nicht aktive Änderungen. Die Suche (`?suche=…`) findet Einstellungen,
+markieren gespeicherte, noch nicht aktive Änderungen. Verglichen wird mit den Werten, die der
+nächste Start anwenden würde: Eine in `config.yaml` fehlende Einstellung gilt mit ihrem
+Standardwert und ist keine ausstehende Änderung. Die Suche (`?suche=…`) findet Einstellungen,
 deren Bezeichnung, Feldname, Gruppe oder Bereich alle eingegebenen Wörter enthält.
 Ein unbekannter Bereich liefert HTTP 404. Die Oberfläche funktioniert ohne JavaScript.
 

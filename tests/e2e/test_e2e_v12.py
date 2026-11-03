@@ -161,7 +161,7 @@ def test_settings_saved_then_stopped_and_taken_over_after_a_restart(tmp_path):
         assert active[-1].poll_interval_seconds == 45
         assert service.active.timeouts.imap.timeout_seconds != 55
         page = web.browser.request("GET", "/einstellungen?bereich=abruf").body.decode()
-        assert "Gespeichert: 55 · gespeichert – wirkt erst nach einem Neustart" in page
+        assert "Gespeichert: 55.0 · gespeichert – wirkt erst nach einem Neustart" in page
         stop = fields(web, "/einstellungen/beenden", "/einstellungen/beenden")
         answer = web.browser.request("POST", "/einstellungen/beenden", stop)
         answer.after_send()

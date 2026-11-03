@@ -7,6 +7,7 @@ from urllib.parse import parse_qs
 
 import yaml
 
+from ..config import Settings
 from ..configuration import AdminCommand, AdminKind, ConfigurationConflict, file_hash
 from ..credentials import CredentialService, CredentialUnauthorized
 from ..storage import CorruptState
@@ -16,6 +17,18 @@ from .settings_pages import AREA_KEYS, TEXT_SETTINGS, settings_confirmation, set
 
 if TYPE_CHECKING:
     from .archive_site import ArchiveSite
+
+def _effective(raw: dict) -> dict:
+    """The saved values as the next start would apply them, defaults included.
+
+    A setting left out of config.yaml is not a pending change; a file the
+    program would reject keeps its literal values.
+    """
+    try:
+        return Settings.model_validate(raw).model_dump(mode="json")
+    except ValueError:
+        return raw
+
 
 TOPIC_FILES = (("relevant", "topics.yaml"), ("irrelevant", "irrelevant_topics.yaml"))
 
@@ -39,7 +52,7 @@ class SettingsSite:
         revision = ""
         if configuration is not None:
             path = configuration.directory / "config.yaml"
-            raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+            raw = _effective(yaml.safe_load(path.read_text(encoding="utf-8")))
             active = configuration.active.model_dump(mode="json")
             revision = file_hash(path)
         csrf = self.site.auth.csrf_token(session.id)

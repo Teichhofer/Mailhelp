@@ -1,5 +1,15 @@
 # Änderungen
 
+## 3.5.8 – Keine falschen ausstehenden Änderungen
+
+- Fehlerbehebung: Die Einstellungsübersicht zeigte zahlreiche „Änderungen ausstehend“
+  (z. B. 8 bei Mailabruf, 15 bei KI und Auswertung), obwohl nichts geändert war. Gezählt
+  wurden Einstellungen, die in `config.yaml` fehlen und deshalb mit ihrem Standardwert
+  aktiv sind; die Detailseiten nannten sie „Gespeichert: nicht gesetzt · wirkt erst nach
+  einem Neustart“. Verglichen wird jetzt mit den Werten, die der nächste Start anwenden
+  würde. Eine ungültige `config.yaml` zeigt weiterhin ihre wörtlichen Werte. Ein
+  Regressionstest deckt das ab.
+
 ## 3.5.7 – Neustart unter Windows
 
 - Fehlerbehebung: „Mailhelp neu starten“ scheiterte unter Windows mit
