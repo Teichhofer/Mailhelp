@@ -1,7 +1,7 @@
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 
-from mailhelp.webpush import b64
+from mailhelp.notifications.webpush import b64
 
 
 def sub():

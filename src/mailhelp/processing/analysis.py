@@ -381,7 +381,7 @@ class Analyzer:
         The model sees the mail, every recognized attachment text (including OCR)
         and the user's own ``personal_info``, but no technical metadata.
         """
-        from ..drafts import ReplyDraft
+        from ..notifications.drafts import ReplyDraft
         attachments = [{"filename": item.filename, "text": item.usable_text}
                        for item in map(PreparedAttachment.model_validate, mail.get("extracted_attachments", []))
                        if item.usable_text]

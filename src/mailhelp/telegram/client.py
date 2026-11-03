@@ -12,7 +12,7 @@ from pydantic import ValidationError
 
 from ..llm.adapter import PermanentError, RetryInterrupted, RetryPolicy, uncertain_write
 from ..logging import EventLogger, NullLogger
-from ..notification_context import web_reply
+from ..notifications.notification_context import web_reply
 from .callbacks import validate_callback_markup
 from .formatting import split_message
 from .models import (

@@ -14,14 +14,14 @@ from shared_web_details import with_mail
 
 from mailhelp.llm.adapter import PermanentError, RetryableError
 from mailhelp.models import MailState, ProposalStatus
-from mailhelp.notification_config import Categories, NotificationSettings
-from mailhelp.notification_context import web_reply
-from mailhelp.notification_runtime import NotificationRuntime
-from mailhelp.notifications import Delivery, QueueFull
+from mailhelp.notifications.notification_config import Categories, NotificationSettings
+from mailhelp.notifications.notification_context import web_reply
+from mailhelp.notifications.notification_runtime import NotificationRuntime
+from mailhelp.notifications.notifications import Delivery, QueueFull
+from mailhelp.notifications.webpush import PushService
 from mailhelp.review.commands import CommandKind, CommandSource, ReviewCommand
 from mailhelp.review.results import ResultStatus, ReviewResult
 from mailhelp.telegram import TelegramClient
-from mailhelp.webpush import PushService
 
 # Since 2.3 the writers are built in mailhelp.external.providers.
 MOVED_WRITERS = ("HttpWriter", "GoogleOAuthTokenProvider")

@@ -36,7 +36,7 @@ if TYPE_CHECKING:
     from .mailbox.iserv import IServRunService
     from .mailbox.iserv_runtime import IServRuntime
     from .mailbox.mailbox_runtime import MailboxRuntime
-    from .notification_runtime import NotificationRuntime
+    from .notifications.notification_runtime import NotificationRuntime
     from .proposals.target_profiles import ProfileWriters
     from .standalone import DisabledTelegram
 

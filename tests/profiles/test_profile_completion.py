@@ -9,12 +9,12 @@ from shared_telegram_dialog import proposal
 
 from mailhelp.application import Application
 from mailhelp.configuration import AdminCommand, AdminKind, file_hash
-from mailhelp.drafts import DraftService
 from mailhelp.experience import ExperienceRuntime
 from mailhelp.external.providers import Writers
 from mailhelp.llm.decisions import load_relevance_prompts
 from mailhelp.models import MailState
-from mailhelp.notification_runtime import NotificationRuntime
+from mailhelp.notifications.drafts import DraftService
+from mailhelp.notifications.notification_runtime import NotificationRuntime
 from mailhelp.proposals.target_profiles import ProfileWriters
 from mailhelp.review.commands import CommandKind, CommandSource, ReviewCommand
 from mailhelp.review.results import ResultStatus

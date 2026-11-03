@@ -8,7 +8,7 @@ from pydantic import ValidationError
 from pydantic_core import InitErrorDetails
 
 from ..config import EventDefaultsSettings, RetentionPeriod, Settings, TargetSettings, Topic
-from ..notification_config import NotificationSettings, effective_profile
+from ..notifications.notification_config import NotificationSettings, effective_profile
 
 
 def merge_policy(base: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any]:

@@ -338,7 +338,7 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
         prompts, jev_prompts.model if jev_prompts else None, local_llm.model if local_llm else None)
     from .experience import ExperienceRuntime
     application.experience = ExperienceRuntime(application, components, secrets)
-    from .notification_runtime import NotificationRuntime
+    from .notifications.notification_runtime import NotificationRuntime
     from .setup_runtime import SetupRuntime
     components.site.setup_page.runtime = SetupRuntime(application, components.site, secrets)
     from .diagnostics import DiagnosticResult, error_code
@@ -458,6 +458,6 @@ def build_application(
         if web_enabled:
             _attach_web(application, settings, secrets, prompts, jev_prompts, local_llm, base_directory, sender_store)
         elif not access_diagnostics:
-            from .notification_runtime import NotificationRuntime
+            from .notifications.notification_runtime import NotificationRuntime
             application.notifications = NotificationRuntime.without_web(application)
         yield application

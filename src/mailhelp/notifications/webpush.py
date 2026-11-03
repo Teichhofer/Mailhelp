@@ -15,8 +15,8 @@ from cryptography.hazmat.primitives.asymmetric import ec
 from py_vapid import Vapid
 from pywebpush import WebPushException, webpush
 
-from .llm.adapter import PermanentError, RetryableError
-from .storage import StateStore
+from ..llm.adapter import PermanentError, RetryableError
+from ..storage import StateStore
 
 
 def b64(value: bytes) -> str:

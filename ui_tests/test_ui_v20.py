@@ -15,8 +15,8 @@ from web_scenario import mail_id
 from checks import audit
 from conftest import item, sign_in
 from mailhelp.models import MailState, Proposal
+from mailhelp.notifications.webpush import PushService
 from mailhelp.processing.attachments import AttachmentCache
-from mailhelp.webpush import PushService
 from pages import MASTER, PANE, Overview, SettingsPage
 
 
@@ -368,7 +368,7 @@ class Writer:
         self.calls = []
 
     def draft_reply(self, mail, intent, personal_info):
-        from mailhelp.drafts import ReplyDraft
+        from mailhelp.notifications.drafts import ReplyDraft
         self.calls.append(intent)
         return "call", ReplyDraft(text=self.TEXTS[intent])
 
@@ -376,7 +376,7 @@ class Writer:
 def with_draft(mailhelp):
     from contextlib import nullcontext
 
-    from mailhelp.drafts import DraftService
+    from mailhelp.notifications.drafts import DraftService
     imap = Drafts()
     state = mailhelp.store.load_model(f"mail-{mail_id(1)}", MailState)
     state.mail["headers"].update(message_id="<elternabend@schule.test>")

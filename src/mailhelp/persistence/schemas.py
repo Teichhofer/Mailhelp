@@ -21,7 +21,7 @@ from ..domain.proposal_sources import ProposalRelation
 from ..domain.reconciliation import ProposalMatchCache, ProposalMergeJournal
 from ..domain.relevance import IrrelevantSenders, RelevanceDialog
 from ..domain.run import ImapCheckpoint, MailRunState, TelegramOffset
-from ..notifications import NotificationQueue
+from ..notifications.notifications import NotificationQueue
 from ..setup import SetupState
 
 __all__ = [

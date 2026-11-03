@@ -17,7 +17,7 @@ from .web import WebServer, WebServerError
 
 if TYPE_CHECKING:
     from .experience import ExperienceRuntime
-    from .notification_runtime import NotificationRuntime
+    from .notifications.notification_runtime import NotificationRuntime
 
 
 @dataclass

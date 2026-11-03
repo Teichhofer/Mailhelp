@@ -1,5 +1,12 @@
 # Änderungen
 
+## 3.6.15 – Paket `mailhelp.notifications` (Planung 3.6, Schritt 0.10e)
+
+- Benachrichtigungen, Web-Push, Tagesüberblick und Antwortentwürfe liegen jetzt im Paket
+  `mailhelp.notifications` (`notifications`, `notification_config`, `notification_context`,
+  `notification_runtime`, `webpush`, `briefing`, `drafts`). Importe, Testpfade und
+  Dokumentationsverweise sind angepasst; keine Verhaltensänderung.
+
 ## 3.6.14 – Paket `mailhelp.llm` (Planung 3.6, Schritt 0.10d)
 
 - Sprachmodell-Clients, Entscheidungsprompts, Lernmodus, Bewertung und

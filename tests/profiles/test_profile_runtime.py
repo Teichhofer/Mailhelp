@@ -8,14 +8,14 @@ from shared_decision_test import secrets
 from shared_profiles import ACCOUNT_ONE, ACCOUNT_TWO, settings
 from shared_telegram_dialog import proposal
 
-from mailhelp.briefing import DailyBriefingService
 from mailhelp.config import Secrets
 from mailhelp.external.providers import Writers
 from mailhelp.logging import JsonlLogger
 from mailhelp.mailbox.mailbox_briefing import configure, sections
 from mailhelp.mailbox.mailbox_settings import merge_policy
 from mailhelp.models import MailState
-from mailhelp.notification_runtime import NotificationRuntime
+from mailhelp.notifications.briefing import DailyBriefingService
+from mailhelp.notifications.notification_runtime import NotificationRuntime
 from mailhelp.proposals.target_profiles import ProfileLogger, ProfileWriters, UnavailableWriter, build_profile_writers
 from mailhelp.review.views import ReviewViews
 

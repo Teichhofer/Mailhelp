@@ -108,7 +108,7 @@ Gemäß den [Entwicklungsregeln](../AGENTS.md) gelten für Version 2.0 folgende 
 
 ## 4. Säule 2 im Detail: Web-Push für PWA (Autonomer Standalone-Betrieb)
 
-### 4.1 VAPID-Schlüsselverwaltung & Kryptographie (`src/mailhelp/webpush.py`)
+### 4.1 VAPID-Schlüsselverwaltung & Kryptographie (`src/mailhelp/notifications/webpush.py`)
 - Generierung und Verwendung eines NIST P-256-Schlüsselpaars.
 - RFC-8291-konforme Payload-Verschlüsselung mit AES-128-GCM und ECDH-Schlüsselaustausch.
 - Bereitstellung des öffentlichen Schlüssels über `GET /api/push/public-key`.
@@ -143,7 +143,7 @@ Gemäß den [Entwicklungsregeln](../AGENTS.md) gelten für Version 2.0 folgende 
   </div>
   ```
 
-### 5.3 IMAP-Append im Ordner `Drafts` (`src/mailhelp/drafts.py`)
+### 5.3 IMAP-Append im Ordner `Drafts` (`src/mailhelp/notifications/drafts.py`)
 - Bei Bestätigung generiert Mailhelp eine RFC-5322-konforme E-Mail:
   - `From:` Eigene konfigurierte E-Mail-Adresse (`imap.username`).
   - `To:` Ursprünglicher Absender (`Reply-To` oder `From` der Quell-Mail).
@@ -169,7 +169,7 @@ daily_briefing:
   include_open: true        # Noch offene Mailhelp-Entscheidungen
 ```
 
-### 6.2 Aggregation & Versand (`src/mailhelp/briefing.py`)
+### 6.2 Aggregation & Versand (`src/mailhelp/notifications/briefing.py`)
 - Ein Hintergrund-Scheduler prüft die Systemzeit. Zur Zielzeit ruft Mailhelp schreibgeschützt ab:
   1. Kalender-Events des aktuellen Tages via `fetch_events_in_window(today_start, today_end)`.
   2. Aktive Aufgaben mit `due <= today` via `fetch_active_tasks()`.
@@ -207,8 +207,8 @@ flowchart TD
 | :--- | :--- | :--- |
 | **Phase 1** | **Web-Push & Autonomie** | VAPID-Kryptographie (`webpush.py`), Subscriptions-Store, Endpunkte `/api/push/*`, Service Worker Push-Event, Opt-In Schalter in `/einstellungen`. |
 | **Phase 2** | **Master-Detail Split-View & Bildvorschau** | Responsives Zweispalten-Layout (Desktop ab 1024px) in `web/review_pages.py` und `app.css`, synchrone Detailanzeige ohne Reload, sicherer Anhang-Endpunkt `/mail/<id>/anhang/<index>` und Inline-Bildvorschau mit Lightbox. |
-| **Phase 3** | **Smart Reply Drafts** | Prompt `draft_reply`, Web-Editor im Detail-Panel, `src/mailhelp/drafts.py` mit IMAP-Append und RFC-5322 Threading-Headern im Ordner `Drafts`. |
-| **Phase 4** | **Smart Daily Briefing** | `src/mailhelp/briefing.py`, Konfigurationsabschnitt `daily_briefing` (`enabled`), Hintergrund-Timer, Push-/Telegram-Versand, Graceful Fallback. |
+| **Phase 3** | **Smart Reply Drafts** | Prompt `draft_reply`, Web-Editor im Detail-Panel, `src/mailhelp/notifications/drafts.py` mit IMAP-Append und RFC-5322 Threading-Headern im Ordner `Drafts`. |
+| **Phase 4** | **Smart Daily Briefing** | `src/mailhelp/notifications/briefing.py`, Konfigurationsabschnitt `daily_briefing` (`enabled`), Hintergrund-Timer, Push-/Telegram-Versand, Graceful Fallback. |
 | **Phase 5** | **Ergonomie & Feedback** | Daumenzonen-Aktionsleiste, Keyboard-Shortcuts (`J`/`K`/`C`/`E`/`X`), Quick-Filter-Chips, Optimistic UI mit 5s-Undo-Toast. |
 | **Phase 6** | **Qualitätssicherung & 2.0-Release** | Playwright E2E-Browsertests aller neuen UI-Patterns, 100 % Zeilen-/Branch-Coverage, Doku-Aktualisierung und feierliches Release **Mailhelp 2.0.0**. |
 

@@ -6,7 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from mailhelp.llm.adapter import PermanentError, RetryableError
-from mailhelp.notification_config import (
+from mailhelp.notifications.notification_config import (
     Batching,
     Categories,
     DeliverySettings,
@@ -14,7 +14,7 @@ from mailhelp.notification_config import (
     QuietHours,
     effective_profile,
 )
-from mailhelp.notifications import NotificationService, QueueFull, quiet_now
+from mailhelp.notifications.notifications import NotificationService, QueueFull, quiet_now
 from mailhelp.storage import JsonStore
 
 

@@ -12,7 +12,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
 
 from ..metrics import MetricsSettings
-from ..notification_config import NotificationOverrides, NotificationSettings
+from ..notifications.notification_config import NotificationOverrides, NotificationSettings
 
 
 class ConfigModel(BaseModel):

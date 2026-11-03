@@ -11,14 +11,14 @@ from .activity.llm import ActivityAnalyzer
 from .activity.runner import ActivityRunner, available_report_folders, default_report_folders
 from .activity.service import ActivityService
 from .activity.store import ActivityReportStore
-from .briefing import DailyBriefingService
-from .drafts import DraftService, DraftTarget
 from .mailbox.imap import ImapReader, mailbox_account_id, reader_arguments
-from .webpush import PushService
+from .notifications.briefing import DailyBriefingService
+from .notifications.drafts import DraftService, DraftTarget
+from .notifications.webpush import PushService
 
 ACTIVITY_PROMPTS = {"activity_relevance", "activity_events"}
 if TYPE_CHECKING:
-    from .notification_runtime import NotificationRuntime
+    from .notifications.notification_runtime import NotificationRuntime
 
 
 @contextmanager

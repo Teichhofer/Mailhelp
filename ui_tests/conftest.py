@@ -225,7 +225,7 @@ def setup_server(mailhelp):
 
     from shared_core import prompt_config
 
-    from mailhelp.notification_runtime import NotificationRuntime
+    from mailhelp.notifications.notification_runtime import NotificationRuntime
     from mailhelp.processing.orchestrator import Orchestrator
     from mailhelp.setup_runtime import SetupRuntime
 

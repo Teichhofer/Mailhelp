@@ -11,7 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from .config import Settings, read_yaml
 from .configuration import AdminCommand, AdminKind, ConfigurationConflict, apply_settings, file_hash
 from .diagnostics import DiagnosticsState
-from .notification_config import effective_profile
+from .notifications.notification_config import effective_profile
 
 
 def profile_patch(settings):

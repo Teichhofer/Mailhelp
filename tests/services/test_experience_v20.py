@@ -20,15 +20,15 @@ from shared_web_actions import MAIL1
 from shared_web_details import with_mail
 from web_scenario import mail_id, populate
 
-from mailhelp.briefing import DailyBriefingService
 from mailhelp.config import DailyBriefingSettings, ImapCredentials, Secrets, Settings
-from mailhelp.drafts import DraftService, ReplyDraft, message
 from mailhelp.llm.adapter import RetryableError
 from mailhelp.models import MailState
+from mailhelp.notifications.briefing import DailyBriefingService
+from mailhelp.notifications.drafts import DraftService, ReplyDraft, message
+from mailhelp.notifications.webpush import NoRedirectSession, PushService, b64, subscription
 from mailhelp.processing.attachments import AttachmentCache
 from mailhelp.standalone import DisabledTelegram
 from mailhelp.storage import JsonStore
-from mailhelp.webpush import NoRedirectSession, PushService, b64, subscription
 
 # Since 2.3 the writers are built in mailhelp.external.providers.
 MOVED_WRITERS = ("HttpWriter", "GoogleOAuthTokenProvider")
@@ -228,7 +228,7 @@ def test_session_expiring_during_the_llm_call_stores_nothing(draft):
 
 def test_operation_log_of_a_draft_is_bounded(draft, monkeypatch):
     service, _, _, _ = draft
-    monkeypatch.setattr("mailhelp.drafts.MAX_OPERATIONS", 2)
+    monkeypatch.setattr("mailhelp.notifications.drafts.MAX_OPERATIONS", 2)
     service.generate("valid", MAIL1, 1, "gen-0002", "decline")
     service.generate("valid", MAIL1, 2, "gen-0003", "question")
     assert list(service.get(MAIL1)["operations"]) == ["gen-0002", "gen-0003"]
@@ -318,7 +318,7 @@ def test_draft_lookup_failures_keep_edits_and_reauthorize_before_append(draft):
 
 def test_drafts_are_written_only_to_the_mailbox_the_mail_came_from(draft):
     """Planung 3.1: sender and drafts folder of the source mailbox; no other mailbox as a fallback."""
-    from mailhelp.drafts import DraftTarget
+    from mailhelp.notifications.drafts import DraftTarget
     service, first, source, _ = draft
     second = Connection()
     targets = {"a" * 24: DraftTarget(lambda: nullcontext(first), "privat@example.test", "Entwürfe"),
@@ -443,7 +443,7 @@ def test_briefing_clock_partial_failure_restart_and_formatting(tmp_path):
 
 
 def test_briefing_lists_are_limited_and_fit_into_one_telegram_message(tmp_path):
-    from mailhelp.briefing import MAX_LENGTH
+    from mailhelp.notifications.briefing import MAX_LENGTH
     many = [NS(due={"date": "2026-10-01"}, content="x" * 500) for _ in range(12)]
     svc = DailyBriefingService(JsonStore(tmp_path), DailyBriefingSettings(include_open=False), "UTC",
         NS(fetch_events_in_window=lambda *a, **kw: []), NS(fetch_active_tasks=lambda: many), None, {})
@@ -809,7 +809,7 @@ def test_push_delivery_holds_no_lock_and_keeps_a_device_renewed_meanwhile(tmp_pa
 
 
 def test_push_operation_log_is_bounded(tmp_path, monkeypatch):
-    monkeypatch.setattr("mailhelp.webpush.MAX_OPERATIONS", 2)
+    monkeypatch.setattr("mailhelp.notifications.webpush.MAX_OPERATIONS", 2)
     store = JsonStore(tmp_path)
     service = PushService(store, NS(active=lambda _: True), "mailto:me@test", lambda **kw: None)
     for number in range(3):
@@ -975,7 +975,7 @@ def test_push_section_failure_is_logged(web, tmp_path):
 def test_push_operations_are_bounded_per_device(tmp_path, monkeypatch):
     # Decision (Planung 2.1, 5.3): every device keeps its own recent keys; a busy
     # device no longer evicts another device's keys from one shared list.
-    monkeypatch.setattr("mailhelp.webpush.MAX_OPERATIONS", 2)
+    monkeypatch.setattr("mailhelp.notifications.webpush.MAX_OPERATIONS", 2)
     store = JsonStore(tmp_path)
     service = PushService(store, NS(active=lambda _: True), "mailto:me@test", lambda **kw: None)
     service.change("phone", "key-phone-0", sub())

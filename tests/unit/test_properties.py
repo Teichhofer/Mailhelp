@@ -11,13 +11,13 @@ from hypothesis import HealthCheck, example, given, settings
 from hypothesis import strategies as st
 
 from mailhelp.domain.prepared import MailHeaders
-from mailhelp.drafts import message
 from mailhelp.external.ical import _fold_ical_line, _ical_text
 from mailhelp.mailbox.mime import MimeLimitExceeded, MimeLimits, extract_display_headers, prepare
+from mailhelp.notifications.drafts import message
+from mailhelp.notifications.webpush import subscription
 from mailhelp.processing.calendar_parser import _unescape_text, _unfold_ical
 from mailhelp.proposals.action_normalization import _parse_date
 from mailhelp.temporal_answers import parse_deterministic_temporal_answer
-from mailhelp.webpush import subscription
 
 RECEIVED = datetime(2026, 10, 12, 8, 0, tzinfo=UTC)
 ANY_TEXT = st.text(alphabet=st.characters(codec="utf-8"), max_size=200)

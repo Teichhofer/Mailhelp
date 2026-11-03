@@ -15,11 +15,11 @@ from typing import Any, NamedTuple, Protocol, cast
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from . import state_names
-from .domain.prepared import MailHeaders, PreparedMail
-from .mailbox.imap import mailbox_argument
-from .models import MailState
-from .storage import StateStore
+from .. import state_names
+from ..domain.prepared import MailHeaders, PreparedMail
+from ..mailbox.imap import mailbox_argument
+from ..models import MailState
+from ..storage import StateStore
 
 # Reply intents offered on every mail page, with their German button labels.
 INTENTS = {"accept": "Zusage", "decline": "Absage", "question": "Rückfrage"}

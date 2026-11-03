@@ -9,8 +9,8 @@ from zoneinfo import ZoneInfo
 
 from pydantic import ValidationError
 
-from ..drafts import INTENTS
 from ..formatting import format_datetime_local
+from ..notifications.drafts import INTENTS
 from .actions import new_key
 from .auth import WebSession
 from .http import Request, Response
@@ -18,8 +18,8 @@ from .pages import e, layout
 from .setting_help import EXTRA_HELP, help_bubble
 
 if TYPE_CHECKING:
-    from ..drafts import DraftService
-    from ..webpush import PushService
+    from ..notifications.drafts import DraftService
+    from ..notifications.webpush import PushService
     from .site import MailhelpSite
 
 

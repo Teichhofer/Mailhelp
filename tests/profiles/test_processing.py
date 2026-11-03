@@ -11,7 +11,7 @@ from mailhelp.config import Settings, Topic
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.mailbox.mailbox_settings import effective_settings
 from mailhelp.models import IrrelevantSenders, MailState
-from mailhelp.notifications import NotificationService
+from mailhelp.notifications.notifications import NotificationService
 from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.storage import JsonStore
 

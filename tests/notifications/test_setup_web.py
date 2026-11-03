@@ -15,7 +15,7 @@ from shared_web_auth import SECRET
 
 from mailhelp.configuration import ConfigurationService
 from mailhelp.local_pairing import issue, signature
-from mailhelp.notification_runtime import NotificationRuntime
+from mailhelp.notifications.notification_runtime import NotificationRuntime
 from mailhelp.setup_runtime import SetupRuntime
 from mailhelp.web.auth import PairingLimited
 from mailhelp.web.setup_site import input_field

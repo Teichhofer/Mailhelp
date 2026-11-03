@@ -53,7 +53,7 @@ class EventLogger(Protocol):
 Handler = Callable[..., Response]
 if TYPE_CHECKING:
     from ..metrics import MetricsRecorder
-    from ..notification_runtime import NotificationRuntime
+    from ..notifications.notification_runtime import NotificationRuntime
 
 
 class MailhelpSite:
