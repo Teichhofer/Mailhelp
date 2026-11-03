@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.5.10 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.6.0 · **Python:** 3.12.x · **Lizenz:** MIT
 
 [Installation](#installation) · [Konfiguration](#konfiguration) ·
 [Betrieb](#betrieb) · [Docker](#docker) ·
@@ -106,6 +106,9 @@ cp config.example.yaml config.yaml
 cp .env.example .env
 cp irrelevant-senders.example.json irrelevant-senders.json
 ```
+
+Fehlt `config.yaml` oder `prompts.yaml` im Konfigurationsverzeichnis, beendet sich
+Mailhelp mit Exitcode 2 und einem Hinweis auf die Vorlage statt mit einem Traceback.
 
 Die nachfolgenden Beispiele verwenden `mailhelp` aus der virtuellen Umgebung.
 Ohne Aktivierung lautet der Aufruf unter Windows `.venv\Scripts\mailhelp` und

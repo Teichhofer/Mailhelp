@@ -24,6 +24,17 @@ from .models import (
 )
 
 
+class MissingConfiguration(FileNotFoundError):
+    """A required configuration file is absent; the CLI reports it without a traceback."""
+
+    def __init__(self, path: Path):
+        super().__init__(f"{path} fehlt")
+        self.path = path
+
+
+REQUIRED_FILES = ("config.yaml", "prompts.yaml")
+
+
 def read_yaml(path: Path) -> Any:
     with path.open(encoding="utf-8") as stream:
         value = yaml.safe_load(stream)
@@ -148,6 +159,9 @@ def _distinct_accounts(imap: ImapSettings, credentials: dict[int, dict[str, str]
 
 def load_all(directory: Path, environ: dict[str, str] | None = None, *, oauth_profile: int | None = None
              ) -> tuple[Settings, Secrets, list[Topic], list[Topic], PromptConfig, str]:
+    for name in REQUIRED_FILES:
+        if not (directory / name).is_file():
+            raise MissingConfiguration(directory / name)
     env = {**_dotenv(directory / ".env"), **(os.environ if environ is None else environ)}
     settings = validated_file(directory / "config.yaml", Settings, read_yaml(directory / "config.yaml"))
     prompts = validated_file(directory / "prompts.yaml", PromptConfig, read_yaml(directory / "prompts.yaml"))
@@ -213,6 +227,7 @@ def validated_file(path: Path, model: type[BaseModel], value: Any, prefix: str =
         raise ValueError(f"{path}: ungültige Schlüsselpfade: {', '.join(locations)}") from exc
 
 
-__all__ = ["DEFAULT_TOPIC_FILES", "LEGACY_IMAP_SECRETS", "OPTIONAL_PROVIDER_SECRETS", "imap_secret_names",
+__all__ = ["DEFAULT_TOPIC_FILES", "LEGACY_IMAP_SECRETS", "OPTIONAL_PROVIDER_SECRETS", "REQUIRED_FILES",
+           "MissingConfiguration", "imap_secret_names",
            "imap_secret_values", "iserv_secret_values", "load_all", "provider_secret_names", "read_yaml",
            "validated_file"]

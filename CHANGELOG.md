@@ -1,5 +1,12 @@
 # Änderungen
 
+## 3.6.0 – Klare Meldung bei fehlender Konfiguration (Planung 3.6, Schritt 0.1)
+
+- Fehlerbehebung: Ohne `config.yaml` brach Mailhelp mit `FileNotFoundError` und Traceback
+  ab. Fehlt `config.yaml` oder `prompts.yaml`, nennt Mailhelp jetzt die Datei, verweist auf
+  `config.example.yaml` und `--config-directory` und endet mit Exitcode 2. Ein
+  Regressionstest deckt das ab.
+
 ## 3.5.10 – Planung in 3.6, 3.7 und 4.0 aufgeteilt
 
 - Die Planung bis 4.0 ist in drei Teilpläne aufgeteilt: `docs/Planung-3.6.md`

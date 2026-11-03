@@ -14,6 +14,7 @@ from pathlib import Path
 
 from .application import build_application, build_logger
 from .config import LOCAL_NUM_CTX, Settings, load_all
+from .config.loader import MissingConfiguration
 from .decision_test import run_decision_test
 from .decisions import load_relevance_prompts
 from .learning import LearningMode, LearningSource
@@ -118,6 +119,13 @@ ALREADY_RUNNING = ("Mailhelp läuft bereits mit diesem Datenverzeichnis: {direct
                    "ihrem Terminal) und Mailhelp dann erneut starten.")
 
 
+MISSING_CONFIGURATION = ("Konfigurationsdatei fehlt: {path}\n"
+                         "Mailhelp erwartet config.yaml und prompts.yaml im Konfigurationsverzeichnis "
+                         "{directory}.\nAls Vorlage config.example.yaml aus dem Mailhelp-Verzeichnis nach "
+                         "config.yaml kopieren und anpassen; prompts.yaml liegt dem Projekt bei. Ein anderes "
+                         "Verzeichnis wählt --config-directory.")
+
+
 # Windows has no exec: os.execv neither quotes arguments nor keeps the console.
 _WINDOWS = os.name == "nt"
 # Marks a child of the Windows restart supervisor; it hands restarts back instead of nesting.
@@ -168,6 +176,9 @@ def main() -> int:
         # An expected operating situation, not a crash.
         print(ALREADY_RUNNING.format(directory=exc.directory), file=sys.stderr)
         return 1
+    except MissingConfiguration as exc:
+        print(MISSING_CONFIGURATION.format(path=exc.path, directory=exc.path.parent), file=sys.stderr)
+        return 2
 
 
 def _parser() -> argparse.ArgumentParser:
