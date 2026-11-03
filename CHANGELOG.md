@@ -1,5 +1,12 @@
 # Änderungen
 
+## 3.6.3 – Analyse zur Entkopplung von Bedienung und Mailabruf (Planung 3.6, Schritt 0.4)
+
+- `docs/Entkopplung-Web-und-Abruf.md` beschreibt, wo Web-Befehle heute auf den Mailabruf
+  warten, welche Ressourcen Hauptthread und künftiger Bedien-Thread teilen, welche Sperren
+  in welcher Reihenfolge nötig sind und wie Schritt 0.5 umgesetzt und in 0.6 nachgewiesen
+  wird. Keine Verhaltensänderung.
+
 ## 3.6.2 – „Erneut prüfen“ in der Weboberfläche (Planung 3.6, Schritt 0.3)
 
 - Als irrelevant aussortierte Mails zeigen im Maildetail und in der Archivliste die
