@@ -1,6 +1,9 @@
 """Read-only previews and queued, version-bound local reconciliation commands."""
+from __future__ import annotations
+
 import hashlib
 import json
+from typing import TYPE_CHECKING, Any
 
 from .. import state_names
 from ..config import EventDefaultsSettings
@@ -12,7 +15,8 @@ from ..proposal_matching import compatible, relationship
 from ..proposal_reconciliation import OPEN, ProposalReconciliationService
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..storage import CorruptState
-from .http import Response
+from .auth import WebSession
+from .http import Request, Response
 from .pages import layout
 from .reconciliation_pages import (
     INTRO,
@@ -24,36 +28,41 @@ from .reconciliation_pages import (
     sources_fragment,
 )
 
+if TYPE_CHECKING:
+    from .site import MailhelpSite
 
-def digest(value):
+
+def digest(value: Any) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
 
 
 class ReconciliationSite:
-    def __init__(self, site):
+    def __init__(self, site: MailhelpSite):
         self.site = site
         self.service = ProposalReconciliationService(site.views.store)
         for method, path, handler in (("GET", "/abgleich", self.preview), ("POST", "/abgleich", self.apply)):
             site.app.route(method, path, site.signed_in(handler))
 
-    def defaults(self, proposal=None):
+    def defaults(self, proposal: Proposal | None = None) -> EventDefaultsSettings:
         configuration = self.site.archive.configuration
         if configuration and proposal is not None:
             from ..mailbox_settings import event_defaults_for
-            return event_defaults_for(configuration.active, self.site.views.store, proposal, self.site.views.mailboxes)
+            found: EventDefaultsSettings = event_defaults_for(configuration.active, self.site.views.store, proposal,
+                                                              self.site.views.mailboxes)
+            return found
         return configuration.active.event_defaults if configuration else EventDefaultsSettings()
 
-    def fragment(self, mail_id, proposal_id):
+    def fragment(self, mail_id: str, proposal_id: str) -> str:
         store = self.site.views.store
         proposal = store.peek_model(f"proposal-{mail_id}-{proposal_id}", Proposal)
         if proposal is None:
             return ""
         return sources_fragment(proposal, self._linked(mail_id, proposal_id), self.site.configured_timezone)
 
-    def _linked(self, mail_id, proposal_id):
+    def _linked(self, mail_id: str, proposal_id: str) -> list[Proposal]:
         """Proposals related to this one by a stored relation, in either direction."""
         store, ref = self.site.views.store, ProposalReference(mail_id=mail_id, proposal_id=proposal_id)
-        linked = []
+        linked: list[Proposal] = []
         for name in store.names("reconciliation-relation-"):
             relation = store.peek_model(name, ProposalRelation)
             if relation is None:
@@ -65,7 +74,7 @@ class ReconciliationSite:
                 linked.append(other)
         return linked
 
-    def mail_summary(self, mail_id):
+    def mail_summary(self, mail_id: str) -> str:
         store = self.site.views.store
         mail = store.peek_model(f"mail-{mail_id}", MailState)
         if mail is None:
@@ -77,7 +86,7 @@ class ReconciliationSite:
                 mail.proposal_policy or {}).get("target_profile", 1)
         return mail_summary(mail, other_profile)
 
-    def preview(self, request, session):
+    def preview(self, request: Request, session: WebSession) -> Response:
         try:
             items = self.service.current()
             csrf = self.site.auth.csrf_token(session.id)
@@ -87,7 +96,7 @@ class ReconciliationSite:
         except (CorruptState, ValueError):
             return self.site._reply(request, 409, "Bestand beschädigt oder inzwischen geändert; Abgleich blockiert.")
 
-    def _proposal_section(self, item, items, csrf):
+    def _proposal_section(self, item: Proposal, items: list[Proposal], csrf: str) -> str:
         defaults = self.defaults(item)
         zone = self.site.configured_timezone
         body = section_head(item, csrf)
@@ -99,7 +108,7 @@ class ReconciliationSite:
                 body += defaults_offer(item, candidate, digest(defaults.model_dump()), zone, csrf)
         return body + '</section>'
 
-    def _targets(self, item, items):
+    def _targets(self, item: Proposal, items: list[Proposal]) -> list[Proposal | None]:
         """The canonical proposal of an unchecked addition, or the open matching candidates."""
         if item.merge_review_required:
             assert item.canonical_ref is not None
@@ -111,7 +120,7 @@ class ReconciliationSite:
                 (p.source_mail_id, p.id) in remembered or p.status in OPEN
                 and relationship(self.service.store, item, p) != "different")]
 
-    def _missing_records(self, items, csrf):
+    def _missing_records(self, items: list[Proposal], csrf: str) -> str:
         """Findings stored in a mail state whose separate proposal file is missing."""
         known = {(p.source_mail_id, p.id) for p in items}
         body = ""
@@ -123,7 +132,7 @@ class ReconciliationSite:
                             for item in mail.proposals if (item.source_mail_id, item.id) not in known)
         return body
 
-    def apply(self, request, session, form):
+    def apply(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         try:
             target = (ProposalReference(mail_id=form['target_mail_id'], proposal_id=form['target_proposal_id'])
                       if 'target_mail_id' in form else None)

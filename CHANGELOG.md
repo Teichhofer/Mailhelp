@@ -1,5 +1,13 @@
 # Änderungen
 
+## 3.6.9 – Strikte Typprüfung für die gesamte Weboberfläche (Planung 3.6, Schritt 0.8c)
+
+- `pyproject.toml` stellt `mailhelp.web.*` vollständig unter die strikte mypy-Prüfung.
+  Zuletzt wurden Tätigkeitsberichte, Benachrichtigungen und Antwortentwürfe, Absenderfilter,
+  Vorschlagsabgleich, Übersicht und `site.py` annotiert; `MailhelpSite` und `ArchiveSite`
+  nehmen Konfigurationsdienst, Metriken, Lebenszyklus und Modellübersicht typisiert entgegen.
+  Damit ist der in Planung 3.3 offene Punkt erledigt. Keine Verhaltensänderung.
+
 ## 3.6.8 – Strikte Typprüfung für Einrichtung, Postfächer und IServ (Planung 3.6, Schritt 0.8b)
 
 - `setup_site`, `mailbox_site`, `mailbox_add_site` und `iserv_site` stehen unter der strikten

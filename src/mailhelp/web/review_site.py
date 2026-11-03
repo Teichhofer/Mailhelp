@@ -13,6 +13,7 @@ from dataclasses import replace
 from urllib.parse import parse_qs, quote
 
 from ..mail_recheck import recheck_round
+from ..review.views import ProposalView
 from .actions import proposal_actions, recheck_form, relevance_actions, result_kind
 from .pages import error_page
 from .review_pages import detail_page, mail_page, overview_page
@@ -25,12 +26,13 @@ class ReviewSite:
     def home(self, request: Request, session: WebSession) -> Response:
         csrf = self.site.auth.csrf_token(session.id)
         message, kind = self._result_notice(request, session)
-        from .filters import FILTERS, chips, matches
+        from ..review.filters import FILTERS, matches
+        from .filters import chips
         selected = parse_qs(request.query).get("filter", [""])[0]
         if selected not in FILTERS:
             return Response.text(422, "Ungültiger Filter.")
         overview = self.site.views.overview()
-        def include(view):
+        def include(view: ProposalView) -> bool:
             # Only the attachment filter needs the mail; reading it for every card cost ~1 ms each.
             mail = self.site.views.mail(view.mail_id) if selected == "attachments" else None
             return matches(selected, [view.card.kind.value], [view.status.value],
@@ -75,7 +77,7 @@ class ReviewSite:
                          + self.site.archive.mail_archive.analysis(mail_id))
         return Response.html(200, page)
 
-    def attachment(self, request, session, mail_id, index):
+    def attachment(self, request: Request, session: WebSession, mail_id: str, index: str) -> Response:
         from ..attachments import AttachmentCache
         mail = self.site.views.mail(mail_id)
         if mail is None or mail.text is None or not any(
@@ -88,7 +90,7 @@ class ReviewSite:
             "Content-Security-Policy": "default-src 'none'",
             "X-Content-Type-Options": "nosniff"}, cache="private, max-age=3600")
 
-    def original(self, request, session, mail_id, index):
+    def original(self, request: Request, session: WebSession, mail_id: str, index: str) -> Response:
         """The original document, only as a download and never rendered by the browser."""
         from ..attachments import AttachmentCache, download_name
         mail = self.site.views.mail(mail_id)

@@ -14,7 +14,7 @@ import time
 from collections.abc import Callable
 from dataclasses import replace
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 from urllib.parse import parse_qs
 from zoneinfo import ZoneInfo
 
@@ -22,12 +22,13 @@ from pydantic import ValidationError
 
 from .. import __version__
 from ..config import WebSettings
-from ..configuration import AdminCommand, AdminKind
+from ..configuration import AdminCommand, AdminKind, ConfigurationService
+from ..lifecycle import Lifecycle
 from ..mail_recheck import recheck_round
 from ..models import ProposalStatus
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.inbox import CommandConflict, CommandEntry, CommandInbox, CommandInboxFull
-from ..review.views import ReviewViews
+from ..review.views import Overview, ReviewViews, SystemStatus
 from .actions import command_page, needs_choice, result_kind, stale_page
 from .app import WebApp
 from .auth import WebAuth, WebSession
@@ -37,6 +38,7 @@ from .pages import error_page, layout, notice
 from .review_site import ReviewSite
 from .sender_site import LIST_PATH as SENDERS_PATH
 from .sender_site import SenderSite
+from .status_accounts import AccountInfo
 from .status_pages import ServiceInfo, status_page
 
 FORM_TYPE = "application/x-www-form-urlencoded"
@@ -50,6 +52,7 @@ class EventLogger(Protocol):
 
 Handler = Callable[..., Response]
 if TYPE_CHECKING:
+    from ..metrics import MetricsRecorder
     from ..notification_runtime import NotificationRuntime
 
 
@@ -61,7 +64,8 @@ class MailhelpSite:
                  commands: CommandInbox, *, link_base: Callable[[], str] | None = None,
                  llm_calls_per_minute: int | None = None,
                  clock: Callable[[], datetime] = lambda: datetime.now(UTC),
-                 configuration=None, metrics=None, lifecycle=None, models=None):
+                 configuration: ConfigurationService | None = None, metrics: MetricsRecorder | None = None,
+                 lifecycle: Lifecycle | None = None, models: list[tuple[str, str, str, str]] | None = None):
         self.app, self.auth, self.settings = app, auth, settings
         self.views, self.commands = views, commands
         self.lifecycle = lifecycle
@@ -193,7 +197,7 @@ class MailhelpSite:
                        fingerprint=self._status_fingerprint(overview, system, runtime, accounts))
         return Response.html(200, status_page(overview.run, overview, self.configured_timezone, system, info))
 
-    def _status_accounts(self):
+    def _status_accounts(self) -> tuple[AccountInfo, ...]:
         from ..config import Settings, read_yaml
         from .status_accounts import configured_accounts
         configuration = self.archive.configuration
@@ -208,7 +212,8 @@ class MailhelpSite:
         return tuple(replace(account, pending_restart=previous.get(account.key) != account) for account in saved)
 
     @staticmethod
-    def _status_fingerprint(overview, system, runtime, accounts=()) -> str:
+    def _status_fingerprint(overview: Overview, system: SystemStatus, runtime: dict[str, Any] | None,
+                            accounts: tuple[AccountInfo, ...] = ()) -> str:
         """Changes when anything the status page shows changes (contact times excluded)."""
         parts = [overview.fingerprint, system.run_finished, system.run_total, system.mails_failed,
                  system.mails_waiting_relevance, sorted(system.analysis.items()),

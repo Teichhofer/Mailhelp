@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 from datetime import datetime
+from typing import TYPE_CHECKING
 from zoneinfo import ZoneInfo
 
 from pydantic import ValidationError
@@ -11,14 +12,23 @@ from pydantic import ValidationError
 from ..drafts import INTENTS
 from ..formatting import format_datetime_local
 from .actions import new_key
-from .http import Response
+from .auth import WebSession
+from .http import Request, Response
 from .pages import e, layout
 from .setting_help import EXTRA_HELP, help_bubble
 
+if TYPE_CHECKING:
+    from ..drafts import DraftService
+    from ..webpush import PushService
+    from .site import MailhelpSite
+
 
 class ExperienceSite:
-    def __init__(self, site):
-        self.site, self.push, self.drafts = site, None, None
+    def __init__(self, site: MailhelpSite):
+        self.site = site
+        # Attached by the experience runtime when Web-Push or reply drafts are available.
+        self.push: PushService | None = None
+        self.drafts: DraftService | None = None
         route = site.app.route
         route("GET", "/briefing", site.signed_in(self.briefing))
         route("GET", "/api/push/public-key", site.signed_in(self.public_key))
@@ -26,18 +36,18 @@ class ExperienceSite:
         route("POST", "/api/push/unsubscribe", site.signed_in(self.unsubscribe))
         route("POST", r"/mail/(?P<mail_id>[a-f0-9]{24})/entwurf", site.signed_in(self.draft_action))
 
-    def public_key(self, request, session):
+    def public_key(self, request: Request, session: WebSession) -> Response:
         if self.push is None:
             return Response.json(503, {"error": "Web-Push ist deaktiviert."})
         return Response.json(200, {"public_key": self.push.public_key})
 
-    def subscribe(self, request, session, form):
+    def subscribe(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         return self._subscription(session, form, True)
 
-    def unsubscribe(self, request, session, form):
+    def unsubscribe(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         return self._subscription(session, form, False)
 
-    def _subscription(self, session, form, subscribe):
+    def _subscription(self, session: WebSession, form: dict[str, str], subscribe: bool) -> Response:
         if self.push is None:
             return Response.json(503, {"error": "Web-Push ist deaktiviert."})
         try:
@@ -60,7 +70,7 @@ class ExperienceSite:
                 'Auf iOS zuerst zum Home-Bildschirm hinzufügen.</p></div>'
                 '<p><a href="/briefing">Tagesüberblick lesen</a></p></section>')
 
-    def inbox_zero(self):
+    def inbox_zero(self) -> str:
         """The finished state: today's results and the last processing time."""
         site = self.site
         zone, now = ZoneInfo(site.configured_timezone), site.clock()
@@ -91,12 +101,12 @@ class ExperienceSite:
                 f'<p>{e(summary)}</p><p class="meta">Letzte verarbeitete Mail: {e(when)} · '
                 '<a href="/status">Serverstatus</a> · <a href="/briefing">Tagesüberblick</a></p></section>')
 
-    def briefing(self, request, session):
+    def briefing(self, request: Request, session: WebSession) -> Response:
         saved = self.site.views.store.load("briefing-latest", {})
         return Response.html(200, layout("Tagesüberblick", '<h1>Tagesüberblick</h1><pre>'
             + e(saved.get("text", "Noch kein Tagesüberblick verfügbar.")) + '</pre>'))
 
-    def editor(self, mail_id, csrf):
+    def editor(self, mail_id: str, csrf: str) -> str:
         """Three reply intents on every mail; the chosen draft is edited, then saved or discarded."""
         if self.drafts is None or not self.drafts.available(mail_id):
             return ""
@@ -108,7 +118,7 @@ class ExperienceSite:
                               "und legt den Entwurf nur an, wenn er dort fehlt."}[status]
         if draft.get("error"):
             state = draft["error"] + " " + state
-        def hidden():
+        def hidden() -> str:
             # Each form has its own idempotency key; a replay never collides with another action.
             return (f'<input type="hidden" name="csrf" value="{e(csrf)}">'
                     f'<input type="hidden" name="key" value="{new_key()}">'
@@ -139,11 +149,11 @@ class ExperienceSite:
         return html + '</section>'
 
     @staticmethod
-    def _draft_error(message):
+    def _draft_error(message: str) -> Response:
         return Response.html(409, layout("Entwurf nicht gespeichert", '<h1>Entwurf nicht gespeichert</h1>'
                                          f'<p>{e(message)}</p>'))
 
-    def draft_action(self, request, session, form, mail_id):
+    def draft_action(self, request: Request, session: WebSession, form: dict[str, str], mail_id: str) -> Response:
         if self.drafts is None:
             return Response.text(503, "Antwort-Entwürfe sind deaktiviert.")
         mode = form.get("mode")

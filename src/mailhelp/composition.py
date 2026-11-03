@@ -320,12 +320,11 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
                                           senders=sender_store)
     application.configuration = configuration
     dialog.review.configuration = configuration
-    components.site.lifecycle = Lifecycle(
+    lifecycle = Lifecycle(
         application.stop, components.authorize,
         lambda state, process: logger.event("INFO", "lifecycle", state, process=process))
-    application.lifecycle = components.site.lifecycle
-    components.site.archive.lifecycle = components.site.lifecycle
-    dialog.stop_requested = lambda: components.site.lifecycle.state != "running" or stop_event.is_set()
+    components.site.lifecycle = application.lifecycle = components.site.archive.lifecycle = lifecycle
+    dialog.stop_requested = lambda: lifecycle.state != "running" or stop_event.is_set()
     components.site.archive.configuration = configuration
     components.site.views.profile_label = dialog.presenter.profile_of
     components.site.views.profile_available = dialog.presenter.profile_available
