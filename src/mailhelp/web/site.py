@@ -194,7 +194,15 @@ class MailhelpSite:
         metrics = self.archive.metrics
         runtime = metrics.runtime() if metrics is not None else None
         accounts = self._status_accounts()
+        monthly = None
+        if metrics is not None:
+            monthly = metrics.month_cost(now, self.configured_timezone)
         info = replace(info, runtime=runtime,
+                       monthly_cost=monthly,
+                       last_polls=tuple((account.label,
+                           (runtime or {}).get("accounts", {}).get(account.key, {}).get(
+                               "checked_at", "Noch nicht geprüft"))
+                           for account in accounts if account.key.startswith("imap:") and account.enabled),
                        services=tuple(metrics.expected_services()) if metrics is not None else (),
                        accounts=tuple(account_rows(accounts, runtime or {}, ZoneInfo(self.configured_timezone))),
                        fingerprint=self._status_fingerprint(overview, system, runtime, accounts))

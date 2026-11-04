@@ -10,23 +10,27 @@
 
 ## 1. Leitmotiv und Ziel
 
-> **„Eine Testsuite, die beim Entwickeln in unter 15 Sekunden belastbares Feedback liefert, architektonische Altlasten beseitigt und die fachliche Tiefe durch gezieltes Mutations-Testing sowie vollständige Korpusdaten dauerhaft absichert – bei unverändert verbindlicher 100 % Zeilen- und Branch-Abdeckung.“**
+> **„Eine Testsuite, die beim Entwickeln in unter 15 Sekunden belastbares Feedback liefert, architektonische Altlasten beseitigt, brüchige Testdaten durch wiederverwendbare Factories ersetzt und die fachliche Tiefe durch gezieltes Mutations-Testing, Fuzzing und Zeit-Determinismus dauerhaft absichert – bei unverändert verbindlicher 100 % Zeilen- und Branch-Abdeckung.“**
 
 Mailhelp verfügt über eine außergewöhnlich disziplinierte Testkultur: 100 % Zeilen- und Branch-Abdeckung, keine `pragma: no cover`-Ausschlüsse und strikte Verifikation von Prozessabbrüchen (A1–A7) und Konkurrenz (P1–P7).
 
-Mit dem Anwachsen der Testsuite auf über 2.860 Tests und der Einführung von echten Unterprozessen sind jedoch praktische Reibungspunkte und Qualitätsgrenzen entstanden:
+Mit dem Anwachsen der Testsuite auf über 2.860 Tests und der Einführung von echten Unterprozessen sind jedoch praktische Reibungspunkte und qualitative Lücken entstanden:
 1. **Lange Gesamtlaufzeit:** Ein vollständiger Lauf dauert auf Windows über 8 Minuten (495 s).
 2. **Erzwungene Coverage bei Einzelläufen:** Da `--cov-fail-under=100` global in `pyproject.toml` vorgegeben ist, schlägt der isolierte Aufruf einzelner Testdateien (`pytest tests/unit/test_core.py`) sofort fehl, wenn nicht manuell `--no-cov` ergänzt wird.
 3. **Flakiness durch I/O-Last:** Bei extrem hoher I/O- und Spawning-Last unter Windows geraten starre Checkpoint-Limits (`LIMIT = 20`) in Mehrprozess-Sicherheitstests vereinzelt an Timeout-Grenzen, während dieselben Tests isoliert in rund 2 Sekunden fehlerfrei bestehen.
 4. **Architektonische Test-Schulden:** `tests/conftest.py` manipuliert `sys.path`, um alle Test-Unterordner importierbar zu machen (Planung 2.1, T1/T2).
 5. **Coverage vs. Testtiefe:** 100 % Codeabdeckung belegen das Durchlaufen aller Zweige, testen jedoch nicht zwingend die Härte der Assertions gegen veränderte Fachlogik (Mutations-Testing).
-6. **Aktuelle Korpuslücke:** Die in Commit `7277269` hinzugefügten Themen (`jimdo-anfragen-und-nachrichten` und `camping-und-stellplatzbuchungen`) besitzen noch keine synthetischen Test-Mails im Qualitätskorpus.
+6. **Brüchige Testdaten (Manual Dictionaries):** Hunderte Tests bauen Konfigurationen und Modelle (`Settings`, `Proposal`, `MailState`) aus rohen Dictionaries zusammen; Schema-Änderungen brechen Tests in unbeteiligten Modulen.
+7. **Unterrepräsentiertes Fuzzing:** `hypothesis` wird nur für 8 kleine Hilfsfunktionen genutzt; komplexe Parser (MIME, relative Daten, LLM-JSON) sind nicht gegen feindselige Eingaben gefuzzt.
+8. **Fehleranfälliges Zeit-Mocking:** Zeitkritische Logiken (Sitzungsablauf, Token-Refresh, relative Fristen) nutzen Ad-hoc-Lambdas und unvollständige Monkeypatches statt deterministischer Zeitreisen.
+9. **Fehlende Prompt-Regressionsprüfung:** Prompt-Änderungen in `prompts.yaml` werden nicht automatisch gegen den Qualitätskorpus auf Genauigkeitsverlust geprüft.
+10. **Aktuelle Korpuslücke:** Die in Commit `7277269` hinzugefügten Themen (`jimdo-anfragen-und-nachrichten` und `camping-und-stellplatzbuchungen`) besitzen noch keine synthetischen Test-Mails im Qualitätskorpus.
 
 Planung 4.1 schließt diese Lücken systematisch nach dem Release von Version 4.0.
 
 ---
 
-## 2. Die fünf Kernsäulen
+## 2. Die acht Kernsäulen
 
 ```mermaid
 flowchart TD
@@ -35,11 +39,17 @@ flowchart TD
     S3["Säule 3: Test-Architektur & Beseitigung sys.path-Hack"]
     S4["Säule 4: Gezieltes Mutations-Testing (mutmut)"]
     S5["Säule 5: Parallele Ausführung (pytest-xdist) & I/O-Härtung"]
+    S6["Säule 6: Test-Data-Factories für Pydantic-Modelle"]
+    S7["Säule 7: Hypothesis-Ausbau (MIME, Datum, LLM)"]
+    S8["Säule 8: Deterministisches Zeit-Mocking & Prompt-Gate"]
 
     S1 --> S2
     S2 --> S3
+    S6 --> S3
     S3 --> S5
     S4 --> S5
+    S7 --> S4
+    S8 --> S2
 ```
 
 ---
@@ -111,12 +121,45 @@ Um die tatsächliche Testtiefe jenseits der 100 % Coverage messbar zu machen, wi
 
 ---
 
+### Säule 6: Test-Data-Factories für Pydantic-Modelle
+
+* **Problem:** Manuell erstellte Mock-Dictionaries in Testdateien brechen bei jeder Modellerweiterung (z. B. neuen Pflichtfeldern oder Validierungen).
+* **Ziel:** Einführung von standardisierten Factories (z. B. via Builder-Funktionen oder `polyfactory`) für:
+  - `Proposal` / `ProposalRevision`
+  - `MailState` / `DisplayHeaders`
+  - `Settings` (vollständige und minimale Konfigurationen)
+* **Vorteil:** Tests definieren nur die für den Testfall relevanten Abweichungen (`ProposalFactory.build(status="confirmed")`); Default-Integrität ist zentral garantiert.
+
+---
+
+### Säule 7: Ausbau von Hypothesis (Property-Based & Fuzz-Testing)
+
+Erweiterung von `tests/unit/test_properties.py` auf sicherheits- und parsingkritische Komponenten:
+1. **MIME- & Mail-Parsing:** Fuzzing mit willkürlich mutierten Multipart-Strukturen, ungültigen Boundary-Tags, Zeichensatz-Konflikten und fehlerhaften Base64-/Quoted-Printable-Blöcken.
+2. **Datums- und Fristenlogik:** Fuzzing von `german_dates.py` und `temporal_answers.py` über breite Datumsspannen, Schaltjahre und Sommer-/Winterzeit-Umstellungen (MESZ/MEZ).
+3. **LLM-Ausgabetoleranz:** Fuzzing des Response-Parsers mit unvollständigen JSON-Fragmenten, Markdown-Wrapper-Varianten und unerwarteten Root-Objekten zur Absicherung defensiver Fehlerbehandlung.
+
+---
+
+### Säule 8: Deterministisches Zeit-Mocking & Prompt-Regressions-Gate
+
+1. **Deterministische Zeit mit `time-machine`:**
+   - Ersatz von instabilen `clock`-Lambdas und Monkeypatches durch die bewährte, C-basierte Bibliothek `time-machine`.
+   - Sichere Zeitreisen für Sitzungsabläufe (30 Tage), OAuth-Token-Gültigkeiten (1 Stunde) und fristbezogene Filterungen.
+2. **Automatisiertes Evaluierungs-Gate (`mailhelp-evaluate`):**
+   - Einbindung eines schnellen, deterministischen Evaluierungs-Laufs gegen den synthetischen Korpus.
+   - Scheitern der Pipeline, falls Änderungen an `prompts.yaml` oder `topics.yaml` die Zuordnungs- und Extraktionsgenauigkeit verschlechtern.
+3. **Lokale UI-Test-Integration:**
+   - Schneller Headless-Smoke-Befehl für Playwright-Tests (`ui_tests`), damit Render- und Aktionsfehler vor dem Push auffallen.
+
+---
+
 ## 3. Umsetzungsschritte (Stufe 9)
 
 Es gelten die Regeln aus [Planung 4.0, Abschnitt 5.1](Planung-4.0.md#51-regeln-für-die-schritte): Jeder Schritt ist als eigener Commit mit Patchversion lieferbar, Umfang S (≤ 1 Tag) oder M (≤ 2 Tage), 100 % Coverage-Erhalt.
 
 | Schritt | Inhalt | Fertig, wenn … | Umfang | Voraussetzung |
-| :--- | :--- | :--- | :--- | :--- |
+| :--- | :--- | :--- | :---: | :--- |
 | **9.1** | Korpus für Jimdo & Buchungen | Synthetische Mails in `mail_corpus_v3/` abgelegt; `test_quality_corpus.py` und `mailhelp-evaluate` weisen Erkennung und Newsletter-Ausschluss nach. | S | – |
 | **9.2** | Pytest-Marker in `pyproject.toml` | Marker `slow`, `process`, `e2e` registriert; relevante Tests markiert; schneller Entwicklungsbefehl dokumentiert und verifiziert. | S | – |
 | **9.3** | Paketstruktur `tests.fakes` und `tests.scenarios` | `__init__.py` ergänzt; Test-Doubles klar gegliedert; saubere Re-Exporte definiert. | S | – |
@@ -125,9 +168,14 @@ Es gelten die Regeln aus [Planung 4.0, Abschnitt 5.1](Planung-4.0.md#51-regeln-f
 | **9.6** | Konfiguration von `mutmut` & Baseline-Audit | `mutmut`-Konfiguration für `domain`, `storage` und `confirmed` angelegt; Mutationsbericht erstellt und überlebende Mutanten erfasst. | S | 9.2 |
 | **9.7** | Härtung der Assertions gegen Mutationen | Bestehende Tests für Kernmodule nachgeschärft, bis Mutation-Score ≥ 90 % erreicht ist; keine wirkungslosen Assertions. | M | 9.6 |
 | **9.8** | Parallele Unit-Tests (`pytest-xdist`) | `pytest-xdist` für schnelle Tests integriert; Worker-Isolation für Coverage und `.test-tmp` sichergestellt; TDD-Laufzeit < 15 s. | M | 9.4, 9.5 |
-| **9.9** | Entwickler-Skripte & Abschlussdokumentation | Praktische Aliase/Tasks für Schnelltest, Volltest und UI-Test dokumentiert; `README.md` und `Einrichtung-und-Qualitaetspruefung.md` aktualisiert. | S | 9.1–9.8 |
+| **9.9** | Test-Data-Factories für Pydantic-Modelle | Wiederverwendbare Model-Factories für `Proposal`, `MailState` und `Settings` eingeführt; brüchige Roh-Dictionaries in Basistests ersetzt. | S | 9.3 |
+| **9.10** | Ausbau Hypothesis für Parser & LLM-JSON | Property-Tests für MIME-Decoder, `german_dates.py` und unvollständige LLM-JSON-Strukturen implementiert. | M | 9.2 |
+| **9.11** | Zeit-Mocking mit `time-machine` | Ad-hoc `clock`-Lambdas und Monkeypatches durch `time-machine` ersetzt; Zeit- und Sitzungs-Tests stabilisiert. | S | 9.2 |
+| **9.12** | Automatisiertes Evaluierungs-Regressions-Gate | Schneller `mailhelp-evaluate`-Smoketest schlägt fehl, wenn Prompt-Änderungen die Erkennungsquote senken. | S | 9.1 |
+| **9.13** | Lokaler UI-Smoke-Testlauf (`ui_tests`) | Schneller Playwright-Smoke-Befehl für lokale Läufe definiert; PWA-Offline-Verhalten bei Aktionen abgesichert. | S | 9.2 |
+| **9.14** | Entwickler-Skripte & Abschlussdokumentation | Praktische Aliase/Tasks für Schnelltest, Volltest und UI-Test dokumentiert; `README.md` und `Einrichtung-und-Qualitaetspruefung.md` aktualisiert. | S | 9.1–9.13 |
 
-**Umfangsübersicht:** 9 Schritte, davon 6 S und 3 M.
+**Umfangsübersicht:** 14 Schritte, davon 10 S und 4 M.
 
 ---
 
@@ -142,8 +190,13 @@ Es gelten die Regeln aus [Planung 4.0, Abschnitt 5.1](Planung-4.0.md#51-regeln-f
    - Kein `sys.path.insert` in `tests/conftest.py`. Sämtliche Test-Hilfsmodule liegen in dedizierten Modulen unter `tests.fakes` oder `tests.scenarios`.
 4. **Semantische Güte (Mutation Testing):**
    - In den Kernmodulen (`domain`, `storage`, `confirmed`) erreichen die Tests einen Mutation-Score von mindestens 90 %.
-5. **Vollständiger Themenkorpus:**
-   - Alle in `topics.yaml` definierten Themen verfügen über belegte, synthetische Testfälle im Korpus.
-6. **Plattformstabilität:**
+5. **Testdaten-Integrität:**
+   - Zentrale Testmodule nutzen Model-Factories statt unstrukturierter Dictionaries; Schema-Erweiterungen bleiben rückwärtskompatibel.
+6. **Fuzzing- & Parser-Härtung:**
+   - Hypothesis prüft MIME-Dekodierung, deutsche Datumsberechnungen und LLM-Parser auf Robustheit gegen unerwartete Eingaben.
+7. **Deterministische Zeit:**
+   - Sitzungsabläufe und Zeittests laufen ohne unvollständige Monkeypatches deterministisch über `time-machine`.
+8. **Prompt-Regressionsschutz:**
+   - Automatisierte Evaluation sichert die Erkennungsrate gegen unbeabsichtigte Verschlechterungen ab.
+9. **Plattformstabilität:**
    - Die gesamte Testsuite läuft auf Windows 11 und Ubuntu in der CI fehler- und flakinessfrei durch.
-

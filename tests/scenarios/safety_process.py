@@ -14,6 +14,15 @@ from mailhelp.telegram import TelegramDialogController
 from mailhelp.web.auth import WebAuth
 
 
+def _writer(provider,checkpoint,mode):
+    if mode.startswith('provider:'):
+        from provider_matrix import ProviderMemory
+        memory = ProviderMemory(Path(provider), mode.removeprefix('provider:'))
+        memory.after_write = lambda: checkpoint('A2')
+        return memory.writer()
+    return PersistentWriter(Path(provider), checkpoint, mode)
+
+
 def run_application(directory, provider, point, connection, mode, coverage_file):
     # Explicit collection also covers processes terminated with kill()/TerminateProcess.
     # Flush at every checkpoint: hard termination cannot run atexit handlers.
@@ -54,7 +63,7 @@ def run_application(directory, provider, point, connection, mode, coverage_file)
                 if authoritative and value["id"] == "source" and value["version"] == 2:
                     checkpoint("A7")
             store.save = save
-            writer = PersistentWriter(Path(provider), checkpoint, mode)
+            writer = _writer(provider,checkpoint,mode)
             commands = CommandInbox(store)
             dialog = TelegramDialogController(store, Telegram(), 1, 2, Logger(),
                 {"todoist": writer, "google_calendar": writer}, commands=commands)

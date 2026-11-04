@@ -65,7 +65,12 @@ def create_initial(directory: Path, store: JsonStore, settings: WebSettings, sto
     return WebServer(settings.host, settings.port, app, logger), auth, setup, oauth
 
 
-def run_initial_setup(directory: Path, shutdown: Any, *, emit: Callable[[str], None] = print) -> int:
+def console(text: str) -> None:
+    """First-run codes must reach piped terminals and container logs immediately."""
+    print(text, flush=True)
+
+
+def run_initial_setup(directory: Path, shutdown: Any, *, emit: Callable[[str], None] = console) -> int:
     directory.mkdir(parents=True, exist_ok=True)
     port = int(os.environ.get("MAILHELP_SETUP_PORT", "8765"))
     host = os.environ.get("MAILHELP_SETUP_HOST", "0.0.0.0")

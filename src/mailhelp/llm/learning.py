@@ -1,4 +1,4 @@
-"""Terminal-only, read-only mailbox learning workflow."""
+"""Shared read-only learning kernel and its interactive terminal frontend."""
 from __future__ import annotations
 
 import re
@@ -249,31 +249,28 @@ class LearningMode:
     def _classify_all(self, mails: list[FetchedMail], blocked: IrrelevantSenders
                       ) -> list[tuple[MailClassification | None, dict[str, object] | None, bool]]:
         """Classify every unknown mail concurrently, keeping mailbox order."""
-        known_topics = [*self.topics, *self.irrelevant_topics]
-
-        def classify(mail: FetchedMail) -> tuple[MailClassification | None, dict[str, object] | None, bool]:
-            try:
-                payload = prepare(mail.raw, self.limits, mail.received_at, self.timezone)
-                number = next((source.mailbox_id for source in self.sources
-                               if getattr(source.imap, "account_id", None) == mail.account_id), 1)
-                payload["mailbox_id"] = number
-                headers = cast(dict[str, Any], payload["headers"])
-                if is_irrelevant_sender(headers.get("from", ""), blocked, number):
-                    return None, None, False
-                if self._known(payload, known_topics):
-                    return None, None, False
-                _call_id, classification = self.analyzer.classify_for_learning(payload)
-                return classification, payload, False
-            except Exception:
-                # A malformed mail or an exhausted provider retry budget belongs to
-                # this independent item. Do not discard successful sibling results.
-                # Exception text may contain untrusted data and is not printed.
-                return None, None, True
-
         # Each mail forms an independent first-stage pipeline. ``map`` preserves
         # mailbox order while relevance checks and classifications run concurrently.
         with ThreadPoolExecutor(max_workers=self.parallel_llm_calls) as executor:
-            return list(executor.map(classify, mails))
+            return list(executor.map(lambda mail: self.classify(mail, blocked), mails))
+
+    def classify(self, mail: FetchedMail, blocked: IrrelevantSenders
+                 ) -> tuple[MailClassification | None, dict[str, object] | None, bool]:
+        """One resumable unit of work, shared by CLI and browser; no questions or writes."""
+        try:
+            payload = prepare(mail.raw, self.limits, mail.received_at, self.timezone)
+            number = next((source.mailbox_id for source in self.sources
+                           if getattr(source.imap, "account_id", None) == mail.account_id), 1)
+            payload["mailbox_id"] = number
+            headers = cast(dict[str, Any], payload["headers"])
+            if is_irrelevant_sender(headers.get("from", ""), blocked, number):
+                return None, None, False
+            if self._known(payload, [*self.topics, *self.irrelevant_topics]):
+                return None, None, False
+            _call_id, classification = self.analyzer.classify_for_learning(payload)
+            return classification, payload, False
+        except Exception:
+            return None, None, True
 
     def _categories(self, classifications: list[MailClassification]) -> list[LearnedCategory]:
         try:

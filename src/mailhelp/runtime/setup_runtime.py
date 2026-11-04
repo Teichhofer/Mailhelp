@@ -205,6 +205,7 @@ class SetupRuntime:
             writers.close()
 
     def llm(self, actor):
+        self.app.openrouter.check_access()
         for step in self.app.analyzer.prompts.prompts:
             self.app.analyzer.prompts.resolved_routes(step)
         return "ready", ""

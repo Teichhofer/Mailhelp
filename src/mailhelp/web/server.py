@@ -161,5 +161,11 @@ class WebServer:
         self._thread.join(timeout=5)
         self.logger.event("INFO", "web", "server_stopped")
 
+    def replace_handler(self, handler: Handler) -> None:
+        """Install one fully prepared application generation on the existing socket."""
+        self.handler = handler
+        if self._server is not None:
+            self._server.app = handler
+
 
 __all__ = ["WebServer", "WebServerError"]

@@ -1,5 +1,31 @@
 # Änderungen
 
+## 3.8.26 – Web-Lernmodus, Laufzeitwechsel und Anbieterabnahme
+
+- Gemeinsamer Lernkern für Terminal und Browser, persistierter Hintergrundjob mit
+  Pause, Abbruch, Neustart-Wiederaufnahme und Budgetreservierung vor jedem Modellaufruf.
+  Preisobergrenze und Budget werden vor dem ausdrücklichen Start angezeigt.
+- Getrennte Laufgenerationen verhindern nach Abbruch und sofortigem neuem Start,
+  dass verspätete Ergebnisse, Kostenreservierungen oder Fehler den neuen Job verändern.
+- Der Erstzugangscode wird auch bei gepufferter Konsolenausgabe, etwa in Docker,
+  sofort ausgegeben. Ein während der Abnahme reproduzierter Fehler ist damit behoben.
+- Bearbeitbare Themenkarten mit Belegen, Postfachzuordnung, Ausschlussthemen und
+  optionalen Absenderfiltern. Zusätzliche Abrufordner sind auswählbar; Spam und
+  Papierkorb bleiben zunächst abgewählt. Erst die gemeinsame bestätigte Übernahme
+  schreibt die lokalen Dateien über ein wiederherstellbares Journal.
+- `/dienst/neu-laden` bereitet neue Verbindungen vor und wechselt am sicheren
+  Mailzyklus. Sitzung und Dateistand werden vor der Aktivierung erneut geprüft;
+  alte Verbindungen schließen erst danach. Unfertige Analysen werden zuerst beendet.
+- Die Ersteinrichtung aktiviert den Normalbetrieb ohne Austausch des Prozesses.
+  Der Lernmodus bleibt neben `--learn` erreichbar.
+- Lesender Selbsttest mit Diagnoseempfehlungen; Monatskosten in der konfigurierten
+  Zeitzone und letzte Abfrage je Postfach auf der Statusseite.
+- Gemeinsame Sicherheitsmatrix über reale Google-, Todoist-, Microsoft-, CalDAV-
+  und Apple-Erinnerungen-Adapter mit synthetischem HTTP-Transport; harte Prozessabbrüche
+  und zweimaliger Wiederanlauf je Anbieter. CI enthält diese Matrix auch in Docker.
+- Die 27 Entwicklungsschritte sind 3.8.0–3.8.26 zugeordnet. Die gesonderte Freigabe
+  4.0.0 (Schritt 8.8) wird durch diesen Arbeitsstand nicht veröffentlicht.
+
 ## 3.7.19 – Ersteinrichtung und OAuth im Browser
 
 - Ohne `config.yaml` startet ausschließlich der geschützte Einrichtungsserver.

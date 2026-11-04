@@ -1,8 +1,28 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 4. November 2026, Anwendungsversion 3.7.19. Die folgenden Verträge beschreiben
+Stand: 4. November 2026, Anwendungsversion 3.8.26. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
+
+## Web-Lernmodus und Neuladen (3.8)
+
+`/lernen` verwendet den gemeinsamen lesenden Lernkern und einen versionierten
+Hintergrundjob in `web-learning.json`. Jeder Modellaufruf reserviert sein konservatives
+Tokenbudget einschließlich Transportwiederholungen vor dem Netzwerkzugriff.
+Die Kostenobergrenze beruht auf der ausdrücklich eingegebenen Preisannahme; unbekannte
+Anbieterpreise werden nicht als kostenlos behandelt. Ein Neustart pausiert aktive
+Läufe; die Fortsetzung erfordert eine gültige Sitzung. Erst die ausdrückliche
+Übernahme speichert die ausgewählten Themen, Filter und Ordner gemeinsam mit
+wiederherstellbarem Journal. Dies autorisiert keine externen Schreibzugriffe.
+
+`/dienst/neu-laden` nimmt eine sitzungs-, versions-, dateistands- und idempotenzgebundene
+Anforderung entgegen. Der Mailzyklus schließt unfertige Analysen und Warteschlangen
+unter der bisherigen Konfiguration ab. Danach werden neue Adapter aufgebaut und
+lesend geprüft. Erst nach erneuter Sitzungs- und Dateiprüfung wechselt die gesamte
+Laufzeitgeneration; der HTTP-Listener bleibt bestehen, alte Verbindungen schließen danach.
+Web-Einstellungen, Sitzungsschlüssel, Datenverzeichnis und Betriebsmodus bleiben
+Neustartgrenzen. Die Ersteinrichtung wechselt dagegen direkt im selben Prozess in den
+Normalbetrieb und bietet den Web-Lernmodus an. Details: [Release 3.8](docs/Release-3.8.md).
 
 Die verbindlichen Zustandsübergänge, Persistenzgrenzen und beide Reihenfolgen konkurrierender
 Entscheidungen für Review, Command-Inbox, Schreibausführung, Ledger und Merge stehen in
@@ -33,7 +53,8 @@ Unabhängige Einrichtungsentwürfe bleiben erhalten. Neue Reader werden im näch
 Mailzyklus ergänzt; alte Reader und Fortschritte bleiben bestehen. Fehlgeschlagener Aufbau
 schließt neue Verbindungen und wird im nächsten Zyklus erneut versucht. Zuordnungen für
 Orchestrator, Metriken, Labels, Antwortentwürfe und Filter berücksichtigen neue Postfächer.
-Bestehende Postfächer ändern oder entfernen bleibt ein Entwurf mit Übernahme und Neustart.
+Bestehende Postfächer ändern oder entfernen bleibt ein Entwurf mit Übernahme;
+seit 3.8 aktiviert „Konfiguration neu laden“ den gespeicherten Stand.
 Kalender- und Aufgabenaktionen benötigen weiterhin ihre eigene versionsbezogene Bestätigung.
 Details und Betriebsgrenzen: [Release 3.5](docs/Release-3.5.md).
 
@@ -46,7 +67,7 @@ Terminal-Code, Telegram-Code und ein lokal als scrypt-Hash gespeichertes Web-Pas
 erzeugen gleichberechtigte widerrufbare Sitzungen. Schrittversion, CSRF und Idempotenz
 schützen Entwürfe; nach langsamen Prüfungen werden Sitzung und Stand erneut geprüft.
 Die Konfiguration wird erst nach lesenden Verbindungstests als letzter atomarer
-Aktivierungsmarker geschrieben und durch einen kontrollierten Neustart aktiviert.
+Aktivierungsmarker geschrieben und seit 3.8 im selben Prozess aktiviert.
 Direkte Google-Webanmeldung mit registriertem Webclient, State und PKCE sowie dauerhafte
 Microsoft-Device-Code-Vorgänge sind an die ursprüngliche Sitzung und Clientdaten gebunden.
 Die Google-Playground-Hilfe und profilbezogene Kalenderauswahl sind im Browser verfügbar.

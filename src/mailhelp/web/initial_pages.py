@@ -33,7 +33,8 @@ def initial_page(state: InitialDraft, csrf: str, step: int) -> str:
     controls = ""
     if step == 5:
         controls = ('<p>Die Verbindungen werden erneut lesend geprüft. Danach wird die Konfiguration aktiviert '
-                    'und Mailhelp kontrolliert neu gestartet. Der Web-Lernmodus folgt in Version 4.0.</p>'
+                    'und der Normalbetrieb im selben Prozess gestartet. '
+                    'Anschließend steht der Web-Lernmodus bereit.</p>'
                     '<label><input type="checkbox" name="confirm" value="yes" required> '
                     'Konfiguration speichern und Normalbetrieb starten</label>')
     else:

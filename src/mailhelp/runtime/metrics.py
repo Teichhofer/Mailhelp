@@ -417,6 +417,17 @@ class MetricsRecorder:
                 "p95": durations[max(0, math.ceil(len(durations) * .95) - 1)] if durations else None,
                 "damaged": damaged, "capture_failures": self.failures, "groups": summaries, "records": records}
 
+    def month_cost(self, now: datetime, timezone: str) -> tuple[str, int]:
+        from zoneinfo import ZoneInfo
+        zone = ZoneInfo(timezone)
+        today = now.astimezone(zone)
+        rows = [row for row in self.report(days=32)["records"]
+                if datetime.fromisoformat(row["started_at"]).astimezone(zone).strftime("%Y-%m")
+                == today.strftime("%Y-%m")]
+        usd = sum((Decimal(row["cost_usd"]) for row in rows if row["cost_usd"] is not None), Decimal(0))
+        unknown = sum(row["cost_usd"] is None and row["provider"] != "ollama" for row in rows)
+        return str(usd), unknown
+
     def maintain(self) -> None:
         """Main-thread pruning with a replayable compaction journal.
 

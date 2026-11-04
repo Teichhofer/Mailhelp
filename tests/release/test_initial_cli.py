@@ -14,13 +14,28 @@ from mailhelp.runtime import bootstrap, local_pairing
 from mailhelp.runtime.web_password import WebPassword
 
 
-def test_empty_start_enters_setup_and_uses_existing_restart_supervisor(tmp_path,monkeypatch):
+def test_first_run_terminal_output_is_delivered_even_without_a_tty(monkeypatch):
+    class BufferedPipe:
+        def __init__(self):self.pending='';self.delivered=''
+        def write(self,text):self.pending+=text
+        def flush(self):self.delivered+=self.pending;self.pending=''
+    pipe=BufferedPipe()
+    monkeypatch.setattr(sys,'stdout',pipe)
+    bootstrap.console('synthetic-authentication-marker')
+    assert pipe.delivered=='synthetic-authentication-marker\n' and not pipe.pending
+
+
+def test_empty_start_finishes_setup_without_replacing_the_process(tmp_path,monkeypatch):
     calls=[]
     monkeypatch.setattr(sys,'argv',['mailhelp','--config-directory',str(tmp_path)])
     monkeypatch.setattr(bootstrap,'run_initial_setup',lambda directory,shutdown:calls.append(directory) or 75)
-    monkeypatch.setattr(cli,'_restart',lambda:7)
-    monkeypatch.setattr(cli,'build_application',lambda *a,**kw:pytest.fail('No production adapters before setup'))
-    assert cli.main()==7 and calls==[tmp_path]
+    monkeypatch.setattr(cli,'_restart',lambda:pytest.fail('No process restart after setup'))
+    def loaded(directory):
+        assert calls==[tmp_path]
+        raise RuntimeError('normal mode reached')
+    monkeypatch.setattr(cli,'load_all',loaded)
+    with pytest.raises(RuntimeError,match='normal mode reached'):cli.main()
+    assert calls==[tmp_path]
 
 
 def test_host_password_reset_requires_no_provider_credentials(initial,monkeypatch,capsys):

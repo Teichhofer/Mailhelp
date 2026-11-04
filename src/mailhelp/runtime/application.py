@@ -70,6 +70,9 @@ class Application:
     iserv_runtime: IServRuntime | None = None
     # Mailboxes activated in the web interface, installed between cycles (3.5).
     mailbox_runtime: MailboxRuntime | None = None
+    resources: Any = None
+    reload: Any = None
+    web_site: Any = None
     # Monotonic time of the last maintenance run; it blocks the main thread and runs at an interval.
     _maintained_at: float | None = None
     # Settings and topics saved by a web command, taken over by the mail loop at its next cycle (3.6.4).
@@ -426,13 +429,19 @@ class Application:
         self._start_receiver()
         self._start_web()
         self._start_operator()
+        current = self
         try:
             while not self.stop_event.is_set():
-                if not self._cycle(max_mails, ignore_historical_start):
+                if self.reload is not None:
+                    self.reload.advance()
+                    current = self.reload.current
+                if not current._cycle(max_mails, ignore_historical_start):
                     break
         finally:
-            self._finish(max_mails)
-        return self._fatal_error
+            current._finish(max_mails)
+            if self.reload is not None:
+                self.reload.close()
+        return current._fatal_error
 
     def _announce_start(self) -> None:
         """Greeting, open decisions and held messages; no failure blocks the start."""

@@ -150,6 +150,8 @@ vision:
   # Längste Bildkante nach dem Verkleinern; spart Tokens.
   max_edge_pixels: 1600
 learning:
+  # /lernen: Preisannahme, Budget, Umfang und Ordner werden je bestätigtem Job
+  # gespeichert. Ohne ausdrücklichen Start gibt es keinen kostenpflichtigen Lernlauf.
   parallel_llm_calls: 10
   # Ab 3.5.3: true kopiert vollständige KI-Anfragen und -Antworten aus dem KI-Protokoll
   # (nur vorhanden mit logging.llm.include_requests/include_responses) in jeden

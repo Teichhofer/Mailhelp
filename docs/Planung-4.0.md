@@ -257,24 +257,26 @@ flowchart TD
 | 4.0 (dieser Plan) | 4, 5, 8 | 28 |
 
 Die Schritte dieses Plans werden bis zum Release als Patchversionen 3.8.x geliefert;
-Schritt 8.8 hebt die Version auf 4.0.0.
+Die Umsetzung steht im Arbeitsstand 3.8.26; die Gesamtabnahme läuft.
+Siehe [Teilplan 3.8](Planung-3.8.md) und [Abnahmebericht](Release-3.8.md).
+Schritt 8.8 hebt die Version erst bei gesonderter Release-Freigabe auf 4.0.0.
 
 ### 5.2 Stufe 4 – Web-Lernmodus (Pfeiler 2)
 
 | Schritt | Inhalt | Fertig, wenn … | Umfang | Voraussetzung |
 | :--- | :--- | :--- | :--- | :--- |
-| 4.1 | Lernkern ohne Terminal | Der Lernkern sammelt Ergebnisse als Datenstruktur statt per `input()` zu fragen; `--learn` nutzt denselben Kern und bleibt unverändert bedienbar. | M | – |
-| 4.2 | Lernjob: Zustandsmodell | Persistierter Job (Parameter, Fortschritt, Zwischenergebnisse, Status) als lesbare JSON-Datei; Neustart setzt fort oder schließt sauber ab. | S | 4.1 |
-| 4.3 | Lernjob: Hintergrundausführung | Ausführung in eigenem Thread, ohne Abruf und Web zu blockieren; höchstens ein Lernjob gleichzeitig. | M | 4.2, 0.5 |
-| 4.4 | Pausieren und Abbrechen | Wirksam zwischen zwei Mails, auch nach Neustart; Tests mit Barrieren aus 1.3. | S | 4.3, 1.3 |
-| 4.5 | Kostenschätzung | Geschätzte Tokens und Höchstkosten vor dem Start; Abbruch bei Erreichen des Budgets. | S | 4.2 |
-| 4.6 | Startseite `/lernen` | Auswahl von Postfach, Umfang und Ordnern (aus `mailbox-folders.json`), Anzeige der Schätzung, Start mit Bestätigung. | S | 4.3, 4.5 |
-| 4.7 | Fortschrittsseite | Fortschritt, aktueller Schritt und Zwischenstand; ohne JavaScript per Neuladen, mit JavaScript über die Status-API. | S | 4.6 |
-| 4.8 | Review: Themen | Themenkarten mit editierbarem Titel und Beschreibung, Belegmails, Postfachzuordnung und Auswahl. | M | 4.7 |
-| 4.9 | Review: Ausschlussthemen und Absender | Erkannte Newsletter und Absender zur Übernahme, global oder je Postfach. | S | 4.8 |
-| 4.10 | Review: Ordner | Erkannte, noch nicht abgerufene Ordner zur Aufnahme in `folders`; Spam- und Papierkorbordner (Rolle `junk`/`trash`) standardmäßig abgewählt. | S | 4.8 |
-| 4.11 | Atomare Übernahme | Ausgewählte Themen, Filter und Ordner gemeinsam mit Versionsprüfung, CSRF und Idempotenzschlüssel gespeichert; keine externen Schreibzugriffe. | M | 4.9, 4.10 |
-| 4.12 | Browsertest Lernmodus | Durchlauf Start → Fortschritt → Review → Übernahme mit simulierten Diensten; Weiterleitung aus dem Assistenten (2.11). | S | 4.11, 2.11 |
+| 4.1 ✓ 3.8.0 | Lernkern ohne Terminal | Der Lernkern sammelt Ergebnisse als Datenstruktur statt per `input()` zu fragen; `--learn` nutzt denselben Kern und bleibt unverändert bedienbar. | M | – |
+| 4.2 ✓ 3.8.1 | Lernjob: Zustandsmodell | Persistierter Job (Parameter, Fortschritt, Zwischenergebnisse, Status) als lesbare JSON-Datei; Neustart setzt fort oder schließt sauber ab. | S | 4.1 ✓ 3.8.0 |
+| 4.3 ✓ 3.8.2 | Lernjob: Hintergrundausführung | Ausführung in eigenem Thread, ohne Abruf und Web zu blockieren; höchstens ein Lernjob gleichzeitig. | M | 4.2, 0.5 |
+| 4.4 ✓ 3.8.3 | Pausieren und Abbrechen | Wirksam zwischen zwei Mails, auch nach Neustart; Tests mit Barrieren aus 1.3. | S | 4.3, 1.3 |
+| 4.5 ✓ 3.8.4 | Kostenschätzung | Geschätzte Tokens und Höchstkosten vor dem Start; Abbruch bei Erreichen des Budgets. | S | 4.2 ✓ 3.8.1 |
+| 4.6 ✓ 3.8.5 | Startseite `/lernen` | Auswahl von Postfach, Umfang und Ordnern (aus `mailbox-folders.json`), Anzeige der Schätzung, Start mit Bestätigung. | S | 4.3, 4.5 |
+| 4.7 ✓ 3.8.6 | Fortschrittsseite | Fortschritt, aktueller Schritt und Zwischenstand; ohne JavaScript per Neuladen, mit JavaScript über die Status-API. | S | 4.6 ✓ 3.8.5 |
+| 4.8 ✓ 3.8.7 | Review: Themen | Themenkarten mit editierbarem Titel und Beschreibung, Belegmails, Postfachzuordnung und Auswahl. | M | 4.7 ✓ 3.8.6 |
+| 4.9 ✓ 3.8.8 | Review: Ausschlussthemen und Absender | Erkannte Newsletter und Absender zur Übernahme, global oder je Postfach. | S | 4.8 ✓ 3.8.7 |
+| 4.10 ✓ 3.8.9 | Review: Ordner | Erkannte, noch nicht abgerufene Ordner zur Aufnahme in `folders`; Spam- und Papierkorbordner (Rolle `junk`/`trash`) standardmäßig abgewählt. | S | 4.8 ✓ 3.8.7 |
+| 4.11 ✓ 3.8.10 | Atomare Übernahme | Ausgewählte Themen, Filter und Ordner gemeinsam mit Versionsprüfung, CSRF und Idempotenzschlüssel gespeichert; keine externen Schreibzugriffe. | M | 4.9, 4.10 |
+| 4.12 ✓ 3.8.11 | Browsertest Lernmodus | Durchlauf Start → Fortschritt → Review → Übernahme mit simulierten Diensten; Weiterleitung aus dem Assistenten (2.11). | S | 4.11, 2.11 |
 
 ### 5.3 Stufe 5 – Neuladen und Betrieb (Pfeiler 5)
 
@@ -284,26 +286,26 @@ Schritt 8.8 hebt die Version auf 4.0.0.
 
 | Schritt | Inhalt | Fertig, wenn … | Umfang | Voraussetzung |
 | :--- | :--- | :--- | :--- | :--- |
-| 5.1 | Neuladekonzept | Je Komponente festgelegt, was ohne Neustart getauscht werden kann, an welchem sicheren Punkt und wie mit dem Fingerprint umgegangen wird. | S | 0.5 |
-| 5.2 | Themen und Prompts neu laden | Wechsel am sicheren Punkt zwischen zwei Mails, ohne verwaiste Mails. | M | 5.1 |
-| 5.3 | Postfach ändern oder entfernen | Reader-Austausch für bestehende Postfächer, Checkpoints und Warteschlangen bleiben konsistent. | M | 5.1 |
-| 5.4 | Zugangsdaten tauschen | Neue Zugangsdaten werden ohne Neustart wirksam; alte Verbindungen werden geschlossen. | S | 5.3 |
-| 5.5 | Ziele und OAuth neu laden | Zielprofile und Tokens werden ohne Neustart übernommen; keine laufende Schreibaktion wird unterbrochen. | M | 5.1, 3.6 |
-| 5.6 | `/dienst/neu-laden` | Bestätigtes Neuladen aller Bereiche mit Ergebnisbericht; Assistent (2.11) nutzt es statt eines Neustarts. | S | 5.2–5.5 |
-| 5.7 | Selbsttest mit Empfehlungen | Ein Klick prüft alle Komponenten und nennt je Befund eine verständliche Handlungsempfehlung. | S | – |
-| 5.8 | Dashboard-Ergänzungen | Kosten des laufenden Monats und letzte Abfrage je Postfach auf `/status`. | S | – |
+| 5.1 ✓ 3.8.12 | Neuladekonzept | Je Komponente festgelegt, was ohne Neustart getauscht werden kann, an welchem sicheren Punkt und wie mit dem Fingerprint umgegangen wird. | S | 0.5 |
+| 5.2 ✓ 3.8.13 | Themen und Prompts neu laden | Wechsel am sicheren Punkt zwischen zwei Mails, ohne verwaiste Mails. | M | 5.1 ✓ 3.8.12 |
+| 5.3 ✓ 3.8.14 | Postfach ändern oder entfernen | Reader-Austausch für bestehende Postfächer, Checkpoints und Warteschlangen bleiben konsistent. | M | 5.1 ✓ 3.8.12 |
+| 5.4 ✓ 3.8.15 | Zugangsdaten tauschen | Neue Zugangsdaten werden ohne Neustart wirksam; alte Verbindungen werden geschlossen. | S | 5.3 ✓ 3.8.14 |
+| 5.5 ✓ 3.8.16 | Ziele und OAuth neu laden | Zielprofile und Tokens werden ohne Neustart übernommen; keine laufende Schreibaktion wird unterbrochen. | M | 5.1, 3.6 |
+| 5.6 ✓ 3.8.17 | `/dienst/neu-laden` | Bestätigtes Neuladen aller Bereiche mit Ergebnisbericht; Assistent (2.11) nutzt es statt eines Neustarts. | S | 5.2–5.5 |
+| 5.7 ✓ 3.8.18 | Selbsttest mit Empfehlungen | Ein Klick prüft alle Komponenten und nennt je Befund eine verständliche Handlungsempfehlung. | S | – |
+| 5.8 ✓ 3.8.19 | Dashboard-Ergänzungen | Kosten des laufenden Monats und letzte Abfrage je Postfach auf `/status`. | S | – |
 
 ### 5.4 Stufe 8 – Anbietermatrix, CI und Release (Q4)
 
 | Schritt | Inhalt | Umfang | Voraussetzung |
 | :--- | :--- | :--- | :--- |
-| 8.1 | Matrix Google Kalender (Q2 + A1–A4, Anlage/Änderung/Löschung soweit unterstützt) | S | Stufen 6, 7 |
-| 8.2 | Matrix Todoist | S | 8.1 |
-| 8.3 | Matrix Microsoft-Kalender und Microsoft To Do | M | 8.1 |
-| 8.4 | Matrix CalDAV-Kalender und -Aufgaben | M | 8.1 |
-| 8.5 | Nicht unterstützte Kombinationen begründet dokumentiert | S | 8.1–8.4 |
-| 8.6 | CI für Windows und Linux, ein Abbruch mit Wiederanlauf im Docker-Betrieb | M | 8.1–8.4 |
-| 8.7 | Abschlussbericht nach Q4.6 | S | 8.5, 8.6 |
+| 8.1 ✓ 3.8.20 | Matrix Google Kalender (Q2 + A1–A4, Anlage/Änderung/Löschung soweit unterstützt) | S | Stufen 6, 7 |
+| 8.2 ✓ 3.8.21 | Matrix Todoist | S | 8.1 ✓ 3.8.20 |
+| 8.3 ✓ 3.8.22 | Matrix Microsoft-Kalender und Microsoft To Do | M | 8.1 ✓ 3.8.20 |
+| 8.4 ✓ 3.8.23 | Matrix CalDAV-Kalender und -Aufgaben | M | 8.1 ✓ 3.8.20 |
+| 8.5 ✓ 3.8.24 | Nicht unterstützte Kombinationen begründet dokumentiert | S | 8.1–8.4 |
+| 8.6 ✓ 3.8.25 | CI für Windows und Linux, ein Abbruch mit Wiederanlauf im Docker-Betrieb | M | 8.1–8.4 |
+| 8.7 ✓ 3.8.26 | Abschlussbericht nach Q4.6 | S | 8.5, 8.6 |
 | 8.8 | Release 4.0.0: Spezifikation, README, Betriebsanleitung, Konfigurationsbeispiele, Wheel unter Windows 11 und Linux/Docker | S | alle Schritte |
 
 Nach Änderungen in 3.7 und 4.0 (Ersteinrichtung, OAuth, Lernjob, Neuladen) werden die

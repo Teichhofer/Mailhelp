@@ -205,7 +205,8 @@ def _early_mode(args: argparse.Namespace, shutdown: _SignalShutdown) -> int | No
                     args.learn is not None, args.decision_test is not None))
     if not (args.config_directory / "config.yaml").exists() and not one_shot:
         from .runtime.bootstrap import run_initial_setup
-        return run_initial_setup(args.config_directory, shutdown)
+        result = run_initial_setup(args.config_directory, shutdown)
+        return None if result == RESTART_EXIT_CODE else result
     return None
 
 
@@ -488,6 +489,9 @@ def _run(args: argparse.Namespace, settings, secrets, topics, irrelevant_topics,
             print(f"FATALER FEHLER: {fatal_error}", file=sys.stderr)
             return 1
         lifecycle = getattr(application, "lifecycle", None)
+        reload_service = getattr(application, "reload", None)
+        if reload_service is not None:
+            lifecycle = reload_service.current.lifecycle
         restart = lifecycle is not None and lifecycle.restart_requested
     # All adapters, the HTTP listener and state locks are closed before exec.
     return RESTART_EXIT_CODE if restart else 0

@@ -1,6 +1,7 @@
 """Independent bounded read-only checks; external error text never escapes."""
 from __future__ import annotations
 
+import hashlib
 import imaplib
 import platform
 import re
@@ -75,6 +76,7 @@ class DiagnosticsService:
         self.store, self.active, self.checks, self.timeout, self.clock = store, active, checks, timeout, clock
         self.revision = revision
         self._lock, self._busy = Lock(), set()
+        self.stopped, self.worker = Event(), None
         state = self.state()
         for result in state.results.values():
             if result.status == "running":
@@ -143,3 +145,49 @@ class DiagnosticsService:
                 "platform": "Windows" if platform.system() == "Windows" else "Linux",
                 "components": {name: result.model_dump(mode="json", exclude={"config_revision"})
                                for name, result in self.state().results.items()}}
+
+    def run_all(self, actor, version, key):
+        """One bounded background pass; synthetic write/message tests are never included."""
+        if not re.fullmatch(r"[A-Za-z0-9_-]{8,80}", key):
+            raise ValueError("Ungültiger Idempotenzschlüssel")
+        def execute():
+            try:
+                for name in tuple(self.checks):
+                    if self.stopped.is_set():
+                        return
+                    if name.endswith("_test"):
+                        continue
+                    try:
+                        child_key = hashlib.sha256(f"{actor}:{key}:{name}".encode()).hexdigest()
+                        self.run(actor, name, self.state().version, child_key)
+                    except (ValueError, PermissionError):
+                        return
+            finally:
+                with self._lock:
+                    self.worker = None
+        with self._lock:
+            if not self.active(actor):
+                raise PermissionError("Sitzung abgelaufen")
+            state = self.state()
+            operation = f"all:{actor}:{key}"
+            signature = f"all:{version}"
+            if operation in state.operations:
+                if state.operations[operation] != signature:
+                    raise ValueError("Idempotenzkonflikt")
+                return None
+            if state.version != version or self.worker is not None or self._busy:
+                raise ValueError("Prüfstand geändert oder Prüfung läuft")
+            state.operations[operation] = signature
+            state.version += 1
+            self._save(state)
+            self.stopped.clear()
+            self.worker = Thread(target=execute, name="mailhelp-self-test", daemon=True)
+            self.worker.start()
+            return self.worker
+
+    def stop(self) -> None:
+        with self._lock:
+            self.stopped.set()
+            worker = self.worker
+        if worker is not None:
+            worker.join()

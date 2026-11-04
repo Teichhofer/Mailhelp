@@ -232,7 +232,8 @@ def setup_server(mailhelp):
     site = mailhelp.site
     app = NS(settings=site.archive.configuration.active, configuration=site.archive.configuration,
              dialog=mailhelp.dialog, store=mailhelp.store, telegram=mailhelp.telegram, logger=site.logger,
-             analyzer=NS(prompts=prompt_config()), calendar=None, todoist=None)
+             analyzer=NS(prompts=prompt_config()), calendar=None, todoist=None,
+             openrouter=NS(check_access=lambda:None))
     app.configuration.activate = lambda cfg: setattr(app, "settings", cfg)
     app.orchestrator = Orchestrator(app.analyzer, app.store, object(), 2, [], 1024)
     app.orchestrator.configure_mailboxes(app.settings, app.analyzer.prompts, {"0" * 24: 1})

@@ -1,6 +1,6 @@
 # Einrichtung und Qualitätsprüfung
 
-Stand: 4. November 2026, Anwendungsversion 3.7.19. Die Einrichtungshinweise gelten
+Stand: 4. November 2026, Anwendungsversion 3.8.26. Die Einrichtungshinweise gelten
 für den aktuellen Stand. Datierte Qualitätsberichte weiter unten dokumentieren
 jeweils den damaligen Code und die damals geprüften Modelle.
 
@@ -8,9 +8,9 @@ Ohne `config.yaml` startet nun die geschützte Browser-Ersteinrichtung mit
 automatischem Terminal-Code. Für eine neue Docker-Installation steht
 `docker compose -f compose.setup.yaml up --build` mit dauerhaftem Konfigurationsvolume
 bereit. Der Assistent prüft die Verbindungen, speichert die Einstellungen und
-aktiviert den Normalbetrieb durch kontrollierten Neustart. Web-Passwort,
+aktiviert den Normalbetrieb im selben Prozess und bietet den Web-Lernmodus an. Web-Passwort,
 Terminal-Code und Telegram-Code bleiben reguläre Anmeldewege.
-Verträge und Abnahme: [Release 3.7](Release-3.7.md).
+Verträge und Abnahme: [Release 3.8](Release-3.8.md).
 
 <p align="center">
   <img src="../src/mailhelp/assets/logo.png" alt="Mailhelp" width="200">

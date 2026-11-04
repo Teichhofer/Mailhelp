@@ -274,6 +274,8 @@ def _overview(raw: dict[str, Any] | None, active: dict[str, Any] | None) -> str:
     body += _tiles("System", (
         _tile("/geraete", "Geräte", "Angemeldete Browser verwalten")
         + _tile("/einstellungen/neustarten", "Mailhelp neu starten", "Kontrollierter Neustart mit Bestätigung")
+        + _tile("/dienst/neu-laden", "Konfiguration neu laden", "Verbindungen ohne Prozessneustart wechseln")
+        + _tile("/dienst/selbsttest", "Lesender Selbsttest", "Alle Komponenten und Handlungsempfehlungen")
         + _tile("/einstellungen/beenden", "Mailhelp beenden", "Dienst kontrolliert anhalten", kind="danger")))
     return body
 

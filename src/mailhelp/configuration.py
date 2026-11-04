@@ -395,6 +395,10 @@ class ConfigurationService:
         return content
 
     def execute(self, command: AdminCommand) -> ReviewResult:
+        with self.store._thread_lock:
+            return self._execute(command)
+
+    def _execute(self, command: AdminCommand) -> ReviewResult:
         if not self.authorize(command.actor):
             return ReviewResult(status=ResultStatus.UNAUTHORIZED, message="Nicht autorisiert.")
         if command.context_hash is not None and command.context_hash != file_hash(self.directory / "config.yaml"):

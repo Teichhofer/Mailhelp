@@ -1,0 +1,248 @@
+{
+  "$defs": {
+    "LearnedCategory": {
+      "additionalProperties": false,
+      "description": "One deliberately non-authoritative category proposed by an LLM.",
+      "properties": {
+        "description": {
+          "maxLength": 1000,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "examples": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "Examples",
+          "type": "array"
+        },
+        "name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "description"
+      ],
+      "title": "LearnedCategory",
+      "type": "object"
+    },
+    "LearningCard": {
+      "additionalProperties": false,
+      "properties": {
+        "category": {
+          "$ref": "#/$defs/LearnedCategory"
+        },
+        "evidence": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 1000,
+          "title": "Evidence",
+          "type": "array"
+        },
+        "senders": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 1000,
+          "title": "Senders",
+          "type": "array"
+        }
+      },
+      "required": [
+        "category"
+      ],
+      "title": "LearningCard",
+      "type": "object"
+    },
+    "LearningSelection": {
+      "additionalProperties": false,
+      "properties": {
+        "budget_usd": {
+          "exclusiveMinimum": 0,
+          "maximum": 1000,
+          "title": "Budget Usd",
+          "type": "number"
+        },
+        "count": {
+          "maximum": 1000,
+          "minimum": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "folders": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "title": "Folders",
+          "type": "array"
+        },
+        "mailbox": {
+          "maximum": 99,
+          "minimum": 1,
+          "title": "Mailbox",
+          "type": "integer"
+        },
+        "usd_per_million_tokens": {
+          "exclusiveMinimum": 0,
+          "maximum": 10000,
+          "title": "Usd Per Million Tokens",
+          "type": "number"
+        }
+      },
+      "required": [
+        "mailbox",
+        "folders",
+        "count",
+        "budget_usd",
+        "usd_per_million_tokens"
+      ],
+      "title": "LearningSelection",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "actor": {
+      "default": "",
+      "title": "Actor",
+      "type": "string"
+    },
+    "before": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Before",
+      "type": "object"
+    },
+    "candidates": {
+      "anyOf": [
+        {
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "type": "array"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Candidates"
+    },
+    "cards": {
+      "items": {
+        "$ref": "#/$defs/LearningCard"
+      },
+      "title": "Cards",
+      "type": "array"
+    },
+    "choices": {
+      "additionalProperties": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Choices",
+      "type": "object"
+    },
+    "commit": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Commit",
+      "type": "object"
+    },
+    "cursor": {
+      "default": 0,
+      "title": "Cursor",
+      "type": "integer"
+    },
+    "failures": {
+      "default": 0,
+      "title": "Failures",
+      "type": "integer"
+    },
+    "folders": {
+      "additionalProperties": {
+        "type": "boolean"
+      },
+      "title": "Folders",
+      "type": "object"
+    },
+    "generation": {
+      "default": 0,
+      "minimum": 0,
+      "title": "Generation",
+      "type": "integer"
+    },
+    "message": {
+      "default": "",
+      "title": "Message",
+      "type": "string"
+    },
+    "operations": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Operations",
+      "type": "object"
+    },
+    "reserved_tokens": {
+      "default": 0,
+      "title": "Reserved Tokens",
+      "type": "integer"
+    },
+    "revision": {
+      "default": "",
+      "title": "Revision",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "selection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/LearningSelection"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "status": {
+      "default": "empty",
+      "enum": [
+        "empty",
+        "running",
+        "paused",
+        "cancelled",
+        "review",
+        "committing",
+        "done"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "version": {
+      "default": 0,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "title": "LearningJob",
+  "type": "object"
+}

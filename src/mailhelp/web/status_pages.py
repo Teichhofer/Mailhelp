@@ -45,6 +45,8 @@ class ServiceInfo:
     services: tuple[str, ...] = ()
     fingerprint: str | None = None
     accounts: tuple[tuple[str, str], ...] = ()
+    monthly_cost: tuple[str, int] | None = None
+    last_polls: tuple[tuple[str, str], ...] = ()
 
 
 RUNTIME_STAGES = {
@@ -190,10 +192,16 @@ def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
     ]))
 
     parts.append(_runtime_section(info, zone))
+    if info.monthly_cost is not None:
+        usd, unknown = info.monthly_cost
+        parts.append("<h2>Kosten im laufenden Monat</h2>" + _facts([
+            ("Erfasste Cloudkosten (USD)", usd), ("Aufrufe ohne Kostenangabe", str(unknown))]))
+    if info.last_polls:
+        parts.append("<h2>Letzte Abfrage je Postfach</h2>" + _facts(list(info.last_polls)))
     if info.accounts:
         parts.append("<h2>Konfigurierte Konten</h2>" + _facts(list(info.accounts)))
         parts.append('<p class="meta">Beobachteter Stand seit Dienststart; diese Seite führt keine '
-                     'Verbindungsprüfung aus. Übernommene Verbindungsänderungen benötigen einen Neustart; '
+                     'Verbindungsprüfung aus. Geänderte Verbindungen werden über „Konfiguration neu laden“ aktiviert; '
                      'nicht übernommene Einrichtungsentwürfe sind nicht enthalten.</p>')
     parts.append(_imap_error_section(info, zone))
 

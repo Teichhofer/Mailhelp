@@ -1,0 +1,52 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "actor": {
+      "default": "",
+      "title": "Actor",
+      "type": "string"
+    },
+    "message": {
+      "default": "",
+      "title": "Message",
+      "type": "string"
+    },
+    "operations": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Operations",
+      "type": "object"
+    },
+    "revision": {
+      "default": "",
+      "title": "Revision",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "status": {
+      "default": "idle",
+      "enum": [
+        "idle",
+        "pending",
+        "running",
+        "done",
+        "failed"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "version": {
+      "default": 0,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "title": "ReloadState",
+  "type": "object"
+}

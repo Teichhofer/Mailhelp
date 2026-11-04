@@ -11,7 +11,7 @@ from .auth import PairingLimited, WebAuth, WebSession
 from .http import Request, Response
 from .initial_pages import initial_page
 from .login_site import SESSION_COOKIE, LoginSite
-from .pages import error_page
+from .pages import error_page, layout
 from .server import EventLogger
 
 
@@ -76,8 +76,9 @@ class InitialSite:
                 if form.get("confirm") != "yes":
                     raise ValueError("Speichern ausdrücklich bestätigen.")
                 self.setup.finish("web:" + session.id, int(form["version"]), form["key"])
-                response = Response.html(200, error_page("Einrichtung abgeschlossen",
-                    "Mailhelp startet jetzt kontrolliert neu. Danach die Weboberfläche neu laden.", signed_in=False))
+                response = Response.html(200, layout("Einrichtung abgeschlossen",
+                    '<h1>Einrichtung abgeschlossen</h1><p>Mailhelp aktiviert jetzt den Normalbetrieb.</p>'
+                    '<p><a class="button" href="/lernen">Zum Lernmodus</a></p>', signed_in=False))
                 response.after_send = self.stop
                 return response
             self.setup.save("web:" + session.id, form)

@@ -13,7 +13,15 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.7.19 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.8.26 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 3.8 ergänzt den Web-Lernmodus unter `/lernen`: Umfang und Preisannahme prüfen,
+lesenden Lauf ausdrücklich starten, pausieren oder abbrechen und die bearbeiteten
+Themen, Ausschlüsse, Absender und Ordner gemeinsam übernehmen. `/dienst/neu-laden`
+aktiviert gespeicherte Verbindungs- und Analyseänderungen ohne Prozessneustart;
+`/dienst/selbsttest` prüft die Komponenten lesend. Der Abschluss der Ersteinrichtung
+wechselt im selben Prozess in den Normalbetrieb und verlinkt den Lernmodus.
+Details und Betriebsgrenzen: [Release 3.8](docs/Release-3.8.md).
 
 Version 3.7 startet ohne `config.yaml` einen geschützten Einrichtungsassistenten.
 Den automatisch im Terminal ausgegebenen Einmalcode im Browser eingeben und
@@ -172,7 +180,8 @@ eigene Clientdaten und Refresh-Token entstehen. Die zusätzliche direkte Anmeldu
 verwendet einen Webanwendungs-Client: `web.google_redirect_uri` muss exakt als
 Weiterleitungsadresse registriert sein (für entfernte Rechner HTTPS).
 Microsoft zeigt Gerätecode, Kopierknopf, Anmeldelink und Fortschritt im Browser.
-Nach geänderten Zugangsdaten Mailhelp kontrolliert neu starten; Prozessvariablen
+Nach geänderten Zugangsdaten „Konfiguration neu laden“ ausdrücklich bestätigen;
+Web-Sitzungsschlüssel und Web-Einstellungen benötigen einen kontrollierten Neustart. Prozessvariablen
 haben weiterhin Vorrang vor `.env`.
 
 Die bisherigen CLI-Alternativen bleiben verfügbar:
@@ -303,7 +312,7 @@ Zugangsdaten (IMAP, IServ, OpenRouter, Telegram, Kalender- und Aufgabendienste) 
 unter **Einstellungen → Zugangsdaten** eintragen oder ersetzen. Die Seite zeigt nur, ob ein
 Wert hinterlegt ist, nie den Wert selbst; jede Änderung wird ausdrücklich bestätigt und nur
 die betroffene Zeile in `.env` ersetzt. In Docker muss `.env` dafür beschreibbar eingebunden
-sein. Der Mailabruf verwendet neue Werte nach dem nächsten Neustart.
+sein. Der Mailabruf verwendet neue Werte nach bestätigtem Neuladen der Konfiguration.
 
 Den Code auf der Anmeldeseite eingeben. Die Oberfläche bietet offene Entscheidungen,
 Mailansichten, Suche, Verlauf, Auswertung, Berichte und Einstellungen. Die Auswertung zeigt

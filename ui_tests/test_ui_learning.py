@@ -1,0 +1,70 @@
+"""Learning start, progress and explicit review in an actual browser, including no JavaScript."""
+from types import SimpleNamespace
+
+import pytest
+from initial_harness import InitialHarness
+from learning_harness import LearningHarness
+from playwright.sync_api import expect
+
+from checks import audit
+from mailhelp.web.server import WebServer
+
+
+@pytest.fixture
+def learning_server(tmp_path):
+    initial=InitialHarness(tmp_path)
+    h=LearningHarness(initial)
+    server=WebServer('127.0.0.1',0,h.web,SimpleNamespace(event=lambda *a,**kw:None))
+    server.start()
+    host,port=server.address
+    h.web.allowed_hosts=frozenset({f'{host}:{port}'})
+    h.url=f'http://{host}:{port}'
+    h.auth.channel='console'
+    h.code=h.auth.issue_code()
+    try:yield h
+    finally:server.stop();initial.close()
+
+
+def flow(page,h,audit_review=True):
+    page.goto(h.url+'/lernen')
+    page.get_by_label('Code aus der Mailhelp-Konsole').fill(h.code)
+    page.get_by_role('button',name='Gerät koppeln',exact=True).click()
+    page.goto(h.url+'/lernen')
+    page.get_by_label('Anzahl Mails',exact=True).fill('2')
+    page.get_by_label('Preisobergrenze USD je Million Tokens',exact=True).fill('0.001')
+    page.get_by_label('Budget USD',exact=True).fill('1000')
+    page.get_by_role('button',name='Schätzung anzeigen',exact=True).click()
+    expect(page.get_by_text('Konservative Schätzung:',exact=False)).to_be_visible()
+    page.get_by_role('button',name='Lesenden Lernlauf kostenpflichtig starten',exact=True).click()
+    expect(page.get_by_role('button',name='Pausieren',exact=True)).to_be_visible()
+    page.get_by_role('button',name='Pausieren',exact=True).click()
+    expect(page.get_by_role('button',name='Fortsetzen',exact=True)).to_be_visible()
+    page.get_by_role('button',name='Fortsetzen',exact=True).click()
+    while h.worker.tick():pass
+    page.reload()
+    expect(page.get_by_role('heading',name='<Newsletter>',exact=True)).to_be_visible()
+    page.get_by_label('Titel',exact=True).fill('Camping-Buchungen')
+    page.get_by_label('Beschreibung',exact=True).fill('Synthetische Buchungsbestätigungen')
+    page.get_by_label('Übernahme',exact=True).select_option('relevant')
+    page.get_by_role('button',name='Auswahl als Entwurf speichern',exact=True).click()
+    expect(page.get_by_label('Titel',exact=True)).to_have_value('Camping-Buchungen')
+    if audit_review:
+        assert audit(page,'learning-review',page.viewport_size['width']<=390)==[]
+    page.get_by_role('button',name='Ausgewählte Themen, Filter und Ordner ausdrücklich übernehmen',exact=True).click()
+    expect(page.get_by_text('Auswahl gemeinsam gespeichert.',exact=False)).to_be_visible()
+    expect(page.get_by_role('link',name='Konfiguration neu laden',exact=True)).to_be_visible()
+    assert h.jobs.state().status=='done'
+
+
+def test_learning_start_pause_review_and_explicit_adoption(page,learning_server):
+    flow(page,learning_server)
+    assert audit(page,'learning-complete-'+page.device,page.mobile)==[]
+
+
+def test_learning_flow_without_javascript(browser,learning_server):
+    context=browser.new_context(java_script_enabled=False,viewport={'width':390,'height':844})
+    try:
+        page=context.new_page()
+        flow(page,learning_server,audit_review=False)
+        assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+    finally:context.close()

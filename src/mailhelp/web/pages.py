@@ -21,12 +21,13 @@ def e(value: object) -> str:
 
 NAVIGATION = (("/", "Offen"), ("/mails", "Mails"), ("/verlauf", "Verlauf"),
               ("/status", "Status"), ("/auswertung", "Auswertung"), ("/berichte", "Berichte"),
-              ("/einstellungen", "Einstellungen"), ("/geraete", "Geräte"), ("/abgleich", "Vorschlagsabgleich"))
+              ("/einstellungen", "Einstellungen"), ("/geraete", "Geräte"), ("/abgleich", "Vorschlagsabgleich"),
+              ("/lernen", "Lernen"))
 
 NAVIGATION_GROUPS = (
     ("Arbeitsbereich", ("/", "/mails", "/abgleich")),
     ("Einblicke", ("/verlauf", "/berichte", "/auswertung", "/status")),
-    ("Verwaltung", ("/einstellungen", "/geraete")),
+    ("Verwaltung", ("/einstellungen", "/lernen", "/geraete")),
 )
 NAVIGATION_ICONS = {
     "/": "M4 4h16v16H4z M8 12l3 3 5-6",
@@ -38,6 +39,7 @@ NAVIGATION_ICONS = {
     "/status": "M3 12h4l3-7 4 14 3-7h4",
     "/einstellungen": "M4 7h16 M4 17h16 M9 4v6 M15 14v6",
     "/geraete": "M7 2h10v20H7z M10 18h4",
+    "/lernen": "M3 5h8v15H3z M13 5h8v15h-8z M5 9h4 M15 9h4",
 }
 
 

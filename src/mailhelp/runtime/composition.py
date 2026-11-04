@@ -341,6 +341,12 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
     from ..notifications.notification_runtime import NotificationRuntime
     from .setup_runtime import SetupRuntime
     components.site.setup_page.runtime = SetupRuntime(application, components.site, secrets)
+    application.services.diagnostics = components.site.setup_page.runtime.diagnostics
+    from ..web.learning_site import LearningSite
+    from .learning_worker import LearningWorker
+    application.web_site = components.site
+    application.services.learning = LearningWorker(application, components.site, secrets)
+    LearningSite(components.site, application.services.learning)
     from .browser_accounts import attach_accounts
     attach_accounts(application, components.site, base_directory)
     from .diagnostics import DiagnosticResult, error_code
@@ -375,15 +381,18 @@ def build_application(
     logger: JsonlLogger | None = None,
     local_llm: LocalLlm | None = None,
     use_jev_relevance: bool = True,
+    shared_store: JsonStore | None = None,
+    shared_stop: Event | None = None,
+    reload_service: Any = None,
 ) -> Iterator[Application]:
     """Construct adapters and close every successfully constructed resource."""
     jev_prompts = None
     if use_jev_relevance and local_llm is None and not access_diagnostics:
         jev_prompts = load_relevance_prompts(base_directory)
         fingerprint = relevance_fingerprint(fingerprint, jev_prompts)
-    with ExitStack() as stack:
+    with ExitStack() as lifetime, ExitStack() as stack:
         data = _state_directory(settings, base_directory)
-        store = stack.enter_context(JsonStore(data))
+        store = shared_store if shared_store is not None else lifetime.enter_context(JsonStore(data))
         sender_store = JsonStore(base_directory)
         if logger is None or access_diagnostics:
             logger = build_logger(
@@ -391,7 +400,7 @@ def build_application(
                 access_diagnostics=access_diagnostics,
             )
         _attach_metrics(logger, settings, base_directory, data, store, local_llm)
-        stop_event = Event()
+        stop_event = shared_stop if shared_stop is not None else Event()
         def policy(name: str) -> RetryPolicy:
             item = getattr(settings.timeouts, name)
             return RetryPolicy(item.retries, item.initial_backoff_seconds, item.max_backoff_seconds, stop_event.wait)
@@ -459,6 +468,12 @@ def build_application(
         dialog.presenter.retarget_choices = lambda proposal: profile_binding.choices(application.settings, proposal)
         if web_enabled:
             _attach_web(application, settings, secrets, prompts, jev_prompts, local_llm, base_directory, sender_store)
+            from ..web.reload_site import ReloadSite
+            from .reload import ReloadService
+            application.resources = stack
+            application.reload = reload_service or ReloadService(
+                application, base_directory, secrets, local_llm, use_jev_relevance)
+            ReloadSite(application.web_site, application.reload)
         elif not access_diagnostics:
             from ..notifications.notification_runtime import NotificationRuntime
             application.notifications = NotificationRuntime.without_web(application)

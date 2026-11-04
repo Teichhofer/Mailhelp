@@ -186,3 +186,10 @@ class ExperienceRuntime:
             self.activity.stop()
         if self.thread is not None:
             self.thread.join(timeout=15)
+
+    def wait_stopped(self) -> None:
+        """A generation replacement must wait for readers using its old model client."""
+        if self.activity is not None and self.activity.thread is not None:
+            self.activity.thread.join()
+        if self.thread is not None:
+            self.thread.join()
