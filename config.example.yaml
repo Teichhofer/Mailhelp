@@ -1,4 +1,10 @@
 # Erläuterungen aller Web-Einstellungen: docs/Web-Einstellungen.md (auch als Info-Blasen in der Weboberfläche).
+# 3.7: Ohne config.yaml öffnet der Start die Ersteinrichtung; Einmalcode steht im Terminal.
+# Browser: Web-Passwort, Postfach, KI und Ziele; Abschluss startet kontrolliert neu.
+# Gewählte Modelle bleiben in prompts.yaml (ollama.model), Verbindungen in config.yaml:
+llm:
+  provider: openrouter  # openrouter | ollama; CLI --ollama bleibt als Überschreibung möglich
+  ollama_address: localhost:11434  # auch http://localhost:11434 wird angenommen
 # 3.5: /einstellungen zeigt Kacheln und Suche, ?bereich=abruf z. B. die Abrufregeln.
 # Neue Postfächer: /einstellungen/postfaecher → Verbindung prüfen und Postfach aktivieren.
 # Prüfung liest nur; danach werden config.yaml und IMAP_<id>_USERNAME/PASSWORD in .env
@@ -364,6 +370,10 @@ proposal_reconciliation:
   # Mehr mögliche Treffer blockieren die automatische Zuordnung.
   max_semantic_candidates: 8
 web:
+  # Direkte Google-Webanmeldung: exakt als Redirect-URI eines Webanwendungs-Clients registrieren.
+  # Bei entferntem Zugriff HTTPS und den Host zusätzlich unter allowed_hosts zulassen.
+  # Alternativ Google-Playground-Anleitung in der Einrichtung; CLI verwendet einen Desktop-Client.
+  google_redirect_uri: http://localhost:8765/auth/google/callback
   # Einstellungen → Mailhelp neu starten lädt nach ausdrücklicher Bestätigung
   # gespeicherte Konfiguration und Zugangsdaten neu (Windows und Docker).
   # Einstellungen → Zugangsdaten bearbeitet einzelne Schlüssel in .env.

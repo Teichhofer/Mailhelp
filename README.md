@@ -13,7 +13,15 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.6.39 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.7.19 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 3.7 startet ohne `config.yaml` einen geschützten Einrichtungsassistenten.
+Den automatisch im Terminal ausgegebenen Einmalcode im Browser eingeben und
+Web-Passwort, Zeitzone, Postfach, KI-Anbieter und Ziele einrichten. Terminal-Codes
+über `mailhelp --pair`, Telegram-Codes und Web-Passwort sind reguläre Anmeldewege.
+Google lässt sich mit der eingebauten Playground-Anleitung oder einem registrierten
+Webanwendungs-Client verbinden, Microsoft über einen Gerätecode im Browser.
+Details: [Release 3.7](docs/Release-3.7.md).
 
 Version 3.6 sichert gleichzeitige Entscheidungen und Wiederherstellung nach harten
 Prozessabbrüchen ab. Web-Freigaben bleiben über Neustarts an ihre Sitzung gebunden;
@@ -115,8 +123,11 @@ cp .env.example .env
 cp irrelevant-senders.example.json irrelevant-senders.json
 ```
 
-Fehlt `config.yaml` oder `prompts.yaml` im Konfigurationsverzeichnis, beendet sich
-Mailhelp mit Exitcode 2 und einem Hinweis auf die Vorlage statt mit einem Traceback.
+Für die Browser-Ersteinrichtung die Kopierschritte auslassen und `mailhelp` starten:
+Ohne `config.yaml` erscheint der geschützte Assistent mit Terminal-Code.
+Die Kopierschritte oben bleiben die Alternative für manuelle Konfiguration.
+Bei Einmalprüfungen wie `--check` melden fehlende Dateien weiterhin Exitcode 2;
+eine vorhandene Konfiguration ohne `prompts.yaml` wird ebenfalls ausdrücklich gemeldet.
 
 Die nachfolgenden Beispiele verwenden `mailhelp` aus der virtuellen Umgebung.
 Ohne Aktivierung lautet der Aufruf unter Windows `.venv\Scripts\mailhelp` und
@@ -154,6 +165,17 @@ Das Konfigurationsbeispiel verwendet `test_mode: false`. Auch im Produktivbetrie
 erfordert jede Kalender- oder Aufgabenaktion eine ausdrückliche Bestätigung.
 
 ### Anmeldung bei Google und Microsoft
+
+Im Browser sind die Verbindungen unter **Einstellungen → Zielprofile** erreichbar.
+Für Google erklärt die [Playground-Anleitung](docs/Google-OAuth-Playground.md), wie
+eigene Clientdaten und Refresh-Token entstehen. Die zusätzliche direkte Anmeldung
+verwendet einen Webanwendungs-Client: `web.google_redirect_uri` muss exakt als
+Weiterleitungsadresse registriert sein (für entfernte Rechner HTTPS).
+Microsoft zeigt Gerätecode, Kopierknopf, Anmeldelink und Fortschritt im Browser.
+Nach geänderten Zugangsdaten Mailhelp kontrolliert neu starten; Prozessvariablen
+haben weiterhin Vorrang vor `.env`.
+
+Die bisherigen CLI-Alternativen bleiben verfügbar:
 
 ```sh
 mailhelp --google-auth --config-directory .
@@ -333,7 +355,18 @@ Der Abgleich von Vorschlägen und vorhandenen Einträgen ist in der
 
 ## Docker
 
-Die Compose-Konfiguration baut das Image aus diesem Repository. Vor dem Start
+Für eine neue Installation ohne vorbereitete Dateien:
+
+```sh
+docker compose -f compose.setup.yaml up --build
+```
+
+Den ausgegebenen Einmalcode unter `http://localhost:8765/anmelden` eingeben.
+Konfiguration, Zugangsdaten, Zustände und Logs bleiben im benannten Volume
+`mailhelp-config`. Details und Wiederherstellung: [Release 3.7](docs/Release-3.7.md).
+
+Die bestehende `compose.yaml` verwendet weiter die manuelle Konfiguration und
+baut das Image aus diesem Repository. Vor dem Start
 `config.yaml`, `.env` und `irrelevant-senders.json` aus den Vorlagen anlegen und
 wie oben beschrieben konfigurieren.
 
@@ -444,7 +477,7 @@ Entwicklungsregeln stehen in [AGENTS.md](AGENTS.md), technische Verträge in der
 | Technische Schnittstellen und Datenmodelle | [Projektspezifikation](Mailhelp-Projektspezifikation.md) |
 | Änderungen veröffentlichter Versionen | [Changelog](CHANGELOG.md) |
 | Fundament und Absicherung in 3.6 | [Planung und Abnahme 3.6](docs/Planung-3.6.md) |
-| Nächste Schritte: Ersteinrichtung und OAuth im Browser | [Planung 3.7](docs/Planung-3.7.md) |
+| Ersteinrichtung und OAuth im Browser | [Planung 3.7](docs/Planung-3.7.md), [Release 3.7](docs/Release-3.7.md) |
 | Gesamtfahrplan bis Version 4.0 | [Planung 4.0](docs/Planung-4.0.md) |
 
 Die statische Projektwebsite liegt unter [website/](website/).

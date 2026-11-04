@@ -29,10 +29,15 @@ def test_persistence_boundary_is_explicit_and_preserves_json_schemas():
     # 2.2: activity reports are persisted as well; their models live in activity.models.
     assert set(schemas.__all__) == expected | {
         "ActivityReport", "ReportMail", "DiagnosticsState", "NotificationQueue", "SetupState",
-        "ProposalMatchCache", "ProposalMergeJournal", "ProposalRelation"}
+        "ProposalMatchCache", "ProposalMergeJournal", "ProposalRelation",
+        "InitialDraft", "OAuthJobs", "PasswordState"}
     assert all(getattr(schemas, name) is getattr(models, name) for name in expected)
     assert schemas.ActivityReport is activity_models.ActivityReport
     assert schemas.ReportMail is activity_models.ReportMail
+    from mailhelp.runtime.initial_setup import InitialDraft
+    from mailhelp.runtime.oauth_web import OAuthJobs
+    from mailhelp.runtime.web_password import PasswordState
+    assert (schemas.InitialDraft, schemas.OAuthJobs, schemas.PasswordState)==(InitialDraft,OAuthJobs,PasswordState)
 
 
 def test_test_modules_share_helpers_only_through_fakes():

@@ -81,7 +81,7 @@ class InitialSite:
                 response.after_send = self.stop
                 return response
             self.setup.save("web:" + session.id, form)
-        except (ValueError, KeyError, PermissionError):
+        except Exception:
             return self._failed()
         return Response.redirect("/einrichtung/start")
 

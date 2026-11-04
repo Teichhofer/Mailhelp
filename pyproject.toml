@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mailhelp"
-version = "3.6.39"
+version = "3.7.19"
 description = "Persönlicher, bestätigungspflichtiger E-Mail-Assistent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -108,7 +108,7 @@ include = [
   "/src", "/README.md", "/LICENSE", "/pyproject.toml", "/requirements.lock", "/requirements-lint.lock",
   "/config.example.yaml", "/.env.example", "/prompts.yaml", "/decisions_prompts.yaml",
   "/topics.yaml", "/irrelevant_topics.yaml", "/irrelevant-senders.example.json",
-  "/compose.yaml", "/Dockerfile", "/.dockerignore", "/CHANGELOG.md", "/docs/Release-1.0.md",
+  "/compose.yaml", "/compose.setup.yaml", "/Dockerfile", "/.dockerignore", "/CHANGELOG.md", "/docs/Release-1.0.md",
   "/docs/Release-1.1.md", "/docs/Release-1.2.md",
   "/docs/Release-1.6.md", "/docs/Architektur-1.6.md", "/docs/Planung-1.6.md",
   "/docs/Web-Einstellungen.md",
@@ -122,6 +122,7 @@ include = [
   "/docs/Release-3.3.md", "/docs/Release-3.4.md", "/docs/Release-3.5.md", "/docs/Planung-3.5.md",
   "/docs/Planung-4.0.md",
   "/docs/Planung-3.6.md", "/docs/Planung-3.7.md", "/docs/Zustandsregeln-3.6.md",
+  "/docs/Release-3.7.md", "/docs/Google-OAuth-Playground.md", "/docs/Einrichtung-und-Qualitaetspruefung.md",
   "/docs/Entkopplung-Web-und-Abruf.md", "/docs/Paketstruktur.md", "/docs/Release-3.6.md",
   "/Mailhelp-Projektspezifikation.md", "/DATENSCHUTZ.md", "/NUTZUNGSBEDINGUNGEN.md",
 ]

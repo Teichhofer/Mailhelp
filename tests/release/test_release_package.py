@@ -21,6 +21,9 @@ def test_package_resources_and_fresh_configuration(tmp_path):
     assert (package / "web/static/icon-192.png").read_bytes().startswith(b"\x89PNG")
     for name in ("topics.yaml", "irrelevant_topics.yaml", "decisions_prompts.yaml"):
         assert (package / "defaults" / name).is_file()
+    for name in ("initial-config.yaml", "prompts.yaml", "google-oauth-playground.md"):
+        assert (package / "defaults" / name).is_file()
+    assert (package / "web/static/setup.js").is_file()
     for source, target in (("config.example.yaml", "config.yaml"), ("prompts.yaml", "prompts.yaml")):
         shutil.copyfile(ROOT / source, tmp_path / target)
     keys = ("IMAP_USERNAME IMAP_PASSWORD OPENROUTER_API_KEY TELEGRAM_BOT_TOKEN "

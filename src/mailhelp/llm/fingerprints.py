@@ -76,6 +76,9 @@ def _imap_before_3_1(settings: Settings) -> dict[str, Any] | None:
 
 def _settings(settings: Settings, exclude: set[str]) -> dict[str, Any]:
     value = settings.model_dump(mode="json", exclude=exclude | EXPERIENCE | SOURCES)
+    if settings.llm.provider == "openrouter":
+        # The new backend selector must not change fingerprints of existing cloud installations.
+        value.pop("llm", None)
     if "imap" in value:
         # Only the fingerprints of former releases still contain the section.
         value["imap"] = _imap_before_3_1(settings)

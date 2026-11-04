@@ -138,7 +138,7 @@ def test_secrets_are_required_only_for_configured_providers(tmp_path):
     assert loaded.microsoft_refresh_token.get_secret_value() == "seed"
     assert loaded.microsoft_client_secret.get_secret_value() == "" and loaded.todoist_token.get_secret_value() == ""
     assert provider_secret_names(TargetSettings(todoist_project="p", google_calendar="c")) == [
-        "TODOIST_TOKEN", "TODOIST_CLIENT_ID", "TODOIST_CLIENT_SECRET", "GOOGLE_OAUTH_CLIENT_ID",
+        "TODOIST_TOKEN", "GOOGLE_OAUTH_CLIENT_ID",
         "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"]
 
 

@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import secrets
 from collections.abc import Callable
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -13,6 +14,7 @@ from ..storage import JsonStore
 
 class PasswordState(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    schema_version: Literal[1] = 1
     version: int = Field(default=0, ge=0)
     salt: str = Field(default="", pattern=r"^(?:[a-f0-9]{32})?$")
     digest: str = Field(default="", pattern=r"^(?:[a-f0-9]{64})?$")

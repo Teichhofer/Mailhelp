@@ -615,6 +615,7 @@ class LlmConnection(ConfigModel):
     @classmethod
     def valid_address(cls, value: str) -> str:
         from ..llm.ollama import parse_address
+        value = value.removeprefix("http://").removesuffix("/")
         parse_address(value)
         return value
 

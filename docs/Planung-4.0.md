@@ -5,7 +5,9 @@
 **Status:** In Planung (Haupt-Release nach Abschluss von [Planung 3.6](Planung-3.6.md) und [Planung 3.7](Planung-3.7.md))  
 **Ausgangsstand:** 3.5.9  
 **Fortschritt:** Fundament, Parallelbedienung und Prozessabbruchtests aus 3.6 sind im
-Arbeitsstand 3.6.38 implementiert; [Abnahmebericht](Release-3.6.md). Die folgende
+Arbeitsstand 3.6.38 implementiert; [Abnahmebericht](Release-3.6.md).
+Ersteinrichtung und Browser-OAuth aus 3.7 sind im Arbeitsstand 3.7.19 implementiert;
+die bestandene Gesamtabnahme ist in [Release 3.7](Release-3.7.md) dokumentiert. Die folgende
 Ausgangsstand-Tabelle dokumentiert weiterhin die ursprüngliche Planungsbasis 3.5.9.
 **Teilpläne:** [Planung 3.6](Planung-3.6.md) (Fundament und Absicherung), [Planung 3.7](Planung-3.7.md) (Ersteinrichtung und OAuth) · **Nachfolger:** [Planung 4.1](Planung-4.1.md) (Qualitätsoffensive und Testinfrastruktur)  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 3.0](Planung-3.0.md), [Planung 3.1](Planung-3.1.md), [Planung 3.2](Planung-3.2.md), [Planung 3.3](Planung-3.3.md), [Planung 3.4](Planung-3.4.md), [Planung 3.5](Planung-3.5.md)
@@ -251,7 +253,7 @@ flowchart TD
 | Plan | Stufen | Schritte |
 | :--- | :--- | :--- |
 | [3.6](Planung-3.6.md) | 0, 1, 6, 7 | 38 (nach Aufteilung) |
-| [3.7](Planung-3.7.md) | 2, 3 | 18 |
+| [3.7](Planung-3.7.md) | 2, 3 | 20 |
 | 4.0 (dieser Plan) | 4, 5, 8 | 28 |
 
 Die Schritte dieses Plans werden bis zum Release als Patchversionen 3.8.x geliefert;

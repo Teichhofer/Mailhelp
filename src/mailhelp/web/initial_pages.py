@@ -5,7 +5,7 @@ from typing import Any
 
 from ..runtime.initial_setup import FIELDS, SECRET_FIELDS, InitialDraft
 from .forms import field, post_form, select
-from .pages import e, layout, notice
+from .pages import e, layout
 
 TITLES = ("Web-Zugang und Zeitzone", "Postfach", "KI-Anbieter", "Kalender und Aufgaben", "Abschluss")
 LABELS = {
@@ -24,14 +24,12 @@ CHOICES = {"imap.connection_mode": ("ssl", "starttls", "plain"), "llm.provider":
            "targets.task_provider": ("todoist", "microsoft_todo", "caldav", "apple_reminders")}
 
 
-def initial_page(state: InitialDraft, csrf: str, step: int, message: str = "", *, error: bool = False) -> str:
+def initial_page(state: InitialDraft, csrf: str, step: int) -> str:
     navigation = '<nav aria-label="Einrichtungsschritte">' + " · ".join(
-        f'<a href="/einrichtung/schritt/{index}">{index}. {e(title)}</a>'
+        f'<a class="button" href="/einrichtung/schritt/{index}">{index}. {e(title)}</a>'
         if index <= state.completed_step + 1 else f'<span>{index}. {e(title)}</span>'
         for index, title in enumerate(TITLES, 1)) + '</nav>'
     body = f'<h1>Mailhelp einrichten: {e(TITLES[step - 1])}</h1><p>Schritt {step} von 5</p>{navigation}'
-    if message:
-        body += notice(message, "error" if error else "info")
     controls = ""
     if step == 5:
         controls = ('<p>Die Verbindungen werden erneut lesend geprüft. Danach wird die Konfiguration aktiviert '

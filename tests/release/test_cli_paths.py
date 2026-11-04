@@ -69,7 +69,7 @@ def test_cli_forwards_posix_and_windows_path_spellings(monkeypatch, capsys, spel
     captured = []
     logger_arguments = []
     logger = CaptureLogger()
-    monkeypatch.setattr("mailhelp.cli.load_all", lambda directory: captured.append(directory) or (None, None, [], [], None, "fingerprint"))
+    monkeypatch.setattr("mailhelp.cli.load_all", lambda directory: captured.append(directory) or (SimpleNamespace(llm=SimpleNamespace(provider="openrouter")), None, [], [], None, "fingerprint"))
     monkeypatch.setattr(
         "mailhelp.cli.build_logger",
         lambda *_args, **kwargs: logger_arguments.append(kwargs) or logger,
@@ -112,7 +112,7 @@ def test_cli_forwards_mail_limit_and_rejects_non_positive_values(monkeypatch):
             "use_jev_relevance": True,
         }
         yield application
-    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], [], None, "fingerprint"))
+    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (SimpleNamespace(llm=SimpleNamespace(provider="openrouter")), None, [], [], None, "fingerprint"))
     monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args, **_kwargs: logger)
     monkeypatch.setattr("mailhelp.cli.build_application", builder)
     monkeypatch.setattr("mailhelp.cli.signal.signal", lambda *_args: None)
@@ -158,7 +158,7 @@ def test_cli_starts_experimental_local_ollama_mode(monkeypatch, arguments, confi
                                                    num_thread=16, think=False)
                               if configured else None)
     logger = CaptureLogger()
-    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], [], prompts, "f"))
+    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (SimpleNamespace(llm=SimpleNamespace(provider="openrouter")), None, [], [], prompts, "f"))
     monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args, **_kwargs: logger)
     monkeypatch.setattr("mailhelp.cli.build_application", builder)
     monkeypatch.setattr("mailhelp.cli.signal.signal", lambda *_args: None)
@@ -179,7 +179,7 @@ def test_cli_starts_experimental_local_ollama_mode(monkeypatch, arguments, confi
 ])
 def test_cli_rejects_incomplete_local_ollama_mode(monkeypatch, capsys, arguments, message):
     monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (
-        None, None, [], [], SimpleNamespace(ollama=None), "f"))
+        SimpleNamespace(llm=SimpleNamespace(provider="openrouter")), None, [], [], SimpleNamespace(ollama=None), "f"))
     monkeypatch.setattr("mailhelp.cli.signal.signal", lambda *_args: None)
     monkeypatch.setattr(sys, "argv", ["mailhelp", *arguments])
     with pytest.raises(SystemExit):
@@ -187,7 +187,7 @@ def test_cli_rejects_incomplete_local_ollama_mode(monkeypatch, capsys, arguments
     assert message in capsys.readouterr().err
 
 
-def test_cli_reports_fatal_runtime_error_and_returns_failure(monkeypatch, capsys):
+def test_cli_reports_fatal_runtime_error_and_returns_failure(monkeypatch, capsys, tmp_path):
     class App:
         def stop(self): pass
         def confirm_access_in_background(self): pass
@@ -200,19 +200,21 @@ def test_cli_reports_fatal_runtime_error_and_returns_failure(monkeypatch, capsys
 
     logger = CaptureLogger()
     monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (
-        None, None, [], [], None, "fingerprint"
+        SimpleNamespace(llm=SimpleNamespace(provider="openrouter")), None, [], [], None, "fingerprint"
     ))
     monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args, **_kwargs: logger)
     monkeypatch.setattr("mailhelp.cli.build_application", builder)
     monkeypatch.setattr("mailhelp.cli.signal.signal", lambda *_args: None)
-    monkeypatch.setattr(sys, "argv", ["mailhelp"])
+    # This test represents an already configured service, rather than the new first-run mode.
+    (tmp_path / "config.yaml").touch()
+    monkeypatch.setattr(sys, "argv", ["mailhelp", "--config-directory", str(tmp_path)])
 
     assert main() == 1
     assert "FATALER FEHLER: Google OAuth-Anmeldung abgelehnt" in capsys.readouterr().err
 
 
 def test_cli_runs_terminal_learning_mode(monkeypatch):
-    settings = SimpleNamespace(
+    settings = SimpleNamespace(llm=SimpleNamespace(provider="openrouter"),
         imap=ImapSettings.model_validate({"host": "h", "port": 993, "folders": ["INBOX"]}), limits="limits", timezone="Europe/Berlin",
         learning=SimpleNamespace(parallel_llm_calls=7))
     application = SimpleNamespace(
@@ -261,7 +263,7 @@ def test_signal_shutdown_interrupts_one_shot_modes_and_stops_service():
 
 
 def test_ctrl_c_exits_cleanly_in_learning_mode(monkeypatch, capsys):
-    settings = SimpleNamespace(
+    settings = SimpleNamespace(llm=SimpleNamespace(provider="openrouter"),
         imap=ImapSettings.model_validate({"host": "h", "port": 993, "folders": ["INBOX"]}), limits="limits", timezone="UTC",
         learning=SimpleNamespace(parallel_llm_calls=1),
     )
@@ -306,7 +308,7 @@ def test_clear_removes_both_state_namespaces_and_logs(tmp_path):
     (logs / "llm").mkdir(parents=True)
     (logs / "application.jsonl").write_text("log", encoding="utf-8")
     (logs / "llm" / "requests.jsonl").write_text("log", encoding="utf-8")
-    settings = SimpleNamespace(
+    settings = SimpleNamespace(llm=SimpleNamespace(provider="openrouter"),
         data_directory=data, logging=SimpleNamespace(directory=logs))
 
     clear_runtime_data(settings)
@@ -323,7 +325,7 @@ def test_clear_also_removes_decision_test_reports(tmp_path):
     (reports / "vergleich.json").write_text("{}", encoding="utf-8")
     (reports / "nested" / "auswertung.md").write_text("x", encoding="utf-8")
     (data / "production").mkdir()
-    settings = SimpleNamespace(data_directory=data, logging=SimpleNamespace(directory=tmp_path / "logs"))
+    settings = SimpleNamespace(llm=SimpleNamespace(provider="openrouter"), data_directory=data, logging=SimpleNamespace(directory=tmp_path / "logs"))
 
     clear_runtime_data(settings)
 
@@ -341,7 +343,7 @@ def test_clear_unlinks_a_linked_report_directory_without_following_it(tmp_path):
         link.symlink_to(outside, target_is_directory=True)
     except OSError:
         pytest.skip("symbolic links need extra rights on this system")
-    settings = SimpleNamespace(data_directory=data, logging=SimpleNamespace(directory=tmp_path / "logs"))
+    settings = SimpleNamespace(llm=SimpleNamespace(provider="openrouter"), data_directory=data, logging=SimpleNamespace(directory=tmp_path / "logs"))
 
     clear_runtime_data(settings)
 
@@ -354,7 +356,7 @@ def test_clear_supports_log_directory_containing_state(tmp_path):
     state.mkdir(parents=True)
     (state / "state.json").write_text("{}", encoding="utf-8")
     (combined / "application.jsonl").write_text("log", encoding="utf-8")
-    settings = SimpleNamespace(
+    settings = SimpleNamespace(llm=SimpleNamespace(provider="openrouter"),
         data_directory=combined, logging=SimpleNamespace(directory=combined))
 
     clear_runtime_data(settings)
@@ -368,7 +370,7 @@ def test_clear_supports_log_directory_containing_state(tmp_path):
 ])
 def test_clear_requires_exact_confirmation(monkeypatch, capsys, tmp_path, answer,
                                            expected_code, message):
-    settings = SimpleNamespace(
+    settings = SimpleNamespace(llm=SimpleNamespace(provider="openrouter"),
         data_directory=tmp_path / "data",
         logging=SimpleNamespace(directory=tmp_path / "logs"),
     )
@@ -392,7 +394,7 @@ def test_clear_yes_is_noninteractive_and_override_selects_logs(monkeypatch, caps
     override_logs = tmp_path / "override-logs"
     override_logs.mkdir()
     (override_logs / "old.jsonl").write_text("log", encoding="utf-8")
-    settings = SimpleNamespace(
+    settings = SimpleNamespace(llm=SimpleNamespace(provider="openrouter"),
         data_directory=tmp_path / "missing-data",
         logging=SimpleNamespace(directory=configured_logs),
     )
@@ -411,7 +413,7 @@ def test_clear_yes_is_noninteractive_and_override_selects_logs(monkeypatch, caps
 
 def test_yes_without_clear_is_rejected(monkeypatch):
     monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (
-        None, None, [], [], None, "fingerprint"))
+        SimpleNamespace(llm=SimpleNamespace(provider="openrouter")), None, [], [], None, "fingerprint"))
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--yes"])
     with pytest.raises(SystemExit) as error:
         main()
@@ -420,7 +422,7 @@ def test_yes_without_clear_is_rejected(monkeypatch):
 
 def test_cli_check_local_mode_does_not_read_jev_configuration(monkeypatch):
     monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (
-        None, None, [], [], SimpleNamespace(ollama=None), "f"))
+        SimpleNamespace(llm=SimpleNamespace(provider="openrouter")), None, [], [], SimpleNamespace(ollama=None), "f"))
     monkeypatch.setattr("mailhelp.cli.build_logger", lambda *args, **kwargs: CaptureLogger())
     monkeypatch.setattr("mailhelp.cli.load_relevance_prompts", lambda *args: pytest.fail("Jev in local mode"))
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--check", "--ollama", "localhost:11434", "--ollama-model", "synthetic"])
@@ -428,7 +430,7 @@ def test_cli_check_local_mode_does_not_read_jev_configuration(monkeypatch):
 
 
 def test_cli_check_rejects_invalid_jev_configuration(tmp_path, monkeypatch):
-    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], [], None, "f"))
+    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (SimpleNamespace(llm=SimpleNamespace(provider="openrouter")), None, [], [], None, "f"))
     monkeypatch.setattr("mailhelp.cli.build_logger", lambda *args, **kwargs: CaptureLogger())
     (tmp_path / "decisions_prompts.yaml").write_text("[]", encoding="utf-8")
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--check", "--config-directory", str(tmp_path)])
@@ -442,7 +444,7 @@ def test_cli_learns_from_all_mailboxes(monkeypatch):
         {"id": 1, "host": "a", "port": 993, "folders": ["INBOX"]},
         {"id": 3, "host": "c", "port": 993, "folders": ["INBOX"], "enabled": False},
         {"id": 2, "host": "b", "port": 993, "folders": ["INBOX", "Projekte"]}]})
-    settings = SimpleNamespace(imap=imap, limits="limits", timezone="UTC",
+    settings = SimpleNamespace(llm=SimpleNamespace(provider="openrouter"), imap=imap, limits="limits", timezone="UTC",
                                learning=SimpleNamespace(parallel_llm_calls=1))
     enabled = imap.enabled_mailboxes()
     application = SimpleNamespace(imap="a", analyzer="analyzer", store="store", sender_store="sender-store",

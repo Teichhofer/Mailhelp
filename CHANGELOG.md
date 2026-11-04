@@ -1,5 +1,39 @@
 # Änderungen
 
+## 3.7.19 – Ersteinrichtung und OAuth im Browser
+
+- Ohne `config.yaml` startet ausschließlich der geschützte Einrichtungsserver.
+  Ein beim Start automatisch im Terminal ausgegebener Einmalcode öffnet den
+  fünfstufigen Assistenten; IMAP-Abruf und Schreibadapter starten erst nach Abschluss.
+- Web-Passwörter werden als gesalzene scrypt-Hashes außerhalb der Konfiguration
+  gespeichert. Passwort, Terminal-Code und Telegram-Code verwenden dieselben
+  widerrufbaren Sitzungen; lokale Passwort-Rücksetzung meldet alle Geräte ab.
+- Versionierte Einrichtungsentwürfe, HMAC-geschützte Wiederholungsbelege,
+  leere Passwortfelder und erneute Autorisierung nach Verbindungsprüfungen.
+  `config.yaml` wird als letzter atomarer Aktivierungsmarker geschrieben;
+  unterbrochene Vorbereitungen können wieder aufgenommen werden.
+- IMAP-Prüfung mit Ordnerliste und Special-Use-Vorauswahl, OpenRouter-Schlüssel-,
+  Guthaben-/Limit- und Modellkatalogprüfung sowie Ollama-Modellauswahl.
+  Der gewählte lokale Betrieb bleibt nach dem Neustart aktiv; bisherige
+  OpenRouter-Konfigurationen behalten ihren Analyse-Fingerabdruck.
+- Kalender- und Aufgabenprüfung bleibt lesend. Todoist benötigt für einen
+  persönlichen API-Token keine ungenutzte OAuth-Client-ID oder Client-Secret mehr.
+- Google-Playground-Anleitung im Assistenten und in den Zielprofilen; zusätzlich
+  Google-Webanmeldung mit registrierter Rückleitung, State, PKCE und Sitzungsbindung.
+  Kalenderliste mit Schreibrechten und Pagination, Auswahl als neuer Konfigurationsentwurf.
+- Microsoft-Geräteanmeldung im Hintergrund mit dauerhaftem Status, Polling-Abstand,
+  Wiederaufnahme nach Neustart und Codeanzeige samt Kopierknopf im Browser.
+  Tokens werden nur bei weiterhin gültiger Sitzung und unveränderten Clientdaten gespeichert.
+- Eigene Code-, Browser-, Fehler-, Wiederholungs- und Neustartprüfungen ergänzen die
+  bisherigen Parallelbedienungs- und Prozessabbruchtests. Neue Persistenzmodelle besitzen
+  schema-versionierte JSON-Verträge und Schema-Snapshots.
+- Die Zuordnung der 20 Planschritte zu 3.7.0–3.7.19 steht in `docs/Planung-3.7.md`.
+  Dieser Arbeitsstand bündelt die Umsetzung; Zwischenreleases wurden hier nicht veröffentlicht.
+- Gesamtabnahme: jeweils 2.966 Tests unter Windows und Linux mit 100 % Zeilen- und
+  Branch-Abdeckung; 215 Browsertests mit 100 % JavaScript-Blockabdeckung. Zusätzlich
+  bestehen 78 Python- und 10 Browsertests gegen das installierte Wheel; `ruff` und
+  `mypy` sind ohne Befund. Grenzen der Docker-Prüfung stehen in `docs/Release-3.7.md`.
+
 ## 3.6.39 – Feste DeepSeek-Provider: CoreWeave statt Together
 
 - `action_router`, `task_extraction`, `event_extraction`, `mail_question_resolution` und

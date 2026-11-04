@@ -21,6 +21,7 @@ from .llm.ollama import LocalLlm, parse_address
 from .paths import runtime_path
 from .runtime.application import build_application, build_logger
 from .storage import AlreadyRunning, JsonStore
+from .web.server import WebServerError
 
 CLEAR_CONFIRMATION = "ALLE DATEN LOESCHEN"
 CONFIGURATION_FILES = ("config.yaml", "prompts.yaml", "topics.yaml", "irrelevant_topics.yaml")
@@ -179,6 +180,9 @@ def main() -> int:
     except MissingConfiguration as exc:
         print(MISSING_CONFIGURATION.format(path=exc.path, directory=exc.path.parent), file=sys.stderr)
         return 2
+    except WebServerError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
 
 
 def _early_mode(args: argparse.Namespace, shutdown: _SignalShutdown) -> int | None:
@@ -196,6 +200,8 @@ def _early_mode(args: argparse.Namespace, shutdown: _SignalShutdown) -> int | No
         print("Web-Passwort zurückgesetzt; alle Websitzungen abgemeldet. Neuen Code mit mailhelp --pair anfordern.")
         return 0
     one_shot = any((args.check, args.check_access, args.google_auth, args.microsoft_login, args.clear,
+                    args.max_mails is not None, args.ollama is not None, args.ollama_model is not None,
+                    args.yes, args.show_imap_credentials, args.ignore_historical_start,
                     args.learn is not None, args.decision_test is not None))
     if not (args.config_directory / "config.yaml").exists() and not one_shot:
         from .runtime.bootstrap import run_initial_setup

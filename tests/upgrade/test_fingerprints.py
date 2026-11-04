@@ -35,6 +35,7 @@ def imap_before_3_1(settings) -> dict:
 def before_2_0(dump: dict, settings) -> dict:
     """A configuration as releases before 2.0 knew it (no 2.0 sections and fields)."""
     dump["imap"] = imap_before_3_1(settings)
+    dump.pop("llm", None)
     for name in ("push", "daily_briefing", "smart_reply", "personal_info", "activity_report", "notifications", "target_profiles"):
         dump.pop(name, None)
     dump["imap"].pop("drafts_folder")
@@ -184,6 +185,7 @@ def fingerprint_3_0(settings, prompts, topics) -> str:
                    "activity_report", "notifications", "event_defaults", "proposal_reconciliation", "target_profiles",
                    "iserv"}
     dump = settings.model_dump(mode="json", exclude=operational)
+    dump.pop("llm", None)
     dump["imap"] = imap_before_3_1(settings)
     dump["imap"].pop("drafts_folder")
     dump["telegram"].pop("enabled")
@@ -224,6 +226,7 @@ def configuration_3_1(settings, prompts):
                 "activity_report", "notifications", "event_defaults", "proposal_reconciliation", "target_profiles",
                 "imap", "iserv"}
     dump = settings.model_dump(mode="json", exclude=excluded)
+    dump.pop("llm", None)
     dump["telegram"].pop("enabled")
     dump["targets"] = {key: dump["targets"][key] for key in ("google_calendar", "todoist_project")}
     steps = prompts.model_dump(exclude={"prompts": {"vision_ocr", "draft_reply", "activity_relevance",

@@ -1,0 +1,118 @@
+{
+  "$defs": {
+    "OAuthJob": {
+      "additionalProperties": false,
+      "properties": {
+        "actor": {
+          "title": "Actor",
+          "type": "string"
+        },
+        "binding": {
+          "title": "Binding",
+          "type": "string"
+        },
+        "device_code": {
+          "default": "",
+          "title": "Device Code",
+          "type": "string"
+        },
+        "env_revision": {
+          "title": "Env Revision",
+          "type": "string"
+        },
+        "expires": {
+          "title": "Expires",
+          "type": "number"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "interval": {
+          "default": 5,
+          "title": "Interval",
+          "type": "integer"
+        },
+        "key": {
+          "title": "Key",
+          "type": "string"
+        },
+        "next_poll": {
+          "default": 0,
+          "title": "Next Poll",
+          "type": "number"
+        },
+        "profile": {
+          "maximum": 99,
+          "minimum": 1,
+          "title": "Profile",
+          "type": "integer"
+        },
+        "provider": {
+          "enum": [
+            "google",
+            "microsoft"
+          ],
+          "title": "Provider",
+          "type": "string"
+        },
+        "status": {
+          "default": "starting",
+          "title": "Status",
+          "type": "string"
+        },
+        "token": {
+          "default": "",
+          "title": "Token",
+          "type": "string"
+        },
+        "uri": {
+          "default": "",
+          "title": "Uri",
+          "type": "string"
+        },
+        "user_code": {
+          "default": "",
+          "title": "User Code",
+          "type": "string"
+        },
+        "verifier": {
+          "default": "",
+          "title": "Verifier",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "actor",
+        "provider",
+        "profile",
+        "key",
+        "binding",
+        "env_revision",
+        "expires"
+      ],
+      "title": "OAuthJob",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "jobs": {
+      "items": {
+        "$ref": "#/$defs/OAuthJob"
+      },
+      "maxItems": 100,
+      "title": "Jobs",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    }
+  },
+  "title": "OAuthJobs",
+  "type": "object"
+}

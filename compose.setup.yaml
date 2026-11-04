@@ -1,0 +1,19 @@
+# Ersteinrichtung ohne vorbereitete Konfigurationsdateien; Daten bleiben im benannten Volume.
+services:
+  mailhelp:
+    build: .
+    restart: unless-stopped
+    init: true
+    stop_grace_period: 45s
+    ports:
+      - "127.0.0.1:8765:8765"
+    environment:
+      MAILHELP_SETUP_HOST: 0.0.0.0
+      MAILHELP_SETUP_ALLOWED_HOSTS: ${MAILHELP_SETUP_ALLOWED_HOSTS:-}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - mailhelp-config:/config
+
+volumes:
+  mailhelp-config:

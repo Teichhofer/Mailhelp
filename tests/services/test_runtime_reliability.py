@@ -25,7 +25,7 @@ def test_clear_uses_same_paths_as_runtime_from_another_cwd(tmp_path, monkeypatch
     monkeypatch.chdir(working)
     data = config / "data" if absolute else Path("data")
     logs = config / "logs" if absolute else Path("logs")
-    settings = SimpleNamespace(data_directory=data, test_mode=False,
+    settings = SimpleNamespace(llm=SimpleNamespace(provider="openrouter"), data_directory=data, test_mode=False,
                                logging=SimpleNamespace(directory=logs))
     state = _state_directory(settings, config)
     state.mkdir(parents=True)

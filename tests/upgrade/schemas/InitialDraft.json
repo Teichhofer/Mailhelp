@@ -1,0 +1,65 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "completed_step": {
+      "default": 0,
+      "title": "Completed Step",
+      "type": "integer"
+    },
+    "config": {
+      "additionalProperties": true,
+      "title": "Config",
+      "type": "object"
+    },
+    "env_revision": {
+      "title": "Env Revision",
+      "type": "string"
+    },
+    "model": {
+      "default": "",
+      "title": "Model",
+      "type": "string"
+    },
+    "operations": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Operations",
+      "type": "object"
+    },
+    "result": {
+      "additionalProperties": true,
+      "title": "Result",
+      "type": "object"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "status": {
+      "default": "draft",
+      "title": "Status",
+      "type": "string"
+    },
+    "step": {
+      "default": 1,
+      "maximum": 5,
+      "minimum": 1,
+      "title": "Step",
+      "type": "integer"
+    },
+    "version": {
+      "default": 0,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": [
+    "config",
+    "env_revision"
+  ],
+  "title": "InitialDraft",
+  "type": "object"
+}

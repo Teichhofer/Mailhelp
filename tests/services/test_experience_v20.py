@@ -777,6 +777,7 @@ def test_experience_settings_preserve_16_analysis_fingerprint(tmp_path):
     for name in ("calendar_provider", "task_provider", "caldav_calendar_url", "caldav_task_url",
                  "outlook_calendar", "microsoft_todo_list", "microsoft_tenant"):
         legacy["targets"].pop(name)
+    legacy.pop("llm", None)
     assert _hash([legacy, analysis_prompts(prompts), []]) in legacy_fingerprints(cfg, prompts, [])
 
 
@@ -911,10 +912,10 @@ def test_runtime_without_optional_features_only_keeps_the_local_briefing(web, tm
 def test_login_page_names_the_console_without_telegram():
     from mailhelp.web.pages import login_page
     first = login_page("csrf", False, channel="console")
-    assert "Code in der Konsole anzeigen" in first and "Telegram" not in first
+    assert "Code in der Konsole anzeigen" in first and "mailhelp --pair" in first
     requested = login_page("csrf", True, channel="console")
     assert "Code aus der Mailhelp-Konsole" in requested and "docker compose exec mailhelp mailhelp --pair" in requested
-    assert "Telegram" not in requested and "Code per Telegram senden" in login_page("csrf", False)
+    assert "auch ohne Telegram" in requested and "Code per Telegram senden" in login_page("csrf", False)
 
 
 def test_background_never_calls_the_model_for_drafts_and_sections_stay_isolated(web, tmp_path):

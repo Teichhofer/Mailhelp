@@ -2,8 +2,8 @@
 
 Stand: 4. November 2026. Dieser manuelle Browser-Ablauf liefert die Google-Zugangsdaten
 für Mailhelp, auch wenn Mailhelp in Docker oder auf einem anderen Rechner läuft.
-In 3.7 soll die Anleitung direkt im Einrichtungsschritt „Kalender und Aufgaben“
-und bei den Zielprofilen erreichbar sein. Die bestehende lokale Anmeldung über
+Seit 3.7 ist die Anleitung direkt im Einrichtungsschritt „Kalender und Aufgaben“
+und bei den Zielprofilen erreichbar. Die bestehende lokale Anmeldung über
 `mailhelp --google-auth` verwendet einen anderen Clienttyp (Desktop-App).
 
 ## 1. Eigenen Google-Client vorbereiten
@@ -75,7 +75,7 @@ angepasst werden. Im aktuellen Stand wirken geänderte Zugangsdaten nach Neustar
 Mailhelp beschafft Access-Tokens selbst aus dem Refresh-Token.
 
 Den Zielkalender konfigurieren (`primary` für den Hauptkalender oder die konkrete
-Kalender-ID) und den Zugriff prüfen. Die Einrichtung in 3.7 soll die Kalenderliste
+Kalender-ID) und den Zugriff prüfen. Die Einrichtung in 3.7 kann die Kalenderliste
 laden und eine Auswahl anbieten. Verbindungsprüfung und OAuth-Zustimmung erzeugen
 keinen Termin; jede Anlage braucht weiterhin eine separate Vorschlagsfreigabe.
 

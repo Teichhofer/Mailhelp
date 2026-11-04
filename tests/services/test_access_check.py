@@ -123,7 +123,7 @@ def test_todoist_access_errors_reach_cli_without_secrets(
     def builder(*_args, **_kwargs):
         yield App()
 
-    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], [], None, "fingerprint"))
+    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (SimpleNamespace(llm=SimpleNamespace(provider="openrouter")), None, [], [], None, "fingerprint"))
     monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args, **_kwargs: type("Logger", (), {"event": lambda *_args, **_kwargs: None})())
     monkeypatch.setattr("mailhelp.cli.build_application", builder)
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--check-access"])
@@ -300,7 +300,7 @@ def test_cli_access_check_prints_summary_and_never_runs(monkeypatch, capsys, res
         yield App()
 
     logger = type("Logger", (), {"event": lambda *_args, **_kwargs: None})()
-    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (None, None, [], [], None, "fingerprint"))
+    monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (SimpleNamespace(llm=SimpleNamespace(provider="openrouter")), None, [], [], None, "fingerprint"))
     monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args, **_kwargs: logger)
     monkeypatch.setattr("mailhelp.cli.build_application", builder)
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--check-access"])
@@ -324,7 +324,7 @@ def test_cli_access_check_can_explicitly_show_exact_imap_credentials(monkeypatch
         yield App()
 
     monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (
-        None, secrets, [], [], None, "fingerprint"))
+        SimpleNamespace(llm=SimpleNamespace(provider="openrouter")), secrets, [], [], None, "fingerprint"))
     monkeypatch.setattr("mailhelp.cli.build_logger", lambda *_args, **_kwargs: logger)
     monkeypatch.setattr("mailhelp.cli.build_application", builder)
     monkeypatch.setattr(sys, "argv", [
@@ -342,7 +342,7 @@ def test_cli_access_check_can_explicitly_show_exact_imap_credentials(monkeypatch
 
 def test_show_imap_credentials_requires_access_check(monkeypatch):
     monkeypatch.setattr("mailhelp.cli.load_all", lambda _directory: (
-        None, None, [], [], None, "fingerprint"))
+        SimpleNamespace(llm=SimpleNamespace(provider="openrouter")), None, [], [], None, "fingerprint"))
     monkeypatch.setattr(sys, "argv", ["mailhelp", "--show-imap-credentials"])
 
     with pytest.raises(SystemExit) as error:

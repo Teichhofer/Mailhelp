@@ -38,7 +38,7 @@ from mailhelp.web.site import MailhelpSite  # noqa: E402
 from pages import Overview  # noqa: E402
 
 STATIC = ROOT / "src/mailhelp/web/static"
-COVERED_SCRIPTS = tuple(name for name in ("app.js", "sw.js") if (STATIC / name).exists())
+COVERED_SCRIPTS = tuple(name for name in ("app.js", "sw.js", "setup.js") if (STATIC / name).exists())
 DEVICES = {
     "desktop": dict(viewport={"width": 1366, "height": 900}),
     "mobile": dict(viewport={"width": 390, "height": 844}, device_scale_factor=3, is_mobile=True,

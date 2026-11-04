@@ -178,7 +178,7 @@ def test_web_settings_defaults_and_validation():
     assert WebSettings().model_dump() == {
         "enabled": False, "host": "127.0.0.1", "port": 8765,
         "allowed_hosts": ["127.0.0.1:8765", "localhost:8765"], "session_days": 30,
-        "lan_access": False}
+        "lan_access": False, "google_redirect_uri": "http://localhost:8765/auth/google/callback"}
     WebSettings(host="0.0.0.0", allowed_hosts=["mailhelp-pc.tail-1.ts.net", "127.0.0.1:8765"])
     for invalid in ({"host": "localhost"}, {"allowed_hosts": ["https://x.test"]},
                     {"allowed_hosts": ["Upper.test"]}, {"allowed_hosts": []}, {"port": 0}):

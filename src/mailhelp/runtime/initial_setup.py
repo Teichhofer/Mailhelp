@@ -8,7 +8,7 @@ from collections.abc import Callable
 from datetime import datetime
 from importlib.resources import files
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 from zoneinfo import ZoneInfo
 
 import yaml
@@ -43,6 +43,7 @@ def default_file(name: str) -> str:
 
 class InitialDraft(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    schema_version: Literal[1] = 1
     version: int = 0
     step: int = Field(default=1, ge=1, le=5)
     completed_step: int = 0
@@ -69,7 +70,7 @@ class InitialSetup:
             if value.status == "committing" and not (self.directory / "config.yaml").exists():
                 value.status = "draft"
             return value
-        raw = yaml.safe_load(default_file("config.yaml"))
+        raw = yaml.safe_load(default_file("initial-config.yaml"))
         raw["telegram"]["enabled"] = False
         raw["web"] = {**raw.get("web", {}), **self.web, "enabled": True}
         raw["data_directory"], raw["test_mode"] = "data", False

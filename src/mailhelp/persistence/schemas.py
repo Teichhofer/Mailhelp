@@ -22,7 +22,10 @@ from ..domain.relevance import IrrelevantSenders, RelevanceDialog
 from ..domain.run import ImapCheckpoint, MailRunState, TelegramOffset
 from ..notifications.notifications import NotificationQueue
 from ..runtime.diagnostics import DiagnosticsState
+from ..runtime.initial_setup import InitialDraft
+from ..runtime.oauth_web import OAuthJobs
 from ..runtime.setup import SetupState
+from ..runtime.web_password import PasswordState
 
 __all__ = [
     "ActivityReport",
@@ -30,10 +33,13 @@ __all__ = [
     "DuplicateIndex",
     "DiagnosticsState",
     "ImapCheckpoint",
+    "InitialDraft",
     "IrrelevantSenders",
     "MailRunState",
     "MailState",
     "NotificationQueue",
+    "OAuthJobs",
+    "PasswordState",
     "ProposalClarificationState",
     "ProposalMatchCache",
     "ProposalMergeJournal",

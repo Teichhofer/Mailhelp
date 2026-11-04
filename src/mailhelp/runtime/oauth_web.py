@@ -18,11 +18,18 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from ..config import Settings
 from ..config.loader import _dotenv
-from ..external.microsoft import DEVICE_GRANT, SCOPES, DeviceCodeResponse, MicrosoftTokenResponse, TokenFile
+from ..external.microsoft import (
+    DEVICE_GRANT,
+    SCOPES,
+    DeviceCodeResponse,
+    MicrosoftTokenResponse,
+    TokenFile,
+    _error_code,
+)
 from ..mailbox.mailbox_settings import target_profiles
 from ..proposals.target_profiles import secret_name
 from ..storage import JsonStore, atomic_replace
-from .env_file import file_hash, set_values
+from .env_file import EnvFileConflict, file_hash, set_values
 
 GOOGLE_SCOPES = ("https://www.googleapis.com/auth/calendar.events "
                  "https://www.googleapis.com/auth/calendar.calendars.readonly "
@@ -71,6 +78,7 @@ class OAuthJob(BaseModel):
 
 class OAuthJobs(BaseModel):
     model_config = ConfigDict(extra="forbid")
+    schema_version: Literal[1] = 1
     jobs: list[OAuthJob] = Field(default_factory=list, max_length=100)
 
 
@@ -127,9 +135,11 @@ class BrowserOAuth:
                 return previous
             if self.revision(profile, provider) != revision:
                 raise ValueError("OAuth-Eingaben inzwischen geändert.")
-            state.jobs = [j for j in state.jobs if j.status not in {"done", "failed", "expired", "blocked"}]
             if len(state.jobs) >= 100:
-                raise ValueError("Zu viele offene Anmeldungen.")
+                finished = next((j for j in state.jobs if j.status in {"done", "failed", "expired", "blocked"}), None)
+                if finished is None:
+                    raise ValueError("Zu viele offene Anmeldungen.")
+                state.jobs.remove(finished)
             job = OAuthJob(id=secrets.token_hex(32), actor=actor, provider=provider, profile=profile, key=key,
                 binding=self._binding(cfg), env_revision=file_hash(self.directory / ".env"),
                 expires=self.clock() + 600, verifier=secrets.token_urlsafe(48))
@@ -195,13 +205,14 @@ class BrowserOAuth:
                     "client_id": cfg.client_id, "client_secret": cfg.client_secret, "code": code,
                     "redirect_uri": cfg.redirect, "grant_type": "authorization_code", "code_verifier": job.verifier})
                 response.raise_for_status()
-                token = response.json()["refresh_token"]
+                body = response.json()
+                token = body.get("refresh_token") if isinstance(body, dict) else None
                 if not isinstance(token, str) or not token:
                     raise ValueError("Refresh-Token fehlt.")
                 job.status, job.token = "committing", token
                 self._update(job)
                 self._finish(job)
-            except (httpx.HTTPError, ValueError, KeyError, PermissionError):
+            except (httpx.HTTPError, ValueError, KeyError, PermissionError, EnvFileConflict):
                 self._terminal(job, "failed")
             return job
 
@@ -223,7 +234,7 @@ class BrowserOAuth:
                     self._microsoft(job, cfg)
             except PermissionError:
                 self._terminal(job, "blocked")
-            except (httpx.HTTPError, ValueError, KeyError):
+            except (httpx.HTTPError, ValueError, KeyError, EnvFileConflict):
                 self._terminal(job, "failed")
 
     def _microsoft(self, job: OAuthJob, cfg: OAuthConfig) -> None:
@@ -251,7 +262,7 @@ class BrowserOAuth:
                 self._update(job)
                 self._finish(job)
                 return
-            error = response.json()["error"]
+            error = _error_code(response)
             if error not in {"authorization_pending", "slow_down"}:
                 raise ValueError("Microsoft-Anmeldung abgelehnt.")
             if error == "slow_down":
@@ -262,8 +273,12 @@ class BrowserOAuth:
 
     def run(self) -> None:
         while not self.stopped.is_set():
-            for job in self.state().jobs:
-                self.tick(job.id)
+            try:
+                for job in self.state().jobs:
+                    self.tick(job.id)
+            except OSError:
+                # A prepared credential commit stays durable and can resume after an I/O failure.
+                pass
             self.wake.wait(0.5)
             self.wake.clear()
 

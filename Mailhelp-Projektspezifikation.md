@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 3. November 2026, Anwendungsversion 3.6.38. Die folgenden Verträge beschreiben
+Stand: 4. November 2026, Anwendungsversion 3.7.19. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -39,12 +39,26 @@ Details und Betriebsgrenzen: [Release 3.5](docs/Release-3.5.md).
 
 ## Einrichtung und Benachrichtigungssteuerung (seit 3.0)
 
+Seit 3.7 startet ein normaler Programmaufruf ohne `config.yaml` ausschließlich den
+geschützten Einrichtungsserver. Erst der automatisch im Terminal ausgegebene Einmalcode
+erlaubt den Zugriff auf den fünfstufigen Assistenten, auch bei lokalem Browserzugriff.
+Terminal-Code, Telegram-Code und ein lokal als scrypt-Hash gespeichertes Web-Passwort
+erzeugen gleichberechtigte widerrufbare Sitzungen. Schrittversion, CSRF und Idempotenz
+schützen Entwürfe; nach langsamen Prüfungen werden Sitzung und Stand erneut geprüft.
+Die Konfiguration wird erst nach lesenden Verbindungstests als letzter atomarer
+Aktivierungsmarker geschrieben und durch einen kontrollierten Neustart aktiviert.
+Direkte Google-Webanmeldung mit registriertem Webclient, State und PKCE sowie dauerhafte
+Microsoft-Device-Code-Vorgänge sind an die ursprüngliche Sitzung und Clientdaten gebunden.
+Die Google-Playground-Hilfe und profilbezogene Kalenderauswahl sind im Browser verfügbar.
+Persistenz-, Wiederherstellungs- und Downgrade-Verträge: [Release 3.7](docs/Release-3.7.md).
+
 Die verbindlichen Feldgrenzen, Einrichtungsabläufe und Upgrade-/Rollback-Verträge stehen in
 [Release-3.0.md](docs/Release-3.0.md). `/einrichtung` speichert einen schema-versionierten,
 versionsgebundenen Entwurf separat von der bestätigten Konfigurationsübernahme. Webübernahme
 verwendet Sitzung, CSRF, Dateihash, Idempotenz und erneute Autorisierung bei Ausführung.
 `mailhelp --pair` fordert einen Einmalcode über eine host-authentifizierte, kurzlebige lokale
-Anfrage an; ohne Telegram erzeugen Browseranfragen und Dienststart keine Codes.
+Anfrage an. Im eingerichteten Normalbetrieb erzeugen Browseranfragen ohne Telegram
+und der Dienststart keine Codes; der Einrichtungsmodus gibt seinen Erstzugangscode automatisch aus.
 Diagnosen lesen Dienste unabhängig, verwenden begrenzte Antwortzeiten und zeigen sichere
 Fehlercodes. Testnachrichten und synthetische kostenpflichtige LLM-Tests besitzen eigene Aktionen.
 Diagnoseexporte enthalten keine Zugangsdaten oder Mailinhalte.
@@ -1942,8 +1956,9 @@ sind ohne Anmeldung erreichbar und enthalten keine Daten. Diese Dateien liest de
 Webserver einmal beim Start; bis zum Neustart passen sie damit zur laufenden Version, auch
 wenn sich die Dateien auf der Platte ändern (seit 3.3.6).
 
-**Anmeldung:** Kopplung per achtstelligem Telegram-Code (10 Minuten, an den Browser
-gebunden, Ratenbegrenzung), Sitzungen als gehashte Zufallstoken mit
+**Anmeldung:** Kopplung per vierstelligem Telegram- oder Terminal-Code (10 Minuten,
+Einmalverwendung, Ratenbegrenzung; per Browser angeforderte Telegram-Codes sind an
+diesen Browser gebunden) oder Web-Passwort. Sitzungen als gehashte Zufallstoken mit
 `HttpOnly`/`SameSite=Strict`-Cookie (über Tailscale `Secure`), CSRF-Token je Sitzung.
 Tailscale-Identitäts-Header werden ignoriert. Mit `web.lan_access` (erfordert `host: 0.0.0.0`) sind zusätzlich
 private IPv4-Adressen mit dem konfigurierten Port als Host zulässig; Cookies tragen
