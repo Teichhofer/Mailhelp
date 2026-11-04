@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
 
 from ..config import WebSettings
 from ..runtime.initial_setup import InitialSetup
@@ -19,15 +18,16 @@ from .server import EventLogger
 class InitialSite:
     def __init__(self, app: WebApp, auth: WebAuth, settings: WebSettings, logger: EventLogger,
                  setup: InitialSetup, stop: Callable[[], None]):
-        self.app, self.auth, self.settings, self.logger, self.setup, self.stop = app, auth, settings, logger, setup, stop
+        self.app, self.auth, self.settings, self.logger = app, auth, settings, logger
+        self.setup, self.stop = setup, stop
         self.configured_timezone = "Europe/Berlin"
         self.login_pages = LoginSite(self)
-        for method, path, handler in (
+        for method, path, public_handler in (
             ("GET", "/anmelden", self.login_pages.login), ("POST", "/anmelden", self.login_pages.pair),
             ("POST", "/anmelden/code", self.login_pages.request_code),
             ("POST", "/anmelden/passwort", self.login_pages.password),
             ("POST", "/api/local-pair", self.local_pair)):
-            app.route(method, path, handler)
+            app.route(method, path, public_handler)
         for method, path, handler in (
             ("GET", "/", self.page), ("GET", "/einrichtung/start", self.page),
             ("GET", r"/einrichtung/schritt/(?P<step>[1-5])", self.page),

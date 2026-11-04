@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.6.38 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.6.39 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 3.6 sichert gleichzeitige Entscheidungen und Wiederherstellung nach harten
 Prozessabbrüchen ab. Web-Freigaben bleiben über Neustarts an ihre Sitzung gebunden;

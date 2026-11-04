@@ -18,10 +18,12 @@ from .operator_thread import OperatorThread
 if TYPE_CHECKING:
     from ..notifications.notification_runtime import NotificationRuntime
     from .experience import ExperienceRuntime
+    from .oauth_web import BrowserOAuth
 
 
 @dataclass
 class ServiceCoordinator:
+    oauth: BrowserOAuth | None = None
     web: WebServer | None = None
     experience: ExperienceRuntime | None = None
     notifications: NotificationRuntime | None = None
@@ -66,6 +68,8 @@ class ServiceCoordinator:
             return
         try:
             self.web.start()
+            if self.oauth is not None:
+                self.oauth.start_worker()
             if self.experience is not None:
                 self.experience.start()
         except WebServerError as exc:
@@ -77,6 +81,8 @@ class ServiceCoordinator:
                 log_and_continue(logger, "telegram", "web_start_notice_failed", notification_error)
 
     def stop_web(self) -> None:
+        if self.oauth is not None:
+            self.oauth.stop()
         if self.notifications is not None:
             self.notifications.stop()
         if self.experience is not None:

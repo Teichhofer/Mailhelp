@@ -181,6 +181,28 @@ def main() -> int:
         return 2
 
 
+def _early_mode(args: argparse.Namespace, shutdown: _SignalShutdown) -> int | None:
+    if args.pair:
+        from .runtime.local_pairing import request_local_code
+        request_local_code(args.config_directory)
+        return 0
+    if args.reset_web_password:
+        from .config import read_yaml
+        from .runtime.web_password import WebPassword
+        settings = Settings.model_validate(read_yaml(args.config_directory / "config.yaml"))
+        namespace = "test" if settings.test_mode else "production"
+        with JsonStore(runtime_path(settings.data_directory, args.config_directory) / namespace) as store:
+            WebPassword(store).reset()
+        print("Web-Passwort zurückgesetzt; alle Websitzungen abgemeldet. Neuen Code mit mailhelp --pair anfordern.")
+        return 0
+    one_shot = any((args.check, args.check_access, args.google_auth, args.microsoft_login, args.clear,
+                    args.learn is not None, args.decision_test is not None))
+    if not (args.config_directory / "config.yaml").exists() and not one_shot:
+        from .runtime.bootstrap import run_initial_setup
+        return run_initial_setup(args.config_directory, shutdown)
+    return None
+
+
 def _parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Mailhelp E-Mail-Assistent")
     parser.add_argument(
@@ -476,25 +498,12 @@ def _main() -> int:
     shutdown = _SignalShutdown()
     signal.signal(signal.SIGINT, shutdown)
     signal.signal(signal.SIGTERM, shutdown)
-    if args.pair:
-        from .runtime.local_pairing import request_local_code
-        request_local_code(args.config_directory)
-        return 0
-    if not (args.config_directory / "config.yaml").exists() and not any((
-            args.check, args.check_access, args.google_auth, args.microsoft_login, args.clear,
-            args.learn is not None, args.decision_test is not None, args.reset_web_password)):
-        from .runtime.bootstrap import run_initial_setup
-        return run_initial_setup(args.config_directory, shutdown)
+    early = _early_mode(args, shutdown)
+    if early is not None:
+        return early
     loaded = (load_all(args.config_directory, oauth_profile=args.profile or 1)
               if args.google_auth else load_all(args.config_directory))
     settings, secrets, topics, irrelevant_topics, prompts, fingerprint = loaded
-    if args.reset_web_password:
-        from .runtime.web_password import WebPassword
-        namespace = "test" if settings.test_mode else "production"
-        with JsonStore(runtime_path(settings.data_directory, args.config_directory) / namespace) as store:
-            WebPassword(store).reset()
-        print("Web-Passwort zurückgesetzt; alle Websitzungen abgemeldet. Neuen Code mit mailhelp --pair anfordern.")
-        return 0
     if args.google_auth or args.microsoft_login:
         from .mailbox.mailbox_settings import target_profiles
         number = args.profile or 1

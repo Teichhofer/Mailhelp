@@ -28,7 +28,6 @@ import re
 import secrets
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
-from threading import Lock
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field

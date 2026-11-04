@@ -10,14 +10,16 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
 from threading import Event, RLock, Thread
-from typing import Any, Literal
+from typing import Literal
 from urllib.parse import urlencode
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
 
+from ..config import Settings
 from ..config.loader import _dotenv
 from ..external.microsoft import DEVICE_GRANT, SCOPES, DeviceCodeResponse, MicrosoftTokenResponse, TokenFile
+from ..mailbox.mailbox_settings import target_profiles
 from ..proposals.target_profiles import secret_name
 from ..storage import JsonStore, atomic_replace
 from .env_file import file_hash, set_values
@@ -33,6 +35,18 @@ class OAuthConfig:
     client_secret: str
     tenant: str
     redirect: str
+
+
+def oauth_config(settings: Settings, env: dict[str, str], profile: int, provider: str) -> OAuthConfig:
+    target = target_profiles(settings)[profile]
+    prefix = "GOOGLE_OAUTH" if provider == "google" else "MICROSOFT"
+
+    def value(suffix: str) -> str:
+        base = f"{prefix}_{suffix}"
+        return env.get(secret_name(base, profile), env.get(base, "")) if profile != 1 else env.get(base, "")
+
+    return OAuthConfig(value("CLIENT_ID"), value("CLIENT_SECRET"), target.microsoft_tenant,
+                       settings.web.google_redirect_uri)
 
 
 class OAuthJob(BaseModel):
@@ -70,6 +84,7 @@ class BrowserOAuth:
         self.changed = changed
         self.stopped, self.wake = stopped or Event(), Event()
         self.lock = RLock()
+        self.thread: Thread | None = None
 
     def state(self) -> OAuthJobs:
         return self.store.load_model("web-oauth", OAuthJobs, OAuthJobs())
@@ -93,7 +108,11 @@ class BrowserOAuth:
             raise PermissionError("Anmeldung nicht verfügbar.")
         return job
 
-    def start(self, provider: Literal["google", "microsoft"], actor: str, profile: int, key: str) -> OAuthJob:
+    def revision(self, profile: int, provider: str) -> str:
+        return self.sign(self._binding(self.config(profile, provider)) + file_hash(self.directory / ".env"))
+
+    def start(self, provider: Literal["google", "microsoft"], actor: str, profile: int, key: str,
+              revision: str) -> OAuthJob:
         if not self.authorize(actor) or not 8 <= len(key) <= 80:
             raise PermissionError("Anfrage nicht autorisiert.")
         cfg = self.config(profile, provider)
@@ -106,6 +125,8 @@ class BrowserOAuth:
                 if (previous.provider, previous.profile) != (provider, profile):
                     raise ValueError("Idempotenzkonflikt.")
                 return previous
+            if self.revision(profile, provider) != revision:
+                raise ValueError("OAuth-Eingaben inzwischen geändert.")
             state.jobs = [j for j in state.jobs if j.status not in {"done", "failed", "expired", "blocked"}]
             if len(state.jobs) >= 100:
                 raise ValueError("Zu viele offene Anmeldungen.")
@@ -114,7 +135,8 @@ class BrowserOAuth:
                 expires=self.clock() + 600, verifier=secrets.token_urlsafe(48))
             if provider == "google":
                 job.status = "pending"
-                challenge = base64.urlsafe_b64encode(hashlib.sha256(job.verifier.encode()).digest()).decode().rstrip("=")
+                challenge = base64.urlsafe_b64encode(
+                    hashlib.sha256(job.verifier.encode()).digest()).decode().rstrip("=")
                 job.uri = "https://accounts.google.com/o/oauth2/v2/auth?" + urlencode({
                     "client_id": cfg.client_id, "redirect_uri": cfg.redirect, "response_type": "code",
                     "scope": GOOGLE_SCOPES, "access_type": "offline", "prompt": "consent", "state": job.id,
@@ -248,4 +270,11 @@ class BrowserOAuth:
     def start_worker(self) -> Thread:
         thread = Thread(target=self.run, name="browser-oauth", daemon=True)
         thread.start()
+        self.thread = thread
         return thread
+
+    def stop(self) -> None:
+        self.stopped.set()
+        self.wake.set()
+        if self.thread is not None:
+            self.thread.join(timeout=20)

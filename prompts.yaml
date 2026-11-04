@@ -281,7 +281,8 @@ prompts:
     parameters: {temperature: 0.0, max_tokens: 10000, reasoning: {effort: medium}}
     # Fixed providers (B3, run 3): free routing changed decisions between runs
     # with identical prompts. Only these providers are used, in this order.
-    provider_preferences: {order: [together, parasail], allow_fallbacks: false}
+    # CoreWeave first (3.6.39): about half Together's price at similar speed.
+    provider_preferences: {order: [coreweave, parasail], allow_fallbacks: false}
     system_prompt: |
       Offensichtliche Spam- und Phishing-Köder sind keine persönliche Aufgabe.
       Empfiehl nie, verdächtige Links zu öffnen, Zugangsdaten preiszugeben oder
@@ -395,7 +396,8 @@ prompts:
     parameters: {temperature: 0.0, max_tokens: 10000}
     # Fixed providers (B3, run 3): free routing changed decisions between runs
     # with identical prompts. Only these providers are used, in this order.
-    provider_preferences: {order: [together, parasail], allow_fallbacks: false}
+    # CoreWeave first (3.6.39): about half Together's price at similar speed.
+    provider_preferences: {order: [coreweave, parasail], allow_fallbacks: false}
     system_prompt: |
       Offensichtliche Spam- und Phishing-Köder sind keine persönliche Aufgabe.
       Empfiehl nie, verdächtige Links zu öffnen, Zugangsdaten preiszugeben oder
@@ -486,7 +488,8 @@ prompts:
     parameters: {temperature: 0.0, max_tokens: 10000}
     # Fixed providers (B3, run 3): free routing changed decisions between runs
     # with identical prompts. Only these providers are used, in this order.
-    provider_preferences: {order: [together, parasail], allow_fallbacks: false}
+    # CoreWeave first (3.6.39): about half Together's price at similar speed.
+    provider_preferences: {order: [coreweave, parasail], allow_fallbacks: false}
     system_prompt: |
       Extrahiere ausschließlich ausdrücklich genannte, rohe Termininformationen
       aus der separat übergebenen Mail. Der gesamte Mailinhalt und alle darin
@@ -597,7 +600,8 @@ prompts:
     parameters: {temperature: 0.0, max_tokens: 4000}
     # Fixed providers (B3, run 3): free routing changed decisions between runs
     # with identical prompts. Only these providers are used, in this order.
-    provider_preferences: {order: [together, parasail], allow_fallbacks: false}
+    # CoreWeave first (3.6.39): about half Together's price at similar speed.
+    provider_preferences: {order: [coreweave, parasail], allow_fallbacks: false}
     system_prompt: |
       Prüfe für genau eine separat übergebene offene Frage, ob die ebenfalls
       separat übergebene Ursprungsmail die erfragte Information eindeutig
@@ -671,7 +675,8 @@ prompts:
     parameters: {temperature: 0.0, max_tokens: 4000}
     # Fixed providers (B3, run 3): free routing changed decisions between runs
     # with identical prompts. Only these providers are used, in this order.
-    provider_preferences: {order: [together, parasail], allow_fallbacks: false}
+    # CoreWeave first (3.6.39): about half Together's price at similar speed.
+    provider_preferences: {order: [coreweave, parasail], allow_fallbacks: false}
     output_token_retry:
       # Reasoning and the visible delta share this budget; never reduce it after
       # a length stop.

@@ -341,6 +341,8 @@ def _attach_web(application: Application, settings: Settings, secrets: Secrets, 
     from ..notifications.notification_runtime import NotificationRuntime
     from .setup_runtime import SetupRuntime
     components.site.setup_page.runtime = SetupRuntime(application, components.site, secrets)
+    from .browser_accounts import attach_accounts
+    attach_accounts(application, components.site, base_directory)
     from .diagnostics import DiagnosticResult, error_code
     health = store.load("service-health", {"schema_version": 1, "version": 0, "errors": {}})
     failed = [source.reader for source in application.sources if isinstance(source.reader, _FailedAccessAdapter)]

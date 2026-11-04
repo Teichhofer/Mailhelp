@@ -1,8 +1,6 @@
 """Versioned first-run drafts; config.yaml is the final atomic activation marker."""
 from __future__ import annotations
 
-import copy
-import hashlib
 import json
 import os
 import re
@@ -75,12 +73,14 @@ class InitialSetup:
         raw["telegram"]["enabled"] = False
         raw["web"] = {**raw.get("web", {}), **self.web, "enabled": True}
         raw["data_directory"], raw["test_mode"] = "data", False
+        raw["llm"] = {"provider": "openrouter", "ollama_address": "localhost:11434"}
         raw["logging"]["llm"].update(include_requests=False, include_responses=False)
         for name in raw["notifications"]["categories"]:
             raw["notifications"]["categories"][name] = []
         raw["imap"] = {"host": "imap.example.invalid", "port": 993, "connection_mode": "ssl",
                        "folders": ["INBOX"], "primary_folder": "INBOX", "drafts_folder": "Drafts",
-                       "historical_start": datetime.now(ZoneInfo(raw["timezone"])).date().isoformat()}
+                       "historical_start": datetime.now(ZoneInfo(raw["timezone"])).replace(
+                           hour=0, minute=0, second=0, microsecond=0).isoformat()}
         raw["targets"].update(google_calendar="primary", todoist_project="inbox")
         return InitialDraft(config=raw, env_revision=file_hash(self.directory / ".env"))
 
@@ -189,7 +189,8 @@ class InitialSetup:
             self._probe(step, before, env)
         if before.config.get("llm", {}).get("provider") == "ollama":
             result = self._probe(3, before, env)
-            if self.prompts(before).ollama is None or self.prompts(before).ollama.model not in result["models"]:
+            local = self.prompts(before).ollama
+            if local is None or local.model not in result["models"]:
                 raise ValueError("Ein installiertes Ollama-Modell auswählen.")
         with self.store.locked():
             self._guard(actor)
@@ -206,7 +207,8 @@ class InitialSetup:
                 if not path.exists():
                     atomic_replace(path, default_file(name))
             atomic_replace(self.directory / "prompts.yaml",
-                           yaml.safe_dump(self.prompts(before).model_dump(mode="json"), allow_unicode=True, sort_keys=False))
+                           yaml.safe_dump(self.prompts(before).model_dump(mode="json"),
+                                          allow_unicode=True, sort_keys=False))
             # Credentials already exist. Publishing config last makes restart activation atomic.
             atomic_replace(self.directory / "config.yaml",
                            yaml.safe_dump(before.config, allow_unicode=True, sort_keys=False))

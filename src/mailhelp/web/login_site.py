@@ -1,18 +1,14 @@
 """Dedicated routes with unchanged authentication and response contracts."""
 from __future__ import annotations
 
-from collections.abc import Callable
+import ipaddress
 from typing import Protocol
+from urllib.parse import parse_qs
 
 from ..config import WebSettings
 from ..runtime.web_password import WebPassword
-from .auth import WebAuth, WebSession
+from .auth import PairingLimited, PairingRefused, WebAuth, WebSession, device_name
 from .http import Request, Response
-
-import ipaddress
-from urllib.parse import parse_qs
-
-from .auth import PairingLimited, PairingRefused, device_name
 from .pages import devices_page, e, error_page, layout, login_page
 from .server import EventLogger
 
@@ -26,8 +22,8 @@ class LoginHost(Protocol):
     settings: WebSettings
     logger: EventLogger
     configured_timezone: str
-    _form: Callable[[Request], dict[str, str] | Response]
-    _forbidden: Callable[[], Response]
+    def _form(self, request: Request) -> dict[str, str] | Response: ...
+    def _forbidden(self) -> Response: ...
 
 
 class LoginSite:

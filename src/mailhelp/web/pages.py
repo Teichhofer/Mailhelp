@@ -190,6 +190,7 @@ gültig bis {e(_local(session.expires_at, configured_timezone))}</span></div>
 <button class="button danger" type="submit">Alle Geräte abmelden</button>
 </form>
 <p class="meta">Auch per Telegram: <code>/web_abmelden</code> meldet alle Geräte ab.</p>"""
+    content += '<p><a href="/einstellungen/web-passwort">Web-Passwort festlegen oder ändern</a></p>'
     return layout("Geräte", content, active="/geraete")
 
 

@@ -462,8 +462,11 @@ Modell und Parameter bleiben dabei aus `defaults` und `parameters` geerbt. Zusam
 mit `routes` ist das Feld unzulässig, dort gilt es je Route. Die entscheidungsrelevanten
 Schritte `action_router`, `task_extraction`, `event_extraction`,
 `mail_question_resolution` und `proposal_revision` verwenden ausschließlich die
-Provider `together` und danach `parasail` (`allow_fallbacks: false`), weil freies
+Provider `coreweave` und danach `parasail` (`allow_fallbacks: false`), weil freies
 Routing bei identischen Prompts zu abweichenden Entscheidungen führte.
+CoreWeave steht seit 3.6.39 an erster Stelle: Im Betrieb lieferte er bei etwa der
+Hälfte des Together-Preises (0,65 statt 1,20 USD je Million Ausgabe-Tokens) einen
+vergleichbaren Durchsatz.
 Ohne diese Grenze verbrauchte das eingesetzte Modell im Betrieb schon für einfache
 Extraktionen über 1.000 Reasoning-Tokens und erreichte kleine Limits regelmäßig
 vor der JSON-Ausgabe. `reasoning` ist ein geschlossener Block mit genau einem von

@@ -80,7 +80,8 @@ def _fields(state: InitialDraft, step: int) -> str:
         if name == "imap.primary_folder" or name == "imap.drafts_folder":
             folders = state.result.get("folders", [])
             if folders:
-                value = value if value in folders else state.result.get("inbox" if "primary" in name else "drafts", value)
+                suggested = state.result.get("inbox" if "primary" in name else "drafts", value)
+                value = value if value in folders else suggested
                 body += select(name, LABELS[name], value, [(f, f) for f in folders])
                 continue
         body += (select(name, LABELS[name], value, [(choice, choice) for choice in choices]) if choices

@@ -1,5 +1,15 @@
 # Änderungen
 
+## 3.6.39 – Feste DeepSeek-Provider: CoreWeave statt Together
+
+- `action_router`, `task_extraction`, `event_extraction`, `mail_question_resolution` und
+  `proposal_revision` verwenden jetzt `coreweave` und danach `parasail` statt `together`
+  (weiterhin `allow_fallbacks: false`). Grund: Auswertung der LLM-Logs vom 12.10. bis
+  04.11.2026 – Together verursachte 49 % der Kosten bei 1,20 USD je Million Ausgabe-Tokens;
+  CoreWeave kostet 0,65 USD bei ähnlichem Durchsatz (etwa 270 statt 340 Tokens/s).
+- Die Änderung an `prompts.yaml` ändert den Konfigurations-Fingerabdruck: Noch nicht
+  abgeschlossene Mails warten wie bei jeder Analyseänderung, statt weiterzulaufen.
+
 ## 3.6.38 – Fehlende und beschädigte maßgebliche Akten (Schritt 7.8)
 
 - Upgrade-Absicherung: Alte noch nicht begonnene Freigaben werden nur mit passendem

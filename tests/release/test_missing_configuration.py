@@ -9,7 +9,7 @@ from mailhelp.config.loader import MissingConfiguration, load_all
 
 def test_a_missing_config_yaml_ends_with_guidance_instead_of_a_traceback(tmp_path, monkeypatch, capsys):
     # Regression: an empty configuration directory crashed with FileNotFoundError and a traceback.
-    monkeypatch.setattr(sys, "argv", ["mailhelp", "--config-directory", str(tmp_path)])
+    monkeypatch.setattr(sys, "argv", ["mailhelp", "--check", "--config-directory", str(tmp_path)])
     assert cli.main() == 2
     error = capsys.readouterr().err
     assert str(tmp_path / "config.yaml") in error and "config.example.yaml" in error
