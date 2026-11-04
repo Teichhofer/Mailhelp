@@ -257,7 +257,8 @@ flowchart TD
 | 4.0 (dieser Plan) | 4, 5, 8 | 28 |
 
 Die Schritte dieses Plans werden bis zum Release als Patchversionen 3.8.x geliefert;
-Die Umsetzung steht im Arbeitsstand 3.8.26; die Gesamtabnahme läuft.
+Die Schritte 4.1–8.7 sind in 3.8.0–3.8.26 umgesetzt; die Gesamtabnahme ist in 3.8.28 bestanden.
+Offen ist nur Schritt 8.8 (Release 4.0.0).
 Siehe [Teilplan 3.8](Planung-3.8.md) und [Abnahmebericht](Release-3.8.md).
 Schritt 8.8 hebt die Version erst bei gesonderter Release-Freigabe auf 4.0.0.
 

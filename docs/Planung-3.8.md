@@ -1,6 +1,6 @@
 # Mailhelp 3.8 – Web-Lernmodus und Betrieb
 
-**Arbeitsstand:** 3.8.26, 4. November 2026. Implementierung vorhanden, Gesamtabnahme läuft.
+**Arbeitsstand:** 3.8.28, 4. November 2026. Vollständig umgesetzt; Gesamtabnahme bestanden ([Bericht](Release-3.8.md)).
 
 Dieser Teilplan macht die im [Gesamtfahrplan 4.0](Planung-4.0.md) ausdrücklich
 festgelegte Entwicklungslinie 3.8.x sichtbar. Er umfasst die Schritte 4.1–4.12,

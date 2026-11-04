@@ -1,5 +1,16 @@
 # Änderungen
 
+## 3.8.28 – Gesamtabnahme 3.8
+
+- Gesamtabnahme nach Q4.6 bestanden und im [Releasebericht 3.8](docs/Release-3.8.md)
+  dokumentiert: vollständige Suite unter Windows und Linux mit 100 % Zeilen- und
+  Branch-Abdeckung, 219 Browsertests mit 100 % JavaScript-Blockabdeckung, installiertes
+  Wheel auf beiden Plattformen, Docker-Ablauf mit hartem Abbruch und zwei Neustarts.
+- Abschlussbericht mit Szenario, Anbieter/Operation, Plattform, Testreferenz, Ergebnis,
+  gefundenen Fehlern (behoben in 3.8.27) und begründeten Einschränkungen.
+- Planung 3.8 und Gesamtfahrplan 4.0 auf „abgenommen“ gesetzt; offen ist nur Schritt 8.8
+  (Release 4.0.0). Keine Verhaltensänderung.
+
 ## 3.8.27 – Lange Vorschlags-IDs entscheidbar
 
 - Behoben: Vorschläge „Nachricht manuell prüfen“ für zu große Anhänge ließen sich
