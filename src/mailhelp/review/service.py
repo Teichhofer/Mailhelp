@@ -98,7 +98,13 @@ class ReviewService:
         except (ReviewError, ValidationError, ValueError) as exc:
             if raise_errors:
                 raise
-            return ReviewResult(status=_error_status(exc), message=_error_message(exc))
+            status = _error_status(exc)
+            # Field names and error types only; values may contain mail content.
+            self.controller.logger.event(
+                "WARNING", "review", "command_refused", kind=command.kind.value,
+                source=command.source.value, status=status.value, error_class=type(exc).__name__,
+                fields=_invalid_fields(exc))
+            return ReviewResult(status=status, message=_error_message(exc))
 
     def _record(self, command: ReviewCommand) -> None:
         learning = getattr(self.controller, "learning", None)
@@ -405,6 +411,14 @@ def _error_status(exc: Exception) -> ResultStatus:
     if isinstance(exc, ReviewBusy):
         return ResultStatus.BUSY
     return ResultStatus.INVALID
+
+
+def _invalid_fields(exc: Exception) -> list[str]:
+    """Names and error types of the fields a validation error names, without values."""
+    if not isinstance(exc, ValidationError):
+        return []
+    return [f"{'.'.join(map(str, error['loc'])) or 'model'}:{error['type']}"
+            for error in exc.errors(include_input=False, include_url=False)][:10]
 
 
 def _error_message(exc: Exception) -> str:

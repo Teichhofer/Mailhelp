@@ -1,5 +1,17 @@
 # Änderungen
 
+## 3.8.27 – Lange Vorschlags-IDs entscheidbar
+
+- Behoben: Vorschläge „Nachricht manuell prüfen“ für zu große Anhänge ließen sich
+  weder verwerfen noch bestätigen; Web und Telegram meldeten „Die Eingabe ist ungültig.“
+  Ihre ID `manual_attachment_<Mail-ID>` hat 42 Zeichen, das interne Entscheidungsmodell
+  akzeptierte aber nur 32. Es akzeptiert jetzt wie der Vorschlag selbst 64 Zeichen;
+  bereits wartende Vorschläge sind ohne Migration wieder entscheidbar.
+- Ein Wächtertest stellt sicher, dass kein Modellfeld mit Vorschlagsbezug strenger
+  ist als `Proposal.id`.
+- Abgewiesene Prüfbefehle protokollieren das Ereignis `command_refused` mit
+  Befehlsart, Status, Fehlerklasse und betroffenen Feldnamen, ohne Feldwerte.
+
 ## 3.8.26 – Web-Lernmodus, Laufzeitwechsel und Anbieterabnahme
 
 - Gemeinsamer Lernkern für Terminal und Browser, persistierter Hintergrundjob mit

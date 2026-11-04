@@ -113,10 +113,11 @@ def test_version_conflict_and_unknown_proposal_are_stale(tmp_path):
         assert service.execute(command(CommandKind.CONFIRM, version=1)).status == ResultStatus.STALE
         missing = service.execute(command(CommandKind.CONFIRM, proposal_id="unknown"))
         assert (missing.status, missing.message) == (ResultStatus.STALE, "Vorschlag wurde nicht gefunden")
-        # A web identifier that the decision model refuses is invalid, not a crash.
-        invalid = service.execute(command(CommandKind.CONFIRM, proposal_id="x" * 40,
+        # Regression (3.8.27): a valid ID longer than 32 characters reaches the decision
+        # and is judged on the state instead of being refused as invalid input.
+        long_id = service.execute(command(CommandKind.CONFIRM, proposal_id="x" * 40,
                                           source=CommandSource.TELEGRAM, actor=TELEGRAM))
-        assert (invalid.status, invalid.message) == (ResultStatus.INVALID, "Die Eingabe ist ungültig.")
+        assert long_id.status == ResultStatus.STALE
         with pytest.raises(StaleCommand):
             service.execute(command(CommandKind.CONFIRM, version=1), raise_errors=True)
 

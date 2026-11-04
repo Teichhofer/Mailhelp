@@ -982,6 +982,10 @@ Replay-Grenze fort.
 - Aktueller und versionierter Vorschlagszustand, Callback, Rückfragedialog,
   Schreibreferenz und externer Idempotenzschlüssel verwenden gemeinsam Mail-ID,
   interne Vorschlags-ID und (wo versionsbezogen) Version als Identität.
+  Jede dieser Referenzen akzeptiert dieselben Vorschlags-IDs wie der Vorschlag
+  selbst (1–64 Zeichen aus `A–Z`, `a–z`, `0–9`, `_`, `-`); keine Referenz darf
+  strenger sein. Telegram überträgt nur ein dauerhaftes 32-stelliges Token, sodass
+  auch lange IDs wie `manual_attachment_<Mail-ID>` per Schaltfläche entschieden werden.
 - Jede Vorschlagsversion wird vor dem Senden ihrer versionsgebundenen Schaltflächen
   separat und als aktuelle Version gespeichert. Antworten auf autorisierte
   Rückfragen erzeugen eine neue Version; erst eine vollständige Version erhält
@@ -1386,7 +1390,7 @@ logs/
     messages.jsonl
 ```
 
-Das Anwendungslog enthält Verarbeitungsschritte, Statuswechsel, externe Aufrufe, Wiederholungen, Laufzeiten sowie Fehler mit Kontext und Stacktrace. Jeder Eintrag trägt Zeitstempel, Level, Modul und Ereignis; sofern zuordenbar außerdem Mail-ID, Vorschlags-ID und Aufruf-ID. Nach erfolgreicher Konfigurationsprüfung erzeugt jeder reguläre Aufruf ein Ereignis `application_started` mit den geparsten CLI-Parametern `config_directory`, `log_directory`, `check`, `check_access`, `max_mails`, `ignore_historical_start`, `learn` und `clear`; rohe Befehlszeilen und Umgebungsvariablen werden nicht übernommen. Der Löschbefehl erzeugt bewusst kein neues Log, das unmittelbar wieder gelöscht werden müsste.
+Das Anwendungslog enthält Verarbeitungsschritte, Statuswechsel, externe Aufrufe, Wiederholungen, Laufzeiten sowie Fehler mit Kontext und Stacktrace. Jeder Eintrag trägt Zeitstempel, Level, Modul und Ereignis; sofern zuordenbar außerdem Mail-ID, Vorschlags-ID und Aufruf-ID. Nach erfolgreicher Konfigurationsprüfung erzeugt jeder reguläre Aufruf ein Ereignis `application_started` mit den geparsten CLI-Parametern `config_directory`, `log_directory`, `check`, `check_access`, `max_mails`, `ignore_historical_start`, `learn` und `clear`; rohe Befehlszeilen und Umgebungsvariablen werden nicht übernommen. Der Löschbefehl erzeugt bewusst kein neues Log, das unmittelbar wieder gelöscht werden müsste. Ein abgewiesener Prüfbefehl aus Web oder Telegram erzeugt ein Ereignis `command_refused` mit Befehlsart, Quelle, Ergebnisstatus, Fehlerklasse und – bei Validierungsfehlern – den betroffenen Feldnamen mit Fehlertyp (höchstens zehn), niemals jedoch Feldwerte.
 Die Laufzusammenfassung zählt einen vom Orchestrator mit terminalem Fehler
 beendeten Analyseversuch als analysiert und fehlgeschlagen, während die übrige Warteschlange mit unabhängigen Mails fortgesetzt wird. Der IMAP-Checkpoint wird für diese Mail nicht
 fortgeschrieben, sodass ein späterer Lauf sie nach Behebung der Ursache wieder

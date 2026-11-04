@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.8.26 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.8.27 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 3.8 ergänzt den Web-Lernmodus unter `/lernen`: Umfang und Preisannahme prüfen,
 lesenden Lauf ausdrücklich starten, pausieren oder abbrechen und die bearbeiteten
@@ -254,7 +254,8 @@ Nachricht immer als Vorschlag **„Nachricht manuell prüfen“** in der Vorschl
 auch bei sonst irrelevanten Nachrichten und ohne KI-Aufruf. Der Vorschlag nennt die
 betroffenen Dateien. Er wird lokal gespeichert und erzeugt erst nach ausdrücklicher
 Bestätigung eine Aufgabe im Zieldienst. Weitere Nachrichten werden weiter abgerufen.
-Bei IServ werden zu große Dateien nicht vollständig heruntergeladen; die Originale
+Der Vorschlag lässt sich wie jeder andere bestätigen oder verwerfen, im Web und in
+Telegram (behoben in 3.8.27). Bei IServ werden zu große Dateien nicht vollständig heruntergeladen; die Originale
 bleiben dort verfügbar. Die Grenze für den Nachrichtentext ist davon unabhängig.
 
 In der Weboberfläche unter **Einstellungen → IServ-Konten** (`/einstellungen/iserv`) je

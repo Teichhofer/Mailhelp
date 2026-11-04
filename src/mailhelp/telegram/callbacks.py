@@ -47,7 +47,8 @@ class RelevanceDecision(InternalTelegramModel):
 
 class Decision(InternalTelegramModel):
     mail_id: str = Field(pattern=r"^[a-f0-9]{24}$")
-    proposal_id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,32}$")
+    # Same limit as ``Proposal.id``: Telegram transports a token, not the ID.
+    proposal_id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")
     version: int = Field(ge=1)
     action: DecisionAction
     additional_ref: ProposalReference | None = None

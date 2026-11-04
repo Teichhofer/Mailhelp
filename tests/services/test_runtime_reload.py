@@ -179,9 +179,12 @@ def test_helpers_stop_before_swap_and_start_afterwards():
     app.services.oauth.start_worker.assert_called_once()
     app.services.learning.start.assert_called_once()
     app.experience.start.assert_called_once()
-    app.services.oauth = app.services.learning = app.experience = None
+    app.services.diagnostics.stop.assert_called_once()
+    app.services.oauth = app.services.learning = app.experience = app.services.diagnostics = None
     ReloadService.helpers(app, True)
     ReloadService.helpers(app, False)
+    # Without diagnostics the operator and receiver are still stopped.
+    assert app.services.stop_operator.call_count == app.services.stop_receiver.call_count == 2
 
 
 def test_reload_browser_routes_bind_versions_and_csrf(learning):
