@@ -342,6 +342,17 @@ Die Datei besitzt ein geschlossenes Wurzelschema und erlaubt dort ausschließlic
 `topics`. Die Liste ist nicht leer, ihre stabilen IDs sind eindeutig und mindestens
 ein Thema ist aktiviert.
 
+Die lokale Themenkonfiguration enthält Jimdo-Anfragen und Nachrichten sowie
+Buchungen der eigenen Camping- und Stellplätze über Nomady, Campspace und
+Roadsurfer einschließlich Änderungen und Stornierungen. Für Jimdo-Kontaktanfragen
+und persönliche Nachrichten verlangen die Prompts für Aktionserkennung und
+Aufgabenextraktion stets mindestens einen Todo-Vorschlag zum Prüfen oder
+Beantworten, auch ohne ausdrückliche Handlungsaufforderung. Eine passende
+Prüf- oder Antwortaufgabe wird nicht doppelt vorgeschlagen. Allgemeine Werbung
+und Newsletter sind ausgeschlossen; die Spam-/Phishing-Prüfung und die
+ausdrückliche Freigabe vor externer Anlage bleiben verbindlich. Diese persönliche
+Regel ist in `prompts.yaml` konfiguriert und wird durch das LLM angewendet.
+
 ```yaml
 topics:
   - id: wohnung

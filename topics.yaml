@@ -100,3 +100,26 @@ topics:
   - Zugangslink zu einem gebuchten Webinar
   exclusions:
   - Reine Werbung für kostenpflichtige Kurse ohne eigene Anmeldung oder persönliche Einladung
+- id: jimdo-anfragen-und-nachrichten
+  name: Jimdo-Anfragen und Nachrichten
+  enabled: true
+  description: Anfragen und persönliche Nachrichten, die über die eigene Jimdo-Webseite
+    oder deren Kontaktformular per E-Mail eingehen.
+  examples:
+  - Neue Kontaktanfrage über das Jimdo-Kontaktformular
+  - Über Jimdo übermittelte Frage zu einem Angebot
+  - Persönliche Nachricht eines Besuchers der Jimdo-Webseite
+  exclusions:
+  - Allgemeine Werbung und Newsletter von Jimdo ohne konkrete Anfrage eines Webseitenbesuchers
+- id: camping-und-stellplatzbuchungen
+  name: Camping- und Stellplatzbuchungen
+  enabled: true
+  description: Buchungen der eigenen Camping- und Stellplätze über Nomady, Campspace
+    oder Roadsurfer, einschließlich Buchungsbestätigungen, Buchungsänderungen und
+    Stornierungen.
+  examples:
+  - Neue Stellplatzbuchung über Nomady mit Anreise und Abreise
+  - Bestätigung einer Campingplatzbuchung über Campspace
+  - Änderung oder Stornierung einer Stellplatzbuchung über Roadsurfer
+  exclusions:
+  - Allgemeine Werbung und Newsletter der Buchungsplattformen ohne konkrete Buchung
