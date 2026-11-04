@@ -123,7 +123,7 @@ LOGIN_CHANNELS = {
 
 
 def login_page(csrf: str, code_requested: bool, error: str | None = None,
-               code: str = "", channel: str = "telegram") -> str:
+               code: str = "", channel: str = "telegram", password_available: bool = False) -> str:
     """Login; *code* pre-fills the field when the page was opened from the /web link."""
     message = notice(error, "error") if error else ""
     text = LOGIN_CHANNELS[channel]
@@ -148,6 +148,16 @@ def login_page(csrf: str, code_requested: bool, error: str | None = None,
 <input type="hidden" name="csrf" value="{e(csrf)}">
 <button class="button primary" type="submit">{text["button"]}</button>
 </form>"""
+    body += ('<details><summary>Code aus dem Terminal verwenden</summary>'
+             '<p>Am Host <code>mailhelp --pair</code> ausführen; bei Docker '
+             '<code>docker compose exec mailhelp mailhelp --pair --config-directory /config</code>. '
+             'Der Code funktioniert auch ohne Telegram.</p></details>')
+    if password_available:
+        body += (f'<form method="post" action="/anmelden/passwort" class="stack">'
+                 f'<input type="hidden" name="csrf" value="{e(csrf)}">'
+                 '<label for="password">Web-Passwort</label>'
+                 '<input id="password" type="password" name="password" maxlength="1024" '
+                 'autocomplete="current-password" required><button type="submit">Anmelden</button></form>')
     return layout("Anmelden", f"""<section class="card narrow">
 <h1>Gerät koppeln</h1>
 {message}{body}

@@ -123,7 +123,8 @@ class WebAuth:
         self.channel = "telegram"
         self._key = secret.encode("utf-8")
         self.session_lifetime = timedelta(days=session_days)
-        self._lock = Lock()
+        # One reentrant lock also orders session revocation against guarded local commits.
+        self._lock = store._thread_lock
 
     # --- tokens ------------------------------------------------------------------
 
@@ -218,18 +219,33 @@ class WebAuth:
                 raise PairingRefused("Der Code stimmt nicht.")
             state.codes.remove(pending)
             self.store.save(PAIRING, state.model_dump(mode="json"))
-            token = secrets.token_urlsafe(32)
-            now = self.clock()
-            sessions = self._sessions()
-            sessions.sessions.append(WebSession(
-                id=secrets.token_hex(8), token_hash=_sha256(token), device=device,
-                created_at=now, last_used_at=now, expires_at=now + self.session_lifetime))
-            # Keep the most recently used sessions if the limit is exceeded.
-            sessions.sessions = sorted(sessions.sessions, key=lambda item: item.last_used_at)[-MAX_SESSIONS:]
-            self.store.save(SESSIONS, sessions.model_dump(mode="json"))
+            token = self._new_session(device)
         self.notify(f"🔐 Neues Gerät für die Mailhelp-Weboberfläche gekoppelt: „{device}“.\n"
                     "Warst du das nicht? /web_abmelden meldet alle Geräte ab.")
         return token
+
+    def _new_session(self, device: str) -> str:
+        token = secrets.token_urlsafe(32)
+        now = self.clock()
+        sessions = self._sessions()
+        sessions.sessions.append(WebSession(
+            id=secrets.token_hex(8), token_hash=_sha256(token), device=device,
+            created_at=now, last_used_at=now, expires_at=now + self.session_lifetime))
+        sessions.sessions = sorted(sessions.sessions, key=lambda item: item.last_used_at)[-MAX_SESSIONS:]
+        self.store.save(SESSIONS, sessions.model_dump(mode="json"))
+        return token
+
+    def password_login(self, password: str, device: str) -> str:
+        from ..runtime.web_password import WebPassword
+        with self._lock:
+            state = self._pairing()
+            if len(state.failures) >= FAILURE_LIMIT:
+                raise PairingLimited("Zu viele Fehlversuche – bitte später erneut versuchen.")
+            if not WebPassword(self.store).verify(password):
+                state.failures.append(self.clock())
+                self.store.save(PAIRING, state.model_dump(mode="json"))
+                raise PairingRefused("Anmeldung fehlgeschlagen.")
+            return self._new_session(device)
 
     # --- sessions ------------------------------------------------------------------
 

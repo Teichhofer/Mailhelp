@@ -81,6 +81,12 @@ bleiben unberührt. Mailhelp verändert in IServ nichts. Details: [Release 3.4](
 
 ## Google OAuth erstmals einrichten
 
+Für die manuelle Ermittlung von Client-ID, Client-Secret und Refresh-Token gibt es
+auch die [Schritt-für-Schritt-Anleitung zum Google OAuth 2.0 Playground](Google-OAuth-Playground.md).
+Dieser Weg verwendet einen Webanwendungs-Client und eignet sich auch für Docker
+oder einen entfernten Mailhelp-Server. Der folgende lokale Ablauf verwendet
+stattdessen einen Desktop-Client.
+
 Stand: 14. Oktober 2026. Mailhelp unterstützt eine lokale Browseranmeldung.
 Der verwendete OAuth-Client ist eine **Desktop-App** mit lokalem Rückruf und PKCE,
 entsprechend Googles [Desktop-OAuth-Ablauf](https://developers.google.com/identity/protocols/oauth2/native-app).

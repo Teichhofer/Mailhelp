@@ -81,6 +81,9 @@ class MailhelpSite:
         app.route("GET", "/anmelden", self.login_pages.login)
         app.route("POST", "/anmelden/code", self.login_pages.request_code)
         app.route("POST", "/anmelden", self.login_pages.pair)
+        app.route("POST", "/anmelden/passwort", self.login_pages.password)
+        app.route("GET", "/einstellungen/web-passwort", self.signed_in(self.login_pages.password_settings))
+        app.route("POST", "/einstellungen/web-passwort", self.signed_in(self.login_pages.save_password))
         app.route("POST", "/abmelden", self.signed_in(self.login_pages.logout))
         app.route("GET", "/geraete", self.signed_in(self.login_pages.devices))
         app.route("POST", r"/geraete/(?P<session_id>[a-f0-9]{16})/abmelden",

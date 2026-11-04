@@ -90,7 +90,7 @@ def provider_secret_names(targets: TargetSettings) -> list[str]:
     """Environment names the configured calendar and task providers require."""
     names = []
     if targets.task_provider == "todoist":
-        names += ["TODOIST_TOKEN", "TODOIST_CLIENT_ID", "TODOIST_CLIENT_SECRET"]
+        names += ["TODOIST_TOKEN"]
     if targets.calendar_provider == "google":
         names += ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET", "GOOGLE_OAUTH_REFRESH_TOKEN"]
     if targets.uses_caldav:
@@ -178,7 +178,7 @@ def load_all(directory: Path, environ: dict[str, str] | None = None, *, oauth_pr
     from ..proposals.target_profiles import load_profile_secrets
     used = active_profiles(settings)
     names = [
-        "OPENROUTER_API_KEY",
+        *(["OPENROUTER_API_KEY"] if settings.llm.provider == "openrouter" else []),
         "TELEGRAM_BOT_TOKEN",
         *(provider_secret_names(settings.targets) if 1 in used else []),
     ]
@@ -196,6 +196,7 @@ def load_all(directory: Path, environ: dict[str, str] | None = None, *, oauth_pr
     if missing:
         raise ValueError("Fehlende Geheimnisse: " + ", ".join(missing))
     values: dict[str, Any] = {name.lower(): env.get(name, "") for name in names}
+    values.setdefault("openrouter_api_key", "")
     values["imap"] = credentials
     values["iserv"] = iserv
     values["profiles"] = profile_values

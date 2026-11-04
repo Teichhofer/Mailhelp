@@ -194,6 +194,8 @@ def _parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("--check", action="store_true", help="Konfiguration validieren und beenden")
     parser.add_argument("--pair", action="store_true", help="Lokalen Einmalcode zur Webanmeldung anzeigen")
+    parser.add_argument("--reset-web-password", action="store_true",
+                        help="Am Host Web-Passwort zurücksetzen und alle Websitzungen abmelden")
     parser.add_argument("--google-auth", action="store_true", help="Google-Anmeldung im lokalen Browser")
     parser.add_argument("--profile", type=_profile_choice, help="Zielprofil (1–99) für die OAuth-Einrichtung")
     parser.add_argument(
@@ -478,9 +480,21 @@ def _main() -> int:
         from .runtime.local_pairing import request_local_code
         request_local_code(args.config_directory)
         return 0
+    if not (args.config_directory / "config.yaml").exists() and not any((
+            args.check, args.check_access, args.google_auth, args.microsoft_login, args.clear,
+            args.learn is not None, args.decision_test is not None, args.reset_web_password)):
+        from .runtime.bootstrap import run_initial_setup
+        return run_initial_setup(args.config_directory, shutdown)
     loaded = (load_all(args.config_directory, oauth_profile=args.profile or 1)
               if args.google_auth else load_all(args.config_directory))
     settings, secrets, topics, irrelevant_topics, prompts, fingerprint = loaded
+    if args.reset_web_password:
+        from .runtime.web_password import WebPassword
+        namespace = "test" if settings.test_mode else "production"
+        with JsonStore(runtime_path(settings.data_directory, args.config_directory) / namespace) as store:
+            WebPassword(store).reset()
+        print("Web-Passwort zurückgesetzt; alle Websitzungen abgemeldet. Neuen Code mit mailhelp --pair anfordern.")
+        return 0
     if args.google_auth or args.microsoft_login:
         from .mailbox.mailbox_settings import target_profiles
         number = args.profile or 1
@@ -501,6 +515,8 @@ def _main() -> int:
                 if args.profile is not None else _microsoft_login(settings, secrets, args.config_directory))
     _check_mode_options(parser, args)
     mailboxes = _selected_mailboxes(parser, args, settings)
+    if args.ollama is None and settings.llm.provider == "ollama":
+        args.ollama = parse_address(settings.llm.ollama_address)
     local_llm = _local_llm(parser, args, prompts)
     if args.decision_test is not None:
         assert local_llm is not None  # _check_mode_options requires --ollama for decision tests

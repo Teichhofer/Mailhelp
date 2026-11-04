@@ -7,6 +7,7 @@ import re
 from datetime import datetime
 from pathlib import Path, PureWindowsPath
 from typing import Annotated, Any, Literal
+from urllib.parse import urlsplit
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from pydantic import BaseModel, ConfigDict, Field, SecretStr, field_validator, model_validator
@@ -530,6 +531,18 @@ class WebSettings(ConfigModel):
     # Reachable in the home network under the PC's private IP address (plain
     # HTTP); /web then sends that address. Requires host 0.0.0.0.
     lan_access: bool = False
+    google_redirect_uri: str = "http://localhost:8765/auth/google/callback"
+
+    @field_validator("google_redirect_uri")
+    @classmethod
+    def valid_google_redirect(cls, value: str) -> str:
+        parsed = urlsplit(value)
+        if (parsed.scheme not in {"http", "https"} or not parsed.hostname
+                or parsed.username or parsed.password or parsed.query or parsed.fragment
+                or parsed.path != "/auth/google/callback"
+                or parsed.scheme == "http" and parsed.hostname not in {"localhost", "127.0.0.1", "::1"}):
+            raise ValueError("Google-Rückleitung benötigt HTTPS oder localhost und /auth/google/callback")
+        return value
 
     @model_validator(mode="after")
     def lan_needs_all_interfaces(self) -> WebSettings:
@@ -594,7 +607,20 @@ class DailyBriefingSettings(ConfigModel):
     include_open: bool = True
 
 
+class LlmConnection(ConfigModel):
+    provider: Literal["openrouter", "ollama"] = "openrouter"
+    ollama_address: str = "localhost:11434"
+
+    @field_validator("ollama_address")
+    @classmethod
+    def valid_address(cls, value: str) -> str:
+        from ..llm.ollama import parse_address
+        parse_address(value)
+        return value
+
+
 class Settings(ConfigModel):
+    llm: LlmConnection = Field(default_factory=LlmConnection)
     notifications: NotificationSettings | None = None
     timezone: str
     poll_interval_seconds: int = Field(ge=5, le=86400)

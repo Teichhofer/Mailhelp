@@ -62,10 +62,10 @@ class Request:
                 result[name] = value
         return result
 
-    def form(self) -> dict[str, str]:
+    def form(self, max_num_fields: int = 20) -> dict[str, str]:
         """URL-encoded form fields; a repeated field keeps its first value."""
         values = parse_qs(self.body.decode("utf-8", errors="strict"), keep_blank_values=True,
-                          strict_parsing=False, max_num_fields=20)
+                          strict_parsing=False, max_num_fields=max_num_fields)
         return {name: items[0] for name, items in values.items()}
 
     def wants_json(self) -> bool:

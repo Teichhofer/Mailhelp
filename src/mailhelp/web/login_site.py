@@ -1,26 +1,37 @@
 """Dedicated routes with unchanged authentication and response contracts."""
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from collections.abc import Callable
+from typing import Protocol
 
-from .auth import WebSession
+from ..config import WebSettings
+from ..runtime.web_password import WebPassword
+from .auth import WebAuth, WebSession
 from .http import Request, Response
 
-if TYPE_CHECKING:
-    from .site import MailhelpSite
 import ipaddress
 from urllib.parse import parse_qs
 
 from .auth import PairingLimited, PairingRefused, device_name
-from .pages import devices_page, error_page, login_page
+from .pages import devices_page, e, error_page, layout, login_page
+from .server import EventLogger
 
 SESSION_COOKIE = "mh_session"
 PAIR_COOKIE = "mh_pair"
 PAIR_COOKIE_SECONDS = 15 * 60
 
 
+class LoginHost(Protocol):
+    auth: WebAuth
+    settings: WebSettings
+    logger: EventLogger
+    configured_timezone: str
+    _form: Callable[[Request], dict[str, str] | Response]
+    _forbidden: Callable[[], Response]
+
+
 class LoginSite:
-    def __init__(self, site: MailhelpSite):
+    def __init__(self, site: LoginHost):
         self.site = site
 
     def _cookie(self, request: Request, name: str, value: str, max_age: int) -> str:
@@ -57,8 +68,47 @@ class LoginSite:
             response.cookies.append(self._cookie(request, PAIR_COOKIE, nonce, PAIR_COOKIE_SECONDS))
         response.body = login_page(self.site.auth.csrf_token(f"pair:{nonce}"),
                                    self.site.auth.code_requested(nonce),
-                                   code=link_code(request.query), channel=self.site.auth.channel).encode("utf-8")
+                                   code=link_code(request.query), channel=self.site.auth.channel,
+                                   password_available=bool(WebPassword(self.site.auth.store).state().digest)).encode("utf-8")
         return response
+
+    def password(self, request: Request) -> Response:
+        checked = self._pairing_form(request)
+        if isinstance(checked, Response):
+            return checked
+        _, form = checked
+        try:
+            token = self.site.auth.password_login(form.get("password", ""),
+                                                 device_name(request.header("user-agent")))
+        except (PairingLimited, PairingRefused):
+            return Response.html(429, error_page("Anmeldung fehlgeschlagen",
+                "Passwort prüfen oder einen Code verwenden. Nach mehreren Fehlversuchen später erneut versuchen.",
+                signed_in=False))
+        response = Response.redirect("/")
+        response.cookies.append(self._cookie(request, SESSION_COOKIE, token,
+                                             self.site.settings.session_days * 86400))
+        return response
+
+    def password_settings(self, _request: Request, session: WebSession) -> Response:
+        state = WebPassword(self.site.auth.store).state()
+        body = ('<h1>Web-Passwort ändern</h1><p>Alternativ bleiben Terminal- und Telegram-Codes verfügbar. '
+                'Am Host setzt mailhelp --reset-web-password das Passwort zurück und meldet alle Geräte ab.</p>'
+                '<form method="post" action="/einstellungen/web-passwort" class="stack">'
+                f'<input type="hidden" name="csrf" value="{e(self.site.auth.csrf_token(session.id))}">'
+                f'<input type="hidden" name="version" value="{state.version}">'
+                '<label for="new-password">Neues Passwort (mindestens 12 Zeichen)</label>'
+                '<input id="new-password" type="password" name="password" minlength="12" maxlength="1024" '
+                'autocomplete="new-password" required><button type="submit">Passwort speichern</button></form>')
+        return Response.html(200, layout("Web-Passwort", body))
+
+    def save_password(self, _request: Request, session: WebSession, form: dict[str, str]) -> Response:
+        try:
+            WebPassword(self.site.auth.store).set(form.get("password", ""), int(form.get("version", "-1")),
+                                                 lambda: self.site.auth.active(session.id))
+        except (ValueError, PermissionError):
+            return Response.html(409, error_page("Passwort nicht gespeichert",
+                "Mindestens 12 Zeichen verwenden und bei einem Versionskonflikt die Seite neu laden."))
+        return Response.redirect("/einstellungen/web-passwort")
 
     def request_code(self, request: Request) -> Response:
         checked = self._pairing_form(request)

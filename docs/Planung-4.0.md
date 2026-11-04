@@ -1,20 +1,20 @@
-# Mailhelp 4.0 – Browser-First Inbetriebnahme & Web-Lernmodus (Zero-CLI)
+# Mailhelp 4.0 – Browser-First Inbetriebnahme & Web-Lernmodus
 
 **Zielversion:** 4.0.0  
-**Stand:** 3. November 2026<br>
+**Stand:** 4. November 2026<br>
 **Status:** In Planung (Haupt-Release nach Abschluss von [Planung 3.6](Planung-3.6.md) und [Planung 3.7](Planung-3.7.md))  
 **Ausgangsstand:** 3.5.9  
 **Fortschritt:** Fundament, Parallelbedienung und Prozessabbruchtests aus 3.6 sind im
 Arbeitsstand 3.6.38 implementiert; [Abnahmebericht](Release-3.6.md). Die folgende
 Ausgangsstand-Tabelle dokumentiert weiterhin die ursprüngliche Planungsbasis 3.5.9.
-**Teilpläne:** [Planung 3.6](Planung-3.6.md) (Fundament und Absicherung), [Planung 3.7](Planung-3.7.md) (Ersteinrichtung und OAuth)  
+**Teilpläne:** [Planung 3.6](Planung-3.6.md) (Fundament und Absicherung), [Planung 3.7](Planung-3.7.md) (Ersteinrichtung und OAuth) · **Nachfolger:** [Planung 4.1](Planung-4.1.md) (Qualitätsoffensive und Testinfrastruktur)  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 3.0](Planung-3.0.md), [Planung 3.1](Planung-3.1.md), [Planung 3.2](Planung-3.2.md), [Planung 3.3](Planung-3.3.md), [Planung 3.4](Planung-3.4.md), [Planung 3.5](Planung-3.5.md)
 
 ---
 
 ## 1. Leitmotiv und Vision
 
-> **„Von der Installation bis zur ersten verarbeiteten E-Mail – Inbetriebnahme, Konfiguration, Zugangsdaten und der Lernmodus finden vollständig und direkt im Webbrowser statt (Zero-CLI).“**
+> **„Nach dem Erstzugang mit einem beim Start im Terminal ausgegebenen Code finden Inbetriebnahme, Konfiguration, Zugangsdaten und Lernmodus im Webbrowser statt.“**
 
 Mit den Versionen 1.0 bis 3.3 wurde Mailhelp zu einer zuverlässigen, deterministischen E-Mail-Assistenz ausgebaut: bis zu zehn IMAP-Postfächer, flexible Zielprofile (Google Kalender, CalDAV, Todoist, Microsoft 365), Anhangsauswertung, Dubletten-Vorabprüfung, Zusammenführen offener Vorschläge und Web-Push.
 
@@ -24,8 +24,8 @@ Bisher erforderte die Ersteinrichtung und der Betrieb jedoch an mehreren Stellen
 3. **OAuth-Autorisierung:** Google- und Microsoft-Tokens erforderten CLI-Aufrufe (`mailhelp --google-auth` oder Device-Code im Terminal).
 4. **Lernmodus:** Der Lernmodus zur Ersteinmessung (`--learn`) lief ausschließlich im Terminal mit Einzelfragen (`j/n`).
 
-**Version 4.0 beseitigt alle Terminal-Schritte vollständig:**  
-Nach der Programminstallation (`pip install` oder `docker compose up`) öffnet der Nutzer einfach `http://localhost:8765` im Browser. Ein geführter Onboarding-Assistent richtet Postfächer, Passwörter und Dienste ein. Der Lernmodus wird zu einer interaktiven, visuellen Webanwendung mit Fortschrittsanzeige und komfortabler Kartenauswahl.
+**Version 4.0 verlagert Einrichtung und Lernmodus in den Browser:**
+Nach der Programminstallation und dem Start (`pip install` beziehungsweise `docker compose up`) übernimmt der Nutzer den automatisch im Terminal ausgegebenen Einmalcode in die Weboberfläche. Ein geführter Onboarding-Assistent richtet Postfächer, Passwörter und Dienste ein. Der Lernmodus wird zu einer interaktiven, visuellen Webanwendung mit Fortschrittsanzeige und komfortabler Kartenauswahl. Terminal-Codes über `mailhelp --pair` bleiben dauerhaft neben Telegram-Codes und der geplanten Passwortanmeldung verfügbar; die Entscheidung ist in [Planung 3.7](Planung-3.7.md#212-terminal-code-als-dauerhafter-anmeldeweg) festgehalten.
 
 Das beschreibt das geplante Ziel, keine Funktion des aktuellen Stands 3.5.9.
 
@@ -33,7 +33,7 @@ Das beschreibt das geplante Ziel, keine Funktion des aktuellen Stands 3.5.9.
 
 | Bereich | Vorhanden | Offen für 4.0 |
 | :--- | :--- | :--- |
-| Pfeiler 1 Ersteinrichtung | Authentifizierte Einrichtung `/einrichtung` mit Entwurf, Übernahme und IMAP-Prüfung samt Ordnerliste; Postfächer und IServ-Konten im Web hinzufügen (3.5); lokale Kopplung über `/api/local-pair`; Ordnerliste je Postfach in `mailbox-folders.json` (3.5.6). | Start ohne `config.yaml` (bricht heute mit `FileNotFoundError` ab), Web-Passwort statt Kopplung, automatisches `MAILHELP_WEB_SECRET`, KI-Test, Ollama-Modellliste, geführter 5-Schritte-Assistent. |
+| Pfeiler 1 Ersteinrichtung | Authentifizierte Einrichtung `/einrichtung` mit Entwurf, Übernahme und IMAP-Prüfung samt Ordnerliste; Postfächer und IServ-Konten im Web hinzufügen (3.5); lokale Kopplung über `/api/local-pair`; Ordnerliste je Postfach in `mailbox-folders.json` (3.5.6). | Start ohne `config.yaml` (bricht in der Ausgangsversion mit `FileNotFoundError` ab), automatischer Erstzugangscode im Terminal, Web-Passwort zusätzlich zu Terminal-/Telegram-Kopplung, automatisches `MAILHELP_WEB_SECRET`, KI-Test, Ollama-Modellliste, geführter 5-Schritte-Assistent. |
 | Pfeiler 2 Web-Lernmodus | Bausteine: Themenpflege `/themen`, Absenderfilter je Postfach, Tätigkeitsberichte `/berichte`. Lernmodus nur als `--learn` im Terminal ([learning.py](../src/mailhelp/llm/learning.py) fragt per `input()`). | Lernkern ohne Terminal, Hintergrundjob, Fortschritt, Review-Maske, gemeinsame Übernahme. |
 | Pfeiler 3 OAuth | Google nur über `--google-auth` mit lokalem Loopback-Server (`127.0.0.1:<Zufallsport>`), Microsoft nur per Device-Code im Terminal. | Beide Abläufe im Browser. |
 | Pfeiler 4 Zugangsdaten | Seit 3.4 umgesetzt: maskiert, nur schreibend unter `/einstellungen?bereich=zugangsdaten` (statt des ursprünglich geplanten `/einstellungen/geheimnisse`). | `MAILHELP_WEB_SECRET` (Pfeiler 1) und OAuth-Tokens (Pfeiler 3). |
@@ -100,6 +100,9 @@ Ein Klick auf **„Ausgewählte Ergebnisse übernehmen“** speichert die Themen
 ### Pfeiler 3: Browserbasierte OAuth-Abläufe (Google & Microsoft)
 
 Beschrieben und in Schritte zerlegt in [Planung 3.7](Planung-3.7.md).
+Die Google-Ersteinrichtung enthält zusätzlich die
+[Anleitung zum OAuth 2.0 Playground](Google-OAuth-Playground.md), einschließlich
+eigener Clientdaten und Übernahme des Refresh-Tokens für das gewählte Zielprofil.
 
 ### Pfeiler 4: Zugangsdaten direkt im Web verwalten (`.env`)
 
@@ -310,9 +313,9 @@ Abschluss von Stufe 8 und der Abnahme von 3.6 und 3.7 gesperrt.
 
 ## 6. Abnahme- und Qualitätskriterien ([`AGENTS.md`](../AGENTS.md))
 
-1. **Vollständige Terminal-Freiheit:**
-   - Mailhelp kann nach `pip install` oder `docker compose up` komplett im Browser eingerichtet, autorisiert, trainiert und betrieben werden.
-   - Kein einziger Aufruf von `mailhelp --pair`, `mailhelp --google-auth` oder `mailhelp --learn` ist zwingend erforderlich (die CLI-Befehle bleiben als Headless-Alternative erhalten).
+1. **Browser-Einrichtung nach authentifiziertem Erstzugang:**
+   - Mailhelp gibt beim ersten Start ohne Konfiguration automatisch einen Einmalcode im Terminal aus. Erst nach dessen Eingabe im Browser sind Einrichtung, Autorisierung, Training und Betrieb zugänglich.
+   - Nach dem Start ist kein zusätzlicher Einrichtungsbefehl erforderlich. `mailhelp --pair` bleibt als reguläre Anmeldealternative zum Telegram-Code verfügbar, auch ohne Telegram; `--google-auth` und `--learn` bleiben als CLI-Alternativen erhalten.
 2. **100 % Zeilen- und Branch-Abdeckung:**
    - Verbindlich für alle neuen Web-Handler, Controller, OAuth-Module und den Jobrunner.
    - Jeder Bugfix erhält einen Regressionstest.
