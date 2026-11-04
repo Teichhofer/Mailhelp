@@ -13,7 +13,11 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.8.28 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 4.0.0 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 4.0 bündelt die abgenommenen Stände 3.6 bis 3.8 zum Haupt-Release: Einrichtung,
+Anmeldung, OAuth, Lernen und Neuladen laufen vollständig im Browser. Einrichtung, Upgrade und
+Rückkehr: [Release 4.0](docs/Release-4.0.md).
 
 Version 3.8 ergänzt den Web-Lernmodus unter `/lernen`: Umfang und Preisannahme prüfen,
 lesenden Lauf ausdrücklich starten, pausieren oder abbrechen und die bearbeiteten
@@ -490,7 +494,7 @@ Entwicklungsregeln stehen in [AGENTS.md](AGENTS.md), technische Verträge in der
 | Fundament und Absicherung in 3.6 | [Planung und Abnahme 3.6](docs/Planung-3.6.md) |
 | Ersteinrichtung und OAuth im Browser | [Planung 3.7](docs/Planung-3.7.md), [Release 3.7](docs/Release-3.7.md) |
 | Web-Lernmodus, Neuladen und Anbietermatrix | [Planung 3.8](docs/Planung-3.8.md), [Release 3.8](docs/Release-3.8.md) |
-| Gesamtfahrplan bis Version 4.0 | [Planung 4.0](docs/Planung-4.0.md) |
+| Gesamtfahrplan und Release 4.0 | [Planung 4.0](docs/Planung-4.0.md), [Release 4.0](docs/Release-4.0.md) |
 
 Die statische Projektwebsite liegt unter [website/](website/).
 Die [GitHub-Pages-Anleitung](docs/GitHub-Pages.md) beschreibt ihre Veröffentlichung.

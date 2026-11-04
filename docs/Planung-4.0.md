@@ -2,7 +2,7 @@
 
 **Zielversion:** 4.0.0  
 **Stand:** 4. November 2026<br>
-**Status:** In Planung (Haupt-Release nach Abschluss von [Planung 3.6](Planung-3.6.md) und [Planung 3.7](Planung-3.7.md))  
+**Status:** Veröffentlicht als 4.0.0 ([Release 4.0](Release-4.0.md)); alle Schritte umgesetzt und abgenommen  
 **Ausgangsstand:** 3.5.9  
 **Fortschritt:** Fundament, Parallelbedienung und Prozessabbruchtests aus 3.6 sind im
 Arbeitsstand 3.6.38 implementiert; [Abnahmebericht](Release-3.6.md).
@@ -258,9 +258,9 @@ flowchart TD
 
 Die Schritte dieses Plans werden bis zum Release als Patchversionen 3.8.x geliefert;
 Die Schritte 4.1–8.7 sind in 3.8.0–3.8.26 umgesetzt; die Gesamtabnahme ist in 3.8.28 bestanden.
-Offen ist nur Schritt 8.8 (Release 4.0.0).
+Schritt 8.8 ist mit Release 4.0.0 abgeschlossen.
 Siehe [Teilplan 3.8](Planung-3.8.md) und [Abnahmebericht](Release-3.8.md).
-Schritt 8.8 hebt die Version erst bei gesonderter Release-Freigabe auf 4.0.0.
+Schritt 8.8 hat die Version nach Release-Freigabe am 4. November 2026 auf 4.0.0 gehoben.
 
 ### 5.2 Stufe 4 – Web-Lernmodus (Pfeiler 2)
 
@@ -307,7 +307,7 @@ Schritt 8.8 hebt die Version erst bei gesonderter Release-Freigabe auf 4.0.0.
 | 8.5 ✓ 3.8.24 | Nicht unterstützte Kombinationen begründet dokumentiert | S | 8.1–8.4 |
 | 8.6 ✓ 3.8.25 | CI für Windows und Linux, ein Abbruch mit Wiederanlauf im Docker-Betrieb | M | 8.1–8.4 |
 | 8.7 ✓ 3.8.26 | Abschlussbericht nach Q4.6 | S | 8.5, 8.6 |
-| 8.8 | Release 4.0.0: Spezifikation, README, Betriebsanleitung, Konfigurationsbeispiele, Wheel unter Windows 11 und Linux/Docker | S | alle Schritte |
+| 8.8 ✓ 4.0.0 | Release 4.0.0: Spezifikation, README, Betriebsanleitung, Konfigurationsbeispiele, Wheel unter Windows 11 und Linux/Docker | S | alle Schritte |
 
 Nach Änderungen in 3.7 und 4.0 (Ersteinrichtung, OAuth, Lernjob, Neuladen) werden die
 Szenarien aus [Planung 3.6](Planung-3.6.md) erneut ausgeführt; neue Einstiegspunkte werden

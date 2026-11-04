@@ -1,5 +1,25 @@
 # Änderungen
 
+## 4.0.0 – Browser-First Inbetriebnahme und Web-Lernmodus
+
+Haupt-Release aus den abgenommenen Arbeitsständen 3.6.38, 3.7.19 und 3.8.28.
+
+- Ersteinrichtung ohne vorbereitete `config.yaml` im Browser, geschützt durch einen
+  beim Start ausgegebenen Terminal-Code; Übergang in den Normalbetrieb im selben Prozess.
+- Anmeldung per Terminal-Code, Telegram-Code oder Web-Passwort; Google- und
+  Microsoft-Konten werden im Browser verbunden.
+- Web-Lernmodus unter `/lernen` mit Kostenschätzung, Hintergrundlauf, Pause, Abbruch
+  und ausdrücklicher gemeinsamer Übernahme von Themen, Ausschlüssen, Absendern und Ordnern.
+- `/dienst/neu-laden` ohne Prozessneustart, `/dienst/selbsttest` mit Empfehlungen,
+  Monatskosten und letzte Abfrage je Postfach auf `/status`.
+- Konkurrierende Bedienung und Prozessabbrüche für sieben Anbieter unter Windows,
+  Linux und Docker abgesichert.
+- Behoben: Wurde die Systemuhr während der Verarbeitung zurückgestellt (NTP oder
+  Zeitabgleich einer VM wie WSL 2), scheiterte die Mail mit `internal_error` oder ihr
+  Zustand wurde als `.invalid` isoliert. `updated_at` bewegt sich jetzt beim Speichern
+  durch Orchestrator und Vorschlagsablage nie rückwärts, ein neuer Mailzustand liest die
+  Uhr nur einmal, und die erneute Prüfung einer aussortierten Mail ist abgesichert.
+
 ## 3.8.28 – Gesamtabnahme 3.8
 
 - Gesamtabnahme nach Q4.6 bestanden und im [Releasebericht 3.8](docs/Release-3.8.md)

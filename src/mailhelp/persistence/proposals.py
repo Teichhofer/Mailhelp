@@ -1,10 +1,10 @@
 """Named, crash-safe persistence operations for Telegram proposals."""
 from __future__ import annotations
 
-from datetime import UTC, datetime
 from typing import Protocol
 
 from .. import state_names
+from ..domain.mail import next_updated_at
 from ..models import (
     MailRunCounters,
     MailRunEntryStatus,
@@ -107,7 +107,7 @@ class ProposalRepository:
             "proposals": proposals,
             "proposal_notifications": notifications,
             "write_attempts": attempts,
-            "updated_at": datetime.now(UTC),
+            "updated_at": next_updated_at(state),
         })
         self.store.save(state_names.mail(proposal.source_mail_id),
                         changed.model_dump(mode="json"))
@@ -149,7 +149,7 @@ class ProposalRepository:
             return
         changed = state.model_copy(update={
             "write_attempts": attempts,
-            "updated_at": datetime.now(UTC),
+            "updated_at": next_updated_at(state),
         })
         self.store.save(state_names.mail(proposal.source_mail_id),
                         changed.model_dump(mode="json"))
@@ -191,7 +191,7 @@ class ProposalRepository:
         if changed:
             updated = state.model_copy(update={
                 "proposal_notifications": notifications,
-                "updated_at": datetime.now(UTC),
+                "updated_at": next_updated_at(state),
             })
             self.store.save(state_names.mail(proposal.source_mail_id),
                             updated.model_dump(mode="json"))

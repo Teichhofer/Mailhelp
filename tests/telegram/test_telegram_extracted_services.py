@@ -1,7 +1,9 @@
 """Focused crash-boundary tests for extracted Telegram services."""
+from datetime import timedelta
 from unittest.mock import Mock
 
 import pytest
+from clock_fakes import step_back_wall_clock
 
 from mailhelp.models import MailState, Proposal, ProposalNotification
 from mailhelp.storage import JsonStore
@@ -135,3 +137,23 @@ def test_decision_service_rejects_identity_before_loading_state():
     with pytest.raises(PermissionError, match="autorisiert"):
         service.decide(decision, 9, 2)
     repository.load_current.assert_not_called()
+
+
+@pytest.mark.parametrize("operation", ["revision", "notification", "write_attempt"])
+def test_repository_writes_stay_valid_after_the_clock_stepped_back(tmp_path, monkeypatch, operation):
+    """Regression (4.0.0): the repository stamped updated_at with a wall clock that had
+    stepped back; the stored mail state then failed validation on the next load."""
+    item = proposal()
+    with JsonStore(tmp_path) as store:
+        store.save(f"mail-{MAIL_ID}", mail(item).model_dump(mode="json"))
+        repository = ProposalRepository(store)
+        before = repository.load_mail(MAIL_ID)
+        step_back_wall_clock(monkeypatch, 0, timedelta(hours=1))
+        if operation == "revision":
+            repository.save_revision(proposal(version=2, title="Neu"))
+        elif operation == "notification":
+            assert repository.mark_notification_sending(item)
+        else:
+            repository.record_write_attempt(item)
+        after = repository.load_mail(MAIL_ID)
+        assert after is not None and after.updated_at == before.updated_at

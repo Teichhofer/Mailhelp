@@ -1,6 +1,6 @@
 # Einrichtung und Qualitätsprüfung
 
-Stand: 4. November 2026, Anwendungsversion 3.8.26. Die Einrichtungshinweise gelten
+Stand: 4. November 2026, Anwendungsversion 4.0.0. Die Einrichtungshinweise gelten
 für den aktuellen Stand. Datierte Qualitätsberichte weiter unten dokumentieren
 jeweils den damaligen Code und die damals geprüften Modelle.
 

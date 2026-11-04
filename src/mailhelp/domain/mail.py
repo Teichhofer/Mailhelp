@@ -54,6 +54,19 @@ class MailState(StrictModel):
     deferred_until: datetime | None = None
     duplicate: DuplicateDecision | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def one_creation_instant(cls, data: Any) -> Any:
+        """A new state takes both missing timestamps from one reading of the clock.
+
+        Two separate readings could straddle a backward clock correction and
+        produce ``updated_at`` before ``created_at`` in a brand-new state.
+        """
+        if isinstance(data, dict) and "updated_at" not in data:
+            data = {**data, "updated_at": data.get("created_at") or datetime.now(UTC)}
+            data.setdefault("created_at", data["updated_at"])
+        return data
+
     @property
     def prepared(self) -> PreparedMail | None:
         """Typed read view of ``mail``; the stored dict itself stays unchanged."""
@@ -92,3 +105,12 @@ class MailState(StrictModel):
         if self.awaiting_relevance != is_open:
             raise ValueError("Dialogstatus und wartender Relevanzzustand widersprechen sich")
         return self
+
+
+def next_updated_at(state: MailState) -> datetime:
+    """The ``updated_at`` for the next save: now, but never earlier than before.
+
+    A wall clock corrected backwards (NTP, VM time sync) must not produce a state
+    with ``updated_at`` before ``created_at``; such a state no longer validates.
+    """
+    return max(datetime.now(UTC), state.updated_at)

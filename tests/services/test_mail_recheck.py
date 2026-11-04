@@ -1,8 +1,10 @@
 """Re-checking a mail filed as irrelevant (Planung 3.6, Schritt 0.2); synthetic data only."""
 from __future__ import annotations
 
+from datetime import timedelta
 from threading import Event
 
+from clock_fakes import step_back_wall_clock
 from log_fakes import RecordingLogger
 from shared_application import settings as app_settings
 from shared_services import AnalyzerStub, Notify
@@ -117,3 +119,28 @@ def test_only_known_mails_filed_as_irrelevant_can_be_rechecked(tmp_path):
         relevant.steps.relevance, relevant.proposals, relevant.proposal_notifications = "skipped", [], []
         store.save("mail-" + relevant.id, relevant.model_dump(mode="json"))
         assert request_recheck(current, relevant.id) is RecheckOutcome.NOT_IRRELEVANT
+
+
+def test_saving_after_the_clock_stepped_back_never_moves_updated_at_backwards(tmp_path, monkeypatch):
+    """Regression (4.0.0): a backward clock correction produced updated_at before created_at."""
+    with JsonStore(tmp_path) as store:
+        service = orchestrator(store, "irrelevant")
+        assert service.process(MAIL).outcome is ProcessingOutcome.COMPLETED
+        before = state(store)
+        step_back_wall_clock(monkeypatch, 0, timedelta(hours=1))
+        service.save("mail-" + before.id, before)
+        assert state(store).updated_at == before.updated_at
+
+
+def test_a_recheck_after_the_clock_stepped_back_keeps_a_valid_state(tmp_path, monkeypatch):
+    """Regression (4.0.0): the fresh state of a recheck failed validation after a clock step back."""
+    with JsonStore(tmp_path) as store:
+        assert orchestrator(store, "irrelevant").process(MAIL).outcome is ProcessingOutcome.COMPLETED
+        before = state(store)
+        current = orchestrator(store, "relevant")
+        step_back_wall_clock(monkeypatch, 0, timedelta(hours=1))
+        assert request_recheck(current, before.id, expected_round=1) is RecheckOutcome.QUEUED
+        queued = state(store)
+        assert queued.analysis_round == 2 and queued.created_at == before.created_at
+        assert queued.updated_at >= before.updated_at and not list(tmp_path.glob("*.invalid"))
+        assert current.process(MAIL).outcome is ProcessingOutcome.COMPLETED

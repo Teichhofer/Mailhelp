@@ -66,7 +66,9 @@ def request_recheck(orchestrator: Orchestrator, mail_id: str, expected_round: in
     if not filed_as_irrelevant(state):
         return RecheckOutcome.NOT_IRRELEVANT
     # Identity and the duplicate decision stay; every analysis result is recomputed.
-    fresh = MailState(id=state.id, imap=state.imap, created_at=state.created_at,
+    # The previous updated_at keeps the new state valid even after a clock step back;
+    # save() moves it forward to the current time.
+    fresh = MailState(id=state.id, imap=state.imap, created_at=state.created_at, updated_at=state.updated_at,
                       config_fingerprint=orchestrator.fingerprint_for(state.imap.account_id),
                       analysis_round=state.analysis_round + 1, display_headers=state.display_headers,
                       duplicate=state.duplicate, llm_call_ids=state.llm_call_ids)

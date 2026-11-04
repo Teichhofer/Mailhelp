@@ -5,6 +5,8 @@ from datetime import UTC, datetime
 from email.message import EmailMessage
 from threading import Event
 
+import pytest
+from clock_fakes import step_back_wall_clock
 from shared_e2e_simulated import FakeImap as FakeImap
 from shared_e2e_simulated import FakeTelegram as FakeTelegram
 from shared_e2e_simulated import FakeWriter as FakeWriter
@@ -260,3 +262,11 @@ def test_nachholtermin_clarified_and_confirmed_in_the_web(tmp_path):
         assert len(calendar.create_calls) == 1
     finally:
         store.__exit__()
+
+
+@pytest.mark.parametrize("after", [1, 3, 6, 10, 20, 40])
+def test_the_pipeline_completes_when_the_wall_clock_steps_back(tmp_path, monkeypatch, after):
+    """Regression (4.0.0 acceptance, WSL 2 time sync): a backward clock correction
+    made the mail fail with internal_error or isolated its state as .invalid."""
+    step_back_wall_clock(monkeypatch, after)
+    test_imap_llm_persists_separate_raw_extractions(tmp_path)

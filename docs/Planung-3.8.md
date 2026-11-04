@@ -19,4 +19,4 @@ nicht Teil einer Veröffentlichung von 3.8.
 
 Die Patch-Zuordnung bündelt den lokalen Arbeitsstand; sie behauptet keine einzeln
 veröffentlichten Zwischenreleases. Die Abnahme und konkreten Betriebsgrenzen stehen
-im [Releasebericht 3.8](Release-3.8.md).
+im [Releasebericht 3.8](Release-3.8.md). Veröffentlicht wird der Stand mit [Release 4.0](Release-4.0.md).

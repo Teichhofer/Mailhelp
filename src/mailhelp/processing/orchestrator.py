@@ -17,6 +17,7 @@ from ..config import (
     TargetSettings,
     Topic,
 )
+from ..domain.mail import next_updated_at
 from ..logging import EventLogger, NullLogger
 from ..mailbox.imap import FetchedMail
 from ..mailbox.sender_filter import is_irrelevant_sender
@@ -278,7 +279,7 @@ class Orchestrator:
             "topics": [topic.model_dump() for topic in topics]})
 
     def save(self, name: str, state: MailState) -> None:
-        state.updated_at = datetime.now(UTC)
+        state.updated_at = next_updated_at(state)
         self.store.save(name, state.model_dump(mode="json"))
         from ..review.archive import record_analysis
         names = {topic.id: topic.name for topic in self.topics_for(state.config_fingerprint)}
