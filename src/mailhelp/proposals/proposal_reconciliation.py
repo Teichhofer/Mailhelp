@@ -7,7 +7,7 @@ from ..domain.proposal import Proposal, ProposalStatus, invalidate_creation_perm
 from ..domain.proposal_sources import ProposalMatchDecision, ProposalReference, ProposalRelation
 from ..domain.reconciliation import ProposalMatchCache, ProposalMergeJournal
 from ..persistence.proposals import ProposalRepository
-from ..storage import JsonStore
+from ..storage import CorruptState, JsonStore
 from .proposal_matching import compatible, reference_key, relationship, same_thread, sources
 from .proposal_merge import merge_facts
 
@@ -36,12 +36,13 @@ class ProposalReconciliationService:
         return cached.decision
 
     def current(self) -> list[Proposal]:
+        self._require_intact("proposal-")
         result = []
         for name in self.store.names("proposal-"):
             if re.search(r"-v[1-9][0-9]*$", name):
                 continue
             proposal = self.store.peek_model(name, Proposal)
-            if proposal is None:
+            if proposal is None or name != f"proposal-{proposal.source_mail_id}-{proposal.id}":
                 raise ValueError("Vorschlagsbestand geändert; erneut prüfen")
             result.append(proposal)
         return result
@@ -68,17 +69,31 @@ class ProposalReconciliationService:
 
     def recover(self) -> None:
         with self.store.locked():
+            self._require_intact("reconciliation-merge-")
             for name in self.store.names("reconciliation-merge-"):
                 journal = self.store.load_model(name, ProposalMergeJournal)
                 if journal is None:
                     raise ValueError("Abgleichjournal fehlt")
                 if journal.status == "prepared":
                     self._finish(name, journal)
+            for proposal in self.current():
+                journal_name = proposal.reconciliation_journal
+                if journal_name is not None and self.store.load_model(journal_name, ProposalMergeJournal) is None:
+                    raise CorruptState("Maßgebliches Abgleichjournal fehlt; Ausführung blockiert")
+
+    def _require_intact(self, prefix: str) -> None:
+        """A quarantined authority cannot disappear from the inventory on restart."""
+        for suffix in ("corrupt", "invalid"):
+            for path in self.store.directory.glob(f"{prefix}*.{suffix}"):
+                if not path.with_suffix(".json").exists():
+                    raise CorruptState(f"Isolierter Bestand muss repariert werden: {path.name}")
 
     def _finish(self, name: str, journal: ProposalMergeJournal) -> None:
         assert journal.revision is not None and journal.alias is not None
         target = self.repository.load_current(journal.target.mail_id, journal.target.proposal_id)
         source = self.repository.load_current(journal.source.mail_id, journal.source.proposal_id)
+        if source is None and journal.source_was_present:
+            raise ValueError("Maßgebliche Abgleichquelle fehlt; Wiederherstellung blockiert")
         if source is not None and source.version not in {journal.source_version, journal.alias.version}:
             raise ValueError("Abgleichquelle wurde inzwischen geändert")
         if source is not None and source.version == journal.source_version and source.status not in OPEN | {
@@ -112,20 +127,23 @@ class ProposalReconciliationService:
                 "canonical_ref": ProposalReference(mail_id=latest.source_mail_id, proposal_id=latest.id),
                 "merge_review_required": uncertain})
             alias = Proposal.model_validate(alias.model_dump())
-            self._commit(incoming, latest, revision, alias)
-            return alias
+            return self._commit(incoming, latest, revision, alias)
 
     def _commit(self, source, target, revision, alias):
         revision, alias = invalidate_creation_permissions(revision), invalidate_creation_permissions(alias)
-        journal = ProposalMergeJournal(source=ProposalReference(mail_id=source.source_mail_id, proposal_id=source.id),
-            target=ProposalReference(mail_id=target.source_mail_id, proposal_id=target.id),
-            source_version=source.version, target_version=target.version, revision=revision, alias=alias,
-            policy=self.policy)
         key = hashlib.sha256(json.dumps([reference_key(source), source.version,
                               reference_key(target), target.version, alias.status, self.policy]).encode()).hexdigest()
         name = f"reconciliation-merge-{key}"
+        revision = revision.model_copy(update={"reconciliation_journal": name})
+        alias = alias.model_copy(update={"reconciliation_journal": name})
+        journal = ProposalMergeJournal(source=ProposalReference(mail_id=source.source_mail_id, proposal_id=source.id),
+            target=ProposalReference(mail_id=target.source_mail_id, proposal_id=target.id),
+            source_version=source.version, target_version=target.version, revision=revision, alias=alias,
+            source_was_present=self.repository.load_current(source.source_mail_id, source.id) is not None,
+            policy=self.policy)
         self.store.save(name, journal.model_dump(mode="json"))
         self._finish(name, journal)
+        return alias
 
     def manual(self, source: Proposal, target: Proposal, *, separate=False) -> Proposal:
         with self.store.locked():
@@ -181,8 +199,7 @@ class ProposalReconciliationService:
                 alias = alias.model_copy(update={"open_questions": questions,
                     "status": ProposalStatus.NEEDS_CLARIFICATION if questions else ProposalStatus.PENDING_CONFIRMATION})
                 alias = Proposal.model_validate(alias.model_dump())
-                self._commit(source, latest, Proposal.model_validate(revision.model_dump()), alias)
-                return alias
+                return self._commit(source, latest, Proposal.model_validate(revision.model_dump()), alias)
             clean = source.model_copy(update={"canonical_ref": None, "matching_candidates": [],
                 "merge_review_required": False, "status": ProposalStatus.NEEDS_CLARIFICATION})
             if not latest.target_provider and source.target_provider:
@@ -193,8 +210,7 @@ class ProposalReconciliationService:
             alias = source.model_copy(update={"version": source.version + 1, "status": ProposalStatus.MERGED,
                 "canonical_ref": ProposalReference(mail_id=latest.source_mail_id, proposal_id=latest.id),
                 "merge_review_required": False, "matching_candidates": []})
-            self._commit(source, latest, revision, Proposal.model_validate(alias.model_dump()))
-            return alias
+            return self._commit(source, latest, revision, Proposal.model_validate(alias.model_dump()))
 
     def reconcile(self, proposal: Proposal, max_candidates=None) -> Proposal:
         self.recover()

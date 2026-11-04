@@ -11,6 +11,9 @@ from ._base import CalendarDate, StrictModel
 from .proposal_sources import ProposalReference, ProposalSource
 from .temporal import TemporalFact
 
+# An old confirmation without a durable channel receipt cannot invent a live web session.
+UNVERIFIED_LEGACY_ACTOR = "web:unverified-legacy"
+
 
 class ProposalKind(StrEnum):
     TASK = "task"
@@ -130,7 +133,9 @@ class Proposal(StrictModel):
     @classmethod
     def upgrade_profile(cls, value: object) -> object:
         if isinstance(value, dict) and value.get("schema_version") == 2:
-            return {**value, "schema_version": 3, "target_profile": 1}
+            value = {**value, "schema_version": 3, "target_profile": 1}
+        if isinstance(value, dict) and "schema_version" in value and "confirmed_web_actor" not in value:
+            return {**value, "confirmed_web_actor": UNVERIFIED_LEGACY_ACTOR}
         return value
     id: str = Field(pattern=r"^[a-zA-Z0-9_-]{1,64}$")
     version: int = Field(ge=1)
@@ -162,6 +167,9 @@ class Proposal(StrictModel):
     external_link: str | None = Field(default=None, max_length=2000)
     uncertain_notified: bool = False
     simulation_notified: bool = False
+    # Non-secret session identity, retained across restarts until this version finishes.
+    confirmed_web_actor: str | None = Field(default=None, pattern=r"^web:.+$", max_length=200)
+    reconciliation_journal: str | None = Field(default=None, pattern=r"^reconciliation-merge-[a-f0-9]{64}$")
     # Set only by the deterministic Telegram fallback confirmation.  Keeping
     # the original classification makes the write boundary able to distinguish
     # a genuine new event from an explicitly authorised change fallback.
@@ -363,7 +371,8 @@ def required_revision_questions(proposal: Proposal) -> list[str]:
 def invalidate_creation_permissions(proposal: Proposal) -> Proposal:
     """A material local revision needs fresh consent for every special creation."""
     candidate = proposal.model_copy(update={"explicit_create_fallback_confirmed": False,
-        "explicit_non_binding_create_confirmed": False, "explicit_duplicate_create_confirmed_version": None})
+        "explicit_non_binding_create_confirmed": False, "explicit_duplicate_create_confirmed_version": None,
+        "confirmed_web_actor": None})
     if candidate.status in {ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION}:
         questions = list(dict.fromkeys([*candidate.open_questions, *required_revision_questions(candidate)]))
         candidate = candidate.model_copy(update={"open_questions": questions,

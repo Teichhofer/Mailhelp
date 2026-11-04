@@ -236,7 +236,7 @@ class MailhelpSite:
         except (ValueError, ValidationError):
             return self._reply(request, 422, "Die Aktion ist unvollständig oder ungültig.")
         stale = self._stale(command)
-        if stale is not None:
+        if stale is not None and not any(entry.command == command for entry in self.commands._entries()):
             current = (self.views.proposal(command.mail_id, command.proposal_id)
                        if command.proposal_id else None)
             if request.wants_json():

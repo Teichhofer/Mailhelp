@@ -145,7 +145,7 @@ class TelegramDialogController:
             enabled=sequential_questions,
         )
         self.delivery.outbox = self.outbox
-        self.write_executor: WriteExecution = ConfirmedWriteExecutor(
+        write_executor = ConfirmedWriteExecutor(
             store,
             self.writers,
             self,
@@ -155,6 +155,9 @@ class TelegramDialogController:
             self.ledger,
             configured_timezone,
         )
+        write_executor.web_authorizer = self._web_write_authorized
+        write_executor.telegram_authorizer = lambda actor: actor == f"telegram:{self.user_id}:{self.chat_id}"
+        self.write_executor: WriteExecution = write_executor
         self.decision_service = ProposalDecisionService(
             store,
             self.repository,
@@ -185,6 +188,9 @@ class TelegramDialogController:
         # Set by the composition; records manual decisions as learning material.
         self.learning: DecisionLearningLog | None = None
         self.stop_requested: Callable[[], bool] = lambda: False
+
+    def _web_write_authorized(self, actor: str) -> bool:
+        return self.review.web_authorizer is not None and self.review.web_authorizer(actor)
 
     @property
     def relevance_handler(self) -> RelevanceHandler | None:
@@ -335,6 +341,7 @@ class TelegramDialogController:
                 break
             command = entry.command
             self.commands.start(entry.id)
+            started = time.perf_counter()
             try:
                 result = self.review.execute(command)
             except Exception as exc:
@@ -346,7 +353,9 @@ class TelegramDialogController:
             self.commands.finish(entry.id, result)
             self.logger.event("INFO", "review", "command_finished", command_id=entry.id,
                               source=command.source.value, kind=command.kind.value,
-                              status=result.status.value)
+                              status=result.status.value,
+                              latency_ms=round((self.commands.clock() - entry.received_at).total_seconds() * 1000, 3),
+                              execution_ms=round((time.perf_counter() - started) * 1000, 3))
             # Writes, revisions and clarifications report in Telegram by
             # themselves; a rejection or relevance decision is mirrored here.
             if (self.outbox.background is None and command.source == CommandSource.WEB

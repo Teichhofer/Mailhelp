@@ -48,7 +48,8 @@ class ProposalDecisionService:
         return self.decide_with_status(decision, user_id, chat_id)[1]
 
     def decide_with_status(self, decision: Decision, user_id: int, chat_id: int,
-                           write_authorizer: Callable[[], bool] | None = None) -> tuple[ResultStatus, str]:
+                           write_authorizer: Callable[[], bool] | None = None,
+                           web_actor: str | None = None) -> tuple[ResultStatus, str]:
         """Apply the decision; stale or premature decisions raise a ReviewError."""
         if (user_id, chat_id) != (self.allowed_user, self.allowed_chat):
             raise PermissionError("Nicht autorisierte Telegram-Anfrage")
@@ -77,7 +78,7 @@ class ProposalDecisionService:
                     "explicit_duplicate_create_confirmed_version": None,
                     "open_questions": ["Zuordnung zu bestehenden Entscheidungen prüfen; keine Neuanlage freigegeben."]})
                 revised = invalidate_creation_permissions(revised)
-                self.persistence.persist(revised)
+                self._commit(proposal, revised)
                 raise StaleCommand("Offene Entscheidungen haben sich geändert; neue Version prüfen")
         if confirming and self.precheck is not None:
             checked = self.precheck.check_proposal(proposal)
@@ -86,7 +87,7 @@ class ProposalDecisionService:
                 checked = checked.model_copy(update={"version": proposal.version + 1,
                     "explicit_duplicate_create_confirmed_version": None})
                 checked = invalidate_creation_permissions(checked)
-                self.persistence.persist(checked)
+                self._commit(proposal, checked)
                 raise StaleCommand("Dublettenprüfung hat den Vorschlag geändert; neue Version prüfen")
         duplicates = self.ledger.prior_actions(proposal) if confirming else []
         if decision.action == DecisionAction.CONFIRM and duplicates:
@@ -113,10 +114,19 @@ class ProposalDecisionService:
             changed = changed.model_copy(update={
                 "explicit_duplicate_create_confirmed_version": changed.version,
             })
-        self.persistence.persist(changed)
+        if confirming:
+            changed = changed.model_copy(update={"confirmed_web_actor": web_actor})
+        self._commit(proposal, changed)
         if changed.status == ProposalStatus.CONFIRMED:
             return self._write(changed)
         return ResultStatus.DONE, "✅ Vorschlag wurde verworfen."
+
+    def _commit(self, previous: Proposal, changed: Proposal) -> None:
+        """Claim the unchanged open version atomically, after all external reads."""
+        with self.store.locked():
+            if self.repository.load_current(previous.source_mail_id, previous.id) != previous:
+                raise StaleCommand("Vorschlag inzwischen geändert oder entschieden")
+            self.persistence.persist(changed)
 
     def _open_proposal(self, decision: Decision) -> Proposal:
         """The exact proposal version the button belongs to, while it still awaits a decision."""
@@ -150,7 +160,7 @@ class ProposalDecisionService:
         changed = proposal.model_copy(
             update={"status": ProposalStatus.NEEDS_CLARIFICATION}
         )
-        self.persistence.persist(changed)
+        self._commit(proposal, changed)
         self.store.save(
             "telegram-dialog",
             TelegramDialogState(

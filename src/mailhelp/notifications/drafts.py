@@ -7,6 +7,7 @@ import re
 from collections.abc import Callable
 from contextlib import AbstractContextManager
 from datetime import UTC, datetime
+from email.errors import MessageError
 from email.message import EmailMessage
 from email.policy import SMTP
 from email.utils import format_datetime, parseaddr
@@ -51,7 +52,10 @@ def message(headers: MailHeaders, sender: str, text: str, message_id: str) -> by
     result["Date"] = format_datetime(datetime.now(UTC))
     result["Message-ID"] = message_id
     result.set_content(text)
-    return result.as_bytes()
+    try:
+        return result.as_bytes()
+    except MessageError as exc:
+        raise ValueError("Ungültige Mailkopfzeilen; Entwurf nicht im Postfach gespeichert") from exc
 
 
 class DraftAnalyzer(Protocol):

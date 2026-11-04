@@ -1,8 +1,12 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 27. Oktober 2026, Anwendungsversion 3.5.1. Die folgenden Verträge beschreiben
+Stand: 3. November 2026, Anwendungsversion 3.6.38. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
+
+Die verbindlichen Zustandsübergänge, Persistenzgrenzen und beide Reihenfolgen konkurrierender
+Entscheidungen für Review, Command-Inbox, Schreibausführung, Ledger und Merge stehen in
+[Zustandsregeln 3.6](docs/Zustandsregeln-3.6.md). Sie gelten auch nach harten Prozessabbrüchen.
 
 ## Einstellungsbereiche und Postfachaktivierung (3.5)
 
@@ -2193,7 +2197,9 @@ Abos abgemeldeter Sitzungen sowie mit 404/410 beantwortete Abos werden entfernt.
 Ein Hintergrundthread prüft minütlich, ob neue offene Entscheidungen hinzugekommen
 sind. Netzwerkzugriffe laufen nie unter der globalen Zustandssperre.
 
-**Antwort-Entwürfe.** Mit `smart_reply: true` und dem Prompt `draft_reply` zeigt
+**Antwort-Entwürfe.** Ungültige oder nicht sicher serialisierbare Mailkopfzeilen werden
+als Eingabefehler angezeigt; es erfolgt kein IMAP-Schreibzugriff und lokal gespeicherter
+Entwurfstext bleibt erhalten. Mit `smart_reply: true` und dem Prompt `draft_reply` zeigt
 die Mail- und die Vorschlagsdetailseite jeder Mail mit gespeichertem Mailtext immer
 die Schaltflächen „Zusagen“, „Absagen“ und „Rückfrage“ (`intent` = `accept`,
 `decline`, `question`). Erst ein Klick löst genau einen LLM-Aufruf aus; der

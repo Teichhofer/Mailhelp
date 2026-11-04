@@ -886,6 +886,20 @@
         "classification": {
           "$ref": "#/$defs/ProposalClassification"
         },
+        "confirmed_web_actor": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "pattern": "^web:.+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confirmed Web Actor"
+        },
         "default_duration_minutes": {
           "anyOf": [
             {
@@ -1126,6 +1140,19 @@
           "maxItems": 30,
           "title": "Protected Fields",
           "type": "array"
+        },
+        "reconciliation_journal": {
+          "anyOf": [
+            {
+              "pattern": "^reconciliation-merge-[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reconciliation Journal"
         },
         "responsibility": {
           "$ref": "#/$defs/ProposalResponsibility"

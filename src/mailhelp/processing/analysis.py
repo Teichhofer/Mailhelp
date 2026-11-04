@@ -105,7 +105,7 @@ def validate_revision_successor(previous: Proposal, candidate: Any, *,
         raise ContradictoryRevision("Eine Revision darf keine Doppelanlage freigeben")
     for field in ("sources", "protected_fields", "canonical_ref", "target_provider", "matching_candidates",
                   "pending_sources", "merge_review_required", "end_origin", "default_duration_minutes", "meeting_mode",
-                  "separated_from", "duplicate_check_failed"):
+                  "separated_from", "duplicate_check_failed", "confirmed_web_actor", "reconciliation_journal"):
         if getattr(previous, field) != getattr(revised, field):
             raise ContradictoryRevision("Eine KI-Revision darf Abgleich- oder Herkunftsfelder nicht ändern")
     known = previous.known_temporal_facts

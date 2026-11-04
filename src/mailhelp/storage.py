@@ -169,7 +169,12 @@ class JsonStore:
     def _read(self, name: str, default: Any, *, quarantine: bool) -> Any:
         self._validate_name(name)
         path = self.directory / f"{name}.json"
-        if not path.exists(): return default
+        if not path.exists():
+            authoritative = (name.startswith(("proposal-", "mail-", "reconciliation-merge-"))
+                             or name in {"action-ledger", "command-inbox", "telegram-inbox"})
+            if authoritative and (path.with_suffix(".corrupt").exists() or path.with_suffix(".invalid").exists()):
+                raise CorruptState(f"Isolierter Zustand muss repariert werden: {path.name}")
+            return default
         try:
             with path.open(encoding="utf-8") as stream: return json.load(stream)
         except (OSError, json.JSONDecodeError) as exc:

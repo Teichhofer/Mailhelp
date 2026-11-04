@@ -4,7 +4,7 @@ The state transitions themselves stay in the existing services
 (``ProposalDecisionService``, ``ProposalRevisionProcessor`` and the relevance
 dialog).  The review service checks authorization and the referenced version,
 translates the command for those services and returns a typed result.  It runs
-exclusively in the main thread.
+in the serialized operator thread; commits also compare the authoritative state.
 """
 
 from __future__ import annotations
@@ -209,7 +209,7 @@ class ReviewService:
             # The command validator requires both values for a retarget.
             assert command.target_profile is not None and command.proposal_hash is not None
             changed = retarget(cfg, previous, command.target_profile, command.proposal_hash)
-            self.controller.persist(changed)
+            self._commit(previous, changed)
             self.controller.send_proposal(changed)
             return ReviewResult(status=ResultStatus.DONE, message="Ziel umgestellt; neue Version separat bestätigen.")
         if command.kind in {CommandKind.MERGE, CommandKind.SEPARATE, CommandKind.RESTORE, CommandKind.DEFAULTS}:
@@ -223,7 +223,7 @@ class ReviewService:
             if configured is not None:
                 targets.add(configured.task_target if previous.kind.value == "task" else configured.calendar_target)
             revised = edit_proposal(previous, command.patch, self.controller.configured_timezone, targets)
-            self.controller.persist(revised)
+            self._commit(previous, revised)
             record_event(self.controller.store, revised, "edit", command.source.value, command.idempotency_key)
             if revised.version != previous.version:
                 self.controller.send_proposal(revised)
@@ -237,6 +237,13 @@ class ReviewService:
         if command.kind == CommandKind.CANCEL_CLARIFICATION:
             return self._cancel(command)
         return self._decide(command)
+
+    def _commit(self, previous: Proposal, changed: Proposal) -> None:
+        with self.controller.store.locked():
+            current = self.controller.repository.load_current(previous.source_mail_id, previous.id)
+            if current != previous:
+                raise StaleCommand("Vorschlag inzwischen geändert oder entschieden")
+            self.controller.persist(changed)
 
     def _reconcile_proposal(self, command: ReviewCommand) -> ReviewResult:
         import hashlib
@@ -308,7 +315,8 @@ class ReviewService:
         )
         status, text = self.controller.decision_service.decide_with_status(
             decision, self.controller.user_id, self.controller.chat_id,
-            write_authorizer=lambda: self._authorized(command))
+            write_authorizer=lambda: self._authorized(command),
+            web_actor=command.actor if command.source == CommandSource.WEB else None)
         if command.source == CommandSource.TELEGRAM:
             return ReviewResult(status=status, message=text)
         message = _STATUS_MESSAGES.get(status) or _DONE_MESSAGES[command.kind]
@@ -365,7 +373,7 @@ class ReviewService:
             if pointer.retry_required:
                 raise ReviewBusy("Eine andere Antwort wird gerade verarbeitet; bitte gleich erneut senden.")
             if proposal.status == ProposalStatus.PENDING_CONFIRMATION:
-                self.controller.persist(proposal.model_copy(
+                self._commit(proposal, proposal.model_copy(
                     update={"status": ProposalStatus.NEEDS_CLARIFICATION}))
             self.controller.store.save(_DIALOG, TelegramDialogState(
                 mail_id=proposal.source_mail_id, proposal_id=proposal.id,

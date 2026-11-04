@@ -56,6 +56,7 @@ def test_prepared_mails_respect_the_payload_limit(subject, sender, body, subtype
 
 @FAST
 @given(ANY_TEXT, ANY_TEXT, ANY_TEXT, ANY_TEXT, ANY_TEXT)
+@example("", "\x80@00\x80\x80\x80\x80\x80\x80\U00010000\U00010000\U00010000\U00010000\U00010000", "", "", "")
 def test_reply_drafts_never_carry_injected_headers(sender, reply_to, subject, parent, references):
     headers = MailHeaders.model_validate({"from": sender, "reply_to": reply_to, "subject": subject,
                                           "message_id": parent, "references": references})

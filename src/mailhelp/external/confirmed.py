@@ -13,7 +13,8 @@ from .roles import provider_key
 
 
 def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Callable[[Proposal], None],
-                      test_mode: bool = False) -> tuple[Proposal, dict[str, Any]]:
+                      test_mode: bool = False, *, authorize: Callable[[], bool] | None = None,
+                      ) -> tuple[Proposal, dict[str, Any]]:
     if not proposal_is_writable(proposal):
         raise ValueError("Nur neue, sichere und eigene Vorschläge oder ausdrücklich bestätigte "
                          "Ersatz-Neuanlagen dürfen extern angelegt werden")
@@ -58,6 +59,10 @@ def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Calla
     # write boundary. A preflight failure leaves the authorization CONFIRMED.
     prepared = (writer.prepare(proposal, key) if isinstance(writer, TargetWriter)
                 else PreparedWrite(lambda: writer.create(writing, key)))
+    # Preparation can involve slow external reads. Check again at the write boundary,
+    # including when the confirmed record was resumed in a fresh process.
+    if authorize is not None and not authorize():
+        return proposal, {"authorization_invalid": True}
     if prepared.requires_write:
         persist(writing)
     try: result = prepared.operation()

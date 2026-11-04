@@ -49,6 +49,7 @@ notifications:
 # 2.0: Schaltflächen Zusagen/Absagen/Rückfrage auf der Mailseite; ein Klick lässt das
 # LLM (Prompt draft_reply) einen Entwurf formulieren. Gespeichert wird nur nach
 # ausdrücklichem Klick per IMAP APPEND in imap.drafts_folder; Mailhelp sendet nie.
+# Ungültige Mailkopfzeilen blockieren das Speichern im Postfach; lokale Änderungen bleiben erhalten.
 smart_reply: false
 # Eigene Angaben für Antwort-Entwürfe (Name, Rolle, Signatur, Anrede-/Stilwünsche),
 # höchstens 2.000 Zeichen. Gehen an die Prompts draft_reply und (ab 2.2) activity_relevance;
@@ -385,6 +386,8 @@ web:
   # z. B. mailhelp-pc.tailnet-name.ts.net
   allowed_hosts: [127.0.0.1:8765, localhost:8765]
   # Gültigkeit einer gekoppelten Browsersitzung in Tagen.
+  # Noch nicht begonnene Web-Anlagen prüfen dieselbe Sitzung auch nach Neustart
+  # und nach langsamen Vorprüfungen erneut; Widerruf/Ablauf blockieren die Anlage.
   session_days: 30
   # Zugriff im eigenen WLAN über die IP-Adresse des PCs (unverschlüsseltes HTTP).
   # Benötigt host: 0.0.0.0; /web sendet dann den Link mit der aktuellen IP.

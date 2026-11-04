@@ -1,5 +1,134 @@
 # Änderungen
 
+## 3.6.38 – Fehlende und beschädigte maßgebliche Akten (Schritt 7.8)
+
+- Upgrade-Absicherung: Alte noch nicht begonnene Freigaben werden nur mit passendem
+  ausgeführten Bestätigungsbeleg an die ursprüngliche gültige Websitzung beziehungsweise
+  die weiterhin erlaubte Telegram-Identität gebunden.
+  Fehlt der Nachweis, bleibt die Anlage sichtbar gesperrt. Lesender Abgleich bleibt möglich;
+  die Blockademeldung wird pro Version und Prozess nur einmal ausgegeben.
+- Fehlende alte Freigabemetadaten bleiben auch bei unterbrochener Schema-Migration ausdrücklich
+  ungeprüft; ein erneuter Start darf daraus keine Telegram-Freigabe ableiten.
+- Linux-Abnahme: Der Überblick erkennt extern hinzugefügte oder beschädigte Akten auch
+  bei unverändertem Verzeichniszeitstempel; er prüft zusätzlich Dateinamen, Größe und
+  Änderungszeit. Nicht sicher serialisierbare Mailkopfzeilen werden vor jedem IMAP-Aufruf
+  als Eingabefehler abgewiesen. Deterministische Regressionen ergänzen den Property-Test.
+- Regressionen für fehlende, beschädigte und schemawidrige Vorschlags-, Mail-, Ledger-,
+  Inbox- und Merge-Akten nach hartem Abbruch und zwei Neustarts. Isolierte Akten bleiben
+  sperrend; neue Merge-Revisionen behalten einen Journalverweis und dokumentieren, ob die
+  Quelle bereits gespeichert war. Kein stilles Wiederanlegen fehlender Quellen oder Übergehen
+  isolierter Journale. Optionale Absenderfilter bleiben rekonstruierbar.
+- KI-Revisionsnachfolger dürfen die neuen anwendungseigenen Sitzungsbindungen und
+  Journalverweise nicht verändern; zwei Regressionstests sichern diese Grenze ab.
+- Eine gültig formatierte Vorschlagsakte unter falschem Dateinamen gilt als beschädigter
+  Bestand. Neustarts rekonstruieren daraus keine fehlende maßgebliche Akte und führen nichts aus.
+- Abschluss der restlichen 3.6-Implementierung im Arbeitsstand; Patch-Zuordnungen
+  3.6.17–3.6.38 dokumentieren die einzelnen Planschritte, keine veröffentlichten Zwischenreleases.
+
+## 3.6.37 – Merge-Abbruch nach beiden Revisionen (Schritt 7.7)
+
+- A7 beendet den Prozess nach der Aliasakte und vor dem Journalabschluss; zwei Neustarts
+  vervollständigen das Journal idempotent und erhalten manuell geschützte Werte und Quellen.
+
+## 3.6.36 – Merge-Abbruch vor der Aliasakte (Schritt 7.6)
+
+- A6 prüft harte Beendigung nach der kanonischen Revision, Wiederherstellung der Aliasakte
+  sowie Konflikte bei inzwischen geänderter oder fehlender maßgeblicher Akte.
+
+## 3.6.35 – Merge-Abbruch nach dem Journal (Schritt 7.5)
+
+- A5 prüft harte Beendigung direkt nach dem vorbereiteten Merge-Journal; Wiederherstellung
+  und zweiter Neustart bewahren beide Quellen und geschützte manuelle Angaben.
+
+## 3.6.34 – Ergebnis vor Ledger-Abschluss (Schritt 7.4)
+
+- A4 beendet den Prozess nach dem maßgeblichen Ergebnis und vor Projektion/Ledger.
+  Die lokale Buchführung wird ohne zweiten externen Schreibaufruf repariert.
+
+## 3.6.33 – Antwort vor Ergebnisspeicherung (Schritt 7.3)
+
+- A3 beendet den Prozess vor dem Speichern der erfolgreichen Antwort. Vier Abgleichmodi
+  prüfen die sichere Wiederaufnahme ohne erneute Anlage.
+
+## 3.6.32 – Übernommene Anlage ohne Antwort (Schritt 7.2)
+
+- A2 hält die Antwort nach dauerhafter Provider-Übernahme zurück und beendet den Prozess
+  hart. Treffer, fehlender Treffer, temporärer Fehler und ungültige Antwort führen zu keiner Doppelanlage.
+
+## 3.6.31 – Gespeicherte Freigabe vor Provider-Aufruf (Schritt 7.1)
+
+- A1 prüft erstmals beginnende Schreibaufträge nach hartem Abbruch, unabhängigen Providerzustand,
+  zwei frische Neustarts und weiterhin gültige Autorisierung.
+
+## 3.6.30 – Sichtbare Konflikte in zwei Browserkontexten (Schritt 6.8)
+
+- Zwei unabhängig gekoppelte Browser bearbeiten dieselbe Version. Beide Reihenfolgen prüfen,
+  dass die erste Speicherung erhalten bleibt und die zweite sichtbar als Konflikt abgewiesen wird.
+
+## 3.6.29 – Wiederholungen während und nach Ausführung (Schritt 6.7)
+
+- Identische Web-Anfragen liefern trotz inzwischen entschiedenem Vorschlag denselben
+  Inbox-Eintrag und sein Ergebnis. Regressionstest für Wiederholung während des Provider-Aufrufs.
+
+## 3.6.28 – Widerruf und Ablauf vor Ausführung (Schritt 6.6)
+
+- Neue Web-Freigaben speichern `confirmed_web_actor`. Sitzung und aktuelle Akte werden nach
+  Provider-Vorbereitung und nach Neustarts erneut geprüft. Regressionstests für Widerruf und Ablauf.
+
+## 3.6.27 – Merge gegen Bestätigen (Schritt 6.5)
+
+- Deterministische Tests beider Reihenfolgen prüfen kanonische Version, Aliasakte, Journal,
+  Inbox und höchstens eine externe Anlage.
+
+## 3.6.26 – Verwerfen gegen Bestätigen (Schritt 6.4)
+
+- Beide Reihenfolgen prüfen, dass nur eine Entscheidung gewinnt und keine verworfene Version ausgeführt wird.
+
+## 3.6.25 – Bearbeiten gegen Bestätigen (Schritt 6.3)
+
+- Entscheidungen und Bearbeitungen vergleichen vor dem Speichern atomar die aktuelle Akte.
+  Regressionstests verhindern, dass eine langsame Vorprüfung eine neuere manuelle Revision überschreibt.
+
+## 3.6.24 – Bestätigen aus zwei Websitzungen (Schritt 6.2)
+
+- Beide Reihenfolgen mit verschiedenen Sitzungsschlüsseln prüfen fachlichen Dublettenschutz,
+  persistierte Ergebnisse und eine einzige externe Anlage.
+
+## 3.6.23 – Bestätigen aus Web und Telegram (Schritt 6.1)
+
+- Reale Web- und Telegram-Einstiegspunkte mit gesteuerten Haltepunkten, beiden Reihenfolgen
+  und unabhängiger Providerhistorie. CSRF-Matrix für P1–P7 ergänzt.
+
+## 3.6.22 – Unterprozess-Harness (Schritt 1.5)
+
+- Spawn-Prozesse mit echter Betriebssperre, Pipe-Checkpoints, harter Beendigung und begrenztem
+  Aufräumen. Coverage wird vor dem Kill gespeichert; ein eigener Test prüft Zeilen und Branch-Arcs.
+
+## 3.6.21 – Persistenter synthetischer Provider (Schritt 1.4)
+
+- Prozessunabhängige JSON-Ablage für Einträge und Aufrufhistorie; Antwort nach Übernahme
+  zurückhalten und alle vier Abgleichmodi deterministisch einstellen.
+
+## 3.6.20 – Wiederverwendbare Testbarrieren (Schritt 1.3)
+
+- Event-Haltepunkte mit festen Zeitgrenzen und Aufräumen auch bei fehlgeschlagenen Assertions;
+  keine zeitabhängige Synchronisation mit `sleep()`.
+
+## 3.6.19 – Zustandsregeln Schreiben, Ledger und Merge (Schritt 1.2)
+
+- Verbindliche Persistenzgrenzen, Schreibunsicherheit und beide Konfliktreihenfolgen in
+  `docs/Zustandsregeln-3.6.md` spezifiziert und mit der Projektspezifikation verknüpft.
+
+## 3.6.18 – Zustandsregeln Review und Inbox (Schritt 1.1)
+
+- Annahme, Ausführungsbeginn, fachlicher Commit, Wiederholung und Neustartabgleich verbindlich dokumentiert.
+
+## 3.6.17 – Protokollierter Antwortzeitnachweis (Schritt 0.6)
+
+- `command_finished` enthält `latency_ms` und `execution_ms`. Der gleichzeitige Betrieb von
+  Mailabruf und Bedien-Thread prüft die JSONL-Ereignisse; synthetischer Windows-Messlauf:
+  125,102 ms bis Abschluss, während die Analyse weiterhin angehalten war.
+
 ## 3.6.16 – Paket `mailhelp.runtime`, Bündelung abgeschlossen (Planung 3.6, Schritt 0.10f)
 
 - Betrieb, Lebenszyklus, Einrichtung, Diagnose, Wartung und Zugangsdaten liegen jetzt im

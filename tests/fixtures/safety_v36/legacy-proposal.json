@@ -1,0 +1,14 @@
+{
+  "schema_version": 3,
+  "source_mail_id": "000000000000000000000001",
+  "id": "legacy",
+  "version": 1,
+  "kind": "task",
+  "responsibility": "user",
+  "certainty": "certain",
+  "classification": "new",
+  "title": "Synthetic legacy task",
+  "evidence": "Synthetic evidence",
+  "target": "Inbox",
+  "status": "confirmed"
+}

@@ -27,6 +27,7 @@ from ..domain.processing import (
     ProposalRevisionStatus,
     TelegramOutboxState,
 )
+from ..domain.proposal import UNVERIFIED_LEGACY_ACTOR
 from ..formatting import format_datetime_local
 from ..models import (
     MailRunState,
@@ -237,8 +238,8 @@ class ReviewViews:
     def overview(self) -> Overview:
         """Rebuilt after a state change; the overview depends on stored state alone.
 
-        The directory time and a maximum age also catch files changed outside this
-        process, for example a restored backup.
+        File metadata and a maximum age also catch files changed outside this
+        process, including an in-place repair or damage to an existing record.
         """
         with self.store.locked():
             now = self.clock()
@@ -463,6 +464,8 @@ class ReviewViews:
         if not self.profile_available(proposal):
             actions.discard(CommandKind.CONFIRM)
             state = "Zielprofil nicht verfügbar – Zugriff prüfen oder Ziel umstellen"
+        if proposal.status == ProposalStatus.CONFIRMED and proposal.confirmed_web_actor == UNVERIFIED_LEGACY_ACTOR:
+            state = "Freigabe des Altbestands nicht prüfbar – Anlage gesperrt"
         headers = mail.display_headers if mail is not None else None
         target = "Als Aufgabe anlegen" if proposal.kind == ProposalKind.TASK else "Im Kalender anlegen"
         if proposal.target_event_id is not None:
@@ -495,12 +498,17 @@ def _mail_position(mail: MailState | None, proposal: Proposal) -> tuple[int, int
     return (mail.imap.uid, ids.index(proposal.id) if proposal.id in ids else 0)
 
 
-def _directory_time(directory: Path) -> int:
-    """Changes when a state file is created, replaced or removed, also by another program."""
+def _directory_time(directory: Path) -> tuple[int, tuple[tuple[str, int, int], ...]]:
+    """Detect external changes even when a filesystem coalesces directory timestamps."""
     try:
-        return directory.stat().st_mtime_ns
+        stamp = directory.stat().st_mtime_ns
+        entries = []
+        for path in directory.glob("*.json"):
+            stat = path.stat()
+            entries.append((path.name, stat.st_mtime_ns, stat.st_size))
+        return stamp, tuple(sorted(entries))
     except OSError:
-        return 0
+        return 0, ()
 
 
 def _fingerprint(relevance: list[RelevanceView], open_views: list[ProposalView],

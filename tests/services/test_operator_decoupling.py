@@ -12,6 +12,7 @@ from types import SimpleNamespace
 from shared_application import Imap, Orch, Telegram, app
 from shared_web_actions import web as web
 
+from mailhelp.logging import JsonlLogger
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.review.inbox import CommandStatus
 from mailhelp.telegram.receiver import TelegramInbox
@@ -61,6 +62,8 @@ def finished(web, service, entry_id) -> bool:
 
 
 def test_a_web_confirmation_runs_while_a_mail_is_being_analysed(web, tmp_path):
+    logger = JsonlLogger(tmp_path / "logs")
+    web.dialog.logger = web.site.logger = logger
     service, orch = operated(web, tmp_path)
     main = Thread(target=service.mailbox.poll, name="mail-loop")
     main.start()
@@ -78,6 +81,14 @@ def test_a_web_confirmation_runs_while_a_mail_is_being_analysed(web, tmp_path):
         service.stop()
         service.services.stop_operator()
     assert not main.is_alive() and orch.seen == [5]
+    records = [json.loads(line) for line in logger.app.read_text(encoding="utf-8").splitlines()]
+    submitted = next(record for record in records if record["event"] == "command_submitted")
+    completed = next(record for record in records if record["event"] == "command_finished")
+    assert submitted["command_id"] == completed["command_id"] == entry_id
+    assert 0 <= completed["execution_ms"] <= completed["latency_ms"] + 10
+    # An acceptance bound, not a synchronisation mechanism; the analysis is still held above.
+    assert 0 <= completed["latency_ms"] < LIMIT * 1000
+    print("SYNTHETIC_BUSY_CYCLE " + json.dumps(completed, sort_keys=True))
 
 
 def test_topics_saved_during_an_analysis_apply_only_at_the_next_cycle(web, tmp_path):

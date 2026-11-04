@@ -120,13 +120,15 @@ def test_yes_no_quick_answers_and_relevance(web):
         "resolve_relevance": lambda self, *args: __import__(
             "test_telegram_dialog").RelevanceHandler(web.store).resolve_relevance(*args),
         "resume_mail": lambda self, state: None})()
-    web.submit(relevance)
+    relevance_result = web.submit(relevance)
     web.run()
     assert web.store.load(f"proposal-{mail_id(3)}-fest")["version"] == 2
     assert web.store.load(f"mail-{mail_id(7)}")["relevance_dialog"]["decision"] == "irrelevant"
     assert "🌐 Im Web: Mail als irrelevant eingestuft." in [text for _, text, _ in web.telegram.sent]
     again = web.submit(relevance)
-    assert again.status == 409 and "Relevanzfrage" in again.body.decode()
+    assert again.status == 303 and again.headers["Location"] == relevance_result.headers["Location"]
+    entry = web.commands.get(again.headers["Location"].rsplit("/", 1)[1])
+    assert entry.result.message == "Mail als irrelevant eingestuft."
 
 
 def test_duplicate_confirmation_is_offered_on_the_result_page(web):

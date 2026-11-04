@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import os
 
+import pytest
 from web_scenario import mail_id, populate, proposal, save_mail
 
 from mailhelp.review.archive import record_event
@@ -48,6 +49,20 @@ def test_an_unreadable_directory_time_does_not_break_the_overview(tmp_path):
         views = ReviewViews(store, "Europe/Berlin")
         store.directory = tmp_path / "fehlt"
         assert views.overview().damaged == 0
+
+
+@pytest.mark.parametrize("change", ["create", "overwrite"])
+def test_external_damage_invalidates_cache_even_with_unchanged_directory_timestamp(tmp_path, change):
+    """Regression: Linux can coalesce directory timestamp changes, and in-place writes never change it."""
+    with JsonStore(tmp_path) as store:
+        populate(store)
+        views = ReviewViews(store, "UTC")
+        before = views.overview()
+        stamp = tmp_path.stat()
+        name = "elternabend" if change == "overwrite" else "new-damaged"
+        (tmp_path / f"proposal-{mail_id(1)}-{name}.json").write_text("{", encoding="utf-8")
+        os.utime(tmp_path, ns=(stamp.st_atime_ns, stamp.st_mtime_ns))
+        assert views.overview().damaged == before.damaged + 1
 
 
 def test_history_of_one_mail_equals_its_part_of_the_full_history(tmp_path):

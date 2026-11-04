@@ -13,7 +13,13 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 3.6.16 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 3.6.38 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 3.6 sichert gleichzeitige Entscheidungen und Wiederherstellung nach harten
+Prozessabbrüchen ab. Web-Freigaben bleiben über Neustarts an ihre Sitzung gebunden;
+identische Wiederholungen zeigen denselben Vorgang und sein Ergebnis. Fehlende oder
+beschädigte maßgebliche Akten blockieren unsichere Wiederholungen.
+Details: [Zustandsregeln und Tests](docs/Zustandsregeln-3.6.md), [Release 3.6](docs/Release-3.6.md).
 
 [Installation](#installation) · [Konfiguration](#konfiguration) ·
 [Betrieb](#betrieb) · [Docker](#docker) ·
@@ -437,8 +443,8 @@ Entwicklungsregeln stehen in [AGENTS.md](AGENTS.md), technische Verträge in der
 | Vorschläge abgleichen und ergänzen | [Bedienung und Abgleich](docs/Release-2.4.md) |
 | Technische Schnittstellen und Datenmodelle | [Projektspezifikation](Mailhelp-Projektspezifikation.md) |
 | Änderungen veröffentlichter Versionen | [Changelog](CHANGELOG.md) |
-| Nächste Schritte: Fundament und Absicherung | [Planung 3.6](docs/Planung-3.6.md) |
-| Danach: Ersteinrichtung und OAuth im Browser | [Planung 3.7](docs/Planung-3.7.md) |
+| Fundament und Absicherung in 3.6 | [Planung und Abnahme 3.6](docs/Planung-3.6.md) |
+| Nächste Schritte: Ersteinrichtung und OAuth im Browser | [Planung 3.7](docs/Planung-3.7.md) |
 | Gesamtfahrplan bis Version 4.0 | [Planung 4.0](docs/Planung-4.0.md) |
 
 Die statische Projektwebsite liegt unter [website/](website/).

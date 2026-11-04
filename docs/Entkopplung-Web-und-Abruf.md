@@ -2,7 +2,7 @@
 
 **Stand:** 3. November 2026 (Version 3.6.3)  
 **Zweck:** Grundlage für [Planung 3.6](Planung-3.6.md), Schritte 0.5 (Arbeitsthread) und 0.6 (Nachweis)  
-**Status:** Umgesetzt in 3.6.4 (Abschnitt 7); Tests in 3.6.5 (Abschnitt 8); Messung im Betrieb offen
+**Status:** Umgesetzt in 3.6.4 (Abschnitt 7); Tests in 3.6.5 (Abschnitt 8); protokollierter synthetischer Betriebsnachweis in 3.6.17
 
 ---
 
@@ -113,5 +113,8 @@ Threads übergeben ihm Arbeit, statt ihn direkt aufzurufen.
   ausgeführt und genau einmal extern angelegt. Eine während der Analyse gespeicherte
   Themenänderung wirkt erst beim nächsten Zyklus. Synchronisation nur über Ereignisse mit
   festen Zeitgrenzen; 20 aufeinanderfolgende Läufe ohne Fehlschlag.
-- Offen: Messung im Betrieb – Zeit zwischen `web.command_submitted` und
-  `review.command_finished` im Anwendungslog während eines laufenden Abrufzyklus.
+- 3.6.17: `command_finished` enthält `latency_ms` und `execution_ms`; der Test prüft die
+  tatsächlichen JSONL-Ereignisse. Im synthetischen Windows-Betrieb vom 3. November 2026:
+  125,102 ms bis Abschluss, 86,667 ms Ausführung, während die Mailanalyse angehalten war.
+  Reproduzierbar mit `pytest -s`; keine Produktivkontenmessung.
+  Details: [Zustandsregeln 3.6](Zustandsregeln-3.6.md).

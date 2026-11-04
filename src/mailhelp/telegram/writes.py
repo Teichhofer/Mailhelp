@@ -2,16 +2,20 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime
 from typing import Any, Protocol
 from zoneinfo import ZoneInfo
 
 from .. import state_names
+from ..domain.proposal import UNVERIFIED_LEGACY_ACTOR
 from ..external.confirmed import execute_confirmed
 from ..external.contracts import ExternalWriter, proposal_is_writable
 from ..external.roles import writer_for
 from ..models import Proposal, ProposalKind, ProposalStatus
 from ..persistence.ledger import ActionLedgerPort
+from ..review.commands import CommandKind, CommandSource, ReviewCommand
+from ..review.inbox import CommandInboxState, CommandStatus
 from ..storage import JsonStore
 from .client import TelegramTransport
 
@@ -49,6 +53,9 @@ class ConfirmedWriteExecutor:
         )
         self.configured_timezone = configured_timezone
         self._reported_target_mismatches: set[tuple[str, str, int]] = set()
+        self._reported_authorization_failures: set[tuple[str, str, int]] = set()
+        self.web_authorizer: Callable[[str], bool] = lambda actor: False
+        self.telegram_authorizer: Callable[[str], bool] = lambda actor: False
 
     def _event_time_details(self, proposal: Proposal) -> str:
         """Render the created event's start in the user's configured timezone."""
@@ -70,7 +77,8 @@ class ConfirmedWriteExecutor:
         if writer is None:
             return proposal
         try:
-            changed, result = execute_confirmed(proposal, writer, self.persistence.persist, self.test_mode)
+            changed, result = execute_confirmed(proposal, writer, self.persistence.persist, self.test_mode,
+                                               authorize=lambda: self._authorized(proposal))
         except Exception as exc:
             return self._write_failed(proposal, exc)
         self._profile_health(proposal, "")
@@ -80,12 +88,49 @@ class ConfirmedWriteExecutor:
         text = self._result_text(proposal, changed, result)
         if text is None:
             return changed
+        if result.get("authorization_invalid"):
+            reference = (proposal.source_mail_id, proposal.id, proposal.version)
+            if reference in self._reported_authorization_failures:
+                return changed
+            self._reported_authorization_failures.add(reference)
         self.telegram.send(self.chat_id, text)
         if changed.status == ProposalStatus.UNCERTAIN:
             self.persistence.persist(changed.model_copy(update={"uncertain_notified": True}))
         elif changed.status == ProposalStatus.SIMULATED:
             self.persistence.persist(changed.model_copy(update={"simulation_notified": True}))
         return changed
+
+    def _authorized(self, proposal: Proposal) -> bool:
+        actor = proposal.confirmed_web_actor
+        if actor == UNVERIFIED_LEGACY_ACTOR:
+            return False
+        if actor is not None and not self.web_authorizer(actor):
+            return False
+        with self.store.locked():
+            current = self.store.load_model(state_names.proposal(proposal.source_mail_id, proposal.id), Proposal)
+            return current == proposal
+
+    def _bind_legacy_authorization(self, proposal: Proposal) -> Proposal:
+        """Old records need a durable source receipt; absence never invents a session."""
+        legacy = ("confirmed_web_actor" not in proposal.model_fields_set
+                  or proposal.confirmed_web_actor == UNVERIFIED_LEGACY_ACTOR)
+        if proposal.status != ProposalStatus.CONFIRMED or not legacy:
+            return proposal
+        inbox = self.store.load_model("command-inbox", CommandInboxState, CommandInboxState())
+        for entry in inbox.entries:
+            command = entry.command
+            if (isinstance(command, ReviewCommand)
+                    and command.kind in {CommandKind.CONFIRM, CommandKind.CONFIRM_DUPLICATE}
+                    and entry.status in {CommandStatus.RUNNING, CommandStatus.DONE, CommandStatus.FAILED}
+                    and (command.mail_id, command.proposal_id, command.version) ==
+                        (proposal.source_mail_id, proposal.id, proposal.version)):
+                actor: str | None = command.actor
+                if command.source == CommandSource.TELEGRAM:
+                    actor = None if self.telegram_authorizer(command.actor) else UNVERIFIED_LEGACY_ACTOR
+                elif not command.actor.startswith("web:"):
+                    actor = UNVERIFIED_LEGACY_ACTOR
+                return Proposal.model_validate(proposal.model_copy(update={"confirmed_web_actor": actor}).model_dump())
+        return proposal.model_copy(update={"confirmed_web_actor": UNVERIFIED_LEGACY_ACTOR})
 
     def _write_failed(self, proposal: Proposal, exc: Exception) -> Proposal:
         """With target profiles a failing profile is recorded and the stored version stays; else raise."""
@@ -113,6 +158,8 @@ class ConfirmedWriteExecutor:
     def _result_text(self, proposal: Proposal, changed: Proposal, result: dict[str, Any]) -> str | None:
         """The message about the write; ``None`` when an unclear result was reported before."""
         operation = result.get("operation")
+        if result.get("authorization_invalid"):
+            return "Anlage blockiert: Freigabe, Vorschlagsversion oder Websitzung ist nicht mehr gültig."
         if result.get("simulation"):
             kind = "Aufgabe" if proposal.kind == ProposalKind.TASK else "Kalendertermin"
             return f"🧪 Testmodus: {kind} „{proposal.title}“ bestätigt, aber nicht angelegt (nur simuliert)."
@@ -167,6 +214,7 @@ class ConfirmedWriteExecutor:
                 continue
             proposal = self.store.load_model(name, Proposal)
             assert isinstance(proposal, Proposal)
+            proposal = self._bind_legacy_authorization(proposal)
             # Also repairs a crash after the authoritative proposal file was
             # replaced but before its embedding MailState was replaced.
             self.persistence.persist(proposal)

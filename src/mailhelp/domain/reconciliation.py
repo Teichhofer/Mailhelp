@@ -14,6 +14,7 @@ class ProposalMergeJournal(StrictModel):
     target: ProposalReference
     source_version: int = Field(ge=1)
     target_version: int = Field(ge=1)
+    source_was_present: bool = False
     policy: str = Field(default="", max_length=64)
     status: Literal["prepared", "completed"] = "prepared"
     alias: Proposal | None = None

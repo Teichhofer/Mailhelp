@@ -2,7 +2,7 @@
 
 **Zielversion:** 3.6.0 (Schritte als Patchversionen 3.6.x)
 **Stand:** 3. November 2026
-**Status:** In Planung
+**Status:** Vollständig umgesetzt und abgenommen in 3.6.38
 **Ausgangsstand:** 3.5.9
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 4.0](Planung-4.0.md) (Gesamtfahrplan), [Planung 3.5](Planung-3.5.md)
 **Nachfolger:** [Planung 3.7](Planung-3.7.md)
@@ -20,7 +20,7 @@ für aussortierte Mails und schnellere Web-Aktionen während eines Abrufs.
 
 | Stufe | Inhalt | Schritte |
 | :--- | :--- | :--- |
-| 0 | Vorarbeiten: Startmeldung, „Erneut prüfen“, Entkopplung, mypy für `web.*`, Paketbündelung | 10 |
+| 0 | Vorarbeiten: Startmeldung, „Erneut prüfen“, Entkopplung, mypy für `web.*`, Paketbündelung | 17 |
 | 1 | Testgrundlage (Q1) | 5 |
 | 6 | Parallelbedienung (Q2, Priorität 1) | 8 |
 | 7 | Prozessabbrüche (Q3, Priorität 2) | 8 |
@@ -44,7 +44,7 @@ Diese Schritte beheben bekannte Mängel und schaffen Voraussetzungen, ohne Funkt
 | 0.3 ✓ 3.6.2 | „Erneut prüfen“: Web | Schaltfläche in Maildetail und Archiv mit Sitzung, CSRF, Versionsprüfung und Idempotenzschlüssel; Ergebnis im Verlauf sichtbar. | S | 0.2 |
 | 0.4 ✓ 3.6.3 | Entkopplung B1: Analyse ([Analyse](Entkopplung-Web-und-Abruf.md)) | Gemeinsam genutzter Zustand von Abrufzyklus und Review-Befehlen dokumentiert (Store-Sperren, Ledger, Telegram-Dialog); Liste der nötigen Sperren und Reihenfolgen. | S | – |
 | 0.5 ✓ 3.6.4 | Entkopplung B2: Arbeitsthread | Web-Befehle laufen in einem eigenen Arbeitsthread statt im Abrufzyklus; ein laufender LLM-Aufruf verzögert Web-Aktionen nicht mehr. | M | 0.4 |
-| 0.6 (Tests ✓ 3.6.5, Messung im Betrieb offen) | Entkopplung B3: Nachweis | Tests für gleichzeitigen Abruf und Web-Befehl (ohne `sleep()`); gemessene Antwortzeiten während eines Zyklus im Log belegt. | S | 0.5 |
+| 0.6 ✓ 3.6.17 (Tests seit 3.6.5) | Entkopplung B3: Nachweis | Tests für gleichzeitigen Abruf und Web-Befehl (ohne `sleep()`); gemessene Antwortzeiten während eines Zyklus im Log belegt. | S | 0.5 |
 | 0.7 ✓ 3.6.6 | mypy strikt für `web.*` (Teil 1) | Seiten- und Formularmodule (`pages`, `forms`, `*_pages.py`) bestehen die strikte Prüfung. | M | – |
 | 0.8a ✓ 3.6.7 | mypy strikt für `web.*` (Teil 2a) | Aktionen, Archiv, Verlauf, Bearbeiten, Beenden, Zugangsdaten, Kontenstatus und Einstellungen bestehen die strikte Prüfung. | M | 0.7 |
 | 0.8b ✓ 3.6.8 | mypy strikt für `web.*` (Teil 2b) | Einrichtung, Postfächer, Postfach hinzufügen und IServ bestehen die strikte Prüfung (rund 110 Befunde). | M | 0.8a |
@@ -63,11 +63,11 @@ Q1 kommt vor Q2/Q3 (Abschnitt 4); die Infrastruktur wird außerdem in 3.7 und 4.
 
 | Schritt | Inhalt | Fertig, wenn … | Umfang | Voraussetzung |
 | :--- | :--- | :--- | :--- | :--- |
-| 1.1 | Zustandsregeln Review und Command-Inbox | Übergänge, Persistenzgrenzen und der Zeitpunkt, ab dem eine konkurrierende Entscheidung verbindlich ist, in der Spezifikation dokumentiert. | S | – |
-| 1.2 | Zustandsregeln Schreibausführung, Ledger, Merge-Journal | Wie 1.1 für Schreibauftrag, Ledger und Merge; beide Reihenfolgen konkurrierender Entscheidungen beschrieben. | S | 1.1 |
-| 1.3 | Teststeuerung mit Barrieren | Wiederverwendbare Haltepunkte (Events/Barrieren) mit festen Zeitgrenzen und Aufräumen bei Fehlern; unter Windows und Linux lauffähig. | M | – |
-| 1.4 | Persistenter Simulationsdienst | Simulierter externer Dienst mit eigener, prozessunabhängiger Ablage und Aufrufhistorie; kann eine Änderung übernehmen und die Antwort zurückhalten oder abbrechen. | M | – |
-| 1.5 | Unterprozess-Harness | Anwendungsablauf im Unterprozess startbar, an benannten Punkten hart beendbar (kein Exception-Abbruch), Coverage der Unterprozesse wird erfasst. | M | 1.3 |
+| 1.1 ✓ 3.6.18 | Zustandsregeln Review und Command-Inbox | Übergänge, Persistenzgrenzen und der Zeitpunkt, ab dem eine konkurrierende Entscheidung verbindlich ist, in der Spezifikation dokumentiert. | S | – |
+| 1.2 ✓ 3.6.19 | Zustandsregeln Schreibausführung, Ledger, Merge-Journal | Wie 1.1 für Schreibauftrag, Ledger und Merge; beide Reihenfolgen konkurrierender Entscheidungen beschrieben. | S | 1.1 |
+| 1.3 ✓ 3.6.20 | Teststeuerung mit Barrieren | Wiederverwendbare Haltepunkte (Events/Barrieren) mit festen Zeitgrenzen und Aufräumen bei Fehlern; unter Windows und Linux lauffähig. | M | – |
+| 1.4 ✓ 3.6.21 | Persistenter Simulationsdienst | Simulierter externer Dienst mit eigener, prozessunabhängiger Ablage und Aufrufhistorie; kann eine Änderung übernehmen und die Antwort zurückhalten oder abbrechen. | M | – |
+| 1.5 ✓ 3.6.22 | Unterprozess-Harness | Anwendungsablauf im Unterprozess startbar, an benannten Punkten hart beendbar (kein Exception-Abbruch), Coverage der Unterprozesse wird erfasst. | M | 1.3 |
 
 ### 3.3 Stufe 6 – Parallelbedienung (Q2)
 
@@ -77,14 +77,14 @@ falschen und sitzungsfremden CSRF-Tokens.
 
 | Schritt | Szenario | Umfang | Voraussetzung |
 | :--- | :--- | :--- | :--- |
-| 6.1 | P1 Web und Telegram bestätigen dieselbe Version | S | 1.2, 1.3, 1.4 |
-| 6.2 | P2 Zwei Websitzungen mit unterschiedlichen Idempotenzschlüsseln | S | 6.1 |
-| 6.3 | P3 Bearbeiten gegen Bestätigen | M | 6.1 |
-| 6.4 | P4 Verwerfen gegen Bestätigen | S | 6.1 |
-| 6.5 | P5 Merge gegen Bestätigen | M | 6.1 |
-| 6.6 | P6 Sitzung widerrufen oder abgelaufen vor Ausführung | S | 6.1 |
-| 6.7 | P7 Wiederholte identische Anfragen | S | 6.1 |
-| 6.8 | Browsertest mit zwei Kontexten (sichtbare Konfliktmeldung) | S | 6.3 |
+| 6.1 ✓ 3.6.23 | P1 Web und Telegram bestätigen dieselbe Version | S | 1.2, 1.3, 1.4 |
+| 6.2 ✓ 3.6.24 | P2 Zwei Websitzungen mit unterschiedlichen Idempotenzschlüsseln | S | 6.1 |
+| 6.3 ✓ 3.6.25 | P3 Bearbeiten gegen Bestätigen | M | 6.1 |
+| 6.4 ✓ 3.6.26 | P4 Verwerfen gegen Bestätigen | S | 6.1 |
+| 6.5 ✓ 3.6.27 | P5 Merge gegen Bestätigen | M | 6.1 |
+| 6.6 ✓ 3.6.28 | P6 Sitzung widerrufen oder abgelaufen vor Ausführung | S | 6.1 |
+| 6.7 ✓ 3.6.29 | P7 Wiederholte identische Anfragen | S | 6.1 |
+| 6.8 ✓ 3.6.30 | Browsertest mit zwei Kontexten (sichtbare Konfliktmeldung) | S | 6.3 |
 
 ### 3.4 Stufe 7 – Prozessabbrüche (Q3)
 
@@ -95,26 +95,29 @@ ungültiger Antwort.
 
 | Schritt | Abbruchpunkt | Umfang | Voraussetzung |
 | :--- | :--- | :--- | :--- |
-| 7.1 | A1 Schreibauftrag gespeichert, Aufruf nicht begonnen | S | 1.2, 1.4, 1.5 |
-| 7.2 | A2 Änderung übernommen, Antwort zurückgehalten | M | 7.1 |
-| 7.3 | A3 Antwort empfangen, Ergebnis nicht gespeichert | S | 7.1 |
-| 7.4 | A4 Ergebnis gespeichert, Journal/Ledger unvollständig | S | 7.1 |
-| 7.5 | A5 Merge-Journal gespeichert, Vorschlag nicht aktualisiert | S | 1.5 |
-| 7.6 | A6 Vorschlag gespeichert, Aliasakte fehlt | S | 7.5 |
-| 7.7 | A7 Vorschlag und Aliasakte gespeichert, Journal offen | S | 7.5 |
-| 7.8 | Beschädigte oder fehlende maßgebliche Akten | S | 7.1 |
+| 7.1 ✓ 3.6.31 | A1 Schreibauftrag gespeichert, Aufruf nicht begonnen | S | 1.2, 1.4, 1.5 |
+| 7.2 ✓ 3.6.32 | A2 Änderung übernommen, Antwort zurückgehalten | M | 7.1 |
+| 7.3 ✓ 3.6.33 | A3 Antwort empfangen, Ergebnis nicht gespeichert | S | 7.1 |
+| 7.4 ✓ 3.6.34 | A4 Ergebnis gespeichert, Journal/Ledger unvollständig | S | 7.1 |
+| 7.5 ✓ 3.6.35 | A5 Merge-Journal gespeichert, Vorschlag nicht aktualisiert | S | 1.5 |
+| 7.6 ✓ 3.6.36 | A6 Vorschlag gespeichert, Aliasakte fehlt | S | 7.5 |
+| 7.7 ✓ 3.6.37 | A7 Vorschlag und Aliasakte gespeichert, Journal offen | S | 7.5 |
+| 7.8 ✓ 3.6.38 | Beschädigte oder fehlende maßgebliche Akten | S | 7.1 |
 
-**Umfangsübersicht:** 31 Schritte, davon 21 S und 10 M; 0.10 wird je Zielpaket weiter geteilt.
+**Umfangsübersicht:** 38 Schritte nach Aufteilung von 0.8 und 0.10.
+Die Patch-Zuordnung 3.6.17–3.6.38 bündelt die restliche Umsetzung im aktuellen Arbeitsstand;
+es wurden keine Zwischenversionen veröffentlicht.
 
 ## 4. Testausbau: Parallelbedienung und Absturzsicherheit
 
 ### Ziel und Umfang
 
-Zusätzlich zu den Browserfunktionen erhält Version 4.0 reproduzierbare Tests für das
+Version 3.6 enthält reproduzierbare Tests für das
 Zusammenspiel von Web, Telegram, Vorschlagsversionen, externen Schreibaktionen und
 persistiertem Zustand. Vorhandene Tests für Wiederholungen, Sitzungsprüfung,
 Schreibunsicherheit und Merge-Journale werden erweitert und nach Möglichkeit wiederverwendet.
-Dieser Abschnitt beschreibt geplante Arbeit, keine bereits nachgewiesene Absicherung.
+Implementierung und Prüfbefehle: [Zustandsregeln und Testnachweise](Zustandsregeln-3.6.md).
+Ergebnisse der Gesamtabnahme: [Release 3.6](Release-3.6.md).
 
 Alle Tests verwenden synthetische Daten und simulierte externe Dienste. Produktivkonten,
 echte Zugangsdaten und externe Produktivzugriffe sind ausgeschlossen.
