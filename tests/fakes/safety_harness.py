@@ -5,6 +5,8 @@ No production credentials, network access or timing-based synchronisation.
 from __future__ import annotations
 
 import json
+import os
+import time
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from pathlib import Path
@@ -14,7 +16,28 @@ from mailhelp.storage import JsonStore, atomic_replace
 
 MAIL = f"{1:024x}"
 
-LIMIT = 20
+# Upper bounds, not expected durations (Planung 4.1, Schritt 9.5): under heavy I/O and
+# spawning load on Windows a healthy child can need far longer than in isolation. Waiting
+# ends as soon as the result arrives or the child dies, so a generous bound costs nothing.
+def configured_limit(environment=os.environ) -> float:
+    return float(environment.get("MAILHELP_TEST_PROCESS_SECONDS", "120"))
+
+
+LIMIT = configured_limit()
+POLL_SECONDS = 0.05
+
+
+def await_result(connection, process, limit: float = LIMIT) -> None:
+    """Wait for the child's message while it lives; fail at once if it dies without one."""
+    deadline = time.monotonic() + limit
+    while not connection.poll(POLL_SECONDS):
+        if not process.is_alive():
+            # The last message can arrive between the timed poll and the exit check.
+            if connection.poll(0):
+                return
+            raise AssertionError(f"Application process exited with {process.exitcode} before a result")
+        if time.monotonic() >= deadline:
+            raise AssertionError("Application did not reach checkpoint or finish")
 
 
 class Gate:
@@ -91,7 +114,7 @@ class ProcessHarness:
         process.start()
         child.close()
         try:
-            assert parent.poll(LIMIT), "Application did not reach checkpoint or finish"
+            await_result(parent, process)
             result = parent.recv()
             if point is not None:
                 assert result == ("checkpoint", point), result

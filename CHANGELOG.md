@@ -1,5 +1,13 @@
 # Änderungen
 
+## 4.1.4 – Lastfeste Prozess-Sicherheitstests
+
+- Planung 4.1, Schritt 9.5: `ProcessHarness` wartet nicht mehr starr 20 Sekunden auf den
+  Kindprozess. Er wartet, solange der Prozess lebt, bis zu einer großzügigen Obergrenze
+  (120 s, einstellbar über `MAILHELP_TEST_PROCESS_SECONDS`), und meldet einen ohne Ergebnis
+  beendeten Prozess sofort. Unter hoher I/O-Last auf Windows scheitern gesunde Läufe dadurch
+  nicht mehr an der Zeitgrenze.
+
 ## 4.1.3 – Testimporte ohne sys.path-Manipulation
 
 - Planung 4.1, Schritt 9.4: Alle Tests importieren gemeinsame Doubles als
