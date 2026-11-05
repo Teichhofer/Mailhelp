@@ -1,5 +1,12 @@
 # Änderungen
 
+## 4.1.0 – Korpus für Jimdo-Anfragen und Stellplatzbuchungen
+
+- Planung 4.1, Schritt 9.1: Der Release-Korpus v3 enthält fünf neue synthetische Fälle für
+  Jimdo-Kontaktanfragen sowie Buchungsbestätigung und Stornierung von Stellplätzen; Werbung
+  von Jimdo und Roadsurfer muss irrelevant bleiben. Ein Test weist mit simuliertem Anbieter
+  Erkennung, Zeitraum der Buchung und Newsletter-Ausschluss nach.
+
 ## 4.0.3 – Planung 4.2
 
 - [Planung 4.2](docs/Planung-4.2.md): Web-Aktionen sollen innerhalb einer Sekunde beginnen,

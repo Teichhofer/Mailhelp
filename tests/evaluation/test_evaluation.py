@@ -221,6 +221,38 @@ def test_corpus_v2_is_consistent_and_accepts_only_declared_alternatives():
     assert wrong["stage_pass_counts"]["relevance"] == 0 and not wrong["passed"]
 
 
+CORPUS_V3 = Path(__file__).parents[1] / "fixtures" / "mail_corpus_v3" / "corpus.json"
+NEW_TOPICS_V3 = {"jimdo-anfragen-und-nachrichten": {"21_jimdo_inquiry"},
+                 "camping-und-stellplatzbuchungen": {"23_booking_confirmation", "24_booking_cancellation"}}
+PLATFORM_ADS_V3 = {"22_jimdo_newsletter", "25_booking_platform_offer"}
+
+
+def test_corpus_v3_covers_jimdo_inquiries_and_bookings_without_platform_advertising():
+    """Planung 4.1, Schritt 9.1: both topics of commit 7277269 have synthetic cases."""
+    corpus = json.loads(CORPUS_V3.read_text(encoding="utf-8"))
+    cases = {case["id"]: case for case in corpus["cases"]}
+    assert corpus["schema_version"] == 3 and len(cases) == len(corpus["cases"]) == 26
+    repository = {topic["id"] for topic in yaml.safe_load(
+        (Path(__file__).parents[2] / "topics.yaml").read_text(encoding="utf-8"))["topics"]}
+    assert set(NEW_TOPICS_V3) <= {topic["id"] for topic in corpus["topics"]} & repository
+    for topic, ids in NEW_TOPICS_V3.items():
+        assert {case_id for case_id, case in cases.items()
+                if topic in case["expected"]["relevance"]["topic_ids"]} == ids
+    for case_id in PLATFORM_ADS_V3:
+        expected = cases[case_id]["expected"]
+        assert expected["relevance"]["decision"] == "irrelevant"
+        assert expected["action_route"]["action_state"] == "none"
+    report = evaluate(corpus, prompts(), Provider(corpus), 300)
+    assert report["passed"] and report["complete"] and report["corpus_schema_version"] == 3
+    booking = {case["id"]: case for case in report["cases"]}["23_booking_confirmation"]
+    when = booking["stages"]["event_extraction"]["actual"]["events"][0]["when"]
+    assert when == {"start": "2026-10-02", "end": "2026-10-05", "all_day": True}
+    # A model that misses the topics fails exactly the new relevant cases' relevance stage.
+    wrong = evaluate(corpus, prompts(), Provider(corpus, wrong=True), 300)
+    failed = {case["id"] for case in wrong["cases"] if not case["stages"]["relevance"]["passed"]}
+    assert set().union(*NEW_TOPICS_V3.values()) | PLATFORM_ADS_V3 <= failed and not wrong["passed"]
+
+
 def context():
     return MailDateContext("valid", "2026-09-18T10:00:00+02:00",
                            "2026-09-18T10:01:00+02:00", "Europe/Berlin")

@@ -2,7 +2,7 @@
 
 **Zielversion:** 4.1.0 (Schritte als Patchversionen 4.1.x)  
 **Stand:** 4. November 2026  
-**Status:** In Planung  
+**Status:** In Umsetzung  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 4.0](Planung-4.0.md) (Gesamtfahrplan)  
 **Vorgänger:** [Planung 4.0](Planung-4.0.md) · **Nachfolger:** [Planung 4.2](Planung-4.2.md) (Reaktionsschnelle Web-Aktionen)
 
@@ -160,7 +160,7 @@ Es gelten die Regeln aus [Planung 4.0, Abschnitt 5.1](Planung-4.0.md#51-regeln-f
 
 | Schritt | Inhalt | Fertig, wenn … | Umfang | Voraussetzung |
 | :--- | :--- | :--- | :---: | :--- |
-| **9.1** | Korpus für Jimdo & Buchungen | Synthetische Mails in `mail_corpus_v3/` abgelegt; `test_quality_corpus.py` und `mailhelp-evaluate` weisen Erkennung und Newsletter-Ausschluss nach. | S | – |
+| **9.1** ✓ 4.1.0 | Korpus für Jimdo & Buchungen | Synthetische Mails in `mail_corpus_v3/` abgelegt; `test_quality_corpus.py` und `mailhelp-evaluate` weisen Erkennung und Newsletter-Ausschluss nach. *Umgesetzt:* fünf Fälle; der Nachweis liegt in `tests/evaluation/test_evaluation.py`, weil dort der simulierte Anbieter für `evaluate()` (den Kern von `mailhelp-evaluate`) liegt. | S | – |
 | **9.2** | Pytest-Marker in `pyproject.toml` | Marker `slow`, `process`, `e2e` registriert; relevante Tests markiert; schneller Entwicklungsbefehl dokumentiert und verifiziert. | S | – |
 | **9.3** | Paketstruktur `tests.fakes` und `tests.scenarios` | `__init__.py` ergänzt; Test-Doubles klar gegliedert; saubere Re-Exporte definiert. | S | – |
 | **9.4** | Beseitigung `sys.path`-Hack in `conftest.py` | Alle Testdateien auf `from tests.fakes...` umgestellt; dynamische `sys.path`-Schleife in `conftest.py` vollständig entfernt; Gesamtsuite grün. | M | 9.3 |

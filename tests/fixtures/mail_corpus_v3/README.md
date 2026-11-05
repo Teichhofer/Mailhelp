@@ -3,6 +3,11 @@
 Enthält die 20 synthetischen Fälle aus Version 2 mit unveränderten Erwartungen
 und zusätzlich einen synthetischen Kurzlink-Köder. Dieser muss vor der
 Modellentscheidung als unklar markiert werden und darf keine Aktion erzeugen.
+Seit 4.1.0 (Planung 4.1, Schritt 9.1) kommen fünf Fälle für die Themen
+`jimdo-anfragen-und-nachrichten` und `camping-und-stellplatzbuchungen` hinzu: eine
+Kontaktformular-Anfrage über Jimdo, eine Buchungsbestätigung und eine Stornierung mit
+Anreise und Abreise sowie je ein Jimdo- und ein Roadsurfer-Werbenewsletter, die
+irrelevant bleiben müssen. Die Themen sind wortgleich aus `topics.yaml` übernommen.
 Links werden nicht aufgerufen. Es werden keine persönlichen Mails verwendet.
 
 Die Standardprüfung nutzt Jev mit dem produktiven Rückfall bei `unclear` sowie

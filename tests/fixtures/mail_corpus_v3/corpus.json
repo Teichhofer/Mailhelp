@@ -1,6 +1,6 @@
 {
   "schema_version": 3,
-  "description": "Synthetischer Release-Korpus mit Kurzlink-Koeder; V2-Erwartungen unveraendert.",
+  "description": "Synthetischer Release-Korpus mit Kurzlink-Koeder und Faellen fuer Jimdo-Anfragen und Stellplatzbuchungen; V2-Erwartungen unveraendert.",
   "user_timezone": "Europe/Berlin",
   "topics": [
     {
@@ -26,6 +26,34 @@
         "Einladung zur Gemeinderatssitzung"
       ],
       "exclusions": []
+    },
+    {
+      "id": "jimdo-anfragen-und-nachrichten",
+      "name": "Jimdo-Anfragen und Nachrichten",
+      "enabled": true,
+      "description": "Anfragen und persönliche Nachrichten, die über die eigene Jimdo-Webseite oder deren Kontaktformular per E-Mail eingehen.",
+      "examples": [
+        "Neue Kontaktanfrage über das Jimdo-Kontaktformular",
+        "Über Jimdo übermittelte Frage zu einem Angebot",
+        "Persönliche Nachricht eines Besuchers der Jimdo-Webseite"
+      ],
+      "exclusions": [
+        "Allgemeine Werbung und Newsletter von Jimdo ohne konkrete Anfrage eines Webseitenbesuchers"
+      ]
+    },
+    {
+      "id": "camping-und-stellplatzbuchungen",
+      "name": "Camping- und Stellplatzbuchungen",
+      "enabled": true,
+      "description": "Buchungen der eigenen Camping- und Stellplätze über Nomady, Campspace oder Roadsurfer, einschließlich Buchungsbestätigungen, Buchungsänderungen und Stornierungen.",
+      "examples": [
+        "Neue Stellplatzbuchung über Nomady mit Anreise und Abreise",
+        "Bestätigung einer Campingplatzbuchung über Campspace",
+        "Änderung oder Stornierung einer Stellplatzbuchung über Roadsurfer"
+      ],
+      "exclusions": [
+        "Allgemeine Werbung und Newsletter der Buchungsplattformen ohne konkrete Buchung"
+      ]
     }
   ],
   "cases": [
@@ -1216,6 +1244,220 @@
           "tasks": []
         },
         "event_extraction": {
+          "events": []
+        }
+      }
+    },
+    {
+      "id": "21_jimdo_inquiry",
+      "raw_email": "From: Jimdo <no-reply@jimdo.example.test>\nTo: Alex Muster <alex.muster@example.test>\nDate: Fri, 18 Sep 2026 10:00:00 +0200\nMessage-ID: <21_jimdo_inquiry@example.test>\nSubject: Neue Nachricht über Ihr Kontaktformular\nContent-Type: text/plain; charset=utf-8\n\nHallo,\n\nüber das Kontaktformular Ihrer Website hofladen-muster.example.test ist eine neue Nachricht eingegangen.\n\nName: Laura Beispiel\nE-Mail: laura.beispiel@example.test\nBetreff: Hofführung für eine Kindergruppe\nNachricht: Wir möchten im Oktober mit zwölf Kindern Ihren Hof besuchen. Bieten Sie Führungen an?\nÜber eine Antwort bis 25.09.2026 würde ich mich freuen.\n\nIhr Jimdo-Team\n",
+      "received_at": "2026-09-18T10:01:00+02:00",
+      "expected": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "jimdo-anfragen-und-nachrichten"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "25.09.2026"
+          ]
+        },
+        "action_route": {
+          "action_state": "task",
+          "task_count": 1,
+          "event_count": 0,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Anfrage von Laura Beispiel zur Hofführung beantworten",
+              "description": "",
+              "evidence": "Über eine Antwort bis 25.09.2026 würde ich mich freuen.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": "25.09.2026"
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": []
+        }
+      }
+    },
+    {
+      "id": "22_jimdo_newsletter",
+      "raw_email": "From: Jimdo <newsletter@jimdo.example.test>\nTo: Alex Muster <alex.muster@example.test>\nDate: Fri, 18 Sep 2026 10:00:00 +0200\nMessage-ID: <22_jimdo_newsletter@example.test>\nSubject: Neue Designvorlagen für Ihre Website\nContent-Type: text/plain; charset=utf-8\n\nHallo,\n\nentdecken Sie unsere neuen Designvorlagen für den Herbst und sparen Sie im September\n20 Prozent auf das Jahrespaket Pro.\n\nIhr Jimdo-Team\nAbmelden: https://jimdo.example.test/abmelden\n",
+      "received_at": "2026-09-18T10:01:00+02:00",
+      "expected": {
+        "relevance": {
+          "decision": "irrelevant",
+          "topic_ids": [],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": []
+        },
+        "action_route": {
+          "action_state": "none",
+          "task_count": 0,
+          "event_count": 0,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": []
+        }
+      }
+    },
+    {
+      "id": "23_booking_confirmation",
+      "raw_email": "From: Nomady <buchungen@nomady.example.test>\nTo: Alex Muster <alex.muster@example.test>\nDate: Fri, 18 Sep 2026 10:00:00 +0200\nMessage-ID: <23_booking_confirmation@example.test>\nSubject: Neue Buchung für Stellplatz 3\nContent-Type: text/plain; charset=utf-8\n\nHallo Alex,\n\ndu hast eine neue Buchung erhalten.\n\nGast: Familie Weber\nStellplatz: Stellplatz 3\nAnreise: 02.10.2026\nAbreise: 04.10.2026\nPersonen: 2 Erwachsene, 1 Kind\n\nDein Nomady-Team\n",
+      "received_at": "2026-09-18T10:01:00+02:00",
+      "expected": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "camping-und-stellplatzbuchungen"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "02.10.2026",
+            "04.10.2026"
+          ]
+        },
+        "action_route": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 1,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Stellplatzbuchung Familie Weber",
+              "description": null,
+              "evidence": "Anreise: 02.10.2026\nAbreise: 04.10.2026",
+              "date_text": "02.10.2026 bis 04.10.2026",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Stellplatz 3",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "all_day"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "24_booking_cancellation",
+      "raw_email": "From: Campspace <service@campspace.example.test>\nTo: Alex Muster <alex.muster@example.test>\nDate: Fri, 18 Sep 2026 10:00:00 +0200\nMessage-ID: <24_booking_cancellation@example.test>\nSubject: Stornierung der Buchung CS-4711\nContent-Type: text/plain; charset=utf-8\n\nHallo Alex,\n\nder Gast Jonas Probe hat seine Buchung CS-4711 für Stellplatz 3 vom 09.10.2026 bis\n11.10.2026 storniert. Der Zeitraum ist wieder frei.\n\nViele Grüße\nDein Campspace-Team\n",
+      "received_at": "2026-09-18T10:01:00+02:00",
+      "expected": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "camping-und-stellplatzbuchungen"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "09.10.2026",
+            "11.10.2026"
+          ]
+        },
+        "action_route": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 1,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Stellplatzbuchung Jonas Probe storniert",
+              "description": null,
+              "evidence": "Buchung CS-4711 für Stellplatz 3 vom 09.10.2026 bis\n11.10.2026 storniert",
+              "date_text": "09.10.2026 bis 11.10.2026",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Stellplatz 3",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "cancellation",
+              "time_requirement": "all_day"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "25_booking_platform_offer",
+      "raw_email": "From: Roadsurfer <news@roadsurfer.example.test>\nTo: Alex Muster <alex.muster@example.test>\nDate: Fri, 18 Sep 2026 10:00:00 +0200\nMessage-ID: <25_booking_platform_offer@example.test>\nSubject: Herbst-Special: 20 Prozent auf deinen nächsten Camper\nContent-Type: text/plain; charset=utf-8\n\nHallo,\n\nnur bis Ende September: Spare 20 Prozent auf alle Camper-Mieten und entdecke neue\nStellplätze in deiner Nähe.\n\nDein Roadsurfer-Team\nAbmelden: https://roadsurfer.example.test/abmelden\n",
+      "received_at": "2026-09-18T10:01:00+02:00",
+      "expected": {
+        "relevance": {
+          "decision": "irrelevant",
+          "topic_ids": [],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": []
+        },
+        "action_route": {
+          "action_state": "none",
+          "task_count": 0,
+          "event_count": 0,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
           "events": []
         }
       }
