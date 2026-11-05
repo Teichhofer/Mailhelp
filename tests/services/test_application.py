@@ -14,6 +14,7 @@ from mailhelp.processing.orchestrator import ProcessingOutcome, ProcessingResult
 from mailhelp.proposals.integrations import OAuthTokenError
 from mailhelp.runtime.application import Application, _state_directory, build_application, build_logger
 from mailhelp.telegram.commands import HELP, STARTUP
+from tests.fakes.factories import build_mail_state
 from tests.fakes.log_fakes import RecordingLogger as Log
 from tests.fakes.shared_application import Imap as Imap
 from tests.fakes.shared_application import Orch as Orch
@@ -1319,7 +1320,7 @@ def test_startup_help_precedes_resumed_decision_without_resolving_it(tmp_path):
 
 
 def test_bounded_run_limits_resumed_and_new_mail_then_exits(tmp_path):
-    pending=MailState(id="a"*24,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":7,"uid":2})
+    pending=build_mail_state("a"*24,uid=2,sender=None,config_fingerprint="0"*64,imap={"account_id":"0"*24,"uidvalidity":7})
     key=_checkpoint_name("0"*24,"INBOX")
     store=Store({"mail-a":pending.model_dump(mode="json"),key:{"uidvalidity":7,"uid":2,"start_uid":2}})
     mail3=FetchedMail("INBOX",7,3,b"x")
@@ -1343,7 +1344,7 @@ def test_mail_budget_and_limit_consumed_by_resume_before_folder_poll(tmp_path):
     explicit_blocked_budget.take_blocked()
     assert explicit_blocked_budget.blocked_remaining == 1
 
-    pending=MailState(id="a"*24,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":7,"uid":2})
+    pending=build_mail_state("a"*24,uid=2,sender=None,config_fingerprint="0"*64,imap={"account_id":"0"*24,"uidvalidity":7})
     service=app(tmp_path,Imap([]),Telegram([]),Orch(),store=Store({"mail-a":pending.model_dump(mode="json")}))
     assert len(service.mailbox.poll(max_mails=1)) == 1
     assert service.imap.calls == []
@@ -1542,9 +1543,9 @@ def test_resume_mixes_matching_and_blocked_fingerprints_without_resuming_blocked
 
 
 def test_resume_due_pending_states_and_isolate_failures(tmp_path):
-    due=MailState(id="a"*24,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":7,"uid":4})
-    future=MailState(id="b"*24,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":7,"uid":5},deferred_until=datetime.now(UTC)+timedelta(hours=1))
-    completed=MailState(id="c"*24,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":7,"uid":6})
+    due=build_mail_state("a"*24,uid=4,sender=None,config_fingerprint="0"*64,imap={"account_id":"0"*24,"uidvalidity":7})
+    future=build_mail_state("b"*24,uid=5,sender=None,config_fingerprint="0"*64,imap={"account_id":"0"*24,"uidvalidity":7},deferred_until=datetime.now(UTC)+timedelta(hours=1))
+    completed=build_mail_state("c"*24,uid=6,sender=None,config_fingerprint="0"*64,imap={"account_id":"0"*24,"uidvalidity":7})
     completed.steps.completion="completed"
     store=Store({"mail-a":due.model_dump(mode="json"),"mail-b":future.model_dump(mode="json"),"mail-c":completed.model_dump(mode="json"),"mail-missing":None})
     imap=Imap([])
@@ -1840,7 +1841,7 @@ def test_historical_start_is_persisted_account_scoped_and_uidvalidity_logged(tmp
     drifted.mailbox.poll()
     assert len(drifting.calls)==1 and "während der Grenzermittlung" in drifted.logger.events[-1][1]["error"]
 
-    foreign=MailState(id="f"*24,config_fingerprint="0"*64,imap={"account_id":"9"*24,"folder":"INBOX","uidvalidity":1,"uid":1})
+    foreign=build_mail_state("f"*24,uid=1,sender=None,config_fingerprint="0"*64,imap={"account_id":"9"*24,"uidvalidity":1})
     other.store.values["mail-foreign"]=foreign.model_dump(mode="json")
     assert other.mailbox.resume_pending()==[] and changed.uid_calls==[]
 

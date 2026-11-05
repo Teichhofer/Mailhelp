@@ -11,6 +11,7 @@ from mailhelp.review import CommandKind, CommandSource, ReviewCommand
 
 action_key = ActionLedgerService.action_key
 
+from tests.fakes.factories import build_mail_state
 from tests.fakes.shared_telegram_dialog import controller
 
 MAIL = "a" * 24
@@ -31,12 +32,8 @@ def command(kind, *, mail_id=MAIL, proposal_id="p1", version=1, source=CommandSo
 
 def mail_state(mail_id=MAIL, uid=1, proposals=(), sender="Ada Muster <ada@example.test>",
                subject="Elternabend", updated=None):
-    now = updated or datetime.now(UTC)
-    return MailState(id=mail_id, config_fingerprint="f" * 64,
-                     imap={"account_id": "0" * 24, "folder": "INBOX", "uidvalidity": 1, "uid": uid},
-                     display_headers={"sender": sender, "subject": subject} if sender else None,
-                     proposals=list(proposals), created_at=now - timedelta(days=1),
-                     updated_at=now)
+    return build_mail_state(mail_id, uid=uid, proposals=proposals, sender=sender, subject=subject,
+                            updated=updated)
 
 def setup(store, *items, writers=None, test_mode=False, mail_id=MAIL, uid=1, **mail):
     """Persist a mail with its proposals the way the orchestrator does."""

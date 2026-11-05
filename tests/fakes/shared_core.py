@@ -10,19 +10,14 @@ from mailhelp.config import (
 from mailhelp.models import (
     Proposal,
 )
+from tests.fakes.factories import build_proposal
 
 
 def prompt_config(model="model"):
     return PromptConfig(defaults={"model": model, "parameters": {"temperature": .2}}, prompts={x: PromptStep(system_prompt=x, parameters={"max_tokens": 200}) for x in ("relevance", "summary", "action_router", "task_extraction", "event_extraction", "mail_question_resolution", "telegram_answer_interpretation", "telegram_answer_clarification", "proposal_revision", "learning_classification", "learning_abstraction", "calendar_duplicate")})
 
 def proposal(**kw):
-    base = dict(id="p1", version=1, kind="task", responsibility="user", certainty="certain", classification="new", title="Tun", evidence="Mail sagt es", source_mail_id="a"*24, target="inbox")
-    if "status" not in kw and (kw.get("open_questions") or kw.get("responsibility") not in {None, "user"}
-                               or kw.get("certainty") not in {None, "certain"}
-                               or kw.get("classification") not in {None, "new"}):
-        base["status"] = "needs_clarification"
-    base.update(kw)
-    return Proposal.model_validate(base)
+    return build_proposal(**{"title": "Tun", "evidence": "Mail sagt es", **kw})
 
 def shipped_configuration(tmp_path):
     """The shipped example files in *tmp_path*; returns a complete synthetic environment."""

@@ -25,6 +25,7 @@ class Store:
         value=self.values.get(name)
         return default if value is None else model.model_validate(value)
 
+from tests.fakes.factories import minimal_settings
 from tests.fakes.log_fakes import RecordingLogger as Log
 
 
@@ -75,7 +76,7 @@ class Orch:
         return ProcessingResult(ProcessingOutcome.COMPLETED, {})
 
 def settings(tmp_path, folders=("INBOX",), global_newest_first=False):
-    return Settings(timezone="UTC",poll_interval_seconds=5,test_mode=True,data_directory=tmp_path/"data",imap={"host":"h","port":993,"folders":list(folders),"global_newest_first":global_newest_first},telegram={"user_id":1,"chat_id":2},targets={"todoist_project":"p","google_calendar":"c"},limits={"max_mail_bytes":1024,"llm_calls_per_minute":2},retries={"provider_retry":0,"json_repair":0,"schema_repair":0},timeouts={**{name:{"timeout_seconds":30.0,"retries":0,"initial_backoff_seconds":0.0,"max_backoff_seconds":1.0} for name in ("imap","telegram","openrouter","todoist","google_calendar")},"telegram_poll_seconds":30},logging={"directory":str(tmp_path/"logs"),"console":{"enabled":False},"file":{"filename":"application.jsonl","max_bytes":10000,"backup_count":1,"retention_days":30},"llm":{"filename":"llm/requests.jsonl","max_bytes":10000,"backup_count":1,"retention_days":30}})
+    return minimal_settings(tmp_path, imap={"folders": list(folders), "global_newest_first": global_newest_first})
 
 def app(tmp_path, imap, telegram, orch, folders=("INBOX",), store=None,
         global_newest_first=False):

@@ -11,6 +11,7 @@ from mailhelp.models import MailState
 from mailhelp.review.commands import CommandKind, CommandSource, ReviewCommand
 from mailhelp.review.results import ResultStatus
 from mailhelp.runtime.experience import ExperienceRuntime
+from tests.fakes.factories import build_mail_state
 from tests.fakes.shared_decision_test import secrets
 from tests.fakes.shared_profiles import ACCOUNT_TWO
 from tests.fakes.shared_telegram_dialog import proposal
@@ -22,8 +23,7 @@ def test_default_reapplication_uses_origin_mailbox_and_bound_hash(profiled):
     item = proposal(kind="event", start="2026-10-15T10:00:00+00:00", end="2026-10-15T11:00:00+00:00",
         meeting_mode="video", end_origin="standard", default_duration_minutes=60)
     web.dialog.persist(item)
-    mail = MailState(id=item.source_mail_id, config_fingerprint="f" * 64,
-        imap={"account_id": ACCOUNT_TWO, "folder": "INBOX", "uidvalidity": 1, "uid": 1}, proposal_policy={"mailbox_id": 2})
+    mail = build_mail_state(item.source_mail_id, sender=None, imap={"account_id": ACCOUNT_TWO}, proposal_policy={"mailbox_id": 2})
     app.store.save("mail-" + mail.id, mail.model_dump(mode="json"))
     defaults = web.site.reconciliation_page.defaults(item)
     assert defaults.video_duration_minutes == 90
@@ -39,8 +39,7 @@ def test_default_reapplication_uses_origin_mailbox_and_bound_hash(profiled):
 def test_duplicate_copy_with_another_target_profile_is_visible_without_an_action(profiled):
     from mailhelp.models import DuplicateDecision
     app, web = profiled.app, profiled.web
-    previous = MailState(id="a" * 24, config_fingerprint="f" * 64,
-        imap={"account_id": "1" * 24, "folder": "INBOX", "uidvalidity": 1, "uid": 1}, proposal_policy={"target_profile": 1})
+    previous = build_mail_state("a" * 24, sender=None, imap={"account_id": "1" * 24}, proposal_policy={"target_profile": 1})
     copy = previous.model_copy(update={"id": "b" * 24, "proposal_policy": {"target_profile": 2},
         "duplicate": DuplicateDecision(outcome="duplicate", previous_mail_id=previous.id, reason="same_message")})
     for mail in (previous, copy):

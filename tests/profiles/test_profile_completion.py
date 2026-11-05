@@ -17,6 +17,7 @@ from mailhelp.review.results import ResultStatus
 from mailhelp.runtime.application import Application
 from mailhelp.runtime.experience import ExperienceRuntime
 from mailhelp.runtime.setup_runtime import SetupRuntime
+from tests.fakes.factories import build_mail_state
 from tests.fakes.shared_profiles import ACCOUNT_TWO, TOPICS
 from tests.fakes.shared_telegram_dialog import proposal
 
@@ -49,8 +50,7 @@ def test_mailbox_add_remove_and_invalid_filter_or_discard_preserve_versions(prof
 
 def test_impact_counts_removed_mailboxes_and_jev_fingerprint_changes(profiled, monkeypatch):
     app, page = profiled.app, profiled.web.site.mailbox_page
-    mail = MailState(id="a" * 24, config_fingerprint="f" * 64,
-        imap={"account_id": ACCOUNT_TWO, "folder": "INBOX", "uidvalidity": 1, "uid": 1})
+    mail = build_mail_state("a" * 24, sender=None, imap={"account_id": ACCOUNT_TWO})
     app.store.save("mail-" + mail.id, mail.model_dump(mode="json"))
     boxes = [app.settings.imap.mailbox(1).model_dump(mode="json")]
     profiled.runtime.setup.save("web:" + profiled.web.auth.sessions()[0].id, 0, "remove-001", 6, {"imap.mailboxes": boxes})
@@ -120,8 +120,7 @@ def test_notification_restart_assigns_origin_and_rebuilds_legacy_briefing_sectio
     app, web = profiled.app, profiled.web
     item = proposal(source_mail_id="a" * 24)
     web.dialog.persist(item)
-    mail = MailState(id=item.source_mail_id, config_fingerprint="f" * 64,
-        imap={"account_id": ACCOUNT_TWO, "folder": "INBOX", "uidvalidity": 1, "uid": 1}, proposal_policy={"mailbox_id": 2})
+    mail = build_mail_state(item.source_mail_id, sender=None, imap={"account_id": ACCOUNT_TWO}, proposal_policy={"mailbox_id": 2})
     app.store.save("mail-" + mail.id, mail.model_dump(mode="json"))
     runtime = NotificationRuntime(app, web.site)
     runtime.queue.enqueue("decisions", item.source_mail_id + ":" + item.id)

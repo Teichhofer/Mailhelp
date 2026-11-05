@@ -15,6 +15,7 @@ from mailhelp.notifications.briefing import DailyBriefingService
 from mailhelp.notifications.notification_runtime import NotificationRuntime
 from mailhelp.proposals.target_profiles import ProfileLogger, ProfileWriters, UnavailableWriter, build_profile_writers
 from mailhelp.review.views import ReviewViews
+from tests.fakes.factories import build_mail_state
 from tests.fakes.shared_decision_test import secrets
 from tests.fakes.shared_profiles import ACCOUNT_ONE, ACCOUNT_TWO, settings
 from tests.fakes.shared_telegram_dialog import proposal
@@ -24,8 +25,7 @@ def test_mailbox_briefing_sections_include_only_own_decisions_and_configured_tar
     app, web = profiled.app, profiled.web
     item = proposal(source_mail_id="a" * 24)
     app.store.save("proposal-" + item.source_mail_id + "-" + item.id, item.model_dump(mode="json"))
-    mail = MailState(id=item.source_mail_id, config_fingerprint="f" * 64,
-        imap={"account_id": ACCOUNT_TWO, "folder": "INBOX", "uidvalidity": 1, "uid": 1})
+    mail = build_mail_state(item.source_mail_id, sender=None, imap={"account_id": ACCOUNT_TWO})
     app.store.save("mail-" + mail.id, mail.model_dump(mode="json"))
     one = NS(calendar=app.calendar, tasks=app.todoist)
     app.profile_writers = ProfileWriters({1: one, 2: one})

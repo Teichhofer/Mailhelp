@@ -1,5 +1,13 @@
 # Änderungen
 
+## 4.1.5 – Test-Factories für Vorschläge, Mailzustände und Einstellungen
+
+- Planung 4.1, Schritt 9.9: `tests/fakes/factories.py` liefert gültige Standardobjekte für
+  `Proposal`, `MailState` und `Settings` (minimal und vollständig aus `config.example.yaml`);
+  Tests geben nur noch ihre Abweichungen an, verschachtelte Einstellungen werden
+  zusammengeführt. Die bisherigen Builder nutzen die Factories, Roh-Dictionaries in den
+  Profil- und Laufschleifentests sind ersetzt.
+
 ## 4.1.4 – Lastfeste Prozess-Sicherheitstests
 
 - Planung 4.1, Schritt 9.5: `ProcessHarness` wartet nicht mehr starr 20 Sekunden auf den

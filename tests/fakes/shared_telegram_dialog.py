@@ -13,13 +13,7 @@ from mailhelp.telegram import (
 
 
 def proposal(**changes):
-    data = {"id": "p1", "version": 1, "kind": "task", "responsibility": "user", "certainty": "certain", "classification": "new", "title": "Aufgabe", "description": "Text", "evidence": "Beleg", "source_mail_id": "aaaaaaaaaaaaaaaaaaaaaaaa", "target": "inbox"}
-    if "status" not in changes and (changes.get("open_questions") or changes.get("responsibility") not in {None, "user"}
-                                    or changes.get("certainty") not in {None, "certain"}
-                                    or changes.get("classification") not in {None, "new"}):
-        data["status"] = "needs_clarification"
-    data.update(changes)
-    return Proposal.model_validate(data)
+    return build_proposal(**{"description": "Text", **changes})
 
 def message(update_id, text="Antwort", user=1, chat=2):
     return {"update_id": update_id, "message": {"message_id": update_id, "from": {"id": user}, "chat": {"id": chat}, "text": text}}
@@ -44,6 +38,7 @@ class Telegram:
     def send_document(self, chat_id, filename, content, caption=None):
         self.documents.append((chat_id, filename, content, caption))
 
+from tests.fakes.factories import build_proposal
 from tests.fakes.log_fakes import RecordingLogger as Logger
 
 
