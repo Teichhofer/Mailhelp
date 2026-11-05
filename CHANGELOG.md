@@ -1,5 +1,11 @@
 # Änderungen
 
+## 4.1.2 – Testpakete tests.fakes und tests.scenarios
+
+- Planung 4.1, Schritt 9.3: `tests/fakes` und `tests/scenarios` sind reguläre Pakete mit
+  beschreibender Gliederung; das Projektverzeichnis steht über `pythonpath` im Importpfad.
+  Die Umstellung aller Importe folgt in Schritt 9.4.
+
 ## 4.1.1 – Pytest-Marker für schnelle Entwicklungsläufe
 
 - Planung 4.1, Schritt 9.2: Die Marker `slow`, `process` und `e2e` sind in `pyproject.toml`

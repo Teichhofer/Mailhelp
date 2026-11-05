@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mailhelp"
-version = "4.1.1"
+version = "4.1.2"
 description = "Persönlicher, bestätigungspflichtiger E-Mail-Assistent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -31,6 +31,8 @@ markers = [
   "e2e: complete flows with container or lifecycle context (tests/e2e)",
 ]
 testpaths = ["tests"]
+# The project root makes tests.fakes and tests.scenarios importable (Planung 4.1, 9.3).
+pythonpath = ["."]
 # Temporary test files live in .test-tmp; see tests/conftest.py.
 cache_dir = ".test-tmp/pytest-cache"
 tmp_path_retention_policy = "failed"
