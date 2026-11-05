@@ -5,12 +5,12 @@ import os
 
 import pytest
 import yaml
-from shared_application import settings
 
 from mailhelp.config import _dotenv
 from mailhelp.configuration import ConfigurationConflict
 from mailhelp.runtime.credentials import RECEIPTS, CredentialEdits, CredentialService, CredentialUnauthorized
 from mailhelp.storage import JsonStore
+from tests.fakes.shared_application import settings
 
 SESSION = "a" * 16
 

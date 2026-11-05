@@ -4,8 +4,6 @@ import sys
 import httpx
 import pytest
 from pydantic import ValidationError
-from shared_application import settings
-from shared_core import shipped_configuration
 
 from mailhelp import cli
 from mailhelp.config import Secrets, TargetSettings, load_all, provider_secret_names
@@ -15,6 +13,8 @@ from mailhelp.external.http_writer import HttpWriter
 from mailhelp.external.microsoft import MicrosoftTodo, MicrosoftTokenProvider, OutlookCalendar
 from mailhelp.external.providers import Writers, build_writers, provider_services
 from mailhelp.external.roles import CALENDAR_SLOT, TASK_SLOT, slot
+from tests.fakes.shared_application import settings
+from tests.fakes.shared_core import shipped_configuration
 
 DAV = "https://dav.example.test/calendars/anna/"
 SECRETS = Secrets(imap={1: {"username": "u", "password": "p"}}, openrouter_api_key="o", todoist_token="t",
@@ -143,7 +143,7 @@ def test_secrets_are_required_only_for_configured_providers(tmp_path):
 
 
 def test_target_writer_default_create_runs_the_prepared_write(tmp_path):
-    from shared_write_improvements import event
+    from tests.fakes.shared_write_improvements import event
     cfg = configured(tmp_path, calendar_provider="caldav", caldav_calendar_url=DAV)
     requests = []
 

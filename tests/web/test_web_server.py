@@ -6,21 +6,21 @@ import socket
 from pathlib import Path
 
 import pytest
-from shared_application import settings as app_settings
-from shared_core import prompt_config
-from shared_web_server import FakeWeb as FakeWeb
-from shared_web_server import Logger as Logger
-from shared_web_server import Telegram as Telegram
-from shared_web_server import call as call
-from shared_web_server import get as get
-from shared_web_server import lifecycle_app as lifecycle_app
-from shared_web_server import write_config as write_config
 
 from mailhelp.config import Secrets, Topic, WebSettings, load_all
 from mailhelp.runtime.application import build_application
 from mailhelp.web import Request, Response, WebApp, WebServer, WebServerError
 from mailhelp.web import server as server_module
 from mailhelp.web.http import CONTENT_SECURITY_POLICY, MAX_BODY_BYTES
+from tests.fakes.shared_application import settings as app_settings
+from tests.fakes.shared_core import prompt_config
+from tests.fakes.shared_web_server import FakeWeb as FakeWeb
+from tests.fakes.shared_web_server import Logger as Logger
+from tests.fakes.shared_web_server import Telegram as Telegram
+from tests.fakes.shared_web_server import call as call
+from tests.fakes.shared_web_server import get as get
+from tests.fakes.shared_web_server import lifecycle_app as lifecycle_app
+from tests.fakes.shared_web_server import write_config as write_config
 
 # Since 2.3 the writers are built in mailhelp.external.providers.
 MOVED_WRITERS = ("HttpWriter", "GoogleOAuthTokenProvider")

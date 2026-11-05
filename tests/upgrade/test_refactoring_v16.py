@@ -2,8 +2,6 @@
 from datetime import UTC, datetime
 from threading import Event
 
-from shared_application import Log, Orch, Store, settings
-
 from mailhelp.external.confirmed import execute_confirmed
 from mailhelp.external.http_writer import HttpWriter
 from mailhelp.external.ical import CalendarFileWriter, calendar_file
@@ -14,6 +12,7 @@ from mailhelp.models import MailRunState
 from mailhelp.processing.orchestrator import ProcessingOutcome, ProcessingResult
 from mailhelp.proposals import integrations
 from mailhelp.web import review_pages, status_pages
+from tests.fakes.shared_application import Log, Orch, Store, settings
 
 
 def test_existing_integration_and_renderer_imports_remain_identical():
@@ -77,10 +76,9 @@ def renderer_contract_pages(store, renderer):
     """Fixed synthetic states, including malicious mail values and runtime contacts."""
     from dataclasses import replace
 
-    from web_scenario import NOW, mail_id, populate
-
     from mailhelp.review.inbox import CommandStatus
     from mailhelp.review.views import ReviewViews
+    from tests.scenarios.web_scenario import NOW, mail_id, populate
     populate(store)
     views = ReviewViews(store, "Europe/Berlin", test_mode=True)
     overview = replace(views.overview(), fingerprint="fixed-contract")
@@ -106,9 +104,8 @@ def test_renderer_preserves_existing_content_and_interaction_targets(tmp_path):
     import json
     from pathlib import Path
 
-    from shared_render_contract import content_contract
-
     from mailhelp.storage import JsonStore
+    from tests.fakes.shared_render_contract import content_contract
     expected = json.loads(Path(__file__).with_name("renderer_content_contract.json").read_text(encoding="utf-8"))
     with JsonStore(tmp_path) as store:
         pages = renderer_contract_pages(store, review_pages)
@@ -123,10 +120,10 @@ def test_renderer_preserves_existing_content_and_interaction_targets(tmp_path):
 
 def test_successor_builder_rejects_changed_identity_without_persisting(tmp_path):
     import pytest
-    from web_scenario import Revisions, proposal
 
     from mailhelp.domain.revision_errors import ContradictoryRevision
     from mailhelp.telegram.revision_successor import build_revision_successor
+    from tests.scenarios.web_scenario import Revisions, proposal
     original = proposal(1, "edit")
     revised, deterministic = build_revision_successor(original, "Welche Änderung?", "Titel: Neuer Titel", "UTC", Revisions())
     assert (revised.id, revised.version, revised.title) == (original.id, 2, "Neuer Titel")

@@ -7,11 +7,10 @@ from email.message import EmailMessage
 from email.utils import format_datetime
 from typing import Any
 
-from shared_core import prompt_config
-
 from mailhelp.activity.models import ReportDefinition
 from mailhelp.config import PromptStep
 from mailhelp.mailbox.imap import FetchedMail, FolderNotReadable, ListedMailbox, MailCandidate
+from tests.fakes.shared_core import prompt_config
 
 
 def raw_mail(subject: str, body: str, *, sender: str = "Schule <info@schule.test>",

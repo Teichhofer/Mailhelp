@@ -7,7 +7,7 @@
 
 
 
-from shared_core import proposal
+from tests.fakes.shared_core import proposal
 
 
 def event(**changes):

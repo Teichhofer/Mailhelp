@@ -3,10 +3,10 @@ from urllib.parse import quote
 
 import pytest
 import yaml
-from shared_web_v12 import configure
 
 from mailhelp.configuration import SETTINGS_FIELDS
 from mailhelp.web.settings_pages import AREA_KEYS, AREAS, _names, settings_page
+from tests.fakes.shared_web_v12 import configure
 
 
 def test_overview_links_counts_and_pending_badges(profiled):

@@ -5,11 +5,6 @@ import json
 from types import SimpleNamespace
 
 import pytest
-from shared_telegram_dialog import callback
-from shared_web_actions import Web as Web
-from shared_web_actions import web as web
-from shared_web_auth import Browser, code_from
-from web_scenario import mail_id, proposal, save_mail
 
 from mailhelp.domain.processing import ProposalClarificationState, ProposalRevisionStatus
 from mailhelp.models import ActionLedger, ActionLedgerEntry, Proposal, ProposalStatus, TelegramDialogState
@@ -19,6 +14,11 @@ from mailhelp.review.inbox import MAX_QUEUED, CommandStatus
 from mailhelp.review.views import ReviewViews
 from mailhelp.telegram.dialog import STALE_BUTTON
 from mailhelp.web.actions import proposal_actions
+from tests.fakes.shared_telegram_dialog import RelevanceHandler, callback
+from tests.fakes.shared_web_actions import Web as Web
+from tests.fakes.shared_web_actions import web as web
+from tests.fakes.shared_web_auth import Browser, code_from
+from tests.scenarios.web_scenario import mail_id, proposal, save_mail
 
 MAIL1 = mail_id(1)
 
@@ -117,8 +117,7 @@ def test_yes_no_quick_answers_and_relevance(web):
     web.submit(yes)
     relevance = web.form("/", kind="relevance", decision="irrelevant")
     web.dialog.relevance_handler = type("H", (), {
-        "resolve_relevance": lambda self, *args: __import__(
-            "test_telegram_dialog").RelevanceHandler(web.store).resolve_relevance(*args),
+        "resolve_relevance": lambda self, *args: RelevanceHandler(web.store).resolve_relevance(*args),
         "resume_mail": lambda self, state: None})()
     relevance_result = web.submit(relevance)
     web.run()

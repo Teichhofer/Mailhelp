@@ -2,14 +2,14 @@
 import json
 
 import pytest
-from provider_matrix import PROVIDERS, ProviderMemory
-from shared_core import proposal
-from shared_telegram_dialog import callback
-from shared_write_improvements import event
-from web_scenario import mail_id, save_mail
 
 from mailhelp.models import Proposal, ProposalStatus
 from mailhelp.proposals.integrations import execute_confirmed
+from tests.fakes.provider_matrix import PROVIDERS, ProviderMemory
+from tests.fakes.shared_core import proposal
+from tests.fakes.shared_telegram_dialog import callback
+from tests.fakes.shared_write_improvements import event
+from tests.scenarios.web_scenario import mail_id, save_mail
 
 
 def item(memory,**patch):
@@ -94,7 +94,7 @@ def test_both_channels_confirm_same_version_with_real_provider_adapter(web,tmp_p
 @pytest.mark.parametrize('provider',PROVIDERS)
 @pytest.mark.parametrize('scenario',['P2','P3','P4','P5','P6','P7','CSRF'])
 def test_parallel_safety_scenarios_with_actual_adapters(web,tmp_path,provider,scenario):
-    from safety_harness import Gate
+    from tests.fakes.safety_harness import Gate
     memory=ProviderMemory(tmp_path/'external.json',provider)
     writer=memory.writer()
     record=item(memory).model_copy(update={
@@ -143,9 +143,8 @@ def test_parallel_safety_scenarios_with_actual_adapters(web,tmp_path,provider,sc
 @pytest.mark.parametrize('provider',PROVIDERS)
 @pytest.mark.parametrize('point',['A1','A2','A3','A4'])
 def test_hard_kill_matrix_reconciles_real_adapter_after_two_restarts(tmp_path,provider,point):
-    from safety_harness import ProcessHarness, seed
-
     from mailhelp.storage import JsonStore
+    from tests.fakes.safety_harness import ProcessHarness, seed
     directory=tmp_path/'app'
     memory=ProviderMemory(tmp_path/'external.json',provider)
     seed(directory)

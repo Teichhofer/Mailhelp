@@ -25,7 +25,7 @@ class Store:
         value=self.values.get(name)
         return default if value is None else model.model_validate(value)
 
-from log_fakes import RecordingLogger as Log
+from tests.fakes.log_fakes import RecordingLogger as Log
 
 
 class Imap:

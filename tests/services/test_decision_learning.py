@@ -3,14 +3,20 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime, timedelta
 
-from log_fakes import RecordingLogger as Logger
-from shared_telegram_dialog import RelevanceHandler, callback, controller, message, proposal, relevance_state
-
 from mailhelp.config import RetentionSettings
 from mailhelp.models import MailState, RelevanceDialogStatus, TelegramDialogState
 from mailhelp.review.learning_log import DecisionLearningLog, learning_path, prune
 from mailhelp.runtime.retention import RetentionService
 from mailhelp.storage import JsonStore
+from tests.fakes.log_fakes import RecordingLogger as Logger
+from tests.fakes.shared_telegram_dialog import (
+    RelevanceHandler,
+    callback,
+    controller,
+    message,
+    proposal,
+    relevance_state,
+)
 
 MAIL = "a" * 24
 NOW = datetime(2026, 11, 2, 12, tzinfo=UTC)
@@ -198,10 +204,9 @@ def test_retention_prunes_records_by_the_configured_period(tmp_path):
 def test_live_retention_change_reaches_the_recorder(tmp_path):
     from types import SimpleNamespace
 
-    from shared_application import settings as app_settings
-
     from mailhelp.runtime.application import Application
     from mailhelp.runtime.metrics import MetricsRecorder
+    from tests.fakes.shared_application import settings as app_settings
 
     configured = app_settings(tmp_path)
     with JsonStore(tmp_path / "data") as store:

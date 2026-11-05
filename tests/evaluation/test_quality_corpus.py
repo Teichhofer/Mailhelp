@@ -6,15 +6,15 @@ from datetime import date
 from pathlib import Path
 
 import pytest
-from shared_quality_corpus import SimulatedOpenRouter as SimulatedOpenRouter
-from shared_quality_corpus import load_corpus as load_corpus
-from shared_quality_corpus import pipeline as pipeline
-from shared_quality_corpus import prompt_config as prompt_config
 
 from mailhelp.config import TargetSettings
 from mailhelp.models import EventExtraction
 from mailhelp.proposals.action_normalization import MailDateContext
 from mailhelp.proposals.proposal_builder import ProposalBuilder
+from tests.fakes.shared_quality_corpus import SimulatedOpenRouter as SimulatedOpenRouter
+from tests.fakes.shared_quality_corpus import load_corpus as load_corpus
+from tests.fakes.shared_quality_corpus import pipeline as pipeline
+from tests.fakes.shared_quality_corpus import prompt_config as prompt_config
 
 CORPUS = Path(__file__).parents[1] / "fixtures" / "mail_corpus_v1" / "corpus.json"
 

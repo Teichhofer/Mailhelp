@@ -1,13 +1,13 @@
 """IMAP's reversed UID ranges must not reopen a durable start boundary."""
 import pytest
-from shared_application import Imap, Orch, Telegram, _persisted_run, app
-from shared_core import FakeImap
 
 from mailhelp.mailbox.imap import ImapReader
 from mailhelp.mailbox.mailbox_run import _checkpoint_name
 from mailhelp.models import ImapCheckpoint, MailRunEntry, MailRunState, MailState
 from mailhelp.processing.orchestrator import ProcessingOutcome, ProcessingResult
 from mailhelp.storage import JsonStore
+from tests.fakes.shared_application import Imap, Orch, Telegram, _persisted_run, app
+from tests.fakes.shared_core import FakeImap
 
 
 class ReversedRangeImap(FakeImap):

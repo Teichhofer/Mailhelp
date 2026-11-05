@@ -7,7 +7,6 @@ from pathlib import Path
 import httpx
 import pytest
 from pydantic import ValidationError
-from shared_core import proposal
 
 from mailhelp.config import Settings, validated_file
 from mailhelp.external.confirmed import _with_external_result
@@ -30,6 +29,7 @@ from mailhelp.models import (
 from mailhelp.proposals.integrations import HttpWriter
 from mailhelp.storage import CorruptState, JsonStore
 from mailhelp.telegram import TelegramClient, TelegramUpdatesResponse, TelegramWriteResponse, validation_path
+from tests.fakes.shared_core import proposal
 
 
 def valid_settings(tmp_path: Path) -> dict:

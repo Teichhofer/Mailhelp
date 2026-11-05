@@ -1,5 +1,13 @@
 # Änderungen
 
+## 4.1.3 – Testimporte ohne sys.path-Manipulation
+
+- Planung 4.1, Schritt 9.4: Alle Tests importieren gemeinsame Doubles als
+  `tests.fakes.<modul>` beziehungsweise `tests.scenarios.<modul>`; die `sys.path`-Schleifen in
+  `tests/conftest.py` und `ui_tests/conftest.py` sind entfernt. Zwei Tests luden ein anderes
+  Testmodul über `__import__`; sie nutzen jetzt die gemeinsamen Doubles, und der Grenztest
+  erkennt solche dynamischen Importe. Der Docker-Smoke setzt `PYTHONPATH=/`.
+
 ## 4.1.2 – Testpakete tests.fakes und tests.scenarios
 
 - Planung 4.1, Schritt 9.3: `tests/fakes` und `tests/scenarios` sind reguläre Pakete mit

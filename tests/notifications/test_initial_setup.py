@@ -8,7 +8,6 @@ from urllib.parse import urlencode
 import httpx
 import pytest
 import yaml
-from initial_harness import InitialHarness, initial
 
 from mailhelp.config import Settings, WebSettings, load_all
 from mailhelp.config.loader import provider_secret_names
@@ -19,6 +18,7 @@ from mailhelp.runtime.initial_setup import InitialSetup
 from mailhelp.runtime.web_password import WebPassword
 from mailhelp.web.auth import PairingLimited, PairingRefused
 from mailhelp.web.http import Request
+from tests.fakes.initial_harness import InitialHarness, initial
 
 
 def request(h, method, path, form=None, *, token=True, content="application/x-www-form-urlencoded"):

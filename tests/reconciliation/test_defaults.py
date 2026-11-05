@@ -3,7 +3,6 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 from pydantic import ValidationError
-from web_scenario import proposal
 
 from mailhelp.config import EventDefaultsSettings
 from mailhelp.domain.extraction import ExtractedEvent
@@ -12,6 +11,7 @@ from mailhelp.proposals.action_normalization import MailDateContext
 from mailhelp.proposals.event_defaults import meeting_mode, normalized_event, reapply_defaults
 from mailhelp.review.cards import event_time
 from mailhelp.review.editing import ProposalEditPatch, edit_proposal
+from tests.scenarios.web_scenario import proposal
 
 
 def extracted(**changes):

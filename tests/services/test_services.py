@@ -9,16 +9,6 @@ import httpx
 import pytest
 import yaml
 from pydantic import ValidationError
-from shared_core import prompt_config, proposal
-from shared_services import AnalyzerStub as AnalyzerStub
-from shared_services import FakeCompleter as FakeCompleter
-from shared_services import Notify as Notify
-from shared_services import RetrySequence as RetrySequence
-from shared_services import Writer as Writer
-from shared_services import _EventLog as _EventLog
-from shared_services import _MailQuestionAnalyzer as _MailQuestionAnalyzer
-from shared_services import _resolve_from_mail as _resolve_from_mail
-from shared_services import mock_response as mock_response
 
 from mailhelp.config import OutputTokenRetry, TargetSettings, Topic
 from mailhelp.domain.revision_errors import ContradictoryRevision
@@ -51,6 +41,16 @@ from mailhelp.processing.orchestrator import MailState, Orchestrator, Processing
 from mailhelp.proposals.integrations import CalendarFileWriter, HttpWriter, calendar_file, execute_confirmed
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import Decision, DecisionAction, TelegramClient, apply_decision, split_message
+from tests.fakes.shared_core import prompt_config, proposal
+from tests.fakes.shared_services import AnalyzerStub as AnalyzerStub
+from tests.fakes.shared_services import FakeCompleter as FakeCompleter
+from tests.fakes.shared_services import Notify as Notify
+from tests.fakes.shared_services import RetrySequence as RetrySequence
+from tests.fakes.shared_services import Writer as Writer
+from tests.fakes.shared_services import _EventLog as _EventLog
+from tests.fakes.shared_services import _MailQuestionAnalyzer as _MailQuestionAnalyzer
+from tests.fakes.shared_services import _resolve_from_mail as _resolve_from_mail
+from tests.fakes.shared_services import mock_response as mock_response
 
 
 def test_openrouter(monkeypatch):
@@ -1623,7 +1623,7 @@ def test_orchestrator_resumes_each_persisted_analysis_step(tmp_path):
         def extract_tasks(self,m, *, expected_count):
             self.calls.append("task_extraction")
             return super().extract_tasks(m, expected_count=expected_count)
-    from store_fakes import InterruptingStore
+    from tests.fakes.store_fakes import InterruptingStore
     # Every durable boundary, including normalization, proposal construction and
     # both sides of the per-version Telegram delivery marker, is interrupted.
     with JsonStore(tmp_path/"boundaries") as disk:
@@ -1858,7 +1858,7 @@ def test_orchestrator_defers_rate_limit_and_reports(tmp_path):
     class Limited:
         def relevance(self, mail, topics):
             raise RateLimitExceeded(120.0)
-    from log_fakes import RecordingLogger as Log
+    from tests.fakes.log_fakes import RecordingLogger as Log
     with JsonStore(tmp_path/"limited") as store:
         notify=Notify()
         log=Log()
@@ -1948,7 +1948,7 @@ def test_mime_limit_uses_persisted_display_headers_once_after_restart(tmp_path, 
     fetched = FetchedMail("INBOX", 1, 99, message.as_bytes())
     topic = Topic(id="x", name="x", enabled=True, description="x")
     notify = Notify()
-    from log_fakes import RecordingLogger as Log
+    from tests.fakes.log_fakes import RecordingLogger as Log
     log = Log()
     directory = tmp_path / limit_name
     with JsonStore(directory) as store:

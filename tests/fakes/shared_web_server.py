@@ -6,11 +6,11 @@ from pathlib import Path
 from threading import Event
 
 import pytest
-from shared_application import Log, Orch
-from shared_application import settings as app_settings
 
 from mailhelp.runtime.application import Application
 from mailhelp.web import Request, WebApp, WebServer
+from tests.fakes.shared_application import Log, Orch
+from tests.fakes.shared_application import settings as app_settings
 
 HOST = "127.0.0.1:8765"
 

@@ -4,19 +4,18 @@ from __future__ import annotations
 import traceback
 from pathlib import Path
 
-from safety_harness import PersistentWriter
-from shared_telegram_dialog import Logger, Telegram
-
 from mailhelp.models import Proposal
 from mailhelp.review.inbox import CommandInbox
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import TelegramDialogController
 from mailhelp.web.auth import WebAuth
+from tests.fakes.safety_harness import PersistentWriter
+from tests.fakes.shared_telegram_dialog import Logger, Telegram
 
 
 def _writer(provider,checkpoint,mode):
     if mode.startswith('provider:'):
-        from provider_matrix import ProviderMemory
+        from tests.fakes.provider_matrix import ProviderMemory
         memory = ProviderMemory(Path(provider), mode.removeprefix('provider:'))
         memory.after_write = lambda: checkpoint('A2')
         return memory.writer()

@@ -6,12 +6,6 @@ from types import SimpleNamespace
 
 import pytest
 import yaml
-from shared_application import Imap, Orch, Telegram, app, with_sources
-from shared_core import prompt_config
-from shared_quality_corpus import load_corpus
-from shared_quality_corpus import prompt_config as quality_prompts
-from shared_review_write_safety import reminder
-from shared_telegram_dialog import callback, controller
 
 from mailhelp.config import ImapSettings, Topic
 from mailhelp.logging import NullLogger
@@ -21,6 +15,12 @@ from mailhelp.processing.analysis import Analyzer
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.runtime.application import Application
 from mailhelp.storage import JsonStore
+from tests.fakes.shared_application import Imap, Orch, Telegram, app, with_sources
+from tests.fakes.shared_core import prompt_config
+from tests.fakes.shared_quality_corpus import load_corpus
+from tests.fakes.shared_quality_corpus import prompt_config as quality_prompts
+from tests.fakes.shared_review_write_safety import reminder
+from tests.fakes.shared_telegram_dialog import callback, controller
 
 
 @pytest.mark.parametrize("kind", ["tasks", "events"])
@@ -121,7 +121,7 @@ def test_real_analyzer_count_conflict_retains_other_extraction_and_restart(tmp_p
             if stage == "action_router": value["task_count"] = 2
             if empty and stage == "task_extraction": value["tasks"] = []
             return "call-" + stage, value
-    from shared_services import Notify
+    from tests.fakes.shared_services import Notify
     notifier = Notify()
     mail = FetchedMail("INBOX", 7, 1, case["raw_email"].encode(), "0" * 24,
                        datetime(2026, 9, 18, 8, 1, tzinfo=UTC))
@@ -151,11 +151,10 @@ def test_real_analyzer_count_conflict_retains_other_extraction_and_restart(tmp_p
 
 @pytest.mark.slow
 def test_real_bounded_batch_sends_proposals_one_at_a_time_and_counts_open_actions(tmp_path):
-    from shared_e2e_simulated import FakeTelegram
-
     from mailhelp.mailbox.imap import MailCandidate
     from mailhelp.models import MailRunState
     from mailhelp.telegram import TelegramDialogController
+    from tests.fakes.shared_e2e_simulated import FakeTelegram
     corpus = load_corpus()
     case = next(item for item in corpus["cases"] if item["id"] == "04_task_and_event")
     class Provider:
@@ -215,11 +214,10 @@ def test_real_bounded_batch_sends_proposals_one_at_a_time_and_counts_open_action
 
 @pytest.mark.parametrize("decision", ["relevant", "irrelevant"])
 def test_regression_held_relevance_keeps_queue_incomplete_and_resumes(tmp_path, decision):
-    from shared_telegram_outbox import A, item, shown, stored
-
     from mailhelp.mailbox.imap import MailCandidate
     from mailhelp.mailbox.mailbox_run import _checkpoint_name
     from mailhelp.models import ImapCheckpoint, MailRunState, MailState
+    from tests.fakes.shared_telegram_outbox import A, item, shown, stored
     corpus = load_corpus()
     case = next(case for case in corpus["cases"] if case["id"] == "02_task_only")
     calls = []

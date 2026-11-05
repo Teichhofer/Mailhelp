@@ -5,9 +5,6 @@ from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace as NS
 
 import pytest
-from activity_fakes import Mailbox, Model, activity_prompts, definition, raw_mail
-from log_fakes import RecordingLogger
-from shared_application import settings as app_settings
 
 from mailhelp.activity.llm import ActivityAnalyzer
 from mailhelp.activity.models import ReportEvent, ReportStatus
@@ -19,6 +16,9 @@ from mailhelp.domain.prepared import PreparedMail
 from mailhelp.llm.openrouter import ProviderResponseInvalid, RateLimitExceeded
 from mailhelp.processing.analysis import Analyzer
 from mailhelp.storage import JsonStore
+from tests.fakes.activity_fakes import Mailbox, Model, activity_prompts, definition, raw_mail
+from tests.fakes.log_fakes import RecordingLogger
+from tests.fakes.shared_application import settings as app_settings
 
 JAN = datetime(2026, 1, 10, 9, 0, tzinfo=UTC)
 RELEVANT = {"relevant": True, "confidence": "high", "reason": "Elternbeirat"}

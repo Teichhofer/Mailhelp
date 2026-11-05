@@ -2,12 +2,12 @@
 from datetime import UTC, date, datetime
 
 import pytest
-from activity_fakes import definition
 
 from mailhelp.activity.costs import estimate
 from mailhelp.activity.models import ActivityReport, FolderProgress, ReportEvent, ReportMail
 from mailhelp.activity.presentation import ReportFilter, fingerprint, highlighted_text
 from mailhelp.proposals.action_normalization import evidence_date_matches
+from tests.fakes.activity_fakes import definition
 
 
 def source():

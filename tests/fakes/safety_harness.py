@@ -80,7 +80,8 @@ class ProcessHarness:
         from multiprocessing import get_context
 
         from coverage import Coverage
-        from safety_process import run_application
+
+        from tests.scenarios.safety_process import run_application
         active = Coverage.current()
         coverage_file = self.coverage_file or (active.config.data_file if active is not None else None)
         context = get_context("spawn")
@@ -108,12 +109,11 @@ class ProcessHarness:
 
 def seed(directory, merge=False, web=False):
     # Parent-only fixtures must not import the whole web application in every spawned child.
-    from shared_web_auth import SECRET
-    from web_scenario import mail_id, proposal, save_mail
-
     from mailhelp.review.commands import ReviewCommand
     from mailhelp.review.inbox import CommandInbox
     from mailhelp.web.auth import WebAuth
+    from tests.fakes.shared_web_auth import SECRET
+    from tests.scenarios.web_scenario import mail_id, proposal, save_mail
 
     with JsonStore(directory) as store:
         item = proposal(1, "target" if merge else "action", title="Synthetische Aufgabe",

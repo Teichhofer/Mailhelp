@@ -5,13 +5,13 @@ from types import SimpleNamespace as NS
 from unittest.mock import Mock
 
 import pytest
-from learning_harness import learning
-from shared_review import mail_state
 
 from mailhelp.runtime import composition
 from mailhelp.runtime.lifecycle import Lifecycle
 from mailhelp.runtime.reload import ReloadService
 from mailhelp.web.reload_site import ReloadSite
+from tests.fakes.learning_harness import learning
+from tests.fakes.shared_review import mail_state
 
 
 def service(h):

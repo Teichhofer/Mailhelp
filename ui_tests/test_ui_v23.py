@@ -4,7 +4,6 @@ from __future__ import annotations
 from email.message import EmailMessage
 
 from playwright.sync_api import expect
-from web_scenario import mail_id
 
 from checks import audit
 from conftest import sign_in
@@ -12,6 +11,7 @@ from mailhelp.config import OriginalAttachmentSettings
 from mailhelp.models import MailState
 from mailhelp.processing.attachments import AttachmentCache
 from pages import SettingsPage
+from tests.scenarios.web_scenario import mail_id
 
 PDF = b"%PDF-1.7 synthetische Rechnung"
 

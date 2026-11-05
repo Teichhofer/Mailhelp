@@ -11,7 +11,7 @@ from mailhelp.review import CommandKind, CommandSource, ReviewCommand
 
 action_key = ActionLedgerService.action_key
 
-from shared_telegram_dialog import controller
+from tests.fakes.shared_telegram_dialog import controller
 
 MAIL = "a" * 24
 

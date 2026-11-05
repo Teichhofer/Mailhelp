@@ -5,9 +5,6 @@ import re
 from html import unescape
 
 import pytest
-from shared_telegram_dialog import Logger, Telegram, Writer
-from shared_web_auth import LOCAL, SECRET, Browser, code_from
-from web_scenario import Revisions, mail_id, populate
 
 from mailhelp.config import WebSettings
 from mailhelp.review.inbox import CommandInbox
@@ -17,6 +14,9 @@ from mailhelp.telegram import TelegramDialogController
 from mailhelp.web import WebApp
 from mailhelp.web.auth import WebAuth
 from mailhelp.web.site import MailhelpSite
+from tests.fakes.shared_telegram_dialog import Logger, Telegram, Writer
+from tests.fakes.shared_web_auth import LOCAL, SECRET, Browser, code_from
+from tests.scenarios.web_scenario import Revisions, mail_id, populate
 
 MAIL1 = mail_id(1)
 

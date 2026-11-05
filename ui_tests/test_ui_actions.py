@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 from playwright.sync_api import expect
-from web_scenario import mail_id
 
 from checks import audit
 from conftest import act, item, sign_in
+from tests.scenarios.web_scenario import mail_id
 
 
 def card(page, number, pid):
@@ -55,14 +55,14 @@ def test_answering_questions_until_the_proposal_can_be_confirmed(page, mailhelp)
 
 
 def test_quick_answer_and_relevance_buttons(page, mailhelp):
-    from web_scenario import Revisions  # noqa: F401  (documents the simulated revision)
+    from tests.scenarios.web_scenario import Revisions  # noqa: F401  (documents the simulated revision)
 
     class Handler:
         def __init__(self, store):
             self.store = store
 
         def resolve_relevance(self, mail, version, decision, offset):
-            from shared_telegram_dialog import RelevanceHandler
+            from tests.fakes.shared_telegram_dialog import RelevanceHandler
             return RelevanceHandler(self.store).resolve_relevance(mail, version, decision, offset)
 
         def resume_mail(self, state):

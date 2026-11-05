@@ -5,7 +5,6 @@ import re
 from datetime import timedelta
 
 import pytest
-from shared_web_auth import LOCAL, SECRET, TAILNET, Browser, auth, site  # noqa: F401  (fixtures)
 
 from mailhelp.config import WebSettings
 from mailhelp.review.inbox import CommandInbox
@@ -14,6 +13,7 @@ from mailhelp.telegram.commands import HELP, TelegramCommands
 from mailhelp.web.auth import CODE_ATTEMPTS, CODE_REQUESTS, PairingLimited, PairingRefused
 from mailhelp.web.factory import base_url, create_web
 from mailhelp.web.login_site import link_code
+from tests.fakes.shared_web_auth import LOCAL, SECRET, TAILNET, Browser, Logger, auth, site  # noqa: F401  (fixtures)
 
 
 def test_a_telegram_code_works_in_any_browser_once(auth):
@@ -100,7 +100,7 @@ def test_telegram_command_sends_link_and_code():
 
 
 def settings_with(tmp_path, hosts):
-    from shared_application import settings as app_settings
+    from tests.fakes.shared_application import settings as app_settings
     configured = app_settings(tmp_path)
     configured.web = WebSettings(enabled=True, allowed_hosts=hosts)
     return configured
@@ -118,7 +118,7 @@ def test_the_link_uses_the_tailnet_name_when_configured(tmp_path):
 def test_invite_message(tmp_path, hosts, url, pc_only):
     with JsonStore(tmp_path / "data") as store:
         components = create_web(settings_with(tmp_path, hosts), SECRET, store, print,
-                                __import__("test_web_auth").Logger(), CommandInbox(store))
+                                Logger(), CommandInbox(store))
         text = components.invite()
         code = re.search(rf"{re.escape(url)}/anmelden\?code=(\d{{4}})", text).group(1)
         assert f"Code: {code}" in text and "10 Minuten" in text

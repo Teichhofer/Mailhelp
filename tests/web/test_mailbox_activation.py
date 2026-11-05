@@ -3,11 +3,11 @@ from types import SimpleNamespace as NS
 
 import pytest
 import yaml
-from shared_decision_test import secrets
 
 from mailhelp.config import MAX_MAILBOXES, ImapSettings, Secrets, Settings
 from mailhelp.mailbox.imap import FolderNotReadable
 from mailhelp.runtime.setup import SetupState
+from tests.fakes.shared_decision_test import secrets
 
 ROUTE = "/einstellungen/postfaecher"
 ACTIVATE = ROUTE + "/aktivieren"

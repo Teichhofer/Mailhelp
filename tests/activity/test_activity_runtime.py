@@ -4,14 +4,14 @@ from __future__ import annotations
 from types import SimpleNamespace as NS
 
 import pytest
-from activity_fakes import Model, activity_prompts
 from pydantic import SecretStr
-from shared_application import Log, settings
 
 from mailhelp.config import ImapCredentials, Secrets
 from mailhelp.mailbox.imap import ListedMailbox
 from mailhelp.processing.analysis import Analyzer
 from mailhelp.runtime.experience import ExperienceRuntime
+from tests.fakes.activity_fakes import Model, activity_prompts
+from tests.fakes.shared_application import Log, settings
 
 SECRETS = Secrets.model_construct(imap={1: ImapCredentials(username="me@test", password=SecretStr("fake"))})
 

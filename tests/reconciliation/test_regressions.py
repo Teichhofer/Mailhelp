@@ -1,9 +1,9 @@
 """Synthetic regression scenarios for the observations in the 2.4 plan."""
 import pytest
-from reconciliation_fakes import Events, Existing, current, process
 
 from mailhelp.review.views import ReviewViews
 from mailhelp.storage import JsonStore
+from tests.fakes.reconciliation_fakes import Events, Existing, current, process
 
 
 def test_regression_video_without_end_gets_explicitly_labelled_one_hour_default(tmp_path):

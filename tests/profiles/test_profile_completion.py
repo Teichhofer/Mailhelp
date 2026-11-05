@@ -4,8 +4,6 @@ from types import SimpleNamespace as NS
 
 import pytest
 import yaml
-from shared_profiles import ACCOUNT_TWO, TOPICS
-from shared_telegram_dialog import proposal
 
 from mailhelp.configuration import AdminCommand, AdminKind, file_hash
 from mailhelp.external.providers import Writers
@@ -19,6 +17,8 @@ from mailhelp.review.results import ResultStatus
 from mailhelp.runtime.application import Application
 from mailhelp.runtime.experience import ExperienceRuntime
 from mailhelp.runtime.setup_runtime import SetupRuntime
+from tests.fakes.shared_profiles import ACCOUNT_TWO, TOPICS
+from tests.fakes.shared_telegram_dialog import proposal
 
 
 @pytest.mark.parametrize(("method", "path"), [
@@ -156,11 +156,10 @@ def test_configuration_sender_validation_uses_active_config_if_file_temporarily_
 
 
 def test_decision_comparison_sender_prefilter_calls_no_language_model(tmp_path):
-    from shared_core import prompt_config
-    from shared_decision_test import RAW, Reader, settings
-
     from mailhelp.llm.decision_test import ComparisonRecorder, DecisionTestMode
     from mailhelp.models import IrrelevantSenders
+    from tests.fakes.shared_core import prompt_config
+    from tests.fakes.shared_decision_test import RAW, Reader, settings
     output = tmp_path / "comparison.json"
     report = {"mails": [], "selection_errors": []}
     mode = DecisionTestMode(Reader(), object(), object(), settings(), TOPICS, report, output,

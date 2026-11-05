@@ -3,10 +3,10 @@ from __future__ import annotations
 
 import pytest
 import yaml
-from shared_web_v12 import configure
 
 from mailhelp.configuration import SETTINGS_FIELDS, SETUP_FIELDS, AdminCommand, AdminKind, file_hash
 from mailhelp.web.settings_pages import AREAS, SETTING_GROUPS
+from tests.fakes.shared_web_v12 import configure
 
 VALID = {
     "imap.batch_size": 40, "imap.global_newest_first": True, "telegram.user_id": 42, "telegram.chat_id": -100,

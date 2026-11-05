@@ -3,7 +3,8 @@ from multiprocessing import active_children
 
 import pytest
 from coverage import CoverageData
-from safety_harness import Gate, ProcessHarness, seed
+
+from tests.fakes.safety_harness import Gate, ProcessHarness, seed
 
 
 def test_gate_releases_and_joins_worker_even_when_assertion_fails():

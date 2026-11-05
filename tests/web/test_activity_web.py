@@ -8,14 +8,14 @@ from html import unescape
 from types import SimpleNamespace as NS
 
 import pytest
-from activity_fakes import definition
 from openpyxl import load_workbook
-from shared_web_auth import Browser
 
 from mailhelp.activity.models import FolderProgress, ReportEvent, ReportMail, ReportStatus
 from mailhelp.activity.service import ActivityService
 from mailhelp.activity.store import ActivityReportStore
 from mailhelp.domain.relevance import IrrelevantSenders
+from tests.fakes.activity_fakes import definition
+from tests.fakes.shared_web_auth import Browser
 
 RECEIVED = datetime(2026, 1, 10, 8, 30, tzinfo=UTC)
 NEW = {"title": "Elternbeirat", "topic": "Termine des Elternbeirats der Klasse 4b", "since": "2026-01-01",

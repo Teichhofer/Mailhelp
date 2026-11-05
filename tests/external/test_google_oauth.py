@@ -2,8 +2,6 @@ import json
 
 import httpx
 import pytest
-from log_fakes import RecordingLogger as Log
-from shared_core import proposal
 
 from mailhelp.logging import JsonlLogger
 from mailhelp.proposals.integrations import (
@@ -14,6 +12,8 @@ from mailhelp.proposals.integrations import (
     OAuthTokenError,
     execute_confirmed,
 )
+from tests.fakes.log_fakes import RecordingLogger as Log
+from tests.fakes.shared_core import proposal
 
 
 def test_first_token_cached_regular_refresh_expiry_and_restart():

@@ -4,11 +4,11 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
-from shared_telegram_dialog import callback, controller, message, proposal
 
 from mailhelp.storage import JsonStore
 from mailhelp.telegram.formatting import format_proposal
 from mailhelp.temporal_answers import relative_end_answer
+from tests.fakes.shared_telegram_dialog import callback, controller, message, proposal
 
 MAIL = "a" * 24
 START_QUESTION = "Wann beginnt der Termin?"

@@ -5,12 +5,12 @@ import io
 from datetime import UTC, date, datetime
 
 import pytest
-from activity_fakes import definition
 from openpyxl import load_workbook
 
 from mailhelp import __version__
 from mailhelp.activity.export import CELL_LIMIT, REMOVED, filename, safe_text, workbook
 from mailhelp.activity.models import ActivityReport, ReportEvent, ReportMail
+from tests.fakes.activity_fakes import definition
 
 RECEIVED = datetime(2026, 1, 10, 8, 30, tzinfo=UTC)
 ATTACKS = ["=HYPERLINK(\"https://evil.test\",\"klick\")", "+cmd|' /C calc'!A0", "-2+3", "@SUM(A1:A2)",

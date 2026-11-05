@@ -4,14 +4,14 @@ from threading import Event
 from types import SimpleNamespace as NS
 
 import pytest
-from shared_application import Imap, Orch, Telegram, app
-from shared_decision_test import secrets
 
 from mailhelp.config import ImapSettings, Secrets
 from mailhelp.mailbox.imap import account_id
 from mailhelp.mailbox.mailbox_run import MailboxSource
 from mailhelp.mailbox.mailbox_runtime import MailboxRuntime
 from mailhelp.runtime.experience import ExperienceRuntime
+from tests.fakes.shared_application import Imap, Orch, Telegram, app
+from tests.fakes.shared_decision_test import secrets
 
 
 class Reader:

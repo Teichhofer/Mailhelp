@@ -361,11 +361,10 @@ def test_manual_partial_date_is_not_overridden_and_invalid_interval_becomes_conf
 
 
 def test_analyzer_only_receives_bounded_comparison_fields_and_revisions_cannot_change_provenance():
-    from shared_core import prompt_config
-
     from mailhelp.config import PromptStep
     from mailhelp.domain.revision_errors import ContradictoryRevision
     from mailhelp.processing.analysis import Analyzer, validate_revision_successor
+    from tests.fakes.shared_core import prompt_config
     first, second = candidate(1), candidate(2)
     payloads = []
     class Provider:
@@ -418,9 +417,8 @@ def test_multiple_unrelated_candidates_can_be_explicitly_kept_separate(service):
 
 
 def test_retention_keeps_unverified_alias_source_until_identity_is_resolved():
-    from shared_retention import state
-
     from mailhelp.runtime.retention import RetentionService
+    from tests.fakes.shared_retention import state
     item = state("a" * 24)
     alias = item.proposals[0].model_copy(update={"status": ProposalStatus.MERGED,
         "canonical_ref": ProposalReference(mail_id="b" * 24, proposal_id="canonical"), "merge_review_required": True})

@@ -3,10 +3,10 @@ from contextlib import contextmanager
 
 import pytest
 import yaml
-from learning_harness import learning
 
 from mailhelp.runtime.learning_jobs import LearningConflict
 from mailhelp.runtime.learning_worker import LearningPaused
+from tests.fakes.learning_harness import learning
 
 
 @pytest.mark.parametrize('phase',['discover','finish','result'])

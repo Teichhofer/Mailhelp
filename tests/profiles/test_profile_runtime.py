@@ -4,9 +4,6 @@ from datetime import UTC, datetime
 from types import SimpleNamespace as NS
 
 import pytest
-from shared_decision_test import secrets
-from shared_profiles import ACCOUNT_ONE, ACCOUNT_TWO, settings
-from shared_telegram_dialog import proposal
 
 from mailhelp.config import Secrets
 from mailhelp.external.providers import Writers
@@ -18,6 +15,9 @@ from mailhelp.notifications.briefing import DailyBriefingService
 from mailhelp.notifications.notification_runtime import NotificationRuntime
 from mailhelp.proposals.target_profiles import ProfileLogger, ProfileWriters, UnavailableWriter, build_profile_writers
 from mailhelp.review.views import ReviewViews
+from tests.fakes.shared_decision_test import secrets
+from tests.fakes.shared_profiles import ACCOUNT_ONE, ACCOUNT_TWO, settings
+from tests.fakes.shared_telegram_dialog import proposal
 
 
 def test_mailbox_briefing_sections_include_only_own_decisions_and_configured_targets(profiled):

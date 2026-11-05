@@ -32,11 +32,11 @@ from mailhelp.review.views import RECENT_LIMIT, ReviewViews
 from mailhelp.storage import CorruptState, JsonStore
 
 action_key = ActionLedgerService.action_key
-from shared_review import command as command
-from shared_review import mail_state as mail_state
-from shared_review import setup as setup
-from shared_review import web as web
-from shared_telegram_dialog import RelevanceHandler, Writer, controller, proposal, relevance_state
+from tests.fakes.shared_review import command as command
+from tests.fakes.shared_review import mail_state as mail_state
+from tests.fakes.shared_review import setup as setup
+from tests.fakes.shared_review import web as web
+from tests.fakes.shared_telegram_dialog import RelevanceHandler, Writer, controller, proposal, relevance_state
 
 MAIL = "a" * 24
 OTHER = "b" * 24

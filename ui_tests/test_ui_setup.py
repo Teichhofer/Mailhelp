@@ -42,10 +42,9 @@ def test_target_profile_controls_are_labelled_and_accessible(page, setup_server)
 
 
 def test_profile_switch_card_stays_unconfirmed_and_visible_on_small_phones(page, setup_server):
-    from web_scenario import proposal, save_mail
-
     from mailhelp.config import TargetProfileSettings
     from mailhelp.proposals import profile_binding
+    from tests.scenarios.web_scenario import proposal, save_mail
     runtime = setup_server.site.setup_page.runtime
     cfg = runtime.app.settings
     cfg.target_profiles = [TargetProfileSettings(id=2, label="Arbeit", calendar_provider="outlook",
@@ -204,9 +203,8 @@ def test_regression_iserv_account_from_a_copied_link_and_german_date(page, setup
 
 def test_iserv_connection_is_activated_on_one_page(page, setup_server, monkeypatch):
     """A failed login stays on the form; success persists and requests a live reload."""
-    from shared_decision_test import secrets
-
     from mailhelp.mailbox.iserv import IServSignInError
+    from tests.fakes.shared_decision_test import secrets
     runtime = setup_server.site.setup_page.runtime
     runtime.secrets = secrets()
     activated = []

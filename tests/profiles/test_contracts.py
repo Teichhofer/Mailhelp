@@ -3,8 +3,6 @@ from pathlib import Path
 
 import pytest
 from pydantic import SecretStr, ValidationError
-from shared_core import prompt_config
-from shared_profiles import TOPICS, settings
 
 from mailhelp.config import Secrets, Settings, Topic, validated_file
 from mailhelp.llm.fingerprints import config_fingerprint, topic_policy
@@ -20,6 +18,8 @@ from mailhelp.mailbox.sender_filter import change_irrelevant_senders, is_irrelev
 from mailhelp.models import IrrelevantSenders
 from mailhelp.proposals.target_profiles import load_profile_secrets, secret_name
 from mailhelp.storage import JsonStore
+from tests.fakes.shared_core import prompt_config
+from tests.fakes.shared_profiles import TOPICS, settings
 
 
 def test_sparse_inheritance_survives_dump_and_settings_changes(tmp_path):

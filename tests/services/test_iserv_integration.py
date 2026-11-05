@@ -6,12 +6,6 @@ from types import SimpleNamespace
 import pytest
 import yaml
 from pydantic import ValidationError
-from shared_application import Imap, Orch, Store, Telegram, app
-from shared_application import settings as app_settings
-from shared_core import prompt_config
-from shared_decision_test import secrets
-from shared_services import AnalyzerStub, Notify
-from shared_web_server import write_config
 
 from mailhelp.config import IServAccountSettings, Settings, Topic, load_all
 from mailhelp.llm.fingerprints import config_fingerprint
@@ -20,6 +14,12 @@ from mailhelp.models import MailState
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.runtime.metrics import MetricsRecorder, MetricsSettings
 from mailhelp.storage import JsonStore
+from tests.fakes.shared_application import Imap, Orch, Store, Telegram, app
+from tests.fakes.shared_application import settings as app_settings
+from tests.fakes.shared_core import prompt_config
+from tests.fakes.shared_decision_test import secrets
+from tests.fakes.shared_services import AnalyzerStub, Notify
+from tests.fakes.shared_web_server import write_config
 
 TOPIC = Topic(id="t", name="T", enabled=True, description="t")
 ACCOUNT = "e" * 24

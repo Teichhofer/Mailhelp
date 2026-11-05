@@ -2,10 +2,9 @@
 import hashlib
 import json
 
-from shared_application import settings
-from shared_core import prompt_config
-
 from mailhelp.llm.fingerprints import analysis_prompts, analysis_settings, config_fingerprint
+from tests.fakes.shared_application import settings
+from tests.fakes.shared_core import prompt_config
 
 
 def test_default_openrouter_keeps_the_pre_37_analysis_fingerprint(tmp_path):

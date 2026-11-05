@@ -5,9 +5,6 @@ from datetime import UTC, datetime
 from types import SimpleNamespace as NS
 
 import pytest
-from initial_harness import InitialHarness
-from shared_core import prompt_config
-from shared_web_auth import Browser
 
 from mailhelp.config import load_all
 from mailhelp.configuration import ConfigurationService
@@ -22,6 +19,9 @@ from mailhelp.web import WebApp
 from mailhelp.web.learning_site import LearningSite
 from mailhelp.web.login_site import SESSION_COOKIE
 from mailhelp.web.site import MailhelpSite
+from tests.fakes.initial_harness import InitialHarness
+from tests.fakes.shared_core import prompt_config
+from tests.fakes.shared_web_auth import Browser
 
 
 class LearningClient:

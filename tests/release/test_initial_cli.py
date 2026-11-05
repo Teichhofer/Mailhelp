@@ -7,11 +7,11 @@ from types import SimpleNamespace
 
 import pytest
 import yaml
-from initial_harness import initial
 
 from mailhelp import cli
 from mailhelp.runtime import bootstrap, local_pairing
 from mailhelp.runtime.web_password import WebPassword
+from tests.fakes.initial_harness import initial
 
 
 def test_first_run_terminal_output_is_delivered_even_without_a_tty(monkeypatch):

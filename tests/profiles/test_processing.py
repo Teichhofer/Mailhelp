@@ -3,9 +3,6 @@ from datetime import UTC, datetime, timedelta
 from types import SimpleNamespace as NS
 
 import pytest
-from shared_core import prompt_config
-from shared_profiles import ACCOUNT_ONE, ACCOUNT_TWO, TOPICS, settings
-from shared_services import AnalyzerStub, Notify
 
 from mailhelp.config import Settings, Topic
 from mailhelp.mailbox.imap import FetchedMail
@@ -14,6 +11,9 @@ from mailhelp.models import IrrelevantSenders, MailState
 from mailhelp.notifications.notifications import NotificationService
 from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.storage import JsonStore
+from tests.fakes.shared_core import prompt_config
+from tests.fakes.shared_profiles import ACCOUNT_ONE, ACCOUNT_TWO, TOPICS, settings
+from tests.fakes.shared_services import AnalyzerStub, Notify
 
 NOW = datetime(2026, 10, 14, 23, tzinfo=UTC)
 RAW = b"From: chief@example.test\r\nSubject: Synthetic\r\nDate: Wed, 14 Oct 2026 10:00:00 +0000\r\n\r\nBody"

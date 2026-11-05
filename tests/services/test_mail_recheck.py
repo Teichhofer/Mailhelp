@@ -4,11 +4,6 @@ from __future__ import annotations
 from datetime import timedelta
 from threading import Event
 
-from clock_fakes import step_back_wall_clock
-from log_fakes import RecordingLogger
-from shared_application import settings as app_settings
-from shared_services import AnalyzerStub, Notify
-
 from mailhelp.config import Topic
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.mailbox.mailbox_run import MailboxRunService
@@ -16,6 +11,10 @@ from mailhelp.models import MailState
 from mailhelp.processing.mail_recheck import RecheckOutcome, filed_as_irrelevant, recheck_round, request_recheck
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.storage import JsonStore
+from tests.fakes.clock_fakes import step_back_wall_clock
+from tests.fakes.log_fakes import RecordingLogger
+from tests.fakes.shared_application import settings as app_settings
+from tests.fakes.shared_services import AnalyzerStub, Notify
 
 ACCOUNT = "c" * 24
 RAW = (b"From: Amt <amt@example.test>\nSubject: Anmeldebestaetigung Onlinevortrag\nMessage-ID: <v1@example.test>\n\n"

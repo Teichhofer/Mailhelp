@@ -1,15 +1,14 @@
 """Shared synthetic fixtures and doubles; no test-module dependencies."""
 from __future__ import annotations
 
-from shared_telegram_dialog import (
-    Telegram,
-    proposal,
-)
-
 from mailhelp.models import (
     MailState,
     ProposalNotification,
     TelegramOutboxState,
+)
+from tests.fakes.shared_telegram_dialog import (
+    Telegram,
+    proposal,
 )
 
 A, B, C, D = "a" * 24, "b" * 24, "c" * 24, "d" * 24

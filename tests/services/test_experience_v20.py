@@ -12,14 +12,9 @@ import pytest
 import requests
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
-from lock_fakes import ProbedStore, finishes_while_store_lock_held
 from PIL import Image
 from pydantic import SecretStr, ValidationError
 from pywebpush import WebPushException
-from shared_vision import image_bytes, mail
-from shared_web_actions import MAIL1
-from shared_web_details import with_mail
-from web_scenario import mail_id, populate
 
 from mailhelp.config import DailyBriefingSettings, ImapCredentials, Secrets, Settings
 from mailhelp.llm.adapter import RetryableError
@@ -30,6 +25,11 @@ from mailhelp.notifications.webpush import NoRedirectSession, PushService, b64, 
 from mailhelp.processing.attachments import AttachmentCache
 from mailhelp.runtime.standalone import DisabledTelegram
 from mailhelp.storage import JsonStore
+from tests.fakes.lock_fakes import ProbedStore, finishes_while_store_lock_held
+from tests.fakes.shared_vision import image_bytes, mail
+from tests.fakes.shared_web_actions import MAIL1
+from tests.fakes.shared_web_details import with_mail
+from tests.scenarios.web_scenario import mail_id, populate
 
 # Since 2.3 the writers are built in mailhelp.external.providers.
 MOVED_WRITERS = ("HttpWriter", "GoogleOAuthTokenProvider")
@@ -573,10 +573,9 @@ def test_briefing_and_filters_work_without_javascript(web):
 
 
 def test_analyzer_reply_uses_configured_prompt():
-    from shared_core import prompt_config
-
     from mailhelp.config import PromptStep
     from mailhelp.processing.analysis import Analyzer
+    from tests.fakes.shared_core import prompt_config
     prompts = prompt_config()
     prompts.prompts["draft_reply"] = PromptStep(system_prompt="Untrusted input; only draft.")
     calls = []
@@ -624,9 +623,9 @@ def test_strict_briefing_calendar_query_propagates_failure():
 @pytest.mark.parametrize("mode", ["ssl", "starttls"])
 def test_runtime_composes_services_and_ticks_without_external_io(web, tmp_path, monkeypatch, mode):
     from pydantic import SecretStr
-    from shared_application import Log, settings
 
     from mailhelp.runtime.experience import ExperienceRuntime
+    from tests.fakes.shared_application import Log, settings
     cfg = settings(tmp_path)
     cfg.push.enabled = cfg.smart_reply = cfg.daily_briefing.enabled = True
     cfg.daily_briefing.time = "00:00"
@@ -683,11 +682,11 @@ def test_runtime_composes_services_and_ticks_without_external_io(web, tmp_path, 
 def test_standalone_config_loading_and_composition(tmp_path, monkeypatch, capsys):
 
     import yaml
-    from shared_application import settings
-    from shared_core import prompt_config
 
     from mailhelp.config import Secrets, load_all
     from mailhelp.runtime.application import build_application
+    from tests.fakes.shared_application import settings
+    from tests.fakes.shared_core import prompt_config
     cfg = settings(tmp_path)
     cfg.telegram.enabled = False
     with pytest.raises(ValueError): Settings.model_validate(cfg.model_dump())
@@ -723,10 +722,9 @@ def test_standalone_config_loading_and_composition(tmp_path, monkeypatch, capsys
 
 
 def test_retention_scrubs_draft_and_preview_together(tmp_path):
-    from shared_retention import NOW, Log, state
-
     from mailhelp.config import RetentionSettings
     from mailhelp.runtime.retention import RetentionService
+    from tests.fakes.shared_retention import NOW, Log, state
     store = JsonStore(tmp_path)
     item = state(MAIL1)
     store.save(f"mail-{MAIL1}", item.model_dump(mode="json"))
@@ -749,11 +747,10 @@ def test_preview_rejects_resolved_path_escape(tmp_path, monkeypatch):
 
 
 def test_experience_settings_preserve_16_analysis_fingerprint(tmp_path):
-    from shared_application import settings
-    from shared_core import prompt_config
-
     from mailhelp.config import PromptStep
     from mailhelp.llm.fingerprints import _hash, analysis_prompts, config_fingerprint, legacy_fingerprints
+    from tests.fakes.shared_application import settings
+    from tests.fakes.shared_core import prompt_config
     cfg, prompts = settings(tmp_path), prompt_config()
     before = config_fingerprint(cfg, prompts, [])
     legacy = cfg.model_dump(mode="json", exclude={"target_profiles", "iserv"})
@@ -905,9 +902,8 @@ def test_detail_page_discloses_evidence_revisions_and_analysis(web, monkeypatch)
 
 
 def test_runtime_without_optional_features_only_keeps_the_local_briefing(web, tmp_path):
-    from shared_application import Log, settings
-
     from mailhelp.runtime.experience import ExperienceRuntime
+    from tests.fakes.shared_application import Log, settings
     cfg = settings(tmp_path)
     cfg.web.enabled, cfg.telegram.enabled = True, False
     cfg.daily_briefing.enabled, cfg.daily_briefing.time = True, "00:00"
@@ -934,9 +930,8 @@ def test_login_page_names_the_console_without_telegram():
 
 def test_background_never_calls_the_model_for_drafts_and_sections_stay_isolated(web, tmp_path):
     """Drafts cost one LLM call per click only; the minute scheduler never creates one."""
-    from shared_application import Log, settings
-
     from mailhelp.runtime.experience import ExperienceRuntime
+    from tests.fakes.shared_application import Log, settings
     cfg = settings(tmp_path)
     cfg.smart_reply = cfg.daily_briefing.enabled = True
     cfg.daily_briefing.time = "00:00"
@@ -962,9 +957,8 @@ def test_background_never_calls_the_model_for_drafts_and_sections_stay_isolated(
 
 
 def test_drafts_stay_off_without_the_prompt(web, tmp_path):
-    from shared_application import Log, settings
-
     from mailhelp.runtime.experience import ExperienceRuntime
+    from tests.fakes.shared_application import Log, settings
     cfg = settings(tmp_path)
     cfg.smart_reply = True
     app = NS(settings=cfg, store=web.store, logger=Log(), calendar=None, todoist=None,
@@ -974,9 +968,8 @@ def test_drafts_stay_off_without_the_prompt(web, tmp_path):
 
 
 def test_push_section_failure_is_logged(web, tmp_path):
-    from shared_application import Log, settings
-
     from mailhelp.runtime.experience import ExperienceRuntime
+    from tests.fakes.shared_application import Log, settings
     cfg = settings(tmp_path)
     cfg.push.enabled = True
     app = NS(settings=cfg, store=web.store, logger=Log(), calendar=None, todoist=None,

@@ -15,10 +15,6 @@ from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
-from shared_core import FakeImap as FakeImap
-from shared_core import prompt_config as prompt_config
-from shared_core import proposal as proposal
-from shared_core import shipped_configuration as shipped_configuration
 
 from mailhelp import __version__
 from mailhelp.cli import main
@@ -55,6 +51,10 @@ from mailhelp.models import (
 )
 from mailhelp.processing.analysis import Analyzer
 from mailhelp.storage import AlreadyRunning, CorruptState, JsonStore
+from tests.fakes.shared_core import FakeImap as FakeImap
+from tests.fakes.shared_core import prompt_config as prompt_config
+from tests.fakes.shared_core import proposal as proposal
+from tests.fakes.shared_core import shipped_configuration as shipped_configuration
 
 
 def test_step_provider_preferences_pin_the_default_route():

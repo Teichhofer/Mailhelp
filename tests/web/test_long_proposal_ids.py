@@ -12,10 +12,6 @@ import re
 
 import pytest
 from pydantic import BaseModel
-from shared_telegram_dialog import callback
-from shared_web_actions import Web as Web
-from shared_web_actions import web as web
-from web_scenario import mail_id, proposal, save_mail
 
 from mailhelp.domain import processing, proposal_sources
 from mailhelp.domain import proposal as proposal_module
@@ -25,6 +21,10 @@ from mailhelp.review.errors import StaleCommand
 from mailhelp.review.inbox import CommandStatus
 from mailhelp.telegram import callbacks
 from mailhelp.telegram.callbacks import Decision, DecisionAction
+from tests.fakes.shared_telegram_dialog import callback
+from tests.fakes.shared_web_actions import Web as Web
+from tests.fakes.shared_web_actions import web as web
+from tests.scenarios.web_scenario import mail_id, proposal, save_mail
 
 MAIL = mail_id(30)
 LONG_ID = f"manual_attachment_{MAIL}"

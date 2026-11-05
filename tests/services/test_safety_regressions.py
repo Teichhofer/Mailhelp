@@ -2,12 +2,12 @@
 from types import SimpleNamespace
 
 import pytest
-from safety_harness import Gate
-from web_scenario import mail_id
 
 from mailhelp.external.contracts import PreparedWrite, TargetWriter
 from mailhelp.models import ProposalStatus
 from mailhelp.review.inbox import CommandStatus
+from tests.fakes.safety_harness import Gate
+from tests.scenarios.web_scenario import mail_id
 
 
 def current(web):
@@ -46,9 +46,8 @@ def test_saved_web_authorization_is_rechecked_after_restart(web, revocation):
         from datetime import timedelta
         now = web.auth.clock()
         web.auth.clock = lambda: now + timedelta(days=31)
-    from shared_telegram_dialog import Writer
-
     from mailhelp.telegram import TelegramDialogController
+    from tests.fakes.shared_telegram_dialog import Writer
     writer = Writer()
     restarted = TelegramDialogController(web.store, web.telegram, 1, 2, web.logger, {"todoist": writer})
     restarted.review.web_authorizer = web.dialog.review.web_authorizer

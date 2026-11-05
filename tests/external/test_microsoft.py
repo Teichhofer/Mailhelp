@@ -5,9 +5,6 @@ from urllib.parse import parse_qs
 
 import httpx
 import pytest
-from log_fakes import RecordingLogger
-from shared_core import proposal
-from shared_write_improvements import event
 
 from mailhelp.external.confirmed import execute_confirmed
 from mailhelp.external.contracts import AuthenticationError, CalendarAccessError, ExternalUnavailable, OAuthTokenError
@@ -21,6 +18,9 @@ from mailhelp.external.microsoft import (
 )
 from mailhelp.llm.adapter import RetryableError, RetryPolicy
 from mailhelp.models import CalendarDuplicateDecision, ProposalStatus
+from tests.fakes.log_fakes import RecordingLogger
+from tests.fakes.shared_core import proposal
+from tests.fakes.shared_write_improvements import event
 
 
 class StaticToken:

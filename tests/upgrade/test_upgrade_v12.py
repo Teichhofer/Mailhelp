@@ -7,13 +7,13 @@ from datetime import UTC, datetime
 
 import pytest
 import yaml
-from shared_web_actions import web  # noqa: F401  (fixture)
-from shared_web_v12 import configure
-from web_scenario import mail_id
 
 from mailhelp.configuration import AdminCommand, AdminKind, file_hash
 from mailhelp.review.inbox import COMMAND_INBOX, CommandInbox, CommandStatus
 from mailhelp.review.results import ResultStatus
+from tests.fakes.shared_web_actions import web  # noqa: F401  (fixture)
+from tests.fakes.shared_web_v12 import configure
+from tests.scenarios.web_scenario import mail_id
 
 
 def test_a_1_1_command_inbox_with_an_open_command_is_processed_after_the_upgrade(web):

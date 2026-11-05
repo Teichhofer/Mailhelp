@@ -7,7 +7,6 @@ from types import SimpleNamespace
 import httpx
 import pytest
 from pydantic import SecretStr
-from shared_application import with_sources
 
 from mailhelp.cli import main
 from mailhelp.config import ImapSettings
@@ -18,6 +17,7 @@ from mailhelp.mailbox.imap import ImapReader
 from mailhelp.proposals.integrations import GoogleOAuthTokenProvider, HttpWriter
 from mailhelp.runtime.application import Application
 from mailhelp.telegram import TelegramBotResponse, TelegramChatNotFoundError, TelegramClient
+from tests.fakes.shared_application import with_sources
 
 
 def response_transport(payload, status=200, seen=None):

@@ -24,7 +24,7 @@ class Notify:
     def send_relevance(self, dialog): pass
 
 
-from log_fakes import RecordingLogger as Log
+from tests.fakes.log_fakes import RecordingLogger as Log
 
 TOPICS = [Topic(id="x", name="X", enabled=True, description="X")]
 
@@ -142,7 +142,7 @@ def test_duplicate_of_mail_with_external_action_keeps_original_action(tmp_path):
         first = process(store, CountingAnalyzer(), 1, raw())
         original = store.load_model("mail-" + first["id"], MailState)
         # A terminal external result is intentionally retained on the earlier state.
-        from shared_core import proposal
+        from tests.fakes.shared_core import proposal
         original.proposals = [proposal(id="p1", source_mail_id=original.id,
                                        status=ProposalStatus.CREATED, external_id="external-1")]
         store.save("mail-" + first["id"], original.model_dump(mode="json"))

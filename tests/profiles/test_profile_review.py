@@ -3,8 +3,6 @@ from types import SimpleNamespace as NS
 
 import pytest
 from pydantic import ValidationError
-from shared_profiles import settings
-from shared_telegram_dialog import callback, controller, proposal
 
 from mailhelp.proposals.profile_binding import choices, policy_hash
 from mailhelp.review.commands import CommandKind, CommandSource, ReviewCommand
@@ -12,6 +10,8 @@ from mailhelp.review.results import ResultStatus
 from mailhelp.storage import JsonStore
 from mailhelp.telegram.callbacks import Decision, DecisionAction
 from mailhelp.telegram.decisions import AnswerRequired
+from tests.fakes.shared_profiles import settings
+from tests.fakes.shared_telegram_dialog import callback, controller, proposal
 
 
 def command(item, **changes):
@@ -75,7 +75,7 @@ def test_review_commands_cannot_smuggle_profile_numbers_into_other_actions():
 
 
 def test_profile_failure_health_deduplicates_and_keeps_other_writes_available(tmp_path):
-    from shared_telegram_dialog import Writer
+    from tests.fakes.shared_telegram_dialog import Writer
     one, two = Writer(), Writer()
     def failed(_):
         raise ConnectionError("private endpoint")

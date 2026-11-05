@@ -4,10 +4,6 @@ from decimal import Decimal
 
 import pytest
 import yaml
-from shared_application import settings
-from shared_review import command
-from shared_web_v12 import configure as configure
-from web_scenario import mail_id, proposal
 
 from mailhelp.config import RetentionSettings, Topic
 from mailhelp.configuration import AdminCommand, AdminKind, file_hash
@@ -21,6 +17,10 @@ from mailhelp.runtime.lifecycle import Lifecycle
 from mailhelp.runtime.metrics import MetricsRecorder, MetricsSettings, electricity, sibling
 from mailhelp.runtime.retention import RetentionService
 from mailhelp.storage import JsonStore
+from tests.fakes.shared_application import settings
+from tests.fakes.shared_review import command
+from tests.fakes.shared_web_v12 import configure as configure
+from tests.scenarios.web_scenario import mail_id, proposal
 
 
 def test_mail_archive_filters_and_analysis(web):
@@ -429,9 +429,8 @@ def test_structured_edits_keep_unset_fields_and_authorization(web):
 def test_after_send_runs_only_after_actual_http_response(running):
     from threading import Event
 
-    from shared_web_server import call
-
     from mailhelp.web import Response
+    from tests.fakes.shared_web_server import call
     flag = Event()
     def handler(request):
         response = Response.text(202, 'accepted')
@@ -480,10 +479,9 @@ def test_remaining_retention_filters_and_config_validation(web, tmp_path):
 
 
 def test_finished_notification_is_not_sent_twice_during_resume(tmp_path):
-    from shared_services import AnalyzerStub, Notify
-
     from mailhelp.mailbox.imap import FetchedMail
     from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
+    from tests.fakes.shared_services import AnalyzerStub, Notify
     topic = Topic(id='school', name='School', enabled=True, description='school')
     with JsonStore(tmp_path) as store:
         notifier = Notify()

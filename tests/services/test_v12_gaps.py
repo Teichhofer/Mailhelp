@@ -9,12 +9,6 @@ from types import SimpleNamespace
 
 import pytest
 import yaml
-from shared_application import Log, Orch
-from shared_application import settings as app_settings
-from shared_review import command
-from shared_web_actions import web  # noqa: F401  (fixture)
-from shared_web_v12 import configure
-from web_scenario import mail_id, proposal
 
 from mailhelp.configuration import AdminCommand, AdminKind, file_hash
 from mailhelp.llm.decision_test import ComparisonRecorder
@@ -25,6 +19,12 @@ from mailhelp.review.editing import ProposalEditPatch, edit_proposal
 from mailhelp.review.results import ResultStatus
 from mailhelp.runtime.application import Application
 from mailhelp.runtime.metrics import MetricsRecorder, MetricsSettings, server_electricity
+from tests.fakes.shared_application import Log, Orch
+from tests.fakes.shared_application import settings as app_settings
+from tests.fakes.shared_review import command
+from tests.fakes.shared_web_actions import web  # noqa: F401  (fixture)
+from tests.fakes.shared_web_v12 import configure
+from tests.scenarios.web_scenario import mail_id, proposal
 
 # Since 2.3 the writers are built in mailhelp.external.providers.
 MOVED_WRITERS = ("HttpWriter", "GoogleOAuthTokenProvider")
@@ -203,11 +203,10 @@ def test_successful_contacts_per_service_from_logged_events(tmp_path, mode, llm)
 
 
 def test_telegram_messages_count_as_contacts_without_content(tmp_path):
-    from shared_application import settings as app_settings
-
     from mailhelp.config import Secrets
     from mailhelp.logging import JsonlLogger
     from mailhelp.runtime.application import build_logger
+    from tests.fakes.shared_application import settings as app_settings
     secrets = Secrets(imap={1: {"username": "u", "password": "p"}}, openrouter_api_key="o", telegram_bot_token="t",
                       todoist_token="d", todoist_client_id="ti", todoist_client_secret="ts",
                       google_oauth_client_id="i", google_oauth_client_secret="s", google_oauth_refresh_token="r")
@@ -341,10 +340,9 @@ def test_statistics_page_labels_rates_and_incomplete_capture(web, tmp_path):
 
 
 def test_application_writes_metrics_into_the_log_directory(tmp_path, monkeypatch):
-    from shared_core import prompt_config
-
     from mailhelp.config import Secrets, Topic
     from mailhelp.runtime.application import build_application
+    from tests.fakes.shared_core import prompt_config
 
     class Resource:
         def __init__(self, *args, **kwargs): pass
@@ -376,9 +374,8 @@ def test_application_writes_metrics_into_the_log_directory(tmp_path, monkeypatch
 # --- R4: settings page ---------------------------------------------------------------
 
 def test_effective_models_name_their_source_without_prompt_texts():
-    from shared_core import prompt_config
-
     from mailhelp.configuration import effective_models
+    from tests.fakes.shared_core import prompt_config
     prompts = prompt_config()
     standard = effective_models(prompts, "typesafe/jev", None)
     assert standard[0] == ("Relevanz", "typesafe/jev", "unklare Fälle: Rückfall auf das Relevanzmodell",
@@ -429,9 +426,8 @@ def test_live_settings_saved_but_not_yet_taken_over(web, tmp_path):
 
 
 def test_settings_page_shows_the_model_table_or_says_there_is_none(web, tmp_path):
-    from shared_core import prompt_config
-
     from mailhelp.configuration import effective_models
+    from tests.fakes.shared_core import prompt_config
     configure(web, tmp_path)
     assert "Keine Modellangaben verfügbar." in web.browser.request("GET", "/einstellungen?bereich=ki").body.decode()
     web.site.archive.models = effective_models(prompt_config(), "typesafe/jev", None)
@@ -499,9 +495,8 @@ def test_stop_states_are_logged_and_end_in_stopped():
 
 
 def test_the_run_loop_reports_its_end_to_the_lifecycle(tmp_path):
-    from shared_application import Imap, Telegram, app
-
     from mailhelp.runtime.lifecycle import Lifecycle
+    from tests.fakes.shared_application import Imap, Telegram, app
     service = app(tmp_path, Imap([]), Telegram([]), Orch())
     service.lifecycle = Lifecycle(service.stop, lambda actor: True)
     service.stop_event.set()

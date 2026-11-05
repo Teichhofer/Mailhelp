@@ -3,10 +3,10 @@ from __future__ import annotations
 
 import pytest
 import yaml
-from shared_decision_test import secrets
 
 from mailhelp.config import Secrets
 from mailhelp.mailbox.iserv import IServSignInError
+from tests.fakes.shared_decision_test import secrets
 
 ROUTE = "/einstellungen/iserv"
 ACTIVATE = ROUTE + "/aktivieren"

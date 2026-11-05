@@ -2,10 +2,6 @@ from datetime import UTC, date, datetime, timedelta
 
 import pytest
 from pydantic import ValidationError
-from shared_action_normalization import context as context
-from shared_action_normalization import event as event
-from shared_action_normalization import reminder as reminder
-from shared_action_normalization import task as task
 
 from mailhelp.proposals.action_normalization import (
     NormalizationReason,
@@ -15,6 +11,10 @@ from mailhelp.proposals.action_normalization import (
     recover_task_due,
     split_time_range,
 )
+from tests.fakes.shared_action_normalization import context as context
+from tests.fakes.shared_action_normalization import event as event
+from tests.fakes.shared_action_normalization import reminder as reminder
+from tests.fakes.shared_action_normalization import task as task
 
 
 def test_gemeinderat_is_one_exclusive_all_day_interval_and_responsibility_stays_separate():

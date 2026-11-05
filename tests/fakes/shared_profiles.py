@@ -2,9 +2,8 @@ import pytest
 import yaml
 
 """Synthetic configuration of two mailboxes and independent target profiles."""
-from shared_application import settings as application_settings
-
 from mailhelp.config import Settings, Topic
+from tests.fakes.shared_application import settings as application_settings
 
 ACCOUNT_ONE, ACCOUNT_TWO = "1" * 24, "2" * 24
 

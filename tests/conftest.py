@@ -16,21 +16,13 @@ from __future__ import annotations
 
 import os
 import shutil
-import sys
 import tempfile
 from pathlib import Path
 
 import pytest
 
-# Test modules still import shared helpers from each other by module name.
-# Until those move to fakes/ and scenarios/ (Planung 2.1, T1/T2), every test
-# folder is importable.
-for _folder in sorted(Path(__file__).resolve().parent.iterdir()):
-    if _folder.is_dir() and _folder.name not in {"fixtures", "__pycache__"} and str(_folder) not in sys.path:
-        sys.path.insert(0, str(_folder))
-
 # Plugins that others import come first, so pytest rewrites their assertions before the import.
-pytest_plugins = ("shared_web_auth", "shared_web_actions", "shared_web_server", "shared_setup", "shared_profiles")
+pytest_plugins = ("tests.fakes.shared_web_auth", "tests.fakes.shared_web_actions", "tests.fakes.shared_web_server", "tests.fakes.shared_setup", "tests.fakes.shared_profiles")
 
 TEST_TEMP_ROOT = Path(
     os.environ.get("MAILHELP_TEST_TEMP")

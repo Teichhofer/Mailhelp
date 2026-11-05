@@ -3,7 +3,6 @@ from datetime import date, datetime
 from unittest.mock import Mock
 
 import pytest
-from shared_telegram_dialog import RevisionService, Writer, callback, controller, message, proposal
 
 from mailhelp.models import (
     MailState,
@@ -16,6 +15,7 @@ from mailhelp.persistence.proposals import clarification_name
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import Decision, DecisionAction, TelegramUpdate
 from mailhelp.telegram.formatting import clarification_prompt, display_date, format_proposal, revision_summary
+from tests.fakes.shared_telegram_dialog import RevisionService, Writer, callback, controller, message, proposal
 
 
 def deliver(c, update):

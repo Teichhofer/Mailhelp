@@ -4,9 +4,9 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from clock_fakes import step_back_wall_clock
 
 from mailhelp.models import MailState, next_updated_at
+from tests.fakes.clock_fakes import step_back_wall_clock
 
 IDENTITY = {"id": "a" * 24, "config_fingerprint": "f" * 64,
             "imap": {"account_id": "0" * 24, "folder": "INBOX", "uidvalidity": 1, "uid": 1}}

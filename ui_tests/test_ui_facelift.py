@@ -1,9 +1,9 @@
 """Navigation and page hierarchy stay clear on desktop and narrow phones."""
 from playwright.sync_api import expect
-from web_scenario import mail_id
 
 from checks import audit
 from conftest import sign_in
+from tests.scenarios.web_scenario import mail_id
 
 
 def test_navigation_leaves_room_for_the_work_area(page, mailhelp):

@@ -2,15 +2,15 @@
 from pathlib import Path
 
 import pytest
-from safety_harness import PersistentWriter, ProcessHarness, seed
-from shared_web_auth import SECRET
-from web_scenario import mail_id, proposal, save_mail
 
 from mailhelp.models import Proposal
 from mailhelp.review.commands import ReviewCommand
 from mailhelp.review.inbox import CommandInbox
 from mailhelp.storage import JsonStore
 from mailhelp.web.auth import WebAuth
+from tests.fakes.safety_harness import PersistentWriter, ProcessHarness, seed
+from tests.fakes.shared_web_auth import SECRET
+from tests.scenarios.web_scenario import mail_id, proposal, save_mail
 
 pytestmark = pytest.mark.process
 

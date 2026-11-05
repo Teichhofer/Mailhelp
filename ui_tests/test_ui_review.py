@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 from playwright.sync_api import expect
-from web_scenario import mail_id, proposal, save_mail
 
 from checks import audit
 from conftest import item, sign_in
+from tests.scenarios.web_scenario import mail_id, proposal, save_mail
 
 
 def test_overview_is_readable_and_mail_content_stays_inert(page, mailhelp):

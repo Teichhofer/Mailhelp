@@ -3,9 +3,6 @@ import types
 
 import httpx
 import pytest
-from shared_core import proposal
-from shared_telegram_dialog import callback, controller, message
-from shared_write_improvements import event as event
 
 from mailhelp.domain.revision_errors import ContradictoryRevision
 from mailhelp.models import CalendarDuplicateDecision, ProposalRevisionDelta, apply_proposal_revision
@@ -13,6 +10,9 @@ from mailhelp.processing.analysis import validate_revision_successor
 from mailhelp.proposals.integrations import HttpWriter
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import Decision, DecisionAction
+from tests.fakes.shared_core import proposal
+from tests.fakes.shared_telegram_dialog import callback, controller, message
+from tests.fakes.shared_write_improvements import event as event
 
 
 @pytest.mark.parametrize("description", [

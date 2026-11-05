@@ -5,8 +5,6 @@ import hashlib
 import json
 
 import pytest
-from shared_application import settings as app_settings
-from shared_core import prompt_config
 
 from mailhelp.config import Topic
 from mailhelp.llm.fingerprints import (
@@ -19,6 +17,8 @@ from mailhelp.llm.fingerprints import (
 from mailhelp.models import MailState, RelevanceDialog
 from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.storage import JsonStore
+from tests.fakes.shared_application import settings as app_settings
+from tests.fakes.shared_core import prompt_config
 
 TOPICS = [Topic(id="schule", name="Schule", enabled=True, description="Schule")]
 
@@ -237,12 +237,11 @@ def configuration_3_1(settings, prompts):
 @pytest.mark.parametrize("jev", [False, True])
 def test_3_1_pending_mail_upgrade_and_restart_preserve_proposal_targets(tmp_path, jev):
     """Regression: removing targets must neither hold old mails nor retarget their proposals."""
-    from shared_profiles import ACCOUNT_ONE, ACCOUNT_TWO
-    from shared_profiles import settings as profile_settings
-    from shared_services import AnalyzerStub, Notify
-
     from mailhelp.llm.decisions import load_relevance_prompts, relevance_fingerprint
     from mailhelp.mailbox.imap import FetchedMail
+    from tests.fakes.shared_profiles import ACCOUNT_ONE, ACCOUNT_TWO
+    from tests.fakes.shared_profiles import settings as profile_settings
+    from tests.fakes.shared_services import AnalyzerStub, Notify
 
     settings, prompts = profile_settings(tmp_path), prompt_config()
     old_settings, old_prompts = configuration_3_1(settings, prompts)

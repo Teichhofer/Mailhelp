@@ -4,10 +4,10 @@ from urllib.parse import parse_qs
 
 import pytest
 from playwright.sync_api import expect
-from web_scenario import mail_id
 
 from conftest import item, sign_in
 from mailhelp.models import Proposal
+from tests.scenarios.web_scenario import mail_id
 
 MASTER, PANE = ".master-pane", ".detail-pane"
 

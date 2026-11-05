@@ -7,10 +7,6 @@ import httpx
 import pytest
 import requests
 from pywebpush import WebPushException
-from shared_services import proposal
-from shared_web_actions import MAIL1
-from shared_web_auth import SECRET
-from shared_web_details import with_mail
 
 from mailhelp.llm.adapter import PermanentError, RetryableError
 from mailhelp.models import MailState, ProposalStatus
@@ -22,6 +18,10 @@ from mailhelp.notifications.webpush import PushService
 from mailhelp.review.commands import CommandKind, CommandSource, ReviewCommand
 from mailhelp.review.results import ResultStatus, ReviewResult
 from mailhelp.telegram import TelegramClient
+from tests.fakes.shared_services import proposal
+from tests.fakes.shared_web_actions import MAIL1
+from tests.fakes.shared_web_auth import SECRET
+from tests.fakes.shared_web_details import with_mail
 
 # Since 2.3 the writers are built in mailhelp.external.providers.
 MOVED_WRITERS = ("HttpWriter", "GoogleOAuthTokenProvider")
@@ -183,7 +183,7 @@ def test_without_web_scheduler_uses_the_same_policy(configured):
 
 
 def test_push_destinations_and_per_device_delivery_are_neutral_and_rechecked(runtime):
-    from push_fakes import sub
+    from tests.fakes.push_fakes import sub
     web, cfg, svc = runtime.web, runtime.cfg, runtime.runtime
     sent = []
     push = PushService(web.store, web.auth, "mailto:synthetic@test", lambda **kw: sent.append(kw))
@@ -205,7 +205,7 @@ def test_push_destinations_and_per_device_delivery_are_neutral_and_rechecked(run
 @pytest.mark.parametrize("status,expected", [(410, PermanentError), (429, RetryableError), (403, PermanentError),
                                              (500, WebPushException), (None, WebPushException)])
 def test_push_failure_propagates_to_durable_delivery_status(runtime, status, expected):
-    from push_fakes import sub
+    from tests.fakes.push_fakes import sub
     web = runtime.web
     response = requests.Response() if status is not None else None
     if response is not None:
@@ -222,7 +222,7 @@ def test_push_failure_propagates_to_durable_delivery_status(runtime, status, exp
 
 
 def test_revoked_device_and_subscription_revision_are_checked_before_push(runtime):
-    from push_fakes import sub
+    from tests.fakes.push_fakes import sub
     web = runtime.web
     push = PushService(web.store, web.auth, "mailto:synthetic@test", lambda **kw: pytest.fail("must not send"))
     sid = web.auth.sessions()[0].id
@@ -266,7 +266,7 @@ def test_regression_migration_of_an_interrupted_old_outbox_cannot_resend(configu
 
 
 def test_legacy_push_markers_are_imported_per_device_without_new_push(configured):
-    from push_fakes import sub
+    from tests.fakes.push_fakes import sub
     web, app = configured.web, configured.app
     sent = []
     app.settings.push.enabled = True
@@ -285,7 +285,7 @@ def test_legacy_push_markers_are_imported_per_device_without_new_push(configured
 
 @pytest.mark.slow
 def test_a_queued_old_relevance_question_is_pending_and_source_survives_a_full_migration(configured):
-    from web_scenario import mail_id
+    from tests.scenarios.web_scenario import mail_id
     web, app = configured.web, configured.app
     app.settings.notifications = NotificationSettings(categories=Categories(decisions=["telegram"]),
         delivery={"max_pending": 1})
@@ -349,7 +349,7 @@ def test_experience_uses_shared_delivery_without_running_old_schedulers(runtime)
 
 
 def test_a_push_subscription_renewed_while_sending_is_not_removed(runtime):
-    from push_fakes import sub
+    from tests.fakes.push_fakes import sub
     web = runtime.web
     sid = web.auth.sessions()[0].id
     renewed = sub()
@@ -404,11 +404,11 @@ def test_setup_remains_available_when_the_mailbox_cannot_authenticate(tmp_path, 
     import imaplib
 
     import yaml
-    from shared_application import settings
-    from shared_core import prompt_config
 
     from mailhelp.config import Secrets
     from mailhelp.runtime.application import build_application
+    from tests.fakes.shared_application import settings
+    from tests.fakes.shared_core import prompt_config
     cfg = settings(tmp_path)
     cfg.web.enabled = True
     (tmp_path / "config.yaml").write_text(yaml.safe_dump(cfg.model_dump(mode="json")), encoding="utf-8")
@@ -438,7 +438,7 @@ def test_setup_remains_available_when_the_mailbox_cannot_authenticate(tmp_path, 
 
 
 def test_telegram_results_reach_other_selected_channels_without_repeating_the_direct_reply(runtime):
-    from push_fakes import sub
+    from tests.fakes.push_fakes import sub
     web, app, svc = runtime.web, runtime.app, runtime.runtime
     sent = []
     app.settings.push.enabled = True
@@ -503,12 +503,12 @@ def test_several_mailboxes_are_built_labelled_and_fail_independently(tmp_path, m
     import imaplib
 
     import yaml
-    from shared_application import settings
-    from shared_core import prompt_config
 
     from mailhelp.config import Secrets, Settings
     from mailhelp.mailbox.imap import account_id
     from mailhelp.runtime.application import build_application
+    from tests.fakes.shared_application import settings
+    from tests.fakes.shared_core import prompt_config
     data = settings(tmp_path).model_dump(mode="json")
     data["web"]["enabled"] = True
     data["imap"] = {"mailboxes": [

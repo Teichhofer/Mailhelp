@@ -4,13 +4,13 @@ from __future__ import annotations
 from threading import Event
 
 import pytest
-from shared_application import Orch
-from shared_application import settings as app_settings
 
 from mailhelp.external.providers import Writers
 from mailhelp.proposals.target_profiles import ProfileWriters, UnavailableWriter
 from mailhelp.runtime.application import Application
 from mailhelp.runtime.metrics import MetricsRecorder, MetricsSettings
+from tests.fakes.shared_application import Orch
+from tests.fakes.shared_application import settings as app_settings
 
 
 class Service:

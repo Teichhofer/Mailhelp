@@ -8,7 +8,6 @@ from time import time
 import httpx
 import pytest
 from pydantic import ValidationError
-from shared_core import proposal
 
 from mailhelp.config import LlmRoute, LoggingSettings, PromptConfig, PromptStep
 from mailhelp.llm.adapter import PermanentError, RetryableError, UncertainWriteError
@@ -17,6 +16,7 @@ from mailhelp.logging import JsonlLogger, NullLogger, redact
 from mailhelp.processing.analysis import Analyzer
 from mailhelp.proposals.integrations import HttpWriter
 from mailhelp.telegram import TelegramClient
+from tests.fakes.shared_core import proposal
 
 
 class Capture:

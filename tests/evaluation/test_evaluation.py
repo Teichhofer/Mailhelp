@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 import yaml
-from shared_quality_corpus import load_corpus, prompt_config
 
 from mailhelp.llm.evaluation import (
     BoundedCompleter,
@@ -17,6 +16,7 @@ from mailhelp.llm.evaluation import (
     write_report,
 )
 from mailhelp.proposals.action_normalization import MailDateContext
+from tests.fakes.shared_quality_corpus import load_corpus, prompt_config
 
 
 def prompts():
@@ -26,9 +26,8 @@ def prompts():
 
 
 def test_regression_evaluation_uses_jev_and_counts_unclear_fallback_in_one_budget():
-    from shared_decisions import envelope
-
     from mailhelp.llm.decisions import load_relevance_prompts
+    from tests.fakes.shared_decisions import envelope
     corpus = load_corpus_v2()
     corpus["cases"] = corpus["cases"][1:2]
 
@@ -81,7 +80,7 @@ def test_regression_recurring_clock_wording_is_compared_semantically():
 
 @pytest.mark.parametrize("explicit", [False, True])
 def test_evaluation_cli_defaults_to_production_jev_and_closes_both_clients(tmp_path, monkeypatch, explicit):
-    from shared_decisions import envelope
+    from tests.fakes.shared_decisions import envelope
     corpus = load_corpus_v2()
     corpus["cases"] = corpus["cases"][1:2]
     source, prompt_file, output = (tmp_path / "c.json", tmp_path / "p.yaml", tmp_path / "r.json")

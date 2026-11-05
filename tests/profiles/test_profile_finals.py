@@ -4,9 +4,6 @@ import json
 from types import SimpleNamespace as NS
 
 import pytest
-from shared_decision_test import secrets
-from shared_profiles import ACCOUNT_TWO
-from shared_telegram_dialog import proposal
 
 from mailhelp.config import MailboxEventDefaults
 from mailhelp.logging import JsonlLogger
@@ -14,6 +11,9 @@ from mailhelp.models import MailState
 from mailhelp.review.commands import CommandKind, CommandSource, ReviewCommand
 from mailhelp.review.results import ResultStatus
 from mailhelp.runtime.experience import ExperienceRuntime
+from tests.fakes.shared_decision_test import secrets
+from tests.fakes.shared_profiles import ACCOUNT_TWO
+from tests.fakes.shared_telegram_dialog import proposal
 
 
 def test_default_reapplication_uses_origin_mailbox_and_bound_hash(profiled):
@@ -58,9 +58,8 @@ def test_fresh_profile_credentials_join_log_redaction_and_report_default_folder(
     assert "work-refresh" in app.logger.secrets
     runtime.secrets = refreshed
     app.settings.activity_report.enabled = True
-    from activity_fakes import activity_prompts
-
     from mailhelp.processing.analysis import Analyzer
+    from tests.fakes.activity_fakes import activity_prompts
     app.analyzer = Analyzer(object(), activity_prompts())
     app.settings.imap.mailboxes[1].activity_report_folder = "Projekte"
     ExperienceRuntime(app, NS(site=profiled.web.site, auth=profiled.web.auth), refreshed)

@@ -2,11 +2,10 @@
 import json
 from pathlib import Path
 
-from shared_telegram_dialog import Writer, controller
-
 from mailhelp.domain.proposal import UNVERIFIED_LEGACY_ACTOR, Proposal, invalidate_creation_permissions
 from mailhelp.domain.reconciliation import ProposalMergeJournal
 from mailhelp.storage import JsonStore
+from tests.fakes.shared_telegram_dialog import Writer, controller
 
 FIXTURE = Path(__file__).parents[1] / "fixtures/safety_v36/legacy-proposal.json"
 

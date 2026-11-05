@@ -5,15 +5,15 @@ import json
 from datetime import timedelta
 
 import pytest
-from safety_harness import Gate, PersistentWriter
-from shared_telegram_dialog import callback
-from shared_web_auth import Browser, code_from
-from web_scenario import mail_id, proposal, save_mail
 
 from mailhelp.models import Proposal
 from mailhelp.review.inbox import FINISHED
 from mailhelp.telegram.callbacks import Decision, DecisionAction
 from mailhelp.telegram.receiver import TelegramInbox
+from tests.fakes.safety_harness import Gate, PersistentWriter
+from tests.fakes.shared_telegram_dialog import callback
+from tests.fakes.shared_web_auth import Browser, code_from
+from tests.scenarios.web_scenario import mail_id, proposal, save_mail
 
 MAIL = mail_id(1)
 EDIT_PATH = f"/vorschlag/{MAIL}/formular/bearbeiten"

@@ -2,10 +2,10 @@
 from __future__ import annotations
 
 from playwright.sync_api import expect
-from web_scenario import mail_id
 
 from conftest import item, sign_in
 from pages import Overview
+from tests.scenarios.web_scenario import mail_id
 
 
 def focused(page) -> dict:

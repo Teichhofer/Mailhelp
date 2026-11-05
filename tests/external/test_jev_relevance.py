@@ -5,10 +5,6 @@ from types import SimpleNamespace
 
 import httpx
 import pytest
-from shared_application import settings
-from shared_core import prompt_config
-from shared_decision_test import secrets
-from shared_decisions import ROOT, envelope, prompts
 
 from mailhelp.llm.adapter import PermanentError
 from mailhelp.llm.decisions import (
@@ -25,6 +21,10 @@ from mailhelp.processing.analysis import Analyzer
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.runtime.application import build_application
 from mailhelp.storage import JsonStore
+from tests.fakes.shared_application import settings
+from tests.fakes.shared_core import prompt_config
+from tests.fakes.shared_decision_test import secrets
+from tests.fakes.shared_decisions import ROOT, envelope, prompts
 
 # Since 2.3 the writers are built in mailhelp.external.providers.
 MOVED_WRITERS = ("HttpWriter", "GoogleOAuthTokenProvider")

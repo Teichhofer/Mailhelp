@@ -18,8 +18,6 @@ import shutil
 from pathlib import Path
 
 import pytest
-from shared_application import Imap, Orch, Telegram, app
-from shared_telegram_dialog import Writer, controller
 
 from mailhelp.domain.duplicate import DuplicateIndex
 from mailhelp.domain.mail import MailState
@@ -28,6 +26,8 @@ from mailhelp.domain.proposal import ActionLedger
 from mailhelp.domain.run import ImapCheckpoint, MailRunState, TelegramOffset
 from mailhelp.models import Proposal
 from mailhelp.storage import JsonStore
+from tests.fakes.shared_application import Imap, Orch, Telegram, app
+from tests.fakes.shared_telegram_dialog import Writer, controller
 
 STATES = Path(__file__).parent / "states"
 CASES = sorted((release.name, scenario.name) for release in STATES.iterdir() for scenario in release.iterdir())

@@ -3,7 +3,6 @@ import json
 from types import SimpleNamespace
 
 import pytest
-from web_scenario import mail_id, proposal, save_mail
 
 from mailhelp.config import EventDefaultsSettings
 from mailhelp.domain.proposal import ProposalStatus
@@ -12,6 +11,7 @@ from mailhelp.proposals.proposal_reconciliation import ProposalReconciliationSer
 from mailhelp.review.commands import CommandKind, CommandSource, ReviewCommand
 from mailhelp.review.results import ResultStatus
 from mailhelp.web.reconciliation_site import digest
+from tests.scenarios.web_scenario import mail_id, proposal, save_mail
 
 
 def pair(web, *, uncertain=False):

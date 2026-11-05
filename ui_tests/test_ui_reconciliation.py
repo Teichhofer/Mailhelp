@@ -1,10 +1,10 @@
 """Local reconciliation on desktop, narrow phones and without JavaScript."""
 from playwright.sync_api import expect
-from web_scenario import proposal, save_mail
 
 from checks import audit
 from conftest import sign_in
 from mailhelp.domain.proposal_sources import ProposalReference
+from tests.scenarios.web_scenario import proposal, save_mail
 
 
 def legacy(mailhelp):

@@ -115,7 +115,7 @@ def test_retention_removes_only_expired_full_texts(tmp_path):
 
 
 def test_retention_service_runs_the_activity_cleanup(tmp_path):
-    from shared_application import Log, settings
+    from tests.fakes.shared_application import Log, settings
     with JsonStore(tmp_path) as store:
         reports = ActivityReportStore(store)
         report = reports.create(definition(), [], [])
@@ -130,10 +130,9 @@ def test_retention_service_runs_the_activity_cleanup(tmp_path):
 
 def test_activity_settings_never_change_an_analysis_fingerprint(tmp_path):
     """The report and its prompts act outside the analysis; mails in progress must not wait."""
-    from shared_application import settings
-    from shared_core import prompt_config
-
     from mailhelp.config import PromptStep
+    from tests.fakes.shared_application import settings
+    from tests.fakes.shared_core import prompt_config
     cfg, prompts = settings(tmp_path), prompt_config()
     before = (config_fingerprint(cfg, prompts, []), legacy_fingerprints(cfg, prompts, []),
               legacy_policies(cfg, prompts), topic_policy(cfg, prompts))

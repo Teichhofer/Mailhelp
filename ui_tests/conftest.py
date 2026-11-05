@@ -19,13 +19,8 @@ import pytest
 from playwright.sync_api import expect, sync_playwright
 
 ROOT = Path(__file__).resolve().parents[1]
+# Page objects (ui_tests/pages.py); tests.scenarios comes from pythonpath in pyproject.toml.
 sys.path.insert(0, str(ROOT / "ui_tests"))
-# Synthetic scenarios and shared helpers of the Python suite (tests/<area>/).
-for _folder in sorted((ROOT / "tests").iterdir()):
-    if _folder.is_dir() and _folder.name not in {"fixtures", "__pycache__"}:
-        sys.path.insert(0, str(_folder))
-
-from web_scenario import Revisions, populate  # noqa: E402
 
 from mailhelp.config import WebSettings  # noqa: E402
 from mailhelp.review.inbox import CommandInbox  # noqa: E402
@@ -36,6 +31,7 @@ from mailhelp.web import WebApp, WebServer  # noqa: E402
 from mailhelp.web.auth import WebAuth  # noqa: E402
 from mailhelp.web.site import MailhelpSite  # noqa: E402
 from pages import Overview  # noqa: E402
+from tests.scenarios.web_scenario import Revisions, populate  # noqa: E402
 
 STATIC = ROOT / "src/mailhelp/web/static"
 COVERED_SCRIPTS = tuple(name for name in ("app.js", "sw.js", "setup.js") if (STATIC / name).exists())
@@ -140,11 +136,11 @@ def mailhelp(tmp_path):
         instance.auth = auth
         instance.site = site
         import yaml
-        from shared_application import settings as application_settings
 
         from mailhelp.configuration import ConfigurationService
         from mailhelp.runtime.lifecycle import Lifecycle
         from mailhelp.runtime.metrics import MetricsRecorder, MetricsSettings
+        from tests.fakes.shared_application import settings as application_settings
         cfg = application_settings(tmp_path)
         (tmp_path / "config.yaml").write_text(yaml.safe_dump(cfg.model_dump(mode="json")), encoding="utf-8")
         (tmp_path / "topics.yaml").write_text(
@@ -223,11 +219,10 @@ def setup_server(mailhelp):
     """A synthetic configuration runtime shared by setup and connection-form tests."""
     from types import SimpleNamespace as NS
 
-    from shared_core import prompt_config
-
     from mailhelp.notifications.notification_runtime import NotificationRuntime
     from mailhelp.processing.orchestrator import Orchestrator
     from mailhelp.runtime.setup_runtime import SetupRuntime
+    from tests.fakes.shared_core import prompt_config
 
     site = mailhelp.site
     app = NS(settings=site.archive.configuration.active, configuration=site.archive.configuration,

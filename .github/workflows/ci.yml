@@ -109,7 +109,7 @@ jobs:
       - name: Hard termination and two restarts with real provider adapters in Docker
         run: >-
           docker compose -f compose.yaml -f compose.smoke.yaml run --rm --no-deps
-          -e PYTHONPATH=/tests/fakes:/tests/scenarios
+          -e PYTHONPATH=/
           mailhelp -q --no-cov -p no:cacheprovider --rootdir=/tests --confcutdir=/tests
           /tests/external/test_provider_safety_matrix.py
           -k hard_kill_matrix

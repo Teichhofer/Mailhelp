@@ -44,7 +44,7 @@ class Telegram:
     def send_document(self, chat_id, filename, content, caption=None):
         self.documents.append((chat_id, filename, content, caption))
 
-from log_fakes import RecordingLogger as Logger
+from tests.fakes.log_fakes import RecordingLogger as Logger
 
 
 class RevisionService:

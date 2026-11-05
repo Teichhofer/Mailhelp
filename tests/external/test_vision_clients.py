@@ -4,12 +4,12 @@ from __future__ import annotations
 import json
 
 import httpx
-from shared_core import prompt_config
 
 from mailhelp.config import PromptConfig
 from mailhelp.llm.openrouter import OpenRouterClient
 from mailhelp.models import VisionExtractionResult
 from mailhelp.processing.analysis import Analyzer
+from tests.fakes.shared_core import prompt_config
 
 IMAGE = "data:image/jpeg;base64," + "A" * 400
 

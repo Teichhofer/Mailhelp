@@ -6,13 +6,13 @@ from dataclasses import replace
 from datetime import UTC
 
 import pytest
-from shared_web_auth import Browser, signed_in, site  # noqa: F401  (fixture)
-from web_scenario import mail_id, populate, proposal, save_mail
 
 from mailhelp.domain.proposal import ProposalStatus
 from mailhelp.review.views import ReviewViews
 from mailhelp.storage import JsonStore
 from mailhelp.web.review_pages import https_link, overview_page, proposal_card
+from tests.fakes.shared_web_auth import Browser, signed_in, site  # noqa: F401  (fixture)
+from tests.scenarios.web_scenario import mail_id, populate, proposal, save_mail
 
 
 @pytest.fixture
@@ -86,9 +86,6 @@ def test_status_page_counts_the_run(browser):
 def test_status_page_lists_errors_and_operating_figures(tmp_path):
     from datetime import datetime, timedelta
 
-    from shared_review import command
-    from shared_web_auth import SECRET, Logger, code_from
-
     from mailhelp.config import WebSettings
     from mailhelp.models import MailState, ProcessingError
     from mailhelp.review.commands import CommandKind
@@ -96,6 +93,8 @@ def test_status_page_lists_errors_and_operating_figures(tmp_path):
     from mailhelp.web import WebApp
     from mailhelp.web.auth import WebAuth
     from mailhelp.web.site import MailhelpSite
+    from tests.fakes.shared_review import command
+    from tests.fakes.shared_web_auth import SECRET, Logger, code_from
 
     now = datetime(2026, 10, 13, 14, 0, tzinfo=UTC)
     clock = iter([now - timedelta(days=2, hours=3)] + [now] * 20)

@@ -1,12 +1,12 @@
 """Original documents: allow-list, limits, integrity and a download-only route (Planung 2.3, 6)."""
 import pytest
-from shared_vision import mail
-from shared_web_actions import MAIL1
-from shared_web_details import with_mail
 
 from mailhelp.config import OriginalAttachmentSettings
 from mailhelp.processing.attachments import AttachmentCache, download_name, original_type
 from mailhelp.storage import JsonStore
+from tests.fakes.shared_vision import mail
+from tests.fakes.shared_web_actions import MAIL1
+from tests.fakes.shared_web_details import with_mail
 
 PDF = b"%PDF-1.7 synthetisch"
 DOCX = b"PK\x03\x04 synthetisches docx"

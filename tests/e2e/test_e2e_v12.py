@@ -11,9 +11,6 @@ from pathlib import Path
 
 import pytest
 import yaml
-from shared_e2e_simulated import NachholterminRouter
-from shared_web_actions import Web
-from shared_web_v12 import configure
 
 from mailhelp.config import PromptConfig, PromptStep, Settings, TargetSettings, Topic
 from mailhelp.mailbox.imap import FetchedMail
@@ -21,6 +18,9 @@ from mailhelp.processing.analysis import Analyzer
 from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.review.inbox import CommandStatus
 from mailhelp.storage import JsonStore
+from tests.fakes.shared_e2e_simulated import NachholterminRouter
+from tests.fakes.shared_web_actions import Web
+from tests.fakes.shared_web_v12 import configure
 
 pytestmark = pytest.mark.e2e
 

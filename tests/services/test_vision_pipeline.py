@@ -1,8 +1,6 @@
 """Vision OCR (1.4) inside the orchestrator: before relevance, once, restart-safe."""
 from __future__ import annotations
 
-from shared_vision import Reader, image_bytes, mail, noise
-
 from mailhelp.config import Topic, VisionSettings
 from mailhelp.llm.openrouter import RateLimitExceeded
 from mailhelp.mailbox.imap import FetchedMail
@@ -10,6 +8,7 @@ from mailhelp.models import IrrelevantSenders, Relevance, VisionExtractionResult
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.processing.vision import VisionExtractor
 from mailhelp.storage import JsonStore
+from tests.fakes.shared_vision import Reader, image_bytes, mail, noise
 
 TOPICS = [Topic(id="schule", name="Schule", enabled=True, description="Schule")]
 RAW = mail(("flyer.png", "image", "png", image_bytes(noise())),

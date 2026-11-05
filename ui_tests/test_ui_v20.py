@@ -8,9 +8,6 @@ from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from PIL import Image
 from playwright.sync_api import expect
-from shared_vision import image_bytes
-from shared_vision import mail as raw_mail
-from web_scenario import mail_id
 
 from checks import audit
 from conftest import item, sign_in
@@ -18,6 +15,9 @@ from mailhelp.models import MailState, Proposal
 from mailhelp.notifications.webpush import PushService
 from mailhelp.processing.attachments import AttachmentCache
 from pages import MASTER, PANE, Overview, SettingsPage
+from tests.fakes.shared_vision import image_bytes
+from tests.fakes.shared_vision import mail as raw_mail
+from tests.scenarios.web_scenario import mail_id
 
 
 def selected(page):

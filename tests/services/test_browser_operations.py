@@ -4,13 +4,13 @@ from types import SimpleNamespace as NS
 from unittest.mock import Mock
 
 import pytest
-from learning_harness import learning
-from shared_web_server import call
 
 from mailhelp.runtime.diagnostics import DiagnosticsService
 from mailhelp.runtime.metrics import MetricsRecorder, MetricsSettings
 from mailhelp.web import Response, WebServer
 from mailhelp.web.reload_site import ReloadSite
+from tests.fakes.learning_harness import learning
+from tests.fakes.shared_web_server import call
 
 
 def test_selftest_runs_independent_read_only_components_and_skips_write_tests(learning):

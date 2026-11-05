@@ -3,16 +3,15 @@ from __future__ import annotations
 
 from functools import partial
 
-from shared_services import AnalyzerStub, Notify
-from shared_web_actions import web as web
-from web_scenario import mail_id, save_mail
-
 from mailhelp.domain.processing import ProcessingSteps
 from mailhelp.models import MailState
 from mailhelp.processing.mail_recheck import RecheckOutcome, request_recheck
 from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.review.commands import CommandKind, CommandSource, ReviewCommand
 from mailhelp.review.results import ResultStatus
+from tests.fakes.shared_services import AnalyzerStub, Notify
+from tests.fakes.shared_web_actions import web as web
+from tests.scenarios.web_scenario import mail_id, save_mail
 
 FILED = mail_id(7)
 IRRELEVANT_STEPS = ProcessingSteps(

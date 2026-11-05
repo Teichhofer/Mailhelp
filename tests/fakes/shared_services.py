@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import httpx
-from shared_core import proposal
 
 from mailhelp.config import Topic
 from mailhelp.models import (
@@ -12,6 +11,7 @@ from mailhelp.models import (
 )
 from mailhelp.processing.orchestrator import MailState, Orchestrator
 from mailhelp.storage import JsonStore
+from tests.fakes.shared_core import proposal
 
 
 def mock_response(status=200, data=None):

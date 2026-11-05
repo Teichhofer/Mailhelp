@@ -1,9 +1,9 @@
 """P8: two independent authenticated contexts show an actual stale-version conflict."""
 import pytest
 from playwright.sync_api import expect
-from web_scenario import mail_id, proposal, save_mail
 
 from conftest import sign_in
+from tests.scenarios.web_scenario import mail_id, proposal, save_mail
 
 
 @pytest.mark.parametrize("first", [0, 1])

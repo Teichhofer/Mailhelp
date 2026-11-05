@@ -5,22 +5,6 @@ from datetime import UTC, datetime
 
 import pytest
 from pydantic import ValidationError
-from shared_telegram_dialog import (
-    RevisionService,
-    Telegram,
-    callback,
-    controller,
-    message,
-)
-from shared_telegram_outbox import _FailingTelegram as _FailingTelegram
-from shared_telegram_outbox import _Log as _Log
-from shared_telegram_outbox import item as item
-from shared_telegram_outbox import notification as notification
-from shared_telegram_outbox import outbox as outbox
-from shared_telegram_outbox import shown as shown
-from shared_telegram_outbox import shown_open as shown_open
-from shared_telegram_outbox import stored as stored
-from shared_telegram_outbox import texts as texts
 
 from mailhelp.config import TelegramSettings
 from mailhelp.models import (
@@ -37,6 +21,22 @@ from mailhelp.models import (
 from mailhelp.persistence.proposals import clarification_name, proposal_name
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import ProposalDeliveryService, TelegramDialogController
+from tests.fakes.shared_telegram_dialog import (
+    RevisionService,
+    Telegram,
+    callback,
+    controller,
+    message,
+)
+from tests.fakes.shared_telegram_outbox import _FailingTelegram as _FailingTelegram
+from tests.fakes.shared_telegram_outbox import _Log as _Log
+from tests.fakes.shared_telegram_outbox import item as item
+from tests.fakes.shared_telegram_outbox import notification as notification
+from tests.fakes.shared_telegram_outbox import outbox as outbox
+from tests.fakes.shared_telegram_outbox import shown as shown
+from tests.fakes.shared_telegram_outbox import shown_open as shown_open
+from tests.fakes.shared_telegram_outbox import stored as stored
+from tests.fakes.shared_telegram_outbox import texts as texts
 
 A, B, C, D = "a" * 24, "b" * 24, "c" * 24, "d" * 24
 

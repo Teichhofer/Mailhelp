@@ -9,13 +9,12 @@ import json
 from threading import Event, Thread
 from types import SimpleNamespace
 
-from shared_application import Imap, Orch, Telegram, app
-from shared_web_actions import web as web
-
 from mailhelp.logging import JsonlLogger
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.review.inbox import CommandStatus
 from mailhelp.telegram.receiver import TelegramInbox
+from tests.fakes.shared_application import Imap, Orch, Telegram, app
+from tests.fakes.shared_web_actions import web as web
 
 LIMIT = 10
 

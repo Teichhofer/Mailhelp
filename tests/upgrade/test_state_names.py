@@ -1,10 +1,9 @@
 """State names are stored data: their patterns never change between releases."""
 from __future__ import annotations
 
-from store_fakes import DelegatingStore, InterruptingStore
-
 from mailhelp import state_names
 from mailhelp.storage import JsonStore, StateStore
+from tests.fakes.store_fakes import DelegatingStore, InterruptingStore
 
 MAIL = "a" * 24
 

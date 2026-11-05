@@ -3,8 +3,6 @@ from types import SimpleNamespace
 
 import pytest
 from pydantic import ValidationError
-from shared_telegram_dialog import callback
-from web_scenario import mail_id, proposal, save_mail
 
 from mailhelp.domain.proposal import DuplicateMatchInfo, ProposalStatus
 from mailhelp.domain.proposal_sources import ProposalReference
@@ -13,6 +11,8 @@ from mailhelp.review.commands import ReviewCommand
 from mailhelp.review.errors import StaleCommand
 from mailhelp.review.results import ResultStatus
 from mailhelp.telegram.callbacks import Decision, DecisionAction
+from tests.fakes.shared_telegram_dialog import callback
+from tests.scenarios.web_scenario import mail_id, proposal, save_mail
 
 
 def prepared(web):
@@ -138,11 +138,11 @@ def test_restore_command_rejects_missing_or_changed_embedded_record(web):
 
 def test_known_provider_change_with_same_target_name_never_reads_or_writes_the_new_service():
     import httpx
-    from shared_core import proposal as task
 
     from mailhelp.external.confirmed import execute_confirmed
     from mailhelp.proposals.integrations import HttpWriter
     from mailhelp.proposals.precheck import DuplicatePreCheckService
+    from tests.fakes.shared_core import proposal as task
     calls = []
     writer = HttpWriter("todoist", "synthetic-token", "inbox",
         transport=httpx.MockTransport(lambda req: calls.append(req)))

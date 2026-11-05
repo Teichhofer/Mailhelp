@@ -6,5 +6,7 @@ services:
     command: ["-q", "--no-cov", "-p", "no:cacheprovider", "/tests/e2e/test_container_runtime.py"]
     environment:
       MAILHELP_SMOKE_CONFIG: /config
+      # /tests is the package tests; its parent makes tests.fakes importable.
+      PYTHONPATH: /
     volumes:
       - ./tests:/tests:ro

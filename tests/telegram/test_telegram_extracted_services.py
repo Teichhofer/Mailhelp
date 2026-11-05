@@ -3,7 +3,6 @@ from datetime import timedelta
 from unittest.mock import Mock
 
 import pytest
-from clock_fakes import step_back_wall_clock
 
 from mailhelp.models import MailState, Proposal, ProposalNotification
 from mailhelp.storage import JsonStore
@@ -15,6 +14,7 @@ from mailhelp.telegram import (
     ProposalPresenter,
     ProposalRepository,
 )
+from tests.fakes.clock_fakes import step_back_wall_clock
 
 MAIL_ID = "a" * 24
 

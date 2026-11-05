@@ -5,17 +5,6 @@ import threading
 from datetime import UTC, datetime, timedelta
 
 import pytest
-from lock_fakes import ProbedStore, finishes_while_store_lock_held
-from shared_review import MAIL, OTHER, command, setup
-from shared_telegram_dialog import (
-    Logger,
-    RelevanceHandler,
-    RevisionService,
-    Telegram,
-    Writer,
-    proposal,
-    relevance_state,
-)
 
 from mailhelp.domain.processing import ProposalClarificationState
 from mailhelp.models import TelegramDialogState
@@ -30,6 +19,17 @@ from mailhelp.review.inbox import (
 )
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import TelegramDialogController
+from tests.fakes.lock_fakes import ProbedStore, finishes_while_store_lock_held
+from tests.fakes.shared_review import MAIL, OTHER, command, setup
+from tests.fakes.shared_telegram_dialog import (
+    Logger,
+    RelevanceHandler,
+    RevisionService,
+    Telegram,
+    Writer,
+    proposal,
+    relevance_state,
+)
 
 
 def with_commands(store, dialog, clock=None):

@@ -9,17 +9,6 @@ from types import SimpleNamespace
 import httpx
 import pytest
 import yaml
-from shared_decision_test import AnalyzerStub as AnalyzerStub
-from shared_decision_test import Reader as Reader
-from shared_decision_test import configure as configure
-from shared_decision_test import llm_response as llm_response
-from shared_decision_test import mode as mode
-from shared_decision_test import run_decision_test as run_decision_test
-from shared_decision_test import secrets as secrets
-from shared_decision_test import settings as settings
-from shared_decision_test import topics as topics
-from shared_decisions import ROOT
-from shared_quality_corpus import prompt_config
 
 from mailhelp import cli
 from mailhelp.config import Topic
@@ -30,6 +19,17 @@ from mailhelp.llm.ollama import LocalLlm, OllamaClient
 from mailhelp.llm.openrouter import OpenRouterClient
 from mailhelp.mailbox.imap import FolderNotReadable
 from mailhelp.models import Summary
+from tests.fakes.shared_decision_test import AnalyzerStub as AnalyzerStub
+from tests.fakes.shared_decision_test import Reader as Reader
+from tests.fakes.shared_decision_test import configure as configure
+from tests.fakes.shared_decision_test import llm_response as llm_response
+from tests.fakes.shared_decision_test import mode as mode
+from tests.fakes.shared_decision_test import run_decision_test as run_decision_test
+from tests.fakes.shared_decision_test import secrets as secrets
+from tests.fakes.shared_decision_test import settings as settings
+from tests.fakes.shared_decision_test import topics as topics
+from tests.fakes.shared_decisions import ROOT
+from tests.fakes.shared_quality_corpus import prompt_config
 
 LOCAL = LocalLlm("ollama.example.test", 11434, "synthetic/local", 8192)
 LAYA = ("laya.example.test", 11434)

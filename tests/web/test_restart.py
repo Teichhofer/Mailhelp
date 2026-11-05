@@ -1,9 +1,9 @@
 """Restart uses the same process-bound confirmation as stop; no real process is launched."""
 import pytest
-from shared_web_auth import Browser
-from shared_web_v12 import configure
 
 from mailhelp.runtime.lifecycle import Lifecycle
+from tests.fakes.shared_web_auth import Browser
+from tests.fakes.shared_web_v12 import configure
 
 PATH = "/einstellungen/neustarten"
 

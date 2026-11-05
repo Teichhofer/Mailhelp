@@ -123,7 +123,7 @@ def test_shortlink_policy_checks_host_and_lure_together(text, blocked):
 def test_restored_snapshot_reconciles_existing_action_across_repeated_restarts(tmp_path, status):
     import shutil
 
-    from shared_services import proposal
+    from tests.fakes.shared_services import proposal
 
     external = {}
     writes = []

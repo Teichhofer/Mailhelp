@@ -2,11 +2,11 @@
 from types import SimpleNamespace as NS
 
 from playwright.sync_api import expect
-from shared_decision_test import secrets
 
 from checks import audit
 from conftest import sign_in
 from mailhelp.config import Secrets
+from tests.fakes.shared_decision_test import secrets
 
 
 def test_overview_search_and_area_navigation(page, mailhelp):

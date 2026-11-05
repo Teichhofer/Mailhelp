@@ -3,9 +3,6 @@ from __future__ import annotations
 
 import pytest
 import yaml
-from shared_application import settings
-from shared_web_actions import MAIL1, web  # noqa: F401  (fixture)
-from web_scenario import mail_id, save_mail
 
 from mailhelp.config import Topic
 from mailhelp.configuration import AdminCommand, AdminKind, ConfigurationService, SenderChange
@@ -16,6 +13,9 @@ from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.review.results import ResultStatus
 from mailhelp.storage import JsonStore
 from mailhelp.web.sender_site import LIST_PATH
+from tests.fakes.shared_application import settings
+from tests.fakes.shared_web_actions import MAIL1, web  # noqa: F401  (fixture)
+from tests.scenarios.web_scenario import mail_id, save_mail
 
 SENDER = "klasse4b@schule.test"
 

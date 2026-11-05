@@ -3,11 +3,11 @@ import json
 from types import SimpleNamespace
 
 import pytest
-from shared_web_actions import web  # noqa: F401
-from shared_web_v12 import configure
 
 from mailhelp.mailbox.mailbox_run import MailboxRunService
 from mailhelp.runtime.metrics import MetricsRecorder, MetricsSettings
+from tests.fakes.shared_web_actions import web  # noqa: F401
+from tests.fakes.shared_web_v12 import configure
 
 
 def failure(metrics, *, account="a" * 24, folder="Gesendet", event="optional_folder_failed", error="private secret"):

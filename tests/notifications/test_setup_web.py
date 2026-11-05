@@ -9,9 +9,6 @@ from types import SimpleNamespace as NS
 import httpx
 import pytest
 import yaml
-from shared_application import settings
-from shared_core import prompt_config
-from shared_web_auth import SECRET
 
 from mailhelp.configuration import ConfigurationService
 from mailhelp.notifications.notification_runtime import NotificationRuntime
@@ -19,6 +16,9 @@ from mailhelp.runtime.local_pairing import issue, signature
 from mailhelp.runtime.setup_runtime import SetupRuntime
 from mailhelp.web.auth import PairingLimited
 from mailhelp.web.setup_site import input_field
+from tests.fakes.shared_application import settings
+from tests.fakes.shared_core import prompt_config
+from tests.fakes.shared_web_auth import SECRET
 
 
 def test_all_new_routes_require_authentication_and_csrf(web):
@@ -250,7 +250,7 @@ def test_markup_escapes_untrusted_values_and_console_entry_issues_no_code(web):
     assert "&lt;script&gt;" in input_field("unsafe", "<script>")
     assert 'selected' in input_field("telegram.enabled", True)
     web.auth.channel = "console"
-    from shared_web_auth import Browser
+    from tests.fakes.shared_web_auth import Browser
     browser = Browser(web.app)
     csrf = browser.csrf()
     before = web.store.load("web-pairing")

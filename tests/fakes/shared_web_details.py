@@ -1,10 +1,9 @@
 """Shared synthetic fixtures and doubles; no test-module dependencies."""
 from __future__ import annotations
 
-from shared_web_actions import MAIL1, Web, web  # noqa: F401  (fixture)
-from web_scenario import mail_id
-
 from mailhelp.models import MailState
+from tests.fakes.shared_web_actions import MAIL1, Web, web  # noqa: F401  (fixture)
+from tests.scenarios.web_scenario import mail_id
 
 
 def with_mail(store, number, text="Hallo,\nbitte https://evil.test/x <b>klicken</b>.", **content):

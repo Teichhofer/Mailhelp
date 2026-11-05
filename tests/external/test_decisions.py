@@ -6,10 +6,6 @@ from pathlib import Path
 import httpx
 import pytest
 from pydantic import ValidationError
-from shared_decisions import all_questions as all_questions
-from shared_decisions import answer as answer
-from shared_decisions import envelope as envelope
-from shared_decisions import prompts as prompts
 
 from mailhelp.config import Topic
 from mailhelp.llm.adapter import PermanentError, RetryableError
@@ -25,6 +21,10 @@ from mailhelp.llm.decisions import (
     validate_answers,
 )
 from mailhelp.llm.openrouter import RateLimitExceeded
+from tests.fakes.shared_decisions import all_questions as all_questions
+from tests.fakes.shared_decisions import answer as answer
+from tests.fakes.shared_decisions import envelope as envelope
+from tests.fakes.shared_decisions import prompts as prompts
 
 ROOT = Path(__file__).resolve().parents[2]
 

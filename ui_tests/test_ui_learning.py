@@ -2,12 +2,12 @@
 from types import SimpleNamespace
 
 import pytest
-from initial_harness import InitialHarness
-from learning_harness import LearningHarness
 from playwright.sync_api import expect
 
 from checks import audit
 from mailhelp.web.server import WebServer
+from tests.fakes.initial_harness import InitialHarness
+from tests.fakes.learning_harness import LearningHarness
 
 
 @pytest.fixture

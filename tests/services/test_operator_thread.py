@@ -4,10 +4,10 @@ from __future__ import annotations
 from types import SimpleNamespace
 
 import pytest
-from shared_application import Imap, Orch, Telegram, app
 
 from mailhelp.runtime.operator_thread import OperatorThread
 from mailhelp.telegram.receiver import TelegramInbox
+from tests.fakes.shared_application import Imap, Orch, Telegram, app
 
 
 def test_a_failed_pass_is_retried_and_a_successful_one_waits_for_input():

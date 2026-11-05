@@ -3,10 +3,6 @@ from datetime import UTC, date, datetime, timedelta
 from types import SimpleNamespace as NS
 
 import pytest
-from activity_fakes import Model, activity_prompts, definition, raw_mail
-from shared_profiles import ACCOUNT_TWO, settings
-from shared_retention import state
-from shared_telegram_dialog import proposal
 
 from mailhelp.activity.llm import ActivityAnalyzer
 from mailhelp.activity.models import FolderProgress, ReportStatus
@@ -20,6 +16,10 @@ from mailhelp.notifications.drafts import DraftService
 from mailhelp.processing.analysis import Analyzer
 from mailhelp.runtime.application import Application
 from mailhelp.storage import JsonStore
+from tests.fakes.activity_fakes import Model, activity_prompts, definition, raw_mail
+from tests.fakes.shared_profiles import ACCOUNT_TWO, settings
+from tests.fakes.shared_retention import state
+from tests.fakes.shared_telegram_dialog import proposal
 
 
 def test_report_snapshots_scoped_allow_filter_and_uses_work_signature(tmp_path):

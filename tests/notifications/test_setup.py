@@ -4,8 +4,6 @@ from types import SimpleNamespace as NS
 
 import pytest
 import yaml
-from shared_application import settings
-from shared_core import prompt_config
 
 from mailhelp.configuration import ConfigurationConflict, ConfigurationService, file_hash
 from mailhelp.llm.fingerprints import config_fingerprint
@@ -14,6 +12,8 @@ from mailhelp.review.results import ResultStatus
 from mailhelp.runtime.diagnostics import DiagnosticsService
 from mailhelp.runtime.setup import SetupService
 from mailhelp.storage import JsonStore
+from tests.fakes.shared_application import settings
+from tests.fakes.shared_core import prompt_config
 
 ACTOR = "web:" + "a" * 16
 

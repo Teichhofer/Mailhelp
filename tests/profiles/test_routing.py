@@ -3,10 +3,6 @@ from types import SimpleNamespace as NS
 
 import httpx
 import pytest
-from shared_core import prompt_config
-from shared_decision_test import secrets
-from shared_profiles import TOPICS, settings
-from shared_telegram_dialog import Telegram, controller, proposal
 
 from mailhelp.external.confirmed import execute_confirmed
 from mailhelp.external.contracts import ExternalUnavailable, PreparedWrite, TargetWriter
@@ -22,6 +18,10 @@ from mailhelp.proposals.precheck import DuplicatePreCheckService
 from mailhelp.proposals.profile_usage import profile_references
 from mailhelp.proposals.target_profiles import ProfileWriters, UnavailableWriter, build_profile_writers
 from mailhelp.storage import JsonStore
+from tests.fakes.shared_core import prompt_config
+from tests.fakes.shared_decision_test import secrets
+from tests.fakes.shared_profiles import TOPICS, settings
+from tests.fakes.shared_telegram_dialog import Telegram, controller, proposal
 
 
 class Adapter(TargetWriter):

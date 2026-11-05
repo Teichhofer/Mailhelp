@@ -4,10 +4,6 @@ from datetime import UTC, datetime
 
 import httpx
 import pytest
-from shared_core import proposal
-from shared_review_write_safety import reminder as reminder
-from shared_telegram_dialog import callback, controller
-from shared_write_improvements import event
 
 from mailhelp.llm.adapter import RetryableError
 from mailhelp.llm.openrouter import RateLimitExceeded
@@ -15,6 +11,10 @@ from mailhelp.models import ActionLedger, Proposal, ProposalStatus
 from mailhelp.persistence.ledger import ActionLedgerService
 from mailhelp.proposals.integrations import HttpWriter, execute_confirmed
 from mailhelp.storage import JsonStore
+from tests.fakes.shared_core import proposal
+from tests.fakes.shared_review_write_safety import reminder as reminder
+from tests.fakes.shared_telegram_dialog import callback, controller
+from tests.fakes.shared_write_improvements import event
 
 
 @pytest.mark.parametrize("kind", ["task", "event"])
@@ -177,7 +177,7 @@ def test_prepared_write_keeps_ambiguous_result_protected_across_restart(tmp_path
 
 
 def test_reminder_requires_duplicate_confirmation_even_with_different_source(tmp_path):
-    from shared_telegram_dialog import Writer
+    from tests.fakes.shared_telegram_dialog import Writer
     writer = Writer()
     first = reminder("a" * 24, "Original")
     second = reminder("b" * 24, "Erinnerung", "2026-10-07")

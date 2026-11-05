@@ -2,7 +2,6 @@
 from datetime import UTC, datetime
 
 import pytest
-from shared_services import AnalyzerStub, Notify
 
 from mailhelp.domain.proposal import DuplicateMatchInfo, DuplicateSource, Proposal, ProposalStatus
 from mailhelp.mailbox.imap import FetchedMail
@@ -12,6 +11,7 @@ from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.proposals.precheck import DuplicatePreCheckService
 from mailhelp.review.views import ReviewViews
 from mailhelp.storage import JsonStore
+from tests.fakes.shared_services import AnalyzerStub, Notify
 
 
 class Events(AnalyzerStub):

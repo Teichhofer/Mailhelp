@@ -3,11 +3,11 @@ import os
 
 import pytest
 import yaml
-from shared_setup import configured  # noqa: F401
 
 from mailhelp.config import _dotenv
 from mailhelp.runtime.credentials import RECEIPTS, CredentialEdits, CredentialUnauthorized
 from mailhelp.storage import CorruptState
+from tests.fakes.shared_setup import configured  # noqa: F401
 
 SAVE = "/einstellungen/zugangsdaten/speichern"
 

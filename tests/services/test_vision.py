@@ -5,18 +5,18 @@ import io
 
 import pytest
 from PIL import Image
-from shared_vision import Reader as Reader
-from shared_vision import decoded as decoded
-from shared_vision import image_bytes as image_bytes
-from shared_vision import mail as mail
-from shared_vision import noise as noise
-from shared_vision import prepared as prepared
-from shared_vision import scanned_pdf as scanned_pdf
 
 from mailhelp.config import VisionSettings
 from mailhelp.llm.openrouter import RateLimitExceeded
 from mailhelp.models import ExtractedAttachment, VisionExtractionResult
 from mailhelp.processing import vision
+from tests.fakes.shared_vision import Reader as Reader
+from tests.fakes.shared_vision import decoded as decoded
+from tests.fakes.shared_vision import image_bytes as image_bytes
+from tests.fakes.shared_vision import mail as mail
+from tests.fakes.shared_vision import noise as noise
+from tests.fakes.shared_vision import prepared as prepared
+from tests.fakes.shared_vision import scanned_pdf as scanned_pdf
 
 SETTINGS = VisionSettings()
 

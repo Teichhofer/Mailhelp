@@ -3,11 +3,11 @@ from types import SimpleNamespace
 
 import httpx
 import pytest
-from initial_harness import initial
 
 from mailhelp.config import Settings
 from mailhelp.runtime import setup_checks as module
 from mailhelp.runtime.setup_checks import SetupChecks, setup_secrets
+from tests.fakes.initial_harness import initial
 
 
 def test_imap_probe_uses_special_use_roles_and_closes_on_failure(initial,monkeypatch):

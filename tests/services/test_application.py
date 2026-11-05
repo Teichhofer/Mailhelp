@@ -5,15 +5,6 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
-from log_fakes import RecordingLogger as Log
-from shared_application import Imap as Imap
-from shared_application import Orch as Orch
-from shared_application import Store as Store
-from shared_application import Telegram as Telegram
-from shared_application import _persisted_run as _persisted_run
-from shared_application import app as app
-from shared_application import settings as settings
-from shared_core import prompt_config
 
 from mailhelp.config import Secrets, Topic
 from mailhelp.mailbox.imap import FetchedMail, MailCandidate, UIDValidityChanged
@@ -23,6 +14,15 @@ from mailhelp.processing.orchestrator import ProcessingOutcome, ProcessingResult
 from mailhelp.proposals.integrations import OAuthTokenError
 from mailhelp.runtime.application import Application, _state_directory, build_application, build_logger
 from mailhelp.telegram.commands import HELP, STARTUP
+from tests.fakes.log_fakes import RecordingLogger as Log
+from tests.fakes.shared_application import Imap as Imap
+from tests.fakes.shared_application import Orch as Orch
+from tests.fakes.shared_application import Store as Store
+from tests.fakes.shared_application import Telegram as Telegram
+from tests.fakes.shared_application import _persisted_run as _persisted_run
+from tests.fakes.shared_application import app as app
+from tests.fakes.shared_application import settings as settings
+from tests.fakes.shared_core import prompt_config
 
 # Since 2.3 the writers are built in mailhelp.external.providers.
 MOVED_WRITERS = ("HttpWriter", "GoogleOAuthTokenProvider")
@@ -1872,10 +1872,9 @@ def test_ignore_historical_start_reopens_older_uids_without_repeating_completed(
 
 @pytest.mark.parametrize('editing', [False, True])
 def test_startup_restores_durable_proposal_once_and_last_decision_resumes_imap(tmp_path, editing):
-    from shared_telegram_dialog import controller, proposal
-
     from mailhelp.storage import JsonStore
     from mailhelp.telegram import Decision, DecisionAction
+    from tests.fakes.shared_telegram_dialog import controller, proposal
     item = proposal(open_questions=['Welches Datum?'])
     with JsonStore(tmp_path / 'state') as store:
         c, _, _ = controller(store)

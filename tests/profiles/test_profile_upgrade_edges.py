@@ -14,7 +14,7 @@ def test_legacy_imap_converts_to_numbered_mailbox_without_inheriting_connection_
 
 
 def test_topic_scope_rejects_unconfigured_mailbox_before_draft_save(profiled):
-    from shared_profiles import TOPICS
+    from tests.fakes.shared_profiles import TOPICS
     topic = {**TOPICS[0].model_dump(mode="json"), "mailboxes": [99]}
     actor = "web:" + profiled.web.auth.sessions()[0].id
     with pytest.raises(ValueError, match="Postfach"):

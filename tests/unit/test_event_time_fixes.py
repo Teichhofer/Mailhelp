@@ -6,15 +6,15 @@ from datetime import UTC, datetime
 
 import httpx
 import pytest
-from shared_action_normalization import context
-from shared_action_normalization import event as extracted
-from shared_telegram_dialog import Writer, callback, controller, proposal
 
 from mailhelp.models import CalendarDuplicateDecision
 from mailhelp.proposals.action_normalization import NormalizationReason, normalize_event
 from mailhelp.proposals.integrations import HttpWriter
 from mailhelp.storage import JsonStore
 from mailhelp.telegram.formatting import revision_summary
+from tests.fakes.shared_action_normalization import context
+from tests.fakes.shared_action_normalization import event as extracted
+from tests.fakes.shared_telegram_dialog import Writer, callback, controller, proposal
 
 NOW = datetime(2026, 10, 11, 14, 3, tzinfo=UTC)
 

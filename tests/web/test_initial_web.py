@@ -5,8 +5,6 @@ from urllib.parse import parse_qs
 
 import httpx
 import pytest
-from initial_harness import initial
-from shared_web_auth import Browser
 
 from mailhelp.runtime import google_calendars as calendar_module
 from mailhelp.runtime import oauth_web
@@ -15,6 +13,8 @@ from mailhelp.runtime.web_password import WebPassword
 from mailhelp.web import oauth_site as module
 from mailhelp.web.http import Request
 from mailhelp.web.login_site import PAIR_COOKIE
+from tests.fakes.initial_harness import initial
+from tests.fakes.shared_web_auth import Browser
 
 
 def browser(h,signed=True):

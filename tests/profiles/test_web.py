@@ -4,10 +4,6 @@ from types import SimpleNamespace as NS
 
 import pytest
 import yaml
-from shared_profiles import ACCOUNT_ONE, ACCOUNT_TWO, TOPICS, settings
-from shared_telegram_dialog import proposal
-from shared_web_actions import MAIL1
-from shared_web_auth import Browser
 
 from mailhelp.config import Settings, Topic
 from mailhelp.configuration import AdminCommand, AdminKind, ConfigurationConflict, file_hash
@@ -15,6 +11,10 @@ from mailhelp.models import MailState
 from mailhelp.review.results import ResultStatus
 from mailhelp.runtime.setup import SetupState
 from mailhelp.web.mailbox_site import FIELDS, control, lookup
+from tests.fakes.shared_profiles import ACCOUNT_ONE, ACCOUNT_TWO, TOPICS, settings
+from tests.fakes.shared_telegram_dialog import proposal
+from tests.fakes.shared_web_actions import MAIL1
+from tests.fakes.shared_web_auth import Browser
 
 
 def discard(configured):

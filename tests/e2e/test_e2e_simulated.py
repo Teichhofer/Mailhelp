@@ -6,22 +6,6 @@ from email.message import EmailMessage
 from threading import Event
 
 import pytest
-from clock_fakes import step_back_wall_clock
-from shared_e2e_simulated import FakeImap as FakeImap
-from shared_e2e_simulated import FakeTelegram as FakeTelegram
-from shared_e2e_simulated import FakeWriter as FakeWriter
-from shared_e2e_simulated import NachholterminRouter as NachholterminRouter
-from shared_e2e_simulated import ReconciledCalendar as ReconciledCalendar
-from shared_e2e_simulated import SettingsStub as SettingsStub
-from shared_e2e_simulated import SimulatedOpenRouter as SimulatedOpenRouter
-from shared_e2e_simulated import (
-    assert_single_calendar_write_survives_restart as assert_single_calendar_write_survives_restart,
-)
-from shared_e2e_simulated import callback_update as callback_update
-from shared_e2e_simulated import message_update as message_update
-from shared_e2e_simulated import nachholtermin_flow as nachholtermin_flow
-from shared_e2e_simulated import raw_mail as raw_mail
-from shared_e2e_simulated import telegram_button as telegram_button
 
 from mailhelp.config import PromptConfig, PromptStep, TargetSettings, Topic
 from mailhelp.logging import NullLogger
@@ -32,6 +16,22 @@ from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.runtime.application import Application
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import TelegramDialogController
+from tests.fakes.clock_fakes import step_back_wall_clock
+from tests.fakes.shared_e2e_simulated import FakeImap as FakeImap
+from tests.fakes.shared_e2e_simulated import FakeTelegram as FakeTelegram
+from tests.fakes.shared_e2e_simulated import FakeWriter as FakeWriter
+from tests.fakes.shared_e2e_simulated import NachholterminRouter as NachholterminRouter
+from tests.fakes.shared_e2e_simulated import ReconciledCalendar as ReconciledCalendar
+from tests.fakes.shared_e2e_simulated import SettingsStub as SettingsStub
+from tests.fakes.shared_e2e_simulated import SimulatedOpenRouter as SimulatedOpenRouter
+from tests.fakes.shared_e2e_simulated import (
+    assert_single_calendar_write_survives_restart as assert_single_calendar_write_survives_restart,
+)
+from tests.fakes.shared_e2e_simulated import callback_update as callback_update
+from tests.fakes.shared_e2e_simulated import message_update as message_update
+from tests.fakes.shared_e2e_simulated import nachholtermin_flow as nachholtermin_flow
+from tests.fakes.shared_e2e_simulated import raw_mail as raw_mail
+from tests.fakes.shared_e2e_simulated import telegram_button as telegram_button
 
 pytestmark = pytest.mark.e2e
 
@@ -205,14 +205,13 @@ def test_nachholtermin_clarified_and_confirmed_in_the_web(tmp_path):
     import re
     from html import unescape
 
-    from shared_web_auth import LOCAL, SECRET, Browser, code_from
-
     from mailhelp.config import WebSettings
     from mailhelp.review.inbox import CommandInbox
     from mailhelp.review.views import ReviewViews
     from mailhelp.web import WebApp
     from mailhelp.web.auth import WebAuth
     from mailhelp.web.site import MailhelpSite
+    from tests.fakes.shared_web_auth import LOCAL, SECRET, Browser, code_from
 
     store, dialog, telegram, calendar, router, result = nachholtermin_flow(
         tmp_path / "web", incomplete=True)

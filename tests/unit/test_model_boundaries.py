@@ -50,11 +50,46 @@ def test_test_modules_share_helpers_only_through_fakes():
     root = Path(__file__).resolve().parents[2]
     offenders = []
     for path in [*root.joinpath("tests").rglob("test_*.py"), *root.joinpath("ui_tests").rglob("test_*.py")]:
-        for node in ast.walk(ast.parse(path.read_text(encoding="utf-8"))):
-            names = ([node.module or ""] if isinstance(node, ast.ImportFrom)
-                     else [alias.name for alias in node.names] if isinstance(node, ast.Import) else [])
-            offenders += [f"{path.name}: {name}" for name in names if name.split(".")[0].startswith("test_")]
+        offenders += [f"{path.name}: {name}" for name in imported_modules(path.read_text(encoding="utf-8"))
+                      if name.split(".")[-1].startswith("test_")]
     assert offenders == []
+
+
+def imported_modules(source: str) -> list[str]:
+    """Statically imported modules and string literals given to ``__import__``/``import_module``."""
+    import ast
+    names = []
+    for node in ast.walk(ast.parse(source)):
+        if isinstance(node, ast.ImportFrom):
+            names.append(node.module or "")
+        elif isinstance(node, ast.Import):
+            names += [alias.name for alias in node.names]
+        elif (isinstance(node, ast.Call) and node.args and isinstance(node.args[0], ast.Constant)
+              and isinstance(node.args[0].value, str)
+              and getattr(node.func, "id", getattr(node.func, "attr", None)) in {"__import__", "import_module"}):
+            names.append(node.args[0].value)
+    return names
+
+
+def test_import_scan_sees_dynamic_imports_of_test_modules():
+    source = ("import importlib\nfrom tests.fakes.shared_core import x\n"
+              "__import__('test_web_auth')\nimportlib.import_module('tests.web.test_web_auth')\nprint('x')")
+    assert imported_modules(source) == ["importlib", "tests.fakes.shared_core", "test_web_auth",
+                                        "tests.web.test_web_auth"]
+
+
+def test_helpers_are_imported_through_their_package_only():
+    # Planung 4.1, Schritt 9.4: no sys.path hack, so a bare helper name no longer resolves.
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[2]
+    helpers = {path.stem for folder in ("fakes", "scenarios")
+               for path in root.joinpath("tests", folder).glob("*.py") if path.stem != "__init__"}
+    offenders = []
+    for path in [*root.joinpath("tests").rglob("*.py"), *root.joinpath("ui_tests").rglob("*.py")]:
+        offenders += [f"{path.name}: {name}" for name in imported_modules(path.read_text(encoding="utf-8"))
+                      if name.split(".")[0] in helpers]
+    conftest = root.joinpath("tests", "conftest.py").read_text(encoding="utf-8")
+    assert offenders == [] and "sys.path" not in conftest
 
 
 # Planung 3.3, pillar 1: modules outside the Telegram package that may use it (channel integration).

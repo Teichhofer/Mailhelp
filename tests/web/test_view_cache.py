@@ -4,12 +4,12 @@ from __future__ import annotations
 import os
 
 import pytest
-from web_scenario import mail_id, populate, proposal, save_mail
 
 from mailhelp.review.archive import record_event
 from mailhelp.review.queries import ArchiveQueries
 from mailhelp.review.views import OVERVIEW_MAX_AGE_SECONDS, ReviewViews
 from mailhelp.storage import JsonStore
+from tests.scenarios.web_scenario import mail_id, populate, proposal, save_mail
 
 
 def test_the_overview_is_rebuilt_only_after_a_change(tmp_path):

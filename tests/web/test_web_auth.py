@@ -4,13 +4,6 @@ from __future__ import annotations
 from datetime import timedelta
 
 import pytest
-from shared_web_auth import Browser as Browser
-from shared_web_auth import Clock as Clock
-from shared_web_auth import Logger as Logger
-from shared_web_auth import Telegram as Telegram
-from shared_web_auth import code_from as code_from
-from shared_web_auth import pair as pair
-from shared_web_auth import signed_in as signed_in
 
 from mailhelp.review.inbox import CommandInbox
 from mailhelp.storage import JsonStore
@@ -28,6 +21,13 @@ from mailhelp.web.auth import (
 )
 from mailhelp.web.factory import create_web
 from mailhelp.web.site import FORM_TYPE, PAIR_COOKIE, SESSION_COOKIE
+from tests.fakes.shared_web_auth import Browser as Browser
+from tests.fakes.shared_web_auth import Clock as Clock
+from tests.fakes.shared_web_auth import Logger as Logger
+from tests.fakes.shared_web_auth import Telegram as Telegram
+from tests.fakes.shared_web_auth import code_from as code_from
+from tests.fakes.shared_web_auth import pair as pair
+from tests.fakes.shared_web_auth import signed_in as signed_in
 
 LOCAL = "127.0.0.1:8765"
 TAILNET = "mailhelp-pc.tail.ts.net"
@@ -299,7 +299,7 @@ def test_telegram_command_signs_out_every_device():
 
 
 def test_create_web_requires_the_secret_and_authorizes_live_sessions(tmp_path):
-    from shared_application import settings as app_settings
+    from tests.fakes.shared_application import settings as app_settings
     configured = app_settings(tmp_path)
     with JsonStore(tmp_path / "data") as store:
         with pytest.raises(ValueError, match="MAILHELP_WEB_SECRET"):

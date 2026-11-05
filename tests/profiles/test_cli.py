@@ -3,13 +3,13 @@ import sys
 
 import pytest
 import yaml
-from shared_core import prompt_config
-from shared_decision_test import secrets
-from shared_profiles import TOPICS, settings
 
 from mailhelp import cli
 from mailhelp.config import load_all
 from mailhelp.external.contracts import OAuthTokenError
+from tests.fakes.shared_core import prompt_config
+from tests.fakes.shared_decision_test import secrets
+from tests.fakes.shared_profiles import TOPICS, settings
 
 
 @pytest.mark.parametrize("args", [["--profile", "0"], ["--profile", "100"], ["--profile", "2"],

@@ -1,9 +1,8 @@
 """Full-text search over mail text and attachment text (Planung 2.3, 5)."""
-from shared_web_details import with_mail
-from web_scenario import mail_id
-
 from mailhelp.review.queries import ArchiveQueries, ArchiveQuery
 from mailhelp.review.search import FIELD_LIMIT, MAIL_LIMIT, Hit, bounded, excerpt, fold, terms
+from tests.fakes.shared_web_details import with_mail
+from tests.scenarios.web_scenario import mail_id
 
 
 def test_folding_treats_case_umlauts_accents_and_spacing_alike():

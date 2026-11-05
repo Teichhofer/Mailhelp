@@ -2,9 +2,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 import pytest
-from log_fakes import RecordingLogger as Log
 from pydantic import ValidationError
-from shared_retention import state as state
 
 from mailhelp.config import RetentionSettings
 from mailhelp.models import (
@@ -18,6 +16,8 @@ from mailhelp.models import (
 )
 from mailhelp.runtime.retention import RetentionService
 from mailhelp.storage import JsonStore
+from tests.fakes.log_fakes import RecordingLogger as Log
+from tests.fakes.shared_retention import state as state
 
 NOW = datetime(2026, 9, 16, tzinfo=UTC)
 

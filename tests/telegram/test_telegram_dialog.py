@@ -5,22 +5,7 @@ from unittest.mock import patch
 
 import httpx
 import pytest
-from log_fakes import RecordingLogger as Logger
 from pydantic import ValidationError
-from shared_core import prompt_config
-from shared_telegram_dialog import FailingRevisionService as FailingRevisionService
-from shared_telegram_dialog import InterpretationErrorService as InterpretationErrorService
-from shared_telegram_dialog import OperationallyFailingRevisionService as OperationallyFailingRevisionService
-from shared_telegram_dialog import RelevanceHandler as RelevanceHandler
-from shared_telegram_dialog import RevisionService as RevisionService
-from shared_telegram_dialog import Telegram as Telegram
-from shared_telegram_dialog import UnusableAnswerService as UnusableAnswerService
-from shared_telegram_dialog import Writer as Writer
-from shared_telegram_dialog import callback as callback
-from shared_telegram_dialog import controller as controller
-from shared_telegram_dialog import message as message
-from shared_telegram_dialog import proposal as proposal
-from shared_telegram_dialog import relevance_state as relevance_state
 
 from mailhelp.config import OutputTokenRetry, Settings
 from mailhelp.domain.revision_errors import ContradictoryRevision
@@ -73,6 +58,23 @@ from mailhelp.telegram import (
     validate_callback_data,
     validate_callback_markup,
 )
+from tests.fakes.log_fakes import RecordingLogger as Logger
+from tests.fakes.shared_core import prompt_config
+from tests.fakes.shared_telegram_dialog import FailingRevisionService as FailingRevisionService
+from tests.fakes.shared_telegram_dialog import InterpretationErrorService as InterpretationErrorService
+from tests.fakes.shared_telegram_dialog import (
+    OperationallyFailingRevisionService as OperationallyFailingRevisionService,
+)
+from tests.fakes.shared_telegram_dialog import RelevanceHandler as RelevanceHandler
+from tests.fakes.shared_telegram_dialog import RevisionService as RevisionService
+from tests.fakes.shared_telegram_dialog import Telegram as Telegram
+from tests.fakes.shared_telegram_dialog import UnusableAnswerService as UnusableAnswerService
+from tests.fakes.shared_telegram_dialog import Writer as Writer
+from tests.fakes.shared_telegram_dialog import callback as callback
+from tests.fakes.shared_telegram_dialog import controller as controller
+from tests.fakes.shared_telegram_dialog import message as message
+from tests.fakes.shared_telegram_dialog import proposal as proposal
+from tests.fakes.shared_telegram_dialog import relevance_state as relevance_state
 
 
 def test_telegram_date_only_successor_cannot_become_all_day():

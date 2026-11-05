@@ -4,12 +4,12 @@ import json
 from threading import Event, Thread
 
 import pytest
-from learning_harness import learning
 
 from mailhelp.config import read_yaml
 from mailhelp.models import IrrelevantSenders
 from mailhelp.runtime.learning_jobs import LearningConflict, LearningJobs
 from mailhelp.runtime.learning_worker import LearningCompleter, LearningPaused
+from tests.fakes.learning_harness import learning
 
 
 def choice(**patch):
@@ -314,7 +314,7 @@ def test_network_work_holds_no_store_lock_and_cancel_prevents_late_results(learn
 def test_browser_authorization_csrf_estimate_review_and_stale_forms(learning):
     from urllib.parse import urlencode
 
-    from shared_web_auth import Browser
+    from tests.fakes.shared_web_auth import Browser
 
     h = learning
     assert Browser(h.web, host="localhost:8765").request("GET", "/lernen").status == 303
