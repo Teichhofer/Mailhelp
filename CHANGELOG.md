@@ -1,5 +1,13 @@
 # Änderungen
 
+## 4.1.6 – Property-Tests für MIME, Datumslogik und LLM-Antworten
+
+- Planung 4.1, Schritt 9.10: Hypothesis prüft feindselige Multipart-Mails mit unpassenden
+  Grenzen, Zeichensätzen und Transferkodierungen, Wochentags- und Jahreserkennung von 1900
+  bis 2099, eindeutige oder abgewiesene Ortszeiten an Zeitumstellungen gegen ein unabhängiges
+  Orakel sowie abgeschnittene, in Markdown gefasste oder falsch geformte LLM-Antworten bis zur
+  Schemaprüfung der Analyse. Alle Eigenschaften bestehen ohne Änderung am Anwendungscode.
+
 ## 4.1.5 – Test-Factories für Vorschläge, Mailzustände und Einstellungen
 
 - Planung 4.1, Schritt 9.9: `tests/fakes/factories.py` liefert gültige Standardobjekte für
