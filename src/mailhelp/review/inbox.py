@@ -21,7 +21,6 @@ import secrets
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
-from threading import Lock
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -85,8 +84,10 @@ class CommandInbox:
 
     def __init__(self, store: JsonStore, wake: Callable[[], None] | None = None,
                  clock: Callable[[], datetime] = _now):
+        # Serialized with the store's own re-entrant lock, never a second one: the
+        # notification thread reads the inbox while holding the store lock, and a web
+        # page holding a separate inbox lock and waiting for the store deadlocked with it.
         self.store, self.wake, self.clock = store, wake, clock
-        self._lock = Lock()
 
     def _load(self) -> CommandInboxState:
         state = self.store.load_model(COMMAND_INBOX, CommandInboxState, CommandInboxState())
@@ -111,7 +112,7 @@ class CommandInbox:
 
     def _submit(self, command: ReviewCommand | AdminCommand,
                 result: ReviewResult | None) -> tuple[CommandEntry, bool]:
-        with self._lock:
+        with self.store.locked():
             state = self._load()
             existing = next((entry for entry in state.entries
                              if entry.command.idempotency_key == command.idempotency_key), None)
@@ -133,11 +134,11 @@ class CommandInbox:
         return entry, True
 
     def get(self, entry_id: str) -> CommandEntry | None:
-        with self._lock:
+        with self.store.locked():
             return next((entry for entry in self._load().entries if entry.id == entry_id), None)
 
     def queued(self) -> list[CommandEntry]:
-        with self._lock:
+        with self.store.locked():
             return [entry for entry in self._load().entries if entry.status == CommandStatus.QUEUED]
 
     def counts(self) -> dict[CommandStatus, int]:
@@ -163,11 +164,11 @@ class CommandInbox:
         return len(interrupted)
 
     def _entries(self) -> list[CommandEntry]:
-        with self._lock:
+        with self.store.locked():
             return list(self._load().entries)
 
     def _update(self, entry_id: str, **changes: object) -> None:
-        with self._lock:
+        with self.store.locked():
             state = self._load()
             cutoff = self.clock() - RETENTION
             # Finished entries are kept for a day so a repeated request still

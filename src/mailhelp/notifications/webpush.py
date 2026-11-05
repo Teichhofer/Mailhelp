@@ -5,7 +5,6 @@ import base64
 import hashlib
 import json
 import re
-from threading import Lock
 from typing import Any, Protocol, cast
 from urllib.parse import urlsplit
 
@@ -64,8 +63,9 @@ class NoRedirectSession(requests.Session):
 class PushService:
     def __init__(self, store: StateStore, auth: AuthSessionManager, subject: str, sender: Any = webpush) -> None:
         self.store, self.auth, self.subject, self.sender = store, auth, subject, sender
-        # Serializes subscription changes; never held by other parts of Mailhelp.
-        self._lock = Lock()
+        # Subscription changes are serialized with the store's own lock: notification
+        # delivery asks for destinations while holding it, so a separate push lock
+        # taken before the store deadlocked with it.
         with store.locked():
             saved = store.load("web-vapid")
             if saved is None:
@@ -85,7 +85,7 @@ class PushService:
             raise ValueError("Idempotenzschlüssel fehlt")
         checked = subscription(value) if value is not None else None
         digest = hashlib.sha256(json.dumps(checked, sort_keys=True).encode()).hexdigest()
-        with self._lock:
+        with self.store.locked():
             if not self.auth.active(actor):
                 raise PermissionError("Sitzung abgelaufen")
             state = self._state()
@@ -111,13 +111,13 @@ class PushService:
 
     def destinations(self) -> list[str]:
         """Opaque subscription revisions keep provider addresses out of the queue."""
-        with self._lock:
+        with self.store.locked():
             return [f"{actor}:{hashlib.sha256(json.dumps(item, sort_keys=True).encode()).hexdigest()}"
                     for actor, item in self._state()["devices"].items() if self.auth.active(actor)]
 
     def deliver(self, device: str, tag: str) -> None:
         actor, _, revision = device.partition(":")
-        with self._lock:
+        with self.store.locked():
             item = self._state()["devices"].get(actor)
             if (item is None or not self.auth.active(actor)
                     or hashlib.sha256(json.dumps(item, sort_keys=True).encode()).hexdigest() != revision):
@@ -134,7 +134,7 @@ class PushService:
                 raise
             status = exc.response.status_code
             if status in (404, 410):
-                with self._lock:
+                with self.store.locked():
                     state = self._state()
                     if state["devices"].get(actor) == item:
                         del state["devices"][actor]
@@ -152,7 +152,7 @@ class PushService:
         Delivery runs without any lock; a device is only removed afterwards if its
         subscription did not change in the meantime.
         """
-        with self._lock:
+        with self.store.locked():
             state = self._state()
             stale = [actor for actor in state["devices"] if not self.auth.active(actor)]
             for actor in stale:
@@ -176,7 +176,7 @@ class PushService:
             except requests.RequestException:
                 pass
         if gone:
-            with self._lock:
+            with self.store.locked():
                 state = self._state()
                 for actor in gone:
                     if state["devices"].get(actor) == devices[actor]:

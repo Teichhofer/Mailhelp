@@ -1,5 +1,16 @@
 # Änderungen
 
+## 4.0.1 – Verklemmung von Weboberfläche und Mailabruf behoben
+
+- Behoben: Nach einer Web-Aktion konnten Weboberfläche, Mailabruf und Telegram-Bedienung
+  dauerhaft hängen bleiben; nur `/health` und der Telegram-Empfang antworteten noch, bis
+  zum Neustart. Ursache war eine umgekehrte Sperrreihenfolge: Die
+  Benachrichtigungszustellung hielt die Sperre der Zustandsablage und fragte den
+  Befehlseingang beziehungsweise die Push-Abonnements, während eine Webseite deren eigene
+  Sperre hielt und auf die Ablage wartete. Befehlseingang und Push-Abonnements nutzen
+  jetzt die Sperre der Ablage selbst. Regressionstests stellen beide Verklemmungen mit
+  zwei Threads nach.
+
 ## 4.0.0 – Browser-First Inbetriebnahme und Web-Lernmodus
 
 Haupt-Release aus den abgenommenen Arbeitsständen 3.6.38, 3.7.19 und 3.8.28.

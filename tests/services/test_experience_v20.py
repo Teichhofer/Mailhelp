@@ -12,6 +12,7 @@ import pytest
 import requests
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
+from lock_fakes import ProbedStore, finishes_while_store_lock_held
 from PIL import Image
 from pydantic import SecretStr, ValidationError
 from pywebpush import WebPushException
@@ -799,13 +800,26 @@ def test_push_delivery_holds_no_lock_and_keeps_a_device_renewed_meanwhile(tmp_pa
     response.status_code = 410
     def gone(**kw):
         # Pages and other services stay usable while a push provider answers slowly.
-        assert not service._lock.locked()
         assert usable_from_another_thread(store)
         service.change("device", "key-0002", renewed)
         raise WebPushException("gone", response=response)
     service = PushService(store, NS(active=lambda _: True), "mailto:me@test", gone)
     service.change("device", "key-0001", sub())
     service.notify()
+    assert store.load("push-subscriptions")["devices"]["device"] == renewed
+
+
+def test_push_subscription_change_never_deadlocks_with_a_holder_of_the_store_lock(tmp_path):
+    """Regression 4.0.1: notification delivery held the store lock and asked for push
+    destinations while a subscription change held the push lock and waited for the store."""
+    store = ProbedStore(tmp_path)
+    service = PushService(store, NS(active=lambda _: True), "mailto:me@test", lambda **kw: None)
+    service.change("device", "key-0001", sub())
+    renewed = sub()
+    destinations = []
+    assert finishes_while_store_lock_held(store, lambda: service.change("device", "key-0002", renewed),
+                                          lambda: destinations.extend(service.destinations()))
+    assert len(destinations) == 1
     assert store.load("push-subscriptions")["devices"]["device"] == renewed
 
 

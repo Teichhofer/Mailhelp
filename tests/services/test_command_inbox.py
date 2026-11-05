@@ -5,6 +5,7 @@ import threading
 from datetime import UTC, datetime, timedelta
 
 import pytest
+from lock_fakes import ProbedStore, finishes_while_store_lock_held
 from shared_review import MAIL, OTHER, command, setup
 from shared_telegram_dialog import (
     Logger,
@@ -248,3 +249,15 @@ def test_parallel_submissions_and_processing_lose_nothing(tmp_path):
         dialog._process_commands()
         assert errors == []
         assert all(store.load(f"proposal-{MAIL}-p{index}")["status"] == "rejected" for index in range(20))
+
+
+def test_inbox_reads_never_deadlock_with_a_holder_of_the_store_lock(tmp_path):
+    """Regression 4.0.1: the notification thread held the store lock and read the inbox
+    while a web page held the inbox lock and waited for the store; both hung for good."""
+    store = ProbedStore(tmp_path)
+    inbox = CommandInbox(store)
+    entry, _ = inbox.submit(command(CommandKind.REJECT))
+    results = []
+    assert finishes_while_store_lock_held(store, lambda: results.append(inbox.get(entry.id)),
+                                          lambda: results.append(inbox.get(entry.id)))
+    assert [item.id for item in results] == [entry.id, entry.id]
