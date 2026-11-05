@@ -6,6 +6,7 @@ from datetime import UTC, datetime
 
 import httpx
 import pytest
+import time_machine
 
 from mailhelp.models import CalendarDuplicateDecision
 from mailhelp.proposals.action_normalization import NormalizationReason, normalize_event
@@ -16,6 +17,7 @@ from tests.fakes.shared_action_normalization import context
 from tests.fakes.shared_action_normalization import event as extracted
 from tests.fakes.shared_telegram_dialog import Writer, callback, controller, proposal
 
+# 16:03 in Europe/Berlin, the calendar time zone of the writer below.
 NOW = datetime(2026, 10, 11, 14, 3, tzinfo=UTC)
 
 
@@ -63,9 +65,9 @@ def timed_event(**changes):
                     end="2026-10-21T15:30:00+02:00", status="confirmed", **changes)
 
 
-def test_same_event_with_another_end_is_updated_and_the_change_is_noted(monkeypatch):
+@time_machine.travel(NOW, tick=False)
+def test_same_event_with_another_end_is_updated_and_the_change_is_noted():
     """Regression: a confirmed new end time was dropped as "already exists"."""
-    monkeypatch.setattr("mailhelp.external.calendar._now", lambda zone: NOW)
     seen = []
     writer = calendar_writer({"start": {"dateTime": "2026-10-21T12:30:00+02:00"},
                               "end": {"dateTime": "2026-10-21T14:30:00+02:00"}}, seen=seen)
@@ -78,14 +80,14 @@ def test_same_event_with_another_end_is_updated_and_the_change_is_noted(monkeypa
     assert body["start"] == {"dateTime": "2026-10-21T12:30:00+02:00"}
     assert body["end"] == {"dateTime": "2026-10-21T15:30:00+02:00"}
     assert body["description"] == (
-        "Alt\n\n[Mailhelp 11.10.2026 14:03] Zeit aktualisiert: Ende 21.10.2026 14:30 Uhr → "
+        "Alt\n\n[Mailhelp 11.10.2026 16:03] Zeit aktualisiert: Ende 21.10.2026 14:30 Uhr → "
         "21.10.2026 15:30 Uhr (bestätigte Vorschlagsversion 5).")
     assert result["operation"] == "duplicate_updated"
     assert result["time_changes"] == ["Ende 21.10.2026 14:30 Uhr → 21.10.2026 15:30 Uhr"]
 
 
-def test_equal_instants_in_another_offset_and_unknown_times_are_not_changes(monkeypatch):
-    monkeypatch.setattr("mailhelp.external.calendar._now", lambda zone: NOW)
+@time_machine.travel(NOW, tick=False)
+def test_equal_instants_in_another_offset_and_unknown_times_are_not_changes():
     for existing in ({"start": {"dateTime": "2026-10-21T10:30:00Z"},
                       "end": {"dateTime": "2026-10-21T13:30:00Z"}},
                      {"start": {}, "end": {}}):
@@ -99,8 +101,8 @@ def test_equal_instants_in_another_offset_and_unknown_times_are_not_changes(monk
         assert [request.method for request in seen] == ["GET"]
 
 
-def test_all_day_and_timed_changes_name_old_and_new_values(monkeypatch):
-    monkeypatch.setattr("mailhelp.external.calendar._now", lambda zone: NOW)
+@time_machine.travel(NOW, tick=False)
+def test_all_day_and_timed_changes_name_old_and_new_values():
     all_day = proposal(kind="event", all_day=True, start="2026-10-21", end="2026-10-22",
                        status="confirmed", target="calendar")
     writer = calendar_writer({"start": {"date": "2026-10-21"}, "end": {"date": "2026-10-24"}})

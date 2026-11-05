@@ -8,6 +8,7 @@ from types import SimpleNamespace
 
 import httpx
 import pytest
+import time_machine
 
 from mailhelp.llm.adapter import PermanentError
 from mailhelp.logging import JsonlLogger
@@ -361,10 +362,7 @@ def test_a_permanently_failing_update_is_dropped_once_with_a_notice(tmp_path, mo
 
 
 def test_transient_failures_are_retried_with_backoff_then_dropped(tmp_path, monkeypatch):
-    clock = [1_000.0]
-    monkeypatch.setattr("mailhelp.telegram.dialog.time.time", lambda: clock[0])
-    monkeypatch.setattr("mailhelp.telegram.receiver.time.time", lambda: clock[0])
-    with JsonStore(tmp_path) as store:
+    with time_machine.travel(1_000.0, tick=False) as traveller, JsonStore(tmp_path) as store:
         inbox = TelegramInbox(store)
         controller, transport = dialog(store, inbox)
         inbox.add([message(4), message(5)], set())
@@ -383,11 +381,11 @@ def test_transient_failures_are_retried_with_backoff_then_dropped(tmp_path, monk
         # Before the retry time nothing is processed, and later input keeps its place.
         controller.poll_once()
         assert handled == [4]
-        clock[0] = 1_030.0
+        traveller.move_to(1_030.0)
         with pytest.raises(RuntimeError):
             controller.poll_once()
         assert inbox.pending()[0].not_before == 1_090.0
-        clock[0] = 1_090.0
+        traveller.move_to(1_090.0)
         controller.poll_once()  # third failure: dropped with a notice, then 5 follows
         assert handled == [4, 4, 4, 5] and inbox.pending() == []
         assert sum("wurde verworfen" in text for _, text, _ in transport.sent) == 1

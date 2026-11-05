@@ -1,5 +1,13 @@
 # Änderungen
 
+## 4.1.7 – Deterministische Zeitreisen mit time-machine
+
+- Planung 4.1, Schritt 9.11: `time-machine` ersetzt die Monkeypatches einzelner Uhrfunktionen
+  in den Kalender-, iCalendar- und Telegram-Tests. Neue Tests reisen mit den echten
+  Standarduhren durch Ablauf von Web-Sitzungen (30 Tage), Anmeldecodes (10 Minuten) und
+  Google-Zugriffstokens (1 Stunde). Ein Kalendertest erwartete wegen seines Patches eine
+  UTC-Uhrzeit in der Änderungsnotiz; er prüft jetzt die tatsächlich geschriebene Ortszeit.
+
 ## 4.1.6 – Property-Tests für MIME, Datumslogik und LLM-Antworten
 
 - Planung 4.1, Schritt 9.10: Hypothesis prüft feindselige Multipart-Mails mit unpassenden

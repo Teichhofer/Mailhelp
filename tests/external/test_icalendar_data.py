@@ -1,5 +1,6 @@
 """iCalendar resources for CalDAV: bounded parsing and loss-free updates (Planung 2.3, 4.1)."""
 import pytest
+import time_machine
 
 from mailhelp.external import provider
 from mailhelp.external.icalendar_data import (
@@ -100,10 +101,9 @@ def test_provider_cache_expires_after_a_minute(monkeypatch):
 
         check_access = reconcile = close = _prepare = None
 
-    now = [1000.0]
-    monkeypatch.setattr(provider.time, "time", lambda: now[0])
-    cached = Cached()
-    cached._set_cached(("k",), [1])
-    assert cached._get_cached(("k",)) == [1]
-    now[0] += 61
-    assert cached._get_cached(("k",)) is None and cached._get_cached(("anderer",)) is None
+    with time_machine.travel(1000.0, tick=False) as traveller:
+        cached = Cached()
+        cached._set_cached(("k",), [1])
+        assert cached._get_cached(("k",)) == [1]
+        traveller.shift(61)
+        assert cached._get_cached(("k",)) is None and cached._get_cached(("anderer",)) is None

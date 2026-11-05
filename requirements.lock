@@ -37,6 +37,7 @@ pytest==8.4.1
 pywebpush==2.5.0
 requests==2.34.2
 sortedcontainers==2.4.0
+time-machine==3.6.0
 typing-inspection==0.4.4
 typing_extensions==4.16.0
 tzdata==2026.4
