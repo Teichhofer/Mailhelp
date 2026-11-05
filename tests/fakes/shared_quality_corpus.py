@@ -78,3 +78,25 @@ def pipeline(case_id: str):
     assert normalization == case["expected"]["normalization"]
     assert builder == case["expected"]["builder"]
     return client.calls, tasks, events, proposals
+
+
+class ExpectedAnswers:
+    """Answers each stage with the corpus expectation of the mail, found by its subject.
+
+    The expectation never reaches the payload; the gate checks that the configured prompts
+    and topics can carry every expected answer through the real evaluation path.
+    """
+
+    def __init__(self, corpus: dict[str, object]):
+        self.cases = {case["raw_email"].split("Subject: ")[1].split("\n")[0]: case
+                      for case in corpus["cases"]}
+        self.models: set[str] = set()
+
+    def complete(self, model, parameters, system, payload, **_metadata):
+        assert "expected" not in payload  # the corpus expectation itself never reaches a model
+        self.models.add(model)
+        stage = _metadata.get("stage") or system
+        mail = payload.get("mail", payload)
+        case = self.cases[mail["headers"]["subject"]]
+        key = {"action_router": "action_route"}.get(stage, stage)
+        return "synthetic-call", deepcopy(case["expected"][key])

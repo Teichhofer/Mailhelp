@@ -1,5 +1,14 @@
 # Änderungen
 
+## 4.1.8 – Deterministisches Evaluierungs-Gate für Prompts und Themen
+
+- Planung 4.1, Schritt 9.12: Ein deterministisches Gate führt den Qualitätskorpus v3 mit dem
+  echten `prompts.yaml` und `topics.yaml` durch den Auswertungspfad von `mailhelp-evaluate`;
+  nur die Modellantworten sind simuliert. Fehlende oder umbenannte Stufen, nicht auflösbare
+  Routen und entfernte oder deaktivierte Korpusthemen lassen jeden Testlauf scheitern, bevor ein
+  bezahlter Aufruf entstünde. Die Wirkung neuer Formulierungen auf echte Modelle misst weiterhin
+  `mailhelp-evaluate` mit echtem Anbieter.
+
 ## 4.1.7 – Deterministische Zeitreisen mit time-machine
 
 - Planung 4.1, Schritt 9.11: `time-machine` ersetzt die Monkeypatches einzelner Uhrfunktionen
