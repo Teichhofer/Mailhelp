@@ -1,6 +1,7 @@
 """Deciding in the browser: confirm, answer, quick answers, relevance (desktop and iPhone)."""
 from __future__ import annotations
 
+import pytest
 from playwright.sync_api import expect
 
 from checks import audit
@@ -12,6 +13,7 @@ def card(page, number, pid):
     return item(page, f"#v-{mail_id(number)}-{pid}")
 
 
+@pytest.mark.smoke
 def test_overview_with_actions_is_easy_to_operate(page, mailhelp):
     sign_in(page, mailhelp)
     current = card(page, 1, "elternabend")
@@ -26,6 +28,7 @@ def test_overview_with_actions_is_easy_to_operate(page, mailhelp):
     assert page.errors == []
 
 
+@pytest.mark.smoke
 def test_confirm_in_the_browser_creates_the_entry_once(page, mailhelp):
     sign_in(page, mailhelp)
     act(page, card(page, 1, "elternabend").get_by_role("button", name="Im Kalender anlegen"), "Angelegt.")

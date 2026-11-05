@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 4.1.8 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 4.1.9 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 4.1 baut die Testinfrastruktur aus ([Planung 4.1](docs/Planung-4.1.md)); seit 4.1.0
 deckt der Qualitätskorpus auch Jimdo-Anfragen und Stellplatzbuchungen ab.
@@ -484,6 +484,14 @@ Mit installiertem Chrome und den Browser-Testabhängigkeiten:
 ```sh
 python -m pip install -e ".[ui]"
 python -m pytest ui_tests --no-cov -p no:cacheprovider
+```
+
+Vor einem Push genügt oft der schnelle Browser-Smoke (rund 40 Sekunden): Anmeldung,
+Bestätigen und Übersicht, Offline-Seite und offline ausgelöste Aktion, Einrichtung ohne
+JavaScript und Barrierefreiheitsprüfung. Die JavaScript-Abdeckung prüft nur der volle Lauf.
+
+```sh
+python -m pytest ui_tests -m smoke --no-cov -p no:cacheprovider
 ```
 
 Die Browserprüfungen umfassen Desktop-, Mobil- und schmale Telefonansichten,

@@ -1,5 +1,12 @@
 # Änderungen
 
+## 4.1.9 – Browser-Smoke und offline ausgelöste Aktionen
+
+- Planung 4.1, Schritt 9.13: `python -m pytest ui_tests -m smoke --no-cov` prüft in rund
+  40 Sekunden Anmeldung, Bestätigen, Übersicht, Offline-Seite, Einrichtung ohne JavaScript und
+  Barrierefreiheit. Ein neuer Browsertest belegt, dass eine offline ausgelöste Bestätigung
+  weder ausgeführt noch später vom Service Worker wiederholt wird.
+
 ## 4.1.8 – Deterministisches Evaluierungs-Gate für Prompts und Themen
 
 - Planung 4.1, Schritt 9.12: Ein deterministisches Gate führt den Qualitätskorpus v3 mit dem

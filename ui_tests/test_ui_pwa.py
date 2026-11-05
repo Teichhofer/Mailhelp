@@ -3,10 +3,11 @@ from __future__ import annotations
 
 import re
 
+import pytest
 from playwright.sync_api import expect
 
 from checks import audit
-from conftest import COVERAGE, DEVICES, Page, sign_in
+from conftest import COVERAGE, DEVICES, Page, item, sign_in
 
 SHELL = ["/offline.html", "/static/app.css", "/static/icon-192.png", "/static/icon-512.png"]
 
@@ -17,6 +18,7 @@ def new_page(browser, device, **options):
     return Page(context.new_page(), device)
 
 
+@pytest.mark.smoke
 def test_installed_app_shows_the_offline_page_and_caches_no_data(browser, mailhelp):
     for device in DEVICES:
         page = new_page(browser, device, service_workers="allow")
@@ -160,6 +162,33 @@ def test_push_notifications_show_fixed_texts_and_open_the_app(browser, mailhelp)
             ("Mailhelp", "Neue Entscheidungen warten in Mailhelp.", "mailhelp-decisions", "decisions")]
         assert result["closed"] and result["navigated"] == ["/offen"]
         assert result["opened"] == ["/briefing", "/offen"]
+        assert page.errors == []
+    finally:
+        page.context.close()
+
+
+@pytest.mark.smoke
+def test_an_action_sent_offline_is_neither_executed_nor_replayed_later(browser, mailhelp):
+    """Planung 4.1, Schritt 9.13: the worker never stores or repeats a confirmation."""
+    from tests.scenarios.web_scenario import mail_id
+    page = new_page(browser, "desktop", service_workers="allow")
+    try:
+        sign_in(page, mailhelp)
+        assert page.evaluate("navigator.serviceWorker.ready.then(() => true)")
+        page.reload()
+        button = item(page, f"#v-{mail_id(1)}-elternabend").get_by_role("button", name="Im Kalender anlegen")
+        page.context.set_offline(True)
+        button.click()
+        page.wait_for_timeout(2500)  # longer than the undo delay of the test server
+        page.context.set_offline(False)
+        page.page.goto(mailhelp.url)
+        expect(page.get_by_role("heading", name="Offene Entscheidungen")).to_be_visible()
+        page.wait_for_timeout(500)
+        expect(page.locator(f"#v-{mail_id(1)}-elternabend")).to_have_count(1)
+        assert mailhelp.writer.created == []
+        assert (mailhelp.store.load("command-inbox") or {"entries": []})["entries"] == []
+        assert not any("Angelegt" in text for text in mailhelp.telegram.sent)
+        page.errors[:] = [error for error in page.errors if "ERR_INTERNET_DISCONNECTED" not in error]
         assert page.errors == []
     finally:
         page.context.close()

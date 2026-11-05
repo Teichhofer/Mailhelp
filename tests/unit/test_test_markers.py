@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 TESTS = Path(__file__).resolve().parents[1]
-MARKERS = {"slow", "process", "e2e"}
+MARKERS = {"slow", "process", "e2e", "smoke"}
 
 
 def marks(node: ast.expr) -> set[str]:

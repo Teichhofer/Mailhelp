@@ -74,6 +74,7 @@ def test_initial_wizard_manual_timezone_survives_back_navigation(page,initial_se
     expect(page.get_by_role('heading',name='Mailhelp einrichten: Postfach')).to_be_visible()
 
 
+@pytest.mark.smoke
 def test_initial_wizard_without_javascript(browser,initial_server):
     h=initial_server
     context=browser.new_context(java_script_enabled=False,service_workers='block')

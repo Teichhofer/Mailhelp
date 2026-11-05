@@ -1,6 +1,7 @@
 """Overview, proposal detail and status pages in the browser (desktop and iPhone)."""
 from __future__ import annotations
 
+import pytest
 from playwright.sync_api import expect
 
 from checks import audit
@@ -8,6 +9,7 @@ from conftest import item, sign_in
 from tests.scenarios.web_scenario import mail_id, proposal, save_mail
 
 
+@pytest.mark.smoke
 def test_overview_is_readable_and_mail_content_stays_inert(page, mailhelp):
     dialogs = []
     page.on("dialog", lambda dialog: (dialogs.append(dialog.message), dialog.dismiss()))

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mailhelp"
-version = "4.1.8"
+version = "4.1.9"
 description = "Persönlicher, bestätigungspflichtiger E-Mail-Assistent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -29,6 +29,7 @@ markers = [
   "slow: takes more than one second on a development machine",
   "process: starts real child processes (ProcessHarness, hard kills, CLI scripts)",
   "e2e: complete flows with container or lifecycle context (tests/e2e)",
+  "smoke: fast browser check before a push: python -m pytest ui_tests -m smoke --no-cov",
 ]
 testpaths = ["tests"]
 # The project root makes tests.fakes and tests.scenarios importable (Planung 4.1, 9.3).

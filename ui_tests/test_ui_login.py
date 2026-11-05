@@ -1,12 +1,14 @@
 """Login, pairing and device management in the browser (desktop and iPhone)."""
 from __future__ import annotations
 
+import pytest
 from playwright.sync_api import expect
 
 from checks import audit
 from conftest import sign_in
 
 
+@pytest.mark.smoke
 def test_pairing_flow_is_usable(page, mailhelp):
     page.goto(f"{mailhelp.url}/anmelden")
     assert page.get_by_role("heading", name="Gerät koppeln").is_visible()
