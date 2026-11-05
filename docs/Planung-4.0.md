@@ -9,7 +9,7 @@ Arbeitsstand 3.6.38 implementiert; [Abnahmebericht](Release-3.6.md).
 Ersteinrichtung und Browser-OAuth aus 3.7 sind im Arbeitsstand 3.7.19 implementiert;
 die bestandene Gesamtabnahme ist in [Release 3.7](Release-3.7.md) dokumentiert. Die folgende
 Ausgangsstand-Tabelle dokumentiert weiterhin die ursprüngliche Planungsbasis 3.5.9.
-**Teilpläne:** [Planung 3.6](Planung-3.6.md) (Fundament und Absicherung), [Planung 3.7](Planung-3.7.md) (Ersteinrichtung und OAuth) · **Nachfolger:** [Planung 4.1](Planung-4.1.md) (Qualitätsoffensive und Testinfrastruktur)  
+**Teilpläne:** [Planung 3.6](Planung-3.6.md) (Fundament und Absicherung), [Planung 3.7](Planung-3.7.md) (Ersteinrichtung und OAuth) · **Nachfolger:** [Planung 4.1](Planung-4.1.md) (Qualitätsoffensive und Testinfrastruktur), [Planung 4.2](Planung-4.2.md) (Reaktionsschnelle Web-Aktionen)  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 3.0](Planung-3.0.md), [Planung 3.1](Planung-3.1.md), [Planung 3.2](Planung-3.2.md), [Planung 3.3](Planung-3.3.md), [Planung 3.4](Planung-3.4.md), [Planung 3.5](Planung-3.5.md)
 
 ---

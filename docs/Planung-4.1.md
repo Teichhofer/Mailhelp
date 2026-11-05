@@ -4,7 +4,7 @@
 **Stand:** 4. November 2026  
 **Status:** In Planung  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 4.0](Planung-4.0.md) (Gesamtfahrplan)  
-**Vorgänger:** [Planung 4.0](Planung-4.0.md)
+**Vorgänger:** [Planung 4.0](Planung-4.0.md) · **Nachfolger:** [Planung 4.2](Planung-4.2.md) (Reaktionsschnelle Web-Aktionen)
 
 ---
 

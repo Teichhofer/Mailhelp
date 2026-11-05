@@ -1,5 +1,11 @@
 # Änderungen
 
+## 4.0.3 – Planung 4.2
+
+- [Planung 4.2](docs/Planung-4.2.md): Web-Aktionen sollen innerhalb einer Sekunde beginnen,
+  auch während Mailanalyse und Telegram-Versand. Grundlage sind die Messungen vom
+  5. November 2026; Schritte 10.1–10.6 von der Messung der Wartezeiten bis zur Abnahme.
+
 ## 4.0.2 – Thema für Behörden und Auflagen
 
 - Neues Thema „Behörden und Auflagen für Betrieb und Biogasanlage“ in `topics.yaml`:
