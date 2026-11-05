@@ -17,6 +17,7 @@ from mailhelp.storage import JsonStore
 from mailhelp.web.review_pages import proposal_card
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("size,status", [(5_000_000, "success"), (5_000_001, "skipped_oversized")])
 def test_five_mb_extraction_boundary(size, status):
     extracted = extract_attachment_text("letter.txt", "text/plain", b"a" * size)

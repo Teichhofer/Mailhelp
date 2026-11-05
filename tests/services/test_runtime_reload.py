@@ -220,6 +220,7 @@ def test_committed_generation_starts_even_if_old_resource_cleanup_fails(learning
     else:assert r.state().status=='failed' and 'aktiv' in r.state().message
 
 
+@pytest.mark.slow
 def test_real_composition_replaces_generations_with_one_live_store(learning,monkeypatch):
     from mailhelp.config import load_all
     from mailhelp.external import providers

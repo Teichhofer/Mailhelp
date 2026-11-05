@@ -226,6 +226,7 @@ def test_finished_entries_are_removed_after_a_day(tmp_path):
         assert store.load(COMMAND_INBOX)["schema_version"] == 1
 
 
+@pytest.mark.slow
 def test_parallel_submissions_and_processing_lose_nothing(tmp_path):
     with JsonStore(tmp_path) as store:
         items = [proposal(id=f"p{index}") for index in range(20)]

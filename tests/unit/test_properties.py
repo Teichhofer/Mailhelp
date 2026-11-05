@@ -42,6 +42,7 @@ def test_preparing_arbitrary_bytes_only_fails_with_the_documented_errors(raw):
     extract_display_headers(raw, 1_000_000)
 
 
+@pytest.mark.slow
 @FAST
 @given(st.text(alphabet=st.characters(blacklist_categories=("Cs", "Cc")), max_size=80),
        st.emails(), ANY_TEXT, st.sampled_from(["plain", "html"]))

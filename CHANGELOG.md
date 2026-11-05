@@ -1,5 +1,13 @@
 # Änderungen
 
+## 4.1.1 – Pytest-Marker für schnelle Entwicklungsläufe
+
+- Planung 4.1, Schritt 9.2: Die Marker `slow`, `process` und `e2e` sind in `pyproject.toml`
+  registriert und mit `--strict-markers` verbindlich. `pytest -m "not (slow or process or e2e)"
+  --no-cov` lässt 130 lange oder prozessstartende Tests aus und braucht unter Windows rund ein
+  Drittel der Gesamtlaufzeit. Ein Wächtertest verlangt die Markierung jedes Tests mit
+  `ProcessHarness` und jedes Moduls unter `tests/e2e`.
+
 ## 4.1.0 – Korpus für Jimdo-Anfragen und Stellplatzbuchungen
 
 - Planung 4.1, Schritt 9.1: Der Release-Korpus v3 enthält fünf neue synthetische Fälle für

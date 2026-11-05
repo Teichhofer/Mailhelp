@@ -1602,6 +1602,7 @@ def test_relevance_dialog_schema_consistency():
         MailState(id="a"*24,config_fingerprint="0"*64,imap={"account_id":"0"*24,"folder":"INBOX","uidvalidity":1,"uid":1},relevance_dialog=RelevanceDialog(mail_id="a"*24))
 
 
+@pytest.mark.slow
 def test_orchestrator_resumes_each_persisted_analysis_step(tmp_path):
     raw=b"Subject: Restart\n\nBody"
     mail=FetchedMail("INBOX",1,9,raw)

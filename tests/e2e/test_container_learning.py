@@ -5,6 +5,7 @@ import shutil
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
 import yaml
 
 from mailhelp.config import Topic
@@ -13,6 +14,8 @@ from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.models import AbstractCategories, LearnedCategory, MailClassification, Relevance
 from mailhelp.processing.orchestrator import Orchestrator, ProcessingOutcome
 from mailhelp.storage import JsonStore
+
+pytestmark = pytest.mark.e2e
 
 
 def test_learning_mount_preserves_filter_topics_and_folders_across_restart(tmp_path, monkeypatch):

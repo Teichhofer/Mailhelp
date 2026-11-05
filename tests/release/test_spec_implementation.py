@@ -149,6 +149,7 @@ def test_real_analyzer_count_conflict_retains_other_extraction_and_restart(tmp_p
         assert len(again.state["extraction_count_conflicts"]) == 1
 
 
+@pytest.mark.slow
 def test_real_bounded_batch_sends_proposals_one_at_a_time_and_counts_open_actions(tmp_path):
     from shared_e2e_simulated import FakeTelegram
 

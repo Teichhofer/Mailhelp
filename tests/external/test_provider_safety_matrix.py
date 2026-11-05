@@ -139,6 +139,7 @@ def test_parallel_safety_scenarios_with_actual_adapters(web,tmp_path,provider,sc
     finally:writer.close()
 
 
+@pytest.mark.process
 @pytest.mark.parametrize('provider',PROVIDERS)
 @pytest.mark.parametrize('point',['A1','A2','A3','A4'])
 def test_hard_kill_matrix_reconciles_real_adapter_after_two_restarts(tmp_path,provider,point):

@@ -33,6 +33,8 @@ from mailhelp.runtime.application import Application
 from mailhelp.storage import JsonStore
 from mailhelp.telegram import TelegramDialogController
 
+pytestmark = pytest.mark.e2e
+
 
 def test_nachholtermin_fixture_explicit_offset_confirmation_and_reconciliation(tmp_path):
     store, dialog, telegram, calendar, router, result = nachholtermin_flow(

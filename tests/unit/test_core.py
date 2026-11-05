@@ -861,6 +861,7 @@ def test_storage_windows_directory_sync(tmp_path, monkeypatch):
     assert str(tmp_path) not in opened
 
 
+@pytest.mark.process
 def test_storage_stale_file_process_exit_and_mode_isolation(tmp_path):
     stale = tmp_path / "stale"
     stale.mkdir()

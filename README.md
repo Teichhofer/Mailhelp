@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 4.1.0 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 4.1.1 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 4.1 baut die Testinfrastruktur aus ([Planung 4.1](docs/Planung-4.1.md)); seit 4.1.0
 deckt der Qualitätskorpus auch Jimdo-Anfragen und Stellplatzbuchungen ab.
@@ -462,6 +462,17 @@ python -m pip install -r requirements-lint.lock
 python -m ruff check src tests ui_tests
 python -m mypy src/mailhelp
 ```
+
+Beim Entwickeln genügt meist der schnelle Lauf ohne Abdeckungsprüfung. Er lässt Tests mit
+den Markern `slow` (über eine Sekunde), `process` (echte Unterprozesse, harte Abbrüche) und
+`e2e` (Gesamtabläufe mit Container- oder Lebenszykluskontext) aus:
+
+```sh
+python -m pytest -m "not (slow or process or e2e)" --no-cov
+python -m pytest tests/unit/test_core.py --no-cov
+```
+
+Vor jedem Commit und in der CI läuft weiterhin die vollständige Suite mit Abdeckungsprüfung.
 
 ruff begrenzt die McCabe-Komplexität jeder Funktion auf 15. mypy prüft alle
 Funktionsrümpfe; für die Kernpakete (Domäne, Persistenz, Normalisierung,

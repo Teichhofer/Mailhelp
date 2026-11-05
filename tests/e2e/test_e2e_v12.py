@@ -9,6 +9,7 @@ import re
 from datetime import UTC, datetime
 from pathlib import Path
 
+import pytest
 import yaml
 from shared_e2e_simulated import NachholterminRouter
 from shared_web_actions import Web
@@ -20,6 +21,8 @@ from mailhelp.processing.analysis import Analyzer
 from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.review.inbox import CommandStatus
 from mailhelp.storage import JsonStore
+
+pytestmark = pytest.mark.e2e
 
 FIXTURE = Path(__file__).parents[1] / "fixtures" / "nachholtermin_bildungsplannovellierung.eml"
 STEPS = ("relevance", "summary", "action_router", "task_extraction", "event_extraction",

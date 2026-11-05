@@ -189,6 +189,7 @@ def test_long_texts_with_line_breaks_stay_on_one_line():
     assert yaml.safe_load(new) == {"personal_info": value, "port": 1} and len(new.splitlines()) == 2
 
 
+@pytest.mark.slow
 def test_personal_information_is_edited_as_free_text_and_applies_live(web, tmp_path):
     from shared_web_v12 import configure
     service, _, _, active, _ = configure(web, tmp_path)

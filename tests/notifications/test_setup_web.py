@@ -35,6 +35,7 @@ def test_all_new_routes_require_authentication_and_csrf(web):
         assert web.browser.request("GET", path).status == 303
 
 
+@pytest.mark.slow
 def test_wizard_draft_review_queue_and_session_recheck(configured):
     web, runtime = configured.web, configured.runtime
     original = (configured.tmp_path / "config.yaml").read_text(encoding="utf-8")
@@ -72,6 +73,7 @@ MAILBOX_CONFIG = """imap:
 """
 
 
+@pytest.mark.slow
 def test_wizard_edits_the_mailboxes_of_the_3_1_format(configured):
     """Planung 3.1: the setup step shows every mailbox and writes into its list entry."""
     web, runtime = configured.web, configured.runtime
@@ -101,6 +103,7 @@ def test_wizard_edits_the_mailboxes_of_the_3_1_format(configured):
     assert yaml.safe_load(content)["imap"]["mailboxes"][0]["drafts_folder"] == "Entwürfe"
 
 
+@pytest.mark.slow
 def test_form_errors_and_conflicts_do_not_activate_settings(configured):
     web = configured.web
     original = web.form("/einrichtung", action="/einrichtung/speichern", name="timezone")
@@ -256,6 +259,7 @@ def test_markup_escapes_untrusted_values_and_console_entry_issues_no_code(web):
     assert web.store.load("web-pairing") == before
 
 
+@pytest.mark.slow
 def test_refresh_and_diagnostic_staleness_are_visible(configured):
     web = configured.web
     check = web.form("/diagnose", action="/diagnose/pruefen", name="llm")

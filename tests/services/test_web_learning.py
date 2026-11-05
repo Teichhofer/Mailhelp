@@ -25,6 +25,7 @@ def choice(**patch):
     )
 
 
+@pytest.mark.slow
 def test_shared_kernel_job_review_and_explicit_joint_adoption(learning):
     h = learning
     before = h.jobs.hashes()
@@ -47,6 +48,7 @@ def test_shared_kernel_job_review_and_explicit_joint_adoption(learning):
     assert not h.worker.tick()
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("globally", [True, False])
 def test_irrelevant_categories_sender_scope_and_unselected_cards(learning, globally):
     h = learning
@@ -191,6 +193,7 @@ def test_joint_commit_validates_untrusted_selections(learning, modify):
         h.jobs.prepare_commit(state, payload)
 
 
+@pytest.mark.slow
 def test_atomic_commit_recovers_after_interrupted_write(learning, monkeypatch):
     from mailhelp.runtime import learning_jobs
 
@@ -220,6 +223,7 @@ def test_atomic_commit_recovers_after_interrupted_write(learning, monkeypatch):
     assert h.jobs.hashes() == before
 
 
+@pytest.mark.slow
 def test_recovery_never_overwrites_unrelated_external_edit(learning):
     h = learning
     state = h.review()

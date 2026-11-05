@@ -31,6 +31,7 @@ def candidate(service, tmp_path, name, value):
                                           patch={name: value}, acknowledged=True))
 
 
+@pytest.mark.slow
 def test_every_new_setting_is_offered_grouped_and_validated(web, tmp_path):
     service, *_ = configure(web, tmp_path)
     assert set(VALID) | {"web.lan_access"} <= SETTINGS_FIELDS

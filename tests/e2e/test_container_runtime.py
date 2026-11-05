@@ -11,11 +11,15 @@ import time
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
 from mailhelp.cli import main
 from mailhelp.config import Topic
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.storage import JsonStore
+
+pytestmark = pytest.mark.e2e
 
 # Since 2.3 the writers are built in mailhelp.external.providers.
 MOVED_WRITERS = ("HttpWriter", "GoogleOAuthTokenProvider")

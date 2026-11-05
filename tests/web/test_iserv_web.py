@@ -52,6 +52,7 @@ NEW = {"label": "Grundschule", "server": "https://Schule.example/", "mailbox": "
        "historical_start": "2026-10-01T00:00:00+02:00"}
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize(("start", "zone", "expected"), [
     ("01.09.2026", "Europe/Berlin", "2026-09-01T00:00:00+02:00"),
     ("2026-09-01", "Europe/Berlin", "2026-09-01T00:00:00+02:00"),
@@ -80,6 +81,7 @@ def test_regression_calendar_date_is_saved_as_local_midnight(profiled, start, zo
     assert profiled.runtime.setup.draft_settings().iserv.accounts[0].historical_start.isoformat() == expected
 
 
+@pytest.mark.slow
 def test_add_change_deactivate_and_remove_an_account_only_after_approval(profiled):
     page = profiled.web.browser.request("GET", ROUTE).body.decode()
     assert "IServ-Konto hinzufügen" in page and "ISERV_1_USERNAME und ISERV_1_PASSWORD" in page
@@ -105,6 +107,7 @@ def test_add_change_deactivate_and_remove_an_account_only_after_approval(profile
     assert approve(profiled) == 303 and config(profiled)["iserv"]["accounts"] == []
 
 
+@pytest.mark.slow
 def test_connection_changes_need_a_current_diagnosis_but_removal_of_all_does_not(profiled):
     assert submit(profiled, "add", **NEW).status == 303
     assert approve(profiled, diagnosed=False) == 422
@@ -119,6 +122,7 @@ def test_connection_changes_need_a_current_diagnosis_but_removal_of_all_does_not
     assert approve(profiled, diagnosed=False) == 303 and config(profiled)["iserv"]["accounts"] == []
 
 
+@pytest.mark.slow
 def test_invalid_or_stale_changes_keep_the_draft(profiled):
     for values, cause in (({**NEW, "server": "http://schule.example"}, "IServ-Adresse: Die IServ-Adresse muss mit"),
                           ({**NEW, "mailbox": "7"}, "kein aktives Postfach"),
@@ -210,6 +214,7 @@ def test_pages_are_linked_and_need_the_setup_service(profiled):
     assert browser.request("POST", SAVE, {**form, **NEW}).status == 503
 
 
+@pytest.mark.slow
 def test_regression_pages_stay_usable_after_an_approved_mailbox(profiled):
     """Regression: the approved draft stayed on the old file and the mailbox page failed afterwards."""
     web = profiled.web

@@ -151,6 +151,7 @@ def test_interrupted_activation_can_resume_and_replay(initial,monkeypatch):
         h.setup.finish(h.actor,version,'d'*32)
 
 
+@pytest.mark.slow
 def test_password_hash_login_rate_limit_reset_and_versions(initial):
     h=initial
     passwords=WebPassword(h.store)

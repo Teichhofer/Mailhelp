@@ -68,6 +68,7 @@ def test_overrides_save_repeat_and_reset_without_external_actions(profiled, tab,
     assert setup.state().patch == {} and web.writer.created == 0
 
 
+@pytest.mark.slow
 def test_topic_scope_preview_counts_only_affected_running_mailbox(profiled):
     app, web = profiled.app, profiled.web
     from mailhelp.storage import mail_state_names

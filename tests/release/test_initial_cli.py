@@ -139,6 +139,7 @@ def test_invalid_cli_options_do_not_start_a_waiting_setup_server(tmp_path,monkey
     with pytest.raises(SystemExit):cli.main()
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize('local',[False,True])
 def test_completed_wizard_restarts_into_first_real_poll_with_simulated_services(initial,monkeypatch,local):
     from mailhelp.external import providers

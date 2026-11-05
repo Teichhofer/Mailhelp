@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mailhelp"
-version = "4.1.0"
+version = "4.1.1"
 description = "Persönlicher, bestätigungspflichtiger E-Mail-Assistent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -22,7 +22,14 @@ mailhelp = "mailhelp.cli:main"
 mailhelp-evaluate = "mailhelp.llm.evaluation:main"
 
 [tool.pytest.ini_options]
-addopts = "--cov=mailhelp --cov-branch --cov-fail-under=100"
+addopts = "--cov=mailhelp --cov-branch --cov-fail-under=100 --strict-markers"
+# Planung 4.1, Schritt 9.2: fast development runs deselect these with
+# pytest -m "not (slow or process or e2e)" --no-cov
+markers = [
+  "slow: takes more than one second on a development machine",
+  "process: starts real child processes (ProcessHarness, hard kills, CLI scripts)",
+  "e2e: complete flows with container or lifecycle context (tests/e2e)",
+]
 testpaths = ["tests"]
 # Temporary test files live in .test-tmp; see tests/conftest.py.
 cache_dir = ".test-tmp/pytest-cache"

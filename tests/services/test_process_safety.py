@@ -12,6 +12,8 @@ from mailhelp.review.inbox import CommandInbox
 from mailhelp.storage import JsonStore
 from mailhelp.web.auth import WebAuth
 
+pytestmark = pytest.mark.process
+
 MAIL = mail_id(1)
 
 

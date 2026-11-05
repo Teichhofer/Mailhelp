@@ -283,6 +283,7 @@ def test_legacy_push_markers_are_imported_per_device_without_new_push(configured
     assert {item.status for item in svc.queue.state().entries.values() if item.channel == "web_push"} == {"sent"}
 
 
+@pytest.mark.slow
 def test_a_queued_old_relevance_question_is_pending_and_source_survives_a_full_migration(configured):
     from web_scenario import mail_id
     web, app = configured.web, configured.app
@@ -365,6 +366,7 @@ def test_a_push_subscription_renewed_while_sending_is_not_removed(runtime):
     assert len(push.destinations()) == 1 and push.destinations()[0] != old
 
 
+@pytest.mark.slow
 def test_regression_a_full_queue_with_new_results_still_delivers_existing_items(runtime):
     svc, web = runtime.runtime, runtime.web
     runtime.cfg.notifications.delivery.max_pending = 1

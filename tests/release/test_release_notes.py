@@ -41,6 +41,7 @@ def test_a_version_without_changelog_section_fails(tmp_path):
     assert release_notes.release_notes("v1.0.0", tmp_path) == "## 1.0.0 – erste\n"
 
 
+@pytest.mark.process
 def test_the_script_writes_utf_8():
     output = subprocess.run([sys.executable, str(SCRIPT), "v3.1.0"], capture_output=True, check=True).stdout
     assert output.decode("utf-8").startswith("## 3.1.0 – beta: Mehrere Postfächer")

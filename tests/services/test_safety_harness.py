@@ -14,6 +14,7 @@ def test_gate_releases_and_joins_worker_even_when_assertion_fails():
     assert gate.release.is_set()
 
 
+@pytest.mark.process
 def test_process_is_reaped_when_expected_checkpoint_is_not_reached(tmp_path):
     directory = tmp_path / "app"
     seed(directory)
@@ -23,6 +24,7 @@ def test_process_is_reaped_when_expected_checkpoint_is_not_reached(tmp_path):
     assert {child.pid for child in active_children()} == before
 
 
+@pytest.mark.process
 def test_killed_process_flushes_statement_and_branch_coverage_at_checkpoint(tmp_path):
     directory = tmp_path / "app"
     seed(directory)

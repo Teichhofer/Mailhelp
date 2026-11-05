@@ -466,6 +466,7 @@ def test_peek_reads_without_quarantine_or_saving_migrations(tmp_path):
             store.peek("../x")
 
 
+@pytest.mark.slow
 def test_parallel_reads_during_writes_never_fail(tmp_path):
     """Regression for the web: on Windows os.replace failed while a reader had the file open."""
     errors = []

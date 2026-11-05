@@ -1,4 +1,6 @@
 """Architecture checks for domain and persistence model boundaries."""
+import pytest
+
 from mailhelp import models
 from mailhelp.activity import models as activity_models
 from mailhelp.domain import duplicate, extraction, mail, processing, proposal, relevance, run, temporal
@@ -40,6 +42,7 @@ def test_persistence_boundary_is_explicit_and_preserves_json_schemas():
     assert (schemas.InitialDraft, schemas.OAuthJobs, schemas.PasswordState)==(InitialDraft,OAuthJobs,PasswordState)
 
 
+@pytest.mark.slow
 def test_test_modules_share_helpers_only_through_fakes():
     # Planung 2.1, T1/T2: helpers live in tests/fakes and tests/scenarios, never in another test module.
     import ast
@@ -80,6 +83,7 @@ def telegram_importers() -> set[str]:
     return found
 
 
+@pytest.mark.slow
 def test_only_the_channel_integration_imports_telegram():
     """Domain, analysis, persistence and the remaining services stay free of the Telegram channel."""
     assert telegram_importers() == TELEGRAM_CLIENTS
