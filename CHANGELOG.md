@@ -1,5 +1,12 @@
 # Änderungen
 
+## 4.0.2 – Thema für Behörden und Auflagen
+
+- Neues Thema „Behörden und Auflagen für Betrieb und Biogasanlage“ in `topics.yaml`:
+  Anforderungen von Landratsamt, Gewerbeaufsicht, Immissionsschutz, Baurechtsamt oder
+  Landwirtschaftsamt wie Prüfberichte, Schulungsnachweise, Fristen, Kontrollen und
+  Auflagen. Solche Mails wurden bisher ohne passendes Thema als irrelevant eingestuft.
+
 ## 4.0.1 – Verklemmung von Weboberfläche und Mailabruf behoben
 
 - Behoben: Nach einer Web-Aktion konnten Weboberfläche, Mailabruf und Telegram-Bedienung

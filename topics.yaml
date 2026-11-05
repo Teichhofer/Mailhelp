@@ -123,3 +123,17 @@ topics:
   - Änderung oder Stornierung einer Stellplatzbuchung über Roadsurfer
   exclusions:
   - Allgemeine Werbung und Newsletter der Buchungsplattformen ohne konkrete Buchung
+- id: behoerden-auflagen-betrieb
+  name: Behörden und Auflagen für Betrieb und Biogasanlage
+  enabled: true
+  description: Schreiben und Anforderungen von Behörden wie Landratsamt, Gewerbeaufsicht,
+    Immissionsschutz, Baurechtsamt oder Landwirtschaftsamt zum landwirtschaftlichen Betrieb
+    und zur Biogasanlage, etwa Nachweise, Prüfberichte, Fristen, Kontrollen und Auflagen.
+  examples:
+  - Anforderung aktueller Prüfberichte und Bescheinigungen zur Biogasanlage
+  - Nachweis der Betreiberschulungen
+  - Stand der Umwallung oder anderer baulicher Auflagen
+  - Ankündigung einer Vor-Ort-Kontrolle
+  - Bescheid oder Anhörung mit Frist
+  exclusions:
+  - Allgemeine Newsletter und Pressemitteilungen der Behörden ohne Bezug zum eigenen Betrieb

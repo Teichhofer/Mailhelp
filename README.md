@@ -13,13 +13,14 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 4.0.1 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 4.0.2 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 4.0 bündelt die abgenommenen Stände 3.6 bis 3.8 zum Haupt-Release: Einrichtung,
 Anmeldung, OAuth, Lernen und Neuladen laufen vollständig im Browser. Einrichtung, Upgrade und
 Rückkehr: [Release 4.0](docs/Release-4.0.md). 4.0.1 behebt eine Verklemmung, bei der
 Weboberfläche und Mailabruf nach einer Web-Aktion dauerhaft hängen blieben, während `/health`
-weiter antwortete.
+weiter antwortete. 4.0.2 ergänzt das Thema „Behörden und Auflagen für Betrieb und
+Biogasanlage“ in `topics.yaml`.
 
 Version 3.8 ergänzt den Web-Lernmodus unter `/lernen`: Umfang und Preisannahme prüfen,
 lesenden Lauf ausdrücklich starten, pausieren oder abbrechen und die bearbeiteten
