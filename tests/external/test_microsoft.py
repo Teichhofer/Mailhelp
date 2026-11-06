@@ -112,6 +112,8 @@ def test_damaged_token_file_reads_as_absent(tmp_path, content):
 
 
 def device_flow(tmp_path, answers, clock_step=1.0):
+    # A copy: parametrized lists are created once per process and must survive a rerun.
+    answers = list(answers)
     shown, sleeps, now = [], [], [0.0]
 
     def handler(request):
@@ -377,3 +379,13 @@ def test_todo_named_list_missing_default_and_failures():
     with pytest.raises(ValueError):
         named.fetch_active_tasks(strict=True)
     assert logger.events[-1][0] == ("WARNING", "microsoft_todo", "fetch_tasks_failed")
+
+
+def test_regression_parametrized_answers_survive_a_second_run(tmp_path):
+    """Regression 4.1.9: the device flow consumed its parametrized answer list in place."""
+    answers = [httpx.Response(400, json={"error": "expired_token"})]
+    for attempt in ("first", "second"):
+        _tokens, _shown, _sleeps, run = device_flow(tmp_path / attempt, answers)
+        with pytest.raises(OAuthTokenError, match="nicht abgeschlossen"):
+            run()
+    assert len(answers) == 1

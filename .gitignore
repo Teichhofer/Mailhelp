@@ -230,3 +230,4 @@ learning-config/
 
 # Rotierter Microsoft-Refresh-Token (mailhelp --microsoft-login)
 microsoft-token.json
+mutants/

@@ -1,4 +1,4 @@
-# Mailhelp 4.2 – Reaktionsschnelle Web-Aktionen
+# Mailhelp 4.2 – Reaktionsschnelle Web-Aktionen und Entscheidungspfad „Schon erledigt“
 
 **Zielversion:** 4.2.0 (Schritte als Patchversionen 4.2.x)  
 **Stand:** 5. November 2026  
@@ -10,7 +10,11 @@
 
 ## 1. Anlass und Ziel
 
-> **„Eine im Browser gewählte Aktion beginnt innerhalb einer Sekunde, auch während eine Mail analysiert wird oder Telegram-Nachrichten versendet werden.“**
+> **„Eine im Browser gewählte Aktion beginnt innerhalb einer Sekunde, auch während eine Mail analysiert wird, und offene Entscheidungen lassen sich als ‚schon erledigt‘ verwerfen, ohne ihre erkannte Relevanz im Lernbestand zu verlieren.“**
+
+Version 4.2 adressiert zwei konkrete Praxisanforderungen aus dem täglichen Betrieb:
+
+### Teil 1: Reaktionsschnelle Web-Aktionen (Wartezeiten beseitigen)
 
 Nach der Auswahl einer Aktion zeigt die Weboberfläche oft mehrere Sekunden lang „Wird
 ausgeführt … Mailhelp bearbeitet die Aktion, sobald die aktuelle Mail analysiert ist.“
@@ -27,7 +31,6 @@ Kopie der Zustandsablage mit 1.532 Mails und 403 Vorschlägen):
 | `views.system()` | 0,6 s |
 
 **Ursachen:**
-
 1. **Der Text ist veraltet.** Seit 3.6.4 führt der eigene Bedien-Thread (`mailhelp-operator`)
    Web-Befehle aus. Er wartet nicht auf das Ende der Mailanalyse, und die LLM-Aufrufe der
    Analyse laufen ohne Sperre. Ein zusätzlicher Thread würde deshalb wenig bringen.
@@ -43,22 +46,56 @@ Kopie der Zustandsablage mit 1.532 Mails und 403 Vorschlägen):
    Jedes Neuladen wartet auf die Sperre der Zustandsablage und reiht sich damit hinter den
    anderen Threads ein.
 
-Einen einzelnen großen Blocker konnte die Stichprobe nicht live erfassen, weil während der
-Messung keine Mailanalyse lief. Schritt 10.1 belegt deshalb im Betrieb, wie sich die
-Wartezeit auf die einzelnen Ursachen aufteilt, bevor die Schritte 10.2–10.5 sie beseitigen.
+---
 
-Unverändert gilt: Jede externe Anlage braucht die ausdrückliche, versionsgebundene
-Bestätigung. Web-Befehle führt weiterhin genau ein Thread in Eingangsreihenfolge aus,
-mit Idempotenzschlüssel und erneuter Sitzungsprüfung.
+### Teil 2: Relevanz-erhaltende Entscheidung „Schon erledigt“
+
+Bei vielen E-Mails mit Handlungsbedarf (z. B. Überweisungen, Terminbestätigungen, Rechnungen oder kurze Rückfragen) hat der Nutzer die anstehende Aufgabe bereits direkt nach dem Maileingang außerhalb von Mailhelp erledigt. 
+
+**Bisheriges Problem:**
+* Dem Nutzer steht bisher nur die Option **„Verwerfen“** (`CommandKind.REJECT`) zur Verfügung.
+* Ein Klick auf „Verwerfen“ speichert den Vorschlag intern als abgelehnt (`rejected`).
+* Im Entscheidungs-Log ([`learning/decisions.jsonl`](../src/mailhelp/review/learning_log.py)) und für den Lernmodus ([`/lernen`](../src/mailhelp/llm/learning.py)) sendet dies das falsche Signal: Es wirkt so, als sei der Vorschlag ein Fehler des Sprachmodells oder das Thema der Mail irrelevant gewesen.
+
+**Ziel mit „Schon erledigt“:**
+1. **Internes Verhalten (Zielsysteme):** Die Aufgabe wird **verworfen** (`ProposalStatus.REJECTED` mit Kennzeichen `resolution="already_done"`). Es erfolgt garantiert **kein externer Schreibzugriff** auf Google Kalender, CalDAV oder Todoist.
+2. **Entscheidungs- und Lernlog:** Im Protokoll ([`learning/decisions.jsonl`](../src/mailhelp/review/learning_log.py)) wird explizit festgehalten:
+   * Die Aktion wurde vom Nutzer als **„bereits erledigt“** abgeschlossen (`operation="already_done"`).
+   * Die E-Mail und der extrahierte Vorschlag waren **trotzdem positiv relevant** (`decision="relevant"`, `relevance_preserved=True`).
+   * Der Lernmodus wertet den Fall als erfolgreiche Erkennung und schlägt das Thema **nicht** zur Sperrung oder Abwertung vor.
+3. **Bedienoberfläche:** Auf den Aktionskarten der Weboberfläche und im Telegram-Bot erscheint neben „Bestätigen“ und „Verwerfen“ die neue Schaltfläche **„Schon erledigt“**.
+4. **Tätigkeitsberichte:** `/berichte` und `/status` unterscheiden transparent zwischen echten Fehlvorschlägen („Verworfen“) und bereits erledigten Aufgaben („Schon erledigt“).
 
 ---
 
-## 2. Umsetzungsschritte (Stufe 10)
+## 2. Umsetzungsschritte
 
 Es gelten die Regeln aus [Planung 4.0, Abschnitt 5.1](Planung-4.0.md#51-regeln-für-die-schritte):
 Jeder Schritt wird als eigener Commit mit Patchversion geliefert, hat den Umfang S (≤ 1 Tag)
-oder M (≤ 2 Tage) und erhält die 100-%-Abdeckung. Jede Verhaltensänderung bekommt Tests;
-jede Beseitigung einer Wartezeit einen Regressionstest, der vor der Änderung scheitert.
+oder M (≤ 2 Tage) und erhält 100 % Zeilen- und Branch-Abdeckung.
+
+```mermaid
+flowchart TD
+    subgraph S10["Stufe 10: Reaktionsschnelle Web-Aktionen"]
+        W1["10.1 Wartezeiten messen"] --> W2["10.2 Telegram ohne Dialogsperre"]
+        W2 --> W3["10.3 Web-Befehle zuerst"]
+        W4["10.4 Schlanke Statusabfrage"] --> W5["10.5 Hinweistext & Rückmeldung"]
+        W3 --> W6["10.6 Abnahme Reaktionszeit"]
+        W5 --> W6
+    end
+    subgraph S11["Stufe 11: Entscheidungspfad „Schon erledigt“"]
+        E1["11.1 Befehl ALREADY_DONE & Datenmodell"] --> E2["11.2 Relevanz-Log in decisions.jsonl"]
+        E2 --> E3["11.3 Web-Schaltfläche „Schon erledigt“"]
+        E2 --> E4["11.4 Telegram-Button „Schon erledigt“"]
+        E3 --> E5["11.5 Berichte, Auswertung & Lernschutz"]
+        E4 --> E5
+    end
+    W6 --> E5
+```
+
+---
+
+### Stufe 10 – Reaktionsschnelle Web-Aktionen
 
 | Schritt | Inhalt | Fertig, wenn … | Umfang | Voraussetzung |
 | :--- | :--- | :--- | :---: | :--- |
@@ -69,7 +106,19 @@ jede Beseitigung einer Wartezeit einen Regressionstest, der vor der Änderung sc
 | **10.5** | Hinweistext und Rückmeldung | Der Text lautet „Wird ausgeführt … Danach geht es automatisch zur Übersicht.“; dauert eine Bestätigung wegen externer Anlage länger, nennt die Seite das Ziel (Kalender oder Todoist). Browsertests für Desktop, Mobilgerät und ohne JavaScript. | S | 10.4 |
 | **10.6** | Abnahme Reaktionszeit | Simulierter Lastlauf (laufende Mailanalyse, Telegram-Versand, Benachrichtigungen, fünf gleichzeitige Browser) unter Windows, Linux und Docker: Ausführungsbeginn im Median unter 0,5 s, im Maximum unter 1 s; keine doppelten oder unberechtigten Aktionen; Release-Bericht `docs/Release-4.2.md`. | M | 10.1–10.5 |
 
-**Umfangsübersicht:** 6 Schritte, davon 4 S und 2 M.
+---
+
+### Stufe 11 – Entscheidungsweg „Schon erledigt“
+
+| Schritt | Inhalt | Fertig, wenn … | Umfang | Voraussetzung |
+| :--- | :--- | :--- | :---: | :--- |
+| **11.1** | Datenmodell & Befehl `ALREADY_DONE` | `CommandKind.ALREADY_DONE` und `DecisionAction.ALREADY_DONE` eingeführt; `ReviewService` überführt den Vorschlag atomar in `ProposalStatus.REJECTED` mit `resolution="already_done"`; keine externe Anlage in Kalender oder Aufgaben; Idempotenz und Revisionsprüfung greifen unverändert. | S | – |
+| **11.2** | Relevanz-Protokoll in `decisions.jsonl` | `DecisionLearningLog` erfasst `operation="already_done"`, markiert den Eintrag explizit als relevant (`decision="relevant"`, `relevance_preserved=True`) und dokumentiert den verworfenen Vorschlag; Ereignisprotokoll (`record_event`) verbucht `already_done`. | S | 11.1 |
+| **11.3** | Web-Schaltfläche „Schon erledigt“ | Auf den Vorschlagskarten (`src/mailhelp/web/actions.py`) erscheint neben „Bestätigen“ und „Verwerfen“ die Schaltfläche „Schon erledigt“; Statusmeldung bestätigt: „Als schon erledigt erfasst (Aufgabe bleibt als relevant vermerkt)“; Tastaturbedienung und Barrierefreiheit geprüft. | S | 11.2 |
+| **11.4** | Telegram-Button „Schon erledigt“ | Telegram-Tastatur für Vorschläge erhält den Inline-Button `[✓ Schon erledigt]`; Bot bestätigt die Erfassung und löscht die Aktionsbuttons; dieselbe Idempotenz- und Relevanzbehandlung wie im Web. | S | 11.2 |
+| **11.5** | Berichte, Auswertung & Lernschutz | Tätigkeitsberichte (`/berichte`) und Statusansichten weisen „Schon erledigte“ Vorschläge separat aus; der Web-Lernmodus (`/lernen`) wertet diese Mails als belegt relevant; Regressionstests schließen falsches Verlernen aus. | S | 11.3, 11.4 |
+
+**Umfangsübersicht Version 4.2:** 11 Schritte, davon 9 S und 2 M.
 
 ---
 
@@ -79,8 +128,15 @@ jede Beseitigung einer Wartezeit einen Regressionstest, der vor der Änderung sc
    Maximum nach weniger als 1 s, auch während Mailanalyse und Telegram-Versand.
 2. **Keine Netzwerkaufrufe unter gemeinsamen Sperren:** Weder die Dialogsperre noch die
    Sperre der Zustandsablage wird über Telegram-, Push-, LLM- oder Zielanbieteraufrufe gehalten.
-3. **Unveränderte Sicherheit:** Versionsbindung, CSRF, Idempotenz, erneute Sitzungsprüfung
-   und Abgleich unklarer Schreibresultate bleiben bestehen; die Prozessabbruch- und
-   Konkurrenzszenarien aus 3.6 (A1–A7, P1–P7) bestehen weiterhin.
-4. **Belegbarkeit:** Wartezeiten je Ursache stehen im Log und auf `/status`.
-5. **Abdeckung:** 100 % Zeilen- und Branch-Abdeckung ohne Ausschlüsse.
+3. **Schon-erledigt-Garantie (Schreibsperre):**
+   - Ein Klick auf „Schon erledigt“ führt **zu keinem Zeitpunkt** zu einem Schreibzugriff auf Google Kalender, CalDAV oder Todoist (0 externe Schreibaufrufe).
+   - Der interne Status der Aufgabe ist `rejected` mit `resolution="already_done"`.
+4. **Relevanz-Erhaltung im Lernbestand:**
+   - In [`learning/decisions.jsonl`](../src/mailhelp/review/learning_log.py) wird der Datensatz mit `operation="already_done"` gespeichert.
+   - Die Relevanz der zugehörigen E-Mail bleibt dauerhaft positiv verbucht; der Lernmodus (`--learn` / `/lernen`) schlägt das Thema weder zur Deaktivierung noch zum Ausschluss vor.
+5. **Transparenz in Berichten:**
+   - In den Tätigkeitsberichten ([`/berichte`](../src/mailhelp/web/activity_site.py)) werden „Schon erledigte“ Aktionen mit eigenem Badge getrennt von „Verworfenen“ Vorschlägen geführt.
+6. **Unveränderte Sicherheit:**
+   - Versionsbindung, CSRF, Idempotenz, erneute Sitzungsprüfung und Abgleich unklarer Schreibresultate bleiben bestehen; die Prozessabbruch- und Konkurrenzszenarien aus 3.6 (A1–A7, P1–P7) bestehen weiterhin.
+7. **Abdeckung:**
+   - 100 % Zeilen- und 100 % Branch-Abdeckung für sämtliche neuen Pfade ohne Ausschlüsse.

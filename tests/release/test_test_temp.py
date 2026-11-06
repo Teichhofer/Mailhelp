@@ -11,13 +11,15 @@ def test_temporary_files_are_created_in_the_project_temp_folder(tmp_path):
     assert tmp_path.is_relative_to(TEST_TEMP_ROOT)
     assert tempfile.gettempdir() == str(TEST_TEMP_ROOT)
     assert os.environ["TEMP"] == os.environ["TMP"] == os.environ["TMPDIR"] == str(TEST_TEMP_ROOT)
+    # Parallel workers read the root from here instead of nesting it below TMP.
+    assert os.environ["MAILHELP_TEST_TEMP"] == str(TEST_TEMP_ROOT)
     with tempfile.NamedTemporaryFile() as handle:
         assert os.path.dirname(handle.name) == str(TEST_TEMP_ROOT)
 
 
 def test_redirect_creates_missing_root(tmp_path, monkeypatch):
     monkeypatch.setattr(tempfile, "tempdir", tempfile.tempdir)
-    for name in ("TMP", "TEMP", "TMPDIR"):
+    for name in ("TMP", "TEMP", "TMPDIR", "MAILHELP_TEST_TEMP"):
         monkeypatch.setenv(name, os.environ[name])
     root = tmp_path / "neu" / "temp"
     redirect_temporary_files(root)
@@ -118,3 +120,45 @@ def test_regression_locked_cache_does_not_fail_successful_cleanup(tmp_path, monk
     remove_run_files(root, run, coverage)
     assert not run.exists() and not coverage.exists()
     assert cache.exists()
+
+
+def test_parallel_workers_leave_shared_run_and_coverage_files_to_the_controller(tmp_path, monkeypatch):
+    """Planung 4.1, Schritt 9.8: a finished pytest -n worker must not delete coverage data."""
+    import types
+
+    import conftest
+    coverage = tmp_path / ".coverage.host.123"
+    coverage.write_text("data", encoding="utf-8")
+    removed = []
+    monkeypatch.setattr(conftest, "remove_run_files", lambda *args: removed.append(args))
+    monkeypatch.setattr(conftest, "COVERAGE_DATA", tmp_path / ".coverage")
+
+    def config(**extra):
+        value = types.SimpleNamespace(stash={conftest._SESSION_PASSED: True}, **extra)
+        return value
+
+    conftest.pytest_unconfigure(config(workerinput={"workerid": "gw0"}))
+    assert removed == [] and coverage.exists()
+    conftest.pytest_unconfigure(config())
+    assert len(removed) == 1
+    assert conftest.is_xdist_worker(config(workerinput={})) and not conftest.is_xdist_worker(config())
+
+
+def test_regression_a_finished_run_restores_temp_settings_for_the_next_in_process_run(tmp_path, monkeypatch):
+    """Regression 4.1.9: mutmut's second pytest run captured output into a removed folder."""
+    import types
+
+    import conftest
+    monkeypatch.setattr(tempfile, "tempdir", str(tmp_path / "before"))
+    monkeypatch.setenv("TMP", "previous-tmp")
+    monkeypatch.delenv("TMPDIR", raising=False)
+    monkeypatch.setenv("TEMP", "previous-temp")
+    monkeypatch.delenv("MAILHELP_TEST_TEMP", raising=False)
+    config = types.SimpleNamespace(stash={})
+    monkeypatch.setattr(conftest, "TEST_TEMP_ROOT", tmp_path / "run")
+    conftest.pytest_configure(config)
+    assert tempfile.tempdir == str(tmp_path / "run") and os.environ["TMPDIR"] == str(tmp_path / "run")
+    conftest.pytest_unconfigure(config)  # a failed or unfinished session: files stay, settings return
+    assert tempfile.tempdir == str(tmp_path / "before")
+    assert os.environ["TMP"] == "previous-tmp" and os.environ["TEMP"] == "previous-temp"
+    assert "TMPDIR" not in os.environ and "MAILHELP_TEST_TEMP" not in os.environ

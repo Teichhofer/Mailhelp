@@ -31,14 +31,36 @@ TEST_TEMP_ROOT = Path(
 TOOL_TEMP_ROOT = Path(__file__).resolve().parents[1] / ".test-tmp"
 COVERAGE_DATA = TOOL_TEMP_ROOT / ".coverage"
 _SESSION_PASSED = pytest.StashKey[bool]()
+_PREVIOUS_TEMP = pytest.StashKey[dict]()
 
 
-def redirect_temporary_files(root: Path) -> None:
-    """Point pytest, ``tempfile`` and child processes at *root*."""
+# MAILHELP_TEST_TEMP passes the root itself to pytest -n workers; deriving it again from the
+# already redirected TMP would nest a second "mailhelp-tests" folder (Planung 4.1, 9.8).
+TEMP_VARIABLES = ("TMP", "TEMP", "TMPDIR", "MAILHELP_TEST_TEMP")
+
+
+def redirect_temporary_files(root: Path) -> dict[str, str | None]:
+    """Point pytest, ``tempfile`` and child processes at *root*; returns the previous values."""
+    previous = {"tempdir": tempfile.tempdir, **{name: os.environ.get(name) for name in TEMP_VARIABLES}}
     root.mkdir(parents=True, exist_ok=True)
     tempfile.tempdir = str(root)
-    for name in ("TMP", "TEMP", "TMPDIR"):
+    for name in TEMP_VARIABLES:
         os.environ[name] = str(root)
+    return previous
+
+
+def restore_temporary_files(previous: dict[str, str | None]) -> None:
+    """Undo :func:`redirect_temporary_files`.
+
+    A later pytest run in the same process (``pytest.main``, mutmut) creates its capture
+    files before its own ``pytest_configure``; it must not use a folder this run removed.
+    """
+    tempfile.tempdir = previous["tempdir"]
+    for name in TEMP_VARIABLES:
+        if previous[name] is None:
+            os.environ.pop(name, None)
+        else:
+            os.environ[name] = previous[name]
 
 
 def prune_empty(root: Path) -> None:
@@ -79,16 +101,25 @@ def remove_run_files(root: Path, run_directory: Path | None,
 
 
 def pytest_configure(config: pytest.Config) -> None:
-    redirect_temporary_files(TEST_TEMP_ROOT)
+    config.stash[_PREVIOUS_TEMP] = redirect_temporary_files(TEST_TEMP_ROOT)
 
 
 def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     session.config.stash[_SESSION_PASSED] = exitstatus == 0
 
 
+def is_xdist_worker(config: pytest.Config) -> bool:
+    """Parallel workers (pytest -n) share the controller's run and coverage files."""
+    return hasattr(config, "workerinput")
+
+
 def pytest_unconfigure(config: pytest.Config) -> None:
-    # Runs after the coverage report, so the data file is no longer needed.
-    if not config.stash.get(_SESSION_PASSED, False):
+    # Runs after the coverage report, so the data file is no longer needed. Under
+    # pytest-xdist only the controller cleans up: a finished worker would otherwise
+    # delete coverage data and run folders that others still use (Planung 4.1, 9.8).
+    if _PREVIOUS_TEMP in config.stash:
+        restore_temporary_files(config.stash[_PREVIOUS_TEMP])
+    if not config.stash.get(_SESSION_PASSED, False) or is_xdist_worker(config):
         return
     factory = getattr(config, "_tmp_path_factory", None)
     run_directory = getattr(factory, "_basetemp", None)
