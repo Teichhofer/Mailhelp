@@ -54,6 +54,22 @@
       "exclusions": [
         "Allgemeine Werbung und Newsletter der Buchungsplattformen ohne konkrete Buchung"
       ]
+    },
+    {
+      "id": "persoenliche-termine-und-terminhinweise",
+      "name": "Persönliche Termine und Terminhinweise",
+      "enabled": true,
+      "description": "Mails, die dir persönlich einen konkreten Termin mitteilen, bestätigen, ändern oder absagen, oder einen Plan mit eigenen Einsätzen enthalten, etwa Terminbestätigungen von Praxen, Handwerkern oder Behörden, Einsatz-, Dienst-, Stunden- oder Blockpläne mit deinem Namen sowie Erinnerungen an vereinbarte Termine, auch wenn die Termine nur im Anhang stehen.",
+      "examples": [
+        "Blockplan im PDF-Anhang, in dem du an zwei Tagen als Dozent eingeteilt bist",
+        "Terminbestätigung einer Praxis oder Werkstatt mit Datum und Uhrzeit",
+        "Mitteilung, dass ein vereinbarter Vor-Ort-Termin auf einen anderen Tag verlegt wird"
+      ],
+      "exclusions": [
+        "Werbung, Rabattaktionen oder Newsletter mit Fristen ohne persönlich vereinbarten Termin",
+        "Allgemeine Veranstaltungshinweise ohne eigene Einladung, Anmeldung oder Einteilung",
+        "Liefer- und Paketankündigungen"
+      ]
     }
   ],
   "cases": [
@@ -1433,6 +1449,104 @@
     {
       "id": "25_booking_platform_offer",
       "raw_email": "From: Roadsurfer <news@roadsurfer.example.test>\nTo: Alex Muster <alex.muster@example.test>\nDate: Fri, 18 Sep 2026 10:00:00 +0200\nMessage-ID: <25_booking_platform_offer@example.test>\nSubject: Herbst-Special: 20 Prozent auf deinen nächsten Camper\nContent-Type: text/plain; charset=utf-8\n\nHallo,\n\nnur bis Ende September: Spare 20 Prozent auf alle Camper-Mieten und entdecke neue\nStellplätze in deiner Nähe.\n\nDein Roadsurfer-Team\nAbmelden: https://roadsurfer.example.test/abmelden\n",
+      "received_at": "2026-09-18T10:01:00+02:00",
+      "expected": {
+        "relevance": {
+          "decision": "irrelevant",
+          "topic_ids": [],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": []
+        },
+        "action_route": {
+          "action_state": "none",
+          "task_count": 0,
+          "event_count": 0,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": []
+        }
+      }
+    },
+    {
+      "id": "26_personal_schedule_plan",
+      "raw_email": "From: Lehrgangsleitung <lehrgang@akademie.example.test>\nTo: Alex Muster <alex.muster@example.test>\nDate: Fri, 18 Sep 2026 10:00:00 +0200\nMessage-ID: <26_personal_schedule_plan@example.test>\nSubject: Einsatzplan Lehrgang naechste Woche\nContent-Type: text/plain; charset=utf-8\n\nHallo zusammen,\n\nanbei der Einsatzplan fuer den Lehrgang naechste Woche.\n\n--- Anhang: Einsatzplan.pdf ---\nDonnerstag, 24.09.2026, 10:40-12:15 Uhr: Hr. Muster, Seminarraum 1\nFreitag, 25.09.2026, 08:45-10:20 Uhr: Hr. Muster, Seminarraum 1\n\nViele Gruesse\nDie Lehrgangsleitung\n",
+      "received_at": "2026-09-18T10:01:00+02:00",
+      "expected": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "persoenliche-termine-und-terminhinweise"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "24.09.2026",
+            "25.09.2026"
+          ]
+        },
+        "action_route": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 2,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Lehrgangseinsatz",
+              "description": null,
+              "evidence": "Donnerstag, 24.09.2026, 10:40-12:15 Uhr: Hr. Muster, Seminarraum 1",
+              "date_text": "24.09.2026",
+              "time_text": "10:40",
+              "end_time_text": "12:15",
+              "location": "Seminarraum 1",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "timed"
+            },
+            {
+              "title": "Lehrgangseinsatz",
+              "description": null,
+              "evidence": "Freitag, 25.09.2026, 08:45-10:20 Uhr: Hr. Muster, Seminarraum 1",
+              "date_text": "25.09.2026",
+              "time_text": "08:45",
+              "end_time_text": "10:20",
+              "location": "Seminarraum 1",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "timed"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "27_deadline_advertising",
+      "raw_email": "From: Praxisbedarf Versand <news@praxisbedarf.example.test>\nTo: Alex Muster <alex.muster@example.test>\nDate: Fri, 18 Sep 2026 10:00:00 +0200\nMessage-ID: <27_deadline_advertising@example.test>\nSubject: Nur bis 30.09.: Termin fuer Ihren Rabatt sichern\nContent-Type: text/plain; charset=utf-8\n\nHallo,\n\nnur bis zum 30.09.2026: Sichern Sie sich 15 Prozent auf alle Bestellungen.\nJetzt Termin fuer Ihre persoenliche Beratung buchen!\n\nIhr Praxisbedarf-Team\nAbmelden: https://praxisbedarf.example.test/abmelden\n",
       "received_at": "2026-09-18T10:01:00+02:00",
       "expected": {
         "relevance": {

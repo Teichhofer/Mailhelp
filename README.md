@@ -13,10 +13,12 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 4.1.9 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 4.1.10 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 4.1 baut die Testinfrastruktur aus ([Planung 4.1](docs/Planung-4.1.md)); seit 4.1.0
-deckt der Qualitätskorpus auch Jimdo-Anfragen und Stellplatzbuchungen ab.
+deckt der Qualitätskorpus auch Jimdo-Anfragen und Stellplatzbuchungen ab. 4.1.10 ergänzt das
+Thema „Persönliche Termine und Terminhinweise“ in `topics.yaml`, etwa für Terminbestätigungen
+und Einsatz- oder Blockpläne mit eigenen Terminen im Anhang.
 
 Version 4.0 bündelt die abgenommenen Stände 3.6 bis 3.8 zum Haupt-Release: Einrichtung,
 Anmeldung, OAuth, Lernen und Neuladen laufen vollständig im Browser. Einrichtung, Upgrade und

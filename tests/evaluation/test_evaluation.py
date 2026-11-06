@@ -230,7 +230,7 @@ def test_corpus_v3_covers_jimdo_inquiries_and_bookings_without_platform_advertis
     """Planung 4.1, Schritt 9.1: both topics of commit 7277269 have synthetic cases."""
     corpus = json.loads(CORPUS_V3.read_text(encoding="utf-8"))
     cases = {case["id"]: case for case in corpus["cases"]}
-    assert corpus["schema_version"] == 3 and len(cases) == len(corpus["cases"]) == 26
+    assert corpus["schema_version"] == 3 and len(cases) == len(corpus["cases"]) == 28
     repository = {topic["id"] for topic in yaml.safe_load(
         (Path(__file__).parents[2] / "topics.yaml").read_text(encoding="utf-8"))["topics"]}
     assert set(NEW_TOPICS_V3) <= {topic["id"] for topic in corpus["topics"]} & repository
@@ -250,6 +250,39 @@ def test_corpus_v3_covers_jimdo_inquiries_and_bookings_without_platform_advertis
     wrong = evaluate(corpus, prompts(), Provider(corpus, wrong=True), 300)
     failed = {case["id"] for case in wrong["cases"] if not case["stages"]["relevance"]["passed"]}
     assert set().union(*NEW_TOPICS_V3.values()) | PLATFORM_ADS_V3 <= failed and not wrong["passed"]
+
+
+PERSONAL_APPOINTMENTS = "persoenliche-termine-und-terminhinweise"
+
+
+def test_corpus_v3_covers_personal_appointment_plans_without_deadline_advertising():
+    """4.1.10: a plan with the user's own slots is relevant, an advertised deadline is not.
+
+    A real schedule with the user's teaching slots in the PDF attachment was rejected as
+    irrelevant because no topic covered appointments communicated to the user personally.
+    """
+    corpus = json.loads(CORPUS_V3.read_text(encoding="utf-8"))
+    cases = {case["id"]: case for case in corpus["cases"]}
+    repository = {topic["id"]: topic for topic in yaml.safe_load(
+        (Path(__file__).parents[2] / "topics.yaml").read_text(encoding="utf-8"))["topics"]}
+    assert repository[PERSONAL_APPOINTMENTS]["enabled"]
+    assert {topic["id"]: topic for topic in corpus["topics"]}[PERSONAL_APPOINTMENTS] == \
+        repository[PERSONAL_APPOINTMENTS]  # taken over word for word from topics.yaml
+    assert {case_id for case_id, case in cases.items()
+            if PERSONAL_APPOINTMENTS in case["expected"]["relevance"]["topic_ids"]} == \
+        {"26_personal_schedule_plan"}
+    advertising = cases["27_deadline_advertising"]["expected"]
+    assert advertising["relevance"]["decision"] == "irrelevant"
+    assert advertising["action_route"]["action_state"] == "none"
+    report = evaluate(corpus, prompts(), Provider(corpus), 400)
+    assert report["passed"] and report["complete"]
+    plan = {case["id"]: case for case in report["cases"]}["26_personal_schedule_plan"]
+    events = plan["stages"]["event_extraction"]["actual"]["events"]
+    assert [event["when"]["start"] for event in events] == ["2026-09-24T10:40:00+02:00",
+                                                           "2026-09-25T08:45:00+02:00"]
+    wrong = evaluate(corpus, prompts(), Provider(corpus, wrong=True), 400)
+    failed = {case["id"] for case in wrong["cases"] if not case["stages"]["relevance"]["passed"]}
+    assert {"26_personal_schedule_plan", "27_deadline_advertising"} <= failed
 
 
 def context():

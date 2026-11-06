@@ -1,5 +1,17 @@
 # Änderungen
 
+## 4.1.10 – Thema für persönliche Termine und Terminhinweise
+
+- Neues Thema „Persönliche Termine und Terminhinweise“ in `topics.yaml`: Mails, die einen
+  konkreten Termin mitteilen, bestätigen, ändern oder absagen, sowie Einsatz-, Dienst-,
+  Stunden- oder Blockpläne mit eigenen Einsätzen, auch wenn die Termine nur im Anhang stehen.
+  Ein Blockplan mit eigenen Unterrichtsstunden im PDF-Anhang wurde bisher ohne passendes
+  Thema als irrelevant eingestuft. Werbung mit Fristen, allgemeine Veranstaltungshinweise
+  und Paketankündigungen sind ausgeschlossen.
+- Qualitätskorpus v3 um zwei synthetische Fälle erweitert: ein Einsatzplan mit zwei eigenen
+  Terminen (relevant, zwei Termine) und eine Werbemail mit Frist (irrelevant). Das
+  Evaluierungs-Gate scheitert, wenn das Thema in `topics.yaml` fehlt oder deaktiviert ist.
+
 ## 4.1.9 – Browser-Smoke und offline ausgelöste Aktionen
 
 - Planung 4.1, Schritt 9.13: `python -m pytest ui_tests -m smoke --no-cov` prüft in rund

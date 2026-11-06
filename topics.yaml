@@ -137,3 +137,19 @@ topics:
   - Bescheid oder Anhörung mit Frist
   exclusions:
   - Allgemeine Newsletter und Pressemitteilungen der Behörden ohne Bezug zum eigenen Betrieb
+- id: persoenliche-termine-und-terminhinweise
+  name: Persönliche Termine und Terminhinweise
+  enabled: true
+  description: Mails, die dir persönlich einen konkreten Termin mitteilen, bestätigen,
+    ändern oder absagen, oder einen Plan mit eigenen Einsätzen enthalten, etwa
+    Terminbestätigungen von Praxen, Handwerkern oder Behörden, Einsatz-, Dienst-,
+    Stunden- oder Blockpläne mit deinem Namen sowie Erinnerungen an vereinbarte Termine,
+    auch wenn die Termine nur im Anhang stehen.
+  examples:
+  - Blockplan im PDF-Anhang, in dem du an zwei Tagen als Dozent eingeteilt bist
+  - Terminbestätigung einer Praxis oder Werkstatt mit Datum und Uhrzeit
+  - Mitteilung, dass ein vereinbarter Vor-Ort-Termin auf einen anderen Tag verlegt wird
+  exclusions:
+  - Werbung, Rabattaktionen oder Newsletter mit Fristen ohne persönlich vereinbarten Termin
+  - Allgemeine Veranstaltungshinweise ohne eigene Einladung, Anmeldung oder Einteilung
+  - Liefer- und Paketankündigungen

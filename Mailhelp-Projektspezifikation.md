@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 5. November 2026, Anwendungsversion 4.1.9. Die folgenden Verträge beschreiben
+Stand: 6. November 2026, Anwendungsversion 4.1.10. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -387,6 +387,12 @@ Prüf- oder Antwortaufgabe wird nicht doppelt vorgeschlagen. Allgemeine Werbung
 und Newsletter sind ausgeschlossen; die Spam-/Phishing-Prüfung und die
 ausdrückliche Freigabe vor externer Anlage bleiben verbindlich. Diese persönliche
 Regel ist in `prompts.yaml` konfiguriert und wird durch das LLM angewendet.
+
+Seit 4.1.10 enthält sie außerdem „Persönliche Termine und Terminhinweise“: Mails, die
+dem Nutzer einen konkreten Termin mitteilen, bestätigen, ändern oder absagen, sowie
+Einsatz-, Dienst-, Stunden- oder Blockpläne mit eigenen Einsätzen, auch wenn diese nur im
+Anhang stehen. Werbung mit Fristen, allgemeine Veranstaltungshinweise ohne eigene
+Einladung oder Einteilung sowie Paketankündigungen sind ausgeschlossen.
 
 ```yaml
 topics:
