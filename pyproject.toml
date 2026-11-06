@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mailhelp"
-version = "4.1.10"
+version = "4.1.11"
 description = "Persönlicher, bestätigungspflichtiger E-Mail-Assistent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -12,6 +12,7 @@ dependencies = ["httpx==0.28.1", "pillow==12.2.0", "pydantic==2.11.7", "pypdf==6
 
 [project.optional-dependencies]
 test = ["pytest==8.4.1", "pytest-cov==6.2.1", "hypothesis==6.131.0", "time-machine==3.6.0", "pytest-xdist==3.8.0"]
+mutation = ["mutmut==3.8.0; sys_platform == 'linux'"]
 # Browser tests of the web interface (ui_tests/), using the installed Chrome.
 ui = ["playwright==1.62.0", "axe-playwright-python==0.1.8"]
 # Static checks (Planung 2.1, A1); every finding fails the CI since 2.2.4.
@@ -22,7 +23,7 @@ mailhelp = "mailhelp.cli:main"
 mailhelp-evaluate = "mailhelp.llm.evaluation:main"
 
 [tool.pytest.ini_options]
-addopts = "--cov=mailhelp --cov-branch --cov-fail-under=100 --strict-markers"
+addopts = "--cov=mailhelp --cov=devtools --cov-branch --cov-fail-under=100 --strict-markers"
 # Planung 4.1, Schritt 9.2: fast development runs deselect these with
 # pytest -m "not (slow or process or e2e)" --no-cov
 markers = [
@@ -42,27 +43,34 @@ tmp_path_retention_policy = "failed"
 # Planung 4.1, Schritt 9.6: sampled mutation testing of the safety-critical core.
 # mutmut needs fork and runs on Linux, for example in WSL: python -m mutmut run
 source_paths = ["src"]
+# Count tests that exercise a core function directly or through a short core call chain.
+# The full suite still verifies the complete application; no source line is excluded here.
+max_stack_depth = 4
 only_mutate = ["src/mailhelp/domain/*", "src/mailhelp/storage.py", "src/mailhelp/external/confirmed.py"]
 # One-line stubs (protocols, overloads) have no behaviour; mutated, a protocol gains
 # attributes that break its isinstance checks.
 do_not_mutate_patterns = ['^\s+def .*: \.\.\.$']
 # Child processes and containers would not see the mutant; the full suite runs them.
 pytest_add_cli_args = ["--no-cov", "-p", "no:cacheprovider", "-m", "not (process or e2e)"]
-pytest_add_cli_args_test_selection = ["tests"]
+pytest_add_cli_args_test_selection = [
+  "tests/unit/test_mutation_invariants.py", "tests/unit/test_core.py",
+  "tests/unit/test_validation_boundaries.py", "tests/unit/test_v13_domain.py",
+  "tests/unit/test_mail_timestamps.py",
+]
 # Project files that tests read relative to the repository root.
 also_copy = [
-  "ui_tests", "docs", "website", ".github", "quality-reports", "AGENTS.md", "CHANGELOG.md", "README.md",
+  "ui_tests", "devtools", "docs", "website", ".github", "quality-reports", "AGENTS.md", "CHANGELOG.md", "README.md",
   "Mailhelp-Projektspezifikation.md", "DATENSCHUTZ.md", "NUTZUNGSBEDINGUNGEN.md", "LICENSE", "Dockerfile",
   ".dockerignore", ".env.example", ".gitignore", "compose.yaml", "compose.setup.yaml", "compose.smoke.yaml",
   "compose.learn.yaml", "compose.learn.smoke.yaml", "compose.decision-test.yaml", "config.example.yaml",
-  "prompts.yaml", "decisions_prompts.yaml", "laya_prompts.yaml", "topics.yaml", "irrelevant_topics.yaml",
+  "prompts.yaml", "decisions_prompts.yaml", "laya_prompts.yaml", "topics.yaml", "irrelevant_topics.yaml", "requirements-mutation.lock",
   "irrelevant-senders.example.json", "requirements.lock", "requirements-lint.lock",
 ]
 
 [tool.ruff]
 line-length = 120
 target-version = "py312"
-src = ["src", "tests", "ui_tests"]
+src = ["src", "tests", "ui_tests", "devtools"]
 
 [tool.ruff.lint]
 # Pyflakes, isort, pyupgrade, bugbear, the line length and (Planung 3.3) the McCabe complexity.
@@ -75,7 +83,7 @@ ignore = ["UP038"]
 max-complexity = 15
 
 [tool.ruff.lint.isort]
-known-first-party = ["mailhelp", "tests"]
+known-first-party = ["mailhelp", "tests", "devtools"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/mailhelp/web/setting_help.py" = ["E501"]
@@ -92,7 +100,7 @@ python_version = "3.12"
 # pydantic validates and converts constructor arguments at runtime (str to enum, URL ...).
 plugins = ["pydantic.mypy"]
 mypy_path = "src"
-packages = ["mailhelp"]
+packages = ["mailhelp", "devtools"]
 warn_unused_configs = true
 warn_redundant_casts = true
 # Planung 3.3: bodies of untyped functions are checked as well (0 findings since 3.2.3).
@@ -127,7 +135,7 @@ strict_equality = true
 [tool.coverage.run]
 branch = true
 data_file = ".test-tmp/.coverage"
-source = ["mailhelp"]
+source = ["mailhelp", "devtools"]
 
 [tool.coverage.report]
 fail_under = 100
@@ -152,6 +160,7 @@ include = [
   "/docs/Release-3.2.md",
   "/docs/Release-3.3.md", "/docs/Release-3.4.md", "/docs/Release-3.5.md", "/docs/Planung-3.5.md",
   "/docs/Planung-4.0.md",
+  "/docs/Planung-4.1.md", "/docs/Qualitaet-4.1.md", "/requirements-mutation.lock",
   "/docs/Planung-3.6.md", "/docs/Planung-3.7.md", "/docs/Zustandsregeln-3.6.md",
   "/docs/Release-3.7.md", "/docs/Google-OAuth-Playground.md", "/docs/Einrichtung-und-Qualitaetspruefung.md",
   "/docs/Planung-3.8.md", "/docs/Release-3.8.md",

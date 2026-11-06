@@ -1,5 +1,36 @@
 # Änderungen
 
+## 4.1.11 – Messbare Qualitätsaufgaben und konservativer Prompt-Schutz
+
+- Plattformübergreifende Befehle und VS-Code-Tasks für Schnelltest, vollständige
+  Abnahme mit aktuellen Paketen, Browser-Smoke und Prompt-Gate. Der Schnelltest nutzt
+  pytest-xdist mit Workstealing und dokumentiert seine Gesamtlaufzeit. Das nach den
+  Messungen gemeinsam angepasste 15-Sekunden-Ziel gilt für ausdrücklich ausgewählte
+  TDD-Tests (`python -m devtools.check tdd <Testdatei oder Node-ID>`).
+- Mutationstests mit festgeschriebenem mutmut 3.8.0 und vollständiger Linux-Abhängigkeitssperre;
+  manuell und wöchentlich ausführbarer Workflow mit 90-%-Schranke. Nur getötete Mutanten
+  zählen als erkannt, Zeitüberschreitungen und ungetestete Mutanten verbessern den Wert nicht.
+- Abschlussaudit: 1.001 von 1.011 Kernmutanten getötet (99,01 %); alle zehn Überlebenden
+  einzeln bewertet. Direkte Invarianten prüfen Revisionen, Freigaben, Profilbindung,
+  Autorisierung, Wiederaufnahme unklarer Ergebnisse und atomare Speicherung.
+  Parallele Volltests führen Prozess- und E2E-Prüfungen gemeinsam sequenziell aus.
+- Das Offline-Prompt-Gate verweigert auch Textänderungen gegenüber der geprüften
+  Konfigurationsbasis. Simulierte Antworten werden ausdrücklich nicht als Beleg für
+  echte Modellqualität gewertet.
+- Sicheres YAML-Laden verwendet bei Verfügbarkeit den C-Parser; dieselben Typ- und
+  Sicherheitsprüfungen testen den Python-Fallback und den kompilierten Parser.
+- Behoben: Die Bereinigung eines erfolgreichen Tests konnte Coverage-Dateien eines
+  parallel laufenden Volltests löschen. Volltests verwenden jetzt einen eigenen
+  Coverage-Pfad je Aufruf; die Bereinigung berücksichtigt genau diesen Pfad.
+  Der Regressionstest wurde gegen die alte und die korrigierte Bereinigung geprüft.
+- Automatische Tests erzeugen unkonfigurierte HTTP-Clients mit einem gesperrten
+  Simulationstransport. Versehentliche echte Provideraufrufe scheitern sofort;
+  ausdrücklich übergebene Simulationstransporte bleiben unverändert wirksam.
+- Behoben: Eine Zustandsdatei mit ungültigem UTF-8 umging die Behandlung beschädigter
+  JSON-Daten. Schreibfreies Lesen meldet jetzt `CorruptState` ohne Verschieben;
+  normales Laden isoliert die ursprünglichen Bytes als `.corrupt`. Der Regressionstest
+  scheiterte vor dem Fix mit `UnicodeDecodeError` und besteht danach.
+
 ## 4.1.10 – Thema für persönliche Termine und Terminhinweise
 
 - Neues Thema „Persönliche Termine und Terminhinweise“ in `topics.yaml`: Mails, die einen

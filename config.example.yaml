@@ -102,6 +102,7 @@ daily_briefing:
   include_open: true
 poll_interval_seconds: 60
 test_mode: false
+# Zustandsdateien verwenden UTF-8; beschädigte JSON- oder UTF-8-Daten werden beim Laden als .corrupt isoliert.
 data_directory: data
 retention:
   full_mail_days: 30

@@ -121,7 +121,7 @@ class ProcessHarness:
                 process.kill()
             process.join(LIMIT)
             assert not process.is_alive(), "Application process did not exit"
-            assert (process.exitcode != 0) if point else (process.exitcode == 0)
+            assert (process.exitcode != 0) if point else (process.exitcode == 0), (process.exitcode, result)
             return result
         finally:
             if process.is_alive():

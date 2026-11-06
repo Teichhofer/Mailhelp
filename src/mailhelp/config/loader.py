@@ -37,7 +37,7 @@ REQUIRED_FILES = ("config.yaml", "prompts.yaml")
 
 def read_yaml(path: Path) -> Any:
     with path.open(encoding="utf-8") as stream:
-        value = yaml.safe_load(stream)
+        value = yaml.load(stream, Loader=getattr(yaml, "CSafeLoader", yaml.SafeLoader))
     if not isinstance(value, dict):
         raise ValueError(f"{path}: Wurzel muss ein Objekt sein")
     return value

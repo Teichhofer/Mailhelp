@@ -1,0 +1,58 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Mailhelp: TDD-Auswahl (15 s)",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": ["-m", "devtools.check", "tdd", "${input:tddTest}"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "group": {"kind": "test", "isDefault": true},
+      "problemMatcher": []
+    },
+    {
+      "label": "Mailhelp: Gesamte Schnellsuite (Messung)",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": ["-m", "devtools.check", "fast"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Mailhelp: Volltest und Pakete",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": ["-m", "devtools.check", "full"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Mailhelp: Browser-Smoke",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": ["-m", "devtools.check", "ui"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "group": "test",
+      "problemMatcher": []
+    },
+    {
+      "label": "Mailhelp: Prompt-Gate",
+      "type": "process",
+      "command": "${command:python.interpreterPath}",
+      "args": ["-m", "devtools.check", "prompts"],
+      "options": {"cwd": "${workspaceFolder}"},
+      "group": "test",
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "tddTest",
+      "type": "promptString",
+      "description": "Testdatei oder pytest-Node-ID",
+      "default": "tests/unit/test_mutation_invariants.py"
+    }
+  ]
+}

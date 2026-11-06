@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "kind": "reviewed_configuration_contract",
+  "model_quality_proven": false,
+  "fingerprints": {
+    "prompts.yaml": "7c741eea64c6105dc426dda7a7723ef56b0ad2bcaa9c97aa112099fb461b3a34",
+    "topics.yaml": "be1a614980d41a4013cf0a8736460644ce27d6cdd140d26580bf707d1d307c9f",
+    "decisions_prompts.yaml": "12827807cbf2091bdd0c1329a0e0ad264d2fa882f87d23815d866cc27995a2dc",
+    "tests/fixtures/mail_corpus_v3/corpus.json": "4c9d738065de78c5254d3d8b26b506764cf7476aad7db876c3f44ebd97c90006"
+  }
+}

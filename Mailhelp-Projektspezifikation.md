@@ -2680,3 +2680,31 @@ trägt der Cache-Name einen Hash der zwischengespeicherten Dateien (`offline.htm
 Icons), den der Server beim Start in `sw.js` einsetzt: Jede Änderung dieser Dateien erneuert den
 Worker und verwirft den alten Cache. Diagrammbalken tragen zusätzlich eigene Füllfarben, damit
 die Reihen auch ohne Stylesheet unterscheidbar bleiben; die Klassen des Designs haben Vorrang.
+
+## Qualitätswerkzeuge ab 4.1.11
+
+Die Repository-Aufgaben `python -m devtools.check tdd|fast|full|ui|prompts|mutation` bieten
+denselben Ablauf im Terminal und in VS-Code-Tasks. Der vollständige Lauf baut aktuelle
+Pakete und erzwingt weiterhin 100 % Zeilen- und Branch-Abdeckung; die Entwicklungswerkzeuge
+sind ebenfalls Teil der Abdeckungsprüfung. Der Schnelllauf parallelisiert alle nicht als
+langsam, prozessstartend oder End-to-End markierten Tests und dokumentiert seine Laufzeit.
+Nach gemeinsamer Anpassung des ursprünglichen Ziels gilt die 15-Sekunden-Grenze für
+die ausdrücklich angegebene TDD-Testauswahl. Diese Messung umfasst den Prozessstart;
+eine angehobene lokale Zeitgrenze erfüllt nicht das 15-Sekunden-Abnahmekriterium.
+
+Der Linux-Mutationslauf prüft die Kernmodule `domain`, `storage` und `external.confirmed`.
+Mindestens 90 % aller erzeugten Mutanten müssen durch fehlgeschlagene Tests erkannt sein;
+Timeouts und ungetestete Mutanten verbessern den Wert nicht. Einzelheiten und Messwerte
+stehen in `docs/Qualitaet-4.1.md`.
+
+Das Offline-Prompt-Gate verbindet die synthetische Auswertung mit Fingerprints der Prompts,
+Themen, Relevanzkonfiguration und des Korpus. Änderungen gegenüber der geprüften Basis
+werden abgewiesen, bis eine neue Baseline fachlich freigegeben ist. Synthetische Antworten
+werden nicht als Messung echter Modellqualität ausgegeben. Tests bleiben vollständig
+offline; echte Modelle werden ausschließlich über die explizit freigegebene, budgetierte
+Evaluation geprüft.
+
+Beschädigte Zustandsdateien umfassen auch ungültiges UTF-8. Schreibfreies Lesen meldet
+`CorruptState` ohne Änderung der Datei; normales Laden isoliert die unveränderten Bytes
+als `.corrupt`. Eine so isolierte maßgebliche Zustandsdatei darf bei späteren Leseversuchen
+nicht als fehlender Zustand durch einen Default ersetzt werden.

@@ -848,6 +848,10 @@ def test_storage_and_logging(tmp_path):
 def test_storage_windows_directory_sync(tmp_path, monkeypatch):
     """Windows cannot open a directory for fsync; the file is still written durably."""
     import os
+    from types import SimpleNamespace
+    platform_name = os.name
+    # Patch only storage's view of the platform; pytest/mutmut/pathlib keep the host OS.
+    monkeypatch.setattr("mailhelp.storage.os", SimpleNamespace(**vars(os)))
     store = JsonStore(tmp_path)
     opened = []
     real_open = os.open
@@ -855,6 +859,7 @@ def test_storage_windows_directory_sync(tmp_path, monkeypatch):
         opened.append(str(path))
         return real_open(path, *args, **kwargs)
     monkeypatch.setattr("mailhelp.storage.os.name", "nt")
+    assert os.name == platform_name
     monkeypatch.setattr("mailhelp.storage.os.open", recording_open)
     store.save("windows", {"ok": True})
     assert store.load("windows") == {"ok": True}
@@ -904,13 +909,21 @@ def test_storage_lock_platform_and_failure_paths(tmp_path, monkeypatch):
     import types
 
     platform_name = os.name
+    monkeypatch.setattr("mailhelp.storage.os", types.SimpleNamespace(**vars(os)))
     descriptor = os.open(tmp_path / "windows-lock", os.O_CREAT | os.O_RDWR, 0o600)
     calls = []
-    fake_msvcrt = types.SimpleNamespace(LK_NBLCK=7, locking=lambda *args: calls.append(args))
+    def lock_byte(descriptor, mode, count):
+        assert os.lseek(descriptor, 0, os.SEEK_CUR) == 0
+        calls.append((descriptor, mode, count))
+    fake_msvcrt = types.SimpleNamespace(LK_NBLCK=7, locking=lock_byte)
     monkeypatch.setitem(sys.modules, "msvcrt", fake_msvcrt)
     monkeypatch.setattr("mailhelp.storage.os.name", "nt")
+    assert os.name == platform_name
     JsonStore._acquire_lock(descriptor)
+    assert os.fstat(descriptor).st_size == 1
+    os.write(descriptor, b"PID")
     JsonStore._acquire_lock(descriptor)
+    assert os.read(descriptor, 3) == b"PID"
     os.close(descriptor)
     assert calls == [(descriptor, 7, 1), (descriptor, 7, 1)]
 

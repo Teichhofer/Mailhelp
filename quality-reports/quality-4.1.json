@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "version": "4.1.11",
+  "date": "2026-11-06",
+  "automated_data": "synthetic",
+  "external_services": "simulated",
+  "real_model_quality_measured": false,
+  "timing_contract": {
+    "selected_tdd_limit_seconds": 15,
+    "fast_suite_limit_seconds": null,
+    "includes_process_startup": true
+  },
+  "tdd": {
+    "selection": "tests/unit/test_mutation_invariants.py",
+    "windows_seconds": 4.090733099961653,
+    "linux_seconds": 2.1532688290000017,
+    "passed": true
+  },
+  "fast": {
+    "windows_seconds": 68.13440510001965,
+    "linux_seconds": 59.719263203,
+    "passed": true
+  },
+  "full": {
+    "windows": {"passed_tests": 3436, "seconds": 364.78},
+    "linux_final": {"passed_tests": 3458, "seconds": 256.48},
+    "line_coverage_percent": 100,
+    "branch_coverage_percent": 100,
+    "statements": 23927,
+    "branches": 6906,
+    "workers": 4,
+    "process_and_e2e_tests": "one sequential loadgroup",
+    "note": "Final Linux run includes subsequent test-only invariant additions."
+  },
+  "mutation": {
+    "report": "mutation-4.1.json",
+    "analysis": "mutation-4.1.md",
+    "total": 1011,
+    "killed": 1001,
+    "survived": 10,
+    "unresolved": 0,
+    "passed": true
+  },
+  "other_checks": {
+    "ui_smoke_passed_tests": 18,
+    "docker_hard_kill_passed_tests": 28,
+    "quality_tool_tests": 36,
+    "quality_tool_line_coverage_percent": 100,
+    "quality_tool_branch_coverage_percent": 100,
+    "ruff_mailhelp_sources_and_tests": "passed",
+    "mypy_source_files": 229
+  }
+}

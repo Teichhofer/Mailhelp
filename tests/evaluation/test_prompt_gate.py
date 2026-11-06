@@ -15,6 +15,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+from devtools.prompt_guard import verify_baseline
 from mailhelp.config import PromptConfig, Topic
 from mailhelp.llm.evaluation import _STAGES, evaluate
 from tests.fakes.shared_quality_corpus import ExpectedAnswers
@@ -49,6 +50,7 @@ def repository_topic_gaps(corpus: dict, topics: dict[str, Topic]) -> list[str]:
 
 
 def test_the_repository_prompts_and_topics_carry_every_expected_answer():
+    verify_baseline(ROOT)
     topics = repository_topics()
     corpus = gated_corpus(topics)
     assert repository_topic_gaps(corpus, topics) == []

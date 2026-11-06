@@ -16,11 +16,11 @@ from packaging.utils import canonicalize_name
 
 ROOT = Path(__file__).parents[2]
 # The browser tests install their extra separately (see .github/workflows/ci.yml).
-LOCKED_EXTRAS = ("test", "lint")
+LOCKED_EXTRAS = ("test", "lint", "mutation")
 
 
 # requirements-lint.lock keeps the static-check tools out of the Docker image.
-LOCK_FILES = ("requirements.lock", "requirements-lint.lock")
+LOCK_FILES = ("requirements.lock", "requirements-lint.lock", "requirements-mutation.lock")
 
 
 def locked() -> dict[str, str]:

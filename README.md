@@ -13,12 +13,15 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 4.1.10 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 4.1.11 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 4.1 baut die Testinfrastruktur aus ([Planung 4.1](docs/Planung-4.1.md)); seit 4.1.0
 deckt der Qualitätskorpus auch Jimdo-Anfragen und Stellplatzbuchungen ab. 4.1.10 ergänzt das
 Thema „Persönliche Termine und Terminhinweise“ in `topics.yaml`, etwa für Terminbestätigungen
 und Einsatz- oder Blockpläne mit eigenen Terminen im Anhang.
+4.1.11 schließt die Qualitätsoffensive ab: gezielte TDD-Tests mit 15-Sekunden-Schranke,
+gemessene parallele Schnellsuite und Mutationsaudit mit 99,01 % getöteten Kernmutanten.
+Ergebnisse und Grenzen: [Qualitätsabschluss 4.1](docs/Qualitaet-4.1.md).
 
 Version 4.0 bündelt die abgenommenen Stände 3.6 bis 3.8 zum Haupt-Release: Einrichtung,
 Anmeldung, OAuth, Lernen und Neuladen laufen vollständig im Browser. Einrichtung, Upgrade und
@@ -453,6 +456,33 @@ Hinweise für betriebene Instanzen stehen in der
 Betrieb angepasst werden.
 
 ## Entwicklung und Qualitätssicherung
+
+Ab 4.1.11 stehen dieselben Qualitätsaufgaben im Terminal und als VS-Code-Tasks bereit:
+
+```sh
+python -m devtools.check tdd tests/unit/test_mutation_invariants.py
+python -m devtools.check fast
+python -m devtools.check full
+python -m devtools.check ui
+python -m devtools.check prompts
+```
+
+`tdd` benötigt eine ausdrückliche Testauswahl und scheitert auch bei grünen Tests,
+wenn die gesamte Befehlslaufzeit einschließlich Prozessstart 15 Sekunden erreicht.
+`fast` führt weiterhin die gesamte Schnellsuite mit allen verfügbaren Workern und
+Workstealing aus; hier wird die Laufzeit dokumentiert, ohne eine 15-Sekunden-Grenze
+zu behaupten. Die Ergebnisse stehen in `.test-tmp/tdd-report.json` beziehungsweise
+`.test-tmp/fast-report.json`. Eine eigene Grenze ist mit `--max-seconds` möglich.
+`full` baut zuerst die aktuellen Pakete und erzwingt
+anschließend 100 % Zeilen- und Branch-Abdeckung einschließlich der Entwicklungswerkzeuge.
+Optional parallelisiert `full --workers 4` die gewöhnlichen Tests der vollständigen
+Abnahme; Prozess- und E2E-Prüfungen bleiben in einer gemeinsamen sequenziellen Gruppe.
+Ohne diese Angabe bleibt der gesamte Volltest sequenziell.
+Details und Messwerte: [Qualitätsabschluss 4.1](docs/Qualitaet-4.1.md).
+
+Beschädigte Zustandsdateien werden auch bei ungültigem UTF-8 sicher behandelt:
+schreibfreies Lesen meldet den Fehler, normales Laden erhält die ursprünglichen Bytes
+in einer `.corrupt`-Datei. Die maßgebliche Ablage bleibt bis zur Reparatur gesperrt.
 
 Automatisierte Tests verwenden synthetische Daten und simulierte externe Dienste.
 Die vollständige Python-Suite erzwingt **100 % Zeilen- und Branch-Abdeckung** des

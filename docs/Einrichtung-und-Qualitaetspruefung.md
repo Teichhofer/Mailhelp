@@ -1,8 +1,29 @@
 # Einrichtung und Qualitätsprüfung
 
-Stand: 6. November 2026, Anwendungsversion 4.1.10. Die Einrichtungshinweise gelten
+Stand: 6. November 2026, Anwendungsversion 4.1.11. Die Einrichtungshinweise gelten
 für den aktuellen Stand. Datierte Qualitätsberichte weiter unten dokumentieren
 jeweils den damaligen Code und die damals geprüften Modelle.
+
+Für die Entwicklung stehen seit 4.1.11 `python -m devtools.check tdd <Testauswahl>`, `fast`, `full`, `ui`
+und `prompts` sowie entsprechende VS-Code-Tasks bereit. `full` benötigt zusätzlich
+`hatchling==1.27.0`, baut die aktuellen Release-Pakete und prüft 100 % Zeilen- und
+Branch-Abdeckung. Die 15-Sekunden-Grenze für gezielte TDD-Tests wird über die gesamte
+Befehlslaufzeit gemessen. Die gesamte Schnellsuite wird ohne starre Zeitgrenze gemessen.
+Messwerte und Mutationsabnahme stehen in
+[Qualität 4.1](Qualitaet-4.1.md).
+
+Unter Linux beziehungsweise WSL werden Mutationstests zusätzlich mit
+`python -m pip install -r requirements-mutation.lock` installiert. Der Befehl
+`python -m devtools.check mutation` scheitert bei weniger als 90 % getöteten Mutanten.
+Tests mit Dateirechten müssen unter einem unprivilegierten Benutzer laufen.
+
+Das kostenlose Prompt-Gate vergleicht neben dem synthetischen Verarbeitungspfad die
+Fingerprints von Prompts, Themen, Relevanzkonfiguration und Qualitätskorpus mit
+`quality-reports/prompt-baseline.json`. Eine geänderte Formulierung kann deshalb nicht
+unbemerkt mit vorgegebenen perfekten Modellantworten bestehen. Eine neue Baseline
+erfordert die fachliche Prüfung der Änderung und eine echte Evaluation über
+`mailhelp-evaluate` mit ausdrücklicher Netzwerkfreigabe und Aufrufbudget. Die aktuelle
+Ausgangsbasis dokumentiert einen Konfigurationsvertrag, keine gemessene Modellgenauigkeit.
 
 Ohne `config.yaml` startet nun die geschützte Browser-Ersteinrichtung mit
 automatischem Terminal-Code. Für eine neue Docker-Installation steht

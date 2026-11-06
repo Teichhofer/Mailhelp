@@ -162,3 +162,56 @@ def test_regression_a_finished_run_restores_temp_settings_for_the_next_in_proces
     assert tempfile.tempdir == str(tmp_path / "before")
     assert os.environ["TMP"] == "previous-tmp" and os.environ["TEMP"] == "previous-temp"
     assert "TMPDIR" not in os.environ and "MAILHELP_TEST_TEMP" not in os.environ
+
+
+def test_regression_concurrent_full_runs_do_not_delete_each_others_coverage(tmp_path, monkeypatch):
+    import types
+
+    import conftest
+    one = tmp_path / "tools" / "one" / ".coverage"
+    two = tmp_path / "tools" / "two" / ".coverage"
+    for path in (one, two):
+        path.parent.mkdir(parents=True)
+        path.write_text("synthetic coverage")
+    monkeypatch.setenv("COVERAGE_FILE", str(one))
+    monkeypatch.setattr(conftest, "COVERAGE_DATA", tmp_path / "tools" / ".coverage")
+    monkeypatch.setattr(conftest, "TEST_TEMP_ROOT", tmp_path / "states")
+    config = types.SimpleNamespace(stash={conftest._SESSION_PASSED: True})
+    conftest.pytest_unconfigure(config)
+    assert not one.exists()
+    assert two.read_text() == "synthetic coverage"
+
+
+def test_mutations_run_direct_invariants_first_without_deselecting_any_test(monkeypatch):
+    from types import SimpleNamespace
+
+    import conftest
+    names = ["tests/services/test_safety.py::test_a", "tests/unit/test_core.py::test_a",
+             "tests/unit/test_mutation_invariants.py::test_a", "tests/unit/test_core.py::test_b"]
+    items = [SimpleNamespace(nodeid=name) for name in names]
+    config = SimpleNamespace(option=SimpleNamespace(dist="no"))
+    monkeypatch.delenv("MUTANT_UNDER_TEST", raising=False)
+    conftest.pytest_collection_modifyitems(items, config)
+    assert [item.nodeid for item in items] == names
+    monkeypatch.setenv("MUTANT_UNDER_TEST", "stats")
+    conftest.pytest_collection_modifyitems(items, config)
+    assert [item.nodeid for item in items] == [names[2], names[1], names[3], names[0]]
+    assert {item.nodeid for item in items} == set(names)
+
+
+@pytest.mark.parametrize("worker", [False, True])
+def test_parallel_full_runs_keep_process_and_e2e_tests_in_one_sequential_group(monkeypatch, worker):
+    from types import SimpleNamespace
+
+    import conftest
+    class Item:
+        def __init__(self, marker): self.marker, self.assigned = marker, []
+        def get_closest_marker(self, name): return self.marker == name
+        def add_marker(self, marker): self.assigned.append(marker)
+    items = [Item("process"), Item("e2e"), Item("unit")]
+    monkeypatch.delenv("MUTANT_UNDER_TEST", raising=False)
+    config = SimpleNamespace(option=SimpleNamespace(loadgroup=worker, dist="no" if worker else "loadgroup"))
+    conftest.pytest_collection_modifyitems(items, config)
+    assert all(len(item.assigned) == 1 and item.assigned[0].name == "xdist_group"
+               and item.assigned[0].args == ("mailhelp_process",) for item in items[:2])
+    assert items[2].assigned == []

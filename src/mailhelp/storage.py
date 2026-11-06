@@ -177,7 +177,7 @@ class JsonStore:
             return default
         try:
             with path.open(encoding="utf-8") as stream: return json.load(stream)
-        except (OSError, json.JSONDecodeError) as exc:
+        except (OSError, json.JSONDecodeError, UnicodeDecodeError) as exc:
             if not quarantine:
                 raise CorruptState(f"Beschädigter Zustand: {path.name}") from exc
             isolated = path.with_suffix(".corrupt")

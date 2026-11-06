@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "version": "4.1.11",
+  "created_at": "2026-11-06T08:54:35.574697+00:00",
+  "tool": "mutmut 3.8.0",
+  "complete": true,
+  "threshold_per_core": 90,
+  "stats": {
+    "killed": 1001,
+    "survived": 10,
+    "total": 1011,
+    "no_tests": 0,
+    "skipped": 0,
+    "suspicious": 0,
+    "timeout": 0,
+    "check_was_interrupted_by_user": 0,
+    "segfault": 0
+  },
+  "groups": {
+    "domain": {
+      "total": 506,
+      "killed": 503,
+      "score": 99.40711462450592
+    },
+    "storage": {
+      "total": 355,
+      "killed": 352,
+      "score": 99.15492957746478
+    },
+    "confirmed": {
+      "total": 150,
+      "killed": 146,
+      "score": 97.33333333333333
+    }
+  },
+  "modules": {
+    "src/mailhelp/domain/mail.py": {
+      "total": 5,
+      "killed": 5,
+      "sha256": "fc3f32b4ff88899e253c272cc4caefb7827d5d29da0be79ab17899b35238801d"
+    },
+    "src/mailhelp/domain/processing.py": {
+      "total": 5,
+      "killed": 3,
+      "sha256": "f0d4ed3f5de14980182c5a295db429422efe5643f7a1b3c1670f693e89fa8960"
+    },
+    "src/mailhelp/domain/proposal.py": {
+      "total": 496,
+      "killed": 495,
+      "sha256": "15ffe153a357415a669da29ac1d33b885baad074c38145746941781d57d78747"
+    },
+    "src/mailhelp/external/confirmed.py": {
+      "total": 150,
+      "killed": 146,
+      "sha256": "6f6e9d777aabdd1a3413b1306705f7e90283740f8adef313afe1f48b449eec7d"
+    },
+    "src/mailhelp/storage.py": {
+      "total": 355,
+      "killed": 352,
+      "sha256": "bd6a2685bc7ecc6377a0259fe02c8948dab21e4bcc11c7c6df4b369a02632588"
+    }
+  },
+  "survivors": [
+    {
+      "name": "mailhelp.domain.processing.xǁTelegramDialogStateǁreference__mutmut_1",
+      "module": "src/mailhelp/domain/processing.py",
+      "diff": "# mailhelp.domain.processing.xǁTelegramDialogStateǁreference__mutmut_1: survived\n--- src/mailhelp/domain/processing.py\n+++ src/mailhelp/domain/processing.py\n@@ -1,4 +1,4 @@\n def reference(self) -> tuple[str, str, int]:\n     \"\"\"Mail, proposal and version of an open dialog; the validator sets all three together.\"\"\"\n-    assert self.mail_id is not None and self.proposal_id is not None and self.version is not None\n+    assert self.mail_id is not None and self.proposal_id is not None or self.version is not None\n     return self.mail_id, self.proposal_id, self.version\n"
+    },
+    {
+      "name": "mailhelp.domain.processing.xǁTelegramDialogStateǁreference__mutmut_2",
+      "module": "src/mailhelp/domain/processing.py",
+      "diff": "# mailhelp.domain.processing.xǁTelegramDialogStateǁreference__mutmut_2: survived\n--- src/mailhelp/domain/processing.py\n+++ src/mailhelp/domain/processing.py\n@@ -1,4 +1,4 @@\n def reference(self) -> tuple[str, str, int]:\n     \"\"\"Mail, proposal and version of an open dialog; the validator sets all three together.\"\"\"\n-    assert self.mail_id is not None and self.proposal_id is not None and self.version is not None\n+    assert self.mail_id is not None or self.proposal_id is not None and self.version is not None\n     return self.mail_id, self.proposal_id, self.version\n"
+    },
+    {
+      "name": "mailhelp.domain.proposal.x__revision_interval__mutmut_40",
+      "module": "src/mailhelp/domain/proposal.py",
+      "diff": "# mailhelp.domain.proposal.x__revision_interval__mutmut_40: survived\n--- src/mailhelp/domain/proposal.py\n+++ src/mailhelp/domain/proposal.py\n@@ -15,7 +15,7 @@\n         start = changes.get(\"start\", known.start)\n         end = changes.get(\"end\")\n         if start is not None and end is not None:\n-            changes.update(start=start, end=end, known_temporal_facts=None)\n+            changes.update(start=start, known_temporal_facts=None)\n         elif (changes.get(\"all_day\") is True and isinstance(start, date)\n               and not isinstance(start, datetime)):\n             # A date-only all-day start is a complete proposal field, not a\n"
+    },
+    {
+      "name": "mailhelp.external.confirmed.x_execute_confirmed__mutmut_27",
+      "module": "src/mailhelp/external/confirmed.py",
+      "diff": "# mailhelp.external.confirmed.x_execute_confirmed__mutmut_27: survived\n--- src/mailhelp/external/confirmed.py\n+++ src/mailhelp/external/confirmed.py\n@@ -9,7 +9,7 @@\n     if (proposal.status not in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN}\n             or proposal.open_questions):\n         raise ValueError(\"Schreiben erfordert vollständige, bestätigte Vorschlagsversion\")\n-    if isinstance(writer, TargetWriter) and (proposal.target_profile != getattr(writer, \"target_profile\", 1)\n+    if isinstance(writer, TargetWriter) and (proposal.target_profile != getattr(writer, \"target_profile\", None)\n             or proposal.target != writer.target or\n             proposal.target_provider and proposal.target_provider != provider_key(writer)):\n         # Even reconciliation must not search a newly configured target for an\n"
+    },
+    {
+      "name": "mailhelp.external.confirmed.x_execute_confirmed__mutmut_30",
+      "module": "src/mailhelp/external/confirmed.py",
+      "diff": "# mailhelp.external.confirmed.x_execute_confirmed__mutmut_30: survived\n--- src/mailhelp/external/confirmed.py\n+++ src/mailhelp/external/confirmed.py\n@@ -9,7 +9,7 @@\n     if (proposal.status not in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN}\n             or proposal.open_questions):\n         raise ValueError(\"Schreiben erfordert vollständige, bestätigte Vorschlagsversion\")\n-    if isinstance(writer, TargetWriter) and (proposal.target_profile != getattr(writer, \"target_profile\", 1)\n+    if isinstance(writer, TargetWriter) and (proposal.target_profile != getattr(writer, \"target_profile\", )\n             or proposal.target != writer.target or\n             proposal.target_provider and proposal.target_provider != provider_key(writer)):\n         # Even reconciliation must not search a newly configured target for an\n"
+    },
+    {
+      "name": "mailhelp.external.confirmed.x_execute_confirmed__mutmut_33",
+      "module": "src/mailhelp/external/confirmed.py",
+      "diff": "# mailhelp.external.confirmed.x_execute_confirmed__mutmut_33: survived\n--- src/mailhelp/external/confirmed.py\n+++ src/mailhelp/external/confirmed.py\n@@ -9,7 +9,7 @@\n     if (proposal.status not in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN}\n             or proposal.open_questions):\n         raise ValueError(\"Schreiben erfordert vollständige, bestätigte Vorschlagsversion\")\n-    if isinstance(writer, TargetWriter) and (proposal.target_profile != getattr(writer, \"target_profile\", 1)\n+    if isinstance(writer, TargetWriter) and (proposal.target_profile != getattr(writer, \"target_profile\", 2)\n             or proposal.target != writer.target or\n             proposal.target_provider and proposal.target_provider != provider_key(writer)):\n         # Even reconciliation must not search a newly configured target for an\n"
+    },
+    {
+      "name": "mailhelp.external.confirmed.x__with_external_result__mutmut_33",
+      "module": "src/mailhelp/external/confirmed.py",
+      "diff": "# mailhelp.external.confirmed.x__with_external_result__mutmut_33: survived\n--- src/mailhelp/external/confirmed.py\n+++ src/mailhelp/external/confirmed.py\n@@ -5,6 +5,6 @@\n     link = result.get(\"url\") or result.get(\"html_url\") or result.get(\"htmlLink\")\n     return proposal.model_copy(update={\n         \"status\": ProposalStatus.CREATED,\n-        \"external_id\": str(external_id) if external_id is not None else None,\n+        \"external_id\": str(external_id) if (external_id is not None) or True else None,\n         \"external_link\": str(link) if link is not None else None,\n     })\n"
+    },
+    {
+      "name": "mailhelp.storage.xǁJsonStoreǁ__enter____mutmut_42",
+      "module": "src/mailhelp/storage.py",
+      "diff": "# mailhelp.storage.xǁJsonStoreǁ__enter____mutmut_42: survived\n--- src/mailhelp/storage.py\n+++ src/mailhelp/storage.py\n@@ -24,7 +24,7 @@\n     # This is diagnostic information only.  The kernel-held lock above, not\n     # the PID stored here, determines whether another instance is running.\n     try:\n-        metadata = json.dumps({\"pid\": os.getpid()}).encode(\"ascii\")\n+        metadata = json.dumps({\"pid\": os.getpid()}).encode(\"ASCII\")\n         os.lseek(descriptor, 0, os.SEEK_SET)\n         os.write(descriptor, metadata)\n         os.ftruncate(descriptor, len(metadata))\n"
+    },
+    {
+      "name": "mailhelp.storage.xǁJsonStoreǁpeek__mutmut_4",
+      "module": "src/mailhelp/storage.py",
+      "diff": "# mailhelp.storage.xǁJsonStoreǁpeek__mutmut_4: survived\n--- src/mailhelp/storage.py\n+++ src/mailhelp/storage.py\n@@ -1,5 +1,5 @@\n def peek(self, name: str, default: Any = None) -> Any:\n     \"\"\"Read without side effects: a damaged file is reported, never moved.\"\"\"\n     with self._thread_lock:\n-        value = self._read(name, default, quarantine=False)\n+        value = self._read(name, default, quarantine=None)\n     return value\n"
+    },
+    {
+      "name": "mailhelp.storage.xǁJsonStoreǁsave__mutmut_27",
+      "module": "src/mailhelp/storage.py",
+      "diff": "# mailhelp.storage.xǁJsonStoreǁsave__mutmut_27: survived\n--- src/mailhelp/storage.py\n+++ src/mailhelp/storage.py\n@@ -5,7 +5,7 @@\n     with self._thread_lock:\n         self.directory.mkdir(parents=True, exist_ok=True)\n         with temporary.open(\"w\", encoding=\"utf-8\", newline=\"\\n\") as stream:\n-            json.dump(value, stream, ensure_ascii=False, indent=2, sort_keys=True)\n+            json.dump(value, stream, ensure_ascii=None, indent=2, sort_keys=True)\n             stream.write(\"\\n\")\n             stream.flush()\n             os.fsync(stream.fileno())\n"
+    }
+  ]
+}

@@ -96,4 +96,5 @@ def test_built_artifacts_exclude_private_runtime_files():
                 "docs/Konzept-2.0-Redesign-und-Web-Push.md",
                 "src/mailhelp/assets/logo.png"} <= names
         assert "config.yaml" not in names and ".env" not in names
+        assert {"docs/Planung-4.1.md", "docs/Qualitaet-4.1.md", "requirements-mutation.lock"} <= names
         assert not any(name.startswith(("data/", "logs/", "quality-reports/")) for name in names)

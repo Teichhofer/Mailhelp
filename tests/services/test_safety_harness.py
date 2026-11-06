@@ -89,3 +89,23 @@ def test_a_hanging_child_fails_at_the_upper_bound():
 def test_the_upper_bound_is_generous_and_configurable():
     assert configured_limit({}) == 120 and LIMIT >= 60
     assert configured_limit({"MAILHELP_TEST_PROCESS_SECONDS": "300"}) == 300
+
+
+def test_unexpected_child_exit_reports_exitcode_and_the_last_received_result(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from coverage import Coverage
+
+    import tests.fakes.safety_harness as harness_module
+    process = SimpleNamespace(start=lambda: None, join=lambda timeout: None,
+                              is_alive=lambda: False, exitcode=3)
+    parent = SimpleNamespace(recv=lambda: ("done", []), close=lambda: None)
+    child = SimpleNamespace(close=lambda: None)
+    context = SimpleNamespace(Pipe=lambda: (parent, child), Process=lambda **kwargs: process)
+    monkeypatch.setattr("multiprocessing.get_context", lambda mode: context)
+    monkeypatch.setattr(Coverage, "current", lambda: None)
+    monkeypatch.setattr(harness_module, "await_result", lambda *args: None)
+    harness = ProcessHarness.__new__(ProcessHarness)
+    harness.directory, harness.provider, harness.coverage_file = tmp_path, tmp_path / "synthetic.json", None
+    with pytest.raises(AssertionError, match="3.*done"):
+        harness.run()

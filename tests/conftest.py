@@ -22,7 +22,7 @@ from pathlib import Path
 import pytest
 
 # Plugins that others import come first, so pytest rewrites their assertions before the import.
-pytest_plugins = ("tests.fakes.shared_web_auth", "tests.fakes.shared_web_actions", "tests.fakes.shared_web_server", "tests.fakes.shared_setup", "tests.fakes.shared_profiles")
+pytest_plugins = ("tests.fakes.offline_http", "tests.fakes.shared_web_auth", "tests.fakes.shared_web_actions", "tests.fakes.shared_web_server", "tests.fakes.shared_setup", "tests.fakes.shared_profiles")
 
 TEST_TEMP_ROOT = Path(
     os.environ.get("MAILHELP_TEST_TEMP")
@@ -108,6 +108,20 @@ def pytest_sessionfinish(session: pytest.Session, exitstatus: int) -> None:
     session.config.stash[_SESSION_PASSED] = exitstatus == 0
 
 
+@pytest.hookimpl(tryfirst=True)
+def pytest_collection_modifyitems(items: list[pytest.Item], config: pytest.Config) -> None:
+    # Keep process/container stress sequential even in an otherwise parallel full run.
+    if getattr(config.option, "loadgroup", False) or getattr(config.option, "dist", "no") == "loadgroup":
+        for item in items:
+            if item.get_closest_marker("process") or item.get_closest_marker("e2e"):
+                item.add_marker(pytest.mark.xdist_group("mailhelp_process"))
+    # Fail fast at the direct invariant, before exercising every incidental application path.
+    # This changes only mutation-test order, never selection or ordinary test order.
+    if "MUTANT_UNDER_TEST" in os.environ:
+        items.sort(key=lambda item: ("test_mutation_invariants.py" not in item.nodeid,
+                                     not item.nodeid.startswith("tests/unit/")))
+
+
 def is_xdist_worker(config: pytest.Config) -> bool:
     """Parallel workers (pytest -n) share the controller's run and coverage files."""
     return hasattr(config, "workerinput")
@@ -123,4 +137,5 @@ def pytest_unconfigure(config: pytest.Config) -> None:
         return
     factory = getattr(config, "_tmp_path_factory", None)
     run_directory = getattr(factory, "_basetemp", None)
-    remove_run_files(TEST_TEMP_ROOT, run_directory, COVERAGE_DATA)
+    coverage_data = Path(os.environ.get("COVERAGE_FILE", str(COVERAGE_DATA)))
+    remove_run_files(TEST_TEMP_ROOT, run_directory, coverage_data)

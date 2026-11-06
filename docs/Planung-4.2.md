@@ -4,7 +4,7 @@
 **Stand:** 5. November 2026  
 **Status:** In Planung  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 4.0](Planung-4.0.md) (Gesamtfahrplan)  
-**Vorgänger:** [Planung 4.1](Planung-4.1.md)
+**Vorgänger:** [Planung 4.1](Planung-4.1.md) · **Nachfolger:** [Planung 4.3](Planung-4.3.md) (Entschärfung von Zählerkonflikten und zielgerichtete Aufgaben-Extraktion)
 
 ---
 
