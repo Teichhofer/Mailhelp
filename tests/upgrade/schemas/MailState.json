@@ -553,6 +553,38 @@
       "title": "ExtractionCountConflict",
       "type": "object"
     },
+    "ForwardedHeaders": {
+      "additionalProperties": false,
+      "description": "Untrusted, cleaned header lines of a forwarded original message (4.5).",
+      "properties": {
+        "date": {
+          "default": "",
+          "maxLength": 500,
+          "title": "Date",
+          "type": "string"
+        },
+        "recipients": {
+          "default": "",
+          "maxLength": 500,
+          "title": "Recipients",
+          "type": "string"
+        },
+        "sender": {
+          "default": "",
+          "maxLength": 500,
+          "title": "Sender",
+          "type": "string"
+        },
+        "subject": {
+          "default": "",
+          "maxLength": 500,
+          "title": "Subject",
+          "type": "string"
+        }
+      },
+      "title": "ForwardedHeaders",
+      "type": "object"
+    },
     "KnownTemporalFacts": {
       "additionalProperties": false,
       "description": "Valid temporal facts retained while an event interval is incomplete.",
@@ -1933,6 +1965,17 @@
       "title": "Extraction Count Conflicts",
       "type": "array"
     },
+    "forwarded_headers": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ForwardedHeaders"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
     "id": {
       "pattern": "^[a-f0-9]{24}$",
       "title": "Id",
@@ -1940,6 +1983,11 @@
     },
     "imap": {
       "$ref": "#/$defs/MailImapIdentity"
+    },
+    "is_forwarding": {
+      "default": false,
+      "title": "Is Forwarding",
+      "type": "boolean"
     },
     "llm_call_ids": {
       "items": {

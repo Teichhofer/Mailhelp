@@ -22,6 +22,15 @@ class DisplayHeaders(StrictModel):
     subject: str = Field(max_length=500)
 
 
+class ForwardedHeaders(StrictModel):
+    """Untrusted, cleaned header lines of a forwarded original message (4.5)."""
+
+    sender: str = Field(default="", max_length=500)
+    date: str = Field(default="", max_length=500)
+    subject: str = Field(default="", max_length=500)
+    recipients: str = Field(default="", max_length=500)
+
+
 class MailState(StrictModel):
     schema_version: Literal[9] = 9
     id: str = Field(pattern=r"^[a-f0-9]{24}$")
@@ -38,6 +47,9 @@ class MailState(StrictModel):
     # A hint for reading the mail only; it never authorizes an external write.
     self_mail: bool = False
     user_note: str | None = Field(default=None, min_length=1, max_length=2000)
+    # 4.5: a forwarded message; the user's note above it is separated from the original.
+    is_forwarding: bool = False
+    forwarded_headers: ForwardedHeaders | None = None
     relevance: Relevance | None = None
     summary: Summary | None = None
     action_route: ActionRoute | None = None

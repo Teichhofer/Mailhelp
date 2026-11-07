@@ -35,6 +35,7 @@ from .analysis import (
     LlmProviderResponseInvalid,
     LlmSchemaValidationExceeded,
 )
+from .forwarding import split_forward
 from .identity import is_self_mail, user_note
 
 if TYPE_CHECKING:
@@ -154,7 +155,12 @@ class MailPipeline:
             state.mail["internal_id"] = state.id
             sender = cast(dict[str, Any], state.mail["headers"]).get("from", "")
             state.self_mail = is_self_mail(sender, self.o.own_addresses(state.imap.account_id))
-            state.user_note = user_note(cast(str | None, state.mail.get("text"))) if state.self_mail else None
+            text = cast(str | None, state.mail.get("text"))
+            forward = split_forward(cast(dict[str, Any], state.mail["headers"]).get("subject", ""), text)
+            state.is_forwarding = forward is not None
+            state.forwarded_headers = forward.headers if forward is not None else None
+            # Above a forwarded message only the note is the user's own text.
+            state.user_note = user_note(forward.note if forward is not None else text) if state.self_mail else None
             self.o.cache_previews(state, fetched.raw)
             state.steps.preparation = "completed"
             self.o.save(name, state)

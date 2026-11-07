@@ -24,7 +24,7 @@ Bestätigungen bleiben versionsgebunden und werden bei der Ausführung erneut ge
 Details und Messwerte: [Release 4.4](docs/Release-4.4.md).
 
 Version 4.5 erkennt Mails, die du dir selbst schickst, etwa ein Foto einer Einladung
-mit „Ich nehme teil“ vom Handy. Ab 4.5.0 markiert Mailhelp solche Mails als eigene Notiz.
+mit „Ich nehme teil“ vom Handy. Ab 4.5.0 markiert Mailhelp solche Mails als eigene Notiz; ab 4.5.1 trennt es bei Weiterleitungen deine Notiz vom weitergeleiteten Original.
 Weitere eigene Absenderadressen trägst du unter `imap.mailboxes[].own_addresses` ein.
 Details: [Planung 4.5](docs/Planung-4.5.md).
 

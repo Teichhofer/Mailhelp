@@ -1,5 +1,13 @@
 # Änderungen
 
+## 4.5.1 – Weiterleitungen erkennen (Planung 4.5, Schritt 16.2)
+
+- Weiterleitungen werden am Betreff (`WG:`, `Fwd:`, `Fw:`) und an den Trennzeilen von
+  Apple Mail, Outlook, Gmail und Thunderbird erkannt (deutsch und englisch).
+  `MailState.is_forwarding` und `MailState.forwarded_headers` halten Absender, Datum,
+  Betreff und Empfänger des Originals. Bei eigenen Mails ist `user_note` nur die Notiz
+  über der Weiterleitung.
+
 ## 4.5.0 – Eigene Mails erkennen (Planung 4.5, Schritt 16.1)
 
 - Mails von einer eigenen Adresse des Postfachs gelten als eigene Notiz:

@@ -8,8 +8,8 @@ from mailhelp.models import MailState
 from mailhelp.processing.identity import NOTE_LIMIT, addresses_in, is_self_mail, sender_addresses, user_note
 from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.storage import JsonStore
-from tests.fakes.shared_core import prompt_config
 from tests.fakes.shared_profiles import ACCOUNT_ONE, ACCOUNT_TWO, TOPICS, settings
+from tests.fakes.shared_self_mail import orchestrator, own_settings
 from tests.fakes.shared_services import AnalyzerStub, Notify
 
 NOTE = "Ich bin angemeldet und nehme teil.\r\n\r\nVon meinem iPhone gesendet"
@@ -18,20 +18,6 @@ NOTE = "Ich bin angemeldet und nehme teil.\r\n\r\nVon meinem iPhone gesendet"
 def raw(sender: str, text: str = NOTE) -> bytes:
     return (f"From: {sender}\r\nSubject: Landesversammlung\r\n"
             f"Date: Sat, 07 Nov 2026 10:00:00 +0000\r\n\r\n{text}").encode()
-
-
-def own_settings(tmp_path, personal_info="Synthetische Person, privat erreichbar unter Notiz@Privat.Example.Test"):
-    cfg = settings(tmp_path, personal_info=personal_info).model_dump(mode="json")
-    cfg["imap"]["mailboxes"][0]["own_addresses"] = ["alias@private.example.test"]
-    cfg["imap"]["mailboxes"][1]["personal_info"] = "Im Büro: buero@work.example.test"
-    return Settings.model_validate(cfg)
-
-
-def orchestrator(store, cfg):
-    run = Orchestrator(AnalyzerStub("relevant"), store, Notify(), 1, TOPICS, cfg.limits, targets=cfg.targets)
-    run.configure_mailboxes(cfg, prompt_config(), {ACCOUNT_ONE: 1, ACCOUNT_TWO: 2})
-    run.mailbox_usernames = {1: "ich@private.example.test", 2: "kennung-ohne-adresse"}
-    return run
 
 
 @pytest.mark.parametrize(("sender", "account"), [

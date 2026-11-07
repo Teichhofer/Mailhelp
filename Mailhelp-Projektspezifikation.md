@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 7. November 2026, Anwendungsversion 4.5.0. Die folgenden Verträge beschreiben
+Stand: 7. November 2026, Anwendungsversion 4.5.1. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2880,3 +2880,15 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   Lesart der Mail und autorisiert keine Anlage. Jede Anlage bleibt bestätigungspflichtig.
   Die eigenen Adressen gehen nicht in den Konfigurations-Fingerabdruck ein und werden
   nicht protokolliert.
+- **Weiterleitungen (16.2):** Eine Mail gilt als Weiterleitung, wenn ihr Betreff mit
+  `WG:`, `Fwd:`, `Fw:` oder `Weitergeleitet:` beginnt (auch nach einem Präfix in
+  eckigen Klammern) oder wenn ihr Text eine Trennzeile enthält. Erkannt werden
+  „Weitergeleitete Nachricht“, „Ursprüngliche Nachricht“, „Original Message“ und
+  „Forwarded message“ zwischen Bindestrichen sowie „Anfang der weitergeleiteten
+  Nachricht:“ und „Begin forwarded message:“, auch zitiert. `AW:` und `Re:` sind
+  keine Weiterleitungen. Maßgeblich ist die erste Trennzeile. Die Kopfzeilen direkt
+  danach werden als `MailState.forwarded_headers` gespeichert: Von/From,
+  Datum/Date/Gesendet/Sent, Betreff/Subject und An/To. Jeder Wert wird bereinigt und
+  auf 500 Zeichen begrenzt. Cc, Kopie, Bcc und Reply-To werden übersprungen. Bei einer
+  eigenen Mail ist `user_note` nur der Text über der Trennzeile.
+  `MailState.is_forwarding` markiert jede Weiterleitung, auch von fremden Absendern.
