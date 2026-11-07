@@ -23,14 +23,12 @@ def test_already_done_progress_polls_json_and_returns_to_the_overview(page, mail
     try:
         with page.expect_response("**/api/aktion/*") as response:
             page.get_by_role("button", name="Schon erledigt", exact=True).click()
-            expect(page.locator(".undo-toast")).to_contain_text("wird als schon erledigt erfasst")
         assert response.value.json()["status"] in {"queued", "running"}
-        expect(page.get_by_text("Wird ausgeführt … Danach geht es automatisch zur Übersicht.",
-                                exact=True)).to_be_visible()
+        expect(page.locator("[data-card-command-status]").first).to_contain_text("Wird verarbeitet")
         assert audit(page, f"aktion-42-{page.device}", page.mobile) == []
         assert page.locator('head meta[http-equiv="refresh"]').count() == 0
         release.set()
-        expect(page.locator("main > .notice").first).to_contain_text("Als schon erledigt erfasst", timeout=10000)
+        expect(page.locator("[data-command-result] .notice:visible").filter(has_text="Als schon erledigt erfasst").first).to_contain_text("Als schon erledigt erfasst", timeout=10000)
         assert mailhelp.writer.created == []
         assert mailhelp.store.load(f"proposal-{mail_id(1)}-elternabend")["resolution"] == "already_done"
         assert page.errors == []
@@ -63,7 +61,7 @@ def test_status_polling_retries_reads_after_errors_without_resubmitting(page, ma
         with page.expect_response("**/api/aktion/*"):
             page.wait_for_timeout(100)
         release.set()
-        expect(page.locator("main > .notice").first).to_contain_text("Als schon erledigt erfasst", timeout=10000)
+        expect(page.locator("[data-command-result] .notice:visible").filter(has_text="Als schon erledigt erfasst").first).to_contain_text("Als schon erledigt erfasst", timeout=10000)
         assert len(mailhelp.site.commands._entries()) == 1
         assert set(calls) == {"GET"} and mailhelp.writer.created == []
     finally:
@@ -104,7 +102,7 @@ def test_already_done_without_javascript_uses_the_reload_fallback(browser, mailh
         sign_in(page, mailhelp)
         page.goto(f"{mailhelp.url}/vorschlag/{mail_id(1)}/elternabend")
         page.get_by_role("button", name="Schon erledigt", exact=True).click()
-        expect(page.locator("main > .notice").first).to_contain_text("Als schon erledigt erfasst", timeout=15000)
+        expect(page.locator("[data-command-result] .notice:visible").filter(has_text="Als schon erledigt erfasst").first).to_contain_text("Als schon erledigt erfasst", timeout=15000)
         assert mailhelp.writer.created == []
     finally:
         context.close()

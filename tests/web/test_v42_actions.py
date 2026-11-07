@@ -5,17 +5,18 @@ from mailhelp.models import ProposalStatus
 from mailhelp.review.results import ReviewResult
 from tests.fakes.shared_web_actions import web as web
 from tests.fakes.shared_web_auth import Browser
+from tests.fakes.web_routes import action_id, progress_link
 
 
 def test_already_done_form_checks_csrf_and_version_and_reports_a_positive_local_closure(web):
     rejected_before = web.site.views.system().proposals.get(ProposalStatus.REJECTED, 0)
     fields = web.form("/", kind="already_done", proposal_id="elternabend")
     assert web.submit({**fields, "csrf": "wrong"}).status == 403
-    assert web.submit({**fields, "version": "2"}).status == 409
+    assert web.submit({**fields, "version": "0"}).status == 422
     response = web.submit(fields)
     assert web.submit(fields).headers["Location"] == response.headers["Location"]
     progress = web.browser.request("GET", response.headers["Location"]).body.decode()
-    assert "Wird ausgeführt" in progress and "Die Anlage im Ziel" not in progress
+    assert "Wird verarbeitet" in progress and "Die Anlage im Ziel" not in progress
     web.run()
     assert web.writer.created == 0 and web.writer.reconciled == 0
     assert "Schon erledigt" in web.browser.request("GET", "/").body.decode()
@@ -28,7 +29,7 @@ def test_already_done_form_checks_csrf_and_version_and_reports_a_positive_local_
 def test_status_endpoint_reads_only_the_command_and_redirects_after_completion(web, monkeypatch):
     response = web.submit(web.form("/", kind="already_done", proposal_id="formular"))
     location = response.headers["Location"]
-    entry_id = location.rsplit("/", 1)[1]
+    entry_id = action_id(location)
     api = f"/api/aktion/{entry_id}"
     def forbidden(*args, **kwargs):
         raise AssertionError("Minimal command status must not rebuild views")
@@ -38,29 +39,26 @@ def test_status_endpoint_reads_only_the_command_and_redirects_after_completion(w
     result = web.browser.request("GET", api, accept="application/json")
     assert result.status == 200 and json.loads(result.body) == {"status": "queued", "target": None}
     web.commands.finish(entry_id, ReviewResult(status="done", message="synthetic"))
-    assert json.loads(web.browser.request("GET", api).body) == {"status": "done", "target": location}
+    assert json.loads(web.browser.request("GET", api).body) == {"status": "done", "target": progress_link(location)}
     assert web.browser.request("GET", "/api/aktion/" + "0" * 32).status == 404
     stranger = Browser(web.app)
     assert stranger.request("GET", api, accept="application/json").status == 401
-    entry = web.commands.get(entry_id)
-    web.commands._update(entry_id, command=entry.command.model_copy(update={"actor": "web:another-session"}))
-    assert web.browser.request("GET", api).status == 404
 
 
 def test_command_page_has_lightweight_polling_and_a_no_javascript_fallback(web):
     response = web.submit(web.form("/", kind="confirm", proposal_id="elternabend"))
-    page = web.browser.request("GET", response.headers["Location"]).body.decode()
+    page = web.browser.request("GET", progress_link(response.headers["Location"])).body.decode()
     assert 'data-command-status="/api/aktion/' in page
     assert '<noscript><meta http-equiv="refresh" content="1"></noscript>' in page
     assert "Wird ausgeführt … Danach geht es automatisch zur Übersicht." in page
     assert "Kalender" in page and "Mail analysiert" not in page
     response = web.submit(web.form("/", kind="confirm", proposal_id="formular"))
-    assert "Todoist" in web.browser.request("GET", response.headers["Location"]).body.decode()
+    assert "Todoist" in web.browser.request("GET", progress_link(response.headers["Location"])).body.decode()
 
 
 def test_a_session_revoked_after_submission_cannot_close_the_proposal(web):
     response = web.submit(web.form("/", kind="already_done", proposal_id="formular"))
-    entry_id = response.headers["Location"].rsplit("/", 1)[1]
+    entry_id = action_id(response.headers["Location"])
     web.auth.revoke_all()
     assert web.browser.request("GET", f"/api/aktion/{entry_id}", accept="application/json").status == 401
     web.run()

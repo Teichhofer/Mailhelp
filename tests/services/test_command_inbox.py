@@ -74,7 +74,7 @@ def test_a_reused_key_for_another_command_is_refused(tmp_path):
             inbox.submit(command(CommandKind.REJECT))
 
 
-def test_the_queue_is_bounded_and_wakes_the_main_thread(tmp_path):
+def test_the_queue_is_bounded_without_a_shared_wake_lock(tmp_path):
     woken = []
     with JsonStore(tmp_path) as store:
         inbox = CommandInbox(store, wake=lambda: woken.append(1))
@@ -82,7 +82,7 @@ def test_the_queue_is_bounded_and_wakes_the_main_thread(tmp_path):
             inbox.submit(command(CommandKind.REJECT, key=f"key-{index:08d}"))
         with pytest.raises(CommandInboxFull):
             inbox.submit(command(CommandKind.REJECT, key="key-overflow"))
-        assert len(woken) == MAX_QUEUED and len(inbox.queued()) == MAX_QUEUED
+        assert woken == [] and len(inbox.queued()) == MAX_QUEUED
         assert inbox.get("0" * 32) is None
 
 
@@ -147,11 +147,10 @@ def test_a_running_confirmation_is_reconciled_not_repeated(tmp_path):
             command(CommandKind.CONFIRM, proposal_id="p2", key="key-lost"))
         restarted(store, {"todoist": writer}, inbox).poll_once()
         assert inbox.get(applied.id).status == CommandStatus.DONE
-        assert inbox.get(lost.id).status == CommandStatus.FAILED
-        assert "erneut auslösen" in inbox.get(lost.id).result.message
-        # Only the write executor completes the confirmed version; p2 stays open.
-        assert writer.versions == [1]
-        assert store.load(f"proposal-{MAIL}-p2")["status"] == "pending_confirmation"
+        assert inbox.get(lost.id).status == CommandStatus.DONE
+        # Durable 4.4 receipts resume the command interrupted before its first effect.
+        assert writer.versions == [1, 1]
+        assert store.load(f"proposal-{MAIL}-p2")["status"] == "created"
 
 
 def test_reconciliation_of_clarification_answer_cancel_and_relevance(tmp_path):

@@ -14,6 +14,7 @@ from collections.abc import Callable
 from ..models import ProposalStatus
 from ..review.commands import CommandKind
 from ..review.inbox import CommandEntry, CommandStatus
+from ..review.incoming import key_hash
 from ..review.results import ResultStatus
 from ..review.views import ProposalView, RelevanceView
 from .pages import e, layout, notice
@@ -36,6 +37,7 @@ def _hidden(csrf: str, kind: CommandKind, mail_id: str, version: int,
     fields = {"csrf": csrf, "key": new_key(), "kind": kind.value, "mail_id": mail_id,
               "version": str(version), **({"proposal_id": proposal_id} if proposal_id else {}),
               **extra}
+    fields["receipt_id"] = key_hash(fields["key"])[:32]
     return "".join(f'<input type="hidden" name="{name}" value="{e(value)}">'
                    for name, value in fields.items())
 
@@ -129,6 +131,7 @@ def needs_choice(entry: CommandEntry, current: ProposalView | None) -> bool:
     """Only a detected earlier creation needs a decision on the result page."""
     return (entry.result is not None
             and entry.result.status == ResultStatus.NEEDS_DUPLICATE_CONFIRMATION
+            and current is not None and current.version == entry.command.version
             and current is not None and current.status == ProposalStatus.PENDING_CONFIRMATION)
 
 

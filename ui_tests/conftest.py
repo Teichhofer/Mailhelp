@@ -161,6 +161,8 @@ def mailhelp(tmp_path):
                 # would invalidate a fingerprint even without a new decision.
                 if commands.queued():
                     dialog.poll_once()
+                else:
+                    commands.refresh()
 
         # Finish startup recovery before the first browser reads a fingerprint.
         # Otherwise a foreground check can legitimately reload during the test.
@@ -335,12 +337,10 @@ def item(page: Page, selector: str):
 
 
 def act(page: Page, control, text: str) -> None:
-    """Click and wait for the next result page (confirm and reject after the undo time)."""
-    with page.expect_event("framenavigated", timeout=20000,
-                           predicate=lambda frame: frame == page.main_frame and "?ergebnis=" in frame.url):
-        control.click()
+    """Click and wait for the durable result on the overview card."""
+    control.click()
     expect(page.get_by_role("heading", name="Offene Entscheidungen")).to_be_visible(timeout=10000)
-    expect(page.locator("main > .notice").first).to_contain_text(text)
+    expect(page.locator("[data-command-result] .notice:visible").filter(has_text=text).first).to_be_visible(timeout=20000)
 
 
 def pytest_sessionfinish(session, exitstatus):

@@ -24,6 +24,7 @@ from tests.fakes.shared_application import settings as app_settings
 from tests.fakes.shared_review import command
 from tests.fakes.shared_web_actions import web  # noqa: F401  (fixture)
 from tests.fakes.shared_web_v12 import configure
+from tests.fakes.web_routes import action_id, progress_link
 from tests.scenarios.web_scenario import mail_id, proposal
 
 # Since 2.3 the writers are built in mailhelp.external.providers.
@@ -510,7 +511,7 @@ def test_after_a_stop_request_web_commands_wait_and_run_after_a_restart(web, tmp
     _, _, lifecycle, _, calls = configure(web, tmp_path)
     web.dialog.stop_requested = lambda: lifecycle.state != "running"
     queued = web.submit(web.form("/", kind="reject", proposal_id="formular"))
-    entry_id = queued.headers["Location"].rsplit("/", 1)[1]
+    entry_id = action_id(queued.headers["Location"])
     form = web.form("/einstellungen/beenden", action="/einstellungen/beenden")
     answer = web.browser.request("POST", "/einstellungen/beenden", form)
     assert answer.status == 202 and lifecycle.state == "stop_requested"

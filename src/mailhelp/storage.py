@@ -7,7 +7,7 @@ import os
 import re
 import tempfile
 import time
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import AbstractContextManager, contextmanager
 from pathlib import Path
 from threading import RLock
@@ -87,6 +87,13 @@ class JsonStore:
         self._thread_lock = RLock()
         self.revision = 0
         self.archive_revision = 0
+        self._observers: dict[str, list[Callable[[Any], None]]] = {}
+
+    def observe(self, name: str, callback: Callable[[Any], None]) -> None:
+        """Publish committed local state changes to lock-free readers."""
+        self._validate_name(name)
+        with measured_lock(self._thread_lock, "store"):
+            self._observers.setdefault(name, []).append(callback)
 
     @contextmanager
     def locked(self) -> Iterator[JsonStore]:
@@ -235,6 +242,8 @@ class JsonStore:
         with measured_lock(self._thread_lock, "store"):
             (self.directory / f"{name}.json").unlink(missing_ok=True)
             self.revision += 1
+            for callback in self._observers.get(name, ()):
+                callback(None)
 
     def save(self, name: str, value: Any) -> None:
         self._validate_name(name)
@@ -248,13 +257,15 @@ class JsonStore:
                 stream.flush()
                 os.fsync(stream.fileno())
             os.replace(temporary, path)
-            self.revision += not name.startswith("web-")
+            self.revision += not name.startswith("web-") and name != "command-inbox"
             self.archive_revision += name.startswith(("mail-", "analysis-", "history-", "proposal-"))
             # Make the directory entry durable as well as the file contents.
             if os.name != "nt":
                 descriptor = os.open(self.directory, os.O_RDONLY)
                 try: os.fsync(descriptor)
                 finally: os.close(descriptor)
+            for callback in self._observers.get(name, ()):
+                callback(value)
 
     def touch(self) -> None:
         """Invalidate operational fingerprints without rebuilding mail metadata."""

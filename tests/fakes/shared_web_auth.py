@@ -87,12 +87,13 @@ def site(tmp_path):
     with JsonStore(tmp_path) as store:
         auth = WebAuth(store, SECRET, 30, messages.append)
         app = WebApp([LOCAL, TAILNET])
-        MailhelpSite(app, auth, WebSettings(allowed_hosts=[LOCAL, TAILNET]), "Europe/Berlin", logger,
-                     ReviewViews(store, "Europe/Berlin"), CommandInbox(store))
+        app.site = MailhelpSite(app, auth, WebSettings(allowed_hosts=[LOCAL, TAILNET]), "Europe/Berlin", logger,
+                               ReviewViews(store, "Europe/Berlin"), CommandInbox(store))
         app.messages, app.logger, app.auth = messages, logger, auth
         yield app
 
 def signed_in(site, host=LOCAL, device=""):
+    site.site.refresh_overview()
     browser = Browser(site, host)
     csrf = browser.csrf()
     assert browser.request("POST", "/anmelden/code", {"csrf": csrf}).headers["Location"] == "/anmelden"

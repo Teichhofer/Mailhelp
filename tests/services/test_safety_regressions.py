@@ -7,6 +7,7 @@ from mailhelp.external.contracts import PreparedWrite, TargetWriter
 from mailhelp.models import ProposalStatus
 from mailhelp.review.inbox import CommandStatus
 from tests.fakes.safety_harness import Gate
+from tests.fakes.web_routes import action_id, progress_link
 from tests.scenarios.web_scenario import mail_id
 
 
@@ -29,7 +30,7 @@ def test_confirmation_does_not_overwrite_a_revision_committed_during_precheck(we
         web.dialog.repository.save_revision(revised)
     assert current(web) == revised
     assert web.writer.created == 0
-    entry = web.commands.get(response.headers["Location"].rsplit("/", 1)[1])
+    entry = web.commands.get(action_id(response.headers["Location"]))
     assert entry.status == CommandStatus.REJECTED and entry.result.status.value == "stale"
 
 
@@ -106,7 +107,7 @@ def test_edit_does_not_overwrite_a_concurrent_commit(web, monkeypatch):
         revised = original.model_copy(update={"version": 2, "title": "Bereits gespeichert"})
         web.dialog.repository.save_revision(revised)
     assert current(web) == revised and web.writer.created == 0
-    entry = web.commands.get(response.headers["Location"].rsplit("/", 1)[1])
+    entry = web.commands.get(action_id(response.headers["Location"]))
     assert entry.result.status.value == "stale"
 
 

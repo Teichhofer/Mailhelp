@@ -35,7 +35,7 @@ class Overview:
 
     @property
     def notice(self):
-        return self.page.locator("main > .notice").first
+        return self.page.locator("[data-command-result] .notice:visible, main > .notice").first
 
 
 class DetailPane:

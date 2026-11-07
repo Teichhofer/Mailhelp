@@ -10,6 +10,7 @@ from mailhelp.storage import JsonStore
 from tests.fakes.shared_review import command
 from tests.fakes.shared_web_actions import MAIL1, Web, web  # noqa: F401  (fixture)
 from tests.fakes.shared_web_details import with_mail as with_mail
+from tests.fakes.web_routes import action_id, progress_link
 from tests.scenarios.web_scenario import mail_id, populate
 
 
@@ -57,18 +58,18 @@ def test_mail_view_without_headers_or_with_odd_content(tmp_path):
 
 def test_result_notice_only_for_the_own_finished_action(web):
     location = web.submit(web.form("/", kind="reject", proposal_id="formular")).headers["Location"]
-    entry_id = location.rsplit("/", 1)[1]
+    entry_id = action_id(location)
     unfinished = web.browser.request("GET", f"/?ergebnis={entry_id}").body.decode()
     assert "notice-ok" not in unfinished
     web.run()
     assert "Vorschlag verworfen." in web.browser.request("GET", f"/?ergebnis={entry_id}").body.decode()
     for query in ("ergebnis=kaputt", "ergebnis=" + "0" * 32, "x=1"):
-        assert "notice-ok" not in web.browser.request("GET", f"/?{query}").body.decode()
-    # The result of another session's action is never shown.
+        assert "Vorschlag verworfen." in web.browser.request("GET", f"/?{query}").body.decode()
+    # Results are durable and shared with every paired device of the same person.
     other, _ = web.commands.submit(command(CommandKind.REJECT, mail_id=MAIL1, proposal_id="elternabend",
                                            actor="web:fremd", key="key-fremd-01"))
     web.commands.finish(other.id, web.commands.get(entry_id).result)
-    assert "notice-ok" not in web.browser.request("GET", f"/?ergebnis={other.id}").body.decode()
+    assert "Vorschlag verworfen." in web.browser.request("GET", f"/?ergebnis={other.id}").body.decode()
 
 
 def test_the_progress_page_waits_briefly_for_a_quick_result(web, monkeypatch):
@@ -76,7 +77,7 @@ def test_the_progress_page_waits_briefly_for_a_quick_result(web, monkeypatch):
     location = web.submit(web.form("/", kind="reject", proposal_id="formular")).headers["Location"]
     worker = threading.Timer(0.2, web.run)
     worker.start()
-    response = web.browser.request("GET", location)
+    response = web.browser.request("GET", progress_link(location))
     worker.join()
     assert response.status == 303 and response.headers["Location"].startswith("/?ergebnis=")
 

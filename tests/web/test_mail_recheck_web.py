@@ -11,6 +11,7 @@ from mailhelp.review.commands import CommandKind, CommandSource, ReviewCommand
 from mailhelp.review.results import ResultStatus
 from tests.fakes.shared_services import AnalyzerStub, Notify
 from tests.fakes.shared_web_actions import web as web
+from tests.fakes.web_routes import progress_link
 from tests.scenarios.web_scenario import mail_id, save_mail
 
 FILED = mail_id(7)
@@ -51,13 +52,15 @@ def test_a_mail_filed_as_irrelevant_can_be_rechecked_from_its_page_and_the_archi
     assert [(item["kind"], item["version"], item["status"], item["source"]) for item in history] == [
         ("recheck", 1, "irrelevant", "web")]
     # The result is shown on the mail page, which no longer offers the button.
-    result = web.browser.request("GET", answer.headers["Location"])
+    result = web.browser.request("GET", progress_link(answer.headers["Location"]))
     assert result.status == 303 and result.headers["Location"].startswith(f"/mail/{FILED}?ergebnis=")
     page = web.browser.request("GET", result.headers["Location"]).body.decode()
     assert "beim nächsten Abruf" in page and 'value="recheck_mail"' not in page
-    # The form of the archive names the old round and is refused before it is queued.
+    # The publication may admit an archived round; authoritative execution refuses it.
     stale = web.submit(archive_form)
-    assert stale.status == 409 and "bereits erneut geprüft" in stale.body.decode()
+    assert stale.status == 303
+    web.run()
+    assert web.commands._entries()[-1].result.status == ResultStatus.STALE
 
 
 def test_a_recheck_is_checked_again_when_it_runs(web):

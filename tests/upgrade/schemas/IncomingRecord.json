@@ -1,0 +1,641 @@
+{
+  "$defs": {
+    "AdminCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "acknowledged": {
+          "default": false,
+          "title": "Acknowledged",
+          "type": "boolean"
+        },
+        "actor": {
+          "pattern": "^web:[a-f0-9]{16}$",
+          "title": "Actor",
+          "type": "string"
+        },
+        "category": {
+          "default": "relevant",
+          "pattern": "^(relevant|irrelevant)$",
+          "title": "Category",
+          "type": "string"
+        },
+        "context_hash": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Context Hash"
+        },
+        "expected_hash": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Expected Hash"
+        },
+        "idempotency_key": {
+          "pattern": "^[A-Za-z0-9_-]{8,80}$",
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/AdminKind"
+        },
+        "patch": {
+          "additionalProperties": true,
+          "maxProperties": 60,
+          "title": "Patch",
+          "type": "object"
+        },
+        "source": {
+          "const": "web",
+          "default": "web",
+          "title": "Source",
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "actor",
+        "idempotency_key",
+        "patch"
+      ],
+      "title": "AdminCommand",
+      "type": "object"
+    },
+    "AdminKind": {
+      "enum": [
+        "settings",
+        "setup",
+        "topics",
+        "senders"
+      ],
+      "title": "AdminKind",
+      "type": "string"
+    },
+    "CommandEntry": {
+      "additionalProperties": false,
+      "properties": {
+        "acknowledged": {
+          "default": false,
+          "title": "Acknowledged",
+          "type": "boolean"
+        },
+        "command": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReviewCommand"
+            },
+            {
+              "$ref": "#/$defs/AdminCommand"
+            }
+          ],
+          "title": "Command"
+        },
+        "finished_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Finished At"
+        },
+        "id": {
+          "pattern": "^[a-f0-9]{32}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "received_at": {
+          "format": "date-time",
+          "title": "Received At",
+          "type": "string"
+        },
+        "result": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ReviewResult"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "status": {
+          "$ref": "#/$defs/CommandStatus",
+          "default": "queued"
+        },
+        "timings": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Timings",
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "command",
+        "received_at"
+      ],
+      "title": "CommandEntry",
+      "type": "object"
+    },
+    "CommandKind": {
+      "enum": [
+        "confirm",
+        "confirm_duplicate",
+        "reject",
+        "already_done",
+        "clarify",
+        "answer",
+        "cancel",
+        "relevance",
+        "edit_fields",
+        "merge_proposals",
+        "separate_proposals",
+        "restore_proposal",
+        "reapply_defaults",
+        "recheck_proposal",
+        "retarget_proposal",
+        "recheck_mail",
+        "series_answer",
+        "series_confirm"
+      ],
+      "title": "CommandKind",
+      "type": "string"
+    },
+    "CommandSource": {
+      "enum": [
+        "telegram",
+        "web"
+      ],
+      "title": "CommandSource",
+      "type": "string"
+    },
+    "CommandStatus": {
+      "enum": [
+        "queued",
+        "running",
+        "done",
+        "rejected",
+        "failed"
+      ],
+      "title": "CommandStatus",
+      "type": "string"
+    },
+    "ProposalEditPatch": {
+      "additionalProperties": false,
+      "properties": {
+        "all_day": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "All Day"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "due": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Due"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "maxLength": 1000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Location"
+        },
+        "meeting_mode": {
+          "anyOf": [
+            {
+              "enum": [
+                "video",
+                "in_person",
+                "hybrid",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Meeting Mode"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "video_link": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Video Link"
+        }
+      },
+      "title": "ProposalEditPatch",
+      "type": "object"
+    },
+    "ProposalReference": {
+      "additionalProperties": false,
+      "properties": {
+        "mail_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+          "title": "Mail Id",
+          "type": "string"
+        },
+        "proposal_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+          "title": "Proposal Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mail_id",
+        "proposal_id"
+      ],
+      "title": "ProposalReference",
+      "type": "object"
+    },
+    "ResultStatus": {
+      "enum": [
+        "done",
+        "written",
+        "write_uncertain",
+        "write_failed",
+        "not_written",
+        "needs_duplicate_confirmation",
+        "needs_answer",
+        "stale",
+        "busy",
+        "invalid",
+        "unauthorized",
+        "failed"
+      ],
+      "title": "ResultStatus",
+      "type": "string"
+    },
+    "ReviewCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "actor": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Actor",
+          "type": "string"
+        },
+        "decision": {
+          "anyOf": [
+            {
+              "enum": [
+                "relevant",
+                "irrelevant"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Decision"
+        },
+        "endpoint": {
+          "default": "start",
+          "enum": [
+            "start",
+            "end"
+          ],
+          "title": "Endpoint",
+          "type": "string"
+        },
+        "idempotency_key": {
+          "pattern": "^[A-Za-z0-9_-]{8,80}$",
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/CommandKind"
+        },
+        "mail_id": {
+          "pattern": "^[a-f0-9]{24}$",
+          "title": "Mail Id",
+          "type": "string"
+        },
+        "members": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SeriesMember"
+          },
+          "maxItems": 100,
+          "title": "Members",
+          "type": "array"
+        },
+        "patch": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProposalEditPatch"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "proposal_hash": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Proposal Hash"
+        },
+        "proposal_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Proposal Id"
+        },
+        "replay_offset": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Replay Offset"
+        },
+        "source": {
+          "$ref": "#/$defs/CommandSource"
+        },
+        "target_profile": {
+          "anyOf": [
+            {
+              "maximum": 99,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Profile"
+        },
+        "target_ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProposalReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_version": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Version"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Text"
+        },
+        "version": {
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "actor",
+        "mail_id",
+        "version",
+        "idempotency_key"
+      ],
+      "title": "ReviewCommand",
+      "type": "object"
+    },
+    "ReviewResult": {
+      "additionalProperties": false,
+      "description": "Outcome shown to the user; it contains no mail content.",
+      "properties": {
+        "message": {
+          "maxLength": 500,
+          "title": "Message",
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/$defs/ResultStatus"
+        }
+      },
+      "required": [
+        "status",
+        "message"
+      ],
+      "title": "ReviewResult",
+      "type": "object"
+    },
+    "SeriesMember": {
+      "additionalProperties": false,
+      "properties": {
+        "proposal_id": {
+          "pattern": "^[A-Za-z0-9_-]{1,64}$",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "version": {
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "proposal_id",
+        "version"
+      ],
+      "title": "SeriesMember",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "entry": {
+      "$ref": "#/$defs/CommandEntry"
+    },
+    "key_hash": {
+      "pattern": "^[a-f0-9]{64}$",
+      "title": "Key Hash",
+      "type": "string"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "slot": {
+      "minimum": 0,
+      "title": "Slot",
+      "type": "integer"
+    },
+    "ticket": {
+      "pattern": "^[a-f0-9]{32}$",
+      "title": "Ticket",
+      "type": "string"
+    }
+  },
+  "required": [
+    "key_hash",
+    "ticket",
+    "slot",
+    "entry"
+  ],
+  "title": "IncomingRecord",
+  "type": "object"
+}

@@ -49,6 +49,5 @@ def test_details_and_actions_are_reachable_with_the_keyboard(page, mailhelp):
     button.focus()
     assert focused(page)["outline"] != "none"
     page.keyboard.press("Enter")
-    expect(page.locator(".undo-toast")).to_contain_text("wird bestätigt")
     expect(Overview(page).notice).to_contain_text("Angelegt.", timeout=15000)
     assert page.errors == []

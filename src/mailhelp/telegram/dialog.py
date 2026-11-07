@@ -306,9 +306,17 @@ class TelegramDialogController:
         # no shared dialog/store lock spans a network, LLM or provider call.
         if self.stop_requested():
             return
+        if self.commands is not None:
+            for entry_id, accept_ms, repeated in self.commands.take_acceptances():
+                self.logger.event("INFO", "web", "command_submitted", command_id=entry_id,
+                                  repeated=repeated, accept_ms=accept_ms, store_lock_wait_ms=0.0)
+            self.commands.drain()
+            while self.commands.incoming.problems:
+                message = self.commands.incoming.problems.pop(0)
+                self.logger.event("ERROR", "review", "command_input_damaged", message=message)
         if self.commands is not None and not self._commands_recovered:
             # Reconcile interrupted commands before admitting any new execution.
-            self.commands.recover(self.review.reconcile)
+            self.commands.recover(self.review.reconcile, self.review.resume_admitted)
             self._commands_recovered = True
         self._process_commands()
         self.write_executor.resume()
@@ -336,6 +344,7 @@ class TelegramDialogController:
         """Execute queued web commands in arrival order."""
         if self.commands is None:
             return
+        self.commands.drain()
         for entry in self.commands.queued():
             if self.stop_requested():
                 break

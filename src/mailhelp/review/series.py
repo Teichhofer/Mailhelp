@@ -78,7 +78,9 @@ class SeriesService:
         problems = sum(value != ResultStatus.WRITTEN.value for value in receipt.outcomes.values())
         suffix = f" {problems} Ergebnis(se) separat prüfen; keine blinde Wiederholung." if problems else ""
         count = len(set(receipt.completed) - set(receipt.skipped))
-        return ReviewResult(status=ResultStatus.DONE,
+        status = next((ResultStatus(value) for value in receipt.outcomes.values()
+                       if value != ResultStatus.WRITTEN.value), ResultStatus.DONE)
+        return ReviewResult(status=status,
                             message=(f"{count} Serientermine {action}.{detail}{suffix}")[:500])
 
     def _preflight(self, receipt: SeriesReceipt) -> None:

@@ -47,6 +47,7 @@ class Web:
 
     def form(self, path: str, *, action: str = "/aktion", index: int = 0, **match: str) -> dict:
         """Fields of the index-th form for the given action whose hidden fields match."""
+        self.site.refresh_overview()  # Publish synthetic test edits as the operator does.
         html = self.browser.request("GET", path).body.decode()
         forms = []
         for block in re.findall(r'<form method="post" action="([^"]+)"[^>]*>(.*?)</form>', html, re.S):

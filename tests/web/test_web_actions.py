@@ -18,6 +18,7 @@ from tests.fakes.shared_telegram_dialog import RelevanceHandler, callback
 from tests.fakes.shared_web_actions import Web as Web
 from tests.fakes.shared_web_actions import web as web
 from tests.fakes.shared_web_auth import Browser, code_from
+from tests.fakes.web_routes import action_id, progress_link
 from tests.scenarios.web_scenario import mail_id, proposal, save_mail
 
 MAIL1 = mail_id(1)
@@ -32,13 +33,14 @@ def test_confirm_in_the_web_writes_once_and_reports_progress(web):
     assert fields["version"] == "1" and len(fields["key"]) == 32
     response = web.submit(fields)
     location = response.headers["Location"]
-    assert response.status == 303 and location.startswith("/aktion/")
-    running = web.browser.request("GET", location).body.decode()
+    assert response.status == 303 and location.startswith("/?aktion=")
+    assert location.endswith(f"#v-{MAIL1}-elternabend")
+    running = web.browser.request("GET", progress_link(location)).body.decode()
     assert '<meta http-equiv="refresh" content="1">' in running and "Wird ausgeführt" in running
     web.run()
     # Done: the browser goes back to the overview, which shows the result on top.
-    done = web.browser.request("GET", location)
-    entry_id = location.rsplit("/", 1)[1]
+    done = web.browser.request("GET", progress_link(location))
+    entry_id = action_id(location)
     assert done.status == 303 and done.headers["Location"] == f"/?ergebnis={entry_id}"
     overview = web.browser.request("GET", done.headers["Location"]).body.decode()
     assert '<p class="notice notice-ok" role="status">Angelegt.</p>' in overview
@@ -71,9 +73,9 @@ def test_simultaneous_confirmation_in_telegram_and_web_writes_once(web):
     web.run()
     # Queued Web commands now run first; the Telegram button then sees a stale version.
     assert web.writer.created == 1
-    result = web.commands.get(location.rsplit("/", 1)[1]).result
+    result = web.commands.get(action_id(location)).result
     assert result.status.value == "written"
-    back = web.browser.request("GET", location).headers["Location"]
+    back = web.browser.request("GET", progress_link(location)).headers["Location"]
     assert "notice-ok" in web.browser.request("GET", back).body.decode()
     assert web.telegram.sent[-1][1] == STALE_BUTTON
 
@@ -125,7 +127,7 @@ def test_yes_no_quick_answers_and_relevance(web):
     assert "🌐 Im Web: Mail als irrelevant eingestuft." in [text for _, text, _ in web.telegram.sent]
     again = web.submit(relevance)
     assert again.status == 303 and again.headers["Location"] == relevance_result.headers["Location"]
-    entry = web.commands.get(again.headers["Location"].rsplit("/", 1)[1])
+    entry = web.commands.get(action_id(again.headers["Location"]))
     assert entry.result.message == "Mail als irrelevant eingestuft."
 
 
@@ -138,9 +140,9 @@ def test_duplicate_confirmation_is_offered_on_the_result_page(web):
         title=earlier.title, target="Inbox")]).model_dump(mode="json"))
     location = web.submit(web.form("/", kind="confirm", proposal_id="formular")).headers["Location"]
     web.run()
-    page = web.browser.request("GET", location).body.decode()
+    page = web.browser.request("GET", progress_link(location)).body.decode()
     assert "bereits früher angelegt" in page and "Erneut anlegen" in page
-    web.submit(web.form(location, kind="confirm_duplicate"))
+    web.submit(web.form(progress_link(location), kind="confirm_duplicate"))
     web.run()
     assert web.writer.created == 1
 
@@ -182,10 +184,13 @@ def test_invalid_actions_are_refused(web, change):
 
 def test_stale_json_conflicts_and_a_full_queue(web, monkeypatch):
     fields = web.form("/", kind="confirm", proposal_id="elternabend")
-    stale = web.submit({**fields, "version": "7"}, accept="application/json")
-    assert stale.status == 409 and json.loads(stale.body)["current_version"] == 1
-    missing = web.submit({**fields, "proposal_id": "weg"})
-    assert missing.status == 409 and "Aktueller Stand" not in missing.body.decode()
+    # A lagging publication cannot refuse a newer or previously unknown version.
+    stale = web.submit({**fields, "version": "7", "key": "key-newer-version"}, accept="application/json")
+    assert stale.status == 202
+    missing = web.submit({**fields, "proposal_id": "weg", "key": "key-missing-proposal"})
+    assert missing.status == 303
+    web.run()
+    assert web.commands.get(json.loads(stale.body)["id"]).result.status.value == "stale"
     web.submit(fields)
     conflict = web.submit({**fields, "kind": "reject"})
     assert conflict.status == 422 and "anderen Angaben" in conflict.body.decode()
@@ -196,10 +201,10 @@ def test_stale_json_conflicts_and_a_full_queue(web, monkeypatch):
 
 def test_progress_is_private_to_the_session_and_available_as_json(web):
     location = web.submit(web.form("/", kind="reject", proposal_id="formular")).headers["Location"]
-    status = json.loads(web.browser.request("GET", location, accept="application/json").body)
+    status = json.loads(web.browser.request("GET", progress_link(location), accept="application/json").body)
     assert status["status"] == "queued" and status["result"] is None
     web.run()
-    status = json.loads(web.browser.request("GET", location, accept="application/json").body)
+    status = json.loads(web.browser.request("GET", progress_link(location), accept="application/json").body)
     assert status["result"]["status"] == "done"
     other = Browser(web.app)
     csrf = other.csrf()
@@ -208,7 +213,7 @@ def test_progress_is_private_to_the_session_and_available_as_json(web):
     web.auth.notify = messages.append
     other.request("POST", "/anmelden/code", {"csrf": csrf})
     other.request("POST", "/anmelden", {"csrf": csrf, "code": code_from(messages)})
-    assert other.request("GET", location).status == 404
+    assert other.request("GET", progress_link(location)).status == 404
     assert web.browser.request("GET", "/aktion/" + "0" * 32).status == 404
 
 
@@ -216,7 +221,7 @@ def test_rejected_and_failed_results_and_a_revoked_session(web):
     location = web.submit(web.form("/", kind="reject", proposal_id="formular")).headers["Location"]
     web.auth.revoke_all()
     web.run()
-    entry = web.commands.get(location.rsplit("/", 1)[1])
+    entry = web.commands.get(action_id(location))
     assert entry.status == CommandStatus.REJECTED and entry.result.status.value == "unauthorized"
     assert web.store.load(f"proposal-{MAIL1}-formular")["status"] == "pending_confirmation"
 
@@ -229,7 +234,7 @@ def test_a_failing_telegram_notice_does_not_affect_the_result(web, monkeypatch):
 
     monkeypatch.setattr(web.telegram, "send", down)
     web.run()
-    assert web.commands.get(location.rsplit("/", 1)[1]).status == CommandStatus.DONE
+    assert web.commands.get(action_id(location)).status == CommandStatus.DONE
     assert any(args[2] == "web_notice_failed" for args, _ in web.dialog.logger.events)
 
 
@@ -251,6 +256,7 @@ def test_a_failed_duplicate_check_can_be_repeated_from_the_card(web):
     current = Proposal.model_validate(web.store.load(f"proposal-{MAIL1}-elternabend"))
     web.dialog.persist(current.model_copy(update={"duplicate_check_failed": True, "status": ProposalStatus.NEEDS_CLARIFICATION,
                                                   "open_questions": [question]}))
+    web.site.refresh_overview()
     page = web.browser.request("GET", "/").body.decode()
     assert "Dublettenprüfung wiederholen" in page
     assert web.form("/", kind="confirm", proposal_id="formular")

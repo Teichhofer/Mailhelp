@@ -30,7 +30,7 @@ class OperatorThread(Thread):
                 if self.stop_event.is_set():
                     break
                 if succeeded:
-                    self.wait(self.idle_seconds)
+                    self.wait(min(self.idle_seconds, 0.1))
                 else:
                     self.stop_event.wait(self.retry_seconds)
         finally:

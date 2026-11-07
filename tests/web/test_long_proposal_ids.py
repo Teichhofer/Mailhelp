@@ -24,6 +24,7 @@ from mailhelp.telegram.callbacks import Decision, DecisionAction
 from tests.fakes.shared_telegram_dialog import callback
 from tests.fakes.shared_web_actions import Web as Web
 from tests.fakes.shared_web_actions import web as web
+from tests.fakes.web_routes import action_id, progress_link
 from tests.scenarios.web_scenario import mail_id, proposal, save_mail
 
 MAIL = mail_id(30)
@@ -46,7 +47,7 @@ def test_rejecting_a_long_id_in_the_web_succeeds(long_web):
     location = long_web.submit(long_web.form(f"/vorschlag/{MAIL}/{LONG_ID}", kind="reject",
                                              proposal_id=LONG_ID)).headers["Location"]
     long_web.run()
-    entry = long_web.commands.get(location.rsplit("/", 1)[1])
+    entry = long_web.commands.get(action_id(location))
     assert entry.status == CommandStatus.DONE and entry.result.message == "Vorschlag verworfen."
     assert long_web.store.load(f"proposal-{MAIL}-{LONG_ID}")["status"] == "rejected"
 
@@ -55,7 +56,7 @@ def test_confirming_a_long_id_in_the_web_writes_once(long_web):
     location = long_web.submit(long_web.form(f"/vorschlag/{MAIL}/{LONG_ID}", kind="confirm",
                                              proposal_id=LONG_ID)).headers["Location"]
     long_web.run()
-    assert long_web.commands.get(location.rsplit("/", 1)[1]).result.status.value == "written"
+    assert long_web.commands.get(action_id(location)).result.status.value == "written"
     assert long_web.writer.created == 1
     assert long_web.store.load(f"proposal-{MAIL}-{LONG_ID}")["status"] == "created"
 
@@ -124,7 +125,7 @@ def test_a_refused_validation_logs_field_names_but_no_values(long_web, monkeypat
     location = long_web.submit(long_web.form(f"/vorschlag/{MAIL}/{LONG_ID}", kind="reject",
                                              proposal_id=LONG_ID)).headers["Location"]
     long_web.run()
-    assert long_web.commands.get(location.rsplit("/", 1)[1]).result.message == "Die Eingabe ist ungültig."
+    assert long_web.commands.get(action_id(location)).result.message == "Die Eingabe ist ungültig."
     [fields] = _refused(long_web)
     assert fields == {"kind": "reject", "source": "web", "status": "invalid", "error_class": "ValidationError",
                       "fields": ["proposal_id:string_pattern_mismatch"]}

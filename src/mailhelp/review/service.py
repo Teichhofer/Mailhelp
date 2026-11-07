@@ -153,6 +153,19 @@ class ReviewService:
         return ReviewResult(status=ResultStatus.FAILED,
                             message="Durch einen Neustart unterbrochen – bitte prüfen und erneut auslösen.")
 
+    def resume_admitted(self, command: ReviewCommand | AdminCommand) -> ReviewResult:
+        """Resume a committed receipt if execution had not reached its durable effect."""
+        if isinstance(command, AdminCommand):
+            return self.reconcile(command)
+        from ..proposals.proposal_reconciliation import ProposalReconciliationService
+        ProposalReconciliationService(self.controller.store).recover()
+        if self._took_effect(command):
+            return self.reconcile(command)
+        # execute rechecks the original live session and authoritative version.
+        # Confirmed/writing proposals have already taken effect and reach reconcile,
+        # then ConfirmedWriteExecutor reconciles ambiguous writes before any retry.
+        return self.execute(command)
+
     def _took_effect(self, command: ReviewCommand) -> bool:
         store = self.controller.store
         if command.kind == CommandKind.RECHECK_MAIL:

@@ -48,6 +48,7 @@ class ServiceInfo:
     monthly_cost: tuple[str, int] | None = None
     last_polls: tuple[tuple[str, str], ...] = ()
     command_latencies: dict[str, float] | None = None
+    acceptance_latencies: dict[str, float] | None = None
 
 
 RUNTIME_STAGES = {
@@ -228,6 +229,12 @@ def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
     parts.extend(_error_section(system, zone))
 
     parts.append("<h2>Telegram, Web und KI</h2>")
+    if info.acceptance_latencies:
+        values = info.acceptance_latencies
+        parts.append(_facts([
+            ("Web-Aktionen: Annahmezeit (letzte 20 gemessene)",
+             f"Median {values['median_ms']:.1f} ms · Maximum {values['max_ms']:.1f} ms"),
+        ]))
     if info.command_latencies:
         values = info.command_latencies
         parts.append(_facts([

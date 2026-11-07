@@ -21,6 +21,7 @@ from ..domain.reconciliation import ProposalMatchCache, ProposalMergeJournal
 from ..domain.relevance import IrrelevantSenders, RelevanceDialog
 from ..domain.run import ImapCheckpoint, MailRunState, TelegramOffset
 from ..notifications.notifications import NotificationQueue
+from ..review.incoming import IncomingRecord
 from ..review.series import SeriesReceipt
 from ..review.series_offers import SeriesOffer
 from ..runtime.diagnostics import DiagnosticsState
@@ -37,6 +38,7 @@ __all__ = [
     "DuplicateIndex",
     "DiagnosticsState",
     "ImapCheckpoint",
+    "IncomingRecord",
     "InitialDraft",
     "LearningJob",
     "IrrelevantSenders",

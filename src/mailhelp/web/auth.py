@@ -30,10 +30,10 @@ from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from ..runtime.lock_metrics import measured_lock
-from ..storage import JsonStore
+from ..storage import CorruptState, JsonStore
 
 SESSIONS = "web-sessions"
 PAIRING = "web-pairing"
@@ -125,6 +125,30 @@ class WebAuth:
         self.session_lifetime = timedelta(days=session_days)
         # One reentrant lock also orders session revocation against guarded local commits.
         self._lock = store._thread_lock
+        self._session_snapshot: tuple[WebSession, ...] = ()
+        with measured_lock(self._lock, "store"):
+            store.observe(SESSIONS, self._publish_sessions)
+            try:
+                self._publish_sessions(store.load(SESSIONS))
+            except CorruptState:
+                pass  # Isolated state cannot authenticate anyone; pairing can repair it.
+
+    def _publish_sessions(self, value: object) -> None:
+        self._session_snapshot = ()
+        try:
+            state = SessionState.model_validate(value) if value is not None else SessionState()
+        except ValidationError:
+            return
+        self._session_snapshot = tuple(item.model_copy(deep=True) for item in state.sessions
+                                       if item.expires_at.utcoffset() is not None)
+
+    def authenticate_fast(self, token: str | None) -> WebSession | None:
+        """Read the last committed session publication without any application lock."""
+        if not token:
+            return None
+        digest, now = _sha256(token), self.clock()
+        return next((item.model_copy(deep=True) for item in self._session_snapshot
+                     if item.expires_at > now and hmac.compare_digest(item.token_hash, digest)), None)
 
     # --- tokens ------------------------------------------------------------------
 

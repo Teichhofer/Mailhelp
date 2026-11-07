@@ -91,67 +91,41 @@ def test_split_view_follows_the_keyboard_and_shows_help(page, mailhelp):
     assert page.errors == []
 
 
-def test_shortcut_confirm_can_be_undone_and_reject_is_sent_after_five_seconds(page, mailhelp):
+def test_shortcuts_submit_immediately_and_other_cards_remain_reachable(page, mailhelp):
     if page.device != "desktop":
         return
-    # This dedicated test keeps the real five-second default; other tests use the test server's short delay.
-    page.route("**/", lambda route: route.fulfill(response=route.fetch(),
-               body=route.fetch().text().replace(' data-undo-ms="1000"', '')))
     sign_in(page, mailhelp)
-    # The login ends with a redirect, which the route does not see: load the page itself.
-    page.goto(f"{mailhelp.url}/")
-    assert page.evaluate("document.body.dataset.undoMs") is None
     item(page, f"#v-{mail_id(1)}-elternabend")
     page.locator("body").focus()
-    page.keyboard.press("c")
-    expect(toast(page)).to_contain_text("„Elternabend Klasse 4b“ wird bestätigt.")
-    expect(selected(page)).to_have_class(re.compile("leaving"))
-    expect(page.locator(PANE)).to_have_attribute("inert", "")
-    page.keyboard.press("j")  # No navigation while an action is pending.
-    expect(selected(page)).to_have_attribute("id", f"v-{mail_id(1)}-elternabend")
-    toast(page).get_by_role("button", name="Rückgängig").click()
-    expect(toast(page)).to_have_text("Rückgängig gemacht – es wurde nichts gesendet.")
-    expect(selected(page)).not_to_have_class(re.compile("leaving"))
-    page.wait_for_timeout(5500)
-    assert mailhelp.writer.created == [] and "/?ergebnis=" not in page.url
+    with page.expect_request("**/aktion"):
+        page.keyboard.press("c")
+    expect(Overview(page).notice).to_contain_text("Angelegt.", timeout=15000)
+    item(page, f"#v-{mail_id(1)}-formular")
     page.locator("body").focus()
-    with page.expect_event("framenavigated", timeout=20000,
-                           predicate=lambda frame: "?ergebnis=" in frame.url):
+    with page.expect_request("**/aktion"):
         page.keyboard.press("x")
-        # Still nothing sent after three seconds: the real default is five.
-        page.wait_for_timeout(3000)
-        assert "/?ergebnis=" not in page.url
-    expect(Overview(page).notice).to_contain_text("Vorschlag verworfen.")
-    expect(page.locator(f"#v-{mail_id(1)}-elternabend")).to_have_count(0)
-    assert mailhelp.writer.created == [] and page.errors == []
+    expect(page.locator("[data-command-result] .notice:visible").filter(has_text="Vorschlag verworfen.").first
+           ).to_be_visible(timeout=15000)
+    assert mailhelp.writer.created == ["Elternabend Klasse 4b"] and page.errors == []
 
 
-def test_undo_on_phone_cards_and_the_thumb_zone(page, mailhelp):
+def test_immediate_phone_actions_keep_the_thumb_zone_and_allow_another_card(page, mailhelp):
     if page.device == "desktop":
         return
     sign_in(page, mailhelp)
-    formular = page.locator(f"#v-{mail_id(1)}-formular")
-    actions = formular.locator(".actions")
-    # Reject left, confirm right: the main action lies in the natural thumb zone.
     first = page.locator(f"#v-{mail_id(1)}-elternabend .actions")
     assert first.evaluate("(node) => getComputedStyle(node).position") == "sticky"
     primary = first.get_by_role("button", name="Im Kalender anlegen").bounding_box()
     danger = first.get_by_role("button", name="Verwerfen").bounding_box()
     assert min(primary["height"], danger["height"]) >= 48
     assert (danger["y"], danger["x"]) < (primary["y"], primary["x"]) or danger["x"] < primary["x"]
-    actions.get_by_role("button", name="Verwerfen").click()
-    expect(toast(page)).to_contain_text("wird verworfen")
-    expect(formular).to_have_class(re.compile("leaving"))
-    # A second action waits until the first is sent or undone.
+    page.locator(f"#v-{mail_id(1)}-formular").get_by_role("button", name="Verwerfen").click()
     page.locator(f"#v-{mail_id(1)}-elternabend").get_by_role("button", name="Im Kalender anlegen").click()
-    expect(toast(page)).to_contain_text("„Einverständniserklärung Klassenfahrt zurückgeben“")
+    expect(page.locator("[data-command-result] .notice:visible").filter(has_text="Angelegt.").first
+           ).to_be_visible(timeout=15000)
     page.get_by_role("link", name="Termine").click()
-    expect(toast(page)).to_contain_text("Zuerst die laufende Aktion")
-    page.keyboard.press("j")
-    toast(page).click()  # Clicking the message itself does nothing.
-    expect(toast(page)).to_contain_text("Zuerst die laufende Aktion")
-    page.goto(page.url)
-    assert mailhelp.writer.created == [] and page.errors == []
+    page.wait_for_url("**/offen?filter=events")
+    assert mailhelp.writer.created == ["Elternabend Klasse 4b"] and page.errors == []
 
 
 def test_quick_filter_chips_update_the_list_and_the_address(page, mailhelp):
@@ -472,12 +446,11 @@ def test_script_steps_that_end_in_a_navigation(page, mailhelp):
         return
     imap = with_draft(mailhelp)
     sign_in(page, mailhelp)
-    # The undo time is over: the normal form is sent with locked buttons.
+    # A lost POST response keeps the card locked and polls its deterministic receipt.
     page.route("**/aktion", lambda route: route.abort("aborted"))
     pane = item(page, f"#v-{mail_id(1)}-formular")
     pane.get_by_role("button", name="Verwerfen").click()
-    expect(toast(page)).to_have_text("„Einverständniserklärung Klassenfahrt zurückgeben“ wird verworfen …",
-                                     timeout=10000)
+    expect(pane.locator("[data-card-command-status]")).to_contain_text("Antwort unterbrochen", timeout=10000)
     expect(pane.get_by_role("button", name="Verwerfen")).to_be_disabled()
     page.unroute("**/aktion")
     # E follows the edit link of the selected proposal.
@@ -590,27 +563,13 @@ def test_split_selection_survives_background_refresh_and_missing_item(page, mail
     assert mailhelp.writer.created == [] and page.errors == []
 
 
-def test_background_refresh_waits_for_undo_and_falls_back_to_a_reload(page, mailhelp):
+def test_background_refresh_during_card_processing_falls_back_to_a_reload_on_error(page, mailhelp):
     if page.device != "desktop":
         return
-    # The real five-second undo time leaves room for a refresh during the countdown.
-    page.route("**/", lambda route: route.fulfill(response=route.fetch(),
-               body=route.fetch().text().replace(' data-undo-ms="1000"', '')))
     sign_in(page, mailhelp)
-    page.goto(f"{mailhelp.url}/")
     item(page, f"#v-{mail_id(1)}-elternabend")
-    page.locator("body").focus()
-    page.keyboard.press("x")
-    expect(selected(page)).to_have_class(re.compile("leaving"))
-    with page.expect_response(page_fetch(mailhelp)):
-        background_change(page, mailhelp, 0)
-    page.wait_for_timeout(300)
-    # The pending action keeps its card and form; the list is not replaced meanwhile.
-    expect(selected(page)).to_have_class(re.compile("leaving"))
-    toast(page).get_by_role("button", name="Rückgängig").click()
     refresh_in_background(page, mailhelp, 1)
     expect(selected(page)).to_have_attribute("id", f"v-{mail_id(1)}-elternabend")
-    expect(selected(page)).not_to_have_class(re.compile("leaving"))
     # A refresh that cannot be loaded (e.g. a server error) becomes a normal reload.
     # That reload is answered with 204, so the document and its script coverage stay.
     reloads = []

@@ -403,7 +403,7 @@ def test_revision_never_changes_a_confirmed_clock_but_leaves_date_only_resolutio
 
 @pytest.mark.parametrize("name,archive,operational", [
     ("mail-one", True, True), ("analysis-one", True, True), ("history-one", True, True),
-    ("proposal-one", True, True), ("command-inbox", False, True), ("web-session", False, False),
+    ("proposal-one", True, True), ("command-inbox", False, False), ("web-session", False, False),
 ])
 def test_each_state_category_invalidates_exactly_the_relevant_cache(tmp_path, name, archive, operational):
     store = JsonStore(tmp_path)

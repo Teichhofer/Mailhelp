@@ -249,7 +249,8 @@ def test_nachholtermin_clarified_and_confirmed_in_the_web(tmp_path):
         location = browser.request("POST", "/aktion", form("confirm")).headers["Location"]
         dialog.poll_once()
         assert len(calendar.create_calls) == 1 and calendar.create_calls[0][0].version == 2
-        assert browser.request("GET", location).headers["Location"].startswith("/?ergebnis=")
+        assert "Angelegt." in browser.request("GET", location).body.decode(), [
+            entry.result for entry in dialog.commands._entries()]
         # Telegram saw the revision and the write; its old button is now stale.
         texts = [text for _, text, _ in telegram.sent]
         assert any("Übernommen" in text for text in texts)

@@ -20,7 +20,7 @@ def test_a_failed_pass_is_retried_and_a_successful_one_waits_for_input():
 
     operator = OperatorThread(lambda: next(passes), wait, lambda: None, retry_seconds=0, idle_seconds=7)
     operator.run()
-    assert waits == [7] and operator.served.is_set()
+    assert waits == [0.1] and operator.served.is_set()
 
 
 def test_stopping_during_a_pass_ends_without_waiting_for_input():

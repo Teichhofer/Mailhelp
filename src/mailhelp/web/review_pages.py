@@ -175,7 +175,7 @@ def relevance_card(view: RelevanceView, actions: RelevanceActions | None = None,
 def overview_page(overview: Overview, *, actions: Actions | None = None,
                   relevance_actions: RelevanceActions | None = None,
                   message: str | None = None, message_kind: str = "ok",
-                  before: str = "", empty: str | None = None) -> str:
+                  before: str = "", empty: str | None = None, after: str = "") -> str:
     """*before* places filters below the heading; *empty* replaces the default empty state."""
     count = len(overview.open) + len(overview.relevance)
     parts = [f'<div class="page-heading"><p class="eyebrow">Arbeitsübersicht</p>'
@@ -218,7 +218,7 @@ def overview_page(overview: Overview, *, actions: Actions | None = None,
                 f'{e(view.card.title)}</a></span>'
                 f'<span class="badge {_STATE_BADGE[view.status]}">{e(view.state)}</span></li>')
         parts.append(f'<h2>Zuletzt erledigt</h2><ul class="recent">{"".join(items)}</ul>')
-    return layout("Offen", "\n".join(parts), active="/", fingerprint=overview.fingerprint)
+    return layout("Offen", "\n".join(parts) + after, active="/", fingerprint=overview.fingerprint)
 
 
 VISION_LABELS = {

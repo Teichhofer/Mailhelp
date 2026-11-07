@@ -130,10 +130,9 @@
 // 2.0: split view, quick filters, shortcuts, undo, lightbox and Web-Push.
 // Every form still posts to the server, which checks session, CSRF and version.
 (function () {
-  var UNDO_MS = Number(document.body.dataset.undoMs || 5000);
   var main = document.getElementById("inhalt");
   var desktop = window.matchMedia("(min-width: 1024px)");
-  var items = null, pane = null, selected = null, pending = null, requestNumber = 0;
+  var items = null, pane = null, selected = null, requestNumber = 0;
   var toast = document.createElement("div");
   toast.className = "undo-toast";
   toast.setAttribute("role", "status");
@@ -164,8 +163,6 @@
   }
 
   function select(card) {
-    // Keep the pending form connected until it is submitted or undone.
-    if (pending) return;
     if (pane.dataset.dirty === "yes") {
       announce("Ungespeicherte Änderungen zuerst speichern oder die Seite neu laden.");
       return;
@@ -224,7 +221,7 @@
         return response.text();
       })
       .then(function (html) {
-        if (pending || pane.dataset.dirty === "yes") return;
+        if (pane.dataset.dirty === "yes") return;
         var page = new DOMParser().parseFromString(html, "text/html"), scroll = items.scrollTop;
         main.replaceChildren.apply(main, Array.from(page.querySelector("main").childNodes));
         document.body.dataset.fingerprint = page.body.dataset.fingerprint;
@@ -241,37 +238,114 @@
     if (pane && pane.contains(event.target)) pane.dataset.dirty = "yes";
   });
 
-  // Optimistic confirm and reject: the card disappears, the form is sent after the undo time.
+  // Each card owns its request and polling. Other cards remain usable.
+  var polling = new Set();
+  function pollCard(marker) {
+    var url = marker.dataset.cardCommandStatus;
+    if (polling.has(url)) return;
+    polling.add(url);
+    function check() {
+      fetch(url, {credentials: "same-origin", cache: "no-store", headers: {Accept: "application/json"}})
+        .then(function (response) {
+          if (response.status === 401) { location.replace("/anmelden"); return {expired: true}; }
+          if (!response.ok) throw new Error("Status nicht verfügbar");
+          return response.json();
+        })
+        .then(function (result) {
+          if (result && result.expired) return;
+          if (!result) throw new Error("Status nicht verfügbar");
+          if (location.pathname !== "/" && location.pathname !== "/offen") {
+            location.assign("/?aktion=" + url.split("/").pop() + "#" + marker.closest("article.card").id);
+            return;
+          }
+          if (!result.target) { window.setTimeout(check, 500); return; }
+          return fetch("/", {credentials: "same-origin", cache: "no-store"})
+            .then(function (response) {
+              if (!response.ok || response.redirected) throw new Error("Übersicht nicht verfügbar");
+              return response.text();
+            }).then(function (html) {
+              var page = new DOMParser().parseFromString(html, "text/html");
+              var card = marker.closest("article.card"), id = card.id.replace(/^detail-/, "");
+              var updated = page.getElementById(id);
+              if (!updated) throw new Error("Ergebnis noch nicht sichtbar");
+              if (pane && selected && selected.id === id && pane.dataset.dirty !== "yes") {
+                var copy = updated.cloneNode(true);
+                copy.querySelectorAll("[id]").forEach(function (node) { node.id = "detail-" + node.id; });
+                copy.querySelectorAll("label[for]").forEach(function (label) { label.htmlFor = "detail-" + label.htmlFor; });
+                copy.id = "detail-" + id;
+                pane.replaceChildren(copy);
+                pane.dataset.dirty = "no";
+              }
+              var master = document.getElementById(id);
+              if (master) master.replaceWith(updated);
+              if (selected && selected.id === id) {
+                updated.classList.add("selected"); selected = updated;
+              }
+              announce(updated.textContent.trim());
+              polling.delete(url);
+              observeCards();
+            });
+        }).catch(function () {
+          marker.textContent = "Verbindung unterbrochen. Die Aktion wird nicht erneut gesendet; der Status wird weiter geprüft.";
+          window.setTimeout(check, 1000);
+        });
+    }
+    check();
+  }
+  function observeCards() {
+    document.querySelectorAll("[data-card-command-status]").forEach(pollCard);
+  }
   document.addEventListener("submit", function (event) {
-    var form = event.target, kind = form.querySelector('input[name="kind"]');
-    if (form.getAttribute("action") !== "/aktion" || !kind || ["confirm", "reject", "already_done"].indexOf(kind.value) < 0) return;
+    var form = event.target;
+    if (form.getAttribute("action") !== "/aktion") return;
     event.preventDefault();
     event.stopImmediatePropagation();
-    if (pending) return;
-    var fromPane = pane !== null && pane.contains(form);
-    var card = fromPane ? selected : form.closest("article");
-    var verb = {confirm: "wird bestätigt", reject: "wird verworfen", already_done: "wird als schon erledigt erfasst"}[kind.value];
-    var title = "„" + card.querySelector("h3").textContent.trim() + "“ " + verb;
-    card.classList.add("leaving");
-    if (fromPane) pane.inert = true;
-    var undo = document.createElement("button");
-    undo.type = "button";
-    undo.className = "button small";
-    undo.textContent = "Rückgängig";
-    announce(title + ". ", undo);
-    pending = window.setTimeout(function () {
-      announce(title + " …");
-      form.querySelectorAll("button").forEach(function (button) { button.disabled = true; });
-      form.submit();
-    }, UNDO_MS);
-    undo.addEventListener("click", function () {
-      window.clearTimeout(pending);
-      pending = null;
-      card.classList.remove("leaving");
-      if (fromPane) pane.inert = false;
-      announce("Rückgängig gemacht – es wurde nichts gesendet.");
-    });
+    var card = form.closest("article.card");
+    if (form.dataset.sending || (card && card.querySelector("[data-card-command-status]"))) return;
+    form.dataset.sending = "yes";
+    var fields = new URLSearchParams(new FormData(form));
+    var receipt = fields.get("receipt_id"), marker = document.createElement("div");
+    marker.dataset.cardCommandStatus = "/api/aktion/" + receipt;
+    marker.setAttribute("role", "status"); marker.setAttribute("aria-live", "polite");
+    marker.textContent = "Wird verarbeitet …";
+    form.appendChild(marker);
+    (card || form).querySelectorAll("button, textarea").forEach(function (button) { button.disabled = true; });
+    if (card && card.id.startsWith("detail-")) {
+      var master = document.getElementById(card.id.slice(7));
+      if (master) {
+        master.querySelectorAll("button, textarea").forEach(function (button) { button.disabled = true; });
+        master.appendChild(marker.cloneNode(true));
+      }
+    }
+    if (pane && pane.contains(form)) pane.dataset.dirty = "no";
+    function admitted(id) {
+      if (!card || (location.pathname !== "/" && location.pathname !== "/offen")) {
+        var anchor = fields.get("proposal_id") ? "v-" + fields.get("mail_id") + "-" + fields.get("proposal_id") : "r-" + fields.get("mail_id");
+        location.assign("/?aktion=" + id + "#" + anchor);
+      } else {
+        marker.dataset.cardCommandStatus = "/api/aktion/" + id;
+        pollCard(marker);
+      }
+    }
+    fetch("/aktion", {method: "POST", credentials: "same-origin", cache: "no-store",
+      headers: {Accept: "application/json", "Content-Type": "application/x-www-form-urlencoded"}, body: fields.toString()})
+      .then(function (response) {
+        return response.json().then(function (result) {
+          if (!response.ok) {
+            marker.removeAttribute("data-card-command-status");
+            marker.setAttribute("role", "alert"); marker.textContent = result.error || "Die Aktion wurde nicht angenommen.";
+            (card || form).querySelectorAll("button, textarea").forEach(function (button) { button.disabled = false; });
+            delete form.dataset.sending;
+            return;
+          }
+          admitted(result.id);
+        });
+      }).catch(function () {
+        marker.textContent = "Antwort unterbrochen. Der Annahmestatus wird geprüft; es wird nichts erneut gesendet.";
+        pollCard(marker);
+      });
   }, true);
+  observeCards();
 
   function modal(label, children) {
     var dialog = document.createElement("dialog"), close = document.createElement("button");
@@ -349,7 +423,7 @@
     var heading = document.createElement("h2");
     heading.textContent = "Tastenkürzel";
     var note = document.createElement("p");
-    note.textContent = "Nach Bestätigen oder Verwerfen bleiben 5 Sekunden zum Rückgängigmachen.";
+    note.textContent = "Aktionen werden sofort angenommen. Weitere Vorgänge bleiben bedienbar.";
     modal("Tastenkürzel", [heading, list, note]);
   }
 
@@ -364,7 +438,7 @@
       help();
       return;
     }
-    if (!pane || !desktop.matches || pending) return;
+    if (!pane || !desktop.matches) return;
     var list = cards(), step = {j: 1, arrowdown: 1, k: -1, arrowup: -1}[key];
     if (step) {
       event.preventDefault();
@@ -385,7 +459,7 @@
   });
 
   function filter(chip) {
-    if (pending || (pane && pane.dataset.dirty === "yes")) {
+    if (pane && pane.dataset.dirty === "yes") {
       announce("Zuerst die laufende Aktion oder Eingabe abschließen.");
       return;
     }

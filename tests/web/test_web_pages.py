@@ -176,6 +176,7 @@ def test_refresh_state_needs_a_session_and_changes_with_the_data(site, browser):
     stranger = Browser(site)
     assert stranger.request("GET", "/api/stand", accept="application/json").status == 401
     save_mail(site.auth.store, 9, "Neu <neu@x.test>", "Neu", [proposal(9, "neu", title="Neu")])
+    site.site.refresh_overview()
     changed = json.loads(browser.request("GET", "/api/stand", accept="application/json").body)
     assert changed["fingerprint"] != state["fingerprint"]
 
@@ -185,6 +186,7 @@ def test_empty_and_damaged_states_are_explained(site, tmp_path):
     html = page(client, "/")
     assert "Alles erledigt! Keine offenen Entscheidungen" in html and "Zuletzt erledigt" not in html
     (site.auth.store.directory / f"proposal-{mail_id(1)}-x.json").write_text("{", encoding="utf-8")
+    site.site.refresh_overview(force=True)
     assert "beschädigt" in page(client, "/") and "beschädigte" in page(client, "/status")
 
 

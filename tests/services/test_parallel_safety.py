@@ -74,14 +74,14 @@ def test_p1_two_channels_confirm_same_version(web, provider, first):
         if first == "web":
             telegram()
         else:
-            # Telegram already claimed this version: the Web adapter refuses before enqueue.
-            assert browser().status == 409
-            assert web.commands.queued() == []
+            # A stale publication may admit it; execution must refuse the claimed version.
+            assert browser().status == 303
+            assert len(web.commands.queued()) == 1
     provider.checkpoint = lambda point: None
     web.run()
-    item, entries = inspect(web, provider, require_entries=first == "web")
+    item, entries = inspect(web, provider)
     if first == "telegram":
-        assert entries == []
+        assert entries[-1].result.status.value == "stale"
     assert item.status == "created"
     if first == "web":
         assert any("veraltet" in text.lower() or "anderen" in text.lower()

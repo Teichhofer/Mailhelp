@@ -92,4 +92,4 @@ class SeriesSite:
             return Response.text(422, "Ungültige Zeitangabe.")
         except (CommandConflict, CommandInboxFull):
             return Response.text(409, "Auswahl bereits verwendet oder Warteschlange voll; Seite neu öffnen.")
-        return Response.redirect(f"/aktion/{entry.id}")
+        return Response.redirect(f"/?aktion={entry.id}#v-{command.mail_id}-{command.proposal_id}")

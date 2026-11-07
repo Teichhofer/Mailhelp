@@ -24,7 +24,6 @@ from .. import __version__
 from ..config import WebSettings
 from ..configuration import AdminCommand, AdminKind, ConfigurationService
 from ..models import ProposalStatus
-from ..processing.mail_recheck import recheck_round
 from ..review.commands import CommandKind, CommandSource, ReviewCommand
 from ..review.inbox import CommandConflict, CommandEntry, CommandInbox, CommandInboxFull
 from ..review.views import Overview, ReviewViews, SystemStatus
@@ -104,6 +103,7 @@ class MailhelpSite:
         app.route("POST", "/aktion", self.signed_in(self.act))
         app.route("GET", r"/aktion/(?P<entry_id>[a-f0-9]{32})", self.signed_in(self.progress))
         app.route("GET", r"/api/aktion/(?P<entry_id>[a-f0-9]{32})", self.signed_in(self.command_status))
+        app.route("POST", r"/aktion/(?P<entry_id>[a-f0-9]{32})/gesehen", self.signed_in(self.acknowledge))
         from .archive_site import ArchiveSite
         self.archive = ArchiveSite(self, configuration, metrics, lifecycle, models)
         self.senders = SenderSite(self)
@@ -124,6 +124,21 @@ class MailhelpSite:
         from .reconciliation_site import ReconciliationSite
         self.reconciliation_page = ReconciliationSite(self)
         self.notification_runtime: NotificationRuntime | None = None
+        self.commands.changed = self.refresh_overview
+        self._overview_revision = -1
+        self.refresh_overview()
+
+    def refresh_overview(self, *, force: bool = False) -> None:
+        """The operator publishes a complete read model before publishing results."""
+        if force or self._overview_revision != self.views.store.revision:
+            overview = self.views.overview()
+            empty = self.experience.inbox_zero() if not overview.open and not overview.relevance else None
+            self._overview = overview
+            self._empty = empty
+            self._overview_revision = self.views.store.revision
+
+    def overview(self) -> Overview:
+        return self._overview
 
     # --- helpers ------------------------------------------------------------------
 
@@ -146,7 +161,9 @@ class MailhelpSite:
     def signed_in(self, handler: Handler) -> Handler:
         """Require a live session; a POST also requires its CSRF token."""
         def guarded(request: Request, **arguments: str) -> Response:
-            session = self.auth.authenticate(request.cookies().get(SESSION_COOKIE))
+            fast = request.path in {"/", "/offen", "/aktion", "/api/stand"} or request.path.startswith("/api/aktion/")
+            authenticate = self.auth.authenticate_fast if fast else self.auth.authenticate
+            session = authenticate(request.cookies().get(SESSION_COOKIE))
             if session is None:
                 if request.wants_json():
                     return Response.json(401, {"error": "nicht angemeldet"})
@@ -193,7 +210,7 @@ class MailhelpSite:
             version=__version__, test_mode=self.views.test_mode, started_at=self.started_at, now=now,
             address=self.link_base(), devices=len(self.auth.sessions()),
             llm_calls_per_minute=self.llm_calls_per_minute, commands=self.commands.counts(),
-            command_latencies=self.commands.latencies())
+            command_latencies=self.commands.latencies(), acceptance_latencies=self.commands.acceptance_latencies())
         system = self.views.system(now)
         metrics = self.archive.metrics
         runtime = metrics.runtime() if metrics is not None else None
@@ -241,6 +258,7 @@ class MailhelpSite:
 
     def act(self, request: Request, session: WebSession, form: dict[str, str]) -> Response:
         """Queue a version-bound command for the main thread; answer at once."""
+        started = time.perf_counter()
         try:
             command = ReviewCommand(
                 kind=CommandKind(form.get("kind", "")), source=CommandSource.WEB,
@@ -251,9 +269,13 @@ class MailhelpSite:
         except (ValueError, ValidationError):
             return self._reply(request, 422, "Die Aktion ist unvollständig oder ungültig.")
         stale = self._stale(command)
-        if stale is not None and not any(entry.command == command for entry in self.commands._entries()):
-            current = (self.views.proposal(command.mail_id, command.proposal_id)
-                       if command.proposal_id else None)
+        try:
+            existing = self.commands.existing(command)
+        except CommandConflict:
+            return self._reply(request, 422, "Diese Aktion wurde bereits mit anderen Angaben gesendet.")
+        if stale is not None and existing is None:
+            current = next((view for view in self._overview.open + self._overview.recent
+                            if (view.mail_id, view.proposal_id) == (command.mail_id, command.proposal_id)), None)
             if request.wants_json():
                 return Response.json(409, {"error": stale,
                                            "current_version": current.version if current else None})
@@ -264,32 +286,35 @@ class MailhelpSite:
             return self._reply(request, 422, "Diese Aktion wurde bereits mit anderen Angaben gesendet.")
         except CommandInboxFull:
             return self._reply(request, 503, "Mailhelp ist gerade ausgelastet. Bitte gleich erneut versuchen.")
-        self.logger.event("INFO", "web", "command_submitted", command_id=entry.id,
-                          kind=command.kind.value, repeated=not new)
+        except OSError:
+            return self._reply(request, 503, "Die Aktion konnte nicht sicher gespeichert werden. "
+                               "Bitte denselben Versuch erneut senden.")
+        self.commands.note_acceptance(entry, (time.perf_counter() - started) * 1000, new)
         location = f"/aktion/{entry.id}"
         if request.wants_json():
             response = Response.json(202, {"id": entry.id, "status": entry.status.value,
                                            "status_url": location})
             response.headers["Location"] = location
             return response
-        return Response.redirect(location)
+        anchor = f"v-{command.mail_id}-{command.proposal_id}" if command.proposal_id else f"r-{command.mail_id}"
+        return Response.redirect(f"/?aktion={entry.id}#{anchor}")
 
     def _stale(self, command: ReviewCommand) -> str | None:
         """Refuse an outdated version before it is queued (checked again when it runs)."""
         if command.kind == CommandKind.RECHECK_MAIL:
-            if recheck_round(self.views.store, command.mail_id) != command.version:
-                return "Diese Mail wird bereits erneut geprüft oder ist nicht mehr aussortiert."
             return None
         if command.kind == CommandKind.RELEVANCE:
-            open_ = {(view.mail_id, view.version) for view in self.views.overview().relevance}
-            if (command.mail_id, command.version) not in open_:
+            current_relevance = next((view for view in self._overview.relevance
+                                      if view.mail_id == command.mail_id), None)
+            if current_relevance is not None and command.version < current_relevance.version:
                 return "Diese Relevanzfrage ist bereits beantwortet oder veraltet."
             return None
         assert command.proposal_id is not None
-        current = self.views.proposal(command.mail_id, command.proposal_id)
-        if (current is None or current.version != command.version
-                or current.status not in {ProposalStatus.PENDING_CONFIRMATION,
-                                          ProposalStatus.NEEDS_CLARIFICATION}):
+        current = next((view for view in self._overview.open + self._overview.recent
+                        if (view.mail_id, view.proposal_id) == (command.mail_id, command.proposal_id)), None)
+        if (current is not None and (command.version < current.version
+                or (command.version == current.version and current.status not in {ProposalStatus.PENDING_CONFIRMATION,
+                                          ProposalStatus.NEEDS_CLARIFICATION}))):
             return "Dieser Vorschlag wurde inzwischen geändert oder entschieden."
         return None
 
@@ -335,10 +360,19 @@ class MailhelpSite:
     def command_status(self, request: Request, session: WebSession, entry_id: str) -> Response:
         """Only the authenticated browser's durable command, without rebuilding views."""
         entry = self.commands.get(entry_id)
-        if entry is None or entry.command.actor != f"web:{session.id}":
+        from .command_cards import visible
+        if entry is None or not visible(entry, f"web:{session.id}"):
             return Response.json(404, {"error": "Diese Aktion ist nicht (mehr) bekannt."})
         return Response.json(200, {"status": entry.status.value,
                                    "target": f"/aktion/{entry.id}" if entry.result is not None else None})
+
+    def acknowledge(self, request: Request, session: WebSession, form: dict[str, str], entry_id: str) -> Response:
+        from .command_cards import visible
+        entry = self.commands.get(entry_id)
+        if entry is None or entry.result is None or not visible(entry, f"web:{session.id}"):
+            return self._reply(request, 404, "Diese abgeschlossene Aktion ist nicht bekannt.")
+        self.commands.incoming.acknowledge(entry, f"web:{session.id}")
+        return Response.redirect("/")
 
     def _settled(self, entry: CommandEntry) -> CommandEntry:
         """Wait briefly for a quick result so the page usually needs no reload."""
@@ -353,7 +387,7 @@ class MailhelpSite:
         report_id = parse_qs(request.query, max_num_fields=5).get("bericht")
         if report_id:
             return self.activity.state(report_id[0])
-        overview = self.views.overview()
+        overview = self.overview()
         if parse_qs(request.query, max_num_fields=5).get("seite") == ["status"]:
             metrics = self.archive.metrics
             return Response.json(200, {"fingerprint": self._status_fingerprint(
