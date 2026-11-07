@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 7. November 2026, Anwendungsversion 4.5.3. Die folgenden Verträge beschreiben
+Stand: 7. November 2026, Anwendungsversion 4.5.4. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2910,3 +2910,11 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   stammen aus Anhang oder Original, nicht aus der Notiz. Die Regeln zu älteren
   weitergeleiteten Nachrichten gelten dafür nicht. Eine Absage in der Notiz erzeugt
   keinen Termin, eine eigene Handlungsanweisung eine Aufgabe des Nutzers.
+- **Korpus und Auswertung (16.5):** `mailhelp-evaluate` bestimmt die Perspektive mit
+  derselben Funktion wie die Verarbeitung (`processing.perspective`). Die eigenen
+  Adressen nennt der Korpus unter `own_addresses`. Ein Fall kann unter `vision` den aus
+  einem Bildanhang erkannten Text je Dateiname mitliefern. Er wird in derselben Form
+  eingesetzt, die die Vision-Stufe speichert, denn die Auswertung ruft selbst keine
+  Bilderkennung auf. Korpus v3 enthält drei synthetische eigene Notizen: „Ich nehme
+  teil“ mit Einladungsfoto, eine weitergeleitete Einladung mit „Bitte eintragen“ und
+  eine Aufgaben-Notiz.

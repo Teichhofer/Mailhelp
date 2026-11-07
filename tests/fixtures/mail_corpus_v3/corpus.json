@@ -1881,6 +1881,160 @@
           }
         ]
       }
+    },
+    {
+      "id": "32_self_note_photo_invitation",
+      "raw_email": "From: Alex Muster <alex.muster@example.test>\nTo: Alex Muster <alex.muster@example.test>\nDate: Sat, 07 Nov 2026 10:00:00 +0100\nMessage-ID: <32_self_note_photo_invitation@example.test>\nSubject: Landesversammlung\nMIME-Version: 1.0\nContent-Type: multipart/mixed; boundary=\"===============2422872860523168012==\"\n\n--===============2422872860523168012==\nContent-Type: text/plain; charset=\"utf-8\"\nContent-Transfer-Encoding: 7bit\n\nIch bin angemeldet und nehme teil.\n\nVon meinem iPhone gesendet\n\n--===============2422872860523168012==\nContent-Type: image/jpeg\nContent-Transfer-Encoding: base64\nContent-Disposition: attachment; filename=\"IMG_4711.JPG\"\nMIME-Version: 1.0\n\n/9j/4HN5bnRoZXRpYy1waG90b//Z\n\n--===============2422872860523168012==--\n",
+      "received_at": "2026-11-07T10:01:00+01:00",
+      "vision": {
+        "IMG_4711.JPG": "EINLADUNG\nzur Landesversammlung des Landesverbands\nam Samstag, 5. Dezember 2026, 9:30 Uhr\nim Gasthof Krone, Hauptstraße 1, Hohenstadt\nTagesordnung: Berichte, Wahlen, Anträge\nWir bitten um Anmeldung bis 20. November 2026."
+      },
+      "expected": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "persoenliche-termine-und-terminhinweise"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "05.12.2026"
+          ]
+        },
+        "action_route": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 1,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Landesversammlung",
+              "description": null,
+              "evidence": "am Samstag, 5. Dezember 2026, 9:30 Uhr",
+              "date_text": "5. Dezember 2026",
+              "time_text": "9:30",
+              "end_time_text": null,
+              "location": "Gasthof Krone, Hauptstraße 1, Hohenstadt",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "timed"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "33_forwarded_invitation_please_add",
+      "raw_email": "From: Alex Muster <alex.muster@example.test>\nTo: Alex Muster <alex.muster@example.test>\nDate: Sat, 07 Nov 2026 11:00:00 +0100\nMessage-ID: <33_forwarded_invitation_please_add@example.test>\nSubject: WG: Einladung Elternabend Klasse 3b\nContent-Type: text/plain; charset=\"utf-8\"\nContent-Transfer-Encoding: quoted-printable\nMIME-Version: 1.0\n\nBitte eintragen\n\n-------- Weitergeleitete Nachricht --------\nBetreff: Einladung Elternabend Klasse 3b\nDatum: Mon, 2 Nov 2026 08:00:00 +0100\nVon: Grundschule <sekretariat@grundschule.example.test>\nAn: Alex Muster <alex.muster@example.test>\n\nLiebe Eltern,\n\nder Elternabend der Klasse 3b findet am Dienstag, 24.11.2026, um 19:30 Uhr in=\n Raum 12 der Grundschule statt.\n\nViele Gr=C3=BC=C3=9Fe\nIhre Klassenleitung\n",
+      "received_at": "2026-11-07T11:01:00+01:00",
+      "expected": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "persoenliche-termine-und-terminhinweise"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "24.11.2026"
+          ]
+        },
+        "action_route": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 1,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Elternabend Klasse 3b",
+              "description": null,
+              "evidence": "der Elternabend der Klasse 3b findet am Dienstag, 24.11.2026, um 19:30 Uhr in Raum 12 der Grundschule statt.",
+              "date_text": "24.11.2026",
+              "time_text": "19:30",
+              "end_time_text": null,
+              "location": "Raum 12 der Grundschule",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "timed"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "34_self_note_task",
+      "raw_email": "From: Alex Muster <alex.muster@example.test>\nTo: Alex Muster <alex.muster@example.test>\nDate: Sat, 07 Nov 2026 12:00:00 +0100\nMessage-ID: <34_self_note_task@example.test>\nSubject: Notiz Projektmeeting\nContent-Type: text/plain; charset=\"utf-8\"\nContent-Transfer-Encoding: quoted-printable\nMIME-Version: 1.0\n\nPr=C3=A4sentation f=C3=BCr das Projektmeeting bis 20.11.2026 an Frau Lang sch=\nicken. Nicht vergessen!\n\nVon meinem iPhone gesendet\n",
+      "received_at": "2026-11-07T12:01:00+01:00",
+      "expected": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "20.11.2026"
+          ]
+        },
+        "action_route": {
+          "action_state": "task",
+          "task_count": 1,
+          "event_count": 0,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Präsentation an Frau Lang schicken",
+              "description": "",
+              "evidence": "Präsentation für das Projektmeeting bis 20.11.2026 an Frau Lang schicken.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": "20.11.2026"
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": []
+        }
+      }
     }
+  ],
+  "own_addresses": [
+    "alex.muster@example.test"
   ]
 }

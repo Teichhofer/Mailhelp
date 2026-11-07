@@ -35,8 +35,7 @@ from .analysis import (
     LlmProviderResponseInvalid,
     LlmSchemaValidationExceeded,
 )
-from .forwarding import split_forward
-from .identity import is_self_mail, user_note
+from .perspective import Perspective, read_perspective
 
 if TYPE_CHECKING:
     from .orchestrator import Orchestrator
@@ -49,18 +48,9 @@ def _content(state: MailState) -> dict[str, Any]:
 
 
 def _with_perspective(state: MailState) -> dict[str, Any]:
-    """The mail for routing and extraction, plus who wrote it (4.5).
-
-    ``perspective`` is set by the application, never taken from the mail; other
-    mails are passed on unchanged.
-    """
-    content = _content(state)
-    if not (state.self_mail or state.is_forwarding):
-        return content
-    headers = state.forwarded_headers
-    return {**content, "perspective": {
-        "self_mail": state.self_mail, "user_note": state.user_note, "is_forwarding": state.is_forwarding,
-        "forwarded_headers": headers.model_dump() if headers is not None else None}}
+    """The mail for routing and extraction, plus who wrote it (4.5); never stored."""
+    return Perspective(state.self_mail, state.user_note, state.is_forwarding,
+                       state.forwarded_headers).model_input(_content(state))
 
 
 def _prepared(state: MailState) -> PreparedMail:
@@ -168,14 +158,9 @@ class MailPipeline:
                  "text": "", "extraction_status": "skipped_oversized", "character_count": 0}
                 for filename, content_type, size in fetched.oversized_attachments)
             state.mail["internal_id"] = state.id
-            sender = cast(dict[str, Any], state.mail["headers"]).get("from", "")
-            state.self_mail = is_self_mail(sender, self.o.own_addresses(state.imap.account_id))
-            text = cast(str | None, state.mail.get("text"))
-            forward = split_forward(cast(dict[str, Any], state.mail["headers"]).get("subject", ""), text)
-            state.is_forwarding = forward is not None
-            state.forwarded_headers = forward.headers if forward is not None else None
-            # Above a forwarded message only the note is the user's own text.
-            state.user_note = user_note(forward.note if forward is not None else text) if state.self_mail else None
+            perspective = read_perspective(state.mail, self.o.own_addresses(state.imap.account_id))
+            state.self_mail, state.user_note = perspective.self_mail, perspective.user_note
+            state.is_forwarding, state.forwarded_headers = perspective.is_forwarding, perspective.forwarded_headers
             self.o.cache_previews(state, fetched.raw)
             state.steps.preparation = "completed"
             self.o.save(name, state)

@@ -2,7 +2,7 @@
 
 **Zielversion:** 4.5.0 (Schritte als Patchversionen 4.5.x)  
 **Stand:** 7. November 2026  
-**Status:** In Umsetzung (16.1 in 4.5.0, 16.2 in 4.5.1, 16.3 in 4.5.2, 16.4 in 4.5.3)  
+**Status:** In Umsetzung (16.1 in 4.5.0, 16.2 in 4.5.1, 16.3 in 4.5.2, 16.4 in 4.5.3, 16.5 in 4.5.4)  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 4.0](Planung-4.0.md) (Gesamtfahrplan)  
 **Vorgänger:** [Planung 4.4](Planung-4.4.md) (Pufferschicht für Web-Eingaben) · **Nachfolger:** [Planung 4.6](Planung-4.6.md) (Terminänderungen, Verschiebungen und Absagen)
 
@@ -97,7 +97,7 @@ flowchart TD
 | **16.2** ✓ 4.5.1 | Weiterleitungs-Parser | Erkennt Weiterleitungen anhand Betreff (`Fwd:`, `WG:`) und Inhaltsmarkern; trennt vorangestellte Notizen des Nutzers vom weitergeleiteten Originalkörper; isoliert strukturierte Header der Originalnachricht. | S | 16.1 |
 | **16.3** ✓ 4.5.2 | Prompt-Schärfung `action_router` | `action_router` in `prompts.yaml` erhält explizite Regeln für `self_mail`: Sendet der Nutzer sich selbst Notizen (*„Ich nehme teil“*, *„Ich bin angemeldet“*, *„Bitte eintragen“*) mit Terminfotos oder Einladungen, zählt dies als `event` (oder bei Aufgabenanweisung als `task`). | S | 16.1, 16.2 |
 | **16.4** ✓ 4.5.3 | Prompt-Schärfung `event_extraction` | `event_extraction` wertet bei `self_mail` die Anhänge und den weitergeleiteten Text als Beleg für den eigenen Termin des Nutzers aus; die Nutzer-Notiz liefert die Zusage/Relevanz. | S | 16.3 |
-| **16.5** | Synthetischer Korpus für Mobile-Notizen | Ergänzung synthetischer Testfälle in `tests/fixtures/mail_corpus_v3/`: (1) iPhone-Notiz „Ich nehme teil“ mit Foto-Anhang, (2) Weitergeleitete Einladung mit Notiz „Bitte eintragen“, (3) Selbstnotiz mit Todo-Aufgabe. | S | 16.4 |
+| **16.5** ✓ 4.5.4 | Synthetischer Korpus für Mobile-Notizen | Ergänzung synthetischer Testfälle in `tests/fixtures/mail_corpus_v3/`: (1) iPhone-Notiz „Ich nehme teil“ mit Foto-Anhang, (2) Weitergeleitete Einladung mit Notiz „Bitte eintragen“, (3) Selbstnotiz mit Todo-Aufgabe. | S | 16.4 |
 | **16.6** | Evaluierung & Prompt-Gate | `mailhelp-evaluate` und `tests/evaluation/test_prompt_gate.py` belegen, dass bestehende externe Einladungen unbeeinträchtigt bleiben und die neuen Self-Mail-Fälle zuverlässig erkannt werden. | S | 16.5 |
 | **16.7** | Regressionstest Landesversammlung & Abnahme | End-to-End-Regressionstest mit den echten Daten der Mail `7e84d7e85ab71622067f6a1b` (synthetisiert): Termin zur Landesversammlung am 05.12.2026 wird fehlerfrei als bestätigbarer Terminvorschlag generiert; 100 % Coverage; `docs/Release-4.5.md`. | M | 16.1–16.6 |
 

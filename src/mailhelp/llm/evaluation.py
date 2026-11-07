@@ -18,6 +18,8 @@ from ..config import PromptConfig, Topic
 from ..mailbox.mime import prepare
 from ..models import EventExtraction, TaskExtraction
 from ..processing.analysis import Analyzer
+from ..processing.identity import addresses_in
+from ..processing.perspective import read_perspective
 from ..proposals.action_normalization import (
     DEADLINE_DATE_PATTERN,
     MailDateContext,
@@ -233,6 +235,18 @@ def _context(mail: dict[str, Any]) -> MailDateContext:
     )
 
 
+def _recognized_images(mail: dict[str, Any], recognized: dict[str, str]) -> None:
+    """Stand in for vision OCR: the corpus supplies the text read from an image attachment.
+
+    The update has the same shape as the one ``processing.vision`` stores.
+    """
+    for index, attachment in enumerate(mail.get("extracted_attachments", [])):
+        text = recognized.get(attachment.get("filename", ""))
+        if text is not None:
+            mail["extracted_attachments"][index] = {**attachment, "text": text, "extraction_status": "success",
+                                                    "character_count": len(text), "vision": "read"}
+
+
 def evaluate(corpus: dict[str, Any], prompts: PromptConfig, client: LlmCompleter, max_calls: int,
              progress: Callable[[dict[str, Any]], None] | None = None, *,
              decision_prompts: DecisionPrompts | None = None,
@@ -266,16 +280,21 @@ def evaluate(corpus: dict[str, Any], prompts: PromptConfig, client: LlmCompleter
     }
     # Stage-separated evaluation also checks action extraction for irrelevant cases.
     # No expected answer is ever supplied to the provider.
+    # 4.5: the corpus names the user's own addresses, as configured for a mailbox.
+    own = addresses_in(corpus.get("own_addresses", []))
     for case in corpus["cases"]:
         mail = prepare(case["raw_email"].encode("utf-8"), 100_000,
                        received_at=_received_at(case), user_timezone=timezone_name)
+        _recognized_images(mail, case.get("vision", {}))
+        # Routing and extraction receive what the pipeline sends, including the perspective.
+        routed = read_perspective(mail, own).model_input(mail)
         context = _context(mail)
         observed = {}
         error = None
         try:
             observed["relevance"] = analyzer.relevance(mail, topics)[1].model_dump(mode="json")
             observed["summary"] = analyzer.summary(mail)[1].model_dump(mode="json")
-            route = analyzer.action_route(mail)[1]
+            route = analyzer.action_route(routed)[1]
             observed["action_router"] = route.model_dump(mode="json")
             observed["task_extraction"] = {"tasks": []}
             observed["event_extraction"] = {"events": []}
@@ -283,10 +302,10 @@ def evaluate(corpus: dict[str, Any], prompts: PromptConfig, client: LlmCompleter
             # count, so this is the orchestrator's extraction rule.
             if route.task_count > 0:
                 observed["task_extraction"] = analyzer.extract_tasks(
-                    mail, expected_count=route.task_count)[1].model_dump(mode="json")
+                    routed, expected_count=route.task_count)[1].model_dump(mode="json")
             if route.event_count > 0:
                 observed["event_extraction"] = analyzer.extract_events(
-                    mail, expected_count=route.event_count)[1].model_dump(mode="json")
+                    routed, expected_count=route.event_count)[1].model_dump(mode="json")
         except Exception as exc:
             error = type(exc).__name__  # Provider messages may contain credentials.
         comparisons = {}

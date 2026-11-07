@@ -1,5 +1,14 @@
 # Änderungen
 
+## 4.5.4 – Korpus für eigene Notizen (Planung 4.5, Schritt 16.5)
+
+- Korpus v3 enthält drei synthetische eigene Notizen (Einladungsfoto mit „Ich nehme
+  teil“, weitergeleitete Einladung mit „Bitte eintragen“, Aufgaben-Notiz); insgesamt
+  sind es jetzt 34 Fälle.
+- `mailhelp-evaluate` übergibt Routing und Extraktion dieselbe Perspektive wie die
+  Verarbeitung (gemeinsames Modul `processing.perspective`). Den aus Bildanhängen
+  erkannten Text kann ein Korpusfall unter `vision` mitliefern.
+
 ## 4.5.3 – Eigene Notizen in der Extraktion (Planung 4.5, Schritt 16.4)
 
 - Aufgaben- und Terminextraktion erhalten wie der Router das Feld `perspective`.

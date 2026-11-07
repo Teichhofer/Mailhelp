@@ -18,6 +18,11 @@ gleichnamige Sitzungstermine und eine getrennte Haushaltsklausur. Der Korpus ent
 damit 31 Fälle. Die Offline-Prüfung nutzt simulierte Modellantworten; sie belegt
 Schema-, Routing- und Normalisierungsverträge, keine reale Modell-Erkennungsrate.
 
+Version 4.5 ergänzt drei synthetische Notizen an die eigene Adresse
+(`own_addresses`): „Ich bin angemeldet und nehme teil“ mit einem Einladungsfoto, dessen
+erkannter Text unter `vision` steht, eine weitergeleitete Einladung mit „Bitte
+eintragen“ und eine eigene Aufgabe mit Frist. Der Korpus enthält damit 34 Fälle.
+
 Die Standardprüfung nutzt Jev mit dem produktiven Rückfall bei `unclear` sowie
 die generativen Folgestufen. Die stufenweise Messung prüft Extraktion zusätzlich
 auch für irrelevante Mails; sie ersetzt keinen Telegram-/Schreibdiensttest.
