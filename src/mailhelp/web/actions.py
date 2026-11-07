@@ -12,7 +12,7 @@ import secrets
 from collections.abc import Callable
 
 from ..models import ProposalStatus
-from ..review.commands import CommandKind
+from ..review.commands import CommandKind, ReviewCommand
 from ..review.inbox import CommandEntry, CommandStatus
 from ..review.incoming import key_hash
 from ..review.results import ResultStatus
@@ -131,6 +131,7 @@ def needs_choice(entry: CommandEntry, current: ProposalView | None) -> bool:
     """Only a detected earlier creation needs a decision on the result page."""
     return (entry.result is not None
             and entry.result.status == ResultStatus.NEEDS_DUPLICATE_CONFIRMATION
+            and isinstance(entry.command, ReviewCommand)
             and current is not None and current.version == entry.command.version
             and current is not None and current.status == ProposalStatus.PENDING_CONFIRMATION)
 

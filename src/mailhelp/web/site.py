@@ -353,8 +353,9 @@ class MailhelpSite:
         current = (self.views.proposal(command.mail_id, command.proposal_id)
                    if command.proposal_id else None)
         if entry.result is not None and not needs_choice(entry, current):
-            # Done: back to the overview, which shows the result on top.
-            return Response.redirect(f"/?ergebnis={entry.id}")
+            # Done: back to the overview; the anchor selects the card that shows the result.
+            from .command_cards import anchor
+            return Response.redirect(f"/?ergebnis={entry.id}#{anchor(entry)}")
         return Response.html(200, command_page(entry, self.auth.csrf_token(session.id), current))
 
     def command_status(self, request: Request, session: WebSession, entry_id: str) -> Response:

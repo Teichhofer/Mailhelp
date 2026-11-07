@@ -1,6 +1,6 @@
 """A partial external failure must remain visible until acknowledged."""
-from mailhelp.review.commands import CommandKind
 from mailhelp.llm.adapter import UncertainWriteError
+from mailhelp.review.commands import CommandKind
 from mailhelp.review.results import ResultStatus
 from mailhelp.storage import JsonStore
 from tests.fakes.series_fakes import batch, series

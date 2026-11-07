@@ -4,7 +4,7 @@ from conftest import STATIC, Coverage
 
 def test_cdp_offsets_preserve_windows_line_endings():
     source = (STATIC / "app.js").read_bytes().decode("utf-8")
-    start = source.index("|| 5000") + 3
+    start = source.index("polling.delete(url)")
     expected_line = source.count("\n", 0, start) + 1
     coverage = Coverage()
     coverage.add({"result": [{"url": "http://localhost/static/app.js", "functions": [{"ranges": [

@@ -64,14 +64,13 @@ def requires_ack(entry: CommandEntry) -> bool:
 
 def replace_file(source: Path, target: Path) -> None:
     """Windows readers/indexers can briefly prevent replacement; retries are bounded."""
-    for attempt in range(4):
+    for attempt in range(3):
         try:
             os.replace(source, target)
             return
         except PermissionError:
-            if attempt == 3:
-                raise
             time.sleep(0.005 * (2 ** attempt))
+    os.replace(source, target)  # The fourth and last attempt reports a persistent block.
 
 
 def atomic_json(path: Path, value: dict[str, Any], *, exclusive: bool = False) -> None:
@@ -220,7 +219,8 @@ class IncomingCommands:
             if record is None:
                 continue
             previous = self.checked(self._path("receipts", record.entry.id))
-            if previous is not None and command_payload(previous.entry.command) != command_payload(record.entry.command):
+            if (previous is not None
+                    and command_payload(previous.entry.command) != command_payload(record.entry.command)):
                 self.isolate(path)
             elif previous is None:
                 try:

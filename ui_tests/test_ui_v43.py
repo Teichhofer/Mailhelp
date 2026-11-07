@@ -20,7 +20,9 @@ def flow(page, mailhelp, url):
     assert page.get_by_role('button', name='Alle 3 Termine anlegen').count() == 0
     page.get_by_label('Beginn', exact=True).fill('19:00')
     page.get_by_role('button', name='Zeit für die Auswahl speichern').click()
+    # 4.4: the series result is shown on every member card; one visible copy suffices.
     message = page.get_by_text('3 Serientermine gespeichert; separat bestätigen.', exact=False)
+    message = message.filter(visible=True).first
     expect(message).to_be_visible(timeout=15000)
     assert mailhelp.writer.created == []
     page.goto(url)
@@ -28,7 +30,9 @@ def flow(page, mailhelp, url):
     page.get_by_role('button', name='Auswahl aktualisieren').click()
     expect(page.get_by_role('button', name='Alle 2 Termine anlegen')).to_be_visible()
     page.get_by_role('button', name='Alle 2 Termine anlegen').click()
-    expect(page.get_by_text('2 Serientermine bearbeitet.', exact=False)).to_be_visible(timeout=15000)
+    # Shown on the member card and, with JavaScript, also announced in the toast.
+    done = page.get_by_text('2 Serientermine bearbeitet.', exact=False).filter(visible=True).first
+    expect(done).to_be_visible(timeout=15000)
     assert len(mailhelp.writer.created) == 2
 
 

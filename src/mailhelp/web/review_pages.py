@@ -199,7 +199,9 @@ def overview_page(overview: Overview, *, actions: Actions | None = None,
             cards = "".join(proposal_card(view, actions=actions) for view in group)
             if key is not None and len(group) > 1:
                 title = e(group[0].base_title or group[0].card.title)
-                items.append(f'<details class="series-group"><summary>Serie: {title} '
+                # A running or finished action of a member must not hide in a closed group (4.4).
+                opened = " open" if "data-command-result" in cards or "data-card-command-status" in cards else ""
+                items.append(f'<details class="series-group"{opened}><summary>Serie: {title} '
                              f'({len(group)} Termine)</summary><p><a class="button" href="/serie/{mail_id}/{key}">'
                              f'Serie bearbeiten und bestätigen</a></p>{cards}</details>')
             else:

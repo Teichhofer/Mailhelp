@@ -4,8 +4,8 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from statistics import median
-from time import perf_counter
 from threading import Event, Thread
+from time import perf_counter
 
 from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.models import ProposalStatus

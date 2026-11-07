@@ -101,4 +101,5 @@ def test_built_artifacts_exclude_private_runtime_files():
         assert {"docs/Planung-4.1.md", "docs/Qualitaet-4.1.md", "requirements-mutation.lock"} <= names
         assert {"docs/Planung-4.2.md", "docs/Release-4.2.md"} <= names
         assert {"docs/Planung-4.3.md", "docs/Release-4.3.md"} <= names
+        assert {"docs/Planung-4.4.md", "docs/Release-4.4.md"} <= names
         assert not any(name.startswith(("data/", "logs/", "quality-reports/")) for name in names)

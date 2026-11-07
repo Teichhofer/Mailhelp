@@ -139,17 +139,28 @@
   toast.hidden = true;
   document.body.appendChild(toast);
 
-  function announce(text, action) {
+  // A short message: it must never stay on top of the buttons it announces.
+  var NOTICE_MS = Number(document.body.dataset.undoMs || 6000), hideTimer = 0;
+  function announce(text) {
     toast.replaceChildren(document.createTextNode(text));
-    if (action) toast.appendChild(action);
     toast.hidden = false;
+    window.clearTimeout(hideTimer);
+    hideTimer = window.setTimeout(function () { toast.hidden = true; }, NOTICE_MS);
   }
 
   function cards() { return Array.from(items.querySelectorAll("article.card")); }
 
+  // DOMParser parses without scripting: <noscript> content (the reload fallback)
+  // would become live elements, and an inserted refresh pragma reloads the page.
+  function parse(html) {
+    var page = new DOMParser().parseFromString(html, "text/html");
+    page.querySelectorAll("noscript").forEach(function (node) { node.remove(); });
+    return page;
+  }
+
   // Ids, label references and the heading of the loaded page fit into the overview.
   function show(html) {
-    var content = new DOMParser().parseFromString(html, "text/html").querySelector("main");
+    var content = parse(html).querySelector("main");
     var heading = content.querySelector("h1"), title = document.createElement("h2");
     title.textContent = heading.textContent;
     heading.replaceWith(title);
@@ -185,8 +196,10 @@
   }
 
   function restoreSelection() {
-    var list = cards(), saved = history.state && history.state.mailhelpSelected;
-    select(list.find(function (card) { return card.id === saved; }) || list[0]);
+    // A saved choice wins; otherwise the card of the redirect anchor (#v-…) after an action.
+    var list = cards(), saved = history.state && history.state.mailhelpSelected, anchored = location.hash.slice(1);
+    select(list.find(function (card) { return card.id === saved; })
+      || list.find(function (card) { return card.id === anchored; }) || list[0]);
   }
 
   // On wide screens the open items become a master list with a detail pane.
@@ -222,7 +235,7 @@
       })
       .then(function (html) {
         if (pane.dataset.dirty === "yes") return;
-        var page = new DOMParser().parseFromString(html, "text/html"), scroll = items.scrollTop;
+        var page = parse(html), scroll = items.scrollTop;
         main.replaceChildren.apply(main, Array.from(page.querySelector("main").childNodes));
         document.body.dataset.fingerprint = page.body.dataset.fingerprint;
         enhance(pane);
@@ -248,11 +261,14 @@
       fetch(url, {credentials: "same-origin", cache: "no-store", headers: {Accept: "application/json"}})
         .then(function (response) {
           if (response.status === 401) { location.replace("/anmelden"); return {expired: true}; }
+          // Not (yet) known, e.g. after a lost POST response: keep the explanation and ask again.
+          if (response.status === 404) return {unknown: true};
           if (!response.ok) throw new Error("Status nicht verfügbar");
           return response.json();
         })
         .then(function (result) {
           if (result && result.expired) return;
+          if (result && result.unknown) { window.setTimeout(check, 1000); return; }
           if (!result) throw new Error("Status nicht verfügbar");
           if (location.pathname !== "/" && location.pathname !== "/offen") {
             location.assign("/?aktion=" + url.split("/").pop() + "#" + marker.closest("article.card").id);
@@ -264,7 +280,7 @@
               if (!response.ok || response.redirected) throw new Error("Übersicht nicht verfügbar");
               return response.text();
             }).then(function (html) {
-              var page = new DOMParser().parseFromString(html, "text/html");
+              var page = parse(html);
               var card = marker.closest("article.card"), id = card.id.replace(/^detail-/, "");
               var updated = page.getElementById(id);
               if (!updated) throw new Error("Ergebnis noch nicht sichtbar");
@@ -278,10 +294,15 @@
               }
               var master = document.getElementById(id);
               if (master) master.replaceWith(updated);
+              // A decision also moves the item to "Zuletzt erledigt" on the same fresh overview.
+              var recent = page.querySelector(".recent"), shown = main.querySelector(".recent");
+              if (recent && shown) shown.replaceWith(recent);
               if (selected && selected.id === id) {
                 updated.classList.add("selected"); selected = updated;
               }
-              announce(updated.textContent.trim());
+              // Only the result itself, not the whole card (title, evidence, links).
+              var outcome = updated.querySelector("[data-command-result]");
+              if (outcome) announce(outcome.textContent.trim());
               polling.delete(url);
               observeCards();
             });
@@ -469,7 +490,7 @@
         return response.text();
       })
       .then(function (html) {
-        var content = new DOMParser().parseFromString(html, "text/html").querySelector("main");
+        var content = parse(html).querySelector("main");
         main.replaceChildren.apply(main, Array.from(content.childNodes));
         history.pushState(null, "", chip.href);
         enhance();

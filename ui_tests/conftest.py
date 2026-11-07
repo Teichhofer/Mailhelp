@@ -336,11 +336,23 @@ def item(page: Page, selector: str):
     return Overview(page).item(selector)
 
 
+def hold(mailhelp, monkeypatch):
+    """Keep the operator busy so results arrive only after the browser moved on."""
+    release = threading.Event()
+    execute = mailhelp.dialog.review.execute
+    def held(command):
+        assert release.wait(30)
+        return execute(command)
+    monkeypatch.setattr(mailhelp.dialog.review, "execute", held)
+    return release
+
+
 def act(page: Page, control, text: str) -> None:
     """Click and wait for the durable result on the overview card."""
     control.click()
     expect(page.get_by_role("heading", name="Offene Entscheidungen")).to_be_visible(timeout=10000)
-    expect(page.locator("[data-command-result] .notice:visible").filter(has_text=text).first).to_be_visible(timeout=20000)
+    result = page.locator("[data-command-result] .notice:visible").filter(has_text=text).first
+    expect(result).to_be_visible(timeout=20000)
 
 
 def pytest_sessionfinish(session, exitstatus):
@@ -357,4 +369,4 @@ def pytest_sessionfinish(session, exitstatus):
         print("\nJavaScript-Abdeckung: 100 % der Blöcke in " + ", ".join(COVERED_SCRIPTS))
 
 
-__all__ = ["DEVICES", "Mailhelp", "Page", "act", "item", "sign_in"]
+__all__ = ["DEVICES", "Mailhelp", "Page", "act", "hold", "item", "sign_in"]

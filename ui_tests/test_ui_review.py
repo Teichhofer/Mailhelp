@@ -92,6 +92,9 @@ def test_overview_refreshes_itself_but_never_discards_typed_text(page, mailhelp)
     page.evaluate("Object.defineProperty(document, 'visibilityState', {value: 'visible', configurable: true})")
     save_mail(mailhelp.store, 9, "Hort <hort@x.test>", "Ferienbetreuung",
               [proposal(9, "hort", title="Anmeldung Ferienbetreuung abgeben", due="2026-10-24")])
+    # 4.4: state requests read the operator's published read model; publish it now
+    # instead of racing the simulated operator loop.
+    mailhelp.site.refresh_overview()
     # Typed text is kept: only a hint appears.
     page.evaluate("""() => { const field = document.createElement('textarea');
         field.setAttribute('aria-label', 'Notiz'); field.value = 'nicht verlieren';

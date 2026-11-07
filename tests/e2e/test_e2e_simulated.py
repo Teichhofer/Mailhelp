@@ -249,7 +249,10 @@ def test_nachholtermin_clarified_and_confirmed_in_the_web(tmp_path):
         location = browser.request("POST", "/aktion", form("confirm")).headers["Location"]
         dialog.poll_once()
         assert len(calendar.create_calls) == 1 and calendar.create_calls[0][0].version == 2
-        assert "Angelegt." in browser.request("GET", location).body.decode(), [
+        # The simulated calendar loses its response: the card reports the unclear
+        # write (reconciled later) and keeps it until the user acknowledges it.
+        card = browser.request("GET", location).body.decode()
+        assert "die externe Anlage ist noch unklar" in card and "Zur Kenntnis genommen" in card, [
             entry.result for entry in dialog.commands._entries()]
         # Telegram saw the revision and the write; its old button is now stale.
         texts = [text for _, text, _ in telegram.sent]

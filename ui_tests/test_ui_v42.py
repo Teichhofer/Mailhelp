@@ -10,6 +10,10 @@ from mailhelp.web.pages import layout
 from tests.scenarios.web_scenario import mail_id
 
 
+def done_notice(page):
+    return page.locator("[data-command-result] .notice:visible").filter(has_text="Als schon erledigt erfasst").first
+
+
 @pytest.mark.smoke
 def test_already_done_progress_polls_json_and_returns_to_the_overview(page, mailhelp, monkeypatch):
     sign_in(page, mailhelp)
@@ -28,7 +32,7 @@ def test_already_done_progress_polls_json_and_returns_to_the_overview(page, mail
         assert audit(page, f"aktion-42-{page.device}", page.mobile) == []
         assert page.locator('head meta[http-equiv="refresh"]').count() == 0
         release.set()
-        expect(page.locator("[data-command-result] .notice:visible").filter(has_text="Als schon erledigt erfasst").first).to_contain_text("Als schon erledigt erfasst", timeout=10000)
+        expect(done_notice(page)).to_contain_text("Als schon erledigt erfasst", timeout=10000)
         assert mailhelp.writer.created == []
         assert mailhelp.store.load(f"proposal-{mail_id(1)}-elternabend")["resolution"] == "already_done"
         assert page.errors == []
@@ -61,7 +65,7 @@ def test_status_polling_retries_reads_after_errors_without_resubmitting(page, ma
         with page.expect_response("**/api/aktion/*"):
             page.wait_for_timeout(100)
         release.set()
-        expect(page.locator("[data-command-result] .notice:visible").filter(has_text="Als schon erledigt erfasst").first).to_contain_text("Als schon erledigt erfasst", timeout=10000)
+        expect(done_notice(page)).to_contain_text("Als schon erledigt erfasst", timeout=10000)
         assert len(mailhelp.site.commands._entries()) == 1
         assert set(calls) == {"GET"} and mailhelp.writer.created == []
     finally:
@@ -102,7 +106,7 @@ def test_already_done_without_javascript_uses_the_reload_fallback(browser, mailh
         sign_in(page, mailhelp)
         page.goto(f"{mailhelp.url}/vorschlag/{mail_id(1)}/elternabend")
         page.get_by_role("button", name="Schon erledigt", exact=True).click()
-        expect(page.locator("[data-command-result] .notice:visible").filter(has_text="Als schon erledigt erfasst").first).to_contain_text("Als schon erledigt erfasst", timeout=15000)
+        expect(done_notice(page)).to_contain_text("Als schon erledigt erfasst", timeout=15000)
         assert mailhelp.writer.created == []
     finally:
         context.close()

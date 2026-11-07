@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 6. November 2026, Anwendungsversion 4.1.10. Die folgenden Verträge beschreiben
+Stand: 7. November 2026, Anwendungsversion 4.4.0. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2782,3 +2782,60 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   Fortschritt. Je Termin gelten eigener Idempotenzschlüssel und bestehender Schreib-
   und Wiederanlauf-Abgleich. Unklare Resultate werden vor einer weiteren Anlage
   abgeglichen. CSRF, erneute Sitzungsprüfung und Versionsbindung bleiben verbindlich.
+
+## Ergänzungen Version 4.4
+
+- **Sperrfreie Annahme:** `POST /aktion` prüft Sitzung und CSRF und schreibt den
+  Web-Befehl ohne `store.locked()` und ohne eine andere zwischen Threads geteilte
+  Sperre. Die Sitzungsprüfung liest dafür eine veröffentlichte Momentaufnahme der
+  Websitzungen. Eine Kapazitätsmarke `commands/capacity/<n>.json` (höchstens 50 über
+  Eingang und Warteschlange zusammen) wird per exklusivem Hardlink belegt. Danach
+  folgen die unveränderliche Quittung `commands/receipts/<id>.json`, ebenfalls exklusiv
+  per Hardlink, und die Eingangsdatei `commands/incoming/<sha256-des-schlüssels>.json`
+  per temporärer Datei und `os.replace`. Die Kennung leitet sich aus dem
+  Idempotenzschlüssel ab. Gleicher Schlüssel ergibt dieselbe Aktion, ein anderer
+  Inhalt unter demselben Schlüssel wird mit 422 abgewiesen. Ein voller Datenträger
+  gibt 503 zurück und gibt die Kapazitätsmarke frei. Unter Windows wird ein
+  blockiertes `os.replace` höchstens viermal versucht (5, 10, 20 ms Pause).
+- **Übernahme:** Der Bedien-Thread übernimmt Quittungen vor allen anderen Arbeiten in
+  Annahmereihenfolge in `command-inbox`. Er löscht die Eingangsdatei erst nach dem
+  dauerhaften Speichern und aktualisiert die Quittung mit dem jeweiligen Stand. Die
+  Kapazitätsmarke bleibt belegt, bis die Ausführung beginnt. Beschädigte oder
+  widersprüchliche Dateien und Dateien unter falschem Namen werden nach
+  `commands/quarantine/` verschoben. Gemeldet wird das ohne Inhalt als
+  `command_input_damaged` und als Hinweis in der Übersicht. Beim Start werden
+  abgebrochene temporäre Dateien entfernt und die Kapazitätsmarken neu aufgebaut.
+  Gespeicherte Befehle über der Kapazität verhindern den Start. Der Bedien-Thread wird
+  nicht aufgeweckt; er prüft den Eingang mindestens alle 0,1 s.
+- **Vorprüfung:** Die Versionsvorprüfung liest das vom Bedien-Thread veröffentlichte
+  Lesemodell im Speicher. Ein veralteter Stand führt höchstens zur Annahme und zur
+  späteren Ablehnung bei der Ausführung. Versionsbindung, erneute Sitzungsprüfung,
+  Idempotenz und der Abgleich unklarer Schreibresultate gelten bei der Ausführung
+  unverändert.
+- **Rückkehr zur Übersicht:** `POST /aktion` antwortet mit 303 auf
+  `/?aktion=<id>#<karte>` (JSON: 202 mit `status_url`). Die Karte zeigt
+  „Wird verarbeitet …“ ohne Aktionsschaltflächen und fragt `/api/aktion/<id>` ab.
+  Ohne JavaScript lädt sie sich über `<noscript>` jede Sekunde neu. Das Ziel wird
+  dabei ausdrücklich ohne Sprungmarke angegeben, weil ein Neuladen auf dieselbe URL
+  mit Sprungmarke nur innerhalb der Seite springt. Eingefügtes HTML verliert seine
+  `<noscript>`-Inhalte, damit kein Meta-Refresh in die laufende Seite gelangt. Auf
+  breiten Bildschirmen wählt die Übersicht ohne gespeicherte Auswahl die Karte der
+  Sprungmarke. `/aktion/<id>` bleibt als direkter Link erhalten und leitet nach dem
+  Ergebnis auf `/?ergebnis=<id>#<karte>` weiter. Die Übersicht zeigt Ergebnisse von
+  Vorschlagsaktionen nur auf der Karte, nicht zusätzlich oben. Eine Antwort 404 auf
+  die Statusabfrage gilt als „noch unbekannt“ und wird weiter abgefragt, ohne dass die
+  Aktion erneut gesendet wird. Seriengruppen sind geöffnet, solange ein Mitglied eine
+  laufende oder abgeschlossene Aktion zeigt. Der Ergebnis-Toast enthält nur die
+  Ergebnismeldung und verschwindet nach sechs Sekunden. Auf breiten Bildschirmen zeigt
+  auch die kompakte Liste das Ergebnis.
+- **Ergebnisse auf der Karte:** Erfolge erscheinen als Meldung (`aria-live`). Fehler,
+  abgelehnte Versionen und unklare Anlagen bleiben auf der Karte, auch nach Neuladen
+  und auf anderen gekoppelten Geräten. Sie verschwinden erst nach
+  „Zur Kenntnis genommen“ (`POST /aktion/<id>/gesehen` mit Sitzung und CSRF). Bis dahin
+  hebt die eintägige Aufbewahrung sie nicht auf. Eine erkannte frühere Anlage bietet
+  „Erneut anlegen“ und „Nicht erneut anlegen“ mit denselben versionsgebundenen
+  Formularen an. Fällt die ursprüngliche Karte durch die Entscheidung weg, erscheint
+  das Ergebnis als Karte „Deine Aktion“.
+- **Messung:** `command_submitted` protokolliert `accept_ms` und
+  `store_lock_wait_ms=0.0` ohne Inhalte. `/status` zeigt Median und Maximum der
+  letzten 20 Annahmen neben der Wartezeit bis zum Ausführungsbeginn.

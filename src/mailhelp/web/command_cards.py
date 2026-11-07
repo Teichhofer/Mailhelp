@@ -22,10 +22,13 @@ def anchor(entry: CommandEntry) -> str:
     return f"v-{command.mail_id}-{command.proposal_id}" if command.proposal_id else f"r-{command.mail_id}"
 
 
-def feedback(entry: CommandEntry, csrf: str) -> str:
+def feedback(entry: CommandEntry, csrf: str, refresh: str) -> str:
     if entry.status in {CommandStatus.QUEUED, CommandStatus.RUNNING}:
+        # An explicit target without fragment: refreshing to the current URL with its
+        # card anchor would only scroll within the page instead of reloading it.
         return (f'<div data-card-command-status="/api/aktion/{entry.id}" role="status" aria-live="polite">'
-                'Wird verarbeitet …</div><noscript><meta http-equiv="refresh" content="1"></noscript>')
+                'Wird verarbeitet …</div><noscript>'
+                f'<meta http-equiv="refresh" content="1; url={e(refresh)}"></noscript>')
     assert entry.result is not None
     content = '<div data-command-result>' + notice(entry.result.message, result_kind(entry.result.status)) + '</div>'
     if requires_ack(entry):
@@ -37,10 +40,10 @@ def feedback(entry: CommandEntry, csrf: str) -> str:
 
 
 class CommandCards:
-    def __init__(self, entries: list[CommandEntry], csrf: str):
+    def __init__(self, entries: list[CommandEntry], csrf: str, refresh: str):
         self.entries = [entry for entry in entries if isinstance(entry.command, ReviewCommand)
                         and entry.command.source.value == "web" and not entry.acknowledged]
-        self.csrf = csrf
+        self.csrf, self.refresh = csrf, refresh
 
     def matching(self, mail_id: str, proposal_id: str | None) -> list[CommandEntry]:
         result = []
@@ -57,10 +60,10 @@ class CommandCards:
     def render(self, entries: list[CommandEntry], actions: Callable[[], str]) -> str:
         pending = next((entry for entry in entries if entry.result is None), None)
         if pending is not None:
-            return feedback(pending, self.csrf)
+            return feedback(pending, self.csrf, self.refresh)
         errors = [entry for entry in entries if requires_ack(entry)]
         shown = errors + [entry for entry in entries[-1:] if entry not in errors]
-        return ''.join(feedback(entry, self.csrf) for entry in shown) + actions()
+        return ''.join(feedback(entry, self.csrf, self.refresh) for entry in shown) + actions()
 
     def proposal(self, view: ProposalView) -> str:
         entries = self.matching(view.mail_id, view.proposal_id)

@@ -1,5 +1,48 @@
 # Änderungen
 
+## 4.4.0 – Pufferschicht für Web-Eingaben und Bedienung ohne Wartezeit
+
+- `POST /aktion` nimmt Befehle ohne Ablagesperre und ohne andere zwischen Threads
+  geteilte Sperre an. Exklusive Kapazitätsmarken, unveränderliche Quittungen und
+  Eingangsdateien sichern jeden quittierten Befehl. Der Bedien-Thread übernimmt sie
+  vor allen anderen Arbeiten. Absturz, Doppelklick und Neustart erzeugen weder Verlust
+  noch doppelte Ausführung. Beschädigte Dateien werden isoliert und ohne Inhalt gemeldet.
+- Nach dem Absenden erscheint sofort die Übersicht. Die Karte zeigt
+  „Wird verarbeitet …“, bietet bis zum Ergebnis keine weitere Aktion an und zeigt
+  danach das Ergebnis. Fehler, Ablehnungen und unklare Anlagen bleiben auf allen
+  gekoppelten Geräten sichtbar, bis „Zur Kenntnis genommen“ gewählt wird.
+- Gemessen bei laufender Mailanalyse, blockiertem Telegram-Versand, fünf
+  gleichzeitigen Browsern und 5 s gehaltener Ablagesperre: Annahme im Median 9–33 ms,
+  im Maximum höchstens 52 ms unter Windows, Linux und Docker; im Browser über HTTP 12–62 ms. Unter 4.3.0 wartete
+  dieselbe Annahme 5.006 ms. `/status` zeigt die Annahmezeit der letzten 20 Web-Aktionen.
+- Fehlerbehebungen mit Regressionstests:
+  - Ohne JavaScript lud sich die Übersicht wegen der Sprungmarke nie neu.
+    Der Refresh nennt jetzt ein Ziel ohne Sprungmarke.
+  - `app.js` übernimmt keine `<noscript>`-Inhalte mehr aus nachgeladenem HTML.
+  - Auf breiten Bildschirmen wählt die Übersicht die Karte der Sprungmarke aus,
+    sodass das Ergebnis sichtbar bleibt.
+  - Die Übernahme quittierter Befehle wird nicht mehr durch die Warteschlangengrenze
+    abgewiesen.
+  - Die Übersicht zeigt ein Ergebnis nur noch einmal auf der Karte. Die zusätzliche
+    `?ergebnis=`-Meldung oben entfällt. Weiterleitungen von `/aktion/<id>` springen
+    zur Karte.
+  - Der Toast zeigt nur die Ergebnismeldung statt des ganzen Kartentexts und blendet
+    sich nach sechs Sekunden aus. Auf schmalen Bildschirmen verdeckte er die Schaltflächen.
+  - Eine noch unbekannte Aktion (404 nach verlorener POST-Antwort) gilt als
+    „wird geprüft“ und nicht mehr als Verbindungsfehler.
+  - „Zuletzt erledigt“ wird zusammen mit der Karte aktualisiert.
+  - Eine Seriengruppe öffnet sich, solange eines ihrer Mitglieder eine Aktion zeigt.
+  - Auf breiten Bildschirmen zeigt auch die kompakte Liste das Ergebnis einer Aktion.
+    Bisher war es dort ausgeblendet und nur kurz im Toast zu sehen.
+  - Die JavaScript-Pfade der Pufferschicht sind vollständig im Browser getestet
+    (`ui_tests/test_ui_v44_paths.py`).
+- 30 Browsertests aus 4.2 und 4.3 erwarteten noch das Verhalten vor den Ergebniskarten
+  oder fragten das Lesemodell ab, bevor es veröffentlicht war. Sie prüfen jetzt das
+  Verhalten von 4.4.
+- Ein E2E-Test erwartete nach einem simulierten Antwortverlust fälschlich
+  „Angelegt.“. Er prüft jetzt den Hinweis auf die unklare Anlage, die bis zur
+  Kenntnisnahme sichtbar bleibt.
+
 ## 4.3.0 – Aufgaben ohne Mengenfragen und sichere Terminserien
 
 - Router und Aufgabenextraktor schließen werbliche Download-/Leseangebote und

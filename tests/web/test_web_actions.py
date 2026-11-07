@@ -38,12 +38,13 @@ def test_confirm_in_the_web_writes_once_and_reports_progress(web):
     running = web.browser.request("GET", progress_link(location)).body.decode()
     assert '<meta http-equiv="refresh" content="1">' in running and "Wird ausgeführt" in running
     web.run()
-    # Done: the browser goes back to the overview, which shows the result on top.
+    # Done: back to the overview at the card, which shows the result exactly once (4.4).
     done = web.browser.request("GET", progress_link(location))
     entry_id = action_id(location)
-    assert done.status == 303 and done.headers["Location"] == f"/?ergebnis={entry_id}"
+    assert done.status == 303
+    assert done.headers["Location"] == f"/?ergebnis={entry_id}#v-{MAIL1}-elternabend"
     overview = web.browser.request("GET", done.headers["Location"]).body.decode()
-    assert '<p class="notice notice-ok" role="status">Angelegt.</p>' in overview
+    assert overview.count('<p class="notice notice-ok" role="status">Angelegt.</p>') == 1
     assert web.writer.created == 1
     assert web.store.load(f"proposal-{MAIL1}-elternabend")["status"] == "created"
     assert any("✅ Angelegt im Kalender" in text for _, text, _ in web.telegram.sent)

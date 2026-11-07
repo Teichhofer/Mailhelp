@@ -19,13 +19,18 @@ from .pages import error_page
 from .review_pages import detail_page, mail_page, overview_page
 
 
+def refresh_target(request: Request) -> str:
+    """The current page without its fragment, for the reload fallback without JavaScript."""
+    # Browsers never send a fragment; tolerate clients that do.
+    return (request.path + (f"?{request.query}" if request.query else "")).split("#", 1)[0]
+
+
 class ReviewSite:
     def __init__(self, site: MailhelpSite):
         self.site = site
 
     def home(self, request: Request, session: WebSession) -> Response:
         csrf = self.site.auth.csrf_token(session.id)
-        message, kind = self._result_notice(request, session)
         from ..review.filters import FILTERS, matches
         from .filters import chips
         selected = parse_qs(request.query).get("filter", [""])[0]
@@ -42,15 +47,18 @@ class ReviewSite:
         # The day's summary reads the history; only the finished, unfiltered state needs it.
         finished = not overview.open and not overview.relevance and not selected
         from .command_cards import CommandCards
-        cards = CommandCards(self.site.commands._entries(), csrf)
-        references = {(view.mail_id, view.proposal_id) for view in overview.open}
+        cards = CommandCards(self.site.commands._entries(), csrf, refresh_target(request))
+        references: set[tuple[str, str | None]] = {(view.mail_id, view.proposal_id) for view in overview.open}
         references.update((view.mail_id, None) for view in overview.relevance)
         from .pages import notice
         damaged = len(tuple((self.site.commands.incoming.directory / "quarantine").glob("*.invalid")))
-        warning = notice("Beschädigte Web-Eingaben wurden isoliert. Bitte die Protokolle prüfen.", "error") if damaged else ""
+        warning = (notice("Beschädigte Web-Eingaben wurden isoliert. Bitte die Protokolle prüfen.", "error")
+                   if damaged else "")
+        # 4.4: every review result is shown on its card (or as "Deine Aktion"); no second
+        # copy from ?ergebnis= on top, which would be announced twice.
         page = overview_page(overview, actions=cards.proposal,
                              relevance_actions=cards.relevance,
-                             message=message, message_kind=kind, before=warning + chips("/offen", selected),
+                             before=warning + chips("/offen", selected),
                              empty=self.site._empty if finished else None,
                              after=cards.detached(references))
         return Response.html(200, page)
@@ -139,7 +147,8 @@ class ReviewSite:
                  + disclosure("Revisionshistorie &amp; Differenzen", archive.revisions(mail_id, proposal_id))
                  + disclosure("Technische LLM-Analyse &amp; Metriken", archive.analysis(mail_id)))
         from .command_cards import CommandCards
-        cards = CommandCards(self.site.commands._entries(), self.site.auth.csrf_token(session.id))
+        cards = CommandCards(self.site.commands._entries(), self.site.auth.csrf_token(session.id),
+                             refresh_target(request))
         page = detail_page(view, actions=cards.proposal,
                            mail=self.site.views.mail(mail_id), after=extra)
         return Response.html(200, page)

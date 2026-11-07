@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import base64
-import re
 
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric import ec
@@ -487,7 +486,8 @@ def test_script_steps_that_end_in_a_navigation(page, mailhelp):
     assert page.locator('form:has(#draft-editor) input[type="hidden"][name="mode"]').get_attribute("value") == "cancel"
     expect(page.get_by_role("button", name="Abbrechen")).to_be_disabled()
     assert imap.writes == []
-    without_load_errors(page, "503", "ERR_ABORTED")
+    # 404: the receipt of the aborted POST is (correctly) unknown while the card keeps asking.
+    without_load_errors(page, "503", "ERR_ABORTED", "404 (Not Found)")
     assert page.errors == []
 
 
@@ -508,6 +508,9 @@ def test_personal_information_is_saved_with_line_breaks(page, mailhelp):
 def background_change(page, mailhelp, revision):
     """Change the store and let the page check at once instead of after 15 seconds."""
     mailhelp.store.save("synthetic-background-state", {"revision": revision})
+    # 4.4: state requests read the operator's published read model; publish it now
+    # instead of racing the simulated operator loop.
+    mailhelp.site.refresh_overview()
     page.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
 
 
@@ -558,6 +561,7 @@ def test_split_selection_survives_background_refresh_and_missing_item(page, mail
     name = f"proposal-{mail_id(1)}-formular"
     proposal = mailhelp.store.load_model(name, Proposal)
     mailhelp.store.save(name, {**proposal.model_dump(mode="json"), "status": "rejected"})
+    mailhelp.site.refresh_overview()
     page.reload()
     expect(selected(page)).to_have_attribute("id", f"r-{mail_id(7)}")
     assert mailhelp.writer.created == [] and page.errors == []
@@ -605,6 +609,7 @@ def test_background_refresh_to_inbox_zero(page, mailhelp):
     sign_in(page, mailhelp)
     item(page, f"#v-{mail_id(1)}-formular")
     decide_everything(mailhelp.store)
+    mailhelp.site.refresh_overview()  # Publish as the operator does, without racing its loop.
     with page.expect_response(page_fetch(mailhelp)):
         page.evaluate("document.dispatchEvent(new Event('visibilitychange'))")
     expect(page.get_by_role("heading", name="Alles erledigt! Keine offenen Entscheidungen.")).to_be_visible()

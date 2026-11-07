@@ -162,6 +162,8 @@ class CommandInbox:
             existing = self.existing(command)
             if existing is not None:
                 return existing, False
+            # No wake-up: even an event shares a lock between threads. The operator
+            # polls the receipts at least every 0.1 s.
             return self.incoming.accept(command)
         return self._submit(command, None)
 
@@ -188,7 +190,9 @@ class CommandInbox:
                 if command_payload(existing.command) != command_payload(command):
                     raise CommandConflict("Idempotenzschlüssel gehört zu einem anderen Befehl")
                 return existing, False
-            if result is None and sum(entry.status == CommandStatus.QUEUED for entry in state.entries) >= MAX_QUEUED:
+            # Imported receipts already own a capacity ticket and must never be refused.
+            if (result is None and original is None
+                    and sum(entry.status == CommandStatus.QUEUED for entry in state.entries) >= MAX_QUEUED):
                 raise CommandInboxFull("Zu viele wartende Befehle")
             entry = original or CommandEntry(id=secrets.token_hex(16), command=command,
                                             received_at=self.clock())
