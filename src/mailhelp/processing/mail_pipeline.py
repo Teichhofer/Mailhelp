@@ -35,6 +35,7 @@ from .analysis import (
     LlmProviderResponseInvalid,
     LlmSchemaValidationExceeded,
 )
+from .identity import is_self_mail, user_note
 
 if TYPE_CHECKING:
     from .orchestrator import Orchestrator
@@ -151,6 +152,9 @@ class MailPipeline:
                  "text": "", "extraction_status": "skipped_oversized", "character_count": 0}
                 for filename, content_type, size in fetched.oversized_attachments)
             state.mail["internal_id"] = state.id
+            sender = cast(dict[str, Any], state.mail["headers"]).get("from", "")
+            state.self_mail = is_self_mail(sender, self.o.own_addresses(state.imap.account_id))
+            state.user_note = user_note(cast(str | None, state.mail.get("text"))) if state.self_mail else None
             self.o.cache_previews(state, fetched.raw)
             state.steps.preparation = "completed"
             self.o.save(name, state)

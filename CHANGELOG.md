@@ -1,5 +1,13 @@
 # Änderungen
 
+## 4.5.0 – Eigene Mails erkennen (Planung 4.5, Schritt 16.1)
+
+- Mails von einer eigenen Adresse des Postfachs gelten als eigene Notiz:
+  `MailState.self_mail` und `MailState.user_note`. Eigene Adressen sind der
+  IMAP-Benutzername, neue Aliase unter `imap.mailboxes[].own_addresses` und Adressen
+  in `personal_info`. Anzeigenamen zählen nicht. Die Markierung autorisiert keine
+  Anlage, und gespeicherte Mails bleiben ohne Migration gültig.
+
 ## 4.4.1 – Schnelle Web-Aktionen bei großen Datenbeständen
 
 - Fehlerbehebung mit Regressionstest: Der Bedien-Thread speicherte in jedem Durchlauf

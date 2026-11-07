@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 7. November 2026, Anwendungsversion 4.4.1. Die folgenden Verträge beschreiben
+Stand: 7. November 2026, Anwendungsversion 4.5.0. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2866,3 +2866,17 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
 - **Zielwert:** Vom Absenden bis zum sichtbaren Ergebnis in der Übersicht vergehen bei
   2.000 Mails und 500 Vorschlägen im Median weniger als 0,5 s
   (`tests/services/test_v441_load.py`).
+
+## Ergänzungen Version 4.5
+
+- **Eigene Mails (16.1):** Die Vorbereitung vergleicht die Adresse im From-Kopf mit den
+  eigenen Adressen des Postfachs. Dazu zählen der IMAP-Benutzername, sofern er eine
+  Adresse ist, die Aliase `imap.mailboxes[].own_addresses` (höchstens 20) und alle
+  Adressen im wirksamen `personal_info` (global oder je Postfach). Der Vergleich
+  ignoriert Groß- und Kleinschreibung. Anzeigenamen zählen nie, und mehrere Absender
+  schließen eine eigene Mail aus. Trifft der Vergleich zu, speichert `MailState`
+  `self_mail: true` und den eigenen Text der Mail als `user_note` (höchstens 2.000
+  Zeichen, leer als `null`). Der From-Kopf ist fälschbar: `self_mail` ändert nur die
+  Lesart der Mail und autorisiert keine Anlage. Jede Anlage bleibt bestätigungspflichtig.
+  Die eigenen Adressen gehen nicht in den Konfigurations-Fingerabdruck ein und werden
+  nicht protokolliert.

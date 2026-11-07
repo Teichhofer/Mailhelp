@@ -88,6 +88,8 @@ class Orchestrator:
         self.questions = MailQuestions(self)
         self.mailbox_settings: Settings | None = None
         self.mailbox_numbers: dict[str, int] = {}
+        # IMAP user names per mailbox number: the user's own sender addresses (4.5).
+        self.mailbox_usernames: dict[int, str] = {}
         # Accounts whose mail is relevant without a check: IServ parent letters (3.3.7).
         self.always_relevant: frozenset[str] = frozenset()
         self.mailbox_prompts = self.mailbox_jev = None
@@ -98,6 +100,20 @@ class Orchestrator:
 
     def mailbox_number(self, account_id: str) -> int:
         return self.mailbox_numbers.get(account_id, 1)
+
+    def own_addresses(self, account_id: str) -> frozenset[str]:
+        """The user's sender addresses for the mailbox of *account_id* (4.5).
+
+        The IMAP user name, configured aliases and addresses in personal_info.
+        """
+        from .identity import addresses_in
+        if self.mailbox_settings is None:
+            return frozenset()
+        number = self.mailbox_number(account_id)
+        mailbox = self.mailbox_settings.imap.mailbox(number)
+        aliases = mailbox.own_addresses if mailbox is not None else []
+        personal = self.effective_settings(account_id).personal_info if mailbox is not None else ""
+        return addresses_in([self.mailbox_usernames.get(number), *aliases, personal])
 
     def effective_settings(self, account_id: str):
         from ..mailbox.mailbox_settings import effective_settings

@@ -56,6 +56,8 @@ def _valid_folders(folders: list[str] | None) -> list[str] | None:
 
 ConnectionMode = Literal["ssl", "starttls", "plain"]
 DraftsFolder = Annotated[str, Field(min_length=1, max_length=500, pattern=r"^[^\x00-\x1f\x7f]+$")]
+OwnAddress = Annotated[str, Field(min_length=3, max_length=254,
+                                  pattern=r"^[A-Za-z0-9._%+'-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$")]
 # Fields of one mailbox; before 3.1 they were written directly below ``imap``.
 MAILBOX_FIELDS = ("host", "port", "folders", "primary_folder", "connection_mode", "historical_start",
                   "drafts_folder")
@@ -77,6 +79,8 @@ class MailboxSettings(ConfigModel):
     drafts_folder: DraftsFolder = "Drafts"
     target_profile: int = Field(default=1, ge=1, le=99)
     personal_info: str | None = Field(default=None, max_length=2000, pattern=r"^[^\x00-\x08\x0b-\x1f\x7f]*$")
+    # 4.5: further own sender addresses (aliases); the IMAP user name already counts.
+    own_addresses: list[OwnAddress] = Field(default_factory=list, max_length=20)
     smart_reply: bool | None = None
     notifications: NotificationOverrides | None = None
     daily_briefing: bool = True

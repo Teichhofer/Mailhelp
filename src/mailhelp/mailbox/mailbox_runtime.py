@@ -47,6 +47,9 @@ class MailboxRuntime(PendingConnections):
             app.orchestrator.configure_mailboxes(settings, app.orchestrator.mailbox_prompts, numbers,
                                                 app.orchestrator.mailbox_jev)
             self.secrets.imap.update({box.id: secrets.imap_credentials(box.id) for box in added})
+            app.orchestrator.mailbox_usernames = {
+                **app.orchestrator.mailbox_usernames,
+                **{box.id: self.secrets.imap_credentials(box.id).username for box in added}}
             app.sources.extend(sources)
             app.settings = app.mailbox.settings = settings
             app.configuration.active = app.configuration.active.model_copy(update={"imap": imap})

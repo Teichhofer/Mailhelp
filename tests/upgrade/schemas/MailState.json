@@ -2023,6 +2023,11 @@
       "title": "Schema Version",
       "type": "integer"
     },
+    "self_mail": {
+      "default": false,
+      "title": "Self Mail",
+      "type": "boolean"
+    },
     "steps": {
       "$ref": "#/$defs/ProcessingSteps"
     },
@@ -2052,6 +2057,20 @@
       "format": "date-time",
       "title": "Updated At",
       "type": "string"
+    },
+    "user_note": {
+      "anyOf": [
+        {
+          "maxLength": 2000,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "User Note"
     },
     "validation_errors": {
       "items": {

@@ -2,7 +2,7 @@
 
 **Zielversion:** 4.5.0 (Schritte als Patchversionen 4.5.x)  
 **Stand:** 7. November 2026  
-**Status:** In Planung  
+**Status:** In Umsetzung (16.1 in 4.5.0)  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 4.0](Planung-4.0.md) (Gesamtfahrplan)  
 **Vorgänger:** [Planung 4.4](Planung-4.4.md) (Pufferschicht für Web-Eingaben) · **Nachfolger:** [Planung 4.6](Planung-4.6.md) (Terminänderungen, Verschiebungen und Absagen)
 
@@ -93,7 +93,7 @@ flowchart TD
 
 | Schritt | Inhalt | Fertig, wenn … | Umfang | Voraussetzung |
 | :--- | :--- | :--- | :---: | :--- |
-| **16.1** | Nutzer-Identität & `self_mail`-Flag | `mailhelp.models.MailState` erhält `self_mail: bool` und `user_note: str \| None`; die Pipeline gleicht den Absender gegen konfigurierte Postfachadressen und `personal_info` ab. | S | – |
+| **16.1** ✓ 4.5.0 | Nutzer-Identität & `self_mail`-Flag | `mailhelp.models.MailState` erhält `self_mail: bool` und `user_note: str \| None`; die Pipeline gleicht den Absender gegen konfigurierte Postfachadressen und `personal_info` ab. | S | – |
 | **16.2** | Weiterleitungs-Parser | Erkennt Weiterleitungen anhand Betreff (`Fwd:`, `WG:`) und Inhaltsmarkern; trennt vorangestellte Notizen des Nutzers vom weitergeleiteten Originalkörper; isoliert strukturierte Header der Originalnachricht. | S | 16.1 |
 | **16.3** | Prompt-Schärfung `action_router` | `action_router` in `prompts.yaml` erhält explizite Regeln für `self_mail`: Sendet der Nutzer sich selbst Notizen (*„Ich nehme teil“*, *„Ich bin angemeldet“*, *„Bitte eintragen“*) mit Terminfotos oder Einladungen, zählt dies als `event` (oder bei Aufgabenanweisung als `task`). | S | 16.1, 16.2 |
 | **16.4** | Prompt-Schärfung `event_extraction` | `event_extraction` wertet bei `self_mail` die Anhänge und den weitergeleiteten Text als Beleg für den eigenen Termin des Nutzers aus; die Nutzer-Notiz liefert die Zusage/Relevanz. | S | 16.3 |

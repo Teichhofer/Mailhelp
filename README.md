@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 4.4.1 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 4.5.0 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 4.4 trennt die Weboberfläche von der Verarbeitung. Ein Klick wird sofort
 quittiert, auch während die Mailanalyse läuft (gemessen: Median rund 30 ms). Danach
@@ -22,6 +22,11 @@ erscheint direkt wieder die Übersicht. Die betroffene Karte zeigt
 Fehler und unklare Anlagen bleiben sichtbar, bis du sie zur Kenntnis nimmst.
 Bestätigungen bleiben versionsgebunden und werden bei der Ausführung erneut geprüft.
 Details und Messwerte: [Release 4.4](docs/Release-4.4.md).
+
+Version 4.5 erkennt Mails, die du dir selbst schickst, etwa ein Foto einer Einladung
+mit „Ich nehme teil“ vom Handy. Ab 4.5.0 markiert Mailhelp solche Mails als eigene Notiz.
+Weitere eigene Absenderadressen trägst du unter `imap.mailboxes[].own_addresses` ein.
+Details: [Planung 4.5](docs/Planung-4.5.md).
 
 Version 4.4.1 macht die Bedienung auch bei großen Datenbeständen schnell. Bei über
 1.000 verarbeiteten Mails dauerte es bisher 2 bis 9 Sekunden, bis das Ergebnis einer

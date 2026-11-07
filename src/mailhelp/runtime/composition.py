@@ -447,6 +447,8 @@ def build_application(
         # IServ letters use the settings of the mailbox their account names.
         numbers |= {source.reader.account_id: source.account.mailbox for source in iserv}
         orchestrator.configure_mailboxes(settings, prompts, numbers, jev_prompts)
+        orchestrator.mailbox_usernames = {source.mailbox.id: secrets.imap_credentials(source.mailbox.id).username
+                                          for source in sources}
         if iserv:
             from ..mailbox.iserv import IServRunService
             orchestrator.always_relevant = frozenset(source.reader.account_id for source in iserv)

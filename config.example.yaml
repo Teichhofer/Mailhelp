@@ -64,6 +64,8 @@ personal_info: ""
 # 3.2: sparse Überschreibungen unter imap.mailboxes (legacy imap bleibt gültig).
 # target_profile: 2; personal_info: 'Arbeitsrolle'; smart_reply: false
 # daily_briefing: false; activity_report_folder: Projekte
+# 4.5: own_addresses: [ich@example.org]  # weitere eigene Absender (Aliase); der IMAP-Benutzername
+#   und Adressen in personal_info zählen bereits. Mails davon gelten als eigene Notiz.
 # retention: {full_mail_days: 7}  # nur kürzer als global
 # event_defaults: {video_duration_minutes: 90}
 # notifications: {quiet_hours: {enabled: true}, categories: {decisions: []}}

@@ -34,6 +34,10 @@ class MailState(StrictModel):
     steps: ProcessingSteps = Field(default_factory=ProcessingSteps)
     mail: dict[str, Any] | None = None
     display_headers: DisplayHeaders | None = None
+    # 4.5: sent from one of the user's own addresses; user_note holds their own words.
+    # A hint for reading the mail only; it never authorizes an external write.
+    self_mail: bool = False
+    user_note: str | None = Field(default=None, min_length=1, max_length=2000)
     relevance: Relevance | None = None
     summary: Summary | None = None
     action_route: ActionRoute | None = None
