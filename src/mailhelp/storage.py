@@ -87,7 +87,13 @@ class JsonStore:
         self._thread_lock = RLock()
         self.revision = 0
         self.archive_revision = 0
+        # Changed by touch() only: settings that cached views depend on.
+        self.settings_revision = 0
         self._observers: dict[str, list[Callable[[Any], None]]] = {}
+        # In-process writes per name; with the file signature they make cached reads exact.
+        self._generations: dict[str, int] = {}
+        self._projections: dict[str, dict[tuple[type[BaseModel], Callable[[Any], Any]],
+                                          tuple[tuple[int, int, int], Any]]] = {}
 
     def observe(self, name: str, callback: Callable[[Any], None]) -> None:
         """Publish committed local state changes to lock-free readers."""
@@ -178,9 +184,8 @@ class JsonStore:
         self._validate_name(name)
         path = self.directory / f"{name}.json"
         if not path.exists():
-            authoritative = (name.startswith(("proposal-", "mail-", "reconciliation-merge-"))
-                             or name in {"action-ledger", "command-inbox", "telegram-inbox"})
-            if authoritative and (path.with_suffix(".corrupt").exists() or path.with_suffix(".invalid").exists()):
+            copied = path.with_suffix(".corrupt").exists() or path.with_suffix(".invalid").exists()
+            if self.authoritative(name) and copied:
                 raise CorruptState(f"Isolierter Zustand muss repariert werden: {path.name}")
             return default
         try:
@@ -191,6 +196,12 @@ class JsonStore:
             isolated = path.with_suffix(".corrupt")
             os.replace(path, isolated)
             raise CorruptState(f"Beschädigter Zustand isoliert: {isolated.name}") from exc
+
+    @staticmethod
+    def authoritative(name: str) -> bool:
+        """A missing authoritative state is damage if an isolated copy exists."""
+        return (name.startswith(("proposal-", "mail-", "reconciliation-merge-"))
+                or name in {"action-ledger", "command-inbox", "telegram-inbox"})
 
     @overload
     def peek_model[M: BaseModel](self, name: str, model: type[M], default: None = None) -> M | None: ...
@@ -236,11 +247,67 @@ class JsonStore:
             self.save(name, result.model_dump(mode="json"))
         return result
 
+    def scan(self, prefix: str = "") -> dict[str, tuple[int, int, int]]:
+        """Current state names with a change signature, from a single directory listing.
+
+        Much cheaper than a stat per file, notably on Windows. The signature combines
+        this process's writes with the file's modification time and size, so a change
+        by another program is noticed as well.
+        """
+        with measured_lock(self._thread_lock, "store"):
+            try:
+                entries = list(os.scandir(self.directory))
+            except OSError:
+                return {}
+            result: dict[str, tuple[int, int, int]] = {}
+            for entry in entries:
+                name = entry.name[:-5]
+                if entry.name.endswith(".json") and name.startswith(prefix) and entry.is_file():
+                    stat = entry.stat()
+                    result[name] = (self._generations.get(name, 0), stat.st_mtime_ns, stat.st_size)
+        return dict(sorted(result.items()))
+
+    def cached[M: BaseModel, T](self, name: str, model: type[M], project: Callable[[M], T],
+                                signature: tuple[int, int, int] | None = None) -> T | None:
+        """A projection of a validated state, recomputed only after its file changed.
+
+        Read-only like ``peek_model``: a damaged file raises ``CorruptState`` and is
+        never moved. *project* must be a module-level function, and callers must not
+        change the shared result. *signature* comes from ``scan`` and saves a stat call.
+        """
+        with measured_lock(self._thread_lock, "store"):
+            if signature is None:
+                try:
+                    stat = (self.directory / f"{name}.json").stat()
+                except OSError:
+                    self.peek_model(name, model)  # Raises for an isolated authoritative state.
+                    return None
+                signature = (self._generations.get(name, 0), stat.st_mtime_ns, stat.st_size)
+            projections = self._projections.setdefault(name, {})
+            hit = projections.get((model, project))
+            if hit is not None and hit[0] == signature:
+                if isinstance(hit[1], CorruptState):
+                    raise hit[1]
+                return hit[1]  # type: ignore[no-any-return]
+            try:
+                value = self.peek_model(name, model)
+            except CorruptState as exc:
+                projections[(model, project)] = (signature, exc)
+                raise
+            result = None if value is None else project(value)
+            projections[(model, project)] = (signature, result)
+            return result
+
+    def _changed(self, name: str) -> None:
+        self._generations[name] = self._generations.get(name, 0) + 1
+        self._projections.pop(name, None)
+
     def delete(self, name: str) -> None:
         """Remove one state file; a missing file is already the desired state."""
         self._validate_name(name)
         with measured_lock(self._thread_lock, "store"):
             (self.directory / f"{name}.json").unlink(missing_ok=True)
+            self._changed(name)
             self.revision += 1
             for callback in self._observers.get(name, ()):
                 callback(None)
@@ -249,14 +316,24 @@ class JsonStore:
         self._validate_name(name)
         path = self.directory / f"{name}.json"
         temporary = path.with_suffix(".tmp")
+        content = (json.dumps(value, ensure_ascii=False, indent=2, sort_keys=True) + "\n").encode("utf-8")
         with measured_lock(self._thread_lock, "store"):
+            try:
+                unchanged = path.stat().st_size == len(content) and path.read_bytes() == content
+            except OSError:
+                unchanged = False
+            if unchanged:
+                # Rewriting identical state only costs disk writes and invalidates every cache.
+                for callback in self._observers.get(name, ()):
+                    callback(value)
+                return
             self.directory.mkdir(parents=True, exist_ok=True)
-            with temporary.open("w", encoding="utf-8", newline="\n") as stream:
-                json.dump(value, stream, ensure_ascii=False, indent=2, sort_keys=True)
-                stream.write("\n")
+            with temporary.open("wb") as stream:
+                stream.write(content)
                 stream.flush()
                 os.fsync(stream.fileno())
             os.replace(temporary, path)
+            self._changed(name)
             self.revision += not name.startswith("web-") and name != "command-inbox"
             self.archive_revision += name.startswith(("mail-", "analysis-", "history-", "proposal-"))
             # Make the directory entry durable as well as the file contents.
@@ -271,6 +348,7 @@ class JsonStore:
         """Invalidate operational fingerprints without rebuilding mail metadata."""
         with measured_lock(self._thread_lock, "store"):
             self.revision += 1
+            self.settings_revision += 1
 
     def names(self, prefix: str = "") -> list[str]:
         """Return stable state names without exposing temporary/corrupt files."""

@@ -14,7 +14,6 @@ import time
 from collections.abc import Callable
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any, TypeVar
 
 from pydantic import BaseModel
@@ -30,11 +29,13 @@ from ..domain.processing import (
 from ..domain.proposal import UNVERIFIED_LEGACY_ACTOR
 from ..formatting import format_datetime_local
 from ..models import (
+    DisplayHeaders,
     MailRunState,
     MailState,
     Proposal,
     ProposalKind,
     ProposalStatus,
+    RelevanceDialog,
     RelevanceDialogStatus,
     TelegramDialogState,
 )
@@ -202,18 +203,54 @@ class Overview:
     fingerprint: str
 
 
+@dataclass(frozen=True)
+class _MailSummary:
+    """What the overview needs of a mail; full mail states stay on disk."""
+    display_headers: DisplayHeaders | None
+    updated_at: datetime
+    uid: int
+    proposal_ids: tuple[str, ...]
+    relevance_dialog: RelevanceDialog | None
+
+
+def _same[M](value: M) -> M:
+    return value
+
+
+def _summary(mail: MailState) -> _MailSummary:
+    return _MailSummary(mail.display_headers, mail.updated_at, mail.imap.uid,
+                        tuple(item.id for item in mail.proposals), mail.relevance_dialog)
+
+
 @dataclass
 class _Reader:
     store: JsonStore
     damaged: set[str] = field(default_factory=set)
+    # With a listing (scan), states are read from the store's projection cache.
+    listing: dict[str, tuple[int, int, int]] | None = None
 
     def model(self, name: str, model: type[Model]) -> Model | None:
+        return self.project(name, model, _same)
+
+    def project[M: BaseModel, T](self, name: str, model: type[M], project: Callable[[M], T]) -> T | None:
         try:
-            value = self.store.peek_model(name, model)
+            if self.listing is None:
+                value = self.store.peek_model(name, model)
+                return None if value is None else project(value)
+            signature = self.listing.get(name)
+            if signature is None and not self.store.authoritative(name):
+                return None
+            return self.store.cached(name, model, project, signature)
         except CorruptState:
             self.damaged.add(name)
             return None
-        return value  # type: ignore[return-value]
+
+    def mail(self, mail_id: str) -> _MailSummary | None:
+        return self.project(state_names.mail(mail_id), MailState, _summary)
+
+    def names(self, prefix: str) -> list[str]:
+        assert self.listing is not None  # Only the overview lists states; it always has a listing.
+        return [name for name in self.listing if name.startswith(prefix)]
 
     def raw(self, name: str) -> dict[str, Any]:
         """An unvalidated state object; damaged or missing ones read as empty."""
@@ -246,12 +283,15 @@ class ReviewViews:
         """
         with self.store.locked():
             now = self.clock()
-            key = (self.store.revision, _directory_time(self.store.directory),
+            listing = self.store.scan()
+            # Only states shown in the overview count; mailbox polls and queues do not.
+            relevant = tuple(item for item in listing.items() if _shown(item[0]))
+            key = (self.store.settings_revision, relevant,
                    tuple(sorted(self.mailboxes.items())), self.profile_label, self.profile_available)
             cached = self._overview
             if cached is not None and cached[0] == key and now - cached[1] < OVERVIEW_MAX_AGE_SECONDS:
                 return cached[2]
-            reader = _Reader(self.store)
+            reader = _Reader(self.store, listing=listing)
             proposals = self._proposals(reader)
             relevance = self._relevance(reader)
             run = self._run(reader)
@@ -263,7 +303,8 @@ class ReviewViews:
         overview = Overview(
             relevance=tuple(relevance), open=tuple(open_views), recent=tuple(recent),
             run=run, damaged=len(reader.damaged),
-            fingerprint=_fingerprint(relevance, open_views, recent) + f"-{key[0]}",
+            fingerprint=_fingerprint(relevance, open_views, recent) + "-" + hashlib.sha256(
+                repr(key[:2]).encode()).hexdigest()[:8],
         )
         self._overview = (key, now, overview)
         return overview
@@ -374,8 +415,10 @@ class ReviewViews:
 
     def _relevance(self, reader: _Reader) -> list[RelevanceView]:
         result = []
-        for name in state_names.mail_state_names(self.store):
-            mail = reader.model(name, MailState)
+        for name in reader.names(state_names.MAIL_PREFIX):
+            if not state_names.is_mail_state(name):
+                continue
+            mail = reader.project(name, MailState, _summary)
             dialog = mail.relevance_dialog if mail is not None else None
             if dialog is None or dialog.status != RelevanceDialogStatus.OPEN:
                 continue
@@ -389,7 +432,7 @@ class ReviewViews:
     def _run(self, reader: _Reader) -> RunStatus:
         counters: dict[str, int] = {}
         complete, started = True, None
-        for name in self.store.names(state_names.MAIL_RUN_PREFIX):
+        for name in reader.names(state_names.MAIL_RUN_PREFIX):
             run = reader.model(name, MailRunState)
             if run is None:
                 continue
@@ -405,9 +448,9 @@ class ReviewViews:
         queued = {(entry.mail_id, entry.proposal_id, entry.version)
                   for entry in outbox.entries if entry.kind == "proposal"}
         gate = outbox.active
-        mails: dict[str, MailState | None] = {}
+        mails: dict[str, _MailSummary | None] = {}
         result = []
-        for name in self.store.names(state_names.PROPOSAL_PREFIX):
+        for name in reader.names(state_names.PROPOSAL_PREFIX):
             if _SNAPSHOT.search(name):
                 continue
             proposal = reader.model(name, Proposal)
@@ -415,7 +458,7 @@ class ReviewViews:
                 continue
             mail_id = proposal.source_mail_id
             if mail_id not in mails:
-                mails[mail_id] = reader.model(state_names.mail(mail_id), MailState)
+                mails[mail_id] = reader.mail(mail_id)
             mail = mails[mail_id]
             clarification = reader.model(
                 state_names.clarification(mail_id, proposal.id, proposal.version),
@@ -427,7 +470,7 @@ class ReviewViews:
             result.append((view, _mail_position(mail, proposal)))
         return result
 
-    def _view(self, proposal: Proposal, mail: MailState | None,
+    def _view(self, proposal: Proposal, mail: MailState | _MailSummary | None,
               clarification: ProposalClarificationState | None,
               pointer: TelegramDialogState, current: bool, queued: bool) -> ProposalView:
         open_ = proposal.status in _OPEN
@@ -496,24 +539,18 @@ class ReviewViews:
         )
 
 
-def _mail_position(mail: MailState | None, proposal: Proposal) -> tuple[int, int]:
+def _mail_position(mail: _MailSummary | None, proposal: Proposal) -> tuple[int, int]:
     if mail is None:
         return (0, 0)
-    ids = [item.id for item in mail.proposals]
-    return (mail.imap.uid, ids.index(proposal.id) if proposal.id in ids else 0)
+    ids = mail.proposal_ids
+    return (mail.uid, ids.index(proposal.id) if proposal.id in ids else 0)
 
 
-def _directory_time(directory: Path) -> tuple[int, tuple[tuple[str, int, int], ...]]:
-    """Detect external changes even when a filesystem coalesces directory timestamps."""
-    try:
-        stamp = directory.stat().st_mtime_ns
-        entries = []
-        for path in directory.glob("*.json"):
-            stat = path.stat()
-            entries.append((path.name, stat.st_mtime_ns, stat.st_size))
-        return stamp, tuple(sorted(entries))
-    except OSError:
-        return 0, ()
+_SHOWN_PREFIXES = (state_names.PROPOSAL_PREFIX, state_names.MAIL_PREFIX, state_names.CLARIFICATION_PREFIX)
+
+
+def _shown(name: str) -> bool:
+    return name.startswith(_SHOWN_PREFIXES) or name in {"telegram-dialog", "telegram-outbox"}
 
 
 def _fingerprint(relevance: list[RelevanceView], open_views: list[ProposalView],

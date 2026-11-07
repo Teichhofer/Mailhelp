@@ -1,5 +1,26 @@
 # Änderungen
 
+## 4.4.1 – Schnelle Web-Aktionen bei großen Datenbeständen
+
+- Fehlerbehebung mit Regressionstest: Der Bedien-Thread speicherte in jedem Durchlauf
+  alle aktuellen Vorschläge und ihre Mails erneut, obwohl sich nichts geändert hatte.
+  In einer Instanz mit 1.664 Mails waren das 224 Vorschläge etwa alle vier Sekunden.
+  Die Reparatur läuft jetzt nur im ersten Durchlauf nach dem Start.
+- Fehlerbehebung mit Regressionstest: Jeder Speichervorgang, auch der eines
+  Postfachordners, baute die Übersicht aus allen Mails neu auf (rund 1 s bei 1.664
+  Mails). Die Übersicht wird jetzt nur nach Änderungen an angezeigten Zuständen neu
+  aufgebaut. Sie liest dabei nur geänderte Dateien.
+- Fehlerbehebung mit Regressionstest: Identische Zustände werden nicht mehr neu
+  geschrieben.
+- Relevanzdialoge, Abgleichjournale und bestätigte Anlagen werden pro Durchlauf aus
+  einem Verzeichnislauf und zwischengespeicherten Ausschnitten bestimmt. Ein
+  Durchlauf dauert bei 2.000 Mails rund 55 ms statt 4,8 s.
+- Die Karte fragt ihr Ergebnis in den ersten drei Sekunden alle 0,1 s statt alle
+  0,5 s ab.
+- Gemessen vom Absenden bis zum sichtbaren Ergebnis: mit 2.000 synthetischen Mails im
+  Median 0,33 s statt 6,9 s mit 4.4.0. Mit einer lokalen Kopie der realen Daten
+  (1.664 Mails) 0,33–0,35 s statt 2–9 s.
+
 ## 4.4.0 – Pufferschicht für Web-Eingaben und Bedienung ohne Wartezeit
 
 - `POST /aktion` nimmt Befehle ohne Ablagesperre und ohne andere zwischen Threads

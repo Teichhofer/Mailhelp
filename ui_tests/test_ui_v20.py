@@ -507,7 +507,9 @@ def test_personal_information_is_saved_with_line_breaks(page, mailhelp):
 
 def background_change(page, mailhelp, revision):
     """Change the store and let the page check at once instead of after 15 seconds."""
-    mailhelp.store.save("synthetic-background-state", {"revision": revision})
+    # 4.4.1: only changes to shown state (here: changed settings) refresh the page;
+    # a mailbox poll or queue write no longer does.
+    mailhelp.store.touch()
     # 4.4: state requests read the operator's published read model; publish it now
     # instead of racing the simulated operator loop.
     mailhelp.site.refresh_overview()

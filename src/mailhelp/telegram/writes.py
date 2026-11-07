@@ -19,6 +19,13 @@ from ..review.inbox import CommandInboxState, CommandStatus
 from ..storage import JsonStore
 from .client import TelegramTransport
 
+_WRITE_STATES = {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN,
+                 ProposalStatus.SIMULATED}
+
+
+def _status(proposal: Proposal) -> ProposalStatus:
+    return proposal.status
+
 
 class ProposalPersistence(Protocol):
     def persist(self, proposal: Proposal) -> None: ...
@@ -54,6 +61,7 @@ class ConfirmedWriteExecutor:
         self.configured_timezone = configured_timezone
         self._reported_target_mismatches: set[tuple[str, str, int]] = set()
         self._reported_authorization_failures: set[tuple[str, str, int]] = set()
+        self._repaired = False
         self.web_authorizer: Callable[[str], bool] = lambda actor: False
         self.telegram_authorizer: Callable[[str], bool] = lambda actor: False
 
@@ -207,10 +215,18 @@ class ConfirmedWriteExecutor:
             self.store.save("service-health", health)
 
     def resume(self) -> None:
+        """Run on every operator pass; only the first one repairs every proposal.
+
+        Later passes execute only proposals in a write state. Rewriting all
+        proposals on every pass kept the operator busy for seconds (4.4.1).
+        """
         from ..proposals.proposal_reconciliation import ProposalReconciliationService
         ProposalReconciliationService(self.store).recover()
-        for name in self.store.names(state_names.PROPOSAL_PREFIX):
+        repair = not self._repaired
+        for name, signature in self.store.scan(state_names.PROPOSAL_PREFIX).items():
             if "-v" in name:
+                continue
+            if not repair and self.store.cached(name, Proposal, _status, signature) not in _WRITE_STATES:
                 continue
             proposal = self.store.load_model(name, Proposal)
             assert isinstance(proposal, Proposal)
@@ -218,10 +234,6 @@ class ConfirmedWriteExecutor:
             # Also repairs a crash after the authoritative proposal file was
             # replaced but before its embedding MailState was replaced.
             self.persistence.persist(proposal)
-            if proposal.status in {
-                ProposalStatus.CONFIRMED,
-                ProposalStatus.WRITING,
-                ProposalStatus.UNCERTAIN,
-                ProposalStatus.SIMULATED,
-            }:
+            if proposal.status in _WRITE_STATES:
                 self.execute(proposal)
+        self._repaired = True

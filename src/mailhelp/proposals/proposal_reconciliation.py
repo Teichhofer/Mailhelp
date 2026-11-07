@@ -1,6 +1,7 @@
 """Restart-safe local reconciliation before any decision notification or external write."""
 import hashlib
 import json
+import os
 import re
 
 from ..domain.proposal import Proposal, ProposalStatus, invalidate_creation_permissions, required_revision_questions
@@ -13,6 +14,10 @@ from .proposal_merge import merge_facts
 
 OPEN = {ProposalStatus.NEEDS_CLARIFICATION, ProposalStatus.PENDING_CONFIRMATION}
 PROTECTED = {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN, ProposalStatus.FAILED}
+
+
+def _journal_reference(proposal: Proposal) -> tuple[str, str | None]:
+    return f"proposal-{proposal.source_mail_id}-{proposal.id}", proposal.reconciliation_journal
 
 
 class ProposalReconciliationService:
@@ -78,17 +83,26 @@ class ProposalReconciliationService:
                     raise ValueError("Abgleichjournal fehlt")
                 if journal.status == "prepared":
                     self._finish(name, journal)
-            for proposal in self.current():
-                journal_name = proposal.reconciliation_journal
+            # Runs on every operator pass: unchanged proposals are not read again (4.4.1).
+            self._require_intact("proposal-")
+            for name, signature in self.store.scan("proposal-").items():
+                if re.search(r"-v[1-9][0-9]*$", name):
+                    continue
+                reference = self.store.cached(name, Proposal, _journal_reference, signature)
+                if reference is None or name != reference[0]:
+                    raise ValueError("Vorschlagsbestand geändert; erneut prüfen")
+                journal_name = reference[1]
                 if journal_name is not None and self.store.load_model(journal_name, ProposalMergeJournal) is None:
                     raise CorruptState("Maßgebliches Abgleichjournal fehlt; Ausführung blockiert")
 
     def _require_intact(self, prefix: str) -> None:
         """A quarantined authority cannot disappear from the inventory on restart."""
-        for suffix in ("corrupt", "invalid"):
-            for path in self.store.directory.glob(f"{prefix}*.{suffix}"):
-                if not path.with_suffix(".json").exists():
-                    raise CorruptState(f"Isolierter Bestand muss repariert werden: {path.name}")
+        # One directory listing; a glob per suffix took most of an operator pass (4.4.1).
+        names = {entry.name for entry in os.scandir(self.store.directory) if entry.name.startswith(prefix)}
+        for name in sorted(names):
+            stem, _, suffix = name.rpartition(".")
+            if suffix in {"corrupt", "invalid"} and f"{stem}.json" not in names:
+                raise CorruptState(f"Isolierter Bestand muss repariert werden: {name}")
 
     def _finish(self, name: str, journal: ProposalMergeJournal) -> None:
         assert journal.revision is not None and journal.alias is not None

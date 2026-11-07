@@ -5,9 +5,14 @@ from __future__ import annotations
 from typing import Protocol
 
 from ..models import MailState, RelevanceDialog, RelevanceDialogStatus
-from ..storage import JsonStore, mail_state_names
+from ..state_names import MAIL_PREFIX, is_mail_state
+from ..storage import CorruptState, JsonStore
 from .callbacks import RelevanceDecision
 from .client import TelegramTransport
+
+
+def _dialog(state: MailState) -> RelevanceDialog | None:
+    return state.relevance_dialog
 
 
 class RelevanceHandler(Protocol):
@@ -33,11 +38,19 @@ class RelevanceDialogProcessor:
         self.handler: RelevanceHandler | None = None
 
     def all(self) -> list[RelevanceDialog]:
+        """Asked on every operator pass; unchanged mails are not read again (4.4.1)."""
         result = []
-        for name in mail_state_names(self.store):
-            state = self.store.load_model(name, MailState)
-            if isinstance(state, MailState) and state.relevance_dialog is not None:
-                result.append(state.relevance_dialog)
+        for name, signature in self.store.scan(MAIL_PREFIX).items():
+            if not is_mail_state(name):
+                continue
+            try:
+                dialog = self.store.cached(name, MailState, _dialog, signature)
+            except CorruptState:
+                # Loading isolates and reports the damage, as before the cache.
+                state = self.store.load_model(name, MailState)
+                dialog = state.relevance_dialog if isinstance(state, MailState) else None
+            if dialog is not None:
+                result.append(dialog.model_copy())
         return result
 
     def open(self) -> list[RelevanceDialog]:

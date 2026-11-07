@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 7. November 2026, Anwendungsversion 4.4.0. Die folgenden Verträge beschreiben
+Stand: 7. November 2026, Anwendungsversion 4.4.1. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2839,3 +2839,30 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
 - **Messung:** `command_submitted` protokolliert `accept_ms` und
   `store_lock_wait_ms=0.0` ohne Inhalte. `/status` zeigt Median und Maximum der
   letzten 20 Annahmen neben der Wartezeit bis zum Ausführungsbeginn.
+
+## Ergänzungen Version 4.4.1
+
+- **Bedien-Thread ohne Volllesung:** Ein Durchlauf des Bedien-Threads liest nur
+  geänderte Zustände. `JsonStore.scan()` liefert alle Zustandsnamen mit einer
+  Änderungskennung aus einem einzigen Verzeichnislauf: Schreibvorgänge dieses Prozesses,
+  Änderungszeit und Größe. `JsonStore.cached()` hält daraus abgeleitete, nur lesbare
+  Ausschnitte (etwa Status oder Relevanzdialog) und liest eine Datei erst nach einer
+  Änderung erneut. Änderungen anderer Programme werden über Änderungszeit und Größe
+  erkannt. Beschädigte Dateien werden wie bei `peek_model` gemeldet und nicht verschoben.
+- **Keine wiederholte Reparatur:** Die Wiederherstellung bestätigter Anlagen speichert
+  alle aktuellen Vorschläge nur im ersten Durchlauf nach dem Start erneut. Bricht dieser
+  ab, wiederholt der nächste Durchlauf die vollständige Reparatur. Spätere Durchläufe
+  führen nur Vorschläge im Zustand bestätigt, schreibend, unklar oder simuliert aus.
+- **Keine identischen Schreibvorgänge:** `JsonStore.save` schreibt einen Zustand mit
+  unverändertem Inhalt nicht erneut und erhöht dann keine Revision. Beobachter erhalten
+  den Wert weiterhin.
+- **Übersicht:** Das Lesemodell wird nur nach Änderungen an Vorschlägen, Mails,
+  Rückfragen, Telegram-Dialog, Telegram-Ausgang oder nach geänderten Einstellungen
+  (`touch`) neu aufgebaut. Für Mails hält es nur Kopfzeilen, Zeitstempel, UID,
+  Vorschlagsreihenfolge und Relevanzdialog. Speichervorgänge des Postfachabrufs oder der
+  Benachrichtigungswarteschlange lösen keinen Neuaufbau und kein Neuladen im Browser aus.
+- **Statusabfrage:** Eine Karte fragt `/api/aktion/<id>` in den ersten 30 Abfragen
+  alle 0,1 s ab, danach alle 0,5 s.
+- **Zielwert:** Vom Absenden bis zum sichtbaren Ergebnis in der Übersicht vergehen bei
+  2.000 Mails und 500 Vorschlägen im Median weniger als 0,5 s
+  (`tests/services/test_v441_load.py`).

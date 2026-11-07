@@ -252,11 +252,12 @@
   });
 
   // Each card owns its request and polling. Other cards remain usable.
-  var polling = new Set();
+  var polling = new Set(), QUICK_POLLS = 30;
   function pollCard(marker) {
     var url = marker.dataset.cardCommandStatus;
     if (polling.has(url)) return;
     polling.add(url);
+    var attempts = 0;
     function check() {
       fetch(url, {credentials: "same-origin", cache: "no-store", headers: {Accept: "application/json"}})
         .then(function (response) {
@@ -274,7 +275,8 @@
             location.assign("/?aktion=" + url.split("/").pop() + "#" + marker.closest("article.card").id);
             return;
           }
-          if (!result.target) { window.setTimeout(check, 500); return; }
+          // Most actions finish within a few hundred milliseconds: ask often at first.
+          if (!result.target) { window.setTimeout(check, attempts++ < QUICK_POLLS ? 100 : 500); return; }
           return fetch("/", {credentials: "same-origin", cache: "no-store"})
             .then(function (response) {
               if (!response.ok || response.redirected) throw new Error("Übersicht nicht verfügbar");

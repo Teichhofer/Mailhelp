@@ -153,3 +153,69 @@ dauerhaften Zustandsablage und müssen mit ihr gesichert werden. Beim Start werd
 wartende Befehle aus 4.3 übernommen und erhalten Kapazitätsmarken. Eine Rückkehr zu 4.3
 setzt eine Sicherung vor dem Upgrade voraus und sollte erst erfolgen, wenn keine Web-Aktion
 mehr wartet.
+
+## Version 4.4.1 – Schnelle Web-Aktionen bei großen Datenbeständen
+
+### Befund im Betrieb
+
+In einer Instanz mit 1.664 Mails und 477 Vorschlagsdateien wurde ein Klick wie
+vorgesehen in 16–25 ms angenommen. Bis das Ergebnis sichtbar war, vergingen trotzdem
+2 bis 9 Sekunden. Laut Protokoll (`command_finished`) wartete jede Aktion 1,5 bis 7,4 s,
+bevor der Bedien-Thread sie begann. Die Ausführung selbst dauerte 0,3 bis 1,5 s.
+Die Messung von 4.4.0 hatte nur die Annahme erfasst. Die Ursachen:
+
+1. **Dauerndes Neuschreiben:** `ConfirmedWriteExecutor.resume()` ist eine Reparatur
+   nach Abstürzen, lief aber in jedem Durchlauf des Bedien-Threads. Dabei speicherte
+   es jeden aktuellen Vorschlag samt Mail erneut. Beobachtet wurden 224 Vorschläge mit
+   unverändertem Inhalt etwa alle vier Sekunden. Seit 4.4 läuft der Bedien-Thread etwa
+   alle 0,1 s statt einmal pro Telegram-Abfrage. Seitdem war er damit dauernd
+   beschäftigt.
+2. **Übersicht aus allen Mails:** Jeder Speichervorgang, auch der eines Postfachordners,
+   machte das Lesemodell ungültig. Der Neuaufbau las alle 1.664 Mail-Zustände, um offene
+   Relevanzfragen zu finden: 0,85–1,25 s bei warmem Dateicache, 13,8 s beim ersten
+   Aufbau. Die Ablagesperre war in dieser Zeit gehalten.
+3. **Weitere Volllesungen pro Durchlauf:** Die Relevanzprüfung las alle Mails, die
+   Abgleichprüfung alle Vorschläge, und jeweils vier Verzeichnissuchen suchten isolierte
+   Dateien.
+
+### Korrektur
+
+- Die vollständige Reparatur läuft nur im ersten Durchlauf nach dem Start. Spätere
+  Durchläufe führen nur Vorschläge in einem Schreibzustand aus.
+- `JsonStore.save` schreibt unveränderte Inhalte nicht erneut.
+- `JsonStore.scan()` liest das Verzeichnis einmal (14 ms für 4.129 Dateien unter
+  Windows). `JsonStore.cached()` liest eine Datei nur nach einer Änderung erneut und
+  hält nur den benötigten Ausschnitt.
+- Die Übersicht wird nur nach Änderungen an angezeigten Zuständen neu aufgebaut.
+- Die Karte fragt ihr Ergebnis zuerst alle 0,1 s statt alle 0,5 s ab.
+
+### Messung
+
+Gemessen vom Absenden bis zur Übersicht mit Ergebnis. Abgefragt wird wie im Browser
+alle 0,1 s; ein simulierter Postfachabruf speichert zweimal pro Sekunde.
+
+| Messung | 4.4.0 | 4.4.1 |
+| --- | --- | --- |
+| Lasttest `tests/services/test_v441_load.py`, 2.000 synthetische Mails, Windows 11 | Median 6.908 ms, Maximum 7.410 ms | Median 332 ms, Maximum 338 ms |
+| Durchlauf des Bedien-Threads ohne neue Arbeit, derselbe Test | Median 4.791 ms | Median 55 ms |
+| Derselbe Lasttest, Docker `python:3.12.10-slim`, Benutzer 65532, ohne Netzwerk, zwei Läufe | – | Median 218–222 ms, Maximum 329 ms |
+| Lokale Kopie der realen Daten (1.664 Mails, ohne Anhänge), simulierte Dienste | 2–9 s laut Betriebsprotokoll | 329–347 ms |
+| Start mit der Datenkopie: Aufbau der Übersicht / erster Durchlauf (warmer Dateicache) | 13,8 s / – | 0,85 s / 1,1 s |
+
+Der Zielwert von 0,5 s im Median ist damit erreicht. Nach einem Neustart prüft der
+erste Durchlauf alle Vorschläge einmal; eine Aktion direkt nach dem Start kann deshalb
+bis zu etwa einer Sekunde länger dauern. Die Kopie der realen Daten wurde nur lokal
+verwendet und danach gelöscht. Sie gelangte in kein Repository und in keine Testdaten.
+
+Regressionstests in `tests/services/test_v441_operator_pass.py`: Kein Neuschreiben in
+späteren Durchläufen, kein Schreiben identischer Zustände, kein Neuaufbau der Übersicht
+nach einem Postfachabruf. Alle drei schlagen auf 4.4.0 fehl und bestehen mit 4.4.1.
+
+Qualitätsnachweise 4.4.1: Windows 11 mit 3.647 bestandenen Tests. Der 4.2-Lasttest
+überschreitet seine Grenze wie bei 4.4.0 nur unter acht parallelen Testprozessen und
+besteht einzeln. Docker (Linux, gebaute Pakete): 3.649 bestanden. Python-Abdeckung
+jeweils 100 % (25.006 Statements, 7.234 Branches). Browser-Suite: 271 bestanden,
+100 % der JavaScript-Blöcke. Ruff und mypy ohne Befunde. Zwei Browsertests lösten das
+Neuladen im Hintergrund über einen Zustand aus, den die Übersicht nicht anzeigt; seit
+4.4.1 lösen solche Zustände absichtlich kein Neuladen mehr aus. Die Tests verwenden
+jetzt eine geänderte Einstellung (`store.touch()`).

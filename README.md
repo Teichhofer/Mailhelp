@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 4.4.0 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 4.4.1 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 4.4 trennt die Weboberfläche von der Verarbeitung. Ein Klick wird sofort
 quittiert, auch während die Mailanalyse läuft (gemessen: Median rund 30 ms). Danach
@@ -22,6 +22,12 @@ erscheint direkt wieder die Übersicht. Die betroffene Karte zeigt
 Fehler und unklare Anlagen bleiben sichtbar, bis du sie zur Kenntnis nimmst.
 Bestätigungen bleiben versionsgebunden und werden bei der Ausführung erneut geprüft.
 Details und Messwerte: [Release 4.4](docs/Release-4.4.md).
+
+Version 4.4.1 macht die Bedienung auch bei großen Datenbeständen schnell. Bei über
+1.000 verarbeiteten Mails dauerte es bisher 2 bis 9 Sekunden, bis das Ergebnis einer
+Aktion erschien; jetzt sind es rund 0,3 Sekunden. Mailhelp liest nur noch geänderte
+Zustände, schreibt unveränderte nicht mehr neu und prüft die Karte in den ersten
+Sekunden häufiger.
 
 Version 4.3 ersetzt blockierende Mengenfragen durch diagnostische Zählerhinweise;
 ein leerer Extraktionsbefund trotz erkannter Aufgaben bleibt ein Prüfhinweis.

@@ -166,7 +166,7 @@ def test_a_dirty_detail_pane_keeps_the_list_during_a_background_refresh(page, ma
     field.fill("x")
     field.fill("")  # Edited (dirty), but no typed text remains that would block the check.
     page.evaluate("document.querySelector('.master-pane').dataset.old = 'yes'")
-    mailhelp.store.save("synthetic-background-state", {"revision": 1})
+    mailhelp.store.touch()  # A change the overview shows (4.4.1: unrelated saves no longer count).
     mailhelp.site.refresh_overview()
     with page.expect_response(lambda response: response.url == f"{mailhelp.url}/"
                               and response.request.resource_type == "fetch"):
