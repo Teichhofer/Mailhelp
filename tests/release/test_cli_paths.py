@@ -245,7 +245,7 @@ def test_cli_runs_terminal_learning_mode(monkeypatch):
     assert captured == [(('imap', 'analyzer', ['INBOX'], 'limits', ['topic'],
                           Path('cfg/topics.yaml'), ['irrelevant'],
                            Path('cfg/irrelevant_topics.yaml'), 'sender-store'),
-                          {'timezone': 'Europe/Berlin', 'parallel_llm_calls': 7,
+                          {'decision_store': 'store', 'timezone': 'Europe/Berlin', 'parallel_llm_calls': 7,
                            'global_newest_first': False,
                            'config_path': Path('cfg/config.yaml'),
                            'sources': [LearningSource('imap', ['INBOX'], 'imap.folders')], 'scoped_learning': True}), 3]

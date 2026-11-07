@@ -93,6 +93,8 @@ class ProposalView:
     target_event_id: str | None = None
     time_changes: list[str] | None = None
     is_cancellation: bool = False
+    series_key: str | None = None
+    base_title: str | None = None
 
 
 @dataclass(frozen=True)
@@ -159,6 +161,7 @@ class SystemStatus:
     telegram_held: int
     telegram_unprocessed: int
     llm_calls_last_minute: int
+    already_done: int = 0
 
 
 STAGE_LABELS = {
@@ -311,6 +314,7 @@ class ReviewViews:
         calls = budget.get("calls")
         entries = inbox.get("entries")
         return SystemStatus(
+            already_done=sum(proposal.resolution == "already_done" for proposal in proposals),
             mails_total=len(mails),
             mails_failed=len(failed),
             mails_deferred=sum(state.deferred_until is not None and state.deferred_until > now
@@ -446,7 +450,7 @@ class ReviewViews:
             question, example = _CHANGE_QUESTION, _CHANGE_EXAMPLE
         actions: set[CommandKind] = set()
         if open_ and not answer_saved and not paused:
-            actions = {CommandKind.REJECT, CommandKind.ANSWER}
+            actions = {CommandKind.REJECT, CommandKind.ALREADY_DONE, CommandKind.ANSWER}
             if proposal.status == ProposalStatus.PENDING_CONFIRMATION:
                 actions.add(CommandKind.CONFIRM)
             if editing:
@@ -460,7 +464,7 @@ class ReviewViews:
         elif editing:
             state = "Rückfrage offen"
         else:
-            state = STATUS_LABELS[proposal.status]
+            state = "Schon erledigt" if proposal.resolution == "already_done" else STATUS_LABELS[proposal.status]
         if not self.profile_available(proposal):
             actions.discard(CommandKind.CONFIRM)
             state = "Zielprofil nicht verfügbar – Zugriff prüfen oder Ziel umstellen"
@@ -488,6 +492,7 @@ class ReviewViews:
             target_event_id=proposal.target_event_id,
             time_changes=proposal.time_changes,
             is_cancellation=proposal.is_cancellation,
+            series_key=proposal.series_key, base_title=proposal.base_title,
         )
 
 

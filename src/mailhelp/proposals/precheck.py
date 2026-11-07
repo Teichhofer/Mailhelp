@@ -126,11 +126,12 @@ class DuplicatePreCheckService:
             is_match = False
             if writer.calendar_matcher is not None:
                 safe = item.model_dump(mode="json", exclude={"htmlLink"})
-                _call_id, decision = writer.calendar_matcher(proposal, safe)
+                matching = proposal.model_copy(update={"title": proposal.base_title or proposal.title})
+                _call_id, decision = writer.calendar_matcher(matching, safe)
                 is_match = decision.same_event
             else:
                 is_match = (
-                    item.summary.strip().casefold() == proposal.title.strip().casefold()
+                    item.summary.strip().casefold() == (proposal.base_title or proposal.title).strip().casefold()
                 )
 
             if is_match:

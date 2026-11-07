@@ -56,7 +56,9 @@ def test_built_artifacts_exclude_private_runtime_files():
     assert wheel.is_file() and source.is_file(), "Build artifacts for the current version must exist"
     with zipfile.ZipFile(wheel) as archive:
         names = archive.namelist()
-        for module in ("proposals/event_defaults.py", "proposals/proposal_matching.py", "proposals/proposal_merge.py", "proposals/proposal_reconciliation.py",
+        for module in ("domain/event_series.py", "review/series.py", "review/series_offers.py", "web/series_site.py",
+                       "telegram/series.py", "proposals/revision_protection.py", "defaults/prompts.yaml",
+                       "proposals/event_defaults.py", "proposals/proposal_matching.py", "proposals/proposal_merge.py", "proposals/proposal_reconciliation.py",
                        "domain/proposal_sources.py", "domain/reconciliation.py", "web/reconciliation_site.py",
                        "mailbox/connection_activation.py", "mailbox/connection_runtime.py", "mailbox/mailbox_activation.py",
                        "mailbox/mailbox_runtime.py", "web/mailbox_add_site.py",
@@ -97,4 +99,6 @@ def test_built_artifacts_exclude_private_runtime_files():
                 "src/mailhelp/assets/logo.png"} <= names
         assert "config.yaml" not in names and ".env" not in names
         assert {"docs/Planung-4.1.md", "docs/Qualitaet-4.1.md", "requirements-mutation.lock"} <= names
+        assert {"docs/Planung-4.2.md", "docs/Release-4.2.md"} <= names
+        assert {"docs/Planung-4.3.md", "docs/Release-4.3.md"} <= names
         assert not any(name.startswith(("data/", "logs/", "quality-reports/")) for name in names)

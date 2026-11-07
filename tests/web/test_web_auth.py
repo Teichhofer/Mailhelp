@@ -1,6 +1,8 @@
 """Pairing, sessions, CSRF and authorization of the web interface."""
 from __future__ import annotations
 
+import hashlib
+import hmac
 from datetime import timedelta
 
 import pytest
@@ -11,6 +13,7 @@ from mailhelp.telegram.commands import HELP, TelegramCommands
 from mailhelp.web import Request
 from mailhelp.web.auth import (
     CODE_ATTEMPTS,
+    CODE_LIFETIME,
     CODE_REQUESTS,
     FAILURE_LIMIT,
     MAX_SESSIONS,
@@ -63,13 +66,20 @@ def test_device_names(agent, chosen, expected):
     assert device_name(agent, chosen) == expected
 
 
-def test_a_code_is_sent_to_telegram_and_creates_one_session(auth):
+def test_a_code_is_sent_to_telegram_and_creates_one_session(auth, monkeypatch):
+    # This synthetic PIN occurs inside a digest and must not be mistaken for plaintext storage.
+    monkeypatch.setattr("mailhelp.web.auth.secrets.randbelow", lambda maximum: 4475)
     auth.request_code("browser", "iPhone")
     assert auth.code_requested("browser") and not auth.code_requested("other")
     assert "„iPhone“" in auth.messages[-1] and "10 Minuten" in auth.messages[-1]
     code = code_from(auth.messages)
     stored = auth.store.load("web-pairing")
-    assert code.replace(" ", "") not in str(stored)
+    assert stored == {
+        "codes": [{"attempts": 0, "browser_hash": hashlib.sha256(b"browser").hexdigest(),
+                   "code_hmac": hmac.new(SECRET.encode(), f"code:{code}".encode(), hashlib.sha256).hexdigest(),
+                   "expires_at": (auth.clock() + CODE_LIFETIME).isoformat().replace("+00:00", "Z")}],
+        "failures": [], "requests": [auth.clock().isoformat().replace("+00:00", "Z")], "schema_version": 1,
+    }
     with pytest.raises(PairingRefused, match="angefordert"):
         auth.redeem("other", code, "Fremd")
     token = auth.redeem("browser", code, "iPhone")

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mailhelp"
-version = "4.1.11"
+version = "4.3.0"
 description = "Persönlicher, bestätigungspflichtiger E-Mail-Assistent"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
@@ -56,6 +56,10 @@ pytest_add_cli_args_test_selection = [
   "tests/unit/test_mutation_invariants.py", "tests/unit/test_core.py",
   "tests/unit/test_validation_boundaries.py", "tests/unit/test_v13_domain.py",
   "tests/unit/test_mail_timestamps.py",
+  "tests/services/test_already_done.py", "tests/services/test_v42_responsiveness.py",
+  "tests/unit/test_lock_metrics.py",
+  "tests/unit/test_v43_counts.py", "tests/unit/test_v43_series_models.py",
+  "tests/services/test_v43_series.py", "tests/services/test_v43_series_recovery.py",
 ]
 # Project files that tests read relative to the repository root.
 also_copy = [
@@ -161,6 +165,8 @@ include = [
   "/docs/Release-3.3.md", "/docs/Release-3.4.md", "/docs/Release-3.5.md", "/docs/Planung-3.5.md",
   "/docs/Planung-4.0.md",
   "/docs/Planung-4.1.md", "/docs/Qualitaet-4.1.md", "/requirements-mutation.lock",
+  "/docs/Planung-4.2.md", "/docs/Release-4.2.md",
+  "/docs/Planung-4.3.md", "/docs/Release-4.3.md",
   "/docs/Planung-3.6.md", "/docs/Planung-3.7.md", "/docs/Zustandsregeln-3.6.md",
   "/docs/Release-3.7.md", "/docs/Google-OAuth-Playground.md", "/docs/Einrichtung-und-Qualitaetspruefung.md",
   "/docs/Planung-3.8.md", "/docs/Release-3.8.md",

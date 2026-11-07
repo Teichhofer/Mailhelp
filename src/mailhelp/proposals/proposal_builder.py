@@ -3,10 +3,12 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Sequence, Set
+from collections import Counter
+from collections.abc import Sequence
 from typing import Any
 
 from ..config import EventDefaultsSettings, TargetSettings
+from ..domain.event_series import dated_title
 from ..domain.extraction import ParsedCalendarEvent
 from ..models import (
     ExtractedEvent,
@@ -106,17 +108,26 @@ class ProposalBuilder:
               calendar_events: Sequence[ParsedCalendarEvent | dict[str, Any]] | None = None) -> list[Proposal]:
         """Build deterministic proposals without changing the extracted cardinality."""
         used_ids: set[str] = set()
-        conflicted = {item.category for item in count_conflicts or []}
         proposals, ics_summaries = self._calendar_proposals(calendar_events, used_ids)
         filtered_events = [e for e in events if e.title.strip().casefold() not in ics_summaries]
         entries: list[tuple[str, ExtractedTask | ExtractedEvent]] = [
             *(("task", item) for item in tasks), *(("event", item) for item in filtered_events)
         ]
         for position, (kind, item) in enumerate(entries):
-            proposals.append(self._extracted_proposal(kind, item, position, conflicted, used_ids))
+            proposals.append(self._extracted_proposal(kind, item, position, used_ids))
+        counts = Counter(item.series_key for item in proposals if item.kind == ProposalKind.EVENT)
+        proposals = [self._series_title(item, counts) for item in proposals]
         return [
             item.model_copy(update={"schema_version": 3, "target_profile": self.target_profile}) for item in proposals
         ]
+
+    @staticmethod
+    def _series_title(item: Proposal, counts: Counter) -> Proposal:
+        if item.kind != ProposalKind.EVENT or counts[item.series_key] < 2:
+            return item
+        facts = item.known_temporal_facts
+        day = item.start or (facts.date if facts is not None else None)
+        return item.model_copy(update={"title": dated_title(item.base_title or item.title, day)})
 
     def _calendar_proposals(self, calendar_events: Sequence[ParsedCalendarEvent | dict[str, Any]] | None,
                             used_ids: set[str]) -> tuple[list[Proposal], set[str]]:
@@ -170,7 +181,7 @@ class ProposalBuilder:
         return proposals, ics_summaries
 
     def _extracted_proposal(self, kind: str, item: ExtractedTask | ExtractedEvent, position: int,
-                            conflicted: Set[str], used_ids: set[str]) -> Proposal:
+                            used_ids: set[str]) -> Proposal:
         """One proposal from an extracted task or event, with its open questions."""
         # A deadline missing from due_text but unambiguous in the verbatim
         # evidence is recovered; the identity still uses the raw extraction.
@@ -183,10 +194,6 @@ class ProposalBuilder:
             temporal, mode, origin, applied = normalized_event(item, self.context, self.event_defaults)
         question = temporal.question if temporal is not None else None
         questions = self._questions(item, question)
-        if kind in conflicted:
-            questions.append(
-                f"Wie viele {'Aufgaben' if kind == 'task' else 'Termine'} enthält diese Mail tatsächlich?"
-            )
         values: dict[str, Any] = {}
         values.update(meeting_mode=mode, end_origin=origin, default_duration_minutes=applied,
                       target_provider=self.targets.task_provider if kind == "task" else self.targets.calendar_provider)

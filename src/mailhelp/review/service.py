@@ -39,6 +39,7 @@ _RECHECK_REFUSED = {
 # Shown in the web; Telegram keeps its own confirmation texts.
 _DONE_MESSAGES = {
     CommandKind.REJECT: "Vorschlag verworfen.",
+    CommandKind.ALREADY_DONE: "Als schon erledigt erfasst (Aufgabe bleibt als relevant vermerkt)",
     CommandKind.START_CLARIFICATION: "Bearbeitung gestartet – bitte die Rückfrage beantworten.",
     CommandKind.ANSWER: "Antwort übernommen – der Vorschlag wird aktualisiert.",
     CommandKind.CANCEL_CLARIFICATION: "Bearbeitung beendet; der Vorschlag ist unverändert.",
@@ -55,6 +56,7 @@ _DECISION_ACTIONS = {
     CommandKind.CONFIRM: "confirm",
     CommandKind.CONFIRM_DUPLICATE: "confirm_duplicate",
     CommandKind.REJECT: "reject",
+    CommandKind.ALREADY_DONE: "already_done",
     CommandKind.START_CLARIFICATION: "edit",
 }
 
@@ -107,6 +109,8 @@ class ReviewService:
             return ReviewResult(status=status, message=_error_message(exc))
 
     def _record(self, command: ReviewCommand) -> None:
+        if command.kind in {CommandKind.SERIES_ANSWER, CommandKind.SERIES_CONFIRM}:
+            return
         learning = getattr(self.controller, "learning", None)
         if command.kind == CommandKind.RECHECK_MAIL:
             record_recheck(self.controller.store, command.mail_id, command.version, command.source.value,
@@ -133,6 +137,9 @@ class ReviewService:
         The command is never executed again: if its effect is visible it
         counts as done, otherwise the user is asked to trigger it again.
         """
+        if (isinstance(command, ReviewCommand)
+                and command.kind in {CommandKind.SERIES_ANSWER, CommandKind.SERIES_CONFIRM}):
+            return self.execute(command)
         if isinstance(command, AdminCommand):
             if self.configuration is None:
                 return ReviewResult(status=ResultStatus.FAILED, message="Konfigurationsdienst nicht verfügbar.")
@@ -156,9 +163,11 @@ class ReviewService:
             dialog = mail.relevance_dialog if isinstance(mail, MailState) else None
             return dialog is not None and dialog.status == RelevanceDialogStatus.DECIDED
         assert command.proposal_id is not None
-        current = self.controller.repository.load_current(command.mail_id, command.proposal_id)
+        current: Proposal | None = self.controller.repository.load_current(command.mail_id, command.proposal_id)
         if current is None:
             return False
+        if command.kind == CommandKind.ALREADY_DONE:
+            return current.version == command.version and current.resolution == "already_done"
         if command.kind == CommandKind.RESTORE:
             return True
         if current.version != command.version or current.status not in _OPEN:
@@ -185,6 +194,9 @@ class ReviewService:
                 and self.web_authorizer(command.actor))
 
     def _execute(self, command: ReviewCommand) -> ReviewResult:
+        if command.kind in {CommandKind.SERIES_ANSWER, CommandKind.SERIES_CONFIRM}:
+            from .series import SeriesService
+            return SeriesService(self).execute(command)
         from ..proposals.proposal_reconciliation import ProposalReconciliationService
         ProposalReconciliationService(self.controller.store).recover()
         if command.kind == CommandKind.RECHECK:

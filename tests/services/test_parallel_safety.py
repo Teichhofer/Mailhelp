@@ -28,10 +28,12 @@ def pair_browser(web):
     return browser
 
 
-def inspect(web, provider):
+def inspect(web, provider, *, require_entries=True):
     """Check all independent records, including the user's durable result."""
     entries = web.commands._entries()
-    assert entries and all(entry.status in FINISHED and entry.result.message for entry in entries)
+    if require_entries:
+        assert entries
+    assert all(entry.status in FINISHED and entry.result.message for entry in entries)
     assert all(entry.finished_at is not None for entry in entries)
     ledger = [entry for entry in web.store.load("action-ledger", {"entries": []})["entries"]
               if entry["mail_id"] == MAIL and entry["proposal_id"] == "formular"]
@@ -64,17 +66,22 @@ def test_p1_two_channels_confirm_same_version(web, provider, first):
     provider.checkpoint = lambda point: gate.hold() if point == "A2" else None
     def telegram(): web.dialog.inbox.add([callback(1, token)], set())
     def browser(): return web.submit(fields)
-    browser()
     if first == "telegram":
         telegram()
+    else:
+        browser()
     with gate.during(web.run):
         if first == "web":
             telegram()
         else:
-            assert len(web.commands.queued()) == 1
+            # Telegram already claimed this version: the Web adapter refuses before enqueue.
+            assert browser().status == 409
+            assert web.commands.queued() == []
     provider.checkpoint = lambda point: None
     web.run()
-    item, _ = inspect(web, provider)
+    item, entries = inspect(web, provider, require_entries=first == "web")
+    if first == "telegram":
+        assert entries == []
     assert item.status == "created"
     if first == "web":
         assert any("veraltet" in text.lower() or "anderen" in text.lower()

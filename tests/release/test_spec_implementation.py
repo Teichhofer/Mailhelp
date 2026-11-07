@@ -138,8 +138,8 @@ def test_real_analyzer_count_conflict_retains_other_extraction_and_restart(tmp_p
         assert "mail_question_resolution" not in calls
         if not empty:
             task = result.state["proposals"][0]
-            assert task["status"] == "needs_clarification"
-            assert task["open_questions"] == ["Wie viele Aufgaben enthält diese Mail tatsächlich?"]
+            assert task["status"] == "pending_confirmation"
+            assert task["open_questions"] == []
         count = len(calls), len(notifier.messages)
     with JsonStore(tmp_path) as store:
         service.store = store

@@ -1,0 +1,5000 @@
+{
+  "schema_version": 3,
+  "created_at": "2026-11-06T20:49:19.399311+00:00",
+  "relevance_mode": "legacy",
+  "decision_prompts": null,
+  "decision_prompt_fingerprint": null,
+  "prompt_fingerprint": "835436a05d38d7ffd0534a53583eb9c923a418171182c5c95529e8b9d3834c00",
+  "corpus_fingerprint": "47e2bf26d2dcd9734b32b09b4d3986b6818a31d67682b597e028d1c3b48a8d87",
+  "corpus_schema_version": 3,
+  "routes": {
+    "relevance": [
+      {
+        "provider": "openrouter",
+        "model": "deepseek/deepseek-v4.1-flash",
+        "parameters": {
+          "temperature": 0.0,
+          "max_tokens": 10000,
+          "reasoning": {
+            "effort": "low"
+          }
+        },
+        "provider_preferences": {
+          "order": [],
+          "allow_fallbacks": true,
+          "require_parameters": false,
+          "data_collection": null,
+          "sort": null,
+          "ignore": []
+        },
+        "supports_json_schema": true
+      }
+    ],
+    "summary": [
+      {
+        "provider": "openrouter",
+        "model": "deepseek/deepseek-v4.1-flash",
+        "parameters": {
+          "temperature": 0.0,
+          "max_tokens": 6000,
+          "reasoning": {
+            "effort": "low"
+          }
+        },
+        "provider_preferences": {
+          "order": [],
+          "allow_fallbacks": true,
+          "require_parameters": false,
+          "data_collection": null,
+          "sort": null,
+          "ignore": []
+        },
+        "supports_json_schema": true
+      }
+    ],
+    "action_router": [
+      {
+        "provider": "openrouter",
+        "model": "deepseek/deepseek-v4.1-flash",
+        "parameters": {
+          "temperature": 0.0,
+          "max_tokens": 10000,
+          "reasoning": {
+            "effort": "medium"
+          }
+        },
+        "provider_preferences": {
+          "order": [
+            "coreweave",
+            "parasail"
+          ],
+          "allow_fallbacks": false,
+          "require_parameters": false,
+          "data_collection": null,
+          "sort": null,
+          "ignore": []
+        },
+        "supports_json_schema": true
+      }
+    ],
+    "task_extraction": [
+      {
+        "provider": "openrouter",
+        "model": "deepseek/deepseek-v4.1-flash",
+        "parameters": {
+          "temperature": 0.0,
+          "max_tokens": 10000,
+          "reasoning": {
+            "effort": "low"
+          }
+        },
+        "provider_preferences": {
+          "order": [
+            "coreweave",
+            "parasail"
+          ],
+          "allow_fallbacks": false,
+          "require_parameters": false,
+          "data_collection": null,
+          "sort": null,
+          "ignore": []
+        },
+        "supports_json_schema": true
+      }
+    ],
+    "event_extraction": [
+      {
+        "provider": "openrouter",
+        "model": "deepseek/deepseek-v4.1-flash",
+        "parameters": {
+          "temperature": 0.0,
+          "max_tokens": 10000,
+          "reasoning": {
+            "effort": "low"
+          }
+        },
+        "provider_preferences": {
+          "order": [
+            "coreweave",
+            "parasail"
+          ],
+          "allow_fallbacks": false,
+          "require_parameters": false,
+          "data_collection": null,
+          "sort": null,
+          "ignore": []
+        },
+        "supports_json_schema": true
+      }
+    ]
+  },
+  "max_calls": 2000,
+  "calls": 120,
+  "cases_total": 31,
+  "complete": true,
+  "passed": true,
+  "cases": [
+    {
+      "id": "01_no_action",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "irrelevant",
+            "topic_ids": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "irrelevant",
+            "topic_ids": []
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "none",
+            "task_count": 0,
+            "event_count": 0
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "none",
+            "task_count": 0,
+            "event_count": 0
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": []
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": []
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "irrelevant",
+          "topic_ids": [],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": []
+        },
+        "action_router": {
+          "action_state": "none",
+          "task_count": 0,
+          "event_count": 0,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "tasks": []
+        },
+        "event_extraction": {
+          "events": []
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "02_task_only",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [
+              "2026-09-30"
+            ],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [
+              "2026-09-30"
+            ],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "task",
+            "task_count": 1,
+            "event_count": 0
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "task",
+            "task_count": 1,
+            "event_count": 0
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "due": "2026-09-30"
+              }
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "due": "2026-09-30"
+              }
+            ]
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": []
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "2026-09-30"
+          ]
+        },
+        "action_router": {
+          "action_state": "task",
+          "task_count": 1,
+          "event_count": 0,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Reisekostenbelege einreichen",
+              "description": "",
+              "evidence": "Bitte reichen Sie die Unterlagen bis 2026-09-30 bei mir ein.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": "2026-09-30"
+            }
+          ]
+        },
+        "event_extraction": {
+          "events": []
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "03_council_event",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "kommune"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "kommune"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [
+              "2026-09-22"
+            ],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [
+            {
+              "deadlines": [
+                "2026-09-22",
+                "<ohne Datum>"
+              ],
+              "valid_sentence_count": true
+            }
+          ],
+          "actual": {
+            "deadlines": [
+              "2026-09-22"
+            ],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "event",
+            "task_count": 0,
+            "event_count": 1
+          },
+          "accepted_alternatives": [
+            {
+              "action_state": "unclear",
+              "task_count": 0,
+              "event_count": 1
+            }
+          ],
+          "actual": {
+            "action_state": "event",
+            "task_count": 0,
+            "event_count": 1
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": []
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "22.09.2026",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "22.09.2026",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "kommune"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "22.09.2026"
+          ]
+        },
+        "action_router": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 1,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Öffentliche Gemeinderatssitzung",
+              "description": null,
+              "evidence": "am 22.09.2026 im Sitzungssaal des Rathauses",
+              "date_text": "22.09.2026",
+              "time_text": null,
+              "end_time_text": null,
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "required_unknown",
+              "location": "Sitzungssaal des Rathauses",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new"
+            }
+          ]
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "04_task_and_event",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [
+              "2026-09-24",
+              "2026-09-25"
+            ],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [
+              "2026-09-24",
+              "2026-09-25"
+            ],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "task_and_event",
+            "task_count": 1,
+            "event_count": 1
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "task_and_event",
+            "task_count": 1,
+            "event_count": 1
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "due": "2026-09-25"
+              }
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "due": "2026-09-25"
+              }
+            ]
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "timed",
+                "when": {
+                  "start": "2026-09-24T09:00:00+02:00",
+                  "end": "2026-09-24T10:00:00+02:00",
+                  "all_day": false
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "timed",
+                "when": {
+                  "start": "2026-09-24T09:00:00+02:00",
+                  "end": "2026-09-24T10:00:00+02:00",
+                  "all_day": false
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "2026-09-25",
+            "24.09.2026, 09:00 bis 10:00 Uhr"
+          ]
+        },
+        "action_router": {
+          "action_state": "task_and_event",
+          "task_count": 1,
+          "event_count": 1,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Protokoll senden",
+              "description": "",
+              "evidence": "Bitte senden Sie mir das Protokoll der letzten Sitzung bis 2026-09-25.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": "2026-09-25"
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Abstimmung Projekt Nordlicht",
+              "description": null,
+              "evidence": "am 24.09.2026 von 09:00 bis 10:00 Uhr im Besprechungsraum 2",
+              "date_text": "24.09.2026",
+              "time_text": "09:00",
+              "end_time_text": "10:00",
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "timed",
+              "location": "Besprechungsraum 2",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new"
+            }
+          ]
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "05_unclear_action",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "unclear",
+            "task_count": 1,
+            "event_count": 0
+          },
+          "accepted_alternatives": [
+            {
+              "action_state": "none",
+              "task_count": 0,
+              "event_count": 0
+            },
+            {
+              "action_state": "unclear",
+              "task_count": 0,
+              "event_count": 0
+            }
+          ],
+          "actual": {
+            "action_state": "unclear",
+            "task_count": 1,
+            "event_count": 0
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": [
+              {
+                "classification": "non_binding",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "due": null
+              }
+            ]
+          },
+          "accepted_alternatives": [
+            {
+              "tasks": []
+            }
+          ],
+          "actual": {
+            "tasks": [
+              {
+                "classification": "non_binding",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "due": null
+              }
+            ]
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": []
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": []
+        },
+        "action_router": {
+          "action_state": "unclear",
+          "task_count": 1,
+          "event_count": 0,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Sommerfest-Planung besprechen",
+              "description": "",
+              "evidence": "vielleicht sollten wir irgendwann etwas für das Sommerfest im nächsten Jahr planen",
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "non_binding",
+              "due_text": null
+            }
+          ]
+        },
+        "event_extraction": {
+          "events": []
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "06_unclear_responsibility",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [
+              "2026-10-01"
+            ],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [
+              "2026-10-01"
+            ],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "task",
+            "task_count": 1,
+            "event_count": 0
+          },
+          "accepted_alternatives": [
+            {
+              "action_state": "unclear",
+              "task_count": 1,
+              "event_count": 0
+            }
+          ],
+          "actual": {
+            "action_state": "task",
+            "task_count": 1,
+            "event_count": 0
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": [
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "certain",
+                "due": "2026-10-01"
+              }
+            ]
+          },
+          "accepted_alternatives": [
+            {
+              "tasks": [
+                {
+                  "classification": "new",
+                  "responsibility": "unclear",
+                  "certainty": "uncertain",
+                  "due": "2026-10-01"
+                }
+              ]
+            }
+          ],
+          "actual": {
+            "tasks": [
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "certain",
+                "due": "2026-10-01"
+              }
+            ]
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": []
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "2026-10-01"
+          ]
+        },
+        "action_router": {
+          "action_state": "task",
+          "task_count": 1,
+          "event_count": 0,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Quartalsbericht prüfen",
+              "description": "",
+              "evidence": "der Quartalsbericht muss bis 2026-10-01 geprüft werden",
+              "responsibility": "unclear",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": "2026-10-01"
+            }
+          ]
+        },
+        "event_extraction": {
+          "events": []
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "07_relative_deadline",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [
+              "<ohne Datum>"
+            ],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [
+              "<ohne Datum>"
+            ],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "task",
+            "task_count": 1,
+            "event_count": 0
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "task",
+            "task_count": 1,
+            "event_count": 0
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "due": "nächsten freitag"
+              }
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "due": "nächsten freitag"
+              }
+            ]
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": []
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "nächsten Freitag"
+          ]
+        },
+        "action_router": {
+          "action_state": "task",
+          "task_count": 1,
+          "event_count": 0,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Urlaubswünsche für Dezember mitteilen",
+              "description": "",
+              "evidence": "Bitte antworten Sie mir bis nächsten Freitag.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": "nächsten Freitag"
+            }
+          ]
+        },
+        "event_extraction": {
+          "events": []
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "08_invalid_date",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [
+              "31.02.2027"
+            ],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [
+              "31.02.2027"
+            ],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "event",
+            "task_count": 0,
+            "event_count": 1
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "event",
+            "task_count": 0,
+            "event_count": 1
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": []
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "contradictory",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "31.02.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          },
+          "accepted_alternatives": [
+            {
+              "events": [
+                {
+                  "classification": "new",
+                  "responsibility": "user",
+                  "certainty": "certain",
+                  "time_requirement": "required_unknown",
+                  "when": {
+                    "date": "31.02.2027",
+                    "time": null,
+                    "end_time": null
+                  },
+                  "timezone_offset_text": null,
+                  "has_location": true,
+                  "video_link": null
+                }
+              ]
+            },
+            {
+              "events": [
+                {
+                  "classification": "new",
+                  "responsibility": "user",
+                  "certainty": "uncertain",
+                  "time_requirement": "required_unknown",
+                  "when": {
+                    "date": "31.02.2027",
+                    "time": null,
+                    "end_time": null
+                  },
+                  "timezone_offset_text": null,
+                  "has_location": true,
+                  "video_link": null
+                }
+              ]
+            }
+          ],
+          "actual": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "contradictory",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "31.02.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "31.02.2027"
+          ]
+        },
+        "action_router": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 1,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Besprechung Jahresplanung 2027",
+              "description": null,
+              "evidence": "am 31.02.2027 in meinem Büro",
+              "date_text": "31.02.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "required_unknown",
+              "location": "Büro von Jonas Weber",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "contradictory",
+              "classification": "new"
+            }
+          ]
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "09_change",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [
+              "2026-10-21"
+            ],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [
+              "2026-10-21"
+            ],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "event",
+            "task_count": 0,
+            "event_count": 1
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "event",
+            "task_count": 0,
+            "event_count": 1
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": []
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": [
+              {
+                "classification": "change",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "timed",
+                "when": {
+                  "start": "2026-10-21T14:00:00+02:00",
+                  "end": "2026-10-21T15:00:00+02:00",
+                  "all_day": false
+                },
+                "timezone_offset_text": null,
+                "has_location": false,
+                "video_link": null
+              }
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": [
+              {
+                "classification": "change",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "timed",
+                "when": {
+                  "start": "2026-10-21T14:00:00+02:00",
+                  "end": "2026-10-21T15:00:00+02:00",
+                  "all_day": false
+                },
+                "timezone_offset_text": null,
+                "has_location": false,
+                "video_link": null
+              }
+            ]
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "21.10.2026, 14:00 bis 15:00 Uhr"
+          ]
+        },
+        "action_router": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 1,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Abstimmung Projekt Nordlicht verschoben",
+              "description": null,
+              "evidence": "auf den 21.10.2026 von 14:00 bis 15:00 Uhr verschoben",
+              "date_text": "21.10.2026",
+              "time_text": "14:00",
+              "end_time_text": "15:00",
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "timed",
+              "location": null,
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "change"
+            }
+          ]
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "10_cancellation",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [
+              "2026-10-22"
+            ],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [
+              "2026-10-22"
+            ],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "event",
+            "task_count": 0,
+            "event_count": 1
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "event",
+            "task_count": 0,
+            "event_count": 1
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": []
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": [
+              {
+                "classification": "cancellation",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "22.10.2026",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": false,
+                "video_link": null
+              }
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": [
+              {
+                "classification": "cancellation",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "22.10.2026",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": false,
+                "video_link": null
+              }
+            ]
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "22.10.2026"
+          ]
+        },
+        "action_router": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 1,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Teambesprechung abgesagt",
+              "description": null,
+              "evidence": "die Teambesprechung am 22.10.2026 ist abgesagt",
+              "date_text": "22.10.2026",
+              "time_text": null,
+              "end_time_text": null,
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "required_unknown",
+              "location": null,
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "cancellation"
+            }
+          ]
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "11_recurring",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [
+              "<ohne Datum>"
+            ],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [
+              "<ohne Datum>"
+            ],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "event",
+            "task_count": 0,
+            "event_count": 1
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "event",
+            "task_count": 0,
+            "event_count": 1
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": []
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": [
+              {
+                "classification": "recurring",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "timed",
+                "when": {
+                  "date": "jeden montag",
+                  "time": "13:00",
+                  "end_time": "14:00"
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          },
+          "accepted_alternatives": [
+            {
+              "events": [
+                {
+                  "classification": "recurring",
+                  "responsibility": "user",
+                  "certainty": "uncertain",
+                  "time_requirement": "timed",
+                  "when": {
+                    "date": "jeden montag",
+                    "time": "13:00",
+                    "end_time": "14:00"
+                  },
+                  "timezone_offset_text": null,
+                  "has_location": true,
+                  "video_link": null
+                }
+              ]
+            }
+          ],
+          "actual": {
+            "events": [
+              {
+                "classification": "recurring",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "timed",
+                "when": {
+                  "date": "jeden montag",
+                  "time": "13:00",
+                  "end_time": "14:00"
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "jeden Montag, 13:00 bis 14:00 Uhr"
+          ]
+        },
+        "action_router": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 1,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "IT-Sprechstunde",
+              "description": null,
+              "evidence": "jeden Montag von 13:00 bis 14:00 Uhr die IT-Sprechstunde im Raum 0.12",
+              "date_text": "jeden Montag",
+              "time_text": "13:00",
+              "end_time_text": "14:00",
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "timed",
+              "location": "Raum 0.12",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "recurring"
+            }
+          ]
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "12_prompt_injection",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "irrelevant",
+            "topic_ids": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "irrelevant",
+            "topic_ids": []
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "none",
+            "task_count": 0,
+            "event_count": 0
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "none",
+            "task_count": 0,
+            "event_count": 0
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": []
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": []
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "irrelevant",
+          "topic_ids": [],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": []
+        },
+        "action_router": {
+          "action_state": "none",
+          "task_count": 0,
+          "event_count": 0,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "tasks": []
+        },
+        "event_extraction": {
+          "events": []
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "13_pure_invitation",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [
+              "2026-10-20"
+            ],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [
+              "2026-10-20"
+            ],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "event",
+            "task_count": 0,
+            "event_count": 1
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "event",
+            "task_count": 0,
+            "event_count": 1
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": []
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "timed",
+                "when": {
+                  "start": "2026-10-20T10:00:00+02:00",
+                  "end": "2026-10-20T11:00:00+02:00",
+                  "all_day": false
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "timed",
+                "when": {
+                  "start": "2026-10-20T10:00:00+02:00",
+                  "end": "2026-10-20T11:00:00+02:00",
+                  "all_day": false
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "20.10.2026, 10:00 bis 11:00 Uhr"
+          ]
+        },
+        "action_router": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 1,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Fachtag Digitalisierung",
+              "description": null,
+              "evidence": "am 20.10.2026 von 10:00 bis 11:00 Uhr im Kongresszentrum Musterstadt",
+              "date_text": "20.10.2026",
+              "time_text": "10:00",
+              "end_time_text": "11:00",
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "timed",
+              "location": "Kongresszentrum Musterstadt",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new"
+            }
+          ]
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "14_invitation_registration",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [
+              "2026-10-01",
+              "2026-10-20"
+            ],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [
+              "2026-10-01",
+              "2026-10-20"
+            ],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "task_and_event",
+            "task_count": 1,
+            "event_count": 1
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "task_and_event",
+            "task_count": 1,
+            "event_count": 1
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "due": "2026-10-01"
+              }
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "due": "2026-10-01"
+              }
+            ]
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "timed",
+                "when": {
+                  "start": "2026-10-20T10:00:00+02:00",
+                  "end": "2026-10-20T11:00:00+02:00",
+                  "all_day": false
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "timed",
+                "when": {
+                  "start": "2026-10-20T10:00:00+02:00",
+                  "end": "2026-10-20T11:00:00+02:00",
+                  "all_day": false
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "2026-10-01",
+            "20.10.2026, 10:00 bis 11:00 Uhr"
+          ]
+        },
+        "action_router": {
+          "action_state": "task_and_event",
+          "task_count": 1,
+          "event_count": 1,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Zum Fachtag anmelden",
+              "description": "",
+              "evidence": "Bitte melden Sie sich bis 01.10.2026 über unser Anmeldeformular an.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": "01.10.2026"
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Fachtag Digitalisierung",
+              "description": null,
+              "evidence": "am 20.10.2026 von 10:00 bis 11:00 Uhr im Kongresszentrum Musterstadt",
+              "date_text": "20.10.2026",
+              "time_text": "10:00",
+              "end_time_text": "11:00",
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "timed",
+              "location": "Kongresszentrum Musterstadt",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new"
+            }
+          ]
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "15_invitation_optional_greeting",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [
+              "2026-10-20"
+            ],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [
+              "2026-10-20"
+            ],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "task_and_event",
+            "task_count": 1,
+            "event_count": 1
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "task_and_event",
+            "task_count": 1,
+            "event_count": 1
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "due": null
+              }
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "due": null
+              }
+            ]
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "timed",
+                "when": {
+                  "start": "2026-10-20T10:00:00+02:00",
+                  "end": "2026-10-20T11:00:00+02:00",
+                  "all_day": false
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "timed",
+                "when": {
+                  "start": "2026-10-20T10:00:00+02:00",
+                  "end": "2026-10-20T11:00:00+02:00",
+                  "all_day": false
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "20.10.2026, 10:00 bis 11:00 Uhr"
+          ]
+        },
+        "action_router": {
+          "action_state": "task_and_event",
+          "task_count": 1,
+          "event_count": 1,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Verfügbarkeit von Frau Beispiel für ein Grußwort rückmelden",
+              "description": "",
+              "evidence": "Bitte teilen Sie uns mit, ob Frau Beispiel ein Grußwort halten kann.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": null
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Fachtag Digitalisierung",
+              "description": null,
+              "evidence": "am 20.10.2026 von 10:00 bis 11:00 Uhr im Kongresszentrum Musterstadt",
+              "date_text": "20.10.2026",
+              "time_text": "10:00",
+              "end_time_text": "11:00",
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "timed",
+              "location": "Kongresszentrum Musterstadt",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new"
+            }
+          ]
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "16_invitation_feedback_other",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [
+              "2026-10-20"
+            ],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [
+              "2026-10-20"
+            ],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "task_and_event",
+            "task_count": 1,
+            "event_count": 1
+          },
+          "accepted_alternatives": [
+            {
+              "action_state": "unclear",
+              "task_count": 1,
+              "event_count": 1
+            },
+            {
+              "action_state": "event",
+              "task_count": 0,
+              "event_count": 1
+            }
+          ],
+          "actual": {
+            "action_state": "task_and_event",
+            "task_count": 1,
+            "event_count": 1
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": [
+              {
+                "classification": "new",
+                "responsibility": "other",
+                "certainty": "certain",
+                "due": null
+              }
+            ]
+          },
+          "accepted_alternatives": [
+            {
+              "tasks": []
+            }
+          ],
+          "actual": {
+            "tasks": [
+              {
+                "classification": "new",
+                "responsibility": "other",
+                "certainty": "certain",
+                "due": null
+              }
+            ]
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "timed",
+                "when": {
+                  "start": "2026-10-20T10:00:00+02:00",
+                  "end": "2026-10-20T11:00:00+02:00",
+                  "all_day": false
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "timed",
+                "when": {
+                  "start": "2026-10-20T10:00:00+02:00",
+                  "end": "2026-10-20T11:00:00+02:00",
+                  "all_day": false
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "20.10.2026, 10:00 bis 11:00 Uhr"
+          ]
+        },
+        "action_router": {
+          "action_state": "task_and_event",
+          "task_count": 1,
+          "event_count": 1,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Teilnahme von Herrn Anders rückmelden",
+              "description": "",
+              "evidence": "Herr Anders soll uns bitte seine Teilnahme rückmelden.",
+              "responsibility": "other",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": null
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Fachtag Digitalisierung",
+              "description": null,
+              "evidence": "am 20.10.2026 von 10:00 bis 11:00 Uhr im Kongresszentrum Musterstadt",
+              "date_text": "20.10.2026",
+              "time_text": "10:00",
+              "end_time_text": "11:00",
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "timed",
+              "location": "Kongresszentrum Musterstadt",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new"
+            }
+          ]
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "17_optional_booking",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "task",
+            "task_count": 1,
+            "event_count": 0
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "task",
+            "task_count": 1,
+            "event_count": 0
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "due": null
+              }
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "due": null
+              }
+            ]
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": []
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": []
+        },
+        "action_router": {
+          "action_state": "task",
+          "task_count": 1,
+          "event_count": 0,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Optional Gespräch zur Dachflächenverpachtung buchen",
+              "description": "Freiwillig: https://booking.example.test/sunrise",
+              "evidence": "Einen Termin für ein 30-minütiges Gespräch können Sie hier direkt buchen: https://booking.example.test/sunrise",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": null
+            }
+          ]
+        },
+        "event_extraction": {
+          "events": []
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "18_meeting_access_only",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "none",
+            "task_count": 0,
+            "event_count": 0
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "none",
+            "task_count": 0,
+            "event_count": 0
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": []
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": []
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Zugangsdaten zu einem Arbeitstreffen."
+        },
+        "summary": {
+          "sentences": [
+            "Die Mail enthält Zugangsdaten zu einem Arbeitstreffen."
+          ],
+          "deadlines": []
+        },
+        "action_router": {
+          "action_state": "none",
+          "task_count": 0,
+          "event_count": 0,
+          "reason": "Zugangsdaten allein belegen weder eine aktuelle Einladung noch einen konkreten Termin."
+        },
+        "task_extraction": {
+          "tasks": []
+        },
+        "event_extraction": {
+          "events": []
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "19_invitation_time_pending",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "event",
+            "task_count": 0,
+            "event_count": 1
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "event",
+            "task_count": 0,
+            "event_count": 1
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": []
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": null,
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": false,
+                "video_link": null
+              }
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": null,
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": false,
+                "video_link": null
+              }
+            ]
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Einladung zu einem Projektgespraech."
+        },
+        "summary": {
+          "sentences": [
+            "Das Projektteam laedt Alex zu einem Projektgespraech ein; Datum und Uhrzeit folgen."
+          ],
+          "deadlines": []
+        },
+        "action_router": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 1,
+          "reason": "Ausdrueckliche aktuelle Einladung; Terminangaben folgen noch."
+        },
+        "task_extraction": {
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Projektgespraech",
+              "description": null,
+              "evidence": "wir laden dich zum Projektgespraech am vereinbarten Termin ein. Datum und Uhrzeit teilen wir noch mit.",
+              "date_text": null,
+              "time_text": null,
+              "end_time_text": null,
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "required_unknown",
+              "location": null,
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new"
+            }
+          ]
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "20_quoted_old_task_after_reschedule",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [
+              "2026-09-15",
+              "2026-10-07"
+            ],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [
+              "2026-09-15",
+              "2026-10-07"
+            ],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "task_and_event",
+            "task_count": 1,
+            "event_count": 1
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "task_and_event",
+            "task_count": 1,
+            "event_count": 1
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "due": null
+              }
+            ]
+          },
+          "accepted_alternatives": [
+            {
+              "tasks": [
+                {
+                  "classification": "change",
+                  "responsibility": "user",
+                  "certainty": "certain",
+                  "due": null
+                }
+              ]
+            }
+          ],
+          "actual": {
+            "tasks": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "due": null
+              }
+            ]
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": [
+              {
+                "classification": "change",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "timed",
+                "when": {
+                  "date": "07.10.2026",
+                  "time": "16:00",
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": false,
+                "video_link": null
+              }
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": [
+              {
+                "classification": "change",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "timed",
+                "when": {
+                  "date": "07.10.2026",
+                  "time": "16:00",
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": false,
+                "video_link": null
+              }
+            ]
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Verschiebung eines Arbeitstermins mit aktueller Bitte zur Kalenderanpassung."
+        },
+        "summary": {
+          "sentences": [
+            "Das Projektbuero verschiebt das Projektgespraech auf den 7. Oktober um 16:00 Uhr und bittet um Aktualisierung des Kalendereintrags."
+          ],
+          "deadlines": [
+            "07.10.2026 um 16:00 Uhr",
+            "15.09.2026"
+          ]
+        },
+        "action_router": {
+          "action_state": "task_and_event",
+          "task_count": 1,
+          "event_count": 1,
+          "reason": "Aktuelle Bitte zur Kalenderanpassung und ausdruecklich verschobener Termin."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Kalendereintrag fuer das Projektgespraech aktualisieren",
+              "description": "",
+              "evidence": "Bitte richten Sie Ihren Kalendereintrag entsprechend neu ein.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": null
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Projektgespraech",
+              "description": null,
+              "evidence": "der Termin wurde auf den 07.10.2026 um 16:00 Uhr verschoben",
+              "date_text": "07.10.2026",
+              "time_text": "16:00 Uhr",
+              "end_time_text": null,
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "timed",
+              "location": null,
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "change"
+            }
+          ]
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "18_shortlink_bait",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "unclear",
+            "topic_ids": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "unclear",
+            "topic_ids": []
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "none",
+            "task_count": 0,
+            "event_count": 0
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "none",
+            "task_count": 0,
+            "event_count": 0
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": []
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": []
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "unclear",
+          "topic_ids": [],
+          "reason": "Verdächtiger Kurzlink-Köder. Bitte unabhängig prüfen; daraus werden keine Aktionen angelegt."
+        },
+        "summary": {
+          "sentences": [
+            "Die Nachricht enthaelt einen verdaechtigen Kurzlink-Koeder."
+          ],
+          "deadlines": []
+        },
+        "action_router": {
+          "action_state": "none",
+          "task_count": 0,
+          "event_count": 0,
+          "reason": "Verdächtiger Kurzlink-Köder: keine automatische Handlungsempfehlung."
+        },
+        "task_extraction": {
+          "tasks": []
+        },
+        "event_extraction": {
+          "events": []
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "21_jimdo_inquiry",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "jimdo-anfragen-und-nachrichten"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "jimdo-anfragen-und-nachrichten"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [
+              "2026-09-25"
+            ],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [
+              "2026-09-25"
+            ],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "task",
+            "task_count": 1,
+            "event_count": 0
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "task",
+            "task_count": 1,
+            "event_count": 0
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "due": "2026-09-25"
+              }
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "due": "2026-09-25"
+              }
+            ]
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": []
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "jimdo-anfragen-und-nachrichten"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "25.09.2026"
+          ]
+        },
+        "action_router": {
+          "action_state": "task",
+          "task_count": 1,
+          "event_count": 0,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Anfrage von Laura Beispiel zur Hofführung beantworten",
+              "description": "",
+              "evidence": "Über eine Antwort bis 25.09.2026 würde ich mich freuen.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": "25.09.2026"
+            }
+          ]
+        },
+        "event_extraction": {
+          "events": []
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "22_jimdo_newsletter",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "irrelevant",
+            "topic_ids": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "irrelevant",
+            "topic_ids": []
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "none",
+            "task_count": 0,
+            "event_count": 0
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "none",
+            "task_count": 0,
+            "event_count": 0
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": []
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": []
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "irrelevant",
+          "topic_ids": [],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": []
+        },
+        "action_router": {
+          "action_state": "none",
+          "task_count": 0,
+          "event_count": 0,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "tasks": []
+        },
+        "event_extraction": {
+          "events": []
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "23_booking_confirmation",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "camping-und-stellplatzbuchungen"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "camping-und-stellplatzbuchungen"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [
+              "2026-10-02",
+              "2026-10-04"
+            ],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [
+              "2026-10-02",
+              "2026-10-04"
+            ],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "event",
+            "task_count": 0,
+            "event_count": 1
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "event",
+            "task_count": 0,
+            "event_count": 1
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": []
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "all_day",
+                "when": {
+                  "start": "2026-10-02",
+                  "end": "2026-10-05",
+                  "all_day": true
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "all_day",
+                "when": {
+                  "start": "2026-10-02",
+                  "end": "2026-10-05",
+                  "all_day": true
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "camping-und-stellplatzbuchungen"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "02.10.2026",
+            "04.10.2026"
+          ]
+        },
+        "action_router": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 1,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Stellplatzbuchung Familie Weber",
+              "description": null,
+              "evidence": "Anreise: 02.10.2026\nAbreise: 04.10.2026",
+              "date_text": "02.10.2026 bis 04.10.2026",
+              "time_text": null,
+              "end_time_text": null,
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "all_day",
+              "location": "Stellplatz 3",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new"
+            }
+          ]
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "24_booking_cancellation",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "camping-und-stellplatzbuchungen"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "camping-und-stellplatzbuchungen"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [
+              "2026-10-09",
+              "2026-10-11"
+            ],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [
+              "2026-10-09",
+              "2026-10-11"
+            ],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "event",
+            "task_count": 0,
+            "event_count": 1
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "event",
+            "task_count": 0,
+            "event_count": 1
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": []
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": [
+              {
+                "classification": "cancellation",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "all_day",
+                "when": {
+                  "start": "2026-10-09",
+                  "end": "2026-10-12",
+                  "all_day": true
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": [
+              {
+                "classification": "cancellation",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "all_day",
+                "when": {
+                  "start": "2026-10-09",
+                  "end": "2026-10-12",
+                  "all_day": true
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "camping-und-stellplatzbuchungen"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "09.10.2026",
+            "11.10.2026"
+          ]
+        },
+        "action_router": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 1,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Stellplatzbuchung Jonas Probe storniert",
+              "description": null,
+              "evidence": "Buchung CS-4711 für Stellplatz 3 vom 09.10.2026 bis\n11.10.2026 storniert",
+              "date_text": "09.10.2026 bis 11.10.2026",
+              "time_text": null,
+              "end_time_text": null,
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "all_day",
+              "location": "Stellplatz 3",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "cancellation"
+            }
+          ]
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "25_booking_platform_offer",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "irrelevant",
+            "topic_ids": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "irrelevant",
+            "topic_ids": []
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "none",
+            "task_count": 0,
+            "event_count": 0
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "none",
+            "task_count": 0,
+            "event_count": 0
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": []
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": []
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "irrelevant",
+          "topic_ids": [],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": []
+        },
+        "action_router": {
+          "action_state": "none",
+          "task_count": 0,
+          "event_count": 0,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "tasks": []
+        },
+        "event_extraction": {
+          "events": []
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "26_personal_schedule_plan",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "persoenliche-termine-und-terminhinweise"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "persoenliche-termine-und-terminhinweise"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [
+              "2026-09-24",
+              "2026-09-25"
+            ],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [
+              "2026-09-24",
+              "2026-09-25"
+            ],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "event",
+            "task_count": 0,
+            "event_count": 2
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "event",
+            "task_count": 0,
+            "event_count": 2
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": []
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "timed",
+                "when": {
+                  "start": "2026-09-24T10:40:00+02:00",
+                  "end": "2026-09-24T12:15:00+02:00",
+                  "all_day": false
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              },
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "timed",
+                "when": {
+                  "start": "2026-09-25T08:45:00+02:00",
+                  "end": "2026-09-25T10:20:00+02:00",
+                  "all_day": false
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "timed",
+                "when": {
+                  "start": "2026-09-24T10:40:00+02:00",
+                  "end": "2026-09-24T12:15:00+02:00",
+                  "all_day": false
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              },
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "timed",
+                "when": {
+                  "start": "2026-09-25T08:45:00+02:00",
+                  "end": "2026-09-25T10:20:00+02:00",
+                  "all_day": false
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "persoenliche-termine-und-terminhinweise"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "24.09.2026",
+            "25.09.2026"
+          ]
+        },
+        "action_router": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 2,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Lehrgangseinsatz",
+              "description": null,
+              "evidence": "Donnerstag, 24.09.2026, 10:40-12:15 Uhr: Hr. Muster, Seminarraum 1",
+              "date_text": "24.09.2026",
+              "time_text": "10:40",
+              "end_time_text": "12:15",
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "timed",
+              "location": "Seminarraum 1",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new"
+            },
+            {
+              "title": "Lehrgangseinsatz",
+              "description": null,
+              "evidence": "Freitag, 25.09.2026, 08:45-10:20 Uhr: Hr. Muster, Seminarraum 1",
+              "date_text": "25.09.2026",
+              "time_text": "08:45",
+              "end_time_text": "10:20",
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "timed",
+              "location": "Seminarraum 1",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new"
+            }
+          ]
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "27_deadline_advertising",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "irrelevant",
+            "topic_ids": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "irrelevant",
+            "topic_ids": []
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "none",
+            "task_count": 0,
+            "event_count": 0
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "none",
+            "task_count": 0,
+            "event_count": 0
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": []
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": []
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "irrelevant",
+          "topic_ids": [],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": []
+        },
+        "action_router": {
+          "action_state": "none",
+          "task_count": 0,
+          "event_count": 0,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "tasks": []
+        },
+        "event_extraction": {
+          "events": []
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "28_registration_optional_forward_download",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "arbeit"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [
+              "2026-10-01",
+              "2026-10-20"
+            ],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [
+              "2026-10-01",
+              "2026-10-20"
+            ],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "task_and_event",
+            "task_count": 1,
+            "event_count": 1
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "task_and_event",
+            "task_count": 1,
+            "event_count": 1
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "due": "2026-10-01"
+              }
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "due": "2026-10-01"
+              }
+            ]
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "timed",
+                "when": {
+                  "start": "2026-10-20T10:00:00+02:00",
+                  "end": "2026-10-20T11:00:00+02:00",
+                  "all_day": false
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "user",
+                "certainty": "certain",
+                "time_requirement": "timed",
+                "when": {
+                  "start": "2026-10-20T10:00:00+02:00",
+                  "end": "2026-10-20T11:00:00+02:00",
+                  "all_day": false
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "2026-10-01",
+            "20.10.2026, 10:00 bis 11:00 Uhr"
+          ]
+        },
+        "action_router": {
+          "action_state": "task_and_event",
+          "task_count": 1,
+          "event_count": 1,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Zum Fachtag anmelden",
+              "description": "",
+              "evidence": "Bitte melden Sie sich bis 01.10.2026 über unser Anmeldeformular an.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": "01.10.2026"
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Fachtag Digitalisierung",
+              "description": null,
+              "evidence": "am 20.10.2026 von 10:00 bis 11:00 Uhr im Kongresszentrum Musterstadt",
+              "date_text": "20.10.2026",
+              "time_text": "10:00",
+              "end_time_text": "11:00",
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "timed",
+              "location": "Kongresszentrum Musterstadt",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new"
+            }
+          ]
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "29_marketing_download_forward_only",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "irrelevant",
+            "topic_ids": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "irrelevant",
+            "topic_ids": []
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "deadlines": [],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "none",
+            "task_count": 0,
+            "event_count": 0
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "action_state": "none",
+            "task_count": 0,
+            "event_count": 0
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": []
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": []
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "irrelevant",
+          "topic_ids": [],
+          "reason": "Rein werbliche Nebenoptionen."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": []
+        },
+        "action_router": {
+          "action_state": "none",
+          "task_count": 0,
+          "event_count": 0,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "tasks": []
+        },
+        "event_extraction": {
+          "events": []
+        }
+      },
+      "passed": true
+    },
+    {
+      "id": "30_council_series",
+      "error": null,
+      "stages": {
+        "relevance": {
+          "passed": true,
+          "expected": {
+            "decision": "relevant",
+            "topic_ids": [
+              "kommune"
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "decision": "relevant",
+            "topic_ids": [
+              "kommune"
+            ]
+          }
+        },
+        "summary": {
+          "passed": true,
+          "expected": {
+            "deadlines": [
+              "22.09.2026"
+            ],
+            "valid_sentence_count": true
+          },
+          "accepted_alternatives": [
+            {
+              "deadlines": [
+                "22.09.2026",
+                "<ohne Datum>"
+              ],
+              "valid_sentence_count": true
+            }
+          ],
+          "actual": {
+            "deadlines": [
+              "22.09.2026"
+            ],
+            "valid_sentence_count": true
+          }
+        },
+        "action_router": {
+          "passed": true,
+          "expected": {
+            "action_state": "event",
+            "task_count": 0,
+            "event_count": 11
+          },
+          "accepted_alternatives": [
+            {
+              "action_state": "unclear",
+              "task_count": 0,
+              "event_count": 1
+            }
+          ],
+          "actual": {
+            "action_state": "event",
+            "task_count": 0,
+            "event_count": 11
+          }
+        },
+        "task_extraction": {
+          "passed": true,
+          "expected": {
+            "tasks": []
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "tasks": []
+          }
+        },
+        "event_extraction": {
+          "passed": true,
+          "expected": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "23.01.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              },
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "23.02.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              },
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "23.03.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              },
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "23.04.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              },
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "23.05.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              },
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "23.06.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              },
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "23.07.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              },
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "23.08.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              },
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "23.09.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              },
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "23.10.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              },
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "23.11.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          },
+          "accepted_alternatives": [],
+          "actual": {
+            "events": [
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "23.01.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              },
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "23.02.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              },
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "23.03.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              },
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "23.04.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              },
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "23.05.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              },
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "23.06.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              },
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "23.07.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              },
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "23.08.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              },
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "23.09.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              },
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "23.10.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              },
+              {
+                "classification": "new",
+                "responsibility": "unclear",
+                "certainty": "uncertain",
+                "time_requirement": "required_unknown",
+                "when": {
+                  "date": "23.11.2027",
+                  "time": null,
+                  "end_time": null
+                },
+                "timezone_offset_text": null,
+                "has_location": true,
+                "video_link": null
+              }
+            ]
+          }
+        }
+      },
+      "review_outputs": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "kommune"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "22.09.2026"
+          ]
+        },
+        "action_router": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 11,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.01.2027 im Sitzungssaal.",
+              "date_text": "23.01.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "required_unknown",
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.02.2027 im Sitzungssaal.",
+              "date_text": "23.02.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "required_unknown",
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.03.2027 im Sitzungssaal.",
+              "date_text": "23.03.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "required_unknown",
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.04.2027 im Sitzungssaal.",
+              "date_text": "23.04.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "required_unknown",
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.05.2027 im Sitzungssaal.",
+              "date_text": "23.05.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "required_unknown",
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.06.2027 im Sitzungssaal.",
+              "date_text": "23.06.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "required_unknown",
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.07.2027 im Sitzungssaal.",
+              "date_text": "23.07.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "required_unknown",
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.08.2027 im Sitzungssaal.",
+              "date_text": "23.08.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "required_unknown",
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.09.2027 im Sitzungssaal.",
+              "date_text": "23.09.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "required_unknown",
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.10.2027 im Sitzungssaal.",
+              "date_text": "23.10.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "required_unknown",
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new"
+            },
+            {
+              "title": "Haushaltsklausur Musterstadt",
+              "description": null,
+              "evidence": "Haushaltsklausur Musterstadt am 23.11.2027 im Sitzungssaal.",
+              "date_text": "23.11.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "duration_minutes": null,
+              "duration_is_upper_bound": false,
+              "timezone_offset_text": null,
+              "time_requirement": "required_unknown",
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new"
+            }
+          ]
+        }
+      },
+      "passed": true
+    }
+  ],
+  "manual_review": "Zusammenfassung, Titel, Beschreibung und Evidenz benötigen zusätzlich fachliche Prüfung.",
+  "stage_pass_counts": {
+    "relevance": 31,
+    "summary": 31,
+    "action_router": 31,
+    "task_extraction": 31,
+    "event_extraction": 31
+  },
+  "version": "4.3.0",
+  "evaluation_mode": "offline_simulated_model_answers",
+  "model_quality_proven": false,
+  "fingerprints": {
+    "prompts.yaml": "92e5781c2b184d3e6ab29b4a95f301417010b29d1ea95dbb44c338c0c5cbc903",
+    "topics.yaml": "be1a614980d41a4013cf0a8736460644ce27d6cdd140d26580bf707d1d307c9f",
+    "decisions_prompts.yaml": "12827807cbf2091bdd0c1329a0e0ad264d2fa882f87d23815d866cc27995a2dc",
+    "tests/fixtures/mail_corpus_v3/corpus.json": "5a9307d16c920e085bdb6391effed8c5238d7ae64e03c270387ecce80778a861"
+  }
+}

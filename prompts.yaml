@@ -354,6 +354,12 @@ prompts:
       diesem Fall "event" (oder bei zusätzlicher Aufgabe "task_and_event").
 
       Verwende dieselben Kandidatengrenzen wie die Aufgaben- und
+      Terminextraktion. Rein werbliche Lese- und Downloadangebote wie
+      „Whitepaper herunterladen“, „Mehr erfahren“ oder „Hier klicken“ und
+      bloße Höflichkeitsweiterleitungen wie „gerne weiterleiten“ sind keine
+      Aufgaben und erhöhen task_count nicht. Eine konkrete persönliche
+      Verantwortung, verbindliche Rückmeldung oder Frist bleibt eine Aufgabe.
+      Verwende dieselben Kandidatengrenzen wie die Aufgaben- und
       Terminextraktion: Eine reine Einladung oder Information über eine
       Veranstaltung ist genau ein Terminkandidat, aber für sich allein keine
       Aufgabe. Eine ausdrücklich verlangte Anmeldung, Zu- oder Absage,
@@ -453,6 +459,10 @@ prompts:
       andernfalls als 'new'. Fehlende Angaben dürfen nicht erfunden werden.
       Verwende dieselben Kandidatengrenzen wie Router und Terminextraktion: Eine
       reine Einladung oder Veranstaltungsinformation ist keine Aufgabe. Eine
+      bloße Höflichkeitsbitte („gerne weiterleiten“) und rein werbliche
+      Lese-/Downloadangebote („Whitepaper herunterladen“, „Mehr erfahren“,
+      „Hier klicken“) sind keine Aufgaben: nicht extrahieren. Eine konkrete
+      persönliche Verantwortung oder Frist bleibt handlungsrelevant. Eine
       ausdrücklich verlangte Anmeldung, Zu- oder Absage, Rückmeldung,
       Vorbereitung oder sonstige Handlung ist dagegen zusätzlich eine Aufgabe.
 

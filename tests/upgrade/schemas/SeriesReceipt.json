@@ -1,0 +1,1252 @@
+{
+  "$defs": {
+    "CommandKind": {
+      "enum": [
+        "confirm",
+        "confirm_duplicate",
+        "reject",
+        "already_done",
+        "clarify",
+        "answer",
+        "cancel",
+        "relevance",
+        "edit_fields",
+        "merge_proposals",
+        "separate_proposals",
+        "restore_proposal",
+        "reapply_defaults",
+        "recheck_proposal",
+        "retarget_proposal",
+        "recheck_mail",
+        "series_answer",
+        "series_confirm"
+      ],
+      "title": "CommandKind",
+      "type": "string"
+    },
+    "CommandSource": {
+      "enum": [
+        "telegram",
+        "web"
+      ],
+      "title": "CommandSource",
+      "type": "string"
+    },
+    "DuplicateMatchInfo": {
+      "additionalProperties": false,
+      "properties": {
+        "checked_at": {
+          "format": "date-time",
+          "title": "Checked At",
+          "type": "string"
+        },
+        "details": {
+          "default": "",
+          "maxLength": 1000,
+          "title": "Details",
+          "type": "string"
+        },
+        "external_id": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Id"
+        },
+        "external_link": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Link"
+        },
+        "matched_time": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Matched Time"
+        },
+        "matched_title": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Matched Title",
+          "type": "string"
+        },
+        "similarity_score": {
+          "anyOf": [
+            {
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Similarity Score"
+        },
+        "source": {
+          "$ref": "#/$defs/DuplicateSource"
+        }
+      },
+      "required": [
+        "source",
+        "matched_title"
+      ],
+      "title": "DuplicateMatchInfo",
+      "type": "object"
+    },
+    "DuplicateSource": {
+      "enum": [
+        "action_ledger",
+        "google_calendar",
+        "todoist"
+      ],
+      "title": "DuplicateSource",
+      "type": "string"
+    },
+    "KnownTemporalFacts": {
+      "additionalProperties": false,
+      "description": "Valid temporal facts retained while an event interval is incomplete.",
+      "properties": {
+        "date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start"
+        },
+        "start_time": {
+          "anyOf": [
+            {
+              "format": "time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start Time"
+        }
+      },
+      "title": "KnownTemporalFacts",
+      "type": "object"
+    },
+    "Proposal": {
+      "additionalProperties": false,
+      "properties": {
+        "all_day": {
+          "default": false,
+          "title": "All Day",
+          "type": "boolean"
+        },
+        "base_title": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Base Title"
+        },
+        "canonical_ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProposalReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "certainty": {
+          "$ref": "#/$defs/ProposalCertainty"
+        },
+        "classification": {
+          "$ref": "#/$defs/ProposalClassification"
+        },
+        "confirmed_web_actor": {
+          "anyOf": [
+            {
+              "maxLength": 200,
+              "pattern": "^web:.+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Confirmed Web Actor"
+        },
+        "default_duration_minutes": {
+          "anyOf": [
+            {
+              "maximum": 1440,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Default Duration Minutes"
+        },
+        "description": {
+          "default": "",
+          "maxLength": 4000,
+          "title": "Description",
+          "type": "string"
+        },
+        "due": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Due"
+        },
+        "duplicate_check_failed": {
+          "default": false,
+          "title": "Duplicate Check Failed",
+          "type": "boolean"
+        },
+        "duplicate_match": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DuplicateMatchInfo"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "duration_is_upper_bound": {
+          "default": false,
+          "title": "Duration Is Upper Bound",
+          "type": "boolean"
+        },
+        "duration_minutes": {
+          "anyOf": [
+            {
+              "maximum": 1440,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration Minutes"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "end_origin": {
+          "default": "unknown",
+          "enum": [
+            "unknown",
+            "mail_end",
+            "mail_duration",
+            "calendar",
+            "standard",
+            "manual"
+          ],
+          "title": "End Origin",
+          "type": "string"
+        },
+        "evidence": {
+          "maxLength": 2000,
+          "minLength": 1,
+          "title": "Evidence",
+          "type": "string"
+        },
+        "explicit_create_fallback_confirmed": {
+          "default": false,
+          "title": "Explicit Create Fallback Confirmed",
+          "type": "boolean"
+        },
+        "explicit_duplicate_create_confirmed_version": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Explicit Duplicate Create Confirmed Version"
+        },
+        "explicit_non_binding_create_confirmed": {
+          "default": false,
+          "title": "Explicit Non Binding Create Confirmed",
+          "type": "boolean"
+        },
+        "external_id": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Id"
+        },
+        "external_link": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "External Link"
+        },
+        "id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+          "title": "Id",
+          "type": "string"
+        },
+        "is_cancellation": {
+          "default": false,
+          "title": "Is Cancellation",
+          "type": "boolean"
+        },
+        "kind": {
+          "$ref": "#/$defs/ProposalKind"
+        },
+        "known_temporal_facts": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/KnownTemporalFacts"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "location": {
+          "anyOf": [
+            {
+              "maxLength": 1000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Location"
+        },
+        "matching_candidates": {
+          "items": {
+            "$ref": "#/$defs/ProposalReference"
+          },
+          "maxItems": 50,
+          "title": "Matching Candidates",
+          "type": "array"
+        },
+        "meeting_mode": {
+          "default": "unknown",
+          "enum": [
+            "video",
+            "in_person",
+            "hybrid",
+            "unknown"
+          ],
+          "title": "Meeting Mode",
+          "type": "string"
+        },
+        "merge_review_required": {
+          "default": false,
+          "title": "Merge Review Required",
+          "type": "boolean"
+        },
+        "open_questions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Open Questions",
+          "type": "array"
+        },
+        "pending_sources": {
+          "items": {
+            "$ref": "#/$defs/ProposalReference"
+          },
+          "maxItems": 50,
+          "title": "Pending Sources",
+          "type": "array"
+        },
+        "protected_fields": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 30,
+          "title": "Protected Fields",
+          "type": "array"
+        },
+        "reconciliation_journal": {
+          "anyOf": [
+            {
+              "pattern": "^reconciliation-merge-[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reconciliation Journal"
+        },
+        "resolution": {
+          "anyOf": [
+            {
+              "const": "already_done",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resolution"
+        },
+        "responsibility": {
+          "$ref": "#/$defs/ProposalResponsibility"
+        },
+        "schema_version": {
+          "const": 3,
+          "default": 3,
+          "title": "Schema Version",
+          "type": "integer"
+        },
+        "separated_from": {
+          "items": {
+            "$ref": "#/$defs/ProposalReference"
+          },
+          "maxItems": 50,
+          "title": "Separated From",
+          "type": "array"
+        },
+        "series_key": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Series Key"
+        },
+        "simulation_notified": {
+          "default": false,
+          "title": "Simulation Notified",
+          "type": "boolean"
+        },
+        "source_mail_id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "title": "Source Mail Id",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/ProposalSource"
+          },
+          "maxItems": 1000,
+          "title": "Sources",
+          "type": "array"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start"
+        },
+        "status": {
+          "$ref": "#/$defs/ProposalStatus",
+          "default": "pending_confirmation"
+        },
+        "target": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Target",
+          "type": "string"
+        },
+        "target_event_id": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Event Id"
+        },
+        "target_profile": {
+          "default": 1,
+          "maximum": 99,
+          "minimum": 1,
+          "title": "Target Profile",
+          "type": "integer"
+        },
+        "target_provider": {
+          "default": "",
+          "maxLength": 30,
+          "title": "Target Provider",
+          "type": "string"
+        },
+        "temporal_fact": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TemporalFact"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "time_changes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Time Changes",
+          "type": "array"
+        },
+        "title": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "uncertain_notified": {
+          "default": false,
+          "title": "Uncertain Notified",
+          "type": "boolean"
+        },
+        "version": {
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "video_link": {
+          "anyOf": [
+            {
+              "format": "uri",
+              "maxLength": 2000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Video Link"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "kind",
+        "responsibility",
+        "certainty",
+        "classification",
+        "title",
+        "evidence",
+        "source_mail_id",
+        "target"
+      ],
+      "title": "Proposal",
+      "type": "object"
+    },
+    "ProposalCertainty": {
+      "enum": [
+        "certain",
+        "uncertain",
+        "contradictory"
+      ],
+      "title": "ProposalCertainty",
+      "type": "string"
+    },
+    "ProposalClassification": {
+      "enum": [
+        "new",
+        "non_binding",
+        "already_completed",
+        "change",
+        "cancellation",
+        "recurring",
+        "unsupported"
+      ],
+      "title": "ProposalClassification",
+      "type": "string"
+    },
+    "ProposalEditPatch": {
+      "additionalProperties": false,
+      "properties": {
+        "all_day": {
+          "anyOf": [
+            {
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "All Day"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "due": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Due"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "location": {
+          "anyOf": [
+            {
+              "maxLength": 1000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Location"
+        },
+        "meeting_mode": {
+          "anyOf": [
+            {
+              "enum": [
+                "video",
+                "in_person",
+                "hybrid",
+                "unknown"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Meeting Mode"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "maxLength": 40,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start"
+        },
+        "target": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target"
+        },
+        "title": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Title"
+        },
+        "video_link": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Video Link"
+        }
+      },
+      "title": "ProposalEditPatch",
+      "type": "object"
+    },
+    "ProposalKind": {
+      "enum": [
+        "task",
+        "event"
+      ],
+      "title": "ProposalKind",
+      "type": "string"
+    },
+    "ProposalReference": {
+      "additionalProperties": false,
+      "properties": {
+        "mail_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+          "title": "Mail Id",
+          "type": "string"
+        },
+        "proposal_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+          "title": "Proposal Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mail_id",
+        "proposal_id"
+      ],
+      "title": "ProposalReference",
+      "type": "object"
+    },
+    "ProposalResponsibility": {
+      "enum": [
+        "user",
+        "other",
+        "unclear"
+      ],
+      "title": "ProposalResponsibility",
+      "type": "string"
+    },
+    "ProposalSource": {
+      "additionalProperties": false,
+      "properties": {
+        "anchors": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 100,
+          "title": "Anchors",
+          "type": "array"
+        },
+        "mail_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+          "title": "Mail Id",
+          "type": "string"
+        },
+        "proposal_id": {
+          "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "sent_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sent At"
+        },
+        "subject": {
+          "default": "",
+          "maxLength": 500,
+          "title": "Subject",
+          "type": "string"
+        }
+      },
+      "required": [
+        "mail_id",
+        "proposal_id"
+      ],
+      "title": "ProposalSource",
+      "type": "object"
+    },
+    "ProposalStatus": {
+      "enum": [
+        "needs_clarification",
+        "pending_confirmation",
+        "already_exists",
+        "confirmed",
+        "writing",
+        "created",
+        "simulated",
+        "rejected",
+        "failed",
+        "uncertain",
+        "merged"
+      ],
+      "title": "ProposalStatus",
+      "type": "string"
+    },
+    "ReviewCommand": {
+      "additionalProperties": false,
+      "properties": {
+        "actor": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Actor",
+          "type": "string"
+        },
+        "decision": {
+          "anyOf": [
+            {
+              "enum": [
+                "relevant",
+                "irrelevant"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Decision"
+        },
+        "endpoint": {
+          "default": "start",
+          "enum": [
+            "start",
+            "end"
+          ],
+          "title": "Endpoint",
+          "type": "string"
+        },
+        "idempotency_key": {
+          "pattern": "^[A-Za-z0-9_-]{8,80}$",
+          "title": "Idempotency Key",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/CommandKind"
+        },
+        "mail_id": {
+          "pattern": "^[a-f0-9]{24}$",
+          "title": "Mail Id",
+          "type": "string"
+        },
+        "members": {
+          "default": [],
+          "items": {
+            "$ref": "#/$defs/SeriesMember"
+          },
+          "maxItems": 100,
+          "title": "Members",
+          "type": "array"
+        },
+        "patch": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProposalEditPatch"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "proposal_hash": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Proposal Hash"
+        },
+        "proposal_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Proposal Id"
+        },
+        "replay_offset": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Replay Offset"
+        },
+        "source": {
+          "$ref": "#/$defs/CommandSource"
+        },
+        "target_profile": {
+          "anyOf": [
+            {
+              "maximum": 99,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Profile"
+        },
+        "target_ref": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ProposalReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "target_version": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Target Version"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "maxLength": 4000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Text"
+        },
+        "version": {
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "kind",
+        "source",
+        "actor",
+        "mail_id",
+        "version",
+        "idempotency_key"
+      ],
+      "title": "ReviewCommand",
+      "type": "object"
+    },
+    "SeriesMember": {
+      "additionalProperties": false,
+      "properties": {
+        "proposal_id": {
+          "pattern": "^[A-Za-z0-9_-]{1,64}$",
+          "title": "Proposal Id",
+          "type": "string"
+        },
+        "version": {
+          "minimum": 1,
+          "title": "Version",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "proposal_id",
+        "version"
+      ],
+      "title": "SeriesMember",
+      "type": "object"
+    },
+    "TemporalFact": {
+      "additionalProperties": false,
+      "description": "Structured date fact created at the raw-extraction trust boundary.",
+      "properties": {
+        "normalized_date": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Normalized Date"
+        },
+        "raw_text": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Raw Text"
+        },
+        "status": {
+          "$ref": "#/$defs/TemporalResolutionStatus"
+        },
+        "year_source": {
+          "$ref": "#/$defs/YearSource",
+          "default": "unknown"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "TemporalFact",
+      "type": "object"
+    },
+    "TemporalResolutionStatus": {
+      "description": "Application-owned resolution state for an extracted date expression.",
+      "enum": [
+        "resolved",
+        "unresolved",
+        "conflicting"
+      ],
+      "title": "TemporalResolutionStatus",
+      "type": "string"
+    },
+    "YearSource": {
+      "description": "Why a normalized date has the year that it has.",
+      "enum": [
+        "explicit_mail",
+        "mail_context",
+        "telegram",
+        "unknown"
+      ],
+      "title": "YearSource",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "command": {
+      "$ref": "#/$defs/ReviewCommand"
+    },
+    "completed": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Completed",
+      "type": "array"
+    },
+    "originals": {
+      "items": {
+        "$ref": "#/$defs/Proposal"
+      },
+      "title": "Originals",
+      "type": "array"
+    },
+    "outcomes": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "Outcomes",
+      "type": "object"
+    },
+    "revisions": {
+      "items": {
+        "$ref": "#/$defs/Proposal"
+      },
+      "title": "Revisions",
+      "type": "array"
+    },
+    "schema_version": {
+      "const": 1,
+      "default": 1,
+      "title": "Schema Version",
+      "type": "integer"
+    },
+    "skipped": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Skipped",
+      "type": "array"
+    }
+  },
+  "required": [
+    "command",
+    "originals"
+  ],
+  "title": "SeriesReceipt",
+  "type": "object"
+}

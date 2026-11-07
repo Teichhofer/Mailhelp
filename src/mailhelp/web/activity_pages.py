@@ -34,11 +34,11 @@ def _day(value: date) -> str:
     return f"{value:%d.%m.%Y}"
 
 
-def disabled_page() -> str:
-    return layout("Berichte", f"<h1>Tätigkeitsberichte</h1>{notice(DISABLED)}", active="/berichte")
+def disabled_page(*, decisions: str = "") -> str:
+    return layout("Berichte", f"<h1>Tätigkeitsberichte</h1>{notice(DISABLED)}{decisions}", active="/berichte")
 
 
-def list_page(reports: list[ActivityReport]) -> str:
+def list_page(reports: list[ActivityReport], *, decisions: str = "") -> str:
     rows = "".join(
         f'<li><span><a href="/berichte/{report.id}">{e(report.definition.title)}</a><br>'
         f'<span class="meta">{_day(report.definition.since)} – {_day(report.definition.until)} · '
@@ -48,7 +48,7 @@ def list_page(reports: list[ActivityReport]) -> str:
             'Mailhelp liest das Postfach dafür nur, verändert nichts und legt nichts an.</p>'
             '<p><a class="button primary" href="/berichte/neu">Neuer Bericht</a></p>'
             + (f'<ul class="recent">{rows}</ul>' if rows else '<p class="meta">Noch keine Berichte.</p>'))
-    return layout("Berichte", body, active="/berichte")
+    return layout("Berichte", body + decisions, active="/berichte")
 
 
 def _mailbox_choice(mailboxes: list[tuple[int, str]], mailbox: int) -> str:

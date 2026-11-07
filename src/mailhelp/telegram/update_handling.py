@@ -34,6 +34,7 @@ _COMMAND_KINDS = {
     DecisionAction.CONFIRM_DUPLICATE: CommandKind.CONFIRM_DUPLICATE,
     DecisionAction.EDIT: CommandKind.START_CLARIFICATION,
     DecisionAction.REJECT: CommandKind.REJECT,
+    DecisionAction.ALREADY_DONE: CommandKind.ALREADY_DONE,
 }
 
 
@@ -227,6 +228,9 @@ class TelegramUpdateHandler:
                 self.o.learning.relevance_decision(dialog.mail_id, "telegram", f"telegram-update-{update.update_id}")
             return
         pointer = self.o.store.load_model("telegram-dialog", TelegramDialogState)
+        from .series import offer_answer
+        if offer_answer(self.o, pointer, message.text):
+            return
         self.o.revisions.answer(message.text)
         self._record_answer(pointer, message.text, update.update_id)
 
@@ -275,6 +279,9 @@ class TelegramUpdateHandler:
         actor = f"telegram:{callback.sender.id}:{callback.message.chat.id}"
         key = f"telegram-update-{update.update_id}"
         try:
+            if callback.data.startswith("series:"):
+                from .series import execute_callback
+                return execute_callback(self.o, callback.data)
             if callback.data.startswith("relevance:"):
                 try:
                     relevance = self.o.validator.relevance_decision(callback.data)

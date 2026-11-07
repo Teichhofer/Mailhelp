@@ -32,6 +32,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from ..runtime.lock_metrics import measured_lock
 from ..storage import JsonStore
 
 SESSIONS = "web-sessions"
@@ -155,13 +156,13 @@ class WebAuth:
         return state
 
     def code_requested(self, browser_nonce: str) -> bool:
-        with self._lock:
+        with measured_lock(self._lock, "store"):
             browser = _sha256(browser_nonce)
             return any(code.browser_hash in {browser, None} for code in self._pairing().codes)
 
     def request_code(self, browser_nonce: str, device: str) -> None:
         """Send a new code for this browser to Telegram; replaces its earlier code."""
-        with self._lock:
+        with measured_lock(self._lock, "store"):
             state = self._pairing()
             if len(state.failures) >= FAILURE_LIMIT or len(state.requests) >= CODE_REQUESTS:
                 raise PairingLimited("Zu viele Anfragen – bitte später erneut versuchen.")
@@ -180,7 +181,7 @@ class WebAuth:
 
         Only the authorized Telegram chat receives it, exactly like a requested code.
         """
-        with self._lock:
+        with measured_lock(self._lock, "store"):
             state = self._pairing()
             if len(state.failures) >= FAILURE_LIMIT or len(state.requests) >= CODE_REQUESTS:
                 raise PairingLimited("Zu viele Codes angefordert – bitte später erneut versuchen.")
@@ -195,7 +196,7 @@ class WebAuth:
     def redeem(self, browser_nonce: str, code: str, device: str) -> str:
         """Exchange a correct code for a new session; returns the session token."""
         entered = re.sub(r"\s", "", code)
-        with self._lock:
+        with measured_lock(self._lock, "store"):
             state = self._pairing()
             if len(state.failures) >= FAILURE_LIMIT:
                 raise PairingLimited("Zu viele Fehlversuche – bitte später erneut versuchen.")
@@ -236,7 +237,7 @@ class WebAuth:
 
     def password_login(self, password: str, device: str) -> str:
         from ..runtime.web_password import WebPassword
-        with self._lock:
+        with measured_lock(self._lock, "store"):
             state = self._pairing()
             if len(state.failures) >= FAILURE_LIMIT:
                 raise PairingLimited("Zu viele Fehlversuche – bitte später erneut versuchen.")
@@ -260,7 +261,7 @@ class WebAuth:
         if not token:
             return None
         digest = _sha256(token)
-        with self._lock:
+        with measured_lock(self._lock, "store"):
             state = self._sessions()
             session = next((item for item in state.sessions
                             if hmac.compare_digest(item.token_hash, digest)), None)
@@ -274,15 +275,15 @@ class WebAuth:
 
     def active(self, session_id: str) -> bool:
         """Whether a session still exists (checked again when a command runs)."""
-        with self._lock:
+        with measured_lock(self._lock, "store"):
             return any(item.id == session_id for item in self._sessions().sessions)
 
     def sessions(self) -> list[WebSession]:
-        with self._lock:
+        with measured_lock(self._lock, "store"):
             return sorted(self._sessions().sessions, key=lambda item: item.last_used_at, reverse=True)
 
     def revoke(self, session_id: str) -> bool:
-        with self._lock:
+        with measured_lock(self._lock, "store"):
             state = self._sessions()
             remaining = [item for item in state.sessions if item.id != session_id]
             found = len(remaining) != len(state.sessions)
@@ -291,7 +292,7 @@ class WebAuth:
             return found
 
     def revoke_all(self) -> int:
-        with self._lock:
+        with measured_lock(self._lock, "store"):
             count = len(self._sessions().sessions)
             self.store.save(SESSIONS, SessionState().model_dump(mode="json"))
             return count

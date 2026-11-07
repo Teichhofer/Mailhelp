@@ -1,8 +1,8 @@
 # Mailhelp 4.2 – Reaktionsschnelle Web-Aktionen und Entscheidungspfad „Schon erledigt“
 
 **Zielversion:** 4.2.0 (Schritte als Patchversionen 4.2.x)  
-**Stand:** 5. November 2026  
-**Status:** In Planung  
+**Stand:** 6. November 2026
+**Status:** Vollständig umgesetzt und abgenommen in 4.2.0
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 4.0](Planung-4.0.md) (Gesamtfahrplan)  
 **Vorgänger:** [Planung 4.1](Planung-4.1.md) · **Nachfolger:** [Planung 4.3](Planung-4.3.md) (Entschärfung von Zählerkonflikten und zielgerichtete Aufgaben-Extraktion)
 
@@ -99,12 +99,12 @@ flowchart TD
 
 | Schritt | Inhalt | Fertig, wenn … | Umfang | Voraussetzung |
 | :--- | :--- | :--- | :---: | :--- |
-| **10.1** | Wartezeiten messen | `command_finished` enthält neben `latency_ms` und `execution_ms` die Wartezeit in der Warteschlange und je Sperre (`dialog_lock_wait_ms`, `store_lock_wait_ms`), ohne Inhalte zu protokollieren; `/status` zeigt Median und Maximum der letzten Web-Aktionen. | S | – |
-| **10.2** | Telegram-Versand ohne Dialogsperre | Unter der Dialogsperre werden Nachrichten nur in die dauerhafte Outbox eingetragen; der Versand läuft danach ohne Dialogsperre. Reihenfolge, Outbox-Sperren (Rückfragen) und Absturzsicherheit bleiben erhalten. Regressionstest: Eine Web-Aktion beginnt, während ein simulierter Telegram-Versand hängt. | M | 10.1 |
-| **10.3** | Web-Befehle zuerst | `poll_once` führt wartende Web-Befehle vor den Wiederaufnahmen und dem Outbox-Versand aus; nach Neustarts werden unterbrochene Befehle weiterhin zuerst abgeglichen. Regressionstest: Ein wartender Befehl beginnt vor einer langen Wiederaufnahme. | S | 10.2 |
-| **10.4** | Schlanke Statusabfrage | `/api/aktion/<id>` liefert nur Status und Ziel aus dem Befehlseingang (Sitzungsprüfung bleibt); die Statusseite fragt diesen Endpunkt ab, statt sich jede Sekunde ganz neu zu laden. Ohne JavaScript bleibt das Neuladen der Seite als Rückfall erhalten. | S | – |
-| **10.5** | Hinweistext und Rückmeldung | Der Text lautet „Wird ausgeführt … Danach geht es automatisch zur Übersicht.“; dauert eine Bestätigung wegen externer Anlage länger, nennt die Seite das Ziel (Kalender oder Todoist). Browsertests für Desktop, Mobilgerät und ohne JavaScript. | S | 10.4 |
-| **10.6** | Abnahme Reaktionszeit | Simulierter Lastlauf (laufende Mailanalyse, Telegram-Versand, Benachrichtigungen, fünf gleichzeitige Browser) unter Windows, Linux und Docker: Ausführungsbeginn im Median unter 0,5 s, im Maximum unter 1 s; keine doppelten oder unberechtigten Aktionen; Release-Bericht `docs/Release-4.2.md`. | M | 10.1–10.5 |
+| **10.1** ✓ 4.2.0 | Wartezeiten messen | `command_finished` enthält neben `latency_ms` und `execution_ms` die Wartezeit in der Warteschlange und je Sperre (`dialog_lock_wait_ms`, `store_lock_wait_ms`), ohne Inhalte zu protokollieren; `/status` zeigt Median und Maximum der letzten Web-Aktionen. | S | – |
+| **10.2** ✓ 4.2.0 | Telegram-Versand ohne Dialogsperre | Unter der Dialogsperre werden Nachrichten nur in die dauerhafte Outbox eingetragen; der Versand läuft danach ohne Dialogsperre. Reihenfolge, Outbox-Sperren (Rückfragen) und Absturzsicherheit bleiben erhalten. Regressionstest: Eine Web-Aktion beginnt, während ein simulierter Telegram-Versand hängt. | M | 10.1 |
+| **10.3** ✓ 4.2.0 | Web-Befehle zuerst | `poll_once` führt wartende Web-Befehle vor den Wiederaufnahmen und dem Outbox-Versand aus; nach Neustarts werden unterbrochene Befehle weiterhin zuerst abgeglichen. Regressionstest: Ein wartender Befehl beginnt vor einer langen Wiederaufnahme. | S | 10.2 |
+| **10.4** ✓ 4.2.0 | Schlanke Statusabfrage | `/api/aktion/<id>` liefert nur Status und Ziel aus dem Befehlseingang (Sitzungsprüfung bleibt); die Statusseite fragt diesen Endpunkt ab, statt sich jede Sekunde ganz neu zu laden. Ohne JavaScript bleibt das Neuladen der Seite als Rückfall erhalten. | S | – |
+| **10.5** ✓ 4.2.0 | Hinweistext und Rückmeldung | Der Text lautet „Wird ausgeführt … Danach geht es automatisch zur Übersicht.“; dauert eine Bestätigung wegen externer Anlage länger, nennt die Seite das Ziel (Kalender oder Todoist). Browsertests für Desktop, Mobilgerät und ohne JavaScript. | S | 10.4 |
+| **10.6** ✓ 4.2.0 | Abnahme Reaktionszeit | Simulierter Lastlauf (laufende Mailanalyse, Telegram-Versand, Benachrichtigungen, fünf gleichzeitige Browser) unter Windows, Linux und Docker: Ausführungsbeginn im Median unter 0,5 s, im Maximum unter 1 s; keine doppelten oder unberechtigten Aktionen; Release-Bericht `docs/Release-4.2.md`. | M | 10.1–10.5 |
 
 ---
 
@@ -112,11 +112,11 @@ flowchart TD
 
 | Schritt | Inhalt | Fertig, wenn … | Umfang | Voraussetzung |
 | :--- | :--- | :--- | :---: | :--- |
-| **11.1** | Datenmodell & Befehl `ALREADY_DONE` | `CommandKind.ALREADY_DONE` und `DecisionAction.ALREADY_DONE` eingeführt; `ReviewService` überführt den Vorschlag atomar in `ProposalStatus.REJECTED` mit `resolution="already_done"`; keine externe Anlage in Kalender oder Aufgaben; Idempotenz und Revisionsprüfung greifen unverändert. | S | – |
-| **11.2** | Relevanz-Protokoll in `decisions.jsonl` | `DecisionLearningLog` erfasst `operation="already_done"`, markiert den Eintrag explizit als relevant (`decision="relevant"`, `relevance_preserved=True`) und dokumentiert den verworfenen Vorschlag; Ereignisprotokoll (`record_event`) verbucht `already_done`. | S | 11.1 |
-| **11.3** | Web-Schaltfläche „Schon erledigt“ | Auf den Vorschlagskarten (`src/mailhelp/web/actions.py`) erscheint neben „Bestätigen“ und „Verwerfen“ die Schaltfläche „Schon erledigt“; Statusmeldung bestätigt: „Als schon erledigt erfasst (Aufgabe bleibt als relevant vermerkt)“; Tastaturbedienung und Barrierefreiheit geprüft. | S | 11.2 |
-| **11.4** | Telegram-Button „Schon erledigt“ | Telegram-Tastatur für Vorschläge erhält den Inline-Button `[✓ Schon erledigt]`; Bot bestätigt die Erfassung und löscht die Aktionsbuttons; dieselbe Idempotenz- und Relevanzbehandlung wie im Web. | S | 11.2 |
-| **11.5** | Berichte, Auswertung & Lernschutz | Tätigkeitsberichte (`/berichte`) und Statusansichten weisen „Schon erledigte“ Vorschläge separat aus; der Web-Lernmodus (`/lernen`) wertet diese Mails als belegt relevant; Regressionstests schließen falsches Verlernen aus. | S | 11.3, 11.4 |
+| **11.1** ✓ 4.2.0 | Datenmodell & Befehl `ALREADY_DONE` | `CommandKind.ALREADY_DONE` und `DecisionAction.ALREADY_DONE` eingeführt; `ReviewService` überführt den Vorschlag atomar in `ProposalStatus.REJECTED` mit `resolution="already_done"`; keine externe Anlage in Kalender oder Aufgaben; Idempotenz und Revisionsprüfung greifen unverändert. | S | – |
+| **11.2** ✓ 4.2.0 | Relevanz-Protokoll in `decisions.jsonl` | `DecisionLearningLog` erfasst `operation="already_done"`, markiert den Eintrag explizit als relevant (`decision="relevant"`, `relevance_preserved=True`) und dokumentiert den verworfenen Vorschlag; Ereignisprotokoll (`record_event`) verbucht `already_done`. | S | 11.1 |
+| **11.3** ✓ 4.2.0 | Web-Schaltfläche „Schon erledigt“ | Auf den Vorschlagskarten (`src/mailhelp/web/actions.py`) erscheint neben „Bestätigen“ und „Verwerfen“ die Schaltfläche „Schon erledigt“; Statusmeldung bestätigt: „Als schon erledigt erfasst (Aufgabe bleibt als relevant vermerkt)“; Tastaturbedienung und Barrierefreiheit geprüft. | S | 11.2 |
+| **11.4** ✓ 4.2.0 | Telegram-Button „Schon erledigt“ | Telegram-Tastatur für Vorschläge erhält den Inline-Button `[✓ Schon erledigt]`; Bot bestätigt die Erfassung und löscht die Aktionsbuttons; dieselbe Idempotenz- und Relevanzbehandlung wie im Web. | S | 11.2 |
+| **11.5** ✓ 4.2.0 | Berichte, Auswertung & Lernschutz | Tätigkeitsberichte (`/berichte`) und Statusansichten weisen „Schon erledigte“ Vorschläge separat aus; der Web-Lernmodus (`/lernen`) wertet diese Mails als belegt relevant; Regressionstests schließen falsches Verlernen aus. | S | 11.3, 11.4 |
 
 **Umfangsübersicht Version 4.2:** 11 Schritte, davon 9 S und 2 M.
 
@@ -140,3 +140,17 @@ flowchart TD
    - Versionsbindung, CSRF, Idempotenz, erneute Sitzungsprüfung und Abgleich unklarer Schreibresultate bleiben bestehen; die Prozessabbruch- und Konkurrenzszenarien aus 3.6 (A1–A7, P1–P7) bestehen weiterhin.
 7. **Abdeckung:**
    - 100 % Zeilen- und 100 % Branch-Abdeckung für sämtliche neuen Pfade ohne Ausschlüsse.
+
+
+## 4. Abschluss 4.2.0
+
+Alle elf Schritte sind umgesetzt. Die vollständigen Windows- und Linux-Läufe erreichen
+100 % Zeilen- und Branch-Abdeckung. Die 233 Browsertests erreichen 100 % JavaScript-
+Blockabdeckung. Die Lastprüfung mit fünf Browsern besteht auf Windows, Linux und Docker;
+das Maximum bis zum Ausführungsbeginn liegt in allen drei Messungen unter einer Sekunde.
+Messbeginn ist der Eingang des abgesendeten Befehls, nach der bestehenden Rückgängig-Frist.
+Laufende externe Schreibaufrufe und beliebige Systemüberlastung sind keine Laufzeitgarantie.
+
+Details, Upgrade und Grenzen: [Release 4.2](Release-4.2.md).
+Maschinenlesbare Nachweise: [Gesamtabnahme](../quality-reports/quality-4.2.json) und
+[Mutationsaudit](../quality-reports/mutation-4.2.json).

@@ -1,5 +1,47 @@
 # Änderungen
 
+## 4.3.0 – Aufgaben ohne Mengenfragen und sichere Terminserien
+
+- Router und Aufgabenextraktor schließen werbliche Download-/Leseangebote und
+  unverbindliche Höflichkeitsweiterleitungen ausdrücklich aus. Der synthetische
+  Qualitätskorpus enthält drei weitere Fälle; Offline-Verträge behaupten keine
+  gemessene Qualität kostenpflichtiger Modelle.
+- Extraktionszahlen bleiben als Diagnose gespeichert. Positive Ergebnisse
+  erhalten keine künstliche Mengenfrage; ein vollständig leerer Befund trotz
+  positiver Routerzählung meldet verständlichen Prüfbedarf zur Mail.
+- Gleichnamige Termine derselben Quelle erhalten einen stabilen Serienschlüssel
+  und bei aufgelöstem Datum unterscheidbare Titel. Abgleich und Aktionsschlüssel
+  verwenden weiterhin den Grundtitel. Alte Akten werden ohne neue Version ergänzt.
+- Telegram fragt bei einer eindeutigen Zeitantwort nach „Alle“ oder „Nur diesen“.
+  Die Weboberfläche gruppiert Serien und erlaubt gemeinsame Uhrzeiten und Ausnahmen,
+  auch ohne JavaScript. Gespeicherte Uhrzeiten bleiben als manuelle Fakten geschützt.
+- Eine eigene Sammelbestätigung bindet die exakt angezeigten Versionen. Vorprüfungen
+  erfolgen für die ganze Liste vor dem ersten Schreiben, ohne Netzaufrufe unter der
+  Ablagesperre. Jeder Termin behält seinen eigenen Schlüssel und Wiederanlauf-Abgleich;
+  geänderte Versionen oder widerrufene Sitzungen stoppen verbleibende Anlagen.
+
+## 4.2.0 – Reaktionsschnelle Web-Aktionen und „Schon erledigt“
+
+- Web-Befehle werden nach dem Neustart-Abgleich vor Schreib-/Revisionswiederaufnahmen
+  und Telegram-Eingaben ausgeführt. Versand hält keine gemeinsame Dialog-/Ablagesperre;
+  die dauerhafte Outbox bewahrt gleichzeitig neu eingehende Nachrichten.
+- Wartezeit bis zum Beginn sowie Dialog- und Ablagesperrzeiten werden ohne Inhalte
+  protokolliert. `/status` zeigt Median und Maximum der letzten 20 gemessenen Web-Aktionen.
+- `/api/aktion/<id>` liefert nach erneuter Sitzungsprüfung ausschließlich Status und
+  Weiterleitungsziel der eigenen Aktion. JavaScript fragt diesen Endpunkt ab; ohne
+  JavaScript bleibt automatisches Neuladen erhalten. Der Hinweis auf eine angeblich
+  abzuwartende Mailanalyse entfällt.
+- „Schon erledigt“ schließt die genaue Vorschlagsversion lokal als `rejected` mit
+  `resolution="already_done"`. Externe Anlagen werden nicht aufgerufen. Das Lernlog
+  vermerkt die positive Relevanz; CLI- und Browser-Lernen schützen solche Beispiele
+  vor erneuter negativer Kategorisierung. Status und Berichte weisen sie separat aus.
+- Der Neustart-Abgleich ordnet „Schon erledigt“ ausschließlich der bestätigten
+  Vorschlagsversion und ihrem tatsächlichen Abschlusskennzeichen zu; fremde
+  Entscheidungen erzeugen kein positives Lernprotokoll für diese Aktion.
+- Ein zufälliger Fehlalarm im PIN-Speichertest ist deterministisch abgesichert:
+  erwartete Hashfelder werden feldgenau geprüft, statt kurze Zahlenfolgen auch
+  innerhalb sicherer Hashwerte fälschlich als Klartextspeicherung zu bewerten.
+
 ## 4.1.11 – Messbare Qualitätsaufgaben und konservativer Prompt-Schutz
 
 - Plattformübergreifende Befehle und VS-Code-Tasks für Schnelltest, vollständige

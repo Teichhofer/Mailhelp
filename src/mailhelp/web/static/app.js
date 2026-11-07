@@ -75,6 +75,26 @@
   }
 
   function start() {
+    var command = document.querySelector("[data-command-status]");
+    if (command) {
+      function progress() {
+        fetch(command.dataset.commandStatus, {cache: "no-store", credentials: "same-origin", headers: {Accept: "application/json"}})
+          .then(function (response) {
+            if (response.status === 401) return {target: "/anmelden"};
+            if (!response.ok) throw new Error("Status gerade nicht verfügbar.");
+            return response.json();
+          })
+          .then(function (result) {
+            if (result && result.target) location.replace(result.target);
+            else window.setTimeout(progress, 1000);
+          })
+          .catch(function () {
+            command.textContent = "Verbindung unterbrochen. Die Aktion wird nicht erneut gesendet; der Status wird weiter geprüft.";
+            window.setTimeout(progress, 2000);
+          });
+      }
+      progress();
+    }
     document.querySelectorAll(".setting-help").forEach(function (help) {
       function reveal() { help.classList.remove("dismissed"); }
       help.addEventListener("mouseenter", reveal);
@@ -224,13 +244,13 @@
   // Optimistic confirm and reject: the card disappears, the form is sent after the undo time.
   document.addEventListener("submit", function (event) {
     var form = event.target, kind = form.querySelector('input[name="kind"]');
-    if (form.getAttribute("action") !== "/aktion" || !kind || ["confirm", "reject"].indexOf(kind.value) < 0) return;
+    if (form.getAttribute("action") !== "/aktion" || !kind || ["confirm", "reject", "already_done"].indexOf(kind.value) < 0) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     if (pending) return;
     var fromPane = pane !== null && pane.contains(form);
     var card = fromPane ? selected : form.closest("article");
-    var verb = kind.value === "confirm" ? "wird bestätigt" : "wird verworfen";
+    var verb = {confirm: "wird bestätigt", reject: "wird verworfen", already_done: "wird als schon erledigt erfasst"}[kind.value];
     var title = "„" + card.querySelector("h3").textContent.trim() + "“ " + verb;
     card.classList.add("leaving");
     if (fromPane) pane.inert = true;

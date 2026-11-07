@@ -47,6 +47,7 @@ class ServiceInfo:
     accounts: tuple[tuple[str, str], ...] = ()
     monthly_cost: tuple[str, int] | None = None
     last_polls: tuple[tuple[str, str], ...] = ()
+    command_latencies: dict[str, float] | None = None
 
 
 RUNTIME_STAGES = {
@@ -217,14 +218,22 @@ def status_page(run: RunStatus, overview: Overview, configured_timezone: str,
 
     parts.append("<h2>Vorschläge</h2>")
     if system.proposals:
-        parts.append(_stats([(system.proposals[status], STATUS_LABELS[status])
-                             for status in STATUS_LABELS if status in system.proposals]))
+        parts.append(_stats([(system.proposals[status] - (system.already_done if status.value == "rejected" else 0),
+                              STATUS_LABELS[status])
+                             for status in STATUS_LABELS if status in system.proposals]
+                            + ([(system.already_done, "Schon erledigt")] if system.already_done else [])))
     else:
         parts.append('<p class="meta">Noch keine Vorschläge gespeichert.</p>')
 
     parts.extend(_error_section(system, zone))
 
     parts.append("<h2>Telegram, Web und KI</h2>")
+    if info.command_latencies:
+        values = info.command_latencies
+        parts.append(_facts([
+            ("Web-Aktionen: Wartezeit bis Beginn (letzte 20 gemessene)",
+             f"Median {values['median_ms']:.1f} ms · Maximum {values['max_ms']:.1f} ms"),
+        ]))
     commands = ", ".join(f"{info.commands.get(status, 0)} {label}" for status, label in COMMAND_LABELS)
     llm = (f"{system.llm_calls_last_minute} von höchstens {info.llm_calls_per_minute}"
            if info.llm_calls_per_minute else str(system.llm_calls_last_minute))

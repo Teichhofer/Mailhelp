@@ -69,14 +69,13 @@ def test_simultaneous_confirmation_in_telegram_and_web_writes_once(web):
     token = web.dialog.presenter.present(item).reply_markup["inline_keyboard"][0][0]["callback_data"]
     web.telegram.updates = [callback(1, token)]
     web.run()
-    # Telegram input of the cycle runs first; the queued web command then finds
-    # the version decided and is refused instead of writing a second time.
+    # Queued Web commands now run first; the Telegram button then sees a stale version.
     assert web.writer.created == 1
     result = web.commands.get(location.rsplit("/", 1)[1]).result
-    assert result.status.value == "stale"
+    assert result.status.value == "written"
     back = web.browser.request("GET", location).headers["Location"]
-    assert "notice-warn" in web.browser.request("GET", back).body.decode()
-    assert "geändert oder entschieden" in web.browser.request("GET", back).body.decode()
+    assert "notice-ok" in web.browser.request("GET", back).body.decode()
+    assert web.telegram.sent[-1][1] == STALE_BUTTON
 
 
 def test_a_telegram_button_after_a_web_decision_is_reported_as_stale(web):

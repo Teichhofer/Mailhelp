@@ -21,6 +21,7 @@ import secrets
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
+from statistics import median
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -59,6 +60,7 @@ class CommandEntry(BaseModel):
     status: CommandStatus = CommandStatus.QUEUED
     result: ReviewResult | None = None
     finished_at: datetime | None = None
+    timings: dict[str, float] = Field(default_factory=dict)
 
 
 class CommandInboxState(BaseModel):
@@ -152,9 +154,16 @@ class CommandInbox:
         """Mark the entry running; persisted before the command has any effect."""
         self._update(entry_id, status=CommandStatus.RUNNING)
 
-    def finish(self, entry_id: str, result: ReviewResult) -> None:
+    def finish(self, entry_id: str, result: ReviewResult, *, timings: dict[str, float] | None = None) -> None:
         status = _finished_status(result)
-        self._update(entry_id, status=status, result=result, finished_at=self.clock())
+        self._update(entry_id, status=status, result=result, finished_at=self.clock(), timings=timings or {})
+
+    def latencies(self) -> dict[str, float]:
+        """Last 20 measured Web commands; exclude legacy/unmeasured entries."""
+        samples = [entry.timings["queue_wait_ms"] for entry in self._entries()
+                   if entry.command.source.value == "web" and "queue_wait_ms" in entry.timings][-20:]
+        return ({"count": len(samples), "median_ms": median(samples), "max_ms": max(samples)}
+                if samples else {})
 
     def recover(self, reconcile: Callable[[ReviewCommand | AdminCommand], ReviewResult]) -> int:
         """Reconcile entries interrupted while running; returns their number."""

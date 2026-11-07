@@ -22,6 +22,8 @@ class ProposalReconciliationService:
         self.repository = ProposalRepository(store)
 
     def compare(self, proposal, candidates):
+        proposal = proposal.model_copy(update={"title": proposal.base_title or proposal.title})
+        candidates = [item.model_copy(update={"title": item.base_title or item.title}) for item in candidates]
         payload = [self.policy, proposal.model_dump(mode="json"),
                    [p.model_dump(mode="json") for p in candidates]]
         key = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()

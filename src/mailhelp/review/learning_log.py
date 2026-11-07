@@ -28,6 +28,18 @@ def learning_path(directory: Path) -> Path:
     return directory / LEARNING_FILE
 
 
+def preserves_relevance(store: JsonStore, mail_id: str) -> bool:
+    """Authoritative local closure and retained decisions both protect a positive example."""
+    for name in store.names(f"proposal-{mail_id}-"):
+        proposal = store.peek_model(name, Proposal)
+        if (proposal is not None and name == state_names.proposal(proposal.source_mail_id, proposal.id)
+                and proposal.resolution == "already_done"):
+            return True
+    return any(record.get("mail_id") == mail_id and record.get("operation") == "already_done"
+               and record.get("relevance_preserved") is True and record.get("decision") == "relevant"
+               for record in _read(learning_path(store.directory)))
+
+
 def _changes(original: dict[str, Any] | None, decided: dict[str, Any] | None) -> dict[str, list[Any]]:
     if original is None or decided is None:
         return {}
@@ -125,8 +137,11 @@ class DecisionLearningLog:
         if decided is None and result.get("version") == version:
             decided = result
         original = self._original(state, proposal_id)
-        self._append(state, {"kind": kind, "source": source, "operation": operation,
-                             "proposal_id": proposal_id, "version": version, "decision": None,
+        self._append(state, {"kind": kind, "source": source,
+                             "operation": "already_done" if kind == "already_done" else operation,
+                             "idempotency_key": operation, "relevance_preserved": kind == "already_done",
+                             "proposal_id": proposal_id, "version": version,
+                             "decision": "relevant" if kind == "already_done" else None,
                              "answer": answer, "proposal": {
                                  "original": original, "decided": decided, "result": result,
                                  "changes": _changes(original, decided)}})

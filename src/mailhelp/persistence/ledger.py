@@ -39,7 +39,7 @@ class ActionLedgerService:
             )
         identity: dict[str, Any] = {
             "kind": proposal.kind.value,
-            "title": proposal.title.strip().casefold(),
+            "title": (proposal.base_title or proposal.title).strip().casefold(),
             "description": description.strip().casefold(),
             "target": proposal.target,
             "due": encoded(proposal.due),

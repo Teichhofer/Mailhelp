@@ -395,7 +395,7 @@ class MailPipeline:
                 + state.action_route.reason,
             )
         for conflict in state.extraction_count_conflicts:
-            if conflict.notification_marked_at is not None:
+            if conflict.notification_marked_at is not None or conflict.actual_count > 0:
                 continue
             # Mark before delivery: an uncertain Telegram result must
             # never lead to an automatic duplicate after restart.
@@ -403,9 +403,8 @@ class MailPipeline:
             self.o.save(name, state)
             self.o.notifier.send(
                 self.o.chat_id,
-                f"Zählerabweichung für {conflict.category}: Router "
-                f"{conflict.expected_count}, Extraktion {conflict.actual_count}. "
-                "Bitte die tatsächliche Anzahl klären.",
+                "Die Mail enthält möglicherweise Handlungsbedarf, aber es konnte "
+                "kein Vorschlag gewonnen werden. Bitte die Mail manuell prüfen.",
             )
         for proposal, notification in zip(state.proposals, state.proposal_notifications, strict=True):
             if notification.status != "pending":

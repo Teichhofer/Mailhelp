@@ -25,7 +25,7 @@ class ArchiveQuery(BaseModel):
     topic: str = Field(default="", max_length=100)
     state: Literal["", "failed", "waiting", "completed", "no_action"] = ""
     kind: Literal["", "state", "edit", "edit_fields", "confirm", "confirm_duplicate", "reject", "clarify", "answer",
-                  "cancel", "relevance", "recheck", "legacy"] = ""
+                  "already_done", "cancel", "relevance", "recheck", "legacy"] = ""
     proposal_kind: Literal["", "task", "event"] = ""
     status: ProposalStatus | Literal["relevant", "irrelevant"] | None = None
     since: date | None = None

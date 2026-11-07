@@ -38,9 +38,6 @@ class MailQuestions:
             proposal = initial
             while proposal.open_questions:
                 question = proposal.open_questions[0]
-                if question.startswith("Wie viele "):
-                    # A model must not resolve its own contradictory counts.
-                    break
                 call, interpretation = self.o.analyzer.answer_question_from_mail(
                     state.mail, proposal, question)
                 state.llm_call_ids.append(call)

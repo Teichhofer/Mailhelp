@@ -457,10 +457,11 @@ persistiert jede schema-valide Extraktion vollständig samt Call-ID und führt d
 andere Extraktion auch bei einer Abweichung weiter aus. Soll-/Ist-Abweichungen
 werden mit Kategorie sowie Router- und Extraktor-Call-ID dauerhaft und eindeutig
 gespeichert; dies gilt auch für eine leere Extraktion bei positiver Routerzahl.
-Betroffene Vorschläge bleiben mit einer konkreten Mengenfrage in
-`needs_clarification`. Erst eine ausdrückliche Klärung erzeugt eine neue,
-separat zu bestätigende Version; die alte Version darf keinen externen Schreibzugriff
-auslösen. Wiederaufnahmen verwenden Extraktion und Konfliktmeldung idempotent wieder.
+Seit 4.3 bleiben positive Extraktionsergebnisse ohne künstliche Mengenfrage
+bestätigbar, sofern keine fachlichen Fakten fehlen. Eine vollständig leere Extraktion
+bei positivem Routerzähler meldet einmalig Prüfbedarf zur Ursprungsmail. Die andere
+Extraktionsart bleibt erhalten. Wiederaufnahmen verwenden Extraktion und Hinweis
+idempotent wieder; die Zahlen werden nicht durch eine Nutzerantwort „korrigiert“.
 `unclear` ist ein fachlicher Klärungsfall und kein Provider- oder Schemafehler.
 Seine Zähler beschreiben mögliche Kandidaten und dürfen unabhängig voneinander null
 sein. Erkannte Terminkandidaten (`event_count > 0`) werden auch bei `unclear`
@@ -628,7 +629,7 @@ Absender, den Betreff und das Datum der Ursprungsmail. Bei einem unbrauchbaren
 Date-Header wird dafür der IMAP-Empfangszeitpunkt verwendet. Identische
 Extraktionen derselben Mail werden zusammengeführt.
 
-Der `action_router` verlangt das geschlossene `ActionRoute`-Schema mit `action_state`, `task_count`, `event_count` und `reason`. `unclear` setzt mindestens einen möglichen Kandidaten voraus; eine Ausgabe `unclear` mit beiden Zählern 0 wird deterministisch als `none` behandelt und erzeugt keinen Hinweis auf fachliche Klärung. Router, Aufgaben- und Terminextraktion bewerten den aktuellen Nachrichtenteil: Bitten und Veranstaltungen, die nur in zitierten oder weitergeleiteten älteren Nachrichten vorkommen, zählen nicht, solange der aktuelle Teil sie nicht ausdrücklich wiederholt, bestätigt, ändert oder absagt; die bloße Erwähnung einer Veranstaltung ohne Einladung oder Bezug zur nutzenden Person ist kein Terminkandidat. Er fordert ausdrücklich keine Datumsnormalisierung, Zeitzone, Statuslogik, IDs, Ziele, Benachrichtigungsflags oder vollständigen Vorschläge. `task_extraction` und `event_extraction` liefern strikt versionierte Rohmodelle mit den verpflichtenden Listen `tasks` beziehungsweise `events` und höchstens 20 Einträgen. Eine Mengenabweichung wird als Fachkonflikt gespeichert, nicht als Schemafehler. Beide Extraktionen werden unabhängig fortgesetzt; vorhandene betroffene Vorschläge erhalten eine Mengenfrage, die ausschließlich über Telegram geklärt wird. Eine leere Extraktion erzeugt keine erfundene Aktion: Die einmalige Telegram-Meldung verweist auf die manuelle Prüfung der Ursprungsmail und gegebenenfalls die manuelle Erfassung im Zieldienst. Die Extraktionen kopieren nur ausdrücklich genannte Texte, normalisieren weder Datum noch Uhrzeit und ergänzen keine fehlenden Werte; Videolinks müssen ausdrücklich genannte HTTP-/HTTPS-URLs sein. Die Ergebnisse werden getrennt persistiert und sind noch keine automatisch bestätigbaren Vorschläge.
+Der `action_router` verlangt das geschlossene `ActionRoute`-Schema mit `action_state`, `task_count`, `event_count` und `reason`. `unclear` setzt mindestens einen möglichen Kandidaten voraus; eine Ausgabe `unclear` mit beiden Zählern 0 wird deterministisch als `none` behandelt und erzeugt keinen Hinweis auf fachliche Klärung. Router, Aufgaben- und Terminextraktion bewerten den aktuellen Nachrichtenteil: Bitten und Veranstaltungen, die nur in zitierten oder weitergeleiteten älteren Nachrichten vorkommen, zählen nicht, solange der aktuelle Teil sie nicht ausdrücklich wiederholt, bestätigt, ändert oder absagt; die bloße Erwähnung einer Veranstaltung ohne Einladung oder Bezug zur nutzenden Person ist kein Terminkandidat. Er fordert ausdrücklich keine Datumsnormalisierung, Zeitzone, Statuslogik, IDs, Ziele, Benachrichtigungsflags oder vollständigen Vorschläge. `task_extraction` und `event_extraction` liefern strikt versionierte Rohmodelle mit den verpflichtenden Listen `tasks` beziehungsweise `events` und höchstens 20 Einträgen. Eine Mengenabweichung wird als Fachkonflikt gespeichert, nicht als Schemafehler. Beide Extraktionen werden unabhängig fortgesetzt. Seit 4.3 erzeugt eine Zählerabweichung keine Mengenfrage; positive Ergebnisse bleiben bei vollständigen fachlichen Fakten direkt bestätigbar. Eine leere Extraktion erzeugt keine erfundene Aktion: Die einmalige Telegram-Meldung verweist auf die manuelle Prüfung der Ursprungsmail und gegebenenfalls die manuelle Erfassung im Zieldienst. Die Extraktionen kopieren nur ausdrücklich genannte Texte, normalisieren weder Datum noch Uhrzeit und ergänzen keine fehlenden Werte; Videolinks müssen ausdrücklich genannte HTTP-/HTTPS-URLs sein. Die Ergebnisse werden getrennt persistiert und sind noch keine automatisch bestätigbaren Vorschläge.
 
 | Aufgabe | Termin |
 | --- | --- |
@@ -2708,3 +2709,76 @@ Beschädigte Zustandsdateien umfassen auch ungültiges UTF-8. Schreibfreies Lese
 `CorruptState` ohne Änderung der Datei; normales Laden isoliert die unveränderten Bytes
 als `.corrupt`. Eine so isolierte maßgebliche Zustandsdatei darf bei späteren Leseversuchen
 nicht als fehlender Zustand durch einen Default ersetzt werden.
+
+## Ergänzungen Version 4.2
+
+- `already_done` ist eine ausdrückliche, versionsgebundene lokale Entscheidung in
+  Web und Telegram. Sie setzt den aktuellen Vorschlag auf `rejected` mit dem
+  anwendungseigenen Kennzeichen `resolution="already_done"`. Sie ruft weder einen
+  Zielanbieter noch einen externen Dublettenabgleich auf. Auch eine unvalidierte
+  Statuskopie eines so abgeschlossenen Vorschlags darf die Schreibgrenze nicht passieren.
+- Das optionale Kennzeichen hat bei älteren Akten den Wert `None`; alte Dateien
+  bleiben ohne schreibende Migration lesbar. `resolution` ist kein bearbeitbares
+  Feld und kein Feld der LLM-Extraktion. Eine gesetzte Auflösung ist ausschließlich
+  mit dem Zustand `rejected` gültig.
+- Der Neustart-Abgleich bestätigt `already_done` nur bei derselben Vorschlagsversion
+  und genau diesem Auflösungskennzeichen. Andere Entscheidungen oder spätere Versionen
+  gelten nicht als Wirkung des unterbrochenen Befehls und erzeugen dafür kein Lernprotokoll.
+- `learning/decisions.jsonl` protokolliert dafür `operation="already_done"`,
+  `decision="relevant"`, `relevance_preserved=true`, den ursprünglichen
+  Idempotenzschlüssel und beide Vorschlagsstände. Der Lernschutz liest zuerst die
+  maßgeblichen aktuellen Vorschläge und danach verbliebene positive Lernprotokolle;
+  fehlende Mailprojektionen nach einem Absturz machen das Beispiel nicht negativ.
+  Solche Mails erzeugen im CLI- und Browser-Lernen keine negativen Themen- oder
+  Absendervorschläge und keinen erneuten Klassifikationsaufruf. Manuelle ausdrückliche
+  Themenänderungen bleiben eigenständige Entscheidungen.
+- `/status` und `/berichte` unterscheiden „Schon erledigt“ und „Verworfen“.
+  Die Bestandszahlen auf der Berichtsübersicht sind ausdrücklich unabhängig vom
+  Zeitraum der separat aus Mails gewonnenen Tätigkeitsberichte.
+- Der Bedienlauf gleicht nach Neustarts unterbrochene Befehle zuerst ab und bearbeitet
+  dann wartende Web-Befehle vor Wiederaufnahmen und Telegram-Eingaben. Dialog- und
+  Ablagesperre werden nicht über externe Aufrufe gehalten. Die Outbox speichert
+  `sending` vor dem Versand, bewahrt parallele Ergänzungen und wiederholt ein
+  unklar zugestelltes Telegram-Ereignis nicht automatisch.
+- `command_finished` enthält `queue_wait_ms`, `dialog_lock_wait_ms`,
+  `store_lock_wait_ms`, `execution_ms` und `latency_ms` ohne Mail-/Nachrichteninhalte.
+  Die Statusseite zeigt Median und Maximum der letzten 20 gemessenen Web-Befehle.
+- `/api/aktion/<id>` prüft Sitzung und Eigentümer erneut und liefert nur `status`
+  sowie das interne Weiterleitungsziel `target`. Die Fortschrittsseite fragt nur
+  diesen Endpunkt ab, wiederholt niemals den POST und lädt ohne JavaScript weiter
+  über einen `noscript`-Rückfall neu. Die tatsächliche externe Anlage kann länger
+  als der angestrebte Ausführungsbeginn dauern; das Ziel wird im Hinweis benannt.
+
+## Ergänzungen Version 4.3
+
+- Rein werbliche Lese-/Downloadangebote und bloße Höflichkeitsweiterleitungen zählen
+  in Router und Aufgabenextraktion nicht als Aufgaben. Persönliche Verantwortungen
+  und verbindliche Fristen bleiben relevant. Die Extraktoren dürfen keine Inhalte
+  erfinden oder unterschlagen, um den geschätzten Routerzähler zu erfüllen.
+- Zählerabweichungen bleiben Diagnosebefunde. Es entstehen keine Mengenfragen und
+  keine technischen Zählerwarnungen im Chat. Ein leerer Befund trotz positivem
+  Routerzähler wird als fachlicher Mail-Prüfhinweis angezeigt, ohne eine Aktion zu erfinden.
+- Serien verbinden ausschließlich Termine derselben Quellmail mit normalisiertem
+  Grundtitel. `base_title` und `series_key` sind anwendungseigene optionale Felder;
+  alte Akten werden ohne Versionssprung ergänzt. Der Builder hängt bei mehreren
+  gleichnamigen Terminen aufgelöste Daten im Format TT.MM.JJJJ an. Abgleich und
+  Aktionsschlüssel verwenden den Grundtitel, auch gegenüber Modell-Abgleichern.
+- Eine gemeinsame Zeitantwort benötigt eine eigene Auswahl „Alle“ beziehungsweise
+  „Nur diesen“. Jede unveränderte offene Mitgliedsversion erhält höchstens eine
+  neue Version über die deterministische Zeitauswertung. Datum und Frageart bleiben
+  erhalten; Standarddauern folgen der vorhandenen Konfiguration und gelten nur bei
+  belegter Teilnahmeart. Manuelle Zeitfakten bleiben vor späterem Abgleich geschützt.
+- Die Webansicht gruppiert Serien aufklappbar und bietet gemeinsame Uhrzeiten und
+  Ausnahmen. Nach geänderter Auswahl wird die neue konkrete Liste nochmals angezeigt.
+  Native Formulare funktionieren ohne JavaScript und autorisieren beim Speichern
+  ausschließlich Revisionen, keine externe Anlage.
+- Eine Sammelbestätigung bindet die angezeigte vollständige Liste aus IDs und Versionen
+  an die autorisierte Person beziehungsweise Websitzung. Vor jedem ersten Schreiben
+  wird die ganze Liste einschließlich Zielprofilen und Dublettenlage geprüft. Eine
+  Abweichung verhindert den Beginn der Sammelanlage. Netzwerkaufrufe halten keine
+  gemeinsame Ablagesperre. Änderungen während einer bereits begonnenen Anlage stoppen
+  die verbleibenden Termine; zuvor abgeschlossene externe Aktionen bleiben bestehen.
+- Servereigene Angebote, Auslieferungsmarken und Serienjournale speichern Auswahl und
+  Fortschritt. Je Termin gelten eigener Idempotenzschlüssel und bestehender Schreib-
+  und Wiederanlauf-Abgleich. Unklare Resultate werden vor einer weiteren Anlage
+  abgeglichen. CSRF, erneute Sitzungsprüfung und Versionsbindung bleiben verbindlich.

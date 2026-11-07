@@ -77,6 +77,8 @@ class MailhelpSite:
         self.local_hosts = {f"127.0.0.1:{settings.port}", f"localhost:{settings.port}"}
         self.login_pages = LoginSite(self)
         self.review = ReviewSite(self)
+        from .series_site import SeriesSite
+        self.series = SeriesSite(self)
         app.route("GET", "/offen", self.signed_in(self.review.home))
         app.route("GET", "/anmelden", self.login_pages.login)
         app.route("POST", "/anmelden/code", self.login_pages.request_code)
@@ -101,6 +103,7 @@ class MailhelpSite:
         app.route("GET", "/api/stand", self.signed_in(self.state))
         app.route("POST", "/aktion", self.signed_in(self.act))
         app.route("GET", r"/aktion/(?P<entry_id>[a-f0-9]{32})", self.signed_in(self.progress))
+        app.route("GET", r"/api/aktion/(?P<entry_id>[a-f0-9]{32})", self.signed_in(self.command_status))
         from .archive_site import ArchiveSite
         self.archive = ArchiveSite(self, configuration, metrics, lifecycle, models)
         self.senders = SenderSite(self)
@@ -130,7 +133,7 @@ class MailhelpSite:
         if content_type != FORM_TYPE:
             return Response.text(415, "Nur Formulardaten werden angenommen.")
         try:
-            return request.form()
+            return request.form(max_num_fields=120 if request.path.startswith("/serie/") else 20)
         except (UnicodeDecodeError, ValueError):
             return Response.text(400, "Ungültige Formulardaten.")
 
@@ -189,7 +192,8 @@ class MailhelpSite:
         info = ServiceInfo(
             version=__version__, test_mode=self.views.test_mode, started_at=self.started_at, now=now,
             address=self.link_base(), devices=len(self.auth.sessions()),
-            llm_calls_per_minute=self.llm_calls_per_minute, commands=self.commands.counts())
+            llm_calls_per_minute=self.llm_calls_per_minute, commands=self.commands.counts(),
+            command_latencies=self.commands.latencies())
         system = self.views.system(now)
         metrics = self.archive.metrics
         runtime = metrics.runtime() if metrics is not None else None
@@ -327,6 +331,14 @@ class MailhelpSite:
             # Done: back to the overview, which shows the result on top.
             return Response.redirect(f"/?ergebnis={entry.id}")
         return Response.html(200, command_page(entry, self.auth.csrf_token(session.id), current))
+
+    def command_status(self, request: Request, session: WebSession, entry_id: str) -> Response:
+        """Only the authenticated browser's durable command, without rebuilding views."""
+        entry = self.commands.get(entry_id)
+        if entry is None or entry.command.actor != f"web:{session.id}":
+            return Response.json(404, {"error": "Diese Aktion ist nicht (mehr) bekannt."})
+        return Response.json(200, {"status": entry.status.value,
+                                   "target": f"/aktion/{entry.id}" if entry.result is not None else None})
 
     def _settled(self, entry: CommandEntry) -> CommandEntry:
         """Wait briefly for a quick result so the page usually needs no reload."""

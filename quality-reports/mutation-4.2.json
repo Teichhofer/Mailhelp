@@ -1,0 +1,300 @@
+{
+  "schema_version": 1,
+  "version": "4.2.0",
+  "created_at": "2026-11-06T16:11:20.789253+00:00",
+  "tool": "mutmut 3.8.0",
+  "complete": true,
+  "threshold_per_core": 90,
+  "stats": {
+    "killed": 1027,
+    "survived": 26,
+    "total": 1053,
+    "no_tests": 0,
+    "skipped": 0,
+    "suspicious": 0,
+    "timeout": 0,
+    "check_was_interrupted_by_user": 0,
+    "segfault": 0
+  },
+  "groups": {
+    "domain": {
+      "total": 506,
+      "killed": 501,
+      "score": 99.01185770750988
+    },
+    "storage": {
+      "total": 397,
+      "killed": 380,
+      "score": 95.71788413098237
+    },
+    "confirmed": {
+      "total": 150,
+      "killed": 146,
+      "score": 97.33333333333333
+    }
+  },
+  "modules": {
+    "src/mailhelp/domain/mail.py": {
+      "total": 5,
+      "killed": 5,
+      "sha256": "fc3f32b4ff88899e253c272cc4caefb7827d5d29da0be79ab17899b35238801d"
+    },
+    "src/mailhelp/domain/processing.py": {
+      "total": 5,
+      "killed": 3,
+      "sha256": "f0d4ed3f5de14980182c5a295db429422efe5643f7a1b3c1670f693e89fa8960"
+    },
+    "src/mailhelp/domain/proposal.py": {
+      "total": 496,
+      "killed": 493,
+      "sha256": "133adf1ad139b7cae8600310267f1ef412f1197042e6ef9989c73d82a1ea9aa6"
+    },
+    "src/mailhelp/external/confirmed.py": {
+      "total": 150,
+      "killed": 146,
+      "sha256": "6f6e9d777aabdd1a3413b1306705f7e90283740f8adef313afe1f48b449eec7d"
+    },
+    "src/mailhelp/storage.py": {
+      "total": 397,
+      "killed": 380,
+      "sha256": "1d15c0597d089d392fa6f958f7a98975d3c9add86be0bbe29975dde25c95d6f2"
+    }
+  },
+  "survivors": [
+    {
+      "name": "mailhelp.domain.processing.xǁTelegramDialogStateǁreference__mutmut_1",
+      "module": "src/mailhelp/domain/processing.py",
+      "diff": "# mailhelp.domain.processing.xǁTelegramDialogStateǁreference__mutmut_1: survived\n--- src/mailhelp/domain/processing.py\n+++ src/mailhelp/domain/processing.py\n@@ -1,4 +1,4 @@\n def reference(self) -> tuple[str, str, int]:\n     \"\"\"Mail, proposal and version of an open dialog; the validator sets all three together.\"\"\"\n-    assert self.mail_id is not None and self.proposal_id is not None and self.version is not None\n+    assert self.mail_id is not None and self.proposal_id is not None or self.version is not None\n     return self.mail_id, self.proposal_id, self.version\n",
+      "analysis": {
+        "category": "equivalent_for_valid_models",
+        "reason": "Die Modellvalidierung erlaubt nur drei gesetzte oder drei leere Referenzfelder; die geänderte Verknüpfung unterscheidet diese beiden Fälle nicht."
+      }
+    },
+    {
+      "name": "mailhelp.domain.processing.xǁTelegramDialogStateǁreference__mutmut_2",
+      "module": "src/mailhelp/domain/processing.py",
+      "diff": "# mailhelp.domain.processing.xǁTelegramDialogStateǁreference__mutmut_2: survived\n--- src/mailhelp/domain/processing.py\n+++ src/mailhelp/domain/processing.py\n@@ -1,4 +1,4 @@\n def reference(self) -> tuple[str, str, int]:\n     \"\"\"Mail, proposal and version of an open dialog; the validator sets all three together.\"\"\"\n-    assert self.mail_id is not None and self.proposal_id is not None and self.version is not None\n+    assert self.mail_id is not None or self.proposal_id is not None and self.version is not None\n     return self.mail_id, self.proposal_id, self.version\n",
+      "analysis": {
+        "category": "equivalent_for_valid_models",
+        "reason": "Die Modellvalidierung erlaubt nur drei gesetzte oder drei leere Referenzfelder; die geänderte Verknüpfung unterscheidet diese beiden Fälle nicht."
+      }
+    },
+    {
+      "name": "mailhelp.domain.proposal.xǁProposalǁ_check_merge_and_defaults__mutmut_12",
+      "module": "src/mailhelp/domain/proposal.py",
+      "diff": "# mailhelp.domain.proposal.xǁProposalǁ_check_merge_and_defaults__mutmut_12: survived\n--- src/mailhelp/domain/proposal.py\n+++ src/mailhelp/domain/proposal.py\n@@ -3,7 +3,7 @@\n     if self.merge_review_required and self.canonical_ref is None:\n         raise ValueError(\"Ein ungeprüfter Zusatz benötigt seine kanonische Referenz\")\n     if self.default_duration_minutes is not None and (\n-            self.end_origin != \"standard\" or self.kind != ProposalKind.EVENT or\n+            self.end_origin != \"standard\" and self.kind != ProposalKind.EVENT or\n             self.start is None or self.end is None or self.all_day):\n         raise ValueError(\"Standarddauer benötigt ein zeitgebundenes Terminintervall und Herkunft\")\n     if (self.status == ProposalStatus.MERGED) != (self.canonical_ref is not None):\n",
+      "analysis": {
+        "category": "remaining_validation_test_gap",
+        "reason": "Die veränderte Verknüpfung kann eine unpassende Standarddauer-Herkunft bei einem sonst vollständigen Terminintervall zulassen. Der Testbestand unterscheidet diese Metadatenvalidierung nicht; Versionsbindung und Bestätigung bleiben unverändert."
+      }
+    },
+    {
+      "name": "mailhelp.domain.proposal.x__revision_interval__mutmut_40",
+      "module": "src/mailhelp/domain/proposal.py",
+      "diff": "# mailhelp.domain.proposal.x__revision_interval__mutmut_40: survived\n--- src/mailhelp/domain/proposal.py\n+++ src/mailhelp/domain/proposal.py\n@@ -15,7 +15,7 @@\n         start = changes.get(\"start\", known.start)\n         end = changes.get(\"end\")\n         if start is not None and end is not None:\n-            changes.update(start=start, end=end, known_temporal_facts=None)\n+            changes.update(start=start, known_temporal_facts=None)\n         elif (changes.get(\"all_day\") is True and isinstance(start, date)\n               and not isinstance(start, datetime)):\n             # A date-only all-day start is a complete proposal field, not a\n",
+      "analysis": {
+        "category": "redundant_assignment",
+        "reason": "end wurde bereits aus changes.get(end) gelesen; der nichtleere Wert steht schon im Änderungs-Dictionary."
+      }
+    },
+    {
+      "name": "mailhelp.domain.proposal.x__revision_interval__mutmut_51",
+      "module": "src/mailhelp/domain/proposal.py",
+      "diff": "# mailhelp.domain.proposal.x__revision_interval__mutmut_51: survived\n--- src/mailhelp/domain/proposal.py\n+++ src/mailhelp/domain/proposal.py\n@@ -22,7 +22,7 @@\n             # timezone-less ``KnownTemporalFacts.start`` datetime.  Keeping it\n             # in the latter would make Pydantic coerce the date to midnight and\n             # incorrectly demand a UTC offset for a time the user never gave.\n-            changes.update(start=start, known_temporal_facts=None)\n+            changes.update(known_temporal_facts=None)\n         elif \"start\" in changes:\n             changes.pop(\"start\")\n             changes[\"known_temporal_facts\"] = known.model_copy(\n",
+      "analysis": {
+        "category": "redundant_assignment_for_valid_models",
+        "reason": "Ein reiner Datumsbeginn kann bei validierten KnownTemporalFacts nur aus changes stammen und steht dort bereits."
+      }
+    },
+    {
+      "name": "mailhelp.external.confirmed.x_execute_confirmed__mutmut_27",
+      "module": "src/mailhelp/external/confirmed.py",
+      "diff": "# mailhelp.external.confirmed.x_execute_confirmed__mutmut_27: survived\n--- src/mailhelp/external/confirmed.py\n+++ src/mailhelp/external/confirmed.py\n@@ -9,7 +9,7 @@\n     if (proposal.status not in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN}\n             or proposal.open_questions):\n         raise ValueError(\"Schreiben erfordert vollständige, bestätigte Vorschlagsversion\")\n-    if isinstance(writer, TargetWriter) and (proposal.target_profile != getattr(writer, \"target_profile\", 1)\n+    if isinstance(writer, TargetWriter) and (proposal.target_profile != getattr(writer, \"target_profile\", None)\n             or proposal.target != writer.target or\n             proposal.target_provider and proposal.target_provider != provider_key(writer)):\n         # Even reconciliation must not search a newly configured target for an\n",
+      "analysis": {
+        "category": "unreachable_fallback",
+        "reason": "Innerhalb des TargetWriter-Zweigs existiert target_profile schon als geerbtes Klassenattribut; der getattr-Fallback wird nicht benötigt."
+      }
+    },
+    {
+      "name": "mailhelp.external.confirmed.x_execute_confirmed__mutmut_30",
+      "module": "src/mailhelp/external/confirmed.py",
+      "diff": "# mailhelp.external.confirmed.x_execute_confirmed__mutmut_30: survived\n--- src/mailhelp/external/confirmed.py\n+++ src/mailhelp/external/confirmed.py\n@@ -9,7 +9,7 @@\n     if (proposal.status not in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN}\n             or proposal.open_questions):\n         raise ValueError(\"Schreiben erfordert vollständige, bestätigte Vorschlagsversion\")\n-    if isinstance(writer, TargetWriter) and (proposal.target_profile != getattr(writer, \"target_profile\", 1)\n+    if isinstance(writer, TargetWriter) and (proposal.target_profile != getattr(writer, \"target_profile\", )\n             or proposal.target != writer.target or\n             proposal.target_provider and proposal.target_provider != provider_key(writer)):\n         # Even reconciliation must not search a newly configured target for an\n",
+      "analysis": {
+        "category": "unreachable_fallback",
+        "reason": "Innerhalb des TargetWriter-Zweigs existiert target_profile schon als geerbtes Klassenattribut; der getattr-Fallback wird nicht benötigt."
+      }
+    },
+    {
+      "name": "mailhelp.external.confirmed.x_execute_confirmed__mutmut_33",
+      "module": "src/mailhelp/external/confirmed.py",
+      "diff": "# mailhelp.external.confirmed.x_execute_confirmed__mutmut_33: survived\n--- src/mailhelp/external/confirmed.py\n+++ src/mailhelp/external/confirmed.py\n@@ -9,7 +9,7 @@\n     if (proposal.status not in {ProposalStatus.CONFIRMED, ProposalStatus.WRITING, ProposalStatus.UNCERTAIN}\n             or proposal.open_questions):\n         raise ValueError(\"Schreiben erfordert vollständige, bestätigte Vorschlagsversion\")\n-    if isinstance(writer, TargetWriter) and (proposal.target_profile != getattr(writer, \"target_profile\", 1)\n+    if isinstance(writer, TargetWriter) and (proposal.target_profile != getattr(writer, \"target_profile\", 2)\n             or proposal.target != writer.target or\n             proposal.target_provider and proposal.target_provider != provider_key(writer)):\n         # Even reconciliation must not search a newly configured target for an\n",
+      "analysis": {
+        "category": "unreachable_fallback",
+        "reason": "Innerhalb des TargetWriter-Zweigs existiert target_profile schon als geerbtes Klassenattribut; der getattr-Fallback wird nicht benötigt."
+      }
+    },
+    {
+      "name": "mailhelp.external.confirmed.x__with_external_result__mutmut_33",
+      "module": "src/mailhelp/external/confirmed.py",
+      "diff": "# mailhelp.external.confirmed.x__with_external_result__mutmut_33: survived\n--- src/mailhelp/external/confirmed.py\n+++ src/mailhelp/external/confirmed.py\n@@ -5,6 +5,6 @@\n     link = result.get(\"url\") or result.get(\"html_url\") or result.get(\"htmlLink\")\n     return proposal.model_copy(update={\n         \"status\": ProposalStatus.CREATED,\n-        \"external_id\": str(external_id) if external_id is not None else None,\n+        \"external_id\": str(external_id) if (external_id is not None) or True else None,\n         \"external_link\": str(link) if link is not None else None,\n     })\n",
+      "analysis": {
+        "category": "redundant_guard",
+        "reason": "Der frühere ID-Guard weist None zurück, bevor die spätere bedingte str-Umwandlung erreicht wird."
+      }
+    },
+    {
+      "name": "mailhelp.storage.x_atomic_replace__mutmut_8",
+      "module": "src/mailhelp/storage.py",
+      "diff": "# mailhelp.storage.x_atomic_replace__mutmut_8: survived\n--- src/mailhelp/storage.py\n+++ src/mailhelp/storage.py\n@@ -1,7 +1,7 @@\n def atomic_replace(path: Path, content: str) -> None:\n     \"\"\"Durably replace one user-editable text file (configuration, topics, metrics) without partial writes.\"\"\"\n     path.parent.mkdir(parents=True, exist_ok=True)\n-    descriptor, temporary = tempfile.mkstemp(prefix=f\".{path.name}.\", dir=path.parent)\n+    descriptor, temporary = tempfile.mkstemp(prefix=None, dir=path.parent)\n     try:\n         with os.fdopen(descriptor, \"w\", encoding=\"utf-8\", newline=\"\\n\") as stream:\n             stream.write(content)\n",
+      "analysis": {
+        "category": "temporary_filename_detail",
+        "reason": "Der Dateinamenpräfix entfällt; Zielverzeichnis, eindeutige Erzeugung und atomarer Ersatz bleiben erhalten. Die Benennung ist nicht als eigener Funktionsvertrag geprüft."
+      }
+    },
+    {
+      "name": "mailhelp.storage.x_atomic_replace__mutmut_10",
+      "module": "src/mailhelp/storage.py",
+      "diff": "# mailhelp.storage.x_atomic_replace__mutmut_10: survived\n--- src/mailhelp/storage.py\n+++ src/mailhelp/storage.py\n@@ -1,7 +1,7 @@\n def atomic_replace(path: Path, content: str) -> None:\n     \"\"\"Durably replace one user-editable text file (configuration, topics, metrics) without partial writes.\"\"\"\n     path.parent.mkdir(parents=True, exist_ok=True)\n-    descriptor, temporary = tempfile.mkstemp(prefix=f\".{path.name}.\", dir=path.parent)\n+    descriptor, temporary = tempfile.mkstemp(dir=path.parent)\n     try:\n         with os.fdopen(descriptor, \"w\", encoding=\"utf-8\", newline=\"\\n\") as stream:\n             stream.write(content)\n",
+      "analysis": {
+        "category": "temporary_filename_detail",
+        "reason": "Der Dateinamenpräfix entfällt; Zielverzeichnis, eindeutige Erzeugung und atomarer Ersatz bleiben erhalten. Die Benennung ist nicht als eigener Funktionsvertrag geprüft."
+      }
+    },
+    {
+      "name": "mailhelp.storage.x_atomic_replace__mutmut_31",
+      "module": "src/mailhelp/storage.py",
+      "diff": "# mailhelp.storage.x_atomic_replace__mutmut_31: survived\n--- src/mailhelp/storage.py\n+++ src/mailhelp/storage.py\n@@ -9,5 +9,5 @@\n             os.fsync(stream.fileno())\n         os.replace(temporary, path)\n     except BaseException:\n-        Path(temporary).unlink(missing_ok=True)\n+        Path(temporary).unlink(missing_ok=None)\n         raise\n",
+      "analysis": {
+        "category": "remaining_cleanup_test_gap",
+        "reason": "Bei bereits fehlender temporärer Datei kann die Fehlerbereinigung den ursprünglichen Fehler durch FileNotFoundError ersetzen. Die bestehenden Tests unterscheiden diese zusätzliche Fehlerbedingung nicht."
+      }
+    },
+    {
+      "name": "mailhelp.storage.x_atomic_replace__mutmut_33",
+      "module": "src/mailhelp/storage.py",
+      "diff": "# mailhelp.storage.x_atomic_replace__mutmut_33: survived\n--- src/mailhelp/storage.py\n+++ src/mailhelp/storage.py\n@@ -9,5 +9,5 @@\n             os.fsync(stream.fileno())\n         os.replace(temporary, path)\n     except BaseException:\n-        Path(temporary).unlink(missing_ok=True)\n+        Path(temporary).unlink(missing_ok=False)\n         raise\n",
+      "analysis": {
+        "category": "remaining_cleanup_test_gap",
+        "reason": "Bei bereits fehlender temporärer Datei kann die Fehlerbereinigung den ursprünglichen Fehler durch FileNotFoundError ersetzen. Die bestehenden Tests unterscheiden diese zusätzliche Fehlerbedingung nicht."
+      }
+    },
+    {
+      "name": "mailhelp.storage.xǁJsonStoreǁ__enter____mutmut_42",
+      "module": "src/mailhelp/storage.py",
+      "diff": "# mailhelp.storage.xǁJsonStoreǁ__enter____mutmut_42: survived\n--- src/mailhelp/storage.py\n+++ src/mailhelp/storage.py\n@@ -24,7 +24,7 @@\n     # This is diagnostic information only.  The kernel-held lock above, not\n     # the PID stored here, determines whether another instance is running.\n     try:\n-        metadata = json.dumps({\"pid\": os.getpid()}).encode(\"ascii\")\n+        metadata = json.dumps({\"pid\": os.getpid()}).encode(\"ASCII\")\n         os.lseek(descriptor, 0, os.SEEK_SET)\n         os.write(descriptor, metadata)\n         os.ftruncate(descriptor, len(metadata))\n",
+      "analysis": {
+        "category": "codec_alias",
+        "reason": "Die Groß-/Kleinschreibung des registrierten ASCII-/UTF-8-Codecs ändert die gespeicherten Bytes nicht."
+      }
+    },
+    {
+      "name": "mailhelp.storage.xǁJsonStoreǁpeek__mutmut_10",
+      "module": "src/mailhelp/storage.py",
+      "diff": "# mailhelp.storage.xǁJsonStoreǁpeek__mutmut_10: survived\n--- src/mailhelp/storage.py\n+++ src/mailhelp/storage.py\n@@ -1,5 +1,5 @@\n def peek(self, name: str, default: Any = None) -> Any:\n     \"\"\"Read without side effects: a damaged file is reported, never moved.\"\"\"\n     with measured_lock(self._thread_lock, \"store\"):\n-        value = self._read(name, default, quarantine=False)\n+        value = self._read(name, default, quarantine=None)\n     return value\n",
+      "analysis": {
+        "category": "equivalent_false_value",
+        "reason": "False und None aktivieren hier dieselbe über ihren Wahrheitswert geprüfte Leseroute beziehungsweise JSON-Encoder-Option."
+      }
+    },
+    {
+      "name": "mailhelp.storage.xǁJsonStoreǁ_read__mutmut_32",
+      "module": "src/mailhelp/storage.py",
+      "diff": "# mailhelp.storage.xǁJsonStoreǁ_read__mutmut_32: survived\n--- src/mailhelp/storage.py\n+++ src/mailhelp/storage.py\n@@ -8,7 +8,7 @@\n             raise CorruptState(f\"Isolierter Zustand muss repariert werden: {path.name}\")\n         return default\n     try:\n-        with path.open(encoding=\"utf-8\") as stream: return json.load(stream)\n+        with path.open(encoding=\"UTF-8\") as stream: return json.load(stream)\n     except (OSError, json.JSONDecodeError, UnicodeDecodeError) as exc:\n         if not quarantine:\n             raise CorruptState(f\"Beschädigter Zustand: {path.name}\") from exc\n",
+      "analysis": {
+        "category": "codec_alias",
+        "reason": "Die Groß-/Kleinschreibung des registrierten ASCII-/UTF-8-Codecs ändert die gespeicherten Bytes nicht."
+      }
+    },
+    {
+      "name": "mailhelp.storage.xǁJsonStoreǁpeek_model__mutmut_4",
+      "module": "src/mailhelp/storage.py",
+      "diff": "# mailhelp.storage.xǁJsonStoreǁpeek_model__mutmut_4: survived\n--- src/mailhelp/storage.py\n+++ src/mailhelp/storage.py\n@@ -1,6 +1,6 @@\n def peek_model[M: BaseModel](self, name: str, model: type[M], default: M | None = None) -> M | None:\n     \"\"\"Validate a state object read-only; migrations apply in memory only.\"\"\"\n-    value = self.peek(name, None)\n+    value = self.peek(name, )\n     if value is None:\n         return default\n     migrate_document(model.__name__, value)\n",
+      "analysis": {
+        "category": "identical_default_argument",
+        "reason": "Der ausgelassene explizite None-Wert entspricht dem Default des aufgerufenen JsonStore-Ports."
+      }
+    },
+    {
+      "name": "mailhelp.storage.xǁJsonStoreǁ_load_model__mutmut_4",
+      "module": "src/mailhelp/storage.py",
+      "diff": "# mailhelp.storage.xǁJsonStoreǁ_load_model__mutmut_4: survived\n--- src/mailhelp/storage.py\n+++ src/mailhelp/storage.py\n@@ -1,5 +1,5 @@\n def _load_model[M: BaseModel](self, name: str, model: type[M], default: M | None) -> M | None:\n-    value = self.load(name, None)\n+    value = self.load(name, )\n     if value is None:\n         return default\n     migrated = migrate_document(model.__name__, value)\n",
+      "analysis": {
+        "category": "identical_default_argument",
+        "reason": "Der ausgelassene explizite None-Wert entspricht dem Default des aufgerufenen JsonStore-Ports."
+      }
+    },
+    {
+      "name": "mailhelp.storage.xǁJsonStoreǁ_load_model__mutmut_26",
+      "module": "src/mailhelp/storage.py",
+      "diff": "# mailhelp.storage.xǁJsonStoreǁ_load_model__mutmut_26: survived\n--- src/mailhelp/storage.py\n+++ src/mailhelp/storage.py\n@@ -9,7 +9,7 @@\n         path = self.directory / f\"{name}.json\"\n         quarantine = path.with_suffix(\".invalid\")\n         os.replace(path, quarantine)\n-        locations = [\".\".join(str(part) for part in error[\"loc\"]) or \"<root>\"\n+        locations = [\"XX.XX\".join(str(part) for part in error[\"loc\"]) or \"<root>\"\n                      for error in exc.errors(include_input=False)]\n         raise CorruptState(f\"Schemawidriger Zustand isoliert: {quarantine.name}; \"\n                            f\"Schlüsselpfad: {', '.join(locations)}\") from exc\n",
+      "analysis": {
+        "category": "remaining_diagnostic_test_gap",
+        "reason": "Die Trennzeichen verschachtelter Schema-Schlüsselpfade sind nicht präzise abgesichert; Isolation und Ablehnung bleiben erhalten."
+      }
+    },
+    {
+      "name": "mailhelp.storage.xǁJsonStoreǁ_load_model__mutmut_33",
+      "module": "src/mailhelp/storage.py",
+      "diff": "# mailhelp.storage.xǁJsonStoreǁ_load_model__mutmut_33: survived\n--- src/mailhelp/storage.py\n+++ src/mailhelp/storage.py\n@@ -10,7 +10,7 @@\n         quarantine = path.with_suffix(\".invalid\")\n         os.replace(path, quarantine)\n         locations = [\".\".join(str(part) for part in error[\"loc\"]) or \"<root>\"\n-                     for error in exc.errors(include_input=False)]\n+                     for error in exc.errors(include_input=True)]\n         raise CorruptState(f\"Schemawidriger Zustand isoliert: {quarantine.name}; \"\n                            f\"Schlüsselpfad: {', '.join(locations)}\") from exc\n     if migrated:\n",
+      "analysis": {
+        "category": "unused_error_detail",
+        "reason": "Zusätzliche input-Daten werden zwar im lokalen Fehler-Dictionary erzeugt, aber nur loc wird verarbeitet; sie werden nicht in die Fehlermeldung oder Protokolle übernommen."
+      }
+    },
+    {
+      "name": "mailhelp.storage.xǁJsonStoreǁsave__mutmut_7",
+      "module": "src/mailhelp/storage.py",
+      "diff": "# mailhelp.storage.xǁJsonStoreǁsave__mutmut_7: survived\n--- src/mailhelp/storage.py\n+++ src/mailhelp/storage.py\n@@ -1,7 +1,7 @@\n def save(self, name: str, value: Any) -> None:\n     self._validate_name(name)\n     path = self.directory / f\"{name}.json\"\n-    temporary = path.with_suffix(\".tmp\")\n+    temporary = path.with_suffix(\".TMP\")\n     with measured_lock(self._thread_lock, \"store\"):\n         self.directory.mkdir(parents=True, exist_ok=True)\n         with temporary.open(\"w\", encoding=\"utf-8\", newline=\"\\n\") as stream:\n",
+      "analysis": {
+        "category": "temporary_filename_detail",
+        "reason": "Die Staging-Endung wird großgeschrieben; vollständige Akten und die JSON-Inventur bleiben unverändert. Das Namensdetail bei Abbruch ist nicht abgesichert."
+      }
+    },
+    {
+      "name": "mailhelp.storage.xǁJsonStoreǁsave__mutmut_14",
+      "module": "src/mailhelp/storage.py",
+      "diff": "# mailhelp.storage.xǁJsonStoreǁsave__mutmut_14: survived\n--- src/mailhelp/storage.py\n+++ src/mailhelp/storage.py\n@@ -3,7 +3,7 @@\n     path = self.directory / f\"{name}.json\"\n     temporary = path.with_suffix(\".tmp\")\n     with measured_lock(self._thread_lock, \"store\"):\n-        self.directory.mkdir(parents=True, exist_ok=True)\n+        self.directory.mkdir(parents=None, exist_ok=True)\n         with temporary.open(\"w\", encoding=\"utf-8\", newline=\"\\n\") as stream:\n             json.dump(value, stream, ensure_ascii=False, indent=2, sort_keys=True)\n             stream.write(\"\\n\")\n",
+      "analysis": {
+        "category": "remaining_robustness_test_gap",
+        "reason": "Mehrere fehlende Verzeichnisebenen bei direktem save ohne vorheriges Betreten des Stores sind nicht abgesichert. Der normale Anwendungsstart legt die Ebenen in __enter__ an."
+      }
+    },
+    {
+      "name": "mailhelp.storage.xǁJsonStoreǁsave__mutmut_16",
+      "module": "src/mailhelp/storage.py",
+      "diff": "# mailhelp.storage.xǁJsonStoreǁsave__mutmut_16: survived\n--- src/mailhelp/storage.py\n+++ src/mailhelp/storage.py\n@@ -3,7 +3,7 @@\n     path = self.directory / f\"{name}.json\"\n     temporary = path.with_suffix(\".tmp\")\n     with measured_lock(self._thread_lock, \"store\"):\n-        self.directory.mkdir(parents=True, exist_ok=True)\n+        self.directory.mkdir(exist_ok=True)\n         with temporary.open(\"w\", encoding=\"utf-8\", newline=\"\\n\") as stream:\n             json.dump(value, stream, ensure_ascii=False, indent=2, sort_keys=True)\n             stream.write(\"\\n\")\n",
+      "analysis": {
+        "category": "remaining_robustness_test_gap",
+        "reason": "Mehrere fehlende Verzeichnisebenen bei direktem save ohne vorheriges Betreten des Stores sind nicht abgesichert. Der normale Anwendungsstart legt die Ebenen in __enter__ an."
+      }
+    },
+    {
+      "name": "mailhelp.storage.xǁJsonStoreǁsave__mutmut_18",
+      "module": "src/mailhelp/storage.py",
+      "diff": "# mailhelp.storage.xǁJsonStoreǁsave__mutmut_18: survived\n--- src/mailhelp/storage.py\n+++ src/mailhelp/storage.py\n@@ -3,7 +3,7 @@\n     path = self.directory / f\"{name}.json\"\n     temporary = path.with_suffix(\".tmp\")\n     with measured_lock(self._thread_lock, \"store\"):\n-        self.directory.mkdir(parents=True, exist_ok=True)\n+        self.directory.mkdir(parents=False, exist_ok=True)\n         with temporary.open(\"w\", encoding=\"utf-8\", newline=\"\\n\") as stream:\n             json.dump(value, stream, ensure_ascii=False, indent=2, sort_keys=True)\n             stream.write(\"\\n\")\n",
+      "analysis": {
+        "category": "remaining_robustness_test_gap",
+        "reason": "Mehrere fehlende Verzeichnisebenen bei direktem save ohne vorheriges Betreten des Stores sind nicht abgesichert. Der normale Anwendungsstart legt die Ebenen in __enter__ an."
+      }
+    },
+    {
+      "name": "mailhelp.storage.xǁJsonStoreǁsave__mutmut_29",
+      "module": "src/mailhelp/storage.py",
+      "diff": "# mailhelp.storage.xǁJsonStoreǁsave__mutmut_29: survived\n--- src/mailhelp/storage.py\n+++ src/mailhelp/storage.py\n@@ -4,7 +4,7 @@\n     temporary = path.with_suffix(\".tmp\")\n     with measured_lock(self._thread_lock, \"store\"):\n         self.directory.mkdir(parents=True, exist_ok=True)\n-        with temporary.open(\"w\", encoding=\"utf-8\", newline=\"\\n\") as stream:\n+        with temporary.open(\"w\", encoding=\"UTF-8\", newline=\"\\n\") as stream:\n             json.dump(value, stream, ensure_ascii=False, indent=2, sort_keys=True)\n             stream.write(\"\\n\")\n             stream.flush()\n",
+      "analysis": {
+        "category": "codec_alias",
+        "reason": "Die Groß-/Kleinschreibung des registrierten ASCII-/UTF-8-Codecs ändert die gespeicherten Bytes nicht."
+      }
+    },
+    {
+      "name": "mailhelp.storage.xǁJsonStoreǁsave__mutmut_33",
+      "module": "src/mailhelp/storage.py",
+      "diff": "# mailhelp.storage.xǁJsonStoreǁsave__mutmut_33: survived\n--- src/mailhelp/storage.py\n+++ src/mailhelp/storage.py\n@@ -5,7 +5,7 @@\n     with measured_lock(self._thread_lock, \"store\"):\n         self.directory.mkdir(parents=True, exist_ok=True)\n         with temporary.open(\"w\", encoding=\"utf-8\", newline=\"\\n\") as stream:\n-            json.dump(value, stream, ensure_ascii=False, indent=2, sort_keys=True)\n+            json.dump(value, stream, ensure_ascii=None, indent=2, sort_keys=True)\n             stream.write(\"\\n\")\n             stream.flush()\n             os.fsync(stream.fileno())\n",
+      "analysis": {
+        "category": "equivalent_false_value",
+        "reason": "False und None aktivieren hier dieselbe über ihren Wahrheitswert geprüfte Leseroute beziehungsweise JSON-Encoder-Option."
+      }
+    }
+  ],
+  "analysis_complete": true
+}

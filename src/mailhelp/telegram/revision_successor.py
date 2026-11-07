@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from ..models import Proposal
 from ..processing.analysis import validate_revision_successor
+from ..proposals.revision_protection import protect_revision as protect_revision
 from ..temporal_answers import deterministic_classification_revision, deterministic_temporal_revision
 from .revision_contracts import ProposalRevisionService
 
@@ -27,14 +28,3 @@ def build_revision_successor(original: Proposal, question: str, normalized_answe
         )
     revised = validate_revision_successor(original, candidate)
     return protect_revision(original, revised), deterministic
-
-
-def protect_revision(original: Proposal, revised: Proposal) -> Proposal:
-    changed = [field for field in ("title", "description", "due", "start", "end", "known_temporal_facts",
-                                   "location", "video_link", "classification", "responsibility", "certainty")
-               if getattr(original, field) != getattr(revised, field)]
-    protected = list(dict.fromkeys([*original.protected_fields, *changed]))
-    revised = revised.model_copy(update={"protected_fields": protected})
-    if "end" in changed:
-        revised = revised.model_copy(update={"end_origin": "manual", "default_duration_minutes": None})
-    return revised

@@ -192,7 +192,18 @@ def overview_page(overview: Overview, *, actions: Actions | None = None,
         items.extend(relevance_card(view, relevance_actions) for view in overview.relevance)
     if overview.open:
         items.append("<h2>Vorschläge</h2>")
-        items.extend(proposal_card(view, actions=actions) for view in overview.open)
+        groups: dict[tuple[str, str | None], list[ProposalView]] = {}
+        for view in overview.open:
+            groups.setdefault((view.mail_id, view.series_key), []).append(view)
+        for (mail_id, key), group in groups.items():
+            cards = "".join(proposal_card(view, actions=actions) for view in group)
+            if key is not None and len(group) > 1:
+                title = e(group[0].base_title or group[0].card.title)
+                items.append(f'<details class="series-group"><summary>Serie: {title} '
+                             f'({len(group)} Termine)</summary><p><a class="button" href="/serie/{mail_id}/{key}">'
+                             f'Serie bearbeiten und bestätigen</a></p>{cards}</details>')
+            else:
+                items.append(cards)
     if items:
         # On wide screens app.js turns this list into the master pane of a split view.
         parts.append('<div class="open-items">' + "\n".join(items) + "</div>")

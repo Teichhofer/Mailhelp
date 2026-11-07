@@ -1575,6 +1575,312 @@
           "events": []
         }
       }
+    },
+    {
+      "id": "28_registration_optional_forward_download",
+      "raw_email": "From: Fachverband Digital <veranstaltungen@fachverband.example.test>\nTo: Alex Muster <alex.muster@example.test>\nDate: Fri, 18 Sep 2026 10:00:00 +0200\nMessage-ID: <14_invitation_registration@example.test>\nSubject: Einladung und Anmeldung Fachtag\nContent-Type: text/plain; charset=utf-8\n\nSehr geehrte Damen und Herren,\n\nSie sind herzlich zum Fachtag Digitalisierung am 20.10.2026 von 10:00 bis 11:00 Uhr im Kongresszentrum Musterstadt eingeladen. Bitte melden Sie sich bis 01.10.2026 über unser Anmeldeformular an.\n\nMit freundlichen Grüßen\nIhr Fachverband Digital\n\nLeiten Sie diese Einladung gerne an weitere Interessierte weiter.\nUnser kostenloses Whitepaper: Jetzt herunterladen. Mehr erfahren. Hier klicken.\n",
+      "received_at": "2026-09-18T10:01:00+02:00",
+      "expected": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "arbeit"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "2026-10-01",
+            "20.10.2026, 10:00 bis 11:00 Uhr"
+          ]
+        },
+        "action_route": {
+          "action_state": "task_and_event",
+          "task_count": 1,
+          "event_count": 1,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": [
+            {
+              "title": "Zum Fachtag anmelden",
+              "description": "",
+              "evidence": "Bitte melden Sie sich bis 01.10.2026 über unser Anmeldeformular an.",
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "due_text": "01.10.2026"
+            }
+          ]
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Fachtag Digitalisierung",
+              "description": null,
+              "evidence": "am 20.10.2026 von 10:00 bis 11:00 Uhr im Kongresszentrum Musterstadt",
+              "date_text": "20.10.2026",
+              "time_text": "10:00",
+              "end_time_text": "11:00",
+              "location": "Kongresszentrum Musterstadt",
+              "video_link": null,
+              "responsibility": "user",
+              "certainty": "certain",
+              "classification": "new",
+              "time_requirement": "timed"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "29_marketing_download_forward_only",
+      "raw_email": "From: Werbung <werbung@example.test>\nTo: Alex <alex@example.test>\nDate: Fri, 18 Sep 2026 10:00:00 +0200\nSubject: Unser neues Whitepaper\nContent-Type: text/plain; charset=utf-8\n\nWhitepaper jetzt herunterladen. Mehr erfahren. Hier klicken. Gerne weiterleiten!\n",
+      "received_at": "2026-09-18T10:01:00+02:00",
+      "expected": {
+        "relevance": {
+          "decision": "irrelevant",
+          "topic_ids": [],
+          "reason": "Rein werbliche Nebenoptionen."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": []
+        },
+        "action_route": {
+          "action_state": "none",
+          "task_count": 0,
+          "event_count": 0,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": []
+        }
+      }
+    },
+    {
+      "id": "30_council_series",
+      "raw_email": "From: Verwaltung <rat@example.test>\nTo: Alex <alex@example.test>\nDate: Fri, 6 Nov 2026 10:00:00 +0100\nSubject: Sitzungstermine 2027\nContent-Type: text/plain; charset=utf-8\n\nGemeinderatssitzung Musterstadt am 23.01.2027 im Sitzungssaal.\nGemeinderatssitzung Musterstadt am 23.02.2027 im Sitzungssaal.\nGemeinderatssitzung Musterstadt am 23.03.2027 im Sitzungssaal.\nGemeinderatssitzung Musterstadt am 23.04.2027 im Sitzungssaal.\nGemeinderatssitzung Musterstadt am 23.05.2027 im Sitzungssaal.\nGemeinderatssitzung Musterstadt am 23.06.2027 im Sitzungssaal.\nGemeinderatssitzung Musterstadt am 23.07.2027 im Sitzungssaal.\nGemeinderatssitzung Musterstadt am 23.08.2027 im Sitzungssaal.\nGemeinderatssitzung Musterstadt am 23.09.2027 im Sitzungssaal.\nGemeinderatssitzung Musterstadt am 23.10.2027 im Sitzungssaal.\nHaushaltsklausur Musterstadt am 23.11.2027 im Sitzungssaal.\nUhrzeiten folgen.\n",
+      "received_at": "2026-09-18T10:01:00+02:00",
+      "expected": {
+        "relevance": {
+          "decision": "relevant",
+          "topic_ids": [
+            "kommune"
+          ],
+          "reason": "Synthetische Korpuserwartung."
+        },
+        "summary": {
+          "sentences": [
+            "Synthetische Zusammenfassung."
+          ],
+          "deadlines": [
+            "22.09.2026"
+          ]
+        },
+        "action_route": {
+          "action_state": "event",
+          "task_count": 0,
+          "event_count": 11,
+          "reason": "Synthetische Aktionsklassifikation."
+        },
+        "task_extraction": {
+          "schema_version": 1,
+          "tasks": []
+        },
+        "event_extraction": {
+          "schema_version": 1,
+          "events": [
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.01.2027 im Sitzungssaal.",
+              "date_text": "23.01.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.02.2027 im Sitzungssaal.",
+              "date_text": "23.02.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.03.2027 im Sitzungssaal.",
+              "date_text": "23.03.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.04.2027 im Sitzungssaal.",
+              "date_text": "23.04.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.05.2027 im Sitzungssaal.",
+              "date_text": "23.05.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.06.2027 im Sitzungssaal.",
+              "date_text": "23.06.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.07.2027 im Sitzungssaal.",
+              "date_text": "23.07.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.08.2027 im Sitzungssaal.",
+              "date_text": "23.08.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.09.2027 im Sitzungssaal.",
+              "date_text": "23.09.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            },
+            {
+              "title": "Gemeinderatssitzung Musterstadt",
+              "description": null,
+              "evidence": "Gemeinderatssitzung Musterstadt am 23.10.2027 im Sitzungssaal.",
+              "date_text": "23.10.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            },
+            {
+              "title": "Haushaltsklausur Musterstadt",
+              "description": null,
+              "evidence": "Haushaltsklausur Musterstadt am 23.11.2027 im Sitzungssaal.",
+              "date_text": "23.11.2027",
+              "time_text": null,
+              "end_time_text": null,
+              "location": "Sitzungssaal",
+              "video_link": null,
+              "responsibility": "unclear",
+              "certainty": "uncertain",
+              "classification": "new",
+              "time_requirement": "required_unknown"
+            }
+          ]
+        }
+      },
+      "accept": {
+        "action_route": [
+          {
+            "action_state": "unclear",
+            "task_count": 0,
+            "event_count": 1,
+            "reason": "Synthetische Aktionsklassifikation."
+          }
+        ],
+        "summary": [
+          {
+            "sentences": [
+              "Synthetische Zusammenfassung."
+            ],
+            "deadlines": [
+              "22.09.2026",
+              "ab Montag"
+            ]
+          }
+        ]
+      }
     }
   ]
 }

@@ -320,10 +320,10 @@ def test_overview_orders_current_first_and_marks_queued_and_editing(tmp_path):
     assert event_view.current and not task_view.current
     assert event_view.question == "Wann beginnt der Termin?" and event_view.example == "„21.10.2026 14:00“"
     assert event_view.card.when == "21.10.2026"
-    assert event_view.actions == {CommandKind.REJECT, CommandKind.ANSWER}
+    assert event_view.actions == {CommandKind.REJECT, CommandKind.ALREADY_DONE, CommandKind.ANSWER}
     assert task_view.editing and task_view.state == "Rückfrage offen"
     assert task_view.question == "Was soll geändert werden?"
-    assert task_view.actions == {CommandKind.CONFIRM, CommandKind.REJECT, CommandKind.ANSWER,
+    assert task_view.actions == {CommandKind.CONFIRM, CommandKind.REJECT, CommandKind.ALREADY_DONE, CommandKind.ANSWER,
                                  CommandKind.CANCEL_CLARIFICATION}
     assert task_view.card.due == "30.10.2026" and task_view.confirm_label == "Als Aufgabe anlegen"
     assert held_view.queued and held_view.yes_no and held_view.question == "Bist du dafür zuständig?"

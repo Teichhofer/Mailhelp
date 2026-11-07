@@ -12,6 +12,12 @@ das Thema `persoenliche-termine-und-terminhinweise` ab; eine Werbemail mit Frist
 irrelevant bleiben. Die Themen sind wortgleich aus `topics.yaml` übernommen.
 Links werden nicht aufgerufen. Es werden keine persönlichen Mails verwendet.
 
+Version 4.3 ergänzt eine Einladung mit erforderlicher Anmeldung und optionalen
+Weiterleitungs-/Downloadfloskeln, reine Marketingangebote ohne Aufgabe sowie zehn
+gleichnamige Sitzungstermine und eine getrennte Haushaltsklausur. Der Korpus enthält
+damit 31 Fälle. Die Offline-Prüfung nutzt simulierte Modellantworten; sie belegt
+Schema-, Routing- und Normalisierungsverträge, keine reale Modell-Erkennungsrate.
+
 Die Standardprüfung nutzt Jev mit dem produktiven Rückfall bei `unclear` sowie
 die generativen Folgestufen. Die stufenweise Messung prüft Extraktion zusätzlich
 auch für irrelevante Mails; sie ersetzt keinen Telegram-/Schreibdiensttest.

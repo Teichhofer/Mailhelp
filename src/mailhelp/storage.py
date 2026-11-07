@@ -16,6 +16,7 @@ from typing import Any, Protocol, overload, runtime_checkable
 from pydantic import BaseModel, ValidationError
 
 from .persistence.migrations import migrate_document
+from .runtime.lock_metrics import measured_lock
 
 # Re-exported for existing callers; the name patterns live in state_names.
 from .state_names import mail_state_names  # noqa: F401
@@ -90,7 +91,7 @@ class JsonStore:
     @contextmanager
     def locked(self) -> Iterator[JsonStore]:
         """Hold the thread lock across several reads for a consistent view."""
-        with self._thread_lock:
+        with measured_lock(self._thread_lock, "store"):
             yield self
 
     def __enter__(self) -> JsonStore:
@@ -156,13 +157,13 @@ class JsonStore:
             posix.flock(descriptor, posix.LOCK_EX | posix.LOCK_NB)
 
     def load(self, name: str, default: Any = None) -> Any:
-        with self._thread_lock:
+        with measured_lock(self._thread_lock, "store"):
             value = self._read(name, default, quarantine=True)
         return value
 
     def peek(self, name: str, default: Any = None) -> Any:
         """Read without side effects: a damaged file is reported, never moved."""
-        with self._thread_lock:
+        with measured_lock(self._thread_lock, "store"):
             value = self._read(name, default, quarantine=False)
         return value
 
@@ -205,7 +206,7 @@ class JsonStore:
     def load_model[M: BaseModel](self, name: str, model: type[M], default: M) -> M: ...
     def load_model[M: BaseModel](self, name: str, model: type[M], default: M | None = None) -> M | None:
         """Load and validate a state object, quarantining invalid schemas too."""
-        with self._thread_lock:
+        with measured_lock(self._thread_lock, "store"):
             value = self._load_model(name, model, default)
         return value
 
@@ -231,7 +232,7 @@ class JsonStore:
     def delete(self, name: str) -> None:
         """Remove one state file; a missing file is already the desired state."""
         self._validate_name(name)
-        with self._thread_lock:
+        with measured_lock(self._thread_lock, "store"):
             (self.directory / f"{name}.json").unlink(missing_ok=True)
             self.revision += 1
 
@@ -239,7 +240,7 @@ class JsonStore:
         self._validate_name(name)
         path = self.directory / f"{name}.json"
         temporary = path.with_suffix(".tmp")
-        with self._thread_lock:
+        with measured_lock(self._thread_lock, "store"):
             self.directory.mkdir(parents=True, exist_ok=True)
             with temporary.open("w", encoding="utf-8", newline="\n") as stream:
                 json.dump(value, stream, ensure_ascii=False, indent=2, sort_keys=True)
@@ -257,12 +258,12 @@ class JsonStore:
 
     def touch(self) -> None:
         """Invalidate operational fingerprints without rebuilding mail metadata."""
-        with self._thread_lock:
+        with measured_lock(self._thread_lock, "store"):
             self.revision += 1
 
     def names(self, prefix: str = "") -> list[str]:
         """Return stable state names without exposing temporary/corrupt files."""
-        with self._thread_lock:
+        with measured_lock(self._thread_lock, "store"):
             names = sorted(path.stem for path in self.directory.glob(f"{prefix}*.json") if path.is_file())
         return names
 

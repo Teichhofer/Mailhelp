@@ -13,7 +13,21 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 4.1.11 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 4.3.0 · **Python:** 3.12.x · **Lizenz:** MIT
+
+Version 4.3 ersetzt blockierende Mengenfragen durch diagnostische Zählerhinweise;
+ein leerer Extraktionsbefund trotz erkannter Aufgaben bleibt ein Prüfhinweis.
+Werbliche Downloads und Höflichkeitsweiterleitungen sind im Router und Extraktor
+ausgeschlossen. Gleichnamige Termine derselben Mail bilden eine Serie mit Datum
+im Titel. Uhrzeiten können gemeinsam gespeichert und einzelne Termine ausgenommen
+werden. „Alle N Termine anlegen“ erfordert anschließend eine eigene Bestätigung
+der angezeigten Versionsliste. Details und Nachweise: [Release 4.3](docs/Release-4.3.md).
+
+Version 4.2 ergänzt „Schon erledigt“ in Web und Telegram: Vorschläge werden lokal
+abgeschlossen, bleiben positiv relevant im Lernbestand und erzeugen keine externen
+Aufgaben oder Termine. Web-Befehle werden vor Wiederaufnahmen bearbeitet; Telegram-
+Versand hält weder Dialog- noch Ablagesperre. Die Aktionsseite fragt ihren Status
+über einen eigenen authentifizierten Endpunkt ab. Ergebnisse und Grenzen: [Release 4.2](docs/Release-4.2.md).
 
 Version 4.1 baut die Testinfrastruktur aus ([Planung 4.1](docs/Planung-4.1.md)); seit 4.1.0
 deckt der Qualitätskorpus auch Jimdo-Anfragen und Stellplatzbuchungen ab. 4.1.10 ergänzt das

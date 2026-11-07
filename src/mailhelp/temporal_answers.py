@@ -183,7 +183,8 @@ def normalize_deterministic_temporal_answer(parsed: DeterministicTemporalAnswer)
 def expected_event_date(proposal: Proposal) -> date | None:
     """The validated event date an answer must not contradict."""
     return (
-        proposal.known_temporal_facts.date
+        (proposal.known_temporal_facts.date or
+         (proposal.known_temporal_facts.start.date() if proposal.known_temporal_facts.start is not None else None))
         if proposal.known_temporal_facts is not None
         else proposal.temporal_fact.normalized_date
         if proposal.temporal_fact is not None

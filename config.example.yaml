@@ -151,6 +151,9 @@ vision:
   # Längste Bildkante nach dem Verkleinern; spart Tokens.
   max_edge_pixels: 1600
 learning:
+  # 4.2: „Schon erledigt“ bleibt ein positives Relevanzbeispiel. Diese Mails
+  # werden im CLI- und Web-Lernen nicht negativ neu kategorisiert oder als
+  # Begründung für Absenderausschlüsse verwendet; es gibt dafür keinen KI-Aufruf.
   # /lernen: Preisannahme, Budget, Umfang und Ordner werden je bestätigtem Job
   # gespeichert. Ohne ausdrücklichen Start gibt es keinen kostenpflichtigen Lernlauf.
   parallel_llm_calls: 10
@@ -365,6 +368,8 @@ logging:
     backup_count: 5
     retention_days: 30
 event_defaults:
+  # 4.3: gilt auch nach gemeinsamen Zeitantworten auf Terminserien.
+  # Speichern autorisiert keine Anlage; die angezeigte Versionsliste separat bestätigen.
   # Nur fehlendes Ende bei belegter Teilnahmeart und eindeutigem Beginn ergänzen.
   # Explizite Endzeiten/Dauern haben Vorrang. Alte Vorschläge bleiben unverändert.
   video_duration_minutes: 60

@@ -16,34 +16,7 @@ from mailhelp.models import (
 from mailhelp.proposals.action_normalization import MailDateContext
 from mailhelp.proposals.proposal_builder import ProposalBuilder
 from mailhelp.storage import JsonStore
-
-
-def context(**changes):
-    values = dict(date_context_status="valid", date_header_parsed="2026-09-18T10:00:00+02:00",
-                  imap_received_at="2026-09-18T10:01:00+02:00", user_timezone="Europe/Berlin")
-    values.update(changes)
-    return MailDateContext(**values)
-
-
-def task(**changes):
-    values = dict(title="Antworten", description="", evidence="Bitte antworten",
-                  responsibility="user", certainty="certain", classification="new", due_text=None)
-    values.update(changes)
-    return ExtractedTask(**values)
-
-
-def event(**changes):
-    values = dict(title="Gemeinderat", description=None, evidence="Gemeinderat am 22.09.2026",
-                  date_text="22.09.2026", time_text=None, end_time_text=None, location=None,
-                  time_requirement="all_day",
-                  video_link=None, responsibility="user", certainty="certain", classification="new")
-    values.update(changes)
-    return ExtractedEvent(**values)
-
-
-def builder(source_sender="Ada <ada@example.test>", source_subject="Projektstand", **changes):
-    targets = TargetSettings(todoist_project="todoist-1", google_calendar="calendar-1")
-    return ProposalBuilder("a" * 24, targets, context(**changes), source_sender, source_subject)
+from tests.fakes.proposal_builder_fakes import builder, context, event, task
 
 
 @pytest.mark.parametrize("item_kind", ["task", "event"])
@@ -134,13 +107,13 @@ def test_date_range_recovered_from_evidence_needs_no_date_question():
 
 
 @pytest.mark.parametrize(("kind", "word"), [("task", "Aufgaben"), ("event", "Termine")])
-def test_count_conflict_forces_a_concrete_clarification(kind, word):
+def test_count_conflict_is_diagnostic_and_does_not_add_questions(kind, word):
     conflict = ExtractionCountConflict(category=kind, expected_count=2, actual_count=1,
                                        router_call_id="router", extractor_call_id="extractor")
     proposals = builder().build([task()] if kind == "task" else [],
                                 [event()] if kind == "event" else [], [conflict])
-    assert proposals[0].status == ProposalStatus.NEEDS_CLARIFICATION
-    assert any(word in question for question in proposals[0].open_questions)
+    assert proposals[0].status == ProposalStatus.PENDING_CONFIRMATION
+    assert proposals[0].open_questions == []
 
 
 def test_structured_context_date_survives_proposal_boundary():

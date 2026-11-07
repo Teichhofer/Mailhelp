@@ -131,6 +131,18 @@ class Proposal(StrictModel):
 
     @model_validator(mode="before")
     @classmethod
+    def upgrade_series(cls, value: object) -> object:
+        if isinstance(value, dict) and value.get("kind") == "event":
+            from .event_series import series_key
+            base = value.get("base_title")
+            if base is None:
+                base = value.get("title")
+            if isinstance(base, str) and isinstance(value.get("source_mail_id"), str):
+                return {**value, "base_title": base, "series_key": series_key(value["source_mail_id"], base)}
+        return value
+
+    @model_validator(mode="before")
+    @classmethod
     def upgrade_profile(cls, value: object) -> object:
         if isinstance(value, dict) and value.get("schema_version") == 2:
             value = {**value, "schema_version": 3, "target_profile": 1}
@@ -144,6 +156,8 @@ class Proposal(StrictModel):
     certainty: ProposalCertainty
     classification: ProposalClassification
     title: str = Field(min_length=1, max_length=500)
+    base_title: str | None = Field(default=None, min_length=1, max_length=500)
+    series_key: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
     description: str = Field(default="", max_length=4000)
     evidence: str = Field(min_length=1, max_length=2000)
     source_mail_id: str = Field(min_length=1, max_length=64)
@@ -163,6 +177,8 @@ class Proposal(StrictModel):
     video_link: AnyHttpUrl | None = Field(default=None, max_length=2000)
     target: str = Field(min_length=1, max_length=500)
     status: ProposalStatus = ProposalStatus.PENDING_CONFIRMATION
+    # Human-owned local closure; never accepted from an extraction or edit patch.
+    resolution: Literal["already_done"] | None = None
     external_id: str | None = Field(default=None, max_length=500)
     external_link: str | None = Field(default=None, max_length=2000)
     uncertain_notified: bool = False
@@ -200,6 +216,8 @@ class Proposal(StrictModel):
     @property
     def is_creatable(self) -> bool:
         """Shared business authorization rule for validation and write adapters."""
+        if self.resolution is not None:
+            return False
         if self.duplicate_check_failed:
             return False
         classification_allowed = (
@@ -219,6 +237,8 @@ class Proposal(StrictModel):
     @model_validator(mode="after")
     def validate_consistency(self) -> Proposal:
         # The checks run in this order; with several violations the first message is reported.
+        if self.resolution is not None and self.status != ProposalStatus.REJECTED:
+            raise ValueError("Schon erledigt benötigt einen verworfenen Vorschlag")
         self._check_merge_and_defaults()
         self._check_results()
         self._check_kind_fields()

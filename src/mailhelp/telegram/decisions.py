@@ -99,8 +99,9 @@ class ProposalDecisionService:
         if confirming and write_authorizer is not None and not write_authorizer():
             raise StaleCommand("Websitzung vor Ausführung ungültig geworden")
         changed = (
-            proposal.model_copy(update={"status": ProposalStatus.REJECTED})
-            if decision.action == DecisionAction.REJECT
+            proposal.model_copy(update={"status": ProposalStatus.REJECTED,
+                "resolution": "already_done" if decision.action == DecisionAction.ALREADY_DONE else None})
+            if decision.action in {DecisionAction.REJECT, DecisionAction.ALREADY_DONE}
             else apply_decision(
                 proposal,
                 decision.model_copy(update={"action": DecisionAction.CONFIRM}),
@@ -119,7 +120,9 @@ class ProposalDecisionService:
         self._commit(proposal, changed)
         if changed.status == ProposalStatus.CONFIRMED:
             return self._write(changed)
-        return ResultStatus.DONE, "✅ Vorschlag wurde verworfen."
+        return ResultStatus.DONE, (
+            "✅ Als schon erledigt erfasst (Aufgabe bleibt als relevant vermerkt)"
+            if changed.resolution == "already_done" else "✅ Vorschlag wurde verworfen.")
 
     def _commit(self, previous: Proposal, changed: Proposal) -> None:
         """Claim the unchanged open version atomically, after all external reads."""

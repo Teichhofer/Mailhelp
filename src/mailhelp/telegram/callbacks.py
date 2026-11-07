@@ -19,6 +19,7 @@ class DecisionAction(StrEnum):
     CONFIRM_DUPLICATE = "confirm_duplicate"
     EDIT = "edit"
     REJECT = "reject"
+    ALREADY_DONE = "already_done"
     MERGE_SOURCE = "merge_source"
     SEPARATE_SOURCE = "separate_source"
     RETARGET = "retarget"
@@ -168,6 +169,10 @@ def apply_decision(
         proposal.version,
     ):
         raise ValueError("Veraltete oder unpassende Bestätigung")
+    if decision.action == DecisionAction.ALREADY_DONE and proposal.status in {
+        ProposalStatus.PENDING_CONFIRMATION, ProposalStatus.NEEDS_CLARIFICATION
+    }:
+        return proposal.model_copy(update={"status": ProposalStatus.REJECTED, "resolution": "already_done"})
     if proposal.status != ProposalStatus.PENDING_CONFIRMATION:
         return proposal
     if decision.action == DecisionAction.CONFIRM:

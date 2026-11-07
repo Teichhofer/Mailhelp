@@ -25,6 +25,7 @@ class CommandKind(StrEnum):
     CONFIRM = "confirm"
     CONFIRM_DUPLICATE = "confirm_duplicate"
     REJECT = "reject"
+    ALREADY_DONE = "already_done"
     START_CLARIFICATION = "clarify"
     ANSWER = "answer"
     CANCEL_CLARIFICATION = "cancel"
@@ -38,11 +39,19 @@ class CommandKind(StrEnum):
     RETARGET = "retarget_proposal"
     # A mail filed as irrelevant is analysed again; version is its analysis round (3.6.2).
     RECHECK_MAIL = "recheck_mail"
+    SERIES_ANSWER = "series_answer"
+    SERIES_CONFIRM = "series_confirm"
 
 
 # Commands on a whole mail instead of one proposal.
 MAIL_KINDS = frozenset({CommandKind.RELEVANCE, CommandKind.RECHECK_MAIL})
 PROPOSAL_KINDS = frozenset(set(CommandKind) - MAIL_KINDS)
+
+
+class SeriesMember(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True)
+    proposal_id: str = Field(pattern=r"^[A-Za-z0-9_-]{1,64}$")
+    version: int = Field(ge=1)
 
 
 class ReviewCommand(BaseModel):
@@ -64,9 +73,20 @@ class ReviewCommand(BaseModel):
     target_version: int | None = Field(default=None, ge=1)
     proposal_hash: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
     target_profile: int | None = Field(default=None, ge=1, le=99)
+    members: tuple[SeriesMember, ...] = Field(default=(), max_length=100)
+    endpoint: Literal["start", "end"] = "start"
 
     @model_validator(mode="after")
     def complete(self) -> ReviewCommand:
+        if self.endpoint == "end" and self.kind != CommandKind.SERIES_ANSWER:
+            raise ValueError("Ein gemeinsames Ende gehört nur zu einer Serienantwort")
+        if self.kind in {CommandKind.SERIES_ANSWER, CommandKind.SERIES_CONFIRM}:
+            if not self.members or len({item.proposal_id for item in self.members}) != len(self.members):
+                raise ValueError("Serie benötigt eine eindeutige Liste angezeigter Vorschlagsversionen")
+            if (self.proposal_id, self.version) != (self.members[0].proposal_id, self.members[0].version):
+                raise ValueError("Serienbefehl muss an den ersten angezeigten Eintrag gebunden sein")
+        elif self.members:
+            raise ValueError("Nur Serienbefehle enthalten eine Versionsliste")
         if self.kind in {CommandKind.MERGE, CommandKind.SEPARATE}:
             if self.target_ref is None or self.target_version is None:
                 raise ValueError("Zusammenführung benötigt die Zielversion")
@@ -82,7 +102,8 @@ class ReviewCommand(BaseModel):
             raise ValueError("Nur strukturierte Bearbeitung enthält Felder")
         if (self.kind in PROPOSAL_KINDS) != (self.proposal_id is not None):
             raise ValueError("Nur Vorschlagsbefehle benötigen eine Vorschlags-ID")
-        if (self.kind == CommandKind.ANSWER) != (self.text is not None and bool(self.text.strip())):
+        answering = self.kind in {CommandKind.ANSWER, CommandKind.SERIES_ANSWER}
+        if answering != (self.text is not None and bool(self.text.strip())):
             raise ValueError("Nur eine Antwort enthält einen nicht leeren Text")
         if (self.kind == CommandKind.RELEVANCE) != (self.decision is not None):
             raise ValueError("Nur eine Relevanzentscheidung enthält eine Entscheidung")

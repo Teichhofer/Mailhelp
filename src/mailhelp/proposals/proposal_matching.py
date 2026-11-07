@@ -56,7 +56,8 @@ def compatible(left: Proposal, right: Proposal) -> bool:
 def relationship(store: JsonStore, incoming: Proposal, previous: Proposal) -> str:
     """A thread identifies a conversation, never all events or actions in it."""
     thread = same_thread(sources(store, incoming), sources(store, previous))
-    exact = incoming.title.casefold().strip() == previous.title.casefold().strip()
+    exact = ((incoming.base_title or incoming.title).casefold().strip()
+             == (previous.base_title or previous.title).casefold().strip())
     dates = day(incoming), day(previous)
     if all(dates) and dates[0] != dates[1] and incoming.classification != "change":
         return "different"
@@ -65,7 +66,8 @@ def relationship(store: JsonStore, incoming: Proposal, previous: Proposal) -> st
     generic = {"termin", "videokonferenz", "besprechung", "konferenz", "treffen", "austausch",
                "kurze", "skype", "online", "meeting", "sitzung", "klasse", "raum",
                "und", "der", "die", "das", "zur", "zum", "mit", "bei", "von", "am", "an", "um", "in"}
-    left, right = [set(re.findall(r"\w{2,}", p.title.casefold())) - generic for p in (incoming, previous)]
+    left, right = [set(re.findall(r"\w{2,}", (p.base_title or p.title).casefold())) - generic
+                   for p in (incoming, previous)]
     purpose = bool(left & right) and len(left & right) / len(left | right) >= 0.6
     descriptions = [p.description.split("\n\nAbsender:", 1)[0].strip() for p in (incoming, previous)]
     same_purpose = purpose or bool((not left or not right) and descriptions[0]

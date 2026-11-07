@@ -41,21 +41,23 @@ class ProposalDeliveryService:
         if status == "pending":
             self.repository.mark_notification_completed(proposal)
 
-    def enqueue(self, proposal: Proposal) -> None:
+    def enqueue(self, proposal: Proposal, *, flush: bool = True) -> str | None:
         """Queue a new proposal behind a possibly open question, then flush."""
         if self.outbox is None:
             self.deliver(proposal)
-            return
+            return None
         self.repository.save_revision(proposal)
         status = self.repository.notification_status(proposal)
         if status in {"completed", "sending"}:
-            return
+            return None
         # The queue entry is written first; a crash before the status mark
         # leaves a pending record whose repeated enqueue is idempotent.
         entry_id = self.outbox.enqueue_proposal(proposal)
         if status == "pending":
             self.repository.mark_notification_queued(proposal)
-        self.outbox.flush(raise_for=entry_id)
+        if flush:
+            self.outbox.flush(raise_for=entry_id)
+        return entry_id
 
     def send_now(self, proposal: Proposal) -> None:
         """Render and send the proposal without changing delivery state."""

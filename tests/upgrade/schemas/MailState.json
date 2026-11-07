@@ -869,6 +869,20 @@
           "title": "All Day",
           "type": "boolean"
         },
+        "base_title": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Base Title"
+        },
         "canonical_ref": {
           "anyOf": [
             {
@@ -1154,6 +1168,19 @@
           "default": null,
           "title": "Reconciliation Journal"
         },
+        "resolution": {
+          "anyOf": [
+            {
+              "const": "already_done",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resolution"
+        },
         "responsibility": {
           "$ref": "#/$defs/ProposalResponsibility"
         },
@@ -1170,6 +1197,19 @@
           "maxItems": 50,
           "title": "Separated From",
           "type": "array"
+        },
+        "series_key": {
+          "anyOf": [
+            {
+              "pattern": "^[a-f0-9]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Series Key"
         },
         "simulation_notified": {
           "default": false,

@@ -60,6 +60,13 @@ def migrate_document(model_name: str, value: dict[str, Any]) -> bool:
 def _profiles(value: Any) -> bool:
     changed = False
     if isinstance(value, dict):
+        if (value.get("kind") == "event" and "source_mail_id" in value and "title" in value
+                and "series_key" not in value):
+            from ..domain.event_series import series_key
+            base = value.get("base_title", value["title"])
+            if isinstance(base, str) and isinstance(value["source_mail_id"], str):
+                value.update(base_title=base, series_key=series_key(value["source_mail_id"], base))
+                changed = True
         if (value.get("schema_version") == 2 and "source_mail_id" in value
                 and "target" in value and "kind" in value):
             value.update(schema_version=3, target_profile=1)

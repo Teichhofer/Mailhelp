@@ -19,6 +19,7 @@ from ..review.commands import CommandKind, CommandSource
 from ..review.inbox import CommandInbox
 from ..review.learning_log import DecisionLearningLog
 from ..review.results import ResultStatus, ReviewResult
+from ..runtime.lock_metrics import measure_lock_waits, measured_lock
 from ..storage import JsonStore
 from .authorization import AuthorizedUpdateValidator, UpdateValidation
 from .callbacks import RelevanceDecision
@@ -50,6 +51,8 @@ class _DialogResponsePersistence:
 
     def send_proposal(self, proposal: Proposal) -> None:
         self.controller.delivery.deliver(proposal)
+        from .series import offer_confirmation
+        offer_confirmation(self.controller, proposal)
 
     def delivered(self, proposal: Proposal) -> bool:
         """Whether this version was shown, i.e. is not held back in the outbox."""
@@ -206,7 +209,7 @@ class TelegramDialogController:
         """Queue a relevance question behind a possibly open question."""
         with self.lock:
             entry_id = self.outbox.enqueue_relevance(dialog, sender, subject)
-            self.outbox.flush(raise_for=entry_id)
+        self.outbox.flush(raise_for=entry_id)
 
     def persist(self, proposal: Proposal) -> None:
         """Compatibility port; persistence itself belongs to the repository."""
@@ -221,17 +224,19 @@ class TelegramDialogController:
                     "Nachrichten dürfen nur an den konfigurierten Chat gesendet werden"
                 )
             entry_id = self.outbox.enqueue_message(text)
-            self.outbox.flush(raise_for=entry_id)
+        self.outbox.flush(raise_for=entry_id)
 
     def send_proposal(self, proposal: Proposal) -> None:
         """Queue a new proposal; revisions are delivered directly instead."""
         with self.lock:
-            self.delivery.enqueue(proposal)
+            entry_id = self.delivery.enqueue(proposal, flush=False)
+        self.outbox.flush(raise_for=entry_id)
+        from .series import offer_confirmation
+        offer_confirmation(self, proposal)
 
     def flush_outbox(self) -> None:
         """Send held messages whose preceding question has been resolved."""
-        with self.lock:
-            self.outbox.flush()
+        self.outbox.flush()
 
     def awaiting_decision(self) -> bool:
         """Return whether processing must wait for an explicit Telegram answer.
@@ -258,10 +263,9 @@ class TelegramDialogController:
         """Redisplay at startup: the current decision, held-back ones only as a count."""
         from .commands import TelegramCommands
 
-        with self.lock:
-            TelegramCommands(self.store, self.repository, self.presenter,
-                             self.telegram, self.chat_id, self.relevance,
-                             self.outbox, self.web_logout).overview(interactive=True, compact=True)
+        TelegramCommands(self.store, self.repository, self.presenter,
+                         self.telegram, self.chat_id, self.relevance,
+                         self.outbox, self.web_logout).overview(interactive=True, compact=True)
 
     def processing_blocked(self) -> bool:
         """Return whether an answered revision needs an operator restart."""
@@ -298,39 +302,35 @@ class TelegramDialogController:
 
         With an inbox this never waits; *timeout* only applies to direct polling.
         """
-        with self.lock:
-            if self.stop_requested():
-                return
-            self.write_executor.resume()
-            self.revisions.resume()
-            if self.commands is not None and not self._commands_recovered:
-                # Commands interrupted by a restart are reconciled, never repeated.
-                self._commands_recovered = True
-                self.commands.recover(self.review.reconcile)
-            offset = self._processed_offset()
-            if self.inbox is not None:
-                now = time.time()
-                entries = []
-                for entry in self.inbox.pending():
-                    if not entry.ready(now):
-                        break  # keep the order: later input waits for this retry
-                    entries.append(entry)
-                updates = [entry.update for entry in entries]
-                acknowledged = {entry.update_id for entry in entries if entry.acknowledged}
-            else:
-                updates = self.telegram.poll(offset, timeout=timeout)
-                acknowledged = set()
-            self.logger.event(
-                "DEBUG",
-                "telegram.dialog",
-                "updates_received",
-                offset=offset,
-                count=len(updates),
-            )
-            self.updates.process(updates, acknowledged, offset)
-            self._process_commands()
-            # Answers above may have resolved the question that held messages back.
-            self.outbox.flush()
+        # Only the operator executes decisions. Producers lock only durable enqueue;
+        # no shared dialog/store lock spans a network, LLM or provider call.
+        if self.stop_requested():
+            return
+        if self.commands is not None and not self._commands_recovered:
+            # Reconcile interrupted commands before admitting any new execution.
+            self.commands.recover(self.review.reconcile)
+            self._commands_recovered = True
+        self._process_commands()
+        self.write_executor.resume()
+        self.revisions.resume()
+        offset = self._processed_offset()
+        if self.inbox is not None:
+            now = time.time()
+            entries = []
+            for entry in self.inbox.pending():
+                if not entry.ready(now):
+                    break  # keep the order: later input waits for this retry
+                entries.append(entry)
+            updates = [entry.update for entry in entries]
+            acknowledged = {entry.update_id for entry in entries if entry.acknowledged}
+        else:
+            updates = self.telegram.poll(offset, timeout=timeout)
+            acknowledged = set()
+        self.logger.event("DEBUG", "telegram.dialog", "updates_received", offset=offset, count=len(updates))
+        self.updates.process(updates, acknowledged, offset)
+        # New commands may have arrived during the resumption or Telegram input.
+        self._process_commands()
+        self.outbox.flush()
 
     def _process_commands(self) -> None:
         """Execute queued web commands in arrival order."""
@@ -340,27 +340,32 @@ class TelegramDialogController:
             if self.stop_requested():
                 break
             command = entry.command
-            self.commands.start(entry.id)
-            started = time.perf_counter()
-            try:
-                result = self.review.execute(command)
-            except Exception as exc:
-                self.logger.event("ERROR", "review", "command_failed", command_id=entry.id,
-                                  source=command.source.value, kind=command.kind.value,
-                                  error_class=type(exc).__name__)
-                result = ReviewResult(status=ResultStatus.FAILED,
-                                      message="Die Aktion ist fehlgeschlagen; Details stehen im Protokoll.")
-            self.commands.finish(entry.id, result)
+            with measure_lock_waits() as waits:
+                with measured_lock(self.lock, "dialog"):
+                    self.commands.start(entry.id)
+                queue_wait = (self.commands.clock() - entry.received_at).total_seconds() * 1000
+                started = time.perf_counter()
+                try:
+                    result = self.review.execute(command)
+                except Exception as exc:
+                    self.logger.event("ERROR", "review", "command_failed", command_id=entry.id,
+                                      source=command.source.value, kind=command.kind.value,
+                                      error_class=type(exc).__name__)
+                    result = ReviewResult(status=ResultStatus.FAILED,
+                                          message="Die Aktion ist fehlgeschlagen; Details stehen im Protokoll.")
+                timings = {**waits, "queue_wait_ms": round(queue_wait, 3),
+                           "latency_ms": round((self.commands.clock() - entry.received_at).total_seconds() * 1000, 3),
+                           "execution_ms": round((time.perf_counter() - started) * 1000, 3)}
+                self.commands.finish(entry.id, result, timings=timings)
             self.logger.event("INFO", "review", "command_finished", command_id=entry.id,
                               source=command.source.value, kind=command.kind.value,
                               status=result.status.value,
-                              latency_ms=round((self.commands.clock() - entry.received_at).total_seconds() * 1000, 3),
-                              execution_ms=round((time.perf_counter() - started) * 1000, 3))
+                              **timings)
             # Writes, revisions and clarifications report in Telegram by
             # themselves; a rejection or relevance decision is mirrored here.
             if (self.outbox.background is None and command.source == CommandSource.WEB
                     and result.status == ResultStatus.DONE
-                    and command.kind in {CommandKind.REJECT, CommandKind.RELEVANCE}):
+                    and command.kind in {CommandKind.REJECT, CommandKind.ALREADY_DONE, CommandKind.RELEVANCE}):
                 try:
                     self.telegram.send(self.chat_id, f"🌐 Im Web: {result.message}")
                 except Exception as exc:

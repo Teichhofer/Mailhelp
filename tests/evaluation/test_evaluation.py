@@ -230,7 +230,7 @@ def test_corpus_v3_covers_jimdo_inquiries_and_bookings_without_platform_advertis
     """Planung 4.1, Schritt 9.1: both topics of commit 7277269 have synthetic cases."""
     corpus = json.loads(CORPUS_V3.read_text(encoding="utf-8"))
     cases = {case["id"]: case for case in corpus["cases"]}
-    assert corpus["schema_version"] == 3 and len(cases) == len(corpus["cases"]) == 28
+    assert corpus["schema_version"] == 3 and len(cases) == len(corpus["cases"]) == 31
     repository = {topic["id"] for topic in yaml.safe_load(
         (Path(__file__).parents[2] / "topics.yaml").read_text(encoding="utf-8"))["topics"]}
     assert set(NEW_TOPICS_V3) <= {topic["id"] for topic in corpus["topics"]} & repository

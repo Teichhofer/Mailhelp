@@ -32,7 +32,10 @@ def test_persistence_boundary_is_explicit_and_preserves_json_schemas():
     assert set(schemas.__all__) == expected | {
         "ActivityReport", "ReportMail", "DiagnosticsState", "NotificationQueue", "SetupState",
         "ProposalMatchCache", "ProposalMergeJournal", "ProposalRelation",
-        "InitialDraft", "OAuthJobs", "PasswordState", "LearningJob", "ReloadState"}
+        "InitialDraft", "OAuthJobs", "PasswordState", "LearningJob", "ReloadState", "SeriesReceipt", "SeriesOffer"}
+    from mailhelp.review.series import SeriesReceipt
+    from mailhelp.review.series_offers import SeriesOffer
+    assert schemas.SeriesReceipt is SeriesReceipt and schemas.SeriesOffer is SeriesOffer
     assert all(getattr(schemas, name) is getattr(models, name) for name in expected)
     assert schemas.ActivityReport is activity_models.ActivityReport
     assert schemas.ReportMail is activity_models.ReportMail

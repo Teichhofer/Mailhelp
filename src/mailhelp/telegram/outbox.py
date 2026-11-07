@@ -12,6 +12,7 @@ from __future__ import annotations
 import uuid
 from collections.abc import Callable
 from datetime import UTC, datetime
+from threading import Lock
 from typing import Protocol
 
 from .. import state_names
@@ -73,6 +74,7 @@ class TelegramOutbox:
         self.send_proposal, self.send_relevance = send_proposal, send_relevance
         self.relevance, self.enabled = relevance, enabled
         self.background = None
+        self._runner = Lock()
 
     def load(self) -> TelegramOutboxState:
         state = self.store.load_model(
@@ -136,6 +138,10 @@ class TelegramOutbox:
     def _enqueue(self, **reference: object) -> str:
         if self.background is not None:
             return self.background(reference)
+        with self.store.locked():
+            return self._enqueue_locked(reference)
+
+    def _enqueue_locked(self, reference: dict[str, object]) -> str:
         state = self.load()
         if reference["kind"] != "message":
             # Referenced items are idempotent: a repeated enqueue after a
@@ -242,35 +248,34 @@ class TelegramOutbox:
         sent automatically again.  It is re-raised only to the caller that
         enqueued it, so a provider error is never attributed to another mail.
         """
-        state = self.load()
-        for entry in [item for item in state.entries if item.status == "sending"]:
-            # Interrupted between persisting and confirming the send.
-            state.active = self._uncertain_gate(entry)
-            state.entries.remove(entry)
-            self._save(state)
-            self.logger.event(
-                "WARNING", "telegram.outbox", "outbox_delivery_uncertain",
-                entry_id=entry.id, kind=entry.kind, mail_id=entry.mail_id,
-            )
-        while state.entries:
-            gate = self.current_decision()
-            self._set_gate(state, gate)
-            if gate is not None:
+        if not self._runner.acquire(blocking=False):
+            return
+        try:
+            self._flush(raise_for)
+        finally:
+            self._runner.release()
+
+    def _flush(self, raise_for: str | None) -> None:
+        with self.store.locked():
+            state = self.load()
+            for entry in [item for item in state.entries if item.status == "sending"]:
+                # A previous process may have delivered this; never repeat it.
+                state.active = self._uncertain_gate(entry)
+                state.entries.remove(entry)
+                self._save(state)
                 self.logger.event(
-                    "DEBUG", "telegram.outbox", "outbox_held",
-                    queued=len(state.entries), gate_kind=gate.kind,
-                    gate_mail_id=gate.mail_id,
+                    "WARNING", "telegram.outbox", "outbox_delivery_uncertain",
+                    entry_id=entry.id, kind=entry.kind, mail_id=entry.mail_id,
                 )
+        while True:
+            claimed = self._claim()
+            if claimed is None:
                 return
-            entry = state.entries[0]
-            entry.status = "sending"
-            self._save(state)
+            entry = claimed
             try:
                 gate = self._dispatch(entry)
             except Exception as exc:
-                state.active = self._uncertain_gate(entry)
-                state.entries.pop(0)
-                self._save(state)
+                self._complete(entry, self._uncertain_gate(entry))
                 self.logger.event(
                     "ERROR", "telegram.outbox", "outbox_delivery_failed",
                     entry_id=entry.id, kind=entry.kind, mail_id=entry.mail_id,
@@ -279,10 +284,31 @@ class TelegramOutbox:
                 if entry.id == raise_for:
                     raise
                 return
-            state.entries.pop(0)
-            self._save(state)
+            self._complete(entry, gate)
+
+    def _claim(self) -> TelegramOutboxEntry | None:
+        with self.store.locked():
+            state = self.load()
+            if not state.entries:
+                return None
+            gate = self.current_decision()
+            self._set_gate(state, gate)
             if gate is not None:
-                self._set_gate(state, gate)
+                self.logger.event("DEBUG", "telegram.outbox", "outbox_held",
+                                  queued=len(state.entries), gate_kind=gate.kind, gate_mail_id=gate.mail_id)
+                return None
+            entry = state.entries[0]
+            entry.status = "sending"
+            self._save(state)
+            return entry
+
+    def _complete(self, entry: TelegramOutboxEntry, gate: TelegramOutboxGate | None) -> None:
+        with self.store.locked():
+            # Reload: a producer may have appended while the network call was in flight.
+            state = self.load()
+            state.entries = [item for item in state.entries if item.id != entry.id]
+            state.active = gate
+            self._save(state)
 
     def _dispatch(self, entry: TelegramOutboxEntry) -> TelegramOutboxGate | None:
         if entry.kind == "message":

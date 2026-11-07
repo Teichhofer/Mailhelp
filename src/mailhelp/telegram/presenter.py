@@ -99,6 +99,7 @@ class ProposalPresenter:
             )
             reject = button("Verwerfen", DecisionAction.REJECT)
             buttons = [[confirm, button("Ändern", DecisionAction.EDIT), reject]]
+        buttons.append([button("✓ Schon erledigt", DecisionAction.ALREADY_DONE)])
         for number, name, digest in self.retarget_choices(proposal):
             decision = Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version,
                 action=DecisionAction.RETARGET, target_profile=number, profile_hash=digest)

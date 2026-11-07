@@ -67,6 +67,7 @@ def proposal_actions(csrf: str) -> Callable[[ProposalView], str]:
             buttons.append(_button_form(csrf, view, CommandKind.CONFIRM, view.confirm_label, "primary"))
         # Every open proposal with actions can be rejected.
         buttons.append(_button_form(csrf, view, CommandKind.REJECT, "Verwerfen", "danger"))
+        buttons.append(_button_form(csrf, view, CommandKind.ALREADY_DONE, "Schon erledigt", ""))
         if CommandKind.CANCEL_CLARIFICATION in view.actions:
             buttons.append(_button_form(csrf, view, CommandKind.CANCEL_CLARIFICATION,
                                         "Bearbeitung beenden", ""))
@@ -135,10 +136,14 @@ def command_page(entry: CommandEntry, csrf: str, current: ProposalView | None) -
     """Progress of a submitted command; reloads itself until the result is there."""
     running = entry.status in {CommandStatus.QUEUED, CommandStatus.RUNNING}
     if running:
-        body = (notice("Wird ausgeführt … Mailhelp bearbeitet die Aktion, sobald die aktuelle "
-                       "Mail analysiert ist. Danach geht es automatisch zur Übersicht.", "info"))
+        body = notice("Wird ausgeführt … Danach geht es automatisch zur Übersicht.", "info")
+        if entry.command.kind in {CommandKind.CONFIRM, CommandKind.CONFIRM_DUPLICATE} and current is not None:
+            destination = "Kalender" if current.card.kind.value == "event" else "Aufgabenliste (z. B. Todoist)"
+            body += f"<p>Die Anlage im Ziel {e(destination)} kann einen Moment dauern.</p>"
         return layout("Aktion läuft", f"<h1>Aktion läuft</h1>{body}"
-                      '<p><a class="button" href="/">Zur Übersicht</a></p>', refresh=1)
+                      f'<div data-command-status="/api/aktion/{entry.id}" role="status" aria-live="polite"></div>'
+                      '<p><a class="button" href="/">Zur Übersicht</a></p>'
+                      '<noscript><meta http-equiv="refresh" content="1"></noscript>')
     assert entry.result is not None
     result = entry.result
     # Every other result returns to the overview; only this one needs a choice.

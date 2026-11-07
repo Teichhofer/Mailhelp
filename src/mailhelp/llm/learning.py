@@ -1,6 +1,7 @@
 """Shared read-only learning kernel and its interactive terminal frontend."""
 from __future__ import annotations
 
+import hashlib
 import re
 import unicodedata
 from collections.abc import Callable
@@ -110,7 +111,8 @@ class LearningMode:
                  timezone: str = "UTC", parallel_llm_calls: int = 4,
                  global_newest_first: bool = False,
                  config_path: Path | None = None, folders_path: str = "imap.folders",
-                 sources: list[LearningSource] | None = None, scoped_learning: bool = False):
+                 sources: list[LearningSource] | None = None, scoped_learning: bool = False,
+                 decision_store: JsonStore | None = None):
         # Several mailboxes form one selection of the newest mail (3.1); otherwise just this one.
         self.sources = sources or [LearningSource(imap, folders, folders_path)]
         self.analyzer = analyzer
@@ -118,6 +120,7 @@ class LearningMode:
         self.irrelevant_topics = irrelevant_topics
         self.irrelevant_topics_path = irrelevant_topics_path
         self.store = store
+        self.decision_store = decision_store if decision_store is not None else store
         self.input, self.output, self.timezone = input_fn, output_fn, timezone
         self.parallel_llm_calls = parallel_llm_calls
         self.global_newest_first = global_newest_first
@@ -258,6 +261,13 @@ class LearningMode:
                  ) -> tuple[MailClassification | None, dict[str, object] | None, bool]:
         """One resumable unit of work, shared by CLI and browser; no questions or writes."""
         try:
+            if self.decision_store is not None:
+                from ..review.learning_log import preserves_relevance
+                identity = f"{mail.account_id}:{mail.folder}:{mail.uidvalidity}:{mail.uid}"
+                mail_id = hashlib.sha256(identity.encode()).hexdigest()[:24]
+                if preserves_relevance(self.decision_store, mail_id):
+                    # Already proven relevant; never propose a negative category/sender from it.
+                    return None, None, False
             payload = prepare(mail.raw, self.limits, mail.received_at, self.timezone)
             number = next((source.mailbox_id for source in self.sources
                            if getattr(source.imap, "account_id", None) == mail.account_id), 1)

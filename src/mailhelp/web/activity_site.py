@@ -75,9 +75,17 @@ class ActivitySite:
         return self.site._reply(request, 404, "Dieser Bericht ist nicht (mehr) vorhanden.")
 
     def reports(self, request: Request, session: WebSession) -> Response:
+        system = self.site.views.system()
+        from ..models import ProposalStatus
+        rejected = system.proposals.get(ProposalStatus.REJECTED, 0) - system.already_done
+        decisions = (f'<section class="card"><h2>Manuelle Entscheidungen im aktuellen Bestand</h2>'
+                     f'<p><span class="badge ok">Schon erledigt: {system.already_done}</span> '
+                     f'<span class="badge">Verworfen: {rejected}</span></p>'
+                     '<p>Schon erledigte Aufgaben bleiben relevant. Diese Bestandszahlen sind unabhängig '
+                     'vom Zeitraum eines Tätigkeitsberichts.</p></section>')
         if self.service is None:
-            return Response.html(200, disabled_page())
-        return Response.html(200, list_page(self.service.store.reports()))
+            return Response.html(200, disabled_page(decisions=decisions))
+        return Response.html(200, list_page(self.service.store.reports(), decisions=decisions))
 
     def _mailbox(self, value: str) -> int:
         """A configured mailbox number; anything else selects the first mailbox."""

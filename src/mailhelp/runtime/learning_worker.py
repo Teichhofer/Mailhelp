@@ -163,6 +163,7 @@ class LearningWorker:
                 IrrelevantTopicsConfig.model_validate(read_yaml(self.jobs.directory / "irrelevant_topics.yaml")).topics,
                 self.jobs.directory / "irrelevant_topics.yaml",
                 self.app.sender_store,
+                decision_store=self.app.store,
                 timezone=self.app.settings.timezone,
                 sources=[LearningSource(reader, selection.folders, mailbox_id=selection.mailbox)],
                 output_fn=lambda _: None,
