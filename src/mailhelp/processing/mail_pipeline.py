@@ -48,6 +48,21 @@ def _content(state: MailState) -> dict[str, Any]:
     return state.mail
 
 
+def _with_perspective(state: MailState) -> dict[str, Any]:
+    """The mail for routing and extraction, plus who wrote it (4.5).
+
+    ``perspective`` is set by the application, never taken from the mail; other
+    mails are passed on unchanged.
+    """
+    content = _content(state)
+    if not (state.self_mail or state.is_forwarding):
+        return content
+    headers = state.forwarded_headers
+    return {**content, "perspective": {
+        "self_mail": state.self_mail, "user_note": state.user_note, "is_forwarding": state.is_forwarding,
+        "forwarded_headers": headers.model_dump() if headers is not None else None}}
+
+
 def _prepared(state: MailState) -> PreparedMail:
     assert state.prepared is not None  # prepared together with the content
     return state.prepared
@@ -286,7 +301,7 @@ class MailPipeline:
             return
         if state.steps.action_router in {"pending", "failed"}:
             run.stage = ProcessingStage.ACTION_ROUTER
-            call, route = self.o.analyzer.action_route(_content(state))
+            call, route = self.o.analyzer.action_route(_with_perspective(state))
             state.action_route = route
             state.action_router_call_id = call
             state.llm_call_ids.append(call)

@@ -1,5 +1,15 @@
 # Änderungen
 
+## 4.5.2 – Eigene Notizen im Aktionsrouting (Planung 4.5, Schritt 16.3)
+
+- `action_router` erhält bei eigenen Mails und Weiterleitungen das von der Anwendung
+  gesetzte Feld `perspective`. Der Prompt kehrt die Perspektive um: „Ich nehme teil“
+  oder „Bitte eintragen“ mit einem Termin aus Anhang oder Weiterleitung ist ein
+  Termin der nutzenden Person, eine eigene Handlungsanweisung eine Aufgabe. Für
+  andere Mails ändert sich die Eingabe nicht.
+- Die Prompt-Baseline ist als geprüfter Konfigurationsvertrag fortgeschrieben.
+  Die Modellqualität ist damit noch nicht belegt, das folgt in Schritt 16.6.
+
 ## 4.5.1 – Weiterleitungen erkennen (Planung 4.5, Schritt 16.2)
 
 - Weiterleitungen werden am Betreff (`WG:`, `Fwd:`, `Fw:`) und an den Trennzeilen von

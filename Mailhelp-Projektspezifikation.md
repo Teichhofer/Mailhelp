@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 7. November 2026, Anwendungsversion 4.5.1. Die folgenden Verträge beschreiben
+Stand: 7. November 2026, Anwendungsversion 4.5.2. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2892,3 +2892,13 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   auf 500 Zeichen begrenzt. Cc, Kopie, Bcc und Reply-To werden übersprungen. Bei einer
   eigenen Mail ist `user_note` nur der Text über der Trennzeile.
   `MailState.is_forwarding` markiert jede Weiterleitung, auch von fremden Absendern.
+- **Perspektive im Aktionsrouting (16.3):** Bei eigenen Mails und Weiterleitungen
+  erhält `action_router` die Mail mit dem zusätzlichen, von der Anwendung gesetzten
+  Feld `perspective` (`self_mail`, `user_note`, `is_forwarding`,
+  `forwarded_headers`). Das Feld wird nicht gespeichert; alle anderen Mails gehen
+  unverändert an das Modell. Bei `self_mail` gilt eine Teilnahme- oder
+  Eintragungsnotiz zusammen mit einem Termin aus Anhang, Bildtext oder
+  weitergeleiteter Nachricht als Termin der nutzenden Person. Eine eigene
+  Handlungsanweisung gilt als Aufgabe. Die Notiz bestimmt nur die Absicht, die
+  Fakten stammen aus Anhang oder Original. Anweisungen an das Modell befolgt es auch
+  aus eigenen Notizen nicht.

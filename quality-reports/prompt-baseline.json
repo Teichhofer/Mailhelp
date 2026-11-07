@@ -3,7 +3,7 @@
   "kind": "reviewed_configuration_contract",
   "model_quality_proven": false,
   "fingerprints": {
-    "prompts.yaml": "92e5781c2b184d3e6ab29b4a95f301417010b29d1ea95dbb44c338c0c5cbc903",
+    "prompts.yaml": "3bc84ee67a9db1d82806ae6c735c317d03480714c1df707a8ac8fcd9865ef8c0",
     "topics.yaml": "be1a614980d41a4013cf0a8736460644ce27d6cdd140d26580bf707d1d307c9f",
     "decisions_prompts.yaml": "12827807cbf2091bdd0c1329a0e0ad264d2fa882f87d23815d866cc27995a2dc",
     "tests/fixtures/mail_corpus_v3/corpus.json": "5a9307d16c920e085bdb6391effed8c5238d7ae64e03c270387ecce80778a861"
