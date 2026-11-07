@@ -24,9 +24,8 @@ Bestätigungen bleiben versionsgebunden und werden bei der Ausführung erneut ge
 Details und Messwerte: [Release 4.4](docs/Release-4.4.md).
 
 Version 4.5 erkennt Mails, die du dir selbst schickst, etwa ein Foto einer Einladung
-mit „Ich nehme teil“ vom Handy. Ab 4.5.0 markiert Mailhelp solche Mails als eigene Notiz; ab 4.5.1 trennt es bei Weiterleitungen deine Notiz vom weitergeleiteten Original; ab 4.5.2 versteht der Aktionsrouter „Ich nehme teil“ mit einem Einladungsfoto als deinen Termin, und ab 4.5.3 übernimmt die Terminextraktion Datum, Zeit und Ort aus dem Foto oder der Weiterleitung. Der Qualitätskorpus enthält seit 4.5.4 drei solche Notizen.
+mit „Ich nehme teil“ vom Handy. Ab 4.5.0 markiert Mailhelp solche Mails als eigene Notiz; ab 4.5.1 trennt es bei Weiterleitungen deine Notiz vom weitergeleiteten Original; ab 4.5.2 versteht der Aktionsrouter „Ich nehme teil“ mit einem Einladungsfoto als deinen Termin, und ab 4.5.3 übernimmt die Terminextraktion Datum, Zeit und Ort aus dem Foto oder der Weiterleitung. Der Qualitätskorpus enthält seit 4.5.4 drei solche Notizen. Details: [Release 4.5](docs/Release-4.5.md).
 Weitere eigene Absenderadressen trägst du unter `imap.mailboxes[].own_addresses` ein.
-Details: [Planung 4.5](docs/Planung-4.5.md).
 
 Version 4.4.1 macht die Bedienung auch bei großen Datenbeständen schnell. Bei über
 1.000 verarbeiteten Mails dauerte es bisher 2 bis 9 Sekunden, bis das Ergebnis einer

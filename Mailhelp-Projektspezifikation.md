@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 7. November 2026, Anwendungsversion 4.5.4. Die folgenden Verträge beschreiben
+Stand: 7. November 2026, Anwendungsversion 4.5.5. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2918,3 +2918,9 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   Bilderkennung auf. Korpus v3 enthält drei synthetische eigene Notizen: „Ich nehme
   teil“ mit Einladungsfoto, eine weitergeleitete Einladung mit „Bitte eintragen“ und
   eine Aufgaben-Notiz.
+- **Abnahme (16.6/16.7):** Das Offline-Prompt-Gate besteht für alle 34 Korpusfälle. Der
+  End-to-End-Regressionstest der Landesversammlung (synthetisiert) erzeugt aus einer
+  eigenen Notiz mit drei Einladungsfotos einen Terminvorschlag der nutzenden Person mit
+  Beginn aus den Fotos. Ohne erkennbare Art des Treffens gilt weiterhin keine
+  Standarddauer; der Vorschlag fragt dann nach dem Ende. Eine Auswertung mit einem
+  echten Modell steht aus.

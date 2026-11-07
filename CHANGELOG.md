@@ -1,5 +1,12 @@
 # Änderungen
 
+## 4.5.5 – Abnahme eigene Notizen (Planung 4.5, Schritte 16.6 und 16.7)
+
+- End-to-End-Regressionstest der Landesversammlung, synthetisiert: Eine eigene Notiz
+  mit drei Einladungsfotos ergibt einen Terminvorschlag für die nutzende Person.
+- Das Offline-Prompt-Gate besteht für alle 34 Fälle. Release-Bericht:
+  `docs/Release-4.5.md`. Die Auswertung mit einem echten Modell steht aus.
+
 ## 4.5.4 – Korpus für eigene Notizen (Planung 4.5, Schritt 16.5)
 
 - Korpus v3 enthält drei synthetische eigene Notizen (Einladungsfoto mit „Ich nehme
