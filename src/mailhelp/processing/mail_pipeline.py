@@ -344,7 +344,7 @@ class MailPipeline:
         if wants_tasks and state.steps.task_extraction in {"pending", "failed"}:
             run.stage = ProcessingStage.TASK_EXTRACTION
             call, extraction = self.o.analyzer.extract_tasks(
-                _content(state), expected_count=route.task_count)
+                _with_perspective(state), expected_count=route.task_count)
             state.task_extraction = extraction
             state.llm_call_ids.append(call)
             state.steps.task_extraction = "completed"
@@ -358,7 +358,7 @@ class MailPipeline:
         if wants_llm_events and state.steps.event_extraction in {"pending", "failed"}:
             run.stage = ProcessingStage.EVENT_EXTRACTION
             call, events = self.o.analyzer.extract_events(
-                _content(state), expected_count=route.event_count)
+                _with_perspective(state), expected_count=route.event_count)
             state.event_extraction = events
             state.llm_call_ids.append(call)
             state.steps.event_extraction = "completed"

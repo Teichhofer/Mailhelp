@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 7. November 2026, Anwendungsversion 4.5.2. Die folgenden Verträge beschreiben
+Stand: 7. November 2026, Anwendungsversion 4.5.3. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2902,3 +2902,11 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   Handlungsanweisung gilt als Aufgabe. Die Notiz bestimmt nur die Absicht, die
   Fakten stammen aus Anhang oder Original. Anweisungen an das Modell befolgt es auch
   aus eigenen Notizen nicht.
+- **Perspektive in der Extraktion (16.4):** `task_extraction` und `event_extraction`
+  erhalten dieselbe Eingabe wie der Router, einschließlich `perspective`. Bestätigt
+  eine eigene Notiz eine Teilnahme oder verlangt sie eine Eintragung, ist die
+  Veranstaltung aus Anhang, Bildtext oder Original genau ein Termin mit
+  `responsibility: user` und `classification: new`. Titel, Datum, Uhrzeit und Ort
+  stammen aus Anhang oder Original, nicht aus der Notiz. Die Regeln zu älteren
+  weitergeleiteten Nachrichten gelten dafür nicht. Eine Absage in der Notiz erzeugt
+  keinen Termin, eine eigene Handlungsanweisung eine Aufgabe des Nutzers.

@@ -1,5 +1,14 @@
 # Änderungen
 
+## 4.5.3 – Eigene Notizen in der Extraktion (Planung 4.5, Schritt 16.4)
+
+- Aufgaben- und Terminextraktion erhalten wie der Router das Feld `perspective`.
+  Eine Teilnahme- oder Eintragungsnotiz macht die Veranstaltung aus Anhang oder
+  Weiterleitung zum eigenen Termin (`responsibility: user`). Die Fakten stammen aus
+  dem Original, nicht aus der Notiz. Eine Absage erzeugt keinen Termin.
+- Die Prompt-Baseline ist als geprüfter Konfigurationsvertrag fortgeschrieben,
+  ohne Nachweis der Modellqualität.
+
 ## 4.5.2 – Eigene Notizen im Aktionsrouting (Planung 4.5, Schritt 16.3)
 
 - `action_router` erhält bei eigenen Mails und Weiterleitungen das von der Anwendung

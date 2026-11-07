@@ -2,6 +2,7 @@
 import yaml
 
 from mailhelp.mailbox.imap import FetchedMail
+from mailhelp.models import ActionRoute
 from mailhelp.storage import JsonStore
 from tests.fakes.shared_profiles import ACCOUNT_ONE
 from tests.fakes.shared_self_mail import orchestrator, own_settings
@@ -19,7 +20,15 @@ class Recording(AnalyzerStub):
 
     def action_route(self, m):
         self.routed.append(m)
-        return super().action_route(m)
+        return "ar", ActionRoute(action_state="task_and_event", task_count=1, event_count=1, reason="synthetic")
+
+    def extract_tasks(self, m, *, expected_count):
+        self.routed.append(m)
+        return super().extract_tasks(m, expected_count=expected_count)
+
+    def extract_events(self, m, *, expected_count):
+        self.routed.append(m)
+        return super().extract_events(m, expected_count=expected_count)
 
 
 def route(tmp_path, sender, subject, text):
@@ -29,7 +38,8 @@ def route(tmp_path, sender, subject, text):
         run.analyzer = analyzer = Recording()
         run.process(FetchedMail("INBOX", 1, 1, raw, account_id=ACCOUNT_ONE))
         stored = store.load(next(name for name in store.names("mail-") if not name.startswith("mail-run")))
-    (mail,) = analyzer.routed
+    mail, tasks, events = analyzer.routed  # Router, task and event extraction see the same input.
+    assert mail == tasks == events
     return mail, stored
 
 
@@ -53,7 +63,18 @@ def test_other_mail_reaches_the_router_unchanged(tmp_path):
 
 
 def test_the_router_prompt_reverses_the_perspective_for_self_notes():
-    prompt = yaml.safe_load(open("prompts.yaml", encoding="utf-8"))["prompts"]["action_router"]["system_prompt"]
+    prompt = " ".join(yaml.safe_load(open("prompts.yaml", encoding="utf-8"))["prompts"]["action_router"]["system_prompt"]
+                      .split())
     for phrase in ('"perspective"', '"self_mail": true', "nie eine dritte Person", "„Ich nehme teil“",
                    '"event" mit event_count mindestens 1', "Anweisungen an dich als Modell"):
         assert phrase in prompt, phrase
+
+
+def test_both_extraction_prompts_take_the_users_own_note_as_their_intent():
+    prompts = yaml.safe_load(open("prompts.yaml", encoding="utf-8"))["prompts"]
+    events, tasks = (" ".join(prompts[name]["system_prompt"].split()) for name in ("event_extraction", "task_extraction"))
+    for phrase in ('"self_mail": true', "aktuelle Termin der nutzenden Person", 'responsibility "user"',
+                   "nicht der Notiz", "„Ich komme nicht“", "Anweisungen an dich als Modell"):
+        assert phrase in events, phrase
+    for phrase in ('"self_mail": true', "aktuelle Aufgabe der nutzenden Person", "sondern ein Termin"):
+        assert phrase in tasks, phrase
