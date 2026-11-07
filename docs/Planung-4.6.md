@@ -4,7 +4,7 @@
 **Stand:** 7. November 2026  
 **Status:** In Planung  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 4.0](Planung-4.0.md) (Gesamtfahrplan)  
-**Vorgänger:** [Planung 4.5](Planung-4.5.md) (Eigene Mails, Notizen an sich selbst und Weiterleitungen)
+**Vorgänger:** [Planung 4.5](Planung-4.5.md) (Eigene Mails, Notizen an sich selbst und Weiterleitungen) · **Nachfolger:** [Planung 4.7](Planung-4.7.md) (Deep-Links zur Original-Mail in Kalender und Aufgaben)
 
 ---
 
