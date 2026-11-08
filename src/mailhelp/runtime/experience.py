@@ -68,7 +68,7 @@ class ExperienceRuntime:
             first = next(iter(targets.values()))
             feature.drafts = DraftService(app.store, components.auth.active, first.connection, first.sender,
                 first.folder, settings.test_mode, app.analyzer, lambda: app.settings.personal_info,
-                targets=targets.get, mailbox_policy=self.draft_policy)
+                targets=self.draft_target, mailbox_policy=self.draft_policy)
             # 4.8: automatic drafts per mailbox (auto_draft, off by default); read per mail.
             feature.drafts.auto_policy = self.auto_draft_policy
             orchestrator = getattr(app, "orchestrator", None)
@@ -131,6 +131,15 @@ class ExperienceRuntime:
             labels = {source.account_id: (source.mailbox.id, source.mailbox.label) for source in self.app.sources}
             self.site.views.mailboxes = self.site.archive.queries.mailboxes = labels
 
+    def draft_target(self, account):
+        """Resolve the current folder only when saving; live overrides never move old drafts."""
+        number = self.mailbox_numbers.get(account)
+        mailbox = self.app.settings.imap.mailbox(number) if number is not None else None
+        if mailbox is None or not mailbox.enabled or self.draft_targets is None:
+            return None
+        target = self.draft_targets[account]
+        return target._replace(folder=self.app.settings.drafts.folder or mailbox.drafts_folder)
+
     def draft_policy(self, account):
         from ..mailbox.mailbox_settings import effective_settings
         number = self.mailbox_numbers.get(account)
@@ -138,7 +147,7 @@ class ExperienceRuntime:
             # Mail of no configured IMAP mailbox (IServ letters) has no account to reply from.
             return False, ""
         cfg = effective_settings(self.app.settings, number)
-        return cfg.smart_reply, cfg.personal_info
+        return cfg.smart_reply and cfg.drafts.enabled, cfg.personal_info
 
     def auto_draft_policy(self, account) -> bool:
         """4.8: drafts without a click need smart_reply and auto_draft of the mail's mailbox."""
@@ -147,7 +156,7 @@ class ExperienceRuntime:
         if number is None:
             return False
         cfg = effective_settings(self.app.settings, number)
-        return cfg.smart_reply and cfg.auto_draft
+        return cfg.smart_reply and cfg.drafts.enabled and cfg.auto_draft
 
     def _section(self, name, step):
         """Push and briefing fail independently of each other."""

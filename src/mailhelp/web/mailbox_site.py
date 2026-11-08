@@ -32,7 +32,7 @@ TABS = {
 FIELDS = {
     "targets": ("target_profile", "event_defaults.video_duration_minutes", "event_defaults.in_person_duration_minutes",
                 "mail_client"),
-    "replies": ("personal_info", "smart_reply", "activity_report_folder", "retention.full_mail_days"),
+    "replies": ("personal_info", "smart_reply", "auto_draft", "activity_report_folder", "retention.full_mail_days"),
     "notifications": (
         "daily_briefing",
         "notifications.quiet_hours.enabled",
@@ -49,6 +49,7 @@ LABELS = {
     "target_profile": "Zielprofil",
     "personal_info": "Signatur, Rolle und Anrede",
     "smart_reply": "Antwortentwürfe anbieten",
+    "auto_draft": "Antwortentwürfe automatisch im Postfach ablegen",
     "activity_report_folder": "Standardordner für Tätigkeitsberichte",
     "retention.full_mail_days": "Mailinhalt aufbewahren (Tage, disabled oder unlimited)",
     "event_defaults.video_duration_minutes": "Standarddauer Videokonferenz (Minuten)",
@@ -447,7 +448,7 @@ class MailboxSite:
                     field.endswith(("minutes", "days"))
                     or field == "target_profile"
                     or field.startswith("notifications.categories.")
-                    or field in {"smart_reply", "daily_briefing"}
+                    or field in {"smart_reply", "auto_draft", "daily_briefing"}
                     or field.endswith((".enabled", ".allow_system_errors"))
                 ):
                     value = (

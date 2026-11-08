@@ -151,8 +151,18 @@ aktualisieren die Seite automatisch; laufende erfolgreiche Abrufe allein laden s
 
 ## Antworten
 
+Ab 4.8.5 sperrt `drafts.enabled: false` neue Entwürfe und neue Ablagen global.
+Gespeicherte Entwürfe im Postfach bleiben erhalten. Automatische Ablage benötigt
+zusätzlich `smart_reply: true` und `auto_draft: true`; beide bleiben standardmäßig aus.
+`drafts.enabled`, `drafts.folder` und `auto_draft` werden ohne Neustart übernommen.
+Der Ordner ist ein IMAP-Ordnername oder `null` für die bisherige Postfachvorgabe.
+`auto_draft` ist auch unter Postfächer → Antworten überschreibbar.
+
 | Einstellung / Schlüssel | Wirkung und Werte | Übernahme |
 | --- | --- | --- |
+| Antwortentwürfe zulassen (`drafts.enabled`) | Globaler Hauptschalter, Standard `true`. Zusätzliche Postfachschalter gelten weiterhin. | Im laufenden Betrieb |
+| Entwurfsordner (`drafts.folder`) | Optionaler globaler Ordnername; `null` nutzt `imap.drafts_folder` bzw. `imap.mailboxes[].drafts_folder`. Fehlt der bevorzugte Ordner, gelten SPECIAL-USE und übliche Namen. Keine Ordneranlage. | Im laufenden Betrieb |
+| Automatische Ablage (`auto_draft`) | Standard `false`. `true` legt bei erkanntem schriftlichem Antwortbedarf einen Entwurf ab. Mailhelp versendet nie selbst. | Im laufenden Betrieb |
 | Persönliche Angaben für Antworten (`personal_info`) | Bis zu 2000 Zeichen, z. B. Name, Rolle, Signatur oder gewünschte Anrede. Diese Angaben erhält das KI-Modell beim Erstellen eines Antwort-Entwurfs. Leer bedeutet keine persönlichen Zusatzangaben. Mehr Kontext kann Ton und Inhalt des Entwurfs verändern; die Angaben werden nicht für die Mailanalyse verwendet. | Im laufenden Betrieb |
 | Antwortentwürfe anbieten (`smart_reply`) | ja (true) bietet in der Weboberfläche KI-Antwortentwürfe an; sie werden nur nach ausdrücklichem Speichern im Entwurfsordner des Postfachs abgelegt, Mailhelp versendet nie selbst. nein (false) blendet die Funktion aus. Postfächer können den Wert einzeln überschreiben; benötigt den Schritt draft_reply in prompts.yaml. | Nach Neustart |
 

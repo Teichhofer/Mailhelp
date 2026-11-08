@@ -87,6 +87,7 @@ class SenderChange(BaseModel):
 
 SETTINGS_FIELDS = {
     "poll_interval_seconds", "timezone", "test_mode", "personal_info",
+    "drafts.enabled", "drafts.folder", "auto_draft",
     "event_defaults.video_duration_minutes", "event_defaults.in_person_duration_minutes",
     "proposal_reconciliation.max_semantic_candidates",
     "targets.todoist_project", "targets.google_calendar", "targets.calendar_provider", "targets.task_provider",
@@ -143,7 +144,7 @@ for field in ("interpretation_attempts", "interpretation_backoff_seconds", "revi
     SETTINGS_FIELDS.add(f"retries.{field}")
 
 LIVE_FIELDS = {"poll_interval_seconds", "retention", "metrics", "personal_info", "notifications",
-               "event_defaults", "proposal_reconciliation"}
+               "event_defaults", "proposal_reconciliation", "drafts", "auto_draft"}
 SETUP_FIELDS = {"timezone", "imap.host", "imap.port", "imap.connection_mode", "imap.folders",
                 "event_defaults.video_duration_minutes", "event_defaults.in_person_duration_minutes",
                 "imap.primary_folder", "imap.drafts_folder", "imap.historical_start", "telegram.enabled",
@@ -167,6 +168,7 @@ MAILBOX_POLICY_FIELDS = {
     "target_profile",
     "personal_info",
     "smart_reply",
+    "auto_draft",
     "daily_briefing",
     "activity_report_folder",
     "retention",

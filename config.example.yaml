@@ -57,6 +57,13 @@ notifications:
 # ausdrücklichem Klick per IMAP APPEND in imap.drafts_folder; Mailhelp sendet nie.
 # Ungültige Mailkopfzeilen blockieren das Speichern im Postfach; lokale Änderungen bleiben erhalten.
 smart_reply: false
+# Automatische Ablage bleibt eine eigene bewusste Wahl (auch je Postfach überschreibbar).
+auto_draft: false
+# Globaler Schalter; smart_reply und auto_draft gelten zusätzlich. Kein Mailversand.
+drafts:
+  enabled: true
+  # null: Postfachvorgabe, dann SPECIAL-USE bzw. Namenssuche. Keine Ordneranlage.
+  folder: null
 # Automatische Entwürfe erscheinen als Aktionsergebnisse. Nur mit
 # notifications.telegram_content: summary wird ihr Text nach Telegram übertragen;
 # neutral meldet lediglich das verfügbare Ergebnis. Webvorschau und Kopieren sind lokal.

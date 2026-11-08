@@ -72,7 +72,7 @@ Reply = tuple[str, ReplyDraft]
 
 
 class DraftAnalyzer(Protocol):
-    def draft_reply(self, mail: dict[str, Any], intent: str, personal_info: str, reason: str | None = None) -> Reply: ...
+    def draft_reply(self, mail: dict[str, Any], intent: str, personal_info: str, reason: str | None = ...) -> Reply: ...
 
 
 AUTO_KEY = "automatic-draft"
@@ -227,7 +227,7 @@ class DraftService:
             else:
                 with target.connection() as connection:
                     self._append(connection, target.folder, None, mail_id, AUTO_KEY, digest, draft, message_id,
-                                 content)
+                                 content, auto_account=account)
             self._remember(draft, AUTO_KEY, digest)
             self._save(mail_id, draft)
             return cast(str, draft["status"])
@@ -284,7 +284,8 @@ class DraftService:
             return draft
 
     def _append(self, connection: imaplib.IMAP4, drafts_folder: str, actor: str | None, mail_id: str, key: str,
-                digest: str, draft: dict[str, Any], message_id: str, content: bytes) -> None:
+                digest: str, draft: dict[str, Any], message_id: str, content: bytes,
+                *, auto_account: str | None = None) -> None:
         """Reconcile first; append only if the draft is provably missing from the folder."""
         conn = cast(Any, connection)
         folder = mailbox_argument(drafts_folder)
@@ -304,6 +305,9 @@ class DraftService:
             raise ValueError("Entwurfsabgleich nicht möglich")
         if any(matches):
             draft.update(status="saved", error=None)
+            return
+        if auto_account is not None and not self.auto_policy(auto_account):
+            draft.update(status="editing", error="Automatische Entwurfsablage inzwischen ausgeschaltet.")
             return
         draft.update(status="uncertain", error=None)
         self._remember(draft, key, digest)

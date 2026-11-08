@@ -39,8 +39,8 @@ from ..config import MAILBOX_FIELDS, PromptConfig, Settings, Topic
 from ..storage import JsonStore
 
 # Sections and fields introduced by 2.0 and later; they never influence an analysis.
-EXPERIENCE = frozenset({"push", "daily_briefing", "smart_reply", "auto_draft", "personal_info", "activity_report",
-                        "notifications",
+EXPERIENCE = frozenset({"push", "daily_briefing", "smart_reply", "auto_draft", "drafts", "personal_info",
+                        "activity_report", "notifications",
                         "event_defaults", "proposal_reconciliation", "target_profiles"})
 EXPERIENCE_FIELDS = (("imap", "drafts_folder"), ("telegram", "enabled"), ("retention", "activity_report_days"),
                      # 3.5.3: learning records of manual decisions.

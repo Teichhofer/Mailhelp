@@ -3110,3 +3110,13 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   enthält keinen Entwurfstext; `telegram_content: summary` zeigt Text und Ablagestatus.
   Ruhezeiten, Bündelung, Wiederanlauf und Versionsprüfung gelten unverändert. Die Warteschlange
   enthält ausschließlich Referenzen. Retention entfernt auch den kopierbaren Entwurfstext.
+- **Einstellungen (19.6):** `drafts.enabled: true` erlaubt neue manuelle und automatische
+  Entwürfe; `false` sperrt sie. Bestehende Entwürfe im Postfach bleiben erhalten.
+  `smart_reply` und `auto_draft` gelten zusätzlich und bleiben im Standard aus.
+  `drafts.folder: null` verwendet den postfacheigenen `drafts_folder`; ein gültiger
+  Ordnername überschreibt ihn global. Fehlt er, gelten SPECIAL-USE- und Namens-Fallbacks;
+  Mailhelp legt keine Ordner an. Unter `/einstellungen?bereich=antworten` sind diese
+  Einstellungen versions- und CSRF-geschützt ohne Neustart änderbar. `auto_draft` ist
+  zusätzlich je Postfach überschreibbar. Die Einstellungen verändern keine aktuellen
+  oder historischen Analyse-Fingerabdrücke. Automatische Ablage prüft ihren Schalter
+  an der APPEND-Grenze erneut; bei Deaktivierung bleibt der Text lokal erhalten.

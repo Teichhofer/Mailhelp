@@ -56,6 +56,15 @@ def _valid_folders(folders: list[str] | None) -> list[str] | None:
 
 ConnectionMode = Literal["ssl", "starttls", "plain"]
 DraftsFolder = Annotated[str, Field(min_length=1, max_length=500, pattern=r"^[^\x00-\x1f\x7f]+$")]
+
+
+class DraftSettings(ConfigModel):
+    """Master switch and optional folder override; automatic writing remains opt-in."""
+
+    enabled: bool = True
+    folder: DraftsFolder | None = None
+
+
 OwnAddress = Annotated[str, Field(min_length=3, max_length=254,
                                   pattern=r"^[A-Za-z0-9._%+'-]+@[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.[A-Za-z]{2,}$")]
 # Fields of one mailbox; before 3.1 they were written directly below ``imap``.
@@ -650,6 +659,7 @@ class Settings(ConfigModel):
     push: PushSettings = Field(default_factory=lambda: PushSettings())
     daily_briefing: DailyBriefingSettings = Field(default_factory=lambda: DailyBriefingSettings())
     smart_reply: bool = False
+    drafts: DraftSettings = Field(default_factory=DraftSettings)
     # 4.8: with smart_reply, a mail that expects a written answer gets a draft in the drafts
     # folder without a click. Off by default (user decision of 8 November 2026).
     auto_draft: bool = False

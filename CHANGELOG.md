@@ -1,5 +1,16 @@
 # Änderungen
 
+## 4.8.5 – Einstellungen für Antwortentwürfe (Planung 4.8, Schritt 19.6)
+
+- `drafts.enabled` (Standard an) erlaubt oder sperrt neue Antwortentwürfe global;
+  `drafts.folder` überschreibt optional den Entwurfsordner. Beide sind unter Antworten
+  ohne Neustart änderbar. `null` verwendet die bisherige Postfach- und SPECIAL-USE-Wahl.
+- `auto_draft` ist nun global und je Postfach im Web einstellbar; der bestehende Standard
+  bleibt aus. `smart_reply` ist weiterhin Voraussetzung. Bestehende Installationen
+  werden nicht auf automatische Ablage umgestellt.
+- Regression: Eine während der Generierung oder des IMAP-Abgleichs deaktivierte
+  automatische Ablage verhindert APPEND an der Schreibgrenze; der Text bleibt lokal.
+
 ## 4.8.4 – Entwurfsvorschau (Planung 4.8, Schritt 19.5)
 
 - Gespeicherte und simulierte Antwortentwürfe bleiben auf der Mail- und Vorschlagsseite

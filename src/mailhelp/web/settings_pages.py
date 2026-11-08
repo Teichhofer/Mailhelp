@@ -30,7 +30,7 @@ TEXT_SETTINGS = {"personal_info": ("Zum Beispiel Name, Rolle, Signatur oder gew�
                                    "nur in Antwort-Entwürfe ein und werden dafür an das KI-Modell übergeben.")}
 SETTING_GROUPS = (
     ("Mailabruf und Betrieb", ("poll_interval_seconds", "timezone", "test_mode", "imap.")),
-    ("Antworten", ("personal_info", "smart_reply")),
+    ("Antworten", ("personal_info", "smart_reply", "auto_draft", "drafts.")),
     ("Telegram", ("telegram.",)),
     ("Bildauswertung", ("vision.",)),
     ("Tagesüberblick", ("daily_briefing.",)),
@@ -78,6 +78,9 @@ EXTRA_LABELS = {
     "telegram.chat_id": "Telegram: Chat für Nachrichten",
     "telegram.sequential_questions": "Telegram: Entscheidungen nacheinander",
     "smart_reply": "Antwortentwürfe anbieten",
+    "auto_draft": "Antwortentwürfe automatisch im Postfach ablegen",
+    "drafts.enabled": "Antwortentwürfe zulassen",
+    "drafts.folder": "Entwurfsordner überschreiben (null: Postfachvorgabe)",
     "vision.enabled": "Bildanhänge und Scans auswerten",
     "vision.max_images_per_mail": "Bildauswertung: Bilder je Mail",
     "vision.max_image_bytes": "Bildauswertung: Höchstgröße je Bild (Bytes)",
