@@ -106,6 +106,7 @@ class SettingsSite:
         configuration = self.archive.configuration
         if configuration is None:
             return self.site._reply(request, 503, "Konfiguration nicht verfügbar.")
+        value: Any
         try:
             if form["name"] == "briefings.times":
                 value = [part for part in re.split(r"[,;\s]+", form["value"].strip()) if part]

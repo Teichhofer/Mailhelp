@@ -1,5 +1,9 @@
 # Änderungen
 
+## 4.9.1 – Dauerhafte Briefing-Zeitsteuerung (Planung 4.9, Schritt 20.2)
+
+- Der BriefingScheduler speichert Termine und Wiederholungszeitpunkte in briefing_state.json. Identitäten aus lokalem Datum und Uhrzeit verhindern Doppelläufe nach Neustart, Zielwechsel und rückwärts laufender Uhr. Verpasste heutige Zeiten werden geordnet nachgeholt; Inhaltsfenster beginnen beim letzten erfolgreichen Briefing.
+
 ## 4.9.0 – Briefing-Einstellungen (Planung 4.9, Schritt 20.1)
 
 - Neue Postfach-Briefings sind standardmäßig aus; Uhrzeiten, Zielpostfach und Leerlaufverhalten lassen sich unter Einstellungen → Postfach-Briefings versions- und CSRF-geschützt ohne Neustart bearbeiten. Der bestehende Telegram-Tagesüberblick bleibt unabhängig.
