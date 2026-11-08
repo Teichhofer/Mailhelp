@@ -33,6 +33,15 @@ class ReplyDraft(BaseModel):
     text: str = Field(min_length=1, max_length=8000)
 
 
+# Reply markers of common mail programs (German, English, Nordic); forward markers stay.
+_REPLY_PREFIX = re.compile(r"^(?:(?:re|aw|antw|antwort|sv|vs)(?:\[\d+\])?\s*:\s*)+", re.IGNORECASE)
+
+
+def reply_subject(subject: str) -> str:
+    """Exactly one "Re: " in front: "AW: Re: Angebot" becomes "Re: Angebot" (4.8, 19.2)."""
+    return "Re: " + _REPLY_PREFIX.sub("", subject).strip()
+
+
 def message(headers: MailHeaders, sender: str, text: str, message_id: str) -> bytes:
     result = EmailMessage(policy=SMTP)
     address = parseaddr(headers.reply_to or headers.sender)[1]
@@ -42,7 +51,7 @@ def message(headers: MailHeaders, sender: str, text: str, message_id: str) -> by
     result["From"], result["To"] = sender, address
     # Untrusted subjects of older mail states may still contain line breaks; a header has one line.
     subject = " ".join(headers.subject.split())
-    result["Subject"] = subject if subject.lower().startswith("re:") else "Re: " + subject
+    result["Subject"] = reply_subject(subject)
     parent = headers.message_id
     ids = re.findall(r"<[^<>\s]+@[^<>\s]+>", headers.references)[-20:]
     if re.fullmatch(r"<[^<>\s]+@[^<>\s]+>", parent):

@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 4.8.0. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 4.8.1. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3071,3 +3071,9 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   `Entwurf`, `INBOX.Drafts`, `INBOX/Drafts`, `[Gmail]/Entwürfe`, `[Gmail]/Drafts`). Der
   tatsächlich genutzte Ordner steht im Entwurfszustand (`folder`). Ohne passenden Ordner
   wird nichts geschrieben.
+- **Entwurfsnachricht (19.2):** Der Betreff erhält genau ein „Re: “; führende
+  Antwortkennzeichen (`Re:`, `AW:`, `Antw:`, `Antwort:`, `SV:`, `VS:`, auch mehrfach und
+  als `Re[2]:`) entfallen, Weiterleitungskennzeichen wie `WG:` bleiben. Empfänger ist die
+  Reply-To-Adresse, sonst der Absender; `In-Reply-To` ist die Message-ID der Mail,
+  `References` deren Kette samt Message-ID. Der Text ist UTF-8. Ein HTML-Teil entfällt
+  bewusst: Das Mailprogramm formatiert den Entwurf beim Bearbeiten.

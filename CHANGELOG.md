@@ -1,5 +1,12 @@
 # Änderungen
 
+## 4.8.1 – Betreff und Threading der Entwürfe (Planung 4.8, Schritt 19.2)
+
+- Antwortentwürfe erhalten genau ein „Re: “: Aus „AW: Angebot“ wird „Re: Angebot“ statt
+  „Re: AW: Angebot“. Weiterleitungskennzeichen wie „WG:“ bleiben.
+- Threading (`In-Reply-To`, `References`, Reply-To als Empfänger) durch einen eigenen Test
+  belegt.
+
 ## 4.8.0 – Entwurfsordner per SPECIAL-USE (Planung 4.8, Schritt 19.1)
 
 - Fehlt der konfigurierte Entwurfsordner auf dem Server, legt Mailhelp einen Entwurf im

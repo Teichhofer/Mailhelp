@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 4.8.0 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 4.8.1 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 4.4 trennt die Weboberfläche von der Verarbeitung. Ein Klick wird sofort
 quittiert, auch während die Mailanalyse läuft (gemessen: Median rund 30 ms). Danach
@@ -53,7 +53,7 @@ unter Einstellungen → Postfächer → Ziele, welches Programm der Link öffnet
 
 Version 4.8 baut die Antwortentwürfe aus. Ab 4.8.0 findet Mailhelp den Entwurfsordner auch
 dann, wenn der konfigurierte Name auf dem Server fehlt (Ordner mit der Kennzeichnung
-`\Drafts`). Plan: [Planung 4.8](docs/Planung-4.8.md).
+`\Drafts`). Ab 4.8.1 tragen Entwürfe genau ein „Re:“ im Betreff. Plan: [Planung 4.8](docs/Planung-4.8.md).
 Plan: [Planung 4.7](docs/Planung-4.7.md).
 Plan: [Planung 4.6](docs/Planung-4.6.md).
 
