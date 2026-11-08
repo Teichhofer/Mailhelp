@@ -225,6 +225,17 @@ class CalDavCalendar(DavResource, ProviderWriter, CalendarOperations):
         self._set_cached(cache_key, events)
         return events
 
+    def existing_event(self, event_id: str) -> CalendarOverlapEvent | None:
+        """The event as it is now; ``None`` once it is deleted or cancelled (4.6)."""
+        url = self._member(event_id)
+        response = self.policy.run(lambda: self._send("GET", url, allowed=frozenset({404, 410})))
+        if response.status_code in {404, 410}:
+            return None
+        fields = event_summary(parse_calendar(response.content), self.calendar_timezone or "UTC")
+        if fields is None or fields.pop("cancelled"):
+            return None
+        return CalendarOverlapEvent.model_validate({"id": url, **fields})
+
 
 class CalDavTasks(DavResource, ProviderWriter):
     """Open tasks (VTODO) in a CalDAV task list; also Apple Erinnerungen via iCloud."""

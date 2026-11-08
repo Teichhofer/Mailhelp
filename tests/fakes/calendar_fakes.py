@@ -55,8 +55,9 @@ class FakeGoogleCalendar:
         return [item for item in listed if _moment(item["end"]) > low and _moment(item["start"]) < high]
 
 
-def google_writer(calendar: FakeGoogleCalendar, matcher=None) -> HttpWriter:
-    return HttpWriter(service="google_calendar", token="tok", target="primary", calendar_timezone="Europe/Berlin",
+def google_writer(calendar: FakeGoogleCalendar, matcher=None, target: str = "calendar-1") -> HttpWriter:
+    """``calendar-1`` is the calendar the proposal builder fakes bind proposals to."""
+    return HttpWriter(service="google_calendar", token="tok", target=target, calendar_timezone="Europe/Berlin",
                       transport=httpx.MockTransport(calendar), calendar_matcher=matcher)
 
 

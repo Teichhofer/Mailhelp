@@ -17,6 +17,7 @@ from ..external.contracts import ExternalWriter, TargetWriter
 from ..external.roles import CALENDAR_SLOT, TASK_SLOT, profile_slot, provider_key, slot
 from ..logging import EventLogger, NullLogger
 from ..persistence.ledger import ActionLedgerPort
+from .calendar_target import TARGETED, CalendarTargetFinder
 
 
 class DuplicatePreCheckService:
@@ -73,6 +74,14 @@ class DuplicatePreCheckService:
 
         # Stufe 2: Kalender (Google, CalDAV oder Outlook)
         cal_writer = self.writers.get(profile_slot(CALENDAR_SLOT, proposal.target_profile))
+        if (proposal.kind == ProposalKind.EVENT and proposal.classification in TARGETED
+                and isinstance(cal_writer, CalendarOperations) and cal_writer.role == "calendar"):
+            # 4.6: a change or cancellation refers to an existing entry, possibly on
+            # another day, and may lack the times the window check needs.
+            try:
+                return CalendarTargetFinder(cal_writer, self.logger).check(proposal)
+            except Exception as exc:
+                return self._failed(proposal, "calendar", exc)
         if (
             proposal.kind == ProposalKind.EVENT
             and isinstance(cal_writer, CalendarOperations)

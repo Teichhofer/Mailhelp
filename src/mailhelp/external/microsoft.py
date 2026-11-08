@@ -44,6 +44,7 @@ LOGIN = "https://login.microsoftonline.com"
 SCOPES = "offline_access Calendars.ReadWrite Tasks.ReadWrite"
 # Named MAPI property that carries the idempotency key on every Outlook event.
 KEY_PROPERTY = "String {6b1c9a0e-4f43-4c9a-9d55-6d61696c6865} Name mailhelpKey"
+_EVENT_FIELDS = "id,subject,body,location,start,end,isAllDay,isCancelled,webLink"
 DEVICE_GRANT = "urn:ietf:params:oauth:grant-type:device_code"
 
 
@@ -218,12 +219,15 @@ class GraphResource:
         self.client.close()
 
     def _send(self, method: str, url: str, *, body: dict[str, Any] | None = None,
-              params: dict[str, str] | None = None, key: str | None = None) -> httpx.Response:
+              params: dict[str, str] | None = None, key: str | None = None,
+              allowed: frozenset[int] = frozenset()) -> httpx.Response:
         self.logger.event("DEBUG", self.service, "http_request", method=method, url=url.split("?")[0],
                           call_id=key)
         headers = {"Authorization": f"Bearer {self.token.access_token()}",
                    "Prefer": 'outlook.timezone="UTC", outlook.body-content-type="text"'}
         response = self.client.request(method, url, json=body, params=params, headers=headers)
+        if response.status_code in allowed:
+            return response
         if response.status_code == 401:
             self.token.invalidate()
             self.logger.event("ERROR", self.service, "authentication_failed", status=401)
@@ -345,23 +349,41 @@ class OutlookCalendar(GraphResource, ProviderWriter, CalendarOperations):
 
         return self._logged(proposal, key, change, "duplicate_updated")
 
+    def _overlap(self, item: dict[str, Any]) -> CalendarOverlapEvent | None:
+        """A Graph event in the provider-neutral form; ``None`` for a cancelled one."""
+        try:
+            event = GraphEvent.model_validate(item)
+            if event.isCancelled:
+                return None
+            return CalendarOverlapEvent.model_validate({
+                "id": event.id, "summary": (event.subject or "")[:500],
+                "description": str((event.body or {}).get("content") or "")[:4000],
+                "location": str((event.location or {}).get("displayName") or "")[:1000] or None,
+                "htmlLink": event.webLink if (event.webLink or "").startswith("https://") else None,
+                "start": _neutral_time(event.start, event.isAllDay),
+                "end": _neutral_time(event.end, event.isAllDay)})
+        except (ValidationError, ValueError, KeyError) as exc:
+            raise ValueError(f"{self.label}: ungültige Antwort am Schlüsselpfad {exc}") from None
+
     def _calendar_candidates(self, time_min: str, time_max: str) -> Iterator[CalendarOverlapEvent]:
-        params = {"startDateTime": time_min, "endDateTime": time_max, "$top": "50",
-                  "$select": "id,subject,body,location,start,end,isAllDay,isCancelled,webLink"}
+        params = {"startDateTime": time_min, "endDateTime": time_max, "$top": "50", "$select": _EVENT_FIELDS}
         for item in self._pages(f"{self._base}/calendarView", params):
-            try:
-                event = GraphEvent.model_validate(item)
-                if event.isCancelled:
-                    continue
-                yield CalendarOverlapEvent.model_validate({
-                    "id": event.id, "summary": (event.subject or "")[:500],
-                    "description": str((event.body or {}).get("content") or "")[:4000],
-                    "location": str((event.location or {}).get("displayName") or "")[:1000] or None,
-                    "htmlLink": event.webLink if (event.webLink or "").startswith("https://") else None,
-                    "start": _neutral_time(event.start, event.isAllDay),
-                    "end": _neutral_time(event.end, event.isAllDay)})
-            except (ValidationError, ValueError, KeyError) as exc:
-                raise ValueError(f"{self.label}: ungültige Antwort am Schlüsselpfad {exc}") from None
+            event = self._overlap(item)
+            if event is not None:
+                yield event
+
+    def existing_event(self, event_id: str) -> CalendarOverlapEvent | None:
+        """The event as it is now; ``None`` once it is deleted or cancelled (4.6)."""
+        url = f"{self._base}/events/{quote(event_id, safe='')}"
+        response = self.policy.run(partial(self._send, "GET", url, params={"$select": _EVENT_FIELDS},
+                                           allowed=frozenset({404, 410})))
+        if response.status_code in {404, 410}:
+            return None
+        try:
+            item = response.json()
+        except ValueError as exc:
+            raise ValueError(f"{self.label}: ungültige Antwort am Schlüsselpfad {exc}") from None
+        return self._overlap(item)
 
     def fetch_events_in_window(self, start: datetime | date, end: datetime | date, *,
                                strict: bool = False) -> list[CalendarOverlapEvent]:

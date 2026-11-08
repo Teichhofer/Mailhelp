@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 4.6.1. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 4.6.2. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2965,3 +2965,24 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   lässt es leer. `Proposal.calendar_candidates` (höchstens 10) gibt es nur bei Terminen
   ohne gewähltes Ziel. Fehlt `original_date_text` in einer Extraktion, bleibt die
   Vorschlags-ID unverändert.
+- **Kalenderabgleich für Änderungen und Absagen (17.3):** Für Termine mit `change` oder
+  `cancellation` sucht der Precheck den bestehenden Eintrag deterministisch über
+  `search_events`, nicht über den Dublettenabgleich, denn dieser vergleicht nur
+  überlappende Einträge. Gesucht wird ±1 Tag um `original_date` (Änderung) bzw. um den
+  abgesagten Tag (Absage); ohne früheres Datum ±92 Tage um das neue Datum.
+  - Genau ein Treffer wird `target_event_id`. Fehlende Zeiten kommen aus dem Eintrag:
+    Bei einer Absage gelten seine Zeiten, bei einer Änderung nur mit neuem Tag seine
+    Uhrzeit und Dauer, bei neuem Beginn seine Dauer (`end_origin: calendar`).
+    `time_changes` nennt Beginn, Ende und einen geänderten Ort. Die Klärungsfrage nach dem
+    Eintrag entfällt; vollständige Vorschläge sind bestätigbar.
+  - Zeigt der Eintrag schon den neuen Stand, ist der Vorschlag `already_exists`.
+  - Kein Treffer: Frage „Im Kalender wurde kein passender Termin gefunden …“. Mehrere
+    Treffer: Frage „Mehrere passende Termine …“ und höchstens zehn
+    `calendar_candidates`; es wird nie geraten.
+  - Ein gesetztes Ziel wird bei jeder weiteren Prüfung nur per `existing_event` gelesen,
+    nicht neu gesucht; ist es gelöscht oder abgesagt, öffnet sich die Frage erneut.
+    `existing_event` gibt es für Google, CalDAV und Outlook.
+  - Ein Lesefehler setzt `duplicate_check_failed`.
+- **Fehlerbehebung (4.6.2):** Ein abgesagter Kalenderanhang (`STATUS:CANCELLED`) setzte
+  `is_cancellation` ohne Ziel und ließ den Vorschlagsbau scheitern. Er wird jetzt als
+  offene Absage gebaut und über den Abgleich seinem Eintrag zugeordnet.

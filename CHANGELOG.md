@@ -1,5 +1,20 @@
 # Änderungen
 
+## 4.6.2 – Kalenderabgleich für Änderungen und Absagen (Planung 4.6, Schritt 17.3)
+
+- Änderungen und Absagen finden ihren bestehenden Kalendereintrag: ±1 Tag um das frühere
+  bzw. abgesagte Datum, ohne früheres Datum per Titelsuche ±92 Tage um das neue Datum.
+- Genau ein Treffer wird zum Ziel; fehlende Zeiten übernimmt Mailhelp aus dem Eintrag
+  (alte Uhrzeit und Dauer bei „verschoben auf den 11.12.“, die Zeiten des abgesagten
+  Termins). Die Rückfrage nach dem Eintrag entfällt.
+- Kein oder mehrere Treffer: konkrete Rückfrage, mehrere Treffer werden als Kandidaten
+  gespeichert; nie wird ein Termin geraten. Ein schon verschobener Eintrag ergibt „bereits
+  vorhanden“.
+- Ein gewähltes Ziel wird bei jeder weiteren Prüfung nur gelesen (`existing_event` für
+  Google, CalDAV, Outlook); ist es gelöscht, öffnet sich die Frage erneut.
+- Fehlerbehebung: Ein abgesagter Kalenderanhang ließ den Vorschlagsbau scheitern
+  („Eine Stornierung erfordert eine Ziel-Event-ID“). Regressionstest ergänzt.
+
 ## 4.6.1 – Früheres Datum bei Terminänderungen (Planung 4.6, Schritt 17.2)
 
 - `event_extraction` liefert bei `classification: "change"` zusätzlich

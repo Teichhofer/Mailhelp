@@ -159,6 +159,10 @@ class ProposalBuilder:
             if cand_id in used_ids:
                 cand_id = f"p_{hashlib.sha256(f'{cand_id}:{pos_offset}'.encode()).hexdigest()[:24]}"
             used_ids.add(cand_id)
+            cancelled = classification == ProposalClassification.CANCELLATION
+            # A cancellation names no calendar entry yet; the pre-check finds it (4.6).
+            # Setting is_cancellation here made every cancelled attachment invalid.
+            questions = [_CLASSIFICATION_QUESTIONS["cancellation"]] if cancelled else []
             proposals.append(Proposal(
                 schema_version=2,
                 id=cand_id,
@@ -171,15 +175,14 @@ class ProposalBuilder:
                 description=self._description(cal.description),
                 evidence=evidence,
                 source_mail_id=self.source_mail_id,
-                open_questions=[],
+                open_questions=questions,
                 location=cal.location,
                 video_link=cal.video_link,
                 target=self.targets.calendar_target,
-                status=ProposalStatus.PENDING_CONFIRMATION,
+                status=ProposalStatus.NEEDS_CLARIFICATION if cancelled else ProposalStatus.PENDING_CONFIRMATION,
                 start=cal.start,
                 end=cal.end,
                 all_day=cal.all_day,
-                is_cancellation=cal.status == "CANCELLED",
                 end_origin="calendar", target_provider=self.targets.calendar_provider,
             ))
         return proposals, ics_summaries

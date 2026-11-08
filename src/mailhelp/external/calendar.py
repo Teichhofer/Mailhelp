@@ -4,8 +4,10 @@ from __future__ import annotations
 from collections.abc import Iterator
 from datetime import UTC, date, datetime, timedelta
 from typing import Any
+from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
+import httpx
 from pydantic import ValidationError
 
 from ..domain.event_titles import titles_related
@@ -119,6 +121,33 @@ class CalendarOperations(HttpTransport):
             self.logger.event("WARNING", self.service, "fetch_events_failed", error=str(exc))
             return []
 
+
+    def existing_event(self, event_id: str) -> CalendarOverlapEvent | None:
+        """The event as it is now; ``None`` once it is deleted or cancelled (4.6).
+
+        Google keeps a cancelled event readable by id with ``status: cancelled`` and
+        answers 404 or 410 for one that is gone.
+        """
+        url = f"/calendars/{self.target}/events/{quote(event_id, safe='')}"
+
+        def read() -> httpx.Response | None:
+            self.logger.event("DEBUG", self.service, "http_request", method="GET", url=url)
+            response = self.client.get(url, headers=self._auth_headers())
+            if response.status_code in {404, 410}:
+                return None
+            self._raise_for_status(response)
+            return response
+
+        response = self.policy.run(read)
+        if response is None:
+            return None
+        try:
+            data = response.json()
+            event = CalendarOverlapEvent.model_validate(data)
+        except (ValueError, ValidationError) as exc:
+            raise ValueError("Google Calendar events: ungültige Antwort am Schlüsselpfad "
+                             f"{validation_path(exc)}") from exc
+        return None if data.get("status") == "cancelled" else event
 
     def search_events(self, title_query: str, start: datetime | date,
                       end: datetime | date) -> list[CalendarOverlapEvent]:
