@@ -1,5 +1,11 @@
 # Änderungen
 
+## 4.8.0 – Entwurfsordner per SPECIAL-USE (Planung 4.8, Schritt 19.1)
+
+- Fehlt der konfigurierte Entwurfsordner auf dem Server, legt Mailhelp einen Entwurf im
+  vom Server als `\Drafts` markierten Ordner ab, sonst in einem gängigen Ordner wie
+  „Entwürfe“. Ohne passenden Ordner wird nichts geschrieben.
+
 ## 4.7.5 – Abnahme Links zur Original-Mail (Planung 4.7, Schritt 18.6)
 
 - End-to-End-Test: Der Link kommt in Todoist (Markdown) und im Google Kalender an;

@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 4.7.5 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 4.8.0 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 4.4 trennt die Weboberfläche von der Verarbeitung. Ein Klick wird sofort
 quittiert, auch während die Mailanalyse läuft (gemessen: Median rund 30 ms). Danach
@@ -50,6 +50,10 @@ Links für Gmail und Outlook im Browser. Ab 4.7.2 enden neue Aufgaben und Termin
 in Gmail im Browser. Ab 4.7.3 zeigen auch Web-Karten und Telegram den Link. Ab 4.7.4 wählst du je Postfach
 unter Einstellungen → Postfächer → Ziele, welches Programm der Link öffnet
 (`imap.mailboxes[].mail_client`, Standard `auto`). Details: [Release 4.7](docs/Release-4.7.md).
+
+Version 4.8 baut die Antwortentwürfe aus. Ab 4.8.0 findet Mailhelp den Entwurfsordner auch
+dann, wenn der konfigurierte Name auf dem Server fehlt (Ordner mit der Kennzeichnung
+`\Drafts`). Plan: [Planung 4.8](docs/Planung-4.8.md).
 Plan: [Planung 4.7](docs/Planung-4.7.md).
 Plan: [Planung 4.6](docs/Planung-4.6.md).
 

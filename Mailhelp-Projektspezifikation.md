@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 4.7.5. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 4.8.0. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3058,3 +3058,16 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
 - **Abnahme (18.6):** Der End-to-End-Test schreibt Aufgabe und Termin einer Mail mit
   Sonderzeichen in der Message-ID nach Todoist und Google Kalender (simuliert) und prüft
   den Link in beiden Beschreibungen. Release-Bericht: `docs/Release-4.7.md`.
+
+## Ergänzungen Version 4.8
+
+- **Bestehende Grundlage:** Antwortentwürfe (`smart_reply`, Prompt `draft_reply`) gibt es
+  seit 2.0: auf Klick je Antwortart erzeugt, im Web bearbeitbar und erst nach
+  ausdrücklichem Speichern per `IMAP APPEND` mit `\Draft` abgelegt, mit `In-Reply-To`,
+  `References` und Abgleich unklarer Schreibresultate über die Message-ID.
+- **Entwurfsordner (19.1):** Lässt sich der konfigurierte `drafts_folder` nicht auswählen,
+  liest Mailhelp die Ordnerliste und nimmt den einzigen als `\Drafts` (SPECIAL-USE,
+  RFC 6154) markierten Ordner, sonst einen gängigen Namen (`Drafts`, `Entwürfe`,
+  `Entwurf`, `INBOX.Drafts`, `INBOX/Drafts`, `[Gmail]/Entwürfe`, `[Gmail]/Drafts`). Der
+  tatsächlich genutzte Ordner steht im Entwurfszustand (`folder`). Ohne passenden Ordner
+  wird nichts geschrieben.

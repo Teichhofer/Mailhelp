@@ -18,6 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .. import state_names
 from ..domain.prepared import MailHeaders, PreparedMail
+from ..mailbox.draft_folders import choose_drafts_folder, listed_folders
 from ..mailbox.imap import mailbox_argument
 from ..models import MailState
 from ..storage import StateStore
@@ -227,11 +228,19 @@ class DraftService:
     def _append(self, connection: imaplib.IMAP4, drafts_folder: str, actor: str, mail_id: str, key: str,
                 digest: str, draft: dict[str, Any], message_id: str, content: bytes) -> None:
         """Reconcile first; append only if the draft is provably missing from the folder."""
-        folder = mailbox_argument(drafts_folder)
         conn = cast(Any, connection)
+        folder = mailbox_argument(drafts_folder)
         status, _ = conn.select(folder, readonly=True)
         if status != "OK":
-            raise ValueError("Entwurfsordner nicht verfügbar")
+            # 4.8: a missing configured folder falls back to the server's \Drafts folder.
+            chosen = choose_drafts_folder(drafts_folder, listed_folders(connection))
+            if chosen is None or chosen == drafts_folder:
+                raise ValueError("Entwurfsordner nicht verfügbar")
+            folder = mailbox_argument(chosen)
+            status, _ = conn.select(folder, readonly=True)
+            if status != "OK":
+                raise ValueError("Entwurfsordner nicht verfügbar")
+            draft["folder"] = chosen
         status, matches = conn.uid("search", None, "HEADER", "Message-ID", message_id)
         if status != "OK":
             raise ValueError("Entwurfsabgleich nicht möglich")

@@ -104,6 +104,9 @@ class Connection:
     def uid(self, *args):
         self.search = args
         return self.searched, self.matches
+    def list(self):
+        # 4.8: asked only when the configured drafts folder cannot be selected.
+        return "OK", []
     def append(self, *args):
         self.writes.append(args)
         if isinstance(self.appended, Exception): raise self.appended
