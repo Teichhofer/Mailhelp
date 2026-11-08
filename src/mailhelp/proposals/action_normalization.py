@@ -221,6 +221,16 @@ def _parse_date(raw: str | None, responsibility: str, context: MailDateContext |
                     f"Welches konkrete Datum ist mit „{raw}“ gemeint?")
 
 
+def resolve_day(raw: str | None, context: MailDateContext, evidence: str = "") -> date | None:
+    """A verbatim date text as a calendar day by the same rules as an event date, else None.
+
+    4.6: resolves the date an event had before a change; an unresolvable text simply
+    leaves the earlier date unknown.
+    """
+    result = _parse_date(raw, "user", context, evidence)
+    return result[0] if isinstance(result, tuple) else None
+
+
 def _numeric_date(raw: str, responsibility: str, numeric: re.Match[str] | None, evidence: str) -> _DateResult:
     """``TT.MM.JJJJ`` with an optional weekday, or ISO ``JJJJ-MM-TT``."""
     try:

@@ -2,7 +2,7 @@
 
 **Zielversion:** 4.6.0 (Schritte als Patchversionen 4.6.x)  
 **Stand:** 7. November 2026  
-**Status:** In Umsetzung (17.1 in 4.6.0)  
+**Status:** In Umsetzung (17.1 in 4.6.0, 17.2 in 4.6.1)  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 4.0](Planung-4.0.md) (Gesamtfahrplan)  
 **Vorgänger:** [Planung 4.5](Planung-4.5.md) (Eigene Mails, Notizen an sich selbst und Weiterleitungen) · **Nachfolger:** [Planung 4.7](Planung-4.7.md) (Deep-Links zur Original-Mail in Kalender und Aufgaben)
 
@@ -91,7 +91,7 @@ flowchart TD
 | Schritt | Inhalt | Fertig, wenn … | Umfang | Voraussetzung |
 | :--- | :--- | :--- | :---: | :--- |
 | **17.1** ✓ 4.6.0 | Kalender-Titelsuche in Adaptern | Google Calendar- und CalDAV-Adapter erhalten `search_events(title_query, time_range)`; liefert Treffer mit `id`, `summary`, `start`, `end`. Keine Store-Sperre über Netzwerkaufrufe. | S | – |
-| **17.2** | Prompt-Schärfung `event_extraction` | `event_extraction` in `prompts.yaml` klassifiziert Terminverschiebungen als `classification: "update"` und Absagen als `classification: "cancellation"`; extrahiert früheres Datum (`original_date_text`) und neues Datum. | S | – |
+| **17.2** ✓ 4.6.1 | Prompt-Schärfung `event_extraction` | `event_extraction` in `prompts.yaml` klassifiziert Terminverschiebungen als `classification: "update"` und Absagen als `classification: "cancellation"`; extrahiert früheres Datum (`original_date_text`) und neues Datum. | S | – |
 | **17.3** | Kalender-Matching & `target_event_id` | Pipeline sucht bei `update` oder `cancellation` im Zielkalender nach passenden Terminen; bei eindeutigem Match wird `target_event_id` gesetzt; bei 0 oder mehreren Treffern wechselt der Vorschlag in `needs_clarification`. | M | 17.1, 17.2 |
 | **17.4** | Differenzdarstellung in Web & Telegram | Vorschlagskarten und Telegram-Nachrichten heben Änderungen visuell hervor: Altes Datum durchgestrichen, neues Datum fett; bei Absage roter Hinweis „Termin im Kalender stornieren“. | S | 17.3 |
 | **17.5** | Schreibdienst `update_event` | `ConfirmedCalendarWriter` implementiert die Aktualisierung bestehender Termine (Datum, Zeit, Ort, Beschreibung) mit unverändertem `mailhelp_key`; idempotente Wiederaufnahme nach Crash. | M | 17.3, 17.4 |

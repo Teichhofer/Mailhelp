@@ -73,6 +73,18 @@ class DuplicateMatchInfo(StrictModel):
     checked_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
+class CalendarCandidate(StrictModel):
+    """An existing calendar entry a change or cancellation may refer to (4.6, 17.3).
+
+    Only entries found by the calendar search are stored; the user picks one of them.
+    """
+
+    event_id: str = Field(min_length=1, max_length=500)
+    title: str = Field(default="", max_length=500)
+    start: date | datetime
+    end: date | datetime
+
+
 class KnownTemporalFacts(StrictModel):
     """Valid temporal facts retained while an event interval is incomplete."""
 
@@ -200,6 +212,10 @@ class Proposal(StrictModel):
     target_event_id: str | None = Field(default=None, max_length=500)
     time_changes: list[str] = Field(default_factory=list)
     is_cancellation: bool = False
+    # 4.6: the day an event had before a change, resolved from the mail.
+    original_date: CalendarDate | None = None
+    # 4.6: calendar entries that matched a change or cancellation ambiguously.
+    calendar_candidates: list[CalendarCandidate] = Field(default_factory=list, max_length=10)
     meeting_mode: Literal["video", "in_person", "hybrid", "unknown"] = "unknown"
     end_origin: Literal["unknown", "mail_end", "mail_duration", "calendar", "standard", "manual"] = "unknown"
     default_duration_minutes: int | None = Field(default=None, ge=1, le=1440)
@@ -270,6 +286,10 @@ class Proposal(StrictModel):
             raise ValueError("Nur Termine unterstützen Terminaktualisierungen")
         if self.is_cancellation and self.target_event_id is None:
             raise ValueError("Eine Stornierung erfordert eine Ziel-Event-ID")
+        if self.calendar_candidates and (self.kind != ProposalKind.EVENT or self.target_event_id is not None):
+            raise ValueError("Kalenderkandidaten gibt es nur für Termine ohne gewähltes Ziel")
+        if self.original_date is not None and self.kind != ProposalKind.EVENT:
+            raise ValueError("Nur Termine haben ein früheres Datum")
         if self.status == ProposalStatus.ALREADY_EXISTS and self.open_questions:
             raise ValueError("Ein bereits vorhandener Eintrag darf keine offenen Fragen enthalten")
         if self.status == ProposalStatus.ALREADY_EXISTS and self.duplicate_match is None:

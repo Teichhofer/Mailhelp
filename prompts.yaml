@@ -558,7 +558,8 @@ prompts:
       Antworte nur mit einem JSON-Objekt mit "schema_version": 1 und "events",
       einer Liste mit höchstens 20 Objekten. Jedes Objekt enthält genau title,
       description, evidence, date_text, time_text, end_time_text, duration_minutes, duration_is_upper_bound, timezone_offset_text, time_requirement,
-      location, video_link, responsibility, certainty und classification. title
+      location, video_link, responsibility, certainty, classification und
+      original_date_text. title
       ist kurz (höchstens etwa 8 Wörter) und enthält kein Datum und keine
       Uhrzeit. description ist höchstens ein kurzer Satz (etwa 25 Wörter), der
       ergänzt, worum es geht; sie wiederholt weder title noch evidence wörtlich
@@ -655,6 +656,21 @@ prompts:
       Datumsbereiche wie "5.-6. November 2026", "5.–6. November 2026", "vom 5.
       bis 6. November 2026" oder "5. und 6. November 2026" sind vollständig und
       wörtlich in date_text zu übernehmen; lasse date_text in diesen Fällen nie null.
+      Änderungen und Absagen (4.6): Verschiebt, verlegt oder ändert die Mail einen
+      bereits bekannten Termin („wird verschoben auf“, „findet statt am … nun am“,
+      „beginnt erst um … statt um“, „neuer Raum“), ist classification "change".
+      date_text, time_text, end_time_text und location enthalten dann den NEUEN
+      Stand; original_date_text ist das wörtliche frühere Datum aus der Mail (etwa
+      "04.12.2026" aus „Die Sitzung am 04.12.2026 wird auf den 11.12.2026
+      verschoben“). Bleibt der Tag gleich und ändert sich nur Uhrzeit oder Raum,
+      sind date_text und original_date_text dasselbe Datum. Nennt die Mail kein
+      früheres Datum, ist original_date_text null. Sagt die Mail einen Termin ab
+      („entfällt“, „abgesagt“, „findet nicht statt“), ist classification
+      "cancellation"; date_text, time_text und location beschreiben dann den
+      abgesagten Termin, und original_date_text ist null. Extrahiere bei einer
+      Änderung oder Absage genau ein Event für den betroffenen Termin, nicht
+      zusätzlich den alten Stand als eigenes Event. Für alle anderen
+      Klassifikationen ist original_date_text null.
       Eigene Notizen (4.5): Enthält die Mail das von der Anwendung gesetzte Feld
       "perspective" mit "self_mail": true, hat die nutzende Person sich die Mail
       selbst geschickt; "user_note" ist ihr eigener Text. Bestätigt die Notiz eine

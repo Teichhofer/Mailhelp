@@ -158,6 +158,8 @@ class ExtractedEvent(StrictModel):
     certainty: Literal["certain", "uncertain", "contradictory"]
     classification: Literal["new", "non_binding", "already_completed", "change", "cancellation",
                             "recurring", "unsupported"]
+    # 4.6: for a "change", the verbatim date the event had before (e.g. "4.12.2026").
+    original_date_text: str | None = Field(default=None, min_length=1, max_length=500)
 
     @field_validator("timezone_offset_text")
     @classmethod

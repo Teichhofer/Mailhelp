@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 4.6.0 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 4.6.1 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 4.4 trennt die Weboberfläche von der Verarbeitung. Ein Klick wird sofort
 quittiert, auch während die Mailanalyse läuft (gemessen: Median rund 30 ms). Danach
@@ -30,6 +30,7 @@ Weitere eigene Absenderadressen trägst du unter `imap.mailboxes[].own_addresses
 Version 4.6 gleicht Terminänderungen und Absagen mit deinem Kalender ab, statt einen
 zweiten Termin anzulegen. Ab 4.6.0 können alle Kalender (Google, CalDAV, Outlook) nach
 verwandten Terminen in einem Zeitraum suchen; der Titel wird dabei nur lokal verglichen.
+Ab 4.6.1 erkennt die Terminextraktion bei einer Verschiebung zusätzlich das frühere Datum.
 Plan: [Planung 4.6](docs/Planung-4.6.md).
 
 Version 4.4.1 macht die Bedienung auch bei großen Datenbeständen schnell. Bei über

@@ -1,5 +1,56 @@
 {
   "$defs": {
+    "CalendarCandidate": {
+      "additionalProperties": false,
+      "description": "An existing calendar entry a change or cancellation may refer to (4.6, 17.3).\n\nOnly entries found by the calendar search are stored; the user picks one of them.",
+      "properties": {
+        "end": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "format": "date-time",
+              "type": "string"
+            }
+          ],
+          "title": "End"
+        },
+        "event_id": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Event Id",
+          "type": "string"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "format": "date-time",
+              "type": "string"
+            }
+          ],
+          "title": "Start"
+        },
+        "title": {
+          "default": "",
+          "maxLength": 500,
+          "title": "Title",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event_id",
+        "start",
+        "end"
+      ],
+      "title": "CalendarCandidate",
+      "type": "object"
+    },
     "DuplicateMatchInfo": {
       "additionalProperties": false,
       "properties": {
@@ -356,6 +407,14 @@
       "default": null,
       "title": "Base Title"
     },
+    "calendar_candidates": {
+      "items": {
+        "$ref": "#/$defs/CalendarCandidate"
+      },
+      "maxItems": 10,
+      "title": "Calendar Candidates",
+      "type": "array"
+    },
     "canonical_ref": {
       "anyOf": [
         {
@@ -611,6 +670,19 @@
       },
       "title": "Open Questions",
       "type": "array"
+    },
+    "original_date": {
+      "anyOf": [
+        {
+          "format": "date",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Original Date"
     },
     "pending_sources": {
       "items": {

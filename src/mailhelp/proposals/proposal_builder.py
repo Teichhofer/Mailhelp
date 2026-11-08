@@ -28,6 +28,7 @@ from .action_normalization import (
     TemporalValue,
     normalize_task_due,
     recover_task_due,
+    resolve_day,
 )
 from .event_defaults import normalized_event
 
@@ -90,6 +91,9 @@ class ProposalBuilder:
     def _identity(self, kind: str, item: ExtractedTask | ExtractedEvent, position: int,
                   used: set[str]) -> str:
         facts = item.model_dump(mode="json")
+        if facts.get("original_date_text", "") is None:
+            # 4.6 field: an extraction without it keeps the identity it had before.
+            del facts["original_date_text"]
         evidence = " ".join(item.evidence.split()).casefold()
         material = json.dumps({"mail": self.source_mail_id, "kind": kind,
                                "evidence": evidence, "facts": facts},
@@ -212,6 +216,9 @@ class ProposalBuilder:
                 start_time=temporal.known_start_time)
         if temporal is not None:
             values["temporal_fact"] = temporal.temporal_fact
+        if isinstance(item, ExtractedEvent) and item.classification == "change":
+            # 4.6: the earlier day locates the existing calendar entry.
+            values["original_date"] = resolve_day(item.original_date_text, self.context, item.evidence)
         target = self.targets.task_target if kind == "task" else self.targets.calendar_target
         status = (ProposalStatus.PENDING_CONFIRMATION
                   if item.classification == "new" and item.responsibility == "user"

@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 4.6.0. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 4.6.1. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2957,3 +2957,11 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   Vorfilter; ob es derselbe Termin ist, entscheidet der Kalenderabgleich. Abgesagte
   Termine fehlen in den Treffern. Ein Lesefehler wird gemeldet und nie als „kein Termin“
   gewertet.
+- **Früheres Datum (17.2):** `ExtractedEvent.original_date_text` ist bei `change` das
+  wörtliche frühere Datum aus der Mail, sonst `null`; `date_text`, `time_text`,
+  `end_time_text` und `location` beschreiben den neuen Stand, bei `cancellation` den
+  abgesagten Termin. Der Builder löst das frühere Datum mit denselben Regeln wie ein
+  Termindatum auf (`Proposal.original_date`, nur bei `change`). Ein nicht auflösbarer Text
+  lässt es leer. `Proposal.calendar_candidates` (höchstens 10) gibt es nur bei Terminen
+  ohne gewähltes Ziel. Fehlt `original_date_text` in einer Extraktion, bleibt die
+  Vorschlags-ID unverändert.

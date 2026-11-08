@@ -1,5 +1,15 @@
 # Änderungen
 
+## 4.6.1 – Früheres Datum bei Terminänderungen (Planung 4.6, Schritt 17.2)
+
+- `event_extraction` liefert bei `classification: "change"` zusätzlich
+  `original_date_text`, das wörtliche frühere Datum; Datum, Zeit und Ort beschreiben den
+  neuen Stand. Bei einer Absage beschreiben sie den abgesagten Termin.
+- Der Vorschlag speichert das aufgelöste frühere Datum als `original_date` (nur bei
+  Änderungen). `Proposal.calendar_candidates` nimmt später mehrdeutige Kalendertreffer
+  auf. Gespeicherte Zustände bleiben ohne Migration gültig; Vorschlags-IDs für
+  Extraktionen ohne das neue Feld bleiben gleich.
+
 ## 4.6.0 – Titelsuche im Kalender (Planung 4.6, Schritt 17.1)
 
 - Alle Kalenderadapter (Google, CalDAV, Outlook) bieten `search_events(title_query,
