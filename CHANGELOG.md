@@ -1,5 +1,12 @@
 # Änderungen
 
+## 4.6.5 – Unklare Absagen sicher abgleichen (Planung 4.6, Schritt 17.6)
+
+- Eine Absage mit verlorener Antwort wird nach einem Neustart über ihren Zieleintrag
+  abgeglichen: abgesagt oder gelöscht heißt erfolgt, noch aktiv heißt weiter unklar. Sie
+  wird nie automatisch wiederholt. Bisher blieb sie dauerhaft „unklar“, weil ein
+  abgesagter Google-Eintrag in der Schlüsselsuche fehlt.
+
 ## 4.6.4 – Bestehende Termine ändern (Planung 4.6, Schritt 17.5)
 
 - Eine bestätigte Änderung liest den Kalendereintrag vor dem Schreiben erneut und ändert

@@ -2,6 +2,8 @@
 from datetime import date, datetime
 from zoneinfo import ZoneInfo
 
+import httpx
+
 from mailhelp import state_names
 from mailhelp.models import Proposal, ProposalStatus
 from mailhelp.storage import JsonStore
@@ -106,6 +108,32 @@ def test_a_cancellation_changes_only_the_status(tmp_path):
         "mailhelp_key": "mailhelp:" + "a" * 24 + ":p1:v2"}}}
     assert result.status == ProposalStatus.CREATED
     assert telegram.sent == ["✅ Termin „Gemeinderatssitzung“ im Kalender abgesagt."]
+
+
+def test_an_unclear_cancellation_is_matched_by_its_target_and_never_repeated(tmp_path):
+    """17.6: a cancelled Google entry leaves the key search, so the target itself is read."""
+    calendar = FakeGoogleCalendar(ENTRY)
+    calendar.lose_patch_answer = True
+    cancel = confirmed(classification="cancellation", is_cancellation=True, time_changes=[])
+    executor, unclear, telegram, _ = run(tmp_path, calendar, cancel)
+    assert unclear.status == ProposalStatus.UNCERTAIN and len(calendar.patches) == 1
+    stored = executor.store.load_model(state_names.proposal("a" * 24, "p1"), Proposal)
+    resumed = executor.execute(stored)
+    assert resumed.status == ProposalStatus.CREATED and resumed.external_id == "gr-1"
+    assert len(calendar.patches) == 1  # no second cancellation
+    assert telegram.sent[-1] == "✅ Termin „Gemeinderatssitzung“ im Kalender abgesagt."
+
+
+def test_an_unclear_cancellation_of_a_still_active_entry_stays_unclear(tmp_path):
+    """The write may not have arrived: without proof it is neither repeated nor reported as done."""
+    calendar = FakeGoogleCalendar(ENTRY)
+    calendar.fail[("PATCH", "patch")] = httpx.Response(504)
+    cancel = confirmed(classification="cancellation", is_cancellation=True, time_changes=[])
+    executor, unclear, _, _ = run(tmp_path, calendar, cancel)
+    assert unclear.status == ProposalStatus.UNCERTAIN
+    resumed = executor.execute(executor.store.load_model(state_names.proposal("a" * 24, "p1"), Proposal))
+    assert resumed.status == ProposalStatus.UNCERTAIN
+    assert sum(request.method == "PATCH" for request in calendar.requests) == 1
 
 
 def test_an_already_cancelled_entry_needs_no_second_write(tmp_path):

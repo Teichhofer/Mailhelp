@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 4.6.4. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 4.6.5. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3008,3 +3008,8 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
 - **Absage (Teil von 17.6, 4.6.4):** Eine bestätigte Absage ändert nur den Status
   (`status: cancelled`; Outlook löscht den eigenen Eintrag). Ist der Eintrag schon
   abgesagt oder gelöscht, ist die Absage ohne Schreibzugriff erledigt.
+- **Unklare Absage (17.6, 4.6.5):** Ein abgesagter Google-Eintrag taucht in der
+  Schlüsselsuche nicht mehr auf. Eine unklar gebliebene Absage (`writing`/`uncertain`)
+  wird deshalb zusätzlich über ihren Zieleintrag abgeglichen: Ist er abgesagt oder
+  gelöscht, gilt die Absage als erfolgt. Ist er noch aktiv, bleibt sie unklar; sie wird nie
+  automatisch wiederholt.

@@ -8,6 +8,7 @@ import httpx
 
 from ..llm.adapter import PermanentError, UncertainWriteError
 from ..models import Proposal, ProposalStatus
+from .calendar import CalendarOperations
 from .contracts import ExternalWriter, PreparedWrite, TargetWriter, proposal_is_writable
 from .roles import provider_key
 
@@ -40,6 +41,13 @@ def execute_confirmed(proposal: Proposal, writer: ExternalWriter, persist: Calla
         return simulated, {"simulation": True}
     key = f"mailhelp:{proposal.source_mail_id}:{proposal.id}:v{proposal.version}"
     found = writer.reconcile(key)
+    if (found is None and proposal.is_cancellation and proposal.target_event_id is not None
+            and proposal.status in {ProposalStatus.WRITING, ProposalStatus.UNCERTAIN}
+            and isinstance(writer, CalendarOperations)
+            and writer.existing_event(proposal.target_event_id) is None):
+        # 4.6, 17.6: a cancelled entry no longer carries a findable key, so an unclear
+        # cancellation is matched by its target: gone or cancelled means it succeeded.
+        found = {"id": proposal.target_event_id, "operation": "event_cancelled"}
     if found is not None:
         created = _with_external_result(proposal, found)
         persist(created)
