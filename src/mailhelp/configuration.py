@@ -173,6 +173,8 @@ MAILBOX_POLICY_FIELDS = {
     "retention.full_mail_days",
     "event_defaults.video_duration_minutes",
     "event_defaults.in_person_duration_minutes",
+    # 4.7: applied without a restart; it only affects mails prepared afterwards.
+    "mail_client",
     "notifications.quiet_hours.enabled",
     "notifications.quiet_hours.start",
     "notifications.quiet_hours.end",

@@ -81,6 +81,8 @@ class MailboxSettings(ConfigModel):
     personal_info: str | None = Field(default=None, max_length=2000, pattern=r"^[^\x00-\x08\x0b-\x1f\x7f]*$")
     # 4.5: further own sender addresses (aliases); the IMAP user name already counts.
     own_addresses: list[OwnAddress] = Field(default_factory=list, max_length=20)
+    # 4.7: which program the link to the original mail opens; "auto" follows the IMAP server.
+    mail_client: Literal["auto", "apple_mail", "gmail_web", "outlook_web", "none"] = "auto"
     smart_reply: bool | None = None
     notifications: NotificationOverrides | None = None
     daily_briefing: bool = True

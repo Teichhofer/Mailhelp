@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 4.7.3. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 4.7.4. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3049,3 +3049,9 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   gespeicherten `mail_link`. Telegram öffnet in Schaltflächen nur http(s)-Adressen: Gmail-
   und Outlook-Links erscheinen als Schaltfläche „📧 Original-Mail öffnen“, ein Apple-Mail-Link
   als kopierbare Textzeile „📧 Original-Mail (Apple Mail): …“ am Ende der Nachricht.
+- **Einstellung `mail_client` (18.5):** `imap.mailboxes[].mail_client` wählt, was der Link
+  öffnet: `auto` (Standard; Gmail-Server → Gmail im Browser, sonst Apple Mail),
+  `apple_mail`, `gmail_web`, `outlook_web` oder `none` (kein Link). Die Einstellung steht
+  unter `/einstellungen/postfaecher/<n>` im Reiter „Ziele“ und wird ohne Neustart
+  übernommen; sie wirkt auf Mails, die danach vorbereitet werden. Sie geht nicht in den
+  Konfigurations-Fingerabdruck ein.

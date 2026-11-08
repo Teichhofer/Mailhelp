@@ -30,7 +30,8 @@ TABS = {
     "notifications": "Benachrichtigungen",
 }
 FIELDS = {
-    "targets": ("target_profile", "event_defaults.video_duration_minutes", "event_defaults.in_person_duration_minutes"),
+    "targets": ("target_profile", "event_defaults.video_duration_minutes", "event_defaults.in_person_duration_minutes",
+                "mail_client"),
     "replies": ("personal_info", "smart_reply", "activity_report_folder", "retention.full_mail_days"),
     "notifications": (
         "daily_briefing",
@@ -53,6 +54,7 @@ LABELS = {
     "event_defaults.video_duration_minutes": "Standarddauer Videokonferenz (Minuten)",
     "event_defaults.in_person_duration_minutes": "Standarddauer Präsenztermin (Minuten)",
     "daily_briefing": "Dieses Postfach im Tagesüberblick zeigen",
+    "mail_client": "Link „Original-Mail öffnen“ öffnet",
     "notifications.quiet_hours.enabled": "Ruhezeit aktiv",
     "notifications.quiet_hours.start": "Ruhe ab",
     "notifications.quiet_hours.end": "Ruhe bis",
@@ -74,6 +76,15 @@ LABELS.update(
 )
 
 
+MAIL_CLIENTS = {
+    "auto": "Automatisch (Gmail-Server: Gmail im Browser, sonst Apple Mail)",
+    "apple_mail": "Apple Mail (message://)",
+    "gmail_web": "Gmail im Browser",
+    "outlook_web": "Outlook im Browser (Suche nach der Message-ID)",
+    "none": "Keinen Link einfügen",
+}
+
+
 def lookup(value: Any, name: str) -> Any:
     for part in name.split("."):
         if not isinstance(value, dict):
@@ -88,7 +99,9 @@ def control(name: str, value: object, prefix: str = "mailbox") -> str:
 
     identity = prefix + "-" + name.replace(".", "-")
     title = LABELS.get(name, TARGET_LABELS.get("targets." + name, name))
-    if "targets." + name in CHOICES:
+    if name == "mail_client":
+        options, shown = list(MAIL_CLIENTS.items()), str(value or "auto")
+    elif "targets." + name in CHOICES:
         options, shown = [(item, item) for item in CHOICES["targets." + name]], str(value)
     elif name.startswith("notifications.categories."):
         options = [
@@ -428,7 +441,7 @@ class MailboxSite:
                     raise ValueError("Unbekannte Einstellung")
                 box = next(box for box in boxes if box["id"] == number)
                 if form.get("action") == "reset":
-                    value: Any = {"target_profile": 1, "daily_briefing": True}.get(field)
+                    value: Any = {"target_profile": 1, "daily_briefing": True, "mail_client": "auto"}.get(field)
                     field = "retention" if field == "retention.full_mail_days" else field
                 elif (
                     field.endswith(("minutes", "days"))

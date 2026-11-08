@@ -1,5 +1,11 @@
 # Änderungen
 
+## 4.7.4 – Einstellung für den Mail-Client (Planung 4.7, Schritt 18.5)
+
+- `imap.mailboxes[].mail_client`: `auto` (Standard), `apple_mail`, `gmail_web`,
+  `outlook_web` oder `none`. In der Weboberfläche je Postfach im Reiter „Ziele“; wird ohne
+  Neustart übernommen. `config.example.yaml` beschreibt die Werte.
+
 ## 4.7.3 – „Original-Mail öffnen“ in Web und Telegram (Planung 4.7, Schritt 18.4)
 
 - Web-Karten verlinken die Original-Mail.

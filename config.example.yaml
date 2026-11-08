@@ -66,6 +66,9 @@ personal_info: ""
 # daily_briefing: false; activity_report_folder: Projekte
 # 4.5: own_addresses: [ich@example.org]  # weitere eigene Absender (Aliase); der IMAP-Benutzername
 #   und Adressen in personal_info zählen bereits. Mails davon gelten als eigene Notiz.
+# 4.7: mail_client: auto  # Link „Original-Mail öffnen“ in Aufgaben und Terminen: auto
+#   (Gmail-Server → Gmail im Browser, sonst Apple Mail), apple_mail, gmail_web,
+#   outlook_web (Suche nach der Message-ID) oder none (kein Link).
 # retention: {full_mail_days: 7}  # nur kürzer als global
 # event_defaults: {video_duration_minutes: 90}
 # notifications: {quiet_hours: {enabled: true}, categories: {decisions: []}}

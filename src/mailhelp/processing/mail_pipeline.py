@@ -152,7 +152,7 @@ class MailPipeline:
                 assert mailbox is not None
                 state.proposal_policy.update(targets=cfg.targets.model_dump(), target_profile=mailbox.target_profile,
                     event_defaults=cfg.event_defaults.model_dump(), mailbox_id=mailbox.id,
-                    mail_link_kind=resolve_client("auto", mailbox.host))
+                    mail_link_kind=resolve_client(mailbox.mail_client, mailbox.host))
             else:
                 # 4.7: without mailbox settings the link opens the mail in Apple Mail.
                 state.proposal_policy["mail_link_kind"] = "apple_mail"

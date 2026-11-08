@@ -50,6 +50,7 @@ def test_mailbox_tabs_and_inherited_controls_are_visible(profiled):
     ("replies", "personal_info", "Work signature"), ("replies", "smart_reply", "false"),
     ("replies", "activity_report_folder", "Projekte"), ("replies", "retention.full_mail_days", "disabled"),
     ("targets", "event_defaults.video_duration_minutes", "90"), ("targets", "target_profile", "1"),
+    ("targets", "mail_client", "gmail_web"),
     ("notifications", "daily_briefing", "false"), ("notifications", "notifications.categories.decisions", "[]"),
     ("notifications", "notifications.quiet_hours.enabled", "true")])
 def test_overrides_save_repeat_and_reset_without_external_actions(profiled, tab, field, value):
