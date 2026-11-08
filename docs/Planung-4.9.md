@@ -2,7 +2,7 @@
 
 **Zielversion:** 4.9.0 (Schritte als Patchversionen 4.9.x)  
 **Stand:** 8. November 2026
-**Status:** In Umsetzung (bis 20.3 in 4.9.2)
+**Status:** In Umsetzung (bis 20.4 in 4.9.3)
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 4.0](Planung-4.0.md) (Gesamtfahrplan)  
 **Vorgänger:** [Planung 4.8](Planung-4.8.md) (Antwortentwürfe direkt im Postfach)
 
@@ -103,7 +103,7 @@ flowchart TD
 | **20.1** ✓ 4.9.0 | Konfigurationsmodell & Einstellungsmaske | `BriefingSettings` in `mailhelp.models.settings`; Eingabe einer Liste von Uhrzeiten (`HH:MM`), Schalter für `skip_empty` und Postfachauswahl; Web-Maske unter `/einstellungen?bereich=briefing`. | S | – |
 | **20.2** ✓ 4.9.1 | `BriefingScheduler` & Checkpoint-Ablage | Scheduler-Thread prüft fällige Zeiten in `user_timezone`; `briefing_state.json` sichert `last_briefing_at`; verhindert Doppelläufe nach Neustarts oder bei Prozessunterbrechungen. | S | 20.1 |
 | **20.3** ✓ 4.9.2 | `BriefingAggregator` | Sammelt alle offenen Vorschläge (`pending_confirmation`, `needs_clarification`) sowie abgeschlossene Mails seit dem letzten Briefing; extrahiert Termine, Aufgaben und Kennzahlen. | S | 20.2 |
-| **20.4** | Briefing-Template (HTML & Plaintext) | Gestaltetes, barrierefreies E-Mail-Template mit Datumsübersicht, Aufgabenliste und Deep-Links zur Weboberfläche; responsive Darstellung für Smartphone und Desktop. | S | 20.3 |
+| **20.4** ✓ 4.9.3 | Briefing-Template (HTML & Plaintext) | Gestaltetes, barrierefreies E-Mail-Template mit Datumsübersicht, Aufgabenliste und Deep-Links zur Weboberfläche; responsive Darstellung für Smartphone und Desktop. | S | 20.3 |
 | **20.5** | IMAP-Entwurfsablage | Verwendet `ImapDraftWriter` (aus 4.8); legt das Briefing als Entwurf mit Betreff `[Mailhelp Briefing HH:MM] X Termine, Y Aufgaben` im Entwurfsordner des Zielpostfachs ab. | S | 20.4, 4.8: 19.1 |
 | **20.6** | Deterministische Zeittests | Tests mit `time-machine` über verschiedene Tageszeiten (07:00, 13:00, 18:00), Sommer-/Winterzeit-Wechsel und Wochenenden; Nachweis der exakten Einmal-Ablage. | S | 20.2, 20.5 |
 | **20.7** | Gesamtabnahme & Release 4.9 | Vollständige Tests unter Windows und Linux; 100 % Zeilen- und Branch-Coverage; Release-Bericht `docs/Release-4.9.md`. | M | 20.1–20.6 |

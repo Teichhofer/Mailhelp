@@ -90,6 +90,13 @@ def test_corrupt_records_are_not_modified_and_missing_headers_are_explained(aggr
     assert bad.read_bytes() == b"{broken"
 
 
+def test_corrupt_only_mail_data_must_not_be_silently_treated_as_an_empty_briefing(aggregator):
+    path = aggregator.store.directory / ("mail-" + mail_id(99) + ".json")
+    path.write_bytes(b"{broken")
+    result = aggregator.collect(START, END)
+    assert result.damaged and not result.empty
+
+
 @pytest.mark.parametrize("start,end", [(END, START), (START.replace(tzinfo=None), END),
                                       (START, END.replace(tzinfo=None))])
 def test_invalid_windows_are_rejected(aggregator, start, end):

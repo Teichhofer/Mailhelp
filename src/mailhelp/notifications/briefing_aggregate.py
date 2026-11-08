@@ -46,7 +46,7 @@ class BriefingContent:
 
     @property
     def empty(self) -> bool:
-        return not (self.events or self.tasks or self.relevance or self.summaries)
+        return not (self.events or self.tasks or self.relevance or self.summaries or self.damaged)
 
 
 class BriefingAggregator:

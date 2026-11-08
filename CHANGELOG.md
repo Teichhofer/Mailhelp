@@ -1,5 +1,9 @@
 # Änderungen
 
+## 4.9.3 – HTML- und Text-Briefings (Planung 4.9, Schritt 20.4)
+
+- Briefings enthalten ein responsives HTML-Layout und gleichwertigen Klartext mit offenen Karten, Fristen, Zusammenfassungen und Kennzahlen. HTML-Inhalte werden escaped; Links öffnen ausschließlich die bestehenden authentifizierten Mailhelp-Karten und autorisieren keine Anlage. Große Listen bleiben mit korrekten Gesamtzahlen und Überlaufhinweisen kompakt. Beschädigte Akten erzeugen einen Hinweis statt einer leeren Alles-ruhig-Meldung.
+
 ## 4.9.2 – Briefing-Inhalte aggregieren (Planung 4.9, Schritt 20.3)
 
 - Der BriefingAggregator sammelt aktuelle offene Termin-, Aufgaben- und Relevanzkarten aller Postfächer sowie Zusammenfassungen und Fristen aus dem Zeitfenster. Gespeicherte Analysezeitpunkte verhindern erneutes Zählen durch spätere Bearbeitungen. Beschädigte Zustände werden schreibfrei übersprungen und als Hinweis gezählt; entfernte Zusammenfassungen werden nicht wiederhergestellt.
