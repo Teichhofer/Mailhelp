@@ -1,5 +1,11 @@
 # Änderungen
 
+## 4.7.3 – „Original-Mail öffnen“ in Web und Telegram (Planung 4.7, Schritt 18.4)
+
+- Web-Karten verlinken die Original-Mail.
+- Telegram: Schaltfläche für Gmail und Outlook im Browser; der Apple-Mail-Link steht als
+  kopierbarer Text in der Nachricht, weil Telegram-Schaltflächen nur http(s) öffnen.
+
 ## 4.7.2 – Link zur Original-Mail in Aufgaben und Terminen (Planung 4.7, Schritt 18.3)
 
 - Neue Aufgaben enden mit „📧 [Original-E-Mail öffnen](…)“ (in Todoist klickbar), neue

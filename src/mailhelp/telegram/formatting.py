@@ -122,6 +122,9 @@ def format_proposal(
     if card.description:
         lines.append(f"📝 {card.description}")
     lines.append(f"Beleg: „{card.evidence}“")
+    if proposal.mail_link is not None and proposal.mail_link.startswith("message://"):
+        # Telegram buttons only open https links; Apple Mail's link stays copyable text.
+        lines.append(f"📧 Original-Mail (Apple Mail): {proposal.mail_link}")
     return "\n".join(lines)
 
 

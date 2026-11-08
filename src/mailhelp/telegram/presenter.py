@@ -105,6 +105,9 @@ class ProposalPresenter:
                               action=DecisionAction.CHOOSE_EVENT, candidate=index)
             buttons.append([{"text": f"Termin {index + 1} meinen", "callback_data": self.encode(choice)}])
         buttons.append([button("✓ Schon erledigt", DecisionAction.ALREADY_DONE)])
+        if proposal.mail_link is not None and proposal.mail_link.startswith("https://"):
+            # 4.7: Gmail or Outlook on the web; Telegram opens only http(s) links in buttons.
+            buttons.append([{"text": "📧 Original-Mail öffnen", "url": proposal.mail_link}])
         for number, name, digest in self.retarget_choices(proposal):
             decision = Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version,
                 action=DecisionAction.RETARGET, target_profile=number, profile_hash=digest)

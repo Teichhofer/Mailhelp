@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 4.7.2. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 4.7.3. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3045,3 +3045,7 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   aus `domain/deep_links.py` sind zulässig. Ohne Message-ID oder bei Mails, die vor 4.7
   vorbereitet wurden, entsteht kein Link. Vorschlags-IDs und die Ledger-Identität von
   Aufgaben bleiben unverändert; der Link zählt wie Absender und Betreff zur Herkunft.
+- **Link auf Karten (18.4):** Web-Karten zeigen „📧 Original-Mail öffnen“ mit dem
+  gespeicherten `mail_link`. Telegram öffnet in Schaltflächen nur http(s)-Adressen: Gmail-
+  und Outlook-Links erscheinen als Schaltfläche „📧 Original-Mail öffnen“, ein Apple-Mail-Link
+  als kopierbare Textzeile „📧 Original-Mail (Apple Mail): …“ am Ende der Nachricht.

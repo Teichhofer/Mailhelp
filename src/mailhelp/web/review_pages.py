@@ -157,6 +157,10 @@ def proposal_card(view: ProposalView, *, actions: Actions | None = None,
     created_link = (f'<p><a href="{e(created)}" rel="noopener noreferrer" target="_blank">'
                     f'{"Im Kalender öffnen" if event else "Aufgabe öffnen"}</a></p>'
                     if created else "")
+    # 4.7: the link is one of the percent-encoded forms validated on Proposal.mail_link.
+    original = (f'<p class="card-links"><a href="{e(view.mail_link)}" rel="noopener noreferrer">'
+                "📧 Original-Mail öffnen</a></p>" if view.mail_link else "")
+    created_link += original
     version = f" · Version {view.version}" if view.version > 1 else ""
     title = e(card.title)
     if detail_link:

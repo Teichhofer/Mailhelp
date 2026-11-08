@@ -99,6 +99,8 @@ class ProposalView:
     base_title: str | None = None
     # Display labels of Proposal.calendar_candidates, in the same order (4.6).
     calendar_candidates: tuple[str, ...] = ()
+    # 4.7: opens the source mail in the mail program (validated Proposal.mail_link).
+    mail_link: str | None = None
 
 
 @dataclass(frozen=True)
@@ -543,6 +545,7 @@ class ReviewViews:
             series_key=proposal.series_key, base_title=proposal.base_title,
             calendar_candidates=tuple(candidate_label(item, self.configured_timezone)
                                       for item in proposal.calendar_candidates),
+            mail_link=proposal.mail_link,
         )
 
 
