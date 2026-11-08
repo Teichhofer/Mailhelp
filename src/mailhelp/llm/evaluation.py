@@ -29,6 +29,7 @@ from ..proposals.action_normalization import (
     normalize_event,
     normalize_task_due,
     recover_task_due,
+    resolve_day,
 )
 from .decisions import (
     DecisionAnalyzer,
@@ -221,12 +222,15 @@ def semantic_result(stage: str, value: dict[str, Any], context: MailDateContext)
         else:
             when = {"date": _day(event.date_text), "time": _clock(event.time_text),
                     "end_time": _clock(event.end_time_text)}
+        # 4.6: the earlier date of a change is compared by the day it names.
+        earlier = resolve_day(event.original_date_text, context, event.evidence)
         result.append({"classification": event.classification,
                        "responsibility": event.responsibility, "certainty": event.certainty,
                        "time_requirement": event.time_requirement, "when": when,
                        "timezone_offset_text": event.timezone_offset_text,
                        "has_location": event.location is not None,
-                       "video_link": event.video_link})
+                       "video_link": event.video_link,
+                       "original_date": earlier.isoformat() if earlier else _day(event.original_date_text)})
     return {"events": _sorted(result)}
 
 

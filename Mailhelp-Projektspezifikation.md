@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 4.6.5. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 4.6.6. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3013,3 +3013,7 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   wird deshalb zusätzlich über ihren Zieleintrag abgeglichen: Ist er abgesagt oder
   gelöscht, gilt die Absage als erfolgt. Ist er noch aktiv, bleibt sie unklar; sie wird nie
   automatisch wiederholt.
+- **Korpus (17.7):** Korpus v3 enthält vier synthetische Änderungen und Absagen (35–38):
+  Verschiebung um eine Woche, späterer Beginn am selben Tag, neuer Raum, ersatzlose
+  Absage; insgesamt 38 Fälle. `mailhelp-evaluate` vergleicht bei Terminen zusätzlich
+  `original_date` (den aufgelösten Tag von `original_date_text`, sonst dessen Text).

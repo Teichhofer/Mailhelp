@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 4.6.5 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 4.6.6 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 4.4 trennt die Weboberfläche von der Verarbeitung. Ein Klick wird sofort
 quittiert, auch während die Mailanalyse läuft (gemessen: Median rund 30 ms). Danach
@@ -38,7 +38,8 @@ Treffern den gemeinten Termin per Schaltfläche. Ab 4.6.4 ändert eine bestätig
 Verschiebung nur Zeit und Ort des bestehenden Eintrags; dein Titel und deine Beschreibung
 bleiben, eine Notiz vermerkt die Änderung. Eine bestätigte Absage sagt den Eintrag ab.
 Ab 4.6.5 wird eine Absage, deren Ergebnis unklar blieb, nach einem Neustart über den
-Kalendereintrag abgeglichen und nie doppelt ausgeführt.
+Kalendereintrag abgeglichen und nie doppelt ausgeführt. Der Qualitätskorpus enthält seit
+4.6.6 vier solche Änderungen und Absagen (38 Fälle).
 Plan: [Planung 4.6](docs/Planung-4.6.md).
 
 Version 4.4.1 macht die Bedienung auch bei großen Datenbeständen schnell. Bei über

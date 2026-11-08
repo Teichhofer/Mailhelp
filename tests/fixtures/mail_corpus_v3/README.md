@@ -23,6 +23,11 @@ Version 4.5 ergänzt drei synthetische Notizen an die eigene Adresse
 erkannter Text unter `vision` steht, eine weitergeleitete Einladung mit „Bitte
 eintragen“ und eine eigene Aufgabe mit Frist. Der Korpus enthält damit 34 Fälle.
 
+Version 4.6 ergänzt vier Änderungen und Absagen bestehender Termine: eine Verschiebung
+um eine Woche, einen späteren Beginn am selben Tag, einen neuen Raum und eine ersatzlose
+Absage. Bei Änderungen nennt die Erwartung das frühere Datum in `original_date_text`;
+die Auswertung vergleicht den Tag, den es bezeichnet. Der Korpus enthält damit 38 Fälle.
+
 Die Standardprüfung nutzt Jev mit dem produktiven Rückfall bei `unclear` sowie
 die generativen Folgestufen. Die stufenweise Messung prüft Extraktion zusätzlich
 auch für irrelevante Mails; sie ersetzt keinen Telegram-/Schreibdiensttest.

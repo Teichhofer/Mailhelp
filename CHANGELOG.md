@@ -1,5 +1,13 @@
 # Änderungen
 
+## 4.6.6 – Korpus für Terminänderungen (Planung 4.6, Schritt 17.7)
+
+- Korpus v3 enthält vier synthetische Fälle: Verschiebung um eine Woche, späterer Beginn,
+  neuer Raum und ersatzlose Absage (38 Fälle insgesamt).
+- `mailhelp-evaluate` vergleicht bei Terminen auch das frühere Datum einer Änderung.
+- Prompt-Baseline als geprüfter Konfigurationsvertrag fortgeschrieben, ohne Nachweis der
+  Modellqualität.
+
 ## 4.6.5 – Unklare Absagen sicher abgleichen (Planung 4.6, Schritt 17.6)
 
 - Eine Absage mit verlorener Antwort wird nach einem Neustart über ihren Zieleintrag

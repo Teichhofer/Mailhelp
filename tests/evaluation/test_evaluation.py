@@ -230,8 +230,8 @@ def test_corpus_v3_covers_jimdo_inquiries_and_bookings_without_platform_advertis
     """Planung 4.1, Schritt 9.1: both topics of commit 7277269 have synthetic cases."""
     corpus = json.loads(CORPUS_V3.read_text(encoding="utf-8"))
     cases = {case["id"]: case for case in corpus["cases"]}
-    # 4.5 adds three self-notes (32–34).
-    assert corpus["schema_version"] == 3 and len(cases) == len(corpus["cases"]) == 34
+    # 4.5 adds three self-notes (32–34), 4.6 four changes and cancellations (35–38).
+    assert corpus["schema_version"] == 3 and len(cases) == len(corpus["cases"]) == 38
     repository = {topic["id"] for topic in yaml.safe_load(
         (Path(__file__).parents[2] / "topics.yaml").read_text(encoding="utf-8"))["topics"]}
     assert set(NEW_TOPICS_V3) <= {topic["id"] for topic in corpus["topics"]} & repository
@@ -271,7 +271,8 @@ def test_corpus_v3_covers_personal_appointment_plans_without_deadline_advertisin
         repository[PERSONAL_APPOINTMENTS]  # taken over word for word from topics.yaml
     # 4.5.6: own notes (32, 33) are relevant without a topic and are no longer listed here.
     assert {case_id for case_id, case in cases.items()
-            if PERSONAL_APPOINTMENTS in case["expected"]["relevance"]["topic_ids"]} == {"26_personal_schedule_plan"}
+            if PERSONAL_APPOINTMENTS in case["expected"]["relevance"]["topic_ids"]} == {
+        "26_personal_schedule_plan", "37_change_new_room", "38_cancellation_without_replacement"}
     advertising = cases["27_deadline_advertising"]["expected"]
     assert advertising["relevance"]["decision"] == "irrelevant"
     assert advertising["action_route"]["action_state"] == "none"
