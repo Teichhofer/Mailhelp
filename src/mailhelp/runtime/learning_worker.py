@@ -12,6 +12,12 @@ from ..mailbox.sender_filter import sender_addresses
 from ..processing.analysis import Analyzer
 from .learning_jobs import LearningCard, LearningConflict, LearningJobs
 
+# Two relevance groups, classification and abstraction per mail.
+CALLS_PER_MAIL = 4
+TYPICAL_CALL_TOKENS = 5_000
+# System prompt, schema and JSON envelope beyond the mail payload.
+ENVELOPE_BYTES = 65_536
+
 
 class LearningPaused(BaseException):
     """Crosses the learning kernel's per-mail Exception isolation without consuming a mail."""
@@ -24,10 +30,9 @@ class LearningCompleter:
 
     def complete(self, model, parameters, system, payload, **kwargs):
         # UTF-8 bytes overestimate textual input tokens; include the schema and request envelope.
+        # The request already contains the (limited) mail; the payload limit is not added again.
         size = len(json.dumps([system, payload, str(kwargs.get("response_schema"))], ensure_ascii=False).encode())
-        tokens = (
-            size + self.worker.app.settings.limits.max_llm_payload_bytes + parameters.get("max_tokens", 32000)
-        ) * (self.client.policy.retries + 1)
+        tokens = (size + parameters.get("max_tokens", 32000)) * (self.client.policy.retries + 1)
         service = self.worker.jobs
         with service.lock:
             state = service.state()
@@ -50,7 +55,27 @@ class LearningCompleter:
                 raise LearningPaused()
             state.reserved_tokens += tokens
             service.save(state)
-        return self.client.complete(model, parameters, system, payload, **kwargs)
+        reported: list[dict[str, Any]] = []
+        result = self.client.complete(model, parameters, system, payload, **kwargs, usage=reported.append)
+        if reported:
+            self._settle(tokens, reported[-1])
+        return result
+
+    def _settle(self, reserved: int, usage: dict[str, Any]) -> None:
+        """Replace the reservation of a finished call by the tokens the provider reported."""
+        total = usage.get("total_tokens")
+        if type(total) is not int:
+            parts = [usage.get(name) for name in ("prompt_tokens", "completion_tokens")]
+            if not all(type(part) is int for part in parts):
+                return  # without a usable report the conservative reservation stays
+            total = sum(cast(list[int], parts))
+        service = self.worker.jobs
+        with service.lock:
+            state = service.state()
+            if state.generation != self.generation:
+                return
+            state.reserved_tokens = max(0, state.reserved_tokens - reserved + min(total, reserved))
+            service.save(state)
 
     def __getattr__(self, name):
         return getattr(self.client, name)
@@ -70,6 +95,16 @@ class LearningWorker:
         )
 
     def estimate(self, selection):
+        """Typical tokens of the run; the start needs the budget for this amount.
+
+        Real calls of comparable steps (relevance with mail and topic list) took about
+        3,000 input and 500 output tokens in the median (logs, November 2026); 5,000 per
+        call keeps a margin. The hard limit is the reservation before every call.
+        """
+        return selection.count * CALLS_PER_MAIL * TYPICAL_CALL_TOKENS
+
+    def maximum(self, selection):
+        """Upper bound if every call used the payload limit, the output limit and every repair."""
         prompts = self.app.analyzer.prompts
         stages = ("relevance", "learning_classification", "learning_abstraction")
         output = max(
@@ -81,11 +116,11 @@ class LearningWorker:
         routes = max(len(prompts.resolved_routes(stage)[0]) for stage in stages)
         return (
             selection.count
-            * 4
+            * CALLS_PER_MAIL
             * attempts
             * routes
             * (self.app.openrouter.policy.retries + 1)
-            * (2 * self.app.settings.limits.max_llm_payload_bytes + output + 65536)
+            * (self.app.settings.limits.max_llm_payload_bytes + output + ENVELOPE_BYTES)
         )
 
     def start(self) -> None:

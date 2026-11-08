@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 4.9.6 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 4.9.7 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 4.4 trennt die Weboberfläche von der Verarbeitung. Ein Klick wird sofort
 quittiert, auch während die Mailanalyse läuft (gemessen: Median rund 30 ms). Danach
@@ -110,6 +110,9 @@ Themen, Ausschlüsse, Absender und Ordner gemeinsam übernehmen. `/dienst/neu-la
 aktiviert gespeicherte Verbindungs- und Analyseänderungen ohne Prozessneustart;
 `/dienst/selbsttest` prüft die Komponenten lesend. Der Abschluss der Ersteinrichtung
 wechselt im selben Prozess in den Normalbetrieb und verlinkt den Lernmodus.
+Ab 4.9.7 startet ein Lernlauf mit realistischem Budget (etwa 1 USD für 20 Mails); zuvor
+lehnte eine viel zu hohe Kostenschätzung jeden Start ab. Abgelehnte Aktionen nennen ihren
+Grund. Plan: [Planung Lernen](docs/Planung-Lernen.md).
 Die Gesamtabnahme (Windows, Linux, Docker, installiertes Paket, Anbietermatrix) ist
 bestanden. Details, Betriebsgrenzen und Abschlussbericht: [Release 3.8](docs/Release-3.8.md).
 

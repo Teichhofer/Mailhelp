@@ -1,5 +1,20 @@
 # Änderungen
 
+## 4.9.7 – Lernmodus in der Weboberfläche startet wieder (Planung Lernen, L.1–L.6)
+
+- Fehlerbehebung: Ein Lernlauf ließ sich nicht starten. Die Schätzung setzte je Mail 17
+  bis 69 Millionen Tokens an (die Nutzlastgrenze doppelt für jeden Aufruf und Versuch),
+  sodass jedes realistische Budget mit „Budget reicht nicht“ abgelehnt wurde.
+  Regressionstest mit den Werten der betroffenen Installation.
+- Die Schätzung ist jetzt typisch (vier Aufrufe je Mail zu je 5.000 Tokens); der
+  ungünstigste Fall wird getrennt angezeigt. Das Budget schützt weiter hart vor jedem
+  Aufruf.
+- Jeder Aufruf reserviert nur noch seine Anfragegröße plus `max_tokens` und wird nach
+  der Antwort auf den vom Anbieter gemeldeten Verbrauch abgerechnet.
+- Abgelehnte Aktionen nennen ihren Grund auf der Seite und im Protokoll; der Startknopf
+  erscheint nur, wenn das Budget reicht.
+- Ein pausierter Lauf mit geänderter Konfiguration kann durch einen neuen ersetzt werden.
+
 ## 4.9.6 – Gesamtabnahme der Postfach-Briefings (Planung 4.9, Schritt 20.7)
 
 - Version 4.9 führt konfigurierbare Postfach-Briefings, dauerhafte Zeitfenster und sichere PWA-Verweise zusammen. Release-Bericht, Paketprüfung sowie Windows-, Linux- und Browserprüfungen dokumentieren die Abnahme.

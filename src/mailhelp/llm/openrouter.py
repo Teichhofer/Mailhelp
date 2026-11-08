@@ -126,8 +126,13 @@ class OpenRouterClient:
                  response_schema: type[BaseModel] | None = None,
                  supports_json_schema: bool = True,
                  revision_route: str = "standard",
-                 images: list[str] | None = None) -> tuple[str, Any]:
-        """Run one validated JSON completion; ``images`` are data URLs for vision steps."""
+                 images: list[str] | None = None,
+                 usage: Callable[[dict[str, Any]], None] | None = None) -> tuple[str, Any]:
+        """Run one validated JSON completion; ``images`` are data URLs for vision steps.
+
+        ``usage`` receives the provider-reported token usage of the answer, if any
+        (the learning budget settles its reservation with it).
+        """
         model = self._resolve_model(model)
         self._reserve_call()
         correlation_id = correlation_id or str(uuid.uuid4())
@@ -175,6 +180,8 @@ class OpenRouterClient:
                                   duration_ms=round((time.perf_counter() - started) * 1000, 3),
                                   status=response.status_code, attempt=attempt, token_usage=token_usage,
                                   reported_cost=raw.get("cost", usage_cost), **metadata, **correlation)
+            if usage is not None and token_usage is not None:
+                usage(token_usage)
             return call_id, content
         except Exception as exc:
             if not isinstance(exc, (ProviderResponseInvalid, InvalidJson)):

@@ -46,11 +46,15 @@ class LearningSite:
             f'<p role="status">{e(LABELS[state.status])}: {state.cursor} Mails geprüft, {state.failures} Fehler.</p>'
         )
         content += notice(state.message) if state.message else ""
-        if state.status in {"empty", "done", "cancelled", "review"}:
+        stale = self.jobs.stale(state)
+        if stale:
+            content += notice("Die Konfiguration wurde seit dem Start geändert. Dieser Lauf kann nicht fortgesetzt "
+                              "werden; ein neuer Lernlauf ersetzt ihn.", "warn")
+        if state.status in {"empty", "done", "cancelled", "review"} or stale:
             content += self.start_form(request, session, state)
         actions = {
             "running": (("pause", "Pausieren"), ("cancel", "Abbrechen")),
-            "paused": (("resume", "Fortsetzen"), ("cancel", "Abbrechen")),
+            "paused": ((("cancel", "Abbrechen"),) if stale else (("resume", "Fortsetzen"), ("cancel", "Abbrechen"))),
             "review": (("cancel", "Verwerfen"),),
         }.get(state.status, ())
         for action, label in actions:
@@ -105,20 +109,28 @@ class LearningSite:
                     budget_usd=float(query["budget"][0]),
                     usd_per_million_tokens=float(query["price"][0]),
                 )
-                tokens = self.worker.estimate(selection)
-                cost = tokens * selection.usd_per_million_tokens / 1000000
+                tokens, ceiling = self.worker.estimate(selection), self.worker.maximum(selection)
+                price = selection.usd_per_million_tokens / 1000000
                 content += (
                     f"<p>Auswahl: Postfach {selection.mailbox}, {selection.count} Mails, "
                     f"Ordner {e(', '.join(selection.folders))}.</p>"
+                    f"<p>Typische Schätzung: {tokens} Tokens, etwa {tokens * price:.6f} USD zur Preisannahme. "
+                    f"Ungünstigster Fall (jede Mail an der Größengrenze, alle Wiederholungen): {ceiling} Tokens, "
+                    f"{ceiling * price:.6f} USD. Das Budget wird vor jedem Aufruf geprüft; der Lauf hält an, "
+                    "bevor es überschritten würde.</p>"
                 )
-                content += f"<p>Konservative Schätzung: {tokens} Tokens, höchstens {cost:.6f} USD zur Preisannahme.</p>"
-                content += self.form(
-                    session,
-                    state,
-                    "start",
-                    f'<input type="hidden" name="selection" value="{e(selection.model_dump_json())}">'
-                    '<button class="button">Lesenden Lernlauf kostenpflichtig starten</button>',
-                )
+                if tokens * price > selection.budget_usd:
+                    # The start would be refused; say what is needed instead of offering the button.
+                    content += notice(f"Das Budget reicht für die typische Schätzung nicht aus. Bitte mindestens "
+                                      f"{tokens * price:.6f} USD angeben.", "error")
+                else:
+                    content += self.form(
+                        session,
+                        state,
+                        "start",
+                        f'<input type="hidden" name="selection" value="{e(selection.model_dump_json())}">'
+                        '<button class="button">Lesenden Lernlauf kostenpflichtig starten</button>',
+                    )
             except (ValueError, KeyError):
                 content += notice("Angaben für die Schätzung prüfen.", "error")
         return content
@@ -192,14 +204,17 @@ class LearningSite:
             elif action == "folder":
                 payload = {"name": form["name"], "selected": "selected" in form}
             self.jobs.change("web:" + session.id, int(form["version"]), form["key"], action, payload)
-        except (ValueError, KeyError, TypeError, LearningConflict) as exc:
-            self.site.logger.event("WARNING", "learning", "action_rejected", error_class=type(exc).__name__)
-            return Response.html(
-                409,
-                layout(
-                    "Lernstand prüfen",
-                    notice("Auswahl ungültig oder inzwischen geändert.", "error")
-                    + '<p><a href="/lernen">Lernlauf neu laden</a></p>',
-                ),
-            )
+        except LearningConflict as exc:
+            # The reason is one of Mailhelp's own fixed texts, never mail content.
+            return self._rejected(type(exc).__name__, str(exc))
+        except (ValueError, KeyError, TypeError) as exc:
+            return self._rejected(type(exc).__name__, "Auswahl ungültig oder inzwischen geändert.")
         return Response.redirect("/lernen")
+
+    def _rejected(self, error_class: str, reason: str) -> Response:
+        self.site.logger.event("WARNING", "learning", "action_rejected", error_class=error_class, reason=reason)
+        return Response.html(
+            409,
+            layout("Lernstand prüfen",
+                   notice(reason, "error") + '<p><a href="/lernen">Lernlauf neu laden</a></p>'),
+        )

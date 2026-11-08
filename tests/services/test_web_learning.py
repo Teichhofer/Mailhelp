@@ -322,7 +322,7 @@ def test_browser_authorization_csrf_estimate_review_and_stale_forms(learning):
     assert h.browser.request("POST", "/lernen", {"action": "start"}).status == 403
     query = urlencode(dict(mailbox=1, count=2, folders="INBOX", price=0.001, budget=1000))
     page = h.browser.request("GET", "/lernen?" + query).body.decode()
-    assert "Konservative Schätzung" in page and "kostenpflichtig starten" in page
+    assert "Typische Schätzung" in page and "kostenpflichtig starten" in page
     assert "Angaben für" in h.browser.request("GET", "/lernen?count=no").body.decode()
 
     def post(action, **extra):

@@ -1,14 +1,22 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 4.8.3. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 4.9.7. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
 ## Web-Lernmodus und Neuladen (3.8)
 
 `/lernen` verwendet den gemeinsamen lesenden Lernkern und einen versionierten
-Hintergrundjob in `web-learning.json`. Jeder Modellaufruf reserviert sein konservatives
-Tokenbudget einschließlich Transportwiederholungen vor dem Netzwerkzugriff.
+Hintergrundjob in `web-learning.json`. Jeder Modellaufruf reserviert vor dem
+Netzwerkzugriff die Bytegröße seiner Anfrage (System-Prompt, Mail, Schema) plus
+`max_tokens`, mal Transportversuche; die Nutzlastgrenze wird nicht zusätzlich angesetzt.
+Meldet der Anbieter den Verbrauch, ersetzt er nach dem Aufruf die Reservierung
+(4.9.7). Der Start verlangt ein Budget für die typische Schätzung (vier Aufrufe je Mail
+zu je 5.000 Tokens, geeicht an realen Aufrufen vergleichbarer Stufen); die Seite zeigt
+zusätzlich den ungünstigsten Fall und bietet den Start nur an, wenn das Budget reicht.
+Abgelehnte Aktionen nennen ihren Grund auf der Seite und im Protokoll
+(`action_rejected` mit `reason`). Ein pausierter Lauf, dessen Konfiguration sich seit dem
+Start geändert hat, kann nicht fortgesetzt werden; ein neuer Lauf ersetzt ihn.
 Die Kostenobergrenze beruht auf der ausdrücklich eingegebenen Preisannahme; unbekannte
 Anbieterpreise werden nicht als kostenlos behandelt. Ein Neustart pausiert aktive
 Läufe; die Fortsetzung erfordert eine gültige Sitzung. Erst die ausdrückliche

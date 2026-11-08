@@ -84,6 +84,10 @@ class LearningJobs:
     def revision(self) -> str:
         return hashlib.sha256(json.dumps(self.hashes(), sort_keys=True).encode()).hexdigest()
 
+    def stale(self, state: LearningJob) -> bool:
+        """A paused run that can no longer resume because the configuration changed."""
+        return state.status == "paused" and state.revision != self.revision()
+
     def recover(self) -> None:
         with self.lock:
             state = self.state()
@@ -123,7 +127,9 @@ class LearningJobs:
 
     def _action(self, state, actor, action, payload):
         if action == "start":
-            if state.status in {"running", "paused", "committing"}:
+            # A paused run whose configuration changed can never resume; a new run replaces it.
+            if state.status in {"running", "committing"} or (
+                    state.status == "paused" and not self.stale(state)):
                 raise LearningConflict("Es gibt bereits einen offenen Lernlauf.")
             selection = LearningSelection.model_validate(payload)
             settings = Settings.model_validate(read_yaml(self.directory / "config.yaml"))

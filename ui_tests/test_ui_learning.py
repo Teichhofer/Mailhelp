@@ -25,16 +25,21 @@ def learning_server(tmp_path):
     finally:server.stop();initial.close()
 
 
+def estimate(page,h,count='2',budget='1'):
+    """Realistic values (Planung Lernen): 0.5 USD per million tokens and a budget of 1 USD."""
+    page.goto(h.url+'/lernen')
+    page.get_by_label('Anzahl Mails',exact=True).fill(count)
+    page.get_by_label('Preisobergrenze USD je Million Tokens',exact=True).fill('0.5')
+    page.get_by_label('Budget USD',exact=True).fill(budget)
+    page.get_by_role('button',name='Schätzung anzeigen',exact=True).click()
+    expect(page.get_by_text('Typische Schätzung:',exact=False)).to_be_visible()
+
+
 def flow(page,h,audit_review=True):
     page.goto(h.url+'/lernen')
     page.get_by_label('Code aus der Mailhelp-Konsole').fill(h.code)
     page.get_by_role('button',name='Gerät koppeln',exact=True).click()
-    page.goto(h.url+'/lernen')
-    page.get_by_label('Anzahl Mails',exact=True).fill('2')
-    page.get_by_label('Preisobergrenze USD je Million Tokens',exact=True).fill('0.001')
-    page.get_by_label('Budget USD',exact=True).fill('1000')
-    page.get_by_role('button',name='Schätzung anzeigen',exact=True).click()
-    expect(page.get_by_text('Konservative Schätzung:',exact=False)).to_be_visible()
+    estimate(page,h)
     page.get_by_role('button',name='Lesenden Lernlauf kostenpflichtig starten',exact=True).click()
     expect(page.get_by_role('button',name='Pausieren',exact=True)).to_be_visible()
     page.get_by_role('button',name='Pausieren',exact=True).click()
@@ -59,6 +64,14 @@ def flow(page,h,audit_review=True):
 def test_learning_start_pause_review_and_explicit_adoption(page,learning_server):
     flow(page,learning_server)
     assert audit(page,'learning-complete-'+page.device,page.mobile)==[]
+    # Regression (Planung Lernen): a further run starts after the first was adopted.
+    estimate(page,learning_server,count='20',budget='0.01')
+    expect(page.get_by_text('Bitte mindestens 0.200000 USD angeben.',exact=False)).to_be_visible()
+    expect(page.get_by_role('button',name='Lesenden Lernlauf kostenpflichtig starten',exact=True)).to_have_count(0)
+    estimate(page,learning_server,count='20')
+    page.get_by_role('button',name='Lesenden Lernlauf kostenpflichtig starten',exact=True).click()
+    expect(page.get_by_role('button',name='Pausieren',exact=True)).to_be_visible()
+    assert learning_server.jobs.state().status=='running'
 
 
 def test_learning_flow_without_javascript(browser,learning_server):
