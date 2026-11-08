@@ -1,5 +1,9 @@
 # Änderungen
 
+## 4.9.2 – Briefing-Inhalte aggregieren (Planung 4.9, Schritt 20.3)
+
+- Der BriefingAggregator sammelt aktuelle offene Termin-, Aufgaben- und Relevanzkarten aller Postfächer sowie Zusammenfassungen und Fristen aus dem Zeitfenster. Gespeicherte Analysezeitpunkte verhindern erneutes Zählen durch spätere Bearbeitungen. Beschädigte Zustände werden schreibfrei übersprungen und als Hinweis gezählt; entfernte Zusammenfassungen werden nicht wiederhergestellt.
+
 ## 4.9.1 – Dauerhafte Briefing-Zeitsteuerung (Planung 4.9, Schritt 20.2)
 
 - Der BriefingScheduler speichert Termine und Wiederholungszeitpunkte in briefing_state.json. Identitäten aus lokalem Datum und Uhrzeit verhindern Doppelläufe nach Neustart, Zielwechsel und rückwärts laufender Uhr. Verpasste heutige Zeiten werden geordnet nachgeholt; Inhaltsfenster beginnen beim letzten erfolgreichen Briefing.

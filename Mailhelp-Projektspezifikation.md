@@ -3132,3 +3132,5 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
 - **20.1 (4.9.0):** Neue Postfach-Briefings sind standardmäßig aus; Uhrzeiten, Zielpostfach und Leerlaufverhalten lassen sich unter Einstellungen → Postfach-Briefings versions- und CSRF-geschützt ohne Neustart bearbeiten. Der bestehende Telegram-Tagesüberblick bleibt unabhängig.
 
 - **20.2 (4.9.1):** Der BriefingScheduler speichert Termine und Wiederholungszeitpunkte in briefing_state.json. Identitäten aus lokalem Datum und Uhrzeit verhindern Doppelläufe nach Neustart, Zielwechsel und rückwärts laufender Uhr. Verpasste heutige Zeiten werden geordnet nachgeholt; Inhaltsfenster beginnen beim letzten erfolgreichen Briefing.
+
+- **20.3 (4.9.2):** Der BriefingAggregator sammelt aktuelle offene Termin-, Aufgaben- und Relevanzkarten aller Postfächer sowie Zusammenfassungen und Fristen aus dem Zeitfenster. Gespeicherte Analysezeitpunkte verhindern erneutes Zählen durch spätere Bearbeitungen. Beschädigte Zustände werden schreibfrei übersprungen und als Hinweis gezählt; entfernte Zusammenfassungen werden nicht wiederhergestellt.
