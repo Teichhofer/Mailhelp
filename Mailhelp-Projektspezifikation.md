@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 4.7.4. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 4.7.5. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3055,3 +3055,6 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   unter `/einstellungen/postfaecher/<n>` im Reiter „Ziele“ und wird ohne Neustart
   übernommen; sie wirkt auf Mails, die danach vorbereitet werden. Sie geht nicht in den
   Konfigurations-Fingerabdruck ein.
+- **Abnahme (18.6):** Der End-to-End-Test schreibt Aufgabe und Termin einer Mail mit
+  Sonderzeichen in der Message-ID nach Todoist und Google Kalender (simuliert) und prüft
+  den Link in beiden Beschreibungen. Release-Bericht: `docs/Release-4.7.md`.

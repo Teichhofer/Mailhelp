@@ -1,5 +1,11 @@
 # Änderungen
 
+## 4.7.5 – Abnahme Links zur Original-Mail (Planung 4.7, Schritt 18.6)
+
+- End-to-End-Test: Der Link kommt in Todoist (Markdown) und im Google Kalender an;
+  Sonderzeichen der Message-ID werden kodiert, ohne Message-ID entsteht kein Link.
+- Release-Bericht `docs/Release-4.7.md`.
+
 ## 4.7.4 – Einstellung für den Mail-Client (Planung 4.7, Schritt 18.5)
 
 - `imap.mailboxes[].mail_client`: `auto` (Standard), `apple_mail`, `gmail_web`,
