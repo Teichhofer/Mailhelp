@@ -171,6 +171,14 @@ class ConfirmedWriteExecutor:
         if result.get("simulation"):
             kind = "Aufgabe" if proposal.kind == ProposalKind.TASK else "Kalendertermin"
             return f"🧪 Testmodus: {kind} „{proposal.title}“ bestätigt, aber nicht angelegt (nur simuliert)."
+        if operation == "event_cancelled":
+            return f"✅ Termin „{proposal.title}“ im Kalender abgesagt."
+        if operation == "already_cancelled":
+            return f"✅ Termin „{proposal.title}“ war im Kalender bereits abgesagt oder gelöscht; nichts geändert."
+        if operation == "event_changed":
+            changes = "; ".join(result.get("time_changes") or []) or "bestätigte Angaben übernommen"
+            return (f"✅ Bestehender Termin „{proposal.title}“ geändert: {changes}. "
+                    "Titel und Beschreibung bleiben erhalten; die Änderung ist in der Beschreibung vermerkt.")
         if operation == "duplicate_updated" and result.get("time_changes"):
             return (f"✅ Bestehender Termin „{proposal.title}“ aktualisiert: "
                     f"{'; '.join(result['time_changes'])}. "

@@ -253,6 +253,8 @@ def test_outlook_duplicates_are_completed_moved_or_deleted():
     graph.routes[("PATCH", "/me/calendar/events/alt")] = httpx.Response(200, json={"id": "alt", "start": {},
                                                                                      "end": {}})
     graph.routes[("DELETE", "/me/calendar/events/alt")] = httpx.Response(204)
+    # 4.6: a change or cancellation reads the entry again right before the write.
+    graph.routes[("GET", "/me/calendar/events/alt")] = httpx.Response(200, json=overlap())
     writer = outlook(graph, matcher=lambda *_: ("c", CalendarDuplicateDecision(
         same_event=True, missing_fields=["description"], reason="x")))
     result, _ = confirm(event(status="confirmed", target="default", description="Neu"), writer)

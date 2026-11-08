@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 4.6.3 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 4.6.4 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 4.4 trennt die Weboberfläche von der Verarbeitung. Ein Klick wird sofort
 quittiert, auch während die Mailanalyse läuft (gemessen: Median rund 30 ms). Danach
@@ -34,7 +34,9 @@ Ab 4.6.1 erkennt die Terminextraktion bei einer Verschiebung zusätzlich das fr�
 Ab 4.6.2 findet Mailhelp den betroffenen Kalendereintrag, auch wenn er an einem anderen Tag
 liegt; bei keinem oder mehreren Treffern fragt es nach, statt zu raten. Ab 4.6.3 zeigen
 Web und Telegram, was sich gegenüber dem Kalender ändert, und du wählst bei mehreren
-Treffern den gemeinten Termin per Schaltfläche.
+Treffern den gemeinten Termin per Schaltfläche. Ab 4.6.4 ändert eine bestätigte
+Verschiebung nur Zeit und Ort des bestehenden Eintrags; dein Titel und deine Beschreibung
+bleiben, eine Notiz vermerkt die Änderung. Eine bestätigte Absage sagt den Eintrag ab.
 Plan: [Planung 4.6](docs/Planung-4.6.md).
 
 Version 4.4.1 macht die Bedienung auch bei großen Datenbeständen schnell. Bei über

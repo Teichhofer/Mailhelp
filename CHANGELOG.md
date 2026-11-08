@@ -1,5 +1,20 @@
 # Änderungen
 
+## 4.6.4 – Bestehende Termine ändern (Planung 4.6, Schritt 17.5)
+
+- Eine bestätigte Änderung liest den Kalendereintrag vor dem Schreiben erneut und ändert
+  nur Zeiten und Ort. Titel und Beschreibung des Eintrags bleiben; eine Notiz in der
+  Beschreibung hält fest, was sich wann geändert hat. Bisher überschrieb Mailhelp Titel
+  und Beschreibung mit den Angaben aus der Mail.
+- Ein gelöschter Eintrag wird durch eine Änderung nie neu angelegt (Ergebnis
+  „fehlgeschlagen“). Ein unklares Ergebnis wird nach einem Neustart über den Schlüssel der
+  bestätigten Version abgeglichen und nicht wiederholt.
+- Eine bestätigte Absage ändert nur den Status; ein bereits abgesagter oder gelöschter
+  Eintrag braucht keinen zweiten Schreibzugriff.
+- Fehlerbehebung: Ein CalDAV-Eintrag, der keine einfache Einzelveranstaltung ist (Serie),
+  galt beim Lesen als „nicht vorhanden“; eine Absage wäre fälschlich als erledigt gemeldet
+  worden. Er wird jetzt als nicht änderbar abgelehnt.
+
 ## 4.6.3 – Darstellung von Änderungen und Terminauswahl (Planung 4.6, Schritt 17.4)
 
 - Web: Änderungen gegenüber dem Kalender mit durchgestrichenem altem und fettem neuem

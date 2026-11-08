@@ -232,7 +232,10 @@ class CalDavCalendar(DavResource, ProviderWriter, CalendarOperations):
         if response.status_code in {404, 410}:
             return None
         fields = event_summary(parse_calendar(response.content), self.calendar_timezone or "UTC")
-        if fields is None or fields.pop("cancelled"):
+        if fields is None:
+            # A series or an incomplete entry exists but is never changed: not "gone".
+            raise PermanentError(f"{self.label}: Termin lässt sich nicht sicher ändern (Serie oder unvollständig)")
+        if fields.pop("cancelled"):
             return None
         return CalendarOverlapEvent.model_validate({"id": url, **fields})
 

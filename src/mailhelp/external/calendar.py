@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from datetime import UTC, date, datetime, timedelta
+from functools import partial
 from typing import Any
 from urllib.parse import quote
 from zoneinfo import ZoneInfo
@@ -11,10 +12,15 @@ import httpx
 from pydantic import ValidationError
 
 from ..domain.event_titles import titles_related
-from ..llm.adapter import uncertain_write
+from ..llm.adapter import PermanentError, uncertain_write
 from ..models import CalendarDuplicateDecision, Proposal, ProposalKind
 from .contracts import CalendarEventResponse, CalendarListResponse, CalendarOverlapEvent, PreparedWrite, validation_path
 from .transport import HttpTransport
+
+
+def _raise(error: Exception) -> dict[str, Any]:
+    """A prepared write whose outcome is already known to be a refusal."""
+    raise error
 
 
 def _now(configured_timezone: str | None) -> datetime:
@@ -36,12 +42,7 @@ class CalendarOperations(HttpTransport):
     def _prepare_calendar(self, proposal: Proposal, key: str) -> PreparedWrite:
         if proposal.kind != ProposalKind.EVENT: raise ValueError("Kalender akzeptiert nur Termine")
         if proposal.target_event_id is not None:
-            body = self._calendar_event_body(proposal, key)
-            if proposal.is_cancellation:
-                body["status"] = "cancelled"
-            event_id = proposal.target_event_id
-            return PreparedWrite(lambda: self._update_calendar_event(
-                event_id, body, key, proposal, proposal.time_changes))
+            return self._prepare_target(proposal, key, proposal.target_event_id)
         duplicate = (None if proposal.explicit_duplicate_create_confirmed_version == proposal.version
                      else self._matching_calendar_event(proposal))
         if duplicate is not None:
@@ -64,6 +65,53 @@ class CalendarOperations(HttpTransport):
                     "operation": "duplicate_skipped"}, requires_write=False)
         body = self._calendar_event_body(proposal, key)
         return PreparedWrite(lambda: self._insert_calendar_event(proposal, key, body))
+
+    def _prepare_target(self, proposal: Proposal, key: str, event_id: str) -> PreparedWrite:
+        """Change or cancel the confirmed existing entry (Planung 4.6, 17.5/17.6).
+
+        The entry is read again before the write: its title and description stay the
+        user's, only the confirmed times and place change, and a note records what
+        changed. A deleted entry is never recreated by a change.
+        """
+        try:
+            existing = self.existing_event(event_id)
+        except PermanentError as exc:
+            # Like any refused change (series, unreadable entry) this ends as a failed write.
+            return PreparedWrite(partial(_raise, exc))
+        if existing is None and proposal.is_cancellation:
+            # Already deleted or cancelled (by hand or by an earlier, unclear attempt): done, no second write.
+            return PreparedWrite(lambda: {"id": event_id, "operation": "already_cancelled"}, requires_write=False)
+        if existing is None:
+            # A change never recreates an entry the user deleted.
+            return PreparedWrite(partial(_raise, PermanentError(
+                f"{self.label}: Der zugeordnete Termin existiert nicht mehr; bitte erneut prüfen")))
+        if proposal.is_cancellation:
+            # Only the status changes; Outlook deletes, Google and CalDAV mark it cancelled.
+            body: dict[str, Any] = {"status": "cancelled", "extendedProperties": {"private": {"mailhelp_key": key}}}
+            operation = "event_cancelled"
+        else:
+            body, operation = self._change_body(proposal, key, existing), "event_changed"
+        changes = proposal.time_changes
+
+        def change() -> dict[str, Any]:
+            result = self._update_calendar_event(event_id, body, key, proposal, changes)
+            return {**result, "operation": operation}
+
+        return PreparedWrite(change)
+
+    def _change_body(self, proposal: Proposal, key: str, existing: CalendarOverlapEvent) -> dict[str, Any]:
+        # Revalidate at the external trust boundary, as for a new event.
+        validated = Proposal.model_validate(proposal.model_dump())
+        interval = self._all_day_interval(validated) if validated.all_day else self._timed_interval(validated)
+        what = "; ".join(validated.time_changes) or "Angaben bestätigt"
+        note = (f"[Mailhelp {_now(self.calendar_timezone):%d.%m.%Y %H:%M}] Termin geändert: {what} "
+                f"(bestätigte Vorschlagsversion {validated.version}).")
+        body: dict[str, Any] = {
+            **interval, "description": f"{existing.description}\n\n{note}" if existing.description else note,
+            "extendedProperties": {"private": {"mailhelp_key": key}}}
+        if validated.location is not None:
+            body["location"] = validated.location
+        return body
 
     def _insert_calendar_event(self, proposal: Proposal, key: str, body: dict[str, Any]) -> dict[str, Any]:
         """Create a new event from the provider-neutral body (Google format)."""

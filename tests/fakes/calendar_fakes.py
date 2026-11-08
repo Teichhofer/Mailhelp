@@ -26,6 +26,8 @@ class FakeGoogleCalendar:
         self.requests: list[httpx.Request] = []
         self.patches: list[tuple[str, dict]] = []
         self.fail: dict[tuple[str, str], httpx.Response] = {}
+        # The patch is applied, but its answer never arrives (a crash or timeout after the write).
+        self.lose_patch_answer = False
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         self.requests.append(request)
@@ -42,6 +44,8 @@ class FakeGoogleCalendar:
             body = json.loads(request.content)
             self.patches.append((event_id, body))
             self.events[event_id] = {**self.events[event_id], **body}
+            if self.lose_patch_answer:
+                raise httpx.ReadTimeout("synthetic answer lost", request=request)
         return httpx.Response(200, json=self.events[event_id])
 
     def _listed(self, params: httpx.QueryParams) -> list[dict]:

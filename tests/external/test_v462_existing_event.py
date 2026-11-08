@@ -4,6 +4,7 @@ import pytest
 
 from mailhelp.external.caldav import CalDavCalendar
 from mailhelp.external.microsoft import OutlookCalendar
+from mailhelp.llm.adapter import PermanentError
 from tests.fakes.calendar_fakes import FakeGoogleCalendar, google_writer, timed, vevent
 from tests.fakes.dav_fakes import COLLECTION, FakeDav
 
@@ -46,10 +47,39 @@ def test_caldav_reads_an_event_and_treats_gone_or_cancelled_as_missing():
     found = writer.existing_event(COLLECTION + "a.ics")
     assert (found.id, found.summary) == (COLLECTION + "a.ics", "Elternabend")
     assert writer.existing_event(COLLECTION + "c.ics") is None
-    assert writer.existing_event(COLLECTION + "t.ics") is None  # no event in the resource
     assert writer.existing_event(COLLECTION + "weg.ics") is None
+    # Regression 4.6.4: a resource without one plain event exists and is not "gone".
+    with pytest.raises(PermanentError, match="nicht sicher ändern"):
+        writer.existing_event(COLLECTION + "t.ics")
     with pytest.raises(ValueError, match="außerhalb der konfigurierten Sammlung"):
         writer.existing_event("https://fremd.example.test/x.ics")
+
+
+def test_caldav_refuses_an_entry_that_became_a_series_between_check_and_write():
+    from mailhelp.external.confirmed import execute_confirmed
+    from mailhelp.models import Proposal, ProposalStatus
+    server = FakeDav()
+    url = COLLECTION + "a.ics"
+    plain = vevent("a", "Elternabend", "20261124T183000Z", "20261124T200000Z")
+    server.resources[url] = plain
+    reads = []
+
+    def get(request):
+        if str(request.url) != url:
+            return httpx.Response(404)  # the reconciliation resource of the key does not exist
+        reads.append(request)
+        content = plain if len(reads) == 1 else plain.replace(b"END:VEVENT", b"RRULE:FREQ=WEEKLY\r\nEND:VEVENT")
+        return httpx.Response(200, content=content, headers={"ETag": '"e1"'})
+
+    server.fail["GET"] = get
+    change = Proposal.model_validate(dict(
+        schema_version=3, id="p1", version=1, kind="event", responsibility="user", certainty="certain",
+        classification="change", title="Elternabend", evidence="x", source_mail_id="a" * 24, target=COLLECTION,
+        status="confirmed", target_event_id=url, confirmed_web_actor=None,
+        start="2026-11-25T18:30:00+00:00", end="2026-11-25T20:00:00+00:00"))
+    result, _ = execute_confirmed(change, caldav(server), lambda _: None)
+    assert result.status == ProposalStatus.FAILED and len(reads) == 2
+    assert not any(request.method == "PUT" for request in server.requests)
 
 
 class Token:

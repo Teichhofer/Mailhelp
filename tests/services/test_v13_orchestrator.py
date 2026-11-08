@@ -421,6 +421,11 @@ def test_regression_2_rescheduled_event_updates_via_patch(tmp_path):
                 "id": "existing-cal-ev-555",
                 "htmlLink": "https://calendar.google.com/event?id=555",
             })
+        elif request.method == "GET" and request.url.path.endswith("/events/existing-cal-ev-555"):
+            # 4.6: the entry is read again right before the change.
+            return httpx.Response(200, json={"id": "existing-cal-ev-555", "summary": "Team-Meeting",
+                                             "start": {"dateTime": "2026-10-15T14:00:00Z"},
+                                             "end": {"dateTime": "2026-10-15T15:00:00Z"}})
         elif request.method == "POST":
             post_executed = True
             return httpx.Response(200, json={"id": "new-event", "htmlLink": "..."})
@@ -757,9 +762,14 @@ def test_analysis_attachment_enrichment_edges():
 def test_http_writer_calendar_cancellation_prepare():
     import json
     def cal_handler(request: httpx.Request) -> httpx.Response:
+        if request.method == "GET":  # 4.6: the entry is read again before the cancellation
+            return httpx.Response(200, json={"id": "ev-123", "summary": "Meeting",
+                                             "start": {"dateTime": "2026-10-15T10:00:00Z"},
+                                             "end": {"dateTime": "2026-10-15T11:00:00Z"}})
         assert request.method == "PATCH"
         data = json.loads(request.content)
-        assert data["status"] == "cancelled"
+        # Only the status changes; times, title and description of the entry stay.
+        assert data == {"status": "cancelled", "extendedProperties": {"private": {"mailhelp_key": "key-cancel"}}}
         return httpx.Response(200, json={"id": "ev-123", "htmlLink": "https://calendar.google.com/event?id=ev-123"})
 
     cal_writer = HttpWriter(
@@ -792,7 +802,7 @@ def test_http_writer_calendar_cancellation_prepare():
     prepared = cal_writer.prepare(proposal_cancel, "key-cancel")
     res = prepared.operation()
     assert res["id"] == "ev-123"
-    assert res["operation"] == "duplicate_updated"
+    assert res["operation"] == "event_cancelled"
 
 
 def test_proposal_builder_calendar_collision():

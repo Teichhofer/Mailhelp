@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 4.6.3. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 4.6.4. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2996,3 +2996,15 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   `calendar_candidates` und ist an die Vorschlagsversion gebunden. Gewählt werden kann nur
   ein angebotener Eintrag; er wird vor der Zuordnung erneut gelesen. Die Zuordnung erzeugt
   eine neue Version, die gesondert bestätigt werden muss; geschrieben wird dabei nichts.
+- **Bestehenden Termin ändern (17.5):** Vor dem Schreiben wird der Zieleintrag erneut
+  gelesen. Eine Änderung schreibt nur die bestätigten Zeiten, einen genannten Ort und die
+  Beschreibung des Eintrags mit angehängter Notiz „[Mailhelp TT.MM.JJJJ HH:MM] Termin
+  geändert: … (bestätigte Vorschlagsversion n).“ Titel und bisherige Beschreibung bleiben;
+  der Eintrag erhält den Schlüssel der bestätigten Version (`mailhelp_key`), sodass ein
+  unklares Ergebnis nach einem Neustart über den Schlüssel abgeglichen und nie wiederholt
+  wird. Ist der Eintrag gelöscht, scheitert die Änderung (`failed`) und legt nie einen
+  neuen an; eine Serie oder ein unlesbarer CalDAV-Eintrag ebenso. Telegram meldet
+  „Bestehender Termin … geändert: …“.
+- **Absage (Teil von 17.6, 4.6.4):** Eine bestätigte Absage ändert nur den Status
+  (`status: cancelled`; Outlook löscht den eigenen Eintrag). Ist der Eintrag schon
+  abgesagt oder gelöscht, ist die Absage ohne Schreibzugriff erledigt.

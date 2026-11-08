@@ -212,6 +212,11 @@ def test_cancellation_and_concurrent_changes():
     result, _ = confirm(cancel, writer)
     body = server.resources[url].decode()
     assert result.status == ProposalStatus.CREATED and "STATUS:CANCELLED" in body and "SEQUENCE:1" in body
+    # 4.6: an already cancelled entry needs no second write.
+    puts = sum(request.method == "PUT" for request in server.requests)
+    again, _ = confirm(cancel.model_copy(update={"id": "p1b"}), writer)
+    assert again.status == ProposalStatus.CREATED and sum(request.method == "PUT" for request in server.requests) == puts
+    url = existing(server)  # the entry is active again for the following cases
     # Someone changed the event between GET and PUT: nothing is overwritten.
     server.fail["PUT"] = lambda request: httpx.Response(412)
     changed, _ = confirm(cancel.model_copy(update={"id": "p2"}), writer)
