@@ -53,7 +53,8 @@ class ProposalBuilder:
 
     def __init__(self, source_mail_id: str, targets: TargetSettings, context: MailDateContext,
                  source_sender: str = "—", source_subject: str = "—",
-                 event_defaults: EventDefaultsSettings | None = None, target_profile: int = 1):
+                 event_defaults: EventDefaultsSettings | None = None, target_profile: int = 1,
+                 mail_link: str | None = None):
         self.source_mail_id = source_mail_id
         self.targets = targets
         self.context = context
@@ -61,13 +62,22 @@ class ProposalBuilder:
         self.source_subject = source_subject
         self.event_defaults = event_defaults
         self.target_profile = target_profile
+        # 4.7: built by domain.deep_links from the Message-ID; never from extracted text.
+        self.mail_link = mail_link
 
-    def _description(self, value: str | None) -> str:
-        """Add bounded, application-owned source details to every external description."""
+    def _description(self, value: str | None, kind: str) -> str:
+        """Add bounded, application-owned source details to every external description.
+
+        The link to the original mail (4.7) ends the block: a Markdown link in a task
+        (Todoist shows it clickable), the bare link in a calendar description.
+        """
         mail_date = self.context.date_header_parsed or self.context.imap_received_at or "—"
         reference = (f"Absender: {self.source_sender}\n"
                      f"Betreff: {self.source_subject}\n"
                      f"Mail-Datum: {mail_date}")
+        if self.mail_link is not None:
+            reference += (f"\n📧 [Original-E-Mail öffnen]({self.mail_link})" if kind == "task"
+                          else f"\n📧 Original-E-Mail öffnen: {self.mail_link}")
         separator = "\n\n" if value else ""
         available = _DESCRIPTION_LIMIT - len(separator) - len(reference)
         description = (value or "")[:max(0, available)]
@@ -172,7 +182,7 @@ class ProposalBuilder:
                 certainty=ProposalCertainty.CERTAIN,
                 classification=classification,
                 title=cal.summary,
-                description=self._description(cal.description),
+                description=self._description(cal.description, "event"), mail_link=self.mail_link,
                 evidence=evidence,
                 source_mail_id=self.source_mail_id,
                 open_questions=questions,
@@ -232,7 +242,7 @@ class ProposalBuilder:
             kind=ProposalKind(kind), responsibility=ProposalResponsibility(item.responsibility),
             certainty=ProposalCertainty(item.certainty),
             classification=ProposalClassification(item.classification), title=item.title,
-            description=self._description(item.description), evidence=item.evidence,
+            description=self._description(item.description, kind), evidence=item.evidence, mail_link=self.mail_link,
             source_mail_id=self.source_mail_id, open_questions=questions,
             location=item.location if isinstance(item, ExtractedEvent) else None,
             video_link=item.video_link if isinstance(item, ExtractedEvent) else None,

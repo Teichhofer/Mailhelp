@@ -1213,6 +1213,20 @@
           "default": null,
           "title": "Location"
         },
+        "mail_link": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "pattern": "^(?:message://%3C[!#-&(-;=?-~]+%3E|https://mail\\.google\\.com/mail/u/0/#search/rfc822msgid%3A[!#-&(-;=?-~]+|https://outlook\\.office\\.com/mail/search\\?q=[!#-&(-;=?-~]+)$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Mail Link"
+        },
         "matching_candidates": {
           "items": {
             "$ref": "#/$defs/ProposalReference"

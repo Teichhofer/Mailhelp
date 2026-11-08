@@ -1,5 +1,13 @@
 # Änderungen
 
+## 4.7.2 – Link zur Original-Mail in Aufgaben und Terminen (Planung 4.7, Schritt 18.3)
+
+- Neue Aufgaben enden mit „📧 [Original-E-Mail öffnen](…)“ (in Todoist klickbar), neue
+  Termine mit „📧 Original-E-Mail öffnen: …“. Gmail-Postfächer öffnen Gmail im Browser,
+  alle anderen Apple Mail.
+- Ohne Message-ID kein Link. Vorschlags-IDs und die Dublettenerkennung von Aufgaben bleiben
+  unverändert; das Ledger zählt den Link zur Herkunft.
+
 ## 4.7.1 – Links für Gmail und Outlook im Browser (Planung 4.7, Schritt 18.2)
 
 - Gmail im Browser: Suche nach genau der Message-ID (`rfc822msgid:`). Outlook im Browser:

@@ -13,6 +13,10 @@ from .temporal import TemporalFact
 
 # An old confirmation without a durable channel receipt cannot invent a live web session.
 UNVERIFIED_LEGACY_ACTOR = "web:unverified-legacy"
+# 4.7: the three link forms of domain.deep_links, fully percent-encoded (no spaces or quotes).
+MAIL_LINK_PATTERN = (r"^(?:message://%3C[!#-&(-;=?-~]+%3E"
+                     r"|https://mail\.google\.com/mail/u/0/#search/rfc822msgid%3A[!#-&(-;=?-~]+"
+                     r"|https://outlook\.office\.com/mail/search\?q=[!#-&(-;=?-~]+)$")
 
 
 class ProposalKind(StrEnum):
@@ -216,6 +220,8 @@ class Proposal(StrictModel):
     original_date: CalendarDate | None = None
     # 4.6: calendar entries that matched a change or cancellation ambiguously.
     calendar_candidates: list[CalendarCandidate] = Field(default_factory=list, max_length=10)
+    # 4.7: opens the source mail; built only by domain.deep_links from its Message-ID.
+    mail_link: str | None = Field(default=None, max_length=2000, pattern=MAIL_LINK_PATTERN)
     meeting_mode: Literal["video", "in_person", "hybrid", "unknown"] = "unknown"
     end_origin: Literal["unknown", "mail_end", "mail_duration", "calendar", "standard", "manual"] = "unknown"
     default_duration_minutes: int | None = Field(default=None, ge=1, le=1440)

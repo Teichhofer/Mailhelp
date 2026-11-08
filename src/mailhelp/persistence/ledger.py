@@ -32,9 +32,10 @@ class ActionLedgerService:
         description = proposal.description
         if proposal.kind == ProposalKind.TASK:
             # Only the exact trailing block appended by ProposalBuilder is
-            # provenance. Keep the actual task description in the identity.
+            # provenance, including the 4.7 link to the original mail. Keep the
+            # actual task description in the identity.
             description = re.sub(
-                r"(?:\n\n|^)Absender: [^\n]*\nBetreff: [^\n]*\nMail-Datum: [^\n]*\Z",
+                r"(?:\n\n|^)Absender: [^\n]*\nBetreff: [^\n]*\nMail-Datum: [^\n]*(?:\n📧 [^\n]*)?\Z",
                 "", description,
             )
         identity: dict[str, Any] = {

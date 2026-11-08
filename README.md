@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 4.7.1 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 4.7.2 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 4.4 trennt die Weboberfläche von der Verarbeitung. Ein Klick wird sofort
 quittiert, auch während die Mailanalyse läuft (gemessen: Median rund 30 ms). Danach
@@ -45,7 +45,9 @@ werden kann. Details: [Release 4.6](docs/Release-4.6.md).
 
 Version 4.7 bringt Links zur Original-Mail in Kalendereinträge und Aufgaben. Ab 4.7.0
 kann Mailhelp aus der Message-ID einer Mail einen Apple-Mail-Link bilden, ab 4.7.1 auch
-Links für Gmail und Outlook im Browser.
+Links für Gmail und Outlook im Browser. Ab 4.7.2 enden neue Aufgaben und Termine mit
+„📧 Original-E-Mail öffnen“; ein Klick öffnet die Mail in Apple Mail oder bei Gmail-Postfächern
+in Gmail im Browser.
 Plan: [Planung 4.7](docs/Planung-4.7.md).
 Plan: [Planung 4.6](docs/Planung-4.6.md).
 

@@ -17,6 +17,7 @@ from ..config import (
     TargetSettings,
     Topic,
 )
+from ..domain.deep_links import mail_link
 from ..domain.mail import next_updated_at
 from ..logging import EventLogger, NullLogger
 from ..mailbox.imap import FetchedMail
@@ -162,6 +163,9 @@ class Orchestrator:
                 else None
             ),
             target_profile=(state.proposal_policy.get("target_profile", 1) if state.proposal_policy is not None else 1),
+            # 4.7: mails prepared before 4.7 have no link kind and keep their descriptions.
+            mail_link=mail_link(mail.headers.message_id,
+                                (state.proposal_policy or {}).get("mail_link_kind", "none")),
         ).build(
             state.task_extraction.tasks if state.task_extraction else [],
             state.event_extraction.events if state.event_extraction else [],

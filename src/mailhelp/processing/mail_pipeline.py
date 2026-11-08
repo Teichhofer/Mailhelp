@@ -10,6 +10,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING, Any, cast
 
 from ..config import TargetSettings
+from ..domain.deep_links import resolve_client
 from ..domain.prepared import PreparedMail
 from ..domain.proposal import ProposalStatus
 from ..llm.adapter import PermanentError
@@ -150,7 +151,11 @@ class MailPipeline:
                 mailbox = self.o.mailbox_settings.imap.mailbox(self.o.mailbox_number(state.imap.account_id))
                 assert mailbox is not None
                 state.proposal_policy.update(targets=cfg.targets.model_dump(), target_profile=mailbox.target_profile,
-                    event_defaults=cfg.event_defaults.model_dump(), mailbox_id=mailbox.id)
+                    event_defaults=cfg.event_defaults.model_dump(), mailbox_id=mailbox.id,
+                    mail_link_kind=resolve_client("auto", mailbox.host))
+            else:
+                # 4.7: without mailbox settings the link opens the mail in Apple Mail.
+                state.proposal_policy["mail_link_kind"] = "apple_mail"
             if state.display_headers is None:
                 display = extract_display_headers(fetched.raw, self.o.max_bytes)
                 state.display_headers = DisplayHeaders(sender=display["from"], subject=display["subject"])

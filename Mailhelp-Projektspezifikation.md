@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 4.7.1. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 4.7.2. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3036,3 +3036,12 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   selbst. `resolve_client(mail_client, imap_host)` wählt bei `auto` Gmail für die
   IMAP-Server `imap.gmail.com` und `imap.googlemail.com`, sonst Apple Mail; eine
   ausdrückliche Wahl (`apple_mail`, `gmail_web`, `outlook_web`, `none`) gilt unverändert.
+- **Link in Beschreibungen (18.3):** Die Vorbereitung speichert die Link-Art des Postfachs
+  in `proposal_policy.mail_link_kind` (ohne Postfachkonfiguration `apple_mail`). Der
+  Builder erzeugt daraus mit der Message-ID den Link und hängt ihn an den Herkunftsblock
+  der externen Beschreibung: bei Aufgaben als Markdown-Link „📧 [Original-E-Mail
+  öffnen](…)“, bei Terminen als „📧 Original-E-Mail öffnen: …“. Die Kürzung auf 4.000
+  Zeichen berücksichtigt den Link. `Proposal.mail_link` speichert ihn; nur die drei Formen
+  aus `domain/deep_links.py` sind zulässig. Ohne Message-ID oder bei Mails, die vor 4.7
+  vorbereitet wurden, entsteht kein Link. Vorschlags-IDs und die Ledger-Identität von
+  Aufgaben bleiben unverändert; der Link zählt wie Absender und Betreff zur Herkunft.
