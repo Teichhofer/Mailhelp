@@ -41,6 +41,7 @@ from ..models import (
 )
 from ..processing.attachments import AttachmentCache, OriginalFile
 from ..storage import CorruptState, JsonStore
+from .calendar_display import candidate_label
 from .cards import CardContent, answer_example, card_content, display_question, sender_name, yes_no_question
 from .commands import CommandKind
 
@@ -96,6 +97,8 @@ class ProposalView:
     is_cancellation: bool = False
     series_key: str | None = None
     base_title: str | None = None
+    # Display labels of Proposal.calendar_candidates, in the same order (4.6).
+    calendar_candidates: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -500,6 +503,8 @@ class ReviewViews:
                 actions.add(CommandKind.CANCEL_CLARIFICATION)
             if proposal.duplicate_check_failed:
                 actions.add(CommandKind.RECHECK)
+            if proposal.calendar_candidates:
+                actions.add(CommandKind.CHOOSE_EVENT)
         if paused:
             state = "Verarbeitung pausiert – bitte Betreiber prüfen lassen"
         elif answer_saved:
@@ -536,6 +541,8 @@ class ReviewViews:
             time_changes=proposal.time_changes,
             is_cancellation=proposal.is_cancellation,
             series_key=proposal.series_key, base_title=proposal.base_title,
+            calendar_candidates=tuple(candidate_label(item, self.configured_timezone)
+                                      for item in proposal.calendar_candidates),
         )
 
 

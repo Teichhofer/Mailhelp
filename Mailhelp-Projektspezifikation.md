@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 4.6.2. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 4.6.3. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2986,3 +2986,13 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
 - **Fehlerbehebung (4.6.2):** Ein abgesagter Kalenderanhang (`STATUS:CANCELLED`) setzte
   `is_cancellation` ohne Ziel und ließ den Vorschlagsbau scheitern. Er wird jetzt als
   offene Absage gebaut und über den Abgleich seinem Eintrag zugeordnet.
+- **Darstellung und Auswahl (17.4):** Web-Karten zeigen jede Änderung gegenüber dem
+  Kalender als „Beginn: ~~alt~~ → **neu**“ (`<del>`/`<strong>`), eine Absage als roten
+  Hinweis „Termin im Kalender stornieren“. Telegram sendet reinen Text und schreibt
+  stattdessen „Beginn: bisher … → neu …“. Mehrdeutige Treffer erscheinen in beiden
+  Kanälen als nummerierte Liste „„Titel“ am TT.MM.JJJJ HH:MM Uhr“ mit je einer Schaltfläche
+  („Diesen Termin meinen“ im Web, „Termin n meinen“ in Telegram). Der Befehl
+  `choose_calendar_event` trägt nur den Index (0–9) in den angezeigten
+  `calendar_candidates` und ist an die Vorschlagsversion gebunden. Gewählt werden kann nur
+  ein angebotener Eintrag; er wird vor der Zuordnung erneut gelesen. Die Zuordnung erzeugt
+  eine neue Version, die gesondert bestätigt werden muss; geschrieben wird dabei nichts.

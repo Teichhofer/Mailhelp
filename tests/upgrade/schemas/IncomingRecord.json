@@ -177,7 +177,8 @@
         "retarget_proposal",
         "recheck_mail",
         "series_answer",
-        "series_confirm"
+        "series_confirm",
+        "choose_calendar_event"
       ],
       "title": "CommandKind",
       "type": "string"
@@ -391,6 +392,20 @@
           "minLength": 1,
           "title": "Actor",
           "type": "string"
+        },
+        "candidate": {
+          "anyOf": [
+            {
+              "maximum": 9,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Candidate"
         },
         "decision": {
           "anyOf": [

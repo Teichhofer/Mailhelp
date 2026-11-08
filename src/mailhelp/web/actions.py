@@ -59,6 +59,12 @@ def proposal_actions(csrf: str) -> Callable[[ProposalView], str]:
         if not view.actions:
             return ""
         parts = []
+        if CommandKind.CHOOSE_EVENT in view.actions:
+            # 4.6: only the entries offered for this version can be chosen.
+            choices = "".join(_button_form(csrf, view, CommandKind.CHOOSE_EVENT, f"Diesen Termin meinen: {label}",
+                                           "", candidate=str(index))
+                              for index, label in enumerate(view.calendar_candidates))
+            parts.append(f'<div class="actions">{choices}</div>')
         if CommandKind.ANSWER in view.actions and view.question:
             parts.append(_answer(csrf, view))
         buttons = []

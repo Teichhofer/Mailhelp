@@ -259,15 +259,24 @@ class ReviewService:
             if revised.version != previous.version:
                 self.controller.send_proposal(revised)
             return ReviewResult(status=ResultStatus.DONE, message="Neue Version gespeichert; bitte separat bestätigen.")
-        if command.kind == CommandKind.RELEVANCE:
-            return self._relevance(command)
-        if command.kind == CommandKind.RECHECK_MAIL:
-            return self._recheck(command)
-        if command.kind == CommandKind.ANSWER:
-            return self._answer(command)
-        if command.kind == CommandKind.CANCEL_CLARIFICATION:
-            return self._cancel(command)
-        return self._decide(command)
+        handlers = {CommandKind.RELEVANCE: self._relevance, CommandKind.RECHECK_MAIL: self._recheck,
+                    CommandKind.ANSWER: self._answer, CommandKind.CANCEL_CLARIFICATION: self._cancel,
+                    CommandKind.CHOOSE_EVENT: self._choose_event}
+        return handlers.get(command.kind, self._decide)(command)
+
+    def _choose_event(self, command: ReviewCommand) -> ReviewResult:
+        """Bind a change or cancellation to the calendar entry the user picked (4.6, 17.4)."""
+        previous = self._target(command)
+        precheck = self.controller.decision_service.precheck
+        if precheck is None:
+            raise ValueError("Kalenderabgleich nicht verfügbar")
+        assert command.candidate is not None  # ReviewCommand requires it for CHOOSE_EVENT
+        # The calendar is read outside the store lock; _commit checks the version again.
+        chosen = precheck.choose_calendar_event(previous, command.candidate)
+        chosen = invalidate_creation_permissions(chosen.model_copy(update={"version": previous.version + 1}))
+        self._commit(previous, chosen)
+        self.controller.send_proposal(chosen)
+        return ReviewResult(status=ResultStatus.DONE, message="Kalendertermin zugeordnet; separat bestätigen.")
 
     def _commit(self, previous: Proposal, changed: Proposal) -> None:
         with self.controller.store.locked():

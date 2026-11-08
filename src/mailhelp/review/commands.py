@@ -41,6 +41,8 @@ class CommandKind(StrEnum):
     RECHECK_MAIL = "recheck_mail"
     SERIES_ANSWER = "series_answer"
     SERIES_CONFIRM = "series_confirm"
+    # 4.6: pick one of the calendar entries a change or cancellation may refer to.
+    CHOOSE_EVENT = "choose_calendar_event"
 
 
 # Commands on a whole mail instead of one proposal.
@@ -75,6 +77,14 @@ class ReviewCommand(BaseModel):
     target_profile: int | None = Field(default=None, ge=1, le=99)
     members: tuple[SeriesMember, ...] = Field(default=(), max_length=100)
     endpoint: Literal["start", "end"] = "start"
+    # Position in the displayed version's calendar_candidates; the version binds it.
+    candidate: int | None = Field(default=None, ge=0, le=9)
+
+    @model_validator(mode="after")
+    def candidate_only_for_a_choice(self) -> ReviewCommand:
+        if (self.kind == CommandKind.CHOOSE_EVENT) != (self.candidate is not None):
+            raise ValueError("Nur die Terminauswahl enthält einen Kandidaten")
+        return self
 
     @model_validator(mode="after")
     def complete(self) -> ReviewCommand:

@@ -99,6 +99,11 @@ class ProposalPresenter:
             )
             reject = button("Verwerfen", DecisionAction.REJECT)
             buttons = [[confirm, button("Ändern", DecisionAction.EDIT), reject]]
+        for index, _candidate in enumerate(proposal.calendar_candidates):
+            # 4.6: the text above lists the candidates with the same numbers.
+            choice = Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version,
+                              action=DecisionAction.CHOOSE_EVENT, candidate=index)
+            buttons.append([{"text": f"Termin {index + 1} meinen", "callback_data": self.encode(choice)}])
         buttons.append([button("✓ Schon erledigt", DecisionAction.ALREADY_DONE)])
         for number, name, digest in self.retarget_choices(proposal):
             decision = Decision(mail_id=proposal.source_mail_id, proposal_id=proposal.id, version=proposal.version,

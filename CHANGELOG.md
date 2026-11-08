@@ -1,5 +1,14 @@
 # Änderungen
 
+## 4.6.3 – Darstellung von Änderungen und Terminauswahl (Planung 4.6, Schritt 17.4)
+
+- Web: Änderungen gegenüber dem Kalender mit durchgestrichenem altem und fettem neuem
+  Wert; Absagen als roter Hinweis „Termin im Kalender stornieren“.
+- Telegram (reiner Text): „Beginn: bisher … → neu …“.
+- Mehrere passende Kalendertermine werden nummeriert angezeigt und lassen sich im Web und
+  in Telegram auswählen (`choose_calendar_event`, versionsgebunden, nur angebotene
+  Einträge). Die Auswahl erzeugt eine neue Version zur gesonderten Bestätigung.
+
 ## 4.6.2 – Kalenderabgleich für Änderungen und Absagen (Planung 4.6, Schritt 17.3)
 
 - Änderungen und Absagen finden ihren bestehenden Kalendereintrag: ±1 Tag um das frühere

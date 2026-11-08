@@ -13,6 +13,7 @@ from typing import Any
 from urllib.parse import urlsplit
 
 from ..models import ProposalKind, ProposalStatus
+from ..review.calendar_display import change_parts
 from ..review.views import MailView, Overview, ProposalView, RelevanceView
 from .pages import e, layout, notice
 
@@ -118,12 +119,29 @@ def _card_questions(questions: Any) -> str:
     return f'<div class="questions"><p>Offene Fragen</p><ul>{items}</ul></div>'
 
 
+def _change_line(change: str) -> str:
+    parts = change_parts(change)
+    if parts is None:
+        return f"<li>{e(change)}</li>"
+    label, old, new = parts
+    return f"<li>{e(label)}: <del>{e(old)}</del> → <strong>{e(new)}</strong></li>"
+
+
 def _diff_box(view: ProposalView) -> str:
+    """Old values struck through, new ones bold; a cancellation as a red notice (4.6)."""
+    if view.is_cancellation:
+        return notice("Termin im Kalender stornieren: Der bestehende Eintrag wird nach deiner "
+                      "Bestätigung abgesagt.", "error")
+    candidates = ""
+    if view.calendar_candidates:
+        items = "".join(f"<li>{e(label)}</li>" for label in view.calendar_candidates)
+        candidates = (f'<div class="diff-box"><p>📅 <strong>Passende Kalendertermine:</strong></p>'
+                      f"<ol>{items}</ol></div>")
     if not view.time_changes:
-        return ""
-    lines = [f"<li>{e(str(change))}</li>" for change in view.time_changes]
-    return ('<div class="diff-box"><p>🔄 <strong>Terminänderung gegenüber dem Kalender:</strong></p>'
-            f'<ul>{"".join(lines)}</ul></div>')
+        return candidates
+    lines = "".join(_change_line(str(change)) for change in view.time_changes)
+    return (candidates + '<div class="diff-box"><p>🔄 <strong>Terminänderung gegenüber dem Kalender:</strong></p>'
+            f"<ul>{lines}</ul></div>")
 
 
 def proposal_card(view: ProposalView, *, actions: Actions | None = None,

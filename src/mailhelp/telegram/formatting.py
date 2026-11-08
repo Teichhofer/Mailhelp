@@ -11,6 +11,7 @@ from __future__ import annotations
 import re
 
 from ..models import Proposal, ProposalKind
+from ..review.calendar_display import candidate_label, change_parts
 from ..review.cards import (
     CERTAINTY,
     CLASSIFICATION,
@@ -67,6 +68,27 @@ def numbered_message_parts(
     return [f"{header} · Teil {index}/{count}\n{part}" for index, part in enumerate(chunks, 1)]
 
 
+def _calendar_lines(proposal: Proposal, configured_timezone: str) -> list[str]:
+    """The change against the calendar and the entries offered for a choice (4.6, 17.4)."""
+    lines = []
+    if proposal.target_event_id is not None:
+        if proposal.is_cancellation:
+            lines.append("❌ Termin im Kalender stornieren: Der bestehende Eintrag wird nach Bestätigung abgesagt")
+        elif proposal.time_changes:
+            # Telegram messages are plain text: "bisher … → neu …" instead of strike-through.
+            lines.append("🔄 Terminänderung gegenüber Kalender:")
+            for change in proposal.time_changes:
+                parts = change_parts(change)
+                lines.append(f"- {parts[0]}: bisher {parts[1]} → neu {parts[2]}" if parts else f"- {change}")
+        else:
+            lines.append("🔄 Terminänderung gegenüber Kalender")
+    if proposal.calendar_candidates:
+        lines.append("📅 Passende Kalendertermine:")
+        lines.extend(f"{index}. {candidate_label(item, configured_timezone)}"
+                     for index, item in enumerate(proposal.calendar_candidates, 1))
+    return lines
+
+
 def format_proposal(
     proposal: Proposal, configured_timezone: str, test_mode: bool = False
 ) -> str:
@@ -89,13 +111,7 @@ def format_proposal(
         lines.append(f"Sicherheit: {card.certainty}")
     if card.classification:
         lines.append(f"Einordnung: {card.classification}")
-    if proposal.target_event_id is not None:
-        if proposal.is_cancellation:
-            lines.append("❌ Status: Bestehender Termin soll abgesagt werden")
-        elif proposal.time_changes:
-            lines.append(f"🔄 Terminänderung gegenüber Kalender ({', '.join(proposal.time_changes)})")
-        else:
-            lines.append("🔄 Terminänderung gegenüber Kalender")
+    lines.extend(_calendar_lines(proposal, configured_timezone))
     if not card.writable:
         lines.append("⚠️ Kann nicht automatisch angelegt werden – bitte manuell prüfen.")
     elif test_mode:

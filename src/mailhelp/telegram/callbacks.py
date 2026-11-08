@@ -23,6 +23,7 @@ class DecisionAction(StrEnum):
     MERGE_SOURCE = "merge_source"
     SEPARATE_SOURCE = "separate_source"
     RETARGET = "retarget"
+    CHOOSE_EVENT = "choose_event"
 
 
 class RelevanceDecision(InternalTelegramModel):
@@ -56,9 +57,12 @@ class Decision(InternalTelegramModel):
     additional_version: int | None = Field(default=None, ge=1)
     target_profile: int | None = Field(default=None, ge=1, le=99)
     profile_hash: str | None = Field(default=None, pattern=r"^[a-f0-9]{64}$")
+    candidate: int | None = Field(default=None, ge=0, le=9)
 
     @model_validator(mode="after")
     def validate_additional(self) -> Decision:
+        if (self.action == DecisionAction.CHOOSE_EVENT) != (self.candidate is not None):
+            raise ValueError("Nur die Terminauswahl enthält einen Kandidaten")
         if (self.action == DecisionAction.RETARGET) != (
             self.target_profile is not None and self.profile_hash is not None
         ):

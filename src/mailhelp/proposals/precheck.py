@@ -112,6 +112,14 @@ class DuplicatePreCheckService:
 
         return proposal
 
+    def choose_calendar_event(self, proposal: Proposal, candidate: int) -> Proposal:
+        """Bind a change or cancellation to the offered candidate the user picked (4.6, 17.4)."""
+        writer = self.writers.get(profile_slot(CALENDAR_SLOT, proposal.target_profile))
+        if not isinstance(writer, CalendarOperations) or not 0 <= candidate < len(proposal.calendar_candidates):
+            raise ValueError("Dieser Kalendertermin wird nicht mehr angeboten")
+        return CalendarTargetFinder(writer, self.logger).choose(
+            proposal, proposal.calendar_candidates[candidate].event_id)
+
     def _failed(self, proposal: Proposal, service: str, exc: Exception) -> Proposal:
         self.logger.event("WARNING", "precheck", f"{service}_check_failed", error=type(exc).__name__)
         return proposal.model_copy(update={"duplicate_check_failed": True,

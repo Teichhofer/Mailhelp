@@ -627,7 +627,7 @@ def test_web_card_shows_the_time_change_against_the_calendar():
     html = proposal_card(presented(duplicate_match=CALENDAR_MATCH, target_event_id="ev-123",
                                    time_changes=["Beginn 14:00 → 10:00 Uhr"]))
     assert "Terminänderung gegenüber dem Kalender" in html
-    assert "Beginn 14:00 → 10:00 Uhr" in html
+    assert "Beginn: <del>14:00</del> → <strong>10:00 Uhr</strong>" in html
 
 
 def test_web_card_links_an_existing_calendar_duplicate():
@@ -696,7 +696,7 @@ def test_telegram_presenter_and_formatting_reschedule_and_cancel():
     # Format proposal with time changes
     text = format_proposal(proposal_reschedule, "UTC")
     assert "Terminänderung gegenüber Kalender" in text
-    assert "Beginn 14:00 → 10:00 Uhr" in text
+    assert "- Beginn: bisher 14:00 → neu 10:00 Uhr" in text
 
     # Format proposal without time changes (covers line 97 of telegram/formatting.py)
     proposal_no_time_changes = proposal_reschedule.model_copy(update={"time_changes": []})
@@ -717,7 +717,7 @@ def test_telegram_presenter_and_formatting_reschedule_and_cancel():
         "time_changes": [],
     })
     cancel_text = format_proposal(proposal_cancel, "UTC")
-    assert "Status: Bestehender Termin soll abgesagt werden" in cancel_text
+    assert "Termin im Kalender stornieren" in cancel_text
 
     pres_cancel = presenter.present(proposal_cancel)
     cancel_btn = pres_cancel.reply_markup["inline_keyboard"][0][0]
