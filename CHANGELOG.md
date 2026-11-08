@@ -1,5 +1,11 @@
 # Änderungen
 
+## 4.7.0 – Message-ID und Apple-Mail-Link (Planung 4.7, Schritt 18.1)
+
+- Neues Modul `domain/deep_links.py`: bereinigt die Message-ID einer Mail und erzeugt
+  den Link `message://%3C…%3E`, der die Mail in Apple Mail öffnet. Ohne gültige
+  Message-ID entsteht kein Link. Grundlage für die Links in Kalender und Aufgaben.
+
 ## 4.6.7 – Abnahme Terminänderungen und Absagen (Planung 4.6, Schritt 17.8)
 
 - Fehlerbehebung: Der Aktionsrouter wertete die Absage eines bestimmten Termins als

@@ -2,7 +2,7 @@
 
 **Zielversion:** 4.7.0 (Schritte als Patchversionen 4.7.x)  
 **Stand:** 7. November 2026  
-**Status:** In Planung  
+**Status:** In Umsetzung (18.1 in 4.7.0)  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 4.0](Planung-4.0.md) (Gesamtfahrplan)  
 **Vorgänger:** [Planung 4.6](Planung-4.6.md) (Terminänderungen, Verschiebungen und Absagen) · **Nachfolger:** [Planung 4.8](Planung-4.8.md) (Antwortentwürfe direkt im Postfach)
 
@@ -76,7 +76,7 @@ flowchart TD
 
 | Schritt | Inhalt | Fertig, wenn … | Umfang | Voraussetzung |
 | :--- | :--- | :--- | :---: | :--- |
-| **18.1** | `DeepLinkResolver` Kernmodul | Neues Modul `mailhelp.domain.deep_links`; extrahiert und bereinigt RFC-5322 `Message-ID` (inkl. Entklammerung `<...>` und URL-Escaping); generiert standardkonforme `message://`-URIs. | S | – |
+| **18.1** ✓ 4.7.0 | `DeepLinkResolver` Kernmodul | Neues Modul `mailhelp.domain.deep_links`; extrahiert und bereinigt RFC-5322 `Message-ID` (inkl. Entklammerung `<...>` und URL-Escaping); generiert standardkonforme `message://`-URIs. | S | – |
 | **18.2** | Webmail-Provider-Profile | Ergänzt Generatoren für Gmail-Websuche (`rfc822msgid:`) und Outlook-Web; erkennt den Provider anhand der konfigurierten IMAP-Host-Einstellungen oder expliziter Konfiguration. | S | 18.1 |
 | **18.3** | Integration in `ProposalBuilder` | `ProposalBuilder._description` hängt den formatierten Link deterministisch an; Idempotenzschlüssel und Invarianten bleiben stabil; Beschreibungs-Längenbegrenzung (`_DESCRIPTION_LIMIT`) berücksichtigt den Linkblock. | S | 18.1, 18.2 |
 | **18.4** | Deep-Link auf Web- und Telegram-Karten | Die Weboberfläche (`actions.py`) und der Telegram-Presenter (`presenter.py`) zeigen einen direkten Button oder Hyperlink *„Original-Mail öffnen“*; öffnet die Mail im konfigurierten Ziel-Client. | S | 18.3 |

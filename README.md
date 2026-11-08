@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 4.6.7 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 4.7.0 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 4.4 trennt die Weboberfläche von der Verarbeitung. Ein Klick wird sofort
 quittiert, auch während die Mailanalyse läuft (gemessen: Median rund 30 ms). Danach
@@ -42,6 +42,10 @@ Kalendereintrag abgeglichen und nie doppelt ausgeführt. Der Qualitätskorpus en
 4.6.6 vier solche Änderungen und Absagen (38 Fälle). Ab 4.6.7 erkennt der Aktionsrouter
 auch reine Absagen („Die Sitzung entfällt“) als Termin, damit der Kalendereintrag abgesagt
 werden kann. Details: [Release 4.6](docs/Release-4.6.md).
+
+Version 4.7 bringt Links zur Original-Mail in Kalendereinträge und Aufgaben. Ab 4.7.0
+kann Mailhelp aus der Message-ID einer Mail einen Apple-Mail-Link bilden.
+Plan: [Planung 4.7](docs/Planung-4.7.md).
 Plan: [Planung 4.6](docs/Planung-4.6.md).
 
 Version 4.4.1 macht die Bedienung auch bei großen Datenbeständen schnell. Bei über

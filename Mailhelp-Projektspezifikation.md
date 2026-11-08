@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 4.6.7. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 4.7.0. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3021,3 +3021,12 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   Nachrichtenteil einen bestimmten Termin ab, zählt der Router genau einen Terminkandidaten
   (`event`), auch wenn keine Handlung verlangt ist; die Absage eines bestimmten Termins ist
   nie `none`. Release-Bericht: `docs/Release-4.6.md`.
+
+## Ergänzungen Version 4.7
+
+- **Message-ID und Apple-Mail-Link (18.1):** `domain/deep_links.py` reduziert den
+  Message-ID-Kopf auf genau einen Wert `id-left@id-right` (erste spitze Klammer oder die
+  nackte Form, druckbares ASCII ohne Leerzeichen, höchstens 900 Zeichen, genau ein `@`).
+  Ohne gültigen Wert entsteht kein Link. `message_uri` erzeugt
+  `message://%3C<id>%3E` und kodiert dabei alle Zeichen außer `@`; so kann kein Inhalt
+  des Kopfes ein Schema, eine Abfrage oder Markup einschleusen.
