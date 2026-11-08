@@ -1,8 +1,8 @@
 # Mailhelp – Fristen in der Zusammenfassung
 
-**Zielversion:** 4.5.7 bis 4.5.10 (Patchversionen vor 4.6)  
+**Zielversion:** 4.5.7 (ursprünglich 4.5.7 bis 4.5.10 geplant)  
 **Stand:** 8. November 2026  
-**Status:** In Planung  
+**Status:** Umgesetzt in 4.5.7 (alle Schritte in einer Version; Ergebnis in Abschnitt 8)  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Release 4.5](Release-4.5.md) (reale Auswertung),
 [Projektspezifikation](../Mailhelp-Projektspezifikation.md)
 
@@ -81,10 +81,47 @@ Weg A zuerst; B oder C nur, wenn A die Abnahme in 5.4 nicht erreicht.
 - Bestehende Zustände ohne `deadlines` bleiben lesbar; keine Neuanalyse alter Mails.
 - 100 % Zeilen- und Branch-Abdeckung, Regressionstest für das weggelassene Feld.
 
-## 7. Offene Entscheidungen
+## 7. Entscheidungen
 
-1. Gehören Anmeldefristen in die Liste, auch wenn die nutzende Person schon angemeldet
-   ist (Fall 32)? Der Prompt sagt heute ja.
-2. Freigabe der realen Läufe in F.1 (etwa 15 Aufrufe) und F.5 (etwa 180 Aufrufe).
-3. Soll die Fristzeile zusätzlich in der Telegram-Zusammenfassung erscheinen? Das wäre
-   eine neue Funktion und gehört nicht zu dieser Korrektur.
+1. **Anmeldefrist bei bestehender Anmeldung (entschieden 8. November 2026):** entfällt.
+   Ist die nutzende Person schon angemeldet, gehört nur das Veranstaltungsdatum in die
+   Liste.
+2. **Reale Läufe:** freigegeben bis 200 Aufrufe; verbraucht 137.
+3. **Offen:** Soll die Fristzeile zusätzlich in der Telegram-Zusammenfassung erscheinen?
+   Das wäre eine neue Funktion und gehört nicht zu dieser Korrektur.
+
+## 8. Ergebnis (4.5.7)
+
+- **F.1 Diagnose:** Statt eines Berichtsfelds lief ein einmaliges Diagnoseskript: 11
+  reale Zusammenfassungsaufrufe, ausgewertet wurde nur, ob das Feld in der Rohantwort
+  vorkommt. In 6 von 11 Antworten fehlte `deadlines` ganz; Ursache 1 ist bestätigt. Ein
+  dauerhaftes Berichtsfeld ist nicht mehr nötig, weil das Weglassen seit F.2 ein
+  Schemafehler ist. Dabei fiel auf: Beim Elternabend stand das Datum der
+  Weiterleitungs-Kopfzeile als Frist in der Liste.
+- **F.2:** Antwortschema `SummaryAnswer` (`deadlines` Pflicht und zuerst).
+- **F.3:** Fall 30 korrigiert (elf Sitzungstermine statt des aus Fall 03 kopierten
+  Datums). Fall 32 erwartet nach Entscheidung 1 nur das Veranstaltungsdatum.
+- **F.4:** Fristregeln vor den Satzregeln, eigene Liste dessen, was keine Frist ist,
+  Perspektive für eigene Notizen. Beispiele bewusst ohne Bezug zu Korpusfällen.
+  `reasoning` unverändert `low`.
+- **F.5 Reale Abnahme:** alle 34 Fälle, 126 Aufrufe, 0,07 $.
+
+| Stufe | 8.11. vor 4.5.6 (25 Fälle) | 4.5.7 (34 Fälle) |
+| --- | --- | --- |
+| Zusammenfassung | 14 / 25 | **31 / 34** |
+| Aktionsrouter | 25 / 25 | 33 / 34 |
+| Aufgabenextraktion | 25 / 25 | 34 / 34 |
+| Terminextraktion | 22 / 25 | 31 / 34 |
+| Relevanz | 22 / 25 | 29 / 34 |
+
+Abnahmekriterium „mindestens 31 von 34“ erreicht. Kein Fall lief in einen Schemafehler.
+Die drei Abweichungen der Zusammenfassung (22, 25, 27) sind Werbemails: Das Modell
+nennt Aktionszeiträume wie „nur bis zum 30.09.2026“ oder „im September“. Der Prompt
+verlangt jede genannte Zeitangabe, der Korpus erwartet `[]`. Im Betrieb ohne Folge: Diese
+Mails sind irrelevant, und irrelevante Mails erhalten keine Zusammenfassung.
+
+Die übrigen Abweichungen betreffen Stufen, die diese Änderung nicht berührt: zusätzliche
+Themen bei 04, 08, 20, 21 und 26; bei 23 `required_unknown` statt `all_day` bei richtigem
+Zeitraum; 24 (Stornierung einer Buchung) ohne Termin; 30 als sichere eigene Termine statt
+„unklar“. Die Fälle 21 bis 29 liefen am 8. November zum ersten Mal real, ein Vergleich
+mit früher ist für sie nicht möglich.

@@ -26,6 +26,7 @@ from ..models import (
     ProposalStatus,
     Relevance,
     Summary,
+    SummaryAnswer,
     TaskExtraction,
     TelegramAnswerInterpretation,
     TelegramClarification,
@@ -391,7 +392,10 @@ class Analyzer:
         return self._run("draft_reply", ReplyDraft, context, {"intent": intent, "personal_info": personal_info})
 
     def summary(self, mail: dict[str, Any]) -> tuple[str, Summary]:
-        return self._run("summary", Summary, self._enrich_mail_with_attachments(mail))
+        return self._classified_run(
+            "summary", {"mail": self._enrich_mail_with_attachments(mail)},
+            lambda raw: SummaryAnswer.model_validate(raw).summary(), schema=SummaryAnswer,
+        )
 
     def action_route(self, mail: dict[str, Any]) -> tuple[str, ActionRoute]:
         if self.suspicious_link_bait(mail):

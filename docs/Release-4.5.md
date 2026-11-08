@@ -1,6 +1,6 @@
 # Release 4.5 – Eigene Mails, Notizen an sich selbst und Weiterleitungen
 
-Versionen 4.5.0 bis 4.5.6, 8. November 2026. Grundlage: [Planung 4.5](Planung-4.5.md), Stufe 16.
+Versionen 4.5.0 bis 4.5.7, 8. November 2026. Grundlage: [Planung 4.5](Planung-4.5.md), Stufe 16.
 
 ## Anlass
 
@@ -20,6 +20,7 @@ Mailhelp ging davon aus, dass jede Mail von einer dritten Person stammt.
 | 4.5.4 | 16.5 | Korpus v3 enthält drei synthetische eigene Notizen. `mailhelp-evaluate` bestimmt die Perspektive mit demselben Modul wie die Verarbeitung. |
 | 4.5.5 | 16.6/16.7 | Offline-Prompt-Gate für alle 34 Fälle und End-to-End-Regressionstest der Landesversammlung (synthetisiert). |
 | 4.5.6 | 16.6 | Eigene Notizen und eigene Weiterleitungen gelten ohne Relevanzaufruf als relevant. Die Auswertung vergleicht Daten ohne vorangestellten Wochentag. Reale Auswertung mit echtem Modell. |
+| 4.5.7 | Fristen | Zusammenfassung: `deadlines` ist im Antwortschema Pflicht; keine Kopfzeilendaten und keine Anmeldefrist bei bestehender Anmeldung; Vorlage `defaults/prompts.yaml` wieder identisch. Siehe [Planung Fristen](Planung-Fristen-Zusammenfassung.md). |
 
 Für Mails Dritter ohne Weiterleitung ändert sich die Modelleingabe nicht.
 
@@ -96,6 +97,11 @@ Gemeldete Kosten: 0,07 $ bei rund 270.000 Tokens.
 Relevanz, Router, Aufgaben- und Terminextraktion bestehen in allen drei Fällen. Der
 Aufgaben-Fall besteht vollständig. Bei den beiden Termin-Fällen weicht nur die
 Fristliste der Zusammenfassung ab.
+
+**Abnahme nach 4.5.7:** vollständiger realer Lauf über alle 34 Fälle (126 Aufrufe,
+0,07 $): Zusammenfassung 31/34, Router 33/34, Aufgaben 34/34, Termine 31/34, Relevanz
+29/34. Alle drei eigenen Notizen bestehen vollständig. Einzelheiten und verbliebene
+Abweichungen: [Planung Fristen](Planung-Fristen-Zusammenfassung.md), Abschnitt 8.
 
 Die Berichte enthalten nur Ausgaben zum synthetischen Korpus und liegen nicht im
 Repository.

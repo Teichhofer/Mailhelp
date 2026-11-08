@@ -47,11 +47,10 @@ def test_self_notes_pass_the_gate_and_carry_the_users_perspective():
     assert forward["perspective"]["forwarded_headers"]["sender"] == "Grundschule <sekretariat@grundschule.example.test>"
     (task,) = mails(provider, "Notiz Projektmeeting", "task_extraction")
     assert task["perspective"]["self_mail"] is True
-    # 4.5.6: own notes need no relevance call; the summary receives the plain mail.
+    # 4.5.6: own notes need no relevance call. 4.5.9: the summary sees the same perspective.
     for subject in ("Landesversammlung", "WG: Einladung Elternabend Klasse 3b", "Notiz Projektmeeting"):
         assert mails(provider, subject, "relevance") == []
-    (summary,) = mails(provider, "Landesversammlung", "summary")
-    assert "perspective" not in summary
+    assert mails(provider, "Landesversammlung", "summary") == [photo]
     observed = {case["id"]: case["review_outputs"]["relevance"] for case in report["cases"]}
     assert all(observed[case] == {"decision": "relevant", "topic_ids": [],
                                   "reason": "Eigene Notiz: immer relevant"} for case in SELF_NOTES)

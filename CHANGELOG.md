@@ -1,5 +1,23 @@
 # Änderungen
 
+## 4.5.7 – Fristen in der Zusammenfassung (Planung Fristen, Schritte F.1 bis F.5)
+
+- Ursache bestätigt (F.1, 11 reale Aufrufe): Das Modell ließ `deadlines` in 6 von 11
+  Antworten ganz weg, weil das Schema nur `sentences` verlangte; Mailhelp setzte
+  stillschweigend `[]` ein.
+- Neues Antwortschema `SummaryAnswer`: `deadlines` ist Pflicht und steht vor
+  `sentences`. Eine fehlende Liste ist ein Schemafehler mit Wiederholung. Gespeicherte
+  Zusammenfassungen bleiben ohne Migration lesbar.
+- Die Zusammenfassung erhält bei eigenen Notizen die Perspektive. Keine Fristen sind
+  Kopfzeilendaten weitergeleiteter Nachrichten und eine Anmeldefrist, wenn die nutzende
+  Person schon angemeldet ist (Entscheidung vom 8. November 2026).
+- Korpus: Fall 30 erwartet die elf genannten Sitzungstermine statt eines kopierten
+  Datums aus Fall 03.
+- Fehlerbehebung: `src/mailhelp/defaults/prompts.yaml` hatte die Prompt-Änderungen aus
+  4.5.2 und 4.5.3 nicht erhalten. Die Vorlage ist wieder identisch; ein Test sichert das.
+- Reale Abnahme über alle 34 Fälle (126 Aufrufe, 0,07 $): Zusammenfassung 31 von 34
+  (vorher 14 von 25).
+
 ## 4.5.6 – Eigene Notizen immer relevant und reale Auswertung (Planung 4.5, Schritt 16.6)
 
 - Eigene Notizen und eigene Weiterleitungen (`self_mail`) gelten ohne Relevanzaufruf als

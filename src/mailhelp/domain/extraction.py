@@ -16,6 +16,19 @@ class Summary(StrictModel):
     deadlines: list[str] = Field(default_factory=list)
 
 
+# The summary as the model must answer it (4.5.8). The stored ``Summary`` keeps its
+# default so that older states stay readable. For the model ``deadlines`` is required
+# and comes first: an omitted list is a schema error instead of silently meaning "no
+# deadline", and the dates are listed before the sentences are shortened. No docstring:
+# it would become the schema description sent to the model.
+class SummaryAnswer(StrictModel):
+    deadlines: list[str]
+    sentences: list[str] = Field(min_length=1, max_length=2)
+
+    def summary(self) -> Summary:
+        return Summary(sentences=self.sentences, deadlines=self.deadlines)
+
+
 class TelegramAnswerInterpretation(StrictModel):
     """Bounded result of comparing a Telegram reply with its open question."""
 

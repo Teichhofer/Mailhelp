@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 4.5.6. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 4.5.7. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2933,3 +2933,14 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   vergleicht das Datum eines nicht auflösbaren Termins ohne vorangestellten Wochentag.
   Die reale Auswertung vom 8. November 2026 bestätigt Router und Extraktion für alle
   drei eigenen Notizen.
+- **Fristen in der Zusammenfassung (4.5.7):** Der Modellaufruf verwendet das
+  Antwortschema `SummaryAnswer`, in dem `deadlines` Pflicht ist und vor `sentences`
+  steht. Fehlt die Liste, ist das ein Schemafehler mit der üblichen
+  Validierungswiederholung, nicht „keine Frist“. Gespeicherte `Summary`-Zustände
+  behalten den Standardwert `[]`. Die Zusammenfassung erhält bei eigenen Notizen und
+  Weiterleitungen dieselbe Perspektive wie Router und Extraktion. Keine Fristen sind
+  Versand- und Kopfzeilendaten (auch „Datum:“/„Gesendet:“ einer weitergeleiteten
+  Nachricht), Daten nur aus Prompt-Injection, Verweise ohne konkrete Zeitangabe und eine
+  Anmeldefrist, wenn die Mail zeigt, dass die nutzende Person bereits angemeldet ist;
+  das Veranstaltungsdatum bleibt dann in der Liste. `src/mailhelp/defaults/prompts.yaml`
+  ist wieder identisch mit `prompts.yaml`.

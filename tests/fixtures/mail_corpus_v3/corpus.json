@@ -1687,7 +1687,17 @@
             "Synthetische Zusammenfassung."
           ],
           "deadlines": [
-            "22.09.2026"
+            "23.01.2027",
+            "23.02.2027",
+            "23.03.2027",
+            "23.04.2027",
+            "23.05.2027",
+            "23.06.2027",
+            "23.07.2027",
+            "23.08.2027",
+            "23.09.2027",
+            "23.10.2027",
+            "23.11.2027"
           ]
         },
         "action_route": {
@@ -1867,17 +1877,6 @@
             "task_count": 0,
             "event_count": 1,
             "reason": "Synthetische Aktionsklassifikation."
-          }
-        ],
-        "summary": [
-          {
-            "sentences": [
-              "Synthetische Zusammenfassung."
-            ],
-            "deadlines": [
-              "22.09.2026",
-              "ab Montag"
-            ]
           }
         ]
       }

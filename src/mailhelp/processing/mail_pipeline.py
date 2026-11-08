@@ -271,7 +271,8 @@ class MailPipeline:
         state, name = run.state, run.name
         run.stage = ProcessingStage.SUMMARY
         if state.steps.summary == "pending":
-            call, summary = self.o.analyzer.summary(_content(state))
+            # 4.5.9: the summary also learns who wrote the mail (own registration, own note).
+            call, summary = self.o.analyzer.summary(_with_perspective(state))
             state.summary = summary
             state.llm_call_ids.append(call)
             state.steps.summary = "completed"

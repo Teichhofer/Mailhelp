@@ -306,7 +306,7 @@ def evaluate(corpus: dict[str, Any], prompts: PromptConfig, client: LlmCompleter
             # 4.5.6: like the pipeline, an own note needs no relevance call.
             relevance = perspective.own_relevance() or analyzer.relevance(mail, topics)[1]
             observed["relevance"] = relevance.model_dump(mode="json")
-            observed["summary"] = analyzer.summary(mail)[1].model_dump(mode="json")
+            observed["summary"] = analyzer.summary(routed)[1].model_dump(mode="json")
             route = analyzer.action_route(routed)[1]
             observed["action_router"] = route.model_dump(mode="json")
             observed["task_extraction"] = {"tasks": []}

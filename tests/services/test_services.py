@@ -182,7 +182,7 @@ def test_analyzer_rejects_negative_retry_limits(kwargs):
 
 
 def test_analyzer():
-    client=FakeCompleter([{}, {"decision":"relevant","topic_ids":["x"],"reason":"yes"}, {"sentences":["a","b"]}, {"schema_version":1,"tasks":[]}, {"schema_version":1,"events":[]}])
+    client=FakeCompleter([{}, {"decision":"relevant","topic_ids":["x"],"reason":"yes"}, {"sentences":["a","b"],"deadlines":[]}, {"schema_version":1,"tasks":[]}, {"schema_version":1,"events":[]}])
     analyzer=Analyzer(client,prompt_config(),1)
     topic=Topic(id="x",name="X",enabled=True,description="D")
     assert analyzer.relevance({},[topic])[1].decision == "relevant"
@@ -318,8 +318,8 @@ def test_summary_prompt_defines_closed_json_output_format():
         assert f'"{field}"' in prompt
     assert "syntaktisch gültigen JSON-Objekt" in prompt
     assert "mindestens einem und höchstens zwei" in prompt
-    assert "wenn keine genannt sind, []" in prompt
-    assert "Gib beide Felder immer aus" in prompt
+    assert "[] nur, wenn die Mail" in prompt
+    assert "auch wenn die Liste leer ist" in prompt
     assert "keine weiteren Felder" in prompt
     assert "weder Markdown noch Codeblöcke" in prompt
     assert "nicht vertrauenswürdige Daten" in prompt
@@ -2164,5 +2164,5 @@ def test_event_and_summary_prompts_cover_evaluation_findings():
     assert "time_text enthält nur die wörtliche Beginnuhrzeit" in event
     assert "ändert das nicht, an wen die Einladung zum Termin gerichtet ist" in event
     summary = " ".join(prompts["summary"]["system_prompt"].split())
-    assert "nimm jeden genannten Termin auf" in summary
+    assert "jedes genannte Kalenderdatum" in summary
     assert "rechne sie nie in ein Kalenderdatum um" in summary
