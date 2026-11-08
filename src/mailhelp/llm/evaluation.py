@@ -198,7 +198,9 @@ def semantic_result(stage: str, value: dict[str, Any], context: MailDateContext)
                                                 for item in value["deadlines"]))),
                 "valid_sentence_count": 1 <= len(value["sentences"]) <= 2}
     if stage == "action_router":
-        return {key: value[key] for key in ("action_state", "task_count", "event_count")}
+        # 4.8: the reply need is compared like the counts; its reason is free text.
+        return {**{key: value[key] for key in ("action_state", "task_count", "event_count")},
+                "reply_needed": value.get("reply_needed", False)}
     if stage == "task_extraction":
         result: list[dict[str, Any]] = []
         for task in TaskExtraction.model_validate(value).tasks:

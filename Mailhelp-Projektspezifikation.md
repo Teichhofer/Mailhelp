@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 4.8.1. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 4.8.2. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3077,3 +3077,14 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   Reply-To-Adresse, sonst der Absender; `In-Reply-To` ist die Message-ID der Mail,
   `References` deren Kette samt Message-ID. Der Text ist UTF-8. Ein HTML-Teil entfällt
   bewusst: Das Mailprogramm formatiert den Entwurf beim Bearbeiten.
+- **Antwortbedarf im Router (19.3):** `action_router` liefert zusätzlich `reply_needed`
+  (true, wenn der Absender ausdrücklich eine schriftliche Antwort per Mail von der
+  nutzenden Person erwartet: Frage, Bitte um Rückmeldung, Auskunft, Entscheidung oder
+  Zusendung per Mail, persönliche Anfrage über das eigene Kontaktformular) und
+  `reply_reason` (worauf die Antwort eingehen soll, sonst `null`). Newsletter, Werbung,
+  automatische Benachrichtigungen, Anmeldungen per Formular, Bitten an andere, eigene
+  Notizen und Köder sind kein Antwortbedarf. Der Antwortbedarf ändert weder
+  `action_state` noch die Zähler. Das an das Modell übergebene Schema
+  (`ActionRouteAnswer`) verlangt beide Felder; gespeicherte Routen und Anbieter ohne
+  Schema-Unterstützung lesen ein Fehlen als `false`. `mailhelp-evaluate` vergleicht
+  `reply_needed`; Korpus v3 erwartet ihn bei vier Fällen.

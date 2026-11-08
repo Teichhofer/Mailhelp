@@ -27,6 +27,25 @@
           "title": "Reason",
           "type": "string"
         },
+        "reply_needed": {
+          "default": false,
+          "title": "Reply Needed",
+          "type": "boolean"
+        },
+        "reply_reason": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reply Reason"
+        },
         "task_count": {
           "maximum": 20,
           "minimum": 0,

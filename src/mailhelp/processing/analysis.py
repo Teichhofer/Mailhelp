@@ -17,6 +17,7 @@ from ..llm.openrouter import InvalidJson, ProviderResponseInvalid
 from ..models import (
     AbstractCategories,
     ActionRoute,
+    ActionRouteAnswer,
     CalendarDuplicateDecision,
     EventExtraction,
     MailClassification,
@@ -401,7 +402,12 @@ class Analyzer:
         if self.suspicious_link_bait(mail):
             return "local-link-safety", ActionRoute(action_state="none", task_count=0,
                 event_count=0, reason="Verdächtiger Kurzlink-Köder: keine automatische Handlungsempfehlung.")
-        return self._run("action_router", ActionRoute, self._enrich_mail_with_attachments(mail))
+        # 4.8: the schema sent to the model requires reply_needed (strict structured output
+        # cannot omit it); reading stays lenient for providers without schema support.
+        return self._classified_run(
+            "action_router", {"mail": self._enrich_mail_with_attachments(mail)},
+            ActionRoute.model_validate, schema=ActionRouteAnswer,
+        )
 
     def extract_tasks(self, mail: dict[str, Any], *, expected_count: int) -> tuple[str, TaskExtraction]:
         return self._classified_run(

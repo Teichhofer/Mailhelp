@@ -93,7 +93,9 @@
           "action_state": "none",
           "task_count": 0,
           "event_count": 0,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -129,7 +131,9 @@
           "action_state": "task",
           "task_count": 1,
           "event_count": 0,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -149,6 +153,18 @@
           "schema_version": 1,
           "events": []
         }
+      },
+      "accept": {
+        "action_route": [
+          {
+            "action_state": "task",
+            "task_count": 1,
+            "event_count": 0,
+            "reason": "Synthetische Aktionsklassifikation.",
+            "reply_needed": true,
+            "reply_reason": "Die fehlenden Belege sollen eingereicht werden."
+          }
+        ]
       }
     },
     {
@@ -175,7 +191,9 @@
           "action_state": "event",
           "task_count": 0,
           "event_count": 1,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -207,7 +225,9 @@
             "action_state": "unclear",
             "task_count": 0,
             "event_count": 1,
-            "reason": "Synthetische Aktionsklassifikation."
+            "reason": "Synthetische Aktionsklassifikation.",
+            "reply_needed": false,
+            "reply_reason": null
           }
         ],
         "summary": [
@@ -248,7 +268,9 @@
           "action_state": "task_and_event",
           "task_count": 1,
           "event_count": 1,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": true,
+          "reply_reason": "Das Protokoll der letzten Sitzung soll per Mail zugesandt werden."
         },
         "task_extraction": {
           "schema_version": 1,
@@ -283,6 +305,18 @@
             }
           ]
         }
+      },
+      "accept": {
+        "action_route": [
+          {
+            "action_state": "task_and_event",
+            "task_count": 1,
+            "event_count": 1,
+            "reason": "Synthetische Aktionsklassifikation.",
+            "reply_needed": false,
+            "reply_reason": null
+          }
+        ]
       }
     },
     {
@@ -307,7 +341,9 @@
           "action_state": "unclear",
           "task_count": 1,
           "event_count": 0,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -334,13 +370,17 @@
             "action_state": "none",
             "task_count": 0,
             "event_count": 0,
-            "reason": "Synthetische Aktionsklassifikation."
+            "reason": "Synthetische Aktionsklassifikation.",
+            "reply_needed": false,
+            "reply_reason": null
           },
           {
             "action_state": "unclear",
             "task_count": 0,
             "event_count": 0,
-            "reason": "Synthetische Aktionsklassifikation."
+            "reason": "Synthetische Aktionsklassifikation.",
+            "reply_needed": false,
+            "reply_reason": null
           }
         ],
         "task_extraction": [
@@ -375,7 +415,9 @@
           "action_state": "task",
           "task_count": 1,
           "event_count": 0,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -402,7 +444,9 @@
             "action_state": "unclear",
             "task_count": 1,
             "event_count": 0,
-            "reason": "Synthetische Aktionsklassifikation."
+            "reason": "Synthetische Aktionsklassifikation.",
+            "reply_needed": false,
+            "reply_reason": null
           }
         ],
         "task_extraction": [
@@ -447,7 +491,9 @@
           "action_state": "task",
           "task_count": 1,
           "event_count": 0,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": true,
+          "reply_reason": "Die Urlaubswünsche für Dezember sollen bis nächsten Freitag mitgeteilt werden."
         },
         "task_extraction": {
           "schema_version": 1,
@@ -493,7 +539,9 @@
           "action_state": "event",
           "task_count": 0,
           "event_count": 1,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -586,7 +634,9 @@
           "action_state": "event",
           "task_count": 0,
           "event_count": 1,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -637,7 +687,9 @@
           "action_state": "event",
           "task_count": 0,
           "event_count": 1,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -688,7 +740,9 @@
           "action_state": "event",
           "task_count": 0,
           "event_count": 1,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -758,7 +812,9 @@
           "action_state": "none",
           "task_count": 0,
           "event_count": 0,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -794,7 +850,9 @@
           "action_state": "event",
           "task_count": 0,
           "event_count": 1,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -846,7 +904,9 @@
           "action_state": "task_and_event",
           "task_count": 1,
           "event_count": 1,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -907,7 +967,9 @@
           "action_state": "task_and_event",
           "task_count": 1,
           "event_count": 1,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": true,
+          "reply_reason": "Mitteilen, ob Frau Beispiel ein Grußwort halten kann."
         },
         "task_extraction": {
           "schema_version": 1,
@@ -968,7 +1030,9 @@
           "action_state": "task_and_event",
           "task_count": 1,
           "event_count": 1,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -1010,13 +1074,17 @@
             "action_state": "unclear",
             "task_count": 1,
             "event_count": 1,
-            "reason": "Synthetische Aktionsklassifikation."
+            "reason": "Synthetische Aktionsklassifikation.",
+            "reply_needed": false,
+            "reply_reason": null
           },
           {
             "action_state": "event",
             "task_count": 0,
             "event_count": 1,
-            "reason": "Synthetische Aktionsklassifikation."
+            "reason": "Synthetische Aktionsklassifikation.",
+            "reply_needed": false,
+            "reply_reason": null
           }
         ],
         "task_extraction": [
@@ -1049,7 +1117,9 @@
           "action_state": "task",
           "task_count": 1,
           "event_count": 0,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -1093,7 +1163,9 @@
           "action_state": "none",
           "task_count": 0,
           "event_count": 0,
-          "reason": "Zugangsdaten allein belegen weder eine aktuelle Einladung noch einen konkreten Termin."
+          "reason": "Zugangsdaten allein belegen weder eine aktuelle Einladung noch einen konkreten Termin.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -1127,7 +1199,9 @@
           "action_state": "event",
           "task_count": 0,
           "event_count": 1,
-          "reason": "Ausdrueckliche aktuelle Einladung; Terminangaben folgen noch."
+          "reason": "Ausdrueckliche aktuelle Einladung; Terminangaben folgen noch.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -1179,7 +1253,9 @@
           "action_state": "task_and_event",
           "task_count": 1,
           "event_count": 1,
-          "reason": "Aktuelle Bitte zur Kalenderanpassung und ausdruecklich verschobener Termin."
+          "reason": "Aktuelle Bitte zur Kalenderanpassung und ausdruecklich verschobener Termin.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -1254,7 +1330,9 @@
           "action_state": "none",
           "task_count": 0,
           "event_count": 0,
-          "reason": "Kurzlink-Koeder"
+          "reason": "Kurzlink-Koeder",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "tasks": []
@@ -1288,7 +1366,9 @@
           "action_state": "task",
           "task_count": 1,
           "event_count": 0,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": true,
+          "reply_reason": "Antwort auf die Anfrage zur Hofführung für eine Kindergruppe."
         },
         "task_extraction": {
           "schema_version": 1,
@@ -1330,7 +1410,9 @@
           "action_state": "none",
           "task_count": 0,
           "event_count": 0,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -1367,7 +1449,9 @@
           "action_state": "event",
           "task_count": 0,
           "event_count": 1,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -1419,7 +1503,9 @@
           "action_state": "event",
           "task_count": 0,
           "event_count": 1,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -1466,7 +1552,9 @@
           "action_state": "none",
           "task_count": 0,
           "event_count": 0,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -1503,7 +1591,9 @@
           "action_state": "event",
           "task_count": 0,
           "event_count": 2,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -1564,7 +1654,9 @@
           "action_state": "none",
           "task_count": 0,
           "event_count": 0,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -1601,7 +1693,9 @@
           "action_state": "task_and_event",
           "task_count": 1,
           "event_count": 1,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -1658,7 +1752,9 @@
           "action_state": "none",
           "task_count": 0,
           "event_count": 0,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -1704,7 +1800,9 @@
           "action_state": "event",
           "task_count": 0,
           "event_count": 11,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -1876,7 +1974,9 @@
             "action_state": "unclear",
             "task_count": 0,
             "event_count": 1,
-            "reason": "Synthetische Aktionsklassifikation."
+            "reason": "Synthetische Aktionsklassifikation.",
+            "reply_needed": false,
+            "reply_reason": null
           }
         ]
       }
@@ -1906,7 +2006,9 @@
           "action_state": "event",
           "task_count": 0,
           "event_count": 1,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -1955,7 +2057,9 @@
           "action_state": "event",
           "task_count": 0,
           "event_count": 1,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -2004,7 +2108,9 @@
           "action_state": "task",
           "task_count": 1,
           "event_count": 0,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -2051,7 +2157,9 @@
           "action_state": "event",
           "task_count": 0,
           "event_count": 1,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -2115,7 +2223,9 @@
           "action_state": "event",
           "task_count": 0,
           "event_count": 1,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -2167,7 +2277,9 @@
           "action_state": "event",
           "task_count": 0,
           "event_count": 1,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,
@@ -2219,7 +2331,9 @@
           "action_state": "event",
           "task_count": 0,
           "event_count": 1,
-          "reason": "Synthetische Aktionsklassifikation."
+          "reason": "Synthetische Aktionsklassifikation.",
+          "reply_needed": false,
+          "reply_reason": null
         },
         "task_extraction": {
           "schema_version": 1,

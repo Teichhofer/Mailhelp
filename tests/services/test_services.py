@@ -1691,6 +1691,7 @@ def test_gemeinderat_action_failure_preserves_summary_and_retries_only_actions(t
         assert partial["action_route"] == {
             "action_state": "event", "task_count": 0, "event_count": 1,
             "reason": "Eine Gemeinderatssitzung ist ein Termin.",
+            "reply_needed": False, "reply_reason": None,  # 4.8: stored with their defaults
         }
         assert partial["steps"]["completion"] == "completed"
         assert "• " in notify.messages[0]

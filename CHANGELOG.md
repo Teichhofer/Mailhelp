@@ -1,5 +1,14 @@
 # Änderungen
 
+## 4.8.2 – Antwortbedarf im Aktionsrouter (Planung 4.8, Schritt 19.3)
+
+- Der Aktionsrouter erkennt, ob eine Mail eine schriftliche Antwort von dir erwartet
+  (`reply_needed`, `reply_reason`), unabhängig von Aufgaben und Terminen.
+- Das Schema für das Modell verlangt beide Felder; ältere gespeicherte Routen gelten als
+  ohne Antwortbedarf. Korpus v3 und `mailhelp-evaluate` prüfen den Antwortbedarf.
+- Prompt-Baseline als geprüfter Konfigurationsvertrag fortgeschrieben (ohne Nachweis der
+  Modellqualität; die reale Prüfung folgt in der Abnahme).
+
 ## 4.8.1 – Betreff und Threading der Entwürfe (Planung 4.8, Schritt 19.2)
 
 - Antwortentwürfe erhalten genau ein „Re: “: Aus „AW: Angebot“ wird „Re: Angebot“ statt

@@ -98,6 +98,9 @@ class ActionRoute(StrictModel):
     task_count: int = Field(ge=0, le=20)
     event_count: int = Field(ge=0, le=20)
     reason: str = Field(min_length=1, max_length=1000)
+    # 4.8: the sender expects a written answer by mail; independent of tasks and events.
+    reply_needed: bool = False
+    reply_reason: str | None = Field(default=None, min_length=1, max_length=500)
 
     @model_validator(mode="before")
     @classmethod
@@ -119,6 +122,13 @@ class ActionRoute(StrictModel):
         if not expected[self.action_state]:
             raise ValueError("Aktionszustand und Zähler widersprechen sich")
         return self
+
+
+# The schema the model answers with (4.8, 19.3): it requires reply_needed and reply_reason,
+# so strict structured output cannot omit them. Stored routes keep the defaults above.
+class ActionRouteAnswer(ActionRoute):
+    reply_needed: bool
+    reply_reason: str | None = Field(min_length=1, max_length=500)
 
 
 class ExtractedTask(StrictModel):
