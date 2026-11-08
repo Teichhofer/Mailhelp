@@ -31,6 +31,7 @@ from ..models import (
     Summary,
     ValidationIssue,
 )
+from ..notifications.briefing_identity import is_own_briefing
 from .analysis import (
     LlmInvalidJson,
     LlmProviderResponseInvalid,
@@ -184,6 +185,8 @@ class MailPipeline:
                 state.display_headers = DisplayHeaders(sender=display["from"], subject=display["subject"])
                 self.o.save(name, state)
             state.mail = prepare(fetched.raw, self.o.max_bytes, fetched.received_at, self.o.user_timezone)
+            if is_own_briefing(self.o.store, state.imap.account_id, fetched.raw):
+                cast(dict[str, Any], state.mail["metadata"])["mailhelp_briefing"] = True
             cast(list[dict[str, Any]], state.mail["extracted_attachments"]).extend(
                 {"filename": filename[:500], "content_type": content_type[:200], "size_bytes": size,
                  "text": "", "extraction_status": "skipped_oversized", "character_count": 0}
@@ -235,7 +238,11 @@ class MailPipeline:
         run.stage = ProcessingStage.RELEVANCE
         state = run.state
         if state.steps.relevance == "pending":
-            if state.imap.account_id in self.o.always_relevant:
+            if _prepared(state).metadata.get("mailhelp_briefing") is True:
+                state.relevance = Relevance(decision="irrelevant", topic_ids=[], reason="Eigenes Postfach-Briefing")
+                call = None
+                self.o.analyzer.last_relevance_source = "prefilter"
+            elif state.imap.account_id in self.o.always_relevant:
                 state.relevance = Relevance(
                     decision="relevant", topic_ids=[], reason="IServ-Elternbrief: immer relevant"
                 )

@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 4.9.5 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 4.9.6 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 4.4 trennt die Weboberfläche von der Verarbeitung. Ein Klick wird sofort
 quittiert, auch während die Mailanalyse läuft (gemessen: Median rund 30 ms). Danach
@@ -632,18 +632,21 @@ Entwicklungsregeln stehen in [AGENTS.md](AGENTS.md), technische Verträge in der
 Die statische Projektwebsite liegt unter [website/](website/).
 Die [GitHub-Pages-Anleitung](docs/GitHub-Pages.md) beschreibt ihre Veröffentlichung.
 
+## Postfach-Briefings (4.9)
+
+Unter **Einstellungen → Postfach-Briefings** lassen sich feste Tageszeiten,
+das Zielpostfach und das Auslassen leerer Briefings wählen. Standardmäßig bleibt
+die Funktion aus. Mit aktivierter Weboberfläche legt Mailhelp zu diesen Zeiten
+einen HTML- und Klartext-Entwurf im IMAP-Postfach ab: offene Termine, Aufgaben,
+Relevanzfragen und neue Zusammenfassungen mit Fristen. Es erfolgt kein Mailversand.
+
+Links öffnen die bestehenden Prüfkarten; jede Kalender- oder Aufgabenanlage braucht
+weiterhin die ausdrückliche Bestätigung der angezeigten Version. Dauerhafte
+Checkpoints und der Message-ID-Abgleich verhindern doppelte Entwürfe nach Neustarts.
+Nach dem Update den Dienst neu starten; die Briefing-Einstellungen wirken danach
+ohne Neustart. Einrichtung, Zeitumstellungen und Rückkehr beschreibt der
+[Release-Bericht 4.9](docs/Release-4.9.md).
+
 ## Lizenz
 
 Mailhelp wird unter der [MIT-Lizenz](LICENSE) bereitgestellt.
-
-Version 4.9.0: Neue Postfach-Briefings sind standardmäßig aus; Uhrzeiten, Zielpostfach und Leerlaufverhalten lassen sich unter Einstellungen → Postfach-Briefings versions- und CSRF-geschützt ohne Neustart bearbeiten. Der bestehende Telegram-Tagesüberblick bleibt unabhängig. Siehe [Planung 4.9](docs/Planung-4.9.md).
-
-Version 4.9.1: Der BriefingScheduler speichert Termine und Wiederholungszeitpunkte in briefing_state.json. Identitäten aus lokalem Datum und Uhrzeit verhindern Doppelläufe nach Neustart, Zielwechsel und rückwärts laufender Uhr. Verpasste heutige Zeiten werden geordnet nachgeholt; Inhaltsfenster beginnen beim letzten erfolgreichen Briefing. Siehe [Planung 4.9](docs/Planung-4.9.md).
-
-Version 4.9.2: Der BriefingAggregator sammelt aktuelle offene Termin-, Aufgaben- und Relevanzkarten aller Postfächer sowie Zusammenfassungen und Fristen aus dem Zeitfenster. Gespeicherte Analysezeitpunkte verhindern erneutes Zählen durch spätere Bearbeitungen. Beschädigte Zustände werden schreibfrei übersprungen und als Hinweis gezählt; entfernte Zusammenfassungen werden nicht wiederhergestellt. Siehe [Planung 4.9](docs/Planung-4.9.md).
-
-Version 4.9.3: Briefings enthalten ein responsives HTML-Layout und gleichwertigen Klartext mit offenen Karten, Fristen, Zusammenfassungen und Kennzahlen. HTML-Inhalte werden escaped; Links öffnen ausschließlich die bestehenden authentifizierten Mailhelp-Karten und autorisieren keine Anlage. Große Listen bleiben mit korrekten Gesamtzahlen und Überlaufhinweisen kompakt. Beschädigte Akten erzeugen einen Hinweis statt einer leeren Alles-ruhig-Meldung. Siehe [Planung 4.9](docs/Planung-4.9.md).
-
-Version 4.9.4: Briefings verwenden den gemeinsamen IMAP-Writer mit stabiler Message-ID, festem Inhaltsstand und dauerhaft gebundener Postfach- und Ordnerauswahl. Laufzeit und Testmodus sind unabhängig von Antwortentwürfen; vor APPEND werden die aktuellen Einstellungen erneut geprüft. Siehe [Planung 4.9](docs/Planung-4.9.md).
-
-Version 4.9.5: Deterministische Tests mit time-machine prüfen 07:00, 13:00 und 18:00 an Werktagen und Wochenenden mit wieder geöffnetem Zustandsspeicher. Doppelte Herbststunden zählen einmal; fehlende Frühlingszeiten werden um die Zeitlücke verschoben. Verspätete Starts holen nur heutige Slots nach; ausgefallene Tage werden nicht künstlich nacherzeugt. Siehe [Planung 4.9](docs/Planung-4.9.md).

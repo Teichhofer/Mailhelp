@@ -7,6 +7,7 @@ import yaml
 from pydantic import ValidationError
 
 from mailhelp.config import ImapSettings, Settings
+from mailhelp.configuration import file_hash
 from mailhelp.llm.fingerprints import config_fingerprint
 from mailhelp.mailbox.mailbox_settings import effective_settings
 from mailhelp.runtime.experience import ExperienceRuntime
@@ -43,14 +44,21 @@ def test_web_settings_require_confirmation_and_activate_without_restart(web, tmp
     preview = web.browser.request("POST", "/einstellungen/speichern", form)
     assert preview.status == 200 and not active
     form["confirm"] = "yes"
-    assert web.browser.request("POST", "/einstellungen/speichern", form).status == 303
+    submitted = web.browser.request("POST", "/einstellungen/speichern", form)
+    assert submitted.status == 303
     web.run()
     assert active and yaml.safe_load((tmp_path / "config.yaml").read_text(encoding="utf-8"))
     root, _, child = name.partition(".")
     actual = getattr(active[-1], root)
     assert (getattr(actual, child) if child else actual) == yaml.safe_load(value)
     # Replayed submissions use the original idempotency key and do not execute twice.
-    assert web.browser.request("POST", "/einstellungen/speichern", form).status == 409
+    response = web.browser.request("POST", "/einstellungen/speichern", form)
+    # A no-op preserves an already normalized LF file on Linux. That replay returns
+    # the original queue entry; a changed file is rejected by the optimistic guard.
+    assert response.status == (303 if file_hash(tmp_path / "config.yaml") == form["expected_hash"] else 409)
+    if response.status == 303:
+        assert dict(response.headers)["Location"] == dict(submitted.headers)["Location"]
+    web.run()
     assert len(active) == 1
     assert configuration.active == active[-1]
 

@@ -68,7 +68,10 @@ def test_built_artifacts_exclude_private_runtime_files():
                        "web/pages.py", "web/review_pages.py", "web/settings_pages.py",
                        "web/status_pages.py", "web/site.py", "runtime/metrics.py", "mailbox/imap.py", "mailbox/mailbox_run.py",
                        "runtime/credentials.py", "web/credential_pages.py", "web/settings_site.py",
-                       "web/static/app.css", "web/static/sw.js"):
+                       "notifications/briefing_scheduler.py", "notifications/briefing_aggregate.py",
+                       "notifications/briefing_template.py", "notifications/briefing_drafts.py",
+                       "notifications/briefing_identity.py",
+                       "mailbox/draft_writer.py", "web/static/app.css", "web/static/sw.js"):
             assert archive.read("mailhelp/" + module) == (ROOT / "src/mailhelp" / module).read_bytes()
         assert "mailhelp/assets/logo.png" in names
         assert {"mailhelp/web/static/app.js", "mailhelp/web/static/sw.js",
@@ -104,4 +107,5 @@ def test_built_artifacts_exclude_private_runtime_files():
         assert {"docs/Planung-4.3.md", "docs/Release-4.3.md"} <= names
         assert {"docs/Planung-4.4.md", "docs/Release-4.4.md"} <= names
         assert {"docs/Planung-4.8.md", "docs/Release-4.8.md"} <= names
+        assert {"docs/Planung-4.9.md", "docs/Release-4.9.md"} <= names
         assert not any(name.startswith(("data/", "logs/", "quality-reports/")) for name in names)

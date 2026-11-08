@@ -138,3 +138,18 @@ def test_target_selection_rejects_a_removed_mailbox(profiled):
     cfg.briefings.mailbox = 99
     with pytest.raises(ValueError, match="aktiv"):
         target_mailbox(cfg)
+
+
+def test_recovered_older_run_never_moves_the_successful_checkpoint_backwards(clocked):
+    cfg, now, calls, _, store, scheduler = clocked
+    scheduler.deliver = lambda run, persist: "failed" if run.label == "07:00" else "saved"
+    now[0] = now[0].replace(hour=12)
+    scheduler.tick()
+    state = store.load_model(STATE, BriefingState)
+    latest = state.last_briefing_at
+    assert latest == now[0]
+    now[0] += timedelta(minutes=1)
+    scheduler.deliver = lambda run, persist: "saved"
+    scheduler.tick()
+    state = store.load_model(STATE, BriefingState)
+    assert state.last_briefing_at == latest and all(run.status == "saved" for run in state.runs.values())

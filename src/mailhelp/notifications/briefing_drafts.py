@@ -5,6 +5,7 @@ from collections.abc import Callable
 from email.message import EmailMessage
 from email.policy import SMTP
 from email.utils import format_datetime, parseaddr
+from hashlib import sha256
 
 from ..config import Settings
 from ..mailbox.draft_writer import ImapDraftWriter
@@ -28,6 +29,7 @@ def briefing_message(snapshot: dict[str, str], sender: str, run: BriefingRun) ->
     message["Date"] = format_datetime(run.scheduled_at)
     message.set_content(snapshot["text"])
     message.add_alternative(snapshot["html"], subtype="html")
+    message.set_boundary("mailhelp-briefing-" + run.id)
     return message.as_bytes()
 
 
@@ -59,8 +61,9 @@ class BriefingDraftService:
                 return "skipped_empty"
             run.snapshot = render_briefing(content, run.label, cfg.timezone, self.base_url())
         run.account = account
-        checkpoint()
         content_bytes = briefing_message(run.snapshot, target.sender, run)
+        run.draft["content_sha256"] = sha256(content_bytes).hexdigest()
+        checkpoint()
         if cfg.test_mode:
             return "simulated"
         def authorized() -> bool:

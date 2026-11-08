@@ -1,5 +1,10 @@
 # Änderungen
 
+## 4.9.6 – Gesamtabnahme der Postfach-Briefings (Planung 4.9, Schritt 20.7)
+
+- Version 4.9 führt konfigurierbare Postfach-Briefings, dauerhafte Zeitfenster und sichere PWA-Verweise zusammen. Release-Bericht, Paketprüfung sowie Windows-, Linux- und Browserprüfungen dokumentieren die Abnahme.
+- Regression behoben: Eigene Briefings im mit abgerufenen Entwurfsordner werden anhand von Konto und gespeichertem Inhaltsabdruck erkannt und erzeugen keine neuen Aufgaben oder LLM-Aufrufe. Betreff und Message-ID allein reichen zum Überspringen nicht aus.
+
 ## 4.9.5 – Zeitreisetests für Briefings (Planung 4.9, Schritt 20.6)
 
 - Deterministische Tests mit time-machine prüfen 07:00, 13:00 und 18:00 an Werktagen und Wochenenden mit wieder geöffnetem Zustandsspeicher. Doppelte Herbststunden zählen einmal; fehlende Frühlingszeiten werden um die Zeitlücke verschoben. Verspätete Starts holen nur heutige Slots nach; ausgefallene Tage werden nicht künstlich nacherzeugt.

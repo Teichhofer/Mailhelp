@@ -10,10 +10,14 @@ import pytest
 from pydantic import SecretStr
 
 from mailhelp.config import ImapCredentials, Secrets
+from mailhelp.mailbox.imap import FetchedMail
 from mailhelp.notifications.briefing_drafts import BriefingDraftService, briefing_message
+from mailhelp.notifications.briefing_identity import is_own_briefing
 from mailhelp.notifications.briefing_scheduler import STATE, BriefingScheduler, BriefingState
 from mailhelp.notifications.drafts import DraftTarget
+from mailhelp.processing.orchestrator import Orchestrator
 from mailhelp.runtime.experience import ExperienceRuntime
+from tests.fakes.shared_services import AnalyzerStub, Notify
 
 
 class Crash(BaseException):
@@ -51,7 +55,7 @@ def delivery(configured):
     cfg.timezone = "Europe/Berlin"
     cfg.briefings.enabled, cfg.briefings.skip_empty, cfg.test_mode = True, False, False
     cfg.briefings.times = ["07:00"]
-    imap, opens, account = Imap(), [], ["account-1"]
+    imap, opens, account = Imap(), [], ["1" * 24]
     @contextmanager
     def connect():
         opens.append(True)
@@ -188,3 +192,56 @@ def test_independent_runtime_uses_current_mailbox_credentials_and_folder(profile
     runtime.mailbox_briefings.clock = lambda: datetime(2026, 11, 8, 19, tzinfo=UTC)
     runtime.tick()
     assert all(run.status == "simulated" for run in web.store.load_model(STATE, BriefingState).runs.values())
+
+
+def test_own_briefing_in_scanned_drafts_folder_never_becomes_a_new_task(delivery):
+    d = delivery
+    d.scheduler.tick()
+    raw = d.imap.writes[0][-1]
+    notify = Notify()
+    processor = Orchestrator(AnalyzerStub("relevant"), d.store, notify, 1, [], 1024 * 1024)
+    result = processor.process(FetchedMail("Drafts", 1, 91, raw, d.account[0]))
+    assert result["steps"]["completion"] == "completed"
+    assert result["relevance"]["decision"] == "irrelevant"
+    assert result["proposals"] == [] and result["llm_call_ids"] == [] and not notify.messages
+
+
+@pytest.mark.parametrize("changed", ["content", "account"])
+def test_subject_or_message_id_alone_cannot_hide_an_incoming_mail(delivery, changed):
+    d = delivery
+    d.scheduler.tick()
+    raw, account = d.imap.writes[0][-1], d.account[0]
+    if changed == "content":
+        raw += b"\r\nAdded incoming content\r\n"
+    else:
+        account = "2" * 24
+    processor = Orchestrator(AnalyzerStub("relevant"), d.store, Notify(), 1, [], 1024 * 1024)
+    result = processor.process(FetchedMail("Drafts", 1, 92, raw, account))
+    assert result["relevance"]["decision"] == "relevant" and result["proposals"] and result["llm_call_ids"]
+
+
+def test_own_briefing_recognition_survives_restart_after_mime_preparation(delivery, monkeypatch):
+    d = delivery
+    d.scheduler.tick()
+    processor = Orchestrator(AnalyzerStub("relevant"), d.store, Notify(), 1, [], 1024 * 1024)
+    fetched = FetchedMail("Drafts", 1, 93, d.imap.writes[0][-1], d.account[0])
+    def crash(run):
+        raise Crash()
+    with monkeypatch.context() as patch:
+        patch.setattr(processor.pipeline, "_relevance", crash)
+        with pytest.raises(Crash):
+            processor.process(fetched)
+    result = processor.process(FetchedMail("Drafts", 1, 93, b"", d.account[0]))
+    assert result["steps"]["completion"] == "completed" and result["llm_call_ids"] == []
+
+
+def test_corrupt_briefing_state_cannot_filter_untrusted_mail_and_is_not_modified(delivery):
+    d = delivery
+    path = d.store.directory / (STATE + ".json")
+    path.write_bytes(b"{broken")
+    assert not is_own_briefing(d.store, d.account[0], b"synthetic")
+    assert path.read_bytes() == b"{broken"
+
+
+def test_absent_briefing_state_never_filters_incoming_mail(delivery):
+    assert not is_own_briefing(delivery.store, delivery.account[0], b"synthetic incoming mail")

@@ -1,8 +1,8 @@
 # Mailhelp 4.9 – Konfigurierbare E-Mail-Briefings als Postfach-Entwürfe
 
-**Zielversion:** 4.9.0 (Schritte als Patchversionen 4.9.x)  
+**Zielversion:** 4.9.6 (Schritte als Patchversionen 4.9.0 bis 4.9.6)
 **Stand:** 8. November 2026
-**Status:** In Umsetzung (bis 20.6 in 4.9.5)
+**Status:** Vollständig umgesetzt und abgenommen in 4.9.6; siehe [Release-Bericht](Release-4.9.md).
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 4.0](Planung-4.0.md) (Gesamtfahrplan)  
 **Vorgänger:** [Planung 4.8](Planung-4.8.md) (Antwortentwürfe direkt im Postfach)
 
@@ -24,7 +24,7 @@ Bisher informiert Mailhelp über offene Entscheidungen entweder per Telegram ode
 Statt E-Mails über SMTP zu versenden (was zusätzliche SMTP-Zugangsdaten, Spam-Filter-Probleme und Versandrisiken erzeugt), nutzt Mailhelp die in Version 4.8 geschaffene **IMAP-Entwurfs-Infrastruktur**:
 - Mailhelp generiert zu den konfigurierten Uhrzeiten ein formatiertes Briefing und legt es als **Entwurf im IMAP-Ordner „Entwürfe“ (Drafts)** ab.
 - **Betreff:** `[Mailhelp Briefing 07:00] 3 Termine und 2 Aufgaben zur Freigabe`
-- Der Nutzer öffnet einfach sein normales Mailprogramm, sieht das Briefing an oberster Stelle, überfliegt die Zusammenfassung und kann offene Aktionen mit einem Klick über Deep-Links zur Mailhelp-PWA freigeben.
+- Der Nutzer öffnet einfach sein normales Mailprogramm, sieht das Briefing an oberster Stelle, überfliegt die Zusammenfassung und kann offene Karten über Deep-Links zur Mailhelp-PWA öffnen, prüfen und dort ausdrücklich freigeben.
 
 ---
 
@@ -49,7 +49,7 @@ flowchart TD
     end
 
     subgraph Storage["Ablage im Postfach"]
-        TMPL --> DW["ImapDraftWriter (aus Version 4.8)<br/>IMAP APPEND '\Drafts'"]
+        TMPL --> DW["ImapDraftWriter (aus Version 4.8)<br/>IMAP APPEND '\Draft \Seen'"]
         DW --> BOX[("IMAP 'Entwürfe'<br/>Betreff: [Mailhelp Briefing HH:MM]")]
         DW --> LOG["Dauerhafter Status:<br/>briefing_state.json (last_run)"]
     end
@@ -69,12 +69,12 @@ flowchart TD
      mailbox: "default"  # oder Postfach-ID
    ```
 2. **Idempotenz & Zeitzonensicherheit:**  
-   - Die Prüfung erfolgt minutengenau anhand der konfigurierten `user_timezone` (z. B. `Europe/Berlin`).
+   - Die Prüfung erfolgt minutengenau anhand der konfigurierten `timezone` (z. B. `Europe/Berlin`).
    - `briefing_state.json` protokolliert Datum und Uhrzeit des letzten erfolgreichen Briefings (`YYYY-MM-DD HH:MM`).  
    - Ein Neustart des Mailhelp-Dienstes erzeugt kein doppeltes Briefing für dieselbe Zeitspanne.
 3. **Inhalt des Briefings:**
    - **Kompakte Übersicht:** Anstehende Termine mit Datum/Uhrzeit, neue Aufgaben mit Frist.
-   - **Direkte Sprungmarken:** Jeder Eintrag enthält einen Link `https://meine-domain.de/aktion/<id>`, der bei Klick direkt zur Bestätigungskarte in der Weboberfläche führt.
+   - **Direkte Sprungmarken:** Jeder Eintrag enthält einen Link `https://meine-domain.de/vorschlag/<mail-id>/<vorschlag-id>`, der bei Klick direkt zur Bestätigungskarte in der Weboberfläche führt.
    - **Gefilterte Ruhe:** Gab es im Zeitraum keine relevanten Mails oder Aufgaben, kann konfiguriert werden, ob ein kurzes *„Alles ruhig“-Briefing* abgelegt oder der Entwurf stillschweigend ausgelassen wird (`skip_empty: true`).
 
 ---
@@ -100,13 +100,13 @@ flowchart TD
 
 | Schritt | Inhalt | Fertig, wenn … | Umfang | Voraussetzung |
 | :--- | :--- | :--- | :---: | :--- |
-| **20.1** ✓ 4.9.0 | Konfigurationsmodell & Einstellungsmaske | `BriefingSettings` in `mailhelp.models.settings`; Eingabe einer Liste von Uhrzeiten (`HH:MM`), Schalter für `skip_empty` und Postfachauswahl; Web-Maske unter `/einstellungen?bereich=briefing`. | S | – |
-| **20.2** ✓ 4.9.1 | `BriefingScheduler` & Checkpoint-Ablage | Scheduler-Thread prüft fällige Zeiten in `user_timezone`; `briefing_state.json` sichert `last_briefing_at`; verhindert Doppelläufe nach Neustarts oder bei Prozessunterbrechungen. | S | 20.1 |
+| **20.1** ✓ 4.9.0 | Konfigurationsmodell & Einstellungsmaske | `BriefingSettings` in `mailhelp.config.models`; Eingabe einer Liste von Uhrzeiten (`HH:MM`), Schalter für `skip_empty` und Postfachauswahl; Web-Maske unter `/einstellungen?bereich=briefing`. | S | – |
+| **20.2** ✓ 4.9.1 | `BriefingScheduler` & Checkpoint-Ablage | Scheduler-Thread prüft fällige Zeiten in `timezone`; `briefing_state.json` sichert `last_briefing_at`; verhindert Doppelläufe nach Neustarts oder bei Prozessunterbrechungen. | S | 20.1 |
 | **20.3** ✓ 4.9.2 | `BriefingAggregator` | Sammelt alle offenen Vorschläge (`pending_confirmation`, `needs_clarification`) sowie abgeschlossene Mails seit dem letzten Briefing; extrahiert Termine, Aufgaben und Kennzahlen. | S | 20.2 |
 | **20.4** ✓ 4.9.3 | Briefing-Template (HTML & Plaintext) | Gestaltetes, barrierefreies E-Mail-Template mit Datumsübersicht, Aufgabenliste und Deep-Links zur Weboberfläche; responsive Darstellung für Smartphone und Desktop. | S | 20.3 |
 | **20.5** ✓ 4.9.4 | IMAP-Entwurfsablage | Verwendet `ImapDraftWriter` (aus 4.8); legt das Briefing als Entwurf mit Betreff `[Mailhelp Briefing HH:MM] X Termine, Y Aufgaben` im Entwurfsordner des Zielpostfachs ab. | S | 20.4, 4.8: 19.1 |
 | **20.6** ✓ 4.9.5 | Deterministische Zeittests | Tests mit `time-machine` über verschiedene Tageszeiten (07:00, 13:00, 18:00), Sommer-/Winterzeit-Wechsel und Wochenenden; Nachweis der exakten Einmal-Ablage. | S | 20.2, 20.5 |
-| **20.7** | Gesamtabnahme & Release 4.9 | Vollständige Tests unter Windows und Linux; 100 % Zeilen- und Branch-Coverage; Release-Bericht `docs/Release-4.9.md`. | M | 20.1–20.6 |
+| **20.7** ✓ 4.9.6 | Gesamtabnahme & Release 4.9 | Vollständige Tests unter Windows und Linux; 100 % Zeilen- und Branch-Coverage; Release-Bericht `docs/Release-4.9.md`. | M | 20.1–20.6 |
 
 **Umfangsübersicht Version 4.9:** 7 Schritte, davon 6 S und 1 M.
 
@@ -119,7 +119,7 @@ flowchart TD
 2. **Volle Flexibilität:**  
    Die Uhrzeitenliste ist beliebig erweiterbar (z. B. nur morgens, oder dreimal täglich, oder deaktiviert).
 3. **Klickbare Deep-Links:**  
-   Aus dem Briefing heraus kann der Nutzer direkt auf die Web-Karten springen, um Termine und Aufgaben mit einem Klick freizugeben.
+   Aus dem Briefing heraus kann der Nutzer direkt auf die Web-Karten springen, um Termine und Aufgaben dort zu prüfen und die angezeigte Version ausdrücklich freizugeben.
 4. **Kein SMTP-Risiko:**  
    Das Briefing wird ausnahmslos als lokaler Entwurf (`\Draft`) via IMAP angelegt und niemals unaufgefordert extern versendet.
 5. **100 % Testabdeckung:**  

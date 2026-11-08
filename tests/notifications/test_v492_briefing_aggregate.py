@@ -49,6 +49,14 @@ def test_counts_filtered_mails_without_making_an_empty_digest_nonempty(aggregato
     assert result.scanned == result.irrelevant == 1 and result.empty
 
 
+def test_completed_mail_without_a_summary_is_counted_without_invented_content(aggregator):
+    state = saved(aggregator, 91)
+    state.summary, state.steps.summary = None, "pending"
+    aggregator.store.save("mail-" + state.id, state.model_dump(mode="json"))
+    content = aggregator.collect(START, END)
+    assert content.scanned == 1 and content.irrelevant == 0 and not content.summaries and content.empty
+
+
 def test_uses_current_proposal_status_and_old_open_cards_outside_the_summary_window(aggregator):
     task = proposal(5, "old", title="Noch offen")
     closed = proposal(5, "closed", status="rejected")

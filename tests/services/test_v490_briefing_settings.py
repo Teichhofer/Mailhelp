@@ -3,7 +3,9 @@ import pytest
 from pydantic import ValidationError
 
 from mailhelp.config import Settings
+from mailhelp.configuration import file_hash
 from mailhelp.llm.fingerprints import config_fingerprint, legacy_fingerprints
+from mailhelp.web.settings_pages import _input
 from tests.fakes.shared_core import prompt_config
 from tests.fakes.shared_web_v12 import configure
 
@@ -52,12 +54,17 @@ def test_web_edits_require_confirmation_and_apply_without_restart(web, tmp_path,
     form["value"] = value
     assert web.browser.request("POST", route, form).status == 200 and not active
     form["confirm"] = "yes"
-    assert web.browser.request("POST", route, form).status == 303
+    submitted = web.browser.request("POST", route, form)
+    assert submitted.status == 303
     web.run()
     assert getattr(active[-1].briefings, name.split(".")[1]) == expected
     # Reuse of the same submitted key never performs the change again.
     response = web.browser.request("POST", route, form)
-    assert response.status == 409 and len(active) == 1
+    assert response.status == (303 if file_hash(tmp_path / "config.yaml") == form["expected_hash"] else 409)
+    if response.status == 303:
+        assert dict(response.headers)["Location"] == dict(submitted.headers)["Location"]
+    web.run()
+    assert len(active) == 1
 
 
 def test_editor_has_times_and_enabled_mailbox_choices_and_keeps_auth_guards(profiled):
@@ -70,3 +77,10 @@ def test_editor_has_times_and_enabled_mailbox_choices_and_keeps_auth_guards(prof
     assert web.browser.request("POST", "/einstellungen/speichern", {**form, "csrf": "bad"}).status == 403
     web.auth.revoke_all()
     assert web.browser.request("POST", "/einstellungen/speichern", form).status == 403
+
+
+def test_editor_handles_absent_saved_values_and_excludes_disabled_mailboxes():
+    assert 'value=""' in _input("briefings.times", None)
+    html = _input("briefings.mailbox", None, {"imap": {"mailboxes": [
+        {"id": 2, "label": "Aktiv"}, {"id": 9, "label": "Ausgeschaltet", "enabled": False}]}})
+    assert 'value="2"' in html and 'value="9"' not in html and 'value="default" selected' in html
