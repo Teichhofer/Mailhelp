@@ -1,5 +1,14 @@
 # Änderungen
 
+## 4.6.7 – Abnahme Terminänderungen und Absagen (Planung 4.6, Schritt 17.8)
+
+- Fehlerbehebung: Der Aktionsrouter wertete die Absage eines bestimmten Termins als
+  „keine Aktion“ (reale Auswertung, Fälle 10 und 38); es entstand kein Vorschlag. Er zählt
+  sie jetzt als Terminkandidaten. Nachprüfung mit echtem Modell: Router 4/4.
+- End-to-End-Test von der Mail bis zum verschobenen bzw. abgesagten Kalendereintrag für
+  alle Abnahmekriterien aus Planung 4.6.
+- Release-Bericht `docs/Release-4.6.md`.
+
 ## 4.6.6 – Korpus für Terminänderungen (Planung 4.6, Schritt 17.7)
 
 - Korpus v3 enthält vier synthetische Fälle: Verschiebung um eine Woche, späterer Beginn,

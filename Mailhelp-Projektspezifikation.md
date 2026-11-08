@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 4.6.6. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 4.6.7. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3017,3 +3017,7 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   Verschiebung um eine Woche, späterer Beginn am selben Tag, neuer Raum, ersatzlose
   Absage; insgesamt 38 Fälle. `mailhelp-evaluate` vergleicht bei Terminen zusätzlich
   `original_date` (den aufgelösten Tag von `original_date_text`, sonst dessen Text).
+- **Absagen im Aktionsrouter (4.6.7):** Verschiebt, ändert oder sagt der aktuelle
+  Nachrichtenteil einen bestimmten Termin ab, zählt der Router genau einen Terminkandidaten
+  (`event`), auch wenn keine Handlung verlangt ist; die Absage eines bestimmten Termins ist
+  nie `none`. Release-Bericht: `docs/Release-4.6.md`.

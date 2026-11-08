@@ -2,7 +2,7 @@
 
 **Zielversion:** 4.6.0 (Schritte als Patchversionen 4.6.x)  
 **Stand:** 7. November 2026  
-**Status:** In Umsetzung (17.1 in 4.6.0, 17.2 in 4.6.1, 17.3 in 4.6.2, 17.4 in 4.6.3, 17.5 in 4.6.4, 17.6 in 4.6.5, 17.7 in 4.6.6)  
+**Status:** Umgesetzt (17.1 in 4.6.0, 17.2 in 4.6.1, 17.3 in 4.6.2, 17.4 in 4.6.3, 17.5 in 4.6.4, 17.6 in 4.6.5, 17.7 in 4.6.6, 17.8 in 4.6.7)  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 4.0](Planung-4.0.md) (Gesamtfahrplan)  
 **Vorgänger:** [Planung 4.5](Planung-4.5.md) (Eigene Mails, Notizen an sich selbst und Weiterleitungen) · **Nachfolger:** [Planung 4.7](Planung-4.7.md) (Deep-Links zur Original-Mail in Kalender und Aufgaben)
 
@@ -97,7 +97,7 @@ flowchart TD
 | **17.5** ✓ 4.6.4 | Schreibdienst `update_event` | `ConfirmedCalendarWriter` implementiert die Aktualisierung bestehender Termine (Datum, Zeit, Ort, Beschreibung) mit unverändertem `mailhelp_key`; idempotente Wiederaufnahme nach Crash. | M | 17.3, 17.4 |
 | **17.6** ✓ 4.6.4/4.6.5 | Schreibdienst `cancel_event` | `ConfirmedCalendarWriter` implementiert die Stornierung/Löschung bestätigter `cancellation`-Vorschläge; Wiederanlauf löscht nicht doppelt. | S | 17.5 |
 | **17.7** ✓ 4.6.6 | Synthetischer Korpus für Änderungen | Ergänzung von Testfällen in `tests/fixtures/mail_corpus_v3/`: (1) Datumsverschiebung um eine Woche, (2) Uhrzeitänderung, (3) Raumänderung, (4) Komplette Terminabsage. | S | 17.2 |
-| **17.8** | Gesamtabnahme & Lastlauf | Vollständige Tests unter Windows & Linux (Erfolg, Teilfehler, abgelaufene Sitzungen, Reversion); 100 % Zeilen- und Branch-Coverage; Release-Bericht `docs/Release-4.6.md`. | M | 17.1–17.7 |
+| **17.8** ✓ 4.6.7 | Gesamtabnahme & Lastlauf | Vollständige Tests unter Windows & Linux (Erfolg, Teilfehler, abgelaufene Sitzungen, Reversion); 100 % Zeilen- und Branch-Coverage; Release-Bericht `docs/Release-4.6.md`. | M | 17.1–17.7 |
 
 **Umfangsübersicht Version 4.6:** 8 Schritte, davon 5 S und 3 M.
 

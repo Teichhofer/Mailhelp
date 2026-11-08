@@ -394,6 +394,16 @@ prompts:
       Terminkandidat. Beispiel: „Frau Lang wollte das an der Mitgliederversammlung
       am 17.10. mit uns besprechen.“ zählt kein Event.
 
+      Änderungen und Absagen (4.6): Verschiebt, verlegt, ändert oder sagt der
+      aktuelle Nachrichtenteil einen bestimmten, an die nutzende Person gerichteten
+      Termin ab („wird verschoben“, „neuer Raum“, „entfällt“, „ist abgesagt“,
+      „findet nicht statt“), ist das genau ein Terminkandidat: "event" mit
+      event_count 1, auch wenn die Mail keine Handlung verlangt. Die Anwendung
+      gleicht damit den bestehenden Kalendereintrag ab und bietet die Änderung
+      oder Absage zur ausdrücklichen Bestätigung an. Eine Absage eines
+      bestimmten Termins ist deshalb nie "none". Eine Absage ohne erkennbaren
+      bestimmten Termin bleibt "none".
+
       Eigene Notizen (4.5): Die übergebene Mail kann das Feld "perspective"
       enthalten. Die Anwendung setzt es aus der Absenderadresse; es stammt nicht
       aus dem Mailtext. "self_mail": true bedeutet, dass die nutzende Person die
