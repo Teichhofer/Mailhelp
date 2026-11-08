@@ -3125,3 +3125,8 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   auch wenn die Konfiguration inzwischen einen anderen Ordner nennt. Ist der bisherige Ordner
   nicht verfügbar, bleibt das Ergebnis unklar; es erfolgt kein Fallback und kein APPEND in
   einem anderen Ordner. Neue, noch nicht geschriebene Versionen verwenden die aktuelle Ordnerwahl.
+
+
+## Version 4.9 – Geplante Postfach-Briefings
+
+- **20.1 (4.9.0):** Neue Postfach-Briefings sind standardmäßig aus; Uhrzeiten, Zielpostfach und Leerlaufverhalten lassen sich unter Einstellungen → Postfach-Briefings versions- und CSRF-geschützt ohne Neustart bearbeiten. Der bestehende Telegram-Tagesüberblick bleibt unabhängig.

@@ -32,6 +32,7 @@ from .models import (
     TASK_PROVIDERS,
     ActivityReportSettings,
     AdapterPolicySettings,
+    BriefingSettings,
     ConfigModel,
     ConnectionMode,
     ConsoleLoggingSettings,
@@ -84,6 +85,7 @@ from .models import (
 __all__ = [
     "ActivityReportSettings",
     "AdapterPolicySettings",
+    "BriefingSettings",
     "CALENDAR_PROVIDERS",
     "ConfigModel",
     "ConnectionMode",

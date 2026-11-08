@@ -623,6 +623,23 @@ class DailyBriefingSettings(ConfigModel):
     include_open: bool = True
 
 
+class BriefingSettings(ConfigModel):
+    """Scheduled IMAP briefing drafts, independent of Telegram's daily briefing."""
+
+    enabled: bool = False
+    times: list[Annotated[str, Field(pattern=r"^(?:[01][0-9]|2[0-3]):[0-5][0-9]$")]] = Field(
+        default_factory=lambda: ["07:00", "13:00", "18:00"], max_length=1440)
+    mailbox: Annotated[int, Field(ge=1, le=99)] | Literal["default"] = "default"
+    skip_empty: bool = True
+
+    @model_validator(mode="after")
+    def unique_times(self) -> BriefingSettings:
+        if len(set(self.times)) != len(self.times) or self.enabled and not self.times:
+            raise ValueError("Briefings benötigen eindeutige Uhrzeiten; aktiviert mindestens eine")
+        self.times = sorted(self.times)
+        return self
+
+
 class LlmConnection(ConfigModel):
     provider: Literal["openrouter", "ollama"] = "openrouter"
     ollama_address: str = "localhost:11434"
@@ -658,6 +675,7 @@ class Settings(ConfigModel):
     vision: VisionSettings = Field(default_factory=VisionSettings)
     push: PushSettings = Field(default_factory=lambda: PushSettings())
     daily_briefing: DailyBriefingSettings = Field(default_factory=lambda: DailyBriefingSettings())
+    briefings: BriefingSettings = Field(default_factory=BriefingSettings)
     smart_reply: bool = False
     drafts: DraftSettings = Field(default_factory=DraftSettings)
     # 4.8: with smart_reply, a mail that expects a written answer gets a draft in the drafts
@@ -684,6 +702,13 @@ class Settings(ConfigModel):
     def valid_mailbox_policies(self) -> Settings:
         from ..mailbox.mailbox_settings import validate_policies
         validate_policies(self)
+        return self
+
+    @model_validator(mode="after")
+    def briefing_uses_enabled_mailbox(self) -> Settings:
+        if (self.briefings.enabled and self.briefings.mailbox != "default"
+                and self.briefings.mailbox not in {box.id for box in self.imap.enabled_mailboxes()}):
+            raise ValueError("briefings.mailbox verweist auf kein aktives Postfach")
         return self
 
     @model_validator(mode="after")

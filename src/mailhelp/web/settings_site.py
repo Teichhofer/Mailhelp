@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import re
 from typing import TYPE_CHECKING, Any
 from urllib.parse import parse_qs
 
@@ -106,7 +107,9 @@ class SettingsSite:
         if configuration is None:
             return self.site._reply(request, 503, "Konfiguration nicht verfügbar.")
         try:
-            if form["name"] in TEXT_SETTINGS:
+            if form["name"] == "briefings.times":
+                value = [part for part in re.split(r"[,;\s]+", form["value"].strip()) if part]
+            elif form["name"] in TEXT_SETTINGS:
                 # Browsers send line breaks as CRLF; the file keeps plain LF.
                 value = form["value"].replace("\r\n", "\n").strip()
             else:

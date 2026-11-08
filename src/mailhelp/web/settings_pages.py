@@ -34,6 +34,7 @@ SETTING_GROUPS = (
     ("Telegram", ("telegram.",)),
     ("Bildauswertung", ("vision.",)),
     ("Tagesüberblick", ("daily_briefing.",)),
+    ("Postfach-Briefings", ("briefings.",)),
     ("Tätigkeitsberichte", ("activity_report.",)),
     ("Lernmodus", ("learning.",)),
     ("Weboberfläche", ("web.",)),
@@ -78,6 +79,10 @@ EXTRA_LABELS = {
     "telegram.chat_id": "Telegram: Chat für Nachrichten",
     "telegram.sequential_questions": "Telegram: Entscheidungen nacheinander",
     "smart_reply": "Antwortentwürfe anbieten",
+    "briefings.enabled": "Briefings als Postfachentwurf aktivieren",
+    "briefings.times": "Uhrzeiten für Postfach-Briefings",
+    "briefings.mailbox": "Zielpostfach für Briefings",
+    "briefings.skip_empty": "Leere Postfach-Briefings auslassen",
     "auto_draft": "Antwortentwürfe automatisch im Postfach ablegen",
     "drafts.enabled": "Antwortentwürfe zulassen",
     "drafts.folder": "Entwurfsordner überschreiben (null: Postfachvorgabe)",
@@ -148,8 +153,15 @@ def _shown(name: str, value: object) -> str:
     return text
 
 
-def _input(name: str, saved: object) -> str:
+def _input(name: str, saved: object, raw: dict[str, Any] | None = None) -> str:
     label = "Neuer Wert"
+    if name == "briefings.times":
+        return field("value", label, ", ".join(saved if isinstance(saved, list) else []))
+    if name == "briefings.mailbox":
+        boxes = (raw or {}).get("imap", {}).get("mailboxes") or [{"id": 1, "label": "Standard"}]
+        options = [("default", "Erstes aktives Postfach")] + [
+            (str(box["id"]), box["label"]) for box in boxes if box.get("enabled", True)]
+        return select("value", label, str(saved or "default"), options)
     if name in TEXT_SETTINGS:
         return (f'<label>{label}<textarea name="value" rows="6" maxlength="2000">{e(saved or "")}</textarea></label>'
                 f'<p class="meta">{e(TEXT_SETTINGS[name])}</p>')
@@ -186,7 +198,7 @@ def _setting_row(name: str, raw: dict[str, Any], active: dict[str, Any] | None, 
         state = ("gespeichert – wird an der nächsten sicheren Stelle übernommen" if live
                  else "gespeichert – wirkt erst nach einem Neustart")
     timing = "sofort nach dem Speichern" if live else "beim nächsten Start"
-    form = post_form("/einstellungen/speichern", csrf, _input(name, saved), "Prüfen",
+    form = post_form("/einstellungen/speichern", csrf, _input(name, saved, raw), "Prüfen",
                      name=name, expected_hash=revision)
     return ('<div class="setting-row"><details class="setting">'
             f'<summary><span>{e(setting_label(name))}</span>'
@@ -198,6 +210,7 @@ def _setting_row(name: str, raw: dict[str, Any], active: dict[str, Any] | None, 
 
 # Areas of /einstellungen?bereich=…: (key, title, description, groups of SETTING_GROUPS).
 AREAS = (
+    ("briefing", "Postfach-Briefings", "Uhrzeiten, Zielpostfach und leere Briefings", ("Postfach-Briefings",)),
     ("abruf", "Mailabruf", "Abrufintervall, Zeitzone, Mailgrenzen, Zeitlimits und Wiederholungen",
      ("Mailabruf und Betrieb", "Aufrufbudget und Mailgrenzen", "Zeitlimits und Wiederholungen")),
     ("benachrichtigungen", "Benachrichtigungen", "Telegram, Push und Tagesüberblick",

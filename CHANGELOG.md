@@ -1,5 +1,9 @@
 # Änderungen
 
+## 4.9.0 – Briefing-Einstellungen (Planung 4.9, Schritt 20.1)
+
+- Neue Postfach-Briefings sind standardmäßig aus; Uhrzeiten, Zielpostfach und Leerlaufverhalten lassen sich unter Einstellungen → Postfach-Briefings versions- und CSRF-geschützt ohne Neustart bearbeiten. Der bestehende Telegram-Tagesüberblick bleibt unabhängig.
+
 ## 4.8.6 – Abnahme Antwortentwürfe (Planung 4.8, Schritt 19.7)
 
 - End-to-End-Abnahme mit synthetischer Mail und Offline-IMAP: Antwort ohne Aufgabe oder

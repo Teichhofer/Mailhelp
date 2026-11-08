@@ -388,3 +388,15 @@ Bestätigung. Ziel-/Verbindungsänderungen verlangen aktuelle lesende Diagnosen.
 Mails, die durch eine relevante Änderung zurückgehalten werden. Zugangsdaten werden
 getrennt unter **Einstellungen → Zugangsdaten** direkt in `.env` bearbeitet.
 Anleitung: [Release 3.2](Release-3.2.md).
+
+
+## Postfach-Briefings (4.9)
+
+Unter `/einstellungen?bereich=briefing`; Zeiten werden mit Komma oder Semikolon eingegeben.
+
+| Einstellung / Schl?ssel | Wirkung und Werte | ?bernahme |
+| --- | --- | --- |
+| Briefings als Postfachentwurf aktivieren (`briefings.enabled`) | Aktiviert zeitgesteuerte Briefings als IMAP-Entwürfe, Standard aus. Kein SMTP-Versand. Das Aktivieren autorisiert nur die Entwurfsablage; Kalender- und Aufgabenaktionen erfordern weiterhin eine eigene versionsbezogene Bestätigung. | Im laufenden Betrieb |
+| Uhrzeiten für Postfach-Briefings (`briefings.times`) | Eindeutige lokale Uhrzeiten im Format HH:MM, durch Komma, Semikolon oder Leerzeichen getrennt, etwa 07:00, 13:00, 18:00. Verwendet die konfigurierte Zeitzone. Aktiviert muss mindestens eine Uhrzeit angegeben sein. | Im laufenden Betrieb |
+| Zielpostfach für Briefings (`briefings.mailbox`) | Zielpostfach für die Briefing-Entwürfe. default verwendet das erste aktive Postfach; alternativ eine aktive Postfachnummer. Das Briefing sammelt offene Entscheidungen aller Postfächer. Es wird nie an fremde Empfänger versendet. | Im laufenden Betrieb |
+| Leere Postfach-Briefings auslassen (`briefings.skip_empty`) | Standard true: Ohne offene Entscheidungen und ohne relevante Zusammenfassungen wird kein leerer Entwurf angelegt. false legt stattdessen ein kurzes Alles-ruhig-Briefing ab. | Im laufenden Betrieb |

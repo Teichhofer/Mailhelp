@@ -1,8 +1,8 @@
 # Mailhelp 4.9 – Konfigurierbare E-Mail-Briefings als Postfach-Entwürfe
 
 **Zielversion:** 4.9.0 (Schritte als Patchversionen 4.9.x)  
-**Stand:** 7. November 2026  
-**Status:** In Planung  
+**Stand:** 8. November 2026
+**Status:** In Umsetzung (bis 20.1 in 4.9.0)
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 4.0](Planung-4.0.md) (Gesamtfahrplan)  
 **Vorgänger:** [Planung 4.8](Planung-4.8.md) (Antwortentwürfe direkt im Postfach)
 
@@ -100,7 +100,7 @@ flowchart TD
 
 | Schritt | Inhalt | Fertig, wenn … | Umfang | Voraussetzung |
 | :--- | :--- | :--- | :---: | :--- |
-| **20.1** | Konfigurationsmodell & Einstellungsmaske | `BriefingSettings` in `mailhelp.models.settings`; Eingabe einer Liste von Uhrzeiten (`HH:MM`), Schalter für `skip_empty` und Postfachauswahl; Web-Maske unter `/einstellungen?bereich=briefing`. | S | – |
+| **20.1** ✓ 4.9.0 | Konfigurationsmodell & Einstellungsmaske | `BriefingSettings` in `mailhelp.models.settings`; Eingabe einer Liste von Uhrzeiten (`HH:MM`), Schalter für `skip_empty` und Postfachauswahl; Web-Maske unter `/einstellungen?bereich=briefing`. | S | – |
 | **20.2** | `BriefingScheduler` & Checkpoint-Ablage | Scheduler-Thread prüft fällige Zeiten in `user_timezone`; `briefing_state.json` sichert `last_briefing_at`; verhindert Doppelläufe nach Neustarts oder bei Prozessunterbrechungen. | S | 20.1 |
 | **20.3** | `BriefingAggregator` | Sammelt alle offenen Vorschläge (`pending_confirmation`, `needs_clarification`) sowie abgeschlossene Mails seit dem letzten Briefing; extrahiert Termine, Aufgaben und Kennzahlen. | S | 20.2 |
 | **20.4** | Briefing-Template (HTML & Plaintext) | Gestaltetes, barrierefreies E-Mail-Template mit Datumsübersicht, Aufgabenliste und Deep-Links zur Weboberfläche; responsive Darstellung für Smartphone und Desktop. | S | 20.3 |

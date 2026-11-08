@@ -37,7 +37,7 @@ def before_2_0(dump: dict, settings) -> dict:
     dump["imap"] = imap_before_3_1(settings)
     dump.pop("llm", None)
     # 4.8: auto_draft did not exist before 2.0 either.
-    for name in ("push", "daily_briefing", "smart_reply", "auto_draft", "drafts", "personal_info", "activity_report",
+    for name in ("push", "daily_briefing", "smart_reply", "auto_draft", "drafts", "briefings", "personal_info", "activity_report",
                  "notifications", "target_profiles"):
         dump.pop(name, None)
     dump["imap"].pop("drafts_folder")
@@ -183,7 +183,7 @@ def test_beta_topic_records_get_the_new_policy(tmp_path):
 def fingerprint_3_0(settings, prompts, topics) -> str:
     """The algorithm of 1.2 to 3.0: operational sections excluded, the imap section included."""
     operational = {"web", "metrics", "retention", "logging", "learning", "poll_interval_seconds", "timeouts",
-                   "retries", "vision", "attachments", "push", "daily_briefing", "smart_reply", "auto_draft", "drafts", "personal_info",
+                   "retries", "vision", "attachments", "push", "daily_briefing", "smart_reply", "auto_draft", "drafts", "briefings", "personal_info",
                    "activity_report", "notifications", "event_defaults", "proposal_reconciliation", "target_profiles",
                    "iserv"}
     dump = settings.model_dump(mode="json", exclude=operational)
@@ -224,7 +224,7 @@ def test_a_mail_waiting_under_3_0_continues_with_mailboxes(tmp_path):
 def configuration_3_1(settings, prompts):
     """Independent 3.1 contract: Google/Todoist targets were still in the hash."""
     excluded = {"web", "metrics", "retention", "logging", "learning", "poll_interval_seconds", "timeouts",
-                "retries", "vision", "attachments", "push", "daily_briefing", "smart_reply", "auto_draft", "drafts", "personal_info",
+                "retries", "vision", "attachments", "push", "daily_briefing", "smart_reply", "auto_draft", "drafts", "briefings", "personal_info",
                 "activity_report", "notifications", "event_defaults", "proposal_reconciliation", "target_profiles",
                 "imap", "iserv"}
     dump = settings.model_dump(mode="json", exclude=excluded)

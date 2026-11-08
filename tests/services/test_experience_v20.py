@@ -769,7 +769,7 @@ def test_experience_settings_preserve_16_analysis_fingerprint(tmp_path):
     prompts.prompts["draft_reply"] = PromptStep(system_prompt="Draft")
     assert config_fingerprint(cfg, prompts, []) == before
     # 4.8: auto_draft did not exist in 1.6 either.
-    for name in ("push", "smart_reply", "auto_draft", "drafts", "personal_info", "activity_report", "notifications", "daily_briefing", "vision", "web", "metrics", "retention", "logging", "learning", "poll_interval_seconds", "timeouts", "retries"):
+    for name in ("push", "smart_reply", "auto_draft", "drafts", "briefings", "personal_info", "activity_report", "notifications", "daily_briefing", "vision", "web", "metrics", "retention", "logging", "learning", "poll_interval_seconds", "timeouts", "retries"):
         legacy.pop(name)
     legacy["telegram"].pop("enabled")
     # 2.3 fields did not exist in 1.6 either.
