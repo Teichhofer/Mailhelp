@@ -144,6 +144,16 @@ def _clock(value: str | None) -> str | None:
     return parsed.isoformat(timespec="minutes") if isinstance(parsed, time) else _text(value)
 
 
+_WEEKDAY = re.compile(r"(?i)^(?:montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonnabend|sonntag"
+                      r"|mo|di|mi|do|fr|sa|so)\.?,?\s+(?=\d)")
+
+
+def _day(value: str | None) -> str | None:
+    """Compare a date text without a leading weekday: "Samstag, 5. Dezember 2026" names the same day."""
+    text = _text(value)
+    return _WEEKDAY.sub("", text) if text is not None else None
+
+
 _DATE_TOKEN = re.compile(rf"(?i)(?<![\d.])({DEADLINE_DATE_PATTERN})(?![\d.-]?\d)")
 WITHOUT_DATE = "<ohne Datum>"
 
@@ -209,7 +219,7 @@ def semantic_result(stage: str, value: dict[str, Any], context: MailDateContext)
             assert isinstance(span, TemporalValue)  # a resolved event is always a span
             when = {"start": span.start.isoformat(), "end": span.end.isoformat(), "all_day": span.all_day}
         else:
-            when = {"date": _text(event.date_text), "time": _clock(event.time_text),
+            when = {"date": _day(event.date_text), "time": _clock(event.time_text),
                     "end_time": _clock(event.end_time_text)}
         result.append({"classification": event.classification,
                        "responsibility": event.responsibility, "certainty": event.certainty,
@@ -287,12 +297,15 @@ def evaluate(corpus: dict[str, Any], prompts: PromptConfig, client: LlmCompleter
                        received_at=_received_at(case), user_timezone=timezone_name)
         _recognized_images(mail, case.get("vision", {}))
         # Routing and extraction receive what the pipeline sends, including the perspective.
-        routed = read_perspective(mail, own).model_input(mail)
+        perspective = read_perspective(mail, own)
+        routed = perspective.model_input(mail)
         context = _context(mail)
         observed = {}
         error = None
         try:
-            observed["relevance"] = analyzer.relevance(mail, topics)[1].model_dump(mode="json")
+            # 4.5.6: like the pipeline, an own note needs no relevance call.
+            relevance = perspective.own_relevance() or analyzer.relevance(mail, topics)[1]
+            observed["relevance"] = relevance.model_dump(mode="json")
             observed["summary"] = analyzer.summary(mail)[1].model_dump(mode="json")
             route = analyzer.action_route(routed)[1]
             observed["action_router"] = route.model_dump(mode="json")

@@ -1892,10 +1892,8 @@
       "expected": {
         "relevance": {
           "decision": "relevant",
-          "topic_ids": [
-            "persoenliche-termine-und-terminhinweise"
-          ],
-          "reason": "Synthetische Korpuserwartung."
+          "topic_ids": [],
+          "reason": "Eigene Notiz: immer relevant"
         },
         "summary": {
           "sentences": [
@@ -1943,10 +1941,8 @@
       "expected": {
         "relevance": {
           "decision": "relevant",
-          "topic_ids": [
-            "persoenliche-termine-und-terminhinweise"
-          ],
-          "reason": "Synthetische Korpuserwartung."
+          "topic_ids": [],
+          "reason": "Eigene Notiz: immer relevant"
         },
         "summary": {
           "sentences": [
@@ -1994,10 +1990,8 @@
       "expected": {
         "relevance": {
           "decision": "relevant",
-          "topic_ids": [
-            "arbeit"
-          ],
-          "reason": "Synthetische Korpuserwartung."
+          "topic_ids": [],
+          "reason": "Eigene Notiz: immer relevant"
         },
         "summary": {
           "sentences": [

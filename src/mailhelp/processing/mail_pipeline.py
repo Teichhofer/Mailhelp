@@ -47,10 +47,13 @@ def _content(state: MailState) -> dict[str, Any]:
     return state.mail
 
 
+def _perspective(state: MailState) -> Perspective:
+    return Perspective(state.self_mail, state.user_note, state.is_forwarding, state.forwarded_headers)
+
+
 def _with_perspective(state: MailState) -> dict[str, Any]:
     """The mail for routing and extraction, plus who wrote it (4.5); never stored."""
-    return Perspective(state.self_mail, state.user_note, state.is_forwarding,
-                       state.forwarded_headers).model_input(_content(state))
+    return _perspective(state).model_input(_content(state))
 
 
 def _prepared(state: MailState) -> PreparedMail:
@@ -219,12 +222,17 @@ class MailPipeline:
                 self.o.analyzer.last_relevance_source = "prefilter"
             else:
                 topics = self.o.topics_for(state.config_fingerprint, state.imap.account_id)
+                own = _perspective(state).own_relevance()
                 if self.o.mailbox_settings is not None and not any(topic.enabled for topic in topics):
                     call = None
                     state.relevance = Relevance(
                         decision="irrelevant", topic_ids=[], reason="Kein relevantes Thema für dieses Postfach"
                     )
                     self.o.analyzer.last_relevance_source = "prefilter"
+                elif own is not None:
+                    # 4.5.6: own notes and forwardings skip the topic decision.
+                    call, state.relevance = None, own
+                    self.o.analyzer.last_relevance_source = "self_mail"
                 else:
                     call, state.relevance = self.o.analyzer.relevance(_content(state), topics)
                     state.llm_call_ids.append(call)

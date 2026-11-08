@@ -3,7 +3,7 @@ import json
 from copy import deepcopy
 from pathlib import Path
 
-from mailhelp.llm.evaluation import evaluate
+from mailhelp.llm.evaluation import evaluate, semantic_result
 from tests.fakes.prompt_gate_fakes import repository_prompts
 from tests.fakes.shared_quality_corpus import ExpectedAnswers
 
@@ -47,9 +47,15 @@ def test_self_notes_pass_the_gate_and_carry_the_users_perspective():
     assert forward["perspective"]["forwarded_headers"]["sender"] == "Grundschule <sekretariat@grundschule.example.test>"
     (task,) = mails(provider, "Notiz Projektmeeting", "task_extraction")
     assert task["perspective"]["self_mail"] is True
-    # Relevance and summary receive the plain mail; other senders never get a perspective.
-    assert all("perspective" not in mail for stage in ("relevance", "summary")
-               for mail in mails(provider, "Landesversammlung", stage))
+    # 4.5.6: own notes need no relevance call; the summary receives the plain mail.
+    for subject in ("Landesversammlung", "WG: Einladung Elternabend Klasse 3b", "Notiz Projektmeeting"):
+        assert mails(provider, subject, "relevance") == []
+    (summary,) = mails(provider, "Landesversammlung", "summary")
+    assert "perspective" not in summary
+    observed = {case["id"]: case["review_outputs"]["relevance"] for case in report["cases"]}
+    assert all(observed[case] == {"decision": "relevant", "topic_ids": [],
+                                  "reason": "Eigene Notiz: immer relevant"} for case in SELF_NOTES)
+    # Other senders never get a perspective.
     other = [payload["mail"] for name, payload in provider.payloads if name == "action_router"
              and payload["mail"]["headers"]["from"] != "Alex Muster <alex.muster@example.test>"]
     assert other and not any("perspective" in mail and mail["perspective"]["self_mail"] for mail in other)
@@ -58,12 +64,37 @@ def test_self_notes_pass_the_gate_and_carry_the_users_perspective():
 def test_without_own_addresses_the_notes_are_read_as_foreign_mail():
     corpus = json.loads(CORPUS.read_text(encoding="utf-8"))
     corpus.pop("own_addresses")
+    for case in corpus["cases"]:
+        if case["id"] in SELF_NOTES:  # A topic decision of foreign mail always names a topic.
+            case["expected"]["relevance"] = {"decision": "relevant", "topic_ids": ["arbeit"], "reason": "fremd"}
     provider = Recording(corpus)
     evaluate(corpus, repository_prompts(), provider, 10_000)
     (photo,) = mails(provider, "Landesversammlung", "action_router")
     assert "perspective" not in photo
+    # Read as foreign mail, the note goes through the topic decision again.
+    assert len(mails(provider, "Landesversammlung", "relevance")) == 1
     (forward,) = mails(provider, "WG: Einladung Elternabend Klasse 3b", "action_router")
     assert forward["perspective"]["self_mail"] is False and forward["perspective"]["user_note"] is None
+
+
+def test_a_leading_weekday_does_not_change_the_compared_date():
+    """Regression 4.5.6: the real model wrote "Samstag, 5. Dezember 2026" and was counted as wrong."""
+    from mailhelp.llm.evaluation import _day
+    from mailhelp.proposals.action_normalization import MailDateContext
+
+    def when(date_text):
+        event = {"title": "Termin", "evidence": "x", "date_text": date_text, "time_text": "9:30 Uhr",
+                 "time_requirement": "timed", "responsibility": "user", "certainty": "certain",
+                 "classification": "new", "location": "Saal"}
+        result = semantic_result("event_extraction", {"events": [event]}, MailDateContext(
+            date_context_status="missing", date_header_parsed=None, imap_received_at=None, user_timezone=None))
+        return result["events"][0]["when"]["date"]
+
+    assert when("Samstag, 5. Dezember 2026") == when("5. Dezember 2026") == "5. dezember 2026"
+    assert when("Di. 24.11.2026") == when("Dienstag, 24.11.2026") == "24.11.2026"
+    # Only a weekday in front of a day number is dropped.
+    assert _day("Samstag nach dem Fest") == "samstag nach dem fest" and _day(None) is None
+    assert _day("Sonntagsbrunch 3.5.") == "sonntagsbrunch 3.5."
 
 
 def test_only_named_image_attachments_receive_recognized_text():

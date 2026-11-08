@@ -9,8 +9,11 @@ from dataclasses import dataclass
 from typing import Any
 
 from ..domain.mail import ForwardedHeaders
+from ..domain.relevance import Relevance
 from .forwarding import split_forward
 from .identity import is_self_mail, user_note
+
+SELF_NOTE_REASON = "Eigene Notiz: immer relevant"
 
 
 @dataclass(frozen=True)
@@ -19,6 +22,17 @@ class Perspective:
     user_note: str | None = None
     is_forwarding: bool = False
     forwarded_headers: ForwardedHeaders | None = None
+
+    def own_relevance(self) -> Relevance | None:
+        """4.5.6: what the user sends themselves is relevant without a topic decision.
+
+        The configured topics describe mail from others; a note or forwarding of the
+        user's own must not be filed away by them. This only spares the relevance
+        call; every proposal still needs an explicit confirmation.
+        """
+        if not self.self_mail:
+            return None
+        return Relevance(decision="relevant", topic_ids=[], reason=SELF_NOTE_REASON)
 
     def model_input(self, mail: dict[str, Any]) -> dict[str, Any]:
         """The mail plus ``perspective``; mails of others that are no forwarding stay unchanged."""
@@ -42,4 +56,4 @@ def read_perspective(mail: dict[str, Any], own: frozenset[str]) -> Perspective:
                        forwarded_headers=forward.headers if forward is not None else None)
 
 
-__all__ = ["Perspective", "read_perspective"]
+__all__ = ["SELF_NOTE_REASON", "Perspective", "read_perspective"]

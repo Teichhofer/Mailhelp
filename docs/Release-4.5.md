@@ -1,6 +1,6 @@
 # Release 4.5 – Eigene Mails, Notizen an sich selbst und Weiterleitungen
 
-Versionen 4.5.0 bis 4.5.5, 8. November 2026. Grundlage: [Planung 4.5](Planung-4.5.md), Stufe 16.
+Versionen 4.5.0 bis 4.5.6, 8. November 2026. Grundlage: [Planung 4.5](Planung-4.5.md), Stufe 16.
 
 ## Anlass
 
@@ -19,6 +19,7 @@ Mailhelp ging davon aus, dass jede Mail von einer dritten Person stammt.
 | 4.5.3 | 16.4 | Aufgaben- und Terminextraktion erhalten dieselbe Perspektive. Die Fakten stammen aus Anhang oder Original, nicht aus der Notiz. |
 | 4.5.4 | 16.5 | Korpus v3 enthält drei synthetische eigene Notizen. `mailhelp-evaluate` bestimmt die Perspektive mit demselben Modul wie die Verarbeitung. |
 | 4.5.5 | 16.6/16.7 | Offline-Prompt-Gate für alle 34 Fälle und End-to-End-Regressionstest der Landesversammlung (synthetisiert). |
+| 4.5.6 | 16.6 | Eigene Notizen und eigene Weiterleitungen gelten ohne Relevanzaufruf als relevant. Die Auswertung vergleicht Daten ohne vorangestellten Wochentag. Reale Auswertung mit echtem Modell. |
 
 Für Mails Dritter ohne Weiterleitung ändert sich die Modelleingabe nicht.
 
@@ -60,9 +61,44 @@ Diese Regel stammt aus einer früheren Version und ist hier unverändert.
 Die Prompt-Baseline ist bei jedem Schritt als geprüfter Konfigurationsvertrag
 fortgeschrieben worden (`model_quality_proven: false`). Simulierte Antworten belegen
 Schema, Routing und Normalisierung, aber nicht die Erkennungsrate eines echten Modells.
-**Noch nicht durchgeführt:** die Auswertung mit einem echten Modell über
-`mailhelp-evaluate` (Schritt 16.6). Sie verursacht Kosten beim LLM-Anbieter und braucht
-deshalb eine ausdrückliche Freigabe.
+
+## Reale Auswertung (16.6)
+
+Am 8. November 2026 mit `mailhelp-evaluate` über OpenRouter, freigegeben mit einer
+Grenze von 100 Aufrufen. Die Fälle liefen in einer Prioritätsreihenfolge: zuerst die
+drei eigenen Notizen, dann externe Einladungen und Termine. Nach 100 Aufrufen waren 25
+von 34 Fällen geprüft; die Fälle 21 bis 29 (Jimdo, Buchungen, Werbung) liefen nicht.
+Gemeldete Kosten: 0,07 $ bei rund 270.000 Tokens.
+
+| Stufe | bestanden (Lauf 1, 4.5.5) |
+| --- | --- |
+| Aktionsrouter | 25 / 25 |
+| Aufgabenextraktion | 25 / 25 |
+| Terminextraktion | 22 / 25 |
+| Relevanz | 22 / 25 |
+| Zusammenfassung | 14 / 25 |
+
+- **Router:** Alle drei eigenen Notizen und alle externen Einladungen sind richtig
+  geroutet. Der Perspektivenwechsel aus 16.3 wirkt beim echten Modell.
+- **Terminextraktion:** Bei der Landesversammlung und dem Elternabend stimmten Datum,
+  Zeit, Ort und Zuständigkeit. Gewertet wurde „abweichend“ nur, weil das Modell den
+  Wochentag voranstellte. Seit 4.5.6 vergleicht die Auswertung ohne Wochentag.
+- **Relevanz:** Die weitergeleitete Einladung „Bitte eintragen“ wurde als irrelevant
+  eingestuft. In der Verarbeitung wäre dadurch kein Vorschlag entstanden. Seit 4.5.6
+  gelten eigene Notizen ohne Themenentscheidung als relevant.
+- **Zusammenfassung:** In 11 Fällen blieb die Fristliste leer, obwohl das Datum im Satz
+  steht. Das betrifft keine Änderung von 4.5 und ist in
+  [Planung Fristen in der Zusammenfassung](Planung-Fristen-Zusammenfassung.md) beschrieben.
+- **Ratssitzungsreihe (30):** Die Termine wurden als sichere eigene Termine
+  zurückgegeben, erwartet war „unklar“. Fälle 08 und 20 erhielten ein zusätzliches Thema.
+
+**Nachprüfung nach 4.5.6:** Die drei Notiz-Fälle liefen erneut (9 Aufrufe, 0,006 $).
+Relevanz, Router, Aufgaben- und Terminextraktion bestehen in allen drei Fällen. Der
+Aufgaben-Fall besteht vollständig. Bei den beiden Termin-Fällen weicht nur die
+Fristliste der Zusammenfassung ab.
+
+Die Berichte enthalten nur Ausgaben zum synthetischen Korpus und liegen nicht im
+Repository.
 
 ## Upgrade
 

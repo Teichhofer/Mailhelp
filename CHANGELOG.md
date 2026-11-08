@@ -1,5 +1,20 @@
 # Änderungen
 
+## 4.5.6 – Eigene Notizen immer relevant und reale Auswertung (Planung 4.5, Schritt 16.6)
+
+- Eigene Notizen und eigene Weiterleitungen (`self_mail`) gelten ohne Relevanzaufruf als
+  relevant (`topic_ids: []`, Begründung „Eigene Notiz: immer relevant“, Quelle
+  `self_mail`). Anlass: In der realen Auswertung wurde die weitergeleitete Einladung
+  „Bitte eintragen“ als irrelevant eingestuft; es wäre kein Vorschlag entstanden. Ein
+  Postfach ohne aktivierte Themen bleibt abgeschaltet, auch für eigene Notizen. Jede
+  Anlage bleibt bestätigungspflichtig.
+- `mailhelp-evaluate` wendet dieselbe Regel an und vergleicht ein Datum ohne
+  vorangestellten Wochentag („Samstag, 5. Dezember 2026“ = „5. Dezember 2026“).
+- Reale Auswertung (deepseek-v4.1-flash über OpenRouter): Router 25 von 25, darunter alle
+  drei eigenen Notizen. Nachprüfung der Notiz-Fälle nach der Korrektur: Relevanz,
+  Routing und Extraktion bestehen; offen sind nur Fristen der Zusammenfassung
+  (eigener Plan: `docs/Planung-Fristen-Zusammenfassung.md`).
+
 ## 4.5.5 – Abnahme eigene Notizen (Planung 4.5, Schritte 16.6 und 16.7)
 
 - End-to-End-Regressionstest der Landesversammlung, synthetisiert: Eine eigene Notiz

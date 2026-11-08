@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 7. November 2026, Anwendungsversion 4.5.5. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 4.5.6. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2922,5 +2922,14 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   End-to-End-Regressionstest der Landesversammlung (synthetisiert) erzeugt aus einer
   eigenen Notiz mit drei Einladungsfotos einen Terminvorschlag der nutzenden Person mit
   Beginn aus den Fotos. Ohne erkennbare Art des Treffens gilt weiterhin keine
-  Standarddauer; der Vorschlag fragt dann nach dem Ende. Eine Auswertung mit einem
-  echten Modell steht aus.
+  Standarddauer; der Vorschlag fragt dann nach dem Ende.
+- **Relevanz eigener Notizen (4.5.6):** Eine Mail mit `self_mail: true`, auch eine
+  eigene Weiterleitung, ist ohne Relevanzaufruf relevant: `decision: relevant`,
+  `topic_ids: []`, Begründung „Eigene Notiz: immer relevant“, Analysequelle
+  `self_mail`. Die Themen beschreiben Mails anderer und entscheiden über eigene Notizen
+  nicht. Vorrang behalten IServ-Elternbriefe, der Absender-Vorfilter und ein Postfach
+  ohne aktivierte Themen (dann irrelevant). Fremde Weiterleitungen durchlaufen die
+  Relevanzprüfung wie bisher. `mailhelp-evaluate` wendet dieselbe Regel an und
+  vergleicht das Datum eines nicht auflösbaren Termins ohne vorangestellten Wochentag.
+  Die reale Auswertung vom 8. November 2026 bestätigt Router und Extraktion für alle
+  drei eigenen Notizen.

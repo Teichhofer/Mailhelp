@@ -269,9 +269,9 @@ def test_corpus_v3_covers_personal_appointment_plans_without_deadline_advertisin
     assert repository[PERSONAL_APPOINTMENTS]["enabled"]
     assert {topic["id"]: topic for topic in corpus["topics"]}[PERSONAL_APPOINTMENTS] == \
         repository[PERSONAL_APPOINTMENTS]  # taken over word for word from topics.yaml
+    # 4.5.6: own notes (32, 33) are relevant without a topic and are no longer listed here.
     assert {case_id for case_id, case in cases.items()
-            if PERSONAL_APPOINTMENTS in case["expected"]["relevance"]["topic_ids"]} == \
-        {"26_personal_schedule_plan", "32_self_note_photo_invitation", "33_forwarded_invitation_please_add"}
+            if PERSONAL_APPOINTMENTS in case["expected"]["relevance"]["topic_ids"]} == {"26_personal_schedule_plan"}
     advertising = cases["27_deadline_advertising"]["expected"]
     assert advertising["relevance"]["decision"] == "irrelevant"
     assert advertising["action_route"]["action_state"] == "none"

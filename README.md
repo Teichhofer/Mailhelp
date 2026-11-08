@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 4.5.0 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 4.5.6 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 4.4 trennt die Weboberfläche von der Verarbeitung. Ein Klick wird sofort
 quittiert, auch während die Mailanalyse läuft (gemessen: Median rund 30 ms). Danach
@@ -24,7 +24,7 @@ Bestätigungen bleiben versionsgebunden und werden bei der Ausführung erneut ge
 Details und Messwerte: [Release 4.4](docs/Release-4.4.md).
 
 Version 4.5 erkennt Mails, die du dir selbst schickst, etwa ein Foto einer Einladung
-mit „Ich nehme teil“ vom Handy. Ab 4.5.0 markiert Mailhelp solche Mails als eigene Notiz; ab 4.5.1 trennt es bei Weiterleitungen deine Notiz vom weitergeleiteten Original; ab 4.5.2 versteht der Aktionsrouter „Ich nehme teil“ mit einem Einladungsfoto als deinen Termin, und ab 4.5.3 übernimmt die Terminextraktion Datum, Zeit und Ort aus dem Foto oder der Weiterleitung. Der Qualitätskorpus enthält seit 4.5.4 drei solche Notizen. Details: [Release 4.5](docs/Release-4.5.md).
+mit „Ich nehme teil“ vom Handy. Ab 4.5.0 markiert Mailhelp solche Mails als eigene Notiz; ab 4.5.1 trennt es bei Weiterleitungen deine Notiz vom weitergeleiteten Original; ab 4.5.2 versteht der Aktionsrouter „Ich nehme teil“ mit einem Einladungsfoto als deinen Termin, und ab 4.5.3 übernimmt die Terminextraktion Datum, Zeit und Ort aus dem Foto oder der Weiterleitung. Der Qualitätskorpus enthält seit 4.5.4 drei solche Notizen. Ab 4.5.6 gelten eigene Notizen und eigene Weiterleitungen immer als relevant, auch wenn sie zu keinem deiner Themen passen; jede Anlage bestätigst du weiterhin selbst. Details: [Release 4.5](docs/Release-4.5.md).
 Weitere eigene Absenderadressen trägst du unter `imap.mailboxes[].own_addresses` ein.
 
 Version 4.4.1 macht die Bedienung auch bei großen Datenbeständen schnell. Bei über
