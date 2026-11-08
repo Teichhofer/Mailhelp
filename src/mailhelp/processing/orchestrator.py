@@ -77,6 +77,8 @@ class Orchestrator:
         # test and production mode.
         self.sender_store = sender_store or store
         self.precheck = precheck or DuplicatePreCheckService(logger=self.logger)
+        # 4.8: the reply draft service when smart replies are configured (set by the runtime).
+        self.drafts: Any = None
         self.vision = vision
         self.event_defaults = event_defaults or EventDefaultsSettings()
         self.reconciliation_settings = reconciliation_settings or ProposalReconciliationSettings()
@@ -355,6 +357,7 @@ class Orchestrator:
             state.steps.normalization = state.steps.proposal_building = "skipped"
             state.steps.duplicate_precheck = "skipped"
             state.steps.summary_notification = state.steps.proposal_notification = "skipped"
+            state.steps.auto_draft = "skipped"
             state.steps.completion = "completed"
         else:
             state.steps.summary_notification = "pending"

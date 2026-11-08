@@ -95,11 +95,13 @@ topics:
     Landwirtschaftsamt, von Behörden, Kammern oder Verbänden, einschließlich Zugangslinks,
     Terminänderungen und Absagen dazu.
   examples:
-  - Anmeldebestätigung für einen Onlinevortrag des Landwirtschaftsamts mit Beginn und Ende
+  - Anmeldebestätigung für einen Onlinevortrag des Landwirtschaftsamts mit Beginn
+    und Ende
   - Aufforderung, eine Seminarbuchung per Link zu bestätigen
   - Zugangslink zu einem gebuchten Webinar
   exclusions:
-  - Reine Werbung für kostenpflichtige Kurse ohne eigene Anmeldung oder persönliche Einladung
+  - Reine Werbung für kostenpflichtige Kurse ohne eigene Anmeldung oder persönliche
+    Einladung
 - id: jimdo-anfragen-und-nachrichten
   name: Jimdo-Anfragen und Nachrichten
   enabled: true
@@ -127,8 +129,9 @@ topics:
   name: Behörden und Auflagen für Betrieb und Biogasanlage
   enabled: true
   description: Schreiben und Anforderungen von Behörden wie Landratsamt, Gewerbeaufsicht,
-    Immissionsschutz, Baurechtsamt oder Landwirtschaftsamt zum landwirtschaftlichen Betrieb
-    und zur Biogasanlage, etwa Nachweise, Prüfberichte, Fristen, Kontrollen und Auflagen.
+    Immissionsschutz, Baurechtsamt oder Landwirtschaftsamt zum landwirtschaftlichen
+    Betrieb und zur Biogasanlage, etwa Nachweise, Prüfberichte, Fristen, Kontrollen
+    und Auflagen.
   examples:
   - Anforderung aktueller Prüfberichte und Bescheinigungen zur Biogasanlage
   - Nachweis der Betreiberschulungen
@@ -136,20 +139,39 @@ topics:
   - Ankündigung einer Vor-Ort-Kontrolle
   - Bescheid oder Anhörung mit Frist
   exclusions:
-  - Allgemeine Newsletter und Pressemitteilungen der Behörden ohne Bezug zum eigenen Betrieb
+  - Allgemeine Newsletter und Pressemitteilungen der Behörden ohne Bezug zum eigenen
+    Betrieb
 - id: persoenliche-termine-und-terminhinweise
   name: Persönliche Termine und Terminhinweise
   enabled: true
   description: Mails, die dir persönlich einen konkreten Termin mitteilen, bestätigen,
-    ändern oder absagen, oder einen Plan mit eigenen Einsätzen enthalten, etwa
-    Terminbestätigungen von Praxen, Handwerkern oder Behörden, Einsatz-, Dienst-,
-    Stunden- oder Blockpläne mit deinem Namen sowie Erinnerungen an vereinbarte Termine,
-    auch wenn die Termine nur im Anhang stehen.
+    ändern oder absagen, oder einen Plan mit eigenen Einsätzen enthalten, etwa Terminbestätigungen
+    von Praxen, Handwerkern oder Behörden, Einsatz-, Dienst-, Stunden- oder Blockpläne
+    mit deinem Namen sowie Erinnerungen an vereinbarte Termine, auch wenn die Termine
+    nur im Anhang stehen.
   examples:
   - Blockplan im PDF-Anhang, in dem du an zwei Tagen als Dozent eingeteilt bist
   - Terminbestätigung einer Praxis oder Werkstatt mit Datum und Uhrzeit
-  - Mitteilung, dass ein vereinbarter Vor-Ort-Termin auf einen anderen Tag verlegt wird
+  - Mitteilung, dass ein vereinbarter Vor-Ort-Termin auf einen anderen Tag verlegt
+    wird
   exclusions:
-  - Werbung, Rabattaktionen oder Newsletter mit Fristen ohne persönlich vereinbarten Termin
+  - Werbung, Rabattaktionen oder Newsletter mit Fristen ohne persönlich vereinbarten
+    Termin
   - Allgemeine Veranstaltungshinweise ohne eigene Einladung, Anmeldung oder Einteilung
   - Liefer- und Paketankündigungen
+- id: berufliche-arbeitsgruppen-und-besprechungsunterlagen
+  name: Berufliche Arbeitsgruppen und Besprechungsunterlagen
+  enabled: true
+  description: Persönliche und interne fachliche Korrespondenz zu beruflichen Arbeitsgruppen,
+    Gremien und Projekten, insbesondere Bildungsplanarbeit, Fachschulen, Landwirtschaft
+    und Unternehmensführung. Dazu gehören Einladungen, Terminabsprachen, Tagesordnungen,
+    Protokolle, Arbeitsvorlagen, Entwürfe, Beispiele und andere Unterlagen für anstehende
+    Besprechungen, auch wenn die Mail nur Material übermittelt und keine ausdrückliche
+    Aufgabe enthält oder die Einzelheiten ausschließlich im Anhang stehen.
+  examples:
+  - Beispiel zur Buchführung als Word-Anhang für die nächste AG-Besprechung
+  - Arbeitsvorlage oder Entwurf zur Bildungsplannovellierung im UF-Team
+  - Tagesordnung, Protokoll oder fachliche Rückmeldung einer beruflichen Arbeitsgruppe
+  exclusions:
+  - Allgemeine Werbung, Newsletter und unverlangte Kursangebote ohne Bezug zur eigenen
+    Arbeitsgruppe oder Mitarbeit

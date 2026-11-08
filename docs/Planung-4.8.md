@@ -2,7 +2,7 @@
 
 **Zielversion:** 4.8.0 (Schritte als Patchversionen 4.8.x)  
 **Stand:** 7. November 2026  
-**Status:** In Umsetzung (19.1 in 4.8.0, 19.2 in 4.8.1, 19.3 in 4.8.2)  
+**Status:** In Umsetzung (19.1 in 4.8.0, 19.2 in 4.8.1, 19.3 in 4.8.2, 19.4 in 4.8.3)  
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 4.0](Planung-4.0.md) (Gesamtfahrplan)  
 **Vorgänger:** [Planung 4.7](Planung-4.7.md) (Deep-Links zur Original-Mail) · **Nachfolger:** [Planung 4.9](Planung-4.9.md) (Konfigurierbare E-Mail-Briefings)
 
@@ -85,7 +85,7 @@ flowchart TD
 | **19.1** ✓ 4.8.0 | `ImapDraftWriter` & Ordner-Erkennung | Neues Modul `mailhelp.mailbox.draft_writer`; erkennt den Entwurfsordner via IMAP `SPECIAL-USE \Drafts`; schreibt Nachrichten per `IMAP APPEND` mit Flag `\Draft`; idempotenter Schutz vor Doppelentwürfen. | S | – |
 | **19.2** ✓ 4.8.1 | RFC-5322 Draft-Message-Builder | Generiert eine vollständige MIME-Nachricht (UTF-8, Text & optional einfaches HTML); setzt `In-Reply-To`, `References`, `To`, `Subject` und bindet die Signatur aus `personal_info` ein. | S | 19.1 |
 | **19.3** ✓ 4.8.2 | `action_router` um `reply_needed` erweitert | `action_router` in `prompts.yaml` erkennt, ob eine Mail eine schriftliche Antwort verlangt (`reply_needed: bool`, `reply_reason: str`); getrennt von Terminen und Aufgaben. | S | – |
-| **19.4** | Pipeline-Stufe `draft_reply` aktivieren | Bei `reply_needed == True` führt die Pipeline den LLM-Schritt `draft_reply` aus und legt den fertigen Entwurf im Postfach ab; speichert `draft_status` im `MailState`. | S | 19.2, 19.3 |
+| **19.4** ✓ 4.8.3 | Pipeline-Stufe `draft_reply` aktivieren | Bei `reply_needed == True` führt die Pipeline den LLM-Schritt `draft_reply` aus und legt den fertigen Entwurf im Postfach ab; speichert `draft_status` im `MailState`. | S | 19.2, 19.3 |
 | **19.5** | Vorschau & Anzeige in Web & Telegram | Vorschlagskarte im Web und Telegram-Zusammenfassung zeigen den generierten Entwurfstext an mit dem Hinweis *„Als Entwurf im Postfach abgelegt“*; Text kann direkt in die Zwischenablage kopiert werden. | S | 19.4 |
 | **19.6** | Einstellungen & Deaktivierbarkeit | `config.yaml` und `/einstellungen` erhalten `drafts.enabled: bool` und optionale manuelle Ordnerauswahl; Standard ist aktiv. | S | 19.1 |
 | **19.7** | Gesamtabnahme & Release 4.8 | Simulationstests mit Offline-IMAP (Erfolg, voller Ordner, getrennter Verbindungsabbruch); 100 % Zeilen- und Branch-Coverage; Release-Bericht `docs/Release-4.8.md`. | M | 19.1–19.6 |

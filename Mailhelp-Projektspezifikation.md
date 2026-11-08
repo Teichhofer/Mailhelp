@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 4.8.2. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 4.8.3. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3088,3 +3088,16 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   (`ActionRouteAnswer`) verlangt beide Felder; gespeicherte Routen und Anbieter ohne
   Schema-Unterstützung lesen ein Fehlen als `false`. `mailhelp-evaluate` vergleicht
   `reply_needed`; Korpus v3 erwartet ihn bei vier Fällen.
+- **Automatischer Entwurf (19.4):** Neuer Verarbeitungsschritt `steps.auto_draft` nach den
+  Vorschlagsnachrichten. Nur wenn der Router `reply_needed` meldet und das Postfach
+  `smart_reply` und `auto_draft` (global, je Postfach überschreibbar, Standard `false`)
+  hat, erzeugt `draft_reply` mit der Antwortart `reply` und dem `reply_reason` einen
+  Entwurf und legt ihn per `IMAP APPEND` mit `\Draft \Seen` ab (Message-ID
+  `<mailhelp-<mail>-v1@draft.local>`). Die Antwortart `reply` trifft keine Zusage, Absage
+  oder sonstige Entscheidung der nutzenden Person; offene Punkte stehen als Platzhalter in
+  eckigen Klammern. Ein Entwurf, den die nutzende Person begonnen hat, wird nie ersetzt;
+  ein fertiger automatischer Entwurf wird nicht erneut geschrieben; ein unklares Ergebnis
+  wird über die Message-ID abgeglichen und nie blind wiederholt. Im Testmodus wird nur
+  simuliert. Ein Fehler setzt den Schritt auf `failed`, wird protokolliert
+  (`auto_draft_failed`) und beendet die Mailverarbeitung nicht. `auto_draft` geht nicht in
+  den Konfigurations-Fingerabdruck ein. Mailhelp versendet nie selbst.

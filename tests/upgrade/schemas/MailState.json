@@ -856,6 +856,17 @@
           "title": "Action Router",
           "type": "string"
         },
+        "auto_draft": {
+          "default": "pending",
+          "enum": [
+            "pending",
+            "completed",
+            "failed",
+            "skipped"
+          ],
+          "title": "Auto Draft",
+          "type": "string"
+        },
         "completion": {
           "default": "pending",
           "enum": [

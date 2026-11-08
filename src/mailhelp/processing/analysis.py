@@ -377,7 +377,8 @@ class Analyzer:
             schema=Relevance,
         )
 
-    def draft_reply(self, mail: dict[str, Any], intent: str, personal_info: str = ""):
+    def draft_reply(self, mail: dict[str, Any], intent: str, personal_info: str = "",
+                    reason: str | None = None):
         """Reply draft for one requested intent (``accept``, ``decline``, ``question``).
 
         The model sees the mail, every recognized attachment text (including OCR)
@@ -390,7 +391,11 @@ class Analyzer:
         context = {"headers": {name: mail["headers"].get(name, "") for name in ("from", "subject", "date")},
                    "text": mail.get("text", ""), "attachments": attachments,
                    "calendar_events": mail.get("calendar_events", [])}
-        return self._run("draft_reply", ReplyDraft, context, {"intent": intent, "personal_info": personal_info})
+        extra = {"intent": intent, "personal_info": personal_info}
+        if reason is not None:
+            # 4.8: what an automatic draft should answer, from the router's reply_reason.
+            extra["reply_reason"] = reason
+        return self._run("draft_reply", ReplyDraft, context, extra)
 
     def summary(self, mail: dict[str, Any]) -> tuple[str, Summary]:
         return self._classified_run(

@@ -68,8 +68,15 @@ def message(headers: MailHeaders, sender: str, text: str, message_id: str) -> by
         raise ValueError("Ungültige Mailkopfzeilen; Entwurf nicht im Postfach gespeichert") from exc
 
 
+Reply = tuple[str, ReplyDraft]
+
+
 class DraftAnalyzer(Protocol):
-    def draft_reply(self, mail: dict[str, Any], intent: str, personal_info: str) -> tuple[str, ReplyDraft]: ...
+    def draft_reply(self, mail: dict[str, Any], intent: str, personal_info: str, reason: str | None = None) -> Reply: ...
+
+
+AUTO_KEY = "automatic-draft"
+AUTO_ACTOR = "system:auto-draft"
 
 
 class DraftTarget(NamedTuple):
@@ -94,6 +101,8 @@ class DraftService:
         # With several mailboxes (3.1): the target of the mailbox a mail came from, by account id.
         self.targets = targets
         self.mailbox_policy = mailbox_policy
+        # 4.8: whether the mailbox of an account saves drafts without a click (auto_draft).
+        self.auto_policy: Callable[[str], bool] = lambda account: False
         # Read on every click, so a changed setting applies without a restart.
         self.analyzer, self.personal_info = analyzer, personal_info
         # Serializes draft actions including the LLM and IMAP access, without the store lock.
@@ -183,6 +192,46 @@ class DraftService:
             self._save(mail_id, draft)
             return draft
 
+    def auto_draft(self, mail_id: str, reason: str | None) -> str:
+        """Write a reply draft without a click (Planung 4.8, 19.4); returns the outcome.
+
+        Only for a mailbox with ``smart_reply`` and ``auto_draft``. A draft the user has
+        started is never replaced; a finished automatic one is not written again. An
+        unclear earlier attempt is reconciled by its Message-ID before any new APPEND.
+        """
+        with self._lock:
+            with self.store.locked():
+                source = self.store.load_model(state_names.mail(mail_id), MailState)
+                if source is None or source.mail is None:
+                    return "skipped"
+                account = source.imap.account_id
+                allowed = self.mailbox_policy is None or self.mailbox_policy(account)[0]
+                if not (allowed and self.auto_policy(account)):
+                    return "skipped"
+                draft = self.get(mail_id)
+                if draft is not None and not (draft.get("auto") and draft["status"] == "uncertain"):
+                    return "skipped"
+            if draft is None:
+                info = self.personal_info() if self.mailbox_policy is None else self.mailbox_policy(account)[1]
+                call, reply = cast(DraftAnalyzer, self.analyzer).draft_reply(source.mail, "reply", info,
+                                                                             reason=reason)
+                draft = {"version": 1, "text": reply.text, "intent": "reply", "status": "editing",
+                         "operations": {}, "auto": True, "call_id": call, "error": None}
+                self._save(mail_id, draft)
+            target = self._target(source)
+            message_id = f"<mailhelp-{mail_id}-v1@draft.local>"
+            content = message(cast(PreparedMail, source.prepared).headers, target.sender, draft["text"], message_id)
+            digest = hashlib.sha256(repr((AUTO_ACTOR, "save", 1, draft["text"])).encode()).hexdigest()
+            if self.test_mode:
+                draft.update(status="simulated", error=None)
+            else:
+                with target.connection() as connection:
+                    self._append(connection, target.folder, None, mail_id, AUTO_KEY, digest, draft, message_id,
+                                 content)
+            self._remember(draft, AUTO_KEY, digest)
+            self._save(mail_id, draft)
+            return cast(str, draft["status"])
+
     def cancel(self, actor: str, mail_id: str, version: int, key: str) -> dict[str, Any]:
         """Discard the open draft locally; nothing was written to the mailbox."""
         digest = hashlib.sha256(repr((actor, "cancel", version)).encode()).hexdigest()
@@ -234,7 +283,7 @@ class DraftService:
             self._save(mail_id, draft)
             return draft
 
-    def _append(self, connection: imaplib.IMAP4, drafts_folder: str, actor: str, mail_id: str, key: str,
+    def _append(self, connection: imaplib.IMAP4, drafts_folder: str, actor: str | None, mail_id: str, key: str,
                 digest: str, draft: dict[str, Any], message_id: str, content: bytes) -> None:
         """Reconcile first; append only if the draft is provably missing from the folder."""
         conn = cast(Any, connection)
@@ -259,7 +308,9 @@ class DraftService:
         draft.update(status="uncertain", error=None)
         self._remember(draft, key, digest)
         self._save(mail_id, draft)
-        if not self.authorize(actor):
+        # A click needs its session at the write boundary; an automatic draft (actor None)
+        # was authorized by the mailbox setting checked just before.
+        if actor is not None and not self.authorize(actor):
             raise PermissionError("Sitzung abgelaufen")
         try:
             status, _ = conn.append(folder, r"(\Draft \Seen)", None, content)

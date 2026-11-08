@@ -84,6 +84,7 @@ class MailboxSettings(ConfigModel):
     # 4.7: which program the link to the original mail opens; "auto" follows the IMAP server.
     mail_client: Literal["auto", "apple_mail", "gmail_web", "outlook_web", "none"] = "auto"
     smart_reply: bool | None = None
+    auto_draft: bool | None = None
     notifications: NotificationOverrides | None = None
     daily_briefing: bool = True
     activity_report_folder: DraftsFolder | None = None
@@ -649,6 +650,9 @@ class Settings(ConfigModel):
     push: PushSettings = Field(default_factory=lambda: PushSettings())
     daily_briefing: DailyBriefingSettings = Field(default_factory=lambda: DailyBriefingSettings())
     smart_reply: bool = False
+    # 4.8: with smart_reply, a mail that expects a written answer gets a draft in the drafts
+    # folder without a click. Off by default (user decision of 8 November 2026).
+    auto_draft: bool = False
     # Name, role, signature and similar facts the user wants in reply drafts.
     # Trusted context for draft_reply only; tab and line breaks are the only control characters.
     personal_info: str = Field(default="", max_length=2000, pattern=r"^[^\x00-\x08\x0b-\x1f\x7f]*$")

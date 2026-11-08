@@ -42,7 +42,7 @@ def effective_settings(settings: Settings, mailbox_id: int) -> Settings:
         "targets": TargetSettings.model_validate(target.model_dump(exclude={"id", "label"})),
         "notifications": effective_profile(settings),
     }
-    for key in ("personal_info", "smart_reply"):
+    for key in ("personal_info", "smart_reply", "auto_draft"):
         value = getattr(mailbox, key)
         if value is not None:
             patch[key] = value

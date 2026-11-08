@@ -136,7 +136,30 @@ class MailPipeline:
             self._summarize(run)
             self._detect_actions(run)
             self._notify_proposals(run)
+            self._auto_draft(run)
         return None
+
+    def _auto_draft(self, run: ProcessingRun) -> None:
+        """4.8: a reply draft without a click; a failure is logged and never stops the mail."""
+        state = run.state
+        if state.steps.auto_draft != "pending":
+            return
+        route, drafts = state.action_route, self.o.drafts
+        if route is None or not route.reply_needed or drafts is None:
+            state.steps.auto_draft = "skipped"
+            self.o.save(run.name, state)
+            return
+        try:
+            outcome = drafts.auto_draft(state.id, route.reply_reason)
+        except Exception as exc:
+            state.steps.auto_draft = "failed"
+            self.o.save(run.name, state)
+            self.o.logger.event("WARNING", "orchestrator", "auto_draft_failed", mail_id=state.id,
+                                error=type(exc).__name__)
+            return
+        state.steps.auto_draft = "skipped" if outcome == "skipped" else "completed"
+        self.o.save(run.name, state)
+        self.o.logger.event("INFO", "orchestrator", "auto_draft_completed", mail_id=state.id, outcome=outcome)
 
     def _prepare(self, run: ProcessingRun, fetched: FetchedMail) -> None:
         state, name = run.state, run.name
@@ -254,6 +277,7 @@ class MailPipeline:
         state.steps.normalization = state.steps.proposal_building = "skipped"
         state.steps.duplicate_precheck = "skipped"
         state.steps.summary_notification = state.steps.proposal_notification = "skipped"
+        state.steps.auto_draft = "skipped"
 
     def _ask_relevance(self, run: ProcessingRun) -> None:
         state, name = run.state, run.name

@@ -1,5 +1,15 @@
 # Änderungen
 
+## 4.8.3 – Automatischer Antwortentwurf (Planung 4.8, Schritt 19.4)
+
+- Neue Einstellung `auto_draft` (global und je Postfach, Standard aus): Erwartet eine Mail
+  eine schriftliche Antwort, legt Mailhelp ohne Klick einen Entwurf im Entwurfsordner ab.
+  Voraussetzung ist `smart_reply`. Mailhelp sendet nie selbst.
+- Der automatische Entwurf trifft keine Entscheidung für dich: Offene Punkte stehen als
+  Platzhalter wie „[Termin vorschlagen]“ im Text.
+- Ein begonnener eigener Entwurf wird nie ersetzt, ein fertiger automatischer nicht doppelt
+  abgelegt; ein Fehler beim Ablegen stoppt die Mailverarbeitung nicht.
+
 ## 4.8.2 – Antwortbedarf im Aktionsrouter (Planung 4.8, Schritt 19.3)
 
 - Der Aktionsrouter erkennt, ob eine Mail eine schriftliche Antwort von dir erwartet

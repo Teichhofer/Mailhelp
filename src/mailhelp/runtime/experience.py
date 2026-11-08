@@ -69,6 +69,11 @@ class ExperienceRuntime:
             feature.drafts = DraftService(app.store, components.auth.active, first.connection, first.sender,
                 first.folder, settings.test_mode, app.analyzer, lambda: app.settings.personal_info,
                 targets=targets.get, mailbox_policy=self.draft_policy)
+            # 4.8: automatic drafts per mailbox (auto_draft, off by default); read per mail.
+            feature.drafts.auto_policy = self.auto_draft_policy
+            orchestrator = getattr(app, "orchestrator", None)
+            if orchestrator is not None:  # a web-only runtime processes no mail
+                orchestrator.drafts = feature.drafts
         self.activity = None
         # Activity reports only read the mailbox; without both prompts they stay off.
         if settings.activity_report.enabled and ACTIVITY_PROMPTS <= set(app.analyzer.prompts.prompts):
@@ -134,6 +139,15 @@ class ExperienceRuntime:
             return False, ""
         cfg = effective_settings(self.app.settings, number)
         return cfg.smart_reply, cfg.personal_info
+
+    def auto_draft_policy(self, account) -> bool:
+        """4.8: drafts without a click need smart_reply and auto_draft of the mail's mailbox."""
+        from ..mailbox.mailbox_settings import effective_settings
+        number = self.mailbox_numbers.get(account)
+        if number is None:
+            return False
+        cfg = effective_settings(self.app.settings, number)
+        return cfg.smart_reply and cfg.auto_draft
 
     def _section(self, name, step):
         """Push and briefing fail independently of each other."""

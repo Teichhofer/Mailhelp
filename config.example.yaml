@@ -62,7 +62,7 @@ smart_reply: false
 # auch unter Einstellungen → Antworten bearbeitbar und dort sofort wirksam.
 personal_info: ""
 # 3.2: sparse Überschreibungen unter imap.mailboxes (legacy imap bleibt gültig).
-# target_profile: 2; personal_info: 'Arbeitsrolle'; smart_reply: false
+# target_profile: 2; personal_info: 'Arbeitsrolle'; smart_reply: false; auto_draft: true
 # daily_briefing: false; activity_report_folder: Projekte
 # 4.5: own_addresses: [ich@example.org]  # weitere eigene Absender (Aliase); der IMAP-Benutzername
 #   und Adressen in personal_info zählen bereits. Mails davon gelten als eigene Notiz.

@@ -106,6 +106,8 @@ class ProcessingSteps(StrictModel):
     proposal_building: Literal["pending", "completed", "failed", "skipped"] = "pending"
     duplicate_precheck: Literal["pending", "completed", "failed", "skipped"] = "pending"
     proposal_notification: Literal["pending", "sending", "completed", "skipped"] = "pending"
+    # 4.8: automatic reply draft; never part of completion, a failure keeps the mail done.
+    auto_draft: Literal["pending", "completed", "failed", "skipped"] = "pending"
     completion: Literal["pending", "completed", "skipped"] = "pending"
 
 
