@@ -1,5 +1,13 @@
 # Änderungen
 
+## 4.6.0 – Titelsuche im Kalender (Planung 4.6, Schritt 17.1)
+
+- Alle Kalenderadapter (Google, CalDAV, Outlook) bieten `search_events(title_query,
+  start, end)`: verwandte Termine in einem Zeitraum, Titelvergleich nur lokal
+  (`domain/event_titles.py`, auch für zusammengesetzte Wörter). Abgesagte Termine fehlen;
+  ein Lesefehler wird gemeldet statt als „kein Termin“ gewertet.
+- Grundlage für den Abgleich verschobener und abgesagter Termine in den folgenden Schritten.
+
 ## 4.5.7 – Fristen in der Zusammenfassung (Planung Fristen, Schritte F.1 bis F.5)
 
 - Ursache bestätigt (F.1, 11 reale Aufrufe): Das Modell ließ `deadlines` in 6 von 11

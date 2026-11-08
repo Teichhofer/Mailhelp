@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 4.5.7. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 4.6.0. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2944,3 +2944,16 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   Anmeldefrist, wenn die Mail zeigt, dass die nutzende Person bereits angemeldet ist;
   das Veranstaltungsdatum bleibt dann in der Liste. `src/mailhelp/defaults/prompts.yaml`
   ist wieder identisch mit `prompts.yaml`.
+
+## Ergänzungen Version 4.6
+
+- **Titelsuche im Kalender (17.1):** Jeder Kalenderadapter (Google, CalDAV, Outlook)
+  bietet `search_events(title_query, start, end)`. Die Suche nutzt die vorhandene
+  Zeitfensterabfrage des Anbieters und vergleicht die Titel nur lokal; der Suchtext
+  verlässt Mailhelp nicht. Verwandt sind zwei Titel, wenn ein bedeutungstragendes Wort
+  (mindestens vier Buchstaben, kein Füllwort wie „Termin“ oder „verschoben“) des einen
+  im anderen vorkommt, auch als Teil eines zusammengesetzten Worts
+  („Gemeinderatssitzung“ zu „Sitzung des Gemeinderats“). Der Vergleich ist nur ein
+  Vorfilter; ob es derselbe Termin ist, entscheidet der Kalenderabgleich. Abgesagte
+  Termine fehlen in den Treffern. Ein Lesefehler wird gemeldet und nie als „kein Termin“
+  gewertet.

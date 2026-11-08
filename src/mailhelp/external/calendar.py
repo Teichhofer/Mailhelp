@@ -8,6 +8,7 @@ from zoneinfo import ZoneInfo
 
 from pydantic import ValidationError
 
+from ..domain.event_titles import titles_related
 from ..llm.adapter import uncertain_write
 from ..models import CalendarDuplicateDecision, Proposal, ProposalKind
 from .contracts import CalendarEventResponse, CalendarListResponse, CalendarOverlapEvent, PreparedWrite, validation_path
@@ -118,6 +119,17 @@ class CalendarOperations(HttpTransport):
             self.logger.event("WARNING", self.service, "fetch_events_failed", error=str(exc))
             return []
 
+
+    def search_events(self, title_query: str, start: datetime | date,
+                      end: datetime | date) -> list[CalendarOverlapEvent]:
+        """Events in the window whose title is related to the query (Planung 4.6, 17.1).
+
+        Uses the provider's own window query (Google, CalDAV and Outlook alike) and
+        filters the titles locally, so no search text leaves Mailhelp. Read errors
+        propagate: a failed search must never look like "no existing event".
+        """
+        return [item for item in self.fetch_events_in_window(start, end, strict=True)
+                if titles_related(title_query, item.summary)]
 
     def _matching_calendar_event(self, proposal: Proposal
                                  ) -> tuple[CalendarOverlapEvent, CalendarDuplicateDecision] | None:
