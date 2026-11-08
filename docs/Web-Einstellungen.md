@@ -1,6 +1,6 @@
 # Einstellungen der Weboberfläche
 
-Stand: 2. November 2026, Anwendungsversion 3.5.5.
+Stand: 8. November 2026, Anwendungsversion 4.8.6.
 
 `/einstellungen` zeigt Kacheln für Konten, allgemeine Regeln, Inhalte und Systemaktionen.
 Kontenkacheln nennen die Anzahl der im laufenden Dienst eingerichteten Konten. Bereichskacheln
@@ -160,11 +160,11 @@ Der Ordner ist ein IMAP-Ordnername oder `null` für die bisherige Postfachvorgab
 
 | Einstellung / Schlüssel | Wirkung und Werte | Übernahme |
 | --- | --- | --- |
-| Antwortentwürfe zulassen (`drafts.enabled`) | Globaler Hauptschalter, Standard `true`. Zusätzliche Postfachschalter gelten weiterhin. | Im laufenden Betrieb |
-| Entwurfsordner (`drafts.folder`) | Optionaler globaler Ordnername; `null` nutzt `imap.drafts_folder` bzw. `imap.mailboxes[].drafts_folder`. Fehlt der bevorzugte Ordner, gelten SPECIAL-USE und übliche Namen. Keine Ordneranlage. | Im laufenden Betrieb |
-| Automatische Ablage (`auto_draft`) | Standard `false`. `true` legt bei erkanntem schriftlichem Antwortbedarf einen Entwurf ab. Mailhelp versendet nie selbst. | Im laufenden Betrieb |
+| Antwortentwürfe zulassen (`drafts.enabled`) | Globaler Schalter für manuelle und automatische Antwortentwürfe, Standard an. false verhindert neue Entwürfe und neue Ablagen. Bereits im Postfach abgelegte Entwürfe bleiben erhalten. smart_reply und auto_draft behalten ihre eigenen Einstellungen. | Im laufenden Betrieb |
+| Entwurfsordner überschreiben (null: Postfachvorgabe) (`drafts.folder`) | Optionaler IMAP-Entwurfsordner für alle Postfächer. null verwendet deren drafts_folder. Fehlt der bevorzugte Ordner, sucht Mailhelp nach der SPECIAL-USE-Kennzeichnung oder üblichen Entwurfsordnernamen. Keine Ordner werden angelegt. Gilt für künftige Ablagen ohne Neustart. | Im laufenden Betrieb |
+| Antwortentwürfe automatisch im Postfach ablegen (`auto_draft`) | ja (true) legt bei erkanntem schriftlichem Antwortbedarf automatisch einen Entwurf ab; benötigt smart_reply und drafts.enabled. Standard aus. Mailhelp versendet nie selbst. Pro Postfach überschreibbar; wird am nächsten sicheren Verarbeitungspunkt übernommen. | Im laufenden Betrieb |
 | Persönliche Angaben für Antworten (`personal_info`) | Bis zu 2000 Zeichen, z. B. Name, Rolle, Signatur oder gewünschte Anrede. Diese Angaben erhält das KI-Modell beim Erstellen eines Antwort-Entwurfs. Leer bedeutet keine persönlichen Zusatzangaben. Mehr Kontext kann Ton und Inhalt des Entwurfs verändern; die Angaben werden nicht für die Mailanalyse verwendet. | Im laufenden Betrieb |
-| Antwortentwürfe anbieten (`smart_reply`) | ja (true) bietet in der Weboberfläche KI-Antwortentwürfe an; sie werden nur nach ausdrücklichem Speichern im Entwurfsordner des Postfachs abgelegt, Mailhelp versendet nie selbst. nein (false) blendet die Funktion aus. Postfächer können den Wert einzeln überschreiben; benötigt den Schritt draft_reply in prompts.yaml. | Nach Neustart |
+| Antwortentwürfe anbieten (`smart_reply`) | ja (true) bietet KI-Antwortentwürfe an; benötigt drafts.enabled und den Schritt draft_reply in prompts.yaml. Ohne auto_draft wird nur nach ausdrücklichem Speichern im Entwurfsordner abgelegt. Mailhelp versendet nie selbst. Postfächer können den Wert einzeln überschreiben. | Nach Neustart |
 
 ## Ziele
 

@@ -377,7 +377,7 @@ def edit_and_save_draft(page, imap):
     expect(editor).to_have_value("Vielen Dank, ich komme gerne zum Elternabend.")
     editor.fill("Vielen Dank, wir kommen zu zweit.")
     page.get_by_role("button", name="Als Entwurf im Postfach speichern").click()
-    expect(page.get_by_text("Im Postfach gespeichert.")).to_be_visible()
+    expect(page.get_by_text("Als Entwurf im Postfach abgelegt.")).to_be_visible()
     assert imap.writer.calls == ["decline", "accept"]
     assert len(imap.writes) == 1 and b"wir kommen zu zweit" in imap.writes[0][3]
     assert b"In-Reply-To: <elternabend@schule.test>" in imap.writes[0][3]

@@ -2,7 +2,8 @@
 
 **Zielversion:** 4.8.0 (Schritte als Patchversionen 4.8.x)  
 **Stand:** 8. November 2026  
-**Status:** In Umsetzung (19.1–19.6 in 4.8.0–4.8.5)  
+**Status:** Abgeschlossen (19.1–19.7 in 4.8.0–4.8.6); [Abnahmebericht](Release-4.8.md)
+
 **Grundlage:** [Entwicklungsregeln](../AGENTS.md), [Projektspezifikation](../Mailhelp-Projektspezifikation.md), [Planung 4.0](Planung-4.0.md) (Gesamtfahrplan)  
 **Vorgänger:** [Planung 4.7](Planung-4.7.md) (Deep-Links zur Original-Mail) · **Nachfolger:** [Planung 4.9](Planung-4.9.md) (Konfigurierbare E-Mail-Briefings)
 
@@ -88,7 +89,7 @@ flowchart TD
 | **19.4** ✓ 4.8.3 | Pipeline-Stufe `draft_reply` aktivieren | Bei `reply_needed == True` führt die Pipeline den LLM-Schritt `draft_reply` aus und legt den fertigen Entwurf im Postfach ab; speichert `draft_status` im `MailState`. | S | 19.2, 19.3 |
 | **19.5** ✓ 4.8.4 | Vorschau & Anzeige in Web & Telegram | Vorschlagskarte im Web und Telegram-Zusammenfassung zeigen den generierten Entwurfstext an mit dem Hinweis *„Als Entwurf im Postfach abgelegt“*; Text kann direkt in die Zwischenablage kopiert werden. | S | 19.4 |
 | **19.6** ✓ 4.8.5 | Einstellungen & Deaktivierbarkeit | `config.yaml` und `/einstellungen` erhalten `drafts.enabled: bool` und optionale manuelle Ordnerauswahl; Standard ist aktiv. | S | 19.1 |
-| **19.7** | Gesamtabnahme & Release 4.8 | Simulationstests mit Offline-IMAP (Erfolg, voller Ordner, getrennter Verbindungsabbruch); 100 % Zeilen- und Branch-Coverage; Release-Bericht `docs/Release-4.8.md`. | M | 19.1–19.6 |
+| **19.7** ✓ 4.8.6 | Gesamtabnahme & Release 4.8 | Simulationstests mit Offline-IMAP (Erfolg, voller Ordner, getrennter Verbindungsabbruch); 100 % Zeilen- und Branch-Coverage; Release-Bericht `docs/Release-4.8.md`. | M | 19.1–19.6 |
 
 **Umfangsübersicht Version 4.8:** 7 Schritte, davon 6 S und 1 M.
 

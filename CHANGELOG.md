@@ -1,5 +1,15 @@
 # Änderungen
 
+## 4.8.6 – Abnahme Antwortentwürfe (Planung 4.8, Schritt 19.7)
+
+- End-to-End-Abnahme mit synthetischer Mail und Offline-IMAP: Antwort ohne Aufgabe oder
+  Termin, Threading und Signatur, voller Ordner, Verbindungsabbruch vor und nach APPEND,
+  Wiederaufnahme nach einem Prozessabbruch und Schutz vor Doppelentwürfen.
+- Release-Bericht `docs/Release-4.8.md` dokumentiert Funktion, Schalter, Tests und Grenzen.
+- Regression: Der tatsächliche Entwurfsordner wird vor APPEND dauerhaft gebunden. Ein
+  unklares Ergebnis wird auch nach einer Ordneränderung ausschließlich dort abgeglichen;
+  ein nicht verfügbarer ursprünglicher Ordner löst keine neue Ablage an anderer Stelle aus.
+
 ## 4.8.5 – Einstellungen für Antwortentwürfe (Planung 4.8, Schritt 19.6)
 
 - `drafts.enabled` (Standard an) erlaubt oder sperrt neue Antwortentwürfe global;

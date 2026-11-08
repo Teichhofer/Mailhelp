@@ -3120,3 +3120,8 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   zusätzlich je Postfach überschreibbar. Die Einstellungen verändern keine aktuellen
   oder historischen Analyse-Fingerabdrücke. Automatische Ablage prüft ihren Schalter
   an der APPEND-Grenze erneut; bei Deaktivierung bleibt der Text lokal erhalten.
+- **Wiederanlauf (19.7):** Vor APPEND wird neben der Message-ID der tatsächliche Zielordner
+  dauerhaft gespeichert. Bei unklarem Ergebnis bleibt der Abgleich an diesen Ordner gebunden,
+  auch wenn die Konfiguration inzwischen einen anderen Ordner nennt. Ist der bisherige Ordner
+  nicht verfügbar, bleibt das Ergebnis unklar; es erfolgt kein Fallback und kein APPEND in
+  einem anderen Ordner. Neue, noch nicht geschriebene Versionen verwenden die aktuelle Ordnerwahl.

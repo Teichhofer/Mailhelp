@@ -5,6 +5,7 @@ from playwright.sync_api import expect
 
 from checks import audit
 from conftest import sign_in
+from pages import SettingsPage
 from tests.scenarios.web_scenario import mail_id
 
 
@@ -40,4 +41,23 @@ def test_copy_refusal_and_unavailable_clipboard_offer_manual_copy(page, mailhelp
     page.evaluate("Object.defineProperty(navigator, 'clipboard', {configurable:true, value:undefined})")
     page.get_by_role("button", name="Antworttext kopieren").click()
     expect(page.locator("[data-copy-status]")).to_contain_text("manuell kopieren")
+    assert page.errors == []
+
+
+def test_draft_switch_and_manual_folder_can_be_saved_in_the_browser(page, mailhelp):
+    sign_in(page, mailhelp)
+    settings = SettingsPage(page, mailhelp.url).open("antworten")
+    setting = settings.expand("Antwortentwürfe zulassen")
+    assert audit(page, f"v48-settings-{page.device}", page.mobile) == []
+    setting.get_by_label("Neuer Wert").select_option("false")
+    setting.get_by_role("button", name="Prüfen").click()
+    settings.confirm()
+    expect(page.locator("main")).to_contain_text("Gespeichert", timeout=10000)
+    assert mailhelp.site.archive.configuration.active.drafts.enabled is False
+    settings.open("antworten")
+    setting = settings.expand("Entwurfsordner überschreiben")
+    settings.propose(setting, "Antworten")
+    settings.confirm()
+    expect(page.locator("main")).to_contain_text("Gespeichert", timeout=10000)
+    assert mailhelp.site.archive.configuration.active.drafts.folder == "Antworten"
     assert page.errors == []

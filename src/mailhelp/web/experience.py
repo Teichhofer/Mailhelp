@@ -113,7 +113,7 @@ class ExperienceSite:
         draft = self.drafts.get(mail_id) or {"version": 0, "status": "discarded"}
         version, status = draft["version"], draft["status"]
         state = {"discarded": "", "editing": "Bitte prüfen und bei Bedarf bearbeiten.",
-                 "saved": "Als Entwurf im Postfach abgelegt. Im Postfach gespeichert.",
+                 "saved": "Als Entwurf im Postfach abgelegt.",
                  "simulated": "Speicherung im Testmodus simuliert.",
                  "uncertain": "Schreibresultat unklar. Erneut speichern gleicht zuerst mit dem Postfach ab "
                               "und legt den Entwurf nur an, wenn er dort fehlt."}[status]

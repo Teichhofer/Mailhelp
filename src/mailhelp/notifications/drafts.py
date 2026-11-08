@@ -283,14 +283,17 @@ class DraftService:
             self._save(mail_id, draft)
             return draft
 
-    def _append(self, connection: imaplib.IMAP4, drafts_folder: str, actor: str | None, mail_id: str, key: str,
-                digest: str, draft: dict[str, Any], message_id: str, content: bytes,
-                *, auto_account: str | None = None) -> None:
-        """Reconcile first; append only if the draft is provably missing from the folder."""
+    @staticmethod
+    def _draft_folder(connection: imaplib.IMAP4, configured: str, draft: dict[str, Any]) -> str | bytes:
+        """Pin uncertain writes to the folder that was durably recorded before APPEND."""
         conn = cast(Any, connection)
+        pinned = draft.get("folder") if draft.get("status") == "uncertain" else None
+        drafts_folder = pinned or configured
         folder = mailbox_argument(drafts_folder)
         status, _ = conn.select(folder, readonly=True)
         if status != "OK":
+            if pinned:
+                raise ValueError("Bisheriger Entwurfsordner nicht verfügbar; Schreibresultat bleibt unklar")
             # 4.8: a missing configured folder falls back to the server's \Drafts folder.
             chosen = choose_drafts_folder(drafts_folder, listed_folders(connection))
             if chosen is None or chosen == drafts_folder:
@@ -299,15 +302,21 @@ class DraftService:
             status, _ = conn.select(folder, readonly=True)
             if status != "OK":
                 raise ValueError("Entwurfsordner nicht verfügbar")
-            draft["folder"] = chosen
+            drafts_folder = chosen
+        draft["folder"] = drafts_folder
+        return folder
+
+    def _append(self, connection: imaplib.IMAP4, drafts_folder: str, actor: str | None, mail_id: str, key: str,
+                digest: str, draft: dict[str, Any], message_id: str, content: bytes,
+                *, auto_account: str | None = None) -> None:
+        """Reconcile first; append only if the draft is provably missing from the folder."""
+        conn = cast(Any, connection)
+        folder = self._draft_folder(connection, drafts_folder, draft)
         status, matches = conn.uid("search", None, "HEADER", "Message-ID", message_id)
         if status != "OK":
             raise ValueError("Entwurfsabgleich nicht möglich")
         if any(matches):
             draft.update(status="saved", error=None)
-            return
-        if auto_account is not None and not self.auto_policy(auto_account):
-            draft.update(status="editing", error="Automatische Entwurfsablage inzwischen ausgeschaltet.")
             return
         draft.update(status="uncertain", error=None)
         self._remember(draft, key, digest)
@@ -316,6 +325,9 @@ class DraftService:
         # was authorized by the mailbox setting checked just before.
         if actor is not None and not self.authorize(actor):
             raise PermissionError("Sitzung abgelaufen")
+        if auto_account is not None and not self.auto_policy(auto_account):
+            draft.update(status="editing", error="Automatische Entwurfsablage inzwischen ausgeschaltet.")
+            return
         try:
             status, _ = conn.append(folder, r"(\Draft \Seen)", None, content)
         except (OSError, EOFError, imaplib.IMAP4.abort):

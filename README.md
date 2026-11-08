@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 4.8.5 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 4.8.6 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 4.4 trennt die Weboberfläche von der Verarbeitung. Ein Klick wird sofort
 quittiert, auch während die Mailanalyse läuft (gemessen: Median rund 30 ms). Danach
@@ -63,6 +63,8 @@ Entwürfe mit `drafts.enabled` global ausschalten und ihr Ordner mit `drafts.fol
 überschreiben (`null`: Postfachvorgabe). Unter Einstellungen → Antworten sind diese
 Werte und `auto_draft` ohne Neustart änderbar; je Postfach ist `auto_draft` überschreibbar.
 Der Standard für automatische Ablage bleibt aus.
+Ab 4.8.6 prüft die Gesamtabnahme auch volle Postfächer, Verbindungsabbrüche und
+Wiederaufnahme nach einem Prozessabbruch. Details: [Release 4.8](docs/Release-4.8.md).
 Plan: [Planung 4.8](docs/Planung-4.8.md).
 Plan: [Planung 4.7](docs/Planung-4.7.md).
 Plan: [Planung 4.6](docs/Planung-4.6.md).

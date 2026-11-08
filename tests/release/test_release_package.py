@@ -74,6 +74,7 @@ def test_built_artifacts_exclude_private_runtime_files():
         assert {"mailhelp/web/static/app.js", "mailhelp/web/static/sw.js",
                 "mailhelp/web/static/manifest.webmanifest"} <= set(names)
         assert "mailhelp/defaults/decisions_prompts.yaml" in names
+        assert "mailhelp/notifications/draft_preview.py" in names
         assert {"mailhelp/mailbox/mailbox_run.py", "mailhelp/web/status_pages.py",
                 "mailhelp/mailbox/iserv_activation.py", "mailhelp/mailbox/iserv_runtime.py",
                 "mailhelp/external/oauth.py", "mailhelp/external/calendar.py",
@@ -102,4 +103,5 @@ def test_built_artifacts_exclude_private_runtime_files():
         assert {"docs/Planung-4.2.md", "docs/Release-4.2.md"} <= names
         assert {"docs/Planung-4.3.md", "docs/Release-4.3.md"} <= names
         assert {"docs/Planung-4.4.md", "docs/Release-4.4.md"} <= names
+        assert {"docs/Planung-4.8.md", "docs/Release-4.8.md"} <= names
         assert not any(name.startswith(("data/", "logs/", "quality-reports/")) for name in names)

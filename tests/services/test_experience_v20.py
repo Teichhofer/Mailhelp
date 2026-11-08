@@ -523,7 +523,7 @@ def test_web_reply_buttons_generate_edit_save_and_error_paths(web):
     assert web.browser.request("POST", path, save).status == 303
     assert len(conn.writes) == 1 and b"Gerne!" in conn.writes[0][3]
     page = feature.editor(MAIL1, form["csrf"])
-    assert "Im Postfach gespeichert" in page and "draft-editor" not in page and "Zusagen" in page
+    assert "Als Entwurf im Postfach abgelegt" in page and "draft-editor" not in page and "Zusagen" in page
     # Cancel discards the next draft without any mailbox access.
     web.browser.request("POST", path, {**generate, "version": "1", "key": "gen-0003", "intent": "question"})
     assert "Entwurf: Rückfrage" in feature.editor(MAIL1, form["csrf"])
