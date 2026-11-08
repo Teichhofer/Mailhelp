@@ -1,5 +1,9 @@
 # Änderungen
 
+## 4.9.4 – IMAP-Briefings im Zielpostfach (Planung 4.9, Schritt 20.5)
+
+- Briefings verwenden den gemeinsamen IMAP-Writer mit stabiler Message-ID, festem Inhaltsstand und dauerhaft gebundener Postfach- und Ordnerauswahl. Laufzeit und Testmodus sind unabhängig von Antwortentwürfen; vor APPEND werden die aktuellen Einstellungen erneut geprüft.
+
 ## 4.9.3 – HTML- und Text-Briefings (Planung 4.9, Schritt 20.4)
 
 - Briefings enthalten ein responsives HTML-Layout und gleichwertigen Klartext mit offenen Karten, Fristen, Zusammenfassungen und Kennzahlen. HTML-Inhalte werden escaped; Links öffnen ausschließlich die bestehenden authentifizierten Mailhelp-Karten und autorisieren keine Anlage. Große Listen bleiben mit korrekten Gesamtzahlen und Überlaufhinweisen kompakt. Beschädigte Akten erzeugen einen Hinweis statt einer leeren Alles-ruhig-Meldung.

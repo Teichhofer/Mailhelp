@@ -29,6 +29,7 @@ llm:
 # Offene Vorschläge blockieren die Analyse nicht; nur unklare Relevanz wartet auf Telegram.
 timezone: Europe/Berlin
 briefings:
+  # Benötigt web.enabled; unabhängig von smart_reply, auto_draft und drafts.enabled.
   enabled: false
   times: ['07:00', '13:00', '18:00']
   mailbox: default

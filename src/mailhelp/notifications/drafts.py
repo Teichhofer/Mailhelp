@@ -18,8 +18,7 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from .. import state_names
 from ..domain.prepared import MailHeaders, PreparedMail
-from ..mailbox.draft_folders import choose_drafts_folder, listed_folders
-from ..mailbox.imap import mailbox_argument
+from ..mailbox.draft_writer import ImapDraftWriter
 from ..models import MailState
 from ..storage import StateStore
 
@@ -283,59 +282,16 @@ class DraftService:
             self._save(mail_id, draft)
             return draft
 
-    @staticmethod
-    def _draft_folder(connection: imaplib.IMAP4, configured: str, draft: dict[str, Any]) -> str | bytes:
-        """Pin uncertain writes to the folder that was durably recorded before APPEND."""
-        conn = cast(Any, connection)
-        pinned = draft.get("folder") if draft.get("status") == "uncertain" else None
-        drafts_folder = pinned or configured
-        folder = mailbox_argument(drafts_folder)
-        status, _ = conn.select(folder, readonly=True)
-        if status != "OK":
-            if pinned:
-                raise ValueError("Bisheriger Entwurfsordner nicht verfügbar; Schreibresultat bleibt unklar")
-            # 4.8: a missing configured folder falls back to the server's \Drafts folder.
-            chosen = choose_drafts_folder(drafts_folder, listed_folders(connection))
-            if chosen is None or chosen == drafts_folder:
-                raise ValueError("Entwurfsordner nicht verfügbar")
-            folder = mailbox_argument(chosen)
-            status, _ = conn.select(folder, readonly=True)
-            if status != "OK":
-                raise ValueError("Entwurfsordner nicht verfügbar")
-            drafts_folder = chosen
-        draft["folder"] = drafts_folder
-        return folder
-
     def _append(self, connection: imaplib.IMAP4, drafts_folder: str, actor: str | None, mail_id: str, key: str,
                 digest: str, draft: dict[str, Any], message_id: str, content: bytes,
                 *, auto_account: str | None = None) -> None:
-        """Reconcile first; append only if the draft is provably missing from the folder."""
-        conn = cast(Any, connection)
-        folder = self._draft_folder(connection, drafts_folder, draft)
-        status, matches = conn.uid("search", None, "HEADER", "Message-ID", message_id)
-        if status != "OK":
-            raise ValueError("Entwurfsabgleich nicht möglich")
-        if any(matches):
-            draft.update(status="saved", error=None)
-            return
-        draft.update(status="uncertain", error=None)
-        self._remember(draft, key, digest)
-        self._save(mail_id, draft)
-        # A click needs its session at the write boundary; an automatic draft (actor None)
-        # was authorized by the mailbox setting checked just before.
-        if actor is not None and not self.authorize(actor):
-            raise PermissionError("Sitzung abgelaufen")
-        if auto_account is not None and not self.auto_policy(auto_account):
-            draft.update(status="editing", error="Automatische Entwurfsablage inzwischen ausgeschaltet.")
-            return
-        try:
-            status, _ = conn.append(folder, r"(\Draft \Seen)", None, content)
-        except (OSError, EOFError, imaplib.IMAP4.abort):
-            return
-        except imaplib.IMAP4.error:
-            status = "BAD"
-        if status == "OK":
-            draft["status"] = "saved"
-        else:
-            # A definite refusal wrote nothing; the user may correct the folder and confirm again.
-            draft.update(status="editing", error="Der Mailserver hat das Speichern abgelehnt.")
+        def checkpoint() -> None:
+            self._remember(draft, key, digest)
+            self._save(mail_id, draft)
+
+        def authorized() -> bool:
+            if actor is not None and not self.authorize(actor):
+                raise PermissionError("Sitzung abgelaufen")
+            return auto_account is None or self.auto_policy(auto_account)
+
+        ImapDraftWriter().append(connection, drafts_folder, message_id, content, draft, checkpoint, authorized)

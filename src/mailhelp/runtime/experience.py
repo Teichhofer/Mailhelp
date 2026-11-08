@@ -13,6 +13,8 @@ from ..activity.service import ActivityService
 from ..activity.store import ActivityReportStore
 from ..mailbox.imap import ImapReader, mailbox_account_id, reader_arguments
 from ..notifications.briefing import DailyBriefingService
+from ..notifications.briefing_drafts import BriefingDraftService
+from ..notifications.briefing_scheduler import BriefingScheduler
 from ..notifications.drafts import DraftService, DraftTarget
 from ..notifications.webpush import PushService
 
@@ -47,6 +49,7 @@ def _draft_targets(settings, secrets):
 class ExperienceRuntime:
     def __init__(self, app, components, secrets):
         self.app, self.site = app, components.site
+        self.secrets = secrets
         self.notifications: NotificationRuntime | None = None
         self.stop_event, self.thread = Event(), None
         settings = app.settings
@@ -120,6 +123,23 @@ class ExperienceRuntime:
             app.calendar, app.todoist, self.site.views, channels)
         from ..mailbox.mailbox_briefing import configure
         configure(app, self.briefing, self.site.views)
+        self.briefing_drafts = BriefingDraftService(app.store, lambda: app.settings, self.site.views,
+                                                   self.briefing_target, self.site.link_base)
+        self.mailbox_briefings = BriefingScheduler(app.store, lambda: app.settings, self.briefing_drafts.deliver,
+            report=lambda identity, status: app.logger.event("INFO", "briefings", "run_finished",
+                                                             run_id=identity, status=status))
+
+    def briefing_target(self, number):
+        mailbox = self.app.settings.imap.mailbox(number)
+        if mailbox is None or not mailbox.enabled:
+            return None
+        credentials = self.secrets.imap_credentials(number)
+        @contextmanager
+        def connection():
+            with _reader(self.app.settings, self.secrets, mailbox) as reader:
+                yield reader.connection
+        folder = self.app.settings.drafts.folder or mailbox.drafts_folder
+        return (mailbox_account_id(mailbox, credentials), DraftTarget(connection, credentials.username, folder))
 
     def add_mailboxes(self, settings, secrets):
         """Mailboxes activated while running (3.5): reply drafts and the mailbox filter include them."""
@@ -176,6 +196,7 @@ class ExperienceRuntime:
 
     def tick(self):
         feature = self.site.experience
+        self._section("mailbox_briefings", self.mailbox_briefings.tick)
         if self.notifications is not None:
             self._section("notifications", self.notifications.tick)
         elif feature.push is not None:

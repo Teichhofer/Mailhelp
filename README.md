@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 4.9.3 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 4.9.4 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 4.4 trennt die Weboberfläche von der Verarbeitung. Ein Klick wird sofort
 quittiert, auch während die Mailanalyse läuft (gemessen: Median rund 30 ms). Danach
@@ -643,3 +643,5 @@ Version 4.9.1: Der BriefingScheduler speichert Termine und Wiederholungszeitpunk
 Version 4.9.2: Der BriefingAggregator sammelt aktuelle offene Termin-, Aufgaben- und Relevanzkarten aller Postfächer sowie Zusammenfassungen und Fristen aus dem Zeitfenster. Gespeicherte Analysezeitpunkte verhindern erneutes Zählen durch spätere Bearbeitungen. Beschädigte Zustände werden schreibfrei übersprungen und als Hinweis gezählt; entfernte Zusammenfassungen werden nicht wiederhergestellt. Siehe [Planung 4.9](docs/Planung-4.9.md).
 
 Version 4.9.3: Briefings enthalten ein responsives HTML-Layout und gleichwertigen Klartext mit offenen Karten, Fristen, Zusammenfassungen und Kennzahlen. HTML-Inhalte werden escaped; Links öffnen ausschließlich die bestehenden authentifizierten Mailhelp-Karten und autorisieren keine Anlage. Große Listen bleiben mit korrekten Gesamtzahlen und Überlaufhinweisen kompakt. Beschädigte Akten erzeugen einen Hinweis statt einer leeren Alles-ruhig-Meldung. Siehe [Planung 4.9](docs/Planung-4.9.md).
+
+Version 4.9.4: Briefings verwenden den gemeinsamen IMAP-Writer mit stabiler Message-ID, festem Inhaltsstand und dauerhaft gebundener Postfach- und Ordnerauswahl. Laufzeit und Testmodus sind unabhängig von Antwortentwürfen; vor APPEND werden die aktuellen Einstellungen erneut geprüft. Siehe [Planung 4.9](docs/Planung-4.9.md).

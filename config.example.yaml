@@ -29,6 +29,8 @@ llm:
 # Offene Vorschläge blockieren die Analyse nicht; nur unklare Relevanz wartet auf Telegram.
 timezone: Europe/Berlin
 briefings:
+  # Benötigt web.enabled; eigenständig neben daily_briefing und Antwortentwürfen.
+  # Ordner: drafts.folder, sonst drafts_folder des gewählten Postfachs.
   enabled: false
   times: ['07:00', '13:00', '18:00']
   # default: erstes aktives Postfach; alternativ dessen stabile Nummer, etwa 2.
