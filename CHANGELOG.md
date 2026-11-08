@@ -1,5 +1,14 @@
 # Änderungen
 
+## 4.8.4 – Entwurfsvorschau (Planung 4.8, Schritt 19.5)
+
+- Gespeicherte und simulierte Antwortentwürfe bleiben auf der Mail- und Vorschlagsseite
+  lesbar. Antworttexte lassen sich kopieren; bei fehlender Zwischenablage oder verweigerter
+  Berechtigung erklärt die Seite das manuelle Kopieren.
+- Automatische Entwürfe erscheinen als versionsgebundene Aktionsergebnisse im bestehenden
+  Benachrichtigungsprofil. Telegram zeigt den Text nur im Inhaltsmodus „Zusammenfassung“;
+  Ruhezeiten, Bündelung und der Schutz vor Wiederholungen gelten weiterhin.
+
 ## 4.8.3 – Automatischer Antwortentwurf (Planung 4.8, Schritt 19.4)
 
 - Neue Einstellung `auto_draft` (global und je Postfach, Standard aus): Erwartet eine Mail

@@ -536,6 +536,21 @@
   window.addEventListener("popstate", function () { location.reload(); });
   enhance();
 
+  document.addEventListener("click", function (event) {
+    var button = event.target.closest("[data-copy-draft]");
+    if (!button) return;
+    var box = button.closest(".draft-box"), status = box.querySelector("[data-copy-status]");
+    if (!navigator.clipboard) {
+      status.textContent = "Bitte den Antworttext markieren und manuell kopieren.";
+      return;
+    }
+    navigator.clipboard.writeText(box.querySelector("textarea").value).then(function () {
+      status.textContent = "Antworttext kopiert.";
+    }).catch(function () {
+      status.textContent = "Kopieren nicht erlaubt. Bitte den Antworttext manuell kopieren.";
+    });
+  });
+
   var controls = document.getElementById("push-controls");
   if (!controls) return;
   var status = document.getElementById("push-status");

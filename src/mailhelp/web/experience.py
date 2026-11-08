@@ -113,7 +113,8 @@ class ExperienceSite:
         draft = self.drafts.get(mail_id) or {"version": 0, "status": "discarded"}
         version, status = draft["version"], draft["status"]
         state = {"discarded": "", "editing": "Bitte prüfen und bei Bedarf bearbeiten.",
-                 "saved": "Im Postfach gespeichert.", "simulated": "Speicherung im Testmodus simuliert.",
+                 "saved": "Als Entwurf im Postfach abgelegt. Im Postfach gespeichert.",
+                 "simulated": "Speicherung im Testmodus simuliert.",
                  "uncertain": "Schreibresultat unklar. Erneut speichern gleicht zuerst mit dem Postfach ab "
                               "und legt den Entwurf nur an, wenn er dort fehlt."}[status]
         if draft.get("error"):
@@ -136,6 +137,9 @@ class ExperienceSite:
                 'prüfst. Mailhelp sendet keine E-Mails.</p></form>')
         if state:
             html += f'<p role="status">{e(state)}</p>'
+        if status in {"saved", "simulated"} and draft.get("text"):
+            html += ('<label for="draft-preview">Antworttext</label>'
+                     f'<textarea id="draft-preview" rows="10" readonly>{e(draft["text"])}</textarea>')
         if status in {"editing", "uncertain"}:
             readonly = " readonly" if status == "uncertain" else ""
             cancel = ("" if status == "uncertain" else
@@ -146,6 +150,9 @@ class ExperienceSite:
                      f'rows="10" maxlength="8000" required{readonly}>{e(draft["text"])}</textarea>'
                      '<div class="actions"><button class="button primary" name="mode" value="save">'
                      f'Als Entwurf im Postfach speichern</button>{cancel}</div></form>')
+        if status != "discarded" and draft.get("text"):
+            html += ('<button type="button" class="button" data-copy-draft>Antworttext kopieren</button>'
+                     '<p class="meta" data-copy-status role="status" aria-live="polite"></p>')
         return html + '</section>'
 
     @staticmethod

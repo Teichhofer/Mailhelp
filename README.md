@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 4.8.3 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 4.8.4 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 4.4 trennt die Weboberfläche von der Verarbeitung. Ein Klick wird sofort
 quittiert, auch während die Mailanalyse läuft (gemessen: Median rund 30 ms). Danach
@@ -56,7 +56,10 @@ dann, wenn der konfigurierte Name auf dem Server fehlt (Ordner mit der Kennzeich
 `\Drafts`). Ab 4.8.1 tragen Entwürfe genau ein „Re:“ im Betreff. Ab 4.8.2 erkennt Mailhelp, ob eine
 Mail eine schriftliche Antwort von dir erwartet. Ab 4.8.3 kann Mailhelp dann ohne Klick einen
 Antwortentwurf in deinem Entwurfsordner ablegen (`auto_draft: true`, Standard aus; Mailhelp
-sendet nie selbst). Plan: [Planung 4.8](docs/Planung-4.8.md).
+sendet nie selbst). Ab 4.8.4 bleiben abgelegte Entwürfe auf der Mail- und Vorschlagsseite
+lesbar und kopierbar. Telegram zeigt sie gemäß Benachrichtigungsprofil als Aktionsergebnis;
+der Entwurfstext erscheint nur im Inhaltsmodus „Zusammenfassung“.
+Plan: [Planung 4.8](docs/Planung-4.8.md).
 Plan: [Planung 4.7](docs/Planung-4.7.md).
 Plan: [Planung 4.6](docs/Planung-4.6.md).
 

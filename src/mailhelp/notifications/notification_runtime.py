@@ -10,6 +10,8 @@ from ..review.commands import CommandSource, ReviewCommand
 from ..review.inbox import COMMAND_INBOX, CommandInbox, CommandInboxState
 from ..review.views import ProposalView, ReviewViews
 from .briefing import DailyBriefingService
+from .draft_preview import summary as draft_summary
+from .draft_preview import visible as draft_visible
 from .notification_config import effective_profile
 from .notifications import NotificationService, QueueFull
 
@@ -110,6 +112,9 @@ class NotificationRuntime:
                 and (self.briefing.mailboxes is None or ":" in item.reference)
             )
         if item.category == "action_results":
+            if item.reference.startswith("draft:"):
+                draft = self.app.store.load("draft-" + item.reference.removeprefix("draft:"), {})
+                return draft_visible(draft) and draft["version"] == item.version
             entry = self.site.commands.get(item.reference)
             return entry is not None and entry.result is not None
         health = self.app.store.load("service-health", {"errors": {}, "version": 0})
@@ -135,8 +140,14 @@ class NotificationRuntime:
                 text = "Entscheidungen in Mailhelp:\n" + "\n".join(
                     str(rows[(item.reference, item.version)].subject) for item in items)[:3500]
             elif first.category == "action_results":
-                text = "\n".join(self.site.commands.get(item.reference).result.message for item in items)[:3500]
+                text = "\n".join(self._result_text(item) for item in items)[:3500]
         self.app.telegram.send(self.app.settings.telegram.chat_id, text)
+
+    def _result_text(self, item):
+        if item.reference.startswith("draft:"):
+            draft = self.app.store.load("draft-" + item.reference.removeprefix("draft:"), {})
+            return draft_summary(draft)
+        return self.site.commands.get(item.reference).result.message
 
     def background(self, reference):
         kind = reference["kind"]
@@ -201,6 +212,7 @@ class NotificationRuntime:
                 self.enqueue_decision(reference, version)
             except QueueFull:
                 break
+        self._draft_results()
         commands = self.app.store.load_model(COMMAND_INBOX, CommandInboxState, CommandInboxState())
         marked = set(self.app.store.load("notification-results", []))
         current = {entry.id for entry in commands.entries}
@@ -242,6 +254,14 @@ class NotificationRuntime:
                             and item.status == "pending" and old in previous.get("channels", {})):
                         item.status = previous["channels"][old]
                 self.app.store.save("notification-queue", state.model_dump(mode="json"))
+
+    def _draft_results(self):
+        for name in self.app.store.names("draft-"):
+            draft = self.app.store.load(name, {})
+            if draft_visible(draft):
+                mail_id = name.removeprefix("draft-")
+                self.queue.enqueue("action_results", "draft:" + mail_id, draft["version"],
+                                   mailbox_id=self.mailbox_of(mail_id))
 
     def enqueue_decision(self, reference, version):
         try:

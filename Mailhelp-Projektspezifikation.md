@@ -3101,3 +3101,12 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   simuliert. Ein Fehler setzt den Schritt auf `failed`, wird protokolliert
   (`auto_draft_failed`) und beendet die Mailverarbeitung nicht. `auto_draft` geht nicht in
   den Konfigurations-Fingerabdruck ein. Mailhelp versendet nie selbst.
+- **Vorschau (19.5):** Auf Mail- und Vorschlagsseiten bleiben auch abgelegte und simulierte
+  Entwürfe als schreibgeschützter Text sichtbar. Eine Kopierschaltfläche übernimmt genau den
+  sichtbaren Antworttext; bei fehlender oder verweigerter Zwischenablage bleibt manuelles
+  Kopieren möglich. Alle Inhalte werden HTML-escaped. Automatische Entwürfe werden als
+  versionsgebundene `action_results` über die bestehende Benachrichtigungswarteschlange
+  zugestellt, auch wenn die Mail keine Aufgabe oder keinen Termin hat. Neutraler Modus
+  enthält keinen Entwurfstext; `telegram_content: summary` zeigt Text und Ablagestatus.
+  Ruhezeiten, Bündelung, Wiederanlauf und Versionsprüfung gelten unverändert. Die Warteschlange
+  enthält ausschließlich Referenzen. Retention entfernt auch den kopierbaren Entwurfstext.

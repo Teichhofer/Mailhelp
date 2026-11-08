@@ -57,6 +57,9 @@ notifications:
 # ausdrücklichem Klick per IMAP APPEND in imap.drafts_folder; Mailhelp sendet nie.
 # Ungültige Mailkopfzeilen blockieren das Speichern im Postfach; lokale Änderungen bleiben erhalten.
 smart_reply: false
+# Automatische Entwürfe erscheinen als Aktionsergebnisse. Nur mit
+# notifications.telegram_content: summary wird ihr Text nach Telegram übertragen;
+# neutral meldet lediglich das verfügbare Ergebnis. Webvorschau und Kopieren sind lokal.
 # Eigene Angaben für Antwort-Entwürfe (Name, Rolle, Signatur, Anrede-/Stilwünsche),
 # höchstens 2.000 Zeichen. Gehen an die Prompts draft_reply und (ab 2.2) activity_relevance;
 # auch unter Einstellungen → Antworten bearbeitbar und dort sofort wirksam.
