@@ -1,5 +1,9 @@
 # Änderungen
 
+## 4.9.5 – Zeitreisetests für Briefings (Planung 4.9, Schritt 20.6)
+
+- Deterministische Tests mit time-machine prüfen 07:00, 13:00 und 18:00 an Werktagen und Wochenenden mit wieder geöffnetem Zustandsspeicher. Doppelte Herbststunden zählen einmal; fehlende Frühlingszeiten werden um die Zeitlücke verschoben. Verspätete Starts holen nur heutige Slots nach; ausgefallene Tage werden nicht künstlich nacherzeugt.
+
 ## 4.9.4 – IMAP-Briefings im Zielpostfach (Planung 4.9, Schritt 20.5)
 
 - Briefings verwenden den gemeinsamen IMAP-Writer mit stabiler Message-ID, festem Inhaltsstand und dauerhaft gebundener Postfach- und Ordnerauswahl. Laufzeit und Testmodus sind unabhängig von Antwortentwürfen; vor APPEND werden die aktuellen Einstellungen erneut geprüft.

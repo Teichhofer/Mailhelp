@@ -3138,3 +3138,5 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
 - **20.4 (4.9.3):** Briefings enthalten ein responsives HTML-Layout und gleichwertigen Klartext mit offenen Karten, Fristen, Zusammenfassungen und Kennzahlen. HTML-Inhalte werden escaped; Links öffnen ausschließlich die bestehenden authentifizierten Mailhelp-Karten und autorisieren keine Anlage. Große Listen bleiben mit korrekten Gesamtzahlen und Überlaufhinweisen kompakt. Beschädigte Akten erzeugen einen Hinweis statt einer leeren Alles-ruhig-Meldung.
 
 - **20.5 (4.9.4):** Briefings verwenden den gemeinsamen IMAP-Writer mit stabiler Message-ID, festem Inhaltsstand und dauerhaft gebundener Postfach- und Ordnerauswahl. Laufzeit und Testmodus sind unabhängig von Antwortentwürfen; vor APPEND werden die aktuellen Einstellungen erneut geprüft.
+
+- **20.6 (4.9.5):** Deterministische Tests mit time-machine prüfen 07:00, 13:00 und 18:00 an Werktagen und Wochenenden mit wieder geöffnetem Zustandsspeicher. Doppelte Herbststunden zählen einmal; fehlende Frühlingszeiten werden um die Zeitlücke verschoben. Verspätete Starts holen nur heutige Slots nach; ausgefallene Tage werden nicht künstlich nacherzeugt.
