@@ -1,5 +1,12 @@
 # Änderungen
 
+## 4.7.1 – Links für Gmail und Outlook im Browser (Planung 4.7, Schritt 18.2)
+
+- Gmail im Browser: Suche nach genau der Message-ID (`rfc822msgid:`). Outlook im Browser:
+  Suche nach der Message-ID (Outlook bietet keinen dokumentierten Direktlink).
+- Automatische Wahl nach IMAP-Server: Gmail-Server öffnen Gmail im Browser, alle anderen
+  Apple Mail. Outlook im Browser nur auf ausdrückliche Wahl.
+
 ## 4.7.0 – Message-ID und Apple-Mail-Link (Planung 4.7, Schritt 18.1)
 
 - Neues Modul `domain/deep_links.py`: bereinigt die Message-ID einer Mail und erzeugt

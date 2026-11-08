@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 4.7.0. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 4.7.1. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3030,3 +3030,9 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
   Ohne gültigen Wert entsteht kein Link. `message_uri` erzeugt
   `message://%3C<id>%3E` und kodiert dabei alle Zeichen außer `@`; so kann kein Inhalt
   des Kopfes ein Schema, eine Abfrage oder Markup einschleusen.
+- **Webmail-Links (18.2):** `gmail_url` öffnet Gmail im Browser mit der Suche
+  `rfc822msgid:<id>`, `outlook_url` die Outlook-Websuche nach der Message-ID. Outlook
+  bietet keinen dokumentierten Link über die Message-ID; deshalb wählt `auto` Outlook nie
+  selbst. `resolve_client(mail_client, imap_host)` wählt bei `auto` Gmail für die
+  IMAP-Server `imap.gmail.com` und `imap.googlemail.com`, sonst Apple Mail; eine
+  ausdrückliche Wahl (`apple_mail`, `gmail_web`, `outlook_web`, `none`) gilt unverändert.
