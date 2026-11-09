@@ -53,6 +53,16 @@ def compatible(left: Proposal, right: Proposal) -> bool:
             and reference_key(right) not in {(r.mail_id, r.proposal_id) for r in left.separated_from})
 
 
+GENERIC_TITLE_WORDS = frozenset({
+    "termin", "videokonferenz", "besprechung", "konferenz", "treffen", "austausch",
+    "kurze", "skype", "online", "meeting", "sitzung", "klasse", "raum",
+    "und", "der", "die", "das", "zur", "zum", "mit", "bei", "von", "am", "an", "um", "in"})
+
+
+def _title_words(proposal: Proposal) -> set[str]:
+    return set(re.findall(r"\w{2,}", (proposal.base_title or proposal.title).casefold())) - GENERIC_TITLE_WORDS
+
+
 def relationship(store: JsonStore, incoming: Proposal, previous: Proposal) -> str:
     """A thread identifies a conversation, never all events or actions in it."""
     thread = same_thread(sources(store, incoming), sources(store, previous))
@@ -61,14 +71,18 @@ def relationship(store: JsonStore, incoming: Proposal, previous: Proposal) -> st
     dates = day(incoming), day(previous)
     if all(dates) and dates[0] != dates[1] and incoming.classification != "change":
         return "different"
-    if incoming.kind == "task":
-        return "same" if thread and exact else "possible" if thread else "different"
-    generic = {"termin", "videokonferenz", "besprechung", "konferenz", "treffen", "austausch",
-               "kurze", "skype", "online", "meeting", "sitzung", "klasse", "raum",
-               "und", "der", "die", "das", "zur", "zum", "mit", "bei", "von", "am", "an", "um", "in"}
-    left, right = [set(re.findall(r"\w{2,}", (p.base_title or p.title).casefold())) - generic
-                   for p in (incoming, previous)]
+    left, right = (_title_words(incoming), _title_words(previous))
     purpose = bool(left & right) and len(left & right) / len(left | right) >= 0.6
+    if incoming.kind == "task":
+        # 5.0.2: a task is rather created than blocked. Further tasks of the same mail are
+        # separate actions; a later mail of the thread only asks for a clearly similar title.
+        if not thread:
+            return "different"
+        if exact:
+            return "same"
+        if incoming.source_mail_id == previous.source_mail_id:
+            return "different"
+        return "possible" if purpose else "different"
     descriptions = [p.description.split("\n\nAbsender:", 1)[0].strip() for p in (incoming, previous)]
     same_purpose = purpose or bool((not left or not right) and descriptions[0]
                                   and descriptions[0] == descriptions[1])

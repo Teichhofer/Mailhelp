@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.0.1. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.0.2. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -2705,6 +2705,17 @@ trägt der Cache-Name einen Hash der zwischengespeicherten Dateien (`offline.htm
 Icons), den der Server beim Start in `sw.js` einsetzt: Jede Änderung dieser Dateien erneuert den
 Worker und verwirft den alten Cache. Diagrammbalken tragen zusätzlich eigene Füllfarben, damit
 die Reihen auch ohne Stylesheet unterscheidbar bleiben; die Klassen des Designs haben Vorrang.
+
+## Abgleich offener Aufgaben vor dem Anlegen (5.0.2)
+
+Vor einer Bestätigung sucht Mailhelp unter den offenen und geschützten Vorschlägen mit
+gleichem Ziel nach derselben Sache. Für Aufgaben gilt seit 5.0.2 „lieber anlegen als
+blockieren“: Außerhalb desselben Mailverlaufs und bei verschiedenen Fälligkeitstagen sind
+Aufgaben verschieden. Ein gleicher Titel (ohne Groß-/Kleinschreibung) gilt als dieselbe
+Aufgabe. Weitere Aufgaben derselben Mail sind eigene Aufgaben. Aus einer anderen Mail
+desselben Verlaufs gilt eine Aufgabe nur dann als mögliche Übereinstimmung, wenn mindestens
+60 % der Titelwörter (ohne Füllwörter) übereinstimmen; nur dann fragt Mailhelp im
+Vorschlagsabgleich nach, statt anzulegen. Die Regeln für Termine bleiben unverändert.
 
 ## Qualitätswerkzeuge ab 4.1.11
 

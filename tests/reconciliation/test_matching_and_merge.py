@@ -98,7 +98,10 @@ def test_target_scope_thread_dates_and_explicit_separation(service):
     assert not same_thread(first.sources, [])
     task = candidate(3, kind="task", start=None, end=None)
     assert relationship(service.store, task, task.model_copy(update={"id": "other"})) == "same"
-    assert relationship(service.store, task, task.model_copy(update={"id": "other", "title": "Andere Aufgabe"})) == "possible"
+    # 5.0.2: another task of the same mail is a separate action, not a possible duplicate.
+    assert relationship(service.store, task, task.model_copy(update={"id": "other", "title": "Andere Aufgabe"})) == "different"
+    later = candidate(4, kind="task", start=None, end=None, title="Fachbeirat vorbereiten")
+    assert relationship(service.store, later, task.model_copy(update={"title": "Fachbeirat vorbereiten!"})) == "possible"
     assert relationship(service.store, task, task.model_copy(update={"id": "other", "sources": []})) == "different"
 
 

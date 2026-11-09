@@ -1,5 +1,18 @@
 # Änderungen
 
+## 5.0.2 – Bestätigte Aufgaben erreichen wieder Todoist
+
+- Fehlerbehebung: Enthielt eine Mail mehrere Aufgaben, hielten sie sich gegenseitig für
+  mögliche Dubletten. Jede Bestätigung wurde abgefangen, die Aufgaben auf „Zuordnung zu
+  bestehenden Entscheidungen prüfen“ zurückgesetzt und nie an Todoist geschickt.
+  Regressionstest mit dem betroffenen Fall (zwei verschiedene Aufgaben aus einer Mail).
+- Aufgaben werden eher angelegt als blockiert: Weitere Aufgaben derselben Mail gelten als
+  eigene Aufgaben; nur ein gleicher Titel gilt als dieselbe Aufgabe. Aus einer späteren
+  Mail desselben Verlaufs fragt Mailhelp nur noch bei deutlich ähnlichem Titel nach
+  (mindestens 60 % gemeinsame Titelwörter), sonst wird die Aufgabe normal angelegt.
+- Bereits blockierte Aufgaben gibst du unter „Vorschlagsabgleich“ mit „Als eigenen
+  Vorschlag behalten“ frei und bestätigst sie danach erneut.
+
 ## 5.0.1 – Navigation für alle Bildschirmbreiten (Planung 5.0, Schritt 21.2)
 
 - Auf dem Telefon (unter 900 px) liegt die Navigation in einer festen Leiste am unteren
