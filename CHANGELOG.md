@@ -1,5 +1,20 @@
 # Änderungen
 
+## 5.1.0 – Erklärungsmodell für den Verarbeitungsweg (Planung 5.1, Schritt R1)
+
+- Neues Erklärungsmodell (`review/explanation.py`): Für jede Mail beschreibt es aus dem
+  gespeicherten Zustand die Schritte Eingang und Vorfilter, Relevanz, Aktionsentscheidung,
+  Extraktion, Bewertung und Abgleich sowie das Ergebnis – mit festen Texten, ohne
+  zusätzlichen Modellaufruf.
+- Fünf getrennte Ausgänge: erledigt, ausgelassen, fehlgeschlagen, ausstehend und „nicht mehr
+  aufbewahrt“. Eine leere Liste gilt nie als Erfolg; nach der Aufbewahrungsfrist entfernte
+  Ergebnisse werden als fehlend ausgewiesen, nicht rekonstruiert.
+- Von Mailhelp selbst gesetzte Gründe (Absender-Vorfilter, eigenes Briefing, IServ, eigene
+  Notiz, deine Entscheidung) erscheinen als Regel; jeder andere gespeicherte Grund wird
+  getrennt als Modellbewertung geführt. Gespeicherte Fehler erscheinen am betroffenen
+  Schritt, Zählkonflikte zwischen Router und Extraktion als Hinweis.
+- Noch ohne Anzeige; die Mailansicht folgt mit 5.1.1.
+
 ## 5.0.12 – Abnahme und Release 5.0 (Planung 5.0, Schritt 21.8)
 
 - Release-Bericht [docs/Release-5.0.md](docs/Release-5.0.md) mit allen Änderungen 5.0.0 bis

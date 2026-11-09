@@ -1,6 +1,6 @@
 # Mailhelp – Projektspezifikation
 
-Stand: 8. November 2026, Anwendungsversion 5.0.12. Die folgenden Verträge beschreiben
+Stand: 8. November 2026, Anwendungsversion 5.1.0. Die folgenden Verträge beschreiben
 den implementierten Stand; ältere Versionsbezeichnungen kennzeichnen die Einführung
 einer Funktion. Geplante Erweiterungen stehen in den getrennten Planungsdokumenten.
 
@@ -3238,3 +3238,31 @@ nicht als fehlender Zustand durch einen Default ersetzt werden.
 - **20.7 (4.9.6):** Version 4.9 führt konfigurierbare Postfach-Briefings, dauerhafte Zeitfenster und sichere PWA-Verweise zusammen. Release-Bericht, Paketprüfung sowie Windows-, Linux- und Browserprüfungen dokumentieren die Abnahme.
 
 - **Eigenbriefing-Schutz:** Vor APPEND wird neben Konto und Ordner ein SHA-256-Abdruck der deterministisch erzeugten MIME-Nachricht gespeichert. Unveränderte Nachrichten desselben Kontos werden beim Abruf ohne LLM als irrelevant abgeschlossen; der Nachweis bleibt in den vorbereiteten Metadaten über Neustarts erhalten. Fremde Konten, bloß gleiche Header und geänderte Inhalte genießen diese Ausnahme nicht.
+
+## Version 5.1 – Nachvollziehbare Erkennung
+
+### Erklärungsmodell (5.1.0)
+
+`review.explanation.explain(state)` liest ausschließlich den gespeicherten `MailState` und
+liefert die Schritte `intake` (Eingang und Vorfilter), `relevance`, `decision`
+(Aktionsentscheidung), `extraction` und `assessment` (Bewertung und Abgleich) sowie ein
+`result`. Jeder Schritt hat genau einen Ausgang: `done`, `skipped`, `failed`, `pending` oder
+`missing` („nicht mehr aufbewahrt“). Texte sind fest; es gibt keinen Modellaufruf zum
+Erklären.
+
+- Ein gespeicherter `ProcessingError` erscheint mit festem Text je Fehlercode am Schritt seiner
+  Stufe (Vorbereitung → Eingang; Relevanz und Zusammenfassung → Relevanz; Router →
+  Aktionsentscheidung; Extraktionen → Extraktion; alle späteren Stufen → Bewertung); das
+  Ergebnis lautet dann „Die Auswertung ist wegen eines Fehlers unvollständig.“.
+- Gründe, die Mailhelp selbst setzt (Absender-Vorfilter, eigenes Postfach-Briefing,
+  IServ-Elternbrief, kein Thema für das Postfach, großer Anhang, Telegram-Entscheidung,
+  eigene Notiz), werden als Regel in den Text übernommen. Jeder andere Relevanz- oder
+  Routergrund steht getrennt in `model_reason` und wird als Modellbewertung angezeigt.
+- Ein abgeschlossener Schritt ohne gespeichertes Ergebnis (Retention) ergibt `missing`; ein
+  entfernter Mailinhalt wird am Eingang vermerkt. Ohne Vorschläge und mit fehlenden Gründen
+  lautet das Ergebnis „Kein Vorschlag; die Gründe werden nicht mehr vollständig aufbewahrt.“
+  statt „Keine Aktion erkannt.“.
+- Zählkonflikte zwischen Router und Extraktion (`extraction_count_conflicts`) erscheinen als
+  Hinweis an der Extraktion, etwa „Router erwartete 2 Aufgaben; 1 wurde extrahiert.“.
+- Doppelt empfangene Mails werden als nicht ausgewertet erklärt; eine mögliche Dublette als
+  vorsorglich einzeln geprüft.

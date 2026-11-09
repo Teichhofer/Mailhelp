@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.0.12 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.1.0 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 5.0 überarbeitet die Weboberfläche: ruhigere, kontrastsichere Farben, eine
 Navigation für Tablet und Smartphone und eine schnellere Triage. Ab 5.0.0 erreichen alle
@@ -668,6 +668,14 @@ Checkpoints und der Message-ID-Abgleich verhindern doppelte Entwürfe nach Neust
 Nach dem Update den Dienst neu starten; die Briefing-Einstellungen wirken danach
 ohne Neustart. Einrichtung, Zeitumstellungen und Rückkehr beschreibt der
 [Release-Bericht 4.9](docs/Release-4.9.md).
+
+## Nachvollziehbare Erkennung (5.1)
+
+Version 5.1 macht nachvollziehbar, warum aus einer Mail eine Aufgabe, ein Termin oder
+nichts wurde. Ab 5.1.0 beschreibt ein Erklärungsmodell den tatsächlichen Verarbeitungsweg
+jeder Mail aus ihrem gespeicherten Zustand – mit festen Texten und ohne zusätzlichen
+Modellaufruf. Modellbegründungen bleiben als solche gekennzeichnet; nicht mehr
+aufbewahrte Ergebnisse werden als fehlend ausgewiesen. Plan: [Planung 5.1](docs/Planung-5.1.md).
 
 ## Lizenz
 
