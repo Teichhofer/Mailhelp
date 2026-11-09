@@ -1,5 +1,13 @@
 # Änderungen
 
+## 5.0.12 – Abnahme und Release 5.0 (Planung 5.0, Schritt 21.8)
+
+- Release-Bericht [docs/Release-5.0.md](docs/Release-5.0.md) mit allen Änderungen 5.0.0 bis
+  5.0.11, Upgrade, Rückkehr und Prüfnachweisen; Planung 5.0 ist abgeschlossen.
+- Abnahme unter Windows 11: 100 % Zeilen- und Branch-Abdeckung, 324 Browser-Tests,
+  Ruff und mypy ohne Befunde. Die Linux/Docker-Abnahme ist nicht durchgeführt, weil Docker
+  auf dem Abnahmerechner fehlte; sie ist nachzuholen.
+
 ## 5.0.11 – Tippflächen von 44 px (Planung 5.0, Schritt 21.7)
 
 - Die Browser-Prüfung verlangt auf Telefonen jetzt mindestens 44 px hohe Tippflächen

@@ -13,7 +13,7 @@ Die Anwendung läuft lokal unter Windows 11 oder als Docker-Dienst unter Linux.
 Für die KI-Auswertung verwendet sie OpenRouter; ein experimenteller Betrieb mit
 einem lokalen Ollama-Server ist ebenfalls verfügbar.
 
-**Version:** 5.0.11 · **Python:** 3.12.x · **Lizenz:** MIT
+**Version:** 5.0.12 · **Python:** 3.12.x · **Lizenz:** MIT
 
 Version 5.0 überarbeitet die Weboberfläche: ruhigere, kontrastsichere Farben, eine
 Navigation für Tablet und Smartphone und eine schnellere Triage. Ab 5.0.0 erreichen alle
@@ -31,7 +31,7 @@ bestätigt auch `A`, und die Seitenleiste zeigt „? Tastenkürzel“; ab 5.0.10
 erledigt“ die Tageswerte als Kacheln; ab 5.0.11 sind alle Tippflächen mindestens 44 px hoch. Ab 5.0.1 liegt die
 Navigation auf dem Telefon unten am Bildschirmrand (mit „Mehr“ für seltene Bereiche), auf
 dem Tablet als Symbolleiste; „Offen“ zeigt die Zahl offener Entscheidungen. Plan:
-[Planung 5.0](docs/Planung-5.0.md).
+[Planung 5.0](docs/Planung-5.0.md); Upgrade, Rückkehr und Prüfnachweise: [Release-Bericht 5.0](docs/Release-5.0.md).
 
 Version 4.4 trennt die Weboberfläche von der Verarbeitung. Ein Klick wird sofort
 quittiert, auch während die Mailanalyse läuft (gemessen: Median rund 30 ms). Danach
